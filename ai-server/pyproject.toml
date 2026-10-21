@@ -1,0 +1,16 @@
+[project]
+name = "dart-insight-ai-server"
+version = "0.0.1"
+description = "Dart Insight AI 서버: 원문 파싱·구조화, 문장 변경 탐지, 요약"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

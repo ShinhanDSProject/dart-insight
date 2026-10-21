@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: dart-insight-backend
+  config:
+    # backend/.env가 있으면 환경변수처럼 읽는다(.env는 커밋하지 않음)
+    import: optional:file:.env[.properties]
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
