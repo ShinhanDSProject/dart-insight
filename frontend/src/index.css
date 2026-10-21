@@ -1,16 +1,176 @@
-:root {
-  font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
-  line-height: 1.5;
-  color: #1f2328;
-  background-color: #ffffff;
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-md);
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-bg);
 }
 
-.app {
-  max-width: 960px;
+code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+/* 재무 수치: 고정폭 숫자, 오른쪽 정렬 */
+.num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* 레이아웃 */
+.layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.layout__inner {
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 32px 16px;
+  padding: 0 var(--space-4);
+}
+
+.layout__header {
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.layout__header .layout__inner {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  height: 56px;
+  align-items: center;
+}
+
+.layout__brand {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-lg);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.layout__tagline {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.layout__main {
+  flex: 1;
+  padding: var(--space-6) 0;
+}
+
+.layout__footer {
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-4) 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+/* 페이지 */
+.page__step {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.page__title {
+  margin: var(--space-1) 0 var(--space-2);
+  font-size: var(--font-size-xl);
+}
+
+.page__lead {
+  margin: 0 0 var(--space-5);
+  color: var(--color-text-muted);
+}
+
+/* 아직 만들지 않았거나 결정되지 않은 영역: 점선 */
+.placeholder {
+  padding: var(--space-5);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+}
+
+/* 버튼 */
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.button--primary {
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+}
+
+.button--secondary {
+  background: var(--color-bg);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+/* 상태 */
+.state {
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+}
+
+.state__title {
+  margin: 0 0 var(--space-2);
+  font-weight: var(--font-weight-bold);
+}
+
+.state__meta {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.state--loading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+}
+
+.state__spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.state--error {
+  border-color: var(--color-danger);
+  background: var(--color-danger-subtle);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
