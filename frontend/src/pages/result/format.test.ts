@@ -1,0 +1,52 @@
+import { describe, expect, it } from 'vitest'
+import { amountPeriodLabel, formatAmount, formatChange, formatRate, parseUnit } from './format'
+
+describe('result format', () => {
+  it('단위로 나눠 반올림하고 천 단위로 끊는다', () => {
+    expect(formatAmount(152_000_000_000_000, 'MILLION')).toBe('152,000,000')
+    expect(formatAmount(1_500_000, 'MILLION')).toBe('2')
+    expect(formatAmount(1_234_567, 'WON')).toBe('1,234,567')
+    expect(formatAmount(-260_000_000, 'HUNDRED_MILLION')).toBe('−3')
+    expect(formatAmount(-1, 'MILLION')).toBe('0')
+  })
+
+  it('없는 값을 0으로 바꾸지 않는다', () => {
+    expect(formatAmount(null, 'MILLION')).toBeNull()
+    expect(formatChange(null, 'MILLION')).toBeNull()
+    expect(formatRate(null)).toBeNull()
+  })
+
+  it('증감은 기호와 부호로 보여 준다', () => {
+    expect(formatChange(7_000_000, 'MILLION')).toBe('▲ 7')
+    expect(formatChange(-7_000_000, 'MILLION')).toBe('▼ 7')
+    expect(formatChange(0, 'MILLION')).toBe('0')
+    expect(formatRate(0.048276)).toBe('+4.8%')
+    expect(formatRate(-0.2)).toBe('−20.0%')
+    expect(formatRate(0)).toBe('0.0%')
+  })
+
+  it('금액 기준별 기간', () => {
+    const report = { fiscalYear: 2026, periodEnd: '2026-06-30' }
+    expect(amountPeriodLabel(report, 'POINT')).toBe('2026.06.30')
+    expect(amountPeriodLabel(report, 'CUMULATIVE')).toBe('2026.01.01 ~ 2026.06.30')
+    expect(amountPeriodLabel(report, 'QUARTER')).toBe('2026.04.01 ~ 2026.06.30')
+    expect(amountPeriodLabel({ fiscalYear: 2025, periodEnd: '2025-09-30' }, 'QUARTER')).toBe('2025.07.01 ~ 2025.09.30')
+  })
+
+  it('단위 기본값은 백만원', () => {
+    expect(parseUnit(null)).toBe('MILLION')
+    expect(parseUnit('WON')).toBe('WON')
+    expect(parseUnit('X')).toBe('MILLION')
+  })
+})
+
+describe('계산 불가 표시', () => {
+  it('사유를 짧게 보여 주고 없는 값은 0이 아니라 말로 쓴다', async () => {
+    const { missingValueLabel, shortCalcLabel } = await import('./format')
+    expect(shortCalcLabel('OK')).toBeNull()
+    expect(shortCalcLabel('PREVIOUS_ZERO')).toBe('계산 불가 · 이전 값 0')
+    expect(missingValueLabel('ONLY_CURRENT', 'previous')).toBe('없음')
+    expect(missingValueLabel('PREVIOUS_MISSING', 'previous')).toBe('미기재')
+    expect(missingValueLabel('PERIOD_MISMATCH', 'current')).toBe('—')
+  })
+})
