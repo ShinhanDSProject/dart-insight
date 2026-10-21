@@ -68,7 +68,8 @@ DART 정기보고서 두 개를 비교해, 바뀐 재무 수치와 문장을 원
 | OpenDART | [노션 · OpenDART 데이터 가이드](https://app.notion.com/p/400b6afffc6f81cc8870ee13d02d8ac1) | API 코드와 응답 필드 |
 | 프로젝트 개요 상세 | [`docs/project-overview.md`](docs/project-overview.md) | 노션 프로젝트 개요의 10/14 초안과 근거 |
 | 배경 조사 | [`docs/project-background-research.md`](docs/project-background-research.md) | 유사 서비스, OpenDART, LLM 기법, 규제 조사 |
-| API 명세·ERD | [`docs/templates/`](docs/templates/) | 템플릿. `docs/api-spec.md`·`docs/erd.md`로 복사해 작성 |
+| ERD | [`docs/erd.md`](docs/erd.md) | 테이블과 관계. 스키마를 바꾸는 PR에서 함께 고침 |
+| API 명세 | 템플릿 [`docs/templates/api-spec.md`](docs/templates/api-spec.md) | `docs/api-spec.md`로 복사해 작성 |
 | 협업 가이드 | [`docs/monorepo-team-guide.md`](docs/monorepo-team-guide.md) | Git·브랜치·PR 절차 |
 
 노션 페이지는 팀 워크스페이스 권한이 있어야 열립니다.
