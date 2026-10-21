@@ -1,20 +1,24 @@
 package com.dartinsight.support;
 
-import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * 테스트 데이터 정리. CI에서는 테스트가 MariaDB 하나를 같이 쓰므로, 테스트마다 앞에서 지운다.
- * 외래 키가 있는 테이블은 자식부터 넘긴다.
+ * 테이블을 추가하면 아래 목록에 외래 키의 자식 테이블부터 넣는다.
  */
 public final class TestData {
+
+    private static final List<String> TABLES_CHILD_FIRST = List.of(
+            "report",
+            "company");
 
     private TestData() {
     }
 
-    @SafeVarargs
-    public static void clearAll(JpaRepository<?, ?>... repositoriesChildFirst) {
-        for (JpaRepository<?, ?> repository : repositoriesChildFirst) {
-            repository.deleteAllInBatch();
+    public static void clearAll(JdbcTemplate jdbcTemplate) {
+        for (String table : TABLES_CHILD_FIRST) {
+            jdbcTemplate.update("DELETE FROM " + table);
         }
     }
 }
