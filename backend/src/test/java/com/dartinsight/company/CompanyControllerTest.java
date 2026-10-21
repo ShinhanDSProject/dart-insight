@@ -13,6 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -27,11 +28,14 @@ class CompanyControllerTest {
     private CompanyRepository companyRepository;
 
     @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @Autowired
     private CompanyImportService importService;
 
     @BeforeEach
     void setUp() {
-        TestData.clearAll(companyRepository);
+        TestData.clearAll(jdbcTemplate);
     }
 
     /** 테스트용 가짜 회사들. */

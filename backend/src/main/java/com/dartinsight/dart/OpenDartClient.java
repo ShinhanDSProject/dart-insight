@@ -4,6 +4,10 @@ import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
 import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -26,6 +30,10 @@ public class OpenDartClient {
     private static final Logger log = LoggerFactory.getLogger(OpenDartClient.class);
     private static final Pattern XML_STATUS = Pattern.compile("<status>\\s*(\\d+)\\s*</status>");
     private static final Pattern XML_MESSAGE = Pattern.compile("<message>(.*?)</message>", Pattern.DOTALL);
+    static final String OK = "000";
+    static final String NO_DATA = "013";
+    private static final int PAGE_SIZE = 100;
+    private static final int MAX_PAGES = 50;
 
     private final OpenDartProperties properties;
     private final RestClient restClient;
@@ -55,6 +63,48 @@ public class OpenDartClient {
             throw errorFromXml(body);
         }
         return body;
+    }
+
+    /**
+     * 정기공시(pblntf_ty=A) 중 최종보고서(last_reprt_at=Y) 목록. 페이지를 끝까지 받는다.
+     * 자료가 없으면(013) 빈 목록이다.
+     */
+    public List<DisclosureListResponse.Item> listPeriodicDisclosures(String corpCode, LocalDate begin, LocalDate end) {
+        requireApiKey();
+        List<DisclosureListResponse.Item> all = new ArrayList<>();
+        for (int page = 1; page <= MAX_PAGES; page++) {
+            int pageNo = page;
+            DisclosureListResponse response = execute("list.json", () -> restClient.get()
+                    .uri(uri -> uri.path("/api/list.json")
+                            .queryParam("crtfc_key", properties.apiKey())
+                            .queryParam("corp_code", corpCode)
+                            .queryParam("bgn_de", begin.format(DateTimeFormatter.BASIC_ISO_DATE))
+                            .queryParam("end_de", end.format(DateTimeFormatter.BASIC_ISO_DATE))
+                            .queryParam("pblntf_ty", "A")
+                            .queryParam("last_reprt_at", "Y")
+                            .queryParam("page_no", pageNo)
+                            .queryParam("page_count", PAGE_SIZE)
+                            .build())
+                    .retrieve()
+                    .body(DisclosureListResponse.class));
+            if (response == null) {
+                throw new ApiException(ErrorCode.DART_REQUEST_FAILED, "OpenDART 응답이 비어 있습니다.");
+            }
+            if (NO_DATA.equals(response.status())) {
+                return all;
+            }
+            if (!OK.equals(response.status())) {
+                throw statusError(response.status(), response.message());
+            }
+            if (response.list() != null) {
+                all.addAll(response.list());
+            }
+            int totalPage = response.totalPage() == null ? 1 : response.totalPage();
+            if (page >= totalPage) {
+                break;
+            }
+        }
+        return all;
     }
 
     void requireApiKey() {

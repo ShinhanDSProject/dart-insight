@@ -54,3 +54,8 @@ app:
     max-retries: 2
     # 기업 목록(corpCode.xml)을 시작할 때 받을지: on-empty(비어 있을 때만), always, never
     corp-code-sync: ${OPENDART_CORP_CODE_SYNC:on-empty}
+  reports:
+    # 정기보고서 목록을 받은 지 이 시간이 지나면 다시 받는다(OpenDART 호출 한도)
+    refresh-after: 24h
+    # 이 해 1월 1일 이후 접수된 보고서만 받는다(재무제표 API는 2015년 이후만 제공)
+    list-start-year: 2015
