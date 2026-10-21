@@ -163,7 +163,7 @@ git switch -c feature/docs-onboarding
 
 브랜치를 바꾸기 전 `git status`에서 미완료 변경이 없는지 확인한다. 변경이 있다면 현재 브랜치에서 필요한 내용을 커밋하거나, 임시 보관 방법을 팀원에게 확인한 뒤 이동한다. 작업 파일을 무작정 삭제하거나 강제로 되돌리지 않는다.
 
-브랜치 이름 예: `feature/disclosure-search`, `feature/analysis-api`, `feature/docs-onboarding`. 하나의 브랜치에는 하나의 작업 목적을 둔다.
+브랜치 이름은 노션 개발 기준을 따른다: `feature/{WBS ID}-{짧은-영문-이름}`(예: `feature/2.4-financial-compare`), 문서만 바꿀 때는 `docs/{이름}`, 설정만 바꿀 때는 `chore/{이름}`. 하나의 브랜치에는 하나의 작업 목적을 둔다.
 
 ### 5.2 파일을 수정하고 확인
 
@@ -252,7 +252,7 @@ CodeRabbit 설치 시에는 저장소 접근 범위와 자동 리뷰를 설정�
 
 준비가 끝나면 **PR 작성자가 직접 Merge**하고 완료 상태를 확인한다. 이는 본인의 PR에 스스로 Approve한다는 의미가 아니라, 필요한 조건을 만족한 PR의 병합 버튼을 누른다는 뜻이다.
 
-Rulesets는 merge·squash·rebase 방식을 허용하지만 저장소의 별도 설정에 따라 버튼이 달라질 수 있다. 병합 방식이 아직 팀에서 정해지지 않았다면 표시된 방법을 확인하고 팀과 맞춘다. 이 문서는 특정 병합 방식이 이미 확정되었다고 가정하지 않는다.
+병합 방식은 **Squash and merge** 하나로 정했다(10/21). 저장소 설정(Settings → General → Pull Requests)에서 다른 방식을 끄면 병합 버튼에는 이 방식만 보인다. 설정을 바꾸기 전이라도 병합 버튼 옆 화살표에서 **Squash and merge**를 고른다. PR의 커밋이 하나로 합쳐지고 PR 제목이 `main`의 커밋 제목이 되므로, PR 제목 규칙(`[WBS ID] 이슈 제목`)을 지킨다.
 
 병합 후 더 사용할 일이 없는 feature 브랜치는 GitHub의 **Delete branch**로 정리할 수 있다. `main`은 삭제하지 않는다.
 
@@ -274,7 +274,7 @@ git fetch --prune origin
 git branch -d feature/docs-onboarding
 ```
 
-Squash 또는 Rebase 방식으로 병합했다면 Git이 원래 커밋을 병합된 것으로 판단하지 못해 `-d`를 거부할 수 있다. 이때 바로 강제 삭제하지 말고 GitHub의 Merged 상태, 변경 반영 여부, 아직 필요한 커밋이 없는지를 확인한다.
+Squash 또는 Rebase 방식으로 병합했다면 Git이 원래 커밋을 병합된 것으로 판단하지 못해 `-d`를 거부할 수 있다. 이때 바로 강제 삭제하지 말고 GitHub의 Merged 상태, 변경 반영 여부, 아직 필요한 커밋이 없는지를 확인한다. 우리는 Squash 방식을 쓰므로 `-d`가 거부되는 것이 보통이다. 위 내용을 확인한 뒤에만 `git branch -D 브랜치이름`으로 지운다.
 
 다음 작업은 업데이트한 `main`에서 **새로운 feature 브랜치**를 만들어 시작한다. 이미 병합된 브랜치를 계속 재사용하지 않는다.
 

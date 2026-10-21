@@ -19,6 +19,38 @@
 *.tar.gz
 *.rar
 
+# Gradle Wrapper JAR은 Spring Boot 빌드에 필요하므로 위 *.jar 규칙에서 제외
+!**/gradle/wrapper/gradle-wrapper.jar
+
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+# 로컬 환경 설정: 실제 값 대신 .env.example 공유
+.env
+.env.*
+!.env.example
+
+# 프론트엔드 의존성과 빌드 결과
+node_modules/
+dist/
+
+# Python 환경과 캐시
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# OpenDART 원문·응답 로컬 캐시
+.cache/
+
+# Java 빌드 결과와 캐시
+.gradle/
+build/
+target/
+
+# IDE·OS 파일
+.idea/
+.vscode/
+*.iml
+.DS_Store
