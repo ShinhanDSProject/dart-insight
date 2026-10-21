@@ -1,8 +1,8 @@
-sha=16c04f3cb2175a0d92cc9525dcd318165f3c59a2 status=success
+sha=0d4cef294ffdb78fd5939bf5e1132316d4219795 status=success
 ----- tail -----
 npm warn deprecated eslint@9.39.5: This version is no longer supported. Please see https://eslint.org/version-support for other options.
 
-added 211 packages in 4s
+added 211 packages in 3s
 
 > dart-insight-frontend@0.0.1 lint
 > eslint .
@@ -14,16 +14,16 @@ added 211 packages in 4s
 
 [1m[46m RUN [49m[22m [36mv3.2.7 [39m[90m/home/runner/work/dart-insight/dart-insight/frontend[39m
 
- [32m✓[39m src/pages/company/reportLabels.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 6[2mms[22m[39m
- [32m✓[39m src/api/client.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 18[2mms[22m[39m
- [32m✓[39m src/pages/company/pairSelection.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
- [32m✓[39m src/lib/dart.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
- [32m✓[39m src/pages/search/searchQuery.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m src/pages/company/reportLabels.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m src/api/client.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+ [32m✓[39m src/pages/company/pairSelection.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/lib/dart.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m src/pages/search/searchQuery.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 3[2mms[22m[39m
 
 [2m Test Files [22m [1m[32m5 passed[39m[22m[90m (5)[39m
 [2m      Tests [22m [1m[32m19 passed[39m[22m[90m (19)[39m
-[2m   Start at [22m 09:06:04
-[2m   Duration [22m 893ms[2m (transform 195ms, setup 0ms, collect 271ms, tests 45ms, environment 1ms, prepare 630ms)[22m
+[2m   Start at [22m 09:16:18
+[2m   Duration [22m 766ms[2m (transform 213ms, setup 0ms, collect 326ms, tests 34ms, environment 2ms, prepare 543ms)[22m
 
 
 > dart-insight-frontend@0.0.1 build
