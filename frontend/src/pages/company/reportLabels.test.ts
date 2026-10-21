@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { correctionLabel, dataStatusLabel, formatDate, periodLabel } from './reportLabels'
+import { correctionLabel, dataStatusLabel, formatDate, periodLabel, reportTypeLabel } from './reportLabels'
 
 describe('reportLabels', () => {
   it('대상 기간은 사업연도 시작부터 기간 끝까지 보여 준다', () => {
@@ -9,6 +9,11 @@ describe('reportLabels', () => {
     expect(periodLabel({ reportType: 'ANNUAL', fiscalYear: 2025, periodEnd: '2025-12-31' })).toBe(
       '2025 사업연도 (2025.01.01 ~ 2025.12.31)',
     )
+  })
+
+  it('보고서 종류 이름', () => {
+    expect(reportTypeLabel('Q3')).toBe('3분기보고서')
+    expect(reportTypeLabel('ANNUAL')).toBe('사업보고서')
   })
 
   it('제출일은 날짜만 보여 준다', () => {

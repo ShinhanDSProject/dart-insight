@@ -9,6 +9,13 @@ const periodNames: Record<ReportType, string> = {
   ANNUAL: '사업연도',
 }
 
+const reportTypeLabels: Record<ReportType, string> = {
+  Q1: '1분기보고서',
+  HALF: '반기보고서',
+  Q3: '3분기보고서',
+  ANNUAL: '사업보고서',
+}
+
 const correctionLabels: Record<Correction, string> = {
   ORIGINAL: '정정 없음',
   CORRECTED: '정정 있음 · 최종본',
@@ -33,6 +40,10 @@ export function formatDate(isoDate: string): string {
 export function periodLabel(report: Pick<ReportItem, 'reportType' | 'fiscalYear' | 'periodEnd'>): string {
   const start = `${report.fiscalYear}.01.01`
   return `${report.fiscalYear} ${periodNames[report.reportType]} (${start} ~ ${formatDate(report.periodEnd)})`
+}
+
+export function reportTypeLabel(type: ReportType): string {
+  return reportTypeLabels[type]
 }
 
 export function correctionLabel(correction: Correction): string {

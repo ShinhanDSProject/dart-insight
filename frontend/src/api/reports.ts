@@ -32,3 +32,18 @@ export interface ReportList {
 export function listReports(corpCode: string): Promise<ReportList> {
   return apiGet(`/api/companies/${encodeURIComponent(corpCode)}/reports`)
 }
+
+export interface ReportDetail extends ReportItem {
+  corpCode: string
+  corpName: string
+  /** OpenDART 비고(rm) 원문 */
+  remark: string | null
+  /** 제출인 */
+  filerName: string | null
+  /** OpenDART 최신 목록에 있는지. 정정 공시로 대체됐으면 false */
+  latest: boolean
+}
+
+export function getReport(rceptNo: string): Promise<ReportDetail> {
+  return apiGet(`/api/reports/${encodeURIComponent(rceptNo)}`)
+}
