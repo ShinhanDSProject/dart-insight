@@ -15,4 +15,7 @@ public interface FinancialAccountRepository extends JpaRepository<FinancialAccou
     @Modifying
     @Query("delete from FinancialAccount a where a.fetchId = :fetchId")
     void deleteByFetchId(Long fetchId);
+
+    @Query("select distinct a.currency from FinancialAccount a where a.fetchId = :fetchId and a.currency is not null")
+    List<String> findCurrencies(Long fetchId);
 }

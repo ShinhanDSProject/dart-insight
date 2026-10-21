@@ -101,6 +101,11 @@ public class FinancialStatementService implements FinancialDataStatusProvider {
         return fetch.hasData() ? accountRepository.findByFetchIdOrderBySjDivAscOrdAscIdAsc(fetch.getId()) : List.of();
     }
 
+    /** 재무제표에 쓰인 통화(보통 KRW 하나) */
+    public List<String> currencies(FinancialStatementFetch fetch) {
+        return fetch.hasData() ? accountRepository.findCurrencies(fetch.getId()) : List.of();
+    }
+
     private Optional<FinancialStatementFetch> find(String corpCode, int fiscalYear, String reprtCode, FsDiv fsDiv) {
         return fetchRepository.findByCorpCodeAndFiscalYearAndReprtCodeAndFsDiv(corpCode, fiscalYear, reprtCode, fsDiv);
     }
