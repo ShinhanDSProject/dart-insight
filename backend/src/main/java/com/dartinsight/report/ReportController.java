@@ -61,7 +61,7 @@ public class ReportController {
             FinancialDataStatus financialDataStatus,
             String dartUrl) {
 
-        static ReportItemResponse from(Report report, FinancialDataStatus financialDataStatus) {
+        public static ReportItemResponse from(Report report, FinancialDataStatus financialDataStatus) {
             return new ReportItemResponse(report.getRceptNo(), report.getReportName(), report.getReportType(),
                     report.getReportType().disclosureType(), report.getFiscalYear(), report.getPeriodEnd(),
                     report.getRceptDt(), report.getCorrection(), financialDataStatus,
