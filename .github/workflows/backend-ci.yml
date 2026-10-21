@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  JAVA_VERSION: '17' # 개발환경에서 정한 버전과 맞춥니다
+  JAVA_VERSION: '21' # backend/build.gradle의 toolchain과 같게 둡니다
 
 jobs:
   build:
@@ -66,9 +66,10 @@ jobs:
       - name: 빌드와 테스트
         if: steps.project.outputs.exists == 'true'
         env:
-          DB_URL: jdbc:mariadb://localhost:3306/dart_insight
-          DB_USERNAME: dart
-          DB_PASSWORD: ci-only
+          # 테스트를 H2 대신 위 MariaDB 컨테이너로 돌린다(application-test.yml의 TEST_DB_*)
+          TEST_DB_URL: jdbc:mariadb://localhost:3306/dart_insight
+          TEST_DB_USERNAME: dart
+          TEST_DB_PASSWORD: ci-only
           OPENDART_API_KEY: ci-dummy-key # 테스트는 OpenDART를 실제로 부르지 않습니다
         run: |
           chmod +x gradlew
