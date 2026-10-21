@@ -1,4 +1,4 @@
-sha=aa276cecf1b18e0000784ece806a2e8a631bd921 status=success
+sha=4fae48ff8ac9583c4403f36d21cfb9587d01f270 status=success
 ----- tail -----
 npm warn deprecated eslint@9.39.5: This version is no longer supported. Please see https://eslint.org/version-support for other options.
 
@@ -14,12 +14,12 @@ added 211 packages in 4s
 
 [1m[46m RUN [49m[22m [36mv3.2.7 [39m[90m/home/runner/work/dart-insight/dart-insight/frontend[39m
 
- [32m✓[39m src/api/client.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32m✓[39m src/api/client.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 8[2mms[22m[39m
 
 [2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
 [2m      Tests [22m [1m[32m5 passed[39m[22m[90m (5)[39m
-[2m   Start at [22m 08:37:20
-[2m   Duration [22m 396ms[2m (transform 76ms, setup 0ms, collect 63ms, tests 12ms, environment 0ms, prepare 84ms)[22m
+[2m   Start at [22m 08:42:47
+[2m   Duration [22m 385ms[2m (transform 145ms, setup 0ms, collect 49ms, tests 8ms, environment 0ms, prepare 131ms)[22m
 
 
 > dart-insight-frontend@0.0.1 build
@@ -33,4 +33,4 @@ computing gzip size...
 [2mdist/[22m[32mindex.html                 [39m[1m[2m  0.40 kB[22m[1m[22m[2m │ gzip:   0.27 kB[22m
 [2mdist/[22m[2massets/[22m[35mindex-CedppuK2.css  [39m[1m[2m  3.46 kB[22m[1m[22m[2m │ gzip:   1.19 kB[22m
 [2mdist/[22m[2massets/[22m[36mindex-DhbOU2hv.js   [39m[1m[2m317.89 kB[22m[1m[22m[2m │ gzip: 101.37 kB[22m
-[32m✓ built in 1.61s[39m
+[32m✓ built in 1.27s[39m
