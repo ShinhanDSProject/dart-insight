@@ -48,6 +48,7 @@ erDiagram
         date period_end "대상 기간 끝"
         date rcept_dt "접수일"
         varchar correction "ORIGINAL CORRECTED UNKNOWN"
+        datetime last_seen_at "최신 목록에서 본 시각"
     }
     financial_statement_fetch {
         bigint id PK
@@ -108,7 +109,9 @@ OpenDART `corpCode.xml`에서 받습니다(4.4).
 
 ### report
 
-OpenDART 공시검색(`list.json`, 정기공시 A001~A003, 최종보고서만)에서 받습니다(4.1).
+OpenDART 공시검색(`list.json`, 정기공시 중 최종보고서만)에서 받습니다(4.1). 사업·반기·분기보고서 가운데 12월 결산 회사의 보고서만 저장하고, 나머지 정기공시는 건너뜁니다(잠정안).
+
+정정되어 최신 목록에서 빠진 보고서는 지우지 않습니다(이미 분석에 쓰였을 수 있음). 목록을 받을 때마다 받은 보고서의 `last_seen_at`을 그 시각으로 바꾸고, 화면에는 `last_seen_at >= company.reports_fetched_at`인 보고서만 보여 줍니다.
 
 | 컬럼 | 타입 | 키 | null | 설명 |
 | --- | --- | --- | --- | --- |
@@ -119,9 +122,10 @@ OpenDART 공시검색(`list.json`, 정기공시 A001~A003, 최종보고서만)�
 | `fiscal_year` | INT | | 아니오 | 사업연도 |
 | `period_end` | DATE | | 아니오 | 대상 기간의 끝(보고서명의 `(2026.06)` → 2026-06-30) |
 | `rcept_dt` | DATE | | 아니오 | 접수일 |
-| `correction` | VARCHAR(10) | | 아니오 | `ORIGINAL` 원본, `CORRECTED` 정정, `UNKNOWN` 확인 안 됨 |
+| `correction` | VARCHAR(10) | | 아니오 | `ORIGINAL` 원본, `CORRECTED` 정정(보고서명 앞머리에 '정정'), `UNKNOWN` 확인 안 됨(앞머리는 없는데 비고에 '정'. '제출 뒤 정정신고가 있었다'는 뜻이라 추정하지 않음) |
 | `remark` | VARCHAR(20) | | 예 | 비고(`rm`) 원문 |
 | `filer_name` | VARCHAR(200) | | 예 | 공시 제출인 |
+| `last_seen_at` | DATETIME(6) | | 아니오 | OpenDART 최신 목록에서 마지막으로 본 시각 |
 | `created_at`, `updated_at` | DATETIME(6) | | 아니오 | |
 
 ### financial_statement_fetch

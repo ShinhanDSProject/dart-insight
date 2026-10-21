@@ -41,7 +41,7 @@
 | 이름 | 값 |
 | --- | --- |
 | `reportType` | `ANNUAL` 사업보고서, `HALF` 반기보고서, `Q1` 1분기보고서, `Q3` 3분기보고서 |
-| `correction` | `ORIGINAL` 원본, `CORRECTED` 정정, `UNKNOWN` 확인 안 됨 |
+| `correction` | `ORIGINAL` 원본, `CORRECTED` 정정(보고서명 앞머리에 '정정'), `UNKNOWN` 확인 안 됨(비고 `rm`에 '정'만 있음) |
 | `financialDataStatus` | `UNKNOWN` 확인 전, `AVAILABLE` 재무 자료 있음, `NOT_AVAILABLE` 재무 자료 없음 |
 | `basis` | `YOY` 전년 동기, `PREV` 직전 기간, `CUSTOM` 직접 선택 |
 | `status` (분석) | `PENDING` 대기, `RUNNING` 진행, `COMPLETED` 완료, `FAILED` 실패 |
