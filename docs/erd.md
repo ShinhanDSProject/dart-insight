@@ -208,7 +208,7 @@ API는 사업연도·보고서 코드마다 최신 공시 하나의 값만 줍�
 | `previous_account_id`, `current_account_id` | VARCHAR(200) | | 예 | 근거 계정 |
 | `previous_period_name`, `current_period_name` | VARCHAR(50) | | 예 | 근거 기간 이름 |
 
-`calc_status`: `OK`, `PREVIOUS_ZERO`(이전 값 0), `PREVIOUS_NEGATIVE`(이전 값 음수), `PREVIOUS_MISSING`(이전 값 미기재), `CURRENT_MISSING`(현재 값 미기재), `ONLY_CURRENT`(현재 보고서에만 있음), `ONLY_PREVIOUS`(이전 보고서에만 있음), `PERIOD_MISMATCH`(기간이 달라 계산하지 않음).
+`calc_status`: `OK`, `PREVIOUS_ZERO`(이전 값 0), `PREVIOUS_NEGATIVE`(이전 값 음수), `PREVIOUS_MISSING`(이전 값 미기재), `CURRENT_MISSING`(현재 값 미기재), `ONLY_CURRENT`(현재 보고서에만 있음), `ONLY_PREVIOUS`(이전 보고서에만 있음), `AMBIGUOUS_MATCH`(같은 계정이 여러 개이고 두 보고서의 개수가 달라 짝을 확정하지 못함, 검토 필요), `PERIOD_MISMATCH`(기간이 달라 계산하지 않음).
 
 ## 4. 인덱스·제약
 

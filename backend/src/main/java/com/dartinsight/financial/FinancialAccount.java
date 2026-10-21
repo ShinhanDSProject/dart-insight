@@ -73,8 +73,9 @@ public class FinancialAccount {
     protected FinancialAccount() {
     }
 
-    FinancialAccount(Long fetchId, String rceptNo, String sjDiv, String sjName, String accountId, String accountName,
-            String accountDetail, Integer ord, String currency, String thstrmName, String frmtrmName,
+    public FinancialAccount(Long fetchId, String rceptNo, String sjDiv, String sjName, String accountId,
+            String accountName, String accountDetail, Integer ord, String currency, String thstrmName,
+            String frmtrmName,
             Long thstrmAmount, Long thstrmAddAmount, Long frmtrmAmount, Long frmtrmQAmount, Long frmtrmAddAmount) {
         this.fetchId = fetchId;
         this.rceptNo = rceptNo;
