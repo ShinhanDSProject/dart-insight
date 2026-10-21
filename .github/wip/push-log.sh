@@ -18,7 +18,7 @@ mkdir -p .wip-logs
 } > ".wip-logs/$name.log"
 git config user.name "wip-check"
 git config user.email "wip-check@users.noreply.github.com"
-git add ".wip-logs/$name.log"
+git add -f ".wip-logs/$name.log"
 if [ -n "$extra" ] && [ -f "$extra" ]; then git add -f "$extra"; fi
 git commit -q -m "[wip-log] $name $status $sha" || exit 0
 for i in 1 2 3 4 5; do
