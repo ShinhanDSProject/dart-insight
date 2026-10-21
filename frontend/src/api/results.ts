@@ -52,3 +52,30 @@ export interface FinancialChangeList {
 export function getFinancialChanges(analysisId: number, sjDiv: SjDiv, changedOnly: boolean): Promise<FinancialChangeList> {
   return apiGet(`/api/analyses/${analysisId}/financial-changes`, { sjDiv, changedOnly })
 }
+
+export interface ValueSource {
+  rceptNo: string
+  reportName: string
+  fiscalYear: number
+  periodEnd: string
+  /** 재무제표 API의 당기 이름(예: 제 57 기 반기) */
+  periodName: string | null
+  sjDiv: SjDiv
+  accountId: string
+  dartUrl: string
+}
+
+export interface FinancialChangeDetail extends FinancialChangeItem {
+  accountKey: string
+  fsDiv: FsDiv
+  /** 증감액 계산식(원 단위). 계산하지 않았으면 null */
+  formula: string | null
+  /** 증감률 계산식. 계산하지 않았으면 null */
+  rateFormula: string | null
+  previous: ValueSource | null
+  current: ValueSource | null
+}
+
+export function getFinancialChange(analysisId: number, changeId: number): Promise<FinancialChangeDetail> {
+  return apiGet(`/api/analyses/${analysisId}/financial-changes/${changeId}`)
+}

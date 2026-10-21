@@ -422,20 +422,26 @@
 ### GET /api/analyses/{analysisId}/financial-changes/{changeId} — 수치 근거 상세
 
 - 이슈: #21 (3.3) · 화면: W-03 ② 계정 선택
+- 완료된 분석의 그 분석 항목만 돌려줍니다. 다른 분석의 항목 번호면 404입니다.
+- 계산하지 못한 항목은 `formula`·`rateFormula`가 null이고 `calcMessage`에 사유가 있습니다. 숫자를 채우지 않습니다.
+- 한쪽 보고서에만 있는 계정이면 없는 쪽의 `previous` 또는 `current`가 null입니다.
 
-**응답 200**: 목록 항목에 아래를 더합니다.
+**응답 200**: 목록 항목 필드에 아래를 더합니다.
 
 ```json
 {
   "changeId": 901,
   "accountName": "매출액",
   "accountKey": "ifrs-full_Revenue",
+  "fsDiv": "CFS",
   "currency": "KRW",
   "formula": "152,000,000,000,000 − 145,000,000,000,000 = 7,000,000,000,000",
-  "rateFormula": "7,000,000,000,000 ÷ 145,000,000,000,000 = 4.83%",
+  "rateFormula": "7,000,000,000,000 ÷ 145,000,000,000,000 × 100 = 4.83%",
   "previous": {
     "rceptNo": "20250814000987",
     "reportName": "반기보고서 (2025.06)",
+    "fiscalYear": 2025,
+    "periodEnd": "2025-06-30",
     "periodName": "제 56 기 반기",
     "sjDiv": "IS",
     "accountId": "ifrs-full_Revenue",
@@ -447,7 +453,8 @@
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
-| 404 | `ANALYSIS_NOT_FOUND`, `FINANCIAL_CHANGE_NOT_FOUND` | 없는 분석·항목 |
+| 404 | `ANALYSIS_NOT_FOUND`, `ANALYSIS_CHANGE_NOT_FOUND` | 없는 분석·항목 |
+| 409 | `ANALYSIS_NOT_READY` | 분석이 아직 완료되지 않음 |
 
 ### GET /api/system/health — 연결 상태
 
