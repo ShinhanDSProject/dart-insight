@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { getCompany, type Company } from '../api/companies'
 import { listReports, type ReportItem, type ReportList } from '../api/reports'
+import { DartLinkInline } from '../components/DartLink'
 import { EmptyState, ErrorState, LoadingState } from '../components/StateView'
 import { ReportDetailPanel } from './company/ReportDetailPanel'
 import { correctionLabel, dataStatusHelp, dataStatusLabel, formatDate, periodLabel } from './company/reportLabels'
@@ -157,6 +158,7 @@ function ReportTable({ items, current, onSelect }: ReportTableProps) {
             <th scope="col">제출일</th>
             <th scope="col">정정 여부</th>
             <th scope="col">자료 상태</th>
+            <th scope="col">원문</th>
           </tr>
         </thead>
         <tbody>
@@ -182,6 +184,9 @@ function ReportTable({ items, current, onSelect }: ReportTableProps) {
                 <td>{formatDate(report.receivedAt)}</td>
                 <td>{correctionLabel(report.correction)}</td>
                 <td title={dataStatusHelp[report.financialDataStatus]}>{dataStatusLabel(report.financialDataStatus)}</td>
+                <td>
+                  <DartLinkInline rceptNo={report.rceptNo} dartUrl={report.dartUrl} label={report.reportName} />
+                </td>
               </tr>
             )
           })}
