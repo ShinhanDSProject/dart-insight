@@ -1,8 +1,8 @@
-sha=aeae55f39dc8a297d4a77ca8b937dc16ee33fb11 status=success
+sha=e065e7c7ad7a1c67c7d2b161b576f983110427ba status=success
 27:OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
-76:  com.dartinsight.common.error.GlobalExceptionHandlerTest: 10 tests, 0 failed, 0 skipped
-103:OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
-150:  com.dartinsight.common.error.GlobalExceptionHandlerTest: 10 tests, 0 failed, 0 skipped
+77:  com.dartinsight.common.error.GlobalExceptionHandlerTest: 10 tests, 0 failed, 0 skipped
+104:OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+152:  com.dartinsight.common.error.GlobalExceptionHandlerTest: 10 tests, 0 failed, 0 skipped
 ----- tail -----
 ### build with MariaDB
 
@@ -31,33 +31,33 @@ Note: Recompile with -Xlint:deprecation for details.
 > Task :processTestResources
 > Task :testClasses
 OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
-2026-10-21T09:37:15.233Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-10-21T09:37:15.235Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
-2026-10-21T09:37:15.239Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
-2026-10-21T09:37:15.243Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-10-21T09:37:15.243Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Shutdown initiated...
-2026-10-21T09:37:15.246Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Shutdown completed.
-2026-10-21T09:37:15.248Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-10-21T09:37:15.248Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-3 - Shutdown initiated...
-2026-10-21T09:37:15.252Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-3 - Shutdown completed.
-2026-10-21T09:37:15.254Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-10-21T09:37:15.255Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-4 - Shutdown initiated...
-2026-10-21T09:37:15.260Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-4 - Shutdown completed.
-2026-10-21T09:37:15.263Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-10-21T09:37:15.263Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-5 - Shutdown initiated...
-2026-10-21T09:37:15.266Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-5 - Shutdown completed.
-2026-10-21T09:37:15.267Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-10-21T09:37:15.267Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-6 - Shutdown initiated...
-2026-10-21T09:37:15.270Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-6 - Shutdown completed.
-2026-10-21T09:37:15.271Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-10-21T09:37:15.271Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-7 - Shutdown initiated...
-2026-10-21T09:37:15.273Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-7 - Shutdown completed.
-2026-10-21T09:37:15.275Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-10-21T09:37:15.275Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-8 - Shutdown initiated...
-2026-10-21T09:37:15.278Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-8 - Shutdown completed.
-2026-10-21T09:37:15.279Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-10-21T09:37:15.279Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-9 - Shutdown initiated...
-2026-10-21T09:37:15.294Z  INFO [] 2846 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-9 - Shutdown completed.
+2026-10-21T09:39:56.694Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-21T09:39:56.696Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-10-21T09:39:56.700Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2026-10-21T09:39:56.703Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-21T09:39:56.704Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Shutdown initiated...
+2026-10-21T09:39:56.709Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Shutdown completed.
+2026-10-21T09:39:56.711Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-21T09:39:56.713Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-3 - Shutdown initiated...
+2026-10-21T09:39:56.719Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-3 - Shutdown completed.
+2026-10-21T09:39:56.721Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-21T09:39:56.721Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-4 - Shutdown initiated...
+2026-10-21T09:39:56.725Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-4 - Shutdown completed.
+2026-10-21T09:39:56.727Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-21T09:39:56.728Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-5 - Shutdown initiated...
+2026-10-21T09:39:56.732Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-5 - Shutdown completed.
+2026-10-21T09:39:56.736Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-21T09:39:56.736Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-6 - Shutdown initiated...
+2026-10-21T09:39:56.740Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-6 - Shutdown completed.
+2026-10-21T09:39:56.743Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-21T09:39:56.743Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-7 - Shutdown initiated...
+2026-10-21T09:39:56.747Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-7 - Shutdown completed.
+2026-10-21T09:39:56.749Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-21T09:39:56.749Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-8 - Shutdown initiated...
+2026-10-21T09:39:56.752Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-8 - Shutdown completed.
+2026-10-21T09:39:56.754Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-21T09:39:56.754Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-9 - Shutdown initiated...
+2026-10-21T09:39:56.772Z  INFO [] 2898 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-9 - Shutdown completed.
 > Task :test
 > Task :check
 > Task :build
@@ -70,7 +70,7 @@ You can use '--warning-mode all' to show the individual deprecation warnings and
 
 For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
 
-BUILD SUCCESSFUL in 34s
+BUILD SUCCESSFUL in 37s
 8 actionable tasks: 8 executed
 Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.5.1/userguide/configuration_cache_enabling.html
   com.dartinsight.HealthEndpointTest: 1 tests, 0 failed, 0 skipped
@@ -78,6 +78,7 @@ Consider enabling configuration cache to speed up this build: https://docs.gradl
   com.dartinsight.analysis.AnalysisApiTest: 6 tests, 0 failed, 0 skipped
   com.dartinsight.analysis.AnalysisResultTest: 6 tests, 0 failed, 0 skipped
   com.dartinsight.analysis.AnalysisStatusTest: 4 tests, 0 failed, 0 skipped
+  com.dartinsight.analysis.FinancialChangeDetailTest: 3 tests, 0 failed, 0 skipped
   com.dartinsight.analysis.FinancialComparatorTest: 10 tests, 0 failed, 0 skipped
   com.dartinsight.common.error.GlobalExceptionHandlerTest: 10 tests, 0 failed, 0 skipped
   com.dartinsight.company.CompanyControllerTest: 9 tests, 0 failed, 0 skipped
@@ -95,7 +96,7 @@ Consider enabling configuration cache to speed up this build: https://docs.gradl
   com.dartinsight.report.ReportNameParserTest: 9 tests, 0 failed, 0 skipped
   com.dartinsight.report.ReportSyncServiceTest: 6 tests, 0 failed, 0 skipped
   com.dartinsight.system.SystemHealthControllerTest: 2 tests, 0 failed, 0 skipped
-TOTAL: 125 tests, 0 failed, 0 skipped
+TOTAL: 128 tests, 0 failed, 0 skipped
 ### test with H2
 To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
 Daemon will be stopped at the end of the build 
@@ -107,33 +108,33 @@ Daemon will be stopped at the end of the build
 > Task :processTestResources UP-TO-DATE
 > Task :testClasses UP-TO-DATE
 OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
-2026-10-21T09:37:38.444Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-10-21T09:37:38.449Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
-2026-10-21T09:37:38.451Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
-2026-10-21T09:37:38.456Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-10-21T09:37:38.457Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Shutdown initiated...
-2026-10-21T09:37:38.457Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Shutdown completed.
-2026-10-21T09:37:38.459Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-10-21T09:37:38.460Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-3 - Shutdown initiated...
-2026-10-21T09:37:38.461Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-3 - Shutdown completed.
-2026-10-21T09:37:38.462Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-10-21T09:37:38.462Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-4 - Shutdown initiated...
-2026-10-21T09:37:38.464Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-4 - Shutdown completed.
-2026-10-21T09:37:38.465Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-10-21T09:37:38.466Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-5 - Shutdown initiated...
-2026-10-21T09:37:38.467Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-5 - Shutdown completed.
-2026-10-21T09:37:38.468Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-10-21T09:37:38.468Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-6 - Shutdown initiated...
-2026-10-21T09:37:38.469Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-6 - Shutdown completed.
-2026-10-21T09:37:38.470Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-10-21T09:37:38.471Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-7 - Shutdown initiated...
-2026-10-21T09:37:38.473Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-7 - Shutdown completed.
-2026-10-21T09:37:38.483Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-10-21T09:37:38.484Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-8 - Shutdown initiated...
-2026-10-21T09:37:38.488Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-8 - Shutdown completed.
-2026-10-21T09:37:38.491Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-10-21T09:37:38.491Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-9 - Shutdown initiated...
-2026-10-21T09:37:38.497Z  INFO [] 3438 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-9 - Shutdown completed.
+2026-10-21T09:40:26.419Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-21T09:40:26.421Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-10-21T09:40:26.422Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2026-10-21T09:40:26.425Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-21T09:40:26.426Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Shutdown initiated...
+2026-10-21T09:40:26.426Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Shutdown completed.
+2026-10-21T09:40:26.428Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-21T09:40:26.428Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-3 - Shutdown initiated...
+2026-10-21T09:40:26.429Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-3 - Shutdown completed.
+2026-10-21T09:40:26.430Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-21T09:40:26.431Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-4 - Shutdown initiated...
+2026-10-21T09:40:26.434Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-4 - Shutdown completed.
+2026-10-21T09:40:26.436Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-21T09:40:26.436Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-5 - Shutdown initiated...
+2026-10-21T09:40:26.437Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-5 - Shutdown completed.
+2026-10-21T09:40:26.438Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-21T09:40:26.439Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-6 - Shutdown initiated...
+2026-10-21T09:40:26.441Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-6 - Shutdown completed.
+2026-10-21T09:40:26.443Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-21T09:40:26.444Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-7 - Shutdown initiated...
+2026-10-21T09:40:26.447Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-7 - Shutdown completed.
+2026-10-21T09:40:26.449Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-21T09:40:26.450Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-8 - Shutdown initiated...
+2026-10-21T09:40:26.451Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-8 - Shutdown completed.
+2026-10-21T09:40:26.453Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-21T09:40:26.453Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-9 - Shutdown initiated...
+2026-10-21T09:40:26.455Z  INFO [] 3511 --- [dart-insight-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-9 - Shutdown completed.
 > Task :test
 
 [Incubating] Problems report is available at: file:///home/runner/work/dart-insight/dart-insight/backend/build/reports/problems/problems-report.html
@@ -144,7 +145,7 @@ You can use '--warning-mode all' to show the individual deprecation warnings and
 
 For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
 
-BUILD SUCCESSFUL in 23s
+BUILD SUCCESSFUL in 29s
 6 actionable tasks: 2 executed, 4 up-to-date
 Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.5.1/userguide/configuration_cache_enabling.html
   com.dartinsight.HealthEndpointTest: 1 tests, 0 failed, 0 skipped
@@ -152,6 +153,7 @@ Consider enabling configuration cache to speed up this build: https://docs.gradl
   com.dartinsight.analysis.AnalysisApiTest: 6 tests, 0 failed, 0 skipped
   com.dartinsight.analysis.AnalysisResultTest: 6 tests, 0 failed, 0 skipped
   com.dartinsight.analysis.AnalysisStatusTest: 4 tests, 0 failed, 0 skipped
+  com.dartinsight.analysis.FinancialChangeDetailTest: 3 tests, 0 failed, 0 skipped
   com.dartinsight.analysis.FinancialComparatorTest: 10 tests, 0 failed, 0 skipped
   com.dartinsight.common.error.GlobalExceptionHandlerTest: 10 tests, 0 failed, 0 skipped
   com.dartinsight.company.CompanyControllerTest: 9 tests, 0 failed, 0 skipped
@@ -169,4 +171,4 @@ Consider enabling configuration cache to speed up this build: https://docs.gradl
   com.dartinsight.report.ReportNameParserTest: 9 tests, 0 failed, 0 skipped
   com.dartinsight.report.ReportSyncServiceTest: 6 tests, 0 failed, 0 skipped
   com.dartinsight.system.SystemHealthControllerTest: 2 tests, 0 failed, 0 skipped
-TOTAL: 125 tests, 0 failed, 0 skipped
+TOTAL: 128 tests, 0 failed, 0 skipped
