@@ -32,7 +32,7 @@ const refreshErrorMessages: Record<string, string> = {
  * - ?current=접수번호: 현재 보고서. 없으면 가장 최근 보고서
  * - ?basis=YOY|PREV|CUSTOM: 비교 기준. 없으면 전년 동기(잠정안)
  * - ?previous=접수번호: 직접 선택(CUSTOM)에서 고른 비교 보고서
- * 비교 검증(W-01 ③)은 2.2(#13)에서 붙인다.
+ * 두 보고서를 고르면 비교 검증(W-01 ③, /companies/:corpCode/compare)으로 간다.
  */
 export function CompanyPage() {
   const { corpCode = '' } = useParams()
@@ -179,6 +179,24 @@ export function CompanyPage() {
             previous={previous}
             onSelectCurrent={(report) => selectCurrent(report.rceptNo)}
           />
+        )}
+        {current && (
+          <div className="pair-actions">
+            {previous ? (
+              <Link
+                to={`/companies/${encodeURIComponent(corpCode)}/compare?${new URLSearchParams({
+                  current: current.rceptNo,
+                  previous: previous.rceptNo,
+                  basis,
+                }).toString()}`}
+                className="button button--primary"
+              >
+                비교 조건 확인 →
+              </Link>
+            ) : (
+              <span className="pair__hint">비교 보고서를 고르면 비교 조건을 확인할 수 있어요.</span>
+            )}
+          </div>
         )}
         <p className="panel__note">
           대상 기간과 제출일은 따로 보여 줘요. 정정 여부를 확인하지 못하면 추정하지 않고 '확인 안 됨'으로 표시해요.

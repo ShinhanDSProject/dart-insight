@@ -221,8 +221,9 @@
 ### POST /api/comparability-checks — 비교 가능성 검증
 
 - 이슈: #13 (2.2) · 화면: W-01 ③
-- 필요하면 두 보고서의 재무제표를 OpenDART에서 받아(4.5) 자료 준비 상태를 확인합니다.
+- 필요하면 두 보고서의 재무제표를 OpenDART에서 받아(4.5) 자료 준비 상태를 확인합니다. 받아 둔 결과가 있으면 다시 부르지 않습니다.
 - 비교할 수 없어도 200으로 결과를 돌려줍니다. 분석 요청(`POST /api/analyses`)은 비교할 수 없으면 422입니다.
+- 비교할 수 없으면 다른 보고서로 대신하거나 수치를 만들지 않고, 사유와 다음 행동을 돌려줍니다.
 
 **요청 본문**
 
@@ -237,27 +238,57 @@
   "comparable": true,
   "level": "FULL",
   "fsDiv": "CFS",
+  "current": { "rceptNo": "20260814001234", "reportType": "HALF", "periodEnd": "2026-06-30" },
+  "previous": { "rceptNo": "20250814000987", "reportType": "HALF", "periodEnd": "2025-06-30" },
+  "statements": [
+    { "sjDiv": "BS", "label": "재무상태표", "comparable": true, "amountBasis": "POINT", "note": null },
+    { "sjDiv": "IS", "label": "손익계산서", "comparable": true, "amountBasis": "CUMULATIVE", "note": null }
+  ],
   "checks": [
-    { "item": "COMPANY", "label": "기업", "status": "OK", "detail": "두 보고서 모두 삼성전자입니다." },
+    { "item": "COMPANY", "label": "기업", "status": "OK", "detail": "두 보고서 모두 삼성전자의 보고서예요." },
     { "item": "REPORT_PERIOD", "label": "보고서 종류·기간", "status": "OK", "detail": "2025 반기 → 2026 반기 (전년 동기)" },
     { "item": "FINANCIAL_BASIS", "label": "수치 기준(연결·단위)", "status": "OK", "detail": "연결, 원(KRW)" },
-    { "item": "CORRECTION", "label": "정정 여부", "status": "OK", "detail": "두 보고서 모두 원본입니다." },
-    { "item": "DATA_READY", "label": "자료 준비 상태", "status": "OK", "detail": "두 보고서의 재무 자료가 있습니다." }
+    { "item": "CORRECTION", "label": "정정 여부", "status": "OK", "detail": "두 보고서 모두 정정 없이 원본이에요." },
+    { "item": "DATA_READY", "label": "자료 준비 상태", "status": "OK", "detail": "두 보고서의 재무 자료가 있어요." }
   ],
   "reasons": []
 }
 ```
 
+`current`·`previous`는 보고서 목록 항목과 같은 모양입니다(위 예시는 일부 필드만 적음). `statements`는 BS, IS, CIS, CF, SCE 다섯 개가 늘 들어 있습니다(위 예시는 두 개만 적음).
+
 | 필드 | 설명 |
 | --- | --- |
-| `level` | `FULL` 모든 재무제표 비교, `BALANCE_SHEET_ONLY` 기간이 달라 재무상태표만 비교, `NOT_COMPARABLE` 비교 불가 |
-| `checks[].status` | `OK`, `WARN`(비교는 하지만 알릴 것), `FAIL`(비교 불가 사유) |
+| `level` | `FULL` 다섯 재무제표 모두 비교, `PARTIAL` 기간 길이가 달라 일부만 비교, `NOT_COMPARABLE` 비교 불가 |
+| `fsDiv` | 비교에 쓸 재무제표 기준. 두 보고서 모두 연결이 있으면 `CFS`, 아니면 둘 다 있는 `OFS`. 비교 불가면 null |
+| `statements[]` | 재무제표 종류별 비교 여부와 금액 기준(`amountBasis`). 비교하지 않으면 `note`에 이유 |
+| `checks[].status` | `OK`, `WARN`(비교는 하지만 알릴 것), `FAIL`(비교 불가 사유), `SKIPPED`(앞 항목이 실패해 확인하지 않음) |
 | `reasons[]` | 비교할 수 없는 사유 `{ code, message, nextAction }` |
+
+재무제표 종류별 비교 규칙(잠정안, 결정 로그 '비교 가능성 규칙'):
+
+| 두 보고서 | 재무상태표 | 손익·포괄손익 | 현금흐름·자본변동 |
+| --- | --- | --- | --- |
+| 같은 종류(전년 동기 등) | 시점 | 누적 | 누적 |
+| 종류가 다르고 둘 다 분·반기(직전 기간 등) | 시점 | 3개월 | 비교 안 함 |
+| 한쪽이 사업보고서이고 종류가 다름 | 시점 | 비교 안 함(사업보고서에 4분기 3개월 금액이 없음) | 비교 안 함 |
+
+| `reasons[].code` | 언제 |
+| --- | --- |
+| `DIFFERENT_COMPANY` | 두 보고서 중 요청한 기업이 아닌 보고서가 있음 |
+| `SAME_REPORT` | 같은 보고서를 두 번 고름 |
+| `PREVIOUS_NOT_EARLIER` | 비교 보고서의 대상 기간이 현재 보고서보다 앞서지 않음 |
+| `REPLACED_BY_CORRECTION` | 정정 공시로 대체돼 최신 목록에 없는 보고서 |
+| `NO_FINANCIAL_DATA` | 연결·별도 모두 재무제표가 없음(2015 이전 포함) |
+| `DATA_VERSION_MISMATCH` | OpenDART 재무 자료가 다른 접수번호(정정본) 기준 |
+| `NO_COMMON_BASIS` | 두 보고서에 같은 기준(연결·별도)의 재무제표가 없음 |
+| `CURRENCY_MISMATCH` | 두 보고서의 통화가 다름 |
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
 | 400 | `COMMON_INVALID_INPUT` | 필수 값 없음 |
-| 404 | `REPORT_NOT_FOUND` | 없는 보고서 |
+| 404 | `REPORT_NOT_FOUND` | 저장되지 않은 보고서 |
+| 502·503 | `DART_REQUEST_FAILED`, `DART_RATE_LIMITED`, `DART_KEY_MISSING` | 재무제표를 받아야 하는데 OpenDART 호출이 실패함 |
 
 ### POST /api/analyses — 분석 요청
 
@@ -443,5 +474,5 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 | 기본 비교 기준 | 전년 동기(`YOY`). 와이어프레임 예시 | [기본 비교 기준](https://app.notion.com/p/400b6afffc6f81e79212d26a29aecca6) |
 | 직전 기간의 정의 | 바로 앞 정기보고서(1분기 ← 전년 사업보고서, 반기 ← 1분기, 3분기 ← 반기, 사업 ← 3분기) | [기본 비교 기준](https://app.notion.com/p/400b6afffc6f81e79212d26a29aecca6) |
 | 이전 값 기준 | 이전 보고서의 원래 값 | [이전 값 기준](https://app.notion.com/p/400b6afffc6f81178a7cc9fafd980394) |
-| 비교 가능성 규칙 | 2.2 PR에 적은 규칙 | [비교 가능성 규칙](https://app.notion.com/p/400b6afffc6f8178b798e570fe37828b) |
+| 비교 가능성 규칙 | 위 `POST /api/comparability-checks`의 재무제표 종류별 비교 규칙 | [비교 가능성 규칙](https://app.notion.com/p/400b6afffc6f8178b798e570fe37828b) |
 | 분석 대상 기업 범위 | 12월 결산 보고서만(사업보고서 기간이 12월인 회사) | [분석 대상 기업 범위](https://app.notion.com/p/400b6afffc6f813cadd6ff8ecce0a780) |
