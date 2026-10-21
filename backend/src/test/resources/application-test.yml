@@ -1,0 +1,14 @@
+# 테스트 설정. build.gradle이 test 프로필을 켠다.
+# 로컬에서는 H2(MariaDB 호환 모드), CI에서는 TEST_DB_URL로 MariaDB 컨테이너를 쓴다.
+spring:
+  datasource:
+    url: ${TEST_DB_URL:jdbc:h2:mem:dart_insight;MODE=MariaDB;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1}
+    username: ${TEST_DB_USERNAME:sa}
+    password: ${TEST_DB_PASSWORD:}
+
+app:
+  opendart:
+    # 테스트는 OpenDART를 실제로 부르지 않는다(가짜 서버를 띄우거나 저장된 데이터만 씀)
+    api-key: test-key-not-real
+    base-url: http://127.0.0.1:1
+    corp-code-sync: never
