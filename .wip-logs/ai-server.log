@@ -1,10 +1,10 @@
-sha=6004376699886add0d1d5aedbb051377faf2e7f2 status=success
+sha=ad8220e13687d2f7daeb2b933584e4bd44a4c683 status=success
 ----- tail -----
 Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages (26.2.1)
 Collecting pip
   Downloading pip-26.2.2-py3-none-any.whl.metadata (4.6 kB)
 Downloading pip-26.2.2-py3-none-any.whl (1.8 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 40.2 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 13.8 MB/s  0:00:00
 Installing collected packages: pip
   Attempting uninstall: pip
     Found existing installation: pip 26.2.1
@@ -68,27 +68,27 @@ Downloading uvicorn-0.34.2-py3-none-any.whl (62 kB)
 Downloading pytest-8.3.5-py3-none-any.whl (343 kB)
 Downloading httpx-0.28.1-py3-none-any.whl (73 kB)
 Downloading ruff-0.11.8-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (11.5 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 11.5/11.5 MB 110.1 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 11.5/11.5 MB 50.8 MB/s  0:00:00
 Downloading httpcore-1.0.9-py3-none-any.whl (78 kB)
 Downloading pluggy-1.7.0-py3-none-any.whl (27 kB)
 Downloading pydantic-2.14.1-py3-none-any.whl (488 kB)
 Downloading pydantic_core-2.50.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.2 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.2/2.2 MB 136.9 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.2/2.2 MB 122.2 MB/s  0:00:00
 Downloading starlette-0.46.2-py3-none-any.whl (72 kB)
 Downloading anyio-4.15.1-py3-none-any.whl (132 kB)
 Downloading annotated_types-0.8.0-py3-none-any.whl (13 kB)
 Downloading click-8.5.0-py3-none-any.whl (125 kB)
 Downloading h11-0.16.0-py3-none-any.whl (37 kB)
 Downloading httptools-0.9.0-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (552 kB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 552.8/552.8 kB 138.1 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 552.8/552.8 kB 136.2 MB/s  0:00:00
 Downloading idna-3.20-py3-none-any.whl (69 kB)
 Downloading python_dotenv-1.2.4-py3-none-any.whl (23 kB)
 Downloading pyyaml-6.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (807 kB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 807.9/807.9 kB 228.5 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 807.9/807.9 kB 201.1 MB/s  0:00:00
 Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)
 Downloading typing_inspection-0.4.4-py3-none-any.whl (14 kB)
 Downloading uvloop-0.23.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (4.5 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.5/4.5 MB 149.4 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.5/4.5 MB 154.0 MB/s  0:00:00
 Downloading watchfiles-1.3.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (458 kB)
 Downloading websockets-17.3-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (225 kB)
 Downloading certifi-2026.10.19-py3-none-any.whl (136 kB)
@@ -98,12 +98,12 @@ Installing collected packages: websockets, uvloop, typing-extensions, ruff, pyya
 
 Successfully installed annotated-types-0.8.0 anyio-4.15.1 certifi-2026.10.19 click-8.5.0 fastapi-0.115.12 h11-0.16.0 httpcore-1.0.9 httptools-0.9.0 httpx-0.28.1 idna-3.20 iniconfig-2.3.1 packaging-26.3 pluggy-1.7.0 pydantic-2.14.1 pydantic-core-2.50.1 pytest-8.3.5 python-dotenv-1.2.4 pyyaml-6.0.3 ruff-0.11.8 starlette-0.46.2 typing-extensions-4.16.0 typing-inspection-0.4.4 uvicorn-0.34.2 uvloop-0.23.0 watchfiles-1.3.0 websockets-17.3
 All checks passed!
-4 files already formatted
-.                                                                        [100%]
+10 files already formatted
+.........                                                                [100%]
 =============================== warnings summary ===============================
 ../../../../../../opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/starlette/testclient.py:37
   /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/starlette/testclient.py:37: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
     _PortalFactoryType = typing.Callable[[], typing.ContextManager[anyio.abc.BlockingPortal]]
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-1 passed, 1 warning in 0.21s
+9 passed, 1 warning in 0.27s
