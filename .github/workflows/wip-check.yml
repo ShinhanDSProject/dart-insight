@@ -47,8 +47,10 @@ jobs:
             echo "### build with MariaDB"
             TEST_DB_URL=jdbc:mariadb://localhost:3306/dart_insight TEST_DB_USERNAME=dart TEST_DB_PASSWORD=ci-only \
               ./gradlew build --no-daemon --console=plain
+            python3 ../.github/wip/junit-summary.py build/test-results/test
             echo "### test with H2"
             ./gradlew cleanTest test --no-daemon --console=plain
+            python3 ../.github/wip/junit-summary.py build/test-results/test
           } 2>&1 | tee "$RUNNER_TEMP/backend.log"
       - name: save log
         if: always()

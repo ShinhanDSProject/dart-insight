@@ -42,7 +42,8 @@
 | --- | --- |
 | `reportType` | `ANNUAL` 사업보고서, `HALF` 반기보고서, `Q1` 1분기보고서, `Q3` 3분기보고서 |
 | `correction` | `ORIGINAL` 원본, `CORRECTED` 정정, `UNKNOWN` 확인 안 됨 |
-| `financialDataStatus` | `UNKNOWN` 확인 전, `AVAILABLE` 재무 자료 있음, `NOT_AVAILABLE` 재무 자료 없음 |
+| `disclosureType` | OpenDART 공시상세유형. `A001` 사업보고서, `A002` 반기보고서, `A003` 분기보고서 |
+| `financialDataStatus` | `UNKNOWN` 확인 전, `AVAILABLE` 재무 자료 있음, `NOT_AVAILABLE` 재무 자료 없음. 재무제표 API가 2015 사업연도부터 제공하므로 그 전 보고서는 받아 보지 않아도 `NOT_AVAILABLE` |
 | `basis` | `YOY` 전년 동기, `PREV` 직전 기간, `CUSTOM` 직접 선택 |
 | `status` (분석) | `PENDING` 대기, `RUNNING` 진행, `COMPLETED` 완료, `FAILED` 실패 |
 | `step` (분석) | `RECEIVED` 요청 접수, `COMPARING` 보고서 비교, `VERIFYING` 근거 확인, `DONE` 완료 |
@@ -110,8 +111,10 @@
 ### GET /api/companies/{corpCode}/reports — 정기보고서 목록
 
 - 이슈: #9 (1.2), #10 (1.3) · 화면: W-01 ②
-- 저장된 목록이 없거나 24시간이 지났으면 OpenDART에서 다시 받습니다(4.1). 다시 받다 실패해도 저장된 목록이 있으면 그 목록을 돌려줍니다.
-- 대상 기간 끝(`periodEnd`)이 최근인 순서입니다.
+- 저장된 목록이 없거나 24시간이 지났으면 OpenDART에서 다시 받습니다(4.1). 다시 받다 실패해도 저장된 목록이 있으면 그 목록을 돌려주고, `refreshError`에 실패 이유를 담습니다.
+- 대상 기간 끝(`periodEnd`)이 최근인 순서입니다. 같은 기간이면 제출일이 최근인 순서입니다.
+- 사업·반기·분기보고서(`A001`~`A003`) 가운데 12월 결산 보고서만 돌려줍니다(잠정안). 정정된 보고서는 최종본만 들어 있습니다.
+- 보고서가 하나도 없으면 `items`가 빈 배열입니다(에러 아님).
 
 **응답 200**
 
@@ -119,11 +122,13 @@
 {
   "corpCode": "00126380",
   "fetchedAt": "2026-10-21T14:05:12",
+  "refreshError": null,
   "items": [
     {
       "rceptNo": "20260814001234",
       "reportName": "반기보고서 (2026.06)",
       "reportType": "HALF",
+      "disclosureType": "A002",
       "fiscalYear": 2026,
       "periodEnd": "2026-06-30",
       "receivedAt": "2026-08-14",
@@ -155,6 +160,7 @@
   "corpName": "삼성전자",
   "reportName": "반기보고서 (2026.06)",
   "reportType": "HALF",
+  "disclosureType": "A002",
   "fiscalYear": 2026,
   "periodEnd": "2026-06-30",
   "receivedAt": "2026-08-14",
