@@ -24,11 +24,11 @@ DART 정기보고서 두 개를 비교해, 바뀐 재무 수치와 문장을 원
 | `frontend/` | 웹 화면 | React + TypeScript |
 | `backend/` | 서비스 API, OpenDART 조회·캐시, 분석 작업 관리 | Spring Boot |
 | `ai-server/` | 원문 파싱·구조화, 문장 변경 탐지, 요약·설명 | FastAPI, LangChain·LangGraph (Python) |
-| `docs/` | 프로젝트 개요·배경 조사, 협업 가이드 | — |
+| `docs/` | 프로젝트 개요·배경 조사, API 명세·ERD, 협업 가이드 | — |
 
 - DB는 MariaDB(정형 데이터)와 Chroma(본문 임베딩)를 씁니다. 외부 데이터는 OpenDART입니다.
 - 호출 방향은 React → Spring Boot → FastAPI입니다. React는 Spring Boot만 호출합니다.
-- 세 서비스 폴더는 아직 비어 있습니다. 실행 방법은 개발환경을 구축한 뒤 이 문서에 추가합니다.
+- 세 서비스 폴더에는 아직 프로젝트가 없고 `.env.example`만 있습니다. 실행 방법은 개발환경을 구축한 뒤 이 문서에 추가합니다.
 
 ## 일정
 
@@ -51,6 +51,7 @@ DART 정기보고서 두 개를 비교해, 바뀐 재무 수치와 문장을 원
 | 프로젝트 허브 | [노션 · 2차 프로젝트](https://app.notion.com/p/3feb6afffc6f818b83e0f23db6591572) | 모든 기획 문서의 시작점 |
 | 프로젝트 개요 | [노션 · 프로젝트 개요·문제 정의](https://app.notion.com/p/3ffb6afffc6f80418b8ac274f0d20e18) | 왜 이 프로젝트를 하는지, 문제 정의와 차별점 |
 | 개발 기준 | [노션 · 개발 기준](https://app.notion.com/p/400b6afffc6f813aac54dd697afc9d8e) | 팀과 역할, 구조 원칙, 이슈 운영, 브랜치·PR, API·데이터 규약, AI 사용 규칙 |
+| AI 도구 규칙 | [`AGENTS.md`](AGENTS.md) | AI 코딩 도구와 팀이 지키는 규칙 요약 (노션 개발 기준에서 옮김) |
 | 이슈·마일스톤 | [GitHub Issues](https://github.com/ShinhanDSProject/dart-insight/issues) | 작업 이슈, 완료 기준, 진행 상태 |
 | 기능 명세·WBS | [노션 · 기능 명세·WBS](https://app.notion.com/p/3ffb6afffc6f80179ffbfd4817a5aaa0) | 일정·범위, 결정 로그 |
 | 화면 설계 | [노션 · 사용자 흐름·화면 와이어프레임](https://app.notion.com/p/c0f540f74d92496c9c20f23867afc15a) | 화면 W-01~W-03, 예외·상태 처리 |
@@ -58,15 +59,19 @@ DART 정기보고서 두 개를 비교해, 바뀐 재무 수치와 문장을 원
 | OpenDART | [노션 · OpenDART 데이터 가이드](https://app.notion.com/p/400b6afffc6f81cc8870ee13d02d8ac1) | API 코드와 응답 필드 |
 | 프로젝트 개요 상세 | [`docs/project-overview.md`](docs/project-overview.md) | 노션 프로젝트 개요의 10/14 초안과 근거 |
 | 배경 조사 | [`docs/project-background-research.md`](docs/project-background-research.md) | 유사 서비스, OpenDART, LLM 기법, 규제 조사 |
+| API 명세·ERD | [`docs/templates/`](docs/templates/) | 템플릿. `docs/api-spec.md`·`docs/erd.md`로 복사해 작성 |
 | 협업 가이드 | [`docs/monorepo-team-guide.md`](docs/monorepo-team-guide.md) | Git·브랜치·PR 절차 |
 
 노션 페이지는 팀 워크스페이스 권한이 있어야 열립니다.
 
 ## 협업 규칙 요약
 
-- 이슈 하나에 브랜치 하나: `feature/{이슈ID}-{짧은-영문-이름}` (예: `feature/2.4-financial-compare`), 문서만 바꿀 때는 `docs/{이름}`
+- 이슈 하나에 브랜치 하나: `feature/{이슈ID}-{짧은-영문-이름}` (예: `feature/2.4-financial-compare`), 문서만 바꿀 때는 `docs/{이름}`, 설정만 바꿀 때는 `chore/{이름}`
 - PR 제목은 `[WBS ID] 이슈 제목`, 본문은 [PR 템플릿](.github/pull_request_template.md)을 채우고 `closes #이슈번호`를 적습니다. 새 이슈는 '작업 이슈' 템플릿으로 만듭니다.
-- `main`은 PR로만 바꿉니다.
+- `main`은 PR로만 바꾸고, squash merge로 병합합니다. PR 제목이 main 기록이 됩니다.
+- PR마다 비밀정보 검사(gitleaks)가 돌고, 바뀐 서비스 폴더의 빌드·린트·테스트가 자동으로 돕니다.
+- API나 DB 구조를 바꾸면 `docs/api-spec.md`·`docs/erd.md`도 같은 PR에서 고칩니다. DB 스키마는 Flyway 마이그레이션으로만 바꿉니다.
+- AI 코딩 도구를 쓸 때는 [`AGENTS.md`](AGENTS.md)를 읽게 합니다. Claude Code는 `CLAUDE.md`를 통해 자동으로 읽습니다.
 - API 키와 `.env`는 커밋하지 않습니다. 저장소에는 `.env.example`만 둡니다. OpenDART 키는 각자 발급받아 자기 `.env`에 넣습니다.
 
 자세한 내용은 노션의 개발 기준과 [협업 가이드](docs/monorepo-team-guide.md)를 따릅니다.
