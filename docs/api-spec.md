@@ -150,8 +150,11 @@
 ### GET /api/reports/{rceptNo} — 보고서 메타데이터
 
 - 이슈: #10 (1.3), #11 (1.4)
+- 저장된 보고서만 돌려줍니다. OpenDART를 부르지 않습니다.
+- 대상 기간(`fiscalYear`·`periodEnd`)과 제출일(`receivedAt`)은 서로 다른 필드입니다.
+- `latest`: 마지막으로 받은 OpenDART 최신 목록에 있는 보고서인지입니다. 정정 공시가 나와 최신 목록에서 빠진 보고서는 `false`입니다(이미 분석에 쓴 보고서를 열 때 필요).
 
-**응답 200**: 목록 항목 필드에 아래를 더합니다.
+**응답 200**: 목록 항목 필드에 `corpCode`, `corpName`, `remark`(비고 원문, 없으면 null), `filerName`(제출인), `latest`를 더합니다.
 
 ```json
 {
@@ -167,6 +170,7 @@
   "correction": "ORIGINAL",
   "remark": null,
   "filerName": "삼성전자",
+  "latest": true,
   "financialDataStatus": "AVAILABLE",
   "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260814001234"
 }

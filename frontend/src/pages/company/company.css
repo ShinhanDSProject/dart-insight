@@ -11,3 +11,29 @@
   font-weight: var(--font-weight-regular);
   color: var(--color-text-muted);
 }
+
+.facts {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.facts__row {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: var(--space-3);
+}
+
+.facts dt {
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-bold);
+}
+
+.facts dd {
+  margin: 0;
+}
+
+.facts__meta {
+  color: var(--color-text-muted);
+}

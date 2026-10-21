@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router'
 import { getCompany, type Company } from '../api/companies'
 import { listReports, type ReportItem, type ReportList } from '../api/reports'
 import { EmptyState, ErrorState, LoadingState } from '../components/StateView'
+import { ReportDetailPanel } from './company/ReportDetailPanel'
 import { correctionLabel, dataStatusHelp, dataStatusLabel, formatDate, periodLabel } from './company/reportLabels'
 import './company/company.css'
 
@@ -117,6 +118,8 @@ export function CompanyPage() {
           추가해요.
         </p>
       </div>
+
+      {current && <ReportDetailPanel key={current.rceptNo} rceptNo={current.rceptNo} />}
     </section>
   )
 }

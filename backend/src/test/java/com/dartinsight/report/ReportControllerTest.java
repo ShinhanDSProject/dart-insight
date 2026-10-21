@@ -150,4 +150,68 @@ class ReportControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("COMPANY_NOT_FOUND"));
     }
+
+    private void fetchList(String... items) throws Exception {
+        SERVER.on("/api/list.json", Response.json(page(1, 1, items)));
+        mockMvc.perform(get("/api/companies/00000001/reports")).andExpect(status().isOk());
+    }
+
+    private void makeStale() {
+        Company company = companyRepository.findById("00000001").orElseThrow();
+        company.markReportsFetched(LocalDateTime.now(clock).minusDays(2));
+        companyRepository.save(company);
+    }
+
+    @Test
+    void reportMetadataKeepsPeriodAndReceivedDateApart() throws Exception {
+        fetchList(item("20260310000001", "[기재정정]사업보고서 (2025.12)", "20260310", "정"));
+
+        mockMvc.perform(get("/api/reports/20260310000001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rceptNo").value("20260310000001"))
+                .andExpect(jsonPath("$.corpCode").value("00000001"))
+                .andExpect(jsonPath("$.corpName").value("예시전자"))
+                .andExpect(jsonPath("$.reportName").value("[기재정정]사업보고서 (2025.12)"))
+                .andExpect(jsonPath("$.reportType").value("ANNUAL"))
+                .andExpect(jsonPath("$.disclosureType").value("A001"))
+                .andExpect(jsonPath("$.fiscalYear").value(2025))
+                .andExpect(jsonPath("$.periodEnd").value("2025-12-31"))
+                .andExpect(jsonPath("$.receivedAt").value("2026-03-10"))
+                .andExpect(jsonPath("$.correction").value("CORRECTED"))
+                .andExpect(jsonPath("$.remark").value("정"))
+                .andExpect(jsonPath("$.filerName").value("예시전자"))
+                .andExpect(jsonPath("$.latest").value(true))
+                .andExpect(jsonPath("$.financialDataStatus").value("UNKNOWN"))
+                .andExpect(jsonPath("$.dartUrl").value("https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260310000001"));
+    }
+
+    @Test
+    void emptyRemarkIsNull() throws Exception {
+        fetchList(item("20260814000001", "반기보고서 (2026.06)", "20260814", ""));
+
+        mockMvc.perform(get("/api/reports/20260814000001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.correction").value("ORIGINAL"))
+                .andExpect(jsonPath("$.remark").value(nullValue()));
+    }
+
+    @Test
+    void reportReplacedByCorrectionIsNotLatest() throws Exception {
+        fetchList(item("20260814000001", "반기보고서 (2026.06)", "20260814", ""));
+        makeStale();
+        fetchList(item("20260902000001", "[기재정정]반기보고서 (2026.06)", "20260902", "정"));
+
+        mockMvc.perform(get("/api/reports/20260814000001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.latest").value(false));
+        mockMvc.perform(get("/api/reports/20260902000001"))
+                .andExpect(jsonPath("$.latest").value(true));
+    }
+
+    @Test
+    void unknownReportIsNotFound() throws Exception {
+        mockMvc.perform(get("/api/reports/20990101000001"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("REPORT_NOT_FOUND"));
+    }
 }
