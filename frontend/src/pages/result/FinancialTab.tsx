@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Analysis } from '../../api/analyses'
 import { getFinancialChanges, type FinancialChangeItem, type FinancialChangeList, type SjDiv } from '../../api/results'
 import { EmptyState, ErrorState, LoadingState } from '../../components/StateView'
+import { EvidencePanel } from './EvidencePanel'
 import {
   amountPeriodLabel,
   formatAmount,
@@ -21,11 +22,13 @@ interface FinancialTabProps {
   sjDiv: SjDiv
   changedOnly: boolean
   unit: AmountUnit
-  onChange: (changes: { sj?: SjDiv; changed?: boolean; unit?: AmountUnit }) => void
+  /** 근거를 보고 있는 계정(3.3) */
+  selectedChangeId: number | null
+  onChange: (changes: { sj?: SjDiv; changed?: boolean; unit?: AmountUnit; change?: number | null }) => void
 }
 
-/** W-03 ② 재무 수치 변화(3.1). 이 분석의 결과만 보여 준다. */
-export function FinancialTab({ analysis, sjDiv, changedOnly, unit, onChange }: FinancialTabProps) {
+/** W-03 ② 재무 수치 변화(3.1). 이 분석의 결과만 보여 준다. 계정의 '보기'를 누르면 수치 근거(3.3)를 연다. */
+export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChangeId, onChange }: FinancialTabProps) {
   const [state, setState] = useState<TabState>({ kind: 'loading' })
   const [retry, setRetry] = useState(0)
 
@@ -123,15 +126,31 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, onChange }: F
                 <th scope="col" className="num">
                   증감률
                 </th>
+                <th scope="col">근거</th>
               </tr>
             </thead>
             <tbody>
               {state.data.items.map((item) => (
-                <ChangeRow key={item.changeId} item={item} unit={unit} />
+                <ChangeRow
+                  key={item.changeId}
+                  item={item}
+                  unit={unit}
+                  selected={item.changeId === selectedChangeId}
+                  onSelect={() => onChange({ change: item.changeId === selectedChangeId ? null : item.changeId })}
+                />
               ))}
             </tbody>
           </table>
         </div>
+      )}
+      {selectedChangeId !== null && (
+        <EvidencePanel
+          key={selectedChangeId}
+          analysis={analysis}
+          changeId={selectedChangeId}
+          unit={unit}
+          onClose={() => onChange({ change: null })}
+        />
       )}
       <p className="panel__note">
         단위 {unitLabel(unit)}. 증가·감소는 ▲▼와 부호로 표시하고 좋고 나쁨의 평가와 구분해요. 없는 값은 0으로 보지 않아요.
@@ -140,14 +159,21 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, onChange }: F
   )
 }
 
-function ChangeRow({ item, unit }: { item: FinancialChangeItem; unit: AmountUnit }) {
+interface ChangeRowProps {
+  item: FinancialChangeItem
+  unit: AmountUnit
+  selected: boolean
+  onSelect: () => void
+}
+
+function ChangeRow({ item, unit, selected, onSelect }: ChangeRowProps) {
   const previous = formatAmount(item.previousAmount, unit) ?? missingValueLabel(item.calcStatus, 'previous')
   const current = formatAmount(item.currentAmount, unit) ?? missingValueLabel(item.calcStatus, 'current')
   const change = formatChange(item.changeAmount, unit)
   const rate = formatRate(item.changeRate)
   const reason = shortCalcLabel(item.calcStatus)
   return (
-    <tr>
+    <tr className={selected ? 'data-table__row--selected' : undefined}>
       <th scope="row">{item.accountName}</th>
       <td className="num">{previous}</td>
       <td className="num">{current}</td>
@@ -163,6 +189,17 @@ function ChangeRow({ item, unit }: { item: FinancialChangeItem; unit: AmountUnit
           </td>
         </>
       )}
+      <td>
+        <button
+          type="button"
+          className="button button--secondary fin-table__evidence"
+          aria-pressed={selected}
+          aria-label={`${item.accountName} 근거 ${selected ? '닫기' : '보기'}`}
+          onClick={onSelect}
+        >
+          {selected ? '보는 중' : '보기'}
+        </button>
+      </td>
     </tr>
   )
 }

@@ -26,7 +26,7 @@ const sjDivs: SjDiv[] = ['BS', 'IS', 'CIS', 'CF', 'SCE']
 
 /**
  * W-03 분석 결과(3.1). 화면 전체가 분석 ID 하나의 결과만 보여 주므로, 비교 기준을 바꾸면 새 분석으로 옮겨 가고
- * 이전 결과와 섞이지 않는다. 고른 탭·재무제표·보기·단위는 주소(?tab=&sj=&changed=&unit=)에 남긴다.
+ * 이전 결과와 섞이지 않는다. 고른 탭·재무제표·보기·단위·근거 계정은 주소(?tab=&sj=&changed=&unit=&change=)에 남긴다.
  */
 export function AnalysisResultPage() {
   const { analysisId = '' } = useParams()
@@ -76,6 +76,8 @@ export function AnalysisResultPage() {
   const sjDiv: SjDiv = sjDivs.includes(sjParam as SjDiv) ? (sjParam as SjDiv) : 'BS'
   const changedOnly = searchParams.get('changed') === '1'
   const unit = parseUnit(searchParams.get('unit'))
+  const changeParam = Number(searchParams.get('change'))
+  const selectedChangeId = Number.isInteger(changeParam) && changeParam > 0 ? changeParam : null
 
   function update(changes: Record<string, string | null>) {
     setSearchParams(
@@ -136,9 +138,12 @@ export function AnalysisResultPage() {
               sjDiv={sjDiv}
               changedOnly={changedOnly}
               unit={unit}
+              selectedChangeId={selectedChangeId}
               onChange={(c) =>
                 update({
-                  ...(c.sj !== undefined ? { sj: c.sj } : {}),
+                  // 재무제표를 바꾸면 보던 근거를 닫는다
+                  ...(c.sj !== undefined ? { sj: c.sj, change: null } : {}),
+                  ...(c.change !== undefined ? { change: c.change === null ? null : String(c.change) } : {}),
                   ...(c.changed !== undefined ? { changed: c.changed ? '1' : null } : {}),
                   ...(c.unit !== undefined ? { unit: c.unit } : {}),
                 })

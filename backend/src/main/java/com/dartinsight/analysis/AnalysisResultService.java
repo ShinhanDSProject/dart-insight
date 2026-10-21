@@ -71,7 +71,22 @@ public class AnalysisResultService {
         return new CompletedResult(analysis, changeRepository.findByAnalysisIdOrderBySjDivAscDisplayOrderAsc(analysisId));
     }
 
+    /** 완료된 분석의 계정 하나. 다른 분석의 항목이면 404. */
+    @Transactional(readOnly = true)
+    public CompletedChange completedChange(Long analysisId, Long changeId) {
+        Analysis analysis = get(analysisId);
+        if (analysis.getStatus() != AnalysisStatus.COMPLETED) {
+            throw new ApiException(ErrorCode.ANALYSIS_NOT_READY);
+        }
+        FinancialChange change = changeRepository.findByIdAndAnalysisId(changeId, analysisId)
+                .orElseThrow(() -> new ApiException(ErrorCode.FINANCIAL_CHANGE_NOT_FOUND));
+        return new CompletedChange(analysis, change);
+    }
+
     public record CompletedResult(Analysis analysis, List<FinancialChange> changes) {
+    }
+
+    public record CompletedChange(Analysis analysis, FinancialChange change) {
     }
 
     private LocalDateTime now() {
