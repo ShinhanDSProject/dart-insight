@@ -24,7 +24,7 @@ DART 정기보고서 두 개를 비교해, 바뀐 재무 수치와 문장을 원
 | `frontend/` | 웹 화면 | React + TypeScript |
 | `backend/` | 서비스 API, OpenDART 조회·캐시, 분석 작업 관리 | Spring Boot |
 | `ai-server/` | 원문 파싱·구조화, 문장 변경 탐지, 요약·설명 | FastAPI, LangChain·LangGraph (Python) |
-| `docs/` | 사업계획서, 협업 가이드 | — |
+| `docs/` | 프로젝트 개요·배경 조사, 협업 가이드 | — |
 
 - DB는 MariaDB(정형 데이터)와 Chroma(본문 임베딩)를 씁니다. 외부 데이터는 OpenDART입니다.
 - 호출 방향은 React → Spring Boot → FastAPI입니다. React는 Spring Boot만 호출합니다.
@@ -56,8 +56,8 @@ DART 정기보고서 두 개를 비교해, 바뀐 재무 수치와 문장을 원
 | 화면 설계 | [노션 · 사용자 흐름·화면 와이어프레임](https://app.notion.com/p/c0f540f74d92496c9c20f23867afc15a) | 화면 W-01~W-03, 예외·상태 처리 |
 | 공시 용어 | [노션 · 공시·재무 도메인 가이드](https://app.notion.com/p/3ffb6afffc6f804d85f4d36e6013635c) | 정기보고서, 재무제표, 비교 기준 |
 | OpenDART | [노션 · OpenDART 데이터 가이드](https://app.notion.com/p/400b6afffc6f81cc8870ee13d02d8ac1) | API 코드와 응답 필드 |
-| 사업계획서 | [`docs/business-plan.md`](docs/business-plan.md) | 프로젝트를 하는 이유와 배경 (10/14 작성, 노션 프로젝트 개요와 같은 목적) |
-| 사업계획서 조사 | [`docs/business-plan-research.md`](docs/business-plan-research.md) | 근거 조사 |
+| 프로젝트 개요 상세 | [`docs/project-overview.md`](docs/project-overview.md) | 노션 프로젝트 개요의 10/14 초안과 근거 |
+| 배경 조사 | [`docs/project-background-research.md`](docs/project-background-research.md) | 유사 서비스, OpenDART, LLM 기법, 규제 조사 |
 | 협업 가이드 | [`docs/monorepo-team-guide.md`](docs/monorepo-team-guide.md) | Git·브랜치·PR 절차 |
 
 노션 페이지는 팀 워크스페이스 권한이 있어야 열립니다.
