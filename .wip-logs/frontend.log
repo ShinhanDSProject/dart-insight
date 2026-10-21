@@ -1,8 +1,8 @@
-sha=e32a7171736cd22ed606783a33927e8940c8cabf status=success
+sha=d1ea951595392bcb58012dd1d93e97a3969300ec status=success
 ----- tail -----
 npm warn deprecated eslint@9.39.5: This version is no longer supported. Please see https://eslint.org/version-support for other options.
 
-added 211 packages in 4s
+added 211 packages in 2s
 
 > dart-insight-frontend@0.0.1 lint
 > eslint .
@@ -14,14 +14,15 @@ added 211 packages in 4s
 
 [1m[46m RUN [49m[22m [36mv3.2.7 [39m[90m/home/runner/work/dart-insight/dart-insight/frontend[39m
 
- [32m✓[39m src/pages/company/reportLabels.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 11[2mms[22m[39m
- [32m✓[39m src/pages/search/searchQuery.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m✓[39m src/api/client.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m src/lib/dart.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m src/pages/company/reportLabels.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m src/api/client.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32m✓[39m src/pages/search/searchQuery.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 3[2mms[22m[39m
 
-[2m Test Files [22m [1m[32m3 passed[39m[22m[90m (3)[39m
-[2m      Tests [22m [1m[32m13 passed[39m[22m[90m (13)[39m
-[2m   Start at [22m 09:01:18
-[2m   Duration [22m 492ms[2m (transform 166ms, setup 0ms, collect 246ms, tests 33ms, environment 1ms, prepare 381ms)[22m
+[2m Test Files [22m [1m[32m4 passed[39m[22m[90m (4)[39m
+[2m      Tests [22m [1m[32m16 passed[39m[22m[90m (16)[39m
+[2m   Start at [22m 09:03:13
+[2m   Duration [22m 472ms[2m (transform 146ms, setup 0ms, collect 219ms, tests 20ms, environment 1ms, prepare 271ms)[22m
 
 
 > dart-insight-frontend@0.0.1 build
@@ -29,10 +30,10 @@ added 211 packages in 4s
 
 [36mvite v7.3.7 [32mbuilding client environment for production...[36m[39m
 transforming...
-[32m✓[39m 54 modules transformed.
+[32m✓[39m 56 modules transformed.
 rendering chunks...
 computing gzip size...
 [2mdist/[22m[32mindex.html                 [39m[1m[2m  0.40 kB[22m[1m[22m[2m │ gzip:   0.27 kB[22m
-[2mdist/[22m[2massets/[22m[35mindex-DZdWd348.css  [39m[1m[2m  7.03 kB[22m[1m[22m[2m │ gzip:   1.87 kB[22m
-[2mdist/[22m[2massets/[22m[36mindex-DOLggxDs.js   [39m[1m[2m330.73 kB[22m[1m[22m[2m │ gzip: 105.72 kB[22m
-[32m✓ built in 1.60s[39m
+[2mdist/[22m[2massets/[22m[35mindex-CqkIkvvh.css  [39m[1m[2m  7.45 kB[22m[1m[22m[2m │ gzip:   1.92 kB[22m
+[2mdist/[22m[2massets/[22m[36mindex-qgWH69Pa.js   [39m[1m[2m333.03 kB[22m[1m[22m[2m │ gzip: 106.39 kB[22m
+[32m✓ built in 956ms[39m
