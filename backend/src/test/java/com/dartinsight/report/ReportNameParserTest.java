@@ -32,8 +32,11 @@ class ReportNameParserTest {
     }
 
     @Test
-    void remarkWithJeongMeansCorrected() {
+    void remarkWithJeongIsNotGuessed() {
+        // 비고 '정'은 제출 뒤 정정신고가 있었다는 뜻이라 이 보고서가 정정본인지 알 수 없다
         assertThat(ReportNameParser.parse("분기보고서 (2026.03)", "정").orElseThrow().correction())
+                .isEqualTo(Correction.UNKNOWN);
+        assertThat(ReportNameParser.parse("[기재정정]분기보고서 (2026.03)", "정").orElseThrow().correction())
                 .isEqualTo(Correction.CORRECTED);
         assertThat(ReportNameParser.parse("분기보고서 (2026.03)", "연").orElseThrow().correction())
                 .isEqualTo(Correction.ORIGINAL);

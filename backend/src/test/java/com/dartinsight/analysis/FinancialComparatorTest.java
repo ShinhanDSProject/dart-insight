@@ -29,6 +29,11 @@ class FinancialComparatorTest {
                 thstrm, null, null, null, null);
     }
 
+    private static FinancialAccount sceNamed(String rceptNo, String name, int ord, Long thstrm) {
+        return new FinancialAccount(1L, rceptNo, "SCE", null, "ifrs-full_Equity", name, null, ord, "KRW", null, null,
+                thstrm, null, null, null, null);
+    }
+
     private static List<FinancialChangeRow> compare(ReportType prevType, ReportType curType,
             List<FinancialAccount> prev, List<FinancialAccount> cur) {
         return FinancialComparator.compare(FsDiv.CFS, StatementRules.rules(prevType, curType),
@@ -142,8 +147,36 @@ class FinancialComparatorTest {
                 List.of(account(PREV, "CF", "x", "X", 1, 1L, null), account(PREV, "CF", "x", "X", 2, 2L, null)),
                 List.of(account(CUR, "CF", "x", "X", 1, 3L, null), account(CUR, "CF", "x", "X", 2, 5L, null)));
 
-        assertThat(find(rows, "CF", "x").changeAmount()).isEqualTo(2L);
-        assertThat(find(rows, "CF", "x#2").changeAmount()).isEqualTo(3L);
+        assertThat(find(rows, "CF", "x|x").changeAmount()).isEqualTo(2L);
+        assertThat(find(rows, "CF", "x|x#2").changeAmount()).isEqualTo(3L);
+    }
+
+    @Test
+    void repeatedAccountsWithDifferentNamesAreMatchedByName() {
+        List<FinancialChangeRow> rows = compare(ReportType.HALF, ReportType.HALF,
+                List.of(sceNamed(PREV, "기초자본", 1, 100L), sceNamed(PREV, "기말자본", 2, 120L)),
+                List.of(sceNamed(CUR, "기초자본", 1, 120L), sceNamed(CUR, "기말자본", 2, 150L)));
+
+        assertThat(find(rows, "SCE", "ifrs-full_Equity|기초자본").changeAmount()).isEqualTo(20L);
+        assertThat(find(rows, "SCE", "ifrs-full_Equity|기말자본").changeAmount()).isEqualTo(30L);
+    }
+
+    @Test
+    void sameNamedAccountsWithDifferentCountsAreNotPaired() {
+        String nonStandard = FinancialAccount.NON_STANDARD_ACCOUNT_ID;
+        List<FinancialChangeRow> rows = compare(ReportType.HALF, ReportType.HALF,
+                List.of(account(PREV, "BS", nonStandard, "리스부채", 1, 100L, null)),
+                List.of(account(CUR, "BS", nonStandard, "리스부채", 1, 30L, null),
+                        account(CUR, "BS", nonStandard, "리스부채", 2, 90L, null)));
+
+        assertThat(rows).hasSize(3).allSatisfy(row -> {
+            assertThat(row.calcStatus()).isEqualTo(CalcStatus.AMBIGUOUS_MATCH);
+            assertThat(row.changeAmount()).as("어느 것과 짝인지 모르면 계산하지 않는다").isNull();
+            assertThat(row.previous() == null || row.current() == null).isTrue();
+        });
+        assertThat(rows).extracting(FinancialChangeRow::currentAmount).containsExactly(30L, 90L, null);
+        assertThat(rows).extracting(FinancialChangeRow::previousAmount).containsExactly(null, null, 100L);
+        assertThat(CalcStatus.AMBIGUOUS_MATCH.message()).isNotBlank();
     }
 
     @Test

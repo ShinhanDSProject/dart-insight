@@ -52,7 +52,7 @@ erDiagram
     }
     financial_statement_fetch {
         bigint id PK
-        varchar corp_code
+        varchar corp_code FK
         int fiscal_year
         varchar reprt_code "11011 11012 11013 11014"
         varchar fs_div "CFS OFS"
@@ -68,9 +68,9 @@ erDiagram
     }
     analysis {
         bigint id PK
-        varchar corp_code
-        varchar current_rcept_no
-        varchar previous_rcept_no
+        varchar corp_code FK
+        varchar current_rcept_no FK
+        varchar previous_rcept_no FK
         varchar basis "YOY PREV CUSTOM"
         varchar status "PENDING RUNNING COMPLETED FAILED"
         varchar step "RECEIVED COMPARING VERIFYING DONE"
@@ -122,7 +122,7 @@ OpenDART 공시검색(`list.json`, 정기공시 중 최종보고서만)에서 �
 | `fiscal_year` | INT | | 아니오 | 사업연도 |
 | `period_end` | DATE | | 아니오 | 대상 기간의 끝(보고서명의 `(2026.06)` → 2026-06-30) |
 | `rcept_dt` | DATE | | 아니오 | 접수일 |
-| `correction` | VARCHAR(10) | | 아니오 | `ORIGINAL` 원본, `CORRECTED` 정정, `UNKNOWN` 확인 안 됨 |
+| `correction` | VARCHAR(10) | | 아니오 | `ORIGINAL` 원본, `CORRECTED` 정정(보고서명 앞머리에 '정정'), `UNKNOWN` 확인 안 됨(앞머리는 없는데 비고에 '정'. '제출 뒤 정정신고가 있었다'는 뜻이라 추정하지 않음) |
 | `remark` | VARCHAR(20) | | 예 | 비고(`rm`) 원문 |
 | `filer_name` | VARCHAR(200) | | 예 | 공시 제출인 |
 | `last_seen_at` | DATETIME(6) | | 아니오 | OpenDART 최신 목록에서 마지막으로 본 시각 |
@@ -132,10 +132,12 @@ OpenDART 공시검색(`list.json`, 정기공시 중 최종보고서만)에서 �
 
 재무제표 API(`fnlttSinglAcntAll.json`)를 한 번 부른 결과입니다. 같은 조합(`uk_fs_fetch`)은 다시 부르지 않습니다(4.5). `013`(자료 없음)도 `NO_DATA`로 저장하고, 호출 실패(한도 초과·네트워크 오류)는 저장하지 않습니다. 2015 사업연도 이전은 API가 제공하지 않아 부르지 않습니다.
 
+API는 사업연도·보고서 코드마다 최신 공시 하나의 값만 줍니다. 그래서 저장된 결과가 그 보고서의 자료가 아니면(`NO_DATA`이거나 `rcept_no`가 다름), 그 뒤에 보고서 목록에서 그 보고서를 다시 봤을 때(`report.last_seen_at > fetched_at`, 정정 공시가 새로 나왔거나 하루가 지나 목록을 다시 받았을 때) 한 번 더 받아 이 행과 계정 값을 바꿉니다.
+
 | 컬럼 | 타입 | 키 | null | 설명 |
 | --- | --- | --- | --- | --- |
 | `id` | BIGINT | PK | 아니오 | 자동 증가 |
-| `corp_code` | VARCHAR(8) | UK | 아니오 | |
+| `corp_code` | VARCHAR(8) | UK, FK | 아니오 | `company.corp_code` |
 | `fiscal_year` | INT | UK | 아니오 | 사업연도(`bsns_year`) |
 | `reprt_code` | VARCHAR(5) | UK | 아니오 | 11011 사업, 11012 반기, 11013 1분기, 11014 3분기 |
 | `fs_div` | VARCHAR(3) | UK | 아니오 | `CFS` 연결, `OFS` 별도 |
@@ -171,9 +173,9 @@ OpenDART 공시검색(`list.json`, 정기공시 중 최종보고서만)에서 �
 | 컬럼 | 타입 | 키 | null | 설명 |
 | --- | --- | --- | --- | --- |
 | `id` | BIGINT | PK | 아니오 | 분석 ID |
-| `corp_code` | VARCHAR(8) | | 아니오 | |
-| `current_rcept_no` | VARCHAR(14) | | 아니오 | 현재 보고서 |
-| `previous_rcept_no` | VARCHAR(14) | | 아니오 | 비교(이전) 보고서 |
+| `corp_code` | VARCHAR(8) | FK | 아니오 | `company.corp_code` |
+| `current_rcept_no` | VARCHAR(14) | FK | 아니오 | 현재 보고서(`report.rcept_no`) |
+| `previous_rcept_no` | VARCHAR(14) | FK | 아니오 | 비교(이전) 보고서(`report.rcept_no`) |
 | `basis` | VARCHAR(10) | | 아니오 | `YOY` 전년 동기, `PREV` 직전 기간, `CUSTOM` 직접 선택 |
 | `analysis_version` | VARCHAR(20) | | 아니오 | 계산 규칙 버전. 규칙이 바뀌면 올려서 옛 결과와 섞지 않음 |
 | `fs_div` | VARCHAR(3) | | 예 | 비교에 쓴 기준(연결·별도) |
@@ -182,8 +184,9 @@ OpenDART 공시검색(`list.json`, 정기공시 중 최종보고서만)에서 �
 | `error_code` | VARCHAR(50) | | 예 | 실패 사유 코드 |
 | `error_message` | VARCHAR(500) | | 예 | 실패 사유 |
 | `request_trace_id` | VARCHAR(64) | | 예 | 분석을 요청한 요청의 추적 ID(`X-Trace-Id`) |
-| `created_at`, `updated_at` | DATETIME(6) | | 아니오 | |
+| `created_at`, `updated_at` | DATETIME(6) | | 아니오 | `updated_at`이 30분 넘게 바뀌지 않은 진행 중 분석은 멈춘 것으로 보고 실패로 바꿈 |
 | `started_at`, `completed_at` | DATETIME(6) | | 예 | |
+| `version` | BIGINT | | 아니오 | 낙관적 잠금. 실행 중인 분석과 만료 처리가 서로의 상태를 덮어쓰지 않게 함 |
 
 ### financial_change
 
@@ -193,7 +196,7 @@ OpenDART 공시검색(`list.json`, 정기공시 중 최종보고서만)에서 �
 | `analysis_id` | BIGINT | FK | 아니오 | `analysis.id` |
 | `sj_div` | VARCHAR(5) | | 아니오 | 재무제표 종류 |
 | `fs_div` | VARCHAR(3) | | 아니오 | 연결·별도 |
-| `account_key` | VARCHAR(200) | | 아니오 | 두 보고서의 계정을 맞춘 키(표준계정코드, 없으면 정규화한 계정명) |
+| `account_key` | VARCHAR(1000) | | 아니오 | 두 보고서의 계정을 맞춘 키(표준계정코드, 없으면 정규화한 계정명. 자본변동표는 계정 상세, 같은 키가 여러 번이면 계정명을 더함) |
 | `account_name` | VARCHAR(200) | | 아니오 | 현재 보고서의 계정명 |
 | `display_order` | INT | | 아니오 | 화면 정렬 순서 |
 | `amount_basis` | VARCHAR(10) | | 예 | `POINT` 시점(재무상태표), `CUMULATIVE` 누적, `QUARTER` 3개월. 기간 기준이 달라 비교하지 않으면(`PERIOD_MISMATCH`) null |
@@ -207,19 +210,21 @@ OpenDART 공시검색(`list.json`, 정기공시 중 최종보고서만)에서 �
 | `previous_account_id`, `current_account_id` | VARCHAR(200) | | 예 | 근거 계정 |
 | `previous_period_name`, `current_period_name` | VARCHAR(50) | | 예 | 근거 기간 이름 |
 
-`calc_status`: `OK`, `PREVIOUS_ZERO`(이전 값 0), `PREVIOUS_NEGATIVE`(이전 값 음수), `PREVIOUS_MISSING`(이전 값 미기재), `CURRENT_MISSING`(현재 값 미기재), `ONLY_CURRENT`(현재 보고서에만 있음), `ONLY_PREVIOUS`(이전 보고서에만 있음), `PERIOD_MISMATCH`(기간이 달라 계산하지 않음).
+`calc_status`: `OK`, `PREVIOUS_ZERO`(이전 값 0), `PREVIOUS_NEGATIVE`(이전 값 음수), `PREVIOUS_MISSING`(이전 값 미기재), `CURRENT_MISSING`(현재 값 미기재), `ONLY_CURRENT`(현재 보고서에만 있음), `ONLY_PREVIOUS`(이전 보고서에만 있음), `AMBIGUOUS_MATCH`(같은 계정이 여러 개이고 두 보고서의 개수가 달라 짝을 확정하지 못함, 검토 필요), `PERIOD_MISMATCH`(기간이 달라 계산하지 않음).
 
 ## 4. 인덱스·제약
 
 | 테이블 | 이름 | 컬럼 | 종류 | 이유 |
 | --- | --- | --- | --- | --- |
-| `company` | `idx_company_corp_name` | `corp_name` | 인덱스 | 회사명 검색 |
+| `company` | `idx_company_corp_name` | `corp_name` | 인덱스 | 회사명 정렬·완전 일치. 부분 일치 검색(`%검색어%`)에는 쓰이지 않음 |
 | `company` | `idx_company_stock_code` | `stock_code` | 인덱스 | 종목코드 검색 |
 | `report` | `idx_report_corp_period` | `corp_code, period_end` | 인덱스 | 기업별 보고서 목록 |
 | `financial_statement_fetch` | `uk_fs_fetch` | `corp_code, fiscal_year, reprt_code, fs_div` | 유니크 | 같은 호출을 두 번 저장하지 않음 |
 | `financial_account` | `idx_fin_account_fetch` | `fetch_id, sj_div, ord` | 인덱스 | 재무제표별 계정을 원문 순서로 조회 |
 | `analysis` | `idx_analysis_key` | `corp_code, current_rcept_no, previous_rcept_no, basis, analysis_version` | 인덱스 | 같은 조건 결과 재사용(4.3). 유니크가 아님: 실패한 분석 뒤에 새 분석을 만들 수 있어야 함 |
 | `financial_change` | `idx_fin_change_analysis` | `analysis_id, sj_div, display_order` | 인덱스 | 결과 화면 조회 |
+
+외래 키: `report.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id`
 
 ## 5. M2에서 더할 테이블 (자리만)
 

@@ -51,6 +51,7 @@ class AnalysisApiTest {
     private static final String PATH = "/api/fnlttSinglAcntAll.json";
     private static final String CUR = "20260814000001";
     private static final String PREV = "20250814000001";
+    private static final String Q3_PREV = "20251114000001";
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 10, 21, 9, 0);
 
     @DynamicPropertySource
@@ -92,6 +93,9 @@ class AnalysisApiTest {
                 new CorpCodeEntry("00000001", "예시전자", null, "900001", LocalDate.of(2026, 1, 1))));
         saveReport(CUR, 2026);
         saveReport(PREV, 2025);
+        reportRepository.save(Report.create(Q3_PREV, "00000001", "분기보고서 (2025.09)",
+                new ParsedReportName(ReportType.Q3, 2025, LocalDate.of(2025, 9, 30), Correction.ORIGINAL),
+                LocalDate.of(2025, 11, 14), null, "예시전자", NOW));
     }
 
     private void saveReport(String rceptNo, int year) {
@@ -112,12 +116,16 @@ class AnalysisApiTest {
     }
 
     private ResultActions request(String current, String previous) throws Exception {
+        return request(current, previous, "YOY");
+    }
+
+    private ResultActions request(String current, String previous, String basis) throws Exception {
         return mockMvc.perform(post("/api/analyses")
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("X-Trace-Id", "trace-analysis-1")
                 .content("""
-                        {"corpCode":"00000001","currentRceptNo":"%s","previousRceptNo":"%s","basis":"YOY"}
-                        """.formatted(current, previous)));
+                        {"corpCode":"00000001","currentRceptNo":"%s","previousRceptNo":"%s","basis":"%s"}
+                        """.formatted(current, previous, basis)));
     }
 
     private int calls() {
@@ -207,6 +215,36 @@ class AnalysisApiTest {
     }
 
     @Test
+    void pairThatDoesNotMatchBasisIsStoredAsCustom() throws Exception {
+        SERVER.on(PATH, statementOf(CUR, "1153", "40", "70"), statementOf(Q3_PREV, "1100", "35", "90"));
+
+        long id = ((Number) JsonPath.read(request(CUR, Q3_PREV, "YOY").andExpect(status().isAccepted())
+                .andReturn().getResponse().getContentAsString(), "$.analysisId")).longValue();
+
+        mockMvc.perform(get("/api/analyses/{id}", id))
+                .andExpect(jsonPath("$.basis").value("CUSTOM"))
+                .andExpect(jsonPath("$.status").value("COMPLETED"));
+        request(CUR, Q3_PREV, "CUSTOM")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.analysisId").value(id))
+                .andExpect(jsonPath("$.reused").value(true));
+    }
+
+    @Test
+    void unfinishedAnalysesFailWhenTheServerStartsAgain() throws Exception {
+        Analysis analysis = Analysis.request("00000001", CUR, PREV, ComparisonBasis.YOY, null, NOW);
+        analysis.start(NOW);
+        Long id = analysisRepository.save(analysis).getId();
+
+        runner.failInterrupted();
+
+        mockMvc.perform(get("/api/analyses/{id}", id))
+                .andExpect(jsonPath("$.status").value("FAILED"))
+                .andExpect(jsonPath("$.error.code").value("ANALYSIS_INTERRUPTED"))
+                .andExpect(jsonPath("$.error.retryable").value(true));
+    }
+
+    @Test
     void unknownAnalysisAndInvalidRequest() throws Exception {
         mockMvc.perform(get("/api/analyses/{id}", 999_999))
                 .andExpect(status().isNotFound())
@@ -232,5 +270,9 @@ class AnalysisApiTest {
         assertThat(AnalysisRunner.verify(analysis, List.of(ok))).isNull();
         assertThat(AnalysisRunner.verify(analysis, List.of(ok, wrongReport))).contains("이전 값의 근거");
         assertThat(AnalysisRunner.verify(analysis, List.of(wrongMath))).contains("증감액");
+        FinancialChangeRow differentAccounts = new FinancialChangeRow("BS", FsDiv.CFS, "k", "자산", 0,
+                AmountBasis.POINT, 1L, 2L, 1L, null, CalcStatus.OK, "KRW", new Evidence(PREV, "BS", "a", "자산", null),
+                new Evidence(CUR, "BS", "b", "자산", null));
+        assertThat(AnalysisRunner.verify(analysis, List.of(differentAccounts))).contains("다른 계정");
     }
 }

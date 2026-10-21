@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Analysis } from '../../api/analyses'
 import { getFinancialChange, type FinancialChangeDetail, type ValueSource } from '../../api/results'
 import { DartLinkInline } from '../../components/DartLink'
@@ -46,11 +46,18 @@ export function EvidencePanel({ analysis, changeId, unit, onClose }: EvidencePan
   }, [analysis.analysisId, changeId, retry])
 
   const title = state.kind === 'done' ? `${state.detail.accountName} · 근거` : '수치 근거'
+  const headingRef = useRef<HTMLHeadingElement>(null)
+
+  // 표 아래에 열리므로, 열리면 제목으로 초점과 화면을 옮긴다(키보드·화면 읽기 사용자)
+  useEffect(() => {
+    headingRef.current?.focus()
+    headingRef.current?.scrollIntoView?.({ block: 'nearest' })
+  }, [])
 
   return (
     <section className="panel evidence" aria-labelledby="evidence-title" id="evidence">
       <div className="evidence__head">
-        <h2 id="evidence-title" className="panel__title">
+        <h2 id="evidence-title" className="panel__title" ref={headingRef} tabIndex={-1}>
           {title}
         </h2>
         <button type="button" className="button button--secondary" onClick={onClose}>
@@ -62,7 +69,7 @@ export function EvidencePanel({ analysis, changeId, unit, onClose }: EvidencePan
         <ErrorState
           error={state.error}
           onRetry={() => setRetry((n) => n + 1)}
-          messages={{ FINANCIAL_CHANGE_NOT_FOUND: '이 분석의 계정이 아니에요. 표에서 다시 골라 주세요.' }}
+          messages={{ ANALYSIS_CHANGE_NOT_FOUND: '이 분석의 계정이 아니에요. 표에서 다시 골라 주세요.' }}
         />
       )}
       {state.kind === 'done' && <EvidenceBody analysis={analysis} detail={state.detail} unit={unit} />}
@@ -73,6 +80,7 @@ export function EvidencePanel({ analysis, changeId, unit, onClose }: EvidencePan
 function EvidenceBody({ analysis, detail, unit }: { analysis: Analysis; detail: FinancialChangeDetail; unit: AmountUnit }) {
   const basis = detail.fsDiv === 'OFS' ? '별도' : '연결'
   const currency = detail.currency === 'KRW' ? '원(KRW)' : (detail.currency ?? '통화 확인 안 됨')
+  const baseUnit = unitLabel('WON', detail.currency)
   return (
     <>
       <div className="evidence__sources">
@@ -101,7 +109,7 @@ function EvidenceBody({ analysis, detail, unit }: { analysis: Analysis; detail: 
       </div>
       {detail.formula ? (
         <p className="evidence__formula">
-          증감액 = 현재 값 − 이전 값 = {detail.formula} 원
+          증감액 = 현재 값 − 이전 값 = {detail.formula} {baseUnit}
           <br />
           {detail.rateFormula ? `증감률 = 증감액 ÷ 이전 값 × 100 = ${detail.rateFormula}` : `증감률: ${detail.calcMessage}`}
         </p>
@@ -138,8 +146,13 @@ function SourceCard({ role, source, fallbackReport, amount, missing, detail, uni
     <div className="evidence__source">
       <span className="evidence__role">{role}</span>
       <span className="evidence__value">
-        {scaled === null ? missing : `${scaled} ${unitLabel(unit)}`}
-        {exact !== null && unit !== 'WON' && <span className="evidence__exact"> ({exact} 원)</span>}
+        {scaled === null ? missing : `${scaled} ${unitLabel(unit, detail.currency)}`}
+        {exact !== null && unit !== 'WON' && (
+          <span className="evidence__exact">
+            {' '}
+            ({exact} {unitLabel('WON', detail.currency)})
+          </span>
+        )}
       </span>
       <span>
         {detail.amountBasis === 'POINT' ? '기준일' : '대상 기간'} {amountPeriodLabel(report, detail.amountBasis)} · {basis} ·{' '}

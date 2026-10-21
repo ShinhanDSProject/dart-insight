@@ -80,3 +80,17 @@ describe('apiPost', () => {
     expect(init.body).toBe('{"corpCode":"00126380"}')
   })
 })
+
+describe('non-JSON success', () => {
+  it('is not treated as success (e.g. index.html returned for a wrong API address)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response('<!doctype html><html></html>', { status: 200, headers: { 'Content-Type': 'text/html' } })),
+    )
+
+    const error = await apiGet('/api/companies').catch((e: unknown) => e)
+
+    expect(error).toBeInstanceOf(ApiError)
+    expect((error as ApiError).code).toBe('COMMON_INTERNAL_ERROR')
+  })
+})

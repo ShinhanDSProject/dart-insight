@@ -36,7 +36,7 @@ export function ErrorState({ error, onRetry, messages }: ErrorStateProps) {
   return (
     <div className="state state--error" role="alert">
       <p className="state__title">{message}</p>
-      {code === NETWORK_ERROR && <p>backend가 실행 중인지 확인해 주세요.</p>}
+      {code === NETWORK_ERROR && <p>계속되면 관리자에게 알려 주세요.</p>}
       {apiError?.traceId && <p className="state__meta">추적 ID: <code>{apiError.traceId}</code></p>}
       {onRetry && (
         <button type="button" className="button button--secondary" onClick={onRetry}>

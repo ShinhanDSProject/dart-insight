@@ -133,12 +133,27 @@ class FinancialChangeDetailTest {
     @Test
     void changeOfAnotherAnalysisIsNotFound() throws Exception {
         Analysis other = Analysis.request("00000001", CUR, PREV, ComparisonBasis.CUSTOM, null, NOW);
+        other.start(NOW);
+        other.recordFsDiv(FsDiv.CFS);
         Long otherId = analysisRepository.save(other).getId();
+        resultService.saveAndComplete(otherId, List.of(new FinancialChangeRow("BS", FsDiv.CFS, "k", "자산총계", 0,
+                AmountBasis.POINT, 1L, 2L, 1L, null, CalcStatus.OK, "KRW",
+                new Evidence(PREV, "BS", "k", "자산총계", null), new Evidence(CUR, "BS", "k", "자산총계", null))));
 
         mockMvc.perform(get("/api/analyses/{a}/financial-changes/{c}", analysisId, 999_999))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("FINANCIAL_CHANGE_NOT_FOUND"));
+                .andExpect(jsonPath("$.code").value("ANALYSIS_CHANGE_NOT_FOUND"));
         mockMvc.perform(get("/api/analyses/{a}/financial-changes/{c}", otherId, changeId("매출액")))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ANALYSIS_CHANGE_NOT_FOUND"));
+    }
+
+    @Test
+    void unfinishedAnalysisIsNotReady() throws Exception {
+        Long pendingId = analysisRepository.save(
+                Analysis.request("00000001", CUR, PREV, ComparisonBasis.PREV, null, NOW)).getId();
+
+        mockMvc.perform(get("/api/analyses/{a}/financial-changes/{c}", pendingId, changeId("매출액")))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("ANALYSIS_NOT_READY"));
     }

@@ -135,8 +135,8 @@ function CheckResult({ result, basis }: { result: ComparabilityResult; basis: st
         <div className="not-comparable" role="alert">
           <p className="not-comparable__title">{resultSummary(result)}</p>
           <ul className="not-comparable__reasons">
-            {result.reasons.map((reason) => (
-              <li key={reason.code}>
+            {result.reasons.map((reason, i) => (
+              <li key={`${reason.code}-${i}`}>
                 {reason.message} <span className="not-comparable__next">{reason.nextAction}</span>
               </li>
             ))}

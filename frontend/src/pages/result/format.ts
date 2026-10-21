@@ -17,37 +17,45 @@ export function parseUnit(value: string | null): AmountUnit {
   return unitOptions.some((o) => o.value === value) ? (value as AmountUnit) : DEFAULT_UNIT
 }
 
-export function unitLabel(unit: AmountUnit): string {
+const unitPrefixes: Record<AmountUnit, string> = { WON: '', THOUSAND: '천', MILLION: '백만', HUNDRED_MILLION: '억' }
+
+/** 단위 이름. 원화가 아니면 통화 코드를 붙인다(예: 백만 USD). */
+export function unitLabel(unit: AmountUnit, currency?: string | null): string {
+  if (currency && currency !== 'KRW') return `${unitPrefixes[unit]} ${currency}`.trim()
   return unitOptions.find((o) => o.value === unit)?.label ?? '원'
 }
 
 const numberFormat = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 })
 
 /** 금액을 단위로 나눠 반올림하고 천 단위로 끊는다. 없는 값은 null 그대로(0으로 보지 않음). */
-export function formatAmount(value: number | null, unit: AmountUnit): string | null {
-  if (value === null) return null
+function scaleAbs(value: number, unit: AmountUnit): number {
   const divisor = unitOptions.find((o) => o.value === unit)?.divisor ?? 1
-  const scaled = Math.round(value / divisor)
-  // -0을 0으로
-  return numberFormat.format(scaled === 0 ? 0 : scaled).replace('-', '−')
+  // 양수·음수를 같은 방식으로 반올림하도록 절댓값으로 계산한다
+  return Math.round(Math.abs(value) / divisor)
 }
 
-/** 증감액: 방향 기호와 절댓값. 예: ▲ 1,234 / ▼ 1,234 / 0 */
+export function formatAmount(value: number | null, unit: AmountUnit): string | null {
+  if (value === null) return null
+  const scaled = scaleAbs(value, unit)
+  const sign = value < 0 && scaled !== 0 ? '−' : ''
+  return `${sign}${numberFormat.format(scaled)}`
+}
+
+/** 증감액: 방향 기호와 절댓값. 예: ▲ 1,234 / ▼ 1,234 / 0. 단위보다 작은 변화는 '1 미만' */
 export function formatChange(value: number | null, unit: AmountUnit): string | null {
   if (value === null) return null
-  const abs = formatAmount(Math.abs(value), unit)
-  if (value > 0) return `▲ ${abs}`
-  if (value < 0) return `▼ ${abs}`
-  return '0'
+  if (value === 0) return '0'
+  const scaled = scaleAbs(value, unit)
+  const amount = scaled === 0 ? '1 미만' : numberFormat.format(scaled)
+  return value > 0 ? `▲ ${amount}` : `▼ ${amount}`
 }
 
 /** 증감률(비율): +15.3% / −4.2% / 0.0% */
 export function formatRate(rate: number | null): string | null {
   if (rate === null) return null
-  const percent = Math.round(rate * 1000) / 10
-  if (percent > 0) return `+${percent.toFixed(1)}%`
-  if (percent < 0) return `−${Math.abs(percent).toFixed(1)}%`
-  return '0.0%'
+  const percent = Math.round(Math.abs(rate) * 1000) / 10
+  if (percent === 0) return '0.0%'
+  return `${rate > 0 ? '+' : '−'}${percent.toFixed(1)}%`
 }
 
 /** 2026-06-30 → 2026.06.30 */
@@ -76,6 +84,7 @@ const shortCalcLabels: Record<string, string> = {
   CURRENT_MISSING: '계산 불가 · 현재 값 미기재',
   ONLY_CURRENT: '계산 불가 · 이전 보고서에 없는 계정',
   ONLY_PREVIOUS: '계산 불가 · 현재 보고서에 없는 계정',
+  AMBIGUOUS_MATCH: '검토 필요 · 같은 계정이 여러 개',
   PERIOD_MISMATCH: '계산 불가 · 기간 기준이 달라요',
 }
 
@@ -87,6 +96,7 @@ export function shortCalcLabel(calcStatus: string): string | null {
 /** 값이 없을 때 칸에 넣는 말. 없는 값을 0으로 보이지 않게 한다. */
 export function missingValueLabel(calcStatus: string, side: 'previous' | 'current'): string {
   if (calcStatus === 'PERIOD_MISMATCH') return '—'
+  if (calcStatus === 'AMBIGUOUS_MATCH') return '짝 확인 필요'
   if (side === 'previous' && calcStatus === 'ONLY_CURRENT') return '없음'
   if (side === 'current' && calcStatus === 'ONLY_PREVIOUS') return '없음'
   return '미기재'

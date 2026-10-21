@@ -18,7 +18,7 @@
 - 날짜는 `YYYY-MM-DD`(한국 시간), 시각은 `YYYY-MM-DDTHH:mm:ss`(한국 시간)입니다.
 - 금액은 원 단위 정수입니다. 단위 변환(백만원·억원)은 화면에서 합니다.
 - 비율은 소수입니다(`0.153` = 15.3%).
-- 응답 헤더 `X-Trace-Id`에 추적 ID가 있습니다. 요청에 `X-Trace-Id`를 넣으면 그 값을 그대로 씁니다.
+- 응답 헤더 `X-Trace-Id`에 추적 ID가 있습니다. 요청에 `X-Trace-Id`를 넣으면 그 값을 그대로 씁니다. 단, 영문·숫자·`-`로 된 64자 이하 값만 쓰고, 그 밖의 값은 새 ID로 바꿉니다.
 - 로그인은 MVP에 없습니다(P2).
 
 ### 에러 형식
@@ -41,7 +41,7 @@
 | 이름 | 값 |
 | --- | --- |
 | `reportType` | `ANNUAL` 사업보고서, `HALF` 반기보고서, `Q1` 1분기보고서, `Q3` 3분기보고서 |
-| `correction` | `ORIGINAL` 원본, `CORRECTED` 정정, `UNKNOWN` 확인 안 됨 |
+| `correction` | `ORIGINAL` 원본, `CORRECTED` 정정(보고서명 앞머리에 '정정'), `UNKNOWN` 확인 안 됨(비고 `rm`에 '정'만 있음) |
 | `disclosureType` | OpenDART 공시상세유형. `A001` 사업보고서, `A002` 반기보고서, `A003` 분기보고서 |
 | `financialDataStatus` | `UNKNOWN` 확인 전(아직 받아 보지 않음), `AVAILABLE` 재무 자료 있음, `NOT_AVAILABLE` 재무 자료 없음. 받아 둔 결과(4.5)로 정하고 목록 조회에서는 OpenDART를 부르지 않음. `NOT_AVAILABLE`: 2015 사업연도 이전, 연결·별도 모두 `013`, 또는 받은 자료가 다른 접수번호(정정본) 것 |
 | `basis` | `YOY` 전년 동기, `PREV` 직전 기간, `CUSTOM` 직접 선택 |
@@ -217,6 +217,7 @@
 | --- | --- | --- |
 | 400 | `COMMON_INVALID_INPUT` | `basis`가 없거나 `YOY`·`PREV`가 아님 |
 | 404 | `COMPANY_NOT_FOUND`, `REPORT_NOT_FOUND` | 없는 기업, 저장되지 않았거나 다른 기업의 보고서 |
+| 502·503 | `DART_REQUEST_FAILED`, `DART_RATE_LIMITED`, `DART_KEY_MISSING` | 정기보고서 목록을 다시 받아야 하는데(4.1) OpenDART 호출이 실패하고 저장된 목록도 없음. 저장된 목록이 있으면 그 목록으로 고름 |
 
 ### POST /api/comparability-checks — 비교 가능성 검증
 
@@ -293,8 +294,9 @@
 ### POST /api/analyses — 분석 요청
 
 - 이슈: #14 (2.3) · 화면: W-01 ③ → W-02
-- 같은 기업·보고서 쌍·비교 기준·분석 버전으로 완료된 결과가 있으면 새로 만들지 않고 그 결과를 돌려줍니다(200, `reused: true`). 진행 중인 작업이 있으면 그 작업을 돌려줍니다(202, `reused: true`). 실패한 작업은 다시 쓰지 않고 새로 만듭니다.
+- 같은 기업·보고서 쌍·비교 기준·분석 버전으로 완료된 결과가 있으면 새로 만들지 않고 그 결과를 돌려줍니다(200, `reused: true`). 진행 중인 작업이 있으면 그 작업을 돌려줍니다(202, `reused: true`). 실패한 작업은 다시 쓰지 않고 새로 만듭니다. 진행 중인데 30분 넘게 상태가 바뀌지 않은 작업은 멈춘 것으로 보고 실패(`ANALYSIS_TIMED_OUT`)로 바꾼 뒤 새로 만듭니다.
 - 새로 만들기 전에 비교 가능성 검증(2.2)을 합니다. 통과하지 못하면 만들지 않고 422입니다.
+- `basis`가 `YOY`·`PREV`인데 고른 보고서가 그 기준의 보고서가 아니면 `CUSTOM`(직접 선택)으로 저장합니다. 결과 화면이 기준을 잘못 보여 주지 않고, 같은 보고서 쌍을 기준 이름만 달리해 두 번 분석하지 않기 위해서입니다.
 - 분석은 요청과 다른 스레드에서 돕니다. 진행 상황은 `GET /api/analyses/{analysisId}`로 봅니다.
 - 요청의 추적 ID(`X-Trace-Id`)를 분석에 저장하고, 분석이 도는 동안 로그에 같은 값을 남깁니다.
 
@@ -350,6 +352,9 @@
 | `ANALYSIS_EVIDENCE_MISMATCH` | 근거 확인 실패(값의 근거가 그 보고서가 아니거나 증감액이 두 값의 차와 다름) | true |
 | `ANALYSIS_SAVE_FAILED` | 결과 저장 실패. 완료로 표시하지 않음 | true |
 | `ANALYSIS_FAILED` | 알 수 없는 오류 | true |
+| `ANALYSIS_BUSY` | 분석 요청이 많아 대기열에 넣지 못함 | true |
+| `ANALYSIS_INTERRUPTED` | 실행 중에 서버가 다시 시작됨(서버가 뜰 때 끝나지 않은 작업을 실패로 바꿈) | true |
+| `ANALYSIS_TIMED_OUT` | 30분 넘게 진행되지 않아 멈춘 것으로 봄 | true |
 | `DART_REQUEST_FAILED`, `DART_RATE_LIMITED`, `DART_KEY_MISSING` | OpenDART 호출 실패 | true |
 
 | 상태 | code | 언제 |
@@ -448,7 +453,7 @@
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
-| 404 | `ANALYSIS_NOT_FOUND`, `FINANCIAL_CHANGE_NOT_FOUND` | 없는 분석·항목 |
+| 404 | `ANALYSIS_NOT_FOUND`, `ANALYSIS_CHANGE_NOT_FOUND` | 없는 분석·항목 |
 | 409 | `ANALYSIS_NOT_READY` | 분석이 아직 완료되지 않음 |
 
 ### GET /api/system/health — 연결 상태
@@ -470,11 +475,12 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 | 메서드 | 경로 | 설명 | 이슈 | 상태 |
 | --- | --- | --- | --- | --- |
 | GET | `/internal/health` | AI 서버 상태 | #48 (0.5) | 초안 |
+| GET | `/health` | AI 서버 자체 상태(사람·배포 도구가 확인용으로 씀. backend는 `/internal/health`를 부름) | #44 (0.1) | 초안 |
 | POST | `/internal/...` | 원문 구조화·문장 변경 탐지·요약 | 4.2, 2.5, 3.2 | M2에서 정함 |
 
 ## 4. 에러 코드
 
-`code`는 `영역_내용` 형식의 대문자 스네이크입니다. 화면은 `code`를 보고 예외 상태를 고릅니다.
+`code`는 `영역_내용` 형식의 대문자 스네이크입니다. 화면은 `code`를 보고 예외 상태를 고릅니다. 분석 작업이 실패한 사유(`GET /api/analyses/{analysisId}`의 `error.code`)는 HTTP 에러가 아니라서 이 표에 없고, 그 절의 표에 있습니다.
 
 | code | 상태 | 뜻 | 화면 처리 |
 | --- | --- | --- | --- |
@@ -488,7 +494,7 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 | `ANALYSIS_NOT_FOUND` | 404 | 없는 분석 | 처음부터 다시 |
 | `ANALYSIS_NOT_COMPARABLE` | 422 | 비교할 수 없는 보고서 쌍 | W-01 ③ 사유와 다음 행동 |
 | `ANALYSIS_NOT_READY` | 409 | 분석이 끝나지 않음 | W-02로 이동 |
-| `FINANCIAL_CHANGE_NOT_FOUND` | 404 | 없는 계정 항목 | 목록 다시 불러오기 |
+| `ANALYSIS_CHANGE_NOT_FOUND` | 404 | 없는 계정 항목 | 목록 다시 불러오기 |
 | `DART_REQUEST_FAILED` | 502 | OpenDART 호출 실패 | 잠시 뒤 다시 시도 |
 | `DART_RATE_LIMITED` | 503 | OpenDART 호출 한도 초과(020) | 내일 다시 시도, 저장된 자료 사용 |
 | `DART_KEY_MISSING` | 503 | 서버에 OpenDART 키가 없음 | 관리자 안내 |

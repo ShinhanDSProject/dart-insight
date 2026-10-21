@@ -12,7 +12,7 @@ type SearchState =
   | { kind: 'error'; error: unknown }
 
 const errorMessages: Record<string, string> = {
-  COMPANY_LIST_NOT_LOADED: '기업 목록을 아직 받지 않았습니다. backend를 OpenDART 키와 함께 실행했는지 확인해 주세요.',
+  COMPANY_LIST_NOT_LOADED: '기업 목록이 아직 준비되지 않았어요. 관리자에게 기업 목록 갱신을 요청해 주세요.',
 }
 
 /** W-01 ① 기업 검색. 검색어는 주소(?q=)에 남겨 뒤로 가기를 해도 결과가 유지된다. */
@@ -21,6 +21,13 @@ export function SearchPage() {
   const query = searchParams.get('q') ?? ''
   const [input, setInput] = useState(query)
   const [inputError, setInputError] = useState<string | null>(null)
+  // 뒤로 가기나 로고 클릭으로 주소의 검색어가 바뀌면 입력창도 맞춘다
+  const [shownQuery, setShownQuery] = useState(query)
+  if (shownQuery !== query) {
+    setShownQuery(query)
+    setInput(query)
+    setInputError(null)
+  }
   const [state, setState] = useState<SearchState>({ kind: 'idle' })
   const [retry, setRetry] = useState(0)
 

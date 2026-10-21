@@ -4,6 +4,7 @@ import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.comparison.ComparisonBasis;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -15,13 +16,17 @@ import org.springframework.transaction.annotation.Transactional;
  * 분석 결과 저장·조회(4.3).
  * <ul>
  *   <li>결과는 기업·현재 보고서·이전 보고서·비교 기준·분석 버전으로 식별한다.</li>
- *   <li>같은 조건으로 완료된 분석이 있으면 다시 쓰고, 진행 중이면 그 분석을 돌려준다. 실패한 분석은 다시 쓰지 않는다.</li>
+ *   <li>같은 조건으로 완료된 분석이 있으면 다시 쓰고, 진행 중이면 그 분석을 돌려준다. 실패한 분석과 멈춘 분석은 다시 쓰지 않는다.</li>
  *   <li>정정 공시는 접수번호가 달라 새 분석이 된다. 기존 결과를 덮어쓰지 않는다.</li>
  *   <li>결과 저장과 완료 표시는 한 트랜잭션이다. 저장이 실패하면 완료로 바뀌지 않는다.</li>
  * </ul>
  */
 @Service
 public class AnalysisResultService {
+
+    /** 이 시간 넘게 상태가 바뀌지 않은 진행 중 분석은 멈춘 것으로 본다(OpenDART 호출이 가장 오래 걸리는 경우보다 길게). */
+    static final Duration STALE_AFTER = Duration.ofMinutes(30);
+    static final String STALE_CODE = "ANALYSIS_TIMED_OUT";
 
     private final AnalysisRepository analysisRepository;
     private final FinancialChangeRepository changeRepository;
@@ -34,14 +39,30 @@ public class AnalysisResultService {
         this.clock = clock;
     }
 
-    @Transactional(readOnly = true)
+    /**
+     * 같은 조건에서 다시 쓸 분석. 완료된 것이 있으면 그것, 없으면 진행 중인 것.
+     * 진행 중인데 {@link #STALE_AFTER} 넘게 상태가 바뀌지 않은 분석은 멈춘 것으로 보고 실패로 바꾼 뒤 다시 쓰지 않는다
+     * (서버가 실행 도중 내려가는 등). 그래야 같은 조건으로 다시 요청할 수 있다.
+     */
+    @Transactional
     public Optional<Analysis> findReusable(String corpCode, String currentRceptNo, String previousRceptNo,
             ComparisonBasis basis) {
         List<Analysis> same = analysisRepository
                 .findByCorpCodeAndCurrentRceptNoAndPreviousRceptNoAndBasisAndAnalysisVersionOrderByIdDesc(corpCode,
                         currentRceptNo, previousRceptNo, basis, Analysis.CURRENT_VERSION);
-        return same.stream().filter(a -> a.getStatus() == AnalysisStatus.COMPLETED).findFirst()
-                .or(() -> same.stream().filter(a -> !a.getStatus().finished()).findFirst());
+        Optional<Analysis> completed = same.stream()
+                .filter(a -> a.getStatus() == AnalysisStatus.COMPLETED).findFirst();
+        if (completed.isPresent()) {
+            return completed;
+        }
+        LocalDateTime now = now();
+        LocalDateTime staleBefore = now.minus(STALE_AFTER);
+        for (Analysis analysis : same) {
+            if (!analysis.getStatus().finished() && analysis.getUpdatedAt().isBefore(staleBefore)) {
+                analysis.fail(STALE_CODE, "분석이 오래 진행되지 않아 멈춘 것으로 봤어요. 다시 요청해 주세요.", now);
+            }
+        }
+        return same.stream().filter(a -> !a.getStatus().finished()).findFirst();
     }
 
     /**
@@ -79,7 +100,7 @@ public class AnalysisResultService {
             throw new ApiException(ErrorCode.ANALYSIS_NOT_READY);
         }
         FinancialChange change = changeRepository.findByIdAndAnalysisId(changeId, analysisId)
-                .orElseThrow(() -> new ApiException(ErrorCode.FINANCIAL_CHANGE_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(ErrorCode.ANALYSIS_CHANGE_NOT_FOUND));
         return new CompletedChange(analysis, change);
     }
 

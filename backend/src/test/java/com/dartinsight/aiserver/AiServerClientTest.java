@@ -57,7 +57,7 @@ class AiServerClientTest {
 
     private AiServerClient client(Duration readTimeout) {
         String baseUrl = "http://127.0.0.1:" + server.getAddress().getPort();
-        return new AiServerClient(new AiServerProperties(baseUrl, Duration.ofSeconds(1), readTimeout));
+        return new AiServerClient(new AiServerProperties(baseUrl, Duration.ofSeconds(1), readTimeout, readTimeout));
     }
 
     @Test
@@ -93,11 +93,23 @@ class AiServerClientTest {
     }
 
     @Test
+    void slowHealthIsDownWithinHealthTimeout() {
+        delayMillis = 3000;
+        String baseUrl = "http://127.0.0.1:" + server.getAddress().getPort();
+        AiServerClient client = new AiServerClient(new AiServerProperties(baseUrl, Duration.ofSeconds(1),
+                Duration.ofSeconds(30), Duration.ofMillis(300)));
+        long started = System.nanoTime();
+
+        assertThat(client.health()).isEqualTo(AiServerStatus.DOWN);
+        assertThat((System.nanoTime() - started) / 1_000_000).isLessThan(2000);
+    }
+
+    @Test
     void unreachableServerMeansDown() {
         int port = server.getAddress().getPort();
         server.stop(0);
         AiServerClient client = new AiServerClient(new AiServerProperties(
-                "http://127.0.0.1:" + port, Duration.ofMillis(500), Duration.ofMillis(500)));
+                "http://127.0.0.1:" + port, Duration.ofMillis(500), Duration.ofMillis(500), Duration.ofMillis(500)));
 
         assertThat(client.health()).isEqualTo(AiServerStatus.DOWN);
     }

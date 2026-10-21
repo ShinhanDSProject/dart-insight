@@ -48,6 +48,9 @@ public class CorpCodeSyncRunner implements ApplicationRunner {
             companyImportService.importFromOpenDart();
         } catch (ApiException e) {
             log.warn("기업 목록을 받지 못했습니다: {} {}", e.errorCode(), e.getMessage());
+        } catch (RuntimeException e) {
+            // DB 오류 등으로 받기에 실패해도 서버는 뜨게 한다. 처음 받던 중이면 저장한 것이 없어 다음 시작 때 다시 받는다
+            log.error("기업 목록을 저장하지 못했습니다", e);
         }
     }
 }

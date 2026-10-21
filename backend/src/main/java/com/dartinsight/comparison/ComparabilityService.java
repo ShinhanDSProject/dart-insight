@@ -90,11 +90,8 @@ public class ComparabilityService {
             return new Check(CheckItem.REPORT_PERIOD, CheckStatus.FAIL, detail);
         }
         List<String> warnings = new ArrayList<>();
-        if (basis != ComparisonBasis.CUSTOM) {
-            ReportPairService.Target target = ReportPairService.target(basis, cur);
-            if (prev.getReportType() != target.type() || prev.getFiscalYear() != target.fiscalYear()) {
-                warnings.add("고른 보고서가 " + basisLabel(basis) + " 기준과 달라 직접 고른 것으로 봐요.");
-            }
+        if (!ReportPairService.matchesBasis(basis, cur, prev)) {
+            warnings.add("고른 보고서가 " + basisLabel(basis) + " 기준과 달라 직접 고른 것으로 봐요.");
         }
         if (prev.getReportType() != cur.getReportType()) {
             boolean bothInterim = prev.getReportType() != ReportType.ANNUAL && cur.getReportType() != ReportType.ANNUAL;

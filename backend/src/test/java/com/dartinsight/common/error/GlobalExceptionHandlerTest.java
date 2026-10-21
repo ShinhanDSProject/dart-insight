@@ -80,6 +80,13 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void unsupportedContentTypeKeepsItsClientErrorStatus() throws Exception {
+        mockMvc.perform(post("/test-errors/body").contentType(MediaType.TEXT_PLAIN).content("name"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.code").value("COMMON_INVALID_INPUT"));
+    }
+
+    @Test
     void wrongMethodReturns405() throws Exception {
         mockMvc.perform(post("/test-errors/api-exception"))
                 .andExpect(status().isMethodNotAllowed())

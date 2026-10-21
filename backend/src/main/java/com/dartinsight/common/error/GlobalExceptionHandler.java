@@ -94,6 +94,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnexpected(Exception e) {
+        // 지원하지 않는 Content-Type, 필수 헤더 없음처럼 Spring MVC가 4xx로 정한 요청 오류는 그 상태 코드를 지킨다
+        if (e instanceof org.springframework.web.ErrorResponse springError
+                && springError.getStatusCode().is4xxClientError()) {
+            return ResponseEntity.status(springError.getStatusCode())
+                    .body(ErrorResponse.of(ErrorCode.COMMON_INVALID_INPUT,
+                            ErrorCode.COMMON_INVALID_INPUT.defaultMessage(), TraceContext.currentTraceId(),
+                            List.of()));
+        }
         log.error("처리하지 못한 오류", e);
         return respond(ErrorCode.COMMON_INTERNAL_ERROR, ErrorCode.COMMON_INTERNAL_ERROR.defaultMessage(),
                 List.of());

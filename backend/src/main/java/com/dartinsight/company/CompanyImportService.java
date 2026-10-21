@@ -3,6 +3,7 @@ package com.dartinsight.company;
 import com.dartinsight.dart.CorpCodeEntry;
 import com.dartinsight.dart.CorpCodeParser;
 import com.dartinsight.dart.OpenDartClient;
+import jakarta.persistence.EntityManager;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -30,14 +31,17 @@ public class CompanyImportService {
     private final CorpCodeParser corpCodeParser;
     private final CompanyRepository companyRepository;
     private final TransactionTemplate transactionTemplate;
+    private final EntityManager entityManager;
     private final Clock clock;
 
     public CompanyImportService(OpenDartClient openDartClient, CorpCodeParser corpCodeParser,
-            CompanyRepository companyRepository, TransactionTemplate transactionTemplate, Clock clock) {
+            CompanyRepository companyRepository, TransactionTemplate transactionTemplate, EntityManager entityManager,
+            Clock clock) {
         this.openDartClient = openDartClient;
         this.corpCodeParser = corpCodeParser;
         this.companyRepository = companyRepository;
         this.transactionTemplate = transactionTemplate;
+        this.entityManager = entityManager;
         this.clock = clock;
     }
 
@@ -56,11 +60,31 @@ public class CompanyImportService {
                 .collect(Collectors.toMap(CorpCodeEntry::corpCode, Function.identity(), (a, b) -> b,
                         LinkedHashMap::new))
                 .values());
+        if (companyRepository.count() == 0) {
+            // 처음 받을 때는 한 트랜잭션으로 저장한다. 중간에 실패하면 빈 채로 남아 다음 시작 때 다시 받는다
+            // (일부만 저장되면 on-empty 설정에서 다시 받지 않아 목록이 빠진 채로 남기 때문)
+            return transactionTemplate.execute(status -> saveChunks(unique, true));
+        }
+        return saveChunks(unique, false);
+    }
+
+    /**
+     * 1,000건씩 저장한다. inOneTransaction이면 이미 열린 트랜잭션 안에서 덩어리마다 비워 메모리를 아끼고,
+     * 아니면 덩어리마다 따로 커밋한다(이미 있는 목록을 고칠 때는 일부만 반영돼도 기존 값이 남아 있음).
+     */
+    private ImportResult saveChunks(List<CorpCodeEntry> unique, boolean inOneTransaction) {
         int inserted = 0;
         int updated = 0;
         for (int from = 0; from < unique.size(); from += CHUNK_SIZE) {
             List<CorpCodeEntry> chunk = unique.subList(from, Math.min(from + CHUNK_SIZE, unique.size()));
-            int[] counts = transactionTemplate.execute(status -> saveChunk(chunk));
+            int[] counts;
+            if (inOneTransaction) {
+                counts = saveChunk(chunk);
+                entityManager.flush();
+                entityManager.clear();
+            } else {
+                counts = transactionTemplate.execute(status -> saveChunk(chunk));
+            }
             inserted += counts[0];
             updated += counts[1];
         }

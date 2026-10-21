@@ -37,15 +37,18 @@ def error_response(
     code: ErrorCode,
     message: str | None = None,
     errors: list[dict[str, str]] | None = None,
+    status_code: int | None = None,
+    headers: dict[str, str] | None = None,
 ) -> JSONResponse:
     return JSONResponse(
-        status_code=code.status,
+        status_code=status_code or code.status,
         content={
             "code": code.name,
             "message": message or code.default_message,
             "traceId": current_trace_id(),
             "errors": errors or [],
         },
+        headers=headers,
     )
 
 
@@ -72,5 +75,9 @@ def register_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(StarletteHTTPException)
     async def handle_http_error(_: Request, exc: StarletteHTTPException) -> JSONResponse:
-        code = _STATUS_TO_CODE.get(exc.status_code, ErrorCode.COMMON_INTERNAL_ERROR)
-        return error_response(code)
+        # 상태 코드와 헤더(예: 405의 Allow)는 그대로 두고, 코드만 공통 형식으로 맞춘다
+        code = _STATUS_TO_CODE.get(exc.status_code)
+        if code is None:
+            client_error = 400 <= exc.status_code < 500
+            code = ErrorCode.COMMON_INVALID_INPUT if client_error else ErrorCode.COMMON_INTERNAL_ERROR
+        return error_response(code, status_code=exc.status_code, headers=exc.headers)

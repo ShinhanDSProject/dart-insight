@@ -58,5 +58,5 @@ backend를 다시 실행하면 Flyway가 `backend/src/main/resources/db/migratio
 | 증상 | 확인할 것 |
 | --- | --- |
 | `port is already allocated` (3306) | 이미 설치된 MariaDB·MySQL이 3306을 쓰고 있습니다. 끄거나 `compose.yaml`의 왼쪽 포트를 바꾸고 `DB_URL`도 맞춥니다. |
-| backend가 `Communications link failure`로 멈춤 | `docker compose ps`에서 mariadb가 healthy인지 확인합니다. |
+| backend가 DB 연결 오류(`Socket fail to connect`, `Connection refused`)로 멈춤 | `docker compose ps`에서 mariadb가 healthy인지 확인합니다. |
 | Flyway `checksum mismatch` | 이미 적용된 마이그레이션 파일을 고친 경우입니다. 파일을 되돌리고 새 마이그레이션을 추가합니다. 로컬 데이터만 문제라면 `docker compose down -v` 후 다시 시작합니다. |

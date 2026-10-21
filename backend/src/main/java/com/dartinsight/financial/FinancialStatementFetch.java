@@ -62,6 +62,13 @@ public class FinancialStatementFetch {
         this.fetchedAt = fetchedAt;
     }
 
+    /** 같은 조합을 다시 받았을 때 결과를 바꾼다. */
+    void refresh(FetchStatus status, String rceptNo, LocalDateTime fetchedAt) {
+        this.status = status;
+        this.rceptNo = rceptNo;
+        this.fetchedAt = fetchedAt;
+    }
+
     public Long getId() {
         return id;
     }

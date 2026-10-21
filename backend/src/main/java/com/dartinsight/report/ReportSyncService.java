@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -71,7 +72,13 @@ public class ReportSyncService {
             }
             throw e;
         }
-        return transactionTemplate.execute(status -> save(corpCode, items, now));
+        try {
+            return transactionTemplate.execute(status -> save(corpCode, items, now));
+        } catch (DataIntegrityViolationException e) {
+            // 같은 기업의 목록을 동시에 처음 받으면 같은 접수번호를 두 번 넣으려 할 수 있다. 다시 저장하면 있는 행을 고친다
+            log.info("정기보고서 목록을 동시에 저장해 다시 저장합니다: {}", corpCode);
+            return transactionTemplate.execute(status -> save(corpCode, items, now));
+        }
     }
 
     private SyncResult save(String corpCode, List<DisclosureListResponse.Item> items, LocalDateTime now) {

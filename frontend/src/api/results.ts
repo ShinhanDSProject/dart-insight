@@ -9,6 +9,7 @@ export type CalcStatus =
   | 'CURRENT_MISSING'
   | 'ONLY_CURRENT'
   | 'ONLY_PREVIOUS'
+  | 'AMBIGUOUS_MATCH'
   | 'PERIOD_MISMATCH'
 
 export type SjDiv = 'BS' | 'IS' | 'CIS' | 'CF' | 'SCE'

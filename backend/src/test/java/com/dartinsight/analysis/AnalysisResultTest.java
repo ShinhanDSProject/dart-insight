@@ -22,6 +22,7 @@ import com.dartinsight.report.ReportType;
 import com.dartinsight.support.TestData;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -63,6 +64,9 @@ class AnalysisResultTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private Clock clock;
+
     @BeforeEach
     void setUp() {
         TestData.clearAll(jdbcTemplate);
@@ -79,9 +83,11 @@ class AnalysisResultTest {
                 LocalDate.of(year, 8, 14), null, "예시전자", NOW));
     }
 
+    /** 진행 중인 분석. 멈춘 것으로 보지 않도록 지금 시각(서버 시계)으로 만든다 */
     private Analysis running(String previous) {
-        Analysis analysis = Analysis.request("00000001", CUR, previous, ComparisonBasis.YOY, "trace-1", NOW);
-        analysis.start(NOW);
+        LocalDateTime now = LocalDateTime.now(clock);
+        Analysis analysis = Analysis.request("00000001", CUR, previous, ComparisonBasis.YOY, "trace-1", now);
+        analysis.start(now);
         analysis.recordFsDiv(FsDiv.CFS);
         return analysisRepository.save(analysis);
     }
@@ -199,6 +205,19 @@ class AnalysisResultTest {
         mockMvc.perform(get("/api/analyses/{id}/financial-changes", analysis.getId()).param("sjDiv", "XX"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].field").value("sjDiv"));
+    }
+
+    @Test
+    void stuckAnalysisIsExpiredInsteadOfReused() {
+        Analysis stuck = running(PREV);
+        jdbcTemplate.update("UPDATE analysis SET updated_at = ? WHERE id = ?", LocalDateTime.of(2000, 1, 1, 0, 0),
+                stuck.getId());
+
+        assertThat(resultService.findReusable("00000001", CUR, PREV, ComparisonBasis.YOY)).isEmpty();
+
+        Analysis expired = analysisRepository.findById(stuck.getId()).orElseThrow();
+        assertThat(expired.getStatus()).isEqualTo(AnalysisStatus.FAILED);
+        assertThat(expired.getErrorCode()).isEqualTo("ANALYSIS_TIMED_OUT");
     }
 
     @Test

@@ -10,6 +10,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.time.LocalDateTime;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -80,6 +81,11 @@ public class Analysis {
 
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
+
+    /** 실행 중인 분석과 만료 처리가 서로의 상태를 덮어쓰지 않도록 낙관적 잠금 */
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
 
     protected Analysis() {
     }
@@ -193,6 +199,11 @@ public class Analysis {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    /** 상태나 단계가 마지막으로 바뀐 시각 */
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
     }
 
     public LocalDateTime getStartedAt() {

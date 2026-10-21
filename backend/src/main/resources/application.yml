@@ -44,6 +44,8 @@ app:
     base-url: ${AI_SERVER_URL:http://localhost:8000}
     connect-timeout: 2s
     read-timeout: 30s
+    # 연결 상태 확인은 짧게 기다린다
+    health-timeout: 3s
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
   opendart:

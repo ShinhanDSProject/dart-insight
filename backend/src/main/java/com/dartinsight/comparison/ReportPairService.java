@@ -66,6 +66,15 @@ public class ReportPairService {
         };
     }
 
+    /** 이전 보고서가 현재 보고서의 비교 기준(전년 동기·직전 기간) 보고서인지. 직접 선택은 늘 true */
+    public static boolean matchesBasis(ComparisonBasis basis, Report current, Report previous) {
+        if (basis == ComparisonBasis.CUSTOM) {
+            return true;
+        }
+        Target target = target(basis, current);
+        return previous.getReportType() == target.type() && previous.getFiscalYear() == target.fiscalYear();
+    }
+
     record Target(ReportType type, int fiscalYear) {
     }
 

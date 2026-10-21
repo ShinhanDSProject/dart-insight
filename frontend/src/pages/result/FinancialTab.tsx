@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react'
 import type { Analysis } from '../../api/analyses'
-import { getFinancialChanges, type FinancialChangeItem, type FinancialChangeList, type SjDiv } from '../../api/results'
+import {
+  getFinancialChanges,
+  type FinancialChangeItem,
+  type FinancialChangeList,
+  type SjDiv,
+  type StatementSummary,
+} from '../../api/results'
 import { EmptyState, ErrorState, LoadingState } from '../../components/StateView'
 import { EvidencePanel } from './EvidencePanel'
 import {
@@ -14,6 +20,14 @@ import {
   unitOptions,
   type AmountUnit,
 } from './format'
+
+const statementOptions: { sjDiv: SjDiv; label: string }[] = [
+  { sjDiv: 'BS', label: '재무상태표' },
+  { sjDiv: 'IS', label: '손익계산서' },
+  { sjDiv: 'CIS', label: '포괄손익계산서' },
+  { sjDiv: 'CF', label: '현금흐름표' },
+  { sjDiv: 'SCE', label: '자본변동표' },
+]
 
 type TabState = { kind: 'loading' } | { kind: 'done'; data: FinancialChangeList } | { kind: 'error'; error: unknown }
 
@@ -47,9 +61,14 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChang
     }
   }, [analysis.analysisId, sjDiv, changedOnly, retry])
 
-  const statements = state.kind === 'done' ? state.data.statements : []
+  // 불러오는 동안에도 고르기 상자를 그대로 두어 키보드 초점을 잃지 않게 한다(이전에 받은 개수를 계속 보여 줌)
+  const [statements, setStatements] = useState<StatementSummary[]>([])
+  if (state.kind === 'done' && state.data.statements !== statements) {
+    setStatements(state.data.statements)
+  }
   const selected = statements.find((s) => s.sjDiv === sjDiv)
   const basis = selected?.amountBasis ?? null
+  const currency = state.kind === 'done' ? (state.data.items.find((i) => i.currency)?.currency ?? null) : null
 
   return (
     <section className="panel" aria-label="재무 수치 변화">
@@ -62,14 +81,19 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChang
           className="select"
           value={sjDiv}
           onChange={(e) => onChange({ sj: e.target.value as SjDiv })}
-          disabled={statements.length === 0}
         >
-          {statements.length === 0 && <option value={sjDiv}>{sjDiv}</option>}
-          {statements.map((s) => (
-            <option key={s.sjDiv} value={s.sjDiv}>
-              {s.comparable ? `${s.label} · 바뀐 ${s.changed} / 전체 ${s.total}` : `${s.label} · 비교 안 함`}
-            </option>
-          ))}
+          {statementOptions.map((option) => {
+            const summary = statements.find((s) => s.sjDiv === option.sjDiv)
+            return (
+              <option key={option.sjDiv} value={option.sjDiv}>
+                {summary === undefined
+                  ? option.label
+                  : summary.comparable
+                    ? `${option.label} · 바뀐 ${summary.changed} / 전체 ${summary.total}`
+                    : `${option.label} · 비교 안 함`}
+              </option>
+            )
+          })}
         </select>
         <span className="fin-controls__basis">{analysis.fsDiv === 'OFS' ? '별도' : '연결'} 재무제표 기준</span>
         <div className="segmented" role="group" aria-label="보기">
@@ -109,7 +133,7 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChang
         <div className="table-scroll">
           <table className="data-table fin-table">
             <caption className="visually-hidden">
-              계정별 이전 값, 현재 값, 증감액, 증감률. 단위 {unitLabel(unit)}
+              계정별 이전 값, 현재 값, 증감액, 증감률. 단위 {unitLabel(unit, currency)}
             </caption>
             <thead>
               <tr>
@@ -149,14 +173,23 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChang
           analysis={analysis}
           changeId={selectedChangeId}
           unit={unit}
-          onClose={() => onChange({ change: null })}
+          onClose={() => {
+            const id = selectedChangeId
+            onChange({ change: null })
+            // 닫으면 그 계정의 '보기' 버튼으로 초점을 돌려준다
+            requestAnimationFrame(() => document.getElementById(evidenceButtonId(id))?.focus())
+          }}
         />
       )}
       <p className="panel__note">
-        단위 {unitLabel(unit)}. 증가·감소는 ▲▼와 부호로 표시하고 좋고 나쁨의 평가와 구분해요. 없는 값은 0으로 보지 않아요.
+        단위 {unitLabel(unit, currency)}. 증가·감소는 ▲▼와 부호로 표시하고 좋고 나쁨의 평가와 구분해요. 없는 값은 0으로 보지 않아요.
       </p>
     </section>
   )
+}
+
+function evidenceButtonId(changeId: number): string {
+  return `evidence-button-${changeId}`
 }
 
 interface ChangeRowProps {
@@ -192,6 +225,7 @@ function ChangeRow({ item, unit, selected, onSelect }: ChangeRowProps) {
       <td>
         <button
           type="button"
+          id={evidenceButtonId(item.changeId)}
           className="button button--secondary fin-table__evidence"
           aria-pressed={selected}
           aria-label={`${item.accountName} 근거 ${selected ? '닫기' : '보기'}`}

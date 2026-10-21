@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router'
 import { Layout } from './components/Layout'
+import { RouteError } from './components/RouteError'
 import { AnalysisProgressPage } from './pages/AnalysisProgressPage'
 import { AnalysisResultPage } from './pages/AnalysisResultPage'
 import { CompanyPage } from './pages/CompanyPage'
@@ -18,6 +19,7 @@ import { SearchPage } from './pages/SearchPage'
 export const router = createBrowserRouter([
   {
     element: <Layout />,
+    errorElement: <RouteError />,
     children: [
       { path: '/', element: <SearchPage /> },
       { path: '/companies/:corpCode', element: <CompanyPage /> },

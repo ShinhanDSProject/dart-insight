@@ -2,7 +2,7 @@ import logging
 from typing import Annotated
 
 import pytest
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.testclient import TestClient
 
 from app.core.errors import ApiError, ErrorCode
@@ -20,6 +20,10 @@ def app() -> FastAPI:
     @app.get("/test/unexpected")
     def unexpected() -> None:
         raise RuntimeError("예상하지 못한 오류")
+
+    @app.get("/test/conflict")
+    def conflict() -> None:
+        raise HTTPException(status_code=409, detail="충돌")
 
     @app.get("/test/param")
     def param(size: Annotated[int, Query(ge=1)]) -> dict[str, int]:
@@ -74,6 +78,14 @@ def test_wrong_method_returns_405(client: TestClient) -> None:
 
     assert response.status_code == 405
     assert response.json()["code"] == "COMMON_METHOD_NOT_ALLOWED"
+    assert "GET" in response.headers["allow"]
+
+
+def test_other_client_errors_keep_their_status(client: TestClient) -> None:
+    response = client.get("/test/conflict")
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "COMMON_INVALID_INPUT"
 
 
 def test_api_error_uses_its_code(client: TestClient) -> None:

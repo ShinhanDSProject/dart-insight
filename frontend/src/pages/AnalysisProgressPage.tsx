@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { analysisPath, getAnalysis, requestAnalysis, type Analysis } from '../api/analyses'
+import { ApiError } from '../api/client'
 import { ErrorState, LoadingState } from '../components/StateView'
 import { periodLabel } from './company/reportLabels'
 import { MAX_POLL_FAILURES, nextPollDelay, statusLabel, stepSummary } from './progress/progress'
@@ -27,6 +28,8 @@ export function AnalysisProgressPage() {
     let timer: ReturnType<typeof setTimeout> | undefined
     let failures = 0
     let last: Analysis | null = null
+    // 다시 요청해 다른 분석으로 옮겨 오면 이전 분석의 화면을 지운다
+    setState({ kind: 'loading' })
 
     const poll = () => {
       getAnalysis(analysisId)
@@ -44,7 +47,9 @@ export function AnalysisProgressPage() {
         .catch((error: unknown) => {
           if (cancelled) return
           failures += 1
-          if (failures >= MAX_POLL_FAILURES) {
+          // 없는 분석·잘못된 주소(4xx)는 다시 물어도 같으므로 바로 멈춘다
+          const clientError = error instanceof ApiError && error.status >= 400 && error.status < 500
+          if (clientError || failures >= MAX_POLL_FAILURES) {
             setState({ kind: 'stopped', error, analysis: last })
             return
           }
@@ -84,7 +89,7 @@ export function AnalysisProgressPage() {
               상태를 불러오지 못해 다시 시도하고 있어요({state.failures}/{MAX_POLL_FAILURES - 1}).
             </p>
           )}
-          <Outcome analysis={state.analysis} />
+          <Outcome key={state.analysis.analysisId} analysis={state.analysis} />
         </>
       )}
     </section>

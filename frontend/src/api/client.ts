@@ -72,9 +72,11 @@ async function request<T>(method: 'GET' | 'POST', path: string, query?: Query, b
 
   const text = await response.text()
   let data: unknown = null
+  let parsed = text === ''
   if (text) {
     try {
       data = JSON.parse(text)
+      parsed = true
     } catch {
       data = null
     }
@@ -97,6 +99,15 @@ async function request<T>(method: 'GET' | 'POST', path: string, query?: Query, b
     })
   }
 
+  // 성공 응답인데 JSON이 아니면(예: API 주소가 잘못돼 화면 HTML을 받음) 성공으로 보지 않는다
+  if (!parsed || (data === null && response.status !== 204)) {
+    throw new ApiError(response.status, {
+      code: 'COMMON_INTERNAL_ERROR',
+      message: '서버 응답을 읽지 못했습니다. API 주소(VITE_API_BASE_URL) 설정을 확인해 주세요.',
+      traceId: response.headers.get('X-Trace-Id'),
+      errors: [],
+    })
+  }
   return data as T
 }
 

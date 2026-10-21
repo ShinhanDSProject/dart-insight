@@ -15,8 +15,10 @@ import com.dartinsight.report.ReportRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -99,7 +101,9 @@ public class FinancialChangeController {
     }
 
     private static String won(Long amount) {
-        return new DecimalFormat("#,##0").format(amount).replace("-", "−");
+        // 서버 지역 설정과 관계없이 쉼표로 끊는다
+        return new DecimalFormat("#,##0", DecimalFormatSymbols.getInstance(Locale.ROOT)).format(amount)
+                .replace("-", "−");
     }
 
     private Report report(String rceptNo) {

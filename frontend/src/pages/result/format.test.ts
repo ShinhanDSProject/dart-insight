@@ -16,6 +16,26 @@ describe('result format', () => {
     expect(formatRate(null)).toBeNull()
   })
 
+  it('양수와 음수를 같은 방식으로 반올림한다', () => {
+    expect(formatAmount(1_500_000, 'MILLION')).toBe('2')
+    expect(formatAmount(-1_500_000, 'MILLION')).toBe('−2')
+    expect(formatRate(0.04851)).toBe('+4.9%')
+    expect(formatRate(-0.04851)).toBe('−4.9%')
+  })
+
+  it('단위보다 작은 변화는 0으로 보이지 않는다', () => {
+    expect(formatChange(400_000, 'MILLION')).toBe('▲ 1 미만')
+    expect(formatChange(-400_000, 'MILLION')).toBe('▼ 1 미만')
+  })
+
+  it('원화가 아니면 통화 코드를 단위에 붙인다', async () => {
+    const { unitLabel } = await import('./format')
+    expect(unitLabel('MILLION', 'KRW')).toBe('백만원')
+    expect(unitLabel('MILLION', 'USD')).toBe('백만 USD')
+    expect(unitLabel('WON', 'USD')).toBe('USD')
+    expect(unitLabel('THOUSAND', null)).toBe('천원')
+  })
+
   it('증감은 기호와 부호로 보여 준다', () => {
     expect(formatChange(7_000_000, 'MILLION')).toBe('▲ 7')
     expect(formatChange(-7_000_000, 'MILLION')).toBe('▼ 7')

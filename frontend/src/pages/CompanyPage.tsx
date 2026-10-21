@@ -131,6 +131,8 @@ export function CompanyPage() {
   }
 
   function selectBasis(nextBasis: ComparisonBasis) {
+    // 이미 고른 기준을 다시 누르면 직접 고른 비교 보고서를 지우지 않는다
+    if (nextBasis === basis) return
     // 비교 기준을 바꿔도 현재 보고서는 그대로 두고, 비교 보고서만 바뀐다
     updateParams({ basis: nextBasis, previous: null })
   }

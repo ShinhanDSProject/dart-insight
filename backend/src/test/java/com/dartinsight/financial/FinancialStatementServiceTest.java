@@ -78,9 +78,14 @@ class FinancialStatementServiceTest {
     }
 
     private Report saveReport(String rceptNo, ReportType type, int year, LocalDate periodEnd) {
+        return saveReport(rceptNo, type, year, periodEnd, LocalDateTime.of(2026, 10, 21, 9, 0));
+    }
+
+    private Report saveReport(String rceptNo, ReportType type, int year, LocalDate periodEnd,
+            LocalDateTime lastSeenAt) {
         return reportRepository.save(Report.create(rceptNo, "00000001", type.label(),
                 new ParsedReportName(type, year, periodEnd, Correction.ORIGINAL), periodEnd.plusMonths(2), null,
-                "예시전자", LocalDateTime.of(2026, 10, 21, 9, 0)));
+                "예시전자", lastSeenAt));
     }
 
     private int calls() {
@@ -167,6 +172,52 @@ class FinancialStatementServiceTest {
         assertThat(requests.get(0)).contains("fs_div=CFS");
         assertThat(requests.get(1)).contains("fs_div=OFS");
         assertThat(calls() - before).isEqualTo(2);
+    }
+
+    @Test
+    void correctedFilingIsFetchedAgainAndReplacesTheOldValues() {
+        SERVER.on(PATH, Response.json(FinancialJson.ok(
+                account("20260814000001", "BS", "ifrs-full_Assets", "자산총계", 1, "5000"),
+                account("20260814000001", "BS", "ifrs-full_Liabilities", "부채총계", 2, "3000"))));
+        FinancialStatementFetch original = service.fetch(half2026, FsDiv.CFS).orElseThrow();
+        // 정정 공시가 나중에 목록에 들어옴
+        Report corrected = saveReport("20260902000001", ReportType.HALF, 2026, LocalDate.of(2026, 6, 30),
+                LocalDateTime.now().plusDays(1));
+        SERVER.on(PATH, Response.json(FinancialJson.ok(
+                account("20260902000001", "BS", "ifrs-full_Assets", "자산총계", 1, "5100"))));
+        int before = calls();
+
+        FinancialStatementFetch refreshed = service.fetch(corrected, FsDiv.CFS).orElseThrow();
+
+        assertThat(calls() - before).isEqualTo(1);
+        assertThat(refreshed.getId()).isEqualTo(original.getId());
+        assertThat(refreshed.getRceptNo()).isEqualTo("20260902000001");
+        assertThat(service.accounts(refreshed)).singleElement()
+                .satisfies(a -> assertThat(a.getThstrmAmount()).isEqualTo(5100L));
+        assertThat(service.statuses("00000001", List.of(half2026, corrected)))
+                .containsEntry("20260814000001", FinancialDataStatus.NOT_AVAILABLE)
+                .containsEntry("20260902000001", FinancialDataStatus.AVAILABLE);
+        service.fetch(corrected, FsDiv.CFS);
+        service.fetch(half2026, FsDiv.CFS);
+        assertThat(calls() - before).as("이 보고서의 자료가 있거나 옛 보고서면 다시 부르지 않는다").isEqualTo(1);
+    }
+
+    @Test
+    void noDataIsAskedAgainOnlyAfterTheReportIsSeenAgain() {
+        SERVER.on(PATH, Response.json(FinancialJson.NO_DATA));
+        service.fetch(half2026, FsDiv.CFS);
+        int before = calls();
+        jdbcTemplate.update("UPDATE report SET last_seen_at = ? WHERE rcept_no = ?", LocalDateTime.now().plusDays(1),
+                half2026.getRceptNo());
+        Report seenAgain = reportRepository.findById(half2026.getRceptNo()).orElseThrow();
+        assertThat(service.statuses("00000001", List.of(seenAgain)))
+                .containsEntry(half2026.getRceptNo(), FinancialDataStatus.UNKNOWN);
+        SERVER.on(PATH, Response.json(FinancialJson.ok(
+                account("20260814000001", "BS", "ifrs-full_Assets", "자산총계", 1, "5000"))));
+
+        assertThat(service.fetch(seenAgain, FsDiv.CFS)).get()
+                .extracting(FinancialStatementFetch::getStatus).isEqualTo(FetchStatus.OK);
+        assertThat(calls() - before).isEqualTo(1);
     }
 
     @Test

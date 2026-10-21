@@ -36,7 +36,7 @@ public class FinancialChange {
     @Column(name = "fs_div", nullable = false, length = 3)
     private FsDiv fsDiv;
 
-    @Column(name = "account_key", nullable = false, length = 200)
+    @Column(name = "account_key", nullable = false, length = 1000)
     private String accountKey;
 
     @Column(name = "account_name", nullable = false, length = 200)

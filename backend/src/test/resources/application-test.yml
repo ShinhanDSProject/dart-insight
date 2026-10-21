@@ -2,7 +2,7 @@
 # 로컬에서는 H2(MariaDB 호환 모드), CI에서는 TEST_DB_URL로 MariaDB 컨테이너를 쓴다.
 spring:
   datasource:
-    url: ${TEST_DB_URL:jdbc:h2:mem:dart_insight;MODE=MariaDB;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1}
+    url: ${TEST_DB_URL:jdbc:h2:mem:dart_insight;MODE=MariaDB;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=LOW;DB_CLOSE_DELAY=-1}
     username: ${TEST_DB_USERNAME:sa}
     password: ${TEST_DB_PASSWORD:}
 

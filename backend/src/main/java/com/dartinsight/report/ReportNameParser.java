@@ -26,7 +26,7 @@ public final class ReportNameParser {
     }
 
     /**
-     * @param remark OpenDART 비고(rm). '정'이 들어 있으면 정정 공시다.
+     * @param remark OpenDART 비고(rm). '정'은 제출 뒤 정정신고가 있었다는 뜻이다
      */
     public static Optional<ParsedReportName> parse(String reportName, String remark) {
         if (reportName == null) {
@@ -59,6 +59,11 @@ public final class ReportNameParser {
         };
     }
 
+    /**
+     * 정정 여부. 보고서명 앞머리에 '정정'이 있으면 정정 공시다.
+     * 비고(rm)의 '정'은 '이 보고서를 낸 뒤 정정신고가 있었다'는 뜻이라(노션 OpenDART 데이터 가이드) 이 보고서가
+     * 정정본인지는 알 수 없다. 이때는 추정하지 않고 UNKNOWN으로 둔다.
+     */
     private static Correction correctionOf(String reportName, String remark) {
         Matcher prefixes = PREFIXES.matcher(reportName);
         while (prefixes.find()) {
@@ -67,7 +72,7 @@ public final class ReportNameParser {
             }
         }
         if (remark != null && remark.contains("정")) {
-            return Correction.CORRECTED;
+            return Correction.UNKNOWN;
         }
         return Correction.ORIGINAL;
     }

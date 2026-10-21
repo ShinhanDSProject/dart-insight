@@ -103,6 +103,10 @@ public class OpenDartClient {
             if (page >= totalPage) {
                 break;
             }
+            if (page == MAX_PAGES) {
+                log.warn("공시 목록이 {}페이지를 넘어 앞의 {}페이지만 받았습니다: {} (전체 {}페이지)", MAX_PAGES, MAX_PAGES,
+                        corpCode, totalPage);
+            }
         }
         return all;
     }
