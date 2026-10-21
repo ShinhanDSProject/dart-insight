@@ -3,6 +3,11 @@ package com.dartinsight.comparison;
 import com.dartinsight.report.FinancialDataStatus;
 import com.dartinsight.report.Report;
 import com.dartinsight.report.ReportController.ReportItemResponse;
+import com.dartinsight.report.ReportService;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Stream;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -15,21 +20,25 @@ import org.springframework.web.bind.annotation.RestController;
 public class ReportPairController {
 
     private final ReportPairService pairService;
+    private final ReportService reportService;
 
-    public ReportPairController(ReportPairService pairService) {
+    public ReportPairController(ReportPairService pairService, ReportService reportService) {
         this.pairService = pairService;
+        this.reportService = reportService;
     }
 
     @GetMapping("/api/companies/{corpCode}/report-pairs")
     public ReportPairResponse find(@PathVariable String corpCode, @RequestParam ComparisonBasis basis,
             @RequestParam(required = false) String currentRceptNo) {
         ReportPairService.ReportPair pair = pairService.findPair(corpCode, basis, currentRceptNo);
-        return new ReportPairResponse(pair.basis(), item(pair.current()), item(pair.previous()),
+        List<Report> reports = Stream.of(pair.current(), pair.previous()).filter(Objects::nonNull).toList();
+        Map<String, FinancialDataStatus> statuses = reportService.financialDataStatuses(corpCode, reports);
+        return new ReportPairResponse(pair.basis(), item(pair.current(), statuses), item(pair.previous(), statuses),
                 pair.reason() == null ? null : new Reason(pair.reason().name(), pair.reason().message()));
     }
 
-    private static ReportItemResponse item(Report report) {
-        return report == null ? null : ReportItemResponse.from(report, FinancialDataStatus.beforeFetch(report));
+    private static ReportItemResponse item(Report report, Map<String, FinancialDataStatus> statuses) {
+        return report == null ? null : ReportItemResponse.from(report, statuses.get(report.getRceptNo()));
     }
 
     public record ReportPairResponse(ComparisonBasis basis, ReportItemResponse current, ReportItemResponse previous,

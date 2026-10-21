@@ -130,7 +130,7 @@ OpenDART 공시검색(`list.json`, 정기공시 중 최종보고서만)에서 �
 
 ### financial_statement_fetch
 
-재무제표 API(`fnlttSinglAcntAll.json`)를 한 번 부른 결과입니다. 같은 조합은 다시 부르지 않습니다(4.5).
+재무제표 API(`fnlttSinglAcntAll.json`)를 한 번 부른 결과입니다. 같은 조합(`uk_fs_fetch`)은 다시 부르지 않습니다(4.5). `013`(자료 없음)도 `NO_DATA`로 저장하고, 호출 실패(한도 초과·네트워크 오류)는 저장하지 않습니다. 2015 사업연도 이전은 API가 제공하지 않아 부르지 않습니다.
 
 | 컬럼 | 타입 | 키 | null | 설명 |
 | --- | --- | --- | --- | --- |
@@ -154,7 +154,7 @@ OpenDART 공시검색(`list.json`, 정기공시 중 최종보고서만)에서 �
 | `sj_name` | VARCHAR(100) | | 예 | 재무제표명 |
 | `account_id` | VARCHAR(200) | | 아니오 | 표준계정코드. 없으면 `-표준계정코드 미사용-` |
 | `account_name` | VARCHAR(200) | | 아니오 | 계정명 |
-| `account_detail` | VARCHAR(500) | | 예 | 계정 상세(자본변동표) |
+| `account_detail` | VARCHAR(500) | | 예 | 계정 상세(자본변동표). 응답이 `-`이면 null |
 | `ord` | INT | | 예 | 원문 순서 |
 | `currency` | VARCHAR(10) | | 예 | 통화 |
 | `thstrm_name`, `frmtrm_name` | VARCHAR(50) | | 예 | 당기·전기 이름(예: 제 57 기 반기) |
@@ -163,6 +163,8 @@ OpenDART 공시검색(`list.json`, 정기공시 중 최종보고서만)에서 �
 | `frmtrm_amount` | BIGINT | | 예 | 전기 금액(재무상태표는 전기말) |
 | `frmtrm_q_amount` | BIGINT | | 예 | 전기 동기 3개월 |
 | `frmtrm_add_amount` | BIGINT | | 예 | 전기 동기 누적 |
+
+금액은 응답 문자열에서 쉼표를 빼고 원 단위 정수로 저장합니다. 빈 값과 `-`는 null입니다(0과 구분).
 
 ### analysis
 
@@ -214,7 +216,7 @@ OpenDART 공시검색(`list.json`, 정기공시 중 최종보고서만)에서 �
 | `company` | `idx_company_stock_code` | `stock_code` | 인덱스 | 종목코드 검색 |
 | `report` | `idx_report_corp_period` | `corp_code, period_end` | 인덱스 | 기업별 보고서 목록 |
 | `financial_statement_fetch` | `uk_fs_fetch` | `corp_code, fiscal_year, reprt_code, fs_div` | 유니크 | 같은 호출을 두 번 저장하지 않음 |
-| `financial_account` | `idx_fin_account_fetch` | `fetch_id, sj_div` | 인덱스 | 재무제표별 계정 조회 |
+| `financial_account` | `idx_fin_account_fetch` | `fetch_id, sj_div, ord` | 인덱스 | 재무제표별 계정을 원문 순서로 조회 |
 | `analysis` | `idx_analysis_key` | `corp_code, current_rcept_no, previous_rcept_no, basis, analysis_version` | 인덱스 | 같은 조건 결과 재사용(4.3) |
 | `financial_change` | `idx_fin_change_analysis` | `analysis_id, sj_div` | 인덱스 | 결과 화면 조회 |
 

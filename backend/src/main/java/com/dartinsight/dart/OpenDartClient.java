@@ -107,6 +107,41 @@ public class OpenDartClient {
         return all;
     }
 
+    /**
+     * 단일회사 전체 재무제표. 자료가 없으면(013) noData가 true이고 목록은 비어 있다.
+     *
+     * @param reprtCode 11011 사업, 11012 반기, 11013 1분기, 11014 3분기
+     * @param fsDiv     CFS 연결, OFS 별도
+     */
+    public FinancialStatementPage financialStatements(String corpCode, int fiscalYear, String reprtCode,
+            String fsDiv) {
+        requireApiKey();
+        FinancialStatementResponse response = execute("fnlttSinglAcntAll.json", () -> restClient.get()
+                .uri(uri -> uri.path("/api/fnlttSinglAcntAll.json")
+                        .queryParam("crtfc_key", properties.apiKey())
+                        .queryParam("corp_code", corpCode)
+                        .queryParam("bsns_year", fiscalYear)
+                        .queryParam("reprt_code", reprtCode)
+                        .queryParam("fs_div", fsDiv)
+                        .build())
+                .retrieve()
+                .body(FinancialStatementResponse.class));
+        if (response == null) {
+            throw new ApiException(ErrorCode.DART_REQUEST_FAILED, "OpenDART 응답이 비어 있습니다.");
+        }
+        if (NO_DATA.equals(response.status())) {
+            return new FinancialStatementPage(true, List.of());
+        }
+        if (!OK.equals(response.status())) {
+            throw statusError(response.status(), response.message());
+        }
+        return new FinancialStatementPage(false, response.list() == null ? List.of() : response.list());
+    }
+
+    /** @param noData OpenDART가 '자료 없음'(013)으로 답했는지 */
+    public record FinancialStatementPage(boolean noData, List<FinancialStatementResponse.Item> items) {
+    }
+
     void requireApiKey() {
         if (!properties.hasApiKey()) {
             throw new ApiException(ErrorCode.DART_KEY_MISSING);
