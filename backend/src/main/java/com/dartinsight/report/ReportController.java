@@ -30,7 +30,7 @@ public class ReportController {
                 fetchedAt,
                 list.refreshError(),
                 list.reports().stream()
-                        .map(r -> ReportItemResponse.from(r, FinancialDataStatus.beforeFetch(r)))
+                        .map(r -> ReportItemResponse.from(r, list.financialDataStatuses().get(r.getRceptNo())))
                         .toList());
     }
 
@@ -95,7 +95,7 @@ public class ReportController {
             return new ReportDetailResponse(r.getRceptNo(), r.getCorpCode(), detail.company().getCorpName(),
                     r.getReportName(), r.getReportType(), r.getReportType().disclosureType(), r.getFiscalYear(),
                     r.getPeriodEnd(), r.getRceptDt(), r.getCorrection(), r.getRemark(), r.getFilerName(),
-                    detail.latest(), FinancialDataStatus.beforeFetch(r), DartLinks.viewer(r.getRceptNo()));
+                    detail.latest(), detail.financialDataStatus(), DartLinks.viewer(r.getRceptNo()));
         }
     }
 }
