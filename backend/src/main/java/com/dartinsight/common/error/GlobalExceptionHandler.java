@@ -45,7 +45,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HandlerMethodValidationException.class)
     public ResponseEntity<ErrorResponse> handleParameterValidation(HandlerMethodValidationException e) {
-        List<ErrorResponse.FieldError> errors = e.getAllValidationResults().stream()
+        List<ErrorResponse.FieldError> errors = e.getParameterValidationResults().stream()
                 .flatMap(result -> result.getResolvableErrors().stream()
                         .map(error -> new ErrorResponse.FieldError(
                                 result.getMethodParameter().getParameterName(), error.getDefaultMessage())))
