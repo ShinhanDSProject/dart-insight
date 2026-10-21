@@ -47,12 +47,13 @@ DART 정기보고서 두 개를 비교해, 바뀐 재무 수치와 문장을 원
 | 문서 | 위치 | 내용 |
 | --- | --- | --- |
 | 프로젝트 허브 | [노션 · 2차 프로젝트](https://app.notion.com/p/3feb6afffc6f818b83e0f23db6591572) | 모든 기획 문서의 시작점 |
+| 프로젝트 개요 | [노션 · 프로젝트 개요·문제 정의](https://app.notion.com/p/3ffb6afffc6f80418b8ac274f0d20e18) | 왜 이 프로젝트를 하는지, 문제 정의와 차별점 |
 | 개발 기준 | [노션 · 개발 기준](https://app.notion.com/p/400b6afffc6f813aac54dd697afc9d8e) | 팀과 역할, 구조 원칙, 이슈 운영, 브랜치·PR, API·데이터 규약, AI 사용 규칙 |
 | 기능 명세·WBS | [노션 · 기능 명세·WBS](https://app.notion.com/p/3ffb6afffc6f80179ffbfd4817a5aaa0) | 이슈 목록, 결정 로그, 일정 |
 | 화면 설계 | [노션 · 사용자 흐름·화면 와이어프레임](https://app.notion.com/p/c0f540f74d92496c9c20f23867afc15a) | 화면 W-01~W-03, 예외·상태 처리 |
 | 공시 용어 | [노션 · 공시·재무 도메인 가이드](https://app.notion.com/p/3ffb6afffc6f804d85f4d36e6013635c) | 정기보고서, 재무제표, 비교 기준 |
 | OpenDART | [노션 · OpenDART 데이터 가이드](https://app.notion.com/p/400b6afffc6f81cc8870ee13d02d8ac1) | API 코드와 응답 필드 |
-| 사업계획서 | [`docs/business-plan.md`](docs/business-plan.md) | 배경, 아키텍처, 팀·일정 (범위는 노션 우선) |
+| 사업계획서 | [`docs/business-plan.md`](docs/business-plan.md) | 프로젝트를 하는 이유와 배경 (10/14 작성, 노션 프로젝트 개요와 같은 목적) |
 | 사업계획서 조사 | [`docs/business-plan-research.md`](docs/business-plan-research.md) | 근거 조사 |
 | 협업 가이드 | [`docs/monorepo-team-guide.md`](docs/monorepo-team-guide.md) | Git·브랜치·PR 절차 |
 
