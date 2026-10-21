@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { getReport, type ReportDetail } from '../../api/reports'
 import { DartLinkActions } from '../../components/DartLink'
 import { ErrorState, LoadingState } from '../../components/StateView'
@@ -18,7 +18,8 @@ const errorMessages: Record<string, string> = {
 }
 
 /** W-01 ② 고른 보고서의 메타데이터(1.3). 대상 기간과 제출일을 따로 보여 주고, 모르는 값은 추정하지 않는다. */
-export function ReportDetailPanel({ rceptNo }: { rceptNo: string }) {
+export function ReportDetailPanel({ rceptNo, title = '현재 보고서 정보' }: { rceptNo: string; title?: string }) {
+  const titleId = useId()
   const [state, setState] = useState<DetailState>({ kind: 'loading' })
   const [retry, setRetry] = useState(0)
 
@@ -38,9 +39,9 @@ export function ReportDetailPanel({ rceptNo }: { rceptNo: string }) {
   }, [rceptNo, retry])
 
   return (
-    <section className="panel" aria-labelledby="report-detail-title">
-      <h2 id="report-detail-title" className="panel__title">
-        현재 보고서 정보
+    <section className="panel" aria-labelledby={titleId}>
+      <h2 id={titleId} className="panel__title">
+        {title}
       </h2>
       {state.kind === 'loading' && <LoadingState message="보고서 정보를 불러오는 중입니다…" />}
       {state.kind === 'error' && (

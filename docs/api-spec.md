@@ -183,7 +183,10 @@
 ### GET /api/companies/{corpCode}/report-pairs — 비교 보고서 쌍
 
 - 이슈: #12 (2.1) · 화면: W-01 ②
-- 현재 보고서와 비교 기준으로 비교할 이전 보고서를 고릅니다. 직접 선택(`CUSTOM`)은 화면에서 목록 중에 고릅니다.
+- 현재 보고서는 그대로 두고, 비교 기준에 따라 이전 보고서만 고릅니다. 직접 선택(`CUSTOM`)은 이 API를 쓰지 않고 화면에서 목록 중에 고릅니다.
+- 이전 보고서는 정기보고서 목록(정정 공시는 최종본)에서만 고릅니다. 맞는 보고서가 없으면 다른 보고서로 대신하지 않습니다.
+- `YOY`(전년 동기): 같은 종류의 1년 전 보고서
+- `PREV`(직전 기간): 1분기 ← 전년 사업보고서, 반기 ← 1분기, 3분기 ← 반기, 사업 ← 3분기(잠정안)
 
 **요청**
 
@@ -203,12 +206,18 @@
 }
 ```
 
-`current`·`previous`는 목록 항목과 같은 모양입니다(위 예시는 일부 필드만 적음). 비교할 보고서가 없으면 `previous`는 null이고 `reason`에 `{ "code": "NO_BASE_REPORT", "message": "..." }`가 들어 있습니다.
+`current`·`previous`는 목록 항목과 같은 모양입니다(위 예시는 일부 필드만 적음). 고르지 못하면 null이고 `reason`에 이유가 들어 있습니다.
+
+| `reason.code` | 언제 |
+| --- | --- |
+| `NO_BASE_REPORT` | 비교 기준에 맞는 이전 보고서가 목록에 없음(`previous`가 null) |
+| `NO_REPORTS` | 기업의 정기보고서가 하나도 없음(`current`·`previous` 모두 null) |
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
-| 400 | `COMMON_INVALID_INPUT` | `basis`가 `YOY`·`PREV`가 아님 |
-| 404 | `COMPANY_NOT_FOUND`, `REPORT_NOT_FOUND` | 없는 기업·보고서 |
+| 400 | `COMMON_INVALID_INPUT` | `basis`가 없거나 `YOY`·`PREV`가 아님 |
+| 404 | `COMPANY_NOT_FOUND`, `REPORT_NOT_FOUND` | 없는 기업, 저장되지 않았거나 다른 기업의 보고서 |
+| 502·503 | `DART_REQUEST_FAILED`, `DART_RATE_LIMITED`, `DART_KEY_MISSING` | 정기보고서 목록을 다시 받아야 하는데(4.1) OpenDART 호출이 실패하고 저장된 목록도 없음. 저장된 목록이 있으면 그 목록으로 고름 |
 
 ### POST /api/comparability-checks — 비교 가능성 검증
 
@@ -434,6 +443,7 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 | 질문 | 잠정안 | 결정 로그 |
 | --- | --- | --- |
 | 기본 비교 기준 | 전년 동기(`YOY`). 와이어프레임 예시 | [기본 비교 기준](https://app.notion.com/p/400b6afffc6f81e79212d26a29aecca6) |
+| 직전 기간의 정의 | 바로 앞 정기보고서(1분기 ← 전년 사업보고서, 반기 ← 1분기, 3분기 ← 반기, 사업 ← 3분기) | [기본 비교 기준](https://app.notion.com/p/400b6afffc6f81e79212d26a29aecca6) |
 | 이전 값 기준 | 이전 보고서의 원래 값 | [이전 값 기준](https://app.notion.com/p/400b6afffc6f81178a7cc9fafd980394) |
 | 비교 가능성 규칙 | 2.2 PR에 적은 규칙 | [비교 가능성 규칙](https://app.notion.com/p/400b6afffc6f8178b798e570fe37828b) |
 | 분석 대상 기업 범위 | 12월 결산 보고서만(사업보고서 기간이 12월인 회사) | [분석 대상 기업 범위](https://app.notion.com/p/400b6afffc6f813cadd6ff8ecce0a780) |

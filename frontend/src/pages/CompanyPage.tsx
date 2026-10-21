@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { getCompany, type Company } from '../api/companies'
-import { listReports, type ReportItem, type ReportList } from '../api/reports'
-import { DartLinkInline } from '../components/DartLink'
+import { getReportPair, listReports, type ComparisonBasis, type ReportItem, type ReportList } from '../api/reports'
 import { EmptyState, ErrorState, LoadingState } from '../components/StateView'
+import { PairSelector, type PairLookup } from './company/PairSelector'
 import { ReportDetailPanel } from './company/ReportDetailPanel'
-import { correctionLabel, dataStatusHelp, dataStatusLabel, formatDate, periodLabel } from './company/reportLabels'
+import { ReportTable } from './company/ReportTable'
+import { customCandidates, parseBasis } from './company/pairSelection'
+import { formatDate } from './company/reportLabels'
 import './company/company.css'
 
 type PageState =
@@ -26,8 +28,11 @@ const refreshErrorMessages: Record<string, string> = {
 }
 
 /**
- * W-01 ② 보고서 선택. 현재 보고서는 주소(?current=접수번호)에 남기고, 없으면 가장 최근 보고서다.
- * 비교 기준·비교 보고서 선택은 2.1(#12), 비교 검증(W-01 ③)은 2.2(#13)에서 붙인다.
+ * W-01 ② 보고서 선택. 고른 값은 주소에 남긴다.
+ * - ?current=접수번호: 현재 보고서. 없으면 가장 최근 보고서
+ * - ?basis=YOY|PREV|CUSTOM: 비교 기준. 없으면 전년 동기(잠정안)
+ * - ?previous=접수번호: 직접 선택(CUSTOM)에서 고른 비교 보고서
+ * 비교 검증(W-01 ③)은 2.2(#13)에서 붙인다.
  */
 export function CompanyPage() {
   const { corpCode = '' } = useParams()
@@ -50,6 +55,34 @@ export function CompanyPage() {
     }
   }, [corpCode, retry])
 
+  const items = state.kind === 'done' ? state.reports.items : null
+  const current = items ? (items.find((r) => r.rceptNo === searchParams.get('current')) ?? items[0] ?? null) : null
+  const basis = parseBasis(searchParams.get('basis'))
+  const [lookup, setLookup] = useState<PairLookup>({ kind: 'idle' })
+  const [lookupRetry, setLookupRetry] = useState(0)
+  const currentNo = current?.rceptNo ?? null
+
+  useEffect(() => {
+    if (currentNo === null || basis === 'CUSTOM') {
+      setLookup({ kind: 'idle' })
+      return
+    }
+    let cancelled = false
+    setLookup({ kind: 'loading' })
+    getReportPair(corpCode, basis, currentNo)
+      .then((pair) => {
+        if (!cancelled) {
+          setLookup({ kind: 'done', key: `${basis}:${currentNo}`, previous: pair.previous, reason: pair.reason?.message ?? null })
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) setLookup({ kind: 'error', error })
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [corpCode, basis, currentNo, lookupRetry])
+
   if (state.kind === 'loading') {
     return (
       <section className="page">
@@ -70,19 +103,38 @@ export function CompanyPage() {
   }
 
   const { company, reports } = state
-  const items = reports.items
-  const currentNo = searchParams.get('current')
-  const current = items.find((r) => r.rceptNo === currentNo) ?? items[0] ?? null
+  const reportItems = reports.items
+  // 다른 기준·현재 보고서로 찾은 결과는 쓰지 않는다(새로 찾는 동안 잠깐 남아 있을 수 있음)
+  const pairLookup: PairLookup =
+    lookup.kind === 'done' && lookup.key !== `${basis}:${currentNo}` ? { kind: 'loading' } : lookup
+  const previous = findPrevious(reportItems, current, basis, pairLookup, searchParams.get('previous'))
 
-  function selectCurrent(report: ReportItem) {
+  function updateParams(changes: Record<string, string | null>) {
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev)
-        next.set('current', report.rceptNo)
+        for (const [key, value] of Object.entries(changes)) {
+          if (value === null) next.delete(key)
+          else next.set(key, value)
+        }
         return next
       },
       { replace: true },
     )
+  }
+
+  function selectCurrent(rceptNo: string) {
+    const nextCurrent = reportItems.find((r) => r.rceptNo === rceptNo) ?? null
+    // 직접 고른 비교 보고서가 새 현재 보고서보다 앞서지 않으면 비운다
+    const keepPrevious = previous !== null && customCandidates(reportItems, nextCurrent).includes(previous)
+    updateParams({ current: rceptNo, previous: basis === 'CUSTOM' && keepPrevious ? previous.rceptNo : null })
+  }
+
+  function selectBasis(nextBasis: ComparisonBasis) {
+    // 이미 고른 기준을 다시 누르면 직접 고른 비교 보고서를 지우지 않는다
+    if (nextBasis === basis) return
+    // 비교 기준을 바꿔도 현재 보고서는 그대로 두고, 비교 보고서만 바뀐다
+    updateParams({ basis: nextBasis, previous: null })
   }
 
   return (
@@ -101,7 +153,20 @@ export function CompanyPage() {
       )}
 
       <div className="panel">
-        {items.length === 0 ? (
+        {current && (
+          <PairSelector
+            items={reportItems}
+            basis={basis}
+            current={current}
+            previous={previous}
+            lookup={pairLookup}
+            onBasisChange={selectBasis}
+            onCurrentChange={selectCurrent}
+            onPreviousChange={(rceptNo) => updateParams({ previous: rceptNo })}
+            onRetry={() => setLookupRetry((n) => n + 1)}
+          />
+        )}
+        {reportItems.length === 0 ? (
           <EmptyState title="이 기업의 정기보고서가 없어요.">
             <p>
               사업·반기·분기보고서를 낸 적이 없거나 12월 결산이 아닌 회사일 수 있어요. 지금은 12월 결산 회사의 보고서만
@@ -110,7 +175,12 @@ export function CompanyPage() {
             <Link to="/">다른 기업 검색</Link>
           </EmptyState>
         ) : (
-          <ReportTable items={items} current={current} onSelect={selectCurrent} />
+          <ReportTable
+            items={reportItems}
+            current={current}
+            previous={previous}
+            onSelectCurrent={(report) => selectCurrent(report.rceptNo)}
+          />
         )}
         <p className="panel__note">
           대상 기간과 제출일은 따로 보여 줘요. 정정 여부를 확인하지 못하면 추정하지 않고 '확인 안 됨'으로 표시해요.
@@ -120,7 +190,19 @@ export function CompanyPage() {
         </p>
       </div>
 
-      {current && <ReportDetailPanel key={current.rceptNo} rceptNo={current.rceptNo} />}
+      {current && (
+        <div className="pair-details">
+          {previous ? (
+            <ReportDetailPanel key={previous.rceptNo} rceptNo={previous.rceptNo} title="비교 보고서 정보" />
+          ) : (
+            <section className="panel">
+              <h2 className="panel__title">비교 보고서 정보</h2>
+              <p className="panel__note">비교 보고서를 고르면 종류·대상 기간·제출일·정정 여부를 여기서 확인할 수 있어요.</p>
+            </section>
+          )}
+          <ReportDetailPanel key={current.rceptNo} rceptNo={current.rceptNo} title="현재 보고서 정보" />
+        </div>
+      )}
     </section>
   )
 }
@@ -139,59 +221,17 @@ function Breadcrumb() {
   )
 }
 
-interface ReportTableProps {
-  items: ReportItem[]
-  current: ReportItem | null
-  onSelect: (report: ReportItem) => void
-}
-
-function ReportTable({ items, current, onSelect }: ReportTableProps) {
-  return (
-    <div className="table-scroll">
-      <table className="data-table">
-        <caption className="visually-hidden">정기보고서 목록. 보고서 이름을 누르면 현재 보고서로 고릅니다.</caption>
-        <thead>
-          <tr>
-            <th scope="col">보고서</th>
-            <th scope="col">유형</th>
-            <th scope="col">대상 기간</th>
-            <th scope="col">제출일</th>
-            <th scope="col">정정 여부</th>
-            <th scope="col">자료 상태</th>
-            <th scope="col">원문</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((report) => {
-            const isCurrent = current?.rceptNo === report.rceptNo
-            return (
-              <tr key={report.rceptNo} className={isCurrent ? 'data-table__row--selected' : undefined}>
-                <th scope="row">
-                  <button
-                    type="button"
-                    className="link-button"
-                    aria-pressed={isCurrent}
-                    onClick={() => onSelect(report)}
-                  >
-                    {report.reportName}
-                  </button>
-                  {isCurrent && <span className="badge badge--strong">현재</span>}
-                </th>
-                <td>
-                  <code>{report.disclosureType}</code>
-                </td>
-                <td>{periodLabel(report)}</td>
-                <td>{formatDate(report.receivedAt)}</td>
-                <td>{correctionLabel(report.correction)}</td>
-                <td title={dataStatusHelp[report.financialDataStatus]}>{dataStatusLabel(report.financialDataStatus)}</td>
-                <td>
-                  <DartLinkInline rceptNo={report.rceptNo} dartUrl={report.dartUrl} label={report.reportName} />
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
-  )
+function findPrevious(
+  items: ReportItem[],
+  current: ReportItem | null,
+  basis: ComparisonBasis,
+  lookup: PairLookup,
+  customNo: string | null,
+): ReportItem | null {
+  if (basis === 'CUSTOM') {
+    return customCandidates(items, current).find((r) => r.rceptNo === customNo) ?? null
+  }
+  if (lookup.kind !== 'done' || lookup.previous === null) return null
+  const found = lookup.previous
+  return items.find((r) => r.rceptNo === found.rceptNo) ?? found
 }
