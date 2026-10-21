@@ -334,3 +334,44 @@ code {
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
 }
+
+/* 여러 값 중 하나를 고르는 버튼 묶음 */
+.segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.segmented__item {
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  border: none;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.segmented__item + .segmented__item {
+  border-left: 1px solid var(--color-border-strong);
+}
+
+.segmented__item[aria-pressed='true'] {
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-weight: var(--font-weight-bold);
+}
+
+.select {
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+}

@@ -47,3 +47,22 @@ export interface ReportDetail extends ReportItem {
 export function getReport(rceptNo: string): Promise<ReportDetail> {
   return apiGet(`/api/reports/${encodeURIComponent(rceptNo)}`)
 }
+
+/** 비교 기준. 직접 선택(CUSTOM)은 화면에서 목록 중에 고른다. */
+export type ComparisonBasis = 'YOY' | 'PREV' | 'CUSTOM'
+
+export interface ReportPair {
+  basis: ComparisonBasis
+  current: ReportItem | null
+  previous: ReportItem | null
+  /** 고르지 못한 이유(NO_BASE_REPORT, NO_REPORTS) */
+  reason: { code: string; message: string } | null
+}
+
+export function getReportPair(
+  corpCode: string,
+  basis: Exclude<ComparisonBasis, 'CUSTOM'>,
+  currentRceptNo: string,
+): Promise<ReportPair> {
+  return apiGet(`/api/companies/${encodeURIComponent(corpCode)}/report-pairs`, { basis, currentRceptNo })
+}
