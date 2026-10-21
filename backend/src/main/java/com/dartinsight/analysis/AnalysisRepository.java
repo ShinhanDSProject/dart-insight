@@ -1,6 +1,7 @@
 package com.dartinsight.analysis;
 
 import com.dartinsight.comparison.ComparisonBasis;
+import java.util.Collection;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -10,4 +11,6 @@ public interface AnalysisRepository extends JpaRepository<Analysis, Long> {
     List<Analysis> findByCorpCodeAndCurrentRceptNoAndPreviousRceptNoAndBasisAndAnalysisVersionOrderByIdDesc(
             String corpCode, String currentRceptNo, String previousRceptNo, ComparisonBasis basis,
             String analysisVersion);
+
+    List<Analysis> findByStatusIn(Collection<AnalysisStatus> statuses);
 }

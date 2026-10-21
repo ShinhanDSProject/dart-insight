@@ -294,7 +294,11 @@
 ### POST /api/analyses — 분석 요청
 
 - 이슈: #14 (2.3) · 화면: W-01 ③ → W-02
-- 같은 기업·보고서 쌍·비교 기준·분석 버전으로 완료된 결과가 있으면 새로 만들지 않고 그 결과를 돌려줍니다(200). 진행 중인 작업이 있으면 그 작업을 돌려줍니다(202).
+- 같은 기업·보고서 쌍·비교 기준·분석 버전으로 완료된 결과가 있으면 새로 만들지 않고 그 결과를 돌려줍니다(200, `reused: true`). 진행 중인 작업이 있으면 그 작업을 돌려줍니다(202, `reused: true`). 실패한 작업은 다시 쓰지 않고 새로 만듭니다. 진행 중인데 30분 넘게 상태가 바뀌지 않은 작업은 멈춘 것으로 보고 실패(`ANALYSIS_TIMED_OUT`)로 바꾼 뒤 새로 만듭니다.
+- 새로 만들기 전에 비교 가능성 검증(2.2)을 합니다. 통과하지 못하면 만들지 않고 422입니다.
+- `basis`가 `YOY`·`PREV`인데 고른 보고서가 그 기준의 보고서가 아니면 `CUSTOM`(직접 선택)으로 저장합니다. 결과 화면이 기준을 잘못 보여 주지 않고, 같은 보고서 쌍을 기준 이름만 달리해 두 번 분석하지 않기 위해서입니다.
+- 분석은 요청과 다른 스레드에서 돕니다. 진행 상황은 `GET /api/analyses/{analysisId}`로 봅니다.
+- 요청의 추적 ID(`X-Trace-Id`)를 분석에 저장하고, 분석이 도는 동안 로그에 같은 값을 남깁니다.
 
 **요청 본문**: 비교 가능성 검증과 같습니다.
 
@@ -308,7 +312,8 @@
 | --- | --- | --- |
 | 400 | `COMMON_INVALID_INPUT` | 필수 값 없음 |
 | 404 | `REPORT_NOT_FOUND` | 없는 보고서 |
-| 422 | `ANALYSIS_NOT_COMPARABLE` | 비교 가능성 검증을 통과하지 못함 |
+| 422 | `ANALYSIS_NOT_COMPARABLE` | 비교 가능성 검증을 통과하지 못함(`message`에 첫 번째 사유) |
+| 502·503 | `DART_REQUEST_FAILED`, `DART_RATE_LIMITED`, `DART_KEY_MISSING` | 검증에 필요한 재무제표를 받지 못함 |
 
 ### GET /api/analyses/{analysisId} — 분석 상태
 
@@ -339,7 +344,18 @@
 }
 ```
 
-`current`·`previous`는 목록 항목과 같은 모양입니다. 실패하면 `status`가 `FAILED`, 실패한 단계의 `state`가 `FAILED`이고 `error`에 `{ "code", "message", "retryable" }`이 들어 있습니다. 결과를 저장하기 전에는 `COMPLETED`가 되지 않습니다.
+`current`·`previous`는 목록 항목과 같은 모양입니다. `steps[].state`는 `DONE`, `ACTIVE`, `PENDING`, `FAILED`입니다. 실패하면 `status`가 `FAILED`, 실패한 단계의 `state`가 `FAILED`이고 `error`에 `{ "code", "message", "retryable" }`이 들어 있습니다. 결과를 저장하기 전에는 `COMPLETED`가 되지 않습니다.
+
+| `error.code` | 뜻 | `retryable` |
+| --- | --- | --- |
+| `ANALYSIS_NOT_COMPARABLE` | 실행 중 다시 확인했을 때 비교할 수 없음 | false |
+| `ANALYSIS_EVIDENCE_MISMATCH` | 근거 확인 실패(값의 근거가 그 보고서가 아니거나 증감액이 두 값의 차와 다름) | true |
+| `ANALYSIS_SAVE_FAILED` | 결과 저장 실패. 완료로 표시하지 않음 | true |
+| `ANALYSIS_FAILED` | 알 수 없는 오류 | true |
+| `ANALYSIS_BUSY` | 분석 요청이 많아 대기열에 넣지 못함 | true |
+| `ANALYSIS_INTERRUPTED` | 실행 중에 서버가 다시 시작됨(서버가 뜰 때 끝나지 않은 작업을 실패로 바꿈) | true |
+| `ANALYSIS_TIMED_OUT` | 30분 넘게 진행되지 않아 멈춘 것으로 봄 | true |
+| `DART_REQUEST_FAILED`, `DART_RATE_LIMITED`, `DART_KEY_MISSING` | OpenDART 호출 실패 | true |
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
@@ -457,7 +473,7 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 
 ## 4. 에러 코드
 
-`code`는 `영역_내용` 형식의 대문자 스네이크입니다. 화면은 `code`를 보고 예외 상태를 고릅니다.
+`code`는 `영역_내용` 형식의 대문자 스네이크입니다. 화면은 `code`를 보고 예외 상태를 고릅니다. 분석 작업이 실패한 사유(`GET /api/analyses/{analysisId}`의 `error.code`)는 HTTP 에러가 아니라서 이 표에 없고, 그 절의 표에 있습니다.
 
 | code | 상태 | 뜻 | 화면 처리 |
 | --- | --- | --- | --- |

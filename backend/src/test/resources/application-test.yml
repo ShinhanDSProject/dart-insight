@@ -12,3 +12,6 @@ app:
     api-key: test-key-not-real
     base-url: http://127.0.0.1:1
     corp-code-sync: never
+  analysis:
+    # 분석을 요청 안에서 끝까지 돌려 결과를 바로 확인한다
+    async: false

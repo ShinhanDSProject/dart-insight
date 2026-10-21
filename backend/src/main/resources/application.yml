@@ -56,6 +56,9 @@ app:
     max-retries: 2
     # 기업 목록(corpCode.xml)을 시작할 때 받을지: on-empty(비어 있을 때만), always, never
     corp-code-sync: ${OPENDART_CORP_CODE_SYNC:on-empty}
+  analysis:
+    # 분석을 요청과 다른 스레드에서 돌린다. 테스트는 false(요청 안에서 끝까지 실행)
+    async: true
   reports:
     # 정기보고서 목록을 받은 지 이 시간이 지나면 다시 받는다(OpenDART 호출 한도)
     refresh-after: 24h
