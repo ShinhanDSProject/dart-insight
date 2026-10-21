@@ -196,12 +196,13 @@ OpenDART 공시검색(`list.json`, 정기공시 중 최종보고서만)에서 �
 | `account_key` | VARCHAR(200) | | 아니오 | 두 보고서의 계정을 맞춘 키(표준계정코드, 없으면 정규화한 계정명) |
 | `account_name` | VARCHAR(200) | | 아니오 | 현재 보고서의 계정명 |
 | `display_order` | INT | | 아니오 | 화면 정렬 순서 |
-| `amount_basis` | VARCHAR(10) | | 아니오 | `POINT` 시점(재무상태표), `CUMULATIVE` 누적, `QUARTER` 3개월 |
+| `amount_basis` | VARCHAR(10) | | 예 | `POINT` 시점(재무상태표), `CUMULATIVE` 누적, `QUARTER` 3개월. 기간 기준이 달라 비교하지 않으면(`PERIOD_MISMATCH`) null |
 | `previous_amount` | BIGINT | | 예 | 이전 값 |
 | `current_amount` | BIGINT | | 예 | 현재 값 |
 | `change_amount` | BIGINT | | 예 | 현재 값 − 이전 값 |
 | `change_rate` | DECIMAL(20,6) | | 예 | 증감률(비율, 0.153 = 15.3%) |
 | `calc_status` | VARCHAR(20) | | 아니오 | 계산 상태(아래) |
+| `currency` | VARCHAR(10) | | 예 | 통화(재무제표 API의 `currency`) |
 | `previous_rcept_no`, `current_rcept_no` | VARCHAR(14) | | 예 | 근거 보고서 |
 | `previous_account_id`, `current_account_id` | VARCHAR(200) | | 예 | 근거 계정 |
 | `previous_period_name`, `current_period_name` | VARCHAR(50) | | 예 | 근거 기간 이름 |
@@ -217,8 +218,8 @@ OpenDART 공시검색(`list.json`, 정기공시 중 최종보고서만)에서 �
 | `report` | `idx_report_corp_period` | `corp_code, period_end` | 인덱스 | 기업별 보고서 목록 |
 | `financial_statement_fetch` | `uk_fs_fetch` | `corp_code, fiscal_year, reprt_code, fs_div` | 유니크 | 같은 호출을 두 번 저장하지 않음 |
 | `financial_account` | `idx_fin_account_fetch` | `fetch_id, sj_div, ord` | 인덱스 | 재무제표별 계정을 원문 순서로 조회 |
-| `analysis` | `idx_analysis_key` | `corp_code, current_rcept_no, previous_rcept_no, basis, analysis_version` | 인덱스 | 같은 조건 결과 재사용(4.3) |
-| `financial_change` | `idx_fin_change_analysis` | `analysis_id, sj_div` | 인덱스 | 결과 화면 조회 |
+| `analysis` | `idx_analysis_key` | `corp_code, current_rcept_no, previous_rcept_no, basis, analysis_version` | 인덱스 | 같은 조건 결과 재사용(4.3). 유니크가 아님: 실패한 분석 뒤에 새 분석을 만들 수 있어야 함 |
+| `financial_change` | `idx_fin_change_analysis` | `analysis_id, sj_div, display_order` | 인덱스 | 결과 화면 조회 |
 
 ## 5. M2에서 더할 테이블 (자리만)
 
