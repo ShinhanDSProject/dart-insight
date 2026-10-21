@@ -15,7 +15,7 @@ DART 정기보고서 두 개를 비교해, 바뀐 재무 수치와 문장을 원
 | 확장 (P2) | 로그인·즐겨찾기·신규 공시 알림, 검토·결재·게시, AI 비교 기준 추천, 섹션 필터, 문장 변경 이력 |
 | 하지 않는 것 | 매수·매도 추천, 목표주가, 주가 예측 |
 
-이슈별 목적과 완료 기준은 노션의 기능 명세·WBS에 있습니다.
+이슈별 목적과 완료 기준은 [GitHub Issues](https://github.com/ShinhanDSProject/dart-insight/issues)에 있습니다. 이슈는 GitHub에서만 관리합니다.
 
 ## 기술 스택과 폴더
 
@@ -39,8 +39,10 @@ DART 정기보고서 두 개를 비교해, 바뀐 재무 수치와 문장을 원
 | 11/6(금) | M2 MVP 기능 완성: 문장 변경 탐지, AI 요약·근거, 표현 자동 검사 |
 | 11/11(수) | 기능 동결 |
 | 11/12(목) | 데모 데이터 고정 |
-| 11/17(화) | 개발 마감 |
+| 11/17(화) | M3 검증·발표: 개발 마감 |
 | 11/18(수) | 발표 |
+
+마일스톤별 이슈는 [GitHub Milestones](https://github.com/ShinhanDSProject/dart-insight/milestones)에서 봅니다.
 
 ## 문서 안내
 
@@ -49,7 +51,8 @@ DART 정기보고서 두 개를 비교해, 바뀐 재무 수치와 문장을 원
 | 프로젝트 허브 | [노션 · 2차 프로젝트](https://app.notion.com/p/3feb6afffc6f818b83e0f23db6591572) | 모든 기획 문서의 시작점 |
 | 프로젝트 개요 | [노션 · 프로젝트 개요·문제 정의](https://app.notion.com/p/3ffb6afffc6f80418b8ac274f0d20e18) | 왜 이 프로젝트를 하는지, 문제 정의와 차별점 |
 | 개발 기준 | [노션 · 개발 기준](https://app.notion.com/p/400b6afffc6f813aac54dd697afc9d8e) | 팀과 역할, 구조 원칙, 이슈 운영, 브랜치·PR, API·데이터 규약, AI 사용 규칙 |
-| 기능 명세·WBS | [노션 · 기능 명세·WBS](https://app.notion.com/p/3ffb6afffc6f80179ffbfd4817a5aaa0) | 이슈 목록, 결정 로그, 일정 |
+| 이슈·마일스톤 | [GitHub Issues](https://github.com/ShinhanDSProject/dart-insight/issues) | 작업 이슈, 완료 기준, 진행 상태 |
+| 기능 명세·WBS | [노션 · 기능 명세·WBS](https://app.notion.com/p/3ffb6afffc6f80179ffbfd4817a5aaa0) | 일정·범위, 결정 로그 |
 | 화면 설계 | [노션 · 사용자 흐름·화면 와이어프레임](https://app.notion.com/p/c0f540f74d92496c9c20f23867afc15a) | 화면 W-01~W-03, 예외·상태 처리 |
 | 공시 용어 | [노션 · 공시·재무 도메인 가이드](https://app.notion.com/p/3ffb6afffc6f804d85f4d36e6013635c) | 정기보고서, 재무제표, 비교 기준 |
 | OpenDART | [노션 · OpenDART 데이터 가이드](https://app.notion.com/p/400b6afffc6f81cc8870ee13d02d8ac1) | API 코드와 응답 필드 |
@@ -62,7 +65,7 @@ DART 정기보고서 두 개를 비교해, 바뀐 재무 수치와 문장을 원
 ## 협업 규칙 요약
 
 - 이슈 하나에 브랜치 하나: `feature/{이슈ID}-{짧은-영문-이름}` (예: `feature/2.4-financial-compare`), 문서만 바꿀 때는 `docs/{이름}`
-- PR 제목은 `[이슈ID] 이슈 제목`, 본문은 [PR 템플릿](.github/pull_request_template.md)을 채웁니다. GitHub 이슈는 '작업 이슈' 템플릿으로 만듭니다.
+- PR 제목은 `[WBS ID] 이슈 제목`, 본문은 [PR 템플릿](.github/pull_request_template.md)을 채우고 `closes #이슈번호`를 적습니다. 새 이슈는 '작업 이슈' 템플릿으로 만듭니다.
 - `main`은 PR로만 바꿉니다.
 - API 키와 `.env`는 커밋하지 않습니다. 저장소에는 `.env.example`만 둡니다. OpenDART 키는 각자 발급받아 자기 `.env`에 넣습니다.
 

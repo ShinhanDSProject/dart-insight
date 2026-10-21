@@ -8,7 +8,8 @@ Oct 14, 2026 · @전민욱
 >
 > 개발에 쓰는 기준은 노션을 따릅니다.
 >
-> - 일정·범위·우선순위: [기능 명세·WBS](https://app.notion.com/p/3ffb6afffc6f80179ffbfd4817a5aaa0)의 이슈 목록과 결정 로그
+> - 일정·범위: [기능 명세·WBS](https://app.notion.com/p/3ffb6afffc6f80179ffbfd4817a5aaa0)와 결정 로그
+> - 작업 이슈: [GitHub Issues](https://github.com/ShinhanDSProject/dart-insight/issues)
 > - 팀·스택·개발 규칙: [개발 기준](https://app.notion.com/p/400b6afffc6f813aac54dd697afc9d8e)
 >
 > 이 문서를 쓴 뒤 바뀐 범위는 다음과 같습니다.
