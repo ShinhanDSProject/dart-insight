@@ -11,6 +11,8 @@
 
 ## 실행
 
+DB가 필요한 기능은 먼저 저장소 루트에서 `docker compose up -d`로 MariaDB를 띄웁니다([로컬 개발 환경](../docs/local-setup.md)).
+
 ```bash
 cd backend
 cp .env.example .env      # 값 채우기 (커밋하지 않음)

@@ -1,0 +1,42 @@
+# 로컬 개발용 DB (MariaDB, Chroma)
+# 실행: docker compose up -d      중지: docker compose down
+# 데이터까지 지우기: docker compose down -v
+# 접속 정보는 backend/.env.example, ai-server/.env.example과 같습니다. 로컬 전용 값이라 실제 서버에서는 쓰지 않습니다.
+name: dart-insight
+
+services:
+  mariadb:
+    image: mariadb:11.4
+    environment:
+      MARIADB_DATABASE: dart_insight
+      MARIADB_USER: dart
+      MARIADB_PASSWORD: change-me
+      MARIADB_ROOT_PASSWORD: change-me-root
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  chroma:
+    # 버전은 ai-server의 chromadb 패키지와 맞춥니다(문장 변경 탐지 작업 때 함께 확정)
+    image: chromadb/chroma:0.6.3
+    environment:
+      IS_PERSISTENT: "TRUE"
+      ANONYMIZED_TELEMETRY: "FALSE"
+    ports:
+      - "8001:8000" # ai-server가 8000을 쓰므로 8001로 엽니다
+    volumes:
+      - chroma-data:/chroma/chroma
+
+volumes:
+  mariadb-data:
+  chroma-data:
