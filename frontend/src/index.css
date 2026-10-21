@@ -302,3 +302,35 @@ code {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* DART 원문 링크 */
+.dart-link {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.dart-link__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dart-link__status {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.dart-link__manual {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+}
+
+.dart-link__help {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getReport, type ReportDetail } from '../../api/reports'
+import { DartLinkActions } from '../../components/DartLink'
 import { ErrorState, LoadingState } from '../../components/StateView'
 import {
   correctionLabel,
@@ -102,6 +103,7 @@ function ReportFacts({ report }: { report: ReportDetail }) {
           </dd>
         </div>
       </dl>
+      <DartLinkActions rceptNo={report.rceptNo} dartUrl={report.dartUrl} />
     </>
   )
 }
