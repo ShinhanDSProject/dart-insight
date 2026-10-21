@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
+import { analysisPath, requestAnalysis } from '../api/analyses'
 import { checkComparability, type ComparabilityResult } from '../api/comparability'
 import { ErrorState, LoadingState } from '../components/StateView'
 import { checkStatusLabel, resultSummary, statementBasisLabel } from './compare/comparabilityLabels'
@@ -18,6 +19,7 @@ const errorMessages: Record<string, string> = {
 /**
  * W-01 ③ 비교 검증(2.2). 주소: /companies/:corpCode/compare?current=&previous=&basis=
  * 비교할 수 없으면 분석을 시작하지 않고 사유와 다음 행동을 보여 준다.
+ * 비교할 수 있으면 '분석 실행'으로 분석을 요청하고 W-02로 간다(2.3).
  */
 export function ComparabilityPage() {
   const { corpCode = '' } = useParams()
@@ -25,8 +27,11 @@ export function ComparabilityPage() {
   const currentNo = searchParams.get('current') ?? ''
   const previousNo = searchParams.get('previous') ?? ''
   const basis = parseBasis(searchParams.get('basis'))
+  const navigate = useNavigate()
   const [state, setState] = useState<CheckState>({ kind: 'loading' })
   const [retry, setRetry] = useState(0)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<unknown>(null)
   const backTo = `/companies/${encodeURIComponent(corpCode)}?${searchParams.toString()}`
   const hasPair = currentNo !== '' && previousNo !== ''
 
@@ -45,6 +50,18 @@ export function ComparabilityPage() {
       cancelled = true
     }
   }, [corpCode, currentNo, previousNo, basis, hasPair, retry])
+
+  async function runAnalysis() {
+    setSubmitting(true)
+    setSubmitError(null)
+    try {
+      const created = await requestAnalysis({ corpCode, currentRceptNo: currentNo, previousRceptNo: previousNo, basis })
+      navigate(analysisPath(created.analysisId, created.status))
+    } catch (error) {
+      setSubmitError(error)
+      setSubmitting(false)
+    }
+  }
 
   return (
     <section className="page">
@@ -67,10 +84,21 @@ export function ComparabilityPage() {
       )}
       {hasPair && state.kind === 'done' && <CheckResult result={state.result} basis={basisLabel(basis)} />}
 
+      {submitError !== null && (
+        <ErrorState
+          error={submitError}
+          messages={{ ANALYSIS_NOT_COMPARABLE: '비교할 수 없는 보고서 쌍이라 분석을 시작하지 않았어요.' }}
+        />
+      )}
       <div className="compare-actions">
         <Link to={backTo} className="button button--secondary">
           보고서 다시 선택
         </Link>
+        {state.kind === 'done' && state.result.comparable && (
+          <button type="button" className="button button--primary" onClick={() => void runAnalysis()} disabled={submitting}>
+            {submitting ? '분석을 요청하는 중…' : '분석 실행 →'}
+          </button>
+        )}
       </div>
     </section>
   )
