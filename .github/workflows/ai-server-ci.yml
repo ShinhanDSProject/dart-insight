@@ -1,0 +1,61 @@
+name: ai-server
+
+# ai-server/가 바뀐 PR에서 Ruff 검사와 pytest를 돌립니다.
+# ai-server/에 pyproject.toml이나 requirements.txt가 아직 없으면(프로젝트 생성 전) 검사를 건너뜁니다.
+on:
+  pull_request:
+    paths:
+      - 'ai-server/**'
+      - '.github/workflows/ai-server-ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-server-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: '3.12' # 개발환경에서 정한 버전과 맞춥니다
+
+jobs:
+  test:
+    name: ai-server lint·test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-server
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 프로젝트 확인
+        id: project
+        run: |
+          if [ -f pyproject.toml ] || [ -f requirements.txt ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::ai-server에 pyproject.toml·requirements.txt가 아직 없어 검사를 건너뜁니다."
+          fi
+
+      - uses: actions/setup-python@v5
+        if: steps.project.outputs.exists == 'true'
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 의존성 설치
+        if: steps.project.outputs.exists == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; else pip install -e .; fi
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; else pip install ruff pytest; fi
+
+      - name: Ruff 검사
+        if: steps.project.outputs.exists == 'true'
+        run: ruff check .
+
+      - name: pytest
+        if: steps.project.outputs.exists == 'true'
+        run: |
+          # 테스트가 하나도 없을 때(종료 코드 5)는 통과로 봅니다
+          pytest || [ $? -eq 5 ]

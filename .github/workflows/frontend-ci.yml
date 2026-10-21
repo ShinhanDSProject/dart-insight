@@ -1,0 +1,65 @@
+name: frontend
+
+# frontend/가 바뀐 PR에서 린트, 테스트, 빌드(타입 검사 포함)를 돌립니다.
+# frontend/package.json이 아직 없으면(프로젝트 생성 전) 검사를 건너뜁니다.
+on:
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22' # 개발환경에서 정한 버전과 맞춥니다
+
+jobs:
+  build:
+    name: frontend lint·build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 프로젝트 확인
+        id: project
+        run: |
+          if [ -f package.json ] && [ -f package-lock.json ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          elif [ -f package.json ]; then
+            echo "::error::frontend/package-lock.json이 없습니다. npm install로 만든 lock 파일을 함께 커밋하세요."
+            exit 1
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::frontend/package.json이 아직 없어 검사를 건너뜁니다."
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.project.outputs.exists == 'true'
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 의존성 설치
+        if: steps.project.outputs.exists == 'true'
+        run: npm ci
+
+      - name: 린트
+        if: steps.project.outputs.exists == 'true'
+        run: npm run lint --if-present
+
+      - name: 테스트
+        if: steps.project.outputs.exists == 'true'
+        run: npm test --if-present
+
+      - name: 빌드
+        if: steps.project.outputs.exists == 'true'
+        run: npm run build

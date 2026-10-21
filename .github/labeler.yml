@@ -1,0 +1,20 @@
+# PR에서 바뀐 경로 → 레이블 (actions/labeler v5 형식)
+# 작업 종류 레이블(feature, data, test 등)과 우선순위(P1·P2·보류)는 사람이 붙입니다.
+# ai-server의 원문 파싱 작업은 'ai' 대신 'data'가 맞으면 직접 바꿔 주세요.
+frontend:
+  - changed-files:
+      - any-glob-to-any-file: 'frontend/**'
+
+backend:
+  - changed-files:
+      - any-glob-to-any-file: 'backend/**'
+
+ai:
+  - changed-files:
+      - any-glob-to-any-file: 'ai-server/**'
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'docs/**'
+          - '*.md'

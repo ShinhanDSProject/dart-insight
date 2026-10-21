@@ -254,6 +254,8 @@ CodeRabbit 설치 시에는 저장소 접근 범위와 자동 리뷰를 설정�
 
 병합 방식은 **Squash and merge** 하나로 정했다(10/21). 저장소 설정(Settings → General → Pull Requests)에서 다른 방식을 끄면 병합 버튼에는 이 방식만 보인다. 설정을 바꾸기 전이라도 병합 버튼 옆 화살표에서 **Squash and merge**를 고른다. PR의 커밋이 하나로 합쳐지고 PR 제목이 `main`의 커밋 제목이 되므로, PR 제목 규칙(`[WBS ID] 이슈 제목`)을 지킨다.
 
+선행 이슈의 PR 위에 쌓인 PR(base가 `main`이 아닌 PR)은 아래 PR부터 순서대로 병합한다. 아래 PR을 병합하고 그 브랜치를 지우면 GitHub이 다음 PR의 base를 `main`으로 바꾼다. 이때 다음 PR의 변경 사항에 앞 PR 내용이 다시 보이면, PR 작성자가 브랜치를 최신 `main` 위로 다시 올린 뒤 병합한다.
+
 병합 후 더 사용할 일이 없는 feature 브랜치는 GitHub의 **Delete branch**로 정리할 수 있다. `main`은 삭제하지 않는다.
 
 ## 8. Merge 후 동기화와 다음 작업

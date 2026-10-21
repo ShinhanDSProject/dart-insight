@@ -68,7 +68,7 @@ DART 정기보고서 두 개를 비교해, 바뀐 재무 수치와 문장을 원
 
 - 이슈 하나에 브랜치 하나: `feature/{이슈ID}-{짧은-영문-이름}` (예: `feature/2.4-financial-compare`), 문서만 바꿀 때는 `docs/{이름}`, 설정만 바꿀 때는 `chore/{이름}`
 - PR 제목은 `[WBS ID] 이슈 제목`, 본문은 [PR 템플릿](.github/pull_request_template.md)을 채우고 `closes #이슈번호`를 적습니다. 새 이슈는 '작업 이슈' 템플릿으로 만듭니다.
-- `main`은 PR로만 바꾸고, squash merge로 병합합니다. PR 제목이 main 기록이 됩니다.
+- `main`은 PR로만 바꾸고, squash merge로 병합합니다. PR 제목이 main 기록이 됩니다. 선행 이슈 PR 위에 쌓인 PR은 아래(선행) PR부터 순서대로 병합합니다.
 - PR마다 비밀정보 검사(gitleaks)가 돌고, 바뀐 서비스 폴더의 빌드·린트·테스트가 자동으로 돕니다.
 - API나 DB 구조를 바꾸면 `docs/api-spec.md`·`docs/erd.md`도 같은 PR에서 고칩니다. DB 스키마는 Flyway 마이그레이션으로만 바꿉니다.
 - AI 코딩 도구를 쓸 때는 [`AGENTS.md`](AGENTS.md)를 읽게 합니다. Claude Code는 `CLAUDE.md`를 통해 자동으로 읽습니다.
