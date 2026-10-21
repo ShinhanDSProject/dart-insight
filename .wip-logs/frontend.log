@@ -1,4 +1,4 @@
-sha=6c7cd824c473fef1f400273e7a1986c7b0a96c03 status=success
+sha=092123dbeba9f1f6ecf8b1571493b5e883a3f82b status=success
 ----- tail -----
 npm warn deprecated eslint@9.39.5: This version is no longer supported. Please see https://eslint.org/version-support for other options.
 
@@ -14,17 +14,17 @@ added 211 packages in 3s
 
 [1m[46m RUN [49m[22m [36mv3.2.7 [39m[90m/home/runner/work/dart-insight/dart-insight/frontend[39m
 
- [32m✓[39m src/pages/company/reportLabels.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 4[2mms[22m[39m
- [32m✓[39m src/pages/company/pairSelection.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 10[2mms[22m[39m
- [32m✓[39m src/api/client.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 24[2mms[22m[39m
- [32m✓[39m src/pages/compare/comparabilityLabels.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m✓[39m src/pages/search/searchQuery.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 3[2mms[22m[39m
- [32m✓[39m src/lib/dart.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/pages/company/reportLabels.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m src/api/client.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32m✓[39m src/pages/company/pairSelection.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m src/pages/compare/comparabilityLabels.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m src/lib/dart.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m src/pages/search/searchQuery.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 4[2mms[22m[39m
 
 [2m Test Files [22m [1m[32m6 passed[39m[22m[90m (6)[39m
 [2m      Tests [22m [1m[32m22 passed[39m[22m[90m (22)[39m
-[2m   Start at [22m 09:22:00
-[2m   Duration [22m 871ms[2m (transform 277ms, setup 0ms, collect 410ms, tests 55ms, environment 1ms, prepare 711ms)[22m
+[2m   Start at [22m 09:24:53
+[2m   Duration [22m 801ms[2m (transform 244ms, setup 0ms, collect 409ms, tests 52ms, environment 1ms, prepare 641ms)[22m
 
 
 > dart-insight-frontend@0.0.1 build
@@ -38,4 +38,4 @@ computing gzip size...
 [2mdist/[22m[32mindex.html                 [39m[1m[2m  0.40 kB[22m[1m[22m[2m │ gzip:   0.27 kB[22m
 [2mdist/[22m[2massets/[22m[35mindex-Cr-wkm7s.css  [39m[1m[2m 10.94 kB[22m[1m[22m[2m │ gzip:   2.45 kB[22m
 [2mdist/[22m[2massets/[22m[36mindex-DENxS_MD.js   [39m[1m[2m342.91 kB[22m[1m[22m[2m │ gzip: 108.82 kB[22m
-[32m✓ built in 1.25s[39m
+[32m✓ built in 1.64s[39m
