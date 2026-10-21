@@ -28,7 +28,16 @@ DART 정기보고서 두 개를 비교해, 바뀐 재무 수치와 문장을 원
 
 - DB는 MariaDB(정형 데이터)와 Chroma(본문 임베딩)를 씁니다. 외부 데이터는 OpenDART입니다.
 - 호출 방향은 React → Spring Boot → FastAPI입니다. React는 Spring Boot만 호출합니다.
-- 세 서비스 폴더에는 아직 프로젝트가 없고 `.env.example`만 있습니다. 실행 방법은 개발환경을 구축한 뒤 이 문서에 추가합니다.
+
+## 로컬 실행
+
+| 서비스 | 버전 | 포트 | 실행 | 자세히 |
+| --- | --- | --- | --- | --- |
+| backend | Java 21, Spring Boot 4.1 | 8080 | `./gradlew bootRun` | [backend/README.md](backend/README.md) |
+| frontend | Node.js 22, Vite 7 | 5173 | `npm ci && npm run dev` | [frontend/README.md](frontend/README.md) |
+| ai-server | Python 3.12, FastAPI | 8000 | `uvicorn app.main:app --reload --port 8000` | [ai-server/README.md](ai-server/README.md) |
+
+각 폴더에서 `.env.example`을 `.env`로 복사해 값을 채운 뒤 실행합니다. `.env`는 커밋하지 않습니다.
 
 ## 일정
 

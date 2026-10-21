@@ -92,13 +92,13 @@ DB는 MariaDB(정형 데이터)와 Chroma(본문 임베딩)이고, 외부 데이
 
 ## 서비스별 명령
 
-개발환경을 구축하면서 확정합니다. 지금은 CI(`.github/workflows/`)가 쓰는 명령입니다.
+CI(`.github/workflows/`)도 같은 명령을 씁니다. 버전은 backend Java 21, frontend Node.js 22, ai-server Python 3.12입니다.
 
 | 서비스 | 빌드·테스트 | 린트 |
 | --- | --- | --- |
-| backend | `./gradlew build` | 빌드에 포함 |
-| frontend | `npm ci && npm run build` | `npm run lint` |
-| ai-server | `pytest` | `ruff check .` |
+| backend | `./gradlew build` (backend/) | 빌드에 포함 |
+| frontend | `npm test && npm run build` (frontend/) | `npm run lint` |
+| ai-server | `pytest` (ai-server/) | `ruff check .` |
 
 PR마다 비밀정보 검사(gitleaks)가 돌고, 바뀐 서비스 폴더의 CI가 돕니다.
 
