@@ -356,15 +356,21 @@
 | query | `sjDiv` | string | 아니오 | 재무제표 종류. 기본 `BS` |
 | query | `changedOnly` | boolean | 아니오 | `true`면 값이 바뀌었거나 계산할 수 없는 항목만. 기본 `false` |
 
+- 완료된 분석의 결과만, 그 분석에 저장된 결과만 돌려줍니다(다른 분석 결과와 섞지 않음).
+- `statements`는 다섯 재무제표가 늘 들어 있고, 비교 규칙(2.2)과 계정 수를 담습니다. `changed`는 증감액이 0이 아니거나 계산하지 못한 계정 수입니다.
+- `items`는 고른 재무제표의 계정을 원문 순서대로 돌려줍니다.
+
 **응답 200**
 
 ```json
 {
   "analysisId": 42,
   "fsDiv": "CFS",
+  "sjDiv": "IS",
+  "changedOnly": false,
   "statements": [
-    { "sjDiv": "BS", "label": "재무상태표", "total": 58, "changed": 41 },
-    { "sjDiv": "IS", "label": "손익계산서", "total": 21, "changed": 19 }
+    { "sjDiv": "BS", "label": "재무상태표", "comparable": true, "amountBasis": "POINT", "note": null, "total": 58, "changed": 41 },
+    { "sjDiv": "IS", "label": "손익계산서", "comparable": true, "amountBasis": "CUMULATIVE", "note": null, "total": 21, "changed": 19 }
   ],
   "items": [
     {
@@ -378,7 +384,8 @@
       "changeRate": 0.048276,
       "direction": "UP",
       "calcStatus": "OK",
-      "calcMessage": null
+      "calcMessage": null,
+      "currency": "KRW"
     }
   ]
 }
@@ -392,6 +399,7 @@
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | `sjDiv`가 BS·IS·CIS·CF·SCE가 아님 |
 | 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 ID |
 | 409 | `ANALYSIS_NOT_READY` | 분석이 아직 완료되지 않음 |
 
