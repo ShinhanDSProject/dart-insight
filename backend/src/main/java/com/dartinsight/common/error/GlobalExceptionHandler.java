@@ -32,7 +32,7 @@ public class GlobalExceptionHandler {
         if (code.status() >= 500) {
             log.warn("{}: {}", code, e.getMessage(), e.getCause());
         }
-        return respond(code, e.getMessage(), List.of());
+        return respond(code, e.getMessage(), e.fieldErrors());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
