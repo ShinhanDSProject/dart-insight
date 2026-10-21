@@ -1,0 +1,75 @@
+name: backend
+
+# backend/가 바뀐 PR에서 Spring Boot 빌드와 테스트를 돌립니다.
+# backend/gradlew가 아직 없으면(프로젝트 생성 전) 검사를 건너뜁니다.
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  JAVA_VERSION: '17' # 개발환경에서 정한 버전과 맞춥니다
+
+jobs:
+  build:
+    name: backend build·test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    # 테스트용 MariaDB. 비밀번호는 CI 전용 가짜 값입니다(실제 비밀정보 아님).
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_DATABASE: dart_insight
+          MARIADB_USER: dart
+          MARIADB_PASSWORD: ci-only
+          MARIADB_ROOT_PASSWORD: ci-only-root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 프로젝트 확인
+        id: project
+        run: |
+          if [ -f gradlew ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::backend/gradlew가 아직 없어 빌드를 건너뜁니다."
+          fi
+
+      - uses: actions/setup-java@v4
+        if: steps.project.outputs.exists == 'true'
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
+
+      - name: 빌드와 테스트
+        if: steps.project.outputs.exists == 'true'
+        env:
+          DB_URL: jdbc:mariadb://localhost:3306/dart_insight
+          DB_USERNAME: dart
+          DB_PASSWORD: ci-only
+          OPENDART_API_KEY: ci-dummy-key # 테스트는 OpenDART를 실제로 부르지 않습니다
+        run: |
+          chmod +x gradlew
+          ./gradlew build --no-daemon

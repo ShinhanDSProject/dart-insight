@@ -1,0 +1,29 @@
+# 편집기 공통 설정 (https://editorconfig.org)
+# 대부분의 IDE가 자동으로 읽습니다. 줄바꿈은 .gitattributes와 같게 LF로 맞춥니다.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# Java·Gradle, Python은 4칸 (팀이 포매터를 정하면 함께 맞춥니다)
+[*.{java,kt,kts,gradle}]
+indent_size = 4
+
+[*.py]
+indent_size = 4
+
+# 마크다운은 줄 끝 공백 두 칸이 줄바꿈이라 지우지 않습니다
+[*.md]
+trim_trailing_whitespace = false
+
+# Windows 스크립트는 CRLF
+[*.{bat,cmd}]
+end_of_line = crlf
+
+[Makefile]
+indent_style = tab

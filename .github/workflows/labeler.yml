@@ -1,0 +1,18 @@
+name: labeler
+
+# PR에서 바뀐 폴더를 보고 영역 레이블을 붙입니다. 규칙은 .github/labeler.yml에 있습니다.
+# PR 코드를 실행하지 않고 레이블만 붙이므로 pull_request_target을 씁니다.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  label:
+    name: label
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/labeler@v5

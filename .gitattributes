@@ -1,0 +1,22 @@
+# 줄바꿈: 저장소에는 LF로 저장하고, Windows에서도 LF로 꺼냅니다(.editorconfig와 같음).
+# Mac·Windows가 섞인 팀에서 줄바꿈만 바뀐 변경이 PR에 섞이지 않게 합니다.
+* text=auto eol=lf
+
+# Windows 스크립트는 CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Gradle 실행 스크립트는 LF (CRLF가 되면 Mac·Linux·CI에서 실행되지 않습니다)
+gradlew text eol=lf
+
+# 바이너리 파일
+*.jar binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.woff binary
+*.woff2 binary

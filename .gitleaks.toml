@@ -1,0 +1,23 @@
+# gitleaks 설정: 기본 규칙에 OpenDART 인증키 규칙을 더합니다.
+# CI(.github/workflows/secret-scan.yml)가 PR마다 이 설정으로 검사합니다.
+# 로컬에서 미리 검사하려면 gitleaks를 설치한 뒤: gitleaks git --config .gitleaks.toml .
+title = "dart-insight gitleaks config"
+
+[extend]
+useDefault = true
+
+# OpenDART 인증키를 변수에 넣은 경우 (예: OPENDART_API_KEY=..., dart.api-key: ...)
+[[rules]]
+id = "opendart-api-key"
+description = "OpenDART 인증키"
+regex = '''(?i)(?:open_?dart|dart)[\w.\-]{0,20}(?:key|crtfc)[\w.\-]{0,10}["']?\s*[:=]\s*["']?([0-9a-z]{40})\b'''
+secretGroup = 1
+keywords = ["dart", "crtfc"]
+
+# OpenDART 요청 URL에 인증키가 그대로 들어간 경우 (예: ...?crtfc_key=...)
+[[rules]]
+id = "opendart-crtfc-key-in-url"
+description = "OpenDART 요청 URL의 인증키"
+regex = '''(?i)crtfc_key=([0-9a-z]{40})\b'''
+secretGroup = 1
+keywords = ["crtfc_key"]
