@@ -68,7 +68,7 @@ jobs:
         run: |
           set -o pipefail
           {
-            if [ -f package-lock.json ]; then npm ci; else npm install; fi
+            npm install --no-audit --no-fund
             npm run lint --if-present
             npm test --if-present
             npm run build
