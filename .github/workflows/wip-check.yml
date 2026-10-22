@@ -1,0 +1,125 @@
+# 임시 작업 브랜치(wip/**) 전용 검사. 이슈 브랜치에는 들어가지 않는다.
+# 결과 로그와 npm lock 파일을 같은 브랜치에 커밋해 돌려준다(로컬에서 패키지를 받을 수 없어서).
+name: wip-check
+
+on:
+  push:
+    branches: ['wip/**']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wip-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    if: ${{ !contains(github.event.head_commit.message, '[wip-log]') }}
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_DATABASE: dart_insight
+          MARIADB_USER: dart
+          MARIADB_PASSWORD: ci-only
+          MARIADB_ROOT_PASSWORD: ci-only-root
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        if: hashFiles('backend/gradlew') != ''
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+      - name: build (MariaDB) + test (H2)
+        if: hashFiles('backend/gradlew') != ''
+        working-directory: backend
+        run: |
+          chmod +x gradlew
+          set -o pipefail
+          {
+            echo "### build with MariaDB"
+            TEST_DB_URL=jdbc:mariadb://localhost:3306/dart_insight TEST_DB_USERNAME=dart TEST_DB_PASSWORD=ci-only \
+              ./gradlew build --no-daemon --console=plain
+            python3 ../.github/wip/junit-summary.py build/test-results/test
+            echo "### test with H2"
+            ./gradlew cleanTest test --no-daemon --console=plain
+            python3 ../.github/wip/junit-summary.py build/test-results/test
+          } 2>&1 | tee "$RUNNER_TEMP/backend.log"
+      - name: save log
+        if: always()
+        run: bash .github/wip/push-log.sh backend "$RUNNER_TEMP/backend.log" "${{ job.status }}"
+
+  frontend:
+    if: ${{ !contains(github.event.head_commit.message, '[wip-log]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: install, lint, test, build
+        if: hashFiles('frontend/package.json') != ''
+        working-directory: frontend
+        run: |
+          set -o pipefail
+          {
+            npm install --no-audit --no-fund
+            npm run lint --if-present
+            npm test --if-present
+            npm run build
+          } 2>&1 | tee "$RUNNER_TEMP/frontend.log"
+      - name: save log and lock file
+        if: always()
+        run: bash .github/wip/push-log.sh frontend "$RUNNER_TEMP/frontend.log" "${{ job.status }}" frontend/package-lock.json
+
+  ai-server:
+    if: ${{ !contains(github.event.head_commit.message, '[wip-log]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: install, ruff, pytest
+        if: hashFiles('ai-server/requirements.txt') != ''
+        working-directory: ai-server
+        run: |
+          set -o pipefail
+          {
+            python -m pip install --upgrade pip
+            pip install -r requirements.txt -r requirements-dev.txt
+            ruff check .
+            ruff format --check .
+            pytest -q || [ $? -eq 5 ]
+          } 2>&1 | tee "$RUNNER_TEMP/ai-server.log"
+      - name: save log
+        if: always()
+        run: bash .github/wip/push-log.sh ai-server "$RUNNER_TEMP/ai-server.log" "${{ job.status }}"
+
+  compose:
+    if: ${{ !contains(github.event.head_commit.message, '[wip-log]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: compose up
+        if: hashFiles('compose.yaml') != ''
+        run: |
+          set -o pipefail
+          {
+            docker compose config
+            docker compose up -d --wait --wait-timeout 180
+            docker compose ps
+            docker compose exec -T mariadb mariadb -udart -pchange-me -e "select version();" dart_insight
+            curl -sf http://localhost:8001/api/v2/heartbeat || curl -sf http://localhost:8001/api/v1/heartbeat
+            docker compose down -v
+          } 2>&1 | tee "$RUNNER_TEMP/compose.log"
+      - name: save log
+        if: always()
+        run: bash .github/wip/push-log.sh compose "$RUNNER_TEMP/compose.log" "${{ job.status }}"
