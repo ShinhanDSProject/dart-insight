@@ -1,6 +1,7 @@
 package com.dartinsight.analysis;
 
 import com.dartinsight.comparison.ComparisonBasis;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,5 +13,6 @@ public interface AnalysisRepository extends JpaRepository<Analysis, Long> {
             String corpCode, String currentRceptNo, String previousRceptNo, ComparisonBasis basis,
             String analysisVersion);
 
-    List<Analysis> findByStatusIn(Collection<AnalysisStatus> statuses);
+    /** 이 시각 전에 만들어졌고 아직 끝나지 않은 분석(서버 재시작 정리용) */
+    List<Analysis> findByStatusInAndCreatedAtBefore(Collection<AnalysisStatus> statuses, LocalDateTime createdAt);
 }
