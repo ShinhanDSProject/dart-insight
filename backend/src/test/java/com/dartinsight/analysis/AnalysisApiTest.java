@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.dartinsight.analysis.FinancialChangeRow.Evidence;
+import com.dartinsight.common.config.ClockConfig;
 import com.dartinsight.company.CompanyImportService;
 import com.dartinsight.comparison.AmountBasis;
 import com.dartinsight.comparison.ComparisonBasis;
@@ -30,6 +31,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -242,6 +244,20 @@ class AnalysisApiTest {
                 .andExpect(jsonPath("$.status").value("FAILED"))
                 .andExpect(jsonPath("$.error.code").value("ANALYSIS_INTERRUPTED"))
                 .andExpect(jsonPath("$.error.retryable").value(true));
+    }
+
+    @Test
+    void analysisCreatedWhileTheServerIsStartingIsNotFailed() throws Exception {
+        // 웹 서버는 ready 이벤트 전에 요청을 받으므로, 이번 실행에서 만든 분석은 그대로 둔다
+        LocalDateTime afterBoot = LocalDateTime.now(ClockConfig.SEOUL).truncatedTo(ChronoUnit.MICROS);
+        Analysis analysis = Analysis.request("00000001", CUR, PREV, ComparisonBasis.YOY, null, afterBoot);
+        analysis.start(afterBoot);
+        Long id = analysisRepository.save(analysis).getId();
+
+        runner.failInterrupted();
+
+        mockMvc.perform(get("/api/analyses/{id}", id))
+                .andExpect(jsonPath("$.status").value("RUNNING"));
     }
 
     @Test
