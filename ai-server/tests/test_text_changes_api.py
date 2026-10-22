@@ -40,6 +40,9 @@ def test_changes_come_back_with_positions() -> None:
     assert change["current"] == {"sectionNo": 2, "blockNo": 7}
     assert change["sectionPath"] == "II. 사업의 내용 > 1. 사업의 개요"
     assert change["numbersOnly"] is False
+    assert data["priorityVersion"] == "priority-1"
+    assert change["priority"]["level"] in {"HIGH", "MEDIUM", "LOW"}
+    assert change["priority"]["reasons"][0].startswith("사업의 내용 섹션")
 
 
 def test_block_in_unknown_section_is_rejected() -> None:
