@@ -8,6 +8,7 @@ import {
   type TextChangeList,
   type TextSort,
 } from '../../api/textChanges'
+import { DartSourceLine } from '../../components/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '../../components/StateView'
 import { TextEvidencePanel, type SourceTarget } from './TextEvidencePanel'
 import {
@@ -194,9 +195,17 @@ export function TextTab({ analysis, type, sort, selectedChangeId, onChange, onOp
         </>
       )}
       {!failed && (
-        <p className="panel__note">
-          원문에서 문단·표 단위로 비교했고, 숫자만 바뀐 표는 '재무 수치 변화'와 겹쳐 뒤로 미뤘어요.
-        </p>
+        <>
+          <DartSourceLine
+            reports={[
+              { role: '비교', report: analysis.previous },
+              { role: '현재', report: analysis.current },
+            ]}
+          />
+          <p className="panel__note">
+            원문에서 문단·표 단위로 비교했고, 숫자만 바뀐 표는 '재무 수치 변화'와 겹쳐 뒤로 미뤘어요.
+          </p>
+        </>
       )}
     </section>
   )

@@ -167,7 +167,9 @@ function SourceCard({ role, source, fallbackReport, amount, missing, detail, uni
           <span className="evidence__meta">
             계정 ID <code>{source.accountId}</code> · 접수번호 <code>{source.rceptNo}</code>
           </span>
-          <DartLinkInline rceptNo={source.rceptNo} dartUrl={source.dartUrl} label={`${role} ${report.reportName}`} />
+          <span className="evidence__meta">
+            출처: DART · <DartLinkInline rceptNo={source.rceptNo} dartUrl={source.dartUrl} label={`${role} ${report.reportName}`} />
+          </span>
         </>
       ) : (
         <span className="evidence__meta">이 보고서에는 이 계정이 없어요.</span>
