@@ -14,6 +14,7 @@ public enum ErrorCode {
     COMPANY_LIST_NOT_LOADED(503, "기업 목록을 아직 받지 않았습니다. 관리자에게 기업 목록 갱신을 요청해 주세요."),
 
     REPORT_NOT_FOUND(404, "보고서를 찾을 수 없습니다. 보고서 목록을 다시 불러와 주세요."),
+    REPORT_SECTION_NOT_FOUND(404, "원문에서 이 항목을 찾을 수 없습니다. 목차에서 다시 골라 주세요."),
 
     ANALYSIS_NOT_FOUND(404, "분석을 찾을 수 없습니다."),
     ANALYSIS_NOT_COMPARABLE(422, "두 보고서를 비교할 수 없습니다."),
