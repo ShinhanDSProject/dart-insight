@@ -43,6 +43,7 @@ __pycache__/
 
 # OpenDART 원문·응답 로컬 캐시
 .cache/
+backend/data/
 
 # Java 빌드 결과와 캐시
 .gradle/
