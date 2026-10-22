@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Optional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 원문은 분석할 때 구조화(4.2)해 둔 목차·문단·표다. DART 원문 안의 위치로 바로 가는 주소는 만들지 않는다(위치 이동 미지원).
  */
 @RestController
+@RequestMapping("/api/analyses/{analysisId}/documents/{side}")
 public class SourceController {
 
     private final AnalysisResultService resultService;
@@ -35,7 +37,7 @@ public class SourceController {
         this.documentService = documentService;
     }
 
-    @GetMapping("/api/analyses/{analysisId}/documents/{side}")
+    @GetMapping
     public DocumentOutline outline(@PathVariable Long analysisId, @PathVariable String side) {
         Analysis analysis = resultService.get(analysisId);
         Report report = report(analysis, side);
@@ -56,7 +58,7 @@ public class SourceController {
                 DartLinks.viewer(report.getRceptNo()), false, restructured, sections);
     }
 
-    @GetMapping("/api/analyses/{analysisId}/documents/{side}/sections/{sectionNo}")
+    @GetMapping("/sections/{sectionNo}")
     public SectionContent section(@PathVariable Long analysisId, @PathVariable String side,
             @PathVariable int sectionNo) {
         Report report = report(resultService.get(analysisId), side);

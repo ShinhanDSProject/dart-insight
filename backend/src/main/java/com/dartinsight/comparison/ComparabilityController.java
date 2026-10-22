@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 비교할 수 없어도 200으로 결과를 돌려준다(분석 요청만 422).
  */
 @RestController
+@RequestMapping("/api/comparability-checks")
 public class ComparabilityController {
 
     private final ComparabilityService comparabilityService;
@@ -31,7 +33,7 @@ public class ComparabilityController {
         this.reportService = reportService;
     }
 
-    @PostMapping("/api/comparability-checks")
+    @PostMapping
     public ComparabilityResponse check(@Valid @RequestBody ComparabilityRequest request) {
         ComparabilityResult result = comparabilityService.check(request.corpCode(), request.currentRceptNo(),
                 request.previousRceptNo(), request.basis());
