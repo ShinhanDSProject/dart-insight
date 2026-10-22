@@ -68,6 +68,7 @@
 | GET | `/api/analyses/{analysisId}/financial-changes` | 재무 수치 변화 목록 | #15 (2.4), #19 (3.1) | W-03 ② | 초안 |
 | GET | `/api/analyses/{analysisId}/financial-changes/{changeId}` | 수치 근거 상세 | #21 (3.3) | W-03 ② | 초안 |
 | GET | `/api/analyses/{analysisId}/text-changes` | 문장·표 변경 목록 | #16 (2.5) | W-03 ③ | 초안 |
+| GET | `/api/analyses/{analysisId}/text-changes/{changeId}` | 문장·표 근거 상세 | #22 (3.4) | W-03 ③ | 초안 |
 | GET | `/api/system/health` | 서비스 연결 상태 | #48 (0.5) | — | 초안 |
 
 ## 2. 엔드포인트 상세
@@ -536,6 +537,49 @@
 | 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 ID |
 | 409 | `ANALYSIS_NOT_READY` | 분석이 아직 완료되지 않음 |
 
+### GET /api/analyses/{analysisId}/text-changes/{changeId} — 문장·표 근거 상세
+
+- 이슈: #22 (3.4) · 화면: W-03 ③ 변경 항목의 '근거 상세'
+- 완료된 분석의 그 분석 항목만 돌려줍니다. 다른 분석의 항목 번호면 404입니다.
+- 변경 전·후 원문 전체를 보고서·종류·대상 기간·항목(섹션 경로)·위치(블록 번호, 근거 ID)와 함께 돌려줍니다. 없는 쪽(추가의 이전, 삭제의 현재)은 null입니다.
+- 글은 분석할 때 저장한 것입니다. 표 셀(`table`)은 저장된 원문 블록의 글이 분석 때와 같을 때만 붙입니다. 원문을 다시 구조화해 위치가 달라졌으면 `blockMatches: false`이고 글만 있습니다.
+- 짝을 정하지 못한 항목(`REVIEW_NEEDED`)은 섹션 위치만 있고 `blockNo`·`evidenceId`가 null입니다. 화면은 근거가 있는 것처럼 보여 주지 않습니다.
+
+**응답 200**
+
+```json
+{
+  "change": { "changeId": 3001, "changeType": "MODIFIED", "...": "목록 항목과 같은 모양" },
+  "previous": {
+    "rceptNo": "20250814000987",
+    "reportName": "반기보고서 (2025.06)",
+    "reportType": "HALF",
+    "fiscalYear": 2025,
+    "periodEnd": "2025-06-30",
+    "sectionNo": 3,
+    "sectionPath": "II. 사업의 내용 > 1. 사업의 개요",
+    "blockNo": 41,
+    "evidenceId": "20250814000987#B41",
+    "blockType": "PARAGRAPH",
+    "text": "당사는 메모리 반도체를 만듭니다.",
+    "table": null,
+    "blockMatches": true,
+    "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250814000987"
+  },
+  "current": { "rceptNo": "20260814001234", "...": "previous와 같은 모양" }
+}
+```
+
+| 필드 | 설명 |
+| --- | --- |
+| `table` | 표 셀 `[[{"text","header","colspan","rowspan"}]]`. 문단이거나 저장된 원문과 맞지 않으면 null |
+| `blockMatches` | 저장된 원문 블록의 글이 분석 때와 같은지 |
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 404 | `ANALYSIS_NOT_FOUND`, `ANALYSIS_TEXT_CHANGE_NOT_FOUND` | 없는 분석·변경 항목 |
+| 409 | `ANALYSIS_NOT_READY` | 분석이 아직 완료되지 않음 |
+
 ### GET /api/system/health — 연결 상태
 
 - 이슈: #48 (0.5)
@@ -686,6 +730,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | `ANALYSIS_NOT_COMPARABLE` | 422 | 비교할 수 없는 보고서 쌍 | W-01 ③ 사유와 다음 행동 |
 | `ANALYSIS_NOT_READY` | 409 | 분석이 끝나지 않음 | W-02로 이동 |
 | `ANALYSIS_CHANGE_NOT_FOUND` | 404 | 없는 계정 항목 | 목록 다시 불러오기 |
+| `ANALYSIS_TEXT_CHANGE_NOT_FOUND` | 404 | 없는 문장 변경 항목 | 목록 다시 불러오기 |
 | `DART_REQUEST_FAILED` | 502 | OpenDART 호출 실패 | 잠시 뒤 다시 시도 |
 | `DART_RATE_LIMITED` | 503 | OpenDART 호출 한도 초과(020) | 내일 다시 시도, 저장된 자료 사용 |
 | `DART_KEY_MISSING` | 503 | 서버에 OpenDART 키가 없음 | 관리자 안내 |
