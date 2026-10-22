@@ -6,7 +6,7 @@
 
 | 항목 | 내용 |
 | --- | --- |
-| 상태 | 초안 (M1 확정, M2 진행 중: 원문 구조화·문장 변경 확정, 요약은 5절에 자리만) |
+| 상태 | 초안 (M1 확정, M2 진행 중: 원문 구조화·문장 변경·요약 확정) |
 | 담당 | 백엔드 |
 | 마지막 수정 | 2026-10-22 |
 | 관련 문서 | API 명세(`docs/api-spec.md`), [OpenDART 데이터 가이드](https://app.notion.com/p/400b6afffc6f81cc8870ee13d02d8ac1), 이슈 #46 |
@@ -25,7 +25,8 @@
 | `document_section` | 원문 목차(섹션) | 4.2 (#28) | M2 |
 | `document_block` | 원문 문단·표와 위치 | 4.2 (#28) | M2 |
 | `text_change` | 두 보고서의 문장·표 변경과 위치, 확인 우선순위 | 2.5 (#16), 2.6 (#17) | M2 |
-| `summary_item` 외 | 요약 | 3.2 | M2 (5절에 자리만) |
+| `summary_item` | 근거 기반 요약 한 줄(사실 문장, AI 문장, 근거 ID, 모델·프롬프트 버전) | 3.2 (#20) | M2 |
+| `llm_call` | LLM 호출 기록(모델·토큰·지연·결과). 비용 집계 | 0.7 (#50), 3.2 (#20) | M2 |
 
 ## 2. 관계도
 
@@ -38,6 +39,9 @@ erDiagram
     report ||--o{ analysis : "current_rcept_no / previous_rcept_no"
     analysis ||--o{ financial_change : "analysis_id"
     analysis ||--o{ text_change : "analysis_id"
+    analysis ||--o{ summary_item : "analysis_id"
+    financial_change ||--o{ summary_item : "financial_change_id"
+    analysis ||--o{ llm_call : "analysis_id"
     report ||--o| report_document : "rcept_no"
     report_document ||--o{ document_section : "document_id"
     report_document ||--o{ document_block : "document_id"
@@ -102,6 +106,23 @@ erDiagram
         varchar priority "HIGH MEDIUM LOW UNRANKED"
         int previous_block_no
         int current_block_no
+    }
+    summary_item {
+        bigint id PK
+        bigint analysis_id FK
+        int item_no
+        varchar kind "FINANCIAL TEXT"
+        varchar status "SHOWN REVIEW_NEEDED"
+        varchar ai_text "AI 생성 문장"
+        varchar evidence_ids "근거 ID 목록"
+    }
+    llm_call {
+        bigint id PK
+        bigint analysis_id FK
+        varchar model
+        varchar prompt_version
+        int input_tokens
+        varchar outcome
     }
     report_document {
         bigint id PK
@@ -224,6 +245,8 @@ API는 사업연도·보고서 코드마다 최신 공시 하나의 값만 줍�
 | `request_trace_id` | VARCHAR(64) | | 예 | 분석을 요청한 요청의 추적 ID(`X-Trace-Id`) |
 | `text_status` | VARCHAR(20) | | 예 | 문장 비교(2.5) 상태. `COMPLETED`, `PARTIAL`(원문 일부를 읽지 못했을 수 있음), `FAILED`(비교하지 못함). 원문을 받지 못해도 분석은 재무 결과로 완료하고 여기에 남김. 완료 전이면 null |
 | `text_message` | VARCHAR(500) | | 예 | 문장 비교가 `PARTIAL`·`FAILED`인 사유 |
+| `summary_status` | VARCHAR(20) | | 예 | 요약(3.2) 상태. `COMPLETED`, `PARTIAL`(검토 필요 항목이 있음), `EMPTY`(요약할 변화가 없음). 완료 전이거나 요약 전에 만든 분석이면 null. 요약에 LLM이 필요한데 부를 수 없으면 분석이 `FAILED`(`ANALYSIS_SUMMARY_FAILED`) |
+| `summary_message` | VARCHAR(500) | | 예 | 요약 상태 사유 |
 | `created_at`, `updated_at` | DATETIME(6) | | 아니오 | `updated_at`이 30분 넘게 바뀌지 않은 진행 중 분석은 멈춘 것으로 보고 실패로 바꿈 |
 | `started_at`, `completed_at` | DATETIME(6) | | 예 | |
 | `version` | BIGINT | | 아니오 | 낙관적 잠금. 실행 중인 분석과 만료 처리가 서로의 상태를 덮어쓰지 않게 함 |
@@ -336,6 +359,46 @@ API는 사업연도·보고서 코드마다 최신 공시 하나의 값만 줍�
 | `priority_reasons` | VARCHAR(1000) | | 예 | 적용한 규칙(한 줄에 하나, 예: `사업의 내용 섹션 +30`) |
 | `priority_version` | VARCHAR(20) | | 예 | 우선순위 규칙 버전(잠정 규칙 `priority-1`) |
 
+### summary_item
+
+근거 기반 요약 한 줄입니다(3.2). 결과와 같은 트랜잭션에서 저장합니다. 사실 문장(수치)은 코드가 만들고, AI가 만든 문장(`ai_text`)은 모델·프롬프트 버전·생성 시각과 함께 저장합니다(화면 'AI 생성' 표시).
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT | PK | 아니오 | |
+| `analysis_id` | BIGINT | FK, UK | 아니오 | `analysis.id` |
+| `item_no` | INT | UK | 아니오 | 요약 안 순서 |
+| `kind` | VARCHAR(10) | | 아니오 | `FINANCIAL`(재무 수치), `TEXT`(문장 변화) |
+| `status` | VARCHAR(20) | | 아니오 | `SHOWN`(요약에 보임), `REVIEW_NEEDED`(근거·숫자 확인을 통과하지 못해 요약에서 뺌) |
+| `fact_sentence` | VARCHAR(500) | | 예 | 코드가 만든 사실 문장(재무 수치). 문장 변화면 null |
+| `ai_text` | VARCHAR(1000) | | 예 | AI가 만든 문장(문장 변화 요약, 재무 수치 설명). 없으면 null |
+| `explanation_status` | VARCHAR(20) | | 예 | 재무 수치 설명: `FOUND`, `NOT_FOUND`(확인된 설명 없음), `REVIEW_NEEDED`. 문장 변화면 null |
+| `evidence_ids` | VARCHAR(2000) | | 예 | `ai_text`의 근거 ID(`{rcept_no}#B{block_no}`)를 쉼표로 이음 |
+| `financial_change_id` | BIGINT | FK | 예 | 재무 수치 항목(`financial_change.id`) |
+| `text_change_no` | INT | | 예 | 문장 변화 항목(`text_change.change_no`) |
+| `review_reason` | VARCHAR(500) | | 예 | 검토 필요 사유 |
+| `model`, `prompt_version` | VARCHAR(100), VARCHAR(30) | | 예 | AI 문장을 만든 모델과 프롬프트 버전(`summary-1`) |
+| `generated_at` | DATETIME(6) | | 예 | AI 문장을 만든 시각(한국 시간) |
+
+### llm_call
+
+LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모델별 호출 수·토큰(비용)을 집계합니다. 프롬프트·응답 본문과 사용자 정보는 저장하지 않습니다.
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT | PK | 아니오 | |
+| `analysis_id` | BIGINT | FK | 아니오 | `analysis.id` |
+| `task` | VARCHAR(30) | | 아니오 | 작업(`summary`) |
+| `provider`, `model` | VARCHAR(30), VARCHAR(100) | | 아니오 | 제공자(`fake` 등)와 모델 |
+| `prompt_version` | VARCHAR(30) | | 아니오 | 프롬프트 버전 |
+| `called_at` | DATETIME(6) | | 예 | 호출 시각(한국 시간) |
+| `trace_id` | VARCHAR(64) | | 예 | 요청 추적 ID |
+| `input_tokens`, `output_tokens` | INT | | 예 | 토큰 수(제공자가 알려 주지 않으면 null) |
+| `latency_ms` | INT | | 아니오 | 걸린 시간 |
+| `attempt` | INT | | 아니오 | 같은 요청의 몇 번째 시도인지 |
+| `outcome` | VARCHAR(20) | | 아니오 | `OK`, `INVALID_OUTPUT`(검증 실패로 다시 만듦), `TRANSIENT_ERROR`, `ERROR` |
+| `error` | VARCHAR(500) | | 예 | 실패 사유(짧게) |
+
 ## 4. 인덱스·제약
 
 | 테이블 | 이름 | 컬럼 | 종류 | 이유 |
@@ -353,18 +416,12 @@ API는 사업연도·보고서 코드마다 최신 공시 하나의 값만 줍�
 | `document_block` | `idx_document_block_section` | `document_id, section_no, block_no` | 인덱스 | 섹션별 원문 조회(3.5) |
 | `text_change` | `uk_text_change_no` | `analysis_id, change_no` | 유니크 | 변경 순서 중복 방지 |
 | `text_change` | `idx_text_change_type` | `analysis_id, change_type, change_no` | 인덱스 | 유형별 목록(W-03 ③) |
+| `summary_item` | `uk_summary_item_no` | `analysis_id, item_no` | 유니크 | 요약 순서 중복 방지 |
+| `llm_call` | `idx_llm_call_analysis` | `analysis_id` | 인덱스 | 분석별 호출 기록·비용 집계 |
 
-외래 키: `report.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no` → `report.rcept_no` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id` → `analysis.id`
+외래 키: `report.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no` → `report.rcept_no` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id`
 
-## 5. M2에서 더할 테이블 (자리만)
-
-요약(3.2)을 만들 때 확정합니다.
-
-| 테이블 | 담을 것 |
-| --- | --- |
-| `summary_item` | 요약 문장, 근거 ID, 모델·프롬프트 버전, AI 생성 표시 |
-
-## 6. 작성 규칙
+## 5. 작성 규칙
 
 - 테이블·컬럼 이름은 snake_case입니다.
 - 금액은 원 단위 정수(BIGINT)로 저장합니다. OpenDART 재무제표 API는 원 단위로 줍니다.
