@@ -25,6 +25,7 @@ from app.compare.text_diff import (
     title_key,
 )
 
+# 결과가 달라지게 바꾸면 이 버전과 backend Analysis.CURRENT_VERSION을 함께 올린다
 PRIORITY_VERSION = "priority-1"
 
 HIGH = "HIGH"
