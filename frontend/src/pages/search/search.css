@@ -61,7 +61,7 @@
 
 .company-list__item:hover,
 .company-list__item:focus {
-  background: var(--color-primary-subtle);
+  background: var(--color-accent-subtle);
 }
 
 .company-list__name {

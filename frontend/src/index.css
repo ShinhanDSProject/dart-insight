@@ -8,7 +8,7 @@ body {
   margin: 0;
   font-family: var(--font-sans);
   font-size: var(--font-size-md);
-  line-height: 1.5;
+  line-height: var(--line-height-body);
   color: var(--color-text);
   background: var(--color-bg);
 }
@@ -20,6 +20,7 @@ code {
 
 /* 재무 수치: 고정폭 숫자, 오른쪽 정렬 */
 .num {
+  font-family: var(--font-num);
   font-variant-numeric: tabular-nums;
   text-align: right;
   white-space: nowrap;
@@ -258,7 +259,7 @@ code {
 }
 
 .data-table__row--selected {
-  background: var(--color-primary-subtle);
+  background: var(--color-accent-subtle);
 }
 
 /* 글자처럼 보이는 버튼(표 안의 선택) */

@@ -1,19 +1,31 @@
 /*
- * 디자인 토큰. 기준은 frontend/design-system.md(PR #2)이고, Figma에서 값이 정해지면 여기만 바꾼다.
- * - 증가·감소를 색만으로 구분하지 않는다(▲▼와 부호를 함께 씀). 증감 색은 중립색을 쓴다.
- * - '검토 필요'와 예외 상태에는 주의 색 하나만 쓴다.
+ * 디자인 토큰. 기준은 Figma 시안(신한 2차 프로젝트 › 디자인)이고, 시안이 바뀌면 여기만 바꾼다.
+ * 화면 CSS에는 색·모서리를 직접 적지 않고 이 토큰을 쓴다.
+ * - 증가·감소를 색만으로 구분하지 않는다(▲▼와 부호를 함께 씀).
+ * - '검토 필요'·'확인된 설명 없음'과 예외 상태에는 주의 색 하나만 쓴다.
+ *   시안의 노란색 대신 '딥 오션' 비교안의 블루그레이를 쓴다(팀 의견: 노란색 말고 다른 색).
+ * - 오류(요청 실패)는 주의 색과 구분되는 오류 색을 쓴다.
  */
 :root {
-  /* 글꼴 */
-  --font-sans: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+  /* 글꼴: 한글 본문 Noto Sans KR, 숫자·로고 Inter. 글꼴을 못 받으면 시스템 글꼴로 보인다 */
+  --font-sans: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+  --font-num: 'Inter', 'Noto Sans KR', system-ui, sans-serif;
   --font-mono: 'D2Coding', 'SFMono-Regular', Consolas, monospace;
+  --font-size-2xs: 11px;
   --font-size-xs: 12px;
+  --font-size-label: 13px;
   --font-size-sm: 14px;
+  --font-size-nav: 15px;
   --font-size-md: 16px;
-  --font-size-lg: 20px;
-  --font-size-xl: 28px;
+  --font-size-lg: 18px;
+  --font-size-brand: 19px;
+  --font-size-xl: 30px;
   --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
   --font-weight-bold: 700;
+  --line-height-body: 1.65;
+  --line-height-tight: 1.3;
 
   /* 간격 (4px 단위) */
   --space-1: 4px;
@@ -24,30 +36,60 @@
   --space-6: 32px;
   --space-7: 48px;
 
+  /* 화면 골격 */
+  --sidebar-width: 224px;
+  --header-height: 80px;
+  --layout-gutter: 40px;
+  --control-height: 44px;
+  --nav-item-height: 48px;
+  --content-max-width: 1200px;
+
   /* 색: 텍스트·배경·테두리 */
-  --color-text: #1f2328;
-  --color-text-muted: #59636e;
+  --color-text: #242630;
+  --color-text-muted: #66666e;
   --color-bg: #ffffff;
-  --color-bg-subtle: #f6f8fa;
-  --color-border: #d1d9e0;
-  --color-border-strong: #8c959f;
+  --color-bg-subtle: #f6f7fa;
+  --color-border: #e5e6ec;
+  /* 입력·선택 컨트롤의 경계. 흰 배경에서 3:1 이상(WCAG 1.4.11)이 되도록 시안보다 진하게 둔다 */
+  --color-border-strong: #8e8f99;
 
-  /* 색: 강조(주요 버튼, 선택 상태) */
-  --color-primary: #0b57d0;
+  /* 색: 주색(주요 버튼, 선택된 메뉴·탭) */
+  --color-primary: #131936;
   --color-primary-text: #ffffff;
-  --color-primary-subtle: #e8f0fe;
 
-  /* 색: 주의('검토 필요', 예외 경로) — 하나만 쓴다 */
-  --color-attention: #9a6700;
-  --color-attention-subtle: #fff8c5;
+  /* 색: 강조 표식(현재 보고서, 'AI 생성' 같은 배지와 선택된 행) */
+  --color-accent: #6159b5;
+  --color-accent-subtle: #f0effa;
+  --color-border-accent: #d6d3e8;
+
+  /* 색: 증가·감소. 색만으로 구분하지 않는다(▲▼·부호를 함께 씀) */
+  --color-increase: #187653;
+  --color-increase-subtle: #ecf8f1;
+  --color-decrease: #b74250;
+  --color-decrease-subtle: #fff0f2;
+
+  /* 색: 추가된 문장 */
+  --color-added: var(--color-increase);
+  --color-added-subtle: var(--color-increase-subtle);
+
+  /* 색: 주의('검토 필요', '확인된 설명 없음', 예외 경로) — 하나만 쓴다 */
+  --color-attention: #3f5f86;
+  --color-attention-subtle: #edf3fa;
 
   /* 색: 오류(요청 실패) */
-  --color-danger: #cf222e;
-  --color-danger-subtle: #ffebe9;
+  --color-danger: #b74250;
+  --color-danger-subtle: #fff0f2;
 
-  /* 테두리·그림자 */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --shadow-sm: 0 1px 2px rgba(31, 35, 40, 0.08);
-  --shadow-md: 0 4px 12px rgba(31, 35, 40, 0.12);
+  /* 모서리: 배지 6, 버튼·입력·메뉴·안쪽 상자 9, 카드·패널 14 */
+  --radius-sm: 6px;
+  --radius-md: 9px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  /* 그림자 */
+  --shadow-sm: 0 1px 2px rgba(19, 25, 54, 0.08);
+  --shadow-md: 0 4px 12px rgba(19, 25, 54, 0.12);
+
+  /* 포커스 표시 */
+  --focus-ring: 2px solid var(--color-primary);
 }
