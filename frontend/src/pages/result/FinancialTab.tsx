@@ -7,6 +7,7 @@ import {
   type SjDiv,
   type StatementSummary,
 } from '../../api/results'
+import { DartSourceLine } from '../../components/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '../../components/StateView'
 import { EvidencePanel } from './EvidencePanel'
 import {
@@ -181,6 +182,12 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChang
           }}
         />
       )}
+      <DartSourceLine
+        reports={[
+          { role: '비교', report: analysis.previous },
+          { role: '현재', report: analysis.current },
+        ]}
+      />
       <p className="panel__note">
         단위 {unitLabel(unit, currency)}. 증가·감소는 ▲▼와 부호로 표시하고 좋고 나쁨의 평가와 구분해요. 없는 값은 0으로 보지 않아요.
       </p>
