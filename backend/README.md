@@ -11,7 +11,7 @@
 
 ## 실행
 
-DB가 필요한 기능은 먼저 저장소 루트에서 `docker compose up -d`로 MariaDB를 띄웁니다([로컬 개발 환경](../docs/local-setup.md)).
+먼저 PC에 MariaDB를 설치하고 `db/local-init.sql`로 DB와 계정을 한 번 만들어 둡니다([로컬 개발 환경](../docs/local-setup.md) 2장).
 
 ```bash
 cd backend

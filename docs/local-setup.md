@@ -1,61 +1,84 @@
 # 로컬 개발 환경
 
-세 서비스를 띄우기 전에 DB(MariaDB, Chroma)를 Docker로 띄우고, 키를 `.env`에 넣습니다.
+세 서비스를 띄우기 전에 PC에 MariaDB를 설치해 DB와 계정을 만들고, 키를 `.env`에 넣습니다. Docker는 쓰지 않습니다.
 
 ## 1. 준비물
 
 | 도구 | 버전 | 확인 명령 |
 | --- | --- | --- |
-| Docker Desktop (또는 Docker Engine + Compose) | Compose v2 | `docker compose version` |
+| MariaDB | 11.4 이상 | `mariadb --version` |
 | Java | 21 | `java -version` |
 | Node.js | 22 | `node -v` |
 | Python | 3.12 | `python --version` |
 
-## 2. DB 띄우기
+## 2. DB 준비
 
-저장소 루트에서 실행합니다.
+처음 한 번만 합니다. PC에 MariaDB(또는 MySQL)가 이미 있으면 새로 설치하지 말고 2.2부터 합니다.
 
-```bash
-docker compose up -d        # MariaDB(3306), Chroma(8001) 실행. 포트가 겹치면 아래 '포트가 겹칠 때'
-docker compose ps           # 상태 확인. mariadb가 healthy면 준비 완료
-docker compose down         # 중지 (데이터는 남음)
-```
+### 2.1 MariaDB 설치
 
-| 서비스 | 주소 | 계정 |
-| --- | --- | --- |
-| MariaDB | `localhost:3306`, DB `dart_insight` | `dart` / `change-me` (로컬 전용) |
-| Chroma | `http://localhost:8001` | 없음 |
-
-접속 정보는 `backend/.env.example`, `ai-server/.env.example`과 같습니다.
-
-### 포트가 겹칠 때
-
-PC에 MariaDB·MySQL이 이미 설치돼 있거나 다른 프로젝트가 같은 포트를 쓰면, `compose.yaml`은 고치지 말고 포트만 환경변수로 바꿉니다. `compose.yaml`은 커밋되는 파일이라 각자 고치면 실수로 올라갈 수 있습니다.
+**macOS (Homebrew)**
 
 ```bash
-lsof -nP -iTCP:3306 -sTCP:LISTEN          # 3306을 누가 쓰는지 확인 (macOS·Linux)
-MARIADB_HOST_PORT=3317 docker compose up -d
+brew install mariadb
+brew services start mariadb     # 지금 켜고, PC를 다시 켜도 자동으로 켜짐
 ```
 
-매번 적기 번거로우면 저장소 루트에 `.env`를 만들어 `MARIADB_HOST_PORT=3317`처럼 적어 둡니다. 이 파일도 `.gitignore`로 막혀 있습니다.
+**Windows**
 
-| 바꾸는 포트 | 환경변수(기본값) | 함께 바꿀 값 |
-| --- | --- | --- |
-| MariaDB | `MARIADB_HOST_PORT` (3306) | `backend/.env`의 `DB_URL` (예: `jdbc:mariadb://localhost:3317/dart_insight`) |
-| Chroma | `CHROMA_HOST_PORT` (8001) | `ai-server/.env`의 `CHROMA_URL` |
-| ai-server | 실행할 때 `--port` (8000) | `backend/.env`의 `AI_SERVER_URL` |
-| backend | `backend/.env`의 `SERVER_PORT` (8080) | `frontend/.env`의 `VITE_API_BASE_URL`, 화면 주소가 바뀌면 `CORS_ALLOWED_ORIGINS` |
+1. [MariaDB 다운로드 페이지](https://mariadb.org/download/)에서 11.4 이상, MSI 설치 파일을 받습니다.
+2. 설치 중에 root 비밀번호를 정합니다(2.2에서 한 번 씁니다). 'Install as service'는 켜 두고, 포트는 3306 그대로 둡니다.
+3. 설치가 끝나면 MariaDB가 Windows 서비스로 켜져 있습니다.
 
-### 처음부터 다시 만들기
+### 2.2 DB와 계정 만들기
 
-테이블 구조가 꼬이거나 테스트 데이터를 지우고 싶을 때 씁니다. DB의 모든 데이터가 지워집니다.
+저장소 루트에서 실행합니다. `dart_insight` DB와 `dart` 계정(비밀번호 `change-me`)을 만들고, 여러 번 실행해도 괜찮습니다.
 
 ```bash
-docker compose down -v      # 컨테이너와 데이터(볼륨) 삭제
-docker compose up -d        # 빈 DB로 다시 시작
+# macOS
+sudo mariadb -e "source backend/db/local-init.sql"
+
+# Windows: 시작 메뉴의 'Command Prompt (MariaDB ...)'를 열고 저장소 루트로 이동한 뒤
+mariadb -u root -p -e "source backend/db/local-init.sql"
 ```
 
-backend를 다시 실행하면 Flyway가 `backend/src/main/resources/db/migration`의 마이그레이션으로 테이블을 다시 만듭니다.
+테이블은 만들지 않습니다. backend를 처음 실행하면 Flyway가 `backend/src/main/resources/db/migration`의 파일로 만듭니다.
+
+| 항목 | 값 |
+| --- | --- |
+| 주소 | `localhost:3306`, DB `dart_insight` |
+| 계정 | `dart` / `change-me` (로컬 전용) |
+
+접속 정보는 `backend/.env.example`과 같아서, 값을 바꾸지 않았다면 `.env`도 그대로 쓰면 됩니다.
+
+### 2.3 Chroma(벡터 DB)
+
+따로 설치하거나 띄우지 않습니다. ai-server가 필요할 때 자기 폴더 안에 파일로 저장하는 방식으로 씁니다(4.2·2.5에서 확정).
+
+### 2.4 포트가 겹칠 때
+
+| 서비스 | 기본 포트 | 바꾸는 곳 | 함께 바꿀 값 |
+| --- | --- | --- | --- |
+| MariaDB | 3306 | 이미 있는 MariaDB·MySQL을 쓰면 바꿀 필요가 없습니다 | `backend/.env`의 `DB_URL` |
+| ai-server | 8000 | 실행할 때 `--port` | `backend/.env`의 `AI_SERVER_URL` |
+| backend | 8080 | `backend/.env`의 `SERVER_PORT` | `frontend/.env`의 `VITE_API_BASE_URL` |
+| frontend | 5173 | `npm run dev -- --port 5174` | `backend/.env`의 `CORS_ALLOWED_ORIGINS` |
+
+어떤 프로그램이 포트를 쓰는지는 macOS에서 `lsof -nP -iTCP:8080 -sTCP:LISTEN`, Windows에서 `netstat -ano | findstr :8080`으로 확인합니다.
+
+### 2.5 처음부터 다시 만들기
+
+테이블 구조가 꼬이거나 테스트 데이터를 지우고 싶을 때 씁니다. `dart_insight`의 모든 데이터가 지워집니다.
+
+```bash
+# macOS
+sudo mariadb -e "DROP DATABASE dart_insight; source backend/db/local-init.sql"
+
+# Windows
+mariadb -u root -p -e "DROP DATABASE dart_insight; source backend/db/local-init.sql"
+```
+
+backend를 다시 실행하면 Flyway가 테이블을 다시 만들고, 기업 목록도 다시 받습니다.
 
 ## 3. 키 관리
 
@@ -75,8 +98,10 @@ backend를 다시 실행하면 Flyway가 `backend/src/main/resources/db/migratio
 
 | 증상 | 확인할 것 |
 | --- | --- |
-| `port is already allocated` (3306) | 이미 설치된 MariaDB·MySQL이나 다른 컨테이너가 3306을 쓰고 있습니다. 끄거나 [포트가 겹칠 때](#포트가-겹칠-때)처럼 `MARIADB_HOST_PORT`를 바꾸고 `DB_URL`도 맞춥니다. |
-| backend가 `Access denied for user 'dart'@'localhost'`로 멈춤 | 컨테이너는 정상으로 떴는데 PC에 설치된 MariaDB·MySQL에 붙은 경우입니다. macOS에서는 포트가 겹쳐도 에러 없이 둘 다 뜰 수 있습니다. `lsof -nP -iTCP:3306 -sTCP:LISTEN`에 `mariadbd`·`mysqld`가 보이면 그 DB를 끄거나 [포트를 바꿉니다](#포트가-겹칠-때). |
+| backend가 `Connection refused`, `Socket fail to connect`로 멈춤 | MariaDB가 꺼져 있습니다. macOS는 `brew services start mariadb`, Windows는 '서비스' 앱에서 MariaDB를 시작합니다. |
+| backend가 `Access denied for user 'dart'@'localhost'`로 멈춤 | 2.2의 스크립트를 실행하지 않았거나, `.env`의 `DB_PASSWORD`가 `change-me`와 다릅니다. 스크립트를 다시 실행해도 괜찮습니다. |
+| backend가 `Unknown database 'dart_insight'`로 멈춤 | 2.2의 스크립트를 실행하지 않았습니다. |
+| `sudo mariadb`가 `Access denied for user 'root'` | root 비밀번호를 정해 둔 경우입니다. `mariadb -u root -p -e "source backend/db/local-init.sql"`로 비밀번호를 넣어 실행합니다. |
+| MariaDB 대신 MySQL을 쓰고 있음 | 대부분 동작하지만 팀 기준은 MariaDB입니다. 이상한 SQL 오류가 나면 MariaDB로 바꿉니다. |
 | backend 실행 직후 `aiServer`가 `DOWN`, 또는 다른 서비스의 응답이 옴 | 8000을 다른 프로젝트가 쓰고 있을 수 있습니다. `curl localhost:8000/health`로 확인하고, ai-server를 다른 포트로 띄운 뒤 `AI_SERVER_URL`을 맞춥니다. |
-| backend가 DB 연결 오류(`Socket fail to connect`, `Connection refused`)로 멈춤 | `docker compose ps`에서 mariadb가 healthy인지 확인합니다. |
-| Flyway `checksum mismatch` | 이미 적용된 마이그레이션 파일을 고친 경우입니다. 파일을 되돌리고 새 마이그레이션을 추가합니다. 로컬 데이터만 문제라면 `docker compose down -v` 후 다시 시작합니다. |
+| Flyway `checksum mismatch` | 이미 적용된 마이그레이션 파일을 고친 경우입니다. 파일을 되돌리고 새 마이그레이션을 추가합니다. 로컬 데이터만 문제라면 [처음부터 다시 만들기](#25-처음부터-다시-만들기)를 합니다. |
