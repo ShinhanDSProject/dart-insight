@@ -59,7 +59,7 @@ public class OpenDartClient {
     public byte[] downloadCorpCodes() {
         requireApiKey();
         byte[] body = execute("corpCode.xml", () -> restClient.get()
-                .uri(uri -> uri.path("/api/corpCode.xml").queryParam("crtfc_key", properties.apiKey()).build())
+                .uri(uri -> uri.path(OpenDartPaths.CORP_CODE).queryParam("crtfc_key", properties.apiKey()).build())
                 .retrieve()
                 .body(byte[].class));
         if (body == null || !isZip(body)) {
@@ -78,7 +78,7 @@ public class OpenDartClient {
         for (int page = 1; page <= MAX_PAGES; page++) {
             int pageNo = page;
             DisclosureListResponse response = execute("list.json", () -> restClient.get()
-                    .uri(uri -> uri.path("/api/list.json")
+                    .uri(uri -> uri.path(OpenDartPaths.DISCLOSURE_LIST)
                             .queryParam("crtfc_key", properties.apiKey())
                             .queryParam("corp_code", corpCode)
                             .queryParam("bgn_de", begin.format(DateTimeFormatter.BASIC_ISO_DATE))
@@ -124,7 +124,7 @@ public class OpenDartClient {
             String fsDiv) {
         requireApiKey();
         FinancialStatementResponse response = execute("fnlttSinglAcntAll.json", () -> restClient.get()
-                .uri(uri -> uri.path("/api/fnlttSinglAcntAll.json")
+                .uri(uri -> uri.path(OpenDartPaths.FINANCIAL_STATEMENTS)
                         .queryParam("crtfc_key", properties.apiKey())
                         .queryParam("corp_code", corpCode)
                         .queryParam("bsns_year", fiscalYear)
@@ -152,7 +152,7 @@ public class OpenDartClient {
     public DocumentFile downloadDocument(String rceptNo) {
         requireApiKey();
         byte[] body = execute("document.xml", () -> restClient.get()
-                .uri(uri -> uri.path("/api/document.xml")
+                .uri(uri -> uri.path(OpenDartPaths.DOCUMENT)
                         .queryParam("crtfc_key", properties.apiKey())
                         .queryParam("rcept_no", rceptNo)
                         .build())
