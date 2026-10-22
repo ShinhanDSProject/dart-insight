@@ -151,7 +151,7 @@ code {
   white-space: nowrap;
 }
 
-a.app-nav__item:hover {
+a.app-nav__item:not([aria-current='page']):hover {
   background: var(--color-bg-subtle);
   color: var(--color-text);
 }
