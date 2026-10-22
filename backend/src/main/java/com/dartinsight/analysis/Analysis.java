@@ -23,7 +23,7 @@ import org.hibernate.type.SqlTypes;
 public class Analysis {
 
     /** 계산 규칙 버전. 비교 규칙이나 계산 방법이 바뀌면 올려서 옛 결과와 섞지 않는다. */
-    public static final String CURRENT_VERSION = "m2-1";
+    public static final String CURRENT_VERSION = "m2-2";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

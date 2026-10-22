@@ -225,6 +225,14 @@ public class AnalysisRunner implements DisposableBean {
                     || hasCurrent && !analysis.getCurrentRceptNo().equals(row.current().rceptNo())) {
                 return "변경 위치가 이 분석의 보고서가 아니에요: " + row.sectionPath();
             }
+            if (row.priority() != null && TextChangeRow.REVIEW_NEEDED.equals(row.changeType())
+                    != TextChangeRow.Priority.UNRANKED.equals(row.priority().level())) {
+                return "검토 필요 항목만 순위를 매기지 않아야 해요: " + row.sectionPath();
+            }
+            if (row.priority() != null && !TextChangeRow.Priority.UNRANKED.equals(row.priority().level())
+                    && row.priority().score() == null) {
+                return "우선순위 점수가 없어요: " + row.sectionPath();
+            }
             if (!TextChangeRow.SECTION.equals(row.blockType())
                     && (hasPrevious && (row.previous().blockNo() == null || row.previous().text() == null)
                     || hasCurrent && (row.current().blockNo() == null || row.current().text() == null))) {
