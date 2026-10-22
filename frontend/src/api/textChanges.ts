@@ -1,4 +1,5 @@
 import { apiGet } from './client'
+import type { ReportType } from './reports'
 
 /** docs/api-spec.md GET /api/analyses/{id}/text-changes */
 export type TextStatus = 'COMPLETED' | 'PARTIAL' | 'FAILED'
@@ -67,4 +68,45 @@ export function getTextChanges(analysisId: number, query: TextChangeQuery): Prom
     page: query.page,
     size: query.size ?? 20,
   })
+}
+
+export interface TableCell {
+  text: string
+  header?: boolean
+  colspan?: number
+  rowspan?: number
+}
+
+/** 한쪽 보고서의 원문 근거(3.4) */
+export interface TextSource {
+  rceptNo: string
+  reportName: string
+  reportType: ReportType
+  fiscalYear: number
+  periodEnd: string
+  sectionNo: number
+  /** 상위 섹션부터 이은 제목 */
+  sectionPath: string
+  /** 섹션 단위 검토 필요면 null */
+  blockNo: number | null
+  /** 근거 ID({접수번호}#B{블록 번호}) */
+  evidenceId: string | null
+  blockType: string | null
+  /** 분석할 때 저장한 전체 글 */
+  text: string | null
+  /** 표 셀. 문단이거나 저장된 원문과 맞지 않으면 null */
+  table: TableCell[][] | null
+  /** 저장된 원문 블록이 분석 때와 같은지 */
+  blockMatches: boolean
+  dartUrl: string
+}
+
+export interface TextChangeDetail {
+  change: TextChangeItem
+  previous: TextSource | null
+  current: TextSource | null
+}
+
+export function getTextChange(analysisId: number, changeId: number): Promise<TextChangeDetail> {
+  return apiGet(`/api/analyses/${analysisId}/text-changes/${changeId}`)
 }

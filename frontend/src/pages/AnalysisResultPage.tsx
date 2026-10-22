@@ -30,7 +30,7 @@ const changeTypes: ChangeType[] = ['ADDED', 'DELETED', 'MODIFIED', 'REVIEW_NEEDE
 /**
  * W-03 분석 결과(3.1). 화면 전체가 분석 ID 하나의 결과만 보여 주므로, 비교 기준을 바꾸면 새 분석으로 옮겨 가고
  * 이전 결과와 섞이지 않는다. 고른 탭·재무제표·보기·단위·근거 계정은 주소(?tab=&sj=&changed=&unit=&change=)에,
- * 문장 변화의 유형·정렬은 ?ttype=&tsort=에 남긴다.
+ * 문장 변화의 유형·정렬·근거 항목은 ?ttype=&tsort=&tc=에 남긴다.
  */
 export function AnalysisResultPage() {
   const { analysisId = '' } = useParams()
@@ -85,6 +85,8 @@ export function AnalysisResultPage() {
   const ttypeParam = searchParams.get('ttype')
   const textType: ChangeType | null = changeTypes.includes(ttypeParam as ChangeType) ? (ttypeParam as ChangeType) : null
   const textSort: TextSort = searchParams.get('tsort') === 'document' ? 'document' : 'priority'
+  const tcParam = Number(searchParams.get('tc'))
+  const selectedTextChangeId = Number.isInteger(tcParam) && tcParam > 0 ? tcParam : null
 
   function update(changes: Record<string, string | null>) {
     setSearchParams(
@@ -169,10 +171,13 @@ export function AnalysisResultPage() {
               analysis={analysis}
               type={textType}
               sort={textSort}
+              selectedChangeId={selectedTextChangeId}
               onChange={(c) =>
                 update({
-                  ...(c.type !== undefined ? { ttype: c.type } : {}),
-                  ...(c.sort !== undefined ? { tsort: c.sort === 'priority' ? null : c.sort } : {}),
+                  // 거르기·정렬을 바꾸면 보던 근거를 닫는다
+                  ...(c.type !== undefined ? { ttype: c.type, tc: null } : {}),
+                  ...(c.sort !== undefined ? { tsort: c.sort === 'priority' ? null : c.sort, tc: null } : {}),
+                  ...(c.change !== undefined ? { tc: c.change === null ? null : String(c.change) } : {}),
                 })
               }
             />
