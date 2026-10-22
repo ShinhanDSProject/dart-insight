@@ -6,7 +6,7 @@
 
 | 항목 | 내용 |
 | --- | --- |
-| 상태 | 초안 (M1 확정, M2 진행 중: 원문 구조화 확정, 문장 변화·요약은 5절에 자리만) |
+| 상태 | 초안 (M1 확정, M2 진행 중: 원문 구조화·문장 변경 확정, 요약은 5절에 자리만) |
 | 담당 | 백엔드 |
 | 마지막 수정 | 2026-10-22 |
 | 관련 문서 | API 명세(`docs/api-spec.md`), [OpenDART 데이터 가이드](https://app.notion.com/p/400b6afffc6f81cc8870ee13d02d8ac1), 이슈 #46 |
@@ -24,7 +24,8 @@
 | `report_document` | 보고서 원문 구조화 기록(상태·파서 버전·경고) | 4.2 (#28) | M2 |
 | `document_section` | 원문 목차(섹션) | 4.2 (#28) | M2 |
 | `document_block` | 원문 문단·표와 위치 | 4.2 (#28) | M2 |
-| `text_change` 외 | 문장 변화·요약 | 2.5, 3.2 | M2 (5절에 자리만) |
+| `text_change` | 두 보고서의 문장·표 변경과 위치 | 2.5 (#16) | M2 |
+| `summary_item` 외 | 요약 | 3.2 | M2 (5절에 자리만) |
 
 ## 2. 관계도
 
@@ -36,6 +37,7 @@ erDiagram
     company ||--o{ analysis : "corp_code"
     report ||--o{ analysis : "current_rcept_no / previous_rcept_no"
     analysis ||--o{ financial_change : "analysis_id"
+    analysis ||--o{ text_change : "analysis_id"
     report ||--o| report_document : "rcept_no"
     report_document ||--o{ document_section : "document_id"
     report_document ||--o{ document_block : "document_id"
@@ -91,6 +93,14 @@ erDiagram
         bigint change_amount
         decimal change_rate
         varchar calc_status
+    }
+    text_change {
+        bigint id PK
+        bigint analysis_id FK
+        int change_no "문서 순서"
+        varchar change_type "ADDED DELETED MODIFIED REVIEW_NEEDED"
+        int previous_block_no
+        int current_block_no
     }
     report_document {
         bigint id PK
@@ -211,6 +221,8 @@ API는 사업연도·보고서 코드마다 최신 공시 하나의 값만 줍�
 | `error_code` | VARCHAR(50) | | 예 | 실패 사유 코드 |
 | `error_message` | VARCHAR(500) | | 예 | 실패 사유 |
 | `request_trace_id` | VARCHAR(64) | | 예 | 분석을 요청한 요청의 추적 ID(`X-Trace-Id`) |
+| `text_status` | VARCHAR(20) | | 예 | 문장 비교(2.5) 상태. `COMPLETED`, `PARTIAL`(원문 일부를 읽지 못했을 수 있음), `FAILED`(비교하지 못함). 원문을 받지 못해도 분석은 재무 결과로 완료하고 여기에 남김. 완료 전이면 null |
+| `text_message` | VARCHAR(500) | | 예 | 문장 비교가 `PARTIAL`·`FAILED`인 사유 |
 | `created_at`, `updated_at` | DATETIME(6) | | 아니오 | `updated_at`이 30분 넘게 바뀌지 않은 진행 중 분석은 멈춘 것으로 보고 실패로 바꿈 |
 | `started_at`, `completed_at` | DATETIME(6) | | 예 | |
 | `version` | BIGINT | | 아니오 | 낙관적 잠금. 실행 중인 분석과 만료 처리가 서로의 상태를 덮어쓰지 않게 함 |
@@ -297,6 +309,28 @@ API는 사업연도·보고서 코드마다 최신 공시 하나의 값만 줍�
 | `content` | MEDIUMTEXT | | 아니오 | 문단 글. 표는 행마다 한 줄, 셀은 ` \| `로 이은 글(비교·검색용) |
 | `table_json` | MEDIUMTEXT | | 예 | 표 셀 JSON(`[[{"text","header","colspan","rowspan"}]]`). 문단이면 null |
 
+### text_change
+
+두 보고서의 문장·표 변경입니다(2.5). 문단·표 하나가 한 줄이고, 위치는 원문 구조화(`document_section`·`document_block`)의 번호입니다. 변경 전·후 글을 함께 저장합니다(원문을 다시 구조화해도 결과가 바뀌지 않게).
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT | PK | 아니오 | 변경 ID |
+| `analysis_id` | BIGINT | FK, UK | 아니오 | `analysis.id` |
+| `change_no` | INT | UK | 아니오 | 순서(현재 보고서의 문서 순서. 짝이 없는 이전 보고서 항목은 이전 보고서에서 있던 자리) |
+| `change_type` | VARCHAR(20) | | 아니오 | `ADDED`, `DELETED`(문서에서 빠짐. 사업·계약 종료로 해석하지 않음), `MODIFIED`, `REVIEW_NEEDED`(두 보고서의 항목을 짝짓지 못함) |
+| `block_type` | VARCHAR(10) | | 아니오 | `PARAGRAPH`, `TABLE`, 섹션 단위 검토 필요면 `SECTION` |
+| `numbers_only` | BOOLEAN | | 아니오 | 수정인데 숫자만 바뀜 |
+| `section_status` | VARCHAR(20) | | 아니오 | 섹션 짝짓기 결과: `MATCHED`, `RENAMED`, `ADDED`, `DELETED`, `AMBIGUOUS` |
+| `section_title` | VARCHAR(500) | | 아니오 | 섹션 제목 |
+| `section_path` | VARCHAR(1000) | | 아니오 | 상위 섹션부터 이은 제목(`II. 사업의 내용 > 1. 사업의 개요`) |
+| `previous_rcept_no`, `current_rcept_no` | VARCHAR(14) | | 예 | 변경 전·후 보고서. 없는 쪽은 null |
+| `previous_section_no`, `current_section_no` | INT | | 예 | 섹션 번호(`document_section.section_no`) |
+| `previous_block_no`, `current_block_no` | INT | | 예 | 블록 번호(근거 ID `{rcept_no}#B{block_no}`). 섹션 단위 검토 필요면 null |
+| `previous_text`, `current_text` | MEDIUMTEXT | | 예 | 변경 전·후 글 |
+| `similarity` | DECIMAL(6,4) | | 예 | 수정일 때 두 글이 비슷한 정도(0~1) |
+| `review_reason` | VARCHAR(500) | | 예 | 검토 필요 사유 |
+
 ## 4. 인덱스·제약
 
 | 테이블 | 이름 | 컬럼 | 종류 | 이유 |
@@ -312,16 +346,17 @@ API는 사업연도·보고서 코드마다 최신 공시 하나의 값만 줍�
 | `document_section` | `uk_document_section_no` | `document_id, section_no` | 유니크 | 섹션 번호 중복 방지 |
 | `document_block` | `uk_document_block_no` | `document_id, block_no` | 유니크 | 블록 번호(근거 ID) 중복 방지 |
 | `document_block` | `idx_document_block_section` | `document_id, section_no, block_no` | 인덱스 | 섹션별 원문 조회(3.5) |
+| `text_change` | `uk_text_change_no` | `analysis_id, change_no` | 유니크 | 변경 순서 중복 방지 |
+| `text_change` | `idx_text_change_type` | `analysis_id, change_type, change_no` | 인덱스 | 유형별 목록(W-03 ③) |
 
-외래 키: `report.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no` → `report.rcept_no` / `document_section.document_id`, `document_block.document_id` → `report_document.id`
+외래 키: `report.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no` → `report.rcept_no` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id` → `analysis.id`
 
 ## 5. M2에서 더할 테이블 (자리만)
 
-문장 변경 탐지(2.5)와 요약(3.2)을 만들 때 확정합니다.
+요약(3.2)을 만들 때 확정합니다.
 
 | 테이블 | 담을 것 |
 | --- | --- |
-| `text_change` | 두 보고서의 문단 대응, 추가·삭제·수정·검토 필요, 우선순위 |
 | `summary_item` | 요약 문장, 근거 ID, 모델·프롬프트 버전, AI 생성 표시 |
 
 ## 6. 작성 규칙

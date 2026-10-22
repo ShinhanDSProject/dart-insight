@@ -25,8 +25,9 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 
 /**
- * 분석 실행(2.3). 요청 접수 → 보고서 비교 → 근거 확인 → 결과 저장(완료) 순서로 진행한다.
+ * 분석 실행(2.3). 요청 접수 → 보고서 비교(재무 수치·문장) → 근거 확인 → 결과 저장(완료) 순서로 진행한다.
  * 결과 저장과 완료 표시는 한 트랜잭션이다(4.3). 어느 단계에서든 실패하면 그 단계에 FAILED로 남긴다.
+ * 문장 비교(2.5)는 원문을 받지 못해도 분석을 실패로 만들지 않고, 문장 비교 상태에 사유를 남긴다.
  * 실행은 대기열이 있는 스레드 풀에서 하므로 요청 스레드를 막지 않는다. 서버가 다시 뜨면 끝나지 않은 분석을 실패로 바꾼다.
  */
 @Component
@@ -38,6 +39,7 @@ public class AnalysisRunner implements DisposableBean {
     private final AnalysisResultService resultService;
     private final ComparabilityService comparabilityService;
     private final FinancialStatementService financialStatementService;
+    private final TextComparisonService textComparisonService;
     private final Clock clock;
     private final TaskExecutor executor;
     /** 이 실행이 시작된 시각. 이보다 먼저 만들어진 분석만 이전 실행에서 끊긴 것으로 본다 */
@@ -45,11 +47,12 @@ public class AnalysisRunner implements DisposableBean {
 
     public AnalysisRunner(AnalysisRepository analysisRepository, AnalysisResultService resultService,
             ComparabilityService comparabilityService, FinancialStatementService financialStatementService,
-            Clock clock, AnalysisProperties properties) {
+            TextComparisonService textComparisonService, Clock clock, AnalysisProperties properties) {
         this.analysisRepository = analysisRepository;
         this.resultService = resultService;
         this.comparabilityService = comparabilityService;
         this.financialStatementService = financialStatementService;
+        this.textComparisonService = textComparisonService;
         this.clock = clock;
         this.bootedAt = now();
         if (properties.async()) {
@@ -126,6 +129,7 @@ public class AnalysisRunner implements DisposableBean {
                             financialStatementService.accounts(check.previousFetch())),
                     new Side(check.current().getReportType(),
                             financialStatementService.accounts(check.currentFetch())));
+            TextComparison text = textComparisonService.compare(check.previous(), check.current());
 
             analysis.advance(AnalysisStep.VERIFYING, now());
             analysis = analysisRepository.save(analysis);
@@ -134,15 +138,22 @@ public class AnalysisRunner implements DisposableBean {
                 fail(analysisId, "ANALYSIS_EVIDENCE_MISMATCH", problem);
                 return;
             }
+            String textProblem = verifyText(analysis, text.rows());
+            if (textProblem != null) {
+                // 문장 비교 결과만 쓰지 않는다. 재무 결과는 그대로 저장한다
+                log.warn("분석 {} 문장 비교 근거 확인 실패: {}", analysisId, textProblem);
+                text = TextComparison.failed("문장 비교 결과의 원문 위치를 확인하지 못해 쓰지 않았어요. (" + textProblem + ")");
+            }
 
             try {
-                resultService.saveAndComplete(analysis.getId(), rows);
+                resultService.saveAndComplete(analysis.getId(), rows, text);
             } catch (RuntimeException e) {
                 log.warn("분석 {} 결과 저장 실패", analysisId, e);
                 fail(analysisId, "ANALYSIS_SAVE_FAILED", "결과를 저장하지 못했어요. 다시 요청해 주세요.");
                 return;
             }
-            log.info("분석 {} 완료: 계정 {}건", analysisId, rows.size());
+            log.info("분석 {} 완료: 계정 {}건, 문장 변경 {}건({})", analysisId, rows.size(), text.rows().size(),
+                    text.status());
         } catch (ApiException e) {
             fail(analysisId, e.errorCode().name(), e.getMessage());
         } catch (RuntimeException e) {
@@ -179,6 +190,39 @@ public class AnalysisRunner implements DisposableBean {
             if (row.changeAmount() != null && (row.previousAmount() == null || row.currentAmount() == null
                     || !Objects.equals(row.changeAmount(), row.currentAmount() - row.previousAmount()))) {
                 return "증감액이 두 값의 차와 달라요: " + row.accountName();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 문장 비교 근거 확인: 변경 유형에 맞는 쪽에 위치가 있고, 위치는 이 분석의 두 보고서이며,
+     * 문단·표 변경은 저장된 원문 글을 가리켜야 한다. 짝을 정하지 못한 섹션은 검토 필요 사유가 있어야 한다.
+     *
+     * @return 문제가 있으면 설명, 없으면 null
+     */
+    static String verifyText(Analysis analysis, List<TextChangeRow> rows) {
+        for (TextChangeRow row : rows) {
+            boolean hasPrevious = row.previous() != null;
+            boolean hasCurrent = row.current() != null;
+            boolean shapeOk = switch (row.changeType() == null ? "" : row.changeType()) {
+                case TextChangeRow.ADDED -> !hasPrevious && hasCurrent;
+                case TextChangeRow.DELETED -> hasPrevious && !hasCurrent;
+                case TextChangeRow.MODIFIED -> hasPrevious && hasCurrent;
+                case TextChangeRow.REVIEW_NEEDED -> (hasPrevious || hasCurrent) && row.reviewReason() != null;
+                default -> false;
+            };
+            if (!shapeOk) {
+                return "변경 유형과 위치가 맞지 않아요: " + row.changeType() + " " + row.sectionPath();
+            }
+            if (hasPrevious && !analysis.getPreviousRceptNo().equals(row.previous().rceptNo())
+                    || hasCurrent && !analysis.getCurrentRceptNo().equals(row.current().rceptNo())) {
+                return "변경 위치가 이 분석의 보고서가 아니에요: " + row.sectionPath();
+            }
+            if (!TextChangeRow.SECTION.equals(row.blockType())
+                    && (hasPrevious && (row.previous().blockNo() == null || row.previous().text() == null)
+                    || hasCurrent && (row.current().blockNo() == null || row.current().text() == null))) {
+                return "변경 위치의 원문을 찾지 못했어요: " + row.sectionPath();
             }
         }
         return null;

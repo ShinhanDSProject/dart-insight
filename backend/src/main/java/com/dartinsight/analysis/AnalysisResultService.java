@@ -30,12 +30,14 @@ public class AnalysisResultService {
 
     private final AnalysisRepository analysisRepository;
     private final FinancialChangeRepository changeRepository;
+    private final TextChangeStore textChangeStore;
     private final Clock clock;
 
     public AnalysisResultService(AnalysisRepository analysisRepository, FinancialChangeRepository changeRepository,
-            Clock clock) {
+            TextChangeStore textChangeStore, Clock clock) {
         this.analysisRepository = analysisRepository;
         this.changeRepository = changeRepository;
+        this.textChangeStore = textChangeStore;
         this.clock = clock;
     }
 
@@ -66,14 +68,33 @@ public class AnalysisResultService {
     }
 
     /**
-     * 결과를 저장하고 같은 트랜잭션에서 완료로 바꾼다. 저장하다 실패하면 트랜잭션이 되돌아가 완료가 되지 않는다.
+     * 결과(재무 수치·문장 변경)를 저장하고 같은 트랜잭션에서 완료로 바꾼다.
+     * 저장하다 실패하면 트랜잭션이 되돌아가 완료가 되지 않는다.
      */
     @Transactional
-    public void saveAndComplete(Long analysisId, List<FinancialChangeRow> rows) {
+    public void saveAndComplete(Long analysisId, List<FinancialChangeRow> rows, TextComparison text) {
         Analysis analysis = get(analysisId);
         changeRepository.saveAll(rows.stream().map(row -> FinancialChange.of(analysisId, row)).toList());
         changeRepository.flush();
+        textChangeStore.saveAll(analysisId, text.rows());
+        analysis.recordText(text.status(), text.message());
         analysis.complete(now());
+    }
+
+    /** 재무 수치만 저장하는 경우(문장 비교를 하지 않은 테스트 자료 등). 문장 비교는 실패로 남긴다. */
+    @Transactional
+    public void saveAndComplete(Long analysisId, List<FinancialChangeRow> rows) {
+        saveAndComplete(analysisId, rows, TextComparison.failed("문장을 비교하지 않았어요."));
+    }
+
+    /** 완료된 분석. 완료되지 않았으면 409 */
+    @Transactional(readOnly = true)
+    public Analysis completed(Long analysisId) {
+        Analysis analysis = get(analysisId);
+        if (analysis.getStatus() != AnalysisStatus.COMPLETED) {
+            throw new ApiException(ErrorCode.ANALYSIS_NOT_READY);
+        }
+        return analysis;
     }
 
     @Transactional(readOnly = true)
