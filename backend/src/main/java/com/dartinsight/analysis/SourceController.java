@@ -2,6 +2,7 @@ package com.dartinsight.analysis;
 
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
+import com.dartinsight.common.web.ApiPaths;
 import com.dartinsight.document.DocumentBlock;
 import com.dartinsight.document.DocumentSection;
 import com.dartinsight.document.DocumentService;
@@ -23,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 원문은 분석할 때 구조화(4.2)해 둔 목차·문단·표다. DART 원문 안의 위치로 바로 가는 주소는 만들지 않는다(위치 이동 미지원).
  */
 @RestController
-@RequestMapping("/api/analyses/{analysisId}/documents/{side}")
+@RequestMapping(ApiPaths.ANALYSIS_DOCUMENT)
 public class SourceController {
 
     private final AnalysisResultService resultService;
@@ -58,7 +59,7 @@ public class SourceController {
                 DartLinks.viewer(report.getRceptNo()), false, restructured, sections);
     }
 
-    @GetMapping("/sections/{sectionNo}")
+    @GetMapping(ApiPaths.DOCUMENT_SECTION)
     public SectionContent section(@PathVariable Long analysisId, @PathVariable String side,
             @PathVariable int sectionNo) {
         Report report = report(resultService.get(analysisId), side);

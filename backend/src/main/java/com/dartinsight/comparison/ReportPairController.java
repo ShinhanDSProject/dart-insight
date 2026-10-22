@@ -1,5 +1,6 @@
 package com.dartinsight.comparison;
 
+import com.dartinsight.common.web.ApiPaths;
 import com.dartinsight.report.FinancialDataStatus;
 import com.dartinsight.report.Report;
 import com.dartinsight.report.ReportController.ReportItemResponse;
@@ -18,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 비교 보고서 쌍 API(docs/api-spec.md). 화면 W-01 ②.
  */
 @RestController
-@RequestMapping("/api/companies/{corpCode}/report-pairs")
+@RequestMapping(ApiPaths.COMPANY_REPORT_PAIRS)
 public class ReportPairController {
 
     private final ReportPairService pairService;

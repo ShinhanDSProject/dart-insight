@@ -4,6 +4,7 @@ import com.dartinsight.analysis.TextChangeStore.TextChange;
 import com.dartinsight.analysis.TextEvidenceService.SourceEvidence;
 import com.dartinsight.analysis.TextEvidenceService.TextEvidence;
 import com.dartinsight.common.error.ApiException;
+import com.dartinsight.common.web.ApiPaths;
 import com.dartinsight.document.DocumentBlock;
 import com.dartinsight.report.ReportType;
 import com.fasterxml.jackson.annotation.JsonRawValue;
@@ -23,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 기본 정렬은 확인 우선순위(2.6)이고, 순위를 매기지 않은 항목(판단 유보)은 뒤에 둔다.
  */
 @RestController
-@RequestMapping("/api/analyses/{analysisId}/text-changes")
+@RequestMapping(ApiPaths.ANALYSIS_TEXT_CHANGES)
 public class TextChangeController {
 
     private static final Set<String> TYPES = Set.of(TextChangeRow.ADDED, TextChangeRow.DELETED,
@@ -42,7 +43,7 @@ public class TextChangeController {
     }
 
     /** 문장·표 근거 상세(3.4). 변경 전·후 원문 전체와 보고서·항목·위치 */
-    @GetMapping("/{changeId}")
+    @GetMapping(ApiPaths.BY_CHANGE_ID)
     public TextChangeDetailResponse detail(@PathVariable Long analysisId, @PathVariable Long changeId) {
         TextEvidence evidence = evidenceService.evidence(analysisId, changeId);
         return new TextChangeDetailResponse(item(evidence.change()), source(evidence.previous()),
