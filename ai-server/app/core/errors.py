@@ -20,6 +20,7 @@ class ErrorCode(Enum):
     COMMON_INTERNAL_ERROR = (500, "서버에서 오류가 발생했습니다.")
 
     AI_DOCUMENT_TOO_LARGE = (413, "원문 파일이 너무 큽니다.")
+    AI_LLM_UNAVAILABLE = (503, "LLM을 부를 수 없습니다.")
 
     def __init__(self, status: int, default_message: str) -> None:
         self.status = status
