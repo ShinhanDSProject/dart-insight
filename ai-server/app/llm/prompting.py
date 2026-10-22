@@ -13,9 +13,14 @@ def escape(text: str) -> str:
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
+def attr(value: str) -> str:
+    """태그 속성 값. 공시에서 온 이름(항목·계정·회사)을 속성에 넣어 지시와 섞이지 않게 한다."""
+    return escape(value).replace('"', "&quot;").replace("\n", " ")
+
+
 def disclosure(evidence_id: str, text: str, label: str | None = None) -> str:
     """원문 한 덩어리. evidence_id는 결과에서 근거로 적을 ID다."""
     attrs = f'id="{escape(evidence_id)}"'
     if label:
-        attrs += f' label="{escape(label).replace(chr(34), "&quot;")}"'
+        attrs += f' label="{attr(label)}"'
     return f"<disclosure {attrs}>\n{escape(text)}\n</disclosure>"
