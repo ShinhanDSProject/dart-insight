@@ -82,8 +82,8 @@ backend를 다시 실행하면 Flyway가 테이블을 다시 만들고, 기업 �
 
 ## 3. 키 관리
 
-- OpenDART 인증키는 각자 [OpenDART](https://opendart.fss.or.kr)에서 발급받습니다. 이용약관상 다른 사람과 공유할 수 없습니다.
-- 키는 각 서비스 폴더의 `.env`에만 넣습니다. `.env`는 `.gitignore`로 막혀 있어 커밋되지 않습니다.
+- 개발할 때는 팀 공용 OpenDART 인증키 하나를 씁니다. 값이 있는 곳과 넣는 순서는 팀 노션 [로컬 실행 전 .env 설정](https://app.notion.com/p/401b6afffc6f812ea3a1f821893e50ad)에 있습니다(팀 워크스페이스 권한 필요). 따로 가입·발급하지 않습니다.
+- 키는 `backend/.env`의 `OPENDART_API_KEY`에 넣습니다. 다른 이름(예: `DART_API_KEY`)으로 넣으면 backend가 읽지 못합니다. `.env`는 `.gitignore`로 막혀 있어 커밋되지 않습니다.
 
   ```bash
   cp backend/.env.example backend/.env
@@ -91,8 +91,8 @@ backend를 다시 실행하면 Flyway가 테이블을 다시 만들고, 기업 �
   cp frontend/.env.example frontend/.env
   ```
 
-- 키를 코드, 노션, PR, 채팅, 스크린샷에 올리지 않습니다. PR마다 비밀정보 검사(gitleaks)가 돌지만, 커밋된 키는 기록에 남으므로 걸렸다면 바로 폐기·재발급합니다.
-- OpenDART는 하루 호출 한도가 있습니다(초과하면 020 코드). backend가 받은 자료를 DB에 저장해 같은 요청을 반복하지 않습니다.
+- 키 값은 팀 노션의 정해진 한 곳에만 둡니다. 코드, PR, 채팅, 스크린샷이나 다른 페이지에 옮겨 적지 않습니다. 이 저장소는 공개 저장소입니다. PR마다 비밀정보 검사(gitleaks)가 돌지만, 커밋된 키는 기록에 남으므로 걸렸다면 바로 팀에 알리고 키를 폐기·재발급합니다.
+- OpenDART는 하루 호출 한도가 있고(초과하면 020 코드, API 응답은 `DART_RATE_LIMITED`), 공용 키라 팀이 한도를 함께 씁니다. backend가 받은 자료를 DB에 저장해 같은 요청을 반복하지 않으니, 같은 기업·보고서를 일부러 되풀이해 받지 않습니다. 한도에 걸리면 팀 채널에 알립니다.
 
 ## 4. 문제 해결
 
