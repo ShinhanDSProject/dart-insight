@@ -43,12 +43,13 @@
   margin: var(--space-4) 0;
   padding: var(--space-4) var(--space-5);
   border: 1.5px dashed var(--color-attention);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   background: var(--color-attention-subtle);
 }
 
 .not-comparable__title {
   margin: 0 0 var(--space-2);
+  color: var(--color-attention);
   font-weight: var(--font-weight-bold);
 }
 
