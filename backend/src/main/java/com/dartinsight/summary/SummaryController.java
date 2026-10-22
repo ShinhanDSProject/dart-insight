@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Optional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
  * AI가 만든 문장에는 aiGenerated와 모델·프롬프트 버전·생성 시각이 함께 있다.
  */
 @RestController
+@RequestMapping("/api/analyses/{analysisId}/summary")
 public class SummaryController {
 
     private final AnalysisResultService resultService;
@@ -44,7 +46,7 @@ public class SummaryController {
         this.documentService = documentService;
     }
 
-    @GetMapping("/api/analyses/{analysisId}/summary")
+    @GetMapping
     public SummaryResponse summary(@PathVariable Long analysisId) {
         Analysis analysis = resultService.completed(analysisId);
         Map<String, Optional<ReportDocument>> documents = new HashMap<>();

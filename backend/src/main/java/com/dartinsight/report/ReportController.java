@@ -7,12 +7,14 @@ import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 정기보고서 API(docs/api-spec.md). 화면 W-01 ②, W-03 머리글.
  */
 @RestController
+@RequestMapping("/api")
 public class ReportController {
 
     private final ReportService reportService;
@@ -21,7 +23,7 @@ public class ReportController {
         this.reportService = reportService;
     }
 
-    @GetMapping("/api/companies/{corpCode}/reports")
+    @GetMapping("/companies/{corpCode}/reports")
     public ReportListResponse list(@PathVariable String corpCode) {
         ReportService.ReportList list = reportService.list(corpCode);
         LocalDateTime fetchedAt = list.company().getReportsFetchedAt();
@@ -34,7 +36,7 @@ public class ReportController {
                         .toList());
     }
 
-    @GetMapping("/api/reports/{rceptNo}")
+    @GetMapping("/reports/{rceptNo}")
     public ReportDetailResponse get(@PathVariable String rceptNo) {
         return ReportDetailResponse.from(reportService.get(rceptNo));
     }

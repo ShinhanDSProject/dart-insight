@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Locale;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 재무 수치 변화 조회 API(docs/api-spec.md). 화면 W-03 ②와 수치 근거 상세(3.3). 완료된 분석의 결과만 돌려준다.
  */
 @RestController
+@RequestMapping("/api/analyses/{analysisId}/financial-changes")
 public class FinancialChangeController {
 
     private final AnalysisResultService resultService;
@@ -38,7 +40,7 @@ public class FinancialChangeController {
         this.reportRepository = reportRepository;
     }
 
-    @GetMapping("/api/analyses/{analysisId}/financial-changes")
+    @GetMapping
     public FinancialChangeListResponse list(@PathVariable Long analysisId,
             @RequestParam(defaultValue = "BS") String sjDiv,
             @RequestParam(defaultValue = "false") boolean changedOnly) {
@@ -65,7 +67,7 @@ public class FinancialChangeController {
                 statements, items);
     }
 
-    @GetMapping("/api/analyses/{analysisId}/financial-changes/{changeId}")
+    @GetMapping("/{changeId}")
     public FinancialChangeDetailResponse detail(@PathVariable Long analysisId, @PathVariable Long changeId) {
         CompletedChange result = resultService.completedChange(analysisId, changeId);
         Analysis analysis = result.analysis();

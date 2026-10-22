@@ -21,12 +21,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 분석 요청·상태 API(docs/api-spec.md). 화면 W-01 ③ → W-02 → W-03.
  */
 @RestController
+@RequestMapping("/api/analyses")
 public class AnalysisController {
 
     private final AnalysisService analysisService;
@@ -41,7 +43,7 @@ public class AnalysisController {
     }
 
     /** 새 분석이나 진행 중인 분석은 202, 완료된 결과를 다시 쓰면 200 */
-    @PostMapping("/api/analyses")
+    @PostMapping
     public ResponseEntity<AnalysisCreatedResponse> request(@Valid @RequestBody AnalysisRequest request) {
         AnalysisService.RequestResult result = analysisService.request(request.corpCode(), request.currentRceptNo(),
                 request.previousRceptNo(), request.basis());
@@ -50,7 +52,7 @@ public class AnalysisController {
                 .body(new AnalysisCreatedResponse(a.getId(), a.getStatus(), a.getStep(), result.reused()));
     }
 
-    @GetMapping("/api/analyses/{analysisId}")
+    @GetMapping("/{analysisId}")
     public AnalysisResponse get(@PathVariable Long analysisId) {
         Analysis a = resultService.get(analysisId);
         ReportDetail current = reportService.get(a.getCurrentRceptNo());
