@@ -133,6 +133,11 @@ class TextChangeApiTest {
                 .andExpect(jsonPath("$.totalItems").value(2))
                 .andExpect(jsonPath("$.items", hasSize(1)))
                 .andExpect(jsonPath("$.items[0].currentPreview").value("두 번째 새 문장"));
+        // 아주 큰 page도 400·500이 아니라 빈 목록(OFFSET이 int로 넘치지 않음)
+        mockMvc.perform(get("/api/analyses/{id}/text-changes", analysisId)
+                        .param("size", "100").param("page", "1000000000"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(0)));
     }
 
     @Test

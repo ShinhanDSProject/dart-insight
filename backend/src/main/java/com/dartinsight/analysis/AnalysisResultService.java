@@ -45,6 +45,8 @@ public class AnalysisResultService {
      * 같은 조건에서 다시 쓸 분석. 완료된 것이 있으면 그것, 없으면 진행 중인 것.
      * 진행 중인데 {@link #STALE_AFTER} 넘게 상태가 바뀌지 않은 분석은 멈춘 것으로 보고 실패로 바꾼 뒤 다시 쓰지 않는다
      * (서버가 실행 도중 내려가는 등). 그래야 같은 조건으로 다시 요청할 수 있다.
+     * 문장 비교가 실패로 끝난 결과도 다시 쓰지 않는다. AI 서버·OpenDART의 일시 장애였으면 다시 요청해 원문을 다시
+     * 비교할 수 있어야 하고, 화면도 '다시 요청하면 비교한다'고 안내한다.
      */
     @Transactional
     public Optional<Analysis> findReusable(String corpCode, String currentRceptNo, String previousRceptNo,
@@ -53,7 +55,8 @@ public class AnalysisResultService {
                 .findByCorpCodeAndCurrentRceptNoAndPreviousRceptNoAndBasisAndAnalysisVersionOrderByIdDesc(corpCode,
                         currentRceptNo, previousRceptNo, basis, Analysis.CURRENT_VERSION);
         Optional<Analysis> completed = same.stream()
-                .filter(a -> a.getStatus() == AnalysisStatus.COMPLETED).findFirst();
+                .filter(a -> a.getStatus() == AnalysisStatus.COMPLETED && a.getTextStatus() != TextStatus.FAILED)
+                .findFirst();
         if (completed.isPresent()) {
             return completed;
         }

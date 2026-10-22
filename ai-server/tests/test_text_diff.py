@@ -182,3 +182,86 @@ def test_large_unmatched_runs_finish_quickly() -> None:
     )
 
     assert len(result.changes) == 798
+
+
+def test_many_similar_tables_finish_quickly() -> None:
+    import random
+    import time
+
+    rng = random.Random(1)
+
+    def table() -> str:
+        words = ["매출", "원가", "자산", "부채", "합계", "기타"]
+        rows = [
+            " | ".join(rng.choice(words) + str(rng.randint(1, 9)) for _ in range(6))
+            for _ in range(60)
+        ]
+        return "\n".join(rows)
+
+    prev_blocks = [(i, 3, "TABLE", "구분 " + table()) for i in range(1, 61)]
+    cur_blocks = [(i, 3, "TABLE", "항목 " + table()) for i in range(1, 61)]
+
+    started = time.monotonic()
+    result = diff_documents(
+        doc(PREV, BASE_SECTIONS, prev_blocks), doc(CUR, BASE_SECTIONS, cur_blocks)
+    )
+
+    assert time.monotonic() - started < 10  # 백엔드가 AI 서버를 기다리는 시간(180초)보다 훨씬 짧게
+    assert len(result.changes) >= 60
+
+
+def test_children_of_a_renamed_parent_are_still_matched() -> None:
+    prev_sections = [
+        (1, None, 1, "I. 회사의 개요"),
+        (2, None, 1, "II. 사업의 내용"),
+        (3, 2, 2, "1. 사업의 개요"),
+        (4, 2, 2, "2. 주요 제품"),
+    ]
+    cur_sections = [
+        (1, None, 1, "I. 회사의 개요"),
+        (2, None, 1, "II. 사업의 내용 및 현황"),
+        (3, 2, 2, "1. 사업의 개요"),
+        (4, 2, 2, "2. 주요 제품"),
+    ]
+    blocks = [(1, 3, "PARAGRAPH", "당사는 메모리를 만듭니다."), (2, 4, "PARAGRAPH", "DRAM")]
+    cur_blocks = [
+        (1, 3, "PARAGRAPH", "당사는 메모리를 만듭니다."),
+        (2, 4, "PARAGRAPH", "DRAM과 NAND"),
+    ]
+
+    changes = diff_documents(
+        doc(PREV, prev_sections, blocks), doc(CUR, cur_sections, cur_blocks)
+    ).changes
+
+    # 상위 이름이 0.8 미만으로 바뀌어도 하위 섹션을 통째로 추가·삭제로 보이지 않는다
+    assert [(c.change_type, c.section_status) for c in changes] == [(MODIFIED, RENAMED)]
+    assert changes[0].section_path == "II. 사업의 내용 및 현황 > 2. 주요 제품"
+
+
+def test_same_titles_under_a_renamed_parent_pair_in_document_order() -> None:
+    prev_sections = [
+        (1, None, 1, "II. 사업의 내용"),
+        (2, 1, 2, "가. 주요 계약"),
+        (3, 1, 2, "가. 주요 계약"),
+    ]
+    cur_sections = [
+        (1, None, 1, "II. 사업의 내용들"),
+        (2, 1, 2, "가. 주요 계약"),
+        (3, 1, 2, "가. 주요 계약"),
+    ]
+    blocks = [(1, 2, "PARAGRAPH", "A사와 공급 계약"), (2, 3, "PARAGRAPH", "B사와 기술 계약")]
+
+    changes = diff_documents(
+        doc(PREV, prev_sections, blocks), doc(CUR, cur_sections, blocks)
+    ).changes
+
+    assert changes == []
+
+
+def test_parent_cycle_in_input_does_not_hang() -> None:
+    sections = [(1, 1, 1, "I. 회사의 개요")]
+    blocks = [(1, 1, "PARAGRAPH", "가")]
+
+    result = diff_documents(doc(PREV, sections, blocks), doc(CUR, sections, blocks))
+
+    assert result.changes == []

@@ -6,12 +6,14 @@ import com.dartinsight.common.trace.TraceContext;
 import com.dartinsight.comparison.ComparabilityService;
 import com.dartinsight.comparison.ComparabilityService.ComparabilityResult;
 import com.dartinsight.financial.FinancialStatementService;
+import com.dartinsight.document.DocumentBlock;
 import com.dartinsight.financial.FinancialAccount;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -203,6 +205,10 @@ public class AnalysisRunner implements DisposableBean {
      */
     static String verifyText(Analysis analysis, List<TextChangeRow> rows) {
         for (TextChangeRow row : rows) {
+            if (!BLOCK_TYPES.contains(String.valueOf(row.blockType())) || row.sectionStatus() == null
+                    || row.sectionTitle() == null || row.sectionPath() == null) {
+                return "변경 항목의 종류나 항목 이름이 비어 있어요: " + row.blockType() + " " + row.sectionPath();
+            }
             boolean hasPrevious = row.previous() != null;
             boolean hasCurrent = row.current() != null;
             boolean shapeOk = switch (row.changeType() == null ? "" : row.changeType()) {
@@ -227,6 +233,9 @@ public class AnalysisRunner implements DisposableBean {
         }
         return null;
     }
+
+    private static final Set<String> BLOCK_TYPES = Set.of(DocumentBlock.PARAGRAPH, DocumentBlock.TABLE,
+            TextChangeRow.SECTION);
 
     private static boolean sameAccount(FinancialChangeRow.Evidence previous, FinancialChangeRow.Evidence current) {
         if (!Objects.equals(previous.accountId(), current.accountId())) {

@@ -49,7 +49,8 @@ public class TextChangeController {
         Counts countView = new Counts(all, counts.get(TextChangeRow.ADDED), counts.get(TextChangeRow.DELETED),
                 counts.get(TextChangeRow.MODIFIED), counts.get(TextChangeRow.REVIEW_NEEDED));
         int total = type == null ? all : counts.get(type);
-        List<TextChangeItem> items = store.page(analysisId, type, page * size, size).stream()
+        long offset = (long) page * size; // 큰 page에서 int가 넘쳐 음수가 되지 않게
+        List<TextChangeItem> items = store.page(analysisId, type, offset, size).stream()
                 .map(TextChangeController::item).toList();
         return new TextChangeListResponse(analysisId, analysis.getTextStatus(), analysis.getTextMessage(), type,
                 page, size, total, countView, items);

@@ -31,6 +31,14 @@ class TextVerifyTest {
     }
 
     @Test
+    void blockTypeAndSectionNamesMustBeKnown() {
+        assertThat(AnalysisRunner.verifyText(ANALYSIS, List.of(new TextChangeRow(TextChangeRow.ADDED, "IMAGE", false,
+                "MATCHED", "t", "p", null, new Side(CUR, 1, 2, "글"), null, null)))).contains("종류나 항목 이름");
+        assertThat(AnalysisRunner.verifyText(ANALYSIS, List.of(new TextChangeRow(TextChangeRow.ADDED, "PARAGRAPH",
+                false, "MATCHED", "t", null, null, new Side(CUR, 1, 2, "글"), null, null)))).contains("종류나 항목 이름");
+    }
+
+    @Test
     void typeMustMatchTheSidesItHas() {
         assertThat(AnalysisRunner.verifyText(ANALYSIS, List.of(
                 row(TextChangeRow.ADDED, new Side(PREV, 1, 2, "a"), new Side(CUR, 1, 2, "b")))))

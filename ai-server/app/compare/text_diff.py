@@ -4,11 +4,15 @@
    - 제목에서 번호(I., 1., 가., (1) 등)·공백·기호를 뺀 이름을 상위 섹션부터 이은 경로로 짝짓는다.
    - 경로가 같은 섹션이 양쪽에 같은 수만큼 있으면 순서대로 짝짓는다.
      수가 다르면 짝을 확정하지 않고 검토 필요로 남긴다.
-   - 경로가 없으면 같은 상위 섹션 안에서 제목이 비슷한(0.8 이상) 섹션을 짝짓는다.
+   - 경로가 없으면 같은 상위 섹션 안에서 제목이 비슷한(0.8 이상) 섹션을 짝짓는다(같으면 문서 순서).
+   - 상위 섹션 이름이 크게 바뀌어 짝이 없으면, 그 아래 섹션을 자기 제목으로 짝짓고
+     (양쪽에 하나씩일 때), 하위 섹션이 절반 넘게 짝지어진 상위 섹션끼리도 짝짓는다(이름 바뀜).
 2. 블록 짝짓기
    - 짝지은 섹션 안의 문단·표를 숫자를 가린 글로 맞춰 본다(숫자만 바뀐 표도 같은 자리로).
    - 맞춘 자리의 글이 다르면 수정(숫자만 다르면 numbers_only), 한쪽에만 있으면 추가·삭제다.
    - 맞지 않는 구간은 글이 비슷한(0.5 이상) 블록끼리 수정으로 짝짓고, 나머지는 추가·삭제다.
+     긴 글은 낱말 단위로 비교하고, 구간 하나에서 비교하는 횟수에 상한을 둬
+     표가 많은 섹션도 빨리 끝난다.
 3. 짝이 없는 섹션의 블록은 섹션째 추가·삭제다.
    문서상 빠졌다는 뜻일 뿐 사업·계약 종료로 해석하지 않는다.
 
@@ -19,6 +23,7 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from difflib import SequenceMatcher
 
@@ -40,9 +45,12 @@ SECTION_BLOCK = "SECTION"
 
 _TITLE_SIMILAR = 0.8
 _BLOCK_SIMILAR = 0.5
-_COMPARE_CHARS = 3000
-# 맞지 않는 구간에서 짝을 찾을 때 앞으로 볼 블록 수(큰 구간에서 비교 횟수가 폭증하지 않게)
+# 두 글의 길이 합이 이보다 길면 글자 대신 낱말 단위로 비교한다(긴 표에서 글자 비교는 느림)
+_CHAR_COMPARE_LIMIT = 800
+_COMPARE_TOKENS = 300
+# 맞지 않는 구간에서 짝을 찾을 때 앞으로 볼 블록 수와, 구간 하나에서 글을 비교하는 최대 횟수
 _PAIR_WINDOW = 30
+_PAIR_BUDGET = 300
 
 _NUMBERING = re.compile(
     r"^\s*(?:"
@@ -57,6 +65,7 @@ _NUMBERING = re.compile(
 _NOT_WORD = re.compile(r"[^0-9A-Za-z가-힣]+")
 _NUMBER = re.compile(r"[-+]?\d[\d,]*(?:\.\d+)?")
 _SPACE = re.compile(r"\s+")
+_TOKEN = re.compile(r"\S+")
 
 
 @dataclass(frozen=True)
@@ -130,8 +139,16 @@ def mask_numbers(text: str) -> str:
 
 
 def similarity(a: str, b: str) -> float:
-    a, b = a[:_COMPARE_CHARS], b[:_COMPARE_CHARS]
-    matcher = SequenceMatcher(None, a, b, autojunk=False)
+    """두 글이 비슷한 정도(0~1). 짧은 글은 글자 단위, 긴 글은 낱말 단위로 비교한다."""
+    if len(a) + len(b) <= _CHAR_COMPARE_LIMIT:
+        matcher = SequenceMatcher(None, a, b, autojunk=False)
+    else:
+        matcher = SequenceMatcher(
+            None,
+            _TOKEN.findall(a)[:_COMPARE_TOKENS],
+            _TOKEN.findall(b)[:_COMPARE_TOKENS],
+            autojunk=False,
+        )
     if matcher.real_quick_ratio() < _BLOCK_SIMILAR or matcher.quick_ratio() < _BLOCK_SIMILAR:
         return matcher.quick_ratio()
     return matcher.ratio()
@@ -150,26 +167,31 @@ class _Tree:
             self.blocks[block.section_no].append(block)
         self._path_cache: dict[int, tuple[str, ...]] = {}
 
+    def ancestors(self, section_no: int) -> list[int]:
+        """자기부터 최상위까지. 상위 번호가 돌아서 이어져도(잘못된 입력) 멈춘다."""
+        chain: list[int] = []
+        current: int | None = section_no
+        while current is not None and current in self.sections and current not in chain:
+            chain.append(current)
+            current = self.sections[current].parent_no
+        return chain
+
     def key_path(self, section_no: int) -> tuple[str, ...]:
         if section_no not in self._path_cache:
-            section = self.sections[section_no]
-            if section.cover:
-                own = "__cover__"
-            elif section.level == 0:
-                own = "__outside__"
-            else:
-                own = title_key(section.title) or f"__untitled__{section.section_no}"
-            parent = self.key_path(section.parent_no) if section.parent_no in self.sections else ()
-            self._path_cache[section_no] = (*parent, own)
+            keys = []
+            for no in reversed(self.ancestors(section_no)):
+                section = self.sections[no]
+                if section.cover:
+                    keys.append("__cover__")
+                elif section.level == 0:
+                    keys.append("__outside__")
+                else:
+                    keys.append(title_key(section.title) or f"__untitled__{section.section_no}")
+            self._path_cache[section_no] = tuple(keys)
         return self._path_cache[section_no]
 
     def title_path(self, section_no: int) -> str:
-        titles = []
-        current: int | None = section_no
-        while current is not None and current in self.sections:
-            titles.append(self.sections[current].title)
-            current = self.sections[current].parent_no
-        return " > ".join(reversed(titles))
+        return " > ".join(self.sections[no].title for no in reversed(self.ancestors(section_no)))
 
 
 def match_sections(
@@ -219,13 +241,79 @@ def match_sections(
             score = SequenceMatcher(
                 None, title_key(p_section.title), title_key(c_section.title)
             ).ratio()
-            if score >= best_score:
-                best, best_score = c, score
+            if best is None and score >= best_score or score > best_score:
+                best, best_score = c, score  # 점수가 같으면 문서 순서가 앞선 것
         if best is not None:
             pairs[p] = best
             status[p] = RENAMED
             matched_cur.add(best)
+
+    _match_under_renamed_parents(previous, current, pairs, status, ambiguous_prev, ambiguous_cur)
     return pairs, status, ambiguous_prev, ambiguous_cur
+
+
+def _match_under_renamed_parents(
+    previous: _Tree,
+    current: _Tree,
+    pairs: dict[int, int],
+    status: dict[int, str],
+    ambiguous_prev: set[int],
+    ambiguous_cur: set[int],
+) -> None:
+    """상위 섹션 이름이 크게 바뀌어(0.8 미만) 짝이 없을 때,
+    하위 섹션까지 통째로 추가·삭제로 보이지 않게 한다.
+
+    1. 상위 섹션이 짝이 없는 섹션끼리 자기 제목·깊이가 같고 양쪽에 하나씩이면 짝짓는다.
+    2. 하위 섹션이 절반 넘게 서로 짝지어진 상위 섹션끼리 짝짓는다.
+    """
+
+    def free_prev(no: int) -> bool:
+        return no not in pairs and no not in ambiguous_prev
+
+    matched_cur = set(pairs.values())
+
+    def free_cur(no: int) -> bool:
+        return no not in matched_cur and no not in ambiguous_cur
+
+    def orphan(tree: _Tree, no: int, free: Callable[[int], bool]) -> bool:
+        parent = tree.sections[no].parent_no
+        return parent is not None and parent in tree.sections and free(parent)
+
+    def own_key(tree: _Tree, no: int) -> tuple[int, str]:
+        return tree.sections[no].level, tree.key_path(no)[-1]
+
+    prev_by_key: dict[tuple[int, str], list[int]] = defaultdict(list)
+    cur_by_key: dict[tuple[int, str], list[int]] = defaultdict(list)
+    for p in previous.order:
+        if free_prev(p) and orphan(previous, p, free_prev):
+            prev_by_key[own_key(previous, p)].append(p)
+    for c in current.order:
+        if free_cur(c) and orphan(current, c, free_cur):
+            cur_by_key[own_key(current, c)].append(c)
+    for key, prev_nos in prev_by_key.items():
+        cur_nos = cur_by_key.get(key, [])
+        if len(prev_nos) == 1 and len(cur_nos) == 1:
+            pairs[prev_nos[0]] = cur_nos[0]
+            status[prev_nos[0]] = RENAMED
+            matched_cur.add(cur_nos[0])
+
+    children_prev: dict[int, list[int]] = defaultdict(list)
+    for p in previous.order:
+        parent = previous.sections[p].parent_no
+        if parent is not None:
+            children_prev[parent].append(p)
+    for p in previous.order:
+        kids = children_prev.get(p, [])
+        if not free_prev(p) or not kids:
+            continue
+        targets = [current.sections[pairs[k]].parent_no for k in kids if k in pairs]
+        if len(targets) * 2 <= len(kids):
+            continue
+        target = max(set(targets), key=targets.count)
+        if target is not None and target in current.sections and free_cur(target):
+            pairs[p] = target
+            status[p] = RENAMED
+            matched_cur.add(target)
 
 
 # ── 블록 비교 ───────────────────────────────────────────────
@@ -259,11 +347,16 @@ def _pair_similar(
     """서로 맞지 않는 구간에서 순서를 지키며 비슷한 블록끼리 수정으로 짝짓는다."""
     result: list[tuple[str, BlockIn | None, BlockIn | None, float | None]] = []
     j = 0
+    budget = _PAIR_BUDGET
     for a in prev:
         best, best_score = None, _BLOCK_SIMILAR
         for k in range(j, min(len(cur), j + _PAIR_WINDOW)):
             if cur[k].type != a.type:
                 continue
+            if budget <= 0:
+                # 상한을 넘으면 나머지는 추가·삭제로 둔다(오래 걸려 비교 전체가 실패하지 않게)
+                break
+            budget -= 1
             score = similarity(a.text, cur[k].text)
             if score >= best_score:
                 best, best_score = k, score

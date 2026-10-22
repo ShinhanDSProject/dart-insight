@@ -71,12 +71,18 @@ public class TextComparisonService {
         Map<Integer, DocumentBlock> previousByNo = byNo(previousBlocks);
         Map<Integer, DocumentBlock> currentByNo = byNo(currentBlocks);
         List<TextChangeRow> rows = new ArrayList<>(diff.changes().size());
-        for (TextChangeDiffResponse.Change change : diff.changes()) {
-            rows.add(new TextChangeRow(change.changeType(), change.blockType(),
-                    Boolean.TRUE.equals(change.numbersOnly()), change.sectionStatus(), change.sectionTitle(),
-                    change.sectionPath(), side(previous.getRceptNo(), change.previous(), previousByNo),
-                    side(current.getRceptNo(), change.current(), currentByNo),
-                    TextChangeStore.similarity(change.similarity()), change.reviewReason()));
+        try {
+            for (TextChangeDiffResponse.Change change : diff.changes()) {
+                rows.add(new TextChangeRow(change.changeType(), change.blockType(),
+                        Boolean.TRUE.equals(change.numbersOnly()), change.sectionStatus(), change.sectionTitle(),
+                        change.sectionPath(), side(previous.getRceptNo(), change.previous(), previousByNo),
+                        side(current.getRceptNo(), change.current(), currentByNo),
+                        TextChangeStore.similarity(change.similarity()), change.reviewReason()));
+            }
+        } catch (RuntimeException e) {
+            // 받은 결과를 읽지 못해도 분석 전체를 실패로 만들지 않는다(문장 비교만 실패)
+            log.warn("문장 비교 결과를 읽지 못함 {} / {}", previous.getRceptNo(), current.getRceptNo(), e);
+            return TextComparison.failed("문장 비교 결과를 읽지 못했어요. 다시 요청해 주세요.");
         }
         log.info("문장 비교 {} → {}: 변경 {}건, 섹션 {}", previous.getRceptNo(), current.getRceptNo(), rows.size(),
                 diff.sectionCounts());

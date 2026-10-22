@@ -70,7 +70,7 @@ public class TextChangeStore {
     }
 
     /** 문서 순서로 한 쪽. type이 null이면 전체 */
-    public List<TextChange> page(long analysisId, String type, int offset, int limit) {
+    public List<TextChange> page(long analysisId, String type, long offset, int limit) {
         if (type == null) {
             return jdbcTemplate.query("SELECT " + COLUMNS + " FROM text_change WHERE analysis_id = ? "
                     + "ORDER BY change_no LIMIT ? OFFSET ?", TextChangeStore::map, analysisId, limit, offset);
