@@ -54,12 +54,14 @@ public class SummaryController {
             SummaryItemRow row = stored.row();
             Target target = target(analysisId, stored);
             if (SummaryItemRow.REVIEW_NEEDED.equals(row.status())) {
-                review.add(new ReviewView(stored.itemNo(), row.kind(), target, row.reviewReason()));
+                review.add(new ReviewView(stored.itemNo(), row.kind(), target, row.reviewReason(),
+                        row.blockedRules()));
                 continue;
             }
             if (SummaryItemRow.REVIEW_NEEDED.equals(row.explanationStatus())) {
                 review.add(new ReviewView(stored.itemNo(), row.kind(), target,
-                        "설명의 근거를 확인하지 못했어요. " + (row.reviewReason() == null ? "" : row.reviewReason())));
+                        "설명의 근거를 확인하지 못했어요. " + (row.reviewReason() == null ? "" : row.reviewReason()),
+                        row.blockedRules()));
             }
             List<EvidenceView> evidence = row.evidenceIds().stream()
                     .map(id -> evidence(analysis, id, documents)).toList();
@@ -135,7 +137,8 @@ public class SummaryController {
             boolean aiGenerated, String explanationStatus, List<EvidenceView> evidence, AiInfo ai) {
     }
 
-    public record ReviewView(int itemNo, String kind, Target target, String reason) {
+    /** @param blockedRules 투자 권유성 표현 검사(5.5)에 걸린 규칙 ID. 근거 확인에 실패한 것이면 빈 목록 */
+    public record ReviewView(int itemNo, String kind, Target target, String reason, List<String> blockedRules) {
     }
 
     public record SummaryResponse(Long analysisId, SummaryStatus summaryStatus, String summaryMessage,

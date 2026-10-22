@@ -2,6 +2,7 @@ package com.dartinsight.summary;
 
 import static com.dartinsight.dart.FinancialJson.account;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -137,7 +138,7 @@ class SummaryPipelineTest {
                 """.formatted(rceptNo, rceptNo, business, explanation);
     }
 
-    /** 요청에 담긴 ref로 답하는 가짜 요약. textStatus는 문장 변화 항목의 상태 */
+    /** 요청에 담긴 ref로 답하는 가짜 요약. textStatus는 문장 변화 항목의 상태(OK, REVIEW_NEEDED, BLOCKED) */
     private static Function<Request, Reply> summaryReply(String textStatus) {
         return request -> {
             String body = request.bodyText();
@@ -146,13 +147,18 @@ class SummaryPipelineTest {
                     .getFirst();
             String assets = JsonPath.<List<String>>read(body, "$.financialItems[?(@.accountName=='자산총계')].ref")
                     .getFirst();
-            String textItem = "OK".equals(textStatus)
-                    ? """
+            String textItem = switch (textStatus) {
+                case "OK" -> """
                       {"ref":"%s","kind":"TEXT","status":"OK","sentence":"사업의 개요에 파운드리가 더해졌어요.",
-                       "explanation":null,"evidenceIds":["%s#B1"],"reviewReason":null}""".formatted(text, CUR)
-                    : """
+                       "explanation":null,"evidenceIds":["%s#B1"],"reviewReason":null}""".formatted(text, CUR);
+                case "BLOCKED" -> """
                       {"ref":"%s","kind":"TEXT","status":"REVIEW_NEEDED","sentence":null,"explanation":null,
-                       "evidenceIds":[],"reviewReason":"원문에 없는 숫자(3)를 썼어요."}""".formatted(text);
+                       "evidenceIds":[],"reviewReason":"투자 권유로 읽힐 수 있는 표현(목표주가)이 있어 내보내지 않았어요.",
+                       "blockedRules":["TARGET_PRICE"]}""".formatted(text);
+                default -> """
+                      {"ref":"%s","kind":"TEXT","status":"REVIEW_NEEDED","sentence":null,"explanation":null,
+                       "evidenceIds":[],"reviewReason":"원문에 없는 숫자(3)를 썼어요.","blockedRules":[]}""".formatted(text);
+            };
             return Reply.ok("""
                     {"promptVersion":"summary-1","model":"fake-model","generatedAt":"2026-10-22T09:00:00","items":[
                      %s,
@@ -239,7 +245,24 @@ class SummaryPipelineTest {
                 .andExpect(jsonPath("$.reviewNeededCount").value(1))
                 .andExpect(jsonPath("$.reviewNeeded[0].kind").value("TEXT"))
                 .andExpect(jsonPath("$.reviewNeeded[0].target.changeId").isNumber())
-                .andExpect(jsonPath("$.reviewNeeded[0].reason").value("원문에 없는 숫자(3)를 썼어요."));
+                .andExpect(jsonPath("$.reviewNeeded[0].reason").value("원문에 없는 숫자(3)를 썼어요."))
+                .andExpect(jsonPath("$.reviewNeeded[0].blockedRules", hasSize(0)));
+    }
+
+    @Test
+    void sentencesBlockedByTheExpressionCheckAreNeverShown() throws Exception {
+        AI.on(SUMMARIES, summaryReply("BLOCKED"));
+
+        long id = analyze();
+
+        mockMvc.perform(get("/api/analyses/{id}/summary", id))
+                .andExpect(jsonPath("$.summaryStatus").value("PARTIAL"))
+                .andExpect(jsonPath("$.items[?(@.kind == 'TEXT')]", hasSize(0)))
+                .andExpect(jsonPath("$.reviewNeededCount").value(1))
+                .andExpect(jsonPath("$.reviewNeeded[0].blockedRules[0]").value("TARGET_PRICE"))
+                .andExpect(jsonPath("$.reviewNeeded[0].reason").value(containsString("투자 권유")));
+        assertThat(summaryStore.items(id)).filteredOn(i -> "TEXT".equals(i.row().kind())).singleElement()
+                .satisfies(i -> assertThat(i.row().blockedRules()).containsExactly("TARGET_PRICE"));
     }
 
     @Test

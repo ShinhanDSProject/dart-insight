@@ -14,10 +14,12 @@ import java.util.List;
  * @param evidenceIds       aiText의 근거 원문 위치({접수번호}#B{블록 번호})
  * @param financialIndex    재무 수치 결과 목록 안의 순서(저장할 때 financial_change.id로 바꾼다)
  * @param textChangeNo      문장 변경 번호(text_change.change_no)
+ * @param blockedRules      투자 권유성 표현 검사(5.5)에 걸려 내보내지 않았으면 걸린 규칙 ID. 아니면 빈 목록
  */
 public record SummaryItemRow(String kind, String status, String factSentence, String aiText,
         String explanationStatus, List<String> evidenceIds, Integer financialIndex, Integer textChangeNo,
-        String reviewReason, String model, String promptVersion, LocalDateTime generatedAt) {
+        String reviewReason, String model, String promptVersion, LocalDateTime generatedAt,
+        List<String> blockedRules) {
 
     public static final String FINANCIAL = "FINANCIAL";
     public static final String TEXT = "TEXT";
