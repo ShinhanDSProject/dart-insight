@@ -3,11 +3,13 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { analysisPath, getAnalysis, requestAnalysis, type Analysis } from '../api/analyses'
 import { getReportPair, type ComparisonBasis } from '../api/reports'
 import type { SjDiv } from '../api/results'
+import type { ChangeType, TextSort } from '../api/textChanges'
 import { DartLinkActions } from '../components/DartLink'
 import { ErrorState, LoadingState } from '../components/StateView'
 import { basisOptions } from './company/pairSelection'
 import { FinancialTab } from './result/FinancialTab'
 import { ReportPairCards } from './result/ReportPairCards'
+import { TextTab } from './result/TextTab'
 import { parseUnit } from './result/format'
 import './result/result.css'
 
@@ -23,10 +25,12 @@ const tabs: { value: Tab; label: string }[] = [
 ]
 
 const sjDivs: SjDiv[] = ['BS', 'IS', 'CIS', 'CF', 'SCE']
+const changeTypes: ChangeType[] = ['ADDED', 'DELETED', 'MODIFIED', 'REVIEW_NEEDED']
 
 /**
  * W-03 분석 결과(3.1). 화면 전체가 분석 ID 하나의 결과만 보여 주므로, 비교 기준을 바꾸면 새 분석으로 옮겨 가고
- * 이전 결과와 섞이지 않는다. 고른 탭·재무제표·보기·단위·근거 계정은 주소(?tab=&sj=&changed=&unit=&change=)에 남긴다.
+ * 이전 결과와 섞이지 않는다. 고른 탭·재무제표·보기·단위·근거 계정은 주소(?tab=&sj=&changed=&unit=&change=)에,
+ * 문장 변화의 유형·정렬은 ?ttype=&tsort=에 남긴다.
  */
 export function AnalysisResultPage() {
   const { analysisId = '' } = useParams()
@@ -78,6 +82,9 @@ export function AnalysisResultPage() {
   const unit = parseUnit(searchParams.get('unit'))
   const changeParam = Number(searchParams.get('change'))
   const selectedChangeId = Number.isInteger(changeParam) && changeParam > 0 ? changeParam : null
+  const ttypeParam = searchParams.get('ttype')
+  const textType: ChangeType | null = changeTypes.includes(ttypeParam as ChangeType) ? (ttypeParam as ChangeType) : null
+  const textSort: TextSort = searchParams.get('tsort') === 'document' ? 'document' : 'priority'
 
   function update(changes: Record<string, string | null>) {
     setSearchParams(
@@ -157,10 +164,18 @@ export function AnalysisResultPage() {
             </ComingLater>
           )}
           {tab === 'text' && (
-            <ComingLater title="문장·내용 변화" issue="2.5 본문·표 변경 탐지, 3.9 본문 변경 탭(M2)">
-              본문 문장과 표의 추가·삭제·수정은 원문 구조화(4.2) 뒤에 비교해요. 지금은 '원문 확인'에서 두 보고서 원문을 열어
-              볼 수 있어요.
-            </ComingLater>
+            <TextTab
+              key={analysis.analysisId}
+              analysis={analysis}
+              type={textType}
+              sort={textSort}
+              onChange={(c) =>
+                update({
+                  ...(c.type !== undefined ? { ttype: c.type } : {}),
+                  ...(c.sort !== undefined ? { tsort: c.sort === 'priority' ? null : c.sort } : {}),
+                })
+              }
+            />
           )}
           {tab === 'source' && (
             <div className="source-grid">
