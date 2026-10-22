@@ -40,6 +40,8 @@ public class AnalysisRunner implements DisposableBean {
     private final FinancialStatementService financialStatementService;
     private final Clock clock;
     private final TaskExecutor executor;
+    /** 이 실행이 시작된 시각. 이보다 먼저 만들어진 분석만 이전 실행에서 끊긴 것으로 본다 */
+    private final LocalDateTime bootedAt;
 
     public AnalysisRunner(AnalysisRepository analysisRepository, AnalysisResultService resultService,
             ComparabilityService comparabilityService, FinancialStatementService financialStatementService,
@@ -49,6 +51,7 @@ public class AnalysisRunner implements DisposableBean {
         this.comparabilityService = comparabilityService;
         this.financialStatementService = financialStatementService;
         this.clock = clock;
+        this.bootedAt = now();
         if (properties.async()) {
             ThreadPoolTaskExecutor pool = new ThreadPoolTaskExecutor();
             pool.setThreadNamePrefix("analysis-");
@@ -72,11 +75,14 @@ public class AnalysisRunner implements DisposableBean {
         }
     }
 
-    /** 서버가 다시 뜨면, 이전 실행에서 끝나지 않은 분석을 실패로 바꿔 다시 요청할 수 있게 한다(서버 한 대 기준). */
+    /**
+     * 서버가 다시 뜨면, 이전 실행에서 끝나지 않은 분석을 실패로 바꿔 다시 요청할 수 있게 한다(서버 한 대 기준).
+     * 웹 서버는 이 이벤트보다 먼저 요청을 받기 시작하므로, 이번 실행에서 만든 분석은 건드리지 않는다.
+     */
     @EventListener(ApplicationReadyEvent.class)
     public void failInterrupted() {
-        List<Analysis> unfinished = analysisRepository.findByStatusIn(
-                List.of(AnalysisStatus.PENDING, AnalysisStatus.RUNNING));
+        List<Analysis> unfinished = analysisRepository.findByStatusInAndCreatedAtBefore(
+                List.of(AnalysisStatus.PENDING, AnalysisStatus.RUNNING), bootedAt);
         for (Analysis analysis : unfinished) {
             fail(analysis.getId(), "ANALYSIS_INTERRUPTED", "서버가 다시 시작돼 분석이 중단됐어요. 다시 요청해 주세요.");
         }
