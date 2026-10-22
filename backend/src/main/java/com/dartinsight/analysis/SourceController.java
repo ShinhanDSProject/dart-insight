@@ -40,8 +40,9 @@ public class SourceController {
         Report report = report(analysisId, side);
         Optional<ReportDocument> document = documentService.find(report.getRceptNo());
         String status = document.map(d -> d.getStatus().name()).orElse(NOT_FETCHED);
-        String message = document.map(ReportDocument::statusMessage)
-                .orElse("이 보고서 원문은 아직 받지 않았어요. 분석을 다시 요청하면 받아 와요.");
+        // 끝까지 읽은 원문은 안내할 것이 없다(null). Optional.map은 null을 빈 값으로 바꾸므로 나눠 쓴다
+        String message = document.isPresent() ? document.get().statusMessage()
+                : "이 보고서 원문은 아직 받지 않았어요. 분석을 다시 요청하면 받아 와요.";
         List<SectionItem> sections = document.map(documentService::sections).orElse(List.of()).stream()
                 .map(s -> new SectionItem(s.sectionNo(), s.parentNo(), s.depth(), s.title(), s.cover(),
                         s.blockCount()))
