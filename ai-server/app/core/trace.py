@@ -6,20 +6,18 @@ backend가 보낸 X-Trace-Id를 그대로 쓰고, 없으면 새로 만든다. �
 import logging
 import re
 import uuid
-from contextvars import ContextVar
 
 from starlette.datastructures import MutableHeaders
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from app.core.context import current_trace_id, trace_id_var
+
+__all__ = ["TRACE_HEADER", "TraceIdMiddleware", "current_trace_id", "trace_id_var"]
+
 TRACE_HEADER = "X-Trace-Id"
 _VALID = re.compile(r"^[A-Za-z0-9-]{1,64}$")
 
-trace_id_var: ContextVar[str] = ContextVar("trace_id", default="-")
 logger = logging.getLogger("app")
-
-
-def current_trace_id() -> str:
-    return trace_id_var.get()
 
 
 def resolve_trace_id(header_value: str | None) -> str:
