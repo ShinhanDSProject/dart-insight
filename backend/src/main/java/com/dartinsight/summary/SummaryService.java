@@ -78,7 +78,7 @@ public class SummaryService {
             List<SummaryItemRow> rows = financialPicked.stream()
                     .map(i -> new SummaryItemRow(SummaryItemRow.FINANCIAL, SummaryItemRow.SHOWN,
                             FinancialFacts.sentence(financial.get(i)), null, "NOT_FOUND", List.of(), i, null, null,
-                            null, null, null))
+                            null, null, null, List.of()))
                     .toList();
             return new SummaryResult(SummaryStatus.COMPLETED, null, rows, List.of());
         }
@@ -151,10 +151,10 @@ public class SummaryService {
         } else {
             return new SummaryItemRow(SummaryItemRow.TEXT, SummaryItemRow.SHOWN, null, item.sentence(), null,
                     item.evidenceIds(), null, changeNo, null, response.model(), response.promptVersion(),
-                    generatedAt);
+                    generatedAt, List.of());
         }
         return new SummaryItemRow(SummaryItemRow.TEXT, SummaryItemRow.REVIEW_NEEDED, null, null, null, List.of(),
-                null, changeNo, reason, null, null, null);
+                null, changeNo, reason, null, null, null, blocked(item));
     }
 
     private static SummaryItemRow financialRow(SummaryAiResponse.Item item, int index, FinancialChangeRow row,
@@ -175,16 +175,21 @@ public class SummaryService {
         } else {
             return new SummaryItemRow(SummaryItemRow.FINANCIAL, SummaryItemRow.SHOWN, fact, item.explanation(),
                     "FOUND", item.evidenceIds(), index, null, null, response.model(), response.promptVersion(),
-                    generatedAt);
+                    generatedAt, List.of());
         }
         // 수치 문장(코드가 만듦)은 보이고, 설명만 검토 필요로 둔다
         return new SummaryItemRow(SummaryItemRow.FINANCIAL, SummaryItemRow.SHOWN, fact, null,
-                SummaryItemRow.REVIEW_NEEDED, List.of(), index, null, reason, null, null, null);
+                SummaryItemRow.REVIEW_NEEDED, List.of(), index, null, reason, null, null, null, blocked(item));
     }
 
     private static SummaryItemRow notFound(String fact, int index) {
         return new SummaryItemRow(SummaryItemRow.FINANCIAL, SummaryItemRow.SHOWN, fact, null, "NOT_FOUND", List.of(),
-                index, null, null, null, null, null);
+                index, null, null, null, null, null, List.of());
+    }
+
+    /** 투자 권유성 표현 검사(5.5)에 걸린 규칙. 없으면 빈 목록 */
+    private static List<String> blocked(SummaryAiResponse.Item item) {
+        return item == null || item.blockedRules() == null ? List.of() : item.blockedRules();
     }
 
     private static String reason(SummaryAiResponse.Item item) {

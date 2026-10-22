@@ -5,6 +5,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
+from app.compliance import RULESET_VERSION
 from app.summary.model import FinancialItem, ItemResult, Source, SummaryInput, TextItem
 from app.summary.service import SummaryOutput
 
@@ -80,6 +81,7 @@ def _item(item: ItemResult) -> dict[str, Any]:
 def output_json(output: SummaryOutput) -> dict[str, Any]:
     return {
         "promptVersion": output.prompt_version,
+        "expressionRulesVersion": RULESET_VERSION,
         "model": output.model,
         "generatedAt": output.generated_at,
         "items": [_item(i) for i in output.items],

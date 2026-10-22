@@ -1,6 +1,7 @@
-"""요약 결과 검증(3.2).
+"""요약 결과 검증(3.2, 5.5).
 
 근거 ID가 주어진 원문 위치인지, 숫자가 인용한 원문에 있는지 코드가 확인한다.
+통과한 문장도 투자 권유성 표현 검사(app.compliance)에 걸리면 내보내지 않는다.
 """
 
 from __future__ import annotations
@@ -9,6 +10,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from app.compliance import scan
 from app.summary.model import (
     FINANCIAL,
     OK,
@@ -89,6 +91,8 @@ def check(data: Any, summary: SummaryInput) -> Checked:
         if problem:
             problems.append(f"{ref}: {problem}")
             result = ItemResult(ref, result.kind, REVIEW_NEEDED, review_reason=problem)
+        else:
+            result = _check_expressions(result, problems)
         results[ref] = result
     for ref in [*text_items, *financial_items]:
         if ref not in results:
@@ -111,6 +115,27 @@ def _number_problem(text: str, sources: dict[str, str], evidence: list[str]) -> 
     if missing:
         return f"인용한 원문에 없는 크기 표현이 있습니다: {missing[:3]}. 원문 표현을 그대로 쓰세요."
     return None
+
+
+def _check_expressions(result: ItemResult, problems: list[str]) -> ItemResult:
+    """AI 문장에 투자 권유성 표현이 있으면 내보내지 않고 걸린 규칙과 함께 '검토 필요'로 바꾼다."""
+    findings = scan(result.sentence) + scan(result.explanation)
+    if not findings:
+        return result
+    rules = sorted({f.rule_id for f in findings})
+    labels = ", ".join(dict.fromkeys(f.label for f in findings))
+    quoted = ", ".join(f"'{f.matched}'" for f in findings[:3])
+    problems.append(
+        f"{result.ref}: 투자 권유로 읽힐 수 있는 표현이 있습니다({labels}: {quoted}). "
+        "공시에 적힌 사실만 중립적으로 쓰세요."
+    )
+    return ItemResult(
+        result.ref,
+        result.kind,
+        REVIEW_NEEDED,
+        review_reason=f"투자 권유로 읽힐 수 있는 표현({labels})이 있어 내보내지 않았어요.",
+        blocked_rules=rules,
+    )
 
 
 def _check_text(item: TextItem, sentence: Any, evidence: list[str]) -> str | None:

@@ -49,6 +49,8 @@ export interface ReviewItem {
   kind: SummaryKind
   target: SummaryTarget
   reason: string | null
+  /** 투자 권유성 표현 검사(5.5)에 걸린 규칙 ID. 근거 확인에 실패한 것이면 빈 목록 */
+  blockedRules: string[]
 }
 
 export interface Summary {

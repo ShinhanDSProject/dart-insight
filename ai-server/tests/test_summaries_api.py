@@ -41,6 +41,7 @@ def test_summary_items_and_call_records_are_returned() -> None:
     assert response.status_code == 200
     data = response.json()
     assert data["promptVersion"] == "summary-1"
+    assert data["expressionRulesVersion"] == "expr-1"
     assert data["model"] == "fake-model"
     t1, f1 = data["items"]
     assert t1 == {

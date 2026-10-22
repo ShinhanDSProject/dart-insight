@@ -125,13 +125,16 @@ export function SummaryTab({ analysis, onOpenFinancial, onOpenText, onOpenSource
           <h2 className="panel__title" id="summary-review">
             검토 필요 {data.reviewNeededCount}건
           </h2>
-          <p className="panel__note">근거를 확인하지 못해 요약에 넣지 않은 항목이에요. 원래 결과에서 직접 확인해 주세요.</p>
+          <p className="panel__note">
+            근거를 확인하지 못했거나 투자 권유로 읽힐 수 있는 표현이 있어 요약에 넣지 않은 항목이에요. 원래 결과에서 직접 확인해 주세요.
+          </p>
           <ul className="summary-review">
             {data.reviewNeeded.map((review) => {
               const openReview = opener(review.target)
               return (
                 <li key={`${review.itemNo}-${review.reason ?? ''}`}>
                   <span className="badge badge--attention">{kindLabel(review.kind)}</span>
+                  {review.blockedRules.length > 0 && <span className="badge badge--attention">표현 검사</span>}
                   <span>{review.reason ?? '근거를 확인하지 못했어요.'}</span>
                   {openReview && (
                     <button type="button" className="link-button" onClick={openReview}>
