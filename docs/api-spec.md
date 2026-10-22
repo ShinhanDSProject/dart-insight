@@ -8,7 +8,7 @@
 | --- | --- |
 | 상태 | 초안 (M1 범위) |
 | 담당 | 백엔드·프론트 |
-| 마지막 수정 | 2026-10-21 |
+| 마지막 수정 | 2026-10-22 |
 | 관련 문서 | ERD(`docs/erd.md`), [화면 와이어프레임](https://app.notion.com/p/c0f540f74d92496c9c20f23867afc15a), 이슈 #47 |
 
 ## 0. 공통
@@ -470,13 +470,79 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 
 ## 3. 내부 API (Spring Boot → FastAPI)
 
-외부에 열지 않습니다. 요청 헤더에 항상 `X-Trace-Id`를 넣습니다. 에러 형식은 외부 API와 같습니다.
+외부에 열지 않습니다. 요청 헤더에 항상 `X-Trace-Id`를 넣습니다. 에러 형식은 외부 API와 같습니다. AI 서버만 쓰는 에러 코드는 `AI_`로 시작합니다(아래 표).
 
 | 메서드 | 경로 | 설명 | 이슈 | 상태 |
 | --- | --- | --- | --- | --- |
 | GET | `/internal/health` | AI 서버 상태 | #48 (0.5) | 초안 |
 | GET | `/health` | AI 서버 자체 상태(사람·배포 도구가 확인용으로 씀. backend는 `/internal/health`를 부름) | #44 (0.1) | 초안 |
-| POST | `/internal/...` | 원문 구조화·문장 변경 탐지·요약 | 4.2, 2.5, 3.2 | M2에서 정함 |
+| GET | `/internal/documents/parser` | 원문 파서 버전 | #28 (4.2) | 초안 |
+| POST | `/internal/documents/{rceptNo}/structure` | 원문 ZIP 구조화 | #28 (4.2) | 초안 |
+| POST | `/internal/...` | 문장 변경 탐지·요약 | 2.5, 3.2 | M2에서 정함 |
+
+| code | 상태 | 뜻 |
+| --- | --- | --- |
+| `AI_DOCUMENT_TOO_LARGE` | 413 | 원문 ZIP이 80MB를 넘음 |
+
+### GET /internal/documents/parser — 원문 파서 버전
+
+```json
+{ "parserVersion": "dart-xml-1" }
+```
+
+backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 다시 구조화합니다(ERD `report_document`).
+
+### POST /internal/documents/{rceptNo}/structure — 원문 구조화
+
+- 이슈: #28 (4.2)
+- 본문은 OpenDART `document.xml`에서 받은 ZIP 그대로입니다(`Content-Type: application/zip`).
+- ZIP 안의 `{rceptNo}.xml`만 읽고, 붙은 파일(`_00760` 등 감사보고서)은 `attachments`에 이름만 남깁니다.
+- 원문 XML은 형식이 엄격하지 않아 관대하게 읽습니다. 이스케이프 안 된 `&`만 고치고, 표 셀(TD·TH·TE·TU)·문단(P) 태그 수를 원문과 대조합니다. 다르면 `PARTIAL`과 경고입니다.
+- 읽지 못해도 에러가 아니라 200과 `status: FAILED`, `failureCode`·`failureMessage`입니다.
+
+**응답 200**
+
+```json
+{
+  "rceptNo": "20260814001234",
+  "parserVersion": "dart-xml-1",
+  "status": "STRUCTURED",
+  "failureCode": null,
+  "failureMessage": null,
+  "mainFile": "20260814001234.xml",
+  "encoding": "utf-8",
+  "documentName": "반기보고서",
+  "companyName": "삼성전자",
+  "attachments": ["20260814001234_00760.xml"],
+  "warnings": [],
+  "counts": { "sections": 120, "paragraphs": 2100, "tables": 640, "cells": 25010, "sourceCells": 25010 },
+  "sections": [
+    {
+      "sectionNo": 3, "parentNo": 2, "level": 2, "title": "1. 사업의 개요", "ref": "D-0-2-1-0", "cover": false,
+      "blocks": [
+        { "blockNo": 41, "type": "PARAGRAPH", "text": "당사는 …" },
+        { "blockNo": 42, "type": "TABLE", "text": "구분 | 금액\n매출 | 1,000",
+          "rows": [[{ "text": "구분", "header": true, "colspan": 2 }], [{ "text": "매출" }, { "text": "1,000" }]] }
+      ]
+    }
+  ]
+}
+```
+
+| 필드 | 설명 |
+| --- | --- |
+| `status` | `STRUCTURED` 끝까지 읽음, `PARTIAL` 일부 빠졌을 수 있음(경고에 사유), `FAILED` 읽지 못함 |
+| `failureCode` | `INVALID_ZIP`, `MAIN_FILE_NOT_FOUND`, `FILE_TOO_LARGE`(본문 파일을 풀면 300MB 초과), `UNSUPPORTED_FORMAT`(목차를 찾지 못함), `PARSE_ERROR` |
+| `warnings[].code` | `CELL_COUNT_MISMATCH`, `PARAGRAPH_COUNT_MISMATCH`, `ENCODING_REPLACED`(이 셋이면 `PARTIAL`), `UNTITLED_SECTION`, `NO_BODY_TAG` |
+| `sections[].level` | `SECTION-n`의 n. 표지는 1(`cover: true`), 목차 밖 본문은 0 |
+| `sections[].ref` | 원문 TITLE의 `AASSOCNOTE` 값. 없으면 null |
+| `blocks[].blockNo` | 문서 전체에서 순서대로 1부터. 근거 ID `{rceptNo}#B{blockNo}`의 기준 |
+| `blocks[].rows` | 표 셀. `header`(TH), `colspan`·`rowspan`은 기본값이 아니면만 들어 있음 |
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | 접수번호가 14자리 숫자가 아님, 본문이 비어 있음 |
+| 413 | `AI_DOCUMENT_TOO_LARGE` | ZIP이 80MB를 넘음 |
 
 ## 4. 에러 코드
 
