@@ -32,11 +32,11 @@ export function countFor(counts: TextChangeCounts, type: ChangeType | null): num
 export function priorityLabel(level: PriorityLevel): string {
   switch (level) {
     case 'HIGH':
-      return '중요도 높음'
+      return '우선순위 높음'
     case 'MEDIUM':
-      return '중요도 중간'
+      return '우선순위 중간'
     case 'LOW':
-      return '중요도 낮음'
+      return '우선순위 낮음'
     case 'UNRANKED':
       return '판단 유보'
   }
@@ -50,7 +50,7 @@ export function missingSideLabel(type: ChangeType, side: 'previous' | 'current')
 }
 
 export const DELETED_NOTE = '문서에서 빠졌다는 뜻이에요. 실제 사업·계약이 끝났다고 단정하지 않아요.'
-export const PRIORITY_NOTE = '중요도는 먼저 확인할 순서를 정한 잠정 규칙이며, 투자 판단이 아니에요.'
+export const PRIORITY_NOTE = '우선순위는 먼저 확인할 순서를 정한 잠정 규칙이며, 투자 판단이 아니에요.'
 
 /** 문장 비교 상태 안내. 문제가 없으면 null */
 export function textStatusNotice(status: TextStatus | null, message: string | null): string | null {

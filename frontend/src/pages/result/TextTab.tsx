@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Analysis } from '../../api/analyses'
 import {
   getTextChanges,
@@ -35,15 +35,18 @@ interface TextTabProps {
 }
 
 /**
- * W-03 ③ 문장·내용 변화(3.9). 추가·삭제·수정·검토 필요로 거르고, 기본은 중요한 순서(2.6)로 보여 준다.
+ * W-03 ③ 문장·내용 변화(3.9). 추가·삭제·수정·검토 필요로 거르고, 기본은 우선순위 순서(2.6)로 보여 준다.
  * 문장을 비교하지 못했으면 '변경 없음'이 아니라 사유를 보여 준다. 짝짓지 못한 항목은 숨기지 않고 '검토 필요'로 둔다.
  */
 export function TextTab({ analysis, type, sort, onChange }: TextTabProps) {
   const [state, setState] = useState<ListState>({ kind: 'loading' })
   const [retry, setRetry] = useState(0)
+  // 거르기·정렬이 바뀌면 늘어난다. '더 보기' 응답이 늦게 와도 지금 목록을 덮지 않게 한다
+  const generation = useRef(0)
 
   useEffect(() => {
     let cancelled = false
+    const gen = generation
     setState({ kind: 'loading' })
     getTextChanges(analysis.analysisId, { type, sort, page: 0, size: PAGE_SIZE })
       .then((data) => {
@@ -54,6 +57,7 @@ export function TextTab({ analysis, type, sort, onChange }: TextTabProps) {
       })
     return () => {
       cancelled = true
+      gen.current += 1
     }
   }, [analysis.analysisId, type, sort, retry])
 
@@ -66,11 +70,14 @@ export function TextTab({ analysis, type, sort, onChange }: TextTabProps) {
   async function loadMore() {
     if (state.kind !== 'done' || state.more === 'loading') return
     const current = state
+    const started = generation.current
     setState({ ...current, more: 'loading' })
     try {
       const next = await getTextChanges(analysis.analysisId, { type, sort, page: current.data.page + 1, size: PAGE_SIZE })
+      if (generation.current !== started) return
       setState({ kind: 'done', data: next, items: [...current.items, ...next.items], more: 'idle' })
     } catch (error) {
+      if (generation.current !== started) return
       setState({ ...current, more: { error } })
     }
   }
@@ -94,7 +101,9 @@ export function TextTab({ analysis, type, sort, onChange }: TextTabProps) {
                 type="button"
                 className={`pill${option.value === 'REVIEW_NEEDED' ? ' pill--attention' : ''}`}
                 aria-pressed={type === option.value}
-                onClick={() => onChange({ type: option.value })}
+                onClick={() => {
+                  if (type !== option.value) onChange({ type: option.value })
+                }}
               >
                 {option.label}
                 {counts && <span className="pill__count"> {countFor(counts, option.value)}</span>}
@@ -102,13 +111,28 @@ export function TextTab({ analysis, type, sort, onChange }: TextTabProps) {
             ))}
           </div>
           <div className="segmented" role="group" aria-label="정렬">
-            <button type="button" className="segmented__item" aria-pressed={sort === 'priority'} onClick={() => onChange({ sort: 'priority' })}>
-              중요한 순서
+            <button
+              type="button"
+              className="segmented__item"
+              aria-pressed={sort === 'priority'}
+              onClick={() => {
+                if (sort !== 'priority') onChange({ sort: 'priority' })
+              }}
+            >
+              우선순위 순
             </button>
-            <button type="button" className="segmented__item" aria-pressed={sort === 'document'} onClick={() => onChange({ sort: 'document' })}>
+            <button
+              type="button"
+              className="segmented__item"
+              aria-pressed={sort === 'document'}
+              onClick={() => {
+                if (sort !== 'document') onChange({ sort: 'document' })
+              }}
+            >
               문서 순서
             </button>
           </div>
+          <p className="panel__note text-controls__note">{PRIORITY_NOTE}</p>
         </div>
       )}
 
@@ -141,9 +165,11 @@ export function TextTab({ analysis, type, sort, onChange }: TextTabProps) {
           {typeof state.more === 'object' && <ErrorState error={state.more.error} onRetry={() => void loadMore()} />}
         </>
       )}
-      <p className="panel__note">
-        {PRIORITY_NOTE} 원문에서 문단·표 단위로 비교했고, 숫자만 바뀐 표는 '재무 수치 변화'와 겹쳐 뒤로 미뤘어요.
-      </p>
+      {!failed && (
+        <p className="panel__note">
+          원문에서 문단·표 단위로 비교했고, 숫자만 바뀐 표는 '재무 수치 변화'와 겹쳐 뒤로 미뤘어요.
+        </p>
+      )}
     </section>
   )
 }
@@ -182,7 +208,7 @@ function ChangeCard({ item, analysis }: { item: TextChangeItem; analysis: Analys
       {item.changeType === 'DELETED' && <p className="panel__note">{DELETED_NOTE}</p>}
       {item.priority && item.priority.reasons.length > 0 && (
         <details className="change-card__why">
-          <summary>중요도를 정한 규칙</summary>
+          <summary>우선순위를 정한 규칙</summary>
           <ul>
             {item.priority.reasons.map((reason) => (
               <li key={reason}>{reason}</li>

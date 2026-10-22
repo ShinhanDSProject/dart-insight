@@ -12,7 +12,7 @@ describe('textLabels', () => {
   })
 
   it('우선순위는 확인 순서 문구로만 보여 준다', () => {
-    expect(priorityLabel('HIGH')).toBe('중요도 높음')
+    expect(priorityLabel('HIGH')).toBe('우선순위 높음')
     expect(priorityLabel('UNRANKED')).toBe('판단 유보')
   })
 

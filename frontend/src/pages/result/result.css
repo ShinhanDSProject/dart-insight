@@ -360,3 +360,7 @@
   border-color: var(--color-attention);
   color: var(--color-attention);
 }
+
+.text-controls__note {
+  flex-basis: 100%;
+}
