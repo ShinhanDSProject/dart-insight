@@ -1,4 +1,5 @@
 import { apiGet } from './client'
+import { endpoints } from './endpoints'
 import type { AmountBasis, FsDiv } from './comparability'
 
 export type CalcStatus =
@@ -50,7 +51,7 @@ export interface FinancialChangeList {
 }
 
 export function getFinancialChanges(analysisId: number, sjDiv: SjDiv, changedOnly: boolean): Promise<FinancialChangeList> {
-  return apiGet(`/api/analyses/${analysisId}/financial-changes`, { sjDiv, changedOnly })
+  return apiGet(endpoints.financialChanges(analysisId), { sjDiv, changedOnly })
 }
 
 export interface ValueSource {
@@ -77,5 +78,5 @@ export interface FinancialChangeDetail extends FinancialChangeItem {
 }
 
 export function getFinancialChange(analysisId: number, changeId: number): Promise<FinancialChangeDetail> {
-  return apiGet(`/api/analyses/${analysisId}/financial-changes/${changeId}`)
+  return apiGet(endpoints.financialChange(analysisId, changeId))
 }

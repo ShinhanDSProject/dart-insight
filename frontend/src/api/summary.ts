@@ -1,4 +1,5 @@
 import { apiGet } from './client'
+import { endpoints } from './endpoints'
 import type { DocumentSide } from './documents'
 import type { SjDiv } from './results'
 import type { TextStatus } from './textChanges'
@@ -64,5 +65,5 @@ export interface Summary {
 }
 
 export function getSummary(analysisId: number): Promise<Summary> {
-  return apiGet(`/api/analyses/${analysisId}/summary`)
+  return apiGet(endpoints.summary(analysisId))
 }

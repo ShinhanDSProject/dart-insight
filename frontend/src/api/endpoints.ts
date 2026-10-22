@@ -1,0 +1,28 @@
+/**
+ * 화면이 부르는 backend API 경로(docs/api-spec.md 1장). 경로 문자열은 여기에만 둔다.
+ * 경로 변수는 seg()로 감싸 항상 인코딩한다. 쿼리 문자열은 client.ts의 apiGet이 붙인다.
+ */
+
+const seg = (value: string | number) => encodeURIComponent(String(value))
+
+const analysis = (analysisId: string | number) => `/api/analyses/${seg(analysisId)}`
+
+export const endpoints = {
+  companies: () => '/api/companies',
+  company: (corpCode: string) => `/api/companies/${seg(corpCode)}`,
+  companyReports: (corpCode: string) => `/api/companies/${seg(corpCode)}/reports`,
+  reportPairs: (corpCode: string) => `/api/companies/${seg(corpCode)}/report-pairs`,
+  report: (rceptNo: string) => `/api/reports/${seg(rceptNo)}`,
+  comparabilityChecks: () => '/api/comparability-checks',
+  analyses: () => '/api/analyses',
+  analysis,
+  summary: (analysisId: number) => `${analysis(analysisId)}/summary`,
+  financialChanges: (analysisId: number) => `${analysis(analysisId)}/financial-changes`,
+  financialChange: (analysisId: number, changeId: number) =>
+    `${analysis(analysisId)}/financial-changes/${seg(changeId)}`,
+  textChanges: (analysisId: number) => `${analysis(analysisId)}/text-changes`,
+  textChange: (analysisId: number, changeId: number) => `${analysis(analysisId)}/text-changes/${seg(changeId)}`,
+  document: (analysisId: number, side: string) => `${analysis(analysisId)}/documents/${seg(side)}`,
+  documentSection: (analysisId: number, side: string, sectionNo: number) =>
+    `${analysis(analysisId)}/documents/${seg(side)}/sections/${seg(sectionNo)}`,
+}
