@@ -23,7 +23,7 @@ import org.hibernate.type.SqlTypes;
 public class Analysis {
 
     /** 계산 규칙 버전. 비교 규칙이나 계산 방법이 바뀌면 올려서 옛 결과와 섞지 않는다. */
-    public static final String CURRENT_VERSION = "m1-financial-1";
+    public static final String CURRENT_VERSION = "m2-1";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -69,6 +69,14 @@ public class Analysis {
 
     @Column(name = "request_trace_id", length = 64)
     private String requestTraceId;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(name = "text_status", length = 20)
+    private TextStatus textStatus;
+
+    @Column(name = "text_message", length = 500)
+    private String textMessage;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -123,6 +131,12 @@ public class Analysis {
 
     public void recordFsDiv(FsDiv fsDiv) {
         this.fsDiv = fsDiv;
+    }
+
+    /** 문장 비교 결과 상태. 결과를 저장하는 트랜잭션에서 완료와 함께 남긴다. */
+    void recordText(TextStatus status, String message) {
+        this.textStatus = status;
+        this.textMessage = message == null || message.length() <= 500 ? message : message.substring(0, 500);
     }
 
     /** 결과를 저장한 같은 트랜잭션 안에서만 부른다(RUNNING → COMPLETED). */
@@ -195,6 +209,15 @@ public class Analysis {
 
     public String getRequestTraceId() {
         return requestTraceId;
+    }
+
+    /** 문장 비교 상태. M1 분석이나 완료 전이면 null */
+    public TextStatus getTextStatus() {
+        return textStatus;
+    }
+
+    public String getTextMessage() {
+        return textMessage;
     }
 
     public LocalDateTime getCreatedAt() {

@@ -30,12 +30,14 @@ public class AnalysisResultService {
 
     private final AnalysisRepository analysisRepository;
     private final FinancialChangeRepository changeRepository;
+    private final TextChangeStore textChangeStore;
     private final Clock clock;
 
     public AnalysisResultService(AnalysisRepository analysisRepository, FinancialChangeRepository changeRepository,
-            Clock clock) {
+            TextChangeStore textChangeStore, Clock clock) {
         this.analysisRepository = analysisRepository;
         this.changeRepository = changeRepository;
+        this.textChangeStore = textChangeStore;
         this.clock = clock;
     }
 
@@ -43,6 +45,8 @@ public class AnalysisResultService {
      * 같은 조건에서 다시 쓸 분석. 완료된 것이 있으면 그것, 없으면 진행 중인 것.
      * 진행 중인데 {@link #STALE_AFTER} 넘게 상태가 바뀌지 않은 분석은 멈춘 것으로 보고 실패로 바꾼 뒤 다시 쓰지 않는다
      * (서버가 실행 도중 내려가는 등). 그래야 같은 조건으로 다시 요청할 수 있다.
+     * 문장 비교가 실패로 끝난 결과도 다시 쓰지 않는다. AI 서버·OpenDART의 일시 장애였으면 다시 요청해 원문을 다시
+     * 비교할 수 있어야 하고, 화면도 '다시 요청하면 비교한다'고 안내한다.
      */
     @Transactional
     public Optional<Analysis> findReusable(String corpCode, String currentRceptNo, String previousRceptNo,
@@ -51,7 +55,8 @@ public class AnalysisResultService {
                 .findByCorpCodeAndCurrentRceptNoAndPreviousRceptNoAndBasisAndAnalysisVersionOrderByIdDesc(corpCode,
                         currentRceptNo, previousRceptNo, basis, Analysis.CURRENT_VERSION);
         Optional<Analysis> completed = same.stream()
-                .filter(a -> a.getStatus() == AnalysisStatus.COMPLETED).findFirst();
+                .filter(a -> a.getStatus() == AnalysisStatus.COMPLETED && a.getTextStatus() != TextStatus.FAILED)
+                .findFirst();
         if (completed.isPresent()) {
             return completed;
         }
@@ -66,14 +71,33 @@ public class AnalysisResultService {
     }
 
     /**
-     * 결과를 저장하고 같은 트랜잭션에서 완료로 바꾼다. 저장하다 실패하면 트랜잭션이 되돌아가 완료가 되지 않는다.
+     * 결과(재무 수치·문장 변경)를 저장하고 같은 트랜잭션에서 완료로 바꾼다.
+     * 저장하다 실패하면 트랜잭션이 되돌아가 완료가 되지 않는다.
      */
     @Transactional
-    public void saveAndComplete(Long analysisId, List<FinancialChangeRow> rows) {
+    public void saveAndComplete(Long analysisId, List<FinancialChangeRow> rows, TextComparison text) {
         Analysis analysis = get(analysisId);
         changeRepository.saveAll(rows.stream().map(row -> FinancialChange.of(analysisId, row)).toList());
         changeRepository.flush();
+        textChangeStore.saveAll(analysisId, text.rows());
+        analysis.recordText(text.status(), text.message());
         analysis.complete(now());
+    }
+
+    /** 재무 수치만 저장하는 경우(문장 비교를 하지 않은 테스트 자료 등). 문장 비교는 실패로 남긴다. */
+    @Transactional
+    public void saveAndComplete(Long analysisId, List<FinancialChangeRow> rows) {
+        saveAndComplete(analysisId, rows, TextComparison.failed("문장을 비교하지 않았어요."));
+    }
+
+    /** 완료된 분석. 완료되지 않았으면 409 */
+    @Transactional(readOnly = true)
+    public Analysis completed(Long analysisId) {
+        Analysis analysis = get(analysisId);
+        if (analysis.getStatus() != AnalysisStatus.COMPLETED) {
+            throw new ApiException(ErrorCode.ANALYSIS_NOT_READY);
+        }
+        return analysis;
     }
 
     @Transactional(readOnly = true)

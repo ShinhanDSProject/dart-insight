@@ -172,6 +172,7 @@ class AnalysisApiTest {
         givenStatements();
         long first = ((Number) JsonPath.read(request(CUR, PREV).andReturn().getResponse().getContentAsString(),
                 "$.analysisId")).longValue();
+        markTextCompared(first);
         int callsAfterFirst = calls();
 
         request(CUR, PREV)
@@ -181,6 +182,32 @@ class AnalysisApiTest {
                 .andExpect(jsonPath("$.reused").value(true));
         assertThat(calls()).isEqualTo(callsAfterFirst);
         assertThat(analysisRepository.count()).isEqualTo(1);
+    }
+
+    @Test
+    void resultWhoseTextComparisonFailedIsNotReused() throws Exception {
+        givenStatements();
+        long first = ((Number) JsonPath.read(request(CUR, PREV).andReturn().getResponse().getContentAsString(),
+                "$.analysisId")).longValue();
+        mockMvc.perform(get("/api/analyses/{id}", first))
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.textStatus").value("FAILED"));
+
+        // 문장 비교가 일시 장애로 실패했을 수 있으므로 같은 요청은 새로 분석한다
+        request(CUR, PREV)
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.reused").value(false))
+                .andExpect(jsonPath("$.analysisId").value(not((int) first)));
+        assertThat(analysisRepository.count()).isEqualTo(2);
+    }
+
+    /**
+     * 이 테스트 클래스는 원문·AI 서버 없이 돌아 문장 비교가 실패(FAILED)로 남는다.
+     * 완료 결과 재사용을 보려고 문장 비교가 끝난 것으로 바꿔 둔다.
+     */
+    private void markTextCompared(long analysisId) {
+        jdbcTemplate.update("UPDATE analysis SET text_status = 'COMPLETED', text_message = NULL WHERE id = ?",
+                analysisId);
     }
 
     @Test
@@ -226,6 +253,7 @@ class AnalysisApiTest {
         mockMvc.perform(get("/api/analyses/{id}", id))
                 .andExpect(jsonPath("$.basis").value("CUSTOM"))
                 .andExpect(jsonPath("$.status").value("COMPLETED"));
+        markTextCompared(id);
         request(CUR, Q3_PREV, "CUSTOM")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.analysisId").value(id))
@@ -241,6 +269,7 @@ class AnalysisApiTest {
 
         mockMvc.perform(get("/api/analyses/{id}", id))
                 .andExpect(jsonPath("$.basis").value("YOY"));
+        markTextCompared(id);
         int callsAfterFirst = calls();
         // 같은 쌍을 전년 동기로 다시 요청해도 새로 분석하지 않는다
         request(CUR, PREV, "YOY")
