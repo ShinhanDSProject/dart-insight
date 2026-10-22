@@ -19,7 +19,7 @@ DB는 MariaDB(정형 데이터)와 Chroma(본문 임베딩)이고, 외부 데이
 
 ## 작업 전에
 
-1. 작업할 GitHub 이슈를 읽습니다. 완료 기준과 범위를 확인하고, 범위 밖의 변경은 하지 않습니다.
+1. 작업할 GitHub 이슈를 읽습니다. 완료 기준과 범위를 확인하고, 범위 밖의 변경은 하지 않습니다. 10/22 이후 만든 기능 이슈(`feature` 레이블)면 '관련 기획서'의 기능 기획서(FS-n)와 수용 기준(AC)도 읽고, 기획서나 결정 로그 링크가 없으면(`기획 필요`) 구현을 시작하지 말고 사람에게 묻습니다. 그 전에 만든 MVP 이슈는 이슈 본문의 완료 기준을 따릅니다.
 2. 바꾸려는 코드 주변의 구조와 이름을 먼저 읽고 맞춥니다.
 3. API나 DB 구조를 바꿔야 하면 코드보다 `docs/api-spec.md`·`docs/erd.md`를 먼저 고치고 사람에게 확인받습니다.
 4. 공시 용어나 OpenDART 코드·필드는 추측하지 않습니다. 노션 도메인 가이드·OpenDART 데이터 가이드나 [OpenDART 개발가이드](https://opendart.fss.or.kr/guide/main.do)로 확인하고, 확인할 수 없으면 사람에게 묻습니다.
@@ -40,6 +40,20 @@ DB는 MariaDB(정형 데이터)와 Chroma(본문 임베딩)이고, 외부 데이
 - 구조에 영향을 주는 결정을 하거나 바꾸면 그 PR에 `docs/adr/`의 ADR을 함께 넣습니다. 무엇이 해당하는지와 쓰는 법은 `docs/adr/README.md`, 템플릿은 `docs/templates/adr.md`에 있습니다.
 - 채택된 ADR의 결정 내용은 고치지 않습니다(오타·링크·파일 경로는 고쳐도 됨). 예외로, 이미 있는 코드를 소급 기록한 ADR이 그 코드와 다르게 적혀 있으면 코드에 맞춰 고칩니다. 결정이 바뀌면 새 ADR을 쓰고, 이전 ADR은 상태 줄만 '대체됨(ADR-NNNN)'으로 바꿉니다.
 - 기획·범위·판단 기준·팀 운영 규칙은 ADR이 아니라 노션 결정 로그에 남깁니다.
+
+## 워크플로우와 단계별 절차
+
+- 새 기능은 노션 [개발 워크플로우](https://app.notion.com/p/401b6afffc6f81ab85f5e0996089ef57) 순서를 따릅니다: 성공 기준(SC) → 기능 기획서(FS-n, 수용 기준 AC) → 사용자 흐름·화면(W-nn) → 설계(ADR·API 명세·ERD) → 이슈(WBS ID) → PR → 검증.
+- 단계별 작업 절차는 `.claude/skills/`에 있습니다. Claude Code는 스킬로 불러 쓰고, 다른 도구도 그 단계의 일을 할 때는 해당 파일을 읽고 따릅니다.
+
+  | 할 일 | 절차 파일 |
+  | --- | --- |
+  | 기능 기획서 초안 | `.claude/skills/feature-spec/SKILL.md` (형식은 같은 폴더 `template.md`) |
+  | 기획서를 이슈로 쪼개기 | `.claude/skills/spec-to-issues/SKILL.md` |
+  | ADR 쓰기 | `.claude/skills/adr/SKILL.md` |
+  | 수용 기준 검증·완료 | `.claude/skills/verify-spec/SKILL.md` |
+
+- 절차를 바꾸면 노션 개발 워크플로우와 기능 기획서 템플릿도 같은 PR에서 맞춥니다.
 
 ## AI 기능 규칙 (ai-server)
 
@@ -113,6 +127,7 @@ PR마다 비밀정보 검사(gitleaks)가 돌고, 바뀐 서비스 폴더의 CI�
 
 ## 참고 문서
 
-- 노션: [개발 기준](https://app.notion.com/p/400b6afffc6f813aac54dd697afc9d8e) · [기능 명세·WBS](https://app.notion.com/p/3ffb6afffc6f80179ffbfd4817a5aaa0) · [화면 와이어프레임](https://app.notion.com/p/c0f540f74d92496c9c20f23867afc15a) · [공시·재무 도메인 가이드](https://app.notion.com/p/3ffb6afffc6f804d85f4d36e6013635c) · [OpenDART 데이터 가이드](https://app.notion.com/p/400b6afffc6f81cc8870ee13d02d8ac1) (팀 워크스페이스 권한 필요)
+- 노션: [개발 기준](https://app.notion.com/p/400b6afffc6f813aac54dd697afc9d8e) · [개발 워크플로우](https://app.notion.com/p/401b6afffc6f81ab85f5e0996089ef57) · [기능 명세·WBS](https://app.notion.com/p/3ffb6afffc6f80179ffbfd4817a5aaa0) · [화면 와이어프레임](https://app.notion.com/p/c0f540f74d92496c9c20f23867afc15a) · [공시·재무 도메인 가이드](https://app.notion.com/p/3ffb6afffc6f804d85f4d36e6013635c) · [OpenDART 데이터 가이드](https://app.notion.com/p/400b6afffc6f81cc8870ee13d02d8ac1) (팀 워크스페이스 권한 필요)
 - 저장소: `docs/project-overview.md`(프로젝트 개요), `docs/adr/`(아키텍처 결정 기록), `docs/monorepo-team-guide.md`(Git·PR 절차), `docs/templates/`(API 명세·ERD·ADR 템플릿)
+- 워크플로우 자료(노션): [성공 기준(SC)](https://app.notion.com/p/401b6afffc6f810bbb4bff6e32ec9172) · [기능 기획서 DB](https://app.notion.com/p/e1f20d0ae0584b6ba85e2b80906814d1) · [결정 로그](https://app.notion.com/p/4ce942f6c0bc4d77a490ceeda26d4a18) · [MVP 요구사항·범위](https://app.notion.com/p/3ffb6afffc6f80c0ad55ce2ffba2d7f6)
 - 작업 이슈: [GitHub Issues](https://github.com/ShinhanDSProject/dart-insight/issues)

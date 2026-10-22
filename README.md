@@ -59,9 +59,11 @@ DART 정기보고서 두 개를 비교해, 바뀐 재무 수치와 문장을 원
 | --- | --- | --- |
 | 프로젝트 허브 | [노션 · 2차 프로젝트](https://app.notion.com/p/3feb6afffc6f818b83e0f23db6591572) | 모든 기획 문서의 시작점 |
 | 프로젝트 개요 | [노션 · 프로젝트 개요·문제 정의](https://app.notion.com/p/3ffb6afffc6f80418b8ac274f0d20e18) | 왜 이 프로젝트를 하는지, 문제 정의와 차별점 |
+| 개발 워크플로우 | [노션 · 개발 워크플로우: 기획부터 완료까지](https://app.notion.com/p/401b6afffc6f81ab85f5e0996089ef57) | 성공 기준 → 기능 기획서 → 흐름·화면 → 설계 → 이슈 → PR → 검증 순서와 틀 |
 | 개발 기준 | [노션 · 개발 기준](https://app.notion.com/p/400b6afffc6f813aac54dd697afc9d8e) | 팀과 역할, 구조 원칙, 이슈 운영, 브랜치·PR, API·데이터 규약, AI 사용 규칙 |
 | 로컬 실행 전 설정 | [노션 · 로컬 실행 전 .env 설정](https://app.notion.com/p/401b6afffc6f812ea3a1f821893e50ad) | `.env` 파일별 변수, 공용 키 넣는 법, 자주 막히는 곳 |
 | AI 도구 규칙 | [`AGENTS.md`](AGENTS.md) | AI 코딩 도구와 팀이 지키는 규칙 요약 (노션 개발 기준에서 옮김) |
+| AI 작업 절차 | [`.claude/skills/`](.claude/skills/) | 기획서 초안, 기획서→이슈, ADR, 수용 기준 검증의 단계별 절차 |
 | 이슈·마일스톤 | [GitHub Issues](https://github.com/ShinhanDSProject/dart-insight/issues) | 작업 이슈, 완료 기준, 진행 상태 |
 | 기능 명세·WBS | [노션 · 기능 명세·WBS](https://app.notion.com/p/3ffb6afffc6f80179ffbfd4817a5aaa0) | 일정·범위, 결정 로그 |
 | 화면 설계 | [노션 · 사용자 흐름·화면 와이어프레임](https://app.notion.com/p/c0f540f74d92496c9c20f23867afc15a) | 화면 W-01~W-03, 예외·상태 처리 |
@@ -79,6 +81,7 @@ DART 정기보고서 두 개를 비교해, 바뀐 재무 수치와 문장을 원
 ## 협업 규칙 요약
 
 - 이슈 하나에 브랜치 하나: `feature/{이슈ID}-{짧은-영문-이름}` (예: `feature/2.4-financial-compare`), 문서만 바꿀 때는 `docs/{이름}`, 설정만 바꿀 때는 `chore/{이름}`
+- 새 기능은 노션 '기능 기획서'(FS-n)에서 시작합니다. 10/22 이후 만드는 기능 이슈는 '관련 기획서'에 기획서나 범위를 정한 결정 로그 링크를 적고, 없으면 `기획 필요` 레이블을 붙입니다.
 - PR 제목은 `[WBS ID] 이슈 제목`, 본문은 [PR 템플릿](.github/pull_request_template.md)을 채우고 `closes #이슈번호`를 적습니다. 새 이슈는 '작업 이슈' 템플릿으로 만듭니다.
 - `main`은 PR로만 바꾸고, rebase merge로 병합합니다. PR의 커밋이 그대로 main 기록이 되므로 커밋 메시지 규칙을 지킵니다. 선행 이슈 PR 위에 쌓인 PR은 아래(선행) PR부터 순서대로 병합합니다.
 - PR마다 비밀정보 검사(gitleaks)가 돌고, 바뀐 서비스 폴더의 빌드·린트·테스트가 자동으로 돕니다.
