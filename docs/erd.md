@@ -24,7 +24,7 @@
 | `report_document` | 보고서 원문 구조화 기록(상태·파서 버전·경고) | 4.2 (#28) | M2 |
 | `document_section` | 원문 목차(섹션) | 4.2 (#28) | M2 |
 | `document_block` | 원문 문단·표와 위치 | 4.2 (#28) | M2 |
-| `text_change` | 두 보고서의 문장·표 변경과 위치 | 2.5 (#16) | M2 |
+| `text_change` | 두 보고서의 문장·표 변경과 위치, 확인 우선순위 | 2.5 (#16), 2.6 (#17) | M2 |
 | `summary_item` 외 | 요약 | 3.2 | M2 (5절에 자리만) |
 
 ## 2. 관계도
@@ -99,6 +99,7 @@ erDiagram
         bigint analysis_id FK
         int change_no "문서 순서"
         varchar change_type "ADDED DELETED MODIFIED REVIEW_NEEDED"
+        varchar priority "HIGH MEDIUM LOW UNRANKED"
         int previous_block_no
         int current_block_no
     }
@@ -330,6 +331,10 @@ API는 사업연도·보고서 코드마다 최신 공시 하나의 값만 줍�
 | `previous_text`, `current_text` | MEDIUMTEXT | | 예 | 변경 전·후 글 |
 | `similarity` | DECIMAL(6,4) | | 예 | 수정일 때 두 글이 비슷한 정도(0~1) |
 | `review_reason` | VARCHAR(500) | | 예 | 검토 필요 사유 |
+| `priority` | VARCHAR(10) | | 예 | 확인 우선순위(2.6). `HIGH`, `MEDIUM`, `LOW`, `UNRANKED`(판단 유보, 검토 필요 항목). 투자 판단이 아님 |
+| `priority_score` | INT | | 예 | 적용한 규칙 점수의 합. `UNRANKED`면 null |
+| `priority_reasons` | VARCHAR(1000) | | 예 | 적용한 규칙(한 줄에 하나, 예: `사업의 내용 섹션 +30`) |
+| `priority_version` | VARCHAR(20) | | 예 | 우선순위 규칙 버전(잠정 규칙 `priority-1`) |
 
 ## 4. 인덱스·제약
 

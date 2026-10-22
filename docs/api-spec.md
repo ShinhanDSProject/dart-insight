@@ -464,8 +464,10 @@
 
 ### GET /api/analyses/{analysisId}/text-changes — 문장·표 변경 목록
 
-- 이슈: #16 (2.5) · 화면: W-03 ③
-- 완료된 분석의 그 분석 결과만 돌려줍니다. 순서는 현재 보고서의 문서 순서입니다(짝이 없는 이전 보고서 항목은 이전 보고서에서 있던 자리).
+- 이슈: #16 (2.5), #17 (2.6) · 화면: W-03 ③
+- 완료된 분석의 그 분석 결과만 돌려줍니다.
+- 기본 순서는 확인 우선순위(2.6)입니다. 점수가 높은 것부터, 같으면 문서 순서이고, 순위를 매기지 않은 항목(`UNRANKED`, 판단 유보)은 뒤에 문서 순서로 둡니다. 우선순위는 확인할 순서이며 투자 판단이 아닙니다.
+- `sort=document`면 현재 보고서의 문서 순서입니다(짝이 없는 이전 보고서 항목은 이전 보고서에서 있던 자리).
 - 문단·표 하나가 변경 하나입니다. 섹션이 통째로 한쪽에만 있으면 그 섹션의 블록이 모두 추가 또는 삭제입니다.
 - 같은 이름의 항목 수가 두 보고서에서 달라 짝을 정하지 못한 섹션은 숨기지 않고 `REVIEW_NEEDED` 하나로 남깁니다.
 - `textStatus`가 `FAILED`면 `items`가 비어 있고 `textMessage`에 사유가 있습니다. 화면은 '변경 없음'으로 보여 주지 않습니다.
@@ -475,6 +477,7 @@
 | 위치 | 이름 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- | --- |
 | query | `type` | string | 아니오 | `ADDED`, `DELETED`, `MODIFIED`, `REVIEW_NEEDED`. 없으면 전체 |
+| query | `sort` | string | 아니오 | `priority`(기본) 확인 우선순위, `document` 문서 순서 |
 | query | `page` | int | 아니오 | 0부터. 기본 0 |
 | query | `size` | int | 아니오 | 1~100. 기본 20 |
 
@@ -486,6 +489,7 @@
   "textStatus": "COMPLETED",
   "textMessage": null,
   "type": null,
+  "sort": "priority",
   "page": 0,
   "size": 20,
   "totalItems": 57,
@@ -503,7 +507,12 @@
       "previousPreview": "…당사는 메모리 반도체를 만듭니다.",
       "currentPreview": "…당사는 메모리 반도체와 파운드리 사업을 합니다.",
       "similarity": 0.6818,
-      "reviewReason": null
+      "reviewReason": null,
+      "priority": {
+        "level": "HIGH",
+        "score": 60,
+        "reasons": ["사업의 내용 섹션 +30", "수정 +10", "크게 바뀜(비슷한 정도 0.7 미만) +10", "문단 +10"]
+      }
     }
   ]
 }
@@ -511,6 +520,9 @@
 
 | 필드 | 설명 |
 | --- | --- |
+| `priority.level` | `HIGH` 중요도 높음(60점 이상), `MEDIUM` 중간(30점 이상), `LOW` 낮음, `UNRANKED` 판단 유보(검토 필요 항목. 규칙으로 판단할 수 없어 순위를 매기지 않음) |
+| `priority.score` | 적용한 규칙 점수의 합. `UNRANKED`면 null |
+| `priority.reasons` | 적용한 규칙과 점수(잠정 규칙, 5절) |
 | `totalItems` | `type`에 맞는 전체 건수(쪽 나누기 전) |
 | `blockType` | `PARAGRAPH` 문단, `TABLE` 표, `SECTION` 섹션 단위 검토 필요 |
 | `numbersOnly` | 수정인데 숫자만 바뀜(재무 표 등) |
@@ -520,7 +532,7 @@
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
-| 400 | `COMMON_INVALID_INPUT` | `type`·`page`·`size`가 범위 밖 |
+| 400 | `COMMON_INVALID_INPUT` | `type`·`sort`·`page`·`size`가 범위 밖 |
 | 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 ID |
 | 409 | `ANALYSIS_NOT_READY` | 분석이 아직 완료되지 않음 |
 
@@ -644,11 +656,14 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
       "changeType": "MODIFIED", "blockType": "PARAGRAPH", "sectionStatus": "MATCHED",
       "sectionTitle": "1. 사업의 개요", "sectionPath": "II. 사업의 내용 > 1. 사업의 개요",
       "previous": { "sectionNo": 3, "blockNo": 41 }, "current": { "sectionNo": 3, "blockNo": 44 },
-      "numbersOnly": false, "similarity": 0.6818, "reviewReason": null
+      "numbersOnly": false, "similarity": 0.6818, "reviewReason": null,
+      "priority": { "level": "HIGH", "score": 60, "reasons": ["사업의 내용 섹션 +30", "수정 +10", "크게 바뀜(비슷한 정도 0.7 미만) +10", "문단 +10"] }
     }
   ]
 }
 ```
+
+- `priorityVersion`(응답 맨 위, 예: `priority-1`)은 우선순위 규칙 버전입니다. 각 변경의 `priority`는 확인할 순서를 정하는 점수와 적용한 규칙입니다(2.6, 5절의 잠정 규칙). `REVIEW_NEEDED`는 `UNRANKED`이고 점수가 없습니다.
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
@@ -685,3 +700,4 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | 이전 값 기준 | 이전 보고서의 원래 값 | [이전 값 기준](https://app.notion.com/p/400b6afffc6f81178a7cc9fafd980394) |
 | 비교 가능성 규칙 | 위 `POST /api/comparability-checks`의 재무제표 종류별 비교 규칙 | [비교 가능성 규칙](https://app.notion.com/p/400b6afffc6f8178b798e570fe37828b) |
 | 분석 대상 기업 범위 | 12월 결산 보고서만(사업보고서 기간이 12월인 회사) | [분석 대상 기업 범위](https://app.notion.com/p/400b6afffc6f813cadd6ff8ecce0a780) |
+| 변경 항목 우선순위 규칙(2.6) | 점수 합(`priority-1`): 섹션(사업의 내용 30, 경영진단·투자자 보호·우발·소송 25, 대주주·특수관계 20, 재무에 관한 사항 10, 그 밖 5) + 추가·삭제 20, 수정 10(비슷한 정도 0.7 미만이면 +10) + 문단 10 − 숫자만 바뀜 30 + 새로 들어간 낱말의 핵심어(소송·제재·합병 등) 15씩 최대 2개. 60점 이상 높음, 30점 이상 중간. 검토 필요는 판단 유보 | [공시 변화 평가 규칙과 중립·판단 유보 도입 여부](https://app.notion.com/p/400b6afffc6f8139ae35e8183960af19) |

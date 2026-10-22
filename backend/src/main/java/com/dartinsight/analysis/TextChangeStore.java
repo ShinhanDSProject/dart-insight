@@ -23,7 +23,11 @@ public class TextChangeStore {
     private static final int BATCH = 500;
     private static final String COLUMNS = "id, change_no, change_type, block_type, numbers_only, section_status, "
             + "section_title, section_path, previous_rcept_no, previous_section_no, previous_block_no, previous_text, "
-            + "current_rcept_no, current_section_no, current_block_no, current_text, similarity, review_reason";
+            + "current_rcept_no, current_section_no, current_block_no, current_text, similarity, review_reason, "
+            + "priority, priority_score, priority_reasons, priority_version";
+    /** 우선순위 순: 점수가 높은 것부터, 순위를 매기지 않은 것(판단 유보)은 뒤에 문서 순서로 */
+    private static final String BY_PRIORITY = "CASE WHEN priority_score IS NULL THEN 1 ELSE 0 END, "
+            + "priority_score DESC, change_no";
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -38,18 +42,23 @@ public class TextChangeStore {
             TextChangeRow row = rows.get(i);
             Side p = row.previous();
             Side c = row.current();
+            TextChangeRow.Priority priority = row.priority();
             values.add(new Object[] {analysisId, i + 1, row.changeType(), row.blockType(), row.numbersOnly(),
                     row.sectionStatus(), limit(row.sectionTitle(), 500), limit(row.sectionPath(), 1000),
                     p == null ? null : p.rceptNo(), p == null ? null : p.sectionNo(), p == null ? null : p.blockNo(),
                     p == null ? null : p.text(),
                     c == null ? null : c.rceptNo(), c == null ? null : c.sectionNo(), c == null ? null : c.blockNo(),
                     c == null ? null : c.text(),
-                    row.similarity(), limit(row.reviewReason(), 500)});
+                    row.similarity(), limit(row.reviewReason(), 500),
+                    priority == null ? null : priority.level(), priority == null ? null : priority.score(),
+                    priority == null ? null : limit(String.join("\n", priority.reasons()), 1000),
+                    priority == null ? null : priority.version()});
         }
         String sql = "INSERT INTO text_change (analysis_id, change_no, change_type, block_type, numbers_only, "
                 + "section_status, section_title, section_path, previous_rcept_no, previous_section_no, "
                 + "previous_block_no, previous_text, current_rcept_no, current_section_no, current_block_no, "
-                + "current_text, similarity, review_reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "current_text, similarity, review_reason, priority, priority_score, priority_reasons, "
+                + "priority_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         for (int from = 0; from < values.size(); from += BATCH) {
             jdbcTemplate.batchUpdate(sql, values.subList(from, Math.min(values.size(), from + BATCH)));
         }
@@ -69,14 +78,19 @@ public class TextChangeStore {
         return counts;
     }
 
-    /** 문서 순서로 한 쪽. type이 null이면 전체 */
-    public List<TextChange> page(long analysisId, String type, long offset, int limit) {
+    /**
+     * 한 쪽. type이 null이면 전체.
+     *
+     * @param byPriority true면 우선순위 순({@link #BY_PRIORITY}), false면 문서 순서
+     */
+    public List<TextChange> page(long analysisId, String type, boolean byPriority, long offset, int limit) {
+        String order = " ORDER BY " + (byPriority ? BY_PRIORITY : "change_no") + " LIMIT ? OFFSET ?";
         if (type == null) {
-            return jdbcTemplate.query("SELECT " + COLUMNS + " FROM text_change WHERE analysis_id = ? "
-                    + "ORDER BY change_no LIMIT ? OFFSET ?", TextChangeStore::map, analysisId, limit, offset);
+            return jdbcTemplate.query("SELECT " + COLUMNS + " FROM text_change WHERE analysis_id = ?" + order,
+                    TextChangeStore::map, analysisId, limit, offset);
         }
-        return jdbcTemplate.query("SELECT " + COLUMNS + " FROM text_change WHERE analysis_id = ? AND change_type = ? "
-                + "ORDER BY change_no LIMIT ? OFFSET ?", TextChangeStore::map, analysisId, type, limit, offset);
+        return jdbcTemplate.query("SELECT " + COLUMNS + " FROM text_change WHERE analysis_id = ? AND change_type = ?"
+                + order, TextChangeStore::map, analysisId, type, limit, offset);
     }
 
     public Optional<TextChange> find(long analysisId, long changeId) {
@@ -90,7 +104,18 @@ public class TextChangeStore {
         return new TextChange(rs.getLong("id"), rs.getInt("change_no"), new TextChangeRow(
                 rs.getString("change_type"), rs.getString("block_type"), rs.getBoolean("numbers_only"),
                 rs.getString("section_status"), rs.getString("section_title"), rs.getString("section_path"),
-                previous, current, rs.getBigDecimal("similarity"), rs.getString("review_reason")));
+                previous, current, rs.getBigDecimal("similarity"), rs.getString("review_reason"), priority(rs)));
+    }
+
+    private static TextChangeRow.Priority priority(ResultSet rs) throws SQLException {
+        String level = rs.getString("priority");
+        if (level == null) {
+            return null;
+        }
+        String reasons = rs.getString("priority_reasons");
+        return new TextChangeRow.Priority(level, rs.getObject("priority_score", Integer.class),
+                reasons == null || reasons.isEmpty() ? List.of() : List.of(reasons.split("\n")),
+                rs.getString("priority_version"));
     }
 
     private static Side side(ResultSet rs, String prefix) throws SQLException {

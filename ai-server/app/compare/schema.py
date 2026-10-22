@@ -5,6 +5,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
+from app.compare.priority import PRIORITY_VERSION, Priority
 from app.compare.text_diff import BlockIn, Change, DiffResult, DocumentIn, Position, SectionIn
 
 
@@ -62,7 +63,7 @@ def _position(position: Position | None) -> dict[str, Any] | None:
     return {"sectionNo": position.section_no, "blockNo": position.block_no}
 
 
-def _change(change: Change) -> dict[str, Any]:
+def _change(change: Change, priority: Priority) -> dict[str, Any]:
     return {
         "changeType": change.change_type,
         "blockType": change.block_type,
@@ -74,12 +75,18 @@ def _change(change: Change) -> dict[str, Any]:
         "numbersOnly": change.numbers_only,
         "similarity": change.similarity,
         "reviewReason": change.review_reason,
+        "priority": {
+            "level": priority.level,
+            "score": priority.score,
+            "reasons": priority.reasons,
+        },
     }
 
 
-def result_json(result: DiffResult) -> dict[str, Any]:
+def result_json(result: DiffResult, priorities: list[Priority]) -> dict[str, Any]:
     return {
         "diffVersion": result.diff_version,
+        "priorityVersion": PRIORITY_VERSION,
         "sectionCounts": result.section_counts,
-        "changes": [_change(c) for c in result.changes],
+        "changes": [_change(c, p) for c, p in zip(result.changes, priorities, strict=True)],
     }
