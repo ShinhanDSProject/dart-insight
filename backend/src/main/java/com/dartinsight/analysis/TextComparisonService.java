@@ -1,6 +1,7 @@
 package com.dartinsight.analysis;
 
 import com.dartinsight.aiserver.AiServerClient;
+import com.dartinsight.aiserver.AiServerPaths;
 import com.dartinsight.analysis.TextChangeRow.Side;
 import com.dartinsight.document.DocumentBlock;
 import com.dartinsight.document.DocumentService;
@@ -60,7 +61,7 @@ public class TextComparisonService {
                 document(previousDocument, previousBlocks), document(currentDocument, currentBlocks));
         TextChangeDiffResponse diff;
         try {
-            diff = aiServerClient.postJson("/internal/text-changes", request, TextChangeDiffResponse.class);
+            diff = aiServerClient.postJson(AiServerPaths.TEXT_CHANGES, request, TextChangeDiffResponse.class);
         } catch (RuntimeException e) {
             log.warn("문장 비교 실패 {} / {}", previous.getRceptNo(), current.getRceptNo(), e);
             return TextComparison.failed("AI 서버가 응답하지 않아 문장을 비교하지 못했어요. 다시 요청해 주세요.");
