@@ -54,7 +54,7 @@ DB는 MariaDB(정형 데이터)와 Chroma(본문 임베딩)이고, 외부 데이
 
 ## API·데이터 규칙
 
-- 경로는 `/api/` 아래 소문자 복수형 명사입니다(예: `GET /api/companies?query=`). Spring Boot와 FastAPI 사이 내부 호출은 `/internal/` 아래에 둡니다. 경로 문자열은 서비스마다 한 곳에만 둡니다: frontend는 `frontend/src/api/endpoints.ts`, backend가 부르는 내부 경로는 `AiServerPaths`, backend 컨트롤러는 클래스 단위 `@RequestMapping`. 테스트는 API 약속을 확인하려고 경로를 문자열로 씁니다.
+- 경로는 `/api/` 아래 소문자 복수형 명사입니다(예: `GET /api/companies?query=`). Spring Boot와 FastAPI 사이 내부 호출은 `/internal/` 아래에 둡니다. 경로 문자열은 서비스마다 한 곳에만 둡니다: frontend는 `frontend/src/api/endpoints.ts`, backend 컨트롤러와 웹 설정은 `ApiPaths`(클래스 단위 `@RequestMapping`), backend가 부르는 내부 경로는 `AiServerPaths`, OpenDART 호출 경로는 `OpenDartPaths`, ai-server 라우터는 `ai-server/app/api/paths.py`. 테스트는 API 약속을 확인하려고 경로를 문자열로 씁니다.
 - 외부 API의 JSON 필드는 camelCase, 날짜는 `YYYY-MM-DD`(한국 시간), 금액은 보고서 통화의 정수(대부분 원)이고 통화(`currency`)를 함께 줍니다.
 - 에러는 4xx·5xx 상태 코드와 아래 형식으로 돌려줍니다. 200 응답에 에러를 담지 않습니다. FastAPI도 같은 형식을 씁니다.
 
