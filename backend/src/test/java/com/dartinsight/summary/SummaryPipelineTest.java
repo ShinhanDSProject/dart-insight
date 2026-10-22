@@ -1,0 +1,313 @@
+package com.dartinsight.summary;
+
+import static com.dartinsight.dart.FinancialJson.account;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.hasSize;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.dartinsight.aiserver.FakeAiServer;
+import com.dartinsight.aiserver.FakeAiServer.Reply;
+import com.dartinsight.aiserver.FakeAiServer.Request;
+import com.dartinsight.company.CompanyImportService;
+import com.dartinsight.dart.CorpCodeEntry;
+import com.dartinsight.dart.FakeOpenDartServer;
+import com.dartinsight.dart.FakeOpenDartServer.Response;
+import com.dartinsight.dart.FinancialJson;
+import com.dartinsight.report.Correction;
+import com.dartinsight.report.Report;
+import com.dartinsight.report.ReportNameParser.ParsedReportName;
+import com.dartinsight.report.ReportRepository;
+import com.dartinsight.report.ReportType;
+import com.dartinsight.support.TestData;
+import com.dartinsight.support.TestDocuments;
+import com.jayway.jsonpath.JsonPath;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.function.Function;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.web.servlet.MockMvc;
+
+/**
+ * 근거 기반 요약(3.2)을 분석 실행 전체로 확인한다: 재무제표·원문(가짜 OpenDART) → 구조화·문장 비교·요약(가짜 AI 서버)
+ * → 결과 저장 → GET /api/analyses/{id}/summary.
+ */
+@SpringBootTest
+@AutoConfigureMockMvc
+class SummaryPipelineTest {
+
+    static final FakeOpenDartServer DART = startDart();
+    static final FakeAiServer AI = new FakeAiServer();
+    static final String STATEMENTS = "/api/fnlttSinglAcntAll.json";
+    static final String DOCUMENT = "/api/document.xml";
+    static final String SUMMARIES = "/internal/summaries";
+    static final String CUR = "20260814000001";
+    static final String PREV = "20250814000001";
+    static final LocalDateTime NOW = LocalDateTime.of(2026, 10, 21, 9, 0);
+
+    @DynamicPropertySource
+    static void servers(DynamicPropertyRegistry registry) {
+        registry.add("app.opendart.base-url", DART::baseUrl);
+        registry.add("app.opendart.read-timeout", () -> "2s");
+        registry.add("app.ai-server.base-url", AI::baseUrl);
+    }
+
+    private static FakeOpenDartServer startDart() {
+        try {
+            return new FakeOpenDartServer();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private CompanyImportService companyImportService;
+
+    @Autowired
+    private ReportRepository reportRepository;
+
+    @Autowired
+    private SummaryStore summaryStore;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @BeforeEach
+    void setUp() {
+        TestData.clearAll(jdbcTemplate);
+        TestDocuments.clearCache();
+        AI.clear();
+        companyImportService.save(List.of(
+                new CorpCodeEntry("00000001", "예시전자", null, "900001", LocalDate.of(2026, 1, 1))));
+        for (int year : new int[] {2025, 2026}) {
+            reportRepository.save(Report.create(year == 2026 ? CUR : PREV, "00000001", "반기보고서 (" + year + ".06)",
+                    new ParsedReportName(ReportType.HALF, year, LocalDate.of(year, 6, 30), Correction.ORIGINAL),
+                    LocalDate.of(year, 8, 14), null, "예시전자", NOW));
+        }
+        DART.on(STATEMENTS,
+                Response.json(FinancialJson.ok(account(CUR, "BS", "ifrs-full_Assets", "자산총계", 1, "1153"),
+                        account(CUR, "IS", "ifrs-full_Revenue", "매출액", 1, "40", "70"))),
+                Response.json(FinancialJson.ok(account(PREV, "BS", "ifrs-full_Assets", "자산총계", 1, "1000"),
+                        account(PREV, "IS", "ifrs-full_Revenue", "매출액", 1, "30", "55"))));
+        DART.on(DOCUMENT, Response.zip(TestDocuments.zip(CUR)));
+        AI.on("/internal/documents/parser", Reply.ok("{\"parserVersion\":\"dart-xml-1\"}"));
+        AI.on("/internal/documents/" + PREV + "/structure", Reply.ok(document(PREV, "당사는 메모리를 만듭니다.",
+                "매출액은 줄었습니다.")));
+        AI.on("/internal/documents/" + CUR + "/structure", Reply.ok(document(CUR, "당사는 메모리와 파운드리를 만듭니다.",
+                "매출액은 메모리 수요 회복으로 늘었습니다.")));
+        AI.on("/internal/text-changes", Reply.ok("""
+                {"diffVersion":"text-diff-1","priorityVersion":"priority-1","changes":[
+                 {"changeType":"MODIFIED","blockType":"PARAGRAPH","sectionStatus":"MATCHED",
+                  "sectionTitle":"1. 사업의 개요","sectionPath":"II. 사업의 내용 > 1. 사업의 개요",
+                  "previous":{"sectionNo":2,"blockNo":1},"current":{"sectionNo":2,"blockNo":1},
+                  "numbersOnly":false,"similarity":0.7,"reviewReason":null,
+                  "priority":{"level":"MEDIUM","score":50,"reasons":["사업의 내용 섹션 +30"]}}
+                ]}
+                """));
+    }
+
+    /** 사업의 개요(섹션 2)와 경영진단(섹션 3)이 있는 구조화 원문 */
+    private static String document(String rceptNo, String business, String explanation) {
+        return """
+                {"rceptNo":"%s","parserVersion":"dart-xml-1","status":"STRUCTURED","mainFile":"%s.xml",
+                 "warnings":[],"counts":{"cells":0,"sourceCells":0},
+                 "sections":[
+                  {"sectionNo":1,"parentNo":null,"level":1,"title":"II. 사업의 내용","cover":false,"blocks":[]},
+                  {"sectionNo":2,"parentNo":1,"level":2,"title":"1. 사업의 개요","cover":false,"blocks":[
+                    {"blockNo":1,"type":"PARAGRAPH","text":"%s"}]},
+                  {"sectionNo":3,"parentNo":null,"level":1,"title":"IV. 이사의 경영진단 및 분석의견","cover":false,
+                   "blocks":[{"blockNo":2,"type":"PARAGRAPH","text":"%s"}]}
+                 ]}
+                """.formatted(rceptNo, rceptNo, business, explanation);
+    }
+
+    /** 요청에 담긴 ref로 답하는 가짜 요약. textStatus는 문장 변화 항목의 상태 */
+    private static Function<Request, Reply> summaryReply(String textStatus) {
+        return request -> {
+            String body = request.bodyText();
+            String text = JsonPath.<List<String>>read(body, "$.textItems[*].ref").getFirst();
+            String revenue = JsonPath.<List<String>>read(body, "$.financialItems[?(@.accountName=='매출액')].ref")
+                    .getFirst();
+            String assets = JsonPath.<List<String>>read(body, "$.financialItems[?(@.accountName=='자산총계')].ref")
+                    .getFirst();
+            String textItem = "OK".equals(textStatus)
+                    ? """
+                      {"ref":"%s","kind":"TEXT","status":"OK","sentence":"사업의 개요에 파운드리가 더해졌어요.",
+                       "explanation":null,"evidenceIds":["%s#B1"],"reviewReason":null}""".formatted(text, CUR)
+                    : """
+                      {"ref":"%s","kind":"TEXT","status":"REVIEW_NEEDED","sentence":null,"explanation":null,
+                       "evidenceIds":[],"reviewReason":"원문에 없는 숫자(3)를 썼어요."}""".formatted(text);
+            return Reply.ok("""
+                    {"promptVersion":"summary-1","model":"fake-model","generatedAt":"2026-10-22T09:00:00","items":[
+                     %s,
+                     {"ref":"%s","kind":"FINANCIAL","status":"OK","sentence":null,
+                      "explanation":"회사는 메모리 수요 회복으로 매출이 늘었다고 적었어요.","evidenceIds":["%s#B2"]},
+                     {"ref":"%s","kind":"FINANCIAL","status":"OK","sentence":null,"explanation":null,"evidenceIds":[]}
+                    ],"calls":[{"task":"summary","provider":"fake","model":"fake-model","promptVersion":"summary-1",
+                      "calledAt":"2026-10-22T09:00:00","traceId":"trace-summary","inputTokens":120,"outputTokens":40,
+                      "latencyMs":15,"attempt":1,"outcome":"OK","error":null}]}
+                    """.formatted(textItem, revenue, CUR, assets));
+        };
+    }
+
+    private long analyze() throws Exception {
+        String body = mockMvc.perform(post("/api/analyses").contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Trace-Id", "trace-summary")
+                        .content("""
+                                {"corpCode":"00000001","currentRceptNo":"%s","previousRceptNo":"%s","basis":"YOY"}
+                                """.formatted(CUR, PREV)))
+                .andExpect(status().isAccepted())
+                .andReturn().getResponse().getContentAsString();
+        return ((Number) JsonPath.read(body, "$.analysisId")).longValue();
+    }
+
+    @Test
+    void summaryIsSavedWithTheResultAndEvidenceOpensInTheApp() throws Exception {
+        AI.on(SUMMARIES, summaryReply("OK"));
+
+        long id = analyze();
+
+        mockMvc.perform(get("/api/analyses/{id}", id))
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.summaryStatus").value("COMPLETED"));
+        mockMvc.perform(get("/api/analyses/{id}/summary", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.summaryStatus").value("COMPLETED"))
+                .andExpect(jsonPath("$.textStatus").value("COMPLETED"))
+                .andExpect(jsonPath("$.reviewNeededCount").value(0))
+                .andExpect(jsonPath("$.items", hasSize(3)))
+                .andExpect(jsonPath("$.items[0].kind").value("TEXT"))
+                .andExpect(jsonPath("$.items[0].target.type").value("TEXT"))
+                .andExpect(jsonPath("$.items[0].target.changeId").isNumber())
+                .andExpect(jsonPath("$.items[0].aiText").value("사업의 개요에 파운드리가 더해졌어요."))
+                .andExpect(jsonPath("$.items[0].aiGenerated").value(true))
+                .andExpect(jsonPath("$.items[0].ai.model").value("fake-model"))
+                .andExpect(jsonPath("$.items[0].ai.promptVersion").value("summary-1"))
+                .andExpect(jsonPath("$.items[0].ai.generatedAt").value("2026-10-22T09:00:00"))
+                .andExpect(jsonPath("$.items[0].evidence[0].evidenceId").value(CUR + "#B1"))
+                .andExpect(jsonPath("$.items[0].evidence[0].side").value("current"))
+                .andExpect(jsonPath("$.items[0].evidence[0].sectionNo").value(2))
+                .andExpect(jsonPath("$.items[0].evidence[0].blockNo").value(1))
+                .andExpect(jsonPath("$.items[1].kind").value("FINANCIAL"))
+                .andExpect(jsonPath("$.items[1].target.type").value("FINANCIAL"))
+                .andExpect(jsonPath("$.items[1].target.sjDiv").value("IS"))
+                .andExpect(jsonPath("$.items[1].factSentence").value("매출액이 55 원에서 70 원으로 늘었어요(+27.3%)."))
+                .andExpect(jsonPath("$.items[1].explanationStatus").value("FOUND"))
+                .andExpect(jsonPath("$.items[1].evidence[0].sectionNo").value(3))
+                .andExpect(jsonPath("$.items[2].factSentence").value("자산총계가 1,000 원에서 1,153 원으로 늘었어요(+15.3%)."))
+                .andExpect(jsonPath("$.items[2].explanationStatus").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.items[2].aiGenerated").value(false))
+                .andExpect(jsonPath("$.items[2].ai").doesNotExist());
+
+        Request sent = AI.requests(SUMMARIES).getFirst();
+        assertThat(sent.traceId()).isEqualTo("trace-summary");
+        assertThat(sent.bodyText()).contains("\"companyName\":\"예시전자\"")
+                .contains(PREV + "#B1").contains(CUR + "#B1").contains("매출액은 메모리 수요 회복으로 늘었습니다.");
+        assertThat(summaryStore.calls(id)).singleElement().satisfies(call -> {
+            assertThat(call.model()).isEqualTo("fake-model");
+            assertThat(call.inputTokens()).isEqualTo(120);
+            assertThat(call.outcome()).isEqualTo("OK");
+        });
+    }
+
+    @Test
+    void itemsThatFailedTheirChecksAreCountedAsReviewNeeded() throws Exception {
+        AI.on(SUMMARIES, summaryReply("REVIEW_NEEDED"));
+
+        long id = analyze();
+
+        mockMvc.perform(get("/api/analyses/{id}/summary", id))
+                .andExpect(jsonPath("$.summaryStatus").value("PARTIAL"))
+                .andExpect(jsonPath("$.summaryMessage").isNotEmpty())
+                .andExpect(jsonPath("$.items", hasSize(2)))
+                .andExpect(jsonPath("$.reviewNeededCount").value(1))
+                .andExpect(jsonPath("$.reviewNeeded[0].kind").value("TEXT"))
+                .andExpect(jsonPath("$.reviewNeeded[0].target.changeId").isNumber())
+                .andExpect(jsonPath("$.reviewNeeded[0].reason").value("원문에 없는 숫자(3)를 썼어요."));
+    }
+
+    @Test
+    void withoutDocumentsOnlyCodeMadeFactsAreShownAndTheLlmIsNotCalled() throws Exception {
+        DART.on(DOCUMENT, Response.xml("<result><status>014</status><message>파일이 존재하지 않습니다.</message></result>"));
+        AI.on(SUMMARIES, Reply.error(503, "AI_LLM_UNAVAILABLE", "AI 모델을 쓸 수 없어요."));
+
+        long id = analyze();
+
+        mockMvc.perform(get("/api/analyses/{id}/summary", id))
+                .andExpect(jsonPath("$.summaryStatus").value("COMPLETED"))
+                .andExpect(jsonPath("$.textStatus").value("FAILED"))
+                .andExpect(jsonPath("$.items", hasSize(2)))
+                .andExpect(jsonPath("$.items[0].factSentence").isNotEmpty())
+                .andExpect(jsonPath("$.items[0].explanationStatus").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.items[0].aiGenerated").value(false));
+        assertThat(AI.requests(SUMMARIES)).isEmpty();
+        assertThat(summaryStore.calls(id)).isEmpty();
+    }
+
+    @Test
+    void answersCitingSourcesThatWereNotSentAreNotShown() throws Exception {
+        AI.on(SUMMARIES, request -> {
+            String body = request.bodyText();
+            String text = JsonPath.<List<String>>read(body, "$.textItems[*].ref").getFirst();
+            // 문장 변화는 보내지 않은 원문을 근거로 들고, 같은 항목이 두 번 오고, 매출액 설명은 빠진 응답
+            return Reply.ok("""
+                    {"promptVersion":"summary-1","model":"fake-model","generatedAt":"2026-10-22T09:00:00","items":[
+                     {"ref":"%s","kind":"TEXT","status":"OK","sentence":"다른 보고서 내용","evidenceIds":["%s#B1"]},
+                     {"ref":"%s","kind":"TEXT","status":"OK","sentence":"두 번째","evidenceIds":["%s#B1"]}
+                    ],"calls":[]}
+                    """.formatted(text, "20990101000001", text, CUR));
+        });
+
+        long id = analyze();
+
+        mockMvc.perform(get("/api/analyses/{id}/summary", id))
+                .andExpect(jsonPath("$.summaryStatus").value("PARTIAL"))
+                .andExpect(jsonPath("$.items[?(@.kind == 'TEXT')]", hasSize(0)))
+                .andExpect(jsonPath("$.items[0].factSentence").isNotEmpty())
+                .andExpect(jsonPath("$.items[0].explanationStatus").value("REVIEW_NEEDED"))
+                .andExpect(jsonPath("$.items[1].explanationStatus").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.reviewNeededCount").value(2));
+        assertThat(summaryStore.items(id)).hasSize(3);
+    }
+
+    @Test
+    void emptySummaryAnswerFailsWithTheSummaryCode() throws Exception {
+        AI.on(SUMMARIES, Reply.ok("{\"items\":null}"));
+
+        long id = analyze();
+
+        mockMvc.perform(get("/api/analyses/{id}", id))
+                .andExpect(jsonPath("$.status").value("FAILED"))
+                .andExpect(jsonPath("$.error.code").value("ANALYSIS_SUMMARY_FAILED"));
+    }
+
+    @Test
+    void unavailableLlmFailsTheAnalysisInsteadOfCompletingWithoutSummary() throws Exception {
+        AI.on(SUMMARIES, Reply.error(503, "AI_LLM_UNAVAILABLE", "AI 모델을 쓸 수 없어요."));
+
+        long id = analyze();
+
+        mockMvc.perform(get("/api/analyses/{id}", id))
+                .andExpect(jsonPath("$.status").value("FAILED"))
+                .andExpect(jsonPath("$.error.code").value("ANALYSIS_SUMMARY_FAILED"))
+                .andExpect(jsonPath("$.error.retryable").value(true));
+        assertThat(summaryStore.items(id)).isEmpty();
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM financial_change", Integer.class)).isZero();
+    }
+}

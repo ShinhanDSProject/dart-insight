@@ -1,0 +1,99 @@
+package com.dartinsight.summary;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Repository;
+
+/** 요약(summary_item)과 LLM 호출 기록(llm_call) 저장. 분석 결과와 같은 트랜잭션에서 부른다. */
+@Repository
+public class SummaryStore {
+
+    private final JdbcTemplate jdbcTemplate;
+
+    public SummaryStore(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    /**
+     * @param financialIds 재무 수치 결과 목록 순서 → 저장된 financial_change.id
+     */
+    public void save(long analysisId, SummaryResult summary, List<Long> financialIds) {
+        List<Object[]> items = new ArrayList<>();
+        int itemNo = 0;
+        for (SummaryItemRow row : summary.items()) {
+            Long financialId = row.financialIndex() == null ? null : financialIds.get(row.financialIndex());
+            items.add(new Object[] {analysisId, ++itemNo, row.kind(), row.status(), limit(row.factSentence(), 500),
+                    limit(row.aiText(), 1000), row.explanationStatus(),
+                    limit(String.join(",", row.evidenceIds()), 2000), financialId, row.textChangeNo(),
+                    limit(row.reviewReason(), 500), limit(row.model(), 100), limit(row.promptVersion(), 30),
+                    timestamp(row.generatedAt())});
+        }
+        if (!items.isEmpty()) {
+            jdbcTemplate.batchUpdate("INSERT INTO summary_item (analysis_id, item_no, kind, status, fact_sentence, "
+                + "ai_text, explanation_status, evidence_ids, financial_change_id, text_change_no, review_reason, "
+                    + "model, prompt_version, generated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", items);
+        }
+        List<Object[]> calls = new ArrayList<>();
+        for (LlmCallRow call : summary.calls()) {
+            calls.add(new Object[] {analysisId, limit(call.task(), 30), limit(call.provider(), 30),
+                    limit(call.model(), 100), limit(call.promptVersion(), 30), timestamp(call.calledAt()),
+                    limit(call.traceId(), 64), call.inputTokens(), call.outputTokens(), call.latencyMs(),
+                    call.attempt(), limit(call.outcome(), 20), limit(call.error(), 500)});
+        }
+        if (!calls.isEmpty()) {
+            jdbcTemplate.batchUpdate("INSERT INTO llm_call (analysis_id, task, provider, model, prompt_version, "
+                + "called_at, trace_id, input_tokens, output_tokens, latency_ms, attempt, outcome, error) "
+                    + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", calls);
+        }
+    }
+
+    public List<StoredItem> items(long analysisId) {
+        return jdbcTemplate.query("SELECT item_no, kind, status, fact_sentence, ai_text, explanation_status, "
+                + "evidence_ids, financial_change_id, text_change_no, review_reason, model, prompt_version, "
+                + "generated_at FROM summary_item WHERE analysis_id = ? ORDER BY item_no", SummaryStore::map,
+                analysisId);
+    }
+
+    /** LLM 호출 수와 토큰 합(비용 집계) */
+    public List<LlmCallRow> calls(long analysisId) {
+        return jdbcTemplate.query("SELECT task, provider, model, prompt_version, called_at, trace_id, input_tokens, "
+                + "output_tokens, latency_ms, attempt, outcome, error FROM llm_call WHERE analysis_id = ? ORDER BY id",
+                (rs, i) -> new LlmCallRow(rs.getString("task"), rs.getString("provider"), rs.getString("model"),
+                        rs.getString("prompt_version"), time(rs.getTimestamp("called_at")), rs.getString("trace_id"),
+                        rs.getObject("input_tokens", Integer.class), rs.getObject("output_tokens", Integer.class),
+                        rs.getInt("latency_ms"), rs.getInt("attempt"), rs.getString("outcome"),
+                        rs.getString("error")), analysisId);
+    }
+
+    private static StoredItem map(ResultSet rs, int rowNum) throws SQLException {
+        String evidence = rs.getString("evidence_ids");
+        SummaryItemRow row = new SummaryItemRow(rs.getString("kind"), rs.getString("status"),
+                rs.getString("fact_sentence"), rs.getString("ai_text"), rs.getString("explanation_status"),
+                evidence == null || evidence.isEmpty() ? List.of() : Arrays.asList(evidence.split(",")), null,
+                rs.getObject("text_change_no", Integer.class), rs.getString("review_reason"), rs.getString("model"),
+                rs.getString("prompt_version"), time(rs.getTimestamp("generated_at")));
+        return new StoredItem(rs.getInt("item_no"), row, rs.getObject("financial_change_id", Long.class));
+    }
+
+    private static Timestamp timestamp(LocalDateTime value) {
+        return value == null ? null : Timestamp.valueOf(value);
+    }
+
+    private static LocalDateTime time(Timestamp value) {
+        return value == null ? null : value.toLocalDateTime();
+    }
+
+    private static String limit(String value, int max) {
+        return value == null || value.length() <= max ? value : value.substring(0, max);
+    }
+
+    /** 저장된 요약 한 줄. financialChangeId는 재무 수치 근거(financial_change.id) */
+    public record StoredItem(int itemNo, SummaryItemRow row, Long financialChangeId) {
+    }
+}

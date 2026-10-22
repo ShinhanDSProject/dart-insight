@@ -2,6 +2,7 @@ package com.dartinsight.analysis;
 
 import com.dartinsight.comparison.ComparisonBasis;
 import com.dartinsight.financial.FsDiv;
+import com.dartinsight.summary.SummaryStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -23,7 +24,7 @@ import org.hibernate.type.SqlTypes;
 public class Analysis {
 
     /** 계산 규칙 버전. 비교 규칙이나 계산 방법이 바뀌면 올려서 옛 결과와 섞지 않는다. */
-    public static final String CURRENT_VERSION = "m2-2";
+    public static final String CURRENT_VERSION = "m2-3";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -77,6 +78,14 @@ public class Analysis {
 
     @Column(name = "text_message", length = 500)
     private String textMessage;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(name = "summary_status", length = 20)
+    private SummaryStatus summaryStatus;
+
+    @Column(name = "summary_message", length = 500)
+    private String summaryMessage;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -137,6 +146,12 @@ public class Analysis {
     void recordText(TextStatus status, String message) {
         this.textStatus = status;
         this.textMessage = message == null || message.length() <= 500 ? message : message.substring(0, 500);
+    }
+
+    /** 요약 상태. 결과를 저장하는 트랜잭션에서 완료와 함께 남긴다. */
+    void recordSummary(SummaryStatus status, String message) {
+        this.summaryStatus = status;
+        this.summaryMessage = message == null || message.length() <= 500 ? message : message.substring(0, 500);
     }
 
     /** 결과를 저장한 같은 트랜잭션 안에서만 부른다(RUNNING → COMPLETED). */
@@ -218,6 +233,15 @@ public class Analysis {
 
     public String getTextMessage() {
         return textMessage;
+    }
+
+    /** 요약 상태. 완료 전이면 null */
+    public SummaryStatus getSummaryStatus() {
+        return summaryStatus;
+    }
+
+    public String getSummaryMessage() {
+        return summaryMessage;
     }
 
     public LocalDateTime getCreatedAt() {
