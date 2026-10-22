@@ -23,6 +23,7 @@ DB는 MariaDB(정형 데이터)와 Chroma(본문 임베딩)이고, 외부 데이
 2. 바꾸려는 코드 주변의 구조와 이름을 먼저 읽고 맞춥니다.
 3. API나 DB 구조를 바꿔야 하면 코드보다 `docs/api-spec.md`·`docs/erd.md`를 먼저 고치고 사람에게 확인받습니다.
 4. 공시 용어나 OpenDART 코드·필드는 추측하지 않습니다. 노션 도메인 가이드·OpenDART 데이터 가이드나 [OpenDART 개발가이드](https://opendart.fss.or.kr/guide/main.do)로 확인하고, 확인할 수 없으면 사람에게 묻습니다.
+5. 구조에 관한 코드(서비스 책임, 저장 방식, 외부 연동, 공통 규약, 결과 버전)를 바꾸기 전에 `docs/adr/`의 관련 ADR을 읽습니다. 채택된 ADR과 다르게 해야 하면 코드보다 새 ADR을 먼저 쓰고 사람에게 확인받습니다.
 
 ## 구조 규칙
 
@@ -33,6 +34,12 @@ DB는 MariaDB(정형 데이터)와 Chroma(본문 임베딩)이고, 외부 데이
 - 증감액·증감률·순위 같은 숫자는 코드가 계산합니다.
 - LLM은 ai-server의 한 모듈을 거쳐서만 부릅니다(모델 교체, 호출 기록, 비용 집계를 한 곳에서 하기 위해).
 - 화면에 보이는 수치·문장은 근거 위치(접수번호, 섹션·문단 또는 계정)를 갖습니다. 근거가 없으면 '확인된 설명 없음'이나 '검토 필요'로 표시합니다.
+
+## 아키텍처 결정 기록(ADR)
+
+- 구조에 영향을 주는 결정을 하거나 바꾸면 그 PR에 `docs/adr/`의 ADR을 함께 넣습니다. 무엇을 남기는지와 쓰는 법은 `docs/adr/README.md`, 템플릿은 `docs/templates/adr.md`에 있습니다.
+- 채택된 ADR은 고치지 않습니다. 결정이 바뀌면 새 ADR을 쓰고, 이전 ADR은 상태 줄만 '대체됨(ADR-NNNN)'으로 바꿉니다.
+- 기획·범위·판단 기준·팀 운영 규칙은 ADR이 아니라 노션 결정 로그에 남깁니다.
 
 ## AI 기능 규칙 (ai-server)
 
@@ -88,6 +95,7 @@ DB는 MariaDB(정형 데이터)와 Chroma(본문 임베딩)이고, 외부 데이
 - [ ] 이슈의 완료 기준을 하나씩 확인했다
 - [ ] 비밀정보, 디버그 출력, 쓰지 않는 코드가 남아 있지 않다
 - [ ] API·DB를 바꿨다면 `docs/api-spec.md`·`docs/erd.md`도 같은 PR에서 고쳤다
+- [ ] 구조 결정을 하거나 바꿨다면 `docs/adr/`에 ADR을 추가했다
 - [ ] 와이어프레임의 '예외·상태 처리'에 해당하는 경우도 확인했다
 
 ## 서비스별 명령
@@ -105,5 +113,5 @@ PR마다 비밀정보 검사(gitleaks)가 돌고, 바뀐 서비스 폴더의 CI�
 ## 참고 문서
 
 - 노션: [개발 기준](https://app.notion.com/p/400b6afffc6f813aac54dd697afc9d8e) · [기능 명세·WBS](https://app.notion.com/p/3ffb6afffc6f80179ffbfd4817a5aaa0) · [화면 와이어프레임](https://app.notion.com/p/c0f540f74d92496c9c20f23867afc15a) · [공시·재무 도메인 가이드](https://app.notion.com/p/3ffb6afffc6f804d85f4d36e6013635c) · [OpenDART 데이터 가이드](https://app.notion.com/p/400b6afffc6f81cc8870ee13d02d8ac1) (팀 워크스페이스 권한 필요)
-- 저장소: `docs/project-overview.md`(프로젝트 개요), `docs/monorepo-team-guide.md`(Git·PR 절차), `docs/templates/`(API 명세·ERD 템플릿)
+- 저장소: `docs/project-overview.md`(프로젝트 개요), `docs/adr/`(아키텍처 결정 기록), `docs/monorepo-team-guide.md`(Git·PR 절차), `docs/templates/`(API 명세·ERD·ADR 템플릿)
 - 작업 이슈: [GitHub Issues](https://github.com/ShinhanDSProject/dart-insight/issues)

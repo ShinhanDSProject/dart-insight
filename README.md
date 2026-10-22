@@ -71,6 +71,7 @@ DART 정기보고서 두 개를 비교해, 바뀐 재무 수치와 문장을 원
 | 배경 조사 | [`docs/project-background-research.md`](docs/project-background-research.md) | 유사 서비스, OpenDART, LLM 기법, 규제 조사 |
 | ERD | [`docs/erd.md`](docs/erd.md) | 테이블과 관계. 스키마를 바꾸는 PR에서 함께 고침 |
 | API 명세 | [`docs/api-spec.md`](docs/api-spec.md) | 외부·내부 API, 에러 코드. API를 바꾸는 PR에서 함께 고침 |
+| 아키텍처 결정 기록(ADR) | [`docs/adr/`](docs/adr/README.md) | 구조 결정과 그 이유, 검토한 다른 방법. 구조를 바꾸는 PR에서 함께 추가 |
 | 협업 가이드 | [`docs/monorepo-team-guide.md`](docs/monorepo-team-guide.md) | Git·브랜치·PR 절차 |
 
 노션 페이지는 팀 워크스페이스 권한이 있어야 열립니다.
@@ -82,6 +83,7 @@ DART 정기보고서 두 개를 비교해, 바뀐 재무 수치와 문장을 원
 - `main`은 PR로만 바꾸고, rebase merge로 병합합니다. PR의 커밋이 그대로 main 기록이 되므로 커밋 메시지 규칙을 지킵니다. 선행 이슈 PR 위에 쌓인 PR은 아래(선행) PR부터 순서대로 병합합니다.
 - PR마다 비밀정보 검사(gitleaks)가 돌고, 바뀐 서비스 폴더의 빌드·린트·테스트가 자동으로 돕니다.
 - API나 DB 구조를 바꾸면 `docs/api-spec.md`·`docs/erd.md`도 같은 PR에서 고칩니다. DB 스키마는 Flyway 마이그레이션으로만 바꿉니다.
+- 구조에 영향을 주는 결정(서비스 책임, 저장 방식, 외부 연동, 공통 규약)을 하거나 바꾸면 같은 PR에 [ADR](docs/adr/README.md)을 추가합니다.
 - AI 코딩 도구를 쓸 때는 [`AGENTS.md`](AGENTS.md)를 읽게 합니다. Claude Code는 `CLAUDE.md`를 통해 자동으로 읽습니다.
 - API 키와 `.env`는 커밋하지 않습니다. 저장소에는 `.env.example`만 둡니다. 개발용 OpenDART 키는 팀 공용 키 하나를 `backend/.env`의 `OPENDART_API_KEY`에 넣어 씁니다(받는 곳은 노션 '로컬 실행 전 .env 설정').
 
