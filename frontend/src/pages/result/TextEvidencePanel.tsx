@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Analysis } from '../../api/analyses'
+import type { DocumentSide } from '../../api/documents'
 import { getTextChange, type TextChangeDetail, type TextSource } from '../../api/textChanges'
 import { DartLinkInline } from '../../components/DartLink'
 import { ErrorState, LoadingState } from '../../components/StateView'
@@ -10,17 +11,25 @@ import { wordDiff, type DiffPart } from './wordDiff'
 
 type DetailState = { kind: 'loading' } | { kind: 'done'; detail: TextChangeDetail } | { kind: 'error'; error: unknown }
 
+export interface SourceTarget {
+  side: DocumentSide
+  section: number
+  block: number | null
+}
+
 interface TextEvidencePanelProps {
   analysis: Analysis
   changeId: number
   onClose: () => void
+  /** 앱 안 원문 확인(3.5)에서 이 위치를 연다 */
+  onOpenSource: (target: SourceTarget) => void
 }
 
 /**
  * W-03 ③ 문장·표 근거 상세(3.4). 변경 전·후 원문을 나란히 보여 주고, 각 원문의 보고서·종류·기간·항목·위치를 붙인다.
  * 원문이 없거나 짝을 정하지 못한 항목은 근거가 있는 것처럼 보이지 않게 '검토 필요'로 보여 준다.
  */
-export function TextEvidencePanel({ analysis, changeId, onClose }: TextEvidencePanelProps) {
+export function TextEvidencePanel({ analysis, changeId, onClose, onOpenSource }: TextEvidencePanelProps) {
   const [state, setState] = useState<DetailState>({ kind: 'loading' })
   const [retry, setRetry] = useState(0)
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -65,12 +74,12 @@ export function TextEvidencePanel({ analysis, changeId, onClose }: TextEvidenceP
           messages={{ ANALYSIS_TEXT_CHANGE_NOT_FOUND: '이 분석의 변경 항목이 아니에요. 목록에서 다시 골라 주세요.' }}
         />
       )}
-      {state.kind === 'done' && <EvidenceBody detail={state.detail} />}
+      {state.kind === 'done' && <EvidenceBody detail={state.detail} onOpenSource={onOpenSource} />}
     </section>
   )
 }
 
-function EvidenceBody({ detail }: { detail: TextChangeDetail }) {
+function EvidenceBody({ detail, onOpenSource }: { detail: TextChangeDetail; onOpenSource: (target: SourceTarget) => void }) {
   const { change, previous, current } = detail
   const review = change.changeType === 'REVIEW_NEEDED'
   const bothParagraphs =
@@ -87,6 +96,8 @@ function EvidenceBody({ detail }: { detail: TextChangeDetail }) {
       <div className="evidence__sources text-evidence__sources">
         <SourceSide
           role="이전 보고서"
+          side="previous"
+          onOpenSource={onOpenSource}
           source={previous}
           blockType={change.blockType}
           missing={missingSideLabel(change.changeType, 'previous')}
@@ -95,6 +106,8 @@ function EvidenceBody({ detail }: { detail: TextChangeDetail }) {
         />
         <SourceSide
           role="현재 보고서"
+          side="current"
+          onOpenSource={onOpenSource}
           source={current}
           blockType={change.blockType}
           missing={missingSideLabel(change.changeType, 'current')}
@@ -117,6 +130,8 @@ function EvidenceBody({ detail }: { detail: TextChangeDetail }) {
 
 interface SourceSideProps {
   role: string
+  side: DocumentSide
+  onOpenSource: (target: SourceTarget) => void
   source: TextSource | null
   /** 변경 항목의 종류. 저장된 원문과 맞지 않아 원문 쪽 종류가 없을 때 쓴다 */
   blockType: string
@@ -125,7 +140,7 @@ interface SourceSideProps {
   review: boolean
 }
 
-function SourceSide({ role, source, blockType, missing, parts, review }: SourceSideProps) {
+function SourceSide({ role, side, onOpenSource, source, blockType, missing, parts, review }: SourceSideProps) {
   if (source === null) {
     return (
       <div className="evidence__source">
@@ -180,9 +195,18 @@ function SourceSide({ role, source, blockType, missing, parts, review }: SourceS
           원문을 다시 읽어 위치가 달라졌을 수 있어 분석할 때 저장한 글을 보여 줘요.
         </span>
       )}
-      <span className="evidence__meta">
-        출처: DART · <DartLinkInline rceptNo={source.rceptNo} dartUrl={source.dartUrl} label={`${role} ${source.reportName}`} />
-      </span>
+      <div className="text-evidence__links">
+        <button
+          type="button"
+          className="link-button"
+          onClick={() => onOpenSource({ side, section: source.sectionNo, block: source.blockMatches ? source.blockNo : null })}
+        >
+          원문 위치 보기
+        </button>
+        <span className="evidence__meta">
+          출처: DART · <DartLinkInline rceptNo={source.rceptNo} dartUrl={source.dartUrl} label={`${role} ${source.reportName}`} />
+        </span>
+      </div>
     </div>
   )
 }
