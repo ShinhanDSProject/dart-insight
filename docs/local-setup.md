@@ -83,7 +83,9 @@ backend를 다시 실행하면 Flyway가 테이블을 다시 만들고, 기업 �
 ## 3. 키 관리
 
 - 개발할 때는 팀 공용 OpenDART 인증키 하나를 씁니다. 값이 있는 곳과 넣는 순서는 팀 노션 [로컬 실행 전 .env 설정](https://app.notion.com/p/401b6afffc6f812ea3a1f821893e50ad)에 있습니다(팀 워크스페이스 권한 필요). 따로 가입·발급하지 않습니다.
-- 키는 `backend/.env`의 `OPENDART_API_KEY`에 넣습니다. 다른 이름(예: `DART_API_KEY`)으로 넣으면 backend가 읽지 못합니다. `.env`는 `.gitignore`로 막혀 있어 커밋되지 않습니다.
+- OpenDART 키는 `backend/.env`의 `OPENDART_API_KEY`에 넣습니다. 다른 이름(예: `DART_API_KEY`)으로 넣으면 backend가 읽지 못합니다. OpenDART는 backend만 부르므로 다른 서비스의 `.env`에는 넣지 않습니다.
+- OpenDART 이용약관(제19조②)은 인증키를 제3자에게 이용하게 하지 못하게 합니다. 그래서 공용 키는 팀 개발용으로만 쓰고 팀 밖에 공유하지 않습니다. 공용 키로 정한 이유와 각자 발급으로 되돌릴 조건은 노션 결정 로그 '개발용 OpenDART 인증키 운영'에 있습니다.
+- LLM 키처럼 다른 키도 그 서비스 폴더의 `.env`에만 넣습니다. `.env`는 `.gitignore`로 막혀 있어 커밋되지 않습니다.
 
   ```bash
   cp backend/.env.example backend/.env
