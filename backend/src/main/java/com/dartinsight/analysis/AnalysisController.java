@@ -6,6 +6,7 @@ import com.dartinsight.report.FinancialDataStatus;
 import com.dartinsight.report.ReportController.ReportItemResponse;
 import com.dartinsight.report.ReportService;
 import com.dartinsight.report.ReportService.ReportDetail;
+import com.dartinsight.summary.SummaryStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -64,7 +65,7 @@ public class AnalysisController {
                 ReportItemResponse.from(current.report(), statuses.get(current.report().getRceptNo())),
                 ReportItemResponse.from(previous.report(), statuses.get(previous.report().getRceptNo())),
                 a.getStatus(), a.getStep(), steps(a), error, a.getCreatedAt(), a.getCompletedAt(), a.getTextStatus(),
-                a.getTextMessage());
+                a.getTextMessage(), a.getSummaryStatus(), a.getSummaryMessage());
     }
 
     /** 비교할 수 없는 쌍은 다시 요청해도 같으므로 다시 시도할 수 없다. 나머지는 다시 요청할 수 있다. */
@@ -118,6 +119,8 @@ public class AnalysisController {
             @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") LocalDateTime createdAt,
             @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") LocalDateTime completedAt,
             TextStatus textStatus,
-            String textMessage) {
+            String textMessage,
+            SummaryStatus summaryStatus,
+            String summaryMessage) {
     }
 }

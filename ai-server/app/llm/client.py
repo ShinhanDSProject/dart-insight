@@ -49,11 +49,22 @@ class LlmUnavailable(LlmError):
 
 
 class LlmOutputInvalid(LlmError):
-    """다시 생성해도 결과가 형식·검증을 통과하지 못함."""
+    """다시 생성해도 결과가 형식·검증을 통과하지 못함.
 
-    def __init__(self, message: str, problems: list[str], calls: list[CallRecord]) -> None:
+    last_output은 마지막으로 받은 JSON(읽을 수 있었다면)이다. 부른 쪽은 이 중 검증을 통과한
+    부분만 쓰고 나머지는 '검토 필요'로 남길 수 있다. 통과하지 못한 부분을 성공처럼 쓰면 안 된다.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        problems: list[str],
+        calls: list[CallRecord],
+        last_output: Any = None,
+    ) -> None:
         super().__init__(message, calls)
         self.problems = problems
+        self.last_output = last_output
 
 
 @dataclass(frozen=True)
@@ -139,6 +150,7 @@ class LlmClient:
             raise LlmUnavailable("LLM 제공자가 설정되지 않았어요(LLM_PROVIDER).")
         calls: list[CallRecord] = []
         problems: list[str] = []
+        last_output: Any = None
         current = request
         deadline = self._monotonic() + self.settings.total_timeout_seconds
         for round_no in range(self.settings.max_output_retries + 1):
@@ -148,7 +160,9 @@ class LlmClient:
                 current = replace(request, user=request.user + _feedback(problems))
             text, record = self._call_with_retry(current, calls, deadline)
             try:
-                value = validate(_parse_json(text))
+                parsed = _parse_json(text)
+                last_output = parsed
+                value = validate(parsed)
             except OutputProblem as e:
                 problems = e.problems
                 calls[-1] = replace(record, outcome="INVALID_OUTPUT", error=str(e)[:500])
@@ -162,7 +176,9 @@ class LlmClient:
                 continue
             _log(record)
             return LlmResult(value, record.model, request.prompt_version, record.called_at, calls)
-        raise LlmOutputInvalid("다시 생성해도 결과가 검증을 통과하지 못했어요.", problems, calls)
+        raise LlmOutputInvalid(
+            "다시 생성해도 결과가 검증을 통과하지 못했어요.", problems, calls, last_output
+        )
 
     def _call_with_retry(
         self, request: LlmRequest, calls: list[CallRecord], deadline: float

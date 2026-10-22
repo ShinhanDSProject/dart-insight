@@ -139,6 +139,7 @@ def test_output_failing_three_times_is_not_treated_as_success() -> None:
         llm.generate(REQUEST, need_answer)
 
     assert error.value.problems == ["answer 문자열이 필요합니다."]
+    assert error.value.last_output == {"x": 3}
     assert [c.outcome for c in error.value.calls] == ["INVALID_OUTPUT"] * 3
     assert len(provider.requests) == 3
 

@@ -69,6 +69,7 @@
 | GET | `/api/analyses/{analysisId}/financial-changes/{changeId}` | 수치 근거 상세 | #21 (3.3) | W-03 ② | 초안 |
 | GET | `/api/analyses/{analysisId}/text-changes` | 문장·표 변경 목록 | #16 (2.5) | W-03 ③ | 초안 |
 | GET | `/api/analyses/{analysisId}/text-changes/{changeId}` | 문장·표 근거 상세 | #22 (3.4) | W-03 ③ | 초안 |
+| GET | `/api/analyses/{analysisId}/summary` | 근거 기반 요약·설명 | #20 (3.2) | W-03 ① | 초안 |
 | GET | `/api/analyses/{analysisId}/documents/{side}` | 분석 보고서 원문 목차 | #23 (3.5) | W-03 ④ | 초안 |
 | GET | `/api/analyses/{analysisId}/documents/{side}/sections/{sectionNo}` | 원문 한 항목의 문단·표 | #23 (3.5) | W-03 ④ | 초안 |
 | GET | `/api/system/health` | 서비스 연결 상태 | #48 (0.5) | — | 초안 |
@@ -349,7 +350,9 @@
   "createdAt": "2026-10-21T14:06:00",
   "completedAt": null,
   "textStatus": null,
-  "textMessage": null
+  "textMessage": null,
+  "summaryStatus": null,
+  "summaryMessage": null
 }
 ```
 
@@ -359,6 +362,7 @@
 | --- | --- | --- |
 | `ANALYSIS_NOT_COMPARABLE` | 실행 중 다시 확인했을 때 비교할 수 없음 | false |
 | `ANALYSIS_EVIDENCE_MISMATCH` | 근거 확인 실패(값의 근거가 그 보고서가 아니거나 증감액이 두 값의 차와 다름) | true |
+| `ANALYSIS_SUMMARY_FAILED` | 요약에 LLM이 필요한데 AI 서버나 LLM을 부를 수 없음(0.7). 요약 없는 결과를 완료로 보이지 않음 | true |
 | `ANALYSIS_SAVE_FAILED` | 결과 저장 실패. 완료로 표시하지 않음 | true |
 | `ANALYSIS_FAILED` | 알 수 없는 오류 | true |
 | `ANALYSIS_BUSY` | 분석 요청이 많아 대기열에 넣지 못함 | true |
@@ -646,6 +650,61 @@
 | 400 | `COMMON_INVALID_INPUT` | `side`가 `current`·`previous`가 아님 |
 | 404 | `ANALYSIS_NOT_FOUND`, `REPORT_SECTION_NOT_FOUND` | 없는 분석, 원문에 없는 섹션(또는 원문을 쓸 수 없음) |
 
+### GET /api/analyses/{analysisId}/summary — 근거 기반 요약·설명
+
+- 이슈: #20 (3.2) · 화면: W-03 ①
+- 요약할 변화는 코드가 고릅니다(5절 잠정 규칙). 재무 수치의 사실 문장(`factSentence`)은 코드가 계산한 값으로 만들고, LLM은 문장 변화의 요약과 공시에 적힌 설명(`aiText`)만 씁니다.
+- AI 서버가 LLM 문장의 근거 ID가 보낸 원문 위치인지, 문장의 숫자가 그 원문에 있는지 확인합니다. 통과하지 못하면 2회까지 다시 만들고, 그래도 통과하지 못한 항목은 요약에서 빼고 `reviewNeeded`에 남깁니다.
+- 분석이 끝나지 않았으면 `ANALYSIS_NOT_READY`(409)입니다.
+
+**응답 200**
+
+```json
+{
+  "analysisId": 42,
+  "summaryStatus": "COMPLETED",
+  "summaryMessage": null,
+  "textStatus": "COMPLETED",
+  "items": [
+    {
+      "itemNo": 1, "kind": "FINANCIAL",
+      "target": { "type": "FINANCIAL", "changeId": 101, "sjDiv": "IS" },
+      "factSentence": "매출액이 145조 원에서 152조 원으로 늘었어요(+4.8%).",
+      "aiText": "회사는 메모리 수요 회복으로 매출이 늘었다고 적었어요.",
+      "aiGenerated": true,
+      "explanationStatus": "FOUND",
+      "evidence": [{ "evidenceId": "20260814001234#B812", "side": "current", "rceptNo": "20260814001234", "sectionNo": 41, "blockNo": 812 }],
+      "ai": { "model": "fake-model", "promptVersion": "summary-1", "generatedAt": "2026-10-21T14:07:12" }
+    },
+    {
+      "itemNo": 2, "kind": "TEXT",
+      "target": { "type": "TEXT", "changeId": 5512, "sjDiv": null },
+      "factSentence": null,
+      "aiText": "미국에 공장 2곳을 새로 짓는다는 내용이 들어갔어요.",
+      "aiGenerated": true,
+      "explanationStatus": null,
+      "evidence": [{ "evidenceId": "20260814001234#B44", "side": "current", "rceptNo": "20260814001234", "sectionNo": 3, "blockNo": 44 }],
+      "ai": { "model": "fake-model", "promptVersion": "summary-1", "generatedAt": "2026-10-21T14:07:12" }
+    }
+  ],
+  "reviewNeededCount": 1,
+  "reviewNeeded": [
+    { "itemNo": 3, "kind": "TEXT", "target": { "type": "TEXT", "changeId": 5520, "sjDiv": null }, "reason": "원문에 없는 숫자(3)를 썼어요." }
+  ]
+}
+```
+
+- `summaryStatus`: `COMPLETED`(모두 근거 확인), `PARTIAL`(검토 필요 항목이 있음), `EMPTY`(요약할 변화가 없음). M1에서 만든 분석에는 `null`입니다.
+- `kind`: `FINANCIAL`(재무 수치. `target.changeId`는 `financial-changes`의 `changeId`), `TEXT`(문장 변화. `target.changeId`는 `text-changes`의 `changeId`).
+- `explanationStatus`(재무 수치만): `FOUND`(공시에 적힌 설명이 있음), `NOT_FOUND`(확인된 설명 없음. 화면에 그렇게 표시), `REVIEW_NEEDED`(설명을 만들었지만 근거를 확인하지 못함. 사실 문장은 보이고 설명은 `reviewNeeded`에도 셈).
+- `aiGenerated`가 true인 문장(`aiText`)은 화면에 'AI 생성'으로 표시하고 `ai`(모델·프롬프트 버전·생성 시각)를 함께 보여 줍니다. 사실 문장(`factSentence`)은 코드가 만든 문장이라 'AI 생성'이 아닙니다.
+- `evidence[]`는 `aiText`의 근거입니다. `side`·`sectionNo`·`blockNo`로 원문 확인(④)을 엽니다. `side`가 null이면 분석의 보고서가 아닌 근거라 열지 않습니다.
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 ID |
+| 409 | `ANALYSIS_NOT_READY` | 분석이 끝나지 않음 |
+
 ### GET /api/system/health — 연결 상태
 
 - 이슈: #48 (0.5)
@@ -669,11 +728,12 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 | GET | `/internal/documents/parser` | 원문 파서 버전 | #28 (4.2) | 초안 |
 | POST | `/internal/documents/{rceptNo}/structure` | 원문 ZIP 구조화 | #28 (4.2) | 초안 |
 | POST | `/internal/text-changes` | 두 원문의 문장·표 변경 탐지 | #16 (2.5) | 초안 |
-| POST | `/internal/...` | 요약 | 3.2 | M2에서 정함 |
+| POST | `/internal/summaries` | 근거 기반 요약·설명(LLM) | #20 (3.2) | 초안 |
 
 | code | 상태 | 뜻 |
 | --- | --- | --- |
 | `AI_DOCUMENT_TOO_LARGE` | 413 | 원문 ZIP이 80MB를 넘음 |
+| `AI_LLM_UNAVAILABLE` | 503 | LLM 제공자가 설정되지 않았거나 다시 시도해도 응답하지 않음(0.7). backend는 분석을 `ANALYSIS_SUMMARY_FAILED`로 끝냄 |
 
 ### GET /internal/documents/parser — 원문 파서 버전
 
@@ -779,6 +839,60 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | --- | --- | --- |
 | 400 | `COMMON_INVALID_INPUT` | 접수번호 형식이 틀림, 섹션 번호가 겹침, 없는 섹션을 가리키는 블록 |
 
+### POST /internal/summaries — 근거 기반 요약·설명
+
+- 이슈: #20 (3.2) · LLM은 `app/llm`의 한 모듈(0.7)로만 부릅니다.
+- backend가 고른 항목과 그 근거 원문만 보냅니다. 사용자 정보는 넣지 않습니다. 원문은 프롬프트에서 `<disclosure id="…">` 태그로 감싸 자료로만 씁니다.
+- LLM은 문장 변화마다 한 문장 요약(`sentence`)을, 재무 수치마다 후보 원문에 적힌 설명(`explanation`)을 씁니다. 후보 원문이 없는 재무 수치는 LLM에 묻지 않고 설명 없음(`explanation: null`)으로 돌려줍니다.
+- 확인: 근거 ID가 그 항목에 보낸 원문 위치인지, 문장의 숫자가 인용한 원문에 있는지. 실패하면 문제를 알려 주며 2회까지 다시 만들고, 그래도 실패한 항목은 `REVIEW_NEEDED`입니다(통과한 항목은 씀).
+
+**요청**
+
+```json
+{
+  "companyName": "삼성전자",
+  "previousReport": "반기보고서 (2025.06)",
+  "currentReport": "반기보고서 (2026.06)",
+  "textItems": [
+    { "ref": "T12", "changeType": "ADDED", "sectionPath": "II. 사업의 내용 > 1. 사업의 개요",
+      "sources": [{ "evidenceId": "20260814001234#B44", "sectionPath": "II. 사업의 내용 > 1. 사업의 개요", "text": "…" }] }
+  ],
+  "financialItems": [
+    { "ref": "F3", "accountName": "매출액", "direction": "UP",
+      "candidates": [{ "evidenceId": "20260814001234#B812", "sectionPath": "IV. 이사의 경영진단 및 분석의견 > 2. 영업실적", "text": "…" }] }
+  ]
+}
+```
+
+**응답 200**
+
+```json
+{
+  "promptVersion": "summary-1",
+  "model": "fake-model",
+  "generatedAt": "2026-10-21T14:07:12",
+  "items": [
+    { "ref": "T12", "kind": "TEXT", "status": "OK", "sentence": "…", "explanation": null,
+      "evidenceIds": ["20260814001234#B44"], "reviewReason": null, "blockedRules": [] },
+    { "ref": "F3", "kind": "FINANCIAL", "status": "OK", "sentence": null, "explanation": "…",
+      "evidenceIds": ["20260814001234#B812"], "reviewReason": null, "blockedRules": [] }
+  ],
+  "calls": [
+    { "task": "summary", "provider": "fake", "model": "fake-model", "promptVersion": "summary-1",
+      "calledAt": "2026-10-21T14:07:11", "traceId": "…", "inputTokens": 1830, "outputTokens": 210,
+      "latencyMs": 1420, "attempt": 1, "outcome": "OK", "error": null }
+  ]
+}
+```
+
+- `status`: `OK` 또는 `REVIEW_NEEDED`(`reviewReason`에 사유). `calls`는 이 요청에서 LLM을 부른 기록(다시 만든 것 포함)이고 backend가 `llm_call`에 저장합니다.
+- 시각은 한국 시간 `YYYY-MM-DDTHH:mm:ss`입니다.
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | `ref`가 겹침, 필드 누락 |
+| 503 | `AI_LLM_UNAVAILABLE` | LLM을 쓸 수 없음 |
+
 ## 4. 에러 코드
 
 `code`는 `영역_내용` 형식의 대문자 스네이크입니다. 화면은 `code`를 보고 예외 상태를 고릅니다. 분석 작업이 실패한 사유(`GET /api/analyses/{analysisId}`의 `error.code`)는 HTTP 에러가 아니라서 이 표에 없고, 그 절의 표에 있습니다.
@@ -812,4 +926,5 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | 이전 값 기준 | 이전 보고서의 원래 값 | [이전 값 기준](https://app.notion.com/p/400b6afffc6f81178a7cc9fafd980394) |
 | 비교 가능성 규칙 | 위 `POST /api/comparability-checks`의 재무제표 종류별 비교 규칙 | [비교 가능성 규칙](https://app.notion.com/p/400b6afffc6f8178b798e570fe37828b) |
 | 분석 대상 기업 범위 | 12월 결산 보고서만(사업보고서 기간이 12월인 회사) | [분석 대상 기업 범위](https://app.notion.com/p/400b6afffc6f813cadd6ff8ecce0a780) |
+| 요약할 변화 고르기(3.2) | 재무 수치: 계산한 계정 중 손익계산서 증감액 상위 3개, 재무상태표 2개. 문장 변화: 우선순위 높음·중간 중 점수 상위 5개(숫자만 바뀐 것·검토 필요 제외). 설명 후보: 현재 보고서 '경영진단'·'사업의 내용' 섹션 문단 중 계정 이름이 나오는 앞의 2개(문단당 1,500자까지) | [공시 변화 평가 규칙과 중립·판단 유보 도입 여부](https://app.notion.com/p/400b6afffc6f8139ae35e8183960af19) |
 | 변경 항목 우선순위 규칙(2.6) | 점수 합(`priority-1`): 섹션(사업의 내용 30, 경영진단·투자자 보호·우발·소송 25, 대주주·특수관계 20, 재무에 관한 사항 10, 그 밖 5) + 추가·삭제 20, 수정 10(비슷한 정도 0.7 미만이면 +10) + 문단 10 − 숫자만 바뀜 30 + 새로 들어간 낱말의 핵심어(소송·제재·합병 등) 15씩 최대 2개. 60점 이상 높음, 30점 이상 중간. 검토 필요는 판단 유보 | [공시 변화 평가 규칙과 중립·판단 유보 도입 여부](https://app.notion.com/p/400b6afffc6f8139ae35e8183960af19) |
