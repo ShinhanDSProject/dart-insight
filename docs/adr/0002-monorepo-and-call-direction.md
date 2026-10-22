@@ -15,8 +15,9 @@
 - 저장소 하나에 `frontend/`(React + TypeScript), `backend/`(Spring Boot), `ai-server/`(FastAPI)를 둡니다. CI는 바뀐 폴더의 서비스만 검사합니다(`.github/workflows/`).
 - 호출 방향은 React → Spring Boot → FastAPI 하나뿐입니다.
   - 화면은 Spring Boot의 `/api/**`만 부릅니다(`VITE_API_BASE_URL`). FastAPI나 OpenDART를 직접 부르지 않습니다.
-  - Spring Boot는 FastAPI의 `/internal/**`를 부릅니다(`AiServerClient`). FastAPI는 다른 서비스를 부르지 않습니다.
-- DB에 쓰는 것은 backend뿐입니다. ai-server는 받은 입력을 처리해 결과를 돌려주고, DB에 직접 연결하지 않습니다.
+  - Spring Boot는 FastAPI의 `/internal/**`를 부릅니다(`AiServerClient`). FastAPI는 backend나 OpenDART를 부르지 않습니다(밖으로 부르는 것은 LLM 제공자뿐, [ADR-0008](0008-single-llm-module.md)).
+- MariaDB에 연결하는 것은 backend뿐입니다. ai-server는 받은 입력을 처리해 결과를 돌려주고, 저장은 backend가 합니다.
+- 본문 임베딩용 Chroma는 아직 코드에서 쓰지 않습니다. `ai-server/.env.example`은 ai-server가 Chroma를 파일로 저장하는 방식(`CHROMA_PERSIST_DIR`)을 안내하고 있고, 실제로 쓰기 시작할 때 어느 서비스가 어떻게 맡는지 새 ADR로 남깁니다.
 
 ## 검토한 다른 방법
 
@@ -24,16 +25,17 @@
 | --- | --- |
 | 서비스마다 저장소를 따로 두기 | 세 서비스에 걸친 기능을 PR 하나로 검토할 수 없고, 서비스 사이 API 버전을 따로 맞춰야 합니다. |
 | 화면이 FastAPI를 직접 부르기 | 에러 형식·추적 ID·캐시·접근 제어가 두 곳으로 나뉘고, LLM 호출과 비용을 한곳에서 통제하기 어렵습니다. |
-| ai-server도 DB에 직접 쓰기 | 스키마를 두 서비스가 함께 바꾸게 되고, 분석 완료와 결과 저장을 한 트랜잭션으로 묶을 수 없습니다([ADR-0004](0004-async-analysis-job.md)). |
+| ai-server도 MariaDB에 직접 쓰기 | 스키마를 두 서비스가 함께 바꾸게 되고, 분석 완료와 결과 저장을 한 트랜잭션으로 묶을 수 없습니다([ADR-0004](0004-async-analysis-job.md)). |
 | 백엔드를 Python 하나로 만들기 | 팀의 역할 구성과 학습 목표(Spring Boot)에 맞지 않습니다. |
 
 ## 결과
 
 - 좋아지는 점: 기능 하나를 PR 하나로 검토합니다. 외부에 열리는 곳이 Spring Boot 하나라 에러 형식·추적 ID·키 관리가 한곳에 모입니다.
 - 감수하는 점: ai-server를 쓰는 기능은 내부 호출을 한 번 더 거칩니다. 내부 API도 `docs/api-spec.md`에 적어 두고 맞춰야 합니다.
-- 지켜야 할 것: 새 기능도 이 호출 방향을 따릅니다. ai-server가 데이터를 저장해야 할 것 같으면 결과를 돌려주고 backend가 저장합니다.
+- 지켜야 할 것: 새 기능도 이 호출 방향을 따릅니다. ai-server가 MariaDB에 저장해야 할 것 같으면 결과를 돌려주고 backend가 저장합니다.
 
 ## 다시 볼 때
 
 - ai-server가 OpenDART나 DB를 직접 써야만 하는 기능이 생길 때
 - 서비스를 따로 배포·확장해야 할 만큼 부하가 달라질 때
+- 본문 임베딩(Chroma)을 쓰기 시작할 때

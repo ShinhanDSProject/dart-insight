@@ -1,4 +1,4 @@
-# ADR-0011: 원문 블록·문장 변경·요약처럼 행이 많은 표는 JdbcTemplate으로 저장한다
+# ADR-0011: 원문 블록·문장 변경처럼 자동 증가 키에 수천 행이 붙는 표는 JdbcTemplate으로 일괄 저장한다
 
 - 상태: 채택
 - 결정한 날: 2026-10-22
@@ -7,14 +7,16 @@
 ## 맥락
 
 - 보고서 하나의 원문은 문단·표가 수천 개이고, 분석 하나의 문장 변경도 수천 건이 될 수 있습니다.
-- JPA로 한 행씩 저장하면 INSERT가 수천 번 나가고, 영속성 컨텍스트가 엔티티를 모두 붙잡아 메모리를 씁니다. 키를 `AUTO_INCREMENT`(IDENTITY)로 만들어 Hibernate의 일괄 INSERT도 쓸 수 없습니다.
+- JPA로 한 행씩 저장하면 INSERT가 수천 번 나가고, 영속성 컨텍스트가 엔티티를 모두 붙잡아 메모리를 씁니다. 키가 `AUTO_INCREMENT`(IDENTITY)인 표는 Hibernate의 일괄 INSERT(`batch_size`)도 쓸 수 없습니다.
+- 기업 목록(10만 건 넘음)은 키가 직접 정하는 `corp_code`라 JPA로도 일괄 INSERT가 됩니다(`spring.jpa.properties.hibernate.jdbc.batch_size` 500).
 - 목록 화면은 이 표를 종류·우선순위로 걸러 페이지 단위로 읽습니다.
 
 ## 결정
 
-- 원문 목차·블록(`DocumentStore`), 문장·표 변경(`TextChangeStore`), 요약 항목·LLM 호출 기록(`SummaryStore`)은 `JdbcTemplate`으로 일괄 저장하고 SQL로 조회합니다.
-- 원문 블록은 다시 저장할 때 그 원문의 행을 모두 지우고 다시 넣습니다(`DocumentStore`). 문장 변경·요약은 분석마다 한 번만 넣고 지우지 않습니다(`TextChangeStore`, `SummaryStore`). 부르는 쪽 트랜잭션 안에서 하므로 분석 완료와 함께 묶입니다([ADR-0004](0004-async-analysis-job.md)).
-- 기업·보고서·분석처럼 행이 적고 상태가 바뀌는 데이터는 JPA 엔티티로 둡니다.
+- 원문 목차·블록(`DocumentStore`)과 문장·표 변경(`TextChangeStore`)은 `JdbcTemplate`으로 일괄 저장하고 SQL로 조회합니다.
+- 요약 항목·LLM 호출 기록(`SummaryStore`)은 분석마다 수십 건 이하로 적지만, 문장 변경과 같은 결과 저장 단계에서 넣으므로 같은 방식을 씁니다.
+- 원문은 다시 구조화할 때 그 원문의 행을 모두 지우고 다시 넣습니다(`DocumentService`의 트랜잭션 안에서). 분석 결과(문장 변경·요약)는 분석마다 한 번, 결과 저장과 완료 표시를 묶은 트랜잭션 안에서 넣습니다([ADR-0004](0004-async-analysis-job.md)).
+- 기업·보고서·분석처럼 상태가 바뀌는 데이터는 JPA 엔티티로 둡니다. 재무제표 계정(`financial_account`, 조회 한 번에 수백 건)과 재무 비교(`financial_change`)도 IDENTITY 키의 JPA로 두었습니다. 행이 수백 건 단위라 그대로 두고, 느려지면 이 방식으로 옮깁니다.
 - 스키마는 다른 표와 똑같이 Flyway로 만듭니다([ADR-0007](0007-flyway-migrations.md)).
 
 ## 검토한 다른 방법
@@ -32,4 +34,4 @@
 
 ## 다시 볼 때
 
-- 행 수가 적은 표인데 JDBC로 쓰고 있거나, 반대로 JPA 표가 커져 느려질 때
+- JPA로 둔 재무 계정·재무 비교 저장이 느려질 때
