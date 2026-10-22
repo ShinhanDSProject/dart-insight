@@ -24,7 +24,8 @@
   width: 28px;
   height: 28px;
   border: 2px solid var(--color-border-strong);
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-num);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
 }
@@ -39,18 +40,19 @@
 }
 
 .steps__item--done .steps__marker {
-  border-color: var(--color-text);
-  background: var(--color-text);
-  color: var(--color-bg);
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 .steps__item--active .steps__marker {
   border-width: 3px;
-  border-color: var(--color-text);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .steps__item--active .steps__state {
-  color: var(--color-text);
+  color: var(--color-primary);
   font-weight: var(--font-weight-bold);
 }
 
