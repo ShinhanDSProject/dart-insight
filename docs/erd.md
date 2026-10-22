@@ -379,6 +379,7 @@ API는 사업연도·보고서 코드마다 최신 공시 하나의 값만 줍�
 | `review_reason` | VARCHAR(500) | | 예 | 검토 필요 사유 |
 | `model`, `prompt_version` | VARCHAR(100), VARCHAR(30) | | 예 | AI 문장을 만든 모델과 프롬프트 버전(`summary-1`) |
 | `generated_at` | DATETIME(6) | | 예 | AI 문장을 만든 시각(한국 시간) |
+| `blocked_rules` | VARCHAR(200) | | 예 | 투자 권유성 표현 검사(5.5)에 걸려 내보내지 않은 AI 문장의 규칙 ID(쉼표로 이음, 예: `TARGET_PRICE`). 걸리지 않았으면 null |
 
 ### llm_call
 
