@@ -23,8 +23,12 @@ import org.hibernate.type.SqlTypes;
 @Table(name = "analysis")
 public class Analysis {
 
-    /** 계산 규칙 버전. 비교 규칙이나 계산 방법이 바뀌면 올려서 옛 결과와 섞지 않는다. */
-    public static final String CURRENT_VERSION = "m2-3";
+    /**
+     * 분석 결과 버전. 결과가 달라지는 규칙이 바뀌면 올려서 옛 결과를 다시 쓰지 않는다:
+     * 재무 비교·계산, 원문 파서(PARSER_VERSION), 문장 비교(DIFF_VERSION), 우선순위(priority-n),
+     * 요약 프롬프트(PROMPT_VERSION), 표현 검사 규칙(RULESET_VERSION).
+     */
+    public static final String CURRENT_VERSION = "m2-4";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
