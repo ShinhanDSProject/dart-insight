@@ -154,10 +154,12 @@ def test_undeclared_cp949_falls_back() -> None:
 
 
 def test_zip_picks_main_file_and_lists_attachments() -> None:
-    data = make_zip({
-        f"{RCEPT}_00760.xml": b"<DOCUMENT><BODY></BODY></DOCUMENT>",
-        f"{RCEPT}.xml": SAMPLE.encode("utf-8"),
-    })
+    data = make_zip(
+        {
+            f"{RCEPT}_00760.xml": b"<DOCUMENT><BODY></BODY></DOCUMENT>",
+            f"{RCEPT}.xml": SAMPLE.encode("utf-8"),
+        }
+    )
 
     document = structure_zip(RCEPT, data)
 

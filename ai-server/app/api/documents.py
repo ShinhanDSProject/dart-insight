@@ -35,7 +35,12 @@ async def structure(rcept_no: str, request: Request) -> dict[str, Any]:
     if len(body) > MAX_ZIP_BYTES:
         raise ApiError(ErrorCode.AI_DOCUMENT_TOO_LARGE)
     document = await run_in_threadpool(structure_zip, rcept_no, body)
-    logger.info("원문 구조화 %s: %s 섹션 %d 블록 %d 경고 %s", rcept_no, document.status,
-                len(document.sections), len(document.blocks),
-                [w.code for w in document.warnings] or "-")
+    logger.info(
+        "원문 구조화 %s: %s 섹션 %d 블록 %d 경고 %s",
+        rcept_no,
+        document.status,
+        len(document.sections),
+        len(document.blocks),
+        [w.code for w in document.warnings] or "-",
+    )
     return document_json(document)

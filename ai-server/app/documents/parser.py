@@ -104,8 +104,9 @@ class StructuredDocument:
 
 
 def failed(rcept_no: str, code: str, message: str, **kwargs: object) -> StructuredDocument:
-    return StructuredDocument(rcept_no, FAILED, failure_code=code, failure_message=message,
-                              **kwargs)  # type: ignore[arg-type]
+    return StructuredDocument(
+        rcept_no, FAILED, failure_code=code, failure_message=message, **kwargs
+    )  # type: ignore[arg-type]
 
 
 def structure_zip(rcept_no: str, data: bytes) -> StructuredDocument:
@@ -119,9 +120,12 @@ def structure_zip(rcept_no: str, data: bytes) -> StructuredDocument:
         main = _choose_main(rcept_no, names)
         attachments = sorted(n for n in names if n != main)
         if main is None:
-            return failed(rcept_no, "MAIN_FILE_NOT_FOUND",
-                          f"ZIP 안에서 본문 파일({rcept_no}.xml)을 찾지 못했어요.",
-                          attachments=attachments)
+            return failed(
+                rcept_no,
+                "MAIN_FILE_NOT_FOUND",
+                f"ZIP 안에서 본문 파일({rcept_no}.xml)을 찾지 못했어요.",
+                attachments=attachments,
+            )
         raw = archive.read(main)
     document = structure_xml(rcept_no, raw)
     document.main_file = main
@@ -164,16 +168,28 @@ def structure_xml(rcept_no: str, raw: bytes) -> StructuredDocument:
         reader.feed(repaired)
         reader.close()
     except Exception as e:  # html.parser는 거의 실패하지 않지만, 실패를 성공으로 처리하지 않는다
-        return failed(rcept_no, "PARSE_ERROR", f"원문을 읽다 오류가 났어요: {type(e).__name__}",
-                      encoding=encoding)
+        return failed(
+            rcept_no,
+            "PARSE_ERROR",
+            f"원문을 읽다 오류가 났어요: {type(e).__name__}",
+            encoding=encoding,
+        )
 
-    document = StructuredDocument(rcept_no, STRUCTURED, encoding=encoding,
-                                  document_name=reader.document_name,
-                                  company_name=reader.company_name, sections=reader.sections)
+    document = StructuredDocument(
+        rcept_no,
+        STRUCTURED,
+        encoding=encoding,
+        document_name=reader.document_name,
+        company_name=reader.company_name,
+        sections=reader.sections,
+    )
     if not any(s.level > 0 and not s.cover for s in reader.sections):
-        return failed(rcept_no, "UNSUPPORTED_FORMAT",
-                      "원문에서 목차(SECTION·TITLE)를 찾지 못했어요.",
-                      encoding=encoding)
+        return failed(
+            rcept_no,
+            "UNSUPPORTED_FORMAT",
+            "원문에서 목차(SECTION·TITLE)를 찾지 못했어요.",
+            encoding=encoding,
+        )
 
     body = _BODY.search(_COMMENT.sub("", text))
     source = body.group(0) if body else text
@@ -189,26 +205,37 @@ def structure_xml(rcept_no: str, raw: bytes) -> StructuredDocument:
         "repairedAmpersands": amp_count,
     }
     if not has_body:
-        document.warnings.append(Notice("NO_BODY_TAG",
-                                        "원문에 BODY 태그가 없어 문서 전체를 읽었어요."))
+        document.warnings.append(
+            Notice("NO_BODY_TAG", "원문에 BODY 태그가 없어 문서 전체를 읽었어요.")
+        )
     if replaced:
-        document.warnings.append(Notice("ENCODING_REPLACED",
-                                        "인코딩을 확인하지 못해 읽을 수 없는 글자를 대체했어요."))
+        document.warnings.append(
+            Notice("ENCODING_REPLACED", "인코딩을 확인하지 못해 읽을 수 없는 글자를 대체했어요.")
+        )
     if document.counts["cells"] != document.counts["sourceCells"]:
-        document.warnings.append(Notice(
-            "CELL_COUNT_MISMATCH",
-            f"표 셀 수가 원문과 달라요(원문 {document.counts['sourceCells']}개, "
-            f"읽은 셀 {document.counts['cells']}개)."))
+        document.warnings.append(
+            Notice(
+                "CELL_COUNT_MISMATCH",
+                f"표 셀 수가 원문과 달라요(원문 {document.counts['sourceCells']}개, "
+                f"읽은 셀 {document.counts['cells']}개).",
+            )
+        )
     if document.counts["paragraphTags"] != document.counts["sourceParagraphTags"]:
-        document.warnings.append(Notice(
-            "PARAGRAPH_COUNT_MISMATCH",
-            f"문단 태그 수가 원문과 달라요(원문 {document.counts['sourceParagraphTags']}개, "
-            f"읽은 문단 {document.counts['paragraphTags']}개)."))
+        document.warnings.append(
+            Notice(
+                "PARAGRAPH_COUNT_MISMATCH",
+                f"문단 태그 수가 원문과 달라요(원문 {document.counts['sourceParagraphTags']}개, "
+                f"읽은 문단 {document.counts['paragraphTags']}개).",
+            )
+        )
     if reader.untitled:
-        document.warnings.append(Notice("UNTITLED_SECTION",
-                                        f"제목이 없는 섹션이 {reader.untitled}개 있어요."))
-    if any(w.code in {"ENCODING_REPLACED", "CELL_COUNT_MISMATCH", "PARAGRAPH_COUNT_MISMATCH"}
-           for w in document.warnings):
+        document.warnings.append(
+            Notice("UNTITLED_SECTION", f"제목이 없는 섹션이 {reader.untitled}개 있어요.")
+        )
+    if any(
+        w.code in {"ENCODING_REPLACED", "CELL_COUNT_MISMATCH", "PARAGRAPH_COUNT_MISMATCH"}
+        for w in document.warnings
+    ):
         document.status = PARTIAL
     return document
 
@@ -465,8 +492,12 @@ class _DartReader(HTMLParser):
         table = self._table
         if table is None or table.cell is None:
             return
-        cell = Cell(normalize_space("".join(table.cell)), table.cell_header,
-                    table.cell_colspan, table.cell_rowspan)
+        cell = Cell(
+            normalize_space("".join(table.cell)),
+            table.cell_header,
+            table.cell_colspan,
+            table.cell_rowspan,
+        )
         if table.row is None:
             table.row = []
         table.row.append(cell)
@@ -483,8 +514,9 @@ class _DartReader(HTMLParser):
 
     # ── 섹션·블록 만들기 ────────────────────────────────────
     def _create_section(self, context: _SectionContext, title: str, ref: str | None) -> Section:
-        parent = next((c.section_no for c in reversed(self._contexts[:-1])
-                       if c.section_no is not None), None)
+        parent = next(
+            (c.section_no for c in reversed(self._contexts[:-1]) if c.section_no is not None), None
+        )
         section = Section(len(self.sections) + 1, parent, context.level, title, ref, context.cover)
         self.sections.append(section)
         context.section_no = section.section_no

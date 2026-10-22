@@ -16,8 +16,11 @@ def test_parser_version_is_published() -> None:
 def test_zip_is_structured_with_positions() -> None:
     data = make_zip({f"{RCEPT}.xml": SAMPLE.encode("utf-8")})
 
-    response = client.post(f"/internal/documents/{RCEPT}/structure", content=data,
-                           headers={"Content-Type": "application/zip", "X-Trace-Id": "doc-1"})
+    response = client.post(
+        f"/internal/documents/{RCEPT}/structure",
+        content=data,
+        headers={"Content-Type": "application/zip", "X-Trace-Id": "doc-1"},
+    )
 
     assert response.status_code == 200
     assert response.headers["X-Trace-Id"] == "doc-1"
