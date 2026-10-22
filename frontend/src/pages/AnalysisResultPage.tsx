@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { analysisPath, getAnalysis, requestAnalysis, type Analysis } from '../api/analyses'
 import { getReportPair, type ComparisonBasis } from '../api/reports'
@@ -10,6 +10,7 @@ import { basisOptions } from './company/pairSelection'
 import { FinancialTab } from './result/FinancialTab'
 import { ReportPairCards } from './result/ReportPairCards'
 import { SourceTab } from './result/SourceTab'
+import { SummaryTab } from './result/SummaryTab'
 import { TextTab } from './result/TextTab'
 import { parseUnit } from './result/format'
 import './result/result.css'
@@ -76,7 +77,7 @@ export function AnalysisResultPage() {
 
   const { analysis } = state
   const tabParam = searchParams.get('tab')
-  const tab: Tab = tabs.some((t) => t.value === tabParam) ? (tabParam as Tab) : 'financial'
+  const tab: Tab = tabs.some((t) => t.value === tabParam) ? (tabParam as Tab) : 'summary'
   const sjParam = searchParams.get('sj')
   const sjDiv: SjDiv = sjDivs.includes(sjParam as SjDiv) ? (sjParam as SjDiv) : 'BS'
   const changedOnly = searchParams.get('changed') === '1'
@@ -164,10 +165,20 @@ export function AnalysisResultPage() {
             />
           )}
           {tab === 'summary' && (
-            <ComingLater title="요약·설명" issue="3.2 근거 기반 요약·설명(M2)">
-              원문 근거가 있는 변화만 골라 요약하는 기능은 다음 단계(M2)에서 붙어요. 지금은 '재무 수치 변화'에서 계정별
-              증감을 확인할 수 있어요.
-            </ComingLater>
+            <SummaryTab
+              key={analysis.analysisId}
+              analysis={analysis}
+              onOpenFinancial={(sj, change) => update({ tab: 'financial', sj, change: String(change), changed: null })}
+              onOpenText={(change) => update({ tab: 'text', ttype: null, tsort: null, tc: String(change) })}
+              onOpenSource={(target) =>
+                update({
+                  tab: 'source',
+                  doc: target.side,
+                  section: String(target.section),
+                  block: target.block === null ? null : String(target.block),
+                })
+              }
+            />
           )}
           {tab === 'text' && (
             <TextTab
@@ -314,16 +325,6 @@ function BasisSwitcher({ analysis }: { analysis: Analysis }) {
           messages={{ ANALYSIS_NOT_COMPARABLE: '그 비교 기준의 보고서 쌍은 비교할 수 없어요. 보고서 선택에서 확인해 주세요.' }}
         />
       )}
-    </section>
-  )
-}
-
-function ComingLater({ title, issue, children }: { title: string; issue: string; children: ReactNode }) {
-  return (
-    <section className="panel coming-later" aria-label={title}>
-      <h2 className="panel__title">{title}</h2>
-      <p>{children}</p>
-      <p className="panel__note">관련 작업: {issue}</p>
     </section>
   )
 }

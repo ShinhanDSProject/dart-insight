@@ -125,14 +125,6 @@
   margin-top: 0;
 }
 
-.coming-later {
-  border-style: dashed;
-}
-
-.coming-later p {
-  margin: 0;
-}
-
 .evidence__head {
   display: flex;
   align-items: center;
@@ -537,4 +529,90 @@
   border-radius: var(--radius-md);
   background: var(--color-bg-subtle);
   font-size: var(--font-size-sm);
+}
+
+/* 요약·설명(3.2). 'AI 생성' 문장은 수치 문장과 따로 보여 사실과 구분한다 */
+.summary-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.summary-list,
+.summary-review,
+.summary-item__evidence {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.summary-item__fact {
+  margin: 0;
+  font-weight: var(--font-weight-bold);
+}
+
+.summary-item__ai {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+}
+
+.summary-item__ai-text,
+.summary-item__missing {
+  margin: 0;
+}
+
+.summary-item__ai-text .badge {
+  margin-left: 0;
+}
+
+.summary-item__missing {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.summary-item__missing--review {
+  color: var(--color-attention);
+}
+
+.summary-item__evidence {
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+}
+
+.summary-item__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.summary-group--review .summary-review li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.summary-group--review .badge {
+  margin-left: 0;
+}
+
+.badge--ai {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
