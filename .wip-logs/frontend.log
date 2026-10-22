@@ -1,0 +1,48 @@
+sha=19d5db90157344f6048806a5aaf9cada335de587 status=success
+----- tail -----
+npm warn deprecated eslint@9.39.5: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+
+added 211 packages in 3s
+
+> dart-insight-frontend@0.0.1 lint
+> eslint .
+
+
+> dart-insight-frontend@0.0.1 test
+> vitest run --passWithNoTests
+
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90m/home/runner/work/dart-insight/dart-insight/frontend[39m
+
+ [32m✓[39m src/pages/result/summaryLabels.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32m✓[39m src/api/client.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+ [32m✓[39m src/pages/result/format.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+ [32m✓[39m src/pages/company/reportLabels.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/pages/result/textLabels.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/pages/company/pairSelection.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/pages/progress/progress.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m src/pages/compare/comparabilityLabels.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m src/pages/result/wordDiff.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/lib/dart.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/pages/search/searchQuery.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m src/api/documents.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/lib/serviceNotice.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 4[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m13 passed[39m[22m[90m (13)[39m
+[2m      Tests [22m [1m[32m50 passed[39m[22m[90m (50)[39m
+[2m   Start at [22m 02:06:31
+[2m   Duration [22m 2.24s[2m (transform 518ms, setup 0ms, collect 884ms, tests 118ms, environment 4ms, prepare 1.85s)[22m
+
+
+> dart-insight-frontend@0.0.1 build
+> tsc -b && vite build
+
+[36mvite v7.3.7 [32mbuilding client environment for production...[36m[39m
+transforming...
+[32m✓[39m 87 modules transformed.
+rendering chunks...
+computing gzip size...
+[2mdist/[22m[32mindex.html                 [39m[1m[2m  0.40 kB[22m[1m[22m[2m │ gzip:   0.27 kB[22m
+[2mdist/[22m[2massets/[22m[35mindex-CehlU_ua.css  [39m[1m[2m 22.43 kB[22m[1m[22m[2m │ gzip:   3.86 kB[22m
+[2mdist/[22m[2massets/[22m[36mindex-DSpzDqW1.js   [39m[1m[2m393.55 kB[22m[1m[22m[2m │ gzip: 122.01 kB[22m
+[32m✓ built in 1.73s[39m
