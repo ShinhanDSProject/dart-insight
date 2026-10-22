@@ -234,7 +234,8 @@ class AnalysisResultTest {
         assertThat(resultService.findReusable("00000001", CUR, PREV, ComparisonBasis.YOY)).get()
                 .extracting(Analysis::getId).isEqualTo(inProgress.getId());
 
-        resultService.saveAndComplete(inProgress.getId(), sampleRows());
+        resultService.saveAndComplete(inProgress.getId(), sampleRows(),
+                new TextComparison(TextStatus.COMPLETED, null, List.of()));
         running(PREV);
         assertThat(resultService.findReusable("00000001", CUR, PREV, ComparisonBasis.YOY)).get()
                 .as("완료된 결과가 있으면 그것을 쓴다").extracting(Analysis::getId).isEqualTo(inProgress.getId());
