@@ -79,6 +79,24 @@ class AiServerClientTest {
     }
 
     @Test
+    void errorCodeAndKoreanMessageOfTheAiServerAreKept() {
+        status = 503;
+        body = "{\"code\":\"AI_LLM_UNAVAILABLE\",\"message\":\"LLM을 \\\"지금\\\" 쓸 수 없어요.\\n잠시 뒤 다시\","
+                + "\"traceId\":\"t\",\"errors\":[]}";
+
+        assertThatThrownBy(() -> client(Duration.ofSeconds(2)).get("/internal/health", Map.class))
+                .isInstanceOfSatisfying(AiServerException.class, e -> {
+                    assertThat(e.remoteCode()).isEqualTo("AI_LLM_UNAVAILABLE");
+                    assertThat(e.getMessage()).isEqualTo("LLM을 \"지금\" 쓸 수 없어요.\n잠시 뒤 다시");
+                });
+    }
+
+    @Test
+    void jsonEscapesInMessagesAreDecoded() {
+        assertThat(AiServerClient.unescape("a\\\"b\\\\c\\u00e9\\n")).isEqualTo("a\"b\\c\u00e9\n");
+    }
+
+    @Test
     void slowServerFailsWithinReadTimeout() {
         delayMillis = 3000;
         long started = System.nanoTime();

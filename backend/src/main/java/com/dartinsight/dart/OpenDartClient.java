@@ -30,8 +30,11 @@ public class OpenDartClient {
     private static final Logger log = LoggerFactory.getLogger(OpenDartClient.class);
     private static final Pattern XML_STATUS = Pattern.compile("<status>\\s*(\\d+)\\s*</status>");
     private static final Pattern XML_MESSAGE = Pattern.compile("<message>(.*?)</message>", Pattern.DOTALL);
+    private static final Pattern JSON_STATUS = Pattern.compile("\"status\"\\s*:\\s*\"(\\d+)\"");
+    private static final Pattern JSON_MESSAGE = Pattern.compile("\"message\"\\s*:\\s*\"(.*?)\"");
     static final String OK = "000";
     static final String NO_DATA = "013";
+    static final String NO_FILE = "014";
     private static final int PAGE_SIZE = 100;
     private static final int MAX_PAGES = 50;
 
@@ -140,6 +143,52 @@ public class OpenDartClient {
             throw statusError(response.status(), response.message());
         }
         return new FinancialStatementPage(false, response.list() == null ? List.of() : response.list());
+    }
+
+    /**
+     * 공시서류원본파일(document.xml). 접수번호의 원문 ZIP을 그대로 돌려준다.
+     * 자료가 없으면(013 조회된 데이터 없음, 014 파일이 존재하지 않음) available이 false다. 그 밖의 상태는 에러.
+     */
+    public DocumentFile downloadDocument(String rceptNo) {
+        requireApiKey();
+        byte[] body = execute("document.xml", () -> restClient.get()
+                .uri(uri -> uri.path("/api/document.xml")
+                        .queryParam("crtfc_key", properties.apiKey())
+                        .queryParam("rcept_no", rceptNo)
+                        .build())
+                .retrieve()
+                .body(byte[].class));
+        if (body != null && isZip(body)) {
+            return new DocumentFile(true, body, OK, null);
+        }
+        String text = body == null ? "" : new String(body, StandardCharsets.UTF_8);
+        String status = find(text, XML_STATUS, JSON_STATUS);
+        String message = find(text, XML_MESSAGE, JSON_MESSAGE);
+        if (NO_DATA.equals(status) || NO_FILE.equals(status)) {
+            return new DocumentFile(false, null, status, message);
+        }
+        if (status != null) {
+            throw statusError(status, message);
+        }
+        throw new ApiException(ErrorCode.DART_REQUEST_FAILED, "OpenDART 원문 응답을 읽을 수 없습니다.");
+    }
+
+    /**
+     * 원문 파일 받기 결과.
+     *
+     * @param available 원문 ZIP을 받았는지. false면 status(013·014)와 message가 사유
+     */
+    public record DocumentFile(boolean available, byte[] zip, String status, String message) {
+    }
+
+    private static String find(String text, Pattern... patterns) {
+        for (Pattern pattern : patterns) {
+            Matcher matcher = pattern.matcher(text);
+            if (matcher.find()) {
+                return matcher.group(1).trim();
+            }
+        }
+        return null;
     }
 
     /** @param noData OpenDART가 '자료 없음'(013)으로 답했는지 */
