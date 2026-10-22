@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import type { Analysis } from '../../api/analyses'
 import type { SjDiv } from '../../api/results'
 import { getSummary, type Summary, type SummaryEvidence, type SummaryItem, type SummaryTarget } from '../../api/summary'
+import { DartLinkInline } from '../../components/DartLink'
+import { DartSourceLine } from '../../components/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '../../components/StateView'
 import type { SourceTarget } from './TextEvidencePanel'
 import {
@@ -148,6 +150,12 @@ export function SummaryTab({ analysis, onOpenFinancial, onOpenText, onOpenSource
         </section>
       )}
 
+      <DartSourceLine
+        reports={[
+          { role: '비교', report: analysis.previous },
+          { role: '현재', report: analysis.current },
+        ]}
+      />
       <p className="panel__note">{SUMMARY_NOTE}</p>
     </section>
   )
@@ -169,7 +177,7 @@ function SummaryCard({ item, analysis, onOpen, onOpenSource }: SummaryCardProps)
       {item.aiText && (
         <div className="summary-item__ai">
           <p className="summary-item__ai-text">
-            <span className="badge badge--ai">AI 생성</span> {item.aiText}
+            {item.aiGenerated && <span className="badge badge--ai">AI 생성</span>} {item.aiText}
           </p>
           {item.ai && <p className="panel__note">{aiInfoLabel(item.ai)}</p>}
           <EvidenceLinks evidence={item.evidence} analysis={analysis} onOpenSource={onOpenSource} />
@@ -205,9 +213,15 @@ function EvidenceLinks({ evidence, analysis, onOpenSource }: EvidenceLinksProps)
         return (
           <li key={e.evidenceId}>
             {side && report && sectionNo !== null ? (
-              <button type="button" className="link-button" onClick={() => onOpenSource({ side, section: sectionNo, block: e.blockNo })}>
-                근거: {report.reportName} 원문 위치 보기
-              </button>
+              <>
+                <button type="button" className="link-button" onClick={() => onOpenSource({ side, section: sectionNo, block: e.blockNo })}>
+                  근거: {report.reportName} 원문 위치 보기
+                </button>
+                <span className="panel__note">
+                  {' '}
+                  · 출처: DART <DartLinkInline rceptNo={report.rceptNo} dartUrl={report.dartUrl} label={report.reportName} />
+                </span>
+              </>
             ) : (
               <span className="panel__note">
                 근거 <code>{e.evidenceId}</code> · 원문 위치를 찾지 못했어요

@@ -375,3 +375,21 @@ code {
   font: inherit;
   font-size: var(--font-size-sm);
 }
+
+/* 출처 표시(5.6) */
+.dart-source {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+/* 첫 화면 이용 안내(5.6) */
+.service-notice__title {
+  margin: 0 0 var(--space-1);
+  font-weight: var(--font-weight-bold);
+}
+
+.service-notice ul {
+  margin: 0;
+  padding-left: var(--space-5);
+}

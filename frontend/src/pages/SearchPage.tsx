@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { searchCompanies, type Company } from '../api/companies'
+import { ServiceNotice } from '../components/ServiceNotice'
 import { EmptyState, ErrorState, LoadingState } from '../components/StateView'
 import { validateSearchQuery } from './search/searchQuery'
 import './search/search.css'
@@ -64,6 +65,7 @@ export function SearchPage() {
       <p className="page__step">W-01 ①</p>
       <h1 className="page__title">기업 검색</h1>
       <p className="page__lead">회사명이나 종목코드로 기업을 찾고, 같은 기업의 두 정기보고서를 비교합니다.</p>
+      <ServiceNotice />
 
       <form className="search-form" onSubmit={handleSubmit} noValidate>
         <label htmlFor="company-query" className="search-form__label">
