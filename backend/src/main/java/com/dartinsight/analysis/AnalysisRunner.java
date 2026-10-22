@@ -1,13 +1,18 @@
 package com.dartinsight.analysis;
 
+import com.dartinsight.aiserver.AiServerException;
 import com.dartinsight.analysis.FinancialComparator.Side;
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.trace.TraceContext;
+import com.dartinsight.company.Company;
+import com.dartinsight.company.CompanyRepository;
 import com.dartinsight.comparison.ComparabilityService;
 import com.dartinsight.comparison.ComparabilityService.ComparabilityResult;
 import com.dartinsight.financial.FinancialStatementService;
 import com.dartinsight.document.DocumentBlock;
 import com.dartinsight.financial.FinancialAccount;
+import com.dartinsight.summary.SummaryResult;
+import com.dartinsight.summary.SummaryService;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -30,6 +35,7 @@ import org.springframework.stereotype.Component;
  * 분석 실행(2.3). 요청 접수 → 보고서 비교(재무 수치·문장) → 근거 확인 → 결과 저장(완료) 순서로 진행한다.
  * 결과 저장과 완료 표시는 한 트랜잭션이다(4.3). 어느 단계에서든 실패하면 그 단계에 FAILED로 남긴다.
  * 문장 비교(2.5)는 원문을 받지 못해도 분석을 실패로 만들지 않고, 문장 비교 상태에 사유를 남긴다.
+ * 요약(3.2)은 근거 확인 단계에서 만들며, LLM·AI 서버를 부를 수 없으면 분석을 실패(ANALYSIS_SUMMARY_FAILED)로 끝낸다.
  * 실행은 대기열이 있는 스레드 풀에서 하므로 요청 스레드를 막지 않는다. 서버가 다시 뜨면 끝나지 않은 분석을 실패로 바꾼다.
  */
 @Component
@@ -42,6 +48,8 @@ public class AnalysisRunner implements DisposableBean {
     private final ComparabilityService comparabilityService;
     private final FinancialStatementService financialStatementService;
     private final TextComparisonService textComparisonService;
+    private final SummaryService summaryService;
+    private final CompanyRepository companyRepository;
     private final Clock clock;
     private final TaskExecutor executor;
     /** 이 실행이 시작된 시각. 이보다 먼저 만들어진 분석만 이전 실행에서 끊긴 것으로 본다 */
@@ -49,12 +57,15 @@ public class AnalysisRunner implements DisposableBean {
 
     public AnalysisRunner(AnalysisRepository analysisRepository, AnalysisResultService resultService,
             ComparabilityService comparabilityService, FinancialStatementService financialStatementService,
-            TextComparisonService textComparisonService, Clock clock, AnalysisProperties properties) {
+            TextComparisonService textComparisonService, SummaryService summaryService, CompanyRepository companyRepository,
+            Clock clock, AnalysisProperties properties) {
         this.analysisRepository = analysisRepository;
         this.resultService = resultService;
         this.comparabilityService = comparabilityService;
         this.financialStatementService = financialStatementService;
         this.textComparisonService = textComparisonService;
+        this.summaryService = summaryService;
+        this.companyRepository = companyRepository;
         this.clock = clock;
         this.bootedAt = now();
         if (properties.async()) {
@@ -147,15 +158,28 @@ public class AnalysisRunner implements DisposableBean {
                 text = TextComparison.failed("문장 비교 결과의 원문 위치를 확인하지 못해 쓰지 않았어요. (" + textProblem + ")");
             }
 
+            SummaryResult summary;
             try {
-                resultService.saveAndComplete(analysis.getId(), rows, text);
+                String companyName = companyRepository.findById(analysis.getCorpCode()).map(Company::getCorpName)
+                        .orElse(check.current().getFilerName());
+                summary = summaryService.summarize(companyName, check.previous().getReportName(),
+                        check.current().getReportName(), analysis.getCurrentRceptNo(), rows, text.rows());
+            } catch (AiServerException e) {
+                // LLM이나 AI 서버를 부를 수 없으면 분석을 실패로 끝낸다(0.7). 요약 없는 결과를 완료로 보이지 않는다
+                fail(analysisId, "ANALYSIS_SUMMARY_FAILED", "요약을 만들지 못했어요. 잠시 뒤 다시 요청해 주세요. ("
+                        + e.getMessage() + ")");
+                return;
+            }
+
+            try {
+                resultService.saveAndComplete(analysis.getId(), rows, text, summary);
             } catch (RuntimeException e) {
                 log.warn("분석 {} 결과 저장 실패", analysisId, e);
                 fail(analysisId, "ANALYSIS_SAVE_FAILED", "결과를 저장하지 못했어요. 다시 요청해 주세요.");
                 return;
             }
-            log.info("분석 {} 완료: 계정 {}건, 문장 변경 {}건({})", analysisId, rows.size(), text.rows().size(),
-                    text.status());
+            log.info("분석 {} 완료: 계정 {}건, 문장 변경 {}건({}), 요약 {}건({})", analysisId, rows.size(),
+                    text.rows().size(), text.status(), summary.items().size(), summary.status());
         } catch (ApiException e) {
             fail(analysisId, e.errorCode().name(), e.getMessage());
         } catch (RuntimeException e) {

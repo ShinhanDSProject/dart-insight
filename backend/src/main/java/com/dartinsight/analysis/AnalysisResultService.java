@@ -3,6 +3,8 @@ package com.dartinsight.analysis;
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.comparison.ComparisonBasis;
+import com.dartinsight.summary.SummaryResult;
+import com.dartinsight.summary.SummaryStore;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -31,13 +33,15 @@ public class AnalysisResultService {
     private final AnalysisRepository analysisRepository;
     private final FinancialChangeRepository changeRepository;
     private final TextChangeStore textChangeStore;
+    private final SummaryStore summaryStore;
     private final Clock clock;
 
     public AnalysisResultService(AnalysisRepository analysisRepository, FinancialChangeRepository changeRepository,
-            TextChangeStore textChangeStore, Clock clock) {
+            TextChangeStore textChangeStore, SummaryStore summaryStore, Clock clock) {
         this.analysisRepository = analysisRepository;
         this.changeRepository = changeRepository;
         this.textChangeStore = textChangeStore;
+        this.summaryStore = summaryStore;
         this.clock = clock;
     }
 
@@ -71,17 +75,27 @@ public class AnalysisResultService {
     }
 
     /**
-     * 결과(재무 수치·문장 변경)를 저장하고 같은 트랜잭션에서 완료로 바꾼다.
+     * 결과(재무 수치·문장 변경·요약)를 저장하고 같은 트랜잭션에서 완료로 바꾼다.
      * 저장하다 실패하면 트랜잭션이 되돌아가 완료가 되지 않는다.
      */
     @Transactional
-    public void saveAndComplete(Long analysisId, List<FinancialChangeRow> rows, TextComparison text) {
+    public void saveAndComplete(Long analysisId, List<FinancialChangeRow> rows, TextComparison text,
+            SummaryResult summary) {
         Analysis analysis = get(analysisId);
-        changeRepository.saveAll(rows.stream().map(row -> FinancialChange.of(analysisId, row)).toList());
+        List<FinancialChange> saved = changeRepository.saveAll(
+                rows.stream().map(row -> FinancialChange.of(analysisId, row)).toList());
         changeRepository.flush();
         textChangeStore.saveAll(analysisId, text.rows());
+        summaryStore.save(analysisId, summary, saved.stream().map(FinancialChange::getId).toList());
         analysis.recordText(text.status(), text.message());
+        analysis.recordSummary(summary.status(), summary.message());
         analysis.complete(now());
+    }
+
+    /** 요약 없이 저장하는 경우(요약할 변화가 없거나 테스트 자료) */
+    @Transactional
+    public void saveAndComplete(Long analysisId, List<FinancialChangeRow> rows, TextComparison text) {
+        saveAndComplete(analysisId, rows, text, SummaryResult.empty("요약하지 않았어요."));
     }
 
     /** 재무 수치만 저장하는 경우(문장 비교를 하지 않은 테스트 자료 등). 문장 비교는 실패로 남긴다. */
