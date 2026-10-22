@@ -5,17 +5,18 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends
 
+from app.api import paths
 from app.api.deps import get_llm_client
 from app.core.errors import ApiError, ErrorCode
 from app.llm import LlmClient, LlmUnavailable
 from app.summary.schema import SummaryRequest, output_json
 from app.summary.service import summarize
 
-router = APIRouter(prefix="/internal", tags=["internal"])
+router = APIRouter(prefix=paths.INTERNAL_PREFIX, tags=["internal"])
 logger = logging.getLogger("app.summary")
 
 
-@router.post("/summaries")
+@router.post(paths.SUMMARIES)
 def summaries(
     request: SummaryRequest, llm: Annotated[LlmClient, Depends(get_llm_client)]
 ) -> dict[str, Any]:

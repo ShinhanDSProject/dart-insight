@@ -2,7 +2,7 @@ import logging
 
 from fastapi import FastAPI
 
-from app.api import documents, internal, summaries, text_changes
+from app.api import documents, internal, paths, summaries, text_changes
 from app.core.config import load_llm_settings
 from app.core.errors import register_error_handlers
 from app.core.trace import TraceIdMiddleware, install_log_record_factory
@@ -32,7 +32,7 @@ def create_app(llm_client: LlmClient | None = None) -> FastAPI:
     app.add_middleware(TraceIdMiddleware)
     register_error_handlers(app)
 
-    @app.get("/health")
+    @app.get(paths.HEALTH)
     def health() -> dict[str, str]:
         return {"status": "UP"}
 

@@ -4,11 +4,13 @@ import logging
 
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/internal", tags=["internal"])
+from app.api import paths
+
+router = APIRouter(prefix=paths.INTERNAL_PREFIX, tags=["internal"])
 logger = logging.getLogger("app.internal")
 
 
-@router.get("/health")
+@router.get(paths.INTERNAL_HEALTH)
 def internal_health() -> dict[str, str]:
     logger.info("AI 서버 상태 확인")
     return {"status": "UP"}
