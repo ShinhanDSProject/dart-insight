@@ -33,6 +33,59 @@ def client(*script: object, sleeps: list[float] | None = None) -> tuple[LlmClien
     return LlmClient(provider, SETTINGS, sleep=record.append), provider
 
 
+class Clock:
+    """호출할 때마다 시간이 흐르는 가짜 시계"""
+
+    def __init__(self, step: float) -> None:
+        self.now = 0.0
+        self.step = step
+
+    def __call__(self) -> float:
+        return self.now
+
+    def tick(self) -> None:
+        self.now += self.step
+
+
+class SlowProvider(FakeProvider):
+    def __init__(self, clock: Clock, *script: object) -> None:
+        super().__init__(script=script)
+        self.clock = clock
+        self.timeouts: list[float] = []
+
+    def complete(self, request: LlmRequest, timeout_seconds: float):  # type: ignore[no-untyped-def]
+        self.timeouts.append(timeout_seconds)
+        self.clock.tick()
+        return super().complete(request, timeout_seconds)
+
+
+def test_regeneration_stops_when_total_time_is_used_up() -> None:
+    clock = Clock(step=50.0)
+    settings = LlmSettings(provider="fake", max_retries=0, total_timeout_seconds=90.0)
+    provider = SlowProvider(clock, {"wrong": 1}, {"wrong": 2}, {"answer": "늦음"})
+    llm = LlmClient(provider, settings, sleep=lambda _: None, monotonic=clock)
+
+    with pytest.raises(LlmOutputInvalid) as e:
+        llm.generate(REQUEST, need_answer)
+
+    assert len(provider.requests) == 2  # 세 번째는 시간이 남지 않아 부르지 않는다
+    assert provider.timeouts == [60.0, 40.0]
+    assert [c.outcome for c in e.value.calls] == ["INVALID_OUTPUT", "INVALID_OUTPUT"]
+
+
+def test_transient_retries_stop_at_the_total_time() -> None:
+    clock = Clock(step=99.0)
+    settings = LlmSettings(provider="fake", max_retries=5, total_timeout_seconds=100.0)
+    provider = SlowProvider(clock, ProviderTransientError("시간 초과"), {"answer": "늦음"})
+    llm = LlmClient(provider, settings, sleep=lambda _: None, monotonic=clock)
+
+    with pytest.raises(LlmUnavailable) as e:
+        llm.generate(REQUEST, need_answer)
+
+    assert len(provider.requests) == 1
+    assert [c.outcome for c in e.value.calls] == ["TRANSIENT_ERROR"]
+
+
 def test_no_provider_is_unavailable() -> None:
     llm = LlmClient(None, LlmSettings())
 
@@ -56,7 +109,11 @@ def test_valid_answer_is_returned_with_call_record() -> None:
     assert len(result.calls) == 1
     call = result.calls[0]
     assert (call.task, call.provider, call.model, call.prompt_version) == (
-        "test", "fake", "fake-model", "test-v1")
+        "test",
+        "fake",
+        "fake-model",
+        "test-v1",
+    )
     assert call.trace_id == "trace-123"
     assert call.outcome == "OK"
     assert call.input_tokens is not None and call.output_tokens is not None
@@ -155,6 +212,7 @@ def test_settings_come_from_environment(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.setenv("LLM_MODEL", "m-1")
     monkeypatch.setenv("LLM_API_KEY", "test-key-not-real")
     monkeypatch.setenv("LLM_MAX_OUTPUT_RETRIES", "5")
+    monkeypatch.setenv("LLM_TOTAL_TIMEOUT_SECONDS", "90")
 
     settings = load_llm_settings()
 
@@ -162,3 +220,4 @@ def test_settings_come_from_environment(monkeypatch: pytest.MonkeyPatch) -> None
     assert settings.model == "m-1"
     assert settings.api_key == "test-key-not-real"
     assert settings.max_output_retries == 2
+    assert settings.total_timeout_seconds == 90.0

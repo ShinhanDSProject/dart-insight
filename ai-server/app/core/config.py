@@ -18,6 +18,8 @@ class LlmSettings:
     timeout_seconds: 한 번 호출의 응답 대기 시간.
     max_retries: 네트워크 오류·시간 초과·제공자 일시 오류일 때 다시 시도하는 횟수.
     max_output_retries: 결과 형식·검증에 실패했을 때 다시 생성하는 횟수(AGENTS.md: 최대 2회).
+    total_timeout_seconds: 요청 하나(재시도·다시 생성 포함)에 쓰는 전체 시간.
+        backend의 AI 서버 응답 대기 시간(180초)보다 짧아야 호출 기록이 backend에 돌아간다.
     """
 
     provider: str = ""
@@ -26,6 +28,7 @@ class LlmSettings:
     timeout_seconds: float = 60.0
     max_retries: int = 2
     max_output_retries: int = 2
+    total_timeout_seconds: float = 120.0
 
 
 def _int(name: str, default: int) -> int:
@@ -46,4 +49,5 @@ def load_llm_settings() -> LlmSettings:
         timeout_seconds=_float("LLM_TIMEOUT_SECONDS", 60.0),
         max_retries=_int("LLM_MAX_RETRIES", 2),
         max_output_retries=min(_int("LLM_MAX_OUTPUT_RETRIES", 2), 2),
+        total_timeout_seconds=_float("LLM_TOTAL_TIMEOUT_SECONDS", 120.0),
     )

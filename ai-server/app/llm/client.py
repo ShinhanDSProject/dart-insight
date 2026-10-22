@@ -8,6 +8,8 @@
   그래도 실패하면 `LlmOutputInvalid`로 끝낸다. 실패를 성공으로 처리하지 않는다.
 - 제공자가 없거나(키 없음 포함) 호출이 끝내 실패하면 `LlmUnavailable`.
   부른 쪽이 분석을 실패로 끝낸다.
+- 요청 하나에 쓰는 전체 시간은 `total_timeout_seconds`까지다. 시간이 다 되면 더 부르지 않는다
+  (검증에 실패한 결과가 있었으면 `LlmOutputInvalid`, 아니면 `LlmUnavailable`).
 - 사용자 정보는 프롬프트에 넣지 않는다. 공시 원문은 `app.llm.prompting.disclosure`로 감싼다.
 """
 
@@ -112,11 +114,13 @@ class LlmClient:
         settings: LlmSettings,
         sleep: Callable[[float], None] = time.sleep,
         clock: Callable[[], datetime] = lambda: datetime.now(KST),
+        monotonic: Callable[[], float] = time.monotonic,
     ) -> None:
         self.provider = provider
         self.settings = settings
         self._sleep = sleep
         self._clock = clock
+        self._monotonic = monotonic
 
     @classmethod
     def from_settings(cls, settings: LlmSettings) -> LlmClient:
@@ -136,53 +140,78 @@ class LlmClient:
         calls: list[CallRecord] = []
         problems: list[str] = []
         current = request
+        deadline = self._monotonic() + self.settings.total_timeout_seconds
         for round_no in range(self.settings.max_output_retries + 1):
             if problems:
+                if self._monotonic() >= deadline:
+                    break
                 current = replace(request, user=request.user + _feedback(problems))
-            text, record = self._call_with_retry(current, calls)
+            text, record = self._call_with_retry(current, calls, deadline)
             try:
                 value = validate(_parse_json(text))
             except OutputProblem as e:
                 problems = e.problems
                 calls[-1] = replace(record, outcome="INVALID_OUTPUT", error=str(e)[:500])
                 _log(calls[-1])
-                logger.info("LLM 결과 검증 실패(%d/%d): %s", round_no + 1,
-                            self.settings.max_output_retries + 1, e)
+                logger.info(
+                    "LLM 결과 검증 실패(%d/%d): %s",
+                    round_no + 1,
+                    self.settings.max_output_retries + 1,
+                    e,
+                )
                 continue
             _log(record)
             return LlmResult(value, record.model, request.prompt_version, record.called_at, calls)
         raise LlmOutputInvalid("다시 생성해도 결과가 검증을 통과하지 못했어요.", problems, calls)
 
     def _call_with_retry(
-        self, request: LlmRequest, calls: list[CallRecord]
+        self, request: LlmRequest, calls: list[CallRecord], deadline: float
     ) -> tuple[str, CallRecord]:
         assert self.provider is not None
         attempt = 0
         while True:
             attempt += 1
+            remaining = deadline - self._monotonic()
+            if remaining <= 0:
+                raise LlmUnavailable(
+                    "LLM 응답을 기다리는 시간이 다 됐어요. 잠시 뒤 다시 요청해 주세요.", calls
+                )
             called_at = self._clock().strftime("%Y-%m-%dT%H:%M:%S")
             started = time.monotonic()
             try:
-                response = self.provider.complete(request, self.settings.timeout_seconds)
+                response = self.provider.complete(
+                    request, min(self.settings.timeout_seconds, remaining)
+                )
             except ProviderTransientError as e:
-                record = self._record(request, called_at, started, attempt, "TRANSIENT_ERROR",
-                                      error=_short(e))
+                record = self._record(
+                    request, called_at, started, attempt, "TRANSIENT_ERROR", error=_short(e)
+                )
                 calls.append(record)
                 _log(record)
-                if attempt > self.settings.max_retries:
-                    raise LlmUnavailable("LLM 호출이 계속 실패했어요. 잠시 뒤 다시 요청해 주세요.",
-                                         calls) from e
-                self._sleep(min(2.0 * attempt, 10.0))
+                wait = min(2.0 * attempt, 10.0)
+                if attempt > self.settings.max_retries or self._monotonic() + wait >= deadline:
+                    raise LlmUnavailable(
+                        "LLM 호출이 계속 실패했어요. 잠시 뒤 다시 요청해 주세요.", calls
+                    ) from e
+                self._sleep(wait)
                 continue
             except ProviderError as e:
-                record = self._record(request, called_at, started, attempt, "ERROR",
-                                      error=_short(e))
+                record = self._record(
+                    request, called_at, started, attempt, "ERROR", error=_short(e)
+                )
                 calls.append(record)
                 _log(record)
                 raise LlmUnavailable("LLM을 부르지 못했어요(설정·인증 확인 필요).", calls) from e
-            record = self._record(request, called_at, started, attempt, "OK",
-                                  model=response.model, input_tokens=response.input_tokens,
-                                  output_tokens=response.output_tokens)
+            record = self._record(
+                request,
+                called_at,
+                started,
+                attempt,
+                "OK",
+                model=response.model,
+                input_tokens=response.input_tokens,
+                output_tokens=response.output_tokens,
+            )
             calls.append(record)
             return response.text, record
 
@@ -242,7 +271,14 @@ def _short(e: Exception) -> str:
 def _log(record: CallRecord) -> None:
     logger.info(
         "LLM 호출 task=%s provider=%s model=%s prompt=%s attempt=%d tokens=%s/%s %dms %s%s",
-        record.task, record.provider, record.model, record.prompt_version, record.attempt,
-        record.input_tokens, record.output_tokens, record.latency_ms, record.outcome,
+        record.task,
+        record.provider,
+        record.model,
+        record.prompt_version,
+        record.attempt,
+        record.input_tokens,
+        record.output_tokens,
+        record.latency_ms,
+        record.outcome,
         f" ({record.error})" if record.error else "",
     )
