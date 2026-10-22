@@ -50,6 +50,8 @@
 | `sjDiv` | `BS` 재무상태표, `IS` 손익계산서, `CIS` 포괄손익계산서, `CF` 현금흐름표, `SCE` 자본변동표 |
 | `fsDiv` | `CFS` 연결, `OFS` 별도 |
 | `amountBasis` | `POINT` 시점(재무상태표), `CUMULATIVE` 누적, `QUARTER` 3개월 |
+| `textStatus` (분석) | 문장 비교 상태. `COMPLETED` 끝까지 비교, `PARTIAL` 원문 일부를 읽지 못했을 수 있음, `FAILED` 비교하지 못함(문장 변경이 없다는 뜻이 아님). 완료 전이면 null |
+| `changeType` (문장) | `ADDED` 추가, `DELETED` 삭제(문서에서 빠짐. 사업·계약 종료로 해석하지 않음), `MODIFIED` 수정, `REVIEW_NEEDED` 검토 필요(두 보고서의 항목을 짝짓지 못함) |
 
 ## 1. 엔드포인트 요약
 
@@ -65,6 +67,7 @@
 | GET | `/api/analyses/{analysisId}` | 분석 상태·단계 | #14 (2.3) | W-02, W-03 | 초안 |
 | GET | `/api/analyses/{analysisId}/financial-changes` | 재무 수치 변화 목록 | #15 (2.4), #19 (3.1) | W-03 ② | 초안 |
 | GET | `/api/analyses/{analysisId}/financial-changes/{changeId}` | 수치 근거 상세 | #21 (3.3) | W-03 ② | 초안 |
+| GET | `/api/analyses/{analysisId}/text-changes` | 문장·표 변경 목록 | #16 (2.5) | W-03 ③ | 초안 |
 | GET | `/api/system/health` | 서비스 연결 상태 | #48 (0.5) | — | 초안 |
 
 ## 2. 엔드포인트 상세
@@ -294,11 +297,12 @@
 ### POST /api/analyses — 분석 요청
 
 - 이슈: #14 (2.3) · 화면: W-01 ③ → W-02
-- 같은 기업·보고서 쌍·비교 기준·분석 버전으로 완료된 결과가 있으면 새로 만들지 않고 그 결과를 돌려줍니다(200, `reused: true`). 진행 중인 작업이 있으면 그 작업을 돌려줍니다(202, `reused: true`). 실패한 작업은 다시 쓰지 않고 새로 만듭니다. 진행 중인데 30분 넘게 상태가 바뀌지 않은 작업은 멈춘 것으로 보고 실패(`ANALYSIS_TIMED_OUT`)로 바꾼 뒤 새로 만듭니다.
+- 같은 기업·보고서 쌍·비교 기준·분석 버전으로 완료된 결과가 있으면 새로 만들지 않고 그 결과를 돌려줍니다(200, `reused: true`). 진행 중인 작업이 있으면 그 작업을 돌려줍니다(202, `reused: true`). 실패한 작업은 다시 쓰지 않고 새로 만듭니다. 문장 비교가 실패(`textStatus: FAILED`)로 끝난 완료 결과도 다시 쓰지 않고 새로 분석합니다(AI 서버·OpenDART의 일시 장애였으면 원문을 다시 비교할 수 있게). 진행 중인데 30분 넘게 상태가 바뀌지 않은 작업은 멈춘 것으로 보고 실패(`ANALYSIS_TIMED_OUT`)로 바꾼 뒤 새로 만듭니다.
 - 새로 만들기 전에 비교 가능성 검증(2.2)을 합니다. 통과하지 못하면 만들지 않고 422입니다.
 - 저장하는 `basis`는 고른 보고서 쌍이 실제로 맞는 기준입니다. `YOY`·`PREV`인데 고른 보고서가 그 기준의 보고서가 아니면 `CUSTOM`(직접 선택)으로, 반대로 `CUSTOM`인데 전년 동기·직전 기간 쌍이면 `YOY`·`PREV`로 저장합니다. 응답의 `basis`도 저장한 값입니다. 결과 화면이 기준을 잘못 보여 주지 않고, 같은 보고서 쌍을 기준 이름만 달리해 두 번 분석하지 않기 위해서입니다.
 - 분석은 요청과 다른 스레드에서 돕니다. 진행 상황은 `GET /api/analyses/{analysisId}`로 봅니다.
 - 요청의 추적 ID(`X-Trace-Id`)를 분석에 저장하고, 분석이 도는 동안 로그에 같은 값을 남깁니다.
+- '보고서 비교' 단계에서 재무 수치와 함께 두 보고서 원문을 구조화(4.2)해 문장·표를 비교합니다(2.5). 원문을 받지 못하거나 읽지 못해도 분석은 재무 결과로 완료하고, `textStatus`·`textMessage`에 사유를 남깁니다.
 
 **요청 본문**: 비교 가능성 검증과 같습니다.
 
@@ -340,7 +344,9 @@
   ],
   "error": null,
   "createdAt": "2026-10-21T14:06:00",
-  "completedAt": null
+  "completedAt": null,
+  "textStatus": null,
+  "textMessage": null
 }
 ```
 
@@ -456,6 +462,68 @@
 | 404 | `ANALYSIS_NOT_FOUND`, `ANALYSIS_CHANGE_NOT_FOUND` | 없는 분석·항목 |
 | 409 | `ANALYSIS_NOT_READY` | 분석이 아직 완료되지 않음 |
 
+### GET /api/analyses/{analysisId}/text-changes — 문장·표 변경 목록
+
+- 이슈: #16 (2.5) · 화면: W-03 ③
+- 완료된 분석의 그 분석 결과만 돌려줍니다. 순서는 현재 보고서의 문서 순서입니다(짝이 없는 이전 보고서 항목은 이전 보고서에서 있던 자리).
+- 문단·표 하나가 변경 하나입니다. 섹션이 통째로 한쪽에만 있으면 그 섹션의 블록이 모두 추가 또는 삭제입니다.
+- 같은 이름의 항목 수가 두 보고서에서 달라 짝을 정하지 못한 섹션은 숨기지 않고 `REVIEW_NEEDED` 하나로 남깁니다.
+- `textStatus`가 `FAILED`면 `items`가 비어 있고 `textMessage`에 사유가 있습니다. 화면은 '변경 없음'으로 보여 주지 않습니다.
+
+**요청**
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| query | `type` | string | 아니오 | `ADDED`, `DELETED`, `MODIFIED`, `REVIEW_NEEDED`. 없으면 전체 |
+| query | `page` | int | 아니오 | 0부터. 기본 0 |
+| query | `size` | int | 아니오 | 1~100. 기본 20 |
+
+**응답 200**
+
+```json
+{
+  "analysisId": 42,
+  "textStatus": "COMPLETED",
+  "textMessage": null,
+  "type": null,
+  "page": 0,
+  "size": 20,
+  "totalItems": 57,
+  "counts": { "all": 57, "added": 10, "deleted": 5, "modified": 40, "reviewNeeded": 2 },
+  "items": [
+    {
+      "changeId": 3001,
+      "changeNo": 1,
+      "changeType": "MODIFIED",
+      "blockType": "PARAGRAPH",
+      "numbersOnly": false,
+      "sectionStatus": "MATCHED",
+      "sectionTitle": "1. 사업의 개요",
+      "sectionPath": "II. 사업의 내용 > 1. 사업의 개요",
+      "previousPreview": "…당사는 메모리 반도체를 만듭니다.",
+      "currentPreview": "…당사는 메모리 반도체와 파운드리 사업을 합니다.",
+      "similarity": 0.6818,
+      "reviewReason": null
+    }
+  ]
+}
+```
+
+| 필드 | 설명 |
+| --- | --- |
+| `totalItems` | `type`에 맞는 전체 건수(쪽 나누기 전) |
+| `blockType` | `PARAGRAPH` 문단, `TABLE` 표, `SECTION` 섹션 단위 검토 필요 |
+| `numbersOnly` | 수정인데 숫자만 바뀜(재무 표 등) |
+| `sectionStatus` | 섹션 짝짓기 결과. `MATCHED`, `RENAMED`(제목이 조금 바뀐 섹션), `ADDED`, `DELETED`, `AMBIGUOUS` |
+| `previousPreview`·`currentPreview` | 앞부분 240자. 수정이면 두 글이 처음 달라지는 곳 조금 앞부터 자르고 앞뒤에 `…`. 없는 쪽은 null |
+| `similarity` | 수정일 때 두 글이 비슷한 정도(0~1) |
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | `type`·`page`·`size`가 범위 밖 |
+| 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 ID |
+| 409 | `ANALYSIS_NOT_READY` | 분석이 아직 완료되지 않음 |
+
 ### GET /api/system/health — 연결 상태
 
 - 이슈: #48 (0.5)
@@ -478,7 +546,8 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 | GET | `/health` | AI 서버 자체 상태(사람·배포 도구가 확인용으로 씀. backend는 `/internal/health`를 부름) | #44 (0.1) | 초안 |
 | GET | `/internal/documents/parser` | 원문 파서 버전 | #28 (4.2) | 초안 |
 | POST | `/internal/documents/{rceptNo}/structure` | 원문 ZIP 구조화 | #28 (4.2) | 초안 |
-| POST | `/internal/...` | 문장 변경 탐지·요약 | 2.5, 3.2 | M2에서 정함 |
+| POST | `/internal/text-changes` | 두 원문의 문장·표 변경 탐지 | #16 (2.5) | 초안 |
+| POST | `/internal/...` | 요약 | 3.2 | M2에서 정함 |
 
 | code | 상태 | 뜻 |
 | --- | --- | --- |
@@ -543,6 +612,47 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | --- | --- | --- |
 | 400 | `COMMON_INVALID_INPUT` | 접수번호가 14자리 숫자가 아님, 본문이 비어 있음 |
 | 413 | `AI_DOCUMENT_TOO_LARGE` | ZIP이 80MB를 넘음 |
+
+### POST /internal/text-changes — 문장·표 변경 탐지
+
+- 이슈: #16 (2.5)
+- backend가 구조화해 저장한 두 원문(목차와 블록 글)을 보냅니다. AI 서버는 위치(섹션·블록 번호)만 돌려주고, 글은 backend가 저장된 원문에서 붙입니다.
+- 섹션은 제목에서 번호·공백·기호를 뺀 이름을 상위 섹션부터 이은 경로로 짝짓습니다. 같은 경로가 양쪽에 같은 수만큼 있으면 순서대로 짝짓고, 수가 다르면 `REVIEW_NEEDED`입니다. 경로가 없으면 같은 상위 섹션 안에서 제목이 비슷한(0.8 이상) 섹션을 짝짓습니다(`RENAMED`, 점수가 같으면 문서 순서). 상위 섹션 이름이 크게 바뀌어 짝이 없으면, 그 아래 섹션을 자기 제목으로 짝짓고(양쪽에 하나씩일 때) 하위 섹션이 절반 넘게 짝지어진 상위 섹션끼리도 짝짓습니다(`RENAMED`).
+- 블록은 숫자를 가린 글로 자리를 맞춥니다(숫자만 바뀐 표도 같은 자리로). 맞춘 자리의 글이 다르면 `MODIFIED`, 한쪽에만 있으면 `ADDED`·`DELETED`, 맞지 않는 구간은 글이 비슷한(0.5 이상) 블록끼리 `MODIFIED`로 짝짓습니다. 비슷한 정도(`similarity`)는 짧은 글(두 글 합 800자 이하)은 글자, 긴 글은 낱말 단위로 잽니다. 구간 하나에서 비교하는 횟수에 상한(300번)이 있어 넘으면 나머지는 `ADDED`·`DELETED`로 둡니다.
+
+**요청**
+
+```json
+{
+  "previous": {
+    "rceptNo": "20250814000987",
+    "sections": [{ "sectionNo": 3, "parentNo": 2, "level": 2, "title": "1. 사업의 개요", "cover": false }],
+    "blocks": [{ "blockNo": 41, "sectionNo": 3, "type": "PARAGRAPH", "text": "당사는 …" }]
+  },
+  "current": { "rceptNo": "20260814001234", "sections": [], "blocks": [] }
+}
+```
+
+**응답 200**
+
+```json
+{
+  "diffVersion": "text-diff-1",
+  "sectionCounts": { "matched": 118, "renamed": 1, "added": 2, "deleted": 1, "ambiguous": 0 },
+  "changes": [
+    {
+      "changeType": "MODIFIED", "blockType": "PARAGRAPH", "sectionStatus": "MATCHED",
+      "sectionTitle": "1. 사업의 개요", "sectionPath": "II. 사업의 내용 > 1. 사업의 개요",
+      "previous": { "sectionNo": 3, "blockNo": 41 }, "current": { "sectionNo": 3, "blockNo": 44 },
+      "numbersOnly": false, "similarity": 0.6818, "reviewReason": null
+    }
+  ]
+}
+```
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | 접수번호 형식이 틀림, 섹션 번호가 겹침, 없는 섹션을 가리키는 블록 |
 
 ## 4. 에러 코드
 
