@@ -2,6 +2,8 @@
 # 실행: docker compose up -d      중지: docker compose down
 # 데이터까지 지우기: docker compose down -v
 # 접속 정보는 backend/.env.example, ai-server/.env.example과 같습니다. 로컬 전용 값이라 실제 서버에서는 쓰지 않습니다.
+# 포트가 겹치면 이 파일을 고치지 말고 환경변수로 바꿉니다: MARIADB_HOST_PORT=3317 docker compose up -d
+# (저장소 루트의 .env에 적어 두어도 됩니다. 자세히는 docs/local-setup.md)
 name: dart-insight
 
 services:
@@ -17,7 +19,7 @@ services:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
     ports:
-      - "3306:3306"
+      - "${MARIADB_HOST_PORT:-3306}:3306"
     volumes:
       - mariadb-data:/var/lib/mysql
     healthcheck:
@@ -33,7 +35,7 @@ services:
       IS_PERSISTENT: "TRUE"
       ANONYMIZED_TELEMETRY: "FALSE"
     ports:
-      - "8001:8000" # ai-server가 8000을 쓰므로 8001로 엽니다
+      - "${CHROMA_HOST_PORT:-8001}:8000" # ai-server가 8000을 쓰므로 8001로 엽니다
     volumes:
       - chroma-data:/chroma/chroma
 
