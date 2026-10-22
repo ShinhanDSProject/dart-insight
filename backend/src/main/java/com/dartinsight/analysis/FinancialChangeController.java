@@ -90,12 +90,16 @@ public class FinancialChangeController {
         return won(c.getCurrentAmount()) + " − " + won(c.getPreviousAmount()) + " = " + won(c.getChangeAmount());
     }
 
-    /** 증감률 계산식. 계산하지 않았으면 null */
+    /**
+     * 증감률 계산식. 계산하지 않았으면 null.
+     * 저장된 증감률(소수 6자리)을 다시 반올림하면 식의 숫자와 어긋날 수 있어, 식에 적는 두 금액으로 바로 계산한다.
+     */
     static String rateFormula(FinancialChange c) {
         if (c.getChangeRate() == null) {
             return null;
         }
-        BigDecimal percent = c.getChangeRate().movePointRight(2).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal percent = BigDecimal.valueOf(c.getChangeAmount()).movePointRight(2)
+                .divide(BigDecimal.valueOf(c.getPreviousAmount()), 2, RoundingMode.HALF_UP);
         return won(c.getChangeAmount()) + " ÷ " + won(c.getPreviousAmount()) + " × 100 = " + percent.toPlainString()
                 + "%";
     }
