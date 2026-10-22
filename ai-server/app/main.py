@@ -3,8 +3,10 @@ import logging
 from fastapi import FastAPI
 
 from app.api import internal
+from app.core.config import load_llm_settings
 from app.core.errors import register_error_handlers
 from app.core.trace import TraceIdMiddleware, install_log_record_factory
+from app.llm import LlmClient
 
 LOG_FORMAT = "%(asctime)s %(levelname)5s [%(trace_id)s] %(name)s - %(message)s"
 
@@ -19,9 +21,14 @@ def setup_logging() -> None:
     app_logger.setLevel(logging.INFO)
 
 
-def create_app() -> FastAPI:
+def create_app(llm_client: LlmClient | None = None) -> FastAPI:
+    """llm_client를 넘기지 않으면 환경변수(LLM_PROVIDER 등)로 만든다.
+
+    테스트는 가짜 응답을 넘긴다.
+    """
     setup_logging()
     app = FastAPI(title="Dart Insight AI Server", version="0.0.1")
+    app.state.llm_client = llm_client or LlmClient.from_settings(load_llm_settings())
     app.add_middleware(TraceIdMiddleware)
     register_error_handlers(app)
 
