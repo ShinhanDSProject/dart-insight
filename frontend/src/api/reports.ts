@@ -1,4 +1,5 @@
 import { apiGet } from './client'
+import { endpoints } from './endpoints'
 
 /** docs/api-spec.md 공통 값 */
 export type ReportType = 'ANNUAL' | 'HALF' | 'Q1' | 'Q3'
@@ -30,7 +31,7 @@ export interface ReportList {
 }
 
 export function listReports(corpCode: string): Promise<ReportList> {
-  return apiGet(`/api/companies/${encodeURIComponent(corpCode)}/reports`)
+  return apiGet(endpoints.companyReports(corpCode))
 }
 
 export interface ReportDetail extends ReportItem {
@@ -45,7 +46,7 @@ export interface ReportDetail extends ReportItem {
 }
 
 export function getReport(rceptNo: string): Promise<ReportDetail> {
-  return apiGet(`/api/reports/${encodeURIComponent(rceptNo)}`)
+  return apiGet(endpoints.report(rceptNo))
 }
 
 /** 비교 기준. 직접 선택(CUSTOM)은 화면에서 목록 중에 고른다. */
@@ -64,5 +65,5 @@ export function getReportPair(
   basis: Exclude<ComparisonBasis, 'CUSTOM'>,
   currentRceptNo: string,
 ): Promise<ReportPair> {
-  return apiGet(`/api/companies/${encodeURIComponent(corpCode)}/report-pairs`, { basis, currentRceptNo })
+  return apiGet(endpoints.reportPairs(corpCode), { basis, currentRceptNo })
 }

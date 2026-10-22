@@ -1,4 +1,5 @@
 import { apiGet } from './client'
+import { endpoints } from './endpoints'
 import type { ReportType } from './reports'
 
 /** docs/api-spec.md GET /api/analyses/{id}/text-changes */
@@ -62,7 +63,7 @@ export interface TextChangeQuery {
 }
 
 export function getTextChanges(analysisId: number, query: TextChangeQuery): Promise<TextChangeList> {
-  return apiGet(`/api/analyses/${analysisId}/text-changes`, {
+  return apiGet(endpoints.textChanges(analysisId), {
     type: query.type ?? undefined,
     sort: query.sort,
     page: query.page,
@@ -108,5 +109,5 @@ export interface TextChangeDetail {
 }
 
 export function getTextChange(analysisId: number, changeId: number): Promise<TextChangeDetail> {
-  return apiGet(`/api/analyses/${analysisId}/text-changes/${changeId}`)
+  return apiGet(endpoints.textChange(analysisId, changeId))
 }

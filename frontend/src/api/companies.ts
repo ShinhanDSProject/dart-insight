@@ -1,4 +1,5 @@
 import { apiGet } from './client'
+import { endpoints } from './endpoints'
 
 export interface Company {
   corpCode: string
@@ -8,9 +9,9 @@ export interface Company {
 }
 
 export function searchCompanies(query: string): Promise<{ items: Company[] }> {
-  return apiGet('/api/companies', { query })
+  return apiGet(endpoints.companies(), { query })
 }
 
 export function getCompany(corpCode: string): Promise<Company> {
-  return apiGet(`/api/companies/${encodeURIComponent(corpCode)}`)
+  return apiGet(endpoints.company(corpCode))
 }

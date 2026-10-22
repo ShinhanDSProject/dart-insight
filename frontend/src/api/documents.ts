@@ -1,4 +1,5 @@
 import { apiGet } from './client'
+import { endpoints } from './endpoints'
 import type { TableCell } from './textChanges'
 
 /** docs/api-spec.md GET /api/analyses/{id}/documents/{side} (3.5) */
@@ -48,11 +49,11 @@ export interface SectionContent {
 }
 
 export function getDocumentOutline(analysisId: number, side: DocumentSide): Promise<DocumentOutline> {
-  return apiGet(`/api/analyses/${analysisId}/documents/${side}`)
+  return apiGet(endpoints.document(analysisId, side))
 }
 
 export function getSection(analysisId: number, side: DocumentSide, sectionNo: number): Promise<SectionContent> {
-  return apiGet(`/api/analyses/${analysisId}/documents/${side}/sections/${sectionNo}`)
+  return apiGet(endpoints.documentSection(analysisId, side, sectionNo))
 }
 
 /** 목차에서 처음 보여 줄 섹션: 표지가 아니고 글이 있는 첫 섹션 */

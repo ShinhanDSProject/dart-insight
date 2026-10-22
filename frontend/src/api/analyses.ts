@@ -1,4 +1,5 @@
 import { apiGet, apiPost } from './client'
+import { endpoints } from './endpoints'
 import type { ComparabilityRequest, FsDiv } from './comparability'
 import type { ComparisonBasis, ReportItem } from './reports'
 import type { SummaryStatus } from './summary'
@@ -45,11 +46,11 @@ export interface AnalysisCreated {
 }
 
 export function requestAnalysis(request: ComparabilityRequest): Promise<AnalysisCreated> {
-  return apiPost('/api/analyses', request)
+  return apiPost(endpoints.analyses(), request)
 }
 
 export function getAnalysis(analysisId: string | number): Promise<Analysis> {
-  return apiGet(`/api/analyses/${encodeURIComponent(String(analysisId))}`)
+  return apiGet(endpoints.analysis(analysisId))
 }
 
 /** 분석 화면 주소. 완료됐으면 결과(W-03), 아니면 진행(W-02) */

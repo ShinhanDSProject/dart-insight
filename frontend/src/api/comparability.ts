@@ -1,4 +1,5 @@
 import { apiPost } from './client'
+import { endpoints } from './endpoints'
 import type { ComparisonBasis, ReportItem } from './reports'
 
 export type ComparabilityLevel = 'FULL' | 'PARTIAL' | 'NOT_COMPARABLE'
@@ -46,5 +47,5 @@ export interface ComparabilityRequest {
 }
 
 export function checkComparability(request: ComparabilityRequest): Promise<ComparabilityResult> {
-  return apiPost('/api/comparability-checks', request)
+  return apiPost(endpoints.comparabilityChecks(), request)
 }
