@@ -19,6 +19,8 @@ class ErrorCode(Enum):
     COMMON_METHOD_NOT_ALLOWED = (405, "지원하지 않는 요청 방식입니다.")
     COMMON_INTERNAL_ERROR = (500, "서버에서 오류가 발생했습니다.")
 
+    AI_DOCUMENT_TOO_LARGE = (413, "원문 파일이 너무 큽니다.")
+
     def __init__(self, status: int, default_message: str) -> None:
         self.status = status
         self.default_message = default_message

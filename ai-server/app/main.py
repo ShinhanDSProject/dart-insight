@@ -2,7 +2,7 @@ import logging
 
 from fastapi import FastAPI
 
-from app.api import internal
+from app.api import documents, internal
 from app.core.config import load_llm_settings
 from app.core.errors import register_error_handlers
 from app.core.trace import TraceIdMiddleware, install_log_record_factory
@@ -37,6 +37,7 @@ def create_app(llm_client: LlmClient | None = None) -> FastAPI:
         return {"status": "UP"}
 
     app.include_router(internal.router)
+    app.include_router(documents.router)
     return app
 
 
