@@ -13,7 +13,7 @@
 ## 결정
 
 - 원문 목차·블록(`DocumentStore`), 문장·표 변경(`TextChangeStore`), 요약 항목·LLM 호출 기록(`SummaryStore`)은 `JdbcTemplate`으로 일괄 저장하고 SQL로 조회합니다.
-- 다시 저장할 때는 그 원문(또는 분석)의 행을 모두 지우고 다시 넣습니다. 부르는 쪽 트랜잭션 안에서 하므로 분석 완료와 함께 묶입니다([ADR-0004](0004-async-analysis-job.md)).
+- 원문 블록은 다시 저장할 때 그 원문의 행을 모두 지우고 다시 넣습니다(`DocumentStore`). 문장 변경·요약은 분석마다 한 번만 넣고 지우지 않습니다(`TextChangeStore`, `SummaryStore`). 부르는 쪽 트랜잭션 안에서 하므로 분석 완료와 함께 묶입니다([ADR-0004](0004-async-analysis-job.md)).
 - 기업·보고서·분석처럼 행이 적고 상태가 바뀌는 데이터는 JPA 엔티티로 둡니다.
 - 스키마는 다른 표와 똑같이 Flyway로 만듭니다([ADR-0007](0007-flyway-migrations.md)).
 
