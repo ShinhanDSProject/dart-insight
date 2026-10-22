@@ -196,3 +196,171 @@
   background: var(--color-text);
   color: var(--color-bg);
 }
+
+/* 문장·내용 변화(W-03 ③) */
+.text-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.text-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.pill {
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.pill[aria-pressed='true'] {
+  border-color: var(--color-text);
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-weight: var(--font-weight-bold);
+}
+
+.pill--attention {
+  border-color: var(--color-attention);
+  color: var(--color-attention);
+  font-weight: var(--font-weight-bold);
+}
+
+.pill--attention[aria-pressed='true'] {
+  border-color: var(--color-attention);
+  background: var(--color-attention);
+  color: var(--color-bg);
+}
+
+.pill__count {
+  font-variant-numeric: tabular-nums;
+}
+
+.change-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.change-list__more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.change-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.change-card--review {
+  border: 1.5px solid var(--color-attention);
+}
+
+.change-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.change-card__head .badge {
+  margin-left: 0;
+}
+
+.change-card__title {
+  margin: 0 var(--space-2) 0 0;
+  font-size: var(--font-size-md);
+  overflow-wrap: anywhere;
+}
+
+.change-card__review {
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.change-card__sides {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  gap: var(--space-3);
+}
+
+.change-card__why {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.change-card__why summary {
+  cursor: pointer;
+}
+
+.change-card__why ul {
+  margin: var(--space-1) 0 0;
+  padding-left: var(--space-5);
+}
+
+.change-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.change-side__role {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.change-side__text,
+.change-side__missing {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.change-side__missing {
+  color: var(--color-text-muted);
+}
+
+.change-side__text--added {
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--color-text);
+  background: var(--color-bg-subtle);
+}
+
+.change-side__text--removed {
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+
+.badge--attention {
+  border-color: var(--color-attention);
+  color: var(--color-attention);
+}
+
+.text-controls__note {
+  flex-basis: 100%;
+}
