@@ -50,12 +50,12 @@ M0~M2에서 이미 내린 결정은 2026-10-22에 소급해 기록했습니다(0
 | [0003](0003-opendart-cache-in-backend-parsing-in-ai-server.md) | OpenDART 호출·캐시는 backend가, 원문 파싱·구조화는 ai-server가 맡는다 | 채택 | 2026-10-21 |
 | [0004](0004-async-analysis-job.md) | 분석은 비동기 작업으로 처리하고 상태는 허용 전이표로만 바꾼다 | 채택 | 2026-10-21 |
 | [0005](0005-error-format-and-trace-id.md) | 두 서버가 같은 에러 형식을 쓰고 X-Trace-Id로 요청을 잇는다 | 채택 | 2026-10-21 |
-| [0006](0006-keys-amounts-and-null.md) | 회사·보고서는 고유번호·접수번호로 식별하고, 금액은 원 단위 정수, 없는 값은 null로 둔다 | 채택 | 2026-10-21 |
+| [0006](0006-keys-amounts-and-null.md) | 회사·보고서는 고유번호·접수번호로 식별하고, 금액은 통화와 함께 정수로, 없는 값은 null로 둔다 | 채택 | 2026-10-21 |
 | [0007](0007-flyway-migrations.md) | DB 스키마는 Flyway 마이그레이션으로만 바꾸고 JPA는 검증만 한다 | 채택 | 2026-10-21 |
 | [0008](0008-single-llm-module.md) | LLM은 ai-server의 LlmClient 하나로만 부르고, 제공자를 정하기 전에는 가짜 제공자를 쓴다 | 채택 | 2026-10-22 |
 | [0009](0009-document-structure-and-evidence-id.md) | 원문은 관대한 파서로 목차·문단·표로 나누고, 근거 ID는 `{접수번호}#B{블록 번호}`로 정한다 | 채택 | 2026-10-22 |
 | [0010](0010-rule-based-text-diff.md) | 본문·표 변경은 ai-server에서 LLM 없이 규칙으로 찾는다 | 채택 | 2026-10-22 |
-| [0011](0011-jdbc-batch-for-large-tables.md) | 원문 블록·문장 변경·요약처럼 행이 많은 표는 JdbcTemplate으로 저장한다 | 채택 | 2026-10-22 |
+| [0011](0011-jdbc-batch-for-large-tables.md) | 원문 블록·문장 변경처럼 자동 증가 키에 수천 행이 붙는 표는 JdbcTemplate으로 일괄 저장한다 | 채택 | 2026-10-22 |
 | [0012](0012-grounded-summary.md) | 요약은 코드가 고르고 사실 문장을 쓰며, LLM 문장은 근거·숫자를 검증한 것만 내보낸다 | 채택 | 2026-10-22 |
 | [0013](0013-expression-check-gate.md) | AI 문장은 화면에 내보내기 전에 규칙 기반 표현 검사를 거친다 | 채택 | 2026-10-22 |
 | [0014](0014-analysis-reuse-and-version.md) | 같은 조건의 분석 결과는 재사용하고, 결과가 달라지는 규칙을 바꾸면 분석 버전을 올린다 | 채택 | 2026-10-22 |
