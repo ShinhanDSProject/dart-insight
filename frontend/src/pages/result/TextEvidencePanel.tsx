@@ -88,6 +88,7 @@ function EvidenceBody({ detail }: { detail: TextChangeDetail }) {
         <SourceSide
           role="이전 보고서"
           source={previous}
+          blockType={change.blockType}
           missing={missingSideLabel(change.changeType, 'previous')}
           parts={diff?.previous ?? null}
           review={review}
@@ -95,6 +96,7 @@ function EvidenceBody({ detail }: { detail: TextChangeDetail }) {
         <SourceSide
           role="현재 보고서"
           source={current}
+          blockType={change.blockType}
           missing={missingSideLabel(change.changeType, 'current')}
           parts={diff?.current ?? null}
           review={review}
@@ -116,12 +118,14 @@ function EvidenceBody({ detail }: { detail: TextChangeDetail }) {
 interface SourceSideProps {
   role: string
   source: TextSource | null
+  /** 변경 항목의 종류. 저장된 원문과 맞지 않아 원문 쪽 종류가 없을 때 쓴다 */
+  blockType: string
   missing: string
   parts: DiffPart[] | null
   review: boolean
 }
 
-function SourceSide({ role, source, missing, parts, review }: SourceSideProps) {
+function SourceSide({ role, source, blockType, missing, parts, review }: SourceSideProps) {
   if (source === null) {
     return (
       <div className="evidence__source">
@@ -133,7 +137,7 @@ function SourceSide({ role, source, missing, parts, review }: SourceSideProps) {
   const position =
     source.blockNo === null
       ? `섹션 ${source.sectionNo} 전체`
-      : `${source.blockType === 'TABLE' ? '표' : '문단'} 위치 ${source.blockNo}`
+      : `${(source.blockType ?? blockType) === 'TABLE' ? '표' : '문단'} 위치 ${source.blockNo}`
   return (
     <div className="evidence__source">
       <span className="evidence__role">{role}</span>

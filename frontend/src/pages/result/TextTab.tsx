@@ -146,6 +146,18 @@ export function TextTab({ analysis, type, sort, selectedChangeId, onChange }: Te
           {type !== null && <p>'전체'를 고르면 다른 유형의 변화도 볼 수 있어요.</p>}
         </EmptyState>
       )}
+      {!failed && state.kind === 'done' && selectedChangeId !== null && !state.items.some((i) => i.changeId === selectedChangeId) && (
+        // 고른 항목이 지금 목록(거르기·쪽)에 없어도 근거는 연다(요약·주소에서 바로 온 경우)
+        <div className="change-list__outside">
+          <p className="panel__note">지금 목록에 보이지 않는 항목의 근거예요.</p>
+          <TextEvidencePanel
+            key={selectedChangeId}
+            analysis={analysis}
+            changeId={selectedChangeId}
+            onClose={() => onChange({ change: null })}
+          />
+        </div>
+      )}
       {!failed && state.kind === 'done' && state.items.length > 0 && (
         <>
           <ol className="change-list">
