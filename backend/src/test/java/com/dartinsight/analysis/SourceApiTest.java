@@ -49,6 +49,9 @@ class SourceApiTest {
     private AnalysisRepository analysisRepository;
 
     @Autowired
+    private AnalysisResultService resultService;
+
+    @Autowired
     private ReportDocumentRepository documentRepository;
 
     @Autowired
@@ -101,12 +104,25 @@ class SourceApiTest {
                 .andExpect(jsonPath("$.documentStatus").value("STRUCTURED"))
                 .andExpect(jsonPath("$.statusMessage").doesNotExist())
                 .andExpect(jsonPath("$.positionLinkSupported").value(false))
+                .andExpect(jsonPath("$.restructuredAfterAnalysis").value(false))
                 .andExpect(jsonPath("$.dartUrl").value("https://dart.fss.or.kr/dsaf001/main.do?rcpNo=" + CUR))
                 .andExpect(jsonPath("$.sections", hasSize(3)))
                 .andExpect(jsonPath("$.sections[0].cover").value(true))
                 .andExpect(jsonPath("$.sections[2].parentNo").value(2))
                 .andExpect(jsonPath("$.sections[2].depth").value(2))
                 .andExpect(jsonPath("$.sections[2].blockCount").value(2));
+    }
+
+    @Test
+    void documentStructuredAgainAfterTheAnalysisIsFlagged() throws Exception {
+        Analysis analysis = analysisRepository.findById(analysisId).orElseThrow();
+        analysis.start(NOW.minusHours(2));
+        analysisRepository.save(analysis);
+        resultService.saveAndComplete(analysisId, List.of());
+        jdbcTemplate.update("UPDATE analysis SET completed_at = ? WHERE id = ?", NOW.minusHours(1), analysisId);
+
+        mockMvc.perform(get("/api/analyses/{a}/documents/current", analysisId))
+                .andExpect(jsonPath("$.restructuredAfterAnalysis").value(true));
     }
 
     @Test

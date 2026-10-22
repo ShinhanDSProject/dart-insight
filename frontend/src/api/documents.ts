@@ -25,6 +25,8 @@ export interface DocumentOutline {
   dartUrl: string
   /** DART 원문 안 위치로 바로 가는 주소를 주는지(지금은 늘 false: 위치 이동 미지원) */
   positionLinkSupported: boolean
+  /** 분석이 끝난 뒤 원문을 다시 읽어 근거 위치가 달라졌을 수 있음 */
+  restructuredAfterAnalysis: boolean
   sections: SectionItem[]
 }
 

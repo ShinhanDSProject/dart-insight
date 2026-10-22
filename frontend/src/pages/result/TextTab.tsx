@@ -156,6 +156,7 @@ export function TextTab({ analysis, type, sort, selectedChangeId, onChange, onOp
             analysis={analysis}
             changeId={selectedChangeId}
             onClose={() => onChange({ change: null })}
+            onOpenSource={onOpenSource}
           />
         </div>
       )}

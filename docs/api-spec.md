@@ -588,6 +588,7 @@
 - `side`는 `current`(현재 보고서) 또는 `previous`(비교 보고서)입니다. 분석의 두 보고서만 보여 줍니다(근거가 화면의 보고서 쌍과 맞는지 확인).
 - 원문은 분석할 때 구조화(4.2)한 것입니다. 이 API는 OpenDART를 부르지 않습니다.
 - DART 원문 안의 위치로 바로 가는 주소는 만들지 않습니다(`positionLinkSupported: false`, 위치 이동 미지원). 화면은 보고서 링크와 항목 경로를 안내합니다.
+- `restructuredAfterAnalysis`: 분석이 끝난 뒤 원문을 다시 구조화했으면(파서 버전이 바뀜) true입니다. 분석이 저장한 근거 위치(블록 번호)가 지금 원문과 다를 수 있어 화면이 안내합니다.
 
 **응답 200**
 
@@ -600,6 +601,7 @@
   "statusMessage": null,
   "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260814001234",
   "positionLinkSupported": false,
+  "restructuredAfterAnalysis": false,
   "sections": [
     { "sectionNo": 2, "parentNo": null, "depth": 1, "title": "II. 사업의 내용", "cover": false, "blockCount": 0 },
     { "sectionNo": 3, "parentNo": 2, "depth": 2, "title": "1. 사업의 개요", "cover": false, "blockCount": 12 }

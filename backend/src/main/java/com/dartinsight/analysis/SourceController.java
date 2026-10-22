@@ -37,8 +37,13 @@ public class SourceController {
 
     @GetMapping("/api/analyses/{analysisId}/documents/{side}")
     public DocumentOutline outline(@PathVariable Long analysisId, @PathVariable String side) {
-        Report report = report(analysisId, side);
+        Analysis analysis = resultService.get(analysisId);
+        Report report = report(analysis, side);
         Optional<ReportDocument> document = documentService.find(report.getRceptNo());
+        // 분석이 끝난 뒤 원문을 다시 구조화했으면(파서 버전이 바뀜) 저장된 근거 위치와 블록 번호가 다를 수 있다
+        boolean restructured = document.isPresent() && analysis.getCompletedAt() != null
+                && document.get().getStructuredAt() != null
+                && document.get().getStructuredAt().isAfter(analysis.getCompletedAt());
         String status = document.map(d -> d.getStatus().name()).orElse(NOT_FETCHED);
         // 끝까지 읽은 원문은 안내할 것이 없다(null). Optional.map은 null을 빈 값으로 바꾸므로 나눠 쓴다
         String message = document.isPresent() ? document.get().statusMessage()
@@ -48,13 +53,13 @@ public class SourceController {
                         s.blockCount()))
                 .toList();
         return new DocumentOutline(side, report.getRceptNo(), report.getReportName(), status, message,
-                DartLinks.viewer(report.getRceptNo()), false, sections);
+                DartLinks.viewer(report.getRceptNo()), false, restructured, sections);
     }
 
     @GetMapping("/api/analyses/{analysisId}/documents/{side}/sections/{sectionNo}")
     public SectionContent section(@PathVariable Long analysisId, @PathVariable String side,
             @PathVariable int sectionNo) {
-        Report report = report(analysisId, side);
+        Report report = report(resultService.get(analysisId), side);
         ReportDocument document = documentService.find(report.getRceptNo())
                 .filter(d -> d.getStatus().usable())
                 .orElseThrow(() -> new ApiException(ErrorCode.REPORT_SECTION_NOT_FOUND));
@@ -68,8 +73,7 @@ public class SourceController {
                 paths.get(section.sectionNo()), blocks);
     }
 
-    private Report report(Long analysisId, String side) {
-        Analysis analysis = resultService.get(analysisId);
+    private Report report(Analysis analysis, String side) {
         String rceptNo = switch (side) {
             case "current" -> analysis.getCurrentRceptNo();
             case "previous" -> analysis.getPreviousRceptNo();
@@ -90,8 +94,12 @@ public class SourceController {
      * @param documentStatus        STRUCTURED, PARTIAL, FAILED, NOT_AVAILABLE, 아직 받지 않았으면 NOT_FETCHED
      * @param positionLinkSupported DART 원문 안 위치로 바로 가는 주소를 주는지(지금은 늘 false)
      */
+    /**
+     * @param restructuredAfterAnalysis 분석이 끝난 뒤 원문을 다시 구조화해, 분석이 가리킨 근거 위치가 달라졌을 수 있음
+     */
     public record DocumentOutline(String side, String rceptNo, String reportName, String documentStatus,
-            String statusMessage, String dartUrl, boolean positionLinkSupported, List<SectionItem> sections) {
+            String statusMessage, String dartUrl, boolean positionLinkSupported, boolean restructuredAfterAnalysis,
+            List<SectionItem> sections) {
     }
 
     public record SectionItem(int sectionNo, Integer parentNo, int depth, String title, boolean cover,

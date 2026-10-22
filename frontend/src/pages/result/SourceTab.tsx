@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Analysis } from '../../api/analyses'
 import {
   firstContentSection,
@@ -9,6 +9,7 @@ import {
   type SectionContent,
 } from '../../api/documents'
 import { DartLinkActions } from '../../components/DartLink'
+import { verifiedDartUrl } from '../../lib/dart'
 import { ErrorState, LoadingState } from '../../components/StateView'
 import { TableView } from './TableView'
 
@@ -55,10 +56,24 @@ export function SourceTab({ analysis, side, sectionNo, blockNo, onChange }: Sour
     <section className="panel" aria-label="원문 확인">
       <div className="source-head">
         <div className="segmented" role="group" aria-label="보고서">
-          <button type="button" className="segmented__item" aria-pressed={side === 'previous'} onClick={() => onChange({ side: 'previous', section: null, block: null })}>
+          <button
+            type="button"
+            className="segmented__item"
+            aria-pressed={side === 'previous'}
+            onClick={() => {
+              if (side !== 'previous') onChange({ side: 'previous', section: null, block: null })
+            }}
+          >
             비교 보고서
           </button>
-          <button type="button" className="segmented__item" aria-pressed={side === 'current'} onClick={() => onChange({ side: 'current', section: null, block: null })}>
+          <button
+            type="button"
+            className="segmented__item"
+            aria-pressed={side === 'current'}
+            onClick={() => {
+              if (side !== 'current') onChange({ side: 'current', section: null, block: null })
+            }}
+          >
             현재 보고서
           </button>
         </div>
@@ -69,7 +84,13 @@ export function SourceTab({ analysis, side, sectionNo, blockNo, onChange }: Sour
 
       {outline.kind === 'loading' && <LoadingState message="원문 목차를 불러오는 중입니다…" />}
       {outline.kind === 'error' && <ErrorState error={outline.error} onRetry={() => setRetry((n) => n + 1)} />}
-      {outline.kind === 'done' && (
+      {outline.kind === 'done' && outline.data.rceptNo !== report.rceptNo && (
+        // 근거가 이 화면의 보고서 쌍과 맞는지 확인한다. 다르면 원문을 보여 주지 않는다
+        <div className="notice notice--attention" role="alert">
+          이 분석의 보고서(접수번호 {report.rceptNo})와 다른 원문이 와서 보여 주지 않아요. 새로고침해 주세요.
+        </div>
+      )}
+      {outline.kind === 'done' && outline.data.rceptNo === report.rceptNo && (
         <SourceBody
           analysis={analysis}
           outline={outline.data}
@@ -148,6 +169,7 @@ interface SectionViewProps {
 function SectionView({ analysis, outline, sectionNo, blockNo }: SectionViewProps) {
   const [state, setState] = useState<Load<SectionContent>>({ kind: 'loading' })
   const [retry, setRetry] = useState(0)
+  const headingRef = useRef<HTMLHeadingElement>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -164,11 +186,13 @@ function SectionView({ analysis, outline, sectionNo, blockNo }: SectionViewProps
     }
   }, [analysis.analysisId, outline.side, sectionNo, retry])
 
-  // 근거 위치가 있으면 그 블록으로 화면을 옮긴다
+  // 근거 위치에서 왔으면 그 블록으로 화면과 초점을 옮긴다(블록이 없으면 항목 제목으로). 키보드·화면 읽기 사용자가
+  // 다른 탭에서 넘어와도 어디를 보고 있는지 알 수 있게 한다
   useEffect(() => {
-    if (state.kind === 'done' && blockNo !== null) {
-      document.getElementById(blockId(blockNo))?.scrollIntoView?.({ block: 'center' })
-    }
+    if (state.kind !== 'done' || blockNo === null) return
+    const target = document.getElementById(blockId(blockNo)) ?? headingRef.current
+    target?.focus({ preventScroll: true })
+    target?.scrollIntoView?.({ block: 'center' })
   }, [state.kind, blockNo])
 
   if (state.kind === 'loading') return <LoadingState message="원문을 불러오는 중입니다…" />
@@ -182,10 +206,18 @@ function SectionView({ analysis, outline, sectionNo, blockNo }: SectionViewProps
     )
   }
   const { data } = state
+  const dartUrl = verifiedDartUrl(outline.rceptNo, outline.dartUrl)
   const highlighted = blockNo !== null && data.blocks.some((b) => b.blockNo === blockNo)
   return (
     <article className="source-section" aria-label={data.sectionPath}>
-      <h3 className="source-section__title">{data.sectionPath}</h3>
+      <h3 className="source-section__title" ref={headingRef} tabIndex={-1}>
+        {data.sectionPath}
+      </h3>
+      {blockNo !== null && outline.restructuredAfterAnalysis && (
+        <p className="notice notice--attention" role="status">
+          분석이 끝난 뒤 원문을 다시 읽어 근거 위치가 달라졌을 수 있어요. 강조한 곳의 글이 근거와 같은지 확인해 주세요.
+        </p>
+      )}
       {blockNo !== null && !highlighted && (
         <p className="notice notice--attention" role="status">
           선택한 근거 위치를 이 항목에서 찾지 못했어요. 원문을 다시 읽어 위치가 달라졌을 수 있어요.
@@ -195,7 +227,12 @@ function SectionView({ analysis, outline, sectionNo, blockNo }: SectionViewProps
       {data.blocks.map((block) => {
         const selected = block.blockNo === blockNo
         return (
-          <div key={block.blockNo} id={blockId(block.blockNo)} className={`source-block${selected ? ' source-block--selected' : ''}`}>
+          <div
+            key={block.blockNo}
+            id={blockId(block.blockNo)}
+            className={`source-block${selected ? ' source-block--selected' : ''}`}
+            tabIndex={selected ? -1 : undefined}
+          >
             {selected && <span className="source-block__label">선택한 근거 위치</span>}
             {block.table ? (
               <TableView rows={block.table} caption={`${data.sectionPath} 표`} />
@@ -209,10 +246,14 @@ function SectionView({ analysis, outline, sectionNo, blockNo }: SectionViewProps
         <span>
           출처 DART · {outline.reportName} · 접수번호 <code>{outline.rceptNo}</code>
         </span>
-        <a href={outline.dartUrl} target="_blank" rel="noopener noreferrer">
-          DART 원문에서 열기 <span aria-hidden="true">↗</span>
-          <span className="visually-hidden">(새 창)</span>
-        </a>
+        {dartUrl ? (
+          <a href={dartUrl} target="_blank" rel="noopener noreferrer">
+            DART 원문에서 열기 <span aria-hidden="true">↗</span>
+            <span className="visually-hidden">(새 창)</span>
+          </a>
+        ) : (
+          <span>원문 링크를 확인하지 못했어요. DART에서 접수번호로 검색해 주세요.</span>
+        )}
       </div>
       {!outline.positionLinkSupported && (
         <p className="panel__note">
