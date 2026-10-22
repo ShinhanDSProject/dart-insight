@@ -5,16 +5,17 @@ from typing import Any
 
 from fastapi import APIRouter
 
+from app.api import paths
 from app.compare.priority import prioritize
 from app.compare.schema import TextChangeRequest, result_json
 from app.compare.text_diff import diff_documents
 from app.core.errors import ApiError, ErrorCode
 
-router = APIRouter(prefix="/internal", tags=["internal"])
+router = APIRouter(prefix=paths.INTERNAL_PREFIX, tags=["internal"])
 logger = logging.getLogger("app.compare")
 
 
-@router.post("/text-changes")
+@router.post(paths.TEXT_CHANGES)
 def text_changes(request: TextChangeRequest) -> dict[str, Any]:
     """두 원문의 추가·삭제·수정·검토 필요 항목과 확인 우선순위(2.6). 글은 돌려주지 않는다."""
     try:
