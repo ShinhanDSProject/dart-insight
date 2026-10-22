@@ -21,6 +21,7 @@ import zipfile
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
 
+# 결과가 달라지게 바꾸면 이 버전과 backend Analysis.CURRENT_VERSION을 함께 올린다
 PARSER_VERSION = "dart-xml-1"
 
 STRUCTURED = "STRUCTURED"

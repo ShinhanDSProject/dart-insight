@@ -6,6 +6,7 @@ from app.llm.prompting import SOURCE_RULE, attr, disclosure
 from app.llm.providers import LlmRequest
 from app.summary.model import SummaryInput
 
+# 결과가 달라지게 바꾸면 이 버전과 backend Analysis.CURRENT_VERSION을 함께 올린다
 PROMPT_VERSION = "summary-1"
 TASK = "summary"
 MAX_SOURCE_CHARS = 1500
