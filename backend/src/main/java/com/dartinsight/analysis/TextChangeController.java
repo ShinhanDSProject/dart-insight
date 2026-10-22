@@ -1,8 +1,14 @@
 package com.dartinsight.analysis;
 
 import com.dartinsight.analysis.TextChangeStore.TextChange;
+import com.dartinsight.analysis.TextEvidenceService.SourceEvidence;
+import com.dartinsight.analysis.TextEvidenceService.TextEvidence;
 import com.dartinsight.common.error.ApiException;
+import com.dartinsight.document.DocumentBlock;
+import com.dartinsight.report.ReportType;
+import com.fasterxml.jackson.annotation.JsonRawValue;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,10 +30,33 @@ public class TextChangeController {
 
     private final AnalysisResultService resultService;
     private final TextChangeStore store;
+    private final TextEvidenceService evidenceService;
 
-    public TextChangeController(AnalysisResultService resultService, TextChangeStore store) {
+    public TextChangeController(AnalysisResultService resultService, TextChangeStore store,
+            TextEvidenceService evidenceService) {
         this.resultService = resultService;
         this.store = store;
+        this.evidenceService = evidenceService;
+    }
+
+    /** 문장·표 근거 상세(3.4). 변경 전·후 원문 전체와 보고서·항목·위치 */
+    @GetMapping("/api/analyses/{analysisId}/text-changes/{changeId}")
+    public TextChangeDetailResponse detail(@PathVariable Long analysisId, @PathVariable Long changeId) {
+        TextEvidence evidence = evidenceService.evidence(analysisId, changeId);
+        return new TextChangeDetailResponse(item(evidence.change()), source(evidence.previous()),
+                source(evidence.current()));
+    }
+
+    private static SourceView source(SourceEvidence evidence) {
+        if (evidence == null) {
+            return null;
+        }
+        TextChangeRow.Side side = evidence.side();
+        return new SourceView(side.rceptNo(), evidence.report().getReportName(), evidence.report().getReportType(),
+                evidence.report().getFiscalYear(), evidence.report().getPeriodEnd(), side.sectionNo(),
+                evidence.sectionPath(), side.blockNo(),
+                side.blockNo() == null ? null : DocumentBlock.evidenceId(side.rceptNo(), side.blockNo()),
+                evidence.blockType(), side.text(), evidence.tableJson(), evidence.blockMatches(), evidence.dartUrl());
     }
 
     @GetMapping("/api/analyses/{analysisId}/text-changes")
@@ -85,6 +114,16 @@ public class TextChangeController {
 
     /** 확인 우선순위. level은 HIGH, MEDIUM, LOW, UNRANKED(판단 유보), reasons는 적용한 규칙 */
     public record PriorityView(String level, Integer score, List<String> reasons) {
+    }
+
+    /** 한쪽 보고서의 원문 근거. text는 전체 글, table은 표 셀(문단이면 null) */
+    public record SourceView(String rceptNo, String reportName, ReportType reportType, int fiscalYear,
+            LocalDate periodEnd, int sectionNo, String sectionPath, Integer blockNo, String evidenceId,
+            String blockType, String text, @JsonRawValue String table, boolean blockMatches, String dartUrl) {
+    }
+
+    /** 목록 항목에 두 보고서의 근거를 더한다. 없는 쪽은 null */
+    public record TextChangeDetailResponse(TextChangeItem change, SourceView previous, SourceView current) {
     }
 
     public record TextChangeListResponse(Long analysisId, TextStatus textStatus, String textMessage, String type,
