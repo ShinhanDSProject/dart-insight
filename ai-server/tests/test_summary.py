@@ -127,6 +127,30 @@ def test_numbers_not_in_the_cited_source_are_never_shown() -> None:
     assert len(output.calls) == 3
 
 
+def test_investment_advice_is_generated_again_then_never_shown() -> None:
+    advice = good(F1={"explanation": "매출이 늘어 지금 매수하세요."})
+    llm, provider = client(advice, advice, advice)
+
+    output = summarize(llm, SUMMARY)
+
+    f1 = next(i for i in output.items if i.ref == "F1")
+    assert f1.status == REVIEW_NEEDED
+    assert f1.explanation is None
+    assert f1.blocked_rules == ["TRADE_RECOMMENDATION"]
+    assert "투자 권유" in (f1.review_reason or "")
+    assert "투자 권유로 읽힐 수 있는 표현" in provider.requests[1].user
+    assert next(i for i in output.items if i.ref == "T1").status == OK
+
+
+def test_advice_fixed_on_retry_is_shown() -> None:
+    llm, _ = client(good(T1={"sentence": "목표주가를 올렸다는 내용이 들어갔어요."}), good())
+
+    output = summarize(llm, SUMMARY)
+
+    assert all(i.status == OK for i in output.items)
+    assert [c.outcome for c in output.calls] == ["INVALID_OUTPUT", "OK"]
+
+
 def test_missing_item_is_review_needed_after_retries() -> None:
     only_text = {"items": [good()["items"][0]]}
     llm, _ = client(only_text, only_text, only_text)
