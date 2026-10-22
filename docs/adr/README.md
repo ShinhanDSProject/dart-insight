@@ -46,3 +46,9 @@ M0~M2에서 이미 내린 결정은 2026-10-22에 소급해 기록했습니다(0
 | 번호 | 결정 | 상태 | 결정한 날 |
 | --- | --- | --- | --- |
 | [0001](0001-record-architecture-decisions.md) | 구조 결정을 ADR로 기록한다 | 채택 | 2026-10-22 |
+| [0002](0002-monorepo-and-call-direction.md) | 세 서비스를 한 저장소에 두고 React → Spring Boot → FastAPI로만 부른다 | 채택 | 2026-10-21 |
+| [0003](0003-opendart-cache-in-backend-parsing-in-ai-server.md) | OpenDART 호출·캐시는 backend가, 원문 파싱·구조화는 ai-server가 맡는다 | 채택 | 2026-10-21 |
+| [0004](0004-async-analysis-job.md) | 분석은 비동기 작업으로 처리하고 상태는 허용 전이표로만 바꾼다 | 채택 | 2026-10-21 |
+| [0005](0005-error-format-and-trace-id.md) | 두 서버가 같은 에러 형식을 쓰고 X-Trace-Id로 요청을 잇는다 | 채택 | 2026-10-21 |
+| [0006](0006-keys-amounts-and-null.md) | 회사·보고서는 고유번호·접수번호로 식별하고, 금액은 원 단위 정수, 없는 값은 null로 둔다 | 채택 | 2026-10-21 |
+| [0007](0007-flyway-migrations.md) | DB 스키마는 Flyway 마이그레이션으로만 바꾸고 JPA는 검증만 한다 | 채택 | 2026-10-21 |
