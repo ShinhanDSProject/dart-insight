@@ -233,6 +233,25 @@ class AnalysisApiTest {
     }
 
     @Test
+    void customRequestForYearOverYearPairIsStoredAsYoy() throws Exception {
+        givenStatements();
+
+        long id = ((Number) JsonPath.read(request(CUR, PREV, "CUSTOM").andExpect(status().isAccepted())
+                .andReturn().getResponse().getContentAsString(), "$.analysisId")).longValue();
+
+        mockMvc.perform(get("/api/analyses/{id}", id))
+                .andExpect(jsonPath("$.basis").value("YOY"));
+        int callsAfterFirst = calls();
+        // 같은 쌍을 전년 동기로 다시 요청해도 새로 분석하지 않는다
+        request(CUR, PREV, "YOY")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.analysisId").value(id))
+                .andExpect(jsonPath("$.reused").value(true));
+        assertThat(calls()).isEqualTo(callsAfterFirst);
+        assertThat(analysisRepository.count()).isEqualTo(1);
+    }
+
+    @Test
     void unfinishedAnalysesFailWhenTheServerStartsAgain() throws Exception {
         Analysis analysis = Analysis.request("00000001", CUR, PREV, ComparisonBasis.YOY, null, NOW);
         analysis.start(NOW);
