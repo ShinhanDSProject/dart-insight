@@ -145,6 +145,15 @@ public class ReportDocument {
         return id;
     }
 
+    /** 화면에 보여 줄 상태 설명. 끝까지 읽었으면 null, 일부만 읽었으면 경고, 못 읽었으면 실패 사유 */
+    public String statusMessage() {
+        return switch (status) {
+            case STRUCTURED -> null;
+            case PARTIAL -> warnings == null ? "원문 일부를 읽지 못했을 수 있어요." : "원문 일부를 읽지 못했을 수 있어요. (" + warnings + ")";
+            case FAILED, NOT_AVAILABLE -> failureMessage;
+        };
+    }
+
     public String getRceptNo() {
         return rceptNo;
     }
