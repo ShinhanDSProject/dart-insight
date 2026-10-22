@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 문장·표 변경 목록(2.5). 화면 W-03 ③. 완료된 분석의 그 분석 결과만 돌려준다.
+ * 기본 정렬은 확인 우선순위(2.6)이고, 순위를 매기지 않은 항목(판단 유보)은 뒤에 둔다.
  */
 @RestController
 public class TextChangeController {
@@ -32,8 +33,12 @@ public class TextChangeController {
     @GetMapping("/api/analyses/{analysisId}/text-changes")
     public TextChangeListResponse list(@PathVariable Long analysisId,
             @RequestParam(required = false) String type,
+            @RequestParam(defaultValue = "priority") String sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
+        if (!"priority".equals(sort) && !"document".equals(sort)) {
+            throw ApiException.invalidInput("sort", "priority 또는 document여야 합니다.");
+        }
         if (type != null && !TYPES.contains(type)) {
             throw ApiException.invalidInput("type", "ADDED, DELETED, MODIFIED, REVIEW_NEEDED 중 하나여야 합니다.");
         }
@@ -50,10 +55,10 @@ public class TextChangeController {
                 counts.get(TextChangeRow.MODIFIED), counts.get(TextChangeRow.REVIEW_NEEDED));
         int total = type == null ? all : counts.get(type);
         long offset = (long) page * size; // 큰 page에서 int가 넘쳐 음수가 되지 않게
-        List<TextChangeItem> items = store.page(analysisId, type, offset, size).stream()
+        List<TextChangeItem> items = store.page(analysisId, type, "priority".equals(sort), offset, size).stream()
                 .map(TextChangeController::item).toList();
         return new TextChangeListResponse(analysisId, analysis.getTextStatus(), analysis.getTextMessage(), type,
-                page, size, total, countView, items);
+                sort, page, size, total, countView, items);
     }
 
     static TextChangeItem item(TextChange change) {
@@ -64,7 +69,8 @@ public class TextChangeController {
         return new TextChangeItem(change.id(), change.changeNo(), row.changeType(), row.blockType(),
                 row.numbersOnly(), row.sectionStatus(), row.sectionTitle(), row.sectionPath(),
                 TextPreview.cut(previous, from), TextPreview.cut(current, from), row.similarity(),
-                row.reviewReason());
+                row.reviewReason(), row.priority() == null ? null : new PriorityView(row.priority().level(),
+                        row.priority().score(), row.priority().reasons()));
     }
 
     public record Counts(int all, int added, int deleted, int modified, int reviewNeeded) {
@@ -73,10 +79,15 @@ public class TextChangeController {
     /** previewText는 앞부분만(수정이면 처음 달라지는 곳부터). 전체 글은 상세(3.4)에서 본다. */
     public record TextChangeItem(long changeId, int changeNo, String changeType, String blockType,
             boolean numbersOnly, String sectionStatus, String sectionTitle, String sectionPath,
-            String previousPreview, String currentPreview, BigDecimal similarity, String reviewReason) {
+            String previousPreview, String currentPreview, BigDecimal similarity, String reviewReason,
+            PriorityView priority) {
+    }
+
+    /** 확인 우선순위. level은 HIGH, MEDIUM, LOW, UNRANKED(판단 유보), reasons는 적용한 규칙 */
+    public record PriorityView(String level, Integer score, List<String> reasons) {
     }
 
     public record TextChangeListResponse(Long analysisId, TextStatus textStatus, String textMessage, String type,
-            int page, int size, int totalItems, Counts counts, List<TextChangeItem> items) {
+            String sort, int page, int size, int totalItems, Counts counts, List<TextChangeItem> items) {
     }
 }

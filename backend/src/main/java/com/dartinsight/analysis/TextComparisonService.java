@@ -17,7 +17,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
- * 문장·표 변경 탐지(2.5). 두 보고서 원문을 구조화(4.2)한 뒤 AI 서버에 비교를 맡기고, 돌려받은 위치에 저장된 원문 글을 붙인다.
+ * 문장·표 변경 탐지(2.5)와 확인 우선순위(2.6). 두 보고서 원문을 구조화(4.2)한 뒤 AI 서버에 비교를 맡기고,
+ * 돌려받은 위치에 저장된 원문 글을 붙인다.
  * 원문을 받지 못하거나 읽지 못하면 예외를 던지지 않고 FAILED와 사유를 돌려준다(분석은 재무 결과로 완료).
  * 일부만 읽은 원문(PARTIAL)으로 비교했으면 PARTIAL로 남겨 완전한 결과처럼 보이지 않게 한다.
  */
@@ -77,7 +78,8 @@ public class TextComparisonService {
                         Boolean.TRUE.equals(change.numbersOnly()), change.sectionStatus(), change.sectionTitle(),
                         change.sectionPath(), side(previous.getRceptNo(), change.previous(), previousByNo),
                         side(current.getRceptNo(), change.current(), currentByNo),
-                        TextChangeStore.similarity(change.similarity()), change.reviewReason()));
+                        TextChangeStore.similarity(change.similarity()), change.reviewReason(),
+                        priority(change.priority(), diff.priorityVersion())));
             }
         } catch (RuntimeException e) {
             // 받은 결과를 읽지 못해도 분석 전체를 실패로 만들지 않는다(문장 비교만 실패)
@@ -121,6 +123,14 @@ public class TextComparisonService {
 
     private static Map<Integer, DocumentBlock> byNo(List<DocumentBlock> blocks) {
         return blocks.stream().collect(Collectors.toMap(DocumentBlock::blockNo, Function.identity(), (a, b) -> a));
+    }
+
+    private static TextChangeRow.Priority priority(TextChangeDiffResponse.PriorityResult result, String version) {
+        if (result == null || result.level() == null) {
+            return null;
+        }
+        return new TextChangeRow.Priority(result.level(), result.score(),
+                result.reasons() == null ? List.of() : result.reasons(), version);
     }
 
     /** 위치가 가리키는 원문 글을 붙인다. 블록이 없으면 글이 null이고, 근거 확인 단계에서 걸러진다. */

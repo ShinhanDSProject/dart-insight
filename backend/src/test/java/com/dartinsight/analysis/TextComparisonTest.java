@@ -86,11 +86,12 @@ class TextComparisonTest {
         AI.on("/internal/documents/" + CUR + "/structure", Reply.ok(document(CUR, "STRUCTURED",
                 "당사는 메모리와 파운드리를 만듭니다.", "구분 | 금액\\n매출 | 1,200")));
         AI.on(DIFF, Reply.ok("""
-                {"diffVersion":"text-diff-1","sectionCounts":{"matched":2},"changes":[
+                {"diffVersion":"text-diff-1","priorityVersion":"priority-1","sectionCounts":{"matched":2},"changes":[
                  {"changeType":"MODIFIED","blockType":"PARAGRAPH","sectionStatus":"MATCHED",
                   "sectionTitle":"1. 사업의 개요","sectionPath":"II. 사업의 내용 > 1. 사업의 개요",
                   "previous":{"sectionNo":2,"blockNo":1},"current":{"sectionNo":2,"blockNo":1},
-                  "numbersOnly":false,"similarity":0.71234,"reviewReason":null},
+                  "numbersOnly":false,"similarity":0.71234,"reviewReason":null,
+                  "priority":{"level":"MEDIUM","score":50,"reasons":["사업의 내용 섹션 +30","수정 +10","문단 +10"]}},
                  {"changeType":"MODIFIED","blockType":"TABLE","sectionStatus":"MATCHED",
                   "sectionTitle":"1. 사업의 개요","sectionPath":"II. 사업의 내용 > 1. 사업의 개요",
                   "previous":{"sectionNo":2,"blockNo":2},"current":{"sectionNo":2,"blockNo":2},
@@ -136,7 +137,12 @@ class TextComparisonTest {
         assertThat(paragraph.previous().text()).isEqualTo("당사는 메모리를 만듭니다.");
         assertThat(paragraph.current().text()).isEqualTo("당사는 메모리와 파운드리를 만듭니다.");
         assertThat(paragraph.similarity()).isEqualByComparingTo("0.7123");
+        assertThat(paragraph.priority().level()).isEqualTo("MEDIUM");
+        assertThat(paragraph.priority().score()).isEqualTo(50);
+        assertThat(paragraph.priority().reasons()).hasSize(3);
+        assertThat(paragraph.priority().version()).isEqualTo("priority-1");
         assertThat(result.rows().get(1).numbersOnly()).isTrue();
+        assertThat(result.rows().get(1).priority()).isNull();
         TextChangeRow review = result.rows().get(2);
         assertThat(review.previous()).isNull();
         assertThat(review.current().blockNo()).isNull();

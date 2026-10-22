@@ -1,6 +1,7 @@
 package com.dartinsight.analysis;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 문장·표 변경 한 건(저장 전). 위치는 원문 구조화(4.2)의 섹션·블록 번호이고, 글은 저장된 원문에서 붙인다.
@@ -13,10 +14,19 @@ import java.math.BigDecimal;
  * @param current       현재 보고서 쪽 위치·글. 삭제면 null
  * @param similarity    수정일 때 두 글의 비슷한 정도(0~1)
  * @param reviewReason  검토 필요 사유
+ * @param priority      확인 우선순위(2.6). 규칙으로 판단할 수 없으면 UNRANKED
  */
 public record TextChangeRow(String changeType, String blockType, boolean numbersOnly, String sectionStatus,
         String sectionTitle, String sectionPath, Side previous, Side current, BigDecimal similarity,
-        String reviewReason) {
+        String reviewReason, Priority priority) {
+
+    /** 우선순위를 아직 매기지 않은 변경 */
+    public TextChangeRow(String changeType, String blockType, boolean numbersOnly, String sectionStatus,
+            String sectionTitle, String sectionPath, Side previous, Side current, BigDecimal similarity,
+            String reviewReason) {
+        this(changeType, blockType, numbersOnly, sectionStatus, sectionTitle, sectionPath, previous, current,
+                similarity, reviewReason, null);
+    }
 
     public static final String ADDED = "ADDED";
     public static final String DELETED = "DELETED";
@@ -26,5 +36,18 @@ public record TextChangeRow(String changeType, String blockType, boolean numbers
 
     /** @param blockNo 섹션 단위 항목(검토 필요)이면 null */
     public record Side(String rceptNo, int sectionNo, Integer blockNo, String text) {
+    }
+
+    /**
+     * 확인 우선순위. 확인할 순서이며 투자 판단이 아니다.
+     *
+     * @param level   HIGH, MEDIUM, LOW, 판단 유보면 UNRANKED
+     * @param score   규칙 점수 합. UNRANKED면 null
+     * @param reasons 적용한 규칙
+     * @param version 규칙 버전(잠정 규칙이 바뀌면 올림)
+     */
+    public record Priority(String level, Integer score, List<String> reasons, String version) {
+
+        public static final String UNRANKED = "UNRANKED";
     }
 }
