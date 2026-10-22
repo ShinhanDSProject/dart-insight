@@ -37,7 +37,7 @@ DART 정기보고서 두 개를 비교해, 바뀐 재무 수치와 문장을 원
 | frontend | Node.js 22, Vite 7 | 5173 | `npm ci && npm run dev` | [frontend/README.md](frontend/README.md) |
 | ai-server | Python 3.12, FastAPI | 8000 | `uvicorn app.main:app --reload --port 8000 --env-file .env` | [ai-server/README.md](ai-server/README.md) |
 
-먼저 저장소 루트에서 `docker compose up -d`로 MariaDB·Chroma를 띄우고, 각 폴더에서 `.env.example`을 `.env`로 복사해 값을 채운 뒤 실행합니다. `.env`는 커밋하지 않습니다. DB 초기화, 키 관리, 문제 해결은 [로컬 개발 환경](docs/local-setup.md)에 있습니다.
+먼저 PC에 MariaDB를 설치하고 `backend/db/local-init.sql`로 DB와 계정을 한 번 만든 뒤(Docker는 쓰지 않습니다), 각 폴더에서 `.env.example`을 `.env`로 복사해 값을 채운 뒤 실행합니다. `.env`는 커밋하지 않습니다. MariaDB 설치, DB 초기화, 키 관리, 문제 해결은 [로컬 개발 환경](docs/local-setup.md)에 있습니다.
 
 ## 일정
 
