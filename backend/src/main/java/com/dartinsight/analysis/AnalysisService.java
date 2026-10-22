@@ -12,6 +12,7 @@ import com.dartinsight.report.ReportService;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 
@@ -93,16 +94,22 @@ public class AnalysisService {
     }
 
     /**
-     * 전년 동기·직전 기간으로 요청했는데 고른 보고서가 그 기준과 맞지 않으면 직접 선택으로 저장한다.
+     * 고른 보고서 쌍이 실제로 맞는 비교 기준으로 저장한다. 전년 동기·직전 기간으로 요청했는데 맞지 않으면 직접 선택으로,
+     * 직접 선택으로 요청했는데 전년 동기·직전 기간 쌍이면 그 기준으로 바꾼다.
      * 결과 화면이 기준을 잘못 보여 주지 않고, 같은 보고서 쌍이 기준 이름만 달리 두 번 분석되지 않게 하기 위해서다.
      */
     private ComparisonBasis effectiveBasis(ComparisonBasis basis, String currentRceptNo, String previousRceptNo) {
-        if (basis == ComparisonBasis.CUSTOM) {
-            return basis;
-        }
         Report current = reportService.get(currentRceptNo).report();
         Report previous = reportService.get(previousRceptNo).report();
-        return ReportPairService.matchesBasis(basis, current, previous) ? basis : ComparisonBasis.CUSTOM;
+        if (basis != ComparisonBasis.CUSTOM) {
+            return ReportPairService.matchesBasis(basis, current, previous) ? basis : ComparisonBasis.CUSTOM;
+        }
+        for (ComparisonBasis named : List.of(ComparisonBasis.YOY, ComparisonBasis.PREV)) {
+            if (ReportPairService.matchesBasis(named, current, previous)) {
+                return named;
+            }
+        }
+        return ComparisonBasis.CUSTOM;
     }
 
     /**
