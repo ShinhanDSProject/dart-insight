@@ -364,3 +364,57 @@
 .text-controls__note {
   flex-basis: 100%;
 }
+
+.change-card--selected {
+  border-color: var(--color-primary);
+}
+
+.change-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+/* 문장·표 근거 상세(3.4) */
+.text-evidence__sources {
+  align-items: start;
+}
+
+.text-evidence__path {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  overflow-wrap: anywhere;
+}
+
+.text-evidence__text {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.7;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.text-evidence__changed {
+  background: var(--color-attention-subtle);
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.source-table .data-table {
+  min-width: 0;
+  font-size: var(--font-size-xs);
+}
+
+.source-table .data-table th,
+.source-table .data-table td {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+}
+
+.change-list__outside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
