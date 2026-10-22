@@ -4,6 +4,7 @@ import com.dartinsight.analysis.AnalysisResultService.CompletedChange;
 import com.dartinsight.analysis.AnalysisResultService.CompletedResult;
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
+import com.dartinsight.common.web.ApiPaths;
 import com.dartinsight.comparison.AmountBasis;
 import com.dartinsight.comparison.StatementRules;
 import com.dartinsight.comparison.StatementRules.StatementRule;
@@ -29,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 재무 수치 변화 조회 API(docs/api-spec.md). 화면 W-03 ②와 수치 근거 상세(3.3). 완료된 분석의 결과만 돌려준다.
  */
 @RestController
-@RequestMapping("/api/analyses/{analysisId}/financial-changes")
+@RequestMapping(ApiPaths.ANALYSIS_FINANCIAL_CHANGES)
 public class FinancialChangeController {
 
     private final AnalysisResultService resultService;
@@ -67,7 +68,7 @@ public class FinancialChangeController {
                 statements, items);
     }
 
-    @GetMapping("/{changeId}")
+    @GetMapping(ApiPaths.BY_CHANGE_ID)
     public FinancialChangeDetailResponse detail(@PathVariable Long analysisId, @PathVariable Long changeId) {
         CompletedChange result = resultService.completedChange(analysisId, changeId);
         Analysis analysis = result.analysis();

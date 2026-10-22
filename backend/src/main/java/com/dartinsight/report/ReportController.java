@@ -1,6 +1,7 @@
 package com.dartinsight.report;
 
 import com.dartinsight.common.error.ErrorCode;
+import com.dartinsight.common.web.ApiPaths;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -14,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 정기보고서 API(docs/api-spec.md). 화면 W-01 ②, W-03 머리글.
  */
 @RestController
-@RequestMapping("/api")
+@RequestMapping(ApiPaths.BASE)
 public class ReportController {
 
     private final ReportService reportService;
@@ -23,7 +24,7 @@ public class ReportController {
         this.reportService = reportService;
     }
 
-    @GetMapping("/companies/{corpCode}/reports")
+    @GetMapping(ApiPaths.COMPANY_REPORTS)
     public ReportListResponse list(@PathVariable String corpCode) {
         ReportService.ReportList list = reportService.list(corpCode);
         LocalDateTime fetchedAt = list.company().getReportsFetchedAt();
@@ -36,7 +37,7 @@ public class ReportController {
                         .toList());
     }
 
-    @GetMapping("/reports/{rceptNo}")
+    @GetMapping(ApiPaths.REPORT_BY_RCEPT_NO)
     public ReportDetailResponse get(@PathVariable String rceptNo) {
         return ReportDetailResponse.from(reportService.get(rceptNo));
     }

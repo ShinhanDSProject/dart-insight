@@ -1,5 +1,6 @@
 package com.dartinsight.analysis;
 
+import com.dartinsight.common.web.ApiPaths;
 import com.dartinsight.comparison.ComparisonBasis;
 import com.dartinsight.financial.FsDiv;
 import com.dartinsight.report.FinancialDataStatus;
@@ -28,7 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 분석 요청·상태 API(docs/api-spec.md). 화면 W-01 ③ → W-02 → W-03.
  */
 @RestController
-@RequestMapping("/api/analyses")
+@RequestMapping(ApiPaths.ANALYSES)
 public class AnalysisController {
 
     private final AnalysisService analysisService;
@@ -52,7 +53,7 @@ public class AnalysisController {
                 .body(new AnalysisCreatedResponse(a.getId(), a.getStatus(), a.getStep(), result.reused()));
     }
 
-    @GetMapping("/{analysisId}")
+    @GetMapping(ApiPaths.BY_ANALYSIS_ID)
     public AnalysisResponse get(@PathVariable Long analysisId) {
         Analysis a = resultService.get(analysisId);
         ReportDetail current = reportService.get(a.getCurrentRceptNo());

@@ -6,6 +6,7 @@ import com.dartinsight.analysis.FinancialChange;
 import com.dartinsight.analysis.FinancialChangeRepository;
 import com.dartinsight.analysis.TextChangeStore;
 import com.dartinsight.analysis.TextStatus;
+import com.dartinsight.common.web.ApiPaths;
 import com.dartinsight.document.DocumentBlock;
 import com.dartinsight.document.DocumentService;
 import com.dartinsight.document.ReportDocument;
@@ -27,7 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
  * AI가 만든 문장에는 aiGenerated와 모델·프롬프트 버전·생성 시각이 함께 있다.
  */
 @RestController
-@RequestMapping("/api/analyses/{analysisId}/summary")
+@RequestMapping(ApiPaths.ANALYSIS_SUMMARY)
 public class SummaryController {
 
     private final AnalysisResultService resultService;

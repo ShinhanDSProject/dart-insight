@@ -1,5 +1,6 @@
 package com.dartinsight.comparison;
 
+import com.dartinsight.common.web.ApiPaths;
 import com.dartinsight.comparison.ComparabilityService.ComparabilityResult;
 import com.dartinsight.comparison.StatementRules.StatementRule;
 import com.dartinsight.financial.FsDiv;
@@ -22,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 비교할 수 없어도 200으로 결과를 돌려준다(분석 요청만 422).
  */
 @RestController
-@RequestMapping("/api/comparability-checks")
+@RequestMapping(ApiPaths.COMPARABILITY_CHECKS)
 public class ComparabilityController {
 
     private final ComparabilityService comparabilityService;

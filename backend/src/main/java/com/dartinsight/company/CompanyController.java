@@ -1,5 +1,6 @@
 package com.dartinsight.company;
 
+import com.dartinsight.common.web.ApiPaths;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.util.List;
@@ -13,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 기업 검색·조회 API(docs/api-spec.md). 화면 W-01 ①.
  */
 @RestController
-@RequestMapping("/api/companies")
+@RequestMapping(ApiPaths.COMPANIES)
 public class CompanyController {
 
     private final CompanyService companyService;
@@ -33,7 +34,7 @@ public class CompanyController {
         return new CompanySearchResponse(items);
     }
 
-    @GetMapping("/{corpCode}")
+    @GetMapping(ApiPaths.BY_CORP_CODE)
     public CompanyResponse get(@PathVariable String corpCode) {
         return CompanyResponse.from(companyService.get(corpCode));
     }
