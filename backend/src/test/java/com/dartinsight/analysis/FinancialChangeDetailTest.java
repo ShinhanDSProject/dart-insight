@@ -80,6 +80,12 @@ class FinancialChangeDetailTest {
                         CalcStatus.OK, "KRW",
                         new Evidence(PREV, "IS", "ifrs-full_Revenue", "매출액", "제 56 기 반기"),
                         new Evidence(CUR, "IS", "ifrs-full_Revenue", "매출액", "제 57 기 반기")),
+                // 실제 비율 1.23495% → 저장값 0.012350. 저장값을 다시 반올림하면 1.24%가 된다
+                new FinancialChangeRow("IS", FsDiv.CFS, "ifrs-full_CostOfSales", "매출원가", 1,
+                        AmountBasis.CUMULATIVE, 10_000_000L, 10_123_495L, 123_495L, new BigDecimal("0.012350"),
+                        CalcStatus.OK, "KRW",
+                        new Evidence(PREV, "IS", "ifrs-full_CostOfSales", "매출원가", "제 56 기 반기"),
+                        new Evidence(CUR, "IS", "ifrs-full_CostOfSales", "매출원가", "제 57 기 반기")),
                 new FinancialChangeRow("BS", FsDiv.CFS, "NAME:신규계정", "신규계정", 0, AmountBasis.POINT,
                         null, 50L, null, null, CalcStatus.ONLY_CURRENT, "KRW", null,
                         new Evidence(CUR, "BS", "-표준계정코드 미사용-", "신규계정", "제 57 기 반기"))));
@@ -114,6 +120,13 @@ class FinancialChangeDetailTest {
                 .andExpect(jsonPath("$.previous.dartUrl")
                         .value("https://dart.fss.or.kr/dsaf001/main.do?rcpNo=" + PREV))
                 .andExpect(jsonPath("$.current.rceptNo").value(CUR));
+    }
+
+    @Test
+    void rateFormulaIsComputedFromTheAmountsItShows() throws Exception {
+        mockMvc.perform(get("/api/analyses/{a}/financial-changes/{c}", analysisId, changeId("매출원가")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rateFormula").value("123,495 ÷ 10,000,000 × 100 = 1.23%"));
     }
 
     @Test
