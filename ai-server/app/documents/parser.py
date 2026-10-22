@@ -109,6 +109,9 @@ def failed(rcept_no: str, code: str, message: str, **kwargs: object) -> Structur
     )  # type: ignore[arg-type]
 
 
+MAX_MAIN_FILE_BYTES = 300 * 1024 * 1024
+
+
 def structure_zip(rcept_no: str, data: bytes) -> StructuredDocument:
     """ZIP 바이트를 받아 구조화한다. 읽을 수 없으면 FAILED와 사유를 돌려준다(예외를 던지지 않음)."""
     try:
@@ -124,6 +127,14 @@ def structure_zip(rcept_no: str, data: bytes) -> StructuredDocument:
                 rcept_no,
                 "MAIN_FILE_NOT_FOUND",
                 f"ZIP 안에서 본문 파일({rcept_no}.xml)을 찾지 못했어요.",
+                attachments=attachments,
+            )
+        if archive.getinfo(main).file_size > MAX_MAIN_FILE_BYTES:
+            return failed(
+                rcept_no,
+                "FILE_TOO_LARGE",
+                "본문 파일이 너무 커서 읽지 않았어요(압축을 풀면 300MB 초과).",
+                main_file=main,
                 attachments=attachments,
             )
         raw = archive.read(main)
@@ -348,6 +359,8 @@ class _DartReader(HTMLParser):
             self.p_tags += 1
             if self._title is None:
                 self._flush_loose()
+                # 앞 문단이 닫히지 않았으면 그 글을 먼저 문단으로 남긴다(닫는 태그가 빠진 원문)
+                self._finish_para()
                 self._para = []
         elif tag == "table":
             self._flush_loose()

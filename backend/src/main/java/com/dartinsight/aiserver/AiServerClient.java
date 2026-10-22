@@ -4,6 +4,7 @@ import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.common.trace.TraceContext;
 import java.net.http.HttpClient;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -26,7 +27,7 @@ public class AiServerClient {
 
     private static final Logger log = LoggerFactory.getLogger(AiServerClient.class);
     private static final Pattern ERROR_CODE = Pattern.compile("\"code\"\\s*:\\s*\"([A-Z_]+)\"");
-    private static final Pattern ERROR_MESSAGE = Pattern.compile("\"message\"\\s*:\\s*\"(.*?)\"");
+    private static final Pattern ERROR_MESSAGE = Pattern.compile("\"message\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"");
 
     private final RestClient restClient;
     private final RestClient healthClient;
@@ -103,19 +104,54 @@ public class AiServerClient {
         String remoteCode = null;
         String message = ErrorCode.AI_SERVER_UNAVAILABLE.defaultMessage();
         if (e instanceof RestClientResponseException response) {
-            String body = response.getResponseBodyAsString();
+            // AI 서버(FastAPI)는 charset 없이 application/json으로 UTF-8을 보낸다. 기본값(ISO-8859-1)으로 읽지 않는다
+            String body = response.getResponseBodyAsString(StandardCharsets.UTF_8);
             Matcher code = ERROR_CODE.matcher(body);
             Matcher text = ERROR_MESSAGE.matcher(body);
             if (code.find()) {
                 remoteCode = code.group(1);
             }
             if (text.find()) {
-                message = text.group(1);
+                message = unescape(text.group(1));
             }
         }
         log.warn("AI 서버 호출 실패: {} {} ({}{})", method, path, remoteCode == null ? "" : remoteCode + " ",
                 e.getMessage());
         return new AiServerException(remoteCode, message, e);
+    }
+
+    /** JSON 문자열 이스케이프(따옴표, 역슬래시, 줄바꿈, 유니코드 이스케이프 등)를 푼다. */
+    static String unescape(String value) {
+        StringBuilder out = new StringBuilder(value.length());
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (c != '\\' || i + 1 >= value.length()) {
+                out.append(c);
+                continue;
+            }
+            char next = value.charAt(++i);
+            switch (next) {
+                case 'n' -> out.append('\n');
+                case 't' -> out.append('\t');
+                case 'r' -> out.append('\r');
+                case 'b' -> out.append('\b');
+                case 'f' -> out.append('\f');
+                case 'u' -> {
+                    if (i + 4 < value.length()) {
+                        try {
+                            out.append((char) Integer.parseInt(value.substring(i + 1, i + 5), 16));
+                            i += 4;
+                        } catch (NumberFormatException e) {
+                            out.append('u');
+                        }
+                    } else {
+                        out.append('u');
+                    }
+                }
+                default -> out.append(next);
+            }
+        }
+        return out.toString();
     }
 
     public enum AiServerStatus {

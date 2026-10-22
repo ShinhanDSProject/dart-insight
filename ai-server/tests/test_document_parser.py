@@ -209,6 +209,30 @@ def test_unclosed_tags_do_not_drop_following_sections() -> None:
     assert document.status == STRUCTURED
 
 
+def test_unclosed_paragraph_is_kept_when_the_next_one_starts() -> None:
+    xml = SAMPLE.replace("<P>메모리</P>", "<P>메모리<P>파운드리<SPAN>와</SPAN> 패키징</P>")
+
+    document = structure_xml(RCEPT, xml.encode("utf-8"))
+
+    assert [b.text for b in document.sections[-1].blocks] == ["메모리", "파운드리와 패키징"]
+    assert document.status == STRUCTURED
+
+
+def test_main_file_too_large_to_unpack_is_not_read() -> None:
+    import app.documents.parser as parser
+
+    data = make_zip({f"{RCEPT}.xml": SAMPLE.encode("utf-8")})
+    limit = parser.MAX_MAIN_FILE_BYTES
+    parser.MAX_MAIN_FILE_BYTES = 100
+    try:
+        document = structure_zip(RCEPT, data)
+    finally:
+        parser.MAX_MAIN_FILE_BYTES = limit
+
+    assert document.status == FAILED
+    assert document.failure_code == "FILE_TOO_LARGE"
+
+
 def test_title_with_nested_tags_is_read_as_text() -> None:
     xml = SAMPLE.replace(">II. 사업의 내용<", "><SPAN>II.</SPAN> 사업의 내용<")
 

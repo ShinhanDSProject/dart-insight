@@ -29,6 +29,9 @@ async def structure(rcept_no: str, request: Request) -> dict[str, Any]:
     """본문은 ZIP 바이트(application/zip). 읽지 못해도 200과 status=FAILED, 사유를 돌려준다."""
     if not _RCEPT_NO.match(rcept_no):
         raise ApiError(ErrorCode.COMMON_INVALID_INPUT, "접수번호는 14자리 숫자입니다.")
+    length = request.headers.get("content-length", "")
+    if length.isdigit() and int(length) > MAX_ZIP_BYTES:
+        raise ApiError(ErrorCode.AI_DOCUMENT_TOO_LARGE)  # 본문을 읽기 전에 거절한다
     body = await request.body()
     if not body:
         raise ApiError(ErrorCode.COMMON_INVALID_INPUT, "원문 ZIP이 비어 있습니다.")

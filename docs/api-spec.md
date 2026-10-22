@@ -532,7 +532,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | 필드 | 설명 |
 | --- | --- |
 | `status` | `STRUCTURED` 끝까지 읽음, `PARTIAL` 일부 빠졌을 수 있음(경고에 사유), `FAILED` 읽지 못함 |
-| `failureCode` | `INVALID_ZIP`, `MAIN_FILE_NOT_FOUND`, `UNSUPPORTED_FORMAT`(목차를 찾지 못함), `PARSE_ERROR` |
+| `failureCode` | `INVALID_ZIP`, `MAIN_FILE_NOT_FOUND`, `FILE_TOO_LARGE`(본문 파일을 풀면 300MB 초과), `UNSUPPORTED_FORMAT`(목차를 찾지 못함), `PARSE_ERROR` |
 | `warnings[].code` | `CELL_COUNT_MISMATCH`, `PARAGRAPH_COUNT_MISMATCH`, `ENCODING_REPLACED`(이 셋이면 `PARTIAL`), `UNTITLED_SECTION`, `NO_BODY_TAG` |
 | `sections[].level` | `SECTION-n`의 n. 표지는 1(`cover: true`), 목차 밖 본문은 0 |
 | `sections[].ref` | 원문 TITLE의 `AASSOCNOTE` 값. 없으면 null |
