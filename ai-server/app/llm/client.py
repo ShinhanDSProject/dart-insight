@@ -158,7 +158,14 @@ class LlmClient:
                 if self._monotonic() >= deadline:
                     break
                 current = replace(request, user=request.user + _feedback(problems))
-            text, record = self._call_with_retry(current, calls, deadline)
+            try:
+                text, record = self._call_with_retry(current, calls, deadline)
+            except LlmUnavailable:
+                if not problems:
+                    raise
+                # 다시 생성하다 시간이 다 되거나 호출이 끝내 실패하면, 앞 결과로 검증 실패를 알린다
+                # (부른 쪽이 통과한 항목은 쓰고 나머지만 검토 필요로 둘 수 있게)
+                break
             try:
                 parsed = _parse_json(text)
                 last_output = parsed

@@ -97,9 +97,19 @@ public class SummaryController {
         }
         String side = rceptNo.equals(analysis.getCurrentRceptNo()) ? "current"
                 : rceptNo.equals(analysis.getPreviousRceptNo()) ? "previous" : null;
-        Integer sectionNo = docs.computeIfAbsent(rceptNo, documentService::find)
-                .flatMap(d -> documentService.block(d, blockNo)).map(DocumentBlock::sectionNo).orElse(null);
+        Optional<ReportDocument> document = docs.computeIfAbsent(rceptNo, documentService::find);
+        if (document.isPresent() && restructuredAfter(document.get(), analysis)) {
+            // 분석 뒤에 원문을 다시 구조화했으면 블록 번호가 다른 글을 가리킬 수 있어 위치를 주지 않는다
+            return new EvidenceView(evidenceId, side, rceptNo, null, null);
+        }
+        Integer sectionNo = document.flatMap(d -> documentService.block(d, blockNo)).map(DocumentBlock::sectionNo)
+                .orElse(null);
         return new EvidenceView(evidenceId, side, rceptNo, sectionNo, blockNo);
+    }
+
+    private static boolean restructuredAfter(ReportDocument document, Analysis analysis) {
+        return document.getStructuredAt() != null && analysis.getCompletedAt() != null
+                && document.getStructuredAt().isAfter(analysis.getCompletedAt());
     }
 
     /** @param type FINANCIAL(재무 수치 탭의 계정) 또는 TEXT(문장 변화 탭의 변경) */

@@ -14,7 +14,8 @@ import java.util.Map;
 /**
  * 요약할 변화 고르기(3.2). 고르는 일은 코드가 한다(LLM에 맡기지 않음).
  * <ul>
- *   <li>재무 수치: 계산한 계정 중 손익계산서에서 증감액이 큰 3개, 재무상태표에서 2개</li>
+ *   <li>재무 수치: 계산한 계정 중 손익계산서에서 증감액이 큰 3개(손익계산서 없이 포괄손익계산서 하나로 낸 회사는
+ *   포괄손익계산서에서), 재무상태표에서 2개</li>
  *   <li>문장 변화: 우선순위(2.6) 높음·중간 중 점수가 높은 5개(숫자만 바뀐 것과 검토 필요는 뺌)</li>
  *   <li>설명 후보: 현재 보고서의 경영진단·사업의 내용 섹션 문단 중 그 계정 이름이 나오는 앞의 2개</li>
  * </ul>
@@ -33,7 +34,8 @@ public final class SummarySelector {
 
     /** 고른 재무 수치 결과의 목록 안 순서 */
     public static List<Integer> financial(List<FinancialChangeRow> rows) {
-        List<Integer> picked = new ArrayList<>(top(rows, "IS", INCOME_ITEMS));
+        List<Integer> income = top(rows, "IS", INCOME_ITEMS);
+        List<Integer> picked = new ArrayList<>(income.isEmpty() ? top(rows, "CIS", INCOME_ITEMS) : income);
         picked.addAll(top(rows, "BS", BALANCE_ITEMS));
         return picked;
     }

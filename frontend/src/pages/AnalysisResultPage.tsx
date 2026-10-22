@@ -169,7 +169,7 @@ export function AnalysisResultPage() {
               key={analysis.analysisId}
               analysis={analysis}
               onOpenFinancial={(sj, change) => update({ tab: 'financial', sj, change: String(change), changed: null })}
-              onOpenText={(change) => update({ tab: 'text', ttype: null, tc: String(change) })}
+              onOpenText={(change) => update({ tab: 'text', ttype: null, tsort: null, tc: String(change) })}
               onOpenSource={(target) =>
                 update({
                   tab: 'source',

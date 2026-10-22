@@ -27,6 +27,13 @@ class FinancialFactsTest {
     }
 
     @Test
+    void rateIsRoundedOnceFromTheTwoAmounts() {
+        // 4.84996%: 저장된 소수 6자리(0.048500)를 다시 반올림하면 4.9%가 되지만 두 금액으로 바로 계산하면 4.8%
+        assertThat(FinancialFacts.sentence(row("매출액", 10_000_000L, 10_484_996L, "0.048500", "KRW")))
+                .endsWith("(+4.8%).");
+    }
+
+    @Test
     void amountsAreScaledToJoOrEok() {
         assertThat(FinancialFacts.amount(1_234_500_000_000L, "KRW")).isEqualTo("1.2조 원");
         assertThat(FinancialFacts.amount(-350_000_000L, "KRW")).isEqualTo("−4억 원");

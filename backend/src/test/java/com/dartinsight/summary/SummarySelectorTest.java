@@ -46,6 +46,16 @@ class SummarySelectorTest {
     }
 
     @Test
+    void singleIncomeStatementFilersUseComprehensiveIncome() {
+        List<FinancialChangeRow> rows = List.of(
+                fin("CIS", "매출액", 100L, 200L, CalcStatus.OK),
+                fin("CIS", "영업이익", 10L, 5L, CalcStatus.OK),
+                fin("BS", "자산총계", 1000L, 1100L, CalcStatus.OK));
+
+        assertThat(SummarySelector.financial(rows)).containsExactly(0, 1, 2);
+    }
+
+    @Test
     void picksHighAndMediumTextChangesByScore() {
         List<TextChangeRow> rows = List.of(text("LOW", 10, false), text("MEDIUM", 40, false),
                 text("HIGH", 70, true), text("HIGH", 65, false), text("UNRANKED", null, false), text(null, null, false));

@@ -261,6 +261,43 @@ class SummaryPipelineTest {
     }
 
     @Test
+    void answersCitingSourcesThatWereNotSentAreNotShown() throws Exception {
+        AI.on(SUMMARIES, request -> {
+            String body = request.bodyText();
+            String text = JsonPath.<List<String>>read(body, "$.textItems[*].ref").getFirst();
+            // 문장 변화는 보내지 않은 원문을 근거로 들고, 같은 항목이 두 번 오고, 매출액 설명은 빠진 응답
+            return Reply.ok("""
+                    {"promptVersion":"summary-1","model":"fake-model","generatedAt":"2026-10-22T09:00:00","items":[
+                     {"ref":"%s","kind":"TEXT","status":"OK","sentence":"다른 보고서 내용","evidenceIds":["%s#B1"]},
+                     {"ref":"%s","kind":"TEXT","status":"OK","sentence":"두 번째","evidenceIds":["%s#B1"]}
+                    ],"calls":[]}
+                    """.formatted(text, "20990101000001", text, CUR));
+        });
+
+        long id = analyze();
+
+        mockMvc.perform(get("/api/analyses/{id}/summary", id))
+                .andExpect(jsonPath("$.summaryStatus").value("PARTIAL"))
+                .andExpect(jsonPath("$.items[?(@.kind == 'TEXT')]", hasSize(0)))
+                .andExpect(jsonPath("$.items[0].factSentence").isNotEmpty())
+                .andExpect(jsonPath("$.items[0].explanationStatus").value("REVIEW_NEEDED"))
+                .andExpect(jsonPath("$.items[1].explanationStatus").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.reviewNeededCount").value(2));
+        assertThat(summaryStore.items(id)).hasSize(3);
+    }
+
+    @Test
+    void emptySummaryAnswerFailsWithTheSummaryCode() throws Exception {
+        AI.on(SUMMARIES, Reply.ok("{\"items\":null}"));
+
+        long id = analyze();
+
+        mockMvc.perform(get("/api/analyses/{id}", id))
+                .andExpect(jsonPath("$.status").value("FAILED"))
+                .andExpect(jsonPath("$.error.code").value("ANALYSIS_SUMMARY_FAILED"));
+    }
+
+    @Test
     void unavailableLlmFailsTheAnalysisInsteadOfCompletingWithoutSummary() throws Exception {
         AI.on(SUMMARIES, Reply.error(503, "AI_LLM_UNAVAILABLE", "AI 모델을 쓸 수 없어요."));
 

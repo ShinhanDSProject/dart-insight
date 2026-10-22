@@ -222,3 +222,15 @@ def test_settings_come_from_environment(monkeypatch: pytest.MonkeyPatch) -> None
     assert settings.api_key == "test-key-not-real"
     assert settings.max_output_retries == 2
     assert settings.total_timeout_seconds == 90.0
+
+
+def test_failure_while_regenerating_reports_the_invalid_output() -> None:
+    settings = LlmSettings(provider="fake", max_retries=0)
+    provider = FakeProvider(script=[{"wrong": 1}, ProviderTransientError("시간 초과")])
+    llm = LlmClient(provider, settings, sleep=lambda _: None)
+
+    with pytest.raises(LlmOutputInvalid) as e:
+        llm.generate(REQUEST, need_answer)
+
+    assert e.value.last_output == {"wrong": 1}
+    assert [c.outcome for c in e.value.calls] == ["INVALID_OUTPUT", "TRANSIENT_ERROR"]

@@ -1,6 +1,7 @@
 package com.dartinsight.summary;
 
 import com.dartinsight.aiserver.AiServerClient;
+import com.dartinsight.aiserver.AiServerException;
 import com.dartinsight.analysis.FinancialChangeRow;
 import com.dartinsight.analysis.TextChangeRow;
 import com.dartinsight.analysis.TextChangeRow.Side;
@@ -12,9 +13,12 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -28,6 +32,8 @@ import org.springframework.stereotype.Service;
 public class SummaryService {
 
     private static final Logger log = LoggerFactory.getLogger(SummaryService.class);
+    private static final String MISSING = "요약 결과에 이 항목이 없었어요.";
+    private static final String BAD_EVIDENCE = "요약 문장의 근거가 보낸 원문 위치가 아니라 쓰지 않았어요.";
 
     private final AiServerClient aiServerClient;
     private final DocumentService documentService;
@@ -80,19 +86,28 @@ public class SummaryService {
         SummaryAiResponse response = aiServerClient.postJson("/internal/summaries", new SummaryAiRequest(
                 companyName, previousReport, currentReport, textItems, financialItems), SummaryAiResponse.class);
         if (response == null || response.items() == null) {
-            throw new IllegalStateException("AI 서버 요약 응답이 비어 있습니다.");
+            throw new AiServerException(null, "AI 서버 요약 응답이 비어 있어요.", null);
         }
         LocalDateTime generatedAt = time(response.generatedAt());
-        List<SummaryItemRow> rows = new ArrayList<>();
+
+        // AI 서버도 확인하지만, 저장하기 전에 여기서 다시 본다: 요청한 항목인지, 겹치지 않는지, 근거가 보낸 원문 위치인지
+        Map<String, SummaryAiResponse.Item> answers = new LinkedHashMap<>();
         for (SummaryAiResponse.Item item : response.items()) {
-            if (textRefs.containsKey(item.ref())) {
-                rows.add(textRow(item, textRefs.get(item.ref()) + 1, response, generatedAt));
-            } else if (financialRefs.containsKey(item.ref())) {
-                int index = financialRefs.get(item.ref());
-                rows.add(financialRow(item, index, financial.get(index), response, generatedAt));
-            } else {
-                log.warn("요약 응답에 요청하지 않은 항목이 있어 뺐습니다: {}", item.ref());
+            if (item == null || !(textRefs.containsKey(item.ref()) || financialRefs.containsKey(item.ref()))) {
+                log.warn("요약 응답에 요청하지 않은 항목이 있어 뺐습니다: {}", item == null ? null : item.ref());
+            } else if (answers.putIfAbsent(item.ref(), item) != null) {
+                log.warn("요약 응답에 같은 항목이 두 번 있어 처음 것만 씁니다: {}", item.ref());
             }
+        }
+        List<SummaryItemRow> rows = new ArrayList<>();
+        for (SummaryAiRequest.TextItem item : textItems) {
+            rows.add(textRow(answers.get(item.ref()), textRefs.get(item.ref()) + 1, ids(item.sources()), response,
+                    generatedAt));
+        }
+        for (SummaryAiRequest.FinancialItem item : financialItems) {
+            int index = financialRefs.get(item.ref());
+            rows.add(financialRow(answers.get(item.ref()), index, financial.get(index), ids(item.candidates()),
+                    response, generatedAt));
         }
         boolean review = rows.stream().anyMatch(r -> SummaryItemRow.REVIEW_NEEDED.equals(r.status())
                 || SummaryItemRow.REVIEW_NEEDED.equals(r.explanationStatus()));
@@ -100,6 +115,17 @@ public class SummaryService {
                 : response.calls().stream().map(SummaryService::call).toList();
         return new SummaryResult(review ? SummaryStatus.PARTIAL : SummaryStatus.COMPLETED,
                 review ? "근거를 확인하지 못한 항목은 요약에서 빼고 '검토 필요'로 남겼어요." : null, rows, calls);
+    }
+
+    private static Set<String> ids(List<SummaryAiRequest.Source> sources) {
+        Set<String> ids = new HashSet<>();
+        sources.forEach(s -> ids.add(s.evidenceId()));
+        return ids;
+    }
+
+    /** 근거가 하나 이상이고, 모두 그 항목에 보낸 원문 위치인지 */
+    private static boolean citesOnly(List<String> evidenceIds, Set<String> allowed) {
+        return evidenceIds != null && !evidenceIds.isEmpty() && allowed.containsAll(evidenceIds);
     }
 
     private static List<SummaryAiRequest.Source> sources(TextChangeRow row) {
@@ -113,36 +139,56 @@ public class SummaryService {
         return sources;
     }
 
-    private static SummaryItemRow textRow(SummaryAiResponse.Item item, int changeNo, SummaryAiResponse response,
-            LocalDateTime generatedAt) {
-        boolean ok = "OK".equals(item.status()) && item.sentence() != null;
-        return new SummaryItemRow(SummaryItemRow.TEXT, ok ? SummaryItemRow.SHOWN : SummaryItemRow.REVIEW_NEEDED, null,
-                ok ? item.sentence() : null, null, ok ? list(item.evidenceIds()) : List.of(), null, changeNo,
-                ok ? null : reason(item), ok ? response.model() : null, ok ? response.promptVersion() : null,
-                ok ? generatedAt : null);
+    private static SummaryItemRow textRow(SummaryAiResponse.Item item, int changeNo, Set<String> allowed,
+            SummaryAiResponse response, LocalDateTime generatedAt) {
+        String reason;
+        if (item == null) {
+            reason = MISSING;
+        } else if (!"OK".equals(item.status())) {
+            reason = reason(item);
+        } else if (item.sentence() == null || item.sentence().isBlank() || !citesOnly(item.evidenceIds(), allowed)) {
+            reason = BAD_EVIDENCE;
+        } else {
+            return new SummaryItemRow(SummaryItemRow.TEXT, SummaryItemRow.SHOWN, null, item.sentence(), null,
+                    item.evidenceIds(), null, changeNo, null, response.model(), response.promptVersion(),
+                    generatedAt);
+        }
+        return new SummaryItemRow(SummaryItemRow.TEXT, SummaryItemRow.REVIEW_NEEDED, null, null, null, List.of(),
+                null, changeNo, reason, null, null, null);
     }
 
     private static SummaryItemRow financialRow(SummaryAiResponse.Item item, int index, FinancialChangeRow row,
-            SummaryAiResponse response, LocalDateTime generatedAt) {
+            Set<String> allowed, SummaryAiResponse response, LocalDateTime generatedAt) {
         String fact = FinancialFacts.sentence(row);
-        if (!"OK".equals(item.status())) {
-            return new SummaryItemRow(SummaryItemRow.FINANCIAL, SummaryItemRow.SHOWN, fact, null,
-                    SummaryItemRow.REVIEW_NEEDED, List.of(), index, null, reason(item), null, null, null);
+        String reason;
+        if (item == null) {
+            if (allowed.isEmpty()) {
+                return notFound(fact, index);
+            }
+            reason = MISSING;
+        } else if (!"OK".equals(item.status())) {
+            reason = reason(item);
+        } else if (item.explanation() == null) {
+            return notFound(fact, index);
+        } else if (!citesOnly(item.evidenceIds(), allowed)) {
+            reason = BAD_EVIDENCE;
+        } else {
+            return new SummaryItemRow(SummaryItemRow.FINANCIAL, SummaryItemRow.SHOWN, fact, item.explanation(),
+                    "FOUND", item.evidenceIds(), index, null, null, response.model(), response.promptVersion(),
+                    generatedAt);
         }
-        if (item.explanation() == null) {
-            return new SummaryItemRow(SummaryItemRow.FINANCIAL, SummaryItemRow.SHOWN, fact, null, "NOT_FOUND",
-                    List.of(), index, null, null, null, null, null);
-        }
-        return new SummaryItemRow(SummaryItemRow.FINANCIAL, SummaryItemRow.SHOWN, fact, item.explanation(), "FOUND",
-                list(item.evidenceIds()), index, null, null, response.model(), response.promptVersion(), generatedAt);
+        // 수치 문장(코드가 만듦)은 보이고, 설명만 검토 필요로 둔다
+        return new SummaryItemRow(SummaryItemRow.FINANCIAL, SummaryItemRow.SHOWN, fact, null,
+                SummaryItemRow.REVIEW_NEEDED, List.of(), index, null, reason, null, null, null);
+    }
+
+    private static SummaryItemRow notFound(String fact, int index) {
+        return new SummaryItemRow(SummaryItemRow.FINANCIAL, SummaryItemRow.SHOWN, fact, null, "NOT_FOUND", List.of(),
+                index, null, null, null, null, null);
     }
 
     private static String reason(SummaryAiResponse.Item item) {
         return item.reviewReason() == null ? "근거를 확인하지 못했어요." : item.reviewReason();
-    }
-
-    private static List<String> list(List<String> values) {
-        return values == null ? List.of() : values;
     }
 
     private static LlmCallRow call(SummaryAiResponse.Call call) {

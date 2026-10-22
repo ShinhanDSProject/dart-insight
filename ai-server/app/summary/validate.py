@@ -23,6 +23,15 @@ from app.summary.model import (
 MAX_SENTENCE = 200
 MAX_EXPLANATION = 300
 _NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?")
+# 숫자 없이 크기를 말하는 표현(두 배, 절반)과 단위가 붙은 수(1조, 500억).
+# 원문에 같은 표현이 있어야 쓸 수 있다
+_MAGNITUDE = re.compile(
+    r"(?:\d+(?:\.\d+)?|[한두세네다섯여섯일곱여덟아홉열몇수]+)\s*배"
+    r"(?=로|가|나|만큼|이상|이하|\s|$|[.,!?)])"
+    r"|절반|\d+\s*분의\s*\d+"
+    r"|\d[\d,]*(?:\.\d+)?\s*(?:조|억|만|천)"
+)
+_SQUEEZE = re.compile(r"[\s,]")
 
 
 @dataclass
@@ -87,8 +96,21 @@ def check(data: Any, summary: SummaryInput) -> Checked:
     return Checked(results, problems)
 
 
-def _cited_numbers(sources: dict[str, str], evidence: list[str], extra: str = "") -> set[str]:
-    return numbers(" ".join(sources[e] for e in evidence if e in sources) + " " + extra)
+def _number_problem(text: str, sources: dict[str, str], evidence: list[str]) -> str | None:
+    """숫자와 크기 표현이 인용한 원문에 그대로 있는지. LLM이 계산하거나 바꿔 쓴 숫자를 막는다."""
+    cited = " ".join(sources[e] for e in evidence if e in sources)
+    extra = numbers(text) - numbers(cited)
+    if extra:
+        return f"인용한 원문에 없는 숫자가 있습니다: {sorted(extra)[:3]}"
+    squeezed = _SQUEEZE.sub("", cited)
+    missing = [
+        m.group(0)
+        for m in _MAGNITUDE.finditer(text)
+        if _SQUEEZE.sub("", m.group(0)) not in squeezed
+    ]
+    if missing:
+        return f"인용한 원문에 없는 크기 표현이 있습니다: {missing[:3]}. 원문 표현을 그대로 쓰세요."
+    return None
 
 
 def _check_text(item: TextItem, sentence: Any, evidence: list[str]) -> str | None:
@@ -102,10 +124,7 @@ def _check_text(item: TextItem, sentence: Any, evidence: list[str]) -> str | Non
     unknown = [e for e in evidence if e not in allowed]
     if unknown:
         return f"주어진 원문 id가 아닙니다: {unknown[:3]}"
-    extra = numbers(sentence) - _cited_numbers(allowed, evidence, item.section_path)
-    if extra:
-        return f"인용한 원문에 없는 숫자가 있습니다: {sorted(extra)[:3]}"
-    return None
+    return _number_problem(sentence, allowed, evidence)
 
 
 def _check_financial(item: FinancialItem, explanation: Any, evidence: list[str]) -> str | None:
@@ -121,7 +140,4 @@ def _check_financial(item: FinancialItem, explanation: Any, evidence: list[str])
     unknown = [e for e in evidence if e not in allowed]
     if unknown:
         return f"후보 원문 id가 아닙니다: {unknown[:3]}"
-    extra = numbers(explanation) - _cited_numbers(allowed, evidence)
-    if extra:
-        return f"인용한 원문에 없는 숫자가 있습니다: {sorted(extra)[:3]}"
-    return None
+    return _number_problem(explanation, allowed, evidence)

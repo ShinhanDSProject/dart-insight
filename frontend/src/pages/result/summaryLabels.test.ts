@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { aiInfoLabel, explanationNote, kindLabel, summaryStatusNotice, textCoverageNote } from './summaryLabels'
+import { aiInfoLabel, explanationNote, kindLabel, summaryLink, summaryStatusNotice, textCoverageNote } from './summaryLabels'
 
 describe('summaryLabels', () => {
   it('요약 상태가 정상이면 안내가 없고, 아니면 사유를 보여 준다', () => {
@@ -27,5 +27,12 @@ describe('summaryLabels', () => {
     )
     expect(aiInfoLabel(null)).toBe('')
     expect(kindLabel('TEXT')).toBe('문장 변화')
+  })
+
+  it('요약 항목은 열 수 있는 결과로만 이어진다', () => {
+    expect(summaryLink({ type: 'FINANCIAL', changeId: 3, sjDiv: 'IS' })).toEqual({ tab: 'financial', sjDiv: 'IS', changeId: 3 })
+    expect(summaryLink({ type: 'TEXT', changeId: 7, sjDiv: null })).toEqual({ tab: 'text', changeId: 7 })
+    expect(summaryLink({ type: 'FINANCIAL', changeId: 3, sjDiv: null })).toBeNull()
+    expect(summaryLink({ type: 'TEXT', changeId: null, sjDiv: null })).toBeNull()
   })
 })

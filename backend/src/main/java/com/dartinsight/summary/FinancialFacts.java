@@ -24,7 +24,7 @@ public final class FinancialFacts {
         String previous = amount(row.previousAmount(), row.currency());
         String current = amount(row.currentAmount(), row.currency());
         String verb = row.changeAmount() > 0 ? "늘었어요" : "줄었어요";
-        String rate = row.changeRate() == null ? "" : "(" + rate(row.changeRate()) + ")";
+        String rate = row.changeRate() == null ? "" : "(" + rate(row.changeAmount(), row.previousAmount()) + ")";
         return row.accountName() + subject(row.accountName()) + " " + previous + "에서 " + current + toward(current)
                 + " " + verb + rate + ".";
     }
@@ -44,8 +44,13 @@ public final class FinancialFacts {
         return sign + grouped(abs) + " 원";
     }
 
-    static String rate(BigDecimal rate) {
-        BigDecimal percent = rate.movePointRight(2).setScale(1, RoundingMode.HALF_UP);
+    /**
+     * 증감률(%, 소수 1자리). 저장된 증감률(소수 6자리)을 다시 반올림하면 한 번 더 반올림돼 어긋날 수 있어
+     * 두 금액으로 바로 계산한다(근거 패널의 계산식과 같은 방식).
+     */
+    static String rate(long change, long previous) {
+        BigDecimal percent = BigDecimal.valueOf(change).movePointRight(2)
+                .divide(BigDecimal.valueOf(previous), 1, RoundingMode.HALF_UP);
         String sign = percent.signum() > 0 ? "+" : percent.signum() < 0 ? "−" : "";
         return sign + oneDecimal(percent.abs()) + "%";
     }

@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 
 from app.llm import CallRecord, LlmClient, LlmOutputInvalid, OutputProblem
@@ -35,19 +35,36 @@ class SummaryOutput:
 
 
 def summarize(llm: LlmClient, summary: SummaryInput) -> SummaryOutput:
-    needs_llm = bool(summary.text_items) or any(i.candidates for i in summary.financial_items)
     no_explanation = [
         ItemResult(i.ref, FINANCIAL, OK) for i in summary.financial_items if not i.candidates
     ]
+    # 근거 원문이 없는 문장 변화는 LLM이 근거를 댈 수 없으므로 묻지 않고 검토 필요로 둔다
+    no_source = [
+        ItemResult(i.ref, TEXT, REVIEW_NEEDED, review_reason="근거 원문이 없어 요약하지 않았어요.")
+        for i in summary.text_items
+        if not i.sources
+    ]
+    summary = replace(summary, text_items=[i for i in summary.text_items if i.sources])
+    needs_llm = bool(summary.text_items) or any(i.candidates for i in summary.financial_items)
     now = datetime.now(KST).strftime("%Y-%m-%dT%H:%M:%S")
     if not needs_llm:
-        return SummaryOutput(no_explanation, None, PROMPT_VERSION, now)
+        return SummaryOutput(no_source + no_explanation, None, PROMPT_VERSION, now)
+
+    # 다시 생성할 때 앞에서 통과한 항목은 그대로 쓴다(뒤 응답에서 망가져도 버리지 않음)
+    passed: dict[str, ItemResult] = {}
+
+    def keep_passed(checked_results: dict[str, ItemResult]) -> None:
+        for ref, result in checked_results.items():
+            if result.status == OK and ref not in passed:
+                passed[ref] = result
 
     def validate(data: object) -> dict[str, ItemResult]:
         checked = check(data, summary)
-        if checked.problems:
-            raise OutputProblem(checked.problems)
-        return checked.results
+        keep_passed(checked.results)
+        problems = [p for p in checked.problems if p.split(":", 1)[0] not in passed]
+        if problems:
+            raise OutputProblem(problems)
+        return {**checked.results, **passed}
 
     try:
         result = llm.generate(build_request(summary), validate)
@@ -60,7 +77,7 @@ def summarize(llm: LlmClient, summary: SummaryInput) -> SummaryOutput:
     except LlmOutputInvalid as e:
         logger.warning("요약 검증 실패, 통과한 항목만 씀: %s", e.problems[:5])
         checked = check(e.last_output, summary)
-        items = checked.results
+        items = {**checked.results, **passed}
         model = e.calls[-1].model if e.calls else None
         generated_at = e.calls[-1].called_at if e.calls else now
         calls = e.calls
@@ -72,4 +89,6 @@ def summarize(llm: LlmClient, summary: SummaryInput) -> SummaryOutput:
                 items[ref] = ItemResult(ref, kind, REVIEW_NEEDED, review_reason=reason)
     ordered = [items[i.ref] for i in summary.text_items if i.ref in items]
     ordered += [items[i.ref] for i in summary.financial_items if i.ref in items]
-    return SummaryOutput(ordered + no_explanation, model, PROMPT_VERSION, generated_at, calls)
+    return SummaryOutput(
+        ordered + no_source + no_explanation, model, PROMPT_VERSION, generated_at, calls
+    )

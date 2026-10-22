@@ -4,7 +4,15 @@ import type { SjDiv } from '../../api/results'
 import { getSummary, type Summary, type SummaryEvidence, type SummaryItem, type SummaryTarget } from '../../api/summary'
 import { EmptyState, ErrorState, LoadingState } from '../../components/StateView'
 import type { SourceTarget } from './TextEvidencePanel'
-import { aiInfoLabel, explanationNote, kindLabel, SUMMARY_NOTE, summaryStatusNotice, textCoverageNote } from './summaryLabels'
+import {
+  aiInfoLabel,
+  explanationNote,
+  kindLabel,
+  SUMMARY_NOTE,
+  summaryLink,
+  summaryStatusNotice,
+  textCoverageNote,
+} from './summaryLabels'
 
 type Load = { kind: 'loading' } | { kind: 'done'; data: Summary } | { kind: 'error'; error: unknown }
 
@@ -60,10 +68,11 @@ export function SummaryTab({ analysis, onOpenFinancial, onOpenText, onOpenSource
   const coverage = data.summaryStatus === null ? null : textCoverageNote(data.textStatus)
   const financial = data.items.filter((i) => i.kind === 'FINANCIAL')
   const text = data.items.filter((i) => i.kind === 'TEXT')
-  const open = (target: SummaryTarget) => {
-    if (target.changeId === null) return
-    if (target.type === 'FINANCIAL' && target.sjDiv) onOpenFinancial(target.sjDiv, target.changeId)
-    if (target.type === 'TEXT') onOpenText(target.changeId)
+  // 열 수 없는 항목(결과에서 찾지 못함)은 버튼을 그리지 않는다
+  const opener = (target: SummaryTarget): (() => void) | null => {
+    const link = summaryLink(target)
+    if (link === null) return null
+    return link.tab === 'financial' ? () => onOpenFinancial(link.sjDiv, link.changeId) : () => onOpenText(link.changeId)
   }
 
   return (
@@ -75,7 +84,7 @@ export function SummaryTab({ analysis, onOpenFinancial, onOpenText, onOpenSource
       )}
       {coverage && <p className="panel__note">{coverage}</p>}
 
-      {data.items.length === 0 && data.summaryStatus !== null && (
+      {data.items.length === 0 && data.reviewNeededCount === 0 && data.summaryStatus !== null && data.summaryStatus !== 'EMPTY' && (
         <EmptyState title="요약할 변화가 없어요.">
           <p>'재무 수치 변화'와 '문장·내용 변화'에서 전체 결과를 볼 수 있어요.</p>
         </EmptyState>
@@ -89,7 +98,7 @@ export function SummaryTab({ analysis, onOpenFinancial, onOpenText, onOpenSource
           <ol className="summary-list">
             {financial.map((item) => (
               <li key={item.itemNo}>
-                <SummaryCard item={item} analysis={analysis} onOpen={() => open(item.target)} onOpenSource={onOpenSource} />
+                <SummaryCard item={item} analysis={analysis} onOpen={opener(item.target)} onOpenSource={onOpenSource} />
               </li>
             ))}
           </ol>
@@ -104,7 +113,7 @@ export function SummaryTab({ analysis, onOpenFinancial, onOpenText, onOpenSource
           <ol className="summary-list">
             {text.map((item) => (
               <li key={item.itemNo}>
-                <SummaryCard item={item} analysis={analysis} onOpen={() => open(item.target)} onOpenSource={onOpenSource} />
+                <SummaryCard item={item} analysis={analysis} onOpen={opener(item.target)} onOpenSource={onOpenSource} />
               </li>
             ))}
           </ol>
@@ -118,17 +127,20 @@ export function SummaryTab({ analysis, onOpenFinancial, onOpenText, onOpenSource
           </h2>
           <p className="panel__note">근거를 확인하지 못해 요약에 넣지 않은 항목이에요. 원래 결과에서 직접 확인해 주세요.</p>
           <ul className="summary-review">
-            {data.reviewNeeded.map((review) => (
-              <li key={`${review.itemNo}-${review.reason ?? ''}`}>
-                <span className="badge badge--attention">{kindLabel(review.kind)}</span>
-                <span>{review.reason ?? '근거를 확인하지 못했어요.'}</span>
-                {review.target.changeId !== null && (
-                  <button type="button" className="link-button" onClick={() => open(review.target)}>
-                    항목 보기
-                  </button>
-                )}
-              </li>
-            ))}
+            {data.reviewNeeded.map((review) => {
+              const openReview = opener(review.target)
+              return (
+                <li key={`${review.itemNo}-${review.reason ?? ''}`}>
+                  <span className="badge badge--attention">{kindLabel(review.kind)}</span>
+                  <span>{review.reason ?? '근거를 확인하지 못했어요.'}</span>
+                  {openReview && (
+                    <button type="button" className="link-button" onClick={openReview}>
+                      항목 보기
+                    </button>
+                  )}
+                </li>
+              )
+            })}
           </ul>
         </section>
       )}
@@ -141,7 +153,8 @@ export function SummaryTab({ analysis, onOpenFinancial, onOpenText, onOpenSource
 interface SummaryCardProps {
   item: SummaryItem
   analysis: Analysis
-  onOpen: () => void
+  /** 결과 화면에서 이 항목을 연다. 열 수 없으면 null(버튼을 그리지 않음) */
+  onOpen: (() => void) | null
   onOpenSource: (target: SourceTarget) => void
 }
 
@@ -160,7 +173,7 @@ function SummaryCard({ item, analysis, onOpen, onOpenSource }: SummaryCardProps)
         </div>
       )}
       {missing && <p className={`summary-item__missing${item.explanationStatus === 'REVIEW_NEEDED' ? ' summary-item__missing--review' : ''}`}>{missing}</p>}
-      {item.target.changeId !== null && (
+      {onOpen && (
         <div className="summary-item__actions">
           <button type="button" className="button button--secondary" onClick={onOpen}>
             {item.kind === 'FINANCIAL' ? '수치 근거 보기' : '변경 근거 보기'}

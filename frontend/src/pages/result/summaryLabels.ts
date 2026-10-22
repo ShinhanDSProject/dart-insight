@@ -1,4 +1,5 @@
-import type { AiInfo, ExplanationStatus, SummaryKind, SummaryStatus } from '../../api/summary'
+import type { SjDiv } from '../../api/results'
+import type { AiInfo, ExplanationStatus, SummaryKind, SummaryStatus, SummaryTarget } from '../../api/summary'
 import type { TextStatus } from '../../api/textChanges'
 
 /** 요약·설명(W-03 ①) 화면 문구. 요약은 공시에 적힌 내용만 옮기며 투자 판단이 아니다. */
@@ -39,4 +40,13 @@ export function aiInfoLabel(ai: AiInfo | null): string {
   if (!ai) return ''
   const parts = [ai.model, ai.promptVersion && `프롬프트 ${ai.promptVersion}`, ai.generatedAt && `${ai.generatedAt.replace('T', ' ').slice(0, 16)} 생성`]
   return parts.filter(Boolean).join(' · ')
+}
+
+/** 요약 항목에서 열 결과 화면. 열 수 없으면(항목을 찾지 못함) null이라 버튼을 그리지 않는다 */
+export type SummaryLink = { tab: 'financial'; sjDiv: SjDiv; changeId: number } | { tab: 'text'; changeId: number }
+
+export function summaryLink(target: SummaryTarget): SummaryLink | null {
+  if (target.changeId === null) return null
+  if (target.type === 'FINANCIAL') return target.sjDiv ? { tab: 'financial', sjDiv: target.sjDiv, changeId: target.changeId } : null
+  return { tab: 'text', changeId: target.changeId }
 }
