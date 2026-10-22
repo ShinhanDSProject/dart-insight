@@ -252,7 +252,7 @@ CodeRabbit 설치 시에는 저장소 접근 범위와 자동 리뷰를 설정�
 
 준비가 끝나면 **PR 작성자가 직접 Merge**하고 완료 상태를 확인한다. 이는 본인의 PR에 스스로 Approve한다는 의미가 아니라, 필요한 조건을 만족한 PR의 병합 버튼을 누른다는 뜻이다.
 
-병합 방식은 **Squash and merge** 하나로 정했다(10/21). 저장소 설정(Settings → General → Pull Requests)에서 다른 방식을 끄면 병합 버튼에는 이 방식만 보인다. 설정을 바꾸기 전이라도 병합 버튼 옆 화살표에서 **Squash and merge**를 고른다. PR의 커밋이 하나로 합쳐지고 PR 제목이 `main`의 커밋 제목이 되므로, PR 제목 규칙(`[WBS ID] 이슈 제목`)을 지킨다.
+병합 방식은 **Rebase and merge** 하나로 정했다(10/21). 저장소 설정(Settings → General → Pull Requests)에서 다른 방식은 꺼 두었으므로 병합 버튼에는 이 방식만 보인다. PR의 커밋이 합쳐지지 않고 하나씩 `main` 위에 올라가므로, 커밋 메시지 규칙(`feat:`, `fix:` 등)을 지키고 'WIP', '오타 수정' 같은 커밋은 병합 전에 정리한다. 정리 방법은 9.3을 따른다.
 
 선행 이슈의 PR 위에 쌓인 PR(base가 `main`이 아닌 PR)은 아래 PR부터 순서대로 병합한다. 아래 PR을 병합하고 그 브랜치를 지우면 GitHub이 다음 PR의 base를 `main`으로 바꾼다. 이때 다음 PR의 변경 사항에 앞 PR 내용이 다시 보이면, PR 작성자가 브랜치를 최신 `main` 위로 다시 올린 뒤 병합한다.
 
@@ -276,7 +276,7 @@ git fetch --prune origin
 git branch -d feature/docs-onboarding
 ```
 
-Squash 또는 Rebase 방식으로 병합했다면 Git이 원래 커밋을 병합된 것으로 판단하지 못해 `-d`를 거부할 수 있다. 이때 바로 강제 삭제하지 말고 GitHub의 Merged 상태, 변경 반영 여부, 아직 필요한 커밋이 없는지를 확인한다. 우리는 Squash 방식을 쓰므로 `-d`가 거부되는 것이 보통이다. 위 내용을 확인한 뒤에만 `git branch -D 브랜치이름`으로 지운다.
+Rebase and merge는 커밋을 `main` 위에 새로 만들어 올리므로, 내용은 같아도 커밋 ID가 달라진다. 그래서 Git이 내 로컬 커밋을 병합된 것으로 판단하지 못해 `-d`를 거부하는 것이 보통이다. 이때 바로 강제 삭제하지 말고 GitHub의 Merged 상태, 변경 반영 여부, 아직 필요한 커밋이 없는지를 확인한다. 위 내용을 확인한 뒤에만 `git branch -D 브랜치이름`으로 지운다.
 
 다음 작업은 업데이트한 `main`에서 **새로운 feature 브랜치**를 만들어 시작한다. 이미 병합된 브랜치를 계속 재사용하지 않는다.
 
@@ -339,6 +339,26 @@ git merge --abort
 ```
 
 `--abort`는 진행 중인 Merge에만 사용한다. 안전하게 취소할 수 있도록 Merge 전 작업 상태를 깨끗하게 만드는 것이 중요하다. 이미 완료한 커밋을 지우는 명령이 아니다.
+
+### 9.3 병합 직전에 main 위로 다시 올리기
+
+우리는 Rebase and merge로 병합하므로, 9.1에서 만든 Merge 커밋은 `main`에 남지 않는다. 그 Merge 커밋에서 충돌을 풀었다면 GitHub이 "This branch cannot be rebased" 같은 안내와 함께 병합 버튼을 막을 수 있다. 이때, 또는 'WIP' 커밋을 정리하고 싶을 때는 브랜치를 최신 `main` 위로 다시 올린다.
+
+```bash
+git fetch origin
+git rebase origin/main
+# 충돌이 나면 9.2처럼 파일을 고친 뒤
+git add 충돌난-파일
+git rebase --continue
+```
+
+중간에 그만두려면 `git rebase --abort`로 시작 전 상태로 돌아간다. 끝났으면 테스트를 다시 돌리고 올린다.
+
+```bash
+git push --force-with-lease
+```
+
+rebase는 이력을 다시 쓰므로 `--force-with-lease`가 필요하다. 다른 사람이 같은 브랜치에 커밋했다면 이 명령이 거부되니, 먼저 그 사람과 확인한다. `--force`는 쓰지 않고, `main`에는 절대 하지 않는다.
 
 ## 10. 비밀정보와 불필요한 파일 보호
 
