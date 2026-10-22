@@ -69,6 +69,8 @@
 | GET | `/api/analyses/{analysisId}/financial-changes/{changeId}` | 수치 근거 상세 | #21 (3.3) | W-03 ② | 초안 |
 | GET | `/api/analyses/{analysisId}/text-changes` | 문장·표 변경 목록 | #16 (2.5) | W-03 ③ | 초안 |
 | GET | `/api/analyses/{analysisId}/text-changes/{changeId}` | 문장·표 근거 상세 | #22 (3.4) | W-03 ③ | 초안 |
+| GET | `/api/analyses/{analysisId}/documents/{side}` | 분석 보고서 원문 목차 | #23 (3.5) | W-03 ④ | 초안 |
+| GET | `/api/analyses/{analysisId}/documents/{side}/sections/{sectionNo}` | 원문 한 항목의 문단·표 | #23 (3.5) | W-03 ④ | 초안 |
 | GET | `/api/system/health` | 서비스 연결 상태 | #48 (0.5) | — | 초안 |
 
 ## 2. 엔드포인트 상세
@@ -580,6 +582,68 @@
 | 404 | `ANALYSIS_NOT_FOUND`, `ANALYSIS_TEXT_CHANGE_NOT_FOUND` | 없는 분석·변경 항목 |
 | 409 | `ANALYSIS_NOT_READY` | 분석이 아직 완료되지 않음 |
 
+### GET /api/analyses/{analysisId}/documents/{side} — 원문 목차
+
+- 이슈: #23 (3.5) · 화면: W-03 ④
+- `side`는 `current`(현재 보고서) 또는 `previous`(비교 보고서)입니다. 분석의 두 보고서만 보여 줍니다(근거가 화면의 보고서 쌍과 맞는지 확인).
+- 원문은 분석할 때 구조화(4.2)한 것입니다. 이 API는 OpenDART를 부르지 않습니다.
+- DART 원문 안의 위치로 바로 가는 주소는 만들지 않습니다(`positionLinkSupported: false`, 위치 이동 미지원). 화면은 보고서 링크와 항목 경로를 안내합니다.
+
+**응답 200**
+
+```json
+{
+  "side": "current",
+  "rceptNo": "20260814001234",
+  "reportName": "반기보고서 (2026.06)",
+  "documentStatus": "STRUCTURED",
+  "statusMessage": null,
+  "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260814001234",
+  "positionLinkSupported": false,
+  "sections": [
+    { "sectionNo": 2, "parentNo": null, "depth": 1, "title": "II. 사업의 내용", "cover": false, "blockCount": 0 },
+    { "sectionNo": 3, "parentNo": 2, "depth": 2, "title": "1. 사업의 개요", "cover": false, "blockCount": 12 }
+  ]
+}
+```
+
+| 필드 | 설명 |
+| --- | --- |
+| `documentStatus` | `STRUCTURED`, `PARTIAL`(일부 빠졌을 수 있음), `FAILED`(읽지 못함), `NOT_AVAILABLE`(OpenDART에 원문 없음), `NOT_FETCHED`(아직 받지 않음). 앞의 둘만 `sections`가 있음 |
+| `statusMessage` | `STRUCTURED`가 아니면 사유 |
+| `sections[].blockCount` | 그 섹션에 바로 속한 문단·표 수(하위 섹션 제외) |
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | `side`가 `current`·`previous`가 아님 |
+| 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 ID |
+
+### GET /api/analyses/{analysisId}/documents/{side}/sections/{sectionNo} — 원문 한 항목
+
+- 이슈: #23 (3.5) · 화면: W-03 ④
+- 그 섹션에 바로 속한 문단·표를 문서 순서로 돌려줍니다. 근거 위치(블록 번호)를 강조할 때 씁니다.
+
+**응답 200**
+
+```json
+{
+  "side": "current",
+  "rceptNo": "20260814001234",
+  "sectionNo": 3,
+  "title": "1. 사업의 개요",
+  "sectionPath": "II. 사업의 내용 > 1. 사업의 개요",
+  "blocks": [
+    { "blockNo": 44, "evidenceId": "20260814001234#B44", "type": "PARAGRAPH", "text": "당사는 …", "table": null },
+    { "blockNo": 45, "evidenceId": "20260814001234#B45", "type": "TABLE", "text": "구분 | 금액", "table": [[{ "text": "구분", "header": true }]] }
+  ]
+}
+```
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | `side`가 `current`·`previous`가 아님 |
+| 404 | `ANALYSIS_NOT_FOUND`, `REPORT_SECTION_NOT_FOUND` | 없는 분석, 원문에 없는 섹션(또는 원문을 쓸 수 없음) |
+
 ### GET /api/system/health — 연결 상태
 
 - 이슈: #48 (0.5)
@@ -726,6 +790,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | `COMPANY_NOT_FOUND` | 404 | 없는 기업 | 검색으로 돌아가기 |
 | `COMPANY_LIST_NOT_LOADED` | 503 | 기업 목록을 아직 받지 않음 | 관리자에게 기업 목록 갱신 요청 안내 |
 | `REPORT_NOT_FOUND` | 404 | 없는 보고서 | 보고서 목록 다시 불러오기 |
+| `REPORT_SECTION_NOT_FOUND` | 404 | 원문에 없는 항목 | 목차에서 다시 고르기 |
 | `ANALYSIS_NOT_FOUND` | 404 | 없는 분석 | 처음부터 다시 |
 | `ANALYSIS_NOT_COMPARABLE` | 422 | 비교할 수 없는 보고서 쌍 | W-01 ③ 사유와 다음 행동 |
 | `ANALYSIS_NOT_READY` | 409 | 분석이 끝나지 않음 | W-02로 이동 |

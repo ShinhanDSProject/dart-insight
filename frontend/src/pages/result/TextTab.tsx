@@ -9,7 +9,7 @@ import {
   type TextSort,
 } from '../../api/textChanges'
 import { EmptyState, ErrorState, LoadingState } from '../../components/StateView'
-import { TextEvidencePanel } from './TextEvidencePanel'
+import { TextEvidencePanel, type SourceTarget } from './TextEvidencePanel'
 import {
   changeTypeLabel,
   changeTypeOptions,
@@ -35,13 +35,14 @@ interface TextTabProps {
   /** 근거를 보고 있는 변경(3.4) */
   selectedChangeId: number | null
   onChange: (changes: { type?: ChangeType | null; sort?: TextSort; change?: number | null }) => void
+  onOpenSource: (target: SourceTarget) => void
 }
 
 /**
  * W-03 ③ 문장·내용 변화(3.9). 추가·삭제·수정·검토 필요로 거르고, 기본은 우선순위 순서(2.6)로 보여 준다.
  * 문장을 비교하지 못했으면 '변경 없음'이 아니라 사유를 보여 준다. 짝짓지 못한 항목은 숨기지 않고 '검토 필요'로 둔다.
  */
-export function TextTab({ analysis, type, sort, selectedChangeId, onChange }: TextTabProps) {
+export function TextTab({ analysis, type, sort, selectedChangeId, onChange, onOpenSource }: TextTabProps) {
   const [state, setState] = useState<ListState>({ kind: 'loading' })
   const [retry, setRetry] = useState(0)
   // 거르기·정렬이 바뀌면 늘어난다. '더 보기' 응답이 늦게 와도 지금 목록을 덮지 않게 한다
@@ -167,6 +168,7 @@ export function TextTab({ analysis, type, sort, selectedChangeId, onChange }: Te
                   item={item}
                   analysis={analysis}
                   selected={item.changeId === selectedChangeId}
+                  onOpenSource={onOpenSource}
                   onToggle={() => onChange({ change: item.changeId === selectedChangeId ? null : item.changeId })}
                   onClose={() => {
                     onChange({ change: null })
@@ -209,9 +211,10 @@ interface ChangeCardProps {
   selected: boolean
   onToggle: () => void
   onClose: () => void
+  onOpenSource: (target: SourceTarget) => void
 }
 
-function ChangeCard({ item, analysis, selected, onToggle, onClose }: ChangeCardProps) {
+function ChangeCard({ item, analysis, selected, onToggle, onClose, onOpenSource }: ChangeCardProps) {
   const review = item.changeType === 'REVIEW_NEEDED'
   return (
     <article className={`change-card${review ? ' change-card--review' : ''}${selected ? ' change-card--selected' : ''}`} aria-label={`${item.sectionPath} ${changeTypeLabel(item.changeType)}`}>
@@ -264,7 +267,9 @@ function ChangeCard({ item, analysis, selected, onToggle, onClose }: ChangeCardP
           </details>
         )}
       </div>
-      {selected && <TextEvidencePanel key={item.changeId} analysis={analysis} changeId={item.changeId} onClose={onClose} />}
+      {selected && (
+        <TextEvidencePanel key={item.changeId} analysis={analysis} changeId={item.changeId} onClose={onClose} onOpenSource={onOpenSource} />
+      )}
     </article>
   )
 }

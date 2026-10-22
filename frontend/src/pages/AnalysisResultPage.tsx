@@ -3,12 +3,13 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { analysisPath, getAnalysis, requestAnalysis, type Analysis } from '../api/analyses'
 import { getReportPair, type ComparisonBasis } from '../api/reports'
 import type { SjDiv } from '../api/results'
+import type { DocumentSide } from '../api/documents'
 import type { ChangeType, TextSort } from '../api/textChanges'
-import { DartLinkActions } from '../components/DartLink'
 import { ErrorState, LoadingState } from '../components/StateView'
 import { basisOptions } from './company/pairSelection'
 import { FinancialTab } from './result/FinancialTab'
 import { ReportPairCards } from './result/ReportPairCards'
+import { SourceTab } from './result/SourceTab'
 import { TextTab } from './result/TextTab'
 import { parseUnit } from './result/format'
 import './result/result.css'
@@ -30,7 +31,7 @@ const changeTypes: ChangeType[] = ['ADDED', 'DELETED', 'MODIFIED', 'REVIEW_NEEDE
 /**
  * W-03 분석 결과(3.1). 화면 전체가 분석 ID 하나의 결과만 보여 주므로, 비교 기준을 바꾸면 새 분석으로 옮겨 가고
  * 이전 결과와 섞이지 않는다. 고른 탭·재무제표·보기·단위·근거 계정은 주소(?tab=&sj=&changed=&unit=&change=)에,
- * 문장 변화의 유형·정렬·근거 항목은 ?ttype=&tsort=&tc=에 남긴다.
+ * 문장 변화의 유형·정렬·근거 항목은 ?ttype=&tsort=&tc=에, 원문 확인의 보고서·항목·근거 위치는 ?doc=&section=&block=에 남긴다.
  */
 export function AnalysisResultPage() {
   const { analysisId = '' } = useParams()
@@ -87,6 +88,9 @@ export function AnalysisResultPage() {
   const textSort: TextSort = searchParams.get('tsort') === 'document' ? 'document' : 'priority'
   const tcParam = Number(searchParams.get('tc'))
   const selectedTextChangeId = Number.isInteger(tcParam) && tcParam > 0 ? tcParam : null
+  const sourceSide: DocumentSide = searchParams.get('doc') === 'previous' ? 'previous' : 'current'
+  const sourceSection = positiveInt(searchParams.get('section'))
+  const sourceBlock = positiveInt(searchParams.get('block'))
 
   function update(changes: Record<string, string | null>) {
     setSearchParams(
@@ -180,25 +184,41 @@ export function AnalysisResultPage() {
                   ...(c.change !== undefined ? { tc: c.change === null ? null : String(c.change) } : {}),
                 })
               }
+              onOpenSource={(target) =>
+                update({
+                  tab: 'source',
+                  doc: target.side,
+                  section: String(target.section),
+                  block: target.block === null ? null : String(target.block),
+                })
+              }
             />
           )}
           {tab === 'source' && (
-            <div className="source-grid">
-              <section className="panel" aria-label="비교 보고서 원문">
-                <h2 className="panel__title">비교 보고서 · {analysis.previous.reportName}</h2>
-                <DartLinkActions rceptNo={analysis.previous.rceptNo} dartUrl={analysis.previous.dartUrl} />
-              </section>
-              <section className="panel" aria-label="현재 보고서 원문">
-                <h2 className="panel__title">현재 보고서 · {analysis.current.reportName}</h2>
-                <DartLinkActions rceptNo={analysis.current.rceptNo} dartUrl={analysis.current.dartUrl} />
-              </section>
-              <p className="panel__note">원문 안의 근거 위치로 바로 이동하는 기능은 3.5(M2)에서 붙어요.</p>
-            </div>
+            <SourceTab
+              key={analysis.analysisId}
+              analysis={analysis}
+              side={sourceSide}
+              sectionNo={sourceSection}
+              blockNo={sourceBlock}
+              onChange={(c) =>
+                update({
+                  ...(c.side !== undefined ? { doc: c.side } : {}),
+                  ...(c.section !== undefined ? { section: c.section === null ? null : String(c.section) } : {}),
+                  ...(c.block !== undefined ? { block: c.block === null ? null : String(c.block) } : {}),
+                })
+              }
+            />
           )}
         </>
       )}
     </section>
   )
+}
+
+function positiveInt(value: string | null): number | null {
+  const n = Number(value)
+  return value !== null && Number.isInteger(n) && n > 0 ? n : null
 }
 
 function selectionPath(analysis: Analysis): string {
