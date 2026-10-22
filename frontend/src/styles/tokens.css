@@ -80,7 +80,8 @@
   --color-danger: #b74250;
   --color-danger-subtle: #fff0f2;
 
-  /* 모서리: 배지 6, 버튼·입력·메뉴·안쪽 상자 9, 카드·패널 14 */
+  /* 모서리: 로고 조각 2, 배지 6, 버튼·입력·메뉴·안쪽 상자 9, 카드·패널 14 */
+  --radius-xs: 2px;
   --radius-sm: 6px;
   --radius-md: 9px;
   --radius-lg: 14px;
