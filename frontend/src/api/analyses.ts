@@ -1,6 +1,7 @@
 import { apiGet, apiPost } from './client'
 import type { ComparabilityRequest, FsDiv } from './comparability'
 import type { ComparisonBasis, ReportItem } from './reports'
+import type { TextStatus } from './textChanges'
 
 export type AnalysisStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED'
 export type AnalysisStepName = 'RECEIVED' | 'COMPARING' | 'VERIFYING' | 'DONE'
@@ -26,6 +27,9 @@ export interface Analysis {
   error: { code: string; message: string; retryable: boolean } | null
   createdAt: string
   completedAt: string | null
+  /** 문장 비교 상태(2.5). 완료 전이면 null. FAILED여도 분석은 재무 결과로 완료된다 */
+  textStatus: TextStatus | null
+  textMessage: string | null
 }
 
 export interface AnalysisCreated {
