@@ -12,6 +12,9 @@ public final class TestData {
     private static final List<String> TABLES_CHILD_FIRST = List.of(
             "financial_change",
             "analysis",
+            "document_block",
+            "document_section",
+            "report_document",
             "financial_account",
             "financial_statement_fetch",
             "report",

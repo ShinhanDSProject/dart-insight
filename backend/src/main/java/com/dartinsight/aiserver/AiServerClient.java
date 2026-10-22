@@ -6,21 +6,27 @@ import com.dartinsight.common.trace.TraceContext;
 import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 /**
  * Spring Boot → FastAPI 내부 호출(/internal/**). 모든 요청에 X-Trace-Id를 넣고,
- * 응답이 없거나 오류면 정해진 시간 안에 {@link ErrorCode#AI_SERVER_UNAVAILABLE}로 끝낸다.
+ * 응답이 없거나 오류면 정해진 시간 안에 {@link AiServerException}({@link ErrorCode#AI_SERVER_UNAVAILABLE})으로 끝낸다.
  */
 @Component
 public class AiServerClient {
 
     private static final Logger log = LoggerFactory.getLogger(AiServerClient.class);
+    private static final Pattern ERROR_CODE = Pattern.compile("\"code\"\\s*:\\s*\"([A-Z_]+)\"");
+    private static final Pattern ERROR_MESSAGE = Pattern.compile("\"message\"\\s*:\\s*\"(.*?)\"");
 
     private final RestClient restClient;
     private final RestClient healthClient;
@@ -60,19 +66,56 @@ public class AiServerClient {
         }
     }
 
-    /** GET 요청. 실패하면 AI_SERVER_UNAVAILABLE. */
+    /** GET 요청. 실패하면 {@link AiServerException}. */
     public <T> T get(String path, Class<T> responseType) {
         return get(restClient, path, responseType);
+    }
+
+    /** 바이트 본문 POST(예: 원문 ZIP). 실패하면 {@link AiServerException}. */
+    public <T> T postBytes(String path, byte[] body, MediaType contentType, Class<T> responseType) {
+        try {
+            return restClient.post().uri(path).contentType(contentType).body(body).retrieve().body(responseType);
+        } catch (RestClientException e) {
+            throw failure("POST", path, e);
+        }
+    }
+
+    /** JSON 본문 POST. 실패하면 {@link AiServerException}. */
+    public <T> T postJson(String path, Object body, Class<T> responseType) {
+        try {
+            return restClient.post().uri(path).contentType(MediaType.APPLICATION_JSON).body(body).retrieve()
+                    .body(responseType);
+        } catch (RestClientException e) {
+            throw failure("POST", path, e);
+        }
     }
 
     private static <T> T get(RestClient client, String path, Class<T> responseType) {
         try {
             return client.get().uri(path).retrieve().body(responseType);
         } catch (RestClientException e) {
-            log.warn("AI 서버 호출 실패: GET {} ({})", path, e.getMessage());
-            throw new ApiException(ErrorCode.AI_SERVER_UNAVAILABLE, ErrorCode.AI_SERVER_UNAVAILABLE.defaultMessage(),
-                    e);
+            throw failure("GET", path, e);
         }
+    }
+
+    /** AI 서버가 에러 형식으로 답했으면 그 code와 message를 담는다. */
+    private static AiServerException failure(String method, String path, RestClientException e) {
+        String remoteCode = null;
+        String message = ErrorCode.AI_SERVER_UNAVAILABLE.defaultMessage();
+        if (e instanceof RestClientResponseException response) {
+            String body = response.getResponseBodyAsString();
+            Matcher code = ERROR_CODE.matcher(body);
+            Matcher text = ERROR_MESSAGE.matcher(body);
+            if (code.find()) {
+                remoteCode = code.group(1);
+            }
+            if (text.find()) {
+                message = text.group(1);
+            }
+        }
+        log.warn("AI 서버 호출 실패: {} {} ({}{})", method, path, remoteCode == null ? "" : remoteCode + " ",
+                e.getMessage());
+        return new AiServerException(remoteCode, message, e);
     }
 
     public enum AiServerStatus {
