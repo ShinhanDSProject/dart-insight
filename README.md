@@ -37,7 +37,7 @@ DART 정기보고서 두 개를 비교해, 바뀐 재무 수치와 문장을 원
 | frontend | Node.js 22, Vite 7 | 5173 | `npm ci && npm run dev` | [frontend/README.md](frontend/README.md) |
 | ai-server | Python 3.12, FastAPI | 8000 | `uvicorn app.main:app --reload --port 8000 --env-file .env` | [ai-server/README.md](ai-server/README.md) |
 
-먼저 PC에 MariaDB를 설치하고 `backend/db/local-init.sql`로 DB와 계정을 한 번 만든 뒤(Docker는 쓰지 않습니다), 각 폴더에서 `.env.example`을 `.env`로 복사해 값을 채운 뒤 실행합니다. `.env`는 커밋하지 않습니다. MariaDB 설치, DB 초기화, 키 관리, 문제 해결은 [로컬 개발 환경](docs/local-setup.md)에 있습니다.
+먼저 PC에 MariaDB를 설치하고 `backend/db/local-init.sql`로 DB와 계정을 한 번 만든 뒤(Docker는 쓰지 않습니다), 각 폴더에서 `.env.example`을 `.env`로 복사해 값을 채운 뒤 실행합니다. `.env`는 커밋하지 않습니다. 파일별 변수와 OpenDART 공용 키를 넣는 순서는 [노션 · 로컬 실행 전 .env 설정](https://app.notion.com/p/401b6afffc6f812ea3a1f821893e50ad)에, MariaDB 설치, DB 초기화, 키 관리, 문제 해결은 [로컬 개발 환경](docs/local-setup.md)에 있습니다.
 
 ## 일정
 
@@ -60,6 +60,7 @@ DART 정기보고서 두 개를 비교해, 바뀐 재무 수치와 문장을 원
 | 프로젝트 허브 | [노션 · 2차 프로젝트](https://app.notion.com/p/3feb6afffc6f818b83e0f23db6591572) | 모든 기획 문서의 시작점 |
 | 프로젝트 개요 | [노션 · 프로젝트 개요·문제 정의](https://app.notion.com/p/3ffb6afffc6f80418b8ac274f0d20e18) | 왜 이 프로젝트를 하는지, 문제 정의와 차별점 |
 | 개발 기준 | [노션 · 개발 기준](https://app.notion.com/p/400b6afffc6f813aac54dd697afc9d8e) | 팀과 역할, 구조 원칙, 이슈 운영, 브랜치·PR, API·데이터 규약, AI 사용 규칙 |
+| 로컬 실행 전 설정 | [노션 · 로컬 실행 전 .env 설정](https://app.notion.com/p/401b6afffc6f812ea3a1f821893e50ad) | `.env` 파일별 변수, 공용 키 넣는 법, 자주 막히는 곳 |
 | AI 도구 규칙 | [`AGENTS.md`](AGENTS.md) | AI 코딩 도구와 팀이 지키는 규칙 요약 (노션 개발 기준에서 옮김) |
 | 이슈·마일스톤 | [GitHub Issues](https://github.com/ShinhanDSProject/dart-insight/issues) | 작업 이슈, 완료 기준, 진행 상태 |
 | 기능 명세·WBS | [노션 · 기능 명세·WBS](https://app.notion.com/p/3ffb6afffc6f80179ffbfd4817a5aaa0) | 일정·범위, 결정 로그 |
@@ -82,6 +83,6 @@ DART 정기보고서 두 개를 비교해, 바뀐 재무 수치와 문장을 원
 - PR마다 비밀정보 검사(gitleaks)가 돌고, 바뀐 서비스 폴더의 빌드·린트·테스트가 자동으로 돕니다.
 - API나 DB 구조를 바꾸면 `docs/api-spec.md`·`docs/erd.md`도 같은 PR에서 고칩니다. DB 스키마는 Flyway 마이그레이션으로만 바꿉니다.
 - AI 코딩 도구를 쓸 때는 [`AGENTS.md`](AGENTS.md)를 읽게 합니다. Claude Code는 `CLAUDE.md`를 통해 자동으로 읽습니다.
-- API 키와 `.env`는 커밋하지 않습니다. 저장소에는 `.env.example`만 둡니다. OpenDART 키는 각자 발급받아 자기 `.env`에 넣습니다.
+- API 키와 `.env`는 커밋하지 않습니다. 저장소에는 `.env.example`만 둡니다. 개발용 OpenDART 키는 팀 공용 키 하나를 `backend/.env`의 `OPENDART_API_KEY`에 넣어 씁니다(받는 곳은 노션 '로컬 실행 전 .env 설정').
 
 자세한 내용은 노션의 개발 기준과 [협업 가이드](docs/monorepo-team-guide.md)를 따릅니다.
