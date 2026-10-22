@@ -2,6 +2,7 @@ package com.dartinsight.document;
 
 import com.dartinsight.aiserver.AiServerClient;
 import com.dartinsight.aiserver.AiServerException;
+import com.dartinsight.aiserver.AiServerPaths;
 import com.dartinsight.dart.OpenDartClient;
 import com.dartinsight.dart.OpenDartClient.DocumentFile;
 import com.dartinsight.report.Report;
@@ -106,7 +107,7 @@ public class DocumentService {
             }
 
             StructuredDocumentResponse response = aiServerClient.postBytes(
-                    "/internal/documents/" + rceptNo + "/structure", zip, MediaType.valueOf("application/zip"),
+                    AiServerPaths.documentStructure(rceptNo), zip, MediaType.valueOf("application/zip"),
                     StructuredDocumentResponse.class);
             if (response == null || !rceptNo.equals(response.rceptNo())) {
                 throw new AiServerException(null, "AI 서버가 다른 보고서의 구조화 결과를 돌려줬습니다.", null);
@@ -145,7 +146,7 @@ public class DocumentService {
     }
 
     private String parserVersion() {
-        Map<?, ?> body = aiServerClient.get("/internal/documents/parser", Map.class);
+        Map<?, ?> body = aiServerClient.get(AiServerPaths.DOCUMENT_PARSER, Map.class);
         Object version = body == null ? null : body.get("parserVersion");
         if (version == null) {
             throw new AiServerException(null, "AI 서버가 파서 버전을 알려 주지 않았습니다.", null);

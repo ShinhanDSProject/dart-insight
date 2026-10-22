@@ -2,6 +2,7 @@ package com.dartinsight.summary;
 
 import com.dartinsight.aiserver.AiServerClient;
 import com.dartinsight.aiserver.AiServerException;
+import com.dartinsight.aiserver.AiServerPaths;
 import com.dartinsight.analysis.FinancialChangeRow;
 import com.dartinsight.analysis.TextChangeRow;
 import com.dartinsight.analysis.TextChangeRow.Side;
@@ -83,7 +84,7 @@ public class SummaryService {
             return new SummaryResult(SummaryStatus.COMPLETED, null, rows, List.of());
         }
 
-        SummaryAiResponse response = aiServerClient.postJson("/internal/summaries", new SummaryAiRequest(
+        SummaryAiResponse response = aiServerClient.postJson(AiServerPaths.SUMMARIES, new SummaryAiRequest(
                 companyName, previousReport, currentReport, textItems, financialItems), SummaryAiResponse.class);
         if (response == null || response.items() == null) {
             throw new AiServerException(null, "AI 서버 요약 응답이 비어 있어요.", null);

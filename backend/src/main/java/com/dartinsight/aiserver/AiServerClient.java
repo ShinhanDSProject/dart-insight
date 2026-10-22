@@ -60,7 +60,7 @@ public class AiServerClient {
     /** AI 서버 상태. 상태 확인 대기 시간(healthTimeout) 안에 응답이 없거나 오류면 DOWN. */
     public AiServerStatus health() {
         try {
-            Map<?, ?> body = get(healthClient, "/internal/health", Map.class);
+            Map<?, ?> body = get(healthClient, AiServerPaths.HEALTH, Map.class);
             return body != null && "UP".equals(body.get("status")) ? AiServerStatus.UP : AiServerStatus.DOWN;
         } catch (ApiException e) {
             return AiServerStatus.DOWN;
