@@ -294,16 +294,19 @@ a.app-nav__item:hover {
   }
 }
 
-/* 페이지 */
+/* 페이지: 위 작은 제목(남색) + 큰 제목 */
 .page__step {
   margin: 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
+  color: var(--color-primary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-bold);
 }
 
 .page__title {
-  margin: var(--space-1) 0 var(--space-2);
+  margin: var(--space-1) 0 var(--space-3);
   font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
 }
 
 .page__lead {
@@ -315,22 +318,33 @@ a.app-nav__item:hover {
 .placeholder {
   padding: var(--space-5);
   border: 1px dashed var(--color-border-strong);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   color: var(--color-text-muted);
+}
+
+/* 키보드 포커스 */
+:where(a, button, input, select, summary, [tabindex]):focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
 }
 
 /* 버튼 */
 .button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
+  min-height: var(--control-height);
+  padding: 0 18px;
   border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   font: inherit;
   font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
   cursor: pointer;
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .button:disabled {
@@ -339,6 +353,7 @@ a.app-nav__item:hover {
 }
 
 .button--primary {
+  border-color: var(--color-primary);
   background: var(--color-primary);
   color: var(--color-primary-text);
 }
@@ -349,10 +364,14 @@ a.app-nav__item:hover {
   border-color: var(--color-border);
 }
 
+.button--secondary:hover:not(:disabled) {
+  background: var(--color-bg-subtle);
+}
+
 /* 상태 */
 .state {
   padding: var(--space-5);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
   background: var(--color-bg-subtle);
 }
@@ -379,7 +398,7 @@ a.app-nav__item:hover {
   height: 16px;
   border: 2px solid var(--color-border);
   border-top-color: var(--color-primary);
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   animation: spin 0.8s linear infinite;
 }
 
@@ -388,31 +407,37 @@ a.app-nav__item:hover {
   background: var(--color-danger-subtle);
 }
 
+.state--error .state__title {
+  color: var(--color-danger);
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
 }
 
-/* 위치 표시 */
+/* 위치 표시: 큰 제목 위의 작은 제목(남색) */
 .breadcrumb {
-  margin-bottom: var(--space-2);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-1);
+  color: var(--color-primary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-bold);
 }
 
 .breadcrumb a {
   color: inherit;
+  text-underline-offset: 3px;
 }
 
 /* 묶음 상자 */
 .panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 18px;
   padding: var(--space-5);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   background: var(--color-bg);
 }
 
@@ -422,7 +447,8 @@ a.app-nav__item:hover {
 
 .panel__title {
   margin: 0;
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
 }
 
 .panel__note {
@@ -434,15 +460,17 @@ a.app-nav__item:hover {
 /* 안내 띠. 주의 색은 예외 상태에만 쓴다 */
 .notice {
   margin-bottom: var(--space-4);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-4);
   border-radius: var(--radius-md);
   background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }
 
 .notice--attention {
-  border: 1px solid var(--color-attention);
   background: var(--color-attention-subtle);
+  color: var(--color-attention);
+  font-weight: var(--font-weight-bold);
 }
 
 /* 표 */
@@ -461,7 +489,7 @@ a.app-nav__item:hover {
 
 .data-table th,
 .data-table td {
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-4);
   border-top: 1px solid var(--color-border);
   text-align: left;
   vertical-align: middle;
@@ -470,10 +498,13 @@ a.app-nav__item:hover {
 .data-table thead th {
   border-top: none;
   background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-bold);
 }
 
 .data-table tbody th {
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-medium);
 }
 
 .data-table__row--selected {
@@ -486,6 +517,8 @@ a.app-nav__item:hover {
   border: none;
   background: none;
   color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+  text-underline-offset: 3px;
   font: inherit;
   text-align: left;
   text-decoration: underline;
@@ -498,19 +531,33 @@ a.app-nav__item:hover {
 }
 
 /* 표식 */
+/* 표식: 기본은 회색, 강조(현재·진행 상태)는 보라, 주의는 블루그레이 */
 .badge {
   display: inline-block;
   margin-left: var(--space-2);
-  padding: 0 var(--space-2);
-  border: 1px solid var(--color-border-strong);
-  border-radius: 999px;
-  font-size: var(--font-size-xs);
+  padding: var(--space-1) 9px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-label);
   font-weight: var(--font-weight-bold);
+  line-height: 1.5;
   white-space: nowrap;
 }
 
 .badge--strong {
-  border-color: var(--color-text);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+}
+
+.badge--ai {
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+}
+
+.badge--attention {
+  background: var(--color-attention-subtle);
+  color: var(--color-attention);
 }
 
 .visually-hidden {
@@ -559,7 +606,7 @@ a.app-nav__item:hover {
   display: inline-flex;
   flex-wrap: wrap;
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
@@ -579,8 +626,8 @@ a.app-nav__item:hover {
 }
 
 .segmented__item[aria-pressed='true'] {
-  background: var(--color-text);
-  color: var(--color-bg);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
   font-weight: var(--font-weight-bold);
 }
 
@@ -588,7 +635,7 @@ a.app-nav__item:hover {
   min-height: 40px;
   padding: 0 var(--space-3);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--color-bg);
   color: var(--color-text);
   font: inherit;
