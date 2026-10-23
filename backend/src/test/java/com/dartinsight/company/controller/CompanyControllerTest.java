@@ -7,7 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.dartinsight.company.repository.CompanyRepository;
 import com.dartinsight.company.service.CompanyImportService;
-import com.dartinsight.dart.dto.CorpCodeEntry;
+import com.dartinsight.dart.domain.CorpCodeEntry;
 import com.dartinsight.support.TestData;
 import java.time.LocalDate;
 import java.util.List;

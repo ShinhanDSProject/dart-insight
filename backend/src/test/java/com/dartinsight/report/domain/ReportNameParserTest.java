@@ -1,10 +1,8 @@
-package com.dartinsight.report.service;
+package com.dartinsight.report.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.dartinsight.report.domain.Correction;
-import com.dartinsight.report.domain.ReportType;
-import com.dartinsight.report.service.ReportNameParser.ParsedReportName;
+import com.dartinsight.report.domain.ReportNameParser.ParsedReportName;
 import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

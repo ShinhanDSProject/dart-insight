@@ -1,4 +1,4 @@
-package com.dartinsight.dart.dto;
+package com.dartinsight.dart.domain;
 
 import java.time.LocalDate;
 

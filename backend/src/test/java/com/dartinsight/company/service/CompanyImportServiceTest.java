@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.dartinsight.company.domain.Company;
 import com.dartinsight.company.repository.CompanyRepository;
-import com.dartinsight.dart.dto.CorpCodeEntry;
+import com.dartinsight.dart.domain.CorpCodeEntry;
 import com.dartinsight.support.TestData;
 import java.time.LocalDate;
 import java.util.List;
