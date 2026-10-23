@@ -48,6 +48,23 @@ class SummarySelectorTest {
     }
 
     @Test
+    @DisplayName("이미 고른 계정과 이전·현재 금액이 모두 같은 계정은 건너뛰고 다음 계정으로 채운다")
+    void skipsAccountsWithTheSameAmountsAsAPickedOne() {
+        List<FinancialChangeRow> rows = List.of(
+                fin("IS", "매출액", 100L, 200L, CalcStatus.OK),
+                fin("IS", "매출총이익", 100L, 200L, CalcStatus.OK),
+                fin("IS", "영업이익", 10L, 5L, CalcStatus.OK),
+                fin("IS", "순이익", 3L, 4L, CalcStatus.OK),
+                fin("BS", "자산총계", 5049L, 7595L, CalcStatus.OK),
+                fin("BS", "부채와자본총계", 5049L, 7595L, CalcStatus.OK),
+                fin("BS", "부채총계", 1000L, 1500L, CalcStatus.OK),
+                fin("BS", "자본총계", 4049L, 6095L, CalcStatus.OK),
+                fin("CIS", "총포괄이익", 100L, 200L, CalcStatus.OK));
+
+        assertThat(SummarySelector.financial(rows)).containsExactly(0, 2, 3, 4, 7);
+    }
+
+    @Test
     void singleIncomeStatementFilersUseComprehensiveIncome() {
         List<FinancialChangeRow> rows = List.of(
                 fin("CIS", "매출액", 100L, 200L, CalcStatus.OK),
