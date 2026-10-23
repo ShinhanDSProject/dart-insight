@@ -810,7 +810,8 @@
   display: flex;
 }
 
-.overview-stat {
+/* link-button 모양(밑줄·여백 없음)을 덮어 카드처럼 보이게 한다 */
+.overview .overview-stat {
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -821,9 +822,12 @@
   background: var(--color-bg);
   color: var(--color-text);
   text-decoration: none;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out);
 }
 
-.overview-stat.link-button:hover {
+.overview .overview-stat.link-button:hover {
   border-color: var(--color-border-accent);
   background: var(--color-accent-subtle);
 }
