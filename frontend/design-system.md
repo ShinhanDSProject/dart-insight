@@ -169,6 +169,24 @@ W-03 ④ 원문 확인
 
 # 4. 공통 컴포넌트
 
+화면은 아래 컴포넌트를 `@/shared/ui`에서 가져다 쓰고, 같은 모양을 `className`으로 새로 만들지 않는다(conventions.yaml UI-1). 모양(CSS)은 `frontend/src/shared/ui/ui.css` 한 곳에 있다. 모든 컴포넌트는 같은 태그의 기본 속성(`onClick`, `aria-*`, `id` 등)을 그대로 받고, `className`은 바깥 배치(여백·정렬)에만 쓴다. 새 모양이 필요하면 Figma를 먼저 보고 variant를 더한다(UI-3).
+
+| 컴포넌트 | 주요 props | 쓰는 곳 |
+| --- | --- | --- |
+| `Button` | `variant`: `primary`·`secondary`(기본)·`link`, `size`: `md`·`lg` | 모든 버튼. 켜고 끄는 버튼은 `aria-pressed` |
+| `ButtonLink` / `ButtonAnchor` | `Button`과 같은 `variant`·`size` + `to`(앱 안) / `href`(바깥) | 버튼 모양의 링크 |
+| `Badge` | `tone`: `neutral`·`accent`·`attention` | 현재·비교, 변경 유형, 진행 상태, AI 생성, 검토 필요 |
+| `Notice` | `tone`: `info`·`attention`·`blocked`, `title`, `as`: `div`·`p`·`aside` | 안내·예외 띠, 비교 불가·분석 실패 상자 |
+| `Tabs` | `label`, `items`, `value`, `onChange` | 결과 탭(주소가 바뀌므로 `nav` + `aria-current="page"`) |
+| `SegmentedControl` | `options`, `value`, `onChange`, `disabled`, `aria-label`·`aria-labelledby` | 비교 기준, 전체·변경 항목, 정렬, 비교·현재 보고서 |
+| `Chip` | `pressed`, `tone`: `neutral`·`attention`, `count` | 변경 유형 거르기 |
+| `Panel` / `PanelTitle` | `as`: `section`·`div` / `as`: `h2`·`h3`·`h4` | 화면의 큰 묶음 상자와 제목 |
+| `Card` | `as`, `tone`: `default`·`attention`, `selected` | 보고서·요약·변경 카드 |
+| `DataTable` / `DataTableRow` | `caption`(보이지 않음), `density`: `default`·`compact` / `selected` | 보고서 목록, 재무 계정 표, 원문 표 |
+| `FieldLabel` / `FieldHint` / `Input` / `Select` | `as`: `label`·`span` / — / `invalid` / — | 입력·선택창과 그 이름·도움말 |
+
+로딩·빈 결과·오류는 `StateView`(`LoadingState`, `EmptyState`, `ErrorState`, `AlertState`), 원문 링크는 `DartLink`, 출처 줄은 `DartSource`, 아이콘은 `Icon`을 쓴다.
+
 ## 4-1. 버튼
 
 - 주요 버튼
