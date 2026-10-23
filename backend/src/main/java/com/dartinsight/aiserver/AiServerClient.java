@@ -38,7 +38,10 @@ public class AiServerClient {
     }
 
     private static RestClient build(AiServerProperties properties, Duration readTimeout) {
+        // HTTP/1.1로 고정한다. 기본값(HTTP/2)은 http:// 주소에 h2c 업그레이드 헤더를 붙이는데,
+        // uvicorn은 이를 지원하지 않아 연결의 첫 요청 본문을 버린다(#172)
         HttpClient httpClient = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
                 .connectTimeout(properties.connectTimeout())
                 .build();
         JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
