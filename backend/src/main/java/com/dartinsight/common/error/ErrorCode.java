@@ -6,6 +6,7 @@ package com.dartinsight.common.error;
 public enum ErrorCode {
 
     COMMON_INVALID_INPUT(400, "입력값을 확인해 주세요."),
+    COMMON_EMAIL_ALREADY_EXISTS(409, "이미 가입된 이메일입니다."),
     COMMON_NOT_FOUND(404, "요청한 주소를 찾을 수 없습니다."),
     COMMON_METHOD_NOT_ALLOWED(405, "지원하지 않는 요청 방식입니다."),
     COMMON_INTERNAL_ERROR(500, "서버에서 오류가 발생했습니다."),

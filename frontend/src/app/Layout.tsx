@@ -117,6 +117,9 @@ export function Layout() {
               </>
             )}
           </p>
+          <Link to="/signup" className="button button--secondary app-header__signup" aria-current={pathname === '/signup' ? 'page' : undefined}>
+            회원가입
+          </Link>
         </header>
         <main className="app-main" id="main" tabIndex={-1}>
           <Outlet />

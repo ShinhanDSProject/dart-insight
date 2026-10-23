@@ -8,6 +8,7 @@ const seg = (value: string | number) => encodeURIComponent(String(value))
 const analysis = (analysisId: string | number) => `/api/analyses/${seg(analysisId)}`
 
 export const endpoints = {
+  users: () => '/api/users',
   companies: () => '/api/companies',
   company: (corpCode: string) => `/api/companies/${seg(corpCode)}`,
   companyReports: (corpCode: string) => `/api/companies/${seg(corpCode)}/reports`,

@@ -9,6 +9,7 @@ public final class ApiPaths {
     public static final String BASE = "/api";
     public static final String CORS_PATTERN = BASE + "/**";
 
+    public static final String USERS = BASE + "/users";
     public static final String COMPANIES = BASE + "/companies";
     public static final String BY_CORP_CODE = "/{corpCode}";
     public static final String COMPANY_REPORTS = "/companies/{corpCode}/reports";
