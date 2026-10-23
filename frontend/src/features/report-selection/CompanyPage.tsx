@@ -96,22 +96,7 @@ function ReportSelection({ corpCode, company, reports, selection }: ReportSelect
             onRetry={retryLookup}
           />
         )}
-        {reportItems.length === 0 ? (
-          <EmptyState title="이 기업의 정기보고서가 없어요.">
-            <p>
-              사업·반기·분기보고서를 낸 적이 없거나 12월 결산이 아닌 회사일 수 있어요. 지금은 12월 결산 회사의 보고서만
-              비교할 수 있어요.
-            </p>
-            <Link to="/">다른 기업 검색</Link>
-          </EmptyState>
-        ) : (
-          <ReportTable
-            items={reportItems}
-            current={current}
-            previous={previous}
-            onSelectCurrent={(report) => selectCurrent(report.rceptNo)}
-          />
-        )}
+        {/* 다음 단계 버튼은 긴 보고서 목록 위에 둔다(목록 아래면 길게 스크롤해야 찾음) */}
         {current && (
           <div className="pair-actions">
             {previous ? (
@@ -129,6 +114,22 @@ function ReportSelection({ corpCode, company, reports, selection }: ReportSelect
               <FieldHint>비교 보고서를 고르면 비교 조건을 확인할 수 있어요.</FieldHint>
             )}
           </div>
+        )}
+        {reportItems.length === 0 ? (
+          <EmptyState title="이 기업의 정기보고서가 없어요.">
+            <p>
+              사업·반기·분기보고서를 낸 적이 없거나 12월 결산이 아닌 회사일 수 있어요. 지금은 12월 결산 회사의 보고서만
+              비교할 수 있어요.
+            </p>
+            <Link to="/">다른 기업 검색</Link>
+          </EmptyState>
+        ) : (
+          <ReportTable
+            items={reportItems}
+            current={current}
+            previous={previous}
+            onSelectCurrent={(report) => selectCurrent(report.rceptNo)}
+          />
         )}
         <p className="panel__note">
           대상 기간과 제출일은 따로 보여 줘요. 정정 여부를 확인하지 못하면 추정하지 않고 '확인 안 됨'으로 표시해요.
