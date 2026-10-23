@@ -69,6 +69,12 @@
   --color-decrease: #b74250;
   --color-decrease-subtle: #fff0f2;
 
+  /* 색: 차트(ADR-0018). 강조 색 계열 두 단계로 이전·현재를 나눈다. 증감의 좋고 나쁨을 뜻하지 않는다.
+     색 검사(밝기 범위·채도·색맹 구분 ΔE 20.9·배경 대비 3:1)를 통과한 값 */
+  --color-chart-previous: #8f86d9;
+  --color-chart-current: #4f479e;
+  --color-chart-grid: var(--color-border);
+
   /* 색: 추가된 문장 */
   --color-added: var(--color-increase);
   --color-added-subtle: var(--color-increase-subtle);
