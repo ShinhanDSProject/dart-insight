@@ -1,7 +1,8 @@
-package com.dartinsight.system;
+package com.dartinsight.system.controller;
 
 import com.dartinsight.aiserver.client.AiServerClient;
 import com.dartinsight.common.web.ApiPaths;
+import com.dartinsight.system.dto.SystemHealthResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
