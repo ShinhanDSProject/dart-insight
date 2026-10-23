@@ -1,22 +1,17 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
+import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { DocumentSide } from '@/shared/api/documents'
-import { getTextChange, type TextChangeDetail, type TextSource } from '@/shared/api/textChanges'
+import type { TextChangeDetail, TextSource } from '@/shared/api/textChanges'
 import { Button, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { formatDate, reportTypeLabel } from '@/shared/lib/reportLabels'
 import { TableView } from './TableView'
+import { useTextChangeDetail } from '../hooks/useTextChanges'
+import type { SourceTarget } from '../model/resultParams'
 import { changeTypeLabel, DELETED_NOTE, missingSideLabel } from '../model/textLabels'
 import { wordDiff, type DiffPart } from '../model/wordDiff'
-
-type DetailState = { kind: 'loading' } | { kind: 'done'; detail: TextChangeDetail } | { kind: 'error'; error: unknown }
-
-export interface SourceTarget {
-  side: DocumentSide
-  section: number
-  block: number | null
-}
 
 interface TextEvidencePanelProps {
   analysis: Analysis
@@ -31,24 +26,8 @@ interface TextEvidencePanelProps {
  * 원문이 없거나 짝을 정하지 못한 항목은 근거가 있는 것처럼 보이지 않게 '검토 필요'로 보여 준다.
  */
 export function TextEvidencePanel({ analysis, changeId, onClose, onOpenSource }: TextEvidencePanelProps) {
-  const [state, setState] = useState<DetailState>({ kind: 'loading' })
-  const [retry, setRetry] = useState(0)
+  const { state, reload } = useTextChangeDetail(analysis.analysisId, changeId)
   const headingRef = useRef<HTMLHeadingElement>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    setState({ kind: 'loading' })
-    getTextChange(analysis.analysisId, changeId)
-      .then((detail) => {
-        if (!cancelled) setState({ kind: 'done', detail })
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) setState({ kind: 'error', error })
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [analysis.analysisId, changeId, retry])
 
   // 열리면 제목으로 초점과 화면을 옮긴다(키보드·화면 읽기 사용자)
   useEffect(() => {
@@ -67,15 +46,17 @@ export function TextEvidencePanel({ analysis, changeId, onClose, onOpenSource }:
           닫기
         </Button>
       </div>
-      {state.kind === 'loading' && <LoadingState message="원문 근거를 불러오는 중입니다…" />}
-      {state.kind === 'error' && (
-        <ErrorState
-          error={state.error}
-          onRetry={() => setRetry((n) => n + 1)}
-          messages={{ ANALYSIS_TEXT_CHANGE_NOT_FOUND: '이 분석의 변경 항목이 아니에요. 목록에서 다시 골라 주세요.' }}
-        />
-      )}
-      {state.kind === 'done' && <EvidenceBody detail={state.detail} onOpenSource={onOpenSource} />}
+      {match(state)
+        .with({ status: 'loading' }, () => <LoadingState message="원문 근거를 불러오는 중입니다…" />)
+        .with({ status: 'error' }, ({ error }) => (
+          <ErrorState
+            error={error}
+            onRetry={reload}
+            messages={{ ANALYSIS_TEXT_CHANGE_NOT_FOUND: '이 분석의 변경 항목이 아니에요. 목록에서 다시 골라 주세요.' }}
+          />
+        ))
+        .with({ status: 'success' }, ({ data }) => <EvidenceBody detail={data} onOpenSource={onOpenSource} />)
+        .exhaustive()}
     </Panel>
   )
 }
@@ -170,27 +151,7 @@ function SourceSide({ role, side, onOpenSource, source, blockType, missing, part
           </>
         )}
       </span>
-      {review || source.text === null ? (
-        <p className="change-side__missing">
-          {review ? '짝을 정하지 못한 항목이라 원문을 짝지어 보여 주지 않아요.' : '원문 글을 찾지 못했어요(검토 필요).'}
-        </p>
-      ) : source.table ? (
-        <TableView rows={source.table} caption={`${role} 표: ${source.sectionPath}`} />
-      ) : (
-        <p className="text-evidence__text">
-          {parts
-            ? parts.map((part, i) =>
-                part.changed ? (
-                  <mark key={i} className="text-evidence__changed">
-                    {part.text}
-                  </mark>
-                ) : (
-                  <span key={i}>{part.text}</span>
-                ),
-              )
-            : source.text}
-        </p>
-      )}
+      <SourceText role={role} source={source} parts={parts} review={review} />
       {!source.blockMatches && source.blockNo !== null && !review && (
         <span className="evidence__meta">
           원문을 다시 읽어 위치가 달라졌을 수 있어 분석할 때 저장한 글을 보여 줘요.
@@ -209,4 +170,21 @@ function SourceSide({ role, side, onOpenSource, source, blockType, missing, part
       </div>
     </div>
   )
+}
+
+/** 근거 원문 글. 짝을 정하지 못했거나 글이 없으면 그 사유, 표면 표, 문단이면 바뀐 낱말에 밑줄 */
+function SourceText({ role, source, parts, review }: Pick<SourceSideProps, 'role' | 'parts' | 'review'> & { source: TextSource }) {
+  if (review) return <p className="change-side__missing">짝을 정하지 못한 항목이라 원문을 짝지어 보여 주지 않아요.</p>
+  if (source.text === null) return <p className="change-side__missing">원문 글을 찾지 못했어요(검토 필요).</p>
+  if (source.table) return <TableView rows={source.table} caption={`${role} 표: ${source.sectionPath}`} />
+  return (
+    <p className="text-evidence__text">
+      {parts ? parts.map((part, i) => <DiffText key={i} part={part} />) : source.text}
+    </p>
+  )
+}
+
+function DiffText({ part }: { part: DiffPart }) {
+  if (part.changed) return <mark className="text-evidence__changed">{part.text}</mark>
+  return <span>{part.text}</span>
 }
