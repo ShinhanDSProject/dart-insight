@@ -1,17 +1,13 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import type { FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import { searchCompanies, type Company } from '@/shared/api/companies'
+import { match } from 'ts-pattern'
 import { Button, Input } from '@/shared/ui'
 import { ServiceNotice } from '@/shared/ui/ServiceNotice'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
-import { validateSearchQuery } from './model/searchQuery'
+import type { AsyncState } from '@/shared/hooks/asyncState'
+import { useCompanySearch, type SearchResult as SearchData } from './hooks/useCompanySearch'
+import { useSearchForm } from './hooks/useSearchForm'
 import './company-search.css'
-
-type SearchState =
-  | { kind: 'idle' }
-  | { kind: 'loading' }
-  | { kind: 'done'; query: string; items: Company[] }
-  | { kind: 'error'; error: unknown }
 
 const errorMessages: Record<string, string> = {
   COMPANY_LIST_NOT_LOADED: '기업 목록이 아직 준비되지 않았어요. 관리자에게 기업 목록 갱신을 요청해 주세요.',
@@ -21,43 +17,14 @@ const errorMessages: Record<string, string> = {
 export function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const query = searchParams.get('q') ?? ''
-  const [input, setInput] = useState(query)
-  const [inputError, setInputError] = useState<string | null>(null)
-  // 뒤로 가기나 로고 클릭으로 주소의 검색어가 바뀌면 입력창도 맞춘다
-  const [shownQuery, setShownQuery] = useState(query)
-  if (shownQuery !== query) {
-    setShownQuery(query)
-    setInput(query)
-    setInputError(null)
-  }
-  const [state, setState] = useState<SearchState>({ kind: 'idle' })
-  const [retry, setRetry] = useState(0)
-
-  useEffect(() => {
-    if (validateSearchQuery(query) !== null) {
-      setState({ kind: 'idle' })
-      return
-    }
-    let cancelled = false
-    setState({ kind: 'loading' })
-    searchCompanies(query.trim())
-      .then((data) => {
-        if (!cancelled) setState({ kind: 'done', query: query.trim(), items: data.items })
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) setState({ kind: 'error', error })
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [query, retry])
+  const { input, inputError, setInput, submit } = useSearchForm(query)
+  const { state, reload } = useCompanySearch(query)
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    const problem = validateSearchQuery(input)
-    setInputError(problem)
-    if (problem === null) {
-      setSearchParams({ q: input.trim() })
+    const next = submit()
+    if (next !== null) {
+      setSearchParams({ q: next })
     }
   }
 
@@ -93,40 +60,34 @@ export function SearchPage() {
         )}
       </form>
 
-      <SearchResult state={state} onRetry={() => setRetry((n) => n + 1)} />
+      <SearchResult state={state} onRetry={reload} />
     </section>
   )
 }
 
-function SearchResult({ state, onRetry }: { state: SearchState; onRetry: () => void }) {
-  switch (state.kind) {
-    case 'idle':
-      return null
-    case 'loading':
-      return <LoadingState message="기업을 찾는 중입니다…" />
-    case 'error':
-      return <ErrorState error={state.error} onRetry={onRetry} messages={errorMessages} />
-    case 'done':
-      if (state.items.length === 0) {
-        return (
-          <EmptyState title={`'${state.query}'에 맞는 기업이 없습니다.`}>
-            <p>회사명 일부나 종목코드 6자리로 다시 검색해 보세요. 띄어쓰기와 '(주)' 같은 표기는 빼고 입력합니다.</p>
-          </EmptyState>
-        )
-      }
-      return (
-        <ul className="company-list" aria-label="검색 결과">
-          {state.items.map((company) => (
-            <li key={company.corpCode}>
-              <Link to={`/companies/${company.corpCode}`} className="company-list__item">
-                <span className="company-list__name">{company.corpName}</span>
-                <span className="company-list__meta">
-                  {company.listed ? `종목코드 ${company.stockCode}` : '비상장'} · 고유번호 <code>{company.corpCode}</code>
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )
-  }
+function SearchResult({ state, onRetry }: { state: AsyncState<SearchData>; onRetry: () => void }) {
+  return match(state)
+    .with({ status: 'idle' }, () => null)
+    .with({ status: 'loading' }, () => <LoadingState message="기업을 찾는 중입니다…" />)
+    .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={onRetry} messages={errorMessages} />)
+    .with({ status: 'success', data: { items: [] } }, ({ data }) => (
+      <EmptyState title={`'${data.query}'에 맞는 기업이 없습니다.`}>
+        <p>회사명 일부나 종목코드 6자리로 다시 검색해 보세요. 띄어쓰기와 '(주)' 같은 표기는 빼고 입력합니다.</p>
+      </EmptyState>
+    ))
+    .with({ status: 'success' }, ({ data }) => (
+      <ul className="company-list" aria-label="검색 결과">
+        {data.items.map((company) => (
+          <li key={company.corpCode}>
+            <Link to={`/companies/${company.corpCode}`} className="company-list__item">
+              <span className="company-list__name">{company.corpName}</span>
+              <span className="company-list__meta">
+                {company.listed ? `종목코드 ${company.stockCode}` : '비상장'} · 고유번호 <code>{company.corpCode}</code>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    ))
+    .exhaustive()
 }
