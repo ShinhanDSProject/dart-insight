@@ -12,6 +12,7 @@ import com.dartinsight.financial.domain.FsDiv;
 import com.dartinsight.report.domain.ReportType;
 import java.math.BigDecimal;
 import java.util.List;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class FinancialComparatorTest {
@@ -238,5 +239,52 @@ class FinancialComparatorTest {
                         List.of(account(PREV, "IS", "rev", "매출액", 1, 30L, null)),
                         List.of(account(CUR, "IS", "rev", "매출액", 1, 33L, 60L))), "IS", "rev")
                 .calcStatus()).as("반기 누적이 없으면 3개월 값으로 대신하지 않는다").isEqualTo(CalcStatus.PREVIOUS_MISSING);
+    }
+
+    @Test
+    @DisplayName("계정 ID가 해마다 바뀌어도 이름이 같으면 한 행으로 짝짓는다(삼성전자 2025.06 → 2026.06)")
+    void accountsWhoseIdChangedArePairedByName() {
+        String nonStandard = FinancialAccount.NON_STANDARD_ACCOUNT_ID;
+        List<FinancialChangeRow> rows = compare(ReportType.HALF, ReportType.HALF,
+                List.of(account(PREV, "BS", "ifrs-full_PropertyPlantAndEquipment", "유형자산", 1, 205L, null),
+                        account(PREV, "BS", nonStandard, "단기차입금", 2, 7L, null)),
+                List.of(account(CUR, "BS", "ifrs-full_PropertyPlantAndEquipmentIncludingRightofuseAssets", "유형자산", 1,
+                                224L, null),
+                        account(CUR, "BS", "dart_CurrentLoansReceived", "단기차입금", 2, 13L, null)));
+
+        assertThat(rows).hasSize(2);
+        FinancialChangeRow ppe = find(rows, "BS", "NAME:유형자산");
+        assertThat(ppe.calcStatus()).isEqualTo(CalcStatus.OK);
+        assertThat(ppe.changeAmount()).isEqualTo(19L);
+        assertThat(ppe.previous().accountId()).isEqualTo("ifrs-full_PropertyPlantAndEquipment");
+        assertThat(ppe.current().accountId()).isEqualTo("ifrs-full_PropertyPlantAndEquipmentIncludingRightofuseAssets");
+        FinancialChangeRow loans = find(rows, "BS", "NAME:단기차입금");
+        assertThat(loans.calcStatus()).isEqualTo(CalcStatus.OK);
+        assertThat(loans.changeAmount()).isEqualTo(6L);
+        assertThat(rows).extracting(FinancialChangeRow::displayOrder).containsExactly(0, 1);
+    }
+
+    @Test
+    @DisplayName("한쪽에만 남은 같은 이름 계정이 여러 개면 이름으로 짝짓지 않는다")
+    void sameNameLeftoversAreNotPairedWhenNotUnique() {
+        List<FinancialChangeRow> rows = compare(ReportType.HALF, ReportType.HALF,
+                List.of(account(PREV, "BS", "old", "기타자산", 1, 1L, null)),
+                List.of(account(CUR, "BS", "new1", "기타자산", 1, 2L, null),
+                        account(CUR, "BS", "new2", "기타자산", 2, 3L, null)));
+
+        assertThat(rows).extracting(FinancialChangeRow::calcStatus)
+                .containsExactly(CalcStatus.ONLY_CURRENT, CalcStatus.ONLY_CURRENT, CalcStatus.ONLY_PREVIOUS);
+    }
+
+    @Test
+    @DisplayName("키로 이미 짝지은 계정은 이름 짝짓기에 쓰지 않는다")
+    void keyMatchedAccountsAreNotReusedByName() {
+        List<FinancialChangeRow> rows = compare(ReportType.HALF, ReportType.HALF,
+                List.of(account(PREV, "BS", "a", "자산", 1, 1L, null), account(PREV, "BS", "b", "부채", 2, 5L, null)),
+                List.of(account(CUR, "BS", "a", "자산", 1, 2L, null), account(CUR, "BS", "c", "자산", 2, 3L, null)));
+
+        assertThat(find(rows, "BS", "a").calcStatus()).isEqualTo(CalcStatus.OK);
+        assertThat(find(rows, "BS", "c").calcStatus()).isEqualTo(CalcStatus.ONLY_CURRENT);
+        assertThat(find(rows, "BS", "b").calcStatus()).isEqualTo(CalcStatus.ONLY_PREVIOUS);
     }
 }

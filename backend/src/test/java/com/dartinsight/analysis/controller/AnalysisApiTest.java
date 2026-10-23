@@ -343,5 +343,13 @@ class AnalysisApiTest {
                 AmountBasis.POINT, 1L, 2L, 1L, null, CalcStatus.OK, "KRW", new Evidence(PREV, "BS", "a", "자산", null),
                 new Evidence(CUR, "BS", "b", "자산", null));
         assertThat(AnalysisRunner.verify(analysis, List.of(differentAccounts))).contains("다른 계정");
+        FinancialChangeRow pairedByName = new FinancialChangeRow("BS", FsDiv.CFS, "NAME:자산", "자산", 0,
+                AmountBasis.POINT, 1L, 2L, 1L, null, CalcStatus.OK, "KRW", new Evidence(PREV, "BS", "a", "자산", null),
+                new Evidence(CUR, "BS", "b", "자산", null));
+        assertThat(AnalysisRunner.verify(analysis, List.of(pairedByName))).isNull();
+        FinancialChangeRow pairedByWrongName = new FinancialChangeRow("BS", FsDiv.CFS, "NAME:자산", "자산", 0,
+                AmountBasis.POINT, 1L, 2L, 1L, null, CalcStatus.OK, "KRW", new Evidence(PREV, "BS", "a", "부채", null),
+                new Evidence(CUR, "BS", "b", "자산", null));
+        assertThat(AnalysisRunner.verify(analysis, List.of(pairedByWrongName))).contains("다른 계정");
     }
 }
