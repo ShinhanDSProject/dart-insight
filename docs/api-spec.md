@@ -8,7 +8,7 @@
 | --- | --- |
 | 상태 | 초안 (M1 범위) |
 | 담당 | 백엔드·프론트 |
-| 마지막 수정 | 2026-10-22 |
+| 마지막 수정 | 2026-10-23 |
 | 관련 문서 | ERD(`docs/erd.md`), [화면 와이어프레임](https://app.notion.com/p/c0f540f74d92496c9c20f23867afc15a), 이슈 #47 |
 
 ## 0. 공통
@@ -67,7 +67,7 @@
 | GET | `/api/analyses/{analysisId}` | 분석 상태·단계 | #14 (2.3) | W-02, W-03 | 초안 |
 | GET | `/api/analyses/{analysisId}/financial-changes` | 재무 수치 변화 목록 | #15 (2.4), #19 (3.1) | W-03 ② | 초안 |
 | GET | `/api/analyses/{analysisId}/financial-changes/{changeId}` | 수치 근거 상세 | #21 (3.3) | W-03 ② | 초안 |
-| GET | `/api/analyses/{analysisId}/text-changes` | 문장·표 변경 목록 | #16 (2.5) | W-03 ③ | 초안 |
+| GET | `/api/analyses/{analysisId}/text-changes` | 문장·표 변경 목록(섹션 거르기·검색 #25) | #16 (2.5) | W-03 ③ | 초안 |
 | GET | `/api/analyses/{analysisId}/text-changes/{changeId}` | 문장·표 근거 상세 | #22 (3.4) | W-03 ③ | 초안 |
 | GET | `/api/analyses/{analysisId}/summary` | 근거 기반 요약·설명 | #20 (3.2) | W-03 ① | 초안 |
 | GET | `/api/analyses/{analysisId}/documents/{side}` | 분석 보고서 원문 목차 | #23 (3.5) | W-03 ④ | 초안 |
@@ -471,13 +471,16 @@
 
 ### GET /api/analyses/{analysisId}/text-changes — 문장·표 변경 목록
 
-- 이슈: #16 (2.5), #17 (2.6) · 화면: W-03 ③
-- 완료된 분석의 그 분석 결과만 돌려줍니다.
+- 이슈: #16 (2.5), #17 (2.6), #25 (3.7) · 화면: W-03 ③
+- 완료된 분석의 그 분석 결과만 돌려줍니다. 섹션 거르기·검색도 그 분석의 변경 안에서만 합니다.
 - 기본 순서는 확인 우선순위(2.6)입니다. 점수가 높은 것부터, 같으면 문서 순서이고, 순위를 매기지 않은 항목(`UNRANKED`, 판단 유보)은 뒤에 문서 순서로 둡니다. 우선순위는 확인할 순서이며 투자 판단이 아닙니다.
 - `sort=document`면 현재 보고서의 문서 순서입니다(짝이 없는 이전 보고서 항목은 이전 보고서에서 있던 자리).
 - 문단·표 하나가 변경 하나입니다. 섹션이 통째로 한쪽에만 있으면 그 섹션의 블록이 모두 추가 또는 삭제입니다.
 - 같은 이름의 항목 수가 두 보고서에서 달라 짝을 정하지 못한 섹션은 숨기지 않고 `REVIEW_NEEDED` 하나로 남깁니다.
 - `textStatus`가 `FAILED`면 `items`가 비어 있고 `textMessage`에 사유가 있습니다. 화면은 '변경 없음'으로 보여 주지 않습니다.
+- 섹션 거르기(3.7): 최상위 섹션은 `sectionPath`의 첫 ` > ` 앞부분입니다(예: `XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 3. 제재 등과 관련된 사항`의 `XI. 그 밖에 투자자 보호를 위하여 필요한 사항`). `section`을 주면 그 섹션과 하위 섹션의 변경만 돌려줍니다. 고를 수 있는 섹션은 응답의 `sections`에 있습니다.
+- 검색(3.7): `q`는 변경 전·후 전체 글(미리보기가 아니라 저장한 글)과 `sectionPath`에 들어 있는 것을 찾습니다. 대소문자를 가리지 않고, 앞뒤 공백은 지웁니다.
+- `type`·`section`·`q`는 함께 씁니다(모두 맞는 것). 정렬과 쪽 나누기는 거른 뒤에 합니다.
 
 **요청**
 
@@ -485,6 +488,8 @@
 | --- | --- | --- | --- | --- |
 | query | `type` | string | 아니오 | `ADDED`, `DELETED`, `MODIFIED`, `REVIEW_NEEDED`. 없으면 전체 |
 | query | `sort` | string | 아니오 | `priority`(기본) 확인 우선순위, `document` 문서 순서 |
+| query | `section` | string | 아니오 | 최상위 섹션 제목(`sections[].title`과 같은 글). 500자까지. 없거나 빈 값이면 전체. 이 분석에 없는 섹션이면 `items`가 비어 있음 |
+| query | `q` | string | 아니오 | 찾을 글. 앞뒤 공백을 지운 뒤 2~100자. 없거나 빈 값이면 검색하지 않음 |
 | query | `page` | int | 아니오 | 0부터. 기본 0 |
 | query | `size` | int | 아니오 | 1~100. 기본 20 |
 
@@ -497,10 +502,17 @@
   "textMessage": null,
   "type": null,
   "sort": "priority",
+  "section": null,
+  "q": null,
   "page": 0,
   "size": 20,
   "totalItems": 57,
   "counts": { "all": 57, "added": 10, "deleted": 5, "modified": 40, "reviewNeeded": 2 },
+  "sections": [
+    { "title": "I. 회사의 개요", "count": 6 },
+    { "title": "II. 사업의 내용", "count": 31 },
+    { "title": "XI. 그 밖에 투자자 보호를 위하여 필요한 사항", "count": 20 }
+  ],
   "items": [
     {
       "changeId": 3001,
@@ -530,7 +542,10 @@
 | `priority.level` | `HIGH` 중요도 높음(60점 이상), `MEDIUM` 중간(30점 이상), `LOW` 낮음, `UNRANKED` 판단 유보(검토 필요 항목. 규칙으로 판단할 수 없어 순위를 매기지 않음) |
 | `priority.score` | 적용한 규칙 점수의 합. `UNRANKED`면 null |
 | `priority.reasons` | 적용한 규칙과 점수(잠정 규칙, 5절) |
-| `totalItems` | `type`에 맞는 전체 건수(쪽 나누기 전) |
+| `totalItems` | `type`·`section`·`q`에 모두 맞는 전체 건수(쪽 나누기 전) |
+| `section`·`q` | 요청에 쓴 거르기 값(`q`는 앞뒤 공백을 지운 값). 없으면 null |
+| `counts` | 변경 유형별 건수. `section`·`q`에 맞는 것만 셉니다(`type`은 보지 않음). 둘 다 없으면 분석 전체 |
+| `sections` | 이 분석에 변경이 있는 최상위 섹션 전부(문서 순서). `count`는 그 섹션에서 `type`·`q`에 맞는 건수(`section`은 보지 않음)이고 0일 수 있습니다. 변경이 하나도 없으면 빈 배열 |
 | `blockType` | `PARAGRAPH` 문단, `TABLE` 표, `SECTION` 섹션 단위 검토 필요 |
 | `numbersOnly` | 수정인데 숫자만 바뀜(재무 표 등) |
 | `sectionStatus` | 섹션 짝짓기 결과. `MATCHED`, `RENAMED`(제목이 조금 바뀐 섹션), `ADDED`, `DELETED`, `AMBIGUOUS` |
@@ -539,7 +554,7 @@
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
-| 400 | `COMMON_INVALID_INPUT` | `type`·`sort`·`page`·`size`가 범위 밖 |
+| 400 | `COMMON_INVALID_INPUT` | `type`·`sort`·`page`·`size`가 범위 밖, `section`이 500자 초과, `q`가 2자 미만이거나 100자 초과(`errors[].field`에 이름) |
 | 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 ID |
 | 409 | `ANALYSIS_NOT_READY` | 분석이 아직 완료되지 않음 |
 
