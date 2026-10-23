@@ -28,6 +28,12 @@ repositories {
 }
 
 dependencies {
+    // 빈의 생성자 주입(@RequiredArgsConstructor)에만 쓴다. DTO·엔티티에는 쓰지 않는다(conventions.yaml DI-1)
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
