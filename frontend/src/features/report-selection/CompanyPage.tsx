@@ -1,21 +1,16 @@
-import { useEffect, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router'
-import { getCompany, type Company } from '@/shared/api/companies'
-import { getReportPair, listReports, type ComparisonBasis, type ReportItem, type ReportList } from '@/shared/api/reports'
+import { Link, useParams } from 'react-router'
+import { match } from 'ts-pattern'
+import type { Company } from '@/shared/api/companies'
+import type { ReportList } from '@/shared/api/reports'
 import { ButtonLink, FieldHint, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
-import { PairSelector, type PairLookup } from './components/PairSelector'
+import { PairSelector } from './components/PairSelector'
 import { ReportDetailPanel } from './components/ReportDetailPanel'
 import { ReportTable } from './components/ReportTable'
-import { parseBasis } from '@/shared/lib/comparisonBasis'
-import { customCandidates } from './model/pairSelection'
 import { formatDate } from '@/shared/lib/reportLabels'
+import { useCompanyReports } from './hooks/useCompanyReports'
+import { useReportSelection } from './hooks/useReportSelection'
 import './report-selection.css'
-
-type PageState =
-  | { kind: 'loading' }
-  | { kind: 'done'; company: Company; reports: ReportList }
-  | { kind: 'error'; error: unknown }
 
 const errorMessages: Record<string, string> = {
   COMPANY_NOT_FOUND: '없는 기업이에요. 검색에서 다시 골라 주세요.',
@@ -38,106 +33,39 @@ const refreshErrorMessages: Record<string, string> = {
  */
 export function CompanyPage() {
   const { corpCode = '' } = useParams()
-  const [searchParams, setSearchParams] = useSearchParams()
-  const [state, setState] = useState<PageState>({ kind: 'loading' })
-  const [retry, setRetry] = useState(0)
+  const { state, reload } = useCompanyReports(corpCode)
+  const selection = useReportSelection(corpCode, state.status === 'success' ? state.data.reports.items : null)
 
-  useEffect(() => {
-    let cancelled = false
-    setState({ kind: 'loading' })
-    Promise.all([getCompany(corpCode), listReports(corpCode)])
-      .then(([company, reports]) => {
-        if (!cancelled) setState({ kind: 'done', company, reports })
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) setState({ kind: 'error', error })
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [corpCode, retry])
-
-  const items = state.kind === 'done' ? state.reports.items : null
-  const current = items ? (items.find((r) => r.rceptNo === searchParams.get('current')) ?? items[0] ?? null) : null
-  const basis = parseBasis(searchParams.get('basis'))
-  const [lookup, setLookup] = useState<PairLookup>({ kind: 'idle' })
-  const [lookupRetry, setLookupRetry] = useState(0)
-  const currentNo = current?.rceptNo ?? null
-
-  useEffect(() => {
-    if (currentNo === null || basis === 'CUSTOM') {
-      setLookup({ kind: 'idle' })
-      return
-    }
-    let cancelled = false
-    setLookup({ kind: 'loading' })
-    getReportPair(corpCode, basis, currentNo)
-      .then((pair) => {
-        if (!cancelled) {
-          setLookup({ kind: 'done', key: `${basis}:${currentNo}`, previous: pair.previous, reason: pair.reason?.message ?? null })
-        }
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) setLookup({ kind: 'error', error })
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [corpCode, basis, currentNo, lookupRetry])
-
-  if (state.kind === 'loading') {
-    return (
+  return match(state)
+    .with({ status: 'loading' }, () => (
       <section className="page">
         <Breadcrumb />
         <LoadingState message="정기보고서 목록을 불러오는 중입니다… 처음 여는 기업은 OpenDART에서 받아 오느라 조금 걸려요." />
       </section>
-    )
-  }
-
-  if (state.kind === 'error') {
-    return (
+    ))
+    .with({ status: 'error' }, ({ error }) => (
       <section className="page">
         <Breadcrumb />
         <h1 className="page__title">정기보고서</h1>
-        <ErrorState error={state.error} onRetry={() => setRetry((n) => n + 1)} messages={errorMessages} />
+        <ErrorState error={error} onRetry={reload} messages={errorMessages} />
       </section>
-    )
-  }
+    ))
+    .with({ status: 'success' }, ({ data }) => (
+      <ReportSelection corpCode={corpCode} company={data.company} reports={data.reports} selection={selection} />
+    ))
+    .exhaustive()
+}
 
-  const { company, reports } = state
+interface ReportSelectionProps {
+  corpCode: string
+  company: Company
+  reports: ReportList
+  selection: ReturnType<typeof useReportSelection>
+}
+
+function ReportSelection({ corpCode, company, reports, selection }: ReportSelectionProps) {
   const reportItems = reports.items
-  // 다른 기준·현재 보고서로 찾은 결과는 쓰지 않는다(새로 찾는 동안 잠깐 남아 있을 수 있음)
-  const pairLookup: PairLookup =
-    lookup.kind === 'done' && lookup.key !== `${basis}:${currentNo}` ? { kind: 'loading' } : lookup
-  const previous = findPrevious(reportItems, current, basis, pairLookup, searchParams.get('previous'))
-
-  function updateParams(changes: Record<string, string | null>) {
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev)
-        for (const [key, value] of Object.entries(changes)) {
-          if (value === null) next.delete(key)
-          else next.set(key, value)
-        }
-        return next
-      },
-      { replace: true },
-    )
-  }
-
-  function selectCurrent(rceptNo: string) {
-    const nextCurrent = reportItems.find((r) => r.rceptNo === rceptNo) ?? null
-    // 직접 고른 비교 보고서가 새 현재 보고서보다 앞서지 않으면 비운다
-    const keepPrevious = previous !== null && customCandidates(reportItems, nextCurrent).includes(previous)
-    updateParams({ current: rceptNo, previous: basis === 'CUSTOM' && keepPrevious ? previous.rceptNo : null })
-  }
-
-  function selectBasis(nextBasis: ComparisonBasis) {
-    // 이미 고른 기준을 다시 누르면 직접 고른 비교 보고서를 지우지 않는다
-    if (nextBasis === basis) return
-    // 비교 기준을 바꿔도 현재 보고서는 그대로 두고, 비교 보고서만 바뀐다
-    updateParams({ basis: nextBasis, previous: null })
-  }
+  const { current, basis, previous, lookup, retryLookup, selectCurrent, selectBasis, selectPrevious } = selection
 
   return (
     <section className="page">
@@ -161,11 +89,11 @@ export function CompanyPage() {
             basis={basis}
             current={current}
             previous={previous}
-            lookup={pairLookup}
+            lookup={lookup}
             onBasisChange={selectBasis}
             onCurrentChange={selectCurrent}
-            onPreviousChange={(rceptNo) => updateParams({ previous: rceptNo })}
-            onRetry={() => setLookupRetry((n) => n + 1)}
+            onPreviousChange={selectPrevious}
+            onRetry={retryLookup}
           />
         )}
         {reportItems.length === 0 ? (
@@ -239,19 +167,4 @@ function Breadcrumb() {
       <Link to="/">기업 검색</Link> / 정기보고서
     </nav>
   )
-}
-
-function findPrevious(
-  items: ReportItem[],
-  current: ReportItem | null,
-  basis: ComparisonBasis,
-  lookup: PairLookup,
-  customNo: string | null,
-): ReportItem | null {
-  if (basis === 'CUSTOM') {
-    return customCandidates(items, current).find((r) => r.rceptNo === customNo) ?? null
-  }
-  if (lookup.kind !== 'done' || lookup.previous === null) return null
-  const found = lookup.previous
-  return items.find((r) => r.rceptNo === found.rceptNo) ?? found
 }

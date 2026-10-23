@@ -1,14 +1,9 @@
+import { match, P } from 'ts-pattern'
 import type { ComparisonBasis, ReportItem } from '@/shared/api/reports'
 import { Button, FieldHint, FieldLabel, SegmentedControl, Select } from '@/shared/ui'
 import { ErrorState } from '@/shared/ui/StateView'
 import { basisOptions } from '@/shared/lib/comparisonBasis'
-import { customCandidates, reportOptionLabel } from '../model/pairSelection'
-
-export type PairLookup =
-  | { kind: 'idle' }
-  | { kind: 'loading' }
-  | { kind: 'done'; key: string; previous: ReportItem | null; reason: string | null }
-  | { kind: 'error'; error: unknown }
+import { customCandidates, reportOptionLabel, type PairLookup } from '../model/pairSelection'
 
 interface PairSelectorProps {
   items: ReportItem[]
@@ -61,7 +56,10 @@ export function PairSelector(props: PairSelectorProps) {
           </Select>
         </div>
       </div>
-      {lookup.kind === 'error' && <ErrorState error={lookup.error} onRetry={props.onRetry} />}
+      {match(lookup)
+        .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={props.onRetry} />)
+        .with({ status: P.union('idle', 'loading', 'success') }, () => null)
+        .exhaustive()}
     </div>
   )
 }
@@ -97,21 +95,25 @@ function PreviousSlot({ items, basis, current, previous, lookup, onBasisChange, 
       <FieldLabel as="span">
         비교 보고서 <FieldHint>· 왼쪽에 표시</FieldHint>
       </FieldLabel>
-      {lookup.kind === 'loading' && <p className="pair__value pair__value--muted">비교 기준에 맞는 보고서를 찾는 중…</p>}
-      {lookup.kind === 'done' && previous && (
-        <p className="pair__value">
-          {reportOptionLabel(previous)}
-          <FieldHint> · 기준에 따라 자동 지정</FieldHint>
-        </p>
-      )}
-      {lookup.kind === 'done' && !previous && (
-        <div className="pair__value pair__value--missing" role="status">
-          <p>{lookup.reason ?? '비교 기준에 맞는 이전 보고서가 없어요.'}</p>
-          <Button variant="secondary" onClick={() => onBasisChange('CUSTOM')}>
-            직접 선택으로 고르기
-          </Button>
-        </div>
-      )}
+      {match(lookup)
+        .with({ status: 'loading' }, () => <p className="pair__value pair__value--muted">비교 기준에 맞는 보고서를 찾는 중…</p>)
+        .with({ status: 'success' }, ({ data }) =>
+          previous ? (
+            <p className="pair__value">
+              {reportOptionLabel(previous)}
+              <FieldHint> · 기준에 따라 자동 지정</FieldHint>
+            </p>
+          ) : (
+            <div className="pair__value pair__value--missing" role="status">
+              <p>{data.reason ?? '비교 기준에 맞는 이전 보고서가 없어요.'}</p>
+              <Button variant="secondary" onClick={() => onBasisChange('CUSTOM')}>
+                직접 선택으로 고르기
+              </Button>
+            </div>
+          ),
+        )
+        .with({ status: P.union('idle', 'error') }, () => null)
+        .exhaustive()}
     </>
   )
 }
