@@ -1,6 +1,9 @@
-package com.dartinsight.company;
+package com.dartinsight.company.controller;
 
 import com.dartinsight.common.web.ApiPaths;
+import com.dartinsight.company.dto.CompanyResponse;
+import com.dartinsight.company.dto.CompanySearchResponse;
+import com.dartinsight.company.service.CompanyService;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;

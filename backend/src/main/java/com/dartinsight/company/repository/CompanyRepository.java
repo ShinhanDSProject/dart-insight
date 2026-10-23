@@ -1,5 +1,6 @@
-package com.dartinsight.company;
+package com.dartinsight.company.repository;
 
+import com.dartinsight.company.domain.Company;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

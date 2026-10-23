@@ -9,7 +9,7 @@ import com.dartinsight.analysis.Analysis;
 import com.dartinsight.analysis.AnalysisResponse;
 import com.dartinsight.analysis.AnalysisResultService;
 import com.dartinsight.analysis.AnalysisRunner;
-import com.dartinsight.company.CompanyRepository;
+import com.dartinsight.company.repository.CompanyRepository;
 import com.dartinsight.comparison.ReportPairService;
 import com.dartinsight.report.repository.ReportRepository;
 import com.dartinsight.report.service.ReportService;

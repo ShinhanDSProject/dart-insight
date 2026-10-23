@@ -1,5 +1,7 @@
-package com.dartinsight.company;
+package com.dartinsight.company.service;
 
+import com.dartinsight.company.domain.Company;
+import com.dartinsight.company.repository.CompanyRepository;
 import com.dartinsight.dart.dto.CorpCodeEntry;
 import com.dartinsight.dart.client.CorpCodeParser;
 import com.dartinsight.dart.client.OpenDartClient;

@@ -6,7 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
-import com.dartinsight.company.CompanyImportService;
+import com.dartinsight.company.service.CompanyImportService;
 import com.dartinsight.dart.dto.CorpCodeEntry;
 import com.dartinsight.dart.client.FakeOpenDartServer;
 import com.dartinsight.dart.client.FakeOpenDartServer.Response;

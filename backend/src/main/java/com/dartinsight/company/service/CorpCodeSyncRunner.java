@@ -1,6 +1,7 @@
-package com.dartinsight.company;
+package com.dartinsight.company.service;
 
 import com.dartinsight.common.error.ApiException;
+import com.dartinsight.company.repository.CompanyRepository;
 import com.dartinsight.dart.config.OpenDartProperties;
 import com.dartinsight.dart.config.OpenDartProperties.CorpCodeSync;
 import lombok.RequiredArgsConstructor;

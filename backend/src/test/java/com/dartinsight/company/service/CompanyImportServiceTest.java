@@ -1,7 +1,9 @@
-package com.dartinsight.company;
+package com.dartinsight.company.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.dartinsight.company.domain.Company;
+import com.dartinsight.company.repository.CompanyRepository;
 import com.dartinsight.dart.dto.CorpCodeEntry;
 import com.dartinsight.support.TestData;
 import java.time.LocalDate;

@@ -1,7 +1,9 @@
-package com.dartinsight.company;
+package com.dartinsight.company.service;
 
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
+import com.dartinsight.company.domain.Company;
+import com.dartinsight.company.repository.CompanyRepository;
 import java.util.List;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;

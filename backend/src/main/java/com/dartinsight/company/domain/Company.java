@@ -1,4 +1,4 @@
-package com.dartinsight.company;
+package com.dartinsight.company.domain;
 
 import com.dartinsight.dart.dto.CorpCodeEntry;
 import jakarta.persistence.Column;
