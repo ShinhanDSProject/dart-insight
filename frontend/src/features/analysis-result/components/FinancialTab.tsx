@@ -1,12 +1,6 @@
-import { useEffect, useState } from 'react'
+import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
-import {
-  getFinancialChanges,
-  type FinancialChangeItem,
-  type FinancialChangeList,
-  type SjDiv,
-  type StatementSummary,
-} from '@/shared/api/results'
+import type { FinancialChangeItem, SjDiv, StatementSummary } from '@/shared/api/results'
 import { Button, DataTable, DataTableRow, FieldLabel, Notice, Panel, SegmentedControl, Select } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
@@ -22,6 +16,8 @@ import {
   unitOptions,
   type AmountUnit,
 } from '../model/format'
+import { useFinancialChanges } from '../hooks/useFinancialChanges'
+import type { FinancialViewChange } from '../model/resultParams'
 
 const viewOptions = [
   { value: 'all', label: '전체 계정' },
@@ -36,8 +32,6 @@ const statementOptions: { sjDiv: SjDiv; label: string }[] = [
   { sjDiv: 'SCE', label: '자본변동표' },
 ]
 
-type TabState = { kind: 'loading' } | { kind: 'done'; data: FinancialChangeList } | { kind: 'error'; error: unknown }
-
 interface FinancialTabProps {
   analysis: Analysis
   sjDiv: SjDiv
@@ -45,37 +39,15 @@ interface FinancialTabProps {
   unit: AmountUnit
   /** 근거를 보고 있는 계정(3.3) */
   selectedChangeId: number | null
-  onChange: (changes: { sj?: SjDiv; changed?: boolean; unit?: AmountUnit; change?: number | null }) => void
+  onChange: (changes: FinancialViewChange) => void
 }
 
 /** W-03 ② 재무 수치 변화(3.1). 이 분석의 결과만 보여 준다. 계정의 '보기'를 누르면 수치 근거(3.3)를 연다. */
 export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChangeId, onChange }: FinancialTabProps) {
-  const [state, setState] = useState<TabState>({ kind: 'loading' })
-  const [retry, setRetry] = useState(0)
-
-  useEffect(() => {
-    let cancelled = false
-    setState({ kind: 'loading' })
-    getFinancialChanges(analysis.analysisId, sjDiv, changedOnly)
-      .then((data) => {
-        if (!cancelled) setState({ kind: 'done', data })
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) setState({ kind: 'error', error })
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [analysis.analysisId, sjDiv, changedOnly, retry])
-
-  // 불러오는 동안에도 고르기 상자를 그대로 두어 키보드 초점을 잃지 않게 한다(이전에 받은 개수를 계속 보여 줌)
-  const [statements, setStatements] = useState<StatementSummary[]>([])
-  if (state.kind === 'done' && state.data.statements !== statements) {
-    setStatements(state.data.statements)
-  }
+  const { state, reload, statements } = useFinancialChanges(analysis.analysisId, sjDiv, changedOnly)
   const selected = statements.find((s) => s.sjDiv === sjDiv)
   const basis = selected?.amountBasis ?? null
-  const currency = state.kind === 'done' ? (state.data.items.find((i) => i.currency)?.currency ?? null) : null
+  const currency = state.status === 'success' ? (state.data.items.find((i) => i.currency)?.currency ?? null) : null
 
   return (
     <Panel aria-label="재무 수치 변화">
@@ -90,11 +62,7 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChang
             const summary = statements.find((s) => s.sjDiv === option.sjDiv)
             return (
               <option key={option.sjDiv} value={option.sjDiv}>
-                {summary === undefined
-                  ? option.label
-                  : summary.comparable
-                    ? `${option.label} · 바뀐 ${summary.changed} / 전체 ${summary.total}`
-                    : `${option.label} · 비교 안 함`}
+                {statementOptionLabel(option.label, summary)}
               </option>
             )
           })}
@@ -122,46 +90,48 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChang
         </Notice>
       )}
 
-      {state.kind === 'loading' && <LoadingState message="계정별 결과를 불러오는 중입니다…" />}
-      {state.kind === 'error' && <ErrorState error={state.error} onRetry={() => setRetry((n) => n + 1)} />}
-      {state.kind === 'done' && state.data.items.length === 0 && (
-        <EmptyState title={changedOnly ? '바뀐 계정이 없어요.' : '이 재무제표에는 계정이 없어요.'}>
-          {changedOnly && <p>'전체 계정'을 고르면 값이 같은 계정도 볼 수 있어요.</p>}
-        </EmptyState>
-      )}
-      {state.kind === 'done' && state.data.items.length > 0 && (
-        <DataTable caption={`계정별 이전 값, 현재 값, 증감액, 증감률. 단위 ${unitLabel(unit, currency)}`}>
-          <thead>
-            <tr>
-              <th scope="col">계정</th>
-              <th scope="col" className="num">
-                이전 · {amountPeriodLabel(analysis.previous, basis)}
-              </th>
-              <th scope="col" className="num">
-                현재 · {amountPeriodLabel(analysis.current, basis)}
-              </th>
-              <th scope="col" className="num">
-                증감액
-              </th>
-              <th scope="col" className="num">
-                증감률
-              </th>
-              <th scope="col">근거</th>
-            </tr>
-          </thead>
-          <tbody>
-            {state.data.items.map((item) => (
-              <ChangeRow
-                key={item.changeId}
-                item={item}
-                unit={unit}
-                selected={item.changeId === selectedChangeId}
-                onSelect={() => onChange({ change: item.changeId === selectedChangeId ? null : item.changeId })}
-              />
-            ))}
-          </tbody>
-        </DataTable>
-      )}
+      {match(state)
+        .with({ status: 'loading' }, () => <LoadingState message="계정별 결과를 불러오는 중입니다…" />)
+        .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} />)
+        .with({ status: 'success', data: { items: [] } }, () => (
+          <EmptyState title={changedOnly ? '바뀐 계정이 없어요.' : '이 재무제표에는 계정이 없어요.'}>
+            {changedOnly && <p>'전체 계정'을 고르면 값이 같은 계정도 볼 수 있어요.</p>}
+          </EmptyState>
+        ))
+        .with({ status: 'success' }, ({ data }) => (
+          <DataTable caption={`계정별 이전 값, 현재 값, 증감액, 증감률. 단위 ${unitLabel(unit, currency)}`}>
+            <thead>
+              <tr>
+                <th scope="col">계정</th>
+                <th scope="col" className="num">
+                  이전 · {amountPeriodLabel(analysis.previous, basis)}
+                </th>
+                <th scope="col" className="num">
+                  현재 · {amountPeriodLabel(analysis.current, basis)}
+                </th>
+                <th scope="col" className="num">
+                  증감액
+                </th>
+                <th scope="col" className="num">
+                  증감률
+                </th>
+                <th scope="col">근거</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.items.map((item) => (
+                <ChangeRow
+                  key={item.changeId}
+                  item={item}
+                  unit={unit}
+                  selected={item.changeId === selectedChangeId}
+                  onSelect={() => onChange({ change: item.changeId === selectedChangeId ? null : item.changeId })}
+                />
+              ))}
+            </tbody>
+          </DataTable>
+        ))
+        .exhaustive()}
       {selectedChangeId !== null && (
         <EvidencePanel
           key={selectedChangeId}
@@ -187,6 +157,13 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChang
       </p>
     </Panel>
   )
+}
+
+/** 재무제표 고르기 문구. 받은 개수가 있으면 붙인다 */
+function statementOptionLabel(label: string, summary: StatementSummary | undefined): string {
+  if (summary === undefined) return label
+  if (!summary.comparable) return `${label} · 비교 안 함`
+  return `${label} · 바뀐 ${summary.changed} / 전체 ${summary.total}`
 }
 
 function evidenceButtonId(changeId: number): string {

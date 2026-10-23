@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
+import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
-import { getFinancialChange, type FinancialChangeDetail, type ValueSource } from '@/shared/api/results'
+import type { FinancialChangeDetail, ValueSource } from '@/shared/api/results'
 import { Button, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
+import { useFinancialChangeDetail } from '../hooks/useFinancialChanges'
 import { amountPeriodLabel, formatAmount, missingValueLabel, unitLabel, type AmountUnit } from '../model/format'
-
-type DetailState = { kind: 'loading' } | { kind: 'done'; detail: FinancialChangeDetail } | { kind: 'error'; error: unknown }
 
 const statementLabels: Record<string, string> = {
   BS: '재무상태표',
@@ -28,25 +28,8 @@ interface EvidencePanelProps {
  * 계산하지 못한 항목은 숫자를 채우지 않고 사유를 보여 준다.
  */
 export function EvidencePanel({ analysis, changeId, unit, onClose }: EvidencePanelProps) {
-  const [state, setState] = useState<DetailState>({ kind: 'loading' })
-  const [retry, setRetry] = useState(0)
-
-  useEffect(() => {
-    let cancelled = false
-    setState({ kind: 'loading' })
-    getFinancialChange(analysis.analysisId, changeId)
-      .then((detail) => {
-        if (!cancelled) setState({ kind: 'done', detail })
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) setState({ kind: 'error', error })
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [analysis.analysisId, changeId, retry])
-
-  const title = state.kind === 'done' ? `${state.detail.accountName} · 근거` : '수치 근거'
+  const { state, reload } = useFinancialChangeDetail(analysis.analysisId, changeId)
+  const title = state.status === 'success' ? `${state.data.accountName} · 근거` : '수치 근거'
   const headingRef = useRef<HTMLHeadingElement>(null)
 
   // 표 아래에 열리므로, 열리면 제목으로 초점과 화면을 옮긴다(키보드·화면 읽기 사용자)
@@ -65,15 +48,17 @@ export function EvidencePanel({ analysis, changeId, unit, onClose }: EvidencePan
           닫기
         </Button>
       </div>
-      {state.kind === 'loading' && <LoadingState message="근거를 불러오는 중입니다…" />}
-      {state.kind === 'error' && (
-        <ErrorState
-          error={state.error}
-          onRetry={() => setRetry((n) => n + 1)}
-          messages={{ ANALYSIS_CHANGE_NOT_FOUND: '이 분석의 계정이 아니에요. 표에서 다시 골라 주세요.' }}
-        />
-      )}
-      {state.kind === 'done' && <EvidenceBody analysis={analysis} detail={state.detail} unit={unit} />}
+      {match(state)
+        .with({ status: 'loading' }, () => <LoadingState message="근거를 불러오는 중입니다…" />)
+        .with({ status: 'error' }, ({ error }) => (
+          <ErrorState
+            error={error}
+            onRetry={reload}
+            messages={{ ANALYSIS_CHANGE_NOT_FOUND: '이 분석의 계정이 아니에요. 표에서 다시 골라 주세요.' }}
+          />
+        ))
+        .with({ status: 'success' }, ({ data }) => <EvidenceBody analysis={analysis} detail={data} unit={unit} />)
+        .exhaustive()}
     </Panel>
   )
 }

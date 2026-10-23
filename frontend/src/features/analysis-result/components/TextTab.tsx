@@ -1,17 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { match, P } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
-import {
-  getTextChanges,
-  type ChangeType,
-  type TextChangeCounts,
-  type TextChangeItem,
-  type TextChangeList,
-  type TextSort,
-} from '@/shared/api/textChanges'
+import type { ChangeType, TextChangeItem, TextSort } from '@/shared/api/textChanges'
 import { Badge, Button, Card, Chip, Notice, Panel, SegmentedControl } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
-import { TextEvidencePanel, type SourceTarget } from './TextEvidencePanel'
+import { TextEvidencePanel } from './TextEvidencePanel'
+import { useTextChanges } from '../hooks/useTextChanges'
+import type { SourceTarget, TextViewChange } from '../model/resultParams'
 import {
   changeTypeLabel,
   changeTypeOptions,
@@ -23,17 +18,10 @@ import {
   textStatusNotice,
 } from '../model/textLabels'
 
-const PAGE_SIZE = 20
-
 const sortOptions: { value: TextSort; label: string }[] = [
   { value: 'priority', label: '우선순위 순' },
   { value: 'document', label: '문서 순서' },
 ]
-
-type ListState =
-  | { kind: 'loading' }
-  | { kind: 'error'; error: unknown }
-  | { kind: 'done'; data: TextChangeList; items: TextChangeItem[]; more: 'idle' | 'loading' | { error: unknown } }
 
 interface TextTabProps {
   analysis: Analysis
@@ -41,7 +29,7 @@ interface TextTabProps {
   sort: TextSort
   /** 근거를 보고 있는 변경(3.4) */
   selectedChangeId: number | null
-  onChange: (changes: { type?: ChangeType | null; sort?: TextSort; change?: number | null }) => void
+  onChange: (changes: TextViewChange) => void
   onOpenSource: (target: SourceTarget) => void
 }
 
@@ -50,49 +38,7 @@ interface TextTabProps {
  * 문장을 비교하지 못했으면 '변경 없음'이 아니라 사유를 보여 준다. 짝짓지 못한 항목은 숨기지 않고 '검토 필요'로 둔다.
  */
 export function TextTab({ analysis, type, sort, selectedChangeId, onChange, onOpenSource }: TextTabProps) {
-  const [state, setState] = useState<ListState>({ kind: 'loading' })
-  const [retry, setRetry] = useState(0)
-  // 거르기·정렬이 바뀌면 늘어난다. '더 보기' 응답이 늦게 와도 지금 목록을 덮지 않게 한다
-  const generation = useRef(0)
-
-  useEffect(() => {
-    let cancelled = false
-    const gen = generation
-    setState({ kind: 'loading' })
-    getTextChanges(analysis.analysisId, { type, sort, page: 0, size: PAGE_SIZE })
-      .then((data) => {
-        if (!cancelled) setState({ kind: 'done', data, items: data.items, more: 'idle' })
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) setState({ kind: 'error', error })
-      })
-    return () => {
-      cancelled = true
-      gen.current += 1
-    }
-  }, [analysis.analysisId, type, sort, retry])
-
-  // 불러오는 동안에도 거르기 단추의 건수를 그대로 둔다(초점과 자리가 흔들리지 않게)
-  const [counts, setCounts] = useState<TextChangeCounts | null>(null)
-  if (state.kind === 'done' && state.data.counts !== counts) {
-    setCounts(state.data.counts)
-  }
-
-  async function loadMore() {
-    if (state.kind !== 'done' || state.more === 'loading') return
-    const current = state
-    const started = generation.current
-    setState({ ...current, more: 'loading' })
-    try {
-      const next = await getTextChanges(analysis.analysisId, { type, sort, page: current.data.page + 1, size: PAGE_SIZE })
-      if (generation.current !== started) return
-      setState({ kind: 'done', data: next, items: [...current.items, ...next.items], more: 'idle' })
-    } catch (error) {
-      if (generation.current !== started) return
-      setState({ ...current, more: { error } })
-    }
-  }
-
+  const { state, counts, reload, loadMore } = useTextChanges(analysis.analysisId, type, sort)
   const notice = textStatusNotice(analysis.textStatus, analysis.textMessage)
   const failed = analysis.textStatus === 'FAILED' || analysis.textStatus === null
 
@@ -132,59 +78,69 @@ export function TextTab({ analysis, type, sort, selectedChangeId, onChange, onOp
         </div>
       )}
 
-      {!failed && state.kind === 'loading' && <LoadingState message="문장·표 변화를 불러오는 중입니다…" />}
-      {!failed && state.kind === 'error' && <ErrorState error={state.error} onRetry={() => setRetry((n) => n + 1)} />}
-      {!failed && state.kind === 'done' && state.items.length === 0 && (
-        <EmptyState title={type === null ? '두 보고서 사이에 바뀐 문장·표가 없어요.' : `${changeTypeLabel(type)} 항목이 없어요.`}>
-          {type !== null && <p>'전체'를 고르면 다른 유형의 변화도 볼 수 있어요.</p>}
-        </EmptyState>
-      )}
-      {!failed && state.kind === 'done' && selectedChangeId !== null && !state.items.some((i) => i.changeId === selectedChangeId) && (
-        // 고른 항목이 지금 목록(거르기·쪽)에 없어도 근거는 연다(요약·주소에서 바로 온 경우)
-        <div className="change-list__outside">
-          <p className="panel__note">지금 목록에 보이지 않는 항목의 근거예요.</p>
-          <TextEvidencePanel
-            key={selectedChangeId}
-            analysis={analysis}
-            changeId={selectedChangeId}
-            onClose={() => onChange({ change: null })}
-            onOpenSource={onOpenSource}
-          />
-        </div>
-      )}
-      {!failed && state.kind === 'done' && state.items.length > 0 && (
-        <>
-          <ol className="change-list">
-            {state.items.map((item) => (
-              <li key={item.changeId}>
-                <ChangeCard
-                  item={item}
-                  analysis={analysis}
-                  selected={item.changeId === selectedChangeId}
-                  onOpenSource={onOpenSource}
-                  onToggle={() => onChange({ change: item.changeId === selectedChangeId ? null : item.changeId })}
-                  onClose={() => {
-                    onChange({ change: null })
-                    // 닫으면 그 항목의 '근거 상세' 버튼으로 초점을 돌려준다
-                    requestAnimationFrame(() => document.getElementById(evidenceButtonId(item.changeId))?.focus())
-                  }}
-                />
-              </li>
-            ))}
-          </ol>
-          <div className="change-list__more">
-            <span className="panel__note" role="status">
-              {state.items.length} / {state.data.totalItems}건
-            </span>
-            {state.items.length < state.data.totalItems && (
-              <Button variant="secondary" disabled={state.more === 'loading'} onClick={() => void loadMore()}>
-                {state.more === 'loading' ? '불러오는 중…' : '더 보기'}
-              </Button>
-            )}
-          </div>
-          {typeof state.more === 'object' && <ErrorState error={state.more.error} onRetry={() => void loadMore()} />}
-        </>
-      )}
+      {!failed &&
+        match(state)
+          .with({ status: 'loading' }, () => <LoadingState message="문장·표 변화를 불러오는 중입니다…" />)
+          .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} />)
+          .with({ status: 'success' }, ({ data, items, more }) => (
+            <>
+              {items.length === 0 && (
+                <EmptyState title={type === null ? '두 보고서 사이에 바뀐 문장·표가 없어요.' : `${changeTypeLabel(type)} 항목이 없어요.`}>
+                  {type !== null && <p>'전체'를 고르면 다른 유형의 변화도 볼 수 있어요.</p>}
+                </EmptyState>
+              )}
+              {selectedChangeId !== null && !items.some((i) => i.changeId === selectedChangeId) && (
+                // 고른 항목이 지금 목록(거르기·쪽)에 없어도 근거는 연다(요약·주소에서 바로 온 경우)
+                <div className="change-list__outside">
+                  <p className="panel__note">지금 목록에 보이지 않는 항목의 근거예요.</p>
+                  <TextEvidencePanel
+                    key={selectedChangeId}
+                    analysis={analysis}
+                    changeId={selectedChangeId}
+                    onClose={() => onChange({ change: null })}
+                    onOpenSource={onOpenSource}
+                  />
+                </div>
+              )}
+              {items.length > 0 && (
+                <>
+                  <ol className="change-list">
+                    {items.map((item) => (
+                      <li key={item.changeId}>
+                        <ChangeCard
+                          item={item}
+                          analysis={analysis}
+                          selected={item.changeId === selectedChangeId}
+                          onOpenSource={onOpenSource}
+                          onToggle={() => onChange({ change: item.changeId === selectedChangeId ? null : item.changeId })}
+                          onClose={() => {
+                            onChange({ change: null })
+                            // 닫으면 그 항목의 '근거 상세' 버튼으로 초점을 돌려준다
+                            requestAnimationFrame(() => document.getElementById(evidenceButtonId(item.changeId))?.focus())
+                          }}
+                        />
+                      </li>
+                    ))}
+                  </ol>
+                  <div className="change-list__more">
+                    <span className="panel__note" role="status">
+                      {items.length} / {data.totalItems}건
+                    </span>
+                    {items.length < data.totalItems && (
+                      <Button variant="secondary" disabled={more.status === 'loading'} onClick={loadMore}>
+                        {more.status === 'loading' ? '불러오는 중…' : '더 보기'}
+                      </Button>
+                    )}
+                  </div>
+                  {match(more)
+                    .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={loadMore} />)
+                    .with({ status: P.union('idle', 'loading') }, () => null)
+                    .exhaustive()}
+                </>
+              )}
+            </>
+          ))
+          .exhaustive()}
       {!failed && (
         <>
           <DartSourceLine

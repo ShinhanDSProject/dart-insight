@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react'
+import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { SjDiv } from '@/shared/api/results'
-import { getSummary, type Summary, type SummaryEvidence, type SummaryItem, type SummaryTarget } from '@/shared/api/summary'
+import type { Summary, SummaryEvidence, SummaryItem, SummaryTarget } from '@/shared/api/summary'
 import { Badge, Button, Card, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
-import type { SourceTarget } from './TextEvidencePanel'
+import { useSummary } from '../hooks/useSummary'
+import type { SourceTarget } from '../model/resultParams'
 import {
   aiInfoLabel,
   explanationNote,
@@ -16,8 +17,6 @@ import {
   summaryStatusNotice,
   textCoverageNote,
 } from '../model/summaryLabels'
-
-type Load = { kind: 'loading' } | { kind: 'done'; data: Summary } | { kind: 'error'; error: unknown }
 
 interface SummaryTabProps {
   analysis: Analysis
@@ -33,40 +32,32 @@ interface SummaryTabProps {
  * 공시에 설명이 없으면 '확인된 설명 없음', 근거를 확인하지 못한 항목은 요약에서 빼고 '검토 필요'로 센다.
  */
 export function SummaryTab({ analysis, onOpenFinancial, onOpenText, onOpenSource }: SummaryTabProps) {
-  const [state, setState] = useState<Load>({ kind: 'loading' })
-  const [retry, setRetry] = useState(0)
+  const { state, reload } = useSummary(analysis.analysisId)
 
-  useEffect(() => {
-    let cancelled = false
-    setState({ kind: 'loading' })
-    getSummary(analysis.analysisId)
-      .then((data) => {
-        if (!cancelled) setState({ kind: 'done', data })
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) setState({ kind: 'error', error })
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [analysis.analysisId, retry])
-
-  if (state.kind === 'loading') {
-    return (
+  return match(state)
+    .with({ status: 'loading' }, () => (
       <Panel aria-label="요약·설명">
         <LoadingState message="요약을 불러오는 중입니다…" />
       </Panel>
-    )
-  }
-  if (state.kind === 'error') {
-    return (
+    ))
+    .with({ status: 'error' }, ({ error }) => (
       <Panel aria-label="요약·설명">
-        <ErrorState error={state.error} onRetry={() => setRetry((n) => n + 1)} />
+        <ErrorState error={error} onRetry={reload} />
       </Panel>
-    )
-  }
+    ))
+    .with({ status: 'success' }, ({ data }) => (
+      <SummaryBody
+        data={data}
+        analysis={analysis}
+        onOpenFinancial={onOpenFinancial}
+        onOpenText={onOpenText}
+        onOpenSource={onOpenSource}
+      />
+    ))
+    .exhaustive()
+}
 
-  const { data } = state
+function SummaryBody({ data, analysis, onOpenFinancial, onOpenText, onOpenSource }: SummaryTabProps & { data: Summary }) {
   const notice = summaryStatusNotice(data.summaryStatus, data.summaryMessage)
   const coverage = data.summaryStatus === null ? null : textCoverageNote(data.textStatus)
   const financial = data.items.filter((i) => i.kind === 'FINANCIAL')
@@ -202,7 +193,11 @@ function EvidenceLinks({ evidence, analysis, onOpenSource }: EvidenceLinksProps)
   return (
     <ul className="summary-item__evidence" aria-label="근거 원문">
       {evidence.map((e) => {
-        const report = e.side === 'current' ? analysis.current : e.side === 'previous' ? analysis.previous : null
+        const report = match(e.side)
+          .with('current', () => analysis.current)
+          .with('previous', () => analysis.previous)
+          // 분석의 보고서가 아니면(null) 열지 않는다
+          .otherwise(() => null)
         const side = e.side
         const sectionNo = e.sectionNo
         return (

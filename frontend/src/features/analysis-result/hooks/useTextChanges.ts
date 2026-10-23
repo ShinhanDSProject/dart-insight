@@ -1,0 +1,63 @@
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
+import { getTextChange, getTextChanges, type ChangeType, type TextChangeCounts, type TextSort } from '@/shared/api/textChanges'
+import { useAsync } from '@/shared/hooks/useAsync'
+import { textListReducer } from '../model/textList'
+
+export const TEXT_PAGE_SIZE = 20
+
+/**
+ * 문장 변화 목록(3.9)과 '더 보기'. 거르기·정렬이 바뀌거나 언마운트하면 진행 중인 요청을 취소한다(ST-5).
+ * counts는 마지막으로 받은 유형별 건수로, 다시 불러오는 동안에도 거르기 단추의 건수를 그대로 둔다.
+ */
+export function useTextChanges(analysisId: number, type: ChangeType | null, sort: TextSort) {
+  const [state, dispatch] = useReducer(textListReducer, { status: 'loading' })
+  const [attempt, setAttempt] = useState(0)
+  const moreRequest = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    const more = moreRequest
+    dispatch({ type: 'load-start' })
+    getTextChanges(analysisId, { type, sort, page: 0, size: TEXT_PAGE_SIZE }, controller.signal).then(
+      (data) => {
+        if (!controller.signal.aborted) dispatch({ type: 'load-success', data })
+      },
+      (error: unknown) => {
+        if (!controller.signal.aborted) dispatch({ type: 'load-failure', error })
+      },
+    )
+    return () => {
+      controller.abort()
+      more.current?.abort()
+    }
+  }, [analysisId, type, sort, attempt])
+
+  const [counts, setCounts] = useState<TextChangeCounts | null>(null)
+  if (state.status === 'success' && state.data.counts !== counts) {
+    setCounts(state.data.counts)
+  }
+
+  function loadMore() {
+    if (state.status !== 'success' || state.more.status === 'loading') return
+    const controller = new AbortController()
+    moreRequest.current = controller
+    dispatch({ type: 'more-start' })
+    getTextChanges(analysisId, { type, sort, page: state.data.page + 1, size: TEXT_PAGE_SIZE }, controller.signal).then(
+      (data) => {
+        if (!controller.signal.aborted) dispatch({ type: 'more-success', data })
+      },
+      (error: unknown) => {
+        if (!controller.signal.aborted) dispatch({ type: 'more-failure', error })
+      },
+    )
+  }
+
+  const reload = useCallback(() => setAttempt((n) => n + 1), [])
+  return { state, counts, reload, loadMore }
+}
+
+/** 문장·표 변경 하나의 원문 근거(3.4) */
+export function useTextChangeDetail(analysisId: number, changeId: number) {
+  const load = useCallback((signal: AbortSignal) => getTextChange(analysisId, changeId, signal), [analysisId, changeId])
+  return useAsync(load)
+}

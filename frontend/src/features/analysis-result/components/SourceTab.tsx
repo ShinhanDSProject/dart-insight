@@ -1,20 +1,14 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, type RefObject } from 'react'
+import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
-import {
-  firstContentSection,
-  getDocumentOutline,
-  getSection,
-  type DocumentOutline,
-  type DocumentSide,
-  type SectionContent,
-} from '@/shared/api/documents'
+import { firstContentSection, type DocumentOutline, type DocumentSide, type SectionContent } from '@/shared/api/documents'
 import { Notice, Panel, PanelTitle, SegmentedControl } from '@/shared/ui'
 import { DartLinkActions } from '@/shared/ui/DartLink'
 import { verifiedDartUrl } from '@/shared/lib/dart'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { TableView } from './TableView'
-
-type Load<T> = { kind: 'loading' } | { kind: 'done'; data: T } | { kind: 'error'; error: unknown }
+import { useDocumentOutline, useSection } from '../hooks/useDocument'
+import type { SourceViewChange } from '../model/resultParams'
 
 interface SourceTabProps {
   analysis: Analysis
@@ -23,7 +17,7 @@ interface SourceTabProps {
   sectionNo: number | null
   /** 강조할 근거 위치(블록 번호) */
   blockNo: number | null
-  onChange: (changes: { side?: DocumentSide; section?: number | null; block?: number | null }) => void
+  onChange: (changes: SourceViewChange) => void
 }
 
 const USABLE = new Set(['STRUCTURED', 'PARTIAL'])
@@ -38,23 +32,7 @@ const sideOptions: { value: DocumentSide; label: string }[] = [
  * 원문은 분석할 때 구조화한 것이고, DART 원문 안의 위치로 바로 가는 기능은 없어(위치 이동 미지원) 항목 정보를 함께 안내한다.
  */
 export function SourceTab({ analysis, side, sectionNo, blockNo, onChange }: SourceTabProps) {
-  const [outline, setOutline] = useState<Load<DocumentOutline>>({ kind: 'loading' })
-  const [retry, setRetry] = useState(0)
-
-  useEffect(() => {
-    let cancelled = false
-    setOutline({ kind: 'loading' })
-    getDocumentOutline(analysis.analysisId, side)
-      .then((data) => {
-        if (!cancelled) setOutline({ kind: 'done', data })
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) setOutline({ kind: 'error', error })
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [analysis.analysisId, side, retry])
+  const { state: outline, reload } = useDocumentOutline(analysis.analysisId, side)
 
   const report = side === 'current' ? analysis.current : analysis.previous
 
@@ -74,23 +52,26 @@ export function SourceTab({ analysis, side, sectionNo, blockNo, onChange }: Sour
         </p>
       </div>
 
-      {outline.kind === 'loading' && <LoadingState message="원문 목차를 불러오는 중입니다…" />}
-      {outline.kind === 'error' && <ErrorState error={outline.error} onRetry={() => setRetry((n) => n + 1)} />}
-      {outline.kind === 'done' && outline.data.rceptNo !== report.rceptNo && (
-        // 근거가 이 화면의 보고서 쌍과 맞는지 확인한다. 다르면 원문을 보여 주지 않는다
-        <Notice tone="attention" role="alert">
-          이 분석의 보고서(접수번호 {report.rceptNo})와 다른 원문이 와서 보여 주지 않아요. 새로고침해 주세요.
-        </Notice>
-      )}
-      {outline.kind === 'done' && outline.data.rceptNo === report.rceptNo && (
-        <SourceBody
-          analysis={analysis}
-          outline={outline.data}
-          sectionNo={sectionNo ?? firstContentSection(outline.data.sections)}
-          blockNo={blockNo}
-          onSelect={(section) => onChange({ section, block: null })}
-        />
-      )}
+      {match(outline)
+        .with({ status: 'loading' }, () => <LoadingState message="원문 목차를 불러오는 중입니다…" />)
+        .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} />)
+        .with({ status: 'success' }, ({ data }) =>
+          data.rceptNo !== report.rceptNo ? (
+            // 근거가 이 화면의 보고서 쌍과 맞는지 확인한다. 다르면 원문을 보여 주지 않는다
+            <Notice tone="attention" role="alert">
+              이 분석의 보고서(접수번호 {report.rceptNo})와 다른 원문이 와서 보여 주지 않아요. 새로고침해 주세요.
+            </Notice>
+          ) : (
+            <SourceBody
+              analysis={analysis}
+              outline={data}
+              sectionNo={sectionNo ?? firstContentSection(data.sections)}
+              blockNo={blockNo}
+              onSelect={(section) => onChange({ section, block: null })}
+            />
+          ),
+        )
+        .exhaustive()}
     </Panel>
   )
 }
@@ -159,45 +140,41 @@ interface SectionViewProps {
 }
 
 function SectionView({ analysis, outline, sectionNo, blockNo }: SectionViewProps) {
-  const [state, setState] = useState<Load<SectionContent>>({ kind: 'loading' })
-  const [retry, setRetry] = useState(0)
+  const { state, reload } = useSection(analysis.analysisId, outline.side, sectionNo)
   const headingRef = useRef<HTMLHeadingElement>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    setState({ kind: 'loading' })
-    getSection(analysis.analysisId, outline.side, sectionNo)
-      .then((data) => {
-        if (!cancelled) setState({ kind: 'done', data })
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) setState({ kind: 'error', error })
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [analysis.analysisId, outline.side, sectionNo, retry])
 
   // 근거 위치에서 왔으면 그 블록으로 화면과 초점을 옮긴다(블록이 없으면 항목 제목으로). 키보드·화면 읽기 사용자가
   // 다른 탭에서 넘어와도 어디를 보고 있는지 알 수 있게 한다
   useEffect(() => {
-    if (state.kind !== 'done' || blockNo === null) return
+    if (state.status !== 'success' || blockNo === null) return
     const target = document.getElementById(blockId(blockNo)) ?? headingRef.current
     target?.focus({ preventScroll: true })
     target?.scrollIntoView?.({ block: 'center' })
-  }, [state.kind, blockNo])
+  }, [state.status, blockNo])
 
-  if (state.kind === 'loading') return <LoadingState message="원문을 불러오는 중입니다…" />
-  if (state.kind === 'error') {
-    return (
+  return match(state)
+    .with({ status: 'loading' }, () => <LoadingState message="원문을 불러오는 중입니다…" />)
+    .with({ status: 'error' }, ({ error }) => (
       <ErrorState
-        error={state.error}
-        onRetry={() => setRetry((n) => n + 1)}
+        error={error}
+        onRetry={reload}
         messages={{ REPORT_SECTION_NOT_FOUND: '원문에서 이 항목을 찾지 못했어요. 목차에서 다시 골라 주세요.' }}
       />
-    )
-  }
-  const { data } = state
+    ))
+    .with({ status: 'success' }, ({ data }) => (
+      <SectionBlocks outline={outline} data={data} blockNo={blockNo} headingRef={headingRef} />
+    ))
+    .exhaustive()
+}
+
+interface SectionBlocksProps {
+  outline: DocumentOutline
+  data: SectionContent
+  blockNo: number | null
+  headingRef: RefObject<HTMLHeadingElement | null>
+}
+
+function SectionBlocks({ outline, data, blockNo, headingRef }: SectionBlocksProps) {
   const dartUrl = verifiedDartUrl(outline.rceptNo, outline.dartUrl)
   const highlighted = blockNo !== null && data.blocks.some((b) => b.blockNo === blockNo)
   return (
