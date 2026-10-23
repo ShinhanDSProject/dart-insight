@@ -133,8 +133,7 @@ function ReportSelection({ corpCode, company, reports, selection }: ReportSelect
         <p className="panel__note">
           대상 기간과 제출일은 따로 보여 줘요. 정정 여부를 확인하지 못하면 추정하지 않고 '확인 안 됨'으로 표시해요.
           <br />
-          사업·반기·분기보고서(A001~A003) 중 12월 결산 보고서만 보여요. 그 밖의 정기공시(A004·A005)는 지원 범위가 정해지면
-          추가해요.
+          12월 결산 회사의 사업·반기·분기보고서만 비교할 수 있어요.
         </p>
       </Panel>
 

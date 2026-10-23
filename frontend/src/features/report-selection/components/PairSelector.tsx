@@ -31,7 +31,7 @@ export function PairSelector(props: PairSelectorProps) {
           비교 기준
         </FieldLabel>
         <SegmentedControl aria-labelledby="basis-label" options={basisOptions} value={basis} onChange={onBasisChange} />
-        <FieldHint>기본 비교 기준은 결정 전이라 전년 동기로 두었어요.</FieldHint>
+        <FieldHint>전년 동기는 작년 같은 기간 보고서와 비교해요. 계절에 따른 차이를 덜 받아요.</FieldHint>
       </div>
 
       <div className="pair__slots">

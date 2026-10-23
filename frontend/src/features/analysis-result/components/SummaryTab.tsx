@@ -165,7 +165,12 @@ function SummaryCard({ item, analysis, onOpen, onOpenSource }: SummaryCardProps)
           <p className="summary-item__ai-text">
             {item.aiGenerated && <Badge tone="accent">AI 생성</Badge>} {item.aiText}
           </p>
-          {item.ai && <p className="panel__note">{aiInfoLabel(item.ai)}</p>}
+          {item.ai && (
+            <details className="summary-item__meta">
+              <summary>생성 정보</summary>
+              {aiInfoLabel(item.ai)}
+            </details>
+          )}
           <EvidenceLinks evidence={item.evidence} analysis={analysis} onOpenSource={onOpenSource} />
         </div>
       )}
