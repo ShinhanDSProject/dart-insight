@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.dartinsight.common.error.ApiException;
-import com.dartinsight.dart.dto.CorpCodeEntry;
+import com.dartinsight.dart.domain.CorpCodeEntry;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

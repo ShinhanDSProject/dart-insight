@@ -10,13 +10,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.dartinsight.company.service.CompanyImportService;
-import com.dartinsight.dart.dto.CorpCodeEntry;
+import com.dartinsight.dart.domain.CorpCodeEntry;
 import com.dartinsight.dart.client.FakeOpenDartServer;
 import com.dartinsight.dart.client.FakeOpenDartServer.Response;
 import com.dartinsight.dart.client.FinancialJson;
 import com.dartinsight.report.domain.Correction;
 import com.dartinsight.report.domain.Report;
-import com.dartinsight.report.service.ReportNameParser.ParsedReportName;
+import com.dartinsight.report.domain.ReportNameParser.ParsedReportName;
 import com.dartinsight.report.repository.ReportRepository;
 import com.dartinsight.report.domain.ReportType;
 import com.dartinsight.support.TestData;

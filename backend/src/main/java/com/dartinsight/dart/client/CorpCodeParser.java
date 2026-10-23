@@ -2,7 +2,7 @@ package com.dartinsight.dart.client;
 
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
-import com.dartinsight.dart.dto.CorpCodeEntry;
+import com.dartinsight.dart.domain.CorpCodeEntry;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;

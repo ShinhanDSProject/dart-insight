@@ -1,6 +1,6 @@
 package com.dartinsight.company.domain;
 
-import com.dartinsight.dart.dto.CorpCodeEntry;
+import com.dartinsight.dart.domain.CorpCodeEntry;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;

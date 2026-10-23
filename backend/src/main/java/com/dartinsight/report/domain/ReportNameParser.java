@@ -1,7 +1,5 @@
-package com.dartinsight.report.service;
+package com.dartinsight.report.domain;
 
-import com.dartinsight.report.domain.Correction;
-import com.dartinsight.report.domain.ReportType;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.Optional;

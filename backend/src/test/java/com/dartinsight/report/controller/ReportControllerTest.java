@@ -12,7 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.dartinsight.company.domain.Company;
 import com.dartinsight.company.service.CompanyImportService;
 import com.dartinsight.company.repository.CompanyRepository;
-import com.dartinsight.dart.dto.CorpCodeEntry;
+import com.dartinsight.dart.domain.CorpCodeEntry;
 import com.dartinsight.dart.client.DisclosureListJson;
 import com.dartinsight.dart.client.FakeOpenDartServer;
 import com.dartinsight.dart.client.FakeOpenDartServer.Response;
