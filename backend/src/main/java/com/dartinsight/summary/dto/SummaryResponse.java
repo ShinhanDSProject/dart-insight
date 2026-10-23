@@ -1,6 +1,6 @@
 package com.dartinsight.summary.dto;
 
-import com.dartinsight.analysis.TextStatus;
+import com.dartinsight.analysis.domain.TextStatus;
 import com.dartinsight.summary.domain.SummaryItemRow;
 import com.dartinsight.summary.domain.SummaryStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;

@@ -1,7 +1,7 @@
 package com.dartinsight.summary.service;
 
-import com.dartinsight.analysis.Analysis;
-import com.dartinsight.analysis.AnalysisResultService;
+import com.dartinsight.analysis.domain.Analysis;
+import com.dartinsight.analysis.service.AnalysisResultService;
 import com.dartinsight.summary.domain.SummaryItemRow;
 import com.dartinsight.summary.repository.SummaryStore.StoredItem;
 import com.dartinsight.summary.repository.SummaryStore;

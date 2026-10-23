@@ -1,8 +1,8 @@
 package com.dartinsight.summary.service;
 
-import com.dartinsight.analysis.CalcStatus;
-import com.dartinsight.analysis.FinancialChangeRow;
-import com.dartinsight.analysis.TextChangeRow;
+import com.dartinsight.analysis.domain.CalcStatus;
+import com.dartinsight.analysis.domain.FinancialChangeRow;
+import com.dartinsight.analysis.domain.TextChangeRow;
 import com.dartinsight.document.domain.DocumentBlock;
 import com.dartinsight.document.domain.DocumentSection;
 import com.dartinsight.summary.dto.SummaryAiRequest;
