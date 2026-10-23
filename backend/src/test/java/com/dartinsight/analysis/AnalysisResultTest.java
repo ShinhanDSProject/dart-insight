@@ -9,7 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.dartinsight.analysis.FinancialChangeRow.Evidence;
-import com.dartinsight.company.CompanyImportService;
+import com.dartinsight.company.service.CompanyImportService;
 import com.dartinsight.comparison.AmountBasis;
 import com.dartinsight.comparison.ComparisonBasis;
 import com.dartinsight.dart.dto.CorpCodeEntry;

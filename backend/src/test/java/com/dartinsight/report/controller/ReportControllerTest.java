@@ -9,9 +9,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.dartinsight.company.Company;
-import com.dartinsight.company.CompanyImportService;
-import com.dartinsight.company.CompanyRepository;
+import com.dartinsight.company.domain.Company;
+import com.dartinsight.company.service.CompanyImportService;
+import com.dartinsight.company.repository.CompanyRepository;
 import com.dartinsight.dart.dto.CorpCodeEntry;
 import com.dartinsight.dart.client.DisclosureListJson;
 import com.dartinsight.dart.client.FakeOpenDartServer;
