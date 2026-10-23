@@ -137,10 +137,6 @@ public class TextChangeStore {
         return value == null || value.length() <= max ? value : value.substring(0, max);
     }
 
-    /** 저장된 문장·표 변경 */
-    public record TextChange(long id, int changeNo, TextChangeRow row) {
-    }
-
     static BigDecimal similarity(Double value) {
         return value == null ? null : BigDecimal.valueOf(value).setScale(4, RoundingMode.HALF_UP);
     }

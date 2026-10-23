@@ -12,7 +12,6 @@ import com.dartinsight.summary.SummaryResponse.EvidenceView;
 import com.dartinsight.summary.SummaryResponse.ItemView;
 import com.dartinsight.summary.SummaryResponse.ReviewView;
 import com.dartinsight.summary.SummaryResponse.Target;
-import com.dartinsight.summary.SummaryStore.StoredItem;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -47,22 +46,21 @@ public class SummaryController {
         List<ItemView> shown = new ArrayList<>();
         List<ReviewView> review = new ArrayList<>();
         for (SummaryEntry entry : summary.entries()) {
-            StoredItem stored = entry.stored();
-            SummaryItemRow row = stored.row();
+            SummaryItemRow row = entry.row();
             Target target = new Target(entry.targetType(), entry.changeId(), entry.sjDiv());
             if (SummaryItemRow.REVIEW_NEEDED.equals(row.status())) {
-                review.add(new ReviewView(stored.itemNo(), row.kind(), target, row.reviewReason(),
+                review.add(new ReviewView(entry.itemNo(), row.kind(), target, row.reviewReason(),
                         row.blockedRules()));
                 continue;
             }
             if (SummaryItemRow.REVIEW_NEEDED.equals(row.explanationStatus())) {
-                review.add(new ReviewView(stored.itemNo(), row.kind(), target,
+                review.add(new ReviewView(entry.itemNo(), row.kind(), target,
                         "설명의 근거를 확인하지 못했어요. " + (row.reviewReason() == null ? "" : row.reviewReason()),
                         row.blockedRules()));
             }
             List<EvidenceView> evidence = row.evidenceIds().stream()
                     .map(id -> evidence(analysis, id, documents)).toList();
-            shown.add(new ItemView(stored.itemNo(), row.kind(), target, row.factSentence(), row.aiText(),
+            shown.add(new ItemView(entry.itemNo(), row.kind(), target, row.factSentence(), row.aiText(),
                     row.aiGenerated(), row.explanationStatus(), evidence, AiInfo.from(row)));
         }
         return new SummaryResponse(analysisId, analysis.getSummaryStatus(), analysis.getSummaryMessage(),
