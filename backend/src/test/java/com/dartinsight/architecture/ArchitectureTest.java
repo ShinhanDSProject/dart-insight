@@ -2,6 +2,7 @@ package com.dartinsight.architecture;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
 import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 
 import com.dartinsight.DartInsightApplication;
@@ -11,6 +12,9 @@ import com.dartinsight.analysis.service.AnalysisResultService;
 import com.dartinsight.analysis.service.AnalysisRunner;
 import com.dartinsight.company.repository.CompanyRepository;
 import com.dartinsight.comparison.service.ReportPairService;
+import com.dartinsight.document.domain.ReportDocument;
+import com.dartinsight.document.domain.TableJson;
+import com.dartinsight.document.dto.StructuredDocumentResponse;
 import com.dartinsight.report.repository.ReportRepository;
 import com.dartinsight.report.service.ReportService;
 import com.dartinsight.report.service.ReportSyncService;
@@ -19,6 +23,7 @@ import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.Dependency;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.domain.JavaMethodCall;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
@@ -30,13 +35,12 @@ import java.util.function.BiPredicate;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.stereotype.Controller;
-import org.springframework.stereotype.Service;
 
 /**
- * 계층·도메인 의존 규칙(conventions.yaml LY-1, PKG-3). 패키지는 도메인별로 평평하므로 계층은 이름·어노테이션으로 가린다.
- * 컨트롤러는 @Controller(@RestController 포함), 저장소는 이름이 Repository·Store로 끝나는 클래스,
- * Service는 @Service거나 이름이 Service로 끝나는 클래스다. 도메인은 루트 패키지 바로 아래 첫 패키지다(common 제외).
+ * 계층·도메인 의존 규칙(conventions.yaml PKG-1, PKG-3, LY-1, EN-2). 계층은 도메인 안의 하위 패키지로 가린다(ADR-0016).
+ * 컨트롤러는 {@code ..controller..}, Service는 {@code ..service..}, 저장소(JPA Repository·JdbcTemplate Store)는
+ * {@code ..repository..}, 엔티티·값은 {@code ..domain..}, 요청·응답 record는 {@code ..dto..},
+ * 외부 서버 호출은 {@code ..client..}, 설정 값은 {@code ..config..}에 있다. 도메인은 루트 패키지 바로 아래 첫 패키지다(common 제외).
  *
  * <p>예외 목록은 지금 있는 사례만 담는다. 새 예외를 더하지 말고, 해소하면 목록에서 지운다.
  */
@@ -44,6 +48,17 @@ import org.springframework.stereotype.Service;
 class ArchitectureTest {
 
     private static final String ROOT = DartInsightApplication.class.getPackageName();
+
+    private static final String CONTROLLER = "..controller..";
+    private static final String SERVICE = "..service..";
+    private static final String REPOSITORY = "..repository..";
+    private static final String DOMAIN = "..domain..";
+    private static final String DTO = "..dto..";
+    private static final String CLIENT = "..client..";
+    private static final String CONFIG = "..config..";
+
+    /** ADR-0004·0016: 결과 저장과 함께 부르는 완료 처리. AnalysisResultService만 부른다. */
+    private static final Set<String> COMPLETION_METHODS = Set.of("complete", "recordText", "recordSummary");
 
     /** PKG-3 예외: 다른 도메인의 Repository·Store를 직접 쓰는 지금 사례. 해소는 별도 이슈에서 한다. */
     private static final Set<Allowed> CROSS_DOMAIN_STORES = Set.of(
@@ -65,9 +80,38 @@ class ArchitectureTest {
     private static final Set<Class<?>> ANALYSIS_TO_SUMMARY = Set.of(
             Analysis.class, AnalysisResponse.class, AnalysisResultService.class, AnalysisRunner.class);
 
+    /**
+     * 계층 예외: ai-server의 원문 구조화 응답(dto)을 받아 엔티티·표 JSON으로 옮기는 domain 클래스.
+     * 해소는 변환을 DocumentService로 옮기는 별도 이슈에서 한다.
+     */
+    private static final Set<Class<?>> DOMAIN_FROM_DTO = Set.of(ReportDocument.class, TableJson.class);
+
+    @ArchTest
+    void layersAreRespected(JavaClasses classes) {
+        layeredArchitecture().consideringOnlyDependenciesInLayers()
+                .layer("Controller").definedBy(CONTROLLER)
+                .layer("Service").definedBy(SERVICE)
+                .layer("Repository").definedBy(REPOSITORY)
+                .layer("Domain").definedBy(DOMAIN)
+                .layer("Dto").definedBy(DTO)
+                .layer("Client").definedBy(CLIENT)
+                .layer("Config").definedBy(CONFIG)
+                .whereLayer("Controller").mayNotBeAccessedByAnyLayer()
+                .whereLayer("Service").mayOnlyBeAccessedByLayers("Controller", "Dto")
+                .whereLayer("Repository").mayOnlyBeAccessedByLayers("Service")
+                .whereLayer("Dto").mayOnlyBeAccessedByLayers("Controller", "Service", "Repository", "Client")
+                .whereLayer("Client").mayOnlyBeAccessedByLayers("Controller", "Service", "Dto")
+                .ignoreDependency(
+                        DescribedPredicate.describe("원문 구조화 결과로 자신을 채우는 document 도메인 클래스",
+                                origin -> DOMAIN_FROM_DTO.stream().anyMatch(c -> topLevel(origin).isEquivalentTo(c))),
+                        DescribedPredicate.describe("StructuredDocumentResponse",
+                                target -> topLevel(target).isEquivalentTo(StructuredDocumentResponse.class)))
+                .check(classes);
+    }
+
     @ArchTest
     void controllersDoNotUsePersistenceDirectly(JavaClasses classes) {
-        classes().that().areMetaAnnotatedWith(Controller.class)
+        classes().that().resideInAPackage(CONTROLLER)
                 .should(notDependOn("Repository·Store·JdbcTemplate",
                         (origin, target) -> isPersistence(target)))
                 .check(classes);
@@ -75,14 +119,14 @@ class ArchitectureTest {
 
     @ArchTest
     void persistenceDoesNotDependOnServicesOrControllers(JavaClasses classes) {
-        noClasses().that(persistenceTypes())
-                .should().dependOnClassesThat(servicesOrControllers())
+        noClasses().that().resideInAPackage(REPOSITORY)
+                .should().dependOnClassesThat().resideInAnyPackage(SERVICE, CONTROLLER)
                 .check(classes);
     }
 
     @ArchTest
     void controllersDoNotDependOnOtherControllers(JavaClasses classes) {
-        classes().that().areMetaAnnotatedWith(Controller.class)
+        classes().that().resideInAPackage(CONTROLLER)
                 .should(notDependOn("다른 컨트롤러",
                         (origin, target) -> isController(target) && !topLevel(origin).equals(topLevel(target))))
                 .check(classes);
@@ -92,10 +136,21 @@ class ArchitectureTest {
     void domainsDoNotUseOtherDomainsPersistence(JavaClasses classes) {
         classes().that().resideInAPackage(ROOT + "..")
                 .should(notDependOn("다른 도메인의 Repository·Store",
-                        (origin, target) -> isPersistenceByName(target)
+                        (origin, target) -> isRepositoryPackage(target)
                                 && domainOf(origin) != null && domainOf(target) != null
                                 && !domainOf(origin).equals(domainOf(target))
                                 && !isAllowed(CROSS_DOMAIN_STORES, origin, target)))
+                .check(classes);
+    }
+
+    @ArchTest
+    void onlyResultServiceCompletesAnalysis(JavaClasses classes) {
+        noClasses().that(DescribedPredicate.describe("AnalysisResultService가 아닌 클래스",
+                        c -> !topLevel(c).isEquivalentTo(AnalysisResultService.class)))
+                .should().callMethodWhere(DescribedPredicate.describe(
+                        "Analysis의 완료 처리 " + COMPLETION_METHODS,
+                        (JavaMethodCall call) -> call.getTargetOwner().isEquivalentTo(Analysis.class)
+                                && COMPLETION_METHODS.contains(call.getName())))
                 .check(classes);
     }
 
@@ -125,32 +180,20 @@ class ArchitectureTest {
     }
 
     private static boolean isPersistence(JavaClass target) {
-        return isPersistenceByName(target)
+        return isRepositoryPackage(target)
                 || target.isAssignableTo(JpaRepository.class)
                 || target.isAssignableTo(JdbcTemplate.class)
                 || target.isAssignableTo(NamedParameterJdbcTemplate.class);
     }
 
-    /** 이름이 Repository·Store로 끝나는 클래스와 그 안에 선언한 클래스. */
-    private static boolean isPersistenceByName(JavaClass target) {
-        String name = topLevel(target).getSimpleName();
-        return name.endsWith("Repository") || name.endsWith("Store");
+    /** 우리 코드의 repository 패키지에 있는 클래스(JPA Repository·JdbcTemplate Store와 그 안에 선언한 클래스). */
+    private static boolean isRepositoryPackage(JavaClass target) {
+        return target.getPackageName().startsWith(ROOT + ".") && target.getPackageName().endsWith(".repository");
     }
 
-    private static DescribedPredicate<JavaClass> persistenceTypes() {
-        return DescribedPredicate.describe("Repository·Store",
-                c -> c.getSimpleName().endsWith("Repository") || c.getSimpleName().endsWith("Store"));
-    }
-
-    private static DescribedPredicate<JavaClass> servicesOrControllers() {
-        return DescribedPredicate.describe("Service·컨트롤러",
-                c -> isController(c) || !c.isAnnotation()
-                        && (c.isMetaAnnotatedWith(Service.class) || c.getSimpleName().endsWith("Service")));
-    }
-
-    /** @Controller·@RestController가 붙은 클래스. 어노테이션 타입(@RestController 자체)은 뺀다. */
+    /** 우리 코드의 controller 패키지에 있는 클래스. */
     private static boolean isController(JavaClass c) {
-        return !c.isAnnotation() && c.isMetaAnnotatedWith(Controller.class);
+        return c.getPackageName().startsWith(ROOT + ".") && c.getPackageName().endsWith(".controller");
     }
 
     private static JavaClass topLevel(JavaClass c) {
