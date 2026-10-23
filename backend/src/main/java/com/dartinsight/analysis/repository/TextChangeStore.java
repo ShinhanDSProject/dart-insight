@@ -1,8 +1,10 @@
 package com.dartinsight.analysis.repository;
 
 import com.dartinsight.analysis.domain.TextChange;
+import com.dartinsight.analysis.domain.TextChangeFilter;
 import com.dartinsight.analysis.domain.TextChangeRow.Side;
 import com.dartinsight.analysis.domain.TextChangeRow;
+import com.dartinsight.analysis.domain.TextSectionCount;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.ResultSet;
@@ -10,6 +12,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +35,9 @@ public class TextChangeStore {
     /** 우선순위 순: 점수가 높은 것부터, 순위를 매기지 않은 것(판단 유보)은 뒤에 문서 순서로 */
     private static final String BY_PRIORITY = "CASE WHEN priority_score IS NULL THEN 1 ELSE 0 END, "
             + "priority_score DESC, change_no";
+    /** 섹션 경로의 첫 제목(최상위 섹션). 구분 글이 없으면 경로 전체 */
+    private static final String TOP_SECTION = "CASE WHEN LOCATE(' > ', section_path) > 0 "
+            + "THEN SUBSTRING(section_path, 1, LOCATE(' > ', section_path) - 1) ELSE section_path END";
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -64,33 +70,90 @@ public class TextChangeStore {
         }
     }
 
-    /** 유형별 건수. 키는 change_type, 없는 유형은 0 */
-    public Map<String, Integer> counts(long analysisId) {
+    /** 유형별 건수. 키는 change_type, 없는 유형은 0. filter의 type은 보지 않는다 */
+    public Map<String, Integer> counts(long analysisId, TextChangeFilter filter) {
         Map<String, Integer> counts = new LinkedHashMap<>();
         for (String type : List.of(TextChangeRow.ADDED, TextChangeRow.DELETED, TextChangeRow.MODIFIED,
                 TextChangeRow.REVIEW_NEEDED)) {
             counts.put(type, 0);
         }
-        jdbcTemplate.query("SELECT change_type, COUNT(*) AS n FROM text_change WHERE analysis_id = ? "
-                + "GROUP BY change_type", rs -> {
+        Condition condition = Condition.of(filter.withoutType());
+        List<Object> args = new ArrayList<>();
+        args.add(analysisId);
+        args.addAll(condition.args());
+        jdbcTemplate.query("SELECT change_type, COUNT(*) AS n FROM text_change WHERE analysis_id = ?"
+                + condition.andSql() + " GROUP BY change_type", rs -> {
                     counts.put(rs.getString("change_type"), rs.getInt("n"));
-                }, analysisId);
+                }, args.toArray());
         return counts;
     }
 
     /**
-     * 한 쪽. type이 null이면 전체.
+     * 변경이 있는 최상위 섹션 전부(문서 순서: 섹션의 첫 change_no 순)와 filter에 맞는 건수(0일 수 있음).
+     * filter의 section은 보지 않는다.
+     */
+    public List<TextSectionCount> sections(long analysisId, TextChangeFilter filter) {
+        Condition condition = Condition.of(filter.withoutSection());
+        String hit = condition.sql().isEmpty() ? "1" : "CASE WHEN " + condition.sql() + " THEN 1 ELSE 0 END";
+        List<Object> args = new ArrayList<>(condition.args());
+        args.add(analysisId);
+        return jdbcTemplate.query("SELECT top_section, SUM(hit) AS n, MIN(change_no) AS first_no FROM ("
+                + "SELECT " + TOP_SECTION + " AS top_section, change_no, " + hit + " AS hit "
+                + "FROM text_change WHERE analysis_id = ?) t GROUP BY top_section ORDER BY first_no",
+                (rs, i) -> new TextSectionCount(rs.getString("top_section"), rs.getInt("n")), args.toArray());
+    }
+
+    /**
+     * filter에 모두 맞는 변경 한 쪽.
      *
      * @param byPriority true면 우선순위 순({@link #BY_PRIORITY}), false면 문서 순서
      */
-    public List<TextChange> page(long analysisId, String type, boolean byPriority, long offset, int limit) {
-        String order = " ORDER BY " + (byPriority ? BY_PRIORITY : "change_no") + " LIMIT ? OFFSET ?";
-        if (type == null) {
-            return jdbcTemplate.query("SELECT " + COLUMNS + " FROM text_change WHERE analysis_id = ?" + order,
-                    TextChangeStore::map, analysisId, limit, offset);
+    public List<TextChange> page(long analysisId, TextChangeFilter filter, boolean byPriority, long offset,
+            int limit) {
+        Condition condition = Condition.of(filter);
+        List<Object> args = new ArrayList<>();
+        args.add(analysisId);
+        args.addAll(condition.args());
+        args.add(limit);
+        args.add(offset);
+        return jdbcTemplate.query("SELECT " + COLUMNS + " FROM text_change WHERE analysis_id = ?"
+                + condition.andSql() + " ORDER BY " + (byPriority ? BY_PRIORITY : "change_no")
+                + " LIMIT ? OFFSET ?", TextChangeStore::map, args.toArray());
+    }
+
+    /** filter를 WHERE 조건으로. LIKE의 %·_는 글자 그대로 찾도록 '!'로 막는다 */
+    private record Condition(String sql, List<Object> args) {
+
+        static Condition of(TextChangeFilter filter) {
+            List<String> parts = new ArrayList<>();
+            List<Object> args = new ArrayList<>();
+            if (filter.type() != null) {
+                parts.add("change_type = ?");
+                args.add(filter.type());
+            }
+            if (filter.section() != null) {
+                parts.add("(section_path = ? OR section_path LIKE ? ESCAPE '!')");
+                args.add(filter.section());
+                args.add(escapeLike(filter.section()) + TextChangeFilter.PATH_SEPARATOR + "%");
+            }
+            if (filter.q() != null) {
+                parts.add("(LOWER(previous_text) LIKE ? ESCAPE '!' OR LOWER(current_text) LIKE ? ESCAPE '!' "
+                        + "OR LOWER(section_path) LIKE ? ESCAPE '!')");
+                String pattern = "%" + escapeLike(filter.q().toLowerCase(Locale.ROOT)) + "%";
+                args.add(pattern);
+                args.add(pattern);
+                args.add(pattern);
+            }
+            return new Condition(String.join(" AND ", parts), args);
         }
-        return jdbcTemplate.query("SELECT " + COLUMNS + " FROM text_change WHERE analysis_id = ? AND change_type = ?"
-                + order, TextChangeStore::map, analysisId, type, limit, offset);
+
+        String andSql() {
+            return sql.isEmpty() ? "" : " AND " + sql;
+        }
+
+        private static String escapeLike(String value) {
+            return value.replace("!", "!!").replace("%", "!%").replace("_", "!_");
+        }
     }
 
     /** 변경 번호(change_no)로 찾은 변경 ID */

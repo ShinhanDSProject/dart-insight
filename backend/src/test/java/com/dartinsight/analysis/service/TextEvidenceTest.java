@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.dartinsight.analysis.domain.Analysis;
+import com.dartinsight.analysis.domain.TextChangeFilter;
 import com.dartinsight.analysis.domain.TextChangeRow.Side;
 import com.dartinsight.analysis.domain.TextChangeRow;
 import com.dartinsight.analysis.domain.TextComparison;
@@ -124,7 +125,7 @@ class TextEvidenceTest {
     }
 
     private long changeId(int changeNo) {
-        return textChangeStore.page(analysisId, null, false, changeNo - 1, 1).getFirst().id();
+        return textChangeStore.page(analysisId, TextChangeFilter.NONE, false, changeNo - 1, 1).getFirst().id();
     }
 
     @Test
