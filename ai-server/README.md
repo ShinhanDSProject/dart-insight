@@ -42,8 +42,13 @@ LLM은 `app/llm`의 `LlmClient`를 거쳐서만 부릅니다. 다른 코드에�
 ## 폴더
 
 ```text
-app/api/    내부 API(backend만 부름)
-app/core/   설정, 공통 에러, 추적 ID
-app/llm/    LLM 호출 모듈
-tests/      테스트
+app/main.py      앱 생성(라우터·에러 처리·LLM 클라이언트 연결)
+app/api/         내부 API 라우터(backend만 부름), 경로 상수 paths.py
+app/core/        설정, 공통 에러, 추적 ID
+app/llm/         LLM 호출 단일 모듈(제공자, 호출 기록)
+app/documents/   원문 ZIP 파싱·구조화(4.2)
+app/compare/     문장·표 변경 탐지와 우선순위(2.5·2.6)
+app/summary/     근거 기반 요약·검증(3.2)
+app/compliance/  투자 권유성 표현 검사(5.5)
+tests/           app/과 같은 구조(tests/<패키지>/test_<모듈>.py), 실제 원문 기록은 tests/fixtures/
 ```
