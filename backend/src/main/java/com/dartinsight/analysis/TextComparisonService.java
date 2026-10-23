@@ -1,7 +1,7 @@
 package com.dartinsight.analysis;
 
-import com.dartinsight.aiserver.AiServerClient;
-import com.dartinsight.aiserver.AiServerPaths;
+import com.dartinsight.aiserver.client.AiServerClient;
+import com.dartinsight.aiserver.client.AiServerPaths;
 import com.dartinsight.analysis.TextChangeRow.Side;
 import com.dartinsight.document.DocumentBlock;
 import com.dartinsight.document.DocumentService;

@@ -1,8 +1,8 @@
 package com.dartinsight.summary;
 
-import com.dartinsight.aiserver.AiServerClient;
-import com.dartinsight.aiserver.AiServerException;
-import com.dartinsight.aiserver.AiServerPaths;
+import com.dartinsight.aiserver.client.AiServerClient;
+import com.dartinsight.aiserver.client.AiServerException;
+import com.dartinsight.aiserver.client.AiServerPaths;
 import com.dartinsight.analysis.FinancialChangeRow;
 import com.dartinsight.analysis.TextChangeRow;
 import com.dartinsight.analysis.TextChangeRow.Side;
@@ -28,7 +28,7 @@ import org.springframework.stereotype.Service;
 /**
  * 근거 기반 요약(3.2). 코드가 요약할 변화를 고르고 사실 문장(수치)을 만들며, AI 서버(LLM)는 문장 변화의 요약과
  * 공시에 적힌 설명만 쓴다. AI 서버가 근거·숫자를 확인해 통과하지 못한 항목은 '검토 필요'로 돌려준다.
- * AI 서버·LLM을 부를 수 없으면 {@link com.dartinsight.aiserver.AiServerException}을 그대로 던진다(분석 실패).
+ * AI 서버·LLM을 부를 수 없으면 {@link com.dartinsight.aiserver.client.AiServerException}을 그대로 던진다(분석 실패).
  */
 @Service
 @RequiredArgsConstructor

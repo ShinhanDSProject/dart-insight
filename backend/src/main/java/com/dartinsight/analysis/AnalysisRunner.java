@@ -1,6 +1,6 @@
 package com.dartinsight.analysis;
 
-import com.dartinsight.aiserver.AiServerException;
+import com.dartinsight.aiserver.client.AiServerException;
 import com.dartinsight.analysis.FinancialComparator.Side;
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.trace.TraceContext;

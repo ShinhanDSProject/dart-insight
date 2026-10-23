@@ -1,4 +1,4 @@
-package com.dartinsight.aiserver;
+package com.dartinsight.aiserver.client;
 
 import com.dartinsight.common.trace.TraceContext;
 import com.sun.net.httpserver.HttpExchange;
