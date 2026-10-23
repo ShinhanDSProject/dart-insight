@@ -4,6 +4,7 @@ from app.core.config import LlmSettings
 from app.llm import FakeProvider, LlmClient
 from app.main import create_app
 from app.summary import fake
+from app.summary.schema import SummaryRequest
 
 CUR = "20260814000001"
 BODY = {
@@ -66,6 +67,16 @@ def test_no_llm_is_503() -> None:
 
     assert response.status_code == 503
     assert response.json()["code"] == "AI_LLM_UNAVAILABLE"
+
+
+def test_account_aliases_are_read_and_default_to_empty() -> None:
+    aliased = {"ref": "F2", "accountName": "영업손실", "accountAliases": ["영업손실", "영업이익"]}
+    body = {**BODY, "financialItems": [*BODY["financialItems"], aliased]}
+
+    revenue, operating = SummaryRequest.model_validate(body).to_input().financial_items
+
+    assert revenue.account_aliases == []
+    assert operating.account_aliases == ["영업손실", "영업이익"]
 
 
 def test_duplicate_refs_are_rejected() -> None:
