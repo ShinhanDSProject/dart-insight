@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { verifiedDartUrl } from '@/shared/lib/dart'
+import { Button, ButtonAnchor } from './Button'
 
 type CopyState = 'idle' | 'copied' | 'failed'
 
@@ -36,13 +37,13 @@ export function DartLinkActions({ rceptNo, dartUrl }: DartLinkProps) {
   return (
     <div className="dart-link">
       <div className="dart-link__actions">
-        <a className="button button--secondary" href={url} target="_blank" rel="noopener noreferrer">
+        <ButtonAnchor variant="secondary" href={url} target="_blank" rel="noopener noreferrer">
           DART 원문 열기 <span aria-hidden="true">↗</span>
           <span className="visually-hidden">(새 창)</span>
-        </a>
-        <button type="button" className="button button--secondary" onClick={() => void copyLink(url)}>
+        </ButtonAnchor>
+        <Button variant="secondary" onClick={() => void copyLink(url)}>
           링크 복사
-        </button>
+        </Button>
         <span className="dart-link__status" role="status" aria-live="polite">
           {copy === 'copied' && '링크를 복사했어요.'}
         </span>

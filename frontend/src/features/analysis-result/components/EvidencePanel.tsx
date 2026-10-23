@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Analysis } from '@/shared/api/analyses'
 import { getFinancialChange, type FinancialChangeDetail, type ValueSource } from '@/shared/api/results'
+import { Button, Notice } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { amountPeriodLabel, formatAmount, missingValueLabel, unitLabel, type AmountUnit } from '../model/format'
@@ -60,9 +61,9 @@ export function EvidencePanel({ analysis, changeId, unit, onClose }: EvidencePan
         <h2 id="evidence-title" className="panel__title" ref={headingRef} tabIndex={-1}>
           {title}
         </h2>
-        <button type="button" className="button button--secondary" onClick={onClose}>
+        <Button variant="secondary" onClick={onClose}>
           닫기
-        </button>
+        </Button>
       </div>
       {state.kind === 'loading' && <LoadingState message="근거를 불러오는 중입니다…" />}
       {state.kind === 'error' && (
@@ -114,9 +115,9 @@ function EvidenceBody({ analysis, detail, unit }: { analysis: Analysis; detail: 
           {detail.rateFormula ? `증감률 = 증감액 ÷ 이전 값 × 100 = ${detail.rateFormula}` : `증감률: ${detail.calcMessage}`}
         </p>
       ) : (
-        <p className="notice" role="status">
+        <Notice as="p" role="status">
           계산하지 않았어요. {detail.calcMessage}
-        </p>
+        </Notice>
       )}
       <p className="evidence__note">관련 설명: <strong>확인된 설명 없음</strong></p>
       <p className="panel__note">

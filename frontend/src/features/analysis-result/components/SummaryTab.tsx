@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Analysis } from '@/shared/api/analyses'
 import type { SjDiv } from '@/shared/api/results'
 import { getSummary, type Summary, type SummaryEvidence, type SummaryItem, type SummaryTarget } from '@/shared/api/summary'
+import { Badge, Button, Notice } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
@@ -80,9 +81,9 @@ export function SummaryTab({ analysis, onOpenFinancial, onOpenText, onOpenSource
   return (
     <section className="panel" aria-label="요약·설명">
       {notice && (
-        <div className={`notice${data.summaryStatus === 'PARTIAL' ? ' notice--attention' : ''}`} role="status">
+        <Notice tone={data.summaryStatus === 'PARTIAL' ? 'attention' : 'info'} role="status">
           {notice}
-        </div>
+        </Notice>
       )}
       {coverage && <p className="panel__note">{coverage}</p>}
 
@@ -135,13 +136,13 @@ export function SummaryTab({ analysis, onOpenFinancial, onOpenText, onOpenSource
               const openReview = opener(review.target)
               return (
                 <li key={`${review.itemNo}-${review.reason ?? ''}`}>
-                  <span className="badge badge--attention">{kindLabel(review.kind)}</span>
-                  {review.blockedRules.length > 0 && <span className="badge badge--attention">표현 검사</span>}
+                  <Badge tone="attention">{kindLabel(review.kind)}</Badge>
+                  {review.blockedRules.length > 0 && <Badge tone="attention">표현 검사</Badge>}
                   <span>{review.reason ?? '근거를 확인하지 못했어요.'}</span>
                   {openReview && (
-                    <button type="button" className="link-button" onClick={openReview}>
+                    <Button variant="link" onClick={openReview}>
                       항목 보기
-                    </button>
+                    </Button>
                   )}
                 </li>
               )
@@ -177,7 +178,7 @@ function SummaryCard({ item, analysis, onOpen, onOpenSource }: SummaryCardProps)
       {item.aiText && (
         <div className="summary-item__ai">
           <p className="summary-item__ai-text">
-            {item.aiGenerated && <span className="badge badge--ai">AI 생성</span>} {item.aiText}
+            {item.aiGenerated && <Badge tone="accent">AI 생성</Badge>} {item.aiText}
           </p>
           {item.ai && <p className="panel__note">{aiInfoLabel(item.ai)}</p>}
           <EvidenceLinks evidence={item.evidence} analysis={analysis} onOpenSource={onOpenSource} />
@@ -186,9 +187,9 @@ function SummaryCard({ item, analysis, onOpen, onOpenSource }: SummaryCardProps)
       {missing && <p className={`summary-item__missing${item.explanationStatus === 'REVIEW_NEEDED' ? ' summary-item__missing--review' : ''}`}>{missing}</p>}
       {onOpen && (
         <div className="summary-item__actions">
-          <button type="button" className="button button--secondary" onClick={onOpen}>
+          <Button variant="secondary" onClick={onOpen}>
             {item.kind === 'FINANCIAL' ? '수치 근거 보기' : '변경 근거 보기'}
-          </button>
+          </Button>
         </div>
       )}
     </article>
@@ -214,9 +215,9 @@ function EvidenceLinks({ evidence, analysis, onOpenSource }: EvidenceLinksProps)
           <li key={e.evidenceId}>
             {side && report && sectionNo !== null ? (
               <>
-                <button type="button" className="link-button" onClick={() => onOpenSource({ side, section: sectionNo, block: e.blockNo })}>
+                <Button variant="link" onClick={() => onOpenSource({ side, section: sectionNo, block: e.blockNo })}>
                   근거: {report.reportName} 원문 위치 보기
-                </button>
+                </Button>
                 <span className="panel__note">
                   {' '}
                   · 출처: DART <DartLinkInline rceptNo={report.rceptNo} dartUrl={report.dartUrl} label={report.reportName} />

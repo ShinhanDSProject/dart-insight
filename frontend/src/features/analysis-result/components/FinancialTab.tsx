@@ -7,6 +7,7 @@ import {
   type SjDiv,
   type StatementSummary,
 } from '@/shared/api/results'
+import { Button, Notice } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { EvidencePanel } from './EvidencePanel'
@@ -118,9 +119,9 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChang
       </div>
 
       {selected && !selected.comparable && (
-        <div className="notice notice--attention" role="status">
+        <Notice tone="attention" role="status">
           {selected.label}는 비교하지 않아요. {selected.note}
-        </div>
+        </Notice>
       )}
 
       {state.kind === 'loading' && <LoadingState message="계정별 결과를 불러오는 중입니다…" />}
@@ -230,16 +231,15 @@ function ChangeRow({ item, unit, selected, onSelect }: ChangeRowProps) {
         </>
       )}
       <td>
-        <button
-          type="button"
+        <Button
+          variant="secondary"
           id={evidenceButtonId(item.changeId)}
-          className="button button--secondary fin-table__evidence"
           aria-pressed={selected}
           aria-label={`${item.accountName} 근거 ${selected ? '닫기' : '보기'}`}
           onClick={onSelect}
         >
           {selected ? '보는 중' : '보기'}
-        </button>
+        </Button>
       </td>
     </tr>
   )

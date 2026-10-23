@@ -1,4 +1,5 @@
 import type { ReportItem } from '@/shared/api/reports'
+import { Badge, Button } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { correctionLabel, dataStatusHelp, dataStatusLabel, formatDate, periodLabel } from '@/shared/lib/reportLabels'
 
@@ -33,16 +34,15 @@ export function ReportTable({ items, current, previous, onSelectCurrent }: Repor
             return (
               <tr key={report.rceptNo} className={isCurrent ? 'data-table__row--selected' : undefined}>
                 <th scope="row">
-                  <button
-                    type="button"
-                    className="link-button"
-                    aria-pressed={isCurrent}
-                    onClick={() => onSelectCurrent(report)}
-                  >
+                  <Button variant="link" aria-pressed={isCurrent} onClick={() => onSelectCurrent(report)}>
                     {report.reportName}
-                  </button>
-                  {isCurrent && <span className="badge badge--strong">현재</span>}
-                  {isPrevious && <span className="badge">비교</span>}
+                  </Button>
+                  {isCurrent && (
+                    <Badge tone="accent" className="report-table__badge">
+                      현재
+                    </Badge>
+                  )}
+                  {isPrevious && <Badge className="report-table__badge">비교</Badge>}
                 </th>
                 <td>
                   <code>{report.disclosureType}</code>

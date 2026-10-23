@@ -1,4 +1,5 @@
 import type { ComparisonBasis, ReportItem } from '@/shared/api/reports'
+import { Button } from '@/shared/ui'
 import { ErrorState } from '@/shared/ui/StateView'
 import { basisOptions } from '@/shared/lib/comparisonBasis'
 import { customCandidates, reportOptionLabel } from '../model/pairSelection'
@@ -120,9 +121,9 @@ function PreviousSlot({ items, basis, current, previous, lookup, onBasisChange, 
       {lookup.kind === 'done' && !previous && (
         <div className="pair__value pair__value--missing" role="status">
           <p>{lookup.reason ?? '비교 기준에 맞는 이전 보고서가 없어요.'}</p>
-          <button type="button" className="button button--secondary" onClick={() => onBasisChange('CUSTOM')}>
+          <Button variant="secondary" onClick={() => onBasisChange('CUSTOM')}>
             직접 선택으로 고르기
-          </button>
+          </Button>
         </div>
       )}
     </>
