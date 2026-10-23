@@ -3,7 +3,6 @@ package com.dartinsight.analysis;
 import com.dartinsight.analysis.AnalysisResultService.CompletedChange;
 import com.dartinsight.analysis.AnalysisResultService.CompletedResult;
 import com.dartinsight.common.error.ApiException;
-import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.common.web.ApiPaths;
 import com.dartinsight.comparison.AmountBasis;
 import com.dartinsight.comparison.StatementRules;
@@ -12,7 +11,7 @@ import com.dartinsight.financial.FsDiv;
 import com.dartinsight.financial.StatementType;
 import com.dartinsight.report.DartLinks;
 import com.dartinsight.report.Report;
-import com.dartinsight.report.ReportRepository;
+import com.dartinsight.report.ReportService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
@@ -34,11 +33,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class FinancialChangeController {
 
     private final AnalysisResultService resultService;
-    private final ReportRepository reportRepository;
+    private final ReportService reportService;
 
-    public FinancialChangeController(AnalysisResultService resultService, ReportRepository reportRepository) {
+    public FinancialChangeController(AnalysisResultService resultService, ReportService reportService) {
         this.resultService = resultService;
-        this.reportRepository = reportRepository;
+        this.reportService = reportService;
     }
 
     @GetMapping
@@ -49,8 +48,9 @@ public class FinancialChangeController {
                 .orElseThrow(() -> ApiException.invalidInput("sjDiv", "BS, IS, CIS, CF, SCE 중 하나여야 합니다."));
         CompletedResult result = resultService.completedResult(analysisId);
         Analysis analysis = result.analysis();
-        List<StatementRule> rules = StatementRules.rules(report(analysis.getPreviousRceptNo()).getReportType(),
-                report(analysis.getCurrentRceptNo()).getReportType());
+        List<StatementRule> rules = StatementRules.rules(
+                reportService.report(analysis.getPreviousRceptNo()).getReportType(),
+                reportService.report(analysis.getCurrentRceptNo()).getReportType());
 
         List<StatementSummary> statements = rules.stream().map(rule -> {
             List<FinancialChange> rows = result.changes().stream()
@@ -73,8 +73,8 @@ public class FinancialChangeController {
         CompletedChange result = resultService.completedChange(analysisId, changeId);
         Analysis analysis = result.analysis();
         FinancialChange c = result.change();
-        Report previous = report(analysis.getPreviousRceptNo());
-        Report current = report(analysis.getCurrentRceptNo());
+        Report previous = reportService.report(analysis.getPreviousRceptNo());
+        Report current = reportService.report(analysis.getCurrentRceptNo());
         return new FinancialChangeDetailResponse(c.getId(), c.getSjDiv(), c.getAccountName(), c.getAccountKey(),
                 c.getFsDiv(), c.getAmountBasis(), c.getPreviousAmount(), c.getCurrentAmount(), c.getChangeAmount(),
                 c.getChangeRate(), c.direction(), c.getCalcStatus(), c.getCalcStatus().message(), c.getCurrency(),
@@ -111,10 +111,6 @@ public class FinancialChangeController {
         // 서버 지역 설정과 관계없이 쉼표로 끊는다
         return new DecimalFormat("#,##0", DecimalFormatSymbols.getInstance(Locale.ROOT)).format(amount)
                 .replace("-", "−");
-    }
-
-    private Report report(String rceptNo) {
-        return reportRepository.findById(rceptNo).orElseThrow(() -> new ApiException(ErrorCode.REPORT_NOT_FOUND));
     }
 
     public record FinancialChangeListResponse(Long analysisId, FsDiv fsDiv, String sjDiv, boolean changedOnly,

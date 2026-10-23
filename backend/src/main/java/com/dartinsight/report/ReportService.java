@@ -44,6 +44,11 @@ public class ReportService {
         return new ReportList(company, reports, financialDataStatuses(corpCode, reports), sync.cacheFallbackError());
     }
 
+    /** 저장된 보고서. 없으면 404 */
+    public Report report(String rceptNo) {
+        return reportRepository.findById(rceptNo).orElseThrow(() -> new ApiException(ErrorCode.REPORT_NOT_FOUND));
+    }
+
     public ReportDetail get(String rceptNo) {
         Report report = reportRepository.findById(rceptNo)
                 .orElseThrow(() -> new ApiException(ErrorCode.REPORT_NOT_FOUND));
