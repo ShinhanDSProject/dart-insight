@@ -2,7 +2,7 @@ package com.dartinsight.comparison;
 
 import com.dartinsight.comparison.ComparabilityService.ComparabilityResult;
 import com.dartinsight.comparison.StatementRules.StatementRule;
-import com.dartinsight.financial.FsDiv;
+import com.dartinsight.financial.domain.FsDiv;
 import com.dartinsight.report.FinancialDataStatus;
 import com.dartinsight.report.Report;
 import com.dartinsight.report.ReportItemResponse;

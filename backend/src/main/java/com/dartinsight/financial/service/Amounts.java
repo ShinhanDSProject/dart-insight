@@ -1,4 +1,4 @@
-package com.dartinsight.financial;
+package com.dartinsight.financial.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
