@@ -199,6 +199,15 @@
   gap: var(--space-3);
 }
 
+.summary-item__meta {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.summary-item__meta summary {
+  cursor: pointer;
+}
+
 .change-card__why {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
