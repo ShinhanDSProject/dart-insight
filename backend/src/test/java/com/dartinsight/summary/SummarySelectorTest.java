@@ -10,7 +10,7 @@ import com.dartinsight.analysis.TextChangeRow.Side;
 import com.dartinsight.comparison.AmountBasis;
 import com.dartinsight.document.domain.DocumentBlock;
 import com.dartinsight.document.domain.DocumentSection;
-import com.dartinsight.financial.FsDiv;
+import com.dartinsight.financial.domain.FsDiv;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

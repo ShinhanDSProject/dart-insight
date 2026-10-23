@@ -1,4 +1,4 @@
-package com.dartinsight.financial;
+package com.dartinsight.financial.domain;
 
 /** 재무제표 기준. OpenDART fs_div 값과 같다. */
 public enum FsDiv {

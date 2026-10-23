@@ -10,7 +10,7 @@ import com.dartinsight.company.CompanyImportService;
 import com.dartinsight.comparison.AmountBasis;
 import com.dartinsight.comparison.ComparisonBasis;
 import com.dartinsight.dart.dto.CorpCodeEntry;
-import com.dartinsight.financial.FsDiv;
+import com.dartinsight.financial.domain.FsDiv;
 import com.dartinsight.report.Correction;
 import com.dartinsight.report.Report;
 import com.dartinsight.report.ReportNameParser.ParsedReportName;

@@ -1,6 +1,6 @@
 package com.dartinsight.summary;
 
-import com.dartinsight.financial.FinancialAccount;
+import com.dartinsight.financial.domain.FinancialAccount;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;

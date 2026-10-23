@@ -8,7 +8,7 @@ import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.web.ApiPaths;
 import com.dartinsight.comparison.StatementRules;
 import com.dartinsight.comparison.StatementRules.StatementRule;
-import com.dartinsight.financial.StatementType;
+import com.dartinsight.financial.domain.StatementType;
 import com.dartinsight.report.Report;
 import com.dartinsight.report.ReportService;
 import java.util.List;

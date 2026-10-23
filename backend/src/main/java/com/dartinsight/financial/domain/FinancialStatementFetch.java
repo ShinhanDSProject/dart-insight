@@ -1,4 +1,4 @@
-package com.dartinsight.financial;
+package com.dartinsight.financial.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -63,7 +63,7 @@ public class FinancialStatementFetch {
     }
 
     /** 같은 조합을 다시 받았을 때 결과를 바꾼다. */
-    void refresh(FetchStatus status, String rceptNo, LocalDateTime fetchedAt) {
+    public void refresh(FetchStatus status, String rceptNo, LocalDateTime fetchedAt) {
         this.status = status;
         this.rceptNo = rceptNo;
         this.fetchedAt = fetchedAt;

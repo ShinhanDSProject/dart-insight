@@ -1,4 +1,4 @@
-package com.dartinsight.financial;
+package com.dartinsight.financial.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

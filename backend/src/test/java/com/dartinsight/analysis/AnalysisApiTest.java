@@ -19,7 +19,7 @@ import com.dartinsight.dart.dto.CorpCodeEntry;
 import com.dartinsight.dart.client.FakeOpenDartServer;
 import com.dartinsight.dart.client.FakeOpenDartServer.Response;
 import com.dartinsight.dart.client.FinancialJson;
-import com.dartinsight.financial.FsDiv;
+import com.dartinsight.financial.domain.FsDiv;
 import com.dartinsight.report.Correction;
 import com.dartinsight.report.Report;
 import com.dartinsight.report.ReportNameParser.ParsedReportName;

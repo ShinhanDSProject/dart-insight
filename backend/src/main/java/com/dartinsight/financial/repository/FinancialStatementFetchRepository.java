@@ -1,5 +1,7 @@
-package com.dartinsight.financial;
+package com.dartinsight.financial.repository;
 
+import com.dartinsight.financial.domain.FinancialStatementFetch;
+import com.dartinsight.financial.domain.FsDiv;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;

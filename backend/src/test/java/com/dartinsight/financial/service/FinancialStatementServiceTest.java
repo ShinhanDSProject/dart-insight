@@ -1,4 +1,4 @@
-package com.dartinsight.financial;
+package com.dartinsight.financial.service;
 
 import static com.dartinsight.dart.client.FinancialJson.account;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -11,6 +11,11 @@ import com.dartinsight.dart.dto.CorpCodeEntry;
 import com.dartinsight.dart.client.FakeOpenDartServer;
 import com.dartinsight.dart.client.FakeOpenDartServer.Response;
 import com.dartinsight.dart.client.FinancialJson;
+import com.dartinsight.financial.domain.FetchStatus;
+import com.dartinsight.financial.domain.FinancialAccount;
+import com.dartinsight.financial.domain.FinancialStatementFetch;
+import com.dartinsight.financial.domain.FsDiv;
+import com.dartinsight.financial.repository.FinancialAccountRepository;
 import com.dartinsight.report.Correction;
 import com.dartinsight.report.FinancialDataStatus;
 import com.dartinsight.report.Report;

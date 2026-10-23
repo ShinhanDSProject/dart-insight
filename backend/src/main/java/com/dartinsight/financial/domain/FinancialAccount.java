@@ -1,4 +1,4 @@
-package com.dartinsight.financial;
+package com.dartinsight.financial.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

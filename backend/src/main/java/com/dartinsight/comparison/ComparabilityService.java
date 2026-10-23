@@ -1,9 +1,9 @@
 package com.dartinsight.comparison;
 
 import com.dartinsight.comparison.StatementRules.StatementRule;
-import com.dartinsight.financial.FinancialStatementFetch;
-import com.dartinsight.financial.FinancialStatementService;
-import com.dartinsight.financial.FsDiv;
+import com.dartinsight.financial.domain.FinancialStatementFetch;
+import com.dartinsight.financial.service.FinancialStatementService;
+import com.dartinsight.financial.domain.FsDiv;
 import com.dartinsight.report.Correction;
 import com.dartinsight.report.Report;
 import com.dartinsight.report.ReportService;

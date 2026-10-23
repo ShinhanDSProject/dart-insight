@@ -2,7 +2,7 @@ package com.dartinsight.summary;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.dartinsight.financial.FinancialAccount;
+import com.dartinsight.financial.domain.FinancialAccount;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

@@ -1,7 +1,13 @@
-package com.dartinsight.financial;
+package com.dartinsight.financial.service;
 
 import com.dartinsight.dart.dto.FinancialStatementResponse;
 import com.dartinsight.dart.client.OpenDartClient;
+import com.dartinsight.financial.domain.FetchStatus;
+import com.dartinsight.financial.domain.FinancialAccount;
+import com.dartinsight.financial.domain.FinancialStatementFetch;
+import com.dartinsight.financial.domain.FsDiv;
+import com.dartinsight.financial.repository.FinancialAccountRepository;
+import com.dartinsight.financial.repository.FinancialStatementFetchRepository;
 import com.dartinsight.report.FinancialDataStatus;
 import com.dartinsight.report.FinancialDataStatusProvider;
 import com.dartinsight.report.Report;

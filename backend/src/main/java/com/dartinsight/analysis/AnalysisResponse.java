@@ -1,7 +1,7 @@
 package com.dartinsight.analysis;
 
 import com.dartinsight.comparison.ComparisonBasis;
-import com.dartinsight.financial.FsDiv;
+import com.dartinsight.financial.domain.FsDiv;
 import com.dartinsight.report.FinancialDataStatus;
 import com.dartinsight.report.ReportItemResponse;
 import com.dartinsight.report.ReportService.ReportDetail;

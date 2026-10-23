@@ -1,4 +1,4 @@
-package com.dartinsight.financial;
+package com.dartinsight.financial.domain;
 
 import java.util.Arrays;
 import java.util.Optional;
