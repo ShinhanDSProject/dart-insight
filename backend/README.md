@@ -33,7 +33,18 @@ cp .env.example .env      # 값 채우기 (커밋하지 않음)
 ## 폴더
 
 ```text
-src/main/java/com/dartinsight/   애플리케이션 코드 (도메인별 패키지)
-src/main/resources/              설정(application.yml)
-src/test/java/com/dartinsight/   테스트
+src/main/java/com/dartinsight/
+  common/                        설정·에러·추적 ID·웹 설정
+  {도메인}/                      company, report, analysis, comparison, financial, document, summary, dart, aiserver, system
+    controller/                  REST 컨트롤러
+    service/                     업무 로직·트랜잭션
+    repository/                  JPA Repository·JdbcTemplate Store·파일 저장소
+    domain/                      엔티티·enum·값 record
+    dto/                         요청·응답 record
+    client/                      외부 연동(OpenDART·ai-server)
+    config/                      설정 record
+src/main/resources/              설정(application.yml)·Flyway 마이그레이션
+src/test/java/com/dartinsight/   테스트(같은 패키지에 둠), architecture/에 ArchUnit 규칙
 ```
+
+계층 규칙은 `conventions.yaml`의 PKG-1·PKG-2, 결정 배경은 `docs/adr/0016-layered-packages-and-completion-guard.md`에 있습니다.
