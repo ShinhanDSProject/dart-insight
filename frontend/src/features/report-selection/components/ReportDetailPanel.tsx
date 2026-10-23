@@ -1,5 +1,6 @@
-import { useEffect, useId, useState } from 'react'
-import { getReport, type ReportDetail } from '@/shared/api/reports'
+import { useId } from 'react'
+import { match } from 'ts-pattern'
+import type { ReportDetail } from '@/shared/api/reports'
 import { Notice, Panel, PanelTitle } from '@/shared/ui'
 import { DartLinkActions } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
@@ -11,8 +12,7 @@ import {
   periodLabel,
   reportTypeLabel,
 } from '@/shared/lib/reportLabels'
-
-type DetailState = { kind: 'loading' } | { kind: 'done'; report: ReportDetail } | { kind: 'error'; error: unknown }
+import { useReportDetail } from '../hooks/useReportDetail'
 
 const errorMessages: Record<string, string> = {
   REPORT_NOT_FOUND: '보고서 정보를 찾지 못했어요. 페이지를 새로 고쳐 목록을 다시 불러와 주세요.',
@@ -21,32 +21,16 @@ const errorMessages: Record<string, string> = {
 /** W-01 ② 고른 보고서의 메타데이터(1.3). 대상 기간과 제출일을 따로 보여 주고, 모르는 값은 추정하지 않는다. */
 export function ReportDetailPanel({ rceptNo, title = '현재 보고서 정보' }: { rceptNo: string; title?: string }) {
   const titleId = useId()
-  const [state, setState] = useState<DetailState>({ kind: 'loading' })
-  const [retry, setRetry] = useState(0)
-
-  useEffect(() => {
-    let cancelled = false
-    setState({ kind: 'loading' })
-    getReport(rceptNo)
-      .then((report) => {
-        if (!cancelled) setState({ kind: 'done', report })
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) setState({ kind: 'error', error })
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [rceptNo, retry])
+  const { state, reload } = useReportDetail(rceptNo)
 
   return (
     <Panel aria-labelledby={titleId}>
       <PanelTitle id={titleId}>{title}</PanelTitle>
-      {state.kind === 'loading' && <LoadingState message="보고서 정보를 불러오는 중입니다…" />}
-      {state.kind === 'error' && (
-        <ErrorState error={state.error} onRetry={() => setRetry((n) => n + 1)} messages={errorMessages} />
-      )}
-      {state.kind === 'done' && <ReportFacts report={state.report} />}
+      {match(state)
+        .with({ status: 'loading' }, () => <LoadingState message="보고서 정보를 불러오는 중입니다…" />)
+        .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} messages={errorMessages} />)
+        .with({ status: 'success' }, ({ data }) => <ReportFacts report={data} />)
+        .exhaustive()}
     </Panel>
   )
 }
