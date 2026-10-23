@@ -846,6 +846,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 - 이슈: #20 (3.2) · LLM은 `app/llm`의 한 모듈(0.7)로만 부릅니다.
 - backend가 고른 항목과 그 근거 원문만 보냅니다. 사용자 정보는 넣지 않습니다. 원문은 프롬프트에서 `<disclosure id="…">` 태그로 감싸 자료로만 씁니다.
 - LLM은 문장 변화마다 한 문장 요약(`sentence`)을, 재무 수치마다 후보 원문에 적힌 설명(`explanation`)을 씁니다. 후보 원문이 없는 재무 수치는 LLM에 묻지 않고 설명 없음(`explanation: null`)으로 돌려줍니다.
+- 재무 수치의 `accountAliases`는 backend가 설명 후보를 찾을 때 쓴 검색어입니다. 계정명 정리 규칙과 표준계정 ID(`account_id`) 사전으로 만듭니다([ADR-0015](adr/0015-explanation-grade-and-quote-check.md)). 없으면 빈 배열입니다. ai-server는 인용 확인(#142)에 씁니다.
 - 확인: 근거 ID가 그 항목에 보낸 원문 위치인지, 문장의 숫자와 크기 표현(두 배, 절반, 1조·500억처럼 단위가 붙은 수)이 인용한 원문에 그대로 있는지. 실패하면 문제를 알려 주며 2회까지 다시 만들고, 그래도 실패한 항목은 `REVIEW_NEEDED`입니다. 앞 응답에서 통과한 항목은 뒤 응답이 망가져도 그대로 씁니다. 근거 원문이 없는 문장 변화는 LLM에 묻지 않고 `REVIEW_NEEDED`입니다.
 - 회사·보고서·항목·계정 이름도 공시에서 온 자료라 `<context>`·`<item>` 태그의 속성에 넣습니다(지시와 섞이지 않게).
 
@@ -861,7 +862,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
       "sources": [{ "evidenceId": "20260814001234#B44", "sectionPath": "II. 사업의 내용 > 1. 사업의 개요", "text": "…" }] }
   ],
   "financialItems": [
-    { "ref": "F3", "accountName": "매출액", "direction": "UP",
+    { "ref": "F3", "accountName": "매출액", "direction": "UP", "accountAliases": ["매출액", "영업수익"],
       "candidates": [{ "evidenceId": "20260814001234#B812", "sectionPath": "IV. 이사의 경영진단 및 분석의견 > 2. 영업실적", "text": "…" }] }
   ]
 }
