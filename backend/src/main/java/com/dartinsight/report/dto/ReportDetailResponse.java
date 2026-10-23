@@ -1,5 +1,11 @@
-package com.dartinsight.report;
+package com.dartinsight.report.dto;
 
+import com.dartinsight.report.domain.Correction;
+import com.dartinsight.report.domain.DartLinks;
+import com.dartinsight.report.domain.FinancialDataStatus;
+import com.dartinsight.report.domain.Report;
+import com.dartinsight.report.domain.ReportType;
+import com.dartinsight.report.service.ReportService;
 import java.time.LocalDate;
 
 /**
@@ -23,7 +29,7 @@ public record ReportDetailResponse(
         FinancialDataStatus financialDataStatus,
         String dartUrl) {
 
-    static ReportDetailResponse from(ReportService.ReportDetail detail) {
+    public static ReportDetailResponse from(ReportService.ReportDetail detail) {
         Report r = detail.report();
         return new ReportDetailResponse(r.getRceptNo(), r.getCorpCode(), detail.company().getCorpName(),
                 r.getReportName(), r.getReportType(), r.getReportType().disclosureType(), r.getFiscalYear(),

@@ -3,7 +3,7 @@ package com.dartinsight.analysis;
 import com.dartinsight.analysis.TextEvidenceService.SourceEvidence;
 import com.dartinsight.analysis.TextEvidenceService.TextEvidence;
 import com.dartinsight.document.domain.DocumentBlock;
-import com.dartinsight.report.ReportType;
+import com.dartinsight.report.domain.ReportType;
 import com.fasterxml.jackson.annotation.JsonRawValue;
 import java.time.LocalDate;
 

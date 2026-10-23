@@ -1,6 +1,9 @@
-package com.dartinsight.report;
+package com.dartinsight.report.controller;
 
 import com.dartinsight.common.web.ApiPaths;
+import com.dartinsight.report.dto.ReportDetailResponse;
+import com.dartinsight.report.dto.ReportListResponse;
+import com.dartinsight.report.service.ReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;

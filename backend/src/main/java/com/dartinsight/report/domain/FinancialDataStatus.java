@@ -1,4 +1,4 @@
-package com.dartinsight.report;
+package com.dartinsight.report.domain;
 
 /**
  * 보고서의 재무제표 자료 상태(docs/api-spec.md 공통 값). 정하는 규칙은 FinancialDataStatusProvider 구현(4.5)에 있다.

@@ -2,7 +2,7 @@ package com.dartinsight.comparison;
 
 import com.dartinsight.common.web.ApiPaths;
 import com.dartinsight.comparison.ComparabilityService.ComparabilityResult;
-import com.dartinsight.report.ReportService;
+import com.dartinsight.report.service.ReportService;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;

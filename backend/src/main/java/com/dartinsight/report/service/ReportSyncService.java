@@ -1,4 +1,4 @@
-package com.dartinsight.report;
+package com.dartinsight.report.service;
 
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
@@ -6,7 +6,10 @@ import com.dartinsight.company.Company;
 import com.dartinsight.company.CompanyRepository;
 import com.dartinsight.dart.dto.DisclosureListResponse;
 import com.dartinsight.dart.client.OpenDartClient;
-import com.dartinsight.report.ReportNameParser.ParsedReportName;
+import com.dartinsight.report.config.ReportProperties;
+import com.dartinsight.report.domain.Report;
+import com.dartinsight.report.repository.ReportRepository;
+import com.dartinsight.report.service.ReportNameParser.ParsedReportName;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;

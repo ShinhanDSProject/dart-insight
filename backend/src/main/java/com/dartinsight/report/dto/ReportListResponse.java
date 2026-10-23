@@ -1,6 +1,7 @@
-package com.dartinsight.report;
+package com.dartinsight.report.dto;
 
 import com.dartinsight.common.error.ErrorCode;
+import com.dartinsight.report.service.ReportService;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -14,7 +15,7 @@ public record ReportListResponse(
         ErrorCode refreshError,
         List<ReportItemResponse> items) {
 
-    static ReportListResponse from(String corpCode, ReportService.ReportList list) {
+    public static ReportListResponse from(String corpCode, ReportService.ReportList list) {
         return new ReportListResponse(
                 corpCode,
                 list.company().getReportsFetchedAt(),

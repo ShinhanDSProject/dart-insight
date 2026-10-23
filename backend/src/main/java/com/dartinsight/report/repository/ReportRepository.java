@@ -1,5 +1,6 @@
-package com.dartinsight.report;
+package com.dartinsight.report.repository;
 
+import com.dartinsight.report.domain.Report;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;

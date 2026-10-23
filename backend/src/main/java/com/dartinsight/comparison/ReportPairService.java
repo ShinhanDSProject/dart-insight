@@ -2,10 +2,10 @@ package com.dartinsight.comparison;
 
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
-import com.dartinsight.report.Report;
-import com.dartinsight.report.ReportRepository;
-import com.dartinsight.report.ReportService;
-import com.dartinsight.report.ReportType;
+import com.dartinsight.report.domain.Report;
+import com.dartinsight.report.repository.ReportRepository;
+import com.dartinsight.report.service.ReportService;
+import com.dartinsight.report.domain.ReportType;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;

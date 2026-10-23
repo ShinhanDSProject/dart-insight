@@ -1,9 +1,9 @@
 package com.dartinsight.comparison;
 
 import com.dartinsight.common.web.ApiPaths;
-import com.dartinsight.report.FinancialDataStatus;
-import com.dartinsight.report.Report;
-import com.dartinsight.report.ReportService;
+import com.dartinsight.report.domain.FinancialDataStatus;
+import com.dartinsight.report.domain.Report;
+import com.dartinsight.report.service.ReportService;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;

@@ -1,6 +1,6 @@
-package com.dartinsight.report;
+package com.dartinsight.report.domain;
 
-import com.dartinsight.report.ReportNameParser.ParsedReportName;
+import com.dartinsight.report.service.ReportNameParser.ParsedReportName;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

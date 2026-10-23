@@ -2,8 +2,8 @@ package com.dartinsight.analysis;
 
 import com.dartinsight.document.domain.DocumentSection;
 import com.dartinsight.document.domain.ReportDocument;
-import com.dartinsight.report.DartLinks;
-import com.dartinsight.report.Report;
+import com.dartinsight.report.domain.DartLinks;
+import com.dartinsight.report.domain.Report;
 import java.util.List;
 import java.util.Optional;
 

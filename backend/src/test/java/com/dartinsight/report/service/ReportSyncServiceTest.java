@@ -1,4 +1,4 @@
-package com.dartinsight.report;
+package com.dartinsight.report.service;
 
 import static com.dartinsight.dart.client.DisclosureListJson.item;
 import static com.dartinsight.dart.client.DisclosureListJson.page;
@@ -14,6 +14,10 @@ import com.dartinsight.dart.dto.CorpCodeEntry;
 import com.dartinsight.dart.client.DisclosureListJson;
 import com.dartinsight.dart.client.FakeOpenDartServer;
 import com.dartinsight.dart.client.FakeOpenDartServer.Response;
+import com.dartinsight.report.domain.Correction;
+import com.dartinsight.report.domain.Report;
+import com.dartinsight.report.domain.ReportType;
+import com.dartinsight.report.repository.ReportRepository;
 import com.dartinsight.support.TestData;
 import java.io.IOException;
 import java.io.UncheckedIOException;
