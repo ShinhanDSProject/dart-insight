@@ -47,7 +47,7 @@ public class ReportSyncService {
      * 저장한 목록이 없거나 오래됐으면 다시 받는다. 다시 받다 실패해도 저장된 목록이 있으면 그 목록을 쓴다.
      */
     public SyncResult refreshIfStale(String corpCode) {
-        Company company = companyRepository.findById(corpCode)
+        Company company = companyRepository.findByCorpCode(corpCode)
                 .orElseThrow(() -> new ApiException(ErrorCode.COMPANY_NOT_FOUND));
         // DB(DATETIME(6))에 저장되는 정밀도에 맞춘다
         LocalDateTime now = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MICROS);
@@ -88,7 +88,7 @@ public class ReportSyncService {
                 continue;
             }
             String remark = blankToNull(item.remark());
-            Optional<Report> existing = reportRepository.findById(item.rceptNo());
+            Optional<Report> existing = reportRepository.findByRceptNo(item.rceptNo());
             if (existing.isPresent()) {
                 if (existing.get().refresh(item.reportName(), parsed.get(), rceptDt, remark, item.filerName(), now)) {
                     updated++;
@@ -99,7 +99,7 @@ public class ReportSyncService {
                 created++;
             }
         }
-        companyRepository.findById(corpCode).ifPresent(c -> c.markReportsFetched(now));
+        companyRepository.findByCorpCode(corpCode).ifPresent(c -> c.markReportsFetched(now));
         log.info("정기보고서 목록 저장 {}: 새 보고서 {}건, 바뀐 보고서 {}건, 지원하지 않는 공시 {}건", corpCode, created,
                 updated, skipped);
         return new SyncResult(true, created, updated, skipped, null);

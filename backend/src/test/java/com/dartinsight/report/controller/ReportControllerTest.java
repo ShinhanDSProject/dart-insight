@@ -124,7 +124,7 @@ class ReportControllerTest {
         SERVER.on("/api/list.json", Response.json(page(1, 1,
                 item("20260814000001", "반기보고서 (2026.06)", "20260814", ""))));
         mockMvc.perform(get("/api/companies/00000001/reports")).andExpect(status().isOk());
-        Company company = companyRepository.findById("00000001").orElseThrow();
+        Company company = companyRepository.findByCorpCode("00000001").orElseThrow();
         company.markReportsFetched(LocalDateTime.now(clock).minusDays(2));
         companyRepository.save(company);
         SERVER.on("/api/list.json", Response.json(DisclosureListJson.RATE_LIMITED));
@@ -157,7 +157,7 @@ class ReportControllerTest {
     }
 
     private void makeStale() {
-        Company company = companyRepository.findById("00000001").orElseThrow();
+        Company company = companyRepository.findByCorpCode("00000001").orElseThrow();
         company.markReportsFetched(LocalDateTime.now(clock).minusDays(2));
         companyRepository.save(company);
     }

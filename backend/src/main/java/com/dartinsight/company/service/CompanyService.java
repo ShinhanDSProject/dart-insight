@@ -42,7 +42,7 @@ public class CompanyService {
     }
 
     public Company get(String corpCode) {
-        return companyRepository.findById(corpCode)
+        return companyRepository.findByCorpCode(corpCode)
                 .orElseThrow(() -> new ApiException(ErrorCode.COMPANY_NOT_FOUND));
     }
 

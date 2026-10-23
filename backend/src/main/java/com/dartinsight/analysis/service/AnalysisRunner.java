@@ -168,7 +168,7 @@ public class AnalysisRunner implements DisposableBean {
 
             SummaryResult summary;
             try {
-                String companyName = companyRepository.findById(analysis.getCorpCode()).map(Company::getCorpName)
+                String companyName = companyRepository.findByCorpCode(analysis.getCorpCode()).map(Company::getCorpName)
                         .orElse(check.current().getFilerName());
                 summary = summaryService.summarize(companyName, check.previous().getReportName(),
                         check.current().getReportName(), analysis.getCurrentRceptNo(), rows, text.rows());

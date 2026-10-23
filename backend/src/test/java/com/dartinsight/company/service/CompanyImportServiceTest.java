@@ -42,7 +42,7 @@ class CompanyImportServiceTest {
                 entry("00000002", "예시비상장", null)));
 
         assertThat(result).isEqualTo(new CompanyImportService.ImportResult(2, 2, 0));
-        assertThat(companyRepository.findById("00000002")).get()
+        assertThat(companyRepository.findByCorpCode("00000002")).get()
                 .satisfies(c -> assertThat(c.isListed()).isFalse());
     }
 
@@ -57,7 +57,7 @@ class CompanyImportServiceTest {
 
         assertThat(result).isEqualTo(new CompanyImportService.ImportResult(3, 1, 1));
         assertThat(companyRepository.count()).isEqualTo(3);
-        assertThat(companyRepository.findById("00000001")).get()
+        assertThat(companyRepository.findByCorpCode("00000001")).get()
                 .extracting(Company::getCorpName).isEqualTo("예시전자홀딩스");
     }
 

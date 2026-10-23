@@ -33,7 +33,7 @@ public class ReportService {
 
     public ReportList list(String corpCode) {
         ReportSyncService.SyncResult sync = syncService.refreshIfStale(corpCode);
-        Company company = companyRepository.findById(corpCode)
+        Company company = companyRepository.findByCorpCode(corpCode)
                 .orElseThrow(() -> new ApiException(ErrorCode.COMPANY_NOT_FOUND));
         List<Report> reports = company.getReportsFetchedAt() == null ? List.of()
                 : reportRepository.findByCorpCodeAndLastSeenAtGreaterThanEqualOrderByPeriodEndDescRceptDtDesc(
@@ -43,13 +43,13 @@ public class ReportService {
 
     /** 저장된 보고서. 없으면 404 */
     public Report report(String rceptNo) {
-        return reportRepository.findById(rceptNo).orElseThrow(() -> new ApiException(ErrorCode.REPORT_NOT_FOUND));
+        return reportRepository.findByRceptNo(rceptNo).orElseThrow(() -> new ApiException(ErrorCode.REPORT_NOT_FOUND));
     }
 
     public ReportDetail get(String rceptNo) {
-        Report report = reportRepository.findById(rceptNo)
+        Report report = reportRepository.findByRceptNo(rceptNo)
                 .orElseThrow(() -> new ApiException(ErrorCode.REPORT_NOT_FOUND));
-        Company company = companyRepository.findById(report.getCorpCode())
+        Company company = companyRepository.findByCorpCode(report.getCorpCode())
                 .orElseThrow(() -> new ApiException(ErrorCode.COMPANY_NOT_FOUND));
         LocalDateTime fetchedAt = company.getReportsFetchedAt();
         boolean latest = fetchedAt == null || !report.getLastSeenAt().isBefore(fetchedAt);

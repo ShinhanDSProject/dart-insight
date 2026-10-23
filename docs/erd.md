@@ -8,7 +8,7 @@
 | --- | --- |
 | 상태 | 초안 (M1 확정, M2 진행 중: 원문 구조화·문장 변경·요약 확정) |
 | 담당 | 백엔드 |
-| 마지막 수정 | 2026-10-22 |
+| 마지막 수정 | 2026-10-23 |
 | 관련 문서 | API 명세(`docs/api-spec.md`), [OpenDART 데이터 가이드](https://app.notion.com/p/400b6afffc6f81cc8870ee13d02d8ac1), 이슈 #46 |
 
 ## 1. 테이블 목록
@@ -47,13 +47,15 @@ erDiagram
     report_document ||--o{ document_block : "document_id"
 
     company {
-        varchar corp_code PK "고유번호 8자리"
+        bigint id PK
+        varchar corp_code UK "고유번호 8자리"
         varchar corp_name "회사명"
         varchar stock_code "종목코드, 상장사만"
         datetime reports_fetched_at "보고서 목록을 받은 시각"
     }
     report {
-        varchar rcept_no PK "접수번호 14자리"
+        bigint id PK
+        varchar rcept_no UK "접수번호 14자리"
         varchar corp_code FK
         varchar report_type "ANNUAL HALF Q1 Q3"
         int fiscal_year "사업연도"
@@ -149,7 +151,7 @@ erDiagram
 
 ## 3. 테이블 상세
 
-공통: 문자열 키는 `VARCHAR`(앞자리 0을 지키기 위해 숫자형을 쓰지 않음), 금액은 보고서 통화의 정수 `BIGINT`(통화는 `currency` 컬럼), 시각은 `DATETIME(6)`(한국 시간), 상태 값은 `VARCHAR`에 영문 대문자로 저장합니다.
+공통: 모든 테이블의 기본키는 자동 증가 `id`(`BIGINT AUTO_INCREMENT`)입니다([ADR-0017](adr/0017-auto-increment-id-primary-key.md)). OpenDART에서 받은 키(고유번호·접수번호)는 UNIQUE로 두고, 다른 테이블은 이 값을 외래 키로 참조합니다. 문자열 키는 `VARCHAR`(앞자리 0을 지키기 위해 숫자형을 쓰지 않음), 금액은 보고서 통화의 정수 `BIGINT`(통화는 `currency` 컬럼), 시각은 `DATETIME(6)`(한국 시간), 상태 값은 `VARCHAR`에 영문 대문자로 저장합니다.
 
 ### company
 
@@ -157,7 +159,8 @@ OpenDART `corpCode.xml`에서 받습니다(4.4).
 
 | 컬럼 | 타입 | 키 | null | 설명 |
 | --- | --- | --- | --- | --- |
-| `corp_code` | VARCHAR(8) | PK | 아니오 | 고유번호 |
+| `id` | BIGINT | PK | 아니오 | 자동 증가 |
+| `corp_code` | VARCHAR(8) | UK | 아니오 | 고유번호. 다른 테이블이 이 값을 참조 |
 | `corp_name` | VARCHAR(200) | | 아니오 | 회사명 |
 | `corp_eng_name` | VARCHAR(200) | | 예 | 영문 회사명 |
 | `stock_code` | VARCHAR(6) | | 예 | 종목코드. 비상장사는 null |
@@ -174,7 +177,8 @@ OpenDART 공시검색(`list.json`, 정기공시 중 최종보고서만)에서 �
 
 | 컬럼 | 타입 | 키 | null | 설명 |
 | --- | --- | --- | --- | --- |
-| `rcept_no` | VARCHAR(14) | PK | 아니오 | 접수번호 |
+| `id` | BIGINT | PK | 아니오 | 자동 증가 |
+| `rcept_no` | VARCHAR(14) | UK | 아니오 | 접수번호. 다른 테이블이 이 값을 참조 |
 | `corp_code` | VARCHAR(8) | FK | 아니오 | 고유번호 |
 | `report_name` | VARCHAR(200) | | 아니오 | 보고서명 원문(`report_nm`) |
 | `report_type` | VARCHAR(10) | | 아니오 | `ANNUAL` 사업, `HALF` 반기, `Q1` 1분기, `Q3` 3분기 |
@@ -404,8 +408,10 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 
 | 테이블 | 이름 | 컬럼 | 종류 | 이유 |
 | --- | --- | --- | --- | --- |
+| `company` | `uk_company_corp_code` | `corp_code` | 유니크 | 고유번호 중복 방지(외래 키가 참조) |
 | `company` | `idx_company_corp_name` | `corp_name` | 인덱스 | 회사명 정렬·완전 일치. 부분 일치 검색(`%검색어%`)에는 쓰이지 않음 |
 | `company` | `idx_company_stock_code` | `stock_code` | 인덱스 | 종목코드 검색 |
+| `report` | `uk_report_rcept_no` | `rcept_no` | 유니크 | 접수번호 중복 방지(외래 키가 참조) |
 | `report` | `idx_report_corp_period` | `corp_code, period_end` | 인덱스 | 기업별 보고서 목록 |
 | `financial_statement_fetch` | `uk_fs_fetch` | `corp_code, fiscal_year, reprt_code, fs_div` | 유니크 | 같은 호출을 두 번 저장하지 않음 |
 | `financial_account` | `idx_fin_account_fetch` | `fetch_id, sj_div, ord` | 인덱스 | 재무제표별 계정을 원문 순서로 조회 |
@@ -427,6 +433,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 - 테이블·컬럼 이름은 snake_case입니다.
 - 금액은 정수(BIGINT)로 저장합니다. OpenDART 재무제표 API는 보고서 통화 단위(대부분 원)로 주고, 통화는 `currency`에 함께 저장합니다. 두 보고서의 통화가 다르면 비교하지 않습니다(`CURRENCY_MISMATCH`, [ADR-0006](adr/0006-keys-amounts-and-null.md)).
 - 없는 값은 NULL로 두고 0과 구분합니다.
-- 회사 키는 `corp_code`, 보고서 키는 `rcept_no`입니다. 종목코드는 키로 쓰지 않습니다.
+- 모든 테이블은 기본키로 `id BIGINT NOT NULL AUTO_INCREMENT`를 둡니다. 외부에서 받은 키를 기본키로 쓰지 않고 UNIQUE로 둡니다([ADR-0017](adr/0017-auto-increment-id-primary-key.md)). `SchemaRuleTest`가 검사합니다.
+- 회사는 `corp_code`, 보고서는 `rcept_no`로 가리킵니다(API, 외래 키, 캐시 기준). 종목코드는 키로 쓰지 않습니다.
 - 스키마는 Flyway 마이그레이션 파일(`V{번호}__{설명}.sql`)로만 바꿉니다. main에 병합된 파일은 고치지 않고 새 파일을 추가합니다.
 - 상태 값 컬럼은 `VARCHAR`로 두고 MariaDB `ENUM`을 쓰지 않습니다(값을 더할 때 스키마 변경이 필요 없게).
