@@ -38,6 +38,7 @@
 
   /* 화면 골격 */
   --sidebar-width: 224px;
+  --side-panel-width: 480px;
   --header-height: 80px;
   --layout-gutter: 40px;
   --control-height: 44px;
