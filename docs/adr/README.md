@@ -64,3 +64,4 @@ M0~M2에서 이미 내린 결정은 2026-10-22에 소급해 기록했습니다(0
 | [0016](0016-layered-packages-and-completion-guard.md) | backend 도메인 패키지 안을 계층별 하위 패키지로 나누고, 분석 완료 처리는 ArchUnit 규칙으로 보호한다 | 채택 | 2026-10-23 |
 | [0017](0017-auto-increment-id-primary-key.md) | 모든 테이블의 기본키는 자동 증가 id로 두고, OpenDART 키는 UNIQUE로 남긴다 | 채택 | 2026-10-23 |
 | [0018](0018-charts-without-library.md) | 차트는 라이브러리 없이 HTML·CSS 컴포넌트로 그린다 | 채택 | 2026-10-23 |
+| [0019](0019-user-registration.md) | 공통 회원과 일반 가입 정보를 분리하고 비밀번호는 전용 인코더로 해시한다 | 채택 | 2026-10-22 |

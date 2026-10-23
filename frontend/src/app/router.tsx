@@ -5,6 +5,7 @@ import { AnalysisProgressPage } from '@/features/analysis-progress/AnalysisProgr
 import { AnalysisResultPage } from '@/features/analysis-result/AnalysisResultPage'
 import { CompanyPage } from '@/features/report-selection/CompanyPage'
 import { ComparabilityPage } from '@/features/comparability/ComparabilityPage'
+import { SignupPage } from '@/features/user-registration/SignupPage'
 import { NotFoundPage } from './NotFoundPage'
 import { SearchPage } from '@/features/company-search/SearchPage'
 
@@ -27,6 +28,7 @@ export const router = createBrowserRouter([
         errorElement: <RouteError />,
         children: [
           { path: '/', element: <SearchPage />, handle: { crumb: '기업 검색' } },
+          { path: '/signup', element: <SignupPage />, handle: { crumb: '회원가입' } },
           { path: '/companies/:corpCode', element: <CompanyPage />, handle: { crumb: '보고서 선택' } },
           { path: '/companies/:corpCode/compare', element: <ComparabilityPage />, handle: { crumb: '비교 조건 확인' } },
           { path: '/analyses/:analysisId/progress', element: <AnalysisProgressPage />, handle: { crumb: '분석 진행' } },
