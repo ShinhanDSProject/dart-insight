@@ -1,4 +1,4 @@
-package com.dartinsight.document;
+package com.dartinsight.document.domain;
 
 /**
  * 원문 구조화 결과(4.2).

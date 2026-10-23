@@ -2,9 +2,9 @@ package com.dartinsight.summary;
 
 import com.dartinsight.analysis.Analysis;
 import com.dartinsight.common.web.ApiPaths;
-import com.dartinsight.document.DocumentBlock;
-import com.dartinsight.document.DocumentService;
-import com.dartinsight.document.ReportDocument;
+import com.dartinsight.document.domain.DocumentBlock;
+import com.dartinsight.document.service.DocumentService;
+import com.dartinsight.document.domain.ReportDocument;
 import com.dartinsight.summary.SummaryQueryService.StoredSummary;
 import com.dartinsight.summary.SummaryQueryService.SummaryEntry;
 import com.dartinsight.summary.SummaryResponse.AiInfo;

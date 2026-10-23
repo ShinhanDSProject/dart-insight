@@ -1,6 +1,6 @@
-package com.dartinsight.document;
+package com.dartinsight.document.domain;
 
-import com.dartinsight.document.StructuredDocumentResponse.Cell;
+import com.dartinsight.document.dto.StructuredDocumentResponse.Cell;
 import java.util.List;
 
 /**

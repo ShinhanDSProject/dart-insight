@@ -1,4 +1,4 @@
-package com.dartinsight.document;
+package com.dartinsight.document.domain;
 
 /**
  * 원문 목차(섹션) 하나. 번호는 문서 순서대로 1부터.

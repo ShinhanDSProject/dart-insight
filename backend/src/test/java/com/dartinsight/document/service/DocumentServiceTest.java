@@ -1,4 +1,4 @@
-package com.dartinsight.document;
+package com.dartinsight.document.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -10,6 +10,10 @@ import com.dartinsight.company.CompanyImportService;
 import com.dartinsight.dart.dto.CorpCodeEntry;
 import com.dartinsight.dart.client.FakeOpenDartServer;
 import com.dartinsight.dart.client.FakeOpenDartServer.Response;
+import com.dartinsight.document.domain.DocumentBlock;
+import com.dartinsight.document.domain.DocumentSection;
+import com.dartinsight.document.domain.DocumentStatus;
+import com.dartinsight.document.domain.ReportDocument;
 import com.dartinsight.report.Correction;
 import com.dartinsight.report.Report;
 import com.dartinsight.report.ReportNameParser.ParsedReportName;

@@ -1,7 +1,10 @@
-package com.dartinsight.document;
+package com.dartinsight.document.repository;
 
-import com.dartinsight.document.StructuredDocumentResponse.Block;
-import com.dartinsight.document.StructuredDocumentResponse.Section;
+import com.dartinsight.document.domain.DocumentBlock;
+import com.dartinsight.document.domain.DocumentSection;
+import com.dartinsight.document.domain.TableJson;
+import com.dartinsight.document.dto.StructuredDocumentResponse.Block;
+import com.dartinsight.document.dto.StructuredDocumentResponse.Section;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;

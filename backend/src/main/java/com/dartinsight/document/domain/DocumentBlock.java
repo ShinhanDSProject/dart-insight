@@ -1,4 +1,4 @@
-package com.dartinsight.document;
+package com.dartinsight.document.domain;
 
 /**
  * 원문 문단 또는 표 하나. 블록 번호는 문서 전체에서 순서대로 1부터이며 원문 위치(근거 ID)의 기준이다.

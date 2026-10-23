@@ -1,7 +1,7 @@
 package com.dartinsight.analysis;
 
-import com.dartinsight.document.DocumentBlock;
-import com.dartinsight.document.DocumentSection;
+import com.dartinsight.document.domain.DocumentBlock;
+import com.dartinsight.document.domain.DocumentSection;
 import com.fasterxml.jackson.annotation.JsonRawValue;
 import java.util.List;
 

@@ -1,5 +1,6 @@
-package com.dartinsight.document;
+package com.dartinsight.document.repository;
 
+import com.dartinsight.document.config.DocumentProperties;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
