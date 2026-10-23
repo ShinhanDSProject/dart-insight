@@ -1,10 +1,18 @@
-package com.dartinsight.document;
+package com.dartinsight.document.service;
 
 import com.dartinsight.aiserver.client.AiServerClient;
 import com.dartinsight.aiserver.client.AiServerException;
 import com.dartinsight.aiserver.client.AiServerPaths;
 import com.dartinsight.dart.client.OpenDartClient;
 import com.dartinsight.dart.client.OpenDartClient.DocumentFile;
+import com.dartinsight.document.domain.DocumentBlock;
+import com.dartinsight.document.domain.DocumentSection;
+import com.dartinsight.document.domain.DocumentStatus;
+import com.dartinsight.document.domain.ReportDocument;
+import com.dartinsight.document.dto.StructuredDocumentResponse;
+import com.dartinsight.document.repository.DocumentFileCache;
+import com.dartinsight.document.repository.DocumentStore;
+import com.dartinsight.document.repository.ReportDocumentRepository;
 import com.dartinsight.report.Report;
 import java.time.Clock;
 import java.time.LocalDateTime;

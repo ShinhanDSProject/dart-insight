@@ -1,5 +1,6 @@
-package com.dartinsight.document;
+package com.dartinsight.document.domain;
 
+import com.dartinsight.document.dto.StructuredDocumentResponse;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

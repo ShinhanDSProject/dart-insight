@@ -9,7 +9,7 @@ import com.dartinsight.company.CompanyRepository;
 import com.dartinsight.comparison.ComparabilityService;
 import com.dartinsight.comparison.ComparabilityService.ComparabilityResult;
 import com.dartinsight.financial.FinancialStatementService;
-import com.dartinsight.document.DocumentBlock;
+import com.dartinsight.document.domain.DocumentBlock;
 import com.dartinsight.financial.FinancialAccount;
 import com.dartinsight.summary.SummaryResult;
 import com.dartinsight.summary.SummaryService;
