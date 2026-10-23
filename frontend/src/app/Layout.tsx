@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation, useMatches, useParams } from 'react-router'
-import { Icon, type IconName } from './Icon'
+import { Icon, type IconName } from '@/shared/ui/Icon'
 
 type Section = 'search' | 'compare' | 'source'
 

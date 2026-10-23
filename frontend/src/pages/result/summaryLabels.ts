@@ -1,6 +1,6 @@
-import type { SjDiv } from '../../api/results'
-import type { AiInfo, ExplanationStatus, SummaryKind, SummaryStatus, SummaryTarget } from '../../api/summary'
-import type { TextStatus } from '../../api/textChanges'
+import type { SjDiv } from '@/shared/api/results'
+import type { AiInfo, ExplanationStatus, SummaryKind, SummaryStatus, SummaryTarget } from '@/shared/api/summary'
+import type { TextStatus } from '@/shared/api/textChanges'
 
 /** 요약·설명(W-03 ①) 화면 문구. 요약은 공시에 적힌 내용만 옮기며 투자 판단이 아니다. */
 

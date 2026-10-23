@@ -1,5 +1,5 @@
-import type { AmountBasis } from '../../api/comparability'
-import type { ReportItem } from '../../api/reports'
+import type { AmountBasis } from '@/shared/api/comparability'
+import type { ReportItem } from '@/shared/api/reports'
 
 /** 금액 단위. 금액은 원 단위 정수로 오고, 단위 변환은 화면에서 한다(docs/api-spec.md). */
 export type AmountUnit = 'WON' | 'THOUSAND' | 'MILLION' | 'HUNDRED_MILLION'

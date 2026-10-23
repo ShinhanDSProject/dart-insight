@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ReportItem } from '../../api/reports'
+import type { ReportItem } from '@/shared/api/reports'
 import { customCandidates, parseBasis, reportOptionLabel } from './pairSelection'
 
 function report(rceptNo: string, periodEnd: string, reportName = '반기보고서'): ReportItem {

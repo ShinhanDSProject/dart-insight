@@ -1,4 +1,4 @@
-import type { ReportItem } from '../api/reports'
+import type { ReportItem } from '@/shared/api/reports'
 import { DartLinkInline } from './DartLink'
 
 interface DartSourceLineProps {

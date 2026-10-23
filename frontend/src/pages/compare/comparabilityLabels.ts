@@ -1,4 +1,4 @@
-import type { AmountBasis, CheckStatus, ComparabilityResult, StatementComparability } from '../../api/comparability'
+import type { AmountBasis, CheckStatus, ComparabilityResult, StatementComparability } from '@/shared/api/comparability'
 
 const statusLabels: Record<CheckStatus, string> = {
   OK: '확인됨',

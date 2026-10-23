@@ -1,4 +1,4 @@
-import type { Correction, FinancialDataStatus, ReportItem, ReportType } from '../../api/reports'
+import type { Correction, FinancialDataStatus, ReportItem, ReportType } from '@/shared/api/reports'
 
 /** 화면에 보이는 보고서 정보 문구. 대상 기간과 제출일을 서로 다른 모양으로 보여 준다. */
 

@@ -1,4 +1,4 @@
-import type { AnalysisStatus, AnalysisStepView } from '../../api/analyses'
+import type { AnalysisStatus, AnalysisStepView } from '@/shared/api/analyses'
 
 /** 상태 조회 주기(W-02): 1초. 조회가 실패하면 간격을 늘려 다시 시도하고, 5번 실패하면 멈춘다. */
 export const POLL_INTERVAL_MS = 1000

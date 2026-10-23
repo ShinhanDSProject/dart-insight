@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import { searchCompanies, type Company } from '../api/companies'
-import { ServiceNotice } from '../components/ServiceNotice'
-import { EmptyState, ErrorState, LoadingState } from '../components/StateView'
+import { searchCompanies, type Company } from '@/shared/api/companies'
+import { ServiceNotice } from '@/shared/ui/ServiceNotice'
+import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { validateSearchQuery } from './search/searchQuery'
 import './search/search.css'
 

@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
-import type { Analysis } from '../../api/analyses'
+import type { Analysis } from '@/shared/api/analyses'
 import {
   getFinancialChanges,
   type FinancialChangeItem,
   type FinancialChangeList,
   type SjDiv,
   type StatementSummary,
-} from '../../api/results'
-import { DartSourceLine } from '../../components/DartSource'
-import { EmptyState, ErrorState, LoadingState } from '../../components/StateView'
+} from '@/shared/api/results'
+import { DartSourceLine } from '@/shared/ui/DartSource'
+import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { EvidencePanel } from './EvidencePanel'
 import {
   amountPeriodLabel,

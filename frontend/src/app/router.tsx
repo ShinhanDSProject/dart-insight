@@ -1,12 +1,12 @@
 import { createBrowserRouter } from 'react-router'
-import { Layout } from './components/Layout'
-import { RouteError } from './components/RouteError'
-import { AnalysisProgressPage } from './pages/AnalysisProgressPage'
-import { AnalysisResultPage } from './pages/AnalysisResultPage'
-import { CompanyPage } from './pages/CompanyPage'
-import { ComparabilityPage } from './pages/ComparabilityPage'
-import { NotFoundPage } from './pages/NotFoundPage'
-import { SearchPage } from './pages/SearchPage'
+import { Layout } from './Layout'
+import { RouteError } from './RouteError'
+import { AnalysisProgressPage } from '@/pages/AnalysisProgressPage'
+import { AnalysisResultPage } from '@/pages/AnalysisResultPage'
+import { CompanyPage } from '@/pages/CompanyPage'
+import { ComparabilityPage } from '@/pages/ComparabilityPage'
+import { NotFoundPage } from './NotFoundPage'
+import { SearchPage } from '@/pages/SearchPage'
 
 /**
  * 화면 경로(와이어프레임 번호)

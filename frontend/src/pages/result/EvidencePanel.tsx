@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Analysis } from '../../api/analyses'
-import { getFinancialChange, type FinancialChangeDetail, type ValueSource } from '../../api/results'
-import { DartLinkInline } from '../../components/DartLink'
-import { ErrorState, LoadingState } from '../../components/StateView'
+import type { Analysis } from '@/shared/api/analyses'
+import { getFinancialChange, type FinancialChangeDetail, type ValueSource } from '@/shared/api/results'
+import { DartLinkInline } from '@/shared/ui/DartLink'
+import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { amountPeriodLabel, formatAmount, missingValueLabel, unitLabel, type AmountUnit } from './format'
 
 type DetailState = { kind: 'loading' } | { kind: 'done'; detail: FinancialChangeDetail } | { kind: 'error'; error: unknown }

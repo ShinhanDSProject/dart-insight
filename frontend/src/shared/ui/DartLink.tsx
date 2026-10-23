@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { verifiedDartUrl } from '../lib/dart'
+import { verifiedDartUrl } from '@/shared/lib/dart'
 
 type CopyState = 'idle' | 'copied' | 'failed'
 
