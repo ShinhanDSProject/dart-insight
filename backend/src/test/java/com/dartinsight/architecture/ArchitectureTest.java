@@ -14,7 +14,7 @@ import com.dartinsight.comparison.service.ReportPairService;
 import com.dartinsight.report.repository.ReportRepository;
 import com.dartinsight.report.service.ReportService;
 import com.dartinsight.report.service.ReportSyncService;
-import com.dartinsight.summary.SummaryStore;
+import com.dartinsight.summary.repository.SummaryStore;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.Dependency;
 import com.tngtech.archunit.core.domain.JavaClass;
@@ -107,7 +107,7 @@ class ArchitectureTest {
                         DescribedPredicate.describe("analysis의 요약 연동 클래스",
                                 origin -> ANALYSIS_TO_SUMMARY.stream().anyMatch(c -> topLevel(origin).isEquivalentTo(c))),
                         DescribedPredicate.describe("summary 패키지",
-                                target -> target.getPackageName().equals(SummaryStore.class.getPackageName())))
+                                target -> "summary".equals(domainOf(target))))
                 .check(classes);
     }
 

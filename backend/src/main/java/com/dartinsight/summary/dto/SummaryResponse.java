@@ -1,6 +1,8 @@
-package com.dartinsight.summary;
+package com.dartinsight.summary.dto;
 
 import com.dartinsight.analysis.TextStatus;
+import com.dartinsight.summary.domain.SummaryItemRow;
+import com.dartinsight.summary.domain.SummaryStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,7 +22,7 @@ public record SummaryResponse(Long analysisId, SummaryStatus summaryStatus, Stri
             @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") LocalDateTime generatedAt) {
 
         /** AI가 만든 문장이 없으면 null */
-        static AiInfo from(SummaryItemRow row) {
+        public static AiInfo from(SummaryItemRow row) {
             return row.aiGenerated() ? new AiInfo(row.model(), row.promptVersion(), row.generatedAt()) : null;
         }
     }

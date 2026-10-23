@@ -1,4 +1,4 @@
-package com.dartinsight.summary;
+package com.dartinsight.summary.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -11,6 +11,7 @@ import com.dartinsight.comparison.domain.AmountBasis;
 import com.dartinsight.document.domain.DocumentBlock;
 import com.dartinsight.document.domain.DocumentSection;
 import com.dartinsight.financial.domain.FsDiv;
+import com.dartinsight.summary.dto.SummaryAiRequest;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

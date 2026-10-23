@@ -11,8 +11,8 @@ import com.dartinsight.comparison.service.ComparabilityService.ComparabilityResu
 import com.dartinsight.financial.service.FinancialStatementService;
 import com.dartinsight.document.domain.DocumentBlock;
 import com.dartinsight.financial.domain.FinancialAccount;
-import com.dartinsight.summary.SummaryResult;
-import com.dartinsight.summary.SummaryService;
+import com.dartinsight.summary.domain.SummaryResult;
+import com.dartinsight.summary.service.SummaryService;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;

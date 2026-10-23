@@ -1,4 +1,4 @@
-package com.dartinsight.summary;
+package com.dartinsight.summary.service;
 
 import com.dartinsight.analysis.FinancialChangeRow;
 import java.math.BigDecimal;

@@ -1,4 +1,4 @@
-package com.dartinsight.summary;
+package com.dartinsight.summary.service;
 
 import static com.dartinsight.dart.client.FinancialJson.account;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -22,6 +22,7 @@ import com.dartinsight.report.domain.Report;
 import com.dartinsight.report.service.ReportNameParser.ParsedReportName;
 import com.dartinsight.report.repository.ReportRepository;
 import com.dartinsight.report.domain.ReportType;
+import com.dartinsight.summary.repository.SummaryStore;
 import com.dartinsight.support.TestData;
 import com.dartinsight.support.TestDocuments;
 import com.jayway.jsonpath.JsonPath;

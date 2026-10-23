@@ -5,7 +5,7 @@ import com.dartinsight.financial.domain.FsDiv;
 import com.dartinsight.report.domain.FinancialDataStatus;
 import com.dartinsight.report.dto.ReportItemResponse;
 import com.dartinsight.report.service.ReportService.ReportDetail;
-import com.dartinsight.summary.SummaryStatus;
+import com.dartinsight.summary.domain.SummaryStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.LocalDateTime;
 import java.util.Arrays;

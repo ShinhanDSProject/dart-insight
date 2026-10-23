@@ -1,8 +1,10 @@
-package com.dartinsight.summary;
+package com.dartinsight.summary.service;
 
 import com.dartinsight.analysis.Analysis;
 import com.dartinsight.analysis.AnalysisResultService;
-import com.dartinsight.summary.SummaryStore.StoredItem;
+import com.dartinsight.summary.domain.SummaryItemRow;
+import com.dartinsight.summary.repository.SummaryStore.StoredItem;
+import com.dartinsight.summary.repository.SummaryStore;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

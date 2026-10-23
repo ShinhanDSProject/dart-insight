@@ -1,4 +1,4 @@
-package com.dartinsight.summary;
+package com.dartinsight.summary.dto;
 
 import java.util.List;
 
