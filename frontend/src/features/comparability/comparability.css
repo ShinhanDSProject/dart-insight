@@ -39,30 +39,6 @@
   font-weight: var(--font-weight-regular);
 }
 
-.not-comparable {
-  margin: var(--space-4) 0;
-  padding: var(--space-4) var(--space-5);
-  border: 1.5px dashed var(--color-attention);
-  border-radius: var(--radius-lg);
-  background: var(--color-attention-subtle);
-}
-
-.not-comparable__title {
-  margin: 0 0 var(--space-2);
-  color: var(--color-attention);
-  font-weight: var(--font-weight-bold);
-}
-
-.not-comparable__reasons {
-  margin: 0 0 var(--space-2);
-  padding-left: var(--space-5);
-  font-size: var(--font-size-sm);
-}
-
-.not-comparable__next {
-  color: var(--color-text-muted);
-}
-
 .statement-list {
   display: grid;
   gap: var(--space-2);

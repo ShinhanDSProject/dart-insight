@@ -3,9 +3,8 @@ import { Link, useNavigate, useParams } from 'react-router'
 import { analysisPath, getAnalysis, requestAnalysis, type Analysis } from '@/shared/api/analyses'
 import { ApiError } from '@/shared/api/client'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
-import { periodLabel } from '@/features/report-selection/model/reportLabels'
+import { periodLabel } from '@/shared/lib/reportLabels'
 import { MAX_POLL_FAILURES, nextPollDelay, statusLabel, stepSummary } from './model/progress'
-import '@/features/comparability/comparability.css'
 import './analysis-progress.css'
 
 type PollState =

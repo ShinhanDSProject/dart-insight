@@ -9,7 +9,7 @@ import {
   formatDate,
   periodLabel,
   reportTypeLabel,
-} from '../model/reportLabels'
+} from '@/shared/lib/reportLabels'
 
 type DetailState = { kind: 'loading' } | { kind: 'done'; report: ReportDetail } | { kind: 'error'; error: unknown }
 
