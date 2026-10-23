@@ -4,10 +4,10 @@ import type { DocumentSide } from '@/shared/api/documents'
 import { getTextChange, type TextChangeDetail, type TextSource } from '@/shared/api/textChanges'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
-import { formatDate, reportTypeLabel } from '../company/reportLabels'
+import { formatDate, reportTypeLabel } from '@/features/report-selection/model/reportLabels'
 import { TableView } from './TableView'
-import { changeTypeLabel, DELETED_NOTE, missingSideLabel } from './textLabels'
-import { wordDiff, type DiffPart } from './wordDiff'
+import { changeTypeLabel, DELETED_NOTE, missingSideLabel } from '../model/textLabels'
+import { wordDiff, type DiffPart } from '../model/wordDiff'
 
 type DetailState = { kind: 'loading' } | { kind: 'done'; detail: TextChangeDetail } | { kind: 'error'; error: unknown }
 

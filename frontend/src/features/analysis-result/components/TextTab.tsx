@@ -20,7 +20,7 @@ import {
   PRIORITY_NOTE,
   priorityLabel,
   textStatusNotice,
-} from './textLabels'
+} from '../model/textLabels'
 
 const PAGE_SIZE = 20
 

@@ -3,9 +3,9 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { analysisPath, requestAnalysis } from '@/shared/api/analyses'
 import { checkComparability, type ComparabilityResult } from '@/shared/api/comparability'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
-import { checkStatusLabel, resultSummary, statementBasisLabel } from './compare/comparabilityLabels'
-import { basisLabel, parseBasis } from './company/pairSelection'
-import './compare/compare.css'
+import { checkStatusLabel, resultSummary, statementBasisLabel } from './model/comparabilityLabels'
+import { basisLabel, parseBasis } from '@/features/report-selection/model/pairSelection'
+import './comparability.css'
 
 type CheckState = { kind: 'loading' } | { kind: 'done'; result: ComparabilityResult } | { kind: 'error'; error: unknown }
 

@@ -1,6 +1,6 @@
 import type { ComparisonBasis, ReportItem } from '@/shared/api/reports'
 import { ErrorState } from '@/shared/ui/StateView'
-import { basisOptions, customCandidates, reportOptionLabel } from './pairSelection'
+import { basisOptions, customCandidates, reportOptionLabel } from '../model/pairSelection'
 
 export type PairLookup =
   | { kind: 'idle' }

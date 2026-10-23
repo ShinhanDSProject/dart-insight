@@ -14,7 +14,7 @@ import {
   summaryLink,
   summaryStatusNotice,
   textCoverageNote,
-} from './summaryLabels'
+} from '../model/summaryLabels'
 
 type Load = { kind: 'loading' } | { kind: 'done'; data: Summary } | { kind: 'error'; error: unknown }
 

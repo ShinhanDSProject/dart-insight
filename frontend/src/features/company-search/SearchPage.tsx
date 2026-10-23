@@ -3,8 +3,8 @@ import { Link, useSearchParams } from 'react-router'
 import { searchCompanies, type Company } from '@/shared/api/companies'
 import { ServiceNotice } from '@/shared/ui/ServiceNotice'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
-import { validateSearchQuery } from './search/searchQuery'
-import './search/search.css'
+import { validateSearchQuery } from './model/searchQuery'
+import './company-search.css'
 
 type SearchState =
   | { kind: 'idle' }

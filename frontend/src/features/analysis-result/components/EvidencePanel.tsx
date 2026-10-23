@@ -3,7 +3,7 @@ import type { Analysis } from '@/shared/api/analyses'
 import { getFinancialChange, type FinancialChangeDetail, type ValueSource } from '@/shared/api/results'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
-import { amountPeriodLabel, formatAmount, missingValueLabel, unitLabel, type AmountUnit } from './format'
+import { amountPeriodLabel, formatAmount, missingValueLabel, unitLabel, type AmountUnit } from '../model/format'
 
 type DetailState = { kind: 'loading' } | { kind: 'done'; detail: FinancialChangeDetail } | { kind: 'error'; error: unknown }
 

@@ -1,6 +1,6 @@
 import type { ReportItem } from '@/shared/api/reports'
 import { DartLinkInline } from '@/shared/ui/DartLink'
-import { correctionLabel, dataStatusHelp, dataStatusLabel, formatDate, periodLabel } from './reportLabels'
+import { correctionLabel, dataStatusHelp, dataStatusLabel, formatDate, periodLabel } from '../model/reportLabels'
 
 interface ReportTableProps {
   items: ReportItem[]
