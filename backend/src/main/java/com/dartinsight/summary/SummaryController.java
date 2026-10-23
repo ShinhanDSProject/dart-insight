@@ -1,16 +1,18 @@
 package com.dartinsight.summary;
 
 import com.dartinsight.analysis.Analysis;
-import com.dartinsight.analysis.TextStatus;
 import com.dartinsight.common.web.ApiPaths;
 import com.dartinsight.document.DocumentBlock;
 import com.dartinsight.document.DocumentService;
 import com.dartinsight.document.ReportDocument;
 import com.dartinsight.summary.SummaryQueryService.StoredSummary;
 import com.dartinsight.summary.SummaryQueryService.SummaryEntry;
+import com.dartinsight.summary.SummaryResponse.AiInfo;
+import com.dartinsight.summary.SummaryResponse.EvidenceView;
+import com.dartinsight.summary.SummaryResponse.ItemView;
+import com.dartinsight.summary.SummaryResponse.ReviewView;
+import com.dartinsight.summary.SummaryResponse.Target;
 import com.dartinsight.summary.SummaryStore.StoredItem;
-import com.fasterxml.jackson.annotation.JsonFormat;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -60,9 +62,8 @@ public class SummaryController {
             }
             List<EvidenceView> evidence = row.evidenceIds().stream()
                     .map(id -> evidence(analysis, id, documents)).toList();
-            AiInfo ai = row.aiGenerated() ? new AiInfo(row.model(), row.promptVersion(), row.generatedAt()) : null;
             shown.add(new ItemView(stored.itemNo(), row.kind(), target, row.factSentence(), row.aiText(),
-                    row.aiGenerated(), row.explanationStatus(), evidence, ai));
+                    row.aiGenerated(), row.explanationStatus(), evidence, AiInfo.from(row)));
         }
         return new SummaryResponse(analysisId, analysis.getSummaryStatus(), analysis.getSummaryMessage(),
                 analysis.getTextStatus(), shown, review.size(), review);
@@ -96,36 +97,5 @@ public class SummaryController {
     private static boolean restructuredAfter(ReportDocument document, Analysis analysis) {
         return document.getStructuredAt() != null && analysis.getCompletedAt() != null
                 && document.getStructuredAt().isAfter(analysis.getCompletedAt());
-    }
-
-    /** @param type FINANCIAL(재무 수치 탭의 계정) 또는 TEXT(문장 변화 탭의 변경) */
-    public record Target(String type, Long changeId, String sjDiv) {
-    }
-
-    /** @param side current·previous. 분석의 보고서가 아니면 null(화면은 근거로 쓰지 않음) */
-    public record EvidenceView(String evidenceId, String side, String rceptNo, Integer sectionNo, Integer blockNo) {
-    }
-
-    public record AiInfo(String model, String promptVersion,
-            @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") LocalDateTime generatedAt) {
-    }
-
-    /**
-     * 요약 한 줄.
-     *
-     * @param factSentence      코드가 만든 사실 문장(재무 수치). 문장 변화면 null
-     * @param aiText            AI가 만든 문장(문장 변화 요약, 재무 수치 설명). 없으면 null
-     * @param explanationStatus 재무 수치의 설명: FOUND, NOT_FOUND('확인된 설명 없음'), REVIEW_NEEDED
-     */
-    public record ItemView(int itemNo, String kind, Target target, String factSentence, String aiText,
-            boolean aiGenerated, String explanationStatus, List<EvidenceView> evidence, AiInfo ai) {
-    }
-
-    /** @param blockedRules 투자 권유성 표현 검사(5.5)에 걸린 규칙 ID. 근거 확인에 실패한 것이면 빈 목록 */
-    public record ReviewView(int itemNo, String kind, Target target, String reason, List<String> blockedRules) {
-    }
-
-    public record SummaryResponse(Long analysisId, SummaryStatus summaryStatus, String summaryMessage,
-            TextStatus textStatus, List<ItemView> items, int reviewNeededCount, List<ReviewView> reviewNeeded) {
     }
 }
