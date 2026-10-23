@@ -1,13 +1,14 @@
-package com.dartinsight.dart;
+package com.dartinsight.dart.client;
 
-import static com.dartinsight.dart.DisclosureListJson.item;
-import static com.dartinsight.dart.DisclosureListJson.page;
+import static com.dartinsight.dart.client.DisclosureListJson.item;
+import static com.dartinsight.dart.client.DisclosureListJson.page;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
-import com.dartinsight.dart.FakeOpenDartServer.Response;
+import com.dartinsight.dart.client.FakeOpenDartServer.Response;
+import com.dartinsight.dart.dto.DisclosureListResponse;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;

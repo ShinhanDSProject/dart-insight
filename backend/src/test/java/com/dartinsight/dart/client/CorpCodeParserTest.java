@@ -1,9 +1,10 @@
-package com.dartinsight.dart;
+package com.dartinsight.dart.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.dartinsight.common.error.ApiException;
+import com.dartinsight.dart.dto.CorpCodeEntry;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

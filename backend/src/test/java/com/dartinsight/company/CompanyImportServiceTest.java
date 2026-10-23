@@ -2,7 +2,7 @@ package com.dartinsight.company;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.dartinsight.dart.CorpCodeEntry;
+import com.dartinsight.dart.dto.CorpCodeEntry;
 import com.dartinsight.support.TestData;
 import java.time.LocalDate;
 import java.util.List;

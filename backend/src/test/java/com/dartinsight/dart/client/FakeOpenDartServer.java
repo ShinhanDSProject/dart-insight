@@ -1,5 +1,6 @@
-package com.dartinsight.dart;
+package com.dartinsight.dart.client;
 
+import com.dartinsight.dart.config.OpenDartProperties;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;

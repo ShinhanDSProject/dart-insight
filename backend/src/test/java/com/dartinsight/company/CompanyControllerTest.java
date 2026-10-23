@@ -5,7 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.dartinsight.dart.CorpCodeEntry;
+import com.dartinsight.dart.dto.CorpCodeEntry;
 import com.dartinsight.support.TestData;
 import java.time.LocalDate;
 import java.util.List;

@@ -1,4 +1,4 @@
-package com.dartinsight.dart;
+package com.dartinsight.dart.client;
 
 /**
  * OpenDART 외부 API 경로. {@link OpenDartClient}가 부르는 경로는 여기에만 둔다.

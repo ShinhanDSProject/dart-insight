@@ -10,7 +10,7 @@ import com.dartinsight.analysis.TextChangeRow.Priority;
 import com.dartinsight.analysis.TextChangeRow.Side;
 import com.dartinsight.company.CompanyImportService;
 import com.dartinsight.comparison.ComparisonBasis;
-import com.dartinsight.dart.CorpCodeEntry;
+import com.dartinsight.dart.dto.CorpCodeEntry;
 import com.dartinsight.report.Correction;
 import com.dartinsight.report.Report;
 import com.dartinsight.report.ReportNameParser.ParsedReportName;
