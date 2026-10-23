@@ -1,6 +1,6 @@
 # ADR-0015: 재무 설명은 등급·인용과 함께 내고, 코드가 인용을 확인해 등급을 낮춘다
 
-- 상태: 제안
+- 상태: 채택
 - 결정한 날: 2026-10-23
 - 관련: 이슈 [#141](https://github.com/ShinhanDSProject/dart-insight/issues/141)·[#142](https://github.com/ShinhanDSProject/dart-insight/issues/142)·[#143](https://github.com/ShinhanDSProject/dart-insight/issues/143), [AI 레이어 설계 v2](https://claude.ai/artifact/FTuyfxPRLHQiGszLWPa6GE) 3장·4.5~4.9, 기능 기획서 '재무 변화의 회사 설명을 근거 등급과 함께 보여 주기'(FS 번호 미정), 대체: [ADR-0012](0012-grounded-summary.md)
 

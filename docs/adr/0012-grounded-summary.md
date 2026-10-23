@@ -1,6 +1,6 @@
 # ADR-0012: 요약은 코드가 고르고 사실 문장을 쓰며, LLM 문장은 근거·숫자를 검증한 것만 내보낸다
 
-- 상태: 채택
+- 상태: 대체됨(ADR-0015)
 - 결정한 날: 2026-10-22
 - 관련: [PR #107](https://github.com/ShinhanDSProject/dart-insight/pull/107)(3.2), [PR #109](https://github.com/ShinhanDSProject/dart-insight/pull/109)(5.6), 노션 결정 로그 [초기 구상의 MVP 기능 포함 여부](https://app.notion.com/p/400b6afffc6f81e89598c2ea8630642b)(인용 검증은 확장 1순위), 노션 개발 기준 8장
 
