@@ -20,7 +20,7 @@ import {
   unitLabel,
   unitOptions,
   type AmountUnit,
-} from './format'
+} from '../model/format'
 
 const statementOptions: { sjDiv: SjDiv; label: string }[] = [
   { sjDiv: 'BS', label: '재무상태표' },

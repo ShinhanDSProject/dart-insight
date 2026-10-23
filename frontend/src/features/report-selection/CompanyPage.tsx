@@ -3,12 +3,12 @@ import { Link, useParams, useSearchParams } from 'react-router'
 import { getCompany, type Company } from '@/shared/api/companies'
 import { getReportPair, listReports, type ComparisonBasis, type ReportItem, type ReportList } from '@/shared/api/reports'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
-import { PairSelector, type PairLookup } from './company/PairSelector'
-import { ReportDetailPanel } from './company/ReportDetailPanel'
-import { ReportTable } from './company/ReportTable'
-import { customCandidates, parseBasis } from './company/pairSelection'
-import { formatDate } from './company/reportLabels'
-import './company/company.css'
+import { PairSelector, type PairLookup } from './components/PairSelector'
+import { ReportDetailPanel } from './components/ReportDetailPanel'
+import { ReportTable } from './components/ReportTable'
+import { customCandidates, parseBasis } from './model/pairSelection'
+import { formatDate } from './model/reportLabels'
+import './report-selection.css'
 
 type PageState =
   | { kind: 'loading' }

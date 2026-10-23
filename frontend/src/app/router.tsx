@@ -1,12 +1,12 @@
 import { createBrowserRouter } from 'react-router'
 import { Layout } from './Layout'
 import { RouteError } from './RouteError'
-import { AnalysisProgressPage } from '@/pages/AnalysisProgressPage'
-import { AnalysisResultPage } from '@/pages/AnalysisResultPage'
-import { CompanyPage } from '@/pages/CompanyPage'
-import { ComparabilityPage } from '@/pages/ComparabilityPage'
+import { AnalysisProgressPage } from '@/features/analysis-progress/AnalysisProgressPage'
+import { AnalysisResultPage } from '@/features/analysis-result/AnalysisResultPage'
+import { CompanyPage } from '@/features/report-selection/CompanyPage'
+import { ComparabilityPage } from '@/features/comparability/ComparabilityPage'
 import { NotFoundPage } from './NotFoundPage'
-import { SearchPage } from '@/pages/SearchPage'
+import { SearchPage } from '@/features/company-search/SearchPage'
 
 /**
  * 화면 경로(와이어프레임 번호)
