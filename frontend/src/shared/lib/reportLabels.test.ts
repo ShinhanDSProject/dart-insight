@@ -27,7 +27,7 @@ describe('reportLabels', () => {
   })
 
   it('재무 자료 상태를 구분한다', () => {
-    expect(dataStatusLabel('UNKNOWN')).toBe('확인 전')
+    expect(dataStatusLabel('UNKNOWN')).toBe('받기 전')
     expect(dataStatusLabel('AVAILABLE')).toBe('준비됨')
     expect(dataStatusLabel('NOT_AVAILABLE')).toBe('재무 자료 없음')
   })

@@ -23,7 +23,7 @@ const correctionLabels: Record<Correction, string> = {
 }
 
 const dataStatusLabels: Record<FinancialDataStatus, string> = {
-  UNKNOWN: '확인 전',
+  UNKNOWN: '받기 전',
   AVAILABLE: '준비됨',
   NOT_AVAILABLE: '재무 자료 없음',
 }
