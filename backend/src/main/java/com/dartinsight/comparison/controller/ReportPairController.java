@@ -1,6 +1,9 @@
-package com.dartinsight.comparison;
+package com.dartinsight.comparison.controller;
 
 import com.dartinsight.common.web.ApiPaths;
+import com.dartinsight.comparison.domain.ComparisonBasis;
+import com.dartinsight.comparison.dto.ReportPairResponse;
+import com.dartinsight.comparison.service.ReportPairService;
 import com.dartinsight.report.domain.FinancialDataStatus;
 import com.dartinsight.report.domain.Report;
 import com.dartinsight.report.service.ReportService;

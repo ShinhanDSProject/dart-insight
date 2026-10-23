@@ -13,8 +13,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.dartinsight.analysis.FinancialChangeRow.Evidence;
 import com.dartinsight.common.config.ClockConfig;
 import com.dartinsight.company.service.CompanyImportService;
-import com.dartinsight.comparison.AmountBasis;
-import com.dartinsight.comparison.ComparisonBasis;
+import com.dartinsight.comparison.domain.AmountBasis;
+import com.dartinsight.comparison.domain.ComparisonBasis;
 import com.dartinsight.dart.dto.CorpCodeEntry;
 import com.dartinsight.dart.client.FakeOpenDartServer;
 import com.dartinsight.dart.client.FakeOpenDartServer.Response;

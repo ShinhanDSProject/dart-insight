@@ -1,4 +1,4 @@
-package com.dartinsight.comparison;
+package com.dartinsight.comparison.domain;
 
 /**
  * 비교 기준(docs/api-spec.md 공통 값). 기본값은 전년 동기(잠정안, 결정 로그 '기본 비교 기준').

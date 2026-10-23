@@ -1,4 +1,4 @@
-package com.dartinsight.comparison;
+package com.dartinsight.comparison.controller;
 
 import static com.dartinsight.dart.client.DisclosureListJson.item;
 import static com.dartinsight.dart.client.DisclosureListJson.page;

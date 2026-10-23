@@ -1,6 +1,6 @@
 package com.dartinsight.analysis;
 
-import com.dartinsight.comparison.ComparisonBasis;
+import com.dartinsight.comparison.domain.ComparisonBasis;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;

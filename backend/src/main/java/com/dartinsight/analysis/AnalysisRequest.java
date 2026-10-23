@@ -1,6 +1,6 @@
 package com.dartinsight.analysis;
 
-import com.dartinsight.comparison.ComparisonBasis;
+import com.dartinsight.comparison.domain.ComparisonBasis;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 

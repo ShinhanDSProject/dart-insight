@@ -1,4 +1,4 @@
-package com.dartinsight.comparison;
+package com.dartinsight.comparison.controller;
 
 import static com.dartinsight.dart.client.FinancialJson.account;
 import static org.assertj.core.api.Assertions.assertThat;

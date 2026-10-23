@@ -1,5 +1,6 @@
-package com.dartinsight.comparison;
+package com.dartinsight.comparison.dto;
 
+import com.dartinsight.comparison.domain.ComparisonBasis;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 

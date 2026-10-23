@@ -1,7 +1,9 @@
-package com.dartinsight.comparison;
+package com.dartinsight.comparison.dto;
 
-import com.dartinsight.comparison.ComparabilityService.ComparabilityResult;
-import com.dartinsight.comparison.StatementRules.StatementRule;
+import com.dartinsight.comparison.domain.AmountBasis;
+import com.dartinsight.comparison.service.ComparabilityService.ComparabilityResult;
+import com.dartinsight.comparison.service.ComparabilityService;
+import com.dartinsight.comparison.service.StatementRules.StatementRule;
 import com.dartinsight.financial.domain.FsDiv;
 import com.dartinsight.report.domain.FinancialDataStatus;
 import com.dartinsight.report.domain.Report;
@@ -19,7 +21,7 @@ public record ComparabilityResponse(
         List<CheckResponse> checks,
         List<ComparabilityService.Reason> reasons) {
 
-    static ComparabilityResponse from(ComparabilityResult r, Map<String, FinancialDataStatus> statuses) {
+    public static ComparabilityResponse from(ComparabilityResult r, Map<String, FinancialDataStatus> statuses) {
         return new ComparabilityResponse(r.comparable(), r.level(), r.fsDiv(), item(r.current(), statuses),
                 item(r.previous(), statuses),
                 r.statements().stream().map(StatementResponse::from).toList(),

@@ -1,7 +1,10 @@
-package com.dartinsight.comparison;
+package com.dartinsight.comparison.controller;
 
 import com.dartinsight.common.web.ApiPaths;
-import com.dartinsight.comparison.ComparabilityService.ComparabilityResult;
+import com.dartinsight.comparison.dto.ComparabilityRequest;
+import com.dartinsight.comparison.dto.ComparabilityResponse;
+import com.dartinsight.comparison.service.ComparabilityService.ComparabilityResult;
+import com.dartinsight.comparison.service.ComparabilityService;
 import com.dartinsight.report.service.ReportService;
 import jakarta.validation.Valid;
 import java.util.List;
