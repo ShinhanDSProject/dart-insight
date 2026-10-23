@@ -21,6 +21,8 @@ describe('parseResultParams', () => {
       selectedChangeId: null,
       textType: null,
       textSort: 'priority',
+      textSection: null,
+      textQuery: null,
       selectedTextChangeId: null,
       sourceSide: 'current',
       sourceSection: null,
@@ -42,6 +44,12 @@ describe('parseResultParams', () => {
       sourceSection: 2,
       sourceBlock: 5,
     })
+  })
+
+  it('문장 변화의 섹션과 검색어를 읽고 짧은 검색어는 버린다', () => {
+    const params = new URLSearchParams({ tsec: 'II. 사업의 내용', tq: ' 소송 ' })
+    expect(parseResultParams(params)).toMatchObject({ textSection: 'II. 사업의 내용', textQuery: '소송' })
+    expect(parseResultParams(new URLSearchParams('tsec=%20&tq=가'))).toMatchObject({ textSection: null, textQuery: null })
   })
 
   it('모르는 탭·재무제표·유형과 잘못된 번호는 기본값으로 본다', () => {
@@ -70,6 +78,12 @@ describe('고르기를 주소 값으로 바꾸기', () => {
     expect(textParamChanges({ change: null })).toEqual({ tc: null })
   })
 
+  it('섹션·검색어를 바꾸면 보던 근거를 닫고 지우면 주소에서 뺀다', () => {
+    expect(textParamChanges({ section: 'II. 사업의 내용' })).toEqual({ tsec: 'II. 사업의 내용', tc: null })
+    expect(textParamChanges({ q: '소송' })).toEqual({ tq: '소송', tc: null })
+    expect(textParamChanges({ type: null, section: null, q: null })).toEqual({ ttype: null, tsec: null, tq: null, tc: null })
+  })
+
   it('원문 확인의 보고서·항목·위치를 주소 값으로 바꾼다', () => {
     expect(sourceParamChanges({ side: 'previous', section: null, block: null })).toEqual({
       doc: 'previous',
@@ -86,7 +100,7 @@ describe('고르기를 주소 값으로 바꾸기', () => {
       block: null,
     })
     expect(openFinancialChanges('CF', 9)).toEqual({ tab: 'financial', sj: 'CF', change: '9', changed: null })
-    expect(openTextChanges(2)).toEqual({ tab: 'text', ttype: null, tsort: null, tc: '2' })
+    expect(openTextChanges(2)).toEqual({ tab: 'text', ttype: null, tsort: null, tsec: null, tq: null, tc: '2' })
   })
 
   it('변화 개요에서 재무 수치 탭을 변경 항목만으로 연다', () => {

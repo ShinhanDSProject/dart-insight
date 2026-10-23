@@ -1,11 +1,12 @@
 import { match, P } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { ChangeType, TextChangeItem, TextSort } from '@/shared/api/textChanges'
-import { Badge, Button, Card, Chip, Notice, Panel, SegmentedControl } from '@/shared/ui'
+import { Badge, Button, Card, Chip, FieldHint, FieldLabel, Input, Notice, Panel, SegmentedControl, Select } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { TextEvidencePanel } from './TextEvidencePanel'
 import { useTextChanges } from '../hooks/useTextChanges'
+import { useTextSearch } from '../hooks/useTextSearch'
 import type { SourceTarget, TextViewChange } from '../model/resultParams'
 import {
   changeTypeLabel,
@@ -17,6 +18,15 @@ import {
   priorityLabel,
   textStatusNotice,
 } from '../model/textLabels'
+import {
+  ALL_SECTIONS,
+  hasSearchFilter,
+  moreLabel,
+  resultCountLabel,
+  SEARCH_MAX_LENGTH,
+  SEARCH_TOO_SHORT,
+  sectionOptions,
+} from '../model/textFilter'
 
 const sortOptions: { value: TextSort; label: string }[] = [
   { value: 'priority', label: '우선순위 순' },
@@ -27,6 +37,10 @@ interface TextTabProps {
   analysis: Analysis
   type: ChangeType | null
   sort: TextSort
+  /** 고른 최상위 섹션(3.7). null이면 전체 */
+  section: string | null
+  /** 검색어(3.7). null이면 검색하지 않음 */
+  q: string | null
   /** 근거를 보고 있는 변경(3.4) */
   selectedChangeId: number | null
   onChange: (changes: TextViewChange) => void
@@ -35,10 +49,17 @@ interface TextTabProps {
 
 /**
  * W-03 ③ 문장·내용 변화(3.9). 추가·삭제·수정·검토 필요로 거르고, 기본은 우선순위 순서(2.6)로 보여 준다.
+ * 최상위 섹션과 검색어로도 함께 거른다(3.7). 고른 값은 주소에 남아 공유된다.
  * 문장을 비교하지 못했으면 '변경 없음'이 아니라 사유를 보여 준다. 짝짓지 못한 항목은 숨기지 않고 '검토 필요'로 둔다.
  */
-export function TextTab({ analysis, type, sort, selectedChangeId, onChange, onOpenSource }: TextTabProps) {
-  const { state, counts, reload, loadMore } = useTextChanges(analysis.analysisId, type, sort)
+export function TextTab({ analysis, type, sort, section, q, selectedChangeId, onChange, onOpenSource }: TextTabProps) {
+  const { state, counts, sections, reload, loadMore } = useTextChanges(analysis.analysisId, { type, sort, section, q })
+  const searchBox = useTextSearch(q, (next) => onChange({ q: next }))
+  const filtered = hasSearchFilter({ section, q })
+  const clearFilters = () => {
+    searchBox.setInput('')
+    onChange({ type: null, section: null, q: null })
+  }
   const notice = textStatusNotice(analysis.textStatus, analysis.textMessage)
   const failed = analysis.textStatus === 'FAILED' || analysis.textStatus === null
 
@@ -48,6 +69,45 @@ export function TextTab({ analysis, type, sort, selectedChangeId, onChange, onOp
         <Notice tone="attention" role="status">
           {notice}
         </Notice>
+      )}
+      {!failed && (
+        <div className="text-search">
+          <div className="text-search__field">
+            <FieldLabel htmlFor="text-section">섹션</FieldLabel>
+            <Select
+              id="text-section"
+              className="text-search__section"
+              value={section ?? ALL_SECTIONS}
+              onChange={(e) => onChange({ section: e.target.value === ALL_SECTIONS ? null : e.target.value })}
+            >
+              {sectionOptions(sections ?? [], section).map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div className="text-search__field text-search__field--grow">
+            <FieldLabel htmlFor="text-query">문장 검색</FieldLabel>
+            <Input
+              id="text-query"
+              type="search"
+              className="text-search__input"
+              placeholder="바뀐 글이나 섹션 이름으로 찾기"
+              maxLength={SEARCH_MAX_LENGTH}
+              value={searchBox.input}
+              invalid={searchBox.search.kind === 'too-short'}
+              aria-describedby="text-query-hint"
+              onChange={(e) => searchBox.setInput(e.target.value)}
+            />
+            <FieldHint id="text-query-hint" aria-live="polite">
+              {match(searchBox.search)
+                .with({ kind: 'too-short' }, () => SEARCH_TOO_SHORT)
+                .with({ kind: P.union('empty', 'ready') }, () => '바뀌기 전·후 글과 섹션 이름에서 찾아요.')
+                .exhaustive()}
+            </FieldHint>
+          </div>
+        </div>
       )}
       {!failed && (
         <div className="text-controls">
@@ -84,11 +144,28 @@ export function TextTab({ analysis, type, sort, selectedChangeId, onChange, onOp
           .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} />)
           .with({ status: 'success' }, ({ data, items, more }) => (
             <>
-              {items.length === 0 && (
-                <EmptyState title={type === null ? '두 보고서 사이에 바뀐 문장·표가 없어요.' : `${changeTypeLabel(type)} 항목이 없어요.`}>
-                  {type !== null && <p>'전체'를 고르면 다른 유형의 변화도 볼 수 있어요.</p>}
-                </EmptyState>
+              {filtered && items.length > 0 && (
+                <p className="panel__note" role="status">
+                  조건에 맞는 변경 {resultCountLabel(data.totalItems)}
+                </p>
               )}
+              {items.length === 0 &&
+                match({ filtered, type })
+                  .with({ filtered: true }, () => (
+                    <EmptyState title="찾는 문장이 없어요">
+                      <p>섹션이나 검색어를 바꾸거나, 조건을 지우고 전체 변경을 볼 수 있어요.</p>
+                      <Button variant="secondary" onClick={clearFilters}>
+                        조건 지우기
+                      </Button>
+                    </EmptyState>
+                  ))
+                  .with({ filtered: false, type: null }, () => <EmptyState title="두 보고서 사이에 바뀐 문장·표가 없어요." />)
+                  .with({ filtered: false, type: P.nonNullable }, ({ type: current }) => (
+                    <EmptyState title={`${changeTypeLabel(current)} 항목이 없어요.`}>
+                      <p>'전체'를 고르면 다른 유형의 변화도 볼 수 있어요.</p>
+                    </EmptyState>
+                  ))
+                  .exhaustive()}
               {selectedChangeId !== null && !items.some((i) => i.changeId === selectedChangeId) && (
                 // 고른 항목이 지금 목록(거르기·쪽)에 없어도 근거는 연다(요약·주소에서 바로 온 경우)
                 <div className="change-list__outside">
@@ -128,7 +205,7 @@ export function TextTab({ analysis, type, sort, selectedChangeId, onChange, onOp
                     </span>
                     {items.length < data.totalItems && (
                       <Button variant="secondary" disabled={more.status === 'loading'} onClick={loadMore}>
-                        {more.status === 'loading' ? '불러오는 중…' : '더 보기'}
+                        {more.status === 'loading' ? '불러오는 중…' : moreLabel(items.length, data.totalItems)}
                       </Button>
                     )}
                   </div>

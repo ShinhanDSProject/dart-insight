@@ -136,6 +136,8 @@ function ResultTabPanel({ analysis, params, update }: AnalysisResultProps) {
         analysis={analysis}
         type={params.textType}
         sort={params.textSort}
+        section={params.textSection}
+        q={params.textQuery}
         selectedChangeId={params.selectedTextChangeId}
         onChange={(c) => update(textParamChanges(c))}
         onOpenSource={openSource}

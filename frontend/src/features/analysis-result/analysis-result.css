@@ -443,6 +443,34 @@
   gap: var(--space-2) var(--space-4);
 }
 
+/* 문장 변화 섹션 거르기·검색(3.7) */
+.text-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-3) var(--space-4);
+}
+
+.text-search__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.text-search__field--grow {
+  flex: 1 1 16rem;
+}
+
+.text-search__section {
+  max-width: 100%;
+}
+
+.text-search__input {
+  min-height: var(--control-height);
+}
+
 .text-filters {
   display: flex;
   flex-wrap: wrap;
