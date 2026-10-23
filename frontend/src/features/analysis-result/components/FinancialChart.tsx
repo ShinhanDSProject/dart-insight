@@ -81,8 +81,8 @@ export function FinancialChart(props: FinancialChartProps) {
       )}
 
       <ol className="fin-chart__rows">
-        {data.items.map((item) => (
-          <ChartRow key={item.changeId} item={item} view={view} scale={scale} {...props} />
+        {data.items.map((item, index) => (
+          <ChartRow key={item.changeId} item={item} index={index} view={view} scale={scale} {...props} />
         ))}
       </ol>
       <div className="fin-chart__axis" aria-hidden="true">
@@ -106,9 +106,9 @@ export function FinancialChart(props: FinancialChartProps) {
   )
 }
 
-type ChartRowProps = FinancialChartProps & { item: ChartItem; view: ChartView; scale: Scale }
+type ChartRowProps = FinancialChartProps & { item: ChartItem; index: number; view: ChartView; scale: Scale }
 
-function ChartRow({ item, view, scale, unit, currency, selectedChangeId, onSelect }: ChartRowProps) {
+function ChartRow({ item, index, view, scale, unit, currency, selectedChangeId, onSelect }: ChartRowProps) {
   const selected = item.changeId === selectedChangeId
   const units = unitLabel(unit, currency)
   const previous = formatAmount(item.previousAmount, unit)
@@ -119,7 +119,8 @@ function ChartRow({ item, view, scale, unit, currency, selectedChangeId, onSelec
   const label = `${item.accountName}: 이전 ${previous}, 현재 ${current} ${units}, 증감 ${change}${rate ? `, ${rate}` : ''}. 근거 ${selected ? '보는 중' : '보기'}`
 
   return (
-    <li>
+    // --row: 행 순서대로 조금씩 늦게 그려지게 하는 값(애니메이션 지연, #198)
+    <li style={{ '--row': index } as CSSProperties}>
       <button
         type="button"
         className="fin-chart__row"
@@ -167,7 +168,10 @@ function Dumbbell({ item, scale }: { item: ChartItem; scale: Scale }) {
   const to = position(scale, item.currentAmount)
   return (
     <>
-      <span className="fin-chart__link" style={{ left: `${Math.min(from, to)}%`, width: `${Math.abs(to - from)}%` }} />
+      <span
+        className={`fin-chart__link${to < from ? ' fin-chart__link--back' : ''}`}
+        style={{ left: `${Math.min(from, to)}%`, width: `${Math.abs(to - from)}%` }}
+      />
       <span className="fin-chart__dot fin-chart__dot--previous" style={{ left: `${from}%` }} />
       <span className="fin-chart__dot fin-chart__dot--current" style={{ left: `${to}%` }} />
     </>

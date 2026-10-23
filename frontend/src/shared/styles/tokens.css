@@ -98,6 +98,14 @@
   --shadow-sm: 0 1px 2px rgba(19, 25, 54, 0.08);
   --shadow-md: 0 4px 12px rgba(19, 25, 54, 0.12);
 
+  /* 움직임(#198): 상태가 바뀐 곳을 눈으로 따라가게 하는 짧은 전환만 쓴다.
+     운영체제 '동작 줄이기'면 global.css에서 끈다 */
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --motion-slow: 360ms;
+  --motion-stagger: 30ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+
   /* 포커스 표시 */
   --focus-ring: 2px solid var(--color-primary);
 }

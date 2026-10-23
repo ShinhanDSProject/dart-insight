@@ -166,6 +166,7 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-out);
 }
 
 .fin-chart__row:hover,
@@ -204,10 +205,28 @@
   min-width: 2px;
   border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
   background: var(--color-chart-current);
+  transform-origin: left center;
+  animation: grow-x var(--motion-slow) var(--ease-out) both;
+  animation-delay: calc(var(--row, 0) * var(--motion-stagger));
 }
 
 .fin-chart__bar--down {
   border-radius: var(--radius-xs) 0 0 var(--radius-xs);
+  transform-origin: right center;
+}
+
+/* 막대·연결선은 0(또는 이전 값)에서 자라고, 점은 제자리에서 나타난다 */
+@keyframes grow-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
 }
 
 .fin-chart__link {
@@ -215,6 +234,13 @@
   top: 17px;
   height: 2px;
   background: var(--color-border-strong);
+  transform-origin: left center;
+  animation: grow-x var(--motion-slow) var(--ease-out) both;
+  animation-delay: calc(var(--row, 0) * var(--motion-stagger));
+}
+
+.fin-chart__link--back {
+  transform-origin: right center;
 }
 
 .fin-chart__dot {
@@ -225,6 +251,8 @@
   margin-left: -6px;
   border: 2px solid var(--color-bg);
   border-radius: var(--radius-pill);
+  animation: pop-in var(--motion-base) var(--ease-out) both;
+  animation-delay: calc(var(--row, 0) * var(--motion-stagger));
 }
 
 .fin-chart__dot--previous {
@@ -233,6 +261,12 @@
 
 .fin-chart__dot--current {
   background: var(--color-chart-current);
+  /* 현재 값 점은 연결선이 다 자란 뒤에 나타난다 */
+  animation-delay: calc(var(--row, 0) * var(--motion-stagger) + var(--motion-slow) - var(--motion-base));
+}
+
+.fin-chart__dot--previous {
+  z-index: 1;
 }
 
 .fin-chart__value {
@@ -269,6 +303,7 @@
 .fin-chart__row:hover .fin-chart__tip,
 .fin-chart__row:focus-visible .fin-chart__tip {
   display: block;
+  animation: fade-in var(--motion-fast) var(--ease-out);
 }
 
 .fin-chart__axis {

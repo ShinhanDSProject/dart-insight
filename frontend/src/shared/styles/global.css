@@ -336,3 +336,39 @@ a.app-nav__item:not([aria-current='page']):hover {
   white-space: nowrap;
 }
 
+/* 움직임(#198). 시간·곡선은 tokens.css의 --motion-*·--ease-* 만 쓴다 */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* 화면에 들어올 때와 펼친 내용이 나타날 때 */
+.page {
+  animation: rise-in var(--motion-base) var(--ease-out);
+}
+
+details[open] > :not(summary) {
+  animation: fade-in var(--motion-base) var(--ease-out);
+}
+
+/* 운영체제에서 '동작 줄이기'를 켜면 애니메이션·전환을 사실상 끈다 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
