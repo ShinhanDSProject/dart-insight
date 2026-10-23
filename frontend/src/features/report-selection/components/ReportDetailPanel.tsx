@@ -50,9 +50,7 @@ function ReportFacts({ report }: { report: ReportDetail }) {
         </div>
         <div className="facts__row">
           <dt>종류</dt>
-          <dd>
-            {reportTypeLabel(report.reportType)} · <code>{report.disclosureType}</code>
-          </dd>
+          <dd>{reportTypeLabel(report.reportType)}</dd>
         </div>
         <div className="facts__row">
           <dt>대상 기간</dt>
