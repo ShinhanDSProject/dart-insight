@@ -1,0 +1,466 @@
+/*
+ * 디자인 시스템 컴포넌트(shared/ui) 모양. 색·모서리·간격·글꼴은 tokens.css 토큰만 쓴다(UI-2).
+ * main.tsx에서 global.css 다음에 한 번만 불러온다.
+ */
+
+/* 버튼(Button·ButtonLink·ButtonAnchor) */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.button--primary {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+}
+
+.button--secondary {
+  background: var(--color-bg);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.button--secondary:hover:not(:disabled) {
+  background: var(--color-bg-subtle);
+}
+
+/* 켜고 끄는 보조 버튼(표의 '보기'): 켜지면 주색 */
+.button--secondary[aria-pressed='true'] {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+}
+
+/* 큰 입력창과 나란히 두는 버튼 */
+.button--lg {
+  min-height: 56px;
+  padding: 0 28px;
+  font-size: var(--font-size-md);
+}
+
+/* 글자처럼 보이는 버튼(Button variant="link", 표·목록 안) */
+.link-button {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+  text-underline-offset: 3px;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.link-button[aria-pressed='true'] {
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+/* 표식(Badge): 기본은 회색, 강조(현재·진행 상태·AI 생성)는 보라, 주의는 블루그레이 */
+.badge {
+  display: inline-block;
+  padding: var(--space-1) 9px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.badge--accent {
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+}
+
+.badge--attention {
+  background: var(--color-attention-subtle);
+  color: var(--color-attention);
+}
+
+/* 안내(Notice). 주의 색은 예외 상태에만 쓴다 */
+.notice {
+  margin-bottom: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.notice--attention {
+  background: var(--color-attention-subtle);
+  color: var(--color-attention);
+  font-weight: var(--font-weight-bold);
+}
+
+/* 진행할 수 없음(비교 불가·분석 실패): 주의 색 점선 상자 */
+.notice--blocked {
+  margin: var(--space-4) 0;
+  padding: var(--space-4) var(--space-5);
+  border: 1.5px dashed var(--color-attention);
+  border-radius: var(--radius-lg);
+  background: var(--color-attention-subtle);
+  color: inherit;
+  font-size: inherit;
+}
+
+.notice__title {
+  margin: 0 0 var(--space-1);
+  font-weight: var(--font-weight-bold);
+}
+
+.notice--blocked .notice__title {
+  margin-bottom: var(--space-2);
+  color: var(--color-attention);
+}
+
+/* 첫 화면 이용 안내(5.6) */
+.service-notice ul {
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
+/* 묶음 상자(Panel) */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+}
+
+.panel + .panel {
+  margin-top: var(--space-4);
+}
+
+.panel__title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+.panel__note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+/* 카드(Card) */
+.card {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.card--attention {
+  border: 1.5px solid var(--color-attention);
+}
+
+.card--selected {
+  border-color: var(--color-border-accent);
+  background: var(--color-accent-subtle);
+}
+
+/* 표(DataTable) */
+.table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.data-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.data-table th,
+.data-table td {
+  padding: var(--space-4);
+  border-top: 1px solid var(--color-border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.data-table thead th {
+  border-top: none;
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-bold);
+}
+
+.data-table tbody th {
+  font-weight: var(--font-weight-medium);
+}
+
+.data-table__row--selected {
+  background: var(--color-accent-subtle);
+}
+
+/* 원문 표처럼 칸이 많은 표 */
+.data-table--compact {
+  min-width: 0;
+  font-size: var(--font-size-xs);
+}
+
+.data-table--compact th,
+.data-table--compact td {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+}
+
+/* 밑줄 탭(Tabs). 고른 탭은 굵은 남색 글자와 3px 밑줄 */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 28px;
+  margin-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tabs__item {
+  min-height: var(--control-height);
+  margin-bottom: -1px;
+  padding: 14px var(--space-2);
+  border: none;
+  border-bottom: 3px solid transparent;
+  background: none;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.tabs__item:hover {
+  color: var(--color-text);
+}
+
+.tabs__item[aria-current='page'] {
+  border-bottom-color: var(--color-primary);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+/* 여러 값 중 하나를 고르는 버튼 묶음(SegmentedControl) */
+.segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.segmented__item {
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  border: none;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.segmented__item + .segmented__item {
+  border-left: 1px solid var(--color-border-strong);
+}
+
+.segmented__item[aria-pressed='true'] {
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  font-weight: var(--font-weight-bold);
+}
+
+/* 거르기 버튼(Chip) */
+.chip {
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.chip[aria-pressed='true'] {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  font-weight: var(--font-weight-bold);
+}
+
+.chip--attention {
+  border-color: var(--color-attention);
+  color: var(--color-attention);
+  font-weight: var(--font-weight-bold);
+}
+
+.chip--attention[aria-pressed='true'] {
+  border-color: var(--color-attention);
+  background: var(--color-attention);
+  color: var(--color-bg);
+}
+
+.chip__count {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 입력(FieldLabel·FieldHint·Input·Select) */
+.field-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.field-hint {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+}
+
+.input {
+  flex: 1;
+  min-height: 56px;
+  padding: 0 18px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-md);
+}
+
+.input:focus {
+  outline: var(--focus-ring);
+  outline-offset: -1px;
+}
+
+.input--error {
+  border-color: var(--color-danger);
+}
+
+.select {
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+}
+
+/* 상태(StateView) */
+.state {
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+}
+
+.state__title {
+  margin: 0 0 var(--space-2);
+  font-weight: var(--font-weight-bold);
+}
+
+.state__meta {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.state--loading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+}
+
+.state__spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: var(--radius-pill);
+  animation: spin 0.8s linear infinite;
+}
+
+.state--error {
+  border-color: var(--color-danger);
+  background: var(--color-danger-subtle);
+}
+
+.state--error .state__title {
+  color: var(--color-danger);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* DART 원문 링크(DartLink) */
+.dart-link {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.dart-link__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dart-link__status {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.dart-link__manual {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+}
+
+.dart-link__help {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+/* 출처 표시(DartSource, 5.6) */
+.dart-source {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
