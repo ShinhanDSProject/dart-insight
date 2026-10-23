@@ -13,9 +13,11 @@ import { useAnalysis } from './hooks/useAnalysis'
 import { useResultParams } from './hooks/useResultParams'
 import {
   financialParamChanges,
+  openChangedAccounts,
   openFinancialChanges,
   openSourceChanges,
   openTextChanges,
+  openTextList,
   sourceParamChanges,
   textParamChanges,
   type ResultParams,
@@ -124,6 +126,8 @@ function ResultTabPanel({ analysis, params, update }: AnalysisResultProps) {
         onOpenFinancial={(sj, change) => update(openFinancialChanges(sj, change))}
         onOpenText={(change) => update(openTextChanges(change))}
         onOpenSource={openSource}
+        onOpenChangedAccounts={(sj) => update(openChangedAccounts(sj))}
+        onOpenTextList={(type) => update(openTextList(type))}
       />
     ))
     .with('text', () => (
