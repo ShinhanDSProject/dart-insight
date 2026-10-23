@@ -14,12 +14,14 @@ layer:
   LY-1: 컨트롤러는 Service만 부른다. Repository·Store·JdbcTemplate 직접 사용 금지 [archunit]
   LY-2: 외부 호출(OpenDART·ai-server)은 트랜잭션 밖에서. 저장만 TransactionTemplate·@Transactional로 묶는다 [adr:0003]
   LY-3: 경로는 ApiPaths(컨트롤러)·AiServerPaths·OpenDartPaths 상수만. 클래스 단위 @RequestMapping
+di:
+  DI-1: "Spring 빈은 private final 필드 + @RequiredArgsConstructor로 주입받는다. 생성자 안에서 값을 만들거나 계산해야 할 때만 생성자를 직접 쓴다. 필드 주입(@Autowired 필드) 금지. Lombok은 이 용도에만 쓴다"
 dto:
-  DTO-1: 요청·응답은 record. 이름은 {대상}{동작?}Request·Response. Dto 접미사·Lombok 금지
+  DTO-1: 요청·응답은 record. 이름은 {대상}{동작?}Request·Response. Dto 접미사 금지. DTO·엔티티에는 Lombok을 쓰지 않는다
   DTO-2: HTTP 요청·응답 record는 컨트롤러 안에 두지 않고 같은 패키지의 파일로 둔다. 다른 컨트롤러의 DTO를 import하지 않는다
   DTO-3: 변환은 응답 record의 static from(...)·of(...). 컴포넌트 이름이 곧 JSON 필드라 함부로 바꾸지 않는다(api-spec 먼저)
 entity:
-  EN-1: setter·@Builder·@AllArgsConstructor 금지. protected 기본 생성자 + static 팩터리 + 도메인 메서드(start·fail…)
+  EN-1: Lombok 포함 setter·@Setter·@Builder·@AllArgsConstructor 금지(DI-1의 @RequiredArgsConstructor도 엔티티에는 쓰지 않음). protected 기본 생성자 + static 팩터리 + 도메인 메서드(start·fail…)
   EN-2: "상태 변경은 허용 전이표(canMoveTo)를 거친다. COMPLETED는 결과 저장 서비스만(package-private) [adr:0004]"
   EN-3: 현재 시각은 주입한 Clock으로만. LocalDateTime.now() 직접 금지
   EN-4: 스키마는 Flyway 새 파일로만, 엔티티와 docs/erd.md를 같은 PR에서 [adr:0007]
