@@ -16,7 +16,8 @@ import java.util.Map;
  * 요약할 변화 고르기(3.2). 고르는 일은 코드가 한다(LLM에 맡기지 않음).
  * <ul>
  *   <li>재무 수치: 계산한 계정 중 손익계산서에서 증감액이 큰 3개(손익계산서 없이 포괄손익계산서 하나로 낸 회사는
- *   포괄손익계산서에서), 재무상태표에서 2개</li>
+ *   포괄손익계산서에서), 재무상태표에서 2개. 같은 재무제표에서 이미 고른 계정과 이전·현재 금액이 모두 같은 계정(예:
+ *   자산총계와 부채와자본총계)은 건너뛰고 다음 계정으로 채운다</li>
  *   <li>문장 변화: 우선순위(2.6) 높음·중간 중 점수가 높은 5개(숫자만 바뀐 것과 검토 필요는 뺌)</li>
  *   <li>설명 후보: 현재 보고서의 경영진단·사업의 내용 섹션 문단 중 그 계정의 검색어(AccountAliases)가 하나라도
  *   나오는 앞의 2개</li>
@@ -53,7 +54,20 @@ public final class SummarySelector {
         }
         indexes.sort(Comparator.comparingLong((Integer i) -> -Math.abs(rows.get(i).changeAmount()))
                 .thenComparing(i -> i));
-        return indexes.subList(0, Math.min(count, indexes.size()));
+        List<Integer> picked = new ArrayList<>();
+        for (int i : indexes) {
+            if (picked.size() == count) {
+                break;
+            }
+            FinancialChangeRow row = rows.get(i);
+            boolean sameAmounts = picked.stream().map(rows::get)
+                    .anyMatch(p -> p.previousAmount().equals(row.previousAmount())
+                            && p.currentAmount().equals(row.currentAmount()));
+            if (!sameAmounts) {
+                picked.add(i);
+            }
+        }
+        return picked;
     }
 
     /** 고른 문장 변화의 목록 안 순서 */
