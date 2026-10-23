@@ -1,4 +1,4 @@
-package com.dartinsight.system;
+package com.dartinsight.system.dto;
 
 import com.dartinsight.aiserver.client.AiServerClient.AiServerStatus;
 

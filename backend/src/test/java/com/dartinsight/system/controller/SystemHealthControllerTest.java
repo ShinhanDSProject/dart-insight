@@ -1,4 +1,4 @@
-package com.dartinsight.system;
+package com.dartinsight.system.controller;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
