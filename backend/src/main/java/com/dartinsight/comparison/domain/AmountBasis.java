@@ -1,4 +1,4 @@
-package com.dartinsight.comparison;
+package com.dartinsight.comparison.domain;
 
 /** 비교하는 금액의 기간 기준(docs/api-spec.md 공통 값). */
 public enum AmountBasis {

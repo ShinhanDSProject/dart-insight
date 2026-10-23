@@ -1,8 +1,9 @@
-package com.dartinsight.comparison;
+package com.dartinsight.comparison.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.dartinsight.comparison.StatementRules.StatementRule;
+import com.dartinsight.comparison.domain.AmountBasis;
+import com.dartinsight.comparison.service.StatementRules.StatementRule;
 import com.dartinsight.report.domain.ReportType;
 import java.util.List;
 import org.junit.jupiter.api.Test;

@@ -7,7 +7,7 @@ import com.dartinsight.analysis.FinancialChangeRow;
 import com.dartinsight.analysis.TextChangeRow;
 import com.dartinsight.analysis.TextChangeRow.Priority;
 import com.dartinsight.analysis.TextChangeRow.Side;
-import com.dartinsight.comparison.AmountBasis;
+import com.dartinsight.comparison.domain.AmountBasis;
 import com.dartinsight.document.domain.DocumentBlock;
 import com.dartinsight.document.domain.DocumentSection;
 import com.dartinsight.financial.domain.FsDiv;

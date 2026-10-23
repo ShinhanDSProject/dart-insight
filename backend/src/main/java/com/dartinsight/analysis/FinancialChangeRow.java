@@ -1,6 +1,6 @@
 package com.dartinsight.analysis;
 
-import com.dartinsight.comparison.AmountBasis;
+import com.dartinsight.comparison.domain.AmountBasis;
 import com.dartinsight.financial.domain.FsDiv;
 import java.math.BigDecimal;
 

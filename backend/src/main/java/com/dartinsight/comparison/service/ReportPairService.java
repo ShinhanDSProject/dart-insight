@@ -1,7 +1,8 @@
-package com.dartinsight.comparison;
+package com.dartinsight.comparison.service;
 
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
+import com.dartinsight.comparison.domain.ComparisonBasis;
 import com.dartinsight.report.domain.Report;
 import com.dartinsight.report.repository.ReportRepository;
 import com.dartinsight.report.service.ReportService;

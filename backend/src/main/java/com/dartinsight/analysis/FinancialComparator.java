@@ -1,8 +1,8 @@
 package com.dartinsight.analysis;
 
 import com.dartinsight.analysis.FinancialChangeRow.Evidence;
-import com.dartinsight.comparison.AmountBasis;
-import com.dartinsight.comparison.StatementRules.StatementRule;
+import com.dartinsight.comparison.domain.AmountBasis;
+import com.dartinsight.comparison.service.StatementRules.StatementRule;
 import com.dartinsight.financial.domain.FinancialAccount;
 import com.dartinsight.financial.domain.FsDiv;
 import com.dartinsight.financial.domain.StatementType;

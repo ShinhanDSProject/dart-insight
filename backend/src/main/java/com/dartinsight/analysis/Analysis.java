@@ -1,6 +1,6 @@
 package com.dartinsight.analysis;
 
-import com.dartinsight.comparison.ComparisonBasis;
+import com.dartinsight.comparison.domain.ComparisonBasis;
 import com.dartinsight.financial.domain.FsDiv;
 import com.dartinsight.summary.SummaryStatus;
 import jakarta.persistence.Column;

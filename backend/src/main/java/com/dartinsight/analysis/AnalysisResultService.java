@@ -2,7 +2,7 @@ package com.dartinsight.analysis;
 
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
-import com.dartinsight.comparison.ComparisonBasis;
+import com.dartinsight.comparison.domain.ComparisonBasis;
 import com.dartinsight.summary.SummaryResult;
 import com.dartinsight.summary.SummaryStore;
 import java.time.Clock;

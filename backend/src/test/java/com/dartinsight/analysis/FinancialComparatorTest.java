@@ -3,8 +3,8 @@ package com.dartinsight.analysis;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.dartinsight.analysis.FinancialComparator.Side;
-import com.dartinsight.comparison.AmountBasis;
-import com.dartinsight.comparison.StatementRules;
+import com.dartinsight.comparison.domain.AmountBasis;
+import com.dartinsight.comparison.service.StatementRules;
 import com.dartinsight.financial.domain.FinancialAccount;
 import com.dartinsight.financial.domain.FsDiv;
 import com.dartinsight.report.domain.ReportType;

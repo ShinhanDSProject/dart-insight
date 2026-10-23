@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.dartinsight.analysis.CalcStatus;
 import com.dartinsight.analysis.FinancialChangeRow;
-import com.dartinsight.comparison.AmountBasis;
+import com.dartinsight.comparison.domain.AmountBasis;
 import com.dartinsight.financial.domain.FsDiv;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;

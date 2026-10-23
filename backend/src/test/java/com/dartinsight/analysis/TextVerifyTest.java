@@ -3,7 +3,7 @@ package com.dartinsight.analysis;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.dartinsight.analysis.TextChangeRow.Side;
-import com.dartinsight.comparison.ComparisonBasis;
+import com.dartinsight.comparison.domain.ComparisonBasis;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
