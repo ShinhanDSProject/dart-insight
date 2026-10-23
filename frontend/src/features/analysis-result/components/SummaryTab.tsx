@@ -1,13 +1,16 @@
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
-import type { SjDiv } from '@/shared/api/results'
+import type { FinancialChangeItem, SjDiv } from '@/shared/api/results'
 import type { Summary, SummaryEvidence, SummaryItem, SummaryTarget } from '@/shared/api/summary'
 import type { ChangeType } from '@/shared/api/textChanges'
-import { Badge, Button, Card, Notice, Panel, PanelTitle } from '@/shared/ui'
+import { Badge, Button, Card, CompareBars, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { useSummary } from '../hooks/useSummary'
+import { useSummaryAmounts } from '../hooks/useSummaryAmounts'
+import { formatCompactAmount } from '../model/chart'
+import { summarySjDivs } from '../model/summaryAmounts'
 import { ChangeOverview } from './ChangeOverview'
 import type { SourceTarget } from '../model/resultParams'
 import {
@@ -91,6 +94,9 @@ function SummaryBody({ data, analysis, onOpenFinancial, onOpenText, onOpenSource
   const notice = summaryStatusNotice(data.summaryStatus, data.summaryMessage)
   const coverage = data.summaryStatus === null ? null : textCoverageNote(data.textStatus)
   const financial = data.items.filter((i) => i.kind === 'FINANCIAL')
+  const amountsState = useSummaryAmounts(analysis.analysisId, summarySjDivs(data.items)).state
+  // 금액을 못 불러오면 비교 막대만 빠진다(사실 문장은 그대로)
+  const amounts = amountsState.status === 'success' ? amountsState.data : null
   const text = data.items.filter((i) => i.kind === 'TEXT')
   // 열 수 없는 항목(결과에서 찾지 못함)은 버튼을 그리지 않는다
   const opener = (target: SummaryTarget): (() => void) | null => {
@@ -120,7 +126,13 @@ function SummaryBody({ data, analysis, onOpenFinancial, onOpenText, onOpenSource
           <ol className="summary-list">
             {financial.map((item) => (
               <li key={item.itemNo}>
-                <SummaryCard item={item} analysis={analysis} onOpen={opener(item.target)} onOpenSource={onOpenSource} />
+                <SummaryCard
+                  item={item}
+                  analysis={analysis}
+                  amount={item.target.changeId === null ? undefined : amounts?.get(item.target.changeId)}
+                  onOpen={opener(item.target)}
+                  onOpenSource={onOpenSource}
+                />
               </li>
             ))}
           </ol>
@@ -180,16 +192,25 @@ function SummaryBody({ data, analysis, onOpenFinancial, onOpenText, onOpenSource
 interface SummaryCardProps {
   item: SummaryItem
   analysis: Analysis
+  /** 재무 항목의 이전·현재 금액(비교 막대). 못 찾으면 undefined */
+  amount?: FinancialChangeItem
   /** 결과 화면에서 이 항목을 연다. 열 수 없으면 null(버튼을 그리지 않음) */
   onOpen: (() => void) | null
   onOpenSource: (target: SourceTarget) => void
 }
 
-function SummaryCard({ item, analysis, onOpen, onOpenSource }: SummaryCardProps) {
+function SummaryCard({ item, analysis, amount, onOpen, onOpenSource }: SummaryCardProps) {
   const missing = item.kind === 'FINANCIAL' ? explanationNote(item.explanationStatus) : null
   return (
     <Card as="article" className="summary-item">
       {item.factSentence && <p className="summary-item__fact">{item.factSentence}</p>}
+      {amount && (
+        <CompareBars
+          className="summary-item__compare"
+          previous={{ label: '이전', value: amount.previousAmount, text: compactAmount(amount.previousAmount, amount.currency) }}
+          current={{ label: '현재', value: amount.currentAmount, text: compactAmount(amount.currentAmount, amount.currency) }}
+        />
+      )}
       {item.aiText && (
         <div className="summary-item__ai">
           <p className="summary-item__ai-text">
@@ -257,4 +278,10 @@ function EvidenceLinks({ evidence, analysis, onOpenSource }: EvidenceLinksProps)
       })}
     </ul>
   )
+}
+
+/** 비교 막대 옆 짧은 금액(예: 153.7조 원). 없으면 '없음' */
+function compactAmount(value: number | null, currency: string | null): string {
+  if (value === null) return '없음'
+  return currency === null || currency === 'KRW' ? `${formatCompactAmount(value, 'KRW')} 원` : formatCompactAmount(value, currency)
 }

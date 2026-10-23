@@ -258,19 +258,7 @@
   transform-origin: right center;
 }
 
-/* 막대·연결선은 0(또는 이전 값)에서 자라고, 점은 제자리에서 나타난다 */
-@keyframes grow-x {
-  from {
-    transform: scaleX(0);
-  }
-}
-
-@keyframes pop-in {
-  from {
-    opacity: 0;
-    transform: scale(0.4);
-  }
-}
+/* 막대·연결선은 0(또는 이전 값)에서 자라고(grow-x), 점은 제자리에서 나타난다(pop-in). 키프레임은 global.css */
 
 .fin-chart__link {
   position: absolute;
@@ -879,4 +867,19 @@
 
 .overview-stat--pending .overview-stat__detail {
   font-size: var(--font-size-sm);
+}
+
+/* 요약 카드·근거 패널의 이전·현재 비교 막대(FS-3 R10) */
+.summary-item__compare {
+  max-width: 480px;
+}
+
+.evidence__compare {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+}
+
+.evidence__compare .compare-bars__track {
+  background: var(--color-bg);
 }

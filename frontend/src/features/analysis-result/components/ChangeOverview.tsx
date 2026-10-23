@@ -3,7 +3,7 @@ import { match } from 'ts-pattern'
 import type { SjDiv } from '@/shared/api/results'
 import type { ChangeType } from '@/shared/api/textChanges'
 import type { LoadState } from '@/shared/hooks/asyncState'
-import { Button } from '@/shared/ui'
+import { Button, ShareBar } from '@/shared/ui'
 import { useChangeOverview } from '../hooks/useChangeOverview'
 import { formatCount, type FinancialOverview, type TextOverview } from '../model/overview'
 
@@ -47,7 +47,16 @@ export function ChangeOverview({ analysisId, onOpenChangedAccounts, onOpenTextLi
                     label="문장 변경"
                     value={formatCount(t.all)}
                     hint="문장·내용 변화에서 전체 보기"
-                    detail={`추가 ${formatCount(t.added)} · 삭제 ${formatCount(t.deleted)} · 수정 ${formatCount(t.modified)}${t.partial ? ' · 일부만 비교' : ''}`}
+                    detail={t.partial ? '일부 섹션만 비교했어요' : null}
+                    visual={
+                      <ShareBar
+                        segments={[
+                          { label: '추가', value: t.added, text: formatCount(t.added), tone: 'added' },
+                          { label: '수정', value: t.modified, text: formatCount(t.modified), tone: 'modified' },
+                          { label: '삭제', value: t.deleted, text: formatCount(t.deleted), tone: 'deleted' },
+                        ]}
+                      />
+                    }
                     onOpen={() => onOpenTextList(null)}
                   />
                 ))
@@ -131,16 +140,19 @@ interface StatProps {
   value: string
   /** 누르면 어디로 가는지(화면 읽기 프로그램용) */
   hint: string
-  detail: string
+  detail: string | null
+  /** 숫자 아래 작은 시각화(구성 비율 등) */
+  visual?: ReactNode
   onOpen: () => void
 }
 
-function Stat({ label, value, hint, detail, onOpen }: StatProps) {
+function Stat({ label, value, hint, detail, visual, onOpen }: StatProps) {
   return (
     <Button variant="link" className="overview-stat" onClick={onOpen}>
       <span className="overview-stat__label">{label}</span>
       <span className="overview-stat__value">{value}</span>
-      <span className="overview-stat__detail">{detail}</span>
+      {visual}
+      {detail && <span className="overview-stat__detail">{detail}</span>}
       <span className="visually-hidden">, {hint}</span>
     </Button>
   )

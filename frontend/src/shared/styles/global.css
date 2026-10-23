@@ -350,6 +350,20 @@ a.app-nav__item:not([aria-current='page']):hover {
   }
 }
 
+/* 막대가 0에서 자라고, 점이 제자리에서 나타난다(차트·작은 비교 막대) */
+@keyframes grow-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+
 /* 화면에 들어올 때와 펼친 내용이 나타날 때 */
 .page {
   animation: rise-in var(--motion-base) var(--ease-out);

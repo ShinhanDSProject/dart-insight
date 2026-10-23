@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { FinancialChangeDetail, ValueSource } from '@/shared/api/results'
-import { Button, Notice, PanelTitle, SidePanel } from '@/shared/ui'
+import { Button, CompareBars, Notice, PanelTitle, SidePanel } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { useFinancialChangeDetail } from '../hooks/useFinancialChanges'
@@ -92,6 +92,19 @@ function EvidenceBody({ analysis, detail, unit }: { analysis: Analysis; detail: 
           currency={currency}
         />
       </div>
+      <CompareBars
+        className="evidence__compare"
+        previous={{
+          label: '이전',
+          value: detail.previousAmount,
+          text: amountText(detail.previousAmount, unit, detail.currency, missingValueLabel(detail.calcStatus, 'previous')),
+        }}
+        current={{
+          label: '현재',
+          value: detail.currentAmount,
+          text: amountText(detail.currentAmount, unit, detail.currency, missingValueLabel(detail.calcStatus, 'current')),
+        }}
+      />
       {detail.formula ? (
         <p className="evidence__formula">
           증감액 = 현재 값 − 이전 값 = {detail.formula} {baseUnit}
@@ -161,4 +174,10 @@ function SourceCard({ role, source, fallbackReport, amount, missing, detail, uni
       )}
     </div>
   )
+}
+
+/** 비교 막대 옆 값: 단위를 붙이고, 없으면 사유 */
+function amountText(amount: number | null, unit: AmountUnit, currency: string | null, missing: string): string {
+  const value = formatAmount(amount, unit)
+  return value === null ? missing : `${value} ${unitLabel(unit, currency)}`
 }
