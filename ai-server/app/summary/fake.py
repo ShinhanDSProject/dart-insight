@@ -5,16 +5,18 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from app.llm.providers import LlmRequest
-from app.summary.model import SummaryInput
+from app.summary.model import RELATED, STATED, FinancialItem, Source, SummaryInput
 
 _WORDS = {
     "ADDED": "새 내용이 들어갔어요",
     "DELETED": "내용이 문서에서 빠졌어요",
     "MODIFIED": "내용이 바뀌었어요",
 }
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
 
 
 def respond(request: LlmRequest) -> dict[str, Any]:
@@ -34,20 +36,47 @@ def respond(request: LlmRequest) -> dict[str, Any]:
             }
         )
     for item in summary.financial_items:
-        if not item.candidates:
-            continue
-        source = item.candidates[0]
-        where = _no_digits(source.section_path.split(" > ")[-1])
-        explanation = f"회사는 '{where}'에서 이 계정의 변화를 설명했어요."
-        items.append(
-            {
-                "ref": item.ref,
-                "sentence": None,
-                "explanation": explanation,
-                "evidenceIds": [source.evidence_id],
-            }
-        )
+        if item.candidates:
+            items.append(_financial(item))
     return {"items": items}
+
+
+def _financial(item: FinancialItem) -> dict[str, Any]:
+    """계정 이름이 든 문장이 있으면 STATED, 없으면 첫 문장을 RELATED로 인용한다."""
+    terms = [t.replace(" ", "") for t in item.account_aliases or [item.account_name]]
+    found = next(
+        (
+            (source, sentence)
+            for source in item.candidates
+            for sentence in _sentences(source)
+            if any(t and t in sentence.replace(" ", "") for t in terms)
+        ),
+        None,
+    )
+    if found:
+        (source, quote), grade = found, STATED
+        explanation = f"회사는 '{_where(source)}'에서 이 계정의 변화를 설명했어요."
+    else:
+        source = item.candidates[0]
+        quote, grade = _sentences(source)[0], RELATED
+        explanation = f"관련 공시 내용으로 '{_where(source)}'의 설명이 있어요."
+    return {
+        "ref": item.ref,
+        "sentence": None,
+        "explanation": explanation,
+        "grade": grade,
+        "quote": quote,
+        "quoteEvidenceId": source.evidence_id,
+        "evidenceIds": [source.evidence_id],
+    }
+
+
+def _sentences(source: Source) -> list[str]:
+    return [s for s in _SENTENCE_END.split(source.text.strip()) if s] or [source.text]
+
+
+def _where(source: Source) -> str:
+    return _no_digits(source.section_path.split(" > ")[-1])
 
 
 def _no_digits(text: str) -> str:

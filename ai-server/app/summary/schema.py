@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
 from app.compliance import RULESET_VERSION
+from app.summary.causal import GRADE_RULES_VERSION
 from app.summary.model import FinancialItem, ItemResult, Source, SummaryInput, TextItem
 from app.summary.service import SummaryOutput
 
@@ -77,6 +78,9 @@ def _item(item: ItemResult) -> dict[str, Any]:
         "status": item.status,
         "sentence": item.sentence,
         "explanation": item.explanation,
+        "grade": item.grade,
+        "quote": item.quote,
+        "quoteEvidenceId": item.quote_evidence_id,
         "evidenceIds": item.evidence_ids,
         "reviewReason": item.review_reason,
         "blockedRules": item.blocked_rules,
@@ -87,6 +91,7 @@ def output_json(output: SummaryOutput) -> dict[str, Any]:
     return {
         "promptVersion": output.prompt_version,
         "expressionRulesVersion": RULESET_VERSION,
+        "gradeRulesVersion": GRADE_RULES_VERSION,
         "model": output.model,
         "generatedAt": output.generated_at,
         "items": [_item(i) for i in output.items],
