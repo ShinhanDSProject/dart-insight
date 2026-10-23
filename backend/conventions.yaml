@@ -3,7 +3,7 @@
 # 참고: shinhan-delivery 컨벤션 중 우리 API 약속·ADR과 맞는 것만 가져왔다(가져오지 않은 것은 맨 아래 skip).
 v: 1
 scope: backend/src
-enforced: [checkstyle, archunit]   # ./gradlew build에서 돈다. checkstyle은 config/checkstyle/checkstyle.xml, archunit은 src/test/java/com/dartinsight/architecture/ArchitectureTest.java(예외 목록 포함)
+enforced: [checkstyle, archunit, schema]   # ./gradlew build에서 돈다. checkstyle은 config/checkstyle/checkstyle.xml, archunit은 src/test/java/com/dartinsight/architecture/ArchitectureTest.java(예외 목록 포함), schema는 같은 폴더 SchemaRuleTest.java
 see: {api: docs/api-spec.md, erd: docs/erd.md, adr: docs/adr/}
 
 pkg:
@@ -25,6 +25,7 @@ entity:
   EN-2: "상태 변경은 허용 전이표(canMoveTo)를 거친다. 완료 처리(Analysis.complete·recordText·recordSummary)는 AnalysisResultService만 부른다 [archunit] [adr:0004, adr:0016]"
   EN-3: 현재 시각은 주입한 Clock으로만. LocalDateTime.now() 직접 금지
   EN-4: 스키마는 Flyway 새 파일로만, 엔티티와 docs/erd.md를 같은 PR에서 [adr:0007]
+  EN-5: "모든 테이블의 기본키는 id BIGINT AUTO_INCREMENT(엔티티는 @GeneratedValue(IDENTITY) Long id). OpenDART 키(corp_code·rcept_no 등)는 기본키가 아니라 UNIQUE로 두고 findByXxx로 찾는다. 행이 많은 새 표는 TX-2 [test:SchemaRuleTest] [adr:0017]"
 tx:
   TX-1: "@Transactional은 Service에만. 조회만 하는 Service는 클래스에 readOnly=true"
   TX-2: 행이 많은 표는 JdbcTemplate Store로 일괄 저장 [adr:0011]
