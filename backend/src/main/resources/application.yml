@@ -40,6 +40,12 @@ logging:
     level: "%5p [%X{traceId:-}]"
 
 app:
+  auth:
+    issuer: ${JWT_ISSUER:dart-insight}
+    jwt-secret: ${JWT_SECRET:development-only-change-me-32-bytes}
+    access-token-ttl: ${ACCESS_TOKEN_TTL:15m}
+    refresh-token-ttl: ${REFRESH_TOKEN_TTL:14d}
+    secure-cookie: ${AUTH_SECURE_COOKIE:false}
   ai-server:
     base-url: ${AI_SERVER_URL:http://localhost:8000}
     connect-timeout: 2s

@@ -35,6 +35,12 @@ export class ApiError extends Error {
 }
 
 const baseUrl: string = import.meta.env.VITE_API_BASE_URL ?? ''
+let accessToken: string | null = null
+let refreshPromise: Promise<void> | null = null
+
+export function setAccessToken(token: string | null) {
+  accessToken = token
+}
 
 type Query = Record<string, string | number | boolean | undefined | null>
 
@@ -58,8 +64,8 @@ export interface RequestOptions {
   signal?: AbortSignal
 }
 
-async function request<T>(
-  method: 'GET' | 'POST',
+async function requestOnce<T>(
+  method: 'GET' | 'POST' | 'DELETE',
   path: string,
   query?: Query,
   body?: unknown,
@@ -67,9 +73,14 @@ async function request<T>(
 ): Promise<T> {
   let response: Response
   try {
+    const headers: Record<string, string> = body === undefined
+      ? { Accept: 'application/json' }
+      : { Accept: 'application/json', 'Content-Type': 'application/json' }
+    if (accessToken) headers.Authorization = `Bearer ${accessToken}`
     response = await fetch(buildUrl(path, query), {
       method,
-      headers: body === undefined ? { Accept: 'application/json' } : { Accept: 'application/json', 'Content-Type': 'application/json' },
+      headers,
+      credentials: 'include',
       body: body === undefined ? undefined : JSON.stringify(body),
       ...(options.signal ? { signal: options.signal } : {}),
     })
@@ -125,10 +136,54 @@ async function request<T>(
   return data as T
 }
 
+async function refreshAccessToken(): Promise<void> {
+  if (!refreshPromise) {
+    refreshPromise = fetch(`${baseUrl}/api/session-refreshes`, {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: '{}',
+    }).then(async (response) => {
+      if (!response.ok) throw new Error('refresh failed')
+      const session = await response.json() as { accessToken?: unknown }
+      if (typeof session.accessToken !== 'string') throw new Error('invalid refresh response')
+      setAccessToken(session.accessToken)
+    }).finally(() => { refreshPromise = null })
+  }
+  return refreshPromise
+}
+
+async function request<T>(
+  method: 'GET' | 'POST' | 'DELETE',
+  path: string,
+  query?: Query,
+  body?: unknown,
+  options: RequestOptions = {},
+): Promise<T> {
+  try {
+    return await requestOnce<T>(method, path, query, body, options)
+  } catch (error) {
+    const canRefresh = error instanceof ApiError && error.status === 401 && accessToken !== null
+      && path !== '/api/session-refreshes' && path !== '/api/sessions' && !options.signal?.aborted
+    if (!canRefresh) throw error
+    try {
+      await refreshAccessToken()
+    } catch {
+      setAccessToken(null)
+      throw error
+    }
+    return requestOnce<T>(method, path, query, body, options)
+  }
+}
+
 export function apiGet<T>(path: string, query?: Query, options?: RequestOptions): Promise<T> {
   return request<T>('GET', path, query, undefined, options)
 }
 
 export function apiPost<T>(path: string, body: unknown, options?: RequestOptions): Promise<T> {
   return request<T>('POST', path, undefined, body, options)
+}
+
+export function apiDelete(path: string, options?: RequestOptions): Promise<void> {
+  return request<void>('DELETE', path, undefined, undefined, options)
 }

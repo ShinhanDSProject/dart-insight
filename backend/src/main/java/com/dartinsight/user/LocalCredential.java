@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 /** 일반 가입 정보. 소셜 회원은 이 행 없이 같은 User를 사용할 수 있다. */
 @Entity
@@ -41,4 +42,12 @@ public class LocalCredential {
         credential.emailVerified = false;
         return credential;
     }
+
+    public boolean matchesPassword(PasswordEncoder encoder, String password) {
+        return encoder.matches(password, passwordHash);
+    }
+
+    public long userId() { return user.getId(); }
+
+    public String email() { return email; }
 }

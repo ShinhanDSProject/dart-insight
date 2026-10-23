@@ -6,6 +6,7 @@ import { AnalysisResultPage } from '@/features/analysis-result/AnalysisResultPag
 import { CompanyPage } from '@/features/report-selection/CompanyPage'
 import { ComparabilityPage } from '@/features/comparability/ComparabilityPage'
 import { SignupPage } from '@/features/user-registration/SignupPage'
+import { LoginPage } from '@/features/user-login/LoginPage'
 import { NotFoundPage } from './NotFoundPage'
 import { SearchPage } from '@/features/company-search/SearchPage'
 
@@ -29,6 +30,7 @@ export const router = createBrowserRouter([
         children: [
           { path: '/', element: <SearchPage />, handle: { crumb: '기업 검색' } },
           { path: '/signup', element: <SignupPage />, handle: { crumb: '회원가입' } },
+          { path: '/login', element: <LoginPage />, handle: { crumb: '로그인' } },
           { path: '/companies/:corpCode', element: <CompanyPage />, handle: { crumb: '보고서 선택' } },
           { path: '/companies/:corpCode/compare', element: <ComparabilityPage />, handle: { crumb: '비교 조건 확인' } },
           { path: '/analyses/:analysisId/progress', element: <AnalysisProgressPage />, handle: { crumb: '분석 진행' } },

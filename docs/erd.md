@@ -17,6 +17,7 @@
 | --- | --- | --- | --- |
 | `app_user` | 공통 회원 | #136 | 미정 |
 | `local_credential` | 일반 가입 정보 | #136 | 미정 |
+| `refresh_token` | 일반 로그인 Refresh Token 해시·회전 기록 | 6.2 | 미정 |
 | `company` | 기업. OpenDART 고유번호 기준 | 4.4 (#51) | M1 |
 | `report` | 정기보고서. 접수번호 기준 | 4.1 (#27) | M1 |
 | `financial_statement_fetch` | 재무제표 API를 부른 기록(보고서·연결/별도 단위) | 4.5 (#52) | M1 |
@@ -35,6 +36,7 @@
 ```mermaid
 erDiagram
     app_user ||--o| local_credential : "user_id (#136)"
+    app_user ||--o{ refresh_token : "user_id (6.2)"
     app_user {
         bigint id PK
         datetime created_at
@@ -46,6 +48,15 @@ erDiagram
         varchar email UK
         varchar password_hash
         boolean email_verified
+    }
+    refresh_token {
+        bigint id PK
+        bigint user_id FK
+        varchar token_hash UK
+        varchar family_id
+        datetime expires_at
+        datetime revoked_at
+        bigint replaced_by_id FK
     }
     company ||--o{ report : "corp_code"
     company ||--o{ financial_statement_fetch : "corp_code"
@@ -449,12 +460,26 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 - 소셜 연결·토큰·역할 테이블 및 회원과 기존 분석 결과의 연결은 이번 이슈에서 추가하지 않습니다.
 - 해시는 [ADR-0019](adr/0019-user-registration.md)의 PBKDF2 정책을 따릅니다. 원문·비밀번호 확인은 DB에 저장하지 않습니다.
 
+### refresh_token — 로그인 상태 갱신(6.2)
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT AUTO_INCREMENT | PK | 아니오 | Refresh Token 기록 ID |
+| `user_id` | BIGINT | FK | 아니오 | `app_user.id` |
+| `token_hash` | VARCHAR(43) | UNIQUE | 아니오 | 원문의 SHA-256 base64url 해시 |
+| `family_id` | VARCHAR(36) | INDEX | 아니오 | 회전 계열 UUID |
+| `expires_at`, `created_at` | DATETIME(6) | | 아니오 | 만료·발급 시각 |
+| `last_used_at`, `revoked_at` | DATETIME(6) | | 예 | 마지막 사용·폐기 시각 |
+| `replaced_by_id` | BIGINT | FK | 예 | 회전 후 새 Refresh Token ID |
+
 ## 4. 인덱스·제약
 
 | 테이블 | 이름 | 컬럼 | 종류 | 이유 |
 | --- | --- | --- | --- | --- |
 | `local_credential` | `uk_local_credential_user_id` | `user_id` | 유니크 | 회원당 일반 가입 정보 하나 |
 | `local_credential` | `uk_local_credential_email` | `email` | 유니크 | 일반 가입 중복 방지(#136) |
+| `refresh_token` | `uk_refresh_token_hash` | `token_hash` | 유니크 | 같은 Refresh Token 중복 저장 방지 |
+| `refresh_token` | `idx_refresh_token_family` | `family_id` | 인덱스 | 재사용 감지 시 계열 폐기 |
 | `company` | `uk_company_corp_code` | `corp_code` | 유니크 | 고유번호 중복 방지(외래 키가 참조) |
 | `company` | `idx_company_corp_name` | `corp_name` | 인덱스 | 회사명 정렬·완전 일치. 부분 일치 검색(`%검색어%`)에는 쓰이지 않음 |
 | `company` | `idx_company_stock_code` | `stock_code` | 인덱스 | 종목코드 검색 |
@@ -473,7 +498,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `summary_item` | `uk_summary_item_no` | `analysis_id, item_no` | 유니크 | 요약 순서 중복 방지 |
 | `llm_call` | `idx_llm_call_analysis` | `analysis_id` | 인덱스 | 분석별 호출 기록·비용 집계 |
 
-외래 키: `local_credential.user_id` → `app_user.id` / `report.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no` → `report.rcept_no` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id`
+외래 키: `local_credential.user_id`, `refresh_token.user_id` → `app_user.id` / `refresh_token.replaced_by_id` → `refresh_token.id` / `report.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no` → `report.rcept_no` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id`
 
 ## 5. 작성 규칙
 
