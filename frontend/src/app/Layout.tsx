@@ -1,5 +1,6 @@
 import { Link, Outlet, useLocation, useMatches, useParams } from 'react-router'
 import { Icon, type IconName } from '@/shared/ui/Icon'
+import { useAuth } from '@/shared/auth/authContext'
 
 type Section = 'search' | 'compare' | 'source'
 
@@ -20,6 +21,7 @@ export function Layout() {
   const { pathname, search } = useLocation()
   const { corpCode, analysisId } = useParams()
   const crumb = useCrumb()
+  const auth = useAuth()
 
   const onResult = analysisId !== undefined && !pathname.endsWith('/progress')
   const tab = new URLSearchParams(search).get('tab')
@@ -117,9 +119,16 @@ export function Layout() {
               </>
             )}
           </p>
-          <Link to="/signup" className="button button--secondary app-header__signup" aria-current={pathname === '/signup' ? 'page' : undefined}>
-            회원가입
-          </Link>
+          <div className="app-header__auth">
+            {auth.state.status === 'authenticated' ? (
+              <button type="button" className="button button--secondary" onClick={() => void auth.logout()}>로그아웃</button>
+            ) : (
+              <>
+                <Link to="/login" className="button button--secondary" aria-current={pathname === '/login' ? 'page' : undefined}>로그인</Link>
+                <Link to="/signup" className="button button--secondary" aria-current={pathname === '/signup' ? 'page' : undefined}>회원가입</Link>
+              </>
+            )}
+          </div>
         </header>
         <main className="app-main" id="main" tabIndex={-1}>
           <Outlet />

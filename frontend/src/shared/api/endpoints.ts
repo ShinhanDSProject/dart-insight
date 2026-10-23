@@ -9,6 +9,9 @@ const analysis = (analysisId: string | number) => `/api/analyses/${seg(analysisI
 
 export const endpoints = {
   users: () => '/api/users',
+  sessions: () => '/api/sessions',
+  currentSession: () => '/api/sessions/current',
+  sessionRefreshes: () => '/api/session-refreshes',
   companies: () => '/api/companies',
   company: (corpCode: string) => `/api/companies/${seg(corpCode)}`,
   companyReports: (corpCode: string) => `/api/companies/${seg(corpCode)}/reports`,

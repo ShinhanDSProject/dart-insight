@@ -65,3 +65,4 @@ M0~M2에서 이미 내린 결정은 2026-10-22에 소급해 기록했습니다(0
 | [0017](0017-auto-increment-id-primary-key.md) | 모든 테이블의 기본키는 자동 증가 id로 두고, OpenDART 키는 UNIQUE로 남긴다 | 채택 | 2026-10-23 |
 | [0018](0018-charts-without-library.md) | 차트는 라이브러리 없이 HTML·CSS 컴포넌트로 그린다 | 채택 | 2026-10-23 |
 | [0019](0019-user-registration.md) | 공통 회원과 일반 가입 정보를 분리하고 비밀번호는 전용 인코더로 해시한다 | 채택 | 2026-10-22 |
+| [0020](0020-jwt-access-and-rotating-refresh-token.md) | 짧은 JWT Access Token과 회전하는 Refresh Token으로 로그인 상태를 유지한다 | 채택 | 2026-10-24 |

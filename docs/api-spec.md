@@ -58,6 +58,10 @@
 | 메서드 | 경로 | 설명 | 이슈 | 화면 | 상태 |
 | --- | --- | --- | --- | --- | --- |
 | POST | `/api/users` | 일반 회원가입 | #136 | 회원가입(신규) | 구현 |
+| POST | `/api/sessions` | 일반 로그인 | 6.2 | 로그인(신규) | 구현 |
+| POST | `/api/session-refreshes` | Access Token 재발급 | 6.2 | 공통 | 구현 |
+| GET | `/api/sessions/current` | 현재 인증 사용자 | 6.2 | 공통 | 구현 |
+| DELETE | `/api/sessions/current` | 로그아웃 | 6.2 | 공통 | 구현 |
 | GET | `/api/companies` | 기업 검색 | #8 (1.1) | W-01 ① | 초안 |
 | GET | `/api/companies/{corpCode}` | 기업 정보 | #8 (1.1) | W-01 ② | 초안 |
 | GET | `/api/companies/{corpCode}/reports` | 기업별 정기보고서 목록 | #9 (1.2), #10 (1.3) | W-01 ② | 초안 |
@@ -132,6 +136,23 @@
 - 프론트는 비밀번호 불일치·중복 제출·서버/네트워크 실패·완료 안내를 확인합니다.
 - 구현 후 backend `./gradlew build`, frontend `npm test`, `npm run build`, `npm run lint`를 실행합니다.
 
+
+### POST /api/sessions — 일반 로그인
+
+- 요청: `{ "email": "member@example.com", "password": "원문 비밀번호" }`
+- 성공 200: `{ "userId": 1, "accessToken": "JWT", "expiresIn": 900 }`
+- Refresh Token은 응답 JSON에 넣지 않고 `HttpOnly; SameSite=Strict; Path=/api` 쿠키로 발급합니다. 운영 HTTPS에서는 `Secure`를 켭니다.
+- 이메일이 없거나 비밀번호가 틀리면 모두 `AUTH_INVALID_CREDENTIALS`(401)로 응답합니다.
+
+### POST /api/session-refreshes — 토큰 재발급
+
+- Refresh Token 쿠키가 필요합니다. 성공하면 새 Access Token과 회전된 Refresh Token 쿠키를 반환합니다.
+- 만료·변조·폐기·재사용된 토큰은 `AUTH_INVALID_REFRESH_TOKEN`(401)입니다. 폐기 토큰 재사용 시 같은 family를 폐기합니다.
+
+### GET·DELETE /api/sessions/current — 현재 세션·로그아웃
+
+- GET은 Bearer Access Token이 필요하며 현재 `userId`를 반환합니다. 없거나 잘못된 JWT는 `AUTH_UNAUTHORIZED`(401)입니다.
+- DELETE는 Refresh Token을 폐기하고 쿠키를 만료시킵니다. 이미 없더라도 204로 끝냅니다.
 
 ### GET /api/companies — 기업 검색
 
@@ -997,6 +1018,9 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | --- | --- | --- | --- |
 | `COMMON_INVALID_INPUT` | 400 | 입력값이 형식에 맞지 않음 | 입력창 아래에 `errors[].reason` |
 | `COMMON_EMAIL_ALREADY_EXISTS` | 409 | 이미 등록된 일반 가입 이메일(#136) | 이메일 입력 아래 중복 안내 |
+| `AUTH_INVALID_CREDENTIALS` | 401 | 이메일 또는 비밀번호가 맞지 않음 | 로그인 입력 확인 안내 |
+| `AUTH_INVALID_REFRESH_TOKEN` | 401 | Refresh Token이 없거나 만료·폐기·변조됨 | 로그인 화면으로 이동 |
+| `AUTH_UNAUTHORIZED` | 401 | Access Token이 없거나 유효하지 않음 | 재발급 또는 로그인 화면으로 이동 |
 | `COMMON_NOT_FOUND` | 404 | 없는 경로 | 공통 오류 안내 |
 | `COMMON_METHOD_NOT_ALLOWED` | 405 | 지원하지 않는 메서드 | 공통 오류 안내 |
 | `COMMON_INTERNAL_ERROR` | 500 | 알 수 없는 서버 오류 | 공통 오류 안내와 추적 ID |

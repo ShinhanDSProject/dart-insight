@@ -223,6 +223,13 @@ a.app-nav__item:not([aria-current='page']):hover {
   font-weight: var(--font-weight-bold);
 }
 
+.app-header__auth {
+  display: flex;
+  gap: var(--space-2);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .app-main {
   flex: 1;
   width: 100%;

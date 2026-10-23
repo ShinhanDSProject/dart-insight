@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, NETWORK_ERROR, apiGet, apiPost } from './client'
+import { ApiError, NETWORK_ERROR, apiGet, apiPost, setAccessToken } from './client'
 
 function jsonResponse(status: number, body: unknown, headers: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), {
@@ -9,7 +9,23 @@ function jsonResponse(status: number, body: unknown, headers: Record<string, str
 }
 
 afterEach(() => {
+  setAccessToken(null)
   vi.unstubAllGlobals()
+})
+
+describe('인증 갱신', () => {
+  it('인증된 요청의 401은 재발급 한 번 뒤 다시 요청한다', async () => {
+    setAccessToken('expired-access')
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse(401, { code: 'AUTH_UNAUTHORIZED', message: '만료', errors: [] }))
+      .mockResolvedValueOnce(jsonResponse(200, { userId: 1, accessToken: 'new-access', expiresIn: 900 }))
+      .mockResolvedValueOnce(jsonResponse(200, { items: [] }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(apiGet('/api/companies')).resolves.toEqual({ items: [] })
+    expect(fetchMock.mock.calls[1][0]).toBe('/api/session-refreshes')
+    expect((fetchMock.mock.calls[2][1] as RequestInit).headers).toMatchObject({ Authorization: 'Bearer new-access' })
+  })
 })
 
 describe('apiGet', () => {

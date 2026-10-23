@@ -41,6 +41,7 @@ class RegistrationApiTest {
 
     @BeforeEach
     void cleanUsers() {
+        jdbc.update("DELETE FROM refresh_token");
         jdbc.update("DELETE FROM local_credential");
         jdbc.update("DELETE FROM app_user");
     }
