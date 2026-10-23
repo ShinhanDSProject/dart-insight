@@ -2,9 +2,9 @@ package com.dartinsight.analysis;
 
 import com.dartinsight.comparison.ComparisonBasis;
 import com.dartinsight.financial.domain.FsDiv;
-import com.dartinsight.report.FinancialDataStatus;
-import com.dartinsight.report.ReportItemResponse;
-import com.dartinsight.report.ReportService.ReportDetail;
+import com.dartinsight.report.domain.FinancialDataStatus;
+import com.dartinsight.report.dto.ReportItemResponse;
+import com.dartinsight.report.service.ReportService.ReportDetail;
 import com.dartinsight.summary.SummaryStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.LocalDateTime;

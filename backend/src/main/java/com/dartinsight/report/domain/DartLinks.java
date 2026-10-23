@@ -1,4 +1,4 @@
-package com.dartinsight.report;
+package com.dartinsight.report.domain;
 
 /**
  * DART 원문 주소. 접수번호로 해당 보고서 원문을 연다.

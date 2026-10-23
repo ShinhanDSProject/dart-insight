@@ -2,8 +2,8 @@ package com.dartinsight.analysis;
 
 import com.dartinsight.comparison.AmountBasis;
 import com.dartinsight.financial.domain.FsDiv;
-import com.dartinsight.report.DartLinks;
-import com.dartinsight.report.Report;
+import com.dartinsight.report.domain.DartLinks;
+import com.dartinsight.report.domain.Report;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;

@@ -1,4 +1,4 @@
-package com.dartinsight.report;
+package com.dartinsight.report.domain;
 
 /**
  * 정기보고서 종류. 12월 결산 회사 기준이다(분석 대상 기업 범위 잠정안).

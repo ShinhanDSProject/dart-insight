@@ -1,7 +1,7 @@
 package com.dartinsight.comparison;
 
 import com.dartinsight.financial.domain.StatementType;
-import com.dartinsight.report.ReportType;
+import com.dartinsight.report.domain.ReportType;
 import java.util.List;
 
 /**

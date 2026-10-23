@@ -7,7 +7,7 @@ import com.dartinsight.document.domain.DocumentBlock;
 import com.dartinsight.document.service.DocumentService;
 import com.dartinsight.document.domain.DocumentStatus;
 import com.dartinsight.document.domain.ReportDocument;
-import com.dartinsight.report.Report;
+import com.dartinsight.report.domain.Report;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

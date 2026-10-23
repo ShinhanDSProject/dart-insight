@@ -1,5 +1,7 @@
-package com.dartinsight.report;
+package com.dartinsight.report.service;
 
+import com.dartinsight.report.domain.FinancialDataStatus;
+import com.dartinsight.report.domain.Report;
 import java.util.List;
 import java.util.Map;
 

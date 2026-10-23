@@ -1,4 +1,4 @@
-package com.dartinsight.report;
+package com.dartinsight.report.config;
 
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;

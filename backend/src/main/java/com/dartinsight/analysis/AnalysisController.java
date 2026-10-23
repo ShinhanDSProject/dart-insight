@@ -1,9 +1,9 @@
 package com.dartinsight.analysis;
 
 import com.dartinsight.common.web.ApiPaths;
-import com.dartinsight.report.FinancialDataStatus;
-import com.dartinsight.report.ReportService;
-import com.dartinsight.report.ReportService.ReportDetail;
+import com.dartinsight.report.domain.FinancialDataStatus;
+import com.dartinsight.report.service.ReportService;
+import com.dartinsight.report.service.ReportService.ReportDetail;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;

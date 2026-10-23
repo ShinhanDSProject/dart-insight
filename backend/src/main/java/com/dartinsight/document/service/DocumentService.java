@@ -13,7 +13,7 @@ import com.dartinsight.document.dto.StructuredDocumentResponse;
 import com.dartinsight.document.repository.DocumentFileCache;
 import com.dartinsight.document.repository.DocumentStore;
 import com.dartinsight.document.repository.ReportDocumentRepository;
-import com.dartinsight.report.Report;
+import com.dartinsight.report.domain.Report;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;

@@ -6,7 +6,7 @@ import com.dartinsight.comparison.StatementRules.StatementRule;
 import com.dartinsight.financial.domain.FinancialAccount;
 import com.dartinsight.financial.domain.FsDiv;
 import com.dartinsight.financial.domain.StatementType;
-import com.dartinsight.report.ReportType;
+import com.dartinsight.report.domain.ReportType;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;

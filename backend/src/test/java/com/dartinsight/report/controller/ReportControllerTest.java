@@ -1,4 +1,4 @@
-package com.dartinsight.report;
+package com.dartinsight.report.controller;
 
 import static com.dartinsight.dart.client.DisclosureListJson.item;
 import static com.dartinsight.dart.client.DisclosureListJson.page;

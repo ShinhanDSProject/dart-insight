@@ -7,7 +7,7 @@ import com.dartinsight.comparison.AmountBasis;
 import com.dartinsight.comparison.StatementRules;
 import com.dartinsight.financial.domain.FinancialAccount;
 import com.dartinsight.financial.domain.FsDiv;
-import com.dartinsight.report.ReportType;
+import com.dartinsight.report.domain.ReportType;
 import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Test;

@@ -1,8 +1,8 @@
 package com.dartinsight.comparison;
 
-import com.dartinsight.report.FinancialDataStatus;
-import com.dartinsight.report.Report;
-import com.dartinsight.report.ReportItemResponse;
+import com.dartinsight.report.domain.FinancialDataStatus;
+import com.dartinsight.report.domain.Report;
+import com.dartinsight.report.dto.ReportItemResponse;
 import java.util.Map;
 
 public record ReportPairResponse(ComparisonBasis basis, ReportItemResponse current, ReportItemResponse previous,

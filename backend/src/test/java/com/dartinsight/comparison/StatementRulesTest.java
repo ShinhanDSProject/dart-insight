@@ -3,7 +3,7 @@ package com.dartinsight.comparison;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.dartinsight.comparison.StatementRules.StatementRule;
-import com.dartinsight.report.ReportType;
+import com.dartinsight.report.domain.ReportType;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
