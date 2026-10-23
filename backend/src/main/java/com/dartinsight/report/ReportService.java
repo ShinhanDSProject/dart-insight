@@ -7,6 +7,7 @@ import com.dartinsight.company.CompanyRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 /**
@@ -14,20 +15,13 @@ import org.springframework.stereotype.Service;
  * 목록은 없거나 오래됐으면 먼저 OpenDART에서 다시 받는다(4.1). 메타데이터는 저장된 보고서만 돌려준다.
  */
 @Service
+@RequiredArgsConstructor
 public class ReportService {
 
     private final ReportSyncService syncService;
     private final CompanyRepository companyRepository;
     private final ReportRepository reportRepository;
     private final FinancialDataStatusProvider financialDataStatusProvider;
-
-    public ReportService(ReportSyncService syncService, CompanyRepository companyRepository,
-            ReportRepository reportRepository, FinancialDataStatusProvider financialDataStatusProvider) {
-        this.syncService = syncService;
-        this.companyRepository = companyRepository;
-        this.reportRepository = reportRepository;
-        this.financialDataStatusProvider = financialDataStatusProvider;
-    }
 
     /** 보고서별 재무 자료 상태(접수번호 → 상태). OpenDART를 부르지 않는다. */
     public Map<String, FinancialDataStatus> financialDataStatuses(String corpCode, List<Report> reports) {

@@ -1,6 +1,7 @@
 package com.dartinsight.report;
 
 import com.dartinsight.common.web.ApiPaths;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -11,13 +12,10 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping(ApiPaths.BASE)
+@RequiredArgsConstructor
 public class ReportController {
 
     private final ReportService reportService;
-
-    public ReportController(ReportService reportService) {
-        this.reportService = reportService;
-    }
 
     @GetMapping(ApiPaths.COMPANY_REPORTS)
     public ReportListResponse list(@PathVariable String corpCode) {

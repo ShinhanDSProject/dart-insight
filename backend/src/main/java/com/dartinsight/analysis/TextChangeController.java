@@ -6,6 +6,7 @@ import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.web.ApiPaths;
 import java.util.List;
 import java.util.Set;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping(ApiPaths.ANALYSIS_TEXT_CHANGES)
+@RequiredArgsConstructor
 public class TextChangeController {
 
     private static final Set<String> TYPES = Set.of(TextChangeRow.ADDED, TextChangeRow.DELETED,
@@ -26,11 +28,6 @@ public class TextChangeController {
 
     private final TextChangeQueryService queryService;
     private final TextEvidenceService evidenceService;
-
-    public TextChangeController(TextChangeQueryService queryService, TextEvidenceService evidenceService) {
-        this.queryService = queryService;
-        this.evidenceService = evidenceService;
-    }
 
     /** 문장·표 근거 상세(3.4). 변경 전·후 원문 전체와 보고서·항목·위치 */
     @GetMapping(ApiPaths.BY_CHANGE_ID)

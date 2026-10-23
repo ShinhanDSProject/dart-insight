@@ -7,18 +7,16 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 /** 요약(summary_item)과 LLM 호출 기록(llm_call) 저장. 분석 결과와 같은 트랜잭션에서 부른다. */
 @Repository
+@RequiredArgsConstructor
 public class SummaryStore {
 
     private final JdbcTemplate jdbcTemplate;
-
-    public SummaryStore(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
 
     /**
      * @param financialIds 재무 수치 결과 목록 순서 → 저장된 financial_change.id

@@ -2,6 +2,7 @@ package com.dartinsight.system;
 
 import com.dartinsight.aiserver.AiServerClient;
 import com.dartinsight.common.web.ApiPaths;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -11,13 +12,10 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping(ApiPaths.SYSTEM)
+@RequiredArgsConstructor
 public class SystemHealthController {
 
     private final AiServerClient aiServerClient;
-
-    public SystemHealthController(AiServerClient aiServerClient) {
-        this.aiServerClient = aiServerClient;
-    }
 
     @GetMapping(ApiPaths.HEALTH)
     public SystemHealthResponse health() {

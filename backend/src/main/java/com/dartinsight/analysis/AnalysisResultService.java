@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
  * </ul>
  */
 @Service
+@RequiredArgsConstructor
 public class AnalysisResultService {
 
     /** 이 시간 넘게 상태가 바뀌지 않은 진행 중 분석은 멈춘 것으로 본다(OpenDART 호출이 가장 오래 걸리는 경우보다 길게). */
@@ -35,15 +37,6 @@ public class AnalysisResultService {
     private final TextChangeStore textChangeStore;
     private final SummaryStore summaryStore;
     private final Clock clock;
-
-    public AnalysisResultService(AnalysisRepository analysisRepository, FinancialChangeRepository changeRepository,
-            TextChangeStore textChangeStore, SummaryStore summaryStore, Clock clock) {
-        this.analysisRepository = analysisRepository;
-        this.changeRepository = changeRepository;
-        this.textChangeStore = textChangeStore;
-        this.summaryStore = summaryStore;
-        this.clock = clock;
-    }
 
     /**
      * 같은 조건에서 다시 쓸 분석. 완료된 것이 있으면 그것, 없으면 진행 중인 것.

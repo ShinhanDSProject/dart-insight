@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 /**
@@ -21,15 +22,11 @@ import org.springframework.stereotype.Service;
  * 필요하면 두 보고서의 재무제표를 OpenDART에서 받는다(4.5, 저장된 결과가 있으면 다시 부르지 않음).
  */
 @Service
+@RequiredArgsConstructor
 public class ComparabilityService {
 
     private final ReportService reportService;
     private final FinancialStatementService financialStatementService;
-
-    public ComparabilityService(ReportService reportService, FinancialStatementService financialStatementService) {
-        this.reportService = reportService;
-        this.financialStatementService = financialStatementService;
-    }
 
     public ComparabilityResult check(String corpCode, String currentRceptNo, String previousRceptNo,
             ComparisonBasis basis) {

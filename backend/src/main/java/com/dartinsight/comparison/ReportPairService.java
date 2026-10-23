@@ -8,6 +8,7 @@ import com.dartinsight.report.ReportService;
 import com.dartinsight.report.ReportType;
 import java.util.List;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 /**
@@ -15,15 +16,11 @@ import org.springframework.stereotype.Service;
  * 이전 보고서는 OpenDART 최신 목록(정정 공시는 최종본)에서만 고른다.
  */
 @Service
+@RequiredArgsConstructor
 public class ReportPairService {
 
     private final ReportService reportService;
     private final ReportRepository reportRepository;
-
-    public ReportPairService(ReportService reportService, ReportRepository reportRepository) {
-        this.reportService = reportService;
-        this.reportRepository = reportRepository;
-    }
 
     public ReportPair findPair(String corpCode, ComparisonBasis basis, String currentRceptNo) {
         if (basis == ComparisonBasis.CUSTOM) {

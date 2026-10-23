@@ -12,6 +12,7 @@ import com.dartinsight.financial.StatementType;
 import com.dartinsight.report.Report;
 import com.dartinsight.report.ReportService;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,15 +24,11 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping(ApiPaths.ANALYSIS_FINANCIAL_CHANGES)
+@RequiredArgsConstructor
 public class FinancialChangeController {
 
     private final AnalysisResultService resultService;
     private final ReportService reportService;
-
-    public FinancialChangeController(AnalysisResultService resultService, ReportService reportService) {
-        this.resultService = resultService;
-        this.reportService = reportService;
-    }
 
     @GetMapping
     public FinancialChangeListResponse list(@PathVariable Long analysisId,

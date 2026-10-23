@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * 10만 건이 넘으므로 1,000건씩 나눠 저장한다. 다시 실행해도 중복이 생기지 않는다.
  */
 @Service
+@RequiredArgsConstructor
 public class CompanyImportService {
 
     static final int CHUNK_SIZE = 1_000;
@@ -33,17 +35,6 @@ public class CompanyImportService {
     private final TransactionTemplate transactionTemplate;
     private final EntityManager entityManager;
     private final Clock clock;
-
-    public CompanyImportService(OpenDartClient openDartClient, CorpCodeParser corpCodeParser,
-            CompanyRepository companyRepository, TransactionTemplate transactionTemplate, EntityManager entityManager,
-            Clock clock) {
-        this.openDartClient = openDartClient;
-        this.corpCodeParser = corpCodeParser;
-        this.companyRepository = companyRepository;
-        this.transactionTemplate = transactionTemplate;
-        this.entityManager = entityManager;
-        this.clock = clock;
-    }
 
     /** OpenDART에서 받아 저장한다. 받기나 읽기에 실패하면 기존 데이터는 그대로 둔다. */
     public ImportResult importFromOpenDart() {

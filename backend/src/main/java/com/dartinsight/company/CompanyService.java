@@ -4,6 +4,7 @@ import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
 import java.util.List;
 import java.util.regex.Pattern;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,16 +14,13 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class CompanyService {
 
     static final int MIN_QUERY_LENGTH = 2;
     private static final Pattern STOCK_CODE = Pattern.compile("\\d{6}");
 
     private final CompanyRepository companyRepository;
-
-    public CompanyService(CompanyRepository companyRepository) {
-        this.companyRepository = companyRepository;
-    }
 
     /** 회사명 일부 또는 종목코드 6자리로 찾는다. 결과가 없으면 빈 목록. */
     public List<Company> search(String query, int limit) {

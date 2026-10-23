@@ -5,6 +5,7 @@ import com.dartinsight.comparison.ComparabilityService.ComparabilityResult;
 import com.dartinsight.report.ReportService;
 import jakarta.validation.Valid;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,15 +17,11 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping(ApiPaths.COMPARABILITY_CHECKS)
+@RequiredArgsConstructor
 public class ComparabilityController {
 
     private final ComparabilityService comparabilityService;
     private final ReportService reportService;
-
-    public ComparabilityController(ComparabilityService comparabilityService, ReportService reportService) {
-        this.comparabilityService = comparabilityService;
-        this.reportService = reportService;
-    }
 
     @PostMapping
     public ComparabilityResponse check(@Valid @RequestBody ComparabilityRequest request) {

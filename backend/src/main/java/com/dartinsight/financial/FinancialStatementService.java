@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -26,6 +27,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * 저장된 결과가 이 보고서의 자료가 아니면 정해진 때에 한 번 더 받는다({@link #needsRefetch}).
  */
 @Service
+@RequiredArgsConstructor
 public class FinancialStatementService implements FinancialDataStatusProvider {
 
     private static final Logger log = LoggerFactory.getLogger(FinancialStatementService.class);
@@ -35,15 +37,6 @@ public class FinancialStatementService implements FinancialDataStatusProvider {
     private final FinancialAccountRepository accountRepository;
     private final TransactionTemplate transactionTemplate;
     private final Clock clock;
-
-    public FinancialStatementService(OpenDartClient openDartClient, FinancialStatementFetchRepository fetchRepository,
-            FinancialAccountRepository accountRepository, TransactionTemplate transactionTemplate, Clock clock) {
-        this.openDartClient = openDartClient;
-        this.fetchRepository = fetchRepository;
-        this.accountRepository = accountRepository;
-        this.transactionTemplate = transactionTemplate;
-        this.clock = clock;
-    }
 
     /**
      * 보고서의 재무제표를 기준(연결·별도)별로 가져온다. 저장된 결과가 있으면 OpenDART를 부르지 않는다.

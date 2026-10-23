@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,15 +29,11 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping(ApiPaths.ANALYSIS_SUMMARY)
+@RequiredArgsConstructor
 public class SummaryController {
 
     private final SummaryQueryService queryService;
     private final DocumentService documentService;
-
-    public SummaryController(SummaryQueryService queryService, DocumentService documentService) {
-        this.queryService = queryService;
-        this.documentService = documentService;
-    }
 
     @GetMapping
     public SummaryResponse summary(@PathVariable Long analysisId) {

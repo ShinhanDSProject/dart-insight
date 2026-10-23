@@ -4,21 +4,18 @@ import com.dartinsight.analysis.Analysis;
 import com.dartinsight.analysis.AnalysisResultService;
 import com.dartinsight.summary.SummaryStore.StoredItem;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /** 요약·설명(3.2) 조회. 완료된 분석의 저장된 요약 항목과 각 항목이 가리키는 변경을 돌려준다. */
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class SummaryQueryService {
 
     private final AnalysisResultService resultService;
     private final SummaryStore summaryStore;
-
-    public SummaryQueryService(AnalysisResultService resultService, SummaryStore summaryStore) {
-        this.resultService = resultService;
-        this.summaryStore = summaryStore;
-    }
 
     /** 완료된 분석의 요약 항목. 완료되지 않았으면 409 */
     public StoredSummary summary(Long analysisId) {
