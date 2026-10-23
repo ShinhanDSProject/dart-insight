@@ -20,6 +20,15 @@
   cursor: pointer;
   text-decoration: none;
   white-space: nowrap;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .button:disabled {
@@ -219,6 +228,10 @@
   font-weight: var(--font-weight-medium);
 }
 
+.data-table tbody tr {
+  transition: background-color var(--motion-fast) var(--ease-out);
+}
+
 .data-table__row--selected {
   background: var(--color-accent-subtle);
 }
@@ -256,6 +269,9 @@
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-medium);
   cursor: pointer;
+  transition:
+    color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-base) var(--ease-out);
 }
 
 .tabs__item:hover {
@@ -286,6 +302,13 @@
   font: inherit;
   font-size: var(--font-size-sm);
   cursor: pointer;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+}
+
+.segmented__item:hover:not([aria-pressed='true']):not(:disabled) {
+  background: var(--color-bg-subtle);
 }
 
 .segmented__item + .segmented__item {
@@ -378,6 +401,11 @@
 }
 
 /* 상태(StateView) */
+.state,
+.notice {
+  animation: fade-in var(--motion-base) var(--ease-out);
+}
+
 .state {
   padding: var(--space-5);
   border-radius: var(--radius-lg);
@@ -481,6 +509,20 @@
   border-left: 1px solid var(--color-border);
   background: var(--color-bg);
   box-shadow: var(--shadow-md);
+  animation: side-panel-in var(--motion-slow) var(--ease-out);
+}
+
+@keyframes side-panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
 }
 
 @media (min-width: 1200px) {
@@ -498,5 +540,6 @@
     border-left: none;
     border-top: 1px solid var(--color-border);
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    animation-name: sheet-in;
   }
 }
