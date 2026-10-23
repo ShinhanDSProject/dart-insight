@@ -1,7 +1,6 @@
 package com.dartinsight.analysis;
 
 import com.dartinsight.analysis.TextChangeRow.Side;
-import com.dartinsight.analysis.TextChangeStore.TextChange;
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.document.DocumentBlock;

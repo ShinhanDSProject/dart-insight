@@ -1,6 +1,5 @@
 package com.dartinsight.analysis;
 
-import com.dartinsight.analysis.TextChangeStore.TextChange;
 import java.math.BigDecimal;
 import java.util.List;
 

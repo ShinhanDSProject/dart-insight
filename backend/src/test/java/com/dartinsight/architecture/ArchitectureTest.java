@@ -9,14 +9,11 @@ import com.dartinsight.analysis.Analysis;
 import com.dartinsight.analysis.AnalysisResponse;
 import com.dartinsight.analysis.AnalysisResultService;
 import com.dartinsight.analysis.AnalysisRunner;
-import com.dartinsight.analysis.TextChangeController;
-import com.dartinsight.analysis.TextChangeStore;
 import com.dartinsight.company.CompanyRepository;
 import com.dartinsight.comparison.ReportPairService;
 import com.dartinsight.report.ReportRepository;
 import com.dartinsight.report.ReportService;
 import com.dartinsight.report.ReportSyncService;
-import com.dartinsight.summary.SummaryController;
 import com.dartinsight.summary.SummaryStore;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.Dependency;
@@ -48,11 +45,6 @@ class ArchitectureTest {
 
     private static final String ROOT = DartInsightApplication.class.getPackageName();
 
-    /** LY-1 예외: 컨트롤러가 Store 안의 record를 응답 변환에 쓴다. DTO 분리 이슈(#167)에서 없앤다. */
-    private static final Set<Allowed> CONTROLLER_STORE_RECORDS = Set.of(
-            new Allowed(TextChangeController.class, TextChangeStore.TextChange.class),
-            new Allowed(SummaryController.class, SummaryStore.StoredItem.class));
-
     /** PKG-3 예외: 다른 도메인의 Repository·Store를 직접 쓰는 지금 사례. 해소는 별도 이슈에서 한다. */
     private static final Set<Allowed> CROSS_DOMAIN_STORES = Set.of(
             // 요약 요청에 넣을 회사 이름을 읽는다(CompanyService 조회로 바꿀 대상)
@@ -77,7 +69,7 @@ class ArchitectureTest {
     void controllersDoNotUsePersistenceDirectly(JavaClasses classes) {
         classes().that().areMetaAnnotatedWith(Controller.class)
                 .should(notDependOn("Repository·Store·JdbcTemplate",
-                        (origin, target) -> isPersistence(target) && !isAllowed(CONTROLLER_STORE_RECORDS, origin, target)))
+                        (origin, target) -> isPersistence(target)))
                 .check(classes);
     }
 
