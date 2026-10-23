@@ -34,6 +34,7 @@ class FinancialItemModel(_Model):
     ref: str
     account_name: str
     direction: str | None = None
+    account_aliases: list[str] = []
     candidates: list[SourceModel] = []
 
 
@@ -58,7 +59,11 @@ class SummaryRequest(_Model):
             ],
             [
                 FinancialItem(
-                    i.ref, i.account_name, i.direction, [s.to_source() for s in i.candidates]
+                    i.ref,
+                    i.account_name,
+                    i.direction,
+                    [s.to_source() for s in i.candidates],
+                    i.account_aliases,
                 )
                 for i in self.financial_items
             ],

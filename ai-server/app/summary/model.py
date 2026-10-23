@@ -42,6 +42,8 @@ class FinancialItem:
     account_name: str
     direction: str | None
     candidates: list[Source]
+    # backend가 설명 후보를 찾을 때 쓴 검색어(ADR-0015). 인용 확인(#142)에 쓴다
+    account_aliases: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
