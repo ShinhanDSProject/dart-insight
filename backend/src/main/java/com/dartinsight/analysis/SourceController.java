@@ -10,6 +10,7 @@ import com.dartinsight.report.Report;
 import com.dartinsight.report.ReportService;
 import java.util.List;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,18 +22,12 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping(ApiPaths.ANALYSIS_DOCUMENT)
+@RequiredArgsConstructor
 public class SourceController {
 
     private final AnalysisResultService resultService;
     private final ReportService reportService;
     private final DocumentService documentService;
-
-    public SourceController(AnalysisResultService resultService, ReportService reportService,
-            DocumentService documentService) {
-        this.resultService = resultService;
-        this.reportService = reportService;
-        this.documentService = documentService;
-    }
 
     @GetMapping
     public DocumentOutlineResponse outline(@PathVariable Long analysisId, @PathVariable String side) {

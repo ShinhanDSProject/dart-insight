@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,7 @@ import org.springframework.stereotype.Service;
  * AI 서버·LLM을 부를 수 없으면 {@link com.dartinsight.aiserver.AiServerException}을 그대로 던진다(분석 실패).
  */
 @Service
+@RequiredArgsConstructor
 public class SummaryService {
 
     private static final Logger log = LoggerFactory.getLogger(SummaryService.class);
@@ -38,11 +40,6 @@ public class SummaryService {
 
     private final AiServerClient aiServerClient;
     private final DocumentService documentService;
-
-    public SummaryService(AiServerClient aiServerClient, DocumentService documentService) {
-        this.aiServerClient = aiServerClient;
-        this.documentService = documentService;
-    }
 
     public SummaryResult summarize(String companyName, String previousReport, String currentReport,
             String currentRceptNo, List<FinancialChangeRow> financial, List<TextChangeRow> text) {

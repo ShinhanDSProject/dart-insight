@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,15 +20,11 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping(ApiPaths.COMPANY_REPORT_PAIRS)
+@RequiredArgsConstructor
 public class ReportPairController {
 
     private final ReportPairService pairService;
     private final ReportService reportService;
-
-    public ReportPairController(ReportPairService pairService, ReportService reportService) {
-        this.pairService = pairService;
-        this.reportService = reportService;
-    }
 
     @GetMapping
     public ReportPairResponse find(@PathVariable String corpCode, @RequestParam ComparisonBasis basis,

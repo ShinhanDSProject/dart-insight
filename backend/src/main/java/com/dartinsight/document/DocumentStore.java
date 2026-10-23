@@ -5,6 +5,7 @@ import com.dartinsight.document.StructuredDocumentResponse.Section;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Repository;
  * 바꿀 때는 그 원문의 행을 모두 지우고 다시 넣는다(부르는 쪽 트랜잭션 안에서).
  */
 @Repository
+@RequiredArgsConstructor
 public class DocumentStore {
 
     private static final int BATCH = 500;
@@ -22,10 +24,6 @@ public class DocumentStore {
             rs.getString("source_ref"), rs.getBoolean("cover"), rs.getInt("block_count"));
 
     private final JdbcTemplate jdbcTemplate;
-
-    public DocumentStore(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
 
     public void replace(long documentId, List<Section> sections) {
         delete(documentId);

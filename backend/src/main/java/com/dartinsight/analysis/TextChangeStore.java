@@ -10,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Repository;
  * change_no는 문서 순서(현재 보고서 기준)다.
  */
 @Repository
+@RequiredArgsConstructor
 public class TextChangeStore {
 
     private static final int BATCH = 500;
@@ -30,10 +32,6 @@ public class TextChangeStore {
             + "priority_score DESC, change_no";
 
     private final JdbcTemplate jdbcTemplate;
-
-    public TextChangeStore(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
 
     /** 트랜잭션 안에서 부른다. */
     public void saveAll(long analysisId, List<TextChangeRow> rows) {

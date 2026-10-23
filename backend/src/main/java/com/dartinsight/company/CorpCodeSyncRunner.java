@@ -3,6 +3,7 @@ package com.dartinsight.company;
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.dart.OpenDartProperties;
 import com.dartinsight.dart.OpenDartProperties.CorpCodeSync;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
  * 받지 못해도 서버는 계속 뜬다(기업 검색만 COMPANY_LIST_NOT_LOADED).
  */
 @Component
+@RequiredArgsConstructor
 public class CorpCodeSyncRunner implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(CorpCodeSyncRunner.class);
@@ -22,13 +24,6 @@ public class CorpCodeSyncRunner implements ApplicationRunner {
     private final OpenDartProperties properties;
     private final CompanyRepository companyRepository;
     private final CompanyImportService companyImportService;
-
-    public CorpCodeSyncRunner(OpenDartProperties properties, CompanyRepository companyRepository,
-            CompanyImportService companyImportService) {
-        this.properties = properties;
-        this.companyRepository = companyRepository;
-        this.companyImportService = companyImportService;
-    }
 
     @Override
     public void run(ApplicationArguments args) {

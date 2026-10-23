@@ -3,6 +3,7 @@ package com.dartinsight.company;
 import com.dartinsight.common.web.ApiPaths;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,13 +15,10 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping(ApiPaths.COMPANIES)
+@RequiredArgsConstructor
 public class CompanyController {
 
     private final CompanyService companyService;
-
-    public CompanyController(CompanyService companyService) {
-        this.companyService = companyService;
-    }
 
     @GetMapping
     public CompanySearchResponse search(

@@ -7,6 +7,7 @@ import com.dartinsight.report.ReportService.ReportDetail;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,18 +22,12 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping(ApiPaths.ANALYSES)
+@RequiredArgsConstructor
 public class AnalysisController {
 
     private final AnalysisService analysisService;
     private final AnalysisResultService resultService;
     private final ReportService reportService;
-
-    public AnalysisController(AnalysisService analysisService, AnalysisResultService resultService,
-            ReportService reportService) {
-        this.analysisService = analysisService;
-        this.resultService = resultService;
-        this.reportService = reportService;
-    }
 
     /** 새 분석이나 진행 중인 분석은 202, 완료된 결과를 다시 쓰면 200 */
     @PostMapping

@@ -2,6 +2,7 @@ package com.dartinsight.common.web;
 
 import com.dartinsight.common.trace.TraceContext;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
@@ -14,13 +15,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  */
 @Configuration
 @EnableConfigurationProperties(WebConfig.CorsProperties.class)
+@RequiredArgsConstructor
 public class WebConfig implements WebMvcConfigurer {
 
     private final CorsProperties corsProperties;
-
-    public WebConfig(CorsProperties corsProperties) {
-        this.corsProperties = corsProperties;
-    }
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {

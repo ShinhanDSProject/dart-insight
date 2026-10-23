@@ -15,6 +15,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -35,6 +36,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * OpenDART·AI 서버 호출 실패는 저장하지 않고 예외로 알린다(다음 요청에서 다시 시도).
  */
 @Service
+@RequiredArgsConstructor
 public class DocumentService {
 
     private static final Logger log = LoggerFactory.getLogger(DocumentService.class);
@@ -53,18 +55,6 @@ public class DocumentService {
     private final DocumentStore store;
     private final TransactionTemplate transactionTemplate;
     private final Clock clock;
-
-    public DocumentService(OpenDartClient openDartClient, AiServerClient aiServerClient, DocumentFileCache fileCache,
-            ReportDocumentRepository documentRepository, DocumentStore store, TransactionTemplate transactionTemplate,
-            Clock clock) {
-        this.openDartClient = openDartClient;
-        this.aiServerClient = aiServerClient;
-        this.fileCache = fileCache;
-        this.documentRepository = documentRepository;
-        this.store = store;
-        this.transactionTemplate = transactionTemplate;
-        this.clock = clock;
-    }
 
     /**
      * 보고서 원문을 구조화해 둔다. 이미 해 두었으면 그 결과를 돌려준다.

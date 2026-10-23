@@ -2,21 +2,18 @@ package com.dartinsight.analysis;
 
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /** 문장·표 변경 목록(2.5) 조회. 완료된 분석의 그 분석 결과만 돌려준다. */
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class TextChangeQueryService {
 
     private final AnalysisResultService resultService;
     private final TextChangeStore store;
-
-    public TextChangeQueryService(AnalysisResultService resultService, TextChangeStore store) {
-        this.resultService = resultService;
-        this.store = store;
-    }
 
     /**
      * 완료된 분석의 변경 한 쪽. 완료되지 않았으면 409.

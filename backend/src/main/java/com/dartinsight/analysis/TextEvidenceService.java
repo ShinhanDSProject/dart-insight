@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 /**
@@ -22,20 +23,13 @@ import org.springframework.stereotype.Service;
  * (원문을 다시 구조화해 위치가 달라졌으면 글만 보여 주고 표 셀은 붙이지 않음).
  */
 @Service
+@RequiredArgsConstructor
 public class TextEvidenceService {
 
     private final AnalysisResultService resultService;
     private final TextChangeStore store;
     private final ReportService reportService;
     private final DocumentService documentService;
-
-    public TextEvidenceService(AnalysisResultService resultService, TextChangeStore store, ReportService reportService,
-            DocumentService documentService) {
-        this.resultService = resultService;
-        this.store = store;
-        this.reportService = reportService;
-        this.documentService = documentService;
-    }
 
     public TextEvidence evidence(Long analysisId, Long changeId) {
         resultService.completed(analysisId);

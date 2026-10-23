@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -24,17 +25,13 @@ import org.springframework.stereotype.Service;
  * 일부만 읽은 원문(PARTIAL)으로 비교했으면 PARTIAL로 남겨 완전한 결과처럼 보이지 않게 한다.
  */
 @Service
+@RequiredArgsConstructor
 public class TextComparisonService {
 
     private static final Logger log = LoggerFactory.getLogger(TextComparisonService.class);
 
     private final DocumentService documentService;
     private final AiServerClient aiServerClient;
-
-    public TextComparisonService(DocumentService documentService, AiServerClient aiServerClient) {
-        this.documentService = documentService;
-        this.aiServerClient = aiServerClient;
-    }
 
     public TextComparison compare(Report previous, Report current) {
         ReportDocument previousDocument;
