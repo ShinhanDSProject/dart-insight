@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { FinancialChangeItem, SjDiv, StatementSummary } from '@/shared/api/results'
@@ -42,12 +43,21 @@ interface FinancialTabProps {
   onChange: (changes: FinancialViewChange) => void
 }
 
-/** W-03 ② 재무 수치 변화(3.1). 이 분석의 결과만 보여 준다. 계정의 '보기'를 누르면 수치 근거(3.3)를 연다. */
+/** W-03 ② 재무 수치 변화(3.1). 이 분석의 결과만 보여 준다. 계정의 '보기'를 누르면 수치 근거(3.3)를 오른쪽 패널로 연다. */
 export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChangeId, onChange }: FinancialTabProps) {
   const { state, reload, statements } = useFinancialChanges(analysis.analysisId, sjDiv, changedOnly)
   const selected = statements.find((s) => s.sjDiv === sjDiv)
   const basis = selected?.amountBasis ?? null
   const currency = state.status === 'success' ? (state.data.items.find((i) => i.currency)?.currency ?? null) : null
+
+  // 근거 패널이 열리면 본문 폭이 줄어 표가 다시 그려지므로, 고른 계정 행이 화면 밖으로 밀리지 않게 한다
+  useEffect(() => {
+    if (selectedChangeId === null) return
+    const frame = requestAnimationFrame(() =>
+      document.getElementById(evidenceButtonId(selectedChangeId))?.scrollIntoView?.({ block: 'nearest' }),
+    )
+    return () => cancelAnimationFrame(frame)
+  }, [selectedChangeId])
 
   return (
     <Panel aria-label="재무 수치 변화">

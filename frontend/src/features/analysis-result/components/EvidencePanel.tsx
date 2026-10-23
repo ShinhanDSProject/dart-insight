@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { FinancialChangeDetail, ValueSource } from '@/shared/api/results'
-import { Button, Notice, Panel, PanelTitle } from '@/shared/ui'
+import { Button, Notice, PanelTitle, SidePanel } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { useFinancialChangeDetail } from '../hooks/useFinancialChanges'
@@ -32,14 +32,13 @@ export function EvidencePanel({ analysis, changeId, unit, onClose }: EvidencePan
   const title = state.status === 'success' ? `${state.data.accountName} · 근거` : '수치 근거'
   const headingRef = useRef<HTMLHeadingElement>(null)
 
-  // 표 아래에 열리므로, 열리면 제목으로 초점과 화면을 옮긴다(키보드·화면 읽기 사용자)
+  // 열리면 제목으로 초점을 옮긴다(키보드·화면 읽기 사용자). 표를 보던 위치는 그대로 둔다
   useEffect(() => {
-    headingRef.current?.focus()
-    headingRef.current?.scrollIntoView?.({ block: 'nearest' })
+    headingRef.current?.focus({ preventScroll: true })
   }, [])
 
   return (
-    <Panel className="evidence" aria-labelledby="evidence-title" id="evidence">
+    <SidePanel className="evidence" aria-labelledby="evidence-title" id="evidence" onClose={onClose}>
       <div className="evidence__head">
         <PanelTitle id="evidence-title" ref={headingRef} tabIndex={-1}>
           {title}
@@ -59,7 +58,7 @@ export function EvidencePanel({ analysis, changeId, unit, onClose }: EvidencePan
         ))
         .with({ status: 'success' }, ({ data }) => <EvidenceBody analysis={analysis} detail={data} unit={unit} />)
         .exhaustive()}
-    </Panel>
+    </SidePanel>
   )
 }
 
