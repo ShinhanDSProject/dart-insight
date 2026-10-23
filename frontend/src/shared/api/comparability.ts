@@ -46,6 +46,6 @@ export interface ComparabilityRequest {
   basis: ComparisonBasis
 }
 
-export function checkComparability(request: ComparabilityRequest): Promise<ComparabilityResult> {
-  return apiPost(endpoints.comparabilityChecks(), request)
+export function checkComparability(request: ComparabilityRequest, signal?: AbortSignal): Promise<ComparabilityResult> {
+  return apiPost(endpoints.comparabilityChecks(), request, { signal })
 }

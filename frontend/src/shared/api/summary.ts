@@ -64,6 +64,6 @@ export interface Summary {
   reviewNeeded: ReviewItem[]
 }
 
-export function getSummary(analysisId: number): Promise<Summary> {
-  return apiGet(endpoints.summary(analysisId))
+export function getSummary(analysisId: number, signal?: AbortSignal): Promise<Summary> {
+  return apiGet(endpoints.summary(analysisId), undefined, { signal })
 }

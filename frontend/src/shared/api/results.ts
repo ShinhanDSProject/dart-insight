@@ -50,8 +50,13 @@ export interface FinancialChangeList {
   items: FinancialChangeItem[]
 }
 
-export function getFinancialChanges(analysisId: number, sjDiv: SjDiv, changedOnly: boolean): Promise<FinancialChangeList> {
-  return apiGet(endpoints.financialChanges(analysisId), { sjDiv, changedOnly })
+export function getFinancialChanges(
+  analysisId: number,
+  sjDiv: SjDiv,
+  changedOnly: boolean,
+  signal?: AbortSignal,
+): Promise<FinancialChangeList> {
+  return apiGet(endpoints.financialChanges(analysisId), { sjDiv, changedOnly }, { signal })
 }
 
 export interface ValueSource {
@@ -77,6 +82,6 @@ export interface FinancialChangeDetail extends FinancialChangeItem {
   current: ValueSource | null
 }
 
-export function getFinancialChange(analysisId: number, changeId: number): Promise<FinancialChangeDetail> {
-  return apiGet(endpoints.financialChange(analysisId, changeId))
+export function getFinancialChange(analysisId: number, changeId: number, signal?: AbortSignal): Promise<FinancialChangeDetail> {
+  return apiGet(endpoints.financialChange(analysisId, changeId), undefined, { signal })
 }

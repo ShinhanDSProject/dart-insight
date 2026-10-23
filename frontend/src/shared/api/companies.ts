@@ -8,10 +8,10 @@ export interface Company {
   listed: boolean
 }
 
-export function searchCompanies(query: string): Promise<{ items: Company[] }> {
-  return apiGet(endpoints.companies(), { query })
+export function searchCompanies(query: string, signal?: AbortSignal): Promise<{ items: Company[] }> {
+  return apiGet(endpoints.companies(), { query }, { signal })
 }
 
-export function getCompany(corpCode: string): Promise<Company> {
-  return apiGet(endpoints.company(corpCode))
+export function getCompany(corpCode: string, signal?: AbortSignal): Promise<Company> {
+  return apiGet(endpoints.company(corpCode), undefined, { signal })
 }

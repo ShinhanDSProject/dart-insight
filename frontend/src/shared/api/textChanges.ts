@@ -62,13 +62,17 @@ export interface TextChangeQuery {
   size?: number
 }
 
-export function getTextChanges(analysisId: number, query: TextChangeQuery): Promise<TextChangeList> {
-  return apiGet(endpoints.textChanges(analysisId), {
-    type: query.type ?? undefined,
-    sort: query.sort,
-    page: query.page,
-    size: query.size ?? 20,
-  })
+export function getTextChanges(analysisId: number, query: TextChangeQuery, signal?: AbortSignal): Promise<TextChangeList> {
+  return apiGet(
+    endpoints.textChanges(analysisId),
+    {
+      type: query.type ?? undefined,
+      sort: query.sort,
+      page: query.page,
+      size: query.size ?? 20,
+    },
+    { signal },
+  )
 }
 
 export interface TableCell {
@@ -108,6 +112,6 @@ export interface TextChangeDetail {
   current: TextSource | null
 }
 
-export function getTextChange(analysisId: number, changeId: number): Promise<TextChangeDetail> {
-  return apiGet(endpoints.textChange(analysisId, changeId))
+export function getTextChange(analysisId: number, changeId: number, signal?: AbortSignal): Promise<TextChangeDetail> {
+  return apiGet(endpoints.textChange(analysisId, changeId), undefined, { signal })
 }
