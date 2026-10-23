@@ -5,10 +5,10 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 
 import com.dartinsight.DartInsightApplication;
-import com.dartinsight.analysis.Analysis;
-import com.dartinsight.analysis.AnalysisResponse;
-import com.dartinsight.analysis.AnalysisResultService;
-import com.dartinsight.analysis.AnalysisRunner;
+import com.dartinsight.analysis.domain.Analysis;
+import com.dartinsight.analysis.dto.AnalysisResponse;
+import com.dartinsight.analysis.service.AnalysisResultService;
+import com.dartinsight.analysis.service.AnalysisRunner;
 import com.dartinsight.company.repository.CompanyRepository;
 import com.dartinsight.comparison.service.ReportPairService;
 import com.dartinsight.report.repository.ReportRepository;

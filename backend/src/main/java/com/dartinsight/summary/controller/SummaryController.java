@@ -1,6 +1,6 @@
 package com.dartinsight.summary.controller;
 
-import com.dartinsight.analysis.Analysis;
+import com.dartinsight.analysis.domain.Analysis;
 import com.dartinsight.common.web.ApiPaths;
 import com.dartinsight.document.domain.DocumentBlock;
 import com.dartinsight.document.service.DocumentService;

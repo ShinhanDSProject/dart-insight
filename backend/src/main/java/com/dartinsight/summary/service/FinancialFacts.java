@@ -1,6 +1,6 @@
 package com.dartinsight.summary.service;
 
-import com.dartinsight.analysis.FinancialChangeRow;
+import com.dartinsight.analysis.domain.FinancialChangeRow;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
