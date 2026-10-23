@@ -17,8 +17,10 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
+import org.springframework.http.MediaType;
 
 /** 가짜 AI 서버(JDK HttpServer)를 띄워 내부 호출을 확인한다. */
 class AiServerClientTest {
@@ -68,6 +70,22 @@ class AiServerClientTest {
 
         assertThat(result).isEqualTo(AiServerStatus.UP);
         assertThat(receivedTraceId.get()).isEqualTo("trace-from-request");
+    }
+
+    @Test
+    @DisplayName("새 연결의 첫 요청에서도 본문이 그대로 도착한다(HTTP/2 업그레이드를 시도하지 않음)")
+    void bodyArrivesOnTheFirstRequestOfAConnection() {
+        try (FakeAiServer fake = new FakeAiServer()) {
+            fake.on("/internal/echo", FakeAiServer.Reply.ok("{}"));
+            AiServerClient client = new AiServerClient(new AiServerProperties(fake.baseUrl(), Duration.ofSeconds(1),
+                    Duration.ofSeconds(2), Duration.ofSeconds(2)));
+            byte[] zip = {0x50, 0x4b, 0x03, 0x04, 1, 2, 3};
+
+            client.postBytes("/internal/echo", zip, MediaType.valueOf("application/zip"), Map.class);
+
+            assertThat(fake.requests("/internal/echo")).singleElement()
+                    .satisfies(r -> assertThat(r.body()).containsExactly(zip));
+        }
     }
 
     @Test
