@@ -1,0 +1,41 @@
+# ai-server 코드 컨벤션. 판단이 필요한 규칙만 적는다(형식·import 순서는 ruff가 검사).
+# 규칙을 어기면 리뷰에서 ID로 부른다(예: "LLM-2"). 바꿀 때는 이 파일과 ruff 설정을 같은 PR에서 고친다.
+# AI 결과 규칙(근거 ID, 계산 금지, 재생성 2회, 표현 검사)은 루트 AGENTS.md 'AI 기능 규칙'이 기준이다.
+v: 1
+scope: ai-server/app
+enforced: [ruff, pytest]
+see: {api: "docs/api-spec.md 3장", adr: "docs/adr/0008·0009·0010·0012·0013"}
+
+dir:  # app/ 아래
+  DIR-1: "api/: 라우터만(입력 검증·호출·응답 변환). 판단·계산은 기능 패키지에"
+  DIR-2: "core/: 설정·에러·추적 ID. llm/: LLM 호출 단일 모듈. 기능 패키지: documents·compare·summary·compliance"
+  DIR-3: "기능 패키지 안: schema.py(API 모양, pydantic) / model.py 또는 dataclass(내부 값) / service.py(흐름) / 순수 함수 모듈"
+  DIR-4: 기능 패키지는 api·fastapi를 import하지 않는다. 기능끼리는 공개 함수·타입만 쓴다
+  DIR-5: 내부 API 경로는 api/paths.py에만 둔다
+
+code:
+  PY-1: 함수·메서드·반환에 타입을 단다. Any는 API 경계(dict 응답)에서만
+  PY-2: 내부 값은 @dataclass(frozen=True). pydantic은 API 입출력(schema.py)에서만 쓴다
+  PY-3: API 모양은 camelCase(alias_generator=to_camel). 파이썬 안은 snake_case
+  PY-4: 순수 함수로 쓰고 전역 상태를 두지 않는다. 설정은 core.config, 의존성은 FastAPI Depends로 받는다
+  PY-5: 모듈 상수는 대문자. 상태·유형 문자열("ADDED", "OK")은 모듈 상수로 정의해 쓰고 직접 적지 않는다
+  PY-6: "결과가 달라지는 규칙·프롬프트를 바꾸면 그 모듈의 *_VERSION을 올리고 backend 분석 버전도 올린다 [adr:0014]"
+
+err:
+  ERR-1: 실패는 core.errors.ApiError(ErrorCode)로 올린다. HTTPException 직접 금지
+  ERR-2: 새 ErrorCode는 docs/api-spec.md 에러 코드 표에 먼저 적는다. 메시지에 내부 정보·원문을 넣지 않는다
+  ERR-3: 외부 예외는 경계에서 잡아 바꾼다(raise ApiError(...) from e). 그냥 삼키지 않는다
+
+llm:
+  LLM-1: LLM은 app.llm.LlmClient로만 부른다. 제공자 SDK를 기능 패키지에서 import하지 않는다 [adr:0008]
+  LLM-2: 프롬프트는 기능 패키지의 prompt.py에 두고 PROMPT_VERSION을 단다. 원문은 prompting의 구분 태그로 감싼다
+  LLM-3: LLM 출력은 검증 함수(validate.py)를 통과한 것만 내보낸다. 테스트는 fake 제공자로 한다
+
+log:
+  LOG-1: 로거는 logging.getLogger("app.<패키지>"). print는 CLI 진입점(documents/cli.py)에서만
+  LOG-2: 로그에 원문·프롬프트 전체·키를 남기지 않는다. 건수·버전·추적 ID만
+
+test:
+  T-1: tests/test_<모듈>.py. 함수 이름은 test_<영어 동작 문장>
+  T-2: 순수 함수는 단위 테스트, 라우터는 TestClient로 상태 코드·에러 형식까지 확인한다
+  T-3: 실제 원문을 쓴 테스트는 접수번호와 기대값을 tests/fixtures에 남긴다(파일 자체는 커밋하지 않음)
