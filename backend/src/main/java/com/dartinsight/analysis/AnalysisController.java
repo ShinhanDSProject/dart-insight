@@ -4,7 +4,7 @@ import com.dartinsight.common.web.ApiPaths;
 import com.dartinsight.comparison.ComparisonBasis;
 import com.dartinsight.financial.FsDiv;
 import com.dartinsight.report.FinancialDataStatus;
-import com.dartinsight.report.ReportController.ReportItemResponse;
+import com.dartinsight.report.ReportItemResponse;
 import com.dartinsight.report.ReportService;
 import com.dartinsight.report.ReportService.ReportDetail;
 import com.dartinsight.summary.SummaryStatus;
