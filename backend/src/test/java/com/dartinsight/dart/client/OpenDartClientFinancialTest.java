@@ -1,12 +1,12 @@
-package com.dartinsight.dart;
+package com.dartinsight.dart.client;
 
-import static com.dartinsight.dart.FinancialJson.account;
+import static com.dartinsight.dart.client.FinancialJson.account;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
-import com.dartinsight.dart.FakeOpenDartServer.Response;
+import com.dartinsight.dart.client.FakeOpenDartServer.Response;
 import java.io.IOException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

@@ -1,4 +1,4 @@
-package com.dartinsight.dart;
+package com.dartinsight.dart.client;
 
 /**
  * 테스트용 공시검색(list.json) 응답 JSON. 회사와 공시는 모두 가짜다.

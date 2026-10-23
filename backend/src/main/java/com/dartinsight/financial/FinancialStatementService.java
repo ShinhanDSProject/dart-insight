@@ -1,7 +1,7 @@
 package com.dartinsight.financial;
 
-import com.dartinsight.dart.FinancialStatementResponse;
-import com.dartinsight.dart.OpenDartClient;
+import com.dartinsight.dart.dto.FinancialStatementResponse;
+import com.dartinsight.dart.client.OpenDartClient;
 import com.dartinsight.report.FinancialDataStatus;
 import com.dartinsight.report.FinancialDataStatusProvider;
 import com.dartinsight.report.Report;

@@ -1,8 +1,8 @@
 package com.dartinsight.company;
 
 import com.dartinsight.common.error.ApiException;
-import com.dartinsight.dart.OpenDartProperties;
-import com.dartinsight.dart.OpenDartProperties.CorpCodeSync;
+import com.dartinsight.dart.config.OpenDartProperties;
+import com.dartinsight.dart.config.OpenDartProperties.CorpCodeSync;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

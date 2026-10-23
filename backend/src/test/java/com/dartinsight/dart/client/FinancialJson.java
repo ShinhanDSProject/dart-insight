@@ -1,4 +1,4 @@
-package com.dartinsight.dart;
+package com.dartinsight.dart.client;
 
 import java.util.List;
 

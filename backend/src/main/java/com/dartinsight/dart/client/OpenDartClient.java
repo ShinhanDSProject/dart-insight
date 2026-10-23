@@ -1,7 +1,10 @@
-package com.dartinsight.dart;
+package com.dartinsight.dart.client;
 
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
+import com.dartinsight.dart.config.OpenDartProperties;
+import com.dartinsight.dart.dto.DisclosureListResponse;
+import com.dartinsight.dart.dto.FinancialStatementResponse;
 import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;

@@ -1,8 +1,8 @@
 package com.dartinsight.company;
 
-import com.dartinsight.dart.CorpCodeEntry;
-import com.dartinsight.dart.CorpCodeParser;
-import com.dartinsight.dart.OpenDartClient;
+import com.dartinsight.dart.dto.CorpCodeEntry;
+import com.dartinsight.dart.client.CorpCodeParser;
+import com.dartinsight.dart.client.OpenDartClient;
 import jakarta.persistence.EntityManager;
 import java.time.Clock;
 import java.time.LocalDateTime;

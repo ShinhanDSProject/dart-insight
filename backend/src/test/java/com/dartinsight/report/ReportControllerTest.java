@@ -1,7 +1,7 @@
 package com.dartinsight.report;
 
-import static com.dartinsight.dart.DisclosureListJson.item;
-import static com.dartinsight.dart.DisclosureListJson.page;
+import static com.dartinsight.dart.client.DisclosureListJson.item;
+import static com.dartinsight.dart.client.DisclosureListJson.page;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.hamcrest.Matchers.nullValue;
@@ -12,10 +12,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.dartinsight.company.Company;
 import com.dartinsight.company.CompanyImportService;
 import com.dartinsight.company.CompanyRepository;
-import com.dartinsight.dart.CorpCodeEntry;
-import com.dartinsight.dart.DisclosureListJson;
-import com.dartinsight.dart.FakeOpenDartServer;
-import com.dartinsight.dart.FakeOpenDartServer.Response;
+import com.dartinsight.dart.dto.CorpCodeEntry;
+import com.dartinsight.dart.client.DisclosureListJson;
+import com.dartinsight.dart.client.FakeOpenDartServer;
+import com.dartinsight.dart.client.FakeOpenDartServer.Response;
 import com.dartinsight.support.TestData;
 import java.io.IOException;
 import java.io.UncheckedIOException;

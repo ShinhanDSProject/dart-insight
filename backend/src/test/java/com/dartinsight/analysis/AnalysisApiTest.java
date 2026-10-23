@@ -1,6 +1,6 @@
 package com.dartinsight.analysis;
 
-import static com.dartinsight.dart.FinancialJson.account;
+import static com.dartinsight.dart.client.FinancialJson.account;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
@@ -15,10 +15,10 @@ import com.dartinsight.common.config.ClockConfig;
 import com.dartinsight.company.CompanyImportService;
 import com.dartinsight.comparison.AmountBasis;
 import com.dartinsight.comparison.ComparisonBasis;
-import com.dartinsight.dart.CorpCodeEntry;
-import com.dartinsight.dart.FakeOpenDartServer;
-import com.dartinsight.dart.FakeOpenDartServer.Response;
-import com.dartinsight.dart.FinancialJson;
+import com.dartinsight.dart.dto.CorpCodeEntry;
+import com.dartinsight.dart.client.FakeOpenDartServer;
+import com.dartinsight.dart.client.FakeOpenDartServer.Response;
+import com.dartinsight.dart.client.FinancialJson;
 import com.dartinsight.financial.FsDiv;
 import com.dartinsight.report.Correction;
 import com.dartinsight.report.Report;

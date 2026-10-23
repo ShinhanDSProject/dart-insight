@@ -1,6 +1,6 @@
 package com.dartinsight.comparison;
 
-import static com.dartinsight.dart.FinancialJson.account;
+import static com.dartinsight.dart.client.FinancialJson.account;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
@@ -10,10 +10,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.dartinsight.company.CompanyImportService;
-import com.dartinsight.dart.CorpCodeEntry;
-import com.dartinsight.dart.FakeOpenDartServer;
-import com.dartinsight.dart.FakeOpenDartServer.Response;
-import com.dartinsight.dart.FinancialJson;
+import com.dartinsight.dart.dto.CorpCodeEntry;
+import com.dartinsight.dart.client.FakeOpenDartServer;
+import com.dartinsight.dart.client.FakeOpenDartServer.Response;
+import com.dartinsight.dart.client.FinancialJson;
 import com.dartinsight.report.Correction;
 import com.dartinsight.report.Report;
 import com.dartinsight.report.ReportNameParser.ParsedReportName;

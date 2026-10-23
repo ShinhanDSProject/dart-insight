@@ -1,16 +1,16 @@
 package com.dartinsight.financial;
 
-import static com.dartinsight.dart.FinancialJson.account;
+import static com.dartinsight.dart.client.FinancialJson.account;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.company.CompanyImportService;
-import com.dartinsight.dart.CorpCodeEntry;
-import com.dartinsight.dart.FakeOpenDartServer;
-import com.dartinsight.dart.FakeOpenDartServer.Response;
-import com.dartinsight.dart.FinancialJson;
+import com.dartinsight.dart.dto.CorpCodeEntry;
+import com.dartinsight.dart.client.FakeOpenDartServer;
+import com.dartinsight.dart.client.FakeOpenDartServer.Response;
+import com.dartinsight.dart.client.FinancialJson;
 import com.dartinsight.report.Correction;
 import com.dartinsight.report.FinancialDataStatus;
 import com.dartinsight.report.Report;

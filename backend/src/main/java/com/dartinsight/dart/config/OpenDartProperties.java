@@ -1,4 +1,4 @@
-package com.dartinsight.dart;
+package com.dartinsight.dart.config;
 
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
