@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { FinancialChangeItem, SjDiv, StatementSummary } from '@/shared/api/results'
@@ -6,6 +6,7 @@ import { Button, DataTable, DataTableRow, FieldLabel, Notice, Panel, SegmentedCo
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { EvidencePanel } from './EvidencePanel'
+import { FinancialChart } from './FinancialChart'
 import {
   amountPeriodLabel,
   formatAmount,
@@ -49,6 +50,13 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChang
   const selected = statements.find((s) => s.sjDiv === sjDiv)
   const basis = selected?.amountBasis ?? null
   const currency = state.status === 'success' ? (state.data.items.find((i) => i.currency)?.currency ?? null) : null
+
+  // 근거를 연 버튼(차트 막대 또는 표의 '보기'). 패널을 닫으면 그 버튼으로 초점을 돌려준다
+  const openerRef = useRef<HTMLElement | null>(null)
+  const openEvidence = (changeId: number) => {
+    openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    onChange({ change: changeId === selectedChangeId ? null : changeId })
+  }
 
   // 근거 패널이 열리면 본문 폭이 줄어 표가 다시 그려지므로, 고른 계정 행이 화면 밖으로 밀리지 않게 한다
   useEffect(() => {
@@ -109,6 +117,19 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChang
           </EmptyState>
         ))
         .with({ status: 'success' }, ({ data }) => (
+          <>
+          {selected?.comparable !== false && (
+            <FinancialChart
+              items={data.items}
+              statementLabel={selected?.label ?? ''}
+              unit={unit}
+              currency={currency}
+              previousPeriod={amountPeriodLabel(analysis.previous, basis)}
+              currentPeriod={amountPeriodLabel(analysis.current, basis)}
+              selectedChangeId={selectedChangeId}
+              onSelect={openEvidence}
+            />
+          )}
           <DataTable caption={`계정별 이전 값, 현재 값, 증감액, 증감률. 단위 ${unitLabel(unit, currency)}`}>
             <thead>
               <tr>
@@ -135,11 +156,12 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChang
                   item={item}
                   unit={unit}
                   selected={item.changeId === selectedChangeId}
-                  onSelect={() => onChange({ change: item.changeId === selectedChangeId ? null : item.changeId })}
+                  onSelect={() => openEvidence(item.changeId)}
                 />
               ))}
             </tbody>
           </DataTable>
+          </>
         ))
         .exhaustive()}
       {selectedChangeId !== null && (
@@ -150,9 +172,12 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChang
           unit={unit}
           onClose={() => {
             const id = selectedChangeId
+            const opener = openerRef.current
             onChange({ change: null })
-            // 닫으면 그 계정의 '보기' 버튼으로 초점을 돌려준다
-            requestAnimationFrame(() => document.getElementById(evidenceButtonId(id))?.focus())
+            // 닫으면 근거를 연 버튼(없으면 그 계정의 '보기' 버튼)으로 초점을 돌려준다
+            requestAnimationFrame(() =>
+              (opener?.isConnected ? opener : document.getElementById(evidenceButtonId(id)))?.focus(),
+            )
           }}
         />
       )}

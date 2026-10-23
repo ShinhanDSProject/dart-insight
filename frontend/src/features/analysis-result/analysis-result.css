@@ -79,6 +79,224 @@
   font-size: var(--font-size-sm);
 }
 
+/* 재무 수치 변화 차트(FS-3, ADR-0018): 이름 | 그림 | 값 세 칸. 행 전체가 근거를 여는 버튼 */
+.fin-chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.fin-chart__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.fin-chart__title {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.fin-chart__sub {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.fin-chart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.fin-chart__legend li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.fin-chart__key {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-pill);
+}
+
+.fin-chart__key--previous {
+  background: var(--color-chart-previous);
+}
+
+.fin-chart__key--current {
+  background: var(--color-chart-current);
+}
+
+.fin-chart__rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fin-chart__row,
+.fin-chart__axis {
+  display: grid;
+  grid-template-columns: minmax(96px, 168px) minmax(0, 1fr) 128px;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.fin-chart__row {
+  position: relative;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fin-chart__row:hover,
+.fin-chart__row[aria-pressed='true'] {
+  background: var(--color-accent-subtle);
+}
+
+.fin-chart__name {
+  overflow: hidden;
+  font-size: var(--font-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fin-chart__plot {
+  position: relative;
+  height: 36px;
+}
+
+.fin-chart__grid {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--color-chart-grid);
+}
+
+.fin-chart__grid--zero {
+  background: var(--color-border-strong);
+}
+
+.fin-chart__bar {
+  position: absolute;
+  top: 10px;
+  height: 16px;
+  min-width: 2px;
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+  background: var(--color-chart-current);
+}
+
+.fin-chart__bar--down {
+  border-radius: var(--radius-xs) 0 0 var(--radius-xs);
+}
+
+.fin-chart__link {
+  position: absolute;
+  top: 17px;
+  height: 2px;
+  background: var(--color-border-strong);
+}
+
+.fin-chart__dot {
+  position: absolute;
+  top: 12px;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  border: 2px solid var(--color-bg);
+  border-radius: var(--radius-pill);
+}
+
+.fin-chart__dot--previous {
+  background: var(--color-chart-previous);
+}
+
+.fin-chart__dot--current {
+  background: var(--color-chart-current);
+}
+
+.fin-chart__value {
+  font-family: var(--font-num);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.fin-chart__value--muted {
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  white-space: normal;
+}
+
+.fin-chart__tip {
+  position: absolute;
+  bottom: calc(100% + var(--space-1));
+  left: 50%;
+  z-index: 5;
+  display: none;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.fin-chart__row:hover .fin-chart__tip,
+.fin-chart__row:focus-visible .fin-chart__tip {
+  display: block;
+}
+
+.fin-chart__axis {
+  padding: 0 var(--space-2);
+}
+
+.fin-chart__ticks {
+  position: relative;
+  height: 18px;
+}
+
+.fin-chart__tick {
+  position: absolute;
+  color: var(--color-text-muted);
+  font-family: var(--font-num);
+  font-size: var(--font-size-2xs);
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+@media (max-width: 900px) {
+  .fin-chart__row,
+  .fin-chart__axis {
+    grid-template-columns: 88px minmax(0, 1fr) 84px;
+    gap: var(--space-2);
+  }
+}
+
 .fin-table__reason {
   color: var(--color-text-muted);
 }
