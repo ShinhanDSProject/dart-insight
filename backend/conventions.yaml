@@ -7,8 +7,8 @@ enforced: [checkstyle, archunit]   # ./gradlew build에서 돈다. checkstyle은
 see: {api: docs/api-spec.md, erd: docs/erd.md, adr: docs/adr/}
 
 pkg:
-  PKG-1: 도메인별 패키지(company, report, analysis…), 안은 평평하게. 계층별 하위 패키지(controller/·service/)를 만들지 않는다
-  PKG-2: 큰 도메인은 기능 단위로 나눈다(예 analysis.financial, analysis.text). common/은 설정·에러·추적 ID만
+  PKG-1: "도메인별 패키지(company, report, analysis…) 안을 계층별 하위 패키지로 나눈다: controller·service·repository(JPA Repository·Store·파일 저장소)·domain(엔티티·enum·값 record)·dto(요청·응답 record), 외부 연동은 client, 설정 record는 config. 파일이 하나여도 만든다. 테스트도 같은 패키지에 둔다 [archunit] [adr:0016]"
+  PKG-2: 계층 사이는 controller → service → repository·domain. 누구도 controller를 쓰지 않고, dto는 controller·service·repository·client에서만 쓴다(예외는 ArchitectureTest 목록). common/은 설정·에러·추적 ID·웹 설정만 [archunit]
   PKG-3: 다른 도메인의 Repository·Store는 쓰지 않고 그 도메인 Service를 부른다. 패키지끼리 순환 참조 금지 [archunit]
 layer:
   LY-1: 컨트롤러는 Service만 부른다. Repository·Store·JdbcTemplate 직접 사용 금지 [archunit]
@@ -18,11 +18,11 @@ di:
   DI-1: "Spring 빈은 private final 필드 + @RequiredArgsConstructor로 주입받는다. 생성자 안에서 값을 만들거나 계산해야 할 때만 생성자를 직접 쓴다. 필드 주입(@Autowired 필드) 금지. Lombok은 이 용도에만 쓴다"
 dto:
   DTO-1: 요청·응답은 record. 이름은 {대상}{동작?}Request·Response. Dto 접미사 금지. DTO·엔티티에는 Lombok을 쓰지 않는다
-  DTO-2: HTTP 요청·응답 record는 컨트롤러 안에 두지 않고 같은 패키지의 파일로 둔다. 다른 컨트롤러의 DTO를 import하지 않는다
+  DTO-2: HTTP 요청·응답 record는 컨트롤러 안에 두지 않고 같은 도메인의 dto 패키지에 파일로 둔다. 다른 도메인 컨트롤러의 DTO를 import하지 않는다
   DTO-3: 변환은 응답 record의 static from(...)·of(...). 컴포넌트 이름이 곧 JSON 필드라 함부로 바꾸지 않는다(api-spec 먼저)
 entity:
   EN-1: Lombok 포함 setter·@Setter·@Builder·@AllArgsConstructor 금지(DI-1의 @RequiredArgsConstructor도 엔티티에는 쓰지 않음). protected 기본 생성자 + static 팩터리 + 도메인 메서드(start·fail…)
-  EN-2: "상태 변경은 허용 전이표(canMoveTo)를 거친다. COMPLETED는 결과 저장 서비스만(package-private) [adr:0004]"
+  EN-2: "상태 변경은 허용 전이표(canMoveTo)를 거친다. 완료 처리(Analysis.complete·recordText·recordSummary)는 AnalysisResultService만 부른다 [archunit] [adr:0004, adr:0016]"
   EN-3: 현재 시각은 주입한 Clock으로만. LocalDateTime.now() 직접 금지
   EN-4: 스키마는 Flyway 새 파일로만, 엔티티와 docs/erd.md를 같은 PR에서 [adr:0007]
 tx:
@@ -44,5 +44,4 @@ test:
 skip:  # shinhan-delivery에 있지만 가져오지 않음(이유)
   - "/api/v1 경로, C001식 에러 코드, ErrorResponse 모양: API 약속·ADR-0005와 충돌"
   - "엔티티 @Setter·@Builder, 클래스 DTO: 불변성과 상태 전이표를 깨뜨림"
-  - "계층별 하위 패키지: package-private 완료 처리(ADR-0004)를 못 지킴"
   - "Swagger 어노테이션: docs/api-spec.md와 중복. JaCoCo 커버리지 게이트: 숫자 맞추기를 부름"
