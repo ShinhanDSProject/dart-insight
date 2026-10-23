@@ -75,7 +75,12 @@ public class FakeAiServer implements AutoCloseable {
 
     private void handle(HttpExchange exchange) throws IOException {
         String path = exchange.getRequestURI().getPath();
-        Request request = new Request(exchange.getRequestMethod(), path, exchange.getRequestBody().readAllBytes(),
+        byte[] body = exchange.getRequestBody().readAllBytes();
+        // 실제 ai-server(uvicorn)는 h2c 업그레이드 요청을 지원하지 않아 본문을 버린다. 같은 상황을 흉내 낸다(#172)
+        if (exchange.getRequestHeaders().containsKey("Upgrade")) {
+            body = new byte[0];
+        }
+        Request request = new Request(exchange.getRequestMethod(), path, body,
                 exchange.getRequestHeaders().getFirst(TraceContext.HEADER));
         requests.add(request);
         Function<Request, Reply> handler = handlers.get(path);
