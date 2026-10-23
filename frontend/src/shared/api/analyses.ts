@@ -49,8 +49,8 @@ export function requestAnalysis(request: ComparabilityRequest): Promise<Analysis
   return apiPost(endpoints.analyses(), request)
 }
 
-export function getAnalysis(analysisId: string | number): Promise<Analysis> {
-  return apiGet(endpoints.analysis(analysisId))
+export function getAnalysis(analysisId: string | number, signal?: AbortSignal): Promise<Analysis> {
+  return apiGet(endpoints.analysis(analysisId), undefined, { signal })
 }
 
 /** 분석 화면 주소. 완료됐으면 결과(W-03), 아니면 진행(W-02) */

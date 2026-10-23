@@ -30,8 +30,8 @@ export interface ReportList {
   items: ReportItem[]
 }
 
-export function listReports(corpCode: string): Promise<ReportList> {
-  return apiGet(endpoints.companyReports(corpCode))
+export function listReports(corpCode: string, signal?: AbortSignal): Promise<ReportList> {
+  return apiGet(endpoints.companyReports(corpCode), undefined, { signal })
 }
 
 export interface ReportDetail extends ReportItem {
@@ -45,8 +45,8 @@ export interface ReportDetail extends ReportItem {
   latest: boolean
 }
 
-export function getReport(rceptNo: string): Promise<ReportDetail> {
-  return apiGet(endpoints.report(rceptNo))
+export function getReport(rceptNo: string, signal?: AbortSignal): Promise<ReportDetail> {
+  return apiGet(endpoints.report(rceptNo), undefined, { signal })
 }
 
 /** 비교 기준. 직접 선택(CUSTOM)은 화면에서 목록 중에 고른다. */
@@ -64,6 +64,7 @@ export function getReportPair(
   corpCode: string,
   basis: Exclude<ComparisonBasis, 'CUSTOM'>,
   currentRceptNo: string,
+  signal?: AbortSignal,
 ): Promise<ReportPair> {
-  return apiGet(endpoints.reportPairs(corpCode), { basis, currentRceptNo })
+  return apiGet(endpoints.reportPairs(corpCode), { basis, currentRceptNo }, { signal })
 }

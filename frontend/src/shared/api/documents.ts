@@ -48,12 +48,17 @@ export interface SectionContent {
   blocks: SourceBlock[]
 }
 
-export function getDocumentOutline(analysisId: number, side: DocumentSide): Promise<DocumentOutline> {
-  return apiGet(endpoints.document(analysisId, side))
+export function getDocumentOutline(analysisId: number, side: DocumentSide, signal?: AbortSignal): Promise<DocumentOutline> {
+  return apiGet(endpoints.document(analysisId, side), undefined, { signal })
 }
 
-export function getSection(analysisId: number, side: DocumentSide, sectionNo: number): Promise<SectionContent> {
-  return apiGet(endpoints.documentSection(analysisId, side, sectionNo))
+export function getSection(
+  analysisId: number,
+  side: DocumentSide,
+  sectionNo: number,
+  signal?: AbortSignal,
+): Promise<SectionContent> {
+  return apiGet(endpoints.documentSection(analysisId, side, sectionNo), undefined, { signal })
 }
 
 /** 목차에서 처음 보여 줄 섹션: 표지가 아니고 글이 있는 첫 섹션 */

@@ -94,3 +94,26 @@ describe('non-JSON success', () => {
     expect((error as ApiError).code).toBe('COMMON_INTERNAL_ERROR')
   })
 })
+
+describe('요청 취소', () => {
+  it('signal을 fetch에 넘긴다', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, { items: [] }))
+    vi.stubGlobal('fetch', fetchMock)
+    const controller = new AbortController()
+
+    await apiGet('/api/companies', undefined, { signal: controller.signal })
+
+    expect((fetchMock.mock.calls[0][1] as RequestInit).signal).toBe(controller.signal)
+  })
+
+  it('취소한 요청은 연결 오류(NETWORK_ERROR)로 바꾸지 않고 원래 오류를 던진다', async () => {
+    const controller = new AbortController()
+    const abortError = new DOMException('aborted', 'AbortError')
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(abortError))
+    controller.abort()
+
+    const error = await apiGet('/api/companies', undefined, { signal: controller.signal }).catch((e: unknown) => e)
+
+    expect(error).toBe(abortError)
+  })
+})
