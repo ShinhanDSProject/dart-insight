@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
   financialParamChanges,
+  openChangedAccounts,
   openFinancialChanges,
   openSourceChanges,
   openTextChanges,
+  openTextList,
   parseResultParams,
   sourceParamChanges,
   textParamChanges,
@@ -85,5 +87,15 @@ describe('고르기를 주소 값으로 바꾸기', () => {
     })
     expect(openFinancialChanges('CF', 9)).toEqual({ tab: 'financial', sj: 'CF', change: '9', changed: null })
     expect(openTextChanges(2)).toEqual({ tab: 'text', ttype: null, tsort: null, tc: '2' })
+  })
+
+  it('변화 개요에서 재무 수치 탭을 변경 항목만으로 연다', () => {
+    expect(openChangedAccounts('IS')).toEqual({ tab: 'financial', sj: 'IS', changed: '1', change: null })
+    expect(openChangedAccounts(null)).toEqual({ tab: 'financial', changed: '1', change: null })
+  })
+
+  it('변화 개요에서 문장 변화 탭을 전체 또는 그 유형으로 연다', () => {
+    expect(openTextList(null)).toEqual({ tab: 'text', ttype: null, tsort: null, tc: null })
+    expect(openTextList('REVIEW_NEEDED')).toEqual({ tab: 'text', ttype: 'REVIEW_NEEDED', tsort: null, tc: null })
   })
 })

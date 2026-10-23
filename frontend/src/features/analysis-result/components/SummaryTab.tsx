@@ -2,11 +2,13 @@ import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { SjDiv } from '@/shared/api/results'
 import type { Summary, SummaryEvidence, SummaryItem, SummaryTarget } from '@/shared/api/summary'
+import type { ChangeType } from '@/shared/api/textChanges'
 import { Badge, Button, Card, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { useSummary } from '../hooks/useSummary'
+import { ChangeOverview } from './ChangeOverview'
 import type { SourceTarget } from '../model/resultParams'
 import {
   aiInfoLabel,
@@ -27,11 +29,39 @@ interface SummaryTabProps {
   onOpenSource: (target: SourceTarget) => void
 }
 
+interface OverviewLinks {
+  /** 변화 개요의 '바뀐 계정': 재무 수치 탭을 변경 항목만으로 연다 */
+  onOpenChangedAccounts: (sjDiv: SjDiv | null) => void
+  /** 변화 개요의 '문장 변경'·'검토 필요': 문장 변화 탭을 그 유형으로 연다 */
+  onOpenTextList: (type: ChangeType | null) => void
+}
+
 /**
- * W-03 ① 요약·설명(3.2). 수치 문장은 코드가 계산한 값이고, AI가 쓴 문장은 'AI 생성'으로 따로 표시해 사실과 구분한다.
+ * W-03 ① 요약·설명(3.2). 맨 위에 변화 개요(FS-4 R6)를 둔다. 수치 문장은 코드가 계산한 값이고, AI가 쓴 문장은 'AI 생성'으로 따로 표시해 사실과 구분한다.
  * 공시에 설명이 없으면 '확인된 설명 없음', 근거를 확인하지 못한 항목은 요약에서 빼고 '검토 필요'로 센다.
  */
-export function SummaryTab({ analysis, onOpenFinancial, onOpenText, onOpenSource }: SummaryTabProps) {
+export function SummaryTab({
+  analysis,
+  onOpenFinancial,
+  onOpenText,
+  onOpenSource,
+  onOpenChangedAccounts,
+  onOpenTextList,
+}: SummaryTabProps & OverviewLinks) {
+  return (
+    <>
+      <ChangeOverview
+        analysisId={analysis.analysisId}
+        onOpenChangedAccounts={onOpenChangedAccounts}
+        onOpenTextList={onOpenTextList}
+      />
+      <SummaryContent analysis={analysis} onOpenFinancial={onOpenFinancial} onOpenText={onOpenText} onOpenSource={onOpenSource} />
+    </>
+  )
+}
+
+/** 요약 본문. 변화 개요를 못 불러와도 따로 불러와 그대로 보인다 */
+function SummaryContent({ analysis, onOpenFinancial, onOpenText, onOpenSource }: SummaryTabProps) {
   const { state, reload } = useSummary(analysis.analysisId)
 
   return match(state)

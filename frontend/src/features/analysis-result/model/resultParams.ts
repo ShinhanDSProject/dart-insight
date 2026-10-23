@@ -119,3 +119,13 @@ export function openFinancialChanges(sjDiv: SjDiv, changeId: number): ParamChang
 export function openTextChanges(changeId: number): ParamChanges {
   return { tab: 'text', ttype: null, tsort: null, tc: String(changeId) }
 }
+
+/** 요약의 변화 개요에서 재무 수치 탭을 '변경 항목만'으로 연다. 재무제표를 주지 않으면 고른 것을 그대로 둔다 */
+export function openChangedAccounts(sjDiv: SjDiv | null): ParamChanges {
+  return { tab: 'financial', ...(sjDiv !== null ? { sj: sjDiv } : {}), changed: '1', change: null }
+}
+
+/** 요약의 변화 개요에서 문장 변화 탭을 그 유형으로 거른다(null이면 전체) */
+export function openTextList(type: ChangeType | null): ParamChanges {
+  return { tab: 'text', ttype: type, tsort: null, tc: null }
+}
