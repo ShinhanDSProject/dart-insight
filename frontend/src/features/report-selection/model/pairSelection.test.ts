@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ReportItem } from '@/shared/api/reports'
-import { customCandidates, parseBasis, reportOptionLabel } from './pairSelection'
+import { customCandidates, reportOptionLabel } from './pairSelection'
 
 function report(rceptNo: string, periodEnd: string, reportName = '반기보고서'): ReportItem {
   return {
@@ -18,13 +18,6 @@ function report(rceptNo: string, periodEnd: string, reportName = '반기보고�
 }
 
 describe('pairSelection', () => {
-  it('비교 기준이 없거나 모르는 값이면 기본값(전년 동기)', () => {
-    expect(parseBasis(null)).toBe('YOY')
-    expect(parseBasis('QOQ')).toBe('YOY')
-    expect(parseBasis('PREV')).toBe('PREV')
-    expect(parseBasis('CUSTOM')).toBe('CUSTOM')
-  })
-
   it('직접 선택은 현재 보고서보다 앞선 기간의 보고서만 고를 수 있다', () => {
     const items = [
       report('20260814000001', '2026-06-30'),

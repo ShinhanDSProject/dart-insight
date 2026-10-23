@@ -1,6 +1,6 @@
 import type { ReportItem } from '@/shared/api/reports'
 import { DartLinkInline } from '@/shared/ui/DartLink'
-import { correctionLabel, formatDate, periodLabel, reportTypeLabel } from '@/features/report-selection/model/reportLabels'
+import { correctionLabel, formatDate, periodLabel, reportTypeLabel } from '@/shared/lib/reportLabels'
 
 /** 두 보고서를 나란히: 비교 보고서는 왼쪽, 현재 보고서는 오른쪽 */
 export function ReportPairCards({ previous, current }: { previous: ReportItem; current: ReportItem }) {

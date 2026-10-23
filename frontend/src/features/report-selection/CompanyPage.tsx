@@ -6,8 +6,9 @@ import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { PairSelector, type PairLookup } from './components/PairSelector'
 import { ReportDetailPanel } from './components/ReportDetailPanel'
 import { ReportTable } from './components/ReportTable'
-import { customCandidates, parseBasis } from './model/pairSelection'
-import { formatDate } from './model/reportLabels'
+import { parseBasis } from '@/shared/lib/comparisonBasis'
+import { customCandidates } from './model/pairSelection'
+import { formatDate } from '@/shared/lib/reportLabels'
 import './report-selection.css'
 
 type PageState =
