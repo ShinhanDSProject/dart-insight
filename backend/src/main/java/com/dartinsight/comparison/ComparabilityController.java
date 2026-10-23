@@ -6,7 +6,7 @@ import com.dartinsight.comparison.StatementRules.StatementRule;
 import com.dartinsight.financial.FsDiv;
 import com.dartinsight.report.FinancialDataStatus;
 import com.dartinsight.report.Report;
-import com.dartinsight.report.ReportController.ReportItemResponse;
+import com.dartinsight.report.ReportItemResponse;
 import com.dartinsight.report.ReportService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
