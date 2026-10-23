@@ -259,7 +259,7 @@ API는 사업연도·보고서 코드마다 최신 공시 하나의 값만 줍�
 | `analysis_id` | BIGINT | FK | 아니오 | `analysis.id` |
 | `sj_div` | VARCHAR(5) | | 아니오 | 재무제표 종류 |
 | `fs_div` | VARCHAR(3) | | 아니오 | 연결·별도 |
-| `account_key` | VARCHAR(1000) | | 아니오 | 두 보고서의 계정을 맞춘 키(표준계정코드, 없으면 정규화한 계정명. 자본변동표는 계정 상세, 같은 키가 여러 번이면 계정명을 더함) |
+| `account_key` | VARCHAR(1000) | | 아니오 | 두 보고서의 계정을 맞춘 키(표준계정코드, 없으면 정규화한 계정명. 자본변동표는 계정 상세, 같은 키가 여러 번이면 계정명을 더함). 계정 ID가 해마다 달라 키로 맞추지 못한 계정은 남은 계정 중 이름이 같은 것이 양쪽에 하나씩일 때 `NAME:계정명`으로 맞춤(두 계정 ID는 근거에 남음) |
 | `account_name` | VARCHAR(200) | | 아니오 | 현재 보고서의 계정명 |
 | `display_order` | INT | | 아니오 | 화면 정렬 순서 |
 | `amount_basis` | VARCHAR(10) | | 예 | `POINT` 시점(재무상태표), `CUMULATIVE` 누적, `QUARTER` 3개월. 기간 기준이 달라 비교하지 않으면(`PERIOD_MISMATCH`) null |
