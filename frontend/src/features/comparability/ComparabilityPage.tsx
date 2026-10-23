@@ -1,14 +1,14 @@
-import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
+import { match, P } from 'ts-pattern'
 import { analysisPath, requestAnalysis } from '@/shared/api/analyses'
-import { checkComparability, type ComparabilityResult } from '@/shared/api/comparability'
+import type { ComparabilityResult } from '@/shared/api/comparability'
+import { useAsyncAction } from '@/shared/hooks/useAsyncAction'
 import { Button, ButtonLink, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { AlertState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { checkStatusLabel, resultSummary, statementBasisLabel } from './model/comparabilityLabels'
 import { basisLabel, parseBasis } from '@/shared/lib/comparisonBasis'
+import { useComparabilityCheck } from './hooks/useComparabilityCheck'
 import './comparability.css'
-
-type CheckState = { kind: 'loading' } | { kind: 'done'; result: ComparabilityResult } | { kind: 'error'; error: unknown }
 
 const errorMessages: Record<string, string> = {
   REPORT_NOT_FOUND: '보고서를 찾지 못했어요. 보고서 선택으로 돌아가 다시 골라 주세요.',
@@ -29,39 +29,17 @@ export function ComparabilityPage() {
   const previousNo = searchParams.get('previous') ?? ''
   const basis = parseBasis(searchParams.get('basis'))
   const navigate = useNavigate()
-  const [state, setState] = useState<CheckState>({ kind: 'loading' })
-  const [retry, setRetry] = useState(0)
-  const [submitting, setSubmitting] = useState(false)
-  const [submitError, setSubmitError] = useState<unknown>(null)
+  const { state, reload } = useComparabilityCheck({ corpCode, currentRceptNo: currentNo, previousRceptNo: previousNo, basis })
+  const submit = useAsyncAction<void>()
+  // 요청이 끝나 다음 화면으로 넘어가는 동안에도 버튼을 다시 누르지 못하게 한다
+  const submitting = submit.state.status === 'loading' || submit.state.status === 'success'
   const backTo = `/companies/${encodeURIComponent(corpCode)}?${searchParams.toString()}`
-  const hasPair = currentNo !== '' && previousNo !== ''
 
-  useEffect(() => {
-    if (!hasPair) return
-    let cancelled = false
-    setState({ kind: 'loading' })
-    checkComparability({ corpCode, currentRceptNo: currentNo, previousRceptNo: previousNo, basis })
-      .then((result) => {
-        if (!cancelled) setState({ kind: 'done', result })
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) setState({ kind: 'error', error })
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [corpCode, currentNo, previousNo, basis, hasPair, retry])
-
-  async function runAnalysis() {
-    setSubmitting(true)
-    setSubmitError(null)
-    try {
+  function runAnalysis() {
+    void submit.run(async () => {
       const created = await requestAnalysis({ corpCode, currentRceptNo: currentNo, previousRceptNo: previousNo, basis })
       navigate(analysisPath(created.analysisId, created.status))
-    } catch (error) {
-      setSubmitError(error)
-      setSubmitting(false)
-    }
+    })
   }
 
   return (
@@ -71,34 +49,41 @@ export function ComparabilityPage() {
       </nav>
       <h1 className="page__title">비교 대상을 확인하세요</h1>
 
-      {!hasPair && (
-        <AlertState title="비교할 두 보고서가 정해지지 않았어요.">
-          <Link to={backTo}>보고서 선택으로 돌아가기</Link>
-        </AlertState>
-      )}
-      {hasPair && state.kind === 'loading' && (
-        <LoadingState message="두 보고서의 재무제표를 확인하는 중입니다… 처음 확인하는 보고서는 OpenDART에서 받아 오느라 조금 걸려요." />
-      )}
-      {hasPair && state.kind === 'error' && (
-        <ErrorState error={state.error} onRetry={() => setRetry((n) => n + 1)} messages={errorMessages} />
-      )}
-      {hasPair && state.kind === 'done' && <CheckResult result={state.result} basis={basisLabel(basis)} />}
+      {match(state)
+        // 두 보고서가 정해지지 않으면 확인하지 않는다(idle)
+        .with({ status: 'idle' }, () => (
+          <AlertState title="비교할 두 보고서가 정해지지 않았어요.">
+            <Link to={backTo}>보고서 선택으로 돌아가기</Link>
+          </AlertState>
+        ))
+        .with({ status: 'loading' }, () => (
+          <LoadingState message="두 보고서의 재무제표를 확인하는 중입니다… 처음 확인하는 보고서는 OpenDART에서 받아 오느라 조금 걸려요." />
+        ))
+        .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} messages={errorMessages} />)
+        .with({ status: 'success' }, ({ data }) => <CheckResult result={data} basis={basisLabel(basis)} />)
+        .exhaustive()}
 
-      {submitError !== null && (
-        <ErrorState
-          error={submitError}
-          messages={{ ANALYSIS_NOT_COMPARABLE: '비교할 수 없는 보고서 쌍이라 분석을 시작하지 않았어요.' }}
-        />
-      )}
+      {match(submit.state)
+        .with({ status: 'error' }, ({ error }) => (
+          <ErrorState
+            error={error}
+            messages={{ ANALYSIS_NOT_COMPARABLE: '비교할 수 없는 보고서 쌍이라 분석을 시작하지 않았어요.' }}
+          />
+        ))
+        .with({ status: P.union('idle', 'loading', 'success') }, () => null)
+        .exhaustive()}
       <div className="compare-actions">
         <ButtonLink to={backTo} variant="secondary">
           보고서 다시 선택
         </ButtonLink>
-        {state.kind === 'done' && state.result.comparable && (
-          <Button variant="primary" onClick={() => void runAnalysis()} disabled={submitting}>
-            {submitting ? '분석을 요청하는 중…' : '분석 실행 →'}
-          </Button>
-        )}
+        {match(state)
+          .with({ status: 'success', data: { comparable: true } }, () => (
+            <Button variant="primary" onClick={runAnalysis} disabled={submitting}>
+              {submitting ? '분석을 요청하는 중…' : '분석 실행 →'}
+            </Button>
+          ))
+          .with({ status: P.union('idle', 'loading', 'error', 'success') }, () => null)
+          .exhaustive()}
       </div>
     </section>
   )
