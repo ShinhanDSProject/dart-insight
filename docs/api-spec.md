@@ -845,9 +845,20 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 
 - 이슈: #20 (3.2) · LLM은 `app/llm`의 한 모듈(0.7)로만 부릅니다.
 - backend가 고른 항목과 그 근거 원문만 보냅니다. 사용자 정보는 넣지 않습니다. 원문은 프롬프트에서 `<disclosure id="…">` 태그로 감싸 자료로만 씁니다.
-- LLM은 문장 변화마다 한 문장 요약(`sentence`)을, 재무 수치마다 후보 원문에 적힌 설명(`explanation`)을 씁니다. 후보 원문이 없는 재무 수치는 LLM에 묻지 않고 설명 없음(`explanation: null`)으로 돌려줍니다.
+- LLM은 문장 변화마다 한 문장 요약(`sentence`)을 씁니다. 재무 수치마다 후보 원문이 그 변화를 어떻게 다루는지 등급(`grade`)을 매기고, 인용문(`quote`)과 인용 위치(`quoteEvidenceId`), 설명(`explanation`)을 씁니다([ADR-0015](adr/0015-explanation-grade-and-quote-check.md)). 후보 원문이 없는 재무 수치는 LLM에 묻지 않고 `grade: "NONE"`, 설명 없음(`explanation: null`)으로 돌려줍니다.
+
+  | `grade` | 뜻 | `explanation` |
+  | --- | --- | --- |
+  | `STATED` | 회사가 변화의 원인을 직접 밝힘 | 회사가 밝힌 내용을 한 문장으로. 원인 표현(때문·로 인해 등)은 이 등급에만 씀 |
+  | `RELATED` | 관련 내용은 있지만 원인을 말하지 않음 | "관련 공시 내용으로 ~이 있어요" 꼴. 원인 표현을 쓰지 않음 |
+  | `NONE` | 확인된 설명 없음 | null(`quote`·`quoteEvidenceId`도 null, `evidenceIds`는 빈 배열) |
 - 재무 수치의 `accountAliases`는 backend가 설명 후보를 찾을 때 쓴 검색어입니다. 계정명 정리 규칙과 표준계정 ID(`account_id`) 사전으로 만듭니다([ADR-0015](adr/0015-explanation-grade-and-quote-check.md)). 없으면 빈 배열입니다. ai-server는 인용 확인(#142)에 씁니다.
 - 확인: 근거 ID가 그 항목에 보낸 원문 위치인지, 문장의 숫자와 크기 표현(두 배, 절반, 1조·500억처럼 단위가 붙은 수)이 인용한 원문에 그대로 있는지. 실패하면 문제를 알려 주며 2회까지 다시 만들고, 그래도 실패한 항목은 `REVIEW_NEEDED`입니다. 앞 응답에서 통과한 항목은 뒤 응답이 망가져도 그대로 씁니다. 근거 원문이 없는 문장 변화는 LLM에 묻지 않고 `REVIEW_NEEDED`입니다.
+- 재무 설명의 등급은 코드가 낮추기만 하고 올리지 않습니다. 낮출 때는 다시 만들지 않고, `status`는 `OK`인 채로 낮춘 사유를 `reviewReason`에 남깁니다.
+  - `quoteEvidenceId`가 그 항목에 보낸 후보 위치가 아니거나, `quote`가 공백을 모두 뺀 뒤 그 문단에 그대로 없으면 `NONE`
+  - `quote`에 `accountAliases`(비어 있으면 계정명)가 하나도 없으면 `RELATED`까지
+  - LLM이 `NONE`이라고 하면서 설명을 쓰면 설명을 버리고 `NONE`
+- 낮춘 뒤의 등급이 `STATED`가 아닌데 설명에 원인 표현(규칙 ID `CAUSAL_CLAIM`: 때문, 탓, 덕분, 로/으로 인해·인한, 에 기인, 영향으로, 영향을 받아, 결과로)이 있으면 문제를 알려 주며 다시 만들고, 2회 뒤에도 남으면 `REVIEW_NEEDED`입니다. 문장 변화 요약은 검사하지 않습니다.
 - 회사·보고서·항목·계정 이름도 공시에서 온 자료라 `<context>`·`<item>` 태그의 속성에 넣습니다(지시와 섞이지 않게).
 
 **요청**
@@ -872,25 +883,33 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 
 ```json
 {
-  "promptVersion": "summary-1",
+  "promptVersion": "summary-2",
   "expressionRulesVersion": "expr-1",
+  "gradeRulesVersion": "grade-1",
   "model": "fake-model",
   "generatedAt": "2026-10-21T14:07:12",
   "items": [
     { "ref": "T12", "kind": "TEXT", "status": "OK", "sentence": "…", "explanation": null,
+      "grade": null, "quote": null, "quoteEvidenceId": null,
       "evidenceIds": ["20260814001234#B44"], "reviewReason": null, "blockedRules": [] },
     { "ref": "F3", "kind": "FINANCIAL", "status": "OK", "sentence": null, "explanation": "…",
-      "evidenceIds": ["20260814001234#B812"], "reviewReason": null, "blockedRules": [] }
+      "grade": "STATED", "quote": "매출액은 메모리 수요 회복으로 전년 대비 증가하였습니다.",
+      "quoteEvidenceId": "20260814001234#B812",
+      "evidenceIds": ["20260814001234#B812"], "reviewReason": null, "blockedRules": [] },
+    { "ref": "F4", "kind": "FINANCIAL", "status": "OK", "sentence": null, "explanation": null,
+      "grade": "NONE", "quote": null, "quoteEvidenceId": null, "evidenceIds": [],
+      "reviewReason": "인용문이 후보 원문에 없어 설명으로 쓰지 않았어요.", "blockedRules": [] }
   ],
   "calls": [
-    { "task": "summary", "provider": "fake", "model": "fake-model", "promptVersion": "summary-1",
+    { "task": "summary", "provider": "fake", "model": "fake-model", "promptVersion": "summary-2",
       "calledAt": "2026-10-21T14:07:11", "traceId": "…", "inputTokens": 1830, "outputTokens": 210,
       "latencyMs": 1420, "attempt": 1, "outcome": "OK", "error": null }
   ]
 }
 ```
 
-- `status`: `OK` 또는 `REVIEW_NEEDED`(`reviewReason`에 사유). 투자 권유성 표현 검사(5.5)에 걸려 내보내지 않은 항목은 `blockedRules`에 규칙 ID가 있고, 문장(`sentence`·`explanation`)은 null입니다. `expressionRulesVersion`(응답 맨 위, 예: `expr-1`)은 검사 규칙 버전입니다. `calls`는 이 요청에서 LLM을 부른 기록(다시 만든 것 포함)이고 backend가 `llm_call`에 저장합니다.
+- `status`: `OK` 또는 `REVIEW_NEEDED`(`reviewReason`에 사유). 투자 권유성 표현 검사(5.5)에 걸려 내보내지 않은 항목은 `blockedRules`에 규칙 ID가 있고, 문장(`sentence`·`explanation`)은 null입니다. `expressionRulesVersion`(응답 맨 위, 예: `expr-1`)은 검사 규칙 버전입니다. `gradeRulesVersion`(예: `grade-1`)은 등급을 낮추는 규칙과 원인 표현 목록의 버전입니다. `calls`는 이 요청에서 LLM을 부른 기록(다시 만든 것 포함)이고 backend가 `llm_call`에 저장합니다.
+- `grade`·`quote`·`quoteEvidenceId`: 문장 변화 항목과 `REVIEW_NEEDED`인 재무 항목은 null입니다. `reviewReason`이 있는 `OK` 재무 항목은 코드가 등급을 낮춘 경우입니다(화면에서 후보가 없던 `NONE`과 다른 사유 문구, #143).
 - 시각은 한국 시간 `YYYY-MM-DDTHH:mm:ss`입니다.
 
 | 상태 | code | 언제 |
