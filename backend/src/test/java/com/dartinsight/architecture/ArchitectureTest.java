@@ -6,7 +6,7 @@ import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.sli
 
 import com.dartinsight.DartInsightApplication;
 import com.dartinsight.analysis.Analysis;
-import com.dartinsight.analysis.AnalysisController;
+import com.dartinsight.analysis.AnalysisResponse;
 import com.dartinsight.analysis.AnalysisResultService;
 import com.dartinsight.analysis.AnalysisRunner;
 import com.dartinsight.analysis.TextChangeController;
@@ -71,7 +71,7 @@ class ArchitectureTest {
      * TODO(별도 이슈): 요약 실행을 summary 쪽으로 옮기거나 공용 타입을 분리해 analysis → summary 방향을 없앤다.
      */
     private static final Set<Class<?>> ANALYSIS_TO_SUMMARY = Set.of(
-            Analysis.class, AnalysisController.class, AnalysisResultService.class, AnalysisRunner.class);
+            Analysis.class, AnalysisResponse.class, AnalysisResultService.class, AnalysisRunner.class);
 
     @ArchTest
     void controllersDoNotUsePersistenceDirectly(JavaClasses classes) {
