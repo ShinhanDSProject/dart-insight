@@ -13,6 +13,7 @@ import java.util.Objects;
 
 /**
  * 기업. 기본키는 자동 증가 id이고, 회사는 OpenDART 고유번호(corp_code, UNIQUE)로 가리킨다(docs/erd.md, ADR-0017).
+ * 기업 목록을 새로 넣을 때는 CompanyStore로 일괄 저장한다.
  */
 @Entity
 @Table(name = "company")
@@ -47,18 +48,6 @@ public class Company {
     private LocalDateTime updatedAt;
 
     protected Company() {
-    }
-
-    public static Company create(CorpCodeEntry entry, LocalDateTime now) {
-        Company company = new Company();
-        company.corpCode = entry.corpCode();
-        company.corpName = entry.corpName();
-        company.corpEngName = entry.corpEngName();
-        company.stockCode = entry.stockCode();
-        company.modifyDate = entry.modifyDate();
-        company.createdAt = now;
-        company.updatedAt = now;
-        return company;
     }
 
     /** 바뀐 값이 있으면 고치고 true를 돌려준다. */

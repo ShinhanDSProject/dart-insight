@@ -2,6 +2,7 @@ package com.dartinsight.company.service;
 
 import com.dartinsight.company.domain.Company;
 import com.dartinsight.company.repository.CompanyRepository;
+import com.dartinsight.company.repository.CompanyStore;
 import com.dartinsight.dart.domain.CorpCodeEntry;
 import com.dartinsight.dart.client.CorpCodeParser;
 import com.dartinsight.dart.client.OpenDartClient;
@@ -22,7 +23,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * OpenDART 고유번호 목록(corpCode.xml)을 받아 company 테이블에 넣거나 고친다(4.4).
- * 10만 건이 넘으므로 1,000건씩 나눠 저장한다. 다시 실행해도 중복이 생기지 않는다.
+ * 10만 건이 넘으므로 1,000건씩 나눠 저장한다. 새 기업은 CompanyStore로 일괄 넣고, 있는 기업은 엔티티로 고친다.
+ * 다시 실행해도 중복이 생기지 않는다.
  */
 @Service
 @RequiredArgsConstructor
@@ -34,6 +36,7 @@ public class CompanyImportService {
     private final OpenDartClient openDartClient;
     private final CorpCodeParser corpCodeParser;
     private final CompanyRepository companyRepository;
+    private final CompanyStore companyStore;
     private final TransactionTemplate transactionTemplate;
     private final EntityManager entityManager;
     private final Clock clock;
@@ -90,17 +93,17 @@ public class CompanyImportService {
                 .findByCorpCodeIn(chunk.stream().map(CorpCodeEntry::corpCode).toList())
                 .stream()
                 .collect(Collectors.toMap(Company::getCorpCode, Function.identity()));
-        List<Company> created = new ArrayList<>();
+        List<CorpCodeEntry> created = new ArrayList<>();
         int updated = 0;
         for (CorpCodeEntry entry : chunk) {
             Company company = existing.get(entry.corpCode());
             if (company == null) {
-                created.add(Company.create(entry, now));
+                created.add(entry);
             } else if (company.updateFrom(entry, now)) {
                 updated++;
             }
         }
-        companyRepository.saveAll(created);
+        companyStore.insertAll(created, now);
         return new int[] {created.size(), updated};
     }
 
