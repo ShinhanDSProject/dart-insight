@@ -1,15 +1,31 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
-import { getTextChange, getTextChanges, type ChangeType, type TextChangeCounts, type TextSort } from '@/shared/api/textChanges'
+import {
+  getTextChange,
+  getTextChanges,
+  type ChangeType,
+  type TextChangeCounts,
+  type TextSectionCount,
+  type TextSort,
+} from '@/shared/api/textChanges'
 import { useAsync } from '@/shared/hooks/useAsync'
 import { textListReducer } from '../model/textList'
 
 export const TEXT_PAGE_SIZE = 20
 
+export interface TextListFilter {
+  type: ChangeType | null
+  sort: TextSort
+  /** 최상위 섹션 제목(3.7) */
+  section: string | null
+  /** 2자 이상 검색어(3.7) */
+  q: string | null
+}
+
 /**
- * 문장 변화 목록(3.9)과 '더 보기'. 거르기·정렬이 바뀌거나 언마운트하면 진행 중인 요청을 취소한다(ST-5).
- * counts는 마지막으로 받은 유형별 건수로, 다시 불러오는 동안에도 거르기 단추의 건수를 그대로 둔다.
+ * 문장 변화 목록(3.9)과 '더 보기'. 거르기·정렬·섹션·검색어가 바뀌거나 언마운트하면 진행 중인 요청을 취소한다(ST-5).
+ * counts·sections는 마지막으로 받은 건수로, 다시 불러오는 동안에도 거르기 단추·섹션 선택의 건수를 그대로 둔다.
  */
-export function useTextChanges(analysisId: number, type: ChangeType | null, sort: TextSort) {
+export function useTextChanges(analysisId: number, { type, sort, section, q }: TextListFilter) {
   const [state, dispatch] = useReducer(textListReducer, { status: 'loading' })
   const [attempt, setAttempt] = useState(0)
   const moreRequest = useRef<AbortController | null>(null)
@@ -18,7 +34,7 @@ export function useTextChanges(analysisId: number, type: ChangeType | null, sort
     const controller = new AbortController()
     const more = moreRequest
     dispatch({ type: 'load-start' })
-    getTextChanges(analysisId, { type, sort, page: 0, size: TEXT_PAGE_SIZE }, controller.signal).then(
+    getTextChanges(analysisId, { type, sort, section, q, page: 0, size: TEXT_PAGE_SIZE }, controller.signal).then(
       (data) => {
         if (!controller.signal.aborted) dispatch({ type: 'load-success', data })
       },
@@ -30,11 +46,13 @@ export function useTextChanges(analysisId: number, type: ChangeType | null, sort
       controller.abort()
       more.current?.abort()
     }
-  }, [analysisId, type, sort, attempt])
+  }, [analysisId, type, sort, section, q, attempt])
 
   const [counts, setCounts] = useState<TextChangeCounts | null>(null)
+  const [sections, setSections] = useState<TextSectionCount[] | null>(null)
   if (state.status === 'success' && state.data.counts !== counts) {
     setCounts(state.data.counts)
+    setSections(state.data.sections)
   }
 
   function loadMore() {
@@ -42,7 +60,8 @@ export function useTextChanges(analysisId: number, type: ChangeType | null, sort
     const controller = new AbortController()
     moreRequest.current = controller
     dispatch({ type: 'more-start' })
-    getTextChanges(analysisId, { type, sort, page: state.data.page + 1, size: TEXT_PAGE_SIZE }, controller.signal).then(
+    const query = { type, sort, section, q, page: state.data.page + 1, size: TEXT_PAGE_SIZE }
+    getTextChanges(analysisId, query, controller.signal).then(
       (data) => {
         if (!controller.signal.aborted) dispatch({ type: 'more-success', data })
       },
@@ -53,7 +72,7 @@ export function useTextChanges(analysisId: number, type: ChangeType | null, sort
   }
 
   const reload = useCallback(() => setAttempt((n) => n + 1), [])
-  return { state, counts, reload, loadMore }
+  return { state, counts, sections, reload, loadMore }
 }
 
 /** 문장·표 변경 하나의 원문 근거(3.4) */
