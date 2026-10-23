@@ -45,7 +45,7 @@ public class ReportPairService {
     }
 
     private Report findCurrent(String corpCode, String rceptNo) {
-        return reportRepository.findById(rceptNo)
+        return reportRepository.findByRceptNo(rceptNo)
                 .filter(r -> r.getCorpCode().equals(corpCode))
                 .orElseThrow(() -> new ApiException(ErrorCode.REPORT_NOT_FOUND));
     }

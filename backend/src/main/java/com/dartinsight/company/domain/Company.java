@@ -3,26 +3,26 @@ package com.dartinsight.company.domain;
 import com.dartinsight.dart.domain.CorpCodeEntry;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.PostLoad;
-import jakarta.persistence.PostPersist;
 import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Objects;
-import org.springframework.data.domain.Persistable;
 
 /**
- * 기업. OpenDART 고유번호(corp_code)가 키다(docs/erd.md).
- * 키를 직접 정하는 엔티티라서 Persistable로 새 엔티티인지 알려 저장할 때 불필요한 SELECT를 줄인다.
+ * 기업. 기본키는 자동 증가 id이고, 회사는 OpenDART 고유번호(corp_code, UNIQUE)로 가리킨다(docs/erd.md, ADR-0017).
  */
 @Entity
 @Table(name = "company")
-public class Company implements Persistable<String> {
+public class Company {
 
     @Id
-    @Column(name = "corp_code", length = 8)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "corp_code", nullable = false, unique = true, length = 8)
     private String corpCode;
 
     @Column(name = "corp_name", nullable = false, length = 200)
@@ -46,9 +46,6 @@ public class Company implements Persistable<String> {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    @Transient
-    private boolean newEntity;
-
     protected Company() {
     }
 
@@ -61,7 +58,6 @@ public class Company implements Persistable<String> {
         company.modifyDate = entry.modifyDate();
         company.createdAt = now;
         company.updatedAt = now;
-        company.newEntity = true;
         return company;
     }
 
@@ -90,20 +86,8 @@ public class Company implements Persistable<String> {
         return stockCode != null;
     }
 
-    @Override
-    public String getId() {
-        return corpCode;
-    }
-
-    @Override
-    public boolean isNew() {
-        return newEntity;
-    }
-
-    @PostLoad
-    @PostPersist
-    void markNotNew() {
-        newEntity = false;
+    public Long getId() {
+        return id;
     }
 
     public String getCorpCode() {

@@ -214,7 +214,7 @@ class FinancialStatementServiceTest {
         int before = calls();
         jdbcTemplate.update("UPDATE report SET last_seen_at = ? WHERE rcept_no = ?", LocalDateTime.now().plusDays(1),
                 half2026.getRceptNo());
-        Report seenAgain = reportRepository.findById(half2026.getRceptNo()).orElseThrow();
+        Report seenAgain = reportRepository.findByRceptNo(half2026.getRceptNo()).orElseThrow();
         assertThat(service.statuses("00000001", List.of(seenAgain)))
                 .containsEntry(half2026.getRceptNo(), FinancialDataStatus.UNKNOWN);
         SERVER.on(PATH, Response.json(FinancialJson.ok(

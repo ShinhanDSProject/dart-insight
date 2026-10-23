@@ -5,29 +5,30 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.PostLoad;
-import jakarta.persistence.PostPersist;
 import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import org.springframework.data.domain.Persistable;
 
 /**
- * 정기보고서. 접수번호(rcept_no)가 키다(docs/erd.md).
+ * 정기보고서. 기본키는 자동 증가 id이고, 보고서는 접수번호(rcept_no, UNIQUE)로 가리킨다(docs/erd.md, ADR-0017).
  * lastSeenAt은 OpenDART 최신 목록에서 마지막으로 본 시각이다. 정정되어 최신 목록에서 빠진 보고서는
  * 지우지 않고(이미 분석에 쓰였을 수 있음) 목록에만 보이지 않게 한다.
  */
 @Entity
 @Table(name = "report")
-public class Report implements Persistable<String> {
+public class Report {
 
     @Id
-    @Column(name = "rcept_no", length = 14)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "rcept_no", nullable = false, unique = true, length = 14)
     private String rceptNo;
 
     @Column(name = "corp_code", nullable = false, length = 8)
@@ -70,9 +71,6 @@ public class Report implements Persistable<String> {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    @Transient
-    private boolean newEntity;
-
     protected Report() {
     }
 
@@ -82,7 +80,6 @@ public class Report implements Persistable<String> {
         report.rceptNo = rceptNo;
         report.corpCode = corpCode;
         report.createdAt = now;
-        report.newEntity = true;
         report.apply(reportName, parsed, rceptDt, remark, filerName, now);
         return report;
     }
@@ -113,20 +110,8 @@ public class Report implements Persistable<String> {
         this.updatedAt = now;
     }
 
-    @Override
-    public String getId() {
-        return rceptNo;
-    }
-
-    @Override
-    public boolean isNew() {
-        return newEntity;
-    }
-
-    @PostLoad
-    @PostPersist
-    void markNotNew() {
-        newEntity = false;
+    public Long getId() {
+        return id;
     }
 
     public String getRceptNo() {

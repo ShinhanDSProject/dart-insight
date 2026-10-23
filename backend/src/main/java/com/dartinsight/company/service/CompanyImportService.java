@@ -87,7 +87,7 @@ public class CompanyImportService {
     private int[] saveChunk(List<CorpCodeEntry> chunk) {
         LocalDateTime now = LocalDateTime.now(clock);
         Map<String, Company> existing = companyRepository
-                .findAllById(chunk.stream().map(CorpCodeEntry::corpCode).toList())
+                .findByCorpCodeIn(chunk.stream().map(CorpCodeEntry::corpCode).toList())
                 .stream()
                 .collect(Collectors.toMap(Company::getCorpCode, Function.identity()));
         List<Company> created = new ArrayList<>();

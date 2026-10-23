@@ -1,13 +1,19 @@
 package com.dartinsight.company.repository;
 
 import com.dartinsight.company.domain.Company;
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface CompanyRepository extends JpaRepository<Company, String> {
+public interface CompanyRepository extends JpaRepository<Company, Long> {
+
+    Optional<Company> findByCorpCode(String corpCode);
+
+    List<Company> findByCorpCodeIn(Collection<String> corpCodes);
 
     /**
      * 회사명 일부로 찾는다. 이름이 정확히 같은 회사, 상장사, 짧은 이름 순서.

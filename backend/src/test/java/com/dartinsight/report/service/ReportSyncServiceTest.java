@@ -79,13 +79,13 @@ class ReportSyncServiceTest {
     }
 
     private List<Report> latest(String corpCode) {
-        Company company = companyRepository.findById(corpCode).orElseThrow();
+        Company company = companyRepository.findByCorpCode(corpCode).orElseThrow();
         return reportRepository.findByCorpCodeAndLastSeenAtGreaterThanEqualOrderByPeriodEndDescRceptDtDesc(
                 corpCode, company.getReportsFetchedAt());
     }
 
     private void makeStale(String corpCode) {
-        Company company = companyRepository.findById(corpCode).orElseThrow();
+        Company company = companyRepository.findByCorpCode(corpCode).orElseThrow();
         company.markReportsFetched(LocalDateTime.now(clock).minusDays(2));
         companyRepository.save(company);
     }
@@ -106,7 +106,7 @@ class ReportSyncServiceTest {
         assertThat(result.skipped()).isEqualTo(2);
         assertThat(latest("00000001")).extracting(Report::getRceptNo)
                 .containsExactly("20260814000001", "20260515000001", "20260310000001");
-        assertThat(reportRepository.findById("20260310000001")).get()
+        assertThat(reportRepository.findByRceptNo("20260310000001")).get()
                 .satisfies(r -> {
                     assertThat(r.getReportType()).isEqualTo(ReportType.ANNUAL);
                     assertThat(r.getCorrection()).isEqualTo(Correction.CORRECTED);
@@ -140,7 +140,7 @@ class ReportSyncServiceTest {
 
         assertThat(result.created()).isEqualTo(1);
         assertThat(latest("00000001")).extracting(Report::getRceptNo).containsExactly("20260902000001");
-        assertThat(reportRepository.findById("20260814000001")).isPresent();
+        assertThat(reportRepository.findByRceptNo("20260814000001")).isPresent();
     }
 
     @Test
