@@ -1,5 +1,6 @@
 package com.dartinsight.analysis;
 
+import com.dartinsight.analysis.TextChangeQueryService.TextChangePage;
 import com.dartinsight.analysis.TextChangeStore.TextChange;
 import com.dartinsight.analysis.TextEvidenceService.SourceEvidence;
 import com.dartinsight.analysis.TextEvidenceService.TextEvidence;
@@ -31,14 +32,11 @@ public class TextChangeController {
             TextChangeRow.MODIFIED, TextChangeRow.REVIEW_NEEDED);
     private static final int MAX_SIZE = 100;
 
-    private final AnalysisResultService resultService;
-    private final TextChangeStore store;
+    private final TextChangeQueryService queryService;
     private final TextEvidenceService evidenceService;
 
-    public TextChangeController(AnalysisResultService resultService, TextChangeStore store,
-            TextEvidenceService evidenceService) {
-        this.resultService = resultService;
-        this.store = store;
+    public TextChangeController(TextChangeQueryService queryService, TextEvidenceService evidenceService) {
+        this.queryService = queryService;
         this.evidenceService = evidenceService;
     }
 
@@ -80,15 +78,15 @@ public class TextChangeController {
         if (size < 1 || size > MAX_SIZE) {
             throw ApiException.invalidInput("size", "1에서 " + MAX_SIZE + " 사이여야 합니다.");
         }
-        Analysis analysis = resultService.completed(analysisId);
-        Map<String, Integer> counts = store.counts(analysisId);
+        long offset = (long) page * size; // 큰 page에서 int가 넘쳐 음수가 되지 않게
+        TextChangePage result = queryService.page(analysisId, type, "priority".equals(sort), offset, size);
+        Analysis analysis = result.analysis();
+        Map<String, Integer> counts = result.counts();
         int all = counts.values().stream().mapToInt(Integer::intValue).sum();
         Counts countView = new Counts(all, counts.get(TextChangeRow.ADDED), counts.get(TextChangeRow.DELETED),
                 counts.get(TextChangeRow.MODIFIED), counts.get(TextChangeRow.REVIEW_NEEDED));
         int total = type == null ? all : counts.get(type);
-        long offset = (long) page * size; // 큰 page에서 int가 넘쳐 음수가 되지 않게
-        List<TextChangeItem> items = store.page(analysisId, type, "priority".equals(sort), offset, size).stream()
-                .map(TextChangeController::item).toList();
+        List<TextChangeItem> items = result.changes().stream().map(TextChangeController::item).toList();
         return new TextChangeListResponse(analysisId, analysis.getTextStatus(), analysis.getTextMessage(), type,
                 sort, page, size, total, countView, items);
     }
