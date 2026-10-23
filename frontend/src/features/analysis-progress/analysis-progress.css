@@ -77,10 +77,6 @@
   gap: var(--space-3);
 }
 
-.progress__status .badge {
-  margin-left: 0;
-}
-
 .progress__retrying {
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);

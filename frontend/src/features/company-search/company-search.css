@@ -15,32 +15,6 @@
   max-width: 720px;
 }
 
-.search-form__row .button {
-  min-height: 56px;
-  padding: 0 28px;
-  font-size: var(--font-size-md);
-}
-
-.input {
-  flex: 1;
-  min-height: 56px;
-  padding: 0 18px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  color: var(--color-text);
-  font: inherit;
-  font-size: var(--font-size-md);
-}
-
-.input:focus {
-  outline: var(--focus-ring);
-  outline-offset: -1px;
-}
-
-.input--error {
-  border-color: var(--color-danger);
-}
-
 .field-error {
   margin: var(--space-2) 0 0;
   color: var(--color-danger);
