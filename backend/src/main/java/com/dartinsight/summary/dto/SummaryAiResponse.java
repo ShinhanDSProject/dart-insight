@@ -1,4 +1,4 @@
-package com.dartinsight.summary;
+package com.dartinsight.summary.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.List;

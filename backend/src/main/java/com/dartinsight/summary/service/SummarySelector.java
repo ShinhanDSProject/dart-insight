@@ -1,10 +1,11 @@
-package com.dartinsight.summary;
+package com.dartinsight.summary.service;
 
 import com.dartinsight.analysis.CalcStatus;
 import com.dartinsight.analysis.FinancialChangeRow;
 import com.dartinsight.analysis.TextChangeRow;
 import com.dartinsight.document.domain.DocumentBlock;
 import com.dartinsight.document.domain.DocumentSection;
+import com.dartinsight.summary.dto.SummaryAiRequest;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;

@@ -2,7 +2,7 @@ package com.dartinsight.analysis;
 
 import com.dartinsight.comparison.domain.ComparisonBasis;
 import com.dartinsight.financial.domain.FsDiv;
-import com.dartinsight.summary.SummaryStatus;
+import com.dartinsight.summary.domain.SummaryStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

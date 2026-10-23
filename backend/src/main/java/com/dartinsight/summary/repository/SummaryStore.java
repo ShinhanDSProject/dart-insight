@@ -1,5 +1,8 @@
-package com.dartinsight.summary;
+package com.dartinsight.summary.repository;
 
+import com.dartinsight.summary.domain.LlmCallRow;
+import com.dartinsight.summary.domain.SummaryItemRow;
+import com.dartinsight.summary.domain.SummaryResult;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;

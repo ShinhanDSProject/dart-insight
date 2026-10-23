@@ -1,4 +1,4 @@
-package com.dartinsight.summary;
+package com.dartinsight.summary.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

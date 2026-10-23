@@ -1,4 +1,4 @@
-package com.dartinsight.summary;
+package com.dartinsight.summary.domain;
 
 import java.time.LocalDateTime;
 import java.util.List;

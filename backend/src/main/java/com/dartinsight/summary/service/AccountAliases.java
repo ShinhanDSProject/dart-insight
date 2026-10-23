@@ -1,4 +1,4 @@
-package com.dartinsight.summary;
+package com.dartinsight.summary.service;
 
 import com.dartinsight.financial.domain.FinancialAccount;
 import java.util.LinkedHashSet;

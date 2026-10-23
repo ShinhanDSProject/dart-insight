@@ -1,4 +1,4 @@
-package com.dartinsight.summary;
+package com.dartinsight.summary.domain;
 
 /**
  * 요약(3.2) 상태.
