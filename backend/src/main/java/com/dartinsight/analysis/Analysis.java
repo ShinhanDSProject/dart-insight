@@ -26,9 +26,9 @@ public class Analysis {
     /**
      * 분석 결과 버전. 결과가 달라지는 규칙이 바뀌면 올려서 옛 결과를 다시 쓰지 않는다:
      * 재무 비교·계산, 원문 파서(PARSER_VERSION), 문장 비교(DIFF_VERSION), 우선순위(priority-n),
-     * 요약 프롬프트(PROMPT_VERSION), 표현 검사 규칙(RULESET_VERSION).
+     * 요약 프롬프트(PROMPT_VERSION), 표현 검사 규칙(RULESET_VERSION), 설명 후보 검색어(AccountAliases).
      */
-    public static final String CURRENT_VERSION = "m2-4";
+    public static final String CURRENT_VERSION = "m2-5";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

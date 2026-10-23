@@ -12,6 +12,8 @@ public record SummaryAiRequest(String companyName, String previousReport, String
     public record TextItem(String ref, String changeType, String sectionPath, List<Source> sources) {
     }
 
-    public record FinancialItem(String ref, String accountName, String direction, List<Source> candidates) {
+    /** @param accountAliases 설명 후보를 찾을 때 쓴 검색어(AccountAliases). ai-server가 인용 확인에 쓴다 */
+    public record FinancialItem(String ref, String accountName, String direction, List<String> accountAliases,
+            List<Source> candidates) {
     }
 }

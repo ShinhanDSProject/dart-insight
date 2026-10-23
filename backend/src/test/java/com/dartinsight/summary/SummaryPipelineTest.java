@@ -225,6 +225,12 @@ class SummaryPipelineTest {
         assertThat(sent.traceId()).isEqualTo("trace-summary");
         assertThat(sent.bodyText()).contains("\"companyName\":\"예시전자\"")
                 .contains(PREV + "#B1").contains(CUR + "#B1").contains("매출액은 메모리 수요 회복으로 늘었습니다.");
+        // 설명 후보 검색어는 표준계정 ID 사전에서 나온 것까지 함께 보낸다(ADR-0015)
+        assertThat(JsonPath.<List<List<String>>>read(sent.bodyText(),
+                "$.financialItems[?(@.accountName=='매출액')].accountAliases")).containsExactly(List.of("매출액", "영업수익"));
+        assertThat(JsonPath.<List<List<String>>>read(sent.bodyText(),
+                "$.financialItems[?(@.accountName=='자산총계')].accountAliases"))
+                .containsExactly(List.of("자산총계", "자산총액", "총자산"));
         assertThat(summaryStore.calls(id)).singleElement().satisfies(call -> {
             assertThat(call.model()).isEqualTo("fake-model");
             assertThat(call.inputTokens()).isEqualTo(120);
