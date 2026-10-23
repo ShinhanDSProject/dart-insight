@@ -204,13 +204,14 @@ public class AnalysisRunner implements DisposableBean {
 
     /**
      * 근거 확인: 값이 있는 계정은 그 보고서의 접수번호를 근거로 갖고, 두 보고서에서 짝지은 계정은 같은 계정이며
-     * (표준계정코드가 같고, 표준계정이 아니면 정규화한 계정명이 같음), 증감액이 두 값의 차와 같아야 한다.
+     * (표준계정코드가 같고, 표준계정이 아니면 정규화한 계정명이 같음. 계정 ID가 바뀌어 이름으로 짝지은 계정은
+     * 정규화한 계정명이 같음), 증감액이 두 값의 차와 같아야 한다.
      *
      * @return 문제가 있으면 설명, 없으면 null
      */
     public static String verify(Analysis analysis, List<FinancialChangeRow> rows) {
         for (FinancialChangeRow row : rows) {
-            if (row.previous() != null && row.current() != null && !sameAccount(row.previous(), row.current())) {
+            if (row.previous() != null && row.current() != null && !sameAccount(row)) {
                 return "다른 계정끼리 짝지었어요: " + row.accountName();
             }
             if (row.previousAmount() != null && (row.previous() == null
@@ -277,14 +278,17 @@ public class AnalysisRunner implements DisposableBean {
     private static final Set<String> BLOCK_TYPES = Set.of(DocumentBlock.PARAGRAPH, DocumentBlock.TABLE,
             TextChangeRow.SECTION);
 
-    private static boolean sameAccount(FinancialChangeRow.Evidence previous, FinancialChangeRow.Evidence current) {
+    private static boolean sameAccount(FinancialChangeRow row) {
+        FinancialChangeRow.Evidence previous = row.previous();
+        FinancialChangeRow.Evidence current = row.current();
+        boolean sameName = Objects.equals(FinancialComparator.normalize(previous.accountName()),
+                FinancialComparator.normalize(current.accountName()));
         if (!Objects.equals(previous.accountId(), current.accountId())) {
-            return false;
+            return sameName && row.accountKey().startsWith(FinancialComparator.NAME_KEY_PREFIX);
         }
         boolean standard = previous.accountId() != null && !previous.accountId().isBlank()
                 && !FinancialAccount.NON_STANDARD_ACCOUNT_ID.equals(previous.accountId());
-        return standard || Objects.equals(FinancialComparator.normalize(previous.accountName()),
-                FinancialComparator.normalize(current.accountName()));
+        return standard || sameName;
     }
 
     /** 실패로 남긴다. 이미 끝난 분석이면 그대로 둔다. 다시 읽어서 바꾸므로 다른 곳의 변경을 덮어쓰지 않는다. */

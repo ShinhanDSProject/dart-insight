@@ -12,9 +12,11 @@ import com.dartinsight.report.domain.ReportType;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -27,7 +29,8 @@ import java.util.function.Function;
  *
  * <ul>
  *   <li>계정 대응: 표준계정코드(account_id)가 같으면 같은 계정이다. 표준계정이 아니면 정규화한 계정명으로 맞춘다.
- *       자본변동표는 계정 상세(account_detail)까지 같아야 한다. 같은 키가 여러 번 나오는 경우는 {@link #match}를 본다.</li>
+ *       자본변동표는 계정 상세(account_detail)까지 같아야 한다. 같은 키가 여러 번 나오는 경우는 {@link #match}를 본다.
+ *       회사가 해마다 다른 계정 ID를 써서 키로 짝짓지 못한 계정은 이름으로 한 번 더 맞춘다({@link #pairByName}).</li>
  *   <li>이전 값: 이전 보고서의 원래 값(잠정안, 결정 로그 '이전 값 기준').</li>
  *   <li>금액 기준: 비교 규칙(StatementRules)이 정한 시점·누적·3개월 금액.</li>
  *   <li>증감액 = 현재 값 − 이전 값. 증감률 = 증감액 ÷ 이전 값(이전 값이 양수일 때만, 소수 6자리 반올림).</li>
@@ -36,6 +39,9 @@ import java.util.function.Function;
 public final class FinancialComparator {
 
     static final int RATE_SCALE = 6;
+
+    /** 계정명으로 맞춘 키의 앞머리 */
+    static final String NAME_KEY_PREFIX = "NAME:";
 
     private FinancialComparator() {
     }
@@ -78,6 +84,7 @@ public final class FinancialComparator {
      *       (자본변동표의 기초자본·기말자본처럼 계정 ID와 상세가 같은 경우).</li>
      *   <li>그래도 같은 키가 여러 개면, 두 보고서의 개수가 같을 때만 원문 순서대로 짝짓는다.
      *       개수가 다르면 어느 것이 같은 계정인지 확정할 수 없어 짝짓지 않고 AMBIGUOUS_MATCH로 둔다.</li>
+     *   <li>키로 짝짓지 못한 계정은 {@link #pairByName}으로 이름이 같은 계정을 한 번 더 찾는다.</li>
      *   <li>순서: 현재 보고서의 원문 순서, 이전 보고서에만 있는 계정은 그 뒤에 이전 보고서 순서로.</li>
      * </ol>
      */
@@ -118,7 +125,61 @@ public final class FinancialComparator {
                 pairs.add(new Pair(k + "#prev" + (i + 1), account, null, true));
             }
         }
-        return pairs;
+        return pairByName(pairs, type);
+    }
+
+    /**
+     * 한쪽에만 있는 계정끼리 정규화한 계정명(자본변동표는 계정 상세까지)이 같으면 짝짓는다.
+     * 같은 계정의 표준계정코드가 해마다 바뀌는 경우다(예: 삼성전자 유형자산 {@code ifrs-full_PropertyPlantAndEquipment}
+     * → {@code ifrs-full_PropertyPlantAndEquipmentIncludingRightofuseAssets}, 단기차입금 표준계정 미사용 →
+     * {@code dart_CurrentLoansReceived}). 그 이름이 남은 계정 중 양쪽에 하나씩일 때만 짝짓고, 두 계정 ID는 근거에 그대로 남는다.
+     * 키는 {@code NAME:계정명}이고, 이미 쓰인 키면 짝짓지 않는다.
+     */
+    static List<Pair> pairByName(List<Pair> pairs, StatementType type) {
+        Function<FinancialAccount, String> nameKey = account -> {
+            String key = NAME_KEY_PREFIX + normalize(account.getAccountName());
+            return type == StatementType.SCE && account.getAccountDetail() != null
+                    ? key + "|" + normalize(account.getAccountDetail()) : key;
+        };
+        Map<String, List<Pair>> onlyCurrent = new HashMap<>();
+        Map<String, List<Pair>> onlyPrevious = new HashMap<>();
+        Set<String> usedKeys = new HashSet<>();
+        for (Pair pair : pairs) {
+            usedKeys.add(pair.key());
+            if (pair.ambiguous()) {
+                continue;
+            }
+            if (pair.previous() == null) {
+                onlyCurrent.computeIfAbsent(nameKey.apply(pair.current()), k -> new ArrayList<>()).add(pair);
+            } else if (pair.current() == null) {
+                onlyPrevious.computeIfAbsent(nameKey.apply(pair.previous()), k -> new ArrayList<>()).add(pair);
+            }
+        }
+        Map<Pair, Pair> merged = new IdentityHashMap<>();
+        Set<Pair> absorbed = Collections.newSetFromMap(new IdentityHashMap<>());
+        onlyCurrent.forEach((name, curPairs) -> {
+            List<Pair> prevPairs = onlyPrevious.getOrDefault(name, List.of());
+            if (curPairs.size() != 1 || prevPairs.size() != 1) {
+                return;
+            }
+            Pair cur = curPairs.get(0);
+            Pair prev = prevPairs.get(0);
+            String key = cur.key().equals(name) || prev.key().equals(name) || !usedKeys.contains(name) ? name : null;
+            if (key != null) {
+                merged.put(cur, new Pair(key, prev.previous(), cur.current(), false));
+                absorbed.add(prev);
+            }
+        });
+        if (merged.isEmpty()) {
+            return pairs;
+        }
+        List<Pair> result = new ArrayList<>();
+        for (Pair pair : pairs) {
+            if (!absorbed.contains(pair)) {
+                result.add(merged.getOrDefault(pair, pair));
+            }
+        }
+        return result;
     }
 
     private static Set<String> repeatedBases(List<FinancialAccount> accounts, StatementType type) {
@@ -141,7 +202,7 @@ public final class FinancialComparator {
     }
 
     static String accountKey(FinancialAccount account, StatementType type) {
-        String key = account.isStandardAccount() ? account.getAccountId() : "NAME:" + normalize(account.getAccountName());
+        String key = account.isStandardAccount() ? account.getAccountId() : NAME_KEY_PREFIX + normalize(account.getAccountName());
         if (type == StatementType.SCE && account.getAccountDetail() != null) {
             key = key + "|" + normalize(account.getAccountDetail());
         }
