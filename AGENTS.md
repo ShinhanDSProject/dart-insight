@@ -123,7 +123,7 @@ CI(`.github/workflows/`)도 같은 명령을 씁니다. 버전은 backend Java 2
 
 | 서비스 | 빌드·테스트 | 린트 |
 | --- | --- | --- |
-| backend | `./gradlew build` (backend/) | 빌드에 포함 |
+| backend | `./gradlew build` (backend/) | 빌드에 포함(Checkstyle) |
 | frontend | `npm test && npm run build` (frontend/) | `npm run lint` |
 | ai-server | `pytest` (ai-server/) | `ruff check .` |
 

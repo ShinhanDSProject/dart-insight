@@ -3,7 +3,7 @@
 # 참고: shinhan-delivery 컨벤션 중 우리 API 약속·ADR과 맞는 것만 가져왔다(가져오지 않은 것은 맨 아래 skip).
 v: 1
 scope: backend/src
-enforced: [checkstyle, archunit]   # 둘 다 ./gradlew build에서 돈다(도입 이슈 진행 중)
+enforced: [checkstyle, archunit]   # ./gradlew build에서 돈다. checkstyle은 config/checkstyle/checkstyle.xml, archunit은 도입 이슈 진행 중
 see: {api: docs/api-spec.md, erd: docs/erd.md, adr: docs/adr/}
 
 pkg:
