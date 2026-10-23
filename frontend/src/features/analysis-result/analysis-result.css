@@ -14,9 +14,6 @@
 }
 
 .pair-card {
-  padding: var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
   font-size: var(--font-size-sm);
 }
 
@@ -70,39 +67,6 @@
   gap: var(--space-2) var(--space-4);
 }
 
-/* 결과 탭: 밑줄 탭. 고른 탭은 굵은 남색 글자와 3px 밑줄 */
-.result-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 28px;
-  margin-bottom: var(--space-5);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.result-tabs__item {
-  min-height: var(--control-height);
-  margin-bottom: -1px;
-  padding: 14px var(--space-2);
-  border: none;
-  border-bottom: 3px solid transparent;
-  background: none;
-  color: var(--color-text-muted);
-  font: inherit;
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
-}
-
-.result-tabs__item:hover {
-  color: var(--color-text);
-}
-
-.result-tabs__item[aria-current='page'] {
-  border-bottom-color: var(--color-primary);
-  color: var(--color-primary);
-  font-weight: var(--font-weight-bold);
-}
-
 .fin-controls {
   display: flex;
   flex-wrap: wrap;
@@ -115,22 +79,8 @@
   font-size: var(--font-size-sm);
 }
 
-.fin-table {
-  min-width: 820px;
-}
-
 .fin-table__reason {
   color: var(--color-text-muted);
-}
-
-.source-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr));
-  gap: var(--space-4);
-}
-
-.source-grid > .panel + .panel {
-  margin-top: 0;
 }
 
 .evidence__head {
@@ -188,16 +138,6 @@
   font-size: var(--font-size-sm);
 }
 
-.fin-table__evidence {
-  padding: var(--space-1) var(--space-3);
-}
-
-.fin-table__evidence[aria-pressed='true'] {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
-  color: var(--color-primary-text);
-}
-
 /* 문장·내용 변화(W-03 ③) */
 .text-controls {
   display: flex;
@@ -211,41 +151,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-}
-
-.pill {
-  min-height: 40px;
-  padding: 0 var(--space-3);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-pill);
-  background: var(--color-bg);
-  color: var(--color-text);
-  font: inherit;
-  font-size: var(--font-size-sm);
-  cursor: pointer;
-}
-
-.pill[aria-pressed='true'] {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
-  color: var(--color-primary-text);
-  font-weight: var(--font-weight-bold);
-}
-
-.pill--attention {
-  border-color: var(--color-attention);
-  color: var(--color-attention);
-  font-weight: var(--font-weight-bold);
-}
-
-.pill--attention[aria-pressed='true'] {
-  border-color: var(--color-attention);
-  background: var(--color-attention);
-  color: var(--color-bg);
-}
-
-.pill__count {
-  font-variant-numeric: tabular-nums;
 }
 
 .change-list {
@@ -268,13 +173,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  padding: var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-}
-
-.change-card--review {
-  border: 1.5px solid var(--color-attention);
 }
 
 .change-card__head {
@@ -282,10 +180,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
-}
-
-.change-card__head .badge {
-  margin-left: 0;
 }
 
 .change-card__title {
@@ -363,11 +257,6 @@
   flex-basis: 100%;
 }
 
-.change-card--selected {
-  border-color: var(--color-border-accent);
-  background: var(--color-accent-subtle);
-}
-
 .change-card__actions {
   display: flex;
   flex-wrap: wrap;
@@ -399,17 +288,6 @@
   color: inherit;
   text-decoration: underline;
   text-underline-offset: 3px;
-}
-
-.source-table .data-table {
-  min-width: 0;
-  font-size: var(--font-size-xs);
-}
-
-.source-table .data-table th,
-.source-table .data-table td {
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--color-border);
 }
 
 .change-list__outside {
@@ -560,9 +438,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  padding: var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
 }
 
 .summary-item__fact {
@@ -582,10 +457,6 @@
 .summary-item__ai-text,
 .summary-item__missing {
   margin: 0;
-}
-
-.summary-item__ai-text .badge {
-  margin-left: 0;
 }
 
 .summary-item__missing {
@@ -615,6 +486,3 @@
   font-size: var(--font-size-sm);
 }
 
-.summary-group--review .badge {
-  margin-left: 0;
-}

@@ -51,17 +51,6 @@
   gap: var(--space-2) var(--space-4);
 }
 
-.pair__label {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-}
-
-.pair__hint {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-regular);
-}
-
 .pair__slots {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));

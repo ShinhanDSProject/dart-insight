@@ -74,3 +74,14 @@
   gap: var(--space-3);
   margin-top: var(--space-5);
 }
+
+/* 비교할 수 없는 사유와 다음 행동 */
+.not-comparable__reasons {
+  margin: 0 0 var(--space-2);
+  padding-left: var(--space-5);
+  font-size: var(--font-size-sm);
+}
+
+.not-comparable__next {
+  color: var(--color-text-muted);
+}
