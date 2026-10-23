@@ -1,6 +1,8 @@
 """요약 결과 검증(3.2, 5.5).
 
 근거 ID가 주어진 원문 위치인지, 숫자가 인용한 원문에 있는지 코드가 확인한다.
+재무 설명은 인용문을 확인해 등급을 낮추고(다시 생성하지 않음), STATED가 아닌 설명의
+원인 표현은 다시 생성한다(ADR-0015). 등급 규칙을 바꾸면 causal.GRADE_RULES_VERSION을 올린다.
 통과한 문장도 투자 권유성 표현 검사(app.compliance)에 걸리면 내보내지 않는다.
 """
 
@@ -11,10 +13,15 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.compliance import scan
+from app.summary import causal
 from app.summary.model import (
     FINANCIAL,
+    GRADES,
+    NONE,
     OK,
+    RELATED,
     REVIEW_NEEDED,
+    STATED,
     TEXT,
     FinancialItem,
     ItemResult,
@@ -34,6 +41,12 @@ _MAGNITUDE = re.compile(
     r"|\d[\d,]*(?:\.\d+)?\s*(?:조|억|만|천)"
 )
 _SQUEEZE = re.compile(r"[\s,]")
+_SPACES = re.compile(r"\s")
+
+# 코드가 등급을 낮춘 사유(reviewReason). 화면에서 후보가 없던 NONE과 구분해 보인다
+QUOTE_NOT_CANDIDATE = "인용 위치가 설명 후보 원문이 아니어서 설명으로 쓰지 않았어요."
+QUOTE_NOT_IN_SOURCE = "인용문이 후보 원문에 그대로 없어 설명으로 쓰지 않았어요."
+QUOTE_WITHOUT_ACCOUNT = "인용문에 계정 이름이 없어 '관련 내용'으로 낮췄어요."
 
 
 @dataclass
@@ -76,15 +89,7 @@ def check(data: Any, summary: SummaryInput) -> Checked:
             problem = _check_text(text_items[ref], raw.get("sentence"), evidence)
             result = ItemResult(ref, TEXT, OK, sentence=raw.get("sentence"), evidence_ids=evidence)
         elif ref in financial_items:
-            problem = _check_financial(financial_items[ref], raw.get("explanation"), evidence)
-            explanation = raw.get("explanation")
-            result = ItemResult(
-                ref,
-                FINANCIAL,
-                OK,
-                explanation=explanation,
-                evidence_ids=evidence if explanation else [],
-            )
+            problem, result = _check_financial(financial_items[ref], raw, evidence)
         else:
             problems.append(f"{ref}: 요청에 없는 ref입니다.")
             continue
@@ -152,11 +157,54 @@ def _check_text(item: TextItem, sentence: Any, evidence: list[str]) -> str | Non
     return _number_problem(sentence, allowed, evidence)
 
 
-def _check_financial(item: FinancialItem, explanation: Any, evidence: list[str]) -> str | None:
-    if explanation is None:
-        return None  # 후보 원문이 그 변화를 설명하지 않음 → '확인된 설명 없음'
+def _check_financial(
+    item: FinancialItem, raw: dict[str, Any], evidence: list[str]
+) -> tuple[str | None, ItemResult]:
+    """형식·근거·숫자를 확인하고 등급을 낮춘 뒤, 남은 등급에 맞지 않는 원인 표현을 찾는다.
+
+    형식·근거·숫자·원인 표현 문제는 다시 생성하고, 인용 문제는 등급만 낮춘다.
+    """
+    grade = raw.get("grade")
+    if grade not in GRADES:
+        return "grade는 STATED·RELATED·NONE 중 하나여야 합니다.", _none(item)
+    if grade == NONE:
+        # 설명을 같이 썼어도 버린다(코드는 등급을 올리지 않음)
+        return None, _none(item)
+    explanation = raw.get("explanation")
+    problem = _explanation_problem(item, explanation, evidence)
+    if problem:
+        return problem, _none(item)
+    grade, reason = _downgrade(item, grade, raw.get("quote"), raw.get("quoteEvidenceId"))
+    if grade == NONE:
+        return None, _none(item, reason)
+    claim = causal.find(explanation) if grade != STATED else None
+    if claim:
+        return (
+            f"원인 표현('{claim}')은 회사가 원인을 직접 밝힌(STATED) 설명에만 씁니다. "
+            "관련 내용(RELATED)이면 '관련 공시 내용으로 ~이 있어요'처럼 원인 없이 쓰세요.",
+            _none(item),
+        )
+    return None, ItemResult(
+        item.ref,
+        FINANCIAL,
+        OK,
+        explanation=explanation,
+        evidence_ids=evidence,
+        review_reason=reason,
+        grade=grade,
+        quote=raw.get("quote"),
+        quote_evidence_id=raw.get("quoteEvidenceId"),
+    )
+
+
+def _none(item: FinancialItem, reason: str | None = None) -> ItemResult:
+    """확인된 설명 없음. reason이 있으면 코드가 등급을 낮춘 것"""
+    return ItemResult(item.ref, FINANCIAL, OK, review_reason=reason, grade=NONE)
+
+
+def _explanation_problem(item: FinancialItem, explanation: Any, evidence: list[str]) -> str | None:
     if not isinstance(explanation, str) or not explanation.strip():
-        return "explanation은 문장이거나 null이어야 합니다."
+        return "STATED·RELATED이면 explanation에 문장이 있어야 합니다(설명이 없으면 NONE)."
     if len(explanation) > MAX_EXPLANATION:
         return f"explanation이 {MAX_EXPLANATION}자를 넘습니다."
     allowed = {s.evidence_id: s.text for s in item.candidates}
@@ -166,3 +214,19 @@ def _check_financial(item: FinancialItem, explanation: Any, evidence: list[str])
     if unknown:
         return f"후보 원문 id가 아닙니다: {unknown[:3]}"
     return _number_problem(explanation, allowed, evidence)
+
+
+def _downgrade(
+    item: FinancialItem, grade: str, quote: Any, quote_evidence_id: Any
+) -> tuple[str, str | None]:
+    """인용문을 글자로 확인해 등급을 낮춘다. (남은 등급, 낮췄으면 사유)"""
+    sources = {s.evidence_id: s.text for s in item.candidates}
+    if not isinstance(quote_evidence_id, str) or quote_evidence_id not in sources:
+        return NONE, QUOTE_NOT_CANDIDATE
+    quoted = _SPACES.sub("", quote) if isinstance(quote, str) else ""
+    if not quoted or quoted not in _SPACES.sub("", sources[quote_evidence_id]):
+        return NONE, QUOTE_NOT_IN_SOURCE
+    terms = [_SPACES.sub("", t) for t in item.account_aliases or [item.account_name]]
+    if grade == STATED and not any(t and t in quoted for t in terms):
+        return RELATED, QUOTE_WITHOUT_ACCOUNT
+    return grade, None

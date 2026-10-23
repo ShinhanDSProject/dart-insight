@@ -10,6 +10,12 @@ FINANCIAL = "FINANCIAL"
 OK = "OK"
 REVIEW_NEEDED = "REVIEW_NEEDED"
 
+# 재무 설명 등급(ADR-0015). 코드는 등급을 낮추기만 한다
+STATED = "STATED"  # 회사가 변화의 원인을 직접 밝힘
+RELATED = "RELATED"  # 관련 내용은 있지만 원인을 말하지 않음
+NONE = "NONE"  # 확인된 설명 없음
+GRADES = (STATED, RELATED, NONE)
+
 
 @dataclass(frozen=True)
 class Source:
@@ -65,3 +71,7 @@ class ItemResult:
     evidence_ids: list[str] = field(default_factory=list)
     review_reason: str | None = None
     blocked_rules: list[str] = field(default_factory=list)
+    # 재무 설명만. 문장 변화와 '검토 필요' 항목은 None
+    grade: str | None = None
+    quote: str | None = None
+    quote_evidence_id: str | None = None
