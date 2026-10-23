@@ -1,7 +1,6 @@
 package com.dartinsight.system;
 
 import com.dartinsight.aiserver.AiServerClient;
-import com.dartinsight.aiserver.AiServerClient.AiServerStatus;
 import com.dartinsight.common.web.ApiPaths;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,8 +22,5 @@ public class SystemHealthController {
     @GetMapping(ApiPaths.HEALTH)
     public SystemHealthResponse health() {
         return new SystemHealthResponse("UP", aiServerClient.health());
-    }
-
-    public record SystemHealthResponse(String backend, AiServerStatus aiServer) {
     }
 }
