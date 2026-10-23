@@ -27,12 +27,14 @@
 erDiagram
     company ||--o{ report : "corp_code"
     company {
-        char corp_code PK "고유번호 8자리"
+        bigint id PK
+        char corp_code UK "고유번호 8자리"
         varchar corp_name "회사명"
         char stock_code "종목코드, 상장사만"
     }
     report {
-        char rcept_no PK "접수번호 14자리"
+        bigint id PK
+        char rcept_no UK "접수번호 14자리"
         char corp_code FK "고유번호"
         varchar report_name "보고서명 원문"
         date rcept_dt "접수일"
@@ -47,7 +49,8 @@ erDiagram
 
 | 컬럼 | 타입 | 키 | null | 기본값 | 설명 |
 | --- | --- | --- | --- | --- | --- |
-| `corp_code` | CHAR(8) | PK | 아니오 | | OpenDART 고유번호. 앞자리 0을 지키도록 문자열 |
+| `id` | BIGINT | PK | 아니오 | AUTO_INCREMENT | 모든 테이블의 기본키(ADR-0017) |
+| `corp_code` | CHAR(8) | UK | 아니오 | | OpenDART 고유번호. 앞자리 0을 지키도록 문자열 |
 | `corp_name` | VARCHAR(100) | | 아니오 | | 회사명 |
 | `stock_code` | CHAR(6) | | 예 | | 종목코드. 상장사에만 있음 |
 | `created_at` | DATETIME | | 아니오 | CURRENT_TIMESTAMP | 저장 시각 |
