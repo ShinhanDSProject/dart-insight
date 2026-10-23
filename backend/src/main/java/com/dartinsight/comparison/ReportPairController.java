@@ -3,7 +3,6 @@ package com.dartinsight.comparison;
 import com.dartinsight.common.web.ApiPaths;
 import com.dartinsight.report.FinancialDataStatus;
 import com.dartinsight.report.Report;
-import com.dartinsight.report.ReportItemResponse;
 import com.dartinsight.report.ReportService;
 import java.util.List;
 import java.util.Map;
@@ -36,18 +35,6 @@ public class ReportPairController {
         ReportPairService.ReportPair pair = pairService.findPair(corpCode, basis, currentRceptNo);
         List<Report> reports = Stream.of(pair.current(), pair.previous()).filter(Objects::nonNull).toList();
         Map<String, FinancialDataStatus> statuses = reportService.financialDataStatuses(corpCode, reports);
-        return new ReportPairResponse(pair.basis(), item(pair.current(), statuses), item(pair.previous(), statuses),
-                pair.reason() == null ? null : new Reason(pair.reason().name(), pair.reason().message()));
-    }
-
-    private static ReportItemResponse item(Report report, Map<String, FinancialDataStatus> statuses) {
-        return report == null ? null : ReportItemResponse.from(report, statuses.get(report.getRceptNo()));
-    }
-
-    public record ReportPairResponse(ComparisonBasis basis, ReportItemResponse current, ReportItemResponse previous,
-            Reason reason) {
-    }
-
-    public record Reason(String code, String message) {
+        return ReportPairResponse.of(pair, statuses);
     }
 }
