@@ -17,7 +17,8 @@ import java.util.Map;
  *   <li>재무 수치: 계산한 계정 중 손익계산서에서 증감액이 큰 3개(손익계산서 없이 포괄손익계산서 하나로 낸 회사는
  *   포괄손익계산서에서), 재무상태표에서 2개</li>
  *   <li>문장 변화: 우선순위(2.6) 높음·중간 중 점수가 높은 5개(숫자만 바뀐 것과 검토 필요는 뺌)</li>
- *   <li>설명 후보: 현재 보고서의 경영진단·사업의 내용 섹션 문단 중 그 계정 이름이 나오는 앞의 2개</li>
+ *   <li>설명 후보: 현재 보고서의 경영진단·사업의 내용 섹션 문단 중 그 계정의 검색어(AccountAliases)가 하나라도
+ *   나오는 앞의 2개</li>
  * </ul>
  */
 public final class SummarySelector {
@@ -69,11 +70,10 @@ public final class SummarySelector {
         return indexes.subList(0, Math.min(TEXT_ITEMS, indexes.size()));
     }
 
-    /** 계정 이름이 나오는 설명 후보 문단(현재 보고서). 원문이 없으면 빈 목록 */
-    public static List<SummaryAiRequest.Source> candidates(String accountName, List<DocumentSection> sections,
+    /** 검색어(AccountAliases.of) 중 하나라도 나오는 설명 후보 문단(현재 보고서). 검색어나 원문이 없으면 빈 목록 */
+    public static List<SummaryAiRequest.Source> candidates(List<String> terms, List<DocumentSection> sections,
             List<DocumentBlock> blocks) {
-        String name = compact(accountName);
-        if (name.isEmpty()) {
+        if (terms.isEmpty()) {
             return List.of();
         }
         Map<Integer, String> paths = paths(sections);
@@ -82,8 +82,11 @@ public final class SummarySelector {
             String path = paths.getOrDefault(block.sectionNo(), "");
             String compactPath = compact(path);
             if (!DocumentBlock.PARAGRAPH.equals(block.type())
-                    || EXPLAINING_SECTIONS.stream().noneMatch(compactPath::contains)
-                    || !compact(block.text()).contains(name)) {
+                    || EXPLAINING_SECTIONS.stream().noneMatch(compactPath::contains)) {
+                continue;
+            }
+            String compactText = compact(block.text());
+            if (terms.stream().noneMatch(compactText::contains)) {
                 continue;
             }
             String text = block.text().length() <= MAX_CANDIDATE_CHARS ? block.text()

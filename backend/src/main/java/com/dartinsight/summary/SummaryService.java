@@ -62,8 +62,10 @@ public class SummaryService {
             FinancialChangeRow row = financial.get(index);
             String ref = "F" + (index + 1);
             financialRefs.put(ref, index);
-            financialItems.add(new SummaryAiRequest.FinancialItem(ref, row.accountName(), row.direction(),
-                    SummarySelector.candidates(row.accountName(), sections, blocks)));
+            List<String> terms = AccountAliases.of(row.current() == null ? null : row.current().accountId(),
+                    row.accountName());
+            financialItems.add(new SummaryAiRequest.FinancialItem(ref, row.accountName(), row.direction(), terms,
+                    SummarySelector.candidates(terms, sections, blocks)));
         }
         Map<String, Integer> textRefs = new HashMap<>();
         List<SummaryAiRequest.TextItem> textItems = new ArrayList<>();
