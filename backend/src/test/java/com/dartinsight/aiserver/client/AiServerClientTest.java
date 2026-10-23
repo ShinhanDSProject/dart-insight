@@ -1,9 +1,10 @@
-package com.dartinsight.aiserver;
+package com.dartinsight.aiserver.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.dartinsight.aiserver.AiServerClient.AiServerStatus;
+import com.dartinsight.aiserver.client.AiServerClient.AiServerStatus;
+import com.dartinsight.aiserver.config.AiServerProperties;
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.common.trace.TraceContext;

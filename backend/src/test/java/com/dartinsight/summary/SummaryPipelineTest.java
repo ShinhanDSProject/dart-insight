@@ -9,9 +9,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.dartinsight.aiserver.FakeAiServer;
-import com.dartinsight.aiserver.FakeAiServer.Reply;
-import com.dartinsight.aiserver.FakeAiServer.Request;
+import com.dartinsight.aiserver.client.FakeAiServer;
+import com.dartinsight.aiserver.client.FakeAiServer.Reply;
+import com.dartinsight.aiserver.client.FakeAiServer.Request;
 import com.dartinsight.company.CompanyImportService;
 import com.dartinsight.dart.CorpCodeEntry;
 import com.dartinsight.dart.FakeOpenDartServer;

@@ -1,8 +1,8 @@
 package com.dartinsight.document;
 
-import com.dartinsight.aiserver.AiServerClient;
-import com.dartinsight.aiserver.AiServerException;
-import com.dartinsight.aiserver.AiServerPaths;
+import com.dartinsight.aiserver.client.AiServerClient;
+import com.dartinsight.aiserver.client.AiServerException;
+import com.dartinsight.aiserver.client.AiServerPaths;
 import com.dartinsight.dart.OpenDartClient;
 import com.dartinsight.dart.OpenDartClient.DocumentFile;
 import com.dartinsight.report.Report;

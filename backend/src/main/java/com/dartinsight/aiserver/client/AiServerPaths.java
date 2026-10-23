@@ -1,4 +1,4 @@
-package com.dartinsight.aiserver;
+package com.dartinsight.aiserver.client;
 
 /**
  * FastAPI 내부 API 경로(docs/api-spec.md 3장). backend가 ai-server를 부르는 경로는 여기에만 둔다.

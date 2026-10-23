@@ -1,4 +1,4 @@
-package com.dartinsight.aiserver;
+package com.dartinsight.aiserver.config;
 
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;

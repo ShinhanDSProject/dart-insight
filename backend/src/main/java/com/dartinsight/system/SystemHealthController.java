@@ -1,6 +1,6 @@
 package com.dartinsight.system;
 
-import com.dartinsight.aiserver.AiServerClient;
+import com.dartinsight.aiserver.client.AiServerClient;
 import com.dartinsight.common.web.ApiPaths;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;

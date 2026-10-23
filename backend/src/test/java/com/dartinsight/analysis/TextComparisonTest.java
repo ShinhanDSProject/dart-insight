@@ -2,8 +2,8 @@ package com.dartinsight.analysis;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.dartinsight.aiserver.FakeAiServer;
-import com.dartinsight.aiserver.FakeAiServer.Reply;
+import com.dartinsight.aiserver.client.FakeAiServer;
+import com.dartinsight.aiserver.client.FakeAiServer.Reply;
 import com.dartinsight.company.CompanyImportService;
 import com.dartinsight.dart.CorpCodeEntry;
 import com.dartinsight.dart.FakeOpenDartServer;

@@ -3,9 +3,9 @@ package com.dartinsight.document;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.dartinsight.aiserver.AiServerException;
-import com.dartinsight.aiserver.FakeAiServer;
-import com.dartinsight.aiserver.FakeAiServer.Reply;
+import com.dartinsight.aiserver.client.AiServerException;
+import com.dartinsight.aiserver.client.FakeAiServer;
+import com.dartinsight.aiserver.client.FakeAiServer.Reply;
 import com.dartinsight.company.CompanyImportService;
 import com.dartinsight.dart.CorpCodeEntry;
 import com.dartinsight.dart.FakeOpenDartServer;

@@ -1,5 +1,6 @@
-package com.dartinsight.aiserver;
+package com.dartinsight.aiserver.client;
 
+import com.dartinsight.aiserver.config.AiServerProperties;
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.common.trace.TraceContext;
