@@ -77,7 +77,7 @@ W-03 ④ 원문 확인
 
 ### ② 재무 수치 변화
 - 재무제표 종류, 연결·별도, 전체 계정·변경 항목만 보기
-- 계층을 유지한 계정 표: 이전 값, 현재 값, 증감액, 증감률, 근거
+- 계층을 유지한 계정 표: 이전 값, 현재 값, 증감액, 증감률. 계정 이름을 누르면 근거가 열리고, 증감액·증감률 머리글로 정렬한다(계산 불가 행은 맨 아래)
 - 선택한 계정의 근거 패널
 
 ### ③ 문장·내용 변화
@@ -184,7 +184,7 @@ W-03 ④ 원문 확인
 | `Chip` | `pressed`, `tone`: `neutral`·`attention`, `count` | 변경 유형 거르기 |
 | `Panel` / `PanelTitle` | `as`: `section`·`div` / `as`: `h2`·`h3`·`h4` | 화면의 큰 묶음 상자와 제목 |
 | `Card` | `as`, `tone`: `default`·`attention`, `selected` | 보고서·요약·변경 카드 |
-| `DataTable` / `DataTableRow` | `caption`(보이지 않음), `density`: `default`·`compact` / `selected` | 보고서 목록, 재무 계정 표, 원문 표 |
+| `DataTable` / `DataTableRow` / `SortableHeader` | `caption`(보이지 않음), `density`: `default`·`dense`·`compact`, `stickyHeader` / `selected` / `sort`(aria-sort 값), `onSort`, `numeric` | 보고서 목록, 재무 계정 표(낮은 행·머리글 고정·증감 정렬), 원문 표 |
 | `FieldLabel` / `FieldHint` / `Input` / `Select` | `as`: `label`·`span` / — / `invalid` / — | 입력·선택창과 그 이름·도움말 |
 
 로딩·빈 결과·오류는 `StateView`(`LoadingState`, `EmptyState`, `ErrorState`, `AlertState`), 원문 링크는 `DartLink`, 출처 줄은 `DartSource`, 아이콘은 `Icon`을 쓴다.

@@ -1,8 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { FinancialChangeItem, SjDiv, StatementSummary } from '@/shared/api/results'
-import { Button, DataTable, DataTableRow, FieldLabel, Notice, Panel, SegmentedControl, Select } from '@/shared/ui'
+import { Button, DataTable, DataTableRow, FieldLabel, Notice, Panel, SegmentedControl, Select, SortableHeader } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { EvidencePanel } from './EvidencePanel'
@@ -20,6 +20,13 @@ import {
 } from '../model/format'
 import { useFinancialChanges } from '../hooks/useFinancialChanges'
 import type { FinancialViewChange } from '../model/resultParams'
+import {
+  ariaSortOf,
+  nextFinancialSort,
+  originalOrder,
+  sortFinancialItems,
+  type FinancialSort,
+} from '../model/financialSort'
 
 const viewOptions = [
   { value: 'all', label: '전체 계정' },
@@ -44,14 +51,17 @@ interface FinancialTabProps {
   onChange: (changes: FinancialViewChange) => void
 }
 
-/** W-03 ② 재무 수치 변화(3.1). 이 분석의 결과만 보여 준다. 계정의 '보기'를 누르면 수치 근거(3.3)를 오른쪽 패널로 연다. */
+/** W-03 ② 재무 수치 변화(3.1). 이 분석의 결과만 보여 준다. 계정 이름을 누르면 수치 근거(3.3)를 오른쪽 패널로 연다.
+ * 증감액·증감률 머리글로 정렬하고, 계산하지 못한 행은 정렬해도 맨 아래에 둔다(FS-4 AC9). */
 export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChangeId, onChange }: FinancialTabProps) {
   const { state, reload, statements } = useFinancialChanges(analysis.analysisId, sjDiv, changedOnly)
   const selected = statements.find((s) => s.sjDiv === sjDiv)
   const basis = selected?.amountBasis ?? null
   const currency = state.status === 'success' ? (state.data.items.find((i) => i.currency)?.currency ?? null) : null
+  // 표 정렬은 공유할 화면 상태가 아니라서 컴포넌트 상태로 둔다(ST-6)
+  const [sort, setSort] = useState<FinancialSort>(originalOrder)
 
-  // 근거를 연 버튼(차트 막대 또는 표의 '보기'). 패널을 닫으면 그 버튼으로 초점을 돌려준다
+  // 근거를 연 버튼(차트 막대 또는 표의 계정 이름). 패널을 닫으면 그 버튼으로 초점을 돌려준다
   const openerRef = useRef<HTMLElement | null>(null)
   const openEvidence = (changeId: number) => {
     openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
@@ -130,7 +140,11 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChang
               onSelect={openEvidence}
             />
           )}
-          <DataTable caption={`계정별 이전 값, 현재 값, 증감액, 증감률. 단위 ${unitLabel(unit, currency)}`}>
+          <DataTable
+            caption={`계정별 이전 값, 현재 값, 증감액, 증감률. 계정 이름을 누르면 근거를 볼 수 있어요. 단위 ${unitLabel(unit, currency)}`}
+            density="dense"
+            stickyHeader
+          >
             <thead>
               <tr>
                 <th scope="col">계정</th>
@@ -140,17 +154,24 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChang
                 <th scope="col" className="num">
                   현재 · {amountPeriodLabel(analysis.current, basis)}
                 </th>
-                <th scope="col" className="num">
+                <SortableHeader
+                  numeric
+                  sort={ariaSortOf(sort, 'changeAmount')}
+                  onSort={() => setSort((s) => nextFinancialSort(s, 'changeAmount'))}
+                >
                   증감액
-                </th>
-                <th scope="col" className="num">
+                </SortableHeader>
+                <SortableHeader
+                  numeric
+                  sort={ariaSortOf(sort, 'changeRate')}
+                  onSort={() => setSort((s) => nextFinancialSort(s, 'changeRate'))}
+                >
                   증감률
-                </th>
-                <th scope="col">근거</th>
+                </SortableHeader>
               </tr>
             </thead>
             <tbody>
-              {data.items.map((item) => (
+              {sortFinancialItems(data.items, sort).map((item) => (
                 <ChangeRow
                   key={item.changeId}
                   item={item}
@@ -174,7 +195,7 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChang
             const id = selectedChangeId
             const opener = openerRef.current
             onChange({ change: null })
-            // 닫으면 근거를 연 버튼(없으면 그 계정의 '보기' 버튼)으로 초점을 돌려준다
+            // 닫으면 근거를 연 버튼(없으면 그 계정 이름 버튼)으로 초점을 돌려준다
             requestAnimationFrame(() =>
               (opener?.isConnected ? opener : document.getElementById(evidenceButtonId(id)))?.focus(),
             )
@@ -220,7 +241,17 @@ function ChangeRow({ item, unit, selected, onSelect }: ChangeRowProps) {
   const reason = shortCalcLabel(item.calcStatus)
   return (
     <DataTableRow selected={selected}>
-      <th scope="row">{item.accountName}</th>
+      <th scope="row">
+        <Button
+          variant="link"
+          id={evidenceButtonId(item.changeId)}
+          aria-pressed={selected}
+          aria-label={`${item.accountName} 근거 ${selected ? '닫기' : '보기'}`}
+          onClick={onSelect}
+        >
+          {item.accountName}
+        </Button>
+      </th>
       <td className="num">{previous}</td>
       <td className="num">{current}</td>
       {change === null ? (
@@ -235,17 +266,6 @@ function ChangeRow({ item, unit, selected, onSelect }: ChangeRowProps) {
           </td>
         </>
       )}
-      <td>
-        <Button
-          variant="secondary"
-          id={evidenceButtonId(item.changeId)}
-          aria-pressed={selected}
-          aria-label={`${item.accountName} 근거 ${selected ? '닫기' : '보기'}`}
-          onClick={onSelect}
-        >
-          {selected ? '보는 중' : '보기'}
-        </Button>
-      </td>
     </DataTableRow>
   )
 }
