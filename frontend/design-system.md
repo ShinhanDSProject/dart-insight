@@ -136,6 +136,7 @@ W-03 ④ 원문 확인
 | 오류 | `#b74250` on `#fff0f2` | `--color-danger`(`-subtle`) | 요청 실패 |
 | 추가된 문장 | `#187653` on `#ecf8f1` | `--color-added`(`-subtle`) | 문장 변경의 추가 부분 |
 | 차트 이전·현재 | `#8f86d9` / `#4f479e` | `--color-chart-previous` / `--color-chart-current` | 재무 차트의 이전 값 점 / 현재 값 점·증감률 막대(ADR-0018). 증감의 좋고 나쁨을 뜻하지 않음 |
+| 문장 변경 구성 | `#2e9a63` / `#4f479e` / `#c0782b` | `--color-chart-added` / `-modified` / `-deleted` | 추가·수정·삭제 비율 막대(ShareBar). 이 순서로 붙여 그리고 범례에 이름·건수·비율을 글자로 둔다 |
 
 입력창·선택창 테두리(`--color-border-strong`)는 시안보다 진하게 둔다. 시안의 연한 테두리는 배경 대비가 1.4:1이라, 입력 요소 기준(3:1)에 못 미친다.
 
