@@ -591,3 +591,125 @@ th[aria-sort='none'] .data-table__sort-mark {
     animation-name: sheet-in;
   }
 }
+
+/* 이전·현재 작은 비교 막대(CompareBars). 이름 | 막대 | 값 */
+.compare-bars {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.compare-bars__row {
+  display: grid;
+  grid-template-columns: minmax(72px, auto) minmax(80px, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-xs);
+}
+
+.compare-bars__label {
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.compare-bars__track {
+  position: relative;
+  height: 10px;
+  border-radius: var(--radius-xs);
+  background: var(--color-bg-subtle);
+}
+
+.compare-bars__zero {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 1px;
+  background: var(--color-border-strong);
+}
+
+.compare-bars__bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  min-width: 2px;
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+  transform-origin: left center;
+  animation: grow-x var(--motion-slow) var(--ease-out) both;
+}
+
+.compare-bars__bar--negative {
+  border-radius: var(--radius-xs) 0 0 var(--radius-xs);
+  transform-origin: right center;
+}
+
+.compare-bars__bar--previous {
+  background: var(--color-chart-previous);
+}
+
+.compare-bars__bar--current {
+  background: var(--color-chart-current);
+  animation-delay: var(--motion-stagger);
+}
+
+.compare-bars__value {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* 구성 비율 막대(ShareBar). 조각 사이는 2px 틈 */
+.share-bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.share-bar__track {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--radius-xs);
+}
+
+.share-bar__part {
+  transform-origin: left center;
+  animation: grow-x var(--motion-slow) var(--ease-out) both;
+}
+
+.share-bar__part--added {
+  background: var(--color-chart-added);
+}
+
+.share-bar__part--modified {
+  background: var(--color-chart-modified);
+}
+
+.share-bar__part--deleted {
+  background: var(--color-chart-deleted);
+}
+
+.share-bar__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.share-bar__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.share-bar__key {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  animation: none;
+}
+
+.share-bar__share {
+  font-family: var(--font-num);
+}
