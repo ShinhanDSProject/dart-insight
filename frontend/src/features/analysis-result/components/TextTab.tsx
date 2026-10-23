@@ -8,6 +8,7 @@ import {
   type TextChangeList,
   type TextSort,
 } from '@/shared/api/textChanges'
+import { Badge, Button, Notice } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { TextEvidencePanel, type SourceTarget } from './TextEvidencePanel'
@@ -93,9 +94,9 @@ export function TextTab({ analysis, type, sort, selectedChangeId, onChange, onOp
   return (
     <section className="panel" aria-label="문장·내용 변화">
       {notice && (
-        <div className="notice notice--attention" role="status">
+        <Notice tone="attention" role="status">
           {notice}
-        </div>
+        </Notice>
       )}
       {!failed && (
         <div className="text-controls">
@@ -186,9 +187,9 @@ export function TextTab({ analysis, type, sort, selectedChangeId, onChange, onOp
               {state.items.length} / {state.data.totalItems}건
             </span>
             {state.items.length < state.data.totalItems && (
-              <button type="button" className="button button--secondary" disabled={state.more === 'loading'} onClick={() => void loadMore()}>
+              <Button variant="secondary" disabled={state.more === 'loading'} onClick={() => void loadMore()}>
                 {state.more === 'loading' ? '불러오는 중…' : '더 보기'}
-              </button>
+              </Button>
             )}
           </div>
           {typeof state.more === 'object' && <ErrorState error={state.more.error} onRetry={() => void loadMore()} />}
@@ -230,10 +231,10 @@ function ChangeCard({ item, analysis, selected, onToggle, onClose, onOpenSource 
     <article className={`change-card${review ? ' change-card--review' : ''}${selected ? ' change-card--selected' : ''}`} aria-label={`${item.sectionPath} ${changeTypeLabel(item.changeType)}`}>
       <div className="change-card__head">
         <h3 className="change-card__title">{item.sectionPath}</h3>
-        <span className={`badge${review ? ' badge--attention' : ' badge--strong'}`}>{changeTypeLabel(item.changeType)}</span>
-        {item.priority && <span className="badge">{priorityLabel(item.priority.level)}</span>}
-        {item.blockType === 'TABLE' && <span className="badge">표</span>}
-        {item.numbersOnly && <span className="badge">숫자만 바뀜</span>}
+        <Badge tone={review ? 'attention' : 'accent'}>{changeTypeLabel(item.changeType)}</Badge>
+        {item.priority && <Badge>{priorityLabel(item.priority.level)}</Badge>}
+        {item.blockType === 'TABLE' && <Badge>표</Badge>}
+        {item.numbersOnly && <Badge>숫자만 바뀜</Badge>}
       </div>
       {review ? (
         <p className="change-card__review">
@@ -257,15 +258,9 @@ function ChangeCard({ item, analysis, selected, onToggle, onClose, onOpenSource 
       )}
       {item.changeType === 'DELETED' && <p className="panel__note">{DELETED_NOTE}</p>}
       <div className="change-card__actions">
-        <button
-          type="button"
-          id={evidenceButtonId(item.changeId)}
-          className="button button--secondary"
-          aria-expanded={selected}
-          onClick={onToggle}
-        >
+        <Button variant="secondary" id={evidenceButtonId(item.changeId)} aria-expanded={selected} onClick={onToggle}>
           {selected ? '근거 닫기' : '근거 상세'}
-        </button>
+        </Button>
         {item.priority && item.priority.reasons.length > 0 && (
           <details className="change-card__why">
             <summary>우선순위를 정한 규칙</summary>

@@ -8,6 +8,7 @@ import {
   type DocumentSide,
   type SectionContent,
 } from '@/shared/api/documents'
+import { Notice } from '@/shared/ui'
 import { DartLinkActions } from '@/shared/ui/DartLink'
 import { verifiedDartUrl } from '@/shared/lib/dart'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
@@ -86,9 +87,9 @@ export function SourceTab({ analysis, side, sectionNo, blockNo, onChange }: Sour
       {outline.kind === 'error' && <ErrorState error={outline.error} onRetry={() => setRetry((n) => n + 1)} />}
       {outline.kind === 'done' && outline.data.rceptNo !== report.rceptNo && (
         // 근거가 이 화면의 보고서 쌍과 맞는지 확인한다. 다르면 원문을 보여 주지 않는다
-        <div className="notice notice--attention" role="alert">
+        <Notice tone="attention" role="alert">
           이 분석의 보고서(접수번호 {report.rceptNo})와 다른 원문이 와서 보여 주지 않아요. 새로고침해 주세요.
-        </div>
+        </Notice>
       )}
       {outline.kind === 'done' && outline.data.rceptNo === report.rceptNo && (
         <SourceBody
@@ -115,9 +116,9 @@ function SourceBody({ analysis, outline, sectionNo, blockNo, onSelect }: SourceB
   if (!USABLE.has(outline.documentStatus)) {
     return (
       <>
-        <div className="notice notice--attention" role="status">
+        <Notice tone="attention" role="status">
           앱 안에서 원문을 보여 줄 수 없어요. {outline.statusMessage}
-        </div>
+        </Notice>
         <p className="panel__note">위치 이동 미지원 · DART 원문을 열어 직접 확인해 주세요.</p>
         <DartLinkActions rceptNo={outline.rceptNo} dartUrl={outline.dartUrl} />
       </>
@@ -126,9 +127,9 @@ function SourceBody({ analysis, outline, sectionNo, blockNo, onSelect }: SourceB
   return (
     <>
       {outline.documentStatus === 'PARTIAL' && (
-        <div className="notice notice--attention" role="status">
+        <Notice tone="attention" role="status">
           {outline.statusMessage}
-        </div>
+        </Notice>
       )}
       <div className="source-layout">
         <nav className="source-toc" aria-label="문서 목차">
@@ -214,14 +215,14 @@ function SectionView({ analysis, outline, sectionNo, blockNo }: SectionViewProps
         {data.sectionPath}
       </h3>
       {blockNo !== null && outline.restructuredAfterAnalysis && (
-        <p className="notice notice--attention" role="status">
+        <Notice as="p" tone="attention" role="status">
           분석이 끝난 뒤 원문을 다시 읽어 근거 위치가 달라졌을 수 있어요. 강조한 곳의 글이 근거와 같은지 확인해 주세요.
-        </p>
+        </Notice>
       )}
       {blockNo !== null && !highlighted && (
-        <p className="notice notice--attention" role="status">
+        <Notice as="p" tone="attention" role="status">
           선택한 근거 위치를 이 항목에서 찾지 못했어요. 원문을 다시 읽어 위치가 달라졌을 수 있어요.
-        </p>
+        </Notice>
       )}
       {data.blocks.length === 0 && <p className="panel__note">이 항목에는 바로 속한 문단·표가 없어요. 하위 항목을 골라 주세요.</p>}
       {data.blocks.map((block) => {

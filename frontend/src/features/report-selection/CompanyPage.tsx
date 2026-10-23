@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { getCompany, type Company } from '@/shared/api/companies'
 import { getReportPair, listReports, type ComparisonBasis, type ReportItem, type ReportList } from '@/shared/api/reports'
+import { ButtonLink, Notice } from '@/shared/ui'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { PairSelector, type PairLookup } from './components/PairSelector'
 import { ReportDetailPanel } from './components/ReportDetailPanel'
@@ -148,9 +149,9 @@ export function CompanyPage() {
       <p className="page__lead">비교할 두 보고서를 고르세요. 현재 보고서는 기본으로 가장 최근 보고서예요.</p>
 
       {reports.refreshError && (
-        <div className="notice notice--attention" role="status">
+        <Notice tone="attention" role="status">
           {refreshNotice(reports)}
-        </div>
+        </Notice>
       )}
 
       <div className="panel">
@@ -186,16 +187,16 @@ export function CompanyPage() {
         {current && (
           <div className="pair-actions">
             {previous ? (
-              <Link
+              <ButtonLink
                 to={`/companies/${encodeURIComponent(corpCode)}/compare?${new URLSearchParams({
                   current: current.rceptNo,
                   previous: previous.rceptNo,
                   basis,
                 }).toString()}`}
-                className="button button--primary"
+                variant="primary"
               >
                 비교 조건 확인 →
-              </Link>
+              </ButtonLink>
             ) : (
               <span className="pair__hint">비교 보고서를 고르면 비교 조건을 확인할 수 있어요.</span>
             )}

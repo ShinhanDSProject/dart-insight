@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Analysis } from '@/shared/api/analyses'
 import type { DocumentSide } from '@/shared/api/documents'
 import { getTextChange, type TextChangeDetail, type TextSource } from '@/shared/api/textChanges'
+import { Button, Notice } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { formatDate, reportTypeLabel } from '@/shared/lib/reportLabels'
@@ -62,9 +63,9 @@ export function TextEvidencePanel({ analysis, changeId, onClose, onOpenSource }:
         <h4 id={headingId} className="panel__title" ref={headingRef} tabIndex={-1}>
           문장·표 근거
         </h4>
-        <button type="button" className="button button--secondary" onClick={onClose}>
+        <Button variant="secondary" onClick={onClose}>
           닫기
-        </button>
+        </Button>
       </div>
       {state.kind === 'loading' && <LoadingState message="원문 근거를 불러오는 중입니다…" />}
       {state.kind === 'error' && (
@@ -88,10 +89,10 @@ function EvidenceBody({ detail, onOpenSource }: { detail: TextChangeDetail; onOp
   return (
     <>
       {review && (
-        <p className="notice notice--attention" role="status">
+        <Notice as="p" tone="attention" role="status">
           검토 필요: {change.reviewReason ?? '두 보고서의 항목을 짝짓지 못했어요.'} 근거 원문을 짝지어 보여 주지 않아요.
           아래 항목 위치에서 두 원문을 직접 확인해 주세요.
-        </p>
+        </Notice>
       )}
       <div className="evidence__sources text-evidence__sources">
         <SourceSide
@@ -196,13 +197,12 @@ function SourceSide({ role, side, onOpenSource, source, blockType, missing, part
         </span>
       )}
       <div className="text-evidence__links">
-        <button
-          type="button"
-          className="link-button"
+        <Button
+          variant="link"
           onClick={() => onOpenSource({ side, section: source.sectionNo, block: source.blockMatches ? source.blockNo : null })}
         >
           원문 위치 보기
-        </button>
+        </Button>
         <span className="evidence__meta">
           출처: DART · <DartLinkInline rceptNo={source.rceptNo} dartUrl={source.dartUrl} label={`${role} ${source.reportName}`} />
         </span>

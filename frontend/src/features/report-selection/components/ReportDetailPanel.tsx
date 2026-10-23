@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import { getReport, type ReportDetail } from '@/shared/api/reports'
+import { Notice } from '@/shared/ui'
 import { DartLinkActions } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import {
@@ -56,9 +57,9 @@ function ReportFacts({ report }: { report: ReportDetail }) {
   return (
     <>
       {!report.latest && (
-        <div className="notice notice--attention" role="status">
+        <Notice tone="attention" role="status">
           정정 공시가 나와 OpenDART 최신 목록에서 빠진 보고서예요. 최신 내용은 정정본을 확인해 주세요.
-        </div>
+        </Notice>
       )}
       <dl className="facts">
         <div className="facts__row">

@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { searchCompanies, type Company } from '@/shared/api/companies'
+import { Button } from '@/shared/ui'
 import { ServiceNotice } from '@/shared/ui/ServiceNotice'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { validateSearchQuery } from './model/searchQuery'
@@ -82,9 +83,9 @@ export function SearchPage() {
             aria-invalid={inputError !== null}
             aria-describedby={inputError ? 'company-query-error' : undefined}
           />
-          <button type="submit" className="button button--primary">
+          <Button type="submit" variant="primary" size="lg">
             검색
-          </button>
+          </Button>
         </div>
         {inputError && (
           <p id="company-query-error" className="field-error">

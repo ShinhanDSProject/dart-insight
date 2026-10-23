@@ -5,6 +5,7 @@ import { getReportPair, type ComparisonBasis } from '@/shared/api/reports'
 import type { SjDiv } from '@/shared/api/results'
 import type { DocumentSide } from '@/shared/api/documents'
 import type { ChangeType, TextSort } from '@/shared/api/textChanges'
+import { ButtonLink, Notice } from '@/shared/ui'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { basisOptions } from '@/shared/lib/comparisonBasis'
 import { FinancialTab } from './components/FinancialTab'
@@ -119,9 +120,9 @@ export function AnalysisResultPage() {
             {analysis.previous.reportName} → {analysis.current.reportName}
           </p>
         </div>
-        <Link to={selectionPath(analysis)} className="button button--secondary">
+        <ButtonLink to={selectionPath(analysis)} variant="secondary">
           보고서 선택 변경
-        </Link>
+        </ButtonLink>
       </div>
 
       {analysis.status !== 'COMPLETED' ? (
@@ -241,10 +242,10 @@ function selectionPath(analysis: Analysis): string {
 function NotCompleted({ analysis }: { analysis: Analysis }) {
   const failed = analysis.status === 'FAILED'
   return (
-    <div className={failed ? 'not-comparable' : 'notice'} role="status">
+    <Notice tone={failed ? 'blocked' : 'info'} role="status">
       <p>{failed ? '분석하지 못했어요. 진행 화면에서 사유를 보고 다시 요청할 수 있어요.' : '분석이 아직 끝나지 않았어요.'}</p>
       <Link to={`/analyses/${analysis.analysisId}/progress`}>진행 화면으로 가기</Link>
-    </div>
+    </Notice>
   )
 }
 
@@ -315,9 +316,9 @@ function BasisSwitcher({ analysis }: { analysis: Analysis }) {
         수치 기준: {analysis.fsDiv === 'OFS' ? '별도' : '연결'} 재무제표 · 분석 한계: 비교할 수치가 없는 항목은 계산하지 않아요.
       </p>
       {message && (
-        <p className="notice notice--attention" role="status">
+        <Notice as="p" tone="attention" role="status">
           {message}
-        </p>
+        </Notice>
       )}
       {error !== null && (
         <ErrorState

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { useNavigate, useParams } from 'react-router'
 import { analysisPath, getAnalysis, requestAnalysis, type Analysis } from '@/shared/api/analyses'
 import { ApiError } from '@/shared/api/client'
+import { Badge, Button, ButtonLink, Notice } from '@/shared/ui'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { periodLabel } from '@/shared/lib/reportLabels'
 import { MAX_POLL_FAILURES, nextPollDelay, statusLabel, stepSummary } from './model/progress'
@@ -115,9 +116,9 @@ function Progress({ analysis }: { analysis: Analysis }) {
         </ol>
         <div className="progress__status">
           <span className="pair__label">현재 상태</span>
-          <span className="badge badge--strong" role="status" aria-live="polite">
+          <Badge tone="accent" role="status" aria-live="polite">
             {statusLabel(analysis.status)}
-          </span>
+          </Badge>
         </div>
         <p className="panel__note">{stepSummary(analysis.steps)}</p>
       </section>
@@ -151,9 +152,9 @@ function Outcome({ analysis }: { analysis: Analysis }) {
   if (analysis.status === 'COMPLETED') {
     return (
       <div className="progress__outcome">
-        <Link to={`/analyses/${analysis.analysisId}`} className="button button--primary">
+        <ButtonLink to={`/analyses/${analysis.analysisId}`} variant="primary">
           결과 보기
-        </Link>
+        </ButtonLink>
       </div>
     )
   }
@@ -178,21 +179,20 @@ function Outcome({ analysis }: { analysis: Analysis }) {
   }
 
   return (
-    <div className="not-comparable progress__failed" role="alert">
-      <p className="not-comparable__title">분석하지 못했어요.</p>
+    <Notice tone="blocked" title="분석하지 못했어요." className="progress__failed" role="alert">
       <p>{analysis.error.message}</p>
       <p className="state__meta">사유 코드: {analysis.error.code}</p>
       <div className="progress__actions">
-        <Link to={compareLink} className="button button--secondary">
+        <ButtonLink to={compareLink} variant="secondary">
           비교 조건 다시 확인
-        </Link>
+        </ButtonLink>
         {analysis.error.retryable && (
-          <button type="button" className="button button--primary" onClick={() => void retry()} disabled={retrying}>
+          <Button variant="primary" onClick={() => void retry()} disabled={retrying}>
             {retrying ? '요청하는 중…' : '다시 요청'}
-          </button>
+          </Button>
         )}
       </div>
       {retryError !== null && <ErrorState error={retryError} />}
-    </div>
+    </Notice>
   )
 }

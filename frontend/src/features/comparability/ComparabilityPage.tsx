@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { analysisPath, requestAnalysis } from '@/shared/api/analyses'
 import { checkComparability, type ComparabilityResult } from '@/shared/api/comparability'
-import { ErrorState, LoadingState } from '@/shared/ui/StateView'
+import { Button, ButtonLink, Notice } from '@/shared/ui'
+import { AlertState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { checkStatusLabel, resultSummary, statementBasisLabel } from './model/comparabilityLabels'
 import { basisLabel, parseBasis } from '@/shared/lib/comparisonBasis'
 import './comparability.css'
@@ -71,10 +72,9 @@ export function ComparabilityPage() {
       <h1 className="page__title">비교 대상을 확인하세요</h1>
 
       {!hasPair && (
-        <div className="state state--error" role="alert">
-          <p className="state__title">비교할 두 보고서가 정해지지 않았어요.</p>
+        <AlertState title="비교할 두 보고서가 정해지지 않았어요.">
           <Link to={backTo}>보고서 선택으로 돌아가기</Link>
-        </div>
+        </AlertState>
       )}
       {hasPair && state.kind === 'loading' && (
         <LoadingState message="두 보고서의 재무제표를 확인하는 중입니다… 처음 확인하는 보고서는 OpenDART에서 받아 오느라 조금 걸려요." />
@@ -91,13 +91,13 @@ export function ComparabilityPage() {
         />
       )}
       <div className="compare-actions">
-        <Link to={backTo} className="button button--secondary">
+        <ButtonLink to={backTo} variant="secondary">
           보고서 다시 선택
-        </Link>
+        </ButtonLink>
         {state.kind === 'done' && state.result.comparable && (
-          <button type="button" className="button button--primary" onClick={() => void runAnalysis()} disabled={submitting}>
+          <Button variant="primary" onClick={() => void runAnalysis()} disabled={submitting}>
             {submitting ? '분석을 요청하는 중…' : '분석 실행 →'}
-          </button>
+          </Button>
         )}
       </div>
     </section>
@@ -128,12 +128,9 @@ function CheckResult({ result, basis }: { result: ComparabilityResult; basis: st
       </section>
 
       {result.comparable ? (
-        <div className="notice" role="status">
-          {resultSummary(result)}
-        </div>
+        <Notice role="status">{resultSummary(result)}</Notice>
       ) : (
-        <div className="not-comparable" role="alert">
-          <p className="not-comparable__title">{resultSummary(result)}</p>
+        <Notice tone="blocked" title={resultSummary(result)} role="alert">
           <ul className="not-comparable__reasons">
             {result.reasons.map((reason, i) => (
               <li key={`${reason.code}-${i}`}>
@@ -142,7 +139,7 @@ function CheckResult({ result, basis }: { result: ComparabilityResult; basis: st
             ))}
           </ul>
           <p className="panel__note">분석은 시작하지 않고, 다른 보고서로 대신하거나 수치를 만들어 내지 않아요.</p>
-        </div>
+        </Notice>
       )}
 
       {result.comparable && (
