@@ -1,15 +1,13 @@
 package com.dartinsight.summary;
 
 import com.dartinsight.analysis.Analysis;
-import com.dartinsight.analysis.AnalysisResultService;
-import com.dartinsight.analysis.FinancialChange;
-import com.dartinsight.analysis.FinancialChangeRepository;
-import com.dartinsight.analysis.TextChangeStore;
 import com.dartinsight.analysis.TextStatus;
 import com.dartinsight.common.web.ApiPaths;
 import com.dartinsight.document.DocumentBlock;
 import com.dartinsight.document.DocumentService;
 import com.dartinsight.document.ReportDocument;
+import com.dartinsight.summary.SummaryQueryService.StoredSummary;
+import com.dartinsight.summary.SummaryQueryService.SummaryEntry;
 import com.dartinsight.summary.SummaryStore.StoredItem;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.LocalDateTime;
@@ -31,31 +29,25 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(ApiPaths.ANALYSIS_SUMMARY)
 public class SummaryController {
 
-    private final AnalysisResultService resultService;
-    private final SummaryStore summaryStore;
-    private final TextChangeStore textChangeStore;
-    private final FinancialChangeRepository financialChangeRepository;
+    private final SummaryQueryService queryService;
     private final DocumentService documentService;
 
-    public SummaryController(AnalysisResultService resultService, SummaryStore summaryStore,
-            TextChangeStore textChangeStore, FinancialChangeRepository financialChangeRepository,
-            DocumentService documentService) {
-        this.resultService = resultService;
-        this.summaryStore = summaryStore;
-        this.textChangeStore = textChangeStore;
-        this.financialChangeRepository = financialChangeRepository;
+    public SummaryController(SummaryQueryService queryService, DocumentService documentService) {
+        this.queryService = queryService;
         this.documentService = documentService;
     }
 
     @GetMapping
     public SummaryResponse summary(@PathVariable Long analysisId) {
-        Analysis analysis = resultService.completed(analysisId);
+        StoredSummary summary = queryService.summary(analysisId);
+        Analysis analysis = summary.analysis();
         Map<String, Optional<ReportDocument>> documents = new HashMap<>();
         List<ItemView> shown = new ArrayList<>();
         List<ReviewView> review = new ArrayList<>();
-        for (StoredItem stored : summaryStore.items(analysisId)) {
+        for (SummaryEntry entry : summary.entries()) {
+            StoredItem stored = entry.stored();
             SummaryItemRow row = stored.row();
-            Target target = target(analysisId, stored);
+            Target target = new Target(entry.targetType(), entry.changeId(), entry.sjDiv());
             if (SummaryItemRow.REVIEW_NEEDED.equals(row.status())) {
                 review.add(new ReviewView(stored.itemNo(), row.kind(), target, row.reviewReason(),
                         row.blockedRules()));
@@ -74,17 +66,6 @@ public class SummaryController {
         }
         return new SummaryResponse(analysisId, analysis.getSummaryStatus(), analysis.getSummaryMessage(),
                 analysis.getTextStatus(), shown, review.size(), review);
-    }
-
-    private Target target(Long analysisId, StoredItem stored) {
-        if (stored.financialChangeId() != null) {
-            String sjDiv = financialChangeRepository.findById(stored.financialChangeId())
-                    .map(FinancialChange::getSjDiv).orElse(null);
-            return new Target("FINANCIAL", stored.financialChangeId(), sjDiv);
-        }
-        Integer changeNo = stored.row().textChangeNo();
-        Long changeId = changeNo == null ? null : textChangeStore.idOf(analysisId, changeNo).orElse(null);
-        return new Target("TEXT", changeId, null);
     }
 
     /** 근거 ID({접수번호}#B{블록 번호})를 화면에서 열 수 있는 위치로 푼다. */
