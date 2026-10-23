@@ -113,6 +113,10 @@ DB는 MariaDB(정형 데이터)와 Chroma(본문 임베딩)이고, 외부 데이
 - [ ] 구조 결정을 하거나 바꿨다면 `docs/adr/`에 ADR을 추가했다
 - [ ] 와이어프레임의 '예외·상태 처리'에 해당하는 경우도 확인했다
 
+## 서비스별 컨벤션
+
+코드 컨벤션은 서비스 폴더마다 `conventions.yaml`(`backend/`·`frontend/`·`ai-server/`)에 있습니다. 판단이 필요한 규칙만 `ID: 한 줄`로 적고, 형식은 린터·포매터가 검사합니다. 그 폴더의 `AGENTS.md`·`CLAUDE.md`가 이 파일을 가리키므로, 해당 서비스를 고칠 때만 읽힙니다.
+
 ## 서비스별 명령
 
 CI(`.github/workflows/`)도 같은 명령을 씁니다. 버전은 backend Java 21, frontend Node.js 22, ai-server Python 3.12입니다.
