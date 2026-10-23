@@ -7,7 +7,7 @@ import {
   type SjDiv,
   type StatementSummary,
 } from '@/shared/api/results'
-import { Button, Notice } from '@/shared/ui'
+import { Button, DataTable, DataTableRow, FieldLabel, Notice, Panel, SegmentedControl, Select } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { EvidencePanel } from './EvidencePanel'
@@ -22,6 +22,11 @@ import {
   unitOptions,
   type AmountUnit,
 } from '../model/format'
+
+const viewOptions = [
+  { value: 'all', label: '전체 계정' },
+  { value: 'changed', label: '변경 항목만' },
+] as const
 
 const statementOptions: { sjDiv: SjDiv; label: string }[] = [
   { sjDiv: 'BS', label: '재무상태표' },
@@ -73,14 +78,11 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChang
   const currency = state.kind === 'done' ? (state.data.items.find((i) => i.currency)?.currency ?? null) : null
 
   return (
-    <section className="panel" aria-label="재무 수치 변화">
+    <Panel aria-label="재무 수치 변화">
       <div className="fin-controls">
-        <label htmlFor="fin-statement" className="pair__label">
-          재무제표
-        </label>
-        <select
+        <FieldLabel htmlFor="fin-statement">재무제표</FieldLabel>
+        <Select
           id="fin-statement"
-          className="select"
           value={sjDiv}
           onChange={(e) => onChange({ sj: e.target.value as SjDiv })}
         >
@@ -96,26 +98,22 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChang
               </option>
             )
           })}
-        </select>
+        </Select>
         <span className="fin-controls__basis">{analysis.fsDiv === 'OFS' ? '별도' : '연결'} 재무제표 기준</span>
-        <div className="segmented" role="group" aria-label="보기">
-          <button type="button" className="segmented__item" aria-pressed={!changedOnly} onClick={() => onChange({ changed: false })}>
-            전체 계정
-          </button>
-          <button type="button" className="segmented__item" aria-pressed={changedOnly} onClick={() => onChange({ changed: true })}>
-            변경 항목만
-          </button>
-        </div>
-        <label htmlFor="fin-unit" className="pair__label">
-          단위
-        </label>
-        <select id="fin-unit" className="select" value={unit} onChange={(e) => onChange({ unit: e.target.value as AmountUnit })}>
+        <SegmentedControl
+          aria-label="보기"
+          options={viewOptions}
+          value={changedOnly ? 'changed' : 'all'}
+          onChange={(view) => onChange({ changed: view === 'changed' })}
+        />
+        <FieldLabel htmlFor="fin-unit">단위</FieldLabel>
+        <Select id="fin-unit" value={unit} onChange={(e) => onChange({ unit: e.target.value as AmountUnit })}>
           {unitOptions.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
 
       {selected && !selected.comparable && (
@@ -132,42 +130,37 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChang
         </EmptyState>
       )}
       {state.kind === 'done' && state.data.items.length > 0 && (
-        <div className="table-scroll">
-          <table className="data-table fin-table">
-            <caption className="visually-hidden">
-              계정별 이전 값, 현재 값, 증감액, 증감률. 단위 {unitLabel(unit, currency)}
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">계정</th>
-                <th scope="col" className="num">
-                  이전 · {amountPeriodLabel(analysis.previous, basis)}
-                </th>
-                <th scope="col" className="num">
-                  현재 · {amountPeriodLabel(analysis.current, basis)}
-                </th>
-                <th scope="col" className="num">
-                  증감액
-                </th>
-                <th scope="col" className="num">
-                  증감률
-                </th>
-                <th scope="col">근거</th>
-              </tr>
-            </thead>
-            <tbody>
-              {state.data.items.map((item) => (
-                <ChangeRow
-                  key={item.changeId}
-                  item={item}
-                  unit={unit}
-                  selected={item.changeId === selectedChangeId}
-                  onSelect={() => onChange({ change: item.changeId === selectedChangeId ? null : item.changeId })}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable caption={`계정별 이전 값, 현재 값, 증감액, 증감률. 단위 ${unitLabel(unit, currency)}`}>
+          <thead>
+            <tr>
+              <th scope="col">계정</th>
+              <th scope="col" className="num">
+                이전 · {amountPeriodLabel(analysis.previous, basis)}
+              </th>
+              <th scope="col" className="num">
+                현재 · {amountPeriodLabel(analysis.current, basis)}
+              </th>
+              <th scope="col" className="num">
+                증감액
+              </th>
+              <th scope="col" className="num">
+                증감률
+              </th>
+              <th scope="col">근거</th>
+            </tr>
+          </thead>
+          <tbody>
+            {state.data.items.map((item) => (
+              <ChangeRow
+                key={item.changeId}
+                item={item}
+                unit={unit}
+                selected={item.changeId === selectedChangeId}
+                onSelect={() => onChange({ change: item.changeId === selectedChangeId ? null : item.changeId })}
+              />
+            ))}
+          </tbody>
+        </DataTable>
       )}
       {selectedChangeId !== null && (
         <EvidencePanel
@@ -192,7 +185,7 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChang
       <p className="panel__note">
         단위 {unitLabel(unit, currency)}. 증가·감소는 ▲▼와 부호로 표시하고 좋고 나쁨의 평가와 구분해요. 없는 값은 0으로 보지 않아요.
       </p>
-    </section>
+    </Panel>
   )
 }
 
@@ -214,7 +207,7 @@ function ChangeRow({ item, unit, selected, onSelect }: ChangeRowProps) {
   const rate = formatRate(item.changeRate)
   const reason = shortCalcLabel(item.calcStatus)
   return (
-    <tr className={selected ? 'data-table__row--selected' : undefined}>
+    <DataTableRow selected={selected}>
       <th scope="row">{item.accountName}</th>
       <td className="num">{previous}</td>
       <td className="num">{current}</td>
@@ -241,6 +234,6 @@ function ChangeRow({ item, unit, selected, onSelect }: ChangeRowProps) {
           {selected ? '보는 중' : '보기'}
         </Button>
       </td>
-    </tr>
+    </DataTableRow>
   )
 }

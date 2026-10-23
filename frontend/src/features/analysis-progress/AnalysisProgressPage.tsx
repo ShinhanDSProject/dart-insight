@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { analysisPath, getAnalysis, requestAnalysis, type Analysis } from '@/shared/api/analyses'
 import { ApiError } from '@/shared/api/client'
-import { Badge, Button, ButtonLink, Notice } from '@/shared/ui'
+import { Badge, Button, ButtonLink, FieldLabel, Notice, Panel } from '@/shared/ui'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { periodLabel } from '@/shared/lib/reportLabels'
 import { MAX_POLL_FAILURES, nextPollDelay, statusLabel, stepSummary } from './model/progress'
@@ -102,7 +102,7 @@ function Progress({ analysis }: { analysis: Analysis }) {
       <p className="page__lead">
         {analysis.corpName} · {periodLabel(analysis.previous)} ↔ {periodLabel(analysis.current)}
       </p>
-      <section className="panel" aria-label="진행 단계">
+      <Panel aria-label="진행 단계">
         <ol className="steps">
           {analysis.steps.map((step) => (
             <li key={step.step} className={`steps__item steps__item--${step.state.toLowerCase()}`}>
@@ -115,13 +115,13 @@ function Progress({ analysis }: { analysis: Analysis }) {
           ))}
         </ol>
         <div className="progress__status">
-          <span className="pair__label">현재 상태</span>
+          <FieldLabel as="span">현재 상태</FieldLabel>
           <Badge tone="accent" role="status" aria-live="polite">
             {statusLabel(analysis.status)}
           </Badge>
         </div>
         <p className="panel__note">{stepSummary(analysis.steps)}</p>
-      </section>
+      </Panel>
     </>
   )
 }

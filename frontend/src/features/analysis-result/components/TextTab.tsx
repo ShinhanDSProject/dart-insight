@@ -8,7 +8,7 @@ import {
   type TextChangeList,
   type TextSort,
 } from '@/shared/api/textChanges'
-import { Badge, Button, Notice } from '@/shared/ui'
+import { Badge, Button, Card, Chip, Notice, Panel, SegmentedControl } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { TextEvidencePanel, type SourceTarget } from './TextEvidencePanel'
@@ -24,6 +24,11 @@ import {
 } from '../model/textLabels'
 
 const PAGE_SIZE = 20
+
+const sortOptions: { value: TextSort; label: string }[] = [
+  { value: 'priority', label: '우선순위 순' },
+  { value: 'document', label: '문서 순서' },
+]
 
 type ListState =
   | { kind: 'loading' }
@@ -92,7 +97,7 @@ export function TextTab({ analysis, type, sort, selectedChangeId, onChange, onOp
   const failed = analysis.textStatus === 'FAILED' || analysis.textStatus === null
 
   return (
-    <section className="panel" aria-label="문장·내용 변화">
+    <Panel aria-label="문장·내용 변화">
       {notice && (
         <Notice tone="attention" role="status">
           {notice}
@@ -102,42 +107,27 @@ export function TextTab({ analysis, type, sort, selectedChangeId, onChange, onOp
         <div className="text-controls">
           <div className="text-filters" role="group" aria-label="변경 유형">
             {changeTypeOptions.map((option) => (
-              <button
+              <Chip
                 key={option.label}
-                type="button"
-                className={`pill${option.value === 'REVIEW_NEEDED' ? ' pill--attention' : ''}`}
-                aria-pressed={type === option.value}
+                tone={option.value === 'REVIEW_NEEDED' ? 'attention' : 'neutral'}
+                pressed={type === option.value}
+                count={counts && countFor(counts, option.value)}
                 onClick={() => {
                   if (type !== option.value) onChange({ type: option.value })
                 }}
               >
                 {option.label}
-                {counts && <span className="pill__count"> {countFor(counts, option.value)}</span>}
-              </button>
+              </Chip>
             ))}
           </div>
-          <div className="segmented" role="group" aria-label="정렬">
-            <button
-              type="button"
-              className="segmented__item"
-              aria-pressed={sort === 'priority'}
-              onClick={() => {
-                if (sort !== 'priority') onChange({ sort: 'priority' })
-              }}
-            >
-              우선순위 순
-            </button>
-            <button
-              type="button"
-              className="segmented__item"
-              aria-pressed={sort === 'document'}
-              onClick={() => {
-                if (sort !== 'document') onChange({ sort: 'document' })
-              }}
-            >
-              문서 순서
-            </button>
-          </div>
+          <SegmentedControl
+            aria-label="정렬"
+            options={sortOptions}
+            value={sort}
+            onChange={(next) => {
+              if (next !== sort) onChange({ sort: next })
+            }}
+          />
           <p className="panel__note text-controls__note">{PRIORITY_NOTE}</p>
         </div>
       )}
@@ -208,7 +198,7 @@ export function TextTab({ analysis, type, sort, selectedChangeId, onChange, onOp
           </p>
         </>
       )}
-    </section>
+    </Panel>
   )
 }
 
@@ -228,7 +218,13 @@ interface ChangeCardProps {
 function ChangeCard({ item, analysis, selected, onToggle, onClose, onOpenSource }: ChangeCardProps) {
   const review = item.changeType === 'REVIEW_NEEDED'
   return (
-    <article className={`change-card${review ? ' change-card--review' : ''}${selected ? ' change-card--selected' : ''}`} aria-label={`${item.sectionPath} ${changeTypeLabel(item.changeType)}`}>
+    <Card
+      as="article"
+      tone={review ? 'attention' : 'default'}
+      selected={selected}
+      className="change-card"
+      aria-label={`${item.sectionPath} ${changeTypeLabel(item.changeType)}`}
+    >
       <div className="change-card__head">
         <h3 className="change-card__title">{item.sectionPath}</h3>
         <Badge tone={review ? 'attention' : 'accent'}>{changeTypeLabel(item.changeType)}</Badge>
@@ -275,7 +271,7 @@ function ChangeCard({ item, analysis, selected, onToggle, onClose, onOpenSource 
       {selected && (
         <TextEvidencePanel key={item.changeId} analysis={analysis} changeId={item.changeId} onClose={onClose} onOpenSource={onOpenSource} />
       )}
-    </article>
+    </Card>
   )
 }
 

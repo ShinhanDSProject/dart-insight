@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { searchCompanies, type Company } from '@/shared/api/companies'
-import { Button } from '@/shared/ui'
+import { Button, Input } from '@/shared/ui'
 import { ServiceNotice } from '@/shared/ui/ServiceNotice'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { validateSearchQuery } from './model/searchQuery'
@@ -73,14 +73,13 @@ export function SearchPage() {
           회사명 또는 종목코드
         </label>
         <div className="search-form__row">
-          <input
+          <Input
             id="company-query"
-            className={`input${inputError ? ' input--error' : ''}`}
+            invalid={inputError !== null}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="예: 삼성전자, 005930"
             autoComplete="off"
-            aria-invalid={inputError !== null}
             aria-describedby={inputError ? 'company-query-error' : undefined}
           />
           <Button type="submit" variant="primary" size="lg">

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { getCompany, type Company } from '@/shared/api/companies'
 import { getReportPair, listReports, type ComparisonBasis, type ReportItem, type ReportList } from '@/shared/api/reports'
-import { ButtonLink, Notice } from '@/shared/ui'
+import { ButtonLink, FieldHint, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { PairSelector, type PairLookup } from './components/PairSelector'
 import { ReportDetailPanel } from './components/ReportDetailPanel'
@@ -154,7 +154,7 @@ export function CompanyPage() {
         </Notice>
       )}
 
-      <div className="panel">
+      <Panel as="div">
         {current && (
           <PairSelector
             items={reportItems}
@@ -198,7 +198,7 @@ export function CompanyPage() {
                 비교 조건 확인 →
               </ButtonLink>
             ) : (
-              <span className="pair__hint">비교 보고서를 고르면 비교 조건을 확인할 수 있어요.</span>
+              <FieldHint>비교 보고서를 고르면 비교 조건을 확인할 수 있어요.</FieldHint>
             )}
           </div>
         )}
@@ -208,17 +208,17 @@ export function CompanyPage() {
           사업·반기·분기보고서(A001~A003) 중 12월 결산 보고서만 보여요. 그 밖의 정기공시(A004·A005)는 지원 범위가 정해지면
           추가해요.
         </p>
-      </div>
+      </Panel>
 
       {current && (
         <div className="pair-details">
           {previous ? (
             <ReportDetailPanel key={previous.rceptNo} rceptNo={previous.rceptNo} title="비교 보고서 정보" />
           ) : (
-            <section className="panel">
-              <h2 className="panel__title">비교 보고서 정보</h2>
+            <Panel>
+              <PanelTitle>비교 보고서 정보</PanelTitle>
               <p className="panel__note">비교 보고서를 고르면 종류·대상 기간·제출일·정정 여부를 여기서 확인할 수 있어요.</p>
-            </section>
+            </Panel>
           )}
           <ReportDetailPanel key={current.rceptNo} rceptNo={current.rceptNo} title="현재 보고서 정보" />
         </div>

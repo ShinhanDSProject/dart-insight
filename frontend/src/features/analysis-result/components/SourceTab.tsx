@@ -8,7 +8,7 @@ import {
   type DocumentSide,
   type SectionContent,
 } from '@/shared/api/documents'
-import { Notice } from '@/shared/ui'
+import { Notice, Panel, PanelTitle, SegmentedControl } from '@/shared/ui'
 import { DartLinkActions } from '@/shared/ui/DartLink'
 import { verifiedDartUrl } from '@/shared/lib/dart'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
@@ -27,6 +27,11 @@ interface SourceTabProps {
 }
 
 const USABLE = new Set(['STRUCTURED', 'PARTIAL'])
+
+const sideOptions: { value: DocumentSide; label: string }[] = [
+  { value: 'previous', label: '비교 보고서' },
+  { value: 'current', label: '현재 보고서' },
+]
 
 /**
  * W-03 ④ 원문 확인(3.5). 비교·현재 보고서를 전환하며 목차와 선택한 근거 위치를 보여 준다.
@@ -54,30 +59,16 @@ export function SourceTab({ analysis, side, sectionNo, blockNo, onChange }: Sour
   const report = side === 'current' ? analysis.current : analysis.previous
 
   return (
-    <section className="panel" aria-label="원문 확인">
+    <Panel aria-label="원문 확인">
       <div className="source-head">
-        <div className="segmented" role="group" aria-label="보고서">
-          <button
-            type="button"
-            className="segmented__item"
-            aria-pressed={side === 'previous'}
-            onClick={() => {
-              if (side !== 'previous') onChange({ side: 'previous', section: null, block: null })
-            }}
-          >
-            비교 보고서
-          </button>
-          <button
-            type="button"
-            className="segmented__item"
-            aria-pressed={side === 'current'}
-            onClick={() => {
-              if (side !== 'current') onChange({ side: 'current', section: null, block: null })
-            }}
-          >
-            현재 보고서
-          </button>
-        </div>
+        <SegmentedControl
+          aria-label="보고서"
+          options={sideOptions}
+          value={side}
+          onChange={(next) => {
+            if (next !== side) onChange({ side: next, section: null, block: null })
+          }}
+        />
         <p className="source-head__report">
           {report.reportName} · 접수번호 <code>{report.rceptNo}</code>
         </p>
@@ -100,7 +91,7 @@ export function SourceTab({ analysis, side, sectionNo, blockNo, onChange }: Sour
           onSelect={(section) => onChange({ section, block: null })}
         />
       )}
-    </section>
+    </Panel>
   )
 }
 
@@ -133,7 +124,7 @@ function SourceBody({ analysis, outline, sectionNo, blockNo, onSelect }: SourceB
       )}
       <div className="source-layout">
         <nav className="source-toc" aria-label="문서 목차">
-          <h3 className="panel__title">문서 목차</h3>
+          <PanelTitle as="h3">문서 목차</PanelTitle>
           <ul>
             {outline.sections.map((section) => (
               <li key={section.sectionNo}>

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { analysisPath, requestAnalysis } from '@/shared/api/analyses'
 import { checkComparability, type ComparabilityResult } from '@/shared/api/comparability'
-import { Button, ButtonLink, Notice } from '@/shared/ui'
+import { Button, ButtonLink, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { AlertState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { checkStatusLabel, resultSummary, statementBasisLabel } from './model/comparabilityLabels'
 import { basisLabel, parseBasis } from '@/shared/lib/comparisonBasis'
@@ -111,7 +111,7 @@ function CheckResult({ result, basis }: { result: ComparabilityResult; basis: st
         {result.previous.reportName} → {result.current.reportName} · {basis}
       </p>
 
-      <section className="panel" aria-label="비교 조건">
+      <Panel aria-label="비교 조건">
         <table className="check-table">
           <tbody>
             {result.checks.map((check) => (
@@ -125,7 +125,7 @@ function CheckResult({ result, basis }: { result: ComparabilityResult; basis: st
             ))}
           </tbody>
         </table>
-      </section>
+      </Panel>
 
       {result.comparable ? (
         <Notice role="status">{resultSummary(result)}</Notice>
@@ -143,10 +143,8 @@ function CheckResult({ result, basis }: { result: ComparabilityResult; basis: st
       )}
 
       {result.comparable && (
-        <section className="panel" aria-labelledby="statements-title">
-          <h2 id="statements-title" className="panel__title">
-            비교하는 재무제표
-          </h2>
+        <Panel aria-labelledby="statements-title">
+          <PanelTitle id="statements-title">비교하는 재무제표</PanelTitle>
           <ul className="statement-list">
             {result.statements.map((s) => (
               <li key={s.sjDiv} className={s.comparable ? undefined : 'statement-list__item--off'}>
@@ -156,7 +154,7 @@ function CheckResult({ result, basis }: { result: ComparabilityResult; basis: st
               </li>
             ))}
           </ul>
-        </section>
+        </Panel>
       )}
     </>
   )

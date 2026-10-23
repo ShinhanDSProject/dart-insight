@@ -5,7 +5,7 @@ import { getReportPair, type ComparisonBasis } from '@/shared/api/reports'
 import type { SjDiv } from '@/shared/api/results'
 import type { DocumentSide } from '@/shared/api/documents'
 import type { ChangeType, TextSort } from '@/shared/api/textChanges'
-import { ButtonLink, Notice } from '@/shared/ui'
+import { ButtonLink, FieldHint, FieldLabel, Notice, SegmentedControl, Tabs, type TabItem } from '@/shared/ui'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { basisOptions } from '@/shared/lib/comparisonBasis'
 import { FinancialTab } from './components/FinancialTab'
@@ -20,7 +20,7 @@ type PageState = { kind: 'loading' } | { kind: 'done'; analysis: Analysis } | { 
 
 type Tab = 'summary' | 'financial' | 'text' | 'source'
 
-const tabs: { value: Tab; label: string }[] = [
+const tabs: TabItem<Tab>[] = [
   { value: 'summary', label: '요약·설명' },
   { value: 'financial', label: '재무 수치 변화' },
   { value: 'text', label: '문장·내용 변화' },
@@ -132,19 +132,7 @@ export function AnalysisResultPage() {
           <ReportPairCards previous={analysis.previous} current={analysis.current} />
           <BasisSwitcher analysis={analysis} />
 
-          <nav className="result-tabs" aria-label="결과 보기">
-            {tabs.map((t) => (
-              <button
-                key={t.value}
-                type="button"
-                className="result-tabs__item"
-                aria-current={tab === t.value ? 'page' : undefined}
-                onClick={() => update({ tab: t.value })}
-              >
-                {t.label}
-              </button>
-            ))}
-          </nav>
+          <Tabs label="결과 보기" items={tabs} value={tab} onChange={(t) => update({ tab: t })} />
 
           {tab === 'financial' && (
             <FinancialTab
@@ -291,26 +279,17 @@ function BasisSwitcher({ analysis }: { analysis: Analysis }) {
   return (
     <section className="basis-bar" aria-label="비교 기준">
       <div className="basis-bar__row">
-        <span className="pair__label" id="result-basis-label">
+        <FieldLabel as="span" id="result-basis-label">
           비교 기준
-        </span>
-        <div className="segmented" role="group" aria-labelledby="result-basis-label">
-          {basisOptions.map((o) => (
-            <button
-              key={o.value}
-              type="button"
-              className="segmented__item"
-              aria-pressed={analysis.basis === o.value}
-              disabled={busy}
-              onClick={() => void switchTo(o.value)}
-            >
-              {o.label}
-            </button>
-          ))}
-        </div>
-        <span className="pair__hint">
-          {busy ? '새 비교를 준비하는 중…' : '바꾸면 요약·수치·문장·근거가 같은 보고서 쌍으로 함께 바뀌어요.'}
-        </span>
+        </FieldLabel>
+        <SegmentedControl
+          aria-labelledby="result-basis-label"
+          options={basisOptions}
+          value={analysis.basis}
+          disabled={busy}
+          onChange={(basis) => void switchTo(basis)}
+        />
+        <FieldHint>{busy ? '새 비교를 준비하는 중…' : '바꾸면 요약·수치·문장·근거가 같은 보고서 쌍으로 함께 바뀌어요.'}</FieldHint>
       </div>
       <p className="panel__note">
         수치 기준: {analysis.fsDiv === 'OFS' ? '별도' : '연결'} 재무제표 · 분석 한계: 비교할 수치가 없는 항목은 계산하지 않아요.

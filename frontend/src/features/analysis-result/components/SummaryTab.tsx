@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Analysis } from '@/shared/api/analyses'
 import type { SjDiv } from '@/shared/api/results'
 import { getSummary, type Summary, type SummaryEvidence, type SummaryItem, type SummaryTarget } from '@/shared/api/summary'
-import { Badge, Button, Notice } from '@/shared/ui'
+import { Badge, Button, Card, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
@@ -53,16 +53,16 @@ export function SummaryTab({ analysis, onOpenFinancial, onOpenText, onOpenSource
 
   if (state.kind === 'loading') {
     return (
-      <section className="panel" aria-label="요약·설명">
+      <Panel aria-label="요약·설명">
         <LoadingState message="요약을 불러오는 중입니다…" />
-      </section>
+      </Panel>
     )
   }
   if (state.kind === 'error') {
     return (
-      <section className="panel" aria-label="요약·설명">
+      <Panel aria-label="요약·설명">
         <ErrorState error={state.error} onRetry={() => setRetry((n) => n + 1)} />
-      </section>
+      </Panel>
     )
   }
 
@@ -79,7 +79,7 @@ export function SummaryTab({ analysis, onOpenFinancial, onOpenText, onOpenSource
   }
 
   return (
-    <section className="panel" aria-label="요약·설명">
+    <Panel aria-label="요약·설명">
       {notice && (
         <Notice tone={data.summaryStatus === 'PARTIAL' ? 'attention' : 'info'} role="status">
           {notice}
@@ -95,9 +95,7 @@ export function SummaryTab({ analysis, onOpenFinancial, onOpenText, onOpenSource
 
       {financial.length > 0 && (
         <section className="summary-group" aria-labelledby="summary-financial">
-          <h2 className="panel__title" id="summary-financial">
-            주요 재무 수치 변화
-          </h2>
+          <PanelTitle id="summary-financial">주요 재무 수치 변화</PanelTitle>
           <ol className="summary-list">
             {financial.map((item) => (
               <li key={item.itemNo}>
@@ -110,9 +108,7 @@ export function SummaryTab({ analysis, onOpenFinancial, onOpenText, onOpenSource
 
       {text.length > 0 && (
         <section className="summary-group" aria-labelledby="summary-text">
-          <h2 className="panel__title" id="summary-text">
-            주요 문장·내용 변화
-          </h2>
+          <PanelTitle id="summary-text">주요 문장·내용 변화</PanelTitle>
           <ol className="summary-list">
             {text.map((item) => (
               <li key={item.itemNo}>
@@ -125,9 +121,7 @@ export function SummaryTab({ analysis, onOpenFinancial, onOpenText, onOpenSource
 
       {data.reviewNeededCount > 0 && (
         <section className="summary-group summary-group--review" aria-labelledby="summary-review">
-          <h2 className="panel__title" id="summary-review">
-            검토 필요 {data.reviewNeededCount}건
-          </h2>
+          <PanelTitle id="summary-review">검토 필요 {data.reviewNeededCount}건</PanelTitle>
           <p className="panel__note">
             근거를 확인하지 못했거나 투자 권유로 읽힐 수 있는 표현이 있어 요약에 넣지 않은 항목이에요. 원래 결과에서 직접 확인해 주세요.
           </p>
@@ -158,7 +152,7 @@ export function SummaryTab({ analysis, onOpenFinancial, onOpenText, onOpenSource
         ]}
       />
       <p className="panel__note">{SUMMARY_NOTE}</p>
-    </section>
+    </Panel>
   )
 }
 
@@ -173,7 +167,7 @@ interface SummaryCardProps {
 function SummaryCard({ item, analysis, onOpen, onOpenSource }: SummaryCardProps) {
   const missing = item.kind === 'FINANCIAL' ? explanationNote(item.explanationStatus) : null
   return (
-    <article className="summary-item">
+    <Card as="article" className="summary-item">
       {item.factSentence && <p className="summary-item__fact">{item.factSentence}</p>}
       {item.aiText && (
         <div className="summary-item__ai">
@@ -192,7 +186,7 @@ function SummaryCard({ item, analysis, onOpen, onOpenSource }: SummaryCardProps)
           </Button>
         </div>
       )}
-    </article>
+    </Card>
   )
 }
 
