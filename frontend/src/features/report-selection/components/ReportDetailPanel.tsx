@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import { getReport, type ReportDetail } from '@/shared/api/reports'
-import { Notice } from '@/shared/ui'
+import { Notice, Panel, PanelTitle } from '@/shared/ui'
 import { DartLinkActions } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import {
@@ -40,16 +40,14 @@ export function ReportDetailPanel({ rceptNo, title = '현재 보고서 정보' }
   }, [rceptNo, retry])
 
   return (
-    <section className="panel" aria-labelledby={titleId}>
-      <h2 id={titleId} className="panel__title">
-        {title}
-      </h2>
+    <Panel aria-labelledby={titleId}>
+      <PanelTitle id={titleId}>{title}</PanelTitle>
       {state.kind === 'loading' && <LoadingState message="보고서 정보를 불러오는 중입니다…" />}
       {state.kind === 'error' && (
         <ErrorState error={state.error} onRetry={() => setRetry((n) => n + 1)} messages={errorMessages} />
       )}
       {state.kind === 'done' && <ReportFacts report={state.report} />}
-    </section>
+    </Panel>
   )
 }
 

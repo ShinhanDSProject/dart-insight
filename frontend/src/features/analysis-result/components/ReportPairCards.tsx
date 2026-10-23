@@ -1,4 +1,5 @@
 import type { ReportItem } from '@/shared/api/reports'
+import { Card } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { correctionLabel, formatDate, periodLabel, reportTypeLabel } from '@/shared/lib/reportLabels'
 
@@ -14,7 +15,7 @@ export function ReportPairCards({ previous, current }: { previous: ReportItem; c
 
 function ReportCard({ role, report }: { role: string; report: ReportItem }) {
   return (
-    <section className="pair-card" aria-label={role}>
+    <Card as="section" className="pair-card" aria-label={role}>
       <p className="pair-card__role">{role}</p>
       <p className="pair-card__name">{report.reportName}</p>
       <dl className="pair-card__facts">
@@ -41,6 +42,6 @@ function ReportCard({ role, report }: { role: string; report: ReportItem }) {
           </dd>
         </div>
       </dl>
-    </section>
+    </Card>
   )
 }

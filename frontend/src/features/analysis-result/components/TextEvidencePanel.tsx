@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Analysis } from '@/shared/api/analyses'
 import type { DocumentSide } from '@/shared/api/documents'
 import { getTextChange, type TextChangeDetail, type TextSource } from '@/shared/api/textChanges'
-import { Button, Notice } from '@/shared/ui'
+import { Button, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { formatDate, reportTypeLabel } from '@/shared/lib/reportLabels'
@@ -58,11 +58,11 @@ export function TextEvidencePanel({ analysis, changeId, onClose, onOpenSource }:
 
   const headingId = `text-evidence-${changeId}`
   return (
-    <section className="panel evidence" aria-labelledby={headingId}>
+    <Panel className="evidence" aria-labelledby={headingId}>
       <div className="evidence__head">
-        <h4 id={headingId} className="panel__title" ref={headingRef} tabIndex={-1}>
+        <PanelTitle as="h4" id={headingId} ref={headingRef} tabIndex={-1}>
           문장·표 근거
-        </h4>
+        </PanelTitle>
         <Button variant="secondary" onClick={onClose}>
           닫기
         </Button>
@@ -76,7 +76,7 @@ export function TextEvidencePanel({ analysis, changeId, onClose, onOpenSource }:
         />
       )}
       {state.kind === 'done' && <EvidenceBody detail={state.detail} onOpenSource={onOpenSource} />}
-    </section>
+    </Panel>
   )
 }
 

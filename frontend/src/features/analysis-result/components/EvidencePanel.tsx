@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Analysis } from '@/shared/api/analyses'
 import { getFinancialChange, type FinancialChangeDetail, type ValueSource } from '@/shared/api/results'
-import { Button, Notice } from '@/shared/ui'
+import { Button, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { amountPeriodLabel, formatAmount, missingValueLabel, unitLabel, type AmountUnit } from '../model/format'
@@ -56,11 +56,11 @@ export function EvidencePanel({ analysis, changeId, unit, onClose }: EvidencePan
   }, [])
 
   return (
-    <section className="panel evidence" aria-labelledby="evidence-title" id="evidence">
+    <Panel className="evidence" aria-labelledby="evidence-title" id="evidence">
       <div className="evidence__head">
-        <h2 id="evidence-title" className="panel__title" ref={headingRef} tabIndex={-1}>
+        <PanelTitle id="evidence-title" ref={headingRef} tabIndex={-1}>
           {title}
-        </h2>
+        </PanelTitle>
         <Button variant="secondary" onClick={onClose}>
           닫기
         </Button>
@@ -74,7 +74,7 @@ export function EvidencePanel({ analysis, changeId, unit, onClose }: EvidencePan
         />
       )}
       {state.kind === 'done' && <EvidenceBody analysis={analysis} detail={state.detail} unit={unit} />}
-    </section>
+    </Panel>
   )
 }
 

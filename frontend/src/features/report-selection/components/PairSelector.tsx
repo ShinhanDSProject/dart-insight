@@ -1,5 +1,5 @@
 import type { ComparisonBasis, ReportItem } from '@/shared/api/reports'
-import { Button } from '@/shared/ui'
+import { Button, FieldHint, FieldLabel, SegmentedControl, Select } from '@/shared/ui'
 import { ErrorState } from '@/shared/ui/StateView'
 import { basisOptions } from '@/shared/lib/comparisonBasis'
 import { customCandidates, reportOptionLabel } from '../model/pairSelection'
@@ -32,23 +32,11 @@ export function PairSelector(props: PairSelectorProps) {
   return (
     <div className="pair">
       <div className="pair__basis">
-        <span className="pair__label" id="basis-label">
+        <FieldLabel as="span" id="basis-label">
           비교 기준
-        </span>
-        <div className="segmented" role="group" aria-labelledby="basis-label">
-          {basisOptions.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              className="segmented__item"
-              aria-pressed={basis === option.value}
-              onClick={() => onBasisChange(option.value)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-        <span className="pair__hint">기본 비교 기준은 결정 전이라 전년 동기로 두었어요.</span>
+        </FieldLabel>
+        <SegmentedControl aria-labelledby="basis-label" options={basisOptions} value={basis} onChange={onBasisChange} />
+        <FieldHint>기본 비교 기준은 결정 전이라 전년 동기로 두었어요.</FieldHint>
       </div>
 
       <div className="pair__slots">
@@ -56,12 +44,11 @@ export function PairSelector(props: PairSelectorProps) {
           <PreviousSlot {...props} />
         </div>
         <div className="pair__slot">
-          <label htmlFor="pair-current" className="pair__label">
-            현재 보고서 <span className="pair__hint">· 오른쪽에 고정</span>
-          </label>
-          <select
+          <FieldLabel htmlFor="pair-current">
+            현재 보고서 <FieldHint>· 오른쪽에 고정</FieldHint>
+          </FieldLabel>
+          <Select
             id="pair-current"
-            className="select"
             value={current.rceptNo}
             onChange={(e) => onCurrentChange(e.target.value)}
           >
@@ -71,7 +58,7 @@ export function PairSelector(props: PairSelectorProps) {
                 {i === 0 ? ' · 최신' : ''}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       </div>
       {lookup.kind === 'error' && <ErrorState error={lookup.error} onRetry={props.onRetry} />}
@@ -84,12 +71,11 @@ function PreviousSlot({ items, basis, current, previous, lookup, onBasisChange, 
     const candidates = customCandidates(items, current)
     return (
       <>
-        <label htmlFor="pair-previous" className="pair__label">
-          비교 보고서 <span className="pair__hint">· 왼쪽에 표시</span>
-        </label>
-        <select
+        <FieldLabel htmlFor="pair-previous">
+          비교 보고서 <FieldHint>· 왼쪽에 표시</FieldHint>
+        </FieldLabel>
+        <Select
           id="pair-previous"
-          className="select"
           value={previous?.rceptNo ?? ''}
           onChange={(e) => onPreviousChange(e.target.value || null)}
           disabled={candidates.length === 0}
@@ -100,22 +86,22 @@ function PreviousSlot({ items, basis, current, previous, lookup, onBasisChange, 
               {reportOptionLabel(r)}
             </option>
           ))}
-        </select>
-        <span className="pair__hint">현재 보고서보다 앞선 기간의 보고서만 고를 수 있어요.</span>
+        </Select>
+        <FieldHint>현재 보고서보다 앞선 기간의 보고서만 고를 수 있어요.</FieldHint>
       </>
     )
   }
 
   return (
     <>
-      <span className="pair__label">
-        비교 보고서 <span className="pair__hint">· 왼쪽에 표시</span>
-      </span>
+      <FieldLabel as="span">
+        비교 보고서 <FieldHint>· 왼쪽에 표시</FieldHint>
+      </FieldLabel>
       {lookup.kind === 'loading' && <p className="pair__value pair__value--muted">비교 기준에 맞는 보고서를 찾는 중…</p>}
       {lookup.kind === 'done' && previous && (
         <p className="pair__value">
           {reportOptionLabel(previous)}
-          <span className="pair__hint"> · 기준에 따라 자동 지정</span>
+          <FieldHint> · 기준에 따라 자동 지정</FieldHint>
         </p>
       )}
       {lookup.kind === 'done' && !previous && (

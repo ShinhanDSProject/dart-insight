@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { verifiedDartUrl } from '@/shared/lib/dart'
 import { Button, ButtonAnchor } from './Button'
+import { Input } from './Field'
 
 type CopyState = 'idle' | 'copied' | 'failed'
 
@@ -51,7 +52,7 @@ export function DartLinkActions({ rceptNo, dartUrl }: DartLinkProps) {
       {copy === 'failed' && (
         <label className="dart-link__manual">
           복사하지 못했어요. 아래 주소를 직접 선택해 복사해 주세요.
-          <input className="input" readOnly value={url} onFocus={(e) => e.currentTarget.select()} />
+          <Input readOnly value={url} onFocus={(e) => e.currentTarget.select()} />
         </label>
       )}
       <p className="dart-link__help">
