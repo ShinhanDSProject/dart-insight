@@ -1,4 +1,4 @@
-import type { ChangeType, PriorityLevel, TextChangeCounts, TextStatus } from '../../api/textChanges'
+import type { ChangeType, PriorityLevel, TextChangeCounts, TextStatus } from '@/shared/api/textChanges'
 
 /** 문장·내용 변화(W-03 ③) 화면 문구. 우선순위는 확인 순서이며 투자 판단이 아니다. */
 

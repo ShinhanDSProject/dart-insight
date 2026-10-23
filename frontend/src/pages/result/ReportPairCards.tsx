@@ -1,5 +1,5 @@
-import type { ReportItem } from '../../api/reports'
-import { DartLinkInline } from '../../components/DartLink'
+import type { ReportItem } from '@/shared/api/reports'
+import { DartLinkInline } from '@/shared/ui/DartLink'
 import { correctionLabel, formatDate, periodLabel, reportTypeLabel } from '../company/reportLabels'
 
 /** 두 보고서를 나란히: 비교 보고서는 왼쪽, 현재 보고서는 오른쪽 */

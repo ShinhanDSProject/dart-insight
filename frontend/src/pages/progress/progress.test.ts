@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { AnalysisStepView } from '../../api/analyses'
+import type { AnalysisStepView } from '@/shared/api/analyses'
 import { nextPollDelay, statusLabel, stepSummary } from './progress'
 
 const steps = (states: AnalysisStepView['state'][]): AnalysisStepView[] =>

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { ApiError, NETWORK_ERROR } from '../api/client'
+import { ApiError, NETWORK_ERROR } from '@/shared/api/client'
 
 /** 로딩·오류·빈 결과 상태. 상태를 숨기지 않고 항상 한 가지를 보여 준다. */
 

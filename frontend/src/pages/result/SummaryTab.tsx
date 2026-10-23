@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import type { Analysis } from '../../api/analyses'
-import type { SjDiv } from '../../api/results'
-import { getSummary, type Summary, type SummaryEvidence, type SummaryItem, type SummaryTarget } from '../../api/summary'
-import { DartLinkInline } from '../../components/DartLink'
-import { DartSourceLine } from '../../components/DartSource'
-import { EmptyState, ErrorState, LoadingState } from '../../components/StateView'
+import type { Analysis } from '@/shared/api/analyses'
+import type { SjDiv } from '@/shared/api/results'
+import { getSummary, type Summary, type SummaryEvidence, type SummaryItem, type SummaryTarget } from '@/shared/api/summary'
+import { DartLinkInline } from '@/shared/ui/DartLink'
+import { DartSourceLine } from '@/shared/ui/DartSource'
+import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import type { SourceTarget } from './TextEvidencePanel'
 import {
   aiInfoLabel,

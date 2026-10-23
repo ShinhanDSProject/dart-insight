@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import { EmptyState } from '../components/StateView'
+import { EmptyState } from '@/shared/ui/StateView'
 
 export function NotFoundPage() {
   return (

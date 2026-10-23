@@ -1,7 +1,7 @@
 import { useEffect, useId, useState } from 'react'
-import { getReport, type ReportDetail } from '../../api/reports'
-import { DartLinkActions } from '../../components/DartLink'
-import { ErrorState, LoadingState } from '../../components/StateView'
+import { getReport, type ReportDetail } from '@/shared/api/reports'
+import { DartLinkActions } from '@/shared/ui/DartLink'
+import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import {
   correctionLabel,
   dataStatusHelp,

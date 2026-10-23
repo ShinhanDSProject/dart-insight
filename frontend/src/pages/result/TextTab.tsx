@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Analysis } from '../../api/analyses'
+import type { Analysis } from '@/shared/api/analyses'
 import {
   getTextChanges,
   type ChangeType,
@@ -7,9 +7,9 @@ import {
   type TextChangeItem,
   type TextChangeList,
   type TextSort,
-} from '../../api/textChanges'
-import { DartSourceLine } from '../../components/DartSource'
-import { EmptyState, ErrorState, LoadingState } from '../../components/StateView'
+} from '@/shared/api/textChanges'
+import { DartSourceLine } from '@/shared/ui/DartSource'
+import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { TextEvidencePanel, type SourceTarget } from './TextEvidencePanel'
 import {
   changeTypeLabel,

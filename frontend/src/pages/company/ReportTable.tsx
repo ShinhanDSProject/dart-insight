@@ -1,5 +1,5 @@
-import type { ReportItem } from '../../api/reports'
-import { DartLinkInline } from '../../components/DartLink'
+import type { ReportItem } from '@/shared/api/reports'
+import { DartLinkInline } from '@/shared/ui/DartLink'
 import { correctionLabel, dataStatusHelp, dataStatusLabel, formatDate, periodLabel } from './reportLabels'
 
 interface ReportTableProps {

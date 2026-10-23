@@ -4,7 +4,7 @@ dart-insight의 정기공시 비교 서비스를 위한 UI 구성과 디자인 �
 
 > 화면 구성과 흐름은 노션 [사용자 흐름·화면 와이어프레임](https://app.notion.com/p/c0f540f74d92496c9c20f23867afc15a)을 따른다. 이 문서는 그 화면을 만들 때 쓰는 글꼴·간격·컴포넌트·상태 기준을 정한다.
 >
-> 시각 디자인의 기준은 이해진 님의 Figma 파일 [신한 2차 프로젝트 › 디자인](https://www.figma.com/design/1LurlBehXtoSjipfsAAsUv/%EC%8B%A0%ED%95%9C-2%EC%B0%A8-%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8?node-id=5-2)이다. 값은 Figma와 코드(`frontend/src/styles/tokens.css`) 두 곳에만 두고, 이 문서에는 무엇을 왜 그렇게 정했는지와 화면이 지켜야 할 규칙만 적는다. 범위는 노션 [기능 명세·WBS](https://app.notion.com/p/3ffb6afffc6f80179ffbfd4817a5aaa0), 작업은 [GitHub Issues](https://github.com/ShinhanDSProject/dart-insight/issues)를 기준으로 한다.
+> 시각 디자인의 기준은 이해진 님의 Figma 파일 [신한 2차 프로젝트 › 디자인](https://www.figma.com/design/1LurlBehXtoSjipfsAAsUv/%EC%8B%A0%ED%95%9C-2%EC%B0%A8-%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8?node-id=5-2)이다. 값은 Figma와 코드(`frontend/src/shared/styles/tokens.css`) 두 곳에만 두고, 이 문서에는 무엇을 왜 그렇게 정했는지와 화면이 지켜야 할 규칙만 적는다. 범위는 노션 [기능 명세·WBS](https://app.notion.com/p/3ffb6afffc6f80179ffbfd4817a5aaa0), 작업은 [GitHub Issues](https://github.com/ShinhanDSProject/dart-insight/issues)를 기준으로 한다.
 
 ---
 
@@ -95,7 +95,7 @@ W-03 ④ 원문 확인
 
 # 3. 기본 디자인 시스템
 
-값은 `frontend/src/styles/tokens.css`에 있고, 화면 CSS는 색·모서리·글꼴을 직접 적지 않고 토큰만 쓴다. Figma 값이 바뀌면 `tokens.css`만 고친다.
+값은 `frontend/src/shared/styles/tokens.css`에 있고, 화면 CSS는 색·모서리·글꼴을 직접 적지 않고 토큰만 쓴다. Figma 값이 바뀌면 `tokens.css`만 고친다.
 
 ## 3-1. 기준으로 삼은 시안 (10/22)
 
@@ -161,7 +161,7 @@ W-03 ④ 원문 확인
 
 ## 3-6. 아이콘
 
-- lucide 모양의 선 아이콘을 `frontend/src/components/Icon.tsx`에 모아 쓴다(검색, 비교, 원문, 외부 링크 등). 새 아이콘 라이브러리는 넣지 않는다.
+- lucide 모양의 선 아이콘을 `frontend/src/shared/ui/Icon.tsx`에 모아 쓴다(검색, 비교, 원문, 외부 링크 등). 새 아이콘 라이브러리는 넣지 않는다.
 - 증가 `▲` / 감소 `▼`는 글자로 쓴다.
 - 동일한 기능에는 동일한 아이콘을 사용한다. 장식용 아이콘에는 `aria-hidden`을 붙인다.
 
@@ -362,7 +362,7 @@ MVP는 **표 중심**이다. 이전 값과 현재 값, 증감액, 증감률을 �
 
 # 7. 레이아웃
 
-시안의 화면 골격을 모든 화면에 쓴다(`frontend/src/components/Layout.tsx`).
+시안의 화면 골격을 모든 화면에 쓴다(`frontend/src/app/Layout.tsx`).
 
 - **왼쪽 메뉴(224px)**: 로고, 기업 찾기·공시 비교·원문 확인, 안내 카드. 지금 화면에 맞는 메뉴를 남색으로 표시한다. 원문 확인은 분석 결과가 있을 때만 누를 수 있다.
 - **상단 헤더(80px)**: '정기공시 비교 › 화면 이름' 경로 표시. MVP에는 로그인·프로필이 없다.

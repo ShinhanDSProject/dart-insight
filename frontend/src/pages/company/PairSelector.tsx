@@ -1,5 +1,5 @@
-import type { ComparisonBasis, ReportItem } from '../../api/reports'
-import { ErrorState } from '../../components/StateView'
+import type { ComparisonBasis, ReportItem } from '@/shared/api/reports'
+import { ErrorState } from '@/shared/ui/StateView'
 import { basisOptions, customCandidates, reportOptionLabel } from './pairSelection'
 
 export type PairLookup =

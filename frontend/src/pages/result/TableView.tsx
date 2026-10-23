@@ -1,4 +1,4 @@
-import type { TableCell } from '../../api/textChanges'
+import type { TableCell } from '@/shared/api/textChanges'
 
 /**
  * 원문 표(4.2에서 읽은 셀). 머리글(TH)·병합(colspan·rowspan)을 그대로 보여 준다.

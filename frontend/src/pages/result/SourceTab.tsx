@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Analysis } from '../../api/analyses'
+import type { Analysis } from '@/shared/api/analyses'
 import {
   firstContentSection,
   getDocumentOutline,
@@ -7,10 +7,10 @@ import {
   type DocumentOutline,
   type DocumentSide,
   type SectionContent,
-} from '../../api/documents'
-import { DartLinkActions } from '../../components/DartLink'
-import { verifiedDartUrl } from '../../lib/dart'
-import { ErrorState, LoadingState } from '../../components/StateView'
+} from '@/shared/api/documents'
+import { DartLinkActions } from '@/shared/ui/DartLink'
+import { verifiedDartUrl } from '@/shared/lib/dart'
+import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { TableView } from './TableView'
 
 type Load<T> = { kind: 'loading' } | { kind: 'done'; data: T } | { kind: 'error'; error: unknown }

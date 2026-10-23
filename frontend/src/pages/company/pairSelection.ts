@@ -1,4 +1,4 @@
-import type { ComparisonBasis, ReportItem } from '../../api/reports'
+import type { ComparisonBasis, ReportItem } from '@/shared/api/reports'
 import { formatDate } from './reportLabels'
 
 /** 기본 비교 기준. 결정 로그 '기본 비교 기준'이 정해지기 전까지 전년 동기(잠정안). */
