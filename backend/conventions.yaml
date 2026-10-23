@@ -1,0 +1,46 @@
+# backend 코드 컨벤션. 판단이 필요한 규칙만 적는다(형식은 Checkstyle·포매터, 계층은 ArchUnit이 검사).
+# 규칙을 어기면 리뷰에서 ID로 부른다(예: "TX-2"). 바꿀 때는 이 파일과 검사 설정을 같은 PR에서 고친다.
+# 참고: shinhan-delivery 컨벤션 중 우리 API 약속·ADR과 맞는 것만 가져왔다(가져오지 않은 것은 맨 아래 skip).
+v: 1
+scope: backend/src
+enforced: [checkstyle, archunit]   # 둘 다 ./gradlew build에서 돈다(도입 이슈 진행 중)
+see: {api: docs/api-spec.md, erd: docs/erd.md, adr: docs/adr/}
+
+pkg:
+  PKG-1: 도메인별 패키지(company, report, analysis…), 안은 평평하게. 계층별 하위 패키지(controller/·service/)를 만들지 않는다
+  PKG-2: 큰 도메인은 기능 단위로 나눈다(예 analysis.financial, analysis.text). common/은 설정·에러·추적 ID만
+  PKG-3: 다른 도메인의 Repository·Store는 쓰지 않고 그 도메인 Service를 부른다. 패키지끼리 순환 참조 금지
+layer:
+  LY-1: 컨트롤러는 Service만 부른다. Repository·Store·JdbcTemplate 직접 사용 금지 [archunit]
+  LY-2: 외부 호출(OpenDART·ai-server)은 트랜잭션 밖에서. 저장만 TransactionTemplate·@Transactional로 묶는다 [adr:0003]
+  LY-3: 경로는 ApiPaths(컨트롤러)·AiServerPaths·OpenDartPaths 상수만. 클래스 단위 @RequestMapping
+dto:
+  DTO-1: 요청·응답은 record. 이름은 {대상}{동작?}Request·Response. Dto 접미사·Lombok 금지
+  DTO-2: HTTP 요청·응답 record는 컨트롤러 안에 두지 않고 같은 패키지의 파일로 둔다. 다른 컨트롤러의 DTO를 import하지 않는다
+  DTO-3: 변환은 응답 record의 static from(...)·of(...). 컴포넌트 이름이 곧 JSON 필드라 함부로 바꾸지 않는다(api-spec 먼저)
+entity:
+  EN-1: setter·@Builder·@AllArgsConstructor 금지. protected 기본 생성자 + static 팩터리 + 도메인 메서드(start·fail…)
+  EN-2: "상태 변경은 허용 전이표(canMoveTo)를 거친다. COMPLETED는 결과 저장 서비스만(package-private) [adr:0004]"
+  EN-3: 현재 시각은 주입한 Clock으로만. LocalDateTime.now() 직접 금지
+  EN-4: 스키마는 Flyway 새 파일로만, 엔티티와 docs/erd.md를 같은 PR에서 [adr:0007]
+tx:
+  TX-1: "@Transactional은 Service에만. 조회만 하는 Service는 클래스에 readOnly=true"
+  TX-2: 행이 많은 표는 JdbcTemplate Store로 일괄 저장 [adr:0011]
+exc:
+  EXC-1: 실패는 ApiException(ErrorCode). 새 코드는 api-spec 4장에 먼저, 이름은 영역_내용 [adr:0005]
+  EXC-2: 도메인별 예외 클래스를 만들지 않는다. 코드로 구분한다
+  EXC-3: 있어야 하는 값은 findXxxOrThrow, 없을 수 있는 값은 Optional. 불변식 위반은 IllegalStateException(500)
+  EXC-4: 에러 응답 모양 {code,message,traceId,errors}는 바꾸지 않는다(프론트·ai-server와의 약속)
+log:
+  LOG-1: 로거는 LoggerFactory.getLogger(클래스). 4xx는 INFO 이하, 업무 실패 WARN, 500만 ERROR+스택
+  LOG-2: 키·원문·개인정보를 로그에 남기지 않는다. 추적 ID는 MDC가 붙인다
+test:
+  T-1: 메서드 이름은 영어 동작 문장(lowerCamelCase). 새 테스트는 한국어 @DisplayName을 단다
+  T-2: API는 @SpringBootTest+MockMvc로 상태 코드·JSON 필드까지. 외부 서버는 FakeOpenDartServer·FakeAiServer, Mockito로 대신하지 않는다
+  T-3: SQL을 쓰는 Store는 실제 DB(H2·CI MariaDB) 테스트를 둔다
+
+skip:  # shinhan-delivery에 있지만 가져오지 않음(이유)
+  - "/api/v1 경로, C001식 에러 코드, ErrorResponse 모양: API 약속·ADR-0005와 충돌"
+  - "엔티티 @Setter·@Builder, 클래스 DTO: 불변성과 상태 전이표를 깨뜨림"
+  - "계층별 하위 패키지: package-private 완료 처리(ADR-0004)를 못 지킴"
+  - "Swagger 어노테이션: docs/api-spec.md와 중복. JaCoCo 커버리지 게이트: 숫자 맞추기를 부름"
