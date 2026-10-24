@@ -59,6 +59,11 @@ public class ExplanationService {
     private final TransactionTemplate transactionTemplate;
     private final Clock clock;
 
+    /** 저장한 시각이 [from, to)인 풀이의 상태별 수(AI 사용 현황). 모든 분석의 풀이를 센다 */
+    public Map<ExplanationStatus, Long> usage(LocalDateTime from, LocalDateTime to) {
+        return explanationStore.countByStatus(from, to);
+    }
+
     /**
      * 그 변경의 한 줄 풀이를 만들거나 저장된 것을 돌려준다. 완료된 분석에만(아니면 409), 이 분석의 변경만(아니면 404).
      *

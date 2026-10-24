@@ -20,6 +20,7 @@ import com.dartinsight.question.domain.QuestionFeedback;
 import com.dartinsight.question.domain.QuestionRecord;
 import com.dartinsight.question.domain.QuestionSource;
 import com.dartinsight.question.domain.QuestionStatus;
+import com.dartinsight.question.domain.QuestionUsage;
 import com.dartinsight.question.dto.AnswerAiRequest;
 import com.dartinsight.question.dto.AnswerAiResponse;
 import com.dartinsight.question.dto.QuestionFeedbackRequest;
@@ -131,6 +132,11 @@ public class QuestionService {
         }
         List<QuestionFact> cited = AnswerMarkers.factRefs(saved.answer()).stream().map(byRef::get).toList();
         return QuestionResponse.of(saved, citations, cited);
+    }
+
+    /** 질문한 시각이 [from, to)인 질문의 상태별 수와 평가 수(AI 사용 현황). 모든 분석의 질문을 센다 */
+    public QuestionUsage usage(LocalDateTime from, LocalDateTime to) {
+        return questionStore.usage(from, to);
     }
 
     /** 이 분석에서 한 질문, 최신 순으로 최대 20개. 없는 분석이면 404 */

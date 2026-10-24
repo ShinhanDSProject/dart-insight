@@ -4,6 +4,7 @@ import com.dartinsight.question.domain.FeedbackReason;
 import com.dartinsight.question.domain.QuestionFeedback;
 import com.dartinsight.question.domain.QuestionRecord;
 import com.dartinsight.question.domain.QuestionStatus;
+import com.dartinsight.question.domain.QuestionUsage;
 import com.dartinsight.summary.domain.LlmCallRow;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -12,11 +13,14 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
@@ -89,6 +93,37 @@ public class QuestionStore {
         jdbcTemplate.update("UPDATE analysis_question SET feedback_helpful = ?, feedback_reason = ?, feedback_at = ? "
                 + "WHERE id = ?", feedback.helpful(), feedback.reason() == null ? null : feedback.reason().name(),
                 timestamp(feedback.at()), questionId);
+    }
+
+    /** created_at이 [from, to)인 질문의 상태별 수와 평가 수(AI 사용 현황). 질문 본문은 읽지 않는다 */
+    public QuestionUsage usage(LocalDateTime from, LocalDateTime to) {
+        Map<QuestionStatus, Long> byStatus = new EnumMap<>(QuestionStatus.class);
+        for (QuestionStatus status : QuestionStatus.values()) {
+            byStatus.put(status, 0L);
+        }
+        jdbcTemplate.query("SELECT status, COUNT(*) AS n FROM analysis_question "
+                + "WHERE created_at >= ? AND created_at < ? GROUP BY status",
+                (RowCallbackHandler) rs -> byStatus.merge(QuestionStatus.valueOf(rs.getString("status")),
+                        rs.getLong("n"), Long::sum), timestamp(from), timestamp(to));
+
+        Map<FeedbackReason, Long> reasons = new EnumMap<>(FeedbackReason.class);
+        for (FeedbackReason reason : FeedbackReason.values()) {
+            reasons.put(reason, 0L);
+        }
+        long[] helpful = new long[2];
+        jdbcTemplate.query("SELECT feedback_helpful, feedback_reason, COUNT(*) AS n FROM analysis_question "
+                + "WHERE created_at >= ? AND created_at < ? AND feedback_helpful IS NOT NULL "
+                + "GROUP BY feedback_helpful, feedback_reason",
+                (RowCallbackHandler) rs -> {
+                    long n = rs.getLong("n");
+                    if (rs.getBoolean("feedback_helpful")) {
+                        helpful[0] += n;
+                        return;
+                    }
+                    helpful[1] += n;
+                    FeedbackReason.find(rs.getString("feedback_reason")).ifPresent(r -> reasons.merge(r, n, Long::sum));
+                }, timestamp(from), timestamp(to));
+        return new QuestionUsage(byStatus, helpful[0], helpful[1], reasons);
     }
 
     private static QuestionRecord map(ResultSet rs, int rowNum) throws SQLException {
