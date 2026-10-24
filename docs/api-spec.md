@@ -8,7 +8,7 @@
 | --- | --- |
 | 상태 | 초안 (M1 범위) |
 | 담당 | 백엔드·프론트 |
-| 마지막 수정 | 2026-10-23 |
+| 마지막 수정 | 2026-10-25 |
 | 관련 문서 | ERD(`docs/erd.md`), [화면 와이어프레임](https://app.notion.com/p/c0f540f74d92496c9c20f23867afc15a), 이슈 #47 |
 
 ## 0. 공통
@@ -78,6 +78,7 @@
 | GET | `/api/analyses/{analysisId}/summary` | 근거 기반 요약·설명 | #20 (3.2) | W-03 ① | 초안 |
 | POST | `/api/analyses/{analysisId}/questions` | 근거로 답하는 질문(AI) | #219 (3.10) | W-03 ⑤ | 초안 |
 | GET | `/api/analyses/{analysisId}/questions` | 이 분석에서 한 질문·답 기록 | #219 (3.10) | W-03 ⑤ | 초안 |
+| PUT | `/api/analyses/{analysisId}/questions/{questionId}/feedback` | AI 답 평가(도움 여부·사유) | #236 (3.12) | W-03 ⑤ | 초안 |
 | GET | `/api/analyses/{analysisId}/documents/{side}` | 분석 보고서 원문 목차 | #23 (3.5) | W-03 ④ | 초안 |
 | GET | `/api/analyses/{analysisId}/documents/{side}/sections/{sectionNo}` | 원문 한 항목의 문단·표 | #23 (3.5) | W-03 ④ | 초안 |
 | GET | `/api/system/health` | 서비스 연결 상태 | #48 (0.5) | — | 초안 |
@@ -877,6 +878,7 @@
       "sentence": "매출액이 153.7조 원에서 305.4조 원으로 늘었어요(+98.7%)." }
   ],
   "ai": { "model": "fake-model", "promptVersion": "answer-1", "generatedAt": "2026-10-24T10:12:03" },
+  "feedback": null,
   "createdAt": "2026-10-24T10:12:03"
 }
 ```
@@ -888,6 +890,7 @@
   - `REVIEW_NEEDED`: 답이 근거·숫자·표현 검사를 통과하지 못함(2회 다시 만든 뒤). `answer`는 null
 - `citations`: 답이 인용한 원문만 번호 순서대로. `quote`는 문단 앞 160자입니다. `facts`: 답이 인용한 사실(코드가 계산)만.
 - `ai`: AI가 답을 만들었을 때만(모델·프롬프트 버전·생성 시각). `NOT_FOUND`·`OUT_OF_SCOPE`면 null입니다.
+- `feedback`: 이 답의 평가 `{ "helpful": true|false, "reason": "WRONG_SOURCE"|… |null }`. 평가하지 않았으면 null입니다(새 질문은 늘 null). 값은 아래 `PUT …/feedback`과 같습니다.
 
 **에러**
 
@@ -904,12 +907,49 @@
 
 ```json
 { "items": [ { "questionId": 7, "question": "…", "status": "ANSWERED", "answer": "…", "message": null,
-  "citations": [], "facts": [], "ai": null, "createdAt": "2026-10-24T10:12:03" } ] }
+  "citations": [], "facts": [], "ai": null, "feedback": { "helpful": false, "reason": "WRONG_SOURCE" },
+  "createdAt": "2026-10-24T10:12:03" } ] }
 ```
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
 | 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 |
+
+### PUT /api/analyses/{analysisId}/questions/{questionId}/feedback — AI 답 평가
+
+- 이슈: #236 (3.12) · 화면: W-03 ⑤ · 기획서 FS-9
+- 답(`ANSWERED`)이 도움이 됐는지와 아니면 그 사유를 저장합니다. 질문 하나에 평가 하나이고, 다시 보내면 바꿉니다(마지막 값만 남음). 사용자 정보는 저장하지 않습니다.
+- `ANSWERED`가 아닌 질문(`NOT_FOUND`·`OUT_OF_SCOPE`·`REVIEW_NEEDED`)은 평가할 답이 없어 400입니다.
+
+**요청**
+
+```json
+{ "helpful": false, "reason": "WRONG_SOURCE" }
+```
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| path | `analysisId` | number | 예 | 분석 ID |
+| path | `questionId` | number | 예 | 질문 ID(이 분석의 질문) |
+| body | `helpful` | boolean | 예 | 도움이 됐으면 true |
+| body | `reason` | string \| null | 아니오 | `helpful`이 false일 때만. `WRONG_SOURCE`(근거가 안 맞아요), `NOT_ANSWERED`(질문에 답하지 않았어요), `HARD_TO_READ`(이해하기 어려워요), `OTHER`(기타). 사유 없이 false만 보내도 됩니다 |
+
+**응답 200**
+
+```json
+{ "questionId": 7, "helpful": false, "reason": "WRONG_SOURCE", "updatedAt": "2026-10-25T09:30:00" }
+```
+
+- `updatedAt`: 평가를 저장한 시각(한국 시간).
+
+**에러**
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | `helpful`이 없음(`errors[].field`=`helpful`), `reason`이 위 값이 아니거나 `helpful`이 true인데 `reason`이 있음(`errors[].field`=`reason`), 본문이 JSON이 아님 |
+| 400 | `COMMON_INVALID_INPUT` | 답한(`ANSWERED`) 질문이 아님(`errors` 없음, `message`에 안내) |
+| 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 |
+| 404 | `ANALYSIS_QUESTION_NOT_FOUND` | 없는 질문, 또는 이 분석의 질문이 아님 |
 
 ### GET /api/system/health — 연결 상태
 
@@ -1193,6 +1233,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | `ANALYSIS_NOT_READY` | 409 | 분석이 끝나지 않음 | W-02로 이동 |
 | `ANALYSIS_CHANGE_NOT_FOUND` | 404 | 없는 계정 항목 | 목록 다시 불러오기 |
 | `ANALYSIS_TEXT_CHANGE_NOT_FOUND` | 404 | 없는 문장 변경 항목 | 목록 다시 불러오기 |
+| `ANALYSIS_QUESTION_NOT_FOUND` | 404 | 없는 질문(또는 이 분석의 질문이 아님) | 질문 기록 다시 불러오기 |
 | `DART_REQUEST_FAILED` | 502 | OpenDART 호출 실패 | 잠시 뒤 다시 시도 |
 | `DART_RATE_LIMITED` | 503 | OpenDART 호출 한도 초과(020) | 내일 다시 시도, 저장된 자료 사용 |
 | `DART_KEY_MISSING` | 503 | 서버에 OpenDART 키가 없음 | 관리자 안내 |
