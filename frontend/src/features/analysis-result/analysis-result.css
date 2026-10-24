@@ -1535,6 +1535,29 @@
   cursor: pointer;
 }
 
+/* '출처 포함 복사'(FS-12). 답 카드·한 줄 풀이 안의 작은 보조 버튼과 결과 안내 */
+.copy-sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.button.copy-sources__button {
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  font-size: var(--font-size-xs);
+}
+
+.copy-sources__status {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.copy-sources__status--error {
+  color: var(--color-danger);
+}
+
 /* 답을 기다리는 동안 */
 .answer-card--pending {
   border-style: dashed;

@@ -11,9 +11,11 @@ import { useAnswerFeedback } from '../hooks/useAnswerFeedback'
 import { FEEDBACK_REASONS, feedbackStatusLabel } from '../model/answerFeedback'
 import { factLabel, parseAnswer } from '../model/answerText'
 import { askedAtLabel, citationSideLabel, quoteLabel } from '../model/askQuestion'
+import { answerCopyText } from '../model/copyText'
 import { formatCount } from '../model/overview'
 import type { SourceTarget } from '../model/resultParams'
 import { aiInfoLabel } from '../model/summaryLabels'
+import { CopyWithSourcesButton } from './CopyWithSourcesButton'
 
 export interface AnswerLinks {
   onOpenSource: (target: SourceTarget) => void
@@ -242,6 +244,8 @@ function AnsweredBody({ item, links, onFeedback }: { item: QuestionAnswer; links
           </ul>
         </EvidenceGroup>
       )}
+
+      <CopyWithSourcesButton className="answer-card__copy" text={() => answerCopyText(item)} target="답" />
 
       <FeedbackRow item={item} onFeedback={onFeedback} />
 
