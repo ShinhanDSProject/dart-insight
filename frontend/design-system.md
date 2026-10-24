@@ -176,7 +176,7 @@ W-03 ④ 원문 확인
 
 | 컴포넌트 | 주요 props | 쓰는 곳 |
 | --- | --- | --- |
-| `Button` | `variant`: `primary`·`secondary`(기본)·`link`, `size`: `md`·`lg` | 모든 버튼. 켜고 끄는 버튼은 `aria-pressed` |
+| `Button` | `variant`: `primary`·`secondary`(기본)·`link`·`icon`, `size`: `md`·`lg` | 모든 버튼. 켜고 끄는 버튼은 `aria-pressed`. `icon`은 아이콘만 있는 작은 버튼(카드 안 지우기)으로 `aria-label`을 꼭 넘긴다 |
 | `ButtonLink` / `ButtonAnchor` | `Button`과 같은 `variant`·`size` + `to`(앱 안) / `href`(바깥) | 버튼 모양의 링크 |
 | `Badge` | `tone`: `neutral`·`accent`·`attention` | 현재·비교, 변경 유형, 진행 상태, AI 생성, 검토 필요 |
 | `Notice` | `tone`: `info`·`attention`·`blocked`, `title`, `as`: `div`·`p`·`aside` | 안내·예외 띠, 비교 불가·분석 실패 상자 |

@@ -6,6 +6,7 @@ import { ButtonLink, Notice, Tabs, type TabItem } from '@/shared/ui'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import type { SjDiv } from '@/shared/api/results'
 import type { LoadState } from '@/shared/hooks/asyncState'
+import { useRecordRecentAnalysis } from '@/shared/hooks/useRecentAnalyses'
 import { AskTab } from './components/AskTab'
 import { FinancialTab } from './components/FinancialTab'
 import { ComparisonContextCard } from './components/ComparisonContextCard'
@@ -110,9 +111,10 @@ function AnalysisResult({ analysis, params, update }: AnalysisResultProps) {
 
 /**
  * 완료된 분석의 결과. AI 질문의 상태와 예시 질문은 여기에 두어, 요약 진입 카드와 AI 질문 탭이 같이 쓰고
- * 다른 탭에 다녀와도 받은 답·보내는 질문이 남는다.
+ * 다른 탭에 다녀와도 받은 답·보내는 질문이 남는다. 열면 검색 화면의 '최근 본 분석'에 남긴다(FS-7).
  */
 function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
+  useRecordRecentAnalysis(analysis)
   const ask = useAsk(analysis.analysisId)
   const suggestions = useAskSuggestions(analysis.analysisId).state
   return (
