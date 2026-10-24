@@ -32,8 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class TextChangeController {
 
-    private static final Set<String> TYPES = Set.of(TextChangeRow.ADDED, TextChangeRow.DELETED,
-            TextChangeRow.MODIFIED, TextChangeRow.REVIEW_NEEDED);
+    private static final Set<String> TYPES = Set.copyOf(TextChangeRow.TYPES);
     private static final int MAX_SIZE = 100;
     private static final int MAX_SECTION = 500;
     private static final int MIN_QUERY = 2;
@@ -60,7 +59,7 @@ public class TextChangeController {
             throw ApiException.invalidInput("sort", "priority 또는 document여야 합니다.");
         }
         if (type != null && !TYPES.contains(type)) {
-            throw ApiException.invalidInput("type", "ADDED, DELETED, MODIFIED, REVIEW_NEEDED 중 하나여야 합니다.");
+            throw ApiException.invalidInput("type", String.join(", ", TextChangeRow.TYPES) + " 중 하나여야 합니다.");
         }
         if (page < 0) {
             throw ApiException.invalidInput("page", "0 이상이어야 합니다.");

@@ -247,7 +247,8 @@ public class AnalysisRunner implements DisposableBean {
             boolean shapeOk = switch (row.changeType() == null ? "" : row.changeType()) {
                 case TextChangeRow.ADDED -> !hasPrevious && hasCurrent;
                 case TextChangeRow.DELETED -> hasPrevious && !hasCurrent;
-                case TextChangeRow.MODIFIED -> hasPrevious && hasCurrent;
+                case TextChangeRow.MODIFIED, TextChangeRow.NUMERIC_UPDATE -> hasPrevious && hasCurrent;
+                case TextChangeRow.MOVED -> hasPrevious && hasCurrent && row.previousSectionPath() != null;
                 case TextChangeRow.REVIEW_NEEDED -> (hasPrevious || hasCurrent) && row.reviewReason() != null;
                 default -> false;
             };

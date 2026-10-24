@@ -29,7 +29,8 @@ public class TextChangeStore {
 
     private static final int BATCH = 500;
     private static final String COLUMNS = "id, change_no, change_type, block_type, numbers_only, section_status, "
-            + "section_title, section_path, previous_rcept_no, previous_section_no, previous_block_no, previous_text, "
+            + "section_title, section_path, previous_section_path, previous_rcept_no, previous_section_no, "
+            + "previous_block_no, previous_text, "
             + "current_rcept_no, current_section_no, current_block_no, current_text, similarity, review_reason, "
             + "priority, priority_score, priority_reasons, priority_version";
     /** 우선순위 순: 점수가 높은 것부터, 순위를 매기지 않은 것(판단 유보)은 뒤에 문서 순서로 */
@@ -51,6 +52,7 @@ public class TextChangeStore {
             TextChangeRow.Priority priority = row.priority();
             values.add(new Object[] {analysisId, i + 1, row.changeType(), row.blockType(), row.numbersOnly(),
                     row.sectionStatus(), limit(row.sectionTitle(), 500), limit(row.sectionPath(), 1000),
+                    limit(row.previousSectionPath(), 1000),
                     p == null ? null : p.rceptNo(), p == null ? null : p.sectionNo(), p == null ? null : p.blockNo(),
                     p == null ? null : p.text(),
                     c == null ? null : c.rceptNo(), c == null ? null : c.sectionNo(), c == null ? null : c.blockNo(),
@@ -61,10 +63,11 @@ public class TextChangeStore {
                     priority == null ? null : priority.version()});
         }
         String sql = "INSERT INTO text_change (analysis_id, change_no, change_type, block_type, numbers_only, "
-                + "section_status, section_title, section_path, previous_rcept_no, previous_section_no, "
-                + "previous_block_no, previous_text, current_rcept_no, current_section_no, current_block_no, "
-                + "current_text, similarity, review_reason, priority, priority_score, priority_reasons, "
-                + "priority_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "section_status, section_title, section_path, previous_section_path, previous_rcept_no, "
+                + "previous_section_no, previous_block_no, previous_text, current_rcept_no, current_section_no, "
+                + "current_block_no, current_text, similarity, review_reason, priority, priority_score, "
+                + "priority_reasons, priority_version) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         for (int from = 0; from < values.size(); from += BATCH) {
             jdbcTemplate.batchUpdate(sql, values.subList(from, Math.min(values.size(), from + BATCH)));
         }
@@ -73,8 +76,7 @@ public class TextChangeStore {
     /** 유형별 건수. 키는 change_type, 없는 유형은 0. filter의 type은 보지 않는다 */
     public Map<String, Integer> counts(long analysisId, TextChangeFilter filter) {
         Map<String, Integer> counts = new LinkedHashMap<>();
-        for (String type : List.of(TextChangeRow.ADDED, TextChangeRow.DELETED, TextChangeRow.MODIFIED,
-                TextChangeRow.REVIEW_NEEDED)) {
+        for (String type : TextChangeRow.TYPES) {
             counts.put(type, 0);
         }
         Condition condition = Condition.of(filter.withoutType());
@@ -180,7 +182,8 @@ public class TextChangeStore {
         return new TextChange(rs.getLong("id"), rs.getInt("change_no"), new TextChangeRow(
                 rs.getString("change_type"), rs.getString("block_type"), rs.getBoolean("numbers_only"),
                 rs.getString("section_status"), rs.getString("section_title"), rs.getString("section_path"),
-                previous, current, rs.getBigDecimal("similarity"), rs.getString("review_reason"), priority(rs)));
+                previous, current, rs.getBigDecimal("similarity"), rs.getString("review_reason"), priority(rs),
+                rs.getString("previous_section_path")));
     }
 
     private static TextChangeRow.Priority priority(ResultSet rs) throws SQLException {

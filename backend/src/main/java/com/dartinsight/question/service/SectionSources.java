@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
  *   공백·따옴표·괄호를 빼고 소문자로, 제목은 앞 번호(II. · 7. · 가. · (1))를 뗀다.</li>
  *   <li>4자 미만 제목과 목차 밖 본문은 보지 않는다. 질문에 들어 있는 제목 중 가장 긴 것을 고르고(같으면 문서 순서),
  *   하위 목차면 그 하위 섹션까지, 대목차면 대목차가 범위다.</li>
- *   <li>범위 안 변경(추가·삭제·수정) 중 글이 있는 쪽을 확인 우선순위 점수가 높은 순(점수 없으면 뒤), 같으면 문서 순서로
+ *   <li>범위 안 변경(검토 필요를 뺀 추가·삭제·수정·숫자만 바뀜·위치 이동) 중 글이 있는 쪽을 확인 우선순위 점수가 높은 순(점수 없으면 뒤), 같으면 문서 순서로
  *   현재 쪽 → 이전 쪽 문단을 후보로 삼아 최대 6개, 글은 1,200자까지 보낸다.</li>
  * </ol>
  */
@@ -37,7 +37,7 @@ public final class SectionSources {
     private static final Pattern LEADING_NUMBER = Pattern.compile(
             "^(?:\\(\\d+\\)|\\d+[.)]|[ivxlcdm]+[.)]|[가-힣][.)])+");
     private static final Set<String> TYPES = Set.of(TextChangeRow.ADDED, TextChangeRow.DELETED,
-            TextChangeRow.MODIFIED);
+            TextChangeRow.MODIFIED, TextChangeRow.NUMERIC_UPDATE, TextChangeRow.MOVED);
 
     private SectionSources() {
     }

@@ -83,7 +83,7 @@ public class TextComparisonService {
                         change.sectionPath(), side(previous.getRceptNo(), change.previous(), previousByNo),
                         side(current.getRceptNo(), change.current(), currentByNo),
                         TextChangeStore.similarity(change.similarity()), change.reviewReason(),
-                        priority(change.priority(), diff.priorityVersion())));
+                        priority(change.priority(), diff.priorityVersion()), change.previousSectionPath()));
             }
         } catch (RuntimeException e) {
             // 받은 결과를 읽지 못해도 분석 전체를 실패로 만들지 않는다(문장 비교만 실패)

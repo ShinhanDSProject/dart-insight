@@ -12,7 +12,7 @@ public record TextChangeDiffResponse(String diffVersion, String priorityVersion,
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Change(String changeType, String blockType, String sectionStatus, String sectionTitle,
             String sectionPath, Position previous, Position current, Boolean numbersOnly, Double similarity,
-            String reviewReason, PriorityResult priority) {
+            String reviewReason, PriorityResult priority, String previousSectionPath) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

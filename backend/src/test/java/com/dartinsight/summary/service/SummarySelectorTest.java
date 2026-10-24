@@ -24,10 +24,12 @@ class SummarySelectorTest {
                 null, status, "KRW", null, null);
     }
 
-    private static TextChangeRow text(String level, Integer score, boolean numbersOnly) {
-        return new TextChangeRow(TextChangeRow.ADDED, "PARAGRAPH", numbersOnly, "MATCHED", "t", "p", null,
-                new Side("20260814000001", 1, 1, "글"), null, null,
-                level == null ? null : new Priority(level, score, List.of(), "priority-1"));
+    private static TextChangeRow text(String level, Integer score, String type) {
+        Side side = new Side("20260814000001", 1, 1, "글");
+        return new TextChangeRow(type, "PARAGRAPH", TextChangeRow.NUMERIC_UPDATE.equals(type), "MATCHED", "t", "p",
+                TextChangeRow.ADDED.equals(type) ? null : side, side, null, null,
+                level == null ? null : new Priority(level, score, List.of(), "priority-2"),
+                TextChangeRow.MOVED.equals(type) ? "q" : null);
     }
 
     @Test
@@ -76,10 +78,22 @@ class SummarySelectorTest {
 
     @Test
     void picksHighAndMediumTextChangesByScore() {
-        List<TextChangeRow> rows = List.of(text("LOW", 10, false), text("MEDIUM", 40, false),
-                text("HIGH", 70, true), text("HIGH", 65, false), text("UNRANKED", null, false), text(null, null, false));
+        String added = TextChangeRow.ADDED;
+        List<TextChangeRow> rows = List.of(text("LOW", 10, added), text("MEDIUM", 40, added),
+                text("HIGH", 70, TextChangeRow.NUMERIC_UPDATE), text("HIGH", 65, added),
+                text("UNRANKED", null, TextChangeRow.REVIEW_NEEDED), text(null, null, added));
 
         assertThat(SummarySelector.text(rows)).containsExactly(3, 1);
+    }
+
+    @Test
+    @DisplayName("숫자만 바뀜·위치 이동·검토 필요는 점수가 높아도 요약할 문장 변화로 고르지 않는다")
+    void skipsNumericUpdatesMovesAndReviewItems() {
+        List<TextChangeRow> rows = List.of(text("HIGH", 90, TextChangeRow.NUMERIC_UPDATE),
+                text("HIGH", 80, TextChangeRow.MOVED), text("MEDIUM", 30, TextChangeRow.MODIFIED),
+                text("HIGH", 70, TextChangeRow.DELETED));
+
+        assertThat(SummarySelector.text(rows)).containsExactly(3, 2);
     }
 
     @Test
