@@ -9,6 +9,7 @@ public final class AiServerPaths {
     public static final String HEALTH = "/internal/health";
     public static final String TEXT_CHANGES = "/internal/text-changes";
     public static final String SUMMARIES = "/internal/summaries";
+    public static final String ANSWERS = "/internal/answers";
     public static final String DOCUMENT_PARSER = "/internal/documents/parser";
 
     private AiServerPaths() {
