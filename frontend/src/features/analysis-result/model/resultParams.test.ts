@@ -8,6 +8,7 @@ import {
   openAsk,
   openTextList,
   openTextSearch,
+  openTextSection,
   parseResultParams,
   resultTabs,
   sourceParamChanges,
@@ -141,6 +142,18 @@ describe('고르기를 주소 값으로 바꾸기', () => {
   it('변화 개요에서 문장 변화 탭을 전체 또는 그 유형으로 연다', () => {
     expect(openTextList(null)).toEqual({ tab: 'text', ttype: null, tsort: null, tpin: null, tc: null })
     expect(openTextList('REVIEW_NEEDED')).toEqual({ tab: 'text', ttype: 'REVIEW_NEEDED', tsort: null, tpin: null, tc: null })
+  })
+
+  it('섹션별 막대에서 문장 변화 탭을 그 섹션으로 거르고 유형·검색어는 지운다', () => {
+    expect(openTextSection('II. 사업의 내용')).toEqual({
+      tab: 'text',
+      ttype: null,
+      tsort: null,
+      tsec: 'II. 사업의 내용',
+      tq: null,
+      tpin: null,
+      tc: null,
+    })
   })
 })
 

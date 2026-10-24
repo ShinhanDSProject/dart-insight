@@ -170,18 +170,33 @@ describe('변화 개요 접근성(axe)', () => {
     overview.financial = { status: 'success', data: { changed: 12, firstChangedSjDiv: 'BS' } }
     overview.text = {
       status: 'success',
-      data: { status: 'available', all: 20, added: 5, deleted: 3, modified: 12, reviewNeeded: 2, partial: true },
+      data: {
+        status: 'available',
+        all: 20,
+        added: 5,
+        deleted: 3,
+        modified: 12,
+        reviewNeeded: 2,
+        partial: true,
+        sections: [
+          { title: '(목차 밖 본문)', count: 2 },
+          { title: 'II. 사업의 내용', count: 18 },
+        ],
+      },
     }
-    await expectNoViolations(<ChangeOverview analysisId={1} onOpenChangedAccounts={noop} onOpenTextList={noop} />)
+    const container = await expectNoViolations(
+      <ChangeOverview analysisId={1} onOpenChangedAccounts={noop} onOpenTextList={noop} onOpenTextSection={noop} />,
+    )
+    expect(container.querySelectorAll('.section-chart__row')).toHaveLength(2)
   })
 
   it('불러오는 중·실패·확인 안 됨 개요에 위반이 없다', async () => {
     overview.financial = { status: 'error', error: apiError }
-    await expectNoViolations(<ChangeOverview analysisId={1} onOpenChangedAccounts={noop} onOpenTextList={noop} />)
+    await expectNoViolations(<ChangeOverview analysisId={1} onOpenChangedAccounts={noop} onOpenTextList={noop} onOpenTextSection={noop} />)
     cleanup()
     overview.financial = { status: 'success', data: { changed: null, firstChangedSjDiv: null } }
     overview.text = { status: 'success', data: { status: 'unavailable' } }
-    await expectNoViolations(<ChangeOverview analysisId={1} onOpenChangedAccounts={noop} onOpenTextList={noop} />)
+    await expectNoViolations(<ChangeOverview analysisId={1} onOpenChangedAccounts={noop} onOpenTextList={noop} onOpenTextSection={noop} />)
   })
 })
 
