@@ -120,14 +120,21 @@ function AnalysisResult({ analysis, params, update }: AnalysisResultProps) {
 function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
   useRecordRecentAnalysis(analysis)
   const ask = useAsk(analysis.analysisId)
-  const suggestions = useAskSuggestions(analysis.analysisId).state
+  const { questions: suggestions, sections: askSections } = useAskSuggestions(analysis.analysisId)
   return (
     <>
       <ComparisonContextCard analysis={analysis} />
 
       <Tabs label="결과 보기" items={tabs} value={params.tab} onChange={(t) => update({ tab: t })} />
 
-      <ResultTabPanel analysis={analysis} params={params} update={update} ask={ask} suggestions={suggestions} />
+      <ResultTabPanel
+        analysis={analysis}
+        params={params}
+        update={update}
+        ask={ask}
+        suggestions={suggestions}
+        askSections={askSections}
+      />
     </>
   )
 }
@@ -135,9 +142,11 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
 interface ResultTabPanelProps extends AnalysisResultProps {
   ask: AskController
   suggestions: LoadState<string[]>
+  /** 입력 중 섹션 질문 제안에 쓰는 최상위 섹션 제목(#267) */
+  askSections: string[]
 }
 
-function ResultTabPanel({ analysis, params, update, ask, suggestions }: ResultTabPanelProps) {
+function ResultTabPanel({ analysis, params, update, ask, suggestions, askSections }: ResultTabPanelProps) {
   const openSource = (target: SourceTarget) => update(openSourceChanges(target))
   const openFinancial = (sj: SjDiv, change: number) => update(openFinancialChanges(sj, change))
   // 요약의 예시 질문과 문장 변화의 '이 항목 변화 AI에게 묻기'가 같이 쓴다: 질문을 보내고 AI 질문 탭으로 옮긴다
@@ -193,6 +202,7 @@ function ResultTabPanel({ analysis, params, update, ask, suggestions }: ResultTa
       <AskTab
         ask={ask}
         suggestions={suggestions}
+        sections={askSections}
         onOpenSource={openSource}
         onOpenFinancial={openFinancial}
         onSearchText={(question) => update(openTextSearch(searchWordOf(question)))}

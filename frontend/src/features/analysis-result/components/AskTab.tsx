@@ -1,25 +1,28 @@
-import type { KeyboardEvent } from 'react'
+import { useReducer, type KeyboardEvent } from 'react'
 import { match } from 'ts-pattern'
 import type { LoadState } from '@/shared/hooks/asyncState'
 import { cx } from '@/shared/lib/cx'
 import { Button, FieldHint, FieldLabel, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { LoadingState } from '@/shared/ui/StateView'
 import type { AskController } from '../hooks/useAsk'
-import { ASK_INTRO, draftMessage, parseQuestion, questionCountLabel, RISK_QUESTION } from '../model/askQuestion'
+import { ASK_INTRO, draftMessage, parseQuestion, questionCountLabel, RISK_QUESTION, sectionQuestion } from '../model/askQuestion'
 import { followUpQuestions } from '../model/followUp'
+import { SECTION_COMBO_CLOSED, sectionComboReducer, sectionSuggestions } from '../model/sectionSuggestions'
 import { AnswerCard, FailedAnswerCard, PendingAnswerCard, type AnswerLinks } from './AnswerCard'
 import { AskSuggestions } from './AskSuggestions'
 
 interface AskTabProps extends AnswerLinks {
   ask: AskController
   suggestions: LoadState<string[]>
+  /** 이 분석의 최상위 섹션 제목(문장 변화 탭의 섹션 선택과 같은 출처). 입력 중 섹션 질문을 제안한다(#267) */
+  sections: string[]
 }
 
 /**
  * W-03 ⑤ AI 질문(3.10, FS-5). 예시 질문을 누르거나 직접 물으면, 두 보고서 원문 문단과 코드가 계산한 수치로만 답한다.
  * 답의 [1]·[F1]을 누르면 아래 근거 줄로 가고, '원문 보기'·'수치 근거'로 원문 확인·재무 수치 탭의 그 위치를 연다.
  */
-export function AskTab({ ask, suggestions, ...links }: AskTabProps) {
+export function AskTab({ ask, suggestions, sections, ...links }: AskTabProps) {
   const { state, history } = ask
   const sending = state.request.status === 'sending'
   const lastAnswered = state.items.find((i) => i.questionId === state.lastAnsweredId)
@@ -45,7 +48,7 @@ export function AskTab({ ask, suggestions, ...links }: AskTabProps) {
 
       <AskSuggestions suggestions={suggestions} onAsk={ask.ask} disabled={sending} />
 
-      <AskForm ask={ask} sending={sending} />
+      <AskForm ask={ask} sending={sending} sections={sections} />
 
       <p className="visually-hidden" role="status">
         {lastAnswered && !sending ? `'${lastAnswered.question}'에 대한 답이 왔어요.` : ''}
@@ -103,16 +106,47 @@ export function AskTab({ ask, suggestions, ...links }: AskTabProps) {
   )
 }
 
-function AskForm({ ask, sending }: { ask: AskController; sending: boolean }) {
+const SECTION_LIST_ID = 'ask-section-suggestions'
+const sectionOptionId = (index: number) => `ask-section-option-${index}`
+
+function AskForm({ ask, sending, sections }: { ask: AskController; sending: boolean; sections: string[] }) {
   const { draft, draftRejected } = ask.state
   const message = draftMessage(draft, draftRejected)
   const tooLong = parseQuestion(draft).kind === 'too-long'
+  const [combo, dispatchCombo] = useReducer(sectionComboReducer, SECTION_COMBO_CLOSED)
+  const matches = sending ? [] : sectionSuggestions(sections, draft)
+  const expanded = combo.status === 'open' && matches.length > 0
+  const active = match(combo)
+    .with({ status: 'open' }, ({ active }) => (expanded && active !== null && active < matches.length ? active : null))
+    .with({ status: 'closed' }, () => null)
+    .exhaustive()
 
-  // Enter는 보내기, Shift+Enter는 줄바꿈. 한글 조합 중의 Enter는 글자를 끝내는 것이라 보내지 않는다
+  // 섹션 제안을 고르면 질문 문구로 채우고 닫는다(#267). 보내지는 않는다
+  const choose = (title: string) => {
+    ask.setDraft(sectionQuestion(title))
+    dispatchCombo({ type: 'close' })
+  }
+
+  // ↑↓로 섹션 제안을 고르고 Esc로 닫는다. Enter는 고른 제안이 있으면 채우고, 없으면 보낸다. Shift+Enter는 줄바꿈.
+  // 한글 조합 중의 키는 글자를 끝내는 것이라 무시한다
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing) return
+    if (e.nativeEvent.isComposing) return
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (matches.length === 0) return
+      e.preventDefault()
+      dispatchCombo({ type: 'move', delta: e.key === 'ArrowDown' ? 1 : -1, count: matches.length })
+      return
+    }
+    if (e.key === 'Escape') {
+      if (!expanded) return
+      e.preventDefault()
+      dispatchCombo({ type: 'close' })
+      return
+    }
+    if (e.key !== 'Enter' || e.shiftKey) return
     e.preventDefault()
-    ask.submitDraft()
+    if (active !== null) choose(matches[active])
+    else ask.submitDraft()
   }
 
   return (
@@ -127,6 +161,11 @@ function AskForm({ ask, sending }: { ask: AskController; sending: boolean }) {
       <div className={cx('ask-form__box', message !== null && 'ask-form__box--error', sending && 'ask-form__box--busy')}>
         <textarea
           id="ask-input"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={expanded}
+          aria-controls={SECTION_LIST_ID}
+          aria-activedescendant={active !== null ? sectionOptionId(active) : undefined}
           className="ask-form__input"
           rows={2}
           value={draft}
@@ -136,9 +175,30 @@ function AskForm({ ask, sending }: { ask: AskController; sending: boolean }) {
           aria-disabled={sending}
           aria-invalid={message !== null}
           aria-describedby={cx('ask-hint', message !== null && 'ask-error')}
-          onChange={(e) => ask.setDraft(e.target.value)}
+          onChange={(e) => {
+            ask.setDraft(e.target.value)
+            dispatchCombo({ type: 'input' })
+          }}
           onKeyDown={onKeyDown}
+          onBlur={() => dispatchCombo({ type: 'close' })}
         />
+        <ul id={SECTION_LIST_ID} className="ask-form__suggestions" role="listbox" aria-label="섹션 질문 제안" hidden={!expanded}>
+          {expanded &&
+            matches.map((title, index) => (
+              <li
+                key={title}
+                id={sectionOptionId(index)}
+                role="option"
+                aria-selected={index === active}
+                className={cx('ask-form__suggestion', index === active && 'ask-form__suggestion--active')}
+                // 누르는 동안 입력창 포커스가 빠져 목록이 닫히지 않게 한다. 고르기는 키보드로도 된다(입력창의 ↑↓·Enter)
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => choose(title)}
+              >
+                {sectionQuestion(title)}
+              </li>
+            ))}
+        </ul>
         <div className="ask-form__bar">
           <FieldHint id="ask-hint" className="ask-form__hint">
             Enter로 보내고 Shift+Enter로 줄을 바꿔요
