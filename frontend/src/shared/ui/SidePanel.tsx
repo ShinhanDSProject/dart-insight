@@ -4,7 +4,7 @@ import { cx } from '@/shared/lib/cx'
 type SidePanelProps = {
   /** Esc를 누르면 부른다 */
   onClose: () => void
-} & ComponentPropsWithoutRef<'aside'>
+} & ComponentPropsWithoutRef<'div'>
 
 /**
  * 화면 오른쪽에 붙는 보조 패널(근거 보기 등). 본문을 가리지 않도록 넓은 화면에서는 본문 오른쪽 여백을 비우고,
@@ -31,5 +31,6 @@ export function SidePanel({ onClose, className, ...rest }: SidePanelProps) {
     }
   }, [])
 
-  return <aside role="dialog" aria-modal="false" className={cx('side-panel', className)} {...rest} />
+  // aside에는 role="dialog"를 줄 수 없어(ARIA in HTML) div에 붙인다
+  return <div role="dialog" aria-modal="false" className={cx('side-panel', className)} {...rest} />
 }
