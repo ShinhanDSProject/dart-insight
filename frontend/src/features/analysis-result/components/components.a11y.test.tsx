@@ -10,9 +10,11 @@ import type { TextExplanation } from '@/shared/api/textChanges'
 import type { LoadState } from '@/shared/hooks/asyncState'
 import { axeViolations } from '@/test/axe'
 import type { FinancialOverview, TextOverview } from '../model/overview'
+import type { HeadlineLine } from '../model/summaryHeadline'
 import { AnswerCard, FailedAnswerCard, PendingAnswerCard, type FollowUp } from './AnswerCard'
 import { ChangeOverview } from './ChangeOverview'
 import { FinancialChart } from './FinancialChart'
+import { SummaryHeadline } from './SummaryHeadline'
 import { TextExplanationBox } from './TextExplanationBox'
 
 // 변화 개요는 숫자를 불러오는 훅만 바꿔 끼워 상태마다 고정된 화면을 그린다
@@ -161,6 +163,35 @@ describe('변화 개요 접근성(axe)', () => {
     overview.financial = { status: 'success', data: { changed: null, firstChangedSjDiv: null } }
     overview.text = { status: 'success', data: { status: 'unavailable' } }
     await expectNoViolations(<ChangeOverview analysisId={1} onOpenChangedAccounts={noop} onOpenTextList={noop} />)
+  })
+})
+
+describe('핵심 3줄 접근성(axe)', () => {
+  const lines: HeadlineLine[] = [
+    { itemNo: 1, kind: 'FINANCIAL', text: '매출액이 1,000억원에서 1,100억원으로 10.0% 늘었어요.', aiGenerated: false, target: { type: 'FINANCIAL', changeId: 31, sjDiv: 'IS' } },
+    { itemNo: 2, kind: 'FINANCIAL', text: '부채총계가 800억원에서 600억원으로 25.0% 줄었어요.', aiGenerated: false, target: { type: 'FINANCIAL', changeId: null, sjDiv: 'BS' } },
+    { itemNo: 3, kind: 'TEXT', text: '새 공장 투자 계획이 추가됐어요.', aiGenerated: true, target: { type: 'TEXT', changeId: 5, sjDiv: null } },
+  ]
+  const opener = (target: HeadlineLine['target']) => (target.changeId === null ? null : noop)
+
+  it('누를 수 있는 줄과 열 수 없는 줄이 섞여도 위반이 없다', async () => {
+    const container = await expectNoViolations(<SummaryHeadline lines={lines} opener={opener} />)
+    expect(screen.getByRole('heading', { name: '이번 비교의 핵심' })).toBeTruthy()
+    expect(container.querySelectorAll('.headline__line')).toHaveLength(3)
+    expect(screen.getAllByRole('button')).toHaveLength(2)
+    expect(screen.getAllByText('AI 생성')).toHaveLength(1)
+  })
+
+  it('줄을 누르면 그 항목의 근거를 연다', () => {
+    const open = vi.fn()
+    render(<SummaryHeadline lines={lines.slice(2)} opener={() => open} />)
+    fireEvent.click(screen.getByRole('button', { name: /새 공장 투자 계획/ }))
+    expect(open).toHaveBeenCalledTimes(1)
+  })
+
+  it('고를 줄이 없으면 그리지 않는다', () => {
+    const { container } = render(<SummaryHeadline lines={[]} opener={opener} />)
+    expect(container.innerHTML).toBe('')
   })
 })
 

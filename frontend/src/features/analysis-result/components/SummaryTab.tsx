@@ -4,6 +4,7 @@ import type { FinancialChangeItem, SjDiv } from '@/shared/api/results'
 import type { Summary, SummaryEvidence, SummaryItem, SummaryTarget } from '@/shared/api/summary'
 import type { ChangeType } from '@/shared/api/textChanges'
 import type { LoadState } from '@/shared/hooks/asyncState'
+import type { AsyncResult } from '@/shared/hooks/useAsync'
 import { Badge, Button, Card, CompareBars, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { DartSourceLine } from '@/shared/ui/DartSource'
@@ -12,8 +13,10 @@ import { useSummary } from '../hooks/useSummary'
 import { useSummaryAmounts } from '../hooks/useSummaryAmounts'
 import { formatCompactAmount } from '../model/chart'
 import { summarySjDivs } from '../model/summaryAmounts'
+import { headlineItems } from '../model/summaryHeadline'
 import { AskEntryCard } from './AskEntryCard'
 import { ChangeOverview } from './ChangeOverview'
+import { SummaryHeadline } from './SummaryHeadline'
 import type { SourceTarget } from '../model/resultParams'
 import {
   aiInfoLabel,
@@ -52,7 +55,7 @@ interface OverviewLinks {
 }
 
 /**
- * W-03 ① 요약·설명(3.2). 맨 위에 변화 개요(FS-4 R6)와 AI 질문 진입 카드(3.10)를 둔다. 수치 문장은 코드가 계산한 값이고, AI가 쓴 문장은 'AI 생성'으로 따로 표시해 사실과 구분한다.
+ * W-03 ① 요약·설명(3.2). 맨 위에 핵심 3줄(FS-21), 변화 개요(FS-4 R6)와 AI 질문 진입 카드(3.10)를 둔다. 수치 문장은 코드가 계산한 값이고, AI가 쓴 문장은 'AI 생성'으로 따로 표시해 사실과 구분한다.
  * 공시에 설명이 없으면 '확인된 설명 없음', 근거를 확인하지 못한 항목은 요약에서 빼고 '검토 필요'로 센다.
  */
 export function SummaryTab({
@@ -67,22 +70,39 @@ export function SummaryTab({
   onOpenAsk,
   asking,
 }: SummaryTabProps & OverviewLinks & AskEntry) {
+  // 핵심 3줄(FS-21)과 요약 본문이 같은 요약 응답을 쓴다(한 번만 불러온다)
+  const summary = useSummary(analysis.analysisId)
+  // 열 수 없는 항목(결과에서 찾지 못함)은 버튼을 그리지 않는다
+  const opener = (target: SummaryTarget): (() => void) | null => {
+    const link = summaryLink(target)
+    if (link === null) return null
+    return link.tab === 'financial' ? () => onOpenFinancial(link.sjDiv, link.changeId) : () => onOpenText(link.changeId)
+  }
+
   return (
     <>
+      {summary.state.status === 'success' && <SummaryHeadline lines={headlineItems(summary.state.data)} opener={opener} />}
       <ChangeOverview
         analysisId={analysis.analysisId}
         onOpenChangedAccounts={onOpenChangedAccounts}
         onOpenTextList={onOpenTextList}
       />
       <AskEntryCard suggestions={suggestions} onAsk={onAsk} onOpenAsk={onOpenAsk} sending={asking} />
-      <SummaryContent analysis={analysis} onOpenFinancial={onOpenFinancial} onOpenText={onOpenText} onOpenSource={onOpenSource} />
+      <SummaryContent summary={summary} analysis={analysis} opener={opener} onOpenSource={onOpenSource} />
     </>
   )
 }
 
+interface SummaryContentProps {
+  summary: AsyncResult<LoadState<Summary>>
+  analysis: Analysis
+  opener: (target: SummaryTarget) => (() => void) | null
+  onOpenSource: (target: SourceTarget) => void
+}
+
 /** 요약 본문. 변화 개요를 못 불러와도 따로 불러와 그대로 보인다 */
-function SummaryContent({ analysis, onOpenFinancial, onOpenText, onOpenSource }: SummaryTabProps) {
-  const { state, reload } = useSummary(analysis.analysisId)
+function SummaryContent({ summary, analysis, opener, onOpenSource }: SummaryContentProps) {
+  const { state, reload } = summary
 
   return match(state)
     .with({ status: 'loading' }, () => (
@@ -95,19 +115,11 @@ function SummaryContent({ analysis, onOpenFinancial, onOpenText, onOpenSource }:
         <ErrorState error={error} onRetry={reload} />
       </Panel>
     ))
-    .with({ status: 'success' }, ({ data }) => (
-      <SummaryBody
-        data={data}
-        analysis={analysis}
-        onOpenFinancial={onOpenFinancial}
-        onOpenText={onOpenText}
-        onOpenSource={onOpenSource}
-      />
-    ))
+    .with({ status: 'success' }, ({ data }) => <SummaryBody data={data} analysis={analysis} opener={opener} onOpenSource={onOpenSource} />)
     .exhaustive()
 }
 
-function SummaryBody({ data, analysis, onOpenFinancial, onOpenText, onOpenSource }: SummaryTabProps & { data: Summary }) {
+function SummaryBody({ data, analysis, opener, onOpenSource }: Omit<SummaryContentProps, 'summary'> & { data: Summary }) {
   const notice = summaryStatusNotice(data.summaryStatus, data.summaryMessage)
   const coverage = data.summaryStatus === null ? null : textCoverageNote(data.textStatus)
   const financial = data.items.filter((i) => i.kind === 'FINANCIAL')
@@ -115,12 +127,6 @@ function SummaryBody({ data, analysis, onOpenFinancial, onOpenText, onOpenSource
   // 금액을 못 불러오면 비교 막대만 빠진다(사실 문장은 그대로)
   const amounts = amountsState.status === 'success' ? amountsState.data : null
   const text = data.items.filter((i) => i.kind === 'TEXT')
-  // 열 수 없는 항목(결과에서 찾지 못함)은 버튼을 그리지 않는다
-  const opener = (target: SummaryTarget): (() => void) | null => {
-    const link = summaryLink(target)
-    if (link === null) return null
-    return link.tab === 'financial' ? () => onOpenFinancial(link.sjDiv, link.changeId) : () => onOpenText(link.changeId)
-  }
 
   return (
     <Panel aria-label="요약·설명">
