@@ -5,17 +5,29 @@ import { useAsyncAction } from '@/shared/hooks/useAsyncAction'
 import { Badge, Button, ButtonLink, FieldLabel, Notice, Panel } from '@/shared/ui'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { periodLabel } from '@/shared/lib/reportLabels'
+import { NotifyControl } from './components/NotifyControl'
 import { useAnalysisProgress } from './hooks/useAnalysisProgress'
+import { useCompletionNotification } from './hooks/useCompletionNotification'
+import { useProgressTitle } from './hooks/useProgressTitle'
 import { MAX_POLL_FAILURES, statusLabel, stepMarker, stepStateLabel, stepSummary } from './model/progress'
 import './analysis-progress.css'
 
 /**
  * W-02 분석 진행(2.3). 1초마다 상태를 묻고, 완료되면 결과 화면(W-03)으로 간다.
  * 실패하면 사유와 '다시 요청'을 보여 준다. 결과가 저장되기 전에는 완료로 보이지 않는다(서버가 보장).
+ * 탭 제목에 상태를 보이고, 원하면 탭이 숨겨진 채 끝났을 때 브라우저 알림을 띄운다(4.3).
  */
 export function AnalysisProgressPage() {
   const { analysisId = '' } = useParams()
-  const { state, restart } = useAnalysisProgress(analysisId)
+  const { permission, requestPermission, notify } = useCompletionNotification()
+  const { state, restart } = useAnalysisProgress(analysisId, { onSettled: notify })
+  useProgressTitle(
+    match(state)
+      .with({ status: 'success' }, ({ data }) => data)
+      .with({ status: 'error' }, ({ data }) => data)
+      .with({ status: 'loading' }, () => null)
+      .exhaustive(),
+  )
 
   return (
     <section className="page">
@@ -40,6 +52,12 @@ export function AnalysisProgressPage() {
                 상태를 불러오지 못해 다시 시도하고 있어요({failures}/{MAX_POLL_FAILURES - 1}).
               </p>
             )}
+            {match(data.status)
+              .with('PENDING', 'RUNNING', () => (
+                <NotifyControl permission={permission} onRequest={() => void requestPermission()} />
+              ))
+              .with('COMPLETED', 'FAILED', () => null)
+              .exhaustive()}
             <Outcome key={data.analysisId} analysis={data} />
           </>
         ))
