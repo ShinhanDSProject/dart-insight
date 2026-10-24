@@ -132,6 +132,55 @@
   font-size: var(--font-size-sm);
 }
 
+/* 재무 표 계정 찾기(FS-14): 이름표 | 입력창(지우기 ×) | 찾은 개수 */
+.fin-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.fin-search__box {
+  position: relative;
+  display: flex;
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.fin-search__input {
+  min-height: var(--control-height);
+  /* 지우기 버튼 자리(좁은 화면에서 버튼이 --touch-target-min까지 커져도 글과 겹치지 않게) */
+  padding-right: var(--space-7);
+}
+
+.fin-search__clear {
+  position: absolute;
+  top: 50%;
+  right: var(--space-2);
+  transform: translateY(-50%);
+}
+
+@media screen and (max-width: 900px) {
+  .fin-search__clear {
+    right: 0;
+  }
+}
+
+.fin-search__count:empty {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .fin-search {
+    flex-basis: 100%;
+  }
+
+  .fin-search__box {
+    flex-basis: 100%;
+  }
+}
+
 /* 재무 수치 변화 차트(FS-3, ADR-0018): 이름 | 그림 | 값 세 칸. 행 전체가 근거를 여는 버튼 */
 .fin-chart {
   display: flex;

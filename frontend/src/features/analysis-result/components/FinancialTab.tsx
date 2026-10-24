@@ -2,7 +2,20 @@ import { useEffect, useRef, useState } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { FinancialChangeItem, SjDiv, StatementSummary } from '@/shared/api/results'
-import { Button, DataTable, DataTableRow, FieldLabel, Notice, Panel, SegmentedControl, Select, SortableHeader } from '@/shared/ui'
+import {
+  Button,
+  DataTable,
+  DataTableRow,
+  FieldHint,
+  FieldLabel,
+  Icon,
+  Input,
+  Notice,
+  Panel,
+  SegmentedControl,
+  Select,
+  SortableHeader,
+} from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { downloadTextFile } from '@/shared/lib/download'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
@@ -19,7 +32,9 @@ import {
   unitOptions,
   type AmountUnit,
 } from '../model/format'
+import { useAccountSearch } from '../hooks/useAccountSearch'
 import { useFinancialChanges } from '../hooks/useFinancialChanges'
+import { ACCOUNT_SEARCH_MAX_LENGTH, filterAccounts, foundAccountsLabel } from '../model/accountFilter'
 import { buildFinancialCsv, csvFileName } from '../model/financialCsv'
 import type { FinancialViewChange } from '../model/resultParams'
 import {
@@ -43,28 +58,49 @@ const statementOptions: { sjDiv: SjDiv; label: string }[] = [
   { sjDiv: 'SCE', label: '자본변동표' },
 ]
 
+const ACCOUNT_SEARCH_INPUT_ID = 'fin-account-query'
+
 interface FinancialTabProps {
   analysis: Analysis
   sjDiv: SjDiv
   changedOnly: boolean
   unit: AmountUnit
+  /** 계정 찾기 검색어(FS-14). null이면 모든 계정 */
+  accountQuery: string | null
   /** 근거를 보고 있는 계정(3.3) */
   selectedChangeId: number | null
   onChange: (changes: FinancialViewChange) => void
 }
 
 /** W-03 ② 재무 수치 변화(3.1). 이 분석의 결과만 보여 준다. 계정 이름을 누르면 수치 근거(3.3)를 오른쪽 패널로 연다.
- * 증감액·증감률 머리글로 정렬하고, 계산하지 못한 행은 정렬해도 맨 아래에 둔다(FS-4 AC9). */
-export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChangeId, onChange }: FinancialTabProps) {
+ * 증감액·증감률 머리글로 정렬하고, 계산하지 못한 행은 정렬해도 맨 아래에 둔다(FS-4 AC9).
+ * 계정 이름으로 찾으면 받아 둔 계정을 화면에서 걸러 표·차트·CSV에 함께 쓴다(FS-14). */
+export function FinancialTab({
+  analysis,
+  sjDiv,
+  changedOnly,
+  unit,
+  accountQuery,
+  selectedChangeId,
+  onChange,
+}: FinancialTabProps) {
   const { state, reload, statements } = useFinancialChanges(analysis.analysisId, sjDiv, changedOnly)
   const selected = statements.find((s) => s.sjDiv === sjDiv)
   const basis = selected?.amountBasis ?? null
   const currency = state.status === 'success' ? (state.data.items.find((i) => i.currency)?.currency ?? null) : null
   // 표 정렬은 공유할 화면 상태가 아니라서 컴포넌트 상태로 둔다(ST-6)
   const [sort, setSort] = useState<FinancialSort>(originalOrder)
+  const searchBox = useAccountSearch(accountQuery, (q) => onChange({ q }))
+  // 지우면 바로 다시 입력할 수 있게 입력창으로 초점을 옮긴다
+  const clearSearch = () => {
+    searchBox.clear()
+    document.getElementById(ACCOUNT_SEARCH_INPUT_ID)?.focus()
+  }
+  // 찾은 계정. 표·차트·CSV가 모두 이 목록을 쓴다
+  const shownItems = state.status === 'success' ? filterAccounts(state.data.items, accountQuery) : []
 
-  // CSV는 표와 같은 재무제표·보기·정렬의 계정을 그대로 옮긴다. 불러오는 중·오류·빈 결과면 받지 않는다(FS-8 R4)
-  const exportItems = state.status === 'success' ? sortFinancialItems(state.data.items, sort) : []
+  // CSV는 표와 같은 재무제표·보기·찾기·정렬의 계정을 그대로 옮긴다. 불러오는 중·오류·빈 결과면 받지 않는다(FS-8 R4)
+  const exportItems = sortFinancialItems(shownItems, sort)
   const downloadCsv = () => {
     const statementLabel = statementOptions.find((o) => o.sjDiv === sjDiv)?.label ?? sjDiv
     const csv = buildFinancialCsv({
@@ -128,6 +164,33 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChang
             </option>
           ))}
         </Select>
+        <div className="fin-search">
+          <FieldLabel htmlFor={ACCOUNT_SEARCH_INPUT_ID}>계정 찾기</FieldLabel>
+          <div className="fin-search__box">
+            <Input
+              id={ACCOUNT_SEARCH_INPUT_ID}
+              type="text"
+              className="fin-search__input"
+              placeholder="예: 차입금"
+              autoComplete="off"
+              maxLength={ACCOUNT_SEARCH_MAX_LENGTH}
+              value={searchBox.input}
+              aria-describedby={accountQuery !== null ? 'fin-account-count' : undefined}
+              onChange={(e) => searchBox.setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape' && searchBox.input !== '') clearSearch()
+              }}
+            />
+            {searchBox.input !== '' && (
+              <Button variant="icon" className="fin-search__clear" aria-label="검색어 지우기" onClick={clearSearch}>
+                <Icon name="x" size={16} />
+              </Button>
+            )}
+          </div>
+          <FieldHint id="fin-account-count" className="fin-search__count" aria-live="polite">
+            {accountQuery !== null && state.status === 'success' ? foundAccountsLabel(shownItems.length) : ''}
+          </FieldHint>
+        </div>
         <Button className="fin-controls__export" disabled={exportItems.length === 0} onClick={downloadCsv}>
           CSV 내려받기
         </Button>
@@ -147,11 +210,22 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChang
             {changedOnly && <p>'전체 계정'을 고르면 값이 같은 계정도 볼 수 있어요.</p>}
           </EmptyState>
         ))
-        .with({ status: 'success' }, ({ data }) => (
+        // 받은 계정은 있지만 찾는 이름이 없을 때. 재무제표·보기 고르기는 위에 그대로 둔다(FS-14)
+        .with(
+          { status: 'success' },
+          () => shownItems.length === 0,
+          () => (
+            <EmptyState title="찾는 계정이 없어요">
+              <p>계정 이름의 일부만 입력해도 찾을 수 있어요.</p>
+              <Button onClick={clearSearch}>검색어 지우기</Button>
+            </EmptyState>
+          ),
+        )
+        .with({ status: 'success' }, () => (
           <>
           {selected?.comparable !== false && (
             <FinancialChart
-              items={data.items}
+              items={shownItems}
               statementLabel={selected?.label ?? ''}
               unit={unit}
               currency={currency}
@@ -192,7 +266,7 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChang
               </tr>
             </thead>
             <tbody>
-              {sortFinancialItems(data.items, sort).map((item) => (
+              {exportItems.map((item) => (
                 <ChangeRow
                   key={item.changeId}
                   item={item}
