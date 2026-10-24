@@ -4,12 +4,15 @@ import { match } from 'ts-pattern'
 import { apiBaseUrl, ApiError } from '@/shared/api/client'
 import { endpoints } from '@/shared/api/endpoints'
 import { useAuth } from '@/shared/auth/authContext'
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
+import { pageTitle } from '@/shared/lib/pageTitle'
 import './user-login.css'
 
 type SubmitState = { status: 'idle' } | { status: 'loading' }
   | { status: 'error'; message: string; traceId?: string | null }
 
 export function LoginPage() {
+  useDocumentTitle(pageTitle(['로그인']))
   const auth = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()

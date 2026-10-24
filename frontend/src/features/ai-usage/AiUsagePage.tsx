@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import { match } from 'ts-pattern'
 import type { AiUsage } from '@/shared/api/system'
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
+import { pageTitle } from '@/shared/lib/pageTitle'
 import { Card, DataTable, Panel, PanelTitle, SegmentedControl, ShareBar, type ShareSegment } from '@/shared/ui'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { useAiUsage, useUsageDays } from './hooks/useAiUsage'
@@ -26,6 +28,7 @@ import './ai-usage.css'
  * 질문 본문·답·사용자 정보는 API에도 화면에도 없다(AC4).
  */
 export function AiUsagePage() {
+  useDocumentTitle(pageTitle(['AI 사용 현황']))
   const { days, setDays } = useUsageDays()
   const { state, reload } = useAiUsage(days)
 

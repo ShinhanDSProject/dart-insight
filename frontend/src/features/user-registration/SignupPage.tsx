@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { ApiError } from '@/shared/api/client'
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
+import { pageTitle } from '@/shared/lib/pageTitle'
 import { registerUser } from './api'
 import { normalizeEmail, validateRegistration, type RegistrationErrors, type RegistrationFields } from './model/registration'
 import './user-registration.css'
@@ -8,6 +10,7 @@ import './user-registration.css'
 const emptyFields: RegistrationFields = { email: '', password: '', passwordConfirm: '' }
 
 export function SignupPage() {
+  useDocumentTitle(pageTitle(['회원가입']))
   const [fields, setFields] = useState<RegistrationFields>(emptyFields)
   const [errors, setErrors] = useState<RegistrationErrors>({})
   const [pending, setPending] = useState(false)

@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router'
-import { match } from 'ts-pattern'
+import { match, P } from 'ts-pattern'
 import type { Company } from '@/shared/api/companies'
 import type { ReportList } from '@/shared/api/reports'
 import { ButtonLink, FieldHint, Notice, Panel, PanelTitle } from '@/shared/ui'
@@ -8,6 +8,8 @@ import { FavoriteToggle } from './components/FavoriteToggle'
 import { PairSelector } from './components/PairSelector'
 import { ReportDetailPanel } from './components/ReportDetailPanel'
 import { ReportTable } from './components/ReportTable'
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
+import { companyPageTitle } from '@/shared/lib/pageTitle'
 import { formatDate } from '@/shared/lib/reportLabels'
 import { useCompanyReports } from './hooks/useCompanyReports'
 import { useReportSelection } from './hooks/useReportSelection'
@@ -36,6 +38,15 @@ export function CompanyPage() {
   const { corpCode = '' } = useParams()
   const { state, reload } = useCompanyReports(corpCode)
   const selection = useReportSelection(corpCode, state.status === 'success' ? state.data.reports.items : null)
+  useDocumentTitle(
+    companyPageTitle(
+      match(state)
+        .with({ status: 'success' }, ({ data }) => data.company.corpName)
+        .with({ status: P.union('loading', 'error') }, () => null)
+        .exhaustive(),
+      '보고서 고르기',
+    ),
+  )
 
   return match(state)
     .with({ status: 'loading' }, () => (

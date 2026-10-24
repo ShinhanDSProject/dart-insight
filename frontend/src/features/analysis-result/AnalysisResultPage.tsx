@@ -6,6 +6,7 @@ import { Button, ButtonLink, Notice, Tabs, type TabItem } from '@/shared/ui'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import type { SjDiv } from '@/shared/api/results'
 import type { LoadState } from '@/shared/hooks/asyncState'
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
 import { useRecordRecentAnalysis } from '@/shared/hooks/useRecentAnalyses'
 import { AskTab } from './components/AskTab'
 import { FinancialTab } from './components/FinancialTab'
@@ -18,6 +19,7 @@ import { useAsk, type AskController } from './hooks/useAsk'
 import { useAskSuggestions } from './hooks/useAskSuggestions'
 import { searchWordOf } from './model/askQuestion'
 import { useResultParams } from './hooks/useResultParams'
+import { resultTabLabels, resultTitle } from './model/resultTitle'
 import {
   financialParamChanges,
   openChangedAccounts,
@@ -27,6 +29,7 @@ import {
   openTextChanges,
   openTextList,
   openTextSearch,
+  resultTabs,
   sourceParamChanges,
   textParamChanges,
   type ResultParams,
@@ -35,13 +38,7 @@ import {
 } from './model/resultParams'
 import './analysis-result.css'
 
-const tabs: TabItem<ResultTab>[] = [
-  { value: 'summary', label: '요약·설명' },
-  { value: 'financial', label: '재무 수치 변화' },
-  { value: 'text', label: '문장·내용 변화' },
-  { value: 'ask', label: 'AI 질문' },
-  { value: 'source', label: '원문 확인' },
-]
+const tabs: TabItem<ResultTab>[] = resultTabs.map((value) => ({ value, label: resultTabLabels[value] }))
 
 /**
  * W-03 분석 결과(3.1). 화면 전체가 분석 ID 하나의 결과만 보여 주므로, 비교 기준을 바꾸면 새 분석으로 옮겨 가고
@@ -52,6 +49,15 @@ export function AnalysisResultPage() {
   const { analysisId = '' } = useParams()
   const { state, reload } = useAnalysis(analysisId)
   const { params, update } = useResultParams()
+  useDocumentTitle(
+    resultTitle(
+      match(state)
+        .with({ status: 'success' }, ({ data }) => data)
+        .with({ status: P.union('loading', 'error') }, () => null)
+        .exhaustive(),
+      params.tab,
+    ),
+  )
 
   return match(state)
     .with({ status: 'loading' }, () => (

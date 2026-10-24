@@ -3,11 +3,14 @@ import { match, P } from 'ts-pattern'
 import { analysisPath, requestAnalysis } from '@/shared/api/analyses'
 import type { ComparabilityResult } from '@/shared/api/comparability'
 import { useAsyncAction } from '@/shared/hooks/useAsyncAction'
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
+import { companyPageTitle } from '@/shared/lib/pageTitle'
 import { Button, ButtonLink, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { AlertState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { checkStatusLabel, resultSummary, statementBasisLabel } from './model/comparabilityLabels'
 import { basisLabel, parseBasis } from '@/shared/lib/comparisonBasis'
 import { useComparabilityCheck } from './hooks/useComparabilityCheck'
+import { useCompanyName } from './hooks/useCompanyName'
 import './comparability.css'
 
 const errorMessages: Record<string, string> = {
@@ -29,6 +32,8 @@ export function ComparabilityPage() {
   const previousNo = searchParams.get('previous') ?? ''
   const basis = parseBasis(searchParams.get('basis'))
   const navigate = useNavigate()
+  const corpName = useCompanyName(corpCode)
+  useDocumentTitle(companyPageTitle(corpName, '비교 확인'))
   const { state, reload } = useComparabilityCheck({ corpCode, currentRceptNo: currentNo, previousRceptNo: previousNo, basis })
   const submit = useAsyncAction<void>()
   // 요청이 끝나 다음 화면으로 넘어가는 동안에도 버튼을 다시 누르지 못하게 한다
