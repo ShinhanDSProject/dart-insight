@@ -6,7 +6,7 @@ enforced: [eslint, "tsc --noEmit(strict)"]
 see: {api: docs/api-spec.md, design: frontend/design-system.md, figma: "Figma 신한 2차 프로젝트 › 디자인"}
 
 dir:  # src/ 아래
-  DIR-1: "app/: 라우터·레이아웃·오류 화면. shared/: 기능을 모르는 공통 코드. features/<기능>/: 화면 하나의 흐름"
+  DIR-1: "app/: 라우터·레이아웃·오류 화면. shared/: 기능을 모르는 공통 코드. features/<기능>/: 화면 하나의 흐름. test/: 테스트 도우미(axe 등, 앱 코드에서 import 금지)"
   DIR-2: "shared/ 하위: api(client·endpoints), ui(디자인 시스템), hooks, lib(순수 함수), styles(tokens·global)"
   DIR-3: "features/<기능>/ 하위: <Name>Page.tsx, components/, hooks/, model/(타입·reducer·순수 함수), api.ts, <기능>.css"
   DIR-4: features끼리 직접 import하지 않는다. 둘 이상이 쓰면 shared로 올린다(api 타입 포함)
