@@ -1398,6 +1398,105 @@
   display: none;
 }
 
+/* 이전 질문 목록(#273). 최근 답 3개보다 오래된 질문을 접어 두고, 누르면 그 자리에 답을 펼친다 */
+.ask-past {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.ask-past__title {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.ask-past__search {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.ask-past__input {
+  min-height: var(--control-height);
+}
+
+.ask-past__empty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.ask-past__list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  list-style: none;
+}
+
+.ask-past__item + .ask-past__item {
+  border-top: 1px solid var(--color-border);
+}
+
+.ask-past__toggle {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ask-past__toggle:hover,
+.ask-past__toggle[aria-expanded='true'] {
+  background: var(--color-accent-subtle);
+}
+
+.ask-past__toggle:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.ask-past__q {
+  flex: none;
+  color: var(--color-accent);
+  font-family: var(--font-num);
+  font-weight: var(--font-weight-bold);
+}
+
+.ask-past__question {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ask-past__time {
+  flex: none;
+  color: var(--color-text-muted);
+  font-family: var(--font-num);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.ask-past__answer {
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+.ask-past__answer[hidden] {
+  display: none;
+}
+
 .answer-card {
   display: flex;
   flex-direction: column;

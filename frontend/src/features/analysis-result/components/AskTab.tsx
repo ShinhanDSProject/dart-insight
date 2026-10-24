@@ -1,5 +1,6 @@
 import { useReducer, type KeyboardEvent } from 'react'
 import { match } from 'ts-pattern'
+import type { QuestionAnswer } from '@/shared/api/questions'
 import type { LoadState } from '@/shared/hooks/asyncState'
 import { cx } from '@/shared/lib/cx'
 import { Button, FieldHint, FieldLabel, Notice, Panel, PanelTitle } from '@/shared/ui'
@@ -7,9 +8,11 @@ import { LoadingState } from '@/shared/ui/StateView'
 import type { AskController } from '../hooks/useAsk'
 import { ASK_INTRO, draftMessage, parseQuestion, questionCountLabel, RISK_QUESTION, sectionQuestion } from '../model/askQuestion'
 import { followUpQuestions } from '../model/followUp'
+import { splitAnswers } from '../model/pastAnswers'
 import { SECTION_COMBO_CLOSED, sectionComboReducer, sectionSuggestions } from '../model/sectionSuggestions'
 import { AnswerCard, FailedAnswerCard, PendingAnswerCard, type AnswerLinks } from './AnswerCard'
 import { AskSuggestions } from './AskSuggestions'
+import { PastAnswers } from './PastAnswers'
 
 interface AskTabProps extends AnswerLinks {
   ask: AskController
@@ -38,6 +41,20 @@ export function AskTab({ ask, suggestions, sections, ...links }: AskTabProps) {
       .with({ status: 'sending' }, { status: 'error' }, ({ question }) => [question])
       .exhaustive(),
   ]
+  // 최근 답 몇 개만 펼치고 오래된 것은 '이전 질문' 목록으로 접는다(#273). 새 답은 맨 앞이라 늘 펼쳐 보인다
+  const { recent, older } = splitAnswers(state.items)
+  const renderAnswer = (item: QuestionAnswer) => (
+    <AnswerCard
+      item={item}
+      links={links}
+      onFeedback={ask.sendFeedback}
+      followUp={{
+        questions: followUpQuestions(item, { suggestions: suggestionList, asked }),
+        onAsk: ask.ask,
+        disabled: sending,
+      }}
+    />
+  )
 
   return (
     <Panel className="ask" aria-labelledby="ask-title">
@@ -68,21 +85,12 @@ export function AskTab({ ask, suggestions, sections, ...links }: AskTabProps) {
             </li>
           ))
           .exhaustive()}
-        {state.items.map((item) => (
-          <li key={item.questionId}>
-            <AnswerCard
-              item={item}
-              links={links}
-              onFeedback={ask.sendFeedback}
-              followUp={{
-                questions: followUpQuestions(item, { suggestions: suggestionList, asked }),
-                onAsk: ask.ask,
-                disabled: sending,
-              }}
-            />
-          </li>
+        {recent.map((item) => (
+          <li key={item.questionId}>{renderAnswer(item)}</li>
         ))}
       </ol>
+
+      {older.length > 0 && <PastAnswers items={older} renderAnswer={renderAnswer} />}
 
       {match(history.state)
         .with({ status: 'loading' }, () => <LoadingState message="이전에 한 질문을 불러오는 중이에요…" />)
