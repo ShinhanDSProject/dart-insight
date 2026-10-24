@@ -127,6 +127,12 @@ describe('질문 답 카드 접근성(axe)', () => {
           onFeedback={onFeedback}
           followUp={{ ...followUp, questions: [] }}
         />
+        <AnswerCard
+          item={{ ...base, questionId: 4, question: '삼성전자 주식 지금 사도 될까요?', status: 'OUT_OF_SCOPE', ai: null }}
+          links={links}
+          onFeedback={onFeedback}
+          followUp={{ ...followUp, disabled: true }}
+        />
         <AnswerCard item={{ ...base, questionId: 3, status: 'REVIEW_NEEDED' }} links={links} onFeedback={onFeedback} followUp={{ ...followUp, disabled: true }} />
       </>,
     )
