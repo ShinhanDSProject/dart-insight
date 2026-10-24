@@ -80,6 +80,8 @@ erDiagram
         bigint id PK
         varchar corp_code UK "고유번호 8자리"
         varchar corp_name "회사명"
+        varchar corp_name_key "검색용: 공백 뺀 소문자 회사명"
+        varchar corp_name_chosung "검색용: 회사명 초성"
         varchar stock_code "종목코드, 상장사만"
         datetime reports_fetched_at "보고서 목록을 받은 시각"
     }
@@ -187,11 +189,15 @@ erDiagram
 
 OpenDART `corpCode.xml`에서 받습니다(4.4).
 
+검색용 두 컬럼은 `corp_name`에서 backend가 계산해 채웁니다. 기업 목록을 넣거나 회사명이 바뀌면 함께 바꾸고, 이 컬럼이 생기기 전에 받아 둔 행(값이 null)은 서버가 시작할 때 일괄로 채웁니다. 그래서 null은 '아직 채우지 않음'이라는 뜻이고, 채운 뒤에는 null이 남지 않습니다.
+
 | 컬럼 | 타입 | 키 | null | 설명 |
 | --- | --- | --- | --- | --- |
 | `id` | BIGINT | PK | 아니오 | 자동 증가 |
 | `corp_code` | VARCHAR(8) | UK | 아니오 | 고유번호. 다른 테이블이 이 값을 참조 |
 | `corp_name` | VARCHAR(200) | | 아니오 | 회사명 |
+| `corp_name_key` | VARCHAR(200) | | 예 | 검색용. 회사명에서 공백을 모두 빼고 소문자로 바꾼 값(1.1, #277). 저장할 때 backend가 채움 |
+| `corp_name_chosung` | VARCHAR(200) | | 예 | 검색용. 회사명의 한글 음절을 초성(ㄱ~ㅎ)으로 바꾸고 공백을 뺀 값. 한글이 아닌 글자는 소문자로 그대로 둠(`LG전자` → `lgㅈㅈ`) |
 | `corp_eng_name` | VARCHAR(200) | | 예 | 영문 회사명 |
 | `stock_code` | VARCHAR(6) | | 예 | 종목코드. 비상장사는 null |
 | `modify_date` | DATE | | 예 | OpenDART 최종 변경일 |
@@ -533,6 +539,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `company` | `uk_company_corp_code` | `corp_code` | 유니크 | 고유번호 중복 방지(외래 키가 참조) |
 | `company` | `idx_company_corp_name` | `corp_name` | 인덱스 | 회사명 정렬·완전 일치. 부분 일치 검색(`%검색어%`)에는 쓰이지 않음 |
 | `company` | `idx_company_stock_code` | `stock_code` | 인덱스 | 종목코드 검색 |
+| `company` | (없음) | `corp_name_key`, `corp_name_chosung` | — | 검색은 부분 일치(`%검색어%`)라 B-tree 인덱스를 쓰지 못해 두지 않음. 10만 행 정도는 전체 읽기로 충분하고, 느려지면 전문 검색(n-gram)을 검토 |
 | `report` | `uk_report_rcept_no` | `rcept_no` | 유니크 | 접수번호 중복 방지(외래 키가 참조) |
 | `report` | `idx_report_corp_period` | `corp_code, period_end` | 인덱스 | 기업별 보고서 목록 |
 | `financial_statement_fetch` | `uk_fs_fetch` | `corp_code, fiscal_year, reprt_code, fs_div` | 유니크 | 같은 호출을 두 번 저장하지 않음 |
