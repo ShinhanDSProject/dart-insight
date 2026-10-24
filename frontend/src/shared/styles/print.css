@@ -60,6 +60,8 @@
   .dart-link__manual,
   .data-table__sort-mark,
   .fin-chart__tip,
+  .term__icon,
+  .term__popover,
   .ask-form,
   .app-footer__link,
   input,
@@ -75,6 +77,7 @@
 
   /* 글자처럼 보이는 버튼(계정 이름)·정렬 머리글은 글자로 남긴다 */
   .link-button,
+  .term__button,
   .data-table__sort {
     color: var(--color-text);
     text-decoration: none;
