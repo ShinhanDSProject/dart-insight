@@ -5,10 +5,12 @@ import { Badge, Button, Icon, Input } from '@/shared/ui'
 import { ServiceNotice } from '@/shared/ui/ServiceNotice'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import type { AsyncState } from '@/shared/hooks/asyncState'
+import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
 import { useOnboarding } from '@/shared/hooks/useOnboarding'
 import { useFavoriteCompanies } from '@/shared/hooks/useFavoriteCompanies'
 import { useRecentAnalyses } from '@/shared/hooks/useRecentAnalyses'
 import { isOnboardingVisible } from '@/shared/lib/onboarding'
+import { pageTitle } from '@/shared/lib/pageTitle'
 import { useCompanySearch, type SearchResult as SearchData } from './hooks/useCompanySearch'
 import { useAutoSearch } from './hooks/useAutoSearch'
 import { FavoriteCompanies } from './components/FavoriteCompanies'
@@ -24,6 +26,7 @@ const errorMessages: Record<string, string> = {
 
 /** W-01 ① 기업 검색. 검색어는 주소(?q=)에 남겨 뒤로 가기를 해도 결과가 유지된다. 입력을 멈추면 Enter 없이도 찾는다. */
 export function SearchPage() {
+  useDocumentTitle(pageTitle(['기업 검색']))
   const [searchParams, setSearchParams] = useSearchParams()
   const query = searchParams.get('q') ?? ''
   const { input, inputError, setInput, submit } = useSearchForm(query)
