@@ -701,7 +701,7 @@
   "sentence": "현재 보고서에 종속회사의 과징금 납부 사실이 새로 적혔어요.",
   "message": null,
   "evidence": [
-    { "side": "current", "rceptNo": "20260814003699", "blockNo": 1840, "evidenceId": "20260814003699#B1840" }
+    { "side": "current", "rceptNo": "20260814003699", "sectionNo": 212, "blockNo": 1840, "sectionPath": "II. 사업의 내용 > 7. 기타 참고사항", "evidenceId": "20260814003699#B1840" }
   ],
   "ai": { "model": "fake-model", "promptVersion": "summary-2", "generatedAt": "2026-10-25T09:40:11" },
   "cached": false
@@ -710,6 +710,8 @@
 
 - `status`: `OK`(풀이 있음), `REVIEW_NEEDED`(검증·표현 검사를 통과하지 못함, `sentence` null, `message`에 사유), `NO_SOURCE`(풀이할 원문이 없음, `sentence` null)
 - `evidence`: 풀이가 인용한 원문 위치. `ai`는 AI 문장일 때만(`NO_SOURCE`면 null).
+- `evidence[].sectionNo`·`sectionPath`: 근거 블록이 속한 그 보고서 원문의 섹션 번호와 상위부터 이은 경로. 화면이 원문 탭을 그 블록에서 엽니다(`GET .../documents/{side}/sections/{sectionNo}`). 섹션 번호는 분석 때 저장한 위치이고, 경로는 구조화된 원문에서 읽으며 원문을 쓸 수 없으면 변경의 섹션 경로로 대신합니다. 찾지 못하면 null입니다.
+- 요청 본문은 없습니다(`POST`만 보냄).
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
