@@ -574,8 +574,9 @@ th[aria-sort='none'] .data-table__sort-mark {
 }
 
 @media (min-width: 1200px) {
-  .has-side-panel .app-main {
-    margin-right: var(--side-panel-width);
+  /* 패널 폭만큼 작업 영역을 비우고 그 안에서 본문을 가운데 둔다 */
+  .has-side-panel .app-workspace {
+    padding-right: var(--side-panel-width);
   }
 }
 

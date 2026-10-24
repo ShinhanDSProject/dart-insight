@@ -234,6 +234,8 @@ a.app-nav__item:not([aria-current='page']):hover {
   flex: 1;
   width: 100%;
   max-width: calc(var(--content-max-width) + 2 * var(--layout-gutter));
+  /* 넓은 화면에서 본문을 가운데 둔다(#211) */
+  margin-inline: auto;
   padding: var(--layout-gutter);
 }
 
