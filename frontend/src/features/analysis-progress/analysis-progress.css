@@ -94,3 +94,13 @@
 .progress__failed p {
   margin: 0 0 var(--space-2);
 }
+
+.progress__notify {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-4);
+}
+
+.progress__notify .notice {
+  margin: 0;
+}
