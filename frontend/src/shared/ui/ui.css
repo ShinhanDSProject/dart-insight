@@ -85,6 +85,27 @@
   text-decoration: none;
 }
 
+/* 아이콘만 있는 버튼(Button variant="icon"). 이름은 aria-label로 붙인다 */
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-1);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+}
+
+.icon-button:hover:not(:disabled) {
+  background: var(--color-bg-subtle);
+  color: var(--color-text);
+}
+
 /* 표식(Badge): 기본은 회색, 강조(현재·진행 상태·AI 생성)는 보라, 주의는 블루그레이 */
 .badge {
   display: inline-block;

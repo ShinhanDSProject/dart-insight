@@ -5,8 +5,10 @@ import { Badge, Button, Input } from '@/shared/ui'
 import { ServiceNotice } from '@/shared/ui/ServiceNotice'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import type { AsyncState } from '@/shared/hooks/asyncState'
+import { useRecentAnalyses } from '@/shared/hooks/useRecentAnalyses'
 import { useCompanySearch, type SearchResult as SearchData } from './hooks/useCompanySearch'
 import { useAutoSearch } from './hooks/useAutoSearch'
+import { RecentAnalyses } from './components/RecentAnalyses'
 import { useSearchForm } from './hooks/useSearchForm'
 import { sameNameCounts } from './model/sameName'
 import './company-search.css'
@@ -64,9 +66,17 @@ export function SearchPage() {
         )}
       </form>
 
+      {query === '' && <RecentAnalysesSection />}
+
       <SearchResult state={state} onRetry={reload} />
     </section>
   )
+}
+
+/** 검색어가 없을 때만 보이는 최근 본 분석(FS-7). 목록이 비면 아무것도 보이지 않는다 */
+function RecentAnalysesSection() {
+  const recent = useRecentAnalyses()
+  return <RecentAnalyses items={recent.items} onRemove={recent.remove} onClear={recent.clear} />
 }
 
 function SearchResult({ state, onRetry }: { state: AsyncState<SearchData>; onRetry: () => void }) {
@@ -82,7 +92,6 @@ function SearchResult({ state, onRetry }: { state: AsyncState<SearchData>; onRet
     .with({ status: 'success' }, ({ data }) => <CompanyList items={data.items} />)
     .exhaustive()
 }
-
 
 /** 검색 결과. 상장 여부를 글자로 보이고, 이름이 같은 회사가 있으면 알려 준다 */
 function CompanyList({ items }: { items: SearchData['items'] }) {

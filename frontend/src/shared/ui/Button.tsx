@@ -2,8 +2,11 @@ import type { ComponentPropsWithoutRef } from 'react'
 import { Link, type LinkProps } from 'react-router'
 import { cx } from '@/shared/lib/cx'
 
-/** primary: 주요 행동 하나, secondary: 그 밖의 행동, link: 글자처럼 보이는 버튼(표·목록 안) */
-export type ButtonVariant = 'primary' | 'secondary' | 'link'
+/**
+ * primary: 주요 행동 하나, secondary: 그 밖의 행동, link: 글자처럼 보이는 버튼(표·목록 안),
+ * icon: 아이콘만 있는 작은 버튼(카드 안 지우기 등). icon은 aria-label을 꼭 넘긴다(UI-4)
+ */
+export type ButtonVariant = 'primary' | 'secondary' | 'link' | 'icon'
 /** lg: 검색창 옆처럼 큰 입력과 나란히 둘 때 */
 export type ButtonSize = 'md' | 'lg'
 
@@ -14,6 +17,7 @@ interface ButtonStyleProps {
 
 function buttonClass({ variant = 'secondary', size = 'md' }: ButtonStyleProps, className?: string): string {
   if (variant === 'link') return cx('link-button', className)
+  if (variant === 'icon') return cx('icon-button', className)
   return cx('button', `button--${variant}`, size === 'lg' && 'button--lg', className)
 }
 
