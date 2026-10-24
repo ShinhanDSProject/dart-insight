@@ -14,6 +14,11 @@ import com.dartinsight.analysis.domain.Analysis;
 import com.dartinsight.analysis.domain.CalcStatus;
 import com.dartinsight.analysis.domain.FinancialChangeRow;
 import com.dartinsight.analysis.domain.FinancialChangeRow.Evidence;
+import com.dartinsight.analysis.domain.TextChangeRow;
+import com.dartinsight.analysis.domain.TextChangeRow.Priority;
+import com.dartinsight.analysis.domain.TextChangeRow.Side;
+import com.dartinsight.analysis.domain.TextComparison;
+import com.dartinsight.analysis.domain.TextStatus;
 import com.dartinsight.analysis.repository.AnalysisRepository;
 import com.dartinsight.analysis.repository.FinancialChangeRepository;
 import com.dartinsight.analysis.service.AnalysisResultService;
@@ -268,6 +273,51 @@ class QuestionApiTest {
         assertThat(call.get("task")).isEqualTo("answer");
         assertThat(call.get("analysis_id")).isEqualTo(analysisId);
         assertThat(call.get("trace_id")).isEqualTo("trace-q1");
+    }
+
+    private static TextChangeRow textChange(String type, String path, int score, Side previous, Side current) {
+        String[] titles = path.split(" > ");
+        return new TextChangeRow(type, "PARAGRAPH", false, "MATCHED", titles[titles.length - 1], path, previous,
+                current, null, null, new Priority("HIGH", score, List.of(), "priority-1"));
+    }
+
+    @Test
+    @DisplayName("섹션 이름이 든 질문은 그 섹션의 바뀐 문단만 후보로 보내고 인용도 그 섹션 안이다")
+    void sectionQuestionUsesThatSectionsChangedParagraphs() throws Exception {
+        String other = "II. 사업의 내용 > 7. 기타 참고사항";
+        String finance = "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항";
+        Analysis analysis = Analysis.request("00000001", CUR, PREV, ComparisonBasis.PREV, null, NOW);
+        analysis.start(NOW);
+        analysis.recordFsDiv(FsDiv.CFS);
+        Long sectioned = analysisRepository.save(analysis).getId();
+        resultService.saveAndComplete(sectioned, List.of(), new TextComparison(TextStatus.COMPLETED, null, List.of(
+                textChange(TextChangeRow.ADDED, finance, 9, null,
+                        new Side(CUR, 9, 30, "기타 참고사항과 비슷한 말이 든 재무 문단입니다.")),
+                textChange(TextChangeRow.ADDED, other, 3, null, new Side(CUR, 7, 21, "환경 규제 대응 계획을 새로 적었습니다.")),
+                textChange(TextChangeRow.MODIFIED, other, 5, new Side(PREV, 7, 20, "연구개발 인력은 100명입니다."),
+                        new Side(CUR, 7, 22, "연구개발 인력은 120명입니다.")))));
+        // 받은 첫 후보를 그대로 인용하는 가짜 AI 서버
+        AI.on(ANSWERS, request -> {
+            String first = JsonPath.<String>read(request.bodyText(), "$.sources[0].evidenceId");
+            return Reply.ok(answered("기타 참고사항이 바뀌었어요[" + first + "].", "\"" + first + "\"", ""));
+        });
+
+        ask(sectioned, "'7. 기타 참고사항'에서 무엇이 바뀌었나요?")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ANSWERED"))
+                .andExpect(jsonPath("$.citations", hasSize(1)))
+                .andExpect(jsonPath("$.citations[0].evidenceId").value(CUR + "#B22"))
+                .andExpect(jsonPath("$.citations[0].side").value("current"))
+                .andExpect(jsonPath("$.citations[0].blockNo").value(22))
+                .andExpect(jsonPath("$.citations[0].sectionPath").value(other))
+                .andExpect(jsonPath("$.citations[0].quote").value("연구개발 인력은 120명입니다."));
+
+        String sent = AI.requests(ANSWERS).getFirst().bodyText();
+        assertThat(JsonPath.<List<String>>read(sent, "$.sources[*].evidenceId"))
+                .containsExactly(CUR + "#B22", PREV + "#B20", CUR + "#B21");
+        assertThat(JsonPath.<List<String>>read(sent, "$.sources[*].side"))
+                .containsExactly("current", "previous", "current");
+        assertThat(JsonPath.<List<String>>read(sent, "$.sources[*].sectionPath")).containsOnly(other);
     }
 
     @Test
