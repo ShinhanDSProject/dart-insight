@@ -54,6 +54,14 @@ export const SUGGESTION_COUNT = 4
 const SECTION_TITLE_MAX = 40
 /** 파서가 붙인 목차 밖 본문은 질문으로 만들지 않는다 */
 export const OUTSIDE_TOC = '(목차 밖 본문)'
+/** 보고서 표지 제목(사업·반기·분기보고서)은 섹션이 아니라 문서 이름이라 질문으로 만들지 않는다 */
+const COVER_TITLE = /^(사업|반기|분기)보고서$/
+
+/** 섹션 제목으로 질문을 만들 수 있는지. 빈 제목, 목차 밖 본문, 보고서 표지 제목은 뺀다 */
+export function isAskableSection(title: string): boolean {
+  const trimmed = title.trim()
+  return trimmed !== '' && trimmed !== OUTSIDE_TOC && !COVER_TITLE.test(trimmed.replace(/\s+/g, ''))
+}
 
 export function accountQuestion(account: SuggestionAccount): string {
   const name = account.accountName.trim()
@@ -78,7 +86,7 @@ export function sectionQuestion(title: string): string {
 export function askSuggestions(source: SuggestionSource): string[] {
   const accounts = source.accounts.filter((a) => a.accountName.trim().length > 0).map(accountQuestion)
   const section =
-    source.topSection !== null && source.topSection.trim() !== '' && source.topSection.trim() !== OUTSIDE_TOC
+    source.topSection !== null && isAskableSection(source.topSection)
       ? sectionQuestion(source.topSection)
       : null
   const ordered = [accounts[0], section, RISK_QUESTION, ...accounts.slice(1)]
@@ -93,7 +101,7 @@ export function askSuggestions(source: SuggestionSource): string[] {
 export function sectionAskQuestion(section: string | null): string | null {
   if (section === null) return null
   const title = section.split(' > ').at(-1)?.trim() ?? ''
-  if (title === '' || title === OUTSIDE_TOC) return null
+  if (!isAskableSection(title)) return null
   return sectionQuestion(title)
 }
 

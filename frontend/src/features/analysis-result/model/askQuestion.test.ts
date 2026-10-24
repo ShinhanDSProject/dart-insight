@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { SEARCH_MAX_LENGTH } from './textFilter'
 import {
+  isAskableSection,
   accountQuestion,
   askedAtLabel,
   askSuggestions,
@@ -149,6 +150,14 @@ describe('sectionAskQuestion', () => {
   it('목차 밖 본문은 질문을 만들지 않는다', () => {
     expect(sectionAskQuestion('(목차 밖 본문)')).toBeNull()
     expect(sectionAskQuestion(' (목차 밖 본문) ')).toBeNull()
+  })
+
+  it('보고서 표지 제목(사업·반기·분기보고서)은 질문을 만들지 않는다', () => {
+    expect(sectionAskQuestion('반기보고서')).toBeNull()
+    expect(sectionAskQuestion('사업 보고서')).toBeNull()
+    expect(isAskableSection('분기보고서')).toBe(false)
+    expect(isAskableSection('I. 회사의 개요')).toBe(true)
+    expect(isAskableSection('반기보고서의 작성기준')).toBe(true)
   })
 
   it('겹친 경로는 마지막 제목으로 묻는다', () => {

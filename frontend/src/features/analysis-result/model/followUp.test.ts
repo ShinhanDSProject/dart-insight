@@ -30,10 +30,11 @@ describe('followUpQuestions', () => {
     ])
   })
 
-  it('섹션 제목은 화면에 보이는 꼴로 바꾸고, 목차 밖 본문은 질문으로 만들지 않는다', () => {
-    expect(followUpQuestions(answer({ citations: [citation('반 기 보 고 서 > 1. 개요')], facts: [] }), { suggestions: [], asked: [] })).toEqual([
-      "'반기보고서'에서 무엇이 바뀌었나요?",
+  it('섹션 제목은 화면에 보이는 꼴로 바꾸고, 목차 밖 본문·보고서 표지는 질문으로 만들지 않는다', () => {
+    expect(followUpQuestions(answer({ citations: [citation('감 사 보 고 서 > 1. 개요')], facts: [] }), { suggestions: [], asked: [] })).toEqual([
+      "'감사보고서'에서 무엇이 바뀌었나요?",
     ])
+    expect(followUpQuestions(answer({ citations: [citation('반 기 보 고 서 > 1. 개요')], facts: [] }), { suggestions: [], asked: [] })).toEqual([])
     expect(followUpQuestions(answer({ citations: [citation('(목차 밖 본문)')], facts: [] }), { suggestions: [], asked: [] })).toEqual([])
   })
 

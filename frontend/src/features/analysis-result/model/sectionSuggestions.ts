@@ -1,5 +1,5 @@
 import { match } from 'ts-pattern'
-import { OUTSIDE_TOC } from './askQuestion'
+import { isAskableSection } from './askQuestion'
 
 /** AI 질문 입력 중 섹션 질문 제안(3.10, #267). 섹션 목록은 문장 변화 탭과 같은 출처(GET text-changes의 sections)다 */
 
@@ -18,7 +18,7 @@ export function normalizeSectionText(text: string): string {
 /**
  * 입력과 맞는 섹션 제목(최대 5개). 공백을 뺀 입력이 2자보다 짧으면 제안하지 않는다.
  * 제목이 입력 전체를 담거나, 입력의 마지막 낱말(2자 이상)을 담으면 맞는 것으로 본다.
- * 목차 밖 본문은 빼고, 같은 제목은 한 번만, 최상위·짧은 제목을 먼저 둔다.
+ * 목차 밖 본문·보고서 표지 제목은 빼고, 같은 제목은 한 번만, 최상위·짧은 제목을 먼저 둔다.
  */
 export function sectionSuggestions(titles: string[], input: string): string[] {
   const query = normalizeSectionText(input)
@@ -26,7 +26,7 @@ export function sectionSuggestions(titles: string[], input: string): string[] {
   const lastWord = normalizeSectionText(input.trim().split(/\s+/).at(-1) ?? '')
   const keys = lastWord.length >= QUERY_MIN_LENGTH && lastWord !== query ? [query, lastWord] : [query]
 
-  const unique = [...new Set(titles.map((t) => t.trim()))].filter((t) => t !== '' && t !== OUTSIDE_TOC)
+  const unique = [...new Set(titles.map((t) => t.trim()))].filter(isAskableSection)
   return unique
     .filter((title) => {
       const normalized = normalizeSectionText(title)
