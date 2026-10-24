@@ -325,7 +325,7 @@ function SidePreview({ role, text, missing, added = false, removed = false }: Si
       ) : (
         <p className={`change-side__text${added ? ' change-side__text--added' : ''}${removed ? ' change-side__text--removed' : ''}`}>
           {added && <span className="visually-hidden">추가된 내용: </span>}
-          {removed && <span className="visually-hidden">빠진 내용: </span>}
+          {removed && <span className="change-side__tag">삭제됨</span>}
           {text}
         </p>
       )}

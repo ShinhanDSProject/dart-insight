@@ -566,12 +566,24 @@
   background: var(--color-added-subtle);
 }
 
+/* 빠진 문장: 긴 취소선 대신 점선 테두리와 '삭제됨' 표시(#208). 글자는 그대로 읽힌다 */
 .change-side__text--removed {
   padding: var(--space-2) var(--space-3);
+  border-left: 3px dashed var(--color-border-strong);
   border-radius: var(--radius-sm);
   background: var(--color-bg-subtle);
+}
+
+.change-side__tag {
+  display: inline-block;
+  margin-right: var(--space-2);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
   color: var(--color-text-muted);
-  text-decoration: line-through;
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-bold);
+  vertical-align: 1px;
 }
 
 .text-controls__note {
