@@ -164,6 +164,12 @@
     --color-danger-subtle: #2e161b;
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --color-overlay: rgba(0, 0, 0, 0.6);
+    /* AI 사용 현황 구성 막대(FS-15) 다크 값. 어두운 배경(#0f1320·#161b2c) 기준 색 검사 통과 */
+    --color-chart-series-1: #8a81ef;
+    --color-chart-series-2: #2a9d8f;
+    --color-chart-series-3: #c98034;
+    --color-chart-series-4: #c06aa6;
     color-scheme: dark;
   }
 }
@@ -196,6 +202,12 @@
     --color-danger-subtle: #2e161b;
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --color-overlay: rgba(0, 0, 0, 0.6);
+    /* AI 사용 현황 구성 막대(FS-15) 다크 값. 어두운 배경(#0f1320·#161b2c) 기준 색 검사 통과 */
+    --color-chart-series-1: #8a81ef;
+    --color-chart-series-2: #2a9d8f;
+    --color-chart-series-3: #c98034;
+    --color-chart-series-4: #c06aa6;
     color-scheme: dark;
   }
 }
