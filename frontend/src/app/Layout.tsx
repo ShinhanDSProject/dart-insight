@@ -7,6 +7,9 @@ import { Kbd } from '@/shared/ui/Dialog'
 import type { ShortcutPage } from '@/shared/lib/shortcuts'
 import { ShortcutHelp } from './ShortcutHelp'
 import { useShortcuts } from './useShortcuts'
+import { SegmentedControl } from '@/shared/ui/SegmentedControl'
+import { useTheme } from '@/shared/hooks/useTheme'
+import { THEME_OPTIONS } from '@/shared/lib/theme'
 
 type Section = 'search' | 'compare' | 'source'
 
@@ -30,6 +33,7 @@ export function Layout() {
   const auth = useAuth()
   const navigate = useNavigate()
   const onboarding = useOnboarding()
+  const theme = useTheme()
 
   /** 사용법 안내(FS-10)를 다시 열고, 안내가 보이는 검색 첫 화면(검색어 없음)으로 간다 */
   function showGuideAgain() {
@@ -138,7 +142,13 @@ export function Layout() {
               </>
             )}
           </p>
-          <div className="app-header__auth">
+          <div className="app-header__tools">
+            <SegmentedControl
+              options={THEME_OPTIONS}
+              value={theme.choice}
+              onChange={theme.setChoice}
+              aria-label="화면 테마"
+            />
             <Button
               className="app-header__shortcuts"
               aria-haspopup="dialog"
@@ -147,14 +157,16 @@ export function Layout() {
             >
               단축키 <Kbd>?</Kbd>
             </Button>
-            {auth.state.status === 'authenticated' ? (
-              <button type="button" className="button button--secondary" onClick={() => void auth.logout()}>로그아웃</button>
-            ) : (
-              <>
-                <Link to="/login" className="button button--secondary" aria-current={pathname === '/login' ? 'page' : undefined}>로그인</Link>
-                <Link to="/signup" className="button button--secondary" aria-current={pathname === '/signup' ? 'page' : undefined}>회원가입</Link>
-              </>
-            )}
+            <div className="app-header__auth">
+              {auth.state.status === 'authenticated' ? (
+                <button type="button" className="button button--secondary" onClick={() => void auth.logout()}>로그아웃</button>
+              ) : (
+                <>
+                  <Link to="/login" className="button button--secondary" aria-current={pathname === '/login' ? 'page' : undefined}>로그인</Link>
+                  <Link to="/signup" className="button button--secondary" aria-current={pathname === '/signup' ? 'page' : undefined}>회원가입</Link>
+                </>
+              )}
+            </div>
           </div>
         </header>
         <main className="app-main" id="main" tabIndex={-1}>
