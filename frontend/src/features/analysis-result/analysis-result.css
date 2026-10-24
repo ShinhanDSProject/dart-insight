@@ -597,6 +597,122 @@
   gap: var(--space-2) var(--space-4);
 }
 
+/* 문장 카드의 AI 한 줄 풀이(3.11). AI 질문의 답과 같은 바탕·표시를 쓴다 */
+.change-card__explain[aria-expanded='true'] {
+  border-color: var(--color-border-accent);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+}
+
+.text-explain {
+  border-left: 3px solid var(--color-border-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+  animation: rise-in var(--motion-base) var(--ease-out);
+}
+
+.text-explain__pending,
+.text-explain__body {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+}
+
+.text-explain__body {
+  animation: fade-in var(--motion-base) var(--ease-out);
+}
+
+.text-explain__pending .answer-pending__label {
+  margin-bottom: 0;
+}
+
+.text-explain__skeleton {
+  width: 85%;
+  height: 14px;
+}
+
+.text-explain__answer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.text-explain__sentence {
+  margin: 0;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-body);
+  overflow-wrap: anywhere;
+}
+
+.text-explain__evidence {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.text-explain__label {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+.text-explain__sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.button.text-explain__source {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 32px;
+  padding: 0 var(--space-2) 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-xs);
+}
+
+.button.text-explain__source:hover:not(:disabled) {
+  border-color: var(--color-border-accent);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+}
+
+.text-explain__source--static {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.text-explain__note,
+.text-explain__meta {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.text-explain__meta summary {
+  cursor: pointer;
+}
+
+.text-explain__notice {
+  margin: 0;
+}
+
+.text-explain__notice:not(.notice--attention) {
+  background: var(--color-bg);
+}
+
+.text-explain .state {
+  padding: var(--space-4);
+}
+
 /* 문장·표 근거 상세(3.4) */
 .text-evidence__sources {
   align-items: start;
