@@ -113,3 +113,17 @@
   /* 포커스 표시 */
   --focus-ring: 2px solid var(--color-primary);
 }
+
+/* 인쇄(FS-8 R3): 흰 종이에 검은 글자. 연한 회색 글자·배경은 인쇄하면 흐려지므로 진하게, 배경은 비운다 */
+@media print {
+  :root {
+    --color-text: #000000;
+    --color-text-muted: #333333;
+    --color-bg: #ffffff;
+    --color-bg-subtle: #ffffff;
+    --color-border: #999999;
+    --color-primary: #000000;
+    --color-accent-subtle: #ffffff;
+    --color-attention-subtle: #ffffff;
+  }
+}

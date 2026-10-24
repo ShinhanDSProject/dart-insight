@@ -6,6 +6,7 @@ import { AuthProvider } from '@/shared/auth/AuthProvider'
 import '@/shared/styles/tokens.css'
 import '@/shared/styles/global.css'
 import '@/shared/ui/ui.css'
+import '@/shared/styles/print.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

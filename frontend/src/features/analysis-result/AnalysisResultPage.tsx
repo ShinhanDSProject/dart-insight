@@ -2,7 +2,7 @@ import { Link, useParams } from 'react-router'
 import { match, P } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { ParamChanges } from '@/shared/lib/searchParams'
-import { ButtonLink, Notice, Tabs, type TabItem } from '@/shared/ui'
+import { Button, ButtonLink, Notice, Tabs, type TabItem } from '@/shared/ui'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import type { SjDiv } from '@/shared/api/results'
 import type { LoadState } from '@/shared/hooks/asyncState'
@@ -86,9 +86,13 @@ function AnalysisResult({ analysis, params, update }: AnalysisResultProps) {
       </nav>
       <div className="result-head">
         <h1 className="page__title">두 보고서 사이의 변화</h1>
-        <ButtonLink to={selectionPath(analysis)} variant="secondary">
-          보고서 선택 변경
-        </ButtonLink>
+        <div className="result-head__actions">
+          <ButtonLink to={selectionPath(analysis)} variant="secondary">
+            보고서 선택 변경
+          </ButtonLink>
+          {/* 인쇄용 화면은 메뉴·버튼·근거 패널을 빼고 비교 맥락·지금 탭·출처를 남긴다(FS-8 R3, print.css) */}
+          <Button onClick={() => window.print()}>인쇄</Button>
+        </div>
       </div>
 
       {match(analysis.status)

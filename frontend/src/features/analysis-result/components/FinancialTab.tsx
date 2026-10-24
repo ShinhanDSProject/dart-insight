@@ -4,6 +4,7 @@ import type { Analysis } from '@/shared/api/analyses'
 import type { FinancialChangeItem, SjDiv, StatementSummary } from '@/shared/api/results'
 import { Button, DataTable, DataTableRow, FieldLabel, Notice, Panel, SegmentedControl, Select, SortableHeader } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
+import { downloadTextFile } from '@/shared/lib/download'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { EvidencePanel } from './EvidencePanel'
 import { FinancialChart } from './FinancialChart'
@@ -19,6 +20,7 @@ import {
   type AmountUnit,
 } from '../model/format'
 import { useFinancialChanges } from '../hooks/useFinancialChanges'
+import { buildFinancialCsv, csvFileName } from '../model/financialCsv'
 import type { FinancialViewChange } from '../model/resultParams'
 import {
   ariaSortOf,
@@ -60,6 +62,22 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChang
   const currency = state.status === 'success' ? (state.data.items.find((i) => i.currency)?.currency ?? null) : null
   // 표 정렬은 공유할 화면 상태가 아니라서 컴포넌트 상태로 둔다(ST-6)
   const [sort, setSort] = useState<FinancialSort>(originalOrder)
+
+  // CSV는 표와 같은 재무제표·보기·정렬의 계정을 그대로 옮긴다. 불러오는 중·오류·빈 결과면 받지 않는다(FS-8 R4)
+  const exportItems = state.status === 'success' ? sortFinancialItems(state.data.items, sort) : []
+  const downloadCsv = () => {
+    const statementLabel = statementOptions.find((o) => o.sjDiv === sjDiv)?.label ?? sjDiv
+    const csv = buildFinancialCsv({
+      statementLabel,
+      items: exportItems,
+      previousRceptNo: analysis.previous.rceptNo,
+      currentRceptNo: analysis.current.rceptNo,
+    })
+    downloadTextFile(
+      csvFileName(analysis.corpName, analysis.previous.reportName, analysis.current.reportName, statementLabel),
+      csv,
+    )
+  }
 
   // 근거를 연 버튼(차트 막대 또는 표의 계정 이름). 패널을 닫으면 그 버튼으로 초점을 돌려준다
   const openerRef = useRef<HTMLElement | null>(null)
@@ -110,6 +128,9 @@ export function FinancialTab({ analysis, sjDiv, changedOnly, unit, selectedChang
             </option>
           ))}
         </Select>
+        <Button className="fin-controls__export" disabled={exportItems.length === 0} onClick={downloadCsv}>
+          CSV 내려받기
+        </Button>
       </div>
 
       {selected && !selected.comparable && (
