@@ -1017,6 +1017,81 @@
 }
 
 
+/* 요약 탭 맨 위 '핵심 3줄'(FS-21). 줄 전체를 누르면 그 근거로 간다 */
+.headline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  border-left: 3px solid var(--color-border-accent);
+  animation: rise-in var(--motion-base) var(--ease-out);
+}
+
+.headline__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* link-button 모양(밑줄·여백 없음)을 덮어 줄 전체를 누르는 영역으로 쓴다 */
+.headline .headline__line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  width: 100%;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: background-color var(--motion-fast) var(--ease-out);
+}
+
+.headline .headline__line.link-button:hover {
+  background: var(--color-accent-subtle);
+}
+
+.headline__no {
+  flex: none;
+  min-width: var(--space-5);
+  color: var(--color-accent);
+  font-family: var(--font-num);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.headline__text {
+  flex: 1;
+  min-width: 0;
+  font-weight: var(--font-weight-medium);
+  overflow-wrap: anywhere;
+}
+
+.headline__hint {
+  flex: none;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+}
+
+.headline .headline__line.link-button:hover .headline__hint {
+  color: var(--color-accent);
+}
+
+@media (max-width: 900px) {
+  .headline .headline__line {
+    flex-wrap: wrap;
+  }
+
+  .headline__hint {
+    flex-basis: 100%;
+    padding-left: calc(var(--space-5) + var(--space-3));
+  }
+}
+
 /* 요약 탭 맨 위의 변화 개요(FS-4 R6) */
 .overview {
   margin-bottom: var(--space-4);
