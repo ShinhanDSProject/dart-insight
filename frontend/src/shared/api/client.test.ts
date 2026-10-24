@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, NETWORK_ERROR, apiGet, apiPost, setAccessToken } from './client'
+import { ApiError, NETWORK_ERROR, apiGet, apiPost, apiPut, setAccessToken } from './client'
 
 function jsonResponse(status: number, body: unknown, headers: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), {
@@ -94,6 +94,36 @@ describe('apiPost', () => {
     const init = fetchMock.mock.calls[0][1] as RequestInit
     expect(init.method).toBe('POST')
     expect(init.body).toBe('{"corpCode":"00126380"}')
+  })
+})
+
+describe('apiPut', () => {
+  it('PUT으로 JSON 본문을 보내고 응답을 돌려준다', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, { questionId: 7, helpful: true }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(apiPut('/api/analyses/1/questions/7/feedback', { helpful: true })).resolves.toEqual({
+      questionId: 7,
+      helpful: true,
+    })
+
+    const init = fetchMock.mock.calls[0][1] as RequestInit
+    expect(init.method).toBe('PUT')
+    expect(init.body).toBe('{"helpful":true}')
+    expect(init.headers).toMatchObject({ 'Content-Type': 'application/json' })
+  })
+
+  it('에러 응답은 ApiError로 던진다', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse(404, { code: 'ANALYSIS_QUESTION_NOT_FOUND', message: '질문을 찾을 수 없습니다.', traceId: 't1', errors: [] }),
+      ),
+    )
+
+    const error = await apiPut('/api/analyses/1/questions/9/feedback', { helpful: true }).catch((e: unknown) => e)
+
+    expect(error).toMatchObject({ status: 404, code: 'ANALYSIS_QUESTION_NOT_FOUND' })
   })
 })
 

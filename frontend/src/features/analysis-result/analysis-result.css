@@ -1482,6 +1482,49 @@
   margin-top: var(--space-3);
 }
 
+/* 답 평가(3.12): '도움이 됐나요?' 줄과 아니에요를 고르면 열리는 사유 */
+.answer-feedback {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.answer-feedback__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.answer-feedback__label {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.answer-feedback__choices,
+.answer-feedback__reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.answer-feedback__choice {
+  font-size: var(--font-size-sm);
+}
+
+.answer-feedback__status {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.answer-feedback__status--error {
+  color: var(--color-danger);
+  font-weight: var(--font-weight-medium);
+}
+
 .answer-card__meta {
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);

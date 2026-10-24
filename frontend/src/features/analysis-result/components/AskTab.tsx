@@ -54,7 +54,7 @@ export function AskTab({ ask, suggestions, ...links }: AskTabProps) {
           .exhaustive()}
         {state.items.map((item) => (
           <li key={item.questionId}>
-            <AnswerCard item={item} links={links} />
+            <AnswerCard item={item} links={links} onFeedback={ask.sendFeedback} />
           </li>
         ))}
       </ol>

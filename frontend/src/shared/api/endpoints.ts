@@ -33,4 +33,6 @@ export const endpoints = {
   documentSection: (analysisId: number, side: string, sectionNo: number) =>
     `${analysis(analysisId)}/documents/${seg(side)}/sections/${seg(sectionNo)}`,
   questions: (analysisId: number) => `${analysis(analysisId)}/questions`,
+  questionFeedback: (analysisId: number, questionId: number) =>
+    `${analysis(analysisId)}/questions/${seg(questionId)}/feedback`,
 }

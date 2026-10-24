@@ -1,12 +1,14 @@
-import { useState, type ReactNode } from 'react'
+import { useCallback, useState, type ReactNode } from 'react'
 import { match } from 'ts-pattern'
 import type { DocumentSide } from '@/shared/api/documents'
-import type { QuestionAnswer, QuestionCitation, QuestionFact } from '@/shared/api/questions'
+import type { AnswerFeedback, QuestionAnswer, QuestionCitation, QuestionFact } from '@/shared/api/questions'
 import type { SjDiv } from '@/shared/api/results'
 import { cx } from '@/shared/lib/cx'
 import { displaySectionPath } from '@/shared/lib/sectionTitle'
-import { Badge, Button, Card, Notice, type BadgeTone } from '@/shared/ui'
+import { Badge, Button, Card, Chip, Notice, type BadgeTone } from '@/shared/ui'
 import { ErrorState } from '@/shared/ui/StateView'
+import { useAnswerFeedback } from '../hooks/useAnswerFeedback'
+import { FEEDBACK_REASONS, feedbackStatusLabel } from '../model/answerFeedback'
 import { factLabel, parseAnswer } from '../model/answerText'
 import { askedAtLabel, citationSideLabel, quoteLabel } from '../model/askQuestion'
 import { formatCount } from '../model/overview'
@@ -70,14 +72,17 @@ export function FailedAnswerCard({ question, error, onRetry }: { question: strin
   )
 }
 
+/** 답 평가를 저장한다(3.12). 실패하면 거부된 Promise */
+export type SendFeedback = (questionId: number, feedback: AnswerFeedback) => Promise<unknown>
+
 /** 받은 답 하나. 상태마다 다른 안내를 보인다 */
-export function AnswerCard({ item, links }: { item: QuestionAnswer; links: AnswerLinks }) {
+export function AnswerCard({ item, links, onFeedback }: { item: QuestionAnswer; links: AnswerLinks; onFeedback: SendFeedback }) {
   const headId = `ask-q-${item.questionId}`
   return (
     <Card as="article" className="answer-card" aria-labelledby={headId}>
       <QuestionLine id={headId} question={item.question} time={askedAtLabel(item.createdAt)} />
       {match(item.status)
-        .with('ANSWERED', () => <AnsweredBody item={item} links={links} />)
+        .with('ANSWERED', () => <AnsweredBody item={item} links={links} onFeedback={onFeedback} />)
         .with('NOT_FOUND', () => (
           <Notice tone="attention" className="answer-card__notice" title="관련 내용을 찾지 못했어요">
             <p>{item.message ?? '두 보고서에서 이 질문과 관련된 문단이나 수치를 찾지 못했어요.'}</p>
@@ -128,7 +133,7 @@ function useFocusRef(questionId: number) {
   return { active, idOf, focus }
 }
 
-function AnsweredBody({ item, links }: { item: QuestionAnswer; links: AnswerLinks }) {
+function AnsweredBody({ item, links, onFeedback }: { item: QuestionAnswer; links: AnswerLinks; onFeedback: SendFeedback }) {
   const { active, idOf, focus } = useFocusRef(item.questionId)
   const segments = parseAnswer(item.answer ?? '', item.citations, item.facts)
   const citeKey = (c: QuestionCitation) => `c${c.no}`
@@ -238,8 +243,60 @@ function AnsweredBody({ item, links }: { item: QuestionAnswer; links: AnswerLink
         </EvidenceGroup>
       )}
 
+      <FeedbackRow item={item} onFeedback={onFeedback} />
+
       {item.ai && <AiMeta item={item} />}
     </>
+  )
+}
+
+/** '도움이 됐나요?'(3.12, FS-9). 누르면 바로 바뀌고, 저장에 실패하면 되돌린 뒤 짧게 알린다 */
+function FeedbackRow({ item, onFeedback }: { item: QuestionAnswer; onFeedback: SendFeedback }) {
+  const { questionId } = item
+  const save = useCallback((feedback: AnswerFeedback) => onFeedback(questionId, feedback), [onFeedback, questionId])
+  const { state, choose } = useAnswerFeedback(item.feedback, save)
+  const { shown, save: saveState } = state
+  const labelId = `ask-${questionId}-feedback`
+
+  return (
+    <section className="answer-feedback" aria-labelledby={labelId}>
+      <div className="answer-feedback__row">
+        <p className="answer-feedback__label" id={labelId}>
+          도움이 됐나요?
+        </p>
+        <div className="answer-feedback__choices" role="group" aria-labelledby={labelId}>
+          <Button
+            className="answer-feedback__choice"
+            aria-pressed={shown?.helpful === true}
+            onClick={() => choose({ kind: 'helpful' })}
+          >
+            도움이 됐어요
+          </Button>
+          <Button
+            className="answer-feedback__choice"
+            aria-pressed={shown?.helpful === false}
+            onClick={() => choose({ kind: 'not-helpful' })}
+          >
+            아니에요
+          </Button>
+        </div>
+        <span
+          className={cx('answer-feedback__status', saveState.status === 'error' && 'answer-feedback__status--error')}
+          role="status"
+        >
+          {feedbackStatusLabel(saveState)}
+        </span>
+      </div>
+      {shown?.helpful === false && (
+        <div className="answer-feedback__reasons" role="group" aria-label="도움이 안 된 이유(고르지 않아도 돼요)">
+          {FEEDBACK_REASONS.map(({ reason, label }) => (
+            <Chip key={reason} pressed={shown.reason === reason} onClick={() => choose({ kind: 'reason', reason })}>
+              {label}
+            </Chip>
+          ))}
+        </div>
+      )}
+    </section>
   )
 }
 

@@ -42,6 +42,8 @@ export function setAccessToken(token: string | null) {
   accessToken = token
 }
 
+type Method = 'GET' | 'POST' | 'PUT' | 'DELETE'
+
 type Query = Record<string, string | number | boolean | undefined | null>
 
 function buildUrl(path: string, query?: Query): string {
@@ -65,7 +67,7 @@ export interface RequestOptions {
 }
 
 async function requestOnce<T>(
-  method: 'GET' | 'POST' | 'DELETE',
+  method: Method,
   path: string,
   query?: Query,
   body?: unknown,
@@ -154,7 +156,7 @@ async function refreshAccessToken(): Promise<void> {
 }
 
 async function request<T>(
-  method: 'GET' | 'POST' | 'DELETE',
+  method: Method,
   path: string,
   query?: Query,
   body?: unknown,
@@ -182,6 +184,11 @@ export function apiGet<T>(path: string, query?: Query, options?: RequestOptions)
 
 export function apiPost<T>(path: string, body: unknown, options?: RequestOptions): Promise<T> {
   return request<T>('POST', path, undefined, body, options)
+}
+
+/** 있는 것을 통째로 바꾼다(다시 보내도 결과가 같음) */
+export function apiPut<T>(path: string, body: unknown, options?: RequestOptions): Promise<T> {
+  return request<T>('PUT', path, undefined, body, options)
 }
 
 export function apiDelete(path: string, options?: RequestOptions): Promise<void> {
