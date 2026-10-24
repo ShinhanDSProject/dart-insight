@@ -11,6 +11,7 @@ import { useRecordRecentAnalysis } from '@/shared/hooks/useRecentAnalyses'
 import { AskTab } from './components/AskTab'
 import { FinancialTab } from './components/FinancialTab'
 import { ComparisonContextCard } from './components/ComparisonContextCard'
+import { OtherAnalyses } from './components/OtherAnalyses'
 import { SourceTab } from './components/SourceTab'
 import { SummaryTab } from './components/SummaryTab'
 import { TextTab } from './components/TextTab'
@@ -93,6 +94,13 @@ function AnalysisResult({ analysis, params, update }: AnalysisResultProps) {
       <div className="result-head">
         <h1 className="page__title">두 보고서 사이의 변화</h1>
         <div className="result-head__actions">
+          {/* 분석을 옮기면 펼침 상태를 새로 시작한다 */}
+          <OtherAnalyses
+            key={analysis.analysisId}
+            corpCode={analysis.corpCode}
+            analysisId={analysis.analysisId}
+            tab={params.tab}
+          />
           <ButtonLink to={selectionPath(analysis)} variant="secondary">
             보고서 선택 변경
           </ButtonLink>

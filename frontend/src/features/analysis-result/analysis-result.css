@@ -1982,3 +1982,47 @@
     content: '';
   }
 }
+
+/* 결과 화면 머리글의 '이 기업의 다른 분석'(#290). 버튼 아래에 링크 목록을 펼친다 */
+.other-analyses {
+  position: relative;
+}
+
+.other-analyses__list {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  z-index: 15;
+  display: grid;
+  gap: var(--space-1);
+  width: min(var(--dialog-width), calc(100vw - var(--space-6)));
+  margin: 0;
+  padding: var(--space-2);
+  list-style: none;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+.other-analyses__list[hidden] {
+  display: none;
+}
+
+.other-analyses__list a {
+  display: block;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.other-analyses__list a:hover {
+  background: var(--color-bg-subtle);
+}
+
+@media print {
+  .other-analyses {
+    display: none;
+  }
+}
