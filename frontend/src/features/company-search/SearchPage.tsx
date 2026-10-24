@@ -1,15 +1,17 @@
 import { useCallback, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { match } from 'ts-pattern'
-import { Badge, Button, Input } from '@/shared/ui'
+import { Badge, Button, Icon, Input } from '@/shared/ui'
 import { ServiceNotice } from '@/shared/ui/ServiceNotice'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import type { AsyncState } from '@/shared/hooks/asyncState'
 import { useOnboarding } from '@/shared/hooks/useOnboarding'
+import { useFavoriteCompanies } from '@/shared/hooks/useFavoriteCompanies'
 import { useRecentAnalyses } from '@/shared/hooks/useRecentAnalyses'
 import { isOnboardingVisible } from '@/shared/lib/onboarding'
 import { useCompanySearch, type SearchResult as SearchData } from './hooks/useCompanySearch'
 import { useAutoSearch } from './hooks/useAutoSearch'
+import { FavoriteCompanies } from './components/FavoriteCompanies'
 import { OnboardingGuide } from './components/OnboardingGuide'
 import { RecentAnalyses } from './components/RecentAnalyses'
 import { useSearchForm } from './hooks/useSearchForm'
@@ -71,6 +73,7 @@ export function SearchPage() {
         )}
       </form>
 
+      {query === '' && <FavoriteCompaniesSection />}
       {query === '' && <RecentAnalysesSection />}
 
       <SearchResult state={state} onRetry={reload} />
@@ -83,6 +86,12 @@ function OnboardingSection({ query }: { query: string }) {
   const onboarding = useOnboarding()
   if (!isOnboardingVisible(query, !onboarding.visible)) return null
   return <OnboardingGuide onDismiss={onboarding.dismiss} />
+}
+
+/** 검색어가 없을 때만 보이는 관심 기업(FS-18). 목록이 비면 아무것도 보이지 않는다 */
+function FavoriteCompaniesSection() {
+  const favorites = useFavoriteCompanies()
+  return <FavoriteCompanies items={favorites.items} onRemove={favorites.remove} />
 }
 
 /** 검색어가 없을 때만 보이는 최근 본 분석(FS-7). 목록이 비면 아무것도 보이지 않는다 */
@@ -105,9 +114,10 @@ function SearchResult({ state, onRetry }: { state: AsyncState<SearchData>; onRet
     .exhaustive()
 }
 
-/** 검색 결과. 상장 여부를 글자로 보이고, 이름이 같은 회사가 있으면 알려 준다 */
+/** 검색 결과. 상장 여부를 글자로 보이고, 이름이 같은 회사가 있으면 알려 준다. 관심 기업은 별을 붙인다(FS-18 AC3) */
 function CompanyList({ items }: { items: SearchData['items'] }) {
   const sameNames = sameNameCounts(items)
+  const favorites = useFavoriteCompanies()
   return (
     <ul className="company-list" aria-label={`검색 결과 ${items.length}곳`}>
       {items.map((company) => {
@@ -117,6 +127,12 @@ function CompanyList({ items }: { items: SearchData['items'] }) {
             <Link to={`/companies/${company.corpCode}`} className="company-list__item">
               <span className="company-list__head">
                 <span className="company-list__name">{company.corpName}</span>
+                {favorites.isFavorite(company.corpCode) && (
+                  <span className="company-list__favorite">
+                    <Icon name="star-filled" size={14} />
+                    <span className="visually-hidden">관심 기업</span>
+                  </span>
+                )}
                 <Badge tone={company.listed ? 'accent' : 'neutral'}>{company.listed ? '상장' : '비상장'}</Badge>
                 {sameCount !== undefined && <span className="company-list__same">같은 이름 {sameCount}곳</span>}
               </span>

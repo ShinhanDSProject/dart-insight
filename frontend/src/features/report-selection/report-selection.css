@@ -1,3 +1,32 @@
+/* 회사 이름과 관심 기업 별 버튼(FS-18)을 한 줄에 둔다. 좁으면 버튼이 아래로 내려간다 */
+.company-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  margin: var(--space-1) 0 var(--space-3);
+}
+
+.company-heading .page__title {
+  margin: 0;
+}
+
+/* 켜진 별은 주색으로 가득 채우지 않고 강조(보라) 색으로 둔다. 켜짐은 채운 별·글자·aria-pressed로도 알린다 */
+.button.favorite-toggle[aria-pressed='true'],
+.button.favorite-toggle[aria-pressed='true']:hover:not(:disabled) {
+  border-color: var(--color-border-accent);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+}
+
+.favorite-toggle__icon {
+  display: inline-flex;
+}
+
+.favorite-toggle[aria-pressed='true'] .favorite-toggle__icon {
+  animation: pop-in var(--motion-base) var(--ease-out);
+}
+
 .company-title {
   display: flex;
   flex-wrap: wrap;

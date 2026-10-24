@@ -4,6 +4,7 @@ import type { Company } from '@/shared/api/companies'
 import type { ReportList } from '@/shared/api/reports'
 import { ButtonLink, FieldHint, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
+import { FavoriteToggle } from './components/FavoriteToggle'
 import { PairSelector } from './components/PairSelector'
 import { ReportDetailPanel } from './components/ReportDetailPanel'
 import { ReportTable } from './components/ReportTable'
@@ -70,10 +71,13 @@ function ReportSelection({ corpCode, company, reports, selection }: ReportSelect
   return (
     <section className="page">
       <Breadcrumb />
-      <h1 className="page__title company-title">
-        {company.corpName}
-        <span className="company-title__code">{company.listed ? company.stockCode : '비상장'}</span>
-      </h1>
+      <div className="company-heading">
+        <h1 className="page__title company-title">
+          {company.corpName}
+          <span className="company-title__code">{company.listed ? company.stockCode : '비상장'}</span>
+        </h1>
+        <FavoriteToggle company={company} />
+      </div>
       <p className="page__lead">비교할 두 보고서를 고르세요. 현재 보고서는 기본으로 가장 최근 보고서예요.</p>
 
       {reports.refreshError && (

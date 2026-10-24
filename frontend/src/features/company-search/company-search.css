@@ -82,6 +82,94 @@
   font-size: var(--font-size-sm);
 }
 
+/* 검색 결과의 관심 기업 별(FS-18 AC3). 뜻은 보이지 않는 글자 '관심 기업'이 전한다 */
+.company-list__favorite {
+  display: inline-flex;
+  color: var(--color-accent);
+  animation: pop-in var(--motion-base) var(--ease-out);
+}
+
+/* 관심 기업(FS-18). 검색어가 없을 때 검색창 아래, 최근 본 분석 위에 둥근 칩으로 보인다 */
+.favorite-companies {
+  max-width: 720px;
+  margin-bottom: var(--space-5);
+  animation: rise-in var(--motion-base) var(--ease-out);
+}
+
+.favorite-companies__title {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.favorite-companies__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.favorite-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: var(--touch-target-min);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg);
+  animation: rise-in var(--motion-base) var(--ease-out) both;
+  animation-delay: calc(var(--row, 0) * var(--motion-stagger));
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out);
+}
+
+.favorite-chip:hover,
+.favorite-chip:focus-within {
+  border-color: var(--color-border-accent);
+  background: var(--color-accent-subtle);
+}
+
+.favorite-chip__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  min-height: var(--touch-target-min);
+  padding: 0 var(--space-1) 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  color: inherit;
+  font-size: var(--font-size-sm);
+  text-decoration: none;
+}
+
+.favorite-chip__star {
+  display: inline-flex;
+  flex: none;
+  color: var(--color-accent);
+}
+
+.favorite-chip__name {
+  overflow: hidden;
+  font-weight: var(--font-weight-bold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.favorite-chip__meta {
+  flex: none;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.favorite-chip__remove {
+  flex: none;
+  margin-right: var(--space-1);
+  border-radius: var(--radius-pill);
+}
+
 /* 최근 본 분석(FS-7). 검색어가 없을 때 검색창 아래에 보인다 */
 .recent-analyses {
   max-width: 720px;
