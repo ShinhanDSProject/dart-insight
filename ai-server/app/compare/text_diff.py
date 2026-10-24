@@ -25,6 +25,9 @@
    - 같은 글끼리 먼저 짝짓고, 나머지는 이전 문서 순서대로 가장 비슷한 것과 짝짓는다
      (점수가 같으면 현재 문서 순서가 앞선 것). 비슷한 정도는 낱말 수가 비교 상한 안인 글만 잰다
      (앞부분만 같은 긴 표가 이동으로 잡히지 않게). 비교 횟수에 상한을 둔다.
+   - 비슷하기만 한 짝은 다른 부분이 모두 띄어쓰기·문장부호일 때만 이동으로 본다
+     (글자·낱말·기호·숫자 자리가 하나라도 다르면 내용 변경이라 추가·삭제로 남긴다.
+     예: '(단위 : 주, %)' → '(단위 : 원, %)').
    - 이동의 섹션 정보는 현재 쪽이고, 이전 쪽 섹션 경로는 previous_section_path에 남는다.
 
 결과는 원문 위치(섹션 번호·블록 번호)만 돌려준다. 글은 backend가 저장된 원문에서 붙인다.
@@ -86,6 +89,8 @@ _NOT_WORD = re.compile(r"[^0-9A-Za-z가-힣]+")
 _NUMBER = re.compile(r"[-+]?\d[\d,]*(?:\.\d+)?")
 _SPACE = re.compile(r"\s+")
 _TOKEN = re.compile(r"\S+")
+# 위치 이동에서 달라도 되는 글: 띄어쓰기와 문장부호만(숫자 자리 '#'·기호·글자는 내용으로 본다)
+_FORMATTING_ONLY = re.compile(r"[\s.,·:;!?'\"()\[\]{}<>|/\\\-–—~…「」『』“”‘’]*")
 
 
 @dataclass(frozen=True)
@@ -404,6 +409,16 @@ def _norm(text: str) -> str:
 # ── 위치 이동 ───────────────────────────────────────────────
 
 
+def formatting_only_differs(a: str, b: str) -> bool:
+    """두 글(숫자를 가린 글)의 다른 부분이 모두 띄어쓰기·문장부호뿐인지(글자 단위 비교)."""
+    matcher = SequenceMatcher(None, a, b, autojunk=False)
+    return all(
+        _FORMATTING_ONLY.fullmatch(a[i1:i2]) and _FORMATTING_ONLY.fullmatch(b[j1:j2])
+        for tag, i1, i2, j1, j2 in matcher.get_opcodes()
+        if tag != "equal"
+    )
+
+
 def _pair_moves(
     changes: list[Change], previous: dict[int, BlockIn], current: dict[int, BlockIn]
 ) -> list[Change]:
@@ -464,7 +479,9 @@ def _pair_moves(
                 break
             budget -= 1
             score = similarity(d_masked, a_masked, MOVED_SIMILAR)
-            if score > best_score or best is None and score >= best_score:
+            if score < best_score or not formatting_only_differs(d_masked, a_masked):
+                continue
+            if score > best_score or best is None:
                 best, best_score = j, score
         if best is not None:
             pairs.append((i, best))

@@ -14,6 +14,7 @@ from app.compare.text_diff import (
     DocumentIn,
     SectionIn,
     diff_documents,
+    formatting_only_differs,
     mask_numbers,
     title_key,
 )
@@ -385,19 +386,71 @@ def _move_between_sections(prev_text: str, cur_text: str) -> list:
     return diff_documents(prev, cur).changes
 
 
-def test_move_threshold_includes_text_exactly_at_the_threshold() -> None:
-    # 40자 중 2자가 다르면 비슷한 정도 2*38/80 = 0.95(경계 포함)
+DISTINCT_38 = DISTINCT_40[:38]
+
+
+def _with_commas(text: str, count: int) -> str:
+    """5글자마다 쉼표를 하나씩, 모두 count개 넣은 글(문장부호만 다름)"""
+    out = text
+    for k in range(count, 0, -1):
+        at = 5 * k
+        out = out[:at] + "," + out[at:]
+    return out
+
+
+def test_move_threshold_includes_formatting_change_exactly_at_the_threshold() -> None:
+    # 38자에 쉼표 4개를 넣으면 비슷한 정도 2*38/(38+42) = 0.95(경계 포함)
     assert MOVED_SIMILAR == 0.95
-    changes = _move_between_sections(DISTINCT_40, _with_replaced(DISTINCT_40, 2))
+    changes = _move_between_sections(DISTINCT_38, _with_commas(DISTINCT_38, 4))
 
     assert [c.change_type for c in changes] == [MOVED]
 
 
-def test_move_threshold_excludes_text_just_below_the_threshold() -> None:
-    # 40자 중 3자가 다르면 2*37/80 = 0.925
-    changes = _move_between_sections(DISTINCT_40, _with_replaced(DISTINCT_40, 3))
+def test_move_threshold_excludes_formatting_change_just_below_the_threshold() -> None:
+    # 쉼표 5개면 2*38/(38+43) ≈ 0.938
+    changes = _move_between_sections(DISTINCT_38, _with_commas(DISTINCT_38, 5))
 
     assert sorted(c.change_type for c in changes) == [ADDED, DELETED]
+
+
+def test_similar_text_with_a_changed_word_is_not_a_move() -> None:
+    # 40자 중 2자가 다르면 비슷한 정도는 0.95지만 글자가 바뀐 것이라 내용 변경이다
+    changes = _move_between_sections(DISTINCT_40, _with_replaced(DISTINCT_40, 2))
+
+    assert sorted(c.change_type for c in changes) == [ADDED, DELETED]
+
+
+HEADER_2025 = "(기준일 : | 2025년 6월 30일 | ) | (단위 : 주, %)"
+
+
+def test_table_header_with_a_changed_unit_is_not_a_move() -> None:
+    # 실제 사례(분석 16, 2025.06 → 2026.06): 숫자를 가리면 단위(주 → 원)만 다르다
+    prev = doc(PREV, BASE_SECTIONS, [(1, 3, "TABLE", HEADER_2025)])
+    header = "(기준일 : | 2026년 06월 30일 | ) | (단위 : 원, %)"
+    cur = doc(CUR, BASE_SECTIONS, [(1, 4, "TABLE", header)])
+
+    changes = diff_documents(prev, cur).changes
+
+    assert sorted(c.change_type for c in changes) == [ADDED, DELETED]
+
+
+def test_formatting_only_difference_is_still_a_move() -> None:
+    # 숫자 말고는 '기준일' 뒤 띄어쓰기 하나만 다르다
+    prev = doc(PREV, BASE_SECTIONS, [(1, 3, "TABLE", HEADER_2025)])
+    header = "(기준일: | 2026년 06월 30일 | ) | (단위 : 주, %)"
+    cur = doc(CUR, BASE_SECTIONS, [(1, 4, "TABLE", header)])
+
+    (change,) = diff_documents(prev, cur).changes
+
+    assert change.change_type == MOVED
+    assert change.previous_section_path == "II. 사업의 내용 > 1. 사업의 개요"
+
+
+def test_formatting_only_differs_checks_every_differing_span() -> None:
+    assert formatting_only_differs("단위 : 주, %", "단위: 주 , %")
+    assert not formatting_only_differs("단위 : 주, %", "단위 : 원, %")
+    assert not formatting_only_differs("매출 # 원", "매출 원")  # 숫자 자리가 빠짐
+    assert not formatting_only_differs("비율 %", "비율 ‰")  # 기호가 바뀜
 
 
 def test_short_boilerplate_is_not_paired_as_a_move() -> None:
