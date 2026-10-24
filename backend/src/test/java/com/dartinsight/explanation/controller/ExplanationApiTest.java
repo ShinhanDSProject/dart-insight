@@ -18,6 +18,12 @@ import com.dartinsight.analysis.service.AnalysisResultService;
 import com.dartinsight.company.service.CompanyImportService;
 import com.dartinsight.comparison.domain.ComparisonBasis;
 import com.dartinsight.dart.domain.CorpCodeEntry;
+import com.dartinsight.document.domain.ReportDocument;
+import com.dartinsight.document.dto.StructuredDocumentResponse;
+import com.dartinsight.document.dto.StructuredDocumentResponse.Block;
+import com.dartinsight.document.dto.StructuredDocumentResponse.Section;
+import com.dartinsight.document.repository.DocumentStore;
+import com.dartinsight.document.repository.ReportDocumentRepository;
 import com.dartinsight.financial.domain.FsDiv;
 import com.dartinsight.report.domain.Correction;
 import com.dartinsight.report.domain.Report;
@@ -83,6 +89,12 @@ class ExplanationApiTest {
     private ReportRepository reportRepository;
 
     @Autowired
+    private ReportDocumentRepository documentRepository;
+
+    @Autowired
+    private DocumentStore documentStore;
+
+    @Autowired
     private JdbcTemplate jdbcTemplate;
 
     private Long analysisId;
@@ -98,6 +110,8 @@ class ExplanationApiTest {
                     new ParsedReportName(ReportType.HALF, year, LocalDate.of(year, 6, 30), Correction.ORIGINAL),
                     LocalDate.of(year, 8, 14), null, "예시전자", NOW));
         }
+        // 비교 보고서 원문만 구조화돼 있다(섹션 이름이 바뀜). 현재 보고서 근거의 경로는 변경의 섹션 경로로 대신한다
+        previousDocument();
         Analysis analysis = Analysis.request("00000001", CUR, PREV, ComparisonBasis.YOY, null, NOW);
         analysis.start(NOW);
         analysis.recordFsDiv(FsDiv.CFS);
@@ -119,6 +133,18 @@ class ExplanationApiTest {
                         LocalDateTime.of(2026, 10, 24, 8, 0, 0), List.of())), List.of());
         resultService.saveAndComplete(analysisId, List.of(),
                 new TextComparison(TextStatus.COMPLETED, null, rows), summary);
+    }
+
+    private void previousDocument() {
+        List<Section> sections = List.of(
+                new Section(2, null, 1, "II. 사업의 내용", null, false, List.of()),
+                new Section(3, 2, 2, "7. 기타 사항", null, false, List.of(
+                        new Block(3, "PARAGRAPH", "종속회사는 소송 중입니다.", null))));
+        StructuredDocumentResponse response = new StructuredDocumentResponse(PREV, "dart-xml-1", "STRUCTURED",
+                null, null, PREV + ".xml", "utf-8", "반기보고서", "예시전자", List.of(), List.of(),
+                Map.of("cells", 0, "sourceCells", 0), sections);
+        ReportDocument saved = documentRepository.save(ReportDocument.structured(PREV, response, 100, NOW, NOW));
+        documentStore.replace(saved.getId(), sections);
     }
 
     private Long changeId(int changeNo) {
@@ -150,7 +176,8 @@ class ExplanationApiTest {
             String ref = JsonPath.<String>read(request.bodyText(), "$.textItems[0].ref");
             return Reply.ok(summaryReply("""
                     {"ref":"%s","kind":"TEXT","status":"OK","sentence":"현재 보고서에 종속회사의 과징금 납부 사실이 적혔어요.",
-                     "evidenceIds":["%s#B3"],"reviewReason":null,"blockedRules":[]}""".formatted(ref, CUR)));
+                     "evidenceIds":["%s#B3","%s#B3"],"reviewReason":null,"blockedRules":[]}""".formatted(ref, CUR,
+                    PREV)));
         });
         Long changeId = changeId(MODIFIED);
 
@@ -160,11 +187,19 @@ class ExplanationApiTest {
                 .andExpect(jsonPath("$.status").value("OK"))
                 .andExpect(jsonPath("$.sentence").value("현재 보고서에 종속회사의 과징금 납부 사실이 적혔어요."))
                 .andExpect(jsonPath("$.message").doesNotExist())
-                .andExpect(jsonPath("$.evidence", hasSize(1)))
+                .andExpect(jsonPath("$.evidence", hasSize(2)))
                 .andExpect(jsonPath("$.evidence[0].side").value("current"))
                 .andExpect(jsonPath("$.evidence[0].rceptNo").value(CUR))
+                .andExpect(jsonPath("$.evidence[0].sectionNo").value(3))
                 .andExpect(jsonPath("$.evidence[0].blockNo").value(3))
+                .andExpect(jsonPath("$.evidence[0].sectionPath").value("II. 사업의 내용 > 7. 기타 참고사항"))
                 .andExpect(jsonPath("$.evidence[0].evidenceId").value(CUR + "#B3"))
+                .andExpect(jsonPath("$.evidence[1].side").value("previous"))
+                .andExpect(jsonPath("$.evidence[1].rceptNo").value(PREV))
+                .andExpect(jsonPath("$.evidence[1].sectionNo").value(3))
+                .andExpect(jsonPath("$.evidence[1].blockNo").value(3))
+                .andExpect(jsonPath("$.evidence[1].sectionPath").value("II. 사업의 내용 > 7. 기타 사항"))
+                .andExpect(jsonPath("$.evidence[1].evidenceId").value(PREV + "#B3"))
                 .andExpect(jsonPath("$.ai.model").value("fake-model"))
                 .andExpect(jsonPath("$.ai.promptVersion").value("summary-2"))
                 .andExpect(jsonPath("$.ai.generatedAt").value("2026-10-25T09:40:11"))
@@ -183,6 +218,7 @@ class ExplanationApiTest {
                 .andExpect(jsonPath("$.status").value("OK"))
                 .andExpect(jsonPath("$.sentence").value("현재 보고서에 종속회사의 과징금 납부 사실이 적혔어요."))
                 .andExpect(jsonPath("$.evidence[0].evidenceId").value(CUR + "#B3"))
+                .andExpect(jsonPath("$.evidence[1].sectionPath").value("II. 사업의 내용 > 7. 기타 사항"))
                 .andExpect(jsonPath("$.ai.generatedAt").value("2026-10-25T09:40:11"))
                 .andExpect(jsonPath("$.cached").value(true));
         assertThat(AI.requests(SUMMARIES)).hasSize(1);
@@ -190,7 +226,7 @@ class ExplanationApiTest {
         Map<String, Object> stored = jdbcTemplate.queryForMap("SELECT * FROM text_change_explanation");
         assertThat(stored.get("change_no")).isEqualTo(MODIFIED);
         assertThat(stored.get("status")).isEqualTo("OK");
-        assertThat(stored.get("evidence_ids")).isEqualTo(CUR + "#B3");
+        assertThat(stored.get("evidence_ids")).isEqualTo(CUR + "#B3," + PREV + "#B3");
         assertThat(stored.get("model")).isEqualTo("fake-model");
         assertThat(stored.get("trace_id")).isNotNull();
         Map<String, Object> call = jdbcTemplate.queryForMap("SELECT * FROM llm_call");
@@ -206,7 +242,9 @@ class ExplanationApiTest {
                 .andExpect(jsonPath("$.status").value("OK"))
                 .andExpect(jsonPath("$.sentence").value("현재 보고서에 새 공장 소식이 적혔어요."))
                 .andExpect(jsonPath("$.evidence[0].evidenceId").value(CUR + "#B2"))
+                .andExpect(jsonPath("$.evidence[0].sectionNo").value(3))
                 .andExpect(jsonPath("$.evidence[0].blockNo").value(2))
+                .andExpect(jsonPath("$.evidence[0].sectionPath").value("II. 사업의 내용 > 7. 기타 참고사항"))
                 .andExpect(jsonPath("$.ai.model").value("summary-model"))
                 .andExpect(jsonPath("$.ai.promptVersion").value("summary-2"))
                 .andExpect(jsonPath("$.ai.generatedAt").value("2026-10-24T08:00:00"))
