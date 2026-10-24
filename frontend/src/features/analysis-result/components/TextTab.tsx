@@ -5,6 +5,7 @@ import type { ChangeType, TextChangeItem, TextSort } from '@/shared/api/textChan
 import { Badge, Button, Card, Chip, FieldHint, FieldLabel, Icon, Input, Notice, Panel, SegmentedControl, Select } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
+import { CopyWithSourcesButton } from './CopyWithSourcesButton'
 import { TextEvidencePanel } from './TextEvidencePanel'
 import { TextExplanationBox } from './TextExplanationBox'
 import { usePinnedChanges, usePinnedTextChanges } from '../hooks/usePinnedChanges'
@@ -12,6 +13,7 @@ import { useTextChanges } from '../hooks/useTextChanges'
 import { useTextExplanations, type TextExplanations } from '../hooks/useTextExplanations'
 import { useTextSearch } from '../hooks/useTextSearch'
 import { sectionAskQuestion } from '../model/askQuestion'
+import { pinnedChangesText } from '../model/copyText'
 import { PINNED_EMPTY, PINNED_LABEL, PINNED_NOTE } from '../model/pinnedList'
 import type { SourceTarget, TextViewChange } from '../model/resultParams'
 import {
@@ -65,6 +67,7 @@ interface TextTabProps {
  * 최상위 섹션과 검색어로도 함께 거른다(3.7). 고른 값은 주소에 남아 공유된다.
  * 문장을 비교하지 못했으면 '변경 없음'이 아니라 사유를 보여 준다. 짝짓지 못한 항목은 숨기지 않고 '검토 필요'로 둔다.
  * 카드마다 고정할 수 있고, '고정' 거르기를 고르면 이 분석에서 고정한 변경만 보여 준다(3.3, 이 브라우저에만 남음).
+ * 고정 보기에서는 고정한 변경을 원문·출처와 함께 한 번에 복사할 수 있다(FS-31).
  */
 export function TextTab({
   analysis,
@@ -250,6 +253,10 @@ export function TextTab({
                     <span className="panel__note" role="status">
                       고정 {resultCountLabel(items.length)}
                     </span>
+                    <CopyWithSourcesButton
+                      text={() => pinnedChangesText(analysis, items)}
+                      label="고정한 변경 출처 포함 복사"
+                    />
                   </div>
                 </>
               )}

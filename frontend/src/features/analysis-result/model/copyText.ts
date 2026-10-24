@@ -2,9 +2,13 @@ import { match } from 'ts-pattern'
 import type { DocumentSide } from '@/shared/api/documents'
 import type { QuestionAnswer } from '@/shared/api/questions'
 import type { AiInfo } from '@/shared/api/summary'
-import type { TextExplanation } from '@/shared/api/textChanges'
+import type { ReportItem } from '@/shared/api/reports'
+import type { TextChangeItem, TextExplanation } from '@/shared/api/textChanges'
+import { dartViewerUrl } from '@/shared/lib/dart'
 import { displaySectionPath } from '@/shared/lib/sectionTitle'
 import { citationSideLabel, quoteLabel } from './askQuestion'
+import { changeTypeLabel } from './textLabels'
+import { formatCount } from './textFilter'
 import { orderedEvidence } from './textExplanation'
 
 /**
@@ -72,4 +76,57 @@ export function explanationCopyText(explanation: TextExplanation, reports: CopyR
   }
   blocks.push(aiCopyLine(explanation.ai))
   return blocks.join('\n\n')
+}
+
+/** 고정한 변경 복사(3.3, FS-31)에 넣는 회사·두 보고서 */
+export interface PinnedCopyAnalysis {
+  corpName: string
+  previous: Pick<ReportItem, 'reportName' | 'rceptNo'>
+  current: Pick<ReportItem, 'reportName' | 'rceptNo'>
+}
+
+/** 한 문장을 옮길 때 최대 글자 수. 넘으면 자르고 '…'를 붙인다 */
+export const PINNED_COPY_MAX_CHARS = 300
+export const PINNED_COPY_NOTICE = '※ 공시 원문 문장만 옮겼어요. AI가 만든 설명은 넣지 않았어요.'
+const EMPTY_SIDE = '(없음)'
+
+/** 줄바꿈·겹친 공백을 한 칸으로 줄이고, 300자를 넘으면 자른다(한글·이모지가 반쪽으로 잘리지 않게 글자 단위) */
+export function clipSentence(text: string | null, max = PINNED_COPY_MAX_CHARS): string {
+  const flat = (text ?? '').replace(/\s+/g, ' ').trim()
+  if (flat === '') return EMPTY_SIDE
+  const chars = Array.from(flat)
+  return chars.length > max ? `${chars.slice(0, max).join('')}…` : flat
+}
+
+function reportLine(report: Pick<ReportItem, 'reportName' | 'rceptNo'>): string {
+  return `${report.reportName} [접수번호 ${report.rceptNo}]`
+}
+
+/** 삭제는 이전 보고서에만 있으므로 이전 원문, 그 밖은 현재 원문을 출처로 둔다 */
+function sourceLine(item: TextChangeItem, analysis: PinnedCopyAnalysis): string {
+  const side = item.changeType === 'DELETED' ? 'previous' : 'current'
+  const report = analysis[side]
+  const sideName = side === 'previous' ? '이전 보고서 원문' : '현재 보고서 원문'
+  const url = dartViewerUrl(report.rceptNo)
+  return url === null ? `출처: 접수번호 ${report.rceptNo} (${sideName})` : `출처: ${url} (${sideName})`
+}
+
+/**
+ * '고정한 변경 출처 포함 복사'(3.3, FS-31)에 넣을 일반 텍스트. 맨 위에 회사·두 보고서(접수번호),
+ * 변경마다 유형·섹션 경로·이전·현재 문장·DART 원문 링크, 끝에 원문만 옮겼다는 안내를 둔다. AI 풀이는 넣지 않는다.
+ */
+export function pinnedChangesText(analysis: PinnedCopyAnalysis, items: readonly TextChangeItem[]): string {
+  const head = [
+    `${analysis.corpName} · ${reportLine(analysis.previous)} → ${reportLine(analysis.current)}`,
+    `고정한 문장 변경 ${formatCount(items.length)}개 (DART Insight)`,
+  ].join('\n')
+  const changes = items.map((item, i) =>
+    [
+      `${formatCount(i + 1)}. [${changeTypeLabel(item.changeType)}] ${displaySectionPath(item.sectionPath)}`,
+      `이전: ${clipSentence(item.previousPreview)}`,
+      `현재: ${clipSentence(item.currentPreview)}`,
+      sourceLine(item, analysis),
+    ].join('\n'),
+  )
+  return [head, ...changes, PINNED_COPY_NOTICE].join('\n\n')
 }
