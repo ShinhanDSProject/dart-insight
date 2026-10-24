@@ -70,6 +70,9 @@ interface FinancialTabProps {
   /** 근거를 보고 있는 계정(3.3) */
   selectedChangeId: number | null
   onChange: (changes: FinancialViewChange) => void
+  /** 근거 패널의 '이 계정 변화 AI에게 묻기'(3.10). 질문을 보내고 AI 질문 탭으로 옮긴다 */
+  onAsk: (question: string) => void
+  asking: boolean
 }
 
 /** W-03 ② 재무 수치 변화(3.1). 이 분석의 결과만 보여 준다. 계정 이름을 누르면 수치 근거(3.3)를 오른쪽 패널로 연다.
@@ -83,6 +86,8 @@ export function FinancialTab({
   accountQuery,
   selectedChangeId,
   onChange,
+  onAsk,
+  asking,
 }: FinancialTabProps) {
   const { state, reload, statements } = useFinancialChanges(analysis.analysisId, sjDiv, changedOnly)
   const selected = statements.find((s) => s.sjDiv === sjDiv)
@@ -286,6 +291,8 @@ export function FinancialTab({
           analysis={analysis}
           changeId={selectedChangeId}
           unit={unit}
+          onAsk={onAsk}
+          asking={asking}
           onClose={() => {
             const id = selectedChangeId
             const opener = openerRef.current

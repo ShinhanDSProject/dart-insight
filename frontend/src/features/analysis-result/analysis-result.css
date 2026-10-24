@@ -433,6 +433,10 @@
   gap: var(--space-3);
 }
 
+.evidence__ask {
+  align-self: flex-start;
+}
+
 .evidence__sources {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
