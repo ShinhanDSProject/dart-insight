@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef } from 'react'
-import { askQuestion, getQuestions } from '@/shared/api/questions'
+import { askQuestion, getQuestions, sendAnswerFeedback, type AnswerFeedback } from '@/shared/api/questions'
 import { useAsync } from '@/shared/hooks/useAsync'
 import { parseQuestion } from '../model/askQuestion'
 import { askReducer, initialAskState } from '../model/askState'
@@ -58,9 +58,20 @@ export function useAsk(analysisId: number) {
     if (state.request.status === 'error') send(state.request.question, state.request.fromDraft)
   }, [send, state.request])
 
+  /** 답 평가를 저장하고(3.12) 저장되면 그 답에 적는다. 실패는 부른 쪽(답 카드)이 되돌린다 */
+  const sendFeedback = useCallback(
+    (questionId: number, feedback: AnswerFeedback) =>
+      sendAnswerFeedback(analysisId, questionId, feedback).then((saved) => {
+        if (mounted.current) {
+          dispatch({ type: 'set-feedback', questionId, feedback: { helpful: saved.helpful, reason: saved.reason } })
+        }
+      }),
+    [analysisId],
+  )
+
   const setDraft = useCallback((draft: string) => dispatch({ type: 'set-draft', draft }), [])
 
-  return { state, history, setDraft, submitDraft, ask, retry }
+  return { state, history, setDraft, submitDraft, ask, retry, sendFeedback }
 }
 
 export type AskController = ReturnType<typeof useAsk>

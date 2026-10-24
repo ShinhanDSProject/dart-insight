@@ -1,5 +1,5 @@
 import { match } from 'ts-pattern'
-import type { QuestionAnswer } from '@/shared/api/questions'
+import type { AnswerFeedback, QuestionAnswer } from '@/shared/api/questions'
 
 /**
  * AI 질문 탭(3.10)의 상태. 입력 글·보내는 요청·답 목록이 함께 바뀌어 reducer로 둔다(ST-2).
@@ -28,6 +28,8 @@ export type AskAction =
   | { type: 'answer'; answer: QuestionAnswer }
   | { type: 'fail'; error: unknown }
   | { type: 'history'; items: QuestionAnswer[] }
+  /** 저장한 답 평가(3.12)를 그 답에 적는다. 다른 탭에 다녀와도 카드가 같은 평가로 다시 그려진다 */
+  | { type: 'set-feedback'; questionId: number; feedback: AnswerFeedback }
 
 export const initialAskState: AskState = { draft: '', draftRejected: false, request: { status: 'idle' }, items: [], lastAnsweredId: null }
 
@@ -67,5 +69,9 @@ export function askReducer(state: AskState, action: AskAction): AskState {
     )
     // 기록보다 이 화면에서 받은 답이 새것이라 앞에 둔다
     .with({ type: 'history' }, ({ items }) => ({ ...state, items: uniqueById([...state.items, ...items]) }))
+    .with({ type: 'set-feedback' }, ({ questionId, feedback }) => ({
+      ...state,
+      items: state.items.map((item) => (item.questionId === questionId ? { ...item, feedback } : item)),
+    }))
     .exhaustive()
 }

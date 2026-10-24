@@ -29,7 +29,7 @@ state:
   ST-7: 전역 상태 라이브러리는 쓰지 않는다(필요해지면 ADR)
 
 api:
-  API-1: 경로는 shared/api/endpoints.ts에만. 호출은 apiGet·apiPost만 쓴다(fetch 직접 금지)
+  API-1: 경로는 shared/api/endpoints.ts에만. 호출은 client의 apiGet·apiPost·apiPut·apiDelete만 쓴다(fetch 직접 금지)
   API-2: 응답 타입은 docs/api-spec.md와 같은 이름·필드. null은 null로 두고 0·빈 문자열로 바꾸지 않는다
   API-3: "에러는 ApiError.code로 분기한다(match). message 문자열로 분기하지 않는다"
 

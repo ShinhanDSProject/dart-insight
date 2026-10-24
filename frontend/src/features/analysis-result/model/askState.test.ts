@@ -56,4 +56,11 @@ describe('askReducer', () => {
     const merged = askReducer(answered, { type: 'history', items: [answer(9), answer(8), answer(7)] })
     expect(merged.items.map((i) => i.questionId)).toEqual([9, 8, 7])
   })
+
+  it('저장한 답 평가는 그 질문에만 적는다', () => {
+    const before: AskState = { ...initialAskState, items: [answer(1), answer(2)] }
+    const after = askReducer(before, { type: 'set-feedback', questionId: 2, feedback: { helpful: false, reason: 'OTHER' } })
+    expect(after.items[1].feedback).toEqual({ helpful: false, reason: 'OTHER' })
+    expect(after.items[0]).toBe(before.items[0])
+  })
 })

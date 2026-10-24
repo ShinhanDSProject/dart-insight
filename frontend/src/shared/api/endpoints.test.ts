@@ -12,6 +12,7 @@ describe('endpoints', () => {
     expect(endpoints.financialChange(3, 12)).toBe('/api/analyses/3/financial-changes/12')
     expect(endpoints.documentSection(3, 'current', 2)).toBe('/api/analyses/3/documents/current/sections/2')
     expect(endpoints.questions(3)).toBe('/api/analyses/3/questions')
+    expect(endpoints.questionFeedback(3, 7)).toBe('/api/analyses/3/questions/7/feedback')
     expect(endpoints.textChangeExplanations(3, 5512)).toBe('/api/analyses/3/text-changes/5512/explanations')
   })
 
