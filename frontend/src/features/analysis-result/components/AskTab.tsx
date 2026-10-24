@@ -5,7 +5,8 @@ import { cx } from '@/shared/lib/cx'
 import { Button, FieldHint, FieldLabel, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { LoadingState } from '@/shared/ui/StateView'
 import type { AskController } from '../hooks/useAsk'
-import { ASK_INTRO, draftMessage, parseQuestion, questionCountLabel } from '../model/askQuestion'
+import { ASK_INTRO, draftMessage, parseQuestion, questionCountLabel, RISK_QUESTION } from '../model/askQuestion'
+import { followUpQuestions } from '../model/followUp'
 import { AnswerCard, FailedAnswerCard, PendingAnswerCard, type AnswerLinks } from './AnswerCard'
 import { AskSuggestions } from './AskSuggestions'
 
@@ -22,6 +23,18 @@ export function AskTab({ ask, suggestions, ...links }: AskTabProps) {
   const { state, history } = ask
   const sending = state.request.status === 'sending'
   const lastAnswered = state.items.find((i) => i.questionId === state.lastAnsweredId)
+  const suggestionList = match(suggestions)
+    .with({ status: 'loading' }, () => [])
+    .with({ status: 'error' }, () => [RISK_QUESTION])
+    .with({ status: 'success' }, ({ data }) => data)
+    .exhaustive()
+  const asked = [
+    ...state.items.map((i) => i.question),
+    ...match(state.request)
+      .with({ status: 'idle' }, () => [])
+      .with({ status: 'sending' }, { status: 'error' }, ({ question }) => [question])
+      .exhaustive(),
+  ]
 
   return (
     <Panel className="ask" aria-labelledby="ask-title">
@@ -54,7 +67,16 @@ export function AskTab({ ask, suggestions, ...links }: AskTabProps) {
           .exhaustive()}
         {state.items.map((item) => (
           <li key={item.questionId}>
-            <AnswerCard item={item} links={links} onFeedback={ask.sendFeedback} />
+            <AnswerCard
+              item={item}
+              links={links}
+              onFeedback={ask.sendFeedback}
+              followUp={{
+                questions: followUpQuestions(item, { suggestions: suggestionList, asked }),
+                onAsk: ask.ask,
+                disabled: sending,
+              }}
+            />
           </li>
         ))}
       </ol>

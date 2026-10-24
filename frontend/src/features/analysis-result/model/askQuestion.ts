@@ -53,7 +53,7 @@ export interface SuggestionSource {
 export const SUGGESTION_COUNT = 4
 const SECTION_TITLE_MAX = 40
 /** 파서가 붙인 목차 밖 본문은 질문으로 만들지 않는다 */
-const OUTSIDE_TOC = '(목차 밖 본문)'
+export const OUTSIDE_TOC = '(목차 밖 본문)'
 
 export function accountQuestion(account: SuggestionAccount): string {
   const name = account.accountName.trim()
