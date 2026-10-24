@@ -6,6 +6,7 @@ import { Button, CompareBars, Notice, PanelTitle, SidePanel } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { useFinancialChangeDetail } from '../hooks/useFinancialChanges'
+import { accountQuestion } from '../model/askQuestion'
 import { amountPeriodLabel, formatAmount, missingValueLabel, unitLabel, type AmountUnit } from '../model/format'
 
 const statementLabels: Record<string, string> = {
@@ -21,13 +22,17 @@ interface EvidencePanelProps {
   changeId: number
   unit: AmountUnit
   onClose: () => void
+  /** 이 계정 변화를 AI에게 묻는다(3.10). 질문을 보내고 AI 질문 탭으로 옮긴다 */
+  onAsk: (question: string) => void
+  /** 질문을 보내는 중이면 묻기 버튼을 끈다 */
+  asking: boolean
 }
 
 /**
  * W-03 ② 수치 근거 상세(3.3). 두 보고서의 값·기준일·단위와 계산식, 원문 링크를 보여 준다.
  * 계산하지 못한 항목은 숫자를 채우지 않고 사유를 보여 준다.
  */
-export function EvidencePanel({ analysis, changeId, unit, onClose }: EvidencePanelProps) {
+export function EvidencePanel({ analysis, changeId, unit, onClose, onAsk, asking }: EvidencePanelProps) {
   const { state, reload } = useFinancialChangeDetail(analysis.analysisId, changeId)
   const title = state.status === 'success' ? `${state.data.accountName} · 근거` : '수치 근거'
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -56,16 +61,28 @@ export function EvidencePanel({ analysis, changeId, unit, onClose }: EvidencePan
             messages={{ ANALYSIS_CHANGE_NOT_FOUND: '이 분석의 계정이 아니에요. 표에서 다시 골라 주세요.' }}
           />
         ))
-        .with({ status: 'success' }, ({ data }) => <EvidenceBody analysis={analysis} detail={data} unit={unit} />)
+        .with({ status: 'success' }, ({ data }) => (
+          <EvidenceBody analysis={analysis} detail={data} unit={unit} onAsk={onAsk} asking={asking} />
+        ))
         .exhaustive()}
     </SidePanel>
   )
 }
 
-function EvidenceBody({ analysis, detail, unit }: { analysis: Analysis; detail: FinancialChangeDetail; unit: AmountUnit }) {
+interface EvidenceBodyProps {
+  analysis: Analysis
+  detail: FinancialChangeDetail
+  unit: AmountUnit
+  onAsk: (question: string) => void
+  asking: boolean
+}
+
+function EvidenceBody({ analysis, detail, unit, onAsk, asking }: EvidenceBodyProps) {
   const basis = detail.fsDiv === 'OFS' ? '별도' : '연결'
   const currency = detail.currency === 'KRW' ? '원(KRW)' : (detail.currency ?? '통화 확인 안 됨')
   const baseUnit = unitLabel('WON', detail.currency)
+  // 요약 탭 예시 질문과 같은 문구(예: 매출액은 왜 늘었나요?)
+  const question = accountQuestion(detail)
   return (
     <>
       <div className="evidence__sources">
@@ -117,6 +134,15 @@ function EvidenceBody({ analysis, detail, unit }: { analysis: Analysis; detail: 
         </Notice>
       )}
       <p className="evidence__note">관련 설명: <strong>확인된 설명 없음</strong></p>
+      <Button
+        variant="secondary"
+        className="evidence__ask"
+        disabled={asking}
+        aria-label={`이 계정 변화 AI에게 묻기: ${question}`}
+        onClick={() => onAsk(question)}
+      >
+        이 계정 변화 AI에게 묻기
+      </Button>
       <p className="panel__note">
         수치는 OpenDART 재무제표 API 값으로 코드가 계산했어요. 원문 표 안의 위치로 바로 이동하는 기능은 3.5(M2)에서 붙어요.
       </p>
