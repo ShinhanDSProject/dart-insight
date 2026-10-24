@@ -1,4 +1,4 @@
-import type { ComponentPropsWithoutRef } from 'react'
+import type { ComponentPropsWithRef, ComponentPropsWithoutRef } from 'react'
 import { cx } from '@/shared/lib/cx'
 
 type FieldLabelProps = { as?: 'label' | 'span' } & ComponentPropsWithoutRef<'label'>
@@ -13,9 +13,9 @@ export function FieldHint({ className, ...rest }: ComponentPropsWithoutRef<'span
   return <span className={cx('field-hint', className)} {...rest} />
 }
 
-type InputProps = { invalid?: boolean } & Omit<ComponentPropsWithoutRef<'input'>, 'aria-invalid'>
+type InputProps = { invalid?: boolean } & Omit<ComponentPropsWithRef<'input'>, 'aria-invalid'>
 
-/** 글자 입력창. invalid면 오류 색 테두리와 aria-invalid */
+/** 글자 입력창. invalid면 오류 색 테두리와 aria-invalid. ref는 input에 붙는다 */
 export function Input({ invalid = false, className, ...rest }: InputProps) {
   return <input className={cx('input', invalid && 'input--error', className)} aria-invalid={invalid} {...rest} />
 }

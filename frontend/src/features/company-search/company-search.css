@@ -15,6 +15,11 @@
   max-width: 720px;
 }
 
+.search-form__hint {
+  display: block;
+  margin-top: var(--space-2);
+}
+
 .field-error {
   margin: var(--space-2) 0 0;
   color: var(--color-danger);
@@ -80,6 +85,14 @@
   gap: var(--space-3);
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
+}
+
+/* 검색어와 맞는 부분(FS-32). 줄의 hover·focus 배경(accent-subtle)과 다른 색이고, 글자는 본문색이라 어두운 테마에서도 대비가 남는다 */
+.search-match {
+  padding: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-border-accent);
+  color: var(--color-text);
 }
 
 /* 검색 결과의 관심 기업 별(FS-18 AC3). 뜻은 보이지 않는 글자 '관심 기업'이 전한다 */

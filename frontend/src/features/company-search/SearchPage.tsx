@@ -1,7 +1,7 @@
-import { useCallback, type FormEvent } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { useCallback, useRef, type FormEvent, type KeyboardEvent, type Ref } from 'react'
+import { useSearchParams } from 'react-router'
 import { match } from 'ts-pattern'
-import { Badge, Button, Icon, Input } from '@/shared/ui'
+import { Button, FieldHint, Input } from '@/shared/ui'
 import { ServiceNotice } from '@/shared/ui/ServiceNotice'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import type { AsyncState } from '@/shared/hooks/asyncState'
@@ -13,11 +13,12 @@ import { isOnboardingVisible } from '@/shared/lib/onboarding'
 import { pageTitle } from '@/shared/lib/pageTitle'
 import { useCompanySearch, type SearchResult as SearchData } from './hooks/useCompanySearch'
 import { useAutoSearch } from './hooks/useAutoSearch'
+import { CompanyList, RESULT_LINK_SELECTOR } from './components/CompanyList'
 import { FavoriteCompanies } from './components/FavoriteCompanies'
 import { OnboardingGuide } from './components/OnboardingGuide'
 import { RecentAnalyses } from './components/RecentAnalyses'
 import { useSearchForm } from './hooks/useSearchForm'
-import { sameNameCounts } from './model/sameName'
+import { nextResultFocus } from './model/resultFocus'
 import './company-search.css'
 
 const errorMessages: Record<string, string> = {
@@ -34,6 +35,19 @@ export function SearchPage() {
   // 입력 중 자동 검색은 방문 기록을 쌓지 않는다(replace)
   const searchAsTyped = useCallback((next: string) => setSearchParams({ q: next }, { replace: true }), [setSearchParams])
   useAutoSearch(input, query, searchAsTyped)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const listRef = useRef<HTMLUListElement>(null)
+  const focusInput = useCallback(() => inputRef.current?.focus(), [])
+
+  /** 입력창에서 ↓를 누르면 첫 결과로 간다(FS-32). 한글 조합 중에는 IME에 맡긴다 */
+  function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.nativeEvent.isComposing) return
+    const links = listRef.current?.querySelectorAll<HTMLElement>(RESULT_LINK_SELECTOR) ?? []
+    const next = nextResultFocus('input', event.key, links.length)
+    if (next === null || next === 'input') return
+    event.preventDefault()
+    links[next]?.focus()
+  }
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -58,17 +72,22 @@ export function SearchPage() {
         <div className="search-form__row">
           <Input
             id="company-query"
+            ref={inputRef}
             invalid={inputError !== null}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="예: 삼성전자, 005930"
+            onKeyDown={handleInputKeyDown}
+            placeholder="예: 삼성전자, ㅅㅅㅈㅈ, 005930"
             autoComplete="off"
-            aria-describedby={inputError ? 'company-query-error' : undefined}
+            aria-describedby={inputError ? 'company-query-hint company-query-error' : 'company-query-hint'}
           />
           <Button type="submit" variant="primary" size="lg">
             검색
           </Button>
         </div>
+        <FieldHint id="company-query-hint" className="search-form__hint">
+          초성으로도 찾을 수 있어요. 결과는 ↓ 키로 고르고 Enter로 열어요.
+        </FieldHint>
         {inputError && (
           <p id="company-query-error" className="field-error">
             {inputError}
@@ -79,7 +98,7 @@ export function SearchPage() {
       {query === '' && <FavoriteCompaniesSection />}
       {query === '' && <RecentAnalysesSection />}
 
-      <SearchResult state={state} onRetry={reload} />
+      <SearchResult state={state} onRetry={reload} listRef={listRef} onBackToInput={focusInput} />
     </section>
   )
 }
@@ -103,7 +122,14 @@ function RecentAnalysesSection() {
   return <RecentAnalyses items={recent.items} onRemove={recent.remove} onClear={recent.clear} />
 }
 
-function SearchResult({ state, onRetry }: { state: AsyncState<SearchData>; onRetry: () => void }) {
+interface SearchResultProps {
+  state: AsyncState<SearchData>
+  onRetry: () => void
+  listRef: Ref<HTMLUListElement>
+  onBackToInput: () => void
+}
+
+function SearchResult({ state, onRetry, listRef, onBackToInput }: SearchResultProps) {
   return match(state)
     .with({ status: 'idle' }, () => null)
     .with({ status: 'loading' }, () => <LoadingState message="기업을 찾는 중입니다…" />)
@@ -113,42 +139,8 @@ function SearchResult({ state, onRetry }: { state: AsyncState<SearchData>; onRet
         <p>회사명 일부나 종목코드 6자리로 다시 검색해 보세요. 띄어쓰기와 '(주)' 같은 표기는 빼고 입력합니다.</p>
       </EmptyState>
     ))
-    .with({ status: 'success' }, ({ data }) => <CompanyList items={data.items} />)
+    .with({ status: 'success' }, ({ data }) => (
+      <CompanyList ref={listRef} items={data.items} query={data.query} onBackToInput={onBackToInput} />
+    ))
     .exhaustive()
-}
-
-/** 검색 결과. 상장 여부를 글자로 보이고, 이름이 같은 회사가 있으면 알려 준다. 관심 기업은 별을 붙인다(FS-18 AC3) */
-function CompanyList({ items }: { items: SearchData['items'] }) {
-  const sameNames = sameNameCounts(items)
-  const favorites = useFavoriteCompanies()
-  return (
-    <ul className="company-list" aria-label={`검색 결과 ${items.length}곳`}>
-      {items.map((company) => {
-        const sameCount = sameNames.get(company.corpName)
-        return (
-          <li key={company.corpCode}>
-            <Link to={`/companies/${company.corpCode}`} className="company-list__item">
-              <span className="company-list__head">
-                <span className="company-list__name">{company.corpName}</span>
-                {favorites.isFavorite(company.corpCode) && (
-                  <span className="company-list__favorite">
-                    <Icon name="star-filled" size={14} />
-                    <span className="visually-hidden">관심 기업</span>
-                  </span>
-                )}
-                <Badge tone={company.listed ? 'accent' : 'neutral'}>{company.listed ? '상장' : '비상장'}</Badge>
-                {sameCount !== undefined && <span className="company-list__same">같은 이름 {sameCount}곳</span>}
-              </span>
-              <span className="company-list__meta">
-                {company.listed && `종목코드 ${company.stockCode}`}
-                <span className="company-list__code">
-                  고유번호 <code>{company.corpCode}</code>
-                </span>
-              </span>
-            </Link>
-          </li>
-        )
-      })}
-    </ul>
-  )
 }
