@@ -27,7 +27,7 @@ class QuestionRetrieverTest {
                 .containsExactly("종속기업", "소송");
         assertThat(QuestionRetriever.terms("HBM 투자에서 어떤 변화가 있었나요")).containsExactly("hbm", "투자");
         assertThat(QuestionRetriever.terms("영업이익이 줄어든 이유는 무엇인가요?"))
-                .containsExactly("영업이익", "줄어든", "이유");
+                .containsExactly("영업이익");
     }
 
     @Test
@@ -83,5 +83,14 @@ class QuestionRetrieverTest {
                 List.of(), Map.of());
         assertThat(sources.getFirst().text()).hasSize(QuestionRetriever.MAX_SOURCE_CHARS);
         assertThat(QuestionRetriever.sources(List.of(), List.of(longBlock), Map.of(), List.of(), Map.of())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("질문 낱말의 절반 이상이 들어 있는 문단만 후보로 고른다")
+    void sourcesNeedAtLeastHalfOfTheTerms() {
+        assertThat(QuestionRetriever.minScore(1)).isEqualTo(1);
+        assertThat(QuestionRetriever.minScore(2)).isEqualTo(1);
+        assertThat(QuestionRetriever.minScore(3)).isEqualTo(2);
+        assertThat(QuestionRetriever.minScore(4)).isEqualTo(2);
     }
 }

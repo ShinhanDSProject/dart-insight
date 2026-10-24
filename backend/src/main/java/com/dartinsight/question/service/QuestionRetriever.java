@@ -34,7 +34,8 @@ public final class QuestionRetriever {
     private static final Set<String> STOP_WORDS = Set.of("왜", "무엇", "무엇인가요", "무엇인지", "뭐", "뭔가요", "무슨",
             "어떻게", "어떤", "어느", "어디", "언제", "얼마", "얼마나", "있나요", "없나요", "했나요", "되었나요", "됐나요",
             "바뀌었나요", "달라졌나요", "알려", "알려줘", "알려주세요", "주세요", "설명", "설명해", "관련", "관련된", "내용",
-            "변화", "대해", "대한", "대해서");
+            "변화", "대해", "대한", "대해서", "이유", "원인", "늘어난", "줄어든", "늘어", "줄어", "바뀐", "달라진", "새로",
+            "생긴");
     private static final List<String> QUESTION_ENDINGS = List.of("나요", "까요", "가요", "세요", "니까");
 
     private QuestionRetriever() {
@@ -70,6 +71,14 @@ public final class QuestionRetriever {
     }
 
     /** 문단에 들어 있는 서로 다른 낱말 수(공백·대소문자 무시) */
+    /**
+     * 후보가 되려면 질문 낱말의 절반 이상(올림)이 들어 있어야 한다. 낱말 하나만 겹친 엉뚱한 문단
+     * (예: '우주 탐사 계획'에 '자기주식 처분 계획')을 근거처럼 보내지 않기 위해서다.
+     */
+    static int minScore(int termCount) {
+        return Math.max(1, (termCount + 1) / 2);
+    }
+
     static int score(List<String> terms, String text) {
         String compact = compact(text);
         int score = 0;
@@ -109,7 +118,7 @@ public final class QuestionRetriever {
                 continue;
             }
             int score = score(terms, block.text());
-            if (score == 0) {
+            if (score < minScore(terms.size())) {
                 continue;
             }
             String text = block.text().length() <= MAX_SOURCE_CHARS ? block.text()

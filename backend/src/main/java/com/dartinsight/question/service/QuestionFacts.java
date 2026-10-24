@@ -21,6 +21,10 @@ import java.util.Set;
 final class QuestionFacts {
 
     static final int MAX_FACTS = 3;
+    /** 계정 이름 일부로 맞출 질문 낱말의 최소 길이(2자는 '자산' 같은 낱말이 너무 많이 걸림) */
+    static final int PART_TERM_LENGTH = 3;
+    /** 이름 일부로 맞춘 계정은 이름이 질문에 그대로 나온 계정 뒤에 둔다 */
+    private static final int PART_POSITION = 10_000;
     private static final List<String> STATEMENT_ORDER = List.of("IS", "CIS", "BS", "CF", "SCE");
 
     private QuestionFacts() {
@@ -28,6 +32,9 @@ final class QuestionFacts {
 
     static List<QuestionFact> match(String question, List<FinancialChange> changes) {
         String compactQuestion = QuestionRetriever.compact(question);
+        // 질문 낱말이 계정 이름 안에 있으면(예: '차입금' → 단기차입금·장기차입금) 이름이 바로 나온 계정 다음 순서로 고른다
+        List<String> partTerms = QuestionRetriever.terms(question).stream()
+                .filter(t -> t.length() >= PART_TERM_LENGTH).toList();
         List<Candidate> candidates = new ArrayList<>();
         for (FinancialChange change : changes) {
             if (change.getPreviousAmount() == null || change.getCurrentAmount() == null
@@ -35,6 +42,9 @@ final class QuestionFacts {
                 continue;
             }
             int position = firstPosition(compactQuestion, terms(change));
+            if (position < 0) {
+                position = partPosition(partTerms, QuestionRetriever.compact(change.getAccountName()));
+            }
             if (position >= 0) {
                 candidates.add(new Candidate(position, change));
             }
@@ -77,6 +87,15 @@ final class QuestionFacts {
         }
         AccountAliases.of(accountId, change.getAccountName()).forEach(t -> terms.add(QuestionRetriever.compact(t)));
         return List.copyOf(terms);
+    }
+
+    private static int partPosition(List<String> partTerms, String compactName) {
+        for (int i = 0; i < partTerms.size(); i++) {
+            if (compactName.contains(partTerms.get(i))) {
+                return PART_POSITION + i;
+            }
+        }
+        return -1;
     }
 
     private static int firstPosition(String compactQuestion, List<String> terms) {
