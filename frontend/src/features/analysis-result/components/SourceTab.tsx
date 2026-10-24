@@ -9,6 +9,7 @@ import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { TableView } from './TableView'
 import { useDocumentOutline, useSection } from '../hooks/useDocument'
 import type { SourceViewChange } from '../model/resultParams'
+import { displaySectionPath, displaySectionTitle } from '@/shared/lib/sectionTitle'
 
 interface SourceTabProps {
   analysis: Analysis
@@ -116,7 +117,7 @@ function SourceBody({ analysis, outline, sectionNo, blockNo, onSelect }: SourceB
                   aria-current={section.sectionNo === sectionNo ? 'location' : undefined}
                   onClick={() => onSelect(section.sectionNo)}
                 >
-                  {section.title}
+                  {displaySectionTitle(section.title)}
                 </button>
               </li>
             ))}
@@ -178,9 +179,9 @@ function SectionBlocks({ outline, data, blockNo, headingRef }: SectionBlocksProp
   const dartUrl = verifiedDartUrl(outline.rceptNo, outline.dartUrl)
   const highlighted = blockNo !== null && data.blocks.some((b) => b.blockNo === blockNo)
   return (
-    <article className="source-section" aria-label={data.sectionPath}>
+    <article className="source-section" aria-label={displaySectionPath(data.sectionPath)}>
       <h3 className="source-section__title" ref={headingRef} tabIndex={-1}>
-        {data.sectionPath}
+        {displaySectionPath(data.sectionPath)}
       </h3>
       {blockNo !== null && outline.restructuredAfterAnalysis && (
         <Notice as="p" tone="attention" role="status">
