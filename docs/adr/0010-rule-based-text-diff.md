@@ -1,6 +1,6 @@
 # ADR-0010: 본문·표 변경은 ai-server에서 LLM 없이 규칙으로 찾는다
 
-- 상태: 채택
+- 상태: 대체됨(ADR-0021)
 - 결정한 날: 2026-10-22
 - 관련: [PR #102](https://github.com/ShinhanDSProject/dart-insight/pull/102)(2.5), [PR #103](https://github.com/ShinhanDSProject/dart-insight/pull/103)(2.6), `ai-server/app/compare/text_diff.py`, `ai-server/app/compare/priority.py`, 노션 결정 로그 [공시 변화 평가 규칙과 중립·판단 유보 도입 여부](https://app.notion.com/p/400b6afffc6f8139ae35e8183960af19)(미결정)
 

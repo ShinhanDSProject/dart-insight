@@ -136,7 +136,7 @@ erDiagram
         bigint id PK
         bigint analysis_id FK
         int change_no "문서 순서"
-        varchar change_type "ADDED DELETED MODIFIED REVIEW_NEEDED"
+        varchar change_type "ADDED DELETED MODIFIED NUMERIC_UPDATE MOVED REVIEW_NEEDED"
         varchar priority "HIGH MEDIUM LOW UNRANKED"
         int previous_block_no
         int current_block_no
@@ -377,27 +377,30 @@ API는 사업연도·보고서 코드마다 최신 공시 하나의 값만 줍�
 
 두 보고서의 문장·표 변경입니다(2.5). 문단·표 하나가 한 줄이고, 위치는 원문 구조화(`document_section`·`document_block`)의 번호입니다. 변경 전·후 글을 함께 저장합니다(원문을 다시 구조화해도 결과가 바뀌지 않게).
 
+> 마이그레이션: `V6__create_text_change.sql`, `V7__add_text_change_priority.sql`(우선순위), `V17__add_text_change_previous_section_path.sql`(위치 이동의 이전 섹션 경로, #150).
+
 | 컬럼 | 타입 | 키 | null | 설명 |
 | --- | --- | --- | --- | --- |
 | `id` | BIGINT | PK | 아니오 | 변경 ID |
 | `analysis_id` | BIGINT | FK, UK | 아니오 | `analysis.id` |
 | `change_no` | INT | UK | 아니오 | 순서(현재 보고서의 문서 순서. 짝이 없는 이전 보고서 항목은 이전 보고서에서 있던 자리) |
-| `change_type` | VARCHAR(20) | | 아니오 | `ADDED`, `DELETED`(문서에서 빠짐. 사업·계약 종료로 해석하지 않음), `MODIFIED`, `REVIEW_NEEDED`(두 보고서의 항목을 짝짓지 못함) |
+| `change_type` | VARCHAR(20) | | 아니오 | `ADDED`, `DELETED`(문서에서 빠짐. 사업·계약 종료로 해석하지 않음), `MODIFIED`, `NUMERIC_UPDATE`(수정인데 숫자만 바뀜, #150), `MOVED`(같은 글이 다른 자리로 옮겨짐: 숫자를 가린 글이 같거나 매우 비슷한 삭제·추가 한 쌍, #150), `REVIEW_NEEDED`(두 보고서의 항목을 짝짓지 못함). 분석 버전 `m2-8`까지 저장한 행에는 `NUMERIC_UPDATE`·`MOVED`가 없습니다(숫자만 바뀐 수정은 `MODIFIED` + `numbers_only`) |
 | `block_type` | VARCHAR(10) | | 아니오 | `PARAGRAPH`, `TABLE`, 섹션 단위 검토 필요면 `SECTION` |
-| `numbers_only` | BOOLEAN | | 아니오 | 수정인데 숫자만 바뀜 |
+| `numbers_only` | BOOLEAN | | 아니오 | 수정인데 숫자만 바뀜. 분석 버전 `m2-9`부터는 `NUMERIC_UPDATE` 행이 항상 true이고 다른 유형은 모두 false입니다(`numbers_only = (change_type = 'NUMERIC_UPDATE')`). `m2-8`까지 저장한 행(`MODIFIED` + true)과 API(`numbersOnly`) 호환을 위해 남깁니다 |
 | `section_status` | VARCHAR(20) | | 아니오 | 섹션 짝짓기 결과: `MATCHED`, `RENAMED`, `ADDED`, `DELETED`, `AMBIGUOUS` |
 | `section_title` | VARCHAR(500) | | 아니오 | 섹션 제목 |
-| `section_path` | VARCHAR(1000) | | 아니오 | 상위 섹션부터 이은 제목(`II. 사업의 내용 > 1. 사업의 개요`) |
+| `section_path` | VARCHAR(1000) | | 아니오 | 상위 섹션부터 이은 제목(`II. 사업의 내용 > 1. 사업의 개요`). 위치 이동(`MOVED`)이면 현재 보고서 쪽 |
+| `previous_section_path` | VARCHAR(1000) | | 예 | 위치 이동(`MOVED`)일 때 이전 보고서 쪽 섹션 경로(같은 섹션 안에서 순서만 바뀌었으면 `section_path`와 같음). 그 밖은 null |
 | `previous_rcept_no`, `current_rcept_no` | VARCHAR(14) | | 예 | 변경 전·후 보고서. 없는 쪽은 null |
 | `previous_section_no`, `current_section_no` | INT | | 예 | 섹션 번호(`document_section.section_no`) |
 | `previous_block_no`, `current_block_no` | INT | | 예 | 블록 번호(근거 ID `{rcept_no}#B{block_no}`). 섹션 단위 검토 필요면 null |
 | `previous_text`, `current_text` | MEDIUMTEXT | | 예 | 변경 전·후 글 |
-| `similarity` | DECIMAL(6,4) | | 예 | 수정일 때 두 글이 비슷한 정도(0~1) |
+| `similarity` | DECIMAL(6,4) | | 예 | 수정·숫자만 바뀜·위치 이동일 때 두 글(숫자를 가리지 않은 원래 글)이 비슷한 정도(0~1) |
 | `review_reason` | VARCHAR(500) | | 예 | 검토 필요 사유 |
 | `priority` | VARCHAR(10) | | 예 | 확인 우선순위(2.6). `HIGH`, `MEDIUM`, `LOW`, `UNRANKED`(판단 유보, 검토 필요 항목). 투자 판단이 아님 |
 | `priority_score` | INT | | 예 | 적용한 규칙 점수의 합. `UNRANKED`면 null |
 | `priority_reasons` | VARCHAR(1000) | | 예 | 적용한 규칙(한 줄에 하나, 예: `사업의 내용 섹션 +30`) |
-| `priority_version` | VARCHAR(20) | | 예 | 우선순위 규칙 버전(잠정 규칙 `priority-1`) |
+| `priority_version` | VARCHAR(20) | | 예 | 우선순위 규칙 버전(잠정 규칙 `priority-2`) |
 
 ### summary_item
 
