@@ -18,9 +18,19 @@ def attr(value: str) -> str:
     return escape(value).replace('"', "&quot;").replace("\n", " ")
 
 
-def disclosure(evidence_id: str, text: str, label: str | None = None) -> str:
-    """원문 한 덩어리. evidence_id는 결과에서 근거로 적을 ID다."""
+def disclosure(
+    evidence_id: str,
+    text: str,
+    label: str | None = None,
+    extra: dict[str, str] | None = None,
+) -> str:
+    """원문 한 덩어리. evidence_id는 결과에서 근거로 적을 ID다.
+
+    extra는 더 붙일 속성(예: side, section). 값은 attr로 바꿔 넣는다.
+    """
     attrs = f'id="{escape(evidence_id)}"'
     if label:
         attrs += f' label="{attr(label)}"'
+    for name, value in (extra or {}).items():
+        attrs += f' {name}="{attr(value)}"'
     return f"<disclosure {attrs}>\n{escape(text)}\n</disclosure>"

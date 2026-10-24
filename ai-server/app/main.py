@@ -2,7 +2,7 @@ import logging
 
 from fastapi import FastAPI
 
-from app.api import documents, internal, paths, summaries, text_changes
+from app.api import answers, documents, internal, paths, summaries, text_changes
 from app.core.config import load_llm_settings
 from app.core.errors import register_error_handlers
 from app.core.trace import TraceIdMiddleware, install_log_record_factory
@@ -40,6 +40,7 @@ def create_app(llm_client: LlmClient | None = None) -> FastAPI:
     app.include_router(documents.router)
     app.include_router(text_changes.router)
     app.include_router(summaries.router)
+    app.include_router(answers.router)
     return app
 
 
