@@ -25,6 +25,7 @@ public enum ErrorCode {
     ANALYSIS_NOT_READY(409, "분석이 아직 끝나지 않았습니다."),
     ANALYSIS_CHANGE_NOT_FOUND(404, "계정 항목을 찾을 수 없습니다."),
     ANALYSIS_TEXT_CHANGE_NOT_FOUND(404, "문장 변경 항목을 찾을 수 없습니다."),
+    ANALYSIS_QUESTION_NOT_FOUND(404, "질문을 찾을 수 없습니다. 질문 기록을 다시 불러와 주세요."),
 
     DART_REQUEST_FAILED(502, "OpenDART에서 자료를 받지 못했습니다. 잠시 뒤 다시 시도해 주세요."),
     DART_RATE_LIMITED(503, "OpenDART 호출 한도를 넘었습니다. 저장된 자료만 볼 수 있습니다."),

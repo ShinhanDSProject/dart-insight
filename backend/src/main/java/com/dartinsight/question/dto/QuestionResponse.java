@@ -1,6 +1,8 @@
 package com.dartinsight.question.dto;
 
+import com.dartinsight.question.domain.FeedbackReason;
 import com.dartinsight.question.domain.QuestionFact;
+import com.dartinsight.question.domain.QuestionFeedback;
 import com.dartinsight.question.domain.QuestionRecord;
 import com.dartinsight.question.domain.QuestionStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -15,9 +17,10 @@ import java.util.List;
  * @param citations 답이 인용한 원문(번호 순서)
  * @param facts     답이 인용한 사실(코드가 계산)
  * @param ai        AI가 답을 만들었을 때만
+ * @param feedback  답 평가. 평가하지 않았으면 null
  */
 public record QuestionResponse(Long questionId, String question, QuestionStatus status, String answer,
-        String message, List<Citation> citations, List<Fact> facts, AiInfo ai,
+        String message, List<Citation> citations, List<Fact> facts, AiInfo ai, Feedback feedback,
         @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") LocalDateTime createdAt) {
 
     public static QuestionResponse of(QuestionRecord row, List<Citation> citations, List<QuestionFact> facts) {
@@ -27,7 +30,7 @@ public record QuestionResponse(Long questionId, String question, QuestionStatus 
                 answered ? facts.stream().map(Fact::from).toList() : List.of(),
                 answered && row.model() != null ? new AiInfo(row.model(), row.promptVersion(), row.generatedAt())
                         : null,
-                row.createdAt());
+                row.feedback() == null ? null : Feedback.from(row.feedback()), row.createdAt());
     }
 
     /**
@@ -44,6 +47,14 @@ public record QuestionResponse(Long questionId, String question, QuestionStatus 
 
         static Fact from(QuestionFact fact) {
             return new Fact(fact.ref(), fact.changeId(), fact.sjDiv(), fact.accountName(), fact.sentence());
+        }
+    }
+
+    /** 답 평가. reason은 helpful이 false일 때만 */
+    public record Feedback(boolean helpful, FeedbackReason reason) {
+
+        static Feedback from(QuestionFeedback feedback) {
+            return new Feedback(feedback.helpful(), feedback.reason());
         }
     }
 

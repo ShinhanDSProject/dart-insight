@@ -1,5 +1,7 @@
 package com.dartinsight.question.repository;
 
+import com.dartinsight.question.domain.FeedbackReason;
+import com.dartinsight.question.domain.QuestionFeedback;
 import com.dartinsight.question.domain.QuestionRecord;
 import com.dartinsight.question.domain.QuestionStatus;
 import com.dartinsight.summary.domain.LlmCallRow;
@@ -12,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -22,6 +25,10 @@ import org.springframework.stereotype.Repository;
 @Repository
 @RequiredArgsConstructor
 public class QuestionStore {
+
+    private static final String SELECT = "SELECT id, analysis_id, question, status, answer, evidence_ids, "
+            + "fact_change_ids, review_reason, blocked_rules, model, prompt_version, generated_at, trace_id, "
+            + "created_at, feedback_helpful, feedback_reason, feedback_at FROM analysis_question ";
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -67,10 +74,21 @@ public class QuestionStore {
 
     /** 이 분석의 질문, 최신 순으로 limit개 */
     public List<QuestionRecord> latest(long analysisId, int limit) {
-        return jdbcTemplate.query("SELECT id, analysis_id, question, status, answer, evidence_ids, fact_change_ids, "
-                + "review_reason, blocked_rules, model, prompt_version, generated_at, trace_id, created_at "
-                + "FROM analysis_question WHERE analysis_id = ? ORDER BY created_at DESC, id DESC LIMIT ?",
+        return jdbcTemplate.query(SELECT + "WHERE analysis_id = ? ORDER BY created_at DESC, id DESC LIMIT ?",
                 QuestionStore::map, analysisId, limit);
+    }
+
+    /** 이 분석의 질문 하나. 다른 분석의 질문이면 빈 값 */
+    public Optional<QuestionRecord> find(long analysisId, long questionId) {
+        return jdbcTemplate.query(SELECT + "WHERE id = ? AND analysis_id = ?", QuestionStore::map, questionId,
+                analysisId).stream().findFirst();
+    }
+
+    /** 답 평가를 덮어쓴다(질문 하나에 평가 하나) */
+    public void updateFeedback(long questionId, QuestionFeedback feedback) {
+        jdbcTemplate.update("UPDATE analysis_question SET feedback_helpful = ?, feedback_reason = ?, feedback_at = ? "
+                + "WHERE id = ?", feedback.helpful(), feedback.reason() == null ? null : feedback.reason().name(),
+                timestamp(feedback.at()), questionId);
     }
 
     private static QuestionRecord map(ResultSet rs, int rowNum) throws SQLException {
@@ -80,7 +98,17 @@ public class QuestionStore {
                 split(rs.getString("fact_change_ids")).stream().map(Long::valueOf).toList(),
                 rs.getString("review_reason"), split(rs.getString("blocked_rules")), rs.getString("model"),
                 rs.getString("prompt_version"), time(rs.getTimestamp("generated_at")), rs.getString("trace_id"),
-                time(rs.getTimestamp("created_at")));
+                time(rs.getTimestamp("created_at")), feedback(rs));
+    }
+
+    private static QuestionFeedback feedback(ResultSet rs) throws SQLException {
+        boolean helpful = rs.getBoolean("feedback_helpful");
+        if (rs.wasNull()) {
+            return null;
+        }
+        String reason = rs.getString("feedback_reason");
+        return new QuestionFeedback(helpful, reason == null ? null : FeedbackReason.valueOf(reason),
+                time(rs.getTimestamp("feedback_at")));
     }
 
     private static List<String> split(String joined) {

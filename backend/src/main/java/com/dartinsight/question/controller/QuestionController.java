@@ -1,6 +1,8 @@
 package com.dartinsight.question.controller;
 
 import com.dartinsight.common.web.ApiPaths;
+import com.dartinsight.question.dto.QuestionFeedbackRequest;
+import com.dartinsight.question.dto.QuestionFeedbackResponse;
 import com.dartinsight.question.dto.QuestionListResponse;
 import com.dartinsight.question.dto.QuestionRequest;
 import com.dartinsight.question.dto.QuestionResponse;
@@ -9,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -32,5 +35,12 @@ public class QuestionController {
     @GetMapping
     public QuestionListResponse history(@PathVariable Long analysisId) {
         return questionService.history(analysisId);
+    }
+
+    /** 답 평가(3.12, FS-9). 다시 보내면 덮어쓴다 */
+    @PutMapping(ApiPaths.QUESTION_FEEDBACK)
+    public QuestionFeedbackResponse feedback(@PathVariable Long analysisId, @PathVariable Long questionId,
+            @RequestBody QuestionFeedbackRequest request) {
+        return questionService.feedback(analysisId, questionId, request);
     }
 }
