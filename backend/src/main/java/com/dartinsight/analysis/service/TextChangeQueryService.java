@@ -5,6 +5,8 @@ import com.dartinsight.analysis.domain.TextChange;
 import com.dartinsight.analysis.domain.TextChangeFilter;
 import com.dartinsight.analysis.domain.TextSectionCount;
 import com.dartinsight.analysis.repository.TextChangeStore;
+import com.dartinsight.common.error.ApiException;
+import com.dartinsight.common.error.ErrorCode;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +34,17 @@ public class TextChangeQueryService {
         List<TextSectionCount> sections = store.sections(analysisId, filter);
         List<TextChange> changes = store.page(analysisId, filter, byPriority, offset, limit);
         return new TextChangePage(analysis, counts, sections, changes);
+    }
+
+    /** 완료된 분석의 문장 변경 하나. 없는 분석·변경은 404, 완료되지 않았으면 409 */
+    public CompletedTextChange completedChange(Long analysisId, Long changeId) {
+        Analysis analysis = resultService.completed(analysisId);
+        TextChange change = store.find(analysisId, changeId)
+                .orElseThrow(() -> new ApiException(ErrorCode.ANALYSIS_TEXT_CHANGE_NOT_FOUND));
+        return new CompletedTextChange(analysis, change);
+    }
+
+    public record CompletedTextChange(Analysis analysis, TextChange change) {
     }
 
     /**

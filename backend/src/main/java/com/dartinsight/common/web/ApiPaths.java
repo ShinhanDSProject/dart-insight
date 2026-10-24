@@ -28,6 +28,7 @@ public final class ApiPaths {
     public static final String ANALYSIS_FINANCIAL_CHANGES = ANALYSES + "/{analysisId}/financial-changes";
     public static final String ANALYSIS_TEXT_CHANGES = ANALYSES + "/{analysisId}/text-changes";
     public static final String BY_CHANGE_ID = "/{changeId}";
+    public static final String TEXT_CHANGE_EXPLANATIONS = ANALYSIS_TEXT_CHANGES + "/{changeId}/explanations";
     public static final String ANALYSIS_QUESTIONS = ANALYSES + "/{analysisId}/questions";
     public static final String ANALYSIS_DOCUMENT= ANALYSES + "/{analysisId}/documents/{side}";
     public static final String DOCUMENT_SECTION = "/sections/{sectionNo}";

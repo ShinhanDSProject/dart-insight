@@ -458,6 +458,8 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 
 ### text_change_explanation
 
+> 마이그레이션: `V14__create_text_change_explanation.sql`.
+
 문장 변경 하나의 AI 한 줄 풀이입니다(3.11, FS-6). 분석·변경마다 하나만 저장하고 다시 만들지 않습니다. 요약(`summary_item`)의 문장을 옮긴 경우도 같은 모양으로 저장합니다.
 
 | 컬럼 | 타입 | 키 | null | 설명 |

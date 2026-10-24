@@ -123,6 +123,43 @@ public class SummaryService {
                 review ? "근거를 확인하지 못한 항목은 요약에서 빼고 '검토 필요'로 남겼어요." : null, rows, calls);
     }
 
+    /**
+     * 문장 변경 하나의 한 줄 풀이(3.11). 요약과 같은 /internal/summaries를 문장 항목 하나로 부르고, 요약과 같은 기준으로
+     * 근거를 확인한다. 원문이 없는 변경({@link #explainable})은 부르지 않는다(호출하는 쪽이 먼저 거른다).
+     *
+     * @return 그 변경의 요약 한 줄(SHOWN이면 aiText가 풀이, REVIEW_NEEDED면 reviewReason이 사유)과 LLM 호출 기록
+     * @throws AiServerException AI 서버·LLM을 쓸 수 없음
+     */
+    public TextExplanation explain(String companyName, String previousReport, String currentReport,
+            TextChangeRow row, int changeNo) {
+        List<SummaryAiRequest.Source> sources = sources(row);
+        if (!explainable(row)) {
+            throw new IllegalStateException("원문이 없는 변경은 풀이를 만들지 않습니다: " + changeNo);
+        }
+        SummaryAiRequest.TextItem item = new SummaryAiRequest.TextItem("T" + changeNo, row.changeType(),
+                row.sectionPath(), sources);
+        SummaryAiResponse response = aiServerClient.postJson(AiServerPaths.SUMMARIES, new SummaryAiRequest(
+                companyName, previousReport, currentReport, List.of(item), List.of()), SummaryAiResponse.class);
+        if (response == null || response.items() == null) {
+            throw new AiServerException(null, "AI 서버 요약 응답이 비어 있어요.", null);
+        }
+        SummaryAiResponse.Item answer = response.items().stream()
+                .filter(i -> i != null && item.ref().equals(i.ref())).findFirst().orElse(null);
+        SummaryItemRow explained = textRow(answer, changeNo, ids(sources), response, time(response.generatedAt()));
+        List<LlmCallRow> calls = response.calls() == null ? List.of()
+                : response.calls().stream().map(SummaryService::call).toList();
+        return new TextExplanation(explained, calls);
+    }
+
+    /** 짝지은 원문(블록 번호와 글이 있는 쪽)이 하나라도 있어 풀이할 수 있는 변경인지. 검토 필요 유형은 풀이하지 않는다 */
+    public static boolean explainable(TextChangeRow row) {
+        return !TextChangeRow.REVIEW_NEEDED.equals(row.changeType()) && !sources(row).isEmpty();
+    }
+
+    /** 문장 변경 하나의 풀이 결과와 그때의 LLM 호출 기록 */
+    public record TextExplanation(SummaryItemRow row, List<LlmCallRow> calls) {
+    }
+
     private static Set<String> ids(List<SummaryAiRequest.Source> sources) {
         Set<String> ids = new HashSet<>();
         sources.forEach(s -> ids.add(s.evidenceId()));
