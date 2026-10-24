@@ -992,6 +992,7 @@
   flex: 1;
   flex-direction: column;
   gap: var(--space-1);
+  margin: 0;
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -1645,5 +1646,18 @@
 
   .ask-form__send {
     margin-left: auto;
+  }
+}
+
+/* 답 문장 속 인용 번호([1]·수치): 모양은 그대로 두고 보이지 않는 누르는 영역을 --touch-target-min까지 넓힌다(FS-11) */
+@media screen and (max-width: 900px) {
+  .answer-marker {
+    position: relative;
+  }
+
+  .answer-marker::after {
+    position: absolute;
+    inset: min(0px, calc((100% - var(--touch-target-min)) / 2));
+    content: '';
   }
 }
