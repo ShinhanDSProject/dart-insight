@@ -6,6 +6,7 @@ import type { LoadState } from '@/shared/hooks/asyncState'
 import { Button, ShareBar } from '@/shared/ui'
 import { useChangeOverview } from '../hooks/useChangeOverview'
 import { formatCount, type FinancialOverview, type TextOverview } from '../model/overview'
+import { SectionChangeChart } from './SectionChangeChart'
 
 interface ChangeOverviewProps {
   analysisId: number
@@ -13,13 +14,15 @@ interface ChangeOverviewProps {
   onOpenChangedAccounts: (sjDiv: SjDiv | null) => void
   /** 문장 변화 탭을 그 유형으로 거른다(null이면 전체) */
   onOpenTextList: (type: ChangeType | null) => void
+  /** 섹션별 문장 변경 막대: 문장 변화 탭을 그 최상위 섹션으로 거른다 */
+  onOpenTextSection: (section: string) => void
 }
 
 /**
  * 요약 탭 맨 위의 변화 개요(FS-4 R6). 바뀐 계정·문장 변경·검토 필요 수를 보여 주고, 누르면 그 탭·거르기로 간다.
  * 불러오지 못한 숫자는 그 자리에만 짧게 알리고, 확인하지 못한 값은 0이 아니라 '확인 안 됨'으로 보인다.
  */
-export function ChangeOverview({ analysisId, onOpenChangedAccounts, onOpenTextList }: ChangeOverviewProps) {
+export function ChangeOverview({ analysisId, onOpenChangedAccounts, onOpenTextList, onOpenTextSection }: ChangeOverviewProps) {
   const { financial, text } = useChangeOverview(analysisId)
 
   return (
@@ -100,6 +103,7 @@ export function ChangeOverview({ analysisId, onOpenChangedAccounts, onOpenTextLi
           </LoadedStat>
         </li>
       </ul>
+      <SectionChangeChart state={text.state} onOpenSection={onOpenTextSection} />
     </section>
   )
 }

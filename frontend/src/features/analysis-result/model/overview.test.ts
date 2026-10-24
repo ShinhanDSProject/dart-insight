@@ -7,6 +7,7 @@ function statement(sjDiv: StatementSummary['sjDiv'], comparable: boolean, change
 }
 
 const counts = { all: 57, added: 10, deleted: 5, modified: 40, reviewNeeded: 2 }
+const sections = [{ title: 'II. 사업의 내용', count: 57 }]
 
 describe('변화 개요', () => {
   it('비교한 재무제표의 바뀐 계정 수만 더한다', () => {
@@ -35,17 +36,17 @@ describe('변화 개요', () => {
   })
 
   it('문장 비교를 끝냈으면 유형별 건수를 그대로 쓴다', () => {
-    expect(textOverview({ textStatus: 'COMPLETED', counts })).toEqual({ status: 'available', ...counts, partial: false })
+    expect(textOverview({ textStatus: 'COMPLETED', counts, sections })).toEqual({ status: 'available', ...counts, partial: false, sections })
   })
 
   it('원문 일부를 읽지 못했으면 건수와 함께 불완전하다고 표시한다', () => {
-    expect(textOverview({ textStatus: 'PARTIAL', counts })).toMatchObject({ status: 'available', all: 57, partial: true })
+    expect(textOverview({ textStatus: 'PARTIAL', counts, sections })).toMatchObject({ status: 'available', all: 57, partial: true })
   })
 
   it('문장을 비교하지 않았거나 실패했으면 건수를 쓰지 않는다', () => {
     const zero = { all: 0, added: 0, deleted: 0, modified: 0, reviewNeeded: 0 }
-    expect(textOverview({ textStatus: 'FAILED', counts: zero })).toEqual({ status: 'unavailable' })
-    expect(textOverview({ textStatus: null, counts: zero })).toEqual({ status: 'unavailable' })
+    expect(textOverview({ textStatus: 'FAILED', counts: zero, sections: [] })).toEqual({ status: 'unavailable' })
+    expect(textOverview({ textStatus: null, counts: zero, sections: [] })).toEqual({ status: 'unavailable' })
   })
 
   it('건수는 천 단위로 끊고 확인하지 못한 값은 0이 아니라 확인 안 됨으로 보인다', () => {

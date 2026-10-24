@@ -52,6 +52,8 @@ interface OverviewLinks {
   onOpenChangedAccounts: (sjDiv: SjDiv | null) => void
   /** 변화 개요의 '문장 변경'·'검토 필요': 문장 변화 탭을 그 유형으로 연다 */
   onOpenTextList: (type: ChangeType | null) => void
+  /** 섹션별 문장 변경 막대: 문장 변화 탭을 그 최상위 섹션으로 거른다 */
+  onOpenTextSection: (section: string) => void
 }
 
 /**
@@ -65,6 +67,7 @@ export function SummaryTab({
   onOpenSource,
   onOpenChangedAccounts,
   onOpenTextList,
+  onOpenTextSection,
   suggestions,
   onAsk,
   onOpenAsk,
@@ -86,6 +89,7 @@ export function SummaryTab({
         analysisId={analysis.analysisId}
         onOpenChangedAccounts={onOpenChangedAccounts}
         onOpenTextList={onOpenTextList}
+        onOpenTextSection={onOpenTextSection}
       />
       <AskEntryCard suggestions={suggestions} onAsk={onAsk} onOpenAsk={onOpenAsk} sending={asking} />
       <SummaryContent summary={summary} analysis={analysis} opener={opener} onOpenSource={onOpenSource} />

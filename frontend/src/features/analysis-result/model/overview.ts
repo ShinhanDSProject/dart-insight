@@ -1,5 +1,5 @@
 import type { SjDiv, StatementSummary } from '@/shared/api/results'
-import type { TextChangeList } from '@/shared/api/textChanges'
+import type { TextChangeList, TextSectionCount } from '@/shared/api/textChanges'
 
 /**
  * 요약 탭 맨 위의 변화 개요(FS-4 R6). 값은 재무 수치·문장 변화 탭이 쓰는 같은 응답에서 센다.
@@ -32,14 +32,25 @@ export type TextOverview =
       reviewNeeded: number
       /** 원문 일부를 읽지 못했을 수 있음(PARTIAL) */
       partial: boolean
+      /** 변경이 있는 최상위 섹션과 건수(문서 순서). 같은 응답의 sections를 그대로 쓴다(#295) */
+      sections: TextSectionCount[]
     }
   /** 문장을 비교하지 않았거나(null) 비교하지 못함(FAILED). 변경이 없다는 뜻이 아니다 */
   | { status: 'unavailable' }
 
-export function textOverview(list: Pick<TextChangeList, 'textStatus' | 'counts'>): TextOverview {
+export function textOverview(list: Pick<TextChangeList, 'textStatus' | 'counts' | 'sections'>): TextOverview {
   if (list.textStatus === null || list.textStatus === 'FAILED') return { status: 'unavailable' }
   const { all, added, deleted, modified, reviewNeeded } = list.counts
-  return { status: 'available', all, added, deleted, modified, reviewNeeded, partial: list.textStatus === 'PARTIAL' }
+  return {
+    status: 'available',
+    all,
+    added,
+    deleted,
+    modified,
+    reviewNeeded,
+    partial: list.textStatus === 'PARTIAL',
+    sections: list.sections,
+  }
 }
 
 const countFormat = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 })

@@ -29,6 +29,7 @@ import {
   openTextChanges,
   openTextList,
   openTextSearch,
+  openTextSection,
   resultTabs,
   sourceParamChanges,
   textParamChanges,
@@ -192,6 +193,7 @@ function ResultTabPanel({ analysis, params, update, ask, suggestions, askSection
         onOpenSource={openSource}
         onOpenChangedAccounts={(sj) => update(openChangedAccounts(sj))}
         onOpenTextList={(type) => update(openTextList(type))}
+        onOpenTextSection={(section) => update(openTextSection(section))}
         suggestions={suggestions}
         onAsk={askAndOpen}
         onOpenAsk={() => update(openAsk())}

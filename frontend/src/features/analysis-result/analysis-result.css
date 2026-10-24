@@ -1171,6 +1171,98 @@
   font-size: var(--font-size-sm);
 }
 
+/* 요약 탭 섹션별 문장 변경 막대(#295, ADR-0018): 이름 | 막대 | 건수. 행 전체가 문장 탭을 그 섹션으로 여는 버튼. 막대는 fin-chart와 같은 중립색 */
+.section-chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+}
+
+.section-chart__title {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.section-chart__sub {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.section-chart__rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.section-chart__row {
+  display: grid;
+  grid-template-columns: minmax(120px, 240px) minmax(0, 1fr) 72px;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 32px;
+  padding: 0 var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-out);
+}
+
+.section-chart__row:hover {
+  background: var(--color-accent-subtle);
+}
+
+.section-chart__name {
+  overflow: hidden;
+  font-size: var(--font-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.section-chart__plot {
+  position: relative;
+  height: 32px;
+}
+
+.section-chart__bar {
+  position: absolute;
+  top: 9px;
+  left: 0;
+  height: 14px;
+  min-width: 2px;
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+  background: var(--color-chart-current);
+  transform-origin: left center;
+  animation: grow-x var(--motion-slow) var(--ease-out) both;
+  animation-delay: calc(var(--row, 0) * var(--motion-stagger));
+}
+
+.section-chart__value {
+  font-family: var(--font-num);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .section-chart__row {
+    grid-template-columns: 96px minmax(0, 1fr) 56px;
+    gap: var(--space-2);
+  }
+}
+
 /* 요약 카드·근거 패널의 이전·현재 비교 막대(FS-3 R10) */
 .summary-item__compare {
   max-width: 480px;

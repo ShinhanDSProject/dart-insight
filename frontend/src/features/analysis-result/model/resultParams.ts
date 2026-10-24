@@ -157,6 +157,11 @@ export function openTextList(type: ChangeType | null): ParamChanges {
   return { tab: 'text', ttype: type, tsort: null, tpin: null, tc: null }
 }
 
+/** 요약의 섹션별 문장 변경 막대에서 문장 변화 탭을 그 최상위 섹션으로 거른다(#295). 막대 건수와 맞도록 유형·검색어는 지운다 */
+export function openTextSection(section: string): ParamChanges {
+  return { tab: 'text', ttype: null, tsort: null, tsec: section, tq: null, tpin: null, tc: null }
+}
+
 /** AI 질문 탭으로 간다(3.10). 질문·답은 주소에 남기지 않는다 */
 export function openAsk(): ParamChanges {
   return { tab: 'ask' }
