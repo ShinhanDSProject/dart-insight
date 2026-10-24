@@ -55,7 +55,7 @@ M0~M2에서 이미 내린 결정은 2026-10-22에 소급해 기록했습니다(0
 | [0007](0007-flyway-migrations.md) | DB 스키마는 Flyway 마이그레이션으로만 바꾸고 JPA는 검증만 한다 | 채택 | 2026-10-21 |
 | [0008](0008-single-llm-module.md) | LLM은 ai-server의 LlmClient 하나로만 부르고, 제공자를 정하기 전에는 가짜 제공자를 쓴다 | 채택 | 2026-10-22 |
 | [0009](0009-document-structure-and-evidence-id.md) | 원문은 관대한 파서로 목차·문단·표로 나누고, 근거 ID는 `{접수번호}#B{블록 번호}`로 정한다 | 채택 | 2026-10-22 |
-| [0010](0010-rule-based-text-diff.md) | 본문·표 변경은 ai-server에서 LLM 없이 규칙으로 찾는다 | 채택 | 2026-10-22 |
+| [0010](0010-rule-based-text-diff.md) | 본문·표 변경은 ai-server에서 LLM 없이 규칙으로 찾는다 | 대체됨(ADR-0021) | 2026-10-22 |
 | [0011](0011-jdbc-batch-for-large-tables.md) | 원문 블록·문장 변경처럼 자동 증가 키에 수천 행이 붙는 표는 JdbcTemplate으로 일괄 저장한다 | 채택 | 2026-10-22 |
 | [0012](0012-grounded-summary.md) | 요약은 코드가 고르고 사실 문장을 쓰며, LLM 문장은 근거·숫자를 검증한 것만 내보낸다 | 대체됨(ADR-0015) | 2026-10-22 |
 | [0013](0013-expression-check-gate.md) | AI 문장은 화면에 내보내기 전에 규칙 기반 표현 검사를 거친다 | 채택 | 2026-10-22 |
@@ -67,3 +67,4 @@ M0~M2에서 이미 내린 결정은 2026-10-22에 소급해 기록했습니다(0
 | [0019](0019-user-registration.md) | 공통 회원과 일반 가입 정보를 분리하고 비밀번호는 전용 인코더로 해시한다 | 채택 | 2026-10-22 |
 | [0020](0020-jwt-access-and-rotating-refresh-token.md) | 짧은 JWT Access Token과 회전하는 Refresh Token으로 로그인 상태를 유지한다 | 채택 | 2026-10-24 |
 | [0019](0019-grounded-question-answering.md) | 질문 답변은 동기 호출로 하고, 후보는 backend가 낱말로 찾으며, 답은 인용을 검증한 뒤 저장한다 | 채택 | 2026-10-24 |
+| [0021](0021-numeric-update-and-moved-text-changes.md) | 문장 변경에서 숫자만 바뀐 수정과 자리만 옮긴 글을 따로 분류한다 | 채택 | 2026-10-25 |

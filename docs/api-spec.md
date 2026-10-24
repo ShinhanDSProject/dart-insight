@@ -51,7 +51,7 @@
 | `fsDiv` | `CFS` 연결, `OFS` 별도 |
 | `amountBasis` | `POINT` 시점(재무상태표), `CUMULATIVE` 누적, `QUARTER` 3개월 |
 | `textStatus` (분석) | 문장 비교 상태. `COMPLETED` 끝까지 비교, `PARTIAL` 원문 일부를 읽지 못했을 수 있음, `FAILED` 비교하지 못함(문장 변경이 없다는 뜻이 아님). 완료 전이면 null |
-| `changeType` (문장) | `ADDED` 추가, `DELETED` 삭제(문서에서 빠짐. 사업·계약 종료로 해석하지 않음), `MODIFIED` 수정, `REVIEW_NEEDED` 검토 필요(두 보고서의 항목을 짝짓지 못함) |
+| `changeType` (문장) | `ADDED` 추가, `DELETED` 삭제(문서에서 빠짐. 사업·계약 종료로 해석하지 않음), `MODIFIED` 수정, `NUMERIC_UPDATE` 숫자만 바뀜(숫자를 가린 글이 같은 수정), `MOVED` 위치 이동(숫자를 가린 글이 같거나 매우 비슷한 글이 다른 자리로 옮겨짐. 이전·현재 위치가 둘 다 있음), `REVIEW_NEEDED` 검토 필요(두 보고서의 항목을 짝짓지 못함). 분석 버전 `m2-8`까지의 결과에는 `NUMERIC_UPDATE`·`MOVED`가 없음(숫자만 바뀐 수정은 `MODIFIED` + `numbersOnly: true`, 옮긴 글은 `DELETED`·`ADDED` 두 건) |
 
 ## 1. 엔드포인트 요약
 
@@ -604,6 +604,7 @@
 - `sort=document`면 현재 보고서의 문서 순서입니다(짝이 없는 이전 보고서 항목은 이전 보고서에서 있던 자리).
 - 문단·표 하나가 변경 하나입니다. 섹션이 통째로 한쪽에만 있으면 그 섹션의 블록이 모두 추가 또는 삭제입니다.
 - 같은 이름의 항목 수가 두 보고서에서 달라 짝을 정하지 못한 섹션은 숨기지 않고 `REVIEW_NEEDED` 하나로 남깁니다.
+- 숫자만 바뀐 수정은 `NUMERIC_UPDATE`, 같은 글이 같은 섹션 안 다른 순서나 다른 섹션으로 옮겨진 것은 `MOVED` 하나입니다(#150). `MOVED`는 `previous`·`current` 두 쪽 미리보기와 근거 위치가 있고, `sectionPath`는 현재 보고서 쪽, `previousSectionPath`는 이전 보고서 쪽 섹션 경로입니다. 섹션 거르기·검색은 `sectionPath`(현재 쪽)로 합니다.
 - `textStatus`가 `FAILED`면 `items`가 비어 있고 `textMessage`에 사유가 있습니다. 화면은 '변경 없음'으로 보여 주지 않습니다.
 - 섹션 거르기(3.7): 최상위 섹션은 `sectionPath`의 첫 ` > ` 앞부분입니다(예: `XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 3. 제재 등과 관련된 사항`의 `XI. 그 밖에 투자자 보호를 위하여 필요한 사항`). `section`을 주면 그 섹션과 하위 섹션의 변경만 돌려줍니다. 고를 수 있는 섹션은 응답의 `sections`에 있습니다.
 - 검색(3.7): `q`는 변경 전·후 전체 글(미리보기가 아니라 저장한 글)과 `sectionPath`에 들어 있는 것을 찾습니다. 대소문자를 가리지 않고, 앞뒤 공백은 지웁니다.
@@ -613,7 +614,7 @@
 
 | 위치 | 이름 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- | --- |
-| query | `type` | string | 아니오 | `ADDED`, `DELETED`, `MODIFIED`, `REVIEW_NEEDED`. 없으면 전체 |
+| query | `type` | string | 아니오 | `ADDED`, `DELETED`, `MODIFIED`, `NUMERIC_UPDATE`, `MOVED`, `REVIEW_NEEDED`. 없으면 전체 |
 | query | `sort` | string | 아니오 | `priority`(기본) 확인 우선순위, `document` 문서 순서 |
 | query | `section` | string | 아니오 | 최상위 섹션 제목(`sections[].title`과 같은 글). 500자까지. 없거나 빈 값이면 전체. 이 분석에 없는 섹션이면 `items`가 비어 있음 |
 | query | `q` | string | 아니오 | 찾을 글. 앞뒤 공백을 지운 뒤 2~100자. 없거나 빈 값이면 검색하지 않음 |
@@ -634,7 +635,7 @@
   "page": 0,
   "size": 20,
   "totalItems": 57,
-  "counts": { "all": 57, "added": 10, "deleted": 5, "modified": 40, "reviewNeeded": 2 },
+  "counts": { "all": 57, "added": 10, "deleted": 5, "modified": 22, "numericUpdate": 15, "moved": 3, "reviewNeeded": 2 },
   "sections": [
     { "title": "I. 회사의 개요", "count": 6 },
     { "title": "II. 사업의 내용", "count": 31 },
@@ -650,6 +651,7 @@
       "sectionStatus": "MATCHED",
       "sectionTitle": "1. 사업의 개요",
       "sectionPath": "II. 사업의 내용 > 1. 사업의 개요",
+      "previousSectionPath": null,
       "previousPreview": "…당사는 메모리 반도체를 만듭니다.",
       "currentPreview": "…당사는 메모리 반도체와 파운드리 사업을 합니다.",
       "similarity": 0.6818,
@@ -671,13 +673,14 @@
 | `priority.reasons` | 적용한 규칙과 점수(잠정 규칙, 5절) |
 | `totalItems` | `type`·`section`·`q`에 모두 맞는 전체 건수(쪽 나누기 전) |
 | `section`·`q` | 요청에 쓴 거르기 값(`q`는 앞뒤 공백을 지운 값). 없으면 null |
-| `counts` | 변경 유형별 건수. `section`·`q`에 맞는 것만 셉니다(`type`은 보지 않음). 둘 다 없으면 분석 전체 |
+| `counts` | 변경 유형별 건수(`added`·`deleted`·`modified`·`numericUpdate`·`moved`·`reviewNeeded`, `all`은 합). `section`·`q`에 맞는 것만 셉니다(`type`은 보지 않음). 둘 다 없으면 분석 전체 |
 | `sections` | 이 분석에 변경이 있는 최상위 섹션 전부(문서 순서). `count`는 그 섹션에서 `type`·`q`에 맞는 건수(`section`은 보지 않음)이고 0일 수 있습니다. 변경이 하나도 없으면 빈 배열 |
 | `blockType` | `PARAGRAPH` 문단, `TABLE` 표, `SECTION` 섹션 단위 검토 필요 |
-| `numbersOnly` | 수정인데 숫자만 바뀜(재무 표 등) |
+| `numbersOnly` | 숫자만 바뀜(재무 표 등). `changeType`이 `NUMERIC_UPDATE`면 true, 그 밖은 false(`m2-8`까지의 결과에서는 `MODIFIED`에 true가 있음) |
+| `previousSectionPath` | 위치 이동(`MOVED`)일 때 이전 보고서 쪽 섹션 경로(같은 섹션 안에서 순서만 바뀌었으면 `sectionPath`와 같음). 그 밖은 null |
 | `sectionStatus` | 섹션 짝짓기 결과. `MATCHED`, `RENAMED`(제목이 조금 바뀐 섹션), `ADDED`, `DELETED`, `AMBIGUOUS` |
 | `previousPreview`·`currentPreview` | 앞부분 240자. 수정이면 두 글이 처음 달라지는 곳 조금 앞부터 자르고 앞뒤에 `…`. 없는 쪽은 null |
-| `similarity` | 수정일 때 두 글이 비슷한 정도(0~1) |
+| `similarity` | 수정·숫자만 바뀜·위치 이동일 때 두 글(숫자를 가리지 않은 원래 글)이 비슷한 정도(0~1) |
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
@@ -689,7 +692,7 @@
 
 - 이슈: #22 (3.4) · 화면: W-03 ③ 변경 항목의 '근거 상세'
 - 완료된 분석의 그 분석 항목만 돌려줍니다. 다른 분석의 항목 번호면 404입니다.
-- 변경 전·후 원문 전체를 보고서·종류·대상 기간·항목(섹션 경로)·위치(블록 번호, 근거 ID)와 함께 돌려줍니다. 없는 쪽(추가의 이전, 삭제의 현재)은 null입니다.
+- 변경 전·후 원문 전체를 보고서·종류·대상 기간·항목(섹션 경로)·위치(블록 번호, 근거 ID)와 함께 돌려줍니다. 없는 쪽(추가의 이전, 삭제의 현재)은 null입니다. 위치 이동(`MOVED`)은 두 쪽이 모두 있고, 각 쪽 `sectionPath`가 옮기기 전·후 섹션입니다.
 - 글은 분석할 때 저장한 것입니다. 표 셀(`table`)은 저장된 원문 블록의 글이 분석 때와 같을 때만 붙입니다. 원문을 다시 구조화해 위치가 달라졌으면 `blockMatches: false`이고 글만 있습니다.
 - 짝을 정하지 못한 항목(`REVIEW_NEEDED`)은 섹션 위치만 있고 `blockNo`·`evidenceId`가 null입니다. 화면은 근거가 있는 것처럼 보여 주지 않습니다.
 
@@ -892,7 +895,7 @@
 - 이슈: #219 (3.10) · 화면: W-03 ⑤ · [ADR-0019](adr/0019-grounded-question-answering.md)
 - 완료된 분석에만 묻습니다. 동기 호출이고 보통 수 초 걸립니다.
 - backend가 두 보고서 원문 문단에서 질문 낱말로 후보를 최대 6개 찾고, 질문에 이 분석의 계정이 나오면 코드가 만든 사실 문장을 함께 ai-server(`POST /internal/answers`)에 보냅니다. 후보도 사실도 없으면 ai-server를 부르지 않고 `NOT_FOUND`입니다.
-- 질문에 이 분석의 섹션 제목(문장 변경의 섹션 경로에 나오는 대목차·하위 목차 제목, 공백·앞 번호(`II.`·`7.`)·따옴표·괄호 무시, 4자 미만 제목과 `(목차 밖 본문)` 제외)이 들어 있으면 가장 긴 제목의 섹션(하위 목차면 그 하위 섹션까지)으로 범위를 좁힙니다. 그 범위에 문장 변경(추가·삭제·수정)이 있으면 낱말 검색 대신 그 변경의 현재·이전 문단을 확인 우선순위 점수가 높은 순, 같으면 문서 순서로 최대 6개 후보로 보냅니다(#258). 범위에 변경이 없으면 낱말 검색으로 찾습니다. 사실 문장은 같습니다.
+- 질문에 이 분석의 섹션 제목(문장 변경의 섹션 경로에 나오는 대목차·하위 목차 제목, 공백·앞 번호(`II.`·`7.`)·따옴표·괄호 무시, 4자 미만 제목과 `(목차 밖 본문)` 제외)이 들어 있으면 가장 긴 제목의 섹션(하위 목차면 그 하위 섹션까지)으로 범위를 좁힙니다. 그 범위에 문장 변경(추가·삭제·수정·숫자만 바뀜·위치 이동, 검토 필요 제외)이 있으면 낱말 검색 대신 그 변경의 현재·이전 문단을 확인 우선순위 점수가 높은 순, 같으면 문서 순서로 최대 6개 후보로 보냅니다(#258). 범위에 변경이 없으면 낱말 검색으로 찾습니다. 사실 문장은 같습니다.
 - 결과는 `analysis_question`에 저장합니다(같은 질문을 다시 해도 새로 답함).
 
 **요청**
@@ -1146,7 +1149,8 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 - 이슈: #16 (2.5)
 - backend가 구조화해 저장한 두 원문(목차와 블록 글)을 보냅니다. AI 서버는 위치(섹션·블록 번호)만 돌려주고, 글은 backend가 저장된 원문에서 붙입니다.
 - 섹션은 제목에서 번호·공백·기호를 뺀 이름을 상위 섹션부터 이은 경로로 짝짓습니다. 같은 경로가 양쪽에 같은 수만큼 있으면 순서대로 짝짓고, 수가 다르면 `REVIEW_NEEDED`입니다. 경로가 없으면 같은 상위 섹션 안에서 제목이 비슷한(0.8 이상) 섹션을 짝짓습니다(`RENAMED`, 점수가 같으면 문서 순서). 상위 섹션 이름이 크게 바뀌어 짝이 없으면, 그 아래 섹션을 자기 제목으로 짝짓고(양쪽에 하나씩일 때) 하위 섹션이 절반 넘게 짝지어진 상위 섹션끼리도 짝짓습니다(`RENAMED`).
-- 블록은 숫자를 가린 글로 자리를 맞춥니다(숫자만 바뀐 표도 같은 자리로). 맞춘 자리의 글이 다르면 `MODIFIED`, 한쪽에만 있으면 `ADDED`·`DELETED`, 맞지 않는 구간은 글이 비슷한(0.5 이상) 블록끼리 `MODIFIED`로 짝짓습니다. 비슷한 정도(`similarity`)는 짧은 글(두 글 합 800자 이하)은 글자, 긴 글은 낱말 단위로 잽니다. 구간 하나에서 비교하는 횟수에 상한(300번)이 있어 넘으면 나머지는 `ADDED`·`DELETED`로 둡니다.
+- 블록은 숫자를 가린 글로 자리를 맞춥니다(숫자만 바뀐 표도 같은 자리로). 맞춘 자리의 글이 숫자만 다르면 `NUMERIC_UPDATE`, 그 밖에 다르면 `MODIFIED`, 한쪽에만 있으면 `ADDED`·`DELETED`, 맞지 않는 구간은 글이 비슷한(0.5 이상) 블록끼리 수정(`MODIFIED`, 숫자만 다르면 `NUMERIC_UPDATE`)으로 짝짓습니다. 비슷한 정도(`similarity`)는 짧은 글(두 글 합 800자 이하)은 글자, 긴 글은 낱말 단위로 잽니다. 구간 하나에서 비교하는 횟수에 상한(300번)이 있어 넘으면 나머지는 `ADDED`·`DELETED`로 둡니다.
+- 위치 이동(#150): 문서 전체의 `DELETED`·`ADDED` 중 블록 종류가 같고 숫자를 가린 글이 같거나 비슷한 정도가 0.95 이상인 것을 한 쌍씩 `MOVED` 하나로 바꿉니다(같은 섹션 안에서 순서만 바뀐 것과 다른 섹션으로 옮긴 것 모두). 숫자를 가린 글이 20자보다 짧은 블록('해당사항 없음' 같은 글)은 짝짓지 않습니다. 같은 글을 먼저 짝짓고, 나머지는 이전 문서 순서대로 가장 비슷한 것(같으면 현재 문서 순서가 앞선 것)과 짝짓습니다. 비교 횟수에 상한(문서 하나에 20,000번)이 있어 넘으면 나머지는 `DELETED`·`ADDED`로 둡니다. `MOVED`의 `sectionStatus`·`sectionTitle`·`sectionPath`는 현재 쪽, `previousSectionPath`는 이전 쪽입니다.
 
 **요청**
 
@@ -1165,21 +1169,22 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 
 ```json
 {
-  "diffVersion": "text-diff-1",
+  "diffVersion": "text-diff-2",
   "sectionCounts": { "matched": 118, "renamed": 1, "added": 2, "deleted": 1, "ambiguous": 0 },
   "changes": [
     {
       "changeType": "MODIFIED", "blockType": "PARAGRAPH", "sectionStatus": "MATCHED",
       "sectionTitle": "1. 사업의 개요", "sectionPath": "II. 사업의 내용 > 1. 사업의 개요",
       "previous": { "sectionNo": 3, "blockNo": 41 }, "current": { "sectionNo": 3, "blockNo": 44 },
-      "numbersOnly": false, "similarity": 0.6818, "reviewReason": null,
+      "previousSectionPath": null, "numbersOnly": false, "similarity": 0.6818, "reviewReason": null,
       "priority": { "level": "HIGH", "score": 60, "reasons": ["사업의 내용 섹션 +30", "수정 +10", "크게 바뀜(비슷한 정도 0.7 미만) +10", "문단 +10"] }
     }
   ]
 }
 ```
 
-- `priorityVersion`(응답 맨 위, 예: `priority-1`)은 우선순위 규칙 버전입니다. 각 변경의 `priority`는 확인할 순서를 정하는 점수와 적용한 규칙입니다(2.6, 5절의 잠정 규칙). `REVIEW_NEEDED`는 `UNRANKED`이고 점수가 없습니다.
+- `numbersOnly`는 `NUMERIC_UPDATE`일 때만 true입니다. `previousSectionPath`는 `MOVED`일 때만 있고 그 밖은 null입니다.
+- `priorityVersion`(응답 맨 위, 예: `priority-2`)은 우선순위 규칙 버전입니다. 각 변경의 `priority`는 확인할 순서를 정하는 점수와 적용한 규칙입니다(2.6, 5절의 잠정 규칙). `REVIEW_NEEDED`는 `UNRANKED`이고 점수가 없습니다.
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
@@ -1349,5 +1354,5 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | 비교 가능성 규칙 | 위 `POST /api/comparability-checks`의 재무제표 종류별 비교 규칙 | [비교 가능성 규칙](https://app.notion.com/p/400b6afffc6f8178b798e570fe37828b) |
 | 분석 대상 기업 범위 | 12월 결산 보고서만(사업보고서 기간이 12월인 회사) | [분석 대상 기업 범위](https://app.notion.com/p/400b6afffc6f813cadd6ff8ecce0a780) |
 | 투자 권유성 금지 표현(5.5) | `expr-1`: 매수·매도 권유(`TRADE_RECOMMENDATION`: '매수하세요', '매수하는 것이 좋아요', '매도 의견', '매수 기회', '저점 매수', '비중 확대를 권해요' 등), 투자 권유(`INVESTMENT_ADVICE`: '투자를 고려해 볼 만한'), 목표주가(`TARGET_PRICE`), 주가 예측(`PRICE_FORECAST`: '주가가 오를', '주가 상승이 기대', '주가 전망', 상한가·하한가), 가치 판단(`VALUE_JUDGMENT`: 저평가·고평가, 투자 매력, 호재·악재, 수혜주 등), 수익 보장(`RETURN_GUARANTEE`: '원금이 보장돼요', '확실한 수익'). 공시에 흔한 사실(자기주식 매도, 해외 투자 비중 확대, 주가 변동 위험, 원금 보장형 상품, 수익 보장 약정, 경영 목표)은 막지 않도록 권유·예측의 꼴만 잡음. AI 문장에만 적용. 규칙은 `ai-server/app/compliance/expressions.py` | [투자 권유성 금지 표현 기준](https://app.notion.com/p/400b6afffc6f81bab915c86bdd8183aa) |
-| 요약할 변화 고르기(3.2) | 재무 수치: 계산한 계정 중 손익계산서 증감액 상위 3개(손익계산서가 없으면 포괄손익계산서), 재무상태표 2개. 문장 변화: 우선순위 높음·중간 중 점수 상위 5개(숫자만 바뀐 것·검토 필요 제외). 설명 후보: 현재 보고서 '경영진단'·'사업의 내용' 섹션 문단 중 계정 이름이 나오는 앞의 2개(문단당 1,500자까지) | [공시 변화 평가 규칙과 중립·판단 유보 도입 여부](https://app.notion.com/p/400b6afffc6f8139ae35e8183960af19) |
-| 변경 항목 우선순위 규칙(2.6) | 점수 합(`priority-1`): 섹션(사업의 내용 30, 경영진단·투자자 보호·우발·소송 25, 대주주·특수관계 20, 재무에 관한 사항 10, 그 밖 5) + 추가·삭제 20, 수정 10(비슷한 정도 0.7 미만이면 +10) + 문단 10 − 숫자만 바뀜 30 + 새로 들어간 낱말의 핵심어(소송·제재·합병 등) 15씩 최대 2개. 60점 이상 높음, 30점 이상 중간. 검토 필요는 판단 유보 | [공시 변화 평가 규칙과 중립·판단 유보 도입 여부](https://app.notion.com/p/400b6afffc6f8139ae35e8183960af19) |
+| 요약할 변화 고르기(3.2) | 재무 수치: 계산한 계정 중 손익계산서 증감액 상위 3개(손익계산서가 없으면 포괄손익계산서), 재무상태표 2개. 문장 변화: 우선순위 높음·중간 중 점수 상위 5개(숫자만 바뀜 `NUMERIC_UPDATE`·위치 이동 `MOVED`·검토 필요 제외). 설명 후보: 현재 보고서 '경영진단'·'사업의 내용' 섹션 문단 중 계정 이름이 나오는 앞의 2개(문단당 1,500자까지) | [공시 변화 평가 규칙과 중립·판단 유보 도입 여부](https://app.notion.com/p/400b6afffc6f8139ae35e8183960af19) |
+| 변경 항목 우선순위 규칙(2.6) | 점수 합(`priority-2`): 섹션(사업의 내용 30, 경영진단·투자자 보호·우발·소송 25, 대주주·특수관계 20, 재무에 관한 사항 10, 그 밖 5) + 추가·삭제 20, 수정 10(비슷한 정도 0.7 미만이면 +10), 숫자만 바뀜 −20, 위치 이동 −20 + 문단 10 + 새로 들어간 낱말(추가는 현재 글, 삭제는 이전 글)의 핵심어(소송·제재·합병 등) 15씩 최대 2개. 60점 이상 높음, 30점 이상 중간. 검토 필요는 판단 유보 | [공시 변화 평가 규칙과 중립·판단 유보 도입 여부](https://app.notion.com/p/400b6afffc6f8139ae35e8183960af19) |
