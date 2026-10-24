@@ -4,7 +4,9 @@ import type { TextExplanation } from '@/shared/api/textChanges'
 import { displaySectionPath } from '@/shared/lib/sectionTitle'
 import { Badge, Button, Icon, Notice } from '@/shared/ui'
 import { ErrorState } from '@/shared/ui/StateView'
+import { CopyWithSourcesButton } from './CopyWithSourcesButton'
 import type { SourceTarget } from '../model/resultParams'
+import { explanationCopyText } from '../model/copyText'
 import { aiInfoLabel } from '../model/summaryLabels'
 import {
   EXPLANATION_NO_SOURCE_DEFAULT,
@@ -81,6 +83,13 @@ function ExplanationBody({
         </div>
         <EvidenceRow explanation={explanation} analysis={analysis} onOpenSource={onOpenSource} />
         <p className="text-explain__note">{EXPLANATION_NOTE}</p>
+        <CopyWithSourcesButton
+          className="text-explain__copy"
+          text={() =>
+            explanationCopyText(explanation, { previous: analysis.previous.reportName, current: analysis.current.reportName })
+          }
+          target="풀이"
+        />
         <AiMeta explanation={explanation} />
       </>
     ))
