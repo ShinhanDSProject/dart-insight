@@ -5,9 +5,12 @@ import { Badge, Button, Input } from '@/shared/ui'
 import { ServiceNotice } from '@/shared/ui/ServiceNotice'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import type { AsyncState } from '@/shared/hooks/asyncState'
+import { useOnboarding } from '@/shared/hooks/useOnboarding'
 import { useRecentAnalyses } from '@/shared/hooks/useRecentAnalyses'
+import { isOnboardingVisible } from '@/shared/lib/onboarding'
 import { useCompanySearch, type SearchResult as SearchData } from './hooks/useCompanySearch'
 import { useAutoSearch } from './hooks/useAutoSearch'
+import { OnboardingGuide } from './components/OnboardingGuide'
 import { RecentAnalyses } from './components/RecentAnalyses'
 import { useSearchForm } from './hooks/useSearchForm'
 import { sameNameCounts } from './model/sameName'
@@ -41,6 +44,8 @@ export function SearchPage() {
       <p className="page__lead">회사명이나 종목코드로 기업을 찾고, 같은 기업의 두 정기보고서를 비교합니다.</p>
       <ServiceNotice />
 
+      <OnboardingSection query={query} />
+
       <form className="search-form" onSubmit={handleSubmit} noValidate>
         <label htmlFor="company-query" className="search-form__label">
           회사명 또는 종목코드
@@ -71,6 +76,13 @@ export function SearchPage() {
       <SearchResult state={state} onRetry={reload} />
     </section>
   )
+}
+
+/** 검색어가 없고 닫지 않았을 때만 보이는 처음 쓰는 사용자 안내(FS-10) */
+function OnboardingSection({ query }: { query: string }) {
+  const onboarding = useOnboarding()
+  if (!isOnboardingVisible(query, !onboarding.visible)) return null
+  return <OnboardingGuide onDismiss={onboarding.dismiss} />
 }
 
 /** 검색어가 없을 때만 보이는 최근 본 분석(FS-7). 목록이 비면 아무것도 보이지 않는다 */

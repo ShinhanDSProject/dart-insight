@@ -1,5 +1,7 @@
-import { Link, Outlet, useLocation, useMatches, useParams } from 'react-router'
+import { Link, Outlet, useLocation, useMatches, useNavigate, useParams } from 'react-router'
+import { Button } from '@/shared/ui/Button'
 import { Icon, type IconName } from '@/shared/ui/Icon'
+import { useOnboarding } from '@/shared/hooks/useOnboarding'
 import { useAuth } from '@/shared/auth/authContext'
 
 type Section = 'search' | 'compare' | 'source'
@@ -22,6 +24,14 @@ export function Layout() {
   const { corpCode, analysisId } = useParams()
   const crumb = useCrumb()
   const auth = useAuth()
+  const navigate = useNavigate()
+  const onboarding = useOnboarding()
+
+  /** 사용법 안내(FS-10)를 다시 열고, 안내가 보이는 검색 첫 화면(검색어 없음)으로 간다 */
+  function showGuideAgain() {
+    onboarding.reopen()
+    navigate('/')
+  }
 
   const onResult = analysisId !== undefined && !pathname.endsWith('/progress')
   const tab = new URLSearchParams(search).get('tab')
@@ -104,6 +114,9 @@ export function Layout() {
           <Icon name="book-open" />
           <p className="app-guide__title">변화는 비교하고, 근거는 직접 확인하세요.</p>
           <p className="app-guide__text">공시 기재 내용에 한정해 숫자와 문장을 연결합니다.</p>
+          <Button variant="link" className="app-guide__action" onClick={showGuideAgain}>
+            사용법 다시 보기
+          </Button>
         </div>
       </aside>
 

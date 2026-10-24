@@ -164,3 +164,97 @@
   flex: none;
   margin-top: calc(var(--space-1) * -1);
 }
+
+/* 처음 쓰는 사용자 안내(FS-10). 검색어가 없는 첫 화면에서 검색창 위에 보인다 */
+.onboarding {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+  padding: var(--space-5);
+  border-color: var(--color-border-accent);
+  background: var(--color-accent-subtle);
+  animation: rise-in var(--motion-base) var(--ease-out);
+}
+
+.onboarding__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.onboarding__title {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.onboarding__steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.onboarding__step {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  animation: rise-in var(--motion-base) var(--ease-out) both;
+  animation-delay: calc(var(--row, 0) * var(--motion-stagger));
+}
+
+.onboarding__number {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-5);
+  height: var(--space-5);
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  font-family: var(--font-num);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+.onboarding__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.onboarding__step-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.onboarding__step-text {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.onboarding__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+@media (max-width: 900px) {
+  .onboarding {
+    padding: var(--space-4);
+  }
+
+  .onboarding__steps {
+    grid-template-columns: 1fr;
+  }
+}
