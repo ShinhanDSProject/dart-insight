@@ -123,9 +123,85 @@
 
   /* 포커스 표시 */
   --focus-ring: 2px solid var(--color-primary);
+
+  /* 입력창·스크롤바 같은 브라우저 기본 모양도 테마에 맞춘다 */
+  color-scheme: light;
 }
 
-/* 인쇄(FS-8 R3): 흰 종이에 검은 글자. 연한 회색 글자·배경은 인쇄하면 흐려지므로 진하게, 배경은 비운다 */
+/*
+ * 다크 테마(FS-16). 색 토큰만 바꾸고 화면 CSS는 그대로 둔다.
+ * - 헤더에서 '어둡게'를 고르면 <html data-theme="dark">, '밝게'면 data-theme="light", '시스템'이면 속성을 지우고 운영체제 설정을 따른다.
+ * - 아래 두 블록은 같은 값이다(CSS로 한 블록을 두 조건에 걸 수 없어서). 하나를 고치면 다른 하나도 고친다(tokens.test.ts가 확인).
+ * - screen에만 걸어, 인쇄는 테마와 상관없이 밝은 값(위 :root와 아래 @media print)을 쓴다.
+ * - 글자는 배경과 4.5:1, 입력 경계는 3:1 이상. 차트 색은 어두운 배경(#0f1320·#161b2c) 기준 색 검사를 통과한 값(design-system.md 3-3).
+ * - 주색은 어두운 배경에서 남색이 보이지 않으므로 밝은 남보라로 두고, 주색 위 글자는 어두운 색으로 바꾼다.
+ */
+@media screen {
+  :root[data-theme='dark'] {
+    --color-text: #e6e8f0;
+    --color-text-muted: #a3a7b7;
+    --color-bg: #0f1320;
+    --color-bg-subtle: #161b2c;
+    --color-border: #2a3047;
+    --color-border-strong: #6b7088;
+    --color-primary: #aab4f0;
+    --color-primary-text: #0f1320;
+    --color-accent: #a69ef0;
+    --color-accent-subtle: #241f45;
+    --color-border-accent: #3d3770;
+    --color-increase: #5fcf9c;
+    --color-increase-subtle: #12291f;
+    --color-decrease: #f08a96;
+    --color-decrease-subtle: #2e161b;
+    --color-chart-previous: #5e61a1;
+    --color-chart-current: #8a81ef;
+    --color-chart-added: #36a06d;
+    --color-chart-modified: #8a81ef;
+    --color-chart-deleted: #c98034;
+    --color-attention: #8fb0d8;
+    --color-attention-subtle: #172234;
+    --color-danger: #f08a96;
+    --color-danger-subtle: #2e161b;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+    color-scheme: dark;
+  }
+}
+
+@media screen and (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --color-text: #e6e8f0;
+    --color-text-muted: #a3a7b7;
+    --color-bg: #0f1320;
+    --color-bg-subtle: #161b2c;
+    --color-border: #2a3047;
+    --color-border-strong: #6b7088;
+    --color-primary: #aab4f0;
+    --color-primary-text: #0f1320;
+    --color-accent: #a69ef0;
+    --color-accent-subtle: #241f45;
+    --color-border-accent: #3d3770;
+    --color-increase: #5fcf9c;
+    --color-increase-subtle: #12291f;
+    --color-decrease: #f08a96;
+    --color-decrease-subtle: #2e161b;
+    --color-chart-previous: #5e61a1;
+    --color-chart-current: #8a81ef;
+    --color-chart-added: #36a06d;
+    --color-chart-modified: #8a81ef;
+    --color-chart-deleted: #c98034;
+    --color-attention: #8fb0d8;
+    --color-attention-subtle: #172234;
+    --color-danger: #f08a96;
+    --color-danger-subtle: #2e161b;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+    color-scheme: dark;
+  }
+}
+
+/* 인쇄(FS-8 R3): 흰 종이에 검은 글자. 연한 회색 글자·배경은 인쇄하면 흐려지므로 진하게, 배경은 비운다.
+   다크 테마 블록은 screen에만 걸려 있어, 다크 테마에서 인쇄해도 이 밝은 값이 쓰인다(FS-16) */
 @media print {
   :root {
     --color-text: #000000;
