@@ -3,6 +3,10 @@ import { Button } from '@/shared/ui/Button'
 import { Icon, type IconName } from '@/shared/ui/Icon'
 import { useOnboarding } from '@/shared/hooks/useOnboarding'
 import { useAuth } from '@/shared/auth/authContext'
+import { Kbd } from '@/shared/ui/Dialog'
+import type { ShortcutPage } from '@/shared/lib/shortcuts'
+import { ShortcutHelp } from './ShortcutHelp'
+import { useShortcuts } from './useShortcuts'
 
 type Section = 'search' | 'compare' | 'source'
 
@@ -43,6 +47,8 @@ export function Layout() {
         : corpCode !== undefined || analysisId !== undefined
           ? 'compare'
           : null
+  const shortcutPage: ShortcutPage = pathname === '/' ? 'search' : onResult ? 'result' : 'other'
+  const shortcuts = useShortcuts(shortcutPage)
 
   const items: NavItem[] = [
     { section: 'search', label: '기업 찾기', icon: 'search', to: '/' },
@@ -133,6 +139,14 @@ export function Layout() {
             )}
           </p>
           <div className="app-header__auth">
+            <Button
+              className="app-header__shortcuts"
+              aria-haspopup="dialog"
+              aria-keyshortcuts="?"
+              onClick={shortcuts.openHelp}
+            >
+              단축키 <Kbd>?</Kbd>
+            </Button>
             {auth.state.status === 'authenticated' ? (
               <button type="button" className="button button--secondary" onClick={() => void auth.logout()}>로그아웃</button>
             ) : (
@@ -154,6 +168,7 @@ export function Layout() {
           </Link>
         </footer>
       </div>
+      {shortcuts.helpOpen && <ShortcutHelp page={shortcutPage} onClose={shortcuts.closeHelp} />}
     </div>
   )
 }

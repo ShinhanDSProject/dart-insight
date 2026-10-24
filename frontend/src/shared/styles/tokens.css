@@ -39,6 +39,7 @@
   /* 화면 골격 */
   --sidebar-width: 224px;
   --side-panel-width: 480px;
+  --dialog-width: 480px;
   --header-height: 80px;
   --layout-gutter: 40px;
   --control-height: 44px;
@@ -109,6 +110,8 @@
   /* 그림자 */
   --shadow-sm: 0 1px 2px rgba(19, 25, 54, 0.08);
   --shadow-md: 0 4px 12px rgba(19, 25, 54, 0.12);
+  /* 모달 뒤를 흐리게 덮는 색 */
+  --color-overlay: rgba(19, 25, 54, 0.32);
 
   /* 움직임(#198): 상태가 바뀐 곳을 눈으로 따라가게 하는 짧은 전환만 쓴다.
      운영체제 '동작 줄이기'면 global.css에서 끈다 */

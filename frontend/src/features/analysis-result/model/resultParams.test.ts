@@ -9,9 +9,11 @@ import {
   openTextList,
   openTextSearch,
   parseResultParams,
+  resultTabs,
   sourceParamChanges,
   textParamChanges,
 } from './resultParams'
+import { shortcutResultTabs } from '@/shared/lib/shortcuts'
 
 describe('parseResultParams', () => {
   it('값이 없으면 기본값으로 읽는다', () => {
@@ -140,5 +142,11 @@ describe('AI 질문 탭 주소', () => {
   it('찾지 못한 질문은 문장 변화 탭을 그 낱말로 검색해 연다', () => {
     expect(openTextSearch('매출액')).toEqual({ tab: 'text', ttype: null, tsort: null, tsec: null, tq: '매출액', tc: null })
     expect(openTextSearch(null)).toMatchObject({ tab: 'text', tq: null })
+  })
+})
+
+describe('단축키 탭 순서', () => {
+  it('1~5 단축키의 탭 순서가 결과 화면의 탭 순서와 같다', () => {
+    expect([...shortcutResultTabs]).toEqual(resultTabs)
   })
 })

@@ -4,6 +4,7 @@ export { Button, ButtonAnchor, ButtonLink, type ButtonSize, type ButtonVariant }
 export { Card, type CardTone } from './Card'
 export { Chip, type ChipTone } from './Chip'
 export { CompareBars, type CompareSide } from './CompareBars'
+export { Dialog, Kbd } from './Dialog'
 export { DataTable, DataTableRow, SortableHeader, type SortState } from './DataTable'
 export { FieldHint, FieldLabel, Input, Select } from './Field'
 export { Icon, type IconName } from './Icon'
