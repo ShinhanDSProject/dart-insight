@@ -82,6 +82,7 @@
 | GET | `/api/analyses/{analysisId}/documents/{side}` | 분석 보고서 원문 목차 | #23 (3.5) | W-03 ④ | 초안 |
 | GET | `/api/analyses/{analysisId}/documents/{side}/sections/{sectionNo}` | 원문 한 항목의 문단·표 | #23 (3.5) | W-03 ④ | 초안 |
 | GET | `/api/system/health` | 서비스 연결 상태 | #48 (0.5) | — | 초안 |
+| GET | `/api/system/ai-usage` | AI 사용 현황(질문·평가·풀이·LLM 호출 집계) | #245 (0.7) | AI 사용 현황(신규) | 초안 |
 
 ## 2. 엔드포인트 상세
 
@@ -962,6 +963,60 @@
 ```
 
 AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로).
+
+### GET /api/system/ai-usage — AI 사용 현황
+
+- 이슈: #245 (0.7) · 화면: AI 사용 현황(`/system/ai-usage`) · 기획서 FS-15
+- 최근 `days`일 동안의 AI 질문 상태, 답 평가, 문장 풀이 상태, LLM 호출 수·토큰을 집계해 돌려줍니다. 집계만 돌려주고 질문 본문·답·사용자 정보는 넣지 않습니다. 인증은 없습니다(팀 결정 전까지).
+- 기간은 한국 시간 날짜로 `to`(오늘)부터 거꾸로 `days`일(`from` = 오늘 − (`days` − 1)일)입니다. 질문·풀이는 `created_at`, LLM 호출은 `called_at`이 그 기간 안인 행을 셉니다(`called_at`이 null인 호출은 세지 않음). 평가는 그 기간에 한 질문의 평가입니다.
+- 상태·결과·사유별 수는 기록이 없어도 아래 값을 모두 0으로 넣어 돌려줍니다. 비율은 코드가 계산하고, 분모가 0이면 null입니다(0과 구분).
+
+**요청**
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| query | `days` | number | 아니오 | `7` 또는 `30`. 기본 `30` |
+
+**응답 200**
+
+```json
+{
+  "days": 30,
+  "from": "2026-09-26",
+  "to": "2026-10-25",
+  "questions": {
+    "total": 12,
+    "byStatus": { "ANSWERED": 8, "NOT_FOUND": 2, "OUT_OF_SCOPE": 1, "REVIEW_NEEDED": 1 }
+  },
+  "feedback": {
+    "rated": 4, "helpful": 3, "notHelpful": 1, "helpfulRate": 0.75,
+    "reasons": { "WRONG_SOURCE": 1, "NOT_ANSWERED": 0, "HARD_TO_READ": 0, "OTHER": 0 }
+  },
+  "explanations": {
+    "total": 5,
+    "byStatus": { "OK": 3, "REVIEW_NEEDED": 1, "NO_SOURCE": 1 }
+  },
+  "llmCalls": {
+    "total": 15,
+    "byOutcome": { "OK": 13, "INVALID_OUTPUT": 1, "TRANSIENT_ERROR": 0, "ERROR": 1 },
+    "byTask": [
+      { "task": "answer", "calls": 10, "inputTokens": 9000, "outputTokens": 1200 },
+      { "task": "summary", "calls": 5, "inputTokens": null, "outputTokens": null }
+    ]
+  }
+}
+```
+
+- `questions.byStatus`: 질문 상태(`ANSWERED`·`NOT_FOUND`·`OUT_OF_SCOPE`·`REVIEW_NEEDED`, 위 질문 API와 같음)별 수.
+- `feedback`: `rated` 평가한 질문 수 = `helpful` + `notHelpful`. `helpfulRate` = `helpful` ÷ `rated`(소수 넷째 자리 반올림), `rated`가 0이면 null. `reasons`: 도움이 안 된 평가의 사유별 수(사유 없이 보낸 평가는 `notHelpful`에만 셈).
+- `explanations.byStatus`: 문장 변경 한 줄 풀이 상태(`OK`·`REVIEW_NEEDED`·`NO_SOURCE`)별 수.
+- `llmCalls`: 다시 만든 호출도 한 번씩 셉니다. `byOutcome`은 `OK`·`INVALID_OUTPUT`·`TRANSIENT_ERROR`·`ERROR`(그 밖의 값이 기록돼 있으면 그 값도 키로 들어감). `byTask`는 작업(`summary`, `answer`, `explanation` 등) 이름 순서이고 기록이 없으면 빈 배열입니다. `inputTokens`·`outputTokens`는 제공자가 알려 준 호출의 토큰 합이고, 그 작업의 호출이 모두 토큰을 모르면 null입니다.
+
+**에러**
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | `days`가 7·30이 아니거나 숫자가 아님(`errors[].field`=`days`) |
 
 ## 3. 내부 API (Spring Boot → FastAPI)
 
