@@ -7,11 +7,17 @@ from app.llm.providers import LlmRequest
 from app.summary.model import GRADES, SummaryInput
 
 # 결과가 달라지게 바꾸면 이 버전과 backend Analysis.CURRENT_VERSION을 함께 올린다
-PROMPT_VERSION = "summary-2"
+PROMPT_VERSION = "summary-3"
 TASK = "summary"
 MAX_SOURCE_CHARS = 1500
 
-CHANGE_LABELS = {"ADDED": "추가", "DELETED": "삭제(문서에서 빠짐)", "MODIFIED": "수정"}
+CHANGE_LABELS = {
+    "ADDED": "추가",
+    "DELETED": "삭제(문서에서 빠짐)",
+    "MODIFIED": "수정",
+    "NUMERIC_UPDATE": "숫자만 바뀜",
+    "MOVED": "위치 이동(내용은 그대로)",
+}
 
 SYSTEM = "\n".join(
     [

@@ -1,4 +1,5 @@
-"""본문·표 변경 탐지(2.5). 구조화된 두 원문(4.2)을 비교해 추가·삭제·수정을 찾는다.
+"""본문·표 변경 탐지(2.5). 구조화된 두 원문(4.2)을 비교해
+추가·삭제·수정·숫자만 바뀜·위치 이동을 찾는다.
 
 1. 섹션 짝짓기
    - 제목에서 번호(I., 1., 가., (1) 등)·공백·기호를 뺀 이름을 상위 섹션부터 이은 경로로 짝짓는다.
@@ -9,12 +10,22 @@
      (양쪽에 하나씩일 때), 하위 섹션이 절반 넘게 짝지어진 상위 섹션끼리도 짝짓는다(이름 바뀜).
 2. 블록 짝짓기
    - 짝지은 섹션 안의 문단·표를 숫자를 가린 글로 맞춰 본다(숫자만 바뀐 표도 같은 자리로).
-   - 맞춘 자리의 글이 다르면 수정(숫자만 다르면 numbers_only), 한쪽에만 있으면 추가·삭제다.
-   - 맞지 않는 구간은 글이 비슷한(0.5 이상) 블록끼리 수정으로 짝짓고, 나머지는 추가·삭제다.
+   - 맞춘 자리의 글이 숫자만 다르면 숫자만 바뀜(NUMERIC_UPDATE), 그 밖에 다르면 수정,
+     한쪽에만 있으면 추가·삭제다.
+   - 맞지 않는 구간은 글이 비슷한(0.5 이상) 블록끼리 수정(숫자만 다르면 숫자만 바뀜)으로 짝짓고,
+     나머지는 추가·삭제다.
      긴 글은 낱말 단위로 비교하고, 구간 하나에서 비교하는 횟수에 상한을 둬
      표가 많은 섹션도 빨리 끝난다.
 3. 짝이 없는 섹션의 블록은 섹션째 추가·삭제다.
    문서상 빠졌다는 뜻일 뿐 사업·계약 종료로 해석하지 않는다.
+4. 위치 이동(#150): 문서 전체의 삭제·추가 중 블록 종류가 같고 숫자를 가린 글이 같거나
+   MOVED_SIMILAR 이상 비슷한 것을 한 쌍씩 위치 이동(MOVED) 하나로 바꾼다.
+   같은 섹션 안에서 순서만 바뀐 것과 다른 섹션으로 옮긴 것을 모두 포함한다.
+   - 숫자를 가린 글이 MOVED_MIN_CHARS보다 짧으면('해당사항 없음' 같은 상투 문구) 짝짓지 않는다.
+   - 같은 글끼리 먼저 짝짓고, 나머지는 이전 문서 순서대로 가장 비슷한 것과 짝짓는다
+     (점수가 같으면 현재 문서 순서가 앞선 것). 비슷한 정도는 낱말 수가 비교 상한 안인 글만 잰다
+     (앞부분만 같은 긴 표가 이동으로 잡히지 않게). 비교 횟수에 상한을 둔다.
+   - 이동의 섹션 정보는 현재 쪽이고, 이전 쪽 섹션 경로는 previous_section_path에 남는다.
 
 결과는 원문 위치(섹션 번호·블록 번호)만 돌려준다. 글은 backend가 저장된 원문에서 붙인다.
 """
@@ -28,11 +39,13 @@ from dataclasses import dataclass, field
 from difflib import SequenceMatcher
 
 # 결과가 달라지게 바꾸면 이 버전과 backend Analysis.CURRENT_VERSION을 함께 올린다
-DIFF_VERSION = "text-diff-1"
+DIFF_VERSION = "text-diff-2"
 
 ADDED = "ADDED"
 DELETED = "DELETED"
 MODIFIED = "MODIFIED"
+NUMERIC_UPDATE = "NUMERIC_UPDATE"
+MOVED = "MOVED"
 REVIEW_NEEDED = "REVIEW_NEEDED"
 
 # 섹션 짝짓기 결과
@@ -52,6 +65,12 @@ _COMPARE_TOKENS = 300
 # 맞지 않는 구간에서 짝을 찾을 때 앞으로 볼 블록 수와, 구간 하나에서 글을 비교하는 최대 횟수
 _PAIR_WINDOW = 30
 _PAIR_BUDGET = 300
+# 위치 이동: 숫자를 가린 두 글이 이만큼(0~1) 비슷하면 같은 글을 옮긴 것으로 본다(경계 포함)
+MOVED_SIMILAR = 0.95
+# 위치 이동: 숫자를 가린 글이 이보다 짧으면 짝짓지 않는다(어디에나 있는 짧은 문구)
+MOVED_MIN_CHARS = 20
+# 위치 이동: 문서 하나에서 비슷한 정도를 재는 최대 횟수(넘으면 나머지는 추가·삭제로 둔다)
+_MOVED_BUDGET = 20000
 
 _NUMBERING = re.compile(
     r"^\s*(?:"
@@ -111,6 +130,8 @@ class Change:
     numbers_only: bool = False
     similarity: float | None = None
     review_reason: str | None = None
+    # 위치 이동일 때 이전 보고서 쪽 섹션 경로. 그 밖은 None
+    previous_section_path: str | None = None
     order: tuple[int, int, int] = field(default=(0, 0, 0), compare=False)
 
 
@@ -139,8 +160,11 @@ def mask_numbers(text: str) -> str:
     return _NUMBER.sub("#", _SPACE.sub(" ", text).strip())
 
 
-def similarity(a: str, b: str) -> float:
-    """두 글이 비슷한 정도(0~1). 짧은 글은 글자 단위, 긴 글은 낱말 단위로 비교한다."""
+def similarity(a: str, b: str, floor: float = _BLOCK_SIMILAR) -> float:
+    """두 글이 비슷한 정도(0~1). 짧은 글은 글자 단위, 긴 글은 낱말 단위로 비교한다.
+
+    floor에 못 미치는 것이 빠른 어림으로 확실하면 정확히 재지 않고 그 어림(floor 미만)을 돌려준다.
+    """
     if len(a) + len(b) <= _CHAR_COMPARE_LIMIT:
         matcher = SequenceMatcher(None, a, b, autojunk=False)
     else:
@@ -150,7 +174,7 @@ def similarity(a: str, b: str) -> float:
             _TOKEN.findall(b)[:_COMPARE_TOKENS],
             autojunk=False,
         )
-    if matcher.real_quick_ratio() < _BLOCK_SIMILAR or matcher.quick_ratio() < _BLOCK_SIMILAR:
+    if matcher.real_quick_ratio() < floor or matcher.quick_ratio() < floor:
         return matcher.quick_ratio()
     return matcher.ratio()
 
@@ -377,6 +401,101 @@ def _norm(text: str) -> str:
     return _SPACE.sub(" ", text).strip()
 
 
+# ── 위치 이동 ───────────────────────────────────────────────
+
+
+def _pair_moves(
+    changes: list[Change], previous: dict[int, BlockIn], current: dict[int, BlockIn]
+) -> list[Change]:
+    """삭제·추가 중 같은 글(숫자를 가린 글이 같거나 매우 비슷한 것)을 위치 이동 하나로 바꾼다."""
+    deleted: list[tuple[Change, BlockIn, str]] = []
+    added: list[tuple[Change, BlockIn, str]] = []
+    for change in changes:
+        if change.change_type == DELETED and change.previous and change.previous.block_no:
+            block = previous.get(change.previous.block_no)
+            if block is not None:
+                deleted.append((change, block, mask_numbers(block.text)))
+        elif change.change_type == ADDED and change.current and change.current.block_no:
+            block = current.get(change.current.block_no)
+            if block is not None:
+                added.append((change, block, mask_numbers(block.text)))
+    deleted = [d for d in deleted if len(d[2]) >= MOVED_MIN_CHARS]
+    added = [a for a in added if len(a[2]) >= MOVED_MIN_CHARS]
+    if not deleted or not added:
+        return changes
+    deleted.sort(key=lambda d: d[1].block_no)  # 이전 문서 순서
+    added.sort(key=lambda a: a[1].block_no)  # 현재 문서 순서
+
+    pairs: list[tuple[int, int]] = []
+    used: set[int] = set()
+    # 1. 숫자를 가린 글이 같은 것
+    by_key: dict[tuple[str, str], list[int]] = defaultdict(list)
+    for j, (_, block, masked) in enumerate(added):
+        by_key[(block.type, masked)].append(j)
+    left: list[int] = []
+    for i, (_, block, masked) in enumerate(deleted):
+        candidates = by_key.get((block.type, masked))
+        if candidates:
+            j = candidates.pop(0)
+            pairs.append((i, j))
+            used.add(j)
+        else:
+            left.append(i)
+
+    # 2. 매우 비슷한 것. 낱말 수가 비교 상한 안인 글만(앞부분만 같은 긴 글을 이동으로 보지 않게)
+    def comparable(masked: str) -> bool:
+        return len(_TOKEN.findall(masked)) <= _COMPARE_TOKENS
+
+    budget = _MOVED_BUDGET
+    for i in left:
+        _, d_block, d_masked = deleted[i]
+        if budget <= 0:
+            break
+        if not comparable(d_masked):
+            continue
+        best, best_score = None, MOVED_SIMILAR
+        for j, (_, a_block, a_masked) in enumerate(added):
+            if j in used or a_block.type != d_block.type:
+                continue
+            short, long_ = sorted((len(d_masked), len(a_masked)))
+            if 2 * short / (short + long_) < MOVED_SIMILAR or not comparable(a_masked):
+                continue  # 길이만으로도 기준에 못 미침
+            if budget <= 0:
+                break
+            budget -= 1
+            score = similarity(d_masked, a_masked, MOVED_SIMILAR)
+            if score > best_score or best is None and score >= best_score:
+                best, best_score = j, score
+        if best is not None:
+            pairs.append((i, best))
+            used.add(best)
+
+    if not pairs:
+        return changes
+    paired: set[int] = set()
+    moves: list[Change] = []
+    for i, j in pairs:
+        d_change, d_block, _ = deleted[i]
+        a_change, a_block, _ = added[j]
+        paired.add(id(d_change))
+        paired.add(id(a_change))
+        moves.append(
+            Change(
+                MOVED,
+                a_change.block_type,
+                a_change.section_status,
+                a_change.section_title,
+                a_change.section_path,
+                d_change.previous,
+                a_change.current,
+                similarity=round(similarity(d_block.text, a_block.text), 4),
+                previous_section_path=d_change.section_path,
+                order=a_change.order,
+            )
+        )
+    return [c for c in changes if id(c) not in paired] + moves
+
+
 # ── 전체 비교 ───────────────────────────────────────────────
 
 
@@ -404,16 +523,17 @@ def diff_documents(previous_doc: DocumentIn, current_doc: DocumentIn) -> DiffRes
             for seq, (kind, a, b, score) in enumerate(diffs):
                 block = b or a
                 assert block is not None
+                numbers_only = bool(a and b and mask_numbers(a.text) == mask_numbers(b.text))
                 changes.append(
                     Change(
-                        change_type=kind,
+                        change_type=NUMERIC_UPDATE if kind == MODIFIED and numbers_only else kind,
                         block_type=block.type,
                         section_status=pair_status[p],
                         section_title=title,
                         section_path=title_path,
                         previous=Position(p, a.block_no) if a else None,
                         current=Position(c, b.block_no) if b else None,
-                        numbers_only=bool(a and b and mask_numbers(a.text) == mask_numbers(b.text)),
+                        numbers_only=numbers_only,
                         similarity=score,
                         order=(c_index, 0, seq),
                     )
@@ -452,6 +572,12 @@ def diff_documents(previous_doc: DocumentIn, current_doc: DocumentIn) -> DiffRes
                     order=(anchor[p], 1, a.block_no),
                 )
             )
+
+    changes = _pair_moves(
+        changes,
+        {b.block_no: b for b in previous_doc.blocks},
+        {b.block_no: b for b in current_doc.blocks},
+    )
 
     # 짝을 정하지 못한 섹션: 숨기지 않고 섹션 하나에 검토 필요 하나
     reason = (

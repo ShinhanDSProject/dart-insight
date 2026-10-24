@@ -4,6 +4,10 @@ from app.compare.text_diff import (
     DELETED,
     MATCHED,
     MODIFIED,
+    MOVED,
+    MOVED_MIN_CHARS,
+    MOVED_SIMILAR,
+    NUMERIC_UPDATE,
     RENAMED,
     REVIEW_NEEDED,
     BlockIn,
@@ -90,15 +94,26 @@ def test_added_deleted_and_modified_paragraphs_keep_positions() -> None:
     assert not modified.numbers_only
 
 
-def test_table_with_only_new_numbers_is_numbers_only_modification() -> None:
+def test_table_with_only_new_numbers_is_numeric_update() -> None:
     prev = doc(PREV, BASE_SECTIONS, [(1, 4, "TABLE", "제품 | 매출\nDRAM | 1,000")])
     cur = doc(CUR, BASE_SECTIONS, [(9, 4, "TABLE", "제품 | 매출\nDRAM | 1,250")])
 
     (change,) = diff_documents(prev, cur).changes
 
-    assert change.change_type == MODIFIED
+    assert change.change_type == NUMERIC_UPDATE
     assert change.block_type == "TABLE"
     assert change.numbers_only
+    assert change.previous_section_path is None
+
+
+def test_real_edit_is_still_modified_without_numbers_only() -> None:
+    prev = doc(PREV, BASE_SECTIONS, [(1, 4, "PARAGRAPH", "주요 제품은 DRAM 10종입니다.")])
+    cur = doc(CUR, BASE_SECTIONS, [(1, 4, "PARAGRAPH", "주요 제품은 DRAM과 NAND 12종입니다.")])
+
+    (change,) = diff_documents(prev, cur).changes
+
+    assert change.change_type == MODIFIED
+    assert not change.numbers_only
 
 
 def test_renamed_section_is_matched_by_similar_title() -> None:
@@ -265,3 +280,170 @@ def test_parent_cycle_in_input_does_not_hang() -> None:
     result = diff_documents(doc(PREV, sections, blocks), doc(CUR, sections, blocks))
 
     assert result.changes == []
+
+
+# ── 위치 이동(MOVED) ───────────────────────────────────────
+
+MOVED_TEXT = "당사는 2025년부터 미국 텍사스주에 반도체 공장을 짓고 있습니다."
+
+
+def test_paragraph_reordered_in_same_section_is_one_move() -> None:
+    other_a = "주요 고객은 국내외 전자제품 제조사입니다."
+    other_b = "공장은 화성과 평택에 있으며 계속 늘리고 있습니다."
+    prev = doc(
+        PREV,
+        BASE_SECTIONS,
+        [
+            (1, 3, "PARAGRAPH", MOVED_TEXT),
+            (2, 3, "PARAGRAPH", other_a),
+            (3, 3, "PARAGRAPH", other_b),
+        ],
+    )
+    cur = doc(
+        CUR,
+        BASE_SECTIONS,
+        [
+            (11, 3, "PARAGRAPH", other_a),
+            (12, 3, "PARAGRAPH", other_b),
+            (13, 3, "PARAGRAPH", MOVED_TEXT),
+        ],
+    )
+
+    (change,) = diff_documents(prev, cur).changes
+
+    assert change.change_type == MOVED
+    assert change.previous is not None and change.current is not None
+    assert (change.previous.section_no, change.previous.block_no) == (3, 1)
+    assert (change.current.section_no, change.current.block_no) == (3, 13)
+    assert change.section_path == "II. 사업의 내용 > 1. 사업의 개요"
+    assert change.previous_section_path == change.section_path
+    assert change.similarity == 1.0
+    assert not change.numbers_only
+
+
+def test_paragraph_moved_to_another_section_keeps_both_locations() -> None:
+    prev = doc(
+        PREV,
+        BASE_SECTIONS,
+        [(1, 3, "PARAGRAPH", MOVED_TEXT), (2, 4, "PARAGRAPH", "제품은 DRAM입니다.")],
+    )
+    cur = doc(
+        CUR,
+        BASE_SECTIONS,
+        [(1, 4, "PARAGRAPH", "제품은 DRAM입니다."), (2, 4, "PARAGRAPH", MOVED_TEXT)],
+    )
+
+    (change,) = diff_documents(prev, cur).changes
+
+    assert change.change_type == MOVED
+    assert change.previous is not None and change.previous.section_no == 3
+    assert change.current is not None and change.current.section_no == 4
+    assert change.previous_section_path == "II. 사업의 내용 > 1. 사업의 개요"
+    assert change.section_path == "II. 사업의 내용 > 2. 주요 제품"
+    assert change.section_title == "2. 주요 제품"
+
+
+def test_moved_paragraph_with_new_numbers_is_still_a_move() -> None:
+    sentence = "당사의 임직원 수는 {}명이며 연구 인력이 많습니다."
+    prev = doc(PREV, BASE_SECTIONS, [(1, 3, "PARAGRAPH", sentence.format("1,200"))])
+    cur = doc(CUR, BASE_SECTIONS, [(1, 4, "PARAGRAPH", sentence.format("1,350"))])
+
+    (change,) = diff_documents(prev, cur).changes
+
+    assert change.change_type == MOVED
+    assert change.similarity is not None and change.similarity < 1
+
+
+def test_paragraph_moved_out_of_a_deleted_section_is_a_move() -> None:
+    prev = doc(
+        PREV,
+        [*BASE_SECTIONS, (5, 2, 2, "3. 중단된 사업")],
+        [(1, 5, "PARAGRAPH", MOVED_TEXT), (2, 5, "PARAGRAPH", "LCD 사업을 정리했습니다.")],
+    )
+    cur = doc(CUR, BASE_SECTIONS, [(1, 3, "PARAGRAPH", MOVED_TEXT)])
+
+    changes = diff_documents(prev, cur).changes
+
+    assert sorted(c.change_type for c in changes) == [DELETED, MOVED]
+    moved = next(c for c in changes if c.change_type == MOVED)
+    assert moved.previous_section_path == "II. 사업의 내용 > 3. 중단된 사업"
+    assert moved.section_status == MATCHED
+
+
+# 글자가 모두 다른 40자(비슷한 정도를 셈하기 쉽게)
+DISTINCT_40 = "".join(chr(0xAC00 + i * 7) for i in range(40))
+
+
+def _with_replaced(text: str, count: int) -> str:
+    """앞에서부터 count 글자를 'X'로 바꾼 글"""
+    return "".join("X" if i < count else ch for i, ch in enumerate(text))
+
+
+def _move_between_sections(prev_text: str, cur_text: str) -> list:
+    prev = doc(PREV, BASE_SECTIONS, [(1, 3, "PARAGRAPH", prev_text)])
+    cur = doc(CUR, BASE_SECTIONS, [(1, 4, "PARAGRAPH", cur_text)])
+    return diff_documents(prev, cur).changes
+
+
+def test_move_threshold_includes_text_exactly_at_the_threshold() -> None:
+    # 40자 중 2자가 다르면 비슷한 정도 2*38/80 = 0.95(경계 포함)
+    assert MOVED_SIMILAR == 0.95
+    changes = _move_between_sections(DISTINCT_40, _with_replaced(DISTINCT_40, 2))
+
+    assert [c.change_type for c in changes] == [MOVED]
+
+
+def test_move_threshold_excludes_text_just_below_the_threshold() -> None:
+    # 40자 중 3자가 다르면 2*37/80 = 0.925
+    changes = _move_between_sections(DISTINCT_40, _with_replaced(DISTINCT_40, 3))
+
+    assert sorted(c.change_type for c in changes) == [ADDED, DELETED]
+
+
+def test_short_boilerplate_is_not_paired_as_a_move() -> None:
+    short = "해당사항 없음"
+    assert len(short) < MOVED_MIN_CHARS
+    changes = _move_between_sections(short, short)
+
+    assert sorted(c.change_type for c in changes) == [ADDED, DELETED]
+
+
+def test_text_exactly_at_min_length_can_move() -> None:
+    text = DISTINCT_40[:MOVED_MIN_CHARS]
+    changes = _move_between_sections(text, text)
+
+    assert [c.change_type for c in changes] == [MOVED]
+
+
+def test_moves_need_the_same_block_type() -> None:
+    prev = doc(PREV, BASE_SECTIONS, [(1, 3, "PARAGRAPH", MOVED_TEXT)])
+    cur = doc(CUR, BASE_SECTIONS, [(1, 4, "TABLE", MOVED_TEXT)])
+
+    changes = diff_documents(prev, cur).changes
+
+    assert sorted(c.change_type for c in changes) == [ADDED, DELETED]
+
+
+def test_duplicate_moved_texts_pair_one_to_one_in_document_order() -> None:
+    prev = doc(
+        PREV,
+        BASE_SECTIONS,
+        [(1, 3, "PARAGRAPH", MOVED_TEXT), (2, 3, "PARAGRAPH", MOVED_TEXT)],
+    )
+    cur = doc(CUR, BASE_SECTIONS, [(5, 4, "PARAGRAPH", MOVED_TEXT)])
+
+    changes = diff_documents(prev, cur).changes
+
+    assert sorted(c.change_type for c in changes) == [DELETED, MOVED]
+    moved = next(c for c in changes if c.change_type == MOVED)
+    assert moved.previous is not None and moved.previous.block_no == 1
+
+
+def test_long_texts_sharing_only_a_prefix_are_not_moves() -> None:
+    head = " ".join(f"항목{i}" for i in range(400))
+    prev = doc(PREV, BASE_SECTIONS, [(1, 3, "TABLE", head + " 끝 가나다")])
+    cur = doc(CUR, BASE_SECTIONS, [(1, 4, "TABLE", head + " 다른 꼬리 라마바 사아자")])
+
+    changes = diff_documents(prev, cur).changes
+
+    assert sorted(c.change_type for c in changes) == [ADDED, DELETED]
