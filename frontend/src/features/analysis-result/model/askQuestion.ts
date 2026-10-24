@@ -130,7 +130,7 @@ export function searchWordOf(question: string): string | null {
 
 /** 찾지 못한 답의 문장 변화 검색 버튼 문구(#284) */
 export function textSearchLabel(word: string): string {
-  return `문장 변경에서 '${word}' 찾기`
+  return `문장·내용 변화에서 '${word}' 찾기`
 }
 
 /** 입력창 아래 안내. 긴 글은 입력하는 동안, 짧은 글은 보내려 했을 때만 보인다. 문제없으면 null */

@@ -221,7 +221,7 @@ describe('AskTab 답을 못 했을 때 다음 행동', () => {
       />,
     )
     const article = card(14)
-    fireEvent.click(within(article).getByRole('button', { name: "문장 변경에서 '우주' 찾기" }))
+    fireEvent.click(within(article).getByRole('button', { name: "문장·내용 변화에서 '우주' 찾기" }))
     expect(onSearchText).toHaveBeenCalledWith('우주')
 
     const chips = chipsIn(article, '이 분석에서 물어볼 수 있는 질문')
@@ -232,7 +232,7 @@ describe('AskTab 답을 못 했을 때 다음 행동', () => {
 
   it('질문에서 검색할 낱말을 찾지 못하면 찾기 버튼을 두지 않는다', () => {
     render(<Harness submitDraft={noop} items={[noAnswer(3, '왜 그런가요?', 'NOT_FOUND')]} suggestions={SUGGESTIONS} />)
-    expect(within(card(3)).queryByRole('button', { name: /^문장 변경에서/ })).toBeNull()
+    expect(within(card(3)).queryByRole('button', { name: /^문장·내용 변화에서/ })).toBeNull()
   })
 
   it('투자 판단 질문에는 공시 사실로 물어보기 칩을 보이고 누르면 그 질문을 보낸다', () => {
@@ -240,7 +240,7 @@ describe('AskTab 답을 못 했을 때 다음 행동', () => {
     render(<Harness submitDraft={noop} items={[noAnswer(5, BUY_QUESTION, 'OUT_OF_SCOPE')]} suggestions={SUGGESTIONS} onAsk={onAsk} />)
     const chips = chipsIn(card(5), '공시 사실로 물어보기')
     expect(chips).toHaveLength(3)
-    expect(within(card(5)).queryByRole('button', { name: /^문장 변경에서/ })).toBeNull()
+    expect(within(card(5)).queryByRole('button', { name: /^문장·내용 변화에서/ })).toBeNull()
     fireEvent.click(chips[0])
     expect(onAsk).toHaveBeenCalledWith('매출액은 왜 늘었나요?')
   })
@@ -258,7 +258,7 @@ describe('AskTab 답을 못 했을 때 다음 행동', () => {
     render(<Harness submitDraft={noop} items={items} suggestions={SUGGESTIONS} onAsk={onAsk} onSearchText={onSearchText} />)
     fireEvent.click(within(screen.getByRole('region', { name: '이전 질문 1개' })).getByRole('button', { name: /우주 탐사/ }))
     const article = card(2)
-    fireEvent.click(within(article).getByRole('button', { name: "문장 변경에서 '우주' 찾기" }))
+    fireEvent.click(within(article).getByRole('button', { name: "문장·내용 변화에서 '우주' 찾기" }))
     expect(onSearchText).toHaveBeenCalledWith('우주')
     fireEvent.click(chipsIn(article, '이 분석에서 물어볼 수 있는 질문')[0])
     expect(onAsk).toHaveBeenCalledWith('매출액은 왜 늘었나요?')
