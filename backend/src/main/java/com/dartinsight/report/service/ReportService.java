@@ -8,8 +8,11 @@ import com.dartinsight.report.domain.FinancialDataStatus;
 import com.dartinsight.report.domain.Report;
 import com.dartinsight.report.repository.ReportRepository;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -44,6 +47,15 @@ public class ReportService {
     /** 저장된 보고서. 없으면 404 */
     public Report report(String rceptNo) {
         return reportRepository.findByRceptNo(rceptNo).orElseThrow(() -> new ApiException(ErrorCode.REPORT_NOT_FOUND));
+    }
+
+    /** 저장된 보고서들(접수번호 → 보고서). 저장되지 않은 접수번호는 결과에 없다. */
+    public Map<String, Report> reports(Collection<String> rceptNos) {
+        if (rceptNos.isEmpty()) {
+            return Map.of();
+        }
+        return reportRepository.findByRceptNoIn(rceptNos).stream()
+                .collect(Collectors.toMap(Report::getRceptNo, Function.identity(), (a, b) -> a));
     }
 
     public ReportDetail get(String rceptNo) {
