@@ -42,6 +42,8 @@
   --header-height: 80px;
   --layout-gutter: 40px;
   --control-height: 44px;
+  /* 좁은 화면(900px 이하)에서 누르는 것의 최소 높이(FS-11) */
+  --touch-target-min: 32px;
   --nav-item-height: 48px;
   --content-max-width: 1200px;
 

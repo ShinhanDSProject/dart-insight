@@ -735,3 +735,64 @@ th[aria-sort='none'] .data-table__sort-mark {
 .share-bar__share {
   font-family: var(--font-num);
 }
+
+/*
+ * 좁은 화면(FS-11). 넓은 화면 모양은 그대로 두고, 인쇄에는 쓰지 않는다(screen).
+ * 터치 영역: 글자 크기·줄 간격은 그대로 두고, 위아래 안쪽 여백을 늘린 만큼 바깥 여백을 줄여(자리는 그대로)
+ * 누르는 상자만 --touch-target-min 이상으로 키운다.
+ */
+@media screen and (max-width: 900px) {
+  /* 결과 탭: 한 줄 가로 스크롤. 본문 양옆 여백까지 넓혀 그 여백에서 흐려지게 해 옆에 더 있음을 알린다 */
+  .tabs {
+    --tabs-fade: linear-gradient(
+      to right,
+      transparent,
+      var(--color-text) var(--space-4),
+      var(--color-text) calc(100% - var(--space-4)),
+      transparent
+    );
+
+    flex-wrap: nowrap;
+    gap: 0 var(--space-4);
+    margin-inline: calc(-1 * var(--space-4));
+    padding-inline: var(--space-4);
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scroll-padding-inline: var(--space-4);
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    /* 밑줄이 스크롤 줄 밖으로 나가 잘리지 않도록 아래 선을 안쪽 그림자로 그린다 */
+    border-bottom: none;
+    box-shadow: inset 0 -1px 0 var(--color-border);
+    -webkit-mask-image: var(--tabs-fade);
+    mask-image: var(--tabs-fade);
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tabs__item {
+    flex: none;
+    margin-bottom: 0;
+    white-space: nowrap;
+    scroll-snap-align: start;
+  }
+
+  /* 스크롤 줄에 잘리지 않도록 포커스 표시를 안쪽에 그린다 */
+  .tabs__item:focus-visible {
+    outline-offset: -2px;
+  }
+
+  .link-button,
+  .data-table__sort {
+    padding-block: calc((var(--touch-target-min) - 1em) / 2);
+    margin-block: calc((var(--touch-target-min) - 1em) / -2);
+  }
+
+  .icon-button {
+    min-width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
+  }
+}
