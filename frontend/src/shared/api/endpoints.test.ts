@@ -11,6 +11,7 @@ describe('endpoints', () => {
     expect(endpoints.analysis(3)).toBe('/api/analyses/3')
     expect(endpoints.financialChange(3, 12)).toBe('/api/analyses/3/financial-changes/12')
     expect(endpoints.documentSection(3, 'current', 2)).toBe('/api/analyses/3/documents/current/sections/2')
+    expect(endpoints.questions(3)).toBe('/api/analyses/3/questions')
   })
 
   it('경로 변수는 항상 인코딩한다', () => {

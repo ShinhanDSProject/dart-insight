@@ -29,4 +29,5 @@ export const endpoints = {
   document: (analysisId: number, side: string) => `${analysis(analysisId)}/documents/${seg(side)}`,
   documentSection: (analysisId: number, side: string, sectionNo: number) =>
     `${analysis(analysisId)}/documents/${seg(side)}/sections/${seg(sectionNo)}`,
+  questions: (analysisId: number) => `${analysis(analysisId)}/questions`,
 }
