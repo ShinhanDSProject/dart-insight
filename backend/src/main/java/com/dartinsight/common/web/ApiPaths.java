@@ -18,6 +18,7 @@ public final class ApiPaths {
     public static final String BY_CORP_CODE = "/{corpCode}";
     public static final String COMPANY_REPORTS = "/companies/{corpCode}/reports";
     public static final String COMPANY_REPORT_PAIRS = COMPANIES + "/{corpCode}/report-pairs";
+    public static final String COMPANY_ANALYSES = COMPANIES + "/{corpCode}/analyses";
     public static final String REPORT_BY_RCEPT_NO = "/reports/{rceptNo}";
 
     public static final String COMPARABILITY_CHECKS = BASE + "/comparability-checks";

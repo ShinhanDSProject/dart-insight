@@ -15,6 +15,9 @@ public interface AnalysisRepository extends JpaRepository<Analysis, Long> {
             String corpCode, String currentRceptNo, String previousRceptNo, ComparisonBasis basis,
             String analysisVersion);
 
+    /** 이 기업의 이 상태 분석, 완료 시각이 최근인 것부터 */
+    List<Analysis> findByCorpCodeAndStatusOrderByCompletedAtDescIdDesc(String corpCode, AnalysisStatus status);
+
     /** 이 시각 전에 만들어졌고 아직 끝나지 않은 분석(서버 재시작 정리용) */
     List<Analysis> findByStatusInAndCreatedAtBefore(Collection<AnalysisStatus> statuses, LocalDateTime createdAt);
 }
