@@ -148,6 +148,7 @@ function ResultTabPanel({ analysis, params, update, ask, suggestions }: ResultTa
         sjDiv={params.sjDiv}
         changedOnly={params.changedOnly}
         unit={params.unit}
+        accountQuery={params.accountQuery}
         selectedChangeId={params.selectedChangeId}
         onChange={(c) => update(financialParamChanges(c))}
       />

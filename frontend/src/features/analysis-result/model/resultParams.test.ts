@@ -21,6 +21,7 @@ describe('parseResultParams', () => {
       changedOnly: false,
       unit: 'MILLION',
       selectedChangeId: null,
+      accountQuery: null,
       textType: null,
       textSort: 'priority',
       textSection: null,
@@ -54,6 +55,11 @@ describe('parseResultParams', () => {
     expect(parseResultParams(new URLSearchParams('tsec=%20&tq=가'))).toMatchObject({ textSection: null, textQuery: null })
   })
 
+  it('계정 찾기 검색어를 앞뒤 공백 없이 읽고 공백뿐이면 버린다', () => {
+    expect(parseResultParams(new URLSearchParams({ fq: ' 차입금 ' })).accountQuery).toBe('차입금')
+    expect(parseResultParams(new URLSearchParams('fq=%20%20')).accountQuery).toBeNull()
+  })
+
   it('모르는 탭·재무제표·유형과 잘못된 번호는 기본값으로 본다', () => {
     const params = new URLSearchParams('tab=x&sj=XX&ttype=NOPE&change=0&tc=-1&section=1.5')
     expect(parseResultParams(params)).toMatchObject({
@@ -72,6 +78,15 @@ describe('고르기를 주소 값으로 바꾸기', () => {
     expect(financialParamChanges({ sj: 'IS' })).toEqual({ sj: 'IS', change: null })
     expect(financialParamChanges({ change: 4 })).toEqual({ change: '4' })
     expect(financialParamChanges({ changed: false, unit: 'MILLION' })).toEqual({ changed: null, unit: 'MILLION' })
+  })
+
+  it('계정 찾기 검색어를 fq로 남기고 지우면 주소에서 뺀다', () => {
+    expect(financialParamChanges({ q: '차입금' })).toEqual({ fq: '차입금' })
+    expect(financialParamChanges({ q: null })).toEqual({ fq: null })
+  })
+
+  it('재무제표를 바꿔도 계정 찾기 검색어는 그대로 둔다', () => {
+    expect(financialParamChanges({ sj: 'CF' })).not.toHaveProperty('fq')
   })
 
   it('문장 변화의 거르기·정렬을 바꾸면 보던 근거를 닫고 기본 정렬은 주소에서 지운다', () => {
@@ -101,13 +116,13 @@ describe('고르기를 주소 값으로 바꾸기', () => {
       section: '3',
       block: null,
     })
-    expect(openFinancialChanges('CF', 9)).toEqual({ tab: 'financial', sj: 'CF', change: '9', changed: null })
+    expect(openFinancialChanges('CF', 9)).toEqual({ tab: 'financial', sj: 'CF', change: '9', changed: null, fq: null })
     expect(openTextChanges(2)).toEqual({ tab: 'text', ttype: null, tsort: null, tsec: null, tq: null, tc: '2' })
   })
 
   it('변화 개요에서 재무 수치 탭을 변경 항목만으로 연다', () => {
-    expect(openChangedAccounts('IS')).toEqual({ tab: 'financial', sj: 'IS', changed: '1', change: null })
-    expect(openChangedAccounts(null)).toEqual({ tab: 'financial', changed: '1', change: null })
+    expect(openChangedAccounts('IS')).toEqual({ tab: 'financial', sj: 'IS', changed: '1', change: null, fq: null })
+    expect(openChangedAccounts(null)).toEqual({ tab: 'financial', changed: '1', change: null, fq: null })
   })
 
   it('변화 개요에서 문장 변화 탭을 전체 또는 그 유형으로 연다', () => {
