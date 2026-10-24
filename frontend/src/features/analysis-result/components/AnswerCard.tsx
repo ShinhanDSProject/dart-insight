@@ -10,8 +10,9 @@ import { ErrorState } from '@/shared/ui/StateView'
 import { useAnswerFeedback } from '../hooks/useAnswerFeedback'
 import { FEEDBACK_REASONS, feedbackStatusLabel } from '../model/answerFeedback'
 import { factLabel, parseAnswer } from '../model/answerText'
-import { askedAtLabel, citationSideLabel, quoteLabel } from '../model/askQuestion'
+import { askedAtLabel, citationSideLabel, quoteLabel, searchWordOf, textSearchLabel } from '../model/askQuestion'
 import { answerCopyText } from '../model/copyText'
+import { followUpLabel } from '../model/followUp'
 import { formatCount } from '../model/overview'
 import type { SourceTarget } from '../model/resultParams'
 import { aiInfoLabel } from '../model/summaryLabels'
@@ -20,8 +21,8 @@ import { CopyWithSourcesButton } from './CopyWithSourcesButton'
 export interface AnswerLinks {
   onOpenSource: (target: SourceTarget) => void
   onOpenFinancial: (sjDiv: SjDiv, changeId: number) => void
-  /** 찾지 못한 질문을 문장 변화 탭에서 이어서 찾는다 */
-  onSearchText: (question: string) => void
+  /** 찾지 못한 질문의 핵심어로 문장 변화 탭을 검색해 연다 */
+  onSearchText: (q: string) => void
 }
 
 /** 질문 줄. 모든 카드 맨 위에 같은 모양으로 둔다 */
@@ -77,7 +78,7 @@ export function FailedAnswerCard({ question, error, onRetry }: { question: strin
 /** 답 평가를 저장한다(3.12). 실패하면 거부된 Promise */
 export type SendFeedback = (questionId: number, feedback: AnswerFeedback) => Promise<unknown>
 
-/** 답 뒤 '이어서 물어보기'(3.10, FS-13). 누르면 바로 묻는다 */
+/** 답 뒤 다음 질문(3.10, FS-13). 답을 못 했으면 이 분석에서 답할 수 있는 질문(#284). 누르면 바로 묻는다 */
 export interface FollowUp {
   questions: string[]
   onAsk: (question: string) => void
@@ -103,11 +104,7 @@ export function AnswerCard({ item, links, onFeedback, followUp }: AnswerCardProp
         .with('NOT_FOUND', () => (
           <Notice tone="attention" className="answer-card__notice" title="관련 내용을 찾지 못했어요">
             <p>{item.message ?? '두 보고서에서 이 질문과 관련된 문단이나 수치를 찾지 못했어요.'}</p>
-            <div className="answer-card__notice-actions">
-              <Button variant="secondary" onClick={() => links.onSearchText(item.question)}>
-                문장·내용 변화에서 찾아보기
-              </Button>
-            </div>
+            <TextSearchAction question={item.question} onSearchText={links.onSearchText} />
           </Notice>
         ))
         .with('OUT_OF_SCOPE', () => (
@@ -122,19 +119,32 @@ export function AnswerCard({ item, links, onFeedback, followUp }: AnswerCardProp
         ))
         .exhaustive()}
       {item.ai && item.status !== 'ANSWERED' && <AiMeta item={item} />}
-      <FollowUpRow questionId={item.questionId} followUp={followUp} />
+      <FollowUpRow item={item} followUp={followUp} />
     </Card>
   )
 }
 
-/** 코드가 만든 다음 질문 버튼(최대 2개). 없으면 줄을 그리지 않는다 */
-function FollowUpRow({ questionId, followUp }: { questionId: number; followUp: FollowUp }) {
+/** 찾지 못한 질문의 핵심어로 문장 변화 탭을 검색한다(#284). 쓸 낱말이 없으면 버튼을 두지 않는다 */
+function TextSearchAction({ question, onSearchText }: { question: string; onSearchText: (q: string) => void }) {
+  const word = searchWordOf(question)
+  if (word === null) return null
+  return (
+    <div className="answer-card__notice-actions">
+      <Button variant="secondary" onClick={() => onSearchText(word)}>
+        {textSearchLabel(word)}
+      </Button>
+    </div>
+  )
+}
+
+/** 코드가 만든 다음 질문 버튼. 없으면 줄을 그리지 않는다 */
+function FollowUpRow({ item, followUp }: { item: QuestionAnswer; followUp: FollowUp }) {
   if (followUp.questions.length === 0) return null
-  const labelId = `ask-${questionId}-follow-up`
+  const labelId = `ask-${item.questionId}-follow-up`
   return (
     <div className="answer-follow-up" role="group" aria-labelledby={labelId}>
       <h3 className="answer-card__label" id={labelId}>
-        이어서 물어보기
+        {followUpLabel(item.status)}
       </h3>
       <ul className="answer-follow-up__list">
         {followUp.questions.map((question) => (

@@ -17,7 +17,6 @@ import { TextTab } from './components/TextTab'
 import { useAnalysis } from './hooks/useAnalysis'
 import { useAsk, type AskController } from './hooks/useAsk'
 import { useAskSuggestions } from './hooks/useAskSuggestions'
-import { searchWordOf } from './model/askQuestion'
 import { useResultParams } from './hooks/useResultParams'
 import { resultTabLabels, resultTitle } from './model/resultTitle'
 import {
@@ -214,7 +213,7 @@ function ResultTabPanel({ analysis, params, update, ask, suggestions, askSection
         sections={askSections}
         onOpenSource={openSource}
         onOpenFinancial={openFinancial}
-        onSearchText={(question) => update(openTextSearch(searchWordOf(question)))}
+        onSearchText={(q) => update(openTextSearch(q))}
       />
     ))
     .with('source', () => (

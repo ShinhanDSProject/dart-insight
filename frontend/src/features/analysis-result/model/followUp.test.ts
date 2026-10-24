@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { QuestionAnswer, QuestionCitation, QuestionFact } from '@/shared/api/questions'
 import { RISK_QUESTION } from './askQuestion'
-import { accountFollowUp, followUpQuestions } from './followUp'
+import { accountFollowUp, followUpLabel, followUpQuestions } from './followUp'
 
 const citation = (sectionPath: string) => ({ no: 1, sectionPath }) as QuestionCitation
 const fact = (accountName: string) => ({ ref: 'F1', accountName }) as QuestionFact
@@ -52,20 +52,34 @@ describe('followUpQuestions', () => {
     ])
   })
 
-  it('찾지 못한 답이면 이 질문과 이미 물은 질문을 뺀 예시 질문 2개를 준다', () => {
+  it('찾지 못한 답이면 이 질문과 이미 물은 질문을 뺀 예시 질문을 최대 3개 준다', () => {
     const notFound = answer({ status: 'NOT_FOUND', answer: null, citations: [], facts: [] })
-    expect(followUpQuestions(notFound, { suggestions, asked: [RISK_QUESTION] })).toEqual([
+    expect(followUpQuestions(notFound, { suggestions, asked: [] })).toEqual([
       "'II. 사업의 내용'에서 무엇이 바뀌었나요?",
+      RISK_QUESTION,
       '영업이익은 왜 줄었나요?',
     ])
   })
 
-  it('답하지 않는 질문·검토 필요면 예시 질문 1개만 준다', () => {
-    for (const status of ['OUT_OF_SCOPE', 'REVIEW_NEEDED'] as const) {
-      expect(followUpQuestions(answer({ status, question: '주가가 오를까요?' }), { suggestions, asked: [] })).toEqual([
-        '매출액은 왜 늘었나요?',
-      ])
-    }
+  it('예시 질문이 모자라면 목차 밖 본문을 뺀 섹션 질문으로 채운다', () => {
+    const notFound = answer({ status: 'NOT_FOUND', question: '우주 탐사 계획은 어떻게 바뀌었나요?', citations: [], facts: [] })
+    const sections = ['(목차 밖 본문)', 'II. 사업의 내용', 'III. 재무에 관한 사항']
+    expect(followUpQuestions(notFound, { suggestions: [RISK_QUESTION], asked: [], sections })).toEqual([
+      RISK_QUESTION,
+      "'II. 사업의 내용'에서 무엇이 바뀌었나요?",
+      "'III. 재무에 관한 사항'에서 무엇이 바뀌었나요?",
+    ])
+  })
+
+  it('답하지 않는 질문이면 공시 사실을 묻는 예시 질문을 최대 3개 준다', () => {
+    const outOfScope = answer({ status: 'OUT_OF_SCOPE', question: '삼성전자 주식 지금 사도 될까요?' })
+    expect(followUpQuestions(outOfScope, { suggestions, asked: [] })).toEqual(suggestions.slice(0, 3))
+  })
+
+  it('검토 필요면 예시 질문 1개만 준다', () => {
+    expect(followUpQuestions(answer({ status: 'REVIEW_NEEDED', question: '주가가 오를까요?' }), { suggestions, asked: [] })).toEqual([
+      '매출액은 왜 늘었나요?',
+    ])
   })
 
   it('남은 질문이 없으면 빈 목록이다', () => {
@@ -85,5 +99,14 @@ describe('followUpQuestions', () => {
 describe('accountFollowUp', () => {
   it('계정 이름 앞뒤 공백을 빼고 질문으로 만든다', () => {
     expect(accountFollowUp(' 매출원가 ')).toBe('매출원가의 변화를 공시에서 어떻게 설명하나요?')
+  })
+})
+
+describe('followUpLabel', () => {
+  it('답 상태마다 다음 질문 줄의 제목을 다르게 둔다', () => {
+    expect(followUpLabel('ANSWERED')).toBe('이어서 물어보기')
+    expect(followUpLabel('REVIEW_NEEDED')).toBe('이어서 물어보기')
+    expect(followUpLabel('NOT_FOUND')).toBe('이 분석에서 물어볼 수 있는 질문')
+    expect(followUpLabel('OUT_OF_SCOPE')).toBe('공시 사실로 물어보기')
   })
 })

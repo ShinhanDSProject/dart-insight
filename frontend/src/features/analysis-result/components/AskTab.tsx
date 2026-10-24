@@ -49,7 +49,7 @@ export function AskTab({ ask, suggestions, sections, ...links }: AskTabProps) {
       links={links}
       onFeedback={ask.sendFeedback}
       followUp={{
-        questions: followUpQuestions(item, { suggestions: suggestionList, asked }),
+        questions: followUpQuestions(item, { suggestions: suggestionList, asked, sections }),
         onAsk: ask.ask,
         disabled: sending,
       }}

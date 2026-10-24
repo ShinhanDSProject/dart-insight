@@ -11,26 +11,39 @@ const sections = ['(목차 밖 본문)', 'I. 회사의 개요', 'II. 사업의 �
 const INVESTOR_QUESTION = "'XI. 그 밖에 투자자 보호를 위하여 필요한 사항'에서 무엇이 바뀌었나요?"
 const noop = () => {}
 
+interface HarnessProps {
+  submitDraft: () => void
+  items?: QuestionAnswer[]
+  suggestions?: string[]
+  onAsk?: (question: string) => void
+  onSearchText?: (q: string) => void
+  sending?: boolean
+}
+
 // 입력창 글은 실제 reducer로 두고, 보내기만 바꿔 끼워 불렸는지 본다
-function Harness({ submitDraft, items = [] }: { submitDraft: () => void; items?: QuestionAnswer[] }) {
-  const [state, dispatch] = useReducer(askReducer, { ...initialAskState, items })
+function Harness({ submitDraft, items = [], suggestions = [], onAsk = noop, onSearchText = noop, sending = false }: HarnessProps) {
+  const [state, dispatch] = useReducer(askReducer, {
+    ...initialAskState,
+    items,
+    request: sending ? { status: 'sending', question: '보내는 중인 질문이에요?', fromDraft: false } : { status: 'idle' },
+  })
   const ask = {
     state,
     history: { state: { status: 'success', data: { items: [] } }, reload: noop },
     setDraft: (draft: string) => dispatch({ type: 'set-draft', draft }),
     submitDraft,
-    ask: noop,
+    ask: onAsk,
     retry: noop,
     sendFeedback: () => Promise.resolve(),
   } as unknown as AskController
   return (
     <AskTab
       ask={ask}
-      suggestions={{ status: 'success', data: [] }}
+      suggestions={{ status: 'success', data: suggestions }}
       sections={sections}
       onOpenSource={noop}
       onOpenFinancial={noop}
-      onSearchText={noop}
+      onSearchText={onSearchText}
     />
   )
 }
@@ -174,5 +187,80 @@ describe('AskTab 지난 답 접기', () => {
     render(<Harness submitDraft={noop} items={answers(3)} />)
     expect(answerCards()).toHaveLength(3)
     expect(screen.queryByRole('heading', { name: /이전 질문/ })).toBeNull()
+  })
+})
+
+const SPACE_QUESTION = '우주 탐사 계획은 어떻게 바뀌었나요?'
+const BUY_QUESTION = '삼성전자 주식 지금 사도 될까요?'
+const SUGGESTIONS = ['매출액은 왜 늘었나요?', SPACE_QUESTION, '새로 생긴 위험 요인이 있나요?', '영업이익은 왜 줄었나요?']
+
+const noAnswer = (questionId: number, question: string, status: 'NOT_FOUND' | 'OUT_OF_SCOPE'): QuestionAnswer => ({
+  ...answers(1)[0],
+  questionId,
+  question,
+  status,
+})
+const card = (questionId: number) => {
+  const el = document.querySelector<HTMLElement>(`article[aria-labelledby="ask-q-${questionId}"]`)
+  if (el === null) throw new Error(`답 카드 ${questionId}가 없어요`)
+  return el
+}
+const chipsIn = (el: HTMLElement, label: string) => within(within(el).getByRole('group', { name: label })).getAllByRole('button')
+
+describe('AskTab 답을 못 했을 때 다음 행동', () => {
+  it('찾지 못한 답에 핵심어 찾기 버튼과, 같은 질문을 뺀 질문 칩 3개를 보인다', () => {
+    const onSearchText = vi.fn()
+    const onAsk = vi.fn()
+    render(
+      <Harness
+        submitDraft={noop}
+        items={[noAnswer(14, SPACE_QUESTION, 'NOT_FOUND')]}
+        suggestions={SUGGESTIONS}
+        onAsk={onAsk}
+        onSearchText={onSearchText}
+      />,
+    )
+    const article = card(14)
+    fireEvent.click(within(article).getByRole('button', { name: "문장 변경에서 '우주' 찾기" }))
+    expect(onSearchText).toHaveBeenCalledWith('우주')
+
+    const chips = chipsIn(article, '이 분석에서 물어볼 수 있는 질문')
+    expect(chips.map((c) => c.textContent)).toEqual(['매출액은 왜 늘었나요?', '새로 생긴 위험 요인이 있나요?', '영업이익은 왜 줄었나요?'])
+    fireEvent.click(chips[1])
+    expect(onAsk).toHaveBeenCalledWith('새로 생긴 위험 요인이 있나요?')
+  })
+
+  it('질문에서 검색할 낱말을 찾지 못하면 찾기 버튼을 두지 않는다', () => {
+    render(<Harness submitDraft={noop} items={[noAnswer(3, '왜 그런가요?', 'NOT_FOUND')]} suggestions={SUGGESTIONS} />)
+    expect(within(card(3)).queryByRole('button', { name: /^문장 변경에서/ })).toBeNull()
+  })
+
+  it('투자 판단 질문에는 공시 사실로 물어보기 칩을 보이고 누르면 그 질문을 보낸다', () => {
+    const onAsk = vi.fn()
+    render(<Harness submitDraft={noop} items={[noAnswer(5, BUY_QUESTION, 'OUT_OF_SCOPE')]} suggestions={SUGGESTIONS} onAsk={onAsk} />)
+    const chips = chipsIn(card(5), '공시 사실로 물어보기')
+    expect(chips).toHaveLength(3)
+    expect(within(card(5)).queryByRole('button', { name: /^문장 변경에서/ })).toBeNull()
+    fireEvent.click(chips[0])
+    expect(onAsk).toHaveBeenCalledWith('매출액은 왜 늘었나요?')
+  })
+
+  it('다른 질문을 보내는 중이면 칩을 누를 수 없다', () => {
+    render(<Harness submitDraft={noop} items={[noAnswer(5, BUY_QUESTION, 'OUT_OF_SCOPE')]} suggestions={SUGGESTIONS} sending />)
+    const chips = chipsIn(card(5), '공시 사실로 물어보기')
+    expect(chips.every((c) => (c as HTMLButtonElement).disabled)).toBe(true)
+  })
+
+  it('이전 질문에서 펼친 찾지 못한 답에도 찾기 버튼과 질문 칩이 있다', () => {
+    const onSearchText = vi.fn()
+    const onAsk = vi.fn()
+    const items = [...answers(3).map((a) => ({ ...a, questionId: a.questionId + 10 })), noAnswer(2, SPACE_QUESTION, 'NOT_FOUND')]
+    render(<Harness submitDraft={noop} items={items} suggestions={SUGGESTIONS} onAsk={onAsk} onSearchText={onSearchText} />)
+    fireEvent.click(within(screen.getByRole('region', { name: '이전 질문 1개' })).getByRole('button', { name: /우주 탐사/ }))
+    const article = card(2)
+    fireEvent.click(within(article).getByRole('button', { name: "문장 변경에서 '우주' 찾기" }))
+    expect(onSearchText).toHaveBeenCalledWith('우주')
+    fireEvent.click(chipsIn(article, '이 분석에서 물어볼 수 있는 질문')[0])
+    expect(onAsk).toHaveBeenCalledWith('매출액은 왜 늘었나요?')
   })
 })
