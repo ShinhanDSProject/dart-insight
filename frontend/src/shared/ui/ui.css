@@ -711,6 +711,22 @@ th[aria-sort='none'] .data-table__sort-mark {
   background: var(--color-chart-deleted);
 }
 
+.share-bar__part--series-1 {
+  background: var(--color-chart-series-1);
+}
+
+.share-bar__part--series-2 {
+  background: var(--color-chart-series-2);
+}
+
+.share-bar__part--series-3 {
+  background: var(--color-chart-series-3);
+}
+
+.share-bar__part--series-4 {
+  background: var(--color-chart-series-4);
+}
+
 .share-bar__legend {
   display: flex;
   flex-wrap: wrap;

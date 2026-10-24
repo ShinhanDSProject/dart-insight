@@ -6,13 +6,7 @@ import type { AnswerFeedback, FeedbackReason } from '@/shared/api/questions'
  * 보이는 평가·저장된 평가·저장 상태가 함께 바뀌어 reducer로 둔다(ST-2).
  */
 
-/** 도움이 안 된 사유. 화면에 보이는 순서 */
-export const FEEDBACK_REASONS: readonly { reason: FeedbackReason; label: string }[] = [
-  { reason: 'WRONG_SOURCE', label: '근거가 안 맞아요' },
-  { reason: 'NOT_ANSWERED', label: '질문에 답하지 않았어요' },
-  { reason: 'HARD_TO_READ', label: '이해하기 어려워요' },
-  { reason: 'OTHER', label: '기타' },
-]
+export { FEEDBACK_REASONS } from '@/shared/lib/feedbackReasons'
 
 /** 누른 버튼 */
 export type FeedbackChoice =

@@ -14,6 +14,7 @@ describe('endpoints', () => {
     expect(endpoints.questions(3)).toBe('/api/analyses/3/questions')
     expect(endpoints.questionFeedback(3, 7)).toBe('/api/analyses/3/questions/7/feedback')
     expect(endpoints.textChangeExplanations(3, 5512)).toBe('/api/analyses/3/text-changes/5512/explanations')
+    expect(endpoints.aiUsage()).toBe('/api/system/ai-usage')
   })
 
   it('경로 변수는 항상 인코딩한다', () => {

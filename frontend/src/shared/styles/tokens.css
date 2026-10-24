@@ -80,6 +80,12 @@
   --color-chart-added: #2e9a63;
   --color-chart-modified: #4f479e;
   --color-chart-deleted: #c0782b;
+  /* 상태 구성(AI 사용 현황의 질문·풀이·호출 결과, 이 순서로 붙여 그림). 좋고 나쁨을 뜻하지 않는 범주 색이다.
+     색 검사 통과(흰 배경, 이웃 색맹 구분 ΔE 16.8 이상, 모든 쌍 정상 시각 ΔE 17.2 이상, 대비 3:1) */
+  --color-chart-series-1: #4f479e;
+  --color-chart-series-2: #3a8fc0;
+  --color-chart-series-3: #c0782b;
+  --color-chart-series-4: #a8578f;
 
   /* 색: 추가된 문장 */
   --color-added: var(--color-increase);

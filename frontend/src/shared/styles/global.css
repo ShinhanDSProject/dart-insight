@@ -263,6 +263,14 @@ a.app-nav__item:not([aria-current='page']):hover {
   margin: 0;
 }
 
+/* 팀이 보는 시스템 화면(AI 사용 현황)으로 가는 작은 링크. 출처 문구 오른쪽 끝 */
+.app-footer__link {
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
 /* 좁은 화면: 왼쪽 메뉴를 위로 올리고 메뉴 항목을 가로로 놓는다 */
 @media (max-width: 900px) {
   .app {

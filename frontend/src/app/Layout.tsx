@@ -149,6 +149,9 @@ export function Layout() {
         <footer className="app-footer">
           <Icon name="shield-alert" size={16} />
           <p>출처: 금융감독원 전자공시시스템(DART). 투자 판단을 돕는 정보가 아니며, 매수·매도를 권하지 않습니다.</p>
+          <Link to="/system/ai-usage" className="app-footer__link">
+            시스템 · AI 사용 현황
+          </Link>
         </footer>
       </div>
     </div>
