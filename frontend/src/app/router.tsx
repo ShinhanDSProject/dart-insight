@@ -1,15 +1,25 @@
 import { createBrowserRouter } from 'react-router'
 import { Layout } from './Layout'
 import { RouteError } from './RouteError'
-import { AnalysisProgressPage } from '@/features/analysis-progress/AnalysisProgressPage'
-import { AnalysisResultPage } from '@/features/analysis-result/AnalysisResultPage'
-import { CompanyPage } from '@/features/report-selection/CompanyPage'
-import { ComparabilityPage } from '@/features/comparability/ComparabilityPage'
-import { SignupPage } from '@/features/user-registration/SignupPage'
-import { LoginPage } from '@/features/user-login/LoginPage'
 import { NotFoundPage } from './NotFoundPage'
-import { SearchPage } from '@/features/company-search/SearchPage'
-import { AiUsagePage } from '@/features/ai-usage/AiUsagePage'
+import { PageSuspense } from './PageSuspense'
+import { lazyPage } from './lazyPage'
+
+// 화면 코드는 그 화면을 처음 열 때 받는다(첫 로딩을 줄이기 위해). 받지 못하면 RouteError가 '다시 시도'를 보여 준다.
+const SearchPage = lazyPage(() => import('@/features/company-search/SearchPage').then((m) => m.SearchPage))
+const SignupPage = lazyPage(() => import('@/features/user-registration/SignupPage').then((m) => m.SignupPage))
+const LoginPage = lazyPage(() => import('@/features/user-login/LoginPage').then((m) => m.LoginPage))
+const CompanyPage = lazyPage(() => import('@/features/report-selection/CompanyPage').then((m) => m.CompanyPage))
+const ComparabilityPage = lazyPage(() =>
+  import('@/features/comparability/ComparabilityPage').then((m) => m.ComparabilityPage),
+)
+const AnalysisProgressPage = lazyPage(() =>
+  import('@/features/analysis-progress/AnalysisProgressPage').then((m) => m.AnalysisProgressPage),
+)
+const AnalysisResultPage = lazyPage(() =>
+  import('@/features/analysis-result/AnalysisResultPage').then((m) => m.AnalysisResultPage),
+)
+const AiUsagePage = lazyPage(() => import('@/features/ai-usage/AiUsagePage').then((m) => m.AiUsagePage))
 
 /**
  * 화면 경로(와이어프레임 번호)
@@ -27,17 +37,37 @@ export const router = createBrowserRouter([
     errorElement: <RouteError />,
     children: [
       {
-        // 화면 안에서 난 오류도 왼쪽 메뉴·상단 헤더 안에 보여 준다
+        // 화면 안에서 난 오류(화면 코드를 받지 못한 경우 포함)도 왼쪽 메뉴·상단 헤더 안에 보여 준다
         errorElement: <RouteError />,
         children: [
-          { path: '/', element: <SearchPage />, handle: { crumb: '기업 검색' } },
-          { path: '/signup', element: <SignupPage />, handle: { crumb: '회원가입' } },
-          { path: '/login', element: <LoginPage />, handle: { crumb: '로그인' } },
-          { path: '/companies/:corpCode', element: <CompanyPage />, handle: { crumb: '보고서 선택' } },
-          { path: '/companies/:corpCode/compare', element: <ComparabilityPage />, handle: { crumb: '비교 조건 확인' } },
-          { path: '/analyses/:analysisId/progress', element: <AnalysisProgressPage />, handle: { crumb: '분석 진행' } },
-          { path: '/analyses/:analysisId', element: <AnalysisResultPage />, handle: { crumb: '분석 결과' } },
-          { path: '/system/ai-usage', element: <AiUsagePage />, handle: { crumb: 'AI 사용 현황' } },
+          { path: '/', element: <PageSuspense><SearchPage /></PageSuspense>, handle: { crumb: '기업 검색' } },
+          { path: '/signup', element: <PageSuspense><SignupPage /></PageSuspense>, handle: { crumb: '회원가입' } },
+          { path: '/login', element: <PageSuspense><LoginPage /></PageSuspense>, handle: { crumb: '로그인' } },
+          {
+            path: '/companies/:corpCode',
+            element: <PageSuspense><CompanyPage /></PageSuspense>,
+            handle: { crumb: '보고서 선택' },
+          },
+          {
+            path: '/companies/:corpCode/compare',
+            element: <PageSuspense><ComparabilityPage /></PageSuspense>,
+            handle: { crumb: '비교 조건 확인' },
+          },
+          {
+            path: '/analyses/:analysisId/progress',
+            element: <PageSuspense><AnalysisProgressPage /></PageSuspense>,
+            handle: { crumb: '분석 진행' },
+          },
+          {
+            path: '/analyses/:analysisId',
+            element: <PageSuspense><AnalysisResultPage /></PageSuspense>,
+            handle: { crumb: '분석 결과' },
+          },
+          {
+            path: '/system/ai-usage',
+            element: <PageSuspense><AiUsagePage /></PageSuspense>,
+            handle: { crumb: 'AI 사용 현황' },
+          },
           { path: '*', element: <NotFoundPage />, handle: { crumb: '페이지 없음' } },
         ],
       },
