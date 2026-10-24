@@ -16,7 +16,7 @@ function loaded(sections: TextSectionCount[]): LoadState<TextOverview> {
   const all = sections.reduce((sum, s) => sum + s.count, 0)
   return {
     status: 'success',
-    data: { status: 'available', all, added: all, deleted: 0, modified: 0, reviewNeeded: 0, partial: false, sections },
+    data: { status: 'available', all, added: all, deleted: 0, modified: 0, numericUpdate: 0, moved: 0, reviewNeeded: 0, partial: false, sections },
   }
 }
 
