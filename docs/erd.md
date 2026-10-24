@@ -434,6 +434,8 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 
 ### analysis_question
 
+> 마이그레이션: `V13__create_analysis_question.sql`.
+
 분석에 한 질문과 AI 답입니다(3.10, [ADR-0019](adr/0019-grounded-question-answering.md)). 질문은 사용자와 묶지 않습니다. AI 답은 모델·프롬프트 버전·생성 시각과 함께 저장합니다(화면 'AI 생성').
 
 | 컬럼 | 타입 | 키 | null | 설명 |
