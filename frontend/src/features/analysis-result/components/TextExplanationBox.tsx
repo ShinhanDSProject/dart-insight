@@ -34,7 +34,8 @@ interface TextExplanationBoxProps {
 export function TextExplanationBox({ id, entry, analysis, onRetry, onOpenSource }: TextExplanationBoxProps) {
   const busy = entry.status === 'idle' || entry.status === 'loading'
   return (
-    <section id={id} className="text-explain" aria-label="AI 한 줄 풀이" aria-live="polite" aria-busy={busy}>
+    // 여러 카드에서 함께 펼칠 수 있어 랜드마크(section)가 아니라 이름 붙은 묶음(group)으로 둔다
+    <div id={id} className="text-explain" role="group" aria-label="AI 한 줄 풀이" aria-live="polite" aria-busy={busy}>
       {match(entry)
         // 펼치자마자 부르므로 idle은 한 순간뿐이다. 기다림과 같이 보인다
         .with({ status: 'idle' }, { status: 'loading' }, () => <ExplanationPending />)
@@ -49,7 +50,7 @@ export function TextExplanationBox({ id, entry, analysis, onRetry, onOpenSource 
           </div>
         ))
         .exhaustive()}
-    </section>
+    </div>
   )
 }
 
