@@ -27,6 +27,8 @@ export const endpoints = {
     `${analysis(analysisId)}/financial-changes/${seg(changeId)}`,
   textChanges: (analysisId: number) => `${analysis(analysisId)}/text-changes`,
   textChange: (analysisId: number, changeId: number) => `${analysis(analysisId)}/text-changes/${seg(changeId)}`,
+  textChangeExplanations: (analysisId: number, changeId: number) =>
+    `${analysis(analysisId)}/text-changes/${seg(changeId)}/explanations`,
   document: (analysisId: number, side: string) => `${analysis(analysisId)}/documents/${seg(side)}`,
   documentSection: (analysisId: number, side: string, sectionNo: number) =>
     `${analysis(analysisId)}/documents/${seg(side)}/sections/${seg(sectionNo)}`,

@@ -1,6 +1,8 @@
-import { apiGet } from './client'
+import { apiGet, apiPost } from './client'
 import { endpoints } from './endpoints'
+import type { DocumentSide } from './documents'
 import type { ReportType } from './reports'
+import type { AiInfo } from './summary'
 
 /** docs/api-spec.md GET /api/analyses/{id}/text-changes */
 export type TextStatus = 'COMPLETED' | 'PARTIAL' | 'FAILED'
@@ -134,4 +136,35 @@ export interface TextChangeDetail {
 
 export function getTextChange(analysisId: number, changeId: number, signal?: AbortSignal): Promise<TextChangeDetail> {
   return apiGet(endpoints.textChange(analysisId, changeId), undefined, { signal })
+}
+
+/** docs/api-spec.md POST /api/analyses/{id}/text-changes/{changeId}/explanations (3.11, FS-6) */
+export type TextExplanationStatus = 'OK' | 'REVIEW_NEEDED' | 'NO_SOURCE'
+
+/** 풀이가 인용한 원문 위치 */
+export interface TextExplanationEvidence {
+  side: DocumentSide
+  rceptNo: string
+  blockNo: number
+  /** 근거 ID({접수번호}#B{블록 번호}) */
+  evidenceId: string
+}
+
+export interface TextExplanation {
+  changeId: number
+  status: TextExplanationStatus
+  /** OK일 때만. 그 밖은 null */
+  sentence: string | null
+  /** 풀이하지 못한 사유 등 안내 */
+  message: string | null
+  evidence: TextExplanationEvidence[]
+  /** AI 문장일 때만. NO_SOURCE면 null */
+  ai: AiInfo | null
+  /** 저장된 풀이를 그대로 돌려줬는지(AI 호출 없음) */
+  cached: boolean
+}
+
+/** 문장 변경 AI 한 줄 풀이(만들거나 저장된 것). 서버가 분석·변경마다 하나만 저장한다 */
+export function explainTextChange(analysisId: number, changeId: number, signal?: AbortSignal): Promise<TextExplanation> {
+  return apiPost(endpoints.textChangeExplanations(analysisId, changeId), undefined, { signal })
 }
