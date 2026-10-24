@@ -48,11 +48,36 @@
   background: var(--color-accent-subtle);
 }
 
+.company-list__item {
+  transition: background-color var(--motion-fast) var(--ease-out);
+}
+
+.company-list__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.company-list__same {
+  color: var(--color-attention);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+.company-list__code {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
 .company-list__name {
   font-weight: var(--font-weight-bold);
 }
 
 .company-list__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }
