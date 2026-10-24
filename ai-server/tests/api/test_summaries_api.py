@@ -41,7 +41,7 @@ def test_summary_items_and_call_records_are_returned() -> None:
 
     assert response.status_code == 200
     data = response.json()
-    assert data["promptVersion"] == "summary-2"
+    assert data["promptVersion"] == "summary-3"
     assert data["expressionRulesVersion"] == "expr-1"
     assert data["gradeRulesVersion"] == "grade-1"
     assert data["model"] == "fake-model"
@@ -64,7 +64,7 @@ def test_summary_items_and_call_records_are_returned() -> None:
     (call,) = data["calls"]
     assert call["task"] == "summary"
     assert call["traceId"] == "sum-1"
-    assert call["promptVersion"] == "summary-2"
+    assert call["promptVersion"] == "summary-3"
 
 
 def test_no_llm_is_503() -> None:

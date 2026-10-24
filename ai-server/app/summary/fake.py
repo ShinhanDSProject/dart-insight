@@ -15,6 +15,8 @@ _WORDS = {
     "ADDED": "새 내용이 들어갔어요",
     "DELETED": "내용이 문서에서 빠졌어요",
     "MODIFIED": "내용이 바뀌었어요",
+    "NUMERIC_UPDATE": "숫자가 바뀌었어요",
+    "MOVED": "같은 내용이 다른 자리로 옮겨졌어요",
 }
 _SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
 

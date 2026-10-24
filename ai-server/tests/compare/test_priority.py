@@ -6,7 +6,16 @@ from app.compare.priority import (
     prioritize,
     section_rule,
 )
-from app.compare.text_diff import ADDED, DELETED, MODIFIED, REVIEW_NEEDED, Change, Position
+from app.compare.text_diff import (
+    ADDED,
+    DELETED,
+    MODIFIED,
+    MOVED,
+    NUMERIC_UPDATE,
+    REVIEW_NEEDED,
+    Change,
+    Position,
+)
 
 BUSINESS = "II. 사업의 내용 > 1. 사업의 개요"
 FINANCE = "III. 재무에 관한 사항 > 2. 연결재무제표"
@@ -32,16 +41,46 @@ def test_new_paragraph_in_business_section_comes_first() -> None:
     assert priority.reasons == ["사업의 내용 섹션 +30", "문장·표 추가 +20", "문단 +10"]
 
 
-def test_numbers_only_table_change_goes_last() -> None:
+def test_numeric_update_table_change_goes_last() -> None:
     priority = prioritize(
-        change(MODIFIED, FINANCE, "TABLE", numbers_only=True, similarity=0.98),
+        change(NUMERIC_UPDATE, FINANCE, "TABLE", numbers_only=True, similarity=0.98),
         "매출 | 1,000",
         "매출 | 1,200",
     )
 
     assert priority.level == LOW
     assert priority.score == 0
-    assert "숫자만 바뀜(재무 수치 탭과 겹침) -30" in priority.reasons
+    assert priority.reasons == ["재무에 관한 사항 섹션 +10", "숫자만 바뀜(재무 수치 탭과 겹침) -20"]
+
+
+def test_numeric_update_scores_like_numbers_only_modification_before() -> None:
+    # priority-1: 섹션 30 + 수정 10 + 문단 10 - 숫자만 바뀜 30 = 20
+    priority = prioritize(
+        change(NUMERIC_UPDATE, BUSINESS, numbers_only=True, similarity=0.95), "1명", "2명"
+    )
+
+    assert priority.score == 20
+    assert priority.level == LOW
+
+
+def test_moved_paragraph_ranks_below_real_changes() -> None:
+    text = "당사는 미국에 공장을 짓고 있습니다."
+    moved = prioritize(change(MOVED, BUSINESS, similarity=1.0), text, text)
+    added = prioritize(change(ADDED, BUSINESS), None, text)
+    modified = prioritize(change(MODIFIED, BUSINESS, similarity=0.9), "a", "b")
+
+    assert moved.level == LOW
+    assert moved.score == 20
+    assert "위치 이동(내용은 그대로) -20" in moved.reasons
+    assert moved.score is not None and added.score is not None and modified.score is not None
+    assert moved.score < modified.score < added.score
+
+
+def test_keywords_already_in_moved_text_do_not_raise_priority() -> None:
+    text = "소송과 합병에 관한 내용입니다."
+    priority = prioritize(change(MOVED, BUSINESS, similarity=1.0), text, text)
+
+    assert not [r for r in priority.reasons if r.startswith("핵심어")]
 
 
 def test_keywords_in_new_words_raise_priority_up_to_two() -> None:

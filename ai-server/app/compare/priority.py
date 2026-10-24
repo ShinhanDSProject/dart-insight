@@ -6,7 +6,9 @@
 
 - 섹션: 사업의 내용·경영진단·투자자 보호·대주주 거래처럼 사업 내용과 위험을 적는 섹션을 먼저 본다.
 - 변경 유형: 문장이 새로 들어가거나 빠진 것을 고친 것보다 먼저 본다. 크게 고친 것은 조금 더 앞에.
-- 블록: 문단을 표보다 먼저 본다. 숫자만 바뀐 표·문단은 재무 수치 탭과 겹쳐 뒤로 미룬다.
+- 블록: 문단을 표보다 먼저 본다.
+- 숫자만 바뀜(NUMERIC_UPDATE)은 재무 수치 탭과 겹치고, 위치 이동(MOVED)은 내용이 그대로라
+  뒤로 미룬다.
 - 핵심어: 소송·제재·합병처럼 확인이 필요한 사건을 가리키는 말이 바뀐 글에 있으면 앞으로.
 - 검토 필요(두 보고서의 항목을 짝짓지 못함)는 규칙으로 판단할 수 없어
   순위를 매기지 않는다(판단 유보).
@@ -20,13 +22,15 @@ from app.compare.text_diff import (
     ADDED,
     DELETED,
     MODIFIED,
+    MOVED,
+    NUMERIC_UPDATE,
     REVIEW_NEEDED,
     Change,
     title_key,
 )
 
 # 결과가 달라지게 바꾸면 이 버전과 backend Analysis.CURRENT_VERSION을 함께 올린다
-PRIORITY_VERSION = "priority-1"
+PRIORITY_VERSION = "priority-2"
 
 HIGH = "HIGH"
 MEDIUM = "MEDIUM"
@@ -77,6 +81,10 @@ KEYWORDS = [
     "증설",
     "폐쇄",
 ]
+# 숫자만 바뀜·위치 이동은 수정(+10)보다 30점 아래
+# (priority-1의 '수정 +10, 숫자만 바뀜 -30'과 같은 자리)
+NUMERIC_UPDATE_SCORE = -20
+MOVED_SCORE = -20
 KEYWORD_SCORE = 15
 KEYWORD_LIMIT = 2
 
@@ -112,17 +120,19 @@ def prioritize(change: Change, previous_text: str | None, current_text: str | No
     elif change.change_type == MODIFIED:
         score += 10
         reasons.append("수정 +10")
-        if change.similarity is not None and change.similarity < 0.7 and not change.numbers_only:
+        if change.similarity is not None and change.similarity < 0.7:
             score += 10
             reasons.append("크게 바뀜(비슷한 정도 0.7 미만) +10")
+    elif change.change_type == NUMERIC_UPDATE:
+        score += NUMERIC_UPDATE_SCORE
+        reasons.append(f"숫자만 바뀜(재무 수치 탭과 겹침) {NUMERIC_UPDATE_SCORE}")
+    elif change.change_type == MOVED:
+        score += MOVED_SCORE
+        reasons.append(f"위치 이동(내용은 그대로) {MOVED_SCORE}")
 
     if change.block_type == "PARAGRAPH":
         score += 10
         reasons.append("문단 +10")
-
-    if change.numbers_only:
-        score -= 30
-        reasons.append("숫자만 바뀜(재무 수치 탭과 겹침) -30")
 
     changed = _changed_text(change.change_type, previous_text, current_text)
     hits = [word for word in KEYWORDS if word in changed][:KEYWORD_LIMIT]
@@ -136,7 +146,8 @@ def prioritize(change: Change, previous_text: str | None, current_text: str | No
 
 
 def _changed_text(change_type: str, previous: str | None, current: str | None) -> str:
-    """핵심어를 찾을 글. 수정이면 새로 들어간 낱말만 본다(원래 있던 말로 순위가 오르지 않게)."""
+    """핵심어를 찾을 글. 수정·숫자만 바뀜·위치 이동이면 새로 들어간 낱말만 본다
+    (원래 있던 말로 순위가 오르지 않게)."""
     if change_type == ADDED:
         return current or ""
     if change_type == DELETED:

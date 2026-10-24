@@ -70,6 +70,7 @@ def _change(change: Change, priority: Priority) -> dict[str, Any]:
         "sectionStatus": change.section_status,
         "sectionTitle": change.section_title,
         "sectionPath": change.section_path,
+        "previousSectionPath": change.previous_section_path,
         "previous": _position(change.previous),
         "current": _position(change.current),
         "numbersOnly": change.numbers_only,

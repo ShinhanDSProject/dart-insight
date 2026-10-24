@@ -33,16 +33,45 @@ def test_changes_come_back_with_positions() -> None:
 
     assert response.status_code == 200
     data = response.json()
-    assert data["diffVersion"] == "text-diff-1"
+    assert data["diffVersion"] == "text-diff-2"
     (change,) = data["changes"]
     assert change["changeType"] == "MODIFIED"
     assert change["previous"] == {"sectionNo": 2, "blockNo": 5}
     assert change["current"] == {"sectionNo": 2, "blockNo": 7}
     assert change["sectionPath"] == "II. 사업의 내용 > 1. 사업의 개요"
     assert change["numbersOnly"] is False
-    assert data["priorityVersion"] == "priority-1"
+    assert change["previousSectionPath"] is None
+    assert data["priorityVersion"] == "priority-2"
     assert change["priority"]["level"] in {"HIGH", "MEDIUM", "LOW"}
     assert change["priority"]["reasons"][0].startswith("사업의 내용 섹션")
+
+
+def test_moved_change_has_both_locations_and_previous_section_path() -> None:
+    sections = [*SECTIONS, {"sectionNo": 3, "parentNo": 1, "level": 2, "title": "2. 주요 제품"}]
+    text = "당사는 미국 텍사스주에 반도체 공장을 짓고 있습니다."
+    data = {
+        "previous": {
+            "rceptNo": "20250311000001",
+            "sections": sections,
+            "blocks": [{"blockNo": 5, "sectionNo": 2, "type": "PARAGRAPH", "text": text}],
+        },
+        "current": {
+            "rceptNo": "20260310000001",
+            "sections": sections,
+            "blocks": [{"blockNo": 7, "sectionNo": 3, "type": "PARAGRAPH", "text": text}],
+        },
+    }
+
+    response = client.post("/internal/text-changes", json=data)
+
+    assert response.status_code == 200
+    (change,) = response.json()["changes"]
+    assert change["changeType"] == "MOVED"
+    assert change["previous"] == {"sectionNo": 2, "blockNo": 5}
+    assert change["current"] == {"sectionNo": 3, "blockNo": 7}
+    assert change["sectionPath"] == "II. 사업의 내용 > 2. 주요 제품"
+    assert change["previousSectionPath"] == "II. 사업의 내용 > 1. 사업의 개요"
+    assert change["numbersOnly"] is False
 
 
 def test_block_in_unknown_section_is_rejected() -> None:
