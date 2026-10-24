@@ -29,6 +29,12 @@ public class Company {
     @Column(name = "corp_name", nullable = false, length = 200)
     private String corpName;
 
+    @Column(name = "corp_name_key", length = 200)
+    private String corpNameKey;
+
+    @Column(name = "corp_name_chosung", length = 200)
+    private String corpNameChosung;
+
     @Column(name = "corp_eng_name", length = 200)
     private String corpEngName;
 
@@ -50,14 +56,20 @@ public class Company {
     protected Company() {
     }
 
-    /** 바뀐 값이 있으면 고치고 true를 돌려준다. */
+    /** 바뀐 값이 있으면 고치고 true를 돌려준다. 검색용 이름(corp_name_key·corp_name_chosung)도 회사명에 맞춘다. */
     public boolean updateFrom(CorpCodeEntry entry, LocalDateTime now) {
+        String nameKey = CompanyNameKey.key(entry.corpName());
+        String nameChosung = CompanyNameKey.chosung(entry.corpName());
         boolean changed = !Objects.equals(corpName, entry.corpName())
+                || !Objects.equals(corpNameKey, nameKey)
+                || !Objects.equals(corpNameChosung, nameChosung)
                 || !Objects.equals(corpEngName, entry.corpEngName())
                 || !Objects.equals(stockCode, entry.stockCode())
                 || !Objects.equals(modifyDate, entry.modifyDate());
         if (changed) {
             corpName = entry.corpName();
+            corpNameKey = nameKey;
+            corpNameChosung = nameChosung;
             corpEngName = entry.corpEngName();
             stockCode = entry.stockCode();
             modifyDate = entry.modifyDate();
@@ -85,6 +97,14 @@ public class Company {
 
     public String getCorpName() {
         return corpName;
+    }
+
+    public String getCorpNameKey() {
+        return corpNameKey;
+    }
+
+    public String getCorpNameChosung() {
+        return corpNameChosung;
     }
 
     public String getCorpEngName() {
