@@ -5,7 +5,9 @@ import {
   openFinancialChanges,
   openSourceChanges,
   openTextChanges,
+  openAsk,
   openTextList,
+  openTextSearch,
   parseResultParams,
   sourceParamChanges,
   textParamChanges,
@@ -111,5 +113,17 @@ describe('고르기를 주소 값으로 바꾸기', () => {
   it('변화 개요에서 문장 변화 탭을 전체 또는 그 유형으로 연다', () => {
     expect(openTextList(null)).toEqual({ tab: 'text', ttype: null, tsort: null, tc: null })
     expect(openTextList('REVIEW_NEEDED')).toEqual({ tab: 'text', ttype: 'REVIEW_NEEDED', tsort: null, tc: null })
+  })
+})
+
+describe('AI 질문 탭 주소', () => {
+  it('?tab=ask를 AI 질문 탭으로 읽는다', () => {
+    expect(parseResultParams(new URLSearchParams('tab=ask')).tab).toBe('ask')
+    expect(openAsk()).toEqual({ tab: 'ask' })
+  })
+
+  it('찾지 못한 질문은 문장 변화 탭을 그 낱말로 검색해 연다', () => {
+    expect(openTextSearch('매출액')).toEqual({ tab: 'text', ttype: null, tsort: null, tsec: null, tq: '매출액', tc: null })
+    expect(openTextSearch(null)).toMatchObject({ tab: 'text', tq: null })
   })
 })

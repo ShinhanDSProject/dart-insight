@@ -7,11 +7,11 @@ import { searchQueryOf } from './textFilter'
 
 /**
  * W-03 결과 화면의 주소 상태(ST-6).
- * ?tab=&sj=&changed=&unit=&change= 재무 수치, ?ttype=&tsort=&tsec=&tq=&tc= 문장 변화, ?doc=&section=&block= 원문 확인
+ * ?tab=&sj=&changed=&unit=&change= 재무 수치, ?tab=ask AI 질문, ?ttype=&tsort=&tsec=&tq=&tc= 문장 변화, ?doc=&section=&block= 원문 확인
  */
-export type ResultTab = 'summary' | 'financial' | 'text' | 'source'
+export type ResultTab = 'summary' | 'financial' | 'text' | 'ask' | 'source'
 
-export const resultTabs: ResultTab[] = ['summary', 'financial', 'text', 'source']
+export const resultTabs: ResultTab[] = ['summary', 'financial', 'text', 'ask', 'source']
 const sjDivs: SjDiv[] = ['BS', 'IS', 'CIS', 'CF', 'SCE']
 const changeTypes: ChangeType[] = ['ADDED', 'DELETED', 'MODIFIED', 'REVIEW_NEEDED']
 
@@ -139,4 +139,14 @@ export function openChangedAccounts(sjDiv: SjDiv | null): ParamChanges {
 /** 요약의 변화 개요에서 문장 변화 탭을 그 유형으로 거른다(null이면 전체) */
 export function openTextList(type: ChangeType | null): ParamChanges {
   return { tab: 'text', ttype: type, tsort: null, tc: null }
+}
+
+/** AI 질문 탭으로 간다(3.10). 질문·답은 주소에 남기지 않는다 */
+export function openAsk(): ParamChanges {
+  return { tab: 'ask' }
+}
+
+/** AI 질문에서 찾지 못한 질문을 문장 변화 탭의 검색으로 넘긴다(유형·정렬·섹션은 기본값). 낱말이 없으면 검색 없이 연다 */
+export function openTextSearch(q: string | null): ParamChanges {
+  return { tab: 'text', ttype: null, tsort: null, tsec: null, tq: q, tc: null }
 }
