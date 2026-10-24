@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef } from 'react'
-import { explainTextChange, getTextChange } from '@/shared/api/textChanges'
+import { explainTextChange } from '@/shared/api/textChanges'
 import { explanationOf, explanationReducer, initialExplanations, type ExplanationEntry } from '../model/textExplanation'
 
 /**
@@ -31,11 +31,8 @@ export function useTextExplanations(analysisId: number) {
       const controller = new AbortController()
       controllers.current.set(changeId, controller)
       dispatch({ type: 'start', changeId })
-      // 섹션 번호는 근거 상세에만 있어 함께 받는다. 받지 못해도 풀이는 보여 준다(근거는 글자로만)
-      const detail = getTextChange(analysisId, changeId, controller.signal).catch(() => null)
       explainTextChange(analysisId, changeId, controller.signal)
-        .then(async (explanation) => {
-          const data = { explanation, detail: await detail }
+        .then((data) => {
           if (controller.signal.aborted) return
           done.current.add(changeId)
           dispatch({ type: 'resolve', changeId, data })
