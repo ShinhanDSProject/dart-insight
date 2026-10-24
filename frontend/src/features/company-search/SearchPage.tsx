@@ -136,7 +136,7 @@ function SearchResult({ state, onRetry, listRef, onBackToInput }: SearchResultPr
     .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={onRetry} messages={errorMessages} />)
     .with({ status: 'success', data: { items: [] } }, ({ data }) => (
       <EmptyState title={`'${data.query}'에 맞는 기업이 없습니다.`}>
-        <p>회사명 일부나 종목코드 6자리로 다시 검색해 보세요. 띄어쓰기와 '(주)' 같은 표기는 빼고 입력합니다.</p>
+        <p>회사명 일부, 초성(예: ㅅㅅㅈㅈ), 종목코드 6자리로 다시 검색해 보세요. '(주)' 같은 표기는 빼고 입력해요.</p>
       </EmptyState>
     ))
     .with({ status: 'success' }, ({ data }) => (
