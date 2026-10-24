@@ -3,7 +3,7 @@ package com.dartinsight.analysis.domain;
 /**
  * 문장·표 변경 목록의 거르기(2.5·3.7). 모두 맞는 변경만 고른다. null이면 그 조건으로 거르지 않는다.
  *
- * @param type    변경 종류(ADDED, DELETED, MODIFIED, REVIEW_NEEDED)
+ * @param type    변경 종류(TextChangeRow.TYPES 중 하나)
  * @param section 최상위 섹션 제목. 그 섹션과 하위 섹션(섹션 경로가 "{section} > "로 시작)의 변경
  * @param q       찾을 글. 변경 전·후 전체 글이나 섹션 경로에 들어 있으면 맞음(대소문자 무시)
  */

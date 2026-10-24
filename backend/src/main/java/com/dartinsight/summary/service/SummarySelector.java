@@ -11,6 +11,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 요약할 변화 고르기(3.2). 고르는 일은 코드가 한다(LLM에 맡기지 않음).
@@ -18,7 +19,7 @@ import java.util.Map;
  *   <li>재무 수치: 계산한 계정 중 손익계산서에서 증감액이 큰 3개(손익계산서 없이 포괄손익계산서 하나로 낸 회사는
  *   포괄손익계산서에서), 재무상태표에서 2개. 같은 재무제표에서 이미 고른 계정과 이전·현재 금액이 모두 같은 계정(예:
  *   자산총계와 부채와자본총계)은 건너뛰고 다음 계정으로 채운다</li>
- *   <li>문장 변화: 우선순위(2.6) 높음·중간 중 점수가 높은 5개(숫자만 바뀐 것과 검토 필요는 뺌)</li>
+ *   <li>문장 변화: 우선순위(2.6) 높음·중간 중 점수가 높은 5개(숫자만 바뀜·위치 이동·검토 필요는 뺌)</li>
  *   <li>설명 후보: 현재 보고서의 경영진단·사업의 내용 섹션 문단 중 그 계정의 검색어(AccountAliases)가 하나라도
  *   나오는 앞의 2개</li>
  * </ul>
@@ -28,6 +29,9 @@ public final class SummarySelector {
     static final int INCOME_ITEMS = 3;
     static final int BALANCE_ITEMS = 2;
     static final int TEXT_ITEMS = 5;
+    /** 요약하지 않는 문장 변화: 숫자만 바뀜(재무 수치와 겹침), 위치 이동(내용 그대로), 검토 필요(짝 없음) */
+    static final Set<String> EXCLUDED_TEXT_TYPES = Set.of(TextChangeRow.NUMERIC_UPDATE, TextChangeRow.MOVED,
+            TextChangeRow.REVIEW_NEEDED);
     static final int CANDIDATES = 2;
     static final int MAX_CANDIDATE_CHARS = 1500;
     private static final List<String> EXPLAINING_SECTIONS = List.of("경영진단", "사업의내용");
@@ -76,8 +80,7 @@ public final class SummarySelector {
         for (int i = 0; i < rows.size(); i++) {
             TextChangeRow row = rows.get(i);
             if (row.priority() != null && ("HIGH".equals(row.priority().level())
-                    || "MEDIUM".equals(row.priority().level())) && !row.numbersOnly()
-                    && !TextChangeRow.REVIEW_NEEDED.equals(row.changeType())) {
+                    || "MEDIUM".equals(row.priority().level())) && !EXCLUDED_TEXT_TYPES.contains(row.changeType())) {
                 indexes.add(i);
             }
         }

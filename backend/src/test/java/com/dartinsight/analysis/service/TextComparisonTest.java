@@ -89,20 +89,25 @@ class TextComparisonTest {
         AI.on("/internal/documents/" + CUR + "/structure", Reply.ok(document(CUR, "STRUCTURED",
                 "당사는 메모리와 파운드리를 만듭니다.", "구분 | 금액\\n매출 | 1,200")));
         AI.on(DIFF, Reply.ok("""
-                {"diffVersion":"text-diff-1","priorityVersion":"priority-1","sectionCounts":{"matched":2},"changes":[
+                {"diffVersion":"text-diff-2","priorityVersion":"priority-2","sectionCounts":{"matched":2},"changes":[
                  {"changeType":"MODIFIED","blockType":"PARAGRAPH","sectionStatus":"MATCHED",
                   "sectionTitle":"1. 사업의 개요","sectionPath":"II. 사업의 내용 > 1. 사업의 개요",
                   "previous":{"sectionNo":2,"blockNo":1},"current":{"sectionNo":2,"blockNo":1},
                   "numbersOnly":false,"similarity":0.71234,"reviewReason":null,
                   "priority":{"level":"MEDIUM","score":50,"reasons":["사업의 내용 섹션 +30","수정 +10","문단 +10"]}},
-                 {"changeType":"MODIFIED","blockType":"TABLE","sectionStatus":"MATCHED",
+                 {"changeType":"NUMERIC_UPDATE","blockType":"TABLE","sectionStatus":"MATCHED",
                   "sectionTitle":"1. 사업의 개요","sectionPath":"II. 사업의 내용 > 1. 사업의 개요",
                   "previous":{"sectionNo":2,"blockNo":2},"current":{"sectionNo":2,"blockNo":2},
-                  "numbersOnly":true,"similarity":0.95,"reviewReason":null},
+                  "numbersOnly":true,"similarity":0.95,"reviewReason":null,"previousSectionPath":null},
                  {"changeType":"REVIEW_NEEDED","blockType":"SECTION","sectionStatus":"AMBIGUOUS",
                   "sectionTitle":"II. 사업의 내용","sectionPath":"II. 사업의 내용",
                   "previous":null,"current":{"sectionNo":1,"blockNo":null},
-                  "numbersOnly":false,"similarity":null,"reviewReason":"짝을 정하지 못했어요."}
+                  "numbersOnly":false,"similarity":null,"reviewReason":"짝을 정하지 못했어요."},
+                 {"changeType":"MOVED","blockType":"PARAGRAPH","sectionStatus":"MATCHED",
+                  "sectionTitle":"1. 사업의 개요","sectionPath":"II. 사업의 내용 > 1. 사업의 개요",
+                  "previous":{"sectionNo":2,"blockNo":1},"current":{"sectionNo":2,"blockNo":1},
+                  "numbersOnly":false,"similarity":0.71,"reviewReason":null,
+                  "previousSectionPath":"II. 사업의 내용 > 2. 주요 제품"}
                 ]}
                 """));
     }
@@ -134,7 +139,7 @@ class TextComparisonTest {
 
         assertThat(result.status()).isEqualTo(TextStatus.COMPLETED);
         assertThat(result.message()).isNull();
-        assertThat(result.rows()).hasSize(3);
+        assertThat(result.rows()).hasSize(4);
         TextChangeRow paragraph = result.rows().get(0);
         assertThat(paragraph.previous().rceptNo()).isEqualTo(PREV);
         assertThat(paragraph.previous().text()).isEqualTo("당사는 메모리를 만듭니다.");
@@ -143,13 +148,20 @@ class TextComparisonTest {
         assertThat(paragraph.priority().level()).isEqualTo("MEDIUM");
         assertThat(paragraph.priority().score()).isEqualTo(50);
         assertThat(paragraph.priority().reasons()).hasSize(3);
-        assertThat(paragraph.priority().version()).isEqualTo("priority-1");
+        assertThat(paragraph.priority().version()).isEqualTo("priority-2");
+        assertThat(paragraph.previousSectionPath()).isNull();
+        assertThat(result.rows().get(1).changeType()).isEqualTo(TextChangeRow.NUMERIC_UPDATE);
         assertThat(result.rows().get(1).numbersOnly()).isTrue();
         assertThat(result.rows().get(1).priority()).isNull();
         TextChangeRow review = result.rows().get(2);
         assertThat(review.previous()).isNull();
         assertThat(review.current().blockNo()).isNull();
         assertThat(review.current().sectionNo()).isEqualTo(1);
+        TextChangeRow moved = result.rows().get(3);
+        assertThat(moved.changeType()).isEqualTo(TextChangeRow.MOVED);
+        assertThat(moved.previousSectionPath()).isEqualTo("II. 사업의 내용 > 2. 주요 제품");
+        assertThat(moved.previous().text()).isEqualTo("당사는 메모리를 만듭니다.");
+        assertThat(moved.current().text()).isEqualTo("당사는 메모리와 파운드리를 만듭니다.");
     }
 
     @Test

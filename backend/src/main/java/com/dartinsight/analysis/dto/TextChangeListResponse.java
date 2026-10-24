@@ -11,13 +11,15 @@ public record TextChangeListResponse(Long analysisId, TextStatus textStatus, Str
         String sort, String section, String q, int page, int size, int totalItems, Counts counts,
         List<SectionView> sections, List<TextChangeItemResponse> items) {
 
-    public record Counts(int all, int added, int deleted, int modified, int reviewNeeded) {
+    public record Counts(int all, int added, int deleted, int modified, int numericUpdate, int moved,
+            int reviewNeeded) {
 
         /** @param counts 변경 종류 → 개수 */
         public static Counts of(Map<String, Integer> counts) {
             return new Counts(counts.values().stream().mapToInt(Integer::intValue).sum(),
                     counts.get(TextChangeRow.ADDED), counts.get(TextChangeRow.DELETED),
-                    counts.get(TextChangeRow.MODIFIED), counts.get(TextChangeRow.REVIEW_NEEDED));
+                    counts.get(TextChangeRow.MODIFIED), counts.get(TextChangeRow.NUMERIC_UPDATE),
+                    counts.get(TextChangeRow.MOVED), counts.get(TextChangeRow.REVIEW_NEEDED));
         }
     }
 

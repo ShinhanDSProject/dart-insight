@@ -8,6 +8,7 @@ import com.dartinsight.analysis.domain.TextChangeRow;
 import com.dartinsight.comparison.domain.ComparisonBasis;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /** 문장 비교 결과의 근거 확인(AnalysisRunner.verifyText) */
@@ -48,6 +49,21 @@ class TextVerifyTest {
         assertThat(AnalysisRunner.verifyText(ANALYSIS, List.of(
                 new TextChangeRow(TextChangeRow.REVIEW_NEEDED, TextChangeRow.SECTION, false, "AMBIGUOUS", "t", "p",
                         null, new Side(CUR, 4, null, null), null, null)))).contains("변경 유형");
+    }
+
+    @Test
+    @DisplayName("숫자만 바뀜은 두 쪽이, 위치 이동은 두 쪽과 이전 쪽 섹션 경로가 있어야 한다")
+    void numericUpdatesAndMovesNeedBothSides() {
+        Side previous = new Side(PREV, 1, 3, "a");
+        Side current = new Side(CUR, 2, 4, "a");
+        assertThat(AnalysisRunner.verifyText(ANALYSIS, List.of(
+                row(TextChangeRow.NUMERIC_UPDATE, previous, current),
+                new TextChangeRow(TextChangeRow.MOVED, "PARAGRAPH", false, "MATCHED", "t", "p", previous, current,
+                        null, null, null, "옛 경로")))).isNull();
+        assertThat(AnalysisRunner.verifyText(ANALYSIS, List.of(row(TextChangeRow.NUMERIC_UPDATE, null, current))))
+                .contains("변경 유형");
+        assertThat(AnalysisRunner.verifyText(ANALYSIS, List.of(row(TextChangeRow.MOVED, previous, current))))
+                .contains("변경 유형");
     }
 
     @Test
