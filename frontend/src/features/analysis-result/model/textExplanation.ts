@@ -1,22 +1,16 @@
 import { match } from 'ts-pattern'
 import type { DocumentSide } from '@/shared/api/documents'
-import type { TextChangeDetail, TextExplanation, TextExplanationEvidence } from '@/shared/api/textChanges'
+import type { TextExplanation, TextExplanationEvidence } from '@/shared/api/textChanges'
 import type { SourceTarget } from './resultParams'
 
 /**
  * 문장 카드의 AI 한 줄 풀이(3.11, FS-6). 카드마다 따로 불러오고, 목록이 떠 있는 동안 받은 풀이를 남겨
- * 다시 펼쳐도 다시 부르지 않는다. 풀이와 함께 그 변경의 근거 상세(섹션 번호)를 받아 원문 확인으로 연다.
+ * 다시 펼쳐도 다시 부르지 않는다.
  */
-export interface ExplanationResult {
-  explanation: TextExplanation
-  /** 근거를 원문 확인에서 열 섹션 번호를 얻는 곳. 받지 못했으면 null(근거는 글자로만 보임) */
-  detail: TextChangeDetail | null
-}
-
 export type ExplanationEntry =
   | { status: 'idle' }
   | { status: 'loading' }
-  | { status: 'success'; data: ExplanationResult }
+  | { status: 'success'; data: TextExplanation }
   | { status: 'error'; error: unknown }
 
 /** changeId → 풀이 상태. 없는 changeId는 idle */
@@ -24,7 +18,7 @@ export type ExplanationsState = Readonly<Record<number, ExplanationEntry>>
 
 export type ExplanationAction =
   | { type: 'start'; changeId: number }
-  | { type: 'resolve'; changeId: number; data: ExplanationResult }
+  | { type: 'resolve'; changeId: number; data: TextExplanation }
   | { type: 'reject'; changeId: number; error: unknown }
   | { type: 'reset' }
 
@@ -76,15 +70,10 @@ export function orderedEvidence(evidence: TextExplanationEvidence[]): TextExplan
   return [...unique].sort((a, b) => rank(a.side) - rank(b.side))
 }
 
-/**
- * 근거를 원문 확인의 어느 위치로 열지. 풀이 응답에는 섹션 번호가 없어 그 변경의 근거 상세에서 같은 쪽 원문을 찾는다.
- * 근거 상세가 없거나, 그쪽 원문이 없거나, 접수번호가 다르면 null(열지 않음).
- * 저장된 원문이 분석 때와 달라졌으면 위치(블록)는 강조하지 않고 섹션만 연다(근거 상세의 '원문 위치 보기'와 같음).
- */
-export function explanationTarget(evidence: TextExplanationEvidence, detail: TextChangeDetail | null): SourceTarget | null {
-  const source = detail?.[evidence.side] ?? null
-  if (source === null || source.rceptNo !== evidence.rceptNo) return null
-  return { side: evidence.side, section: source.sectionNo, block: source.blockMatches ? evidence.blockNo : null }
+/** 근거를 원문 확인의 어느 위치로 열지. 섹션 번호를 찾지 못했으면 null(열지 않고 글자로만 보임) */
+export function explanationTarget(evidence: TextExplanationEvidence): SourceTarget | null {
+  if (evidence.sectionNo === null) return null
+  return { side: evidence.side, section: evidence.sectionNo, block: evidence.blockNo }
 }
 
 /** 풀이를 받지 못했을 때 ApiError.code별 안내(API-3) */

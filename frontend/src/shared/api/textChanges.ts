@@ -145,7 +145,11 @@ export type TextExplanationStatus = 'OK' | 'REVIEW_NEEDED' | 'NO_SOURCE'
 export interface TextExplanationEvidence {
   side: DocumentSide
   rceptNo: string
+  /** 근거 블록이 속한 섹션 번호(분석 때 저장한 위치). 찾지 못하면 null */
+  sectionNo: number | null
   blockNo: number
+  /** 상위 섹션부터 이은 경로. 찾지 못하면 null */
+  sectionPath: string | null
   /** 근거 ID({접수번호}#B{블록 번호}) */
   evidenceId: string
 }

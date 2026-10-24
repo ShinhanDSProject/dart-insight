@@ -679,6 +679,27 @@
   font-size: var(--font-size-xs);
 }
 
+.button.text-explain__source {
+  max-width: 100%;
+}
+
+.text-explain__side {
+  flex-shrink: 0;
+}
+
+/* 섹션 경로는 버튼 안의 보조 글자. 길면 줄이고 전체는 title로 보인다 */
+.text-explain__path {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-regular);
+  text-overflow: ellipsis;
+}
+
+.text-explain__path::before {
+  content: '· ';
+}
+
 .button.text-explain__source:hover:not(:disabled) {
   border-color: var(--color-border-accent);
   background: var(--color-accent-subtle);
@@ -688,6 +709,7 @@
 .text-explain__source--static {
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
+  overflow-wrap: anywhere;
 }
 
 .text-explain__note,

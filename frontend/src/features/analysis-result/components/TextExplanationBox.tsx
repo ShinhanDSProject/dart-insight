@@ -1,6 +1,7 @@
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { TextExplanation } from '@/shared/api/textChanges'
+import { displaySectionPath } from '@/shared/lib/sectionTitle'
 import { Badge, Button, Icon, Notice } from '@/shared/ui'
 import { ErrorState } from '@/shared/ui/StateView'
 import type { SourceTarget } from '../model/resultParams'
@@ -14,7 +15,6 @@ import {
   explanationTarget,
   orderedEvidence,
   type ExplanationEntry,
-  type ExplanationResult,
 } from '../model/textExplanation'
 
 interface TextExplanationBoxProps {
@@ -43,7 +43,7 @@ export function TextExplanationBox({ id, entry, analysis, onRetry, onOpenSource 
         ))
         .with({ status: 'success' }, ({ data }) => (
           <div className="text-explain__body">
-            <ExplanationBody result={data} analysis={analysis} onOpenSource={onOpenSource} />
+            <ExplanationBody explanation={data} analysis={analysis} onOpenSource={onOpenSource} />
           </div>
         ))
         .exhaustive()}
@@ -64,15 +64,14 @@ function ExplanationPending() {
 }
 
 function ExplanationBody({
-  result,
+  explanation,
   analysis,
   onOpenSource,
 }: {
-  result: ExplanationResult
+  explanation: TextExplanation
   analysis: Analysis
   onOpenSource: (target: SourceTarget) => void
 }) {
-  const { explanation } = result
   return match(explanation.status)
     .with('OK', () => (
       <>
@@ -80,7 +79,7 @@ function ExplanationBody({
           <Badge tone="accent">AI 생성</Badge>
           <p className="text-explain__sentence">{explanation.sentence}</p>
         </div>
-        <EvidenceRow result={result} analysis={analysis} onOpenSource={onOpenSource} />
+        <EvidenceRow explanation={explanation} analysis={analysis} onOpenSource={onOpenSource} />
         <p className="text-explain__note">{EXPLANATION_NOTE}</p>
         <AiMeta explanation={explanation} />
       </>
@@ -111,27 +110,32 @@ function AiMeta({ explanation }: { explanation: TextExplanation }) {
   )
 }
 
-/** 풀이가 인용한 원문. 누르면 원문 확인 탭의 그 위치를 연다. 위치를 알 수 없으면 근거 ID만 글자로 보인다 */
+/**
+ * 풀이가 인용한 원문. 누르면 원문 확인 탭의 그 위치를 연다. 섹션 경로를 함께 적는다.
+ * 섹션 번호를 찾지 못했으면 누를 수 없는 글자로 근거 ID만 보인다.
+ */
 function EvidenceRow({
-  result,
+  explanation,
   analysis,
   onOpenSource,
 }: {
-  result: ExplanationResult
+  explanation: TextExplanation
   analysis: Analysis
   onOpenSource: (target: SourceTarget) => void
 }) {
-  const evidence = orderedEvidence(result.explanation.evidence)
+  const evidence = orderedEvidence(explanation.evidence)
   if (evidence.length === 0) return null
+  const labelId = `text-explain-evidence-${explanation.changeId}`
   return (
     <div className="text-explain__evidence">
-      <span className="text-explain__label" id={`text-explain-evidence-${result.explanation.changeId}`}>
+      <span className="text-explain__label" id={labelId}>
         근거
       </span>
-      <ul className="text-explain__sources" aria-labelledby={`text-explain-evidence-${result.explanation.changeId}`}>
+      <ul className="text-explain__sources" aria-labelledby={labelId}>
         {evidence.map((e) => {
-          const target = explanationTarget(e, result.detail)
+          const target = explanationTarget(e)
           const label = explanationSideLabel(e.side)
+          const path = e.sectionPath === null ? null : displaySectionPath(e.sectionPath)
           const reportName = e.side === 'current' ? analysis.current.reportName : analysis.previous.reportName
           return (
             <li key={e.evidenceId}>
@@ -139,16 +143,18 @@ function EvidenceRow({
                 <Button
                   variant="secondary"
                   className="text-explain__source"
-                  title={`근거 ID ${e.evidenceId}`}
+                  title={path ? `${path} · 근거 ID ${e.evidenceId}` : `근거 ID ${e.evidenceId}`}
                   onClick={() => onOpenSource(target)}
                 >
-                  <span>{label}</span>
+                  <span className="text-explain__side">{label}</span>
+                  {path && <span className="text-explain__path">{path}</span>}
                   <span className="visually-hidden"> 위치 보기 ({reportName})</span>
                   <Icon name="chevron-right" size={14} />
                 </Button>
               ) : (
                 <span className="text-explain__source text-explain__source--static">
-                  {label} · 근거 <code>{e.evidenceId}</code>
+                  {label}
+                  {path && ` · ${path}`} · 근거 <code>{e.evidenceId}</code>
                 </span>
               )}
             </li>

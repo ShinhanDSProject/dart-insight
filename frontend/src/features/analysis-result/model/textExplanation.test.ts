@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { TextChangeDetail, TextExplanation, TextExplanationEvidence, TextSource } from '@/shared/api/textChanges'
+import type { TextExplanation, TextExplanationEvidence } from '@/shared/api/textChanges'
 import {
   explanationOf,
   explanationReducer,
@@ -8,23 +8,23 @@ import {
   initialExplanations,
   orderedEvidence,
   shouldRequest,
-  type ExplanationResult,
 } from './textExplanation'
 
-const evidence = (side: 'previous' | 'current', rceptNo: string, blockNo: number): TextExplanationEvidence => ({
+const evidence = (
+  side: 'previous' | 'current',
+  rceptNo: string,
+  blockNo: number,
+  sectionNo: number | null = 1,
+): TextExplanationEvidence => ({
   side,
   rceptNo,
+  sectionNo,
   blockNo,
+  sectionPath: sectionNo === null ? null : 'II. 사업의 내용 > 7. 기타 참고사항',
   evidenceId: `${rceptNo}#B${blockNo}`,
 })
 
-const source = (rceptNo: string, sectionNo: number, blockNo: number, blockMatches = true) =>
-  ({ rceptNo, sectionNo, blockNo, blockMatches }) as TextSource
-
-const detail = (previous: TextSource | null, current: TextSource | null) =>
-  ({ change: {}, previous, current }) as TextChangeDetail
-
-const result: ExplanationResult = { explanation: { changeId: 7, status: 'OK' } as TextExplanation, detail: null }
+const result = { changeId: 7, status: 'OK' } as TextExplanation
 
 describe('explanationReducer', () => {
   it('처음 부르면 그 카드만 불러오는 중이 된다', () => {
@@ -92,34 +92,20 @@ describe('orderedEvidence', () => {
 })
 
 describe('explanationTarget', () => {
-  const d = detail(source('20260314001111', 12, 1700), source('20260814003699', 15, 1840))
-
-  it('근거 상세의 같은 쪽 섹션 번호로 원문 확인 위치를 만든다', () => {
-    expect(explanationTarget(evidence('current', '20260814003699', 1840), d)).toEqual({
+  it('근거의 쪽·섹션 번호·블록 번호로 원문 확인 위치를 만든다', () => {
+    expect(explanationTarget(evidence('current', '20260814003699', 1840, 212))).toEqual({
       side: 'current',
-      section: 15,
+      section: 212,
       block: 1840,
     })
-    expect(explanationTarget(evidence('previous', '20260314001111', 1700), d)).toEqual({
+    expect(explanationTarget(evidence('previous', '20260314001111', 1700, 198))).toEqual({
       side: 'previous',
-      section: 12,
+      section: 198,
       block: 1700,
     })
   })
 
-  it('저장된 원문이 분석 때와 다르면 위치는 강조하지 않고 섹션만 연다', () => {
-    const moved = detail(null, source('20260814003699', 15, 1840, false))
-    expect(explanationTarget(evidence('current', '20260814003699', 1840), moved)).toEqual({
-      side: 'current',
-      section: 15,
-      block: null,
-    })
-  })
-
-  it('근거 상세가 없거나 그쪽 원문이 없거나 접수번호가 다르면 열지 않는다', () => {
-    const e = evidence('current', '20260814003699', 1840)
-    expect(explanationTarget(e, null)).toBeNull()
-    expect(explanationTarget(e, detail(source('20260314001111', 12, 1700), null))).toBeNull()
-    expect(explanationTarget(e, detail(null, source('20260814009999', 15, 1840)))).toBeNull()
+  it('섹션 번호를 찾지 못한 근거는 열지 않는다', () => {
+    expect(explanationTarget(evidence('current', '20260814003699', 1840, null))).toBeNull()
   })
 })
