@@ -67,6 +67,7 @@
 | GET | `/api/companies/{corpCode}/reports` | 기업별 정기보고서 목록 | #9 (1.2), #10 (1.3) | W-01 ② | 초안 |
 | GET | `/api/reports/{rceptNo}` | 보고서 메타데이터 | #10 (1.3), #11 (1.4) | W-01 ② | 초안 |
 | GET | `/api/companies/{corpCode}/report-pairs` | 비교 기준에 맞는 보고서 쌍 | #12 (2.1) | W-01 ② | 초안 |
+| GET | `/api/companies/{corpCode}/analyses` | 이 기업의 이미 끝난 분석 목록 | #288 (1.2) | W-01 ② | 초안 |
 | POST | `/api/comparability-checks` | 비교 가능성 검증 | #13 (2.2) | W-01 ③ | 초안 |
 | POST | `/api/analyses` | 분석 요청 | #14 (2.3) | W-01 ③ → W-02 | 초안 |
 | GET | `/api/analyses/{analysisId}` | 분석 상태·단계 | #14 (2.3) | W-02, W-03 | 초안 |
@@ -312,6 +313,45 @@
 | 400 | `COMMON_INVALID_INPUT` | `basis`가 없거나 `YOY`·`PREV`가 아님 |
 | 404 | `COMPANY_NOT_FOUND`, `REPORT_NOT_FOUND` | 없는 기업, 저장되지 않았거나 다른 기업의 보고서 |
 | 502·503 | `DART_REQUEST_FAILED`, `DART_RATE_LIMITED`, `DART_KEY_MISSING` | 정기보고서 목록을 다시 받아야 하는데(4.1) OpenDART 호출이 실패하고 저장된 목록도 없음. 저장된 목록이 있으면 그 목록으로 고름 |
+
+### GET /api/companies/{corpCode}/analyses — 이미 분석한 비교
+
+- 이슈: #288 (1.2) · 화면: W-01 ②(보고서 고르기 위 '이미 분석한 비교')
+- 이 기업의 완료된(`COMPLETED`) 분석만 돌려줍니다. 대기·진행·실패한 분석은 넣지 않습니다.
+- 완료 시각(`completedAt`)이 최근인 순서입니다.
+- 같은 보고서 쌍(`previous`·`current` 접수번호)과 같은 비교 기준(`basis`)으로 여러 번 완료됐으면(분석 버전이 바뀌어 다시 분석한 경우 등) 가장 최근에 완료된 하나만 넣습니다.
+- 저장된 분석과 보고서만 읽습니다. OpenDART를 부르지 않습니다.
+- 분석이 없으면 `items`가 빈 배열입니다(에러 아님).
+
+**요청**
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| path | `corpCode` | string | 예 | 고유번호 |
+| query | `limit` | number | 아니오 | 최대 개수. 기본 5, 1 이상 20 이하 |
+
+**응답 200**
+
+```json
+{
+  "items": [
+    {
+      "analysisId": 15,
+      "basis": "YOY",
+      "previous": { "rceptNo": "20250814000987", "reportName": "반기보고서 (2025.06)", "periodEnd": "2025-06-30" },
+      "current": { "rceptNo": "20260814001234", "reportName": "반기보고서 (2026.06)", "periodEnd": "2026-06-30" },
+      "completedAt": "2026-10-24T15:20:31"
+    }
+  ]
+}
+```
+
+`previous`·`current`의 `reportName`·`periodEnd`는 저장된 보고서(`GET /api/reports/{rceptNo}`와 같은 값)에서 읽습니다.
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | `limit`가 숫자가 아니거나 1~20 밖. `errors[].field`는 `limit` |
+| 404 | `COMPANY_NOT_FOUND` | 없는 고유번호(`GET /api/companies/{corpCode}`와 같음) |
 
 ### POST /api/comparability-checks — 비교 가능성 검증
 
