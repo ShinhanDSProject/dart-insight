@@ -12,6 +12,7 @@ import {
   questionCountLabel,
   RISK_QUESTION,
   searchWordOf,
+  sectionAskQuestion,
   sectionQuestion,
   topicParticle,
   topSectionOf,
@@ -117,5 +118,28 @@ describe('입력·표시 문구', () => {
     expect(quoteLabel('짧은 문단')).toBe('짧은 문단')
     expect(quoteLabel('가'.repeat(160))).toBe(`${'가'.repeat(160)}…`)
     expect(quoteLabel(`${'가'.repeat(159)}…`)).toBe(`${'가'.repeat(159)}…`)
+  })
+})
+
+describe('sectionAskQuestion', () => {
+  it('고른 섹션이 있으면 예시 질문과 같은 꼴의 질문을 만든다', () => {
+    expect(sectionAskQuestion('XI. 그 밖에 투자자 보호를 위하여 필요한 사항')).toBe(
+      sectionQuestion('XI. 그 밖에 투자자 보호를 위하여 필요한 사항'),
+    )
+    expect(sectionAskQuestion('II. 사업의 내용')).toBe("'II. 사업의 내용'에서 무엇이 바뀌었나요?")
+  })
+
+  it('섹션을 고르지 않았으면 질문을 만들지 않는다', () => {
+    expect(sectionAskQuestion(null)).toBeNull()
+    expect(sectionAskQuestion('  ')).toBeNull()
+  })
+
+  it('목차 밖 본문은 질문을 만들지 않는다', () => {
+    expect(sectionAskQuestion('(목차 밖 본문)')).toBeNull()
+    expect(sectionAskQuestion(' (목차 밖 본문) ')).toBeNull()
+  })
+
+  it('겹친 경로는 마지막 제목으로 묻는다', () => {
+    expect(sectionAskQuestion('II. 사업의 내용 > 1. 사업의 개요')).toBe("'1. 사업의 개요'에서 무엇이 바뀌었나요?")
   })
 })

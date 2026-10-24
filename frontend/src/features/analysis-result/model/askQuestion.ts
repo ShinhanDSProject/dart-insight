@@ -86,6 +86,17 @@ export function askSuggestions(source: SuggestionSource): string[] {
   return unique.filter((q) => parseQuestion(q).kind === 'ready').slice(0, SUGGESTION_COUNT)
 }
 
+/**
+ * 문장 변화 탭에서 고른 섹션을 AI에게 물을 질문(3.10). 'A > B' 꼴이면 마지막 제목으로 묻고, 예시 질문과 같은 꼴로 만든다.
+ * 섹션을 고르지 않았거나 목차 밖 본문이면 null(묻기 버튼을 두지 않음)
+ */
+export function sectionAskQuestion(section: string | null): string | null {
+  if (section === null) return null
+  const title = section.split(' > ').at(-1)?.trim() ?? ''
+  if (title === '' || title === OUTSIDE_TOC) return null
+  return sectionQuestion(title)
+}
+
 /** 최상위 섹션 제목('II. 사업의 내용 > 1. 개요'의 앞부분) */
 export function topSectionOf(sectionPath: string): string {
   return sectionPath.split(' > ')[0].trim()
