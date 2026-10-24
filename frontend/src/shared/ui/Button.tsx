@@ -1,4 +1,4 @@
-import type { ComponentPropsWithoutRef } from 'react'
+import type { ComponentPropsWithoutRef, ComponentPropsWithRef } from 'react'
 import { Link, type LinkProps } from 'react-router'
 import { cx } from '@/shared/lib/cx'
 
@@ -21,7 +21,7 @@ function buttonClass({ variant = 'secondary', size = 'md' }: ButtonStyleProps, c
   return cx('button', `button--${variant}`, size === 'lg' && 'button--lg', className)
 }
 
-type ButtonProps = ButtonStyleProps & ComponentPropsWithoutRef<'button'>
+type ButtonProps = ButtonStyleProps & ComponentPropsWithRef<'button'>
 
 /** 누르는 것은 항상 <button>(UI-4). type 기본값은 'button'. 켜고 끄는 버튼은 aria-pressed를 넘긴다. */
 export function Button({ variant, size, className, type = 'button', ...rest }: ButtonProps) {
