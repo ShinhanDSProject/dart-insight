@@ -132,7 +132,7 @@ function FollowUpRow({ questionId, followUp }: { questionId: number; followUp: F
   if (followUp.questions.length === 0) return null
   const labelId = `ask-${questionId}-follow-up`
   return (
-    <section className="answer-follow-up" aria-labelledby={labelId}>
+    <div className="answer-follow-up" role="group" aria-labelledby={labelId}>
       <h3 className="answer-card__label" id={labelId}>
         이어서 물어보기
       </h3>
@@ -150,7 +150,7 @@ function FollowUpRow({ questionId, followUp }: { questionId: number; followUp: F
           </li>
         ))}
       </ul>
-    </section>
+    </div>
   )
 }
 
@@ -306,7 +306,7 @@ function FeedbackRow({ item, onFeedback }: { item: QuestionAnswer; onFeedback: S
   const labelId = `ask-${questionId}-feedback`
 
   return (
-    <section className="answer-feedback" aria-labelledby={labelId}>
+    <div className="answer-feedback">
       <div className="answer-feedback__row">
         <p className="answer-feedback__label" id={labelId}>
           도움이 됐나요?
@@ -343,7 +343,7 @@ function FeedbackRow({ item, onFeedback }: { item: QuestionAnswer; onFeedback: S
           ))}
         </div>
       )}
-    </section>
+    </div>
   )
 }
 
@@ -357,11 +357,11 @@ function sideTone(side: DocumentSide): BadgeTone {
 
 function EvidenceGroup({ title, count, children }: { title: string; count: number; children: ReactNode }) {
   return (
-    <section className="answer-card__group" aria-label={title}>
+    <div className="answer-card__group" role="group" aria-label={title}>
       <h3 className="answer-card__label">
         {title} <span className="answer-card__count">{formatCount(count)}</span>
       </h3>
       {children}
-    </section>
+    </div>
   )
 }
