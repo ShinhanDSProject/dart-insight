@@ -2,15 +2,17 @@ import { useState } from 'react'
 import { match, P } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { ChangeType, TextChangeItem, TextSort } from '@/shared/api/textChanges'
-import { Badge, Button, Card, Chip, FieldHint, FieldLabel, Input, Notice, Panel, SegmentedControl, Select } from '@/shared/ui'
+import { Badge, Button, Card, Chip, FieldHint, FieldLabel, Icon, Input, Notice, Panel, SegmentedControl, Select } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { TextEvidencePanel } from './TextEvidencePanel'
 import { TextExplanationBox } from './TextExplanationBox'
+import { usePinnedChanges, usePinnedTextChanges } from '../hooks/usePinnedChanges'
 import { useTextChanges } from '../hooks/useTextChanges'
 import { useTextExplanations, type TextExplanations } from '../hooks/useTextExplanations'
 import { useTextSearch } from '../hooks/useTextSearch'
 import { sectionAskQuestion } from '../model/askQuestion'
+import { PINNED_EMPTY, PINNED_LABEL, PINNED_NOTE } from '../model/pinnedList'
 import type { SourceTarget, TextViewChange } from '../model/resultParams'
 import {
   changeTypeLabel,
@@ -46,6 +48,8 @@ interface TextTabProps {
   section: string | null
   /** 검색어(3.7). null이면 검색하지 않음 */
   q: string | null
+  /** 고정한 변경만 보는지(3.3) */
+  pinned: boolean
   /** 근거를 보고 있는 변경(3.4) */
   selectedChangeId: number | null
   onChange: (changes: TextViewChange) => void
@@ -60,6 +64,7 @@ interface TextTabProps {
  * W-03 ③ 문장·내용 변화(3.9). 추가·삭제·수정·검토 필요로 거르고, 기본은 우선순위 순서(2.6)로 보여 준다.
  * 최상위 섹션과 검색어로도 함께 거른다(3.7). 고른 값은 주소에 남아 공유된다.
  * 문장을 비교하지 못했으면 '변경 없음'이 아니라 사유를 보여 준다. 짝짓지 못한 항목은 숨기지 않고 '검토 필요'로 둔다.
+ * 카드마다 고정할 수 있고, '고정' 거르기를 고르면 이 분석에서 고정한 변경만 보여 준다(3.3, 이 브라우저에만 남음).
  */
 export function TextTab({
   analysis,
@@ -67,6 +72,7 @@ export function TextTab({
   sort,
   section,
   q,
+  pinned,
   selectedChangeId,
   onChange,
   onOpenSource,
@@ -77,6 +83,8 @@ export function TextTab({
   const searchBox = useTextSearch(q, (next) => onChange({ q: next }))
   // 받은 풀이는 거르기·정렬을 바꿔도 이 탭이 떠 있는 동안 남는다(3.11)
   const explanations = useTextExplanations(analysis.analysisId)
+  const pins = usePinnedChanges(analysis.analysisId)
+  const pinnedList = usePinnedTextChanges(analysis.analysisId, pins.ids, pinned, pins.remove)
   const filtered = hasSearchFilter({ section, q })
   // 섹션을 골랐을 때만 그 섹션 변화를 묻는 버튼을 둔다(목차 밖 본문은 빼고)
   const sectionQuestion = sectionAskQuestion(section)
@@ -84,6 +92,48 @@ export function TextTab({
     searchBox.setInput('')
     onChange({ type: null, section: null, q: null })
   }
+  const showPinned = () => {
+    searchBox.setInput('')
+    onChange({ pinned: true })
+  }
+  // 고른 항목이 지금 목록(거르기·쪽·고정)에 없어도 근거는 연다(요약·주소에서 바로 온 경우)
+  const outsideEvidence = (items: TextChangeItem[]) =>
+    selectedChangeId !== null &&
+    !items.some((i) => i.changeId === selectedChangeId) && (
+      <div className="change-list__outside">
+        <p className="panel__note">지금 목록에 보이지 않는 항목의 근거예요.</p>
+        <TextEvidencePanel
+          key={selectedChangeId}
+          analysis={analysis}
+          changeId={selectedChangeId}
+          onClose={() => onChange({ change: null })}
+          onOpenSource={onOpenSource}
+        />
+      </div>
+    )
+  const changeList = (items: TextChangeItem[]) => (
+    <ol className="change-list">
+      {items.map((item) => (
+        <li key={item.changeId}>
+          <ChangeCard
+            item={item}
+            analysis={analysis}
+            selected={item.changeId === selectedChangeId}
+            pinned={pins.isPinned(item.changeId)}
+            explanations={explanations}
+            onOpenSource={onOpenSource}
+            onTogglePin={() => pins.toggle(item.changeId)}
+            onToggle={() => onChange({ change: item.changeId === selectedChangeId ? null : item.changeId })}
+            onClose={() => {
+              onChange({ change: null })
+              // 닫으면 그 항목의 '근거 상세' 버튼으로 초점을 돌려준다
+              requestAnimationFrame(() => document.getElementById(evidenceButtonId(item.changeId))?.focus())
+            }}
+          />
+        </li>
+      ))}
+    </ol>
+  )
   const notice = textStatusNotice(analysis.textStatus, analysis.textMessage)
   const failed = analysis.textStatus === 'FAILED' || analysis.textStatus === null
 
@@ -151,29 +201,63 @@ export function TextTab({
               <Chip
                 key={option.label}
                 tone={option.value === 'REVIEW_NEEDED' ? 'attention' : 'neutral'}
-                pressed={type === option.value}
+                pressed={!pinned && type === option.value}
                 count={counts && countFor(counts, option.value)}
                 onClick={() => {
-                  if (type !== option.value) onChange({ type: option.value })
+                  if (pinned || type !== option.value) onChange({ type: option.value })
                 }}
               >
                 {option.label}
               </Chip>
             ))}
+            <Chip
+              pressed={pinned}
+              count={pins.ids.length}
+              onClick={() => {
+                if (!pinned) showPinned()
+              }}
+            >
+              {PINNED_LABEL}
+            </Chip>
           </div>
-          <SegmentedControl
-            aria-label="정렬"
-            options={sortOptions}
-            value={sort}
-            onChange={(next) => {
-              if (next !== sort) onChange({ sort: next })
-            }}
-          />
-          <p className="panel__note text-controls__note">{PRIORITY_NOTE}</p>
+          {!pinned && (
+            <SegmentedControl
+              aria-label="정렬"
+              options={sortOptions}
+              value={sort}
+              onChange={(next) => {
+                if (next !== sort) onChange({ sort: next })
+              }}
+            />
+          )}
+          <p className="panel__note text-controls__note">{pinned ? PINNED_NOTE : PRIORITY_NOTE}</p>
         </div>
       )}
 
       {!failed &&
+        pinned &&
+        match(pinnedList.view)
+          .with({ status: 'loading' }, () => <LoadingState message="고정한 변경을 불러오는 중이에요…" />)
+          .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={pinnedList.reload} />)
+          .with({ status: 'success' }, ({ items }) => (
+            <>
+              {items.length === 0 && <EmptyState title={PINNED_EMPTY} />}
+              {outsideEvidence(items)}
+              {items.length > 0 && (
+                <>
+                  {changeList(items)}
+                  <div className="change-list__more">
+                    <span className="panel__note" role="status">
+                      고정 {resultCountLabel(items.length)}
+                    </span>
+                  </div>
+                </>
+              )}
+            </>
+          ))
+          .exhaustive()}
+      {!failed &&
+        !pinned &&
         match(state)
           .with({ status: 'loading' }, () => <LoadingState message="문장·표 변화를 불러오는 중입니다…" />)
           .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} />)
@@ -201,40 +285,10 @@ export function TextTab({
                     </EmptyState>
                   ))
                   .exhaustive()}
-              {selectedChangeId !== null && !items.some((i) => i.changeId === selectedChangeId) && (
-                // 고른 항목이 지금 목록(거르기·쪽)에 없어도 근거는 연다(요약·주소에서 바로 온 경우)
-                <div className="change-list__outside">
-                  <p className="panel__note">지금 목록에 보이지 않는 항목의 근거예요.</p>
-                  <TextEvidencePanel
-                    key={selectedChangeId}
-                    analysis={analysis}
-                    changeId={selectedChangeId}
-                    onClose={() => onChange({ change: null })}
-                    onOpenSource={onOpenSource}
-                  />
-                </div>
-              )}
+              {outsideEvidence(items)}
               {items.length > 0 && (
                 <>
-                  <ol className="change-list">
-                    {items.map((item) => (
-                      <li key={item.changeId}>
-                        <ChangeCard
-                          item={item}
-                          analysis={analysis}
-                          selected={item.changeId === selectedChangeId}
-                          explanations={explanations}
-                          onOpenSource={onOpenSource}
-                          onToggle={() => onChange({ change: item.changeId === selectedChangeId ? null : item.changeId })}
-                          onClose={() => {
-                            onChange({ change: null })
-                            // 닫으면 그 항목의 '근거 상세' 버튼으로 초점을 돌려준다
-                            requestAnimationFrame(() => document.getElementById(evidenceButtonId(item.changeId))?.focus())
-                          }}
-                        />
-                      </li>
-                    ))}
-                  </ol>
+                  {changeList(items)}
                   <div className="change-list__more">
                     <span className="panel__note" role="status">
                       {items.length} / {data.totalItems}건
@@ -279,13 +333,17 @@ interface ChangeCardProps {
   item: TextChangeItem
   analysis: Analysis
   selected: boolean
+  /** 고정했는지(3.3) */
+  pinned: boolean
   explanations: TextExplanations
+  onTogglePin: () => void
   onToggle: () => void
   onClose: () => void
   onOpenSource: (target: SourceTarget) => void
 }
 
-function ChangeCard({ item, analysis, selected, explanations, onToggle, onClose, onOpenSource }: ChangeCardProps) {
+function ChangeCard({ item, analysis, selected, pinned, explanations, onTogglePin, onToggle, onClose, onOpenSource }: ChangeCardProps) {
+  const section = displaySectionPath(item.sectionPath)
   const review = item.changeType === 'REVIEW_NEEDED'
   // 풀이 상자를 펼쳤는지는 카드 안 상태(주소에 남기지 않음). 처음 펼칠 때만 부른다
   const [explainOpen, setExplainOpen] = useState(false)
@@ -300,14 +358,24 @@ function ChangeCard({ item, analysis, selected, explanations, onToggle, onClose,
       tone={review ? 'attention' : 'default'}
       selected={selected}
       className="change-card"
-      aria-label={`${displaySectionPath(item.sectionPath)} ${changeTypeLabel(item.changeType)}`}
+      aria-label={`${section} ${changeTypeLabel(item.changeType)}`}
     >
       <div className="change-card__head">
-        <h3 className="change-card__title">{displaySectionPath(item.sectionPath)}</h3>
+        <h3 className="change-card__title">{section}</h3>
         <Badge tone={review ? 'attention' : 'accent'}>{changeTypeLabel(item.changeType)}</Badge>
         {item.priority && <Badge>{priorityLabel(item.priority.level)}</Badge>}
         {item.blockType === 'TABLE' && <Badge>표</Badge>}
         {item.numbersOnly && <Badge>숫자만 바뀜</Badge>}
+        <Button
+          variant="icon"
+          className="change-card__pin"
+          aria-pressed={pinned}
+          aria-label={pinned ? `고정 해제: ${section}` : `고정: ${section}`}
+          title={pinned ? '고정 해제' : '고정'}
+          onClick={onTogglePin}
+        >
+          <Icon name={pinned ? 'star-filled' : 'star'} size={16} />
+        </Button>
       </div>
       {review ? (
         <p className="change-card__review">
