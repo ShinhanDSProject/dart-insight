@@ -12,6 +12,7 @@ import { useTextChangeDetail } from '../hooks/useTextChanges'
 import type { SourceTarget } from '../model/resultParams'
 import { changeTypeLabel, DELETED_NOTE, missingSideLabel } from '../model/textLabels'
 import { wordDiff, type DiffPart } from '../model/wordDiff'
+import { displaySectionPath } from '@/shared/lib/sectionTitle'
 
 interface TextEvidencePanelProps {
   analysis: Analysis
@@ -141,7 +142,7 @@ function SourceSide({ role, side, onOpenSource, source, blockType, missing, part
       <span className="evidence__meta">
         {source.reportName} · {reportTypeLabel(source.reportType)} · 대상 기간 끝 {formatDate(source.periodEnd)}
       </span>
-      <span className="text-evidence__path">{source.sectionPath}</span>
+      <span className="text-evidence__path">{displaySectionPath(source.sectionPath)}</span>
       <span className="evidence__meta">
         {position} · 접수번호 <code>{source.rceptNo}</code>
         {source.evidenceId && (

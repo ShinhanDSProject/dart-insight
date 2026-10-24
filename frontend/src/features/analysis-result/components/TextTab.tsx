@@ -27,6 +27,7 @@ import {
   SEARCH_TOO_SHORT,
   sectionOptions,
 } from '../model/textFilter'
+import { displaySectionPath } from '@/shared/lib/sectionTitle'
 
 const sortOptions: { value: TextSort; label: string }[] = [
   { value: 'priority', label: '우선순위 순' },
@@ -256,10 +257,10 @@ function ChangeCard({ item, analysis, selected, onToggle, onClose, onOpenSource 
       tone={review ? 'attention' : 'default'}
       selected={selected}
       className="change-card"
-      aria-label={`${item.sectionPath} ${changeTypeLabel(item.changeType)}`}
+      aria-label={`${displaySectionPath(item.sectionPath)} ${changeTypeLabel(item.changeType)}`}
     >
       <div className="change-card__head">
-        <h3 className="change-card__title">{item.sectionPath}</h3>
+        <h3 className="change-card__title">{displaySectionPath(item.sectionPath)}</h3>
         <Badge tone={review ? 'attention' : 'accent'}>{changeTypeLabel(item.changeType)}</Badge>
         {item.priority && <Badge>{priorityLabel(item.priority.level)}</Badge>}
         {item.blockType === 'TABLE' && <Badge>표</Badge>}

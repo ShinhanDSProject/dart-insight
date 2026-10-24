@@ -1,4 +1,5 @@
 import type { TextSectionCount } from '@/shared/api/textChanges'
+import { displaySectionTitle } from '@/shared/lib/sectionTitle'
 
 /** 문장 변화의 섹션 거르기·검색(3.7). 검색어 길이는 docs/api-spec.md text-changes의 q와 같다. */
 
@@ -36,12 +37,12 @@ export interface SectionOption {
  * 섹션 선택지. 맨 앞은 전체이고, 주소에 남은 섹션이 목록에 없으면(다른 분석에서 옮겨 온 주소 등) 0건으로 붙여 고른 값을 그대로 보여 준다.
  */
 export function sectionOptions(sections: TextSectionCount[], selected: string | null): SectionOption[] {
-  const options = sections.map((s) => ({ value: s.title, label: `${s.title} (${formatCount(s.count)})` }))
+  const options = sections.map((s) => ({ value: s.title, label: `${displaySectionTitle(s.title)} (${formatCount(s.count)})` }))
   const missing = selected !== null && !sections.some((s) => s.title === selected)
   return [
     { value: ALL_SECTIONS, label: '전체 섹션' },
     ...options,
-    ...(missing ? [{ value: selected, label: `${selected} (0)` }] : []),
+    ...(missing ? [{ value: selected, label: `${displaySectionTitle(selected)} (0)` }] : []),
   ]
 }
 
