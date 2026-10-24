@@ -895,3 +895,564 @@
 .evidence__compare .compare-bars__track {
   background: var(--color-bg);
 }
+
+/* AI 질문(W-03 ⑤, 3.10). 답은 'AI 생성' 표시와 함께, 문장 안 번호로 아래 인용·수치 줄에 잇는다 */
+.ask {
+  gap: var(--space-5);
+}
+
+.ask__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.ask__intro,
+.ask__empty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.ask__history-error {
+  margin: 0;
+}
+
+/* 예시 질문: 누르면 바로 묻는 둥근 버튼 */
+.ask-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ask-suggestions > li {
+  display: flex;
+  max-width: 100%;
+  animation: rise-in var(--motion-base) var(--ease-out) both;
+}
+
+.ask-suggestions > li:nth-child(2) {
+  animation-delay: var(--motion-stagger);
+}
+
+.ask-suggestions > li:nth-child(3) {
+  animation-delay: calc(var(--motion-stagger) * 2);
+}
+
+.ask-suggestions > li:nth-child(4) {
+  animation-delay: calc(var(--motion-stagger) * 3);
+}
+
+.button.ask-suggestion {
+  max-width: 100%;
+  min-height: 40px;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  font-weight: var(--font-weight-medium);
+  text-align: left;
+  white-space: normal;
+}
+
+.button.ask-suggestion:hover:not(:disabled) {
+  border-color: var(--color-border-accent);
+  background: var(--color-accent-subtle);
+}
+
+/* 불러오는 중 자리(예시 질문·답 기다림). '동작 줄이기'면 global.css가 한 번만 돌게 한다 */
+.ask-skeleton {
+  display: block;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--color-bg-subtle) 25%, var(--color-border) 50%, var(--color-bg-subtle) 75%);
+  background-size: 200% 100%;
+  animation: ask-shimmer 1.4s linear infinite;
+}
+
+.ask-suggestion-skeleton {
+  width: 180px;
+  max-width: 100%;
+  height: 40px;
+}
+
+@keyframes ask-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+
+  to {
+    background-position: -100% 0;
+  }
+}
+
+/* 직접 묻기 입력: 글 상자 아래 줄에 안내·글자 수·보내기 */
+.ask-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ask-form__box {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+
+.ask-form__box:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.ask-form__box--error,
+.ask-form__box--error:focus-within {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 1px var(--color-danger);
+}
+
+.ask-form__box--busy {
+  background: var(--color-bg-subtle);
+}
+
+.ask-form__input {
+  min-height: 72px;
+  padding: var(--space-3) var(--space-4) var(--space-1);
+  border: none;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-body);
+  resize: vertical;
+}
+
+.ask-form__input:focus {
+  outline: none;
+}
+
+.ask-form__box--busy .ask-form__input {
+  color: var(--color-text-muted);
+  cursor: progress;
+}
+
+.ask-form__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+}
+
+.ask-form__hint {
+  flex: 1;
+  min-width: 0;
+}
+
+.ask-form__count {
+  color: var(--color-text-muted);
+  font-family: var(--font-num);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.ask-form__count--over {
+  color: var(--color-danger);
+  font-weight: var(--font-weight-bold);
+}
+
+.ask-form__error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  animation: fade-in var(--motion-base) var(--ease-out);
+}
+
+/* 질문·답 목록(최신 순) */
+.answer-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.answer-list:empty {
+  display: none;
+}
+
+.answer-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  animation: rise-in var(--motion-slow) var(--ease-out);
+}
+
+.answer-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+}
+
+.answer-card__question {
+  display: flex;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  overflow-wrap: anywhere;
+}
+
+.answer-card__q {
+  flex: none;
+  color: var(--color-accent);
+  font-family: var(--font-num);
+}
+
+.answer-card__time {
+  color: var(--color-text-muted);
+  font-family: var(--font-num);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.answer-card__answer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+}
+
+.answer-card__text {
+  margin: 0;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+
+/* 답 안의 인용 번호·수치 표시: 글자 위쪽에 붙는 작은 버튼 */
+.answer-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  margin: 0 1px 0 2px;
+  padding: 0 var(--space-1);
+  border: 1px solid var(--color-border-accent);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+  font: inherit;
+  font-family: var(--font-num);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  vertical-align: 0.35em;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+}
+
+.answer-marker:hover {
+  background: var(--color-accent);
+  color: var(--color-primary-text);
+}
+
+.answer-marker--fact {
+  border-color: var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.answer-marker--fact:hover {
+  background: var(--color-primary);
+}
+
+.answer-card__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.answer-card__label {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-bold);
+}
+
+.answer-card__count {
+  font-family: var(--font-num);
+}
+
+.answer-evidence {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 인용·수치 한 줄: 번호 | 위치·인용 | 열기 */
+.answer-cite {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  scroll-margin: var(--space-6);
+  transition:
+    border-color var(--motion-base) var(--ease-out),
+    background-color var(--motion-base) var(--ease-out);
+}
+
+.answer-cite:focus {
+  outline: none;
+}
+
+.answer-cite:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.answer-cite--active {
+  border-color: var(--color-border-accent);
+  background: var(--color-accent-subtle);
+}
+
+/* 번호를 누를 때마다 한 번 더 깜빡여 어느 줄인지 보인다 */
+.answer-cite__flash {
+  position: absolute;
+  inset: -1px;
+  border: 1.5px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  pointer-events: none;
+  animation: ask-flash var(--motion-slow) var(--ease-out) 2 alternate both;
+}
+
+@keyframes ask-flash {
+  from {
+    opacity: 0;
+  }
+}
+
+.answer-cite__no {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+  font-family: var(--font-num);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+.answer-cite--active .answer-cite__no {
+  background: var(--color-accent);
+  color: var(--color-primary-text);
+}
+
+.answer-cite__no--fact {
+  background: var(--color-bg-subtle);
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.answer-cite__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  margin: 0;
+}
+
+.answer-cite__where {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  margin: 0;
+  font-size: var(--font-size-xs);
+}
+
+.answer-cite__path {
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.answer-cite__quote {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-body);
+  overflow-wrap: anywhere;
+}
+
+.answer-cite__sentence {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  align-self: center;
+}
+
+.answer-cite__open {
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+.answer-card__notice {
+  margin: 0;
+}
+
+.answer-card__notice p {
+  margin: 0;
+}
+
+.answer-card__notice-actions {
+  margin-top: var(--space-3);
+}
+
+.answer-card__meta {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.answer-card__meta summary {
+  cursor: pointer;
+}
+
+/* 답을 기다리는 동안 */
+.answer-card--pending {
+  border-style: dashed;
+  border-color: var(--color-border-accent);
+}
+
+.answer-pending {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+}
+
+.answer-pending__label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+  color: var(--color-accent);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.answer-pending__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  animation: ask-pulse 1s var(--ease-out) infinite alternate;
+}
+
+@keyframes ask-pulse {
+  from {
+    opacity: 0.3;
+    transform: scale(0.7);
+  }
+}
+
+.answer-pending__line {
+  height: 12px;
+}
+
+.answer-pending__line--short {
+  width: 60%;
+}
+
+/* 요약 탭의 AI 질문 진입 카드 */
+.ask-entry {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  border-color: var(--color-border-accent);
+  background: var(--color-accent-subtle);
+}
+
+.ask-entry .button.ask-suggestion {
+  background: var(--color-bg);
+}
+
+.ask-entry .button.ask-suggestion:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+
+.ask-entry__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.ask-entry__title {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.ask-entry__lead {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.ask-entry__more {
+  font-size: var(--font-size-sm);
+}
+
+@media (max-width: 900px) {
+  .answer-card {
+    padding: var(--space-4);
+  }
+
+  /* 좁은 화면에서는 '원문 보기'를 인용 아래로 내린다 */
+  .answer-cite {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .answer-cite__open {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .ask-form__hint {
+    flex-basis: 100%;
+    order: 3;
+  }
+
+  .ask-form__send {
+    margin-left: auto;
+  }
+}

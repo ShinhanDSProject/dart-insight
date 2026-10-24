@@ -4,20 +4,28 @@ import type { Analysis } from '@/shared/api/analyses'
 import type { ParamChanges } from '@/shared/lib/searchParams'
 import { ButtonLink, Notice, Tabs, type TabItem } from '@/shared/ui'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
+import type { SjDiv } from '@/shared/api/results'
+import type { LoadState } from '@/shared/hooks/asyncState'
+import { AskTab } from './components/AskTab'
 import { FinancialTab } from './components/FinancialTab'
 import { ComparisonContextCard } from './components/ComparisonContextCard'
 import { SourceTab } from './components/SourceTab'
 import { SummaryTab } from './components/SummaryTab'
 import { TextTab } from './components/TextTab'
 import { useAnalysis } from './hooks/useAnalysis'
+import { useAsk, type AskController } from './hooks/useAsk'
+import { useAskSuggestions } from './hooks/useAskSuggestions'
+import { searchWordOf } from './model/askQuestion'
 import { useResultParams } from './hooks/useResultParams'
 import {
   financialParamChanges,
   openChangedAccounts,
+  openAsk,
   openFinancialChanges,
   openSourceChanges,
   openTextChanges,
   openTextList,
+  openTextSearch,
   sourceParamChanges,
   textParamChanges,
   type ResultParams,
@@ -30,13 +38,14 @@ const tabs: TabItem<ResultTab>[] = [
   { value: 'summary', label: '요약·설명' },
   { value: 'financial', label: '재무 수치 변화' },
   { value: 'text', label: '문장·내용 변화' },
+  { value: 'ask', label: 'AI 질문' },
   { value: 'source', label: '원문 확인' },
 ]
 
 /**
  * W-03 분석 결과(3.1). 화면 전체가 분석 ID 하나의 결과만 보여 주므로, 비교 기준을 바꾸면 새 분석으로 옮겨 가고
  * 이전 결과와 섞이지 않는다. 고른 탭·재무제표·보기·단위·근거 계정은 주소(?tab=&sj=&changed=&unit=&change=)에,
- * 문장 변화의 유형·정렬·근거 항목은 ?ttype=&tsort=&tc=에, 원문 확인의 보고서·항목·근거 위치는 ?doc=&section=&block=에 남긴다.
+ * 문장 변화의 유형·정렬·근거 항목은 ?ttype=&tsort=&tc=에, AI 질문 탭은 ?tab=ask(질문·답은 주소에 남기지 않음), 원문 확인의 보고서·항목·근거 위치는 ?doc=&section=&block=에 남긴다.
  */
 export function AnalysisResultPage() {
   const { analysisId = '' } = useParams()
@@ -84,13 +93,7 @@ function AnalysisResult({ analysis, params, update }: AnalysisResultProps) {
 
       {match(analysis.status)
         .with('COMPLETED', () => (
-          <>
-            <ComparisonContextCard analysis={analysis} />
-
-            <Tabs label="결과 보기" items={tabs} value={params.tab} onChange={(t) => update({ tab: t })} />
-
-            <ResultTabPanel analysis={analysis} params={params} update={update} />
-          </>
+          <CompletedResult key={analysis.analysisId} analysis={analysis} params={params} update={update} />
         ))
         .with(P.union('PENDING', 'RUNNING', 'FAILED'), () => (
           <>
@@ -105,8 +108,32 @@ function AnalysisResult({ analysis, params, update }: AnalysisResultProps) {
   )
 }
 
-function ResultTabPanel({ analysis, params, update }: AnalysisResultProps) {
+/**
+ * 완료된 분석의 결과. AI 질문의 상태와 예시 질문은 여기에 두어, 요약 진입 카드와 AI 질문 탭이 같이 쓰고
+ * 다른 탭에 다녀와도 받은 답·보내는 질문이 남는다.
+ */
+function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
+  const ask = useAsk(analysis.analysisId)
+  const suggestions = useAskSuggestions(analysis.analysisId).state
+  return (
+    <>
+      <ComparisonContextCard analysis={analysis} />
+
+      <Tabs label="결과 보기" items={tabs} value={params.tab} onChange={(t) => update({ tab: t })} />
+
+      <ResultTabPanel analysis={analysis} params={params} update={update} ask={ask} suggestions={suggestions} />
+    </>
+  )
+}
+
+interface ResultTabPanelProps extends AnalysisResultProps {
+  ask: AskController
+  suggestions: LoadState<string[]>
+}
+
+function ResultTabPanel({ analysis, params, update, ask, suggestions }: ResultTabPanelProps) {
   const openSource = (target: SourceTarget) => update(openSourceChanges(target))
+  const openFinancial = (sj: SjDiv, change: number) => update(openFinancialChanges(sj, change))
   return match(params.tab)
     .with('financial', () => (
       <FinancialTab
@@ -123,11 +150,18 @@ function ResultTabPanel({ analysis, params, update }: AnalysisResultProps) {
       <SummaryTab
         key={analysis.analysisId}
         analysis={analysis}
-        onOpenFinancial={(sj, change) => update(openFinancialChanges(sj, change))}
+        onOpenFinancial={openFinancial}
         onOpenText={(change) => update(openTextChanges(change))}
         onOpenSource={openSource}
         onOpenChangedAccounts={(sj) => update(openChangedAccounts(sj))}
         onOpenTextList={(type) => update(openTextList(type))}
+        suggestions={suggestions}
+        onAsk={(question) => {
+          ask.ask(question)
+          update(openAsk())
+        }}
+        onOpenAsk={() => update(openAsk())}
+        asking={ask.state.request.status === 'sending'}
       />
     ))
     .with('text', () => (
@@ -141,6 +175,15 @@ function ResultTabPanel({ analysis, params, update }: AnalysisResultProps) {
         selectedChangeId={params.selectedTextChangeId}
         onChange={(c) => update(textParamChanges(c))}
         onOpenSource={openSource}
+      />
+    ))
+    .with('ask', () => (
+      <AskTab
+        ask={ask}
+        suggestions={suggestions}
+        onOpenSource={openSource}
+        onOpenFinancial={openFinancial}
+        onSearchText={(question) => update(openTextSearch(searchWordOf(question)))}
       />
     ))
     .with('source', () => (

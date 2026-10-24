@@ -3,6 +3,7 @@ import type { Analysis } from '@/shared/api/analyses'
 import type { FinancialChangeItem, SjDiv } from '@/shared/api/results'
 import type { Summary, SummaryEvidence, SummaryItem, SummaryTarget } from '@/shared/api/summary'
 import type { ChangeType } from '@/shared/api/textChanges'
+import type { LoadState } from '@/shared/hooks/asyncState'
 import { Badge, Button, Card, CompareBars, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { DartSourceLine } from '@/shared/ui/DartSource'
@@ -11,6 +12,7 @@ import { useSummary } from '../hooks/useSummary'
 import { useSummaryAmounts } from '../hooks/useSummaryAmounts'
 import { formatCompactAmount } from '../model/chart'
 import { summarySjDivs } from '../model/summaryAmounts'
+import { AskEntryCard } from './AskEntryCard'
 import { ChangeOverview } from './ChangeOverview'
 import type { SourceTarget } from '../model/resultParams'
 import {
@@ -32,6 +34,16 @@ interface SummaryTabProps {
   onOpenSource: (target: SourceTarget) => void
 }
 
+interface AskEntry {
+  /** AI 질문 진입 카드의 예시 질문 */
+  suggestions: LoadState<string[]>
+  /** AI 질문 탭으로 가서 바로 묻는다 */
+  onAsk: (question: string) => void
+  onOpenAsk: () => void
+  /** 다른 질문을 보내는 중 */
+  asking: boolean
+}
+
 interface OverviewLinks {
   /** 변화 개요의 '바뀐 계정': 재무 수치 탭을 변경 항목만으로 연다 */
   onOpenChangedAccounts: (sjDiv: SjDiv | null) => void
@@ -40,7 +52,7 @@ interface OverviewLinks {
 }
 
 /**
- * W-03 ① 요약·설명(3.2). 맨 위에 변화 개요(FS-4 R6)를 둔다. 수치 문장은 코드가 계산한 값이고, AI가 쓴 문장은 'AI 생성'으로 따로 표시해 사실과 구분한다.
+ * W-03 ① 요약·설명(3.2). 맨 위에 변화 개요(FS-4 R6)와 AI 질문 진입 카드(3.10)를 둔다. 수치 문장은 코드가 계산한 값이고, AI가 쓴 문장은 'AI 생성'으로 따로 표시해 사실과 구분한다.
  * 공시에 설명이 없으면 '확인된 설명 없음', 근거를 확인하지 못한 항목은 요약에서 빼고 '검토 필요'로 센다.
  */
 export function SummaryTab({
@@ -50,7 +62,11 @@ export function SummaryTab({
   onOpenSource,
   onOpenChangedAccounts,
   onOpenTextList,
-}: SummaryTabProps & OverviewLinks) {
+  suggestions,
+  onAsk,
+  onOpenAsk,
+  asking,
+}: SummaryTabProps & OverviewLinks & AskEntry) {
   return (
     <>
       <ChangeOverview
@@ -58,6 +74,7 @@ export function SummaryTab({
         onOpenChangedAccounts={onOpenChangedAccounts}
         onOpenTextList={onOpenTextList}
       />
+      <AskEntryCard suggestions={suggestions} onAsk={onAsk} onOpenAsk={onOpenAsk} sending={asking} />
       <SummaryContent analysis={analysis} onOpenFinancial={onOpenFinancial} onOpenText={onOpenText} onOpenSource={onOpenSource} />
     </>
   )
