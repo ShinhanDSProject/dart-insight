@@ -6,6 +6,7 @@ import com.dartinsight.summary.domain.SummaryItemRow;
 import com.dartinsight.summary.repository.SummaryStore.StoredItem;
 import com.dartinsight.summary.repository.SummaryStore;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,14 @@ public class SummaryQueryService {
         List<SummaryEntry> entries = summaryStore.items(analysisId).stream()
                 .map(stored -> entry(analysisId, stored)).toList();
         return new StoredSummary(analysis, entries);
+    }
+
+    /** 요약에 보인 그 문장 변경의 AI 문장(text_change_no가 같은 TEXT 항목). 없으면 빈 값. 분석 상태는 보지 않는다 */
+    public Optional<SummaryItemRow> shownText(Long analysisId, int changeNo) {
+        return summaryStore.items(analysisId).stream().map(StoredItem::row)
+                .filter(r -> SummaryItemRow.TEXT.equals(r.kind()) && SummaryItemRow.SHOWN.equals(r.status())
+                        && r.aiText() != null && Integer.valueOf(changeNo).equals(r.textChangeNo()))
+                .findFirst();
     }
 
     private SummaryEntry entry(Long analysisId, StoredItem stored) {

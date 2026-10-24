@@ -11,6 +11,7 @@ public final class TestData {
 
     private static final List<String> TABLES_CHILD_FIRST = List.of(
             "analysis_question",
+            "text_change_explanation",
             "summary_item",
             "llm_call",
             "text_change",

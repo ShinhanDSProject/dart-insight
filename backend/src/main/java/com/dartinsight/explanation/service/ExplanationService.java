@@ -1,0 +1,124 @@
+package com.dartinsight.explanation.service;
+
+import com.dartinsight.aiserver.client.AiServerException;
+import com.dartinsight.analysis.domain.Analysis;
+import com.dartinsight.analysis.domain.TextChange;
+import com.dartinsight.analysis.service.TextChangeQueryService;
+import com.dartinsight.analysis.service.TextChangeQueryService.CompletedTextChange;
+import com.dartinsight.common.trace.TraceContext;
+import com.dartinsight.explanation.domain.ExplanationStatus;
+import com.dartinsight.explanation.domain.TextExplanationRecord;
+import com.dartinsight.explanation.dto.TextExplanationResponse;
+import com.dartinsight.explanation.repository.ExplanationStore;
+import com.dartinsight.report.service.ReportService;
+import com.dartinsight.report.service.ReportService.ReportDetail;
+import com.dartinsight.summary.domain.LlmCallRow;
+import com.dartinsight.summary.domain.SummaryItemRow;
+import com.dartinsight.summary.service.SummaryQueryService;
+import com.dartinsight.summary.service.SummaryService;
+import com.dartinsight.summary.service.SummaryService.TextExplanation;
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Optional;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
+
+/**
+ * 문장 변경 AI 한 줄 풀이(3.11, FS-6). 순서: 저장된 풀이 → 요약(summary_item)의 그 변경 문장 → 원문이 없으면 AI 없이
+ * NO_SOURCE → 요약과 같은 /internal/summaries를 문장 항목 하나로 불러 만든다(근거 확인은 SummaryService와 같음).
+ * AI 서버 호출은 트랜잭션 밖에서 하고, 풀이와 LLM 호출 기록만 한 트랜잭션으로 저장한다(LY-2). 다시 만들지 않는다.
+ */
+@Service
+@RequiredArgsConstructor
+public class ExplanationService {
+
+    static final String NO_SOURCE = "두 보고서에서 이 변경의 원문을 짝짓지 못해 풀이할 수 없어요.";
+    private static final String NO_REASON = "근거를 확인하지 못했어요.";
+
+    private static final Logger log = LoggerFactory.getLogger(ExplanationService.class);
+
+    private final TextChangeQueryService textChangeQueryService;
+    private final SummaryQueryService summaryQueryService;
+    private final SummaryService summaryService;
+    private final ReportService reportService;
+    private final ExplanationStore explanationStore;
+    private final TransactionTemplate transactionTemplate;
+    private final Clock clock;
+
+    /**
+     * 그 변경의 한 줄 풀이를 만들거나 저장된 것을 돌려준다. 완료된 분석에만(아니면 409), 이 분석의 변경만(아니면 404).
+     *
+     * @throws AiServerException AI 서버·LLM을 쓸 수 없음(503 AI_SERVER_UNAVAILABLE, 저장하지 않음)
+     */
+    public TextExplanationResponse explain(Long analysisId, Long changeId) {
+        CompletedTextChange completed = textChangeQueryService.completedChange(analysisId, changeId);
+        Analysis analysis = completed.analysis();
+        TextChange change = completed.change();
+
+        Optional<TextExplanationRecord> stored = explanationStore.find(analysisId, change.changeNo());
+        if (stored.isPresent()) {
+            return response(analysis, changeId, stored.get(), true);
+        }
+
+        String traceId = TraceContext.currentTraceId();
+        Optional<SummaryItemRow> summarized = summaryQueryService.shownText(analysisId, change.changeNo());
+        if (summarized.isPresent()) {
+            SummaryItemRow row = summarized.get();
+            return save(analysis, changeId, new TextExplanationRecord(null, analysisId, change.changeNo(),
+                    ExplanationStatus.OK, row.aiText(), row.evidenceIds(), null, List.of(), row.model(),
+                    row.promptVersion(), row.generatedAt(), traceId, now()), List.of());
+        }
+
+        if (!SummaryService.explainable(change.row())) {
+            return save(analysis, changeId, new TextExplanationRecord(null, analysisId, change.changeNo(),
+                    ExplanationStatus.NO_SOURCE, null, List.of(), NO_SOURCE, List.of(), null, null, null, traceId,
+                    now()), List.of());
+        }
+
+        ReportDetail current = reportService.get(analysis.getCurrentRceptNo());
+        ReportDetail previous = reportService.get(analysis.getPreviousRceptNo());
+        TextExplanation explained = summaryService.explain(current.company().getCorpName(),
+                previous.report().getReportName(), current.report().getReportName(), change.row(),
+                change.changeNo());
+        SummaryItemRow row = explained.row();
+        TextExplanationRecord record = SummaryItemRow.SHOWN.equals(row.status())
+                ? new TextExplanationRecord(null, analysisId, change.changeNo(), ExplanationStatus.OK, row.aiText(),
+                        row.evidenceIds(), null, List.of(), row.model(), row.promptVersion(), row.generatedAt(),
+                        traceId, now())
+                : new TextExplanationRecord(null, analysisId, change.changeNo(), ExplanationStatus.REVIEW_NEEDED,
+                        null, List.of(), row.reviewReason() == null ? NO_REASON : row.reviewReason(),
+                        row.blockedRules(), null, null, null, traceId, now());
+        return save(analysis, changeId, record, explained.calls());
+    }
+
+    private TextExplanationResponse save(Analysis analysis, Long changeId, TextExplanationRecord row,
+            List<LlmCallRow> calls) {
+        try {
+            Long id = transactionTemplate.execute(status -> explanationStore.save(row, calls));
+            return response(analysis, changeId, row.withId(id), false);
+        } catch (DuplicateKeyException e) {
+            // 같은 변경을 동시에 요청해 다른 요청이 먼저 저장했다. 다시 만들지 않고 저장된 것을 돌려준다
+            log.info("같은 변경의 풀이가 먼저 저장돼 저장된 것을 돌려줍니다: analysis={}, change={}",
+                    row.analysisId(), row.changeNo());
+            TextExplanationRecord stored = explanationStore.find(row.analysisId(), row.changeNo())
+                    .orElseThrow(() -> new IllegalStateException("저장된 풀이를 찾지 못했습니다", e));
+            return response(analysis, changeId, stored, true);
+        }
+    }
+
+    private static TextExplanationResponse response(Analysis analysis, Long changeId, TextExplanationRecord row,
+            boolean cached) {
+        return TextExplanationResponse.of(changeId, row, analysis.getCurrentRceptNo(), analysis.getPreviousRceptNo(),
+                cached);
+    }
+
+    private LocalDateTime now() {
+        return LocalDateTime.now(clock).truncatedTo(ChronoUnit.MICROS);
+    }
+}
