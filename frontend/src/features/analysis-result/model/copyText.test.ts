@@ -168,6 +168,7 @@ describe('pinnedChangesText', () => {
     sectionStatus: 'MATCHED',
     sectionTitle: '5. 위험관리 및 파생거래',
     sectionPath: 'II. 사업의 내용 > 5. 위험관리 및 파생거래',
+    previousSectionPath: null,
     previousPreview: '환율 변동 위험이 있습니다.',
     currentPreview: '환율과 금리 변동 위험이 있습니다.',
     similarity: 0.8,
@@ -207,6 +208,20 @@ describe('pinnedChangesText', () => {
     const text = pinnedChangesText(analysis, [change({ changeType: 'DELETED', currentPreview: null })])
     expect(text).toContain('1. [삭제] ')
     expect(text).toContain('현재: (없음)\n출처: https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250814000111 (이전 보고서 원문)')
+  })
+
+  it('다른 섹션으로 옮긴 위치 이동은 옮기기 전 섹션 경로를 함께 적는다', () => {
+    const moved = change({ changeType: 'MOVED', previousSectionPath: 'II. 사업의 내용 > 1. 사업의 개요' })
+    expect(pinnedChangesText(analysis, [moved])).toContain(
+      '1. [위치 이동] II. 사업의 내용 > 5. 위험관리 및 파생거래 (옮기기 전: II. 사업의 내용 > 1. 사업의 개요)',
+    )
+    const reordered = change({ changeType: 'MOVED', previousSectionPath: 'II. 사업의 내용 > 5. 위험관리 및 파생거래' })
+    expect(pinnedChangesText(analysis, [reordered])).toContain('1. [위치 이동] II. 사업의 내용 > 5. 위험관리 및 파생거래\n')
+  })
+
+  it('숫자만 바뀜은 화면과 같은 유형 이름으로 적는다', () => {
+    const text = pinnedChangesText(analysis, [change({ changeType: 'NUMERIC_UPDATE', numbersOnly: true })])
+    expect(text).toContain('1. [숫자만 바뀜] ')
   })
 
   it('접수번호가 14자리가 아니면 링크 대신 접수번호를 적는다', () => {

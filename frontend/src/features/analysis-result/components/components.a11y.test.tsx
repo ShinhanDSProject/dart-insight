@@ -175,7 +175,9 @@ describe('변화 개요 접근성(axe)', () => {
         all: 20,
         added: 5,
         deleted: 3,
-        modified: 12,
+        modified: 10,
+        numericUpdate: 1,
+        moved: 1,
         reviewNeeded: 2,
         partial: true,
         sections: [

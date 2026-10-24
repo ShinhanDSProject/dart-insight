@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { changeTypeLabel, countFor, missingSideLabel, priorityLabel, textStatusNotice } from './textLabels'
+import {
+  changeTypeLabel,
+  changeTypeOptions,
+  comparesWords,
+  countFor,
+  missingSideLabel,
+  movedPaths,
+  priorityLabel,
+  showsNumbersOnlyMark,
+  textStatusNotice,
+} from './textLabels'
 
-const counts = { all: 9, added: 2, deleted: 3, modified: 3, reviewNeeded: 1 }
+const counts = { all: 9, added: 2, deleted: 3, modified: 1, numericUpdate: 1, moved: 1, reviewNeeded: 1 }
 
 describe('textLabels', () => {
   it('변경 유형과 건수', () => {
@@ -9,6 +19,49 @@ describe('textLabels', () => {
     expect(countFor(counts, null)).toBe(9)
     expect(countFor(counts, 'DELETED')).toBe(3)
     expect(countFor(counts, 'REVIEW_NEEDED')).toBe(1)
+  })
+
+  it('숫자만 바뀜·위치 이동은 따로 이름과 건수가 있고 거르기 칩에 들어간다', () => {
+    expect(changeTypeLabel('NUMERIC_UPDATE')).toBe('숫자만 바뀜')
+    expect(changeTypeLabel('MOVED')).toBe('위치 이동')
+    expect(countFor(counts, 'NUMERIC_UPDATE')).toBe(1)
+    expect(countFor(counts, 'MOVED')).toBe(1)
+    expect(changeTypeOptions.map((o) => o.value)).toEqual([
+      null,
+      'ADDED',
+      'DELETED',
+      'MODIFIED',
+      'NUMERIC_UPDATE',
+      'MOVED',
+      'REVIEW_NEEDED',
+    ])
+  })
+
+  it('숫자만 바뀜 표시는 옛 결과(수정 + numbersOnly)에만 따로 붙인다', () => {
+    expect(showsNumbersOnlyMark({ changeType: 'MODIFIED', numbersOnly: true })).toBe(true)
+    expect(showsNumbersOnlyMark({ changeType: 'NUMERIC_UPDATE', numbersOnly: true })).toBe(false)
+    expect(showsNumbersOnlyMark({ changeType: 'MODIFIED', numbersOnly: false })).toBe(false)
+  })
+
+  it('위치 이동은 옮기기 전·후 섹션 경로를 주고, 같은 섹션이면 순서만 바뀐 것으로 본다', () => {
+    expect(
+      movedPaths({ changeType: 'MOVED', sectionPath: 'II > 2. 주요 제품', previousSectionPath: 'II > 1. 개요' }),
+    ).toEqual({ from: 'II > 1. 개요', to: 'II > 2. 주요 제품', sameSection: false })
+    expect(movedPaths({ changeType: 'MOVED', sectionPath: 'II > 1. 개요', previousSectionPath: 'II > 1. 개요' })).toEqual({
+      from: 'II > 1. 개요',
+      to: 'II > 1. 개요',
+      sameSection: true,
+    })
+    expect(movedPaths({ changeType: 'MODIFIED', sectionPath: 'II', previousSectionPath: null })).toBeNull()
+    expect(movedPaths({ changeType: 'MOVED', sectionPath: 'II', previousSectionPath: null })).toBeNull()
+  })
+
+  it('두 쪽 글이 모두 있는 유형만 낱말 차이를 보여 준다', () => {
+    expect(comparesWords('MODIFIED')).toBe(true)
+    expect(comparesWords('NUMERIC_UPDATE')).toBe(true)
+    expect(comparesWords('MOVED')).toBe(true)
+    expect(comparesWords('ADDED')).toBe(false)
+    expect(comparesWords('REVIEW_NEEDED')).toBe(false)
   })
 
   it('우선순위는 확인 순서 문구로만 보여 준다', () => {

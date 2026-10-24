@@ -6,7 +6,7 @@ function statement(sjDiv: StatementSummary['sjDiv'], comparable: boolean, change
   return { sjDiv, label: sjDiv, comparable, amountBasis: null, note: null, total, changed }
 }
 
-const counts = { all: 57, added: 10, deleted: 5, modified: 40, reviewNeeded: 2 }
+const counts = { all: 57, added: 10, deleted: 5, modified: 30, numericUpdate: 8, moved: 2, reviewNeeded: 2 }
 const sections = [{ title: 'II. 사업의 내용', count: 57 }]
 
 describe('변화 개요', () => {
@@ -44,7 +44,7 @@ describe('변화 개요', () => {
   })
 
   it('문장을 비교하지 않았거나 실패했으면 건수를 쓰지 않는다', () => {
-    const zero = { all: 0, added: 0, deleted: 0, modified: 0, reviewNeeded: 0 }
+    const zero = { all: 0, added: 0, deleted: 0, modified: 0, numericUpdate: 0, moved: 0, reviewNeeded: 0 }
     expect(textOverview({ textStatus: 'FAILED', counts: zero, sections: [] })).toEqual({ status: 'unavailable' })
     expect(textOverview({ textStatus: null, counts: zero, sections: [] })).toEqual({ status: 'unavailable' })
   })

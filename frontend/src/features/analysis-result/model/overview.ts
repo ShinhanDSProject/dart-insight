@@ -29,6 +29,8 @@ export type TextOverview =
       added: number
       deleted: number
       modified: number
+      numericUpdate: number
+      moved: number
       reviewNeeded: number
       /** 원문 일부를 읽지 못했을 수 있음(PARTIAL) */
       partial: boolean
@@ -40,13 +42,15 @@ export type TextOverview =
 
 export function textOverview(list: Pick<TextChangeList, 'textStatus' | 'counts' | 'sections'>): TextOverview {
   if (list.textStatus === null || list.textStatus === 'FAILED') return { status: 'unavailable' }
-  const { all, added, deleted, modified, reviewNeeded } = list.counts
+  const { all, added, deleted, modified, numericUpdate, moved, reviewNeeded } = list.counts
   return {
     status: 'available',
     all,
     added,
     deleted,
     modified,
+    numericUpdate,
+    moved,
     reviewNeeded,
     partial: list.textStatus === 'PARTIAL',
     sections: list.sections,

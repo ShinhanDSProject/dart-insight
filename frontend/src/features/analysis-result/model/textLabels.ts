@@ -1,4 +1,5 @@
-import type { ChangeType, PriorityLevel, TextChangeCounts, TextStatus } from '@/shared/api/textChanges'
+import { match } from 'ts-pattern'
+import type { ChangeType, PriorityLevel, TextChangeCounts, TextChangeItem, TextStatus } from '@/shared/api/textChanges'
 
 /** 문장·내용 변화(W-03 ③) 화면 문구. 우선순위는 확인 순서이며 투자 판단이 아니다. */
 
@@ -7,6 +8,8 @@ export const changeTypeOptions: { value: ChangeType | null; label: string }[] = 
   { value: 'ADDED', label: '추가' },
   { value: 'DELETED', label: '삭제' },
   { value: 'MODIFIED', label: '수정' },
+  { value: 'NUMERIC_UPDATE', label: '숫자만 바뀜' },
+  { value: 'MOVED', label: '위치 이동' },
   { value: 'REVIEW_NEEDED', label: '검토 필요' },
 ]
 
@@ -24,10 +27,44 @@ export function countFor(counts: TextChangeCounts, type: ChangeType | null): num
       return counts.deleted
     case 'MODIFIED':
       return counts.modified
+    case 'NUMERIC_UPDATE':
+      return counts.numericUpdate
+    case 'MOVED':
+      return counts.moved
     case 'REVIEW_NEEDED':
       return counts.reviewNeeded
   }
 }
+
+/**
+ * 유형 이름 옆에 '숫자만 바뀜' 표시를 따로 붙일지. 옛 결과(m2-8까지)는 MODIFIED + numbersOnly로만 구분해서다.
+ * NUMERIC_UPDATE는 유형 이름이 이미 '숫자만 바뀜'이라 붙이지 않는다.
+ */
+export function showsNumbersOnlyMark(item: Pick<TextChangeItem, 'changeType' | 'numbersOnly'>): boolean {
+  return item.numbersOnly && item.changeType !== 'NUMERIC_UPDATE'
+}
+
+/** 위치 이동의 옮기기 전·후 섹션 경로. 위치 이동이 아니거나 이전 경로가 없으면 null */
+export function movedPaths(
+  item: Pick<TextChangeItem, 'changeType' | 'sectionPath' | 'previousSectionPath'>,
+): { from: string; to: string; sameSection: boolean } | null {
+  if (item.changeType !== 'MOVED' || item.previousSectionPath === null) return null
+  return {
+    from: item.previousSectionPath,
+    to: item.sectionPath,
+    sameSection: item.previousSectionPath === item.sectionPath,
+  }
+}
+
+/** 두 쪽 글이 모두 있어 낱말 차이와 비슷한 정도를 보여 줄 유형 */
+export function comparesWords(type: ChangeType): boolean {
+  return match(type)
+    .with('MODIFIED', 'NUMERIC_UPDATE', 'MOVED', () => true)
+    .with('ADDED', 'DELETED', 'REVIEW_NEEDED', () => false)
+    .exhaustive()
+}
+
+export const MOVED_NOTE = '내용은 그대로이고 자리만 옮겨졌어요. 숫자는 바뀌었을 수 있어요.'
 
 export function priorityLabel(level: PriorityLevel): string {
   switch (level) {

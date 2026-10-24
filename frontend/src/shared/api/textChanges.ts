@@ -6,7 +6,8 @@ import type { AiInfo } from './summary'
 
 /** docs/api-spec.md GET /api/analyses/{id}/text-changes */
 export type TextStatus = 'COMPLETED' | 'PARTIAL' | 'FAILED'
-export type ChangeType = 'ADDED' | 'DELETED' | 'MODIFIED' | 'REVIEW_NEEDED'
+/** NUMERIC_UPDATE 숫자만 바뀜, MOVED 위치 이동(두 쪽 위치가 모두 있음). 분석 버전 m2-8까지의 결과에는 없음 */
+export type ChangeType = 'ADDED' | 'DELETED' | 'MODIFIED' | 'NUMERIC_UPDATE' | 'MOVED' | 'REVIEW_NEEDED'
 export type BlockType = 'PARAGRAPH' | 'TABLE' | 'SECTION'
 export type PriorityLevel = 'HIGH' | 'MEDIUM' | 'LOW' | 'UNRANKED'
 export type TextSort = 'priority' | 'document'
@@ -24,10 +25,14 @@ export interface TextChangeItem {
   changeNo: number
   changeType: ChangeType
   blockType: BlockType
+  /** 숫자만 바뀜. NUMERIC_UPDATE면 true(옛 결과는 MODIFIED에 true가 있음) */
   numbersOnly: boolean
   sectionStatus: string
   sectionTitle: string
+  /** 상위 섹션부터 이은 제목. 위치 이동이면 현재 쪽 */
   sectionPath: string
+  /** 위치 이동일 때 이전 쪽 섹션 경로. 그 밖은 null */
+  previousSectionPath: string | null
   /** 앞부분(수정이면 처음 달라지는 곳부터). 없는 쪽은 null */
   previousPreview: string | null
   currentPreview: string | null
@@ -41,6 +46,8 @@ export interface TextChangeCounts {
   added: number
   deleted: number
   modified: number
+  numericUpdate: number
+  moved: number
   reviewNeeded: number
 }
 

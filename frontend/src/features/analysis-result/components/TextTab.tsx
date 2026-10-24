@@ -22,8 +22,11 @@ import {
   countFor,
   DELETED_NOTE,
   missingSideLabel,
+  MOVED_NOTE,
+  movedPaths,
   PRIORITY_NOTE,
   priorityLabel,
+  showsNumbersOnlyMark,
   textStatusNotice,
 } from '../model/textLabels'
 import {
@@ -372,7 +375,7 @@ function ChangeCard({ item, analysis, selected, pinned, explanations, onTogglePi
         <Badge tone={review ? 'attention' : 'accent'}>{changeTypeLabel(item.changeType)}</Badge>
         {item.priority && <Badge>{priorityLabel(item.priority.level)}</Badge>}
         {item.blockType === 'TABLE' && <Badge>표</Badge>}
-        {item.numbersOnly && <Badge>숫자만 바뀜</Badge>}
+        {showsNumbersOnlyMark(item) && <Badge>숫자만 바뀜</Badge>}
         <Button
           variant="icon"
           className="change-card__pin"
@@ -405,6 +408,7 @@ function ChangeCard({ item, analysis, selected, pinned, explanations, onTogglePi
         </div>
       )}
       {item.changeType === 'DELETED' && <p className="panel__note">{DELETED_NOTE}</p>}
+      <MovedPaths item={item} />
       <div className="change-card__actions">
         <Button variant="secondary" id={evidenceButtonId(item.changeId)} aria-expanded={selected} onClick={onToggle}>
           {selected ? '근거 닫기' : '근거 상세'}
@@ -442,6 +446,20 @@ function ChangeCard({ item, analysis, selected, pinned, explanations, onTogglePi
         <TextEvidencePanel key={item.changeId} analysis={analysis} changeId={item.changeId} onClose={onClose} onOpenSource={onOpenSource} />
       )}
     </Card>
+  )
+}
+
+/** 위치 이동이면 옮기기 전·후 섹션 경로를 함께 보여 준다(같은 섹션이면 순서만 바뀜) */
+function MovedPaths({ item }: { item: TextChangeItem }) {
+  const paths = movedPaths(item)
+  if (paths === null) return null
+  return (
+    <p className="panel__note change-card__moved">
+      {paths.sameSection
+        ? `같은 섹션(${displaySectionPath(paths.to)}) 안에서 순서만 바뀌었어요.`
+        : `옮기기 전: ${displaySectionPath(paths.from)} → 옮긴 뒤: ${displaySectionPath(paths.to)}`}{' '}
+      {MOVED_NOTE}
+    </p>
   )
 }
 

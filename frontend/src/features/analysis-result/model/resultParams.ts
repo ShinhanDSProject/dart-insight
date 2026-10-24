@@ -14,7 +14,7 @@ export type ResultTab = 'summary' | 'financial' | 'text' | 'ask' | 'source'
 
 export const resultTabs: ResultTab[] = ['summary', 'financial', 'text', 'ask', 'source']
 const sjDivs: SjDiv[] = ['BS', 'IS', 'CIS', 'CF', 'SCE']
-const changeTypes: ChangeType[] = ['ADDED', 'DELETED', 'MODIFIED', 'REVIEW_NEEDED']
+const changeTypes: ChangeType[] = ['ADDED', 'DELETED', 'MODIFIED', 'NUMERIC_UPDATE', 'MOVED', 'REVIEW_NEEDED']
 
 /** 원문 확인(3.5)에서 열 위치 */
 export interface SourceTarget {
