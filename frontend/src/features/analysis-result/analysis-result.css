@@ -561,6 +561,15 @@
   gap: var(--space-2);
 }
 
+/* 고정 버튼(3.3)은 카드 머리 오른쪽 끝에 둔다. 켜짐은 채운 별·aria-pressed와 강조색으로 알린다 */
+.change-card__pin {
+  margin-left: auto;
+}
+
+.change-card__pin[aria-pressed='true'] {
+  color: var(--color-accent);
+}
+
 .change-card__title {
   margin: 0 var(--space-2) 0 0;
   font-size: var(--font-size-md);
