@@ -10,11 +10,14 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
@@ -70,6 +73,19 @@ public class ExplanationStore {
                     + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", callRows);
         }
         return id;
+    }
+
+    /** created_at이 [from, to)인 풀이의 상태별 수(모든 상태가 키에 있고, 없으면 0). AI 사용 현황 */
+    public Map<ExplanationStatus, Long> countByStatus(LocalDateTime from, LocalDateTime to) {
+        Map<ExplanationStatus, Long> counts = new EnumMap<>(ExplanationStatus.class);
+        for (ExplanationStatus status : ExplanationStatus.values()) {
+            counts.put(status, 0L);
+        }
+        jdbcTemplate.query("SELECT status, COUNT(*) AS n FROM text_change_explanation "
+                + "WHERE created_at >= ? AND created_at < ? GROUP BY status",
+                (RowCallbackHandler) rs -> counts.merge(ExplanationStatus.valueOf(rs.getString("status")),
+                        rs.getLong("n"), Long::sum), timestamp(from), timestamp(to));
+        return counts;
     }
 
     private static TextExplanationRecord map(ResultSet rs, int rowNum) throws SQLException {

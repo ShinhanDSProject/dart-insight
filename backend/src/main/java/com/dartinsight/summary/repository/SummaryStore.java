@@ -1,6 +1,8 @@
 package com.dartinsight.summary.repository;
 
 import com.dartinsight.summary.domain.LlmCallRow;
+import com.dartinsight.summary.domain.LlmCallUsage;
+import com.dartinsight.summary.domain.LlmCallUsage.TaskUsage;
 import com.dartinsight.summary.domain.SummaryItemRow;
 import com.dartinsight.summary.domain.SummaryResult;
 import java.sql.ResultSet;
@@ -9,9 +11,12 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.stereotype.Repository;
 
 /** 요약(summary_item)과 LLM 호출 기록(llm_call) 저장. 분석 결과와 같은 트랜잭션에서 부른다. */
@@ -71,6 +76,30 @@ public class SummaryStore {
                         rs.getObject("input_tokens", Integer.class), rs.getObject("output_tokens", Integer.class),
                         rs.getInt("latency_ms"), rs.getInt("attempt"), rs.getString("outcome"),
                         rs.getString("error")), analysisId);
+    }
+
+    /** called_at이 [from, to)인 LLM 호출의 결과별 수와 작업별 호출 수·토큰 합(AI 사용 현황). 어느 작업의 호출이든 센다 */
+    public LlmCallUsage llmCallUsage(LocalDateTime from, LocalDateTime to) {
+        Map<String, Long> byOutcome = new LinkedHashMap<>();
+        for (String outcome : LlmCallUsage.OUTCOMES) {
+            byOutcome.put(outcome, 0L);
+        }
+        jdbcTemplate.query("SELECT outcome, COUNT(*) AS n FROM llm_call "
+                + "WHERE called_at >= ? AND called_at < ? GROUP BY outcome ORDER BY outcome",
+                (RowCallbackHandler) rs -> byOutcome.merge(rs.getString("outcome"), rs.getLong("n"), Long::sum),
+                timestamp(from), timestamp(to));
+        List<TaskUsage> byTask = jdbcTemplate.query("SELECT task, COUNT(*) AS n, SUM(input_tokens) AS input_sum, "
+                + "SUM(output_tokens) AS output_sum FROM llm_call WHERE called_at >= ? AND called_at < ? "
+                + "GROUP BY task ORDER BY task",
+                (rs, i) -> new TaskUsage(rs.getString("task"), rs.getLong("n"), nullableLong(rs, "input_sum"),
+                        nullableLong(rs, "output_sum")), timestamp(from), timestamp(to));
+        return new LlmCallUsage(byOutcome, byTask);
+    }
+
+    /** SUM 결과(MariaDB는 DECIMAL, H2는 BIGINT). 더할 값이 없으면 null */
+    private static Long nullableLong(ResultSet rs, String column) throws SQLException {
+        long value = rs.getLong(column);
+        return rs.wasNull() ? null : value;
     }
 
     private static StoredItem map(ResultSet rs, int rowNum) throws SQLException {

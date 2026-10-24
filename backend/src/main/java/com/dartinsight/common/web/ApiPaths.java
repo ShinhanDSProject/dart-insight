@@ -36,6 +36,7 @@ public final class ApiPaths {
 
     public static final String SYSTEM = BASE + "/system";
     public static final String HEALTH = "/health";
+    public static final String AI_USAGE = "/ai-usage";
 
     private ApiPaths() {
     }

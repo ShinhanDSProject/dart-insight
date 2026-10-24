@@ -2,9 +2,11 @@ package com.dartinsight.summary.service;
 
 import com.dartinsight.analysis.domain.Analysis;
 import com.dartinsight.analysis.service.AnalysisResultService;
+import com.dartinsight.summary.domain.LlmCallUsage;
 import com.dartinsight.summary.domain.SummaryItemRow;
 import com.dartinsight.summary.repository.SummaryStore.StoredItem;
 import com.dartinsight.summary.repository.SummaryStore;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +36,11 @@ public class SummaryQueryService {
                 .filter(r -> SummaryItemRow.TEXT.equals(r.kind()) && SummaryItemRow.SHOWN.equals(r.status())
                         && r.aiText() != null && Integer.valueOf(changeNo).equals(r.textChangeNo()))
                 .findFirst();
+    }
+
+    /** called_at이 [from, to)인 LLM 호출 집계(요약·답·풀이 호출 모두). AI 사용 현황 */
+    public LlmCallUsage llmCallUsage(LocalDateTime from, LocalDateTime to) {
+        return summaryStore.llmCallUsage(from, to);
     }
 
     private SummaryEntry entry(Long analysisId, StoredItem stored) {
