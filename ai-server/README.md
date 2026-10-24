@@ -49,6 +49,7 @@ app/llm/         LLM 호출 단일 모듈(제공자, 호출 기록)
 app/documents/   원문 ZIP 파싱·구조화(4.2)
 app/compare/     문장·표 변경 탐지와 우선순위(2.5·2.6)
 app/summary/     근거 기반 요약·검증(3.2)
-app/compliance/  투자 권유성 표현 검사(5.5)
+app/answer/      근거로 답하는 질문 답변·인용 검증(3.10)
+app/compliance/  투자 권유성 표현 검사(5.5), 투자 판단 질문 거르기(3.10)
 tests/           app/과 같은 구조(tests/<패키지>/test_<모듈>.py), 실제 원문 기록은 tests/fixtures/
 ```
