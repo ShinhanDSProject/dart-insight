@@ -2,8 +2,8 @@ import { Link } from 'react-router'
 import { match, P } from 'ts-pattern'
 import type { CompanyAnalysisItem } from '@/shared/api/analyses'
 import { Panel, PanelTitle } from '@/shared/ui'
-import { useCompanyAnalyses } from '../hooks/useCompanyAnalyses'
-import { pastAnalysisLabel } from '../model/pastAnalyses'
+import { useCompanyAnalyses } from '@/shared/hooks/useCompanyAnalyses'
+import { pastAnalysisLabel } from '@/shared/lib/pastAnalyses'
 
 /**
  * 기업 화면 보고서 고르기 위의 '이미 분석한 비교'(#288). 누르면 결과 화면으로 바로 간다.
