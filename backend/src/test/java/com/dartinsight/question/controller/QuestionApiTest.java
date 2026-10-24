@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -339,5 +340,132 @@ class QuestionApiTest {
                 .andExpect(jsonPath("$.items[1].facts[0].ref").value("F1"))
                 .andExpect(jsonPath("$.items[1].facts[0].changeId").value(revenueChangeId()))
                 .andExpect(jsonPath("$.items[1].ai.model").value("fake-model"));
+    }
+
+    private ResultActions feedback(Long id, Long questionId, String body) throws Exception {
+        return mockMvc.perform(put("/api/analyses/{a}/questions/{q}/feedback", id, questionId)
+                .contentType(MediaType.APPLICATION_JSON).content(body));
+    }
+
+    /** 답한(ANSWERED) 질문을 하나 만들고 id를 돌려준다 */
+    private Long answeredQuestion() throws Exception {
+        AI.on(ANSWERS, Reply.ok(answered("매출이 늘었다고 밝혔어요[" + CUR_EVIDENCE + "].",
+                "\"" + CUR_EVIDENCE + "\"", "")));
+        String body = ask(analysisId, "매출액은 왜 늘었나요?")
+                .andExpect(jsonPath("$.status").value("ANSWERED"))
+                .andExpect(jsonPath("$.feedback").doesNotExist())
+                .andReturn().getResponse().getContentAsString();
+        return JsonPath.<Number>read(body, "$.questionId").longValue();
+    }
+
+    private Map<String, Object> storedFeedback(Long questionId) {
+        return jdbcTemplate.queryForMap("SELECT feedback_helpful, feedback_reason, feedback_at "
+                + "FROM analysis_question WHERE id = ?", questionId);
+    }
+
+    @Test
+    @DisplayName("도움이 됐다는 평가를 저장하고 기록에 보여 준다")
+    void savesHelpfulFeedbackAndShowsItInHistory() throws Exception {
+        Long questionId = answeredQuestion();
+
+        feedback(analysisId, questionId, "{\"helpful\":true}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.questionId").value(questionId))
+                .andExpect(jsonPath("$.helpful").value(true))
+                .andExpect(jsonPath("$.reason").doesNotExist())
+                .andExpect(jsonPath("$.updatedAt").isString());
+
+        Map<String, Object> stored = storedFeedback(questionId);
+        assertThat(stored.get("feedback_helpful")).isEqualTo(true);
+        assertThat(stored.get("feedback_reason")).isNull();
+        assertThat(stored.get("feedback_at")).isNotNull();
+        mockMvc.perform(get("/api/analyses/{a}/questions", analysisId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].feedback.helpful").value(true))
+                .andExpect(jsonPath("$.items[0].feedback.reason").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("도움이 안 됐다는 평가는 사유와 함께 저장하고, 다시 보내면 마지막 값으로 바뀐다")
+    void savesNotHelpfulFeedbackWithReasonAndOverwritesIt() throws Exception {
+        Long questionId = answeredQuestion();
+
+        feedback(analysisId, questionId, "{\"helpful\":false}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.helpful").value(false))
+                .andExpect(jsonPath("$.reason").doesNotExist());
+        feedback(analysisId, questionId, "{\"helpful\":false,\"reason\":\"WRONG_SOURCE\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.helpful").value(false))
+                .andExpect(jsonPath("$.reason").value("WRONG_SOURCE"));
+        mockMvc.perform(get("/api/analyses/{a}/questions", analysisId))
+                .andExpect(jsonPath("$.items[0].feedback.helpful").value(false))
+                .andExpect(jsonPath("$.items[0].feedback.reason").value("WRONG_SOURCE"));
+
+        feedback(analysisId, questionId, "{\"helpful\":true,\"reason\":null}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.helpful").value(true));
+        Map<String, Object> stored = storedFeedback(questionId);
+        assertThat(stored.get("feedback_helpful")).isEqualTo(true);
+        assertThat(stored.get("feedback_reason")).isNull();
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM analysis_question", Integer.class))
+                .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("helpful이 없거나, 도움이 됐는데 사유가 있거나, 모르는 사유면 400이고 저장하지 않는다")
+    void rejectsInvalidFeedbackBodies() throws Exception {
+        Long questionId = answeredQuestion();
+
+        feedback(analysisId, questionId, "{}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("COMMON_INVALID_INPUT"))
+                .andExpect(jsonPath("$.errors[0].field").value("helpful"));
+        feedback(analysisId, questionId, "{\"helpful\":true,\"reason\":\"OTHER\"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("COMMON_INVALID_INPUT"))
+                .andExpect(jsonPath("$.errors[0].field").value("reason"));
+        feedback(analysisId, questionId, "{\"helpful\":false,\"reason\":\"BORING\"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("reason"));
+        feedback(analysisId, questionId, "not json")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("COMMON_INVALID_INPUT"));
+        assertThat(storedFeedback(questionId).get("feedback_helpful")).isNull();
+    }
+
+    @Test
+    @DisplayName("답하지 않은(ANSWERED가 아닌) 질문을 평가하면 400")
+    void rejectsFeedbackOnUnansweredQuestion() throws Exception {
+        String body = ask(analysisId, "배당 정책은 어떻게 되나요?")
+                .andExpect(jsonPath("$.status").value("NOT_FOUND"))
+                .andReturn().getResponse().getContentAsString();
+        Long questionId = JsonPath.<Number>read(body, "$.questionId").longValue();
+
+        feedback(analysisId, questionId, "{\"helpful\":false,\"reason\":\"NOT_ANSWERED\"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("COMMON_INVALID_INPUT"))
+                .andExpect(jsonPath("$.message").value("답한 질문만 평가할 수 있어요."))
+                .andExpect(jsonPath("$.errors", hasSize(0)));
+        assertThat(storedFeedback(questionId).get("feedback_helpful")).isNull();
+    }
+
+    @Test
+    @DisplayName("없는 분석은 ANALYSIS_NOT_FOUND, 없는 질문이나 다른 분석의 질문은 ANALYSIS_QUESTION_NOT_FOUND")
+    void unknownQuestionOrQuestionOfAnotherAnalysisIsNotFound() throws Exception {
+        Long questionId = answeredQuestion();
+        Long other = analysisRepository.save(
+                Analysis.request("00000001", CUR, PREV, ComparisonBasis.PREV, null, NOW)).getId();
+
+        feedback(999_999L, questionId, "{\"helpful\":true}")
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ANALYSIS_NOT_FOUND"));
+        feedback(analysisId, 999_999L, "{\"helpful\":true}")
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ANALYSIS_QUESTION_NOT_FOUND"));
+        feedback(other, questionId, "{\"helpful\":true}")
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ANALYSIS_QUESTION_NOT_FOUND"));
+        assertThat(storedFeedback(questionId).get("feedback_helpful")).isNull();
     }
 }

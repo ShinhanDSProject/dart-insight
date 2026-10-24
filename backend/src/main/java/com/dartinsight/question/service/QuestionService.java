@@ -9,16 +9,21 @@ import com.dartinsight.analysis.service.AnalysisResultService;
 import com.dartinsight.analysis.service.AnalysisResultService.CompletedResult;
 import com.dartinsight.analysis.service.TextEvidenceService;
 import com.dartinsight.common.error.ApiException;
+import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.common.trace.TraceContext;
 import com.dartinsight.document.domain.DocumentBlock;
 import com.dartinsight.document.domain.ReportDocument;
 import com.dartinsight.document.service.DocumentService;
+import com.dartinsight.question.domain.FeedbackReason;
 import com.dartinsight.question.domain.QuestionFact;
+import com.dartinsight.question.domain.QuestionFeedback;
 import com.dartinsight.question.domain.QuestionRecord;
 import com.dartinsight.question.domain.QuestionSource;
 import com.dartinsight.question.domain.QuestionStatus;
 import com.dartinsight.question.dto.AnswerAiRequest;
 import com.dartinsight.question.dto.AnswerAiResponse;
+import com.dartinsight.question.dto.QuestionFeedbackRequest;
+import com.dartinsight.question.dto.QuestionFeedbackResponse;
 import com.dartinsight.question.dto.QuestionListResponse;
 import com.dartinsight.question.dto.QuestionResponse;
 import com.dartinsight.question.dto.QuestionResponse.Citation;
@@ -59,6 +64,7 @@ public class QuestionService {
     static final int QUOTE_CHARS = 160;
     static final int MAX_ANSWER_CHARS = 1000;
     static final String TASK = "answer";
+    private static final String NOT_ANSWERED = "답한 질문만 평가할 수 있어요.";
     private static final String BAD_EVIDENCE = "답의 근거 표시가 보낸 원문 위치·사실이 아니라 쓰지 않았어요.";
 
     private static final Logger log = LoggerFactory.getLogger(QuestionService.class);
@@ -96,7 +102,7 @@ public class QuestionService {
 
         if (sources.isEmpty() && facts.isEmpty()) {
             QuestionRecord row = new QuestionRecord(null, analysisId, question, QuestionStatus.NOT_FOUND, null,
-                    List.of(), List.of(), null, List.of(), null, null, null, traceId, createdAt);
+                    List.of(), List.of(), null, List.of(), null, null, null, traceId, createdAt, null);
             return QuestionResponse.of(save(row, List.of()), List.of(), List.of());
         }
 
@@ -162,6 +168,40 @@ public class QuestionService {
         return new QuestionListResponse(items);
     }
 
+    /**
+     * 답 평가를 저장한다(3.12, FS-9). 질문 하나에 평가 하나이고 다시 보내면 덮어쓴다.
+     * 없는 분석은 404 ANALYSIS_NOT_FOUND, 이 분석의 질문이 아니면 404 ANALYSIS_QUESTION_NOT_FOUND,
+     * 답한(ANSWERED) 질문이 아니면 400 COMMON_INVALID_INPUT이다.
+     */
+    public QuestionFeedbackResponse feedback(Long analysisId, Long questionId, QuestionFeedbackRequest request) {
+        QuestionFeedback feedback = feedback(request, now());
+        resultService.get(analysisId);
+        transactionTemplate.executeWithoutResult(status -> {
+            QuestionRecord row = questionStore.find(analysisId, questionId)
+                    .orElseThrow(() -> new ApiException(ErrorCode.ANALYSIS_QUESTION_NOT_FOUND));
+            if (row.status() != QuestionStatus.ANSWERED) {
+                throw new ApiException(ErrorCode.COMMON_INVALID_INPUT, NOT_ANSWERED);
+            }
+            questionStore.updateFeedback(questionId, feedback);
+        });
+        return QuestionFeedbackResponse.of(questionId, feedback);
+    }
+
+    private static QuestionFeedback feedback(QuestionFeedbackRequest request, LocalDateTime at) {
+        if (request == null || request.helpful() == null) {
+            throw ApiException.invalidInput("helpful", "도움이 됐는지 true·false로 보내 주세요.");
+        }
+        if (request.reason() == null) {
+            return new QuestionFeedback(request.helpful(), null, at);
+        }
+        if (request.helpful()) {
+            throw ApiException.invalidInput("reason", "도움이 된 답에는 사유를 보내지 않아요.");
+        }
+        FeedbackReason reason = FeedbackReason.find(request.reason()).orElseThrow(() -> ApiException.invalidInput(
+                "reason", "WRONG_SOURCE·NOT_ANSWERED·HARD_TO_READ·OTHER 중 하나여야 해요."));
+        return new QuestionFeedback(false, reason, at);
+    }
+
     private static String validate(String rawQuestion) {
         String question = rawQuestion == null ? "" : rawQuestion.strip();
         if (question.isEmpty()) {
@@ -192,7 +232,7 @@ public class QuestionService {
         }
         if (status != QuestionStatus.ANSWERED) {
             return new QuestionRecord(null, analysisId, question, status, null, List.of(), List.of(), null, blocked,
-                    response.model(), response.promptVersion(), generatedAt, traceId, createdAt);
+                    response.model(), response.promptVersion(), generatedAt, traceId, createdAt, null);
         }
         AnswerMarkers.Converted converted = AnswerMarkers.convert(response.answer(), evidenceIds, facts.keySet());
         if (!converted.valid() || converted.answer().length() > MAX_ANSWER_CHARS) {
@@ -202,14 +242,14 @@ public class QuestionService {
         List<Long> changeIds = converted.factRefs().stream().map(ref -> facts.get(ref).changeId()).toList();
         return new QuestionRecord(null, analysisId, question, QuestionStatus.ANSWERED, converted.answer(),
                 converted.evidenceIds(), changeIds, null, List.of(), response.model(), response.promptVersion(),
-                generatedAt, traceId, createdAt);
+                generatedAt, traceId, createdAt, null);
     }
 
     private static QuestionRecord review(Long analysisId, String question, String reason, List<String> blocked,
             AnswerAiResponse response, LocalDateTime generatedAt, String traceId, LocalDateTime createdAt) {
         return new QuestionRecord(null, analysisId, question, QuestionStatus.REVIEW_NEEDED, null, List.of(),
                 List.of(), reason == null ? "근거를 확인하지 못했어요." : reason, blocked, response.model(),
-                response.promptVersion(), generatedAt, traceId, createdAt);
+                response.promptVersion(), generatedAt, traceId, createdAt, null);
     }
 
     private QuestionRecord save(QuestionRecord row, List<LlmCallRow> calls) {
