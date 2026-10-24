@@ -14,6 +14,7 @@ import type { HeadlineLine } from '../model/summaryHeadline'
 import { AnswerCard, FailedAnswerCard, PendingAnswerCard, type FollowUp } from './AnswerCard'
 import { ChangeOverview } from './ChangeOverview'
 import { FinancialChart } from './FinancialChart'
+import { PastAnswers } from './PastAnswers'
 import { SummaryHeadline } from './SummaryHeadline'
 import { TextExplanationBox } from './TextExplanationBox'
 
@@ -129,6 +130,18 @@ describe('질문 답 카드 접근성(axe)', () => {
         <AnswerCard item={{ ...base, questionId: 3, status: 'REVIEW_NEEDED' }} links={links} onFeedback={onFeedback} followUp={{ ...followUp, disabled: true }} />
       </>,
     )
+  })
+
+  it('이전 질문 목록에서 답 하나를 펼쳐도 위반이 없다', async () => {
+    const items = Array.from({ length: 7 }, (_, i) => ({ ...answered, questionId: 100 + i, question: `질문 ${i}` }))
+    const container = await expectNoViolations(
+      <PastAnswers
+        items={items}
+        renderAnswer={(item) => <AnswerCard item={item} links={links} onFeedback={onFeedback} followUp={followUp} />}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: /질문 0/ }))
+    expect(await axeViolations(container)).toBe('')
   })
 
   it('답을 기다리는 카드와 보내지 못한 카드에 위반이 없다', async () => {
