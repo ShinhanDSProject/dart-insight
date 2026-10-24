@@ -77,8 +77,23 @@ export function FailedAnswerCard({ question, error, onRetry }: { question: strin
 /** 답 평가를 저장한다(3.12). 실패하면 거부된 Promise */
 export type SendFeedback = (questionId: number, feedback: AnswerFeedback) => Promise<unknown>
 
+/** 답 뒤 '이어서 물어보기'(3.10, FS-13). 누르면 바로 묻는다 */
+export interface FollowUp {
+  questions: string[]
+  onAsk: (question: string) => void
+  /** 다른 질문을 보내는 중 */
+  disabled: boolean
+}
+
+interface AnswerCardProps {
+  item: QuestionAnswer
+  links: AnswerLinks
+  onFeedback: SendFeedback
+  followUp: FollowUp
+}
+
 /** 받은 답 하나. 상태마다 다른 안내를 보인다 */
-export function AnswerCard({ item, links, onFeedback }: { item: QuestionAnswer; links: AnswerLinks; onFeedback: SendFeedback }) {
+export function AnswerCard({ item, links, onFeedback, followUp }: AnswerCardProps) {
   const headId = `ask-q-${item.questionId}`
   return (
     <Card as="article" className="answer-card" aria-labelledby={headId}>
@@ -107,7 +122,35 @@ export function AnswerCard({ item, links, onFeedback }: { item: QuestionAnswer; 
         ))
         .exhaustive()}
       {item.ai && item.status !== 'ANSWERED' && <AiMeta item={item} />}
+      <FollowUpRow questionId={item.questionId} followUp={followUp} />
     </Card>
+  )
+}
+
+/** 코드가 만든 다음 질문 버튼(최대 2개). 없으면 줄을 그리지 않는다 */
+function FollowUpRow({ questionId, followUp }: { questionId: number; followUp: FollowUp }) {
+  if (followUp.questions.length === 0) return null
+  const labelId = `ask-${questionId}-follow-up`
+  return (
+    <section className="answer-follow-up" aria-labelledby={labelId}>
+      <h3 className="answer-card__label" id={labelId}>
+        이어서 물어보기
+      </h3>
+      <ul className="answer-follow-up__list">
+        {followUp.questions.map((question) => (
+          <li key={question}>
+            <Button
+              variant="secondary"
+              className="ask-suggestion answer-follow-up__question"
+              disabled={followUp.disabled}
+              onClick={() => followUp.onAsk(question)}
+            >
+              {question}
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 

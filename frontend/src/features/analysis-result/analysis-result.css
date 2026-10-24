@@ -1558,6 +1558,35 @@
   color: var(--color-danger);
 }
 
+
+/* 답 뒤 '이어서 물어보기'(FS-13). 예시 질문과 같은 모양을 조금 작게 */
+.answer-follow-up {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.answer-follow-up__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.answer-follow-up__list li {
+  max-width: 100%;
+}
+
+.button.ask-suggestion.answer-follow-up__question {
+  min-height: 32px;
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-xs);
+}
+
 /* 답을 기다리는 동안 */
 .answer-card--pending {
   border-style: dashed;
