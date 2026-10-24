@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.compliance import scan
+from app.llm.grounding import number_problem
 from app.summary import causal
 from app.summary.model import (
     FINANCIAL,
@@ -31,16 +32,6 @@ from app.summary.model import (
 
 MAX_SENTENCE = 200
 MAX_EXPLANATION = 300
-_NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?")
-# 숫자 없이 크기를 말하는 표현(두 배, 절반)과 단위가 붙은 수(1조, 500억).
-# 원문에 같은 표현이 있어야 쓸 수 있다
-_MAGNITUDE = re.compile(
-    r"(?:\d+(?:\.\d+)?|[한두세네다섯여섯일곱여덟아홉열몇수]+)\s*배"
-    r"(?=로|가|나|만큼|이상|이하|\s|$|[.,!?)])"
-    r"|절반|\d+\s*분의\s*\d+"
-    r"|\d[\d,]*(?:\.\d+)?\s*(?:조|억|만|천)"
-)
-_SQUEEZE = re.compile(r"[\s,]")
 _SPACES = re.compile(r"\s")
 
 # 코드가 등급을 낮춘 사유(reviewReason). 화면에서 후보가 없던 NONE과 구분해 보인다
@@ -53,10 +44,6 @@ QUOTE_WITHOUT_ACCOUNT = "인용문에 계정 이름이 없어 '관련 내용'으
 class Checked:
     results: dict[str, ItemResult]
     problems: list[str]
-
-
-def numbers(text: str) -> set[str]:
-    return {n.replace(",", "").rstrip(".") for n in _NUMBER.findall(text)}
 
 
 def _strings(value: Any) -> list[str] | None:
@@ -105,23 +92,6 @@ def check(data: Any, summary: SummaryInput) -> Checked:
     return Checked(results, problems)
 
 
-def _number_problem(text: str, sources: dict[str, str], evidence: list[str]) -> str | None:
-    """숫자와 크기 표현이 인용한 원문에 그대로 있는지. LLM이 계산하거나 바꿔 쓴 숫자를 막는다."""
-    cited = " ".join(sources[e] for e in evidence if e in sources)
-    extra = numbers(text) - numbers(cited)
-    if extra:
-        return f"인용한 원문에 없는 숫자가 있습니다: {sorted(extra)[:3]}"
-    squeezed = _SQUEEZE.sub("", cited)
-    missing = [
-        m.group(0)
-        for m in _MAGNITUDE.finditer(text)
-        if _SQUEEZE.sub("", m.group(0)) not in squeezed
-    ]
-    if missing:
-        return f"인용한 원문에 없는 크기 표현이 있습니다: {missing[:3]}. 원문 표현을 그대로 쓰세요."
-    return None
-
-
 def _check_expressions(result: ItemResult, problems: list[str]) -> ItemResult:
     """AI 문장에 투자 권유성 표현이 있으면 내보내지 않고 걸린 규칙과 함께 '검토 필요'로 바꾼다."""
     findings = scan(result.sentence) + scan(result.explanation)
@@ -154,7 +124,7 @@ def _check_text(item: TextItem, sentence: Any, evidence: list[str]) -> str | Non
     unknown = [e for e in evidence if e not in allowed]
     if unknown:
         return f"주어진 원문 id가 아닙니다: {unknown[:3]}"
-    return _number_problem(sentence, allowed, evidence)
+    return number_problem(sentence, allowed, evidence)
 
 
 def _check_financial(
@@ -213,7 +183,7 @@ def _explanation_problem(item: FinancialItem, explanation: Any, evidence: list[s
     unknown = [e for e in evidence if e not in allowed]
     if unknown:
         return f"후보 원문 id가 아닙니다: {unknown[:3]}"
-    return _number_problem(explanation, allowed, evidence)
+    return number_problem(explanation, allowed, evidence)
 
 
 def _downgrade(
