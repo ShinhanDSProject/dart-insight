@@ -7,6 +7,7 @@ import com.dartinsight.analysis.domain.Analysis;
 import com.dartinsight.analysis.domain.FinancialChange;
 import com.dartinsight.analysis.service.AnalysisResultService;
 import com.dartinsight.analysis.service.AnalysisResultService.CompletedResult;
+import com.dartinsight.analysis.service.TextChangeQueryService;
 import com.dartinsight.analysis.service.TextEvidenceService;
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
@@ -51,7 +52,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * 근거로 답하는 질문(3.10, ADR-0019). backend가 두 보고서 문단에서 후보를 찾고(QuestionRetriever), 질문에 나온 계정의
+ * 근거로 답하는 질문(3.10, ADR-0019). 질문에 섹션 이름이 나오고 그 섹션에 문장 변경이 있으면 그 변경 문단을
+ * 후보로 삼고(SectionSources, #258), 아니면 두 보고서 문단에서 낱말로 후보를 찾는다(QuestionRetriever). 질문에 나온 계정의
  * 사실 문장을 코드로 만든 뒤(QuestionFacts) AI 서버에 묻는다. 후보도 사실도 없으면 AI 서버를 부르지 않는다.
  * AI 서버 호출은 트랜잭션 밖에서 하고, 결과와 LLM 호출 기록만 한 트랜잭션으로 저장한다(LY-2).
  */
@@ -64,6 +66,8 @@ public class QuestionService {
     static final int HISTORY_SIZE = 20;
     static final int QUOTE_CHARS = 160;
     static final int MAX_ANSWER_CHARS = 1000;
+    /** 섹션 범위에서 읽을 변경 수(우선순위 순). 후보는 이 중 앞 6개 문단만 쓴다 */
+    static final int SECTION_CHANGES = 200;
     static final String TASK = "answer";
     private static final String NOT_ANSWERED = "답한 질문만 평가할 수 있어요.";
     private static final String BAD_EVIDENCE = "답의 근거 표시가 보낸 원문 위치·사실이 아니라 쓰지 않았어요.";
@@ -71,6 +75,7 @@ public class QuestionService {
     private static final Logger log = LoggerFactory.getLogger(QuestionService.class);
 
     private final AnalysisResultService resultService;
+    private final TextChangeQueryService textChangeQueryService;
     private final ReportService reportService;
     private final DocumentService documentService;
     private final AiServerClient aiServerClient;
@@ -92,11 +97,7 @@ public class QuestionService {
         Map<String, String> reportNames = Map.of(current.report().getRceptNo(), current.report().getReportName(),
                 previous.report().getRceptNo(), previous.report().getReportName());
 
-        Documents documents = new Documents();
-        DocumentView cur = documents.of(analysis.getCurrentRceptNo());
-        DocumentView prev = documents.of(analysis.getPreviousRceptNo());
-        List<QuestionSource> sources = QuestionRetriever.sources(QuestionRetriever.terms(question), blocks(cur),
-                cur.paths(), blocks(prev), prev.paths());
+        List<QuestionSource> sources = sources(analysisId, analysis, question);
         List<QuestionFact> facts = QuestionFacts.match(question, result.changes());
         LocalDateTime createdAt = now();
         String traceId = TraceContext.currentTraceId();
@@ -206,6 +207,23 @@ public class QuestionService {
         FeedbackReason reason = FeedbackReason.find(request.reason()).orElseThrow(() -> ApiException.invalidInput(
                 "reason", "WRONG_SOURCE·NOT_ANSWERED·HARD_TO_READ·OTHER 중 하나여야 해요."));
         return new QuestionFeedback(false, reason, at);
+    }
+
+    /** 섹션 이름이 든 질문이면 그 섹션의 변경 문단, 아니거나 그 섹션에 쓸 변경이 없으면 낱말 검색 */
+    private List<QuestionSource> sources(Long analysisId, Analysis analysis, String question) {
+        Optional<String> scope = SectionSources.scope(question, textChangeQueryService.sectionPaths(analysisId));
+        if (scope.isPresent()) {
+            List<QuestionSource> sources = SectionSources.sources(
+                    textChangeQueryService.changesInSection(analysisId, scope.get(), SECTION_CHANGES));
+            if (!sources.isEmpty()) {
+                return sources;
+            }
+        }
+        Documents documents = new Documents();
+        DocumentView cur = documents.of(analysis.getCurrentRceptNo());
+        DocumentView prev = documents.of(analysis.getPreviousRceptNo());
+        return QuestionRetriever.sources(QuestionRetriever.terms(question), blocks(cur), cur.paths(), blocks(prev),
+                prev.paths());
     }
 
     private static String validate(String rawQuestion) {

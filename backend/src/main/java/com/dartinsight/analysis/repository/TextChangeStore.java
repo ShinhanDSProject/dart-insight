@@ -121,6 +121,13 @@ public class TextChangeStore {
                 + " LIMIT ? OFFSET ?", TextChangeStore::map, args.toArray());
     }
 
+    /** 변경이 있는 섹션 경로 전부(겹치지 않음, 문서 순서: 경로의 첫 change_no 순) */
+    public List<String> sectionPaths(long analysisId) {
+        return jdbcTemplate.query("SELECT section_path, MIN(change_no) AS first_no FROM text_change "
+                + "WHERE analysis_id = ? AND section_path IS NOT NULL GROUP BY section_path ORDER BY first_no",
+                (rs, i) -> rs.getString("section_path"), analysisId);
+    }
+
     /** filter를 WHERE 조건으로. LIKE의 %·_는 글자 그대로 찾도록 '!'로 막는다 */
     private record Condition(String sql, List<Object> args) {
 

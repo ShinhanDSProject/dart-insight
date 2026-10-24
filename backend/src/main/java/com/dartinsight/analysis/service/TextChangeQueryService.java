@@ -44,6 +44,24 @@ public class TextChangeQueryService {
         return new CompletedTextChange(analysis, change);
     }
 
+    /**
+     * 변경이 있는 섹션 경로 전부(문서 순서). 질문(3.10)의 섹션 찾기에 쓴다.
+     * 분석이 완료됐는지는 부르는 쪽이 이미 확인했다고 본다.
+     */
+    public List<String> sectionPaths(Long analysisId) {
+        return store.sectionPaths(analysisId);
+    }
+
+    /**
+     * 섹션(그 섹션과 하위 섹션)의 변경을 확인 우선순위 순으로 최대 limit개. 질문(3.10)의 후보 고르기에 쓴다.
+     * 분석이 완료됐는지는 부르는 쪽이 이미 확인했다고 본다.
+     *
+     * @param section 섹션 경로(최상위 제목이나 "상위 > 하위" 앞부분)
+     */
+    public List<TextChange> changesInSection(Long analysisId, String section, int limit) {
+        return store.page(analysisId, new TextChangeFilter(null, section, null), true, 0, limit);
+    }
+
     public record CompletedTextChange(Analysis analysis, TextChange change) {
     }
 
