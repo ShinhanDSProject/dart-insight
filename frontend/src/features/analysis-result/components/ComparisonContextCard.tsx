@@ -5,7 +5,7 @@ import { getReportPair, type ComparisonBasis, type ReportItem } from '@/shared/a
 import { useAsyncAction } from '@/shared/hooks/useAsyncAction'
 import { basisOptions } from '@/shared/lib/comparisonBasis'
 import { correctionLabel, formatDate, periodLabel, reportTypeLabel } from '@/shared/lib/reportLabels'
-import { Card, FieldHint, FieldLabel, Notice, SegmentedControl } from '@/shared/ui'
+import { Card, FieldHint, FieldLabel, Notice, SegmentedControl, Term } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState } from '@/shared/ui/StateView'
 
@@ -18,7 +18,7 @@ export function ComparisonContextCard({ analysis }: { analysis: Analysis }) {
     <Card as="section" className="context-card" aria-label="비교 맥락">
       <p className="context-card__corp">{analysis.corpName}</p>
       <div className="context-card__pair">
-        <ReportName role="이전 보고서" report={analysis.previous} />
+        <ReportName role="이전 보고서" report={analysis.previous} withTerms />
         <span className="context-card__arrow" aria-hidden="true">
           →
         </span>
@@ -26,13 +26,13 @@ export function ComparisonContextCard({ analysis }: { analysis: Analysis }) {
       </div>
       <BasisSwitcher analysis={analysis} />
       <p className="context-card__note">
-        수치 기준: {analysis.fsDiv === 'OFS' ? '별도' : '연결'} 재무제표 · 금액은 보고서 통화 기준이고, 단위는 재무 수치
+        수치 기준: <Term name="fsDiv">{analysis.fsDiv === 'OFS' ? '별도' : '연결'}</Term> 재무제표 · 금액은 보고서 통화 기준이고, 단위는 재무 수치
         변화에서 바꿀 수 있어요 · 분석 한계: 비교할 수치가 없는 항목은 계산하지 않아요.
       </p>
       <details className="context-card__details">
         <summary>보고서 자세히</summary>
         <div className="context-card__facts">
-          <ReportFacts role="이전 보고서" report={analysis.previous} />
+          <ReportFacts role="이전 보고서" report={analysis.previous} withTerms />
           <ReportFacts role="현재 보고서" report={analysis.current} />
         </div>
       </details>
@@ -40,20 +40,21 @@ export function ComparisonContextCard({ analysis }: { analysis: Analysis }) {
   )
 }
 
-function ReportName({ role, report }: { role: string; report: ReportItem }) {
+/** withTerms: 한 화면에 같은 용어 풀이를 한 번만 붙이려고, 처음 나오는(이전 보고서) 쪽에만 켠다 */
+function ReportName({ role, report, withTerms = false }: { role: string; report: ReportItem; withTerms?: boolean }) {
   return (
     <p className="context-card__report">
       <span className="context-card__role">{role}</span>
       <span className="context-card__name">{report.reportName}</span>
       <span className="context-card__meta">
-        접수번호 {report.rceptNo} · 원문{' '}
+        {withTerms ? <Term name="rceptNo">접수번호</Term> : '접수번호'} {report.rceptNo} · 원문{' '}
         <DartLinkInline rceptNo={report.rceptNo} dartUrl={report.dartUrl} label={`${role} ${report.reportName}`} />
       </span>
     </p>
   )
 }
 
-function ReportFacts({ role, report }: { role: string; report: ReportItem }) {
+function ReportFacts({ role, report, withTerms = false }: { role: string; report: ReportItem; withTerms?: boolean }) {
   return (
     <section className="context-card__fact-group" aria-label={`${role} 상세`}>
       <p className="context-card__role">{role}</p>
@@ -71,7 +72,7 @@ function ReportFacts({ role, report }: { role: string; report: ReportItem }) {
           <dd>{formatDate(report.receivedAt)}</dd>
         </div>
         <div>
-          <dt>정정 여부</dt>
+          <dt>{withTerms ? <Term name="correction">정정 여부</Term> : '정정 여부'}</dt>
           <dd>{correctionLabel(report.correction)}</dd>
         </div>
         <div>
