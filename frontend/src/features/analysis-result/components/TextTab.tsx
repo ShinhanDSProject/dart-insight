@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { match, P } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { ChangeType, TextChangeItem, TextSort } from '@/shared/api/textChanges'
@@ -5,7 +6,9 @@ import { Badge, Button, Card, Chip, FieldHint, FieldLabel, Input, Notice, Panel,
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { TextEvidencePanel } from './TextEvidencePanel'
+import { TextExplanationBox } from './TextExplanationBox'
 import { useTextChanges } from '../hooks/useTextChanges'
+import { useTextExplanations, type TextExplanations } from '../hooks/useTextExplanations'
 import { useTextSearch } from '../hooks/useTextSearch'
 import type { SourceTarget, TextViewChange } from '../model/resultParams'
 import {
@@ -56,6 +59,8 @@ interface TextTabProps {
 export function TextTab({ analysis, type, sort, section, q, selectedChangeId, onChange, onOpenSource }: TextTabProps) {
   const { state, counts, sections, reload, loadMore } = useTextChanges(analysis.analysisId, { type, sort, section, q })
   const searchBox = useTextSearch(q, (next) => onChange({ q: next }))
+  // 받은 풀이는 거르기·정렬을 바꿔도 이 탭이 떠 있는 동안 남는다(3.11)
+  const explanations = useTextExplanations(analysis.analysisId)
   const filtered = hasSearchFilter({ section, q })
   const clearFilters = () => {
     searchBox.setInput('')
@@ -189,6 +194,7 @@ export function TextTab({ analysis, type, sort, section, q, selectedChangeId, on
                           item={item}
                           analysis={analysis}
                           selected={item.changeId === selectedChangeId}
+                          explanations={explanations}
                           onOpenSource={onOpenSource}
                           onToggle={() => onChange({ change: item.changeId === selectedChangeId ? null : item.changeId })}
                           onClose={() => {
@@ -244,13 +250,21 @@ interface ChangeCardProps {
   item: TextChangeItem
   analysis: Analysis
   selected: boolean
+  explanations: TextExplanations
   onToggle: () => void
   onClose: () => void
   onOpenSource: (target: SourceTarget) => void
 }
 
-function ChangeCard({ item, analysis, selected, onToggle, onClose, onOpenSource }: ChangeCardProps) {
+function ChangeCard({ item, analysis, selected, explanations, onToggle, onClose, onOpenSource }: ChangeCardProps) {
   const review = item.changeType === 'REVIEW_NEEDED'
+  // 풀이 상자를 펼쳤는지는 카드 안 상태(주소에 남기지 않음). 처음 펼칠 때만 부른다
+  const [explainOpen, setExplainOpen] = useState(false)
+  const explainId = `text-explain-${item.changeId}`
+  const toggleExplain = () => {
+    if (!explainOpen) explanations.request(item.changeId)
+    setExplainOpen(!explainOpen)
+  }
   return (
     <Card
       as="article"
@@ -291,6 +305,15 @@ function ChangeCard({ item, analysis, selected, onToggle, onClose, onOpenSource 
         <Button variant="secondary" id={evidenceButtonId(item.changeId)} aria-expanded={selected} onClick={onToggle}>
           {selected ? '근거 닫기' : '근거 상세'}
         </Button>
+        <Button
+          variant="secondary"
+          className="change-card__explain"
+          aria-expanded={explainOpen}
+          aria-controls={explainOpen ? explainId : undefined}
+          onClick={toggleExplain}
+        >
+          {explainOpen ? '풀이 접기' : 'AI 한 줄 풀이'}
+        </Button>
         {item.priority && item.priority.reasons.length > 0 && (
           <details className="change-card__why">
             <summary>우선순위를 정한 규칙</summary>
@@ -302,6 +325,15 @@ function ChangeCard({ item, analysis, selected, onToggle, onClose, onOpenSource 
           </details>
         )}
       </div>
+      {explainOpen && (
+        <TextExplanationBox
+          id={explainId}
+          entry={explanations.entryOf(item.changeId)}
+          analysis={analysis}
+          onRetry={() => explanations.request(item.changeId)}
+          onOpenSource={onOpenSource}
+        />
+      )}
       {selected && (
         <TextEvidencePanel key={item.changeId} analysis={analysis} changeId={item.changeId} onClose={onClose} onOpenSource={onOpenSource} />
       )}
