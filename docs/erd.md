@@ -30,6 +30,7 @@
 | `text_change` | 두 보고서의 문장·표 변경과 위치, 확인 우선순위 | 2.5 (#16), 2.6 (#17) | M2 |
 | `summary_item` | 근거 기반 요약 한 줄(사실 문장, AI 문장, 근거 ID, 모델·프롬프트 버전) | 3.2 (#20) | M2 |
 | `llm_call` | LLM 호출 기록(모델·토큰·지연·결과). 비용 집계 | 0.7 (#50), 3.2 (#20) | M2 |
+| `analysis_question` | 분석에 한 질문과 AI 답(상태·근거 ID·사실·모델·프롬프트 버전) | 3.10 (#219) | M2 |
 
 ## 2. 관계도
 
@@ -68,6 +69,7 @@ erDiagram
     analysis ||--o{ summary_item : "analysis_id"
     financial_change ||--o{ summary_item : "financial_change_id"
     analysis ||--o{ llm_call : "analysis_id"
+    analysis ||--o{ analysis_question : "analysis_id"
     report ||--o| report_document : "rcept_no"
     report_document ||--o{ document_section : "document_id"
     report_document ||--o{ document_block : "document_id"
@@ -419,7 +421,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | --- | --- | --- | --- | --- |
 | `id` | BIGINT | PK | 아니오 | |
 | `analysis_id` | BIGINT | FK | 아니오 | `analysis.id` |
-| `task` | VARCHAR(30) | | 아니오 | 작업(`summary`) |
+| `task` | VARCHAR(30) | | 아니오 | 작업(`summary`, `answer`) |
 | `provider`, `model` | VARCHAR(30), VARCHAR(100) | | 아니오 | 제공자(`fake` 등)와 모델 |
 | `prompt_version` | VARCHAR(30) | | 아니오 | 프롬프트 버전 |
 | `called_at` | DATETIME(6) | | 예 | 호출 시각(한국 시간) |
@@ -429,6 +431,26 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `attempt` | INT | | 아니오 | 같은 요청의 몇 번째 시도인지 |
 | `outcome` | VARCHAR(20) | | 아니오 | `OK`, `INVALID_OUTPUT`(검증 실패로 다시 만듦), `TRANSIENT_ERROR`, `ERROR` |
 | `error` | VARCHAR(500) | | 예 | 실패 사유(짧게) |
+
+### analysis_question
+
+분석에 한 질문과 AI 답입니다(3.10, [ADR-0019](adr/0019-grounded-question-answering.md)). 질문은 사용자와 묶지 않습니다. AI 답은 모델·프롬프트 버전·생성 시각과 함께 저장합니다(화면 'AI 생성').
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT | PK | 아니오 | |
+| `analysis_id` | BIGINT | FK | 아니오 | `analysis.id` |
+| `question` | VARCHAR(400) | | 아니오 | 질문(앞뒤 공백 뺌, 200자 이내) |
+| `status` | VARCHAR(20) | | 아니오 | `ANSWERED`, `NOT_FOUND`, `OUT_OF_SCOPE`, `REVIEW_NEEDED` |
+| `answer` | VARCHAR(1000) | | 예 | AI 답(근거 표시는 `[1]`·`[F1]` 번호로 바꿔 저장). `ANSWERED`가 아니면 null |
+| `evidence_ids` | VARCHAR(2000) | | 예 | 답이 인용한 근거 ID(`{rcept_no}#B{block_no}`, 인용 번호 순서, 쉼표로 이음) |
+| `fact_change_ids` | VARCHAR(500) | | 예 | 답이 인용한 사실의 `financial_change.id`(ref 순서, 쉼표로 이음) |
+| `review_reason` | VARCHAR(500) | | 예 | 검토 필요 사유 |
+| `blocked_rules` | VARCHAR(200) | | 예 | 표현 검사(5.5)에 걸린 규칙 ID |
+| `model`, `prompt_version` | VARCHAR(100), VARCHAR(30) | | 예 | 답을 만든 모델과 프롬프트 버전(`answer-1`) |
+| `generated_at` | DATETIME(6) | | 예 | 답을 만든 시각(한국 시간) |
+| `trace_id` | VARCHAR(64) | | 예 | 요청 추적 ID |
+| `created_at` | DATETIME(6) | | 아니오 | 질문한 시각(한국 시간) |
 
 ### app_user / local_credential — 일반 회원가입 (#136)
 
@@ -497,8 +519,9 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `text_change` | `idx_text_change_type` | `analysis_id, change_type, change_no` | 인덱스 | 유형별 목록(W-03 ③) |
 | `summary_item` | `uk_summary_item_no` | `analysis_id, item_no` | 유니크 | 요약 순서 중복 방지 |
 | `llm_call` | `idx_llm_call_analysis` | `analysis_id` | 인덱스 | 분석별 호출 기록·비용 집계 |
+| `analysis_question` | `idx_analysis_question_analysis` | `analysis_id, id` | 인덱스 | 분석별 최신 질문 조회 |
 
-외래 키: `local_credential.user_id`, `refresh_token.user_id` → `app_user.id` / `refresh_token.replaced_by_id` → `refresh_token.id` / `report.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no` → `report.rcept_no` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id`
+외래 키: `local_credential.user_id`, `refresh_token.user_id` → `app_user.id` / `refresh_token.replaced_by_id` → `refresh_token.id` / `report.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no` → `report.rcept_no` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id`, `analysis_question.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id`
 
 ## 5. 작성 규칙
 

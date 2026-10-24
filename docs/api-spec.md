@@ -75,6 +75,8 @@
 | GET | `/api/analyses/{analysisId}/text-changes` | 문장·표 변경 목록(섹션 거르기·검색 #25) | #16 (2.5) | W-03 ③ | 초안 |
 | GET | `/api/analyses/{analysisId}/text-changes/{changeId}` | 문장·표 근거 상세 | #22 (3.4) | W-03 ③ | 초안 |
 | GET | `/api/analyses/{analysisId}/summary` | 근거 기반 요약·설명 | #20 (3.2) | W-03 ① | 초안 |
+| POST | `/api/analyses/{analysisId}/questions` | 근거로 답하는 질문(AI) | #219 (3.10) | W-03 ⑤ | 초안 |
+| GET | `/api/analyses/{analysisId}/questions` | 이 분석에서 한 질문·답 기록 | #219 (3.10) | W-03 ⑤ | 초안 |
 | GET | `/api/analyses/{analysisId}/documents/{side}` | 분석 보고서 원문 목차 | #23 (3.5) | W-03 ④ | 초안 |
 | GET | `/api/analyses/{analysisId}/documents/{side}/sections/{sectionNo}` | 원문 한 항목의 문단·표 | #23 (3.5) | W-03 ④ | 초안 |
 | GET | `/api/system/health` | 서비스 연결 상태 | #48 (0.5) | — | 초안 |
@@ -800,6 +802,76 @@
 | 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 ID |
 | 409 | `ANALYSIS_NOT_READY` | 분석이 끝나지 않음 |
 
+### POST /api/analyses/{analysisId}/questions — 근거로 답하는 질문
+
+- 이슈: #219 (3.10) · 화면: W-03 ⑤ · [ADR-0019](adr/0019-grounded-question-answering.md)
+- 완료된 분석에만 묻습니다. 동기 호출이고 보통 수 초 걸립니다.
+- backend가 두 보고서 원문 문단에서 질문 낱말로 후보를 최대 6개 찾고, 질문에 이 분석의 계정이 나오면 코드가 만든 사실 문장을 함께 ai-server(`POST /internal/answers`)에 보냅니다. 후보도 사실도 없으면 ai-server를 부르지 않고 `NOT_FOUND`입니다.
+- 결과는 `analysis_question`에 저장합니다(같은 질문을 다시 해도 새로 답함).
+
+**요청**
+
+```json
+{ "question": "매출액은 왜 늘었나요?" }
+```
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| body | `question` | string | 예 | 앞뒤 공백을 뺀 2~200자 |
+
+**응답 200**
+
+```json
+{
+  "questionId": 7,
+  "question": "매출액은 왜 늘었나요?",
+  "status": "ANSWERED",
+  "answer": "회사는 메모리 수요 회복으로 매출이 늘었다고 밝혔어요[1]. 매출액은 153.7조 원에서 305.4조 원으로 늘었어요[F1].",
+  "message": null,
+  "citations": [
+    { "no": 1, "evidenceId": "20260814003699#B812", "side": "current", "rceptNo": "20260814003699",
+      "reportName": "반기보고서 (2026.06)", "sectionNo": 31, "blockNo": 812,
+      "sectionPath": "IV. 이사의 경영진단 및 분석의견 > 2. 영업실적", "quote": "매출액은 메모리 수요 회복으로 …" }
+  ],
+  "facts": [
+    { "ref": "F1", "changeId": 4221, "sjDiv": "IS", "accountName": "매출액",
+      "sentence": "매출액이 153.7조 원에서 305.4조 원으로 늘었어요(+98.7%)." }
+  ],
+  "ai": { "model": "fake-model", "promptVersion": "answer-1", "generatedAt": "2026-10-24T10:12:03" },
+  "createdAt": "2026-10-24T10:12:03"
+}
+```
+
+- `status`
+  - `ANSWERED`: `answer`에 답. 문장 안의 `[1]`은 `citations[].no`, `[F1]`은 `facts[].ref`입니다.
+  - `NOT_FOUND`: 두 보고서에서 관련 문단·수치를 찾지 못함. `answer`는 null, `message`에 안내
+  - `OUT_OF_SCOPE`: 매수·매도·목표주가·주가 전망 질문이라 답하지 않음. LLM을 부르지 않음
+  - `REVIEW_NEEDED`: 답이 근거·숫자·표현 검사를 통과하지 못함(2회 다시 만든 뒤). `answer`는 null
+- `citations`: 답이 인용한 원문만 번호 순서대로. `quote`는 문단 앞 160자입니다. `facts`: 답이 인용한 사실(코드가 계산)만.
+- `ai`: AI가 답을 만들었을 때만(모델·프롬프트 버전·생성 시각). `NOT_FOUND`·`OUT_OF_SCOPE`면 null입니다.
+
+**에러**
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | `question`이 비었거나 2자 미만·200자 초과(`errors[].field`=`question`) |
+| 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 |
+| 409 | `ANALYSIS_NOT_READY` | 분석이 끝나지 않음 |
+| 503 | `AI_SERVER_UNAVAILABLE` | AI 서버 또는 LLM을 쓸 수 없음 |
+
+### GET /api/analyses/{analysisId}/questions — 질문·답 기록
+
+- 이슈: #219 (3.10) · 이 분석에서 한 질문을 최신 순으로 최대 20개 돌려줍니다. 항목 모양은 위 응답과 같습니다.
+
+```json
+{ "items": [ { "questionId": 7, "question": "…", "status": "ANSWERED", "answer": "…", "message": null,
+  "citations": [], "facts": [], "ai": null, "createdAt": "2026-10-24T10:12:03" } ] }
+```
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 |
+
 ### GET /api/system/health — 연결 상태
 
 - 이슈: #48 (0.5)
@@ -1008,6 +1080,55 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | 상태 | code | 언제 |
 | --- | --- | --- |
 | 400 | `COMMON_INVALID_INPUT` | `ref`가 겹침, 필드 누락 |
+| 503 | `AI_LLM_UNAVAILABLE` | LLM을 쓸 수 없음 |
+
+### POST /internal/answers — 근거로 답하기
+
+- 이슈: #218 (3.10) · [ADR-0019](adr/0019-grounded-question-answering.md) · LLM은 `app/llm`의 한 모듈로만 부릅니다.
+- 질문은 `<question>`, 원문은 `<disclosure id>`, 사실은 `<fact ref>` 태그로 감싸 자료로만 씁니다. 질문 안의 지시는 따르지 않습니다. 사용자 정보는 넣지 않습니다.
+- 매수·매도·목표주가·주가 전망 질문(규칙 `OUT_OF_SCOPE_QUESTION`)은 LLM을 부르지 않고 `OUT_OF_SCOPE`, 후보(`sources`)와 사실(`facts`)이 모두 비었으면 LLM을 부르지 않고 `NOT_FOUND`입니다.
+- LLM 출력: `{"status": "ANSWERED"|"NOT_FOUND", "answer": "…", "evidenceIds": […], "factRefs": […]}`. 답은 해요체 3문장·400자 이내, 문장마다 `[근거 ID]`나 `[F1]`을 붙여 쓰게 하고, ai-server가 근거 ID 표시를 그대로 둡니다(backend가 번호로 바꿈).
+- 확인: `evidenceIds`·`factRefs`가 보낸 것이고 `ANSWERED`면 둘 중 하나 이상 있음, 답의 숫자·크기 표현이 인용한 원문·사실에 있음, 원인 표현(ADR-0015 `CAUSAL_CLAIM`)은 인용한 원문에도 원인 표현이 있을 때만, 표현 검사(5.5) 통과. 실패하면 문제를 알려 주며 2회까지 다시 만들고 끝내 실패하면 `REVIEW_NEEDED`(`answer` null, `reviewReason`)입니다. 표현 검사에 걸리면 `blockedRules`에 규칙 ID가 남습니다.
+
+**요청**
+
+```json
+{
+  "companyName": "삼성전자",
+  "previousReport": "반기보고서 (2025.06)",
+  "currentReport": "반기보고서 (2026.06)",
+  "question": "매출액은 왜 늘었나요?",
+  "facts": [{ "ref": "F1", "sentence": "매출액이 153.7조 원에서 305.4조 원으로 늘었어요(+98.7%)." }],
+  "sources": [{ "evidenceId": "20260814003699#B812", "side": "current",
+    "sectionPath": "IV. 이사의 경영진단 및 분석의견 > 2. 영업실적", "text": "…" }]
+}
+```
+
+**응답 200**
+
+```json
+{
+  "promptVersion": "answer-1",
+  "expressionRulesVersion": "expr-1",
+  "model": "fake-model",
+  "generatedAt": "2026-10-24T10:12:03",
+  "status": "ANSWERED",
+  "answer": "회사는 메모리 수요 회복으로 매출이 늘었다고 밝혔어요[20260814003699#B812]. 매출액은 153.7조 원에서 305.4조 원으로 늘었어요[F1].",
+  "evidenceIds": ["20260814003699#B812"],
+  "factRefs": ["F1"],
+  "reviewReason": null,
+  "blockedRules": [],
+  "calls": [{ "task": "answer", "provider": "fake", "model": "fake-model", "promptVersion": "answer-1",
+    "calledAt": "2026-10-24T10:12:02", "traceId": "…", "inputTokens": 900, "outputTokens": 120,
+    "latencyMs": 800, "attempt": 1, "outcome": "OK", "error": null }]
+}
+```
+
+- `OUT_OF_SCOPE`·`NOT_FOUND`이면 `model`·`generatedAt`은 null, `calls`는 빈 배열입니다.
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | 필드 누락, `evidenceId`·`ref` 겹침 |
 | 503 | `AI_LLM_UNAVAILABLE` | LLM을 쓸 수 없음 |
 
 ## 4. 에러 코드
