@@ -6,6 +6,7 @@ import { ButtonLink, FieldHint, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { FavoriteToggle } from './components/FavoriteToggle'
 import { PairSelector } from './components/PairSelector'
+import { PastAnalyses } from './components/PastAnalyses'
 import { ReportDetailPanel } from './components/ReportDetailPanel'
 import { ReportTable } from './components/ReportTable'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
@@ -96,6 +97,8 @@ function ReportSelection({ corpCode, company, reports, selection }: ReportSelect
           {refreshNotice(reports)}
         </Notice>
       )}
+
+      <PastAnalyses corpCode={corpCode} />
 
       <Panel as="div">
         {current && (
