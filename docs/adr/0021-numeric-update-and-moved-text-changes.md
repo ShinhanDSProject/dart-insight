@@ -17,7 +17,7 @@ ADR-0010의 결정을 그대로 두고, 블록 분류만 아래처럼 바꿉니�
 - 문장·표 변경 탐지는 ai-server `text_diff.py`(`DIFF_VERSION` `text-diff-2`)가 `difflib` 기반 규칙으로 합니다. LLM을 쓰지 않습니다.
   - 섹션 짝짓기는 ADR-0010과 같습니다.
   - 블록은 숫자를 가린 글로 자리를 맞춥니다. 짝지은 두 블록의 숫자를 가린 글이 같으면 `NUMERIC_UPDATE`, 그 밖에 다르면 `MODIFIED`입니다.
-  - 문서 전체의 `DELETED`·`ADDED` 중 블록 종류가 같고 숫자를 가린 글이 같거나 비슷한 정도가 `MOVED_SIMILAR`(0.95) 이상인 것을 한 쌍씩 `MOVED` 하나로 바꿉니다. 같은 섹션 안의 순서 바뀜과 다른 섹션으로의 이동을 구분하지 않고 같은 유형으로 둡니다. 숫자를 가린 글이 `MOVED_MIN_CHARS`(20자)보다 짧은 블록은 짝짓지 않고, 비교 횟수에 상한(`_MOVED_BUDGET`)을 둡니다.
+  - 문서 전체의 `DELETED`·`ADDED` 중 블록 종류가 같고 숫자를 가린 글이 같거나 비슷한 정도가 `MOVED_SIMILAR`(0.95) 이상이면서 다른 부분이 모두 띄어쓰기·문장부호뿐인(`formatting_only_differs`) 것을 한 쌍씩 `MOVED` 하나로 바꿉니다. 같은 섹션 안의 순서 바뀜과 다른 섹션으로의 이동을 구분하지 않고 같은 유형으로 둡니다. 숫자를 가린 글이 `MOVED_MIN_CHARS`(20자)보다 짧은 블록은 짝짓지 않고, 비교 횟수에 상한(`_MOVED_BUDGET`)을 둡니다.
   - `MOVED`는 이전·현재 위치를 둘 다 가지고, 이전 쪽 섹션 경로(`previousSectionPath`)를 따로 돌려줍니다. backend는 이를 `text_change.previous_section_path`에 저장합니다.
 - `numbers_only`는 지우지 않습니다. 새 결과에서는 `numbers_only = (change_type = 'NUMERIC_UPDATE')`이고, 옛 결과(`MODIFIED` + true)와 API `numbersOnly`를 읽는 쪽을 위해 남깁니다.
 - 확인 우선순위(`PRIORITY_VERSION` `priority-2`)는 두 유형을 낮게 둡니다(숫자만 바뀜 −20, 위치 이동 −20). backend `SummarySelector.text()`는 두 유형을 요약 대상에서 뺍니다.
