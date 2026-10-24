@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { useEffect, useState, type FormEvent } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import { match } from 'ts-pattern'
-import { ApiError } from '@/shared/api/client'
+import { apiBaseUrl, ApiError } from '@/shared/api/client'
+import { endpoints } from '@/shared/api/endpoints'
 import { useAuth } from '@/shared/auth/authContext'
 import './user-login.css'
 
@@ -11,9 +12,16 @@ type SubmitState = { status: 'idle' } | { status: 'loading' }
 export function LoginPage() {
   const auth = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [submit, setSubmit] = useState<SubmitState>({ status: 'idle' })
+
+  useEffect(() => {
+    if (searchParams.get('social') === 'success' && auth.state.status === 'authenticated') {
+      void navigate('/', { replace: true })
+    }
+  }, [auth.state.status, navigate, searchParams])
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -41,6 +49,11 @@ export function LoginPage() {
         <p className="page__step">DART Insight</p>
         <h1 className="page__title" id="login-title">로그인</h1>
         <p className="page__lead">가입한 이메일과 비밀번호를 입력해 주세요.</p>
+        {searchParams.get('social') === 'error' && (
+          <div className="state state--error login__failure" role="alert">
+            <p>소셜 로그인에 실패했습니다. 다시 시도해 주세요.</p>
+          </div>
+        )}
         <form onSubmit={onSubmit} aria-busy={loading}>
           <div className="login__field">
             <label htmlFor="login-email">이메일</label>
@@ -62,6 +75,15 @@ export function LoginPage() {
             {loading ? '로그인 중…' : '로그인'}
           </button>
         </form>
+        <div className="login__divider"><span>또는</span></div>
+        <div className="login__social" aria-label="소셜 로그인">
+          {(['google', 'kakao', 'naver'] as const).map((provider) => (
+            <a className={`login__social-button login__social-button--${provider}`}
+              href={`${apiBaseUrl}${endpoints.socialLogin(provider)}`} key={provider}>
+              {provider === 'google' ? 'Google' : provider === 'kakao' ? '카카오' : '네이버'}로 계속하기
+            </a>
+          ))}
+        </div>
         <p className="login__signup">아직 계정이 없나요? <Link to="/signup">회원가입</Link></p>
       </div>
     </section>
