@@ -100,7 +100,7 @@ describe('searchWordOf', () => {
   it('찾지 못한 질문의 첫 핵심어를 검색 버튼 문구에 넣는다', () => {
     const word = searchWordOf('우주 탐사 계획은 어떻게 바뀌었나요?')
     expect(word).toBe('우주')
-    expect(textSearchLabel(word ?? '')).toBe("문장 변경에서 '우주' 찾기")
+    expect(textSearchLabel(word ?? '')).toBe("문장·내용 변화에서 '우주' 찾기")
   })
 
   it('검색어는 검색 최대 길이를 넘지 않는다', () => {
