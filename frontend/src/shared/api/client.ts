@@ -34,7 +34,7 @@ export class ApiError extends Error {
   }
 }
 
-const baseUrl: string = import.meta.env.VITE_API_BASE_URL ?? ''
+export const apiBaseUrl: string = import.meta.env.VITE_API_BASE_URL ?? ''
 let accessToken: string | null = null
 let refreshPromise: Promise<void> | null = null
 
@@ -52,7 +52,7 @@ function buildUrl(path: string, query?: Query): string {
     }
   }
   const search = params.toString()
-  return `${baseUrl}${path}${search ? `?${search}` : ''}`
+  return `${apiBaseUrl}${path}${search ? `?${search}` : ''}`
 }
 
 function isErrorBody(value: unknown): value is ErrorBody {
@@ -138,7 +138,7 @@ async function requestOnce<T>(
 
 async function refreshAccessToken(): Promise<void> {
   if (!refreshPromise) {
-    refreshPromise = fetch(`${baseUrl}/api/session-refreshes`, {
+    refreshPromise = fetch(`${apiBaseUrl}/api/session-refreshes`, {
       method: 'POST',
       headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
       credentials: 'include',

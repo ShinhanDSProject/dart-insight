@@ -12,6 +12,7 @@ export const endpoints = {
   sessions: () => '/api/sessions',
   currentSession: () => '/api/sessions/current',
   sessionRefreshes: () => '/api/session-refreshes',
+  socialLogin: (provider: string) => `/oauth2/authorization/${seg(provider)}`,
   companies: () => '/api/companies',
   company: (corpCode: string) => `/api/companies/${seg(corpCode)}`,
   companyReports: (corpCode: string) => `/api/companies/${seg(corpCode)}/reports`,

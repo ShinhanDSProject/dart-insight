@@ -26,6 +26,16 @@ function submit() {
 }
 
 describe('일반 로그인 화면', () => {
+  it('Google, 카카오, 네이버 로그인 경로를 제공한다', () => {
+    renderLogin()
+    expect(screen.getByRole('link', { name: 'Google로 계속하기' }).getAttribute('href'))
+      .toBe('/oauth2/authorization/google')
+    expect(screen.getByRole('link', { name: '카카오로 계속하기' }).getAttribute('href'))
+      .toBe('/oauth2/authorization/kakao')
+    expect(screen.getByRole('link', { name: '네이버로 계속하기' }).getAttribute('href'))
+      .toBe('/oauth2/authorization/naver')
+  })
+
   it('입력한 이메일과 비밀번호로 로그인한다', () => {
     const auth = renderLogin()
     submit()
