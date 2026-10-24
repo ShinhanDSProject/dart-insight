@@ -3,12 +3,17 @@ package com.dartinsight.explanation.service;
 import com.dartinsight.aiserver.client.AiServerException;
 import com.dartinsight.analysis.domain.Analysis;
 import com.dartinsight.analysis.domain.TextChange;
+import com.dartinsight.analysis.domain.TextChangeRow.Side;
 import com.dartinsight.analysis.service.TextChangeQueryService;
 import com.dartinsight.analysis.service.TextChangeQueryService.CompletedTextChange;
+import com.dartinsight.analysis.service.TextEvidenceService;
 import com.dartinsight.common.trace.TraceContext;
+import com.dartinsight.document.domain.DocumentBlock;
+import com.dartinsight.document.service.DocumentService;
 import com.dartinsight.explanation.domain.ExplanationStatus;
 import com.dartinsight.explanation.domain.TextExplanationRecord;
 import com.dartinsight.explanation.dto.TextExplanationResponse;
+import com.dartinsight.explanation.dto.TextExplanationResponse.Location;
 import com.dartinsight.explanation.repository.ExplanationStore;
 import com.dartinsight.report.service.ReportService;
 import com.dartinsight.report.service.ReportService.ReportDetail;
@@ -20,7 +25,9 @@ import com.dartinsight.summary.service.SummaryService.TextExplanation;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -47,6 +54,7 @@ public class ExplanationService {
     private final SummaryQueryService summaryQueryService;
     private final SummaryService summaryService;
     private final ReportService reportService;
+    private final DocumentService documentService;
     private final ExplanationStore explanationStore;
     private final TransactionTemplate transactionTemplate;
     private final Clock clock;
@@ -63,20 +71,20 @@ public class ExplanationService {
 
         Optional<TextExplanationRecord> stored = explanationStore.find(analysisId, change.changeNo());
         if (stored.isPresent()) {
-            return response(analysis, changeId, stored.get(), true);
+            return response(analysis, change, stored.get(), true);
         }
 
         String traceId = TraceContext.currentTraceId();
         Optional<SummaryItemRow> summarized = summaryQueryService.shownText(analysisId, change.changeNo());
         if (summarized.isPresent()) {
             SummaryItemRow row = summarized.get();
-            return save(analysis, changeId, new TextExplanationRecord(null, analysisId, change.changeNo(),
+            return save(analysis, change, new TextExplanationRecord(null, analysisId, change.changeNo(),
                     ExplanationStatus.OK, row.aiText(), row.evidenceIds(), null, List.of(), row.model(),
                     row.promptVersion(), row.generatedAt(), traceId, now()), List.of());
         }
 
         if (!SummaryService.explainable(change.row())) {
-            return save(analysis, changeId, new TextExplanationRecord(null, analysisId, change.changeNo(),
+            return save(analysis, change, new TextExplanationRecord(null, analysisId, change.changeNo(),
                     ExplanationStatus.NO_SOURCE, null, List.of(), NO_SOURCE, List.of(), null, null, null, traceId,
                     now()), List.of());
         }
@@ -94,28 +102,48 @@ public class ExplanationService {
                 : new TextExplanationRecord(null, analysisId, change.changeNo(), ExplanationStatus.REVIEW_NEEDED,
                         null, List.of(), row.reviewReason() == null ? NO_REASON : row.reviewReason(),
                         row.blockedRules(), null, null, null, traceId, now());
-        return save(analysis, changeId, record, explained.calls());
+        return save(analysis, change, record, explained.calls());
     }
 
-    private TextExplanationResponse save(Analysis analysis, Long changeId, TextExplanationRecord row,
+    private TextExplanationResponse save(Analysis analysis, TextChange change, TextExplanationRecord row,
             List<LlmCallRow> calls) {
         try {
             Long id = transactionTemplate.execute(status -> explanationStore.save(row, calls));
-            return response(analysis, changeId, row.withId(id), false);
+            return response(analysis, change, row.withId(id), false);
         } catch (DuplicateKeyException e) {
             // 같은 변경을 동시에 요청해 다른 요청이 먼저 저장했다. 다시 만들지 않고 저장된 것을 돌려준다
             log.info("같은 변경의 풀이가 먼저 저장돼 저장된 것을 돌려줍니다: analysis={}, change={}",
                     row.analysisId(), row.changeNo());
             TextExplanationRecord stored = explanationStore.find(row.analysisId(), row.changeNo())
                     .orElseThrow(() -> new IllegalStateException("저장된 풀이를 찾지 못했습니다", e));
-            return response(analysis, changeId, stored, true);
+            return response(analysis, change, stored, true);
         }
     }
 
-    private static TextExplanationResponse response(Analysis analysis, Long changeId, TextExplanationRecord row,
+    private TextExplanationResponse response(Analysis analysis, TextChange change, TextExplanationRecord row,
             boolean cached) {
-        return TextExplanationResponse.of(changeId, row, analysis.getCurrentRceptNo(), analysis.getPreviousRceptNo(),
-                cached);
+        Map<String, Location> located = row.status() == ExplanationStatus.OK ? locations(change) : Map.of();
+        return TextExplanationResponse.of(change.id(), row, located, analysis.getCurrentRceptNo(),
+                analysis.getPreviousRceptNo(), cached);
+    }
+
+    /**
+     * 그 변경의 두 쪽 원문 위치. 풀이의 근거는 이 변경에 보낸 원문으로만 받으므로(요약도 같음) 이 둘 안에 있다.
+     * 섹션 번호는 분석 때 저장한 위치이고, 경로는 그 보고서의 구조화된 원문에서 읽는다(쓸 수 없으면 변경의 섹션 경로).
+     */
+    private Map<String, Location> locations(TextChange change) {
+        Map<String, Location> located = new HashMap<>();
+        for (Side side : new Side[] {change.row().previous(), change.row().current()}) {
+            if (side == null || side.blockNo() == null) {
+                continue;
+            }
+            String path = documentService.find(side.rceptNo()).filter(d -> d.getStatus().usable())
+                    .map(d -> TextEvidenceService.paths(documentService.sections(d)).get(side.sectionNo()))
+                    .orElse(null);
+            located.put(DocumentBlock.evidenceId(side.rceptNo(), side.blockNo()),
+                    new Location(side.sectionNo(), path == null ? change.row().sectionPath() : path));
+        }
+        return located;
     }
 
     private LocalDateTime now() {
