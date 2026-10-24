@@ -31,6 +31,7 @@
 | `summary_item` | 근거 기반 요약 한 줄(사실 문장, AI 문장, 근거 ID, 모델·프롬프트 버전) | 3.2 (#20) | M2 |
 | `llm_call` | LLM 호출 기록(모델·토큰·지연·결과). 비용 집계 | 0.7 (#50), 3.2 (#20) | M2 |
 | `analysis_question` | 분석에 한 질문과 AI 답(상태·근거 ID·사실·모델·프롬프트 버전) | 3.10 (#219) | M2 |
+| `text_change_explanation` | 문장 변경 하나의 AI 한 줄 풀이(상태·근거 ID·모델·프롬프트 버전) | 3.11 (#227) | M2 |
 
 ## 2. 관계도
 
@@ -70,6 +71,7 @@ erDiagram
     financial_change ||--o{ summary_item : "financial_change_id"
     analysis ||--o{ llm_call : "analysis_id"
     analysis ||--o{ analysis_question : "analysis_id"
+    analysis ||--o{ text_change_explanation : "analysis_id"
     report ||--o| report_document : "rcept_no"
     report_document ||--o{ document_section : "document_id"
     report_document ||--o{ document_block : "document_id"
@@ -454,6 +456,25 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `trace_id` | VARCHAR(64) | | 예 | 요청 추적 ID |
 | `created_at` | DATETIME(6) | | 아니오 | 질문한 시각(한국 시간) |
 
+### text_change_explanation
+
+문장 변경 하나의 AI 한 줄 풀이입니다(3.11, FS-6). 분석·변경마다 하나만 저장하고 다시 만들지 않습니다. 요약(`summary_item`)의 문장을 옮긴 경우도 같은 모양으로 저장합니다.
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT | PK | 아니오 | |
+| `analysis_id` | BIGINT | FK, UK | 아니오 | `analysis.id` |
+| `change_no` | INT | UK | 아니오 | `text_change.change_no` |
+| `status` | VARCHAR(20) | | 아니오 | `OK`, `REVIEW_NEEDED`, `NO_SOURCE` |
+| `sentence` | VARCHAR(1000) | | 예 | AI 풀이(`OK`일 때만) |
+| `evidence_ids` | VARCHAR(500) | | 예 | 풀이가 인용한 근거 ID(쉼표로 이음) |
+| `review_reason` | VARCHAR(500) | | 예 | 검토 필요·원문 없음 사유 |
+| `blocked_rules` | VARCHAR(200) | | 예 | 표현 검사(5.5)에 걸린 규칙 ID |
+| `model`, `prompt_version` | VARCHAR(100), VARCHAR(30) | | 예 | 풀이를 만든 모델과 프롬프트 버전 |
+| `generated_at` | DATETIME(6) | | 예 | 풀이를 만든 시각(한국 시간) |
+| `trace_id` | VARCHAR(64) | | 예 | 요청 추적 ID |
+| `created_at` | DATETIME(6) | | 아니오 | 저장한 시각(한국 시간) |
+
 ### app_user / local_credential — 일반 회원가입 (#136)
 
 > 마이그레이션: `V11__create_user_registration.sql`.
@@ -522,8 +543,9 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `summary_item` | `uk_summary_item_no` | `analysis_id, item_no` | 유니크 | 요약 순서 중복 방지 |
 | `llm_call` | `idx_llm_call_analysis` | `analysis_id` | 인덱스 | 분석별 호출 기록·비용 집계 |
 | `analysis_question` | `idx_analysis_question_analysis` | `analysis_id, id` | 인덱스 | 분석별 최신 질문 조회 |
+| `text_change_explanation` | `uk_text_change_explanation` | `analysis_id, change_no` | 유니크 | 변경마다 풀이 하나 |
 
-외래 키: `local_credential.user_id`, `refresh_token.user_id` → `app_user.id` / `refresh_token.replaced_by_id` → `refresh_token.id` / `report.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no` → `report.rcept_no` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id`, `analysis_question.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id`
+외래 키: `local_credential.user_id`, `refresh_token.user_id` → `app_user.id` / `refresh_token.replaced_by_id` → `refresh_token.id` / `report.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no` → `report.rcept_no` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id`, `analysis_question.analysis_id`, `text_change_explanation.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id`
 
 ## 5. 작성 규칙
 

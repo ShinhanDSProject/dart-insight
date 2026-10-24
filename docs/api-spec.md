@@ -74,6 +74,7 @@
 | GET | `/api/analyses/{analysisId}/financial-changes/{changeId}` | 수치 근거 상세 | #21 (3.3) | W-03 ② | 초안 |
 | GET | `/api/analyses/{analysisId}/text-changes` | 문장·표 변경 목록(섹션 거르기·검색 #25) | #16 (2.5) | W-03 ③ | 초안 |
 | GET | `/api/analyses/{analysisId}/text-changes/{changeId}` | 문장·표 근거 상세 | #22 (3.4) | W-03 ③ | 초안 |
+| POST | `/api/analyses/{analysisId}/text-changes/{changeId}/explanations` | 문장 변경 AI 한 줄 풀이(만들거나 저장된 것) | #227 (3.11) | W-03 ③ | 초안 |
 | GET | `/api/analyses/{analysisId}/summary` | 근거 기반 요약·설명 | #20 (3.2) | W-03 ① | 초안 |
 | POST | `/api/analyses/{analysisId}/questions` | 근거로 답하는 질문(AI) | #219 (3.10) | W-03 ⑤ | 초안 |
 | GET | `/api/analyses/{analysisId}/questions` | 이 분석에서 한 질문·답 기록 | #219 (3.10) | W-03 ⑤ | 초안 |
@@ -680,6 +681,42 @@
 | --- | --- | --- |
 | 404 | `ANALYSIS_NOT_FOUND`, `ANALYSIS_TEXT_CHANGE_NOT_FOUND` | 없는 분석·변경 항목 |
 | 409 | `ANALYSIS_NOT_READY` | 분석이 아직 완료되지 않음 |
+
+### POST /api/analyses/{analysisId}/text-changes/{changeId}/explanations — 문장 변경 AI 한 줄 풀이
+
+- 이슈: #227 (3.11) · 화면: W-03 ③ 카드의 'AI 한 줄 풀이' · 기획서 FS-6
+- 그 변경의 이전·현재 문단만 근거로 한 문장 풀이를 돌려줍니다. 순서:
+  1. 이미 저장된 풀이가 있으면 그대로(`cached: true`, AI 호출 없음)
+  2. 요약(`summary_item`)에 그 변경의 AI 문장이 있으면 그 문장을 저장하고 돌려줌(AI 호출 없음)
+  3. 짝을 찾지 못해 원문이 없는 변경(`REVIEW_NEEDED` 유형 등)은 AI 없이 `NO_SOURCE`
+  4. 아니면 `POST /internal/summaries`를 문장 항목 하나(`textItems` 1개, `financialItems` 빈 목록)로 불러 만들고 저장(근거·숫자·표현 검사는 요약과 같음)
+- 저장은 분석·변경마다 하나입니다(다시 만들지 않음). 완료된 분석에만 씁니다.
+
+**응답 200**
+
+```json
+{
+  "changeId": 5512,
+  "status": "OK",
+  "sentence": "현재 보고서에 종속회사의 과징금 납부 사실이 새로 적혔어요.",
+  "message": null,
+  "evidence": [
+    { "side": "current", "rceptNo": "20260814003699", "blockNo": 1840, "evidenceId": "20260814003699#B1840" }
+  ],
+  "ai": { "model": "fake-model", "promptVersion": "summary-2", "generatedAt": "2026-10-25T09:40:11" },
+  "cached": false
+}
+```
+
+- `status`: `OK`(풀이 있음), `REVIEW_NEEDED`(검증·표현 검사를 통과하지 못함, `sentence` null, `message`에 사유), `NO_SOURCE`(풀이할 원문이 없음, `sentence` null)
+- `evidence`: 풀이가 인용한 원문 위치. `ai`는 AI 문장일 때만(`NO_SOURCE`면 null).
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 |
+| 404 | `ANALYSIS_TEXT_CHANGE_NOT_FOUND` | 이 분석의 변경 항목이 아님 |
+| 409 | `ANALYSIS_NOT_READY` | 분석이 끝나지 않음 |
+| 503 | `AI_SERVER_UNAVAILABLE` | AI 서버 또는 LLM을 쓸 수 없음(저장하지 않음) |
 
 ### GET /api/analyses/{analysisId}/documents/{side} — 원문 목차
 
