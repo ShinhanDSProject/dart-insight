@@ -271,6 +271,52 @@ a.app-nav__item:not([aria-current='page']):hover {
   font-size: var(--font-size-xs);
 }
 
+/* 단축키 도움말(FS-17) */
+.shortcut-help__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.shortcut-help__group--unavailable .shortcut-help__list {
+  opacity: 0.55;
+}
+
+.shortcut-help__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.shortcut-help__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.shortcut-help__item {
+  display: grid;
+  grid-template-columns: var(--space-7) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-sm);
+}
+
+.shortcut-help__item dt,
+.shortcut-help__item dd {
+  margin: 0;
+}
+
+.shortcut-help__note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
 /* 좁은 화면: 왼쪽 메뉴를 위로 올리고 메뉴 항목을 가로로 놓는다 */
 @media (max-width: 900px) {
   .app {
@@ -322,6 +368,11 @@ a.app-nav__item:not([aria-current='page']):hover {
 
   .app-nav__item {
     height: var(--control-height);
+  }
+
+  /* 좁은 화면(터치)에서는 단축키 안내를 숨긴다. ui.css의 .button보다 뒤에 읽혀도 숨기도록 두 단계로 고른다 */
+  .app-header .app-header__shortcuts {
+    display: none;
   }
 
   .app-header {
