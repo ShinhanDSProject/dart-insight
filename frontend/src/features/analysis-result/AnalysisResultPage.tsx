@@ -140,6 +140,12 @@ interface ResultTabPanelProps extends AnalysisResultProps {
 function ResultTabPanel({ analysis, params, update, ask, suggestions }: ResultTabPanelProps) {
   const openSource = (target: SourceTarget) => update(openSourceChanges(target))
   const openFinancial = (sj: SjDiv, change: number) => update(openFinancialChanges(sj, change))
+  // 요약의 예시 질문과 문장 변화의 '이 항목 변화 AI에게 묻기'가 같이 쓴다: 질문을 보내고 AI 질문 탭으로 옮긴다
+  const askAndOpen = (question: string) => {
+    ask.ask(question)
+    update(openAsk())
+  }
+  const asking = ask.state.request.status === 'sending'
   return match(params.tab)
     .with('financial', () => (
       <FinancialTab
@@ -163,12 +169,9 @@ function ResultTabPanel({ analysis, params, update, ask, suggestions }: ResultTa
         onOpenChangedAccounts={(sj) => update(openChangedAccounts(sj))}
         onOpenTextList={(type) => update(openTextList(type))}
         suggestions={suggestions}
-        onAsk={(question) => {
-          ask.ask(question)
-          update(openAsk())
-        }}
+        onAsk={askAndOpen}
         onOpenAsk={() => update(openAsk())}
-        asking={ask.state.request.status === 'sending'}
+        asking={asking}
       />
     ))
     .with('text', () => (
@@ -182,6 +185,8 @@ function ResultTabPanel({ analysis, params, update, ask, suggestions }: ResultTa
         selectedChangeId={params.selectedTextChangeId}
         onChange={(c) => update(textParamChanges(c))}
         onOpenSource={openSource}
+        onAsk={askAndOpen}
+        asking={asking}
       />
     ))
     .with('ask', () => (

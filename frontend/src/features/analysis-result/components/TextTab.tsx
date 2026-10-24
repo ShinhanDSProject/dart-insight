@@ -10,6 +10,7 @@ import { TextExplanationBox } from './TextExplanationBox'
 import { useTextChanges } from '../hooks/useTextChanges'
 import { useTextExplanations, type TextExplanations } from '../hooks/useTextExplanations'
 import { useTextSearch } from '../hooks/useTextSearch'
+import { sectionAskQuestion } from '../model/askQuestion'
 import type { SourceTarget, TextViewChange } from '../model/resultParams'
 import {
   changeTypeLabel,
@@ -49,6 +50,10 @@ interface TextTabProps {
   selectedChangeId: number | null
   onChange: (changes: TextViewChange) => void
   onOpenSource: (target: SourceTarget) => void
+  /** 고른 섹션의 변화를 AI에게 묻는다(질문을 보내고 AI 질문 탭으로 옮김) */
+  onAsk: (question: string) => void
+  /** 다른 질문을 보내는 중 */
+  asking: boolean
 }
 
 /**
@@ -56,12 +61,25 @@ interface TextTabProps {
  * 최상위 섹션과 검색어로도 함께 거른다(3.7). 고른 값은 주소에 남아 공유된다.
  * 문장을 비교하지 못했으면 '변경 없음'이 아니라 사유를 보여 준다. 짝짓지 못한 항목은 숨기지 않고 '검토 필요'로 둔다.
  */
-export function TextTab({ analysis, type, sort, section, q, selectedChangeId, onChange, onOpenSource }: TextTabProps) {
+export function TextTab({
+  analysis,
+  type,
+  sort,
+  section,
+  q,
+  selectedChangeId,
+  onChange,
+  onOpenSource,
+  onAsk,
+  asking,
+}: TextTabProps) {
   const { state, counts, sections, reload, loadMore } = useTextChanges(analysis.analysisId, { type, sort, section, q })
   const searchBox = useTextSearch(q, (next) => onChange({ q: next }))
   // 받은 풀이는 거르기·정렬을 바꿔도 이 탭이 떠 있는 동안 남는다(3.11)
   const explanations = useTextExplanations(analysis.analysisId)
   const filtered = hasSearchFilter({ section, q })
+  // 섹션을 골랐을 때만 그 섹션 변화를 묻는 버튼을 둔다(목차 밖 본문은 빼고)
+  const sectionQuestion = sectionAskQuestion(section)
   const clearFilters = () => {
     searchBox.setInput('')
     onChange({ type: null, section: null, q: null })
@@ -92,6 +110,17 @@ export function TextTab({ analysis, type, sort, section, q, selectedChangeId, on
                 </option>
               ))}
             </Select>
+            {sectionQuestion !== null && (
+              <Button
+                variant="secondary"
+                className="text-search__ask"
+                disabled={asking}
+                aria-label={`이 항목 변화 AI에게 묻기: ${sectionQuestion}`}
+                onClick={() => onAsk(sectionQuestion)}
+              >
+                이 항목 변화 AI에게 묻기
+              </Button>
+            )}
           </div>
           <div className="text-search__field text-search__field--grow">
             <FieldLabel htmlFor="text-query">문장 검색</FieldLabel>

@@ -514,6 +514,10 @@
   max-width: 100%;
 }
 
+.text-search__ask {
+  align-self: flex-start;
+}
+
 .text-search__input {
   min-height: var(--control-height);
 }
