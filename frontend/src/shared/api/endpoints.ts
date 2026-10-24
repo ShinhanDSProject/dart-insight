@@ -35,4 +35,5 @@ export const endpoints = {
   questions: (analysisId: number) => `${analysis(analysisId)}/questions`,
   questionFeedback: (analysisId: number, questionId: number) =>
     `${analysis(analysisId)}/questions/${seg(questionId)}/feedback`,
+  aiUsage: () => '/api/system/ai-usage',
 }

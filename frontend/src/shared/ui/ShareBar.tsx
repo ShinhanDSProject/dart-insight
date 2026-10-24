@@ -1,7 +1,8 @@
 import { formatShare, shares } from '@/shared/lib/compare'
 import { cx } from '@/shared/lib/cx'
 
-export type ShareTone = 'added' | 'modified' | 'deleted'
+/** added·modified·deleted: 문장 변경 구성. series-1~4: 좋고 나쁨이 없는 상태 구성(AI 사용 현황) */
+export type ShareTone = 'added' | 'modified' | 'deleted' | 'series-1' | 'series-2' | 'series-3' | 'series-4'
 
 export interface ShareSegment {
   label: string

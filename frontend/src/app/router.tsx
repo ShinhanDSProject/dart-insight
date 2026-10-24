@@ -9,6 +9,7 @@ import { SignupPage } from '@/features/user-registration/SignupPage'
 import { LoginPage } from '@/features/user-login/LoginPage'
 import { NotFoundPage } from './NotFoundPage'
 import { SearchPage } from '@/features/company-search/SearchPage'
+import { AiUsagePage } from '@/features/ai-usage/AiUsagePage'
 
 /**
  * 화면 경로(와이어프레임 번호)
@@ -17,6 +18,7 @@ import { SearchPage } from '@/features/company-search/SearchPage'
  * - /companies/:corpCode/compare    W-01 ③ 비교 검증(?current=&previous=&basis=)
  * - /analyses/:analysisId/progress  W-02 분석 진행
  * - /analyses/:analysisId           W-03 분석 결과
+ * - /system/ai-usage                AI 사용 현황(FS-15, ?days=7|30)
  * handle.crumb는 상단 헤더의 경로 표시에 쓴다.
  */
 export const router = createBrowserRouter([
@@ -35,6 +37,7 @@ export const router = createBrowserRouter([
           { path: '/companies/:corpCode/compare', element: <ComparabilityPage />, handle: { crumb: '비교 조건 확인' } },
           { path: '/analyses/:analysisId/progress', element: <AnalysisProgressPage />, handle: { crumb: '분석 진행' } },
           { path: '/analyses/:analysisId', element: <AnalysisResultPage />, handle: { crumb: '분석 결과' } },
+          { path: '/system/ai-usage', element: <AiUsagePage />, handle: { crumb: 'AI 사용 현황' } },
           { path: '*', element: <NotFoundPage />, handle: { crumb: '페이지 없음' } },
         ],
       },

@@ -60,6 +60,7 @@
   .data-table__sort-mark,
   .fin-chart__tip,
   .ask-form,
+  .app-footer__link,
   input,
   textarea {
     display: none !important;
