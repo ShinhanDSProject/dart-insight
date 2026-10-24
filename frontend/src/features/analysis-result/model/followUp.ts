@@ -1,6 +1,6 @@
 import { match } from 'ts-pattern'
 import type { QuestionAnswer, QuestionStatus } from '@/shared/api/questions'
-import { OUTSIDE_TOC, parseQuestion, sectionQuestion, topSectionOf } from './askQuestion'
+import { isAskableSection, parseQuestion, sectionQuestion, topSectionOf } from './askQuestion'
 
 /**
  * 답 뒤 '이어서 물어보기'(3.10, FS-13). AI가 아니라 코드가 답의 근거와 예시 질문으로 다음 질문을 만든다.
@@ -30,7 +30,7 @@ export function accountFollowUp(accountName: string): string {
 function answerFollowUps(answer: QuestionAnswer): string[] {
   const firstCitation = answer.citations.at(0)
   const top = firstCitation ? topSectionOf(firstCitation.sectionPath) : ''
-  const section = top !== '' && top !== OUTSIDE_TOC ? sectionQuestion(top) : null
+  const section = isAskableSection(top) ? sectionQuestion(top) : null
   const account = answer.facts.at(0)?.accountName.trim() ?? ''
   return [section, account !== '' ? accountFollowUp(account) : null].filter((q): q is string => q !== null)
 }
@@ -50,7 +50,7 @@ export function followUpQuestions(answer: QuestionAnswer, context: FollowUpConte
 
   const sectionQuestions = (context.sections ?? [])
     .map((title) => title.trim())
-    .filter((title) => title !== '' && title !== OUTSIDE_TOC)
+    .filter(isAskableSection)
     .map(sectionQuestion)
 
   return match(answer.status)
