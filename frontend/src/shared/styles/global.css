@@ -192,6 +192,12 @@ a.app-nav__item:not([aria-current='page']):hover {
   font-size: var(--font-size-xs);
 }
 
+/* ui.css의 .link-button(font: inherit)보다 뒤에 읽혀도 작은 글자를 지키도록 두 단계로 고른다 */
+.app-guide .app-guide__action {
+  align-self: flex-start;
+  font-size: var(--font-size-xs);
+}
+
 .app-workspace {
   display: flex;
   flex-direction: column;
