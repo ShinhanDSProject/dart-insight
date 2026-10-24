@@ -37,6 +37,11 @@ describe('parseResultParams', () => {
     })
   })
 
+  it('주소의 유형 거르기로 숫자만 바뀜·위치 이동을 읽는다', () => {
+    expect(parseResultParams(new URLSearchParams('tab=text&ttype=NUMERIC_UPDATE')).textType).toBe('NUMERIC_UPDATE')
+    expect(parseResultParams(new URLSearchParams('tab=text&ttype=MOVED')).textType).toBe('MOVED')
+  })
+
   it('주소에 남긴 고르기를 읽는다', () => {
     const params = new URLSearchParams('tab=text&sj=CF&changed=1&change=7&ttype=ADDED&tsort=document&tc=3&doc=previous&section=2&block=5')
     expect(parseResultParams(params)).toMatchObject({

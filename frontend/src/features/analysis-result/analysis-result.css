@@ -581,6 +581,10 @@
   font-size: var(--font-size-sm);
 }
 
+.change-card__moved {
+  overflow-wrap: anywhere;
+}
+
 .change-card__sides {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));

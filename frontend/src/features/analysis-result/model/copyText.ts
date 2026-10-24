@@ -7,7 +7,7 @@ import type { TextChangeItem, TextExplanation } from '@/shared/api/textChanges'
 import { dartViewerUrl } from '@/shared/lib/dart'
 import { displaySectionPath } from '@/shared/lib/sectionTitle'
 import { citationSideLabel, quoteLabel } from './askQuestion'
-import { changeTypeLabel } from './textLabels'
+import { changeTypeLabel, movedPaths } from './textLabels'
 import { formatCount } from './textFilter'
 import { orderedEvidence } from './textExplanation'
 
@@ -102,6 +102,12 @@ function reportLine(report: Pick<ReportItem, 'reportName' | 'rceptNo'>): string 
   return `${report.reportName} [접수번호 ${report.rceptNo}]`
 }
 
+/** 다른 섹션으로 옮긴 위치 이동이면 옮기기 전 섹션 경로. 그 밖은 빈 글 */
+function movedFrom(item: TextChangeItem): string {
+  const paths = movedPaths(item)
+  return paths === null || paths.sameSection ? '' : ` (옮기기 전: ${displaySectionPath(paths.from)})`
+}
+
 /** 삭제는 이전 보고서에만 있으므로 이전 원문, 그 밖은 현재 원문을 출처로 둔다 */
 function sourceLine(item: TextChangeItem, analysis: PinnedCopyAnalysis): string {
   const side = item.changeType === 'DELETED' ? 'previous' : 'current'
@@ -122,7 +128,7 @@ export function pinnedChangesText(analysis: PinnedCopyAnalysis, items: readonly 
   ].join('\n')
   const changes = items.map((item, i) =>
     [
-      `${formatCount(i + 1)}. [${changeTypeLabel(item.changeType)}] ${displaySectionPath(item.sectionPath)}`,
+      `${formatCount(i + 1)}. [${changeTypeLabel(item.changeType)}] ${displaySectionPath(item.sectionPath)}${movedFrom(item)}`,
       `이전: ${clipSentence(item.previousPreview)}`,
       `현재: ${clipSentence(item.currentPreview)}`,
       sourceLine(item, analysis),

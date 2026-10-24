@@ -10,7 +10,14 @@ import { formatDate, reportTypeLabel } from '@/shared/lib/reportLabels'
 import { TableView } from './TableView'
 import { useTextChangeDetail } from '../hooks/useTextChanges'
 import type { SourceTarget } from '../model/resultParams'
-import { changeTypeLabel, DELETED_NOTE, missingSideLabel } from '../model/textLabels'
+import {
+  changeTypeLabel,
+  comparesWords,
+  DELETED_NOTE,
+  missingSideLabel,
+  MOVED_NOTE,
+  showsNumbersOnlyMark,
+} from '../model/textLabels'
 import { wordDiff, type DiffPart } from '../model/wordDiff'
 import { displaySectionPath } from '@/shared/lib/sectionTitle'
 
@@ -67,7 +74,7 @@ function EvidenceBody({ detail, onOpenSource }: { detail: TextChangeDetail; onOp
   const review = change.changeType === 'REVIEW_NEEDED'
   const bothParagraphs =
     previous?.text != null && current?.text != null && previous.table === null && current.table === null
-  const diff = change.changeType === 'MODIFIED' && bothParagraphs ? wordDiff(previous.text!, current.text!) : null
+  const diff = comparesWords(change.changeType) && bothParagraphs ? wordDiff(previous.text!, current.text!) : null
   return (
     <>
       {review && (
@@ -100,13 +107,14 @@ function EvidenceBody({ detail, onOpenSource }: { detail: TextChangeDetail; onOp
       </div>
       <p className="panel__note">
         변경 유형: {changeTypeLabel(change.changeType)}
-        {change.numbersOnly ? ' (숫자만 바뀜)' : ''}
-        {change.similarity !== null && change.changeType === 'MODIFIED'
+        {showsNumbersOnlyMark(change) ? ' (숫자만 바뀜)' : ''}
+        {change.similarity !== null && comparesWords(change.changeType)
           ? ` · 두 글이 비슷한 정도 ${Math.round(change.similarity * 100)}%`
           : ''}
         {diff ? ' · 바뀐 낱말에 밑줄을 그었어요.' : ''}
       </p>
       {change.changeType === 'DELETED' && <p className="panel__note">{DELETED_NOTE}</p>}
+      {change.changeType === 'MOVED' && <p className="panel__note">{MOVED_NOTE}</p>}
     </>
   )
 }
