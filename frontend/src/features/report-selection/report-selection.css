@@ -148,3 +148,17 @@
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }
+
+/* 이미 분석한 비교(#288). 보고서 고르기 위에 두고, 누르면 결과 화면으로 간다 */
+.past-analyses__list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.past-analyses__list a {
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}

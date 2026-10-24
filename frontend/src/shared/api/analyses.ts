@@ -53,6 +53,31 @@ export function getAnalysis(analysisId: string | number, signal?: AbortSignal): 
   return apiGet(endpoints.analysis(analysisId), undefined, { signal })
 }
 
+/** 기업의 이미 분석한 비교 한 건의 보고서(GET /api/companies/{corpCode}/analyses) */
+export type CompanyAnalysisReport = Pick<ReportItem, 'rceptNo' | 'reportName' | 'periodEnd'>
+
+export interface CompanyAnalysisItem {
+  analysisId: number
+  basis: ComparisonBasis
+  previous: CompanyAnalysisReport
+  current: CompanyAnalysisReport
+  /** 완료 시각(YYYY-MM-DDTHH:mm:ss, 한국 시간) */
+  completedAt: string
+}
+
+export interface CompanyAnalysisList {
+  items: CompanyAnalysisItem[]
+}
+
+/** 이 기업의 완료된 분석, 최근 완료 순(같은 보고서 쌍·비교 기준은 최근 것 하나). limit 기본 5, 최대 20 */
+export function listCompanyAnalyses(
+  corpCode: string,
+  signal?: AbortSignal,
+  limit?: number,
+): Promise<CompanyAnalysisList> {
+  return apiGet(endpoints.companyAnalyses(corpCode), limit === undefined ? undefined : { limit }, { signal })
+}
+
 /** 분석 화면 주소. 완료됐으면 결과(W-03), 아니면 진행(W-02) */
 export function analysisPath(analysisId: number, status: AnalysisStatus): string {
   return status === 'COMPLETED' ? `/analyses/${analysisId}` : `/analyses/${analysisId}/progress`
