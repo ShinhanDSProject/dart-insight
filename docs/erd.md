@@ -8,7 +8,7 @@
 | --- | --- |
 | 상태 | 초안 (M1 확정, M2 진행 중: 원문 구조화·문장 변경·요약 확정) |
 | 담당 | 백엔드 |
-| 마지막 수정 | 2026-10-23 |
+| 마지막 수정 | 2026-10-25 |
 | 관련 문서 | API 명세(`docs/api-spec.md`), [OpenDART 데이터 가이드](https://app.notion.com/p/400b6afffc6f81cc8870ee13d02d8ac1), 이슈 #46 |
 
 ## 1. 테이블 목록
@@ -30,7 +30,7 @@
 | `text_change` | 두 보고서의 문장·표 변경과 위치, 확인 우선순위 | 2.5 (#16), 2.6 (#17) | M2 |
 | `summary_item` | 근거 기반 요약 한 줄(사실 문장, AI 문장, 근거 ID, 모델·프롬프트 버전) | 3.2 (#20) | M2 |
 | `llm_call` | LLM 호출 기록(모델·토큰·지연·결과). 비용 집계 | 0.7 (#50), 3.2 (#20) | M2 |
-| `analysis_question` | 분석에 한 질문과 AI 답(상태·근거 ID·사실·모델·프롬프트 버전) | 3.10 (#219) | M2 |
+| `analysis_question` | 분석에 한 질문과 AI 답(상태·근거 ID·사실·모델·프롬프트 버전), 답 평가(3.12) | 3.10 (#219), 3.12 (#236) | M2 |
 | `text_change_explanation` | 문장 변경 하나의 AI 한 줄 풀이(상태·근거 ID·모델·프롬프트 버전) | 3.11 (#227) | M2 |
 
 ## 2. 관계도
@@ -436,9 +436,9 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 
 ### analysis_question
 
-> 마이그레이션: `V13__create_analysis_question.sql`.
+> 마이그레이션: `V13__create_analysis_question.sql`, `V15__add_analysis_question_feedback.sql`(평가 열).
 
-분석에 한 질문과 AI 답입니다(3.10, [ADR-0019](adr/0019-grounded-question-answering.md)). 질문은 사용자와 묶지 않습니다. AI 답은 모델·프롬프트 버전·생성 시각과 함께 저장합니다(화면 'AI 생성').
+분석에 한 질문과 AI 답입니다(3.10, [ADR-0019](adr/0019-grounded-question-answering.md)). 질문은 사용자와 묶지 않습니다. AI 답은 모델·프롬프트 버전·생성 시각과 함께 저장합니다(화면 'AI 생성'). 답 평가(3.12, FS-9)는 질문 하나에 하나이고 다시 보내면 덮어씁니다. 평가한 사람은 저장하지 않습니다.
 
 | 컬럼 | 타입 | 키 | null | 설명 |
 | --- | --- | --- | --- | --- |
@@ -455,6 +455,9 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `generated_at` | DATETIME(6) | | 예 | 답을 만든 시각(한국 시간) |
 | `trace_id` | VARCHAR(64) | | 예 | 요청 추적 ID |
 | `created_at` | DATETIME(6) | | 아니오 | 질문한 시각(한국 시간) |
+| `feedback_helpful` | BOOLEAN | | 예 | 답이 도움이 됐는지. 평가 전이면 null. `ANSWERED`만 평가함 |
+| `feedback_reason` | VARCHAR(30) | | 예 | 도움이 안 된 사유 `WRONG_SOURCE`, `NOT_ANSWERED`, `HARD_TO_READ`, `OTHER`. `feedback_helpful`이 false일 때만 |
+| `feedback_at` | DATETIME(6) | | 예 | 마지막으로 평가한 시각(한국 시간) |
 
 ### text_change_explanation
 
