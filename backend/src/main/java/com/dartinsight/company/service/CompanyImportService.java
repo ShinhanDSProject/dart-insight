@@ -107,6 +107,26 @@ public class CompanyImportService {
         return new int[] {created.size(), updated};
     }
 
+    /**
+     * 검색용 이름(corp_name_key·corp_name_chosung)이 빈 행을 1,000건씩 채운다. 덩어리마다 따로 커밋하고 외부 호출은 없다.
+     * 이 컬럼이 생기기 전에 받아 둔 목록을 위해 서버를 시작할 때 한 번 부른다. 다시 불러도 같다. 채운 건수를 돌려준다.
+     */
+    public int fillMissingNameKeys() {
+        int total = 0;
+        while (true) {
+            Integer filled = transactionTemplate.execute(status -> companyStore.fillMissingNameKeys(CHUNK_SIZE));
+            int count = filled == null ? 0 : filled;
+            total += count;
+            if (count < CHUNK_SIZE) {
+                break;
+            }
+        }
+        if (total > 0) {
+            log.info("기업 검색용 이름 채움: {}건", total);
+        }
+        return total;
+    }
+
     public record ImportResult(int total, int inserted, int updated) {
     }
 }

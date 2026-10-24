@@ -12,6 +12,7 @@ import com.dartinsight.support.TestData;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -66,6 +67,69 @@ class CompanyControllerTest {
                 .andExpect(jsonPath("$.items[1].corpName").value("한국예시전자"))
                 .andExpect(jsonPath("$.items[2].corpName").value("예시전자서비스"))
                 .andExpect(jsonPath("$.items[2].listed").value(false));
+    }
+
+    private void saveSamsungCompanies() {
+        importService.save(List.of(
+                entry("00126380", "삼성전자", "005930"),
+                entry("00000011", "삼성전자서비스", null),
+                entry("00000012", "삼성SDI", "006400"),
+                entry("00000013", "신세계", "004170")));
+    }
+
+    @Test
+    @DisplayName("초성 검색어 ㅅㅅㅈㅈ로 삼성전자를 먼저 찾는다")
+    void searchesByChosung() throws Exception {
+        saveSamsungCompanies();
+
+        mockMvc.perform(get("/api/companies").param("query", "ㅅㅅㅈㅈ"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(2)))
+                .andExpect(jsonPath("$.items[0].corpCode").value("00126380"))
+                .andExpect(jsonPath("$.items[0].corpName").value("삼성전자"))
+                .andExpect(jsonPath("$.items[0].stockCode").value("005930"))
+                .andExpect(jsonPath("$.items[0].listed").value(true))
+                .andExpect(jsonPath("$.items[1].corpName").value("삼성전자서비스"));
+    }
+
+    @Test
+    @DisplayName("띄어 쓴 검색어 '삼성 전자'로 삼성전자를 먼저 찾는다")
+    void searchesIgnoringSpaces() throws Exception {
+        saveSamsungCompanies();
+
+        mockMvc.perform(get("/api/companies").param("query", "삼성 전자"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(2)))
+                .andExpect(jsonPath("$.items[0].corpName").value("삼성전자"))
+                .andExpect(jsonPath("$.items[1].corpName").value("삼성전자서비스"));
+    }
+
+    @Test
+    @DisplayName("영문 회사명 일부는 대소문자를 무시하고 찾는다")
+    void searchesLatinNameIgnoringCase() throws Exception {
+        saveSamsungCompanies();
+
+        mockMvc.perform(get("/api/companies").param("query", "성sdi"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.items[0].corpName").value("삼성SDI"));
+    }
+
+    @Test
+    @DisplayName("검색용 이름이 비어 있던 회사도 채운 뒤에는 초성으로 찾는다")
+    void searchesCompaniesSavedBeforeNameKeysAfterFilling() throws Exception {
+        jdbcTemplate.update("INSERT INTO company (corp_code, corp_name, stock_code, created_at, updated_at)"
+                + " VALUES ('00126380', '삼성전자', '005930', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
+        mockMvc.perform(get("/api/companies").param("query", "ㅅㅅㅈㅈ"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(0)));
+
+        importService.fillMissingNameKeys();
+
+        mockMvc.perform(get("/api/companies").param("query", "ㅅㅅㅈㅈ"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.items[0].corpName").value("삼성전자"));
     }
 
     @Test
