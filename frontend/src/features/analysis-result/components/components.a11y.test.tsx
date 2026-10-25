@@ -190,6 +190,10 @@ describe('변화 개요 접근성(axe)', () => {
       <ChangeOverview analysisId={1} onOpenChangedAccounts={noop} onOpenTextList={noop} onOpenTextSection={noop} />,
     )
     expect(container.querySelectorAll('.section-chart__row')).toHaveLength(2)
+    const legend = container.querySelector('.share-bar__legend')?.textContent ?? ''
+    expect(legend).toContain('숫자만 바뀜 1')
+    expect(legend).toContain('위치 이동 1')
+    expect(container.querySelectorAll('.share-bar__part--neutral')).toHaveLength(4) // 막대 2칸 + 범례 표식 2개
   })
 
   it('불러오는 중·실패·확인 안 됨 개요에 위반이 없다', async () => {

@@ -1,8 +1,11 @@
 import { formatShare, shares } from '@/shared/lib/compare'
 import { cx } from '@/shared/lib/cx'
 
-/** added·modified·deleted: 문장 변경 구성. series-1~4: 좋고 나쁨이 없는 상태 구성(AI 사용 현황) */
-export type ShareTone = 'added' | 'modified' | 'deleted' | 'series-1' | 'series-2' | 'series-3' | 'series-4'
+/**
+ * added·modified·deleted: 문장 변경 구성. neutral: 내용은 그대로인 변경(숫자만 바뀜·위치 이동).
+ * series-1~4: 좋고 나쁨이 없는 상태 구성(AI 사용 현황)
+ */
+export type ShareTone = 'added' | 'modified' | 'deleted' | 'neutral' | 'series-1' | 'series-2' | 'series-3' | 'series-4'
 
 export interface ShareSegment {
   label: string
@@ -13,7 +16,7 @@ export interface ShareSegment {
 }
 
 /**
- * 구성 비율 막대(FS-3 R11). 0인 조각은 그리지 않고, 범례에 이름·건수·비율을 글자로 둔다(색만으로 구분하지 않음).
+ * 구성 비율 막대(FS-3 R11). 0인 조각은 그리지 않고(0보다 크면 최소 2px로 보임), 범례에 이름·건수·비율을 글자로 둔다(색만으로 구분하지 않음).
  * 버튼 안에도 넣을 수 있게 span만 쓴다.
  */
 export function ShareBar({ segments, className }: { segments: ShareSegment[]; className?: string }) {
