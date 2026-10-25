@@ -18,6 +18,7 @@
 | `app_user` | 공통 회원 | #136 | 미정 |
 | `local_credential` | 일반 가입 정보 | #136 | 미정 |
 | `refresh_token` | 일반 로그인 Refresh Token 해시·회전 기록 | 6.2 | 미정 |
+| `social_account` | Google·Kakao·Naver 계정과 공통 회원 연결 | #225 (6.3) | 미정 |
 | `company` | 기업. OpenDART 고유번호 기준 | 4.4 (#51) | M1 |
 | `report` | 정기보고서. 접수번호 기준 | 4.1 (#27) | M1 |
 | `financial_statement_fetch` | 재무제표 API를 부른 기록(보고서·연결/별도 단위) | 4.5 (#52) | M1 |
@@ -39,6 +40,7 @@
 erDiagram
     app_user ||--o| local_credential : "user_id (#136)"
     app_user ||--o{ refresh_token : "user_id (6.2)"
+    app_user ||--o{ social_account : "user_id (6.3)"
     app_user {
         bigint id PK
         datetime created_at
@@ -59,6 +61,14 @@ erDiagram
         datetime expires_at
         datetime revoked_at
         bigint replaced_by_id FK
+    }
+    social_account {
+        bigint id PK
+        bigint user_id FK
+        varchar provider UK
+        varchar provider_user_id UK
+        varchar email
+        boolean email_verified
     }
     company ||--o{ report : "corp_code"
     company ||--o{ financial_statement_fetch : "corp_code"
@@ -531,6 +541,20 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `last_used_at`, `revoked_at` | DATETIME(6) | | 예 | 마지막 사용·폐기 시각 |
 | `replaced_by_id` | BIGINT | FK | 예 | 회전 후 새 Refresh Token ID |
 
+### social_account — 소셜 계정 연결(#225)
+
+> 마이그레이션: `V18__create_social_account.sql`.
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT AUTO_INCREMENT | PK | 아니오 | 연결 정보 ID |
+| `user_id` | BIGINT | FK, INDEX | 아니오 | `app_user.id` |
+| `provider` | VARCHAR(20) | UNIQUE 묶음 | 아니오 | `google`, `kakao`, `naver` |
+| `provider_user_id` | VARCHAR(255) | UNIQUE 묶음 | 아니오 | 제공자가 발급한 변경되지 않는 사용자 식별자 |
+| `email` | VARCHAR(254) | | 예 | 로그인 때 제공된 이메일. 제공자가 주지 않으면 null. 자동 통합 키로 사용하지 않음 |
+| `email_verified` | BOOLEAN | | 아니오 | 제공자가 확인 여부를 명시한 경우의 값 |
+| `created_at`, `updated_at` | DATETIME(6) | | 아니오 | 생성·수정 시각 |
+
 ## 4. 인덱스·제약
 
 | 테이블 | 이름 | 컬럼 | 종류 | 이유 |
@@ -539,6 +563,8 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `local_credential` | `uk_local_credential_email` | `email` | 유니크 | 일반 가입 중복 방지(#136) |
 | `refresh_token` | `uk_refresh_token_hash` | `token_hash` | 유니크 | 같은 Refresh Token 중복 저장 방지 |
 | `refresh_token` | `idx_refresh_token_family` | `family_id` | 인덱스 | 재사용 감지 시 계열 폐기 |
+| `social_account` | `uk_social_account_provider_user` | `provider`, `provider_user_id` | 유니크 | 제공자별 사용자를 한 계정에 한 번만 연결 |
+| `social_account` | `idx_social_account_user` | `user_id` | 인덱스 | 회원의 연결 계정 조회 |
 | `company` | `uk_company_corp_code` | `corp_code` | 유니크 | 고유번호 중복 방지(외래 키가 참조) |
 | `company` | `idx_company_corp_name` | `corp_name` | 인덱스 | 회사명 정렬·완전 일치. 부분 일치 검색(`%검색어%`)에는 쓰이지 않음 |
 | `company` | `idx_company_stock_code` | `stock_code` | 인덱스 | 종목코드 검색 |

@@ -62,6 +62,9 @@
 | POST | `/api/session-refreshes` | Access Token 재발급 | 6.2 | 공통 | 구현 |
 | GET | `/api/sessions/current` | 현재 인증 사용자 | 6.2 | 공통 | 구현 |
 | DELETE | `/api/sessions/current` | 로그아웃 | 6.2 | 공통 | 구현 |
+| GET | `/oauth2/authorization/{provider}` | 소셜 로그인 시작(`google`, `kakao`, `naver`) | #225 (6.3) | 로그인 | 구현 |
+| GET | `/login/oauth2/code/{provider}` | 소셜 제공자 OAuth 콜백 | #225 (6.3) | 로그인 | 구현 |
+| GET | `/api/social-sessions/callback` | 소셜 인증을 서비스 세션으로 전환 | #225 (6.3) | 로그인 | 구현 |
 | GET | `/api/companies` | 기업 검색 | #8 (1.1) | W-01 ① | 초안 |
 | GET | `/api/companies/{corpCode}` | 기업 정보 | #8 (1.1) | W-01 ② | 초안 |
 | GET | `/api/companies/{corpCode}/reports` | 기업별 정기보고서 목록 | #9 (1.2), #10 (1.3) | W-01 ② | 초안 |
@@ -159,6 +162,14 @@
 
 - GET은 Bearer Access Token이 필요하며 현재 `userId`를 반환합니다. 없거나 잘못된 JWT는 `AUTH_UNAUTHORIZED`(401)입니다.
 - DELETE는 Refresh Token을 폐기하고 쿠키를 만료시킵니다. 이미 없더라도 204로 끝냅니다.
+
+### GET /oauth2/authorization/{provider} — 소셜 로그인
+
+- `provider`는 `google`, `kakao`, `naver` 중 하나이며 Spring Security Authorization Code 흐름을 시작합니다.
+- 제공자 콜백은 `/login/oauth2/code/{provider}`로 받고, Spring Security 인증 성공 후 `/api/social-sessions/callback`에서 서비스 세션으로 전환합니다. 성공 시 `(provider, providerUserId)`로 기존 연결을 찾고, 없으면 새 `app_user`와 `social_account`를 생성합니다.
+- 제공자 이메일은 표시·감사용 속성일 뿐 계정 연결 키로 쓰지 않습니다. 같은 이메일의 일반 계정이나 다른 소셜 계정과 자동 통합하지 않습니다.
+- 성공 시 기존 6.2 정책의 Refresh Token 쿠키를 발급하고 `${SOCIAL_LOGIN_REDIRECT_URL}?social=success`로 이동합니다. 실패·취소·필수 식별자 누락은 `?social=error`로 이동합니다.
+- 제공자의 Access Token과 Refresh Token은 DB·로그·브라우저 저장소에 저장하지 않습니다.
 
 ### GET /api/companies — 기업 검색
 
