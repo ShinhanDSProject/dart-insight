@@ -33,7 +33,9 @@ public record AnalysisResponse(
         TextStatus textStatus,
         String textMessage,
         SummaryStatus summaryStatus,
-        String summaryMessage) {
+        String summaryMessage,
+        String analysisVersion,
+        boolean outdated) {
 
     public static AnalysisResponse of(Analysis a, ReportDetail current, ReportDetail previous,
             Map<String, FinancialDataStatus> statuses) {
@@ -45,7 +47,8 @@ public record AnalysisResponse(
                 ReportItemResponse.from(current.report(), statuses.get(current.report().getRceptNo())),
                 ReportItemResponse.from(previous.report(), statuses.get(previous.report().getRceptNo())),
                 a.getStatus(), a.getStep(), steps(a), error, a.getCreatedAt(), a.getCompletedAt(), a.getTextStatus(),
-                a.getTextMessage(), a.getSummaryStatus(), a.getSummaryMessage());
+                a.getTextMessage(), a.getSummaryStatus(), a.getSummaryMessage(), a.getAnalysisVersion(),
+                a.isOutdated());
     }
 
     /** 비교할 수 없는 쌍은 다시 요청해도 같으므로 다시 시도할 수 없다. 나머지는 다시 요청할 수 있다. */

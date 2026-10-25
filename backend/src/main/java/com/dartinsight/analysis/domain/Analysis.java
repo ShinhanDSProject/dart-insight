@@ -207,6 +207,11 @@ public class Analysis {
         return analysisVersion;
     }
 
+    /** 지금 서버의 분석 방식(CURRENT_VERSION)과 다른 버전으로 만든 결과인지. */
+    public boolean isOutdated() {
+        return !CURRENT_VERSION.equals(analysisVersion);
+    }
+
     public FsDiv getFsDiv() {
         return fsDiv;
     }
