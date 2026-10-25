@@ -679,7 +679,7 @@ th[aria-sort='none'] .data-table__sort-mark {
   white-space: nowrap;
 }
 
-/* 구성 비율 막대(ShareBar). 조각 사이는 2px 틈 */
+/* 구성 비율 막대(ShareBar). 조각 사이는 2px 틈, 0보다 큰 조각은 아주 작아도(예: 0.2%) 2px 이상 보인다 */
 .share-bar {
   display: flex;
   flex-direction: column;
@@ -695,6 +695,7 @@ th[aria-sort='none'] .data-table__sort-mark {
 }
 
 .share-bar__part {
+  min-width: 2px;
   transform-origin: left center;
   animation: grow-x var(--motion-slow) var(--ease-out) both;
 }
@@ -709,6 +710,10 @@ th[aria-sort='none'] .data-table__sort-mark {
 
 .share-bar__part--deleted {
   background: var(--color-chart-deleted);
+}
+
+.share-bar__part--neutral {
+  background: var(--color-text-muted);
 }
 
 .share-bar__part--series-1 {

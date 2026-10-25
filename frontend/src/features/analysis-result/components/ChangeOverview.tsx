@@ -5,7 +5,7 @@ import type { ChangeType } from '@/shared/api/textChanges'
 import type { LoadState } from '@/shared/hooks/asyncState'
 import { Button, ShareBar } from '@/shared/ui'
 import { useChangeOverview } from '../hooks/useChangeOverview'
-import { formatCount, type FinancialOverview, type TextOverview } from '../model/overview'
+import { formatCount, textShareSegments, type FinancialOverview, type TextOverview } from '../model/overview'
 import { SectionChangeChart } from './SectionChangeChart'
 
 interface ChangeOverviewProps {
@@ -51,15 +51,7 @@ export function ChangeOverview({ analysisId, onOpenChangedAccounts, onOpenTextLi
                     value={formatCount(t.all)}
                     hint="문장·내용 변화에서 전체 보기"
                     detail={t.partial ? '일부 섹션만 비교했어요' : null}
-                    visual={
-                      <ShareBar
-                        segments={[
-                          { label: '추가', value: t.added, text: formatCount(t.added), tone: 'added' },
-                          { label: '수정', value: t.modified, text: formatCount(t.modified), tone: 'modified' },
-                          { label: '삭제', value: t.deleted, text: formatCount(t.deleted), tone: 'deleted' },
-                        ]}
-                      />
-                    }
+                    visual={<ShareBar segments={textShareSegments(t)} />}
                     onOpen={() => onOpenTextList(null)}
                   />
                 ))
