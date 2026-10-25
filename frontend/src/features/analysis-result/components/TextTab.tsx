@@ -7,6 +7,7 @@ import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { ChangeTypeHelp } from './ChangeTypeHelp'
 import { CopyWithSourcesButton } from './CopyWithSourcesButton'
+import { NumberChangesLine } from './NumberChangesLine'
 import { TextEvidencePanel } from './TextEvidencePanel'
 import { TextExplanationBox } from './TextExplanationBox'
 import { usePinnedChanges, usePinnedTextChanges } from '../hooks/usePinnedChanges'
@@ -14,6 +15,7 @@ import { useTextChanges } from '../hooks/useTextChanges'
 import { useTextExplanations, type TextExplanations } from '../hooks/useTextExplanations'
 import { useTextSearch } from '../hooks/useTextSearch'
 import { sectionAskQuestion } from '../model/askQuestion'
+import { numberChanges } from '../model/numberChanges'
 import { pinnedChangesText } from '../model/copyText'
 import { PINNED_EMPTY, PINNED_LABEL, PINNED_NOTE } from '../model/pinnedList'
 import type { SourceTarget, TextViewChange } from '../model/resultParams'
@@ -357,6 +359,8 @@ interface ChangeCardProps {
 function ChangeCard({ item, analysis, selected, pinned, explanations, onTogglePin, onToggle, onClose, onOpenSource }: ChangeCardProps) {
   const section = displaySectionPath(item.sectionPath)
   const review = item.changeType === 'REVIEW_NEEDED'
+  // '숫자만 바뀜' 카드에만 바뀐 숫자 쌍을 보인다(짝이 확실하지 않으면 null이라 숨김)
+  const numbers = item.changeType === 'NUMERIC_UPDATE' ? numberChanges(item.previousPreview, item.currentPreview) : null
   // 풀이 상자를 펼쳤는지는 카드 안 상태(주소에 남기지 않음). 처음 펼칠 때만 부른다
   const [explainOpen, setExplainOpen] = useState(false)
   const explainId = `text-explain-${item.changeId}`
@@ -409,6 +413,7 @@ function ChangeCard({ item, analysis, selected, pinned, explanations, onTogglePi
           />
         </div>
       )}
+      {numbers !== null && <NumberChangesLine changes={numbers} />}
       {item.changeType === 'DELETED' && <p className="panel__note">{DELETED_NOTE}</p>}
       <MovedPaths item={item} />
       <div className="change-card__actions">
