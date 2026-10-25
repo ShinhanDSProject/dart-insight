@@ -13,6 +13,7 @@ import com.dartinsight.analysis.service.TextChangeQueryService;
 import com.dartinsight.analysis.service.TextEvidenceService;
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.web.ApiPaths;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 문장·표 변경 목록(2.5). 화면 W-03 ③. 완료된 분석의 그 분석 결과만 돌려준다.
  * 기본 정렬은 확인 우선순위(2.6)이고, 순위를 매기지 않은 항목(판단 유보)은 뒤에 둔다.
- * 유형(type)·최상위 섹션(section)·검색어(q)로 함께 거를 수 있다(3.7).
+ * 유형(type, 쉼표로 여러 개 #304)·최상위 섹션(section)·검색어(q)로 함께 거를 수 있다(3.7).
  */
 @RestController
 @RequestMapping(ApiPaths.ANALYSIS_TEXT_CHANGES)
@@ -33,6 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class TextChangeController {
 
     private static final Set<String> TYPES = Set.copyOf(TextChangeRow.TYPES);
+    private static final String TYPE_SEPARATOR = ",";
     private static final int MAX_SIZE = 100;
     private static final int MAX_SECTION = 500;
     private static final int MIN_QUERY = 2;
@@ -58,9 +60,7 @@ public class TextChangeController {
         if (!"priority".equals(sort) && !"document".equals(sort)) {
             throw ApiException.invalidInput("sort", "priority 또는 document여야 합니다.");
         }
-        if (type != null && !TYPES.contains(type)) {
-            throw ApiException.invalidInput("type", String.join(", ", TextChangeRow.TYPES) + " 중 하나여야 합니다.");
-        }
+        List<String> types = parseTypes(type);
         if (page < 0) {
             throw ApiException.invalidInput("page", "0 이상이어야 합니다.");
         }
@@ -76,15 +76,37 @@ public class TextChangeController {
             throw ApiException.invalidInput("q", MIN_QUERY + "자 이상 " + MAX_QUERY + "자 이하로 입력해 주세요.");
         }
         long offset = (long) page * size; // 큰 page에서 int가 넘쳐 음수가 되지 않게
-        TextChangePage result = queryService.page(analysisId, new TextChangeFilter(type, sectionTitle, query),
+        TextChangePage result = queryService.page(analysisId, new TextChangeFilter(types, sectionTitle, query),
                 "priority".equals(sort), offset, size);
         Analysis analysis = result.analysis();
         Counts counts = Counts.of(result.counts());
-        int total = type == null ? counts.all() : result.counts().get(type);
+        int total = types.isEmpty() ? counts.all() : types.stream().mapToInt(result.counts()::get).sum();
         List<SectionView> sections = result.sections().stream().map(SectionView::from).toList();
         List<TextChangeItemResponse> items = result.changes().stream().map(TextChangeItemResponse::from).toList();
-        return new TextChangeListResponse(analysisId, analysis.getTextStatus(), analysis.getTextMessage(), type,
+        String typeEcho = types.isEmpty() ? null : String.join(TYPE_SEPARATOR, types);
+        return new TextChangeListResponse(analysisId, analysis.getTextStatus(), analysis.getTextMessage(), typeEcho,
                 sort, sectionTitle, query, page, size, total, counts, sections, items);
+    }
+
+    /**
+     * 쉼표로 이은 유형(#304). 값마다 앞뒤 공백을 지우고 겹친 값은 처음 것만 둔다(처음 나온 순서).
+     * 없거나 빈 값이면 빈 목록(전체). 알 수 없는 값(빈 항목 포함)이 하나라도 있으면 400
+     */
+    private static List<String> parseTypes(String type) {
+        String value = blankToNull(type);
+        if (value == null) {
+            return List.of();
+        }
+        Set<String> types = new LinkedHashSet<>();
+        for (String part : value.split(TYPE_SEPARATOR, -1)) {
+            String name = part.strip();
+            if (!TYPES.contains(name)) {
+                throw ApiException.invalidInput("type",
+                        String.join(", ", TextChangeRow.TYPES) + " 중 하나 이상을 쉼표로 이어야 합니다.");
+            }
+            types.add(name);
+        }
+        return List.copyOf(types);
     }
 
     /** 앞뒤 공백을 지운 값. 비었으면 거르지 않는다(null) */

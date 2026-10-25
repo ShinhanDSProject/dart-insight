@@ -59,7 +59,7 @@ public class TextChangeQueryService {
      * @param section 섹션 경로(최상위 제목이나 "상위 > 하위" 앞부분)
      */
     public List<TextChange> changesInSection(Long analysisId, String section, int limit) {
-        return store.page(analysisId, new TextChangeFilter(null, section, null), true, 0, limit);
+        return store.page(analysisId, new TextChangeFilter(List.of(), section, null), true, 0, limit);
     }
 
     public record CompletedTextChange(Analysis analysis, TextChange change) {
