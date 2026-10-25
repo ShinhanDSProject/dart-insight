@@ -452,7 +452,7 @@
 
 ### GET /api/analyses/{analysisId} — 분석 상태
 
-- 이슈: #14 (2.3) · 화면: W-02(1초마다 조회), W-03
+- 이슈: #14 (2.3), #298 (4.2) · 화면: W-02(1초마다 조회), W-03
 
 **응답 200**
 
@@ -479,9 +479,13 @@
   "textStatus": null,
   "textMessage": null,
   "summaryStatus": null,
-  "summaryMessage": null
+  "summaryMessage": null,
+  "analysisVersion": "m2-9",
+  "outdated": false
 }
 ```
+
+`analysisVersion`은 분석을 만들 때의 분석 방식 버전(`analysis.analysis_version`, 예: `"m2-9"`)이고, `outdated`는 그 값이 지금 서버의 버전(`Analysis.CURRENT_VERSION`)과 다르면 `true`입니다([ADR-0014](adr/0014-analysis-reuse-and-version.md)). 상태와 관계없이 늘 들어 있습니다. 이전 방식 결과는 다시 분석하기 전까지 그대로 보이므로, 화면은 `outdated`면 안내와 '새 방식으로 다시 분석'(같은 기업·보고서·비교 기준으로 `POST /api/analyses`)을 보여 줍니다(#298).
 
 `current`·`previous`는 목록 항목과 같은 모양입니다. `steps[].state`는 `DONE`, `ACTIVE`, `PENDING`, `FAILED`입니다. 실패하면 `status`가 `FAILED`, 실패한 단계의 `state`가 `FAILED`이고 `error`에 `{ "code", "message", "retryable" }`이 들어 있습니다. 결과를 저장하기 전에는 `COMPLETED`가 되지 않습니다.
 
