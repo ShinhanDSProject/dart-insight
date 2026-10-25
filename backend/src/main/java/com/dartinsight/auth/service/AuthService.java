@@ -42,6 +42,11 @@ public class AuthService {
         return issue(user.userId(), UUID.randomUUID().toString());
     }
 
+    @Transactional
+    public IssuedSession loginSocial(long userId) {
+        return issue(userId, UUID.randomUUID().toString());
+    }
+
     @Transactional(noRollbackFor = ApiException.class)
     public IssuedSession refresh(String rawToken) {
         if (rawToken == null || rawToken.isBlank()) throw invalidRefresh();

@@ -10,5 +10,6 @@ public record AuthProperties(
         @DefaultValue("development-only-change-me-32-bytes") String jwtSecret,
         @DefaultValue("15m") Duration accessTokenTtl,
         @DefaultValue("14d") Duration refreshTokenTtl,
-        @DefaultValue("false") boolean secureCookie) {
+        @DefaultValue("false") boolean secureCookie,
+        @DefaultValue("http://localhost:5173/login") String socialLoginRedirectUrl) {
 }
