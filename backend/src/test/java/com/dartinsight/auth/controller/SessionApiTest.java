@@ -5,11 +5,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.dartinsight.auth.service.RefreshCookieService;
 import jakarta.servlet.http.Cookie;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,6 +22,15 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextImpl;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
+import org.springframework.security.web.WebAttributes;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest
@@ -96,6 +109,43 @@ class SessionApiTest {
         mvc.perform(get("/api/sessions/current")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/sessions/current").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.userId").isNumber());
+    }
+
+    @Test
+    @DisplayName("소셜 로그인 중의 서버 세션으로는 JWT가 필요한 API를 쓸 수 없다")
+    void oauthSessionDoesNotAuthenticateApi() throws Exception {
+        var user = new DefaultOAuth2User(List.of(new SimpleGrantedAuthority("OAUTH2_USER")),
+                Map.of("sub", "provider-user"), "sub");
+        var session = new MockHttpSession();
+        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                new SecurityContextImpl(new OAuth2AuthenticationToken(user, user.getAuthorities(), "google")));
+        mvc.perform(get("/api/sessions/current").session(session))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH_UNAUTHORIZED"));
+    }
+
+    @Test
+    @DisplayName("제공자 쪽에서 소셜 로그인이 실패하면 세션을 지우고 실패 화면으로 보낸다")
+    void providerFailureRedirectsToErrorAndClearsSession() throws Exception {
+        var session = new MockHttpSession();
+        mvc.perform(get("/api/social-sessions/failure").session(session).requestAttr(
+                        WebAttributes.AUTHENTICATION_EXCEPTION,
+                        new OAuth2AuthenticationException(new OAuth2Error("access_denied"))))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("http://localhost:5173/login?social=error"));
+        assertThat(session.isInvalid()).isTrue();
+    }
+
+    @Test
+    @DisplayName("제공자 콜백이 실패하면 기본 로그인 페이지가 아니라 실패 처리로 forward한다")
+    void providerCallbackFailureForwardsToFailureEndpoint() throws Exception {
+        var result = mvc.perform(get("/login/oauth2/code/google")
+                        .param("error", "access_denied").param("state", "unknown-state"))
+                .andExpect(status().isOk())
+                .andExpect(forwardedUrl("/api/social-sessions/failure"))
+                .andReturn();
+        assertThat(result.getRequest().getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION))
+                .isInstanceOf(OAuth2AuthenticationException.class);
     }
 
     private void register() throws Exception {

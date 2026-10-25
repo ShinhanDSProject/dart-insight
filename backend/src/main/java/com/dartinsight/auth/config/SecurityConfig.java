@@ -9,6 +9,7 @@ import javax.crypto.spec.SecretKeySpec;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.Customizer;
@@ -21,6 +22,7 @@ import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 
 @Configuration
 @EnableConfigurationProperties(AuthProperties.class)
@@ -44,7 +46,28 @@ public class SecurityConfig {
         return decoder;
     }
 
+    // OAuth2 Authorization Code 흐름은 state를 서버 세션에 둬야 해서, 소셜 로그인 경로만 세션을 쓴다.
+    // 콜백에서 서비스 토큰으로 바꾼 뒤 세션을 폐기한다.
     @Bean
+    @Order(1)
+    public SecurityFilterChain socialLoginFilterChain(HttpSecurity http) throws Exception {
+        // failureUrl로 redirect하면 기본 로그인 페이지 필터가 그 주소를 가로채 HTML을 그리므로 forward한다.
+        var failure = new SimpleUrlAuthenticationFailureHandler(ApiPaths.SOCIAL_SESSION_FAILURE);
+        failure.setUseForward(true);
+        http.securityMatcher(ApiPaths.OAUTH2_AUTHORIZATION, ApiPaths.OAUTH2_CALLBACK,
+                        ApiPaths.SOCIAL_SESSIONS + "/**")
+                .csrf(csrf -> csrf.disable())
+                .cors(Customizer.withDefaults())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .oauth2Login(oauth -> oauth.defaultSuccessUrl(ApiPaths.SOCIAL_SESSION_CALLBACK, true)
+                        .failureHandler(failure));
+        return http.build();
+    }
+
+    // 나머지 API는 세션 없이 Bearer JWT로만 인증한다.
+    @Bean
+    @Order(2)
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
