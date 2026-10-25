@@ -12,6 +12,7 @@ import { AskTab } from './components/AskTab'
 import { FinancialTab } from './components/FinancialTab'
 import { ComparisonContextCard } from './components/ComparisonContextCard'
 import { OtherAnalyses } from './components/OtherAnalyses'
+import { OutdatedNotice } from './components/OutdatedNotice'
 import { SourceTab } from './components/SourceTab'
 import { SummaryTab } from './components/SummaryTab'
 import { TextTab } from './components/TextTab'
@@ -137,6 +138,7 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
   const { questions: suggestions, sections: askSections } = useAskSuggestions(analysis.analysisId)
   return (
     <>
+      {analysis.outdated && <OutdatedNotice analysis={analysis} />}
       <ComparisonContextCard analysis={analysis} />
 
       <Tabs label="결과 보기" items={tabs} value={params.tab} onChange={(t) => update({ tab: t })} />
