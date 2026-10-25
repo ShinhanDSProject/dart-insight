@@ -39,6 +39,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -162,7 +163,9 @@ class AnalysisApiTest {
                 .andExpect(jsonPath("$.steps[0].label").value("요청 접수"))
                 .andExpect(jsonPath("$.steps[3].state").value("DONE"))
                 .andExpect(jsonPath("$.error").value(nullValue()))
-                .andExpect(jsonPath("$.completedAt").isNotEmpty());
+                .andExpect(jsonPath("$.completedAt").isNotEmpty())
+                .andExpect(jsonPath("$.analysisVersion").value(Analysis.CURRENT_VERSION))
+                .andExpect(jsonPath("$.outdated").value(false));
         mockMvc.perform(get("/api/analyses/{id}/financial-changes", id).param("sjDiv", "IS"))
                 .andExpect(jsonPath("$.items", hasSize(1)))
                 .andExpect(jsonPath("$.items[0].previousAmount").value(55))
@@ -311,6 +314,36 @@ class AnalysisApiTest {
 
         mockMvc.perform(get("/api/analyses/{id}", id))
                 .andExpect(jsonPath("$.status").value("RUNNING"));
+    }
+
+    @Test
+    @DisplayName("분석 버전이 현재 버전과 다르면 상태와 관계없이 outdated가 true다")
+    void analysisMadeWithOlderVersionIsOutdatedInEveryStatus() throws Exception {
+        Long pending = analysisRepository.save(
+                Analysis.request("00000001", CUR, PREV, ComparisonBasis.YOY, null, NOW)).getId();
+        Analysis started = Analysis.request("00000001", CUR, Q3_PREV, ComparisonBasis.CUSTOM, null, NOW);
+        started.start(NOW);
+        Long running = analysisRepository.save(started).getId();
+        Analysis failing = analysisRepository.save(
+                Analysis.request("00000001", CUR, PREV, ComparisonBasis.YOY, null, NOW));
+        SERVER.on(PATH, Response.json(FinancialJson.RATE_LIMITED));
+        runner.run(failing.getId());
+
+        mockMvc.perform(get("/api/analyses/{id}", pending))
+                .andExpect(jsonPath("$.status").value("PENDING"))
+                .andExpect(jsonPath("$.analysisVersion").value(Analysis.CURRENT_VERSION))
+                .andExpect(jsonPath("$.outdated").value(false));
+
+        jdbcTemplate.update("UPDATE analysis SET analysis_version = 'm2-8' WHERE id IN (?, ?, ?)",
+                pending, running, failing.getId());
+        for (Object[] expected : List.of(new Object[] {pending, "PENDING"}, new Object[] {running, "RUNNING"},
+                new Object[] {failing.getId(), "FAILED"})) {
+            mockMvc.perform(get("/api/analyses/{id}", expected[0]))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value(expected[1]))
+                    .andExpect(jsonPath("$.analysisVersion").value("m2-8"))
+                    .andExpect(jsonPath("$.outdated").value(true));
+        }
     }
 
     @Test
