@@ -624,12 +624,13 @@
 - 섹션 거르기(3.7): 최상위 섹션은 `sectionPath`의 첫 ` > ` 앞부분입니다(예: `XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 3. 제재 등과 관련된 사항`의 `XI. 그 밖에 투자자 보호를 위하여 필요한 사항`). `section`을 주면 그 섹션과 하위 섹션의 변경만 돌려줍니다. 고를 수 있는 섹션은 응답의 `sections`에 있습니다.
 - 검색(3.7): `q`는 변경 전·후 전체 글(미리보기가 아니라 저장한 글)과 `sectionPath`에 들어 있는 것을 찾습니다. 대소문자를 가리지 않고, 앞뒤 공백은 지웁니다.
 - `type`·`section`·`q`는 함께 씁니다(모두 맞는 것). 정렬과 쪽 나누기는 거른 뒤에 합니다.
+- 유형 여러 개(#304): `type`에 유형을 쉼표로 이어 주면 그중 하나에 맞는 변경을 돌려줍니다. 화면의 '내용 변경'은 `type=ADDED,DELETED,MODIFIED`입니다. 알 수 없는 값이 하나라도 있으면 400입니다.
 
 **요청**
 
 | 위치 | 이름 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- | --- |
-| query | `type` | string | 아니오 | `ADDED`, `DELETED`, `MODIFIED`, `NUMERIC_UPDATE`, `MOVED`, `REVIEW_NEEDED`. 없으면 전체 |
+| query | `type` | string | 아니오 | `ADDED`, `DELETED`, `MODIFIED`, `NUMERIC_UPDATE`, `MOVED`, `REVIEW_NEEDED` 중 하나 이상을 쉼표로 이어서(예: `ADDED,DELETED,MODIFIED`, 그중 하나에 맞는 것). 값마다 앞뒤 공백은 지우고, 같은 값을 두 번 써도 됩니다. 없거나 빈 값이면 전체 |
 | query | `sort` | string | 아니오 | `priority`(기본) 확인 우선순위, `document` 문서 순서 |
 | query | `section` | string | 아니오 | 최상위 섹션 제목(`sections[].title`과 같은 글). 500자까지. 없거나 빈 값이면 전체. 이 분석에 없는 섹션이면 `items`가 비어 있음 |
 | query | `q` | string | 아니오 | 찾을 글. 앞뒤 공백을 지운 뒤 2~100자. 없거나 빈 값이면 검색하지 않음 |
@@ -686,6 +687,7 @@
 | `priority.level` | `HIGH` 중요도 높음(60점 이상), `MEDIUM` 중간(30점 이상), `LOW` 낮음, `UNRANKED` 판단 유보(검토 필요 항목. 규칙으로 판단할 수 없어 순위를 매기지 않음) |
 | `priority.score` | 적용한 규칙 점수의 합. `UNRANKED`면 null |
 | `priority.reasons` | 적용한 규칙과 점수(잠정 규칙, 5절) |
+| `type` | 요청에 쓴 유형. 공백과 겹친 값을 뺀 뒤 처음 나온 순서대로 쉼표로 잇습니다(예: `ADDED,DELETED,MODIFIED`). 없으면 null |
 | `totalItems` | `type`·`section`·`q`에 모두 맞는 전체 건수(쪽 나누기 전) |
 | `section`·`q` | 요청에 쓴 거르기 값(`q`는 앞뒤 공백을 지운 값). 없으면 null |
 | `counts` | 변경 유형별 건수(`added`·`deleted`·`modified`·`numericUpdate`·`moved`·`reviewNeeded`, `all`은 합). `section`·`q`에 맞는 것만 셉니다(`type`은 보지 않음). 둘 다 없으면 분석 전체 |
@@ -699,7 +701,7 @@
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
-| 400 | `COMMON_INVALID_INPUT` | `type`·`sort`·`page`·`size`가 범위 밖, `section`이 500자 초과, `q`가 2자 미만이거나 100자 초과(`errors[].field`에 이름) |
+| 400 | `COMMON_INVALID_INPUT` | `type`에 알 수 없는 값이 하나라도 있음(빈 항목 포함, 예: `ADDED,`), `sort`·`page`·`size`가 범위 밖, `section`이 500자 초과, `q`가 2자 미만이거나 100자 초과(`errors[].field`에 이름) |
 | 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 ID |
 | 409 | `ANALYSIS_NOT_READY` | 분석이 아직 완료되지 않음 |
 
