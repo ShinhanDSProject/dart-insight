@@ -585,6 +585,48 @@
   overflow-wrap: anywhere;
 }
 
+/* '숫자만 바뀜' 카드의 바뀐 숫자 줄(#303). 증감 색을 쓰지 않고 본문색·흐린색만 쓴다 */
+.number-changes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  font-size: var(--font-size-sm);
+}
+
+.number-changes__label {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.number-changes__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.number-changes__pair {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  overflow-wrap: anywhere;
+}
+
+.number-changes__sep,
+.number-changes__arrow,
+.number-changes__rest {
+  color: var(--color-text-muted);
+}
+
+.number-changes__after {
+  font-weight: var(--font-weight-semibold);
+}
+
 .change-card__sides {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));

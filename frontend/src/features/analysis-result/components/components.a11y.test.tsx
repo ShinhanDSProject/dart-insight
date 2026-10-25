@@ -14,6 +14,7 @@ import type { HeadlineLine } from '../model/summaryHeadline'
 import { AnswerCard, FailedAnswerCard, PendingAnswerCard, type FollowUp } from './AnswerCard'
 import { ChangeOverview } from './ChangeOverview'
 import { FinancialChart } from './FinancialChart'
+import { NumberChangesLine } from './NumberChangesLine'
 import { PastAnswers } from './PastAnswers'
 import { SummaryHeadline } from './SummaryHeadline'
 import { TextExplanationBox } from './TextExplanationBox'
@@ -274,5 +275,26 @@ describe('AI 한 줄 풀이 접근성(axe)', () => {
         {box({ status: 'error', error: apiError }, 'e5')}
       </>,
     )
+  })
+})
+
+describe('바뀐 숫자 줄 접근성(axe)', () => {
+  const changes = {
+    pairs: [
+      { before: '230개', after: '309개' },
+      { before: '33개', after: '36개' },
+    ],
+    rest: 3,
+  }
+
+  it('바뀐 숫자 쌍과 나머지 수가 있어도 위반이 없다', async () => {
+    await expectNoViolations(<NumberChangesLine changes={changes} />)
+  })
+
+  it('목록 이름은 바뀐 숫자이고 쌍마다 이전·현재로 읽힌다', () => {
+    render(<NumberChangesLine changes={changes} />)
+    const list = screen.getByRole('list', { name: '바뀐 숫자' })
+    expect(list.textContent).toContain('이전 230개→, 현재 309개')
+    expect(list.textContent).toContain('외 3개')
   })
 })
