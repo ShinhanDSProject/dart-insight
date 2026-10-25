@@ -10,6 +10,7 @@ import java.math.RoundingMode;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -136,9 +137,10 @@ public class TextChangeStore {
         static Condition of(TextChangeFilter filter) {
             List<String> parts = new ArrayList<>();
             List<Object> args = new ArrayList<>();
-            if (filter.type() != null) {
-                parts.add("change_type = ?");
-                args.add(filter.type());
+            if (!filter.types().isEmpty()) {
+                parts.add("change_type IN (" + String.join(", ", Collections.nCopies(filter.types().size(), "?"))
+                        + ")");
+                args.addAll(filter.types());
             }
             if (filter.section() != null) {
                 parts.add("(section_path = ? OR section_path LIKE ? ESCAPE '!')");
