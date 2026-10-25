@@ -5,6 +5,7 @@ import type { ChangeType, TextChangeItem, TextSort } from '@/shared/api/textChan
 import { Badge, Button, Card, Chip, FieldHint, FieldLabel, Icon, Input, Notice, Panel, SegmentedControl, Select } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
+import { ChangeTypeHelp } from './ChangeTypeHelp'
 import { CopyWithSourcesButton } from './CopyWithSourcesButton'
 import { TextEvidencePanel } from './TextEvidencePanel'
 import { TextExplanationBox } from './TextExplanationBox'
@@ -237,6 +238,7 @@ export function TextTab({
             />
           )}
           <p className="panel__note text-controls__note">{pinned ? PINNED_NOTE : PRIORITY_NOTE}</p>
+          <ChangeTypeHelp />
         </div>
       )}
 

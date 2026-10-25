@@ -670,6 +670,51 @@
   flex-basis: 100%;
 }
 
+/* 문장 변경 유형 설명(3.3). 칩 줄 아래 한 줄을 차지하고, 좁은 화면에서는 이름 아래에 뜻을 둔다 */
+.change-type-help {
+  display: flex;
+  flex-basis: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.change-type-help__list {
+  display: grid;
+  gap: var(--space-2);
+  width: 100%;
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.change-type-help__list[hidden] {
+  display: none;
+}
+
+.change-type-help__item {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-1);
+}
+
+.change-type-help__item dt {
+  font-weight: var(--font-weight-bold);
+}
+
+.change-type-help__item dd {
+  margin: 0;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 640px) {
+  .change-type-help__item {
+    grid-template-columns: 7rem 1fr;
+    gap: var(--space-3);
+  }
+}
+
 .change-card__actions {
   display: flex;
   flex-wrap: wrap;

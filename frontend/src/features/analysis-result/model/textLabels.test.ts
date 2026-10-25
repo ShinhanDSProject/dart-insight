@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  changeTypeHelp,
+  changeTypeHelpItems,
   changeTypeLabel,
   changeTypeOptions,
   comparesWords,
@@ -35,6 +37,17 @@ describe('textLabels', () => {
       'MOVED',
       'REVIEW_NEEDED',
     ])
+  })
+
+  it('모든 변경 유형에 비어 있지 않은 설명이 있고, 설명 목록은 거르기 칩 순서를 따른다', () => {
+    const types = changeTypeOptions.flatMap((o) => (o.value === null ? [] : [o.value]))
+    expect(Object.keys(changeTypeHelp).sort()).toEqual([...types].sort())
+    expect(types).toHaveLength(6)
+    for (const type of types) expect(changeTypeHelp[type].trim()).not.toBe('')
+    const items = changeTypeHelpItems()
+    expect(items.map((i) => i.type)).toEqual(types)
+    expect(items.map((i) => i.label)).toEqual(types.map(changeTypeLabel))
+    expect(items.map((i) => i.help)).toEqual(types.map((t) => changeTypeHelp[t]))
   })
 
   it('숫자만 바뀜 표시는 옛 결과(수정 + numbersOnly)에만 따로 붙인다', () => {

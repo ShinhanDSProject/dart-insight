@@ -13,6 +13,25 @@ export const changeTypeOptions: { value: ChangeType | null; label: string }[] = 
   { value: 'REVIEW_NEEDED', label: '검토 필요' },
 ]
 
+/**
+ * 유형 설명(3.3, #300). 문구는 docs/api-spec.md text-changes의 changeType 설명과 ADR-0021·ADR-0010의 기준에서만 가져온다.
+ * Record라 유형이 늘면 정의를 쓰지 않은 채로는 빌드되지 않는다.
+ */
+export const changeTypeHelp: Record<ChangeType, string> = {
+  ADDED: '이전 보고서에는 없고 현재 보고서에만 있는 글이에요.',
+  DELETED: '이전 보고서에 있던 글이 현재 보고서에서 빠졌어요. 사업·계약이 끝났다는 뜻은 아니에요.',
+  MODIFIED: '두 보고서에서 짝지은 글이 숫자 말고도 달라졌어요.',
+  NUMERIC_UPDATE: '숫자를 가리면 같은 글이에요. 숫자만 바뀌었어요.',
+  MOVED:
+    '숫자를 가린 글이 같거나 띄어쓰기·문장부호만 다른 글이 다른 자리로 옮겨졌어요. 같은 섹션 안에서 순서만 바뀐 것도 여기에 들어가요.',
+  REVIEW_NEEDED: '두 보고서의 항목을 짝짓지 못했어요. 빠진 것으로 숨기지 않고 보여 줘요.',
+}
+
+/** 유형 설명 목록. 거르기 칩과 같은 순서('전체' 제외) */
+export function changeTypeHelpItems(): { type: ChangeType; label: string; help: string }[] {
+  return changeTypeOptions.flatMap((o) => (o.value === null ? [] : [{ type: o.value, label: o.label, help: changeTypeHelp[o.value] }]))
+}
+
 export function changeTypeLabel(type: ChangeType): string {
   return changeTypeOptions.find((o) => o.value === type)?.label ?? type
 }
