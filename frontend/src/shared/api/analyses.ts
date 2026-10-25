@@ -35,6 +35,10 @@ export interface Analysis {
   /** 요약 상태(3.2). 완료 전이거나 요약 기능 전에 만든 분석이면 null */
   summaryStatus: SummaryStatus | null
   summaryMessage: string | null
+  /** 분석을 만든 분석 방식 버전(예: "m2-9") */
+  analysisVersion: string
+  /** analysisVersion이 지금 서버의 버전과 다르면 true. 상태와 관계없이 늘 들어 있다(#298) */
+  outdated: boolean
 }
 
 export interface AnalysisCreated {
