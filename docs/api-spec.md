@@ -1341,7 +1341,7 @@
   "changeId": 3001,
   "entries": [
     {
-      "report": { "rceptNo": "20250515000321", "reportName": "분기보고서 (2025.03)", "reportType": "Q1", "periodEnd": "2025-03-31" },
+      "report": { "rceptNo": "20250515000321", "reportName": "분기보고서 (2025.03)", "reportType": "Q1", "periodEnd": "2025-03-31", "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250515000321" },
       "status": "NOT_ANALYZED",
       "text": null,
       "sectionPath": null,
@@ -1349,7 +1349,7 @@
       "change": null
     },
     {
-      "report": { "rceptNo": "20250814000987", "reportName": "반기보고서 (2025.06)", "reportType": "HALF", "periodEnd": "2025-06-30" },
+      "report": { "rceptNo": "20250814000987", "reportName": "반기보고서 (2025.06)", "reportType": "HALF", "periodEnd": "2025-06-30", "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250814000987" },
       "status": "PRESENT",
       "text": "당사는 메모리 반도체를 만듭니다.",
       "sectionPath": "II. 사업의 내용 > 1. 사업의 개요",
@@ -1357,7 +1357,7 @@
       "change": null
     },
     {
-      "report": { "rceptNo": "20260814001234", "reportName": "반기보고서 (2026.06)", "reportType": "HALF", "periodEnd": "2026-06-30" },
+      "report": { "rceptNo": "20260814001234", "reportName": "반기보고서 (2026.06)", "reportType": "HALF", "periodEnd": "2026-06-30", "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260814001234" },
       "status": "PRESENT",
       "text": "당사는 메모리 반도체와 파운드리 사업을 합니다.",
       "sectionPath": "II. 사업의 내용 > 1. 사업의 개요",
@@ -1370,7 +1370,7 @@
 
 | 필드 | 설명 |
 | --- | --- |
-| `entries` | 보고서 기간(`periodEnd`)이 오래된 것부터. `report`는 정기보고서 목록 항목의 일부 |
+| `entries` | 보고서 기간(`periodEnd`)이 오래된 것부터. `report`는 정기보고서 목록 항목의 일부이고, `dartUrl`은 그 보고서의 DART 원문 주소(화면의 '출처: DART' 링크, 5.6) |
 | `status` | `PRESENT` 그 보고서에 글이 있고 근거 위치가 있음, `ABSENT` 없음(추가되기 전이거나 삭제된 뒤), `NOT_ANALYZED` 앞 보고서와 비교한 완료 분석이 없어 알 수 없음, `REVIEW_NEEDED` 비교는 했지만 글을 찾지 못했거나 근거 위치를 찾지 못함 |
 | `text` | `PRESENT`일 때 그 보고서의 글. 그 밖은 null |
 | `sectionPath`·`evidenceId` | `PRESENT`면 항상 있는 근거 위치(섹션 경로, `{rceptNo}#B{blockNo}`). 변경 항목이 있으면 그 항목의 위치, 바뀌지 않았으면 저장된 원문에서 같은 글을 찾은 블록의 위치. 그 밖은 null |
