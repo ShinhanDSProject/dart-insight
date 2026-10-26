@@ -74,6 +74,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, ApiPaths.CURRENT_SESSION).authenticated()
+                        .requestMatchers(ApiPaths.FAVORITE_COMPANIES, ApiPaths.FAVORITE_COMPANIES + "/**").authenticated()
                         .anyRequest().permitAll())
                 .oauth2ResourceServer(oauth -> oauth.jwt(Customizer.withDefaults())
                         .authenticationEntryPoint((request, response, exception) -> {
