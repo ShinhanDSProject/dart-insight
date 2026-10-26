@@ -96,6 +96,7 @@
 | GET | `/api/analyses/{analysisId}/text-changes/{changeId}` | 문장·표 근거 상세 | #22 (3.4) | W-03 ③ | 초안 |
 | GET | `/api/analyses/{analysisId}/text-changes/{changeId}/history` | 문장 변경 이력(여러 기간) | #26 (3.8) | — | 초안 |
 | POST | `/api/analyses/{analysisId}/text-changes/{changeId}/explanations` | 문장 변경 AI 한 줄 풀이(만들거나 저장된 것) | #227 (3.11) | W-03 ③ | 초안 |
+| GET | `/api/analyses/{analysisId}/text-changes/{changeId}/related-disclosures` | 문장 변경의 관련 수시공시(보조 근거, 처음이면 계산해 저장) | #343 (3.6) | W-03 ③ | 제안 |
 | GET | `/api/analyses/{analysisId}/summary` | 근거 기반 요약·설명 | #20 (3.2) | W-03 ① | 초안 |
 | POST | `/api/analyses/{analysisId}/questions` | 근거로 답하는 질문(AI) | #219 (3.10) | W-03 ⑤ | 초안 |
 | GET | `/api/analyses/{analysisId}/questions` | 이 분석에서 한 질문·답 기록 | #219 (3.10) | W-03 ⑤ | 초안 |
@@ -1420,6 +1421,86 @@
 | 409 | `ANALYSIS_NOT_READY` | 분석이 끝나지 않음 |
 | 503 | `AI_SERVER_UNAVAILABLE` | AI 서버 또는 LLM을 쓸 수 없음(저장하지 않음) |
 
+### GET /api/analyses/{analysisId}/text-changes/{changeId}/related-disclosures — 관련 수시공시(보조 근거)
+
+> 상태: 제안(#337). 범위 승인(#24) 전 초안이고, 구현은 #343입니다. 설계 이유는 [ADR-0030](adr/0030-related-disclosure-matching.md), 사전 조사는 [`docs/research/3.6-related-disclosure.md`](research/3.6-related-disclosure.md)에 있습니다.
+
+- 이슈: #343 (3.6) · 화면: W-03 ③ 변경 항목 아래 '관련 수시공시(보조)' 영역
+- 두 보고서 사이 기간(이전 보고서 기간 말일 ~ 현재 보고서 제출일, `window`)에 이 기업이 낸 수시공시 중, 이 문장 변경과 같은 규칙에 걸린 공시입니다. 원인이라는 뜻이 아닙니다. 공시 제목·접수일·DART 링크만 주고 본문은 주지 않습니다. LLM을 쓰지 않습니다.
+- 순서:
+  1. 이 분석·현재 규칙 버전으로 계산해 둔 결과가 있으면 그대로 읽습니다(`cached: true`, OpenDART 호출 없음).
+  2. 없으면 이 분석의 모든 문장 변경을 한 번에 계산해 저장하고 이 변경의 결과를 돌려줍니다. 공시 목록은 OpenDART 공시검색(`list.json`)을 상세유형 `B001`·`I001`·`I002`, `last_reprt_at=N`(정정 전 원본 포함)으로 받고, 같은 기업·기간은 한 번만 받습니다.
+- 연결 강도(`matchLevel`): `TYPE_ONLY` 같은 종류(변경의 섹션 경로·글과 공시 제목이 같은 규칙에 걸림), `STRONG` 내용 일치(주요사항보고서 주요정보 DS005의 값이 변경 글에 있음. 유상증자 신주 수, 소송 원고·사건 명칭, 타법인 주식 양수 대상 회사). 비고(`rm`)에 '철'이 있는 공시는 연결하지 않습니다.
+- 주요정보는 최근 공시 핵심 수치(`GET .../disclosures/{rceptNo}/key-items`, #363)와 같은 저장(`disclosure_key_item`, 공시마다 한 번)을 씁니다. 그 API에 없는 종류 `LITIGATION`(소송 등의 제기)·`STOCK_ACQUISITION`(타법인 주식 및 출자증권 양수결정)을 공통 값 `keyItemsKind`에 더하는 것도 이 제안에 들어 있습니다(#363 담당자와 합의 필요).
+- 정정 공시: 공시 목록에 원본(비고 '정')과 같은 제목의 `[기재정정]` 공시가 함께 있으면 정정본만 보여 줍니다. 정정본이 기간 뒤에 나왔으면 원본을 보여 주고, 주요정보로 최신 정정본을 알면 `latestRceptNo`·`dartUrl`을 그 접수번호로 줍니다.
+- `items`는 `STRONG` 먼저, 같으면 접수일이 최근인 순서입니다. 모두 줍니다(화면이 처음 5건만 펼치고 나머지 '같은 종류'를 접음).
+- 공시 목록을 받지 못하면 에러가 아니라 200 `UNAVAILABLE`이고 저장하지 않습니다(다음 요청에서 다시 받음). DS005를 받지 못하면 `TYPE_ONLY`로만 답하고 저장하지 않습니다(`partial: true`). 이 API의 실패는 분석 상태와 재무·문장 결과에 영향을 주지 않습니다.
+- 완료된 분석에만 씁니다. 처음 계산은 수 초 걸릴 수 있어 화면은 '불러오는 중'을 보여 줍니다.
+
+**요청**
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| path | `analysisId` | number | 예 | 분석 ID |
+| path | `changeId` | number | 예 | 문장 변경 ID(`text-changes` 목록의 `changeId`) |
+
+**응답 200**
+
+```json
+{
+  "analysisId": 2,
+  "changeId": 2585,
+  "status": "FOUND",
+  "unavailableReason": null,
+  "partial": false,
+  "window": { "from": "2025-06-30", "periodEnd": "2026-06-30", "to": "2026-08-14" },
+  "ruleVersion": "related-1",
+  "computedAt": "2026-11-05T10:12:40",
+  "cached": false,
+  "items": [
+    {
+      "rceptNo": "20260630000676",
+      "latestRceptNo": "20261013000198",
+      "reportName": "주요사항보고서(유상증자결정)",
+      "receivedDate": "2026-06-30",
+      "disclosureType": "B001",
+      "timing": "DURING",
+      "matchRule": "equity-financing",
+      "matchRuleLabel": "유상증자·감자",
+      "matchLevel": "STRONG",
+      "matchedFields": ["NEW_SHARES"],
+      "remarks": "정",
+      "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261013000198"
+    }
+  ],
+  "notice": "같은 기간에 공개된 관련 공시입니다. 변경의 원인을 뜻하지 않습니다."
+}
+```
+
+위 예시의 접수번호는 에코프로비엠(`01160363`) 2025 반기 ↔ 2026 반기 사전 조사 값이고, `analysisId`·`changeId`·`computedAt`은 설명용입니다.
+
+- `status`: `FOUND` 1건 이상, `NOT_FOUND` 찾지 못함(화면: '이 기간에 이 항목과 연결된 수시공시를 찾지 못했습니다'. 공시가 없다는 단정이 아님), `UNAVAILABLE` 공시 목록을 지금 받지 못함(화면: '공시 목록을 지금 불러오지 못했습니다' + 다시 시도)
+- `unavailableReason`: `UNAVAILABLE`일 때 사유(`DART_REQUEST_FAILED`, `DART_RATE_LIMITED`, `DART_KEY_MISSING`). 아니면 null
+- `partial`: DS005를 받지 못해 `STRONG` 판정을 하지 못했으면 true
+- `window`: `from` 조회 시작(이전 보고서 기간 말일), `periodEnd` 현재 보고서 기간 말일, `to` 조회 끝(현재 보고서 제출일)
+- `ruleVersion`: 연결 규칙 버전(`RelatedDisclosureRules.RULE_VERSION`). 바뀌면 다음 요청 때 다시 계산합니다
+- `computedAt`: 계산한 시각. `UNAVAILABLE`이거나 `partial`이면 이번 응답을 만든 시각
+- `items[].rceptNo`: 기간 안에 받은 공시의 접수번호. `latestRceptNo`: 주요정보(DS005)로 확인한 최신 정정본 접수번호(모르면 `rceptNo`와 같음). `dartUrl`은 `latestRceptNo`로 엽니다
+- `items[].receivedDate`: `rceptNo`의 접수일
+- `items[].disclosureType`: 공시상세유형 `B001` 주요사항보고서, `I001` 수시공시, `I002` 공정공시
+- `items[].timing`: `DURING` 현재 보고서 기간 안(접수일 ≤ `periodEnd`), `AFTER` 기간 뒤~제출 전
+- `items[].matchRule`·`matchRuleLabel`: 걸린 규칙 키와 화면 이름. 여러 규칙에 걸리면 규칙 순서의 첫 규칙
+- `items[].matchedFields`: `STRONG`일 때 일치한 값의 종류(`NEW_SHARES` 신주 수, `PLAINTIFF` 원고, `CASE_NAME` 사건 명칭, `TARGET_COMPANY` 대상 회사). `TYPE_ONLY`면 빈 배열
+- `items[].remarks`: 비고(`rm`) 원문(최근 공시 API와 같음). 없으면 null
+- `notice`: 고정 문구. 화면은 영역 맨 아래에 그대로 보여 줍니다
+- `status`가 `NOT_FOUND`·`UNAVAILABLE`이면 `items`는 빈 배열입니다
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 |
+| 404 | `ANALYSIS_TEXT_CHANGE_NOT_FOUND` | 이 분석의 문장 변경이 아님 |
+| 409 | `ANALYSIS_NOT_READY` | 분석이 끝나지 않음 |
+
 ### GET /api/analyses/{analysisId}/documents/{side} — 원문 목차
 
 - 이슈: #23 (3.5) · 화면: W-03 ④
@@ -2075,3 +2156,4 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | 투자 권유성 금지 표현(5.5) | `expr-1`: 매수·매도 권유(`TRADE_RECOMMENDATION`: '매수하세요', '매수하는 것이 좋아요', '매도 의견', '매수 기회', '저점 매수', '비중 확대를 권해요' 등), 투자 권유(`INVESTMENT_ADVICE`: '투자를 고려해 볼 만한'), 목표주가(`TARGET_PRICE`), 주가 예측(`PRICE_FORECAST`: '주가가 오를', '주가 상승이 기대', '주가 전망', 상한가·하한가), 가치 판단(`VALUE_JUDGMENT`: 저평가·고평가, 투자 매력, 호재·악재, 수혜주 등), 수익 보장(`RETURN_GUARANTEE`: '원금이 보장돼요', '확실한 수익'). 공시에 흔한 사실(자기주식 매도, 해외 투자 비중 확대, 주가 변동 위험, 원금 보장형 상품, 수익 보장 약정, 경영 목표)은 막지 않도록 권유·예측의 꼴만 잡음. AI 문장에만 적용. 규칙은 `ai-server/app/compliance/expressions.py` | [투자 권유성 금지 표현 기준](https://app.notion.com/p/400b6afffc6f81bab915c86bdd8183aa) |
 | 요약할 변화 고르기(3.2) | 재무 수치: 계산한 계정 중 손익계산서 증감액 상위 3개(손익계산서가 없으면 포괄손익계산서), 재무상태표 2개. 문장 변화: 우선순위 높음·중간 중 점수 상위 5개(숫자만 바뀜 `NUMERIC_UPDATE`·위치 이동 `MOVED`·검토 필요 제외). 설명 후보: 현재 보고서 '경영진단'·'사업의 내용' 섹션 문단 중 계정 이름이 나오는 앞의 2개(문단당 1,500자까지) | [공시 변화 평가 규칙과 중립·판단 유보 도입 여부](https://app.notion.com/p/400b6afffc6f8139ae35e8183960af19) |
 | 변경 항목 우선순위 규칙(2.6) | 점수 합(`priority-2`): 섹션(사업의 내용 30, 경영진단·투자자 보호·우발·소송 25, 대주주·특수관계 20, 재무에 관한 사항 10, 그 밖 5) + 추가·삭제 20, 수정 10(비슷한 정도 0.7 미만이면 +10), 숫자만 바뀜 −20, 위치 이동 −20 + 문단 10 + 새로 들어간 낱말(추가는 현재 글, 삭제는 이전 글)의 핵심어(소송·제재·합병 등) 15씩 최대 2개. 60점 이상 높음, 30점 이상 중간. 검토 필요는 판단 유보 | [공시 변화 평가 규칙과 중립·판단 유보 도입 여부](https://app.notion.com/p/400b6afffc6f8139ae35e8183960af19) |
+| 관련 수시공시 범위와 규칙(3.6) | 제안(#337, [ADR-0030](adr/0030-related-disclosure-matching.md)): 문장 변경(`text_change`)에만 연결, 상세유형 `B001`·`I001`·`I002`, 제목 규칙 8개(`related-1`, 사전 조사 2장 수정안 반영), '내용 일치'는 DS005 3개 유형(신주 수·원고·사건 명칭·대상 회사). 재무 변경·실적 공시 연결, 자회사 공시 포함 여부는 미정 | [관련 수시공시 처리 범위와 표시 방식](https://app.notion.com/p/1a5f2f2c711282b98425019f69576d81) |
