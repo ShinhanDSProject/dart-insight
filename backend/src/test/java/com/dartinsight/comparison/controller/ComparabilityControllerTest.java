@@ -236,6 +236,73 @@ class ComparabilityControllerTest {
                 .andExpect(jsonPath("$.reasons[0].code").value("DATA_VERSION_MISMATCH"));
     }
 
+    /**
+     * 목록을 다시 받았을 때 그 보고서만 최신 목록에 없던 것처럼 만든다(정정 공시로 대체됨).
+     * 회사의 목록 받은 시각보다 lastSeenAt이 앞서면 대체된 보고서다(ReportService.get).
+     */
+    private void replacedByCorrection(String rceptNo) {
+        LocalDateTime fetchedAt = LocalDateTime.of(2026, 10, 21, 9, 0);
+        jdbcTemplate.update("UPDATE company SET reports_fetched_at = ? WHERE corp_code = ?", fetchedAt, "00000001");
+        jdbcTemplate.update("UPDATE report SET last_seen_at = ? WHERE rcept_no = ?", fetchedAt.minusDays(1), rceptNo);
+    }
+
+    /** 가짜 재무제표: 계정 하나를 다른 통화로 */
+    private static Response statementInCurrency(String rceptNo, String currency) {
+        return Response.json(FinancialJson.ok(account(rceptNo, "BS", "ifrs-full_Assets", "자산총계", 1, "5000")
+                .replace("\"currency\":\"KRW\"", "\"currency\":\"" + currency + "\"")));
+    }
+
+    @Test
+    @DisplayName("정정 공시로 대체된 보고서를 고르면 REPLACED_BY_CORRECTION과 정정본을 고르라는 안내를 돌려준다")
+    void reportReplacedByCorrectionIsBlocked() throws Exception {
+        replacedByCorrection(HALF_2025);
+        SERVER.on(PATH, statementOf(HALF_2026), statementOf(HALF_2025));
+
+        check(HALF_2026, HALF_2025, "YOY")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.comparable").value(false))
+                .andExpect(jsonPath("$.level").value("NOT_COMPARABLE"))
+                .andExpect(jsonPath("$.checks[3].item").value("CORRECTION"))
+                .andExpect(jsonPath("$.checks[3].status").value("FAIL"))
+                .andExpect(jsonPath("$.reasons", hasSize(1)))
+                .andExpect(jsonPath("$.reasons[0].code").value("REPLACED_BY_CORRECTION"))
+                .andExpect(jsonPath("$.reasons[0].message").value("비교 보고서는 정정 공시로 대체된 보고서예요."))
+                .andExpect(jsonPath("$.reasons[0].nextAction").value("목록에서 정정본(최종)을 고르세요."));
+    }
+
+    @Test
+    @DisplayName("한 보고서는 연결만, 다른 보고서는 별도만 있으면 NO_COMMON_BASIS를 돌려준다")
+    void noCommonStatementBasisIsBlocked() throws Exception {
+        // 부르는 순서: 현재 연결(있음), 이전 연결(없음), 현재 별도(없음), 이전 별도(있음)
+        SERVER.on(PATH, statementOf(HALF_2026), noData(), noData(), statementOf(HALF_2025));
+
+        check(HALF_2026, HALF_2025, "YOY")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.comparable").value(false))
+                .andExpect(jsonPath("$.fsDiv").value(nullValue()))
+                .andExpect(jsonPath("$.checks[2].status").value("FAIL"))
+                .andExpect(jsonPath("$.checks[4].status").value("FAIL"))
+                .andExpect(jsonPath("$.reasons", hasSize(1)))
+                .andExpect(jsonPath("$.reasons[0].code").value("NO_COMMON_BASIS"))
+                .andExpect(jsonPath("$.reasons[0].nextAction").value("같은 기준의 재무제표가 있는 다른 보고서를 고르세요."));
+    }
+
+    @Test
+    @DisplayName("두 보고서의 재무제표 통화가 다르면 CURRENCY_MISMATCH를 돌려준다")
+    void differentCurrencyIsBlocked() throws Exception {
+        SERVER.on(PATH, statementInCurrency(HALF_2026, "USD"), statementOf(HALF_2025));
+
+        check(HALF_2026, HALF_2025, "YOY")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.comparable").value(false))
+                .andExpect(jsonPath("$.checks[2].item").value("FINANCIAL_BASIS"))
+                .andExpect(jsonPath("$.checks[2].status").value("FAIL"))
+                .andExpect(jsonPath("$.checks[2].detail").value("연결, 통화 [KRW] / [USD]"))
+                .andExpect(jsonPath("$.reasons", hasSize(1)))
+                .andExpect(jsonPath("$.reasons[0].code").value("CURRENCY_MISMATCH"))
+                .andExpect(jsonPath("$.reasons[0].nextAction").value("같은 통화로 작성된 보고서를 고르세요."));
+    }
+
     @Test
     void basisMismatchIsWarned() throws Exception {
         SERVER.on(PATH, statementOf(HALF_2026), statementOf(Q3_2025));
