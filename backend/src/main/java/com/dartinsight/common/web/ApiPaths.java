@@ -31,6 +31,8 @@ public final class ApiPaths {
     public static final String COMPANY_FINANCIAL_TRENDS = COMPANIES + "/{corpCode}/financial-trends";
     public static final String COMPANY_KEY_FACTS = COMPANIES + "/{corpCode}/key-facts";
     public static final String COMPANY_DISCLOSURES = COMPANIES + "/{corpCode}/disclosures";
+    /** COMPANY_DISCLOSURES 아래. 주요사항보고서 핵심 수치(FS-51) */
+    public static final String DISCLOSURE_KEY_ITEMS = "/{rceptNo}/key-items";
     public static final String COMPANY_BRIEFING = COMPANIES + "/{corpCode}/briefing";
     public static final String REPORT_BY_RCEPT_NO = "/reports/{rceptNo}";
 

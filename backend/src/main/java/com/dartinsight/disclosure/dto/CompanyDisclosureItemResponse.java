@@ -2,14 +2,16 @@ package com.dartinsight.disclosure.dto;
 
 import com.dartinsight.disclosure.domain.Disclosure;
 import com.dartinsight.disclosure.domain.DisclosureGroup;
+import com.dartinsight.disclosure.domain.KeyItemKind;
 import com.dartinsight.report.domain.DartLinks;
 import java.time.LocalDate;
 
 /**
  * 최근 공시 한 건.
  *
- * @param periodic 이 서비스의 정기보고서 목록에 들어가는 보고서인지('이 보고서로 비교하기')
- * @param remarks  비고(rm) 원문. 없으면 null
+ * @param periodic     이 서비스의 정기보고서 목록에 들어가는 보고서인지('이 보고서로 비교하기')
+ * @param remarks      비고(rm) 원문. 없으면 null
+ * @param keyItemsKind 핵심 수치(FS-51)를 받을 수 있는 주요사항보고서면 그 종류, 아니면 null
  */
 public record CompanyDisclosureItemResponse(
         String rceptNo,
@@ -20,7 +22,8 @@ public record CompanyDisclosureItemResponse(
         String groupLabel,
         boolean periodic,
         String dartUrl,
-        String remarks) {
+        String remarks,
+        KeyItemKind keyItemsKind) {
 
     public static CompanyDisclosureItemResponse from(Disclosure disclosure) {
         DisclosureGroup group = disclosure.group();
@@ -33,6 +36,7 @@ public record CompanyDisclosureItemResponse(
                 group.label(),
                 disclosure.periodic(),
                 DartLinks.viewer(disclosure.rceptNo()),
-                disclosure.remark());
+                disclosure.remark(),
+                disclosure.keyItemsKind().orElse(null));
     }
 }

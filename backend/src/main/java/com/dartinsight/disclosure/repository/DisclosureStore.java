@@ -46,6 +46,19 @@ public class DisclosureStore {
                 corpCode, Date.valueOf(from));
     }
 
+    /** 이 기업의 저장된 목록에 있는 공시 한 건 */
+    public Optional<Disclosure> find(String corpCode, String rceptNo) {
+        return jdbcTemplate.query("SELECT rcept_no, report_name, filer_name, rcept_dt, remark FROM company_disclosure"
+                + " WHERE corp_code = ? AND rcept_no = ?",
+                (rs, rowNum) -> new Disclosure(
+                        rs.getString("rcept_no"),
+                        rs.getString("report_name"),
+                        rs.getString("filer_name"),
+                        rs.getDate("rcept_dt").toLocalDate(),
+                        rs.getString("remark")),
+                corpCode, rceptNo).stream().findFirst();
+    }
+
     /** 이 기업의 저장된 목록과 받은 기록을 지우고 새로 넣는다. 한 트랜잭션 안에서 불러야 한다. */
     public void replace(DisclosureFetch fetch, List<Disclosure> disclosures) {
         jdbcTemplate.update("DELETE FROM company_disclosure WHERE corp_code = ?", fetch.corpCode());

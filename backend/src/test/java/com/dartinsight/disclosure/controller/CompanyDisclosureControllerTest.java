@@ -148,7 +148,11 @@ class CompanyDisclosureControllerTest {
                 .andExpect(jsonPath("$.items[3].periodic").value(true))
                 .andExpect(jsonPath("$.items[3].dartUrl")
                         .value("https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260814000001"))
-                .andExpect(jsonPath("$.items[1].periodic").value(false));
+                .andExpect(jsonPath("$.items[1].periodic").value(false))
+                // 핵심 수치(FS-51)는 지원하는 주요사항보고서에만
+                .andExpect(jsonPath("$.items[2].keyItemsKind").value("CAPITAL_INCREASE"))
+                .andExpect(jsonPath("$.items[1].keyItemsKind").value(nullValue()))
+                .andExpect(jsonPath("$.items[3].keyItemsKind").value(nullValue()));
 
         String request = SERVER.requests().get(SERVER.requests().size() - 1);
         assertThat(request).contains("corp_code=00000001", "bgn_de=" + daysAgo(90), "end_de=" + daysAgo(0),

@@ -28,6 +28,7 @@ public final class TestData {
             "report_key_fact",
             "report",
             "company_overview",
+            "disclosure_key_item",
             "company_disclosure",
             "company_disclosure_fetch",
             "favorite_company",

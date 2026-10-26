@@ -10,6 +10,7 @@ import com.dartinsight.dart.dto.DividendItem;
 import com.dartinsight.dart.dto.ExecutiveItem;
 import com.dartinsight.dart.dto.FinancialStatementResponse;
 import com.dartinsight.dart.dto.KeyAccountResponse;
+import com.dartinsight.dart.dto.MajorReportInfoResponse;
 import com.dartinsight.dart.dto.MajorShareholderItem;
 import com.dartinsight.dart.dto.OpenDartStatus;
 import com.dartinsight.dart.dto.PeriodicReportInfoResponse;
@@ -229,6 +230,24 @@ public class OpenDartClient {
                 KeyAccountResponse.class)
                 .map(r -> new KeyAccountPage(false, r.list() == null ? List.of() : r.list()))
                 .orElseGet(() -> new KeyAccountPage(true, List.of()));
+    }
+
+    /**
+     * 주요사항보고서 주요정보(DS005) 한 API의 행. 여섯 API(유상증자·전환사채·신주인수권부사채·교환사채·자기주식 취득·처분)
+     * 모두 고유번호와 최초접수일 기간(bgn_de·end_de)으로 부르고, 행마다 rcept_no(마지막 정정본)가 있다.
+     * 자료가 없으면(013) 빈 Optional이다.
+     *
+     * @param path  {@link OpenDartPaths}의 DS005 경로
+     * @param begin 최초접수일 기간 시작(bgn_de)
+     * @param end   최초접수일 기간 끝(end_de)
+     */
+    public Optional<List<Map<String, String>>> majorReportRows(String path, String corpCode, LocalDate begin,
+            LocalDate end) {
+        return fetchJson(path, Map.of("corp_code", corpCode,
+                        "bgn_de", begin.format(DateTimeFormatter.BASIC_ISO_DATE),
+                        "end_de", end.format(DateTimeFormatter.BASIC_ISO_DATE)),
+                MajorReportInfoResponse.class)
+                .map(r -> r.list() == null ? List.<Map<String, String>>of() : r.list());
     }
 
     /** @param noData OpenDART가 '자료 없음'(013)으로 답했는지 */
