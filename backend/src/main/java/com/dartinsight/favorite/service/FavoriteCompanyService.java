@@ -42,6 +42,11 @@ public class FavoriteCompanyService {
                 .toList();
     }
 
+    /** 이 기업을 지금 즐겨찾기한 회원 ID */
+    public List<Long> userIdsFavoriting(String corpCode) {
+        return favorites.findUserIdsByCorpCode(corpCode);
+    }
+
     /** 이미 있으면 그대로 돌려준다(중복 행·시각 변경 없음). 없는 기업은 COMPANY_NOT_FOUND. */
     @Transactional
     public FavoriteCompanyResponse add(long userId, String corpCode) {

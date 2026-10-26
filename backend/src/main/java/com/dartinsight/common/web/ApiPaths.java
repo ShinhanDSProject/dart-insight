@@ -21,6 +21,8 @@ public final class ApiPaths {
     public static final String OAUTH2_AUTHORIZATION = "/oauth2/authorization/**";
     public static final String OAUTH2_CALLBACK = "/login/oauth2/code/**";
     public static final String FAVORITE_COMPANIES = BASE + "/favorite-companies";
+    public static final String NOTIFICATIONS = BASE + "/notifications";
+    public static final String NOTIFICATION_READ = "/{notificationId}/read";
     public static final String COMPANIES = BASE + "/companies";
     public static final String BY_CORP_CODE = "/{corpCode}";
     /** COMPANIES 아래. 기업 개황(FS-45) */

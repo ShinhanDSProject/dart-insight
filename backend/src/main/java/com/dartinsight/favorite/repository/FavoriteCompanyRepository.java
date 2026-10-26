@@ -14,6 +14,10 @@ public interface FavoriteCompanyRepository extends JpaRepository<FavoriteCompany
 
     long deleteByUserIdAndCorpCode(Long userId, String corpCode);
 
+    /** 이 기업을 즐겨찾기한 회원(알림, #38) */
+    @Query("select f.userId from FavoriteCompany f where f.corpCode = :corpCode order by f.userId")
+    List<Long> findUserIdsByCorpCode(String corpCode);
+
     /** 한 명이라도 즐겨찾기한 기업. 여러 회원이 같은 기업을 골랐어도 한 번만 나온다. */
     @Query("select distinct f.corpCode from FavoriteCompany f order by f.corpCode")
     List<String> findDistinctCorpCodes();

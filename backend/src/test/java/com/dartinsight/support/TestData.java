@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 public final class TestData {
 
     private static final List<String> TABLES_CHILD_FIRST = List.of(
+            "notification",
             "analysis_question",
             "text_change_explanation",
             "summary_item",
@@ -27,6 +28,7 @@ public final class TestData {
             "report_key_account",
             "report_key_account_fetch",
             "report_key_fact",
+            "watched_report",
             "report",
             "company_overview",
             "disclosure_key_item",
