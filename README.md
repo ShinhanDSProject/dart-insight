@@ -39,6 +39,16 @@ DART 정기보고서 두 개를 비교해, 바뀐 재무 수치와 문장을 원
 
 먼저 PC에 MariaDB를 설치하고 `backend/db/local-init.sql`로 DB와 계정을 한 번 만든 뒤(Docker는 쓰지 않습니다), 각 폴더에서 `.env.example`을 `.env`로 복사해 값을 채운 뒤 실행합니다. `.env`는 커밋하지 않습니다. 파일별 변수와 공용 키를 넣는 순서는 [노션 · 로컬 실행 전 .env 설정](https://app.notion.com/p/401b6afffc6f812ea3a1f821893e50ad)에, MariaDB 설치, DB 초기화, 키 관리, 문제 해결은 [로컬 개발 환경](docs/local-setup.md)에 있습니다.
 
+저장소 루트의 `package.json`으로 세 서비스를 한 번에 다룰 수도 있습니다(Node.js 22만 있으면 되고, 루트에서 `npm install`은 하지 않습니다).
+
+```bash
+npm run setup     # .env가 없으면 .env.example에서 만들고, frontend npm ci, ai-server 가상환경·패키지 설치
+npm run dev       # 세 서비스를 함께 실행(줄 앞에 [backend] 같은 이름), Ctrl+C로 함께 종료
+npm run check     # CI와 같은 검사: backend build, ai-server ruff·pytest, frontend lint·test·build
+```
+
+서비스 하나만 다룰 때는 `npm run dev:backend`, `npm run test:ai`, `npm run lint:frontend`처럼 씁니다. 전체 목록과 동작은 [로컬 개발 환경](docs/local-setup.md#5-루트에서-한-번에-실행)에 있습니다.
+
 ## 일정
 
 | 날짜 | 마일스톤 |
