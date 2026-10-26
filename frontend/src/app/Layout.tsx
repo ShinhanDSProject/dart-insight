@@ -9,9 +9,16 @@ import { ShortcutHelp } from './ShortcutHelp'
 import { useShortcuts } from './useShortcuts'
 import { SegmentedControl } from '@/shared/ui/SegmentedControl'
 import { useTheme } from '@/shared/hooks/useTheme'
-import { THEME_OPTIONS } from '@/shared/lib/theme'
+import { THEME_OPTIONS, type ThemeChoice } from '@/shared/lib/theme'
+import type { SegmentOption } from '@/shared/ui/SegmentedControl'
 
 type Section = 'search' | 'compare' | 'source'
+
+const THEME_ICONS: Record<ThemeChoice, IconName> = { system: 'monitor', light: 'sun', dark: 'moon' }
+const THEME_SEGMENTS: SegmentOption<ThemeChoice>[] = THEME_OPTIONS.map((option) => ({
+  ...option,
+  icon: THEME_ICONS[option.value],
+}))
 
 interface NavItem {
   section: Section
@@ -144,7 +151,8 @@ export function Layout() {
           </p>
           <div className="app-header__tools">
             <SegmentedControl
-              options={THEME_OPTIONS}
+              variant="icon"
+              options={THEME_SEGMENTS}
               value={theme.choice}
               onChange={theme.setChoice}
               aria-label="화면 테마"
