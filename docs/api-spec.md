@@ -73,6 +73,8 @@
 | GET | `/api/favorite-companies` | 내 관심 기업 목록 | #36 (6.2) | W-01 ① | 초안 |
 | PUT | `/api/favorite-companies/{corpCode}` | 관심 기업 추가 | #36 (6.2) | W-01 ② | 초안 |
 | DELETE | `/api/favorite-companies/{corpCode}` | 관심 기업 빼기 | #36 (6.2) | W-01 ①② | 초안 |
+| GET | `/api/notifications` | 내 분석 완료 알림 목록 | #38 (6.4) | 헤더 알림 | 초안 |
+| PUT·DELETE | `/api/notifications/{notificationId}/read` | 알림 읽음 표시·해제 | #38 (6.4) | 헤더 알림 | 초안 |
 | GET | `/api/companies` | 기업 검색 | #8 (1.1) | W-01 ① | 초안 |
 | GET | `/api/companies/{corpCode}` | 기업 정보 | #8 (1.1) | W-01 ② | 초안 |
 | GET | `/api/companies/{corpCode}/overview` | 기업 개황(대표자·법인 구분·업종·설립일·결산월 등) | #329 (1.2) | 기업 화면 개요 탭 | 초안 |
@@ -223,6 +225,52 @@
 | --- | --- | --- |
 | 401 | `AUTH_UNAUTHORIZED` | Access Token이 없거나 유효하지 않음 |
 | 404 | `COMPANY_NOT_FOUND` | PUT에서 없는 고유번호 |
+
+### GET·PUT·DELETE /api/notifications — 분석 완료 알림
+
+- 이슈: #38 (6.4) · 화면: 와이어프레임 없음(헤더의 알림 버튼과 목록)
+- 로그인한 사용자만 씁니다. Bearer Access Token이 필요하고, 없거나 잘못된 JWT는 `AUTH_UNAUTHORIZED`(401)입니다. 사용자는 토큰의 `sub`로만 정해서 다른 사용자의 알림은 읽거나 바꿀 수 없습니다.
+- 알림은 서버가 만듭니다([ADR-0031](adr/0031-favorite-report-auto-analysis-notification.md)). 즐겨찾기 기업의 새 정기보고서를 찾으면(6.3) 전년 동기 보고서와 비교하는 분석을 자동으로 요청하고, 그 분석이 완료(`COMPLETED`)되어 결과가 저장된 뒤에 그 기업을 즐겨찾기한 회원마다 알림 하나를 만듭니다. 대기·진행·실패한 분석에는 만들지 않습니다.
+- 같은 회원·같은 분석의 알림은 하나뿐입니다(재시도·중복 이벤트에도 다시 만들지 않음).
+
+**GET /api/notifications**: 최근 순 목록
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| query | `limit` | number | 아니오 | 최대 개수. 기본 20, 1 이상 50 이하 |
+
+```json
+{
+  "unreadCount": 1,
+  "items": [
+    {
+      "notificationId": 7,
+      "analysisId": 42,
+      "corpCode": "00126380",
+      "corpName": "삼성전자",
+      "basis": "YOY",
+      "previous": { "rceptNo": "20251114000987", "reportName": "분기보고서 (2025.09)", "periodEnd": "2025-09-30" },
+      "current": { "rceptNo": "20261114001234", "reportName": "분기보고서 (2026.09)", "periodEnd": "2026-09-30" },
+      "createdAt": "2026-11-14T15:20:31",
+      "readAt": null
+    }
+  ]
+}
+```
+
+- `unreadCount`는 `limit`과 상관없이 읽지 않은 알림 전체 수입니다. 알림이 없으면 `items: []`, `unreadCount: 0`입니다.
+- `createdAt`·`readAt`은 한국 시간(`yyyy-MM-dd'T'HH:mm:ss`). 읽지 않았으면 `readAt`이 null입니다.
+- 화면은 `analysisId`로 결과(`/analyses/{analysisId}`)로 이동합니다.
+
+**PUT /api/notifications/{notificationId}/read**: 읽음으로 표시. 본문 없음, 204. 이미 읽었으면 그대로(처음 읽은 시각 유지).
+
+**DELETE /api/notifications/{notificationId}/read**: 읽지 않음으로 되돌림. 204.
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | `limit`이 숫자가 아니거나 1~50 밖. `errors[].field`는 `limit` |
+| 401 | `AUTH_UNAUTHORIZED` | Access Token이 없거나 유효하지 않음 |
+| 404 | `ANALYSIS_NOTIFICATION_NOT_FOUND` | 없는 알림이거나 다른 회원의 알림 |
 
 ### GET /api/companies — 기업 검색
 
@@ -2140,6 +2188,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | `ANALYSIS_CHANGE_NOT_FOUND` | 404 | 없는 계정 항목 | 목록 다시 불러오기 |
 | `ANALYSIS_TEXT_CHANGE_NOT_FOUND` | 404 | 없는 문장 변경 항목 | 목록 다시 불러오기 |
 | `ANALYSIS_QUESTION_NOT_FOUND` | 404 | 없는 질문(또는 이 분석의 질문이 아님) | 질문 기록 다시 불러오기 |
+| `ANALYSIS_NOTIFICATION_NOT_FOUND` | 404 | 없는 알림(또는 다른 회원의 알림, #38) | 알림 목록 다시 불러오기 |
 | `DART_REQUEST_FAILED` | 502 | OpenDART 호출 실패 | 잠시 뒤 다시 시도 |
 | `DART_RATE_LIMITED` | 503 | OpenDART 호출 한도 초과(020) | 내일 다시 시도, 저장된 자료 사용 |
 | `DART_KEY_MISSING` | 503 | 서버에 OpenDART 키가 없음 | 관리자 안내 |

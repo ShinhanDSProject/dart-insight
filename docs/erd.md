@@ -20,6 +20,8 @@
 | `refresh_token` | 일반 로그인 Refresh Token 해시·회전 기록 | 6.2 | 미정 |
 | `social_account` | Google·Kakao·Naver 계정과 공통 회원 연결 | #225 (6.3) | 미정 |
 | `favorite_company` | 회원별 관심 기업 | #36 (6.2) | 미정 |
+| `watched_report` | 즐겨찾기 폴링이 찾아 자동 분석을 요청한 새 정기보고서 | #38 (6.4) | 미정 |
+| `notification` | 회원별 분석 완료 알림과 읽음 여부 | #38 (6.4) | 미정 |
 | `company` | 기업. OpenDART 고유번호 기준 | 4.4 (#51) | M1 |
 | `company_overview` | 기업 개황(OpenDART `company.json`) 캐시. 고유번호 기준, 받은 시각으로 다시 받음 | 1.2 (#329) | M2 |
 | `report` | 정기보고서. 접수번호 기준 | 4.1 (#27) | M1 |
@@ -57,6 +59,9 @@ erDiagram
     app_user ||--o{ social_account : "user_id (6.3)"
     app_user ||--o{ favorite_company : "user_id (#36)"
     company ||--o{ favorite_company : "corp_code (#36)"
+    report ||--o| watched_report : "rcept_no (#38)"
+    app_user ||--o{ notification : "user_id (#38)"
+    analysis ||--o{ notification : "analysis_id (#38)"
     app_user {
         bigint id PK
         datetime created_at
@@ -91,6 +96,18 @@ erDiagram
         bigint user_id FK
         varchar corp_code FK
         datetime created_at
+    }
+    watched_report {
+        bigint id PK
+        varchar rcept_no FK
+        datetime created_at
+    }
+    notification {
+        bigint id PK
+        bigint user_id FK
+        bigint analysis_id FK
+        datetime created_at
+        datetime read_at
     }
     company ||--o{ report : "corp_code"
     company ||--o| company_overview : "corp_code"
@@ -912,6 +929,28 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `corp_code` | VARCHAR(8) | FK, UNIQUE 묶음 | 아니오 | `company.corp_code` |
 | `created_at` | DATETIME(6) | | 아니오 | 추가한 시각. 목록은 이 값의 최근 순 |
 
+### watched_report — 자동 분석한 새 정기보고서(#38)
+
+> 마이그레이션: `V28__create_notification.sql`. 즐겨찾기 폴링(6.3)이 새 보고서를 찾아 자동 분석을 요청할 때 한 줄 넣고, 분석이 완료되면 이 표에 있는 보고서(현재 보고서)의 분석에만 알림을 만든다(ADR-0031).
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT AUTO_INCREMENT | PK | 아니오 | 행 ID |
+| `rcept_no` | VARCHAR(14) | FK, UK | 아니오 | `report.rcept_no`. 새로 찾은 보고서 |
+| `created_at` | DATETIME(6) | | 아니오 | 찾은 시각 |
+
+### notification — 분석 완료 알림(#38)
+
+> 마이그레이션: `V28__create_notification.sql`. 분석이 완료돼 결과가 저장된 뒤에만 만든다. 대기·진행·실패한 분석에는 행이 없다.
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT AUTO_INCREMENT | PK | 아니오 | 알림 ID |
+| `user_id` | BIGINT | FK, UNIQUE 묶음 | 아니오 | `app_user.id` |
+| `analysis_id` | BIGINT | FK, UNIQUE 묶음 | 아니오 | `analysis.id`. 완료된 분석 |
+| `created_at` | DATETIME(6) | | 아니오 | 만든 시각. 목록은 이 값의 최근 순 |
+| `read_at` | DATETIME(6) | | 예 | 읽은 시각. 읽지 않았으면 null |
+
 ## 4. 인덱스·제약
 
 | 테이블 | 이름 | 컬럼 | 종류 | 이유 |
@@ -923,6 +962,9 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `social_account` | `uk_social_account_provider_user` | `provider`, `provider_user_id` | 유니크 | 제공자별 사용자를 한 계정에 한 번만 연결 |
 | `social_account` | `idx_social_account_user` | `user_id` | 인덱스 | 회원의 연결 계정 조회 |
 | `favorite_company` | `uk_favorite_company_user_corp` | `user_id`, `corp_code` | 유니크 | 같은 기업을 두 번 담지 않음. 회원별 목록 조회에도 씀 |
+| `watched_report` | `uk_watched_report_rcept_no` | `rcept_no` | 유니크 | 같은 보고서를 두 번 지켜보지 않음 |
+| `notification` | `uk_notification_user_analysis` | `user_id`, `analysis_id` | 유니크 | 같은 회원·분석의 알림을 두 번 만들지 않음(재시도·중복 이벤트) |
+| `notification` | `idx_notification_user_created` | `user_id`, `created_at` | 인덱스 | 회원별 최근 알림 목록 |
 | `company` | `uk_company_corp_code` | `corp_code` | 유니크 | 고유번호 중복 방지(외래 키가 참조) |
 | `company` | `idx_company_corp_name` | `corp_name` | 인덱스 | 회사명 정렬·완전 일치. 부분 일치 검색(`%검색어%`)에는 쓰이지 않음 |
 | `company` | `idx_company_stock_code` | `stock_code` | 인덱스 | 종목코드 검색 |
