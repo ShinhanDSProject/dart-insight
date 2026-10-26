@@ -2,17 +2,8 @@ import { useState, type CSSProperties } from 'react'
 import { match } from 'ts-pattern'
 import type { FinancialChangeItem } from '@/shared/api/results'
 import { SegmentedControl } from '@/shared/ui'
-import {
-  barSpan,
-  chartData,
-  formatCompactAmount,
-  formatTickRate,
-  niceScale,
-  position,
-  type ChartItem,
-  type ChartView,
-  type Scale,
-} from '../model/chart'
+import { barSpan, formatCompactAmount, niceScale, position, type Scale } from '@/shared/lib/chartScale'
+import { chartData, formatTickRate, type ChartItem, type ChartView } from '../model/chart'
 import { formatAmount, formatChange, formatRate, shortCalcLabel, unitLabel, type AmountUnit } from '../model/format'
 
 const viewOptions = [
