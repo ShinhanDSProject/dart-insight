@@ -48,6 +48,7 @@
 | `financialDataStatus` | `UNKNOWN` 확인 전(아직 받아 보지 않음), `AVAILABLE` 재무 자료 있음, `NOT_AVAILABLE` 재무 자료 없음. 받아 둔 결과(4.5)로 정하고 목록 조회에서는 OpenDART를 부르지 않음. `NOT_AVAILABLE`: 2015 사업연도 이전, 연결·별도 모두 `013`, 또는 받은 자료가 다른 접수번호(정정본) 것 |
 | `basis` | `YOY` 전년 동기, `PREV` 직전 기간, `CUSTOM` 직접 선택 |
 | `disclosureGroup` | 공시 묶음(공시 제목 낱말 규칙, FS-48). `PERIODIC` 정기보고서, `FUNDING` 자금 조달, `OWNERSHIP` 지분 변동, `GOVERNANCE` 지배구조, `BUSINESS` 실적·영업, `OTHER` 기타. 규칙은 `backend/.../disclosure/domain/DisclosureGroupRules.java` |
+| `keyItemsKind` | 핵심 수치를 보여 줄 수 있는 주요사항보고서 종류(FS-51, OpenDART 주요사항보고서 주요정보 DS005). `CAPITAL_INCREASE` 유상증자 결정(`piicDecsn`), `CONVERTIBLE_BOND` 전환사채권 발행결정(`cvbdIsDecsn`), `BOND_WITH_WARRANT` 신주인수권부사채권 발행결정(`bdwtIsDecsn`), `EXCHANGEABLE_BOND` 교환사채권 발행결정(`exbdIsDecsn`), `TREASURY_STOCK_ACQUISITION` 자기주식 취득 결정(`tsstkAqDecsn`), `TREASURY_STOCK_DISPOSAL` 자기주식 처분 결정(`tsstkDpDecsn`). 규칙은 `backend/.../disclosure/domain/KeyItemRules.java` |
 | `status` (분석) | `PENDING` 대기, `RUNNING` 진행, `COMPLETED` 완료, `FAILED` 실패 |
 | `step` (분석) | `RECEIVED` 요청 접수, `COMPARING` 보고서 비교, `VERIFYING` 근거 확인, `DONE` 완료 |
 | `sjDiv` | `BS` 재무상태표, `IS` 손익계산서, `CIS` 포괄손익계산서, `CF` 현금흐름표, `SCE` 자본변동표 |
@@ -82,6 +83,7 @@
 | GET | `/api/companies/{corpCode}/analyses` | 이 기업의 이미 끝난 분석 목록 | #288 (1.2) | W-01 ② | 초안 |
 | GET | `/api/companies/{corpCode}/key-facts` | 최신 정기보고서와 1년 전 같은 종류 보고서의 최대주주·임원·배당과 바뀐 항목 | #331 (1.2, FS-47) | 기업 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/disclosures` | 최근 공시 타임라인(묶음 거르기) | #332 (1.2) | 기업 개요 탭 | 초안 |
+| GET | `/api/companies/{corpCode}/disclosures/{rceptNo}/key-items` | 주요사항보고서 한 건의 핵심 수치(원문 값 그대로) | #363 (1.2, FS-51) | 기업 개요 탭 최근 공시 | 초안 |
 | GET | `/api/companies/{corpCode}/briefing` | AI 기업 브리핑(저장된 것 또는 새로 만듦) | #333 (1.2) | 기업 화면 개요 탭 | 초안 |
 | POST | `/api/comparability-checks` | 비교 가능성 검증 | #13 (2.2) | W-01 ③ | 초안 |
 | POST | `/api/analyses` | 분석 요청 | #14 (2.3) | W-01 ③ → W-02 | 초안 |
@@ -728,12 +730,14 @@
       "groupLabel": "정기보고서",
       "periodic": true,
       "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260814001234",
-      "remarks": null
+      "remarks": null,
+      "keyItemsKind": null
     }
   ]
 }
 ```
 
+- `keyItemsKind`: 이 공시의 핵심 수치(`GET .../disclosures/{rceptNo}/key-items`)를 받을 수 있으면 그 종류(공통 값 `keyItemsKind`), 아니면 null입니다. 제목 규칙으로 정하고 OpenDART를 부르지 않습니다(아래 key-items 절의 '종류 정하기'). 화면은 null이 아닐 때만 '핵심 수치' 버튼을 둡니다.
 - `reportName`: OpenDART 보고서명(`report_nm`)의 앞뒤 공백을 빼고 이어진 공백을 한 칸으로 줄인 값입니다. `[기재정정]` 같은 꼬리표는 그대로 둡니다.
 - `filerName`: 제출인(`flr_nm`). 지분 공시는 회사가 아닌 사람·법인일 수 있습니다. 없으면 null.
 - `remarks`: 비고(`rm`) 원문(`유` 유가증권시장, `코` 코스닥, `채` 채권상장법인, `넥` 코넥스, `공` 공정위, `연` 연결 포함, `정` 뒤에 정정 있음, `철` 철회). 없으면 null.
@@ -746,6 +750,67 @@
 | 502 | `DART_REQUEST_FAILED` | OpenDART 호출 실패이고 저장된 목록도 없음 |
 | 503 | `DART_RATE_LIMITED` | OpenDART 호출 한도 초과(020)이고 저장된 목록도 없음 |
 | 503 | `DART_KEY_MISSING` | 서버에 OpenDART 키가 설정되지 않았고 저장된 목록도 없음 |
+
+### GET /api/companies/{corpCode}/disclosures/{rceptNo}/key-items — 주요사항보고서 핵심 수치
+
+- 이슈: #363 (1.2) · 기획서: FS-51 · 화면: 기업 화면 '기업 개요' 탭의 최근 공시에서 '핵심 수치' 펼침
+- 최근 공시 타임라인의 주요사항보고서 한 건에 대해 OpenDART '주요사항보고서 주요정보'(DS005) API가 주는 핵심 항목을 원문 값 그대로 돌려줍니다. 값을 새로 계산하거나 단위를 바꾸지 않습니다(쉼표·날짜 표기도 원문 그대로).
+- 대상 공시: 이 기업의 저장된 최근 공시 목록(`GET /api/companies/{corpCode}/disclosures`가 받아 둔 것)에 있는 접수번호이고, 종류(`keyItemsKind`)가 정해지는 공시만입니다. 이 API는 공시 목록을 OpenDART에서 새로 받지 않습니다.
+- **종류 정하기**(`KeyItemRules`, LLM을 쓰지 않음): 보고서명에서 앞머리 꼬리표와 뒤 설명을 떼고 공백을 뺀 제목이 아래와 같을 때만입니다. 꼬리표는 없거나 `[기재정정]`일 때만 받습니다. `[첨부정정]`처럼 첨부만 고친 공시는 OpenDART가 그 접수번호의 행을 따로 주지 않아(2026-10-26 파이온엑스 `20261026000100`으로 확인) 종류를 정하지 않습니다. 제목이 '주요사항보고서('로 시작하지 않는 '유상증자결정'(기타법인 공시)도 API에 없어(지티엑스씨 `20261021000177`, 013) 정하지 않습니다. 단일판매·공급계약은 거래소 공시라 DS005에 API가 없습니다.
+
+  | 제목 | `kind` | OpenDART API |
+  | --- | --- | --- |
+  | 주요사항보고서(유상증자결정) | `CAPITAL_INCREASE` | `piicDecsn.json` (apiId 2020023) |
+  | 주요사항보고서(전환사채권발행결정) | `CONVERTIBLE_BOND` | `cvbdIsDecsn.json` (2020033) |
+  | 주요사항보고서(신주인수권부사채권발행결정) | `BOND_WITH_WARRANT` | `bdwtIsDecsn.json` (2020034) |
+  | 주요사항보고서(교환사채권발행결정) | `EXCHANGEABLE_BOND` | `exbdIsDecsn.json` (2020035) |
+  | 주요사항보고서(자기주식취득결정) | `TREASURY_STOCK_ACQUISITION` | `tsstkAqDecsn.json` (2020038) |
+  | 주요사항보고서(자기주식처분결정) | `TREASURY_STOCK_DISPOSAL` | `tsstkDpDecsn.json` (2020039) |
+
+- **OpenDART 호출**: 여섯 API 모두 `corp_code`·`bgn_de`·`end_de`(최초접수일 기간)로 부르고, 행마다 `rcept_no`가 있습니다. 응답 행 중 `rcept_no`가 요청한 접수번호와 같은 행 하나를 씁니다.
+  - 원본 공시(꼬리표 없음): `bgn_de`=`end_de`=접수일(`receivedDate`). 그날 낸 공시만 받습니다.
+  - `[기재정정]`: 기간이 최초 공시의 접수일 기준이고 행의 `rcept_no`는 마지막 정정본이라(2026-10-26 모아데이타 `20261023000402`: 정정일 20261023로는 013, 최초 접수일 20260814로 부르면 정정본 행이 옴), `bgn_de`=20150101(API가 정보를 주는 첫해)~`end_de`=접수일로 부릅니다.
+- 캐시([ADR-0024](adr/0024-company-info-cache.md) 보고서에 딸린 자료): 접수번호마다 한 번만 받고 다시 받지 않습니다(`CachePolicy.permanent()`). `013`(자료 없음)이거나 같은 접수번호의 행이 없으면 `status: NO_DATA`, `items: []`로 저장하고 200으로 돌려줍니다. 호출 실패는 저장하지 않습니다.
+- `items`: 종류마다 정한 항목을 정한 순서로 넣습니다. 값이 `-`이거나 비어 있는 항목은 뺍니다. `label`은 OpenDART 개발가이드의 항목 이름, `unit`은 개발가이드가 항목 이름에 붙인 단위(`원`, `주`, `%`, `원/주`)이고 없으면 null입니다. `field`는 OpenDART 응답 필드 이름(근거 위치)입니다. 금액은 대부분 원이지만 해외 발행 항목은 받지 않습니다.
+- `sourceUrl`: 요청한 접수번호의 DART 공시뷰어 주소입니다.
+
+**요청**
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| path | `corpCode` | string | 예 | 고유번호 |
+| path | `rceptNo` | string | 예 | 접수번호(최근 공시 목록의 `rceptNo`) |
+
+**응답 200** (에코프로비엠 `01160363` 자기주식처분결정 `20251020000144` 실제 응답에서 옮김, 일부 항목 생략)
+
+```json
+{
+  "rceptNo": "20251020000144",
+  "kind": "TREASURY_STOCK_DISPOSAL",
+  "kindLabel": "자기주식 처분 결정",
+  "status": "AVAILABLE",
+  "items": [
+    { "field": "dppln_stk_ostk", "label": "처분예정주식(보통주식)", "value": "65,168", "unit": "주" },
+    { "field": "dpstk_prc_ostk", "label": "처분 대상 주식가격(보통주식)", "value": "161,000", "unit": "원" },
+    { "field": "dppln_prc_ostk", "label": "처분예정금액(보통주식)", "value": "10,492,048,000", "unit": "원" },
+    { "field": "dpprpd_bgd", "label": "처분예정기간(시작일)", "value": "2025년 10월 22일", "unit": null },
+    { "field": "dp_pp", "label": "처분목적", "value": "종업원에 대한 상여금 지급 (RSU)", "unit": null }
+  ],
+  "sourceUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20251020000144",
+  "fetchedAt": "2026-10-26T15:10:03"
+}
+```
+
+- `status`: `AVAILABLE` 항목 있음, `NO_DATA` OpenDART에 자료 없음(013 또는 같은 접수번호의 행 없음). `NO_DATA`면 `items`는 빈 배열이고 화면은 '자료 없음'과 원문 링크를 보여 줍니다.
+- `fetchedAt`: OpenDART에서 받은 시각입니다.
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 404 | `COMPANY_NOT_FOUND` | 없는 고유번호 |
+| 404 | `COMPANY_DISCLOSURE_NOT_FOUND` | 이 기업의 저장된 최근 공시 목록에 없는 접수번호이거나, 핵심 수치를 지원하지 않는 종류(`keyItemsKind`가 null) |
+| 502 | `DART_REQUEST_FAILED` | OpenDART 호출 실패 |
+| 503 | `DART_RATE_LIMITED` | OpenDART 호출 한도 초과(020) |
+| 503 | `DART_KEY_MISSING` | 서버에 OpenDART 키가 설정되지 않음 |
 
 ### GET /api/companies/{corpCode}/briefing — AI 기업 브리핑
 
@@ -1844,6 +1909,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | `COMMON_INTERNAL_ERROR` | 500 | 알 수 없는 서버 오류 | 공통 오류 안내와 추적 ID |
 | `COMPANY_NOT_FOUND` | 404 | 없는 기업 | 검색으로 돌아가기 |
 | `COMPANY_LIST_NOT_LOADED` | 503 | 기업 목록을 아직 받지 않음 | 관리자에게 기업 목록 갱신 요청 안내 |
+| `COMPANY_DISCLOSURE_NOT_FOUND` | 404 | 이 기업의 최근 공시에 없거나 핵심 수치를 지원하지 않는 공시(FS-51) | 최근 공시 다시 불러오기 |
 | `REPORT_NOT_FOUND` | 404 | 없는 보고서 | 보고서 목록 다시 불러오기 |
 | `REPORT_SECTION_NOT_FOUND` | 404 | 원문에 없는 항목 | 목차에서 다시 고르기 |
 | `ANALYSIS_NOT_FOUND` | 404 | 없는 분석 | 처음부터 다시 |
