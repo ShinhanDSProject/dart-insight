@@ -28,7 +28,16 @@ function usage(overrides: Partial<AiUsage> = {}): AiUsage {
       reasons: { WRONG_SOURCE: 0, NOT_ANSWERED: 0, HARD_TO_READ: 0, OTHER: 0 },
     },
     explanations: { total: 0, byStatus: { OK: 0, REVIEW_NEEDED: 0, NO_SOURCE: 0 } },
-    llmCalls: { total: 0, byOutcome: { OK: 0, INVALID_OUTPUT: 0, TRANSIENT_ERROR: 0, ERROR: 0 }, byTask: [] },
+    llmCalls: {
+      total: 0,
+      byOutcome: { OK: 0, INVALID_OUTPUT: 0, TRANSIENT_ERROR: 0, ERROR: 0 },
+      byTask: [],
+      byModel: [],
+      perUnit: {
+        analysis: { count: 0, avgInputTokens: null, avgOutputTokens: null, avgCostUsd: null },
+        briefing: { count: 0, avgInputTokens: null, avgOutputTokens: null, avgCostUsd: null },
+      },
+    },
     ...overrides,
   }
 }
@@ -100,7 +109,7 @@ describe('상태 막대 조각', () => {
 
   it('빠진 키는 0으로 센다', () => {
     const u = usage({
-      llmCalls: { total: 2, byOutcome: { OK: 2 } as AiUsage['llmCalls']['byOutcome'], byTask: [] },
+      llmCalls: { ...usage().llmCalls, total: 2, byOutcome: { OK: 2 } as AiUsage['llmCalls']['byOutcome'] },
     })
     expect(outcomeSegments(u).map((s) => s.value)).toEqual([2, 0, 0, 0])
   })
@@ -110,9 +119,9 @@ describe('otherOutcomes', () => {
   it('정해 둔 네 값 밖의 결과만 0보다 클 때 돌려준다', () => {
     const u = usage({
       llmCalls: {
+        ...usage().llmCalls,
         total: 3,
         byOutcome: { OK: 1, INVALID_OUTPUT: 0, TRANSIENT_ERROR: 0, ERROR: 0, TIMEOUT: 2, EMPTY: 0 },
-        byTask: [],
       },
     })
     expect(otherOutcomes(u)).toEqual([{ outcome: 'TIMEOUT', count: 2 }])

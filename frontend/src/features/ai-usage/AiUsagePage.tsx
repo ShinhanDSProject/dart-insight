@@ -5,7 +5,8 @@ import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
 import { pageTitle } from '@/shared/lib/pageTitle'
 import { Card, DataTable, Panel, PanelTitle, SegmentedControl, ShareBar, type ShareSegment } from '@/shared/ui'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
-import { useAiUsage, useUsageDays } from './hooks/useAiUsage'
+import { ModelUsagePanel } from './components/ModelUsagePanel'
+import { useAiUsage, useRealOnly, useUsageDays } from './hooks/useAiUsage'
 import {
   DAYS_OPTIONS,
   explanationSegments,
@@ -25,12 +26,13 @@ import './ai-usage.css'
 
 /**
  * AI 사용 현황(FS-15). 최근 7일·30일의 질문 상태, 답 평가, 문장 풀이 상태, LLM 호출 수·토큰을 집계로만 보인다.
- * 질문 본문·답·사용자 정보는 API에도 화면에도 없다(AC4).
+ * 질문 본문·답·사용자 정보는 API에도 화면에도 없다(AC4). 제공자·모델별 비용과 1건당 평균은 FS-50.
  */
 export function AiUsagePage() {
   useDocumentTitle(pageTitle(['AI 사용 현황']))
   const { days, setDays } = useUsageDays()
   const { state, reload } = useAiUsage(days)
+  const { realOnly, setRealOnly } = useRealOnly()
 
   return (
     <section className="page ai-usage">
@@ -65,7 +67,7 @@ export function AiUsagePage() {
                 <p>이 기간에 AI 질문·풀이·LLM 호출 기록이 없어요. 기간을 바꿔 보세요.</p>
               </EmptyState>
             ))
-            .with({ kind: 'data' }, ({ usage }) => <UsageReport usage={usage} />)
+            .with({ kind: 'data' }, ({ usage }) => <UsageReport usage={usage} realOnly={realOnly} onRealOnlyChange={setRealOnly} />)
             .exhaustive(),
         )
         .exhaustive()}
@@ -73,7 +75,15 @@ export function AiUsagePage() {
   )
 }
 
-function UsageReport({ usage }: { usage: AiUsage }) {
+function UsageReport({
+  usage,
+  realOnly,
+  onRealOnlyChange,
+}: {
+  usage: AiUsage
+  realOnly: boolean
+  onRealOnlyChange: (realOnly: boolean) => void
+}) {
   const { questions, feedback, explanations, llmCalls } = usage
   const others = otherOutcomes(usage)
 
@@ -157,6 +167,8 @@ function UsageReport({ usage }: { usage: AiUsage }) {
           ))}
         <p className="ai-usage__hint">토큰은 제공자가 알려 준 호출만 더해요. 모두 모르면 '알 수 없음'이에요.</p>
       </Panel>
+
+      <ModelUsagePanel usage={usage} realOnly={realOnly} onRealOnlyChange={onRealOnlyChange} />
     </>
   )
 }

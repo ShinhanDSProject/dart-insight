@@ -63,8 +63,44 @@
   margin-top: 0;
 }
 
-.ai-usage__tasks {
+.ai-usage__tasks,
+.ai-usage__models {
   margin-top: var(--space-4);
+}
+
+/* 제공자·모델별(FS-50): 제목 옆에 실제 제공자만 보기 */
+.ai-usage__models-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.ai-usage__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.ai-usage__toggle input {
+  margin: 0;
+  accent-color: var(--color-accent);
+}
+
+.ai-usage__units {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ai-usage__units > li {
+  display: flex;
 }
 
 .ai-usage__subtitle {

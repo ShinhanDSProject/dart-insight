@@ -18,6 +18,28 @@ export interface AiUsageTask {
   outputTokens: number | null
 }
 
+/** 제공자·모델별 집계(FS-50) */
+export interface AiUsageModel {
+  /** llm_call.provider(fake, openai 등) */
+  provider: string
+  model: string
+  calls: number
+  inputTokens: number | null
+  outputTokens: number | null
+  /** 추정 비용(USD). 가격 설정이 없거나(fake 포함) 토큰을 모두 모르면 null */
+  estimatedCostUsd: number | null
+  byTask: AiUsageTask[]
+}
+
+/** 작업 단위(분석·브리핑) 1건당 평균. count가 0이거나 값을 모르면 평균은 null */
+export interface AiUsageUnitAverage {
+  count: number
+  avgInputTokens: number | null
+  avgOutputTokens: number | null
+  /** 가격 설정이 없는 모델의 호출이 섞이면 null */
+  avgCostUsd: number | null
+}
+
 export interface AiUsage {
   days: AiUsageDays
   /** YYYY-MM-DD(한국 시간) */
@@ -43,6 +65,11 @@ export interface AiUsage {
     total: number
     byOutcome: Record<LlmCallOutcome, number> & Record<string, number>
     byTask: AiUsageTask[]
+    byModel: AiUsageModel[]
+    perUnit: {
+      analysis: AiUsageUnitAverage
+      briefing: AiUsageUnitAverage
+    }
   }
 }
 
