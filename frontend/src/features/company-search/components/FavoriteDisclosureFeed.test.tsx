@@ -48,6 +48,12 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('관심 기업 새 공시(FS-52)', () => {
+  it('관심 기업 목록을 받는 중이면 빈 안내 대신 불러오는 중을 보인다', () => {
+    render(<FavoriteDisclosureFeed companies={[]} waiting />)
+    expect(screen.getByRole('status').textContent).toContain('불러오는 중')
+    expect(screen.queryByText('관심 기업을 추가하면 새 공시를 모아 보여 줘요.')).toBeNull()
+  })
+
   it('관심 기업이 없으면 부르지 않고 짧은 안내를 보인다', () => {
     render(<FavoriteDisclosureFeed companies={[]} />)
     expect(screen.getByText('관심 기업을 추가하면 새 공시를 모아 보여 줘요.')).toBeTruthy()

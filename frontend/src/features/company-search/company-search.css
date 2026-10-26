@@ -102,36 +102,150 @@
   animation: pop-in var(--motion-base) var(--ease-out);
 }
 
-/* 첫 화면 두 열(#374). 왼쪽 최근 본 분석, 오른쪽 관심 기업·새 공시. 둘이 들어갈 폭이 안 되면 줄바꿈되어 위아래로 쌓이고,
-   최근 본 분석이 없으면 오른쪽 열이 폭을 다 쓴다. 공시 한 줄이 길어 오른쪽을 더 넓게 둔다 */
+/* 첫 화면 두 열(#374, #378). 왼쪽 최근 본 분석, 오른쪽 관심 기업 새 공시를 같은 폭으로 두고, 두 열의 제목 줄·목록·아래 줄을
+   subgrid로 같은 높이에 맞춘다. 목록의 행도 같은 높이라 행 경계가 나란히 맞는다. 두 열이 들어갈 폭이 안 되면 위아래로 쌓이고,
+   최근 본 분석이 없으면 새 공시가 폭을 다 쓴다 */
 .home-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+  gap: var(--space-3) var(--space-6);
+  margin-bottom: var(--space-5);
+  container-type: inline-size;
+}
+
+.home-list {
+  display: grid;
+  grid-row: span 3;
+  grid-template-rows: subgrid;
+  min-width: 0;
+  animation: rise-in var(--motion-base) var(--ease-out);
+}
+
+/* 위아래로 쌓였을 때만 두 영역 사이를 띄운다(나란할 때 띄우면 줄이 어긋남) */
+@container (max-width: 791px) {
+  .home-list + .home-list {
+    margin-top: var(--space-4);
+  }
+}
+
+.home-list__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--touch-target-min);
+}
+
+.home-list__title {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.home-list__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+/* 행 목록 상자. 옆 열보다 행이 적어도 상자 아래 끝이 맞도록 남은 높이를 채운다 */
+.home-list__rows {
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  list-style: none;
+  overflow: hidden;
+}
+
+/* 두 열이 같은 행 높이를 쓰도록 두 줄(위: 이름·배지·날짜, 아래: 본문)로 고정한다. 넘치는 글은 말줄임표, 전체는 title에 둔다 */
+.home-list__row {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  height: var(--home-row-height, 60px);
+  padding: 0 var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.home-list__row:last-child {
+  border-bottom: none;
+}
+
+.home-list__line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.home-list__name {
+  overflow: hidden;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  text-overflow: ellipsis;
+}
+
+.home-list__meta {
+  flex: none;
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-family: var(--font-num);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.home-list__main {
+  display: block;
+  overflow: hidden;
+  font-size: var(--font-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-list__foot {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
-  gap: var(--space-5) var(--space-6);
-  max-width: 1200px;
-  margin-bottom: var(--space-5);
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
 }
 
-.home-columns > .recent-analyses {
-  flex: 2 1 320px;
+/* 최근 본 분석 행: 행 전체가 결과 화면 링크이고 오른쪽에 지우기 버튼 */
+.recent-row {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+  padding-right: var(--space-2);
+  transition: background-color var(--motion-fast) var(--ease-out);
+}
+
+.recent-row:hover,
+.recent-row:focus-within {
+  background: var(--color-accent-subtle);
+}
+
+.recent-row__link {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
-  max-width: none;
-  margin-bottom: 0;
+  color: inherit;
+  text-decoration: none;
 }
 
-.home-columns__favorites {
-  flex: 3 1 480px;
-  min-width: 0;
+.recent-row__link:hover .home-list__main {
+  color: var(--color-link-hover);
+  text-decoration: underline;
 }
 
-.home-columns__favorites > .favorite-companies,
-.home-columns__favorites > .favorite-feed {
-  max-width: none;
-}
-
-.home-columns__favorites > :last-child {
-  margin-bottom: 0;
+.recent-row__remove {
+  flex: none;
 }
 
 /* 관심 기업(FS-18). 검색어가 없을 때 검색창 아래 둥근 칩으로 보인다 */
@@ -215,89 +329,6 @@
   border-radius: var(--radius-pill);
 }
 
-/* 관심 기업 새 공시(FS-52). 관심 기업 아래, 최근 본 분석 위에 보인다 */
-.favorite-feed {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  max-width: 720px;
-  margin-bottom: var(--space-5);
-  animation: rise-in var(--motion-base) var(--ease-out);
-}
-
-.favorite-feed__title {
-  margin: 0;
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-bold);
-}
-
-.favorite-feed__list {
-  display: grid;
-  grid-template-columns: auto auto auto minmax(0, 1fr);
-  column-gap: var(--space-3);
-  margin: 0;
-  padding: 0;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  list-style: none;
-  overflow: hidden;
-}
-
-.favorite-feed__item {
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 1 / -1;
-  align-items: center;
-  padding: var(--space-2) var(--space-4);
-}
-
-.favorite-feed__item + .favorite-feed__item {
-  border-top: 1px solid var(--color-border);
-}
-
-.favorite-feed__badges {
-  display: inline-flex;
-  gap: var(--space-1);
-}
-
-.favorite-feed__company {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-  white-space: nowrap;
-}
-
-.favorite-feed__name {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.favorite-feed__date {
-  color: var(--color-text-muted);
-  font-family: var(--font-num);
-  font-size: var(--font-size-xs);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.favorite-feed__foot {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-2) var(--space-4);
-}
-
-/* 좁은 화면: 날짜·기업·배지 한 줄, 공시 이름은 다음 줄 */
-@media (max-width: 640px) {
-  .favorite-feed__list {
-    grid-template-columns: auto auto 1fr;
-  }
-
-  .favorite-feed__name {
-    grid-column: 1 / -1;
-  }
-}
-
 .favorite-feed__skeleton {
   display: flex;
   flex-direction: column;
@@ -321,93 +352,6 @@
   to {
     background-position: -100% 0;
   }
-}
-
-/* 최근 본 분석(FS-7). 검색어가 없을 때 검색창 아래에 보인다 */
-.recent-analyses {
-  max-width: 720px;
-  margin-bottom: var(--space-5);
-  animation: rise-in var(--motion-base) var(--ease-out);
-}
-
-.recent-analyses__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-bottom: var(--space-3);
-}
-
-.recent-analyses__title {
-  margin: 0;
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-bold);
-}
-
-.recent-analyses .more-toggle {
-  margin-top: var(--space-3);
-}
-
-.recent-analyses__list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: var(--space-3);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.recent-analyses__list > li {
-  display: flex;
-  animation: rise-in var(--motion-base) var(--ease-out) both;
-  animation-delay: calc(var(--row, 0) * var(--motion-stagger));
-}
-
-.recent-card {
-  display: flex;
-  flex: 1;
-  align-items: flex-start;
-  gap: var(--space-2);
-  min-width: 0;
-  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
-  transition:
-    background-color var(--motion-fast) var(--ease-out),
-    border-color var(--motion-fast) var(--ease-out);
-}
-
-.recent-card:hover,
-.recent-card:focus-within {
-  border-color: var(--color-border-accent);
-  background: var(--color-accent-subtle);
-}
-
-.recent-card__link {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: var(--space-1);
-  min-width: 0;
-  color: inherit;
-  text-decoration: none;
-}
-
-.recent-card__corp {
-  font-weight: var(--font-weight-bold);
-}
-
-.recent-card__pair {
-  font-size: var(--font-size-sm);
-  overflow-wrap: anywhere;
-}
-
-.recent-card__meta {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-}
-
-.recent-card__remove {
-  flex: none;
-  margin-top: calc(var(--space-1) * -1);
 }
 
 /* 처음 쓰는 사용자 안내(FS-10). 검색어가 없는 첫 화면에서 검색창 위에 보인다 */
