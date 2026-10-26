@@ -5,6 +5,11 @@ spring:
     url: ${TEST_DB_URL:jdbc:h2:mem:dart_insight;MODE=MariaDB;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=LOW;DB_CLOSE_DELAY=-1}
     username: ${TEST_DB_USERNAME:sa}
     password: ${TEST_DB_PASSWORD:}
+    # 테스트는 설정이 다른 Spring 컨텍스트를 여러 개 캐시하고, 컨텍스트마다 연결 풀을 잡는다.
+    # 기본 풀(10개)이면 CI MariaDB의 최대 연결 수를 넘어 'Too many connections'로 실패하므로 작게 둔다.
+    hikari:
+      maximum-pool-size: 2
+      minimum-idle: 0
 
 app:
   ai-server:
