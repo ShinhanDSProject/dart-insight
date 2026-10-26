@@ -93,7 +93,7 @@
 | GET | `/api/analyses/{analysisId}/documents/{side}` | 분석 보고서 원문 목차 | #23 (3.5) | W-03 ④ | 초안 |
 | GET | `/api/analyses/{analysisId}/documents/{side}/sections/{sectionNo}` | 원문 한 항목의 문단·표 | #23 (3.5) | W-03 ④ | 초안 |
 | GET | `/api/system/health` | 서비스 연결 상태 | #48 (0.5) | — | 초안 |
-| GET | `/api/system/ai-usage` | AI 사용 현황(질문·평가·풀이·LLM 호출 집계) | #245 (0.7) | AI 사용 현황(신규) | 초안 |
+| GET | `/api/system/ai-usage` | AI 사용 현황(질문·평가·풀이·LLM 호출 집계, 제공자·모델별 비용) | #245, #349 (0.7) | AI 사용 현황(신규) | 초안 |
 
 ## 2. 엔드포인트 상세
 
@@ -1418,7 +1418,7 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 
 ### GET /api/system/ai-usage — AI 사용 현황
 
-- 이슈: #245 (0.7) · 화면: AI 사용 현황(`/system/ai-usage`) · 기획서 FS-15
+- 이슈: #245, #349 (0.7) · 화면: AI 사용 현황(`/system/ai-usage`) · 기획서 FS-15, FS-50
 - 최근 `days`일 동안의 AI 질문 상태, 답 평가, 문장 풀이 상태, LLM 호출 수·토큰을 집계해 돌려줍니다. 집계만 돌려주고 질문 본문·답·사용자 정보는 넣지 않습니다. 인증은 없습니다(팀 결정 전까지).
 - 기간은 한국 시간 날짜로 `to`(오늘)부터 거꾸로 `days`일(`from` = 오늘 − (`days` − 1)일)입니다. 질문·풀이는 `created_at`, LLM 호출은 `called_at`이 그 기간 안인 행을 셉니다(`called_at`이 null인 호출은 세지 않음). 평가는 그 기간에 한 질문의 평가입니다.
 - 상태·결과·사유별 수는 기록이 없어도 아래 값을 모두 0으로 넣어 돌려줍니다. 비율은 코드가 계산하고, 분모가 0이면 null입니다(0과 구분).
@@ -1454,7 +1454,23 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
     "byTask": [
       { "task": "answer", "calls": 10, "inputTokens": 9000, "outputTokens": 1200 },
       { "task": "summary", "calls": 5, "inputTokens": null, "outputTokens": null }
-    ]
+    ],
+    "byModel": [
+      {
+        "provider": "fake", "model": "fake-model", "calls": 5, "inputTokens": null, "outputTokens": null,
+        "estimatedCostUsd": null,
+        "byTask": [{ "task": "summary", "calls": 5, "inputTokens": null, "outputTokens": null }]
+      },
+      {
+        "provider": "openai", "model": "gpt-6.1-sol", "calls": 10, "inputTokens": 9000, "outputTokens": 1200,
+        "estimatedCostUsd": 0.03,
+        "byTask": [{ "task": "answer", "calls": 10, "inputTokens": 9000, "outputTokens": 1200 }]
+      }
+    ],
+    "perUnit": {
+      "analysis": { "count": 2, "avgInputTokens": 4500, "avgOutputTokens": 600, "avgCostUsd": null },
+      "briefing": { "count": 0, "avgInputTokens": null, "avgOutputTokens": null, "avgCostUsd": null }
+    }
   }
 }
 ```
@@ -1463,6 +1479,9 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 - `feedback`: `rated` 평가한 질문 수 = `helpful` + `notHelpful`. `helpfulRate` = `helpful` ÷ `rated`(소수 넷째 자리 반올림), `rated`가 0이면 null. `reasons`: 도움이 안 된 평가의 사유별 수(사유 없이 보낸 평가는 `notHelpful`에만 셈).
 - `explanations.byStatus`: 문장 변경 한 줄 풀이 상태(`OK`·`REVIEW_NEEDED`·`NO_SOURCE`)별 수.
 - `llmCalls`: 다시 만든 호출도 한 번씩 셉니다. `byOutcome`은 `OK`·`INVALID_OUTPUT`·`TRANSIENT_ERROR`·`ERROR`(그 밖의 값이 기록돼 있으면 그 값도 키로 들어감). `byTask`는 작업(`summary`, `answer`, `explanation` 등) 이름 순서이고 기록이 없으면 빈 배열입니다. `inputTokens`·`outputTokens`는 제공자가 알려 준 호출의 토큰 합이고, 그 작업의 호출이 모두 토큰을 모르면 null입니다.
+- `llmCalls.byModel`: 제공자·모델(`llm_call.provider`·`model`)별 호출 수·토큰 합(#349, FS-50). 제공자, 모델 이름 순서이고 기록이 없으면 빈 배열입니다. 가짜 제공자(`fake`)와 실제 제공자(`openai` 등)를 따로 셉니다. `byTask`는 그 모델 안의 작업별 집계로 위 `byTask`와 같은 모양·순서입니다. 토큰이 null인 규칙도 위와 같습니다.
+- `estimatedCostUsd`: 추정 비용(USD). backend 설정 `app.ai-usage.prices`(`제공자:모델` → 100만 토큰당 입력·출력 USD, 공식 가격 페이지 값)에 그 모델의 가격이 있을 때만 코드가 계산합니다: (입력 토큰 × 입력 단가 + 출력 토큰 × 출력 단가) ÷ 1,000,000, 소수 넷째 자리 반올림. 토큰을 모르는 호출은 0으로 더합니다. 가격 설정이 없거나(`fake` 포함) 입력·출력 토큰이 모두 null이면 null입니다(0과 구분). 가격은 추측해 넣지 않습니다.
+- `llmCalls.perUnit`: 작업 단위 1건당 평균. `analysis`는 기간 안에 호출이 하나라도 있는 분석(`llm_call.analysis_id`가 같은 호출 묶음), `briefing`은 같은 기준의 기업 브리핑(`company_briefing_id`)입니다. 기간 밖의 호출은 넣지 않습니다. `count`는 그 단위 수, `avgInputTokens`·`avgOutputTokens`는 단위들의 토큰 합 ÷ `count`(정수로 반올림), `avgCostUsd`는 단위들의 추정 비용 합 ÷ `count`(소수 넷째 자리 반올림)입니다. `count`가 0이거나 토큰을 모두 모르면 평균은 null이고, 그 단위들의 호출 중 가격 설정이 없는 모델(`fake` 등)의 호출이 하나라도 있으면 `avgCostUsd`는 null입니다(일부만 더한 값을 비용처럼 보이지 않음).
 
 **에러**
 
