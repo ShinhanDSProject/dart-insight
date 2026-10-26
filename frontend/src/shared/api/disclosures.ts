@@ -19,6 +19,50 @@ export interface DisclosureItem {
   dartUrl: string
   /** 비고(rm) 원문 */
   remarks: string | null
+  /** 핵심 수치를 받을 수 있는 주요사항보고서면 그 종류(FS-51). null이면 '핵심 수치'를 두지 않는다 */
+  keyItemsKind: KeyItemsKind | null
+}
+
+/** docs/api-spec.md 공통 값 keyItemsKind. 공시 제목 규칙으로 backend가 정한다 */
+export type KeyItemsKind =
+  | 'CAPITAL_INCREASE'
+  | 'CONVERTIBLE_BOND'
+  | 'BOND_WITH_WARRANT'
+  | 'EXCHANGEABLE_BOND'
+  | 'TREASURY_STOCK_ACQUISITION'
+  | 'TREASURY_STOCK_DISPOSAL'
+
+export interface DisclosureKeyItem {
+  /** OpenDART 응답 필드 이름(근거 위치) */
+  field: string
+  /** OpenDART 개발가이드의 항목 이름 */
+  label: string
+  /** 원문 표기 그대로(쉼표·날짜 표기 포함) */
+  value: string
+  /** 개발가이드의 단위(원, 주, %, 원/주) */
+  unit: string | null
+}
+
+/**
+ * 주요사항보고서 한 건의 핵심 수치(docs/api-spec.md GET .../disclosures/{rceptNo}/key-items, FS-51).
+ * NO_DATA면 items는 빈 배열이다.
+ */
+export interface DisclosureKeyItems {
+  rceptNo: string
+  kind: KeyItemsKind
+  kindLabel: string
+  status: 'AVAILABLE' | 'NO_DATA'
+  items: DisclosureKeyItem[]
+  sourceUrl: string
+  fetchedAt: string
+}
+
+export function getDisclosureKeyItems(
+  corpCode: string,
+  rceptNo: string,
+  signal?: AbortSignal,
+): Promise<DisclosureKeyItems> {
+  return apiGet(endpoints.disclosureKeyItems(corpCode, rceptNo), undefined, { signal })
 }
 
 export interface DisclosureGroupCount {
