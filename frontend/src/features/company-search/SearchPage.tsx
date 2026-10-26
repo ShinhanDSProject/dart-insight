@@ -96,9 +96,15 @@ export function SearchPage() {
         )}
       </form>
 
-      {/* 내가 보던 분석으로 돌아가는 일이 잦아 최근 본 분석을 관심 기업 새 공시보다 위에 둔다(#374) */}
-      {query === '' && <RecentAnalysesSection />}
-      {query === '' && <FavoriteCompaniesSection />}
+      {/* 넓은 화면에서는 최근 본 분석(왼쪽)과 관심 기업·새 공시(오른쪽)를 나란히, 좁으면 이 순서로 위아래에 둔다(#374) */}
+      {query === '' && (
+        <div className="home-columns">
+          <RecentAnalysesSection />
+          <div className="home-columns__favorites">
+            <FavoriteCompaniesSection />
+          </div>
+        </div>
+      )}
 
       <SearchResult state={state} onRetry={reload} listRef={listRef} onBackToInput={focusInput} />
     </section>

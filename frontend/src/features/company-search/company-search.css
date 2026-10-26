@@ -102,7 +102,39 @@
   animation: pop-in var(--motion-base) var(--ease-out);
 }
 
-/* 관심 기업(FS-18). 검색어가 없을 때 검색창 아래, 최근 본 분석 위에 둥근 칩으로 보인다 */
+/* 첫 화면 두 열(#374). 왼쪽 최근 본 분석, 오른쪽 관심 기업·새 공시. 둘이 들어갈 폭이 안 되면 줄바꿈되어 위아래로 쌓이고,
+   최근 본 분석이 없으면 오른쪽 열이 폭을 다 쓴다. 공시 한 줄이 길어 오른쪽을 더 넓게 둔다 */
+.home-columns {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-5) var(--space-6);
+  max-width: 1200px;
+  margin-bottom: var(--space-5);
+}
+
+.home-columns > .recent-analyses {
+  flex: 2 1 320px;
+  min-width: 0;
+  max-width: none;
+  margin-bottom: 0;
+}
+
+.home-columns__favorites {
+  flex: 3 1 480px;
+  min-width: 0;
+}
+
+.home-columns__favorites > .favorite-companies,
+.home-columns__favorites > .favorite-feed {
+  max-width: none;
+}
+
+.home-columns__favorites > :last-child {
+  margin-bottom: 0;
+}
+
+/* 관심 기업(FS-18). 검색어가 없을 때 검색창 아래 둥근 칩으로 보인다 */
 .favorite-companies {
   max-width: 720px;
   margin-bottom: var(--space-5);
