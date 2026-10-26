@@ -100,6 +100,12 @@
   text-decoration-color: currentColor;
 }
 
+/* '더 보기(N건)'·'접기'(#374) */
+.more-toggle {
+  align-self: flex-start;
+  font-size: var(--font-size-sm);
+}
+
 /* 아이콘만 있는 버튼(Button variant="icon"). 이름은 aria-label로 붙인다 */
 .icon-button {
   display: inline-flex;

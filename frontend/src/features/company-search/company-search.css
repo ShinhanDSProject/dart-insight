@@ -200,6 +200,9 @@
 }
 
 .favorite-feed__list {
+  display: grid;
+  grid-template-columns: auto auto auto minmax(0, 1fr);
+  column-gap: var(--space-3);
   margin: 0;
   padding: 0;
   border: 1px solid var(--color-border);
@@ -209,35 +212,58 @@
 }
 
 .favorite-feed__item {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  padding: var(--space-3) var(--space-4);
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+  align-items: center;
+  padding: var(--space-2) var(--space-4);
 }
 
 .favorite-feed__item + .favorite-feed__item {
   border-top: 1px solid var(--color-border);
 }
 
-.favorite-feed__head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
+.favorite-feed__badges {
+  display: inline-flex;
+  gap: var(--space-1);
 }
 
 .favorite-feed__company {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
+  white-space: nowrap;
 }
 
 .favorite-feed__name {
+  min-width: 0;
   overflow-wrap: anywhere;
 }
 
 .favorite-feed__date {
   color: var(--color-text-muted);
+  font-family: var(--font-num);
   font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.favorite-feed__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+/* 좁은 화면: 날짜·기업·배지 한 줄, 공시 이름은 다음 줄 */
+@media (max-width: 640px) {
+  .favorite-feed__list {
+    grid-template-columns: auto auto 1fr;
+  }
+
+  .favorite-feed__name {
+    grid-column: 1 / -1;
+  }
 }
 
 .favorite-feed__skeleton {
@@ -284,6 +310,10 @@
   margin: 0;
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-bold);
+}
+
+.recent-analyses .more-toggle {
+  margin-top: var(--space-3);
 }
 
 .recent-analyses__list {

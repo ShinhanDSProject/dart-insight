@@ -1,15 +1,20 @@
+import { useState } from 'react'
 import { match } from 'ts-pattern'
 import { verifiedDartUrl } from '@/shared/lib/dart'
 import { formatDate } from '@/shared/lib/reportLabels'
 import { Badge, Button, ButtonLink, Notice } from '@/shared/ui'
 import { AlertState, EmptyState } from '@/shared/ui/StateView'
 import { useFavoriteDisclosures } from '../hooks/useFavoriteDisclosures'
-import { FEED_DAYS, type FeedCompany, type FeedEntry } from '../model/favoriteFeed'
+import { collapseList } from '../model/collapsedList'
+import { FEED_DAYS, FEED_INITIAL_COUNT, type FeedCompany, type FeedEntry } from '../model/favoriteFeed'
+import { MoreToggle } from './MoreToggle'
 
 const TITLE_ID = 'favorite-disclosures-title'
+const LIST_ID = 'favorite-disclosures-list'
 
 /**
  * W-01 ① 검색창 아래 '관심 기업 새 공시'(FS-52, #364). 관심 기업들의 최근 30일 공시를 날짜순으로 합쳐 20건까지 보인다.
+ * 처음엔 5건만 한 줄씩 보이고 '더 보기'로 나머지를 펼친다(#374).
  * 지난번에 본 날 이후 접수된 공시에 '새 공시'를 붙이고, 일부 기업이 실패하면 그 기업만 알려 다시 시도하게 한다.
  */
 export function FavoriteDisclosureFeed({
@@ -60,16 +65,7 @@ export function FavoriteDisclosureFeed({
             {match({ empty: items.length === 0, waiting: pending > 0 })
               .with({ empty: true, waiting: true }, () => <FeedSkeleton />)
               .with({ empty: true, waiting: false }, () => <EmptyState title={`최근 ${FEED_DAYS}일 공시가 없어요.`} />)
-              .with({ empty: false }, () => (
-                <>
-                  <ul className="favorite-feed__list">
-                    {items.map((entry) => (
-                      <FeedRow key={entry.rceptNo} entry={entry} />
-                    ))}
-                  </ul>
-                  <p className="dart-source">출처: DART(OpenDART 공시검색). 공시 이름을 누르면 DART 원문이 새 창으로 열려요.</p>
-                </>
-              ))
+              .with({ empty: false }, () => <FeedList items={items} />)
               .exhaustive()}
           </>
         ))
@@ -78,32 +74,54 @@ export function FavoriteDisclosureFeed({
   )
 }
 
+function FeedList({ items }: { items: readonly FeedEntry[] }) {
+  const [expanded, setExpanded] = useState(false)
+  const { shown, hiddenCount, toggleable } = collapseList(items, FEED_INITIAL_COUNT, expanded)
+  return (
+    <>
+      <ul className="favorite-feed__list" id={LIST_ID}>
+        {shown.map((entry) => (
+          <FeedRow key={entry.rceptNo} entry={entry} />
+        ))}
+      </ul>
+      <div className="favorite-feed__foot">
+        {toggleable && (
+          <MoreToggle
+            controls={LIST_ID}
+            expanded={expanded}
+            hiddenCount={hiddenCount}
+            unit="건"
+            onToggle={() => setExpanded((value) => !value)}
+          />
+        )}
+        <p className="dart-source">출처: DART(OpenDART 공시검색). 공시 이름을 누르면 DART 원문이 새 창으로 열려요.</p>
+      </div>
+    </>
+  )
+}
+
 function FeedRow({ entry }: { entry: FeedEntry }) {
   const url = verifiedDartUrl(entry.rceptNo, entry.dartUrl)
   return (
     <li className="favorite-feed__item">
-      <div className="favorite-feed__head">
-        <span className="favorite-feed__company">{entry.corpName}</span>
+      <time className="favorite-feed__date" dateTime={entry.receivedDate}>
+        {formatDate(entry.receivedDate)}
+      </time>
+      <span className="favorite-feed__company">{entry.corpName}</span>
+      <span className="favorite-feed__badges">
         <Badge tone={entry.periodic ? 'accent' : 'neutral'}>{entry.groupLabel}</Badge>
-        {entry.isNew && (
-          <Badge tone="attention" className="favorite-feed__new">
-            새 공시
-          </Badge>
-        )}
-      </div>
+        {entry.isNew && <Badge tone="attention">새 공시</Badge>}
+      </span>
       {url === null ? (
         <span className="favorite-feed__name">
           {entry.reportName} <span className="dart-link__help">(원문 링크 확인 안 됨, 접수번호 {entry.rceptNo})</span>
         </span>
       ) : (
-        <a className="favorite-feed__name" href={url} target="_blank" rel="noopener noreferrer">
+        <a className="favorite-feed__name list-link" href={url} target="_blank" rel="noopener noreferrer">
           {entry.reportName} <span aria-hidden="true">↗</span>
           <span className="visually-hidden">(DART 원문 새 창)</span>
         </a>
       )}
-      <time className="favorite-feed__date" dateTime={entry.receivedDate}>
-        {formatDate(entry.receivedDate)}
-      </time>
     </li>
   )
 }

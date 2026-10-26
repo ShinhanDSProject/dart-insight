@@ -13,6 +13,8 @@ export const FEED_CONCURRENCY = 3
 export const FEED_DAYS = 30
 /** 합친 뒤 보여 줄 공시 수 */
 export const FEED_ITEM_LIMIT = 20
+/** 처음에 펼쳐 두는 공시 수. 나머지는 '더 보기'로 펼친다(#374) */
+export const FEED_INITIAL_COUNT = 5
 
 export const FEED_SEEN_AT_KEY = 'dart-insight:favorite-feed-seen-at'
 
