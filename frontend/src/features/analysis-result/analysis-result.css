@@ -923,6 +923,46 @@
   overflow-wrap: anywhere;
 }
 
+/* 문장 변경 이력(3.8): 근거 상세 아래, 오래된 보고서부터 */
+.text-history {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.text-history > div {
+  align-self: stretch;
+}
+
+.text-history__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.text-history__item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+  font-size: var(--font-size-sm);
+}
+
+.text-history__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
 .text-evidence__changed {
   background: var(--color-attention-subtle);
   color: inherit;

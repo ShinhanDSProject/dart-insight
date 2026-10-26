@@ -9,6 +9,7 @@ import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { formatDate, reportTypeLabel } from '@/shared/lib/reportLabels'
 import { NumberChangesLine } from './NumberChangesLine'
 import { TableView } from './TableView'
+import { TextHistory } from './TextHistory'
 import { useTextChangeDetail } from '../hooks/useTextChanges'
 import { numberChanges } from '../model/numberChanges'
 import type { SourceTarget } from '../model/resultParams'
@@ -65,7 +66,12 @@ export function TextEvidencePanel({ analysis, changeId, onClose, onOpenSource }:
             messages={{ ANALYSIS_TEXT_CHANGE_NOT_FOUND: '이 분석의 변경 항목이 아니에요. 목록에서 다시 골라 주세요.' }}
           />
         ))
-        .with({ status: 'success' }, ({ data }) => <EvidenceBody detail={data} onOpenSource={onOpenSource} />)
+        .with({ status: 'success' }, ({ data }) => (
+          <>
+            <EvidenceBody detail={data} onOpenSource={onOpenSource} />
+            <TextHistory analysisId={analysis.analysisId} changeId={changeId} />
+          </>
+        ))
         .exhaustive()}
     </Panel>
   )
