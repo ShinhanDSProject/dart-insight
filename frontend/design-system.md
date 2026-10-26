@@ -131,6 +131,7 @@ W-03 ④ 원문 확인
 | 주색 | `#131936` | `--color-primary` | 주요 버튼, 선택된 메뉴·탭·세그먼트 |
 | 글자 | `#242630` / `#66666e` | `--color-text` / `--color-text-muted` | 본문 / 보조 설명 |
 | 테두리·배경 | `#e5e6ec` / `#f6f7fa` | `--color-border` / `--color-bg-subtle` | 카드 테두리 / 안쪽 상자 |
+| 떠 있는 칸 | `#ffffff` | `--color-bg-raised` | 안쪽 상자 위에서 고른 칸(아이콘 세그먼트의 선택). 다크에서는 바탕보다 밝게 둔다 |
 | 강조 | `#6159b5` on `#f0effa` | `--color-accent`(`-subtle`) | 근거 종류 배지, 안내 카드 |
 | 주의 | `#3f5f86` on `#edf3fa` | `--color-attention`(`-subtle`) | '검토 필요', '확인된 설명 없음', 예외 안내 |
 | 오류 | `#b74250` on `#fff0f2` | `--color-danger`(`-subtle`) | 요청 실패 |
@@ -148,6 +149,7 @@ W-03 ④ 원문 확인
 | 토큰 | 다크 값 | 대비(배경 `#0f1320` / 안쪽 상자 `#161b2c`) |
 | --- | --- | --- |
 | `--color-bg` / `--color-bg-subtle` | `#0f1320` / `#161b2c` | — |
+| `--color-bg-raised` | `#2a3047` | 주색 글자 `#aab4f0` 대비 6.5 |
 | `--color-text` / `--color-text-muted` | `#e6e8f0` / `#a3a7b7` | 15.1 / 14.0 · 7.7 / 7.1 |
 | `--color-border` / `--color-border-strong` | `#2a3047` / `#6b7088` | 1.4(구분선) · 3.8 / 3.5 |
 | `--color-primary` / `--color-primary-text` | `#aab4f0` / `#0f1320` | 9.3 / 8.6, 주색 위 글자 9.3 |
@@ -201,7 +203,7 @@ W-03 ④ 원문 확인
 | `Badge` | `tone`: `neutral`·`accent`·`attention` | 현재·비교, 변경 유형, 진행 상태, AI 생성, 검토 필요 |
 | `Notice` | `tone`: `info`·`attention`·`blocked`, `title`, `as`: `div`·`p`·`aside` | 안내·예외 띠, 비교 불가·분석 실패 상자 |
 | `Tabs` | `label`, `items`, `value`, `onChange` | 결과 탭(주소가 바뀌므로 `nav` + `aria-current="page"`) |
-| `SegmentedControl` | `options`, `value`, `onChange`, `disabled`, `aria-label`·`aria-labelledby` | 비교 기준, 전체·변경 항목, 정렬, 비교·현재 보고서 |
+| `SegmentedControl` | `options`(`icon`은 선택), `value`, `onChange`, `disabled`, `variant`: `text`(기본)·`icon`, `aria-label`·`aria-labelledby` | 비교 기준, 전체·변경 항목, 정렬, 비교·현재 보고서. `icon`은 아이콘만 있는 작은 알약 모양으로 헤더 화면 테마에 쓴다(각 `label`이 접근 가능한 이름·툴팁) |
 | `Chip` | `pressed`, `tone`: `neutral`·`attention`, `count` | 변경 유형 거르기 |
 | `Panel` / `PanelTitle` | `as`: `section`·`div` / `as`: `h2`·`h3`·`h4` | 화면의 큰 묶음 상자와 제목 |
 | `Card` | `as`, `tone`: `default`·`attention`, `selected` | 보고서·요약·변경 카드 |

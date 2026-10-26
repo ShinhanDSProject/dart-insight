@@ -53,6 +53,7 @@
   --color-text-muted: #66666e;
   --color-bg: #ffffff;
   --color-bg-subtle: #f6f7fa;
+  --color-bg-raised: #ffffff;
   --color-border: #e5e6ec;
   /* 입력·선택 컨트롤의 경계. 흰 배경에서 3:1 이상(WCAG 1.4.11)이 되도록 시안보다 진하게 둔다 */
   --color-border-strong: #8e8f99;
@@ -142,6 +143,7 @@
     --color-text-muted: #a3a7b7;
     --color-bg: #0f1320;
     --color-bg-subtle: #161b2c;
+    --color-bg-raised: #2a3047;
     --color-border: #2a3047;
     --color-border-strong: #6b7088;
     --color-primary: #aab4f0;
@@ -180,6 +182,7 @@
     --color-text-muted: #a3a7b7;
     --color-bg: #0f1320;
     --color-bg-subtle: #161b2c;
+    --color-bg-raised: #2a3047;
     --color-border: #2a3047;
     --color-border-strong: #6b7088;
     --color-primary: #aab4f0;
