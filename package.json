@@ -1,0 +1,25 @@
+{
+  "name": "dart-insight",
+  "private": true,
+  "description": "저장소 루트에서 세 서비스(backend, ai-server, frontend)를 준비·실행·검사하는 명령 모음. 설치할 의존성은 없습니다.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "setup": "node scripts/run.mjs setup",
+    "dev": "node scripts/run.mjs dev",
+    "dev:backend": "node scripts/run.mjs dev backend",
+    "dev:ai": "node scripts/run.mjs dev ai-server",
+    "dev:frontend": "node scripts/run.mjs dev frontend",
+    "test": "node scripts/run.mjs test",
+    "test:backend": "node scripts/run.mjs test backend",
+    "test:ai": "node scripts/run.mjs test ai-server",
+    "test:frontend": "node scripts/run.mjs test frontend",
+    "lint": "node scripts/run.mjs lint",
+    "lint:backend": "node scripts/run.mjs lint backend",
+    "lint:ai": "node scripts/run.mjs lint ai-server",
+    "lint:frontend": "node scripts/run.mjs lint frontend",
+    "build": "node scripts/run.mjs build",
+    "check": "node scripts/run.mjs check"
+  }
+}
