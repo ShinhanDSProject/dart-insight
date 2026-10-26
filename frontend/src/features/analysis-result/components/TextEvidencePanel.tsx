@@ -7,8 +7,10 @@ import { Button, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { formatDate, reportTypeLabel } from '@/shared/lib/reportLabels'
+import { NumberChangesLine } from './NumberChangesLine'
 import { TableView } from './TableView'
 import { useTextChangeDetail } from '../hooks/useTextChanges'
+import { numberChanges } from '../model/numberChanges'
 import type { SourceTarget } from '../model/resultParams'
 import {
   changeTypeLabel,
@@ -69,12 +71,20 @@ export function TextEvidencePanel({ analysis, changeId, onClose, onOpenSource }:
   )
 }
 
+/** 근거 패널은 전문을 받아 숫자가 많을 수 있어 카드(5쌍)보다 많이 보인다 */
+const PANEL_MAX_NUMBER_PAIRS = 10
+
 function EvidenceBody({ detail, onOpenSource }: { detail: TextChangeDetail; onOpenSource: (target: SourceTarget) => void }) {
   const { change, previous, current } = detail
   const review = change.changeType === 'REVIEW_NEEDED'
   const bothParagraphs =
     previous?.text != null && current?.text != null && previous.table === null && current.table === null
   const diff = comparesWords(change.changeType) && bothParagraphs ? wordDiff(previous.text!, current.text!) : null
+  // '숫자만 바뀜'이면 잘리지 않은 전문으로 바뀐 숫자를 짝짓는다(#308). 패널은 최대 10쌍, 짝이 확실하지 않으면 숨김
+  const numbers =
+    change.changeType === 'NUMERIC_UPDATE'
+      ? numberChanges(previous?.text ?? null, current?.text ?? null, PANEL_MAX_NUMBER_PAIRS)
+      : null
   return (
     <>
       {review && (
@@ -105,6 +115,7 @@ function EvidenceBody({ detail, onOpenSource }: { detail: TextChangeDetail; onOp
           review={review}
         />
       </div>
+      {numbers !== null && <NumberChangesLine changes={numbers} />}
       <p className="panel__note">
         변경 유형: {changeTypeLabel(change.changeType)}
         {showsNumbersOnlyMark(change) ? ' (숫자만 바뀜)' : ''}
