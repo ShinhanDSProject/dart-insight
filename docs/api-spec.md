@@ -96,7 +96,7 @@
 | GET | `/api/analyses/{analysisId}/text-changes/{changeId}` | 문장·표 근거 상세 | #22 (3.4) | W-03 ③ | 초안 |
 | GET | `/api/analyses/{analysisId}/text-changes/{changeId}/history` | 문장 변경 이력(여러 기간) | #26 (3.8) | — | 초안 |
 | POST | `/api/analyses/{analysisId}/text-changes/{changeId}/explanations` | 문장 변경 AI 한 줄 풀이(만들거나 저장된 것) | #227 (3.11) | W-03 ③ | 초안 |
-| GET | `/api/analyses/{analysisId}/text-changes/{changeId}/related-disclosures` | 문장 변경의 관련 수시공시(보조 근거, 처음이면 계산해 저장) | #343 (3.6) | W-03 ③ | 제안 |
+| GET | `/api/analyses/{analysisId}/text-changes/{changeId}/related-disclosures` | 문장 변경의 관련 수시공시(보조 근거, 처음이면 계산해 저장) | #343 (3.6) | W-03 ③ | 초안 |
 | GET | `/api/analyses/{analysisId}/summary` | 근거 기반 요약·설명 | #20 (3.2) | W-03 ① | 초안 |
 | POST | `/api/analyses/{analysisId}/questions` | 근거로 답하는 질문(AI) | #219 (3.10) | W-03 ⑤ | 초안 |
 | GET | `/api/analyses/{analysisId}/questions` | 이 분석에서 한 질문·답 기록 | #219 (3.10) | W-03 ⑤ | 초안 |
@@ -1423,7 +1423,7 @@
 
 ### GET /api/analyses/{analysisId}/text-changes/{changeId}/related-disclosures — 관련 수시공시(보조 근거)
 
-> 상태: 제안(#337). 범위 승인(#24) 전 초안이고, 구현은 #343입니다. 설계 이유는 [ADR-0030](adr/0030-related-disclosure-matching.md), 사전 조사는 [`docs/research/3.6-related-disclosure.md`](research/3.6-related-disclosure.md)에 있습니다.
+> 상태: 초안. 범위 승인(#24)과 팀 확인(#337)을 받았고, 구현은 #343입니다. 설계 이유는 [ADR-0030](adr/0030-related-disclosure-matching.md), 사전 조사는 [`docs/research/3.6-related-disclosure.md`](research/3.6-related-disclosure.md)에 있습니다.
 
 - 이슈: #343 (3.6) · 화면: W-03 ③ 변경 항목 아래 '관련 수시공시(보조)' 영역
 - 두 보고서 사이 기간(이전 보고서 기간 말일 ~ 현재 보고서 제출일, `window`)에 이 기업이 낸 수시공시 중, 이 문장 변경과 같은 규칙에 걸린 공시입니다. 원인이라는 뜻이 아닙니다. 공시 제목·접수일·DART 링크만 주고 본문은 주지 않습니다. LLM을 쓰지 않습니다.
@@ -1432,7 +1432,7 @@
   2. 없으면 이 분석의 모든 문장 변경을 한 번에 계산해 저장하고 이 변경의 결과를 돌려줍니다. 공시 목록은 OpenDART 공시검색(`list.json`)을 상세유형 `B001`·`I001`·`I002`, `last_reprt_at=N`(정정 전 원본 포함)으로 받고, 같은 기업·기간은 한 번만 받습니다.
 - 연결 강도(`matchLevel`): `TYPE_ONLY` 같은 종류(변경의 섹션 경로·글과 공시 제목이 같은 규칙에 걸림), `STRONG` 내용 일치(주요사항보고서 주요정보 DS005의 값이 변경 글에 있음. 유상증자 신주 수, 소송 원고·사건 명칭, 타법인 주식 양수 대상 회사). 비고(`rm`)에 '철'이 있는 공시는 연결하지 않습니다.
 - 대조할 글: 현재 글이 있으면 현재 글·섹션 경로(`ADDED`·`MODIFIED`·`NUMERIC_UPDATE`·`MOVED`), 없으면 이전 글·섹션 경로(`DELETED`)입니다. `MOVED`는 `previousSectionPath`도 함께 봅니다. `REVIEW_NEEDED`도 빼지 않고 있는 쪽 글로 같은 규칙을 적용합니다. 모든 `changeType`에 이 API를 쓸 수 있습니다.
-- 주요정보는 최근 공시 핵심 수치(`GET .../disclosures/{rceptNo}/key-items`, #363)와 같은 저장(`disclosure_key_item`, 공시마다 한 번)을 씁니다. 그 API에 없는 종류 `LITIGATION`(소송 등의 제기)·`STOCK_ACQUISITION`(타법인 주식 및 출자증권 양수결정)을 공통 값 `keyItemsKind`에 더하는 것도 이 제안에 들어 있습니다(#363 담당자와 합의 필요).
+- 주요정보는 최근 공시 핵심 수치(`GET .../disclosures/{rceptNo}/key-items`, #363)와 같은 저장(`disclosure_key_item`, 공시마다 한 번)을 씁니다. 그 API에 없는 종류 `LITIGATION`(소송 등의 제기)·`STOCK_ACQUISITION`(타법인 주식 및 출자증권 양수결정)을 공통 값 `keyItemsKind`에 더합니다(#363 담당자와 합의함).
 - 정정 공시: 공시 목록에 원본(비고 '정')과 같은 제목의 `[기재정정]` 공시가 함께 있으면 정정본만 보여 줍니다. 정정본이 기간 뒤에 나왔으면 원본을 보여 주고, 주요정보로 최신 정정본을 알면 `latestRceptNo`·`dartUrl`을 그 접수번호로 줍니다.
 - `items`는 `STRONG` 먼저, 같으면 접수일이 최근인 순서입니다. 모두 줍니다(화면이 처음 5건만 펼치고 나머지 '같은 종류'를 접음).
 - 공시 목록을 받지 못하면 에러가 아니라 200 `UNAVAILABLE`이고 저장하지 않습니다(다음 요청에서 다시 받음). DS005를 받지 못하면 `TYPE_ONLY`로만 답하고 저장하지 않습니다(`partial: true`). 받아야 할 DS005가 0건이거나 자료 없음(`013`)이면 받은 것으로 보고 저장합니다. 찾은 공시가 0건(`NOT_FOUND`)이어도 저장해 다음 요청은 `cached: true`입니다. 이 API의 실패는 분석 상태와 재무·문장 결과에 영향을 주지 않습니다.
@@ -2157,4 +2157,4 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | 투자 권유성 금지 표현(5.5) | `expr-1`: 매수·매도 권유(`TRADE_RECOMMENDATION`: '매수하세요', '매수하는 것이 좋아요', '매도 의견', '매수 기회', '저점 매수', '비중 확대를 권해요' 등), 투자 권유(`INVESTMENT_ADVICE`: '투자를 고려해 볼 만한'), 목표주가(`TARGET_PRICE`), 주가 예측(`PRICE_FORECAST`: '주가가 오를', '주가 상승이 기대', '주가 전망', 상한가·하한가), 가치 판단(`VALUE_JUDGMENT`: 저평가·고평가, 투자 매력, 호재·악재, 수혜주 등), 수익 보장(`RETURN_GUARANTEE`: '원금이 보장돼요', '확실한 수익'). 공시에 흔한 사실(자기주식 매도, 해외 투자 비중 확대, 주가 변동 위험, 원금 보장형 상품, 수익 보장 약정, 경영 목표)은 막지 않도록 권유·예측의 꼴만 잡음. AI 문장에만 적용. 규칙은 `ai-server/app/compliance/expressions.py` | [투자 권유성 금지 표현 기준](https://app.notion.com/p/400b6afffc6f81bab915c86bdd8183aa) |
 | 요약할 변화 고르기(3.2) | 재무 수치: 계산한 계정 중 손익계산서 증감액 상위 3개(손익계산서가 없으면 포괄손익계산서), 재무상태표 2개. 문장 변화: 우선순위 높음·중간 중 점수 상위 5개(숫자만 바뀜 `NUMERIC_UPDATE`·위치 이동 `MOVED`·검토 필요 제외). 설명 후보: 현재 보고서 '경영진단'·'사업의 내용' 섹션 문단 중 계정 이름이 나오는 앞의 2개(문단당 1,500자까지) | [공시 변화 평가 규칙과 중립·판단 유보 도입 여부](https://app.notion.com/p/400b6afffc6f8139ae35e8183960af19) |
 | 변경 항목 우선순위 규칙(2.6) | 점수 합(`priority-2`): 섹션(사업의 내용 30, 경영진단·투자자 보호·우발·소송 25, 대주주·특수관계 20, 재무에 관한 사항 10, 그 밖 5) + 추가·삭제 20, 수정 10(비슷한 정도 0.7 미만이면 +10), 숫자만 바뀜 −20, 위치 이동 −20 + 문단 10 + 새로 들어간 낱말(추가는 현재 글, 삭제는 이전 글)의 핵심어(소송·제재·합병 등) 15씩 최대 2개. 60점 이상 높음, 30점 이상 중간. 검토 필요는 판단 유보 | [공시 변화 평가 규칙과 중립·판단 유보 도입 여부](https://app.notion.com/p/400b6afffc6f8139ae35e8183960af19) |
-| 관련 수시공시 범위와 규칙(3.6) | 제안(#337, [ADR-0030](adr/0030-related-disclosure-matching.md)): 문장 변경(`text_change`)에만 연결, 상세유형 `B001`·`I001`·`I002`, 제목 규칙 8개(`related-1`, 사전 조사 2장 수정안 반영), '내용 일치'는 DS005 3개 유형(신주 수·원고·사건 명칭·대상 회사). 재무 변경·실적 공시 연결, 자회사 공시 포함 여부는 미정 | [관련 수시공시 처리 범위와 표시 방식](https://app.notion.com/p/1a5f2f2c711282b98425019f69576d81) |
+| 관련 수시공시 범위와 규칙(3.6) | #337·[ADR-0030](adr/0030-related-disclosure-matching.md): 문장 변경(`text_change`)에만 연결, 상세유형 `B001`·`I001`·`I002`, 제목 규칙 8개(`related-1`, 사전 조사 2장 수정안 반영), '내용 일치'는 DS005 3개 유형(신주 수·원고·사건 명칭·대상 회사). 재무 변경·실적 공시 연결, 자회사 공시 포함 여부는 미정 | [관련 수시공시 처리 범위와 표시 방식](https://app.notion.com/p/1a5f2f2c711282b98425019f69576d81) |
