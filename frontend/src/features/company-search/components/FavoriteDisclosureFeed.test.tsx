@@ -79,6 +79,8 @@ describe('관심 기업 새 공시(FS-52)', () => {
     const link = within(rows[0]).getByRole('link', { name: /주식등의대량보유상황보고서/ })
     expect(link.getAttribute('href')).toBe('https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261024000002')
     expect(link.getAttribute('target')).toBe('_blank')
+    // 공시 이름은 DART에서 가져온 것이라 목록 아래에 출처를 적는다(5.6)
+    expect(screen.getByText(/출처: DART\(OpenDART 공시검색\)/)).toBeTruthy()
     expect(link.getAttribute('rel')).toBe('noopener noreferrer')
     expect(listDisclosures).toHaveBeenCalledWith(samsung.corpCode, expect.any(AbortSignal), 30)
     expect(listDisclosures).toHaveBeenCalledWith(hynix.corpCode, expect.any(AbortSignal), 30)

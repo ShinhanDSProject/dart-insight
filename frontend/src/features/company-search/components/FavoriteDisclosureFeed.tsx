@@ -61,11 +61,14 @@ export function FavoriteDisclosureFeed({
               .with({ empty: true, waiting: true }, () => <FeedSkeleton />)
               .with({ empty: true, waiting: false }, () => <EmptyState title={`최근 ${FEED_DAYS}일 공시가 없어요.`} />)
               .with({ empty: false }, () => (
-                <ul className="favorite-feed__list">
-                  {items.map((entry) => (
-                    <FeedRow key={entry.rceptNo} entry={entry} />
-                  ))}
-                </ul>
+                <>
+                  <ul className="favorite-feed__list">
+                    {items.map((entry) => (
+                      <FeedRow key={entry.rceptNo} entry={entry} />
+                    ))}
+                  </ul>
+                  <p className="dart-source">출처: DART(OpenDART 공시검색). 공시 이름을 누르면 DART 원문이 새 창으로 열려요.</p>
+                </>
               ))
               .exhaustive()}
           </>
