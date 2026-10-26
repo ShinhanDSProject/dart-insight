@@ -479,7 +479,8 @@
   | `executives` | 임원 현황 `exctvSttus.json` | [DS002 2019010](https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS002&apiId=2019010) |
   | `dividends` | 배당에 관한 사항 `alotMatter.json` | [DS002 2019005](https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS002&apiId=2019005) |
 
-- 받은 결과는 접수번호·묶음마다 저장하고 다시 받지 않습니다(`report_key_fact`, [ADR-0024](adr/0024-company-info-cache.md)). `013`(자료 없음)은 에러가 아니라 `NO_DATA`입니다. 한 묶음을 받다 실패해도(한도 초과·네트워크 오류) 응답 전체를 실패시키지 않고 그 묶음만 `UNAVAILABLE`로 둡니다.
+- 받은 결과는 접수번호·묶음마다 저장하고 다시 받지 않습니다(`report_key_fact`, [ADR-0024](adr/0024-company-info-cache.md)). `013`(자료 없음)은 에러가 아니라 `NO_DATA`입니다.
+- OpenDART는 사업연도·보고서 코드마다 최신 공시 하나의 값만 줍니다(`financial-trends`와 같음). 응답 행의 `rcept_no`가 보고서 접수번호와 달라도(뒤에 정정 공시가 나왔거나 목록이 아직 정정 전 것) 같은 기간의 자료면 받고, 그 접수번호를 묶음의 `sourceRceptNo`로 줍니다. 이때 값의 근거는 `sourceRceptNo`입니다. 같은 기간인지는 결산기준일(`stlm_dt`)로 봅니다. `stlm_dt`가 보고서의 대상 기간 끝(`periodEnd`)과 다르면 다른 기간의 자료라 쓰지 않고 `NO_DATA`입니다(`stlm_dt`가 없으면 요청한 사업연도·보고서 코드의 응답이므로 받음). 응답에 이 보고서 접수번호의 행이 있으면 그 행만, 없으면 첫 행의 접수번호와 같은 행만 씁니다. `rcept_no`가 없는 행은 근거가 없어 쓰지 않습니다. 한 묶음을 받다 실패해도(한도 초과·네트워크 오류) 응답 전체를 실패시키지 않고 그 묶음만 `UNAVAILABLE`로 둡니다.
 - 값은 원문 표기 그대로의 문자열입니다(주식 수 `"97,414,196"`, 지분율 `"1.67"`(% 값), 배당 `"1,668"`). 이 API는 새 수치를 계산하지 않으므로 공통 규칙의 정수 금액·소수 비율로 바꾸지 않습니다. 원문의 `-`·빈 값은 null입니다. 단위는 배당 `category`(원문 `se`, 예 `주당 현금배당금(원)`, `현금배당금총액(백만원)`)에 적힌 그대로입니다. 이름의 줄바꿈·연속 공백은 공백 하나로 바꿉니다.
 - `changes`는 backend가 두 보고서의 같은 행을 짝지어 만든 바뀐 항목입니다. 두 묶음이 모두 `AVAILABLE`일 때만 만들고, 아니면 빈 배열입니다. 값은 양쪽 원문을 그대로 옮기고 차이를 계산하지 않습니다(문장은 화면이 만듦).
 
@@ -514,6 +515,7 @@
   "majorShareholders": {
     "current": {
       "rceptNo": "20260814003699",
+      "sourceRceptNo": null,
       "status": "AVAILABLE",
       "settlementDate": "2026-06-30",
       "rows": [
@@ -529,7 +531,7 @@
         }
       ]
     },
-    "previous": { "rceptNo": "20250814003156", "status": "AVAILABLE", "settlementDate": "2025-06-30", "rows": [] },
+    "previous": { "rceptNo": "20250814003156", "sourceRceptNo": null, "status": "AVAILABLE", "settlementDate": "2025-06-30", "rows": [] },
     "changes": [
       { "type": "CHANGED", "name": "이재용", "stockKind": "보통주", "field": "endRatio", "before": "1.65", "after": "1.67" }
     ]
@@ -537,6 +539,7 @@
   "executives": {
     "current": {
       "rceptNo": "20260814003699",
+      "sourceRceptNo": null,
       "status": "AVAILABLE",
       "settlementDate": "2026-06-30",
       "rows": [
@@ -552,7 +555,7 @@
         }
       ]
     },
-    "previous": { "rceptNo": "20250814003156", "status": "AVAILABLE", "settlementDate": "2025-06-30", "rows": [] },
+    "previous": { "rceptNo": "20250814003156", "sourceRceptNo": null, "status": "AVAILABLE", "settlementDate": "2025-06-30", "rows": [] },
     "changes": [
       { "type": "ADDED", "name": "김용관", "stockKind": null, "field": "position", "before": null, "after": "사장" },
       { "type": "REMOVED", "name": "송재혁", "stockKind": null, "field": "position", "before": "사장", "after": null },
@@ -562,13 +565,14 @@
   "dividends": {
     "current": {
       "rceptNo": "20260814003699",
+      "sourceRceptNo": null,
       "status": "AVAILABLE",
       "settlementDate": "2026-06-30",
       "rows": [
         { "category": "주당 현금배당금(원)", "stockKind": "보통주", "currentTerm": "746", "priorTerm": "1,668", "twoTermsAgo": "1,446" }
       ]
     },
-    "previous": { "rceptNo": "20250814003156", "status": "AVAILABLE", "settlementDate": "2025-06-30", "rows": [] },
+    "previous": { "rceptNo": "20250814003156", "sourceRceptNo": null, "status": "AVAILABLE", "settlementDate": "2025-06-30", "rows": [] },
     "changes": [
       { "type": "CHANGED", "name": "주당 현금배당금(원)", "stockKind": "보통주", "field": "currentTerm", "before": "732", "after": "746" }
     ]
@@ -583,7 +587,8 @@
 | `current`, `previous` | 보고서. `current`는 정기보고서가 하나도 없을 때만 null(`previousReason.code`가 `NO_REPORTS`) |
 | `previousReason` | `previous`가 null인 이유 `{code, message}`. `code`는 `report-pairs`의 `reason.code`와 같음(`NO_BASE_REPORT`, `NO_REPORTS`). 있으면 null |
 | 묶음`.current`, 묶음`.previous` | 그 보고서의 묶음 결과. 보고서가 없으면 null |
-| `status` | `AVAILABLE` 자료 있음, `NO_DATA` 공시된 자료 없음(013, 2015 사업연도 이전, 또는 응답이 이 보고서의 것이 아님), `UNAVAILABLE` 이번에 받지 못함(OpenDART 호출 실패. 저장하지 않아 다음 조회 때 다시 받음) |
+| `sourceRceptNo` | 값을 받은 공시의 접수번호(OpenDART 응답의 `rcept_no`)가 묶음의 `rceptNo`와 다를 때 그 접수번호(정정 공시 값). 같거나 `AVAILABLE`이 아니면 null |
+| `status` | `AVAILABLE` 자료 있음, `NO_DATA` 공시된 자료 없음(013, 2015 사업연도 이전, 또는 응답이 다른 기간(`stlm_dt`)의 자료), `UNAVAILABLE` 이번에 받지 못함(OpenDART 호출 실패. 저장하지 않아 다음 조회 때 다시 받음) |
 | `settlementDate` | 결산기준일(`stlm_dt`). `AVAILABLE`이 아니면 null |
 | `rows` | 원문 순서의 행. `AVAILABLE`이 아니면 빈 배열 |
 | 최대주주 행 | `name` 성명(`nm`, 합계 행은 원문 그대로 `계`), `relation` 관계(`relate`), `stockKind` 주식 종류(`stock_knd`), `beginShares`·`beginRatio` 기초 소유 주식 수·지분율(`bsis_posesn_stock_co`·`bsis_posesn_stock_qota_rt`), `endShares`·`endRatio` 기말 소유 주식 수·지분율(`trmend_posesn_stock_co`·`trmend_posesn_stock_qota_rt`), `remark` 비고(`rm`) |
