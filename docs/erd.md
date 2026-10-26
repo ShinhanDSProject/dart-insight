@@ -214,8 +214,8 @@ erDiagram
     company_disclosure_fetch {
         bigint id PK
         varchar corp_code FK,UK
-        date from_date "받은 기간 시작"
-        date to_date "받은 기간 끝"
+        date covered_from "받은 기간 시작"
+        date covered_to "받은 기간 끝"
         datetime fetched_at "받은 시각"
     }
     company_disclosure {
@@ -340,14 +340,14 @@ API는 사업연도·보고서 코드마다 최신 공시 하나의 값만 줍�
 
 > 마이그레이션: `V22__create_company_disclosure.sql`. 캐시 정책은 [ADR-0024](adr/0024-company-info-cache.md)(바뀌는 자료는 받은 시각을 두고 정한 시간이 지나면 다시 받음).
 
-기업마다 한 행입니다. 공시검색(`list.json`, 공시유형 없이 최종보고서만)을 `from_date`~`to_date`로 받은 시각을 둡니다. `fetched_at`에서 `app.disclosures.refresh-after`(기본 1시간)가 지나지 않았고 `from_date`가 요청 기간의 시작보다 늦지 않으면 OpenDART를 다시 부르지 않습니다. 다시 받으면 이 행과 그 기업의 `company_disclosure` 행을 한 트랜잭션에서 통째로 바꿉니다(철회·정정으로 목록에서 빠진 공시를 남기지 않기 위해). 호출 실패는 저장하지 않고, `013`(자료 없음)은 공시 0건으로 저장합니다.
+기업마다 한 행입니다. 공시검색(`list.json`, 공시유형 없이 최종보고서만)을 `covered_from`~`covered_to`로 받은 시각을 둡니다. `fetched_at`에서 `app.disclosures.refresh-after`(기본 1시간)가 지나지 않았고 `covered_from`가 요청 기간의 시작보다 늦지 않으면 OpenDART를 다시 부르지 않습니다. 다시 받으면 이 행과 그 기업의 `company_disclosure` 행을 한 트랜잭션에서 통째로 바꿉니다(철회·정정으로 목록에서 빠진 공시를 남기지 않기 위해). 호출 실패는 저장하지 않고, `013`(자료 없음)은 공시 0건으로 저장합니다.
 
 | 컬럼 | 타입 | 키 | null | 설명 |
 | --- | --- | --- | --- | --- |
 | `id` | BIGINT | PK | 아니오 | 자동 증가 |
 | `corp_code` | VARCHAR(8) | UK, FK | 아니오 | `company.corp_code` |
-| `from_date` | DATE | | 아니오 | 받은 접수일 기간 시작(`bgn_de`) |
-| `to_date` | DATE | | 아니오 | 받은 접수일 기간 끝(`end_de`, 받은 날) |
+| `covered_from` | DATE | | 아니오 | 받은 접수일 기간 시작(`bgn_de`) |
+| `covered_to` | DATE | | 아니오 | 받은 접수일 기간 끝(`end_de`, 받은 날) |
 | `fetched_at` | DATETIME(6) | | 아니오 | 받은 시각 |
 
 ### company_disclosure — 받아 둔 최근 공시(#332)

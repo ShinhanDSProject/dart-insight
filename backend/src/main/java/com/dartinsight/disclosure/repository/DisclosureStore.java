@@ -24,11 +24,11 @@ public class DisclosureStore {
     private final JdbcTemplate jdbcTemplate;
 
     public Optional<DisclosureFetch> findFetch(String corpCode) {
-        return jdbcTemplate.query("SELECT corp_code, from_date, to_date, fetched_at FROM company_disclosure_fetch"
+        return jdbcTemplate.query("SELECT corp_code, covered_from, covered_to, fetched_at FROM company_disclosure_fetch"
                 + " WHERE corp_code = ?", (rs, rowNum) -> new DisclosureFetch(
                         rs.getString("corp_code"),
-                        rs.getDate("from_date").toLocalDate(),
-                        rs.getDate("to_date").toLocalDate(),
+                        rs.getDate("covered_from").toLocalDate(),
+                        rs.getDate("covered_to").toLocalDate(),
                         rs.getTimestamp("fetched_at").toLocalDateTime()), corpCode)
                 .stream().findFirst();
     }
@@ -50,7 +50,7 @@ public class DisclosureStore {
     public void replace(DisclosureFetch fetch, List<Disclosure> disclosures) {
         jdbcTemplate.update("DELETE FROM company_disclosure WHERE corp_code = ?", fetch.corpCode());
         jdbcTemplate.update("DELETE FROM company_disclosure_fetch WHERE corp_code = ?", fetch.corpCode());
-        jdbcTemplate.update("INSERT INTO company_disclosure_fetch (corp_code, from_date, to_date, fetched_at)"
+        jdbcTemplate.update("INSERT INTO company_disclosure_fetch (corp_code, covered_from, covered_to, fetched_at)"
                 + " VALUES (?, ?, ?, ?)", fetch.corpCode(), Date.valueOf(fetch.fromDate()),
                 Date.valueOf(fetch.toDate()), Timestamp.valueOf(fetch.fetchedAt()));
         Timestamp createdAt = Timestamp.valueOf(fetch.fetchedAt());
