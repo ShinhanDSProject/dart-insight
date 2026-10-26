@@ -1,38 +1,27 @@
 import { match, P } from 'ts-pattern'
 import type { DocumentSide } from '@/shared/api/documents'
 import type { FinancialChangeItem } from '@/shared/api/results'
+import { parseQuestion } from '@/shared/lib/questionText'
 import { displaySectionTitle } from '@/shared/lib/sectionTitle'
 import { SEARCH_MAX_LENGTH, searchQueryOf } from './textFilter'
 
-/** AI 질문(3.10, FS-5) 화면 문구와 순수 함수. 길이는 docs/api-spec.md POST questions의 question과 같다 */
+/** AI 질문(3.10, FS-5) 화면 문구와 순수 함수. 입력 길이 규칙은 기업 질문과 함께 쓰는 shared/lib/questionText에 있다 */
 
-export const QUESTION_MIN_LENGTH = 2
-export const QUESTION_MAX_LENGTH = 200
+export {
+  askedAtLabel,
+  draftMessage,
+  parseQuestion,
+  QUESTION_MAX_LENGTH,
+  QUESTION_MIN_LENGTH,
+  QUESTION_TOO_LONG,
+  QUESTION_TOO_SHORT,
+  questionCountLabel,
+  quoteLabel,
+  type QuestionInput,
+} from '@/shared/lib/questionText'
 
 export const ASK_INTRO = '두 보고서 원문에서 찾은 문단과 계산한 수치로만 답해요. 투자 판단·주가 예측 질문에는 답하지 않아요.'
-export const QUESTION_TOO_SHORT = `${QUESTION_MIN_LENGTH}자 이상 입력해 주세요.`
-export const QUESTION_TOO_LONG = `${QUESTION_MAX_LENGTH}자 이내로 줄여 주세요.`
 export const RISK_QUESTION = '새로 생긴 위험 요인이 있나요?'
-
-/** 입력창 글의 상태. ready일 때만 보낸다 */
-export type QuestionInput =
-  | { kind: 'empty' }
-  | { kind: 'too-short' }
-  | { kind: 'too-long' }
-  | { kind: 'ready'; question: string }
-
-export function parseQuestion(input: string): QuestionInput {
-  const question = input.trim()
-  if (question.length === 0) return { kind: 'empty' }
-  if (question.length < QUESTION_MIN_LENGTH) return { kind: 'too-short' }
-  if (question.length > QUESTION_MAX_LENGTH) return { kind: 'too-long' }
-  return { kind: 'ready', question }
-}
-
-/** 글자 수 표시(예: 12/200). 앞뒤 공백은 세지 않는다(서버와 같음) */
-export function questionCountLabel(input: string): string {
-  return `${input.trim().length}/${QUESTION_MAX_LENGTH}`
-}
 
 /** 마지막 글자에 받침이 있으면 '은', 없으면 '는'. 한글이 아니면 '은(는)' */
 export function topicParticle(word: string): string {
@@ -141,32 +130,10 @@ export function textSearchLabel(word: string): string {
   return `문장·내용 변화에서 '${word}' 찾기`
 }
 
-/** 입력창 아래 안내. 긴 글은 입력하는 동안, 짧은 글은 보내려 했을 때만 보인다. 문제없으면 null */
-export function draftMessage(draft: string, rejected: boolean): string | null {
-  return match(parseQuestion(draft))
-    .with({ kind: 'too-long' }, () => QUESTION_TOO_LONG)
-    .with({ kind: P.union('empty', 'too-short') }, () => (rejected ? QUESTION_TOO_SHORT : null))
-    .with({ kind: 'ready' }, () => null)
-    .exhaustive()
-}
-
-/** 질문한 시각(예: 2026-10-24 10:12). 서버 값은 한국 시간 */
-export function askedAtLabel(createdAt: string): string {
-  return createdAt.replace('T', ' ').slice(0, 16)
-}
-
 /** 인용 원문이 어느 보고서인지 */
 export function citationSideLabel(side: DocumentSide): string {
   return match(side)
     .with('current', () => '현재')
     .with('previous', () => '비교')
     .exhaustive()
-}
-
-const QUOTE_MAX_LENGTH = 160
-
-/** 인용 일부. 서버가 문단 앞 160자로 자른 것이면 말줄임표를 붙인다 */
-export function quoteLabel(quote: string): string {
-  const trimmed = quote.trim()
-  return trimmed.length >= QUOTE_MAX_LENGTH && !trimmed.endsWith('…') ? `${trimmed}…` : trimmed
 }
