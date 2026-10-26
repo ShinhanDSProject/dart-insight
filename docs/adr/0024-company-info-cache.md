@@ -52,3 +52,12 @@
 - 호출 한도 초과(`020`)가 자주 나올 때(유효 시간을 늘리거나 미리 받기 검토)
 - 서버를 여러 대로 늘려 같은 자료를 동시에 받는 일이 잦아질 때
 - OpenDART가 변경 시각이나 조건부 요청을 제공할 때
+
+## 구현 메모
+
+- #358에서 FS-46~48을 공통 순서로 옮겼다(결정 내용은 그대로).
+  - FS-46 재무 흐름(`FinancialTrendService`): `permanent()`. 받아 둔 기록은 보고서들을 한 번에 읽고, 없는 보고서만 `DartCacheLoader`로 받는다. 받지 못하면 그 기간만 `FETCH_FAILED`다.
+  - FS-47 주주·임원·배당(`KeyFactService`): `permanent()`에 '자료 없음을 받은 뒤 보고서 목록에서 그 보고서를 다시 봤으면 한 번 더 받기'를 `usable` 조건으로 둔다. 받지 못하면(저장된 자료 없음을 다시 받다 실패한 경우 포함) 그 묶음만 `UNAVAILABLE`이다.
+  - FS-48 최근 공시(`DisclosureService`): `refreshAfter(1시간)`에 '받은 기간이 요청 기간을 덮는지'(`DisclosureFetch.covers`)를 `usable` 조건으로 둔다.
+- `DartCacheLoader.load`는 유효 시간 말고 저장된 값을 그대로 쓸 조건(`usable`)을 받는 형태가 하나 더 있다. 조건에 맞지 않아 다시 받다 실패해도 저장된 값과 실패 코드를 돌려준다.
+- 주요계정(`fnlttSinglAcnt.json`)과 정기보고서 주요정보(`hyslrSttus`·`exctvSttus`·`alotMatter`)도 `fetchJson`으로 부른다. 제네릭 응답 record는 `ParameterizedTypeReference`를 받는 `fetchJson`을 쓴다.
