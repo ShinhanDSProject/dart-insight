@@ -26,6 +26,8 @@
 | `financial_account` | 재무제표 계정 값(API 응답 한 줄) | 4.5 (#52) | M1 |
 | `report_key_account_fetch` | 보고서별 주요계정 API를 부른 기록(접수번호 단위) | 1.2 (#330) | M2 |
 | `report_key_account` | 보고서별 주요계정 값(연결·별도, 계정 키 단위) | 1.2 (#330) | M2 |
+| `company_disclosure_fetch` | 기업별 최근 공시 목록을 받은 기록(받은 시각·받은 기간) | 1.2 (#332) | M2 |
+| `company_disclosure` | 받아 둔 최근 공시 한 건(공시검색 응답 한 줄) | 1.2 (#332) | M2 |
 | `analysis` | 분석 작업과 상태 | 4.3 (#29), 2.3 (#14) | M1 |
 | `financial_change` | 계정별 비교 결과와 근거 | 2.4 (#15), 4.3 (#29) | M1 |
 | `report_document` | 보고서 원문 구조화 기록(상태·파서 버전·경고) | 4.2 (#28) | M2 |
@@ -77,6 +79,8 @@ erDiagram
     company ||--o{ report : "corp_code"
     company ||--o| company_overview : "corp_code"
     company ||--o{ financial_statement_fetch : "corp_code"
+    company ||--o| company_disclosure_fetch : "corp_code"
+    company ||--o{ company_disclosure : "corp_code"
     financial_statement_fetch ||--o{ financial_account : "fetch_id"
     report ||--o| report_key_account_fetch : "rcept_no"
     report ||--o{ report_key_account : "rcept_no"
@@ -207,6 +211,20 @@ erDiagram
         varchar status "OK NO_DATA"
         mediumtext rows_json
     }
+    company_disclosure_fetch {
+        bigint id PK
+        varchar corp_code FK,UK
+        date from_date "받은 기간 시작"
+        date to_date "받은 기간 끝"
+        datetime fetched_at "받은 시각"
+    }
+    company_disclosure {
+        bigint id PK
+        varchar corp_code FK,UK
+        varchar rcept_no UK "접수번호"
+        varchar report_name
+        date rcept_dt "접수일"
+    }
     report_document {
         bigint id PK
         varchar rcept_no FK "UK"
@@ -317,6 +335,35 @@ API는 사업연도·보고서 코드마다 최신 공시 하나의 값만 줍�
 | `status` | VARCHAR(10) | | 아니오 | `OK` 자료 있음, `NO_DATA` 자료 없음(013) |
 | `rcept_no` | VARCHAR(14) | | 예 | 응답에 담긴 접수번호 |
 | `fetched_at` | DATETIME(6) | | 아니오 | |
+
+### company_disclosure_fetch — 최근 공시 목록을 받은 기록(#332)
+
+> 마이그레이션: `V22__create_company_disclosure.sql`. 캐시 정책은 [ADR-0024](adr/0024-company-info-cache.md)(바뀌는 자료는 받은 시각을 두고 정한 시간이 지나면 다시 받음).
+
+기업마다 한 행입니다. 공시검색(`list.json`, 공시유형 없이 최종보고서만)을 `from_date`~`to_date`로 받은 시각을 둡니다. `fetched_at`에서 `app.disclosures.refresh-after`(기본 1시간)가 지나지 않았고 `from_date`가 요청 기간의 시작보다 늦지 않으면 OpenDART를 다시 부르지 않습니다. 다시 받으면 이 행과 그 기업의 `company_disclosure` 행을 한 트랜잭션에서 통째로 바꿉니다(철회·정정으로 목록에서 빠진 공시를 남기지 않기 위해). 호출 실패는 저장하지 않고, `013`(자료 없음)은 공시 0건으로 저장합니다.
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT | PK | 아니오 | 자동 증가 |
+| `corp_code` | VARCHAR(8) | UK, FK | 아니오 | `company.corp_code` |
+| `from_date` | DATE | | 아니오 | 받은 접수일 기간 시작(`bgn_de`) |
+| `to_date` | DATE | | 아니오 | 받은 접수일 기간 끝(`end_de`, 받은 날) |
+| `fetched_at` | DATETIME(6) | | 아니오 | 받은 시각 |
+
+### company_disclosure — 받아 둔 최근 공시(#332)
+
+공시검색 응답 한 줄입니다. 묶음(정기보고서·자금 조달 등)은 저장하지 않고 읽을 때 제목 규칙으로 정합니다(규칙을 고치면 바로 반영). 같은 공시는 기업마다 한 번만 둡니다(`uk_company_disclosure`).
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT | PK | 아니오 | 자동 증가 |
+| `corp_code` | VARCHAR(8) | UK, FK | 아니오 | `company.corp_code` |
+| `rcept_no` | VARCHAR(14) | UK | 아니오 | 접수번호. `report`에 없는 공시도 있어 외래 키를 걸지 않음 |
+| `report_name` | VARCHAR(500) | | 아니오 | 보고서명 원문(`report_nm`, 앞뒤 공백만 뺌) |
+| `filer_name` | VARCHAR(200) | | 예 | 제출인(`flr_nm`) |
+| `rcept_dt` | DATE | | 아니오 | 접수일 |
+| `remark` | VARCHAR(20) | | 예 | 비고(`rm`) 원문. 빈 값은 null |
+| `created_at` | DATETIME(6) | | 아니오 | 저장한 시각 |
 
 ### financial_account
 
@@ -692,6 +739,9 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `report` | `uk_report_rcept_no` | `rcept_no` | 유니크 | 접수번호 중복 방지(외래 키가 참조) |
 | `report` | `idx_report_corp_period` | `corp_code, period_end` | 인덱스 | 기업별 보고서 목록 |
 | `financial_statement_fetch` | `uk_fs_fetch` | `corp_code, fiscal_year, reprt_code, fs_div` | 유니크 | 같은 호출을 두 번 저장하지 않음 |
+| `company_disclosure_fetch` | `uk_company_disclosure_fetch` | `corp_code` | 유니크 | 기업마다 받은 기록 하나 |
+| `company_disclosure` | `uk_company_disclosure` | `corp_code, rcept_no` | 유니크 | 같은 공시를 두 번 저장하지 않음 |
+| `company_disclosure` | `idx_company_disclosure_date` | `corp_code, rcept_dt` | 인덱스 | 기업별 최근 공시를 접수일 순으로 조회 |
 | `financial_account` | `idx_fin_account_fetch` | `fetch_id, sj_div, ord` | 인덱스 | 재무제표별 계정을 원문 순서로 조회 |
 | `report_key_account_fetch` | `uk_key_account_fetch` | `rcept_no` | 유니크 | 보고서마다 한 번만 받음 |
 | `report_key_account` | `uk_key_account` | `rcept_no, fs_div, account_key` | 유니크 | 보고서·기준·계정마다 값 하나 |
@@ -709,7 +759,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `text_change_explanation` | `uk_text_change_explanation` | `analysis_id, change_no` | 유니크 | 변경마다 풀이 하나 |
 | `report_key_fact` | `uk_report_key_fact` | `rcept_no, kind` | 유니크 | 보고서·종류마다 결과 하나(같은 호출을 두 번 저장하지 않음) |
 
-외래 키: `local_credential.user_id`, `refresh_token.user_id` → `app_user.id` / `refresh_token.replaced_by_id` → `refresh_token.id` / `report.corp_code`, `company_overview.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no`, `report_key_account_fetch.rcept_no`, `report_key_account.rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no`, `report_key_fact.rcept_no` → `report.rcept_no` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id`, `analysis_question.analysis_id`, `text_change_explanation.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id`
+외래 키: `local_credential.user_id`, `refresh_token.user_id` → `app_user.id` / `refresh_token.replaced_by_id` → `refresh_token.id` / `report.corp_code`, `company_overview.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code`, `company_disclosure_fetch.corp_code`, `company_disclosure.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no`, `report_key_account_fetch.rcept_no`, `report_key_account.rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no`, `report_key_fact.rcept_no` → `report.rcept_no` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id`, `analysis_question.analysis_id`, `text_change_explanation.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id`
 
 ## 5. 작성 규칙
 
