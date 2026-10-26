@@ -19,6 +19,7 @@
 | `local_credential` | 일반 가입 정보 | #136 | 미정 |
 | `refresh_token` | 일반 로그인 Refresh Token 해시·회전 기록 | 6.2 | 미정 |
 | `social_account` | Google·Kakao·Naver 계정과 공통 회원 연결 | #225 (6.3) | 미정 |
+| `favorite_company` | 회원별 관심 기업 | #36 (6.2) | 미정 |
 | `company` | 기업. OpenDART 고유번호 기준 | 4.4 (#51) | M1 |
 | `company_overview` | 기업 개황(OpenDART `company.json`) 캐시. 고유번호 기준, 받은 시각으로 다시 받음 | 1.2 (#329) | M2 |
 | `report` | 정기보고서. 접수번호 기준 | 4.1 (#27) | M1 |
@@ -48,6 +49,8 @@ erDiagram
     app_user ||--o| local_credential : "user_id (#136)"
     app_user ||--o{ refresh_token : "user_id (6.2)"
     app_user ||--o{ social_account : "user_id (6.3)"
+    app_user ||--o{ favorite_company : "user_id (#36)"
+    company ||--o{ favorite_company : "corp_code (#36)"
     app_user {
         bigint id PK
         datetime created_at
@@ -76,6 +79,12 @@ erDiagram
         varchar provider_user_id UK
         varchar email
         boolean email_verified
+    }
+    favorite_company {
+        bigint id PK
+        bigint user_id FK
+        varchar corp_code FK
+        datetime created_at
     }
     company ||--o{ report : "corp_code"
     company ||--o| company_overview : "corp_code"
@@ -755,6 +764,17 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `email_verified` | BOOLEAN | | 아니오 | 제공자가 확인 여부를 명시한 경우의 값 |
 | `created_at`, `updated_at` | DATETIME(6) | | 아니오 | 생성·수정 시각 |
 
+### favorite_company — 관심 기업(#36)
+
+> 마이그레이션: `V25__create_favorite_company.sql`. 로그인한 회원만 쓰고, 회원당 최대 12곳(넘으면 가장 오래된 행을 지움, 코드에서 처리).
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT AUTO_INCREMENT | PK | 아니오 | 관심 기업 행 ID |
+| `user_id` | BIGINT | FK, UNIQUE 묶음 | 아니오 | `app_user.id` |
+| `corp_code` | VARCHAR(8) | FK, UNIQUE 묶음 | 아니오 | `company.corp_code` |
+| `created_at` | DATETIME(6) | | 아니오 | 추가한 시각. 목록은 이 값의 최근 순 |
+
 ## 4. 인덱스·제약
 
 | 테이블 | 이름 | 컬럼 | 종류 | 이유 |
@@ -765,6 +785,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `refresh_token` | `idx_refresh_token_family` | `family_id` | 인덱스 | 재사용 감지 시 계열 폐기 |
 | `social_account` | `uk_social_account_provider_user` | `provider`, `provider_user_id` | 유니크 | 제공자별 사용자를 한 계정에 한 번만 연결 |
 | `social_account` | `idx_social_account_user` | `user_id` | 인덱스 | 회원의 연결 계정 조회 |
+| `favorite_company` | `uk_favorite_company_user_corp` | `user_id`, `corp_code` | 유니크 | 같은 기업을 두 번 담지 않음. 회원별 목록 조회에도 씀 |
 | `company` | `uk_company_corp_code` | `corp_code` | 유니크 | 고유번호 중복 방지(외래 키가 참조) |
 | `company` | `idx_company_corp_name` | `corp_name` | 인덱스 | 회사명 정렬·완전 일치. 부분 일치 검색(`%검색어%`)에는 쓰이지 않음 |
 | `company` | `idx_company_stock_code` | `stock_code` | 인덱스 | 종목코드 검색 |

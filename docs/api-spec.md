@@ -69,6 +69,9 @@
 | GET | `/oauth2/authorization/{provider}` | 소셜 로그인 시작(`google`, `kakao`, `naver`) | #225 (6.3) | 로그인 | 구현 |
 | GET | `/login/oauth2/code/{provider}` | 소셜 제공자 OAuth 콜백 | #225 (6.3) | 로그인 | 구현 |
 | GET | `/api/social-sessions/callback` | 소셜 인증을 서비스 세션으로 전환 | #225 (6.3) | 로그인 | 구현 |
+| GET | `/api/favorite-companies` | 내 관심 기업 목록 | #36 (6.2) | W-01 ① | 초안 |
+| PUT | `/api/favorite-companies/{corpCode}` | 관심 기업 추가 | #36 (6.2) | W-01 ② | 초안 |
+| DELETE | `/api/favorite-companies/{corpCode}` | 관심 기업 빼기 | #36 (6.2) | W-01 ①② | 초안 |
 | GET | `/api/companies` | 기업 검색 | #8 (1.1) | W-01 ① | 초안 |
 | GET | `/api/companies/{corpCode}` | 기업 정보 | #8 (1.1) | W-01 ② | 초안 |
 | GET | `/api/companies/{corpCode}/overview` | 기업 개황(대표자·법인 구분·업종·설립일·결산월 등) | #329 (1.2) | 기업 화면 개요 탭 | 초안 |
@@ -179,6 +182,41 @@
 - 제공자 이메일은 표시·감사용 속성일 뿐 계정 연결 키로 쓰지 않습니다. 같은 이메일의 일반 계정이나 다른 소셜 계정과 자동 통합하지 않습니다.
 - 성공 시 기존 6.2 정책의 Refresh Token 쿠키를 발급하고 `${SOCIAL_LOGIN_REDIRECT_URL}?social=success`로 이동합니다. 실패·취소·필수 식별자 누락은 `?social=error`로 이동합니다.
 - 제공자의 Access Token과 Refresh Token은 DB·로그·브라우저 저장소에 저장하지 않습니다.
+
+### GET·PUT·DELETE /api/favorite-companies — 관심 기업
+
+- 이슈: #36 (6.2) · 화면: W-01 ① 검색 화면 '관심 기업', W-01 ② 보고서 선택 화면 별 버튼
+- 로그인한 사용자만 씁니다. 세 요청 모두 Bearer Access Token이 필요하고, 없거나 잘못된 JWT는 `AUTH_UNAUTHORIZED`(401)입니다. 사용자는 토큰의 `sub`로만 정해서 다른 사용자의 목록은 읽거나 바꿀 수 없습니다.
+- 목록은 사용자마다 따로이고 최대 12곳입니다. 브라우저에 저장하던 예전 목록(localStorage)은 옮기지 않습니다.
+
+**GET /api/favorite-companies**: 최근 추가 순 목록
+
+```json
+{
+  "items": [
+    { "corpCode": "00126380", "corpName": "삼성전자", "stockCode": "005930", "listed": true, "addedAt": "2026-10-26T10:15:00" }
+  ]
+}
+```
+
+- `corpCode`·`corpName`·`stockCode`·`listed`는 `GET /api/companies`의 기업 항목과 같습니다. `addedAt`은 추가한 시각입니다(한국 시간, `yyyy-MM-dd'T'HH:mm:ss`, 다른 응답의 시각과 같은 형식).
+- 목록이 비었으면 `items: []`입니다.
+
+**PUT /api/favorite-companies/{corpCode}**: 추가
+
+- 요청 본문은 없습니다. 성공하면 200과 추가된 항목 하나(위 `items`의 항목과 같은 모양)를 돌려줍니다.
+- 이미 관심 기업이면 그대로 두고 200과 기존 항목을 돌려줍니다(중복 행을 만들지 않음, `addedAt`도 바꾸지 않음).
+- 12곳이 차 있으면 가장 먼저 추가한 기업을 빼고 넣습니다(브라우저 저장 때와 같은 동작).
+- 없는 고유번호는 `COMPANY_NOT_FOUND`(404)입니다.
+
+**DELETE /api/favorite-companies/{corpCode}**: 빼기
+
+- 204로 끝납니다. 관심 기업이 아니었거나 없는 고유번호여도 204입니다.
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 401 | `AUTH_UNAUTHORIZED` | Access Token이 없거나 유효하지 않음 |
+| 404 | `COMPANY_NOT_FOUND` | PUT에서 없는 고유번호 |
 
 ### GET /api/companies — 기업 검색
 
