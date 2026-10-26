@@ -152,7 +152,8 @@ export function getTextChange(analysisId: number, changeId: number, signal?: Abo
 export type HistoryStatus = 'PRESENT' | 'ABSENT' | 'NOT_ANALYZED' | 'REVIEW_NEEDED'
 
 export interface TextHistoryEntry {
-  report: { rceptNo: string; reportName: string; reportType: ReportType; periodEnd: string }
+  /** dartUrl: 그 보고서의 DART 원문 주소('출처: DART' 링크, 5.6) */
+  report: { rceptNo: string; reportName: string; reportType: ReportType; periodEnd: string; dartUrl: string }
   status: HistoryStatus
   /** PRESENT일 때 그 보고서의 글 */
   text: string | null

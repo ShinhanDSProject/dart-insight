@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { match } from 'ts-pattern'
 import type { TextHistoryEntry } from '@/shared/api/textChanges'
 import { Badge, Button } from '@/shared/ui'
+import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { formatDate, reportTypeLabel } from '@/shared/lib/reportLabels'
 import { displaySectionPath } from '@/shared/lib/sectionTitle'
@@ -84,6 +85,9 @@ function HistoryItem({ entry }: { entry: TextHistoryEntry }) {
           {view.note} 접수번호 <code>{report.rceptNo}</code>
         </span>
       )}
+      <span className="evidence__meta">
+        출처: DART · <DartLinkInline rceptNo={report.rceptNo} dartUrl={report.dartUrl} label={report.reportName} />
+      </span>
     </li>
   )
 }

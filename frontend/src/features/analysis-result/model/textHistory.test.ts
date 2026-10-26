@@ -4,7 +4,7 @@ import { historyView } from './textHistory'
 
 function entry(status: TextHistoryEntry['status'], change: TextHistoryEntry['change'] = null): TextHistoryEntry {
   return {
-    report: { rceptNo: '20250814000001', reportName: '반기보고서 (2025.06)', reportType: 'HALF', periodEnd: '2025-06-30' },
+    report: { rceptNo: '20250814000001', reportName: '반기보고서 (2025.06)', reportType: 'HALF', periodEnd: '2025-06-30', dartUrl: 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250814000001' },
     status,
     text: status === 'PRESENT' ? '당사는 메모리를 만듭니다.' : null,
     sectionPath: null,

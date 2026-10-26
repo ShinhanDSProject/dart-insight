@@ -2,6 +2,7 @@ package com.dartinsight.analysis.dto;
 
 import com.dartinsight.analysis.service.TextChangeHistoryService.ChangeRef;
 import com.dartinsight.analysis.service.TextChangeHistoryService.HistoryEntry;
+import com.dartinsight.report.domain.DartLinks;
 import com.dartinsight.report.domain.Report;
 import com.dartinsight.report.domain.ReportType;
 import java.time.LocalDate;
@@ -23,11 +24,13 @@ public record TextChangeHistoryResponse(Long analysisId, Long changeId, List<Ent
         }
     }
 
-    public record ReportRef(String rceptNo, String reportName, ReportType reportType, LocalDate periodEnd) {
+    /** dartUrl: 화면의 '출처: DART' 원문 링크(5.6) */
+    public record ReportRef(String rceptNo, String reportName, ReportType reportType, LocalDate periodEnd,
+            String dartUrl) {
 
         static ReportRef from(Report report) {
             return new ReportRef(report.getRceptNo(), report.getReportName(), report.getReportType(),
-                    report.getPeriodEnd());
+                    report.getPeriodEnd(), DartLinks.viewer(report.getRceptNo()));
         }
     }
 
