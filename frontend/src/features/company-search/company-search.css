@@ -114,6 +114,10 @@
 }
 
 .home-list {
+  /* 행 높이 = 위아래 여백 8px×2 + 윗줄 22px + 사이 2px + 본문 두 줄(14px × 1.45 × 2 ≈ 41px) */
+  --home-line-height: 22px;
+  --home-main-line-height: 1.45;
+  --home-row-height: 82px;
   display: grid;
   grid-row: span 3;
   grid-template-rows: subgrid;
@@ -160,14 +164,16 @@
   overflow: hidden;
 }
 
-/* 두 열이 같은 행 높이를 쓰도록 두 줄(위: 이름·배지·날짜, 아래: 본문)로 고정한다. 넘치는 글은 말줄임표, 전체는 title에 둔다 */
+/* 두 열이 같은 행 높이를 쓰도록 행 높이를 고정한다(#378). 윗줄은 이름·배지·날짜, 아랫줄 본문은 두 줄까지 줄바꿈해 공시 이름이
+   잘리지 않게 하고(#381), 그 높이(윗줄 22px + 본문 두 줄)를 행 높이로 잡는다. 글은 위에서부터 놓아 한 줄짜리 행과 두 줄짜리 행의
+   윗줄이 두 열에서 같은 높이에 온다. 두 줄을 넘는 드문 이름만 말줄임표로 줄이고 전체는 title에 둔다 */
 .home-list__row {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 2px;
-  height: var(--home-row-height, 60px);
-  padding: 0 var(--space-4);
+  height: var(--home-row-height);
+  padding: var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -177,7 +183,9 @@
 
 .home-list__line {
   display: flex;
+  flex: none;
   align-items: center;
+  height: var(--home-line-height);
   gap: var(--space-2);
   min-width: 0;
   white-space: nowrap;
@@ -200,11 +208,14 @@
 }
 
 .home-list__main {
-  display: block;
+  display: -webkit-box;
   overflow: hidden;
   font-size: var(--font-size-sm);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: var(--home-main-line-height);
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 .home-list__foot {
@@ -232,6 +243,7 @@
 .recent-row__link {
   display: flex;
   flex: 1;
+  align-self: stretch;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
