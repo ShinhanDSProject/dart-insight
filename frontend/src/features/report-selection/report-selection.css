@@ -162,3 +162,14 @@
   font-size: var(--font-size-sm);
   overflow-wrap: anywhere;
 }
+
+/* 기업 개요 탭(FS-45). 영역(Panel)은 위에서부터 쌓이고 사이 간격은 .panel + .panel이 정한다 */
+.company-overview {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 개황 카드: 긴 영문명·주소·홈페이지 주소가 좁은 화면에서 넘치지 않게 끊는다 */
+.company-profile dd {
+  overflow-wrap: anywhere;
+}
