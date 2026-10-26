@@ -219,6 +219,18 @@ class AnalysisApiTest {
     }
 
     @Test
+    @DisplayName("본문의 basis가 정해진 값이 아니면 400과 errors[].field=basis를 돌려주고 분석을 만들지 않는다")
+    void unknownBasisListsAllowedValues() throws Exception {
+        request(CUR, PREV, "FOO")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("COMMON_INVALID_INPUT"))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].field").value("basis"))
+                .andExpect(jsonPath("$.errors[0].reason").value("허용 값: YOY, PREV, CUSTOM"));
+        assertThat(analysisRepository.count()).isZero();
+    }
+
+    @Test
     void notComparablePairIsRejected() throws Exception {
         request(PREV, CUR)
                 .andExpect(status().isUnprocessableEntity())
