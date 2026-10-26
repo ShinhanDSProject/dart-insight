@@ -10,6 +10,7 @@ describe('endpoints', () => {
     expect(endpoints.reportPairs('00126380')).toBe('/api/companies/00126380/report-pairs')
     expect(endpoints.companyAnalyses('00126380')).toBe('/api/companies/00126380/analyses')
     expect(endpoints.companyFinancialTrends('00126380')).toBe('/api/companies/00126380/financial-trends')
+    expect(endpoints.companyKeyFacts('00126380')).toBe('/api/companies/00126380/key-facts')
     expect(endpoints.report('20260814003699')).toBe('/api/reports/20260814003699')
     expect(endpoints.analysis(3)).toBe('/api/analyses/3')
     expect(endpoints.financialChange(3, 12)).toBe('/api/analyses/3/financial-changes/12')
