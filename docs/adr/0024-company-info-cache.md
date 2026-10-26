@@ -61,3 +61,4 @@
   - FS-48 최근 공시(`DisclosureService`): `refreshAfter(1시간)`에 '받은 기간이 요청 기간을 덮는지'(`DisclosureFetch.covers`)를 `usable` 조건으로 둔다.
 - `DartCacheLoader.load`는 유효 시간 말고 저장된 값을 그대로 쓸 조건(`usable`)을 받는 형태가 하나 더 있다. 조건에 맞지 않아 다시 받다 실패해도 저장된 값과 실패 코드를 돌려준다.
 - 주요계정(`fnlttSinglAcnt.json`)과 정기보고서 주요정보(`hyslrSttus`·`exctvSttus`·`alotMatter`)도 `fetchJson`으로 부른다. 제네릭 응답 record는 `ParameterizedTypeReference`를 받는 `fetchJson`을 쓴다.
+- FS-51 주요사항보고서 핵심 수치(`DisclosureKeyItemService`, #363): `permanent()`. 접수번호마다 한 번 받고, `013`이거나 같은 접수번호의 행이 없으면 '자료 없음'으로 저장한다. 주요사항보고서 주요정보(DS005) API는 최초접수일 기간(`bgn_de`·`end_de`)으로 불러 행의 `rcept_no`(마지막 정정본)로 고른다. 원본은 접수일 하루만, `[기재정정]`은 2015-01-01부터 접수일까지 부른다.
