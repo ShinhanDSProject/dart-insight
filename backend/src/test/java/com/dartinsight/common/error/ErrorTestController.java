@@ -3,6 +3,7 @@ package com.dartinsight.common.error;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -36,5 +37,20 @@ class ErrorTestController {
     }
 
     record SampleBody(@NotBlank(message = "필수 값입니다.") String name) {
+    }
+
+    @PostMapping("/typed-body")
+    String typedBody(@RequestBody TypedBody body) {
+        return body.color().name();
+    }
+
+    enum Color {
+        RED, BLUE
+    }
+
+    record TypedBody(Color color, Integer count, List<Item> items) {
+    }
+
+    record Item(Color color) {
     }
 }

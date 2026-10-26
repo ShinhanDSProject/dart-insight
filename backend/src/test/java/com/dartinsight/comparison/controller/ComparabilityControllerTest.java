@@ -26,6 +26,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -243,6 +244,17 @@ class ComparabilityControllerTest {
                 .andExpect(jsonPath("$.comparable").value(true))
                 .andExpect(jsonPath("$.checks[1].status").value("WARN"))
                 .andExpect(jsonPath("$.checks[1].detail").value(containsString("직접 고른")));
+    }
+
+    @Test
+    @DisplayName("본문의 basis가 정해진 값이 아니면 400과 errors[].field=basis, 허용 값을 돌려준다")
+    void unknownBasisListsAllowedValues() throws Exception {
+        check(HALF_2026, HALF_2025, "FOO")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("COMMON_INVALID_INPUT"))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].field").value("basis"))
+                .andExpect(jsonPath("$.errors[0].reason").value("허용 값: YOY, PREV, CUSTOM"));
     }
 
     @Test

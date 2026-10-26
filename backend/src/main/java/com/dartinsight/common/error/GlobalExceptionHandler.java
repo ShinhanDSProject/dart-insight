@@ -2,7 +2,10 @@ package com.dartinsight.common.error;
 
 import com.dartinsight.common.trace.TraceContext;
 import jakarta.validation.ConstraintViolationException;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +19,9 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.exc.MismatchedInputException;
+import tools.jackson.databind.exc.ValueInstantiationException;
 
 /**
  * 컨트롤러에서 나온 예외를 공통 에러 형식({@link ErrorResponse})으로 바꾼다.
@@ -75,10 +81,16 @@ public class GlobalExceptionHandler {
         return invalidInput(List.of(new ErrorResponse.FieldError(e.getName(), "값의 형식이 맞지 않습니다.")));
     }
 
+    /**
+     * JSON 자체가 깨졌으면 errors 없이, JSON은 맞는데 어떤 필드의 값을 그 타입으로 바꿀 수 없으면(정해진 값이 아닌 enum 등)
+     * 그 필드 경로와 이유를 errors에 담는다.
+     */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleUnreadableBody(HttpMessageNotReadableException e) {
-        return respond(ErrorCode.COMMON_INVALID_INPUT, "요청 본문을 읽을 수 없습니다. JSON 형식을 확인해 주세요.",
-                List.of());
+        return fieldError(e)
+                .map(error -> invalidInput(List.of(error)))
+                .orElseGet(() -> respond(ErrorCode.COMMON_INVALID_INPUT,
+                        "요청 본문을 읽을 수 없습니다. JSON 형식을 확인해 주세요.", List.of()));
     }
 
     @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class})
@@ -105,6 +117,40 @@ public class GlobalExceptionHandler {
         log.error("처리하지 못한 오류", e);
         return respond(ErrorCode.COMMON_INTERNAL_ERROR, ErrorCode.COMMON_INTERNAL_ERROR.defaultMessage(),
                 List.of());
+    }
+
+    private static Optional<ErrorResponse.FieldError> fieldError(HttpMessageNotReadableException e) {
+        for (Throwable cause = e.getCause(); cause != null; cause = cause.getCause()) {
+            if (cause instanceof MismatchedInputException || cause instanceof ValueInstantiationException) {
+                String field = jsonPath((JacksonException) cause);
+                return field.isEmpty() ? Optional.empty()
+                        : Optional.of(new ErrorResponse.FieldError(field, reason(cause)));
+            }
+        }
+        return Optional.empty();
+    }
+
+    /** 예: basis, items[0].type */
+    private static String jsonPath(JacksonException e) {
+        StringBuilder path = new StringBuilder();
+        for (JacksonException.Reference ref : e.getPath()) {
+            if (ref.getPropertyName() != null) {
+                path.append(path.isEmpty() ? "" : ".").append(ref.getPropertyName());
+            } else if (ref.getIndex() >= 0) {
+                path.append('[').append(ref.getIndex()).append(']');
+            }
+        }
+        return path.toString();
+    }
+
+    private static String reason(Throwable cause) {
+        if (cause instanceof MismatchedInputException mismatch && mismatch.getTargetType() != null
+                && mismatch.getTargetType().isEnum()) {
+            return "허용 값: " + Arrays.stream(mismatch.getTargetType().getEnumConstants())
+                    .map(constant -> ((Enum<?>) constant).name())
+                    .collect(Collectors.joining(", "));
+        }
+        return "값의 형식이 맞지 않습니다.";
     }
 
     private ResponseEntity<ErrorResponse> invalidInput(List<ErrorResponse.FieldError> errors) {

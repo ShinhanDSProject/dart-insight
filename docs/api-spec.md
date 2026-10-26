@@ -36,6 +36,8 @@
 
 `errors`는 입력값 검증 실패일 때만 들어 있고, 그 밖에는 빈 배열입니다.
 
+요청 본문(JSON)의 값을 정해진 타입으로 읽을 수 없으면 `errors[].field`에 JSON 경로(예: `basis`, `items[1].type`)를 넣고, enum이면 `reason`에 허용 값을 적습니다(예: `{ "field": "basis", "reason": "허용 값: YOY, PREV, CUSTOM" }`). 그 밖의 타입 오류는 `"값의 형식이 맞지 않습니다."`입니다. JSON 자체가 깨졌으면 필드를 알 수 없어 `errors`는 빈 배열이고 `message`는 `"요청 본문을 읽을 수 없습니다. JSON 형식을 확인해 주세요."`입니다.
+
 ### 공통 값
 
 | 이름 | 값 |
@@ -824,7 +826,7 @@
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
-| 400 | `COMMON_INVALID_INPUT` | 필수 값 없음 |
+| 400 | `COMMON_INVALID_INPUT` | 필수 값 없음, `basis`가 정해진 값이 아님(`errors[].field`=`basis`) |
 | 404 | `REPORT_NOT_FOUND` | 저장되지 않은 보고서 |
 | 502·503 | `DART_REQUEST_FAILED`, `DART_RATE_LIMITED`, `DART_KEY_MISSING` | 재무제표를 받아야 하는데 OpenDART 호출이 실패함 |
 
@@ -848,7 +850,7 @@
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
-| 400 | `COMMON_INVALID_INPUT` | 필수 값 없음 |
+| 400 | `COMMON_INVALID_INPUT` | 필수 값 없음, `basis`가 정해진 값이 아님(`errors[].field`=`basis`) |
 | 404 | `REPORT_NOT_FOUND` | 없는 보고서 |
 | 422 | `ANALYSIS_NOT_COMPARABLE` | 비교 가능성 검증을 통과하지 못함(`message`에 첫 번째 사유) |
 | 502·503 | `DART_REQUEST_FAILED`, `DART_RATE_LIMITED`, `DART_KEY_MISSING` | 검증에 필요한 재무제표를 받지 못함 |
