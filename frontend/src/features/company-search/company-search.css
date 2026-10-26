@@ -183,6 +183,88 @@
   border-radius: var(--radius-pill);
 }
 
+/* 관심 기업 새 공시(FS-52). 관심 기업 아래, 최근 본 분석 위에 보인다 */
+.favorite-feed {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 720px;
+  margin-bottom: var(--space-5);
+  animation: rise-in var(--motion-base) var(--ease-out);
+}
+
+.favorite-feed__title {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.favorite-feed__list {
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  list-style: none;
+  overflow: hidden;
+}
+
+.favorite-feed__item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+}
+
+.favorite-feed__item + .favorite-feed__item {
+  border-top: 1px solid var(--color-border);
+}
+
+.favorite-feed__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.favorite-feed__company {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.favorite-feed__name {
+  overflow-wrap: anywhere;
+}
+
+.favorite-feed__date {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.favorite-feed__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.favorite-feed__skeleton-row {
+  display: block;
+  height: var(--space-6);
+  border-radius: var(--radius-md);
+  background: linear-gradient(90deg, var(--color-bg-subtle) 25%, var(--color-border) 50%, var(--color-bg-subtle) 75%);
+  background-size: 200% 100%;
+  animation: favorite-feed-shimmer 1.4s linear infinite;
+}
+
+@keyframes favorite-feed-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+
+  to {
+    background-position: -100% 0;
+  }
+}
+
 /* 최근 본 분석(FS-7). 검색어가 없을 때 검색창 아래에 보인다 */
 .recent-analyses {
   max-width: 720px;

@@ -25,6 +25,12 @@ const favoritesApi = vi.hoisted(() => ({
 }))
 vi.mock('@/shared/api/favoriteCompanies', () => favoritesApi)
 
+// 관심 기업 새 공시(FS-52)는 컴포넌트 테스트에서 따로 본다
+vi.mock('@/shared/api/disclosures', () => ({
+  listDisclosures: (corpCode: string) =>
+    Promise.resolve({ corpCode, days: 30, from: '2026-09-26', to: '2026-10-26', fetchedAt: null, refreshError: null, groups: [], items: [] }),
+}))
+
 afterEach(() => {
   cleanup()
   syncFavoriteCompanies(null)
