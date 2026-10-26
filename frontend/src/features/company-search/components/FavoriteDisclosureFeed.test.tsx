@@ -86,6 +86,30 @@ describe('관심 기업 새 공시(FS-52)', () => {
     expect(listDisclosures).toHaveBeenCalledWith(hynix.corpCode, expect.any(AbortSignal), 30)
   })
 
+  it('처음엔 5건만 한 줄씩 보이고 더 보기로 나머지를 펼치고 접는다', async () => {
+    const many = Array.from({ length: 7 }, (_, i) => item(`2026102000000${i}`, `2026-10-${String(20 - i).padStart(2, '0')}`, `공시${i}`))
+    listDisclosures.mockImplementation((corpCode) => Promise.resolve(list(corpCode, corpCode === samsung.corpCode ? many : [])))
+    render(<FavoriteDisclosureFeed companies={[samsung]} />)
+    await waitFor(() => expect(screen.getAllByRole('listitem')).toHaveLength(5))
+    const more = screen.getByRole('button', { name: '더 보기 (2건)' })
+    expect(more.getAttribute('aria-expanded')).toBe('false')
+    expect(more.getAttribute('aria-controls')).toBe('favorite-disclosures-list')
+
+    fireEvent.click(more)
+    expect(screen.getAllByRole('listitem')).toHaveLength(7)
+    const less = screen.getByRole('button', { name: '접기' })
+    expect(less.getAttribute('aria-expanded')).toBe('true')
+
+    fireEvent.click(less)
+    expect(screen.getAllByRole('listitem')).toHaveLength(5)
+  })
+
+  it('5건 이하이면 더 보기 버튼을 두지 않는다', async () => {
+    render(<FavoriteDisclosureFeed companies={[samsung, hynix]} />)
+    await screen.findAllByRole('listitem')
+    expect(screen.queryByRole('button', { name: /더 보기/ })).toBeNull()
+  })
+
   it('관심 기업은 앞의 10곳까지만 부르고 동시에 3곳씩만 부른다', async () => {
     const companies = Array.from({ length: 12 }, (_, i) => ({ corpCode: `0010000${String(i).padStart(2, '0')}`, corpName: `기업${i}` }))
     let running = 0

@@ -96,8 +96,9 @@ export function SearchPage() {
         )}
       </form>
 
-      {query === '' && <FavoriteCompaniesSection />}
+      {/* 내가 보던 분석으로 돌아가는 일이 잦아 최근 본 분석을 관심 기업 새 공시보다 위에 둔다(#374) */}
       {query === '' && <RecentAnalysesSection />}
+      {query === '' && <FavoriteCompaniesSection />}
 
       <SearchResult state={state} onRetry={reload} listRef={listRef} onBackToInput={focusInput} />
     </section>
