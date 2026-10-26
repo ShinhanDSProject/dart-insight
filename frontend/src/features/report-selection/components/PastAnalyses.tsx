@@ -26,7 +26,7 @@ export function PastAnalysesList({ items }: { items: CompanyAnalysisItem[] }) {
       <ul className="past-analyses__list">
         {items.map((item) => (
           <li key={item.analysisId}>
-            <Link to={`/analyses/${item.analysisId}`}>{pastAnalysisLabel(item)}</Link>
+            <Link className="list-link" to={`/analyses/${item.analysisId}`}>{pastAnalysisLabel(item)}</Link>
           </li>
         ))}
       </ul>

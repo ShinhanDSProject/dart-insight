@@ -85,6 +85,21 @@
   text-decoration: none;
 }
 
+/* 목록의 글자 링크(#374). 행마다 밑줄이 있으면 목록이 어지러워 평소에는 글자색·굵게, hover·초점에서 링크색과 밑줄을 보인다.
+   목록 행 안에서만 쓴다(문장 속 링크는 기본 a 모양) */
+.list-link {
+  color: var(--color-text);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+}
+
+.list-link:hover,
+.list-link:focus-visible {
+  color: var(--color-link-hover);
+  text-decoration-line: underline;
+  text-decoration-color: currentColor;
+}
+
 /* 아이콘만 있는 버튼(Button variant="icon"). 이름은 aria-label로 붙인다 */
 .icon-button {
   display: inline-flex;
