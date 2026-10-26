@@ -22,6 +22,7 @@ function item(rceptNo: string, receivedDate: string): DisclosureItem {
     group: 'OTHER',
     groupLabel: '기타',
     periodic: false,
+    keyItemsKind: null,
     dartUrl: `https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${rceptNo}`,
     remarks: null,
   }
