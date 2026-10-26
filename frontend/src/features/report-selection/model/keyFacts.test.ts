@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Dividend, KeyFactChange, MajorShareholder } from '@/shared/api/keyFacts'
-import { changeLine, changeMark, pairDividends, pairShareholders, sectionView } from './keyFacts'
+import { changeLine, changeMark, correctedSource, pairDividends, pairShareholders, sectionView } from './keyFacts'
 
 function change(partial: Partial<KeyFactChange>): KeyFactChange {
   return { type: 'CHANGED', name: '이재용', stockKind: '보통주', field: 'endRatio', before: null, after: null, ...partial }
@@ -102,14 +102,28 @@ describe('두 보고서 나란히 놓기', () => {
 describe('묶음 상태', () => {
   it('보고서 없음·자료 없음·받지 못함·자료 있음을 나눈다', () => {
     expect(sectionView(null)).toEqual({ kind: 'no-report' })
-    expect(sectionView({ rceptNo: '1', status: 'NO_DATA', settlementDate: null, rows: [] })).toEqual({ kind: 'no-data' })
-    expect(sectionView({ rceptNo: '1', status: 'UNAVAILABLE', settlementDate: null, rows: [] })).toEqual({
+    expect(sectionView({ rceptNo: '1', sourceRceptNo: null, status: 'NO_DATA', settlementDate: null, rows: [] })).toEqual({ kind: 'no-data' })
+    expect(sectionView({ rceptNo: '1', sourceRceptNo: null, status: 'UNAVAILABLE', settlementDate: null, rows: [] })).toEqual({
       kind: 'unavailable',
     })
-    expect(sectionView({ rceptNo: '1', status: 'AVAILABLE', settlementDate: '2026-06-30', rows: [1] })).toEqual({
+    expect(sectionView({ rceptNo: '1', sourceRceptNo: null, status: 'AVAILABLE', settlementDate: '2026-06-30', rows: [1] })).toEqual({
       kind: 'available',
       rows: [1],
       settlementDate: '2026-06-30',
+      correctedSource: null,
     })
+  })
+
+  it('값을 받은 공시가 이 보고서와 다를 때만 정정 공시와 그 DART 주소를 준다', () => {
+    expect(correctedSource({ rceptNo: '20250526000370', sourceRceptNo: '20260324000822' })).toEqual({
+      rceptNo: '20260324000822',
+      dartUrl: 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260324000822',
+    })
+    expect(correctedSource({ rceptNo: '20250526000370', sourceRceptNo: null })).toBeNull()
+    expect(correctedSource({ rceptNo: '20250526000370', sourceRceptNo: '20250526000370' })).toBeNull()
+    expect(correctedSource({ rceptNo: '20250526000370', sourceRceptNo: 'bad' })).toEqual({ rceptNo: 'bad', dartUrl: null })
+    expect(
+      sectionView({ rceptNo: '1', sourceRceptNo: '20260324000822', status: 'AVAILABLE', settlementDate: null, rows: [] }),
+    ).toMatchObject({ kind: 'available', correctedSource: { rceptNo: '20260324000822' } })
   })
 })

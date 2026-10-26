@@ -16,7 +16,7 @@ const CURRENT = '20260814003699'
 const PREVIOUS = '20250814003156'
 
 function section<T>(rceptNo: string, rows: T[]): KeyFactSection<T> {
-  return { rceptNo, status: 'AVAILABLE', settlementDate: '2026-06-30', rows }
+  return { rceptNo, sourceRceptNo: null, status: 'AVAILABLE', settlementDate: '2026-06-30', rows }
 }
 
 function holder(name: string, endRatio: string): MajorShareholder {
@@ -80,8 +80,8 @@ function facts(overrides: Partial<KeyFacts> = {}): KeyFacts {
     },
     executives,
     dividends: {
-      current: { rceptNo: CURRENT, status: 'NO_DATA', settlementDate: null, rows: [] },
-      previous: { rceptNo: PREVIOUS, status: 'NO_DATA', settlementDate: null, rows: [] },
+      current: { rceptNo: CURRENT, sourceRceptNo: null, status: 'NO_DATA', settlementDate: null, rows: [] },
+      previous: { rceptNo: PREVIOUS, sourceRceptNo: null, status: 'NO_DATA', settlementDate: null, rows: [] },
       changes: [],
     },
     ...overrides,
@@ -118,6 +118,28 @@ describe('최대주주·임원·배당 변화', () => {
     expect(getKeyFacts).toHaveBeenCalledWith('00126380', expect.any(AbortSignal))
   })
 
+  it('1년 전 값을 정정 공시에서 받았으면 정정 공시 값과 그 공시의 DART 링크를 보인다', async () => {
+    const base = facts()
+    const source = '20260324000822'
+    getKeyFacts.mockResolvedValue(
+      facts({
+        majorShareholders: {
+          ...base.majorShareholders,
+          previous: { ...base.majorShareholders.previous!, sourceRceptNo: source },
+        },
+      }),
+    )
+    render(<KeyFactsSection corpCode="00126380" />)
+
+    const shareholders = await screen.findByRole('region', { name: '최대주주 현황' })
+    expect(within(shareholders).getByText(/1년 전 보고서: 정정 공시 값/)).toBeTruthy()
+    const link = within(shareholders).getByRole('link', { name: `DART 원문 새 창으로 열기(접수번호 ${source})` })
+    expect(link.getAttribute('href')).toBe(`https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${source}`)
+    expect(within(shareholders).queryByText(/현재 보고서: 정정 공시 값/)).toBeNull()
+    const executives = screen.getByRole('region', { name: '임원 현황' })
+    expect(within(executives).queryByText(/정정 공시 값/)).toBeNull()
+  })
+
   it('1년 전 보고서가 없으면 현재 값만 보이고 비교하지 않은 이유를 적는다', async () => {
     const base = facts()
     getKeyFacts.mockResolvedValue(
@@ -142,7 +164,7 @@ describe('최대주주·임원·배당 변화', () => {
       facts({
         executives: {
           ...base.executives,
-          current: { rceptNo: CURRENT, status: 'UNAVAILABLE', settlementDate: null, rows: [] },
+          current: { rceptNo: CURRENT, sourceRceptNo: null, status: 'UNAVAILABLE', settlementDate: null, rows: [] },
           changes: [],
         },
       }),

@@ -506,3 +506,10 @@
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }
+
+/* 정정 공시 값의 출처(#350) */
+.key-facts__sources {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

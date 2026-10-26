@@ -15,6 +15,7 @@ import {
   pairShareholders,
   rowsOf,
   sectionView,
+  type CorrectedSource,
   type KeyFactGroupKind,
   type PairedRow,
   type SectionView,
@@ -162,6 +163,7 @@ function GroupBlock<T>({ kind, current, previous, changes, children }: GroupBloc
             {view.settlementDate !== null && (
               <p className="key-facts__meta">결산기준일 {formatDate(view.settlementDate)}</p>
             )}
+            <CorrectedSources current={view} previous={previous} />
             <ChangeSummary kind={kind} previous={previous} changes={changes} />
             {children}
           </>
@@ -169,6 +171,41 @@ function GroupBlock<T>({ kind, current, previous, changes, children }: GroupBloc
         .exhaustive()}
     </section>
   )
+}
+
+/**
+ * 값을 뒤에 나온 정정 공시에서 받았으면 '정정 공시 값'과 그 공시의 DART 원문 링크(#350). 재무 흐름(FS-46)과 같은 문구.
+ */
+function CorrectedSources<T>({ current, previous }: { current: SectionView<T>; previous: SectionView<T> }) {
+  const sources = [
+    { role: '현재 보고서', source: correctedOf(current) },
+    { role: '1년 전 보고서', source: correctedOf(previous) },
+  ].flatMap(({ role, source }) => (source === null ? [] : [{ role, source }]))
+  if (sources.length === 0) return null
+  return (
+    <ul className="key-facts__sources">
+      {sources.map(({ role, source }) => (
+        <li key={role} className="key-facts__meta">
+          {role}: 정정 공시 값 ·{' '}
+          {source.dartUrl === null ? (
+            <>접수번호 {source.rceptNo}</>
+          ) : (
+            <a href={source.dartUrl} target="_blank" rel="noopener noreferrer">
+              DART 원문 <span aria-hidden="true">↗</span>
+              <span className="visually-hidden"> 새 창으로 열기(접수번호 {source.rceptNo})</span>
+            </a>
+          )}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function correctedOf<T>(view: SectionView<T>): CorrectedSource | null {
+  return match(view)
+    .with({ kind: 'available' }, (v) => v.correctedSource)
+    .with({ kind: P.union('no-report', 'no-data', 'unavailable') }, () => null)
+    .exhaustive()
 }
 
 /** 바뀐 항목을 먼저 보인다. 이전 보고서와 비교하지 못했으면 그 이유 */
