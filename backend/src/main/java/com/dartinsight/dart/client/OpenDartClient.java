@@ -100,9 +100,30 @@ public class OpenDartClient {
         return listLatestDisclosures(corpCode, begin, end, null);
     }
 
+    /**
+     * 공시상세유형 하나의 목록을 정정 전 원본까지(last_reprt_at=N) 받는다. 페이지를 끝까지 받는다(관련 수시공시, #339).
+     * 자료가 없으면(013) 빈 목록이다.
+     *
+     * @param pblntfDetailTy 공시상세유형(B001 주요사항보고서, I001 수시공시, I002 공정공시 등)
+     */
+    public List<DisclosureListResponse.Item> listDisclosuresWithOriginals(String corpCode, LocalDate begin,
+            LocalDate end, String pblntfDetailTy) {
+        return listDisclosures(corpCode, begin, end, null, pblntfDetailTy, "N");
+    }
+
     /** @param pblntfTy 공시유형(A 정기공시 등). null이면 모든 유형 */
     private List<DisclosureListResponse.Item> listLatestDisclosures(String corpCode, LocalDate begin, LocalDate end,
             String pblntfTy) {
+        return listDisclosures(corpCode, begin, end, pblntfTy, null, "Y");
+    }
+
+    /**
+     * @param pblntfTy       공시유형. null이면 넣지 않는다
+     * @param pblntfDetailTy 공시상세유형. null이면 넣지 않는다
+     * @param lastReprtAt    Y 최종보고서만, N 정정 전 원본까지
+     */
+    private List<DisclosureListResponse.Item> listDisclosures(String corpCode, LocalDate begin, LocalDate end,
+            String pblntfTy, String pblntfDetailTy, String lastReprtAt) {
         requireApiKey();
         List<DisclosureListResponse.Item> all = new ArrayList<>();
         for (int page = 1; page <= MAX_PAGES; page++) {
@@ -114,7 +135,8 @@ public class OpenDartClient {
                             .queryParam("bgn_de", begin.format(DateTimeFormatter.BASIC_ISO_DATE))
                             .queryParam("end_de", end.format(DateTimeFormatter.BASIC_ISO_DATE))
                             .queryParamIfPresent("pblntf_ty", Optional.ofNullable(pblntfTy))
-                            .queryParam("last_reprt_at", "Y")
+                            .queryParamIfPresent("pblntf_detail_ty", Optional.ofNullable(pblntfDetailTy))
+                            .queryParam("last_reprt_at", lastReprtAt)
                             .queryParam("page_no", pageNo)
                             .queryParam("page_count", PAGE_SIZE)
                             .build())
