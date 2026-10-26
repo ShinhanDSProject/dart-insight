@@ -21,6 +21,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.IntFunction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -31,6 +32,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -136,6 +138,16 @@ class FavoriteCompanyApiTest {
     }
 
     @Test
+    @DisplayName("같은 기업을 동시에 빼도 둘 다 204로 끝난다")
+    void concurrentRemovesOfSameCompanyAllSucceed() throws Exception {
+        String token = login("member@example.com");
+        add(token, 1);
+        assertThat(sendTogether(company -> delete("/api/favorite-companies/" + corpCode(company))
+                .header("Authorization", bearer(token)), 1, 1, 1)).containsOnly(204);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM favorite_company", Integer.class)).isZero();
+    }
+
+    @Test
     @DisplayName("한 자리 남았을 때 두 기업을 동시에 추가해도 12곳을 넘지 않는다")
     void concurrentAddsKeepLimit() throws Exception {
         String token = login("member@example.com");
@@ -207,6 +219,12 @@ class FavoriteCompanyApiTest {
 
     /** 여러 PUT을 한꺼번에 보내고 상태 코드를 모은다 */
     private List<Integer> putTogether(String token, int... companies) throws Exception {
+        return sendTogether(company -> put("/api/favorite-companies/" + corpCode(company))
+                .header("Authorization", bearer(token)), companies);
+    }
+
+    private List<Integer> sendTogether(IntFunction<MockHttpServletRequestBuilder> request, int... companies)
+            throws Exception {
         CountDownLatch start = new CountDownLatch(1);
         ExecutorService pool = Executors.newFixedThreadPool(companies.length);
         try {
@@ -214,8 +232,7 @@ class FavoriteCompanyApiTest {
             for (int company : companies) {
                 results.add(pool.submit(() -> {
                     start.await();
-                    return mvc.perform(put("/api/favorite-companies/" + corpCode(company))
-                            .header("Authorization", bearer(token))).andReturn().getResponse().getStatus();
+                    return mvc.perform(request.apply(company)).andReturn().getResponse().getStatus();
                 }));
             }
             start.countDown();
