@@ -2,6 +2,7 @@ package com.dartinsight.disclosure.domain;
 
 import com.dartinsight.report.domain.ReportNameParser;
 import java.time.LocalDate;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 /**
@@ -22,6 +23,11 @@ public record Disclosure(String rceptNo, String reportName, String filerName, Lo
 
     public DisclosureGroup group() {
         return DisclosureGroupRules.classify(reportName);
+    }
+
+    /** 핵심 수치(FS-51)를 받을 수 있는 주요사항보고서면 그 종류 */
+    public Optional<KeyItemKind> keyItemsKind() {
+        return KeyItemRules.classify(reportName);
     }
 
     /** 이 서비스의 정기보고서 목록에 들어가는 보고서(12월 결산 회사의 사업·반기·분기보고서)인지 */
