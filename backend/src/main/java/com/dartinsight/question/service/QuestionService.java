@@ -52,7 +52,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * 근거로 답하는 질문(3.10, ADR-0019). 질문에 섹션 이름이 나오고 그 섹션에 문장 변경이 있으면 그 변경 문단을
+ * 근거로 답하는 질문(3.10, ADR-0023). 질문에 섹션 이름이 나오고 그 섹션에 문장 변경이 있으면 그 변경 문단을
  * 후보로 삼고(SectionSources, #258), 아니면 두 보고서 문단에서 낱말로 후보를 찾는다(QuestionRetriever). 질문에 나온 계정의
  * 사실 문장을 코드로 만든 뒤(QuestionFacts) AI 서버에 묻는다. 후보도 사실도 없으면 AI 서버를 부르지 않는다.
  * AI 서버 호출은 트랜잭션 밖에서 하고, 결과와 LLM 호출 기록만 한 트랜잭션으로 저장한다(LY-2).

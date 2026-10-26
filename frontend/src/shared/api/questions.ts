@@ -4,7 +4,7 @@ import type { DocumentSide } from './documents'
 import type { SjDiv } from './results'
 import type { AiInfo } from './summary'
 
-/** docs/api-spec.md POST·GET /api/analyses/{id}/questions (3.10, ADR-0019) */
+/** docs/api-spec.md POST·GET /api/analyses/{id}/questions (3.10, ADR-0023) */
 export type QuestionStatus = 'ANSWERED' | 'NOT_FOUND' | 'OUT_OF_SCOPE' | 'REVIEW_NEEDED'
 
 /** 답이 인용한 원문 문단. 답 안의 `[no]`가 가리킨다 */
