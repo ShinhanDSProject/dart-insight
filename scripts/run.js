@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // 저장소 루트에서 세 서비스를 준비·실행·검사합니다. 루트 package.json의 스크립트가 이 파일을 부릅니다.
-// 사용법: node scripts/run.mjs <setup|dev|test|lint|build|check> [backend|ai-server|frontend ...]
+// 사용법: node scripts/run.js <setup|dev|test|lint|build|check> [backend|ai-server|frontend ...]
 // 서비스를 적지 않으면 세 서비스 모두에 실행합니다. 의존성 없이 Node.js 22 내장 모듈만 씁니다.
 import { spawn, spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync } from 'node:fs';

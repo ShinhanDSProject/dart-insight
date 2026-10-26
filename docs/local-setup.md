@@ -110,7 +110,7 @@ backend를 다시 실행하면 Flyway가 테이블을 다시 만들고, 기업 �
 
 ## 5. 루트에서 한 번에 실행
 
-저장소 루트의 `package.json`이 세 서비스의 명령을 모아 둡니다. 실제 명령은 `scripts/run.mjs`가 OS에 맞춰 부릅니다(`gradlew`/`gradlew.bat`, `.venv/bin`/`.venv\Scripts`). 루트에는 설치할 의존성이 없어 `npm install` 없이 씁니다. 2장의 DB 준비는 먼저 해 둡니다.
+저장소 루트의 `package.json`이 세 서비스의 명령을 모아 둡니다. 실제 명령은 `scripts/run.js`가 OS에 맞춰 부릅니다(`gradlew`/`gradlew.bat`, `.venv/bin`/`.venv\Scripts`). 루트에는 설치할 의존성이 없어 `npm install` 없이 씁니다. 2장의 DB 준비는 먼저 해 둡니다.
 
 | 명령 | 하는 일 |
 | --- | --- |
