@@ -173,3 +173,150 @@
 .company-profile dd {
   overflow-wrap: anywhere;
 }
+
+/* 기업 개요 '주요 재무 흐름'(FS-46, #330, ADR-0018). 계정마다 작은 세로 막대 차트를 두고 같은 종류 보고서를 시간 순서로 놓는다.
+   막대는 중립색 하나이고, 음수는 0 아래로 내려가며 빗금으로도 구분한다. 값이 없는 기간은 막대 없이 '—' */
+.fin-trend__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.fin-trend__sub {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.fin-trend__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.fin-trend__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+
+.fin-trend__charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fin-trend__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.fin-trend__card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-2);
+}
+
+.fin-trend__card-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.fin-trend__card-latest {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.fin-trend__plot {
+  position: relative;
+  display: flex;
+  gap: var(--space-2);
+  height: 96px;
+  border-bottom: 1px solid var(--color-chart-grid);
+}
+
+.fin-trend__zero {
+  position: absolute;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: var(--color-border-strong);
+}
+
+.fin-trend__scale {
+  position: absolute;
+  top: 0;
+  right: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2xs);
+}
+
+.fin-trend__column {
+  position: relative;
+  flex: 1;
+}
+
+.fin-trend__bar {
+  position: absolute;
+  right: 15%;
+  left: 15%;
+  min-height: 1px;
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+  background: var(--color-chart-current);
+  animation: fade-in var(--motion-slow) var(--ease-out) both;
+  animation-delay: calc(var(--row, 0) * var(--motion-stagger));
+}
+
+.fin-trend__bar--down {
+  border-radius: 0 0 var(--radius-xs) var(--radius-xs);
+  background: repeating-linear-gradient(
+    45deg,
+    var(--color-chart-current) 0 3px,
+    var(--color-chart-previous) 3px 6px
+  );
+}
+
+.fin-trend__missing {
+  position: absolute;
+  bottom: var(--space-1);
+  left: 50%;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  transform: translateX(-50%);
+}
+
+.fin-trend__labels {
+  display: flex;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2xs);
+}
+
+.fin-trend__labels li {
+  flex: 1;
+  text-align: center;
+}
+
+.fin-trend__corrected {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-regular);
+}
