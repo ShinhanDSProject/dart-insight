@@ -85,6 +85,8 @@
 | GET | `/api/companies/{corpCode}/disclosures` | 최근 공시 타임라인(묶음 거르기) | #332 (1.2) | 기업 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/disclosures/{rceptNo}/key-items` | 주요사항보고서 한 건의 핵심 수치(원문 값 그대로) | #363 (1.2, FS-51) | 기업 개요 탭 최근 공시 | 초안 |
 | GET | `/api/companies/{corpCode}/briefing` | AI 기업 브리핑(저장된 것 또는 새로 만듦) | #333 (1.2) | 기업 화면 개요 탭 | 초안 |
+| POST | `/api/companies/{corpCode}/questions` | 최신 사업보고서에 근거해 묻기(AI) | #365 (1.2) | 기업 화면 개요 탭 | 초안 |
+| GET | `/api/companies/{corpCode}/questions` | 최신 사업보고서에 한 질문·답 기록 | #365 (1.2) | 기업 화면 개요 탭 | 초안 |
 | POST | `/api/comparability-checks` | 비교 가능성 검증 | #13 (2.2) | W-01 ③ | 초안 |
 | POST | `/api/analyses` | 분석 요청 | #14 (2.3) | W-01 ③ → W-02 | 초안 |
 | GET | `/api/analyses/{analysisId}` | 분석 상태·단계 | #14 (2.3) | W-02, W-03 | 초안 |
@@ -862,6 +864,78 @@
 | 503 | `DART_RATE_LIMITED`, `DART_KEY_MISSING` | OpenDART 호출 한도 초과, 키 없음 |
 | 503 | `AI_SERVER_UNAVAILABLE` | AI 서버 또는 LLM을 쓸 수 없음(저장하지 않음. 다시 요청하면 다시 만듦) |
 
+### POST /api/companies/{corpCode}/questions — 사업보고서에 근거해 묻기
+
+- 이슈: #365 (1.2) · 기획서 FS-53 · 화면: 기업 화면 개요 탭 'AI에게 묻기 · 사업보고서 기준' · [ADR-0029](adr/0029-company-question-answering.md)
+- 분석 없이 기업 하나의 보고서 하나에 묻습니다. 대상 보고서는 AI 브리핑과 같은 규칙입니다: 이 기업 정기보고서 목록에서 대상 기간이 가장 최근인 사업보고서, 없으면 가장 최근 정기보고서. 원문은 접수번호 캐시를 그대로 씁니다(처음이면 받아 구조화).
+- 동기 호출입니다. 질문 검사(앞뒤 공백을 뺀 2~200자)와 상태·답 검증은 분석 질문(`POST /api/analyses/{analysisId}/questions`)과 같습니다.
+- backend가 그 보고서 원문 문단(`PARAGRAPH`)에서 질문 낱말로 후보를 최대 6개 찾아(분석 질문과 같은 낱말 규칙) ai-server `POST /internal/answers`에 `previousReport` 없이 보냅니다. 계정 사실 문장(`facts`)은 보내지 않습니다(비교가 없음). 후보가 없어도 ai-server를 부릅니다: 투자 판단 질문이면 `OUT_OF_SCOPE`, 아니면 `NOT_FOUND`이고 어느 쪽이든 LLM은 부르지 않습니다.
+- 결과는 `company_question`에 저장합니다(같은 질문을 다시 해도 새로 답함). LLM 호출은 `llm_call`(task `answer`, `company_question_id`)에 남겨 AI 사용 현황에 잡힙니다. 사용자 정보는 쓰지 않습니다(로그인과 무관).
+
+**요청**
+
+```json
+{ "question": "주요 제품은 무엇인가요?" }
+```
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| path | `corpCode` | string | 예 | 고유번호 |
+| body | `question` | string | 예 | 앞뒤 공백을 뺀 2~200자 |
+
+**응답 200**
+
+```json
+{
+  "questionId": 3,
+  "question": "주요 제품은 무엇인가요?",
+  "status": "ANSWERED",
+  "answer": "회사는 스마트폰과 메모리 반도체를 주요 제품으로 밝혔어요[1].",
+  "message": null,
+  "citations": [
+    { "no": 1, "evidenceId": "20260310000123#B130", "rceptNo": "20260310000123", "sectionNo": 13,
+      "blockNo": 130, "sectionPath": "II. 사업의 내용 > 2. 주요 제품 및 서비스", "quote": "당사의 주요 제품은 …" }
+  ],
+  "report": { "rceptNo": "20260310000123", "reportName": "사업보고서 (2025.12)",
+    "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260310000123" },
+  "aiGenerated": true,
+  "ai": { "model": "fake-model", "promptVersion": "answer-2", "generatedAt": "2026-10-26T10:12:03" },
+  "createdAt": "2026-10-26T10:12:03"
+}
+```
+
+- `status`: 분석 질문과 같습니다(`ANSWERED`·`NOT_FOUND`·`OUT_OF_SCOPE`·`REVIEW_NEEDED`). `ANSWERED`가 아니면 `answer`는 null, `citations`는 빈 배열이고 `message`에 안내가 있습니다. `NOT_FOUND`는 원문을 읽지 못했거나 관련 문단을 찾지 못한 경우입니다.
+- `answer`: 문장 안의 `[1]`은 `citations[].no`입니다. `citations[].quote`는 문단 앞 160자, `sectionPath`는 상위 목차부터 이은 제목입니다.
+- `report`: 답한 보고서(원문 보고서와 DART 링크).
+- `aiGenerated`·`ai`: AI가 답을 만들었을 때만(`ANSWERED`·`REVIEW_NEEDED`) true와 모델·프롬프트 버전·생성 시각, 아니면 false와 null입니다.
+
+**에러**
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | `question`이 비었거나 2자 미만·200자 초과(`errors[].field`=`question`) |
+| 404 | `COMPANY_NOT_FOUND` | 없는 고유번호 |
+| 404 | `REPORT_NOT_FOUND` | 이 기업의 정기보고서가 없음 |
+| 502 | `DART_REQUEST_FAILED` | 보고서 목록이나 원문을 OpenDART에서 받지 못함 |
+| 503 | `DART_RATE_LIMITED`, `DART_KEY_MISSING` | OpenDART 호출 한도 초과, 키 없음 |
+| 503 | `AI_SERVER_UNAVAILABLE` | AI 서버 또는 LLM을 쓸 수 없음(저장하지 않음) |
+
+### GET /api/companies/{corpCode}/questions — 사업보고서 질문 기록
+
+- 이슈: #365 (1.2) · 위와 같은 규칙으로 고른 지금의 대상 보고서에 한 질문만, 최신 순으로 최대 20개 돌려줍니다(새 사업보고서가 나오면 이전 보고서의 질문은 보이지 않음). 항목 모양은 위 응답과 같습니다. 정기보고서가 없으면 `report`는 null, `items`는 빈 배열입니다.
+
+```json
+{ "report": { "rceptNo": "20260310000123", "reportName": "사업보고서 (2025.12)", "dartUrl": "…" },
+  "items": [ { "questionId": 3, "question": "…", "status": "ANSWERED", "answer": "…", "message": null,
+  "citations": [], "report": { "…": "…" }, "aiGenerated": true, "ai": { "…": "…" },
+  "createdAt": "2026-10-26T10:12:03" } ] }
+```
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 404 | `COMPANY_NOT_FOUND` | 없는 고유번호 |
+| 502·503 | `DART_*` | 위와 같음(저장된 보고서 목록이 있으면 그 목록을 씀) |
+
 ### POST /api/comparability-checks — 비교 가능성 검증
 
 - 이슈: #13 (2.2) · 화면: W-01 ③
@@ -1504,7 +1578,7 @@
       "sentence": "매출액이 153.7조 원에서 305.4조 원으로 늘었어요(+98.7%)." }
   ],
   "aiGenerated": true,
-  "ai": { "model": "fake-model", "promptVersion": "answer-1", "generatedAt": "2026-10-24T10:12:03" },
+  "ai": { "model": "fake-model", "promptVersion": "answer-2", "generatedAt": "2026-10-24T10:12:03" },
   "feedback": null,
   "createdAt": "2026-10-24T10:12:03"
 }
@@ -1650,7 +1724,7 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 }
 ```
 
-- `questions.byStatus`: 질문 상태(`ANSWERED`·`NOT_FOUND`·`OUT_OF_SCOPE`·`REVIEW_NEEDED`, 위 질문 API와 같음)별 수.
+- `questions.byStatus`: 질문 상태(`ANSWERED`·`NOT_FOUND`·`OUT_OF_SCOPE`·`REVIEW_NEEDED`, 위 질문 API와 같음)별 수. 분석 질문(`analysis_question`)과 기업 질문(`company_question`, #365)을 함께 셉니다. 평가(`feedback`)는 분석 질문에만 있습니다.
 - `feedback`: `rated` 평가한 질문 수 = `helpful` + `notHelpful`. `helpfulRate` = `helpful` ÷ `rated`(소수 넷째 자리 반올림), `rated`가 0이면 null. `reasons`: 도움이 안 된 평가의 사유별 수(사유 없이 보낸 평가는 `notHelpful`에만 셈).
 - `explanations.byStatus`: 문장 변경 한 줄 풀이 상태(`OK`·`REVIEW_NEEDED`·`NO_SOURCE`)별 수.
 - `llmCalls`: 다시 만든 호출도 한 번씩 셉니다. `byOutcome`은 `OK`·`INVALID_OUTPUT`·`TRANSIENT_ERROR`·`ERROR`(그 밖의 값이 기록돼 있으면 그 값도 키로 들어감). `byTask`는 작업(`summary`, `answer`, `explanation` 등) 이름 순서이고 기록이 없으면 빈 배열입니다. `inputTokens`·`outputTokens`는 제공자가 알려 준 호출의 토큰 합이고, 그 작업의 호출이 모두 토큰을 모르면 null입니다.
@@ -1869,6 +1943,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 
 - 이슈: #218 (3.10) · [ADR-0023](adr/0023-grounded-question-answering.md) · LLM은 `app/llm`의 한 모듈로만 부릅니다.
 - 질문은 `<question>`, 원문은 `<disclosure id>`, 사실은 `<fact ref>` 태그로 감싸 자료로만 씁니다. 질문 안의 지시는 따르지 않습니다. 사용자 정보는 넣지 않습니다.
+- `previousReport`는 선택입니다. 없으면(null) 보고서 하나에 대한 질문(기업 단위, #365)이고 `<context>`에 `previous` 속성을 넣지 않습니다. 이때 `sources[].side`는 모두 `current`, `facts`는 빈 배열입니다.
 - 매수·매도·목표주가·주가 전망 질문(규칙 `OUT_OF_SCOPE_QUESTION`)은 LLM을 부르지 않고 `OUT_OF_SCOPE`, 후보(`sources`)와 사실(`facts`)이 모두 비었으면 LLM을 부르지 않고 `NOT_FOUND`입니다.
 - LLM 출력: `{"status": "ANSWERED"|"NOT_FOUND", "answer": "…", "evidenceIds": […], "factRefs": […]}`. 답은 해요체 3문장·400자 이내, 문장마다 `[근거 ID]`나 `[F1]`을 붙여 쓰게 하고, ai-server가 근거 ID 표시를 그대로 둡니다(backend가 번호로 바꿈).
 - 확인: `evidenceIds`·`factRefs`가 보낸 것이고 `ANSWERED`면 둘 중 하나 이상 있음, 답의 숫자·크기 표현이 인용한 원문·사실에 있음, 원인 표현(ADR-0015 `CAUSAL_CLAIM`)은 인용한 원문에도 원인 표현이 있을 때만, 표현 검사(5.5) 통과. 실패하면 문제를 알려 주며 2회까지 다시 만들고 끝내 실패하면 `REVIEW_NEEDED`(`answer` null, `reviewReason`)입니다. 표현 검사에 걸리면 `blockedRules`에 규칙 ID가 남습니다.
@@ -1891,7 +1966,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 
 ```json
 {
-  "promptVersion": "answer-1",
+  "promptVersion": "answer-2",
   "expressionRulesVersion": "expr-1",
   "model": "fake-model",
   "generatedAt": "2026-10-24T10:12:03",
@@ -1901,7 +1976,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
   "factRefs": ["F1"],
   "reviewReason": null,
   "blockedRules": [],
-  "calls": [{ "task": "answer", "provider": "fake", "model": "fake-model", "promptVersion": "answer-1",
+  "calls": [{ "task": "answer", "provider": "fake", "model": "fake-model", "promptVersion": "answer-2",
     "calledAt": "2026-10-24T10:12:02", "traceId": "…", "inputTokens": 900, "outputTokens": 120,
     "latencyMs": 800, "attempt": 1, "outcome": "OK", "error": null }]
 }
