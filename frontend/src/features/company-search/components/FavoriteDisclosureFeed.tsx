@@ -1,7 +1,7 @@
 import { match } from 'ts-pattern'
 import { verifiedDartUrl } from '@/shared/lib/dart'
 import { formatDate } from '@/shared/lib/reportLabels'
-import { Badge, Button, Notice } from '@/shared/ui'
+import { Badge, Button, ButtonLink, Notice } from '@/shared/ui'
 import { AlertState, EmptyState } from '@/shared/ui/StateView'
 import { useFavoriteDisclosures } from '../hooks/useFavoriteDisclosures'
 import { FEED_DAYS, type FeedCompany, type FeedEntry } from '../model/favoriteFeed'
@@ -12,7 +12,14 @@ const TITLE_ID = 'favorite-disclosures-title'
  * W-01 ① 검색창 아래 '관심 기업 새 공시'(FS-52, #364). 관심 기업들의 최근 30일 공시를 날짜순으로 합쳐 20건까지 보인다.
  * 지난번에 본 날 이후 접수된 공시에 '새 공시'를 붙이고, 일부 기업이 실패하면 그 기업만 알려 다시 시도하게 한다.
  */
-export function FavoriteDisclosureFeed({ companies }: { companies: readonly FeedCompany[] }) {
+export function FavoriteDisclosureFeed({
+  companies,
+  signedOut = false,
+}: {
+  companies: readonly FeedCompany[]
+  /** 로그인하지 않았으면 관심 기업을 추가할 수 없으므로(관심 기업은 회원별 저장) 로그인을 안내한다 */
+  signedOut?: boolean
+}) {
   const { view, retryFailed } = useFavoriteDisclosures(companies)
   return (
     <section className="favorite-feed" aria-labelledby={TITLE_ID}>
@@ -20,7 +27,17 @@ export function FavoriteDisclosureFeed({ companies }: { companies: readonly Feed
         관심 기업 새 공시
       </h2>
       {match(view)
-        .with({ status: 'idle' }, () => <EmptyState title="관심 기업을 추가하면 새 공시를 모아 보여 줘요." />)
+        .with({ status: 'idle' }, () =>
+          signedOut ? (
+            <EmptyState title="로그인하면 관심 기업의 새 공시를 모아 볼 수 있어요.">
+              <ButtonLink to="/login" variant="secondary">
+                로그인
+              </ButtonLink>
+            </EmptyState>
+          ) : (
+            <EmptyState title="관심 기업을 추가하면 새 공시를 모아 보여 줘요." />
+          ),
+        )
         .with({ status: 'loading' }, () => <FeedSkeleton />)
         .with({ status: 'error' }, ({ failed }) => (
           <AlertState title="관심 기업의 공시를 불러오지 못했어요.">
