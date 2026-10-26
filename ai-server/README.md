@@ -32,7 +32,7 @@ pytest                             # 테스트
 
 LLM은 `app/llm`의 `LlmClient`를 거쳐서만 부릅니다. 다른 코드에서 LLM SDK를 직접 가져오지 않습니다.
 
-- 제공자는 `LLM_PROVIDER`로 고릅니다. 지금은 `fake`(가짜 응답)만 있고, 실제 제공자는 결정 로그가 정해지면 `app/llm/providers.py`에 더합니다.
+- 제공자는 `LLM_PROVIDER`로 고릅니다. `openai`(OpenAI Responses API, 기본 모델 `gpt-6.1-sol`, [ADR-0026](../docs/adr/0026-openai-llm-provider.md))와 `fake`(테스트·개발용 가짜 응답)가 있습니다. OpenAI를 쓰려면 `LLM_API_KEY`에 키를 넣고, 모델은 `LLM_MODEL`로 바꿉니다.
 - 결과는 JSON으로 받아 부른 쪽이 넘긴 검사 함수로 확인합니다. 통과하지 못하면 문제를 알려 주며 최대 2회 다시 생성하고, 그래도 실패하면 `LlmOutputInvalid`로 끝납니다.
 - 시간 초과·네트워크 같은 일시 오류는 `LLM_MAX_RETRIES`번 다시 시도하고, 끝내 실패하거나 제공자가 없으면 `LlmUnavailable`입니다.
 - 요청 하나에 쓰는 전체 시간은 `LLM_TOTAL_TIMEOUT_SECONDS`(기본 120초)까지입니다. backend가 AI 서버를 기다리는 시간(180초)보다 짧게 두어, 시간이 다 돼도 호출 기록이 backend에 돌아가게 합니다.
