@@ -110,8 +110,8 @@ public class BriefingService {
         }
     }
 
-    /** 대상 기간이 가장 최근인 사업보고서, 없으면 가장 최근 정기보고서. 목록은 대상 기간이 최근인 순서다 */
-    static Optional<Report> sourceReport(List<Report> reports) {
+    /** 대상 기간이 가장 최근인 사업보고서, 없으면 가장 최근 정기보고서. 목록은 대상 기간이 최근인 순서다. 기업 질문(ADR-0029)도 쓴다 */
+    public static Optional<Report> sourceReport(List<Report> reports) {
         return reports.stream().filter(r -> r.getReportType() == ReportType.ANNUAL).findFirst()
                 .or(() -> reports.stream().findFirst());
     }

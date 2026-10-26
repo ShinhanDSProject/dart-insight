@@ -34,6 +34,8 @@ public final class ApiPaths {
     /** COMPANY_DISCLOSURES 아래. 주요사항보고서 핵심 수치(FS-51) */
     public static final String DISCLOSURE_KEY_ITEMS = "/{rceptNo}/key-items";
     public static final String COMPANY_BRIEFING = COMPANIES + "/{corpCode}/briefing";
+    /** 사업보고서에 근거해 묻기(FS-53) */
+    public static final String COMPANY_QUESTIONS = COMPANIES + "/{corpCode}/questions";
     public static final String REPORT_BY_RCEPT_NO = "/reports/{rceptNo}";
 
     public static final String COMPARABILITY_CHECKS = BASE + "/comparability-checks";

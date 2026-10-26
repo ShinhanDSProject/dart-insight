@@ -29,15 +29,16 @@ import com.dartinsight.question.dto.QuestionFeedbackResponse;
 import com.dartinsight.question.dto.QuestionListResponse;
 import com.dartinsight.question.dto.QuestionResponse;
 import com.dartinsight.question.dto.QuestionResponse.Citation;
+import com.dartinsight.question.repository.CompanyQuestionStore;
 import com.dartinsight.question.repository.QuestionStore;
 import com.dartinsight.report.service.ReportService;
 import com.dartinsight.report.service.ReportService.ReportDetail;
 import com.dartinsight.summary.domain.LlmCallRow;
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,16 +62,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 @RequiredArgsConstructor
 public class QuestionService {
 
-    static final int MIN_LENGTH = 2;
-    static final int MAX_LENGTH = 200;
-    static final int HISTORY_SIZE = 20;
-    static final int QUOTE_CHARS = 160;
-    static final int MAX_ANSWER_CHARS = 1000;
     /** 섹션 범위에서 읽을 변경 수(우선순위 순). 후보는 이 중 앞 6개 문단만 쓴다 */
     static final int SECTION_CHANGES = 200;
-    static final String TASK = "answer";
     private static final String NOT_ANSWERED = "답한 질문만 평가할 수 있어요.";
-    private static final String BAD_EVIDENCE = "답의 근거 표시가 보낸 원문 위치·사실이 아니라 쓰지 않았어요.";
 
     private static final Logger log = LoggerFactory.getLogger(QuestionService.class);
 
@@ -80,6 +74,7 @@ public class QuestionService {
     private final DocumentService documentService;
     private final AiServerClient aiServerClient;
     private final QuestionStore questionStore;
+    private final CompanyQuestionStore companyQuestionStore;
     private final TransactionTemplate transactionTemplate;
     private final Clock clock;
 
@@ -89,7 +84,7 @@ public class QuestionService {
      * @throws AiServerException AI 서버·LLM을 쓸 수 없음(503 AI_SERVER_UNAVAILABLE)
      */
     public QuestionResponse ask(Long analysisId, String rawQuestion) {
-        String question = validate(rawQuestion);
+        String question = AnswerResults.validate(rawQuestion);
         CompletedResult result = resultService.completedResult(analysisId);
         Analysis analysis = result.analysis();
         ReportDetail current = reportService.get(analysis.getCurrentRceptNo());
@@ -117,7 +112,7 @@ public class QuestionService {
             throw new AiServerException(null, "AI 서버 답 응답이 비어 있어요.", null);
         }
         List<LlmCallRow> calls = response.calls() == null ? List.of()
-                : response.calls().stream().map(c -> call(c, traceId)).toList();
+                : response.calls().stream().map(c -> AnswerResults.call(c, traceId)).toList();
 
         Map<String, QuestionSource> byEvidence = sources.stream()
                 .collect(Collectors.toMap(QuestionSource::evidenceId, Function.identity(), (a, b) -> a));
@@ -135,15 +130,21 @@ public class QuestionService {
         return QuestionResponse.of(saved, citations, cited);
     }
 
-    /** 질문한 시각이 [from, to)인 질문의 상태별 수와 평가 수(AI 사용 현황). 모든 분석의 질문을 센다 */
+    /**
+     * 질문한 시각이 [from, to)인 질문의 상태별 수와 평가 수(AI 사용 현황). 모든 분석의 질문과 기업 질문(ADR-0029)을
+     * 함께 센다. 평가는 분석 질문에만 있다
+     */
     public QuestionUsage usage(LocalDateTime from, LocalDateTime to) {
-        return questionStore.usage(from, to);
+        QuestionUsage usage = questionStore.usage(from, to);
+        Map<QuestionStatus, Long> byStatus = new EnumMap<>(usage.byStatus());
+        companyQuestionStore.countByStatus(from, to).forEach((status, n) -> byStatus.merge(status, n, Long::sum));
+        return new QuestionUsage(byStatus, usage.helpful(), usage.notHelpful(), usage.reasons());
     }
 
     /** 이 분석에서 한 질문, 최신 순으로 최대 20개. 없는 분석이면 404 */
     public QuestionListResponse history(Long analysisId) {
         Analysis analysis = resultService.get(analysisId);
-        List<QuestionRecord> rows = questionStore.latest(analysisId, HISTORY_SIZE);
+        List<QuestionRecord> rows = questionStore.latest(analysisId, AnswerResults.HISTORY_SIZE);
         if (rows.isEmpty()) {
             return new QuestionListResponse(List.of());
         }
@@ -226,28 +227,17 @@ public class QuestionService {
                 prev.paths());
     }
 
-    private static String validate(String rawQuestion) {
-        String question = rawQuestion == null ? "" : rawQuestion.strip();
-        if (question.isEmpty()) {
-            throw ApiException.invalidInput("question", "질문을 입력해 주세요.");
-        }
-        if (question.length() < MIN_LENGTH || question.length() > MAX_LENGTH) {
-            throw ApiException.invalidInput("question", MIN_LENGTH + "~" + MAX_LENGTH + "자로 입력해 주세요.");
-        }
-        return question;
-    }
-
     /** AI 서버의 답을 저장할 기록으로 바꾼다. 답의 근거 표시는 여기서 다시 확인한다 */
     private QuestionRecord interpret(Long analysisId, String question, AnswerAiResponse response,
             Set<String> evidenceIds, Map<String, QuestionFact> facts, String traceId, LocalDateTime createdAt) {
-        LocalDateTime generatedAt = time(response.generatedAt());
+        LocalDateTime generatedAt = AnswerResults.time(response.generatedAt());
         List<String> blocked = response.blockedRules() == null ? List.of() : response.blockedRules();
         QuestionStatus status;
         try {
             status = QuestionStatus.valueOf(response.status());
         } catch (IllegalArgumentException e) {
             log.warn("AI 서버 답 상태를 알 수 없어 검토 필요로 둡니다: {}", response.status());
-            return review(analysisId, question, "AI 서버가 알 수 없는 상태로 답했어요.", blocked, response, generatedAt,
+            return review(analysisId, question, AnswerResults.UNKNOWN_STATUS, blocked, response, generatedAt,
                     traceId, createdAt);
         }
         if (status == QuestionStatus.REVIEW_NEEDED) {
@@ -259,9 +249,9 @@ public class QuestionService {
                     response.model(), response.promptVersion(), generatedAt, traceId, createdAt, null);
         }
         AnswerMarkers.Converted converted = AnswerMarkers.convert(response.answer(), evidenceIds, facts.keySet());
-        if (!converted.valid() || converted.answer().length() > MAX_ANSWER_CHARS) {
+        if (!converted.valid() || converted.answer().length() > AnswerResults.MAX_ANSWER_CHARS) {
             log.warn("AI 서버 답의 근거 표시를 확인하지 못해 검토 필요로 둡니다");
-            return review(analysisId, question, BAD_EVIDENCE, blocked, response, generatedAt, traceId, createdAt);
+            return review(analysisId, question, AnswerResults.BAD_EVIDENCE, blocked, response, generatedAt, traceId, createdAt);
         }
         List<Long> changeIds = converted.factRefs().stream().map(ref -> facts.get(ref).changeId()).toList();
         return new QuestionRecord(null, analysisId, question, QuestionStatus.ANSWERED, converted.answer(),
@@ -272,7 +262,7 @@ public class QuestionService {
     private static QuestionRecord review(Long analysisId, String question, String reason, List<String> blocked,
             AnswerAiResponse response, LocalDateTime generatedAt, String traceId, LocalDateTime createdAt) {
         return new QuestionRecord(null, analysisId, question, QuestionStatus.REVIEW_NEEDED, null, List.of(),
-                List.of(), reason == null ? "근거를 확인하지 못했어요." : reason, blocked, response.model(),
+                List.of(), reason == null ? AnswerResults.NOT_VERIFIED : reason, blocked, response.model(),
                 response.promptVersion(), generatedAt, traceId, createdAt, null);
     }
 
@@ -282,26 +272,10 @@ public class QuestionService {
     }
 
     private static Citation citation(int no, QuestionSource source, Map<String, String> reportNames) {
-        String text = source.text();
-        String quote = text == null ? null : text.length() <= QUOTE_CHARS ? text : text.substring(0, QUOTE_CHARS);
+        String quote = AnswerResults.quote(source.text());
         return new Citation(no, source.evidenceId(), source.side(), source.rceptNo(),
                 source.rceptNo() == null ? null : reportNames.get(source.rceptNo()), source.sectionNo(),
                 source.blockNo(), source.sectionPath(), quote);
-    }
-
-    private static LlmCallRow call(AnswerAiResponse.Call call, String traceId) {
-        return new LlmCallRow(call.task() == null ? TASK : call.task(), call.provider(), call.model(),
-                call.promptVersion(), time(call.calledAt()), call.traceId() == null ? traceId : call.traceId(),
-                call.inputTokens(), call.outputTokens(), call.latencyMs() == null ? 0 : call.latencyMs(),
-                call.attempt() == null ? 1 : call.attempt(), call.outcome(), call.error());
-    }
-
-    private static LocalDateTime time(String value) {
-        try {
-            return value == null ? null : LocalDateTime.parse(value);
-        } catch (DateTimeParseException e) {
-            return null;
-        }
     }
 
     private LocalDateTime now() {
