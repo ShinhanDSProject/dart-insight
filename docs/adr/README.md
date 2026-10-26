@@ -69,3 +69,4 @@ M0~M2에서 이미 내린 결정은 2026-10-22에 소급해 기록했습니다(0
 | [0021](0021-numeric-update-and-moved-text-changes.md) | 문장 변경에서 숫자만 바뀐 수정과 자리만 옮긴 글을 따로 분류한다 | 채택 | 2026-10-25 |
 | [0022](0022-social-login-provider-identity.md) | 소셜 계정은 제공자 사용자 ID로 식별하고 서비스 토큰으로 전환한다 | 채택 | 2026-10-24 |
 | [0023](0023-grounded-question-answering.md) | 질문 답변은 동기 호출로 하고, 후보는 backend가 낱말로 찾으며, 답은 인용을 검증한 뒤 저장한다 | 채택 | 2026-10-24 |
+| [0026](0026-openai-llm-provider.md) | 실제 LLM 제공자로 OpenAI Responses API를 연결하고, 기본 모델은 gpt-6.1-sol로 둔다 | 채택 | 2026-10-26 |
