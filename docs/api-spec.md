@@ -77,6 +77,7 @@
 | GET | `/api/companies/{corpCode}/analyses` | 이 기업의 이미 끝난 분석 목록 | #288 (1.2) | W-01 ② | 초안 |
 | GET | `/api/companies/{corpCode}/key-facts` | 최신 정기보고서와 1년 전 같은 종류 보고서의 최대주주·임원·배당과 바뀐 항목 | #331 (1.2, FS-47) | 기업 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/disclosures` | 최근 공시 타임라인(묶음 거르기) | #332 (1.2) | 기업 개요 탭 | 초안 |
+| GET | `/api/companies/{corpCode}/briefing` | AI 기업 브리핑(저장된 것 또는 새로 만듦) | #333 (1.2) | 기업 화면 개요 탭 | 초안 |
 | POST | `/api/comparability-checks` | 비교 가능성 검증 | #13 (2.2) | W-01 ③ | 초안 |
 | POST | `/api/analyses` | 분석 요청 | #14 (2.3) | W-01 ③ → W-02 | 초안 |
 | GET | `/api/analyses/{analysisId}` | 분석 상태·단계 | #14 (2.3) | W-02, W-03 | 초안 |
@@ -700,6 +701,55 @@
 | 502 | `DART_REQUEST_FAILED` | OpenDART 호출 실패이고 저장된 목록도 없음 |
 | 503 | `DART_RATE_LIMITED` | OpenDART 호출 한도 초과(020)이고 저장된 목록도 없음 |
 | 503 | `DART_KEY_MISSING` | 서버에 OpenDART 키가 설정되지 않았고 저장된 목록도 없음 |
+
+### GET /api/companies/{corpCode}/briefing — AI 기업 브리핑
+
+- 이슈: #333 (1.2) · 기획서 FS-49 · 화면: 기업 화면 개요 탭 'AI 기업 브리핑' · [ADR-0025](adr/0025-company-briefing.md)
+- 원문 보고서는 이 기업 정기보고서 목록(위 `GET …/reports`와 같은 캐시 규칙)에서 대상 기간이 가장 최근인 사업보고서, 없으면 가장 최근 정기보고서입니다.
+- 그 보고서·현재 프롬프트 버전으로 저장된 브리핑이 있으면 그대로 돌려줍니다. 없으면 이 요청 안에서 만들어 저장한 뒤 돌려줍니다(동기 호출). 처음 만들 때는 원문 받기·구조화와 LLM 호출로 수 초~수십 초 걸릴 수 있습니다.
+- 근거는 원문 'II. 사업의 내용'의 하위 목차(사업의 개요, 주요 제품, 매출, 위험관리)와 '투자자 보호' 항목에서 고른 문단·표(최대 8개)이고, 문장마다 그중 하나 이상을 인용합니다. 근거·숫자·표현 검사를 2회 다시 만든 뒤에도 통과하지 못하면 `REVIEW_NEEDED`이고 문장이 없습니다. `GENERATED`·`REVIEW_NEEDED`는 저장해 같은 보고서·프롬프트 버전이면 다시 만들지 않습니다.
+- 사용자 정보는 쓰지 않습니다(로그인과 무관).
+
+**요청**
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| path | `corpCode` | string | 예 | 고유번호 |
+
+**응답 200**
+
+```json
+{
+  "corpCode": "00126380",
+  "status": "GENERATED",
+  "reason": null,
+  "message": null,
+  "report": { "rceptNo": "20260310000123", "reportName": "사업보고서 (2025.12)", "reportType": "ANNUAL",
+    "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260310000123" },
+  "sentences": [
+    { "no": 1, "text": "회사는 반도체와 스마트폰을 만들어 판다고 밝혔어요.",
+      "evidence": [ { "evidenceId": "20260310000123#B120", "rceptNo": "20260310000123", "sectionNo": 12,
+        "blockNo": 120, "sectionPath": "II. 사업의 내용 > 1. 사업의 개요", "quote": "당사는 …" } ] }
+  ],
+  "aiGenerated": true,
+  "ai": { "model": "fake-model", "promptVersion": "briefing-1", "generatedAt": "2026-10-26T10:12:03" }
+}
+```
+
+- `status`
+  - `GENERATED`: `sentences`에 문장(1~6개). 화면에 'AI 생성'으로 표시합니다.
+  - `REVIEW_NEEDED`: 만들었지만 근거·숫자·표현 검사를 통과하지 못함. `sentences`는 빈 배열, `message`에 사유
+  - `NOT_AVAILABLE`: 브리핑을 만들 자료가 없음. 저장하지 않으므로 자료가 생기면 다음 요청에서 만듭니다. `reason`에 사유
+- `reason`(`NOT_AVAILABLE`일 때만): `NO_REPORT` 정기보고서가 없음(`report`는 null), `NO_DOCUMENT` 원문을 받거나 읽지 못함(OpenDART에 원문 없음·구조화 실패), `NO_SOURCE` 원문에서 '사업의 내용' 항목을 찾지 못함
+- `evidence[]`: 문장이 인용한 원문 위치. `quote`는 인용 문단(표는 행마다 한 줄, 셀은 ` | `로 이음) 앞 600자입니다. `sectionPath`는 상위 목차부터 이은 제목입니다.
+- `aiGenerated`·`ai`: AI가 만든 결과(`GENERATED`·`REVIEW_NEEDED`)면 true와 모델·프롬프트 버전·생성 시각, `NOT_AVAILABLE`이면 false와 null입니다.
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 404 | `COMPANY_NOT_FOUND` | 없는 고유번호 |
+| 502 | `DART_REQUEST_FAILED` | 보고서 목록이나 원문을 OpenDART에서 받지 못함(저장된 목록이 있으면 그 목록을 씀) |
+| 503 | `DART_RATE_LIMITED`, `DART_KEY_MISSING` | OpenDART 호출 한도 초과, 키 없음 |
+| 503 | `AI_SERVER_UNAVAILABLE` | AI 서버 또는 LLM을 쓸 수 없음(저장하지 않음. 다시 요청하면 다시 만듦) |
 
 ### POST /api/comparability-checks — 비교 가능성 검증
 
@@ -1432,6 +1482,7 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 | POST | `/internal/documents/{rceptNo}/structure` | 원문 ZIP 구조화 | #28 (4.2) | 초안 |
 | POST | `/internal/text-changes` | 두 원문의 문장·표 변경 탐지 | #16 (2.5) | 초안 |
 | POST | `/internal/summaries` | 근거 기반 요약·설명(LLM) | #20 (3.2) | 초안 |
+| POST | `/internal/briefings` | AI 기업 브리핑(LLM) | #333 (1.2) | 초안 |
 
 | code | 상태 | 뜻 |
 | --- | --- | --- |
@@ -1667,6 +1718,50 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | 상태 | code | 언제 |
 | --- | --- | --- |
 | 400 | `COMMON_INVALID_INPUT` | 필드 누락, `evidenceId`·`ref` 겹침 |
+| 503 | `AI_LLM_UNAVAILABLE` | LLM을 쓸 수 없음 |
+
+### POST /internal/briefings — AI 기업 브리핑
+
+- 이슈: #333 (1.2) · [ADR-0025](adr/0025-company-briefing.md) · LLM은 `app/llm`의 한 모듈로만 부릅니다.
+- backend가 보고서 하나에서 고른 원문 블록(`sources`, 1~8개)만 보냅니다. 원문은 `<disclosure id topic sectionPath>` 태그로 감싸 자료로만 씁니다. 회사·보고서 이름은 `<context>` 태그 속성에 넣습니다. 사용자 정보는 넣지 않습니다.
+- `promptVersion`은 backend가 기대하는 프롬프트 버전입니다. ai-server의 버전과 다르면 LLM을 부르지 않고 400입니다(backend `BriefingService.PROMPT_VERSION`과 ai-server `app/briefing/prompt.py`를 함께 바꿈).
+- `topic`: `OVERVIEW` 사업 개요, `PRODUCTS` 주요 제품·서비스, `SALES` 매출, `RISK` 회사가 밝힌 위험.
+- LLM 출력: `{"sentences": [{"text": "…", "evidenceIds": ["…"]}]}`. 해요체, 문장마다 120자 이내, 1~6문장.
+- 확인: 문장마다 `evidenceIds`가 하나 이상이고 모두 보낸 근거 ID, 숫자·크기 표현이 그 문장이 인용한 원문에 있음, 원인 표현(`CAUSAL_CLAIM`)은 인용한 원문에도 원인 표현이 있을 때만, 표현 검사(5.5) 통과. 문장 안의 `[근거 ID]` 표시는 지우고 돌려줍니다. 하나라도 어기면 문제를 알려 주며 2회까지 다시 만들고, 끝내 실패하면 `REVIEW_NEEDED`(`sentences` 빈 배열, `reviewReason`)입니다. 표현 검사에 걸리면 `blockedRules`에 규칙 ID가 남습니다.
+
+**요청**
+
+```json
+{
+  "promptVersion": "briefing-1",
+  "companyName": "삼성전자",
+  "reportName": "사업보고서 (2025.12)",
+  "sources": [{ "evidenceId": "20260310000123#B120", "topic": "OVERVIEW",
+    "sectionPath": "II. 사업의 내용 > 1. 사업의 개요", "text": "…" }]
+}
+```
+
+**응답 200**
+
+```json
+{
+  "promptVersion": "briefing-1",
+  "expressionRulesVersion": "expr-1",
+  "model": "fake-model",
+  "generatedAt": "2026-10-26T10:12:03",
+  "status": "GENERATED",
+  "sentences": [{ "text": "회사는 반도체와 스마트폰을 만들어 판다고 밝혔어요.", "evidenceIds": ["20260310000123#B120"] }],
+  "reviewReason": null,
+  "blockedRules": [],
+  "calls": [{ "task": "briefing", "provider": "fake", "model": "fake-model", "promptVersion": "briefing-1",
+    "calledAt": "2026-10-26T10:12:02", "traceId": "…", "inputTokens": 900, "outputTokens": 120,
+    "latencyMs": 800, "attempt": 1, "outcome": "OK", "error": null }]
+}
+```
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | 필드 누락, `sources`가 비었거나 8개 초과, `evidenceId` 겹침, `topic`이 정한 값이 아님, `promptVersion`이 다름 |
 | 503 | `AI_LLM_UNAVAILABLE` | LLM을 쓸 수 없음 |
 
 ## 4. 에러 코드

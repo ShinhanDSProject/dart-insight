@@ -39,6 +39,7 @@
 | `analysis_question` | 분석에 한 질문과 AI 답(상태·근거 ID·사실·모델·프롬프트 버전), 답 평가(3.12) | 3.10 (#219), 3.12 (#236) | M2 |
 | `text_change_explanation` | 문장 변경 하나의 AI 한 줄 풀이(상태·근거 ID·모델·프롬프트 버전) | 3.11 (#227) | M2 |
 | `report_key_fact` | 보고서별 정기보고서 주요정보(최대주주·임원·배당) 받은 결과. 접수번호·종류 기준 캐시 | #331 (1.2, FS-47) | M2 |
+| `company_briefing` | 보고서 하나의 AI 기업 브리핑(상태·문장과 근거·모델·프롬프트 버전) | 1.2 (#333) | M2 |
 
 ## 2. 관계도
 
@@ -196,9 +197,18 @@ erDiagram
         varchar ai_text "AI 생성 문장"
         varchar evidence_ids "근거 ID 목록"
     }
+    company_briefing ||--o{ llm_call : "company_briefing_id (#333)"
+    company_briefing {
+        bigint id PK
+        varchar rcept_no FK "UK(rcept_no, prompt_version)"
+        varchar prompt_version
+        varchar status "GENERATED REVIEW_NEEDED"
+        mediumtext sentences "문장·근거 JSON"
+    }
     llm_call {
         bigint id PK
-        bigint analysis_id FK
+        bigint analysis_id FK "브리핑이면 null"
+        bigint company_briefing_id FK
         varchar model
         varchar prompt_version
         int input_tokens
@@ -607,8 +617,9 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | 컬럼 | 타입 | 키 | null | 설명 |
 | --- | --- | --- | --- | --- |
 | `id` | BIGINT | PK | 아니오 | |
-| `analysis_id` | BIGINT | FK | 아니오 | `analysis.id` |
-| `task` | VARCHAR(30) | | 아니오 | 작업(`summary`, `answer`) |
+| `analysis_id` | BIGINT | FK | 예 | `analysis.id`. 분석에 속하지 않는 호출(브리핑)이면 null(`V23`부터) |
+| `company_briefing_id` | BIGINT | FK | 예 | `company_briefing.id`. 브리핑 호출일 때만(`V23`) |
+| `task` | VARCHAR(30) | | 아니오 | 작업(`summary`, `answer`, `briefing`) |
 | `provider`, `model` | VARCHAR(30), VARCHAR(100) | | 아니오 | 제공자(`fake` 등)와 모델 |
 | `prompt_version` | VARCHAR(30) | | 아니오 | 프롬프트 버전 |
 | `called_at` | DATETIME(6) | | 예 | 호출 시각(한국 시간) |
@@ -663,6 +674,26 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `model`, `prompt_version` | VARCHAR(100), VARCHAR(30) | | 예 | 풀이를 만든 모델과 프롬프트 버전 |
 | `generated_at` | DATETIME(6) | | 예 | 풀이를 만든 시각(한국 시간) |
 | `trace_id` | VARCHAR(64) | | 예 | 요청 추적 ID |
+| `created_at` | DATETIME(6) | | 아니오 | 저장한 시각(한국 시간) |
+
+### company_briefing
+
+> 마이그레이션: `V23__create_company_briefing.sql`(같은 파일에서 `llm_call.analysis_id`를 null 허용으로 바꾸고 `company_briefing_id`를 더함).
+
+보고서 하나에 대한 AI 기업 브리핑입니다(1.2, FS-49, [ADR-0025](adr/0025-company-briefing.md)). 보고서·프롬프트 버전마다 하나만 저장하고 다시 만들지 않습니다. `NOT_AVAILABLE`(자료 없음)은 저장하지 않습니다. 문장은 모델·프롬프트 버전·생성 시각과 함께 저장합니다(화면 'AI 생성').
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT | PK | 아니오 | |
+| `rcept_no` | VARCHAR(14) | FK, UK | 아니오 | 원문 보고서(`report.rcept_no`) |
+| `prompt_version` | VARCHAR(30) | UK | 아니오 | 프롬프트 버전(`briefing-1`) |
+| `status` | VARCHAR(20) | | 아니오 | `GENERATED`, `REVIEW_NEEDED` |
+| `sentences` | MEDIUMTEXT | | 아니오 | 문장과 근거 JSON: `[{"text": "…", "evidence": [{"evidenceId", "sectionNo", "blockNo", "sectionPath", "quote"}]}]`. `REVIEW_NEEDED`면 `[]` |
+| `review_reason` | VARCHAR(500) | | 예 | 검토 필요 사유 |
+| `blocked_rules` | VARCHAR(200) | | 예 | 표현 검사(5.5)에 걸린 규칙 ID(쉼표로 이음) |
+| `model` | VARCHAR(100) | | 예 | 문장을 만든 모델 |
+| `generated_at` | DATETIME(6) | | 예 | 문장을 만든 시각(한국 시간) |
+| `trace_id` | VARCHAR(64) | | 예 | 만든 요청의 추적 ID |
 | `created_at` | DATETIME(6) | | 아니오 | 저장한 시각(한국 시간) |
 
 ### app_user / local_credential — 일반 회원가입 (#136)
@@ -758,8 +789,10 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `analysis_question` | `idx_analysis_question_analysis` | `analysis_id, id` | 인덱스 | 분석별 최신 질문 조회 |
 | `text_change_explanation` | `uk_text_change_explanation` | `analysis_id, change_no` | 유니크 | 변경마다 풀이 하나 |
 | `report_key_fact` | `uk_report_key_fact` | `rcept_no, kind` | 유니크 | 보고서·종류마다 결과 하나(같은 호출을 두 번 저장하지 않음) |
+| `company_briefing` | `uk_company_briefing` | `rcept_no, prompt_version` | 유니크 | 보고서·프롬프트 버전마다 브리핑 하나 |
+| `llm_call` | `idx_llm_call_briefing` | `company_briefing_id` | 인덱스 | 브리핑별 호출 기록 |
 
-외래 키: `local_credential.user_id`, `refresh_token.user_id` → `app_user.id` / `refresh_token.replaced_by_id` → `refresh_token.id` / `report.corp_code`, `company_overview.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code`, `company_disclosure_fetch.corp_code`, `company_disclosure.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no`, `report_key_account_fetch.rcept_no`, `report_key_account.rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no`, `report_key_fact.rcept_no` → `report.rcept_no` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id`, `analysis_question.analysis_id`, `text_change_explanation.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id`
+외래 키: `local_credential.user_id`, `refresh_token.user_id` → `app_user.id` / `refresh_token.replaced_by_id` → `refresh_token.id` / `report.corp_code`, `company_overview.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code`, `company_disclosure_fetch.corp_code`, `company_disclosure.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no`, `report_key_account_fetch.rcept_no`, `report_key_account.rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no`, `report_key_fact.rcept_no`, `company_briefing.rcept_no` → `report.rcept_no` / `llm_call.company_briefing_id` → `company_briefing.id` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id`, `analysis_question.analysis_id`, `text_change_explanation.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id`
 
 ## 5. 작성 규칙
 
