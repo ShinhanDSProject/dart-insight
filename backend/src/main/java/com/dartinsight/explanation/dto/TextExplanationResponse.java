@@ -12,12 +12,13 @@ import java.util.Map;
  *
  * @param sentence 풀이. OK가 아니면 null
  * @param message  풀이가 없을 때의 사유. OK면 null
- * @param evidence 풀이가 인용한 원문 위치
- * @param ai       AI 문장일 때만
+ * @param evidence    풀이가 인용한 원문 위치
+ * @param aiGenerated sentence가 AI가 만든 문장이면 true(OK). 화면은 이 값으로 'AI 생성'을 표시한다(5.6)
+ * @param ai          AI 문장일 때만
  * @param cached   이미 저장된 풀이를 돌려줬으면 true
  */
 public record TextExplanationResponse(Long changeId, ExplanationStatus status, String sentence, String message,
-        List<Evidence> evidence, AiInfo ai, boolean cached) {
+        List<Evidence> evidence, boolean aiGenerated, AiInfo ai, boolean cached) {
 
     /**
      * @param located 근거 ID → 원문 위치(섹션 번호·경로). 찾지 못한 근거는 위치 없이 접수번호·블록 번호만
@@ -33,7 +34,7 @@ public record TextExplanationResponse(Long changeId, ExplanationStatus status, S
                 : List.of();
         AiInfo ai = ok && row.model() != null ? new AiInfo(row.model(), row.promptVersion(), row.generatedAt()) : null;
         return new TextExplanationResponse(changeId, row.status(), ok ? row.sentence() : null,
-                ok ? null : row.reviewReason(), evidence, ai, cached);
+                ok ? null : row.reviewReason(), evidence, ok, ai, cached);
     }
 
     /** 근거 블록이 속한 섹션(그 보고서 원문의 섹션 번호와 상위부터 이은 제목) */

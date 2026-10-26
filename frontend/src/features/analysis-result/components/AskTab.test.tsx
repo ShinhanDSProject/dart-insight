@@ -131,6 +131,7 @@ function answers(count: number): QuestionAnswer[] {
       message: null,
       citations: [],
       facts: [],
+      aiGenerated: false,
       ai: null,
       feedback: null,
       createdAt: `2025-10-20T10:${String(id).padStart(2, '0')}:00+09:00`,

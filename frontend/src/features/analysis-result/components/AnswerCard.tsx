@@ -200,9 +200,11 @@ function AnsweredBody({ item, links, onFeedback }: { item: QuestionAnswer; links
   return (
     <>
       <div className="answer-card__answer">
-        <Badge tone="accent" className="answer-card__ai">
-          AI 생성
-        </Badge>
+        {item.aiGenerated && (
+          <Badge tone="accent" className="answer-card__ai">
+            AI 생성
+          </Badge>
+        )}
         <p className="answer-card__text">
           {segments.map((s, i) =>
             match(s)

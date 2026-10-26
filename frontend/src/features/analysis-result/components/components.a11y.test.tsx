@@ -58,6 +58,7 @@ const answered: QuestionAnswer = {
     },
   ],
   facts: [{ ref: 'F1', changeId: 31, sjDiv: 'IS', accountName: '매출액', sentence: '매출액이 1,000억원에서 1,100억원으로 10.0% 늘었어요.' }],
+  aiGenerated: true,
   ai,
   feedback: { helpful: false, reason: 'WRONG_SOURCE' },
   createdAt: '2025-10-20T10:00:00+09:00',
@@ -77,6 +78,7 @@ const explanation: TextExplanation = {
     { side: 'previous', rceptNo: '20240814000001', sectionNo: 4, blockNo: 2, sectionPath: 'II. 사업의 내용', evidenceId: '20240814000001#B2' },
     { side: 'current', rceptNo: '20250814000123', sectionNo: null, blockNo: 9, sectionPath: null, evidenceId: '20250814000123#B9' },
   ],
+  aiGenerated: true,
   ai,
   cached: false,
 }
@@ -118,7 +120,7 @@ describe('질문 답 카드 접근성(axe)', () => {
   })
 
   it('찾지 못함·답하지 않음·검토 필요 답에 위반이 없다', async () => {
-    const base = { ...answered, answer: null, citations: [], facts: [], feedback: null }
+    const base = { ...answered, answer: null, citations: [], facts: [], aiGenerated: false, feedback: null }
     await expectNoViolations(
       <>
         <AnswerCard item={{ ...base, questionId: 1, status: 'NOT_FOUND', ai: null }} links={links} onFeedback={onFeedback} followUp={followUp} />
@@ -270,8 +272,8 @@ describe('AI 한 줄 풀이 접근성(axe)', () => {
       <>
         {box({ status: 'loading' }, 'e1')}
         {box({ status: 'success', data: explanation }, 'e2')}
-        {box({ status: 'success', data: { ...explanation, changeId: 6, status: 'REVIEW_NEEDED', sentence: null } }, 'e3')}
-        {box({ status: 'success', data: { ...explanation, changeId: 7, status: 'NO_SOURCE', sentence: null, evidence: [], ai: null } }, 'e4')}
+        {box({ status: 'success', data: { ...explanation, changeId: 6, status: 'REVIEW_NEEDED', sentence: null, aiGenerated: false } }, 'e3')}
+        {box({ status: 'success', data: { ...explanation, changeId: 7, status: 'NO_SOURCE', sentence: null, evidence: [], aiGenerated: false, ai: null } }, 'e4')}
         {box({ status: 'error', error: apiError }, 'e5')}
       </>,
     )

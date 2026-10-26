@@ -200,6 +200,7 @@ class ExplanationApiTest {
                 .andExpect(jsonPath("$.evidence[1].blockNo").value(3))
                 .andExpect(jsonPath("$.evidence[1].sectionPath").value("II. 사업의 내용 > 7. 기타 사항"))
                 .andExpect(jsonPath("$.evidence[1].evidenceId").value(PREV + "#B3"))
+                .andExpect(jsonPath("$.aiGenerated").value(true))
                 .andExpect(jsonPath("$.ai.model").value("fake-model"))
                 .andExpect(jsonPath("$.ai.promptVersion").value("summary-2"))
                 .andExpect(jsonPath("$.ai.generatedAt").value("2026-10-25T09:40:11"))
@@ -264,6 +265,7 @@ class ExplanationApiTest {
                 .andExpect(jsonPath("$.sentence").doesNotExist())
                 .andExpect(jsonPath("$.message").value("두 보고서에서 이 변경의 원문을 짝짓지 못해 풀이할 수 없어요."))
                 .andExpect(jsonPath("$.evidence", hasSize(0)))
+                .andExpect(jsonPath("$.aiGenerated").value(false))
                 .andExpect(jsonPath("$.ai").doesNotExist())
                 .andExpect(jsonPath("$.cached").value(false));
         explain(analysisId, changeId)

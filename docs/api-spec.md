@@ -1266,13 +1266,14 @@
   "evidence": [
     { "side": "current", "rceptNo": "20260814003699", "sectionNo": 212, "blockNo": 1840, "sectionPath": "II. 사업의 내용 > 7. 기타 참고사항", "evidenceId": "20260814003699#B1840" }
   ],
+  "aiGenerated": true,
   "ai": { "model": "fake-model", "promptVersion": "summary-2", "generatedAt": "2026-10-25T09:40:11" },
   "cached": false
 }
 ```
 
 - `status`: `OK`(풀이 있음), `REVIEW_NEEDED`(검증·표현 검사를 통과하지 못함, `sentence` null, `message`에 사유), `NO_SOURCE`(풀이할 원문이 없음, `sentence` null)
-- `evidence`: 풀이가 인용한 원문 위치. `ai`는 AI 문장일 때만(`NO_SOURCE`면 null).
+- `evidence`: 풀이가 인용한 원문 위치. `aiGenerated`는 `sentence`가 AI 문장(`OK`)이면 true이고 화면은 이 값으로 'AI 생성'을 표시합니다(5.6). `ai`는 AI 문장일 때만(`NO_SOURCE`면 null).
 - `evidence[].sectionNo`·`sectionPath`: 근거 블록이 속한 그 보고서 원문의 섹션 번호와 상위부터 이은 경로. 화면이 원문 탭을 그 블록에서 엽니다(`GET .../documents/{side}/sections/{sectionNo}`). 섹션 번호는 분석 때 저장한 위치이고, 경로는 구조화된 원문에서 읽으며 원문을 쓸 수 없으면 변경의 섹션 경로로 대신합니다. 찾지 못하면 null입니다.
 - 요청 본문은 없습니다(`POST`만 보냄).
 
@@ -1440,6 +1441,7 @@
     { "ref": "F1", "changeId": 4221, "sjDiv": "IS", "accountName": "매출액",
       "sentence": "매출액이 153.7조 원에서 305.4조 원으로 늘었어요(+98.7%)." }
   ],
+  "aiGenerated": true,
   "ai": { "model": "fake-model", "promptVersion": "answer-1", "generatedAt": "2026-10-24T10:12:03" },
   "feedback": null,
   "createdAt": "2026-10-24T10:12:03"
@@ -1452,6 +1454,7 @@
   - `OUT_OF_SCOPE`: 매수·매도·목표주가·주가 전망 질문이라 답하지 않음. LLM을 부르지 않음
   - `REVIEW_NEEDED`: 답이 근거·숫자·표현 검사를 통과하지 못함(2회 다시 만든 뒤). `answer`는 null
 - `citations`: 답이 인용한 원문만 번호 순서대로. `quote`는 문단 앞 160자입니다. `facts`: 답이 인용한 사실(코드가 계산)만.
+- `aiGenerated`: `answer`가 AI가 만든 답(`ANSWERED`)이면 true, 그 밖은 false입니다. 화면은 이 값으로 'AI 생성'을 표시합니다(5.6).
 - `ai`: AI가 답을 만들었을 때만(모델·프롬프트 버전·생성 시각). `NOT_FOUND`·`OUT_OF_SCOPE`면 null입니다.
 - `feedback`: 이 답의 평가 `{ "helpful": true|false, "reason": "WRONG_SOURCE"|… |null }`. 평가하지 않았으면 null입니다(새 질문은 늘 null). 값은 아래 `PUT …/feedback`과 같습니다.
 
@@ -1470,7 +1473,7 @@
 
 ```json
 { "items": [ { "questionId": 7, "question": "…", "status": "ANSWERED", "answer": "…", "message": null,
-  "citations": [], "facts": [], "ai": null, "feedback": { "helpful": false, "reason": "WRONG_SOURCE" },
+  "citations": [], "facts": [], "aiGenerated": true, "ai": null, "feedback": { "helpful": false, "reason": "WRONG_SOURCE" },
   "createdAt": "2026-10-24T10:12:03" } ] }
 ```
 

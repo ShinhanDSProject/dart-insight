@@ -172,6 +172,8 @@ export interface TextExplanation {
   /** 풀이하지 못한 사유 등 안내 */
   message: string | null
   evidence: TextExplanationEvidence[]
+  /** sentence가 AI가 만든 문장(OK)이면 true. 'AI 생성' 표시는 이 값으로 한다(5.6) */
+  aiGenerated: boolean
   /** AI 문장일 때만. NO_SOURCE면 null */
   ai: AiInfo | null
   /** 저장된 풀이를 그대로 돌려줬는지(AI 호출 없음) */

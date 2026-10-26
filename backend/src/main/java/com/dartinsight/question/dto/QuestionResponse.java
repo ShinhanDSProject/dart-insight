@@ -15,19 +15,20 @@ import java.util.List;
  * @param answer    답. 문장 안의 [1]은 citations[].no, [F1]은 facts[].ref. ANSWERED가 아니면 null
  * @param message   답이 없을 때의 안내. ANSWERED면 null
  * @param citations 답이 인용한 원문(번호 순서)
- * @param facts     답이 인용한 사실(코드가 계산)
- * @param ai        AI가 답을 만들었을 때만
+ * @param facts       답이 인용한 사실(코드가 계산)
+ * @param aiGenerated answer가 AI가 만든 문장이면 true(ANSWERED). 화면은 이 값으로 'AI 생성'을 표시한다(5.6)
+ * @param ai          AI가 답을 만들었을 때만
  * @param feedback  답 평가. 평가하지 않았으면 null
  */
 public record QuestionResponse(Long questionId, String question, QuestionStatus status, String answer,
-        String message, List<Citation> citations, List<Fact> facts, AiInfo ai, Feedback feedback,
+        String message, List<Citation> citations, List<Fact> facts, boolean aiGenerated, AiInfo ai, Feedback feedback,
         @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") LocalDateTime createdAt) {
 
     public static QuestionResponse of(QuestionRecord row, List<Citation> citations, List<QuestionFact> facts) {
         boolean answered = row.status() == QuestionStatus.ANSWERED;
         return new QuestionResponse(row.id(), row.question(), row.status(), answered ? row.answer() : null,
                 row.status().message(), answered ? citations : List.of(),
-                answered ? facts.stream().map(Fact::from).toList() : List.of(),
+                answered ? facts.stream().map(Fact::from).toList() : List.of(), answered,
                 answered && row.model() != null ? new AiInfo(row.model(), row.promptVersion(), row.generatedAt())
                         : null,
                 row.feedback() == null ? null : Feedback.from(row.feedback()), row.createdAt());
