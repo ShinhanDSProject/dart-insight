@@ -1,5 +1,6 @@
 import { match } from 'ts-pattern'
 import type { ChangeType, PriorityLevel, TextChangeCounts, TextChangeItem, TextStatus } from '@/shared/api/textChanges'
+import { CONTENT_FILTER, contentCount, type TextTypeFilter } from './textFilter'
 
 /** 문장·내용 변화(W-03 ③) 화면 문구. 우선순위는 확인 순서이며 투자 판단이 아니다. */
 
@@ -32,14 +33,33 @@ export function changeTypeHelpItems(): { type: ChangeType; label: string; help: 
   return changeTypeOptions.flatMap((o) => (o.value === null ? [] : [{ type: o.value, label: o.label, help: changeTypeHelp[o.value] }]))
 }
 
+export const CONTENT_LABEL = '내용 변경'
+
+/**
+ * 유형 거르기 칩. '전체' 바로 뒤에 '내용 변경'(추가·삭제·수정, #304)을 둔다.
+ * 숫자만 바뀜·위치 이동이 없는 분석에서는 '내용 변경'이 '전체'와 같아 넣지 않는다.
+ */
+export function typeFilterOptions(contentAvailable: boolean | null): { value: TextTypeFilter | null; label: string }[] {
+  const content: { value: TextTypeFilter; label: string }[] =
+    contentAvailable === true ? [{ value: CONTENT_FILTER, label: CONTENT_LABEL }] : []
+  return [...changeTypeOptions.slice(0, 1), ...content, ...changeTypeOptions.slice(1)]
+}
+
 export function changeTypeLabel(type: ChangeType): string {
   return changeTypeOptions.find((o) => o.value === type)?.label ?? type
 }
 
-export function countFor(counts: TextChangeCounts, type: ChangeType | null): number {
+/** 유형 거르기 이름(빈 목록 안내 등) */
+export function typeFilterLabel(filter: TextTypeFilter): string {
+  return filter === CONTENT_FILTER ? CONTENT_LABEL : changeTypeLabel(filter)
+}
+
+export function countFor(counts: TextChangeCounts, type: TextTypeFilter | null): number {
   switch (type) {
     case null:
       return counts.all
+    case 'CONTENT':
+      return contentCount(counts)
     case 'ADDED':
       return counts.added
     case 'DELETED':

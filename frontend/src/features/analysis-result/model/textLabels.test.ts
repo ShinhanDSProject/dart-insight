@@ -10,6 +10,8 @@ import {
   movedPaths,
   priorityLabel,
   showsNumbersOnlyMark,
+  typeFilterLabel,
+  typeFilterOptions,
   textStatusNotice,
 } from './textLabels'
 
@@ -94,5 +96,29 @@ describe('textLabels', () => {
     )
     expect(textStatusNotice('PARTIAL', null)).toBe('문장 비교 결과가 완전하지 않을 수 있어요.')
     expect(textStatusNotice(null, null)).toContain('비교하지 않았어요')
+  })
+})
+
+describe('내용 변경 칩(#304)', () => {
+  it('숫자만 바뀜·위치 이동이 있는 분석에서만 전체 바로 뒤에 둔다', () => {
+    expect(typeFilterOptions(true).map((o) => o.label)).toEqual([
+      '전체',
+      '내용 변경',
+      '추가',
+      '삭제',
+      '수정',
+      '숫자만 바뀜',
+      '위치 이동',
+      '검토 필요',
+    ])
+    expect(typeFilterOptions(true)[1]?.value).toBe('CONTENT')
+    expect(typeFilterOptions(false).map((o) => o.value)).not.toContain('CONTENT')
+    expect(typeFilterOptions(null).map((o) => o.value)).not.toContain('CONTENT')
+  })
+
+  it('건수는 추가·삭제·수정의 합이고 이름은 내용 변경이다', () => {
+    expect(countFor(counts, 'CONTENT')).toBe(6)
+    expect(typeFilterLabel('CONTENT')).toBe('내용 변경')
+    expect(typeFilterLabel('MOVED')).toBe('위치 이동')
   })
 })

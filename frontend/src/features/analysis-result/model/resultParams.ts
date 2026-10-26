@@ -4,7 +4,7 @@ import type { ChangeType, TextSort } from '@/shared/api/textChanges'
 import { positiveInt, type ParamChanges } from '@/shared/lib/searchParams'
 import { parseUnit, type AmountUnit } from './format'
 import { accountQueryOf } from './accountFilter'
-import { searchQueryOf } from './textFilter'
+import { CONTENT_FILTER, searchQueryOf, type TextTypeFilter } from './textFilter'
 
 /**
  * W-03 결과 화면의 주소 상태(ST-6).
@@ -14,7 +14,7 @@ export type ResultTab = 'summary' | 'financial' | 'text' | 'ask' | 'source'
 
 export const resultTabs: ResultTab[] = ['summary', 'financial', 'text', 'ask', 'source']
 const sjDivs: SjDiv[] = ['BS', 'IS', 'CIS', 'CF', 'SCE']
-const changeTypes: ChangeType[] = ['ADDED', 'DELETED', 'MODIFIED', 'NUMERIC_UPDATE', 'MOVED', 'REVIEW_NEEDED']
+const textTypeFilters: TextTypeFilter[] = ['ADDED', 'DELETED', 'MODIFIED', 'NUMERIC_UPDATE', 'MOVED', 'REVIEW_NEEDED', CONTENT_FILTER]
 
 /** 원문 확인(3.5)에서 열 위치 */
 export interface SourceTarget {
@@ -32,7 +32,8 @@ export interface ResultParams {
   selectedChangeId: number | null
   /** 계정 찾기 검색어(FS-14). 재무제표를 바꿔도 남는다. 없으면 null */
   accountQuery: string | null
-  textType: ChangeType | null
+  /** 유형 거르기. CONTENT는 '내용 변경'(추가·삭제·수정, #304). null이면 전체 */
+  textType: TextTypeFilter | null
   textSort: TextSort
   /** 고른 최상위 섹션 제목(3.7). null이면 전체 */
   textSection: string | null
@@ -59,7 +60,7 @@ export function parseResultParams(params: URLSearchParams): ResultParams {
     unit: parseUnit(params.get('unit')),
     selectedChangeId: positiveInt(params.get('change')),
     accountQuery: accountQueryOf(params.get('fq') ?? ''),
-    textType: changeTypes.includes(ttype as ChangeType) ? (ttype as ChangeType) : null,
+    textType: textTypeFilters.includes(ttype as TextTypeFilter) ? (ttype as TextTypeFilter) : null,
     textSort: params.get('tsort') === 'document' ? 'document' : 'priority',
     textSection: params.get('tsec')?.trim() || null,
     textQuery: searchQueryOf(params.get('tq') ?? ''),
@@ -81,7 +82,7 @@ export interface FinancialViewChange {
 }
 
 export interface TextViewChange {
-  type?: ChangeType | null
+  type?: TextTypeFilter | null
   sort?: TextSort
   section?: string | null
   q?: string | null
