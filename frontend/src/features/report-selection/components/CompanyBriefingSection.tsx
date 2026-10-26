@@ -66,7 +66,7 @@ export function BriefingBody({ briefing }: { briefing: CompanyBriefing }) {
 function SourceReport({ report }: { report: BriefingReport }) {
   return (
     <p className="company-briefing__source">
-      근거 보고서: <span>{report.reportName}</span>{' '}
+      출처: DART · 근거 보고서 <span>{report.reportName}</span>{' '}
       <DartLinkInline rceptNo={report.rceptNo} dartUrl={report.dartUrl} label={report.reportName} />
     </p>
   )
