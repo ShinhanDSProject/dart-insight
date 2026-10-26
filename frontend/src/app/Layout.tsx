@@ -3,6 +3,7 @@ import { Button } from '@/shared/ui/Button'
 import { Icon, type IconName } from '@/shared/ui/Icon'
 import { useOnboarding } from '@/shared/hooks/useOnboarding'
 import { useAuth } from '@/shared/auth/authContext'
+import { NotificationMenu } from '@/features/notifications/components/NotificationMenu'
 import { Kbd } from '@/shared/ui/Dialog'
 import type { ShortcutPage } from '@/shared/lib/shortcuts'
 import { ShortcutHelp } from './ShortcutHelp'
@@ -167,7 +168,10 @@ export function Layout() {
             </Button>
             <div className="app-header__auth">
               {auth.state.status === 'authenticated' ? (
-                <button type="button" className="button button--secondary" onClick={() => void auth.logout()}>로그아웃</button>
+                <>
+                  <NotificationMenu refreshKey={pathname} />
+                  <button type="button" className="button button--secondary" onClick={() => void auth.logout()}>로그아웃</button>
+                </>
               ) : (
                 <>
                   <Link to="/login" className="button button--secondary" aria-current={pathname === '/login' ? 'page' : undefined}>로그인</Link>
