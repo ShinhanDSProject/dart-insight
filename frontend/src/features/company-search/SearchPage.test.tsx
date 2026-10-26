@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { syncFavoriteCompanies } from '@/shared/hooks/useFavoriteCompanies'
 import type { Company } from '@/shared/api/companies'
+import { AuthContext, type AuthContextValue } from '@/shared/auth/authContext'
 import { axeViolations } from '@/test/axe'
 import { SearchPage } from './SearchPage'
 
@@ -16,16 +18,31 @@ vi.mock('@/shared/api/companies', () => ({
   searchCompanies: () => Promise.resolve({ items: companies }),
 }))
 
-afterEach(cleanup)
+const favoritesApi = vi.hoisted(() => ({
+  getFavoriteCompanies: vi.fn(),
+  addFavoriteCompany: vi.fn(),
+  removeFavoriteCompany: vi.fn(),
+}))
+vi.mock('@/shared/api/favoriteCompanies', () => favoritesApi)
 
-function renderAt(query: string) {
+afterEach(() => {
+  cleanup()
+  syncFavoriteCompanies(null)
+})
+
+// 관심 기업은 로그인한 회원만 쓴다. 이 테스트는 검색만 보므로 로그인하지 않은 상태로 그린다
+const anonymous: AuthContextValue = { state: { status: 'anonymous' }, login: vi.fn(), logout: vi.fn() }
+
+function renderAt(query: string, auth: AuthContextValue = anonymous) {
   return render(
-    <MemoryRouter initialEntries={[`/?q=${encodeURIComponent(query)}`]}>
-      <Routes>
-        <Route path="/" element={<SearchPage />} />
-        <Route path="/companies/:corpCode" element={<p>기업 화면</p>} />
-      </Routes>
-    </MemoryRouter>,
+    <AuthContext.Provider value={auth}>
+      <MemoryRouter initialEntries={[`/?q=${encodeURIComponent(query)}`]}>
+        <Routes>
+          <Route path="/" element={<SearchPage />} />
+          <Route path="/companies/:corpCode" element={<p>기업 화면</p>} />
+        </Routes>
+      </MemoryRouter>
+    </AuthContext.Provider>,
   )
 }
 
@@ -103,5 +120,20 @@ describe('검색어와 맞는 부분 강조(FS-32)', () => {
     const { container } = renderAt('ㅅㅅㅈㅈ')
     await screen.findByRole('list', { name: '검색 결과 3곳' })
     expect(await axeViolations(container)).toBe('')
+  })
+})
+
+describe('관심 기업(#36)', () => {
+  const signedIn: AuthContextValue = { state: { status: 'authenticated', userId: 1 }, login: vi.fn(), logout: vi.fn() }
+
+  it('목록을 받지 못하면 빈 목록처럼 숨기지 않고 안내하며, 다시 시도하면 목록을 보인다', async () => {
+    favoritesApi.getFavoriteCompanies
+      .mockRejectedValueOnce(new Error('network'))
+      .mockResolvedValueOnce({ items: [{ ...companies[0], addedAt: '2026-10-26T10:00:00' }] })
+    renderAt('', signedIn)
+    expect((await screen.findByRole('alert')).textContent).toContain('관심 기업을 불러오지 못했어요')
+    fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
+    const section = await screen.findByRole('region', { name: '관심 기업' })
+    expect(within(section).getByRole('link', { name: /삼성전자/ })).toBeTruthy()
   })
 })
