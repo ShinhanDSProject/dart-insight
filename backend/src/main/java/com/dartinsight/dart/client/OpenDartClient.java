@@ -102,28 +102,30 @@ public class OpenDartClient {
 
     /**
      * 공시상세유형 하나의 목록을 정정 전 원본까지(last_reprt_at=N) 받는다. 페이지를 끝까지 받는다(관련 수시공시, #339).
-     * 자료가 없으면(013) 빈 목록이다.
+     * 자료가 없으면(013) 빈 목록이다. 받은 목록을 다시 받지 않고 저장하므로, 페이지가 너무 많아 다 받지 못하면 잘린 목록을
+     * 돌려주지 않고 DART_REQUEST_FAILED로 실패한다.
      *
      * @param pblntfDetailTy 공시상세유형(B001 주요사항보고서, I001 수시공시, I002 공정공시 등)
      */
     public List<DisclosureListResponse.Item> listDisclosuresWithOriginals(String corpCode, LocalDate begin,
             LocalDate end, String pblntfDetailTy) {
-        return listDisclosures(corpCode, begin, end, null, pblntfDetailTy, "N");
+        return listDisclosures(corpCode, begin, end, null, pblntfDetailTy, "N", true);
     }
 
     /** @param pblntfTy 공시유형(A 정기공시 등). null이면 모든 유형 */
     private List<DisclosureListResponse.Item> listLatestDisclosures(String corpCode, LocalDate begin, LocalDate end,
             String pblntfTy) {
-        return listDisclosures(corpCode, begin, end, pblntfTy, null, "Y");
+        return listDisclosures(corpCode, begin, end, pblntfTy, null, "Y", false);
     }
 
     /**
      * @param pblntfTy       공시유형. null이면 넣지 않는다
      * @param pblntfDetailTy 공시상세유형. null이면 넣지 않는다
      * @param lastReprtAt    Y 최종보고서만, N 정정 전 원본까지
+     * @param failIfTruncated 최대 페이지를 넘으면 앞의 페이지만 돌려주지 않고 실패할지
      */
     private List<DisclosureListResponse.Item> listDisclosures(String corpCode, LocalDate begin, LocalDate end,
-            String pblntfTy, String pblntfDetailTy, String lastReprtAt) {
+            String pblntfTy, String pblntfDetailTy, String lastReprtAt, boolean failIfTruncated) {
         requireApiKey();
         List<DisclosureListResponse.Item> all = new ArrayList<>();
         for (int page = 1; page <= MAX_PAGES; page++) {
@@ -157,6 +159,11 @@ public class OpenDartClient {
             int totalPage = response.totalPage() == null ? 1 : response.totalPage();
             if (page >= totalPage) {
                 break;
+            }
+            if (page == MAX_PAGES && failIfTruncated) {
+                log.warn("공시 목록이 {}페이지를 넘어 다 받지 못했습니다: {} (전체 {}페이지)", MAX_PAGES, corpCode, totalPage);
+                throw new ApiException(ErrorCode.DART_REQUEST_FAILED,
+                        "공시 목록이 " + MAX_PAGES + "페이지를 넘어 다 받지 못했습니다.");
             }
             if (page == MAX_PAGES) {
                 log.warn("공시 목록이 {}페이지를 넘어 앞의 {}페이지만 받았습니다: {} (전체 {}페이지)", MAX_PAGES, MAX_PAGES,
