@@ -43,6 +43,10 @@
 | `report_key_fact` | 보고서별 정기보고서 주요정보(최대주주·임원·배당) 받은 결과. 접수번호·종류 기준 캐시 | #331 (1.2, FS-47) | M2 |
 | `company_briefing` | 보고서 하나의 AI 기업 브리핑(상태·문장과 근거·모델·프롬프트 버전) | 1.2 (#333) | M2 |
 | `company_question` | 기업의 최신 사업보고서에 한 질문과 AI 답(상태·근거 ID·모델·프롬프트 버전) | 1.2 (#365) | M2 |
+| `disclosure_window_fetch` | (제안) 분석 기간 단위로 수시공시 목록을 받은 기록. 고유번호·기간 기준, 한 번만 받음 | 3.6 (#339) | 미정 |
+| `disclosure_window_item` | (제안) 받아 둔 수시공시 한 건(정정 전 원본 포함) | 3.6 (#339) | 미정 |
+| `related_disclosure_run` | (제안) 분석 하나의 관련 수시공시를 규칙 버전별로 계산한 기록 | 3.6 (#340) | 미정 |
+| `related_disclosure` | (제안) 문장 변경과 수시공시의 연결 한 건(연결 강도·규칙·기간 구분) | 3.6 (#340, #341) | 미정 |
 
 ## 2. 관계도
 
@@ -110,6 +114,11 @@ erDiagram
     report ||--o{ report_key_fact : "rcept_no (#331)"
     report_document ||--o{ document_section : "document_id"
     report_document ||--o{ document_block : "document_id"
+    company ||--o{ disclosure_window_fetch : "corp_code (3.6 제안)"
+    disclosure_window_fetch ||--o{ disclosure_window_item : "fetch_id"
+    analysis ||--o{ related_disclosure_run : "analysis_id (3.6 제안)"
+    related_disclosure_run ||--o{ related_disclosure : "run_id"
+    disclosure_window_item ||--o{ related_disclosure : "item_id"
 
     company {
         bigint id PK
@@ -424,6 +433,9 @@ API는 사업연도·보고서 코드마다 최신 공시 하나의 값만 줍�
 | `status` | VARCHAR(10) | | 아니오 | `OK` 자료 있음, `NO_DATA` 자료 없음(013이거나 같은 접수번호의 행 없음) |
 | `items_json` | MEDIUMTEXT | | 아니오 | 항목 목록 JSON 배열. 값은 원문 표기 그대로(`'-'`·빈 값인 항목은 뺌). `NO_DATA`면 `[]` |
 | `fetched_at` | DATETIME(6) | | 아니오 | 받은 시각 |
+| `source_rcept_no` | VARCHAR(14) | | 예 | (제안, 3.6, V28) 응답 행의 접수번호가 `rcept_no`와 다를 때 그 접수번호(기간 뒤에 정정된 원본을 원본 접수일로 불러 최신 정정본 행을 받은 경우). 같으면 null |
+
+(제안, 3.6) 관련 수시공시([ADR-0030](adr/0030-related-disclosure-matching.md))도 이 표를 씁니다. `kind`에 `LITIGATION`(소송 등의 제기, `lwstLg.json`)·`STOCK_ACQUISITION`(타법인 주식 및 출자증권 양수결정, `otcprStkInvscrInhDecsn.json`)을 더합니다. 최근 공시 목록에 없는, 기간 뒤에 정정된 원본(비고 '정')도 저장합니다: 원본 접수일 하루로 불러 그 종류의 행이 하나뿐이면 그 행을 저장하고 행의 접수번호를 `source_rcept_no`에 둡니다. 둘 이상이면 `NO_DATA`입니다. #363 담당자와 합의가 필요합니다.
 
 ### financial_account
 
@@ -770,6 +782,69 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `trace_id` | VARCHAR(64) | | 예 | 요청 추적 ID |
 | `created_at` | DATETIME(6) | | 아니오 | 질문한 시각(한국 시간) |
 
+### 관련 수시공시(3.6) — 제안
+
+> 상태: 제안(#337). 범위 승인(#24) 전 초안입니다. 마이그레이션은 구현 이슈(#339~#341)에서 새 번호로 추가합니다(2026-10-26 기준 다음 번호 `V28`). 설계 이유는 [ADR-0030](adr/0030-related-disclosure-matching.md)에 있습니다. 주요사항보고서 주요정보(DS005)는 새 표를 두지 않고 #363의 `disclosure_key_item`을 같이 씁니다(아래 그 절의 '(제안, 3.6)'). #332의 `company_disclosure`와 따로 두는 이유: 그 표는 오늘 기준 최근 기간·최종본만 받고 1시간마다 기업 행을 통째로 바꿔, 분석 기간을 덮지 못하고 기간 뒤 정정된 사건이 빠지며 id에 연결을 걸 수 없습니다.
+
+#### disclosure_window_fetch — 분석 기간 단위로 수시공시 목록을 받은 기록
+
+공시검색(`list.json`)을 상세유형 `B001`·`I001`·`I002`, `last_reprt_at=N`으로 기간(`begin_date`~`end_date`)의 모든 쪽을 받은 기록입니다. 이미 지난 닫힌 기간이라 한 번 받으면 다시 받지 않습니다(ADR-0024 `CachePolicy.permanent()`). 호출 실패는 저장하지 않고, `013`은 `NO_DATA`로 저장합니다.
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT | PK | 아니오 | 자동 증가 |
+| `corp_code` | VARCHAR(8) | UK, FK | 아니오 | `company.corp_code` |
+| `begin_date` | DATE | UK | 아니오 | 조회 시작(`bgn_de`, 이전 보고서 기간 말일) |
+| `end_date` | DATE | UK | 아니오 | 조회 끝(`end_de`, 현재 보고서 제출일) |
+| `status` | VARCHAR(10) | | 아니오 | `OK` 자료 있음, `NO_DATA` 자료 없음(013) |
+| `fetched_at` | DATETIME(6) | | 아니오 | 받은 시각 |
+
+#### disclosure_window_item — 받아 둔 수시공시 한 건
+
+공시검색 응답 한 줄입니다. 정정 전 원본도 남습니다(비고에 '정').
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT | PK | 아니오 | 자동 증가 |
+| `fetch_id` | BIGINT | FK, UK | 아니오 | `disclosure_window_fetch.id` |
+| `rcept_no` | VARCHAR(14) | UK | 아니오 | 접수번호. `report`에 없는 공시라 외래 키를 걸지 않음 |
+| `detail_type` | VARCHAR(4) | | 아니오 | 요청한 공시상세유형(`B001`, `I001`, `I002`) |
+| `report_name` | VARCHAR(500) | | 아니오 | 보고서명 원문(`report_nm`, 앞뒤 공백만 뺌) |
+| `filer_name` | VARCHAR(200) | | 예 | 제출인(`flr_nm`) |
+| `rcept_dt` | DATE | | 아니오 | 접수일 |
+| `remark` | VARCHAR(20) | | 예 | 비고(`rm`) 원문. 빈 값은 null |
+
+#### related_disclosure_run — 분석 하나를 규칙 버전별로 계산한 기록
+
+분석·규칙 버전마다 한 행입니다. 공시 목록과 필요한 주요정보(`disclosure_key_item`)를 모두 받았을 때만 저장합니다(받지 못하면 저장하지 않고 다음 요청에서 다시 계산). 규칙 버전(`RelatedDisclosureRules.RULE_VERSION`)이 바뀌면 다음 요청 때 새 행을 만듭니다.
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT | PK | 아니오 | 자동 증가 |
+| `analysis_id` | BIGINT | FK, UK | 아니오 | `analysis.id` |
+| `rule_version` | VARCHAR(20) | UK | 아니오 | 연결 규칙 버전(`related-1`) |
+| `window_fetch_id` | BIGINT | FK | 아니오 | 쓴 공시 목록(`disclosure_window_fetch.id`) |
+| `period_end` | DATE | | 아니오 | 현재 보고서 기간 말일(기간 안·뒤 구분 기준) |
+| `link_count` | INT | | 아니오 | 저장한 연결 수 |
+| `trace_id` | VARCHAR(64) | | 예 | 계산한 요청의 추적 ID |
+| `computed_at` | DATETIME(6) | | 아니오 | 계산한 시각(한국 시간) |
+
+#### related_disclosure — 문장 변경과 수시공시의 연결
+
+연결 한 건입니다. 변경은 `text_change_explanation`처럼 분석 안의 순서(`change_no`)로 가리킵니다. 행이 많을 수 있어 `JdbcTemplate`으로 일괄 저장합니다(ADR-0011).
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT | PK | 아니오 | 자동 증가 |
+| `run_id` | BIGINT | FK, UK | 아니오 | `related_disclosure_run.id` |
+| `change_no` | INT | UK | 아니오 | `text_change.change_no`(같은 분석) |
+| `item_id` | BIGINT | FK, UK | 아니오 | `disclosure_window_item.id` |
+| `latest_rcept_no` | VARCHAR(14) | | 예 | 링크로 열 최신 정정본 접수번호(기간 뒤 정정 원본이면 `disclosure_key_item.source_rcept_no`). 모르면 null |
+| `timing` | VARCHAR(10) | | 아니오 | `DURING`(접수일 ≤ `period_end`), `AFTER` |
+| `match_rule` | VARCHAR(30) | | 아니오 | 걸린 규칙 키(여러 개면 규칙 순서의 첫 규칙) |
+| `match_level` | VARCHAR(10) | | 아니오 | `TYPE_ONLY`, `STRONG` |
+| `matched_fields` | VARCHAR(100) | | 예 | `STRONG`일 때 일치한 값 종류(`NEW_SHARES`, `PLAINTIFF`, `CASE_NAME`, `TARGET_COMPANY`, 쉼표로 이음) |
+
 ### app_user / local_credential — 일반 회원가입 (#136)
 
 > 마이그레이션: `V11__create_user_registration.sql`.
@@ -880,8 +955,12 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `llm_call` | `idx_llm_call_briefing` | `company_briefing_id` | 인덱스 | 브리핑별 호출 기록 |
 | `company_question` | `idx_company_question_report` | `rcept_no, id` | 인덱스 | 보고서별 최신 질문 조회 |
 | `llm_call` | `idx_llm_call_company_question` | `company_question_id` | 인덱스 | 기업 질문별 호출 기록 |
+| `disclosure_window_fetch` | `uk_disclosure_window_fetch` | `corp_code, begin_date, end_date` | 유니크 | (제안) 같은 기업·기간을 한 번만 받음 |
+| `disclosure_window_item` | `uk_disclosure_window_item` | `fetch_id, rcept_no` | 유니크 | (제안) 같은 공시를 두 번 저장하지 않음 |
+| `related_disclosure_run` | `uk_related_disclosure_run` | `analysis_id, rule_version` | 유니크 | (제안) 분석·규칙 버전마다 한 번만 계산 |
+| `related_disclosure` | `uk_related_disclosure` | `run_id, change_no, item_id` | 유니크 | (제안) 같은 변경·공시 연결 중복 방지. 변경별 조회에도 씀 |
 
-외래 키: `local_credential.user_id`, `refresh_token.user_id` → `app_user.id` / `refresh_token.replaced_by_id` → `refresh_token.id` / `report.corp_code`, `company_overview.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code`, `company_disclosure_fetch.corp_code`, `company_disclosure.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no`, `report_key_account_fetch.rcept_no`, `report_key_account.rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no`, `report_key_fact.rcept_no`, `company_briefing.rcept_no`, `company_question.rcept_no` → `report.rcept_no` / `llm_call.company_briefing_id` → `company_briefing.id` / `llm_call.company_question_id` → `company_question.id` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id`, `analysis_question.analysis_id`, `text_change_explanation.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id`
+외래 키: `local_credential.user_id`, `refresh_token.user_id` → `app_user.id` / `refresh_token.replaced_by_id` → `refresh_token.id` / `report.corp_code`, `company_overview.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code`, `company_disclosure_fetch.corp_code`, `company_disclosure.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no`, `report_key_account_fetch.rcept_no`, `report_key_account.rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no`, `report_key_fact.rcept_no`, `company_briefing.rcept_no`, `company_question.rcept_no` → `report.rcept_no` / `llm_call.company_briefing_id` → `company_briefing.id` / `llm_call.company_question_id` → `company_question.id` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id`, `analysis_question.analysis_id`, `text_change_explanation.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id` / (제안, 3.6) `disclosure_window_fetch.corp_code` → `company.corp_code` / `disclosure_window_item.fetch_id`, `related_disclosure_run.window_fetch_id` → `disclosure_window_fetch.id` / `related_disclosure_run.analysis_id` → `analysis.id` / `related_disclosure.run_id` → `related_disclosure_run.id` / `related_disclosure.item_id` → `disclosure_window_item.id`
 
 ## 5. 작성 규칙
 
