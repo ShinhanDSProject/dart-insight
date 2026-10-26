@@ -40,6 +40,8 @@ export interface QuestionAnswer {
   message: string | null
   citations: QuestionCitation[]
   facts: QuestionFact[]
+  /** answer가 AI가 만든 답(ANSWERED)이면 true. 'AI 생성' 표시는 이 값으로 한다(5.6) */
+  aiGenerated: boolean
   /** AI가 답을 만들었을 때만. NOT_FOUND·OUT_OF_SCOPE면 null */
   ai: AiInfo | null
   /** 이 답의 평가(3.12). 평가하지 않았으면 null */

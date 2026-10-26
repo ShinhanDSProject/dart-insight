@@ -79,7 +79,7 @@ function ExplanationBody({
     .with('OK', () => (
       <>
         <div className="text-explain__answer">
-          <Badge tone="accent">AI 생성</Badge>
+          {explanation.aiGenerated && <Badge tone="accent">AI 생성</Badge>}
           <p className="text-explain__sentence">{explanation.sentence}</p>
         </div>
         <EvidenceRow explanation={explanation} analysis={analysis} onOpenSource={onOpenSource} />

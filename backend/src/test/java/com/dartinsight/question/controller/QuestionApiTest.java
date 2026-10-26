@@ -211,6 +211,7 @@ class QuestionApiTest {
                         + "다른 말로 물어보거나 문장·내용 변화에서 검색해 보세요."))
                 .andExpect(jsonPath("$.citations", hasSize(0)))
                 .andExpect(jsonPath("$.facts", hasSize(0)))
+                .andExpect(jsonPath("$.aiGenerated").value(false))
                 .andExpect(jsonPath("$.ai").doesNotExist())
                 .andExpect(jsonPath("$.questionId").isNumber())
                 .andExpect(jsonPath("$.question").value("배당 정책은 어떻게 되나요?"));
@@ -249,6 +250,7 @@ class QuestionApiTest {
                 .andExpect(jsonPath("$.facts[0].sjDiv").value("IS"))
                 .andExpect(jsonPath("$.facts[0].accountName").value("매출액"))
                 .andExpect(jsonPath("$.facts[0].sentence").value("매출액이 145조 원에서 152조 원으로 늘었어요(+4.8%)."))
+                .andExpect(jsonPath("$.aiGenerated").value(true))
                 .andExpect(jsonPath("$.ai.model").value("fake-model"))
                 .andExpect(jsonPath("$.ai.promptVersion").value("answer-1"))
                 .andExpect(jsonPath("$.ai.generatedAt").value("2026-10-24T10:12:03"));

@@ -122,6 +122,7 @@ describe('explanationCopyText', () => {
     sentence: '주요 고객 목록에서 한 곳이 빠졌어요.',
     message: null,
     evidence: [evidence({}), evidence({ side: 'previous', rceptNo: '20250310000456', blockNo: 9, evidenceId: '20250310000456#B9' })],
+    aiGenerated: true,
     ai,
     cached: false,
     ...over,
