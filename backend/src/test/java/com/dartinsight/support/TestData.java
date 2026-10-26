@@ -23,6 +23,7 @@ public final class TestData {
             "financial_account",
             "financial_statement_fetch",
             "report",
+            "company_overview",
             "company");
 
     private TestData() {

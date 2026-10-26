@@ -103,6 +103,9 @@ app:
   analysis:
     # 분석을 요청과 다른 스레드에서 돌린다. 테스트는 false(요청 안에서 끝까지 실행)
     async: true
+  company:
+    # 기업개황(company.json)을 받은 지 이 시간이 지나면 다시 받는다(ADR-0024)
+    overview-refresh-after: 7d
   reports:
     # 정기보고서 목록을 받은 지 이 시간이 지나면 다시 받는다(OpenDART 호출 한도)
     refresh-after: 24h

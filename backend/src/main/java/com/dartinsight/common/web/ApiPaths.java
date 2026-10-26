@@ -22,6 +22,8 @@ public final class ApiPaths {
     public static final String OAUTH2_CALLBACK = "/login/oauth2/code/**";
     public static final String COMPANIES = BASE + "/companies";
     public static final String BY_CORP_CODE = "/{corpCode}";
+    /** COMPANIES 아래. 기업 개황(FS-45) */
+    public static final String COMPANY_OVERVIEW = BY_CORP_CODE + "/overview";
     public static final String COMPANY_REPORTS = "/companies/{corpCode}/reports";
     public static final String COMPANY_REPORT_PAIRS = COMPANIES + "/{corpCode}/report-pairs";
     public static final String COMPANY_ANALYSES = COMPANIES + "/{corpCode}/analyses";
