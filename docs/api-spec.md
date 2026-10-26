@@ -74,6 +74,7 @@
 | GET | `/api/reports/{rceptNo}` | 보고서 메타데이터 | #10 (1.3), #11 (1.4) | W-01 ② | 초안 |
 | GET | `/api/companies/{corpCode}/report-pairs` | 비교 기준에 맞는 보고서 쌍 | #12 (2.1) | W-01 ② | 초안 |
 | GET | `/api/companies/{corpCode}/analyses` | 이 기업의 이미 끝난 분석 목록 | #288 (1.2) | W-01 ② | 초안 |
+| GET | `/api/companies/{corpCode}/key-facts` | 최신 정기보고서와 1년 전 같은 종류 보고서의 최대주주·임원·배당과 바뀐 항목 | #331 (1.2, FS-47) | 기업 개요 탭 | 초안 |
 | POST | `/api/comparability-checks` | 비교 가능성 검증 | #13 (2.2) | W-01 ③ | 초안 |
 | POST | `/api/analyses` | 분석 요청 | #14 (2.3) | W-01 ③ → W-02 | 초안 |
 | GET | `/api/analyses/{analysisId}` | 분석 상태·단계 | #14 (2.3) | W-02, W-03 | 초안 |
@@ -462,6 +463,135 @@
 | 400 | `COMMON_INVALID_INPUT` | `basis`가 없거나 `YOY`·`PREV`가 아님 |
 | 404 | `COMPANY_NOT_FOUND`, `REPORT_NOT_FOUND` | 없는 기업, 저장되지 않았거나 다른 기업의 보고서 |
 | 502·503 | `DART_REQUEST_FAILED`, `DART_RATE_LIMITED`, `DART_KEY_MISSING` | 정기보고서 목록을 다시 받아야 하는데(4.1) OpenDART 호출이 실패하고 저장된 목록도 없음. 저장된 목록이 있으면 그 목록으로 고름 |
+
+### GET /api/companies/{corpCode}/key-facts — 최대주주·임원·배당 변화
+
+- 이슈: #331 (1.2) · 기획서: FS-47 · 화면: 기업 화면 '기업 개요' 탭
+- 현재 보고서(`current`)는 이 기업의 가장 최근 정기보고서, 이전 보고서(`previous`)는 같은 종류의 1년 전 보고서입니다(`report-pairs`의 `YOY`와 같은 규칙). 맞는 보고서가 목록에 없으면 다른 보고서로 대신하지 않고 `previous`가 null, `previousReason`에 이유가 들어 있습니다.
+- 세 묶음은 OpenDART 정기보고서 주요정보에서 받습니다. 모두 `corp_code`·`bsns_year`(보고서의 `fiscalYear`)·`reprt_code`(보고서 종류)로 부릅니다.
+
+  | 묶음 | OpenDART API | 가이드 |
+  | --- | --- | --- |
+  | `majorShareholders` | 최대주주 현황 `hyslrSttus.json` | [DS002 2019007](https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS002&apiId=2019007) |
+  | `executives` | 임원 현황 `exctvSttus.json` | [DS002 2019010](https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS002&apiId=2019010) |
+  | `dividends` | 배당에 관한 사항 `alotMatter.json` | [DS002 2019005](https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS002&apiId=2019005) |
+
+- 받은 결과는 접수번호·묶음마다 저장하고 다시 받지 않습니다(`report_key_fact`, [ADR-0024](adr/0024-company-info-cache.md)). `013`(자료 없음)은 에러가 아니라 `NO_DATA`입니다. 한 묶음을 받다 실패해도(한도 초과·네트워크 오류) 응답 전체를 실패시키지 않고 그 묶음만 `UNAVAILABLE`로 둡니다.
+- 값은 원문 표기 그대로의 문자열입니다(주식 수 `"97,414,196"`, 지분율 `"1.67"`(% 값), 배당 `"1,668"`). 이 API는 새 수치를 계산하지 않으므로 공통 규칙의 정수 금액·소수 비율로 바꾸지 않습니다. 원문의 `-`·빈 값은 null입니다. 단위는 배당 `category`(원문 `se`, 예 `주당 현금배당금(원)`, `현금배당금총액(백만원)`)에 적힌 그대로입니다. 이름의 줄바꿈·연속 공백은 공백 하나로 바꿉니다.
+- `changes`는 backend가 두 보고서의 같은 행을 짝지어 만든 바뀐 항목입니다. 두 묶음이 모두 `AVAILABLE`일 때만 만들고, 아니면 빈 배열입니다. 값은 양쪽 원문을 그대로 옮기고 차이를 계산하지 않습니다(문장은 화면이 만듦).
+
+  | 묶음 | 짝짓는 기준 | 만드는 변경 |
+  | --- | --- | --- |
+  | `majorShareholders` | `name` + `stockKind` | `ADDED`·`REMOVED`(`field`: `endRatio`), `CHANGED`: 기말 지분율(`endRatio`)이 다르면 그 값, 같고 기말 주식 수(`endShares`)만 다르면 그 값 |
+  | `executives` | `name`(같은 이름이 둘 이상이면 처음 것) | `ADDED`·`REMOVED`(`field`: `position`), `CHANGED`: 직위(`position`)·등기 구분(`registeredType`)이 다르면 필드마다 한 건 |
+  | `dividends` | `category` + `stockKind` | `CHANGED`: `category`가 `주당 현금배당금`으로 시작하는 행의 당기 값(`currentTerm`)이 다를 때 |
+
+**응답 200**
+
+```json
+{
+  "corpCode": "00126380",
+  "current": {
+    "rceptNo": "20260814003699",
+    "reportName": "반기보고서 (2026.06)",
+    "reportType": "HALF",
+    "fiscalYear": 2026,
+    "periodEnd": "2026-06-30",
+    "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260814003699"
+  },
+  "previous": {
+    "rceptNo": "20250814003156",
+    "reportName": "반기보고서 (2025.06)",
+    "reportType": "HALF",
+    "fiscalYear": 2025,
+    "periodEnd": "2025-06-30",
+    "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250814003156"
+  },
+  "previousReason": null,
+  "majorShareholders": {
+    "current": {
+      "rceptNo": "20260814003699",
+      "status": "AVAILABLE",
+      "settlementDate": "2026-06-30",
+      "rows": [
+        {
+          "name": "이재용",
+          "relation": "최대주주의 특수관계인",
+          "stockKind": "보통주",
+          "beginShares": "97,414,196",
+          "beginRatio": "1.65",
+          "endShares": "97,414,196",
+          "endRatio": "1.67",
+          "remark": null
+        }
+      ]
+    },
+    "previous": { "rceptNo": "20250814003156", "status": "AVAILABLE", "settlementDate": "2025-06-30", "rows": [] },
+    "changes": [
+      { "type": "CHANGED", "name": "이재용", "stockKind": "보통주", "field": "endRatio", "before": "1.65", "after": "1.67" }
+    ]
+  },
+  "executives": {
+    "current": {
+      "rceptNo": "20260814003699",
+      "status": "AVAILABLE",
+      "settlementDate": "2026-06-30",
+      "rows": [
+        {
+          "name": "김용관",
+          "position": "사장",
+          "registeredType": "사내이사",
+          "fullTime": "상근",
+          "duty": "ㆍDS부문 경영전략총괄",
+          "largestShareholderRelation": "계열회사 임원",
+          "tenure": "4개월",
+          "termEnd": "2029년 03월 17일"
+        }
+      ]
+    },
+    "previous": { "rceptNo": "20250814003156", "status": "AVAILABLE", "settlementDate": "2025-06-30", "rows": [] },
+    "changes": [
+      { "type": "ADDED", "name": "김용관", "stockKind": null, "field": "position", "before": null, "after": "사장" },
+      { "type": "REMOVED", "name": "송재혁", "stockKind": null, "field": "position", "before": "사장", "after": null },
+      { "type": "CHANGED", "name": "신제윤", "stockKind": null, "field": "registeredType", "before": "사외이사", "after": "독립이사" }
+    ]
+  },
+  "dividends": {
+    "current": {
+      "rceptNo": "20260814003699",
+      "status": "AVAILABLE",
+      "settlementDate": "2026-06-30",
+      "rows": [
+        { "category": "주당 현금배당금(원)", "stockKind": "보통주", "currentTerm": "746", "priorTerm": "1,668", "twoTermsAgo": "1,446" }
+      ]
+    },
+    "previous": { "rceptNo": "20250814003156", "status": "AVAILABLE", "settlementDate": "2025-06-30", "rows": [] },
+    "changes": [
+      { "type": "CHANGED", "name": "주당 현금배당금(원)", "stockKind": "보통주", "field": "currentTerm", "before": "732", "after": "746" }
+    ]
+  }
+}
+```
+
+(예시는 삼성전자 실제 응답에서 일부 행만 적었습니다. 위 `previous.rows`는 줄여 적은 것입니다.)
+
+| 필드 | 설명 |
+| --- | --- |
+| `current`, `previous` | 보고서. `current`는 정기보고서가 하나도 없을 때만 null(`previousReason.code`가 `NO_REPORTS`) |
+| `previousReason` | `previous`가 null인 이유 `{code, message}`. `code`는 `report-pairs`의 `reason.code`와 같음(`NO_BASE_REPORT`, `NO_REPORTS`). 있으면 null |
+| 묶음`.current`, 묶음`.previous` | 그 보고서의 묶음 결과. 보고서가 없으면 null |
+| `status` | `AVAILABLE` 자료 있음, `NO_DATA` 공시된 자료 없음(013, 2015 사업연도 이전, 또는 응답이 이 보고서의 것이 아님), `UNAVAILABLE` 이번에 받지 못함(OpenDART 호출 실패. 저장하지 않아 다음 조회 때 다시 받음) |
+| `settlementDate` | 결산기준일(`stlm_dt`). `AVAILABLE`이 아니면 null |
+| `rows` | 원문 순서의 행. `AVAILABLE`이 아니면 빈 배열 |
+| 최대주주 행 | `name` 성명(`nm`, 합계 행은 원문 그대로 `계`), `relation` 관계(`relate`), `stockKind` 주식 종류(`stock_knd`), `beginShares`·`beginRatio` 기초 소유 주식 수·지분율(`bsis_posesn_stock_co`·`bsis_posesn_stock_qota_rt`), `endShares`·`endRatio` 기말 소유 주식 수·지분율(`trmend_posesn_stock_co`·`trmend_posesn_stock_qota_rt`), `remark` 비고(`rm`) |
+| 임원 행 | `name` 성명(`nm`), `position` 직위(`ofcps`), `registeredType` 등기 임원 여부(`rgist_exctv_at`), `fullTime` 상근 여부(`fte_at`), `duty` 담당 업무(`chrg_job`), `largestShareholderRelation` 최대주주와의 관계(`mxmm_shrholdr_relate`), `tenure` 재직 기간(`hffc_pd`), `termEnd` 임기 만료일(`tenure_end_on`). 성별·출생 연월·주요 경력은 이 화면에 쓰지 않아 내보내지 않음 |
+| 배당 행 | `category` 구분(`se`), `stockKind` 주식 종류(`stock_knd`, 구분 없음은 null), `currentTerm` 당기(`thstrm`), `priorTerm` 전기(`frmtrm`), `twoTermsAgo` 전전기(`lwfr`). 한 보고서 안의 당기·전기·전전기 값은 원문 그대로 두 보고서를 비교한 것이 아님 |
+| `changes[]` | `type`(`ADDED` 현재 보고서에만 있음, `REMOVED` 이전 보고서에만 있음, `CHANGED` 값이 다름), `name`(배당은 `category`), `stockKind`(임원은 null), `field` 비교한 필드 이름, `before` 이전 보고서 값, `after` 현재 보고서 값(없으면 null) |
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 404 | `COMPANY_NOT_FOUND` | 없는 고유번호 |
+| 502·503 | `DART_REQUEST_FAILED`, `DART_RATE_LIMITED`, `DART_KEY_MISSING` | 정기보고서 목록을 다시 받아야 하는데(4.1) OpenDART 호출이 실패하고 저장된 목록도 없음. 묶음을 받다 실패한 것은 에러가 아니라 그 묶음의 `UNAVAILABLE` |
 
 ### GET /api/companies/{corpCode}/analyses — 이미 분석한 비교
 
