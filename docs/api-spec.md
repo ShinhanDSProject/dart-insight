@@ -92,6 +92,7 @@
 | GET | `/api/analyses/{analysisId}/financial-changes/{changeId}` | 수치 근거 상세 | #21 (3.3) | W-03 ② | 초안 |
 | GET | `/api/analyses/{analysisId}/text-changes` | 문장·표 변경 목록(섹션 거르기·검색 #25) | #16 (2.5) | W-03 ③ | 초안 |
 | GET | `/api/analyses/{analysisId}/text-changes/{changeId}` | 문장·표 근거 상세 | #22 (3.4) | W-03 ③ | 초안 |
+| GET | `/api/analyses/{analysisId}/text-changes/{changeId}/history` | 문장 변경 이력(여러 기간) | #26 (3.8) | — | 초안 |
 | POST | `/api/analyses/{analysisId}/text-changes/{changeId}/explanations` | 문장 변경 AI 한 줄 풀이(만들거나 저장된 것) | #227 (3.11) | W-03 ③ | 초안 |
 | GET | `/api/analyses/{analysisId}/summary` | 근거 기반 요약·설명 | #20 (3.2) | W-03 ① | 초안 |
 | POST | `/api/analyses/{analysisId}/questions` | 근거로 답하는 질문(AI) | #219 (3.10) | W-03 ⑤ | 초안 |
@@ -1239,6 +1240,67 @@
 | --- | --- |
 | `table` | 표 셀 `[[{"text","header","colspan","rowspan"}]]`. 문단이거나 저장된 원문과 맞지 않으면 null |
 | `blockMatches` | 저장된 원문 블록의 글이 분석 때와 같은지 |
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 404 | `ANALYSIS_NOT_FOUND`, `ANALYSIS_TEXT_CHANGE_NOT_FOUND` | 없는 분석·변경 항목 |
+| 409 | `ANALYSIS_NOT_READY` | 분석이 아직 완료되지 않음 |
+
+### GET /api/analyses/{analysisId}/text-changes/{changeId}/history — 문장 변경 이력
+
+- 이슈: #26 (3.8) · 화면: 와이어프레임 없음(W-03 ③ 근거 상세 아래 '이력')
+- 고른 변경 항목의 글이 이 기업의 다른 보고서들에서 언제 추가·삭제·수정됐는지 오래된 보고서부터 돌려줍니다([ADR-0028](adr/0028-text-change-history-from-completed-analyses.md)).
+- 이미 완료된 분석만 이어 붙입니다. 새 분석을 만들지 않고 OpenDART·ai-server를 부르지 않습니다.
+- 이어 붙이기: 고른 분석의 이전 보고서에서 시작해, 그 보고서를 현재 보고서로 둔 완료 분석(이전 보고서가 가장 가까운 기간인 것)으로 한 칸씩 과거로 갑니다. 고른 분석의 현재 보고서에서는 같은 방법으로 미래로 갑니다. 같은 보고서 쌍이 여러 번 완료됐으면 가장 최근에 완료된 것을 씁니다.
+- 글 따라가기: 이어 붙인 분석에서 따라가는 글과 같은 글을 가진 변경 항목을 찾습니다. 있으면 그 변경(수정·숫자만 바뀜·위치 이동이면 반대쪽 글을 이어서 따라감)이고, 없으면 그 두 보고서 사이에 바뀌지 않은 것입니다. 추가(과거로 갈 때)나 삭제(미래로 갈 때)를 만나면 거기서 멈춥니다.
+- 이어 붙인 분석이 건너뛴 보고서(예: 전년 동기 비교 사이의 분기보고서)와, 분석이 없어 더 가지 못한 양 끝의 바로 옆 보고서는 `NOT_ANALYZED`로 넣습니다. 비어 있는 기간을 '변경 없음'처럼 보이게 하지 않습니다.
+- 문장 비교가 실패(`textStatus: FAILED`)한 분석은 없는 것으로 봅니다. 일부만 비교(`PARTIAL`)했거나 같은 섹션에 짝을 정하지 못한 항목(`REVIEW_NEEDED`)이 있어 같은 글을 찾지 못하면 그 보고서는 `REVIEW_NEEDED`이고 거기서 멈춥니다.
+- 고른 항목이 `REVIEW_NEEDED`(글 없음)면 그 분석의 두 보고서만 `REVIEW_NEEDED`로 돌려줍니다.
+- 근거 위치: 변경 항목이 있는 보고서는 그 항목의 위치를 씁니다. 바뀌지 않은 보고서는 그 보고서의 저장된 원문(`document_block`)에서 글이 똑같은 블록을 찾아(여럿이면 문서 순서상 첫 블록) 그 위치를 씁니다. 원문이 저장되지 않았거나 같은 글의 블록이 없으면 글을 보여 주지 않고 `REVIEW_NEEDED`로 두되, 분석상 바뀌지 않았으므로 다음 보고서로 계속 따라갑니다.
+- 한 방향으로 최대 20개 분석까지 이어 붙입니다.
+
+**응답 200**
+
+```json
+{
+  "analysisId": 42,
+  "changeId": 3001,
+  "entries": [
+    {
+      "report": { "rceptNo": "20250515000321", "reportName": "분기보고서 (2025.03)", "reportType": "Q1", "periodEnd": "2025-03-31" },
+      "status": "NOT_ANALYZED",
+      "text": null,
+      "sectionPath": null,
+      "evidenceId": null,
+      "change": null
+    },
+    {
+      "report": { "rceptNo": "20250814000987", "reportName": "반기보고서 (2025.06)", "reportType": "HALF", "periodEnd": "2025-06-30" },
+      "status": "PRESENT",
+      "text": "당사는 메모리 반도체를 만듭니다.",
+      "sectionPath": "II. 사업의 내용 > 1. 사업의 개요",
+      "evidenceId": "20250814000987#B41",
+      "change": null
+    },
+    {
+      "report": { "rceptNo": "20260814001234", "reportName": "반기보고서 (2026.06)", "reportType": "HALF", "periodEnd": "2026-06-30" },
+      "status": "PRESENT",
+      "text": "당사는 메모리 반도체와 파운드리 사업을 합니다.",
+      "sectionPath": "II. 사업의 내용 > 1. 사업의 개요",
+      "evidenceId": "20260814001234#B44",
+      "change": { "analysisId": 42, "changeId": 3001, "changeType": "MODIFIED" }
+    }
+  ]
+}
+```
+
+| 필드 | 설명 |
+| --- | --- |
+| `entries` | 보고서 기간(`periodEnd`)이 오래된 것부터. `report`는 정기보고서 목록 항목의 일부 |
+| `status` | `PRESENT` 그 보고서에 글이 있고 근거 위치가 있음, `ABSENT` 없음(추가되기 전이거나 삭제된 뒤), `NOT_ANALYZED` 앞 보고서와 비교한 완료 분석이 없어 알 수 없음, `REVIEW_NEEDED` 비교는 했지만 글을 찾지 못했거나 근거 위치를 찾지 못함 |
+| `text` | `PRESENT`일 때 그 보고서의 글. 그 밖은 null |
+| `sectionPath`·`evidenceId` | `PRESENT`면 항상 있는 근거 위치(섹션 경로, `{rceptNo}#B{blockNo}`). 변경 항목이 있으면 그 항목의 위치, 바뀌지 않았으면 저장된 원문에서 같은 글을 찾은 블록의 위치. 그 밖은 null |
+| `change` | 바로 앞 항목에서 이 보고서로 오며 생긴 변경(`changeType`은 목록과 같은 값). 바뀌지 않았거나 알 수 없으면 null. `changeId`로 근거 상세를 열 수 있음 |
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
