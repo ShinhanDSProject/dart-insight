@@ -30,6 +30,7 @@ public final class ApiPaths {
     public static final String COMPANY_FINANCIAL_TRENDS = COMPANIES + "/{corpCode}/financial-trends";
     public static final String COMPANY_KEY_FACTS = COMPANIES + "/{corpCode}/key-facts";
     public static final String COMPANY_DISCLOSURES = COMPANIES + "/{corpCode}/disclosures";
+    public static final String COMPANY_BRIEFING = COMPANIES + "/{corpCode}/briefing";
     public static final String REPORT_BY_RCEPT_NO = "/reports/{rceptNo}";
 
     public static final String COMPARABILITY_CHECKS = BASE + "/comparability-checks";

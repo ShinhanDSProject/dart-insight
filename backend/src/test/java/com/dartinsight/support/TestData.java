@@ -14,6 +14,7 @@ public final class TestData {
             "text_change_explanation",
             "summary_item",
             "llm_call",
+            "company_briefing",
             "text_change",
             "financial_change",
             "analysis",
