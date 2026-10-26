@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DisclosureItem, DisclosureList } from '@/shared/api/disclosures'
 import { axeViolations } from '@/test/axe'
@@ -49,6 +50,17 @@ describe('관심 기업 새 공시(FS-52)', () => {
   it('관심 기업이 없으면 부르지 않고 짧은 안내를 보인다', () => {
     render(<FavoriteDisclosureFeed companies={[]} />)
     expect(screen.getByText('관심 기업을 추가하면 새 공시를 모아 보여 줘요.')).toBeTruthy()
+    expect(listDisclosures).not.toHaveBeenCalled()
+  })
+
+  it('로그인하지 않았으면 관심 기업 추가 대신 로그인을 안내한다', () => {
+    render(
+      <MemoryRouter>
+        <FavoriteDisclosureFeed companies={[]} signedOut />
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('로그인하면 관심 기업의 새 공시를 모아 볼 수 있어요.')).toBeTruthy()
+    expect(screen.getByRole('link', { name: '로그인' }).getAttribute('href')).toBe('/login')
     expect(listDisclosures).not.toHaveBeenCalled()
   })
 

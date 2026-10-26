@@ -130,7 +130,7 @@ function FavoriteCompaniesSection() {
     .with('anonymous', 'ready', () => (
       <>
         <FavoriteCompanies items={favorites.items} onRemove={favorites.remove} />
-        <FavoriteDisclosureFeed companies={favorites.items} />
+        <FavoriteDisclosureFeed companies={favorites.items} signedOut={favorites.status === 'anonymous'} />
       </>
     ))
     .exhaustive()
