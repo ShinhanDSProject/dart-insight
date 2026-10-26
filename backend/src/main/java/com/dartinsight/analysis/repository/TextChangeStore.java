@@ -173,6 +173,29 @@ public class TextChangeStore {
                 (rs, i) -> rs.getLong("id"), analysisId, changeNo).stream().findFirst();
     }
 
+    /**
+     * 저장된 글이 text와 똑같은 첫 변경(문서 순서). currentSide면 현재 보고서 쪽 글, 아니면 이전 쪽 글을 본다(3.8 이력).
+     */
+    public Optional<TextChange> findByText(long analysisId, boolean currentSide, String text) {
+        String column = currentSide ? "current_text" : "previous_text";
+        // 정렬 규칙(대소문자 무시)에 맞는 후보를 LIKE로 좁힌 뒤, 글자까지 똑같은 것만 고른다
+        return jdbcTemplate.query("SELECT " + COLUMNS + " FROM text_change WHERE analysis_id = ? AND " + column
+                + " LIKE ? ESCAPE '!' ORDER BY change_no", TextChangeStore::map, analysisId,
+                Condition.escapeLike(text)).stream()
+                .filter(change -> {
+                    Side side = currentSide ? change.row().current() : change.row().previous();
+                    return side != null && text.equals(side.text());
+                })
+                .findFirst();
+    }
+
+    /** 이 섹션에 짝을 정하지 못한 항목(REVIEW_NEEDED)이 있는지 */
+    public boolean hasReviewNeeded(long analysisId, String sectionPath) {
+        Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM text_change WHERE analysis_id = ? "
+                + "AND change_type = 'REVIEW_NEEDED' AND section_path = ?", Integer.class, analysisId, sectionPath);
+        return count != null && count > 0;
+    }
+
     public Optional<TextChange> find(long analysisId, long changeId) {
         return jdbcTemplate.query("SELECT " + COLUMNS + " FROM text_change WHERE analysis_id = ? AND id = ?",
                 TextChangeStore::map, analysisId, changeId).stream().findFirst();
