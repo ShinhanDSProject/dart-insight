@@ -1,4 +1,4 @@
-"""근거로 답하기(3.10, ADR-0019). LLM은 app.llm.LlmClient로만 부른다.
+"""근거로 답하기(3.10, ADR-0023). LLM은 app.llm.LlmClient로만 부른다.
 
 - 투자 판단을 묻는 질문(app.compliance.scan_question)은 LLM을 부르지 않고 OUT_OF_SCOPE다.
 - 후보 원문도 사실도 없으면 LLM을 부르지 않고 NOT_FOUND다.

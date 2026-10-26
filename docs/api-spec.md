@@ -909,7 +909,7 @@
 
 ### POST /api/analyses/{analysisId}/questions — 근거로 답하는 질문
 
-- 이슈: #219 (3.10) · 화면: W-03 ⑤ · [ADR-0019](adr/0019-grounded-question-answering.md)
+- 이슈: #219 (3.10) · 화면: W-03 ⑤ · [ADR-0023](adr/0023-grounded-question-answering.md)
 - 완료된 분석에만 묻습니다. 동기 호출이고 보통 수 초 걸립니다.
 - backend가 두 보고서 원문 문단에서 질문 낱말로 후보를 최대 6개 찾고, 질문에 이 분석의 계정이 나오면 코드가 만든 사실 문장을 함께 ai-server(`POST /internal/answers`)에 보냅니다. 후보도 사실도 없으면 ai-server를 부르지 않고 `NOT_FOUND`입니다.
 - 질문에 이 분석의 섹션 제목(문장 변경의 섹션 경로에 나오는 대목차·하위 목차 제목, 공백·앞 번호(`II.`·`7.`)·따옴표·괄호 무시, 4자 미만 제목과 `(목차 밖 본문)` 제외)이 들어 있으면 가장 긴 제목의 섹션(하위 목차면 그 하위 섹션까지)으로 범위를 좁힙니다. 그 범위에 문장 변경(추가·삭제·수정·숫자만 바뀜·위치 이동, 검토 필요 제외)이 있으면 낱말 검색 대신 그 변경의 현재·이전 문단을 확인 우선순위 점수가 높은 순, 같으면 문서 순서로 최대 6개 후보로 보냅니다(#258). 범위에 변경이 없으면 낱말 검색으로 찾습니다. 사실 문장은 같습니다.
@@ -1285,7 +1285,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 
 ### POST /internal/answers — 근거로 답하기
 
-- 이슈: #218 (3.10) · [ADR-0019](adr/0019-grounded-question-answering.md) · LLM은 `app/llm`의 한 모듈로만 부릅니다.
+- 이슈: #218 (3.10) · [ADR-0023](adr/0023-grounded-question-answering.md) · LLM은 `app/llm`의 한 모듈로만 부릅니다.
 - 질문은 `<question>`, 원문은 `<disclosure id>`, 사실은 `<fact ref>` 태그로 감싸 자료로만 씁니다. 질문 안의 지시는 따르지 않습니다. 사용자 정보는 넣지 않습니다.
 - 매수·매도·목표주가·주가 전망 질문(규칙 `OUT_OF_SCOPE_QUESTION`)은 LLM을 부르지 않고 `OUT_OF_SCOPE`, 후보(`sources`)와 사실(`facts`)이 모두 비었으면 LLM을 부르지 않고 `NOT_FOUND`입니다.
 - LLM 출력: `{"status": "ANSWERED"|"NOT_FOUND", "answer": "…", "evidenceIds": […], "factRefs": […]}`. 답은 해요체 3문장·400자 이내, 문장마다 `[근거 ID]`나 `[F1]`을 붙여 쓰게 하고, ai-server가 근거 ID 표시를 그대로 둡니다(backend가 번호로 바꿈).
