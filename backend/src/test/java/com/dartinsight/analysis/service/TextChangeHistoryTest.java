@@ -150,6 +150,8 @@ class TextChangeHistoryTest {
                 .andExpect(jsonPath("$.entries[4].report.rceptNo").value(HALF_2026))
                 .andExpect(jsonPath("$.entries[4].report.reportType").value("HALF"))
                 .andExpect(jsonPath("$.entries[4].report.periodEnd").value("2026-06-30"))
+                .andExpect(jsonPath("$.entries[4].report.dartUrl")
+                        .value("https://dart.fss.or.kr/dsaf001/main.do?rcpNo=" + HALF_2026))
                 .andExpect(jsonPath("$.entries[4].status").value("PRESENT"))
                 .andExpect(jsonPath("$.entries[4].text").value(NEW))
                 .andExpect(jsonPath("$.entries[4].evidenceId").value(HALF_2026 + "#B5"))

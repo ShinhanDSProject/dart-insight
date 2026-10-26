@@ -25,7 +25,7 @@ const data: TextChangeHistory = {
   changeId: 3001,
   entries: [
     {
-      report: { rceptNo: '20250515000001', reportName: '분기보고서 (2025.03)', reportType: 'Q1', periodEnd: '2025-03-31' },
+      report: { rceptNo: '20250515000001', reportName: '분기보고서 (2025.03)', reportType: 'Q1', periodEnd: '2025-03-31' , dartUrl: 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250515000001' },
       status: 'NOT_ANALYZED',
       text: null,
       sectionPath: null,
@@ -33,7 +33,7 @@ const data: TextChangeHistory = {
       change: null,
     },
     {
-      report: { rceptNo: '20250814000001', reportName: '반기보고서 (2025.06)', reportType: 'HALF', periodEnd: '2025-06-30' },
+      report: { rceptNo: '20250814000001', reportName: '반기보고서 (2025.06)', reportType: 'HALF', periodEnd: '2025-06-30' , dartUrl: 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250814000001' },
       status: 'PRESENT',
       text: '당사는 메모리를 만듭니다.',
       sectionPath: 'II. 사업의 내용 > 1. 사업의 개요',
@@ -41,7 +41,7 @@ const data: TextChangeHistory = {
       change: null,
     },
     {
-      report: { rceptNo: '20260814000001', reportName: '반기보고서 (2026.06)', reportType: 'HALF', periodEnd: '2026-06-30' },
+      report: { rceptNo: '20260814000001', reportName: '반기보고서 (2026.06)', reportType: 'HALF', periodEnd: '2026-06-30' , dartUrl: 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260814000001' },
       status: 'ABSENT',
       text: null,
       sectionPath: null,
@@ -74,6 +74,11 @@ describe('TextHistory', () => {
     expect(items[1].textContent).toContain('20250814000001#B41')
     expect(items[2].textContent).toContain('삭제')
     expect(items[2].textContent).toContain('이 보고서에는 이 글이 없어요.')
+    // 공시에서 가져온 글이라 줄마다 '출처: DART'와 그 보고서의 원문 링크가 있다(5.6)
+    for (const item of items) expect(item.textContent).toContain('출처: DART')
+    expect(screen.getByRole('link', { name: '반기보고서 (2025.06) DART 원문 새 창으로 열기' }).getAttribute('href')).toBe(
+      'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250814000001',
+    )
     expect(await axeViolations(container)).toBe('')
   })
 })
