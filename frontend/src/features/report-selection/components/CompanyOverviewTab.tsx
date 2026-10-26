@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react'
 import type { OverviewSectionProps } from '../model/overviewSections'
 import { CompanyProfileCard } from './CompanyProfileCard'
+import { DisclosureTimelineSection } from './DisclosureTimelineSection'
 import { FinancialTrendSection } from './FinancialTrendSection'
 import { KeyFactsSection } from './KeyFactsSection'
 
@@ -17,6 +18,7 @@ const sections: ReadonlyArray<{ key: string; Component: ComponentType<OverviewSe
   { key: 'profile', Component: CompanyProfileCard },
   { key: 'financial-trends', Component: FinancialTrendSection },
   { key: 'key-facts', Component: KeyFactsSection },
+  { key: 'disclosures', Component: DisclosureTimelineSection },
 ]
 
 export function CompanyOverviewTab(props: OverviewSectionProps) {
