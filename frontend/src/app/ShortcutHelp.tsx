@@ -3,7 +3,7 @@ import { cx } from '@/shared/lib/cx'
 import { shortcutGroups, type ShortcutPage } from '@/shared/lib/shortcuts'
 import { SHORTCUT_HELP_TITLE_ID } from './useShortcuts'
 
-/** 단축키 도움말(FS-17 AC3). 지금 화면에서 쓸 수 있는 묶음을 먼저 보이고, 쓸 수 없는 묶음은 흐리게 두고 이유를 적는다 */
+/** 단축키 도움말(FS-17 AC3). 지금 화면에서 쓸 수 있는 묶음을 먼저 보이고, 쓸 수 없는 묶음은 흐리게 두고 쓸 수 있는 곳을 적는다 */
 export function ShortcutHelp({ page, onClose }: { page: ShortcutPage; onClose: () => void }) {
   return (
     <Dialog titleId={SHORTCUT_HELP_TITLE_ID} title="키보드 단축키" onClose={onClose} className="shortcut-help">
@@ -17,7 +17,7 @@ export function ShortcutHelp({ page, onClose }: { page: ShortcutPage; onClose: (
             {group.title}
             {group.available && group.id === 'result' && <Badge tone="accent">지금 화면</Badge>}
           </h3>
-          {!group.available && <p className="shortcut-help__note">분석 결과 화면에서 쓸 수 있어요.</p>}
+          {group.note !== null && <p className="shortcut-help__note">{group.note}</p>}
           <dl className="shortcut-help__list">
             {group.items.map((item) => (
               <div key={item.label} className="shortcut-help__item">

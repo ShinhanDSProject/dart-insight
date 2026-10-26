@@ -309,10 +309,17 @@ a.app-nav__item:not([aria-current='page']):hover {
 
 .shortcut-help__item {
   display: grid;
-  grid-template-columns: var(--space-7) minmax(0, 1fr);
+  /* 키 두 개(J ↓)가 한 줄에 들어가는 너비 */
+  grid-template-columns: calc(var(--space-7) + var(--space-5)) minmax(0, 1fr);
   align-items: center;
   gap: var(--space-3);
   font-size: var(--font-size-sm);
+}
+
+.shortcut-help__item dt {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
 }
 
 .shortcut-help__item dt,

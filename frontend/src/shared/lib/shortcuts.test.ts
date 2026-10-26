@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
   isEditableTarget,
+  movedCardIndex,
   shortcutFor,
   shortcutGroups,
+  textCardKeyFor,
   type ShortcutContext,
   type ShortcutKeyEvent,
+  type TextCardContext,
 } from './shortcuts'
 
 function key(k: string, overrides: Partial<ShortcutKeyEvent> = {}): ShortcutKeyEvent {
@@ -132,14 +135,15 @@ describe('shortcutFor 무시하는 경우', () => {
 describe('shortcutGroups 도움말 목록', () => {
   it('결과 화면에서는 결과 화면 묶음을 먼저 두고 쓸 수 있다고 표시한다', () => {
     const groups = shortcutGroups('result')
-    expect(groups.map((g) => g.id)).toEqual(['result', 'anywhere'])
+    expect(groups.map((g) => g.id)).toEqual(['result', 'text', 'anywhere'])
     expect(groups.every((g) => g.available)).toBe(true)
   })
 
   it('결과 화면이 아니면 결과 화면 묶음을 뒤에 두고 쓸 수 없다고 표시한다', () => {
     const groups = shortcutGroups('search')
-    expect(groups.map((g) => g.id)).toEqual(['anywhere', 'result'])
+    expect(groups.map((g) => g.id)).toEqual(['anywhere', 'result', 'text'])
     expect(groups.find((g) => g.id === 'result')?.available).toBe(false)
+    expect(groups.find((g) => g.id === 'text')?.available).toBe(false)
   })
 
   it('결과 화면 묶음은 탭 다섯 개와 AI 질문 입력창을 보여 준다', () => {
@@ -150,5 +154,114 @@ describe('shortcutGroups 도움말 목록', () => {
   it('검색 화면에서는 /의 설명이 검색창으로 가기다', () => {
     const anywhere = shortcutGroups('search').find((g) => g.id === 'anywhere')
     expect(anywhere?.items[0]).toEqual({ keys: ['/'], label: '검색창으로 가기' })
+  })
+})
+
+describe('shortcutGroups 문장 변화 묶음', () => {
+  it('j·k·Enter·p를 보이고 문장·내용 변화 탭에서 쓴다고 늘 안내한다', () => {
+    const text = shortcutGroups('result').find((g) => g.id === 'text')
+    expect(text?.title).toBe('문장 변화')
+    expect(text?.items.map((i) => i.keys)).toEqual([['J', '↓'], ['K', '↑'], ['Enter'], ['P']])
+    expect(text?.note).toContain('문장·내용 변화 탭')
+  })
+
+  it('결과 화면에서는 결과 화면 묶음에 안내를 달지 않고, 다른 화면에서는 단다', () => {
+    expect(shortcutGroups('result').find((g) => g.id === 'result')?.note).toBeNull()
+    expect(shortcutGroups('search').find((g) => g.id === 'result')?.note).toBe('분석 결과 화면에서 쓸 수 있어요.')
+  })
+})
+
+const onCard: TextCardContext = { focus: 'card', dialogOpen: false }
+const insideCard: TextCardContext = { focus: 'inside-card', dialogOpen: false }
+const offCard: TextCardContext = { focus: 'none', dialogOpen: false }
+
+describe('textCardKeyFor 문장 변화 카드 키', () => {
+  it('j는 다음 카드, k는 이전 카드로 가고 카드 밖에서도 받는다', () => {
+    for (const ctx of [onCard, insideCard, offCard]) {
+      expect(textCardKeyFor(key('j'), ctx)).toEqual({ kind: 'move', step: 1 })
+      expect(textCardKeyFor(key('k'), ctx)).toEqual({ kind: 'move', step: -1 })
+    }
+  })
+
+  it('한글 자판의 ㅓ·ㅏ·ㅔ는 j·k·p와 같다', () => {
+    expect(textCardKeyFor(key('ㅓ'), onCard)).toEqual({ kind: 'move', step: 1 })
+    expect(textCardKeyFor(key('ㅏ'), onCard)).toEqual({ kind: 'move', step: -1 })
+    expect(textCardKeyFor(key('ㅔ'), onCard)).toEqual({ kind: 'toggle-pin' })
+  })
+
+  it('↓·↑와 Enter는 카드 자체에 초점이 있을 때만 받는다', () => {
+    expect(textCardKeyFor(key('ArrowDown'), onCard)).toEqual({ kind: 'move', step: 1 })
+    expect(textCardKeyFor(key('ArrowUp'), onCard)).toEqual({ kind: 'move', step: -1 })
+    expect(textCardKeyFor(key('Enter'), onCard)).toEqual({ kind: 'toggle-evidence' })
+    for (const ctx of [insideCard, offCard]) {
+      expect(textCardKeyFor(key('ArrowDown'), ctx)).toBeNull()
+      expect(textCardKeyFor(key('ArrowUp'), ctx)).toBeNull()
+      expect(textCardKeyFor(key('Enter'), ctx)).toBeNull()
+    }
+  })
+
+  it('p는 카드나 카드 안에 초점이 있을 때만 그 카드를 고정한다', () => {
+    expect(textCardKeyFor(key('p'), onCard)).toEqual({ kind: 'toggle-pin' })
+    expect(textCardKeyFor(key('p'), insideCard)).toEqual({ kind: 'toggle-pin' })
+    expect(textCardKeyFor(key('p'), offCard)).toBeNull()
+  })
+
+  it('Shift를 함께 누른 대문자와 다른 키는 단축키가 아니다', () => {
+    expect(textCardKeyFor(key('J'), onCard)).toBeNull()
+    expect(textCardKeyFor(key('P'), onCard)).toBeNull()
+    expect(textCardKeyFor(key('x'), onCard)).toBeNull()
+  })
+})
+
+describe('textCardKeyFor 무시하는 경우', () => {
+  it('입력창·편집 영역에 초점이 있으면 j·k·p를 글자로 둔다', () => {
+    for (const tagName of ['INPUT', 'TEXTAREA', 'SELECT']) {
+      expect(textCardKeyFor(key('j', { target: { tagName } }), offCard)).toBeNull()
+      expect(textCardKeyFor(key('p', { target: { tagName } }), insideCard)).toBeNull()
+    }
+    expect(textCardKeyFor(key('k', { target: { tagName: 'DIV', isContentEditable: true } }), offCard)).toBeNull()
+  })
+
+  it('한글 조합 중이면 무시한다', () => {
+    expect(textCardKeyFor(key('ㅓ', { isComposing: true }), onCard)).toBeNull()
+    expect(textCardKeyFor(key('Process'), onCard)).toBeNull()
+  })
+
+  it('Ctrl·Cmd·Alt를 함께 누르면 무시한다', () => {
+    expect(textCardKeyFor(key('j', { ctrlKey: true }), onCard)).toBeNull()
+    expect(textCardKeyFor(key('p', { metaKey: true }), onCard)).toBeNull()
+    expect(textCardKeyFor(key('Enter', { altKey: true }), onCard)).toBeNull()
+  })
+
+  it('키를 누르고 있어 반복되는 입력은 무시한다', () => {
+    expect(textCardKeyFor(key('j', { repeat: true }), onCard)).toBeNull()
+  })
+
+  it('대화상자가 열려 있으면 무시한다', () => {
+    const ctx = { ...onCard, dialogOpen: true }
+    expect(textCardKeyFor(key('j'), ctx)).toBeNull()
+    expect(textCardKeyFor(key('Enter'), ctx)).toBeNull()
+    expect(textCardKeyFor(key('p'), ctx)).toBeNull()
+  })
+})
+
+describe('movedCardIndex 옮겨 갈 카드', () => {
+  it('초점이 없으면 다음은 첫 카드로 가고 이전은 가지 않는다', () => {
+    expect(movedCardIndex(null, 1, 3)).toBe(0)
+    expect(movedCardIndex(null, -1, 3)).toBeNull()
+  })
+
+  it('다음·이전 카드로 한 칸씩 간다', () => {
+    expect(movedCardIndex(0, 1, 3)).toBe(1)
+    expect(movedCardIndex(2, -1, 3)).toBe(1)
+  })
+
+  it('처음과 끝에서는 그 자리에 둔다', () => {
+    expect(movedCardIndex(0, -1, 3)).toBe(0)
+    expect(movedCardIndex(2, 1, 3)).toBe(2)
+  })
+
+  it('카드가 없으면 가지 않는다', () => {
+    expect(movedCardIndex(null, 1, 0)).toBeNull()
   })
 })

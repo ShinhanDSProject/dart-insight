@@ -49,16 +49,21 @@ export function isEditableTarget(target: ShortcutTarget | null): boolean {
   return target.isContentEditable === true || editableTags.has((target.tagName ?? '').toUpperCase())
 }
 
+/** 대화상자와 상관없이 단축키로 보지 않는 키(한글 조합 중·Ctrl/Cmd/Alt 조합·누르고 있는 반복·글 쓰는 곳) */
+function ignoredKey(event: ShortcutKeyEvent): boolean {
+  // 조합 중의 키는 IME가 'Process'로 보내기도 한다
+  if (event.isComposing || event.key === 'Process') return true
+  if (event.ctrlKey || event.metaKey || event.altKey) return true
+  if (event.repeat === true) return true
+  return isEditableTarget(event.target)
+}
+
 /** 한글 자판 상태에서 a 자리를 누르면 'ㅁ'이 온다 */
 const askKeys = new Set(['a', 'ㅁ'])
 
 /** 키에 맞는 할 일. 단축키가 아니거나 무시할 때는 null */
 export function shortcutFor(event: ShortcutKeyEvent, context: ShortcutContext): ShortcutAction | null {
-  // 조합 중의 키는 IME가 'Process'로 보내기도 한다
-  if (event.isComposing || event.key === 'Process') return null
-  if (event.ctrlKey || event.metaKey || event.altKey) return null
-  if (event.repeat === true) return null
-  if (isEditableTarget(event.target)) return null
+  if (ignoredKey(event)) return null
   if (context.otherDialogOpen) return null
 
   // 도움말이 열려 있으면 ?로 닫는 것만 받는다(Esc는 대화상자가 닫는다)
@@ -74,6 +79,50 @@ export function shortcutFor(event: ShortcutKeyEvent, context: ShortcutContext): 
   return null
 }
 
+/** 문장 변화 카드 단축키(#311)에서 초점이 있는 곳. card: 카드 자체, inside-card: 카드 안의 버튼 등, none: 카드 밖 */
+export type TextCardFocus = 'card' | 'inside-card' | 'none'
+
+export interface TextCardContext {
+  focus: TextCardFocus
+  /** 대화상자(단축키 도움말 포함)가 열려 있는지 */
+  dialogOpen: boolean
+}
+
+export type TextCardAction = { kind: 'move'; step: 1 | -1 } | { kind: 'toggle-evidence' } | { kind: 'toggle-pin' }
+
+/** 한글 자판 상태에서 j·k·p 자리를 누르면 'ㅓ'·'ㅏ'·'ㅔ'가 온다 */
+const nextCardKeys = new Set(['j', 'ㅓ'])
+const prevCardKeys = new Set(['k', 'ㅏ'])
+const pinKeys = new Set(['p', 'ㅔ'])
+
+/**
+ * 문장·내용 변화 탭의 카드 단축키(#311). 무시하는 경우는 shortcutFor와 같다(FS-17 AC4).
+ * j·k는 어디서나 카드를 옮기고, p는 카드나 카드 안에 초점이 있을 때 그 카드를 고정한다.
+ * 화살표와 Enter는 카드 자체에 초점이 있을 때만 받는다(그 밖에서는 화면 스크롤·버튼 누르기를 그대로 둔다).
+ */
+export function textCardKeyFor(event: ShortcutKeyEvent, context: TextCardContext): TextCardAction | null {
+  if (ignoredKey(event) || context.dialogOpen) return null
+  if (nextCardKeys.has(event.key)) return { kind: 'move', step: 1 }
+  if (prevCardKeys.has(event.key)) return { kind: 'move', step: -1 }
+  if (context.focus === 'none') return null
+  if (pinKeys.has(event.key)) return { kind: 'toggle-pin' }
+  if (context.focus !== 'card') return null
+  if (event.key === 'ArrowDown') return { kind: 'move', step: 1 }
+  if (event.key === 'ArrowUp') return { kind: 'move', step: -1 }
+  if (event.key === 'Enter') return { kind: 'toggle-evidence' }
+  return null
+}
+
+/**
+ * 옮겨 갈 카드의 순서. current는 초점이 있는 카드(없으면 null)다.
+ * 초점이 없으면 다음(j)은 첫 카드로 가고 이전(k)은 가지 않는다. 처음·끝에서는 그 자리에 둔다. 카드가 없으면 null
+ */
+export function movedCardIndex(current: number | null, step: 1 | -1, count: number): number | null {
+  if (count <= 0) return null
+  if (current === null) return step === 1 ? 0 : null
+  return Math.min(Math.max(current + step, 0), count - 1)
+}
+
 export interface ShortcutItem {
   /** 화면에 보이는 키(여러 개면 나란히) */
   keys: string[]
@@ -81,10 +130,12 @@ export interface ShortcutItem {
 }
 
 export interface ShortcutGroup {
-  id: 'anywhere' | 'result'
+  id: 'anywhere' | 'result' | 'text'
   title: string
   /** 지금 화면에서 쓸 수 있는지 */
   available: boolean
+  /** 묶음 아래에 보일 쓸 수 있는 곳 안내. 지금 화면에서 그대로 쓸 수 있으면 null */
+  note: string | null
   items: ShortcutItem[]
 }
 
@@ -94,6 +145,7 @@ export function shortcutGroups(page: ShortcutPage): ShortcutGroup[] {
     id: 'anywhere',
     title: '어느 화면에서나',
     available: true,
+    note: null,
     items: [
       { keys: ['/'], label: page === 'search' ? '검색창으로 가기' : '기업 검색으로 가서 검색창으로 가기' },
       { keys: ['?'], label: '단축키 도움말 열기·닫기' },
@@ -104,6 +156,7 @@ export function shortcutGroups(page: ShortcutPage): ShortcutGroup[] {
     id: 'result',
     title: '분석 결과 화면',
     available: page === 'result',
+    note: page === 'result' ? null : '분석 결과 화면에서 쓸 수 있어요.',
     items: [
       { keys: ['1'], label: '요약·설명 탭' },
       { keys: ['2'], label: '재무 수치 변화 탭' },
@@ -113,5 +166,18 @@ export function shortcutGroups(page: ShortcutPage): ShortcutGroup[] {
       { keys: ['A'], label: 'AI 질문 입력창으로 가기' },
     ],
   }
-  return page === 'result' ? [result, anywhere] : [anywhere, result]
+  const text: ShortcutGroup = {
+    id: 'text',
+    title: '문장 변화',
+    available: page === 'result',
+    // 결과 화면에서도 문장 변화 탭에서만 동작하므로 늘 안내한다
+    note: '분석 결과의 문장·내용 변화 탭에서 쓸 수 있어요.',
+    items: [
+      { keys: ['J', '↓'], label: '다음 카드로 가기(↓는 카드에 초점이 있을 때)' },
+      { keys: ['K', '↑'], label: '이전 카드로 가기(↑는 카드에 초점이 있을 때)' },
+      { keys: ['Enter'], label: '초점이 있는 카드의 근거 열기·닫기' },
+      { keys: ['P'], label: '초점이 있는 카드 고정·해제' },
+    ],
+  }
+  return page === 'result' ? [result, text, anywhere] : [anywhere, result, text]
 }
