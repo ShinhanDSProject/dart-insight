@@ -36,6 +36,7 @@
 | `llm_call` | LLM 호출 기록(모델·토큰·지연·결과). 비용 집계 | 0.7 (#50), 3.2 (#20) | M2 |
 | `analysis_question` | 분석에 한 질문과 AI 답(상태·근거 ID·사실·모델·프롬프트 버전), 답 평가(3.12) | 3.10 (#219), 3.12 (#236) | M2 |
 | `text_change_explanation` | 문장 변경 하나의 AI 한 줄 풀이(상태·근거 ID·모델·프롬프트 버전) | 3.11 (#227) | M2 |
+| `report_key_fact` | 보고서별 정기보고서 주요정보(최대주주·임원·배당) 받은 결과. 접수번호·종류 기준 캐시 | #331 (1.2, FS-47) | M2 |
 
 ## 2. 관계도
 
@@ -89,6 +90,7 @@ erDiagram
     analysis ||--o{ analysis_question : "analysis_id"
     analysis ||--o{ text_change_explanation : "analysis_id"
     report ||--o| report_document : "rcept_no"
+    report ||--o{ report_key_fact : "rcept_no (#331)"
     report_document ||--o{ document_section : "document_id"
     report_document ||--o{ document_block : "document_id"
 
@@ -197,6 +199,13 @@ erDiagram
         varchar prompt_version
         int input_tokens
         varchar outcome
+    }
+    report_key_fact {
+        bigint id PK
+        varchar rcept_no FK "UK(rcept_no, kind)"
+        varchar kind "MAJOR_SHAREHOLDERS EXECUTIVES DIVIDENDS"
+        varchar status "OK NO_DATA"
+        mediumtext rows_json
     }
     report_document {
         bigint id PK
@@ -365,6 +374,27 @@ API는 사업연도·보고서 코드마다 최신 공시 하나의 값만 줍�
 | `fetched_at` | DATETIME(6) | | 아니오 | |
 
 금액은 `financial_account`와 같이 쉼표를 빼고 정수로 저장하고, 빈 값과 `-`는 null입니다(0과 구분).
+
+### report_key_fact — 정기보고서 주요정보(#331, FS-47)
+
+> 마이그레이션: `V21__create_report_key_fact.sql`.
+
+OpenDART 정기보고서 주요정보 API를 보고서(접수번호)·종류마다 한 번 부른 결과입니다. 종류와 API는 `MAJOR_SHAREHOLDERS` 최대주주 현황(`hyslrSttus.json`), `EXECUTIVES` 임원 현황(`exctvSttus.json`), `DIVIDENDS` 배당에 관한 사항(`alotMatter.json`)이고, 세 API 모두 `corp_code`·`bsns_year`(사업연도)·`reprt_code`(보고서 코드)로 부릅니다. 보고서의 `fiscal_year`·`report_type`으로 부르고, 결과는 접수번호 기준으로 저장합니다.
+
+- 자료가 있으면(`OK`) 다시 받지 않습니다. 보고서에 딸린 자료라 바뀌지 않습니다.
+- `013`(자료 없음)도 `NO_DATA`로 저장합니다. 응답의 `rcept_no`가 이 보고서가 아니면(정정본 등) 이 보고서의 자료가 아니므로 `NO_DATA`로 저장합니다. `NO_DATA`는 그 뒤에 보고서 목록에서 이 보고서를 다시 봤을 때(`report.last_seen_at > fetched_at`) 한 번 더 받습니다(제출 직후 아직 자료가 없을 수 있음, `financial_statement_fetch`와 같은 규칙).
+- 호출 실패(한도 초과·네트워크 오류)는 저장하지 않습니다. 2015 사업연도 이전은 API가 제공하지 않아 부르지 않고 저장하지도 않습니다.
+- 행은 몇십 개라 표로 나누지 않고, backend가 정리한 행 목록을 JSON 한 칸(`rows_json`)에 둡니다. 행 하나로 조회하거나 거르지 않고 보고서 단위로만 읽기 때문입니다. 저장·조회는 `ReportKeyFactStore`(JdbcTemplate)가 합니다.
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT | PK | 아니오 | 자동 증가 |
+| `rcept_no` | VARCHAR(14) | UK 묶음, FK | 아니오 | `report.rcept_no` |
+| `kind` | VARCHAR(30) | UK 묶음 | 아니오 | `MAJOR_SHAREHOLDERS`, `EXECUTIVES`, `DIVIDENDS` |
+| `status` | VARCHAR(10) | | 아니오 | `OK` 자료 있음, `NO_DATA` 자료 없음(013이거나 이 보고서의 자료가 아님) |
+| `settlement_date` | DATE | | 예 | 결산기준일(`stlm_dt`). `NO_DATA`면 null |
+| `rows_json` | MEDIUMTEXT | | 아니오 | 정리한 행 목록 JSON 배열. 모양은 `docs/api-spec.md`의 `GET /api/companies/{corpCode}/key-facts` 행과 같음. 값은 원문 표기 그대로(`'-'`·빈 값은 null). `NO_DATA`면 `[]` |
+| `fetched_at` | DATETIME(6) | | 아니오 | 받은 시각 |
 
 ### analysis
 
@@ -677,8 +707,9 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `llm_call` | `idx_llm_call_analysis` | `analysis_id` | 인덱스 | 분석별 호출 기록·비용 집계 |
 | `analysis_question` | `idx_analysis_question_analysis` | `analysis_id, id` | 인덱스 | 분석별 최신 질문 조회 |
 | `text_change_explanation` | `uk_text_change_explanation` | `analysis_id, change_no` | 유니크 | 변경마다 풀이 하나 |
+| `report_key_fact` | `uk_report_key_fact` | `rcept_no, kind` | 유니크 | 보고서·종류마다 결과 하나(같은 호출을 두 번 저장하지 않음) |
 
-외래 키: `local_credential.user_id`, `refresh_token.user_id` → `app_user.id` / `refresh_token.replaced_by_id` → `refresh_token.id` / `report.corp_code`, `company_overview.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no`, `report_key_account_fetch.rcept_no`, `report_key_account.rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no` → `report.rcept_no` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id`, `analysis_question.analysis_id`, `text_change_explanation.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id`
+외래 키: `local_credential.user_id`, `refresh_token.user_id` → `app_user.id` / `refresh_token.replaced_by_id` → `refresh_token.id` / `report.corp_code`, `company_overview.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no`, `report_key_account_fetch.rcept_no`, `report_key_account.rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no`, `report_key_fact.rcept_no` → `report.rcept_no` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id`, `analysis_question.analysis_id`, `text_change_explanation.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id`
 
 ## 5. 작성 규칙
 
