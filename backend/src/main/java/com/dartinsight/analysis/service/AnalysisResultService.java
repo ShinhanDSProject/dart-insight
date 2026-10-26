@@ -1,6 +1,7 @@
 package com.dartinsight.analysis.service;
 
 import com.dartinsight.analysis.domain.Analysis;
+import com.dartinsight.analysis.domain.AnalysisCompleted;
 import com.dartinsight.analysis.domain.AnalysisStatus;
 import com.dartinsight.analysis.domain.FinancialChange;
 import com.dartinsight.analysis.domain.FinancialChangeRow;
@@ -21,6 +22,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,6 +47,7 @@ public class AnalysisResultService {
     private final FinancialChangeRepository changeRepository;
     private final TextChangeStore textChangeStore;
     private final SummaryStore summaryStore;
+    private final ApplicationEventPublisher events;
     private final Clock clock;
 
     /**
@@ -92,6 +95,7 @@ public class AnalysisResultService {
         analysis.recordText(text.status(), text.message());
         analysis.recordSummary(summary.status(), summary.message());
         analysis.complete(now());
+        events.publishEvent(new AnalysisCompleted(analysisId));
     }
 
     /** 요약 없이 저장하는 경우(요약할 변화가 없거나 테스트 자료) */
