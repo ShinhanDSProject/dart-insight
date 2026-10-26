@@ -67,6 +67,12 @@
   --color-accent-subtle: #f0effa;
   --color-border-accent: #d6d3e8;
 
+  /* 색: 글자 링크(#374). 강조색을 쓰고, 본문 글자와 대비가 3:1에 못 미쳐 밑줄을 함께 둔다.
+     다크 테마는 --color-accent를 바꾸므로 따로 적지 않는다. hover는 글자색 쪽으로 30% 섞어 대비를 높인다 */
+  --color-link: var(--color-accent);
+  --color-link-hover: color-mix(in srgb, var(--color-accent) 70%, var(--color-text));
+  --color-link-underline: color-mix(in srgb, var(--color-accent) 45%, transparent);
+
   /* 색: 증가·감소. 색만으로 구분하지 않는다(▲▼·부호를 함께 씀) */
   --color-increase: #187653;
   --color-increase-subtle: #ecf8f1;
@@ -227,5 +233,7 @@
     --color-primary: #000000;
     --color-accent-subtle: #ffffff;
     --color-attention-subtle: #ffffff;
+    --color-link: #000000;
+    --color-link-underline: #000000;
   }
 }

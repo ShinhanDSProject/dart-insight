@@ -124,7 +124,7 @@ function DisclosureRow({ corpCode, item }: { corpCode: string; item: DisclosureI
             {item.reportName} <span className="dart-link__help">(원문 링크 확인 안 됨, 접수번호 {item.rceptNo})</span>
           </span>
         ) : (
-          <a className="disclosure-timeline__name" href={url} target="_blank" rel="noopener noreferrer">
+          <a className="disclosure-timeline__name list-link" href={url} target="_blank" rel="noopener noreferrer">
             {item.reportName} <span aria-hidden="true">↗</span>
             <span className="visually-hidden">(DART 원문 새 창)</span>
           </a>

@@ -423,6 +423,24 @@ a.app-nav__item:not([aria-current='page']):hover {
 }
 
 /* 키보드 포커스 */
+/* 글자 링크 기본 모양(#374). :where로 특이도를 0으로 둬서, 카드·버튼처럼 클래스로 모양을 정한 링크는 그 클래스가 이긴다.
+   방문한 링크도 같은 색이다(보라색으로 바뀌지 않음). 밑줄은 연하게 두고 hover에서 진하게 한다 */
+:where(a) {
+  color: var(--color-link);
+  text-decoration-line: underline;
+  text-decoration-color: var(--color-link-underline);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition:
+    color var(--motion-fast) var(--ease-out),
+    text-decoration-color var(--motion-fast) var(--ease-out);
+}
+
+:where(a):hover {
+  color: var(--color-link-hover);
+  text-decoration-color: currentColor;
+}
+
 :where(a, button, input, select, summary, [tabindex]):focus-visible {
   outline: var(--focus-ring);
   outline-offset: 2px;
