@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react'
 import type { OverviewSectionProps } from '../model/overviewSections'
+import { CompanyBriefingSection } from './CompanyBriefingSection'
 import { CompanyProfileCard } from './CompanyProfileCard'
 import { DisclosureTimelineSection } from './DisclosureTimelineSection'
 import { FinancialTrendSection } from './FinancialTrendSection'
@@ -15,6 +16,7 @@ import { KeyFactsSection } from './KeyFactsSection'
  * 각 영역은 Panel 하나로 자기 자료·로딩·오류를 맡는다(model/overviewSections.ts).
  */
 const sections: ReadonlyArray<{ key: string; Component: ComponentType<OverviewSectionProps> }> = [
+  { key: 'briefing', Component: CompanyBriefingSection },
   { key: 'profile', Component: CompanyProfileCard },
   { key: 'financial-trends', Component: FinancialTrendSection },
   { key: 'key-facts', Component: KeyFactsSection },
