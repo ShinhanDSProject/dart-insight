@@ -1,10 +1,12 @@
 package com.dartinsight.disclosure.service;
 
-import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.company.service.CompanyService;
 import com.dartinsight.dart.client.OpenDartClient;
+import com.dartinsight.dart.domain.CachePolicy;
+import com.dartinsight.dart.domain.CacheResult;
 import com.dartinsight.dart.dto.DisclosureListResponse;
+import com.dartinsight.dart.service.DartCacheLoader;
 import com.dartinsight.disclosure.config.DisclosureProperties;
 import com.dartinsight.disclosure.domain.Disclosure;
 import com.dartinsight.disclosure.domain.DisclosureFetch;
@@ -21,17 +23,15 @@ import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * 기업의 최근 공시 타임라인(1.2, #332). 목록은 기업별로 저장해 두고, 받은 지 정한 시간이 지났거나 받은 기간이
- * 요청 기간을 덮지 못하면 OpenDART에서 다시 받는다(ADR-0024). OpenDART 호출은 트랜잭션 밖에서 한다(ADR-0003).
+ * 요청 기간을 덮지 못하면 OpenDART에서 다시 받는다(ADR-0024, DartCacheLoader). OpenDART 호출은 트랜잭션 밖에서
+ * 하고 저장만 DartCacheLoader가 묶는다(LY-2).
  */
 @Service
 @RequiredArgsConstructor
@@ -43,7 +43,7 @@ public class DisclosureService {
     private final CompanyService companyService;
     private final DisclosureStore store;
     private final DisclosureProperties properties;
-    private final TransactionTemplate transactionTemplate;
+    private final DartCacheLoader cacheLoader;
     private final Clock clock;
 
     /**
@@ -56,23 +56,16 @@ public class DisclosureService {
         LocalDate today = now.toLocalDate();
         LocalDate from = today.minusDays(days);
 
-        Optional<DisclosureFetch> saved = store.findFetch(corpCode);
-        DisclosureFetch fetch;
-        ErrorCode refreshError = null;
-        if (saved.isPresent() && saved.get().covers(from, now, properties.refreshAfter())) {
-            fetch = saved.get();
-        } else {
-            try {
-                fetch = refresh(corpCode, from, today, now);
-            } catch (ApiException e) {
-                if (saved.isEmpty()) {
-                    throw e;
-                }
-                log.warn("최근 공시 목록을 다시 받지 못해 저장된 목록을 씁니다: {} {}", corpCode, e.errorCode());
-                fetch = saved.get();
-                refreshError = e.errorCode();
-            }
-        }
+        CacheResult<DisclosureFetch> result = cacheLoader.load("최근 공시 목록 " + corpCode,
+                CachePolicy.refreshAfter(properties.refreshAfter()),
+                () -> store.findFetch(corpCode),
+                DisclosureFetch::fetchedAt,
+                saved -> saved.covers(from),
+                () -> toDisclosures(corpCode, openDartClient.listAllDisclosures(corpCode, from, today)),
+                // 받은 기간(from~today)과 받은 시각이 맞도록 이 요청의 now로 저장한다
+                (disclosures, loaderNow) -> save(new DisclosureFetch(corpCode, from, today, now), disclosures));
+        DisclosureFetch fetch = result.value();
+        ErrorCode refreshError = result.refreshError();
 
         LocalDate shownFrom = fetch.fromDate().isAfter(from) ? fetch.fromDate() : from;
         List<Disclosure> all = store.findSince(corpCode, shownFrom);
@@ -92,17 +85,14 @@ public class DisclosureService {
                 counts, items);
     }
 
-    private DisclosureFetch refresh(String corpCode, LocalDate from, LocalDate today, LocalDateTime now) {
-        List<Disclosure> disclosures = toDisclosures(corpCode, openDartClient.listAllDisclosures(corpCode, from, today));
-        DisclosureFetch fetch = new DisclosureFetch(corpCode, from, today, now);
-        try {
-            transactionTemplate.executeWithoutResult(status -> store.replace(fetch, disclosures));
-        } catch (DataIntegrityViolationException e) {
-            // 같은 기업을 동시에 처음 받으면 받은 기록을 두 번 넣으려 할 수 있다. 다시 저장하면 앞의 것을 지우고 넣는다
-            log.info("최근 공시 목록을 동시에 저장해 다시 저장합니다: {}", corpCode);
-            transactionTemplate.executeWithoutResult(status -> store.replace(fetch, disclosures));
-        }
-        log.info("최근 공시 목록 저장 {}: {}건 ({} ~ {})", corpCode, disclosures.size(), from, today);
+    /**
+     * 트랜잭션 안. 저장된 목록과 받은 기록을 지우고 새로 넣는다. 같은 기업을 동시에 처음 받아 받은 기록을 두 번 넣으려
+     * 하면 DartCacheLoader가 한 번 더 부르고, 다시 저장하면 앞의 것을 지우고 넣는다.
+     */
+    private DisclosureFetch save(DisclosureFetch fetch, List<Disclosure> disclosures) {
+        store.replace(fetch, disclosures);
+        log.info("최근 공시 목록 저장 {}: {}건 ({} ~ {})", fetch.corpCode(), disclosures.size(), fetch.fromDate(),
+                fetch.toDate());
         return fetch;
     }
 
