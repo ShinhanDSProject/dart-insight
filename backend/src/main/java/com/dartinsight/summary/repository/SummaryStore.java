@@ -2,7 +2,10 @@ package com.dartinsight.summary.repository;
 
 import com.dartinsight.summary.domain.LlmCallRow;
 import com.dartinsight.summary.domain.LlmCallUsage;
+import com.dartinsight.summary.domain.LlmCallUsage.ModelTokens;
+import com.dartinsight.summary.domain.LlmCallUsage.ModelUsage;
 import com.dartinsight.summary.domain.LlmCallUsage.TaskUsage;
+import com.dartinsight.summary.domain.LlmCallUsage.UnitUsage;
 import com.dartinsight.summary.domain.SummaryItemRow;
 import com.dartinsight.summary.domain.SummaryResult;
 import java.sql.ResultSet;
@@ -93,7 +96,44 @@ public class SummaryStore {
                 + "GROUP BY task ORDER BY task",
                 (rs, i) -> new TaskUsage(rs.getString("task"), rs.getLong("n"), nullableLong(rs, "input_sum"),
                         nullableLong(rs, "output_sum")), timestamp(from), timestamp(to));
-        return new LlmCallUsage(byOutcome, byTask);
+        return new LlmCallUsage(byOutcome, byTask, byModel(from, to), units("analysis_id", from, to),
+                units("company_briefing_id", from, to));
+    }
+
+    /** 제공자·모델별 호출 수·토큰 합과 그 안의 작업별 집계(제공자, 모델, 작업 이름 순서) */
+    private List<ModelUsage> byModel(LocalDateTime from, LocalDateTime to) {
+        Map<List<String>, List<TaskUsage>> tasks = new LinkedHashMap<>();
+        jdbcTemplate.query("SELECT provider, model, task, COUNT(*) AS n, SUM(input_tokens) AS input_sum, "
+                + "SUM(output_tokens) AS output_sum FROM llm_call WHERE called_at >= ? AND called_at < ? "
+                + "GROUP BY provider, model, task ORDER BY provider, model, task",
+                (RowCallbackHandler) rs -> tasks.computeIfAbsent(List.of(rs.getString("provider"),
+                        rs.getString("model")), key -> new ArrayList<>()).add(new TaskUsage(rs.getString("task"),
+                        rs.getLong("n"), nullableLong(rs, "input_sum"), nullableLong(rs, "output_sum"))),
+                timestamp(from), timestamp(to));
+        return jdbcTemplate.query("SELECT provider, model, COUNT(*) AS n, SUM(input_tokens) AS input_sum, "
+                + "SUM(output_tokens) AS output_sum FROM llm_call WHERE called_at >= ? AND called_at < ? "
+                + "GROUP BY provider, model ORDER BY provider, model",
+                (rs, i) -> new ModelUsage(rs.getString("provider"), rs.getString("model"), rs.getLong("n"),
+                        nullableLong(rs, "input_sum"), nullableLong(rs, "output_sum"),
+                        tasks.getOrDefault(List.of(rs.getString("provider"), rs.getString("model")), List.of())),
+                timestamp(from), timestamp(to));
+    }
+
+    /**
+     * 기간 안에 호출이 있는 작업 단위(분석·브리핑)의 수와, 그 호출들의 제공자·모델별 토큰 합.
+     *
+     * @param unitColumn analysis_id 또는 company_briefing_id(이 클래스 안에서만 넘기는 고정 값)
+     */
+    private UnitUsage units(String unitColumn, LocalDateTime from, LocalDateTime to) {
+        String window = " FROM llm_call WHERE called_at >= ? AND called_at < ? AND " + unitColumn + " IS NOT NULL";
+        Long count = jdbcTemplate.queryForObject("SELECT COUNT(DISTINCT " + unitColumn + ")" + window, Long.class,
+                timestamp(from), timestamp(to));
+        List<ModelTokens> byModel = jdbcTemplate.query("SELECT provider, model, SUM(input_tokens) AS input_sum, "
+                + "SUM(output_tokens) AS output_sum" + window + " GROUP BY provider, model ORDER BY provider, model",
+                (rs, i) -> new ModelTokens(rs.getString("provider"), rs.getString("model"),
+                        nullableLong(rs, "input_sum"), nullableLong(rs, "output_sum")),
+                timestamp(from), timestamp(to));
+        return new UnitUsage(count == null ? 0 : count, byModel);
     }
 
     /** SUM 결과(MariaDB는 DECIMAL, H2는 BIGINT). 더할 값이 없으면 null */

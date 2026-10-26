@@ -114,3 +114,12 @@ app:
   disclosures:
     # 최근 공시 목록을 받은 지 이 시간이 지나면 다시 받는다(ADR-0024)
     refresh-after: 1h
+  ai-usage:
+    # AI 사용 현황의 추정 비용(FS-50). "제공자:모델"(llm_call.provider·model) → 100만 토큰당 USD.
+    # 공식 가격 페이지 값만 넣고 추측하지 않는다. 없는 모델(가짜 제공자 fake 포함)은 비용이 null이다.
+    prices:
+      # OpenAI gpt-6.1-sol: 입력 2달러, 출력 10달러(2026-10-26 확인, ADR-0026)
+      # 출처: https://developers.openai.com/api/docs/models/gpt-6.1-sol — 가격이 바뀌면 공식 페이지를 다시 확인한다
+      "[openai:gpt-6.1-sol]":
+        input-per-million-usd: 2
+        output-per-million-usd: 10
