@@ -128,6 +128,8 @@ CI(`.github/workflows/`)도 같은 명령을 씁니다. 버전은 backend Java 2
 | frontend | `npm test && npm run build` (frontend/) | `npm run lint` |
 | ai-server | `pytest` (ai-server/) | `ruff check .` |
 
+저장소 루트에서 `npm run check`(전체)나 `npm run test:backend`처럼 같은 명령을 한 번에 돌릴 수도 있습니다(`package.json`, `docs/local-setup.md` 5장).
+
 PR마다 비밀정보 검사(gitleaks)가 돌고, 바뀐 서비스 폴더의 CI가 돕니다.
 
 ## 참고 문서
