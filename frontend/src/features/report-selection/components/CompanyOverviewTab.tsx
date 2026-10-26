@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react'
 import type { OverviewSectionProps } from '../model/overviewSections'
+import { CompanyAskSection } from './CompanyAskSection'
 import { CompanyBriefingSection } from './CompanyBriefingSection'
 import { CompanyProfileCard } from './CompanyProfileCard'
 import { DisclosureTimelineSection } from './DisclosureTimelineSection'
@@ -8,7 +9,7 @@ import { KeyFactsSection } from './KeyFactsSection'
 
 /**
  * 기업 개요 탭의 영역을 위에서부터 그리는 순서(FS-45~49).
- * 정해 둔 순서: AI 브리핑(FS-49, #333) → 기업 개황(FS-45) → 재무 흐름(FS-46, #330) → 주주·임원·배당(FS-47, #331)
+ * 정해 둔 순서: AI 브리핑(FS-49, #333) → AI에게 묻기(FS-53, #365) → 기업 개황(FS-45) → 재무 흐름(FS-46, #330) → 주주·임원·배당(FS-47, #331)
  * → 최근 공시(FS-48, #332). 아직 없는 영역은 자리도 보이지 않는다.
  *
  * 영역을 더할 때: OverviewSectionProps를 받는 컴포넌트를 만들고 이 배열의 정해 둔 자리에 한 줄을 더한다.
@@ -17,6 +18,7 @@ import { KeyFactsSection } from './KeyFactsSection'
  */
 const sections: ReadonlyArray<{ key: string; Component: ComponentType<OverviewSectionProps> }> = [
   { key: 'briefing', Component: CompanyBriefingSection },
+  { key: 'ask', Component: CompanyAskSection },
   { key: 'profile', Component: CompanyProfileCard },
   { key: 'financial-trends', Component: FinancialTrendSection },
   { key: 'key-facts', Component: KeyFactsSection },
