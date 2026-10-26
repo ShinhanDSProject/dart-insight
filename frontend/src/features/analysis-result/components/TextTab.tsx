@@ -14,6 +14,7 @@ import { usePinnedChanges, usePinnedTextChanges } from '../hooks/usePinnedChange
 import { useTextChanges } from '../hooks/useTextChanges'
 import { useTextExplanations, type TextExplanations } from '../hooks/useTextExplanations'
 import { useTextSearch } from '../hooks/useTextSearch'
+import { TEXT_CARD_ATTRIBUTE, useTextCardKeys } from '../hooks/useTextCardKeys'
 import { sectionAskQuestion } from '../model/askQuestion'
 import { numberChanges } from '../model/numberChanges'
 import { pinnedChangesText } from '../model/copyText'
@@ -77,6 +78,7 @@ interface TextTabProps {
  * 문장을 비교하지 못했으면 '변경 없음'이 아니라 사유를 보여 준다. 짝짓지 못한 항목은 숨기지 않고 '검토 필요'로 둔다.
  * 카드마다 고정할 수 있고, '고정' 거르기를 고르면 이 분석에서 고정한 변경만 보여 준다(3.3, 이 브라우저에만 남음).
  * 고정 보기에서는 고정한 변경을 원문·출처와 함께 한 번에 복사할 수 있다(FS-31).
+ * 키보드로 카드를 옮겨 다니며(j·k·↑·↓) 근거를 열고(Enter) 고정할(p) 수 있다(#311).
  */
 export function TextTab({
   analysis,
@@ -103,6 +105,8 @@ export function TextTab({
   const explanations = useTextExplanations(analysis.analysisId)
   const pins = usePinnedChanges(analysis.analysisId)
   const pinnedList = usePinnedTextChanges(analysis.analysisId, pins.ids, pinned, pins.remove)
+  const toggleEvidence = (changeId: number) => onChange({ change: changeId === selectedChangeId ? null : changeId })
+  useTextCardKeys({ onToggleEvidence: toggleEvidence, onTogglePin: pins.toggle })
   const filtered = hasSearchFilter({ section, q })
   // 섹션을 골랐을 때만 그 섹션 변화를 묻는 버튼을 둔다(목차 밖 본문은 빼고)
   const sectionQuestion = sectionAskQuestion(section)
@@ -141,7 +145,7 @@ export function TextTab({
             explanations={explanations}
             onOpenSource={onOpenSource}
             onTogglePin={() => pins.toggle(item.changeId)}
-            onToggle={() => onChange({ change: item.changeId === selectedChangeId ? null : item.changeId })}
+            onToggle={() => toggleEvidence(item.changeId)}
             onClose={() => {
               onChange({ change: null })
               // 닫으면 그 항목의 '근거 상세' 버튼으로 초점을 돌려준다
@@ -383,6 +387,9 @@ function ChangeCard({ item, analysis, selected, pinned, explanations, onTogglePi
       tone={review ? 'attention' : 'default'}
       selected={selected}
       className="change-card"
+      // 키보드로 옮겨 오는 카드(#311). Tab 순서에는 넣지 않는다
+      tabIndex={-1}
+      {...{ [TEXT_CARD_ATTRIBUTE]: item.changeId }}
       aria-label={`${section} ${changeTypeLabel(item.changeType)}`}
     >
       <div className="change-card__head">
