@@ -21,6 +21,8 @@ export type KeyFactStatus = 'AVAILABLE' | 'NO_DATA' | 'UNAVAILABLE'
 
 export interface KeyFactSection<T> {
   rceptNo: string
+  /** 값을 받은 정정 공시의 접수번호. rceptNo와 같거나 AVAILABLE이 아니면 null(#350) */
+  sourceRceptNo: string | null
   status: KeyFactStatus
   settlementDate: string | null
   rows: T[]

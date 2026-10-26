@@ -1,4 +1,5 @@
 import { match, P } from 'ts-pattern'
+import { dartViewerUrl } from '@/shared/lib/dart'
 import type {
   Dividend,
   KeyFactChange,
@@ -25,14 +26,35 @@ export type SectionView<T> =
   | { kind: 'no-report' }
   | { kind: 'no-data' }
   | { kind: 'unavailable' }
-  | { kind: 'available'; rows: T[]; settlementDate: string | null }
+  | { kind: 'available'; rows: T[]; settlementDate: string | null; correctedSource: CorrectedSource | null }
+
+/** 값을 이 보고서가 아니라 뒤에 나온 정정 공시에서 받았을 때 그 공시(#350, FS-46의 '정정 공시 값'과 같음) */
+export interface CorrectedSource {
+  rceptNo: string
+  /** 접수번호가 14자리가 아니면 null(링크를 만들지 않음) */
+  dartUrl: string | null
+}
+
+export function correctedSource(section: Pick<KeyFactSection<unknown>, 'rceptNo' | 'sourceRceptNo'>): CorrectedSource | null {
+  const source = section.sourceRceptNo
+  return source === null || source === section.rceptNo ? null : { rceptNo: source, dartUrl: dartViewerUrl(source) }
+}
 
 export function sectionView<T>(section: KeyFactSection<T> | null): SectionView<T> {
   return match(section)
     .with(null, () => ({ kind: 'no-report' }) as const)
     .with({ status: 'NO_DATA' }, () => ({ kind: 'no-data' }) as const)
     .with({ status: 'UNAVAILABLE' }, () => ({ kind: 'unavailable' }) as const)
-    .with({ status: 'AVAILABLE' }, (s) => ({ kind: 'available', rows: s.rows, settlementDate: s.settlementDate }) as const)
+    .with(
+      { status: 'AVAILABLE' },
+      (s) =>
+        ({
+          kind: 'available',
+          rows: s.rows,
+          settlementDate: s.settlementDate,
+          correctedSource: correctedSource(s),
+        }) as const,
+    )
     .exhaustive()
 }
 
