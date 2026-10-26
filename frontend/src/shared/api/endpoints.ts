@@ -20,6 +20,7 @@ export const endpoints = {
   reportPairs: (corpCode: string) => `/api/companies/${seg(corpCode)}/report-pairs`,
   companyAnalyses: (corpCode: string) => `/api/companies/${seg(corpCode)}/analyses`,
   companyFinancialTrends: (corpCode: string) => `/api/companies/${seg(corpCode)}/financial-trends`,
+  companyKeyFacts: (corpCode: string) => `/api/companies/${seg(corpCode)}/key-facts`,
   report: (rceptNo: string) => `/api/reports/${seg(rceptNo)}`,
   comparabilityChecks: () => '/api/comparability-checks',
   analyses: () => '/api/analyses',
