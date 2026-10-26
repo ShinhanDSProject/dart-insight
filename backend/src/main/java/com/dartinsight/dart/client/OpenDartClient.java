@@ -6,9 +6,13 @@ import com.dartinsight.dart.config.OpenDartProperties;
 import com.dartinsight.dart.domain.CompanyOverviewEntry;
 import com.dartinsight.dart.dto.DartCompanyResponse;
 import com.dartinsight.dart.dto.DisclosureListResponse;
+import com.dartinsight.dart.dto.DividendItem;
+import com.dartinsight.dart.dto.ExecutiveItem;
 import com.dartinsight.dart.dto.FinancialStatementResponse;
-import com.dartinsight.dart.dto.OpenDartStatus;
 import com.dartinsight.dart.dto.KeyAccountResponse;
+import com.dartinsight.dart.dto.MajorShareholderItem;
+import com.dartinsight.dart.dto.OpenDartStatus;
+import com.dartinsight.dart.dto.PeriodicReportInfoResponse;
 import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -23,6 +27,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpServerErrorException;
@@ -153,6 +158,61 @@ public class OpenDartClient {
             throw statusError(response.status(), response.message());
         }
         return new FinancialStatementPage(false, response.list() == null ? List.of() : response.list());
+    }
+
+    /** 정기보고서 주요정보: 최대주주 현황(hyslrSttus.json). 자료가 없으면(013) noData가 true다. */
+    public PeriodicReportInfoPage<MajorShareholderItem> majorShareholders(String corpCode, int fiscalYear,
+            String reprtCode) {
+        return periodicReportInfo(OpenDartPaths.MAJOR_SHAREHOLDERS, corpCode, fiscalYear, reprtCode,
+                new ParameterizedTypeReference<>() {
+                });
+    }
+
+    /** 정기보고서 주요정보: 임원 현황(exctvSttus.json). 자료가 없으면(013) noData가 true다. */
+    public PeriodicReportInfoPage<ExecutiveItem> executives(String corpCode, int fiscalYear, String reprtCode) {
+        return periodicReportInfo(OpenDartPaths.EXECUTIVES, corpCode, fiscalYear, reprtCode,
+                new ParameterizedTypeReference<>() {
+                });
+    }
+
+    /** 정기보고서 주요정보: 배당에 관한 사항(alotMatter.json). 자료가 없으면(013) noData가 true다. */
+    public PeriodicReportInfoPage<DividendItem> dividends(String corpCode, int fiscalYear, String reprtCode) {
+        return periodicReportInfo(OpenDartPaths.DIVIDENDS, corpCode, fiscalYear, reprtCode,
+                new ParameterizedTypeReference<>() {
+                });
+    }
+
+    /**
+     * 정기보고서 주요정보(DS002) 공통 호출. 세 API 모두 고유번호·사업연도·보고서 코드로 부른다.
+     *
+     * @param reprtCode 11011 사업, 11012 반기, 11013 1분기, 11014 3분기
+     */
+    private <T> PeriodicReportInfoPage<T> periodicReportInfo(String path, String corpCode, int fiscalYear,
+            String reprtCode, ParameterizedTypeReference<PeriodicReportInfoResponse<T>> type) {
+        requireApiKey();
+        PeriodicReportInfoResponse<T> response = execute(path, () -> restClient.get()
+                .uri(uri -> uri.path(path)
+                        .queryParam("crtfc_key", properties.apiKey())
+                        .queryParam("corp_code", corpCode)
+                        .queryParam("bsns_year", fiscalYear)
+                        .queryParam("reprt_code", reprtCode)
+                        .build())
+                .retrieve()
+                .body(type));
+        if (response == null) {
+            throw new ApiException(ErrorCode.DART_REQUEST_FAILED, "OpenDART 응답이 비어 있습니다.");
+        }
+        if (NO_DATA.equals(response.status())) {
+            return new PeriodicReportInfoPage<>(true, List.of());
+        }
+        if (!OK.equals(response.status())) {
+            throw statusError(response.status(), response.message());
+        }
+        return new PeriodicReportInfoPage<>(false, response.list() == null ? List.of() : response.list());
+    }
+
+    /** @param noData OpenDART가 '자료 없음'(013)으로 답했는지 */
+    public record PeriodicReportInfoPage<T>(boolean noData, List<T> items) {
     }
 
     /**

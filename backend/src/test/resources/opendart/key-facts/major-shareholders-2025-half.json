@@ -1,0 +1,80 @@
+{
+ "status": "000",
+ "message": "정상",
+ "list": [
+  {
+   "rcept_no": "20250814003156",
+   "corp_cls": "Y",
+   "corp_code": "00126380",
+   "corp_name": "삼성전자",
+   "stock_knd": "보통주",
+   "nm": "홍라희",
+   "relate": "최대주주의 특수관계인",
+   "bsis_posesn_stock_co": "97,978,700",
+   "bsis_posesn_stock_qota_rt": "1.64",
+   "trmend_posesn_stock_co": "97,978,700",
+   "trmend_posesn_stock_qota_rt": "1.66",
+   "rm": "-",
+   "stlm_dt": "2025-06-30"
+  },
+  {
+   "rcept_no": "20250814003156",
+   "corp_cls": "Y",
+   "corp_code": "00126380",
+   "corp_name": "삼성전자",
+   "stock_knd": "보통주",
+   "nm": "이재용",
+   "relate": "최대주주의 특수관계인",
+   "bsis_posesn_stock_co": "97,414,196",
+   "bsis_posesn_stock_qota_rt": "1.63",
+   "trmend_posesn_stock_co": "97,414,196",
+   "trmend_posesn_stock_qota_rt": "1.65",
+   "rm": "-",
+   "stlm_dt": "2025-06-30"
+  },
+  {
+   "rcept_no": "20250814003156",
+   "corp_cls": "Y",
+   "corp_code": "00126380",
+   "corp_name": "삼성전자",
+   "stock_knd": "보통주",
+   "nm": "송재혁",
+   "relate": "계열회사 임원",
+   "bsis_posesn_stock_co": "0",
+   "bsis_posesn_stock_qota_rt": "0.00",
+   "trmend_posesn_stock_co": "9,300",
+   "trmend_posesn_stock_qota_rt": "0.00",
+   "rm": "신규 선임",
+   "stlm_dt": "2025-06-30"
+  },
+  {
+   "rcept_no": "20250814003156",
+   "corp_cls": "Y",
+   "corp_code": "00126380",
+   "corp_name": "삼성전자",
+   "stock_knd": "보통주",
+   "nm": "삼성생명보험㈜\n(특별계정)",
+   "relate": "최대주주 본인",
+   "bsis_posesn_stock_co": "5,378,652",
+   "bsis_posesn_stock_qota_rt": "0.09",
+   "trmend_posesn_stock_co": "5,139,787",
+   "trmend_posesn_stock_qota_rt": "0.09",
+   "rm": "장내 매매",
+   "stlm_dt": "2025-06-30"
+  },
+  {
+   "rcept_no": "20250814003156",
+   "corp_cls": "Y",
+   "corp_code": "00126380",
+   "corp_name": "삼성전자",
+   "stock_knd": "보통주",
+   "nm": "계",
+   "bsis_posesn_stock_co": "1,198,033,154",
+   "bsis_posesn_stock_qota_rt": "20.07",
+   "trmend_posesn_stock_co": "1,192,771,595",
+   "trmend_posesn_stock_qota_rt": "20.15",
+   "rm": "-",
+   "stlm_dt": "2025-06-30"
+  }
+ ]
+}
