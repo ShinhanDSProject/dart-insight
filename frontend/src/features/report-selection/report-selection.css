@@ -431,6 +431,36 @@
   white-space: nowrap;
 }
 
+.disclosure-timeline__key-items {
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+/* 주요사항보고서 핵심 수치(FS-51). 공시 줄 아래 한 줄을 다 쓰고, 항목 이름 칸을 넓힌다 */
+.disclosure-key-items {
+  display: grid;
+  flex: 1 1 100%;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.disclosure-key-items__list .facts__row {
+  grid-template-columns: minmax(120px, 40%) 1fr;
+}
+
+.disclosure-key-items__list dd {
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.disclosure-key-items__empty {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
 .disclosure-timeline__more {
   display: flex;
   justify-content: center;

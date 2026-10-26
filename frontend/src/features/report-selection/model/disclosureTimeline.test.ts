@@ -20,6 +20,7 @@ function item(rceptNo: string, receivedDate: string, group: DisclosureGroup = 'O
     periodic: false,
     dartUrl: `https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${rceptNo}`,
     remarks: null,
+    keyItemsKind: null,
   }
 }
 

@@ -1,4 +1,4 @@
-import { useId, useReducer } from 'react'
+import { useId, useReducer, useState } from 'react'
 import { Link } from 'react-router'
 import { match } from 'ts-pattern'
 import type { DisclosureGroup, DisclosureItem, DisclosureList } from '@/shared/api/disclosures'
@@ -7,6 +7,7 @@ import { formatDate } from '@/shared/lib/reportLabels'
 import { Badge, Button, Chip, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { useCompanyDisclosures } from '../hooks/useCompanyDisclosures'
+import { DisclosureKeyItemsPanel } from './DisclosureKeyItemsPanel'
 import {
   compareWithReportPath,
   groupChips,
@@ -112,6 +113,8 @@ export function DisclosureTimeline({ corpCode, list }: { corpCode: string; list:
 
 function DisclosureRow({ corpCode, item }: { corpCode: string; item: DisclosureItem }) {
   const url = verifiedDartUrl(item.rceptNo, item.dartUrl)
+  const [keyItemsOpen, setKeyItemsOpen] = useState(false)
+  const keyItemsId = `disclosure-key-items-${item.rceptNo}`
   return (
     <li className="disclosure-timeline__item">
       <Badge tone={item.periodic ? 'accent' : 'neutral'}>{item.groupLabel}</Badge>
@@ -134,6 +137,20 @@ function DisclosureRow({ corpCode, item }: { corpCode: string; item: DisclosureI
         <Link className="disclosure-timeline__compare" to={compareWithReportPath(corpCode, item.rceptNo)}>
           이 보고서로 비교하기<span className="visually-hidden"> ({item.reportName})</span>
         </Link>
+      )}
+      {item.keyItemsKind !== null && (
+        <>
+          <Button
+            variant="link"
+            className="disclosure-timeline__key-items"
+            aria-expanded={keyItemsOpen}
+            aria-controls={keyItemsOpen ? keyItemsId : undefined}
+            onClick={() => setKeyItemsOpen((open) => !open)}
+          >
+            핵심 수치<span className="visually-hidden"> ({item.reportName})</span>
+          </Button>
+          <DisclosureKeyItemsPanel id={keyItemsId} corpCode={corpCode} rceptNo={item.rceptNo} open={keyItemsOpen} />
+        </>
       )}
     </li>
   )

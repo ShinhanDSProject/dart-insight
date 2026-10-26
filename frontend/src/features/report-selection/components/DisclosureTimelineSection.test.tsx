@@ -3,14 +3,25 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '@/shared/api/client'
-import type { DisclosureGroup, DisclosureItem, DisclosureList } from '@/shared/api/disclosures'
+import type {
+  DisclosureGroup,
+  DisclosureItem,
+  DisclosureKeyItems,
+  DisclosureList,
+  KeyItemsKind,
+} from '@/shared/api/disclosures'
 import { axeViolations } from '@/test/axe'
 import { DisclosureTimelineSection } from './DisclosureTimelineSection'
 
 const listDisclosures = vi.fn<(corpCode: string, signal?: AbortSignal, days?: number) => Promise<DisclosureList>>()
 
+const getDisclosureKeyItems =
+  vi.fn<(corpCode: string, rceptNo: string, signal?: AbortSignal) => Promise<DisclosureKeyItems>>()
+
 vi.mock('@/shared/api/disclosures', () => ({
   listDisclosures: (corpCode: string, signal?: AbortSignal, days?: number) => listDisclosures(corpCode, signal, days),
+  getDisclosureKeyItems: (corpCode: string, rceptNo: string, signal?: AbortSignal) =>
+    getDisclosureKeyItems(corpCode, rceptNo, signal),
 }))
 
 const labels: Record<DisclosureGroup, string> = {
@@ -22,8 +33,15 @@ const labels: Record<DisclosureGroup, string> = {
   OTHER: '기타',
 }
 
-function item(rceptNo: string, reportName: string, receivedDate: string, group: DisclosureGroup): DisclosureItem {
+function item(
+  rceptNo: string,
+  reportName: string,
+  receivedDate: string,
+  group: DisclosureGroup,
+  keyItemsKind: KeyItemsKind | null = null,
+): DisclosureItem {
   return {
+    keyItemsKind,
     rceptNo,
     reportName,
     filerName: '삼성전자',
@@ -71,6 +89,116 @@ function renderSection() {
 
 beforeEach(() => {
   listDisclosures.mockReset()
+  getDisclosureKeyItems.mockReset()
+})
+
+// 에코프로비엠 자기주식처분결정 20251020000144 실제 OpenDART 응답에서 옮긴 값(일부 항목)
+const disposal = item('20251020000144', '주요사항보고서(자기주식처분결정)', '2026-10-20', 'OWNERSHIP', 'TREASURY_STOCK_DISPOSAL')
+
+function keyItems(overrides: Partial<DisclosureKeyItems> = {}): DisclosureKeyItems {
+  return {
+    rceptNo: '20251020000144',
+    kind: 'TREASURY_STOCK_DISPOSAL',
+    kindLabel: '자기주식 처분 결정',
+    status: 'AVAILABLE',
+    items: [
+      { field: 'dppln_stk_ostk', label: '처분예정주식(보통주식)', value: '65,168', unit: '주' },
+      { field: 'dppln_prc_ostk', label: '처분예정금액(보통주식)', value: '10,492,048,000', unit: '원' },
+      { field: 'dp_pp', label: '처분목적', value: '종업원에 대한 상여금 지급 (RSU)', unit: null },
+    ],
+    sourceUrl: 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20251020000144',
+    fetchedAt: '2026-10-26T15:10:03',
+    ...overrides,
+  }
+}
+
+describe('핵심 수치', () => {
+  it('지원하는 주요사항보고서에만 핵심 수치 버튼을 둔다', async () => {
+    listDisclosures.mockResolvedValue(list([...sample, disposal]))
+    renderSection()
+
+    const buttons = await screen.findAllByRole('button', { name: /^핵심 수치/ })
+    expect(buttons).toHaveLength(1)
+    expect(buttons[0].getAttribute('aria-expanded')).toBe('false')
+    expect(getDisclosureKeyItems).not.toHaveBeenCalled()
+  })
+
+  it('펼치면 불러와 항목 이름·원문 값·단위와 출처를 보여 주고 다시 누르면 닫는다', async () => {
+    listDisclosures.mockResolvedValue(list([disposal]))
+    getDisclosureKeyItems.mockResolvedValue(keyItems())
+    renderSection()
+
+    const button = await screen.findByRole('button', { name: /^핵심 수치/ })
+    fireEvent.click(button)
+    expect(button.getAttribute('aria-expanded')).toBe('true')
+    expect(await screen.findByText('10,492,048,000 원')).toBeTruthy()
+    expect(screen.getByText('처분예정주식(보통주식)')).toBeTruthy()
+    expect(screen.getByText('65,168 주')).toBeTruthy()
+    expect(screen.getByText('종업원에 대한 상여금 지급 (RSU)')).toBeTruthy()
+    expect(screen.getByText(/출처: OpenDART 주요사항보고서 주요정보\(자기주식 처분 결정\)/)).toBeTruthy()
+    const source = screen.getByRole('link', { name: /원문 보기/ })
+    expect(source.getAttribute('href')).toBe('https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20251020000144')
+    expect(getDisclosureKeyItems).toHaveBeenCalledWith('00126380', '20251020000144', expect.any(AbortSignal))
+
+    fireEvent.click(button)
+    expect(button.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByText('10,492,048,000 원')).toBeNull()
+  })
+
+  it('자료가 없으면 자료 없음과 원문 링크를 보여 준다', async () => {
+    listDisclosures.mockResolvedValue(list([disposal]))
+    getDisclosureKeyItems.mockResolvedValue(keyItems({ status: 'NO_DATA', items: [] }))
+    renderSection()
+
+    fireEvent.click(await screen.findByRole('button', { name: /^핵심 수치/ }))
+    expect(await screen.findByText('OpenDART에 이 공시의 핵심 수치 자료가 없어요. 원문으로 확인해 주세요.')).toBeTruthy()
+    expect(screen.getByRole('link', { name: /원문 보기/ })).toBeTruthy()
+  })
+
+  it('불러오는 중과 실패를 보여 주고 다시 시도할 수 있다', async () => {
+    listDisclosures.mockResolvedValue(list([disposal]))
+    getDisclosureKeyItems.mockReturnValueOnce(new Promise(() => {}))
+    renderSection()
+
+    const button = await screen.findByRole('button', { name: /^핵심 수치/ })
+    fireEvent.click(button)
+    expect(await screen.findByText('핵심 수치를 불러오는 중이에요…')).toBeTruthy()
+    fireEvent.click(button)
+
+    getDisclosureKeyItems.mockRejectedValueOnce(
+      new ApiError(503, { code: 'DART_RATE_LIMITED', message: '한도', traceId: 'trace-2', errors: [] }),
+    )
+    getDisclosureKeyItems.mockResolvedValueOnce(keyItems())
+    fireEvent.click(button)
+    expect(
+      await screen.findByText('OpenDART 호출 한도를 넘어 핵심 수치를 받지 못했어요. 내일 다시 시도해 주세요.'),
+    ).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
+    expect(await screen.findByText('10,492,048,000 원')).toBeTruthy()
+  })
+
+  it('닫으면 진행 중인 요청을 취소한다', async () => {
+    listDisclosures.mockResolvedValue(list([disposal]))
+    getDisclosureKeyItems.mockReturnValue(new Promise(() => {}))
+    renderSection()
+
+    const button = await screen.findByRole('button', { name: /^핵심 수치/ })
+    fireEvent.click(button)
+    await waitFor(() => expect(getDisclosureKeyItems).toHaveBeenCalled())
+    const signal = getDisclosureKeyItems.mock.calls[0][2]!
+    fireEvent.click(button)
+    expect(signal.aborted).toBe(true)
+  })
+
+  it('펼친 핵심 수치에 접근성 위반이 없다', async () => {
+    listDisclosures.mockResolvedValue(list([...sample, disposal]))
+    getDisclosureKeyItems.mockResolvedValue(keyItems())
+    const { container } = renderSection()
+
+    fireEvent.click(await screen.findByRole('button', { name: /^핵심 수치/ }))
+    await screen.findByText('10,492,048,000 원')
+    expect(await axeViolations(container)).toBe('')
+  })
 })
 afterEach(cleanup)
 
