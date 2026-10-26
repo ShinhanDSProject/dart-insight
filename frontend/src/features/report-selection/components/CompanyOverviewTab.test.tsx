@@ -15,6 +15,11 @@ vi.mock('@/shared/api/companies', () => ({
 }))
 
 // 다른 영역은 자기 테스트가 따로 있다. 여기서는 자리와 순서만 본다.
+vi.mock('./CompanyBriefingSection', () => ({
+  CompanyBriefingSection: ({ corpCode }: { corpCode: string }) => (
+    <section aria-label="AI 기업 브리핑" data-section="briefing" data-corp-code={corpCode} />
+  ),
+}))
 vi.mock('./FinancialTrendSection', () => ({
   FinancialTrendSection: ({ corpCode }: { corpCode: string }) => (
     <section aria-label="주요 재무 흐름" data-section="financial-trends" data-corp-code={corpCode} />
@@ -63,7 +68,7 @@ describe('기업 개요 탭의 영역 순서', () => {
 
     await screen.findByRole('region', { name: '기업 개황' })
     const names = screen.getAllByRole('region').map(regionName)
-    expect(names).toEqual(['기업 개황', '주요 재무 흐름', '최대주주·임원·배당 변화', '최근 공시'])
+    expect(names).toEqual(['AI 기업 브리핑', '기업 개황', '주요 재무 흐름', '최대주주·임원·배당 변화', '최근 공시'])
     const stubs = Array.from(container.querySelectorAll('[data-section]'))
     expect(stubs.every((el) => el.getAttribute('data-corp-code') === '00126380')).toBe(true)
   })
