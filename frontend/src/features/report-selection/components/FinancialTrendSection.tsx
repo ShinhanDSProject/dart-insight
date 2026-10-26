@@ -137,7 +137,7 @@ function TrendBody({ trend, onRetry }: { trend: FinancialTrend; onRetry: () => v
         <p className="panel__note">고른 기간 내내 값이 없는 계정은 뺐어요: {series.emptyAccounts.join(', ')}</p>
       )}
       <p className="panel__note">
-        출처: OpenDART 단일회사 주요계정. 표 보기의 열 머리글에서 각 보고서의 DART 원문을 열 수 있어요.
+        출처: DART(OpenDART 단일회사 주요계정). 표 보기의 열 머리글에서 각 보고서의 DART 원문을 열 수 있어요.
       </p>
     </div>
   )
