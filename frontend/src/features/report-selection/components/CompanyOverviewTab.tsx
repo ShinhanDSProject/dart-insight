@@ -2,6 +2,7 @@ import type { ComponentType } from 'react'
 import type { OverviewSectionProps } from '../model/overviewSections'
 import { CompanyProfileCard } from './CompanyProfileCard'
 import { FinancialTrendSection } from './FinancialTrendSection'
+import { KeyFactsSection } from './KeyFactsSection'
 
 /**
  * 기업 개요 탭의 영역을 위에서부터 그리는 순서(FS-45~49).
@@ -15,6 +16,7 @@ import { FinancialTrendSection } from './FinancialTrendSection'
 const sections: ReadonlyArray<{ key: string; Component: ComponentType<OverviewSectionProps> }> = [
   { key: 'profile', Component: CompanyProfileCard },
   { key: 'financial-trends', Component: FinancialTrendSection },
+  { key: 'key-facts', Component: KeyFactsSection },
 ]
 
 export function CompanyOverviewTab(props: OverviewSectionProps) {
