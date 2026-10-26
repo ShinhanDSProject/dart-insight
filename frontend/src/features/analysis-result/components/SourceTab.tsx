@@ -1,14 +1,17 @@
-import { useEffect, useRef, type RefObject } from 'react'
+import { useEffect, useMemo, useRef, type RefObject } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import { firstContentSection, type DocumentOutline, type DocumentSide, type SectionContent } from '@/shared/api/documents'
-import { Notice, Panel, PanelTitle, SegmentedControl } from '@/shared/ui'
+import type { TextSectionCount } from '@/shared/api/textChanges'
+import { Badge, Button, Notice, Panel, PanelTitle, SegmentedControl } from '@/shared/ui'
 import { DartLinkActions } from '@/shared/ui/DartLink'
 import { verifiedDartUrl } from '@/shared/lib/dart'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { TableView } from './TableView'
 import { useDocumentOutline, useSection } from '../hooks/useDocument'
+import { formatCount } from '../model/overview'
 import type { SourceViewChange } from '../model/resultParams'
+import { sectionChangeCounts } from '../model/sectionChangeCounts'
 import { displaySectionPath, displaySectionTitle } from '@/shared/lib/sectionTitle'
 
 interface SourceTabProps {
@@ -19,6 +22,10 @@ interface SourceTabProps {
   /** 강조할 근거 위치(블록 번호) */
   blockNo: number | null
   onChange: (changes: SourceViewChange) => void
+  /** 최상위 섹션별 문장 변경 건수(요약 개요의 막대와 같은 문장 변화 응답의 sections). 못 불러오면 빈 목록 */
+  sectionCounts: TextSectionCount[]
+  /** 문장 변화 탭을 그 최상위 섹션(원래 제목)으로 거른다(#313) */
+  onOpenTextSection: (section: string) => void
 }
 
 const USABLE = new Set(['STRUCTURED', 'PARTIAL'])
@@ -32,8 +39,9 @@ const sideOptions: { value: DocumentSide; label: string }[] = [
  * W-03 ④ 원문 확인(3.5). 비교·현재 보고서를 전환하며 목차와 선택한 근거 위치를 보여 준다.
  * 원문은 분석할 때 구조화한 것이고, DART 원문 안의 위치로 바로 가는 기능은 없어(위치 이동 미지원) 항목 정보를 함께 안내한다.
  */
-export function SourceTab({ analysis, side, sectionNo, blockNo, onChange }: SourceTabProps) {
+export function SourceTab({ analysis, side, sectionNo, blockNo, onChange, sectionCounts, onOpenTextSection }: SourceTabProps) {
   const { state: outline, reload } = useDocumentOutline(analysis.analysisId, side)
+  const changeCounts = useMemo(() => sectionChangeCounts(sectionCounts), [sectionCounts])
 
   const report = side === 'current' ? analysis.current : analysis.previous
 
@@ -69,6 +77,8 @@ export function SourceTab({ analysis, side, sectionNo, blockNo, onChange }: Sour
               sectionNo={sectionNo ?? firstContentSection(data.sections)}
               blockNo={blockNo}
               onSelect={(section) => onChange({ section, block: null })}
+              changeCounts={changeCounts}
+              onOpenTextSection={onOpenTextSection}
             />
           ),
         )
@@ -83,9 +93,11 @@ interface SourceBodyProps {
   sectionNo: number | null
   blockNo: number | null
   onSelect: (sectionNo: number) => void
+  changeCounts: Map<string, number>
+  onOpenTextSection: (section: string) => void
 }
 
-function SourceBody({ analysis, outline, sectionNo, blockNo, onSelect }: SourceBodyProps) {
+function SourceBody({ analysis, outline, sectionNo, blockNo, onSelect, changeCounts, onOpenTextSection }: SourceBodyProps) {
   if (!USABLE.has(outline.documentStatus)) {
     return (
       <>
@@ -108,19 +120,35 @@ function SourceBody({ analysis, outline, sectionNo, blockNo, onSelect }: SourceB
         <nav className="source-toc" aria-label="문서 목차">
           <PanelTitle as="h3">문서 목차</PanelTitle>
           <ul>
-            {outline.sections.map((section) => (
-              <li key={section.sectionNo}>
-                <button
-                  type="button"
-                  className="source-toc__item"
-                  style={{ paddingLeft: `calc(var(--space-2) + ${Math.max(0, section.depth - 1)} * var(--space-3))` }}
-                  aria-current={section.sectionNo === sectionNo ? 'location' : undefined}
-                  onClick={() => onSelect(section.sectionNo)}
-                >
-                  {displaySectionTitle(section.title)}
-                </button>
-              </li>
-            ))}
+            {outline.sections.map((section) => {
+              // 변경 건수는 최상위 섹션에만 있고, 원래 제목으로 맞춘다(표시 이름으로 맞추지 않음)
+              const changes = section.depth === 1 ? (changeCounts.get(section.title) ?? 0) : 0
+              const label = displaySectionTitle(section.title)
+              return (
+                <li key={section.sectionNo} className="source-toc__row">
+                  <button
+                    type="button"
+                    className="source-toc__item"
+                    style={{ paddingLeft: `calc(var(--space-2) + ${Math.max(0, section.depth - 1)} * var(--space-3))` }}
+                    aria-current={section.sectionNo === sectionNo ? 'location' : undefined}
+                    onClick={() => onSelect(section.sectionNo)}
+                  >
+                    {label}
+                  </button>
+                  {/* 목차 항목 버튼과 나란한 형제 버튼(UI-4: 버튼 안에 버튼을 두지 않는다) */}
+                  {changes > 0 && (
+                    <Button
+                      variant="link"
+                      className="source-toc__changes"
+                      aria-label={`${label} 문장 변경 ${formatCount(changes)}건 보기`}
+                      onClick={() => onOpenTextSection(section.title)}
+                    >
+                      <Badge tone="accent">변경 {formatCount(changes)}</Badge>
+                    </Button>
+                  )}
+                </li>
+              )
+            })}
           </ul>
         </nav>
         {sectionNo === null ? (

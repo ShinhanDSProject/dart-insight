@@ -5,6 +5,7 @@ import type { ParamChanges } from '@/shared/lib/searchParams'
 import { Button, ButtonLink, Notice, Tabs, type TabItem } from '@/shared/ui'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import type { SjDiv } from '@/shared/api/results'
+import type { TextSectionCount } from '@/shared/api/textChanges'
 import type { LoadState } from '@/shared/hooks/asyncState'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
 import { useRecordRecentAnalysis } from '@/shared/hooks/useRecentAnalyses'
@@ -135,7 +136,7 @@ function AnalysisResult({ analysis, params, update }: AnalysisResultProps) {
 function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
   useRecordRecentAnalysis(analysis)
   const ask = useAsk(analysis.analysisId)
-  const { questions: suggestions, sections: askSections } = useAskSuggestions(analysis.analysisId)
+  const { questions: suggestions, sections: askSections, sectionCounts } = useAskSuggestions(analysis.analysisId)
   return (
     <>
       {analysis.outdated && <OutdatedNotice analysis={analysis} />}
@@ -150,6 +151,7 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
         ask={ask}
         suggestions={suggestions}
         askSections={askSections}
+        sectionCounts={sectionCounts}
       />
     </>
   )
@@ -160,9 +162,11 @@ interface ResultTabPanelProps extends AnalysisResultProps {
   suggestions: LoadState<string[]>
   /** 입력 중 섹션 질문 제안에 쓰는 최상위 섹션 제목(#267) */
   askSections: string[]
+  /** 원문 확인 목차의 '변경 N' 배지에 쓰는 최상위 섹션별 문장 변경 건수(#313). 예시 질문과 같은 문장 변화 응답에서 온다 */
+  sectionCounts: TextSectionCount[]
 }
 
-function ResultTabPanel({ analysis, params, update, ask, suggestions, askSections }: ResultTabPanelProps) {
+function ResultTabPanel({ analysis, params, update, ask, suggestions, askSections, sectionCounts }: ResultTabPanelProps) {
   const openSource = (target: SourceTarget) => update(openSourceChanges(target))
   const openFinancial = (sj: SjDiv, change: number) => update(openFinancialChanges(sj, change))
   // 요약의 예시 질문, 문장 변화의 '이 항목 변화 AI에게 묻기', 재무 근거의 '이 계정 변화 AI에게 묻기'가 같이 쓴다: 질문을 보내고 AI 질문 탭으로 옮긴다
@@ -236,6 +240,8 @@ function ResultTabPanel({ analysis, params, update, ask, suggestions, askSection
         sectionNo={params.sourceSection}
         blockNo={params.sourceBlock}
         onChange={(c) => update(sourceParamChanges(c))}
+        sectionCounts={sectionCounts}
+        onOpenTextSection={(section) => update(openTextSection(section))}
       />
     ))
     .exhaustive()
