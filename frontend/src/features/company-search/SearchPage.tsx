@@ -96,15 +96,7 @@ export function SearchPage() {
         )}
       </form>
 
-      {/* 넓은 화면에서는 최근 본 분석(왼쪽)과 관심 기업·새 공시(오른쪽)를 나란히, 좁으면 이 순서로 위아래에 둔다(#374) */}
-      {query === '' && (
-        <div className="home-columns">
-          <RecentAnalysesSection />
-          <div className="home-columns__favorites">
-            <FavoriteCompaniesSection />
-          </div>
-        </div>
-      )}
+      {query === '' && <HomeSections />}
 
       <SearchResult state={state} onRetry={reload} listRef={listRef} onBackToInput={focusInput} />
     </section>
@@ -119,28 +111,38 @@ function OnboardingSection({ query }: { query: string }) {
 }
 
 /**
- * 검색어가 없을 때만 보이는 로그인한 회원의 관심 기업(#36)과 그 기업들의 새 공시(FS-52). 관심 기업 목록이 비거나
- * 로그인하지 않았으면 목록은 보이지 않고 새 공시 자리에 짧은 안내만 보인다.
+ * 검색어가 없을 때만 보이는 첫 화면 아래쪽. 로그인한 회원의 관심 기업(#36) 칩을 전체 폭으로 두고, 그 아래에
+ * 최근 본 분석(FS-7)과 관심 기업 새 공시(FS-52)를 같은 폭 두 열로 둔다(#378). 두 열은 제목 줄·목록·아래 줄이 맞는다.
+ * 관심 기업 목록이 비거나 로그인하지 않았으면 칩은 보이지 않고 새 공시 자리에 짧은 안내만 보인다.
  * 목록을 받지 못했으면 빈 목록처럼 숨기지 않고 다시 시도를 안내한다.
  */
-function FavoriteCompaniesSection() {
+function HomeSections() {
   const favorites = useFavoriteCompanies()
-  return match(favorites.status)
-    .with('error', () => (
-      <AlertState title="관심 기업을 불러오지 못했어요.">
-        <Button variant="secondary" onClick={favorites.reload}>
-          다시 시도
-        </Button>
-      </AlertState>
-    ))
-    .with('loading', () => null)
-    .with('anonymous', 'ready', () => (
-      <>
-        <FavoriteCompanies items={favorites.items} onRemove={favorites.remove} />
-        <FavoriteDisclosureFeed companies={favorites.items} signedOut={favorites.status === 'anonymous'} />
-      </>
-    ))
-    .exhaustive()
+  return (
+    <>
+      {match(favorites.status)
+        .with('error', () => (
+          <AlertState title="관심 기업을 불러오지 못했어요.">
+            <Button variant="secondary" onClick={favorites.reload}>
+              다시 시도
+            </Button>
+          </AlertState>
+        ))
+        .with('loading', 'anonymous', () => null)
+        .with('ready', () => <FavoriteCompanies items={favorites.items} onRemove={favorites.remove} />)
+        .exhaustive()}
+      <div className="home-columns">
+        <RecentAnalysesSection />
+        {favorites.status !== 'error' && (
+          <FavoriteDisclosureFeed
+            companies={favorites.items}
+            signedOut={favorites.status === 'anonymous'}
+            waiting={favorites.status === 'loading'}
+          />
+        )}
+      </div>
+    </>
+  )
 }
 
 /** 검색어가 없을 때만 보이는 최근 본 분석(FS-7). 목록이 비면 아무것도 보이지 않는다 */
