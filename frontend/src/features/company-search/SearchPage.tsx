@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router'
 import { match } from 'ts-pattern'
 import { Button, FieldHint, Input } from '@/shared/ui'
 import { ServiceNotice } from '@/shared/ui/ServiceNotice'
-import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
+import { AlertState, EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import type { AsyncState } from '@/shared/hooks/asyncState'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
 import { useOnboarding } from '@/shared/hooks/useOnboarding'
@@ -110,10 +110,24 @@ function OnboardingSection({ query }: { query: string }) {
   return <OnboardingGuide onDismiss={onboarding.dismiss} />
 }
 
-/** 검색어가 없을 때만 보이는 관심 기업(FS-18). 목록이 비면 아무것도 보이지 않는다 */
+/**
+ * 검색어가 없을 때만 보이는 로그인한 회원의 관심 기업(#36). 목록이 비거나 로그인하지 않았으면 아무것도 보이지 않고,
+ * 목록을 받지 못했으면 빈 목록처럼 숨기지 않고 다시 시도를 안내한다.
+ */
 function FavoriteCompaniesSection() {
   const favorites = useFavoriteCompanies()
-  return <FavoriteCompanies items={favorites.items} onRemove={favorites.remove} />
+  return match(favorites.status)
+    .with('error', () => (
+      <AlertState title="관심 기업을 불러오지 못했어요.">
+        <Button variant="secondary" onClick={favorites.reload}>
+          다시 시도
+        </Button>
+      </AlertState>
+    ))
+    .with('anonymous', 'loading', 'ready', () => (
+      <FavoriteCompanies items={favorites.items} onRemove={favorites.remove} />
+    ))
+    .exhaustive()
 }
 
 /** 검색어가 없을 때만 보이는 최근 본 분석(FS-7). 목록이 비면 아무것도 보이지 않는다 */

@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Company, CompanyOverview } from '@/shared/api/companies'
 import type { ReportList } from '@/shared/api/reports'
+import { AuthContext, type AuthContextValue } from '@/shared/auth/authContext'
 import { axeViolations } from '@/test/axe'
 import { samsungOverview } from '@/test/fixtures/companyOverview'
 import { CompanyPage } from './CompanyPage'
@@ -32,21 +33,26 @@ function LocationProbe() {
   return <output data-testid="location">{location.search}</output>
 }
 
+// 별 버튼(관심 기업)은 로그인 상태를 읽는다(#36). 이 테스트는 탭만 보므로 로그인하지 않은 상태로 그린다
+const anonymous: AuthContextValue = { state: { status: 'anonymous' }, login: vi.fn(), logout: vi.fn() }
+
 function renderPage(search = '') {
   return render(
-    <MemoryRouter initialEntries={[`/companies/00126380${search}`]}>
-      <Routes>
-        <Route
-          path="/companies/:corpCode"
-          element={
-            <>
-              <CompanyPage />
-              <LocationProbe />
-            </>
-          }
-        />
-      </Routes>
-    </MemoryRouter>,
+    <AuthContext.Provider value={anonymous}>
+      <MemoryRouter initialEntries={[`/companies/00126380${search}`]}>
+        <Routes>
+          <Route
+            path="/companies/:corpCode"
+            element={
+              <>
+                <CompanyPage />
+                <LocationProbe />
+              </>
+            }
+          />
+        </Routes>
+      </MemoryRouter>
+    </AuthContext.Provider>,
   )
 }
 
