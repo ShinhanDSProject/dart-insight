@@ -8,7 +8,7 @@
 | --- | --- |
 | 상태 | 초안 (M1 범위) |
 | 담당 | 백엔드·프론트 |
-| 마지막 수정 | 2026-10-25 |
+| 마지막 수정 | 2026-10-26 |
 | 관련 문서 | ERD(`docs/erd.md`), [화면 와이어프레임](https://app.notion.com/p/c0f540f74d92496c9c20f23867afc15a), 이슈 #47 |
 
 ## 0. 공통
@@ -49,6 +49,7 @@
 | `step` (분석) | `RECEIVED` 요청 접수, `COMPARING` 보고서 비교, `VERIFYING` 근거 확인, `DONE` 완료 |
 | `sjDiv` | `BS` 재무상태표, `IS` 손익계산서, `CIS` 포괄손익계산서, `CF` 현금흐름표, `SCE` 자본변동표 |
 | `fsDiv` | `CFS` 연결, `OFS` 별도 |
+| `corpClass` | OpenDART 법인구분(`corp_cls`). `Y` 유가증권시장, `K` 코스닥, `N` 코넥스, `E` 기타 |
 | `amountBasis` | `POINT` 시점(재무상태표), `CUMULATIVE` 누적, `QUARTER` 3개월 |
 | `textStatus` (분석) | 문장 비교 상태. `COMPLETED` 끝까지 비교, `PARTIAL` 원문 일부를 읽지 못했을 수 있음, `FAILED` 비교하지 못함(문장 변경이 없다는 뜻이 아님). 완료 전이면 null |
 | `changeType` (문장) | `ADDED` 추가, `DELETED` 삭제(문서에서 빠짐. 사업·계약 종료로 해석하지 않음), `MODIFIED` 수정, `NUMERIC_UPDATE` 숫자만 바뀜(숫자를 가린 글이 같은 수정), `MOVED` 위치 이동(숫자를 가린 글이 같거나 매우 비슷한 글이 다른 자리로 옮겨짐. 이전·현재 위치가 둘 다 있음), `REVIEW_NEEDED` 검토 필요(두 보고서의 항목을 짝짓지 못함). 분석 버전 `m2-8`까지의 결과에는 `NUMERIC_UPDATE`·`MOVED`가 없음(숫자만 바뀐 수정은 `MODIFIED` + `numbersOnly: true`, 옮긴 글은 `DELETED`·`ADDED` 두 건) |
@@ -67,6 +68,7 @@
 | GET | `/api/social-sessions/callback` | 소셜 인증을 서비스 세션으로 전환 | #225 (6.3) | 로그인 | 구현 |
 | GET | `/api/companies` | 기업 검색 | #8 (1.1) | W-01 ① | 초안 |
 | GET | `/api/companies/{corpCode}` | 기업 정보 | #8 (1.1) | W-01 ② | 초안 |
+| GET | `/api/companies/{corpCode}/overview` | 기업 개황(대표자·법인 구분·업종·설립일·결산월 등) | #329 (1.2) | 기업 화면 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/reports` | 기업별 정기보고서 목록 | #9 (1.2), #10 (1.3) | W-01 ② | 초안 |
 | GET | `/api/reports/{rceptNo}` | 보고서 메타데이터 | #10 (1.3), #11 (1.4) | W-01 ② | 초안 |
 | GET | `/api/companies/{corpCode}/report-pairs` | 비교 기준에 맞는 보고서 쌍 | #12 (2.1) | W-01 ② | 초안 |
@@ -213,6 +215,65 @@
 | 상태 | code | 언제 |
 | --- | --- | --- |
 | 404 | `COMPANY_NOT_FOUND` | 없는 고유번호 |
+
+### GET /api/companies/{corpCode}/overview — 기업 개황
+
+- 이슈: #329 (1.2, FS-45) · 화면: 기업 화면 '기업 개요' 탭(`?view=overview`)
+- OpenDART 기업개황(`company.json`)의 값을 그대로 돌려줍니다. 계산하거나 고친 값이 없습니다(앞뒤 공백만 지우고, 빈 문자열은 null).
+- 저장 기준([ADR-0024](adr/0024-company-info-cache.md)): 받은 지 7일(`app.company.overview-refresh-after`)이 지나지 않았으면 OpenDART를 부르지 않고 저장된 값을 줍니다. 지났으면 다시 받고, 다시 받다 실패하면 저장된 값을 돌려주며 `refreshError`에 실패 이유를 담습니다.
+- OpenDART가 `013`(자료 없음)이면 에러가 아니라 `available: false`이고 개황 필드는 모두 null입니다.
+
+**응답 200**
+
+```json
+{
+  "corpCode": "00126380",
+  "available": true,
+  "corpName": "삼성전자(주)",
+  "corpNameEng": "SAMSUNG ELECTRONICS CO,.LTD",
+  "stockName": "삼성전자",
+  "stockCode": "005930",
+  "ceoName": "전영현, 노태문",
+  "corpClass": "Y",
+  "indutyCode": "264",
+  "establishedDate": "1969-01-13",
+  "accountingMonth": 12,
+  "homepageUrl": "www.samsung.com/sec",
+  "irUrl": null,
+  "address": "경기도 수원시 영통구  삼성로 129 (매탄동)",
+  "phoneNumber": "02-2255-0114",
+  "fetchedAt": "2026-10-26T10:15:30",
+  "refreshError": null
+}
+```
+
+| 필드 | OpenDART | 설명 |
+| --- | --- | --- |
+| `available` | `status` | `000`이면 true, `013`(자료 없음)이면 false |
+| `corpName` | `corp_name` | 정식명칭 |
+| `corpNameEng` | `corp_name_eng` | 영문명칭 |
+| `stockName` | `stock_name` | 종목명(상장사) 또는 약식명칭(기타법인) |
+| `stockCode` | `stock_code` | 종목코드 6자리. 비상장사는 null |
+| `ceoName` | `ceo_nm` | 대표자명. 여럿이면 원문 그대로(예: 쉼표로 구분) |
+| `corpClass` | `corp_cls` | 법인구분(공통 값 `corpClass`) |
+| `indutyCode` | `induty_code` | 업종코드 원문 |
+| `establishedDate` | `est_dt` | 설립일 `YYYY-MM-DD`. 원문이 날짜가 아니면 null |
+| `accountingMonth` | `acc_mt` | 결산월(1~12). 원문이 월이 아니면 null |
+| `homepageUrl` | `hm_url` | 홈페이지 원문. `http(s)://`가 없을 수 있음 |
+| `irUrl` | `ir_url` | IR 홈페이지 원문 |
+| `address` | `adres` | 주소 |
+| `phoneNumber` | `phn_no` | 전화번호 |
+| `fetchedAt` | — | OpenDART에서 받은 시각(한국 시간) |
+| `refreshError` | — | 다시 받지 못해 저장된 값을 돌려줄 때 그 에러 코드. 아니면 null |
+
+`company.json`의 법인등록번호(`jurir_no`)·사업자등록번호(`bizr_no`)·팩스번호(`fax_no`)는 저장하지도 돌려주지도 않습니다(투자자에게 쓸모가 적음).
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 404 | `COMPANY_NOT_FOUND` | 기업 목록(`company`)에 없는 고유번호. OpenDART를 부르지 않음 |
+| 502 | `DART_REQUEST_FAILED` | OpenDART 호출 실패이고 저장된 개황도 없음 |
+| 503 | `DART_RATE_LIMITED` | OpenDART 호출 한도 초과(020)이고 저장된 개황도 없음 |
+| 503 | `DART_KEY_MISSING` | 서버에 OpenDART 키가 설정되지 않았고 저장된 개황도 없음 |
 
 ### GET /api/companies/{corpCode}/reports — 정기보고서 목록
 

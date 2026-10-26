@@ -8,7 +8,7 @@
 | --- | --- |
 | 상태 | 초안 (M1 확정, M2 진행 중: 원문 구조화·문장 변경·요약 확정) |
 | 담당 | 백엔드 |
-| 마지막 수정 | 2026-10-25 |
+| 마지막 수정 | 2026-10-26 |
 | 관련 문서 | API 명세(`docs/api-spec.md`), [OpenDART 데이터 가이드](https://app.notion.com/p/400b6afffc6f81cc8870ee13d02d8ac1), 이슈 #46 |
 
 ## 1. 테이블 목록
@@ -20,6 +20,7 @@
 | `refresh_token` | 일반 로그인 Refresh Token 해시·회전 기록 | 6.2 | 미정 |
 | `social_account` | Google·Kakao·Naver 계정과 공통 회원 연결 | #225 (6.3) | 미정 |
 | `company` | 기업. OpenDART 고유번호 기준 | 4.4 (#51) | M1 |
+| `company_overview` | 기업 개황(OpenDART `company.json`) 캐시. 고유번호 기준, 받은 시각으로 다시 받음 | 1.2 (#329) | M2 |
 | `report` | 정기보고서. 접수번호 기준 | 4.1 (#27) | M1 |
 | `financial_statement_fetch` | 재무제표 API를 부른 기록(보고서·연결/별도 단위) | 4.5 (#52) | M1 |
 | `financial_account` | 재무제표 계정 값(API 응답 한 줄) | 4.5 (#52) | M1 |
@@ -71,6 +72,7 @@ erDiagram
         boolean email_verified
     }
     company ||--o{ report : "corp_code"
+    company ||--o| company_overview : "corp_code"
     company ||--o{ financial_statement_fetch : "corp_code"
     financial_statement_fetch ||--o{ financial_account : "fetch_id"
     company ||--o{ analysis : "corp_code"
@@ -94,6 +96,15 @@ erDiagram
         varchar corp_name_chosung "검색용: 회사명 초성"
         varchar stock_code "종목코드, 상장사만"
         datetime reports_fetched_at "보고서 목록을 받은 시각"
+    }
+    company_overview {
+        bigint id PK
+        varchar corp_code UK,FK "고유번호"
+        varchar status "OK NO_DATA"
+        varchar ceo_nm "대표자명"
+        varchar corp_cls "법인구분 Y K N E"
+        date est_dt "설립일"
+        datetime fetched_at "OpenDART에서 받은 시각"
     }
     report {
         bigint id PK
@@ -214,6 +225,31 @@ OpenDART `corpCode.xml`에서 받습니다(4.4).
 | `reports_fetched_at` | DATETIME(6) | | 예 | 정기보고서 목록을 마지막으로 받은 시각(4.1). null이면 아직 안 받음 |
 | `created_at` | DATETIME(6) | | 아니오 | |
 | `updated_at` | DATETIME(6) | | 아니오 | |
+
+### company_overview
+
+OpenDART 기업개황(`company.json`)에서 받습니다(1.2, #329). 회사마다 한 행이고, 받은 지 7일(`app.company.overview-refresh-after`)이 지난 뒤 요청이 오면 다시 받아 이 행을 고칩니다([ADR-0024](adr/0024-company-info-cache.md)). `013`(자료 없음)도 `NO_DATA`로 저장하고, 호출 실패는 저장하지 않습니다(다시 받다 실패하면 이 행을 그대로 씀). 컬럼 이름은 OpenDART 응답 필드 이름을 따릅니다. 값은 앞뒤 공백만 지우고 빈 문자열은 NULL로 둡니다.
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT | PK | 아니오 | 자동 증가 |
+| `corp_code` | VARCHAR(8) | UK, FK | 아니오 | `company.corp_code` |
+| `status` | VARCHAR(10) | | 아니오 | `OK` 자료 있음, `NO_DATA` 자료 없음(013). `NO_DATA`면 아래 값은 모두 NULL |
+| `corp_name` | VARCHAR(200) | | 예 | 정식명칭 |
+| `corp_name_eng` | VARCHAR(200) | | 예 | 영문명칭 |
+| `stock_name` | VARCHAR(200) | | 예 | 종목명(상장사) 또는 약식명칭(기타법인) |
+| `stock_code` | VARCHAR(6) | | 예 | 종목코드 |
+| `ceo_nm` | VARCHAR(200) | | 예 | 대표자명(여럿이면 원문 그대로) |
+| `corp_cls` | VARCHAR(1) | | 예 | 법인구분. `Y` 유가증권시장, `K` 코스닥, `N` 코넥스, `E` 기타 |
+| `induty_code` | VARCHAR(10) | | 예 | 업종코드 |
+| `est_dt` | DATE | | 예 | 설립일(원문 `YYYYMMDD`). 날짜가 아니면 NULL |
+| `acc_mt` | INT | | 예 | 결산월(원문 `MM`, 1~12). 월이 아니면 NULL |
+| `hm_url` | VARCHAR(300) | | 예 | 홈페이지 |
+| `ir_url` | VARCHAR(300) | | 예 | IR 홈페이지 |
+| `adres` | VARCHAR(500) | | 예 | 주소 |
+| `phn_no` | VARCHAR(50) | | 예 | 전화번호 |
+| `fetched_at` | DATETIME(6) | | 아니오 | OpenDART에서 마지막으로 받은 시각 |
+| `created_at`, `updated_at` | DATETIME(6) | | 아니오 | |
 
 ### report
 
@@ -569,6 +605,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `company` | `idx_company_corp_name` | `corp_name` | 인덱스 | 회사명 정렬·완전 일치. 부분 일치 검색(`%검색어%`)에는 쓰이지 않음 |
 | `company` | `idx_company_stock_code` | `stock_code` | 인덱스 | 종목코드 검색 |
 | `company` | (없음) | `corp_name_key`, `corp_name_chosung` | — | 검색은 부분 일치(`%검색어%`)라 B-tree 인덱스를 쓰지 못해 두지 않음. 10만 행 정도는 전체 읽기로 충분하고, 느려지면 전문 검색(n-gram)을 검토 |
+| `company_overview` | `uk_company_overview_corp_code` | `corp_code` | 유니크 | 회사마다 개황 한 행 |
 | `report` | `uk_report_rcept_no` | `rcept_no` | 유니크 | 접수번호 중복 방지(외래 키가 참조) |
 | `report` | `idx_report_corp_period` | `corp_code, period_end` | 인덱스 | 기업별 보고서 목록 |
 | `financial_statement_fetch` | `uk_fs_fetch` | `corp_code, fiscal_year, reprt_code, fs_div` | 유니크 | 같은 호출을 두 번 저장하지 않음 |
@@ -586,7 +623,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `analysis_question` | `idx_analysis_question_analysis` | `analysis_id, id` | 인덱스 | 분석별 최신 질문 조회 |
 | `text_change_explanation` | `uk_text_change_explanation` | `analysis_id, change_no` | 유니크 | 변경마다 풀이 하나 |
 
-외래 키: `local_credential.user_id`, `refresh_token.user_id` → `app_user.id` / `refresh_token.replaced_by_id` → `refresh_token.id` / `report.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no` → `report.rcept_no` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id`, `analysis_question.analysis_id`, `text_change_explanation.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id`
+외래 키: `local_credential.user_id`, `refresh_token.user_id` → `app_user.id` / `refresh_token.replaced_by_id` → `refresh_token.id` / `report.corp_code`, `company_overview.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no` → `report.rcept_no` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id`, `analysis_question.analysis_id`, `text_change_explanation.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id`
 
 ## 5. 작성 규칙
 
