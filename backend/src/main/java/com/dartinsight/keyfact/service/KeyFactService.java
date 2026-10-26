@@ -37,6 +37,7 @@ import org.springframework.stereotype.Service;
  * 최대주주·임원·배당 변화(#331, FS-47). 가장 최근 정기보고서와 같은 종류의 1년 전 보고서의 정기보고서 주요정보를
  * 나란히 놓고, 같은 행을 짝지어 바뀐 항목을 만든다.
  * 받은 결과는 접수번호·묶음마다 저장하고 다시 받지 않는다(자료 없음은 보고서 목록에서 다시 봤을 때 한 번 더 받음).
+ * 정정 공시의 값은 그 접수번호(sourceRceptNo)와 함께 받는다(#350, toSection).
  * OpenDART 호출은 트랜잭션 밖에서 하고, 한 묶음을 받지 못해도 응답 전체를 실패시키지 않는다(그 묶음만 UNAVAILABLE).
  */
 @Service
@@ -114,22 +115,43 @@ public class KeyFactService {
         return !saved.section().available() && report.getLastSeenAt().isAfter(saved.fetchedAt());
     }
 
-    /** 응답이 이 보고서(접수번호)의 것이 아니면(정정본 등) 이 보고서의 자료가 없는 것으로 본다. */
+    /**
+     * OpenDART는 사업연도·보고서 코드마다 최신 공시 하나의 값만 준다(#350). 그래서 행의 접수번호가 이 보고서와 달라도
+     * (뒤에 나온 정정본) 같은 기간의 자료면 받고, 그 접수번호를 sourceRceptNo로 둔다.
+     * <ul>
+     *   <li>이 보고서 접수번호의 행이 있으면 그 행만, 없으면 첫 행의 접수번호와 같은 행만 쓴다. 접수번호가 없는 행은 근거가
+     *       없어 쓰지 않는다.</li>
+     *   <li>결산기준일(stlm_dt)이 보고서의 대상 기간 끝과 다르면 다른 기간의 자료라 NO_DATA다. stlm_dt가 없으면 요청한
+     *       사업연도·보고서 코드의 응답이므로 받는다.</li>
+     * </ul>
+     */
     private static <T, I> KeyFactSection<T> toSection(Report report, PeriodicReportInfoPage<I> page,
             Fetcher<T, I> fetcher) {
         String rceptNo = report.getRceptNo();
-        List<I> items = page.noData() ? List.of() : page.items().stream()
-                .filter(item -> rceptNo.equals(clean(fetcher.itemRceptNo().apply(item))))
+        List<I> withRceptNo = page.noData() ? List.of() : page.items().stream()
+                .filter(item -> clean(fetcher.itemRceptNo().apply(item)) != null)
                 .toList();
-        if (items.isEmpty()) {
-            if (!page.noData() && !page.items().isEmpty()) {
-                log.info("정기보고서 주요정보가 다른 접수번호의 것이라 쓰지 않습니다 {} {}", rceptNo, fetcher.kind());
-            }
+        if (withRceptNo.isEmpty()) {
             return KeyFactSection.empty(rceptNo, KeyFactStatus.NO_DATA);
         }
+        String source = withRceptNo.stream()
+                .map(item -> clean(fetcher.itemRceptNo().apply(item)))
+                .filter(rceptNo::equals)
+                .findFirst()
+                .orElseGet(() -> clean(fetcher.itemRceptNo().apply(withRceptNo.get(0))));
+        List<I> items = withRceptNo.stream()
+                .filter(item -> source.equals(clean(fetcher.itemRceptNo().apply(item))))
+                .toList();
         LocalDate settlementDate = date(fetcher.itemSettlementDate().apply(items.get(0)));
+        if (settlementDate != null && report.getPeriodEnd() != null
+                && !settlementDate.equals(report.getPeriodEnd())) {
+            log.info("정기보고서 주요정보가 다른 기간의 것이라 쓰지 않습니다 {} {}: 결산기준일 {}", rceptNo, fetcher.kind(),
+                    settlementDate);
+            return KeyFactSection.empty(rceptNo, KeyFactStatus.NO_DATA);
+        }
         List<T> rows = items.stream().map(fetcher.toRow()).toList();
-        return new KeyFactSection<>(rceptNo, KeyFactStatus.AVAILABLE, settlementDate, rows);
+        String sourceRceptNo = source.equals(rceptNo) ? null : source;
+        return new KeyFactSection<>(rceptNo, sourceRceptNo, KeyFactStatus.AVAILABLE, settlementDate, rows);
     }
 
     private static String reprtCode(Report report) {

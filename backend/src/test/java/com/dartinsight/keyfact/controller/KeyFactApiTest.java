@@ -39,6 +39,13 @@ import org.springframework.test.web.servlet.MockMvc;
  *   <li>현재: 반기보고서 (2026.06) 접수번호 20260814003699. 최대주주 6행, 임원 3행, 배당 4행</li>
  *   <li>이전: 반기보고서 (2025.06) 접수번호 20250814003156. 최대주주 5행, 임원 3행, 배당 4행</li>
  * </ul>
+ * 정정 공시(#350)는 KB금융(00688996) 실제 응답에서 일부 행만 남긴 kb-*.json이다(2026-10-26에 받음).
+ * <ul>
+ *   <li>2025 사업보고서(bsns_year=2025, reprt_code=11011): 행의 rcept_no 20260619000667([기재정정]사업보고서 (2025.12)).
+ *       최대주주 3행, 임원 3행, 배당 5행</li>
+ *   <li>2024 사업보고서(bsns_year=2024, reprt_code=11011): 행의 rcept_no 20260324000822(두 번째 [기재정정]사업보고서
+ *       (2024.12)). 첫 정정본 20250526000370으로 불러도 이 행이 온다. 최대주주 3행, 임원 3행, 배당 5행</li>
+ * </ul>
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -50,6 +57,9 @@ class KeyFactApiTest {
     private static final String SHAREHOLDERS = "/api/hyslrSttus.json";
     private static final String EXECUTIVES = "/api/exctvSttus.json";
     private static final String DIVIDENDS = "/api/alotMatter.json";
+    private static final String KB_CURRENT = "20260619000667";
+    private static final String KB_PREVIOUS = "20250526000370";
+    private static final String KB_PREVIOUS_SOURCE = "20260324000822";
 
     @DynamicPropertySource
     static void openDart(DynamicPropertyRegistry registry) {
@@ -252,11 +262,106 @@ class KeyFactApiTest {
     }
 
     @Test
+    @DisplayName("정정된 이전 보고서의 응답 행 접수번호가 달라도 같은 기간이면 받아 sourceRceptNo로 주고 바뀐 항목을 만든다")
+    void correctedReportRowsWithDifferentRceptNoAreUsed() throws Exception {
+        useKbAnnualReports();
+
+        mockMvc.perform(get("/api/companies/00000001/key-facts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.current.rceptNo").value(KB_CURRENT))
+                .andExpect(jsonPath("$.previous.rceptNo").value(KB_PREVIOUS))
+                .andExpect(jsonPath("$.majorShareholders.current.status").value("AVAILABLE"))
+                .andExpect(jsonPath("$.majorShareholders.current.rceptNo").value(KB_CURRENT))
+                .andExpect(jsonPath("$.majorShareholders.current.sourceRceptNo").value(nullValue()))
+                .andExpect(jsonPath("$.majorShareholders.previous.status").value("AVAILABLE"))
+                .andExpect(jsonPath("$.majorShareholders.previous.rceptNo").value(KB_PREVIOUS))
+                .andExpect(jsonPath("$.majorShareholders.previous.sourceRceptNo").value(KB_PREVIOUS_SOURCE))
+                .andExpect(jsonPath("$.majorShareholders.previous.settlementDate").value("2024-12-31"))
+                .andExpect(jsonPath("$.majorShareholders.previous.rows", hasSize(3)))
+                .andExpect(jsonPath("$.majorShareholders.changes", hasSize(2)))
+                .andExpect(jsonPath("$.majorShareholders.changes[0].name").value("국민연금공단"))
+                .andExpect(jsonPath("$.majorShareholders.changes[0].before").value("8.41"))
+                .andExpect(jsonPath("$.majorShareholders.changes[0].after").value("8.68"))
+                .andExpect(jsonPath("$.executives.previous.sourceRceptNo").value(KB_PREVIOUS_SOURCE))
+                .andExpect(jsonPath("$.executives.changes[?(@.type == 'ADDED')].name").value("이창권"))
+                .andExpect(jsonPath("$.executives.changes[?(@.type == 'REMOVED')].name").value("권선주"))
+                .andExpect(jsonPath("$.dividends.previous.status").value("AVAILABLE"))
+                .andExpect(jsonPath("$.dividends.previous.sourceRceptNo").value(KB_PREVIOUS_SOURCE));
+        assertThat(jdbcTemplate.queryForList(
+                "SELECT DISTINCT source_rcept_no FROM report_key_fact WHERE rcept_no = ?", String.class, KB_PREVIOUS))
+                .containsExactly(KB_PREVIOUS_SOURCE);
+    }
+
+    @Test
+    @DisplayName("응답의 결산기준일이 보고서의 기간과 다르면 다른 기간의 자료라 NO_DATA다")
+    void rowsOfAnotherPeriodAreNoData() throws Exception {
+        useKbAnnualReports();
+        SERVER.on(SHAREHOLDERS, json("kb-major-shareholders-2024-annual"));
+
+        mockMvc.perform(get("/api/companies/00000001/key-facts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.majorShareholders.current.status").value("NO_DATA"))
+                .andExpect(jsonPath("$.majorShareholders.current.sourceRceptNo").value(nullValue()))
+                .andExpect(jsonPath("$.majorShareholders.current.rows", hasSize(0)))
+                .andExpect(jsonPath("$.majorShareholders.previous.status").value("AVAILABLE"))
+                .andExpect(jsonPath("$.majorShareholders.changes", hasSize(0)));
+    }
+
+    @Test
+    @DisplayName("접수번호가 달라 NO_DATA로 저장했던 묶음은 V24가 지워 다음 조회 때 한 번 다시 받는다")
+    void noDataSavedBeforeCorrectionRuleIsFetchedAgain() throws Exception {
+        useKbAnnualReports();
+        mockMvc.perform(get("/api/companies/00000001/key-facts")).andExpect(status().isOk());
+        // #350 전 규칙으로 저장된 모양: 이전 보고서 묶음이 NO_DATA
+        jdbcTemplate.update("UPDATE report_key_fact SET status = 'NO_DATA', source_rcept_no = NULL, "
+                + "settlement_date = NULL, rows_json = '[]' WHERE rcept_no = ?", KB_PREVIOUS);
+        mockMvc.perform(get("/api/companies/00000001/key-facts"))
+                .andExpect(jsonPath("$.majorShareholders.previous.status").value("NO_DATA"));
+        int before = keyFactRequests();
+
+        jdbcTemplate.update(migrationStatement("V24__add_report_key_fact_source_rcept_no.sql", "DELETE"));
+
+        mockMvc.perform(get("/api/companies/00000001/key-facts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.majorShareholders.previous.status").value("AVAILABLE"))
+                .andExpect(jsonPath("$.majorShareholders.previous.sourceRceptNo").value(KB_PREVIOUS_SOURCE))
+                .andExpect(jsonPath("$.majorShareholders.changes", hasSize(2)));
+        assertThat(keyFactRequests() - before).isEqualTo(3);
+        mockMvc.perform(get("/api/companies/00000001/key-facts")).andExpect(status().isOk());
+        assertThat(keyFactRequests() - before).isEqualTo(3);
+    }
+
+    @Test
     @DisplayName("없는 기업은 404 COMPANY_NOT_FOUND")
     void unknownCompanyIsNotFound() throws Exception {
         mockMvc.perform(get("/api/companies/99999999/key-facts"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("COMPANY_NOT_FOUND"));
+    }
+
+    /** KB금융 2025 사업보고서(최신)와 2024 사업보고서의 첫 정정본. 응답은 현재 보고서, 이전 보고서 순서 */
+    private static void useKbAnnualReports() {
+        SERVER.on("/api/list.json", Response.json(page(1, 1,
+                item(KB_CURRENT, "[기재정정]사업보고서 (2025.12)", "20260619", "연"),
+                item(KB_PREVIOUS, "[기재정정]사업보고서 (2024.12)", "20250526", "정연"))));
+        SERVER.on(SHAREHOLDERS, json("kb-major-shareholders-2025-annual"), json("kb-major-shareholders-2024-annual"));
+        SERVER.on(EXECUTIVES, json("kb-executives-2025-annual"), json("kb-executives-2024-annual"));
+        SERVER.on(DIVIDENDS, json("kb-dividends-2025-annual"), json("kb-dividends-2024-annual"));
+    }
+
+    /** 마이그레이션 파일에서 keyword로 시작하는 문장 하나 */
+    private static String migrationStatement(String file, String keyword) {
+        try (InputStream in = KeyFactApiTest.class.getResourceAsStream("/db/migration/" + file)) {
+            if (in == null) {
+                throw new IllegalStateException("마이그레이션 파일이 없습니다: " + file);
+            }
+            String sql = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            return sql.lines().filter(line -> line.startsWith(keyword)).findFirst()
+                    .map(line -> line.replaceAll(";\\s*$", ""))
+                    .orElseThrow();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private static int keyFactRequests() {

@@ -66,7 +66,7 @@ class ReportKeyFactStoreTest {
 
         LocalDateTime second = first.plusDays(1);
         Dividend row = new Dividend("주당 현금배당금(원)", "보통주", "746", "1,668", null);
-        store.save(KeyFactKind.DIVIDENDS, new KeyFactSection<>(RCEPT_NO, KeyFactStatus.AVAILABLE,
+        store.save(KeyFactKind.DIVIDENDS, new KeyFactSection<>(RCEPT_NO, null, KeyFactStatus.AVAILABLE,
                 LocalDate.of(2026, 6, 30), List.of(row)), second);
 
         assertThat(store.find(RCEPT_NO, KeyFactKind.DIVIDENDS, Dividend.class)).hasValueSatisfying(saved -> {
@@ -77,5 +77,16 @@ class ReportKeyFactStoreTest {
         });
         assertThat(store.find(RCEPT_NO, KeyFactKind.EXECUTIVES, Dividend.class)).isEmpty();
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM report_key_fact", Integer.class)).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("값을 받은 정정 공시의 접수번호를 함께 저장하고 읽는다")
+    void savesSourceRceptNo() {
+        Dividend row = new Dividend("주당 현금배당금(원)", "보통주", "746", "1,668", null);
+        store.save(KeyFactKind.DIVIDENDS, new KeyFactSection<>(RCEPT_NO, "20260901000002", KeyFactStatus.AVAILABLE,
+                LocalDate.of(2026, 6, 30), List.of(row)), LocalDateTime.of(2026, 10, 26, 9, 0));
+
+        assertThat(store.find(RCEPT_NO, KeyFactKind.DIVIDENDS, Dividend.class)).hasValueSatisfying(saved ->
+                assertThat(saved.section().sourceRceptNo()).isEqualTo("20260901000002"));
     }
 }

@@ -6,7 +6,7 @@ package com.dartinsight.keyfact.domain;
 public enum KeyFactStatus {
     /** 자료 있음 */
     AVAILABLE,
-    /** 공시된 자료 없음(013, 2015 사업연도 이전, 응답이 이 보고서의 것이 아님) */
+    /** 공시된 자료 없음(013, 2015 사업연도 이전, 응답이 다른 기간(결산기준일)의 자료) */
     NO_DATA,
     /** 이번에 받지 못함(OpenDART 호출 실패). 저장하지 않는다 */
     UNAVAILABLE

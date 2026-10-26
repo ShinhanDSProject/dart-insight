@@ -1,0 +1,60 @@
+{
+ "status": "000",
+ "message": "정상",
+ "list": [
+  {
+   "rcept_no": "20260324000822",
+   "corp_cls": "Y",
+   "corp_code": "00688996",
+   "corp_name": "KB금융",
+   "nm": "양종희",
+   "sexdstn": "남",
+   "birth_ym": "1961년 06월",
+   "ofcps": "회장",
+   "rgist_exctv_at": "사내이사",
+   "fte_at": "상근",
+   "chrg_job": "대표이사\n 계열사대표이사후보추천위원장\n ESG위원",
+   "main_career": "(테스트 자료에서 줄임)",
+   "mxmm_shrholdr_relate": "-",
+   "hffc_pd": "1년\n 1개월",
+   "tenure_end_on": "2026년 11월 20일",
+   "stlm_dt": "2024-12-31"
+  },
+  {
+   "rcept_no": "20260324000822",
+   "corp_cls": "Y",
+   "corp_code": "00688996",
+   "corp_name": "KB금융",
+   "nm": "권선주",
+   "sexdstn": "여",
+   "birth_ym": "1956년 11월",
+   "ofcps": "이사",
+   "rgist_exctv_at": "사외이사",
+   "fte_at": "비상근",
+   "chrg_job": "이사회 의장\n감사위원\n평가보상위원\n사외이사\n후보추천위원\n회장후보추천위원\nESG위원",
+   "main_career": "(테스트 자료에서 줄임)",
+   "mxmm_shrholdr_relate": "-",
+   "hffc_pd": "4년 \n9개월",
+   "tenure_end_on": "2025년 03월 21일",
+   "stlm_dt": "2024-12-31"
+  },
+  {
+   "rcept_no": "20260324000822",
+   "corp_cls": "Y",
+   "corp_code": "00688996",
+   "corp_name": "KB금융",
+   "nm": "이재근",
+   "sexdstn": "남",
+   "birth_ym": "1966년 05월",
+   "ofcps": "이사",
+   "rgist_exctv_at": "기타비상무이사",
+   "fte_at": "비상근",
+   "chrg_job": "계열사대표이사\n 후보추천위원,\n ESG위원",
+   "main_career": "(테스트 자료에서 줄임)",
+   "mxmm_shrholdr_relate": "-",
+   "hffc_pd": "2년\n 9개월",
+   "tenure_end_on": "2025년 03월 21일",
+   "stlm_dt": "2024-12-31"
+  }
+ ]
+}
