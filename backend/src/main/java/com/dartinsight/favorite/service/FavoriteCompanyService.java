@@ -56,6 +56,7 @@ public class FavoriteCompanyService {
     /** 없던 기업이어도 조용히 끝난다. */
     @Transactional
     public void remove(long userId, String corpCode) {
+        // 삭제는 행을 읽은 뒤 지우므로, 동시에 같은 행을 지우면(두 탭, 추가가 밀어낸 행) 없는 행 삭제로 실패한다. add와 같이 차례를 세운다
         userService.lock(userId);
         favorites.deleteByUserIdAndCorpCode(userId, corpCode);
     }
