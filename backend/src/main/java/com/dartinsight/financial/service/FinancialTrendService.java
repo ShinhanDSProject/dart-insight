@@ -3,7 +3,9 @@ package com.dartinsight.financial.service;
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.dart.client.OpenDartClient;
+import com.dartinsight.dart.domain.CachePolicy;
 import com.dartinsight.dart.dto.KeyAccountResponse;
+import com.dartinsight.dart.service.DartCacheLoader;
 import com.dartinsight.financial.domain.FetchStatus;
 import com.dartinsight.financial.domain.FsDiv;
 import com.dartinsight.financial.domain.KeyAccount;
@@ -14,9 +16,7 @@ import com.dartinsight.report.domain.FinancialDataStatus;
 import com.dartinsight.report.domain.Report;
 import com.dartinsight.report.domain.ReportType;
 import com.dartinsight.report.service.ReportService;
-import java.time.Clock;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -29,14 +29,13 @@ import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * 최근 정기보고서들의 주요 재무 흐름(1.2, FS-46). 보고서마다 OpenDART 단일회사 주요계정을 한 번 받아 저장하고
- * 다시 받지 않는다(ADR-0024). 013(자료 없음)도 저장한다. 받지 못한 보고서는 저장하지 않고 그 기간만 FETCH_FAILED로
- * 돌려준다(다음 조회에서 다시 받음). OpenDART 호출은 트랜잭션 밖에서 하고, 저장만 묶는다(LY-2).
+ * 다시 받지 않는다(ADR-0024, DartCacheLoader의 permanent). 013(자료 없음)도 저장한다. 받지 못한 보고서는 저장하지
+ * 않고 그 기간만 FETCH_FAILED로 돌려준다(다음 조회에서 다시 받음). OpenDART 호출은 트랜잭션 밖에서 하고, 저장만
+ * DartCacheLoader가 묶는다(LY-2).
  */
 @Service
 @RequiredArgsConstructor
@@ -50,8 +49,7 @@ public class FinancialTrendService {
     private final ReportService reportService;
     private final OpenDartClient openDartClient;
     private final KeyAccountStore store;
-    private final TransactionTemplate transactionTemplate;
-    private final Clock clock;
+    private final DartCacheLoader cacheLoader;
 
     public FinancialTrend trend(String corpCode, FsDiv fsDiv, int limit) {
         ReportService.ReportList list = reportService.list(corpCode);
@@ -69,9 +67,9 @@ public class FinancialTrendService {
                 failed.add(report.getRceptNo());
                 continue;
             }
-            Optional<KeyAccountFetch> fetched;
+            KeyAccountFetch fetched;
             try {
-                fetched = fetchAndSave(report);
+                fetched = load(report);
             } catch (ApiException e) {
                 log.warn("주요계정을 받지 못했습니다 {} {}: {}", corpCode, report.getRceptNo(), e.errorCode());
                 failed.add(report.getRceptNo());
@@ -80,7 +78,7 @@ public class FinancialTrendService {
                         || e.errorCode() == ErrorCode.DART_KEY_MISSING;
                 continue;
             }
-            fetched.ifPresent(f -> fetches.put(f.rceptNo(), f));
+            fetches.put(fetched.rceptNo(), fetched);
         }
 
         Map<String, Map<KeyAccount, KeyAccountRow>> rows = new HashMap<>();
@@ -99,23 +97,33 @@ public class FinancialTrendService {
         return report.getFiscalYear() >= FinancialDataStatus.FIRST_FISCAL_YEAR;
     }
 
-    /** OpenDART를 부르고(트랜잭션 밖) 저장한다. 같은 보고서를 동시에 저장했으면 저장된 기록을 쓴다. */
-    private Optional<KeyAccountFetch> fetchAndSave(Report report) {
-        OpenDartClient.KeyAccountPage page = openDartClient.keyAccounts(report.getCorpCode(), report.getFiscalYear(),
-                report.getReportType().reprtCode());
-        LocalDateTime now = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MICROS);
+    /**
+     * 받아 둔 기록이 없는 보고서를 받아 저장한다. 저장된 기록은 trend가 한 번에 읽어 두므로 여기서는 늘 받는다.
+     * 받지 못하면 저장된 값이 없어 ApiException이 그대로 나온다.
+     */
+    private KeyAccountFetch load(Report report) {
+        String rceptNo = report.getRceptNo();
+        return cacheLoader.load("주요계정 " + rceptNo, CachePolicy.permanent(), Optional::<KeyAccountFetch>empty,
+                KeyAccountFetch::fetchedAt,
+                () -> openDartClient.keyAccounts(report.getCorpCode(), report.getFiscalYear(),
+                        report.getReportType().reprtCode()),
+                (page, now) -> save(report, page, now)).value();
+    }
+
+    /** 트랜잭션 안. 같은 보고서를 동시에 먼저 저장했으면(DartCacheLoader가 한 번 더 부름) 저장된 기록을 쓴다. */
+    private KeyAccountFetch save(Report report, OpenDartClient.KeyAccountPage page, LocalDateTime now) {
+        KeyAccountFetch saved = store.fetches(List.of(report.getRceptNo())).get(report.getRceptNo());
+        if (saved != null) {
+            return saved;
+        }
         List<KeyAccountRow> rows = page.noData() ? List.of() : toRows(report.getRceptNo(), page.items());
         String sourceRceptNo = rows.isEmpty() ? null : firstRceptNo(page.items());
         KeyAccountFetch fetch = new KeyAccountFetch(report.getRceptNo(),
                 rows.isEmpty() ? FetchStatus.NO_DATA : FetchStatus.OK, sourceRceptNo, now);
-        try {
-            transactionTemplate.executeWithoutResult(status -> store.save(fetch, rows));
-        } catch (DuplicateKeyException e) {
-            return Optional.ofNullable(store.fetches(List.of(report.getRceptNo())).get(report.getRceptNo()));
-        }
+        store.save(fetch, rows);
         log.info("주요계정 저장 {} {}: {} 계정 {}건", report.getCorpCode(), report.getRceptNo(), fetch.status(),
                 rows.size());
-        return Optional.of(fetch);
+        return fetch;
     }
 
     /**

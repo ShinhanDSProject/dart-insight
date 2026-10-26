@@ -6,9 +6,12 @@ import com.dartinsight.comparison.service.ReportPairService;
 import com.dartinsight.comparison.service.ReportPairService.ReportPair;
 import com.dartinsight.dart.client.OpenDartClient;
 import com.dartinsight.dart.client.OpenDartClient.PeriodicReportInfoPage;
+import com.dartinsight.dart.domain.CachePolicy;
+import com.dartinsight.dart.domain.CacheResult;
 import com.dartinsight.dart.dto.DividendItem;
 import com.dartinsight.dart.dto.ExecutiveItem;
 import com.dartinsight.dart.dto.MajorShareholderItem;
+import com.dartinsight.dart.service.DartCacheLoader;
 import com.dartinsight.keyfact.domain.Dividend;
 import com.dartinsight.keyfact.domain.Executive;
 import com.dartinsight.keyfact.domain.KeyFactChange;
@@ -19,13 +22,9 @@ import com.dartinsight.keyfact.domain.MajorShareholder;
 import com.dartinsight.keyfact.repository.ReportKeyFactStore;
 import com.dartinsight.report.domain.FinancialDataStatus;
 import com.dartinsight.report.domain.Report;
-import java.time.Clock;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
@@ -36,9 +35,11 @@ import org.springframework.stereotype.Service;
 /**
  * 최대주주·임원·배당 변화(#331, FS-47). 가장 최근 정기보고서와 같은 종류의 1년 전 보고서의 정기보고서 주요정보를
  * 나란히 놓고, 같은 행을 짝지어 바뀐 항목을 만든다.
- * 받은 결과는 접수번호·묶음마다 저장하고 다시 받지 않는다(자료 없음은 보고서 목록에서 다시 봤을 때 한 번 더 받음).
+ * 받은 결과는 접수번호·묶음마다 저장하고 다시 받지 않는다(ADR-0024, DartCacheLoader의 permanent. 자료 없음은 보고서
+ * 목록에서 다시 봤을 때 한 번 더 받음).
  * 정정 공시의 값은 그 접수번호(sourceRceptNo)와 함께 받는다(#350, toSection).
- * OpenDART 호출은 트랜잭션 밖에서 하고, 한 묶음을 받지 못해도 응답 전체를 실패시키지 않는다(그 묶음만 UNAVAILABLE).
+ * OpenDART 호출은 트랜잭션 밖에서 하고 저장만 DartCacheLoader가 묶는다(LY-2). 한 묶음을 받지 못해도 응답 전체를
+ * 실패시키지 않는다(그 묶음만 UNAVAILABLE).
  */
 @Service
 @RequiredArgsConstructor
@@ -49,7 +50,7 @@ public class KeyFactService {
     private final ReportPairService reportPairService;
     private final OpenDartClient openDartClient;
     private final ReportKeyFactStore store;
-    private final Clock clock;
+    private final DartCacheLoader cacheLoader;
 
     public KeyFacts keyFacts(String corpCode) {
         ReportPair pair = reportPairService.findPair(corpCode, ComparisonBasis.YOY, null);
@@ -85,26 +86,32 @@ public class KeyFactService {
     }
 
     private <T, I> KeyFactSection<T> section(Report report, Fetcher<T, I> fetcher) {
-        Optional<ReportKeyFactStore.Stored<T>> saved = store.find(report.getRceptNo(), fetcher.kind(),
-                fetcher.rowType());
-        if (saved.isPresent() && !needsRefetch(saved.get(), report)) {
-            return saved.get().section();
-        }
         if (report.getFiscalYear() < FinancialDataStatus.FIRST_FISCAL_YEAR) {
-            // 정기보고서 주요정보는 2015 사업연도부터 제공된다
+            // 정기보고서 주요정보는 2015 사업연도부터 제공된다(그래서 저장한 적도 없다)
             return KeyFactSection.empty(report.getRceptNo(), KeyFactStatus.NO_DATA);
         }
-        PeriodicReportInfoPage<I> page;
+        CacheResult<ReportKeyFactStore.Stored<T>> result;
         try {
-            page = fetcher.fetch().apply(report);
+            result = cacheLoader.load("정기보고서 주요정보 " + report.getRceptNo() + " " + fetcher.kind(),
+                    CachePolicy.permanent(),
+                    () -> store.find(report.getRceptNo(), fetcher.kind(), fetcher.rowType()),
+                    ReportKeyFactStore.Stored::fetchedAt,
+                    saved -> !needsRefetch(saved, report),
+                    () -> toSection(report, fetcher.fetch().apply(report), fetcher),
+                    (section, now) -> {
+                        store.save(fetcher.kind(), section, now);
+                        return new ReportKeyFactStore.Stored<>(section, now);
+                    });
         } catch (ApiException e) {
             log.warn("정기보고서 주요정보를 받지 못했습니다 {} {}: {}", report.getRceptNo(), fetcher.kind(),
                     e.errorCode());
             return KeyFactSection.empty(report.getRceptNo(), KeyFactStatus.UNAVAILABLE);
         }
-        KeyFactSection<T> section = toSection(report, page, fetcher);
-        store.save(fetcher.kind(), section, LocalDateTime.now(clock).truncatedTo(ChronoUnit.MICROS));
-        return section;
+        if (result.refreshError() != null) {
+            // 저장된 자료 없음(NO_DATA)을 다시 받다 실패했다. 옛 결과 대신 받지 못했다고 돌려준다
+            return KeyFactSection.empty(report.getRceptNo(), KeyFactStatus.UNAVAILABLE);
+        }
+        return result.value().section();
     }
 
     /**
