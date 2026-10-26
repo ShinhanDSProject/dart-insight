@@ -129,4 +129,49 @@ class DartCacheLoaderTest {
         assertThat(saves).hasValue(2);
         assertThat(fetches).hasValue(1);
     }
+
+    private CacheResult<Row> loadIf(CachePolicy policy, Row cached, boolean usable, Supplier<String> fetch) {
+        return loader.load("테스트 자료", policy, () -> Optional.ofNullable(cached), Row::fetchedAt, row -> usable,
+                fetch, (value, now) -> new Row(now, value));
+    }
+
+    @Test
+    @DisplayName("유효 시간 안이어도 그대로 쓸 조건(usable)에 맞지 않으면 다시 받는다")
+    void unusableCacheIsRefetched() {
+        CacheResult<Row> result = loadIf(CachePolicy.permanent(), new Row(NOW.minusDays(1), "저장된 값"), false,
+                fetchReturning("새 값"));
+
+        assertThat(result).isEqualTo(CacheResult.fetched(new Row(NOW, "새 값")));
+        assertThat(fetches).hasValue(1);
+    }
+
+    @Test
+    @DisplayName("조건에 맞아도 유효 시간이 지났으면 다시 받는다")
+    void usableButExpiredCacheIsRefetched() {
+        CacheResult<Row> result = loadIf(WEEK, new Row(NOW.minusDays(8), "저장된 값"), true, fetchReturning("새 값"));
+
+        assertThat(result.fetched()).isTrue();
+        assertThat(fetches).hasValue(1);
+    }
+
+    @Test
+    @DisplayName("유효 시간 안이고 조건에 맞으면 부르지 않는다")
+    void usableFreshCacheIsReturned() {
+        Row cached = new Row(NOW.minusDays(1), "저장된 값");
+
+        CacheResult<Row> result = loadIf(WEEK, cached, true, fetchReturning("새 값"));
+
+        assertThat(result).isEqualTo(CacheResult.cached(cached));
+        assertThat(fetches).hasValue(0);
+    }
+
+    @Test
+    @DisplayName("조건에 맞지 않아 다시 받다 실패하면 저장된 값과 실패 코드를 돌려준다")
+    void unusableCacheFallsBackWhenRefetchFails() {
+        Row cached = new Row(NOW.minusDays(1), "저장된 값");
+
+        CacheResult<Row> result = loadIf(WEEK, cached, false, fetchFailing(ErrorCode.DART_KEY_MISSING));
+
+        assertThat(result).isEqualTo(CacheResult.stale(cached, ErrorCode.DART_KEY_MISSING));
+    }
 }

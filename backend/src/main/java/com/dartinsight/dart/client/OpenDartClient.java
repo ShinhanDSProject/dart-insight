@@ -203,26 +203,14 @@ public class OpenDartClient {
      */
     private <T> PeriodicReportInfoPage<T> periodicReportInfo(String path, String corpCode, int fiscalYear,
             String reprtCode, ParameterizedTypeReference<PeriodicReportInfoResponse<T>> type) {
-        requireApiKey();
-        PeriodicReportInfoResponse<T> response = execute(path, () -> restClient.get()
-                .uri(uri -> uri.path(path)
-                        .queryParam("crtfc_key", properties.apiKey())
-                        .queryParam("corp_code", corpCode)
-                        .queryParam("bsns_year", fiscalYear)
-                        .queryParam("reprt_code", reprtCode)
-                        .build())
-                .retrieve()
-                .body(type));
-        if (response == null) {
-            throw new ApiException(ErrorCode.DART_REQUEST_FAILED, "OpenDART 응답이 비어 있습니다.");
-        }
-        if (NO_DATA.equals(response.status())) {
-            return new PeriodicReportInfoPage<>(true, List.of());
-        }
-        if (!OK.equals(response.status())) {
-            throw statusError(response.status(), response.message());
-        }
-        return new PeriodicReportInfoPage<>(false, response.list() == null ? List.of() : response.list());
+        return fetchJson(path, reportParams(corpCode, fiscalYear, reprtCode), type)
+                .map(r -> new PeriodicReportInfoPage<>(false, r.list() == null ? List.<T>of() : r.list()))
+                .orElseGet(() -> new PeriodicReportInfoPage<>(true, List.of()));
+    }
+
+    /** 보고서 하나를 가리키는 요청 인자(고유번호·사업연도·보고서 코드) */
+    private static Map<String, Object> reportParams(String corpCode, int fiscalYear, String reprtCode) {
+        return Map.of("corp_code", corpCode, "bsns_year", fiscalYear, "reprt_code", reprtCode);
     }
 
     /** @param noData OpenDART가 '자료 없음'(013)으로 답했는지 */
@@ -237,26 +225,10 @@ public class OpenDartClient {
      * @param reprtCode 11011 사업, 11012 반기, 11013 1분기, 11014 3분기
      */
     public KeyAccountPage keyAccounts(String corpCode, int fiscalYear, String reprtCode) {
-        requireApiKey();
-        KeyAccountResponse response = execute("fnlttSinglAcnt.json", () -> restClient.get()
-                .uri(uri -> uri.path(OpenDartPaths.KEY_ACCOUNTS)
-                        .queryParam("crtfc_key", properties.apiKey())
-                        .queryParam("corp_code", corpCode)
-                        .queryParam("bsns_year", fiscalYear)
-                        .queryParam("reprt_code", reprtCode)
-                        .build())
-                .retrieve()
-                .body(KeyAccountResponse.class));
-        if (response == null) {
-            throw new ApiException(ErrorCode.DART_REQUEST_FAILED, "OpenDART 응답이 비어 있습니다.");
-        }
-        if (NO_DATA.equals(response.status())) {
-            return new KeyAccountPage(true, List.of());
-        }
-        if (!OK.equals(response.status())) {
-            throw statusError(response.status(), response.message());
-        }
-        return new KeyAccountPage(false, response.list() == null ? List.of() : response.list());
+        return fetchJson(OpenDartPaths.KEY_ACCOUNTS, reportParams(corpCode, fiscalYear, reprtCode),
+                KeyAccountResponse.class)
+                .map(r -> new KeyAccountPage(false, r.list() == null ? List.of() : r.list()))
+                .orElseGet(() -> new KeyAccountPage(true, List.of()));
     }
 
     /** @param noData OpenDART가 '자료 없음'(013)으로 답했는지 */
@@ -285,6 +257,12 @@ public class OpenDartClient {
      * @param params 인증키를 뺀 요청 인자
      */
     <T extends OpenDartStatus> Optional<T> fetchJson(String path, Map<String, ?> params, Class<T> type) {
+        return fetchJson(path, params, ParameterizedTypeReference.forType(type));
+    }
+
+    /** {@link #fetchJson(String, Map, Class)}와 같다. 응답 record가 제네릭일 때(예: 정기보고서 주요정보) 쓴다. */
+    <T extends OpenDartStatus> Optional<T> fetchJson(String path, Map<String, ?> params,
+            ParameterizedTypeReference<T> type) {
         requireApiKey();
         String name = path.substring(path.lastIndexOf('/') + 1);
         T response = execute(name, () -> restClient.get()

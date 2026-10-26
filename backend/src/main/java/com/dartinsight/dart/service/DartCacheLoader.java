@@ -9,6 +9,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -45,10 +46,23 @@ public class DartCacheLoader {
      */
     public <T, F> CacheResult<T> load(String what, CachePolicy policy, Supplier<Optional<T>> findCached,
             Function<T, LocalDateTime> fetchedAt, Supplier<F> fetch, BiFunction<F, LocalDateTime, T> save) {
+        return load(what, policy, findCached, fetchedAt, cached -> true, fetch, save);
+    }
+
+    /**
+     * 유효 시간 말고도 저장된 값을 그대로 쓸 조건이 있을 때. 예: 받은 기간이 요청 기간을 덮는지(최근 공시),
+     * '자료 없음'을 받은 뒤 보고서 목록에서 그 보고서를 다시 봤는지(정기보고서 주요정보).
+     * 조건에 맞지 않아 다시 받다 실패해도 저장된 값과 실패 코드를 돌려준다(stale).
+     *
+     * @param usable 유효 시간 안의 저장된 값을 그대로 써도 되는지. false면 다시 받는다
+     */
+    public <T, F> CacheResult<T> load(String what, CachePolicy policy, Supplier<Optional<T>> findCached,
+            Function<T, LocalDateTime> fetchedAt, Predicate<T> usable, Supplier<F> fetch,
+            BiFunction<F, LocalDateTime, T> save) {
         // DB(DATETIME(6))에 저장되는 정밀도에 맞춘다
         LocalDateTime now = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MICROS);
         Optional<T> cached = findCached.get();
-        if (cached.isPresent() && policy.isFresh(fetchedAt.apply(cached.get()), now)) {
+        if (cached.isPresent() && policy.isFresh(fetchedAt.apply(cached.get()), now) && usable.test(cached.get())) {
             return CacheResult.cached(cached.get());
         }
 
