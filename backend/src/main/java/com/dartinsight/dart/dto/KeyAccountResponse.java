@@ -11,7 +11,7 @@ import java.util.List;
  * https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS003&apiId=2019016
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record KeyAccountResponse(String status, String message, List<Item> list) {
+public record KeyAccountResponse(String status, String message, List<Item> list) implements OpenDartStatus {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Item(

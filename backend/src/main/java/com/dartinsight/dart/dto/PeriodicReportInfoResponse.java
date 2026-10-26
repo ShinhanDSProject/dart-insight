@@ -9,5 +9,6 @@ import java.util.List;
  * @param <T> {@link MajorShareholderItem}, {@link ExecutiveItem}, {@link DividendItem}
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record PeriodicReportInfoResponse<T>(String status, String message, List<T> list) {
+public record PeriodicReportInfoResponse<T>(String status, String message, List<T> list)
+        implements OpenDartStatus {
 }
