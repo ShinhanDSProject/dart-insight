@@ -12,6 +12,9 @@ export type IconName =
   | 'x'
   | 'star'
   | 'star-filled'
+  | 'monitor'
+  | 'sun'
+  | 'moon'
 
 // lucide 'star' 모양. 채운 별은 같은 모양을 글자색으로 채운다(켜진 관심 기업)
 const STAR_PATH =
@@ -67,6 +70,27 @@ const shapes: Record<IconName, ReactNode> = {
   ),
   star: <path d={STAR_PATH} />,
   'star-filled': <path d={STAR_PATH} fill="currentColor" />,
+  monitor: (
+    <>
+      <rect width="20" height="14" x="2" y="3" rx="2" />
+      <path d="M8 21h8" />
+      <path d="M12 17v4" />
+    </>
+  ),
+  sun: (
+    <>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2" />
+      <path d="M12 20v2" />
+      <path d="m4.93 4.93 1.41 1.41" />
+      <path d="m17.66 17.66 1.41 1.41" />
+      <path d="M2 12h2" />
+      <path d="M20 12h2" />
+      <path d="m6.34 17.66-1.41 1.41" />
+      <path d="m19.07 4.93-1.41 1.41" />
+    </>
+  ),
+  moon: <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />,
 }
 
 /** 꾸밈용 아이콘. 뜻은 옆 글자가 전하므로 보조기기에는 숨긴다. */

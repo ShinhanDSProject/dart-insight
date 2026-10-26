@@ -97,6 +97,16 @@ describe('공통 UI 접근성(axe)', () => {
           단위
         </FieldLabel>
         <SegmentedControl aria-labelledby="unit-label" options={options} value="amount" onChange={noop} disabled />
+        <SegmentedControl
+          aria-label="화면 테마"
+          variant="icon"
+          options={[
+            { value: 'light', label: '밝게', icon: 'sun' },
+            { value: 'dark', label: '어둡게', icon: 'moon' },
+          ]}
+          value="dark"
+          onChange={noop}
+        />
         <Tabs
           label="결과 탭"
           items={[
