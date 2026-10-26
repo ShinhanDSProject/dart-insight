@@ -4,10 +4,12 @@ import com.dartinsight.analysis.domain.Analysis;
 import com.dartinsight.analysis.domain.TextChangeFilter;
 import com.dartinsight.analysis.domain.TextChangeRow;
 import com.dartinsight.analysis.dto.TextChangeDetailResponse;
+import com.dartinsight.analysis.dto.TextChangeHistoryResponse;
 import com.dartinsight.analysis.dto.TextChangeItemResponse;
 import com.dartinsight.analysis.dto.TextChangeListResponse.Counts;
 import com.dartinsight.analysis.dto.TextChangeListResponse.SectionView;
 import com.dartinsight.analysis.dto.TextChangeListResponse;
+import com.dartinsight.analysis.service.TextChangeHistoryService;
 import com.dartinsight.analysis.service.TextChangeQueryService.TextChangePage;
 import com.dartinsight.analysis.service.TextChangeQueryService;
 import com.dartinsight.analysis.service.TextEvidenceService;
@@ -42,11 +44,18 @@ public class TextChangeController {
 
     private final TextChangeQueryService queryService;
     private final TextEvidenceService evidenceService;
+    private final TextChangeHistoryService historyService;
 
     /** 문장·표 근거 상세(3.4). 변경 전·후 원문 전체와 보고서·항목·위치 */
     @GetMapping(ApiPaths.BY_CHANGE_ID)
     public TextChangeDetailResponse detail(@PathVariable Long analysisId, @PathVariable Long changeId) {
         return TextChangeDetailResponse.from(evidenceService.evidence(analysisId, changeId));
+    }
+
+    /** 문장 변경 이력(3.8). 완료된 분석을 이어 붙여 여러 기간에 걸쳐 언제 바뀌었는지 */
+    @GetMapping(ApiPaths.CHANGE_HISTORY)
+    public TextChangeHistoryResponse history(@PathVariable Long analysisId, @PathVariable Long changeId) {
+        return TextChangeHistoryResponse.of(analysisId, changeId, historyService.history(analysisId, changeId));
     }
 
     @GetMapping

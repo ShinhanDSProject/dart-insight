@@ -38,10 +38,20 @@ public class ReportService {
         ReportSyncService.SyncResult sync = syncService.refreshIfStale(corpCode);
         Company company = companyRepository.findByCorpCode(corpCode)
                 .orElseThrow(() -> new ApiException(ErrorCode.COMPANY_NOT_FOUND));
-        List<Report> reports = company.getReportsFetchedAt() == null ? List.of()
-                : reportRepository.findByCorpCodeAndLastSeenAtGreaterThanEqualOrderByPeriodEndDescRceptDtDesc(
-                        corpCode, company.getReportsFetchedAt());
+        List<Report> reports = stored(company);
         return new ReportList(company, reports, financialDataStatuses(corpCode, reports), sync.cacheFallbackError());
+    }
+
+    /** 마지막으로 받아 저장한 목록(최근 기간부터). OpenDART를 부르지 않는다. 없는 기업이면 404 */
+    public List<Report> stored(String corpCode) {
+        return stored(companyRepository.findByCorpCode(corpCode)
+                .orElseThrow(() -> new ApiException(ErrorCode.COMPANY_NOT_FOUND)));
+    }
+
+    private List<Report> stored(Company company) {
+        return company.getReportsFetchedAt() == null ? List.of()
+                : reportRepository.findByCorpCodeAndLastSeenAtGreaterThanEqualOrderByPeriodEndDescRceptDtDesc(
+                        company.getCorpCode(), company.getReportsFetchedAt());
     }
 
     /** 저장된 보고서. 없으면 404 */
