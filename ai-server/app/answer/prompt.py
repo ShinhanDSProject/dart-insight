@@ -7,14 +7,15 @@ from app.llm.prompting import SOURCE_RULE, attr, disclosure, escape
 from app.llm.providers import LlmRequest
 
 # 결과가 달라지게 바꾸면 이 버전을 올린다(질문 거르기 규칙 app/compliance/questions.py 포함)
-PROMPT_VERSION = "answer-1"
+PROMPT_VERSION = "answer-2"
 TASK = "answer"
 MAX_SOURCE_CHARS = 1500
 MAX_QUESTION_CHARS = 500
 
 SYSTEM = "\n".join(
     [
-        "당신은 한 기업의 정기보고서 두 개에 대한 질문에 공시 원문으로만 답하는 도우미입니다.",
+        "당신은 한 기업의 정기보고서(하나, 또는 비교하는 두 개)에 대한 질문에 "
+        "공시 원문으로만 답하는 도우미입니다.",
         "규칙:",
         "1. <disclosure> 원문과 <fact> 사실 문장만 근거로 씁니다. "
         "여기에 없는 원인·전망·평가를 만들지 않습니다.",
@@ -56,9 +57,14 @@ def _clip(text: str, limit: int) -> str:
 
 
 def build_request(question: AnswerInput) -> LlmRequest:
+    previous = (
+        f'previous="{attr(question.previous_report)}" '
+        if question.previous_report is not None
+        else ""
+    )
     lines = [
         f'<context company="{attr(question.company_name)}" '
-        f'previous="{attr(question.previous_report)}" current="{attr(question.current_report)}" />',
+        f'{previous}current="{attr(question.current_report)}" />',
         f"<question>\n{escape(_clip(question.question, MAX_QUESTION_CHARS))}\n</question>",
     ]
     if question.facts:

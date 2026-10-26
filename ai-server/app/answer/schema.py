@@ -28,7 +28,8 @@ class SourceModel(_Model):
 
 class AnswerRequest(_Model):
     company_name: str
-    previous_report: str
+    # 없으면 보고서 하나에 대한 질문(기업 단위, FS-53)
+    previous_report: str | None = None
     current_report: str
     question: str
     facts: list[FactModel] = []

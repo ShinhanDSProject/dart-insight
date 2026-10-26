@@ -36,7 +36,7 @@ def test_answer_and_call_records_are_returned() -> None:
 
     assert response.status_code == 200
     data = response.json()
-    assert data["promptVersion"] == "answer-1"
+    assert data["promptVersion"] == "answer-2"
     assert data["expressionRulesVersion"] == "expr-1"
     assert data["model"] == "fake-model"
     assert data["generatedAt"] is not None
@@ -51,7 +51,7 @@ def test_answer_and_call_records_are_returned() -> None:
     (call,) = data["calls"]
     assert call["task"] == "answer"
     assert call["traceId"] == "ans-1"
-    assert call["promptVersion"] == "answer-1"
+    assert call["promptVersion"] == "answer-2"
 
 
 def test_investment_question_is_out_of_scope_without_llm_call() -> None:
@@ -108,6 +108,33 @@ def test_missing_question_is_400() -> None:
 
     assert response.status_code == 400
     assert response.json()["errors"][0]["field"] == "question"
+
+
+def test_one_report_question_without_previous_report_is_answered() -> None:
+    body = {key: value for key, value in BODY.items() if key != "previousReport"}
+    body["facts"] = []
+
+    response = app_with(FakeProvider(responders={"answer": fake.respond})).post(
+        "/internal/answers", json=body
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "ANSWERED"
+    assert data["evidenceIds"] == [f"{CUR}#B812"]
+
+
+def test_investment_question_without_sources_is_out_of_scope() -> None:
+    provider = FakeProvider(responders={"answer": fake.respond})
+    body = {**BODY, "previousReport": None, "facts": [], "sources": []}
+
+    response = app_with(provider).post(
+        "/internal/answers", json={**body, "question": "목표주가는 얼마인가요?"}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "OUT_OF_SCOPE"
+    assert response.json()["calls"] == []
 
 
 def test_no_llm_is_503() -> None:
