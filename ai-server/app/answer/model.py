@@ -33,8 +33,10 @@ class Fact:
 
 @dataclass(frozen=True)
 class AnswerInput:
+    """previous_report가 None이면 보고서 하나(기업 단위 질문, FS-53)이고 후보는 모두 current다."""
+
     company_name: str
-    previous_report: str
+    previous_report: str | None
     current_report: str
     question: str
     facts: list[Fact]
