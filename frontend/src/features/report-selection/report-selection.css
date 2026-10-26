@@ -363,3 +363,75 @@
   cursor: pointer;
   font-size: var(--font-size-sm);
 }
+
+/* 최근 공시 타임라인(FS-48, #332). 기업 개요 탭에 둔다. 접수일별로 묶고, 공시는 DART 원문으로 이어진다 */
+.disclosure-timeline__body {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.disclosure-timeline__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.disclosure-timeline__days,
+.disclosure-timeline__items {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.disclosure-timeline__days {
+  gap: var(--space-4);
+}
+
+.disclosure-timeline__items {
+  gap: var(--space-2);
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--color-border);
+}
+
+.disclosure-timeline__date {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-muted);
+}
+
+.disclosure-timeline__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+}
+
+.disclosure-timeline__main {
+  display: grid;
+  flex: 1 1 240px;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.disclosure-timeline__name {
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.disclosure-timeline__meta {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.disclosure-timeline__compare {
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+.disclosure-timeline__more {
+  display: flex;
+  justify-content: center;
+}
