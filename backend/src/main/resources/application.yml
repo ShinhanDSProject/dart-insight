@@ -109,6 +109,9 @@ app:
   reports:
     # 정기보고서 목록을 받은 지 이 시간이 지나면 다시 받는다(OpenDART 호출 한도)
     refresh-after: 24h
+    # 즐겨찾기 기업은 refresh-after와 상관없이 이 주기마다 다시 받아 새 보고서를 찾는다(ADR-0027).
+    # 한 회차에 즐겨찾기된 기업 수만큼 OpenDART를 부른다
+    polling-interval: 6h
     # 이 해 1월 1일 이후 접수된 보고서만 받는다(재무제표 API는 2015년 이후만 제공)
     list-start-year: 2015
   disclosures:
