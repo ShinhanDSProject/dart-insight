@@ -30,6 +30,7 @@ public final class TestData {
             "company_overview",
             "company_disclosure",
             "company_disclosure_fetch",
+            "favorite_company",
             "company");
 
     private TestData() {

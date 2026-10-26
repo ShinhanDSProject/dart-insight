@@ -5,6 +5,7 @@ import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.company.domain.Company;
 import com.dartinsight.company.domain.CompanyNameKey;
 import com.dartinsight.company.repository.CompanyRepository;
+import java.util.Collection;
 import java.util.List;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
@@ -54,6 +55,11 @@ public class CompanyService {
     public Company get(String corpCode) {
         return companyRepository.findByCorpCode(corpCode)
                 .orElseThrow(() -> new ApiException(ErrorCode.COMPANY_NOT_FOUND));
+    }
+
+    /** 고유번호 여러 개를 한 번에 찾는다. 없는 고유번호는 결과에서 빠진다. */
+    public List<Company> getAll(Collection<String> corpCodes) {
+        return corpCodes.isEmpty() ? List.of() : companyRepository.findByCorpCodeIn(corpCodes);
     }
 
     static String escapeLike(String text) {
