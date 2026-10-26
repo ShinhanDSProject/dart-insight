@@ -1,9 +1,11 @@
 import { useReducer, type KeyboardEvent } from 'react'
 import { match } from 'ts-pattern'
+import type { Analysis } from '@/shared/api/analyses'
 import type { QuestionAnswer } from '@/shared/api/questions'
 import type { LoadState } from '@/shared/hooks/asyncState'
 import { cx } from '@/shared/lib/cx'
 import { Button, FieldHint, FieldLabel, Notice, Panel, PanelTitle } from '@/shared/ui'
+import { DartSourceLine } from '@/shared/ui/DartSource'
 import { LoadingState } from '@/shared/ui/StateView'
 import type { AskController } from '../hooks/useAsk'
 import { ASK_INTRO, draftMessage, parseQuestion, questionCountLabel, RISK_QUESTION, sectionQuestion } from '../model/askQuestion'
@@ -15,6 +17,8 @@ import { AskSuggestions } from './AskSuggestions'
 import { PastAnswers } from './PastAnswers'
 
 interface AskTabProps extends AnswerLinks {
+  /** 답이 인용한 두 보고서. 답 아래 '출처: DART'와 원문 링크에 쓴다(5.6) */
+  analysis: Pick<Analysis, 'previous' | 'current'>
   ask: AskController
   suggestions: LoadState<string[]>
   /** 이 분석의 최상위 섹션 제목(문장 변화 탭의 섹션 선택과 같은 출처). 입력 중 섹션 질문을 제안한다(#267) */
@@ -25,7 +29,7 @@ interface AskTabProps extends AnswerLinks {
  * W-03 ⑤ AI 질문(3.10, FS-5). 예시 질문을 누르거나 직접 물으면, 두 보고서 원문 문단과 코드가 계산한 수치로만 답한다.
  * 답의 [1]·[F1]을 누르면 아래 근거 줄로 가고, '원문 보기'·'수치 근거'로 원문 확인·재무 수치 탭의 그 위치를 연다.
  */
-export function AskTab({ ask, suggestions, sections, ...links }: AskTabProps) {
+export function AskTab({ analysis, ask, suggestions, sections, ...links }: AskTabProps) {
   const { state, history } = ask
   const sending = state.request.status === 'sending'
   const lastAnswered = state.items.find((i) => i.questionId === state.lastAnsweredId)
@@ -91,6 +95,15 @@ export function AskTab({ ask, suggestions, sections, ...links }: AskTabProps) {
       </ol>
 
       {older.length > 0 && <PastAnswers items={older} renderAnswer={renderAnswer} />}
+
+      {state.items.length > 0 && (
+        <DartSourceLine
+          reports={[
+            { role: '비교', report: analysis.previous },
+            { role: '현재', report: analysis.current },
+          ]}
+        />
+      )}
 
       {match(history.state)
         .with({ status: 'loading' }, () => <LoadingState message="이전에 한 질문을 불러오는 중이에요…" />)

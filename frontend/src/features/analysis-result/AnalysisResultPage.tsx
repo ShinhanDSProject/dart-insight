@@ -224,6 +224,7 @@ function ResultTabPanel({ analysis, params, update, ask, suggestions, askSection
     ))
     .with('ask', () => (
       <AskTab
+        analysis={analysis}
         ask={ask}
         suggestions={suggestions}
         sections={askSections}

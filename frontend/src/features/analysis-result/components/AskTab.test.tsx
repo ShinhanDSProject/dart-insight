@@ -2,6 +2,7 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { useReducer } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { Analysis } from '@/shared/api/analyses'
 import type { QuestionAnswer } from '@/shared/api/questions'
 import type { AskController } from '../hooks/useAsk'
 import { askReducer, initialAskState } from '../model/askState'
@@ -38,6 +39,10 @@ function Harness({ submitDraft, items = [], suggestions = [], onAsk = noop, onSe
   } as unknown as AskController
   return (
     <AskTab
+      analysis={{
+        previous: { rceptNo: '20240814000001', reportName: '반기보고서 (2024.06)', dartUrl: null },
+        current: { rceptNo: '20250814000123', reportName: '반기보고서 (2025.06)', dartUrl: null },
+      } as unknown as Pick<Analysis, 'previous' | 'current'>}
       ask={ask}
       suggestions={{ status: 'success', data: suggestions }}
       sections={sections}
