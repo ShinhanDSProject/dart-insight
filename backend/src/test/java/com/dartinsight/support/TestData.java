@@ -22,6 +22,8 @@ public final class TestData {
             "report_document",
             "financial_account",
             "financial_statement_fetch",
+            "report_key_account",
+            "report_key_account_fetch",
             "report",
             "company_overview",
             "company");
