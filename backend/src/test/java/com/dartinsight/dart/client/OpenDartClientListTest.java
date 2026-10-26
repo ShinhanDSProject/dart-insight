@@ -14,6 +14,7 @@ import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class OpenDartClientListTest {
@@ -51,6 +52,21 @@ class OpenDartClientListTest {
                 .contains("corp_code=00000001", "bgn_de=20150101", "end_de=20261021", "pblntf_ty=A",
                         "last_reprt_at=Y", "page_no=1", "page_count=100");
         assertThat(server.requests().get(1)).contains("page_no=2");
+    }
+
+    @Test
+    @DisplayName("모든 공시유형 목록은 공시유형 없이 최종보고서만 받는다")
+    void listsAllTypesWithoutPublicationTypeFilter() {
+        server.on("/api/list.json",
+                Response.json(page(1, 1, item("20261026000017", "임원ㆍ주요주주특정증권등소유상황보고서", "20261026", ""))));
+
+        List<DisclosureListResponse.Item> items = new OpenDartClient(server.properties(KEY))
+                .listAllDisclosures("00000001", LocalDate.of(2026, 7, 28), END);
+
+        assertThat(items).extracting(DisclosureListResponse.Item::rceptNo).containsExactly("20261026000017");
+        assertThat(server.requests().get(0))
+                .contains("corp_code=00000001", "bgn_de=20260728", "end_de=20261021", "last_reprt_at=Y")
+                .doesNotContain("pblntf_ty");
     }
 
     @Test

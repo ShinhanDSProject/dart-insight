@@ -88,6 +88,20 @@ public class OpenDartClient {
      * 자료가 없으면(013) 빈 목록이다.
      */
     public List<DisclosureListResponse.Item> listPeriodicDisclosures(String corpCode, LocalDate begin, LocalDate end) {
+        return listLatestDisclosures(corpCode, begin, end, "A");
+    }
+
+    /**
+     * 모든 공시유형의 최종보고서(last_reprt_at=Y) 목록. 페이지를 끝까지 받는다(최근 공시 타임라인, #332).
+     * 자료가 없으면(013) 빈 목록이다.
+     */
+    public List<DisclosureListResponse.Item> listAllDisclosures(String corpCode, LocalDate begin, LocalDate end) {
+        return listLatestDisclosures(corpCode, begin, end, null);
+    }
+
+    /** @param pblntfTy 공시유형(A 정기공시 등). null이면 모든 유형 */
+    private List<DisclosureListResponse.Item> listLatestDisclosures(String corpCode, LocalDate begin, LocalDate end,
+            String pblntfTy) {
         requireApiKey();
         List<DisclosureListResponse.Item> all = new ArrayList<>();
         for (int page = 1; page <= MAX_PAGES; page++) {
@@ -98,7 +112,7 @@ public class OpenDartClient {
                             .queryParam("corp_code", corpCode)
                             .queryParam("bgn_de", begin.format(DateTimeFormatter.BASIC_ISO_DATE))
                             .queryParam("end_de", end.format(DateTimeFormatter.BASIC_ISO_DATE))
-                            .queryParam("pblntf_ty", "A")
+                            .queryParamIfPresent("pblntf_ty", Optional.ofNullable(pblntfTy))
                             .queryParam("last_reprt_at", "Y")
                             .queryParam("page_no", pageNo)
                             .queryParam("page_count", PAGE_SIZE)
