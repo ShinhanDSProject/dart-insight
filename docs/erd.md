@@ -450,7 +450,7 @@ API는 사업연도·보고서 코드마다 최신 공시 하나의 값만 줍�
 | `status` | VARCHAR(10) | | 아니오 | `OK` 자료 있음, `NO_DATA` 자료 없음(013이거나 같은 접수번호의 행 없음) |
 | `items_json` | MEDIUMTEXT | | 아니오 | 항목 목록 JSON 배열. 값은 원문 표기 그대로(`'-'`·빈 값인 항목은 뺌). `NO_DATA`면 `[]` |
 | `fetched_at` | DATETIME(6) | | 아니오 | 받은 시각 |
-| `source_rcept_no` | VARCHAR(14) | | 예 | (3.6, V28) 응답 행의 접수번호가 `rcept_no`와 다를 때 그 접수번호(기간 뒤에 정정된 원본을 원본 접수일로 불러 최신 정정본 행을 받은 경우). 같으면 null |
+| `source_rcept_no` | VARCHAR(14) | | 예 | (3.6, #341) 응답 행의 접수번호가 `rcept_no`와 다를 때 그 접수번호(기간 뒤에 정정된 원본을 원본 접수일로 불러 최신 정정본 행을 받은 경우). 같으면 null |
 
 (3.6) 관련 수시공시([ADR-0030](adr/0030-related-disclosure-matching.md))도 이 표를 씁니다. `kind`에 `LITIGATION`(소송 등의 제기, `lwstLg.json`)·`STOCK_ACQUISITION`(타법인 주식 및 출자증권 양수결정, `otcprStkInvscrInhDecsn.json`)을 더합니다. 최근 공시 목록에 없는, 기간 뒤에 정정된 원본(비고 '정')도 저장합니다: 원본 접수일 하루로 불러 그 종류의 행이 하나뿐이면 그 행을 저장하고 행의 접수번호를 `source_rcept_no`에 둡니다. 둘 이상이면 `NO_DATA`입니다. #363 담당자와 합의했습니다.
 
@@ -801,7 +801,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 
 ### 관련 수시공시(3.6)
 
-> 상태: 범위 승인(#24)과 팀 확인(#337)을 받았습니다. 마이그레이션은 구현 이슈(#339~#341)에서 새 번호로 추가합니다(2026-10-26 기준 다음 번호 `V28`). 설계 이유는 [ADR-0030](adr/0030-related-disclosure-matching.md)에 있습니다. 주요사항보고서 주요정보(DS005)는 새 표를 두지 않고 #363의 `disclosure_key_item`을 같이 씁니다(아래 그 절의 '(3.6)'). #332의 `company_disclosure`와 따로 두는 이유: 그 표는 오늘 기준 최근 기간·최종본만 받고 1시간마다 기업 행을 통째로 바꿔, 분석 기간을 덮지 못하고 기간 뒤 정정된 사건이 빠지며 id에 연결을 걸 수 없습니다.
+> 상태: 범위 승인(#24)과 팀 확인(#337)을 받았습니다. 마이그레이션: `V29__create_disclosure_window.sql`(`disclosure_window_fetch`·`disclosure_window_item`, #339). `related_disclosure_run`·`related_disclosure`와 `disclosure_key_item.source_rcept_no`는 #340·#341에서 다음 번호로 추가합니다. 설계 이유는 [ADR-0030](adr/0030-related-disclosure-matching.md)에 있습니다. 주요사항보고서 주요정보(DS005)는 새 표를 두지 않고 #363의 `disclosure_key_item`을 같이 씁니다(아래 그 절의 '(3.6)'). #332의 `company_disclosure`와 따로 두는 이유: 그 표는 오늘 기준 최근 기간·최종본만 받고 1시간마다 기업 행을 통째로 바꿔, 분석 기간을 덮지 못하고 기간 뒤 정정된 사건이 빠지며 id에 연결을 걸 수 없습니다.
 
 #### disclosure_window_fetch — 분석 기간 단위로 수시공시 목록을 받은 기록
 

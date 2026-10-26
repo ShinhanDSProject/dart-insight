@@ -31,6 +31,8 @@ public final class TestData {
             "watched_report",
             "report",
             "company_overview",
+            "disclosure_window_item",
+            "disclosure_window_fetch",
             "disclosure_key_item",
             "company_disclosure",
             "company_disclosure_fetch",

@@ -70,6 +70,23 @@ class OpenDartClientListTest {
     }
 
     @Test
+    @DisplayName("상세유형 목록은 공시유형 없이 상세유형과 정정 전 원본까지 받는다")
+    void listsOneDetailTypeIncludingOriginals() {
+        server.on("/api/list.json",
+                Response.json(page(1, 1, item("20260630000676", "주요사항보고서(유상증자결정)", "20260630", "정"))));
+
+        List<DisclosureListResponse.Item> items = new OpenDartClient(server.properties(KEY))
+                .listDisclosuresWithOriginals("00000001", LocalDate.of(2025, 6, 30), LocalDate.of(2026, 8, 14),
+                        "B001");
+
+        assertThat(items).extracting(DisclosureListResponse.Item::remark).containsExactly("정");
+        assertThat(server.requests().get(0))
+                .contains("corp_code=00000001", "bgn_de=20250630", "end_de=20260814", "pblntf_detail_ty=B001",
+                        "last_reprt_at=N", "page_no=1")
+                .doesNotContain("pblntf_ty=");
+    }
+
+    @Test
     void noDataIsEmptyList() {
         server.on("/api/list.json", Response.json(DisclosureListJson.NO_DATA));
 
