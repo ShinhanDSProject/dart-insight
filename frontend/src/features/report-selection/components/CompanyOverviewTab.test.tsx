@@ -14,6 +14,13 @@ vi.mock('@/shared/api/companies', () => ({
   getCompanyOverview: (corpCode: string, signal?: AbortSignal) => getCompanyOverview(corpCode, signal),
 }))
 
+// 다른 영역은 자기 테스트가 따로 있다. 여기서는 자리와 순서만 본다.
+vi.mock('./FinancialTrendSection', () => ({
+  FinancialTrendSection: ({ corpCode }: { corpCode: string }) => (
+    <section aria-label="주요 재무 흐름" data-section="financial-trends" data-corp-code={corpCode} />
+  ),
+}))
+
 const company: Company = { corpCode: '00126380', corpName: '삼성전자', stockCode: '005930', listed: true }
 
 function renderTab() {
@@ -22,6 +29,11 @@ function renderTab() {
       <CompanyOverviewTab corpCode="00126380" company={company} />
     </MemoryRouter>,
   )
+}
+
+function regionName(region: HTMLElement): string | null {
+  const labelledBy = region.getAttribute('aria-labelledby')
+  return region.getAttribute('aria-label') ?? (labelledBy ? document.getElementById(labelledBy)?.textContent ?? null : null)
 }
 
 function factValue(label: string): string | null {
@@ -33,6 +45,19 @@ beforeEach(() => {
   getCompanyOverview.mockReset()
 })
 afterEach(cleanup)
+
+describe('기업 개요 탭의 영역 순서', () => {
+  it('정해 둔 순서대로 영역을 쌓고 각 영역에 고유번호를 넘긴다', async () => {
+    getCompanyOverview.mockResolvedValue(samsungOverview)
+    const { container } = renderTab()
+
+    await screen.findByRole('region', { name: '기업 개황' })
+    const names = screen.getAllByRole('region').map(regionName)
+    expect(names).toEqual(['기업 개황', '주요 재무 흐름'])
+    const stubs = Array.from(container.querySelectorAll('[data-section]'))
+    expect(stubs.every((el) => el.getAttribute('data-corp-code') === '00126380')).toBe(true)
+  })
+})
 
 describe('기업 개요 탭의 기업 개황 카드', () => {
   it('OpenDART 개황 값을 그대로 보여 주고 출처와 받은 날짜를 적는다', async () => {
