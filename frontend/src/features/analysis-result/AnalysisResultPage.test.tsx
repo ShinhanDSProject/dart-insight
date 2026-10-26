@@ -22,7 +22,7 @@ vi.mock('@/shared/api/analyses', async (importOriginal) => ({
 vi.mock('@/shared/hooks/useRecentAnalyses', () => ({ useRecordRecentAnalysis: () => {} }))
 vi.mock('./hooks/useAsk', () => ({ useAsk: () => ({ state: { request: { status: 'idle' } } }) }))
 vi.mock('./hooks/useAskSuggestions', () => ({
-  useAskSuggestions: () => ({ questions: { status: 'loading' }, sections: [] }),
+  useAskSuggestions: () => ({ questions: { status: 'loading' }, sections: [], sectionCounts: [] }),
 }))
 vi.mock('./components/OtherAnalyses', () => ({ OtherAnalyses: () => null }))
 vi.mock('./components/ComparisonContextCard', () => ({
