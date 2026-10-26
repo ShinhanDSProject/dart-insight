@@ -56,7 +56,7 @@ public class FavoriteCompanyService {
     /** 없던 기업이어도 조용히 끝난다. */
     @Transactional
     public void remove(long userId, String corpCode) {
-        userService.requireExisting(userId);
+        userService.lock(userId);
         favorites.deleteByUserIdAndCorpCode(userId, corpCode);
     }
 
