@@ -27,6 +27,8 @@ public final class TestData {
             "report_key_fact",
             "report",
             "company_overview",
+            "company_disclosure",
+            "company_disclosure_fetch",
             "company");
 
     private TestData() {

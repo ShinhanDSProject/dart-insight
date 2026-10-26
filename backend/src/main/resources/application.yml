@@ -111,3 +111,6 @@ app:
     refresh-after: 24h
     # 이 해 1월 1일 이후 접수된 보고서만 받는다(재무제표 API는 2015년 이후만 제공)
     list-start-year: 2015
+  disclosures:
+    # 최근 공시 목록을 받은 지 이 시간이 지나면 다시 받는다(ADR-0024)
+    refresh-after: 1h
