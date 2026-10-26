@@ -24,6 +24,8 @@
 | `report` | 정기보고서. 접수번호 기준 | 4.1 (#27) | M1 |
 | `financial_statement_fetch` | 재무제표 API를 부른 기록(보고서·연결/별도 단위) | 4.5 (#52) | M1 |
 | `financial_account` | 재무제표 계정 값(API 응답 한 줄) | 4.5 (#52) | M1 |
+| `report_key_account_fetch` | 보고서별 주요계정 API를 부른 기록(접수번호 단위) | 1.2 (#330) | M2 |
+| `report_key_account` | 보고서별 주요계정 값(연결·별도, 계정 키 단위) | 1.2 (#330) | M2 |
 | `analysis` | 분석 작업과 상태 | 4.3 (#29), 2.3 (#14) | M1 |
 | `financial_change` | 계정별 비교 결과와 근거 | 2.4 (#15), 4.3 (#29) | M1 |
 | `report_document` | 보고서 원문 구조화 기록(상태·파서 버전·경고) | 4.2 (#28) | M2 |
@@ -75,6 +77,8 @@ erDiagram
     company ||--o| company_overview : "corp_code"
     company ||--o{ financial_statement_fetch : "corp_code"
     financial_statement_fetch ||--o{ financial_account : "fetch_id"
+    report ||--o| report_key_account_fetch : "rcept_no"
+    report ||--o{ report_key_account : "rcept_no"
     company ||--o{ analysis : "corp_code"
     report ||--o{ analysis : "current_rcept_no / previous_rcept_no"
     analysis ||--o{ financial_change : "analysis_id"
@@ -132,6 +136,21 @@ erDiagram
         varchar sj_div "BS IS CIS CF SCE"
         varchar account_id "표준계정코드"
         bigint thstrm_amount "당기 금액"
+    }
+    report_key_account_fetch {
+        bigint id PK
+        varchar rcept_no UK,FK
+        varchar status "OK NO_DATA"
+        varchar source_rcept_no "응답의 접수번호"
+        datetime fetched_at
+    }
+    report_key_account {
+        bigint id PK
+        varchar rcept_no FK
+        varchar fs_div "CFS OFS"
+        varchar account_key "REVENUE OPERATING_INCOME ..."
+        bigint amount "당기 금액"
+        bigint cumulative_amount "당기 누적 금액"
     }
     analysis {
         bigint id PK
@@ -312,6 +331,40 @@ API는 사업연도·보고서 코드마다 최신 공시 하나의 값만 줍�
 | `frmtrm_add_amount` | BIGINT | | 예 | 전기 동기 누적 |
 
 금액은 응답 문자열에서 쉼표를 빼고 정수로 저장합니다(통화는 `currency`). 빈 값과 `-`는 null입니다(0과 구분).
+
+### report_key_account_fetch
+
+보고서 하나에 대해 단일회사 주요계정 API(`fnlttSinglAcnt.json`, 사업연도·보고서 코드로 부르고 연결·별도를 함께 줌)를 부른 결과입니다(1.2, FS-46). 보고서에 딸린 자료라 접수번호마다 한 번 받으면 다시 받지 않습니다([ADR-0024](adr/0024-company-info-cache.md)). `013`(자료 없음)도 `NO_DATA`로 저장하고, 호출 실패(한도 초과·네트워크 오류)는 저장하지 않아 다음 조회 때 다시 받습니다. 2015 사업연도 이전은 API가 제공하지 않아 부르지 않습니다.
+
+API는 사업연도·보고서 코드마다 최신 공시 하나의 값만 줍니다. 응답의 접수번호가 이 보고서와 다르면(뒤에 정정 공시가 나옴) `source_rcept_no`에 응답의 접수번호를 남기고, 화면은 그 접수번호를 근거로 보여 줍니다.
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT | PK | 아니오 | 자동 증가 |
+| `rcept_no` | VARCHAR(14) | UK, FK | 아니오 | `report.rcept_no`. 이 보고서의 사업연도·보고서 코드로 불렀음 |
+| `status` | VARCHAR(10) | | 아니오 | `OK` 자료 있음, `NO_DATA` 자료 없음(013) |
+| `source_rcept_no` | VARCHAR(14) | | 예 | 응답에 담긴 접수번호(`NO_DATA`이면 null) |
+| `fetched_at` | DATETIME(6) | | 아니오 | |
+
+### report_key_account
+
+주요계정 응답 한 줄 가운데 정해 둔 계정(아래 `account_key`)만 저장합니다. 같은 보고서·기준·계정 키가 두 줄 오면(삼성전자 응답의 당기순이익처럼) `ord`가 앞선 줄을 씁니다.
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT | PK | 아니오 | 자동 증가 |
+| `rcept_no` | VARCHAR(14) | UK, FK | 아니오 | `report.rcept_no`(부른 보고서) |
+| `fs_div` | VARCHAR(3) | UK | 아니오 | `CFS` 연결, `OFS` 별도(응답의 `fs_div`) |
+| `account_key` | VARCHAR(30) | UK | 아니오 | `CURRENT_ASSETS` 유동자산, `NON_CURRENT_ASSETS` 비유동자산, `TOTAL_ASSETS` 자산총계, `CURRENT_LIABILITIES` 유동부채, `NON_CURRENT_LIABILITIES` 비유동부채, `TOTAL_LIABILITIES` 부채총계, `CAPITAL_STOCK` 자본금, `RETAINED_EARNINGS` 이익잉여금, `TOTAL_EQUITY` 자본총계, `REVENUE` 매출액, `OPERATING_INCOME` 영업이익, `PROFIT_BEFORE_TAX` 법인세차감전 순이익, `NET_INCOME` 당기순이익, `COMPREHENSIVE_INCOME` 총포괄손익. 계정명(`account_nm`)에서 공백과 끝의 `(손실)`을 뺀 이름으로 고르고, 그 밖의 계정(금융회사의 이자수익 등)은 저장하지 않음 |
+| `sj_div` | VARCHAR(5) | | 아니오 | `BS` 재무상태표, `IS` 손익계산서 |
+| `account_name` | VARCHAR(200) | | 아니오 | 계정명 원문 |
+| `ord` | INT | | 예 | 원문 순서 |
+| `amount` | BIGINT | | 예 | 당기금액(`thstrm_amount`). 재무상태표는 기말 잔액, 손익은 분·반기 3개월·사업보고서 1년 |
+| `cumulative_amount` | BIGINT | | 예 | 당기누적금액(`thstrm_add_amount`). 분·반기 손익에만 옴 |
+| `currency` | VARCHAR(10) | | 예 | 통화 |
+| `fetched_at` | DATETIME(6) | | 아니오 | |
+
+금액은 `financial_account`와 같이 쉼표를 빼고 정수로 저장하고, 빈 값과 `-`는 null입니다(0과 구분).
 
 ### analysis
 
@@ -610,6 +663,8 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `report` | `idx_report_corp_period` | `corp_code, period_end` | 인덱스 | 기업별 보고서 목록 |
 | `financial_statement_fetch` | `uk_fs_fetch` | `corp_code, fiscal_year, reprt_code, fs_div` | 유니크 | 같은 호출을 두 번 저장하지 않음 |
 | `financial_account` | `idx_fin_account_fetch` | `fetch_id, sj_div, ord` | 인덱스 | 재무제표별 계정을 원문 순서로 조회 |
+| `report_key_account_fetch` | `uk_key_account_fetch` | `rcept_no` | 유니크 | 보고서마다 한 번만 받음 |
+| `report_key_account` | `uk_key_account` | `rcept_no, fs_div, account_key` | 유니크 | 보고서·기준·계정마다 값 하나 |
 | `analysis` | `idx_analysis_key` | `corp_code, current_rcept_no, previous_rcept_no, basis, analysis_version` | 인덱스 | 같은 조건 결과 재사용(4.3). 유니크가 아님: 실패한 분석 뒤에 새 분석을 만들 수 있어야 함 |
 | `financial_change` | `idx_fin_change_analysis` | `analysis_id, sj_div, display_order` | 인덱스 | 결과 화면 조회 |
 | `report_document` | `uk_report_document_rcept_no` | `rcept_no` | 유니크 | 보고서마다 구조화 기록 하나 |
@@ -623,7 +678,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `analysis_question` | `idx_analysis_question_analysis` | `analysis_id, id` | 인덱스 | 분석별 최신 질문 조회 |
 | `text_change_explanation` | `uk_text_change_explanation` | `analysis_id, change_no` | 유니크 | 변경마다 풀이 하나 |
 
-외래 키: `local_credential.user_id`, `refresh_token.user_id` → `app_user.id` / `refresh_token.replaced_by_id` → `refresh_token.id` / `report.corp_code`, `company_overview.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no` → `report.rcept_no` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id`, `analysis_question.analysis_id`, `text_change_explanation.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id`
+외래 키: `local_credential.user_id`, `refresh_token.user_id` → `app_user.id` / `refresh_token.replaced_by_id` → `refresh_token.id` / `report.corp_code`, `company_overview.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no`, `report_key_account_fetch.rcept_no`, `report_key_account.rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no` → `report.rcept_no` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id`, `analysis_question.analysis_id`, `text_change_explanation.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id`
 
 ## 5. 작성 규칙
 

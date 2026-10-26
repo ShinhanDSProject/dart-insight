@@ -70,6 +70,7 @@
 | GET | `/api/companies/{corpCode}` | 기업 정보 | #8 (1.1) | W-01 ② | 초안 |
 | GET | `/api/companies/{corpCode}/overview` | 기업 개황(대표자·법인 구분·업종·설립일·결산월 등) | #329 (1.2) | 기업 화면 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/reports` | 기업별 정기보고서 목록 | #9 (1.2), #10 (1.3) | W-01 ② | 초안 |
+| GET | `/api/companies/{corpCode}/financial-trends` | 최근 정기보고서들의 주요 재무 흐름 | #330 (1.2) | 기업 개요 탭 | 초안 |
 | GET | `/api/reports/{rceptNo}` | 보고서 메타데이터 | #10 (1.3), #11 (1.4) | W-01 ② | 초안 |
 | GET | `/api/companies/{corpCode}/report-pairs` | 비교 기준에 맞는 보고서 쌍 | #12 (2.1) | W-01 ② | 초안 |
 | GET | `/api/companies/{corpCode}/analyses` | 이 기업의 이미 끝난 분석 목록 | #288 (1.2) | W-01 ② | 초안 |
@@ -313,6 +314,82 @@
 | 502 | `DART_REQUEST_FAILED` | OpenDART 호출 실패이고 저장된 목록도 없음 |
 | 503 | `DART_RATE_LIMITED` | OpenDART 호출 한도 초과(020)이고 저장된 목록도 없음 |
 | 503 | `DART_KEY_MISSING` | 서버에 OpenDART 키가 설정되지 않음 |
+
+### GET /api/companies/{corpCode}/financial-trends — 주요 재무 흐름
+
+- 이슈: #330 (1.2), FS-46 · 화면: 기업 화면 '기업 개요' 탭
+- 정기보고서 목록(위 `GET /api/companies/{corpCode}/reports`와 같은 목록, 같은 다시 받기 규칙)에서 대상 기간이 최근인 보고서를 `limit`개까지 골라, 보고서마다 OpenDART 단일회사 주요계정(`fnlttSinglAcnt.json`)의 값을 돌려줍니다.
+- 주요계정은 보고서(접수번호)마다 한 번 받아 저장하고 다시 받지 않습니다([ADR-0024](adr/0024-company-info-cache.md), ERD `report_key_account`). 아직 받지 않은 보고서만 이 요청에서 OpenDART를 부릅니다. `013`(자료 없음)도 저장하고 빈 값으로 보여 줍니다.
+- 보고서 하나를 받지 못해도(호출 실패·한도 초과) 응답은 200이고, 그 기간의 `dataStatus`가 `FETCH_FAILED`입니다. 다음 요청에서 다시 받습니다. 한도 초과(020)가 나면 그 요청에서는 남은 보고서를 부르지 않습니다.
+- `periods`는 대상 기간 끝(`periodEnd`)이 최근인 순서입니다. 같은 종류 보고서끼리(예: 반기끼리) 비교하는 것은 화면이 `reportType`으로 고릅니다.
+- `accounts`는 늘 같은 14개 계정이 같은 순서로 들어 있고(재무상태표 9개, 손익 5개), `values`는 `periods`와 같은 순서·같은 길이입니다. 값이 없으면 null이고 0과 구분합니다.
+- 금액 기준(`amountBasis`): 재무상태표는 `POINT`(기말 잔액). 손익의 `amount`는 `CUMULATIVE`(사업연도 시작부터 누적: 분·반기는 OpenDART 당기누적금액 `thstrm_add_amount`, 사업보고서와 1분기는 당기금액 `thstrm_amount`가 곧 누적), `quarterAmount`는 분·반기의 3개월 금액(당기금액 `thstrm_amount`)이고 사업보고서는 null입니다(OpenDART가 4분기 3개월 값을 주지 않음).
+- OpenDART는 사업연도·보고서 코드마다 최신 공시 하나의 값만 줍니다. 받은 값의 접수번호가 보고서와 다르면(뒤에 정정 공시가 나옴) `sourceRceptNo`가 그 접수번호이고, 값의 근거는 `sourceRceptNo`입니다.
+
+**요청**
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| query | `fsDiv` | string | 아니오 | `CFS` 연결(기본), `OFS` 별도 |
+| query | `limit` | integer | 아니오 | 보고서 수. 1~20, 기본 8 |
+
+**응답 200**
+
+```json
+{
+  "corpCode": "00126380",
+  "fsDiv": "CFS",
+  "refreshError": null,
+  "periods": [
+    {
+      "rceptNo": "20260814003699",
+      "reportType": "HALF",
+      "reportName": "반기보고서 (2026.06)",
+      "fiscalYear": 2026,
+      "periodEnd": "2026-06-30",
+      "dataStatus": "AVAILABLE",
+      "sourceRceptNo": "20260814003699",
+      "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260814003699"
+    }
+  ],
+  "accounts": [
+    {
+      "key": "REVENUE",
+      "name": "매출액",
+      "sjDiv": "IS",
+      "amountBasis": "CUMULATIVE",
+      "values": [
+        { "rceptNo": "20260814003699", "amount": 305372914000000, "quarterAmount": 171499470000000, "currency": "KRW" }
+      ]
+    },
+    {
+      "key": "TOTAL_ASSETS",
+      "name": "자산총계",
+      "sjDiv": "BS",
+      "amountBasis": "POINT",
+      "values": [
+        { "rceptNo": "20260814003699", "amount": 759480516000000, "quarterAmount": null, "currency": "KRW" }
+      ]
+    }
+  ]
+}
+```
+
+| 필드 | 설명 |
+| --- | --- |
+| `refreshError` | 보고서 목록을 다시 받다 실패해 저장된 목록을 쓸 때 그 이유(`DART_REQUEST_FAILED` 등). 아니면 null |
+| `periods[].dataStatus` | `AVAILABLE` 이 기준(`fsDiv`)의 값이 있음, `NOT_AVAILABLE` 없음(2015 사업연도 이전, `013`, 또는 응답에 이 기준이 없음 — 예: 연결재무제표를 내지 않는 회사의 `CFS`), `FETCH_FAILED` 이번 요청에서 받지 못함(다음 요청에서 다시 받음) |
+| `periods[].sourceRceptNo` | 값을 받은 공시의 접수번호(OpenDART 응답의 `rcept_no`). 값이 없으면 null |
+| `accounts[].key` | `CURRENT_ASSETS` 유동자산, `NON_CURRENT_ASSETS` 비유동자산, `TOTAL_ASSETS` 자산총계, `CURRENT_LIABILITIES` 유동부채, `NON_CURRENT_LIABILITIES` 비유동부채, `TOTAL_LIABILITIES` 부채총계, `CAPITAL_STOCK` 자본금, `RETAINED_EARNINGS` 이익잉여금, `TOTAL_EQUITY` 자본총계, `REVENUE` 매출액, `OPERATING_INCOME` 영업이익, `PROFIT_BEFORE_TAX` 법인세차감전 순이익, `NET_INCOME` 당기순이익, `COMPREHENSIVE_INCOME` 총포괄손익. OpenDART 계정명에서 공백과 끝의 `(손실)`을 뺀 이름으로 고름(예: `영업이익(손실)` → `OPERATING_INCOME`). 금융회사처럼 이 계정이 없는 회사는 값이 null |
+| `accounts[].sjDiv` | `BS` 재무상태표, `IS` 손익(주요계정 API의 구분) |
+| `values[].amount` | 재무상태표는 기말 잔액, 손익은 누적 금액. 없으면 null |
+| `values[].quarterAmount` | 분·반기 손익의 3개월 금액. 재무상태표·사업보고서·값 없음이면 null |
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | `fsDiv`가 `CFS`·`OFS`가 아니거나 `limit`이 1~20이 아님 |
+| 404 | `COMPANY_NOT_FOUND` | 없는 고유번호 |
+| 502·503 | `DART_REQUEST_FAILED`, `DART_RATE_LIMITED`, `DART_KEY_MISSING` | 정기보고서 목록을 다시 받아야 하는데 실패하고 저장된 목록도 없음(목록 API와 같음). 주요계정을 받지 못한 것은 에러가 아니라 `FETCH_FAILED` |
 
 ### GET /api/reports/{rceptNo} — 보고서 메타데이터
 
