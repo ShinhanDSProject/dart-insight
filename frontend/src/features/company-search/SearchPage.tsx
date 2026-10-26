@@ -15,6 +15,7 @@ import { useCompanySearch, type SearchResult as SearchData } from './hooks/useCo
 import { useAutoSearch } from './hooks/useAutoSearch'
 import { CompanyList, RESULT_LINK_SELECTOR } from './components/CompanyList'
 import { FavoriteCompanies } from './components/FavoriteCompanies'
+import { FavoriteDisclosureFeed } from './components/FavoriteDisclosureFeed'
 import { OnboardingGuide } from './components/OnboardingGuide'
 import { RecentAnalyses } from './components/RecentAnalyses'
 import { useSearchForm } from './hooks/useSearchForm'
@@ -111,7 +112,8 @@ function OnboardingSection({ query }: { query: string }) {
 }
 
 /**
- * 검색어가 없을 때만 보이는 로그인한 회원의 관심 기업(#36). 목록이 비거나 로그인하지 않았으면 아무것도 보이지 않고,
+ * 검색어가 없을 때만 보이는 로그인한 회원의 관심 기업(#36)과 그 기업들의 새 공시(FS-52). 관심 기업 목록이 비거나
+ * 로그인하지 않았으면 목록은 보이지 않고 새 공시 자리에 짧은 안내만 보인다.
  * 목록을 받지 못했으면 빈 목록처럼 숨기지 않고 다시 시도를 안내한다.
  */
 function FavoriteCompaniesSection() {
@@ -124,8 +126,12 @@ function FavoriteCompaniesSection() {
         </Button>
       </AlertState>
     ))
-    .with('anonymous', 'loading', 'ready', () => (
-      <FavoriteCompanies items={favorites.items} onRemove={favorites.remove} />
+    .with('loading', () => null)
+    .with('anonymous', 'ready', () => (
+      <>
+        <FavoriteCompanies items={favorites.items} onRemove={favorites.remove} />
+        <FavoriteDisclosureFeed companies={favorites.items} />
+      </>
     ))
     .exhaustive()
 }
