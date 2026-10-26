@@ -9,6 +9,7 @@ public final class OpenDartPaths {
     public static final String DISCLOSURE_LIST = "/api/list.json";
     public static final String FINANCIAL_STATEMENTS = "/api/fnlttSinglAcntAll.json";
     public static final String DOCUMENT = "/api/document.xml";
+    public static final String COMPANY = "/api/company.json";
 
     private OpenDartPaths() {
     }

@@ -3,14 +3,20 @@ package com.dartinsight.dart.client;
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.dart.config.OpenDartProperties;
+import com.dartinsight.dart.domain.CompanyOverviewEntry;
+import com.dartinsight.dart.dto.DartCompanyResponse;
 import com.dartinsight.dart.dto.DisclosureListResponse;
 import com.dartinsight.dart.dto.FinancialStatementResponse;
+import com.dartinsight.dart.dto.OpenDartStatus;
 import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -146,6 +152,79 @@ public class OpenDartClient {
             throw statusError(response.status(), response.message());
         }
         return new FinancialStatementPage(false, response.list() == null ? List.of() : response.list());
+    }
+
+    /**
+     * 기업개황(company.json). 자료가 없으면(013) 빈 Optional이다.
+     * 값은 앞뒤 공백만 지우고 빈 문자열은 null, 설립일(YYYYMMDD)·결산월(MM)이 형식에 맞지 않으면 null로 둔다.
+     */
+    public Optional<CompanyOverviewEntry> companyOverview(String corpCode) {
+        return fetchJson(OpenDartPaths.COMPANY, Map.of("corp_code", corpCode), DartCompanyResponse.class)
+                .map(r -> new CompanyOverviewEntry(
+                        clean(r.corpName()), clean(r.corpNameEng()), clean(r.stockName()), clean(r.stockCode()),
+                        clean(r.ceoNm()), clean(r.corpCls()), clean(r.indutyCode()), parseBasicDate(r.estDt()),
+                        parseMonth(r.accMt()), clean(r.hmUrl()), clean(r.irUrl()), clean(r.adres()),
+                        clean(r.phnNo())));
+    }
+
+    /**
+     * 한 번 부르면 끝나는 JSON API를 부르고 본문 status를 확인한다. 000이면 응답, 013(자료 없음)이면 빈 Optional,
+     * 그 밖은 정해진 에러(statusError)다. 새 OpenDART JSON API는 응답 record가 {@link OpenDartStatus}를 구현하고
+     * 이 메서드로 부른다(ADR-0024).
+     *
+     * @param path   {@link OpenDartPaths}의 경로
+     * @param params 인증키를 뺀 요청 인자
+     */
+    <T extends OpenDartStatus> Optional<T> fetchJson(String path, Map<String, ?> params, Class<T> type) {
+        requireApiKey();
+        String name = path.substring(path.lastIndexOf('/') + 1);
+        T response = execute(name, () -> restClient.get()
+                .uri(uri -> {
+                    uri.path(path).queryParam("crtfc_key", properties.apiKey());
+                    params.forEach((key, value) -> uri.queryParam(key, value));
+                    return uri.build();
+                })
+                .retrieve()
+                .body(type));
+        if (response == null) {
+            throw new ApiException(ErrorCode.DART_REQUEST_FAILED, "OpenDART 응답이 비어 있습니다.");
+        }
+        if (NO_DATA.equals(response.status())) {
+            return Optional.empty();
+        }
+        if (!OK.equals(response.status())) {
+            throw statusError(response.status(), response.message());
+        }
+        return Optional.of(response);
+    }
+
+    private static String clean(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.strip();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private static LocalDate parseBasicDate(String value) {
+        String text = clean(value);
+        if (text == null) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(text, DateTimeFormatter.BASIC_ISO_DATE);
+        } catch (DateTimeParseException e) {
+            return null;
+        }
+    }
+
+    private static Integer parseMonth(String value) {
+        String text = clean(value);
+        if (text == null || !text.matches("\\d{1,2}")) {
+            return null;
+        }
+        int month = Integer.parseInt(text);
+        return month >= 1 && month <= 12 ? month : null;
     }
 
     /**

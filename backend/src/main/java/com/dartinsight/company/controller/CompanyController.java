@@ -1,8 +1,10 @@
 package com.dartinsight.company.controller;
 
 import com.dartinsight.common.web.ApiPaths;
+import com.dartinsight.company.dto.CompanyOverviewResponse;
 import com.dartinsight.company.dto.CompanyResponse;
 import com.dartinsight.company.dto.CompanySearchResponse;
+import com.dartinsight.company.service.CompanyOverviewService;
 import com.dartinsight.company.service.CompanyService;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class CompanyController {
 
     private final CompanyService companyService;
+    private final CompanyOverviewService companyOverviewService;
 
     @GetMapping
     public CompanySearchResponse search(
@@ -34,5 +37,11 @@ public class CompanyController {
     @GetMapping(ApiPaths.BY_CORP_CODE)
     public CompanyResponse get(@PathVariable String corpCode) {
         return CompanyResponse.from(companyService.get(corpCode));
+    }
+
+    /** 기업 개황(FS-45). 저장된 값이 7일 안이면 OpenDART를 부르지 않는다(ADR-0024). */
+    @GetMapping(ApiPaths.COMPANY_OVERVIEW)
+    public CompanyOverviewResponse overview(@PathVariable String corpCode) {
+        return CompanyOverviewResponse.from(companyOverviewService.get(corpCode));
     }
 }

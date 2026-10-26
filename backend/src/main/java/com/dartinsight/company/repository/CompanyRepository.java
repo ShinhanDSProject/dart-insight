@@ -13,6 +13,8 @@ public interface CompanyRepository extends JpaRepository<Company, Long> {
 
     Optional<Company> findByCorpCode(String corpCode);
 
+    boolean existsByCorpCode(String corpCode);
+
     List<Company> findByCorpCodeIn(Collection<String> corpCodes);
 
     /**
