@@ -11,6 +11,10 @@ public final class OpenDartPaths {
     public static final String KEY_ACCOUNTS = "/api/fnlttSinglAcnt.json";
     public static final String DOCUMENT = "/api/document.xml";
     public static final String COMPANY = "/api/company.json";
+    // 정기보고서 주요정보(DS002)
+    public static final String MAJOR_SHAREHOLDERS = "/api/hyslrSttus.json";
+    public static final String EXECUTIVES = "/api/exctvSttus.json";
+    public static final String DIVIDENDS = "/api/alotMatter.json";
 
     private OpenDartPaths() {
     }

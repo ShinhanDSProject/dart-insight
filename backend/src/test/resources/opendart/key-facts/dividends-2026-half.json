@@ -1,0 +1,54 @@
+{
+ "status": "000",
+ "message": "정상",
+ "list": [
+  {
+   "rcept_no": "20260814003699",
+   "corp_cls": "Y",
+   "corp_code": "00126380",
+   "corp_name": "삼성전자",
+   "se": "현금배당금총액(백만원)",
+   "stock_knd": "-",
+   "thstrm": "4,909,211",
+   "frmtrm": "11,107,906",
+   "lwfr": "9,810,767",
+   "stlm_dt": "2026-06-30"
+  },
+  {
+   "rcept_no": "20260814003699",
+   "corp_cls": "Y",
+   "corp_code": "00126380",
+   "corp_name": "삼성전자",
+   "se": "주식배당금총액(백만원)",
+   "stock_knd": "-",
+   "thstrm": "-",
+   "frmtrm": "-",
+   "lwfr": "-",
+   "stlm_dt": "2026-06-30"
+  },
+  {
+   "rcept_no": "20260814003699",
+   "corp_cls": "Y",
+   "corp_code": "00126380",
+   "corp_name": "삼성전자",
+   "se": "주당 현금배당금(원)",
+   "stock_knd": "보통주",
+   "thstrm": "746",
+   "frmtrm": "1,668",
+   "lwfr": "1,446",
+   "stlm_dt": "2026-06-30"
+  },
+  {
+   "rcept_no": "20260814003699",
+   "corp_cls": "Y",
+   "corp_code": "00126380",
+   "corp_name": "삼성전자",
+   "se": "주당 현금배당금(원)",
+   "stock_knd": "우선주",
+   "thstrm": "746",
+   "frmtrm": "1,669",
+   "lwfr": "1,447",
+   "stlm_dt": "2026-06-30"
+  }
+ ]
+}

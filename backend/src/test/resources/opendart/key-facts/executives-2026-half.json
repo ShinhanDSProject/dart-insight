@@ -1,0 +1,60 @@
+{
+ "status": "000",
+ "message": "정상",
+ "list": [
+  {
+   "rcept_no": "20260814003699",
+   "corp_cls": "Y",
+   "corp_code": "00126380",
+   "corp_name": "삼성전자",
+   "nm": "전영현",
+   "sexdstn": "남",
+   "birth_ym": "1960년 12월",
+   "ofcps": "부회장",
+   "rgist_exctv_at": "사내이사",
+   "fte_at": "상근",
+   "chrg_job": "ㆍ대표이사   (DS부문 경영전반 총괄)",
+   "main_career": "(테스트 자료에서 줄임)",
+   "mxmm_shrholdr_relate": "계열회사 임원",
+   "hffc_pd": "16개월",
+   "tenure_end_on": "2028년 03월 18일",
+   "stlm_dt": "2026-06-30"
+  },
+  {
+   "rcept_no": "20260814003699",
+   "corp_cls": "Y",
+   "corp_code": "00126380",
+   "corp_name": "삼성전자",
+   "nm": "김용관",
+   "sexdstn": "남",
+   "birth_ym": "1963년 12월",
+   "ofcps": "사장",
+   "rgist_exctv_at": "사내이사",
+   "fte_at": "상근",
+   "chrg_job": "ㆍDS부문 경영전략총괄",
+   "main_career": "(테스트 자료에서 줄임)",
+   "mxmm_shrholdr_relate": "계열회사 임원",
+   "hffc_pd": "4개월",
+   "tenure_end_on": "2029년 03월 17일",
+   "stlm_dt": "2026-06-30"
+  },
+  {
+   "rcept_no": "20260814003699",
+   "corp_cls": "Y",
+   "corp_code": "00126380",
+   "corp_name": "삼성전자",
+   "nm": "신제윤",
+   "sexdstn": "남",
+   "birth_ym": "1958년 03월",
+   "ofcps": "이사",
+   "rgist_exctv_at": "독립이사",
+   "fte_at": "비상근",
+   "chrg_job": "ㆍ이사회 의장ㆍ감사위원회 위원장ㆍ독립이사 후보추천\n   위원회 위원장ㆍ보상위원회 위원장ㆍ지속가능경영 위원회 위원\nㆍ(비상설) 특별위원회 위원",
+   "main_career": "(테스트 자료에서 줄임)",
+   "mxmm_shrholdr_relate": "계열회사 임원",
+   "hffc_pd": "28개월",
+   "tenure_end_on": "2027년 03월 28일",
+   "stlm_dt": "2026-06-30"
+  }
+ ]
+}
