@@ -5,6 +5,7 @@ import { endpoints } from './endpoints'
 describe('endpoints', () => {
   it('API 명세의 경로를 만든다', () => {
     expect(endpoints.companies()).toBe('/api/companies')
+    expect(endpoints.companyOverview('00126380')).toBe('/api/companies/00126380/overview')
     expect(endpoints.companyReports('00126380')).toBe('/api/companies/00126380/reports')
     expect(endpoints.reportPairs('00126380')).toBe('/api/companies/00126380/report-pairs')
     expect(endpoints.companyAnalyses('00126380')).toBe('/api/companies/00126380/analyses')

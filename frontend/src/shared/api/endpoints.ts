@@ -15,6 +15,7 @@ export const endpoints = {
   socialLogin: (provider: string) => `/oauth2/authorization/${seg(provider)}`,
   companies: () => '/api/companies',
   company: (corpCode: string) => `/api/companies/${seg(corpCode)}`,
+  companyOverview: (corpCode: string) => `/api/companies/${seg(corpCode)}/overview`,
   companyReports: (corpCode: string) => `/api/companies/${seg(corpCode)}/reports`,
   reportPairs: (corpCode: string) => `/api/companies/${seg(corpCode)}/report-pairs`,
   companyAnalyses: (corpCode: string) => `/api/companies/${seg(corpCode)}/analyses`,
