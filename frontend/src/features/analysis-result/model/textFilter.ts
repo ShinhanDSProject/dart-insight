@@ -1,7 +1,42 @@
-import type { TextSectionCount } from '@/shared/api/textChanges'
+import { match } from 'ts-pattern'
+import type { ChangeType, TextChangeCounts, TextSectionCount } from '@/shared/api/textChanges'
 import { displaySectionTitle } from '@/shared/lib/sectionTitle'
 
-/** 문장 변화의 섹션 거르기·검색(3.7). 검색어 길이는 docs/api-spec.md text-changes의 q와 같다. */
+/** 문장 변화의 유형 거르기(#304)·섹션 거르기·검색(3.7). 검색어 길이는 docs/api-spec.md text-changes의 q와 같다. */
+
+/** 유형 거르기. CONTENT는 '내용 변경'(추가·삭제·수정을 함께, 주소 ttype=CONTENT). null이면 전체 */
+export type TextTypeFilter = ChangeType | 'CONTENT'
+
+export const CONTENT_FILTER = 'CONTENT'
+/** '내용 변경'에 드는 유형 */
+export const CONTENT_TYPES: readonly ChangeType[] = ['ADDED', 'DELETED', 'MODIFIED']
+
+/** 서버에 보낼 유형 목록. 비었으면 전체 */
+export function apiTypesOf(filter: TextTypeFilter | null): readonly ChangeType[] {
+  return match(filter)
+    .with(null, () => [])
+    .with(CONTENT_FILTER, () => CONTENT_TYPES)
+    .with('ADDED', 'DELETED', 'MODIFIED', 'NUMERIC_UPDATE', 'MOVED', 'REVIEW_NEEDED', (type) => [type])
+    .exhaustive()
+}
+
+/** '내용 변경' 건수(추가+삭제+수정). 응답 건수를 더한 표시용 합이다 */
+export function contentCount(counts: TextChangeCounts): number {
+  return counts.added + counts.deleted + counts.modified
+}
+
+/**
+ * 이 분석에서 '내용 변경'이 '전체'와 다른지(숫자만 바뀜·위치 이동이 있는지).
+ * 한 번이라도 있었으면 섹션·검색으로 0이 되어도 그대로 둔다(칩이 깜빡이지 않게). 아직 건수를 모르면 null
+ */
+export function nextContentAvailable(prev: boolean | null, counts: TextChangeCounts): boolean {
+  return prev === true || counts.numericUpdate + counts.moved > 0
+}
+
+/** 실제로 쓸 유형 거르기. '내용 변경'이 없는 분석(이전 분석 등)에서 CONTENT는 전체로 본다. 건수를 모르면 그대로 둔다 */
+export function resolveTypeFilter(filter: TextTypeFilter | null, contentAvailable: boolean | null): TextTypeFilter | null {
+  return filter === CONTENT_FILTER && contentAvailable === false ? null : filter
+}
 
 export const SEARCH_MIN_LENGTH = 2
 export const SEARCH_MAX_LENGTH = 100

@@ -61,7 +61,8 @@ export interface TextChangeList {
   analysisId: number
   textStatus: TextStatus | null
   textMessage: string | null
-  type: ChangeType | null
+  /** 요청에 쓴 유형을 쉼표로 이은 것(예: 'ADDED,DELETED,MODIFIED'). 없으면 null */
+  type: string | null
   sort: TextSort
   /** 요청에 쓴 최상위 섹션 제목. 없으면 null */
   section: string | null
@@ -79,7 +80,8 @@ export interface TextChangeList {
 }
 
 export interface TextChangeQuery {
-  type: ChangeType | null
+  /** 그중 하나에 맞는 변경만(#304). 비었으면 전체 */
+  types: readonly ChangeType[]
   sort: TextSort
   /** 최상위 섹션 제목. null이면 전체 */
   section: string | null
@@ -89,19 +91,20 @@ export interface TextChangeQuery {
   size?: number
 }
 
+/** 목록 요청의 주소 값. 유형은 쉼표로 잇고, 없으면 보내지 않는다 */
+export function textChangeParams(query: TextChangeQuery) {
+  return {
+    type: query.types.length > 0 ? query.types.join(',') : undefined,
+    sort: query.sort,
+    section: query.section ?? undefined,
+    q: query.q ?? undefined,
+    page: query.page,
+    size: query.size ?? 20,
+  }
+}
+
 export function getTextChanges(analysisId: number, query: TextChangeQuery, signal?: AbortSignal): Promise<TextChangeList> {
-  return apiGet(
-    endpoints.textChanges(analysisId),
-    {
-      type: query.type ?? undefined,
-      sort: query.sort,
-      section: query.section ?? undefined,
-      q: query.q ?? undefined,
-      page: query.page,
-      size: query.size ?? 20,
-    },
-    { signal },
-  )
+  return apiGet(endpoints.textChanges(analysisId), textChangeParams(query), { signal })
 }
 
 export interface TableCell {

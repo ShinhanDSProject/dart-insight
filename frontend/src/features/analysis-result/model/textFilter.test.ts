@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  apiTypesOf,
+  contentCount,
   hasSearchFilter,
+  nextContentAvailable,
+  resolveTypeFilter,
   moreLabel,
   parseTextSearch,
   resultCountLabel,
@@ -60,5 +64,41 @@ describe('결과 건수 문구', () => {
     expect(resultCountLabel(1520)).toBe('1,520건')
     expect(moreLabel(20, 57)).toBe('더 보기 (남은 37건)')
     expect(moreLabel(57, 57)).toBeNull()
+  })
+})
+
+const counts = (numericUpdate: number, moved: number) => ({
+  all: 9 + numericUpdate + moved,
+  added: 2,
+  deleted: 3,
+  modified: 3,
+  numericUpdate,
+  moved,
+  reviewNeeded: 1,
+})
+
+describe('유형 거르기(#304)', () => {
+  it('내용 변경은 추가·삭제·수정 세 유형을 보내고, 유형 하나는 그대로, 전체는 보내지 않는다', () => {
+    expect(apiTypesOf('CONTENT')).toEqual(['ADDED', 'DELETED', 'MODIFIED'])
+    expect(apiTypesOf('MOVED')).toEqual(['MOVED'])
+    expect(apiTypesOf(null)).toEqual([])
+  })
+
+  it('내용 변경 건수는 추가·삭제·수정의 합이다', () => {
+    expect(contentCount(counts(4, 2))).toBe(8)
+  })
+
+  it('숫자만 바뀜·위치 이동이 있어야 내용 변경을 보이고, 한 번 보이면 0이 되어도 남긴다', () => {
+    expect(nextContentAvailable(null, counts(0, 0))).toBe(false)
+    expect(nextContentAvailable(null, counts(1, 0))).toBe(true)
+    expect(nextContentAvailable(null, counts(0, 1))).toBe(true)
+    expect(nextContentAvailable(true, counts(0, 0))).toBe(true)
+  })
+
+  it('내용 변경이 없는 분석에서 CONTENT는 전체로 보고, 건수를 모르면 그대로 둔다', () => {
+    expect(resolveTypeFilter('CONTENT', false)).toBeNull()
+    expect(resolveTypeFilter('CONTENT', null)).toBe('CONTENT')
+    expect(resolveTypeFilter('CONTENT', true)).toBe('CONTENT')
+    expect(resolveTypeFilter('ADDED', false)).toBe('ADDED')
   })
 })

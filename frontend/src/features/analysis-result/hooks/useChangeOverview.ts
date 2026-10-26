@@ -16,7 +16,7 @@ export function useChangeOverview(analysisId: number) {
   )
   const loadText = useCallback(
     (signal: AbortSignal) =>
-      getTextChanges(analysisId, { type: null, sort: 'priority', section: null, q: null, page: 0, size: 1 }, signal).then(textOverview),
+      getTextChanges(analysisId, { types: [], sort: 'priority', section: null, q: null, page: 0, size: 1 }, signal).then(textOverview),
     [analysisId],
   )
   return { financial: useAsync(loadFinancial), text: useAsync(loadText) }

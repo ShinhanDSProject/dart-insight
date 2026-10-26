@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { match, P } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
-import type { ChangeType, TextChangeItem, TextSort } from '@/shared/api/textChanges'
+import type { TextChangeItem, TextSort } from '@/shared/api/textChanges'
 import { Badge, Button, Card, Chip, FieldHint, FieldLabel, Icon, Input, Notice, Panel, SegmentedControl, Select } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
@@ -21,7 +21,6 @@ import { PINNED_EMPTY, PINNED_LABEL, PINNED_NOTE } from '../model/pinnedList'
 import type { SourceTarget, TextViewChange } from '../model/resultParams'
 import {
   changeTypeLabel,
-  changeTypeOptions,
   countFor,
   DELETED_NOTE,
   missingSideLabel,
@@ -31,6 +30,8 @@ import {
   priorityLabel,
   showsNumbersOnlyMark,
   textStatusNotice,
+  typeFilterLabel,
+  typeFilterOptions,
 } from '../model/textLabels'
 import {
   ALL_SECTIONS,
@@ -40,6 +41,7 @@ import {
   SEARCH_MAX_LENGTH,
   SEARCH_TOO_SHORT,
   sectionOptions,
+  type TextTypeFilter,
 } from '../model/textFilter'
 import { displaySectionPath } from '@/shared/lib/sectionTitle'
 
@@ -50,7 +52,8 @@ const sortOptions: { value: TextSort; label: string }[] = [
 
 interface TextTabProps {
   analysis: Analysis
-  type: ChangeType | null
+  /** 주소의 유형 거르기. CONTENT는 '내용 변경'(추가·삭제·수정, #304) */
+  type: TextTypeFilter | null
   sort: TextSort
   /** 고른 최상위 섹션(3.7). null이면 전체 */
   section: string | null
@@ -69,7 +72,7 @@ interface TextTabProps {
 }
 
 /**
- * W-03 ③ 문장·내용 변화(3.9). 추가·삭제·수정·검토 필요로 거르고, 기본은 우선순위 순서(2.6)로 보여 준다.
+ * W-03 ③ 문장·내용 변화(3.9). 유형(추가·삭제·수정을 함께 보는 '내용 변경' 포함, #304)으로 거르고, 기본은 우선순위 순서(2.6)로 보여 준다.
  * 최상위 섹션과 검색어로도 함께 거른다(3.7). 고른 값은 주소에 남아 공유된다.
  * 문장을 비교하지 못했으면 '변경 없음'이 아니라 사유를 보여 준다. 짝짓지 못한 항목은 숨기지 않고 '검토 필요'로 둔다.
  * 카드마다 고정할 수 있고, '고정' 거르기를 고르면 이 분석에서 고정한 변경만 보여 준다(3.3, 이 브라우저에만 남음).
@@ -77,7 +80,7 @@ interface TextTabProps {
  */
 export function TextTab({
   analysis,
-  type,
+  type: requestedType,
   sort,
   section,
   q,
@@ -88,7 +91,13 @@ export function TextTab({
   onAsk,
   asking,
 }: TextTabProps) {
-  const { state, counts, sections, reload, loadMore } = useTextChanges(analysis.analysisId, { type, sort, section, q })
+  // type은 실제로 쓴 거르기다. '내용 변경'이 없는 분석에서 주소의 CONTENT는 전체로 본다
+  const { state, counts, sections, contentAvailable, type, reload, loadMore } = useTextChanges(analysis.analysisId, {
+    type: requestedType,
+    sort,
+    section,
+    q,
+  })
   const searchBox = useTextSearch(q, (next) => onChange({ q: next }))
   // 받은 풀이는 거르기·정렬을 바꿔도 이 탭이 떠 있는 동안 남는다(3.11)
   const explanations = useTextExplanations(analysis.analysisId)
@@ -206,14 +215,14 @@ export function TextTab({
       {!failed && (
         <div className="text-controls">
           <div className="text-filters" role="group" aria-label="변경 유형">
-            {changeTypeOptions.map((option) => (
+            {typeFilterOptions(contentAvailable).map((option) => (
               <Chip
                 key={option.label}
                 tone={option.value === 'REVIEW_NEEDED' ? 'attention' : 'neutral'}
                 pressed={!pinned && type === option.value}
                 count={counts && countFor(counts, option.value)}
                 onClick={() => {
-                  if (pinned || type !== option.value) onChange({ type: option.value })
+                  if (pinned || requestedType !== option.value) onChange({ type: option.value })
                 }}
               >
                 {option.label}
@@ -294,7 +303,7 @@ export function TextTab({
                   ))
                   .with({ filtered: false, type: null }, () => <EmptyState title="두 보고서 사이에 바뀐 문장·표가 없어요." />)
                   .with({ filtered: false, type: P.nonNullable }, ({ type: current }) => (
-                    <EmptyState title={`${changeTypeLabel(current)} 항목이 없어요.`}>
+                    <EmptyState title={`${typeFilterLabel(current)} 항목이 없어요.`}>
                       <p>'전체'를 고르면 다른 유형의 변화도 볼 수 있어요.</p>
                     </EmptyState>
                   ))

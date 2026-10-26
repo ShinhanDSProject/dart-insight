@@ -26,7 +26,7 @@ export function useAskSuggestions(analysisId: number): { questions: LoadState<st
     async (signal: AbortSignal): Promise<{ questions: string[]; sections: string[] }> => {
       const [summary, text] = await Promise.all([
         getSummary(analysisId, signal).catch(orNull(signal)),
-        getTextChanges(analysisId, { type: null, sort: 'priority', section: null, q: null, page: 0, size: 1 }, signal).catch(
+        getTextChanges(analysisId, { types: [], sort: 'priority', section: null, q: null, page: 0, size: 1 }, signal).catch(
           orNull(signal),
         ),
       ])

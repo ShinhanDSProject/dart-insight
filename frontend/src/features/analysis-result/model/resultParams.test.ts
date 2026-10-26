@@ -42,6 +42,12 @@ describe('parseResultParams', () => {
     expect(parseResultParams(new URLSearchParams('tab=text&ttype=MOVED')).textType).toBe('MOVED')
   })
 
+  it('주소의 ttype=CONTENT를 내용 변경으로 읽고 주소에 그대로 쓴다', () => {
+    expect(parseResultParams(new URLSearchParams('tab=text&ttype=CONTENT')).textType).toBe('CONTENT')
+    expect(parseResultParams(new URLSearchParams('tab=text&ttype=content')).textType).toBeNull()
+    expect(textParamChanges({ type: 'CONTENT' })).toEqual({ ttype: 'CONTENT', tpin: null, tc: null })
+  })
+
   it('주소에 남긴 고르기를 읽는다', () => {
     const params = new URLSearchParams('tab=text&sj=CF&changed=1&change=7&ttype=ADDED&tsort=document&tc=3&doc=previous&section=2&block=5')
     expect(parseResultParams(params)).toMatchObject({
