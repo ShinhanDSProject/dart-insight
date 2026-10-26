@@ -3,6 +3,7 @@ package com.dartinsight.user;
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.common.web.ApiPaths;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -13,13 +14,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping(ApiPaths.USERS)
+@RequiredArgsConstructor
 public class RegistrationController {
     private static final Logger log = LoggerFactory.getLogger(RegistrationController.class);
     private final RegistrationService registrationService;
-
-    public RegistrationController(RegistrationService registrationService) {
-        this.registrationService = registrationService;
-    }
 
     @PostMapping
     public ResponseEntity<RegistrationService.RegisteredUser> register(@RequestBody RegistrationRequest request) {

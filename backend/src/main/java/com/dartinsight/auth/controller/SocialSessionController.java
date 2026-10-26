@@ -9,6 +9,7 @@ import com.dartinsight.user.SocialAuthenticationService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -22,6 +23,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 @RestController
 @RequestMapping(ApiPaths.SOCIAL_SESSIONS)
+@RequiredArgsConstructor
 public class SocialSessionController {
     private static final Logger log = LoggerFactory.getLogger(SocialSessionController.class);
     private final SocialIdentityExtractor identities;
@@ -29,15 +31,6 @@ public class SocialSessionController {
     private final AuthService auth;
     private final RefreshCookieService cookies;
     private final AuthProperties properties;
-
-    public SocialSessionController(SocialIdentityExtractor identities, SocialAuthenticationService socialAuthentication,
-            AuthService auth, RefreshCookieService cookies, AuthProperties properties) {
-        this.identities = identities;
-        this.socialAuthentication = socialAuthentication;
-        this.auth = auth;
-        this.cookies = cookies;
-        this.properties = properties;
-    }
 
     @GetMapping("/callback")
     public void callback(OAuth2AuthenticationToken token, HttpServletRequest request, HttpServletResponse response)

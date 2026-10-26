@@ -6,6 +6,7 @@ import com.dartinsight.auth.dto.SessionResponse;
 import com.dartinsight.auth.service.AuthService;
 import com.dartinsight.auth.service.RefreshCookieService;
 import com.dartinsight.common.web.ApiPaths;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,14 +21,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping(ApiPaths.SESSIONS)
+@RequiredArgsConstructor
 public class SessionController {
     private final AuthService authService;
     private final RefreshCookieService cookies;
-
-    public SessionController(AuthService authService, RefreshCookieService cookies) {
-        this.authService = authService;
-        this.cookies = cookies;
-    }
 
     @PostMapping
     public ResponseEntity<SessionResponse> login(@RequestBody SessionRequest request) {

@@ -15,10 +15,12 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class AuthService {
     private final CredentialAuthenticationService credentials;
     private final RefreshTokenRepository refreshTokens;
@@ -26,15 +28,6 @@ public class AuthService {
     private final AuthProperties properties;
     private final Clock clock;
     private final SecureRandom random = new SecureRandom();
-
-    public AuthService(CredentialAuthenticationService credentials, RefreshTokenRepository refreshTokens,
-            JwtService jwt, AuthProperties properties, Clock clock) {
-        this.credentials = credentials;
-        this.refreshTokens = refreshTokens;
-        this.jwt = jwt;
-        this.properties = properties;
-        this.clock = clock;
-    }
 
     @Transactional
     public IssuedSession login(Object email, Object password) {

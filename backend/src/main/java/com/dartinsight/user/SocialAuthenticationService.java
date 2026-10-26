@@ -3,20 +3,16 @@ package com.dartinsight.user;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Locale;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class SocialAuthenticationService {
     private final UserRepository users;
     private final SocialAccountRepository socialAccounts;
     private final Clock clock;
-
-    public SocialAuthenticationService(UserRepository users, SocialAccountRepository socialAccounts, Clock clock) {
-        this.users = users;
-        this.socialAccounts = socialAccounts;
-        this.clock = clock;
-    }
 
     @Transactional
     public long authenticate(SocialIdentity identity) {
