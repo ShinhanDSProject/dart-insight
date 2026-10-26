@@ -87,6 +87,33 @@ class OpenDartClientListTest {
     }
 
     @Test
+    @DisplayName("정정 전 원본까지 받는 목록은 50페이지를 넘으면 잘린 목록을 주지 않고 실패한다")
+    void originalsListFailsWhenTruncated() {
+        server.on("/api/list.json", Response.json(page(1, 51, item("20260630000676", "주요사항보고서(유상증자결정)",
+                "20260630", "정"))));
+
+        assertThatThrownBy(() -> new OpenDartClient(server.properties(KEY))
+                .listDisclosuresWithOriginals("00000001", BEGIN, END, "I001"))
+                .isInstanceOf(ApiException.class)
+                .extracting(e -> ((ApiException) e).errorCode())
+                .isEqualTo(ErrorCode.DART_REQUEST_FAILED);
+        assertThat(server.requests()).hasSize(50);
+    }
+
+    @Test
+    @DisplayName("최종보고서 목록은 50페이지를 넘어도 앞의 50페이지를 준다(최근 공시는 다시 받으므로)")
+    void latestListKeepsFirstPagesWhenTruncated() {
+        server.on("/api/list.json", Response.json(page(1, 51, item("20261026000017", "임원ㆍ주요주주특정증권등소유상황보고서",
+                "20261026", ""))));
+
+        List<DisclosureListResponse.Item> items = new OpenDartClient(server.properties(KEY))
+                .listAllDisclosures("00000001", BEGIN, END);
+
+        assertThat(items).hasSize(50);
+        assertThat(server.requests()).hasSize(50);
+    }
+
+    @Test
     void noDataIsEmptyList() {
         server.on("/api/list.json", Response.json(DisclosureListJson.NO_DATA));
 

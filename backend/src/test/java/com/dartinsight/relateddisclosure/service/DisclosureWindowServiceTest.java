@@ -93,7 +93,6 @@ class DisclosureWindowServiceTest {
                 """;
         SERVER.on(LIST,
                 Response.json(page(1, 1,
-                        item("20261013000198", "[기재정정]주요사항보고서(유상증자결정)", "20261013", ""),
                         item("20260630000676", "주요사항보고서(유상증자결정)", "20260630", "정"))),
                 Response.json(page(1, 1,
                         item("20260115000010", "  타법인주식및출자증권취득결정  ", "20260115", "유"),
@@ -114,7 +113,7 @@ class DisclosureWindowServiceTest {
         assertThat(result.fetch().beginDate()).isEqualTo(LocalDate.of(2025, 6, 30));
         assertThat(result.fetch().endDate()).isEqualTo(LocalDate.of(2026, 8, 14));
         assertThat(result.items()).extracting(WindowDisclosure::rceptNo)
-                .containsExactly("20260115000010", "20260630000676", "20261013000198");
+                .containsExactly("20260115000010", "20260630000676");
         WindowDisclosure first = result.items().get(0);
         assertThat(first.detailType()).isEqualTo(DisclosureDetailType.I001);
         assertThat(first.reportName()).isEqualTo("타법인주식및출자증권취득결정");
@@ -122,9 +121,8 @@ class DisclosureWindowServiceTest {
         WindowDisclosure original = result.items().get(1);
         assertThat(original.detailType()).isEqualTo(DisclosureDetailType.B001);
         assertThat(original.remark()).isEqualTo("정");
-        assertThat(result.items().get(2).remark()).isNull();
         assertThat(count("disclosure_window_fetch")).isEqualTo(1);
-        assertThat(count("disclosure_window_item")).isEqualTo(3);
+        assertThat(count("disclosure_window_item")).isEqualTo(2);
     }
 
     @Test
@@ -168,6 +166,26 @@ class DisclosureWindowServiceTest {
         assertThat(result.items()).isEmpty();
         assertThat(again.fetch().status()).isEqualTo(WindowFetchStatus.NO_DATA);
         assertThat(requestsSince(before)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("줄을 받았는데 이 기업의 공시로 읽을 수 있는 줄이 없으면 '자료 없음'으로 저장하지 않고 실패한다")
+    void unreadableRowsAreNotSavedAsNoData() {
+        String otherCompany = """
+                {"corp_code":"00000009","corp_name":"다른회사","report_nm":"주요사항보고서(소송등의제기)",
+                 "rcept_no":"20260701000009","flr_nm":"다른회사","rcept_dt":"20260701","rm":""}
+                """;
+        String noDate = """
+                {"corp_code":"00000001","corp_name":"예시전자","report_nm":"주요사항보고서(유상증자결정)",
+                 "rcept_no":"20260702000001","flr_nm":"예시전자","rcept_dt":"","rm":""}
+                """;
+        SERVER.on(LIST, Response.json(page(1, 1, otherCompany, noDate)), Response.json(DisclosureListJson.NO_DATA));
+
+        assertThatThrownBy(() -> service.load(WINDOW))
+                .isInstanceOf(ApiException.class)
+                .extracting(e -> ((ApiException) e).errorCode())
+                .isEqualTo(ErrorCode.DART_REQUEST_FAILED);
+        assertThat(count("disclosure_window_fetch")).isZero();
     }
 
     @Test

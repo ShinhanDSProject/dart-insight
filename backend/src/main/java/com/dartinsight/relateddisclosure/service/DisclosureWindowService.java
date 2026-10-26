@@ -1,5 +1,7 @@
 package com.dartinsight.relateddisclosure.service;
 
+import com.dartinsight.common.error.ApiException;
+import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.dart.client.OpenDartClient;
 import com.dartinsight.dart.domain.CachePolicy;
 import com.dartinsight.dart.dto.DisclosureListResponse;
@@ -32,6 +34,8 @@ import org.springframework.stereotype.Service;
  * 트랜잭션 밖에서 하고 저장만 DartCacheLoader가 묶는다(LY-2).
  *
  * <p>받지 못하면(020·800·연결 실패·키 없음) 저장하지 않고 ApiException을 그대로 던진다. 부르는 쪽이 '일시 미제공'으로 답한다.
+ * '자료 없음'(NO_DATA)은 세 상세유형 모두 받은 줄이 없을 때만 저장한다. 줄을 받았는데 모두 읽을 수 없으면 '자료 없음'으로
+ * 굳히지 않고 실패로 본다.
  */
 @Service
 @RequiredArgsConstructor
@@ -60,13 +64,18 @@ public class DisclosureWindowService {
                 .map(fetch -> new WindowDisclosures(fetch, store.findItems(fetch.id())));
     }
 
-    /** 트랜잭션 밖. 상세유형마다 한 번씩 부른다. 하나라도 실패하면 아무것도 저장하지 않는다. */
+    /**
+     * 트랜잭션 밖. 상세유형마다 한 번씩 부른다. 하나라도 실패하면 아무것도 저장하지 않는다. 받은 줄이 있는데 이 기업의 공시로
+     * 읽을 수 있는 줄이 하나도 없으면 DART_REQUEST_FAILED로 실패한다(다음 요청에서 다시 받음).
+     */
     private List<WindowDisclosure> fetch(DisclosureWindow window) {
         Map<String, WindowDisclosure> byRceptNo = new LinkedHashMap<>();
+        int received = 0;
         int skipped = 0;
         for (DisclosureDetailType type : DisclosureDetailType.values()) {
             List<DisclosureListResponse.Item> items = openDartClient.listDisclosuresWithOriginals(window.corpCode(),
                     window.from(), window.to(), type.name());
+            received += items.size();
             for (DisclosureListResponse.Item item : items) {
                 WindowDisclosure disclosure = toDisclosure(window.corpCode(), type, item);
                 if (disclosure == null) {
@@ -75,6 +84,10 @@ public class DisclosureWindowService {
                 }
                 byRceptNo.putIfAbsent(disclosure.rceptNo(), disclosure);
             }
+        }
+        if (received > 0 && byRceptNo.isEmpty()) {
+            log.warn("관련 수시공시 목록을 {}줄 받았지만 읽을 수 있는 줄이 없습니다: {}", received, window.corpCode());
+            throw new ApiException(ErrorCode.DART_REQUEST_FAILED, "공시 목록을 읽을 수 없습니다.");
         }
         if (skipped > 0) {
             log.info("관련 수시공시 목록에서 읽을 수 없는 줄 {}건을 뺐습니다: {}", skipped, window.corpCode());
