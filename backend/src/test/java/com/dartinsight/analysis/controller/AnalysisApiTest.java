@@ -219,6 +219,49 @@ class AnalysisApiTest {
     }
 
     @Test
+    @DisplayName("정정 공시로 대체된 보고서면 422 ANALYSIS_NOT_COMPARABLE이고 분석을 만들지 않는다")
+    void reportReplacedByCorrectionIsRejected() throws Exception {
+        // 회사의 목록 받은 시각보다 lastSeenAt이 앞서면 최신 목록에 없는(정정으로 대체된) 보고서다
+        jdbcTemplate.update("UPDATE company SET reports_fetched_at = ? WHERE corp_code = ?", NOW, "00000001");
+        jdbcTemplate.update("UPDATE report SET last_seen_at = ? WHERE rcept_no = ?", NOW.minusDays(1), PREV);
+        givenStatements();
+
+        request(CUR, PREV)
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("ANALYSIS_NOT_COMPARABLE"))
+                .andExpect(jsonPath("$.message").value("비교 보고서는 정정 공시로 대체된 보고서예요."));
+        assertThat(analysisRepository.count()).isZero();
+    }
+
+    @Test
+    @DisplayName("두 보고서에 같은 기준(연결·별도)의 재무제표가 없으면 422이고 분석을 만들지 않는다")
+    void noCommonStatementBasisIsRejected() throws Exception {
+        // 부르는 순서: 현재 연결(있음), 이전 연결(없음), 현재 별도(없음), 이전 별도(있음)
+        SERVER.on(PATH, statementOf(CUR, "1153", "40", "70"), Response.json(FinancialJson.NO_DATA),
+                Response.json(FinancialJson.NO_DATA), statementOf(PREV, "1000", "30", "55"));
+
+        request(CUR, PREV)
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("ANALYSIS_NOT_COMPARABLE"))
+                .andExpect(jsonPath("$.message").value("두 보고서에 같은 기준(연결·별도)의 재무제표가 없어요."));
+        assertThat(analysisRepository.count()).isZero();
+    }
+
+    @Test
+    @DisplayName("두 보고서의 통화가 다르면 422이고 분석을 만들지 않는다")
+    void differentCurrencyIsRejected() throws Exception {
+        String usd = FinancialJson.ok(account(CUR, "BS", "ifrs-full_Assets", "자산총계", 1, "1153"))
+                .replace("\"currency\":\"KRW\"", "\"currency\":\"USD\"");
+        SERVER.on(PATH, Response.json(usd), statementOf(PREV, "1000", "30", "55"));
+
+        request(CUR, PREV)
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("ANALYSIS_NOT_COMPARABLE"))
+                .andExpect(jsonPath("$.message").value("두 보고서의 통화가 달라요."));
+        assertThat(analysisRepository.count()).isZero();
+    }
+
+    @Test
     @DisplayName("본문의 basis가 정해진 값이 아니면 400과 errors[].field=basis를 돌려주고 분석을 만들지 않는다")
     void unknownBasisListsAllowedValues() throws Exception {
         request(CUR, PREV, "FOO")
