@@ -1,0 +1,66 @@
+{
+ "status": "000",
+ "message": "정상",
+ "list": [
+  {
+   "rcept_no": "20260324000822",
+   "corp_cls": "Y",
+   "corp_code": "00688996",
+   "corp_name": "KB금융",
+   "se": "현금배당금총액(백만원)",
+   "stock_knd": "-",
+   "thstrm": "1,198,257",
+   "frmtrm": "1,173,937",
+   "lwfr": "1,149,421",
+   "stlm_dt": "2024-12-31"
+  },
+  {
+   "rcept_no": "20260324000822",
+   "corp_cls": "Y",
+   "corp_code": "00688996",
+   "corp_name": "KB금융",
+   "se": "주식배당수익률(%)",
+   "stock_knd": "-",
+   "thstrm": "-",
+   "frmtrm": "-",
+   "lwfr": "-",
+   "stlm_dt": "2024-12-31"
+  },
+  {
+   "rcept_no": "20260324000822",
+   "corp_cls": "Y",
+   "corp_code": "00688996",
+   "corp_name": "KB금융",
+   "se": "주식배당수익률(%)",
+   "stock_knd": "-",
+   "thstrm": "-",
+   "frmtrm": "-",
+   "lwfr": "-",
+   "stlm_dt": "2024-12-31"
+  },
+  {
+   "rcept_no": "20260324000822",
+   "corp_cls": "Y",
+   "corp_code": "00688996",
+   "corp_name": "KB금융",
+   "se": "주당 현금배당금(원)",
+   "stock_knd": "-",
+   "thstrm": "3,174",
+   "frmtrm": "3,060",
+   "lwfr": "2,950",
+   "stlm_dt": "2024-12-31"
+  },
+  {
+   "rcept_no": "20260324000822",
+   "corp_cls": "Y",
+   "corp_code": "00688996",
+   "corp_name": "KB금융",
+   "se": "주당 현금배당금(원)",
+   "stock_knd": "-",
+   "thstrm": "-",
+   "frmtrm": "-",
+   "lwfr": "-",
+   "stlm_dt": "2024-12-31"
+  }
+ ]
+}

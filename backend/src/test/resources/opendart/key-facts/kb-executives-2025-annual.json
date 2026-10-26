@@ -1,0 +1,60 @@
+{
+ "status": "000",
+ "message": "정상",
+ "list": [
+  {
+   "rcept_no": "20260619000667",
+   "corp_cls": "Y",
+   "corp_code": "00688996",
+   "corp_name": "KB금융",
+   "nm": "양종희",
+   "sexdstn": "남",
+   "birth_ym": "1961년 06월",
+   "ofcps": "회장",
+   "rgist_exctv_at": "사내이사",
+   "fte_at": "상근",
+   "chrg_job": "대표이사\n계열사대표이사\n후보추천위원장\nESG위원",
+   "main_career": "(테스트 자료에서 줄임)",
+   "mxmm_shrholdr_relate": "-",
+   "hffc_pd": "2년 \n1개월",
+   "tenure_end_on": "2026년 11월 20일",
+   "stlm_dt": "2025-12-31"
+  },
+  {
+   "rcept_no": "20260619000667",
+   "corp_cls": "Y",
+   "corp_code": "00688996",
+   "corp_name": "KB금융",
+   "nm": "이재근",
+   "sexdstn": "남",
+   "birth_ym": "1966년 05월",
+   "ofcps": "부문장",
+   "rgist_exctv_at": "미등기",
+   "fte_at": "상근",
+   "chrg_job": "글로벌사업부문장",
+   "main_career": "(테스트 자료에서 줄임)",
+   "mxmm_shrholdr_relate": "-",
+   "hffc_pd": "3년\n9개월",
+   "tenure_end_on": "2025년 12월 31일",
+   "stlm_dt": "2025-12-31"
+  },
+  {
+   "rcept_no": "20260619000667",
+   "corp_cls": "Y",
+   "corp_code": "00688996",
+   "corp_name": "KB금융",
+   "nm": "이창권",
+   "sexdstn": "남",
+   "birth_ym": "1965년 11월",
+   "ofcps": "부문장",
+   "rgist_exctv_at": "미등기",
+   "fte_at": "상근",
+   "chrg_job": "디지털부문장(CDO),IT부문장(CITO)",
+   "main_career": "(테스트 자료에서 줄임)",
+   "mxmm_shrholdr_relate": "-",
+   "hffc_pd": "1년",
+   "tenure_end_on": "2025년 12월 31일",
+   "stlm_dt": "2025-12-31"
+  }
+ ]
+}

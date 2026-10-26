@@ -1,0 +1,49 @@
+{
+ "status": "000",
+ "message": "정상",
+ "list": [
+  {
+   "rcept_no": "20260619000667",
+   "corp_cls": "Y",
+   "corp_code": "00688996",
+   "corp_name": "KB금융",
+   "stock_knd": "보통주",
+   "nm": "국민연금공단",
+   "relate": "본인 및 특별관계자",
+   "bsis_posesn_stock_co": "33,095,691",
+   "bsis_posesn_stock_qota_rt": "8.41",
+   "trmend_posesn_stock_co": "33,107,971",
+   "trmend_posesn_stock_qota_rt": "8.68",
+   "rm": "-",
+   "stlm_dt": "2025-12-31"
+  },
+  {
+   "rcept_no": "20260619000667",
+   "corp_cls": "Y",
+   "corp_code": "00688996",
+   "corp_name": "KB금융",
+   "stock_knd": "보통주",
+   "nm": "계",
+   "bsis_posesn_stock_co": "33,095,691",
+   "bsis_posesn_stock_qota_rt": "8.41",
+   "trmend_posesn_stock_co": "33,107,971",
+   "trmend_posesn_stock_qota_rt": "8.68",
+   "rm": "-",
+   "stlm_dt": "2025-12-31"
+  },
+  {
+   "rcept_no": "20260619000667",
+   "corp_cls": "Y",
+   "corp_code": "00688996",
+   "corp_name": "KB금융",
+   "stock_knd": "-",
+   "nm": "계",
+   "bsis_posesn_stock_co": "-",
+   "bsis_posesn_stock_qota_rt": "-",
+   "trmend_posesn_stock_co": "-",
+   "trmend_posesn_stock_qota_rt": "-",
+   "rm": "-",
+   "stlm_dt": "2025-12-31"
+  }
+ ]
+}

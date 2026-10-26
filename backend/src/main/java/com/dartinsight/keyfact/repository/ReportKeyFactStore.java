@@ -32,14 +32,14 @@ public class ReportKeyFactStore {
     public <T> Optional<Stored<T>> find(String rceptNo, KeyFactKind kind, Class<T> rowType) {
         JavaType listType = jsonMapper.getTypeFactory().constructCollectionType(List.class, rowType);
         List<Stored<T>> found = jdbcTemplate.query(
-                "SELECT status, settlement_date, rows_json, fetched_at FROM report_key_fact "
+                "SELECT status, source_rcept_no, settlement_date, rows_json, fetched_at FROM report_key_fact "
                         + "WHERE rcept_no = ? AND kind = ?",
                 (rs, i) -> {
                     KeyFactStatus status = OK.equals(rs.getString("status"))
                             ? KeyFactStatus.AVAILABLE : KeyFactStatus.NO_DATA;
                     Date date = rs.getDate("settlement_date");
                     List<T> rows = jsonMapper.readValue(rs.getString("rows_json"), listType);
-                    return new Stored<>(new KeyFactSection<>(rceptNo, status,
+                    return new Stored<>(new KeyFactSection<>(rceptNo, rs.getString("source_rcept_no"), status,
                             date == null ? null : date.toLocalDate(), rows),
                             rs.getTimestamp("fetched_at").toLocalDateTime());
                 },
@@ -61,16 +61,16 @@ public class ReportKeyFactStore {
         LocalDate date = section.settlementDate();
         Date settlementDate = date == null ? null : Date.valueOf(date);
         Timestamp fetched = Timestamp.valueOf(fetchedAt);
-        int updated = jdbcTemplate.update("UPDATE report_key_fact SET status = ?, settlement_date = ?, rows_json = ?, "
-                + "fetched_at = ? WHERE rcept_no = ? AND kind = ?",
-                status, settlementDate, rowsJson, fetched, section.rceptNo(), kind.name());
+        int updated = jdbcTemplate.update("UPDATE report_key_fact SET status = ?, source_rcept_no = ?, "
+                + "settlement_date = ?, rows_json = ?, fetched_at = ? WHERE rcept_no = ? AND kind = ?",
+                status, section.sourceRceptNo(), settlementDate, rowsJson, fetched, section.rceptNo(), kind.name());
         if (updated > 0) {
             return;
         }
         try {
-            jdbcTemplate.update("INSERT INTO report_key_fact (rcept_no, kind, status, settlement_date, rows_json, "
-                    + "fetched_at) VALUES (?, ?, ?, ?, ?, ?)",
-                    section.rceptNo(), kind.name(), status, settlementDate, rowsJson, fetched);
+            jdbcTemplate.update("INSERT INTO report_key_fact (rcept_no, kind, status, source_rcept_no, settlement_date, "
+                    + "rows_json, fetched_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    section.rceptNo(), kind.name(), status, section.sourceRceptNo(), settlementDate, rowsJson, fetched);
         } catch (DuplicateKeyException e) {
             // 같은 요청이 동시에 넣었다. 그 결과를 둔다
         }
