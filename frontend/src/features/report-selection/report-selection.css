@@ -435,3 +435,74 @@
   display: flex;
   justify-content: center;
 }
+
+/* AI 기업 브리핑(FS-49). 'AI 생성' 배지를 제목 옆에, 문장마다 근거 버튼과 펼친 인용 원문을 둔다 */
+.company-briefing__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.company-briefing__head .panel__title {
+  margin: 0;
+}
+
+.company-briefing__source {
+  margin: var(--space-2) 0 var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.company-briefing__list {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
+.company-briefing__text {
+  margin: 0;
+  line-height: var(--line-height-body);
+}
+
+.company-briefing__cite {
+  font-size: var(--font-size-xs);
+}
+
+.company-briefing__evidence {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.company-briefing__quote {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: var(--space-1) solid var(--color-border-accent);
+  border-radius: var(--radius-xs);
+  background: var(--color-bg-subtle);
+}
+
+.company-briefing__quote figcaption {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-muted);
+}
+
+.company-briefing__quote blockquote {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.company-briefing__quote blockquote p {
+  margin: 0;
+}
+
+.company-briefing__meta {
+  margin: var(--space-3) 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
