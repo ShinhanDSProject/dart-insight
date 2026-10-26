@@ -25,6 +25,11 @@ vi.mock('./KeyFactsSection', () => ({
     <section aria-label="최대주주·임원·배당 변화" data-section="key-facts" data-corp-code={corpCode} />
   ),
 }))
+vi.mock('./DisclosureTimelineSection', () => ({
+  DisclosureTimelineSection: ({ corpCode }: { corpCode: string }) => (
+    <section aria-label="최근 공시" data-section="disclosures" data-corp-code={corpCode} />
+  ),
+}))
 
 const company: Company = { corpCode: '00126380', corpName: '삼성전자', stockCode: '005930', listed: true }
 
@@ -58,7 +63,7 @@ describe('기업 개요 탭의 영역 순서', () => {
 
     await screen.findByRole('region', { name: '기업 개황' })
     const names = screen.getAllByRole('region').map(regionName)
-    expect(names).toEqual(['기업 개황', '주요 재무 흐름', '최대주주·임원·배당 변화'])
+    expect(names).toEqual(['기업 개황', '주요 재무 흐름', '최대주주·임원·배당 변화', '최근 공시'])
     const stubs = Array.from(container.querySelectorAll('[data-section]'))
     expect(stubs.every((el) => el.getAttribute('data-corp-code') === '00126380')).toBe(true)
   })
