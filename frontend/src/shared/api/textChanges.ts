@@ -148,6 +148,36 @@ export function getTextChange(analysisId: number, changeId: number, signal?: Abo
   return apiGet(endpoints.textChange(analysisId, changeId), undefined, { signal })
 }
 
+/** docs/api-spec.md GET /api/analyses/{id}/text-changes/{changeId}/history (3.8) */
+export type HistoryStatus = 'PRESENT' | 'ABSENT' | 'NOT_ANALYZED' | 'REVIEW_NEEDED'
+
+export interface TextHistoryEntry {
+  report: { rceptNo: string; reportName: string; reportType: ReportType; periodEnd: string }
+  status: HistoryStatus
+  /** PRESENT일 때 그 보고서의 글 */
+  text: string | null
+  /** PRESENT일 때 근거 위치 */
+  sectionPath: string | null
+  evidenceId: string | null
+  /** 바로 앞 항목에서 이 보고서로 오며 생긴 변경. 바뀌지 않았거나 알 수 없으면 null */
+  change: { analysisId: number; changeId: number; changeType: ChangeType } | null
+}
+
+export interface TextChangeHistory {
+  analysisId: number
+  changeId: number
+  /** 오래된 보고서부터 */
+  entries: TextHistoryEntry[]
+}
+
+export function getTextChangeHistory(
+  analysisId: number,
+  changeId: number,
+  signal?: AbortSignal,
+): Promise<TextChangeHistory> {
+  return apiGet(endpoints.textChangeHistory(analysisId, changeId), undefined, { signal })
+}
+
 /** docs/api-spec.md POST /api/analyses/{id}/text-changes/{changeId}/explanations (3.11, FS-6) */
 export type TextExplanationStatus = 'OK' | 'REVIEW_NEEDED' | 'NO_SOURCE'
 

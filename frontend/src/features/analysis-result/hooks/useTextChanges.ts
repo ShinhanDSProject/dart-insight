@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import {
   getTextChange,
+  getTextChangeHistory,
   getTextChanges,
   type TextChangeCounts,
   type TextSectionCount,
@@ -84,5 +85,11 @@ export function useTextChanges(analysisId: number, { type: requestedType, sort, 
 /** 문장·표 변경 하나의 원문 근거(3.4) */
 export function useTextChangeDetail(analysisId: number, changeId: number) {
   const load = useCallback((signal: AbortSignal) => getTextChange(analysisId, changeId, signal), [analysisId, changeId])
+  return useAsync(load)
+}
+
+/** 문장 변경 이력(3.8). 완료된 분석을 이어 붙인 여러 기간 */
+export function useTextChangeHistory(analysisId: number, changeId: number) {
+  const load = useCallback((signal: AbortSignal) => getTextChangeHistory(analysisId, changeId, signal), [analysisId, changeId])
   return useAsync(load)
 }
