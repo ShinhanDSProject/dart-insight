@@ -45,6 +45,7 @@
 | `disclosureType` | OpenDART 공시상세유형. `A001` 사업보고서, `A002` 반기보고서, `A003` 분기보고서 |
 | `financialDataStatus` | `UNKNOWN` 확인 전(아직 받아 보지 않음), `AVAILABLE` 재무 자료 있음, `NOT_AVAILABLE` 재무 자료 없음. 받아 둔 결과(4.5)로 정하고 목록 조회에서는 OpenDART를 부르지 않음. `NOT_AVAILABLE`: 2015 사업연도 이전, 연결·별도 모두 `013`, 또는 받은 자료가 다른 접수번호(정정본) 것 |
 | `basis` | `YOY` 전년 동기, `PREV` 직전 기간, `CUSTOM` 직접 선택 |
+| `disclosureGroup` | 공시 묶음(공시 제목 낱말 규칙, FS-48). `PERIODIC` 정기보고서, `FUNDING` 자금 조달, `OWNERSHIP` 지분 변동, `GOVERNANCE` 지배구조, `BUSINESS` 실적·영업, `OTHER` 기타. 규칙은 `backend/.../disclosure/domain/DisclosureGroupRules.java` |
 | `status` (분석) | `PENDING` 대기, `RUNNING` 진행, `COMPLETED` 완료, `FAILED` 실패 |
 | `step` (분석) | `RECEIVED` 요청 접수, `COMPARING` 보고서 비교, `VERIFYING` 근거 확인, `DONE` 완료 |
 | `sjDiv` | `BS` 재무상태표, `IS` 손익계산서, `CIS` 포괄손익계산서, `CF` 현금흐름표, `SCE` 자본변동표 |
@@ -75,6 +76,7 @@
 | GET | `/api/companies/{corpCode}/report-pairs` | 비교 기준에 맞는 보고서 쌍 | #12 (2.1) | W-01 ② | 초안 |
 | GET | `/api/companies/{corpCode}/analyses` | 이 기업의 이미 끝난 분석 목록 | #288 (1.2) | W-01 ② | 초안 |
 | GET | `/api/companies/{corpCode}/key-facts` | 최신 정기보고서와 1년 전 같은 종류 보고서의 최대주주·임원·배당과 바뀐 항목 | #331 (1.2, FS-47) | 기업 개요 탭 | 초안 |
+| GET | `/api/companies/{corpCode}/disclosures` | 최근 공시 타임라인(묶음 거르기) | #332 (1.2) | 기업 개요 탭 | 초안 |
 | POST | `/api/comparability-checks` | 비교 가능성 검증 | #13 (2.2) | W-01 ③ | 초안 |
 | POST | `/api/analyses` | 분석 요청 | #14 (2.3) | W-01 ③ → W-02 | 초안 |
 | GET | `/api/analyses/{analysisId}` | 분석 상태·단계 | #14 (2.3) | W-02, W-03 | 초안 |
@@ -631,6 +633,73 @@
 | --- | --- | --- |
 | 400 | `COMMON_INVALID_INPUT` | `limit`가 숫자가 아니거나 1~20 밖. `errors[].field`는 `limit` |
 | 404 | `COMPANY_NOT_FOUND` | 없는 고유번호(`GET /api/companies/{corpCode}`와 같음) |
+
+### GET /api/companies/{corpCode}/disclosures — 최근 공시 타임라인
+
+- 이슈: #332 (1.2) · 기획서: FS-48 · 화면: 기업 화면 '기업 개요' 탭의 최근 공시 영역
+- 최근 `days`일(오늘 − `days`일 ~ 오늘, 한국 시간, 접수일 기준)에 이 기업이 낸 모든 종류의 공시입니다. OpenDART 공시검색(`list.json`)을 공시유형 없이, 최종보고서만(`last_reprt_at=Y`) 받습니다. 정정 공시가 나와 대체된 이전 공시는 들어 있지 않습니다(DART 공시 목록의 '최종보고서' 보기와 같음).
+- 캐시([ADR-0024](adr/0024-company-info-cache.md)): 받은 목록은 기업별로 저장하고 받은 시각(`fetchedAt`)을 둡니다. 받은 지 1시간(`app.disclosures.refresh-after`)이 안 됐고 받아 둔 기간이 요청 기간을 덮으면 OpenDART를 부르지 않습니다. 다시 받다 실패하면 저장된 목록을 돌려주고 `refreshError`에 이유를 담습니다(저장된 목록도 없으면 에러). `013`(자료 없음)은 빈 목록입니다.
+- 접수일(`receivedDate`)이 최근인 순서, 같은 날이면 접수번호가 큰 순서입니다.
+- 묶음(`group`)은 공시 제목 낱말 규칙으로 backend가 정합니다(LLM을 쓰지 않음). 제목 앞머리의 `[기재정정]` 같은 꼬리표와 제목 뒤 덧붙인 설명(공백 여러 칸 뒤 괄호)은 떼고 봅니다. 규칙 순서는 정기보고서 → 지분 변동 → 자금 조달 → 지배구조 → 실적·영업이고, 맞는 규칙이 없으면 기타입니다.
+- `periodic`: 이 서비스의 정기보고서 목록(`GET /api/companies/{corpCode}/reports`)에 들어가는 보고서(12월 결산 회사의 사업·반기·분기보고서)인지입니다. `true`면 화면이 '이 보고서로 비교하기'를 보여 줍니다.
+- `groups`는 `group` 거르기와 관계없이 기간 안의 모든 공시를 묶음별로 센 값이고, 6개 묶음을 위 순서로 항상 다 넣습니다(0건 포함).
+- 공시가 없으면 `items`가 빈 배열입니다(에러 아님).
+- 아래 예시의 묶음별 건수는 삼성전자(`00126380`) 2026-07-28~2026-10-26 실제 응답(89건)을 규칙으로 나눈 값입니다.
+
+**요청**
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| path | `corpCode` | string | 예 | 고유번호 |
+| query | `days` | number | 아니오 | 최근 며칠. 기본 90, 1 이상 365 이하 |
+| query | `group` | string | 아니오 | `disclosureGroup` 값 하나. 없으면 모든 묶음 |
+
+**응답 200**
+
+```json
+{
+  "corpCode": "00126380",
+  "days": 90,
+  "from": "2026-07-28",
+  "to": "2026-10-26",
+  "fetchedAt": "2026-10-26T14:05:12",
+  "refreshError": null,
+  "groups": [
+    { "group": "PERIODIC", "label": "정기보고서", "count": 1 },
+    { "group": "OWNERSHIP", "label": "지분 변동", "count": 71 },
+    { "group": "FUNDING", "label": "자금 조달", "count": 0 },
+    { "group": "GOVERNANCE", "label": "지배구조", "count": 0 },
+    { "group": "BUSINESS", "label": "실적·영업", "count": 4 },
+    { "group": "OTHER", "label": "기타", "count": 13 }
+  ],
+  "items": [
+    {
+      "rceptNo": "20260814001234",
+      "reportName": "반기보고서 (2026.06)",
+      "filerName": "삼성전자",
+      "receivedDate": "2026-08-14",
+      "group": "PERIODIC",
+      "groupLabel": "정기보고서",
+      "periodic": true,
+      "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260814001234",
+      "remarks": null
+    }
+  ]
+}
+```
+
+- `reportName`: OpenDART 보고서명(`report_nm`)의 앞뒤 공백을 빼고 이어진 공백을 한 칸으로 줄인 값입니다. `[기재정정]` 같은 꼬리표는 그대로 둡니다.
+- `filerName`: 제출인(`flr_nm`). 지분 공시는 회사가 아닌 사람·법인일 수 있습니다. 없으면 null.
+- `remarks`: 비고(`rm`) 원문(`유` 유가증권시장, `코` 코스닥, `채` 채권상장법인, `넥` 코넥스, `공` 공정위, `연` 연결 포함, `정` 뒤에 정정 있음, `철` 철회). 없으면 null.
+- `from`·`to`: 이번 응답이 다룬 접수일 기간입니다. `refreshError`가 있고 저장된 목록이 요청 기간을 다 덮지 못하면 저장된 기간만 들어 있을 수 있습니다.
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | `days`가 숫자가 아니거나 1~365 밖(`errors[].field`는 `days`), `group`이 정해진 값이 아님(`errors[].field`는 `group`) |
+| 404 | `COMPANY_NOT_FOUND` | 없는 고유번호 |
+| 502 | `DART_REQUEST_FAILED` | OpenDART 호출 실패이고 저장된 목록도 없음 |
+| 503 | `DART_RATE_LIMITED` | OpenDART 호출 한도 초과(020)이고 저장된 목록도 없음 |
+| 503 | `DART_KEY_MISSING` | 서버에 OpenDART 키가 설정되지 않았고 저장된 목록도 없음 |
 
 ### POST /api/comparability-checks — 비교 가능성 검증
 
