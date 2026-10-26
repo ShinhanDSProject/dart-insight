@@ -5,6 +5,7 @@ import com.dartinsight.common.error.ErrorCode;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Locale;
+import lombok.RequiredArgsConstructor;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -12,21 +13,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
+@RequiredArgsConstructor
 public class RegistrationService {
     private final UserRepository users;
     private final LocalCredentialRepository credentials;
     private final PasswordEncoder passwords;
     private final TransactionTemplate transactions;
     private final Clock clock;
-
-    public RegistrationService(UserRepository users, LocalCredentialRepository credentials,
-            PasswordEncoder passwords, TransactionTemplate transactions, Clock clock) {
-        this.users = users;
-        this.credentials = credentials;
-        this.passwords = passwords;
-        this.transactions = transactions;
-        this.clock = clock;
-    }
 
     public RegisteredUser register(Object rawEmail, Object rawPassword) {
         String email = RegistrationInput.email(rawEmail);
