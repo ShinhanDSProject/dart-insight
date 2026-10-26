@@ -4,6 +4,7 @@ import com.dartinsight.common.error.ApiException;
 import com.dartinsight.explanation.service.ExplanationService;
 import com.dartinsight.question.service.QuestionService;
 import com.dartinsight.summary.service.SummaryQueryService;
+import com.dartinsight.system.config.AiUsageProperties;
 import com.dartinsight.system.dto.AiUsageResponse;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -27,6 +28,7 @@ public class AiUsageService {
     private final QuestionService questionService;
     private final ExplanationService explanationService;
     private final SummaryQueryService summaryQueryService;
+    private final AiUsageProperties aiUsageProperties;
     private final Clock clock;
 
     /** days가 7·30이 아니면 400 errors[days] */
@@ -39,6 +41,6 @@ public class AiUsageService {
         LocalDateTime start = from.atStartOfDay();
         LocalDateTime end = to.plusDays(1).atStartOfDay();
         return AiUsageResponse.of(days, from, to, questionService.usage(start, end),
-                explanationService.usage(start, end), summaryQueryService.llmCallUsage(start, end));
+                explanationService.usage(start, end), summaryQueryService.llmCallUsage(start, end), aiUsageProperties);
     }
 }
