@@ -8,6 +8,7 @@ import com.dartinsight.dart.dto.DartCompanyResponse;
 import com.dartinsight.dart.dto.DisclosureListResponse;
 import com.dartinsight.dart.dto.FinancialStatementResponse;
 import com.dartinsight.dart.dto.OpenDartStatus;
+import com.dartinsight.dart.dto.KeyAccountResponse;
 import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -152,6 +153,40 @@ public class OpenDartClient {
             throw statusError(response.status(), response.message());
         }
         return new FinancialStatementPage(false, response.list() == null ? List.of() : response.list());
+    }
+
+    /**
+     * 단일회사 주요계정(fnlttSinglAcnt.json). 연결(CFS)·별도(OFS) 줄이 함께 온다.
+     * 자료가 없으면(013) noData가 true이고 목록은 비어 있다.
+     * https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS003&apiId=2019016
+     *
+     * @param reprtCode 11011 사업, 11012 반기, 11013 1분기, 11014 3분기
+     */
+    public KeyAccountPage keyAccounts(String corpCode, int fiscalYear, String reprtCode) {
+        requireApiKey();
+        KeyAccountResponse response = execute("fnlttSinglAcnt.json", () -> restClient.get()
+                .uri(uri -> uri.path(OpenDartPaths.KEY_ACCOUNTS)
+                        .queryParam("crtfc_key", properties.apiKey())
+                        .queryParam("corp_code", corpCode)
+                        .queryParam("bsns_year", fiscalYear)
+                        .queryParam("reprt_code", reprtCode)
+                        .build())
+                .retrieve()
+                .body(KeyAccountResponse.class));
+        if (response == null) {
+            throw new ApiException(ErrorCode.DART_REQUEST_FAILED, "OpenDART 응답이 비어 있습니다.");
+        }
+        if (NO_DATA.equals(response.status())) {
+            return new KeyAccountPage(true, List.of());
+        }
+        if (!OK.equals(response.status())) {
+            throw statusError(response.status(), response.message());
+        }
+        return new KeyAccountPage(false, response.list() == null ? List.of() : response.list());
+    }
+
+    /** @param noData OpenDART가 '자료 없음'(013)으로 답했는지 */
+    public record KeyAccountPage(boolean noData, List<KeyAccountResponse.Item> items) {
     }
 
     /**
