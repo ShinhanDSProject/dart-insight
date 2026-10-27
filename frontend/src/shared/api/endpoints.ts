@@ -17,6 +17,7 @@ export const endpoints = {
   favoriteCompany: (corpCode: string) => `/api/favorite-companies/${seg(corpCode)}`,
   notifications: () => '/api/notifications',
   notificationRead: (notificationId: number) => `/api/notifications/${seg(notificationId)}/read`,
+  featuredCompanies: () => '/api/featured-companies',
   companies: () => '/api/companies',
   company: (corpCode: string) => `/api/companies/${seg(corpCode)}`,
   companyOverview: (corpCode: string) => `/api/companies/${seg(corpCode)}/overview`,
