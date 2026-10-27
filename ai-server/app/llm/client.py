@@ -36,6 +36,12 @@ from app.llm.providers import (
 logger = logging.getLogger("app.llm")
 KST = timezone(timedelta(hours=9))
 
+# 호출 결과(CallRecord.outcome)
+OUTCOME_OK = "OK"
+OUTCOME_INVALID_OUTPUT = "INVALID_OUTPUT"
+OUTCOME_TRANSIENT_ERROR = "TRANSIENT_ERROR"
+OUTCOME_ERROR = "ERROR"
+
 
 class LlmError(Exception):
     def __init__(self, message: str, calls: list[CallRecord] | None = None) -> None:
@@ -81,7 +87,7 @@ class CallRecord:
     output_tokens: int | None
     latency_ms: int
     attempt: int
-    outcome: str  # OK, INVALID_OUTPUT, TRANSIENT_ERROR, ERROR
+    outcome: str  # OUTCOME_*
     error: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
@@ -101,7 +107,7 @@ class CallRecord:
         }
 
 
-@dataclass
+@dataclass(frozen=True)
 class LlmResult[T]:
     value: T
     model: str
@@ -172,7 +178,7 @@ class LlmClient:
                 value = validate(parsed)
             except OutputProblem as e:
                 problems = e.problems
-                calls[-1] = replace(record, outcome="INVALID_OUTPUT", error=str(e)[:500])
+                calls[-1] = replace(record, outcome=OUTCOME_INVALID_OUTPUT, error=str(e)[:500])
                 _log(calls[-1])
                 logger.info(
                     "LLM 결과 검증 실패(%d/%d): %s",
@@ -207,7 +213,7 @@ class LlmClient:
                 )
             except ProviderTransientError as e:
                 record = self._record(
-                    request, called_at, started, attempt, "TRANSIENT_ERROR", error=_short(e)
+                    request, called_at, started, attempt, OUTCOME_TRANSIENT_ERROR, error=_short(e)
                 )
                 calls.append(record)
                 _log(record)
@@ -220,7 +226,7 @@ class LlmClient:
                 continue
             except ProviderError as e:
                 record = self._record(
-                    request, called_at, started, attempt, "ERROR", error=_short(e)
+                    request, called_at, started, attempt, OUTCOME_ERROR, error=_short(e)
                 )
                 calls.append(record)
                 _log(record)
@@ -230,7 +236,7 @@ class LlmClient:
                 called_at,
                 started,
                 attempt,
-                "OK",
+                OUTCOME_OK,
                 model=response.model,
                 input_tokens=response.input_tokens,
                 output_tokens=response.output_tokens,

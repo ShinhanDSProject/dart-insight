@@ -29,6 +29,7 @@ from app.compare.text_diff import (
     Change,
     title_key,
 )
+from app.documents.parser import PARAGRAPH
 
 # 결과가 달라지게 바꾸면 이 버전과 backend Analysis.CURRENT_VERSION을 함께 올린다
 PRIORITY_VERSION = "priority-3"
@@ -132,7 +133,7 @@ def prioritize(change: Change, previous_text: str | None, current_text: str | No
         score += MOVED_SCORE
         reasons.append(f"위치 이동(내용은 그대로) {MOVED_SCORE}")
 
-    if change.block_type == "PARAGRAPH":
+    if change.block_type == PARAGRAPH:
         score += 10
         reasons.append("문단 +10")
 

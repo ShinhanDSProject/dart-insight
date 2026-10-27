@@ -7,7 +7,7 @@ from fastapi import APIRouter
 from app.api import paths
 
 router = APIRouter(prefix=paths.INTERNAL_PREFIX, tags=["internal"])
-logger = logging.getLogger("app.internal")
+logger = logging.getLogger("app.api")
 
 
 @router.get(paths.INTERNAL_HEALTH)
