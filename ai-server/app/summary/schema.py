@@ -8,6 +8,7 @@ from pydantic.alias_generators import to_camel
 from app.compliance import RULESET_VERSION
 from app.summary.causal import GRADE_RULES_VERSION
 from app.summary.model import FinancialItem, ItemResult, Source, SummaryInput, TextItem
+from app.summary.search import Index
 from app.summary.service import SummaryOutput
 
 
@@ -36,7 +37,6 @@ class FinancialItemModel(_Model):
     account_name: str
     direction: str | None = None
     account_aliases: list[str] = []
-    candidates: list[SourceModel] = []
 
 
 class SummaryRequest(_Model):
@@ -45,11 +45,14 @@ class SummaryRequest(_Model):
     current_report: str
     text_items: list[TextItemModel] = []
     financial_items: list[FinancialItemModel] = []
+    # 현재 보고서의 문단 블록 전부. 재무 설명 후보는 여기서 찾는다(ADR-0032)
+    document_blocks: list[SourceModel] = []
 
     def to_input(self) -> SummaryInput:
         refs = [i.ref for i in self.text_items] + [i.ref for i in self.financial_items]
         if len(set(refs)) != len(refs):
             raise ValueError("ref가 겹칩니다.")
+        index = Index([b.to_source() for b in self.document_blocks])
         return SummaryInput(
             self.company_name,
             self.previous_report,
@@ -63,7 +66,7 @@ class SummaryRequest(_Model):
                     i.ref,
                     i.account_name,
                     i.direction,
-                    [s.to_source() for s in i.candidates],
+                    index.candidates(i.account_aliases),
                     i.account_aliases,
                 )
                 for i in self.financial_items
