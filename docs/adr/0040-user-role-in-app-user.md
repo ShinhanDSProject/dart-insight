@@ -1,6 +1,6 @@
 # ADR-0040: 관리자 역할은 app_user.role에 두고 관리자 API마다 DB로 확인하며, 첫 관리자는 환경변수의 이메일 목록으로 로그인할 때 정한다
 
-- 상태: 제안
+- 상태: 채택
 - 결정한 날: 2026-10-27
 - 관련: #457(6.6, FS-58 기업별 커뮤니티), 노션 결정 로그 '커뮤니티(기업별 게시판) 범위와 운영 원칙', [ADR-0019](0019-user-registration.md), [ADR-0020](0020-jwt-access-and-rotating-refresh-token.md), [ADR-0022](0022-social-login-provider-identity.md)
 
