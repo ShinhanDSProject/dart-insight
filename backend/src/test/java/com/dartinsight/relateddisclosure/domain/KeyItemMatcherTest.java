@@ -96,6 +96,22 @@ class KeyItemMatcherTest {
     }
 
     @Test
+    @DisplayName("옛 사명에 '(주)'가 있어도 대조하고, '구' 뒤에 콜론·공백이 없는 괄호는 옛 사명으로 보지 않는다")
+    void formerNameNeedsSeparatorAndSurvivesCompanyMark() {
+        DisclosureKeyItems nested = keyItems(KeyItemKind.STOCK_ACQUISITION,
+                Map.of("iscmp_cmpnm", "새회사(구: (주)옛회사)"));
+        DisclosureKeyItems spaced = keyItems(KeyItemKind.STOCK_ACQUISITION,
+                Map.of("iscmp_cmpnm", "아틀라스링크(구 알로이스)"));
+        DisclosureKeyItems branch = keyItems(KeyItemKind.STOCK_ACQUISITION,
+                Map.of("iscmp_cmpnm", "알로(구로지점)"));
+
+        assertThat(match(nested, "새회사 지분")).containsExactly(KeyItemMatcher.TARGET_COMPANY);
+        assertThat(match(nested, "옛회사 지분")).containsExactly(KeyItemMatcher.TARGET_COMPANY);
+        assertThat(match(spaced, "알로이스 지분")).containsExactly(KeyItemMatcher.TARGET_COMPANY);
+        assertThat(match(branch, "로지점 개설")).isEmpty();
+    }
+
+    @Test
     @DisplayName("자료 없음이거나 글이 없거나 대조하지 않는 종류면 일치가 없다(수량을 0으로 만들지 않음)")
     void noDataOrUnsupportedKindHasNoMatch() {
         DisclosureKeyItems noData = new DisclosureKeyItems("20260101000001", KeyItemKind.CAPITAL_INCREASE,
