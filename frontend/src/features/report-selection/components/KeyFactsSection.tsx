@@ -1,8 +1,8 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { match, P } from 'ts-pattern'
 import type { Executive, KeyFactChange, KeyFacts, KeyFactReport } from '@/shared/api/keyFacts'
 import { formatDate } from '@/shared/lib/reportLabels'
-import { Badge, DataTable, Panel, PanelTitle } from '@/shared/ui'
+import { Badge, Button, DataTable, Panel, PanelTitle, SegmentedControl } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { useKeyFacts } from '../hooks/useKeyFacts'
@@ -47,14 +47,36 @@ export function KeyFactsView({ facts }: { facts: KeyFacts }) {
     .with(P.nonNullable, (current) => (
       <>
         <ComparedReports current={current} previous={facts.previous} reason={facts.previousReason} />
-        <div className="key-facts__groups">
-          <ShareholderGroup facts={facts} />
-          <ExecutiveGroup facts={facts} />
-          <DividendGroup facts={facts} />
-        </div>
+        <GroupSwitch facts={facts} />
       </>
     ))
     .exhaustive()
+}
+
+const GROUP_ORDER: readonly KeyFactGroupKind[] = ['majorShareholders', 'executives', 'dividends']
+/** 바뀐 항목을 처음에 이만큼 보이고 나머지는 '더 보기'로 펼친다(#385) */
+const CHANGES_INITIAL = 5
+
+/**
+ * 세 묶음을 한꺼번에 쌓지 않고 하나씩 고르게 한다(#385). 버튼에 묶음마다 바뀐 항목 수를 함께 적어,
+ * 고르지 않은 묶음에 변화가 있는지도 바로 보인다.
+ */
+function GroupSwitch({ facts }: { facts: KeyFacts }) {
+  const [kind, setKind] = useState<KeyFactGroupKind>('majorShareholders')
+  const options = GROUP_ORDER.map((value) => {
+    const count = facts[value].changes.length
+    return { value, label: count > 0 ? `${groupTitles[value]} · 바뀜 ${count}` : groupTitles[value] }
+  })
+  return (
+    <div className="key-facts__groups">
+      <SegmentedControl aria-label="보여 줄 묶음" options={options} value={kind} onChange={setKind} />
+      {match(kind)
+        .with('majorShareholders', () => <ShareholderGroup facts={facts} />)
+        .with('executives', () => <ExecutiveGroup facts={facts} />)
+        .with('dividends', () => <DividendGroup facts={facts} />)
+        .exhaustive()}
+    </div>
+  )
 }
 
 function ComparedReports({
@@ -230,22 +252,44 @@ function ChangeSummary<T>({
       changes.length === 0 ? (
         <p className="key-facts__note">1년 전 보고서와 비교해 바뀐 항목이 없어요.</p>
       ) : (
-        <ul className="key-facts__changes" aria-label={`${groupTitles[kind]} 바뀐 항목`}>
-          {changes.map((change) => {
-            const mark = changeMark(change.type)
-            return (
-              <li key={`${change.type}-${change.name}-${change.stockKind ?? ''}-${change.field}`}>
-                <Badge className="key-facts__mark">
-                  <span aria-hidden="true">{mark.symbol}</span> {mark.label}
-                </Badge>{' '}
-                {changeLine(kind, change)}
-              </li>
-            )
-          })}
-        </ul>
+        <ChangeList kind={kind} changes={changes} />
       ),
     )
     .exhaustive()
+}
+
+function ChangeList({ kind, changes }: { kind: KeyFactGroupKind; changes: KeyFactChange[] }) {
+  const [expanded, setExpanded] = useState(false)
+  const listId = `key-facts-${kind}-changes`
+  const shown = expanded ? changes : changes.slice(0, CHANGES_INITIAL)
+  return (
+    <>
+      <ul className="key-facts__changes" id={listId} aria-label={`${groupTitles[kind]} 바뀐 항목`}>
+        {shown.map((change) => {
+          const mark = changeMark(change.type)
+          return (
+            <li key={`${change.type}-${change.name}-${change.stockKind ?? ''}-${change.field}`}>
+              <Badge className="key-facts__mark">
+                <span aria-hidden="true">{mark.symbol}</span> {mark.label}
+              </Badge>{' '}
+              {changeLine(kind, change)}
+            </li>
+          )
+        })}
+      </ul>
+      {changes.length > CHANGES_INITIAL && (
+        <Button
+          variant="link"
+          className="key-facts__more"
+          aria-expanded={expanded}
+          aria-controls={listId}
+          onClick={() => setExpanded((value) => !value)}
+        >
+          {expanded ? '바뀐 항목 접기' : `바뀐 항목 ${changes.length - CHANGES_INITIAL}개 더 보기`}
+        </Button>
+      )}
+    </>
+  )
 }
 
 /** 행이 많으면 '전체 보기'로 펼친다. always면 행 수와 상관없이 접어 둔다 */

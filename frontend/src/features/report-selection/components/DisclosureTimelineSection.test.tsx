@@ -267,16 +267,16 @@ describe('최근 공시 타임라인', () => {
   })
 
   it('많으면 일부만 보여 주고 더 보기로 늘린다', async () => {
-    const many = Array.from({ length: 35 }, (_, n) =>
+    const many = Array.from({ length: 15 }, (_, n) =>
       item(`202610010000${String(n).padStart(2, '0')}`, '최대주주등소유주식변동신고서', '2026-10-01', 'OWNERSHIP'),
     )
     listDisclosures.mockResolvedValue(list(many))
     renderSection()
 
     await screen.findAllByRole('link', { name: /DART 원문/ })
-    expect(screen.getAllByRole('link', { name: /DART 원문/ })).toHaveLength(30)
+    expect(screen.getAllByRole('link', { name: /DART 원문/ })).toHaveLength(10)
     fireEvent.click(screen.getByRole('button', { name: '더 보기 (5건 / 남은 5건)' }))
-    expect(screen.getAllByRole('link', { name: /DART 원문/ })).toHaveLength(35)
+    expect(screen.getAllByRole('link', { name: /DART 원문/ })).toHaveLength(15)
     expect(screen.queryByRole('button', { name: /더 보기/ })).toBeNull()
   })
 

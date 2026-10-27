@@ -73,9 +73,41 @@ describe('기업 개요 탭의 영역 순서', () => {
 
     await screen.findByRole('region', { name: '기업 개황' })
     const names = screen.getAllByRole('region').map(regionName)
-    expect(names).toEqual(['AI 기업 브리핑', 'AI에게 묻기', '기업 개황', '주요 재무 흐름', '최대주주·임원·배당 변화', '최근 공시'])
+    expect(names).toEqual(['AI 기업 브리핑', '기업 개황', 'AI에게 묻기', '주요 재무 흐름', '최대주주·임원·배당 변화', '최근 공시'])
     const stubs = Array.from(container.querySelectorAll('[data-section]'))
     expect(stubs.every((el) => el.getAttribute('data-corp-code') === '00126380')).toBe(true)
+  })
+})
+
+describe('기업 개요 바로 가기(#385)', () => {
+  it('영역마다 바로 가기 링크를 같은 순서로 두고 처음엔 첫 영역을 지금 위치로 표시한다', async () => {
+    getCompanyOverview.mockResolvedValue(samsungOverview)
+    renderTab()
+    await screen.findByRole('region', { name: '기업 개황' })
+
+    const nav = screen.getByRole('navigation', { name: '기업 개요 바로 가기' })
+    const links = within(nav).getAllByRole('link')
+    expect(links.map((link) => link.textContent)).toEqual(['AI 브리핑', '기업 개황', 'AI에게 묻기', '재무 흐름', '주주·임원·배당', '최근 공시'])
+    expect(links[0].getAttribute('aria-current')).toBe('location')
+    for (const link of links) {
+      const id = link.getAttribute('href')!.slice(1)
+      expect(document.getElementById(id)).not.toBeNull()
+    }
+  })
+
+  it('바로 가기를 누르면 주소를 바꾸지 않고 그 영역으로 옮겨 초점을 둔다', async () => {
+    getCompanyOverview.mockResolvedValue(samsungOverview)
+    renderTab()
+    await screen.findByRole('region', { name: '기업 개황' })
+    const target = document.getElementById('overview-disclosures')!
+    const scrollIntoView = vi.fn()
+    target.scrollIntoView = scrollIntoView
+
+    const link = screen.getByRole('link', { name: '최근 공시' })
+    const event = fireEvent.click(link)
+    expect(event).toBe(false)
+    expect(scrollIntoView).toHaveBeenCalled()
+    expect(document.activeElement).toBe(target)
   })
 })
 
