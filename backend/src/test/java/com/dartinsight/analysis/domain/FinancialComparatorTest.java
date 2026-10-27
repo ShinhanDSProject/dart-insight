@@ -1,12 +1,10 @@
-package com.dartinsight.analysis.service;
+package com.dartinsight.analysis.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.dartinsight.analysis.domain.CalcStatus;
-import com.dartinsight.analysis.domain.FinancialChangeRow;
-import com.dartinsight.analysis.service.FinancialComparator.Side;
+import com.dartinsight.analysis.domain.FinancialComparator.Side;
 import com.dartinsight.comparison.domain.AmountBasis;
-import com.dartinsight.comparison.service.StatementRules;
+import com.dartinsight.comparison.domain.StatementRules;
 import com.dartinsight.financial.domain.FinancialAccount;
 import com.dartinsight.financial.domain.FsDiv;
 import com.dartinsight.report.domain.ReportType;

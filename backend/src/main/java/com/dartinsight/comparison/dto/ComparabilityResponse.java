@@ -3,7 +3,7 @@ package com.dartinsight.comparison.dto;
 import com.dartinsight.comparison.domain.AmountBasis;
 import com.dartinsight.comparison.service.ComparabilityService.ComparabilityResult;
 import com.dartinsight.comparison.service.ComparabilityService;
-import com.dartinsight.comparison.service.StatementRules.StatementRule;
+import com.dartinsight.comparison.domain.StatementRules.StatementRule;
 import com.dartinsight.financial.domain.FsDiv;
 import com.dartinsight.report.domain.FinancialDataStatus;
 import com.dartinsight.report.domain.Report;

@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.dartinsight.analysis.domain.Analysis;
+import com.dartinsight.analysis.domain.EvidenceVerifier;
 import com.dartinsight.analysis.domain.TextChangeRow.Priority;
 import com.dartinsight.analysis.domain.TextChangeRow.Side;
 import com.dartinsight.analysis.domain.TextChangeRow;
@@ -14,7 +15,6 @@ import com.dartinsight.analysis.domain.TextComparison;
 import com.dartinsight.analysis.domain.TextStatus;
 import com.dartinsight.analysis.repository.AnalysisRepository;
 import com.dartinsight.analysis.service.AnalysisResultService;
-import com.dartinsight.analysis.service.AnalysisRunner;
 import com.dartinsight.company.service.CompanyImportService;
 import com.dartinsight.comparison.domain.ComparisonBasis;
 import com.dartinsight.dart.domain.CorpCodeEntry;
@@ -129,9 +129,9 @@ class TextChangePriorityTest {
                 "AMBIGUOUS", "t", "p", null, new Side(CUR, 2, null, null), null, "사유",
                 new Priority("LOW", 5, List.of(), "priority-1"));
 
-        assertThat(AnalysisRunner.verifyText(analysis, List.of(unrankedAddition)))
+        assertThat(EvidenceVerifier.verifyText(analysis, List.of(unrankedAddition)))
                 .contains("순위");
-        assertThat(AnalysisRunner.verifyText(analysis, List.of(rankedReview)))
+        assertThat(EvidenceVerifier.verifyText(analysis, List.of(rankedReview)))
                 .contains("순위");
     }
 }
