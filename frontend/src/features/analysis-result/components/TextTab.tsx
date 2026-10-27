@@ -24,6 +24,7 @@ import {
   changeTypeLabel,
   countFor,
   DELETED_NOTE,
+  firstNotedIds,
   missingSideLabel,
   MOVED_NOTE,
   movedPaths,
@@ -133,29 +134,33 @@ export function TextTab({
         />
       </div>
     )
-  const changeList = (items: TextChangeItem[]) => (
-    <ol className="change-list">
-      {items.map((item) => (
-        <li key={item.changeId}>
-          <ChangeCard
-            item={item}
-            analysis={analysis}
-            selected={item.changeId === selectedChangeId}
-            pinned={pins.isPinned(item.changeId)}
-            explanations={explanations}
-            onOpenSource={onOpenSource}
-            onTogglePin={() => pins.toggle(item.changeId)}
-            onToggle={() => toggleEvidence(item.changeId)}
-            onClose={() => {
-              onChange({ change: null })
-              // 닫으면 그 항목의 '근거 상세' 버튼으로 초점을 돌려준다
-              requestAnimationFrame(() => document.getElementById(evidenceButtonId(item.changeId))?.focus())
-            }}
-          />
-        </li>
-      ))}
-    </ol>
-  )
+  const changeList = (items: TextChangeItem[]) => {
+    const noted = firstNotedIds(items)
+    return (
+      <ol className="change-list">
+        {items.map((item) => (
+          <li key={item.changeId}>
+            <ChangeCard
+              item={item}
+              analysis={analysis}
+              showTypeNote={noted.has(item.changeId)}
+              selected={item.changeId === selectedChangeId}
+              pinned={pins.isPinned(item.changeId)}
+              explanations={explanations}
+              onOpenSource={onOpenSource}
+              onTogglePin={() => pins.toggle(item.changeId)}
+              onToggle={() => toggleEvidence(item.changeId)}
+              onClose={() => {
+                onChange({ change: null })
+                // 닫으면 그 항목의 '근거 상세' 버튼으로 초점을 돌려준다
+                requestAnimationFrame(() => document.getElementById(evidenceButtonId(item.changeId))?.focus())
+              }}
+            />
+          </li>
+        ))}
+      </ol>
+    )
+  }
   const notice = textStatusNotice(analysis.textStatus, analysis.textMessage)
   const failed = analysis.textStatus === 'FAILED' || analysis.textStatus === null
 
@@ -359,6 +364,8 @@ function evidenceButtonId(changeId: number): string {
 interface ChangeCardProps {
   item: TextChangeItem
   analysis: Analysis
+  /** 종류 안내 문장(삭제·위치 이동)을 붙일지. 목록에서 그 종류의 첫 카드에만 붙인다(#393) */
+  showTypeNote: boolean
   selected: boolean
   /** 고정했는지(3.3) */
   pinned: boolean
@@ -369,7 +376,7 @@ interface ChangeCardProps {
   onOpenSource: (target: SourceTarget) => void
 }
 
-function ChangeCard({ item, analysis, selected, pinned, explanations, onTogglePin, onToggle, onClose, onOpenSource }: ChangeCardProps) {
+function ChangeCard({ item, analysis, showTypeNote, selected, pinned, explanations, onTogglePin, onToggle, onClose, onOpenSource }: ChangeCardProps) {
   const section = displaySectionPath(item.sectionPath)
   const review = item.changeType === 'REVIEW_NEEDED'
   // '숫자만 바뀜' 카드에만 바뀐 숫자 쌍을 보인다(짝이 확실하지 않으면 null이라 숨김)
@@ -443,8 +450,8 @@ function ChangeCard({ item, analysis, selected, pinned, explanations, onTogglePi
         </div>
       )}
       {numbers !== null && <NumberChangesLine changes={numbers} />}
-      {item.changeType === 'DELETED' && <p className="panel__note">{DELETED_NOTE}</p>}
-      <MovedPaths item={item} />
+      {showTypeNote && item.changeType === 'DELETED' && <p className="panel__note">{DELETED_NOTE}</p>}
+      <MovedPaths item={item} withNote={showTypeNote} />
       <div className="change-card__actions">
         {!review && (clipped || textOpen) && (
           <Button
@@ -497,15 +504,15 @@ function ChangeCard({ item, analysis, selected, pinned, explanations, onTogglePi
 }
 
 /** 위치 이동이면 옮기기 전·후 섹션 경로를 함께 보여 준다(같은 섹션이면 순서만 바뀜) */
-function MovedPaths({ item }: { item: TextChangeItem }) {
+function MovedPaths({ item, withNote }: { item: TextChangeItem; withNote: boolean }) {
   const paths = movedPaths(item)
   if (paths === null) return null
   return (
     <p className="panel__note change-card__moved">
       {paths.sameSection
         ? `같은 섹션(${displaySectionPath(paths.to)}) 안에서 순서만 바뀌었어요.`
-        : `옮기기 전: ${displaySectionPath(paths.from)} → 옮긴 뒤: ${displaySectionPath(paths.to)}`}{' '}
-      {MOVED_NOTE}
+        : `옮기기 전: ${displaySectionPath(paths.from)} → 옮긴 뒤: ${displaySectionPath(paths.to)}`}
+      {withNote && ` ${MOVED_NOTE}`}
     </p>
   )
 }

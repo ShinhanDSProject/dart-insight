@@ -135,3 +135,19 @@ export function textStatusNotice(status: TextStatus | null, message: string | nu
   if (status === 'PARTIAL') return `문장 비교 결과가 완전하지 않을 수 있어요. ${message ?? ''}`.trim()
   return null
 }
+
+/** 종류 안내 문장(DELETED_NOTE·MOVED_NOTE)을 붙이는 변경 종류 */
+const NOTED_TYPES = ['DELETED', 'MOVED'] as const
+
+/**
+ * 같은 종류 안내 문장은 목록에서 그 종류의 첫 카드에만 붙인다(#393). 카드마다 같은 문장이 반복되면 목록이 길어지기만 한다.
+ * 안내를 붙일 카드의 changeId를 돌려준다.
+ */
+export function firstNotedIds(items: readonly Pick<TextChangeItem, 'changeId' | 'changeType'>[]): Set<number> {
+  const ids = new Set<number>()
+  for (const type of NOTED_TYPES) {
+    const first = items.find((item) => item.changeType === type)
+    if (first) ids.add(first.changeId)
+  }
+  return ids
+}
