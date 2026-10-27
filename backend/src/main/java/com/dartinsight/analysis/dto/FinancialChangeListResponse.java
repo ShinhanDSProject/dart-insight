@@ -3,7 +3,7 @@ package com.dartinsight.analysis.dto;
 import com.dartinsight.analysis.domain.CalcStatus;
 import com.dartinsight.analysis.domain.FinancialChange;
 import com.dartinsight.comparison.domain.AmountBasis;
-import com.dartinsight.comparison.service.StatementRules.StatementRule;
+import com.dartinsight.comparison.domain.StatementRules.StatementRule;
 import com.dartinsight.financial.domain.FsDiv;
 import java.math.BigDecimal;
 import java.util.List;

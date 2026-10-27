@@ -1,17 +1,15 @@
-package com.dartinsight.analysis.service;
+package com.dartinsight.analysis.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.dartinsight.analysis.domain.Analysis;
 import com.dartinsight.analysis.domain.TextChangeRow.Side;
-import com.dartinsight.analysis.domain.TextChangeRow;
 import com.dartinsight.comparison.domain.ComparisonBasis;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** 문장 비교 결과의 근거 확인(AnalysisRunner.verifyText) */
+/** 문장 비교 결과의 근거 확인(EvidenceVerifier.verifyText) */
 class TextVerifyTest {
 
     private static final String CUR = "20260814000001";
@@ -25,7 +23,7 @@ class TextVerifyTest {
 
     @Test
     void wellFormedChangesPass() {
-        assertThat(AnalysisRunner.verifyText(ANALYSIS, List.of(
+        assertThat(EvidenceVerifier.verifyText(ANALYSIS, List.of(
                 row(TextChangeRow.ADDED, null, new Side(CUR, 1, 2, "새 글")),
                 row(TextChangeRow.DELETED, new Side(PREV, 1, 2, "옛 글"), null),
                 row(TextChangeRow.MODIFIED, new Side(PREV, 1, 3, "a"), new Side(CUR, 1, 3, "b")),
@@ -35,18 +33,18 @@ class TextVerifyTest {
 
     @Test
     void blockTypeAndSectionNamesMustBeKnown() {
-        assertThat(AnalysisRunner.verifyText(ANALYSIS, List.of(new TextChangeRow(TextChangeRow.ADDED, "IMAGE", false,
+        assertThat(EvidenceVerifier.verifyText(ANALYSIS, List.of(new TextChangeRow(TextChangeRow.ADDED, "IMAGE", false,
                 "MATCHED", "t", "p", null, new Side(CUR, 1, 2, "글"), null, null)))).contains("종류나 항목 이름");
-        assertThat(AnalysisRunner.verifyText(ANALYSIS, List.of(new TextChangeRow(TextChangeRow.ADDED, "PARAGRAPH",
+        assertThat(EvidenceVerifier.verifyText(ANALYSIS, List.of(new TextChangeRow(TextChangeRow.ADDED, "PARAGRAPH",
                 false, "MATCHED", "t", null, null, new Side(CUR, 1, 2, "글"), null, null)))).contains("종류나 항목 이름");
     }
 
     @Test
     void typeMustMatchTheSidesItHas() {
-        assertThat(AnalysisRunner.verifyText(ANALYSIS, List.of(
+        assertThat(EvidenceVerifier.verifyText(ANALYSIS, List.of(
                 row(TextChangeRow.ADDED, new Side(PREV, 1, 2, "a"), new Side(CUR, 1, 2, "b")))))
                 .contains("변경 유형");
-        assertThat(AnalysisRunner.verifyText(ANALYSIS, List.of(
+        assertThat(EvidenceVerifier.verifyText(ANALYSIS, List.of(
                 new TextChangeRow(TextChangeRow.REVIEW_NEEDED, TextChangeRow.SECTION, false, "AMBIGUOUS", "t", "p",
                         null, new Side(CUR, 4, null, null), null, null)))).contains("변경 유형");
     }
@@ -56,26 +54,26 @@ class TextVerifyTest {
     void numericUpdatesAndMovesNeedBothSides() {
         Side previous = new Side(PREV, 1, 3, "a");
         Side current = new Side(CUR, 2, 4, "a");
-        assertThat(AnalysisRunner.verifyText(ANALYSIS, List.of(
+        assertThat(EvidenceVerifier.verifyText(ANALYSIS, List.of(
                 row(TextChangeRow.NUMERIC_UPDATE, previous, current),
                 new TextChangeRow(TextChangeRow.MOVED, "PARAGRAPH", false, "MATCHED", "t", "p", previous, current,
                         null, null, null, "옛 경로")))).isNull();
-        assertThat(AnalysisRunner.verifyText(ANALYSIS, List.of(row(TextChangeRow.NUMERIC_UPDATE, null, current))))
+        assertThat(EvidenceVerifier.verifyText(ANALYSIS, List.of(row(TextChangeRow.NUMERIC_UPDATE, null, current))))
                 .contains("변경 유형");
-        assertThat(AnalysisRunner.verifyText(ANALYSIS, List.of(row(TextChangeRow.MOVED, previous, current))))
+        assertThat(EvidenceVerifier.verifyText(ANALYSIS, List.of(row(TextChangeRow.MOVED, previous, current))))
                 .contains("변경 유형");
     }
 
     @Test
     void sidesMustBeTheReportsOfThisAnalysis() {
-        assertThat(AnalysisRunner.verifyText(ANALYSIS, List.of(
+        assertThat(EvidenceVerifier.verifyText(ANALYSIS, List.of(
                 row(TextChangeRow.ADDED, null, new Side(PREV, 1, 2, "다른 보고서")))))
                 .contains("이 분석의 보고서");
     }
 
     @Test
     void blockChangesMustPointToStoredText() {
-        assertThat(AnalysisRunner.verifyText(ANALYSIS, List.of(
+        assertThat(EvidenceVerifier.verifyText(ANALYSIS, List.of(
                 row(TextChangeRow.ADDED, null, new Side(CUR, 1, 99, null)))))
                 .contains("원문을 찾지 못했어요");
     }

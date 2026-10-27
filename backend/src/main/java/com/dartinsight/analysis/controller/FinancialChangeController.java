@@ -10,8 +10,8 @@ import com.dartinsight.analysis.dto.FinancialChangeListResponse.StatementSummary
 import com.dartinsight.analysis.service.AnalysisResultService;
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.web.ApiPaths;
-import com.dartinsight.comparison.service.StatementRules;
-import com.dartinsight.comparison.service.StatementRules.StatementRule;
+import com.dartinsight.comparison.domain.StatementRules;
+import com.dartinsight.comparison.domain.StatementRules.StatementRule;
 import com.dartinsight.financial.domain.StatementType;
 import com.dartinsight.report.domain.Report;
 import com.dartinsight.report.service.ReportService;

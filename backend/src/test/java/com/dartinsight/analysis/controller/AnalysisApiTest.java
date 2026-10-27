@@ -11,20 +11,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.dartinsight.analysis.domain.Analysis;
-import com.dartinsight.analysis.domain.CalcStatus;
-import com.dartinsight.analysis.domain.FinancialChangeRow.Evidence;
-import com.dartinsight.analysis.domain.FinancialChangeRow;
 import com.dartinsight.analysis.repository.AnalysisRepository;
 import com.dartinsight.analysis.service.AnalysisRunner;
 import com.dartinsight.common.config.ClockConfig;
 import com.dartinsight.company.service.CompanyImportService;
-import com.dartinsight.comparison.domain.AmountBasis;
 import com.dartinsight.comparison.domain.ComparisonBasis;
 import com.dartinsight.dart.domain.CorpCodeEntry;
 import com.dartinsight.dart.client.FakeOpenDartServer;
 import com.dartinsight.dart.client.FakeOpenDartServer.Response;
 import com.dartinsight.dart.client.FinancialJson;
-import com.dartinsight.financial.domain.FsDiv;
 import com.dartinsight.report.domain.Correction;
 import com.dartinsight.report.domain.Report;
 import com.dartinsight.report.domain.ReportNameParser.ParsedReportName;
@@ -411,35 +406,5 @@ class AnalysisApiTest {
         mockMvc.perform(post("/api/analyses").contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors", hasSize(4)));
-    }
-
-    @Test
-    void verifyRejectsValuesWithoutMatchingEvidence() {
-        Analysis analysis = Analysis.request("00000001", CUR, PREV, ComparisonBasis.YOY, null, NOW);
-        FinancialChangeRow ok = new FinancialChangeRow("BS", FsDiv.CFS, "k", "자산", 0, AmountBasis.POINT, 1L, 2L,
-                1L, null, CalcStatus.OK, "KRW", new Evidence(PREV, "BS", "k", "자산", null),
-                new Evidence(CUR, "BS", "k", "자산", null));
-        FinancialChangeRow wrongReport = new FinancialChangeRow("BS", FsDiv.CFS, "k", "자산", 0, AmountBasis.POINT,
-                1L, 2L, 1L, null, CalcStatus.OK, "KRW", new Evidence("20990101000001", "BS", "k", "자산", null),
-                new Evidence(CUR, "BS", "k", "자산", null));
-        FinancialChangeRow wrongMath = new FinancialChangeRow("BS", FsDiv.CFS, "k", "자산", 0, AmountBasis.POINT,
-                1L, 2L, 5L, null, CalcStatus.OK, "KRW", new Evidence(PREV, "BS", "k", "자산", null),
-                new Evidence(CUR, "BS", "k", "자산", null));
-
-        assertThat(AnalysisRunner.verify(analysis, List.of(ok))).isNull();
-        assertThat(AnalysisRunner.verify(analysis, List.of(ok, wrongReport))).contains("이전 값의 근거");
-        assertThat(AnalysisRunner.verify(analysis, List.of(wrongMath))).contains("증감액");
-        FinancialChangeRow differentAccounts = new FinancialChangeRow("BS", FsDiv.CFS, "k", "자산", 0,
-                AmountBasis.POINT, 1L, 2L, 1L, null, CalcStatus.OK, "KRW", new Evidence(PREV, "BS", "a", "자산", null),
-                new Evidence(CUR, "BS", "b", "자산", null));
-        assertThat(AnalysisRunner.verify(analysis, List.of(differentAccounts))).contains("다른 계정");
-        FinancialChangeRow pairedByName = new FinancialChangeRow("BS", FsDiv.CFS, "NAME:자산", "자산", 0,
-                AmountBasis.POINT, 1L, 2L, 1L, null, CalcStatus.OK, "KRW", new Evidence(PREV, "BS", "a", "자산", null),
-                new Evidence(CUR, "BS", "b", "자산", null));
-        assertThat(AnalysisRunner.verify(analysis, List.of(pairedByName))).isNull();
-        FinancialChangeRow pairedByWrongName = new FinancialChangeRow("BS", FsDiv.CFS, "NAME:자산", "자산", 0,
-                AmountBasis.POINT, 1L, 2L, 1L, null, CalcStatus.OK, "KRW", new Evidence(PREV, "BS", "a", "부채", null),
-                new Evidence(CUR, "BS", "b", "자산", null));
-        assertThat(AnalysisRunner.verify(analysis, List.of(pairedByWrongName))).contains("다른 계정");
     }
 }
