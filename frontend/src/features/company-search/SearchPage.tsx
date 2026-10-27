@@ -169,7 +169,7 @@ function SearchResult({ state, onRetry, listRef, onBackToInput }: SearchResultPr
       </EmptyState>
     ))
     .with({ status: 'success' }, ({ data }) => (
-      <CompanyList ref={listRef} items={data.items} query={data.query} onBackToInput={onBackToInput} />
+      <CompanyList key={data.query} ref={listRef} items={data.items} query={data.query} onBackToInput={onBackToInput} />
     ))
     .exhaustive()
 }
