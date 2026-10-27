@@ -49,6 +49,7 @@
 | `basis` | `YOY` 전년 동기, `PREV` 직전 기간, `CUSTOM` 직접 선택 |
 | `disclosureGroup` | 공시 묶음(공시 제목 낱말 규칙, FS-48). `PERIODIC` 정기보고서, `FUNDING` 자금 조달, `OWNERSHIP` 지분 변동, `GOVERNANCE` 지배구조, `BUSINESS` 실적·영업, `OTHER` 기타. 규칙은 `backend/.../disclosure/domain/DisclosureGroupRules.java` |
 | `keyItemsKind` | 핵심 수치를 보여 줄 수 있는 주요사항보고서 종류(FS-51, OpenDART 주요사항보고서 주요정보 DS005). `CAPITAL_INCREASE` 유상증자 결정(`piicDecsn`), `CONVERTIBLE_BOND` 전환사채권 발행결정(`cvbdIsDecsn`), `BOND_WITH_WARRANT` 신주인수권부사채권 발행결정(`bdwtIsDecsn`), `EXCHANGEABLE_BOND` 교환사채권 발행결정(`exbdIsDecsn`), `TREASURY_STOCK_ACQUISITION` 자기주식 취득 결정(`tsstkAqDecsn`), `TREASURY_STOCK_DISPOSAL` 자기주식 처분 결정(`tsstkDpDecsn`), `LITIGATION` 소송 등의 제기(`lwstLg`, 3.6 #341), `STOCK_ACQUISITION` 타법인 주식 및 출자증권 양수결정(`otcprStkInvscrInhDecsn`, 3.6 #341). 규칙은 `backend/.../disclosure/domain/KeyItemRules.java` |
+| `disclosureSignalKind` | 확인해 볼 공시 종류(FS-55). `LARGEST_SHAREHOLDER_CHANGE` 최대주주 변경, `CAPITAL_INCREASE` 유상증자 결정, `CONVERTIBLE_BOND` 전환사채 발행 결정, `BOND_WITH_WARRANT` 신주인수권부사채 발행 결정, `LITIGATION` 소송 등 제기, `REHABILITATION_LISTING` 회생·상장 관련 공시, `AUDITOR_CHANGE` 감사인 변경, `NON_CLEAN_AUDIT_OPINION` 감사의견(적정이 아님). 규칙은 `backend/.../disclosure/domain/DisclosureSignalRules.java` |
 | `status` (분석) | `PENDING` 대기, `RUNNING` 진행, `COMPLETED` 완료, `FAILED` 실패 |
 | `step` (분석) | `RECEIVED` 요청 접수, `COMPARING` 보고서 비교, `VERIFYING` 근거 확인, `DONE` 완료 |
 | `sjDiv` | `BS` 재무상태표, `IS` 손익계산서, `CIS` 포괄손익계산서, `CF` 현금흐름표, `SCE` 자본변동표 |
@@ -92,6 +93,7 @@
 | GET | `/api/companies/{corpCode}/key-facts` | 최신 정기보고서와 1년 전 같은 종류 보고서의 최대주주·임원·배당과 바뀐 항목 | #331 (1.2, FS-47) | 기업 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/disclosures` | 최근 공시 타임라인(묶음 거르기) | #332 (1.2) | 기업 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/disclosures/{rceptNo}/key-items` | 주요사항보고서 한 건의 핵심 수치(원문 값 그대로) | #363 (1.2, FS-51) | 기업 개요 탭 최근 공시 | 초안 |
+| GET | `/api/companies/{corpCode}/disclosure-signals` | 최근 1년 확인해 볼 공시(종류별 건수·사실 문장·원문 링크) | #411 (1.2, FS-55) | 기업 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/briefing` | AI 기업 브리핑(저장된 것 또는 새로 만듦) | #333 (1.2) | 기업 화면 개요 탭 | 초안 |
 | POST | `/api/companies/{corpCode}/questions` | 최신 사업보고서에 근거해 묻기(AI) | #365 (1.2) | 기업 화면 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/questions` | 최신 사업보고서에 한 질문·답 기록 | #365 (1.2) | 기업 화면 개요 탭 | 초안 |
@@ -997,6 +999,78 @@
 | 502 | `DART_REQUEST_FAILED` | OpenDART 호출 실패 |
 | 503 | `DART_RATE_LIMITED` | OpenDART 호출 한도 초과(020) |
 | 503 | `DART_KEY_MISSING` | 서버에 OpenDART 키가 설정되지 않음 |
+
+### GET /api/companies/{corpCode}/disclosure-signals — 확인해 볼 공시
+
+- 이슈: #411 (1.2) · 기획서: FS-55 · 화면: 기업 화면 '기업 개요' 탭의 '확인해 볼 공시' 영역
+- 최근 1년(오늘 − 365일 ~ 오늘, 한국 시간, 접수일 기준)에 이 기업이 낸 공시 가운데 아래 종류에 해당하는 공시를 모읍니다. 점수·등급·평가는 만들지 않고, 종류마다 공시 건수와 코드가 만든 사실 문장만 돌려줍니다(LLM을 쓰지 않음).
+- 자료는 두 곳에서 옵니다.
+  - **공시 목록**: 최근 공시 타임라인(`GET /api/companies/{corpCode}/disclosures?days=365`)과 같은 저장된 목록(`company_disclosure`, 같은 캐시)입니다. 공시 제목 규칙으로 종류를 정합니다.
+  - **회계감사인의 명칭 및 감사의견**: 위 목록에 있는 사업보고서마다 OpenDART 정기보고서 주요정보 `accnutAdtorNmNdAdtOpinion.json`([DS002 2020009](https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS002&apiId=2020009))을 `corp_code`·`bsns_year`(보고서명의 사업연도)·`reprt_code=11011`(사업보고서)로 부릅니다. 응답 필드 `bsns_year`(예 `제60기\n(당기)`), `adtor`(감사인), `adt_opinion`(감사의견), `stlm_dt`(결산기준일), `rcept_no`를 씁니다.
+- **종류 정하기**(`backend/.../disclosure/domain/DisclosureSignalRules.java`). 제목은 최근 공시 타임라인과 같이 보고서명에서 앞머리 꼬리표(`[기재정정]` 등)와 뒤 설명(공백 여러 칸 뒤)을 떼고 공백을 모두 뺀 값입니다. 제목에 `자회사의주요경영사항`·`종속회사의주요경영사항`이 있으면 이 회사가 아닌 자회사의 일이라 어느 종류에도 넣지 않습니다. 제목은 2026-03-16~31·2026-07-01~09-30 OpenDART 공시검색(거래소공시·주요사항보고서) 실제 응답에 나온 것에서만 골랐습니다.
+
+  | `kind` | `label` | 자료 | 맞는 규칙 | `sentence` |
+  | --- | --- | --- | --- | --- |
+  | `LARGEST_SHAREHOLDER_CHANGE` | 최대주주 변경 | 공시 목록 | 제목이 `최대주주변경`과 같음(`최대주주변경을수반하는주식양수도계약체결` 같은 계약 공시는 넣지 않음) | 최대주주가 바뀌었다고 공시했어요. |
+  | `CAPITAL_INCREASE` | 유상증자 결정 | 공시 목록 | 제목이 `주요사항보고서(유상증자결정)`·`주요사항보고서(유무상증자결정)`·`유상증자결정`·`유무상증자결정` 중 하나와 같음 | 유상증자를 결정했다고 공시했어요. |
+  | `CONVERTIBLE_BOND` | 전환사채 발행 결정 | 공시 목록 | 제목이 `주요사항보고서(전환사채권발행결정)`과 같음 | 전환사채 발행을 결정했다고 공시했어요. |
+  | `BOND_WITH_WARRANT` | 신주인수권부사채 발행 결정 | 공시 목록 | 제목이 `주요사항보고서(신주인수권부사채권발행결정)`과 같음 | 신주인수권부사채 발행을 결정했다고 공시했어요. |
+  | `LITIGATION` | 소송 등 제기 | 공시 목록 | 제목이 `주요사항보고서(소송등의제기)`와 같거나 `소송등의제기`로 시작(`소송등의제기ㆍ신청(...)`). 판결·결정 공시는 넣지 않음 | 소송 등이 제기됐다고 공시했어요. |
+  | `REHABILITATION_LISTING` | 회생·상장 관련 공시 | 공시 목록 | 제목에 `회생절차`·`회생계획`·`상장폐지`·`관리종목`·`상장적격성실질심사` 중 하나가 있음 | 회생 절차나 상장 유지와 관련된 공시가 나왔어요. |
+  | `AUDITOR_CHANGE` | 감사인 변경 | 감사의견 API | 사업보고서 응답의 당기 행(`bsns_year`에 `(당기)`)과 전기 행(`(전기)`)의 감사인(`adtor`, 공백을 빼고 비교) 모음이 다름. 어느 쪽이든 감사인이 없으면(`-`·빈 값) 넣지 않음 | 사업보고서에 적힌 감사인이 제59기(전기) 현대회계법인에서 제60기(당기) 대주회계법인으로 바뀌었어요. |
+  | `NON_CLEAN_AUDIT_OPINION` | 감사의견(적정이 아님) | 감사의견 API | 당기 행의 감사의견(`adt_opinion`, 공백을 뺌)에 `한정`·`부적정`·`거절` 중 하나가 있음. `적정의견`이거나 `-`·빈 값, 그 밖의 값은 넣지 않음 | 사업보고서에 적힌 제60기(당기) 감사의견은 '의견거절'이에요. |
+
+  꼬리표는 가리지 않습니다(공시 목록은 최종본만 받으므로 정정된 원본은 들어 있지 않음). 같은 일을 거래소 공시와 주요사항보고서로 두 번 냈으면 두 건으로 셉니다(건수는 공시 건수). 감사의견 값은 2026-10-27 실제 응답에서 `적정의견`·`의견거절`을 확인했고(삼성전자 `20260310002820`, 한창 `20260326001334`, 레드우즈 `20260407001696`), `한정`·`부적정`은 감사의견 종류 이름으로 넣었습니다.
+- **사업보고서 고르기**: 공시 목록에서 보고서명이 12월 결산 사업보고서(`사업보고서 (YYYY.12)`, `ReportNameParser`)인 공시마다 한 번 부릅니다. 결산월이 12월이 아닌 사업보고서가 있으면 사업연도를 정할 수 없어 감사 두 종류를 `UNAVAILABLE`로 둡니다. 기간 안에 사업보고서가 없으면 두 종류는 `CHECKED`, 0건입니다.
+- **감사의견 행 고르기**(정기보고서 주요정보와 같은 규칙): 응답에 이 사업보고서 접수번호의 행이 있으면 그 행만, 없으면 첫 행의 접수번호와 같은 행만 씁니다(뒤에 정정본이 나온 경우). 결산기준일(`stlm_dt`)이 보고서의 대상 기간 끝과 다르면 다른 기간의 자료라 쓰지 않습니다. 항목의 `rceptNo`·`dartUrl`은 공시 목록의 사업보고서 접수번호입니다.
+- 캐시([ADR-0024](adr/0024-company-info-cache.md)): 공시 목록은 최근 공시 타임라인과 같습니다(받은 지 1시간이 지나면 다시 받음). 감사의견은 사업보고서 접수번호마다 저장하고(`disclosure_audit_opinion`) 자료가 있으면 다시 받지 않습니다. `013`(자료 없음)이나 쓸 행이 없으면 `NO_DATA`로 저장하고, 받은 지 1시간(`app.disclosures.refresh-after`)이 지나면 한 번 더 받습니다(제출 직후에는 자료가 아직 없을 수 있음).
+- **받지 못함**: 공시 목록을 받지 못하고 저장된 목록도 없으면 여덟 종류 모두 `UNAVAILABLE`입니다(감사의견 API를 부를 사업보고서도 알 수 없음). 감사의견 API를 받지 못하면 감사 두 종류만 `UNAVAILABLE`입니다. `UNAVAILABLE` 종류의 `count`는 null이고 `items`에 그 종류의 항목이 없습니다. 0건(`CHECKED`, `count: 0`)과 구분합니다. 공시 목록을 다시 받다 실패해 저장된 목록을 쓰면 `CHECKED`이고, 저장된 목록이 요청 기간을 다 덮지 못하면 `from`이 저장된 기간 시작입니다.
+- `items`: 접수일이 최근인 순서, 같은 날이면 접수번호가 큰 순서입니다. 한 공시는 한 종류에만 들어가지만, 사업보고서 한 건은 감사인 변경·감사의견 두 종류에 함께 들어갈 수 있습니다.
+- `kinds`: 여덟 종류를 위 표 순서로 항상 다 넣습니다.
+
+**요청**
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| path | `corpCode` | string | 예 | 고유번호 |
+
+**응답 200** (가짜 회사·공시로 만든 예시. 감사의견 API를 받지 못한 경우)
+
+```json
+{
+  "corpCode": "00000001",
+  "from": "2025-10-27",
+  "to": "2026-10-27",
+  "kinds": [
+    { "kind": "LARGEST_SHAREHOLDER_CHANGE", "label": "최대주주 변경", "status": "CHECKED", "count": 1 },
+    { "kind": "CAPITAL_INCREASE", "label": "유상증자 결정", "status": "CHECKED", "count": 0 },
+    { "kind": "CONVERTIBLE_BOND", "label": "전환사채 발행 결정", "status": "CHECKED", "count": 0 },
+    { "kind": "BOND_WITH_WARRANT", "label": "신주인수권부사채 발행 결정", "status": "CHECKED", "count": 0 },
+    { "kind": "LITIGATION", "label": "소송 등 제기", "status": "CHECKED", "count": 0 },
+    { "kind": "REHABILITATION_LISTING", "label": "회생·상장 관련 공시", "status": "CHECKED", "count": 0 },
+    { "kind": "AUDITOR_CHANGE", "label": "감사인 변경", "status": "UNAVAILABLE", "count": null },
+    { "kind": "NON_CLEAN_AUDIT_OPINION", "label": "감사의견(적정이 아님)", "status": "UNAVAILABLE", "count": null }
+  ],
+  "items": [
+    {
+      "kind": "LARGEST_SHAREHOLDER_CHANGE",
+      "rceptNo": "20260901900001",
+      "reportName": "최대주주변경",
+      "receivedDate": "2026-09-01",
+      "sentence": "최대주주가 바뀌었다고 공시했어요.",
+      "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260901900001"
+    }
+  ]
+}
+```
+
+- `status`: `CHECKED` 확인함(0건이면 해당 공시 없음), `UNAVAILABLE` 이번에 확인하지 못함(OpenDART 호출 실패. 해당 공시가 없다는 뜻이 아님).
+- `reportName`: 최근 공시 타임라인의 `reportName`과 같습니다(꼬리표는 그대로, 이어진 공백은 한 칸).
+- `sentence`: 종류마다 코드가 정한 사실 문장입니다. 감사 두 종류는 응답의 기수(`bsns_year`의 공백을 뺀 값)·감사인·감사의견 원문을 그대로 넣습니다.
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 404 | `COMPANY_NOT_FOUND` | 없는 고유번호 |
 
 ### GET /api/companies/{corpCode}/briefing — AI 기업 브리핑
 
