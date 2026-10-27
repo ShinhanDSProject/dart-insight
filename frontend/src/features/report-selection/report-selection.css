@@ -433,6 +433,93 @@
   font-weight: var(--font-weight-regular);
 }
 
+/* 주요 재무 흐름의 비율 보기(FS-54, #410). 값마다 버튼이고 누르면 표 아래에 계산식·두 금액·근거 링크를 보인다.
+   좋음·나쁨 색은 쓰지 않는다. 계산하지 못한 칸은 이유 문구를 흐린 글자로 적는다 */
+.fin-ratio {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.fin-ratio__formula {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-regular);
+}
+
+.fin-ratio__value {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-link);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  text-decoration: underline;
+  text-decoration-color: var(--color-link-underline);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.fin-ratio__value:hover {
+  color: var(--color-link-hover);
+}
+
+.fin-ratio__value[aria-expanded='true'] {
+  font-weight: var(--font-weight-bold);
+}
+
+.fin-ratio__value--none {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  word-break: keep-all;
+}
+
+.fin-ratio__detail {
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+}
+
+.fin-ratio__detail-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.fin-ratio__detail-title {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.fin-ratio__detail-value {
+  margin-left: var(--space-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.fin-ratio__facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-sm);
+}
+
+.fin-ratio__facts dt {
+  color: var(--color-text-muted);
+}
+
+.fin-ratio__facts dd {
+  grid-column: 2;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
 /* 최대주주·임원·배당 변화(#331). 바뀐 항목은 색이 아니라 기호·글자 표식(배지)으로 구분한다(UI-5) */
 .key-facts__intro,
 .key-facts__meta,

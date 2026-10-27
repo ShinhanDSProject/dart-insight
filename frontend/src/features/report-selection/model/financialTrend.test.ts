@@ -10,8 +10,11 @@ import {
   effectiveBasis,
   failedCount,
   formatChartAmount,
+  formatRatioAmount,
   formatTrendAmount,
   periodShortLabel,
+  incomeBasisLabel,
+  ratioTable,
   selectedReportType,
   tableUnitLabel,
   trendSeries,
@@ -184,5 +187,45 @@ describe('columnBars', () => {
 
   it('값이 모두 없으면 막대가 없다', () => {
     expect(columnBars([null, null]).bars).toEqual([null, null])
+  })
+})
+
+describe('ratioTable', () => {
+  it('같은 종류 보고서 중 값을 받은 기간만 오래된 순서로 두고 네 비율 행을 만든다', () => {
+    const table = ratioTable(trend, 'HALF', 'CUMULATIVE')
+    expect(table.periods.map((p) => p.rceptNo)).toEqual(['20250814003156', '20260814003699'])
+    expect(table.rows.map((r) => r.name)).toEqual(['부채비율', '유동비율', '영업이익률', '순이익률'])
+    const operating = table.rows.find((r) => r.key === 'OPERATING_MARGIN')
+    expect(operating?.cells.map((c) => c.value)).toEqual([0, (146_725_209_000_000 / 305_372_914_000_000) * 100])
+    expect(table.skipped).toBe(0)
+  })
+
+  it('3개월 기준을 고르면 손익 비율은 3개월 금액으로 계산한다', () => {
+    const operating = ratioTable(trend, 'HALF', 'QUARTER').rows.find((r) => r.key === 'OPERATING_MARGIN')
+    expect(operating?.cells[1]).toMatchObject({ numerator: 89_492_412_000_000, denominator: 171_499_470_000_000 })
+  })
+
+  it('받지 못한 기간은 열에서 빼고 그 수를 센다', () => {
+    const table = ratioTable(trend, 'Q3', 'CUMULATIVE')
+    expect(table.periods).toEqual([])
+    expect(table.skipped).toBe(1)
+  })
+})
+
+describe('incomeBasisLabel', () => {
+  it('손익 비율의 금액 기준을 연환산 없이 적는다', () => {
+    expect(incomeBasisLabel('HALF', 'CUMULATIVE', '2026-06-30')).toBe('누적(01.01 ~ 06.30)')
+    expect(incomeBasisLabel('Q3', 'QUARTER', '2025-09-30')).toBe('그 분기 3개월')
+    expect(incomeBasisLabel('ANNUAL', 'QUARTER', '2025-12-31')).toBe('사업연도 1년')
+  })
+})
+
+describe('formatRatioAmount', () => {
+  it('비율 근거 금액을 표와 같은 백만원 단위로 적고 없는 값은 0이 아니다', () => {
+    expect(formatRatioAmount(123_400_000_000, 'KRW')).toBe('123,400백만원')
+    expect(formatRatioAmount(-100_000_000_000, 'KRW')).toBe('−100,000백만원')
+    expect(formatRatioAmount(0, 'KRW')).toBe('0백만원')
+    expect(formatRatioAmount(5_000_000, 'USD')).toBe('5 백만 USD')
+    expect(formatRatioAmount(null, null)).toBe('값 없음')
   })
 })

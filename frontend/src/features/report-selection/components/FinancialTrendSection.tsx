@@ -19,14 +19,17 @@ import {
   formatChartAmount,
   formatTrendAmount,
   periodShortLabel,
+  ratioTable,
   selectedReportType,
   tableUnitLabel,
   trendSeries,
   type IncomeBasis,
   type SeriesAccount,
+  type TrendMeasure,
   type TrendSeries,
   type TrendView,
 } from '../model/financialTrend'
+import { FinancialRatioTable } from './FinancialRatioTable'
 
 const fsDivOptions: readonly SegmentOption<FsDiv>[] = [
   { value: 'CFS', label: '연결' },
@@ -43,6 +46,11 @@ const viewOptions: readonly SegmentOption<TrendView>[] = [
   { value: 'table', label: '표' },
 ]
 
+const measureOptions: readonly SegmentOption<TrendMeasure>[] = [
+  { value: 'amount', label: '금액' },
+  { value: 'ratio', label: '비율' },
+]
+
 const errorMessages: Record<string, string> = {
   COMPANY_NOT_FOUND: '기업을 찾지 못해 재무 흐름을 보여 드릴 수 없어요.',
   DART_RATE_LIMITED: 'OpenDART 호출 한도를 넘어 보고서 목록을 받지 못했어요. 내일 다시 시도해 주세요.',
@@ -53,6 +61,7 @@ const errorMessages: Record<string, string> = {
  * 기업 개요 탭의 '주요 재무 흐름'(FS-46, #330). 최근 정기보고서들의 OpenDART 주요계정을 같은 종류 보고서끼리
  * (예: 반기끼리) 작은 막대 차트와 표로 보여 준다. 차트는 라이브러리 없이 그린다(ADR-0018).
  * 없는 값은 0으로 그리지 않고 '—'(값 없음)로 둔다. 표의 열 머리글이 값의 근거 공시(접수번호) 링크다.
+ * '비율'로 바꾸면 같은 응답의 금액으로 코드가 계산한 재무 비율을 기간별로 보여 준다(FS-54, #410, FinancialRatioTable).
  */
 export function FinancialTrendSection({ corpCode }: { corpCode: string }) {
   const [fsDiv, setFsDiv] = useState<FsDiv>('CFS')
@@ -64,7 +73,7 @@ export function FinancialTrendSection({ corpCode }: { corpCode: string }) {
         <div>
           <PanelTitle id="fin-trend-title">주요 재무 흐름</PanelTitle>
           <p className="fin-trend__sub">
-            최근 정기보고서의 OpenDART 주요계정이에요. 같은 종류 보고서끼리 비교해요.
+            최근 정기보고서의 OpenDART 주요계정과 그 값으로 계산한 재무 비율이에요. 같은 종류 보고서끼리 비교해요.
           </p>
         </div>
         <SegmentedControl aria-label="재무제표 기준" options={fsDivOptions} value={fsDiv} onChange={setFsDiv} />
@@ -82,6 +91,7 @@ function TrendBody({ trend, onRetry }: { trend: FinancialTrend; onRetry: () => v
   const [chosenType, setChosenType] = useState<ReportType | null>(null)
   const [basis, setBasis] = useState<IncomeBasis>('CUMULATIVE')
   const [view, setView] = useState<TrendView>('chart')
+  const [measure, setMeasure] = useState<TrendMeasure>('amount')
 
   const type = selectedReportType(trend.periods, chosenType)
   if (type === null) {
@@ -95,6 +105,7 @@ function TrendBody({ trend, onRetry }: { trend: FinancialTrend; onRetry: () => v
   return (
     <div className="fin-trend__body">
       <div className="fin-trend__controls">
+        <SegmentedControl aria-label="보여 줄 값" options={measureOptions} value={measure} onChange={setMeasure} />
         <SegmentedControl aria-label="비교할 보고서 종류" options={typeOptions} value={type} onChange={setChosenType} />
         {type !== 'ANNUAL' && (
           <SegmentedControl
@@ -104,13 +115,21 @@ function TrendBody({ trend, onRetry }: { trend: FinancialTrend; onRetry: () => v
             onChange={setBasis}
           />
         )}
-        <SegmentedControl aria-label="보기" options={viewOptions} value={view} onChange={setView} />
+        {measure === 'amount' && (
+          <SegmentedControl aria-label="보기" options={viewOptions} value={view} onChange={setView} />
+        )}
       </div>
       <p className="panel__note">{basisNote(type, basis, trend.fsDiv, latest?.periodEnd ?? null)}</p>
 
       {failed > 0 && (
         <Notice tone="attention" role="status" title={`보고서 ${failed}개의 주요계정을 받지 못했어요.`}>
-          <p>받지 못한 기간은 빈칸(—)으로 두었어요. 잠시 뒤 다시 시도하면 그 보고서만 다시 받아요.</p>
+          <p>
+            {match(measure)
+              .with('amount', () => '받지 못한 기간은 빈칸(—)으로 두었어요.')
+              .with('ratio', () => '비율은 받은 기간만 계산해 보여 드려요.')
+              .exhaustive()}{' '}
+            잠시 뒤 다시 시도하면 그 보고서만 다시 받아요.
+          </p>
           <Button variant="secondary" onClick={onRetry}>
             다시 시도
           </Button>
@@ -122,6 +141,19 @@ function TrendBody({ trend, onRetry }: { trend: FinancialTrend; onRetry: () => v
         </Notice>
       )}
 
+      {match(measure)
+        .with('amount', () => (
+          <AmountBody series={series} type={type} view={view} />
+        ))
+        .with('ratio', () => <RatioBody trend={trend} type={type} basis={basis} />)
+        .exhaustive()}
+    </div>
+  )
+}
+
+function AmountBody({ series, type, view }: { series: TrendSeries; type: ReportType; view: TrendView }) {
+  return (
+    <>
       {series.accounts.length === 0 ? (
         <EmptyState title={`${reportTypeLabel(type)}의 주요계정 값이 없어요.`}>
           <p>다른 재무제표 기준(연결·별도)이나 보고서 종류를 골라 보세요.</p>
@@ -139,7 +171,30 @@ function TrendBody({ trend, onRetry }: { trend: FinancialTrend; onRetry: () => v
       <p className="panel__note">
         출처: DART(OpenDART 단일회사 주요계정). 표 보기의 열 머리글에서 각 보고서의 DART 원문을 열 수 있어요.
       </p>
-    </div>
+    </>
+  )
+}
+
+/** 비율 보기(FS-54). 같은 응답의 주요계정 금액으로 코드가 계산한다(API 변경 없음) */
+function RatioBody({ trend, type, basis }: { trend: FinancialTrend; type: ReportType; basis: IncomeBasis }) {
+  const table = ratioTable(trend, type, basis)
+  return (
+    <>
+      {table.periods.length === 0 ? (
+        <EmptyState title={`${reportTypeLabel(type)}의 주요계정 값을 받지 못해 비율을 계산할 수 없어요.`}>
+          <p>다른 재무제표 기준(연결·별도)이나 보고서 종류를 골라 보세요.</p>
+        </EmptyState>
+      ) : (
+        <FinancialRatioTable table={table} type={type} basis={basis} />
+      )}
+      {table.skipped > 0 && table.periods.length > 0 && (
+        <p className="panel__note">값을 받지 못했거나 값이 없는 보고서 {table.skipped}개는 비율 표에서 뺐어요.</p>
+      )}
+      <p className="panel__note">비율은 주요계정 값으로 코드가 계산했어요. 업종이나 기준값과 비교하지 않아요.</p>
+      <p className="panel__note">
+        출처: DART(OpenDART 단일회사 주요계정). 값을 누르면 계산식과 근거 보고서의 DART 원문을 볼 수 있어요.
+      </p>
+    </>
   )
 }
 
