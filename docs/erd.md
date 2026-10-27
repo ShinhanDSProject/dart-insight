@@ -291,6 +291,7 @@ erDiagram
         varchar status "OK NO_DATA"
         mediumtext items_json
         datetime fetched_at
+        varchar source_rcept_no "기간 뒤 정정 원본의 최신 정정본(3.6)"
     }
     report_document {
         bigint id PK
@@ -434,7 +435,7 @@ API는 사업연도·보고서 코드마다 최신 공시 하나의 값만 줍�
 
 ### disclosure_key_item — 주요사항보고서 핵심 수치(#363, FS-51)
 
-> 마이그레이션: `V26__create_disclosure_key_item.sql`. 캐시 정책은 [ADR-0024](adr/0024-company-info-cache.md)(보고서에 딸린 자료는 접수번호로 한 번만 받음).
+> 마이그레이션: `V26__create_disclosure_key_item.sql`, `V32__add_disclosure_key_item_source_rcept_no.sql`(`source_rcept_no`, #341). 캐시 정책은 [ADR-0024](adr/0024-company-info-cache.md)(보고서에 딸린 자료는 접수번호로 한 번만 받음).
 
 최근 공시의 주요사항보고서 한 건(접수번호)마다 OpenDART 주요사항보고서 주요정보(DS005) API를 한 번 부른 결과입니다. 종류와 API는 `docs/api-spec.md`의 `GET /api/companies/{corpCode}/disclosures/{rceptNo}/key-items` 절에 있습니다.
 
@@ -447,7 +448,7 @@ API는 사업연도·보고서 코드마다 최신 공시 하나의 값만 줍�
 | --- | --- | --- | --- | --- |
 | `id` | BIGINT | PK | 아니오 | 자동 증가 |
 | `rcept_no` | VARCHAR(14) | UK | 아니오 | 접수번호(최근 공시의 `rcept_no`) |
-| `kind` | VARCHAR(40) | | 아니오 | `keyItemsKind` 값(`CAPITAL_INCREASE`, `CONVERTIBLE_BOND`, `BOND_WITH_WARRANT`, `EXCHANGEABLE_BOND`, `TREASURY_STOCK_ACQUISITION`, `TREASURY_STOCK_DISPOSAL`) |
+| `kind` | VARCHAR(40) | | 아니오 | `keyItemsKind` 값(`CAPITAL_INCREASE`, `CONVERTIBLE_BOND`, `BOND_WITH_WARRANT`, `EXCHANGEABLE_BOND`, `TREASURY_STOCK_ACQUISITION`, `TREASURY_STOCK_DISPOSAL`, `LITIGATION`, `STOCK_ACQUISITION`) |
 | `status` | VARCHAR(10) | | 아니오 | `OK` 자료 있음, `NO_DATA` 자료 없음(013이거나 같은 접수번호의 행 없음) |
 | `items_json` | MEDIUMTEXT | | 아니오 | 항목 목록 JSON 배열. 값은 원문 표기 그대로(`'-'`·빈 값인 항목은 뺌). `NO_DATA`면 `[]` |
 | `fetched_at` | DATETIME(6) | | 아니오 | 받은 시각 |
@@ -826,7 +827,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 
 ### 관련 수시공시(3.6)
 
-> 상태: 범위 승인(#24)과 팀 확인(#337)을 받았습니다. 마이그레이션: `V29__create_disclosure_window.sql`(`disclosure_window_fetch`·`disclosure_window_item`, #339), `V30__create_related_disclosure.sql`(`related_disclosure_run`·`related_disclosure`, #340). `disclosure_key_item.source_rcept_no`는 #341에서 다음 번호로 추가합니다. 설계 이유는 [ADR-0030](adr/0030-related-disclosure-matching.md)에 있습니다. 주요사항보고서 주요정보(DS005)는 새 표를 두지 않고 #363의 `disclosure_key_item`을 같이 씁니다(아래 그 절의 '(3.6)'). #332의 `company_disclosure`와 따로 두는 이유: 그 표는 오늘 기준 최근 기간·최종본만 받고 1시간마다 기업 행을 통째로 바꿔, 분석 기간을 덮지 못하고 기간 뒤 정정된 사건이 빠지며 id에 연결을 걸 수 없습니다.
+> 상태: 범위 승인(#24)과 팀 확인(#337)을 받았습니다. 마이그레이션: `V29__create_disclosure_window.sql`(`disclosure_window_fetch`·`disclosure_window_item`, #339), `V30__create_related_disclosure.sql`(`related_disclosure_run`·`related_disclosure`, #340), `V32__add_disclosure_key_item_source_rcept_no.sql`(`disclosure_key_item.source_rcept_no`, #341). 설계 이유는 [ADR-0030](adr/0030-related-disclosure-matching.md)에 있습니다. 주요사항보고서 주요정보(DS005)는 새 표를 두지 않고 #363의 `disclosure_key_item`을 같이 씁니다(아래 그 절의 '(3.6)'). #332의 `company_disclosure`와 따로 두는 이유: 그 표는 오늘 기준 최근 기간·최종본만 받고 1시간마다 기업 행을 통째로 바꿔, 분석 기간을 덮지 못하고 기간 뒤 정정된 사건이 빠지며 id에 연결을 걸 수 없습니다.
 
 #### disclosure_window_fetch — 분석 기간 단위로 수시공시 목록을 받은 기록
 

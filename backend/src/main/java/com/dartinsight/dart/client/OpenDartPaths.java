@@ -22,6 +22,8 @@ public final class OpenDartPaths {
     public static final String EXCHANGEABLE_BOND_DECISION = "/api/exbdIsDecsn.json";
     public static final String TREASURY_STOCK_ACQUISITION_DECISION = "/api/tsstkAqDecsn.json";
     public static final String TREASURY_STOCK_DISPOSAL_DECISION = "/api/tsstkDpDecsn.json";
+    public static final String LITIGATION = "/api/lwstLg.json";
+    public static final String STOCK_ACQUISITION_DECISION = "/api/otcprStkInvscrInhDecsn.json";
 
     private OpenDartPaths() {
     }

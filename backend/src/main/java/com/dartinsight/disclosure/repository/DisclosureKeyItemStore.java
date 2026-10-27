@@ -29,13 +29,14 @@ public class DisclosureKeyItemStore {
 
     public Optional<DisclosureKeyItems> find(String rceptNo) {
         JavaType listType = jsonMapper.getTypeFactory().constructCollectionType(List.class, KeyItem.class);
-        return jdbcTemplate.query("SELECT kind, status, items_json, fetched_at FROM disclosure_key_item"
-                + " WHERE rcept_no = ?", (rs, i) -> new DisclosureKeyItems(
+        return jdbcTemplate.query("SELECT kind, status, items_json, fetched_at, source_rcept_no"
+                + " FROM disclosure_key_item WHERE rcept_no = ?", (rs, i) -> new DisclosureKeyItems(
                         rceptNo,
                         KeyItemKind.valueOf(rs.getString("kind")),
                         OK.equals(rs.getString("status")) ? KeyItemStatus.AVAILABLE : KeyItemStatus.NO_DATA,
                         jsonMapper.readValue(rs.getString("items_json"), listType),
-                        rs.getTimestamp("fetched_at").toLocalDateTime()), rceptNo)
+                        rs.getTimestamp("fetched_at").toLocalDateTime(),
+                        rs.getString("source_rcept_no")), rceptNo)
                 .stream().findFirst();
     }
 
@@ -45,15 +46,15 @@ public class DisclosureKeyItemStore {
         String itemsJson = jsonMapper.writeValueAsString(keyItems.items());
         Timestamp fetchedAt = Timestamp.valueOf(keyItems.fetchedAt());
         int updated = jdbcTemplate.update("UPDATE disclosure_key_item SET kind = ?, status = ?, items_json = ?,"
-                + " fetched_at = ? WHERE rcept_no = ?", keyItems.kind().name(), status, itemsJson, fetchedAt,
-                keyItems.rceptNo());
+                + " fetched_at = ?, source_rcept_no = ? WHERE rcept_no = ?", keyItems.kind().name(), status,
+                itemsJson, fetchedAt, keyItems.sourceRceptNo(), keyItems.rceptNo());
         if (updated > 0) {
             return;
         }
         try {
-            jdbcTemplate.update("INSERT INTO disclosure_key_item (rcept_no, kind, status, items_json, fetched_at)"
-                    + " VALUES (?, ?, ?, ?, ?)", keyItems.rceptNo(), keyItems.kind().name(), status, itemsJson,
-                    fetchedAt);
+            jdbcTemplate.update("INSERT INTO disclosure_key_item (rcept_no, kind, status, items_json, fetched_at,"
+                    + " source_rcept_no) VALUES (?, ?, ?, ?, ?, ?)", keyItems.rceptNo(), keyItems.kind().name(),
+                    status, itemsJson, fetchedAt, keyItems.sourceRceptNo());
         } catch (DuplicateKeyException e) {
             // 같은 요청이 동시에 넣었다. 그 결과를 둔다
         }

@@ -90,12 +90,47 @@ class DisclosureKeyItemApiTest {
         disclosure("20251020000144", "주요사항보고서(자기주식처분결정)", "2025-10-20");
         disclosure("20261026000100", "[첨부정정]주요사항보고서(전환사채권발행결정)", "2026-10-26");
         disclosure("20261026000017", "임원ㆍ주요주주특정증권등소유상황보고서", "2026-10-26");
+        disclosure("20260108000598", "주요사항보고서(소송등의제기)", "2026-01-08");
+        disclosure("20260608000398", "주요사항보고서(타법인주식및출자증권양수결정)", "2026-06-08");
         SERVER.on("/api/piicDecsn.json", json("capital-increase-ecoprobm-20261013000198"));
         SERVER.on("/api/cvbdIsDecsn.json", json("convertible-bond-kukjeon-20261023000414"));
         SERVER.on("/api/bdwtIsDecsn.json", json("bond-with-warrant-doosanfuelcell-20261013000372"));
         SERVER.on("/api/exbdIsDecsn.json", json("exchangeable-bond-lscable-20260911000411"));
         SERVER.on("/api/tsstkAqDecsn.json", json("treasury-acquisition-pcdirect-20261026000139"));
         SERVER.on("/api/tsstkDpDecsn.json", json("treasury-disposal-ecoprobm-20251020000144"));
+        SERVER.on("/api/lwstLg.json", json("litigation-koreazinc-20260108000598"));
+        SERVER.on("/api/otcprStkInvscrInhDecsn.json", json("stock-acquisition-miraesaneop-20260608000398"));
+    }
+
+    @Test
+    @DisplayName("소송 등의 제기와 타법인 주식 양수결정도 접수일 하루만 불러 정한 항목을 원문 그대로 준다(3.6에서 더함)")
+    void litigationAndStockAcquisitionUseReceiptDay() throws Exception {
+        mockMvc.perform(get(path("20260108000598")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.kind").value("LITIGATION"))
+                .andExpect(jsonPath("$.kindLabel").value("소송 등의 제기"))
+                .andExpect(jsonPath("$.items", hasSize(5)))
+                .andExpect(jsonPath("$.items[0].field").value("icnm"))
+                .andExpect(jsonPath("$.items[0].value").value("신주발행무효의 소"))
+                .andExpect(jsonPath("$.items[1].label").value("원고ㆍ신청인"))
+                .andExpect(jsonPath("$.items[1].value").value("주식회사 엠제이파트너스"))
+                .andExpect(jsonPath("$.items[3].value").value("서울중앙지방법원"))
+                .andExpect(jsonPath("$.items[4].value").value("2026년 01월 02일"));
+        assertThat(last("/api/lwstLg.json")).contains("bgn_de=20260108").contains("end_de=20260108");
+
+        mockMvc.perform(get(path("20260608000398")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.kind").value("STOCK_ACQUISITION"))
+                .andExpect(jsonPath("$.items", hasSize(5)))
+                .andExpect(jsonPath("$.items[0].label").value("발행회사(회사명)"))
+                .andExpect(jsonPath("$.items[0].value").value("주식회사 알로이스"))
+                .andExpect(jsonPath("$.items[1].value").value("12,751,342"))
+                .andExpect(jsonPath("$.items[1].unit").value("주"))
+                .andExpect(jsonPath("$.items[2].value").value("20,402,147,200"))
+                .andExpect(jsonPath("$.items[3].value").value("36.83"))
+                .andExpect(jsonPath("$.items[3].unit").value("%"))
+                .andExpect(jsonPath("$.items[4].value").value("신정관, 이시영, 권충식"));
+        assertThat(last("/api/otcprStkInvscrInhDecsn.json")).contains("bgn_de=20260608").contains("end_de=20260608");
     }
 
     @Test

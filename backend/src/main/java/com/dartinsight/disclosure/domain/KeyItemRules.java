@@ -29,7 +29,9 @@ public final class KeyItemRules {
             "주요사항보고서(신주인수권부사채권발행결정)", KeyItemKind.BOND_WITH_WARRANT,
             "주요사항보고서(교환사채권발행결정)", KeyItemKind.EXCHANGEABLE_BOND,
             "주요사항보고서(자기주식취득결정)", KeyItemKind.TREASURY_STOCK_ACQUISITION,
-            "주요사항보고서(자기주식처분결정)", KeyItemKind.TREASURY_STOCK_DISPOSAL);
+            "주요사항보고서(자기주식처분결정)", KeyItemKind.TREASURY_STOCK_DISPOSAL,
+            "주요사항보고서(소송등의제기)", KeyItemKind.LITIGATION,
+            "주요사항보고서(타법인주식및출자증권양수결정)", KeyItemKind.STOCK_ACQUISITION);
 
     private KeyItemRules() {
     }

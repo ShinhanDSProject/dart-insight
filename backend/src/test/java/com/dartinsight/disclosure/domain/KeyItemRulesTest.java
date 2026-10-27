@@ -24,6 +24,11 @@ class KeyItemRulesTest {
             주요사항보고서(교환사채권발행결정)                    | EXCHANGEABLE_BOND
             주요사항보고서(자기주식취득결정)                      | TREASURY_STOCK_ACQUISITION
             주요사항보고서(자기주식처분결정)                      | TREASURY_STOCK_DISPOSAL
+            주요사항보고서(소송등의제기)                          | LITIGATION
+            [기재정정]주요사항보고서(소송등의제기)                 | LITIGATION
+            주요사항보고서(타법인주식및출자증권양수결정)            | STOCK_ACQUISITION
+            소송등의제기ㆍ신청(경영권분쟁소송)                    | NONE
+            타법인주식및출자증권취득결정                         | NONE
             [첨부정정]주요사항보고서(전환사채권발행결정)           | NONE
             [첨부정정]주요사항보고서(유상증자결정)                | NONE
             유상증자결정                                       | NONE

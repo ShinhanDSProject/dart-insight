@@ -31,6 +31,8 @@ export type KeyItemsKind =
   | 'EXCHANGEABLE_BOND'
   | 'TREASURY_STOCK_ACQUISITION'
   | 'TREASURY_STOCK_DISPOSAL'
+  | 'LITIGATION'
+  | 'STOCK_ACQUISITION'
 
 export interface DisclosureKeyItem {
   /** OpenDART 응답 필드 이름(근거 위치) */
