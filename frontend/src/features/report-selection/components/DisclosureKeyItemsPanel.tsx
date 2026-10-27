@@ -62,17 +62,20 @@ function KeyItems({ data }: { data: DisclosureKeyItems }) {
 }
 
 function SourceLine({ data }: { data: DisclosureKeyItems }) {
-  const url = verifiedDartUrl(data.rceptNo, data.sourceUrl)
+  // 비고 '정'인 원본은 최신 정정본 행의 값을 쓰므로 그 접수번호로 출처와 링크를 맞춘다
+  const sourceRceptNo = data.sourceRceptNo ?? data.rceptNo
+  const url = verifiedDartUrl(sourceRceptNo, data.sourceUrl)
   const fetched = `${formatDate(data.fetchedAt.slice(0, 10))} 받음`
   return (
     <p className="dart-source">
-      출처: OpenDART 주요사항보고서 주요정보({data.kindLabel}) · 접수번호 {data.rceptNo} · {fetched}
+      출처: OpenDART 주요사항보고서 주요정보({data.kindLabel}) · 접수번호 {sourceRceptNo}
+      {data.sourceRceptNo !== null && `(최신 정정본, 원본 ${data.rceptNo})`} · {fetched}
       {url !== null && (
         <>
           {' · '}
           <a href={url} target="_blank" rel="noopener noreferrer">
             원문 보기<span aria-hidden="true"> ↗</span>
-            <span className="visually-hidden">(DART 원문 새 창, 접수번호 {data.rceptNo})</span>
+            <span className="visually-hidden">(DART 원문 새 창, 접수번호 {sourceRceptNo})</span>
           </a>
         </>
       )}

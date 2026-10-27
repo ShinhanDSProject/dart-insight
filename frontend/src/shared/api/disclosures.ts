@@ -55,6 +55,9 @@ export interface DisclosureKeyItems {
   kindLabel: string
   status: 'AVAILABLE' | 'NO_DATA'
   items: DisclosureKeyItem[]
+  /** 값을 가져온 공시의 접수번호가 요청한 접수번호와 다를 때(비고 '정'인 원본이 최신 정정본 값을 씀) 그 접수번호 */
+  sourceRceptNo: string | null
+  /** 값을 가져온 공시의 DART 주소(sourceRceptNo가 있으면 그 접수번호) */
   sourceUrl: string
   fetchedAt: string
 }
