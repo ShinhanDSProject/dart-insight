@@ -62,6 +62,11 @@ public class CompanyService {
         return corpCodes.isEmpty() ? List.of() : companyRepository.findByCorpCodeIn(corpCodes);
     }
 
+    /** 종목코드 여러 개로 한 번에 찾는다. 없는 종목코드는 결과에서 빠진다. */
+    public List<Company> findByStockCodes(Collection<String> stockCodes) {
+        return stockCodes.isEmpty() ? List.of() : companyRepository.findByStockCodeIn(stockCodes);
+    }
+
     static String escapeLike(String text) {
         return text.replace("!", "!!").replace("%", "!%").replace("_", "!_");
     }

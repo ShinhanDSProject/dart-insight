@@ -9,6 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 /**
@@ -17,6 +19,8 @@ import org.springframework.stereotype.Component;
  * 받지 못해도 서버는 계속 뜬다(기업 검색만 COMPANY_LIST_NOT_LOADED).
  * 받기 전에 검색용 이름(corp_name_key·corp_name_chosung)이 빈 행을 먼저 채운다(1.1, #277).
  */
+// 대표 기업(FeaturedCompanySyncRunner)이 종목코드를 이을 수 있게 다른 시작 작업보다 먼저 돈다
+@Order(Ordered.HIGHEST_PRECEDENCE)
 @Component
 @RequiredArgsConstructor
 public class CorpCodeSyncRunner implements ApplicationRunner {
