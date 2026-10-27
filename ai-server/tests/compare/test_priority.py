@@ -97,6 +97,39 @@ def test_keywords_in_new_words_raise_priority_up_to_two() -> None:
     assert priority.level == MEDIUM
 
 
+def test_going_concern_in_a_new_paragraph_raises_priority() -> None:
+    text = "계속기업으로서의 존속능력에 유의적 의문이 제기될 수 있는 중요한 불확실성이 존재합니다."
+    section = "III. 재무에 관한 사항"
+    plain = prioritize(change(ADDED, section), None, "주석에 회계정책을 적었습니다.")
+    going_concern = prioritize(change(ADDED, section), None, text)
+
+    assert going_concern.score == plain.score + 15
+    assert "핵심어 '계속기업' +15" in going_concern.reasons
+
+
+def test_going_concern_is_counted_before_other_keywords() -> None:
+    priority = prioritize(
+        change(ADDED, "III. 재무에 관한 사항"),
+        None,
+        "소송과 분쟁이 이어져 계속기업 가정에 중요한 불확실성이 있습니다.",
+    )
+
+    assert [r for r in priority.reasons if r.startswith("핵심어")] == [
+        "핵심어 '계속기업' +15",
+        "핵심어 '소송' +15",
+    ]
+
+
+def test_going_concern_already_in_the_sentence_does_not_raise_priority() -> None:
+    priority = prioritize(
+        change(MODIFIED, "III. 재무에 관한 사항", similarity=0.9),
+        "계속기업 가정에 관한 불확실성은 없습니다. 1건",
+        "계속기업 가정에 관한 불확실성은 없습니다. 2건",
+    )
+
+    assert not [r for r in priority.reasons if r.startswith("핵심어")]
+
+
 def test_words_already_there_do_not_count_as_keywords() -> None:
     priority = prioritize(
         change(MODIFIED, "VII. 주주에 관한 사항", similarity=0.9),
