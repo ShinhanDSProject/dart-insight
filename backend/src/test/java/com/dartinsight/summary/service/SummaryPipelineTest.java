@@ -247,6 +247,10 @@ class SummaryPipelineTest {
         assertThat(sent.traceId()).isEqualTo("trace-summary");
         assertThat(sent.bodyText()).contains("\"companyName\":\"예시전자\"")
                 .contains(PREV + "#B1").contains(CUR + "#B1").contains("매출액은 메모리 수요 회복으로 늘었습니다.");
+        // 설명 후보는 AI 서버가 찾도록 현재 보고서 문단을 모두 보내고, 후보를 골라 보내지 않는다(ADR-0032)
+        assertThat(JsonPath.<List<String>>read(sent.bodyText(), "$.documentBlocks[*].evidenceId"))
+                .containsExactly(CUR + "#B1", CUR + "#B2");
+        assertThat(sent.bodyText()).doesNotContain("\"candidates\"");
         // 설명 후보 검색어는 표준계정 ID 사전에서 나온 것까지 함께 보낸다(ADR-0015)
         assertThat(JsonPath.<List<List<String>>>read(sent.bodyText(),
                 "$.financialItems[?(@.accountName=='매출액')].accountAliases")).containsExactly(List.of("매출액", "영업수익"));
@@ -398,7 +402,7 @@ class SummaryPipelineTest {
         AI.on(SUMMARIES, request -> {
             String body = request.bodyText();
             String text = JsonPath.<List<String>>read(body, "$.textItems[*].ref").getFirst();
-            // 문장 변화는 보내지 않은 원문을 근거로 들고, 같은 항목이 두 번 오고, 매출액 설명은 빠진 응답
+            // 문장 변화는 보내지 않은 원문을 근거로 들고, 같은 항목이 두 번 오고, 재무 항목(매출액·자산총계)은 빠진 응답
             return Reply.ok("""
                     {"promptVersion":"summary-1","model":"fake-model","generatedAt":"2026-10-22T09:00:00","items":[
                      {"ref":"%s","kind":"TEXT","status":"OK","sentence":"다른 보고서 내용","evidenceIds":["%s#B1"]},
@@ -414,8 +418,9 @@ class SummaryPipelineTest {
                 .andExpect(jsonPath("$.items[?(@.kind == 'TEXT')]", hasSize(0)))
                 .andExpect(jsonPath("$.items[0].factSentence").isNotEmpty())
                 .andExpect(jsonPath("$.items[0].explanationStatus").value("REVIEW_NEEDED"))
-                .andExpect(jsonPath("$.items[1].explanationStatus").value("NOT_FOUND"))
-                .andExpect(jsonPath("$.reviewNeededCount").value(2));
+                // 후보는 AI 서버가 고르고 재무 항목마다 늘 답하므로(후보가 없으면 NONE), 빠진 항목은 검토 필요다(ADR-0032)
+                .andExpect(jsonPath("$.items[1].explanationStatus").value("REVIEW_NEEDED"))
+                .andExpect(jsonPath("$.reviewNeededCount").value(3));
         assertThat(summaryStore.items(id)).hasSize(3);
     }
 

@@ -109,42 +109,26 @@ class SummarySelectorTest {
     }
 
     @Test
-    void explanationCandidatesComeFromExplainingSectionsAndMentionTheAccount() {
+    @DisplayName("설명 후보를 찾을 원문으로 현재 보고서의 문단을 섹션과 관계없이 문서 순서대로 모두 보내고 표는 보내지 않는다")
+    void allParagraphsOfTheCurrentReportAreSentForTheCandidateSearch() {
         List<DocumentSection> sections = List.of(
                 new DocumentSection(1, null, 1, "II. 사업의 내용", null, false, 0),
                 new DocumentSection(2, null, 1, "IV. 이사의 경영진단 및 분석의견", null, false, 3),
-                new DocumentSection(3, null, 1, "VII. 주주에 관한 사항", null, false, 1));
+                new DocumentSection(3, 2, 2, "2. 영업실적", null, false, 0),
+                new DocumentSection(4, null, 1, "VII. 주주에 관한 사항", null, false, 1));
         String rcept = "20260814000001";
         List<DocumentBlock> blocks = List.of(
-                new DocumentBlock(rcept, 1, 2, "PARAGRAPH", "매출 액은 수요 회복으로 늘었습니다.", null),
-                new DocumentBlock(rcept, 2, 2, "TABLE", "매출액 | 100", "[]"),
-                new DocumentBlock(rcept, 3, 3, "PARAGRAPH", "매출액 관련 주주 안내", null),
-                new DocumentBlock(rcept, 4, 2, "PARAGRAPH", "영업이익은 줄었습니다.", null),
-                new DocumentBlock(rcept, 5, 2, "PARAGRAPH", "매출액이 늘어난 다른 이유", null),
-                new DocumentBlock(rcept, 6, 2, "PARAGRAPH", "매출액 세 번째 문단", null));
+                new DocumentBlock(rcept, 1, 3, "PARAGRAPH", "매출액은 수요 회복으로 늘었습니다.", null),
+                new DocumentBlock(rcept, 2, 3, "TABLE", "매출액 | 100", "[]"),
+                new DocumentBlock(rcept, 3, 4, "PARAGRAPH", "주주총회 안내", null),
+                new DocumentBlock(rcept, 4, 1, "PARAGRAPH", "  ", null));
 
-        List<SummaryAiRequest.Source> found = SummarySelector.candidates(List.of("매출액"), sections, blocks);
+        List<SummaryAiRequest.Source> sent = SummarySelector.paragraphs(sections, blocks);
 
-        assertThat(found).extracting(SummaryAiRequest.Source::evidenceId)
-                .containsExactly(rcept + "#B1", rcept + "#B5");
-        assertThat(found.getFirst().sectionPath()).isEqualTo("IV. 이사의 경영진단 및 분석의견");
-    }
-
-    @Test
-    @DisplayName("검색어 중 하나라도 나오는 문단을 문서 순서대로 고르고, 검색어가 없으면 고르지 않는다")
-    void explanationCandidatesMatchAnyOfTheTerms() {
-        List<DocumentSection> sections = List.of(new DocumentSection(1, null, 1, "IV. 이사의 경영진단 및 분석의견", null,
-                false, 0));
-        String rcept = "20250312000906";
-        List<DocumentBlock> blocks = List.of(
-                new DocumentBlock(rcept, 1, 1, "PARAGRAPH", "매출채권 회전율은 개선되었습니다.", null),
-                new DocumentBlock(rcept, 2, 1, "PARAGRAPH", "원가절감 활동으로 영업적자폭을 축소하였습니다.", null),
-                new DocumentBlock(rcept, 3, 1, "PARAGRAPH", "연간 5,606억원의 영업손실을 기록하였습니다.", null));
-        List<String> terms = AccountAliases.of("dart_OperatingIncomeLoss", "영업손실");
-
-        assertThat(SummarySelector.candidates(terms, sections, blocks))
-                .extracting(SummaryAiRequest.Source::evidenceId)
-                .containsExactly(rcept + "#B2", rcept + "#B3");
-        assertThat(SummarySelector.candidates(List.of(), sections, blocks)).isEmpty();
+        assertThat(sent).extracting(SummaryAiRequest.Source::evidenceId)
+                .containsExactly(rcept + "#B1", rcept + "#B3");
+        assertThat(sent.getFirst().sectionPath()).isEqualTo("IV. 이사의 경영진단 및 분석의견 > 2. 영업실적");
+        assertThat(sent.getFirst().text()).isEqualTo("매출액은 수요 회복으로 늘었습니다.");
+        assertThat(SummarySelector.paragraphs(List.of(), List.of())).isEmpty();
     }
 }
