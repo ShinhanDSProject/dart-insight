@@ -76,6 +76,7 @@
 | GET | `/api/notifications` | 내 분석 완료 알림 목록 | #38 (6.4) | 헤더 알림 | 초안 |
 | PUT·DELETE | `/api/notifications/{notificationId}/read` | 알림 읽음 표시·해제 | #38 (6.4) | 헤더 알림 | 초안 |
 | GET | `/api/companies` | 기업 검색 | #8 (1.1) | W-01 ① | 초안 |
+| GET | `/api/featured-companies` | 첫 화면 대표 기업(유가증권시장 시가총액 상위 100) | #399 (1.5) | W-01 ① | 초안 |
 | GET | `/api/companies/{corpCode}` | 기업 정보 | #8 (1.1) | W-01 ② | 초안 |
 | GET | `/api/companies/{corpCode}/overview` | 기업 개황(대표자·법인 구분·업종·설립일·결산월 등) | #329 (1.2) | 기업 화면 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/reports` | 기업별 정기보고서 목록 | #9 (1.2), #10 (1.3) | W-01 ② | 초안 |
@@ -306,6 +307,28 @@
 | --- | --- | --- |
 | 400 | `COMMON_INVALID_INPUT` | `query`가 비었거나 2자 미만 |
 | 503 | `COMPANY_LIST_NOT_LOADED` | 기업 목록(4.4)을 아직 받지 않음 |
+
+### GET /api/featured-companies — 대표 기업
+
+- 이슈: #399 (1.5) · 화면: W-01 ① 검색창 아래 · [ADR-0033](adr/0033-featured-companies-from-public-data-portal.md)
+- 로그인 없이 씁니다. backend가 공공데이터포털 '금융위원회_주식시세정보'로 받아 저장해 둔 목록을 그대로 돌려줍니다(요청마다 외부를 부르지 않음).
+- 순서는 기준일의 유가증권시장 시가총액 큰 순입니다. 우리 기업 목록과 하나로 이어지는 종목만 담고(우선주, 같은 종목코드의 기업이 여럿인 종목은 빠짐), `rank`는 이어진 종목 안에서 1부터 다시 매깁니다. **시가총액·주가 숫자는 응답에 넣지 않습니다.**
+- 화면은 `source`와 `baseDate`를 함께 보입니다(공공누리 제4유형 출처표시).
+
+**응답 200**
+
+```json
+{
+  "baseDate": "2026-10-24",
+  "source": "금융위원회, 공공데이터포털",
+  "items": [
+    { "rank": 1, "corpCode": "00126380", "corpName": "삼성전자", "stockCode": "005930" }
+  ]
+}
+```
+
+- 아직 받지 못했으면 `baseDate: null`, `items: []`입니다(에러가 아님). 화면은 안내를 보이고 검색은 그대로 둡니다.
+- `corpName`·`stockCode`는 우리 `company`의 값입니다.
 
 ### GET /api/companies/{corpCode} — 기업 정보
 
