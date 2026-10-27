@@ -143,9 +143,8 @@ public class RelatedDisclosureService {
             }
             KeyItemRules.classify(d.reportName())
                     .filter(KeyItemMatcher.KINDS::contains)
-                    .ifPresent(kind -> targets.put(d.rceptNo(), new KeyItemTarget(d.rceptNo(), d.reportName(),
-                            d.rceptDt(), kind, RelatedDisclosureRules.isCorrected(d.remark())
-                                    && !RelatedDisclosureRules.isCorrection(d.reportName()))));
+                    .ifPresent(kind -> targets.put(d.rceptNo(),
+                            KeyItemTarget.of(d.rceptNo(), d.reportName(), d.rceptDt(), kind, d.remark())));
         }
         Map<String, DisclosureKeyItems> keyItems = new HashMap<>();
         for (KeyItemTarget target : targets.values()) {

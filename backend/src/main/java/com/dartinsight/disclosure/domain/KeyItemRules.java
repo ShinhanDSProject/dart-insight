@@ -53,6 +53,14 @@ public final class KeyItemRules {
         return CORRECTION_TAG.equals(tags(reportName));
     }
 
+    /**
+     * 비고(rm)에 '정'이 있는 원본(꼬리표 없음)인지. 뒤에 정정본이 있어, 원본 접수일로 불러도 행에는 원본이 아니라 마지막 정정본의
+     * 접수번호가 온다(2026-10-27 에코프로비엠 20260630000676 → 20261013000198로 확인).
+     */
+    public static boolean correctedLater(String reportName, String remark) {
+        return remark != null && remark.contains("정") && tags(reportName).isEmpty();
+    }
+
     /** 앞머리 꼬리표를 공백 없이 이어 붙인 값. 없으면 빈 문자열 */
     private static String tags(String reportName) {
         if (reportName == null) {

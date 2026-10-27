@@ -51,7 +51,8 @@ public class DisclosureKeyItemService {
                 .orElseThrow(() -> new ApiException(ErrorCode.COMPANY_DISCLOSURE_NOT_FOUND));
         KeyItemKind kind = disclosure.keyItemsKind()
                 .orElseThrow(() -> new ApiException(ErrorCode.COMPANY_DISCLOSURE_NOT_FOUND));
-        return load(corpCode, new KeyItemTarget(rceptNo, disclosure.reportName(), disclosure.rceptDt(), kind, false));
+        return load(corpCode,
+                KeyItemTarget.of(rceptNo, disclosure.reportName(), disclosure.rceptDt(), kind, disclosure.remark()));
     }
 
     /**
@@ -73,7 +74,7 @@ public class DisclosureKeyItemService {
      * <ul>
      *   <li>원본: 접수일 하루만 불러 같은 접수번호의 행을 쓴다</li>
      *   <li>[기재정정]: 최초 공시일을 몰라 API가 정보를 주는 첫날부터 접수일까지 불러 같은 접수번호의 행을 쓴다</li>
-     *   <li>기간 뒤에 정정된 원본({@link KeyItemTarget#correctedLater()}): 원본 접수일 하루로 불러 같은 접수번호의 행이
+     *   <li>정정된 원본({@link KeyItemTarget#correctedLater()}): 원본 접수일 하루로 불러 같은 접수번호의 행이
      *       있으면 그 행, 없고 그 종류의 행이 하나뿐이면 그 행(최신 정정본)을 쓰고 행의 접수번호를 남긴다. 둘 이상이면 어느
      *       것인지 고르지 않는다</li>
      * </ul>
