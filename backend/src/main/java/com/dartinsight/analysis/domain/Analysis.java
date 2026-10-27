@@ -27,9 +27,10 @@ public class Analysis {
      * 분석 결과 버전. 결과가 달라지는 규칙이 바뀌면 올려서 옛 결과를 다시 쓰지 않는다:
      * 재무 비교·계산, 원문 파서(PARSER_VERSION), 문장 비교(DIFF_VERSION), 우선순위(priority-n),
      * 요약 프롬프트(PROMPT_VERSION), 표현 검사 규칙(RULESET_VERSION), 설명 후보 검색어(AccountAliases),
-     * 재무 설명 등급 규칙(GRADE_RULES_VERSION), 요약에 저장하는 값(m2-10: 설명 등급·인용, #143).
+     * 재무 설명 등급 규칙(GRADE_RULES_VERSION), 요약에 저장하는 값(m2-10: 설명 등급·인용, #143),
+     * m2-11: 원문 파서 dart-xml-2(표 안의 표·빈 표, #397).
      */
-    public static final String CURRENT_VERSION = "m2-10";
+    public static final String CURRENT_VERSION = "m2-11";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
