@@ -581,7 +581,19 @@ OpenDART 정기보고서 주요정보 API를 보고서(접수번호)·종류마�
 | `previous_account_id`, `current_account_id` | VARCHAR(200) | | 예 | 근거 계정 |
 | `previous_period_name`, `current_period_name` | VARCHAR(50) | | 예 | 근거 기간 이름 |
 
-`calc_status`: `OK`, `PREVIOUS_ZERO`(이전 값 0), `PREVIOUS_NEGATIVE`(이전 값 음수), `PREVIOUS_MISSING`(이전 값 미기재), `CURRENT_MISSING`(현재 값 미기재), `ONLY_CURRENT`(현재 보고서에만 있음), `ONLY_PREVIOUS`(이전 보고서에만 있음), `AMBIGUOUS_MATCH`(같은 계정이 여러 개이고 두 보고서의 개수가 달라 짝을 확정하지 못함, 검토 필요), `PERIOD_MISMATCH`(기간이 달라 계산하지 않음).
+`calc_status`: `OK`, `PREVIOUS_ZERO`(이전 값 0), `PREVIOUS_NEGATIVE`(이전 값 음수), `TURNED_PROFIT`(흑자전환), `TURNED_LOSS`(적자전환), `LOSS_NARROWED`(적자폭 축소), `LOSS_WIDENED`(적자폭 확대), `SIGN_CHANGED`(부호가 바뀜), `PREVIOUS_MISSING`(이전 값 미기재), `CURRENT_MISSING`(현재 값 미기재), `ONLY_CURRENT`(현재 보고서에만 있음), `ONLY_PREVIOUS`(이전 보고서에만 있음), `AMBIGUOUS_MATCH`(같은 계정이 여러 개이고 두 보고서의 개수가 달라 짝을 확정하지 못함, 검토 필요), `PERIOD_MISMATCH`(기간이 달라 계산하지 않음). 가장 긴 값이 17자라 VARCHAR(20)에 들어갑니다.
+
+두 값이 모두 있을 때 증감률을 계산하지 않는 상태는 이렇게 정합니다(#144). 모두 증감액은 계산하고 증감률은 null입니다. '이익 계정'은 손익계산서(`IS`·`CIS`)에 있으면서 현재 보고서의 표준계정 ID가 이익 계정 목록(`docs/api-spec.md` 재무 수치 변화)에 있는 계정입니다. 표준계정 ID가 없는 회사 고유 계정은 이익 계정이 아닙니다.
+
+| 이전 → 현재 | 이익 계정 | 그 밖의 계정 |
+| --- | --- | --- |
+| 0 → 아무 값 | `PREVIOUS_ZERO` | `PREVIOUS_ZERO` |
+| 음수 → 양수 | `TURNED_PROFIT` | `SIGN_CHANGED` |
+| 양수 → 음수 | `TURNED_LOSS` | `SIGN_CHANGED` |
+| 음수 → 0 또는 더 작은 손실 | `LOSS_NARROWED` | `PREVIOUS_NEGATIVE` |
+| 음수 → 더 큰 손실 | `LOSS_WIDENED` | `PREVIOUS_NEGATIVE` |
+| 음수 → 같은 음수 | `PREVIOUS_NEGATIVE` | `PREVIOUS_NEGATIVE` |
+| 양수 → 0 또는 양수 | `OK`(증감률 계산) | `OK` |
 
 ### report_document
 
