@@ -106,6 +106,7 @@ function keyItems(overrides: Partial<DisclosureKeyItems> = {}): DisclosureKeyIte
       { field: 'dppln_prc_ostk', label: '처분예정금액(보통주식)', value: '10,492,048,000', unit: '원' },
       { field: 'dp_pp', label: '처분목적', value: '종업원에 대한 상여금 지급 (RSU)', unit: null },
     ],
+    sourceRceptNo: null,
     sourceUrl: 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20251020000144',
     fetchedAt: '2026-10-26T15:10:03',
     ...overrides,
@@ -153,6 +154,23 @@ describe('핵심 수치', () => {
     fireEvent.click(await screen.findByRole('button', { name: /^핵심 수치/ }))
     expect(await screen.findByText('OpenDART에 이 공시의 핵심 수치 자료가 없어요. 원문으로 확인해 주세요.')).toBeTruthy()
     expect(screen.getByRole('link', { name: /원문 보기/ })).toBeTruthy()
+  })
+
+  it('최신 정정본 값을 쓴 원본은 정정본 접수번호로 출처와 원문 링크를 보여 준다', async () => {
+    listDisclosures.mockResolvedValue(list([disposal]))
+    getDisclosureKeyItems.mockResolvedValue(
+      keyItems({
+        sourceRceptNo: '20251118000105',
+        sourceUrl: 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20251118000105',
+      }),
+    )
+    renderSection()
+
+    fireEvent.click(await screen.findByRole('button', { name: /^핵심 수치/ }))
+    expect(await screen.findByText(/접수번호 20251118000105\(최신 정정본, 원본 20251020000144\)/)).toBeTruthy()
+    expect(screen.getByRole('link', { name: /원문 보기/ }).getAttribute('href')).toBe(
+      'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20251118000105',
+    )
   })
 
   it('불러오는 중과 실패를 보여 주고 다시 시도할 수 있다', async () => {

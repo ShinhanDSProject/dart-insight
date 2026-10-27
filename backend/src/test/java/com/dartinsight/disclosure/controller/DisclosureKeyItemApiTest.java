@@ -109,6 +109,9 @@ class DisclosureKeyItemApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.kind").value("LITIGATION"))
                 .andExpect(jsonPath("$.kindLabel").value("소송 등의 제기"))
+                .andExpect(jsonPath("$.sourceRceptNo").value(nullValue()))
+                .andExpect(jsonPath("$.sourceUrl").value(
+                        "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260108000598"))
                 .andExpect(jsonPath("$.items", hasSize(5)))
                 .andExpect(jsonPath("$.items[0].field").value("icnm"))
                 .andExpect(jsonPath("$.items[0].value").value("신주발행무효의 소"))
@@ -247,7 +250,11 @@ class DisclosureKeyItemApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("AVAILABLE"))
                 .andExpect(jsonPath("$.kind").value("CAPITAL_INCREASE"))
-                .andExpect(jsonPath("$.items[0].value").value("9,900,990"));
+                .andExpect(jsonPath("$.items[0].value").value("9,900,990"))
+                .andExpect(jsonPath("$.rceptNo").value("20260630000676"))
+                .andExpect(jsonPath("$.sourceRceptNo").value("20261013000198"))
+                .andExpect(jsonPath("$.sourceUrl").value(
+                        "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261013000198"));
         assertThat(last("/api/piicDecsn.json")).contains("bgn_de=20260630").contains("end_de=20260630");
         assertThat(jdbcTemplate.queryForObject("SELECT source_rcept_no FROM disclosure_key_item WHERE rcept_no = ?",
                 String.class, "20260630000676")).isEqualTo("20261013000198");
