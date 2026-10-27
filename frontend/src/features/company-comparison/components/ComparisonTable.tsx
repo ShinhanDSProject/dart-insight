@@ -8,6 +8,7 @@ import { DartLinkInline } from '@/shared/ui/DartLink'
 import {
   comparisonRows,
   formatAmount,
+  MAX_COMPANIES,
   type AmountCell,
   type ComparisonColumn,
   type RatioCell,
@@ -24,21 +25,36 @@ interface ComparisonTableProps {
  * 여러 기업 주요 수치 표(FS-56). 행은 주요계정 6개 → 비율 4개, 열은 고른 순서의 기업이다.
  * 정렬 버튼·순위·최고·최저 강조는 두지 않는다. 열 머리글에 보고서·대상 기간·근거 접수번호와 DART 원문 링크를 둔다.
  * 준비되지 않은 열(불러오는 중·실패·보고서 없음)은 그 열 전체에 사유를 보여 준다.
+ *
+ * 기업을 더하거나 빼고, 보고서 종류·기준을 바꿔도 표 모양이 흔들리지 않게(#424) 열은 늘 최대 수(4)만큼 두고 폭을 고정한다.
+ * 고르지 않은 자리는 빈 열로 남긴다.
  */
 export function ComparisonTable({ columns, type, onRetry }: ComparisonTableProps) {
   const rows = comparisonRows(columns)
+  const emptySlots = Array.from({ length: Math.max(0, MAX_COMPANIES - columns.length) }, (_, i) => `empty-${i}`)
   return (
     <DataTable
       caption="여러 기업 주요 수치 표(금액 단위 원, 조·억으로 줄여 표시 · 비율 단위 %, 기업은 고른 순서)"
       density="dense"
       className="company-compare__table"
     >
+      <colgroup>
+        <col className="company-compare__col-label" />
+        {Array.from({ length: MAX_COMPANIES }, (_, i) => (
+          <col key={i} className="company-compare__col-company" />
+        ))}
+      </colgroup>
       <thead>
         <tr>
           <th scope="col">항목</th>
           {columns.map((column) => (
             <th key={column.corpCode} scope="col" className="company-compare__head">
               <ColumnHead column={column} />
+            </th>
+          ))}
+          {emptySlots.map((key) => (
+            <th key={key} scope="col" className="company-compare__head company-compare__head--empty">
+              기업을 더해 주세요
             </th>
           ))}
         </tr>
@@ -76,6 +92,9 @@ export function ComparisonTable({ columns, type, onRetry }: ComparisonTableProps
                 </td>
               )
             })}
+            {emptySlots.map((key) => (
+              <td key={key} className="company-compare__empty" />
+            ))}
           </tr>
         ))}
       </tbody>

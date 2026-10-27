@@ -6,8 +6,7 @@ import type { ReportType } from '@/shared/api/reports'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
 import { pageTitle } from '@/shared/lib/pageTitle'
 import { reportTypeLabel } from '@/shared/lib/reportLabels'
-import { Notice, Panel, PanelTitle, SegmentedControl, type SegmentOption } from '@/shared/ui'
-import { EmptyState } from '@/shared/ui/StateView'
+import { Panel, PanelTitle, SegmentedControl, type SegmentOption } from '@/shared/ui'
 import { CompanyPicker } from './components/CompanyPicker'
 import { ComparisonTable } from './components/ComparisonTable'
 import { useCompanyComparison } from './hooks/useCompanyComparison'
@@ -87,28 +86,26 @@ export function CompanyComparisonPage() {
             <SegmentedControl aria-label="재무제표 기준" options={fsDivOptions} value={fsDiv} onChange={setFsDiv} />
           </div>
         </div>
-        {corps.length < MIN_COMPANIES ? (
-          <EmptyState title={`비교할 기업을 ${MIN_COMPANIES}곳 이상 골라 주세요.`}>
-            <p>위 검색 칸이나 관심 기업에서 고르면 최대 {MAX_COMPANIES}곳까지 같은 종류 보고서의 주요 수치를 나란히 보여 드려요.</p>
-          </EmptyState>
-        ) : (
-          <>
-            {periodsDiffer(columns) && (
-              <Notice tone="attention" role="status" title={PERIOD_MISMATCH_MESSAGE}>
-                <p>기업마다 결산월이나 최신 보고서가 달라 대상 기간이 다를 수 있어요. 열 머리글의 기간을 함께 봐 주세요.</p>
-              </Notice>
-            )}
-            <ComparisonTable columns={columns} type={type} onRetry={retry} />
-            <p className="panel__note">
-              {fsDiv === 'CFS' ? '연결' : '별도'} 기준 · 재무상태표는 기말 잔액, 손익은 사업연도 시작부터 누적 금액이에요
-              (연환산하지 않아요). 금액 단위는 원이고 조·억으로 줄여 보여 드려요. 값이 없으면 0이 아니라 '자료 없음'이에요.
-            </p>
-            <p className="panel__note">비율은 주요계정 값으로 코드가 계산했어요. 업종이나 기준값과 비교하지 않아요.</p>
-            <p className="panel__note">
-              출처: DART(OpenDART 단일회사 주요계정). 열 머리글에서 근거 보고서의 DART 원문을 열 수 있어요.
-            </p>
-          </>
-        )}
+        {/* 안내·경고는 늘 같은 한 줄 자리에 둬, 나타나고 사라질 때 표가 위아래로 밀리지 않게 한다(#424) */}
+        <p
+          className={periodsDiffer(columns) ? 'company-compare__status company-compare__status--attention' : 'company-compare__status'}
+          role="status"
+        >
+          {corps.length < MIN_COMPANIES
+            ? `비교할 기업을 ${MIN_COMPANIES}곳 이상 골라 주세요. 위 검색 칸이나 관심 기업에서 최대 ${MAX_COMPANIES}곳까지 고를 수 있어요.`
+            : periodsDiffer(columns)
+              ? `${PERIOD_MISMATCH_MESSAGE}. 기업마다 결산월이나 최신 보고서가 달라 대상 기간이 다를 수 있어요.`
+              : `${corps.length}곳을 같은 종류 보고서로 나란히 보여 드려요.`}
+        </p>
+        <ComparisonTable columns={columns} type={type} onRetry={retry} />
+        <p className="panel__note">
+          {fsDiv === 'CFS' ? '연결' : '별도'} 기준 · 재무상태표는 기말 잔액, 손익은 사업연도 시작부터 누적 금액이에요
+          (연환산하지 않아요). 금액 단위는 원이고 조·억으로 줄여 보여 드려요. 값이 없으면 0이 아니라 '자료 없음'이에요.
+        </p>
+        <p className="panel__note">비율은 주요계정 값으로 코드가 계산했어요. 업종이나 기준값과 비교하지 않아요.</p>
+        <p className="panel__note">
+          출처: DART(OpenDART 단일회사 주요계정). 열 머리글에서 근거 보고서의 DART 원문을 열 수 있어요.
+        </p>
       </Panel>
     </section>
   )
