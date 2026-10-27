@@ -1,10 +1,6 @@
-package com.dartinsight.keyfact.service;
+package com.dartinsight.keyfact.domain;
 
-import com.dartinsight.keyfact.domain.Dividend;
-import com.dartinsight.keyfact.domain.Executive;
-import com.dartinsight.keyfact.domain.KeyFactChange;
 import com.dartinsight.keyfact.domain.KeyFactChange.Type;
-import com.dartinsight.keyfact.domain.MajorShareholder;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -16,7 +12,7 @@ import java.util.function.Function;
  * 두 보고서의 같은 행을 짝지어 바뀐 항목을 만든다(docs/api-spec.md key-facts). 값은 원문 그대로 옮기고 계산하지 않는다.
  * 순서: 현재 보고서 순서로 추가·변경, 그다음 이전 보고서 순서로 빠진 항목.
  */
-final class KeyFactChanges {
+public final class KeyFactChanges {
 
     static final String CASH_DIVIDEND_PER_SHARE = "주당 현금배당금";
 
@@ -24,7 +20,7 @@ final class KeyFactChanges {
     }
 
     /** 성명 + 주식 종류로 짝짓는다. 기말 지분율이 다르면 그 값, 같고 기말 주식 수만 다르면 그 값. */
-    static List<KeyFactChange> majorShareholders(List<MajorShareholder> previous, List<MajorShareholder> current) {
+    public static List<KeyFactChange> majorShareholders(List<MajorShareholder> previous, List<MajorShareholder> current) {
         Map<String, MajorShareholder> before = index(previous, r -> key(r.name(), r.stockKind()));
         Map<String, MajorShareholder> after = index(current, r -> key(r.name(), r.stockKind()));
         List<KeyFactChange> changes = new ArrayList<>();
@@ -51,7 +47,7 @@ final class KeyFactChanges {
     }
 
     /** 성명으로 짝짓는다(같은 이름이 둘 이상이면 처음 것). 직위·등기 구분이 다르면 필드마다 한 건. */
-    static List<KeyFactChange> executives(List<Executive> previous, List<Executive> current) {
+    public static List<KeyFactChange> executives(List<Executive> previous, List<Executive> current) {
         Map<String, Executive> before = index(previous, Executive::name);
         Map<String, Executive> after = index(current, Executive::name);
         List<KeyFactChange> changes = new ArrayList<>();
@@ -79,7 +75,7 @@ final class KeyFactChanges {
     }
 
     /** 구분 + 주식 종류로 짝짓고, 주당 현금배당금 행의 당기 값이 다를 때만 만든다. */
-    static List<KeyFactChange> dividends(List<Dividend> previous, List<Dividend> current) {
+    public static List<KeyFactChange> dividends(List<Dividend> previous, List<Dividend> current) {
         Map<String, Dividend> before = index(previous, r -> key(r.category(), r.stockKind()));
         List<KeyFactChange> changes = new ArrayList<>();
         index(current, r -> key(r.category(), r.stockKind())).forEach((key, now) -> {

@@ -1,4 +1,4 @@
-package com.dartinsight.question.service;
+package com.dartinsight.question.domain;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
  * 사실 표시 {@code [F1]}은 그대로 둔다. 보낸 적 없는 근거 ID·사실 ref가 하나라도 있거나 표시가 하나도 없으면
  * 확인하지 못한 답으로 본다.
  */
-final class AnswerMarkers {
+public final class AnswerMarkers {
 
     private static final Pattern MARKER = Pattern.compile("\\[([^\\[\\]]+)]");
     private static final Pattern FACT_REF = Pattern.compile("F(\\d+)");
@@ -26,7 +26,7 @@ final class AnswerMarkers {
      * @param evidenceIds 후보로 보낸 근거 ID
      * @param factRefs    보낸 사실 ref
      */
-    static Converted convert(String answer, Set<String> evidenceIds, Set<String> factRefs) {
+    public static Converted convert(String answer, Set<String> evidenceIds, Set<String> factRefs) {
         if (answer == null || answer.isBlank()) {
             return Converted.invalid();
         }
@@ -62,7 +62,7 @@ final class AnswerMarkers {
     }
 
     /** 답에 나온 사실 ref(F 뒤 번호 순서). 저장된 답에서 사실을 다시 짝지을 때도 쓴다 */
-    static List<String> factRefs(String convertedAnswer) {
+    public static List<String> factRefs(String convertedAnswer) {
         Set<String> refs = new LinkedHashSet<>();
         if (convertedAnswer != null) {
             Matcher matcher = MARKER.matcher(convertedAnswer);
@@ -88,7 +88,7 @@ final class AnswerMarkers {
      * @param evidenceIds 인용 번호 순서의 근거 ID
      * @param factRefs    인용한 사실 ref(번호 순서)
      */
-    record Converted(boolean valid, String answer, List<String> evidenceIds, List<String> factRefs) {
+    public record Converted(boolean valid, String answer, List<String> evidenceIds, List<String> factRefs) {
 
         static Converted invalid() {
             return new Converted(false, null, List.of(), List.of());

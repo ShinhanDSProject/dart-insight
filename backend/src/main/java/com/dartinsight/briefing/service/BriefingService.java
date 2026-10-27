@@ -6,6 +6,7 @@ import com.dartinsight.aiserver.client.AiServerPaths;
 import com.dartinsight.analysis.service.TextEvidenceService;
 import com.dartinsight.briefing.domain.BriefingRecord;
 import com.dartinsight.briefing.domain.BriefingSentence;
+import com.dartinsight.briefing.domain.BriefingSources;
 import com.dartinsight.briefing.domain.BriefingSource;
 import com.dartinsight.briefing.domain.BriefingStatus;
 import com.dartinsight.briefing.domain.BriefingUnavailableReason;
