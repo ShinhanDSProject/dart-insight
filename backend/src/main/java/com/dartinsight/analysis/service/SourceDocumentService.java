@@ -13,12 +13,14 @@ import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 앱 안 원문 확인(3.5). 분석의 두 보고서(현재·비교) 원문만 돌려준다(근거가 이 보고서 쌍의 것인지 확인).
  * 원문은 분석할 때 구조화(4.2)해 둔 목차·문단·표다.
  */
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class SourceDocumentService {
 

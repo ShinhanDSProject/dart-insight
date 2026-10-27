@@ -11,9 +11,11 @@ import com.dartinsight.report.service.ReportService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /** 재무 수치 변화 조회(W-03 ②)와 수치 근거 상세(3.3). 완료된 분석의 결과를 그 보고서 쌍의 비교 규칙·보고서와 함께 돌려준다. */
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class FinancialChangeQueryService {
 

@@ -20,12 +20,14 @@ import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 요약·설명(3.2) 화면 응답. 저장된 요약 항목을 보이는 줄과 '검토 필요' 줄로 나누고, 근거 ID를 화면에서 열 수 있는
- * 위치로 푼다. 조회는 SummaryQueryService·DocumentService가 각자의 트랜잭션에서 한다.
+ * 위치로 푼다. 조회만 하므로 한 읽기 전용 트랜잭션에서 한다(TX-1).
  */
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class SummaryViewService {
 

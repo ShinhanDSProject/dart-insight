@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 문장·표 근거 상세(3.4). 변경 전·후 원문을 보고서·항목·위치와 함께 돌려준다.
@@ -26,6 +27,7 @@ import org.springframework.stereotype.Service;
  * (원문을 다시 구조화해 위치가 달라졌으면 글만 보여 주고 표 셀은 붙이지 않음).
  */
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class TextEvidenceService {
 
