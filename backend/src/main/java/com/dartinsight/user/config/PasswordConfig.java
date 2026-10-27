@@ -1,4 +1,4 @@
-package com.dartinsight.user;
+package com.dartinsight.user.config;
 
 import java.util.Map;
 import org.springframework.context.annotation.Bean;

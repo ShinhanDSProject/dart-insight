@@ -1,17 +1,17 @@
-package com.dartinsight.user;
+package com.dartinsight.user.domain;
 
 import com.dartinsight.common.error.ApiException;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
 /** API 명세 #136의 입력 규칙. 비밀번호는 정규화하거나 잘라내지 않는다. */
-final class RegistrationInput {
+public final class RegistrationInput {
     private static final Pattern LOCAL = Pattern.compile("[a-z0-9.!#$%&'*+/=?^_`{|}~-]+");
     private static final Pattern LABEL = Pattern.compile("[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?");
 
     private RegistrationInput() {}
 
-    static String email(Object raw) {
+    public static String email(Object raw) {
         if (!(raw instanceof String value)) {
             throw ApiException.invalidInput("email", "이메일을 입력해 주세요.");
         }
@@ -34,7 +34,7 @@ final class RegistrationInput {
         return email;
     }
 
-    static String password(Object raw) {
+    public static String password(Object raw) {
         if (!(raw instanceof String value)) {
             throw ApiException.invalidInput("password", "비밀번호를 입력해 주세요.");
         }

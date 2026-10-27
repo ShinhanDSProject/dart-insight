@@ -1,4 +1,4 @@
-package com.dartinsight.user;
+package com.dartinsight.user.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -31,7 +31,7 @@ public class SocialAccount {
 
     protected SocialAccount() {}
 
-    static SocialAccount create(long userId, SocialIdentity identity, LocalDateTime now) {
+    public static SocialAccount create(long userId, SocialIdentity identity, LocalDateTime now) {
         SocialAccount account = new SocialAccount();
         account.userId = userId;
         account.provider = identity.provider();
@@ -43,5 +43,5 @@ public class SocialAccount {
         return account;
     }
 
-    long userId() { return userId; }
+    public long userId() { return userId; }
 }

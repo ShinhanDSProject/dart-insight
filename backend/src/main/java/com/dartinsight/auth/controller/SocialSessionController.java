@@ -3,9 +3,7 @@ package com.dartinsight.auth.controller;
 import com.dartinsight.auth.config.AuthProperties;
 import com.dartinsight.auth.service.AuthService;
 import com.dartinsight.auth.service.RefreshCookieService;
-import com.dartinsight.auth.service.SocialIdentityExtractor;
 import com.dartinsight.common.web.ApiPaths;
-import com.dartinsight.user.SocialAuthenticationService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -26,13 +24,11 @@ import org.springframework.web.util.UriComponentsBuilder;
 @RequiredArgsConstructor
 public class SocialSessionController {
     private static final Logger log = LoggerFactory.getLogger(SocialSessionController.class);
-    private final SocialIdentityExtractor identities;
-    private final SocialAuthenticationService socialAuthentication;
     private final AuthService auth;
     private final RefreshCookieService cookies;
     private final AuthProperties properties;
 
-    @GetMapping("/callback")
+    @GetMapping(ApiPaths.CALLBACK)
     public void callback(OAuth2AuthenticationToken token, HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         if (token == null) {
@@ -42,9 +38,7 @@ public class SocialSessionController {
         }
         String provider = token.getAuthorizedClientRegistrationId();
         try {
-            var identity = identities.extract(provider, token.getPrincipal().getAttributes());
-            long userId = socialAuthentication.authenticate(identity);
-            var session = auth.loginSocial(userId);
+            var session = auth.loginSocial(provider, token.getPrincipal().getAttributes());
             response.addHeader(HttpHeaders.SET_COOKIE, cookies.create(session.refreshToken()).toString());
             invalidate(request);
             response.sendRedirect(redirect("success"));
@@ -58,7 +52,7 @@ public class SocialSessionController {
     }
 
     // 제공자 쪽 실패(사용자 취소, 잘못된 state 등). SecurityConfig가 예외를 요청 속성에 담아 forward한다. 예외 종류만 기록한다.
-    @GetMapping("/failure")
+    @GetMapping(ApiPaths.FAILURE)
     public void failure(HttpServletRequest request, HttpServletResponse response) throws IOException {
         Object exception = request.getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION);
         String reason = exception instanceof OAuth2AuthenticationException oauth ? oauth.getError().getErrorCode()

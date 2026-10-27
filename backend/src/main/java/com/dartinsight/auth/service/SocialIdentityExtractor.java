@@ -1,6 +1,6 @@
 package com.dartinsight.auth.service;
 
-import com.dartinsight.user.SocialIdentity;
+import com.dartinsight.user.domain.SocialIdentity;
 import java.util.Map;
 import org.springframework.stereotype.Component;
 

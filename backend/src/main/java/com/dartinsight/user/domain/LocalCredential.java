@@ -1,4 +1,4 @@
-package com.dartinsight.user;
+package com.dartinsight.user.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -34,7 +34,7 @@ public class LocalCredential {
 
     protected LocalCredential() {}
 
-    static LocalCredential create(User user, String email, String passwordHash) {
+    public static LocalCredential create(User user, String email, String passwordHash) {
         LocalCredential credential = new LocalCredential();
         credential.user = user;
         credential.email = email;

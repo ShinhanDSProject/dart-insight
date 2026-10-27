@@ -10,7 +10,7 @@ import com.dartinsight.note.dto.NoteCreateRequest;
 import com.dartinsight.note.dto.NoteItemResponse;
 import com.dartinsight.note.dto.NoteListResponse;
 import com.dartinsight.note.repository.JudgmentNoteItemRepository;
-import com.dartinsight.user.UserService;
+import com.dartinsight.user.service.UserService;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;

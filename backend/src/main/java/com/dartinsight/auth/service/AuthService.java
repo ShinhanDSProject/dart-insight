@@ -6,7 +6,8 @@ import com.dartinsight.auth.dto.SessionResponse;
 import com.dartinsight.auth.repository.RefreshTokenRepository;
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
-import com.dartinsight.user.CredentialAuthenticationService;
+import com.dartinsight.user.service.CredentialAuthenticationService;
+import com.dartinsight.user.service.SocialAuthenticationService;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -14,18 +15,23 @@ import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Base64;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 @RequiredArgsConstructor
 public class AuthService {
     private final CredentialAuthenticationService credentials;
+    private final SocialIdentityExtractor identities;
+    private final SocialAuthenticationService socialAuthentication;
     private final RefreshTokenRepository refreshTokens;
     private final JwtService jwt;
     private final AuthProperties properties;
+    private final TransactionTemplate transactions;
     private final Clock clock;
     private final SecureRandom random = new SecureRandom();
 
@@ -35,9 +41,13 @@ public class AuthService {
         return issue(user.userId(), UUID.randomUUID().toString());
     }
 
-    @Transactional
-    public IssuedSession loginSocial(long userId) {
-        return issue(userId, UUID.randomUUID().toString());
+    /**
+     * 제공자가 준 사용자 정보로 회원을 찾거나 만든 뒤 세션을 연다. 회원 저장과 토큰 발급은 따로 커밋한다.
+     * 제공자 사용자 ID가 없거나 지원하지 않는 제공자면 IllegalArgumentException
+     */
+    public IssuedSession loginSocial(String provider, Map<String, Object> attributes) {
+        long userId = socialAuthentication.authenticate(identities.extract(provider, attributes));
+        return transactions.execute(status -> issue(userId, UUID.randomUUID().toString()));
     }
 
     @Transactional(noRollbackFor = ApiException.class)

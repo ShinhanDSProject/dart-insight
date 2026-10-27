@@ -1,7 +1,10 @@
-package com.dartinsight.user;
+package com.dartinsight.user.service;
 
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
+import com.dartinsight.user.domain.LocalCredential;
+import com.dartinsight.user.domain.RegistrationInput;
+import com.dartinsight.user.repository.LocalCredentialRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 

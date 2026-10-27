@@ -1,4 +1,4 @@
-package com.dartinsight.user;
+package com.dartinsight.user.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
