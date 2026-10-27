@@ -13,4 +13,10 @@ import java.time.LocalDateTime;
  */
 public record RelatedRun(Long id, long analysisId, String ruleVersion, long windowFetchId, LocalDate periodEnd,
         int linkCount, String traceId, LocalDateTime computedAt) {
+
+    /** 저장해 받은 행 id를 단 같은 기록 */
+    public RelatedRun withId(Long savedId) {
+        return new RelatedRun(savedId, analysisId, ruleVersion, windowFetchId, periodEnd, linkCount, traceId,
+                computedAt);
+    }
 }

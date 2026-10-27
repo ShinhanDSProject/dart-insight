@@ -15,4 +15,9 @@ public record RelatedDisclosures(RelatedRun run, List<RelatedLink> links, boolea
     public RelatedDisclosures {
         links = List.copyOf(links);
     }
+
+    /** 문장 변경 하나(변경 번호)의 연결 */
+    public List<RelatedLink> linksOf(int changeNo) {
+        return links.stream().filter(link -> link.changeNo() == changeNo).toList();
+    }
 }

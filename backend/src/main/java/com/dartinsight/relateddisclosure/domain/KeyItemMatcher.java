@@ -3,10 +3,14 @@ package com.dartinsight.relateddisclosure.domain;
 import com.dartinsight.disclosure.domain.DisclosureKeyItems;
 import com.dartinsight.disclosure.domain.KeyItem;
 import com.dartinsight.disclosure.domain.KeyItemKind;
+import com.dartinsight.disclosure.domain.KeyItemRules;
 import com.dartinsight.disclosure.domain.KeyItemStatus;
+import com.dartinsight.disclosure.domain.KeyItemTarget;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -55,6 +59,22 @@ public final class KeyItemMatcher {
     private static final int MIN_SHARES_DIGITS = 4;
 
     private KeyItemMatcher() {
+    }
+
+    /** 1단계 연결에 든 공시 가운데 주요정보를 받을 B001 공시({@link #KINDS} 종류). 접수번호마다 한 번, 연결 순서 */
+    public static List<KeyItemTarget> targets(List<RelatedLink> links) {
+        Map<String, KeyItemTarget> targets = new LinkedHashMap<>();
+        for (RelatedLink link : links) {
+            WindowDisclosure d = link.disclosure();
+            if (d.detailType() != DisclosureDetailType.B001 || targets.containsKey(d.rceptNo())) {
+                continue;
+            }
+            KeyItemRules.classify(d.reportName())
+                    .filter(KINDS::contains)
+                    .ifPresent(kind -> targets.put(d.rceptNo(),
+                            KeyItemTarget.of(d.rceptNo(), d.reportName(), d.rceptDt(), kind, d.remark())));
+        }
+        return List.copyOf(targets.values());
     }
 
     /**
