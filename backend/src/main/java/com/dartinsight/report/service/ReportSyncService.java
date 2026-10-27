@@ -3,7 +3,7 @@ package com.dartinsight.report.service;
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.company.domain.Company;
-import com.dartinsight.company.repository.CompanyRepository;
+import com.dartinsight.company.service.CompanyService;
 import com.dartinsight.dart.dto.DisclosureListResponse;
 import com.dartinsight.dart.client.OpenDartClient;
 import com.dartinsight.report.config.ReportProperties;
@@ -38,7 +38,7 @@ public class ReportSyncService {
     private static final Logger log = LoggerFactory.getLogger(ReportSyncService.class);
 
     private final OpenDartClient openDartClient;
-    private final CompanyRepository companyRepository;
+    private final CompanyService companyService;
     private final ReportRepository reportRepository;
     private final ReportProperties properties;
     private final TransactionTemplate transactionTemplate;
@@ -64,8 +64,7 @@ public class ReportSyncService {
     }
 
     private Company findCompany(String corpCode) {
-        return companyRepository.findByCorpCode(corpCode)
-                .orElseThrow(() -> new ApiException(ErrorCode.COMPANY_NOT_FOUND));
+        return companyService.get(corpCode);
     }
 
     private LocalDateTime now() {
@@ -118,7 +117,7 @@ public class ReportSyncService {
                 created.add(item.rceptNo());
             }
         }
-        companyRepository.findByCorpCode(corpCode).ifPresent(c -> c.markReportsFetched(now));
+        companyService.markReportsFetched(corpCode, now);
         log.info("정기보고서 목록 저장 {}: 새 보고서 {}건, 바뀐 보고서 {}건, 지원하지 않는 공시 {}건", corpCode,
                 created.size(), updated, skipped);
         // 처음 받은 목록의 보고서는 과거 공시라 새 공시로 넘기지 않는다

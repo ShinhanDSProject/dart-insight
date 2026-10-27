@@ -4,8 +4,10 @@ import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.company.domain.Company;
 import com.dartinsight.company.repository.CompanyRepository;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -44,6 +46,17 @@ public class CompanyService {
     public Company get(String corpCode) {
         return companyRepository.findByCorpCode(corpCode)
                 .orElseThrow(() -> new ApiException(ErrorCode.COMPANY_NOT_FOUND));
+    }
+
+    /** 저장된 회사. 없을 수 있다 */
+    public Optional<Company> find(String corpCode) {
+        return companyRepository.findByCorpCode(corpCode);
+    }
+
+    /** 정기보고서 목록을 받은 시각을 기록한다. 부른 쪽 트랜잭션에서 목록 저장과 함께 커밋한다. 없는 회사면 그대로 둔다 */
+    @Transactional
+    public void markReportsFetched(String corpCode, LocalDateTime fetchedAt) {
+        companyRepository.findByCorpCode(corpCode).ifPresent(c -> c.markReportsFetched(fetchedAt));
     }
 
     /** 고유번호 여러 개를 한 번에 찾는다. 없는 고유번호는 결과에서 빠진다. */

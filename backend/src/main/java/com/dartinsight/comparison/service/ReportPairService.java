@@ -4,7 +4,6 @@ import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.comparison.domain.ComparisonBasis;
 import com.dartinsight.report.domain.Report;
-import com.dartinsight.report.repository.ReportRepository;
 import com.dartinsight.report.service.ReportService;
 import com.dartinsight.report.domain.ReportType;
 import java.util.List;
@@ -21,7 +20,6 @@ import org.springframework.stereotype.Service;
 public class ReportPairService {
 
     private final ReportService reportService;
-    private final ReportRepository reportRepository;
 
     public ReportPair findPair(String corpCode, ComparisonBasis basis, String currentRceptNo) {
         if (basis == ComparisonBasis.CUSTOM) {
@@ -45,9 +43,11 @@ public class ReportPairService {
     }
 
     private Report findCurrent(String corpCode, String rceptNo) {
-        return reportRepository.findByRceptNo(rceptNo)
-                .filter(r -> r.getCorpCode().equals(corpCode))
-                .orElseThrow(() -> new ApiException(ErrorCode.REPORT_NOT_FOUND));
+        Report report = reportService.report(rceptNo);
+        if (!report.getCorpCode().equals(corpCode)) {
+            throw new ApiException(ErrorCode.REPORT_NOT_FOUND);
+        }
+        return report;
     }
 
     /** 비교 기준에 따라 찾을 이전 보고서의 종류와 사업연도. */

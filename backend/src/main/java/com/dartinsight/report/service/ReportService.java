@@ -3,7 +3,7 @@ package com.dartinsight.report.service;
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.company.domain.Company;
-import com.dartinsight.company.repository.CompanyRepository;
+import com.dartinsight.company.service.CompanyService;
 import com.dartinsight.report.domain.FinancialDataStatus;
 import com.dartinsight.report.domain.Report;
 import com.dartinsight.report.repository.ReportRepository;
@@ -24,7 +24,7 @@ import org.springframework.stereotype.Service;
 public class ReportService {
 
     private final ReportSyncService syncService;
-    private final CompanyRepository companyRepository;
+    private final CompanyService companyService;
     private final ReportRepository reportRepository;
     private final FinancialDataStatusProvider financialDataStatusProvider;
 
@@ -35,16 +35,14 @@ public class ReportService {
 
     public ReportList list(String corpCode) {
         ReportSyncService.SyncResult sync = syncService.refreshIfStale(corpCode);
-        Company company = companyRepository.findByCorpCode(corpCode)
-                .orElseThrow(() -> new ApiException(ErrorCode.COMPANY_NOT_FOUND));
+        Company company = companyService.get(corpCode);
         List<Report> reports = stored(company);
         return new ReportList(company, reports, financialDataStatuses(corpCode, reports), sync.cacheFallbackError());
     }
 
     /** 마지막으로 받아 저장한 목록(최근 기간부터). OpenDART를 부르지 않는다. 없는 기업이면 404 */
     public List<Report> stored(String corpCode) {
-        return stored(companyRepository.findByCorpCode(corpCode)
-                .orElseThrow(() -> new ApiException(ErrorCode.COMPANY_NOT_FOUND)));
+        return stored(companyService.get(corpCode));
     }
 
     private List<Report> stored(Company company) {
@@ -70,8 +68,7 @@ public class ReportService {
     public ReportDetail get(String rceptNo) {
         Report report = reportRepository.findByRceptNo(rceptNo)
                 .orElseThrow(() -> new ApiException(ErrorCode.REPORT_NOT_FOUND));
-        Company company = companyRepository.findByCorpCode(report.getCorpCode())
-                .orElseThrow(() -> new ApiException(ErrorCode.COMPANY_NOT_FOUND));
+        Company company = companyService.get(report.getCorpCode());
         boolean latest = report.inLatestList(company.getReportsFetchedAt());
         FinancialDataStatus status = financialDataStatuses(company.getCorpCode(), List.of(report))
                 .get(report.getRceptNo());

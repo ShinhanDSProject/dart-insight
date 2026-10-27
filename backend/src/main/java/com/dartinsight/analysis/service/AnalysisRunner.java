@@ -14,7 +14,7 @@ import com.dartinsight.analysis.repository.AnalysisRepository;
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.trace.TraceContext;
 import com.dartinsight.company.domain.Company;
-import com.dartinsight.company.repository.CompanyRepository;
+import com.dartinsight.company.service.CompanyService;
 import com.dartinsight.comparison.service.ComparabilityService;
 import com.dartinsight.comparison.service.ComparabilityService.ComparabilityResult;
 import com.dartinsight.financial.service.FinancialStatementService;
@@ -54,7 +54,7 @@ public class AnalysisRunner implements DisposableBean {
     private final FinancialStatementService financialStatementService;
     private final TextComparisonService textComparisonService;
     private final SummaryService summaryService;
-    private final CompanyRepository companyRepository;
+    private final CompanyService companyService;
     private final Clock clock;
     private final TaskExecutor executor;
     /** 이 실행이 시작된 시각. 이보다 먼저 만들어진 분석만 이전 실행에서 끊긴 것으로 본다 */
@@ -62,7 +62,7 @@ public class AnalysisRunner implements DisposableBean {
 
     public AnalysisRunner(AnalysisRepository analysisRepository, AnalysisResultService resultService,
             ComparabilityService comparabilityService, FinancialStatementService financialStatementService,
-            TextComparisonService textComparisonService, SummaryService summaryService, CompanyRepository companyRepository,
+            TextComparisonService textComparisonService, SummaryService summaryService, CompanyService companyService,
             Clock clock, AnalysisProperties properties) {
         this.analysisRepository = analysisRepository;
         this.resultService = resultService;
@@ -70,7 +70,7 @@ public class AnalysisRunner implements DisposableBean {
         this.financialStatementService = financialStatementService;
         this.textComparisonService = textComparisonService;
         this.summaryService = summaryService;
-        this.companyRepository = companyRepository;
+        this.companyService = companyService;
         this.clock = clock;
         this.bootedAt = now();
         if (properties.async()) {
@@ -202,7 +202,7 @@ public class AnalysisRunner implements DisposableBean {
 
     /** 요약 요청에 넣을 회사 이름. 저장된 회사가 없으면 현재 보고서의 제출인 이름 */
     private String companyName(Analysis analysis, ComparabilityResult check) {
-        return companyRepository.findByCorpCode(analysis.getCorpCode()).map(Company::getCorpName)
+        return companyService.find(analysis.getCorpCode()).map(Company::getCorpName)
                 .orElse(check.current().getFilerName());
     }
 
