@@ -1144,6 +1144,57 @@ th[aria-sort='none'] .data-table__sort-mark {
   transform: rotate(45deg) scale(1.4);
 }
 
+/*
+ * 모음 점: 같은 줄에서 화면상 붙은 점(4개 이상)을 건수를 쓴 동그라미 하나로 그린다.
+ * 지름은 건수 단계별 16 · 20 · 28px(상한)이고 줄 높이(44px) 안에 든다. 지름을 바꾸면 dotTimeline.ts의
+ * CLUSTER_RADIUS_PX(반지름 + 테두리 2px)·CLUSTER_BIN_PX(가장 큰 모음 점이 드는 폭)도 맞춘다.
+ * 글자는 --color-primary-text(밝게 흰색 / 다크 바탕색)로 점 색 위에서 7.7 · 다크 5.7 대비다
+ */
+.dot-timeline__cluster--size-1 {
+  --dot-timeline-cluster: var(--space-4);
+}
+
+.dot-timeline__cluster--size-2 {
+  --dot-timeline-cluster: calc(var(--space-4) + var(--space-1));
+}
+
+.dot-timeline__cluster--size-3 {
+  --dot-timeline-cluster: calc(var(--space-5) + var(--space-1));
+  --dot-timeline-hit: calc(var(--space-5) + var(--space-1));
+}
+
+.dot-timeline__cluster-dot,
+.dot-timeline__mark--cluster {
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-chart-current);
+  color: var(--color-primary-text);
+  font-family: var(--font-num);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.dot-timeline__cluster-dot {
+  width: var(--dot-timeline-cluster);
+  height: var(--dot-timeline-cluster);
+  box-shadow: 0 0 0 2px var(--color-bg);
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.dot-timeline__mark--cluster {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.dot-timeline__cluster:hover .dot-timeline__cluster-dot,
+.dot-timeline__cluster:focus-visible .dot-timeline__cluster-dot,
+.dot-timeline__cluster[aria-expanded='true'] .dot-timeline__cluster-dot {
+  transform: scale(1.15);
+}
+
 .dot-timeline__tooltip {
   position: absolute;
   z-index: 3;
@@ -1193,6 +1244,37 @@ th[aria-sort='none'] .data-table__sort-mark {
 
 .dot-timeline__tooltip-action {
   font-weight: var(--font-weight-medium);
+}
+
+/* 고정한 툴팁(모음 점을 누름): 테두리를 한 단계 진하게 해 hover 툴팁과 구분한다 */
+.dot-timeline__tooltip--pinned {
+  border-color: var(--color-border-strong);
+}
+
+.dot-timeline__tooltip-list {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dot-timeline__tooltip-list li {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-2);
+  overflow-wrap: anywhere;
+}
+
+.dot-timeline__tooltip-date {
+  color: var(--color-text-muted);
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.dot-timeline__tooltip-more {
+  justify-self: start;
+  font-size: var(--font-size-xs);
 }
 
 .dot-timeline__axis {

@@ -165,6 +165,129 @@ describe('공시 타임라인 차트(FS-58, #445)', () => {
     expect(screen.queryByRole('button', { name: /더 보기/ })).toBeNull()
   })
 
+  describe('붙은 공시 모음 점', () => {
+    // 지분 변동 7건이 나흘 안에 몰렸다(접수일이 최근인 순서)
+    const crowded = [13, 13, 12, 12, 11, 10, 10].map((day, i) =>
+      item(`2026031${i}000001`, `임원ㆍ주요주주특정증권등소유상황보고서 ${i}`, `2026-03-${day}`, 'OWNERSHIP'),
+    )
+    const withCrowd = [...sample, ...crowded]
+
+    async function openChart() {
+      listDisclosures.mockResolvedValue(list(withCrowd))
+      const view = renderSection()
+      const chart = await screen.findByRole('group', { name: /최근 1년 공시 타임라인/ })
+      const cluster = within(chart).getByRole('button', { name: '지분 변동 공시 7건 모음, 2026.03.10 ~ 03.13 접수' })
+      return { ...view, chart, cluster }
+    }
+
+    function tooltipOf(container: HTMLElement) {
+      return container.querySelector<HTMLElement>('.dot-timeline__tooltip')
+    }
+
+    it('비키기 자리(3)보다 많이 붙은 점은 건수를 쓴 모음 점 하나로 그리고, 정기보고서는 따로 둔다', async () => {
+      const { chart, cluster, container } = await openChart()
+      expect(cluster.textContent).toBe('7')
+      expect(cluster.getAttribute('aria-expanded')).toBe('false')
+      // 하나씩 그린 점 3개 + 모음 점 1개
+      expect(chart.querySelectorAll('.dot-timeline__point')).toHaveLength(4)
+      expect(within(chart).getByRole('link', { name: /^반기보고서/ }).className).toContain('dot-timeline__point--emphasis')
+      expect(await axeViolations(container)).toBe('')
+    })
+
+    it('hover하면 기간·묶음·건수와 최근 공시 5개(각각 원문 링크), 외 N건을 보인다', async () => {
+      const { cluster, container } = await openChart()
+      fireEvent.pointerEnter(cluster)
+      const tooltip = tooltipOf(container)!
+      expect(tooltip.textContent).toContain('지분 변동 7건')
+      expect(tooltip.textContent).toContain('2026.03.10 ~ 03.13 접수 · 최근 순서')
+      const links = within(tooltip).getAllByRole('link')
+      expect(links).toHaveLength(5)
+      expect(links[0].getAttribute('href')).toMatch(/^https:\/\/dart\.fss\.or\.kr\/dsaf001\/main\.do\?rcpNo=2026031[01]000001$/)
+      expect(links[0].getAttribute('target')).toBe('_blank')
+      expect(links[0].textContent).toContain('2026.03.13 접수, DART 원문 새 창')
+      expect(within(tooltip).getByRole('button', { name: '외 2건은 표로 보기' })).toBeTruthy()
+      expect(cluster.getAttribute('aria-controls')).toBe(tooltip.id)
+      expect(await axeViolations(container)).toBe('')
+    })
+
+    it('누르면 툴팁을 고정해 포인터가 떠나도 남기고, 툴팁 링크로 초점을 옮긴 뒤 Esc로 닫으면 모음 점으로 돌아온다', async () => {
+      const { chart, cluster, container } = await openChart()
+      fireEvent.focus(cluster)
+      fireEvent.click(cluster)
+      expect(cluster.getAttribute('aria-expanded')).toBe('true')
+      fireEvent.pointerLeave(chart)
+      expect(tooltipOf(container)?.className).toContain('dot-timeline__tooltip--pinned')
+      // 다른 점 위를 지나가도 바뀌지 않는다
+      fireEvent.pointerEnter(within(chart).getByRole('link', { name: /^반기보고서/ }))
+      expect(tooltipOf(container)?.textContent).toContain('지분 변동 7건')
+
+      // 툴팁 링크는 tabindex를 막지 않아 모음 점 다음 Tab으로 간다
+      const firstLink = within(tooltipOf(container)!).getAllByRole('link')[0]
+      expect(firstLink.tabIndex).toBe(0)
+      firstLink.focus()
+      expect(tooltipOf(container)).not.toBeNull()
+      fireEvent.keyDown(firstLink, { key: 'Escape' })
+      expect(tooltipOf(container)).toBeNull()
+      expect(document.activeElement).toBe(cluster)
+    })
+
+    it('고정한 툴팁은 차트 바깥을 누르면 닫고, 모음 점을 다시 누르면 닫는다', async () => {
+      const { cluster, container } = await openChart()
+      fireEvent.click(cluster)
+      fireEvent.pointerDown(document.body)
+      expect(tooltipOf(container)).toBeNull()
+
+      fireEvent.click(cluster)
+      expect(tooltipOf(container)).not.toBeNull()
+      fireEvent.click(cluster)
+      expect(tooltipOf(container)).toBeNull()
+    })
+
+    it('화살표 키는 모음 점을 대상 하나로 옮긴다', async () => {
+      const { chart, cluster } = await openChart()
+      const business = within(chart).getByRole('link', { name: /^연결재무제표기준/ })
+      fireEvent.focus(business)
+      fireEvent.keyDown(business, { key: 'ArrowRight' })
+      expect(document.activeElement).toBe(cluster)
+      expect(cluster.tabIndex).toBe(0)
+      fireEvent.keyDown(cluster, { key: 'ArrowRight' })
+      expect(document.activeElement).toBe(within(chart).getByRole('link', { name: /^반기보고서/ }))
+    })
+
+    it('외 N건은 표로 보기를 누르면 표 보기로 바꾸고 표로 초점을 옮긴다', async () => {
+      const { cluster, container } = await openChart()
+      fireEvent.click(cluster)
+      fireEvent.click(within(tooltipOf(container)!).getByRole('button', { name: '외 2건은 표로 보기' }))
+      const table = screen.getByRole('table')
+      expect(document.activeElement).toBe(table)
+      expect(within(table).getAllByRole('row')).toHaveLength(withCrowd.length + 1)
+      expect(screen.getByRole('button', { name: '표로 보기' }).getAttribute('aria-pressed')).toBe('true')
+    })
+
+    it('삼성전자 규모(1년 지분 변동 2,774건)에서도 그리는 점 요소는 100개 미만이다', async () => {
+      const start = Date.UTC(2025, 9, 27)
+      const isoDay = (offset: number) => new Date(start + Math.min(364, offset) * 86_400_000).toISOString().slice(0, 10)
+      // 지분 변동은 1년에 고르게(하루 7~8건), 그 밖의 공시는 사흘마다, 정기보고서 4건
+      const ownership = Array.from({ length: 2774 }, (_, i) =>
+        item(`2026${String(i).padStart(10, '0')}`, `임원ㆍ주요주주특정증권등소유상황보고서 ${i}`, isoDay(Math.floor((i * 365) / 2774)), 'OWNERSHIP'),
+      )
+      const others = Array.from({ length: 120 }, (_, i) => item(`2025${String(i).padStart(10, '0')}`, `기타 공시 ${i}`, isoDay(i * 3), 'OTHER'))
+      const periodic = [19, 134, 200, 291].map((offset, i) =>
+        item(`2024${String(i).padStart(10, '0')}`, `정기보고서 ${i}`, isoDay(offset), 'PERIODIC'),
+      )
+      const all = [...ownership, ...others, ...periodic]
+      listDisclosures.mockResolvedValue(list(all))
+      renderSection()
+      const chart = await screen.findByRole('group', { name: /최근 1년 공시 타임라인/ })
+      const rendered = chart.querySelectorAll('.dot-timeline__point').length
+      const clusters = chart.querySelectorAll('.dot-timeline__cluster').length
+      // 전에는 공시 하나 = 점 요소 하나(2,898개). 폭 720px(테스트 기본 폭)에서는 줄마다 32px 칸 23개 안의 모음 점이 된다
+      console.info(`[DotTimeline] 공시 ${all.length}건 → 점 요소 ${rendered}개(모음 점 ${clusters}개)`)
+      expect(rendered).toBeLessThan(100)
+      expect(chart.querySelectorAll('.dot-timeline__point--emphasis')).toHaveLength(4)
+    })
+  })
+
   it('1년 공시가 없으면 최근 1년 공시 없음을 보인다', async () => {
     listDisclosures.mockResolvedValue(list([]))
     const { container } = renderSection()

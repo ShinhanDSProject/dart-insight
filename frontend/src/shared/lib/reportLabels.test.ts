@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { correctionLabel, dataStatusLabel, formatDate, periodLabel, reportTypeLabel } from './reportLabels'
+import { correctionLabel, dataStatusLabel, formatDate, formatDateRange, periodLabel, reportTypeLabel } from './reportLabels'
 
 describe('reportLabels', () => {
   it('대상 기간은 사업연도 시작부터 기간 끝까지 보여 준다', () => {
@@ -18,6 +18,12 @@ describe('reportLabels', () => {
 
   it('제출일은 날짜만 보여 준다', () => {
     expect(formatDate('2026-08-14')).toBe('2026.08.14')
+  })
+
+  it('날짜 구간은 같은 해면 끝날 연도를 줄이고, 같은 날이면 하루만 쓴다', () => {
+    expect(formatDateRange('2026-03-10', '2026-03-13')).toBe('2026.03.10 ~ 03.13')
+    expect(formatDateRange('2025-12-30', '2026-01-02')).toBe('2025.12.30 ~ 2026.01.02')
+    expect(formatDateRange('2026-03-10', '2026-03-10')).toBe('2026.03.10')
   })
 
   it('정정 여부를 모르면 추정하지 않는다', () => {
