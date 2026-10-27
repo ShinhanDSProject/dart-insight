@@ -3,6 +3,7 @@ import { match } from 'ts-pattern'
 import type { FinancialChangeItem } from '@/shared/api/results'
 import { SegmentedControl } from '@/shared/ui'
 import { barSpan, formatCompactAmount, niceScale, position, type Scale } from '@/shared/lib/chartScale'
+import { accountLabel, componentName } from '../model/accountLabel'
 import { chartData, formatTickRate, type ChartItem, type ChartView } from '../model/chart'
 import { formatAmount, formatChange, formatRate, isProfitState, shortCalcLabel, unitLabel, type AmountUnit } from '../model/format'
 
@@ -109,7 +110,7 @@ function ChartRow({ item, index, view, scale, unit, currency, selectedChangeId, 
   const rateText = rate === null ? (shortCalcLabel(item.calcStatus) ?? '증감률 없음') : `${arrow(item.changeAmount)} ${rate}`.trim()
   // 증감률이 없으면 흑자전환 같은 상태나 사유를 함께 읽어 준다
   const rateOrState = rate ?? shortCalcLabel(item.calcStatus)
-  const label = `${item.accountName}: 이전 ${previous}, 현재 ${current} ${units}, 증감 ${change}${rateOrState ? `, ${rateOrState}` : ''}. 근거 ${selected ? '보는 중' : '보기'}`
+  const label = `${accountLabel(item)}: 이전 ${previous}, 현재 ${current} ${units}, 증감 ${change}${rateOrState ? `, ${rateOrState}` : ''}. 근거 ${selected ? '보는 중' : '보기'}`
 
   return (
     // --row: 행 순서대로 조금씩 늦게 그려지게 하는 값(애니메이션 지연, #198)
@@ -121,7 +122,10 @@ function ChartRow({ item, index, view, scale, unit, currency, selectedChangeId, 
         aria-label={label}
         onClick={() => onSelect(item.changeId)}
       >
-        <span className="fin-chart__name">{item.accountName}</span>
+        <span className="fin-chart__name" title={accountLabel(item)}>
+          {item.accountName}
+          {componentName(item.accountDetail) && <span className="fin-account__component"> · {componentName(item.accountDetail)}</span>}
+        </span>
         <span className="fin-chart__plot">
           {scale.ticks.map((tick) => (
             <span

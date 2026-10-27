@@ -89,6 +89,7 @@ function chartItem(changeId: number, accountName: string, previousAmount: number
     changeId,
     sjDiv: 'BS',
     accountName,
+    accountDetail: null,
     amountBasis: null,
     previousAmount,
     currentAmount,

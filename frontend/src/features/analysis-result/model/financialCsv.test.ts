@@ -7,6 +7,7 @@ function item(overrides: Partial<FinancialChangeItem> = {}): FinancialChangeItem
     changeId: 1,
     sjDiv: 'BS',
     accountName: '자산총계',
+    accountDetail: null,
     amountBasis: 'POINT',
     previousAmount: 448_424_507_000_000,
     currentAmount: 485_757_000_000_000,
@@ -132,5 +133,15 @@ describe('csvFileName', () => {
 
   it('이름이 모두 비면 기본 이름을 쓴다', () => {
     expect(csvFileName('', ' ', '..', '')).toBe('재무수치변화.csv')
+  })
+
+  it('자본변동표 계정은 구성요소 이름을 붙여 같은 이름의 줄을 구분한다(#401)', () => {
+    const csv = buildFinancialCsv({
+      statementLabel: '자본변동표',
+      items: [item({ accountName: '기초자본', accountDetail: '자본 [구성요소]|이익잉여금 [구성요소]' })],
+      previousRceptNo: '20250311001085',
+      currentRceptNo: '20260310002820',
+    })
+    expect(csv).toContain('기초자본 · 이익잉여금')
   })
 })
