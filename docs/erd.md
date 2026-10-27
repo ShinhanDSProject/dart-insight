@@ -22,6 +22,7 @@
 | `favorite_company` | 회원별 관심 기업 | #36 (6.2) | 미정 |
 | `watched_report` | 즐겨찾기 폴링이 찾아 자동 분석을 요청한 새 정기보고서 | #38 (6.4) | 미정 |
 | `notification` | 회원별 분석 완료 알림과 읽음 여부 | #38 (6.4) | 미정 |
+| `judgment_note_item` | 회원이 기업별 판단 노트에 담은 근거 한 건(담을 때의 사본, 원래 위치 참조, 메모) | #413 (6.5) | 미정 |
 | `company` | 기업. OpenDART 고유번호 기준 | 4.4 (#51) | M1 |
 | `company_overview` | 기업 개황(OpenDART `company.json`) 캐시. 고유번호 기준, 받은 시각으로 다시 받음 | 1.2 (#329) | M2 |
 | `featured_company` | 첫 화면 대표 기업(유가증권시장 시가총액 상위 100). 공공데이터포털에서 월 1회 통째로 바꿈 | #399 (1.5) | 미정 |
@@ -60,6 +61,8 @@ erDiagram
     app_user ||--o{ social_account : "user_id (6.3)"
     app_user ||--o{ favorite_company : "user_id (#36)"
     company ||--o{ favorite_company : "corp_code (#36)"
+    app_user ||--o{ judgment_note_item : "user_id (#413)"
+    company ||--o{ judgment_note_item : "corp_code (#413)"
     report ||--o| watched_report : "rcept_no (#38)"
     app_user ||--o{ notification : "user_id (#38)"
     analysis ||--o{ notification : "analysis_id (#38)"
@@ -97,6 +100,19 @@ erDiagram
         bigint user_id FK
         varchar corp_code FK
         datetime created_at
+    }
+    judgment_note_item {
+        bigint id PK
+        bigint user_id FK
+        varchar corp_code FK
+        varchar kind "FINANCIAL_CHANGE TEXT_CHANGE"
+        bigint analysis_id "참조(외래 키 없음)"
+        varchar analysis_version
+        bigint change_id
+        varchar rcept_no
+        varchar snapshot_label
+        varchar snapshot_text
+        varchar memo
     }
     watched_report {
         bigint id PK
@@ -1002,6 +1018,29 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `created_at` | DATETIME(6) | | 아니오 | 만든 시각. 목록은 이 값의 최근 순 |
 | `read_at` | DATETIME(6) | | 예 | 읽은 시각. 읽지 않았으면 null |
 
+### judgment_note_item — 판단 노트 항목(#413, FS-57)
+
+> 마이그레이션: `V35__create_judgment_note.sql`. 로그인한 회원만 쓴다. 담을 때 보인 이름·값·문장을 사본으로 두고, 원래 위치는 참조로 함께 둔다([ADR-0034](adr/0034-judgment-note-storage.md)). 사본은 backend가 저장된 분석 결과로 만들고, 분석이 다시 만들어져도 고치지 않는다. 기업 노트는 `(user_id, corp_code)`로 묶어 보인다(따로 행 없음). 노트 내용은 LLM에 보내지 않는다.
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT AUTO_INCREMENT | PK | 아니오 | 항목 ID(API `itemId`) |
+| `user_id` | BIGINT | FK, INDEX | 아니오 | `app_user.id` |
+| `corp_code` | VARCHAR(8) | FK, INDEX | 아니오 | `company.corp_code`. 분석의 기업 |
+| `kind` | VARCHAR(20) | | 아니오 | `FINANCIAL_CHANGE` 재무 계정 변화, `TEXT_CHANGE` 문장·표 변경 |
+| `analysis_id` | BIGINT | | 예 | 담은 근거의 분석(`analysis.id`). 참조라 외래 키를 두지 않는다(분석 행이 정리돼도 사본은 남김). 지금 종류는 모두 값이 있고, 분석에 속하지 않는 근거(AI 답 인용 등)를 더할 때를 위해 null을 허용 |
+| `analysis_version` | VARCHAR(20) | | 예 | 담을 때 분석의 `analysis_version`. 지금 서버 버전과 다르면 API `outdated: true` |
+| `change_id` | BIGINT | | 예 | `financial_change.id` 또는 `text_change.id`(종류에 따라). 참조라 외래 키 없음 |
+| `sj_div` | VARCHAR(5) | | 예 | 재무제표 종류. 재무만 |
+| `rcept_no` | VARCHAR(14) | | 예 | 근거 보고서 접수번호. 재무는 현재 보고서, 문장은 현재 쪽(삭제면 이전 쪽) |
+| `section_no`, `block_no` | INT | | 예 | 근거 원문 섹션·블록 번호. 문장만(검토 필요는 `block_no` null) |
+| `change_type` | VARCHAR(20) | | 예 | 문장 변경 유형(`text_change.change_type`). 재무는 null |
+| `snapshot_label` | VARCHAR(1000) | | 아니오 | 담을 때의 이름. 재무 `재무제표 · 계정명`, 문장 섹션 경로 |
+| `snapshot_text` | VARCHAR(4000) | | 아니오 | 담을 때의 값·문장. 재무는 코드가 만든 `이전 → 현재, 증감액(증감률)` 문장, 문장은 원문 글. 4,000자를 넘으면 줄여 `…`을 붙임 |
+| `memo` | VARCHAR(1000) | | 예 | 사용자 메모. 없으면 null |
+| `created_at` | DATETIME(6) | | 아니오 | 담은 시각. 목록은 이 값의 최근 순 |
+| `updated_at` | DATETIME(6) | | 아니오 | 메모를 고친 시각(처음엔 담은 시각) |
+
 ## 4. 인덱스·제약
 
 | 테이블 | 이름 | 컬럼 | 종류 | 이유 |
@@ -1016,6 +1055,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `watched_report` | `uk_watched_report_rcept_no` | `rcept_no` | 유니크 | 같은 보고서를 두 번 지켜보지 않음 |
 | `notification` | `uk_notification_user_analysis` | `user_id`, `analysis_id` | 유니크 | 같은 회원·분석의 알림을 두 번 만들지 않음(재시도·중복 이벤트) |
 | `notification` | `idx_notification_user_created` | `user_id`, `created_at` | 인덱스 | 회원별 최근 알림 목록 |
+| `judgment_note_item` | `idx_judgment_note_item_user_corp` | `user_id`, `corp_code`, `created_at` | 인덱스 | 회원의 기업별 노트 목록·내보내기 |
 | `company` | `uk_company_corp_code` | `corp_code` | 유니크 | 고유번호 중복 방지(외래 키가 참조) |
 | `company` | `idx_company_corp_name` | `corp_name` | 인덱스 | 회사명 정렬·완전 일치. 부분 일치 검색(`%검색어%`)에는 쓰이지 않음 |
 | `company` | `idx_company_stock_code` | `stock_code` | 인덱스 | 종목코드 검색 |
@@ -1055,7 +1095,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `related_disclosure_run` | `uk_related_disclosure_run` | `analysis_id, rule_version` | 유니크 | 분석·규칙 버전마다 한 번만 계산 |
 | `related_disclosure` | `uk_related_disclosure` | `run_id, change_no, item_id` | 유니크 | 같은 변경·공시 연결 중복 방지. 변경별 조회에도 씀 |
 
-외래 키: `local_credential.user_id`, `refresh_token.user_id` → `app_user.id` / `refresh_token.replaced_by_id` → `refresh_token.id` / `report.corp_code`, `company_overview.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code`, `company_disclosure_fetch.corp_code`, `company_disclosure.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no`, `report_key_account_fetch.rcept_no`, `report_key_account.rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no`, `report_key_fact.rcept_no`, `company_briefing.rcept_no`, `company_question.rcept_no` → `report.rcept_no` / `llm_call.company_briefing_id` → `company_briefing.id` / `llm_call.company_question_id` → `company_question.id` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id`, `analysis_question.analysis_id`, `text_change_explanation.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id` / (3.6) `disclosure_window_fetch.corp_code` → `company.corp_code` / `disclosure_window_item.fetch_id`, `related_disclosure_run.window_fetch_id` → `disclosure_window_fetch.id` / `related_disclosure_run.analysis_id` → `analysis.id` / `related_disclosure.run_id` → `related_disclosure_run.id` / `related_disclosure.item_id` → `disclosure_window_item.id`
+외래 키: `local_credential.user_id`, `refresh_token.user_id` → `app_user.id` / `judgment_note_item.user_id` → `app_user.id`, `judgment_note_item.corp_code` → `company.corp_code` / `refresh_token.replaced_by_id` → `refresh_token.id` / `report.corp_code`, `company_overview.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code`, `company_disclosure_fetch.corp_code`, `company_disclosure.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no`, `report_key_account_fetch.rcept_no`, `report_key_account.rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no`, `report_key_fact.rcept_no`, `company_briefing.rcept_no`, `company_question.rcept_no` → `report.rcept_no` / `llm_call.company_briefing_id` → `company_briefing.id` / `llm_call.company_question_id` → `company_question.id` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id`, `analysis_question.analysis_id`, `text_change_explanation.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id` / (3.6) `disclosure_window_fetch.corp_code` → `company.corp_code` / `disclosure_window_item.fetch_id`, `related_disclosure_run.window_fetch_id` → `disclosure_window_fetch.id` / `related_disclosure_run.analysis_id` → `analysis.id` / `related_disclosure.run_id` → `related_disclosure_run.id` / `related_disclosure.item_id` → `disclosure_window_item.id`
 
 ## 5. 작성 규칙
 
