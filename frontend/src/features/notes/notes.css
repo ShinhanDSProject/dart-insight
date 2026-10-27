@@ -1,0 +1,96 @@
+/* 내 판단 노트(FS-57) */
+.notes__companies {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.notes__company-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.notes__company-head .panel__title {
+  margin: 0;
+}
+
+.notes__count {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-regular);
+}
+
+.notes__items {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.note-item {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.note-item__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.note-item__title {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  overflow-wrap: anywhere;
+}
+
+.note-item__value {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-variant-numeric: tabular-nums;
+}
+
+.note-item__quote {
+  margin: 0;
+  padding-left: var(--space-3);
+  border-left: 3px solid var(--color-border-accent);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.note-item__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.note-item__memo {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.note-item__memo-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.note-item__memo p {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.note-item__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}

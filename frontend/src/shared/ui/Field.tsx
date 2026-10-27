@@ -24,3 +24,16 @@ export function Input({ invalid = false, className, ...rest }: InputProps) {
 export function Select({ className, ...rest }: ComponentPropsWithoutRef<'select'>) {
   return <select className={cx('select', className)} {...rest} />
 }
+
+type TextAreaProps = { invalid?: boolean } & Omit<ComponentPropsWithRef<'textarea'>, 'aria-invalid'>
+
+/** 여러 줄 입력창(메모 등). Input과 같은 테두리·글꼴이고, invalid면 오류 색 테두리와 aria-invalid */
+export function TextArea({ invalid = false, className, ...rest }: TextAreaProps) {
+  return (
+    <textarea
+      className={cx('input', 'input--multiline', invalid && 'input--error', className)}
+      aria-invalid={invalid}
+      {...rest}
+    />
+  )
+}

@@ -66,18 +66,25 @@ export interface RequestOptions {
   signal?: AbortSignal
 }
 
+/** 성공 응답을 JSON으로 읽을지, 글(내보내기 파일 등)로 받을지. 에러 응답은 어느 쪽이든 JSON이다 */
+type ResponseKind = 'json' | 'text'
+
+const TEXT_ACCEPT = 'text/markdown, text/plain, application/json'
+
 async function requestOnce<T>(
   method: Method,
   path: string,
   query?: Query,
   body?: unknown,
   options: RequestOptions = {},
+  kind: ResponseKind = 'json',
 ): Promise<T> {
   let response: Response
   try {
+    const accept = kind === 'text' ? TEXT_ACCEPT : 'application/json'
     const headers: Record<string, string> = body === undefined
-      ? { Accept: 'application/json' }
-      : { Accept: 'application/json', 'Content-Type': 'application/json' }
+      ? { Accept: accept }
+      : { Accept: accept, 'Content-Type': 'application/json' }
     if (accessToken) headers.Authorization = `Bearer ${accessToken}`
     response = await fetch(buildUrl(path, query), {
       method,
@@ -98,6 +105,7 @@ async function requestOnce<T>(
   }
 
   const text = await response.text()
+  if (kind === 'text' && response.ok) return text as T
   let data: unknown = null
   let parsed = text === ''
   if (text) {
@@ -161,9 +169,10 @@ async function request<T>(
   query?: Query,
   body?: unknown,
   options: RequestOptions = {},
+  kind: ResponseKind = 'json',
 ): Promise<T> {
   try {
-    return await requestOnce<T>(method, path, query, body, options)
+    return await requestOnce<T>(method, path, query, body, options, kind)
   } catch (error) {
     const canRefresh = error instanceof ApiError && error.status === 401 && accessToken !== null
       && path !== '/api/session-refreshes' && path !== '/api/sessions' && !options.signal?.aborted
@@ -174,12 +183,17 @@ async function request<T>(
       setAccessToken(null)
       throw error
     }
-    return requestOnce<T>(method, path, query, body, options)
+    return requestOnce<T>(method, path, query, body, options, kind)
   }
 }
 
 export function apiGet<T>(path: string, query?: Query, options?: RequestOptions): Promise<T> {
   return request<T>('GET', path, query, undefined, options)
+}
+
+/** 성공 응답 본문을 글 그대로 받는다(Markdown 내보내기 등). 에러는 apiGet과 같이 ApiError로 던진다 */
+export function apiGetText(path: string, query?: Query, options?: RequestOptions): Promise<string> {
+  return request<string>('GET', path, query, undefined, options, 'text')
 }
 
 export function apiPost<T>(path: string, body: unknown, options?: RequestOptions): Promise<T> {

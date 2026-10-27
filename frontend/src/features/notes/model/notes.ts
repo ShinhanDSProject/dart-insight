@@ -1,0 +1,111 @@
+import { match } from 'ts-pattern'
+import type { NoteItem, NoteList } from '@/shared/api/notes'
+
+/** 판단 노트 화면 상태(ST-1). anonymous: 로그인하지 않음(서버를 부르지 않음) */
+export type NotesState =
+  | { status: 'anonymous' }
+  | { status: 'loading' }
+  | { status: 'error'; error: unknown }
+  | { status: 'success'; data: NoteList }
+
+export type NotesAction =
+  | { type: 'set-anonymous' }
+  | { type: 'start' }
+  | { type: 'resolve'; data: NoteList }
+  | { type: 'reject'; error: unknown }
+  /** 메모를 고친 항목(서버 응답)으로 바꾼다 */
+  | { type: 'replace-item'; item: NoteItem }
+  /** 항목 하나를 뺀다. 기업에 남은 항목이 없으면 기업도 뺀다 */
+  | { type: 'remove-item'; itemId: number }
+
+/** 목록 상태 전이. 목록을 다 받은 뒤에만 항목을 바꾼다 */
+export function notesReducer(state: NotesState, action: NotesAction): NotesState {
+  return match<NotesAction, NotesState>(action)
+    .with({ type: 'set-anonymous' }, () => ({ status: 'anonymous' }))
+    .with({ type: 'start' }, () => ({ status: 'loading' }))
+    .with({ type: 'resolve' }, ({ data }) => (state.status === 'loading' ? { status: 'success', data } : state))
+    .with({ type: 'reject' }, ({ error }) => (state.status === 'loading' ? { status: 'error', error } : state))
+    .with({ type: 'replace-item' }, ({ item }) =>
+      state.status !== 'success'
+        ? state
+        : {
+            status: 'success',
+            data: {
+              companies: state.data.companies.map((company) => ({
+                ...company,
+                items: company.items.map((current) => (current.itemId === item.itemId ? item : current)),
+              })),
+            },
+          },
+    )
+    .with({ type: 'remove-item' }, ({ itemId }) =>
+      state.status !== 'success'
+        ? state
+        : {
+            status: 'success',
+            data: {
+              companies: state.data.companies
+                .map((company) => ({ ...company, items: company.items.filter((item) => item.itemId !== itemId) }))
+                .filter((company) => company.items.length > 0),
+            },
+          },
+    )
+    .exhaustive()
+}
+
+/**
+ * 결과 화면의 그 근거로 돌아가는 주소(AC1). 분석 결과 화면의 주소 약속(?tab=financial&sj=&change=, ?tab=text&tc=)과 같다.
+ * 분석·변경 ID가 없으면 null(링크를 만들지 않음)
+ */
+export function noteResultLink(item: NoteItem): string | null {
+  const { analysisId, changeId, sjDiv } = item.source
+  if (analysisId === null || changeId === null) return null
+  const base = `/analyses/${encodeURIComponent(analysisId)}`
+  return match(item.kind)
+    .with('FINANCIAL_CHANGE', () =>
+      sjDiv === null ? null : `${base}?${new URLSearchParams({ tab: 'financial', sj: sjDiv, change: String(changeId) })}`,
+    )
+    .with('TEXT_CHANGE', () => `${base}?${new URLSearchParams({ tab: 'text', tc: String(changeId) })}`)
+    .exhaustive()
+}
+
+const changeTypeLabels: Record<string, string> = {
+  ADDED: '추가',
+  DELETED: '삭제',
+  MODIFIED: '수정',
+  NUMERIC_UPDATE: '숫자만 바뀜',
+  MOVED: '위치 이동',
+  REVIEW_NEEDED: '검토 필요',
+}
+
+/** 항목 종류 배지: '재무 수치', '문장 변경 · 수정' */
+export function noteKindLabel(item: Pick<NoteItem, 'kind' | 'changeType'>): string {
+  return match(item.kind)
+    .with('FINANCIAL_CHANGE', () => '재무 수치')
+    .with('TEXT_CHANGE', () =>
+      item.changeType === null ? '문장 변경' : `문장 변경 · ${changeTypeLabels[item.changeType] ?? item.changeType}`,
+    )
+    .exhaustive()
+}
+
+/** 근거 위치 한 줄: '접수번호 … · 섹션 2 · 문단 1' */
+export function noteLocation(item: NoteItem): string | null {
+  const { rceptNo, sectionNo, blockNo } = item.source
+  if (rceptNo === null) return null
+  const parts = [`접수번호 ${rceptNo}`]
+  if (sectionNo !== null) parts.push(`섹션 ${sectionNo}`)
+  if (blockNo !== null) parts.push(`문단 ${blockNo}`)
+  return parts.join(' · ')
+}
+
+/** 2026-10-27T10:15:00 → 2026.10.27 10:15 */
+export function noteTime(iso: string): string {
+  return `${iso.slice(0, 10).replaceAll('-', '.')} ${iso.slice(11, 16)}`
+}
+
+export const OUTDATED_NOTE = '분석 방식이 바뀌어 위치가 달라졌을 수 있어요'
+
+/** 내보내기 파일 이름(서버의 Content-Disposition과 같음) */
+export function exportFileName(corpCode: string): string {
+  return `judgment-note-${corpCode}.md`
+}

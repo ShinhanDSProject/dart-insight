@@ -455,6 +455,24 @@
   align-self: flex-start;
 }
 
+/* 노트에 담기(FS-57): 버튼, 메모 칸, 로그인 안내 */
+.note-add {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.note-add .memo-form,
+.note-add__login {
+  justify-self: stretch;
+}
+
+.note-add__done {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
 .evidence__sources {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
