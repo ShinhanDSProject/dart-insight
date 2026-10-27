@@ -29,8 +29,9 @@ public class Analysis {
      * 요약 프롬프트(PROMPT_VERSION), 표현 검사 규칙(RULESET_VERSION), 설명 후보 검색어(AccountAliases),
      * 재무 설명 등급 규칙(GRADE_RULES_VERSION), 요약에 저장하는 값(m2-10: 설명 등급·인용, #143),
      * m2-11: 원문 파서 dart-xml-2(표 안의 표·빈 표, #397).
+     * m2-12: 계산 상태 판정(흑자·적자 전환과 이익 계정 목록 PROFIT_ACCOUNT_IDS, #144).
      */
-    public static final String CURRENT_VERSION = "m2-11";
+    public static final String CURRENT_VERSION = "m2-12";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
