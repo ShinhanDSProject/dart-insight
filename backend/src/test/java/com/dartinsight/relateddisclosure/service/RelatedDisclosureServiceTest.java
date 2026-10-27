@@ -35,7 +35,9 @@ import com.dartinsight.report.domain.ReportType;
 import com.dartinsight.report.repository.ReportRepository;
 import com.dartinsight.support.TestData;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -54,6 +56,13 @@ class RelatedDisclosureServiceTest {
 
     private static final FakeOpenDartServer SERVER = startServer();
     private static final String LIST = "/api/list.json";
+    private static final String CAPITAL_INCREASE = "/api/piicDecsn.json";
+    private static final String LITIGATION = "/api/lwstLg.json";
+    private static final String STOCK_ACQUISITION = "/api/otcprStkInvscrInhDecsn.json";
+    private static final String CAPITAL_INCREASE_TITLE = "주요사항보고서(유상증자결정)";
+    private static final String LITIGATION_TITLE = "주요사항보고서(소송등의제기)";
+    private static final String STOCK_ACQUISITION_TITLE = "주요사항보고서(타법인주식및출자증권양수결정)";
+    private static final String LAWSUIT_PATH = "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등";
     private static final String CUR = "20260814000001";
     private static final String PREV = "20250814000001";
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 10, 27, 9, 0);
@@ -96,6 +105,9 @@ class RelatedDisclosureServiceTest {
     @BeforeEach
     void setUp() {
         TestData.clearAll(jdbcTemplate);
+        SERVER.on(CAPITAL_INCREASE, Response.json(DisclosureListJson.NO_DATA));
+        SERVER.on(LITIGATION, Response.json(DisclosureListJson.NO_DATA));
+        SERVER.on(STOCK_ACQUISITION, Response.json(DisclosureListJson.NO_DATA));
         companyImportService.save(List.of(
                 new CorpCodeEntry("00000001", "예시전자", null, "900001", LocalDate.of(2026, 1, 1))));
         for (int year : new int[] {2025, 2026}) {
@@ -103,9 +115,8 @@ class RelatedDisclosureServiceTest {
                     new ParsedReportName(ReportType.HALF, year, LocalDate.of(year, 6, 30), Correction.ORIGINAL),
                     LocalDate.of(year, 8, 14), null, "예시전자", NOW));
         }
-        analysisId = save(analysis());
         // change_no 1: 소송 문단 추가, 2: 공급 계약 문단 삭제, 3: 어느 규칙에도 안 걸림
-        List<TextChangeRow> rows = List.of(
+        analysisId = completedAnalysis(List.of(
                 new TextChangeRow(TextChangeRow.ADDED, "PARAGRAPH", false, "MATCHED", "2. 우발부채 등",
                         "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등", null,
                         new Side(CUR, 5, 1, "회사는 손해배상 청구 소송을 제기받았습니다."), null, null),
@@ -114,8 +125,60 @@ class RelatedDisclosureServiceTest {
                         null, null),
                 new TextChangeRow(TextChangeRow.MODIFIED, "PARAGRAPH", false, "MATCHED", "1. 요약재무정보",
                         "III. 재무에 관한 사항 > 1. 요약재무정보", new Side(PREV, 3, 1, "매출이 줄었습니다."),
-                        new Side(CUR, 3, 1, "매출이 늘었습니다."), new BigDecimal("0.8"), null));
-        resultService.saveAndComplete(analysisId, List.of(), new TextComparison(TextStatus.COMPLETED, null, rows));
+                        new Side(CUR, 3, 1, "매출이 늘었습니다."), new BigDecimal("0.8"), null)));
+    }
+
+    private Long completedAnalysis(List<TextChangeRow> rows) {
+        Long id = save(analysis());
+        resultService.saveAndComplete(id, List.of(), new TextComparison(TextStatus.COMPLETED, null, rows));
+        return id;
+    }
+
+    private static TextChangeRow added(String sectionPath, String text) {
+        return new TextChangeRow(TextChangeRow.ADDED, "PARAGRAPH", false, "MATCHED", "제목", sectionPath, null,
+                new Side(CUR, 5, 1, text), null, null);
+    }
+
+    /** change_no 1: 신주 수, 2: 소송 원고·사건 명칭(신주 낱말도 있음), 3: 양수 대상 옛 사명, 4: 다른 소송 */
+    private Long keyItemAnalysis() {
+        return completedAnalysis(List.of(
+                added("I. 회사의 개요 > 3. 자본금 변동사항", "보고기간 후 보통주 9,900,990주를 발행하였습니다."),
+                added(LAWSUIT_PATH, "주식회사 엠제이파트너스가 신주발행무효의 소를 제기하였습니다."),
+                added("III. 재무에 관한 사항 > 3. 연결재무제표 주석", "㈜아틀라스링크(구: 알로이스) 지분을 취득하였습니다."),
+                added(LAWSUIT_PATH, "다른 소송이 있습니다.")));
+    }
+
+    /** 기간 뒤에 정정된 유상증자 원본(비고 '정'), 소송, 양수 공시. I001·I002는 없다 */
+    private static void keyItemDisclosures() {
+        SERVER.on(LIST,
+                Response.json(page(1, 1,
+                        item("20260108000598", LITIGATION_TITLE, "20260108", ""),
+                        item("20260608000398", STOCK_ACQUISITION_TITLE, "20260608", ""),
+                        item("20260630000676", CAPITAL_INCREASE_TITLE, "20260630", "정"))),
+                Response.json(DisclosureListJson.NO_DATA),
+                Response.json(DisclosureListJson.NO_DATA));
+    }
+
+    private static Response fixture(String name) {
+        String file = "/opendart/key-items/" + name + ".json";
+        try (InputStream in = RelatedDisclosureServiceTest.class.getResourceAsStream(file)) {
+            if (in == null) {
+                throw new IllegalStateException("테스트 자료가 없습니다: " + file);
+            }
+            return Response.json(new String(in.readAllBytes(), StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static void realKeyItems() {
+        SERVER.on(CAPITAL_INCREASE, fixture("capital-increase-ecoprobm-original-20260630000676"));
+        SERVER.on(LITIGATION, fixture("litigation-koreazinc-20260108000598"));
+        SERVER.on(STOCK_ACQUISITION, fixture("stock-acquisition-miraesaneop-20260608000398"));
+    }
+
+    private List<String> requestsSince(int before, String path) {
+        return SERVER.requests().subList(before, requestCount()).stream().filter(r -> r.startsWith(path)).toList();
     }
 
     private static Analysis analysis() {
@@ -153,8 +216,10 @@ class RelatedDisclosureServiceTest {
 
         RelatedDisclosures result = service.get(analysisId);
 
-        assertThat(SERVER.requests().subList(before, requestCount())).hasSize(3)
+        assertThat(requestsSince(before, LIST)).hasSize(3)
                 .allSatisfy(r -> assertThat(r).contains("bgn_de=20250630", "end_de=20260814", "last_reprt_at=N"));
+        // 소송 공시는 주요정보를 받는다(자료 없음이라 같은 종류로 남음)
+        assertThat(requestsSince(before, LITIGATION)).hasSize(1);
         assertThat(result.cached()).isFalse();
         assertThat(result.run().ruleVersion()).isEqualTo(RelatedDisclosureRules.RULE_VERSION);
         assertThat(result.run().periodEnd()).isEqualTo(LocalDate.of(2026, 6, 30));
@@ -179,6 +244,90 @@ class RelatedDisclosureServiceTest {
             assertThat(l.latestRceptNo()).isNull();
             assertThat(l.matchedFields()).isNull();
         });
+    }
+
+    @Test
+    @DisplayName("주요정보 값이 바뀐 문장에 있으면 '내용 일치'로 올리고, 기간 뒤 정정 원본은 최신 정정본 접수번호를 남긴다")
+    void keyItemsStrengthenLinks() {
+        Long id = keyItemAnalysis();
+        keyItemDisclosures();
+        realKeyItems();
+        int before = requestCount();
+
+        RelatedDisclosures result = service.get(id);
+
+        assertThat(result.partial()).isFalse();
+        assertThat(result.links()).extracting(RelatedLink::changeNo, l -> l.disclosure().rceptNo(),
+                RelatedLink::matchRule, RelatedLink::matchLevel, RelatedLink::matchedFields,
+                RelatedLink::latestRceptNo).containsExactly(
+                        tuple(1, "20260630000676", "equity-financing", MatchLevel.STRONG, "NEW_SHARES",
+                                "20261013000198"),
+                        tuple(2, "20260108000598", "litigation", MatchLevel.STRONG, "PLAINTIFF,CASE_NAME", null),
+                        tuple(2, "20260630000676", "equity-financing", MatchLevel.TYPE_ONLY, null,
+                                "20261013000198"),
+                        tuple(3, "20260608000398", "investment", MatchLevel.STRONG, "TARGET_COMPANY", null),
+                        tuple(4, "20260108000598", "litigation", MatchLevel.TYPE_ONLY, null, null));
+        // 기간 뒤 정정 원본은 원본 접수일 하루로 부르고, 행의 접수번호(최신 정정본)를 남긴다
+        assertThat(requestsSince(before, CAPITAL_INCREASE)).singleElement()
+                .satisfies(r -> assertThat(r).contains("bgn_de=20260630", "end_de=20260630"));
+        assertThat(jdbcTemplate.queryForObject("SELECT source_rcept_no FROM disclosure_key_item WHERE rcept_no = ?",
+                String.class, "20260630000676")).isEqualTo("20261013000198");
+        assertThat(jdbcTemplate.queryForObject("SELECT source_rcept_no FROM disclosure_key_item WHERE rcept_no = ?",
+                String.class, "20260108000598")).isNull();
+
+        int afterFirst = requestCount();
+        RelatedDisclosures again = service.get(id);
+
+        assertThat(requestCount()).isEqualTo(afterFirst);
+        assertThat(again.cached()).isTrue();
+        assertThat(again.links()).isEqualTo(result.links());
+    }
+
+    @Test
+    @DisplayName("주요정보를 받지 못하면 같은 종류로만 답하고 저장하지 않으며, 다음 요청에서 다시 계산한다")
+    void keyItemFailureReturnsPartialWithoutSaving() {
+        Long id = keyItemAnalysis();
+        keyItemDisclosures();
+        realKeyItems();
+        SERVER.on(CAPITAL_INCREASE, Response.json(DisclosureListJson.RATE_LIMITED));
+
+        RelatedDisclosures partial = service.get(id);
+
+        assertThat(partial.partial()).isTrue();
+        assertThat(partial.cached()).isFalse();
+        assertThat(partial.run().id()).isNull();
+        assertThat(partial.links()).hasSize(5).allSatisfy(l -> {
+            assertThat(l.matchLevel()).isEqualTo(MatchLevel.TYPE_ONLY);
+            assertThat(l.matchedFields()).isNull();
+        });
+        assertThat(count("related_disclosure_run")).isZero();
+
+        realKeyItems();
+        RelatedDisclosures retried = service.get(id);
+
+        assertThat(retried.partial()).isFalse();
+        assertThat(retried.cached()).isFalse();
+        assertThat(retried.links()).filteredOn(l -> l.matchLevel() == MatchLevel.STRONG).hasSize(3);
+        assertThat(count("related_disclosure_run")).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("주요정보가 자료 없음(013)이면 받은 것으로 보고 같은 종류로 저장하며, 수량을 0으로 만들지 않는다")
+    void keyItemNoDataIsSavedAsTypeOnly() {
+        Long id = keyItemAnalysis();
+        keyItemDisclosures();
+
+        RelatedDisclosures result = service.get(id);
+
+        assertThat(result.partial()).isFalse();
+        assertThat(result.links()).hasSize(5).allSatisfy(l -> {
+            assertThat(l.matchLevel()).isEqualTo(MatchLevel.TYPE_ONLY);
+            assertThat(l.matchedFields()).isNull();
+            assertThat(l.latestRceptNo()).isNull();
+        });
+        assertThat(count("related_disclosure_run")).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM disclosure_key_item WHERE status = 'NO_DATA'",
+                Integer.class)).isEqualTo(3);
     }
 
     @Test

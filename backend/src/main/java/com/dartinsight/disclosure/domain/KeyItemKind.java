@@ -88,7 +88,23 @@ public enum KeyItemKind {
             f("dp_m_otc", "처분방법(장외처분)", "주"),
             f("dp_m_etc", "처분방법(기타)", "주"),
             f("cs_iv_bk", "위탁투자중개업자", null),
-            f("dp_dd", "처분결정일", null)));
+            f("dp_dd", "처분결정일", null))),
+
+    /** 소송 등의 제기(lwstLg, apiId 2020028). 관련 수시공시(3.6)가 원고·사건 명칭을 대조한다 */
+    LITIGATION("소송 등의 제기", fields(
+            f("icnm", "사건의 명칭", null),
+            f("ac_ap", "원고ㆍ신청인", null),
+            f("rq_cn", "청구내용", null),
+            f("cpct", "관할법원", null),
+            f("lgd", "제기일자", null))),
+
+    /** 타법인 주식 및 출자증권 양수결정(otcprStkInvscrInhDecsn, apiId 2020046). 관련 수시공시(3.6)가 발행회사를 대조한다 */
+    STOCK_ACQUISITION("타법인 주식 및 출자증권 양수결정", fields(
+            f("iscmp_cmpnm", "발행회사(회사명)", null),
+            f("inhdtl_stkcnt", "양수내역(양수주식수)", "주"),
+            f("inhdtl_inhprc", "양수내역(양수금액)", "원"),
+            f("atinh_eqrt", "양수후 소유주식수 및 지분비율(지분비율)", "%"),
+            f("dlptn_cmpnm", "거래상대방(회사명(성명))", null)));
 
     /** 보여 줄 항목 하나. @param unit 개발가이드의 단위, 없으면 null */
     public record Field(String field, String label, String unit) {

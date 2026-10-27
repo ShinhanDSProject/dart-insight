@@ -48,7 +48,7 @@
 | `financialDataStatus` | `UNKNOWN` 확인 전(아직 받아 보지 않음), `AVAILABLE` 재무 자료 있음, `NOT_AVAILABLE` 재무 자료 없음. 받아 둔 결과(4.5)로 정하고 목록 조회에서는 OpenDART를 부르지 않음. `NOT_AVAILABLE`: 2015 사업연도 이전, 연결·별도 모두 `013`, 또는 받은 자료가 다른 접수번호(정정본) 것 |
 | `basis` | `YOY` 전년 동기, `PREV` 직전 기간, `CUSTOM` 직접 선택 |
 | `disclosureGroup` | 공시 묶음(공시 제목 낱말 규칙, FS-48). `PERIODIC` 정기보고서, `FUNDING` 자금 조달, `OWNERSHIP` 지분 변동, `GOVERNANCE` 지배구조, `BUSINESS` 실적·영업, `OTHER` 기타. 규칙은 `backend/.../disclosure/domain/DisclosureGroupRules.java` |
-| `keyItemsKind` | 핵심 수치를 보여 줄 수 있는 주요사항보고서 종류(FS-51, OpenDART 주요사항보고서 주요정보 DS005). `CAPITAL_INCREASE` 유상증자 결정(`piicDecsn`), `CONVERTIBLE_BOND` 전환사채권 발행결정(`cvbdIsDecsn`), `BOND_WITH_WARRANT` 신주인수권부사채권 발행결정(`bdwtIsDecsn`), `EXCHANGEABLE_BOND` 교환사채권 발행결정(`exbdIsDecsn`), `TREASURY_STOCK_ACQUISITION` 자기주식 취득 결정(`tsstkAqDecsn`), `TREASURY_STOCK_DISPOSAL` 자기주식 처분 결정(`tsstkDpDecsn`). 규칙은 `backend/.../disclosure/domain/KeyItemRules.java` |
+| `keyItemsKind` | 핵심 수치를 보여 줄 수 있는 주요사항보고서 종류(FS-51, OpenDART 주요사항보고서 주요정보 DS005). `CAPITAL_INCREASE` 유상증자 결정(`piicDecsn`), `CONVERTIBLE_BOND` 전환사채권 발행결정(`cvbdIsDecsn`), `BOND_WITH_WARRANT` 신주인수권부사채권 발행결정(`bdwtIsDecsn`), `EXCHANGEABLE_BOND` 교환사채권 발행결정(`exbdIsDecsn`), `TREASURY_STOCK_ACQUISITION` 자기주식 취득 결정(`tsstkAqDecsn`), `TREASURY_STOCK_DISPOSAL` 자기주식 처분 결정(`tsstkDpDecsn`), `LITIGATION` 소송 등의 제기(`lwstLg`, 3.6 #341), `STOCK_ACQUISITION` 타법인 주식 및 출자증권 양수결정(`otcprStkInvscrInhDecsn`, 3.6 #341). 규칙은 `backend/.../disclosure/domain/KeyItemRules.java` |
 | `status` (분석) | `PENDING` 대기, `RUNNING` 진행, `COMPLETED` 완료, `FAILED` 실패 |
 | `step` (분석) | `RECEIVED` 요청 접수, `COMPARING` 보고서 비교, `VERIFYING` 근거 확인, `DONE` 완료 |
 | `sjDiv` | `BS` 재무상태표, `IS` 손익계산서, `CIS` 포괄손익계산서, `CF` 현금흐름표, `SCE` 자본변동표 |
@@ -818,9 +818,12 @@
   | 주요사항보고서(교환사채권발행결정) | `EXCHANGEABLE_BOND` | `exbdIsDecsn.json` (2020035) |
   | 주요사항보고서(자기주식취득결정) | `TREASURY_STOCK_ACQUISITION` | `tsstkAqDecsn.json` (2020038) |
   | 주요사항보고서(자기주식처분결정) | `TREASURY_STOCK_DISPOSAL` | `tsstkDpDecsn.json` (2020039) |
+  | 주요사항보고서(소송등의제기) | `LITIGATION` | `lwstLg.json` (2020028) |
+  | 주요사항보고서(타법인주식및출자증권양수결정) | `STOCK_ACQUISITION` | `otcprStkInvscrInhDecsn.json` (2020046) |
 
-- **OpenDART 호출**: 여섯 API 모두 `corp_code`·`bgn_de`·`end_de`(최초접수일 기간)로 부르고, 행마다 `rcept_no`가 있습니다. 응답 행 중 `rcept_no`가 요청한 접수번호와 같은 행 하나를 씁니다.
+- **OpenDART 호출**: 여덟 API 모두 `corp_code`·`bgn_de`·`end_de`(최초접수일 기간)로 부르고, 행마다 `rcept_no`가 있습니다. 응답 행 중 `rcept_no`가 요청한 접수번호와 같은 행 하나를 씁니다(아래 비고 '정'인 원본은 예외).
   - 원본 공시(꼬리표 없음): `bgn_de`=`end_de`=접수일(`receivedDate`). 그날 낸 공시만 받습니다.
+  - 비고(`rm`)에 '정'이 있는 원본(꼬리표 없음, 뒤에 정정본이 있음): 접수일 하루로 부르면 행의 `rcept_no`가 원본이 아니라 마지막 정정본입니다(2026-10-27 에코프로비엠 `20260630000676` → `20261013000198`). 같은 접수번호의 행이 없고 행이 하나뿐이면 그 행을 쓰고, 행의 접수번호를 `disclosure_key_item.source_rcept_no`에 저장합니다. 행이 둘 이상이면 고르지 않고 `NO_DATA`입니다. 관련 수시공시(3.6)와 같은 규칙이라 어느 기능이 먼저 불러도 저장 값이 같습니다([ADR-0030](adr/0030-related-disclosure-matching.md)).
   - `[기재정정]`: 기간이 최초 공시의 접수일 기준이고 행의 `rcept_no`는 마지막 정정본이라(2026-10-26 모아데이타 `20261023000402`: 정정일 20261023로는 013, 최초 접수일 20260814로 부르면 정정본 행이 옴), `bgn_de`=20150101(API가 정보를 주는 첫해)~`end_de`=접수일로 부릅니다.
 - 캐시([ADR-0024](adr/0024-company-info-cache.md) 보고서에 딸린 자료): 접수번호마다 한 번만 받고 다시 받지 않습니다(`CachePolicy.permanent()`). `013`(자료 없음)이거나 같은 접수번호의 행이 없으면 `status: NO_DATA`, `items: []`로 저장하고 200으로 돌려줍니다. 호출 실패는 저장하지 않습니다.
 - `items`: 종류마다 정한 항목을 정한 순서로 넣습니다. 값이 `-`이거나 비어 있는 항목은 뺍니다. `label`은 OpenDART 개발가이드의 항목 이름, `unit`은 개발가이드가 항목 이름에 붙인 단위(`원`, `주`, `%`, `원/주`)이고 없으면 null입니다. `field`는 OpenDART 응답 필드 이름(근거 위치)입니다. 금액은 대부분 원이지만 해외 발행 항목은 받지 않습니다.
@@ -853,7 +856,7 @@
 }
 ```
 
-- `status`: `AVAILABLE` 항목 있음, `NO_DATA` OpenDART에 자료 없음(013 또는 같은 접수번호의 행 없음). `NO_DATA`면 `items`는 빈 배열이고 화면은 '자료 없음'과 원문 링크를 보여 줍니다.
+- `status`: `AVAILABLE` 항목 있음, `NO_DATA` OpenDART에 자료 없음(013 또는 같은 접수번호의 행 없음. 비고 '정'인 원본은 행이 하나뿐이면 그 행을 써서 `AVAILABLE`). `NO_DATA`면 `items`는 빈 배열이고 화면은 '자료 없음'과 원문 링크를 보여 줍니다.
 - `fetchedAt`: OpenDART에서 받은 시각입니다.
 
 | 상태 | code | 언제 |

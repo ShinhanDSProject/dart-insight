@@ -3,12 +3,15 @@ package com.dartinsight.relateddisclosure.domain;
 import com.dartinsight.analysis.domain.TextChange;
 import com.dartinsight.analysis.domain.TextChangeRow;
 import com.dartinsight.disclosure.domain.DisclosureGroupRules;
+import com.dartinsight.disclosure.domain.DisclosureKeyItems;
 import com.dartinsight.relateddisclosure.domain.RelatedDisclosureRules.Rule;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -37,7 +40,7 @@ public final class RelatedDisclosureMatcher {
      * @param changes     분석의 문장 변경(변경 순서)
      * @param disclosures 기간 공시 목록(저장된 것)
      * @param periodEnd   현재 보고서 기간 말일
-     * @return 변경 순서, 같은 변경 안에서는 접수일·접수번호 순서의 연결(TYPE_ONLY)
+     * @return 변경 순서, 같은 변경 안에서는 접수일·접수번호 순서의 연결(1단계라 모두 TYPE_ONLY)
      */
     public static List<RelatedLink> match(List<TextChange> changes, List<WindowDisclosure> disclosures,
             LocalDate periodEnd) {
@@ -63,15 +66,51 @@ public final class RelatedDisclosureMatcher {
         return links;
     }
 
+    /**
+     * 2단계: 주요정보(DS005)를 받은 공시의 연결을 '내용 일치'(STRONG)로 올리고, 최신 정정본 접수번호를 알면 채운다
+     * ({@link KeyItemMatcher}). 주요정보가 없는 공시의 연결은 그대로 둔다. 순서는 바꾸지 않는다.
+     *
+     * @param keyItems    접수번호 → 받은 주요정보(자료 없음 포함)
+     * @param companyName 공시 대상 회사 이름(소송 원고에서 뺄 회사 자신)
+     */
+    public static List<RelatedLink> strengthen(List<RelatedLink> links, List<TextChange> changes,
+            Map<String, DisclosureKeyItems> keyItems, String companyName) {
+        if (keyItems.isEmpty()) {
+            return links;
+        }
+        Map<Integer, String> texts = new HashMap<>();
+        for (TextChange change : changes) {
+            texts.put(change.changeNo(), targetText(change.row()));
+        }
+        List<RelatedLink> result = new ArrayList<>(links.size());
+        for (RelatedLink link : links) {
+            DisclosureKeyItems items = keyItems.get(link.disclosure().rceptNo());
+            if (items == null) {
+                result.add(link);
+                continue;
+            }
+            List<String> fields = KeyItemMatcher.matchedFields(items, texts.get(link.changeNo()), companyName);
+            result.add(new RelatedLink(link.changeNo(), link.disclosure(), items.sourceRceptNo(), link.timing(),
+                    link.matchRule(), fields.isEmpty() ? MatchLevel.TYPE_ONLY : MatchLevel.STRONG,
+                    fields.isEmpty() ? null : String.join(",", fields)));
+        }
+        return result;
+    }
+
     /** 변경이 걸리는 규칙. 대조할 글과 섹션 경로는 클래스 설명과 같다 */
     static List<Rule> changeRules(TextChangeRow row) {
-        TextChangeRow.Side side = row.current() != null ? row.current() : row.previous();
         List<String> paths = new ArrayList<>();
         paths.add(row.sectionPath());
         if (TextChangeRow.MOVED.equals(row.changeType())) {
             paths.add(row.previousSectionPath());
         }
-        return RelatedDisclosureRules.changeRules(paths, side == null ? null : side.text());
+        return RelatedDisclosureRules.changeRules(paths, targetText(row));
+    }
+
+    /** 대조할 글: 현재 글이 있으면 현재 글, 없으면 이전 글. 둘 다 없으면 null */
+    static String targetText(TextChangeRow row) {
+        TextChangeRow.Side side = row.current() != null ? row.current() : row.previous();
+        return side == null ? null : side.text();
     }
 
     static DisclosureTiming timing(LocalDate rceptDt, LocalDate periodEnd) {
