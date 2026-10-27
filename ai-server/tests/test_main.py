@@ -1,3 +1,5 @@
+from fastapi.testclient import TestClient
+
 from app.core.config import LlmSettings
 from app.llm import FakeProvider, LlmClient
 from app.main import create_app
@@ -17,3 +19,12 @@ def test_app_uses_given_llm_client() -> None:
     app = create_app(llm_client=client)
 
     assert app.state.llm_client is client
+
+
+def test_health_returns_up() -> None:
+    client = TestClient(create_app())
+
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "UP"}
