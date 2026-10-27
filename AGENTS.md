@@ -81,7 +81,7 @@ DB는 MariaDB(정형 데이터)와 Chroma(본문 임베딩)이고, 외부 데이
   }
   ```
 
-  `code`는 `영역_내용` 형식의 대문자 스네이크입니다(영역: `COMMON`, `COMPANY`, `REPORT`, `ANALYSIS`, `DART`, `AI`). `errors`는 입력값 검증 실패일 때만 채웁니다. 코드 목록은 `docs/api-spec.md`에 있습니다.
+  `code`는 `영역_내용` 형식의 대문자 스네이크입니다(영역: `COMMON`, `AUTH`, `COMPANY`, `REPORT`, `ANALYSIS`, `DART`, `AI`, `COMMUNITY`). `errors`는 입력값 검증 실패일 때만 채웁니다. 코드 목록은 `docs/api-spec.md`에 있습니다.
 - 추적 ID: Spring Boot가 요청마다 `X-Trace-Id`를 정하고(요청 헤더에 있으면 그 값을 씀) 로그에 남기며, FastAPI를 부를 때 같은 헤더로 넘깁니다. 분석 작업의 요청 ID로 이 값을 저장합니다.
 - 없는 값은 null로 두고 0과 구분합니다. 이전 값이 null이거나 0이면 증감률을 계산하지 않고 사유 코드를 남깁니다.
 - 모든 테이블은 기본키로 `id BIGINT AUTO_INCREMENT`를 둡니다. OpenDART에서 받은 키도 기본키로 쓰지 않고 UNIQUE로 둡니다([ADR-0017](docs/adr/0017-auto-increment-id-primary-key.md)).
