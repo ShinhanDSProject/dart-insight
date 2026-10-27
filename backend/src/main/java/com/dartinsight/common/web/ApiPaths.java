@@ -24,6 +24,7 @@ public final class ApiPaths {
     public static final String NOTIFICATIONS = BASE + "/notifications";
     public static final String NOTIFICATION_READ = "/{notificationId}/read";
     public static final String FEATURED_COMPANIES = BASE + "/featured-companies";
+    public static final String SEASON_CHANGES = BASE + "/season-changes";
     /** 내 판단 노트(6.5, FS-57) */
     public static final String NOTES = BASE + "/notes";
     public static final String BY_NOTE_ITEM_ID = "/{itemId}";

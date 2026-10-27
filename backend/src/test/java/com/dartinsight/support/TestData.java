@@ -12,6 +12,7 @@ public final class TestData {
     private static final List<String> TABLES_CHILD_FIRST = List.of(
             "judgment_note_item",
             "notification",
+            "season_change",
             "related_disclosure",
             "related_disclosure_run",
             "analysis_question",
