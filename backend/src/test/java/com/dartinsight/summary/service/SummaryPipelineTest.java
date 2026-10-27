@@ -247,7 +247,7 @@ class SummaryPipelineTest {
         assertThat(sent.traceId()).isEqualTo("trace-summary");
         assertThat(sent.bodyText()).contains("\"companyName\":\"예시전자\"")
                 .contains(PREV + "#B1").contains(CUR + "#B1").contains("매출액은 메모리 수요 회복으로 늘었습니다.");
-        // 설명 후보는 AI 서버가 찾도록 현재 보고서 문단을 모두 보내고, 후보를 골라 보내지 않는다(ADR-0032)
+        // 설명 후보는 AI 서버가 찾도록 현재 보고서 문단을 모두 보내고, 후보를 골라 보내지 않는다(ADR-0036)
         assertThat(JsonPath.<List<String>>read(sent.bodyText(), "$.documentBlocks[*].evidenceId"))
                 .containsExactly(CUR + "#B1", CUR + "#B2");
         assertThat(sent.bodyText()).doesNotContain("\"candidates\"");
@@ -418,7 +418,7 @@ class SummaryPipelineTest {
                 .andExpect(jsonPath("$.items[?(@.kind == 'TEXT')]", hasSize(0)))
                 .andExpect(jsonPath("$.items[0].factSentence").isNotEmpty())
                 .andExpect(jsonPath("$.items[0].explanationStatus").value("REVIEW_NEEDED"))
-                // 후보는 AI 서버가 고르고 재무 항목마다 늘 답하므로(후보가 없으면 NONE), 빠진 항목은 검토 필요다(ADR-0032)
+                // 후보는 AI 서버가 고르고 재무 항목마다 늘 답하므로(후보가 없으면 NONE), 빠진 항목은 검토 필요다(ADR-0036)
                 .andExpect(jsonPath("$.items[1].explanationStatus").value("REVIEW_NEEDED"))
                 .andExpect(jsonPath("$.reviewNeededCount").value(3));
         assertThat(summaryStore.items(id)).hasSize(3);

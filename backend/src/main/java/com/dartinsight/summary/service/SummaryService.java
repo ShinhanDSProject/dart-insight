@@ -59,7 +59,7 @@ public class SummaryService {
         Optional<ReportDocument> document = documentService.find(currentRceptNo).filter(d -> d.getStatus().usable());
         List<DocumentSection> sections = document.map(documentService::sections).orElse(List.of());
         List<DocumentBlock> blocks = document.map(documentService::blocks).orElse(List.of());
-        // 재무 설명 후보는 AI 서버가 이 문단들에서 검색어로 고른다(ADR-0032)
+        // 재무 설명 후보는 AI 서버가 이 문단들에서 검색어로 고른다(ADR-0036)
         List<SummaryAiRequest.Source> paragraphs = SummarySelector.paragraphs(sections, blocks);
 
         Map<String, Integer> financialRefs = new HashMap<>();
