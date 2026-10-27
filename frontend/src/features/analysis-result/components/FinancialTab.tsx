@@ -27,6 +27,7 @@ import {
   formatChange,
   formatRate,
   missingValueLabel,
+  isProfitState,
   shortCalcLabel,
   unitLabel,
   unitOptions,
@@ -363,7 +364,7 @@ function ChangeRow({ item, unit, selected, onSelect }: ChangeRowProps) {
       ) : (
         <>
           <td className="num">{change}</td>
-          <td className={`num${rate === null ? ' fin-table__reason' : ''}`} title={item.calcMessage ?? undefined}>
+          <td className={`num${rate === null && !isProfitState(item.calcStatus) ? ' fin-table__reason' : ''}`} title={item.calcMessage ?? undefined}>
             {rate ?? reason}
           </td>
         </>

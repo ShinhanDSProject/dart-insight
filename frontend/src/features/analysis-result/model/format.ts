@@ -94,6 +94,13 @@ const shortCalcLabels: Record<string, string> = {
   PERIOD_MISMATCH: '계산 불가 · 기간 기준이 달라요',
 }
 
+const profitStates = new Set(['TURNED_PROFIT', 'TURNED_LOSS', 'LOSS_NARROWED', 'LOSS_WIDENED'])
+
+/** 이익 계정의 흑자·적자 상태인지. 계산 불가 사유가 아니라 결과라서 흐리게 보이지 않는다 */
+export function isProfitState(calcStatus: string): boolean {
+  return profitStates.has(calcStatus)
+}
+
 /** 표에 넣는 짧은 계산 불가 사유나 흑자·적자 상태. 증감률을 계산했으면 null */
 export function shortCalcLabel(calcStatus: string): string | null {
   return shortCalcLabels[calcStatus] ?? null

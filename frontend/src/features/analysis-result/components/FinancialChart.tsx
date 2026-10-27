@@ -4,7 +4,7 @@ import type { FinancialChangeItem } from '@/shared/api/results'
 import { SegmentedControl } from '@/shared/ui'
 import { barSpan, formatCompactAmount, niceScale, position, type Scale } from '@/shared/lib/chartScale'
 import { chartData, formatTickRate, type ChartItem, type ChartView } from '../model/chart'
-import { formatAmount, formatChange, formatRate, shortCalcLabel, unitLabel, type AmountUnit } from '../model/format'
+import { formatAmount, formatChange, formatRate, isProfitState, shortCalcLabel, unitLabel, type AmountUnit } from '../model/format'
 
 const viewOptions = [
   { value: 'rate', label: '증감률' },
@@ -107,7 +107,9 @@ function ChartRow({ item, index, view, scale, unit, currency, selectedChangeId, 
   const change = formatChange(item.changeAmount, unit)
   const rate = formatRate(item.changeRate)
   const rateText = rate === null ? (shortCalcLabel(item.calcStatus) ?? '증감률 없음') : `${arrow(item.changeAmount)} ${rate}`.trim()
-  const label = `${item.accountName}: 이전 ${previous}, 현재 ${current} ${units}, 증감 ${change}${rate ? `, ${rate}` : ''}. 근거 ${selected ? '보는 중' : '보기'}`
+  // 증감률이 없으면 흑자전환 같은 상태나 사유를 함께 읽어 준다
+  const rateOrState = rate ?? shortCalcLabel(item.calcStatus)
+  const label = `${item.accountName}: 이전 ${previous}, 현재 ${current} ${units}, 증감 ${change}${rateOrState ? `, ${rateOrState}` : ''}. 근거 ${selected ? '보는 중' : '보기'}`
 
   return (
     // --row: 행 순서대로 조금씩 늦게 그려지게 하는 값(애니메이션 지연, #198)
@@ -133,7 +135,7 @@ function ChartRow({ item, index, view, scale, unit, currency, selectedChangeId, 
             .with('amount', () => <Dumbbell item={item} scale={scale} />)
             .exhaustive()}
         </span>
-        <span className={`fin-chart__value${view === 'rate' && rate === null ? ' fin-chart__value--muted' : ''}`}>
+        <span className={`fin-chart__value${view === 'rate' && rate === null && !isProfitState(item.calcStatus) ? ' fin-chart__value--muted' : ''}`}>
           {view === 'rate' ? rateText : change}
         </span>
         <span className="fin-chart__tip" aria-hidden="true">

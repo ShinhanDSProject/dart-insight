@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { amountPeriodLabel, formatAmount, formatChange, formatRate, parseUnit, shortCalcLabel } from './format'
+import { amountPeriodLabel, formatAmount, formatChange, formatRate, isProfitState, parseUnit, shortCalcLabel } from './format'
 
 describe('result format', () => {
   it('단위로 나눠 반올림하고 천 단위로 끊는다', () => {
@@ -53,6 +53,9 @@ describe('result format', () => {
     expect(shortCalcLabel('SIGN_CHANGED')).toBe('계산 불가 · 부호가 바뀜')
     expect(shortCalcLabel('SIGN_CHANGED')).not.toMatch(/흑자|적자/)
     expect(shortCalcLabel('OK')).toBeNull()
+    expect(['TURNED_PROFIT', 'TURNED_LOSS', 'LOSS_NARROWED', 'LOSS_WIDENED'].every(isProfitState)).toBe(true)
+    expect(isProfitState('SIGN_CHANGED')).toBe(false)
+    expect(isProfitState('PREVIOUS_NEGATIVE')).toBe(false)
   })
 
   it('금액 기준별 기간', () => {
