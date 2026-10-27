@@ -1064,7 +1064,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `created_at` | DATETIME(6) | | 아니오 | 가입 시각(한국 시간), 기존 Clock 설정 사용 |
 | `updated_at` | DATETIME(6) | | 아니오 | 변경 시각(한국 시간) |
 | `nickname` | VARCHAR(12) | UNIQUE | 예 | 커뮤니티에 보이는 이름(6.6 #459). 처음 글·댓글을 쓸 때 정하고, 나중에 바꿀 수 있다(바꾸면 예전 글에도 새 닉네임이 보임). 2~12자, 한글 완성형·영문·숫자만(공백·특수문자 없음). `utf8mb4_unicode_ci`라 대소문자만 다른 닉네임은 같은 것으로 본다. 정하지 않았으면 null |
-| `role` | VARCHAR(10) DEFAULT 'USER' | | 아니오 | `USER`, `ADMIN`. 관리자 API 권한(6.6 #459, [ADR-0040](adr/0040-user-role-in-app-user.md)). 첫 관리자는 환경변수 `ADMIN_EMAILS`의 이메일로 로그인할 때 `ADMIN`이 된다 |
+| `role` | VARCHAR(10) DEFAULT 'USER' | | 아니오 | `USER`, `ADMIN`. 관리자 API 권한(6.6 #459, [ADR-0040](adr/0040-user-role-in-app-user.md)). 첫 관리자는 소유가 확인된 이메일이 환경변수 `ADMIN_EMAILS`에 있는 계정으로 로그인할 때 `ADMIN`이 된다 |
 
 **local_credential**
 
