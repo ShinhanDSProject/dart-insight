@@ -66,7 +66,7 @@
 | POST | `/api/users` | 일반 회원가입 | #136 | 회원가입(신규) | 구현 |
 | POST | `/api/sessions` | 일반 로그인 | 6.2 | 로그인(신규) | 구현 |
 | POST | `/api/session-refreshes` | Access Token 재발급 | 6.2 | 공통 | 구현 |
-| GET | `/api/sessions/current` | 현재 인증 사용자 | 6.2 | 공통 | 구현 |
+| GET | `/api/sessions/current` | 현재 인증 사용자(닉네임·관리자 여부는 #459) | 6.2 | 공통 | 구현 |
 | DELETE | `/api/sessions/current` | 로그아웃 | 6.2 | 공통 | 구현 |
 | GET | `/oauth2/authorization/{provider}` | 소셜 로그인 시작(`google`, `kakao`, `naver`) | #225 (6.3) | 로그인 | 구현 |
 | GET | `/login/oauth2/code/{provider}` | 소셜 제공자 OAuth 콜백 | #225 (6.3) | 로그인 | 구현 |
@@ -81,6 +81,18 @@
 | PUT | `/api/notes/{itemId}/memo` | 노트 항목 메모 고치기 | #413 (6.5) | 판단 노트(신규) | 초안 |
 | DELETE | `/api/notes/{itemId}` | 노트 항목 하나 지우기 | #413 (6.5) | 판단 노트(신규) | 초안 |
 | GET | `/api/notes/export` | 기업 노트를 출처와 함께 Markdown으로 내보내기(`?corpCode=`) | #413 (6.5) | 판단 노트(신규) | 초안 |
+| PUT | `/api/users/current/nickname` | 커뮤니티 닉네임 정하기·바꾸기 | #459 (6.6) | 닉네임 정하기(신규) | 초안 |
+| GET | `/api/companies/{corpCode}/posts` | 기업 게시판 글 목록(최신순·인기순) | #460 (6.6) | W-01 ② 커뮤니티 탭 | 초안 |
+| POST | `/api/companies/{corpCode}/posts` | 글 쓰기(변경점 인용 선택, #464) | #460·#464 (6.6) | W-01 ② 커뮤니티 탭 | 초안 |
+| GET | `/api/posts/{postId}` | 글과 댓글 | #460 (6.6) | W-01 ② 커뮤니티 탭 | 초안 |
+| PATCH·DELETE | `/api/posts/{postId}` | 내 글 고치기·지우기 | #460 (6.6) | W-01 ② 커뮤니티 탭 | 초안 |
+| POST | `/api/posts/{postId}/comments` | 댓글·답글(한 단계) 쓰기 | #460 (6.6) | W-01 ② 커뮤니티 탭 | 초안 |
+| PATCH·DELETE | `/api/comments/{commentId}` | 내 댓글 고치기·지우기 | #460 (6.6) | W-01 ② 커뮤니티 탭 | 초안 |
+| PUT·DELETE | `/api/posts/{postId}/like`, `/api/comments/{commentId}/like` | 좋아요·취소 | #460 (6.6) | W-01 ② 커뮤니티 탭 | 초안 |
+| POST | `/api/posts/{postId}/reports`, `/api/comments/{commentId}/reports` | 신고(사유 4가지) | #461 (6.6) | W-01 ② 커뮤니티 탭 | 초안 |
+| GET | `/api/admin/reports` | 관리자 신고 목록(처리할 것·전체) | #461 (6.6) | 관리자 신고 목록(신규) | 초안 |
+| PATCH | `/api/admin/reports/{reportId}` | 신고 처리(유지·블라인드·삭제) | #461 (6.6) | 관리자 신고 목록(신규) | 초안 |
+| POST | `/api/reports/{reportId}/repost-requests` | 블라인드 재게시 청구 | #461 (6.6) | W-01 ② 커뮤니티 탭 | 초안 |
 | GET | `/api/companies` | 기업 검색 | #8 (1.1) | W-01 ① | 초안 |
 | GET | `/api/featured-companies` | 첫 화면 대표 기업(유가증권시장 시가총액 상위 100) | #399 (1.5) | W-01 ① | 초안 |
 | GET | `/api/season-changes` | 첫 화면 이번 시즌 변화가 큰 기업 Top 10 | #420 (1.7) | W-01 ① | 초안 |
@@ -191,6 +203,8 @@
 ### GET·DELETE /api/sessions/current — 현재 세션·로그아웃
 
 - GET은 Bearer Access Token이 필요하며 현재 `userId`를 반환합니다. 없거나 잘못된 JWT는 `AUTH_UNAUTHORIZED`(401)입니다.
+- #459부터 GET 응답에 `nickname`(정하지 않았으면 null)과 `admin`(관리자면 true)을 더합니다: `{ "userId": 1, "nickname": "반도체공부중", "admin": false }`. 화면은 `nickname`으로 닉네임 정하기를 먼저 띄울지, `admin`으로 관리자 메뉴를 보일지 정합니다. 권한은 서버가 관리자 API마다 다시 확인합니다([ADR-0040](adr/0040-user-role-in-app-user.md)).
+- 일반 로그인·소셜 로그인에 성공했을 때 그 계정의 이메일(일반 가입 이메일, 또는 제공자가 확인한 소셜 이메일)이 환경변수 `ADMIN_EMAILS`에 있으면 관리자로 바꿉니다(ADR-0040). 응답 모양은 바뀌지 않습니다.
 - DELETE는 Refresh Token을 폐기하고 쿠키를 만료시킵니다. 이미 없더라도 204로 끝냅니다.
 
 ### GET /oauth2/authorization/{provider} — 소셜 로그인
@@ -393,6 +407,227 @@
 | 404 | `ANALYSIS_QUESTION_NOT_FOUND` | POST(AI 답 인용)에서 그 분석의 답한 질문이 아니거나, 그 번호의 인용이 없거나, 저장된 원문에서 인용 문단을 찾지 못함 |
 | 404 | `COMPANY_NOT_FOUND` | 내보내기에서 없는 고유번호 |
 | 404 | `COMPANY_NOTE_NOT_FOUND` | PUT·DELETE에서 없는 항목이거나 다른 사용자의 항목 |
+
+### 커뮤니티 — 기업별 게시판(6.6, FS-58)
+
+- 이슈: #459(닉네임·관리자), #460(글·댓글·좋아요), #461(신고·처리), #464(인용) · 화면: W-01 ② 기업 화면의 '커뮤니티' 탭, 관리자 신고 목록(새 화면), 닉네임 정하기 대화상자
+- 원칙은 "기본은 자유, 법이 막는 것만 막는다"입니다(결정 로그 '커뮤니티(기업별 게시판) 범위와 운영 원칙'). 신고만으로 글을 가리지 않고, 관리자가 처리할 때만 가립니다. 글을 올리기 전 자동 검열, 신고 수에 따른 자동 블라인드는 없습니다.
+- 이용자 글은 서비스의 분석이 아닙니다. AI 서버·LLM에 보내지 않고, 표현 검사(5.5)도 하지 않으며, 분석 결과 API(`/api/analyses/...`)에 섞지 않습니다. 화면은 탭 맨 위에 "이용자 의견이며 서비스의 분석이 아닙니다."를 고정으로 둡니다.
+- 읽기(글 목록·글 상세)는 로그인 없이 됩니다. 쓰기(글·댓글·좋아요·신고·재게시 청구·닉네임)는 Bearer Access Token이 필요하고, 없거나 잘못된 JWT는 `AUTH_UNAUTHORIZED`(401)입니다. 사용자는 토큰의 `sub`로만 정합니다. 읽기 요청에 토큰이 있으면 `mine`·`liked`와 작성자 본인의 블라인드 정보를 채웁니다(잘못된 토큰이면 401).
+- 관리자 API(`/api/admin/...`)는 `app_user.role`이 `ADMIN`인 사용자만 씁니다. 아니면 `AUTH_FORBIDDEN`(403)입니다([ADR-0040](adr/0040-user-role-in-app-user.md)).
+- 작성자는 닉네임으로만 나갑니다. 어떤 응답에도 작성자의 이메일·사용자 ID가 없습니다. 닉네임이 없는 사용자는 글·댓글을 쓰기 전에 정해야 합니다(`COMMUNITY_NICKNAME_REQUIRED`).
+
+**닉네임 규칙**: 앞뒤 공백을 지운 2~12자, 한글 완성형(가~힣)·영문·숫자만(공백·특수문자 없음). 다른 사람이 쓰는 닉네임은 쓸 수 없고, 대소문자만 다른 닉네임도 같은 것으로 봅니다. 나중에 바꿀 수 있고, 바꾸면 예전 글·댓글에도 새 닉네임이 보입니다.
+
+**글 모양** (`Post`, 아래 응답에서 같이 씀)
+
+```json
+{
+  "postId": 31,
+  "corpCode": "00126380",
+  "author": { "nickname": "반도체공부중", "mine": false },
+  "state": "VISIBLE",
+  "body": "HBM 생산능력 문장이 새로 들어갔네요. 다음 분기 설비투자 항목도 같이 봐야 할 듯합니다.",
+  "quote": {
+    "kind": "TEXT_CHANGE",
+    "label": "II. 사업의 내용 > 3. 원재료 및 생산설비",
+    "text": "당사는 HBM 생산능력을 전년 대비 2배 이상 확대하였습니다.",
+    "changeType": "ADDED",
+    "sjDiv": null,
+    "reportPair": { "previous": "분기보고서 (2025.09)", "current": "분기보고서 (2026.09)" },
+    "source": { "analysisId": 42, "changeId": 3001, "rceptNo": "20261114001234", "sectionNo": 12, "blockNo": 340 },
+    "outdated": false
+  },
+  "likeCount": 3,
+  "commentCount": 2,
+  "liked": false,
+  "blind": null,
+  "createdAt": "2026-10-27T10:15:00",
+  "editedAt": null
+}
+```
+
+| 필드 | 설명 |
+| --- | --- |
+| `author.nickname` | 작성자 닉네임(지금 값) |
+| `author.mine` | 요청한 사용자가 작성자면 true. 로그인하지 않았으면 false. 화면은 이 값으로 수정·삭제 메뉴를 보인다 |
+| `state` | `VISIBLE` 보임, `BLINDED` 신고로 가려짐, `DELETED` 지워짐(댓글이 있어 남은 글). 화면 문구는 `BLINDED` '신고로 가려진 글입니다', `DELETED` '삭제된 글입니다' |
+| `body` | 본문. `DELETED`면 null, `BLINDED`면 작성자 본인에게만 있고 다른 사람에게는 null |
+| `quote` | 붙인 변경점 인용(#464). 없으면 null. `BLINDED`·`DELETED`이고 본인이 아니면 null. `label`·`text`는 담을 때의 사본(판단 노트 `NoteItem`과 같은 기준, `text`는 1,000자까지)이고 화면이 보낸 글이 아니라 backend가 저장된 분석 결과로 만든다. `kind`는 `FINANCIAL_CHANGE`·`TEXT_CHANGE`, `changeType`은 문장만, `sjDiv`는 재무만 값이 있다. 카드를 누르면 재무 `/analyses/{analysisId}?tab=financial&sj={sjDiv}&change={changeId}`, 문장 `/analyses/{analysisId}?tab=text&tc={changeId}`로 간다. `outdated`는 노트와 같다(분석 버전이 바뀜) |
+| `likeCount`·`commentCount` | 좋아요 수, 지우지 않은 댓글·답글 수 |
+| `liked` | 요청한 사용자가 좋아요를 눌렀으면 true. 로그인하지 않았으면 false |
+| `blind` | `BLINDED`이고 요청한 사용자가 작성자일 때만 `{ "reportId": 8, "reason": "처리 사유", "blindUntil": "2026-11-03T10:15:00", "expired": false, "repostRequested": false }`. 그 밖에는 null. `expired`는 기한이 지났지만 관리자가 아직 다시 처리하지 않음(가린 채 둠) |
+| `createdAt`·`editedAt` | 쓴 시각, 마지막으로 고친 시각(고치지 않았으면 null). 한국 시간 `yyyy-MM-dd'T'HH:mm:ss` |
+
+**댓글 모양** (`Comment`): `{ "commentId", "parentId", "author": { "nickname", "mine" }, "state", "body", "likeCount", "liked", "blind", "createdAt", "editedAt", "replies": [Comment] }`. 필드 뜻은 글과 같습니다(`DELETED`는 '삭제된 댓글입니다', `BLINDED`는 '신고로 가려진 댓글입니다'). `parentId`는 답글이면 부모 댓글 ID, 아니면 null입니다. `replies`는 댓글에만 있고(답글은 빈 배열) 한 단계입니다.
+
+#### PUT /api/users/current/nickname — 닉네임 정하기·바꾸기 (#459)
+
+```json
+{ "nickname": "반도체공부중" }
+```
+
+- 200 `{ "nickname": "반도체공부중" }`. 지금 닉네임과 같으면 그대로 200입니다.
+- 동시에 같은 닉네임을 정하면 하나만 성공합니다(DB UNIQUE).
+
+#### GET /api/companies/{corpCode}/posts — 기업 게시판 글 목록 (#460)
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| path | `corpCode` | string | 예 | 고유번호(8자리 숫자) |
+| query | `sort` | string | 아니오 | `latest`(기본) 쓴 시각 역순, `popular` 좋아요 수 + 댓글 수가 많은 순(같으면 최신) |
+| query | `page` | int | 아니오 | 0부터. 기본 0 |
+| query | `size` | int | 아니오 | 1~50. 기본 20 |
+
+```json
+{ "corpCode": "00126380", "sort": "latest", "page": 0, "size": 20, "totalItems": 25, "items": [ { "postId": 31, "...": "위 Post" } ] }
+```
+
+- 지운 글은 댓글이 남아 있을 때만 `state: "DELETED"`로 들어 있고, 댓글이 없으면 빠집니다. 가려진 글은 `state: "BLINDED"`로 제자리에 있습니다.
+- 글이 없으면 `items: []`, `totalItems: 0`입니다. 화면은 "아직 글이 없습니다. 첫 의견을 남겨 보세요"를 보입니다.
+
+#### POST /api/companies/{corpCode}/posts — 글 쓰기 (#460, 인용 #464)
+
+```json
+{ "body": "HBM 생산능력 문장이 새로 들어갔네요.", "quote": { "kind": "TEXT_CHANGE", "analysisId": 42, "changeId": 3001 } }
+```
+
+| 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- |
+| `body` | string | 예 | 앞뒤 공백을 지운 1~2,000자 |
+| `quote` | object | 아니오 | 붙일 변경점. `kind`(`FINANCIAL_CHANGE`·`TEXT_CHANGE`), `analysisId`(이 기업의 완료된 분석), `changeId`(그 분석의 재무 계정 변화 또는 문장 변경 ID) |
+
+- 201과 쓴 `Post`. 인용은 backend가 저장된 분석 결과로 사본을 만듭니다(LLM을 부르지 않음).
+- 인용이 다른 기업의 분석이거나, 없거나 끝나지 않은 분석이거나, 그 분석의 변경이 아니면 400 `COMMON_INVALID_INPUT`이고 글도 저장하지 않습니다(`errors[].field`는 `quote.analysisId` 또는 `quote.changeId`).
+
+#### GET /api/posts/{postId} — 글과 댓글 (#460)
+
+- 200 `{ "post": Post, "comments": [Comment] }`. 댓글은 오래된 순, 답글도 부모 아래에서 오래된 순입니다. 모든 댓글을 한 번에 줍니다.
+- 지운 댓글은 지우지 않은 답글이 있을 때만 `state: "DELETED"`로 남습니다.
+- 지운 글이어도 댓글이 남아 있으면 200(`state: "DELETED"`)이고, 댓글도 없으면 404입니다.
+
+#### PATCH /api/posts/{postId} — 글 고치기 (#460)
+
+- `{ "body": "고친 본문" }` → 200과 고친 `Post`. 본인 글만, `VISIBLE`일 때만 고칩니다. 인용은 바꿀 수 없습니다.
+
+#### DELETE /api/posts/{postId} — 글 지우기 (#460)
+
+- 204. 본인 글만 지웁니다. 이미 지운 글이면 204입니다. 댓글이 있으면 '삭제된 글입니다'로 남고 댓글은 그대로입니다. 가려진 글도 작성자가 지울 수 있습니다(신고 기록은 남음).
+
+#### POST /api/posts/{postId}/comments — 댓글·답글 쓰기 (#460)
+
+```json
+{ "body": "설비투자 항목은 III장에 있어요.", "parentId": null }
+```
+
+- `body`는 앞뒤 공백을 지운 1~500자, `parentId`는 답글일 때 이 글의 댓글 ID입니다. 201과 쓴 `Comment`.
+- 답글에 다시 답글을 달면 400 `COMMON_INVALID_INPUT`(`errors[].field`는 `parentId`, 답글은 한 단계만)입니다. 다른 글의 댓글이거나 없는 댓글이어도 같은 400입니다.
+- 글이 `VISIBLE`일 때만 씁니다.
+
+#### PATCH·DELETE /api/comments/{commentId} — 댓글 고치기·지우기 (#460)
+
+- PATCH `{ "body": "..." }` → 200과 고친 `Comment`. DELETE → 204. 본인 댓글만이고, 규칙은 글과 같습니다(지우지 않은 답글이 있으면 '삭제된 댓글입니다'로 남음).
+
+#### PUT·DELETE /api/posts/{postId}/like, /api/comments/{commentId}/like — 좋아요 (#460)
+
+- PUT은 누르기, DELETE는 취소입니다. 본문 없음. 200 `{ "liked": true, "likeCount": 4 }`.
+- 이미 누른 상태에서 PUT, 누르지 않은 상태에서 DELETE는 아무것도 바꾸지 않고 지금 상태를 돌려줍니다. 같은 사람이 동시에 여러 번 눌러도 수는 한 번만 더해집니다(DB UNIQUE).
+- 대상이 `VISIBLE`일 때만 누를 수 있고, 취소는 언제든 됩니다. 자기 글·댓글에도 누를 수 있습니다.
+
+#### POST /api/posts/{postId}/reports, /api/comments/{commentId}/reports — 신고 (#461)
+
+```json
+{ "reason": "FALSE_RUMOR" }
+```
+
+| `reason` | 뜻 |
+| --- | --- |
+| `DEFAMATION` | 특정인 모욕·명예훼손 |
+| `FALSE_RUMOR` | 허위 풍문 |
+| `PAID_LEADING` | 유료 리딩방·상담 유인 |
+| `PERSONAL_INFO` | 개인정보 노출 |
+
+- 204. 신고만으로 글은 가려지지 않습니다. 같은 대상에 한 사람이 한 번만 신고합니다. 자기 글·댓글은 신고할 수 없습니다(`COMMUNITY_FORBIDDEN`).
+- `VISIBLE`인 대상만 신고합니다. 이미 처리(유지)된 대상에 다른 사람이 신고하면 다시 처리 대기가 됩니다.
+
+#### GET /api/admin/reports — 관리자 신고 목록 (#461, 관리자만)
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| query | `queue` | string | 아니오 | `todo`(기본) 처리할 것(대기·재게시 청구·기한 지남), `all` 전체(처리한 것 포함) |
+| query | `page`, `size` | int | 아니오 | 0부터, 1~50(기본 20) |
+
+```json
+{
+  "queue": "todo", "page": 0, "size": 20, "totalItems": 1,
+  "items": [
+    {
+      "reportId": 8,
+      "status": "OPEN",
+      "todo": "PENDING",
+      "target": { "type": "POST", "postId": 31, "commentId": null, "corpCode": "00126380", "corpName": "삼성전자", "author": { "nickname": "반도체공부중" }, "body": "본문 전체(가렸거나 지운 것도)", "state": "VISIBLE" },
+      "reportCount": 3,
+      "reasonCounts": { "DEFAMATION": 0, "FALSE_RUMOR": 2, "PAID_LEADING": 1, "PERSONAL_INFO": 0 },
+      "lastReportedAt": "2026-10-27T11:00:00",
+      "blindUntil": null,
+      "repostRequest": null,
+      "moderations": [ { "decision": "BLIND", "reason": "확인되지 않은 합병설", "blindDays": 7, "blindUntil": "2026-11-03T10:15:00", "admin": { "nickname": "운영자" }, "createdAt": "2026-10-27T10:15:00" } ]
+    }
+  ]
+}
+```
+
+- `status`는 `OPEN` 대기, `KEPT` 유지, `BLINDED` 블라인드, `DELETED` 삭제입니다.
+- `todo`는 처리할 이유입니다: `PENDING` 새 신고, `REPOST_REQUESTED` 재게시 청구, `EXPIRED` 블라인드 기한 지남(가린 채 둠), 처리할 것이 없으면 null. 기한이 지나도 자동으로 풀지 않고 이 목록에 다시 올립니다.
+- `repostRequest`는 마지막 블라인드에 대한 청구 `{ "message": "...", "createdAt": "..." }`, 없으면 null입니다. `moderations`는 처리 기록(최근 순)입니다.
+- 정렬: `todo`는 `lastReportedAt`·청구 시각·기한 중 가장 최근 순, `all`은 `lastReportedAt` 최근 순입니다.
+- 신고한 사람은 보이지 않습니다(사유별 건수만). 작성자·관리자도 닉네임만 나갑니다.
+
+#### PATCH /api/admin/reports/{reportId} — 신고 처리 (#461, 관리자만)
+
+```json
+{ "decision": "BLIND", "reason": "확인되지 않은 합병설을 사실처럼 씀", "blindDays": 7 }
+```
+
+| 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- |
+| `decision` | string | 예 | `KEEP` 유지, `BLIND` 블라인드, `DELETE` 삭제 |
+| `reason` | string | 예 | 처리 사유. 앞뒤 공백을 지운 1~500자. 블라인드면 작성자에게 보임 |
+| `blindDays` | int | 블라인드만 | 1~30. 다른 결정이면 보내지 않음 |
+
+- 200과 처리한 신고 항목(위 `items`의 항목). 처리 기록을 한 줄 더합니다(누가·언제·결정·사유·기한).
+- `KEEP`: 대상을 보이게 둡니다(가려져 있었으면 풀기). `BLIND`: 대상을 처리 시각부터 `blindDays`일 동안 가립니다. `DELETE`: 대상을 지웁니다(작성자가 지운 것과 같이 보임).
+- 이미 지운(`DELETED`) 신고는 다시 처리할 수 없습니다(`COMMUNITY_REPORT_CLOSED`).
+
+#### POST /api/reports/{reportId}/repost-requests — 재게시 청구 (#461)
+
+```json
+{ "message": "출처 기사 링크를 붙여 다시 올립니다." }
+```
+
+- 블라인드된 글·댓글의 작성자만 청구합니다. `message`는 아니오, 500자 이하(비었으면 null). 201 `{ "reportId": 8, "createdAt": "2026-10-28T09:00:00" }`.
+- 청구하면 관리자 목록에 `REPOST_REQUESTED`로 올라갑니다. 지금 블라인드에 이미 청구했으면 409 `COMMUNITY_REPOST_ALREADY_REQUESTED`입니다(관리자가 다시 블라인드하면 새로 청구할 수 있음).
+- 작성자는 `reportId`를 글·댓글 응답의 `blind.reportId`에서 얻습니다.
+
+**에러**
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | 본문 길이(글 1~2,000자, 댓글 1~500자), 닉네임 규칙, `sort`·`queue`·`page`·`size` 범위, `reason`·`decision` 허용 값, `blindDays` 1~30 밖이거나 블라인드인데 없음, 사유 1~500자 밖, 답글에 답글, 잘못된 인용, `corpCode` 형식. `errors[].field`에 필드 이름 |
+| 401 | `AUTH_UNAUTHORIZED` | 쓰기 요청에 Access Token이 없거나, 어떤 요청이든 토큰이 유효하지 않음 |
+| 403 | `AUTH_FORBIDDEN` | 관리자 API를 관리자가 아닌 사용자가 부름 |
+| 403 | `COMMUNITY_FORBIDDEN` | 다른 사람의 글·댓글을 고치거나 지움, 자기 글·댓글을 신고, 작성자가 아닌데 재게시 청구 |
+| 404 | `COMPANY_NOT_FOUND` | 없는 고유번호 |
+| 404 | `COMMUNITY_POST_NOT_FOUND` | 없는 글, 댓글도 없는 지운 글 |
+| 404 | `COMMUNITY_COMMENT_NOT_FOUND` | 없는 댓글, 보일 답글도 없는 지운 댓글 |
+| 404 | `COMMUNITY_REPORT_NOT_FOUND` | 없는 신고 건 |
+| 409 | `COMMUNITY_NICKNAME_REQUIRED` | 닉네임을 정하지 않고 글·댓글을 씀 |
+| 409 | `COMMUNITY_NICKNAME_TAKEN` | 다른 사람이 쓰는 닉네임 |
+| 409 | `COMMUNITY_TARGET_UNAVAILABLE` | 가려지거나 지운 글·댓글에 고치기·댓글·좋아요·신고 |
+| 409 | `COMMUNITY_ALREADY_REPORTED` | 같은 대상을 이미 신고함 |
+| 409 | `COMMUNITY_REPORT_CLOSED` | 지운 대상의 신고를 다시 처리 |
+| 409 | `COMMUNITY_REPOST_NOT_ALLOWED` | 블라인드 상태가 아닌 신고에 재게시 청구 |
+| 409 | `COMMUNITY_REPOST_ALREADY_REQUESTED` | 지금 블라인드에 이미 재게시를 청구함 |
 
 ### GET /api/companies — 기업 검색
 
@@ -2601,6 +2836,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | `AUTH_INVALID_CREDENTIALS` | 401 | 이메일 또는 비밀번호가 맞지 않음 | 로그인 입력 확인 안내 |
 | `AUTH_INVALID_REFRESH_TOKEN` | 401 | Refresh Token이 없거나 만료·폐기·변조됨 | 로그인 화면으로 이동 |
 | `AUTH_UNAUTHORIZED` | 401 | Access Token이 없거나 유효하지 않음 | 재발급 또는 로그인 화면으로 이동 |
+| `AUTH_FORBIDDEN` | 403 | 관리자만 쓰는 API(ADR-0040, 6.6) | 권한 없음 안내 |
 | `COMMON_NOT_FOUND` | 404 | 없는 경로 | 공통 오류 안내 |
 | `COMMON_METHOD_NOT_ALLOWED` | 405 | 지원하지 않는 메서드 | 공통 오류 안내 |
 | `COMMON_INTERNAL_ERROR` | 500 | 알 수 없는 서버 오류 | 공통 오류 안내와 추적 ID |
@@ -2617,6 +2853,17 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | `ANALYSIS_TEXT_CHANGE_NOT_FOUND` | 404 | 없는 문장 변경 항목 | 목록 다시 불러오기 |
 | `ANALYSIS_QUESTION_NOT_FOUND` | 404 | 없는 질문(또는 이 분석의 질문이 아님) | 질문 기록 다시 불러오기 |
 | `ANALYSIS_NOTIFICATION_NOT_FOUND` | 404 | 없는 알림(또는 다른 회원의 알림, #38) | 알림 목록 다시 불러오기 |
+| `COMMUNITY_FORBIDDEN` | 403 | 다른 사람의 글·댓글을 고치거나 지움, 자기 글 신고, 작성자가 아닌 재게시 청구(6.6) | 메뉴를 숨기고 안내 |
+| `COMMUNITY_POST_NOT_FOUND` | 404 | 없는 글(또는 댓글도 없는 지운 글) | 글 목록 다시 불러오기 |
+| `COMMUNITY_COMMENT_NOT_FOUND` | 404 | 없는 댓글 | 글 다시 불러오기 |
+| `COMMUNITY_REPORT_NOT_FOUND` | 404 | 없는 신고 건 | 신고 목록 다시 불러오기 |
+| `COMMUNITY_NICKNAME_REQUIRED` | 409 | 닉네임을 정하지 않고 글·댓글을 씀 | 닉네임 정하기 대화상자 |
+| `COMMUNITY_NICKNAME_TAKEN` | 409 | 다른 사람이 쓰는 닉네임 | 닉네임 입력 아래 안내 |
+| `COMMUNITY_TARGET_UNAVAILABLE` | 409 | 가려지거나 지운 글·댓글에 고치기·댓글·좋아요·신고 | 글 다시 불러오기 |
+| `COMMUNITY_ALREADY_REPORTED` | 409 | 같은 대상을 이미 신고함 | '이미 신고했어요' |
+| `COMMUNITY_REPORT_CLOSED` | 409 | 지운 대상의 신고를 다시 처리 | 신고 목록 다시 불러오기 |
+| `COMMUNITY_REPOST_NOT_ALLOWED` | 409 | 블라인드 상태가 아닌 신고에 재게시 청구 | 글 다시 불러오기 |
+| `COMMUNITY_REPOST_ALREADY_REQUESTED` | 409 | 지금 블라인드에 이미 재게시를 청구함 | '이미 청구했어요' |
 | `DART_REQUEST_FAILED` | 502 | OpenDART 호출 실패 | 잠시 뒤 다시 시도 |
 | `DART_RATE_LIMITED` | 503 | OpenDART 호출 한도 초과(020) | 내일 다시 시도, 저장된 자료 사용 |
 | `DART_KEY_MISSING` | 503 | 서버에 OpenDART 키가 없음 | 관리자 안내 |
@@ -2635,3 +2882,4 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | 요약할 변화 고르기(3.2) | 재무 수치: 계산한 계정 중 손익계산서 증감액 상위 3개(손익계산서가 없으면 포괄손익계산서), 재무상태표 2개. 문장 변화: 우선순위 높음·중간 중 점수 상위 5개(숫자만 바뀜 `NUMERIC_UPDATE`·위치 이동 `MOVED`·검토 필요 제외). 설명 후보: 현재 보고서 '경영진단'·'사업의 내용' 섹션 문단 중 계정 이름이 나오는 앞의 2개(문단당 1,500자까지) | [공시 변화 평가 규칙과 중립·판단 유보 도입 여부](https://app.notion.com/p/400b6afffc6f8139ae35e8183960af19) |
 | 변경 항목 우선순위 규칙(2.6) | 점수 합(`priority-3`): 섹션(사업의 내용 30, 경영진단·투자자 보호·우발·소송 25, 대주주·특수관계 20, 재무에 관한 사항 10, 그 밖 5) + 추가·삭제 20, 수정 10(비슷한 정도 0.7 미만이면 +10), 숫자만 바뀜 −20, 위치 이동 −20 + 문단 10 + 새로 들어간 낱말(추가는 현재 글, 삭제는 이전 글)의 핵심어(계속기업·소송·제재·합병 등, 계속기업을 먼저 셈, #145) 15씩 최대 2개. 60점 이상 높음, 30점 이상 중간. 검토 필요는 판단 유보 | [공시 변화 평가 규칙과 중립·판단 유보 도입 여부](https://app.notion.com/p/400b6afffc6f8139ae35e8183960af19) |
 | 관련 수시공시 범위와 규칙(3.6) | #337·[ADR-0030](adr/0030-related-disclosure-matching.md): 문장 변경(`text_change`)에만 연결, 상세유형 `B001`·`I001`·`I002`, 제목 규칙 8개(`related-1`, 사전 조사 2장 수정안 반영), '내용 일치'는 DS005 3개 유형(신주 수·원고·사건 명칭·대상 회사). 재무 변경·실적 공시 연결, 자회사 공시 포함 여부는 미정 | [관련 수시공시 처리 범위와 표시 방식](https://app.notion.com/p/1a5f2f2c711282b98425019f69576d81) |
+| 커뮤니티 운영(6.6, FS-58) | 정함(#457): 첫 관리자는 `ADMIN_EMAILS`(ADR-0040), 블라인드 기한이 지나면 자동으로 풀지 않고 관리자 목록에 '기한 지남'으로 다시 올림, 닉네임은 2~12자 한글·영문·숫자·중복 불가·바꿀 수 있음. 아직 미정: 욕설 가리기 단어 목록의 출처·위치(#468), 시연용 글을 테스트 계정 글로 밝히는 방법, 작성자에게 처리 결과를 알리는 방법(지금은 글 화면의 `blind`만) | 커뮤니티(기업별 게시판) 범위와 운영 원칙 |
