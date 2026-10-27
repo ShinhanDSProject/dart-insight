@@ -1,20 +1,11 @@
 package com.dartinsight.analysis.controller;
 
-import com.dartinsight.analysis.domain.Analysis;
 import com.dartinsight.analysis.dto.DocumentOutlineResponse;
 import com.dartinsight.analysis.dto.DocumentSectionResponse;
-import com.dartinsight.analysis.service.AnalysisResultService;
-import com.dartinsight.analysis.service.TextEvidenceService;
-import com.dartinsight.common.error.ApiException;
-import com.dartinsight.common.error.ErrorCode;
+import com.dartinsight.analysis.service.SourceDocumentService.SourceOutline;
+import com.dartinsight.analysis.service.SourceDocumentService.SourceSection;
+import com.dartinsight.analysis.service.SourceDocumentService;
 import com.dartinsight.common.web.ApiPaths;
-import com.dartinsight.document.domain.DocumentSection;
-import com.dartinsight.document.service.DocumentService;
-import com.dartinsight.document.domain.ReportDocument;
-import com.dartinsight.report.domain.Report;
-import com.dartinsight.report.service.ReportService;
-import java.util.List;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,44 +21,20 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class SourceController {
 
-    private final AnalysisResultService resultService;
-    private final ReportService reportService;
-    private final DocumentService documentService;
+    private final SourceDocumentService sourceService;
 
     @GetMapping
     public DocumentOutlineResponse outline(@PathVariable Long analysisId, @PathVariable String side) {
-        Analysis analysis = resultService.get(analysisId);
-        Report report = report(analysis, side);
-        Optional<ReportDocument> document = documentService.find(report.getRceptNo());
-        // 분석이 끝난 뒤 원문을 다시 구조화했으면(파서 버전이 바뀜) 저장된 근거 위치와 블록 번호가 다를 수 있다
-        boolean restructured = document.isPresent() && analysis.getCompletedAt() != null
-                && document.get().getStructuredAt() != null
-                && document.get().getStructuredAt().isAfter(analysis.getCompletedAt());
-        List<DocumentSection> sections = document.map(documentService::sections).orElse(List.of());
-        return DocumentOutlineResponse.of(side, report, document, sections, restructured);
+        SourceOutline outline = sourceService.outline(analysisId, side);
+        return DocumentOutlineResponse.of(side, outline.report(), outline.document(), outline.sections(),
+                outline.restructured());
     }
 
     @GetMapping(ApiPaths.DOCUMENT_SECTION)
     public DocumentSectionResponse section(@PathVariable Long analysisId, @PathVariable String side,
             @PathVariable int sectionNo) {
-        Report report = report(resultService.get(analysisId), side);
-        ReportDocument document = documentService.find(report.getRceptNo())
-                .filter(d -> d.getStatus().usable())
-                .orElseThrow(() -> new ApiException(ErrorCode.REPORT_SECTION_NOT_FOUND));
-        List<DocumentSection> sections = documentService.sections(document);
-        DocumentSection section = sections.stream().filter(s -> s.sectionNo() == sectionNo).findFirst()
-                .orElseThrow(() -> new ApiException(ErrorCode.REPORT_SECTION_NOT_FOUND));
-        return DocumentSectionResponse.of(side, report.getRceptNo(), section,
-                TextEvidenceService.paths(sections).get(section.sectionNo()),
-                documentService.sectionBlocks(document, sectionNo));
-    }
-
-    private Report report(Analysis analysis, String side) {
-        String rceptNo = switch (side) {
-            case "current" -> analysis.getCurrentRceptNo();
-            case "previous" -> analysis.getPreviousRceptNo();
-            default -> throw ApiException.invalidInput("side", "current 또는 previous여야 합니다.");
-        };
-        return reportService.get(rceptNo).report();
+        SourceSection section = sourceService.section(analysisId, side, sectionNo);
+        return DocumentSectionResponse.of(side, section.report().getRceptNo(), section.section(),
+                section.sectionPath(), section.blocks());
     }
 }
