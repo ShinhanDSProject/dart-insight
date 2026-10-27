@@ -43,6 +43,11 @@
       <property name="format" value="^[a-z]+(\.[a-z][a-z0-9]*)*$"/>
     </module>
 
+    <!-- 엔티티 상태는 static 팩터리와 도메인 메서드로만 바꾼다(conventions.yaml EN-1). 상태를 밖에서 바꾸거나 전부 받는 Lombok은 쓰지 않는다 -->
+    <module name="IllegalImport">
+      <property name="illegalClasses" value="lombok.Setter, lombok.Builder, lombok.Data, lombok.Value, lombok.AllArgsConstructor"/>
+    </module>
+
     <!-- 코드 본문에 우리 클래스 전체 경로(com.dartinsight.…) 표기 금지. package·import 줄과 주석(Javadoc 포함)은 제외 -->
     <module name="RegexpSinglelineJava">
       <property name="format" value="^(?!\s*(package|import)\s).*\bcom\.dartinsight\.[a-zA-Z0-9_]+\."/>
