@@ -1836,7 +1836,7 @@
 - 이슈: #20 (3.2), #143 (설명 등급·인용) · 화면: W-03 ① · [ADR-0015](adr/0015-explanation-grade-and-quote-check.md)
 - 요약할 변화는 코드가 고릅니다(5절 잠정 규칙). 재무 수치의 사실 문장(`factSentence`)은 코드가 계산한 값으로 만들고, LLM은 문장 변화의 요약과 공시에 적힌 설명(`aiText`)만 씁니다.
 - AI 서버가 LLM 문장의 근거 ID가 보낸 원문 위치인지, 문장의 숫자가 그 원문에 있는지 확인하고, 투자 권유성 표현 검사(5.5)를 합니다. 통과하지 못하면 2회까지 다시 만들고, 그래도 통과하지 못한 항목은 요약에서 빼고 `reviewNeeded`에 남깁니다. 표현 검사에 걸린 항목은 `reviewNeeded[].blockedRules`에 걸린 규칙 ID가 있습니다(5절 잠정 규칙).
-- backend도 저장하기 전에 다시 확인합니다: 요청한 항목인지, 같은 항목이 두 번 오지 않았는지, AI 문장의 근거가 그 항목에 보낸 원문 위치인지. 통과하지 못하거나 응답에 빠진 항목은 `reviewNeeded`에 남습니다.
+- backend도 저장하기 전에 다시 확인합니다: 요청한 항목인지, 같은 항목이 두 번 오지 않았는지, AI 문장의 근거가 보낸 원문 위치인지(문장 변화는 그 항목의 원문, 재무 설명은 보낸 문단 블록, ADR-0036). 통과하지 못하거나 응답에 빠진 항목은 `reviewNeeded`에 남습니다.
 - 분석이 끝난 뒤 원문을 다시 구조화했으면 근거의 `sectionNo`·`blockNo`가 null입니다(블록 번호가 다른 글을 가리킬 수 있어 열지 않음).
 - 분석이 끝나지 않았으면 `ANALYSIS_NOT_READY`(409)입니다.
 
@@ -2241,8 +2241,8 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 
 ### POST /internal/summaries — 근거 기반 요약·설명
 
-- 이슈: #20 (3.2) · LLM은 `app/llm`의 한 모듈(0.7)로만 부릅니다.
-- backend가 고른 항목과 그 근거 원문만 보냅니다. 사용자 정보는 넣지 않습니다. 원문은 프롬프트에서 `<disclosure id="…">` 태그로 감싸 자료로만 씁니다.
+- 이슈: #20 (3.2), #146(설명 후보 검색) · LLM은 `app/llm`의 한 모듈(0.7)로만 부릅니다.
+- backend가 고른 항목과 그 근거 원문만 보냅니다. 재무 설명 후보를 찾을 수 있게 현재 보고서의 문단(`PARAGRAPH`) 블록 전부를 `documentBlocks`로 한 번 보냅니다(표 블록은 보내지 않음). 사용자 정보는 넣지 않습니다. 원문은 프롬프트에서 `<disclosure id="…">` 태그로 감싸 자료로만 씁니다.
 - LLM은 문장 변화마다 한 문장 요약(`sentence`)을 씁니다. 재무 수치마다 후보 원문이 그 변화를 어떻게 다루는지 등급(`grade`)을 매기고, 인용문(`quote`)과 인용 위치(`quoteEvidenceId`), 설명(`explanation`)을 씁니다([ADR-0015](adr/0015-explanation-grade-and-quote-check.md)). 후보 원문이 없는 재무 수치는 LLM에 묻지 않고 `grade: "NONE"`, 설명 없음(`explanation: null`)으로 돌려줍니다.
 
   | `grade` | 뜻 | `explanation` |
@@ -2250,10 +2250,11 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
   | `STATED` | 회사가 변화의 원인을 직접 밝힘 | 회사가 밝힌 내용을 한 문장으로. 원인 표현(때문·로 인해 등)은 이 등급에만 씀 |
   | `RELATED` | 관련 내용은 있지만 원인을 말하지 않음 | "관련 공시 내용으로 ~이 있어요" 꼴. 원인 표현을 쓰지 않음 |
   | `NONE` | 확인된 설명 없음 | null(`quote`·`quoteEvidenceId`도 null, `evidenceIds`는 빈 배열) |
-- 재무 수치의 `accountAliases`는 backend가 설명 후보를 찾을 때 쓴 검색어입니다. 계정명 정리 규칙과 표준계정 ID(`account_id`) 사전으로 만듭니다([ADR-0015](adr/0015-explanation-grade-and-quote-check.md)). 없으면 빈 배열입니다. ai-server는 인용 확인(#142)에 씁니다.
-- 확인: 근거 ID가 그 항목에 보낸 원문 위치인지, 문장의 숫자와 크기 표현(두 배, 절반, 1조·500억처럼 단위가 붙은 수)이 인용한 원문에 그대로 있는지. 실패하면 문제를 알려 주며 2회까지 다시 만들고, 그래도 실패한 항목은 `REVIEW_NEEDED`입니다. 앞 응답에서 통과한 항목은 뒤 응답이 망가져도 그대로 씁니다. 근거 원문이 없는 문장 변화는 LLM에 묻지 않고 `REVIEW_NEEDED`입니다.
+- 재무 수치의 `accountAliases`는 설명 후보를 찾을 검색어입니다. backend가 계정명 정리 규칙과 표준계정 ID(`account_id`) 사전으로 만듭니다([ADR-0015](adr/0015-explanation-grade-and-quote-check.md)). 없으면 빈 배열입니다. ai-server는 후보 검색(#146)과 인용 확인(#142)에 씁니다.
+- 후보 검색([ADR-0036](adr/0036-bm25-explanation-candidate-search.md)): ai-server가 `documentBlocks` 중 공백을 뺀 글에 검색어가 하나 이상 들어 있고 공백을 뺀 길이가 20자 이상인 문단을 고른 뒤, 글자 2개 단위 BM25(k1 1.5, b 0.75) 점수에 섹션 가중치(경로에 '경영진단' ×1.5, '사업의내용' ×1.3, 그 밖 ×1.0)를 곱해 높은 순(같으면 블록 번호 순) 5개를 그 항목의 후보로 씁니다. 문단은 1,500자까지 씁니다. 같은 입력이면 같은 후보가 같은 순서로 나옵니다. 후보가 없으면 LLM에 묻지 않고 `NONE`입니다.
+- 확인: 근거 ID가 그 항목의 원문 위치인지(문장 변화는 보낸 `sources`, 재무 설명은 검색으로 고른 후보), 문장의 숫자와 크기 표현(두 배, 절반, 1조·500억처럼 단위가 붙은 수)이 인용한 원문에 그대로 있는지. 실패하면 문제를 알려 주며 2회까지 다시 만들고, 그래도 실패한 항목은 `REVIEW_NEEDED`입니다. 앞 응답에서 통과한 항목은 뒤 응답이 망가져도 그대로 씁니다. 근거 원문이 없는 문장 변화는 LLM에 묻지 않고 `REVIEW_NEEDED`입니다.
 - 재무 설명의 등급은 코드가 낮추기만 하고 올리지 않습니다. 낮출 때는 다시 만들지 않고, `status`는 `OK`인 채로 낮춘 사유를 `reviewReason`에 남깁니다.
-  - `quoteEvidenceId`가 그 항목에 보낸 후보 위치가 아니거나, 설명의 근거(`evidenceIds`)에 없거나, `quote`가 공백을 모두 뺀 뒤 그 문단에 그대로 없으면 `NONE`
+  - `quoteEvidenceId`가 그 항목의 후보 위치가 아니거나, 설명의 근거(`evidenceIds`)에 없거나, `quote`가 공백을 모두 뺀 뒤 그 문단에 그대로 없으면 `NONE`
   - `quote`에 `accountAliases`(비어 있으면 계정명)가 하나도 없으면 `RELATED`까지
   - LLM이 `NONE`이라고 하면서 설명을 쓰면 설명을 버리고 `NONE`
 - 낮춘 뒤의 등급이 `STATED`가 아닌데 설명에 원인 표현(규칙 ID `CAUSAL_CLAIM`: 때문, 탓, 덕분, 로/으로 인해·인한, 에 기인, 영향으로, 영향을 받아, 결과로)이 있으면 문제를 알려 주며 다시 만들고, 2회 뒤에도 남으면 `REVIEW_NEEDED`입니다. 문장 변화 요약은 검사하지 않습니다.
@@ -2271,8 +2272,10 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
       "sources": [{ "evidenceId": "20260814001234#B44", "sectionPath": "II. 사업의 내용 > 1. 사업의 개요", "text": "…" }] }
   ],
   "financialItems": [
-    { "ref": "F3", "accountName": "매출액", "direction": "UP", "accountAliases": ["매출액", "영업수익"],
-      "candidates": [{ "evidenceId": "20260814001234#B812", "sectionPath": "IV. 이사의 경영진단 및 분석의견 > 2. 영업실적", "text": "…" }] }
+    { "ref": "F3", "accountName": "매출액", "direction": "UP", "accountAliases": ["매출액", "영업수익"] }
+  ],
+  "documentBlocks": [
+    { "evidenceId": "20260814001234#B812", "sectionPath": "IV. 이사의 경영진단 및 분석의견 > 2. 영업실적", "text": "…" }
   ]
 }
 ```
