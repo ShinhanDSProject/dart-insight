@@ -1,5 +1,6 @@
 import type { ComponentType, MouseEvent } from 'react'
 import { cx } from '@/shared/lib/cx'
+import { ButtonLink } from '@/shared/ui'
 import { useActiveSection } from '../hooks/useActiveSection'
 import type { OverviewSectionProps } from '../model/overviewSections'
 import { CompanyAskSection } from './CompanyAskSection'
@@ -72,6 +73,11 @@ export function CompanyOverviewTab(props: OverviewSectionProps) {
           ))}
         </ul>
       </nav>
+      <p className="company-overview__actions">
+        <ButtonLink variant="secondary" to={`/compare/companies?corps=${encodeURIComponent(props.corpCode)}`}>
+          다른 기업과 나란히 보기
+        </ButtonLink>
+      </p>
       <div className="company-overview">
         {sections.map(({ key, Component, place }) => (
           <div

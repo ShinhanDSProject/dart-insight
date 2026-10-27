@@ -219,6 +219,12 @@
 }
 
 /* 기업 개요 바로 가기(#385). 스크롤해도 위에 붙어 있고, 지금 보고 있는 영역을 표시한다 */
+.company-overview__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 var(--space-4);
+}
+
 .overview-nav {
   position: sticky;
   top: 0;
