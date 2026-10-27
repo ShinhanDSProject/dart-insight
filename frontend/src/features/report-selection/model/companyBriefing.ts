@@ -21,8 +21,8 @@ export function briefingAiLabel(ai: BriefingAi | null): string {
   return parts.filter(Boolean).join(' · ')
 }
 
-/** 근거 위치 한 줄: 섹션 경로(앞 번호 정리)와 블록 번호 */
-export function evidenceLocation(evidence: BriefingEvidence): string {
+/** 근거 위치 한 줄: 섹션 경로(앞 번호 정리)와 블록 번호. 전망·계획(FS-59)의 근거도 쓴다 */
+export function evidenceLocation(evidence: Pick<BriefingEvidence, 'sectionPath' | 'blockNo'>): string {
   const path = evidence.sectionPath ? displaySectionPath(evidence.sectionPath) : '위치 확인 안 됨'
   return `${path} · 블록 ${evidence.blockNo}`
 }

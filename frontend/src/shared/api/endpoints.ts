@@ -36,6 +36,7 @@ export const endpoints = {
     `/api/companies/${seg(corpCode)}/disclosures/${seg(rceptNo)}/key-items`,
   companyDisclosureSignals: (corpCode: string) => `/api/companies/${seg(corpCode)}/disclosure-signals`,
   companyBriefing:(corpCode: string) => `/api/companies/${seg(corpCode)}/briefing`,
+  companyOutlook: (corpCode: string) => `/api/companies/${seg(corpCode)}/outlook`,
   companyQuestions: (corpCode: string) => `/api/companies/${seg(corpCode)}/questions`,
   report: (rceptNo: string) => `/api/reports/${seg(rceptNo)}`,
   comparabilityChecks: () => '/api/comparability-checks',
