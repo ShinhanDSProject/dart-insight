@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import type { ReportItem } from '@/shared/api/reports'
 import { Badge, Button, DataTable, DataTableRow } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { correctionLabel, dataStatusHelp, dataStatusLabel, formatDate, periodLabel } from '@/shared/lib/reportLabels'
-import { RECENT_YEARS, visibleReports } from '../model/reportVisibility'
+import { REPORT_ROWS_INITIAL, visibleReports } from '../model/reportVisibility'
+import { MoreToggle } from './MoreToggle'
 
 interface ReportTableProps {
   items: ReportItem[]
@@ -14,15 +15,16 @@ interface ReportTableProps {
 
 /**
  * W-01 ② 정기보고서 표. 보고서 이름을 누르면 현재 보고서로 고른다.
- * 처음에는 최근 3개 사업연도만 보이고(고른 현재·비교 보고서는 늘 보임), 이전 보고서는 펼쳐서 본다.
+ * 처음에는 최근 8개만 보이고(고른 현재·비교 보고서는 접힌 범위에 있어도 늘 보임), 이전 보고서는 '더 보기'로 펼친다.
  */
 export function ReportTable({ items, current, previous, onSelectCurrent }: ReportTableProps) {
+  const tableId = useId()
   const [expanded, setExpanded] = useState(false)
   const { rows, hiddenCount } = visibleReports(items, [current?.rceptNo, previous?.rceptNo], expanded)
 
   return (
     <>
-      <DataTable caption="정기보고서 목록. 보고서 이름을 누르면 현재 보고서로 고릅니다.">
+      <DataTable id={tableId} caption="정기보고서 목록. 보고서 이름을 누르면 현재 보고서로 고릅니다.">
         <thead>
           <tr>
             <th scope="col">보고서</th>
@@ -64,11 +66,14 @@ export function ReportTable({ items, current, previous, onSelectCurrent }: Repor
       </DataTable>
       {hiddenCount > 0 && (
         <div className="report-table__more">
-          <Button aria-expanded={expanded} onClick={() => setExpanded((open) => !open)}>
-            {expanded ? '접기' : `이전 보고서 더 보기 (${hiddenCount}개)`}
-          </Button>
+          <MoreToggle
+            controls={tableId}
+            expanded={expanded}
+            hiddenCount={hiddenCount}
+            onToggle={() => setExpanded((open) => !open)}
+          />
           {!expanded && (
-            <span className="report-table__more-note">최근 {RECENT_YEARS}개 사업연도 보고서를 먼저 보여 줘요.</span>
+            <span className="report-table__more-note">최근 보고서 {REPORT_ROWS_INITIAL}개와 고른 보고서를 먼저 보여 줘요.</span>
           )}
         </div>
       )}
