@@ -315,6 +315,10 @@ function SectionBlocks({ outline, data, blockNo, headingRef }: SectionBlocksProp
  * 원문 블록 하나. 아주 높은 블록은 처음에 TALL_BLOCK_PX까지만 보이고 '표 전체 보기'로 펼친다(#396).
  * 근거로 고른 블록은 접지 않는다.
  */
+function expandLabel(block: SourceBlock): string {
+  return block.table ? '표 전체 보기' : '전체 보기'
+}
+
 function SourceBlockView({ block, selected, caption }: { block: SourceBlock; selected: boolean; caption: string }) {
   const bodyRef = useRef<HTMLDivElement>(null)
   const [tall, setTall] = useState(false)
@@ -336,7 +340,7 @@ function SourceBlockView({ block, selected, caption }: { block: SourceBlock; sel
       </div>
       {tall && !selected && (
         <Button variant="link" className="source-block__toggle" aria-expanded={open} aria-controls={bodyId} onClick={() => setOpen((v) => !v)}>
-          {open ? '접기' : block.table ? '표 전체 보기' : '전체 보기'}
+          {open ? '접기' : expandLabel(block)}
         </Button>
       )}
     </div>

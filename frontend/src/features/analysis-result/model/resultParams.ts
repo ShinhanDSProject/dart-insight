@@ -120,9 +120,15 @@ export function textParamChanges(c: TextViewChange): ParamChanges {
     ...(c.sort !== undefined ? { tsort: c.sort === 'priority' ? null : c.sort, tc: null } : {}),
     ...(c.section !== undefined ? { tsec: c.section, tpin: null, tc: null } : {}),
     ...(c.q !== undefined ? { tq: c.q, tpin: null, tc: null } : {}),
-    ...(c.pinned !== undefined ? (c.pinned ? { tpin: '1', ttype: null, tsec: null, tq: null, tc: null } : { tpin: null, tc: null }) : {}),
+    ...(c.pinned !== undefined ? pinnedParamChanges(c.pinned) : {}),
     ...(c.change !== undefined ? { tc: idParam(c.change) } : {}),
   }
+}
+
+/** '고정' 보기를 켜면 유형·섹션·검색어를 지우고, 끄면 '고정'만 지운다. 어느 쪽이든 보던 근거를 닫는다 */
+function pinnedParamChanges(pinned: boolean): ParamChanges {
+  if (pinned) return { tpin: '1', ttype: null, tsec: null, tq: null, tc: null }
+  return { tpin: null, tc: null }
 }
 
 export function sourceParamChanges(c: SourceViewChange): ParamChanges {

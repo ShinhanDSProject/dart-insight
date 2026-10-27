@@ -1,5 +1,6 @@
 import { Link, Outlet, useLocation, useMatches, useNavigate, useParams } from 'react-router'
-import { Button } from '@/shared/ui/Button'
+import { match } from 'ts-pattern'
+import { Button, ButtonLink } from '@/shared/ui/Button'
 import { Icon, type IconName } from '@/shared/ui/Icon'
 import { useOnboarding } from '@/shared/hooks/useOnboarding'
 import { useAuth } from '@/shared/auth/authContext'
@@ -51,19 +52,8 @@ export function Layout() {
 
   const onResult = analysisId !== undefined && !pathname.endsWith('/progress')
   const tab = new URLSearchParams(search).get('tab')
-  const active: Section | null =
-    pathname === '/'
-      ? 'search'
-      : pathname === '/notes'
-        ? 'notes'
-        : pathname === '/compare/companies'
-          ? 'companies'
-          : onResult && tab === 'source'
-            ? 'source'
-            : corpCode !== undefined || analysisId !== undefined
-              ? 'compare'
-              : null
-  const shortcutPage: ShortcutPage = pathname === '/' ? 'search' : onResult ? 'result' : 'other'
+  const active = activeSection(pathname, onResult && tab === 'source', corpCode !== undefined || analysisId !== undefined)
+  const shortcutPage = shortcutPageOf(pathname, onResult)
   const shortcuts = useShortcuts(shortcutPage)
 
   const items: NavItem[] = [
@@ -72,12 +62,7 @@ export function Layout() {
       section: 'compare',
       label: '공시 비교',
       icon: 'columns-2',
-      to:
-        corpCode !== undefined
-          ? `/companies/${encodeURIComponent(corpCode)}`
-          : analysisId !== undefined
-            ? `/analyses/${encodeURIComponent(analysisId)}`
-            : '/',
+      to: compareTarget(corpCode, analysisId),
     },
     {
       section: 'source',
@@ -178,17 +163,20 @@ export function Layout() {
               단축키 <Kbd>?</Kbd>
             </Button>
             <div className="app-header__auth">
-              {auth.state.status === 'authenticated' ? (
-                <>
-                  <NotificationMenu refreshKey={pathname} />
-                  <button type="button" className="button button--secondary" onClick={() => void auth.logout()}>로그아웃</button>
-                </>
-              ) : (
-                <>
-                  <Link to="/login" className="button button--secondary" aria-current={pathname === '/login' ? 'page' : undefined}>로그인</Link>
-                  <Link to="/signup" className="button button--secondary" aria-current={pathname === '/signup' ? 'page' : undefined}>회원가입</Link>
-                </>
-              )}
+              {match(auth.state.status)
+                .with('authenticated', () => (
+                  <>
+                    <NotificationMenu refreshKey={pathname} />
+                    <Button variant="secondary" onClick={() => void auth.logout()}>로그아웃</Button>
+                  </>
+                ))
+                .with('loading', 'anonymous', () => (
+                  <>
+                    <ButtonLink to="/login" variant="secondary" aria-current={pathname === '/login' ? 'page' : undefined}>로그인</ButtonLink>
+                    <ButtonLink to="/signup" variant="secondary" aria-current={pathname === '/signup' ? 'page' : undefined}>회원가입</ButtonLink>
+                  </>
+                ))
+                .exhaustive()}
             </div>
           </div>
         </header>
@@ -206,6 +194,29 @@ export function Layout() {
       {shortcuts.helpOpen && <ShortcutHelp page={shortcutPage} onClose={shortcuts.closeHelp} />}
     </div>
   )
+}
+
+/** 지금 주소에 해당하는 메뉴. 분석 결과의 원문 탭은 '원문 확인', 그 밖의 기업·분석 화면은 '공시 비교' */
+function activeSection(pathname: string, onSourceTab: boolean, onCompare: boolean): Section | null {
+  if (pathname === '/') return 'search'
+  if (pathname === '/notes') return 'notes'
+  if (pathname === '/compare/companies') return 'companies'
+  if (onSourceTab) return 'source'
+  if (onCompare) return 'compare'
+  return null
+}
+
+function shortcutPageOf(pathname: string, onResult: boolean): ShortcutPage {
+  if (pathname === '/') return 'search'
+  if (onResult) return 'result'
+  return 'other'
+}
+
+/** '공시 비교' 메뉴가 갈 곳. 보고 있는 기업이나 분석이 있으면 그 화면, 없으면 검색 첫 화면 */
+function compareTarget(corpCode: string | undefined, analysisId: string | undefined): string {
+  if (corpCode !== undefined) return `/companies/${encodeURIComponent(corpCode)}`
+  if (analysisId !== undefined) return `/analyses/${encodeURIComponent(analysisId)}`
+  return '/'
 }
 
 /** 가장 안쪽 경로의 handle.crumb(router.tsx) */

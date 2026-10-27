@@ -337,7 +337,7 @@
 }
 
 .season-changes__name {
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .season-changes__highlight {

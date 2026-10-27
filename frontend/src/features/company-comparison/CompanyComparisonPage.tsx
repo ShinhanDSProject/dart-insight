@@ -33,6 +33,15 @@ const fsDivOptions: readonly SegmentOption<FsDiv>[] = [
   { value: 'OFS', label: '별도' },
 ]
 
+/** 표 위 한 줄 안내. 기업이 모자라면 고르기 안내, 대상 기간이 다르면 경고 */
+function statusMessage(count: number, periodMismatch: boolean): string {
+  if (count < MIN_COMPANIES) {
+    return `비교할 기업을 ${MIN_COMPANIES}곳 이상 골라 주세요. 위 검색 칸이나 관심 기업에서 최대 ${MAX_COMPANIES}곳까지 고를 수 있어요.`
+  }
+  if (periodMismatch) return `${PERIOD_MISMATCH_MESSAGE}. 기업마다 결산월이나 최신 보고서가 달라 대상 기간이 다를 수 있어요.`
+  return `${count}곳을 같은 종류 보고서로 나란히 보여 드려요.`
+}
+
 /**
  * 여러 기업 나란히 보기(FS-56, #412). 2~4곳을 고르면 기업마다 고른 종류의 최신 보고서 주요계정·비율을 한 표에 놓는다.
  * 기존 주요 재무 흐름 API를 기업마다 부르고(API 변경 없음), 비율은 shared/lib/financialRatios로 코드가 계산한다.
@@ -91,11 +100,7 @@ export function CompanyComparisonPage() {
           className={periodsDiffer(columns) ? 'company-compare__status company-compare__status--attention' : 'company-compare__status'}
           role="status"
         >
-          {corps.length < MIN_COMPANIES
-            ? `비교할 기업을 ${MIN_COMPANIES}곳 이상 골라 주세요. 위 검색 칸이나 관심 기업에서 최대 ${MAX_COMPANIES}곳까지 고를 수 있어요.`
-            : periodsDiffer(columns)
-              ? `${PERIOD_MISMATCH_MESSAGE}. 기업마다 결산월이나 최신 보고서가 달라 대상 기간이 다를 수 있어요.`
-              : `${corps.length}곳을 같은 종류 보고서로 나란히 보여 드려요.`}
+          {statusMessage(corps.length, periodsDiffer(columns))}
         </p>
         <ComparisonTable columns={columns} type={type} onRetry={retry} />
         <p className="panel__note">

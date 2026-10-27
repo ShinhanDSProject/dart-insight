@@ -26,7 +26,7 @@ export function useTextCardKeys(handlers: TextCardKeyHandlers) {
       if (event.defaultPrevented) return
       const target = event.target instanceof HTMLElement ? event.target : null
       const card = target?.closest<HTMLElement>(`[${TEXT_CARD_ATTRIBUTE}]`) ?? null
-      const focus: TextCardFocus = card === null ? 'none' : card === target ? 'card' : 'inside-card'
+      const focus = cardFocusOf(card, target)
       const action = textCardKeyFor(
         {
           key: event.key,
@@ -61,6 +61,12 @@ export function useTextCardKeys(handlers: TextCardKeyHandlers) {
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [])
+}
+
+/** 초점이 카드 밖인지, 카드 자체인지, 카드 안의 버튼 등인지 */
+function cardFocusOf(card: HTMLElement | null, target: HTMLElement | null): TextCardFocus {
+  if (card === null) return 'none'
+  return card === target ? 'card' : 'inside-card'
 }
 
 function changeIdOf(card: HTMLElement): number {
