@@ -2,8 +2,10 @@ package com.dartinsight.relateddisclosure.domain;
 
 import com.dartinsight.disclosure.domain.DisclosureGroupRules;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * 관련 수시공시 1단계 '같은 종류'(TYPE_ONLY) 규칙 사전 v1(3.6, ADR-0030). LLM을 쓰지 않는다.
@@ -33,7 +35,9 @@ public final class RelatedDisclosureRules {
      * @param textWords     변경 글에 대는 낱말(공백 없음)
      * @param titlePatterns 정리한 공시 제목에 대는 패턴(공백 없음)
      */
-    public record Rule(String key, List<String> sectionWords, List<String> textWords, List<String> titlePatterns) {
+    /** @param label 화면 이름(기획서의 짝 이름, api-spec matchRuleLabel) */
+    public record Rule(String key, String label, List<String> sectionWords, List<String> textWords,
+            List<String> titlePatterns) {
 
         /** 정리한 섹션 경로·글(공백 없음) 중 하나라도 낱말이 들어 있는지 */
         boolean matchesChange(List<String> compactPaths, String compactText) {
@@ -53,41 +57,53 @@ public final class RelatedDisclosureRules {
 
     /** 규칙 사전. 순서가 한 쌍에 남길 규칙의 우선순위다 */
     public static final List<Rule> RULES = List.of(
-            new Rule("litigation",
+            new Rule("litigation", "소송",
                     List.of("우발부채", "소송"),
                     List.of("소송", "소제기", "판결", "손해배상"),
                     List.of("소송등의제기", "판결", "소송")),
-            new Rule("supply-contract",
+            new Rule("supply-contract", "공급계약",
                     List.of("주요계약", "수주"),
                     List.of("계약", "수주", "공급"),
                     List.of("단일판매", "공급계약")),
-            new Rule("equity-financing",
+            new Rule("equity-financing", "자본 조달",
                     List.of("자본금", "주식의총수"),
                     List.of("유상증자", "신주", "자본금"),
                     List.of("유상증자", "무상증자", "감자")),
-            new Rule("debt-financing",
+            new Rule("debt-financing", "빚 조달",
                     List.of("차입금", "사채"),
                     List.of("전환사채", "신주인수권부사채", "차입"),
                     List.of("전환사채", "신주인수권부사채", "교환사채")),
-            new Rule("investment",
+            new Rule("investment", "투자",
                     List.of("종속회사", "관계회사"),
                     List.of("취득", "출자", "투자"),
                     List.of("타법인주식", "출자증권취득", "유형자산취득", "신규시설투자")),
-            new Rule("restructuring",
+            new Rule("restructuring", "사업 구조 변경",
                     List.of("사업의내용"),
                     List.of("양수", "양도", "합병", "분할", "중단"),
                     List.of("영업양수", "영업양도", "합병", "회사분할", "영업정지")),
-            new Rule("going-concern",
+            new Rule("going-concern", "존속 위험",
                     List.of(),
                     List.of("계속기업", "회생", "부도"),
                     List.of("회생절차", "부도", "해산")),
             // 기획서는 재무 수치 변경 쪽이지만 재무 변경 연결은 이번 범위 밖이라 문장의 계정 이름으로 본다
-            new Rule("earnings",
+            new Rule("earnings", "실적",
                     List.of(),
                     List.of("매출액", "영업이익", "당기순이익"),
                     List.of("(잠정)실적", "매출액또는손익구조")));
 
+    /** 관련 수시공시 영역 맨 아래에 늘 보여 주는 고정 문구(ADR-0030) */
+    public static final String NOTICE = "같은 기간에 공개된 관련 공시입니다. 변경의 원인을 뜻하지 않습니다.";
+
+    private static final Map<String, Rule> BY_KEY = RULES.stream()
+            .collect(Collectors.toUnmodifiableMap(Rule::key, rule -> rule));
+
     private RelatedDisclosureRules() {
+    }
+
+    /** 규칙 키의 화면 이름. 저장된 키가 지금 규칙 사전에 없으면 키를 그대로 준다(규칙 버전을 올리면 다시 계산되므로 드묾) */
+    public static String label(String key) {
+        Rule rule = BY_KEY.get(key);
+        return rule == null ? key : rule.label();
     }
 
     /** 공시 제목이 걸리는 규칙(RULES 순서) */
