@@ -2,6 +2,7 @@ import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import {
   getTextChange,
   getTextChangeHistory,
+  getTextChangeRelatedDisclosures,
   getTextChanges,
   type TextChangeCounts,
   type TextSectionCount,
@@ -91,5 +92,14 @@ export function useTextChangeDetail(analysisId: number, changeId: number) {
 /** 문장 변경 이력(3.8). 완료된 분석을 이어 붙인 여러 기간 */
 export function useTextChangeHistory(analysisId: number, changeId: number) {
   const load = useCallback((signal: AbortSignal) => getTextChangeHistory(analysisId, changeId, signal), [analysisId, changeId])
+  return useAsync(load)
+}
+
+/** 문장 변경의 관련 수시공시(3.6, FS-54). 처음 요청이면 서버가 계산하느라 수 초 걸릴 수 있다 */
+export function useRelatedDisclosures(analysisId: number, changeId: number) {
+  const load = useCallback(
+    (signal: AbortSignal) => getTextChangeRelatedDisclosures(analysisId, changeId, signal),
+    [analysisId, changeId],
+  )
   return useAsync(load)
 }

@@ -179,6 +179,60 @@ export function getTextChangeHistory(
   return apiGet(endpoints.textChangeHistory(analysisId, changeId), undefined, { signal })
 }
 
+/** docs/api-spec.md GET /api/analyses/{id}/text-changes/{changeId}/related-disclosures (3.6, FS-54) */
+export type RelatedStatus = 'FOUND' | 'NOT_FOUND' | 'UNAVAILABLE'
+/** B001 주요사항보고서, I001 수시공시, I002 공정공시 */
+export type DisclosureDetailType = 'B001' | 'I001' | 'I002'
+/** DURING 현재 보고서 기간 안, AFTER 기간 뒤~제출 전 */
+export type DisclosureTiming = 'DURING' | 'AFTER'
+/** STRONG 내용 일치(주요정보 값이 변경 글에 있음), TYPE_ONLY 같은 종류 */
+export type MatchLevel = 'STRONG' | 'TYPE_ONLY'
+export type MatchedField = 'NEW_SHARES' | 'PLAINTIFF' | 'CASE_NAME' | 'TARGET_COMPANY'
+
+export interface RelatedDisclosure {
+  rceptNo: string
+  /** 주요정보로 확인한 최신 정정본 접수번호. 모르면 rceptNo와 같음 */
+  latestRceptNo: string
+  reportName: string
+  receivedDate: string
+  disclosureType: DisclosureDetailType
+  timing: DisclosureTiming
+  matchRule: string
+  matchRuleLabel: string
+  matchLevel: MatchLevel
+  /** STRONG일 때 일치한 값 종류. TYPE_ONLY면 빈 배열 */
+  matchedFields: MatchedField[]
+  remarks: string | null
+  /** latestRceptNo의 DART 공시뷰어 주소 */
+  dartUrl: string
+}
+
+export interface TextChangeRelatedDisclosures {
+  analysisId: number
+  changeId: number
+  status: RelatedStatus
+  /** UNAVAILABLE일 때 공시 목록을 받지 못한 사유(DART_*). 아니면 null */
+  unavailableReason: string | null
+  /** 주요정보(DS005)를 받지 못해 '내용 일치'를 판정하지 못했으면 true */
+  partial: boolean
+  window: { from: string; periodEnd: string; to: string }
+  ruleVersion: string
+  computedAt: string
+  cached: boolean
+  /** STRONG 먼저, 같으면 접수일이 최근인 순서. NOT_FOUND·UNAVAILABLE이면 빈 배열 */
+  items: RelatedDisclosure[]
+  /** 영역 맨 아래에 그대로 보여 줄 고정 문구 */
+  notice: string
+}
+
+export function getTextChangeRelatedDisclosures(
+  analysisId: number,
+  changeId: number,
+  signal?: AbortSignal,
+): Promise<TextChangeRelatedDisclosures> {
+  return apiGet(endpoints.textChangeRelatedDisclosures(analysisId, changeId), undefined, { signal })
+}
+
 /** docs/api-spec.md POST /api/analyses/{id}/text-changes/{changeId}/explanations (3.11, FS-6) */
 export type TextExplanationStatus = 'OK' | 'REVIEW_NEEDED' | 'NO_SOURCE'
 
