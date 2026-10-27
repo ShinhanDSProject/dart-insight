@@ -193,6 +193,27 @@ W-03 ④ 원문 확인
 
 시안은 그림자 대신 1px 테두리로 영역을 나눈다. 그림자는 모달처럼 떠 있는 요소에만 쓴다.
 
+| 그림자 | 토큰 | 쓰는 곳 |
+| --- | --- | --- |
+| 옅은 그림자 | `--shadow-sm` | 위에 붙은 기업 탭 줄이 접혔을 때(FS-58) |
+| 떠 있는 요소 | `--shadow-md` | 메뉴·대화상자 |
+| hover 들림 | `--shadow-hover` | 고를 수 있는 카드(`Card interactive`)에 마우스·초점이 있을 때만(FS-58). 정적 카드에는 쓰지 않는다. 다크 값은 검은 그림자를 더 진하게 둔다 |
+
+## 3-4-1. 움직임 (#198, FS-58)
+
+움직임은 상태가 바뀐 곳을 눈으로 따라가게 하는 데만 쓴다. 시간·곡선은 아래 토큰만 쓰고, 운영체제 '동작 줄이기'(`prefers-reduced-motion: reduce`)면 `global.css`가 애니메이션·전환을 끄고 count-up은 바로 최종 값을 보인다.
+
+| 토큰 | 값 | 쓰는 곳 |
+| --- | --- | --- |
+| `--motion-fast` / `--motion-base` / `--motion-slow` | 120 / 200 / 360ms | 글자색 hover / 나타남·카드 들림·탭 줄 접힘 / 탭 밑줄 옮김 |
+| `--motion-stagger` | 30ms | 막대가 차례로 자랄 때의 간격 |
+| `--motion-count` | 600ms | 큰 숫자 count-up(`useCountUp`이 읽음). 곡선은 코드의 3차 ease-out(`shared/lib/countUp.ts`) |
+| `--motion-shimmer` | 1400ms | 스켈레톤이 한 번 반짝이는 시간 |
+| `--motion-lift` | −2px | 고를 수 있는 카드 hover 들림 거리 |
+| `--ease-out` | `cubic-bezier(0.2, 0, 0, 1)` | 모든 전환의 곡선 |
+
+이슈의 `--motion-duration-*`·`--motion-ease-*` 이름 대신, 이미 쓰던 `--motion-*`·`--ease-*` 이름에 맞춰 더했다(같은 뜻의 토큰을 두 벌 두지 않기 위해).
+
 ## 3-5. 간격
 
 - 4px 단위 토큰(`--space-1` ~ `--space-7`)만 쓴다. 임의의 간격을 쓰지 않는다.
@@ -220,7 +241,9 @@ W-03 ④ 원문 확인
 | `SegmentedControl` | `options`(`icon`은 선택), `value`, `onChange`, `disabled`, `variant`: `text`(기본)·`icon`, `aria-label`·`aria-labelledby` | 비교 기준, 전체·변경 항목, 정렬, 비교·현재 보고서. `icon`은 아이콘만 있는 작은 알약 모양으로 헤더 화면 테마에 쓴다(각 `label`이 접근 가능한 이름·툴팁) |
 | `Chip` | `pressed`, `tone`: `neutral`·`attention`, `count` | 변경 유형 거르기 |
 | `Panel` / `PanelTitle` | `as`: `section`·`div` / `as`: `h2`·`h3`·`h4` | 화면의 큰 묶음 상자와 제목 |
-| `Card` | `as`, `tone`: `default`·`attention`, `selected` | 보고서·요약·변경 카드 |
+| `Card` | `as`, `tone`: `default`·`attention`, `selected`, `interactive` | 보고서·요약·변경 카드. `interactive`는 카드 전체를 눌러 고르는 카드(안에 링크·버튼)에만 붙여 hover·초점에 옅게 들린다 |
+| `StatNumber` | `label`, `value`(null이면 '-'·'자료 없음'), `format`, `unit`, `change`(`direction`·`amount`·`rate`), `changeNote`, `changeLabel`, `source` | 큰 숫자 지표(4-21) |
+| `Skeleton` | `label`(보이지 않는 '불러오는 중' 문구), `shape`: `line`·`block`·`card`, `count`, `height` | 화면의 주된 로딩 자리(4-22) |
 | `DataTable` / `DataTableRow` / `SortableHeader` | `caption`(보이지 않음), `density`: `default`·`dense`·`compact`, `stickyHeader` / `selected` / `sort`(aria-sort 값), `onSort`, `numeric` | 보고서 목록, 재무 계정 표(낮은 행·머리글 고정·증감 정렬), 원문 표 |
 | `FieldLabel` / `FieldHint` / `Input` / `Select` | `as`: `label`·`span` / — / `invalid` / — | 입력·선택창과 그 이름·도움말 |
 | `DotTimeline` | `rows`(`key`·`label`·`count`), `points`(`id`·`row`·`date`·`title`·`href`·`emphasis`·`action`), `from`·`to`, `label`, `emphasisLabel`·`otherLabel` | 기업 개요 공시 타임라인(4-20) |
@@ -280,6 +303,7 @@ W-03 ④ 원문 확인
 - 재무 수치 변화
 - 문장·내용 변화
 - 900px 이하에서는 줄을 바꾸지 않고 한 줄 가로 스크롤로 둔다. 양 끝을 흐리게 해 옆에 탭이 더 있음을 알리고, 고른 탭이 보이도록 줄을 옮긴다(FS-11).
+- 고른 탭의 밑줄은 하나(`tabs__indicator`)를 고른 탭 아래로 옮긴다(FS-58, `--motion-slow`). 처음 자리 잡을 때는 움직이지 않고, 탭 위치를 재지 못하면(글꼴 전 등) 고른 탭의 자기 밑줄을 그대로 쓴다. API(`label`·`items`·`value`·`onChange`)는 그대로다.
 
 ## 4-7. 배지
 
@@ -395,6 +419,31 @@ W-03 ④ 원문 확인
 - 툴팁에만 있는 값이 없도록 부르는 쪽이 '차트 | 표로 보기' 세그먼트와 같은 자료의 표(접수일·묶음·공시·원문·비교, 20건씩 '더 보기')를 둔다. 600px 이하 화면은 표로 시작하고, 차트 폭이 520px보다 좁으면 이름·건수를 두 줄로 쌓고 분기 달(1·4·7·10월) 눈금 글자만 남긴다(가로 스크롤 없음).
 - 상태: 로딩은 `LoadingState`, 공시가 없으면 '최근 1년 공시 없음'(`EmptyState`), 실패하면 그 영역에만 `ErrorState`와 '다시 시도'. 아래에 출처 줄(`DartSourceLine detail`, 'OpenDART 공시검색 · 기준 기간 … 접수')을 둔다. 주가는 넣지 않는다(ADR-0033).
 - 대비(WCAG): 점 `#4f479e` 흰 배경 7.7 · 안쪽 상자 7.2, 다크 `#8a81ef` 5.7 / 5.3. 축선 밝게 3.2 · 다크 3.8. 눈금·건수 글자는 보조 글자(5.7 · 다크 7.7). 점 색은 색 검사(밝기 범위·채도·배경 대비 3:1, 두 테마) 통과.
+
+## 4-21. 큰 숫자 지표 (FS-58)
+
+토스증권처럼 숫자를 크게, 나머지는 작고 옅게 둔다. 주가·시가총액·등락률은 보이지 않는다(ADR-0033).
+
+- `StatNumber` 한 칸: 이름(작은 보조 글자) → 값(`--font-size-xl`, 굵게, 숫자 글꼴·고정폭 숫자)과 단위 → 보조 줄(증감) → 근거.
+- 값은 `--motion-count` 동안 0에서 최종 값으로 올라간다(`useCountUp`, requestAnimationFrame·ease-out). 동작 줄이기면 바로 최종 값이다. 움직이는 숫자는 `aria-hidden`이고 화면 읽기 도구에는 최종 값만 읽어 준다.
+- 값이 없으면 0이 아니라 '-'와 '자료 없음'이다.
+- 보조 줄은 중립색(3-3 적용 기준): '전기 대비 ▲ 7조원 (+4.8%)'. 화살표와 함께 '증가·감소'를 보이지 않는 글자로 읽어 준다. 증감률을 계산하지 않았으면(전기 값 0·음수·부호 바뀜) 사유나 흑자전환·적자전환 같은 사실 표현만 적는다.
+- 근거 칸에는 계정·기간·접수번호를 적는다.
+- 숫자 문구는 lib의 format 함수로 만든다(기업 개요 지표 줄은 `formatCompactAmount`, 억·조).
+- 기업 개요 상단 지표 줄(`OverviewMetricsRow`): 가장 최근 사업보고서의 매출액·영업이익·당기순이익 세 칸과 한 해 전 사업보고서 대비 증감. 주요 재무 흐름 API를 그대로 읽고(연결 값이 없으면 별도), 줄 아래에 현재·전기 보고서 원문 링크를 둔다. 넓으면 세 칸을 한 줄에 세로 구분선으로, 900px 이하는 위아래로 쌓는다.
+
+## 4-22. 스켈레톤 (FS-58)
+
+- 화면의 주된 로딩(기업 화면·기업 개황·주요 재무 흐름·지표 줄, 분석 결과 화면·요약·재무·문장 탭)은 빙글 도는 표시(`LoadingState`) 대신 채워질 자리의 모양을 같은 크기로 둔다. 작은 부분 로딩(패널 안 근거, 질문 기록 등)은 `LoadingState`를 그대로 쓴다.
+- 모양: `line`(글줄, 첫 줄 40%·끝 줄 70%), `block`(차트·표 자리), `card`(카드 여러 개를 한 줄에). 높이는 `height`나 CSS 변수 `--skeleton-height`로 채울 내용과 맞춘다.
+- 묶음은 `role="status"`·`aria-busy="true"`이고 '불러오는 중' 문구는 보이지 않게 읽어 준다. 모양은 `aria-hidden`.
+- 바탕은 `--color-bg-subtle`, 반짝임은 `--color-border`를 옅게 섞은 띠가 `--motion-shimmer` 동안 지나간다. 동작 줄이기면 멈춘다.
+
+## 4-23. 위에 붙는 기업 화면 헤더 (FS-58)
+
+- 기업 화면의 '기업 개요 | 보고서 비교' 탭 줄(`company-bar`)은 스크롤해도 화면 위에 붙는다.
+- 탭 줄 바로 위의 센티넬(높이 0)이 화면 위로 나가면(IntersectionObserver, 스크롤 이벤트 없음) `data-compact`가 켜져 탭 줄 오른쪽에 작은 회사명과 `--shadow-sm`이 나타난다. 큰 회사명은 본문과 함께 올라간다.
+- 접혀도 탭 줄 높이는 그대로라 아래 내용이 튀지 않는다. 탭 줄 높이는 `--company-bar-height`로 넘겨 기업 개요 바로 가기 바가 그 밑에 붙고, 바로 가기로 옮긴 영역이 가리지 않는다.
 
 ---
 
