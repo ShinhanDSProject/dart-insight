@@ -36,6 +36,7 @@ _SPACES = re.compile(r"\s")
 
 # 코드가 등급을 낮춘 사유(reviewReason). 화면에서 후보가 없던 NONE과 구분해 보인다
 QUOTE_NOT_CANDIDATE = "인용 위치가 설명 후보 원문이 아니어서 설명으로 쓰지 않았어요."
+QUOTE_NOT_EVIDENCE = "인용 위치가 설명의 근거 원문이 아니어서 설명으로 쓰지 않았어요."
 QUOTE_NOT_IN_SOURCE = "인용문이 후보 원문에 그대로 없어 설명으로 쓰지 않았어요."
 QUOTE_WITHOUT_ACCOUNT = "인용문에 계정 이름이 없어 '관련 내용'으로 낮췄어요."
 
@@ -144,7 +145,7 @@ def _check_financial(
     problem = _explanation_problem(item, explanation, evidence)
     if problem:
         return problem, _none(item)
-    grade, reason = _downgrade(item, grade, raw.get("quote"), raw.get("quoteEvidenceId"))
+    grade, reason = _downgrade(item, grade, raw.get("quote"), raw.get("quoteEvidenceId"), evidence)
     if grade == NONE:
         return None, _none(item, reason)
     claim = causal.find(explanation) if grade != STATED else None
@@ -187,12 +188,15 @@ def _explanation_problem(item: FinancialItem, explanation: Any, evidence: list[s
 
 
 def _downgrade(
-    item: FinancialItem, grade: str, quote: Any, quote_evidence_id: Any
+    item: FinancialItem, grade: str, quote: Any, quote_evidence_id: Any, evidence: list[str]
 ) -> tuple[str, str | None]:
     """인용문을 글자로 확인해 등급을 낮춘다. (남은 등급, 낮췄으면 사유)"""
     sources = {s.evidence_id: s.text for s in item.candidates}
     if not isinstance(quote_evidence_id, str) or quote_evidence_id not in sources:
         return NONE, QUOTE_NOT_CANDIDATE
+    # 설명이 근거로 든 문단이 아닌 곳을 인용하면 설명과 인용이 서로 다른 문단을 가리킨다
+    if quote_evidence_id not in evidence:
+        return NONE, QUOTE_NOT_EVIDENCE
     quoted = _SPACES.sub("", quote) if isinstance(quote, str) else ""
     if not quoted or quoted not in _SPACES.sub("", sources[quote_evidence_id]):
         return NONE, QUOTE_NOT_IN_SOURCE

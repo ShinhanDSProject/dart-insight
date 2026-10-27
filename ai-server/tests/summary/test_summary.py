@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 import pytest
 
 from app.core.config import LlmSettings
@@ -21,6 +23,7 @@ from app.summary.prompt import PROMPT_VERSION, build_request
 from app.summary.service import summarize
 from app.summary.validate import (
     QUOTE_NOT_CANDIDATE,
+    QUOTE_NOT_EVIDENCE,
     QUOTE_NOT_IN_SOURCE,
     QUOTE_WITHOUT_ACCOUNT,
 )
@@ -351,6 +354,20 @@ def test_quote_from_a_position_that_was_not_a_candidate_is_none() -> None:
     assert (item.explanation, item.quote, item.quote_evidence_id) == (None, None, None)
     assert item.evidence_ids == []
     assert outcomes == ["OK"]  # 강등은 다시 생성하지 않는다
+
+
+def test_quote_from_a_candidate_the_explanation_did_not_cite_is_none() -> None:
+    # 설명은 B300을 근거로 들었는데 인용은 다른 후보(B301)에서 가져왔다
+    quote = "영업손실은 원가절감 활동으로 줄었습니다."
+    other = Source(f"{CUR}#B301", "IV. 이사의 경영진단 > 2. 영업실적", quote)
+    item = replace(EXPLAINED, candidates=[*EXPLAINED.candidates, other])
+    two = SummaryInput("예시전자", "a", "b", [], [item])
+    llm, _ = client(graded(quote=quote, quoteEvidenceId=f"{CUR}#B301"))
+
+    (item,) = summarize(llm, two).items
+
+    assert (item.status, item.grade, item.review_reason) == (OK, NONE, QUOTE_NOT_EVIDENCE)
+    assert (item.explanation, item.quote, item.quote_evidence_id) == (None, None, None)
 
 
 def test_quote_not_in_the_paragraph_is_none() -> None:

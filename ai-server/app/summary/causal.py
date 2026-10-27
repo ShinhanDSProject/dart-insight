@@ -14,7 +14,7 @@ import re
 
 # 등급 규칙(이 원인 표현 목록과 validate.py의 강등 규칙)을 결과가 달라지게 바꾸면
 # 이 버전과 backend Analysis.CURRENT_VERSION을 함께 올린다
-GRADE_RULES_VERSION = "grade-1"
+GRADE_RULES_VERSION = "grade-2"
 
 CAUSAL_CLAIM = "CAUSAL_CLAIM"
 

@@ -376,6 +376,24 @@ class SummaryPipelineTest {
     }
 
     @Test
+    @DisplayName("설명의 근거가 아닌 곳을 인용한 설명은 보이지 않고 검토 필요로 센다")
+    void explanationQuotingOutsideItsEvidenceIsReviewNeeded() throws Exception {
+        // 사업의 개요(B1)에도 매출액이 있어 후보가 B1·B2 둘이다. 설명은 B2를 근거로 들고 인용은 B1에서 가져온다
+        AI.on("/internal/documents/" + CUR + "/structure", Reply.ok(document(CUR, "당사의 매출액은 메모리에서 나옵니다.",
+                "매출액은 메모리 수요 회복으로 늘었습니다.")));
+        AI.on(SUMMARIES, summaryReply("OK", """
+                "status":"OK","explanation":"회사는 메모리 수요 회복으로 매출이 늘었다고 적었어요.","evidenceIds":["%s#B2"],
+                "grade":"STATED","quote":"당사의 매출액은 메모리에서 나옵니다","quoteEvidenceId":"%s#B1\"""".formatted(CUR, CUR)));
+
+        long id = analyze();
+
+        mockMvc.perform(get("/api/analyses/{id}/summary", id))
+                .andExpect(jsonPath("$.items[1].explanationStatus").value("REVIEW_NEEDED"))
+                .andExpect(jsonPath("$.items[1].quote").doesNotExist())
+                .andExpect(jsonPath("$.reviewNeeded[0].reason").value(containsString("인용 위치")));
+    }
+
+    @Test
     void answersCitingSourcesThatWereNotSentAreNotShown() throws Exception {
         AI.on(SUMMARIES, request -> {
             String body = request.bodyText();
