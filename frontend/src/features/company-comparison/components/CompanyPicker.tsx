@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 import { match } from 'ts-pattern'
 import type { Company } from '@/shared/api/companies'
 import { useFavoriteCompanies } from '@/shared/hooks/useFavoriteCompanies'
@@ -6,7 +6,7 @@ import { Button, Chip, FieldHint, FieldLabel, Icon, Input } from '@/shared/ui'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { useCompanyLookup } from '../hooks/useCompanyLookup'
 import { MAX_COMPANIES } from '../model/companyComparison'
-import { LOOKUP_LIMIT, MIN_LOOKUP_LENGTH } from '../model/companyPicker'
+import { LOOKUP_LIMIT, MIN_LOOKUP_LENGTH, nextResultFocus } from '../model/companyPicker'
 
 interface CompanyPickerProps {
   corps: readonly string[]
@@ -23,7 +23,12 @@ interface CompanyPickerProps {
  * 첫 화면 검색과 같은 검색 API를 쓴다. 4곳이 차면 더하지 않고 안내만 한다.
  * 검색 결과는 입력칸 아래에 떠서 보여, 결과가 열리고 닫힐 때 아래 표가 밀리지 않는다(#424).
  * 더하면 입력을 비우고, Esc나 바깥을 누르면 닫는다.
+ * 키보드(#426): 입력칸에서 ↓로 결과의 '더하기'에 가고, ↑↓·Home·End로 옮기고 Enter로 더한다(첫 화면 검색과 같은 방식).
+ * 첫 결과에서 ↑나 Esc는 입력칸으로 돌아오고, 더한 뒤에도 초점은 입력칸으로 돌아와 이어서 찾을 수 있다.
  */
+
+/** 검색 결과에서 키보드로 옮겨 다닐 '더하기' 버튼(이미 고른 기업은 버튼이 없어 건너뜀) */
+const PICK_BUTTON = '[data-pick-button]'
 export function CompanyPicker({ corps, nameOf, onAdd, onRemove, message }: CompanyPickerProps) {
   const inputId = useId()
   const hintId = useId()
@@ -31,6 +36,10 @@ export function CompanyPicker({ corps, nameOf, onAdd, onRemove, message }: Compa
   const [input, setInput] = useState('')
   const [open, setOpen] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const popoverRef = useRef<HTMLDivElement>(null)
+  // 더한 뒤·Esc로 입력칸에 초점을 돌려줄 때는 결과를 다시 열지 않는다
+  const reopenOnFocus = useRef(true)
   const lookup = useCompanyLookup(input)
   const favorites = useFavoriteCompanies()
   const showResults = open && lookup.state.status !== 'idle'
@@ -48,6 +57,41 @@ export function CompanyPicker({ corps, nameOf, onAdd, onRemove, message }: Compa
     onAdd(company)
     setInput('')
     setOpen(false)
+    focusInputClosed()
+  }
+
+  function focusInputClosed() {
+    reopenOnFocus.current = false
+    inputRef.current?.focus()
+    reopenOnFocus.current = true
+  }
+
+  function pickButtons(): HTMLElement[] {
+    return Array.from(popoverRef.current?.querySelectorAll<HTMLElement>(PICK_BUTTON) ?? [])
+  }
+
+  function closeToInput() {
+    setOpen(false)
+    focusInputClosed()
+  }
+
+  function moveFrom(current: number | null, event: KeyboardEvent) {
+    const buttons = pickButtons()
+    const next = nextResultFocus(current, event.key, buttons.length)
+    if (next === null) return
+    event.preventDefault()
+    if (next === 'input') inputRef.current?.focus()
+    else buttons[next].focus()
+  }
+
+  function onResultsKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      closeToInput()
+      return
+    }
+    const index = pickButtons().indexOf(document.activeElement as HTMLElement)
+    if (index >= 0) moveFrom(index, event)
   }
 
   return (
@@ -85,18 +129,22 @@ export function CompanyPicker({ corps, nameOf, onAdd, onRemove, message }: Compa
             setInput(event.target.value)
             setOpen(true)
           }}
-          onFocus={() => setOpen(true)}
+          onFocus={() => {
+            if (reopenOnFocus.current) setOpen(true)
+          }}
+          ref={inputRef}
           onKeyDown={(event) => {
             if (event.key === 'Escape') setOpen(false)
+            else if (event.key === 'ArrowDown' && showResults) moveFrom(null, event)
           }}
         />
         <FieldHint id={hintId}>
-          {MIN_LOOKUP_LENGTH}자 이상 입력하면 찾아요. 최대 {MAX_COMPANIES}곳까지 고를 수 있어요.
+          {MIN_LOOKUP_LENGTH}자 이상 입력하면 찾아요. ↓ 키로 결과로 옮기고 Enter로 더해요. 최대 {MAX_COMPANIES}곳까지 고를 수 있어요.
         </FieldHint>
         <p className="company-picker__message" role="status" aria-live="polite">
           {message}
         </p>
-        <div className="company-picker__popover" hidden={!showResults}>
+        <div className="company-picker__popover" hidden={!showResults} ref={popoverRef} onKeyDown={onResultsKeyDown}>
           {match(lookup.state)
             .with({ status: 'idle' }, () => null)
             .with({ status: 'loading' }, () => <LoadingState message="기업을 찾는 중이에요…" />)
@@ -117,7 +165,12 @@ export function CompanyPicker({ corps, nameOf, onAdd, onRemove, message }: Compa
                       {corps.includes(company.corpCode) ? (
                         <span className="field-hint">고름</span>
                       ) : (
-                        <Button variant="secondary" aria-label={`${company.corpName} 더하기`} onClick={() => pick(company)}>
+                        <Button
+                          variant="secondary"
+                          data-pick-button=""
+                          aria-label={`${company.corpName} 더하기`}
+                          onClick={() => pick(company)}
+                        >
                           더하기
                         </Button>
                       )}

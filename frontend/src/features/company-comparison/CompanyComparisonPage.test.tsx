@@ -278,6 +278,44 @@ describe('여러 기업 나란히 보기', () => {
     expect((add.closest('.company-picker__popover') as HTMLElement).hidden).toBe(true)
   })
 
+  it('검색 뒤 ↓로 결과의 더하기에 가고 ↑↓로 옮겨 Enter로 더하면 입력칸으로 돌아온다(#426)', async () => {
+    renderAt('')
+    await search('삼성')
+    const first = await screen.findByRole('button', { name: '삼성전자 더하기' })
+    const input = screen.getByRole('searchbox')
+    input.focus()
+
+    fireEvent.keyDown(input, { key: 'ArrowDown' })
+    expect(document.activeElement).toBe(first)
+    const buttons = Array.from(first.closest('.company-picker__popover')!.querySelectorAll<HTMLElement>('[data-pick-button]'))
+    if (buttons.length > 1) {
+      fireEvent.keyDown(first, { key: 'ArrowDown' })
+      expect(document.activeElement).toBe(buttons[1])
+      fireEvent.keyDown(buttons[1], { key: 'End' })
+      expect(document.activeElement).toBe(buttons.at(-1))
+      fireEvent.keyDown(document.activeElement!, { key: 'Home' })
+      expect(document.activeElement).toBe(first)
+    }
+    fireEvent.keyDown(first, { key: 'ArrowUp' })
+    expect(document.activeElement).toBe(input)
+
+    fireEvent.keyDown(input, { key: 'ArrowDown' })
+    fireEvent.click(document.activeElement!)
+    expect(location()).toBe('?corps=00126380')
+    expect(document.activeElement).toBe(input)
+    expect((input as HTMLInputElement).value).toBe('')
+  })
+
+  it('검색 결과에서 Esc를 누르면 닫고 입력칸으로 돌아온다', async () => {
+    renderAt('')
+    await search('삼성')
+    const first = await screen.findByRole('button', { name: '삼성전자 더하기' })
+    first.focus()
+    fireEvent.keyDown(first, { key: 'Escape' })
+    expect(document.activeElement).toBe(screen.getByRole('searchbox'))
+    expect((first.closest('.company-picker__popover') as HTMLElement).hidden).toBe(true)
+  })
+
   it('로그인했으면 관심 기업을 바로 고를 수 있다', async () => {
     favoritesApi.getFavoriteCompanies.mockResolvedValue({
       items: [{ ...companies['00164779'], addedAt: '2026-10-01T10:00:00' }],
