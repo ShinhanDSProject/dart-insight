@@ -39,6 +39,8 @@ export interface TextChangeItem {
   similarity: number | null
   reviewReason: string | null
   priority: ChangePriority | null
+  /** 위험 관련 목차의 변경인지(3.9, FS-61). 목차 제목으로 나눈 것이며 위험의 크기·좋고 나쁨이 아니다 */
+  riskRelated: boolean
 }
 
 export interface TextChangeCounts {
@@ -68,12 +70,16 @@ export interface TextChangeList {
   section: string | null
   /** 요청에 쓴 검색어(앞뒤 공백을 지운 값). 없으면 null */
   q: string | null
+  /** 요청에 쓴 위험 관련 거르기(3.9) */
+  risk: boolean
   page: number
   size: number
-  /** type·section·q에 모두 맞는 건수 */
+  /** type·section·q·risk에 모두 맞는 건수 */
   totalItems: number
-  /** 유형별 건수. section·q에 맞는 것만 센다 */
+  /** 유형별 건수. section·q·risk에 맞는 것만 센다 */
   counts: TextChangeCounts
+  /** 위험 관련 목차의 유형별 건수(3.9). section·q에 맞는 것만 센다(type·risk는 보지 않음) */
+  riskCounts: TextChangeCounts
   /** 이 분석에 변경이 있는 최상위 섹션 전부(문서 순서) */
   sections: TextSectionCount[]
   items: TextChangeItem[]
@@ -87,6 +93,8 @@ export interface TextChangeQuery {
   section: string | null
   /** 2자 이상 검색어. null이면 검색하지 않음 */
   q: string | null
+  /** true면 위험 관련 목차의 변경만(3.9). 없으면 전체 */
+  risk?: boolean
   page: number
   size?: number
 }
@@ -98,6 +106,7 @@ export function textChangeParams(query: TextChangeQuery) {
     sort: query.sort,
     section: query.section ?? undefined,
     q: query.q ?? undefined,
+    risk: query.risk ? true : undefined,
     page: query.page,
     size: query.size ?? 20,
   }

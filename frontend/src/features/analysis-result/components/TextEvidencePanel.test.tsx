@@ -60,6 +60,7 @@ function given(changeType: ChangeType, previous: string, current: string) {
         similarity: 0.9,
         reviewReason: null,
         priority: null,
+        riskRelated: false,
       },
       previous: source('previous', previous),
       current: source('current', current),

@@ -29,6 +29,7 @@ describe('parseResultParams', () => {
       textSort: 'priority',
       textSection: null,
       textQuery: null,
+      textRisk: false,
       textPinned: false,
       selectedTextChangeId: null,
       sourceSide: 'current',
@@ -117,8 +118,15 @@ describe('고르기를 주소 값으로 바꾸기', () => {
   })
 
   it('고정만 보기를 켜면 유형·섹션·검색어와 보던 근거를 지우고, 끄면 주소에서 뺀다', () => {
-    expect(textParamChanges({ pinned: true })).toEqual({ tpin: '1', ttype: null, tsec: null, tq: null, tc: null })
+    expect(textParamChanges({ pinned: true })).toEqual({ tpin: '1', ttype: null, tsec: null, tq: null, trisk: null, tc: null })
     expect(textParamChanges({ pinned: false })).toEqual({ tpin: null, tc: null })
+  })
+
+  it('위험 관련만 보기를 켜면 trisk=1을 남기고 고정 보기·보던 근거를 닫으며, 끄면 주소에서 뺀다(3.9)', () => {
+    expect(textParamChanges({ risk: true })).toEqual({ trisk: '1', tpin: null, tc: null })
+    expect(textParamChanges({ risk: false })).toEqual({ trisk: null, tpin: null, tc: null })
+    expect(parseResultParams(new URLSearchParams('tab=text&trisk=1')).textRisk).toBe(true)
+    expect(parseResultParams(new URLSearchParams('tab=text&trisk=true')).textRisk).toBe(false)
   })
 
   it('주소의 tpin=1만 고정만 보기로 읽는다', () => {
@@ -142,7 +150,7 @@ describe('고르기를 주소 값으로 바꾸기', () => {
       block: null,
     })
     expect(openFinancialChanges('CF', 9)).toEqual({ tab: 'financial', sj: 'CF', change: '9', changed: null, fq: null })
-    expect(openTextChanges(2)).toEqual({ tab: 'text', ttype: null, tsort: null, tsec: null, tq: null, tpin: null, tc: '2' })
+    expect(openTextChanges(2)).toEqual({ tab: 'text', ttype: null, tsort: null, tsec: null, tq: null, trisk: null, tpin: null, tc: '2' })
   })
 
   it('변화 개요에서 재무 수치 탭을 변경 항목만으로 연다', () => {
@@ -151,8 +159,8 @@ describe('고르기를 주소 값으로 바꾸기', () => {
   })
 
   it('변화 개요에서 문장 변화 탭을 전체 또는 그 유형으로 연다', () => {
-    expect(openTextList(null)).toEqual({ tab: 'text', ttype: null, tsort: null, tpin: null, tc: null })
-    expect(openTextList('REVIEW_NEEDED')).toEqual({ tab: 'text', ttype: 'REVIEW_NEEDED', tsort: null, tpin: null, tc: null })
+    expect(openTextList(null)).toEqual({ tab: 'text', ttype: null, tsort: null, trisk: null, tpin: null, tc: null })
+    expect(openTextList('REVIEW_NEEDED')).toEqual({ tab: 'text', ttype: 'REVIEW_NEEDED', tsort: null, trisk: null, tpin: null, tc: null })
   })
 
   it('섹션별 막대에서 문장 변화 탭을 그 섹션으로 거르고 유형·검색어는 지운다', () => {
@@ -162,6 +170,7 @@ describe('고르기를 주소 값으로 바꾸기', () => {
       tsort: null,
       tsec: 'II. 사업의 내용',
       tq: null,
+      trisk: null,
       tpin: null,
       tc: null,
     })
@@ -175,7 +184,7 @@ describe('AI 질문 탭 주소', () => {
   })
 
   it('찾지 못한 질문은 문장 변화 탭을 그 낱말로 검색해 연다', () => {
-    expect(openTextSearch('매출액')).toEqual({ tab: 'text', ttype: null, tsort: null, tsec: null, tq: '매출액', tpin: null, tc: null })
+    expect(openTextSearch('매출액')).toEqual({ tab: 'text', ttype: null, tsort: null, tsec: null, tq: '매출액', trisk: null, tpin: null, tc: null })
     expect(openTextSearch(null)).toMatchObject({ tab: 'text', tq: null })
   })
 })

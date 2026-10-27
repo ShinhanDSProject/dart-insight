@@ -2,13 +2,13 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Analysis } from '@/shared/api/analyses'
-import type { TextChangeItem, TextChangeList } from '@/shared/api/textChanges'
+import type { TextChangeCounts, TextChangeItem, TextChangeList } from '@/shared/api/textChanges'
 import { axeViolations } from '@/test/axe'
 import { TextTab } from './TextTab'
 
 // 카드 키보드 검토(#311)만 보도록 목록·고정·풀이 훅을 바꿔 끼운다
 const pins = vi.hoisted(() => ({ toggle: vi.fn(), ids: [] as number[] }))
-const list = vi.hoisted(() => ({ items: [] as TextChangeItem[] }))
+const list = vi.hoisted(() => ({ items: [] as TextChangeItem[], riskCounts: null as TextChangeCounts | null }))
 vi.mock('../hooks/useTextChanges', () => ({
   useTextChanges: () => ({
     state: {
@@ -19,6 +19,7 @@ vi.mock('../hooks/useTextChanges', () => ({
     },
     counts: null,
     sections: [],
+    riskCounts: list.riskCounts,
     contentAvailable: false,
     type: null,
     reload: () => {},
@@ -49,6 +50,7 @@ beforeAll(() => {
 beforeEach(() => {
   pins.toggle.mockReset()
   pins.ids = []
+  list.riskCounts = null
 })
 afterEach(cleanup)
 
@@ -77,6 +79,7 @@ function item(changeId: number, sectionTitle: string): TextChangeItem {
     similarity: 0.8,
     reviewReason: null,
     priority: null,
+    riskRelated: false,
   }
 }
 
@@ -90,6 +93,7 @@ function renderTab(onChange = vi.fn()) {
         sort="priority"
         section={null}
         q={null}
+        risk={false}
         pinned={false}
         selectedChangeId={null}
         onChange={onChange}
@@ -220,6 +224,7 @@ describe('TextTab 종류 안내(#393)', () => {
           sort="priority"
           section={null}
           q={null}
+          risk={false}
           pinned={false}
           selectedChangeId={null}
           onChange={vi.fn()}
@@ -232,5 +237,89 @@ describe('TextTab 종류 안내(#393)', () => {
     const cards = screen.getAllByRole('article')
     expect(cards[0].textContent).toContain('문서에서 빠졌다는 뜻이에요')
     expect(cards[1].textContent).not.toContain('문서에서 빠졌다는 뜻이에요')
+  })
+})
+
+describe('TextTab 위험 요인 변화(3.9, FS-61)', () => {
+  const zero: TextChangeCounts = { all: 0, added: 0, deleted: 0, modified: 0, numericUpdate: 0, moved: 0, reviewNeeded: 0 }
+
+  function renderRisk(risk: boolean, onChange = vi.fn()) {
+    render(
+      <main>
+        <TextTab
+          analysis={analysis}
+          type={null}
+          sort="priority"
+          section={null}
+          q={null}
+          risk={risk}
+          pinned={false}
+          selectedChangeId={null}
+          onChange={onChange}
+          onOpenSource={() => {}}
+          onAsk={() => {}}
+          asking={false}
+        />
+      </main>,
+    )
+    return { onChange, card: screen.getByRole('region', { name: '위험 요인 변화' }) }
+  }
+
+  it('카드에 새로 생긴·사라진·바뀐 건수와 목차로 나눴다는 안내를 보인다(AC1)', () => {
+    list.items = [item(1, '5. 위험관리 및 파생거래')]
+    list.riskCounts = { ...zero, all: 6, added: 2, deleted: 1, modified: 3 }
+    const { card } = renderRisk(false)
+    expect(card.textContent).toContain('새로 생긴 문장')
+    expect(card.textContent).toContain('사라진 문장')
+    expect(card.textContent).toContain('바뀐 문장')
+    expect(card.textContent).toContain('목차 제목으로 나눈 것이라 실제 내용과 다를 수 있어요.')
+    expect(card.querySelectorAll('.stat-number')).toHaveLength(3)
+  })
+
+  it('위험 관련 변경이 없으면 카드에 없다고 안내한다(AC3)', () => {
+    list.items = [item(1, '1. 사업의 개요')]
+    list.riskCounts = zero
+    const { card } = renderRisk(false)
+    expect(card.textContent).toContain('위험 관련 목차에서 바뀐 문장이 없어요.')
+    expect(card.querySelectorAll('.stat-number')).toHaveLength(0)
+  })
+
+  it("'위험 관련만'을 누르면 주소에 남기도록 risk를 바꾸고, 켜져 있으면 끈다(AC2)", () => {
+    list.items = []
+    list.riskCounts = { ...zero, all: 1, added: 1 }
+    const off = renderRisk(false)
+    fireEvent.click(screen.getByRole('button', { name: /위험 관련만/ }))
+    expect(off.onChange).toHaveBeenCalledWith({ risk: true })
+    cleanup()
+    const on = renderRisk(true)
+    const chip = screen.getByRole('button', { name: /위험 관련만/ })
+    expect(chip.getAttribute('aria-pressed')).toBe('true')
+    fireEvent.click(chip)
+    expect(on.onChange).toHaveBeenCalledWith({ risk: false })
+  })
+
+  it('위험 관련만 보는데 항목이 없으면 빈 안내와 전체 보기 버튼을 둔다', () => {
+    list.items = []
+    list.riskCounts = zero
+    const { onChange } = renderRisk(true)
+    expect(screen.getAllByText('위험 관련 목차에서 바뀐 문장이 없어요.')).toHaveLength(2)
+    fireEvent.click(screen.getByRole('button', { name: '전체 변경 보기' }))
+    expect(onChange).toHaveBeenCalledWith({ risk: false })
+  })
+
+  it("위험 관련 항목 카드에만 '위험 관련' 배지를 단다", () => {
+    list.items = [{ ...item(1, '5. 위험관리 및 파생거래'), riskRelated: true }, item(2, '1. 사업의 개요')]
+    list.riskCounts = { ...zero, all: 1, modified: 1 }
+    renderRisk(false)
+    const cards = screen.getAllByRole('article')
+    expect(cards[0].textContent).toContain('위험 관련')
+    expect(cards[1].textContent).not.toContain('위험 관련')
+  })
+
+  it('카드에 접근성 위반이 없다', async () => {
+    list.items = [item(1, '5. 위험관리 및 파생거래')]
+    list.riskCounts = { ...zero, all: 2, added: 1, modified: 1 }
+    renderRisk(false)
+    expect(await axeViolations(document.body)).toBe('')
   })
 })

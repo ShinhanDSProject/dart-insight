@@ -530,6 +530,62 @@
   gap: var(--space-2) var(--space-4);
 }
 
+/* 위험 요인 변화 카드(3.9, FS-61). 건수는 중립색 큰 숫자(StatNumber) */
+.risk-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.risk-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.risk-card__title {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+.risk-card__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-4) var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.risk-card__stat + .risk-card__stat {
+  padding-left: var(--space-5);
+  border-left: 1px solid var(--color-border);
+}
+
+.risk-card__empty {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.risk-card__note {
+  margin: 0;
+}
+
+@media screen and (max-width: 900px) {
+  .risk-card__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .risk-card__stat + .risk-card__stat {
+    padding-top: var(--space-3);
+    padding-left: 0;
+    border-top: 1px solid var(--color-border);
+    border-left: 0;
+  }
+}
+
 /* 문장 변화 섹션 거르기·검색(3.7) */
 .text-search {
   display: flex;
