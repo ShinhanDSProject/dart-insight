@@ -2,13 +2,12 @@ import type { CSSProperties } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { FinancialChangeItem, SjDiv } from '@/shared/api/results'
-import type { Summary, SummaryEvidence, SummaryItem, SummaryTarget } from '@/shared/api/summary'
+import type { Summary, SummaryItem, SummaryTarget } from '@/shared/api/summary'
 import type { ChangeType } from '@/shared/api/textChanges'
 import type { LoadState } from '@/shared/hooks/asyncState'
 import type { AsyncResult } from '@/shared/hooks/useAsync'
 import { formatCompactAmount } from '@/shared/lib/chartScale'
 import { Badge, Button, Card, CompareBars, Notice, Panel, PanelTitle } from '@/shared/ui'
-import { DartLinkInline } from '@/shared/ui/DartLink'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { useSummary } from '../hooks/useSummary'
@@ -17,11 +16,10 @@ import { summarySjDivs } from '../model/summaryAmounts'
 import { headlineItems } from '../model/summaryHeadline'
 import { AskEntryCard } from './AskEntryCard'
 import { ChangeOverview } from './ChangeOverview'
+import { SummaryExplanation } from './SummaryExplanation'
 import { SummaryHeadline } from './SummaryHeadline'
 import type { SourceTarget } from '../model/resultParams'
 import {
-  aiInfoLabel,
-  explanationNote,
   kindLabel,
   SUMMARY_NOTE,
   summaryLink,
@@ -234,7 +232,6 @@ interface SummaryCardProps {
 }
 
 function SummaryCard({ item, analysis, amount, onOpen, onOpenSource }: SummaryCardProps) {
-  const missing = item.kind === 'FINANCIAL' ? explanationNote(item.explanationStatus) : null
   return (
     <Card as="article" className="summary-item">
       {item.factSentence && <p className="summary-item__fact">{item.factSentence}</p>}
@@ -245,21 +242,7 @@ function SummaryCard({ item, analysis, amount, onOpen, onOpenSource }: SummaryCa
           current={{ label: '현재', value: amount.currentAmount, text: compactAmount(amount.currentAmount, amount.currency) }}
         />
       )}
-      {item.aiText && (
-        <div className="summary-item__ai">
-          <p className="summary-item__ai-text">
-            {item.aiGenerated && <Badge tone="accent">AI 생성</Badge>} {item.aiText}
-          </p>
-          {item.ai && (
-            <details className="summary-item__meta">
-              <summary>생성 정보</summary>
-              {aiInfoLabel(item.ai)}
-            </details>
-          )}
-          <EvidenceLinks evidence={item.evidence} analysis={analysis} onOpenSource={onOpenSource} />
-        </div>
-      )}
-      {missing && <p className={`summary-item__missing${item.explanationStatus === 'REVIEW_NEEDED' ? ' summary-item__missing--review' : ''}`}>{missing}</p>}
+      <SummaryExplanation item={item} analysis={analysis} onOpenSource={onOpenSource} />
       {onOpen && (
         <div className="summary-item__actions">
           <Button variant="secondary" onClick={onOpen}>
@@ -268,49 +251,6 @@ function SummaryCard({ item, analysis, amount, onOpen, onOpenSource }: SummaryCa
         </div>
       )}
     </Card>
-  )
-}
-
-interface EvidenceLinksProps {
-  evidence: SummaryEvidence[]
-  analysis: Analysis
-  onOpenSource: (target: SourceTarget) => void
-}
-
-/** AI 문장의 근거 위치. 분석의 보고서 원문 안 위치만 연다 */
-function EvidenceLinks({ evidence, analysis, onOpenSource }: EvidenceLinksProps) {
-  if (evidence.length === 0) return null
-  return (
-    <ul className="summary-item__evidence" aria-label="근거 원문">
-      {evidence.map((e) => {
-        const report = match(e.side)
-          .with('current', () => analysis.current)
-          .with('previous', () => analysis.previous)
-          // 분석의 보고서가 아니면(null) 열지 않는다
-          .otherwise(() => null)
-        const side = e.side
-        const sectionNo = e.sectionNo
-        return (
-          <li key={e.evidenceId}>
-            {side && report && sectionNo !== null ? (
-              <>
-                <Button variant="link" onClick={() => onOpenSource({ side, section: sectionNo, block: e.blockNo })}>
-                  근거: {report.reportName} 원문 위치 보기
-                </Button>
-                <span className="panel__note">
-                  {' '}
-                  · 출처: DART <DartLinkInline rceptNo={report.rceptNo} dartUrl={report.dartUrl} label={report.reportName} />
-                </span>
-              </>
-            ) : (
-              <span className="panel__note">
-                근거 <code>{e.evidenceId}</code> · 원문 위치를 찾지 못했어요
-              </span>
-            )}
-          </li>
-        )
-      })}
-    </ul>
   )
 }
 

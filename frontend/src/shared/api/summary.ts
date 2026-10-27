@@ -8,6 +8,8 @@ import type { TextStatus } from './textChanges'
 export type SummaryStatus = 'COMPLETED' | 'PARTIAL' | 'EMPTY'
 export type SummaryKind = 'FINANCIAL' | 'TEXT'
 export type ExplanationStatus = 'FOUND' | 'NOT_FOUND' | 'REVIEW_NEEDED'
+/** 재무 수치 설명 등급(ADR-0015): 회사가 직접 밝힘, 관련 내용, 확인된 설명 없음 */
+export type ExplanationGrade = 'STATED' | 'RELATED' | 'NONE'
 
 export interface SummaryTarget {
   type: SummaryKind
@@ -41,6 +43,14 @@ export interface SummaryItem {
   aiText: string | null
   aiGenerated: boolean
   explanationStatus: ExplanationStatus | null
+  /** 재무 수치 설명 등급. 문장 변화·검토 필요·등급 기능 전 분석이면 null */
+  explanationGrade: ExplanationGrade | null
+  /** 회사 공시에서 그대로 옮긴 인용문 */
+  quote: string | null
+  /** 인용 위치 */
+  quoteEvidence: SummaryEvidence | null
+  /** 코드가 설명 등급을 낮춘 사유. 낮추지 않았으면 null */
+  gradeReason: string | null
   evidence: SummaryEvidence[]
   ai: AiInfo | null
 }
