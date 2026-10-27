@@ -1616,7 +1616,7 @@
 
 ### GET /api/analyses/{analysisId}/summary — 근거 기반 요약·설명
 
-- 이슈: #20 (3.2) · 화면: W-03 ①
+- 이슈: #20 (3.2), #143 (설명 등급·인용) · 화면: W-03 ① · [ADR-0015](adr/0015-explanation-grade-and-quote-check.md)
 - 요약할 변화는 코드가 고릅니다(5절 잠정 규칙). 재무 수치의 사실 문장(`factSentence`)은 코드가 계산한 값으로 만들고, LLM은 문장 변화의 요약과 공시에 적힌 설명(`aiText`)만 씁니다.
 - AI 서버가 LLM 문장의 근거 ID가 보낸 원문 위치인지, 문장의 숫자가 그 원문에 있는지 확인하고, 투자 권유성 표현 검사(5.5)를 합니다. 통과하지 못하면 2회까지 다시 만들고, 그래도 통과하지 못한 항목은 요약에서 빼고 `reviewNeeded`에 남깁니다. 표현 검사에 걸린 항목은 `reviewNeeded[].blockedRules`에 걸린 규칙 ID가 있습니다(5절 잠정 규칙).
 - backend도 저장하기 전에 다시 확인합니다: 요청한 항목인지, 같은 항목이 두 번 오지 않았는지, AI 문장의 근거가 그 항목에 보낸 원문 위치인지. 통과하지 못하거나 응답에 빠진 항목은 `reviewNeeded`에 남습니다.
@@ -1639,8 +1639,26 @@
       "aiText": "회사는 메모리 수요 회복으로 매출이 늘었다고 적었어요.",
       "aiGenerated": true,
       "explanationStatus": "FOUND",
+      "explanationGrade": "STATED",
+      "quote": "메모리 수요 회복으로 매출이 증가하였습니다",
+      "quoteEvidence": { "evidenceId": "20260814001234#B812", "side": "current", "rceptNo": "20260814001234", "sectionNo": 41, "blockNo": 812 },
+      "gradeReason": null,
       "evidence": [{ "evidenceId": "20260814001234#B812", "side": "current", "rceptNo": "20260814001234", "sectionNo": 41, "blockNo": 812 }],
-      "ai": { "model": "fake-model", "promptVersion": "summary-1", "generatedAt": "2026-10-21T14:07:12" }
+      "ai": { "model": "fake-model", "promptVersion": "summary-3", "generatedAt": "2026-10-21T14:07:12" }
+    },
+    {
+      "itemNo": 3, "kind": "FINANCIAL",
+      "target": { "type": "FINANCIAL", "changeId": 102, "sjDiv": "IS" },
+      "factSentence": "영업이익이 6조 원에서 9조 원으로 늘었어요(+50.0%).",
+      "aiText": null,
+      "aiGenerated": false,
+      "explanationStatus": "NOT_FOUND",
+      "explanationGrade": "NONE",
+      "quote": null,
+      "quoteEvidence": null,
+      "gradeReason": "인용문이 후보 원문에 그대로 없어 설명으로 쓰지 않았어요.",
+      "evidence": [],
+      "ai": null
     },
     {
       "itemNo": 2, "kind": "TEXT",
@@ -1649,13 +1667,14 @@
       "aiText": "미국에 공장 2곳을 새로 짓는다는 내용이 들어갔어요.",
       "aiGenerated": true,
       "explanationStatus": null,
+      "explanationGrade": null, "quote": null, "quoteEvidence": null, "gradeReason": null,
       "evidence": [{ "evidenceId": "20260814001234#B44", "side": "current", "rceptNo": "20260814001234", "sectionNo": 3, "blockNo": 44 }],
-      "ai": { "model": "fake-model", "promptVersion": "summary-1", "generatedAt": "2026-10-21T14:07:12" }
+      "ai": { "model": "fake-model", "promptVersion": "summary-3", "generatedAt": "2026-10-21T14:07:12" }
     }
   ],
   "reviewNeededCount": 1,
   "reviewNeeded": [
-    { "itemNo": 3, "kind": "TEXT", "target": { "type": "TEXT", "changeId": 5520, "sjDiv": null }, "reason": "원문에 없는 숫자(3)를 썼어요.", "blockedRules": [] }
+    { "itemNo": 4, "kind": "TEXT", "target": { "type": "TEXT", "changeId": 5520, "sjDiv": null }, "reason": "원문에 없는 숫자(3)를 썼어요.", "blockedRules": [] }
   ]
 }
 ```
@@ -1663,6 +1682,16 @@
 - `summaryStatus`: `COMPLETED`(모두 근거 확인), `PARTIAL`(검토 필요 항목이 있음), `EMPTY`(요약할 변화가 없음). M1에서 만든 분석에는 `null`입니다.
 - `kind`: `FINANCIAL`(재무 수치. `target.changeId`는 `financial-changes`의 `changeId`), `TEXT`(문장 변화. `target.changeId`는 `text-changes`의 `changeId`).
 - `explanationStatus`(재무 수치만): `FOUND`(공시에 적힌 설명이 있음), `NOT_FOUND`(확인된 설명 없음. 화면에 그렇게 표시), `REVIEW_NEEDED`(설명을 만들었지만 근거를 확인하지 못함. 사실 문장은 보이고 설명은 `reviewNeeded`에도 셈).
+- `explanationGrade`(재무 수치만, ADR-0015): 후보 원문이 그 변화를 어떻게 다루는지입니다. 문장 변화와 `REVIEW_NEEDED`면 null이고, 등급 기능 전에 만든 분석(분석 버전 m2-9 이하)도 null입니다.
+
+  | 값 | `explanationStatus` | 화면 | `quote`·`quoteEvidence` |
+  | --- | --- | --- | --- |
+  | `STATED` | `FOUND` | "회사는 공시에서 이렇게 설명했어요" + 설명·인용문·위치 | 있음 |
+  | `RELATED` | `FOUND` | "관련 공시 내용" + 설명·인용문·위치. 원인으로 읽히는 문구를 붙이지 않음 | 있음 |
+  | `NONE` | `NOT_FOUND` | "확인된 설명 없음". `gradeReason`이 있으면 "관련 문단은 있지만 인용을 원문에서 확인하지 못했어요" | null |
+
+- `quote`: 회사 공시에서 그대로 옮긴 인용문(공백 차이만 허용). `quoteEvidence`: 인용 위치(`evidence[]`와 같은 모양). 누르면 원문 확인(④)의 그 블록을 엽니다.
+- `gradeReason`: 코드가 LLM의 등급을 낮췄을 때만 그 사유입니다(인용 위치가 후보가 아님·인용문이 원문에 없음이면 `NONE`, 인용문에 계정 이름이 없으면 `RELATED`). 낮추지 않았으면 null입니다. 화면은 `NONE`일 때 이 값이 있으면 후보가 없던 경우와 다른 문구를 씁니다.
 - `aiGenerated`가 true인 문장(`aiText`)은 화면에 'AI 생성'으로 표시하고 `ai`(모델·프롬프트 버전·생성 시각)를 함께 보여 줍니다. 사실 문장(`factSentence`)은 코드가 만든 문장이라 'AI 생성'이 아닙니다.
 - `evidence[]`는 `aiText`의 근거입니다. `side`·`sectionNo`·`blockNo`로 원문 확인(④)을 엽니다. `side`가 null이면 분석의 보고서가 아닌 근거라 열지 않습니다.
 
