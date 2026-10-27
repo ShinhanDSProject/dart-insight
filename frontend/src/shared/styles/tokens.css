@@ -117,6 +117,8 @@
   /* 그림자 */
   --shadow-sm: 0 1px 2px rgba(19, 25, 54, 0.08);
   --shadow-md: 0 4px 12px rgba(19, 25, 54, 0.12);
+  /* 고를 수 있는 카드(Card interactive)에 마우스를 올렸을 때의 옅은 들림 */
+  --shadow-hover: 0 6px 16px rgba(19, 25, 54, 0.1);
   /* 모달 뒤를 흐리게 덮는 색 */
   --color-overlay: rgba(19, 25, 54, 0.32);
 
@@ -127,6 +129,12 @@
   --motion-slow: 360ms;
   --motion-stagger: 30ms;
   --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  /* 큰 숫자가 0에서 최종 값까지 올라가는 시간(useCountUp이 읽음, FS-58). 곡선은 코드의 ease-out(3차)과 같다 */
+  --motion-count: 600ms;
+  /* 카드 hover 들림 거리 */
+  --motion-lift: -2px;
+  /* 불러오는 자리(Skeleton)가 한 번 반짝이는 시간 */
+  --motion-shimmer: 1400ms;
 
   /* 포커스 표시 */
   --focus-ring: 2px solid var(--color-primary);
@@ -172,6 +180,7 @@
     --color-danger-subtle: #2e161b;
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --shadow-hover: 0 6px 16px rgba(0, 0, 0, 0.55);
     --color-overlay: rgba(0, 0, 0, 0.6);
     /* AI 사용 현황 구성 막대(FS-15) 다크 값. 어두운 배경(#0f1320·#161b2c) 기준 색 검사 통과 */
     --color-chart-series-1: #8a81ef;
@@ -211,6 +220,7 @@
     --color-danger-subtle: #2e161b;
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --shadow-hover: 0 6px 16px rgba(0, 0, 0, 0.55);
     --color-overlay: rgba(0, 0, 0, 0.6);
     /* AI 사용 현황 구성 막대(FS-15) 다크 값. 어두운 배경(#0f1320·#161b2c) 기준 색 검사 통과 */
     --color-chart-series-1: #8a81ef;
