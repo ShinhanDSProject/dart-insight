@@ -11,13 +11,13 @@ import java.util.Map;
 
 /** section·q는 요청에 쓴 거르기 값(없으면 null). sections는 고를 수 있는 최상위 섹션과 건수 */
 public record TextChangeListResponse(Long analysisId, TextStatus textStatus, String textMessage, String type,
-        String sort, String section, String q, int page, int size, int totalItems, Counts counts,
-        List<SectionView> sections, List<TextChangeItemResponse> items) {
+        String sort, String section, String q, boolean risk, int page, int size, int totalItems, Counts counts,
+        Counts riskCounts, List<SectionView> sections, List<TextChangeItemResponse> items) {
 
     /**
      * 목록 한 쪽. totalItems는 고른 유형 건수의 합(유형을 고르지 않았으면 전체), type은 고른 유형을 쉼표로 이은 값.
      *
-     * @param filter 요청에 쓴 거르기(유형·섹션·검색어)
+     * @param filter 요청에 쓴 거르기(유형·섹션·검색어·위험 관련)
      */
     public static TextChangeListResponse of(Long analysisId, TextChangeFilter filter, String sort, int page,
             int size, TextChangePage result) {
@@ -29,7 +29,8 @@ public record TextChangeListResponse(Long analysisId, TextStatus textStatus, Str
         List<TextChangeItemResponse> items = result.changes().stream().map(TextChangeItemResponse::from).toList();
         String typeEcho = types.isEmpty() ? null : String.join(TextChangeFilter.TYPE_SEPARATOR, types);
         return new TextChangeListResponse(analysisId, analysis.getTextStatus(), analysis.getTextMessage(), typeEcho,
-                sort, filter.section(), filter.q(), page, size, total, counts, sections, items);
+                sort, filter.section(), filter.q(), filter.risk(), page, size, total, counts,
+                Counts.of(result.riskCounts()), sections, items);
     }
 
     public record Counts(int all, int added, int deleted, int modified, int numericUpdate, int moved,

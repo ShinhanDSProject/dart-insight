@@ -1,5 +1,6 @@
 package com.dartinsight.analysis.repository;
 
+import com.dartinsight.analysis.domain.RiskSections;
 import com.dartinsight.analysis.domain.TextChange;
 import com.dartinsight.analysis.domain.TextChangeFilter;
 import com.dartinsight.analysis.domain.TextChangeRow.Side;
@@ -76,11 +77,20 @@ public class TextChangeStore {
 
     /** 유형별 건수. 키는 change_type, 없는 유형은 0. filter의 type은 보지 않는다 */
     public Map<String, Integer> counts(long analysisId, TextChangeFilter filter) {
+        return countByType(analysisId, filter.withoutType());
+    }
+
+    /** 위험 관련 목차의 유형별 건수(3.9). 키는 change_type, 없는 유형은 0. filter의 type·risk는 보지 않는다 */
+    public Map<String, Integer> riskCounts(long analysisId, TextChangeFilter filter) {
+        return countByType(analysisId, filter.riskOnly());
+    }
+
+    private Map<String, Integer> countByType(long analysisId, TextChangeFilter filter) {
         Map<String, Integer> counts = new LinkedHashMap<>();
         for (String type : TextChangeRow.TYPES) {
             counts.put(type, 0);
         }
-        Condition condition = Condition.of(filter.withoutType());
+        Condition condition = Condition.of(filter);
         List<Object> args = new ArrayList<>();
         args.add(analysisId);
         args.addAll(condition.args());
@@ -161,7 +171,23 @@ public class TextChangeStore {
                 args.add(pattern);
                 args.add(pattern);
             }
+            if (filter.risk()) {
+                parts.add(riskSql(args));
+            }
             return new Condition(String.join(" AND ", parts), args);
+        }
+
+        /** 이전·현재 섹션 경로 중 하나라도 위험 관련 낱말이 든 것({@link RiskSections}와 같은 규칙: 공백을 빼고 비교) */
+        private static String riskSql(List<Object> args) {
+            List<String> likes = new ArrayList<>();
+            for (String column : List.of("section_path", "previous_section_path")) {
+                for (String keyword : RiskSections.KEYWORDS) {
+                    likes.add("REPLACE(" + column + ", ?, '') LIKE ? ESCAPE '!'");
+                    args.add(RiskSections.SPACE);
+                    args.add("%" + escapeLike(keyword) + "%");
+                }
+            }
+            return "(" + String.join(" OR ", likes) + ")";
         }
 
         String andSql() {
