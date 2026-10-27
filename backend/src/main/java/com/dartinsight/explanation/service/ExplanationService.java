@@ -82,16 +82,12 @@ public class ExplanationService {
         String traceId = TraceContext.currentTraceId();
         Optional<SummaryItemRow> summarized = summaryQueryService.shownText(analysisId, change.changeNo());
         if (summarized.isPresent()) {
-            SummaryItemRow row = summarized.get();
-            return save(analysis, change, new TextExplanationRecord(null, analysisId, change.changeNo(),
-                    ExplanationStatus.OK, row.aiText(), row.evidenceIds(), null, List.of(), row.model(),
-                    row.promptVersion(), row.generatedAt(), traceId, now()), List.of());
+            return save(analysis, change, ok(analysisId, change.changeNo(), summarized.get(), traceId), List.of());
         }
 
         if (!SummaryService.explainable(change.row())) {
-            return save(analysis, change, new TextExplanationRecord(null, analysisId, change.changeNo(),
-                    ExplanationStatus.NO_SOURCE, null, List.of(), NO_SOURCE, List.of(), null, null, null, traceId,
-                    now()), List.of());
+            return save(analysis, change, TextExplanationRecord.withoutSentence(analysisId, change.changeNo(),
+                    ExplanationStatus.NO_SOURCE, NO_SOURCE, List.of(), traceId, now()), List.of());
         }
 
         ReportDetail current = reportService.get(analysis.getCurrentRceptNo());
@@ -101,13 +97,17 @@ public class ExplanationService {
                 change.changeNo());
         SummaryItemRow row = explained.row();
         TextExplanationRecord record = SummaryItemRow.SHOWN.equals(row.status())
-                ? new TextExplanationRecord(null, analysisId, change.changeNo(), ExplanationStatus.OK, row.aiText(),
-                        row.evidenceIds(), null, List.of(), row.model(), row.promptVersion(), row.generatedAt(),
-                        traceId, now())
-                : new TextExplanationRecord(null, analysisId, change.changeNo(), ExplanationStatus.REVIEW_NEEDED,
-                        null, List.of(), row.reviewReason() == null ? NO_REASON : row.reviewReason(),
-                        row.blockedRules(), null, null, null, traceId, now());
+                ? ok(analysisId, change.changeNo(), row, traceId)
+                : TextExplanationRecord.withoutSentence(analysisId, change.changeNo(), ExplanationStatus.REVIEW_NEEDED,
+                        row.reviewReason() == null ? NO_REASON : row.reviewReason(), row.blockedRules(), traceId,
+                        now());
         return save(analysis, change, record, explained.calls());
+    }
+
+    /** 요약 항목의 문장을 그대로 쓴 풀이 */
+    private TextExplanationRecord ok(Long analysisId, int changeNo, SummaryItemRow row, String traceId) {
+        return TextExplanationRecord.ok(analysisId, changeNo, row.aiText(), row.evidenceIds(), row.model(),
+                row.promptVersion(), row.generatedAt(), traceId, now());
     }
 
     private TextExplanationResponse save(Analysis analysis, TextChange change, TextExplanationRecord row,
