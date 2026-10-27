@@ -1488,7 +1488,7 @@
 - 순서:
   1. 이 분석·현재 규칙 버전으로 계산해 둔 결과가 있으면 그대로 읽습니다(`cached: true`, OpenDART 호출 없음).
   2. 없으면 이 분석의 모든 문장 변경을 한 번에 계산해 저장하고 이 변경의 결과를 돌려줍니다. 공시 목록은 OpenDART 공시검색(`list.json`)을 상세유형 `B001`·`I001`·`I002`, `last_reprt_at=N`(정정 전 원본 포함)으로 받고, 같은 기업·기간은 한 번만 받습니다.
-- 연결 강도(`matchLevel`): `TYPE_ONLY` 같은 종류(변경의 섹션 경로·글과 공시 제목이 같은 규칙에 걸림), `STRONG` 내용 일치(주요사항보고서 주요정보 DS005의 값이 변경 글에 있음. 유상증자 신주 수, 소송 원고·사건 명칭, 타법인 주식 양수 대상 회사). 비고(`rm`)에 '철'이 있는 공시는 연결하지 않습니다.
+- 연결 강도(`matchLevel`): `TYPE_ONLY` 같은 종류(변경의 섹션 경로·글과 공시 제목이 같은 규칙에 걸림), `STRONG` 내용 일치(주요사항보고서 주요정보 DS005의 값이 변경 글에 있음. 유상증자 신주 수, 소송 원고(사건 명칭은 원고와 함께 맞을 때만 근거로 남김, ADR-0032), 타법인 주식 양수 대상 회사). 비고(`rm`)에 '철'이 있는 공시는 연결하지 않습니다.
 - 대조할 글: 현재 글이 있으면 현재 글·섹션 경로(`ADDED`·`MODIFIED`·`NUMERIC_UPDATE`·`MOVED`), 없으면 이전 글·섹션 경로(`DELETED`)입니다. `MOVED`는 `previousSectionPath`도 함께 봅니다. `REVIEW_NEEDED`도 빼지 않고 있는 쪽 글로 같은 규칙을 적용합니다. 모든 `changeType`에 이 API를 쓸 수 있습니다.
 - 주요정보는 최근 공시 핵심 수치(`GET .../disclosures/{rceptNo}/key-items`, #363)와 같은 저장(`disclosure_key_item`, 공시마다 한 번)을 씁니다. 그 API에 없는 종류 `LITIGATION`(소송 등의 제기)·`STOCK_ACQUISITION`(타법인 주식 및 출자증권 양수결정)을 공통 값 `keyItemsKind`에 더합니다(#363 담당자와 합의함).
 - 정정 공시: 공시 목록에 원본(비고 '정')과 같은 제목의 `[기재정정]` 공시가 함께 있으면 정정본만 보여 줍니다. 정정본이 기간 뒤에 나왔으면 원본을 보여 주고, 주요정보로 최신 정정본을 알면 `latestRceptNo`·`dartUrl`을 그 접수번호로 줍니다.
@@ -1549,7 +1549,7 @@
 - `items[].disclosureType`: 공시상세유형 `B001` 주요사항보고서, `I001` 수시공시, `I002` 공정공시
 - `items[].timing`: `DURING` 현재 보고서 기간 안(접수일 ≤ `periodEnd`), `AFTER` 기간 뒤~제출 전
 - `items[].matchRule`·`matchRuleLabel`: 걸린 규칙 키와 화면 이름. 여러 규칙에 걸리면 규칙 순서의 첫 규칙
-- `items[].matchedFields`: `STRONG`일 때 일치한 값의 종류(`NEW_SHARES` 신주 수, `PLAINTIFF` 원고, `CASE_NAME` 사건 명칭, `TARGET_COMPANY` 대상 회사). `TYPE_ONLY`면 빈 배열
+- `items[].matchedFields`: `STRONG`일 때 일치한 값의 종류(`NEW_SHARES` 신주 수, `PLAINTIFF` 원고, `CASE_NAME` 사건 명칭(`PLAINTIFF`와 함께만), `TARGET_COMPANY` 대상 회사). `TYPE_ONLY`면 빈 배열
 - `items[].remarks`: 비고(`rm`) 원문(최근 공시 API와 같음). 없으면 null
 - `notice`: 고정 문구. 화면은 영역 맨 아래에 그대로 보여 줍니다
 - `status`가 `NOT_FOUND`·`UNAVAILABLE`이면 `items`는 빈 배열입니다

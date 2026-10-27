@@ -47,7 +47,7 @@ class KeyItemMatcherTest {
     }
 
     @Test
-    @DisplayName("소송은 원고 이름(회사 표시·공백 무시)과 사건의 명칭(공백 무시)을 따로 본다(고려아연 20260108000598)")
+    @DisplayName("소송은 원고 이름(회사 표시·공백 무시)이 맞을 때만 일치이고, 사건의 명칭(공백 무시)은 그때 함께 남긴다(고려아연 20260108000598, ADR-0032)")
     void litigationMatchesPlaintiffAndCaseName() {
         DisclosureKeyItems lawsuit = keyItems(KeyItemKind.LITIGATION,
                 Map.of("icnm", "신주발행무효의 소", "ac_ap", "주식회사 엠제이파트너스"));
@@ -55,7 +55,7 @@ class KeyItemMatcherTest {
         assertThat(match(lawsuit, "(주)엠제이파트너스가 신주발행무효의소를 제기하였습니다."))
                 .containsExactly(KeyItemMatcher.PLAINTIFF, KeyItemMatcher.CASE_NAME);
         assertThat(match(lawsuit, "엠제이 파트너스 관련 소송")).containsExactly(KeyItemMatcher.PLAINTIFF);
-        assertThat(match(lawsuit, "신주발행무효의 소가 진행 중입니다")).containsExactly(KeyItemMatcher.CASE_NAME);
+        assertThat(match(lawsuit, "신주발행무효의 소가 진행 중입니다")).isEmpty();
         assertThat(match(lawsuit, "신주발행금지 가처분")).isEmpty();
     }
 
@@ -68,6 +68,8 @@ class KeyItemMatcherTest {
                 Map.of("icnm", "신주발행금지 가처분", "ac_ap", "주식회사 영풍, 한국기업투자홀딩스 주식회사, 주식회사 와이피씨"));
 
         assertThat(match(appeal, "고려아연 주식회사는 소송을 진행 중입니다.")).isEmpty();
+        // 원고가 회사 자신이면 흔한 사건 명칭('항소')만으로 일치시키지 않는다
+        assertThat(match(appeal, "1심 판결에 대해 항소하였습니다.")).isEmpty();
         assertThat(match(injunction, "와이피씨가 제기한 소송")).containsExactly(KeyItemMatcher.PLAINTIFF);
     }
 
