@@ -129,15 +129,21 @@ describe('AI에게 묻기 · 사업보고서 기준', () => {
     expect(askCompanyQuestion).not.toHaveBeenCalled()
   })
 
-  it('이전 기록을 최신 순으로 보인다', async () => {
+  it('가장 최근 답 하나만 펼치고, 이전 질문 보기로 나머지를 최신 순으로 펼친다', async () => {
     getCompanyQuestions.mockResolvedValue({ report: REPORT, items: [answered(5, '주요 매출처는 어디인가요?'), answered(4)] })
     render(<CompanyAskSection corpCode={CORP} />)
 
     const cards = await screen.findAllByRole('article')
-    expect(cards.map((c) => c.getAttribute('aria-label'))).toEqual([
+    expect(cards.map((c) => c.getAttribute('aria-label'))).toEqual(['질문: 주요 매출처는 어디인가요?'])
+
+    const older = screen.getByRole('button', { name: '이전 질문 1개 보기' })
+    expect(older.getAttribute('aria-expanded')).toBe('false')
+    fireEvent.click(older)
+    expect(screen.getAllByRole('article').map((c) => c.getAttribute('aria-label'))).toEqual([
       '질문: 주요 매출처는 어디인가요?',
       '질문: 주요 제품과 서비스는 무엇인가요?',
     ])
+    expect(screen.getByRole('button', { name: '이전 질문 접기' }).getAttribute('aria-expanded')).toBe('true')
   })
 
   it('AI 서버를 쓸 수 없으면 코드별 안내와 다시 시도를 보이고, 다시 시도하면 같은 질문을 보낸다', async () => {

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Executive, KeyFactGroup, KeyFacts, KeyFactSection, MajorShareholder } from '@/shared/api/keyFacts'
 import { ApiError } from '@/shared/api/client'
@@ -93,6 +93,11 @@ beforeEach(() => {
 })
 afterEach(cleanup)
 
+/** 세 묶음은 하나씩 고르므로(#385) 그 묶음 버튼을 누른다 */
+function showGroup(title: string) {
+  fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${title}`) }))
+}
+
 describe('최대주주·임원·배당 변화', () => {
   it('세 묶음에 바뀐 항목을 기호와 글자로 먼저 보이고, 출처 보고서와 DART 링크를 둔다', async () => {
     getKeyFacts.mockResolvedValue(facts())
@@ -104,11 +109,16 @@ describe('최대주주·임원·배당 변화', () => {
     expect(changes.textContent).toContain('이재용(보통주) 지분 1.65% → 1.67%')
     expect(within(shareholders).getByRole('table').textContent).toContain('1.65')
 
+    expect(screen.getByRole('button', { name: '최대주주 현황 · 바뀜 1' }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.queryByRole('region', { name: '임원 현황' })).toBeNull()
+
+    showGroup('임원 현황 · 바뀜 2')
     const executives = screen.getByRole('region', { name: '임원 현황' })
     expect(within(executives).getByText('새 임원: 김용관(사장)')).toBeTruthy()
     expect(within(executives).getByText('빠진 임원: 송재혁(사장)')).toBeTruthy()
     expect(within(executives).getByText('전체 보기 (2명)')).toBeTruthy()
 
+    showGroup('배당에 관한 사항')
     const dividends = screen.getByRole('region', { name: '배당에 관한 사항' })
     expect(within(dividends).getByText('공시된 자료가 없어요')).toBeTruthy()
 
@@ -136,6 +146,7 @@ describe('최대주주·임원·배당 변화', () => {
     const link = within(shareholders).getByRole('link', { name: `DART 원문 새 창으로 열기(접수번호 ${source})` })
     expect(link.getAttribute('href')).toBe(`https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${source}`)
     expect(within(shareholders).queryByText(/현재 보고서: 정정 공시 값/)).toBeNull()
+    showGroup('임원 현황')
     const executives = screen.getByRole('region', { name: '임원 현황' })
     expect(within(executives).queryByText(/정정 공시 값/)).toBeNull()
   })
@@ -171,9 +182,32 @@ describe('최대주주·임원·배당 변화', () => {
     )
     render(<KeyFactsSection corpCode="00126380" />)
 
-    const executives = await screen.findByRole('region', { name: '임원 현황' })
+    expect(await screen.findByText('이재용(보통주) 지분 1.65% → 1.67%')).toBeTruthy()
+    showGroup('임원 현황')
+    const executives = screen.getByRole('region', { name: '임원 현황' })
     expect(within(executives).getByText('지금은 자료를 불러오지 못했어요')).toBeTruthy()
-    expect(screen.getByText('이재용(보통주) 지분 1.65% → 1.67%')).toBeTruthy()
+  })
+
+  it('바뀐 항목이 많으면 5개만 먼저 보이고 더 보기로 펼친다', async () => {
+    const base = facts()
+    const many = Array.from({ length: 7 }, (_, n) => ({
+      type: 'CHANGED' as const,
+      name: `주주${n}`,
+      stockKind: '보통주',
+      field: 'endRatio',
+      before: '1.00',
+      after: '2.00',
+    }))
+    getKeyFacts.mockResolvedValue(facts({ majorShareholders: { ...base.majorShareholders, changes: many } }))
+    render(<KeyFactsSection corpCode="00126380" />)
+
+    const list = await screen.findByRole('list', { name: '최대주주 현황 바뀐 항목' })
+    expect(within(list).getAllByRole('listitem')).toHaveLength(5)
+    const more = screen.getByRole('button', { name: '바뀐 항목 2개 더 보기' })
+    expect(more.getAttribute('aria-controls')).toBe(list.id)
+    fireEvent.click(more)
+    expect(within(list).getAllByRole('listitem')).toHaveLength(7)
+    expect(screen.getByRole('button', { name: '바뀐 항목 접기' }).getAttribute('aria-expanded')).toBe('true')
   })
 
   it('불러오지 못하면 오류와 다시 시도를 보인다', async () => {

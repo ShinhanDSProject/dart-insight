@@ -21,6 +21,7 @@ const TITLE_ID = 'company-ask-title'
 const INPUT_ID = 'company-ask-input'
 const HINT_ID = 'company-ask-hint'
 const ERROR_ID = 'company-ask-error'
+const ANSWERS_ID = 'company-ask-answers'
 
 /**
  * 기업 화면 개요 탭 'AI에게 묻기 · 사업보고서 기준'(FS-53, ADR-0029). 예시 질문을 누르거나 직접 물으면 최신 사업보고서
@@ -28,6 +29,8 @@ const ERROR_ID = 'company-ask-error'
  */
 export function CompanyAskSection({ corpCode }: { corpCode: string }) {
   const ask = useCompanyAsk(corpCode)
+  // 가장 최근 답 하나만 펼쳐 두고 이전 질문은 접어 둔다(#385)
+  const [olderOpen, setOlderOpen] = useState(false)
   const { state, history } = ask
   const sending = state.request.status === 'sending'
   const lastAnswered = state.items.find((i) => i.questionId === state.lastAnsweredId)
@@ -62,7 +65,7 @@ export function CompanyAskSection({ corpCode }: { corpCode: string }) {
         {lastAnswered && !sending ? `'${lastAnswered.question}'에 대한 답이 왔어요.` : ''}
       </p>
 
-      <ol className="company-ask__answers" aria-label="질문과 답">
+      <ol className="company-ask__answers" id={ANSWERS_ID} aria-label="질문과 답">
         {match(state.request)
           .with({ status: 'idle' }, () => null)
           .with({ status: 'sending' }, ({ question }) => (
@@ -78,12 +81,23 @@ export function CompanyAskSection({ corpCode }: { corpCode: string }) {
             </li>
           ))
           .exhaustive()}
-        {state.items.map((item) => (
+        {(olderOpen ? state.items : state.items.slice(0, 1)).map((item) => (
           <li key={item.questionId} className="company-ask__answer">
             <AnswerCard item={item} />
           </li>
         ))}
       </ol>
+      {state.items.length > 1 && (
+        <Button
+          variant="link"
+          className="company-ask__older"
+          aria-expanded={olderOpen}
+          aria-controls={ANSWERS_ID}
+          onClick={() => setOlderOpen((open) => !open)}
+        >
+          {olderOpen ? '이전 질문 접기' : `이전 질문 ${state.items.length - 1}개 보기`}
+        </Button>
+      )}
 
       {match(history.state)
         .with({ status: 'loading' }, () => <LoadingState message="이전에 한 질문을 불러오는 중이에요…" />)

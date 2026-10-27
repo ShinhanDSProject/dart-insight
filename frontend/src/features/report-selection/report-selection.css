@@ -163,10 +163,90 @@
   overflow-wrap: anywhere;
 }
 
-/* 기업 개요 탭(FS-45). 영역(Panel)은 위에서부터 쌓이고 사이 간격은 .panel + .panel이 정한다 */
+/* 기업 개요 탭(FS-45, #385). 영역은 위에서부터 쌓이고, 넓은 화면에서는 AI 브리핑(main)과 기업 개황(side)을 한 줄에 둔다.
+   두 영역이 들어갈 폭이 안 되면 한 줄에 하나씩 쌓인다 */
 .company-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+.company-overview__slot {
+  min-width: 0;
+  /* 바로 가기로 옮겼을 때 위에 붙는 바로 가기 바에 가리지 않게 */
+  scroll-margin-top: calc(var(--touch-target-min) + var(--space-5));
+}
+
+.company-overview__slot:focus {
+  outline: none;
+}
+
+.company-overview__slot > .panel {
+  height: 100%;
+}
+
+/* 왼쪽 메뉴를 뺀 본문 폭이 900px 남짓 되는 화면부터 나란히 둔다 */
+@media (min-width: 1200px) {
+  .company-overview {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+
+  .company-overview__slot {
+    grid-column: 1 / -1;
+  }
+
+  .company-overview__slot--main {
+    grid-column: 1;
+  }
+
+  .company-overview__slot--side {
+    grid-column: 2;
+  }
+}
+
+/* 기업 개요 바로 가기(#385). 스크롤해도 위에 붙어 있고, 지금 보고 있는 영역을 표시한다 */
+.overview-nav {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0 0 var(--space-4);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.overview-nav__list {
   display: flex;
-  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  list-style: none;
+  scrollbar-width: none;
+}
+
+.overview-nav__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target-min);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.overview-nav__link:hover {
+  background: var(--color-bg-subtle);
+  color: var(--color-text);
+}
+
+.overview-nav__link[aria-current='location'] {
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+  font-weight: var(--font-weight-bold);
 }
 
 /* 개황 카드: 긴 영문명·주소·홈페이지 주소가 좁은 화면에서 넘치지 않게 끊는다 */
@@ -336,8 +416,20 @@
 
 .key-facts__groups {
   display: grid;
-  gap: var(--space-5);
+  gap: var(--space-4);
   margin-top: var(--space-4);
+}
+
+.key-facts__groups > .segmented {
+  justify-self: start;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* 바뀐 항목 더 보기(#385) */
+.key-facts__more {
+  justify-self: start;
+  font-size: var(--font-size-sm);
 }
 
 .key-facts__title {
@@ -386,6 +478,22 @@
 
 .disclosure-timeline__days {
   gap: var(--space-4);
+  container-type: inline-size;
+}
+
+/* 넓으면 접수일을 왼쪽 칸에 두고 그날 공시를 오른쪽에 둬, 날짜마다 한 줄씩 쓰던 높이를 줄인다(#385) */
+@container (min-width: 600px) {
+  .disclosure-timeline__day {
+    display: grid;
+    grid-template-columns: 7.5em minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-3);
+  }
+
+  .disclosure-timeline__date {
+    margin: 0;
+    line-height: var(--line-height-body);
+  }
 }
 
 .disclosure-timeline__items {
@@ -655,4 +763,10 @@
   margin: 0;
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
+}
+
+/* 'AI에게 묻기'의 이전 질문 펼치기(#385) */
+.company-ask__older {
+  align-self: flex-start;
+  font-size: var(--font-size-sm);
 }

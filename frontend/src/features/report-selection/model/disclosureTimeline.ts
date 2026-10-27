@@ -1,7 +1,7 @@
 import type { DisclosureGroup, DisclosureGroupCount, DisclosureItem } from '@/shared/api/disclosures'
 
 /** 처음에 보여 주는 공시 수. '더 보기'를 누르면 이만큼 더 보여 준다 */
-export const TIMELINE_PAGE_SIZE = 30
+export const TIMELINE_PAGE_SIZE = 10
 
 /** 공시 타임라인 화면 상태. 묶음을 바꾸면 보여 주는 수를 처음으로 되돌린다(둘이 함께 바뀜, ST-2) */
 export interface TimelineState {
