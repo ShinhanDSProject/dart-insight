@@ -34,6 +34,7 @@
 | `company_disclosure_fetch` | 기업별 최근 공시 목록을 받은 기록(받은 시각·받은 기간) | 1.2 (#332) | M2 |
 | `company_disclosure` | 받아 둔 최근 공시 한 건(공시검색 응답 한 줄) | 1.2 (#332) | M2 |
 | `disclosure_key_item` | 주요사항보고서 한 건의 핵심 수치(OpenDART 주요사항보고서 주요정보) 받은 결과. 접수번호 기준 캐시 | 1.2 (#363, FS-51) | M2 |
+| `disclosure_audit_opinion` | 최근 공시 목록의 사업보고서 한 건의 회계감사인·감사의견(OpenDART 정기보고서 주요정보) 받은 결과. 접수번호 기준 캐시 | 1.2 (#411, FS-55) | M2 |
 | `analysis` | 분석 작업과 상태 | 4.3 (#29), 2.3 (#14) | M1 |
 | `financial_change` | 계정별 비교 결과와 근거 | 2.4 (#15), 4.3 (#29) | M1 |
 | `report_document` | 보고서 원문 구조화 기록(상태·파서 버전·경고) | 4.2 (#28) | M2 |
@@ -133,6 +134,7 @@ erDiagram
     company ||--o| company_disclosure_fetch : "corp_code"
     company ||--o{ company_disclosure : "corp_code"
     company_disclosure ||--o| disclosure_key_item : "rcept_no (외래 키 없음, #363)"
+    company_disclosure ||--o| disclosure_audit_opinion : "rcept_no (외래 키 없음, #411)"
     financial_statement_fetch ||--o{ financial_account : "fetch_id"
     report ||--o| report_key_account_fetch : "rcept_no"
     report ||--o{ report_key_account : "rcept_no"
@@ -319,6 +321,14 @@ erDiagram
         datetime fetched_at
         varchar source_rcept_no "기간 뒤 정정 원본의 최신 정정본(3.6)"
     }
+    disclosure_audit_opinion {
+        bigint id PK
+        varchar rcept_no UK "사업보고서 접수번호"
+        varchar status "OK NO_DATA"
+        varchar source_rcept_no "응답 행의 접수번호(다를 때)"
+        mediumtext rows_json
+        datetime fetched_at
+    }
     report_document {
         bigint id PK
         varchar rcept_no FK "UK"
@@ -496,6 +506,26 @@ API는 사업연도·보고서 코드마다 최신 공시 하나의 값만 줍�
 | `source_rcept_no` | VARCHAR(14) | | 예 | (3.6, #341) 응답 행의 접수번호가 `rcept_no`와 다를 때 그 접수번호(기간 뒤에 정정된 원본을 원본 접수일로 불러 최신 정정본 행을 받은 경우). 같으면 null |
 
 (3.6) 관련 수시공시([ADR-0030](adr/0030-related-disclosure-matching.md))도 이 표를 씁니다. `kind`에 `LITIGATION`(소송 등의 제기, `lwstLg.json`)·`STOCK_ACQUISITION`(타법인 주식 및 출자증권 양수결정, `otcprStkInvscrInhDecsn.json`)을 더합니다. 최근 공시 목록에 없는, 기간 뒤에 정정된 원본(비고 '정')도 저장합니다: 원본 접수일 하루로 불러 그 종류의 행이 하나뿐이면 그 행을 저장하고 행의 접수번호를 `source_rcept_no`에 둡니다. 둘 이상이면 `NO_DATA`입니다. #363 담당자와 합의했습니다.
+
+### disclosure_audit_opinion — 사업보고서의 회계감사인·감사의견(#411, FS-55)
+
+> 마이그레이션: `V36__create_disclosure_audit_opinion.sql`. 캐시 정책은 [ADR-0024](adr/0024-company-info-cache.md)(보고서에 딸린 자료는 접수번호로 한 번만 받음).
+
+확인해 볼 공시(`GET /api/companies/{corpCode}/disclosure-signals`)가 최근 공시 목록의 사업보고서(접수번호)마다 OpenDART '회계감사인의 명칭 및 감사의견'(`accnutAdtorNmNdAdtOpinion.json`, DS002 2020009)을 부른 결과입니다.
+
+- 자료가 있으면(`OK`) 다시 받지 않습니다. 정정 공시는 새 접수번호라 새로 받습니다.
+- `013`(자료 없음)이거나 쓸 행이 없으면(접수번호가 없는 행뿐, 결산기준일이 다른 기간) `NO_DATA`로 저장하고, 받은 지 `app.disclosures.refresh-after`(1시간)가 지나면 한 번 더 받습니다. 호출 실패는 저장하지 않습니다.
+- 행은 몇 개(당기·전기·전전기, 연결·별도로 겹침)라 표로 나누지 않고, backend가 정리한 행 목록(`term`·`auditor`·`opinion`, 원문 값에서 앞뒤 공백만 빼고 `-`·빈 값은 null)을 JSON 한 칸(`rows_json`)에 둡니다. 같은 행은 한 번만 둡니다. 저장·조회는 `DisclosureAuditOpinionStore`(JdbcTemplate)가 합니다.
+- `company_disclosure`는 기업 목록을 다시 받을 때 통째로 지우고 넣으므로 외래 키를 걸지 않습니다. `report`에도 없을 수 있어(보고서 목록을 아직 받지 않은 기업) 외래 키를 걸지 않습니다.
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT | PK | 아니오 | 자동 증가 |
+| `rcept_no` | VARCHAR(14) | UK | 아니오 | 사업보고서 접수번호(최근 공시의 `rcept_no`) |
+| `status` | VARCHAR(10) | | 아니오 | `OK` 자료 있음, `NO_DATA` 자료 없음 |
+| `source_rcept_no` | VARCHAR(14) | | 예 | 응답 행의 접수번호가 `rcept_no`와 다를 때(뒤에 나온 정정본) 그 접수번호. 같으면 null |
+| `rows_json` | MEDIUMTEXT | | 아니오 | 행 목록 JSON 배열. `NO_DATA`면 `[]` |
+| `fetched_at` | DATETIME(6) | | 아니오 | 받은 시각 |
 
 ### financial_account
 
@@ -1070,6 +1100,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `company_disclosure` | `uk_company_disclosure` | `corp_code, rcept_no` | 유니크 | 같은 공시를 두 번 저장하지 않음 |
 | `company_disclosure` | `idx_company_disclosure_date` | `corp_code, rcept_dt` | 인덱스 | 기업별 최근 공시를 접수일 순으로 조회 |
 | `disclosure_key_item` | `uk_disclosure_key_item` | `rcept_no` | 유니크 | 공시마다 결과 하나(같은 호출을 두 번 저장하지 않음) |
+| `disclosure_audit_opinion` | `uk_disclosure_audit_opinion` | `rcept_no` | 유니크 | 사업보고서마다 결과 하나 |
 | `financial_account` | `idx_fin_account_fetch` | `fetch_id, sj_div, ord` | 인덱스 | 재무제표별 계정을 원문 순서로 조회 |
 | `report_key_account_fetch` | `uk_key_account_fetch` | `rcept_no` | 유니크 | 보고서마다 한 번만 받음 |
 | `report_key_account` | `uk_key_account` | `rcept_no, fs_div, account_key` | 유니크 | 보고서·기준·계정마다 값 하나 |
