@@ -1,9 +1,11 @@
 package com.dartinsight.company.repository;
 
 import com.dartinsight.company.domain.Company;
+import com.dartinsight.company.domain.CompanyNameKey;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -47,4 +49,21 @@ public interface CompanyRepository extends JpaRepository<Company, Long> {
             Pageable pageable);
 
     List<Company> findByStockCode(String stockCode);
+
+    /**
+     * 회사명 일부(공백 무시)나 회사명 초성으로 최대 limit건 찾는다. 공백을 뺀 검색어가 한글 자음만이면 초성으로 찾는다
+     * (docs/api-spec.md). LIKE의 %·_·!는 '!'로 이스케이프한다.
+     */
+    default List<Company> searchByName(String query, int limit) {
+        String key = CompanyNameKey.key(query);
+        String pattern = "%" + escapeLike(key) + "%";
+        PageRequest page = PageRequest.of(0, limit);
+        return CompanyNameKey.isChosungQuery(query)
+                ? searchByChosung(pattern, key, page)
+                : searchByNameKey(pattern, key, page);
+    }
+
+    private static String escapeLike(String text) {
+        return text.replace("!", "!!").replace("%", "!%").replace("_", "!_");
+    }
 }

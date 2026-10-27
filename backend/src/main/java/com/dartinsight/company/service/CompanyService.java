@@ -3,13 +3,11 @@ package com.dartinsight.company.service;
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.company.domain.Company;
-import com.dartinsight.company.domain.CompanyNameKey;
 import com.dartinsight.company.repository.CompanyRepository;
 import java.util.Collection;
 import java.util.List;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,18 +31,9 @@ public class CompanyService {
             throw ApiException.invalidInput("query", MIN_QUERY_LENGTH + "자 이상 입력해 주세요.");
         }
 
-        List<Company> result;
-        if (STOCK_CODE.matcher(q).matches()) {
-            result = companyRepository.findByStockCode(q);
-        } else {
-            // 공백을 뺀 검색어로 찾는다. 한글 자음만이면 초성으로 찾는다(docs/api-spec.md)
-            String key = CompanyNameKey.key(q);
-            String pattern = "%" + escapeLike(key) + "%";
-            PageRequest page = PageRequest.of(0, limit);
-            result = CompanyNameKey.isChosungQuery(q)
-                    ? companyRepository.searchByChosung(pattern, key, page)
-                    : companyRepository.searchByNameKey(pattern, key, page);
-        }
+        List<Company> result = STOCK_CODE.matcher(q).matches()
+                ? companyRepository.findByStockCode(q)
+                : companyRepository.searchByName(q, limit);
 
         if (result.isEmpty() && companyRepository.count() == 0) {
             throw new ApiException(ErrorCode.COMPANY_LIST_NOT_LOADED);
@@ -65,9 +54,5 @@ public class CompanyService {
     /** 종목코드 여러 개로 한 번에 찾는다. 없는 종목코드는 결과에서 빠진다. */
     public List<Company> findByStockCodes(Collection<String> stockCodes) {
         return stockCodes.isEmpty() ? List.of() : companyRepository.findByStockCodeIn(stockCodes);
-    }
-
-    static String escapeLike(String text) {
-        return text.replace("!", "!!").replace("%", "!%").replace("_", "!_");
     }
 }
