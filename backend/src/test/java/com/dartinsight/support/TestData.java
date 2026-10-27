@@ -37,6 +37,7 @@ public final class TestData {
             "disclosure_window_item",
             "disclosure_window_fetch",
             "disclosure_key_item",
+            "disclosure_audit_opinion",
             "company_disclosure",
             "company_disclosure_fetch",
             "favorite_company",

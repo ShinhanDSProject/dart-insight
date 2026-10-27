@@ -15,6 +15,7 @@ public final class OpenDartPaths {
     public static final String MAJOR_SHAREHOLDERS = "/api/hyslrSttus.json";
     public static final String EXECUTIVES = "/api/exctvSttus.json";
     public static final String DIVIDENDS = "/api/alotMatter.json";
+    public static final String AUDIT_OPINIONS = "/api/accnutAdtorNmNdAdtOpinion.json";
     // 주요사항보고서 주요정보(DS005)
     public static final String CAPITAL_INCREASE_DECISION = "/api/piicDecsn.json";
     public static final String CONVERTIBLE_BOND_DECISION = "/api/cvbdIsDecsn.json";
