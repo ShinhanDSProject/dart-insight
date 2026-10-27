@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * AI 서버 요약 요청(POST /internal/summaries). 사용자 정보는 넣지 않는다.
  *
- * @param documentBlocks 현재 보고서의 문단 블록 전부. AI 서버가 여기서 재무 설명 후보를 찾는다(ADR-0032)
+ * @param documentBlocks 현재 보고서의 문단 블록 전부. AI 서버가 여기서 재무 설명 후보를 찾는다(ADR-0036)
  */
 public record SummaryAiRequest(String companyName, String previousReport, String currentReport,
         List<TextItem> textItems, List<FinancialItem> financialItems, List<Source> documentBlocks) {

@@ -47,7 +47,7 @@ class FinancialItem:
     ref: str
     account_name: str
     direction: str | None
-    # 보고서 문단에서 검색으로 고른 설명 후보(ADR-0032, search.Index.candidates)
+    # 보고서 문단에서 검색으로 고른 설명 후보(ADR-0036, search.Index.candidates)
     candidates: list[Source]
     # 설명 후보를 찾을 검색어(backend가 만듦, ADR-0015). 후보 검색과 인용 확인(#142)에 쓴다
     account_aliases: list[str] = field(default_factory=list)

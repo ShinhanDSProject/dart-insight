@@ -45,7 +45,7 @@ class SummaryRequest(_Model):
     current_report: str
     text_items: list[TextItemModel] = []
     financial_items: list[FinancialItemModel] = []
-    # 현재 보고서의 문단 블록 전부. 재무 설명 후보는 여기서 찾는다(ADR-0032)
+    # 현재 보고서의 문단 블록 전부. 재무 설명 후보는 여기서 찾는다(ADR-0036)
     document_blocks: list[SourceModel] = []
 
     def to_input(self) -> SummaryInput:
