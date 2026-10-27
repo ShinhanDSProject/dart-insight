@@ -25,7 +25,7 @@ BODY = {
             ],
         }
     ],
-    "financialItems": [{"ref": "F1", "accountName": "매출액", "direction": "UP", "candidates": []}],
+    "financialItems": [{"ref": "F1", "accountName": "매출액", "direction": "UP"}],
 }
 
 
@@ -65,6 +65,61 @@ def test_summary_items_and_call_records_are_returned() -> None:
     assert call["task"] == "summary"
     assert call["traceId"] == "sum-1"
     assert call["promptVersion"] == "summary-3"
+
+
+def test_financial_candidates_are_searched_in_the_document_blocks() -> None:
+    client = app_with(FakeProvider(responders={"summary": fake.respond}))
+    mdna = "IV. 이사의 경영진단 및 분석의견 > 2. 영업실적"
+    body = {
+        **BODY,
+        "textItems": [],
+        "financialItems": [
+            {"ref": "F1", "accountName": "매출액", "accountAliases": ["매출액"]},
+            {"ref": "F2", "accountName": "자산총계", "accountAliases": ["자산총계"]},
+        ],
+        "documentBlocks": [
+            {
+                "evidenceId": f"{CUR}#B5",
+                "sectionPath": "II. 사업의 내용",
+                "text": "(3) 판매경로별 매출액 비중",
+            },
+            {
+                "evidenceId": f"{CUR}#B9",
+                "sectionPath": mdna,
+                "text": "매출액은 메모리 수요 회복으로 전년 대비 증가하였습니다.",
+            },
+        ],
+    }
+
+    data = client.post("/internal/summaries", json=body).json()
+
+    revenue, assets = data["items"]
+    assert revenue["grade"] == "STATED"
+    assert revenue["quoteEvidenceId"] == f"{CUR}#B9"  # 짧은 제목 줄(B5)은 후보가 아니다
+    assert revenue["evidenceIds"] == [f"{CUR}#B9"]
+    assert assets["grade"] == "NONE" and assets["explanation"] is None
+
+
+def test_no_candidate_anywhere_does_not_call_the_llm() -> None:
+    body = {
+        **BODY,
+        "textItems": [],
+        "financialItems": [{"ref": "F1", "accountName": "매출액", "accountAliases": ["매출액"]}],
+        "documentBlocks": [
+            {
+                "evidenceId": f"{CUR}#B1",
+                "sectionPath": "II. 사업의 내용",
+                "text": "당사는 메모리 반도체를 만들어 판매합니다.",
+            }
+        ],
+    }
+
+    data = app_with(FakeProvider(responders={"summary": fake.respond})).post(
+        "/internal/summaries", json=body
+    ).json()
+
+    assert data["items"][0]["grade"] == "NONE"
+    assert data["calls"] == []
 
 
 def test_no_llm_is_503() -> None:
