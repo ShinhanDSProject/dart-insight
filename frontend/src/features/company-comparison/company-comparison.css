@@ -32,9 +32,34 @@
 }
 
 .company-picker__search {
+  position: relative;
   display: grid;
   gap: var(--space-2);
   max-width: 480px;
+}
+
+/* 검색 결과는 입력칸 아래에 떠서 보인다(#424). 열리고 닫혀도 아래 내용이 밀리지 않는다 */
+.company-picker__popover {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  left: 0;
+  z-index: 5;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-md);
+}
+
+.company-picker__popover[hidden] {
+  display: none;
+}
+
+.company-picker__popover .company-picker__results {
+  border: none;
 }
 
 .company-picker__message {
@@ -93,9 +118,46 @@
   gap: var(--space-2) var(--space-3);
 }
 
+/* 열은 항목 1 + 기업 4칸으로 늘 같은 폭이다(#424). 기업을 더하고 빼거나 보고서 종류를 바꿔도 열이 움직이지 않는다 */
+.company-compare__table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.company-compare__col-label {
+  width: 20%;
+}
+
+.company-compare__col-company {
+  width: 20%;
+}
+
+/* 머리글 높이를 정해 두어, 불러오는 중(이름만)과 다 받은 뒤(보고서·기간·접수번호)의 높이가 같다 */
 .company-compare__head {
+  height: 6.5rem;
   vertical-align: top;
-  min-width: 160px;
+  overflow-wrap: anywhere;
+}
+
+.company-compare__head--empty,
+.company-compare__empty {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+  background: var(--color-bg-subtle);
+}
+
+/* 안내·기간 다름 경고 자리. 늘 두 줄 높이를 잡아 문구가 바뀌어도 표가 밀리지 않는다 */
+.company-compare__status {
+  min-height: calc(2em * var(--line-height-body));
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.company-compare__status--attention {
+  color: var(--color-attention);
+  font-weight: var(--font-weight-medium);
 }
 
 .company-compare__name,

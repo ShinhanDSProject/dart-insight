@@ -128,10 +128,12 @@ async function search(text: string) {
 }
 
 describe('여러 기업 나란히 보기', () => {
-  it('2곳보다 적으면 표 대신 고르는 방법을 안내한다', async () => {
+  it('2곳보다 적으면 고르는 방법을 같은 자리에 안내하고, 표 틀(4칸)은 그대로 둔다', async () => {
     renderAt('?corps=00126380')
-    expect(screen.getByText('비교할 기업을 2곳 이상 골라 주세요.')).toBeTruthy()
-    expect(screen.queryByRole('table')).toBeNull()
+    expect(screen.getByText(/비교할 기업을 2곳 이상 골라 주세요/)).toBeTruthy()
+    const table = screen.getByRole('table')
+    expect(within(table).getAllByRole('columnheader')).toHaveLength(5)
+    expect(within(table).getAllByText('기업을 더해 주세요')).toHaveLength(3)
     expect(await screen.findByRole('button', { name: '삼성전자 빼기' })).toBeTruthy()
   })
 
@@ -140,10 +142,13 @@ describe('여러 기업 나란히 보기', () => {
     const table = await screen.findByRole('table')
     await within(table).findByText('삼성전자')
     const headers = within(table).getAllByRole('columnheader')
+    // 고르지 않은 자리도 빈 열로 남겨, 기업 수가 바뀌어도 열 폭이 그대로다(#424)
     expect(headers.map((h) => h.querySelector('.company-compare__name')?.textContent ?? h.textContent)).toEqual([
       '항목',
       'SK하이닉스',
       '삼성전자',
+      '기업을 더해 주세요',
+      '기업을 더해 주세요',
     ])
     expect(within(headers[2]).getByText('사업보고서 (2025.12)')).toBeTruthy()
     expect(within(headers[2]).getByText('2025 사업연도 (2025.01.01 ~ 2025.12.31)')).toBeTruthy()
@@ -163,7 +168,7 @@ describe('여러 기업 나란히 보기', () => {
 
     expect(api.getFinancialTrends).toHaveBeenCalledWith('00164779', 'CFS', expect.any(AbortSignal))
     expect(api.getFinancialTrends).toHaveBeenCalledWith('00126380', 'CFS', expect.any(AbortSignal))
-    expect(screen.queryByText('대상 기간이 달라요 · 기업마다 표시한 기간을 확인해 주세요')).toBeNull()
+    expect(screen.queryByText(/대상 기간이 달라요/)).toBeNull()
     expect(await axeViolations(container)).toBe('')
   })
 
@@ -179,7 +184,7 @@ describe('여러 기업 나란히 보기', () => {
   it('대상 기간이 다르면 기간이 다르다고 알리고 열마다 기간을 그대로 보여 준다', async () => {
     trends['00164779'] = () => Promise.resolve(annualTrend('00164779', '2026-03-31', '20260620000001'))
     renderAt('?corps=00126380,00164779')
-    expect(await screen.findByText('대상 기간이 달라요 · 기업마다 표시한 기간을 확인해 주세요')).toBeTruthy()
+    expect(await screen.findByText(/대상 기간이 달라요 · 기업마다 표시한 기간을 확인해 주세요/)).toBeTruthy()
     expect(screen.getByText('2025 사업연도 (2025.01.01 ~ 2025.12.31)')).toBeTruthy()
     expect(screen.getByText('2026 사업연도 (2026.01.01 ~ 2026.03.31)')).toBeTruthy()
   })
@@ -227,7 +232,7 @@ describe('여러 기업 나란히 보기', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '삼성전자 빼기' }))
     expect(location()).toBe('?corps=00164779')
-    expect(screen.queryByRole('table')).toBeNull()
+    expect(screen.getByText(/비교할 기업을 2곳 이상 골라 주세요/)).toBeTruthy()
   })
 
   it('4곳이 차 있으면 5번째는 더하지 않고 안내한다', async () => {
@@ -249,8 +254,28 @@ describe('여러 기업 나란히 보기', () => {
     await screen.findAllByText('300조원')
     expect(screen.getByRole('button', { name: '별도' }).getAttribute('aria-pressed')).toBe('true')
     const names = screen.getAllByRole('columnheader').map((h) => h.querySelector('.company-compare__name')?.textContent)
-    expect(names.slice(1)).toEqual(['SK하이닉스', '삼성전자'])
+    expect(names.slice(1, 3)).toEqual(['SK하이닉스', '삼성전자'])
     expect(api.getFinancialTrends).toHaveBeenCalledWith('00164779', 'OFS', expect.any(AbortSignal))
+  })
+
+  it('검색 결과는 입력칸 아래에 떠서 보이고, 더하면 입력을 비우고 닫는다(#424)', async () => {
+    renderAt('')
+    await search('삼성')
+    const add = await screen.findByRole('button', { name: '삼성전자 더하기' })
+    const popover = add.closest('.company-picker__popover') as HTMLElement
+    expect(popover).not.toBeNull()
+    expect(popover.hidden).toBe(false)
+    fireEvent.click(add)
+    expect((screen.getByRole('searchbox') as HTMLInputElement).value).toBe('')
+    expect(popover.hidden).toBe(true)
+  })
+
+  it('검색 결과는 Esc를 누르면 닫는다', async () => {
+    renderAt('')
+    await search('삼성')
+    const add = await screen.findByRole('button', { name: '삼성전자 더하기' })
+    fireEvent.keyDown(screen.getByRole('searchbox'), { key: 'Escape' })
+    expect((add.closest('.company-picker__popover') as HTMLElement).hidden).toBe(true)
   })
 
   it('로그인했으면 관심 기업을 바로 고를 수 있다', async () => {
