@@ -201,3 +201,32 @@ describe('TextTab 문단 줄이기(#390)', () => {
     expect(cards[0].querySelector('.change-card__expand')).toBeNull()
   })
 })
+
+describe('TextTab 종류 안내(#393)', () => {
+  it('삭제 안내 문장은 목록에서 첫 삭제 카드에만 보인다', () => {
+    list.items = [
+      { ...item(1, '1. 사업의 개요'), changeType: 'DELETED', currentPreview: null },
+      { ...item(2, '2. 주요 제품'), changeType: 'DELETED', currentPreview: null },
+    ]
+    render(
+      <main>
+        <TextTab
+          analysis={analysis}
+          type={null}
+          sort="priority"
+          section={null}
+          q={null}
+          pinned={false}
+          selectedChangeId={null}
+          onChange={vi.fn()}
+          onOpenSource={() => {}}
+          onAsk={() => {}}
+          asking={false}
+        />
+      </main>,
+    )
+    const cards = screen.getAllByRole('article')
+    expect(cards[0].textContent).toContain('문서에서 빠졌다는 뜻이에요')
+    expect(cards[1].textContent).not.toContain('문서에서 빠졌다는 뜻이에요')
+  })
+})

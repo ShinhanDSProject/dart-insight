@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  firstNotedIds,
   changeTypeHelp,
   changeTypeHelpItems,
   changeTypeLabel,
@@ -120,5 +121,23 @@ describe('내용 변경 칩(#304)', () => {
     expect(countFor(counts, 'CONTENT')).toBe(6)
     expect(typeFilterLabel('CONTENT')).toBe('내용 변경')
     expect(typeFilterLabel('MOVED')).toBe('위치 이동')
+  })
+})
+
+describe('firstNotedIds(#393)', () => {
+  it('삭제·위치 이동 안내는 목록에서 그 종류의 첫 카드에만 붙인다', () => {
+    const items = [
+      { changeId: 1, changeType: 'MODIFIED' as const },
+      { changeId: 2, changeType: 'DELETED' as const },
+      { changeId: 3, changeType: 'DELETED' as const },
+      { changeId: 4, changeType: 'MOVED' as const },
+      { changeId: 5, changeType: 'MOVED' as const },
+    ]
+    expect([...firstNotedIds(items)].sort()).toEqual([2, 4])
+  })
+
+  it('삭제·위치 이동 카드가 없으면 안내를 붙이지 않는다', () => {
+    expect(firstNotedIds([{ changeId: 1, changeType: 'ADDED' }]).size).toBe(0)
+    expect(firstNotedIds([]).size).toBe(0)
   })
 })
