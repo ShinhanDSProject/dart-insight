@@ -43,7 +43,7 @@ def test_summary_items_and_call_records_are_returned() -> None:
     data = response.json()
     assert data["promptVersion"] == "summary-3"
     assert data["expressionRulesVersion"] == "expr-1"
-    assert data["gradeRulesVersion"] == "grade-1"
+    assert data["gradeRulesVersion"] == "grade-2"
     assert data["model"] == "fake-model"
     t1, f1 = data["items"]
     assert t1 == {

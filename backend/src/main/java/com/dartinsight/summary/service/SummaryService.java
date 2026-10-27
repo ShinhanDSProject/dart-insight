@@ -235,11 +235,12 @@ public class SummaryService {
                 SummaryItemRow.NONE, null, null);
     }
 
-    /** 설명의 등급이 STATED·RELATED이고, 인용문이 있으며 인용 위치가 그 항목에 보낸 후보인지 */
+    /** 설명의 등급이 STATED·RELATED이고, 인용문이 있으며 인용 위치가 그 항목에 보낸 후보이자 설명의 근거인지 */
     private static boolean quoted(SummaryAiResponse.Item item, Set<String> allowed) {
         return (SummaryItemRow.STATED.equals(item.grade()) || SummaryItemRow.RELATED.equals(item.grade()))
                 && item.quote() != null && !item.quote().isBlank()
-                && item.quoteEvidenceId() != null && allowed.contains(item.quoteEvidenceId());
+                && item.quoteEvidenceId() != null && allowed.contains(item.quoteEvidenceId())
+                && item.evidenceIds().contains(item.quoteEvidenceId());
     }
 
     /** 투자 권유성 표현 검사(5.5)에 걸린 규칙. 없으면 빈 목록 */
