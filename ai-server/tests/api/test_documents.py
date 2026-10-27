@@ -2,7 +2,7 @@ from fastapi.testclient import TestClient
 
 from app.documents.parser import PARSER_VERSION
 from app.main import create_app
-from tests.documents.test_document_parser import RCEPT, SAMPLE, make_zip
+from tests.documents.test_parser import RCEPT, SAMPLE, make_zip
 
 client = TestClient(create_app())
 
