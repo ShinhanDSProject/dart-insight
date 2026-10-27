@@ -107,13 +107,16 @@ erDiagram
         bigint id PK
         bigint user_id FK
         varchar corp_code FK
-        varchar kind "FINANCIAL_CHANGE TEXT_CHANGE"
+        varchar kind "FINANCIAL_CHANGE TEXT_CHANGE ANSWER_CITATION"
         bigint analysis_id "참조(외래 키 없음)"
         varchar analysis_version
         bigint change_id
+        bigint question_id "참조(외래 키 없음)"
         varchar rcept_no
+        varchar doc_side
         varchar snapshot_label
         varchar snapshot_text
+        varchar snapshot_question
         varchar memo
     }
     watched_report {
@@ -1088,23 +1091,26 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 
 ### judgment_note_item — 판단 노트 항목(#413, FS-57)
 
-> 마이그레이션: `V35__create_judgment_note.sql`. 로그인한 회원만 쓴다. 담을 때 보인 이름·값·문장을 사본으로 두고, 원래 위치는 참조로 함께 둔다([ADR-0034](adr/0034-judgment-note-storage.md)). 사본은 backend가 저장된 분석 결과로 만들고, 분석이 다시 만들어져도 고치지 않는다. 기업 노트는 `(user_id, corp_code)`로 묶어 보인다(따로 행 없음). 노트 내용은 LLM에 보내지 않는다.
+> 마이그레이션: `V35__create_judgment_note.sql`, AI 답 인용 열은 `V38__add_judgment_note_answer_citation.sql`(#432). 로그인한 회원만 쓴다. 담을 때 보인 이름·값·문장을 사본으로 두고, 원래 위치는 참조로 함께 둔다([ADR-0034](adr/0034-judgment-note-storage.md)). 사본은 backend가 저장된 분석 결과로 만들고, 분석이 다시 만들어져도 고치지 않는다. 기업 노트는 `(user_id, corp_code)`로 묶어 보인다(따로 행 없음). 노트 내용은 LLM에 보내지 않는다.
 
 | 컬럼 | 타입 | 키 | null | 설명 |
 | --- | --- | --- | --- | --- |
 | `id` | BIGINT AUTO_INCREMENT | PK | 아니오 | 항목 ID(API `itemId`) |
 | `user_id` | BIGINT | FK, INDEX | 아니오 | `app_user.id` |
 | `corp_code` | VARCHAR(8) | FK, INDEX | 아니오 | `company.corp_code`. 분석의 기업 |
-| `kind` | VARCHAR(20) | | 아니오 | `FINANCIAL_CHANGE` 재무 계정 변화, `TEXT_CHANGE` 문장·표 변경 |
+| `kind` | VARCHAR(20) | | 아니오 | `FINANCIAL_CHANGE` 재무 계정 변화, `TEXT_CHANGE` 문장·표 변경, `ANSWER_CITATION` AI 질문 답이 인용한 원문 문단(#432) |
 | `analysis_id` | BIGINT | | 예 | 담은 근거의 분석(`analysis.id`). 참조라 외래 키를 두지 않는다(분석 행이 정리돼도 사본은 남김). 지금 종류는 모두 값이 있고, 분석에 속하지 않는 근거(AI 답 인용 등)를 더할 때를 위해 null을 허용 |
 | `analysis_version` | VARCHAR(20) | | 예 | 담을 때 분석의 `analysis_version`. 지금 서버 버전과 다르면 API `outdated: true` |
-| `change_id` | BIGINT | | 예 | `financial_change.id` 또는 `text_change.id`(종류에 따라). 참조라 외래 키 없음 |
+| `change_id` | BIGINT | | 예 | `financial_change.id` 또는 `text_change.id`(종류에 따라). 참조라 외래 키 없음. AI 답 인용은 null |
+| `question_id` | BIGINT | | 예 | AI 답 인용만. `analysis_question.id`. 참조라 외래 키 없음 |
 | `sj_div` | VARCHAR(5) | | 예 | 재무제표 종류. 재무만 |
-| `rcept_no` | VARCHAR(14) | | 예 | 근거 보고서 접수번호. 재무는 현재 보고서, 문장은 현재 쪽(삭제면 이전 쪽) |
-| `section_no`, `block_no` | INT | | 예 | 근거 원문 섹션·블록 번호. 문장만(검토 필요는 `block_no` null) |
+| `rcept_no` | VARCHAR(14) | | 예 | 근거 보고서 접수번호. 재무는 현재 보고서, 문장은 현재 쪽(삭제면 이전 쪽), AI 답 인용은 인용한 보고서 |
+| `doc_side` | VARCHAR(10) | | 예 | AI 답 인용만. `current`·`previous`(근거 보고서가 분석의 어느 쪽인지). 원문 확인 탭으로 돌아갈 때 쓴다 |
+| `section_no`, `block_no` | INT | | 예 | 근거 원문 섹션·블록 번호. 문장·AI 답 인용만(검토 필요는 `block_no` null) |
 | `change_type` | VARCHAR(20) | | 예 | 문장 변경 유형(`text_change.change_type`). 재무는 null |
-| `snapshot_label` | VARCHAR(1000) | | 아니오 | 담을 때의 이름. 재무 `재무제표 · 계정명`, 문장 섹션 경로 |
-| `snapshot_text` | VARCHAR(4000) | | 아니오 | 담을 때의 값·문장. 재무는 코드가 만든 `이전 → 현재, 증감액(증감률)` 문장, 문장은 원문 글. 4,000자를 넘으면 줄여 `…`을 붙임 |
+| `snapshot_label` | VARCHAR(1000) | | 아니오 | 담을 때의 이름. 재무 `재무제표 · 계정명`, 문장·AI 답 인용 섹션 경로 |
+| `snapshot_text` | VARCHAR(4000) | | 아니오 | 담을 때의 값·문장. 재무는 코드가 만든 `이전 → 현재, 증감액(증감률)` 문장, 문장·AI 답 인용은 원문 글(AI 답 인용은 저장된 원문의 그 문단). 4,000자를 넘으면 줄여 `…`을 붙임 |
+| `snapshot_question` | VARCHAR(400) | | 예 | AI 답 인용만. 담을 때의 질문 글(`analysis_question.question`) |
 | `memo` | VARCHAR(1000) | | 예 | 사용자 메모. 없으면 null |
 | `created_at` | DATETIME(6) | | 아니오 | 담은 시각. 목록은 이 값의 최근 순 |
 | `updated_at` | DATETIME(6) | | 아니오 | 메모를 고친 시각(처음엔 담은 시각) |
