@@ -7,7 +7,7 @@ import { formatCount } from './overview'
  */
 
 /** 펼쳐 보이는 최근 답 수 */
-export const RECENT_ANSWER_COUNT = 3
+export const RECENT_ANSWER_COUNT = 1
 /** 이전 질문이 이만큼 이상이면 질문 찾기 입력을 둔다 */
 export const PAST_SEARCH_MIN_COUNT = 6
 

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { match, P } from 'ts-pattern'
 import { analysisPath, requestAnalysis, type Analysis } from '@/shared/api/analyses'
@@ -10,27 +11,32 @@ import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState } from '@/shared/ui/StateView'
 
 /**
- * 결과 화면 위쪽의 비교 맥락 카드(FS-4 R5). 회사, 이전 → 현재 보고서, 비교 기준, 수치 기준, 원문 링크를 한 카드에 두고
- * 보고서별 상세(종류·대상 기간·제출일·정정 여부·원문)는 '보고서 자세히'에 접어 둔다.
+ * 결과 화면 위쪽의 비교 맥락 카드(FS-4 R5). 회사와 이전 → 현재 보고서(원문 링크)를 한 줄, 비교 기준과 수치 기준을 한 줄에 두고,
+ * 접수번호·보고서별 상세(종류·대상 기간·제출일·정정 여부)와 분석 한계는 '비교 조건·보고서 자세히'에 접어 둔다(#390).
+ * 모든 탭 위에 놓이므로 높이를 줄여 본문이 위에서 시작하게 한다.
  */
 export function ComparisonContextCard({ analysis }: { analysis: Analysis }) {
+  const fsDivLabel = analysis.fsDiv === 'OFS' ? '별도' : '연결'
   return (
     <Card as="section" className="context-card" aria-label="비교 맥락">
-      <p className="context-card__corp">{analysis.corpName}</p>
-      <div className="context-card__pair">
-        <ReportName role="이전 보고서" report={analysis.previous} withTerms />
+      <p className="context-card__pair">
+        <span className="context-card__corp">{analysis.corpName}</span>
+        <ReportName role="이전 보고서" report={analysis.previous} />
         <span className="context-card__arrow" aria-hidden="true">
           →
         </span>
         <ReportName role="현재 보고서" report={analysis.current} />
-      </div>
-      <BasisSwitcher analysis={analysis} />
-      <p className="context-card__note">
-        수치 기준: <Term name="fsDiv">{analysis.fsDiv === 'OFS' ? '별도' : '연결'}</Term> 재무제표 · 금액은 보고서 통화 기준이고, 단위는 재무 수치
-        변화에서 바꿀 수 있어요 · 분석 한계: 비교할 수치가 없는 항목은 계산하지 않아요.
       </p>
+      <BasisSwitcher analysis={analysis}>
+        <span className="context-card__fs">
+          수치 기준: <Term name="fsDiv">{fsDivLabel}</Term> 재무제표
+        </span>
+      </BasisSwitcher>
       <details className="context-card__details">
-        <summary>보고서 자세히</summary>
+        <summary>비교 조건·보고서 자세히</summary>
+        <p className="context-card__note">
+          금액은 보고서 통화 기준이고, 단위는 재무 수치 변화에서 바꿀 수 있어요 · 분석 한계: 비교할 수치가 없는 항목은 계산하지 않아요.
+        </p>
         <div className="context-card__facts">
           <ReportFacts role="이전 보고서" report={analysis.previous} withTerms />
           <ReportFacts role="현재 보고서" report={analysis.current} />
@@ -40,17 +46,16 @@ export function ComparisonContextCard({ analysis }: { analysis: Analysis }) {
   )
 }
 
-/** withTerms: 한 화면에 같은 용어 풀이를 한 번만 붙이려고, 처음 나오는(이전 보고서) 쪽에만 켠다 */
-function ReportName({ role, report, withTerms = false }: { role: string; report: ReportItem; withTerms?: boolean }) {
+/** 보고서 이름과 원문 링크 한 덩어리. 역할(이전·현재)은 화살표와 함께 읽히도록 숨김 글로 둔다 */
+function ReportName({ role, report }: { role: string; report: ReportItem }) {
   return (
-    <p className="context-card__report">
-      <span className="context-card__role">{role}</span>
-      <span className="context-card__name">{report.reportName}</span>
+    <span className="context-card__report">
+      <span className="visually-hidden">{role}: </span>
+      <span className="context-card__name">{report.reportName}</span>{' '}
       <span className="context-card__meta">
-        {withTerms ? <Term name="rceptNo">접수번호</Term> : '접수번호'} {report.rceptNo} · 원문{' '}
         <DartLinkInline rceptNo={report.rceptNo} dartUrl={report.dartUrl} label={`${role} ${report.reportName}`} />
       </span>
-    </p>
+    </span>
   )
 }
 
@@ -59,6 +64,10 @@ function ReportFacts({ role, report, withTerms = false }: { role: string; report
     <section className="context-card__fact-group" aria-label={`${role} 상세`}>
       <p className="context-card__role">{role}</p>
       <dl className="context-card__fact-list">
+        <div>
+          <dt>{withTerms ? <Term name="rceptNo">접수번호</Term> : '접수번호'}</dt>
+          <dd>{report.rceptNo}</dd>
+        </div>
         <div>
           <dt>종류</dt>
           <dd>{reportTypeLabel(report.reportType)}</dd>
@@ -87,7 +96,7 @@ function ReportFacts({ role, report, withTerms = false }: { role: string; report
 }
 
 /** 비교 기준 전환. 현재 보고서는 그대로 두고 비교 보고서만 바꿔 새 분석을 연다. */
-function BasisSwitcher({ analysis }: { analysis: Analysis }) {
+function BasisSwitcher({ analysis, children }: { analysis: Analysis; children?: ReactNode }) {
   const navigate = useNavigate()
   // 새 분석으로 옮겨 가면 null, 비교 기준에 맞는 이전 보고서가 없으면 그 안내 문장으로 끝난다
   const request = useAsyncAction<string | null>()
@@ -132,6 +141,7 @@ function BasisSwitcher({ analysis }: { analysis: Analysis }) {
           disabled={busy}
           onChange={switchTo}
         />
+        {children}
         <FieldHint>{busy ? '새 비교를 준비하는 중…' : '바꾸면 요약·수치·문장·근거가 같은 보고서 쌍으로 함께 바뀌어요.'}</FieldHint>
       </div>
       {match(request.state)
