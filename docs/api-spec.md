@@ -96,6 +96,7 @@
 | GET | `/api/companies/{corpCode}/disclosures/{rceptNo}/key-items` | 주요사항보고서 한 건의 핵심 수치(원문 값 그대로) | #363 (1.2, FS-51) | 기업 개요 탭 최근 공시 | 초안 |
 | GET | `/api/companies/{corpCode}/disclosure-signals` | 최근 1년 확인해 볼 공시(종류별 건수·사실 문장·원문 링크) | #411 (1.2, FS-55) | 기업 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/briefing` | AI 기업 브리핑(저장된 것 또는 새로 만듦) | #333 (1.2) | 기업 화면 개요 탭 | 초안 |
+| GET | `/api/companies/{corpCode}/outlook` | 회사가 밝힌 전망·계획(최신 사업보고서, 저장된 것 또는 새로 만듦) | #465 (1.9, FS-59) | 기업 화면 개요 탭 | 초안 |
 | POST | `/api/companies/{corpCode}/questions` | 최신 사업보고서에 근거해 묻기(AI) | #365 (1.2) | 기업 화면 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/questions` | 최신 사업보고서에 한 질문·답 기록 | #365 (1.2) | 기업 화면 개요 탭 | 초안 |
 | POST | `/api/comparability-checks` | 비교 가능성 검증 | #13 (2.2) | W-01 ③ | 초안 |
@@ -1193,6 +1194,59 @@
 | 503 | `DART_RATE_LIMITED`, `DART_KEY_MISSING` | OpenDART 호출 한도 초과, 키 없음 |
 | 503 | `AI_SERVER_UNAVAILABLE` | AI 서버 또는 LLM을 쓸 수 없음(저장하지 않음. 다시 요청하면 다시 만듦) |
 
+### GET /api/companies/{corpCode}/outlook — 회사가 밝힌 전망·계획
+
+- 이슈: #465 (1.9) · 기획서 FS-59 · 화면: 기업 화면 개요 탭 '회사가 밝힌 전망·계획' · [ADR-0039](adr/0039-company-outlook.md)
+- 원문 보고서는 이 기업 정기보고서 목록(위 `GET …/reports`와 같은 캐시 규칙)에서 대상 기간이 가장 최근인 **사업보고서**입니다. 사업보고서가 없으면 반기·분기보고서로 대신하지 않고 `NOT_AVAILABLE`(`NO_REPORT`)입니다.
+- 그 보고서·현재 프롬프트 버전으로 저장된 결과가 있으면 그대로 돌려줍니다. 없으면 이 요청 안에서 만들어 저장한 뒤 돌려줍니다(동기 호출, 처음엔 수 초~수십 초).
+- 근거는 원문 '이사의 경영진단 및 분석의견' 전체와 'II. 사업의 내용' 아래 생산설비·시설투자·신규사업·연구개발·기타 참고사항 목차의 문단 중 계획·전망 낱말이 든 문단을 먼저 고른 최대 12개입니다(목차·낱말은 ADR-0039). 항목마다 그중 한 문단의 글을 그대로 인용합니다.
+- 서비스는 계획을 평가하거나 예측하지 않습니다. 회사가 공시한 문장의 요지와 인용만 돌려줍니다. 사용자 정보는 쓰지 않습니다.
+
+**요청**
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| path | `corpCode` | string | 예 | 고유번호 |
+
+**응답 200**
+
+```json
+{
+  "corpCode": "00126380",
+  "status": "GENERATED",
+  "reason": null,
+  "message": null,
+  "report": { "rceptNo": "20260310000123", "reportName": "사업보고서 (2025.12)", "reportType": "ANNUAL",
+    "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260310000123" },
+  "items": [
+    { "no": 1, "category": "INVESTMENT", "categoryLabel": "투자·설비",
+      "summary": "평택 신규 라인 증설을 2026년까지 마칠 계획이라고 밝혔어요.",
+      "quote": "당사는 평택 신규 라인 증설을 2026년까지 완료할 계획입니다.",
+      "evidence": { "evidenceId": "20260310000123#B310", "rceptNo": "20260310000123", "sectionNo": 30,
+        "blockNo": 310, "sectionPath": "II. 사업의 내용 > 3. 원재료 및 생산설비" } }
+  ],
+  "aiGenerated": true,
+  "ai": { "model": "fake-model", "promptVersion": "outlook-1", "generatedAt": "2026-10-27T10:12:03" }
+}
+```
+
+- `status`
+  - `GENERATED`: `items`에 항목(1~10개). 화면에 'AI 생성'으로 표시합니다.
+  - `EMPTY`: 계획·전망 문장을 찾지 못함(`items` 빈 배열, `message`에 안내). AI가 0개로 답했으면 저장하고 `aiGenerated` true, 계획·전망 낱말이 든 문단이 없어 AI를 부르지 않았으면 저장하지 않고 `aiGenerated` false·`ai` null입니다.
+  - `REVIEW_NEEDED`: 만들었지만 인용·근거·숫자·표현 검사를 2회 다시 만든 뒤에도 통과하지 못함. `items`는 빈 배열, `message`에 사유. 저장합니다.
+  - `NOT_AVAILABLE`: 만들 자료가 없음. 저장하지 않습니다. `reason`에 사유
+- `reason`(`NOT_AVAILABLE`일 때만): `NO_REPORT` 사업보고서가 없음(`report`는 null), `NO_DOCUMENT` 원문을 받거나 읽지 못함, `NO_SOURCE` 원문에서 대상 목차나 쓸 문단을 찾지 못함
+- `items[]`: 종류(`category`) 순서(`INVESTMENT`·`NEW_BUSINESS`·`MARKET`·`FINANCIAL`·`OTHER`), 같은 종류 안에서는 AI가 낸 순서입니다. `categoryLabel`은 화면 이름(투자·설비, 신규 사업·제품, 시장·업황 전망, 재무·주주 정책, 기타). `summary`는 AI가 줄인 요지(해요체)이고 숫자는 `quote`에 있는 것만 씁니다. `quote`는 원문 글 그대로(이어진 공백은 한 칸)입니다.
+- `evidence`: `quote`가 든 원문 위치 하나. `sectionPath`는 상위 목차부터 이은 제목입니다.
+- `aiGenerated`·`ai`: AI가 만든 결과면 true와 모델·프롬프트 버전·생성 시각, 아니면 false와 null입니다.
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 404 | `COMPANY_NOT_FOUND` | 없는 고유번호 |
+| 502 | `DART_REQUEST_FAILED` | 보고서 목록이나 원문을 OpenDART에서 받지 못함(저장된 목록이 있으면 그 목록을 씀) |
+| 503 | `DART_RATE_LIMITED`, `DART_KEY_MISSING` | OpenDART 호출 한도 초과, 키 없음 |
+| 503 | `AI_SERVER_UNAVAILABLE` | AI 서버 또는 LLM을 쓸 수 없음(저장하지 않음. 다시 요청하면 다시 만듦) |
+
 ### POST /api/companies/{corpCode}/questions — 사업보고서에 근거해 묻기
 
 - 이슈: #365 (1.2) · 기획서 FS-53 · 화면: 기업 화면 개요 탭 'AI에게 묻기 · 사업보고서 기준' · [ADR-0029](adr/0029-company-question-answering.md)
@@ -2206,6 +2260,7 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 | POST | `/internal/text-changes` | 두 원문의 문장·표 변경 탐지 | #16 (2.5) | 초안 |
 | POST | `/internal/summaries` | 근거 기반 요약·설명(LLM) | #20 (3.2) | 초안 |
 | POST | `/internal/briefings` | AI 기업 브리핑(LLM) | #333 (1.2) | 초안 |
+| POST | `/internal/outlooks` | 회사가 밝힌 전망·계획 뽑기(LLM) | #465 (1.9) | 초안 |
 
 | code | 상태 | 뜻 |
 | --- | --- | --- |
@@ -2489,6 +2544,50 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | 상태 | code | 언제 |
 | --- | --- | --- |
 | 400 | `COMMON_INVALID_INPUT` | 필드 누락, `sources`가 비었거나 8개 초과, `evidenceId` 겹침, `topic`이 정한 값이 아님, `promptVersion`이 다름 |
+| 503 | `AI_LLM_UNAVAILABLE` | LLM을 쓸 수 없음 |
+
+### POST /internal/outlooks — 회사가 밝힌 전망·계획 뽑기
+
+- 이슈: #465 (1.9) · [ADR-0039](adr/0039-company-outlook.md) · LLM은 `app/llm`의 한 모듈로만 부릅니다.
+- backend가 사업보고서 하나에서 고른 원문 문단(`sources`, 1~12개)만 보냅니다. 원문은 `<disclosure id sectionPath>` 태그로 감싸 자료로만 씁니다. 회사·보고서 이름은 `<context>` 태그 속성에 넣습니다. 사용자 정보는 넣지 않습니다.
+- `promptVersion`은 backend `OutlookService.PROMPT_VERSION`과 ai-server `app/outlook/prompt.py`의 버전입니다. 다르면 LLM을 부르지 않고 400입니다.
+- LLM 출력: `{"items": [{"category": "INVESTMENT", "summary": "…", "quote": "…", "evidenceIds": ["…"]}]}`. `category`는 `INVESTMENT` 투자·설비, `NEW_BUSINESS` 신규 사업·제품, `MARKET` 시장·업황 전망, `FINANCIAL` 재무·주주 정책, `OTHER` 기타. 회사가 쓴 계획·전망 문장만 요약하고 서비스의 판단·평가·예측을 더하지 않도록 지시합니다.
+- 확인: 항목 0~10개, `category`가 정한 값, `evidenceIds`가 하나 이상이고 모두 보낸 근거 ID, `quote`가 인용한 원문 중 하나의 부분 문자열(이어진 공백은 한 칸으로 맞춰 비교), `summary`의 숫자·크기 표현이 `quote`에 있음, 원인 표현은 `quote`에도 있을 때만, `summary` 표현 검사(5.5) 통과. 하나라도 어기면 2회까지 다시 만들고, 끝내 실패하면 `REVIEW_NEEDED`(`items` 빈 배열)입니다. 0개는 `EMPTY`입니다. 돌려주는 `quote`는 이어진 공백을 한 칸으로 맞춘 글입니다.
+
+**요청**
+
+```json
+{
+  "promptVersion": "outlook-1",
+  "companyName": "삼성전자",
+  "reportName": "사업보고서 (2025.12)",
+  "sources": [{ "evidenceId": "20260310000123#B310",
+    "sectionPath": "II. 사업의 내용 > 3. 원재료 및 생산설비", "text": "…" }]
+}
+```
+
+**응답 200**
+
+```json
+{
+  "promptVersion": "outlook-1",
+  "expressionRulesVersion": "expr-1",
+  "model": "fake-model",
+  "generatedAt": "2026-10-27T10:12:03",
+  "status": "GENERATED",
+  "items": [{ "category": "INVESTMENT", "summary": "평택 신규 라인 증설을 2026년까지 마칠 계획이라고 밝혔어요.",
+    "quote": "당사는 평택 신규 라인 증설을 2026년까지 완료할 계획입니다.", "evidenceIds": ["20260310000123#B310"] }],
+  "reviewReason": null,
+  "blockedRules": [],
+  "calls": [{ "task": "outlook", "provider": "fake", "model": "fake-model", "promptVersion": "outlook-1",
+    "calledAt": "2026-10-27T10:12:02", "traceId": "…", "inputTokens": 3000, "outputTokens": 400,
+    "latencyMs": 900, "attempt": 1, "outcome": "OK", "error": null }]
+}
+```
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | 필드 누락, `sources`가 비었거나 12개 초과, `evidenceId` 겹침, `promptVersion`이 다름 |
 | 503 | `AI_LLM_UNAVAILABLE` | LLM을 쓸 수 없음 |
 
 ## 4. 에러 코드
