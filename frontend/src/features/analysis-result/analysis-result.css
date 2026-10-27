@@ -1030,6 +1030,16 @@
   gap: var(--space-4);
 }
 
+/* 넓은 화면에서는 목차를 본문 옆에 붙여 두어, 긴 항목을 내려 읽다가도 다른 항목으로 옮긴다(#396).
+   위에 붙은 결과 탭 줄 아래에 붙고, 목차가 길면 목차 안에서 스크롤한다 */
+@media (min-width: 900px) {
+  .source-toc {
+    position: sticky;
+    top: calc(var(--control-height) + var(--space-5));
+    max-height: calc(100vh - var(--control-height) - var(--space-7));
+  }
+}
+
 .source-toc {
   flex: 1 1 240px;
   min-width: 0;
@@ -1099,6 +1109,91 @@
 
 .source-block {
   scroll-margin: var(--space-6);
+}
+
+/* 아주 높은 블록은 처음에 600px까지만 보이고 아래를 흐리게 끝낸다(#396). '표 전체 보기'로 펼친다 */
+.source-block__body--collapsed {
+  position: relative;
+  max-height: 600px;
+  overflow: hidden;
+}
+
+.source-block__body--collapsed::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: var(--space-7);
+  background: linear-gradient(to bottom, transparent, var(--color-bg));
+  pointer-events: none;
+}
+
+.source-block__toggle {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-sm);
+}
+
+/* 긴 항목의 소제목 고르기(#396) */
+.source-parts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+}
+
+.source-parts .select {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.source-parts__count {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.source-parts__nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.source-parts__nav .button {
+  flex-direction: column;
+  align-items: flex-start;
+  height: auto;
+  min-height: var(--control-height);
+  max-width: 48%;
+  padding-block: var(--space-2);
+}
+
+.source-parts__nav .button:last-child {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.source-parts__next-title {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 맨 위로(#396). 오른쪽 아래에 떠 있다 */
+.source-top {
+  position: fixed;
+  right: var(--space-5);
+  bottom: var(--space-5);
+  z-index: 4;
+  box-shadow: var(--shadow-md);
 }
 
 .source-block--selected {
