@@ -20,8 +20,8 @@ import java.util.regex.Pattern;
  */
 public final class RelatedDisclosureRules {
 
-    /** 연결 규칙 버전. related_disclosure_run.rule_version */
-    public static final String RULE_VERSION = "related-1";
+    /** 연결 규칙 버전. related_disclosure_run.rule_version. related-2: 주요정보로 '내용 일치' 판정을 더함(#341) */
+    public static final String RULE_VERSION = "related-2";
 
     private static final Pattern SPACES = Pattern.compile("\\s+");
     /** 앞머리 꼬리표 중 정정을 뜻하는 것([기재정정]·[첨부정정] 등) */
