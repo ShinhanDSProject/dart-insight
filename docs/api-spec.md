@@ -204,7 +204,7 @@
 
 - GET은 Bearer Access Token이 필요하며 현재 `userId`를 반환합니다. 없거나 잘못된 JWT는 `AUTH_UNAUTHORIZED`(401)입니다.
 - #459부터 GET 응답에 `nickname`(정하지 않았으면 null)과 `admin`(관리자면 true)을 더합니다: `{ "userId": 1, "nickname": "반도체공부중", "admin": false }`. 화면은 `nickname`으로 닉네임 정하기를 먼저 띄울지, `admin`으로 관리자 메뉴를 보일지 정합니다. 권한은 서버가 관리자 API마다 다시 확인합니다([ADR-0040](adr/0040-user-role-in-app-user.md)).
-- 일반 로그인·소셜 로그인에 성공했을 때 그 계정의 이메일(일반 가입 이메일, 또는 제공자가 확인한 소셜 이메일)이 환경변수 `ADMIN_EMAILS`에 있으면 관리자로 바꿉니다(ADR-0040). 응답 모양은 바뀌지 않습니다.
+- 일반 로그인·소셜 로그인에 성공했을 때 그 계정의 소유가 확인된 이메일(`email_verified = true`인 일반 가입 이메일, 또는 제공자가 확인한 소셜 이메일)이 환경변수 `ADMIN_EMAILS`에 있으면 관리자로 바꿉니다(ADR-0040). 응답 모양은 바뀌지 않습니다.
 - DELETE는 Refresh Token을 폐기하고 쿠키를 만료시킵니다. 이미 없더라도 204로 끝냅니다.
 
 ### GET /oauth2/authorization/{provider} — 소셜 로그인
@@ -578,7 +578,7 @@
 ```
 
 - `status`는 `OPEN` 대기, `KEPT` 유지, `BLINDED` 블라인드, `DELETED` 삭제입니다.
-- `todo`는 처리할 이유입니다: `PENDING` 새 신고, `REPOST_REQUESTED` 재게시 청구, `EXPIRED` 블라인드 기한 지남(가린 채 둠), 처리할 것이 없으면 null. 기한이 지나도 자동으로 풀지 않고 이 목록에 다시 올립니다.
+- `todo`는 처리할 이유입니다: `PENDING` 새 신고, `REPOST_REQUESTED` 재게시 청구, `EXPIRED` 블라인드 기한 지남(가린 채 둠), 처리할 것이 없으면 null. 재게시 청구가 있으면서 기한도 지났으면 `REPOST_REQUESTED`입니다(작성자가 기다리는 쪽을 먼저 보임). 기한이 지나도 자동으로 풀지 않고 이 목록에 다시 올립니다.
 - `repostRequest`는 마지막 블라인드에 대한 청구 `{ "message": "...", "createdAt": "..." }`, 없으면 null입니다. `moderations`는 처리 기록(최근 순)입니다.
 - 정렬: `todo`는 `lastReportedAt`·청구 시각·기한 중 가장 최근 순, `all`은 `lastReportedAt` 최근 순입니다.
 - 신고한 사람은 보이지 않습니다(사유별 건수만). 작성자·관리자도 닉네임만 나갑니다.

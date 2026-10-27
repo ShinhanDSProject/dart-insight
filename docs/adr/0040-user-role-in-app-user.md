@@ -17,9 +17,9 @@
 - `app_user`에 `role VARCHAR(10) NOT NULL DEFAULT 'USER'`을 더한다. 값은 `USER`, `ADMIN` 두 가지이고 `ENUM`을 쓰지 않는다(erd 작성 규칙). 닉네임 `nickname`도 같은 마이그레이션에서 더한다(`docs/erd.md`).
 - 역할은 JWT에 넣지 않는다. 관리자 경로(`/api/admin/**`)는 `SecurityConfig`에서 인증을 요구하고, 그 위에 요청마다 `sub`로 `app_user.role`을 읽어 `ADMIN`이 아니면 403 `AUTH_FORBIDDEN`으로 막는 `AuthorizationManager`(`auth/config/AdminAuthorizationManager`)를 둔다. 관리자 판단은 이 한 곳에서만 한다. 커뮤니티 서비스는 다시 확인하지 않는다.
 - 첫 관리자는 환경변수 `ADMIN_EMAILS`(쉼표로 구분한 이메일 목록, 기본은 빈 값)로 정한다. 로그인에 성공한 순간(일반 로그인 `POST /api/sessions`, 소셜 로그인 콜백) 그 사용자의 이메일이 목록에 있으면 `role`을 `ADMIN`으로 바꾼다.
-  - 일반 가입은 `local_credential.email`(정규화한 값)으로, 소셜 로그인은 제공자가 확인했다고 한 이메일(`social_account.email_verified = true`)로만 대조한다. 확인되지 않은 소셜 이메일로는 관리자가 되지 않는다.
+  - 소유가 확인된 이메일로만 대조한다: 일반 가입은 `local_credential.email_verified = true`인 이메일, 소셜 로그인은 제공자가 확인했다고 한 이메일(`social_account.email_verified = true`). 지금 일반 가입은 이메일 소유를 확인하지 않아(ADR-0019, `email_verified`가 항상 false) 일반 가입 계정은 목록에 있어도 관리자가 되지 않는다. 첫 관리자는 이메일을 확인해 주는 소셜 계정(예: Google)으로 로그인해 정한다.
   - 목록은 올리기만 한다. 목록에서 빠져도 `ADMIN`을 자동으로 내리지 않는다(내릴 때는 DB를 직접 고친다. 절차는 `docs/local-setup.md`에 적는다).
-  - 설정 이름은 `app.auth.admin-emails`(`AuthProperties`), `.env.example`에는 변수 이름과 가짜 값만 둔다.
+  - 설정 이름은 `app.auth.admin-emails`(`AuthProperties`)로 두고, `application.yml`에서 `admin-emails: ${ADMIN_EMAILS:}`로 환경변수를 잇는다(`JWT_SECRET`과 같은 방식. Spring의 느슨한 바인딩은 `ADMIN_EMAILS`를 이 설정에 저절로 잇지 않는다). `.env.example`에는 변수 이름과 가짜 값만 둔다.
 - 화면이 관리자 메뉴를 보일지 알 수 있게 `GET /api/sessions/current`가 `admin`(boolean)과 `nickname`을 함께 준다. 화면의 표시는 편의일 뿐이고, 권한은 위 서버 확인으로만 정한다.
 
 ## 검토한 다른 방법
@@ -35,7 +35,7 @@
 ## 결과
 
 - 좋아지는 점: 역할을 바꾸면 다음 요청부터 바로 반영된다. 관리자 판단이 `AdminAuthorizationManager` 한 곳에 있어 관리자 API를 더해도 경로만 `/api/admin/` 아래에 두면 된다. 실제 이메일은 `.env`·서버 환경변수에만 있다.
-- 감수하는 점: 관리자 API 요청마다 `app_user` 조회 한 번이 더 든다. 일반 가입은 이메일 소유를 확인하지 않으므로(ADR-0019) 목록의 이메일을 다른 사람이 먼저 가입하면 그 사람이 관리자가 될 수 있다. 시연 전에 목록의 계정을 팀원이 먼저 만들어 두고, 이메일 확인을 도입하면 확인된 이메일로만 대조하게 바꾼다.
+- 감수하는 점: 관리자 API 요청마다 `app_user` 조회 한 번이 더 든다. 확인된 이메일로만 대조하므로, 이메일 확인이 없는 지금은 일반 가입 계정을 관리자로 만들 수 없다. 관리자는 이메일을 확인해 주는 소셜 계정으로 로그인해야 한다(이메일 확인을 도입하면 일반 가입 계정도 저절로 대상이 된다). 다른 사람이 목록의 이메일로 먼저 일반 가입해도 관리자가 되지 않는다.
 - 지켜야 할 것:
   - 관리자만 쓰는 API는 `/api/admin/` 아래에 둔다(`ApiPaths`). 다른 경로에서 역할을 따로 확인하지 않는다.
   - 응답·로그에 역할을 바꾼 이메일을 남기지 않는다(사용자 ID만).
@@ -45,5 +45,5 @@
 
 - 관리자 말고 다른 역할(예: 기업별 운영자)이 필요해질 때
 - 관리자를 화면에서 지정·해제해야 할 때
-- 이메일 소유 확인을 도입할 때(대조 기준을 바꾼다)
+- 이메일 소유 확인을 도입할 때(일반 가입 계정이 관리자 대상이 된다)
 - 관리자 API가 많아져 요청마다 DB를 읽는 비용이 문제가 될 때
