@@ -30,10 +30,10 @@ class FinancialFactsTest {
     @Test
     @DisplayName("이익 계정의 흑자·적자 상태는 증감률 없이 상태로 쓴다")
     void profitStatesAreWrittenWithoutARate() {
-        assertThat(FinancialFacts.sentence(new FinancialChangeRow("CIS", FsDiv.CFS, "k", "영업이익", 0,
+        assertThat(FinancialFacts.sentence(new FinancialChangeRow("CIS", FsDiv.CFS, "k", "영업이익(손실)", 0,
                 AmountBasis.CUMULATIVE, -7_730_313_000_000L, 23_467_319_000_000L, 31_197_632_000_000L, null,
                 CalcStatus.TURNED_PROFIT, "KRW", null, null)))
-                .isEqualTo("영업이익이 −7.7조 원에서 23.5조 원으로 바뀌어 흑자로 돌아섰어요.");
+                .isEqualTo("영업이익(손실)이 −7.7조 원에서 23.5조 원으로 바뀌어 흑자로 돌아섰어요.");
         assertThat(FinancialFacts.sentence(new FinancialChangeRow("CIS", FsDiv.CFS, "k", "영업손실", 0,
                 AmountBasis.CUMULATIVE, -2_510_164_000_000L, -560_596_000_000L, 1_949_568_000_000L, null,
                 CalcStatus.LOSS_NARROWED, "KRW", null, null)))
@@ -58,6 +58,12 @@ class FinancialFactsTest {
     void particlesFollowTheLastSyllable() {
         assertThat(FinancialFacts.subject("매출액")).isEqualTo("이");
         assertThat(FinancialFacts.subject("자산총계")).isEqualTo("가");
+        assertThat(FinancialFacts.subject("법인세비용차감전순이익(손실)")).isEqualTo("이");
+        assertThat(FinancialFacts.subject("법인세비용(수익)")).isEqualTo("이");
+        assertThat(FinancialFacts.subject("기타포괄손익 (세후)")).isEqualTo("이");
+        assertThat(FinancialFacts.subject("매출총이익(손실)(주석 25)")).isEqualTo("이");
+        assertThat(FinancialFacts.subject("지분법손익(Equity)")).isEqualTo("이");
+        assertThat(FinancialFacts.subject("(주)")).isEqualTo("(이)가");
         assertThat(FinancialFacts.toward("원")).isEqualTo("으로");
         assertThat(FinancialFacts.toward("월")).isEqualTo("로");
         assertThat(FinancialFacts.toward("USD")).isEqualTo("(으)로");

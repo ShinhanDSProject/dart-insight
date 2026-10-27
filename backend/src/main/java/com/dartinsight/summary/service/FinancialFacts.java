@@ -7,6 +7,7 @@ import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 /**
  * 재무 수치 변화의 사실 문장(3.2). 숫자는 코드가 계산한 값을 그대로 쓰고 LLM이 만들지 않는다.
@@ -16,6 +17,8 @@ public final class FinancialFacts {
 
     private static final BigDecimal JO = new BigDecimal("1000000000000");
     private static final BigDecimal EOK = new BigDecimal("100000000");
+    /** 계정명 끝의 괄호 부분('(손실)', '(수익)'). 조사는 괄호 앞 낱말에 맞춘다 */
+    private static final Pattern TRAILING_PARENTHESES = Pattern.compile("(\\s*\\([^()]*\\))+$");
 
     private FinancialFacts() {
     }
@@ -88,9 +91,9 @@ public final class FinancialFacts {
         return format.format(value);
     }
 
-    /** 주격 조사(이/가) */
+    /** 주격 조사(이/가). 끝의 괄호 부분은 빼고 본다: 영업이익(손실) → 영업이익(손실)이 */
     static String subject(String word) {
-        Boolean batchim = batchim(word);
+        Boolean batchim = batchim(TRAILING_PARENTHESES.matcher(word).replaceFirst(""));
         return batchim == null ? "(이)가" : batchim ? "이" : "가";
     }
 
