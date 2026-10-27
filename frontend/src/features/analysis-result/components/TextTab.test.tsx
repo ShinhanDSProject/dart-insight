@@ -37,6 +37,10 @@ vi.mock('../hooks/usePinnedChanges', () => ({
 vi.mock('../hooks/useTextExplanations', () => ({
   useTextExplanations: () => ({ request: () => {}, entryOf: () => undefined }),
 }))
+// 카드의 '노트에 담기'(FS-57)는 로그인 상태만 본다
+vi.mock('@/shared/auth/authContext', () => ({
+  useAuth: () => ({ state: { status: 'anonymous' }, login: vi.fn(), logout: vi.fn() }),
+}))
 
 beforeAll(() => {
   // jsdom에는 scrollIntoView가 없다

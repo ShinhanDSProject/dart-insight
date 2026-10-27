@@ -15,6 +15,7 @@ export type IconName =
   | 'monitor'
   | 'sun'
   | 'moon'
+  | 'bookmark'
 
 // lucide 'star' 모양. 채운 별은 같은 모양을 글자색으로 채운다(켜진 관심 기업)
 const STAR_PATH =
@@ -91,6 +92,8 @@ const shapes: Record<IconName, ReactNode> = {
     </>
   ),
   moon: <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />,
+  // lucide 'bookmark'. 판단 노트(FS-57)
+  bookmark: <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />,
 }
 
 /** 꾸밈용 아이콘. 뜻은 옆 글자가 전하므로 보조기기에는 숨긴다. */

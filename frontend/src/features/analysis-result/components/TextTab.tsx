@@ -5,6 +5,7 @@ import type { TextChangeItem, TextSort } from '@/shared/api/textChanges'
 import { Badge, Button, Card, Chip, FieldHint, FieldLabel, Icon, Input, Notice, Panel, SegmentedControl, Select } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
+import { AddToNote } from './AddToNote'
 import { ChangeTypeHelp } from './ChangeTypeHelp'
 import { CopyWithSourcesButton } from './CopyWithSourcesButton'
 import { NumberChangesLine } from './NumberChangesLine'
@@ -487,6 +488,7 @@ function ChangeCard({ item, analysis, showTypeNote, selected, pinned, explanatio
           </details>
         )}
       </div>
+      <AddToNote kind="TEXT_CHANGE" analysisId={analysis.analysisId} changeId={item.changeId} label={section} />
       {explainOpen && (
         <TextExplanationBox
           id={explainId}

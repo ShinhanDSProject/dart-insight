@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, NETWORK_ERROR, apiGet, apiPost, apiPut, setAccessToken } from './client'
+import { ApiError, NETWORK_ERROR, apiGet, apiGetText, apiPost, apiPut, setAccessToken } from './client'
 
 function jsonResponse(status: number, body: unknown, headers: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), {
@@ -161,5 +161,21 @@ describe('요청 취소', () => {
     const error = await apiGet('/api/companies', undefined, { signal: controller.signal }).catch((e: unknown) => e)
 
     expect(error).toBe(abortError)
+  })
+})
+
+describe('apiGetText', () => {
+  it('성공 응답은 JSON으로 읽지 않고 글 그대로 돌려준다', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('# 노트\n', { status: 200, headers: { 'Content-Type': 'text/markdown' } }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(apiGetText('/api/notes/export', { corpCode: '00126380' })).resolves.toBe('# 노트\n')
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/notes/export?corpCode=00126380')
+    expect((fetchMock.mock.calls[0][1] as RequestInit).headers).toMatchObject({ Accept: expect.stringContaining('text/markdown') })
+  })
+
+  it('에러 응답은 ApiError로 던진다', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(404, { code: 'COMPANY_NOT_FOUND', message: '없음', traceId: 't', errors: [] })))
+    await expect(apiGetText('/api/notes/export')).rejects.toMatchObject({ status: 404, code: 'COMPANY_NOT_FOUND' })
   })
 })

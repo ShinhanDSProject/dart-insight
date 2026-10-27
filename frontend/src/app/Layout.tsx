@@ -13,7 +13,7 @@ import { useTheme } from '@/shared/hooks/useTheme'
 import { THEME_OPTIONS, type ThemeChoice } from '@/shared/lib/theme'
 import type { SegmentOption } from '@/shared/ui/SegmentedControl'
 
-type Section = 'search' | 'compare' | 'source'
+type Section = 'search' | 'compare' | 'source' | 'notes'
 
 const THEME_ICONS: Record<ThemeChoice, IconName> = { system: 'monitor', light: 'sun', dark: 'moon' }
 const THEME_SEGMENTS: SegmentOption<ThemeChoice>[] = THEME_OPTIONS.map((option) => ({
@@ -54,7 +54,9 @@ export function Layout() {
   const active: Section | null =
     pathname === '/'
       ? 'search'
-      : onResult && tab === 'source'
+      : pathname === '/notes'
+        ? 'notes'
+        : onResult && tab === 'source'
         ? 'source'
         : corpCode !== undefined || analysisId !== undefined
           ? 'compare'
@@ -82,6 +84,7 @@ export function Layout() {
       to: analysisId !== undefined ? `/analyses/${encodeURIComponent(analysisId)}?tab=source` : null,
       hint: '분석 결과에서 열 수 있어요',
     },
+    { section: 'notes', label: '내 판단 노트', icon: 'bookmark', to: '/notes' },
   ]
 
   return (
