@@ -1,0 +1,138 @@
+/* 여러 기업 나란히 보기(FS-56, #412). 열은 고른 순서의 기업이고, 순위·최고·최저 강조 색을 쓰지 않는다(값은 모두 같은 글자색) */
+
+.company-picker {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.company-picker__label {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.company-picker__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.company-picker__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-1) 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-raised);
+  font-size: var(--font-size-sm);
+}
+
+.company-picker__search {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 480px;
+}
+
+.company-picker__message {
+  margin: 0;
+  color: var(--color-attention);
+  font-size: var(--font-size-sm);
+}
+
+.company-picker__message:empty {
+  display: none;
+}
+
+.company-picker__results {
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  list-style: none;
+}
+
+.company-picker__result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+}
+
+.company-picker__result + .company-picker__result {
+  border-top: 1px solid var(--color-border);
+}
+
+.company-picker__code {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.company-picker__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.company-compare__head-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.company-compare__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+
+.company-compare__head {
+  vertical-align: top;
+  min-width: 160px;
+}
+
+.company-compare__name,
+.company-compare__meta,
+.company-compare__period {
+  display: block;
+}
+
+.company-compare__name {
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.company-compare__period {
+  color: var(--color-text);
+  font-weight: var(--font-weight-medium);
+}
+
+.company-compare__meta,
+.company-compare__unit,
+.company-compare__formula {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+}
+
+.company-compare__state {
+  vertical-align: top;
+}
+
+.company-compare__state-text {
+  margin: 0 0 var(--space-2);
+  font-weight: var(--font-weight-medium);
+}
+
+.company-compare__none {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  word-break: keep-all;
+}

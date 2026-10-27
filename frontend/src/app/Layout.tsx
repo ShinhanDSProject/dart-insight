@@ -13,7 +13,7 @@ import { useTheme } from '@/shared/hooks/useTheme'
 import { THEME_OPTIONS, type ThemeChoice } from '@/shared/lib/theme'
 import type { SegmentOption } from '@/shared/ui/SegmentedControl'
 
-type Section = 'search' | 'compare' | 'source' | 'notes'
+type Section = 'search' | 'compare' | 'source' | 'notes' | 'companies'
 
 const THEME_ICONS: Record<ThemeChoice, IconName> = { system: 'monitor', light: 'sun', dark: 'moon' }
 const THEME_SEGMENTS: SegmentOption<ThemeChoice>[] = THEME_OPTIONS.map((option) => ({
@@ -56,11 +56,13 @@ export function Layout() {
       ? 'search'
       : pathname === '/notes'
         ? 'notes'
-        : onResult && tab === 'source'
-        ? 'source'
-        : corpCode !== undefined || analysisId !== undefined
-          ? 'compare'
-          : null
+        : pathname === '/compare/companies'
+          ? 'companies'
+          : onResult && tab === 'source'
+            ? 'source'
+            : corpCode !== undefined || analysisId !== undefined
+              ? 'compare'
+              : null
   const shortcutPage: ShortcutPage = pathname === '/' ? 'search' : onResult ? 'result' : 'other'
   const shortcuts = useShortcuts(shortcutPage)
 
@@ -83,6 +85,12 @@ export function Layout() {
       icon: 'file-search',
       to: analysisId !== undefined ? `/analyses/${encodeURIComponent(analysisId)}?tab=source` : null,
       hint: '분석 결과에서 열 수 있어요',
+    },
+    {
+      section: 'companies',
+      label: '기업 나란히 보기',
+      icon: 'table-2',
+      to: corpCode !== undefined ? `/compare/companies?corps=${encodeURIComponent(corpCode)}` : '/compare/companies',
     },
     { section: 'notes', label: '내 판단 노트', icon: 'bookmark', to: '/notes' },
   ]

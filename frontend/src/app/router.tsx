@@ -20,6 +20,9 @@ const AnalysisResultPage = lazyPage(() =>
   import('@/features/analysis-result/AnalysisResultPage').then((m) => m.AnalysisResultPage),
 )
 const NotesPage = lazyPage(() => import('@/features/notes/NotesPage').then((m) => m.NotesPage))
+const CompanyComparisonPage = lazyPage(() =>
+  import('@/features/company-comparison/CompanyComparisonPage').then((m) => m.CompanyComparisonPage),
+)
 const AiUsagePage = lazyPage(() => import('@/features/ai-usage/AiUsagePage').then((m) => m.AiUsagePage))
 
 /**
@@ -30,6 +33,7 @@ const AiUsagePage = lazyPage(() => import('@/features/ai-usage/AiUsagePage').the
  * - /analyses/:analysisId/progress  W-02 분석 진행
  * - /analyses/:analysisId           W-03 분석 결과
  * - /notes                          내 판단 노트(FS-57, 로그인한 회원)
+ * - /compare/companies              여러 기업 나란히 보기(FS-56, ?corps=고유번호,…&type=ANNUAL&fs=CFS)
  * - /system/ai-usage                AI 사용 현황(FS-15, ?days=7|30)
  * handle.crumb는 상단 헤더의 경로 표시에 쓴다.
  */
@@ -69,6 +73,11 @@ export const router = createBrowserRouter([
             path: '/notes',
             element: <PageSuspense><NotesPage /></PageSuspense>,
             handle: { crumb: '내 판단 노트' },
+          },
+          {
+            path: '/compare/companies',
+            element: <PageSuspense><CompanyComparisonPage /></PageSuspense>,
+            handle: { crumb: '기업 나란히 보기' },
           },
           {
             path: '/system/ai-usage',

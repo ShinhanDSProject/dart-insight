@@ -72,6 +72,13 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('기업 개요 탭의 영역 순서', () => {
+  it('이 기업을 미리 고른 여러 기업 나란히 보기로 가는 링크를 둔다(FS-56)', () => {
+    getCompanyOverview.mockResolvedValue(samsungOverview)
+    renderTab()
+    const link = screen.getByRole('link', { name: '다른 기업과 나란히 보기' })
+    expect(link.getAttribute('href')).toBe('/compare/companies?corps=00126380')
+  })
+
   it('정해 둔 순서대로 영역을 쌓고 각 영역에 고유번호를 넘긴다', async () => {
     getCompanyOverview.mockResolvedValue(samsungOverview)
     const { container } = renderTab()
