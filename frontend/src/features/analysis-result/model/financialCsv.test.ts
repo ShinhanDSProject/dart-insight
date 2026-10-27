@@ -112,6 +112,7 @@ describe('calcStatusCell', () => {
   it('계산했으면 계산됨, 아니면 표와 같은 짧은 사유, 모르는 상태는 코드 그대로', () => {
     expect(calcStatusCell('OK')).toBe('계산됨')
     expect(calcStatusCell('AMBIGUOUS_MATCH')).toBe('검토 필요 · 같은 계정이 여러 개')
+    expect(calcStatusCell('TURNED_PROFIT')).toBe('흑자전환')
     expect(calcStatusCell('NEW_STATUS')).toBe('NEW_STATUS')
   })
 })
