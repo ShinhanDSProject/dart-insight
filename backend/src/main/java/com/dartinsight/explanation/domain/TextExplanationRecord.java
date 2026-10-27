@@ -17,6 +17,20 @@ public record TextExplanationRecord(Long id, Long analysisId, int changeNo, Expl
         String sentence, List<String> evidenceIds, String reviewReason, List<String> blockedRules, String model,
         String promptVersion, LocalDateTime generatedAt, String traceId, LocalDateTime createdAt) {
 
+    /** 근거를 확인한 AI 풀이 */
+    public static TextExplanationRecord ok(Long analysisId, int changeNo, String sentence, List<String> evidenceIds,
+            String model, String promptVersion, LocalDateTime generatedAt, String traceId, LocalDateTime createdAt) {
+        return new TextExplanationRecord(null, analysisId, changeNo, ExplanationStatus.OK, sentence, evidenceIds, null,
+                List.of(), model, promptVersion, generatedAt, traceId, createdAt);
+    }
+
+    /** 풀이를 보여 주지 않는 결과(검토 필요·원문 없음). 풀이·근거·모델 정보 없이 사유만 둔다 */
+    public static TextExplanationRecord withoutSentence(Long analysisId, int changeNo, ExplanationStatus status,
+            String reviewReason, List<String> blockedRules, String traceId, LocalDateTime createdAt) {
+        return new TextExplanationRecord(null, analysisId, changeNo, status, null, List.of(), reviewReason,
+                blockedRules, null, null, null, traceId, createdAt);
+    }
+
     public TextExplanationRecord withId(Long newId) {
         return new TextExplanationRecord(newId, analysisId, changeNo, status, sentence, evidenceIds, reviewReason,
                 blockedRules, model, promptVersion, generatedAt, traceId, createdAt);
