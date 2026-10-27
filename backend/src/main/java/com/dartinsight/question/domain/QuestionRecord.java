@@ -17,6 +17,16 @@ public record QuestionRecord(Long id, Long analysisId, String question, Question
         String model, String promptVersion, LocalDateTime generatedAt, String traceId, LocalDateTime createdAt,
         QuestionFeedback feedback) {
 
+    /** 후보 문단도 사실도 없어 AI 서버에 묻지 않은 질문 */
+    public static QuestionRecord notFound(Long analysisId, String question, String traceId, LocalDateTime createdAt) {
+        return new QuestionRecord(null, analysisId, question, QuestionStatus.NOT_FOUND, null, List.of(), List.of(),
+                null, List.of(), null, null, null, traceId, createdAt, null);
+    }
+
+    public boolean answered() {
+        return status == QuestionStatus.ANSWERED;
+    }
+
     public QuestionRecord withId(Long newId) {
         return new QuestionRecord(newId, analysisId, question, status, answer, evidenceIds, factChangeIds,
                 reviewReason, blockedRules, model, promptVersion, generatedAt, traceId, createdAt, feedback);
