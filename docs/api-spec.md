@@ -1189,6 +1189,9 @@
 | `calcStatus` | ERD의 `financial_change.calc_status`와 같은 값 |
 | `calcMessage` | 계산하지 못한 사유(예: "이전 값이 0이라 증감률을 계산하지 않습니다.") |
 
+- 부호가 바뀌거나 이전 값이 음수인 계정은 증감률(`changeRate`)이 null이고 증감액만 있습니다(#144). 손익계산서의 이익 계정은 `TURNED_PROFIT`(흑자전환)·`TURNED_LOSS`(적자전환)·`LOSS_NARROWED`(적자폭 축소)·`LOSS_WIDENED`(적자폭 확대)로, 그 밖의 계정은 `SIGN_CHANGED`("부호가 바뀌어 증감률을 계산하지 않아요.")나 `PREVIOUS_NEGATIVE`로 둡니다. 판정표는 ERD `financial_change.calc_status`에 있습니다.
+- 이익 계정 목록(표준계정 ID): `dart_OperatingIncomeLoss`(영업이익), `ifrs-full_ProfitLossFromOperatingActivities`(금융회사 영업이익), `ifrs-full_GrossProfit`(매출총이익), `ifrs-full_ProfitLossBeforeTax`(법인세비용차감전순이익), `ifrs-full_ProfitLoss`(당기순이익), `ifrs-full_ProfitLossAttributableToOwnersOfParent`(지배기업 소유주지분 순이익). 흑자·적자 표현은 이 계정에만 씁니다. 비지배지분 순이익·총포괄손익·주당이익은 넣지 않습니다(2024 사업보고서 7곳의 실제 응답으로 확인, #144). 법인세비용처럼 이익이 아닌 계정의 부호 변화를 '흑자전환'으로 부르지 않기 위해서입니다.
+
 | 상태 | code | 언제 |
 | --- | --- | --- |
 | 400 | `COMMON_INVALID_INPUT` | `sjDiv`가 BS·IS·CIS·CF·SCE가 아님 |
@@ -1199,7 +1202,8 @@
 
 - 이슈: #21 (3.3) · 화면: W-03 ② 계정 선택
 - 완료된 분석의 그 분석 항목만 돌려줍니다. 다른 분석의 항목 번호면 404입니다.
-- 계산하지 못한 항목은 `formula`·`rateFormula`가 null이고 `calcMessage`에 사유가 있습니다. 숫자를 채우지 않습니다.
+- 계산하지 못한 항목은 `formula`·`rateFormula`가 null이고 `calcMessage`에 사유가 있습니다. 숫자를 채우지 않습니다. 증감액만 계산한 항목(`PREVIOUS_ZERO`, 부호 변화 상태 등)은 `formula`만 있고 `rateFormula`는 null입니다.
+- 계산식의 금액마다 그 보고서의 기간 이름(`periodName`)을 괄호로 붙여 어느 기간끼리 비교했는지 보입니다(#144). 음수는 괄호로 감쌉니다. 기간 이름이 없으면 붙이지 않습니다.
 - 한쪽 보고서에만 있는 계정이면 없는 쪽의 `previous` 또는 `current`가 null입니다.
 
 **응답 200**: 목록 항목 필드에 아래를 더합니다.
@@ -1211,8 +1215,8 @@
   "accountKey": "ifrs-full_Revenue",
   "fsDiv": "CFS",
   "currency": "KRW",
-  "formula": "152,000,000,000,000 − 145,000,000,000,000 = 7,000,000,000,000",
-  "rateFormula": "7,000,000,000,000 ÷ 145,000,000,000,000 × 100 = 4.83%",
+  "formula": "152,000,000,000,000(제 57 기 반기) − 145,000,000,000,000(제 56 기 반기) = 7,000,000,000,000",
+  "rateFormula": "7,000,000,000,000 ÷ 145,000,000,000,000(제 56 기 반기) × 100 = 4.83%",
   "previous": {
     "rceptNo": "20250814000987",
     "reportName": "반기보고서 (2025.06)",
