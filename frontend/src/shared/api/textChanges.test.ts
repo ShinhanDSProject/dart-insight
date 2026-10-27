@@ -22,4 +22,10 @@ describe('textChangeParams', () => {
       size: 20,
     })
   })
+
+  it('위험 관련만 볼 때만 risk=true를 보낸다(3.9)', () => {
+    expect(textChangeParams({ ...base, types: [], risk: true }).risk).toBe(true)
+    expect(textChangeParams({ ...base, types: [], risk: false }).risk).toBeUndefined()
+    expect(textChangeParams({ ...base, types: [] }).risk).toBeUndefined()
+  })
 })

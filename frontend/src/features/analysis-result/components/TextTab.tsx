@@ -9,6 +9,7 @@ import { AddToNote } from './AddToNote'
 import { ChangeTypeHelp } from './ChangeTypeHelp'
 import { CopyWithSourcesButton } from './CopyWithSourcesButton'
 import { NumberChangesLine } from './NumberChangesLine'
+import { RiskChangesCard } from './RiskChangesCard'
 import { TextEvidencePanel } from './TextEvidencePanel'
 import { TextExplanationBox } from './TextExplanationBox'
 import { usePinnedChanges, usePinnedTextChanges } from '../hooks/usePinnedChanges'
@@ -19,6 +20,7 @@ import { TEXT_CARD_ATTRIBUTE, useTextCardKeys } from '../hooks/useTextCardKeys'
 import { sectionAskQuestion } from '../model/askQuestion'
 import { numberChanges } from '../model/numberChanges'
 import { pinnedChangesText } from '../model/copyText'
+import { RISK_BADGE, RISK_EMPTY } from '../model/riskChanges'
 import { PINNED_EMPTY, PINNED_LABEL, PINNED_NOTE } from '../model/pinnedList'
 import type { SourceTarget, TextViewChange } from '../model/resultParams'
 import {
@@ -62,6 +64,8 @@ interface TextTabProps {
   section: string | null
   /** 검색어(3.7). null이면 검색하지 않음 */
   q: string | null
+  /** 위험 관련 목차의 변경만 보는지(3.9) */
+  risk: boolean
   /** 고정한 변경만 보는지(3.3) */
   pinned: boolean
   /** 근거를 보고 있는 변경(3.4) */
@@ -77,6 +81,7 @@ interface TextTabProps {
 /**
  * W-03 ③ 문장·내용 변화(3.9). 유형(추가·삭제·수정을 함께 보는 '내용 변경' 포함, #304)으로 거르고, 기본은 우선순위 순서(2.6)로 보여 준다.
  * 최상위 섹션과 검색어로도 함께 거른다(3.7). 고른 값은 주소에 남아 공유된다.
+ * 맨 위 '위험 요인 변화' 카드에 위험 관련 목차의 건수를 보이고 '위험 관련만'으로 거른다(3.9, FS-61).
  * 문장을 비교하지 못했으면 '변경 없음'이 아니라 사유를 보여 준다. 짝짓지 못한 항목은 숨기지 않고 '검토 필요'로 둔다.
  * 카드마다 고정할 수 있고, '고정' 거르기를 고르면 이 분석에서 고정한 변경만 보여 준다(3.3, 이 브라우저에만 남음).
  * 고정 보기에서는 고정한 변경을 원문·출처와 함께 한 번에 복사할 수 있다(FS-31).
@@ -88,6 +93,7 @@ export function TextTab({
   sort,
   section,
   q,
+  risk,
   pinned,
   selectedChangeId,
   onChange,
@@ -96,11 +102,12 @@ export function TextTab({
   asking,
 }: TextTabProps) {
   // type은 실제로 쓴 거르기다. '내용 변경'이 없는 분석에서 주소의 CONTENT는 전체로 본다
-  const { state, counts, sections, contentAvailable, type, reload, loadMore } = useTextChanges(analysis.analysisId, {
+  const { state, counts, sections, riskCounts, contentAvailable, type, reload, loadMore } = useTextChanges(analysis.analysisId, {
     type: requestedType,
     sort,
     section,
     q,
+    risk,
   })
   const searchBox = useTextSearch(q, (next) => onChange({ q: next }))
   // 받은 풀이는 거르기·정렬을 바꿔도 이 탭이 떠 있는 동안 남는다(3.11)
@@ -109,12 +116,14 @@ export function TextTab({
   const pinnedList = usePinnedTextChanges(analysis.analysisId, pins.ids, pinned, pins.remove)
   const toggleEvidence = (changeId: number) => onChange({ change: changeId === selectedChangeId ? null : changeId })
   useTextCardKeys({ onToggleEvidence: toggleEvidence, onTogglePin: pins.toggle })
-  const filtered = hasSearchFilter({ section, q })
+  const searched = hasSearchFilter({ section, q })
+  // 위험 관련만 보는 중이면(고정 보기가 아닐 때) 섹션·검색어처럼 거른 결과로 본다
+  const riskOnly = risk && !pinned
   // 섹션을 골랐을 때만 그 섹션 변화를 묻는 버튼을 둔다(목차 밖 본문은 빼고)
   const sectionQuestion = sectionAskQuestion(section)
   const clearFilters = () => {
     searchBox.setInput('')
-    onChange({ type: null, section: null, q: null })
+    onChange({ type: null, section: null, q: null, risk: false })
   }
   const showPinned = () => {
     searchBox.setInput('')
@@ -171,6 +180,9 @@ export function TextTab({
         <Notice tone="attention" role="status">
           {notice}
         </Notice>
+      )}
+      {!failed && (
+        <RiskChangesCard counts={riskCounts} risk={riskOnly} searched={searched} onToggle={(next) => onChange({ risk: next })} />
       )}
       {!failed && (
         <div className="text-search">
@@ -296,14 +308,14 @@ export function TextTab({
           .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} />)
           .with({ status: 'success' }, ({ data, items, more }) => (
             <>
-              {filtered && items.length > 0 && (
+              {(searched || riskOnly) && items.length > 0 && (
                 <p className="panel__note" role="status">
                   조건에 맞는 변경 {resultCountLabel(data.totalItems)}
                 </p>
               )}
               {items.length === 0 &&
-                match({ filtered, type })
-                  .with({ filtered: true }, () => (
+                match({ searched, riskOnly, type })
+                  .with({ searched: true }, () => (
                     <EmptyState title="찾는 문장이 없어요">
                       <p>섹션이나 검색어를 바꾸거나, 조건을 지우고 전체 변경을 볼 수 있어요.</p>
                       <Button variant="secondary" onClick={clearFilters}>
@@ -311,8 +323,15 @@ export function TextTab({
                       </Button>
                     </EmptyState>
                   ))
-                  .with({ filtered: false, type: null }, () => <EmptyState title="두 보고서 사이에 바뀐 문장·표가 없어요." />)
-                  .with({ filtered: false, type: P.nonNullable }, ({ type: current }) => (
+                  .with({ searched: false, riskOnly: true }, () => (
+                    <EmptyState title={RISK_EMPTY}>
+                      <Button variant="secondary" onClick={() => onChange({ risk: false })}>
+                        전체 변경 보기
+                      </Button>
+                    </EmptyState>
+                  ))
+                  .with({ searched: false, riskOnly: false, type: null }, () => <EmptyState title="두 보고서 사이에 바뀐 문장·표가 없어요." />)
+                  .with({ searched: false, riskOnly: false, type: P.nonNullable }, ({ type: current }) => (
                     <EmptyState title={`${typeFilterLabel(current)} 항목이 없어요.`}>
                       <p>'전체'를 고르면 다른 유형의 변화도 볼 수 있어요.</p>
                     </EmptyState>
@@ -415,6 +434,7 @@ function ChangeCard({ item, analysis, showTypeNote, selected, pinned, explanatio
         {item.priority && <Badge>{priorityLabel(item.priority.level)}</Badge>}
         {item.blockType === 'TABLE' && <Badge>표</Badge>}
         {showsNumbersOnlyMark(item) && <Badge>숫자만 바뀜</Badge>}
+        {item.riskRelated && <Badge>{RISK_BADGE}</Badge>}
         <Button
           variant="icon"
           className="change-card__pin"

@@ -175,6 +175,7 @@ describe('pinnedChangesText', () => {
     similarity: 0.8,
     reviewReason: null,
     priority: null,
+    riskRelated: false,
     ...over,
   })
 

@@ -22,14 +22,16 @@ export interface TextListFilter {
   section: string | null
   /** 2자 이상 검색어(3.7) */
   q: string | null
+  /** 위험 관련 목차의 변경만(3.9) */
+  risk: boolean
 }
 
 /**
  * 문장 변화 목록(3.9)과 '더 보기'. 거르기·정렬·섹션·검색어가 바뀌거나 언마운트하면 진행 중인 요청을 취소한다(ST-5).
  * type은 실제로 쓴 유형 거르기, contentAvailable은 '내용 변경' 칩을 보일지다(#304).
- * counts·sections는 마지막으로 받은 건수로, 다시 불러오는 동안에도 거르기 단추·섹션 선택의 건수를 그대로 둔다.
+ * counts·sections·riskCounts는 마지막으로 받은 건수로, 다시 불러오는 동안에도 거르기 단추·섹션 선택·위험 요인 카드의 건수를 그대로 둔다.
  */
-export function useTextChanges(analysisId: number, { type: requestedType, sort, section, q }: TextListFilter) {
+export function useTextChanges(analysisId: number, { type: requestedType, sort, section, q, risk }: TextListFilter) {
   const [state, dispatch] = useReducer(textListReducer, { status: 'loading' })
   // 숫자만 바뀜·위치 이동이 있는 분석인지(#304). 첫 응답 전에는 모른다(null)
   const [contentAvailable, setContentAvailable] = useState<boolean | null>(null)
@@ -41,7 +43,7 @@ export function useTextChanges(analysisId: number, { type: requestedType, sort, 
     const controller = new AbortController()
     const more = moreRequest
     dispatch({ type: 'load-start' })
-    getTextChanges(analysisId, { types: apiTypesOf(type), sort, section, q, page: 0, size: TEXT_PAGE_SIZE }, controller.signal).then(
+    getTextChanges(analysisId, { types: apiTypesOf(type), sort, section, q, risk, page: 0, size: TEXT_PAGE_SIZE }, controller.signal).then(
       (data) => {
         if (!controller.signal.aborted) dispatch({ type: 'load-success', data })
       },
@@ -53,13 +55,15 @@ export function useTextChanges(analysisId: number, { type: requestedType, sort, 
       controller.abort()
       more.current?.abort()
     }
-  }, [analysisId, type, sort, section, q, attempt])
+  }, [analysisId, type, sort, section, q, risk, attempt])
 
   const [counts, setCounts] = useState<TextChangeCounts | null>(null)
   const [sections, setSections] = useState<TextSectionCount[] | null>(null)
+  const [riskCounts, setRiskCounts] = useState<TextChangeCounts | null>(null)
   if (state.status === 'success' && state.data.counts !== counts) {
     setCounts(state.data.counts)
     setSections(state.data.sections)
+    setRiskCounts(state.data.riskCounts)
     setContentAvailable(nextContentAvailable(contentAvailable, state.data.counts))
   }
 
@@ -68,7 +72,7 @@ export function useTextChanges(analysisId: number, { type: requestedType, sort, 
     const controller = new AbortController()
     moreRequest.current = controller
     dispatch({ type: 'more-start' })
-    const query = { types: apiTypesOf(type), sort, section, q, page: state.data.page + 1, size: TEXT_PAGE_SIZE }
+    const query = { types: apiTypesOf(type), sort, section, q, risk, page: state.data.page + 1, size: TEXT_PAGE_SIZE }
     getTextChanges(analysisId, query, controller.signal).then(
       (data) => {
         if (!controller.signal.aborted) dispatch({ type: 'more-success', data })
@@ -80,7 +84,7 @@ export function useTextChanges(analysisId: number, { type: requestedType, sort, 
   }
 
   const reload = useCallback(() => setAttempt((n) => n + 1), [])
-  return { state, counts, sections, contentAvailable, type, reload, loadMore }
+  return { state, counts, sections, riskCounts, contentAvailable, type, reload, loadMore }
 }
 
 /** 문장·표 변경 하나의 원문 근거(3.4) */
