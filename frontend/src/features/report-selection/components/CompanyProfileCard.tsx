@@ -1,8 +1,8 @@
 import { useId } from 'react'
 import { match, P } from 'ts-pattern'
 import type { CompanyOverview } from '@/shared/api/companies'
-import { Notice, Panel, PanelTitle } from '@/shared/ui'
-import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
+import { Notice, Panel, PanelTitle, Skeleton } from '@/shared/ui'
+import { EmptyState, ErrorState } from '@/shared/ui/StateView'
 import { formatDate } from '@/shared/lib/reportLabels'
 import { overviewFacts, type OverviewFact } from '../model/companyOverview'
 import { useCompanyOverview } from '../hooks/useCompanyOverview'
@@ -30,7 +30,7 @@ export function CompanyProfileCard({ corpCode }: OverviewSectionProps) {
       <PanelTitle id={titleId}>기업 개황</PanelTitle>
       {match(state)
         .with({ status: 'loading' }, () => (
-          <LoadingState message="기업 개황을 불러오는 중입니다… 처음 여는 기업은 OpenDART에서 받아 오느라 조금 걸려요." />
+          <Skeleton label="기업 개황을 불러오는 중입니다… 처음 여는 기업은 OpenDART에서 받아 오느라 조금 걸려요." shape="line" count={6} />
         ))
         .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} messages={errorMessages} />)
         .with({ status: 'success', data: { available: false } }, () => (

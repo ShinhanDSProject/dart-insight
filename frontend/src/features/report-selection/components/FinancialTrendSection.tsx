@@ -5,8 +5,8 @@ import type { ReportType } from '@/shared/api/reports'
 import { formatCompactAmount, position } from '@/shared/lib/chartScale'
 import { dartViewerUrl, verifiedDartUrl } from '@/shared/lib/dart'
 import { reportTypeLabel } from '@/shared/lib/reportLabels'
-import { Button, DataTable, Notice, Panel, PanelTitle, SegmentedControl, type SegmentOption } from '@/shared/ui'
-import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
+import { Button, DataTable, Notice, Panel, PanelTitle, SegmentedControl, Skeleton, type SegmentOption } from '@/shared/ui'
+import { EmptyState, ErrorState } from '@/shared/ui/StateView'
 import { useFinancialTrends } from '../hooks/useFinancialTrends'
 import {
   accountSummary,
@@ -79,7 +79,7 @@ export function FinancialTrendSection({ corpCode }: { corpCode: string }) {
         <SegmentedControl aria-label="재무제표 기준" options={fsDivOptions} value={fsDiv} onChange={setFsDiv} />
       </div>
       {match(state)
-        .with({ status: 'loading' }, () => <LoadingState message="주요 재무 흐름을 불러오는 중이에요…" />)
+        .with({ status: 'loading' }, () => <Skeleton label="주요 재무 흐름을 불러오는 중이에요…" shape="card" count={3} />)
         .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} messages={errorMessages} />)
         .with({ status: 'success' }, ({ data }) => <TrendBody trend={data} onRetry={reload} />)
         .exhaustive()}
