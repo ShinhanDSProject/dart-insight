@@ -170,7 +170,9 @@ class AnalysisApiTest {
                 .andExpect(jsonPath("$.items", hasSize(1)))
                 .andExpect(jsonPath("$.items[0].previousAmount").value(55))
                 .andExpect(jsonPath("$.items[0].currentAmount").value(70))
-                .andExpect(jsonPath("$.items[0].changeAmount").value(15));
+                .andExpect(jsonPath("$.items[0].changeAmount").value(15))
+                // 자본변동표가 아니면 계정 상세는 null(#401)
+                .andExpect(jsonPath("$.items[0].accountDetail").value(nullValue()));
         assertThat(analysisRepository.findById(id).orElseThrow().getRequestTraceId())
                 .isEqualTo("trace-analysis-1");
     }

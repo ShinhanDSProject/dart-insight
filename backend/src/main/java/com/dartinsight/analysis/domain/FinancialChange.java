@@ -42,6 +42,10 @@ public class FinancialChange {
     @Column(name = "account_name", nullable = false, length = 200)
     private String accountName;
 
+    /** 자본변동표의 계정 상세(자본 구성요소). 다른 재무제표는 null(#401) */
+    @Column(name = "account_detail", length = 500)
+    private String accountDetail;
+
     @Column(name = "display_order", nullable = false)
     private int displayOrder;
 
@@ -98,6 +102,7 @@ public class FinancialChange {
         c.fsDiv = row.fsDiv();
         c.accountKey = row.accountKey();
         c.accountName = row.accountName();
+        c.accountDetail = row.accountDetail();
         c.displayOrder = row.displayOrder();
         c.amountBasis = row.amountBasis();
         c.previousAmount = row.previousAmount();
@@ -154,6 +159,10 @@ public class FinancialChange {
 
     public String getAccountName() {
         return accountName;
+    }
+
+    public String getAccountDetail() {
+        return accountDetail;
     }
 
     public int getDisplayOrder() {

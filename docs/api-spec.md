@@ -1169,6 +1169,7 @@
       "changeId": 901,
       "sjDiv": "IS",
       "accountName": "매출액",
+      "accountDetail": null,
       "amountBasis": "CUMULATIVE",
       "previousAmount": 145000000000000,
       "currentAmount": 152000000000000,
@@ -1185,6 +1186,7 @@
 
 | 필드 | 설명 |
 | --- | --- |
+| `accountDetail` | 자본변동표의 계정 상세(OpenDART `account_detail`, 자본 구성요소). 자본변동표는 같은 계정명(예: 기초자본)이 구성요소마다 여러 줄이라 이 값으로 구분한다. 다른 재무제표는 null(#401) |
 | `direction` | `UP`, `DOWN`, `SAME`. 계산하지 못하면 null |
 | `calcStatus` | ERD의 `financial_change.calc_status`와 같은 값 |
 | `calcMessage` | 계산하지 못한 사유(예: "이전 값이 0이라 증감률을 계산하지 않습니다.") |
@@ -1212,6 +1214,7 @@
 {
   "changeId": 901,
   "accountName": "매출액",
+  "accountDetail": null,
   "accountKey": "ifrs-full_Revenue",
   "fsDiv": "CFS",
   "currency": "KRW",

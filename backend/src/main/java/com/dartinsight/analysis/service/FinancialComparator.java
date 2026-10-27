@@ -240,10 +240,14 @@ public final class FinancialComparator {
                 : prev != null ? prev.getCurrency() : null;
         Evidence prevEvidence = evidence(prev);
         Evidence curEvidence = evidence(cur);
+        // 자본변동표는 같은 계정명이 자본 구성요소마다 있어 계정 상세로 구분해 보여 준다(#401)
+        String detail = rule.type() != StatementType.SCE ? null
+                : cur != null && cur.getAccountDetail() != null ? cur.getAccountDetail()
+                : prev != null ? prev.getAccountDetail() : null;
 
         if (!rule.comparable()) {
             return new FinancialChangeRow(sjDiv, fsDiv, key, name, order, null, null, null, null, null,
-                    CalcStatus.PERIOD_MISMATCH, currency, prevEvidence, curEvidence);
+                    CalcStatus.PERIOD_MISMATCH, currency, prevEvidence, curEvidence, detail);
         }
         AmountBasis basis = rule.amountBasis();
         Long prevAmount = prev == null ? null : amount(prev, rule.type(), basis, prevType);
@@ -271,7 +275,7 @@ public final class FinancialComparator {
             }
         }
         return new FinancialChangeRow(sjDiv, fsDiv, key, name, order, basis, prevAmount, curAmount, change, rate,
-                status, currency, prevEvidence, curEvidence);
+                status, currency, prevEvidence, curEvidence, detail);
     }
 
     /**

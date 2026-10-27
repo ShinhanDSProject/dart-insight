@@ -262,6 +262,17 @@ class FinancialComparatorTest {
 
         assertThat(find(rows, "SCE", "ifrs-full_Equity|이익잉여금[member]").changeAmount()).isEqualTo(20L);
         assertThat(find(rows, "SCE", "ifrs-full_Equity|자본금[member]").direction()).isEqualTo("SAME");
+        // 같은 계정명을 화면에서 구분하도록 원래 계정 상세(공백 그대로)를 결과에 남긴다(#401)
+        assertThat(find(rows, "SCE", "ifrs-full_Equity|이익잉여금[member]").accountDetail()).isEqualTo("이익잉여금 [member]");
+    }
+
+    @Test
+    void onlyEquityChangesKeepAccountDetail() {
+        List<FinancialChangeRow> rows = compare(ReportType.HALF, ReportType.HALF,
+                List.of(account(PREV, "IS", "rev", "매출액", 1, 30L, 55L)),
+                List.of(account(CUR, "IS", "rev", "매출액", 1, 40L, 70L)));
+
+        assertThat(rows).extracting(FinancialChangeRow::accountDetail).containsOnlyNulls();
     }
 
     @Test

@@ -23,6 +23,7 @@ public record FinancialChangeDetailResponse(
         Long changeId,
         String sjDiv,
         String accountName,
+        String accountDetail,
         String accountKey,
         FsDiv fsDiv,
         AmountBasis amountBasis,
@@ -40,7 +41,8 @@ public record FinancialChangeDetailResponse(
         Source current) {
 
     public static FinancialChangeDetailResponse of(FinancialChange c, Report previous, Report current) {
-        return new FinancialChangeDetailResponse(c.getId(), c.getSjDiv(), c.getAccountName(), c.getAccountKey(),
+        return new FinancialChangeDetailResponse(c.getId(), c.getSjDiv(), c.getAccountName(), c.getAccountDetail(),
+                c.getAccountKey(),
                 c.getFsDiv(), c.getAmountBasis(), c.getPreviousAmount(), c.getCurrentAmount(), c.getChangeAmount(),
                 c.getChangeRate(), c.direction(), c.getCalcStatus(), c.getCalcStatus().message(), c.getCurrency(),
                 formula(c), rateFormula(c),

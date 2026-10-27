@@ -117,7 +117,8 @@ final class QuestionFacts {
     private static FinancialChangeRow row(FinancialChange c) {
         return new FinancialChangeRow(c.getSjDiv(), c.getFsDiv(), c.getAccountKey(), c.getAccountName(),
                 c.getDisplayOrder(), c.getAmountBasis(), c.getPreviousAmount(), c.getCurrentAmount(),
-                c.getChangeAmount(), c.getChangeRate(), c.getCalcStatus(), c.getCurrency(), null, null);
+                c.getChangeAmount(), c.getChangeRate(), c.getCalcStatus(), c.getCurrency(), null, null,
+                c.getAccountDetail());
     }
 
     private record Candidate(int position, FinancialChange change) {

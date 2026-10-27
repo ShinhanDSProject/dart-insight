@@ -11,6 +11,7 @@ import java.math.BigDecimal;
  * @param amountBasis  비교한 금액 기준. 기간 기준이 달라 비교하지 않으면 null
  * @param changeAmount 현재 값 − 이전 값. 계산하지 않으면 null
  * @param changeRate   증감액 ÷ 이전 값(소수 6자리). 계산하지 않으면 null
+ * @param accountDetail 자본변동표의 계정 상세(OpenDART account_detail, 자본 구성요소). 다른 재무제표는 null(#401)
  */
 public record FinancialChangeRow(
         String sjDiv,
@@ -26,7 +27,16 @@ public record FinancialChangeRow(
         CalcStatus calcStatus,
         String currency,
         Evidence previous,
-        Evidence current) {
+        Evidence current,
+        String accountDetail) {
+
+    /** 계정 상세가 없는 행(자본변동표가 아닌 재무제표) */
+    public FinancialChangeRow(String sjDiv, FsDiv fsDiv, String accountKey, String accountName, int displayOrder,
+            AmountBasis amountBasis, Long previousAmount, Long currentAmount, Long changeAmount, BigDecimal changeRate,
+            CalcStatus calcStatus, String currency, Evidence previous, Evidence current) {
+        this(sjDiv, fsDiv, accountKey, accountName, displayOrder, amountBasis, previousAmount, currentAmount,
+                changeAmount, changeRate, calcStatus, currency, previous, current, null);
+    }
 
     /**
      * 수치의 근거. 계정이 그 보고서에 없으면 null.

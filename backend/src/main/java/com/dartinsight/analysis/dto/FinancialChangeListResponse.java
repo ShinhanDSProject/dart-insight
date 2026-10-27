@@ -32,6 +32,7 @@ public record FinancialChangeListResponse(Long analysisId, FsDiv fsDiv, String s
             Long changeId,
             String sjDiv,
             String accountName,
+            String accountDetail,
             AmountBasis amountBasis,
             Long previousAmount,
             Long currentAmount,
@@ -43,7 +44,8 @@ public record FinancialChangeListResponse(Long analysisId, FsDiv fsDiv, String s
             String currency) {
 
         public static FinancialChangeItem from(FinancialChange c) {
-            return new FinancialChangeItem(c.getId(), c.getSjDiv(), c.getAccountName(), c.getAmountBasis(),
+            return new FinancialChangeItem(c.getId(), c.getSjDiv(), c.getAccountName(), c.getAccountDetail(),
+                    c.getAmountBasis(),
                     c.getPreviousAmount(), c.getCurrentAmount(), c.getChangeAmount(), c.getChangeRate(),
                     c.direction(), c.getCalcStatus(), c.getCalcStatus().message(), c.getCurrency());
         }
