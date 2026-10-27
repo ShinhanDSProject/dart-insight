@@ -18,7 +18,7 @@ class RelatedDisclosureMatcherTest {
     private static final String PREV = "20250814000001";
     private static final LocalDate PERIOD_END = LocalDate.of(2026, 6, 30);
     private static final String PLAIN = "III. 재무에 관한 사항 > 1. 요약재무정보";
-    private static final String LAWSUIT = "XI. 그 밖에 > 2. 우발부채 등";
+    private static final String LAWSUIT = "XI. 그 밖에 > 2. 우발부채 등 > 가. 중요한 소송사건";
     private static final String LAWSUIT_TITLE = "주요사항보고서(소송등의제기)";
 
     private static long nextId = 1;

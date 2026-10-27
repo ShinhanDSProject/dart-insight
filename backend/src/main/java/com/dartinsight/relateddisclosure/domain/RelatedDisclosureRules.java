@@ -18,12 +18,19 @@ import java.util.stream.Collectors;
  * earnings '잠정실적' → '(잠정)실적', debt-financing에서 '자기주식' 뺌(주주환원 공시만 걸림), restructuring '분할' →
  * '회사분할'(주식분할 제외). 자회사 공시는 결정 로그가 정해질 때까지 빼지 않는다.
  *
+ * <p>related-3에서 M8 측정(#345)에 맞춰 변경 쪽 낱말을 좁혔다(ADR-0038): 소송 섹션 '우발부채', 공급계약 섹션 '주요계약'과
+ * 글 '계약'·'공급', 자본 조달 섹션·글 '자본금'과 섹션 '주식의총수', 투자 글 '취득'·'투자'를 빼거나 더 구체적인 말로 바꾸고,
+ * 실적은 섹션 경로에 '재무제표'가 있을 때만 본다.
+ *
  * <p>결과가 달라지게 바꾸면 {@link #RULE_VERSION}을 올린다(분석 버전은 올리지 않는다. 다음 요청 때 새 버전으로 다시 계산).
  */
 public final class RelatedDisclosureRules {
 
-    /** 연결 규칙 버전. related_disclosure_run.rule_version. related-2: 주요정보로 '내용 일치' 판정을 더함(#341) */
-    public static final String RULE_VERSION = "related-2";
+    /**
+     * 연결 규칙 버전. related_disclosure_run.rule_version. related-2: 주요정보로 '내용 일치' 판정을 더함(#341).
+     * related-3: 변경 쪽 낱말을 좁히고 소송 '내용 일치'에 사건 명칭을 요구함(#436, ADR-0038)
+     */
+    public static final String RULE_VERSION = "related-3";
 
     private static final Pattern SPACES = Pattern.compile("\\s+");
     /** 앞머리 꼬리표 중 정정을 뜻하는 것([기재정정]·[첨부정정] 등) */
@@ -34,13 +41,23 @@ public final class RelatedDisclosureRules {
      * @param sectionWords  섹션 경로에 대는 낱말(공백 없음)
      * @param textWords     변경 글에 대는 낱말(공백 없음)
      * @param titlePatterns 정리한 공시 제목에 대는 패턴(공백 없음)
+     * @param requiredSectionWords 섹션 경로가 이 낱말 중 하나를 품을 때만 이 규칙을 본다(공백 없음, 비면 제한 없음)
      */
     /** @param label 화면 이름(기획서의 짝 이름, api-spec matchRuleLabel) */
     public record Rule(String key, String label, List<String> sectionWords, List<String> textWords,
-            List<String> titlePatterns) {
+            List<String> titlePatterns, List<String> requiredSectionWords) {
 
-        /** 정리한 섹션 경로·글(공백 없음) 중 하나라도 낱말이 들어 있는지 */
+        Rule(String key, String label, List<String> sectionWords, List<String> textWords,
+                List<String> titlePatterns) {
+            this(key, label, sectionWords, textWords, titlePatterns, List.of());
+        }
+
+        /** 정리한 섹션 경로·글(공백 없음) 중 하나라도 낱말이 들어 있는지. 섹션 조건이 있으면 그것부터 본다 */
         boolean matchesChange(List<String> compactPaths, String compactText) {
+            if (!requiredSectionWords.isEmpty()
+                    && compactPaths.stream().noneMatch(path -> containsAny(path, requiredSectionWords))) {
+                return false;
+            }
             for (String path : compactPaths) {
                 if (containsAny(path, sectionWords)) {
                     return true;
@@ -58,16 +75,16 @@ public final class RelatedDisclosureRules {
     /** 규칙 사전. 순서가 한 쌍에 남길 규칙의 우선순위다 */
     public static final List<Rule> RULES = List.of(
             new Rule("litigation", "소송",
-                    List.of("우발부채", "소송"),
+                    List.of("소송"),
                     List.of("소송", "소제기", "판결", "손해배상"),
                     List.of("소송등의제기", "판결", "소송")),
             new Rule("supply-contract", "공급계약",
-                    List.of("주요계약", "수주"),
-                    List.of("계약", "수주", "공급"),
+                    List.of("수주"),
+                    List.of("공급계약", "판매계약", "수주"),
                     List.of("단일판매", "공급계약")),
             new Rule("equity-financing", "자본 조달",
-                    List.of("자본금", "주식의총수"),
-                    List.of("유상증자", "신주", "자본금"),
+                    List.of(),
+                    List.of("유상증자", "신주"),
                     List.of("유상증자", "무상증자", "감자")),
             new Rule("debt-financing", "빚 조달",
                     List.of("차입금", "사채"),
@@ -75,7 +92,7 @@ public final class RelatedDisclosureRules {
                     List.of("전환사채", "신주인수권부사채", "교환사채")),
             new Rule("investment", "투자",
                     List.of("종속회사", "관계회사"),
-                    List.of("취득", "출자", "투자"),
+                    List.of("타법인", "출자", "양수", "유형자산취득", "시설투자", "관계기업"),
                     List.of("타법인주식", "출자증권취득", "유형자산취득", "신규시설투자")),
             new Rule("restructuring", "사업 구조 변경",
                     List.of("사업의내용"),
@@ -85,11 +102,13 @@ public final class RelatedDisclosureRules {
                     List.of(),
                     List.of("계속기업", "회생", "부도"),
                     List.of("회생절차", "부도", "해산")),
-            // 기획서는 재무 수치 변경 쪽이지만 재무 변경 연결은 이번 범위 밖이라 문장의 계정 이름으로 본다
+            // 기획서는 재무 수치 변경 쪽이지만 재무 변경 연결은 이번 범위 밖이라 문장의 계정 이름으로 본다.
+            // 잠정실적은 재무제표 수치와 같은 실적이라 재무제표 섹션에서만 본다(ADR-0038)
             new Rule("earnings", "실적",
                     List.of(),
                     List.of("매출액", "영업이익", "당기순이익"),
-                    List.of("(잠정)실적", "매출액또는손익구조")));
+                    List.of("(잠정)실적", "매출액또는손익구조"),
+                    List.of("재무제표")));
 
     /** 관련 수시공시 영역 맨 아래에 늘 보여 주는 고정 문구(ADR-0030) */
     public static final String NOTICE = "같은 기간에 공개된 관련 공시입니다. 변경의 원인을 뜻하지 않습니다.";

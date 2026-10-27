@@ -19,9 +19,9 @@ import java.util.regex.Pattern;
  * <ul>
  *   <li>유상증자({@link KeyItemKind#CAPITAL_INCREASE}): 신주 수(보통·기타). 쉼표를 뺀 4자리 이상 숫자가 글에 같은 숫자로
  *       있으면(앞뒤에 다른 숫자가 붙지 않음) {@link #NEW_SHARES}</li>
- *   <li>소송({@link KeyItemKind#LITIGATION}): 원고·신청인(쉼표 등으로 나눈 이름마다, 회사 자신은 뺌)이 글에 있으면
- *       {@link #PLAINTIFF}. 사건의 명칭은 '항소'처럼 흔한 말이 많아 원고가 맞았을 때만 공백을 뺀 글에 있는지 보고
- *       {@link #CASE_NAME}을 더한다(ADR-0032)</li>
+ *   <li>소송({@link KeyItemKind#LITIGATION}): 원고·신청인(쉼표 등으로 나눈 이름마다, 회사 자신은 뺌)과 사건의 명칭이
+ *       함께 글에 있을 때만 {@link #PLAINTIFF}·{@link #CASE_NAME}. 원고만 맞으면 다른 사건인 경우가 많아 일치로 보지 않는다.
+ *       사건의 명칭은 끝의 흔한 꼬리('의 소'·'소송'·'신청서' 등)를 뗀 핵심이 공백을 뺀 글에 있는지 본다(ADR-0038)</li>
  *   <li>양수({@link KeyItemKind#STOCK_ACQUISITION}): 발행회사 이름이 글에 있으면 {@link #TARGET_COMPANY}. 발행회사 이름에
  *       '(구: …)'가 있으면 옛 사명도 본다. 글 쪽 '㈜새 사명(구: 옛 사명)'은 옛 사명이 글 안에 그대로 있어 걸린다</li>
  * </ul>
@@ -47,7 +47,11 @@ public final class KeyItemMatcher {
     private static final Pattern OTHERS_SUFFIX = Pattern.compile("외\\s*\\d+\\s*(?:인|명|사|개사)?$");
     /** '(구: 옛 사명)'·'(구 옛 사명)'. '(구로지점)'처럼 '구' 뒤에 콜론·공백이 없으면 옛 사명으로 보지 않는다 */
     private static final Pattern FORMER_NAME = Pattern.compile("\\(\\s*구\\s*[:：\\s]\\s*([^)]+)\\)");
+    /** 사건 명칭 끝에서 떼는 꼬리. 긴 것부터 본다('신청서'를 '신청'보다 먼저) */
+    private static final List<String> CASE_NAME_TAILS = List.of("신청서", "신청", "사건", "의소", "소송", "청구");
     private static final int MIN_NAME = 2;
+    /** 이보다 짧은 사건 명칭 핵심('항소' 등)은 대조하지 않는다 */
+    private static final int MIN_CASE_CORE = 4;
     private static final int MIN_SHARES_DIGITS = 4;
 
     private KeyItemMatcher() {
@@ -71,11 +75,9 @@ public final class KeyItemMatcher {
                 }
             }
             case LITIGATION -> {
-                if (hasPlaintiff(keyItems, text, companyName)) {
+                if (hasPlaintiff(keyItems, text, companyName) && hasCaseName(keyItems, text)) {
                     fields.add(PLAINTIFF);
-                    if (hasCaseName(keyItems, text)) {
-                        fields.add(CASE_NAME);
-                    }
+                    fields.add(CASE_NAME);
                 }
             }
             case STOCK_ACQUISITION -> {
@@ -124,10 +126,27 @@ public final class KeyItemMatcher {
 
     private static boolean hasCaseName(DisclosureKeyItems keyItems, String text) {
         return value(keyItems, "icnm")
-                .map(KeyItemMatcher::compact)
-                .filter(caseName -> caseName.length() >= MIN_NAME)
-                .map(caseName -> compact(text).contains(caseName))
+                .map(KeyItemMatcher::caseNameCore)
+                .filter(core -> core.length() >= MIN_CASE_CORE)
+                .map(core -> compact(text).contains(core))
                 .orElse(false);
+    }
+
+    /** 공백을 빼고 끝의 흔한 꼬리(CASE_NAME_TAILS)를 더 뗄 것이 없을 때까지 뗀 사건 명칭. '신주발행무효의 소' → '신주발행무효' */
+    static String caseNameCore(String caseName) {
+        String core = compact(caseName);
+        boolean cut = true;
+        while (cut) {
+            cut = false;
+            for (String tail : CASE_NAME_TAILS) {
+                if (core.length() > tail.length() && core.endsWith(tail)) {
+                    core = core.substring(0, core.length() - tail.length());
+                    cut = true;
+                    break;
+                }
+            }
+        }
+        return core;
     }
 
     private static boolean hasTargetCompany(DisclosureKeyItems keyItems, String text) {

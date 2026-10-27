@@ -142,9 +142,9 @@ class RelatedDisclosureServiceTest {
     /** change_no 1: 신주 수, 2: 소송 원고·사건 명칭(신주 낱말도 있음), 3: 양수 대상 옛 사명, 4: 다른 소송 */
     private Long keyItemAnalysis() {
         return completedAnalysis(List.of(
-                added("I. 회사의 개요 > 3. 자본금 변동사항", "보고기간 후 보통주 9,900,990주를 발행하였습니다."),
-                added(LAWSUIT_PATH, "주식회사 엠제이파트너스가 신주발행무효의 소를 제기하였습니다."),
-                added("III. 재무에 관한 사항 > 3. 연결재무제표 주석", "㈜아틀라스링크(구: 알로이스) 지분을 취득하였습니다."),
+                added("I. 회사의 개요 > 3. 자본금 변동사항", "보고기간 후 유상증자로 보통주 9,900,990주를 발행하였습니다."),
+                added(LAWSUIT_PATH, "주식회사 엠제이파트너스가 신주발행무효의 소송을 제기하였습니다."),
+                added("III. 재무에 관한 사항 > 3. 연결재무제표 주석", "㈜아틀라스링크(구: 알로이스) 주식을 양수하였습니다."),
                 added(LAWSUIT_PATH, "다른 소송이 있습니다.")));
     }
 

@@ -115,8 +115,8 @@ class RelatedDisclosureApiTest {
         // change_no 1: 신주 수, 2: 소송 원고·사건 명칭(신주 낱말도 있음), 3: 어느 규칙에도 안 걸림
         analysisId = save(analysis());
         resultService.saveAndComplete(analysisId, List.of(), new TextComparison(TextStatus.COMPLETED, null, List.of(
-                added("I. 회사의 개요 > 3. 자본금 변동사항", "보고기간 후 보통주 9,900,990주를 발행하였습니다."),
-                added(LAWSUIT_PATH, "주식회사 엠제이파트너스가 신주발행무효의 소를 제기하였습니다."),
+                added("I. 회사의 개요 > 3. 자본금 변동사항", "보고기간 후 유상증자로 보통주 9,900,990주를 발행하였습니다."),
+                added(LAWSUIT_PATH, "주식회사 엠제이파트너스가 신주발행무효의 소송을 제기하였습니다."),
                 added("III. 재무에 관한 사항 > 1. 요약재무정보", "매출이 늘었습니다."))));
         // 소송, 기간 뒤에 정정된 유상증자 원본(비고 '정'). I001·I002는 없다
         SERVER.on(LIST,
@@ -191,7 +191,7 @@ class RelatedDisclosureApiTest {
                 .andExpect(jsonPath("$.window.from").value("2025-06-30"))
                 .andExpect(jsonPath("$.window.periodEnd").value("2026-06-30"))
                 .andExpect(jsonPath("$.window.to").value("2026-08-14"))
-                .andExpect(jsonPath("$.ruleVersion").value("related-2"))
+                .andExpect(jsonPath("$.ruleVersion").value("related-3"))
                 .andExpect(jsonPath("$.computedAt").value(notNullValue()))
                 .andExpect(jsonPath("$.cached").value(false))
                 .andExpect(jsonPath("$.items", hasSize(2)))
@@ -266,7 +266,7 @@ class RelatedDisclosureApiTest {
                 .andExpect(jsonPath("$.unavailableReason").value("DART_RATE_LIMITED"))
                 .andExpect(jsonPath("$.partial").value(false))
                 .andExpect(jsonPath("$.window.from").value("2025-06-30"))
-                .andExpect(jsonPath("$.ruleVersion").value("related-2"))
+                .andExpect(jsonPath("$.ruleVersion").value("related-3"))
                 .andExpect(jsonPath("$.computedAt").value(notNullValue()))
                 .andExpect(jsonPath("$.cached").value(false))
                 .andExpect(jsonPath("$.items", hasSize(0)))
