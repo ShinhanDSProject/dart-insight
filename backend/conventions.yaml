@@ -14,6 +14,12 @@ layer:
   LY-1: 컨트롤러는 Service만 부른다. Repository·Store·JdbcTemplate 직접 사용 금지 [archunit]
   LY-2: 외부 호출(OpenDART·ai-server)은 트랜잭션 밖에서. 저장만 TransactionTemplate·@Transactional로 묶는다 [adr:0003]
   LY-3: 경로는 ApiPaths(컨트롤러)·AiServerPaths·OpenDartPaths 상수만. 클래스 단위 @RequestMapping
+slap:  # What과 How를 나누고 메서드 하나는 한 추상화 수준(SLAP)으로 쓴다
+  SLAP-1: "Service는 유스케이스 흐름(What)만 선언적으로 쓴다: 찾기 → 규칙 적용 → 저장 → 응답 재료. 문자열 파싱·정규식, 산출식·비율 계산, 행 맞추기·그룹짓기 같은 How는 domain(규칙·값 record·엔티티 메서드)이나 같은 도메인의 helper(순수 함수 클래스)로 옮기고 Service는 이름으로 부른다"
+  SLAP-2: "Entity·domain은 비즈니스 규칙과 상태 변이를 갖는다(전이·검증·계산·판정). Service가 엔티티 필드를 꺼내 판단하지 않고 엔티티·값 객체에 묻는다(Tell, don't ask)"
+  SLAP-3: "Repository·Store는 영속화와 조회 기술(SQL·JdbcTemplate·쿼리 조건)을 전담한다. Service에 SQL·JdbcTemplate·EntityManager를 두지 않는다 [LY-1과 함께]"
+  SLAP-4: "Controller는 요청 검증·DTO 변환(Response.from/of)·라우팅만 한다. 분기·계산·스트림 가공이 필요하면 Service나 응답 record의 정적 팩터리로 옮긴다"
+  SLAP-5: "순수 계산·규칙 클래스는 service 패키지가 아니라 domain(또는 그 도메인의 rule·policy 클래스)에 둔다. 상태 없는 static 메서드면 단위 테스트를 같이 둔다"
 di:
   DI-1: "Spring 빈(Service·Controller·Client·Store 등)은 private final 필드 + @RequiredArgsConstructor로 주입받는다. 인자를 필드에 대입만 하는 생성자는 손으로 쓰지 않는다. 생성자 안에서 값을 만들거나 계산해야 할 때만(예: AnalysisRunner의 실행기, OpenDartClient의 RestClient) 생성자를 직접 쓴다. 필드 주입(@Autowired 필드) 금지. Lombok은 이 용도에만 쓴다"
 dto:
