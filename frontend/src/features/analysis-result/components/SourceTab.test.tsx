@@ -2,18 +2,22 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Analysis } from '@/shared/api/analyses'
-import type { DocumentOutline, SectionItem } from '@/shared/api/documents'
+import type { DocumentOutline, SectionItem, SourceBlock } from '@/shared/api/documents'
 import type { TextSectionCount } from '@/shared/api/textChanges'
 import { axeViolations } from '@/test/axe'
 import { SourceTab } from './SourceTab'
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  sectionState.value = { status: 'loading' }
+})
 
 // 목차만 보려고 원문 훅은 고정된 목차를 돌려주고, 항목 본문은 불러오는 중으로 둔다
 const outline = vi.hoisted(() => ({ data: null as DocumentOutline | null }))
+const sectionState = vi.hoisted(() => ({ value: { status: 'loading' } as unknown }))
 vi.mock('../hooks/useDocument', () => ({
   useDocumentOutline: () => ({ state: { status: 'success', data: outline.data }, reload: () => {} }),
-  useSection: () => ({ state: { status: 'loading' }, reload: () => {} }),
+  useSection: () => ({ state: sectionState.value, reload: () => {} }),
 }))
 
 const RCEPT_NO = '20250814000123'
@@ -51,13 +55,15 @@ const counts: TextSectionCount[] = [
   { title: 'IV. 이사의 경영진단 및 분석의견', count: 7 },
 ]
 
-function renderTab(overrides: { onChange?: () => void; onOpenTextSection?: (s: string) => void; sectionCounts?: TextSectionCount[] } = {}) {
+function renderTab(
+  overrides: { onChange?: () => void; onOpenTextSection?: (s: string) => void; sectionCounts?: TextSectionCount[]; blockNo?: number } = {},
+) {
   return render(
     <SourceTab
       analysis={analysis}
       side="current"
       sectionNo={1}
-      blockNo={null}
+      blockNo={overrides.blockNo ?? null}
       onChange={overrides.onChange ?? (() => {})}
       sectionCounts={overrides.sectionCounts ?? counts}
       onOpenTextSection={overrides.onOpenTextSection ?? (() => {})}
@@ -106,5 +112,74 @@ describe('원문 확인 목차의 섹션별 변경 건수', () => {
   it('접근성 위반이 없다', async () => {
     const { container } = renderTab()
     expect(await axeViolations(container)).toBe('')
+  })
+})
+
+let blockSeq = 0
+function para(text: string): SourceBlock {
+  blockSeq += 1
+  return { blockNo: blockSeq, evidenceId: `${RCEPT_NO}#B${blockSeq}`, type: 'PARAGRAPH', text, table: null }
+}
+
+/** 소제목 3개(각 15문단)가 있는 긴 항목 */
+function longSection() {
+  blockSeq = 0
+  const blocks = ['1. 일반적 사항', '2. 회계정책', '3. 추정'].flatMap((title) => [
+    para(title),
+    ...Array.from({ length: 15 }, (_, i) => para(`${title} 본문 ${i}이에요.`)),
+  ])
+  sectionState.value = {
+    status: 'success',
+    data: { side: 'current', rceptNo: RCEPT_NO, sectionNo: 1, sectionPath: 'III. 재무에 관한 사항 > 3. 연결재무제표 주석', blocks },
+  }
+  return blocks
+}
+
+describe('원문 확인 긴 항목(#396)', () => {
+  it('번호 소제목이 이어지는 긴 항목은 소제목 하나씩 보이고, 고르기와 이전·다음으로 넘긴다', () => {
+    longSection()
+    renderTab()
+    const picker = screen.getByRole('combobox', { name: '소제목' }) as HTMLSelectElement
+    expect([...picker.options].map((o) => o.textContent)).toEqual(['1. 일반적 사항', '2. 회계정책', '3. 추정'])
+    expect(screen.getByText('1. 일반적 사항 본문 0이에요.')).toBeTruthy()
+    expect(screen.queryByText('2. 회계정책 본문 0이에요.')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: /다음 소제목/ }))
+    expect(screen.getByText('2. 회계정책 본문 0이에요.')).toBeTruthy()
+    expect(screen.queryByText('1. 일반적 사항 본문 0이에요.')).toBeNull()
+
+    fireEvent.change(picker, { target: { value: '2' } })
+    expect(screen.getByText('3. 추정 본문 0이에요.')).toBeTruthy()
+    expect((screen.getByRole('button', { name: /다음 소제목/ }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('근거 위치에서 오면 그 블록이 든 소제목을 열고 강조한다', () => {
+    const blocks = longSection()
+    const target = blocks.find((b) => b.text === '3. 추정 본문 4이에요.')!
+    renderTab({ blockNo: target.blockNo })
+    expect((screen.getByRole('combobox', { name: '소제목' }) as HTMLSelectElement).value).toBe('2')
+    expect(document.getElementById(`source-block-${target.blockNo}`)?.className).toContain('source-block--selected')
+  })
+
+  it('아주 높은 블록은 접어 두고 전체 보기로 펼친다', () => {
+    sectionState.value = {
+      status: 'success',
+      data: { side: 'current', rceptNo: RCEPT_NO, sectionNo: 1, sectionPath: 'I. 회사의 개요', blocks: [para('아주 긴 문단이에요.')] },
+    }
+    // jsdom은 높이를 계산하지 않으므로 블록 본문이 600px보다 높은 것처럼 둔다
+    const scroll = vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.classList.contains('source-block__body') ? 1800 : 0
+    })
+    try {
+      renderTab()
+      const toggle = screen.getByRole('button', { name: '전체 보기' })
+      const body = document.getElementById(toggle.getAttribute('aria-controls')!)!
+      expect(body.className).toContain('source-block__body--collapsed')
+      fireEvent.click(toggle)
+      expect(toggle.getAttribute('aria-expanded')).toBe('true')
+      expect(body.className).not.toContain('source-block__body--collapsed')
+    } finally {
+      scroll.mockRestore()
+    }
   })
 })

@@ -1,17 +1,19 @@
-import { useEffect, useMemo, useRef, type RefObject } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
-import { firstContentSection, type DocumentOutline, type DocumentSide, type SectionContent } from '@/shared/api/documents'
+import { firstContentSection, type DocumentOutline, type DocumentSide, type SectionContent, type SourceBlock } from '@/shared/api/documents'
 import type { TextSectionCount } from '@/shared/api/textChanges'
-import { Badge, Button, Notice, Panel, PanelTitle, SegmentedControl } from '@/shared/ui'
+import { Badge, Button, FieldLabel, Notice, Panel, PanelTitle, SegmentedControl, Select } from '@/shared/ui'
 import { DartLinkActions } from '@/shared/ui/DartLink'
 import { verifiedDartUrl } from '@/shared/lib/dart'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { TableView } from './TableView'
 import { useDocumentOutline, useSection } from '../hooks/useDocument'
+import { useScrolledPast } from '../hooks/useScrolledPast'
 import { formatCount } from '../model/overview'
 import type { SourceViewChange } from '../model/resultParams'
 import { sectionChangeCounts } from '../model/sectionChangeCounts'
+import { partIndexOf, splitParts } from '../model/sourceParts'
 import { displaySectionPath, displaySectionTitle } from '@/shared/lib/sectionTitle'
 
 interface SourceTabProps {
@@ -203,9 +205,27 @@ interface SectionBlocksProps {
   headingRef: RefObject<HTMLHeadingElement | null>
 }
 
+/** 이보다 높은 블록(표 안에 표가 든 긴 표 등)은 처음에 이 높이까지만 보이고 '표 전체 보기'로 펼친다(#396) */
+const TALL_BLOCK_PX = 600
+/** 이만큼 내려가면 '맨 위로'를 보인다 */
+const BACK_TO_TOP_PX = 1200
+
 function SectionBlocks({ outline, data, blockNo, headingRef }: SectionBlocksProps) {
   const dartUrl = verifiedDartUrl(outline.rceptNo, outline.dartUrl)
   const highlighted = blockNo !== null && data.blocks.some((b) => b.blockNo === blockNo)
+  // 긴 항목은 소제목별로 하나씩 보인다(#396). 근거 위치에서 왔으면 그 블록이 든 소제목을 연다
+  const parts = useMemo(() => splitParts(data.blocks), [data.blocks])
+  const [partIndex, setPartIndex] = useState(() => partIndexOf(parts, blockNo))
+  useEffect(() => setPartIndex(partIndexOf(parts, blockNo)), [parts, blockNo])
+  const split = parts.length > 1
+  const part = parts[Math.min(partIndex, parts.length - 1)]
+  const showPart = (index: number) => {
+    setPartIndex(index)
+    headingRef.current?.focus({ preventScroll: true })
+    headingRef.current?.scrollIntoView?.({ block: 'start' })
+  }
+  const scrolled = useScrolledPast(BACK_TO_TOP_PX)
+
   return (
     <article className="source-section" aria-label={displaySectionPath(data.sectionPath)}>
       <h3 className="source-section__title" ref={headingRef} tabIndex={-1}>
@@ -222,24 +242,40 @@ function SectionBlocks({ outline, data, blockNo, headingRef }: SectionBlocksProp
         </Notice>
       )}
       {data.blocks.length === 0 && <p className="panel__note">이 항목에는 바로 속한 문단·표가 없어요. 하위 항목을 골라 주세요.</p>}
-      {data.blocks.map((block) => {
-        const selected = block.blockNo === blockNo
-        return (
-          <div
-            key={block.blockNo}
-            id={blockId(block.blockNo)}
-            className={`source-block${selected ? ' source-block--selected' : ''}`}
-            tabIndex={selected ? -1 : undefined}
-          >
-            {selected && <span className="source-block__label">선택한 근거 위치</span>}
-            {block.table ? (
-              <TableView rows={block.table} caption={`${data.sectionPath} 표`} />
-            ) : (
-              <p className="source-block__text">{block.text}</p>
-            )}
-          </div>
-        )
-      })}
+      {split && (
+        <div className="source-parts">
+          <FieldLabel htmlFor="source-part">소제목</FieldLabel>
+          <Select id="source-part" value={partIndex} onChange={(e) => showPart(Number(e.target.value))}>
+            {parts.map((p, index) => (
+              <option key={p.blocks[0].blockNo} value={index}>
+                {p.title}
+              </option>
+            ))}
+          </Select>
+          <span className="source-parts__count">
+            {partIndex + 1} / {parts.length}
+          </span>
+        </div>
+      )}
+      {part.blocks.map((block) => (
+        <SourceBlockView
+          key={block.blockNo}
+          block={block}
+          selected={block.blockNo === blockNo}
+          caption={`${data.sectionPath} 표`}
+        />
+      ))}
+      {split && (
+        <nav className="source-parts__nav" aria-label="소제목 넘기기">
+          <Button variant="secondary" disabled={partIndex === 0} onClick={() => showPart(partIndex - 1)}>
+            ← 이전 소제목{partIndex > 0 && <span className="source-parts__next-title">{parts[partIndex - 1].title}</span>}
+          </Button>
+          <Button variant="secondary" disabled={partIndex === parts.length - 1} onClick={() => showPart(partIndex + 1)}>
+            다음 소제목 →
+            {partIndex < parts.length - 1 && <span className="source-parts__next-title">{parts[partIndex + 1].title}</span>}
+          </Button>
+        </nav>
+      )}
       <div className="source-foot">
         <span>
           출처 DART · {outline.reportName} · 접수번호 <code>{outline.rceptNo}</code>
@@ -258,7 +294,52 @@ function SectionBlocks({ outline, data, blockNo, headingRef }: SectionBlocksProp
           위치 이동 미지원 · DART 원문 안의 이 위치로 바로 가지는 못해요. DART 원문을 열고 목차에서 '{data.sectionPath}'를 찾아 주세요.
         </p>
       )}
+      {scrolled && (
+        <Button
+          variant="secondary"
+          className="source-top"
+          onClick={() => {
+            const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+            headingRef.current?.focus({ preventScroll: true })
+            headingRef.current?.scrollIntoView?.({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
+          }}
+        >
+          ↑ 맨 위로
+        </Button>
+      )}
     </article>
+  )
+}
+
+/**
+ * 원문 블록 하나. 아주 높은 블록은 처음에 TALL_BLOCK_PX까지만 보이고 '표 전체 보기'로 펼친다(#396).
+ * 근거로 고른 블록은 접지 않는다.
+ */
+function SourceBlockView({ block, selected, caption }: { block: SourceBlock; selected: boolean; caption: string }) {
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const [tall, setTall] = useState(false)
+  const [open, setOpen] = useState(false)
+  useLayoutEffect(() => {
+    setTall((bodyRef.current?.scrollHeight ?? 0) > TALL_BLOCK_PX)
+  }, [block])
+  const collapsed = tall && !open && !selected
+  const bodyId = `${blockId(block.blockNo)}-body`
+  return (
+    <div
+      id={blockId(block.blockNo)}
+      className={`source-block${selected ? ' source-block--selected' : ''}`}
+      tabIndex={selected ? -1 : undefined}
+    >
+      {selected && <span className="source-block__label">선택한 근거 위치</span>}
+      <div ref={bodyRef} id={bodyId} className={collapsed ? 'source-block__body source-block__body--collapsed' : 'source-block__body'}>
+        {block.table ? <TableView rows={block.table} caption={caption} /> : <p className="source-block__text">{block.text}</p>}
+      </div>
+      {tall && !selected && (
+        <Button variant="link" className="source-block__toggle" aria-expanded={open} aria-controls={bodyId} onClick={() => setOpen((v) => !v)}>
+          {open ? '접기' : block.table ? '표 전체 보기' : '전체 보기'}
+        </Button>
+      )}
+    </div>
   )
 }
 
