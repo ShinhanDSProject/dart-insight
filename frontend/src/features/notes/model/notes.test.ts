@@ -45,6 +45,17 @@ describe('noteResultLink', () => {
     expect(noteResultLink(item)).toBe('/analyses/42?tab=text&tc=77')
   })
 
+  it('AI 답 인용은 원문 확인 탭의 그 보고서 쪽·섹션·문단으로 간다', () => {
+    const source = { ...noteItem().source, sjDiv: null, changeId: null, questionId: 7, side: 'previous' as const, sectionNo: 3, blockNo: 12 }
+    expect(noteResultLink(noteItem({ kind: 'ANSWER_CITATION', source }))).toBe(
+      '/analyses/42?tab=source&doc=previous&section=3&block=12',
+    )
+    expect(noteResultLink(noteItem({ kind: 'ANSWER_CITATION', source: { ...source, blockNo: null } }))).toBe(
+      '/analyses/42?tab=source&doc=previous&section=3',
+    )
+    expect(noteResultLink(noteItem({ kind: 'ANSWER_CITATION', source: { ...source, side: null } }))).toBeNull()
+  })
+
   it('분석 ID가 없으면 링크를 만들지 않는다', () => {
     expect(noteResultLink(noteItem({ source: { ...noteItem().source, analysisId: null } }))).toBeNull()
   })

@@ -40,9 +40,10 @@ function Harness({ submitDraft, items = [], suggestions = [], onAsk = noop, onSe
   return (
     <AskTab
       analysis={{
+        analysisId: 42,
         previous: { rceptNo: '20240814000001', reportName: '반기보고서 (2024.06)', dartUrl: null },
         current: { rceptNo: '20250814000123', reportName: '반기보고서 (2025.06)', dartUrl: null },
-      } as unknown as Pick<Analysis, 'previous' | 'current'>}
+      } as unknown as Pick<Analysis, 'analysisId' | 'previous' | 'current'>}
       ask={ask}
       suggestions={{ status: 'success', data: suggestions }}
       sections={sections}

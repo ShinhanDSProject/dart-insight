@@ -488,7 +488,7 @@ function ChangeCard({ item, analysis, showTypeNote, selected, pinned, explanatio
           </details>
         )}
       </div>
-      <AddToNote kind="TEXT_CHANGE" analysisId={analysis.analysisId} changeId={item.changeId} label={section} />
+      <AddToNote target={{ kind: 'TEXT_CHANGE', changeId: item.changeId }} analysisId={analysis.analysisId} label={section} />
       {explainOpen && (
         <TextExplanationBox
           id={explainId}

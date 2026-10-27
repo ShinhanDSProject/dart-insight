@@ -54,18 +54,26 @@ export function notesReducer(state: NotesState, action: NotesAction): NotesState
 }
 
 /**
- * 결과 화면의 그 근거로 돌아가는 주소(AC1). 분석 결과 화면의 주소 약속(?tab=financial&sj=&change=, ?tab=text&tc=)과 같다.
- * 분석·변경 ID가 없으면 null(링크를 만들지 않음)
+ * 결과 화면의 그 근거로 돌아가는 주소(AC1). 분석 결과 화면의 주소 약속(?tab=financial&sj=&change=, ?tab=text&tc=,
+ * AI 답 인용은 원문 확인 ?tab=source&doc=&section=&block=)과 같다. 위치를 모르면 null(링크를 만들지 않음)
  */
 export function noteResultLink(item: NoteItem): string | null {
-  const { analysisId, changeId, sjDiv } = item.source
-  if (analysisId === null || changeId === null) return null
+  const { analysisId, changeId, sjDiv, side, sectionNo, blockNo } = item.source
+  if (analysisId === null) return null
   const base = `/analyses/${encodeURIComponent(analysisId)}`
   return match(item.kind)
     .with('FINANCIAL_CHANGE', () =>
-      sjDiv === null ? null : `${base}?${new URLSearchParams({ tab: 'financial', sj: sjDiv, change: String(changeId) })}`,
+      sjDiv === null || changeId === null
+        ? null
+        : `${base}?${new URLSearchParams({ tab: 'financial', sj: sjDiv, change: String(changeId) })}`,
     )
-    .with('TEXT_CHANGE', () => `${base}?${new URLSearchParams({ tab: 'text', tc: String(changeId) })}`)
+    .with('TEXT_CHANGE', () => (changeId === null ? null : `${base}?${new URLSearchParams({ tab: 'text', tc: String(changeId) })}`))
+    .with('ANSWER_CITATION', () => {
+      if (side === null || sectionNo === null) return null
+      const params = new URLSearchParams({ tab: 'source', doc: side, section: String(sectionNo) })
+      if (blockNo !== null) params.set('block', String(blockNo))
+      return `${base}?${params}`
+    })
     .exhaustive()
 }
 
@@ -78,13 +86,14 @@ const changeTypeLabels: Record<string, string> = {
   REVIEW_NEEDED: '검토 필요',
 }
 
-/** 항목 종류 배지: '재무 수치', '문장 변경 · 수정' */
+/** 항목 종류 배지: '재무 수치', '문장 변경 · 수정', 'AI 답 인용' */
 export function noteKindLabel(item: Pick<NoteItem, 'kind' | 'changeType'>): string {
   return match(item.kind)
     .with('FINANCIAL_CHANGE', () => '재무 수치')
     .with('TEXT_CHANGE', () =>
       item.changeType === null ? '문장 변경' : `문장 변경 · ${changeTypeLabels[item.changeType] ?? item.changeType}`,
     )
+    .with('ANSWER_CITATION', () => 'AI 답 인용')
     .exhaustive()
 }
 

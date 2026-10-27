@@ -145,7 +145,11 @@ function EvidenceBody({ analysis, detail, unit, onAsk, asking }: EvidenceBodyPro
       >
         이 계정 변화 AI에게 묻기
       </Button>
-      <AddToNote kind="FINANCIAL_CHANGE" analysisId={analysis.analysisId} changeId={detail.changeId} label={accountLabel(detail)} />
+      <AddToNote
+        target={{ kind: 'FINANCIAL_CHANGE', changeId: detail.changeId }}
+        analysisId={analysis.analysisId}
+        label={accountLabel(detail)}
+      />
       <p className="panel__note">
         수치는 OpenDART 재무제표 API 값으로 코드가 계산했어요. 원문 표 안의 위치로 바로 이동하는 기능은 3.5(M2)에서 붙어요.
       </p>
