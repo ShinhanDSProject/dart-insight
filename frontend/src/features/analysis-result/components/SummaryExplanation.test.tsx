@@ -43,7 +43,7 @@ function explained(grade: 'STATED' | 'RELATED', gradeReason: string | null = nul
     aiGenerated: true,
     explanationStatus: 'FOUND',
     explanationGrade: grade,
-    quote: '메모리 수요 회복으로 매출이 증가하였습니다',
+    quote: '매출액은 메모리 수요 회복으로 증가하였습니다',
     quoteEvidence: at812,
     gradeReason,
     evidence: [at812],
@@ -64,7 +64,7 @@ describe('SummaryExplanation', () => {
     expect(screen.getByText('회사가 공시에서 밝힌 설명')).toBeTruthy()
     expect(screen.getByText('AI 생성')).toBeTruthy()
     expect(screen.getByText('공시 원문 인용')).toBeTruthy()
-    expect(screen.getByText('메모리 수요 회복으로 매출이 증가하였습니다')).toBeTruthy()
+    expect(screen.getByText('매출액은 메모리 수요 회복으로 증가하였습니다')).toBeTruthy()
     expect(screen.queryByText(/직접 밝힌 설명은 아니에요/)).toBeNull()
     expect(await axeViolations(container)).toBe('')
   })

@@ -143,7 +143,7 @@ class SummaryPipelineTest {
     /** 매출액 설명: 회사가 직접 밝힘(STATED), 경영진단 문단(B2)을 인용 */
     private static final String STATED_REVENUE = """
             "status":"OK","explanation":"회사는 메모리 수요 회복으로 매출이 늘었다고 적었어요.","evidenceIds":["%s#B2"],
-            "grade":"STATED","quote":"메모리 수요 회복으로 늘었습니다","quoteEvidenceId":"%s#B2\"""".formatted(CUR, CUR);
+            "grade":"STATED","quote":"매출액은 메모리 수요 회복으로 늘었습니다","quoteEvidenceId":"%s#B2\"""".formatted(CUR, CUR);
 
     /** 요청에 담긴 ref로 답하는 가짜 요약. textStatus는 문장 변화 항목의 상태(OK, REVIEW_NEEDED, BLOCKED) */
     private static Function<Request, Reply> summaryReply(String textStatus) {
@@ -228,7 +228,7 @@ class SummaryPipelineTest {
                 .andExpect(jsonPath("$.items[1].factSentence").value("매출액이 55 원에서 70 원으로 늘었어요(+27.3%)."))
                 .andExpect(jsonPath("$.items[1].explanationStatus").value("FOUND"))
                 .andExpect(jsonPath("$.items[1].explanationGrade").value("STATED"))
-                .andExpect(jsonPath("$.items[1].quote").value("메모리 수요 회복으로 늘었습니다"))
+                .andExpect(jsonPath("$.items[1].quote").value("매출액은 메모리 수요 회복으로 늘었습니다"))
                 .andExpect(jsonPath("$.items[1].quoteEvidence.evidenceId").value(CUR + "#B2"))
                 .andExpect(jsonPath("$.items[1].quoteEvidence.side").value("current"))
                 .andExpect(jsonPath("$.items[1].quoteEvidence.sectionNo").value(3))
@@ -361,7 +361,7 @@ class SummaryPipelineTest {
     void explanationWithoutAValidQuoteIsReviewNeeded() throws Exception {
         AI.on(SUMMARIES, summaryReply("OK", """
                 "status":"OK","explanation":"회사는 메모리 수요 회복으로 매출이 늘었다고 적었어요.","evidenceIds":["%s#B2"],
-                "grade":"STATED","quote":"메모리 수요 회복으로 늘었습니다","quoteEvidenceId":"20990101000001#B2\"""".formatted(CUR)));
+                "grade":"STATED","quote":"매출액은 메모리 수요 회복으로 늘었습니다","quoteEvidenceId":"20990101000001#B2\"""".formatted(CUR)));
 
         long id = analyze();
 

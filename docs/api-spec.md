@@ -1640,7 +1640,7 @@
       "aiGenerated": true,
       "explanationStatus": "FOUND",
       "explanationGrade": "STATED",
-      "quote": "메모리 수요 회복으로 매출이 증가하였습니다",
+      "quote": "매출액은 메모리 수요 회복으로 증가하였습니다",
       "quoteEvidence": { "evidenceId": "20260814001234#B812", "side": "current", "rceptNo": "20260814001234", "sectionNo": 41, "blockNo": 812 },
       "gradeReason": null,
       "evidence": [{ "evidenceId": "20260814001234#B812", "side": "current", "rceptNo": "20260814001234", "sectionNo": 41, "blockNo": 812 }],
