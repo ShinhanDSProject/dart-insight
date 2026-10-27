@@ -36,14 +36,19 @@ if not done:
     raise SystemExit('판정(O·X)이 하나도 없습니다. precision.csv를 채점해 저장했는지 확인해 주세요.')
 
 # 규칙별 정밀도: 같은 종류는 묶음(분석·규칙) 크기로 가중, 내용 일치는 전부 채점
+# 묶음은 채점 여부와 상관없이 표본 전체에서 만든다. 판정이 하나도 없는 묶음이 있으면 추정이 표본 설계를 다 덮지 못하므로 멈춘다
 strata = defaultdict(list)
 sizes = {}
-for r in done:
+for r in prec:
     m = re.search(r'같은 종류 표본\((\S+), 전체 (\d+)건 중\)', r['뽑은 이유'])
     if m and r['연결 강도'] == 'TYPE_ONLY':
         key = (r['분석'], m.group(1))
-        strata[key].append(ok(r))
         sizes[key] = int(m.group(2))
+        if r in done:
+            strata[key].append(ok(r))
+empty = sorted(k for k in sizes if not strata[k])
+if empty:
+    raise SystemExit(f'판정이 없는 같은 종류 묶음이 있습니다: {empty}. 그 묶음을 채점한 뒤 다시 실행해 주세요.')
 strong = [r for r in done if r['연결 강도'] == 'STRONG']
 strong_total = sum(1 for r in prec if r['연결 강도'] == 'STRONG')
 
