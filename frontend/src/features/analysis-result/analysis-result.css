@@ -2243,6 +2243,11 @@
   white-space: nowrap;
 }
 
+/* 인용의 '노트에 담기'(FS-57). 메모 칸이 열려도 인용 본문 너비를 쓰도록 번호 다음 칸부터 끝까지 둔다 */
+.answer-cite__note {
+  grid-column: 2 / -1;
+}
+
 .answer-card__notice {
   margin: 0;
 }

@@ -18,7 +18,7 @@ import { PastAnswers } from './PastAnswers'
 
 interface AskTabProps extends AnswerLinks {
   /** 답이 인용한 두 보고서. 답 아래 '출처: DART'와 원문 링크에 쓴다(5.6) */
-  analysis: Pick<Analysis, 'previous' | 'current'>
+  analysis: Pick<Analysis, 'analysisId' | 'previous' | 'current'>
   ask: AskController
   suggestions: LoadState<string[]>
   /** 이 분석의 최상위 섹션 제목(문장 변화 탭의 섹션 선택과 같은 출처). 입력 중 섹션 질문을 제안한다(#267) */
@@ -50,6 +50,7 @@ export function AskTab({ analysis, ask, suggestions, sections, ...links }: AskTa
   const renderAnswer = (item: QuestionAnswer) => (
     <AnswerCard
       item={item}
+      analysisId={analysis.analysisId}
       links={links}
       onFeedback={ask.sendFeedback}
       followUp={{

@@ -8,6 +8,7 @@ export function noteItem(overrides: Partial<NoteItem> = {}): NoteItem {
     kind: 'FINANCIAL_CHANGE',
     label: '손익계산서 · 매출액',
     text: '이전 1,000원 → 현재 1,200원, 증감 +200원(+20.0%)',
+    question: null,
     changeType: null,
     memo: null,
     source: {
@@ -18,6 +19,8 @@ export function noteItem(overrides: Partial<NoteItem> = {}): NoteItem {
       rceptNo: '20261114001234',
       sectionNo: null,
       blockNo: null,
+      questionId: null,
+      side: null,
       dartUrl: 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261114001234',
     },
     outdated: false,

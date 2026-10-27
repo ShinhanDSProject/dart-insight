@@ -56,6 +56,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+.note-item__question {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 .note-item__quote {
   margin: 0;
   padding-left: var(--space-3);

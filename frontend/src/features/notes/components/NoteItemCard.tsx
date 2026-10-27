@@ -56,6 +56,16 @@ export function NoteItemCard({ item, onSaveMemo, onRemove }: NoteItemCardProps) 
       {match(item.kind)
         .with('FINANCIAL_CHANGE', () => <p className="note-item__value">{item.text}</p>)
         .with('TEXT_CHANGE', () => <blockquote className="note-item__quote">{item.text}</blockquote>)
+        .with('ANSWER_CITATION', () => (
+          <>
+            {item.question !== null && (
+              <p className="note-item__question">
+                <span className="note-item__memo-label">질문</span> {item.question}
+              </p>
+            )}
+            <blockquote className="note-item__quote">{item.text}</blockquote>
+          </>
+        ))
         .exhaustive()}
       <p className="note-item__meta">
         {location !== null && <span>{location}</span>}

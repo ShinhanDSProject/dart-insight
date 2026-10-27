@@ -1,16 +1,16 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { match } from 'ts-pattern'
-import { createNote, NOTE_MEMO_MAX, type NoteItem, type NoteKind } from '@/shared/api/notes'
+import { createNote, NOTE_MEMO_MAX, type NoteItem, type NoteTarget } from '@/shared/api/notes'
 import { useAuth } from '@/shared/auth/authContext'
 import { useAsyncAction } from '@/shared/hooks/useAsyncAction'
 import { Button, MemoForm, Notice } from '@/shared/ui'
 import { ErrorState } from '@/shared/ui/StateView'
 
 interface AddToNoteProps {
-  kind: NoteKind
+  /** 담을 근거(종류와 변경 ID, 또는 AI 답의 질문 ID·인용 번호) */
+  target: NoteTarget
   analysisId: number
-  changeId: number
   /** 화면 읽기용 이름(계정명·섹션). 버튼 이름에 붙인다 */
   label: string
 }
@@ -21,9 +21,9 @@ type View = { status: 'closed' } | { status: 'login' } | { status: 'editing' } |
 /**
  * '노트에 담기'(FS-57 AC1·AC2). 누르면 메모 칸이 열리고, 저장하면 기업 노트에 담는다.
  * 로그인하지 않았으면 서버를 부르지 않고 로그인 안내만 보인다.
- * 담는 값·문장은 서버가 분석 ID·변경 ID로 저장된 근거에서 만든다(화면이 글을 보내지 않음).
+ * 담는 값·문장은 서버가 분석 ID와 변경 ID(AI 답 인용은 질문 ID·인용 번호)로 저장된 근거에서 만든다(화면이 글을 보내지 않음).
  */
-export function AddToNote({ kind, analysisId, changeId, label }: AddToNoteProps) {
+export function AddToNote({ target, analysisId, label }: AddToNoteProps) {
   const auth = useAuth()
   const [view, setView] = useState<View>({ status: 'closed' })
   const save = useAsyncAction<NoteItem>()
@@ -34,7 +34,7 @@ export function AddToNote({ kind, analysisId, changeId, label }: AddToNoteProps)
   }
   const submit = (memo: string | null) => {
     void save.run(async () => {
-      const item = await createNote({ kind, analysisId, changeId, memo })
+      const item = await createNote({ ...target, analysisId, memo })
       setView({ status: 'saved' })
       return item
     })

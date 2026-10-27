@@ -30,6 +30,15 @@ const textItem = noteItem({
   outdated: true,
   source: { ...noteItem().source, analysisVersion: 'm1-old', sjDiv: null, changeId: 77, sectionNo: 2, blockNo: 1 },
 })
+const citationItem = noteItem({
+  itemId: 3,
+  kind: 'ANSWER_CITATION',
+  label: 'II. 사업의 내용 > 1. 사업의 개요',
+  text: '반도체 부문의 판매가 늘었습니다.',
+  question: '매출이 왜 늘었나요?',
+  memo: '답 근거 확인',
+  source: { ...noteItem().source, sjDiv: null, changeId: null, questionId: 7, side: 'current', sectionNo: 3, blockNo: 12 },
+})
 const list: NoteList = {
   companies: [{ corpCode: '00126380', corpName: '삼성전자', items: [textItem, noteItem({ itemId: 1, memo: null })] }],
 }
@@ -82,6 +91,20 @@ describe('NotesPage(FS-57)', () => {
     )
     expect(within(financial).queryByText(/위치가 달라졌을 수 있어요/)).toBeNull()
     expect(within(financial).getByText('메모가 없어요.')).toBeTruthy()
+  })
+
+  it('AI 답 인용은 질문·인용 문단을 보이고 원래 위치 보기가 원문 확인 탭으로 간다', async () => {
+    api.getNotes.mockResolvedValue({ companies: [{ corpCode: '00126380', corpName: '삼성전자', items: [citationItem] }] })
+    const { container } = renderPage()
+    const card = await screen.findByRole('article', { name: 'II. 사업의 내용 > 1. 사업의 개요 노트' })
+    expect(within(card).getByText('AI 답 인용')).toBeTruthy()
+    expect(within(card).getByText('매출이 왜 늘었나요?')).toBeTruthy()
+    expect(within(card).getByText('반도체 부문의 판매가 늘었습니다.')).toBeTruthy()
+    expect(within(card).getByText('접수번호 20261114001234 · 섹션 3 · 문단 12')).toBeTruthy()
+    expect(within(card).getByRole('link', { name: '원래 위치 보기' }).getAttribute('href')).toBe(
+      '/analyses/42?tab=source&doc=current&section=3&block=12',
+    )
+    expect(await axeViolations(container)).toBe('')
   })
 
   it('메모를 고치면 서버가 답한 메모로 바꾼다', async () => {

@@ -16,6 +16,7 @@ import { followUpLabel } from '../model/followUp'
 import { formatCount } from '../model/overview'
 import type { SourceTarget } from '../model/resultParams'
 import { aiInfoLabel } from '../model/summaryLabels'
+import { AddToNote } from './AddToNote'
 import { CopyWithSourcesButton } from './CopyWithSourcesButton'
 
 export interface AnswerLinks {
@@ -91,16 +92,18 @@ interface AnswerCardProps {
   links: AnswerLinks
   onFeedback: SendFeedback
   followUp: FollowUp
+  /** 주면 인용마다 '노트에 담기'(FS-57 ANSWER_CITATION)를 둔다 */
+  analysisId?: number
 }
 
 /** 받은 답 하나. 상태마다 다른 안내를 보인다 */
-export function AnswerCard({ item, links, onFeedback, followUp }: AnswerCardProps) {
+export function AnswerCard({ item, links, onFeedback, followUp, analysisId }: AnswerCardProps) {
   const headId = `ask-q-${item.questionId}`
   return (
     <Card as="article" className="answer-card" aria-labelledby={headId}>
       <QuestionLine id={headId} question={item.question} time={askedAtLabel(item.createdAt)} />
       {match(item.status)
-        .with('ANSWERED', () => <AnsweredBody item={item} links={links} onFeedback={onFeedback} />)
+        .with('ANSWERED', () => <AnsweredBody item={item} links={links} onFeedback={onFeedback} analysisId={analysisId} />)
         .with('NOT_FOUND', () => (
           <Notice tone="attention" className="answer-card__notice" title="관련 내용을 찾지 못했어요">
             <p>{item.message ?? '두 보고서에서 이 질문과 관련된 문단이나 수치를 찾지 못했어요.'}</p>
@@ -188,7 +191,14 @@ function useFocusRef(questionId: number) {
   return { active, idOf, focus }
 }
 
-function AnsweredBody({ item, links, onFeedback }: { item: QuestionAnswer; links: AnswerLinks; onFeedback: SendFeedback }) {
+interface AnsweredBodyProps {
+  item: QuestionAnswer
+  links: AnswerLinks
+  onFeedback: SendFeedback
+  analysisId?: number
+}
+
+function AnsweredBody({ item, links, onFeedback, analysisId }: AnsweredBodyProps) {
   const { active, idOf, focus } = useFocusRef(item.questionId)
   const segments = parseAnswer(item.answer ?? '', item.citations, item.facts)
   const citeKey = (c: QuestionCitation) => `c${c.no}`
@@ -267,6 +277,15 @@ function AnsweredBody({ item, links, onFeedback }: { item: QuestionAnswer; links
                 >
                   원문 보기<span className="visually-hidden"> ({c.reportName})</span>
                 </Button>
+                {analysisId !== undefined && (
+                  <div className="answer-cite__note">
+                    <AddToNote
+                      target={{ kind: 'ANSWER_CITATION', questionId: item.questionId, citationNo: c.no }}
+                      analysisId={analysisId}
+                      label={`인용 ${c.no} ${displaySectionPath(c.sectionPath)}`}
+                    />
+                  </div>
+                )}
               </li>
             ))}
           </ol>
