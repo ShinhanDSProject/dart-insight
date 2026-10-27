@@ -10,6 +10,7 @@ INTERNAL_HEALTH = "/health"
 SUMMARIES = "/summaries"
 ANSWERS = "/answers"
 BRIEFINGS = "/briefings"
+OUTLOOKS = "/outlooks"
 TEXT_CHANGES = "/text-changes"
 
 DOCUMENTS_PREFIX = f"{INTERNAL_PREFIX}/documents"
