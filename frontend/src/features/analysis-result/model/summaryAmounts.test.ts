@@ -12,6 +12,10 @@ function summary(kind: 'FINANCIAL' | 'TEXT', sjDiv: 'IS' | 'BS' | null, changeId
     aiText: null,
     aiGenerated: false,
     explanationStatus: null,
+    explanationGrade: null,
+    quote: null,
+    quoteEvidence: null,
+    gradeReason: null,
     evidence: [],
     ai: null,
   }

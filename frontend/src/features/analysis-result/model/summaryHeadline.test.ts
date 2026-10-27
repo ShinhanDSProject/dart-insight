@@ -11,6 +11,10 @@ function financial(itemNo: number, factSentence: string | null, aiText: string |
     aiText,
     aiGenerated: aiText !== null,
     explanationStatus: aiText === null ? 'NOT_FOUND' : 'FOUND',
+    explanationGrade: null,
+    quote: null,
+    quoteEvidence: null,
+    gradeReason: null,
     evidence: [],
     ai: null,
   }
@@ -25,6 +29,10 @@ function text(itemNo: number, aiText: string | null): SummaryItem {
     aiText,
     aiGenerated: aiText !== null,
     explanationStatus: null,
+    explanationGrade: null,
+    quote: null,
+    quoteEvidence: null,
+    gradeReason: null,
     evidence: [],
     ai: null,
   }

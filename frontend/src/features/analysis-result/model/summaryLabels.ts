@@ -1,5 +1,5 @@
 import type { SjDiv } from '@/shared/api/results'
-import type { AiInfo, ExplanationStatus, SummaryKind, SummaryStatus, SummaryTarget } from '@/shared/api/summary'
+import type { AiInfo, ExplanationGrade, ExplanationStatus, SummaryKind, SummaryStatus, SummaryTarget } from '@/shared/api/summary'
 import type { TextStatus } from '@/shared/api/textChanges'
 
 /** 요약·설명(W-03 ①) 화면 문구. 요약은 공시에 적힌 내용만 옮기며 투자 판단이 아니다. */
@@ -28,12 +28,31 @@ export function textCoverageNote(textStatus: TextStatus | null): string | null {
   return null
 }
 
-/** 재무 수치 설명이 없을 때의 문구. 설명이 있으면 null */
-export function explanationNote(status: ExplanationStatus | null): string | null {
+/**
+ * 재무 수치 설명이 없을 때의 문구. 설명이 있으면 null.
+ * gradeReason이 있으면 코드가 인용을 확인하지 못해 등급을 낮춘 경우라, 후보 문단이 없던 경우와 다르게 쓴다.
+ */
+export function explanationNote(status: ExplanationStatus | null, gradeReason: string | null = null): string | null {
+  if (status === 'NOT_FOUND' && gradeReason) return `${NO_EXPLANATION} · 관련 문단은 있지만 인용을 원문에서 확인하지 못했어요.`
   if (status === 'NOT_FOUND') return `${NO_EXPLANATION} · 공시에서 이 변화의 이유를 적은 문단을 찾지 못했어요.`
   if (status === 'REVIEW_NEEDED') return '검토 필요 · 설명의 근거를 확인하지 못해 보여 주지 않아요.'
   return null
 }
+
+/** 재무 수치 설명의 등급 제목. 설명이 없거나 등급 기능 전 분석이면 null */
+export function gradeLabel(grade: ExplanationGrade | null): string | null {
+  if (grade === 'STATED') return '회사가 공시에서 밝힌 설명'
+  if (grade === 'RELATED') return '관련 공시 내용'
+  return null
+}
+
+/** 관련 내용(RELATED)은 회사가 이 변화를 설명한 문장이 아님을 알린다. 원인으로 읽히는 말을 쓰지 않는다 */
+export function gradeNote(grade: ExplanationGrade | null): string | null {
+  return grade === 'RELATED' ? '공시에서 이 계정과 함께 나온 내용이에요. 회사가 직접 밝힌 설명은 아니에요.' : null
+}
+
+/** 인용문 제목. 인용문은 AI가 쓴 문장이 아니라 공시 원문 그대로다 */
+export const QUOTE_CAPTION = '공시 원문 인용'
 
 /** 'AI 생성' 문장의 모델·프롬프트 버전·생성 시각 */
 export function aiInfoLabel(ai: AiInfo | null): string {
