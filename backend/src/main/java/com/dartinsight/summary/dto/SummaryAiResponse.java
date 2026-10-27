@@ -9,8 +9,10 @@ public record SummaryAiResponse(String promptVersion, String model, String gener
         List<Call> calls) {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
+    /** grade·quote·quoteEvidenceId는 재무 수치 설명 등급과 인용(ADR-0015). 문장 변화면 null */
     public record Item(String ref, String kind, String status, String sentence, String explanation,
-            List<String> evidenceIds, String reviewReason, List<String> blockedRules) {
+            List<String> evidenceIds, String reviewReason, List<String> blockedRules, String grade, String quote,
+            String quoteEvidenceId) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

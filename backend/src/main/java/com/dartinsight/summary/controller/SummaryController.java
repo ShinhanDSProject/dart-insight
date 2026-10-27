@@ -60,8 +60,14 @@ public class SummaryController {
             }
             List<EvidenceView> evidence = row.evidenceIds().stream()
                     .map(id -> evidence(analysis, id, documents)).toList();
+            EvidenceView quoteEvidence = row.quoteEvidenceId() == null ? null
+                    : evidence(analysis, row.quoteEvidenceId(), documents);
+            // 보이는 재무 수치의 reviewReason은 코드가 설명 등급을 낮춘 사유다(설명이 검토 필요면 위에서 셈)
+            String gradeReason = SummaryItemRow.REVIEW_NEEDED.equals(row.explanationStatus()) ? null
+                    : row.reviewReason();
             shown.add(new ItemView(entry.itemNo(), row.kind(), target, row.factSentence(), row.aiText(),
-                    row.aiGenerated(), row.explanationStatus(), evidence, AiInfo.from(row)));
+                    row.aiGenerated(), row.explanationStatus(), row.explanationGrade(), row.quote(), quoteEvidence,
+                    gradeReason, evidence, AiInfo.from(row)));
         }
         return new SummaryResponse(analysisId, analysis.getSummaryStatus(), analysis.getSummaryMessage(),
                 analysis.getTextStatus(), shown, review.size(), review);

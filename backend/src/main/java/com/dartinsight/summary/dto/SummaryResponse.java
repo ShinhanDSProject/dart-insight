@@ -33,9 +33,14 @@ public record SummaryResponse(Long analysisId, SummaryStatus summaryStatus, Stri
      * @param factSentence      코드가 만든 사실 문장(재무 수치). 문장 변화면 null
      * @param aiText            AI가 만든 문장(문장 변화 요약, 재무 수치 설명). 없으면 null
      * @param explanationStatus 재무 수치의 설명: FOUND, NOT_FOUND('확인된 설명 없음'), REVIEW_NEEDED
+     * @param explanationGrade  재무 수치 설명 등급(ADR-0015): STATED, RELATED, NONE. 문장 변화·REVIEW_NEEDED·등급 기능 전이면 null
+     * @param quote             후보 원문에서 그대로 옮긴 인용문. 없으면 null
+     * @param quoteEvidence     인용 위치. 없으면 null
+     * @param gradeReason       코드가 설명 등급을 낮춘 사유. 낮추지 않았으면 null
      */
     public record ItemView(int itemNo, String kind, Target target, String factSentence, String aiText,
-            boolean aiGenerated, String explanationStatus, List<EvidenceView> evidence, AiInfo ai) {
+            boolean aiGenerated, String explanationStatus, String explanationGrade, String quote,
+            EvidenceView quoteEvidence, String gradeReason, List<EvidenceView> evidence, AiInfo ai) {
     }
 
     /** @param blockedRules 투자 권유성 표현 검사(5.5)에 걸린 규칙 ID. 근거 확인에 실패한 것이면 빈 목록 */

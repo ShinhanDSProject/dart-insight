@@ -33,6 +33,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -139,8 +140,18 @@ class SummaryPipelineTest {
                 """.formatted(rceptNo, rceptNo, business, explanation);
     }
 
+    /** 매출액 설명: 회사가 직접 밝힘(STATED), 경영진단 문단(B2)을 인용 */
+    private static final String STATED_REVENUE = """
+            "status":"OK","explanation":"회사는 메모리 수요 회복으로 매출이 늘었다고 적었어요.","evidenceIds":["%s#B2"],
+            "grade":"STATED","quote":"메모리 수요 회복으로 늘었습니다","quoteEvidenceId":"%s#B2\"""".formatted(CUR, CUR);
+
     /** 요청에 담긴 ref로 답하는 가짜 요약. textStatus는 문장 변화 항목의 상태(OK, REVIEW_NEEDED, BLOCKED) */
     private static Function<Request, Reply> summaryReply(String textStatus) {
+        return summaryReply(textStatus, STATED_REVENUE);
+    }
+
+    /** revenue는 매출액 항목의 ref·kind를 뺀 JSON 필드 */
+    private static Function<Request, Reply> summaryReply(String textStatus, String revenueFields) {
         return request -> {
             String body = request.bodyText();
             String text = JsonPath.<List<String>>read(body, "$.textItems[*].ref").getFirst();
@@ -163,13 +174,13 @@ class SummaryPipelineTest {
             return Reply.ok("""
                     {"promptVersion":"summary-1","model":"fake-model","generatedAt":"2026-10-22T09:00:00","items":[
                      %s,
-                     {"ref":"%s","kind":"FINANCIAL","status":"OK","sentence":null,
-                      "explanation":"회사는 메모리 수요 회복으로 매출이 늘었다고 적었어요.","evidenceIds":["%s#B2"]},
-                     {"ref":"%s","kind":"FINANCIAL","status":"OK","sentence":null,"explanation":null,"evidenceIds":[]}
+                     {"ref":"%s","kind":"FINANCIAL","sentence":null,%s},
+                     {"ref":"%s","kind":"FINANCIAL","status":"OK","sentence":null,"explanation":null,"evidenceIds":[],
+                      "grade":"NONE","quote":null,"quoteEvidenceId":null}
                     ],"calls":[{"task":"summary","provider":"fake","model":"fake-model","promptVersion":"summary-1",
                       "calledAt":"2026-10-22T09:00:00","traceId":"trace-summary","inputTokens":120,"outputTokens":40,
                       "latencyMs":15,"attempt":1,"outcome":"OK","error":null}]}
-                    """.formatted(textItem, revenue, CUR, assets));
+                    """.formatted(textItem, revenue, revenueFields, assets));
         };
     }
 
@@ -216,9 +227,19 @@ class SummaryPipelineTest {
                 .andExpect(jsonPath("$.items[1].target.sjDiv").value("IS"))
                 .andExpect(jsonPath("$.items[1].factSentence").value("매출액이 55 원에서 70 원으로 늘었어요(+27.3%)."))
                 .andExpect(jsonPath("$.items[1].explanationStatus").value("FOUND"))
+                .andExpect(jsonPath("$.items[1].explanationGrade").value("STATED"))
+                .andExpect(jsonPath("$.items[1].quote").value("메모리 수요 회복으로 늘었습니다"))
+                .andExpect(jsonPath("$.items[1].quoteEvidence.evidenceId").value(CUR + "#B2"))
+                .andExpect(jsonPath("$.items[1].quoteEvidence.side").value("current"))
+                .andExpect(jsonPath("$.items[1].quoteEvidence.sectionNo").value(3))
+                .andExpect(jsonPath("$.items[1].quoteEvidence.blockNo").value(2))
+                .andExpect(jsonPath("$.items[1].gradeReason").doesNotExist())
                 .andExpect(jsonPath("$.items[1].evidence[0].sectionNo").value(3))
                 .andExpect(jsonPath("$.items[2].factSentence").value("자산총계가 1,000 원에서 1,153 원으로 늘었어요(+15.3%)."))
                 .andExpect(jsonPath("$.items[2].explanationStatus").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.items[2].explanationGrade").value("NONE"))
+                .andExpect(jsonPath("$.items[2].quote").doesNotExist())
+                .andExpect(jsonPath("$.items[2].gradeReason").doesNotExist())
                 .andExpect(jsonPath("$.items[2].aiGenerated").value(false))
                 .andExpect(jsonPath("$.items[2].ai").doesNotExist());
 
@@ -285,9 +306,73 @@ class SummaryPipelineTest {
                 .andExpect(jsonPath("$.items", hasSize(2)))
                 .andExpect(jsonPath("$.items[0].factSentence").isNotEmpty())
                 .andExpect(jsonPath("$.items[0].explanationStatus").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.items[0].explanationGrade").value("NONE"))
                 .andExpect(jsonPath("$.items[0].aiGenerated").value(false));
         assertThat(AI.requests(SUMMARIES)).isEmpty();
         assertThat(summaryStore.calls(id)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("코드가 등급을 NONE으로 낮춘 설명은 '확인된 설명 없음'으로 두고 낮춘 사유를 함께 준다")
+    void explanationDowngradedToNoneKeepsTheReason() throws Exception {
+        AI.on(SUMMARIES, summaryReply("OK", """
+                "status":"OK","explanation":null,"evidenceIds":[],"grade":"NONE","quote":null,"quoteEvidenceId":null,
+                "reviewReason":"인용문이 후보 원문에 그대로 없어 설명으로 쓰지 않았어요.\""""));
+
+        long id = analyze();
+
+        mockMvc.perform(get("/api/analyses/{id}/summary", id))
+                .andExpect(jsonPath("$.summaryStatus").value("COMPLETED"))
+                .andExpect(jsonPath("$.reviewNeededCount").value(0))
+                .andExpect(jsonPath("$.items[1].explanationStatus").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.items[1].explanationGrade").value("NONE"))
+                .andExpect(jsonPath("$.items[1].aiText").doesNotExist())
+                .andExpect(jsonPath("$.items[1].quoteEvidence").doesNotExist())
+                .andExpect(jsonPath("$.items[1].gradeReason").value("인용문이 후보 원문에 그대로 없어 설명으로 쓰지 않았어요."))
+                .andExpect(jsonPath("$.items[2].gradeReason").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("코드가 RELATED로 낮춘 설명은 관련 내용으로 보이고 낮춘 사유를 함께 준다")
+    void explanationDowngradedToRelatedIsShownWithTheReason() throws Exception {
+        AI.on(SUMMARIES, summaryReply("OK", """
+                "status":"OK","explanation":"경영진단에 메모리 수요 회복이 적혀 있어요.","evidenceIds":["%s#B2"],
+                "grade":"RELATED","quote":"메모리 수요 회복","quoteEvidenceId":"%s#B2",
+                "reviewReason":"인용문에 계정 이름이 없어 '관련 내용'으로 낮췄어요.\"""".formatted(CUR, CUR)));
+
+        long id = analyze();
+
+        mockMvc.perform(get("/api/analyses/{id}/summary", id))
+                .andExpect(jsonPath("$.reviewNeededCount").value(0))
+                .andExpect(jsonPath("$.items[1].explanationStatus").value("FOUND"))
+                .andExpect(jsonPath("$.items[1].explanationGrade").value("RELATED"))
+                .andExpect(jsonPath("$.items[1].quote").value("메모리 수요 회복"))
+                .andExpect(jsonPath("$.items[1].quoteEvidence.blockNo").value(2))
+                .andExpect(jsonPath("$.items[1].gradeReason").value("인용문에 계정 이름이 없어 '관련 내용'으로 낮췄어요."));
+        assertThat(summaryStore.items(id)).filteredOn(i -> "FINANCIAL".equals(i.row().kind())).first()
+                .satisfies(i -> {
+                    assertThat(i.row().explanationGrade()).isEqualTo("RELATED");
+                    assertThat(i.row().quoteEvidenceId()).isEqualTo(CUR + "#B2");
+                });
+    }
+
+    @Test
+    @DisplayName("인용 위치가 보낸 후보가 아니거나 등급이 없는 설명은 보이지 않고 검토 필요로 센다")
+    void explanationWithoutAValidQuoteIsReviewNeeded() throws Exception {
+        AI.on(SUMMARIES, summaryReply("OK", """
+                "status":"OK","explanation":"회사는 메모리 수요 회복으로 매출이 늘었다고 적었어요.","evidenceIds":["%s#B2"],
+                "grade":"STATED","quote":"메모리 수요 회복으로 늘었습니다","quoteEvidenceId":"20990101000001#B2\"""".formatted(CUR)));
+
+        long id = analyze();
+
+        mockMvc.perform(get("/api/analyses/{id}/summary", id))
+                .andExpect(jsonPath("$.summaryStatus").value("PARTIAL"))
+                .andExpect(jsonPath("$.items[1].explanationStatus").value("REVIEW_NEEDED"))
+                .andExpect(jsonPath("$.items[1].explanationGrade").doesNotExist())
+                .andExpect(jsonPath("$.items[1].aiText").doesNotExist())
+                .andExpect(jsonPath("$.items[1].gradeReason").doesNotExist())
+                .andExpect(jsonPath("$.reviewNeededCount").value(1))
+                .andExpect(jsonPath("$.reviewNeeded[0].reason").value(containsString("인용 위치")));
     }
 
     @Test

@@ -41,13 +41,14 @@ public class SummaryStore {
                     limit(row.aiText(), 1000), row.explanationStatus(),
                     limit(String.join(",", row.evidenceIds()), 2000), financialId, row.textChangeNo(),
                     limit(row.reviewReason(), 500), limit(row.model(), 100), limit(row.promptVersion(), 30),
-                    timestamp(row.generatedAt()), joined(row.blockedRules(), 200)});
+                    timestamp(row.generatedAt()), joined(row.blockedRules(), 200), row.explanationGrade(),
+                    limit(row.quote(), 1500), limit(row.quoteEvidenceId(), 40)});
         }
         if (!items.isEmpty()) {
             jdbcTemplate.batchUpdate("INSERT INTO summary_item (analysis_id, item_no, kind, status, fact_sentence, "
                 + "ai_text, explanation_status, evidence_ids, financial_change_id, text_change_no, review_reason, "
-                    + "model, prompt_version, generated_at, blocked_rules) "
-                    + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", items);
+                    + "model, prompt_version, generated_at, blocked_rules, explanation_grade, quote, "
+                    + "quote_evidence_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", items);
         }
         List<Object[]> calls = new ArrayList<>();
         for (LlmCallRow call : summary.calls()) {
@@ -66,7 +67,8 @@ public class SummaryStore {
     public List<StoredItem> items(long analysisId) {
         return jdbcTemplate.query("SELECT item_no, kind, status, fact_sentence, ai_text, explanation_status, "
                 + "evidence_ids, financial_change_id, text_change_no, review_reason, model, prompt_version, "
-                + "generated_at, blocked_rules FROM summary_item WHERE analysis_id = ? ORDER BY item_no", SummaryStore::map,
+                + "generated_at, blocked_rules, explanation_grade, quote, quote_evidence_id FROM summary_item "
+                + "WHERE analysis_id = ? ORDER BY item_no", SummaryStore::map,
                 analysisId);
     }
 
@@ -149,7 +151,8 @@ public class SummaryStore {
                 rs.getString("fact_sentence"), rs.getString("ai_text"), rs.getString("explanation_status"),
                 split(evidence), null,
                 rs.getObject("text_change_no", Integer.class), rs.getString("review_reason"), rs.getString("model"),
-                rs.getString("prompt_version"), time(rs.getTimestamp("generated_at")), split(blocked));
+                rs.getString("prompt_version"), time(rs.getTimestamp("generated_at")), split(blocked),
+                rs.getString("explanation_grade"), rs.getString("quote"), rs.getString("quote_evidence_id"));
         return new StoredItem(rs.getInt("item_no"), row, rs.getObject("financial_change_id", Long.class));
     }
 
