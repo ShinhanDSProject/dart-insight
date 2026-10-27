@@ -80,6 +80,12 @@ export function amountPeriodLabel(report: Pick<ReportItem, 'fiscalYear' | 'perio
 const shortCalcLabels: Record<string, string> = {
   PREVIOUS_ZERO: '계산 불가 · 이전 값 0',
   PREVIOUS_NEGATIVE: '계산 불가 · 이전 값 음수',
+  // 이익 계정의 흑자·적자 상태(#144). 증감률 대신 상태를 보인다. 색이 아니라 글로 구분한다(UI-5)
+  TURNED_PROFIT: '흑자전환',
+  TURNED_LOSS: '적자전환',
+  LOSS_NARROWED: '적자폭 축소',
+  LOSS_WIDENED: '적자폭 확대',
+  SIGN_CHANGED: '계산 불가 · 부호가 바뀜',
   PREVIOUS_MISSING: '계산 불가 · 이전 값 미기재',
   CURRENT_MISSING: '계산 불가 · 현재 값 미기재',
   ONLY_CURRENT: '계산 불가 · 이전 보고서에 없는 계정',
@@ -88,7 +94,7 @@ const shortCalcLabels: Record<string, string> = {
   PERIOD_MISMATCH: '계산 불가 · 기간 기준이 달라요',
 }
 
-/** 표에 넣는 짧은 계산 불가 사유. 계산했으면 null */
+/** 표에 넣는 짧은 계산 불가 사유나 흑자·적자 상태. 증감률을 계산했으면 null */
 export function shortCalcLabel(calcStatus: string): string | null {
   return shortCalcLabels[calcStatus] ?? null
 }

@@ -6,6 +6,13 @@ export type CalcStatus =
   | 'OK'
   | 'PREVIOUS_ZERO'
   | 'PREVIOUS_NEGATIVE'
+  /** 이익 계정의 흑자전환·적자전환·적자폭 축소·확대(#144). 증감액만 있고 증감률은 null */
+  | 'TURNED_PROFIT'
+  | 'TURNED_LOSS'
+  | 'LOSS_NARROWED'
+  | 'LOSS_WIDENED'
+  /** 이익 계정이 아닌 계정의 부호가 바뀜. 증감률은 null */
+  | 'SIGN_CHANGED'
   | 'PREVIOUS_MISSING'
   | 'CURRENT_MISSING'
   | 'ONLY_CURRENT'
