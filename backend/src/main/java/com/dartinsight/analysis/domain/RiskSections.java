@@ -8,7 +8,8 @@ import java.util.List;
  *
  * <p>낱말은 실제 사업보고서 목차(docs/verification/3.6-related-accuracy/*.csv의 섹션 경로)에서 골랐다:
  * 'II. 사업의 내용 > 5. 위험관리 및 파생거래', 'XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항'
- * (그 아래 '가. 중요한 소송사건' 등), 'XI. … > 3. 제재 등과 관련된 사항'. XI의 다른 항목(공시내용 진행 및 변경사항,
+ * (그 아래 '가. 중요한 소송사건' 등), 'XI. … > 3. 제재 등과 관련된 사항', 그리고 'IV. 이사의 경영진단 및 분석의견 >
+ * 1. 예측정보에 대한 주의사항'(삼성전자 2025 사업보고서 20260310002820 원문 목차에서 확인). XI의 다른 항목(공시내용 진행 및 변경사항,
  * 작성기준일 이후 발생한 주요사항)은 위험 목차가 아니라서 '투자자 보호'로는 고르지 않는다.
  *
  * <p>목차 제목으로 나눈 것이라 실제 내용과 다를 수 있다. 위험의 크기·좋고 나쁨은 판단하지 않는다.
@@ -16,7 +17,7 @@ import java.util.List;
 public final class RiskSections {
 
     /** 목차 제목에 들어 있으면 위험 관련인 낱말(공백 없음). SQL 거르기(TextChangeStore)도 이 목록을 쓴다 */
-    public static final List<String> KEYWORDS = List.of("위험", "파생거래", "우발", "소송", "제재");
+    public static final List<String> KEYWORDS = List.of("위험", "파생거래", "예측정보", "우발", "소송", "제재");
 
     /** 비교할 때 빼는 공백(SQL 쪽도 같은 글자를 뺀다) */
     public static final String SPACE = " ";

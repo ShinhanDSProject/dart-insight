@@ -22,8 +22,10 @@ class RiskSectionsTest {
         OTHER + " > 2. 우발부채 등에 관한 사항 > 가. 중요한 소송사건",
         OTHER + " > 3. 제재 등과 관련된 사항",
         "XI. 그 밖에 > 2. 우발부채 등",
+        // 삼성전자 2025 사업보고서(20260310002820) 원문 목차
+        "IV. 이사의 경영진단 및 분석의견 > 1. 예측정보에 대한 주의사항",
     })
-    @DisplayName("위험관리·파생거래·우발부채·소송·제재 목차는 위험 관련이다")
+    @DisplayName("위험관리·파생거래·예측정보·우발부채·소송·제재 목차는 위험 관련이다")
     void matchesRiskSections(String path) {
         assertThat(RiskSections.matches(path)).isTrue();
     }

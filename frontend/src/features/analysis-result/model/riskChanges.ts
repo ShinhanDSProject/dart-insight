@@ -11,7 +11,7 @@ export const RISK_FILTER_LABEL = '위험 관련만'
 export const RISK_BADGE = '위험 관련'
 export const RISK_EMPTY = '위험 관련 목차에서 바뀐 문장이 없어요.'
 export const RISK_NOTE = '목차 제목으로 나눈 것이라 실제 내용과 다를 수 있어요.'
-export const RISK_SCOPE = '위험관리·파생거래, 우발부채·소송, 제재 목차의 문장 변화예요.'
+export const RISK_SCOPE = '위험관리·파생거래, 예측정보, 우발부채·소송, 제재 목차의 문장 변화예요.'
 export const RISK_FILTERED_SCOPE = '고른 섹션·검색어 안에서 센 건수예요.'
 
 export interface RiskStat {
