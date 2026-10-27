@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import { match, P } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { TextChangeItem, TextSort } from '@/shared/api/textChanges'
-import { Badge, Button, Card, Chip, FieldHint, FieldLabel, Icon, Input, Notice, Panel, SegmentedControl, Select } from '@/shared/ui'
+import { Badge, Button, Card, Chip, FieldHint, FieldLabel, Icon, Input, Notice, Panel, SegmentedControl, Select, Skeleton } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { AddToNote } from './AddToNote'
@@ -292,7 +292,7 @@ export function TextTab({
       {!failed &&
         !pinned &&
         match(state)
-          .with({ status: 'loading' }, () => <LoadingState message="문장·표 변화를 불러오는 중입니다…" />)
+          .with({ status: 'loading' }, () => <Skeleton label="문장·표 변화를 불러오는 중입니다…" shape="card" count={2} />)
           .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} />)
           .with({ status: 'success' }, ({ data, items, more }) => (
             <>

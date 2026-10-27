@@ -2,8 +2,8 @@ import { Link, useParams } from 'react-router'
 import { match, P } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { ParamChanges } from '@/shared/lib/searchParams'
-import { Button, ButtonLink, Notice, Tabs, type TabItem } from '@/shared/ui'
-import { ErrorState, LoadingState } from '@/shared/ui/StateView'
+import { Button, ButtonLink, Notice, Skeleton, Tabs, type TabItem } from '@/shared/ui'
+import { ErrorState } from '@/shared/ui/StateView'
 import type { SjDiv } from '@/shared/api/results'
 import type { TextSectionCount } from '@/shared/api/textChanges'
 import type { LoadState } from '@/shared/hooks/asyncState'
@@ -65,7 +65,7 @@ export function AnalysisResultPage() {
   return match(state)
     .with({ status: 'loading' }, () => (
       <section className="page">
-        <LoadingState message="분석 결과를 불러오는 중입니다…" />
+        <Skeleton label="분석 결과를 불러오는 중입니다…" shape="block" />
       </section>
     ))
     .with({ status: 'error' }, ({ error }) => (
