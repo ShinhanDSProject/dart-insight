@@ -10,6 +10,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -127,6 +128,26 @@ public class ReportDocument {
         this.zipBytes = zipBytes;
         this.fetchedAt = fetchedAt;
         structuredAt = now;
+    }
+
+    /** 원문 없음(NOT_AVAILABLE)으로 남긴 뒤 보고서 목록에서 이 보고서를 다시 보지 않았는지. 그동안은 OpenDART에 다시 묻지 않는다 */
+    public boolean unavailableSince(LocalDateTime lastSeenAt) {
+        return status == DocumentStatus.NOT_AVAILABLE && !lastSeenAt.isAfter(fetchedAt);
+    }
+
+    /** 원문 ZIP을 받아 이 파서 버전으로 구조화해 두었는지(결과가 실패여도) */
+    public boolean structuredWith(String parserVersion) {
+        return fileReceived() && Objects.equals(this.parserVersion, parserVersion);
+    }
+
+    /** OpenDART에서 원문 ZIP을 받았는지. 원문이 없다고 남긴 기록이면 false */
+    public boolean fileReceived() {
+        return status != DocumentStatus.NOT_AVAILABLE;
+    }
+
+    /** 이 시각(분석 완료 시각) 뒤에 다시 구조화했는지. 그러면 그때 저장한 근거 위치·블록 번호가 다를 수 있다 */
+    public boolean restructuredAfter(LocalDateTime time) {
+        return time != null && structuredAt != null && structuredAt.isAfter(time);
     }
 
     private static DocumentStatus parseStatus(String value) {
