@@ -10,14 +10,9 @@ import com.dartinsight.analysis.domain.Analysis;
 import com.dartinsight.analysis.dto.AnalysisResponse;
 import com.dartinsight.analysis.service.AnalysisResultService;
 import com.dartinsight.analysis.service.AnalysisRunner;
-import com.dartinsight.company.repository.CompanyRepository;
-import com.dartinsight.comparison.service.ReportPairService;
 import com.dartinsight.document.domain.ReportDocument;
 import com.dartinsight.document.domain.TableJson;
 import com.dartinsight.document.dto.StructuredDocumentResponse;
-import com.dartinsight.report.repository.ReportRepository;
-import com.dartinsight.report.service.ReportService;
-import com.dartinsight.report.service.ReportSyncService;
 import com.dartinsight.summary.repository.SummaryStore;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.Dependency;
@@ -62,16 +57,8 @@ class ArchitectureTest {
 
     /** PKG-3 예외: 다른 도메인의 Repository·Store를 직접 쓰는 지금 사례. 해소는 별도 이슈에서 한다. */
     private static final Set<Allowed> CROSS_DOMAIN_STORES = Set.of(
-            // 요약 요청에 넣을 회사 이름을 읽는다(CompanyService 조회로 바꿀 대상)
-            new Allowed(AnalysisRunner.class, CompanyRepository.class),
             // 재무·문장 변경과 요약을 한 트랜잭션에 저장한 뒤 COMPLETED로 바꾼다(ADR-0004)
-            new Allowed(AnalysisResultService.class, SummaryStore.class),
-            // 회사 존재 확인과 목록 받은 시각(reportsFetchedAt)으로 최신 목록을 고른다
-            new Allowed(ReportService.class, CompanyRepository.class),
-            // 목록을 다시 받은 뒤 회사 행에 받은 시각을 기록한다(같은 트랜잭션)
-            new Allowed(ReportSyncService.class, CompanyRepository.class),
-            // 현재 보고서를 회사 조건과 함께 직접 조회한다(ReportService 조회로 바꿀 대상)
-            new Allowed(ReportPairService.class, ReportRepository.class));
+            new Allowed(AnalysisResultService.class, SummaryStore.class));
 
     /**
      * 패키지 순환 예외: analysis가 summary의 요약 실행·상태·저장소를 쓰고, summary는 analysis의 분석·변경 행을 읽는다.
