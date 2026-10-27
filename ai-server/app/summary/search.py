@@ -2,6 +2,7 @@
 
 - 후보 조건: 공백을 뺀 글에 검색어가 하나 이상 그대로 들어 있고, 공백을 뺀 길이가 40자 이상인 문단.
   목차 제목처럼 짧은 줄과 검색어가 없는 문단은 후보가 아니다.
+  검색어는 LLM에 보내는 앞 MAX_SOURCE_CHARS자 안에 있어야 한다(뒤에만 있으면 그 대목을 보지 못한다).
 - 순위: 공백을 뺀 글을 글자 2개 단위로 나눠 Okapi BM25로 점수를 매기고 섹션 가중치를 곱한다.
   점수가 같으면 문서 순서(보낸 순서)가 앞선 것. 상위 CANDIDATE_LIMIT개를 등급 판정에 넘긴다.
 - 색인은 요청마다 받은 문단으로 만들고 저장하지 않는다.
@@ -53,6 +54,8 @@ class Index:
     def __init__(self, blocks: list[Source]) -> None:
         self.blocks = blocks
         self.texts = [compact(b.text) for b in blocks]
+        # LLM에 보내는 앞부분(공백 뺀 글). 검색어가 여기 있어야 후보다
+        self.sent_texts = [compact(b.text[:MAX_SOURCE_CHARS]) for b in blocks]
         self.counts = [Counter(bigrams(t)) for t in self.texts]
         self.lengths = [sum(c.values()) for c in self.counts]
         self.average = sum(self.lengths) / len(self.lengths) if self.lengths else 0.0
@@ -84,7 +87,7 @@ class Index:
         scored = [
             (self._bm25(i, grams) * section_weight(block.section_path), i)
             for i, block in enumerate(self.blocks)
-            if len(self.texts[i]) >= MIN_CHARS and any(t in self.texts[i] for t in terms)
+            if len(self.texts[i]) >= MIN_CHARS and any(t in self.sent_texts[i] for t in terms)
         ]
         scored.sort(key=lambda s: (-s[0], s[1]))
         return [_trimmed(self.blocks[i]) for _, i in scored[:limit]]

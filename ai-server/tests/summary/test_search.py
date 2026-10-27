@@ -98,6 +98,16 @@ def test_at_most_the_limit_and_long_paragraphs_are_trimmed() -> None:
     assert all(len(s.text) <= MAX_SOURCE_CHARS for s in found)
 
 
+def test_term_only_after_the_sent_part_is_not_a_candidate() -> None:
+    # LLM에는 앞 MAX_SOURCE_CHARS자만 보내므로, 검색어가 그 뒤에만 있으면 그 대목을 보지 못한다
+    late = "당사의 사업 현황입니다. " + "가" * MAX_SOURCE_CHARS + " 매출액은 늘었습니다."
+    early = "매출액은 메모리 수요 회복으로 증가하였습니다." + TAIL
+
+    found = Index([block(1, MDNA, late), block(2, NOTES, early)]).candidates(["매출액"])
+
+    assert ids(found) == [f"{CUR}#B2"]
+
+
 def test_no_terms_or_no_blocks_give_no_candidates() -> None:
     paragraph = block(1, MDNA, "매출액은 메모리 수요 회복으로 증가하였습니다." + TAIL)
 
