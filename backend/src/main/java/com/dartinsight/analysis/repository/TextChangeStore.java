@@ -124,6 +124,12 @@ public class TextChangeStore {
                 + " LIMIT ? OFFSET ?", TextChangeStore::map, args.toArray());
     }
 
+    /** 분석의 변경 전부(문서 순서). 관련 수시공시(3.6)가 분석 전체를 한 번에 계산할 때 쓴다 */
+    public List<TextChange> all(long analysisId) {
+        return jdbcTemplate.query("SELECT " + COLUMNS + " FROM text_change WHERE analysis_id = ? ORDER BY change_no",
+                TextChangeStore::map, analysisId);
+    }
+
     /** 변경이 있는 섹션 경로 전부(겹치지 않음, 문서 순서: 경로의 첫 change_no 순) */
     public List<String> sectionPaths(long analysisId) {
         return jdbcTemplate.query("SELECT section_path, MIN(change_no) AS first_no FROM text_change "

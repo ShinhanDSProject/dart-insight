@@ -8,7 +8,7 @@
 | --- | --- |
 | 상태 | 초안 (M1 확정, M2 진행 중: 원문 구조화·문장 변경·요약 확정) |
 | 담당 | 백엔드 |
-| 마지막 수정 | 2026-10-26 |
+| 마지막 수정 | 2026-10-27 |
 | 관련 문서 | API 명세(`docs/api-spec.md`), [OpenDART 데이터 가이드](https://app.notion.com/p/400b6afffc6f81cc8870ee13d02d8ac1), 이슈 #46 |
 
 ## 1. 테이블 목록
@@ -801,7 +801,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 
 ### 관련 수시공시(3.6)
 
-> 상태: 범위 승인(#24)과 팀 확인(#337)을 받았습니다. 마이그레이션: `V29__create_disclosure_window.sql`(`disclosure_window_fetch`·`disclosure_window_item`, #339). `related_disclosure_run`·`related_disclosure`와 `disclosure_key_item.source_rcept_no`는 #340·#341에서 다음 번호로 추가합니다. 설계 이유는 [ADR-0030](adr/0030-related-disclosure-matching.md)에 있습니다. 주요사항보고서 주요정보(DS005)는 새 표를 두지 않고 #363의 `disclosure_key_item`을 같이 씁니다(아래 그 절의 '(3.6)'). #332의 `company_disclosure`와 따로 두는 이유: 그 표는 오늘 기준 최근 기간·최종본만 받고 1시간마다 기업 행을 통째로 바꿔, 분석 기간을 덮지 못하고 기간 뒤 정정된 사건이 빠지며 id에 연결을 걸 수 없습니다.
+> 상태: 범위 승인(#24)과 팀 확인(#337)을 받았습니다. 마이그레이션: `V29__create_disclosure_window.sql`(`disclosure_window_fetch`·`disclosure_window_item`, #339), `V30__create_related_disclosure.sql`(`related_disclosure_run`·`related_disclosure`, #340). `disclosure_key_item.source_rcept_no`는 #341에서 다음 번호로 추가합니다. 설계 이유는 [ADR-0030](adr/0030-related-disclosure-matching.md)에 있습니다. 주요사항보고서 주요정보(DS005)는 새 표를 두지 않고 #363의 `disclosure_key_item`을 같이 씁니다(아래 그 절의 '(3.6)'). #332의 `company_disclosure`와 따로 두는 이유: 그 표는 오늘 기준 최근 기간·최종본만 받고 1시간마다 기업 행을 통째로 바꿔, 분석 기간을 덮지 못하고 기간 뒤 정정된 사건이 빠지며 id에 연결을 걸 수 없습니다.
 
 #### disclosure_window_fetch — 분석 기간 단위로 수시공시 목록을 받은 기록
 

@@ -102,8 +102,8 @@ public final class DisclosureGroupRules {
         return DisclosureGroup.OTHER;
     }
 
-    /** 규칙에 대는 제목: 앞머리 꼬리표와 뒤에 덧붙인 설명을 떼고 공백을 모두 뺀 값 */
-    static String title(String reportName) {
+    /** 규칙에 대는 제목: 앞머리 꼬리표와 뒤에 덧붙인 설명을 떼고 공백을 모두 뺀 값. 관련 수시공시(3.6) 규칙도 쓴다 */
+    public static String title(String reportName) {
         if (reportName == null) {
             return "";
         }
