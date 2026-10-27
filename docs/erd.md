@@ -681,7 +681,7 @@ OpenDART 정기보고서 주요정보 API를 보고서(접수번호)·종류마�
 | `priority` | VARCHAR(10) | | 예 | 확인 우선순위(2.6). `HIGH`, `MEDIUM`, `LOW`, `UNRANKED`(판단 유보, 검토 필요 항목). 투자 판단이 아님 |
 | `priority_score` | INT | | 예 | 적용한 규칙 점수의 합. `UNRANKED`면 null |
 | `priority_reasons` | VARCHAR(1000) | | 예 | 적용한 규칙(한 줄에 하나, 예: `사업의 내용 섹션 +30`) |
-| `priority_version` | VARCHAR(20) | | 예 | 우선순위 규칙 버전(잠정 규칙 `priority-2`) |
+| `priority_version` | VARCHAR(20) | | 예 | 우선순위 규칙 버전(잠정 규칙 `priority-3`) |
 
 ### summary_item
 
