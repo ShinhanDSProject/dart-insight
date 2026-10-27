@@ -73,7 +73,16 @@ public class FinancialAccount {
     protected FinancialAccount() {
     }
 
-    public FinancialAccount(Long fetchId, String rceptNo, String sjDiv, String sjName, String accountId,
+    /** 받은 재무제표의 계정 한 줄. 금액은 보고서 통화의 정수이고 없으면 null이다. */
+    public static FinancialAccount create(Long fetchId, String rceptNo, String sjDiv, String sjName,
+            String accountId, String accountName, String accountDetail, Integer ord, String currency,
+            String thstrmName, String frmtrmName, Long thstrmAmount, Long thstrmAddAmount, Long frmtrmAmount,
+            Long frmtrmQAmount, Long frmtrmAddAmount) {
+        return new FinancialAccount(fetchId, rceptNo, sjDiv, sjName, accountId, accountName, accountDetail, ord, currency,
+                thstrmName, frmtrmName, thstrmAmount, thstrmAddAmount, frmtrmAmount, frmtrmQAmount, frmtrmAddAmount);
+    }
+
+    private FinancialAccount(Long fetchId, String rceptNo, String sjDiv, String sjName, String accountId,
             String accountName, String accountDetail, Integer ord, String currency, String thstrmName,
             String frmtrmName,
             Long thstrmAmount, Long thstrmAddAmount, Long frmtrmAmount, Long frmtrmQAmount, Long frmtrmAddAmount) {

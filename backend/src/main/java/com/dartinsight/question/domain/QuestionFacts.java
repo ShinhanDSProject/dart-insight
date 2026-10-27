@@ -1,9 +1,7 @@
-package com.dartinsight.question.service;
+package com.dartinsight.question.domain;
 
 import com.dartinsight.analysis.domain.FinancialChange;
 import com.dartinsight.analysis.domain.FinancialChangeRow;
-import com.dartinsight.question.domain.QuestionFact;
-import com.dartinsight.question.domain.QuestionRetriever;
 import com.dartinsight.summary.domain.AccountAliases;
 import com.dartinsight.summary.domain.FinancialFacts;
 import java.util.ArrayList;
@@ -19,7 +17,7 @@ import java.util.Set;
  * 증감액을 계산한 계정만 쓰고(값이 같거나 계산하지 못한 계정은 빼고), 이전·현재 금액이 같은 계정(같은 계정이 손익계산서와
  * 포괄손익계산서에 함께 있는 경우)은 한 번만 쓴다. 문장은 코드(FinancialFacts)가 만든다.
  */
-final class QuestionFacts {
+public final class QuestionFacts {
 
     static final int MAX_FACTS = 3;
     /** 계정 이름 일부로 맞출 질문 낱말의 최소 길이(2자는 '자산' 같은 낱말이 너무 많이 걸림) */
@@ -31,7 +29,7 @@ final class QuestionFacts {
     private QuestionFacts() {
     }
 
-    static List<QuestionFact> match(String question, List<FinancialChange> changes) {
+    public static List<QuestionFact> match(String question, List<FinancialChange> changes) {
         String compactQuestion = QuestionRetriever.compact(question);
         // 질문 낱말이 계정 이름 안에 있으면(예: '차입금' → 단기차입금·장기차입금) 이름이 바로 나온 계정 다음 순서로 고른다
         List<String> partTerms = QuestionRetriever.terms(question).stream()
@@ -68,12 +66,12 @@ final class QuestionFacts {
         return facts;
     }
 
-    static QuestionFact fact(String ref, FinancialChange c) {
+    public static QuestionFact fact(String ref, FinancialChange c) {
         return new QuestionFact(ref, c.getId(), c.getSjDiv(), c.getAccountName(), FinancialFacts.sentence(row(c)));
     }
 
     /** 사실 문장을 다시 만들 수 있는 계정인지(저장된 사실을 다시 보일 때) */
-    static boolean hasFact(FinancialChange c) {
+    public static boolean hasFact(FinancialChange c) {
         return c.getPreviousAmount() != null && c.getCurrentAmount() != null && c.getChangeAmount() != null
                 && c.getChangeAmount() != 0;
     }

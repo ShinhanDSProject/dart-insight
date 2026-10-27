@@ -20,6 +20,7 @@ import com.dartinsight.question.domain.CitedSource;
 import com.dartinsight.question.domain.EvidenceRef;
 import com.dartinsight.question.domain.FeedbackReason;
 import com.dartinsight.question.domain.QuestionFact;
+import com.dartinsight.question.domain.QuestionFacts;
 import com.dartinsight.question.domain.QuestionFeedback;
 import com.dartinsight.question.domain.QuestionRecord;
 import com.dartinsight.question.domain.QuestionRetriever;
