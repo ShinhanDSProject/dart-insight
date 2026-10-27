@@ -2,6 +2,7 @@ package com.dartinsight.analysis.dto;
 
 import com.dartinsight.analysis.domain.TextChange;
 import com.dartinsight.analysis.domain.TextChangeRow;
+import com.dartinsight.analysis.domain.TextPreview;
 import java.math.BigDecimal;
 import java.util.List;
 

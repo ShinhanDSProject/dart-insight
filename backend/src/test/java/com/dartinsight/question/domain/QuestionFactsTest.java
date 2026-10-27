@@ -1,4 +1,4 @@
-package com.dartinsight.question.service;
+package com.dartinsight.question.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -8,7 +8,6 @@ import com.dartinsight.analysis.domain.FinancialChangeRow;
 import com.dartinsight.analysis.domain.FinancialChangeRow.Evidence;
 import com.dartinsight.comparison.domain.AmountBasis;
 import com.dartinsight.financial.domain.FsDiv;
-import com.dartinsight.question.domain.QuestionFact;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

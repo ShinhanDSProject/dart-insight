@@ -52,7 +52,13 @@ public class FinancialStatementFetch {
     protected FinancialStatementFetch() {
     }
 
-    public FinancialStatementFetch(String corpCode, int fiscalYear, String reprtCode, FsDiv fsDiv,
+    /** 사업연도·보고서 코드·재무제표 구분 하나를 받은 결과. */
+    public static FinancialStatementFetch create(String corpCode, int fiscalYear, String reprtCode, FsDiv fsDiv,
+            FetchStatus status, String rceptNo, LocalDateTime fetchedAt) {
+        return new FinancialStatementFetch(corpCode, fiscalYear, reprtCode, fsDiv, status, rceptNo, fetchedAt);
+    }
+
+    private FinancialStatementFetch(String corpCode, int fiscalYear, String reprtCode, FsDiv fsDiv,
             FetchStatus status, String rceptNo, LocalDateTime fetchedAt) {
         this.corpCode = corpCode;
         this.fiscalYear = fiscalYear;

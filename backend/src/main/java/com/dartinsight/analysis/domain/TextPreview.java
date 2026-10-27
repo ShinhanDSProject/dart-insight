@@ -1,9 +1,9 @@
-package com.dartinsight.analysis.dto;
+package com.dartinsight.analysis.domain;
 
 /**
  * 목록에 보여 줄 앞부분. 수정이면 두 글이 처음 달라지는 곳 조금 앞부터 잘라, 바뀐 곳이 미리보기에 보이게 한다.
  */
-final class TextPreview {
+public final class TextPreview {
 
     static final int LENGTH = 240;
     private static final int LEAD = 40;
@@ -12,7 +12,7 @@ final class TextPreview {
     }
 
     /** 두 글이 처음 달라지는 위치. 하나가 null이면 0 */
-    static int firstDifference(String a, String b) {
+    public static int firstDifference(String a, String b) {
         if (a == null || b == null) {
             return 0;
         }
@@ -24,7 +24,7 @@ final class TextPreview {
         return i;
     }
 
-    static String cut(String text, int from) {
+    public static String cut(String text, int from) {
         if (text == null) {
             return null;
         }

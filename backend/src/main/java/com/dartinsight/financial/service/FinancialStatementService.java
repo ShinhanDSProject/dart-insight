@@ -109,7 +109,7 @@ public class FinancialStatementService implements FinancialDataStatusProvider {
             accountRepository.deleteByFetchId(savedId);
             fetch.refresh(status, rceptNo, now);
         } else {
-            fetch = fetchRepository.save(new FinancialStatementFetch(report.getCorpCode(), report.getFiscalYear(),
+            fetch = fetchRepository.save(FinancialStatementFetch.create(report.getCorpCode(), report.getFiscalYear(),
                     reprtCode, fsDiv, status, rceptNo, now));
         }
         if (hasData) {
@@ -136,7 +136,7 @@ public class FinancialStatementService implements FinancialDataStatusProvider {
         String accountId = i.accountId() == null || i.accountId().isBlank()
                 ? FinancialAccount.NON_STANDARD_ACCOUNT_ID : i.accountId().trim();
         // 컬럼 길이를 넘는 값은 잘라 저장한다(긴 값 하나 때문에 재무제표 전체를 저장하지 못하지 않도록)
-        return new FinancialAccount(fetchId, rceptNo, i.sjDiv().trim(), limit(blankToNull(i.sjName()), 100),
+        return FinancialAccount.create(fetchId, rceptNo, i.sjDiv().trim(), limit(blankToNull(i.sjName()), 100),
                 limit(accountId, 200), limit(i.accountName().trim(), 200), limit(detailOrNull(i.accountDetail()), 500),
                 Amounts.parseInt(i.ord()), limit(blankToNull(i.currency()), 10), limit(blankToNull(i.thstrmName()), 50),
                 limit(blankToNull(i.frmtrmName()), 50),

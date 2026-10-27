@@ -21,17 +21,17 @@ class FinancialComparatorTest {
     /** 가짜 계정. 금액 순서: 당기, 당기 누적 */
     private static FinancialAccount account(String rceptNo, String sjDiv, String accountId, String name, int ord,
             Long thstrm, Long thstrmAdd) {
-        return new FinancialAccount(1L, rceptNo, sjDiv, null, accountId, name, null, ord, "KRW",
+        return FinancialAccount.create(1L, rceptNo, sjDiv, null, accountId, name, null, ord, "KRW",
                 rceptNo.equals(CUR) ? "제 10 기 반기" : "제 9 기 반기", null, thstrm, thstrmAdd, null, null, null);
     }
 
     private static FinancialAccount sce(String rceptNo, String accountId, String detail, int ord, Long thstrm) {
-        return new FinancialAccount(1L, rceptNo, "SCE", null, accountId, "기말자본", detail, ord, "KRW", null, null,
+        return FinancialAccount.create(1L, rceptNo, "SCE", null, accountId, "기말자본", detail, ord, "KRW", null, null,
                 thstrm, null, null, null, null);
     }
 
     private static FinancialAccount sceNamed(String rceptNo, String name, int ord, Long thstrm) {
-        return new FinancialAccount(1L, rceptNo, "SCE", null, "ifrs-full_Equity", name, null, ord, "KRW", null, null,
+        return FinancialAccount.create(1L, rceptNo, "SCE", null, "ifrs-full_Equity", name, null, ord, "KRW", null, null,
                 thstrm, null, null, null, null);
     }
 
