@@ -2,6 +2,7 @@ package com.dartinsight.financial.service;
 
 import com.dartinsight.dart.dto.FinancialStatementResponse;
 import com.dartinsight.dart.client.OpenDartClient;
+import com.dartinsight.financial.domain.Amounts;
 import com.dartinsight.financial.domain.FetchStatus;
 import com.dartinsight.financial.domain.FinancialAccount;
 import com.dartinsight.financial.domain.FinancialStatementFetch;
@@ -30,7 +31,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * 보고서별 재무제표(4.5). OpenDART 단일회사 전체 재무제표를 받아 계정 값을 저장한다.
  * 같은 기업·사업연도·보고서 코드·기준(연결·별도)은 저장된 결과를 쓰고 다시 부르지 않는다(호출 한도).
  * 013(자료 없음)도 결과로 저장한다. 호출 실패는 저장하지 않는다.
- * 저장된 결과가 이 보고서의 자료가 아니면 정해진 때에 한 번 더 받는다({@link #needsRefetch}).
+ * 저장된 결과가 이 보고서의 자료가 아니면 정해진 때에 한 번 더 받는다({@link FinancialStatementFetch#needsRefetchFor}).
  */
 @Service
 @RequiredArgsConstructor
@@ -54,7 +55,7 @@ public class FinancialStatementService implements FinancialDataStatusProvider {
         }
         String reprtCode = report.getReportType().reprtCode();
         Optional<FinancialStatementFetch> saved = find(report.getCorpCode(), report.getFiscalYear(), reprtCode, fsDiv);
-        if (saved.isPresent() && !needsRefetch(saved.get(), report)) {
+        if (saved.isPresent() && !saved.get().needsRefetchFor(report)) {
             return saved;
         }
 
@@ -70,20 +71,6 @@ public class FinancialStatementService implements FinancialDataStatusProvider {
             return Optional.of(find(report.getCorpCode(), report.getFiscalYear(), reprtCode, fsDiv)
                     .orElseThrow(() -> e));
         }
-    }
-
-    /**
-     * 저장된 결과를 다시 받아야 하는지. 재무제표 API는 사업연도·보고서 코드마다 최신 공시 하나의 값만 주므로,
-     * 저장된 결과가 이 보고서의 자료가 아니면(자료 없음이거나 다른 접수번호) 그 뒤에 보고서 목록에서 이 보고서를
-     * 다시 봤을 때(정정 공시가 새로 나왔거나 하루가 지나 목록을 다시 받았을 때) 한 번 더 받는다.
-     * 이 보고서의 자료면 다시 받지 않는다.
-     */
-    static boolean needsRefetch(FinancialStatementFetch fetch, Report report) {
-        return !serves(fetch, report) && report.getLastSeenAt().isAfter(fetch.getFetchedAt());
-    }
-
-    private static boolean serves(FinancialStatementFetch fetch, Report report) {
-        return fetch.hasData() && report.getRceptNo().equals(fetch.getRceptNo());
     }
 
     /** 연결 재무제표를 먼저 보고, 없으면(013) 별도 재무제표를 본다. */
@@ -196,10 +183,10 @@ public class FinancialStatementService implements FinancialDataStatusProvider {
         if (report.getFiscalYear() < FinancialDataStatus.FIRST_FISCAL_YEAR) {
             return FinancialDataStatus.NOT_AVAILABLE;
         }
-        if (fetches.stream().anyMatch(f -> serves(f, report))) {
+        if (fetches.stream().anyMatch(f -> f.serves(report))) {
             return FinancialDataStatus.AVAILABLE;
         }
-        if (fetches.stream().anyMatch(f -> needsRefetch(f, report))) {
+        if (fetches.stream().anyMatch(f -> f.needsRefetchFor(report))) {
             // 다시 받아 보기 전까지는 모른다
             return FinancialDataStatus.UNKNOWN;
         }
