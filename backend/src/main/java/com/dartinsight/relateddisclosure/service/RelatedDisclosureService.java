@@ -3,35 +3,42 @@ package com.dartinsight.relateddisclosure.service;
 import com.dartinsight.analysis.domain.Analysis;
 import com.dartinsight.analysis.service.AnalysisResultService;
 import com.dartinsight.analysis.service.TextChangeQueryService;
+import com.dartinsight.analysis.service.TextChangeQueryService.CompletedTextChange;
 import com.dartinsight.analysis.service.TextChangeQueryService.CompletedTextChanges;
 import com.dartinsight.common.error.ApiException;
+import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.common.trace.TraceContext;
+import com.dartinsight.company.service.CompanyService;
 import com.dartinsight.disclosure.domain.DisclosureKeyItems;
 import com.dartinsight.disclosure.domain.KeyItemRules;
 import com.dartinsight.disclosure.domain.KeyItemTarget;
 import com.dartinsight.disclosure.service.DisclosureKeyItemService;
+import com.dartinsight.relateddisclosure.domain.ChangeRelatedDisclosures;
 import com.dartinsight.relateddisclosure.domain.DisclosureDetailType;
 import com.dartinsight.relateddisclosure.domain.DisclosureWindow;
 import com.dartinsight.relateddisclosure.domain.KeyItemMatcher;
+import com.dartinsight.relateddisclosure.domain.MatchLevel;
 import com.dartinsight.relateddisclosure.domain.RelatedDisclosureMatcher;
 import com.dartinsight.relateddisclosure.domain.RelatedDisclosureRules;
 import com.dartinsight.relateddisclosure.domain.RelatedDisclosures;
 import com.dartinsight.relateddisclosure.domain.RelatedLink;
 import com.dartinsight.relateddisclosure.domain.RelatedRun;
+import com.dartinsight.relateddisclosure.domain.RelatedStatus;
 import com.dartinsight.relateddisclosure.domain.WindowDisclosure;
 import com.dartinsight.relateddisclosure.domain.WindowDisclosures;
 import com.dartinsight.relateddisclosure.repository.RelatedDisclosureStore;
 import com.dartinsight.report.domain.Report;
 import com.dartinsight.report.service.ReportService;
-import com.dartinsight.report.service.ReportService.ReportDetail;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +57,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  *       이미 받았으면 부르지 않음) '내용 일치'를 판정한다(2단계, {@link RelatedDisclosureMatcher#strengthen})</li>
  *   <li>한 트랜잭션으로 저장한다. 연결이 0건이어도 저장한다</li>
  * </ol>
- * 공시 목록을 받지 못하면 저장하지 않고 ApiException(DART_*)을 그대로 던진다. 부르는 쪽(#343)이 '일시 미제공'으로 답한다.
+ * 공시 목록을 받지 못하면 저장하지 않는다. {@link #get}은 ApiException(DART_*)을 그대로 던지고, 문장 변경 하나를 답하는
+ * {@link #forChange}(#343)는 '일시 미제공'(UNAVAILABLE)으로 바꿔 답한다.
  * 주요정보를 받지 못하면 1단계 결과를 저장하지 않고 돌려준다(partial, 다음 요청에서 다시 계산). 주요정보가 자료 없음(013)이면
  * 받은 것으로 본다. OpenDART 호출은 트랜잭션 밖에서 한다(LY-2).
  */
@@ -60,6 +68,14 @@ public class RelatedDisclosureService {
 
     private static final Logger log = LoggerFactory.getLogger(RelatedDisclosureService.class);
     private static final Object[] LOCKS = new Object[64];
+    /** 공시 목록을 받지 못한 사유 중 '일시 미제공'으로 답하는 것(api-spec unavailableReason) */
+    private static final Set<ErrorCode> UNAVAILABLE_REASONS = Set.of(ErrorCode.DART_REQUEST_FAILED,
+            ErrorCode.DART_RATE_LIMITED, ErrorCode.DART_KEY_MISSING);
+    /** 화면 순서: 내용 일치 먼저, 같으면 접수일이 최근인 것, 같은 날이면 접수번호가 큰 것 */
+    private static final Comparator<RelatedLink> SCREEN_ORDER = Comparator
+            .comparing((RelatedLink link) -> link.matchLevel() == MatchLevel.STRONG ? 0 : 1)
+            .thenComparing((RelatedLink link) -> link.disclosure().rceptDt(), Comparator.reverseOrder())
+            .thenComparing((RelatedLink link) -> link.disclosure().rceptNo(), Comparator.reverseOrder());
 
     static {
         for (int i = 0; i < LOCKS.length; i++) {
@@ -70,6 +86,7 @@ public class RelatedDisclosureService {
     private final AnalysisResultService analysisResultService;
     private final TextChangeQueryService textChangeQueryService;
     private final ReportService reportService;
+    private final CompanyService companyService;
     private final DisclosureWindowService windowService;
     private final DisclosureKeyItemService keyItemService;
     private final RelatedDisclosureStore store;
@@ -92,6 +109,34 @@ public class RelatedDisclosureService {
         }
     }
 
+    /**
+     * 문장 변경 하나의 관련 수시공시. 없는 분석·변경은 404, 완료되지 않았으면 409. 처음이면 분석 전체를 계산해 저장한다.
+     * 공시 목록을 받지 못하면(호출 실패·020·키 없음) 에러가 아니라 UNAVAILABLE로 답하고 저장하지 않는다.
+     */
+    public ChangeRelatedDisclosures forChange(Long analysisId, Long changeId) {
+        CompletedTextChange completed = textChangeQueryService.completedChange(analysisId, changeId);
+        DisclosureWindow window = window(completed.analysis());
+        RelatedDisclosures all;
+        try {
+            all = get(analysisId);
+        } catch (ApiException e) {
+            if (!UNAVAILABLE_REASONS.contains(e.errorCode())) {
+                throw e;
+            }
+            log.warn("관련 수시공시 공시 목록을 받지 못해 일시 미제공으로 답합니다 analysis={}: {}", analysisId, e.errorCode());
+            return new ChangeRelatedDisclosures(analysisId, changeId, RelatedStatus.UNAVAILABLE, e.errorCode(), false,
+                    window, RelatedDisclosureRules.RULE_VERSION, now(), false, List.of());
+        }
+        int changeNo = completed.change().changeNo();
+        List<RelatedLink> links = all.links().stream()
+                .filter(link -> link.changeNo() == changeNo)
+                .sorted(SCREEN_ORDER)
+                .toList();
+        return new ChangeRelatedDisclosures(analysisId, changeId,
+                links.isEmpty() ? RelatedStatus.NOT_FOUND : RelatedStatus.FOUND, null, all.partial(), window,
+                all.run().ruleVersion(), all.run().computedAt(), all.cached(), links);
+    }
+
     private Optional<RelatedDisclosures> findSaved(long analysisId) {
         return store.findRun(analysisId, RelatedDisclosureRules.RULE_VERSION)
                 .map(run -> new RelatedDisclosures(run, store.findLinks(run.id()), true, false));
@@ -100,17 +145,14 @@ public class RelatedDisclosureService {
     private RelatedDisclosures compute(Long analysisId) {
         CompletedTextChanges completed = textChangeQueryService.completedChanges(analysisId);
         Analysis analysis = completed.analysis();
-        ReportDetail current = reportService.get(analysis.getCurrentRceptNo());
-        Report previous = reportService.report(analysis.getPreviousRceptNo());
-        DisclosureWindow window = new DisclosureWindow(analysis.getCorpCode(), previous.getPeriodEnd(),
-                current.report().getPeriodEnd(), current.report().getRceptDt());
+        DisclosureWindow window = window(analysis);
         WindowDisclosures disclosures = windowService.load(window);
         List<RelatedLink> typeOnly = RelatedDisclosureMatcher.match(completed.changes(), disclosures.items(),
                 window.periodEnd());
         Optional<Map<String, DisclosureKeyItems>> keyItems = keyItems(window.corpCode(), typeOnly);
         List<RelatedLink> links = keyItems
                 .map(items -> RelatedDisclosureMatcher.strengthen(typeOnly, completed.changes(), items,
-                        current.company().getCorpName()))
+                        companyService.get(analysis.getCorpCode()).getCorpName()))
                 .orElse(typeOnly);
         RelatedRun run = new RelatedRun(null, analysisId, RelatedDisclosureRules.RULE_VERSION,
                 disclosures.fetch().id(), window.periodEnd(), links.size(), TraceContext.currentTraceId(), now());
@@ -157,6 +199,14 @@ public class RelatedDisclosureService {
             }
         }
         return Optional.of(keyItems);
+    }
+
+    /** 이전 보고서 기간 말일 ~ 현재 보고서 제출일. 현재 보고서 기간 말일로 기간 안·뒤를 나눈다 */
+    private DisclosureWindow window(Analysis analysis) {
+        Report current = reportService.report(analysis.getCurrentRceptNo());
+        Report previous = reportService.report(analysis.getPreviousRceptNo());
+        return new DisclosureWindow(analysis.getCorpCode(), previous.getPeriodEnd(), current.getPeriodEnd(),
+                current.getRceptDt());
     }
 
     private LocalDateTime now() {

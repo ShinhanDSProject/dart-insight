@@ -51,6 +51,8 @@ public final class ApiPaths {
     public static final String BY_CHANGE_ID = "/{changeId}";
     public static final String CHANGE_HISTORY = BY_CHANGE_ID + "/history";
     public static final String TEXT_CHANGE_EXPLANATIONS = ANALYSIS_TEXT_CHANGES + "/{changeId}/explanations";
+    /** 문장 변경의 관련 수시공시(3.6, #343) */
+    public static final String TEXT_CHANGE_RELATED_DISCLOSURES = ANALYSIS_TEXT_CHANGES + "/{changeId}/related-disclosures";
     public static final String ANALYSIS_QUESTIONS = ANALYSES + "/{analysisId}/questions";
     public static final String QUESTION_FEEDBACK = "/{questionId}/feedback";
     public static final String ANALYSIS_DOCUMENT= ANALYSES + "/{analysisId}/documents/{side}";

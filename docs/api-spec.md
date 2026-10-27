@@ -1550,7 +1550,7 @@
       "disclosureType": "B001",
       "timing": "DURING",
       "matchRule": "equity-financing",
-      "matchRuleLabel": "유상증자·감자",
+      "matchRuleLabel": "자본 조달",
       "matchLevel": "STRONG",
       "matchedFields": ["NEW_SHARES"],
       "remarks": "정",
@@ -1573,7 +1573,7 @@
 - `items[].receivedDate`: `rceptNo`의 접수일
 - `items[].disclosureType`: 공시상세유형 `B001` 주요사항보고서, `I001` 수시공시, `I002` 공정공시
 - `items[].timing`: `DURING` 현재 보고서 기간 안(접수일 ≤ `periodEnd`), `AFTER` 기간 뒤~제출 전
-- `items[].matchRule`·`matchRuleLabel`: 걸린 규칙 키와 화면 이름. 여러 규칙에 걸리면 규칙 순서의 첫 규칙
+- `items[].matchRule`·`matchRuleLabel`: 걸린 규칙 키와 화면 이름. 여러 규칙에 걸리면 규칙 순서의 첫 규칙. 화면 이름은 기획서의 짝 이름입니다: `litigation` 소송, `supply-contract` 공급계약, `equity-financing` 자본 조달, `debt-financing` 빚 조달, `investment` 투자, `restructuring` 사업 구조 변경, `going-concern` 존속 위험, `earnings` 실적
 - `items[].matchedFields`: `STRONG`일 때 일치한 값의 종류(`NEW_SHARES` 신주 수, `PLAINTIFF` 원고, `CASE_NAME` 사건 명칭(`PLAINTIFF`와 함께만), `TARGET_COMPANY` 대상 회사). `TYPE_ONLY`면 빈 배열
 - `items[].remarks`: 비고(`rm`) 원문(최근 공시 API와 같음). 없으면 null
 - `notice`: 고정 문구. 화면은 영역 맨 아래에 그대로 보여 줍니다

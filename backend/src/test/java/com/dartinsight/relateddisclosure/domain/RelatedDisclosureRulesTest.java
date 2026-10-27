@@ -102,4 +102,13 @@ class RelatedDisclosureRulesTest {
         assertThat(RelatedDisclosureRules.isWithdrawn("코철")).isTrue();
         assertThat(RelatedDisclosureRules.isWithdrawn(null)).isFalse();
     }
+
+    @Test
+    @DisplayName("규칙마다 기획서의 짝 이름을 화면 이름으로 주고, 사전에 없는 키는 키 그대로 준다")
+    void labelsFollowSpecPairNames() {
+        assertThat(RelatedDisclosureRules.RULES).extracting(Rule::label).containsExactly(
+                "소송", "공급계약", "자본 조달", "빚 조달", "투자", "사업 구조 변경", "존속 위험", "실적");
+        assertThat(RelatedDisclosureRules.label("equity-financing")).isEqualTo("자본 조달");
+        assertThat(RelatedDisclosureRules.label("removed-rule")).isEqualTo("removed-rule");
+    }
 }
