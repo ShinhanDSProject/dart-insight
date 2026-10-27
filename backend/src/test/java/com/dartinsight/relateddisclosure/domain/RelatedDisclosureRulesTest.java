@@ -80,6 +80,23 @@ class RelatedDisclosureRulesTest {
         assertThat(linkedRule(sectionPath, text, reportName)).isNull();
     }
 
+    @ParameterizedTest(name = "{0}: {2}")
+    @DisplayName("좁힌 뒤 남기거나 새로 넣은 글 낱말마다 연결한다(ADR-0038)")
+    @CsvSource(delimiter = '|', textBlock = """
+            supply-contract  | III. 재무에 관한 사항 > 3. 연결재무제표 주석 | 장기 공급계약을 체결하였습니다. | 단일판매ㆍ공급계약체결
+            supply-contract  | III. 재무에 관한 사항 > 3. 연결재무제표 주석 | 판매계약 잔액은 다음과 같습니다. | 단일판매ㆍ공급계약체결
+            supply-contract  | III. 재무에 관한 사항 > 3. 연결재무제표 주석 | 수주잔고가 늘었습니다. | 단일판매ㆍ공급계약체결
+            equity-financing | III. 재무에 관한 사항 > 3. 연결재무제표 주석 | 신주 9,900,990주를 발행하였습니다. | 주요사항보고서(유상증자결정)
+            investment       | III. 재무에 관한 사항 > 3. 연결재무제표 주석 | 타법인 주식을 사들였습니다. | 타법인주식및출자증권취득결정
+            investment       | III. 재무에 관한 사항 > 3. 연결재무제표 주석 | 주식을 양수하였습니다. | 타법인주식및출자증권취득결정
+            investment       | III. 재무에 관한 사항 > 3. 연결재무제표 주석 | 유형자산 취득을 결정하였습니다. | 유형자산취득결정
+            investment       | III. 재무에 관한 사항 > 3. 연결재무제표 주석 | 시설투자를 진행 중입니다. | 신규시설투자등
+            investment       | III. 재무에 관한 사항 > 3. 연결재무제표 주석 | 관계기업 투자 내역 | 타법인주식및출자증권취득결정
+            """)
+    void keptWordsStillLink(String rule, String sectionPath, String text, String reportName) {
+        assertThat(linkedRule(sectionPath, text, reportName)).isEqualTo(rule);
+    }
+
     @Test
     @DisplayName("실적은 섹션 경로에 '재무제표'가 있을 때만 보고, 다른 규칙에는 섹션 조건이 없다")
     void earningsNeedsFinancialStatementSection() {
