@@ -33,7 +33,8 @@ import java.util.function.Function;
  *       회사가 해마다 다른 계정 ID를 써서 키로 짝짓지 못한 계정은 이름으로 한 번 더 맞춘다({@link #pairByName}).</li>
  *   <li>이전 값: 이전 보고서의 원래 값(잠정안, 결정 로그 '이전 값 기준').</li>
  *   <li>금액 기준: 비교 규칙(StatementRules)이 정한 시점·누적·3개월 금액.</li>
- *   <li>증감액 = 현재 값 − 이전 값. 증감률 = 증감액 ÷ 이전 값(이전 값이 양수일 때만, 소수 6자리 반올림).</li>
+ *   <li>증감액 = 현재 값 − 이전 값. 증감률 = 증감액 ÷ 이전 값(이전 값이 양수이고 현재 값이 음수가 아닐 때만,
+ *       소수 6자리 반올림). 부호가 바뀌거나 이전 값이 음수면 {@link #status}가 정한 상태로 두고 증감률을 비운다.</li>
  * </ul>
  */
 public final class FinancialComparator {
@@ -42,6 +43,20 @@ public final class FinancialComparator {
 
     /** 계정명으로 맞춘 키의 앞머리 */
     static final String NAME_KEY_PREFIX = "NAME:";
+
+    /**
+     * 흑자·적자로 부르는 이익 계정의 표준계정 ID(#144, docs/api-spec.md 재무 수치 변화). 손익계산서(IS·CIS)에서만 쓴다.
+     * 2024 사업보고서(연결) 7곳의 실제 응답으로 확인했다: SK하이닉스 20250319000665, LG디스플레이 20250312000906,
+     * 카카오 20250324000901, 삼성전자 20250311001085, 신한지주 20250318000993, KB금융, 에코프로비엠 20250325000761.
+     * 비지배지분 순이익·총포괄손익·주당이익은 넣지 않는다. 바꾸면 Analysis.CURRENT_VERSION을 함께 올린다.
+     */
+    static final Set<String> PROFIT_ACCOUNT_IDS = Set.of(
+            "dart_OperatingIncomeLoss",
+            "ifrs-full_ProfitLossFromOperatingActivities",
+            "ifrs-full_GrossProfit",
+            "ifrs-full_ProfitLossBeforeTax",
+            "ifrs-full_ProfitLoss",
+            "ifrs-full_ProfitLossAttributableToOwnersOfParent");
 
     private FinancialComparator() {
     }
@@ -249,12 +264,8 @@ public final class FinancialComparator {
             status = CalcStatus.PREVIOUS_MISSING;
         } else {
             change = Math.subtractExact(curAmount, prevAmount);
-            if (prevAmount == 0) {
-                status = CalcStatus.PREVIOUS_ZERO;
-            } else if (prevAmount < 0) {
-                status = CalcStatus.PREVIOUS_NEGATIVE;
-            } else {
-                status = CalcStatus.OK;
+            status = status(prevAmount, curAmount, profitAccount(rule.type(), cur));
+            if (status == CalcStatus.OK) {
                 rate = BigDecimal.valueOf(change).divide(BigDecimal.valueOf(prevAmount), RATE_SCALE,
                         RoundingMode.HALF_UP);
             }
@@ -271,6 +282,36 @@ public final class FinancialComparator {
      *       현금흐름·자본변동은 당기 금액(분·반기에도 누적으로 공시됨)</li>
      * </ul>
      */
+    /**
+     * 두 값이 모두 있을 때의 계산 상태(docs/erd.md financial_change.calc_status 판정표). OK일 때만 증감률을 계산한다.
+     *
+     * @param profit 흑자·적자로 부르는 이익 계정인지({@link #profitAccount})
+     */
+    static CalcStatus status(long previous, long current, boolean profit) {
+        if (previous == 0) {
+            return CalcStatus.PREVIOUS_ZERO;
+        }
+        if (previous > 0) {
+            if (current >= 0) {
+                return CalcStatus.OK;
+            }
+            return profit ? CalcStatus.TURNED_LOSS : CalcStatus.SIGN_CHANGED;
+        }
+        if (current > 0) {
+            return profit ? CalcStatus.TURNED_PROFIT : CalcStatus.SIGN_CHANGED;
+        }
+        if (!profit || current == previous) {
+            return CalcStatus.PREVIOUS_NEGATIVE;
+        }
+        return current > previous ? CalcStatus.LOSS_NARROWED : CalcStatus.LOSS_WIDENED;
+    }
+
+    /** 손익계산서에 있고 현재 보고서의 표준계정 ID가 이익 계정 목록에 있는지. 회사 고유 계정은 아니다 */
+    static boolean profitAccount(StatementType type, FinancialAccount current) {
+        return (type == StatementType.IS || type == StatementType.CIS)
+                && PROFIT_ACCOUNT_IDS.contains(current.getAccountId());
+    }
+
     static Long amount(FinancialAccount account, StatementType type, AmountBasis basis, ReportType reportType) {
         if (basis != AmountBasis.CUMULATIVE || reportType == ReportType.ANNUAL) {
             return account.getThstrmAmount();

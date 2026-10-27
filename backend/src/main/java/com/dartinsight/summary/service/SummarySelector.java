@@ -51,7 +51,9 @@ public final class SummarySelector {
         List<Integer> indexes = new ArrayList<>();
         for (int i = 0; i < rows.size(); i++) {
             FinancialChangeRow row = rows.get(i);
-            if (sjDiv.equals(row.sjDiv()) && row.calcStatus() == CalcStatus.OK && row.changeAmount() != null
+            // 증감률을 계산한 계정과 이익 계정의 흑자·적자 상태만 요약한다(부호만 바뀐 그 밖의 계정은 빼기, #144)
+            boolean summarizable = row.calcStatus() == CalcStatus.OK || row.calcStatus().profitState();
+            if (sjDiv.equals(row.sjDiv()) && summarizable && row.changeAmount() != null
                     && row.changeAmount() != 0 && row.previousAmount() != null && row.currentAmount() != null) {
                 indexes.add(i);
             }

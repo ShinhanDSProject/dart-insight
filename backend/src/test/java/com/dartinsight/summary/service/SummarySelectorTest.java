@@ -50,6 +50,18 @@ class SummarySelectorTest {
     }
 
     @Test
+    @DisplayName("이익 계정의 흑자·적자 상태는 요약하고, 부호만 바뀐 그 밖의 계정은 뺀다")
+    void profitStatesAreSummarizedButOtherSignChangesAreNot() {
+        List<FinancialChangeRow> rows = List.of(
+                fin("IS", "영업이익", -7_730L, 23_467L, CalcStatus.TURNED_PROFIT),
+                fin("IS", "법인세비용", -4_480L, 3_078L, CalcStatus.SIGN_CHANGED),
+                fin("IS", "당기순손실", -2_576L, -2_409L, CalcStatus.LOSS_NARROWED),
+                fin("IS", "기타손익", -100L, -50L, CalcStatus.PREVIOUS_NEGATIVE));
+
+        assertThat(SummarySelector.financial(rows)).containsExactly(0, 2);
+    }
+
+    @Test
     @DisplayName("이미 고른 계정과 이전·현재 금액이 모두 같은 계정은 건너뛰고 다음 계정으로 채운다")
     void skipsAccountsWithTheSameAmountsAsAPickedOne() {
         List<FinancialChangeRow> rows = List.of(

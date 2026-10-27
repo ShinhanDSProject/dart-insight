@@ -10,6 +10,16 @@ public enum CalcStatus {
     PREVIOUS_ZERO("이전 값이 0이라 증감률을 계산하지 않아요."),
     /** 이전 값이 음수라 증감률을 계산하지 않음(증감액은 계산) */
     PREVIOUS_NEGATIVE("이전 값이 음수라 증감률을 계산하지 않아요."),
+    /** 이익 계정이 음수에서 양수로(흑자전환). 증감률은 계산하지 않음(증감액은 계산) */
+    TURNED_PROFIT("흑자로 돌아서 증감률을 계산하지 않아요."),
+    /** 이익 계정이 양수에서 음수로(적자전환) */
+    TURNED_LOSS("적자로 돌아서 증감률을 계산하지 않아요."),
+    /** 이익 계정이 음수에서 0이나 더 작은 손실로(적자폭 축소) */
+    LOSS_NARROWED("적자폭이 줄었어요. 이전 값이 음수라 증감률을 계산하지 않아요."),
+    /** 이익 계정이 음수에서 더 큰 손실로(적자폭 확대) */
+    LOSS_WIDENED("적자폭이 커졌어요. 이전 값이 음수라 증감률을 계산하지 않아요."),
+    /** 이익 계정이 아닌 계정의 부호가 바뀜 */
+    SIGN_CHANGED("부호가 바뀌어 증감률을 계산하지 않아요."),
     /** 이전 보고서에 계정은 있지만 값이 없음 */
     PREVIOUS_MISSING("이전 보고서에 값이 없어 계산하지 않아요."),
     /** 현재 보고서에 계정은 있지만 값이 없음 */
@@ -32,5 +42,10 @@ public enum CalcStatus {
     /** 화면에 보여 줄 사유. OK면 null */
     public String message() {
         return this == OK ? null : message;
+    }
+
+    /** 이익 계정의 흑자·적자 상태(흑자전환·적자전환·적자폭 축소·확대)인지 */
+    public boolean profitState() {
+        return this == TURNED_PROFIT || this == TURNED_LOSS || this == LOSS_NARROWED || this == LOSS_WIDENED;
     }
 }
