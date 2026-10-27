@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 문장·표 변경 목록(2.5). 화면 W-03 ③. 완료된 분석의 그 분석 결과만 돌려준다.
  * 기본 정렬은 확인 우선순위(2.6)이고, 순위를 매기지 않은 항목(판단 유보)은 뒤에 둔다.
- * 유형(type, 쉼표로 여러 개 #304)·최상위 섹션(section)·검색어(q)로 함께 거를 수 있다(3.7).
+ * 유형(type, 쉼표로 여러 개 #304)·최상위 섹션(section)·검색어(q)·위험 관련 목차(risk, 3.9)로 함께 거를 수 있다(3.7).
  */
 @RestController
 @RequestMapping(ApiPaths.ANALYSIS_TEXT_CHANGES)
@@ -59,6 +59,7 @@ public class TextChangeController {
             @RequestParam(defaultValue = "priority") String sort,
             @RequestParam(required = false) String section,
             @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "false") boolean risk,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         if (!"priority".equals(sort) && !"document".equals(sort)) {
@@ -80,7 +81,7 @@ public class TextChangeController {
             throw ApiException.invalidInput("q", MIN_QUERY + "자 이상 " + MAX_QUERY + "자 이하로 입력해 주세요.");
         }
         long offset = (long) page * size; // 큰 page에서 int가 넘쳐 음수가 되지 않게
-        TextChangeFilter filter = new TextChangeFilter(types, sectionTitle, query);
+        TextChangeFilter filter = new TextChangeFilter(types, sectionTitle, query, risk);
         TextChangePage result = queryService.page(analysisId, filter, "priority".equals(sort), offset, size);
         return TextChangeListResponse.of(analysisId, filter, sort, page, size, result);
     }

@@ -31,9 +31,10 @@ public class TextChangeQueryService {
             int limit) {
         Analysis analysis = resultService.completed(analysisId);
         Map<String, Integer> counts = store.counts(analysisId, filter);
+        Map<String, Integer> riskCounts = store.riskCounts(analysisId, filter);
         List<TextSectionCount> sections = store.sections(analysisId, filter);
         List<TextChange> changes = store.page(analysisId, filter, byPriority, offset, limit);
-        return new TextChangePage(analysis, counts, sections, changes);
+        return new TextChangePage(analysis, counts, riskCounts, sections, changes);
     }
 
     /** 완료된 분석의 문장 변경 하나. 없는 분석·변경은 404, 완료되지 않았으면 409 */
@@ -75,10 +76,11 @@ public class TextChangeQueryService {
     }
 
     /**
-     * @param counts   변경 종류 → 개수(섹션·검색에 맞는 것, 유형 조건은 보지 않음)
-     * @param sections 최상위 섹션별 개수(유형·검색에 맞는 것, 섹션 조건은 보지 않음)
+     * @param counts     변경 종류 → 개수(섹션·검색·위험 관련에 맞는 것, 유형 조건은 보지 않음)
+     * @param riskCounts 위험 관련 목차의 변경 종류 → 개수(섹션·검색에 맞는 것, 유형·위험 관련 조건은 보지 않음, 3.9)
+     * @param sections   최상위 섹션별 개수(유형·검색·위험 관련에 맞는 것, 섹션 조건은 보지 않음)
      */
-    public record TextChangePage(Analysis analysis, Map<String, Integer> counts, List<TextSectionCount> sections,
-            List<TextChange> changes) {
+    public record TextChangePage(Analysis analysis, Map<String, Integer> counts, Map<String, Integer> riskCounts,
+            List<TextSectionCount> sections, List<TextChange> changes) {
     }
 }
