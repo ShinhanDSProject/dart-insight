@@ -1,25 +1,8 @@
 package com.dartinsight.summary.controller;
 
-import com.dartinsight.analysis.domain.Analysis;
 import com.dartinsight.common.web.ApiPaths;
-import com.dartinsight.document.domain.DocumentBlock;
-import com.dartinsight.document.service.DocumentService;
-import com.dartinsight.document.domain.ReportDocument;
-import com.dartinsight.summary.domain.SummaryItemRow;
 import com.dartinsight.summary.dto.SummaryResponse;
-import com.dartinsight.summary.service.SummaryQueryService.StoredSummary;
-import com.dartinsight.summary.service.SummaryQueryService.SummaryEntry;
-import com.dartinsight.summary.dto.SummaryResponse.AiInfo;
-import com.dartinsight.summary.dto.SummaryResponse.EvidenceView;
-import com.dartinsight.summary.dto.SummaryResponse.ItemView;
-import com.dartinsight.summary.dto.SummaryResponse.ReviewView;
-import com.dartinsight.summary.dto.SummaryResponse.Target;
-import com.dartinsight.summary.service.SummaryQueryService;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import com.dartinsight.summary.service.SummaryViewService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,71 +18,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class SummaryController {
 
-    private final SummaryQueryService queryService;
-    private final DocumentService documentService;
+    private final SummaryViewService viewService;
 
     @GetMapping
     public SummaryResponse summary(@PathVariable Long analysisId) {
-        StoredSummary summary = queryService.summary(analysisId);
-        Analysis analysis = summary.analysis();
-        Map<String, Optional<ReportDocument>> documents = new HashMap<>();
-        List<ItemView> shown = new ArrayList<>();
-        List<ReviewView> review = new ArrayList<>();
-        for (SummaryEntry entry : summary.entries()) {
-            SummaryItemRow row = entry.row();
-            Target target = new Target(entry.targetType(), entry.changeId(), entry.sjDiv());
-            if (SummaryItemRow.REVIEW_NEEDED.equals(row.status())) {
-                review.add(new ReviewView(entry.itemNo(), row.kind(), target, row.reviewReason(),
-                        row.blockedRules()));
-                continue;
-            }
-            if (SummaryItemRow.REVIEW_NEEDED.equals(row.explanationStatus())) {
-                review.add(new ReviewView(entry.itemNo(), row.kind(), target,
-                        "설명의 근거를 확인하지 못했어요. " + (row.reviewReason() == null ? "" : row.reviewReason()),
-                        row.blockedRules()));
-            }
-            List<EvidenceView> evidence = row.evidenceIds().stream()
-                    .map(id -> evidence(analysis, id, documents)).toList();
-            EvidenceView quoteEvidence = row.quoteEvidenceId() == null ? null
-                    : evidence(analysis, row.quoteEvidenceId(), documents);
-            // 보이는 재무 수치의 reviewReason은 코드가 설명 등급을 낮춘 사유다(설명이 검토 필요면 위에서 셈)
-            String gradeReason = SummaryItemRow.REVIEW_NEEDED.equals(row.explanationStatus()) ? null
-                    : row.reviewReason();
-            shown.add(new ItemView(entry.itemNo(), row.kind(), target, row.factSentence(), row.aiText(),
-                    row.aiGenerated(), row.explanationStatus(), row.explanationGrade(), row.quote(), quoteEvidence,
-                    gradeReason, evidence, AiInfo.from(row)));
-        }
-        return new SummaryResponse(analysisId, analysis.getSummaryStatus(), analysis.getSummaryMessage(),
-                analysis.getTextStatus(), shown, review.size(), review);
-    }
-
-    /** 근거 ID({접수번호}#B{블록 번호})를 화면에서 열 수 있는 위치로 푼다. */
-    private EvidenceView evidence(Analysis analysis, String evidenceId, Map<String, Optional<ReportDocument>> docs) {
-        int mark = evidenceId.indexOf("#B");
-        if (mark < 0) {
-            return new EvidenceView(evidenceId, null, null, null, null);
-        }
-        String rceptNo = evidenceId.substring(0, mark);
-        Integer blockNo;
-        try {
-            blockNo = Integer.valueOf(evidenceId.substring(mark + 2));
-        } catch (NumberFormatException e) {
-            return new EvidenceView(evidenceId, null, rceptNo, null, null);
-        }
-        String side = rceptNo.equals(analysis.getCurrentRceptNo()) ? "current"
-                : rceptNo.equals(analysis.getPreviousRceptNo()) ? "previous" : null;
-        Optional<ReportDocument> document = docs.computeIfAbsent(rceptNo, documentService::find);
-        if (document.isPresent() && restructuredAfter(document.get(), analysis)) {
-            // 분석 뒤에 원문을 다시 구조화했으면 블록 번호가 다른 글을 가리킬 수 있어 위치를 주지 않는다
-            return new EvidenceView(evidenceId, side, rceptNo, null, null);
-        }
-        Integer sectionNo = document.flatMap(d -> documentService.block(d, blockNo)).map(DocumentBlock::sectionNo)
-                .orElse(null);
-        return new EvidenceView(evidenceId, side, rceptNo, sectionNo, blockNo);
-    }
-
-    private static boolean restructuredAfter(ReportDocument document, Analysis analysis) {
-        return document.getStructuredAt() != null && analysis.getCompletedAt() != null
-                && document.getStructuredAt().isAfter(analysis.getCompletedAt());
+        return viewService.summary(analysisId);
     }
 }

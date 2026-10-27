@@ -44,6 +44,16 @@ public record SummaryItemRow(String kind, String status, String factSentence, St
                 reviewReason, model, promptVersion, generatedAt, blockedRules, null, null, null);
     }
 
+    /** 근거·숫자 확인을 통과하지 못해 요약에서 뺀 줄인지 */
+    public boolean reviewNeeded() {
+        return REVIEW_NEEDED.equals(status);
+    }
+
+    /** 재무 수치의 설명만 검토 필요인지(수치 문장은 요약에 보임) */
+    public boolean explanationReviewNeeded() {
+        return REVIEW_NEEDED.equals(explanationStatus);
+    }
+
     /** AI가 만든 문장이 있는지('AI 생성' 표시) */
     public boolean aiGenerated() {
         return aiText != null;

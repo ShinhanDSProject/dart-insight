@@ -1,4 +1,4 @@
-package com.dartinsight.summary.service;
+package com.dartinsight.summary.domain;
 
 import com.dartinsight.analysis.domain.CalcStatus;
 import com.dartinsight.analysis.domain.FinancialChangeRow;
