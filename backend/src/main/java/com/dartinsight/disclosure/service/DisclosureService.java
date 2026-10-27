@@ -5,7 +5,6 @@ import com.dartinsight.company.service.CompanyService;
 import com.dartinsight.dart.client.OpenDartClient;
 import com.dartinsight.dart.domain.CachePolicy;
 import com.dartinsight.dart.domain.CacheResult;
-import com.dartinsight.dart.dto.DisclosureListResponse;
 import com.dartinsight.dart.service.DartCacheLoader;
 import com.dartinsight.disclosure.config.DisclosureProperties;
 import com.dartinsight.disclosure.domain.Disclosure;
@@ -15,12 +14,9 @@ import com.dartinsight.disclosure.repository.DisclosureStore;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.EnumMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -61,7 +57,8 @@ public class DisclosureService {
                 () -> store.findFetch(corpCode),
                 DisclosureFetch::fetchedAt,
                 saved -> saved.covers(from),
-                () -> toDisclosures(corpCode, openDartClient.listAllDisclosures(corpCode, from, today)),
+                () -> DisclosureListMapper.toDisclosures(corpCode,
+                        openDartClient.listAllDisclosures(corpCode, from, today)),
                 // 받은 기간(from~today)과 받은 시각이 맞도록 이 요청의 now로 저장한다
                 (disclosures, loaderNow) -> save(new DisclosureFetch(corpCode, from, today, now), disclosures));
         DisclosureFetch fetch = result.value();
@@ -69,20 +66,7 @@ public class DisclosureService {
 
         LocalDate shownFrom = fetch.fromDate().isAfter(from) ? fetch.fromDate() : from;
         List<Disclosure> all = store.findSince(corpCode, shownFrom);
-        Map<DisclosureGroup, Integer> counts = new EnumMap<>(DisclosureGroup.class);
-        for (DisclosureGroup g : DisclosureGroup.values()) {
-            counts.put(g, 0);
-        }
-        List<Disclosure> items = new ArrayList<>();
-        for (Disclosure disclosure : all) {
-            DisclosureGroup g = disclosure.group();
-            counts.merge(g, 1, Integer::sum);
-            if (group == null || group == g) {
-                items.add(disclosure);
-            }
-        }
-        return new DisclosureTimeline(corpCode, days, shownFrom, fetch.toDate(), fetch.fetchedAt(), refreshError,
-                counts, items);
+        return DisclosureTimeline.of(corpCode, days, shownFrom, fetch, refreshError, all, group);
     }
 
     /**
@@ -96,41 +80,6 @@ public class DisclosureService {
         return fetch;
     }
 
-    /** 이 기업의 공시가 아니거나 접수번호·접수일을 읽을 수 없는 줄은 뺀다. 같은 접수번호는 한 번만 둔다. */
-    private static List<Disclosure> toDisclosures(String corpCode, List<DisclosureListResponse.Item> items) {
-        Map<String, Disclosure> byRceptNo = new LinkedHashMap<>();
-        int skipped = 0;
-        for (DisclosureListResponse.Item item : items) {
-            LocalDate rceptDt = parseDate(item.rceptDt());
-            if (item.rceptNo() == null || item.rceptNo().isBlank() || rceptDt == null || item.reportName() == null
-                    || !corpCode.equals(item.corpCode())) {
-                skipped++;
-                continue;
-            }
-            byRceptNo.putIfAbsent(item.rceptNo(), new Disclosure(item.rceptNo().trim(), item.reportName().strip(),
-                    blankToNull(item.filerName()), rceptDt, blankToNull(item.remark())));
-        }
-        if (skipped > 0) {
-            log.info("최근 공시 목록에서 읽을 수 없는 줄 {}건을 뺐습니다: {}", skipped, corpCode);
-        }
-        return List.copyOf(byRceptNo.values());
-    }
-
-    private static LocalDate parseDate(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        try {
-            return LocalDate.parse(value.trim(), DateTimeFormatter.BASIC_ISO_DATE);
-        } catch (DateTimeParseException e) {
-            return null;
-        }
-    }
-
-    private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value.strip();
-    }
-
     /**
      * @param from         이번 응답이 다룬 접수일 기간 시작(저장된 목록이 요청 기간을 다 덮지 못하면 저장된 기간 시작)
      * @param to           접수일 기간 끝(목록을 받은 날)
@@ -140,5 +89,24 @@ public class DisclosureService {
      */
     public record DisclosureTimeline(String corpCode, int days, LocalDate from, LocalDate to, LocalDateTime fetchedAt,
             ErrorCode refreshError, Map<DisclosureGroup, Integer> counts, List<Disclosure> items) {
+
+        /** 묶음별 건수는 기간 전체(all)로 세고, group이 있으면 그 묶음만 items에 넣는다 */
+        static DisclosureTimeline of(String corpCode, int days, LocalDate from, DisclosureFetch fetch,
+                ErrorCode refreshError, List<Disclosure> all, DisclosureGroup group) {
+            Map<DisclosureGroup, Integer> counts = new EnumMap<>(DisclosureGroup.class);
+            for (DisclosureGroup g : DisclosureGroup.values()) {
+                counts.put(g, 0);
+            }
+            List<Disclosure> items = new ArrayList<>();
+            for (Disclosure disclosure : all) {
+                DisclosureGroup g = disclosure.group();
+                counts.merge(g, 1, Integer::sum);
+                if (group == null || group == g) {
+                    items.add(disclosure);
+                }
+            }
+            return new DisclosureTimeline(corpCode, days, from, fetch.toDate(), fetch.fetchedAt(), refreshError,
+                    counts, items);
+        }
     }
 }

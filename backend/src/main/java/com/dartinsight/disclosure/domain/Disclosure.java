@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 public record Disclosure(String rceptNo, String reportName, String filerName, LocalDate rceptDt, String remark) {
 
     private static final Pattern SPACES = Pattern.compile("\\s+");
+    private static final String ANNUAL_REPORT_TITLE = "사업보고서";
 
     /** 화면에 보여 줄 보고서명. 이어진 공백(OpenDART가 덧붙인 설명 앞의 여러 칸)을 한 칸으로 줄인다. */
     public String displayName() {
@@ -33,5 +34,14 @@ public record Disclosure(String rceptNo, String reportName, String filerName, Lo
     /** 이 서비스의 정기보고서 목록에 들어가는 보고서(12월 결산 회사의 사업·반기·분기보고서)인지 */
     public boolean periodic() {
         return ReportNameParser.parse(reportName, remark).isPresent();
+    }
+
+    /**
+     * 제목이 '사업보고서' 또는 '사업보고서(기간)'인지. '사업보고서제출기한연장신고서' 같은 다른 공시는 사업보고서가 아니다.
+     * 결산월은 보지 않는다.
+     */
+    public boolean isAnnualReport() {
+        String title = DisclosureGroupRules.title(reportName);
+        return title.equals(ANNUAL_REPORT_TITLE) || title.startsWith(ANNUAL_REPORT_TITLE + "(");
     }
 }
