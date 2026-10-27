@@ -44,6 +44,12 @@ public class TextChangeQueryService {
         return new CompletedTextChange(analysis, change);
     }
 
+    /** 완료된 분석과 그 변경 전부(문서 순서). 없는 분석은 404, 완료되지 않았으면 409. 관련 수시공시(3.6)가 쓴다 */
+    public CompletedTextChanges completedChanges(Long analysisId) {
+        Analysis analysis = resultService.completed(analysisId);
+        return new CompletedTextChanges(analysis, store.all(analysisId));
+    }
+
     /**
      * 변경이 있는 섹션 경로 전부(문서 순서). 질문(3.10)의 섹션 찾기에 쓴다.
      * 분석이 완료됐는지는 부르는 쪽이 이미 확인했다고 본다.
@@ -63,6 +69,9 @@ public class TextChangeQueryService {
     }
 
     public record CompletedTextChange(Analysis analysis, TextChange change) {
+    }
+
+    public record CompletedTextChanges(Analysis analysis, List<TextChange> changes) {
     }
 
     /**
