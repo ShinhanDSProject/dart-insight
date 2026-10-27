@@ -36,6 +36,7 @@ import {
 import { useAccountSearch } from '../hooks/useAccountSearch'
 import { useFinancialChanges } from '../hooks/useFinancialChanges'
 import { ACCOUNT_SEARCH_MAX_LENGTH, filterAccounts, foundAccountsLabel } from '../model/accountFilter'
+import { accountLabel, componentName } from '../model/accountLabel'
 import { buildFinancialCsv, csvFileName } from '../model/financialCsv'
 import type { FinancialViewChange } from '../model/resultParams'
 import {
@@ -245,6 +246,7 @@ export function FinancialTab({
             caption={`계정별 이전 값, 현재 값, 증감액, 증감률. 계정 이름을 누르면 근거를 볼 수 있어요. 단위 ${unitLabel(unit, currency)}`}
             density="dense"
             stickyHeader
+            scrollClassName="fin-table__scroll"
           >
             <thead>
               <tr>
@@ -349,10 +351,11 @@ function ChangeRow({ item, unit, selected, onSelect }: ChangeRowProps) {
           variant="link"
           id={evidenceButtonId(item.changeId)}
           aria-pressed={selected}
-          aria-label={`${item.accountName} 근거 ${selected ? '닫기' : '보기'}`}
+          aria-label={`${accountLabel(item)} 근거 ${selected ? '닫기' : '보기'}`}
           onClick={onSelect}
         >
           {item.accountName}
+          {componentName(item.accountDetail) && <span className="fin-account__component"> · {componentName(item.accountDetail)}</span>}
         </Button>
       </th>
       <td className="num">{previous}</td>

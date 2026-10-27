@@ -1,4 +1,5 @@
 import type { FinancialChangeItem } from '@/shared/api/results'
+import { accountLabel } from './accountLabel'
 import { shortCalcLabel } from './format'
 
 /**
@@ -63,7 +64,7 @@ export function calcStatusCell(calcStatus: string): string {
 export function buildFinancialCsv({ statementLabel, items, previousRceptNo, currentRceptNo }: FinancialCsvInput): string {
   const rows = items.map((item) => [
     textCell(statementLabel),
-    textCell(item.accountName),
+    textCell(accountLabel(item)),
     amountCell(item.previousAmount),
     amountCell(item.currentAmount),
     amountCell(item.changeAmount),

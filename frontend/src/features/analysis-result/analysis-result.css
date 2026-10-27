@@ -2460,3 +2460,15 @@
     display: none;
   }
 }
+
+/* 재무 표 상자(#401). 위에 붙은 결과 탭 줄 아래 남는 창 높이를 다 쓰게 해, 표로 내려오면 화면 하나에 표가 꽉 차고 더 많은 행이 보인다.
+   표 머리줄은 상자 위에 붙고(table-scroll--sticky), 행은 상자 안에서 스크롤한다 */
+.fin-table__scroll.table-scroll--sticky {
+  max-height: calc(100dvh - var(--control-height) - var(--space-7));
+}
+
+/* 자본변동표 계정 이름 뒤의 자본 구성요소(#401). 같은 계정명이 여러 줄이라 구성요소로 구분한다 */
+.fin-account__component {
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-regular);
+}

@@ -8,6 +8,7 @@ function item(changeId: number, previousAmount: number | null, currentAmount: nu
     changeId,
     sjDiv: 'BS',
     accountName: `계정${changeId}`,
+    accountDetail: null,
     amountBasis: 'POINT',
     previousAmount,
     currentAmount,

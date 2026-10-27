@@ -1,4 +1,5 @@
 import type { FinancialChangeItem } from '@/shared/api/results'
+import { accountLabel } from './accountLabel'
 
 /** 재무 표 계정 찾기(FS-14). 받아 둔 계정을 화면에서 거르므로 서버에 보내지 않는다. */
 
@@ -17,11 +18,14 @@ export function accountQueryOf(input: string): string | null {
   return normalize(q).length === 0 ? null : q
 }
 
-/** 계정 이름에 검색어가 들어 있는 계정만 남긴다. 공백·대소문자는 무시하고, 순서는 그대로 둔다 */
-export function filterAccounts<T extends Pick<FinancialChangeItem, 'accountName'>>(items: T[], query: string | null): T[] {
+/** 계정 이름(자본변동표는 구성요소 이름까지)에 검색어가 들어 있는 계정만 남긴다. 공백·대소문자는 무시하고, 순서는 그대로 둔다 */
+export function filterAccounts<T extends Pick<FinancialChangeItem, 'accountName'> & Partial<Pick<FinancialChangeItem, 'accountDetail'>>>(
+  items: T[],
+  query: string | null,
+): T[] {
   const needle = query === null ? '' : normalize(query)
   if (needle.length === 0) return items
-  return items.filter((item) => normalize(item.accountName).includes(needle))
+  return items.filter((item) => normalize(accountLabel({ accountName: item.accountName, accountDetail: item.accountDetail ?? null })).includes(needle))
 }
 
 export function foundAccountsLabel(count: number): string {

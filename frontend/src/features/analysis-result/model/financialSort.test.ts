@@ -7,6 +7,7 @@ function item(changeId: number, changeAmount: number | null, changeRate: number 
     changeId,
     sjDiv: 'BS',
     accountName: `계정${changeId}`,
+    accountDetail: null,
     amountBasis: 'POINT',
     previousAmount: changeAmount === null ? null : 100,
     currentAmount: changeAmount === null ? 5 : 100 + changeAmount,

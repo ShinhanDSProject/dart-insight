@@ -8,6 +8,7 @@ import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { useFinancialChangeDetail } from '../hooks/useFinancialChanges'
 import { accountQuestion } from '../model/askQuestion'
 import { amountPeriodLabel, formatAmount, missingValueLabel, unitLabel, type AmountUnit } from '../model/format'
+import { accountLabel } from '../model/accountLabel'
 
 const statementLabels: Record<string, string> = {
   BS: '재무상태표',
@@ -34,7 +35,7 @@ interface EvidencePanelProps {
  */
 export function EvidencePanel({ analysis, changeId, unit, onClose, onAsk, asking }: EvidencePanelProps) {
   const { state, reload } = useFinancialChangeDetail(analysis.analysisId, changeId)
-  const title = state.status === 'success' ? `${state.data.accountName} · 근거` : '수치 근거'
+  const title = state.status === 'success' ? `${accountLabel(state.data)} · 근거` : '수치 근거'
   const headingRef = useRef<HTMLHeadingElement>(null)
 
   // 열리면 제목으로 초점을 옮긴다(키보드·화면 읽기 사용자). 표를 보던 위치는 그대로 둔다

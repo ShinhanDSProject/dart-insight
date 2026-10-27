@@ -36,6 +36,8 @@ export interface FinancialChangeItem {
   changeId: number
   sjDiv: SjDiv
   accountName: string
+  /** 자본변동표의 계정 상세(OpenDART account_detail, 자본 구성요소). 다른 재무제표는 null(#401) */
+  accountDetail: string | null
   amountBasis: AmountBasis | null
   previousAmount: number | null
   currentAmount: number | null
