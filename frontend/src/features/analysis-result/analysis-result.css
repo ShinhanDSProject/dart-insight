@@ -1008,6 +1008,59 @@
   gap: var(--space-2);
 }
 
+/* 관련 수시공시(보조 근거, 3.6): 근거 상세 맨 아래. 정기보고서 근거와 구분되게 회색 칸에 담는다 */
+.related-disclosures {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.related-disclosures__box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: stretch;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+  font-size: var(--font-size-sm);
+}
+
+.related-disclosures__head,
+.related-disclosures__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.related-disclosures__list {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.related-disclosures__item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+  overflow-wrap: anywhere;
+}
+
+.related-disclosures__empty {
+  margin: 0;
+}
+
 .text-evidence__changed {
   background: var(--color-attention-subtle);
   color: inherit;

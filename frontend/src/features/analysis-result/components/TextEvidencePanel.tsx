@@ -8,6 +8,7 @@ import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { formatDate, reportTypeLabel } from '@/shared/lib/reportLabels'
 import { NumberChangesLine } from './NumberChangesLine'
+import { RelatedDisclosures } from './RelatedDisclosures'
 import { TableView } from './TableView'
 import { TextHistory } from './TextHistory'
 import { useTextChangeDetail } from '../hooks/useTextChanges'
@@ -70,6 +71,7 @@ export function TextEvidencePanel({ analysis, changeId, onClose, onOpenSource }:
           <>
             <EvidenceBody detail={data} onOpenSource={onOpenSource} />
             <TextHistory analysisId={analysis.analysisId} changeId={changeId} />
+            <RelatedDisclosures analysisId={analysis.analysisId} changeId={changeId} />
           </>
         ))
         .exhaustive()}
