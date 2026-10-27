@@ -8,7 +8,7 @@
 | --- | --- |
 | 상태 | 초안 (M1 범위) |
 | 담당 | 백엔드·프론트 |
-| 마지막 수정 | 2026-10-26 |
+| 마지막 수정 | 2026-10-27 |
 | 관련 문서 | ERD(`docs/erd.md`), [화면 와이어프레임](https://app.notion.com/p/c0f540f74d92496c9c20f23867afc15a), 이슈 #47 |
 
 ## 0. 공통
@@ -75,6 +75,11 @@
 | DELETE | `/api/favorite-companies/{corpCode}` | 관심 기업 빼기 | #36 (6.2) | W-01 ①② | 초안 |
 | GET | `/api/notifications` | 내 분석 완료 알림 목록 | #38 (6.4) | 헤더 알림 | 초안 |
 | PUT·DELETE | `/api/notifications/{notificationId}/read` | 알림 읽음 표시·해제 | #38 (6.4) | 헤더 알림 | 초안 |
+| GET | `/api/notes` | 내 판단 노트 목록(기업별, `?corpCode=`로 한 기업) | #413 (6.5) | 판단 노트(신규) | 초안 |
+| POST | `/api/notes` | 노트에 근거 담기(재무 계정 변화·문장 변경) | #413 (6.5) | W-03 ②③ | 초안 |
+| PUT | `/api/notes/{itemId}/memo` | 노트 항목 메모 고치기 | #413 (6.5) | 판단 노트(신규) | 초안 |
+| DELETE | `/api/notes/{itemId}` | 노트 항목 하나 지우기 | #413 (6.5) | 판단 노트(신규) | 초안 |
+| GET | `/api/notes/export` | 기업 노트를 출처와 함께 Markdown으로 내보내기(`?corpCode=`) | #413 (6.5) | 판단 노트(신규) | 초안 |
 | GET | `/api/companies` | 기업 검색 | #8 (1.1) | W-01 ① | 초안 |
 | GET | `/api/featured-companies` | 첫 화면 대표 기업(유가증권시장 시가총액 상위 100) | #399 (1.5) | W-01 ① | 초안 |
 | GET | `/api/companies/{corpCode}` | 기업 정보 | #8 (1.1) | W-01 ② | 초안 |
@@ -272,6 +277,109 @@
 | 400 | `COMMON_INVALID_INPUT` | `limit`이 숫자가 아니거나 1~50 밖. `errors[].field`는 `limit` |
 | 401 | `AUTH_UNAUTHORIZED` | Access Token이 없거나 유효하지 않음 |
 | 404 | `ANALYSIS_NOTIFICATION_NOT_FOUND` | 없는 알림이거나 다른 회원의 알림 |
+
+### GET·POST·PUT·DELETE /api/notes — 내 판단 노트
+
+- 이슈: #413 (6.5, FS-57) · 화면: W-03 ② 수치 근거 상세·W-03 ③ 문장 변경 카드의 '노트에 담기', 판단 노트 화면(`/notes`, 와이어프레임 없음)
+- 로그인한 사용자만 씁니다. 모든 요청에 Bearer Access Token이 필요하고, 없거나 잘못된 JWT는 `AUTH_UNAUTHORIZED`(401)입니다. 사용자는 토큰의 `sub`로만 정해서 다른 사용자의 노트는 읽거나 바꾸거나 지울 수 없습니다(다른 사용자의 항목은 없는 항목과 같이 404).
+- 노트는 기업별입니다. 분석 결과의 근거 하나(재무 계정 변화 또는 문장 변경)를 항목 하나로 담고, 메모를 붙입니다. 저장 방식은 [ADR-0034](adr/0034-judgment-note-storage.md)입니다.
+- 항목의 `label`·`text`는 담을 때의 사본입니다. 화면이 보낸 글이 아니라 backend가 저장된 분석 결과에서 만듭니다(재무 값 문장도 코드가 저장된 계산 결과로 만듦). 나중에 분석이 다시 만들어져도 바뀌지 않습니다.
+- 노트 내용(사본·메모)은 AI 서버·LLM에 보내지 않습니다.
+
+**항목 모양** (`NoteItem`, 아래 응답에서 같이 씀)
+
+```json
+{
+  "itemId": 5,
+  "corpCode": "00126380",
+  "kind": "FINANCIAL_CHANGE",
+  "label": "손익계산서 · 매출액",
+  "text": "이전 1,000,000원 → 현재 1,200,000원, 증감 +200,000원(+20.0%)",
+  "changeType": null,
+  "memo": "환율 효과인지 사업의 내용에서 확인",
+  "source": {
+    "analysisId": 42,
+    "analysisVersion": "m2-13",
+    "changeId": 901,
+    "sjDiv": "IS",
+    "rceptNo": "20261114001234",
+    "sectionNo": null,
+    "blockNo": null,
+    "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261114001234"
+  },
+  "outdated": false,
+  "createdAt": "2026-10-27T10:15:00",
+  "updatedAt": "2026-10-27T10:15:00"
+}
+```
+
+| 필드 | 설명 |
+| --- | --- |
+| `kind` | `FINANCIAL_CHANGE` 재무 계정 변화(`financial_change`), `TEXT_CHANGE` 문장·표 변경(`text_change`) |
+| `label` | 담을 때의 이름. 재무는 `재무제표 · 계정명`(자본변동표는 `· 구성요소`를 더함), 문장은 섹션 경로 |
+| `text` | 담을 때의 값·문장. 재무는 `이전 값 → 현재 값, 증감액(증감률)`(값은 보고서 통화 정수에 천 단위 쉼표, 증감률을 계산하지 않았으면 그 사유, 없는 값은 '미기재'), 문장은 현재 보고서 쪽 글(삭제면 이전 쪽 글, 검토 필요면 사유). 4,000자를 넘으면 끝을 줄여 `…`을 붙임 |
+| `changeType` | 문장 변경 유형(`changeType` (문장) 공통 값). 재무는 null |
+| `memo` | 사용자가 쓴 메모. 없으면 null. 1,000자 이하 |
+| `source` | 원래 위치. `analysisId`·`changeId`로 결과 화면의 그 근거로 돌아가고(재무 `/analyses/{analysisId}?tab=financial&sj={sjDiv}&change={changeId}`, 문장 `?tab=text&tc={changeId}`), `rceptNo`·`dartUrl`은 근거 보고서(재무·문장 모두 현재 보고서, 삭제된 문장은 이전 보고서). `sjDiv`는 재무만, `sectionNo`·`blockNo`는 문장만(검토 필요 항목은 `blockNo` null) |
+| `outdated` | 담을 때의 분석 버전(`source.analysisVersion`)이 지금 서버의 분석 버전과 다르면 true. 화면은 '분석 방식이 바뀌어 위치가 달라졌을 수 있어요'를 보이고, `label`·`text`는 그대로 보인다 |
+| `createdAt`·`updatedAt` | 담은 시각·메모를 고친 시각(한국 시간, `yyyy-MM-dd'T'HH:mm:ss`) |
+
+**GET /api/notes**: 기업별 노트 목록
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| query | `corpCode` | string | 아니오 | 고유번호(8자리 숫자). 주면 그 기업 노트만 |
+
+```json
+{
+  "companies": [
+    { "corpCode": "00126380", "corpName": "삼성전자", "items": [ { "itemId": 5, "...": "위 NoteItem" } ] }
+  ]
+}
+```
+
+- 기업은 가장 최근에 담은 항목 순, 항목은 최근에 담은 순입니다. 담은 것이 없으면 `companies: []`입니다.
+
+**POST /api/notes**: 항목 담기. 201과 담은 `NoteItem`
+
+```json
+{ "kind": "FINANCIAL_CHANGE", "analysisId": 42, "changeId": 901, "memo": "환율 효과인지 사업의 내용에서 확인" }
+```
+
+| 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- |
+| `kind` | string | 예 | `FINANCIAL_CHANGE` 또는 `TEXT_CHANGE` |
+| `analysisId` | number | 예 | 완료된 분석 ID |
+| `changeId` | number | 예 | 그 분석의 재무 계정 변화 ID(`GET .../financial-changes`의 `changeId`) 또는 문장 변경 ID(`GET .../text-changes`의 `changeId`) |
+| `memo` | string | 아니오 | 1,000자 이하. 앞뒤 공백을 지우고, 비었으면 null |
+
+- 기업은 분석의 기업입니다. 같은 근거를 여러 번 담으면 항목이 따로 생깁니다.
+
+**PUT /api/notes/{itemId}/memo**: 메모 고치기. 200과 고친 `NoteItem`
+
+```json
+{ "memo": "사업의 내용 2장에서 확인함" }
+```
+
+- `memo`는 1,000자 이하입니다. null이거나 비었으면 메모를 지웁니다. 담은 `label`·`text`는 바뀌지 않습니다.
+
+**DELETE /api/notes/{itemId}**: 항목 하나 지우기. 204
+
+**GET /api/notes/export?corpCode=**: 기업 노트 내보내기(Markdown)
+
+- `corpCode`는 필수입니다. 200, `Content-Type: text/markdown;charset=UTF-8`, `Content-Disposition: attachment; filename="judgment-note-{corpCode}.md"`.
+- 본문은 기업 이름·고유번호·내보낸 시각·출처 안내 뒤에, 항목마다 `label`, 담은 값·문장, 메모, 근거(접수번호, 재무제표 또는 섹션·문단 번호, 분석 ID), DART 원문 주소, (`outdated`면) 위치 안내를 적습니다. 담은 것이 없으면 '담은 항목이 없어요.'만 적습니다.
+- 에러는 다른 API와 같은 JSON 형식입니다.
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | `kind`가 없거나 허용 값이 아님, `analysisId`·`changeId`가 없거나 1보다 작음, `memo`가 1,000자 초과, `corpCode`가 8자리 숫자가 아님(내보내기는 없을 때도). `errors[].field`에 필드 이름 |
+| 401 | `AUTH_UNAUTHORIZED` | Access Token이 없거나 유효하지 않음 |
+| 404 | `ANALYSIS_NOT_FOUND` | POST에서 없는 분석 |
+| 409 | `ANALYSIS_NOT_READY` | POST에서 완료되지 않은 분석 |
+| 404 | `ANALYSIS_CHANGE_NOT_FOUND` · `ANALYSIS_TEXT_CHANGE_NOT_FOUND` | POST에서 그 분석의 계정·문장 변경이 아님 |
+| 404 | `COMPANY_NOT_FOUND` | 내보내기에서 없는 고유번호 |
+| 404 | `COMPANY_NOTE_NOT_FOUND` | PUT·DELETE에서 없는 항목이거나 다른 사용자의 항목 |
 
 ### GET /api/companies — 기업 검색
 
@@ -2242,6 +2350,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | `COMPANY_NOT_FOUND` | 404 | 없는 기업 | 검색으로 돌아가기 |
 | `COMPANY_LIST_NOT_LOADED` | 503 | 기업 목록을 아직 받지 않음 | 관리자에게 기업 목록 갱신 요청 안내 |
 | `COMPANY_DISCLOSURE_NOT_FOUND` | 404 | 이 기업의 최근 공시에 없거나 핵심 수치를 지원하지 않는 공시(FS-51) | 최근 공시 다시 불러오기 |
+| `COMPANY_NOTE_NOT_FOUND` | 404 | 없는 노트 항목(또는 다른 회원의 항목, #413) | 노트 목록 다시 불러오기 |
 | `REPORT_NOT_FOUND` | 404 | 없는 보고서 | 보고서 목록 다시 불러오기 |
 | `REPORT_SECTION_NOT_FOUND` | 404 | 원문에 없는 항목 | 목차에서 다시 고르기 |
 | `ANALYSIS_NOT_FOUND` | 404 | 없는 분석 | 처음부터 다시 |
