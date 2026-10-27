@@ -7,6 +7,7 @@ import com.dartinsight.analysis.domain.FinancialChangeRow;
 import com.dartinsight.comparison.domain.AmountBasis;
 import com.dartinsight.financial.domain.FsDiv;
 import java.math.BigDecimal;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class FinancialFactsTest {
@@ -24,6 +25,19 @@ class FinancialFactsTest {
                 .isEqualTo("영업이익이 90억 원에서 75억 원으로 줄었어요(−16.7%).");
         assertThat(FinancialFacts.sentence(row("자산총계", 1_000, 1_200, null, "USD")))
                 .isEqualTo("자산총계가 1,000 USD에서 1,200 USD(으)로 늘었어요.");
+    }
+
+    @Test
+    @DisplayName("이익 계정의 흑자·적자 상태는 증감률 없이 상태로 쓴다")
+    void profitStatesAreWrittenWithoutARate() {
+        assertThat(FinancialFacts.sentence(new FinancialChangeRow("CIS", FsDiv.CFS, "k", "영업이익", 0,
+                AmountBasis.CUMULATIVE, -7_730_313_000_000L, 23_467_319_000_000L, 31_197_632_000_000L, null,
+                CalcStatus.TURNED_PROFIT, "KRW", null, null)))
+                .isEqualTo("영업이익이 −7.7조 원에서 23.5조 원으로 바뀌어 흑자로 돌아섰어요.");
+        assertThat(FinancialFacts.sentence(new FinancialChangeRow("CIS", FsDiv.CFS, "k", "영업손실", 0,
+                AmountBasis.CUMULATIVE, -2_510_164_000_000L, -560_596_000_000L, 1_949_568_000_000L, null,
+                CalcStatus.LOSS_NARROWED, "KRW", null, null)))
+                .isEqualTo("영업손실이 −2.5조 원에서 −5,606억 원으로 바뀌어 적자폭이 줄었어요.");
     }
 
     @Test

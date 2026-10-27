@@ -50,12 +50,13 @@ public record FinancialChangeDetailResponse(
                         c.getCurrentPeriodName()));
     }
 
-    /** 증감액 계산식(원 단위). 계산하지 않았으면 null */
+    /** 증감액 계산식(원 단위). 금액마다 그 보고서의 기간 이름을 붙인다(#144). 계산하지 않았으면 null */
     private static String formula(FinancialChange c) {
         if (c.getChangeAmount() == null) {
             return null;
         }
-        return won(c.getCurrentAmount()) + " − " + won(c.getPreviousAmount()) + " = " + won(c.getChangeAmount());
+        return term(c.getCurrentAmount(), c.getCurrentPeriodName()) + " − "
+                + term(c.getPreviousAmount(), c.getPreviousPeriodName()) + " = " + won(c.getChangeAmount());
     }
 
     /**
@@ -68,8 +69,14 @@ public record FinancialChangeDetailResponse(
         }
         BigDecimal percent = BigDecimal.valueOf(c.getChangeAmount()).movePointRight(2)
                 .divide(BigDecimal.valueOf(c.getPreviousAmount()), 2, RoundingMode.HALF_UP);
-        return won(c.getChangeAmount()) + " ÷ " + won(c.getPreviousAmount()) + " × 100 = " + percent.toPlainString()
-                + "%";
+        return won(c.getChangeAmount()) + " ÷ " + term(c.getPreviousAmount(), c.getPreviousPeriodName()) + " × 100 = "
+                + percent.toPlainString() + "%";
+    }
+
+    /** 식 안의 금액. 음수는 빼기 기호와 헷갈리지 않게 괄호로 감싸고, 기간 이름이 있으면 괄호로 붙인다 */
+    private static String term(Long amount, String periodName) {
+        String value = amount < 0 ? "(" + won(amount) + ")" : won(amount);
+        return periodName == null || periodName.isBlank() ? value : value + "(" + periodName + ")";
     }
 
     private static String won(Long amount) {

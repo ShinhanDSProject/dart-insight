@@ -1,5 +1,6 @@
 package com.dartinsight.summary.service;
 
+import com.dartinsight.analysis.domain.CalcStatus;
 import com.dartinsight.analysis.domain.FinancialChangeRow;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -19,14 +20,36 @@ public final class FinancialFacts {
     private FinancialFacts() {
     }
 
-    /** 예: 매출액이 145조 원에서 152조 원으로 늘었어요(+4.8%). */
+    /**
+     * 예: 매출액이 145조 원에서 152조 원으로 늘었어요(+4.8%).
+     * 이익 계정의 흑자·적자 상태면 증감률 없이 상태를 쓴다(#144). 예: 영업이익이 −7.7조 원에서 23.5조 원으로 바뀌어 흑자로 돌아섰어요.
+     */
     public static String sentence(FinancialChangeRow row) {
         String previous = amount(row.previousAmount(), row.currency());
         String current = amount(row.currentAmount(), row.currency());
+        String state = profitState(row.calcStatus());
+        if (state != null) {
+            return row.accountName() + subject(row.accountName()) + " " + previous + "에서 " + current
+                    + toward(current) + " 바뀌어 " + state + ".";
+        }
         String verb = row.changeAmount() > 0 ? "늘었어요" : "줄었어요";
         String rate = row.changeRate() == null ? "" : "(" + rate(row.changeAmount(), row.previousAmount()) + ")";
         return row.accountName() + subject(row.accountName()) + " " + previous + "에서 " + current + toward(current)
                 + " " + verb + rate + ".";
+    }
+
+    /** 이익 계정의 흑자·적자 상태 문구. 그 밖의 상태면 null */
+    private static String profitState(CalcStatus status) {
+        if (status == null) {
+            return null;
+        }
+        return switch (status) {
+            case TURNED_PROFIT -> "흑자로 돌아섰어요";
+            case TURNED_LOSS -> "적자로 돌아섰어요";
+            case LOSS_NARROWED -> "적자폭이 줄었어요";
+            case LOSS_WIDENED -> "적자폭이 커졌어요";
+            default -> null;
+        };
     }
 
     static String amount(long value, String currency) {

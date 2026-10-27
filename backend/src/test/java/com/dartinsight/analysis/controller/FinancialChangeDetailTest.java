@@ -114,9 +114,10 @@ class FinancialChangeDetailTest {
                 .andExpect(jsonPath("$.previousAmount").value(145_000_000_000_000L))
                 .andExpect(jsonPath("$.direction").value("UP"))
                 .andExpect(jsonPath("$.formula")
-                        .value("152,000,000,000,000 − 145,000,000,000,000 = 7,000,000,000,000"))
+                        .value("152,000,000,000,000(제 57 기 반기) − 145,000,000,000,000(제 56 기 반기) = "
+                                + "7,000,000,000,000"))
                 .andExpect(jsonPath("$.rateFormula")
-                        .value("7,000,000,000,000 ÷ 145,000,000,000,000 × 100 = 4.83%"))
+                        .value("7,000,000,000,000 ÷ 145,000,000,000,000(제 56 기 반기) × 100 = 4.83%"))
                 .andExpect(jsonPath("$.previous.rceptNo").value(PREV))
                 .andExpect(jsonPath("$.previous.reportName").value("반기보고서 (2025.06)"))
                 .andExpect(jsonPath("$.previous.periodEnd").value("2025-06-30"))
@@ -132,7 +133,7 @@ class FinancialChangeDetailTest {
     void rateFormulaIsComputedFromTheAmountsItShows() throws Exception {
         mockMvc.perform(get("/api/analyses/{a}/financial-changes/{c}", analysisId, changeId("매출원가")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.rateFormula").value("123,495 ÷ 10,000,000 × 100 = 1.23%"));
+                .andExpect(jsonPath("$.rateFormula").value("123,495 ÷ 10,000,000(제 56 기 반기) × 100 = 1.23%"));
     }
 
     @Test

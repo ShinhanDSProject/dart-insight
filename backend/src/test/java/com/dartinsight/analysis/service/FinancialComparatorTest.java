@@ -122,6 +122,76 @@ class FinancialComparatorTest {
     }
 
     @Test
+    @DisplayName("2024 사업보고서(연결) 실제 값으로 흑자전환·적자전환·적자폭 축소와 이익이 아닌 계정의 부호 변화를 가른다")
+    void signChangesOfRealAnnualReportsFollowTheTable() {
+        // 금액은 OpenDART fnlttSinglAcntAll(2024, 11011, CFS)의 전기·당기 금액
+        record Case(String company, String rceptNo, String accountId, long previous, long current, CalcStatus expected) {
+        }
+        List<Case> cases = List.of(
+                new Case("SK하이닉스", "20250319000665", "dart_OperatingIncomeLoss", -7_730_313_000_000L,
+                        23_467_319_000_000L, CalcStatus.TURNED_PROFIT),
+                new Case("LG디스플레이", "20250312000906", "dart_OperatingIncomeLoss", -2_510_164_000_000L,
+                        -560_596_000_000L, CalcStatus.LOSS_NARROWED),
+                new Case("LG디스플레이", "20250312000906", "ifrs-full_ProfitLoss", -2_576_729_000_000L,
+                        -2_409_300_000_000L, CalcStatus.LOSS_NARROWED),
+                new Case("카카오", "20250324000901", "ifrs-full_ProfitLoss", -1_816_669_011_014L,
+                        -161_870_567_171L, CalcStatus.LOSS_NARROWED),
+                new Case("카카오", "20250324000901", "ifrs-full_ProfitLossAttributableToOwnersOfParent",
+                        -1_012_550_566_010L, 55_277_416_537L, CalcStatus.TURNED_PROFIT),
+                new Case("에코프로비엠", "20250325000761", "dart_OperatingIncomeLoss", 156_029_935_394L,
+                        -34_109_364_109L, CalcStatus.TURNED_LOSS),
+                new Case("삼성전자", "20250311001085", "ifrs-full_IncomeTaxExpenseContinuingOperations",
+                        -4_480_835_000_000L, 3_078_383_000_000L, CalcStatus.SIGN_CHANGED),
+                new Case("삼성전자", "20250311001085", "ifrs-full_GainsLossesOnCashFlowHedgesNetOfTax", 927_000_000L,
+                        -38_946_000_000L, CalcStatus.SIGN_CHANGED));
+        for (Case c : cases) {
+            List<FinancialChangeRow> rows = compare(ReportType.HALF, ReportType.HALF,
+                    List.of(account(PREV, "CIS", c.accountId(), "계정", 1, c.previous(), c.previous())),
+                    List.of(account(CUR, "CIS", c.accountId(), "계정", 1, c.current(), c.current())));
+
+            FinancialChangeRow row = find(rows, "CIS", c.accountId());
+            assertThat(row.calcStatus()).as(c.company() + " " + c.rceptNo() + " " + c.accountId())
+                    .isEqualTo(c.expected());
+            assertThat(row.changeAmount()).isEqualTo(c.current() - c.previous());
+            assertThat(row.changeRate()).as("부호가 바뀌거나 이전 값이 음수면 증감률이 없다").isNull();
+        }
+    }
+
+    @Test
+    @DisplayName("0 경계와 같은 손실, 적자폭 확대를 판정표대로 가른다")
+    void zeroBoundariesAndLossesFollowTheTable() {
+        assertThat(FinancialComparator.status(0, -5, true)).isEqualTo(CalcStatus.PREVIOUS_ZERO);
+        assertThat(FinancialComparator.status(0, 5, false)).isEqualTo(CalcStatus.PREVIOUS_ZERO);
+        assertThat(FinancialComparator.status(10, 0, true)).isEqualTo(CalcStatus.OK);
+        assertThat(FinancialComparator.status(-10, 0, true)).isEqualTo(CalcStatus.LOSS_NARROWED);
+        assertThat(FinancialComparator.status(-10, 0, false)).isEqualTo(CalcStatus.PREVIOUS_NEGATIVE);
+        assertThat(FinancialComparator.status(-10, -10, true)).isEqualTo(CalcStatus.PREVIOUS_NEGATIVE);
+        assertThat(FinancialComparator.status(-10, -30, true)).isEqualTo(CalcStatus.LOSS_WIDENED);
+        assertThat(FinancialComparator.status(-10, -30, false)).isEqualTo(CalcStatus.PREVIOUS_NEGATIVE);
+        assertThat(FinancialComparator.status(10, -30, false)).isEqualTo(CalcStatus.SIGN_CHANGED);
+    }
+
+    @Test
+    @DisplayName("흑자·적자는 손익계산서의 목록에 있는 표준계정에만 쓴다(자본변동표·회사 고유 계정은 중립)")
+    void profitStatesAreOnlyForListedIncomeStatementAccounts() {
+        List<FinancialChangeRow> rows = compare(ReportType.HALF, ReportType.HALF,
+                List.of(account(PREV, "IS", "dart_OperatingIncomeLoss", "영업이익", 1, -10L, -10L),
+                        account(PREV, "IS", "-표준계정코드 미사용-", "회사이익", 2, -10L, -10L),
+                        sce(PREV, "ifrs-full_ProfitLoss", "이익잉여금", 1, 34_270_000_000L)),
+                List.of(account(CUR, "IS", "dart_OperatingIncomeLoss", "영업이익", 1, 20L, 20L),
+                        account(CUR, "IS", "-표준계정코드 미사용-", "회사이익", 2, 20L, 20L),
+                        sce(CUR, "ifrs-full_ProfitLoss", "이익잉여금", 1, -450_000_000L)));
+
+        assertThat(find(rows, "IS", "dart_OperatingIncomeLoss").calcStatus()).isEqualTo(CalcStatus.TURNED_PROFIT);
+        assertThat(rows.stream().filter(r -> r.accountName().equals("회사이익")).findFirst().orElseThrow()
+                .calcStatus()).isEqualTo(CalcStatus.SIGN_CHANGED);
+        assertThat(rows.stream().filter(r -> r.sjDiv().equals("SCE")).findFirst().orElseThrow().calcStatus())
+                .as("에코프로비엠 SCE '반기손이익(손실)'처럼 자본변동표는 이익 계정이 아니다")
+                .isEqualTo(CalcStatus.SIGN_CHANGED);
+        assertThat(CalcStatus.SIGN_CHANGED.message()).isEqualTo("부호가 바뀌어 증감률을 계산하지 않아요.");
+    }
+
+    @Test
     void keepsCurrentOrderAndPutsRemovedAccountsAfter() {
         List<FinancialChangeRow> rows = compare(ReportType.HALF, ReportType.HALF,
                 List.of(account(PREV, "BS", "b", "B", 1, 1L, null), account(PREV, "BS", "gone", "G", 2, 1L, null)),
