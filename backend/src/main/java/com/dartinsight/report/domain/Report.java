@@ -154,6 +154,14 @@ public class Report {
         return filerName;
     }
 
+    /**
+     * 기업의 보고서 목록을 마지막으로 받았을 때(reportsFetchedAt) 이 보고서가 그 목록에 있었는지.
+     * 정정 공시로 대체됐으면 false. 목록을 받은 적이 없으면 true
+     */
+    public boolean inLatestList(LocalDateTime reportsFetchedAt) {
+        return reportsFetchedAt == null || !lastSeenAt.isBefore(reportsFetchedAt);
+    }
+
     public LocalDateTime getLastSeenAt() {
         return lastSeenAt;
     }

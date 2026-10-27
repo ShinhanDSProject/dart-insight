@@ -7,7 +7,6 @@ import com.dartinsight.company.repository.CompanyRepository;
 import com.dartinsight.report.domain.FinancialDataStatus;
 import com.dartinsight.report.domain.Report;
 import com.dartinsight.report.repository.ReportRepository;
-import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -73,8 +72,7 @@ public class ReportService {
                 .orElseThrow(() -> new ApiException(ErrorCode.REPORT_NOT_FOUND));
         Company company = companyRepository.findByCorpCode(report.getCorpCode())
                 .orElseThrow(() -> new ApiException(ErrorCode.COMPANY_NOT_FOUND));
-        LocalDateTime fetchedAt = company.getReportsFetchedAt();
-        boolean latest = fetchedAt == null || !report.getLastSeenAt().isBefore(fetchedAt);
+        boolean latest = report.inLatestList(company.getReportsFetchedAt());
         FinancialDataStatus status = financialDataStatuses(company.getCorpCode(), List.of(report))
                 .get(report.getRceptNo());
         return new ReportDetail(company, report, latest, status);
