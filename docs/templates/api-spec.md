@@ -71,7 +71,7 @@
 
 ## 4. 에러 코드
 
-`code`는 `영역_내용` 형식의 대문자 스네이크입니다. 영역은 `COMMON`, `COMPANY`, `REPORT`, `ANALYSIS`, `DART`, `AI`입니다. 화면은 `code`를 보고 예외 상태를 고릅니다.
+`code`는 `영역_내용` 형식의 대문자 스네이크입니다. 영역은 `COMMON`, `AUTH`, `COMPANY`, `REPORT`, `ANALYSIS`, `DART`, `AI`, `COMMUNITY`입니다. 화면은 `code`를 보고 예외 상태를 고릅니다.
 
 | code | 상태 | 뜻 | 화면 처리 |
 | --- | --- | --- | --- |
