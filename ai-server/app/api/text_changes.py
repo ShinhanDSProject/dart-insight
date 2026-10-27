@@ -6,9 +6,8 @@ from typing import Any
 from fastapi import APIRouter
 
 from app.api import paths
-from app.compare.priority import prioritize
 from app.compare.schema import TextChangeRequest, result_json
-from app.compare.text_diff import diff_documents
+from app.compare.service import compare_documents
 from app.core.errors import ApiError, ErrorCode
 
 router = APIRouter(prefix=paths.INTERNAL_PREFIX, tags=["internal"])
@@ -23,22 +22,12 @@ def text_changes(request: TextChangeRequest) -> dict[str, Any]:
         current = request.current.to_input()
     except ValueError as e:
         raise ApiError(ErrorCode.COMMON_INVALID_INPUT, str(e)) from e
-    result = diff_documents(previous, current)
-    previous_texts = {b.block_no: b.text for b in previous.blocks}
-    current_texts = {b.block_no: b.text for b in current.blocks}
-    priorities = [
-        prioritize(
-            change,
-            previous_texts.get(change.previous.block_no) if change.previous else None,
-            current_texts.get(change.current.block_no) if change.current else None,
-        )
-        for change in result.changes
-    ]
+    compared = compare_documents(previous, current)
     logger.info(
         "문장 비교 %s → %s: 변경 %d건 섹션 %s",
         previous.rcept_no,
         current.rcept_no,
-        len(result.changes),
-        result.section_counts,
+        len(compared.result.changes),
+        compared.result.section_counts,
     )
-    return result_json(result, priorities)
+    return result_json(compared.result, compared.priorities)
