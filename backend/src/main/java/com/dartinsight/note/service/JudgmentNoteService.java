@@ -5,8 +5,8 @@ import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.company.domain.Company;
 import com.dartinsight.company.service.CompanyService;
 import com.dartinsight.note.domain.JudgmentNoteItem;
-import com.dartinsight.note.domain.NoteKind;
 import com.dartinsight.note.domain.NoteSnapshot;
+import com.dartinsight.note.dto.NoteCreateRequest;
 import com.dartinsight.note.dto.NoteItemResponse;
 import com.dartinsight.note.dto.NoteListResponse;
 import com.dartinsight.note.dto.NoteListResponse.CompanyNote;
@@ -63,12 +63,28 @@ public class JudgmentNoteService {
     /**
      * 사본은 저장된 분석 결과에서 만든다. 근거를 찾는 동안(원문·보고서 조회) 트랜잭션을 잡지 않고 저장만 묶는다(LY-2).
      */
-    public NoteItemResponse create(long userId, NoteKind kind, long analysisId, long changeId, String memo) {
+    public NoteItemResponse create(long userId, NoteCreateRequest request) {
         userService.requireExisting(userId);
-        NoteSnapshot snapshot = snapshots.create(kind, analysisId, changeId);
+        NoteSnapshot snapshot = switch (request.kind()) {
+            case FINANCIAL_CHANGE, TEXT_CHANGE -> snapshots.create(request.kind(), request.analysisId(),
+                    required("changeId", request.changeId()));
+            case ANSWER_CITATION -> {
+                long questionId = required("questionId", request.questionId());
+                int citationNo = required("citationNo", request.citationNo());
+                yield snapshots.answerCitation(request.analysisId(), questionId, citationNo);
+            }
+        };
         JudgmentNoteItem saved = items.save(
-                JudgmentNoteItem.create(userId, snapshot, normalizeMemo(memo), LocalDateTime.now(clock)));
+                JudgmentNoteItem.create(userId, snapshot, normalizeMemo(request.memo()), LocalDateTime.now(clock)));
         return NoteItemResponse.from(saved);
+    }
+
+    /** 종류에 따라 있어야 하는 요청 값 */
+    private static <T> T required(String field, T value) {
+        if (value == null) {
+            throw ApiException.invalidInput(field, "필수 값입니다.");
+        }
+        return value;
     }
 
     @Transactional

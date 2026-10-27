@@ -15,6 +15,7 @@ import com.dartinsight.common.trace.TraceContext;
 import com.dartinsight.document.domain.DocumentBlock;
 import com.dartinsight.document.domain.ReportDocument;
 import com.dartinsight.document.service.DocumentService;
+import com.dartinsight.question.domain.CitedSource;
 import com.dartinsight.question.domain.FeedbackReason;
 import com.dartinsight.question.domain.QuestionFact;
 import com.dartinsight.question.domain.QuestionFeedback;
@@ -65,6 +66,7 @@ public class QuestionService {
     /** 섹션 범위에서 읽을 변경 수(우선순위 순). 후보는 이 중 앞 6개 문단만 쓴다 */
     static final int SECTION_CHANGES = 200;
     private static final String NOT_ANSWERED = "답한 질문만 평가할 수 있어요.";
+    private static final String CITATION_NOT_FOUND = "답의 인용을 찾을 수 없습니다. 질문 기록을 다시 불러와 주세요.";
 
     private static final Logger log = LoggerFactory.getLogger(QuestionService.class);
 
@@ -193,6 +195,25 @@ public class QuestionService {
             questionStore.updateFeedback(questionId, feedback);
         });
         return QuestionFeedbackResponse.of(questionId, feedback);
+    }
+
+    /**
+     * 저장된 답의 인용 하나를 원문 문단으로 다시 푼다(판단 노트에 담기, #432). 화면이 보낸 글은 쓰지 않는다.
+     * 이 분석의 답한 질문이 아니거나, 그 번호의 인용이 없거나, 저장된 원문에서 문단을 찾지 못하면
+     * 404 ANALYSIS_QUESTION_NOT_FOUND다. LLM을 부르지 않는다.
+     */
+    public CitedSource citedSource(Analysis analysis, long questionId, int citationNo) {
+        QuestionRecord row = questionStore.find(analysis.getId(), questionId)
+                .filter(r -> r.status() == QuestionStatus.ANSWERED)
+                .orElseThrow(() -> new ApiException(ErrorCode.ANALYSIS_QUESTION_NOT_FOUND));
+        if (citationNo < 1 || citationNo > row.evidenceIds().size()) {
+            throw new ApiException(ErrorCode.ANALYSIS_QUESTION_NOT_FOUND, CITATION_NOT_FOUND);
+        }
+        QuestionSource source = new Documents().source(analysis, row.evidenceIds().get(citationNo - 1));
+        if (source.side() == null || source.sectionNo() == null || source.text() == null || source.text().isBlank()) {
+            throw new ApiException(ErrorCode.ANALYSIS_QUESTION_NOT_FOUND, CITATION_NOT_FOUND);
+        }
+        return new CitedSource(questionId, row.question(), source);
     }
 
     private static QuestionFeedback feedback(QuestionFeedbackRequest request, LocalDateTime at) {

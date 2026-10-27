@@ -28,6 +28,12 @@ import com.dartinsight.company.service.CompanyImportService;
 import com.dartinsight.comparison.domain.AmountBasis;
 import com.dartinsight.comparison.domain.ComparisonBasis;
 import com.dartinsight.dart.domain.CorpCodeEntry;
+import com.dartinsight.document.domain.ReportDocument;
+import com.dartinsight.document.dto.StructuredDocumentResponse;
+import com.dartinsight.document.dto.StructuredDocumentResponse.Block;
+import com.dartinsight.document.dto.StructuredDocumentResponse.Section;
+import com.dartinsight.document.repository.DocumentStore;
+import com.dartinsight.document.repository.ReportDocumentRepository;
 import com.dartinsight.financial.domain.FsDiv;
 import com.dartinsight.report.domain.Correction;
 import com.dartinsight.report.domain.Report;
@@ -40,6 +46,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -67,6 +74,8 @@ class JudgmentNoteApiTest {
     @Autowired ReportRepository reportRepository;
     @Autowired AnalysisRepository analysisRepository;
     @Autowired AnalysisResultService resultService;
+    @Autowired ReportDocumentRepository documentRepository;
+    @Autowired DocumentStore documentStore;
 
     private long analysisId;
 
@@ -198,13 +207,18 @@ class JudgmentNoteApiTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("COMMON_INVALID_INPUT"))
                 .andExpect(jsonPath("$.errors[*].field", org.hamcrest.Matchers.containsInAnyOrder(
-                        "kind", "analysisId", "changeId")));
+                        "kind", "analysisId")));
+        mvc.perform(post("/api/notes").header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"kind\":\"TEXT_CHANGE\",\"analysisId\":" + analysisId + "}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("changeId"));
         mvc.perform(post("/api/notes").header("Authorization", bearer(token))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"kind\":\"ANSWER\",\"analysisId\":1,\"changeId\":1}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].field").value("kind"))
-                .andExpect(jsonPath("$.errors[0].reason").value("허용 값: FINANCIAL_CHANGE, TEXT_CHANGE"));
+                .andExpect(jsonPath("$.errors[0].reason").value("허용 값: FINANCIAL_CHANGE, TEXT_CHANGE, ANSWER_CITATION"));
         String longMemo = "가".repeat(1001);
         mvc.perform(post("/api/notes").header("Authorization", bearer(token))
                         .contentType(MediaType.APPLICATION_JSON).content(financialBody(longMemo)))
@@ -370,6 +384,104 @@ class JudgmentNoteApiTest {
         mvc.perform(get("/api/notes/export").param("corpCode", "99999999").header("Authorization", bearer(token)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("COMPANY_NOT_FOUND"));
+    }
+
+    @Test
+    @DisplayName("AI 답의 인용을 담으면 저장된 질문·원문 문단으로 사본을 만들고 원문 확인 위치를 남긴다")
+    void savesAnswerCitationFromStoredAnswer() throws Exception {
+        document(CUR, "매출액은 메모리 수요 회복으로 늘었습니다.");
+        document(PREV, "매출액은 줄었습니다.");
+        long questionId = question("ANSWERED", CUR + "#B3," + PREV + "#B3");
+        String token = login("member@example.com");
+        // 화면이 글을 보내도 쓰지 않는다
+        String body = citationBody(questionId, 2, "\"memo\":\"이전 설명과 비교\",\"text\":\"조작한 글\","
+                + "\"label\":\"조작한 이름\"");
+        mvc.perform(post("/api/notes").header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.kind").value("ANSWER_CITATION"))
+                .andExpect(jsonPath("$.corpCode").value(CORP))
+                .andExpect(jsonPath("$.label").value("IV. 이사의 경영진단 및 분석의견 > 2. 영업실적"))
+                .andExpect(jsonPath("$.text").value("매출액은 줄었습니다."))
+                .andExpect(jsonPath("$.question").value("매출액은 왜 바뀌었나요?"))
+                .andExpect(jsonPath("$.changeType").doesNotExist())
+                .andExpect(jsonPath("$.memo").value("이전 설명과 비교"))
+                .andExpect(jsonPath("$.source.analysisId").value(analysisId))
+                .andExpect(jsonPath("$.source.changeId").doesNotExist())
+                .andExpect(jsonPath("$.source.questionId").value(questionId))
+                .andExpect(jsonPath("$.source.side").value("previous"))
+                .andExpect(jsonPath("$.source.rceptNo").value(PREV))
+                .andExpect(jsonPath("$.source.sectionNo").value(2))
+                .andExpect(jsonPath("$.source.blockNo").value(3))
+                .andExpect(jsonPath("$.source.dartUrl").value("https://dart.fss.or.kr/dsaf001/main.do?rcpNo=" + PREV))
+                .andExpect(jsonPath("$.outdated").value(false));
+
+        String other = login("other@example.com");
+        mvc.perform(get("/api/notes").header("Authorization", bearer(other)))
+                .andExpect(jsonPath("$.companies", hasSize(0)));
+        String markdown = mvc.perform(get("/api/notes/export").param("corpCode", CORP)
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(markdown).contains("- 종류: AI 답 인용")
+                .contains("- 질문: 매출액은 왜 바뀌었나요?")
+                .contains("  > 매출액은 줄었습니다.")
+                .contains("접수번호 " + PREV + " · 섹션 2 · 문단 3 · 분석 " + analysisId);
+    }
+
+    @Test
+    @DisplayName("없는 질문·인용이거나 답하지 않은 질문이면 404이고, 인용 번호가 없거나 잘못되면 400이다")
+    void rejectsUnknownCitation() throws Exception {
+        document(CUR, "매출액은 메모리 수요 회복으로 늘었습니다.");
+        long answered = question("ANSWERED", CUR + "#B3");
+        long notFound = question("NOT_FOUND", null);
+        String token = login("member@example.com");
+        for (String body : List.of(citationBody(answered, 2, null), citationBody(999_999L, 1, null),
+                citationBody(notFound, 1, null))) {
+            mvc.perform(post("/api/notes").header("Authorization", bearer(token))
+                            .contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.code").value("ANALYSIS_QUESTION_NOT_FOUND"));
+        }
+        mvc.perform(post("/api/notes").header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"kind\":\"ANSWER_CITATION\",\"analysisId\":" + analysisId + ",\"questionId\":"
+                                + answered + "}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("citationNo"));
+        mvc.perform(post("/api/notes").header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content(citationBody(answered, 0, null)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("citationNo"));
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM judgment_note_item", Integer.class)).isZero();
+    }
+
+    private void document(String rceptNo, String explanation) {
+        List<Section> sections = List.of(
+                new Section(1, null, 1, "IV. 이사의 경영진단 및 분석의견", null, false,
+                        List.of(new Block(1, "PARAGRAPH", "경영진단 개요입니다.", null))),
+                new Section(2, 1, 2, "2. 영업실적", null, false, List.of(
+                        new Block(2, "PARAGRAPH", "당사는 메모리를 만듭니다.", null),
+                        new Block(3, "PARAGRAPH", explanation, null))));
+        StructuredDocumentResponse response = new StructuredDocumentResponse(rceptNo, "dart-xml-1", "STRUCTURED",
+                null, null, rceptNo + ".xml", "utf-8", "반기보고서", "예시전자", List.of(), List.of(),
+                Map.of("cells", 0, "sourceCells", 0), sections);
+        ReportDocument saved = documentRepository.save(ReportDocument.structured(rceptNo, response, 100, NOW, NOW));
+        documentStore.replace(saved.getId(), sections);
+    }
+
+    /** 저장된 질문 한 건. evidenceIds는 인용 번호 순서의 근거 ID(쉼표로 이음) */
+    private long question(String status, String evidenceIds) {
+        jdbc.update("INSERT INTO analysis_question (analysis_id, question, status, answer, evidence_ids, model, "
+                + "prompt_version, generated_at, created_at) VALUES (?, ?, ?, ?, ?, 'fake-model', 'answer-1', ?, ?)",
+                analysisId, "매출액은 왜 바뀌었나요?", status, evidenceIds == null ? null : "매출 설명이에요[1].",
+                evidenceIds, NOW, NOW);
+        return jdbc.queryForObject("SELECT MAX(id) FROM analysis_question", Long.class);
+    }
+
+    private String citationBody(long questionId, int citationNo, String extra) {
+        return "{\"kind\":\"ANSWER_CITATION\",\"analysisId\":" + analysisId + ",\"questionId\":" + questionId
+                + ",\"citationNo\":" + citationNo + (extra == null ? "" : "," + extra) + "}";
     }
 
     private long add(String token, String body) throws Exception {

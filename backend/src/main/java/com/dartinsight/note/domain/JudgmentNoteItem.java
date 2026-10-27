@@ -64,6 +64,15 @@ public class JudgmentNoteItem {
     @Column(name = "snapshot_text", nullable = false, length = NoteSnapshot.MAX_TEXT)
     private String snapshotText;
 
+    @Column(name = "question_id")
+    private Long questionId;
+
+    @Column(name = "snapshot_question", length = NoteSnapshot.MAX_QUESTION)
+    private String snapshotQuestion;
+
+    @Column(name = "doc_side", length = 10)
+    private String docSide;
+
     @Column(name = "memo", length = 1000)
     private String memo;
 
@@ -90,6 +99,9 @@ public class JudgmentNoteItem {
         item.changeType = snapshot.changeType();
         item.snapshotLabel = snapshot.label();
         item.snapshotText = snapshot.text();
+        item.questionId = snapshot.questionId();
+        item.snapshotQuestion = snapshot.question();
+        item.docSide = snapshot.side();
         item.memo = memo;
         item.createdAt = now;
         item.updatedAt = now;
@@ -134,6 +146,12 @@ public class JudgmentNoteItem {
     public String getSnapshotLabel() { return snapshotLabel; }
 
     public String getSnapshotText() { return snapshotText; }
+
+    public Long getQuestionId() { return questionId; }
+
+    public String getSnapshotQuestion() { return snapshotQuestion; }
+
+    public String getDocSide() { return docSide; }
 
     public String getMemo() { return memo; }
 
