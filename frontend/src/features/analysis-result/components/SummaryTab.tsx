@@ -7,9 +7,9 @@ import type { ChangeType } from '@/shared/api/textChanges'
 import type { LoadState } from '@/shared/hooks/asyncState'
 import type { AsyncResult } from '@/shared/hooks/useAsync'
 import { formatCompactAmount } from '@/shared/lib/chartScale'
-import { Badge, Button, Card, CompareBars, Notice, Panel, PanelTitle } from '@/shared/ui'
+import { Badge, Button, Card, CompareBars, Notice, Panel, PanelTitle, Skeleton } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
-import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
+import { EmptyState, ErrorState } from '@/shared/ui/StateView'
 import { useSummary } from '../hooks/useSummary'
 import { useSummaryAmounts } from '../hooks/useSummaryAmounts'
 import { summarySjDivs } from '../model/summaryAmounts'
@@ -110,7 +110,7 @@ function SummaryContent({ summary, analysis, opener, onOpenSource }: SummaryCont
   return match(state)
     .with({ status: 'loading' }, () => (
       <Panel aria-label="요약·설명">
-        <LoadingState message="요약을 불러오는 중입니다…" />
+        <Skeleton label="요약을 불러오는 중입니다…" shape="line" count={4} />
       </Panel>
     ))
     .with({ status: 'error' }, ({ error }) => (

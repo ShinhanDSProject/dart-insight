@@ -14,11 +14,12 @@ import {
   Panel,
   SegmentedControl,
   Select,
+  Skeleton,
   SortableHeader,
 } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { downloadTextFile } from '@/shared/lib/download'
-import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
+import { EmptyState, ErrorState } from '@/shared/ui/StateView'
 import { EvidencePanel } from './EvidencePanel'
 import { FinancialChart } from './FinancialChart'
 import {
@@ -210,7 +211,7 @@ export function FinancialTab({
       )}
 
       {match(state)
-        .with({ status: 'loading' }, () => <LoadingState message="계정별 결과를 불러오는 중입니다…" />)
+        .with({ status: 'loading' }, () => <Skeleton label="계정별 결과를 불러오는 중입니다…" shape="block" />)
         .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} />)
         .with({ status: 'success', data: { items: [] } }, () => (
           <EmptyState title={changedOnly ? '바뀐 계정이 없어요.' : '이 재무제표에는 계정이 없어요.'}>
