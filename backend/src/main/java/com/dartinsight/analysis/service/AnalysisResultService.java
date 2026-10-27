@@ -2,11 +2,9 @@ package com.dartinsight.analysis.service;
 
 import com.dartinsight.analysis.domain.Analysis;
 import com.dartinsight.analysis.domain.AnalysisCompleted;
-import com.dartinsight.analysis.domain.AnalysisStatus;
 import com.dartinsight.analysis.domain.FinancialChange;
 import com.dartinsight.analysis.domain.FinancialChangeRow;
 import com.dartinsight.analysis.domain.TextComparison;
-import com.dartinsight.analysis.domain.TextStatus;
 import com.dartinsight.analysis.repository.AnalysisRepository;
 import com.dartinsight.analysis.repository.FinancialChangeRepository;
 import com.dartinsight.analysis.repository.TextChangeStore;
@@ -63,16 +61,14 @@ public class AnalysisResultService {
         List<Analysis> same = analysisRepository
                 .findByCorpCodeAndCurrentRceptNoAndPreviousRceptNoAndBasisAndAnalysisVersionOrderByIdDesc(corpCode,
                         currentRceptNo, previousRceptNo, basis, Analysis.CURRENT_VERSION);
-        Optional<Analysis> completed = same.stream()
-                .filter(a -> a.getStatus() == AnalysisStatus.COMPLETED && a.getTextStatus() != TextStatus.FAILED)
-                .findFirst();
+        Optional<Analysis> completed = same.stream().filter(Analysis::isReusableResult).findFirst();
         if (completed.isPresent()) {
             return completed;
         }
         LocalDateTime now = now();
         LocalDateTime staleBefore = now.minus(STALE_AFTER);
         for (Analysis analysis : same) {
-            if (!analysis.getStatus().finished() && analysis.getUpdatedAt().isBefore(staleBefore)) {
+            if (analysis.stalledBefore(staleBefore)) {
                 analysis.fail(STALE_CODE, "분석이 오래 진행되지 않아 멈춘 것으로 봤어요. 다시 요청해 주세요.", now);
             }
         }
@@ -114,7 +110,7 @@ public class AnalysisResultService {
     @Transactional(readOnly = true)
     public Analysis completed(Long analysisId) {
         Analysis analysis = get(analysisId);
-        if (analysis.getStatus() != AnalysisStatus.COMPLETED) {
+        if (!analysis.isCompleted()) {
             throw new ApiException(ErrorCode.ANALYSIS_NOT_READY);
         }
         return analysis;
@@ -129,20 +125,14 @@ public class AnalysisResultService {
     /** 완료된 분석의 계정별 결과. 완료되지 않았으면 409. 이 분석의 결과만 돌려준다. */
     @Transactional(readOnly = true)
     public CompletedResult completedResult(Long analysisId) {
-        Analysis analysis = get(analysisId);
-        if (analysis.getStatus() != AnalysisStatus.COMPLETED) {
-            throw new ApiException(ErrorCode.ANALYSIS_NOT_READY);
-        }
+        Analysis analysis = completed(analysisId);
         return new CompletedResult(analysis, changeRepository.findByAnalysisIdOrderBySjDivAscDisplayOrderAsc(analysisId));
     }
 
     /** 완료된 분석의 계정 하나. 다른 분석의 항목이면 404. */
     @Transactional(readOnly = true)
     public CompletedChange completedChange(Long analysisId, Long changeId) {
-        Analysis analysis = get(analysisId);
-        if (analysis.getStatus() != AnalysisStatus.COMPLETED) {
-            throw new ApiException(ErrorCode.ANALYSIS_NOT_READY);
-        }
+        Analysis analysis = completed(analysisId);
         FinancialChange change = changeRepository.findByIdAndAnalysisId(changeId, analysisId)
                 .orElseThrow(() -> new ApiException(ErrorCode.ANALYSIS_CHANGE_NOT_FOUND));
         return new CompletedChange(analysis, change);

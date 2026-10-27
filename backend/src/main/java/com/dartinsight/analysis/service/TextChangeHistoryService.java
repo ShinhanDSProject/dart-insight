@@ -181,7 +181,7 @@ public class TextChangeHistoryService {
         Set<String> seen = new HashSet<>();
         List<Analysis> analyses = analysisRepository
                 .findByCorpCodeAndStatusOrderByCompletedAtDescIdDesc(corpCode, AnalysisStatus.COMPLETED).stream()
-                .filter(a -> a.getTextStatus() != null && a.getTextStatus() != TextStatus.FAILED)
+                .filter(Analysis::hasTextResult)
                 .filter(a -> seen.add(a.getPreviousRceptNo() + ">" + a.getCurrentRceptNo()))
                 .toList();
         List<Report> listed = reportService.stored(corpCode).stream().sorted(BY_PERIOD).toList();
