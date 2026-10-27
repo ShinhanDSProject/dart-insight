@@ -6,15 +6,16 @@ import com.dartinsight.dart.client.OpenDartClient;
 import com.dartinsight.dart.domain.CachePolicy;
 import com.dartinsight.dart.dto.KeyAccountResponse;
 import com.dartinsight.dart.service.DartCacheLoader;
+import com.dartinsight.financial.domain.Amounts;
 import com.dartinsight.financial.domain.FetchStatus;
 import com.dartinsight.financial.domain.FsDiv;
 import com.dartinsight.financial.domain.KeyAccount;
 import com.dartinsight.financial.domain.KeyAccountFetch;
 import com.dartinsight.financial.domain.KeyAccountRow;
+import com.dartinsight.financial.domain.TrendValue;
 import com.dartinsight.financial.repository.KeyAccountStore;
 import com.dartinsight.report.domain.FinancialDataStatus;
 import com.dartinsight.report.domain.Report;
-import com.dartinsight.report.domain.ReportType;
 import com.dartinsight.report.service.ReportService;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -56,7 +57,20 @@ public class FinancialTrendService {
         List<Report> reports = list.reports().stream().limit(limit).toList();
         Map<String, KeyAccountFetch> fetches = new HashMap<>(
                 store.fetches(reports.stream().map(Report::getRceptNo).toList()));
+        Set<String> failed = loadMissing(corpCode, reports, fetches);
+        Map<String, Map<KeyAccount, KeyAccountRow>> rows = rowsByReport(fetches.keySet(), fsDiv);
+        List<TrendPeriod> periods = reports.stream()
+                .map(r -> period(r, fetches.get(r.getRceptNo()), failed.contains(r.getRceptNo()),
+                        rows.getOrDefault(r.getRceptNo(), Map.of())))
+                .toList();
+        return new FinancialTrend(corpCode, fsDiv, list.refreshError(), periods);
+    }
 
+    /**
+     * 받아 둔 기록이 없는 보고서를 받아 fetches에 더한다. 받지 못한 보고서의 접수번호를 돌려준다.
+     * 한도 초과·키 없음이면 남은 보고서도 같은 결과라 이번 요청에서 더 부르지 않고 받지 못한 것으로 둔다.
+     */
+    private Set<String> loadMissing(String corpCode, List<Report> reports, Map<String, KeyAccountFetch> fetches) {
         Set<String> failed = new HashSet<>();
         boolean stopCalling = false;
         for (Report report : reports) {
@@ -67,29 +81,29 @@ public class FinancialTrendService {
                 failed.add(report.getRceptNo());
                 continue;
             }
-            KeyAccountFetch fetched;
             try {
-                fetched = load(report);
+                KeyAccountFetch fetched = load(report);
+                fetches.put(fetched.rceptNo(), fetched);
             } catch (ApiException e) {
                 log.warn("주요계정을 받지 못했습니다 {} {}: {}", corpCode, report.getRceptNo(), e.errorCode());
                 failed.add(report.getRceptNo());
-                // 한도 초과·키 없음은 남은 보고서도 같은 결과라 이번 요청에서 더 부르지 않는다
-                stopCalling = e.errorCode() == ErrorCode.DART_RATE_LIMITED
-                        || e.errorCode() == ErrorCode.DART_KEY_MISSING;
-                continue;
+                stopCalling = stopsCalling(e.errorCode());
             }
-            fetches.put(fetched.rceptNo(), fetched);
         }
+        return failed;
+    }
 
+    private static boolean stopsCalling(ErrorCode code) {
+        return code == ErrorCode.DART_RATE_LIMITED || code == ErrorCode.DART_KEY_MISSING;
+    }
+
+    /** 접수번호 → (계정 → 값). 저장된 순서를 지킨다 */
+    private Map<String, Map<KeyAccount, KeyAccountRow>> rowsByReport(Set<String> rceptNos, FsDiv fsDiv) {
         Map<String, Map<KeyAccount, KeyAccountRow>> rows = new HashMap<>();
-        for (KeyAccountRow row : store.rows(fetches.keySet(), fsDiv)) {
+        for (KeyAccountRow row : store.rows(rceptNos, fsDiv)) {
             rows.computeIfAbsent(row.rceptNo(), k -> new LinkedHashMap<>()).put(row.account(), row);
         }
-        List<TrendPeriod> periods = reports.stream()
-                .map(r -> period(r, fetches.get(r.getRceptNo()), failed.contains(r.getRceptNo()),
-                        rows.getOrDefault(r.getRceptNo(), Map.of())))
-                .toList();
-        return new FinancialTrend(corpCode, fsDiv, list.refreshError(), periods);
+        return rows;
     }
 
     /** 주요계정 API는 2015 사업연도부터 제공한다(개발가이드). 그 전은 부르지 않는다. */
@@ -136,7 +150,7 @@ public class FinancialTrendService {
                 .sorted(Comparator.comparing((KeyAccountResponse.Item i) -> Amounts.parseInt(i.ord()),
                         Comparator.nullsLast(Comparator.naturalOrder())))
                 .forEach(item -> {
-                    Optional<FsDiv> fsDiv = fsDivOf(item.fsDiv());
+                    Optional<FsDiv> fsDiv = FsDiv.fromOpenDart(item.fsDiv());
                     Optional<KeyAccount> account = KeyAccount.fromAccountName(item.accountName());
                     if (fsDiv.isEmpty() || account.isEmpty()) {
                         return;
@@ -149,17 +163,6 @@ public class FinancialTrendService {
                             blankToNull(item.currency())));
                 });
         return new ArrayList<>(chosen.values());
-    }
-
-    private static Optional<FsDiv> fsDivOf(String value) {
-        if (value == null) {
-            return Optional.empty();
-        }
-        try {
-            return Optional.of(FsDiv.valueOf(value.trim()));
-        } catch (IllegalArgumentException e) {
-            return Optional.empty();
-        }
     }
 
     private static String firstRceptNo(List<KeyAccountResponse.Item> items) {
@@ -184,34 +187,13 @@ public class FinancialTrendService {
             return new TrendPeriod(report, TrendDataStatus.NOT_AVAILABLE, null, Map.of());
         }
         Map<KeyAccount, TrendValue> values = new LinkedHashMap<>();
-        rows.forEach((account, row) -> values.put(account, valueOf(report.getReportType(), row)));
+        rows.forEach((account, row) -> values.put(account, TrendValue.of(report.getReportType(), row)));
         return new TrendPeriod(report, TrendDataStatus.AVAILABLE, fetch.sourceRceptNo(), values);
-    }
-
-    /**
-     * 화면에 보일 금액. 재무상태표는 기말 잔액. 손익의 amount는 사업연도 시작부터의 누적이고 quarterAmount는 3개월이다.
-     * 분·반기 손익은 OpenDART 당기금액이 3개월, 당기누적금액이 누적이다. 1분기는 3개월이 곧 누적이고,
-     * 사업보고서 당기금액은 1년(누적)이며 OpenDART가 4분기 3개월 값을 주지 않아 quarterAmount가 null이다.
-     */
-    static TrendValue valueOf(ReportType type, KeyAccountRow row) {
-        if (row.account().isBalanceSheet()) {
-            return new TrendValue(row.amount(), null, row.currency());
-        }
-        return switch (type) {
-            case ANNUAL -> new TrendValue(row.amount(), null, row.currency());
-            case Q1 -> new TrendValue(row.cumulativeAmount() != null ? row.cumulativeAmount() : row.amount(),
-                    row.amount(), row.currency());
-            case HALF, Q3 -> new TrendValue(row.cumulativeAmount(), row.amount(), row.currency());
-        };
     }
 
     /** 기간의 주요계정 상태(docs/api-spec.md `dataStatus`) */
     public enum TrendDataStatus {
         AVAILABLE, NOT_AVAILABLE, FETCH_FAILED
-    }
-
-    /** 금액이 없으면 null(0과 구분) */
-    public record TrendValue(Long amount, Long quarterAmount, String currency) {
     }
 
     /**

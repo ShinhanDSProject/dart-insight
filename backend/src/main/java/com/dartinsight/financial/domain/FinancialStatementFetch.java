@@ -1,5 +1,6 @@
 package com.dartinsight.financial.domain;
 
+import com.dartinsight.report.domain.Report;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -95,6 +96,21 @@ public class FinancialStatementFetch {
 
     public boolean hasData() {
         return status == FetchStatus.OK;
+    }
+
+    /** 이 보고서의 자료인지(자료가 있고 접수번호가 같음) */
+    public boolean serves(Report report) {
+        return hasData() && report.getRceptNo().equals(rceptNo);
+    }
+
+    /**
+     * 다시 받아야 하는지. 재무제표 API는 사업연도·보고서 코드마다 최신 공시 하나의 값만 주므로,
+     * 이 보고서의 자료가 아니면(자료 없음이거나 다른 접수번호) 그 뒤에 보고서 목록에서 이 보고서를
+     * 다시 봤을 때(정정 공시가 새로 나왔거나 하루가 지나 목록을 다시 받았을 때) 한 번 더 받는다.
+     * 이 보고서의 자료면 다시 받지 않는다.
+     */
+    public boolean needsRefetchFor(Report report) {
+        return !serves(report) && report.getLastSeenAt().isAfter(fetchedAt);
     }
 
     public String getRceptNo() {
