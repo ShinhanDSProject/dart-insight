@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { match, P } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { TextChangeItem, TextSort } from '@/shared/api/textChanges'
@@ -381,6 +381,15 @@ function ChangeCard({ item, analysis, selected, pinned, explanations, onTogglePi
     if (!explainOpen) explanations.request(item.changeId)
     setExplainOpen(!explainOpen)
   }
+  // 이전·현재 문단은 처음에 3줄만 보이고, 실제로 잘린 글이 있을 때만 '문단 펼치기'를 둔다(#390)
+  const sidesRef = useRef<HTMLDivElement>(null)
+  const [textOpen, setTextOpen] = useState(false)
+  const [clipped, setClipped] = useState(false)
+  const sidesId = `text-sides-${item.changeId}`
+  useLayoutEffect(() => {
+    const texts = sidesRef.current?.querySelectorAll<HTMLElement>('.change-side__body') ?? []
+    setClipped(Array.from(texts).some((text) => text.scrollHeight > text.clientHeight + 1))
+  }, [item.previousPreview, item.currentPreview])
   return (
     <Card
       as="article"
@@ -414,7 +423,11 @@ function ChangeCard({ item, analysis, selected, pinned, explanations, onTogglePi
           {item.reviewReason ?? '두 보고서의 항목을 짝짓지 못했어요.'} 빠진 것으로 숨기지 않고 여기에 보여 줘요.
         </p>
       ) : (
-        <div className="change-card__sides">
+        <div
+          ref={sidesRef}
+          id={sidesId}
+          className={`change-card__sides${textOpen ? '' : ' change-card__sides--clamped'}`}
+        >
           <SidePreview
             role={`이전 · ${analysis.previous.reportName}`}
             text={item.previousPreview}
@@ -433,6 +446,17 @@ function ChangeCard({ item, analysis, selected, pinned, explanations, onTogglePi
       {item.changeType === 'DELETED' && <p className="panel__note">{DELETED_NOTE}</p>}
       <MovedPaths item={item} />
       <div className="change-card__actions">
+        {!review && (clipped || textOpen) && (
+          <Button
+            variant="secondary"
+            className="change-card__expand"
+            aria-expanded={textOpen}
+            aria-controls={sidesId}
+            onClick={() => setTextOpen((open) => !open)}
+          >
+            {textOpen ? '문단 접기' : '문단 펼치기'}
+          </Button>
+        )}
         <Button variant="secondary" id={evidenceButtonId(item.changeId)} aria-expanded={selected} onClick={onToggle}>
           {selected ? '근거 닫기' : '근거 상세'}
         </Button>
@@ -502,9 +526,11 @@ function SidePreview({ role, text, missing, added = false, removed = false }: Si
         <p className="change-side__missing">{missing}</p>
       ) : (
         <p className={`change-side__text${added ? ' change-side__text--added' : ''}${removed ? ' change-side__text--removed' : ''}`}>
-          {added && <span className="visually-hidden">추가된 내용: </span>}
-          {removed && <span className="change-side__tag">삭제됨</span>}
-          {text}
+          <span className="change-side__body">
+            {added && <span className="visually-hidden">추가된 내용: </span>}
+            {removed && <span className="change-side__tag">삭제됨</span>}
+            {text}
+          </span>
         </p>
       )}
     </div>

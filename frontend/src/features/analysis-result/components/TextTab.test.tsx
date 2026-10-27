@@ -168,3 +168,36 @@ describe('TextTab 카드 키보드 검토', () => {
     expect(await axeViolations(container)).toBe('')
   })
 })
+
+describe('TextTab 문단 줄이기(#390)', () => {
+  it('문단이 3줄을 넘어 잘리면 문단 펼치기를 두고, 누르면 전체를 보였다가 다시 접는다', () => {
+    // jsdom은 높이를 계산하지 않으므로 글 상자가 잘린 것처럼 높이를 준다
+    const scroll = vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.classList.contains('change-side__body') ? 120 : 0
+    })
+    const client = vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.classList.contains('change-side__body') ? 72 : 0
+    })
+    try {
+      const { cards } = renderTab()
+      const expand = cards[0].querySelector<HTMLButtonElement>('.change-card__expand')!
+      expect(expand.textContent).toBe('문단 펼치기')
+      expect(expand.getAttribute('aria-expanded')).toBe('false')
+      const sides = document.getElementById(expand.getAttribute('aria-controls')!)!
+      expect(sides.classList.contains('change-card__sides--clamped')).toBe(true)
+
+      fireEvent.click(expand)
+      expect(expand.textContent).toBe('문단 접기')
+      expect(expand.getAttribute('aria-expanded')).toBe('true')
+      expect(sides.classList.contains('change-card__sides--clamped')).toBe(false)
+    } finally {
+      scroll.mockRestore()
+      client.mockRestore()
+    }
+  })
+
+  it('문단이 잘리지 않으면 문단 펼치기를 두지 않는다', () => {
+    const { cards } = renderTab()
+    expect(cards[0].querySelector('.change-card__expand')).toBeNull()
+  })
+})

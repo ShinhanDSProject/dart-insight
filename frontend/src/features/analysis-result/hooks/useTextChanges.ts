@@ -11,7 +11,7 @@ import { useAsync } from '@/shared/hooks/useAsync'
 import { apiTypesOf, nextContentAvailable, resolveTypeFilter, type TextTypeFilter } from '../model/textFilter'
 import { textListReducer } from '../model/textList'
 
-export const TEXT_PAGE_SIZE = 20
+export const TEXT_PAGE_SIZE = 10
 
 export interface TextListFilter {
   /** 주소의 유형 거르기. '내용 변경'이 없는 분석에서 CONTENT는 전체로 본다(#304) */

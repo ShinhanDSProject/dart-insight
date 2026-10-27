@@ -12,6 +12,23 @@
   gap: var(--space-2);
 }
 
+.result-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  margin-bottom: var(--space-5);
+  background: var(--color-bg);
+}
+
+.result-tabs .tabs {
+  margin-bottom: 0;
+}
+
+/* 위에 붙은 탭에 가리지 않게, 결과 화면에서 항목으로 옮길 때 위쪽 여백을 둔다 */
+:root:has(.result-tabs) {
+  scroll-padding-top: calc(var(--control-height) + var(--space-5));
+}
+
 .context-card {
   display: flex;
   flex-direction: column;
@@ -21,30 +38,26 @@
   font-size: var(--font-size-sm);
 }
 
-.context-card__corp {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-}
-
 .context-card__pair {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
+  align-items: baseline;
   gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+
+.context-card__corp {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
 }
 
 .context-card__arrow {
-  align-self: center;
   color: var(--color-text-muted);
 }
 
 .context-card__report {
-  display: flex;
-  flex-direction: column;
   min-width: 0;
-  margin: 0;
 }
 
 .context-card__role {
@@ -64,6 +77,11 @@
   font-size: var(--font-size-xs);
 }
 
+.context-card__fs {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
 .context-card__basis {
   display: flex;
   flex-direction: column;
@@ -78,7 +96,7 @@
 }
 
 .context-card__note {
-  margin: 0;
+  margin: var(--space-2) 0;
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
 }
@@ -683,6 +701,15 @@
   color: var(--color-text-muted);
 }
 
+/* 처음에는 문단을 3줄까지만 보인다(#390). '문단 펼치기'를 누르면 전체 */
+.change-card__sides--clamped .change-side__body {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
 .change-side__text--added {
   padding: var(--space-2) var(--space-3);
   border-left: 3px solid var(--color-added);
@@ -1114,6 +1141,44 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+}
+
+/* 요약 두 묶음(#390). 넓으면 재무(왼쪽)·문장(오른쪽)을 양옆에 두고, subgrid로 제목 줄과 같은 순번 항목의 높이를 맞춘다.
+   좁거나 한 묶음만 있으면 위아래로 쌓는다 */
+.summary-panel {
+  container-type: inline-size;
+}
+
+.summary-columns {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+@container (min-width: 880px) {
+  .summary-columns:has(> .summary-group:nth-child(2)) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3) var(--space-5);
+  }
+
+  .summary-columns:has(> .summary-group:nth-child(2)) > .summary-group {
+    display: grid;
+    grid-row: span calc(var(--summary-rows) + 1);
+    grid-template-rows: subgrid;
+    gap: inherit;
+  }
+
+  .summary-columns:has(> .summary-group:nth-child(2)) .summary-list {
+    display: grid;
+    grid-row: span var(--summary-rows);
+    grid-template-rows: subgrid;
+    gap: inherit;
+  }
+
+  .summary-columns:has(> .summary-group:nth-child(2)) .summary-list > li > .summary-item {
+    height: 100%;
+  }
 }
 
 .summary-list,

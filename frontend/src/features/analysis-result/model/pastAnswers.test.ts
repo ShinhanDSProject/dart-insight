@@ -11,16 +11,15 @@ import {
 const answers = (n: number) => Array.from({ length: n }, (_, i) => ({ questionId: n - i, question: `질문 ${n - i}` }))
 
 describe('splitAnswers', () => {
-  it('최신 순 답 21개면 앞의 3개를 펼치고 나머지 18개를 접는다', () => {
+  it('최신 순 답 21개면 가장 최근 1개만 펼치고 나머지 20개를 접는다', () => {
     const { recent, older } = splitAnswers(answers(21))
-    expect(recent.map((a) => a.questionId)).toEqual([21, 20, 19])
-    expect(older).toHaveLength(18)
-    expect(older[0].questionId).toBe(18)
+    expect(recent.map((a) => a.questionId)).toEqual([21])
+    expect(older).toHaveLength(20)
+    expect(older[0].questionId).toBe(20)
     expect(older.at(-1)?.questionId).toBe(1)
   })
 
-  it('답이 3개 이하면 접을 답이 없다', () => {
-    expect(splitAnswers(answers(3)).older).toEqual([])
+  it('답이 1개 이하면 접을 답이 없다', () => {
     expect(splitAnswers(answers(1))).toEqual({ recent: answers(1), older: [] })
     expect(splitAnswers([])).toEqual({ recent: [], older: [] })
   })

@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { FinancialChangeItem, SjDiv } from '@/shared/api/results'
@@ -133,7 +134,7 @@ function SummaryBody({ data, analysis, opener, onOpenSource }: Omit<SummaryConte
   const text = data.items.filter((i) => i.kind === 'TEXT')
 
   return (
-    <Panel aria-label="요약·설명">
+    <Panel className="summary-panel" aria-label="요약·설명">
       {notice && (
         <Notice tone={data.summaryStatus === 'PARTIAL' ? 'attention' : 'info'} role="status">
           {notice}
@@ -147,37 +148,43 @@ function SummaryBody({ data, analysis, opener, onOpenSource }: Omit<SummaryConte
         </EmptyState>
       )}
 
-      {financial.length > 0 && (
-        <section className="summary-group" aria-labelledby="summary-financial">
-          <PanelTitle id="summary-financial">주요 재무 수치 변화</PanelTitle>
-          <ol className="summary-list">
-            {financial.map((item) => (
-              <li key={item.itemNo}>
-                <SummaryCard
-                  item={item}
-                  analysis={analysis}
-                  amount={item.target.changeId === null ? undefined : amounts?.get(item.target.changeId)}
-                  onOpen={opener(item.target)}
-                  onOpenSource={onOpenSource}
-                />
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
+      {/* 넓으면 재무·문장 두 묶음을 양옆에 두고, 같은 순번 항목끼리 높이를 맞춘다(#390) */}
+      <div
+        className="summary-columns"
+        style={{ '--summary-rows': Math.max(financial.length, text.length) } as CSSProperties}
+      >
+        {financial.length > 0 && (
+          <section className="summary-group" aria-labelledby="summary-financial">
+            <PanelTitle id="summary-financial">주요 재무 수치 변화</PanelTitle>
+            <ol className="summary-list">
+              {financial.map((item) => (
+                <li key={item.itemNo}>
+                  <SummaryCard
+                    item={item}
+                    analysis={analysis}
+                    amount={item.target.changeId === null ? undefined : amounts?.get(item.target.changeId)}
+                    onOpen={opener(item.target)}
+                    onOpenSource={onOpenSource}
+                  />
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
 
-      {text.length > 0 && (
-        <section className="summary-group" aria-labelledby="summary-text">
-          <PanelTitle id="summary-text">주요 문장·내용 변화</PanelTitle>
-          <ol className="summary-list">
-            {text.map((item) => (
-              <li key={item.itemNo}>
-                <SummaryCard item={item} analysis={analysis} onOpen={opener(item.target)} onOpenSource={onOpenSource} />
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
+        {text.length > 0 && (
+          <section className="summary-group" aria-labelledby="summary-text">
+            <PanelTitle id="summary-text">주요 문장·내용 변화</PanelTitle>
+            <ol className="summary-list">
+              {text.map((item) => (
+                <li key={item.itemNo}>
+                  <SummaryCard item={item} analysis={analysis} onOpen={opener(item.target)} onOpenSource={onOpenSource} />
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
+      </div>
 
       {data.reviewNeededCount > 0 && (
         <section className="summary-group summary-group--review" aria-labelledby="summary-review">

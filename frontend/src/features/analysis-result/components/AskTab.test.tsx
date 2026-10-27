@@ -148,29 +148,29 @@ const answerCards = () => screen.getAllByRole('article').map((a) => a.getAttribu
 const pastToggles = () => within(screen.getByRole('region', { name: /^이전 질문/ })).queryAllByRole('button', { name: /^질문/ })
 
 describe('AskTab 지난 답 접기', () => {
-  it('답이 21개면 최근 3개만 펼치고 나머지는 이전 질문 18개로 접는다', () => {
+  it('답이 21개면 최근 1개만 펼치고 나머지는 이전 질문 20개로 접는다', () => {
     render(<Harness submitDraft={noop} items={answers(21)} />)
-    expect(answerCards()).toEqual(['ask-q-21', 'ask-q-20', 'ask-q-19'])
-    expect(screen.getByRole('heading', { name: '이전 질문 18개' })).toBeTruthy()
+    expect(answerCards()).toEqual(['ask-q-21'])
+    expect(screen.getByRole('heading', { name: '이전 질문 20개' })).toBeTruthy()
     const toggles = pastToggles()
-    expect(toggles).toHaveLength(18)
-    expect(toggles[0].textContent).toContain('질문 18번은 무엇인가요?')
-    expect(toggles[0].textContent).toContain('2025-10-20 10:18')
+    expect(toggles).toHaveLength(20)
+    expect(toggles[0].textContent).toContain('질문 20번은 무엇인가요?')
+    expect(toggles[0].textContent).toContain('2025-10-20 10:20')
   })
 
   it('이전 질문을 누르면 그 답만 그 자리에 펼치고 다시 누르면 접는다', () => {
     render(<Harness submitDraft={noop} items={answers(21)} />)
-    const toggle = within(screen.getByRole('region', { name: '이전 질문 18개' })).getByRole('button', { name: /질문 5번은/ })
+    const toggle = within(screen.getByRole('region', { name: '이전 질문 20개' })).getByRole('button', { name: /질문 5번은/ })
     fireEvent.click(toggle)
     expect(toggle.getAttribute('aria-expanded')).toBe('true')
     const region = document.getElementById(toggle.getAttribute('aria-controls') ?? '')
     expect(region?.hidden).toBe(false)
     expect(region?.querySelector('article')?.getAttribute('aria-labelledby')).toBe('ask-q-5')
-    expect(answerCards()).toHaveLength(4)
+    expect(answerCards()).toHaveLength(2)
 
     fireEvent.click(toggle)
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
-    expect(answerCards()).toHaveLength(3)
+    expect(answerCards()).toHaveLength(1)
   })
 
   it('질문 찾기로 목록을 좁히고, 없으면 맞는 질문이 없다고 알린다', () => {
@@ -184,14 +184,14 @@ describe('AskTab 지난 답 접기', () => {
   })
 
   it('이전 질문이 6개보다 적으면 질문 찾기를 두지 않는다', () => {
-    render(<Harness submitDraft={noop} items={answers(8)} />)
+    render(<Harness submitDraft={noop} items={answers(6)} />)
     expect(screen.getByRole('heading', { name: '이전 질문 5개' })).toBeTruthy()
     expect(screen.queryByRole('searchbox')).toBeNull()
   })
 
-  it('답이 3개 이하면 이전 질문 목록이 없다', () => {
-    render(<Harness submitDraft={noop} items={answers(3)} />)
-    expect(answerCards()).toHaveLength(3)
+  it('답이 1개면 이전 질문 목록이 없다', () => {
+    render(<Harness submitDraft={noop} items={answers(1)} />)
+    expect(answerCards()).toHaveLength(1)
     expect(screen.queryByRole('heading', { name: /이전 질문/ })).toBeNull()
   })
 })
@@ -260,7 +260,7 @@ describe('AskTab 답을 못 했을 때 다음 행동', () => {
   it('이전 질문에서 펼친 찾지 못한 답에도 찾기 버튼과 질문 칩이 있다', () => {
     const onSearchText = vi.fn()
     const onAsk = vi.fn()
-    const items = [...answers(3).map((a) => ({ ...a, questionId: a.questionId + 10 })), noAnswer(2, SPACE_QUESTION, 'NOT_FOUND')]
+    const items = [...answers(1).map((a) => ({ ...a, questionId: a.questionId + 10 })), noAnswer(2, SPACE_QUESTION, 'NOT_FOUND')]
     render(<Harness submitDraft={noop} items={items} suggestions={SUGGESTIONS} onAsk={onAsk} onSearchText={onSearchText} />)
     fireEvent.click(within(screen.getByRole('region', { name: '이전 질문 1개' })).getByRole('button', { name: /우주 탐사/ }))
     const article = card(2)
