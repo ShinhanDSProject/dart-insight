@@ -43,13 +43,14 @@ const slotId = (key: string) => `overview-${key}`
 const SLOT_IDS = sections.map((section) => slotId(section.key))
 
 export function CompanyOverviewTab(props: OverviewSectionProps) {
-  const active = useActiveSection(SLOT_IDS)
+  const { active, prefer } = useActiveSection(SLOT_IDS)
 
   function jump(event: MouseEvent<HTMLAnchorElement>, id: string) {
     const target = document.getElementById(id)
     if (!target) return
     // 주소에 #을 남기지 않고 그 영역으로 옮긴 뒤, 키보드 사용자도 이어서 읽도록 그 영역에 초점을 둔다
     event.preventDefault()
+    prefer(id)
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
     target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
     target.focus({ preventScroll: true })

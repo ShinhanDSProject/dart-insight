@@ -1,34 +1,50 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { pickActiveSection } from '../model/activeSection'
 
 /**
- * 화면에 보이는 영역 중 가장 위에 있는 영역의 id(#385). 기업 개요 바로 가기 바가 지금 위치를 표시하는 데 쓴다.
- * 바로 가기 바 아래(위에서 rootMarginTop)부터 화면 40% 지점 사이에 걸친 영역을 지금 위치로 본다.
+ * 기업 개요 바로 가기 바가 '지금 위치'로 표시할 영역의 id(#385, #434).
+ * 스크롤·창 크기가 바뀔 때(한 프레임에 한 번) 영역 위치를 재고 pickActiveSection 규칙으로 고른다.
+ * lineOffset은 위에 붙은 바로 가기 바 아래 기준선(px). prefer(id)로 바로 가기에서 누른 영역을 알려 주면,
+ * 나란히 놓여 위치가 같은 영역 가운데 그 영역을 고른다.
  */
-export function useActiveSection(ids: readonly string[], rootMarginTop = 64): string | null {
+export function useActiveSection(
+  ids: readonly string[],
+  lineOffset = 80,
+): { active: string | null; prefer: (id: string) => void } {
   const [active, setActive] = useState<string | null>(ids[0] ?? null)
+  const preferred = useRef<string | null>(null)
+  const prefer = useCallback((id: string) => {
+    preferred.current = id
+    setActive(id)
+  }, [])
   const key = ids.join(',')
 
   useEffect(() => {
-    if (typeof IntersectionObserver === 'undefined') return
-    const visible = new Map<string, number>()
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) visible.set(entry.target.id, entry.boundingClientRect.top)
-          else visible.delete(entry.target.id)
-        }
-        const first = key.split(',').find((id) => visible.has(id))
-        if (first !== undefined) setActive(first)
-      },
-      { rootMargin: `-${rootMarginTop}px 0px -60% 0px` },
-    )
-    const elements = key
-      .split(',')
-      .map((id) => document.getElementById(id))
-      .filter((el): el is HTMLElement => el !== null)
-    elements.forEach((el) => observer.observe(el))
-    return () => observer.disconnect()
-  }, [key, rootMarginTop])
+    const sectionIds = key.split(',')
+    let frame = 0
+    const measure = () => {
+      frame = 0
+      const sections = sectionIds.flatMap((id) => {
+        const el = document.getElementById(id)
+        return el ? [{ id, top: el.getBoundingClientRect().top }] : []
+      })
+      const doc = document.documentElement
+      const atBottom = window.scrollY + window.innerHeight >= doc.scrollHeight - 2
+      const next = pickActiveSection(sections, lineOffset, atBottom, window.innerHeight, preferred.current)
+      if (next !== null) setActive(next)
+    }
+    const schedule = () => {
+      if (frame === 0) frame = window.requestAnimationFrame(measure)
+    }
+    measure()
+    window.addEventListener('scroll', schedule, { passive: true })
+    window.addEventListener('resize', schedule)
+    return () => {
+      window.removeEventListener('scroll', schedule)
+      window.removeEventListener('resize', schedule)
+      if (frame !== 0) window.cancelAnimationFrame(frame)
+    }
+  }, [key, lineOffset])
 
-  return active
+  return { active, prefer }
 }
