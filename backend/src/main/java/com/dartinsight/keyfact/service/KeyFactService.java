@@ -17,6 +17,8 @@ import com.dartinsight.keyfact.domain.Executive;
 import com.dartinsight.keyfact.domain.KeyFactChange;
 import com.dartinsight.keyfact.domain.KeyFactChanges;
 import com.dartinsight.keyfact.domain.KeyFactKind;
+import com.dartinsight.keyfact.domain.KeyFactRows;
+import com.dartinsight.keyfact.domain.KeyFactRows.Selected;
 import com.dartinsight.keyfact.domain.KeyFactSection;
 import com.dartinsight.keyfact.domain.KeyFactStatus;
 import com.dartinsight.keyfact.domain.MajorShareholder;
@@ -24,7 +26,6 @@ import com.dartinsight.keyfact.repository.ReportKeyFactStore;
 import com.dartinsight.report.domain.FinancialDataStatus;
 import com.dartinsight.report.domain.Report;
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -124,42 +125,27 @@ public class KeyFactService {
     }
 
     /**
-     * OpenDART는 사업연도·보고서 코드마다 최신 공시 하나의 값만 준다(#350). 그래서 행의 접수번호가 이 보고서와 달라도
-     * (뒤에 나온 정정본) 같은 기간의 자료면 받고, 그 접수번호를 sourceRceptNo로 둔다.
-     * <ul>
-     *   <li>이 보고서 접수번호의 행이 있으면 그 행만, 없으면 첫 행의 접수번호와 같은 행만 쓴다. 접수번호가 없는 행은 근거가
-     *       없어 쓰지 않는다.</li>
-     *   <li>결산기준일(stlm_dt)이 보고서의 대상 기간 끝과 다르면 다른 기간의 자료라 NO_DATA다. stlm_dt가 없으면 요청한
-     *       사업연도·보고서 코드의 응답이므로 받는다.</li>
-     * </ul>
+     * 응답에서 쓸 행을 골라({@link KeyFactRows#select}) 묶음 결과로 만든다. 정정본 값이면 그 접수번호를 sourceRceptNo로 둔다.
+     * 결산기준일(stlm_dt)이 보고서의 대상 기간 끝과 다르면 다른 기간의 자료라 NO_DATA다. stlm_dt가 없으면 요청한
+     * 사업연도·보고서 코드의 응답이므로 받는다.
      */
     private static <T, I> KeyFactSection<T> toSection(Report report, PeriodicReportInfoPage<I> page,
             Fetcher<T, I> fetcher) {
         String rceptNo = report.getRceptNo();
-        List<I> withRceptNo = page.noData() ? List.of() : page.items().stream()
-                .filter(item -> clean(fetcher.itemRceptNo().apply(item)) != null)
-                .toList();
-        if (withRceptNo.isEmpty()) {
+        Selected<I> selected = KeyFactRows.select(rceptNo, page.noData() ? List.of() : page.items(),
+                fetcher.itemRceptNo());
+        if (selected.items().isEmpty()) {
             return KeyFactSection.empty(rceptNo, KeyFactStatus.NO_DATA);
         }
-        String source = withRceptNo.stream()
-                .map(item -> clean(fetcher.itemRceptNo().apply(item)))
-                .filter(rceptNo::equals)
-                .findFirst()
-                .orElseGet(() -> clean(fetcher.itemRceptNo().apply(withRceptNo.get(0))));
-        List<I> items = withRceptNo.stream()
-                .filter(item -> source.equals(clean(fetcher.itemRceptNo().apply(item))))
-                .toList();
-        LocalDate settlementDate = date(fetcher.itemSettlementDate().apply(items.get(0)));
-        if (settlementDate != null && report.getPeriodEnd() != null
-                && !settlementDate.equals(report.getPeriodEnd())) {
+        LocalDate settlementDate = KeyFactRows.date(fetcher.itemSettlementDate().apply(selected.items().get(0)));
+        if (!KeyFactRows.samePeriod(settlementDate, report.getPeriodEnd())) {
             log.info("정기보고서 주요정보가 다른 기간의 것이라 쓰지 않습니다 {} {}: 결산기준일 {}", rceptNo, fetcher.kind(),
                     settlementDate);
             return KeyFactSection.empty(rceptNo, KeyFactStatus.NO_DATA);
         }
-        List<T> rows = items.stream().map(fetcher.toRow()).toList();
-        String sourceRceptNo = source.equals(rceptNo) ? null : source;
-        return new KeyFactSection<>(rceptNo, sourceRceptNo, KeyFactStatus.AVAILABLE, settlementDate, rows);
+        List<T> rows = selected.items().stream().map(fetcher.toRow()).toList();
+        return new KeyFactSection<>(rceptNo, selected.sourceRceptNo(rceptNo), KeyFactStatus.AVAILABLE,
+                settlementDate, rows);
     }
 
     private static String reprtCode(Report report) {
@@ -167,45 +153,23 @@ public class KeyFactService {
     }
 
     private static MajorShareholder shareholder(MajorShareholderItem i) {
-        return new MajorShareholder(name(i.name()), clean(i.relation()), clean(i.stockKind()), clean(i.beginShares()),
-                clean(i.beginRatio()), clean(i.endShares()), clean(i.endRatio()), clean(i.remark()));
+        return new MajorShareholder(KeyFactRows.name(i.name()), KeyFactRows.clean(i.relation()),
+                KeyFactRows.clean(i.stockKind()), KeyFactRows.clean(i.beginShares()),
+                KeyFactRows.clean(i.beginRatio()), KeyFactRows.clean(i.endShares()), KeyFactRows.clean(i.endRatio()),
+                KeyFactRows.clean(i.remark()));
     }
 
     private static Executive executive(ExecutiveItem i) {
-        return new Executive(name(i.name()), clean(i.position()), clean(i.registeredType()), clean(i.fullTime()),
-                clean(i.duty()), clean(i.largestShareholderRelation()), clean(i.tenure()), clean(i.termEnd()));
+        return new Executive(KeyFactRows.name(i.name()), KeyFactRows.clean(i.position()),
+                KeyFactRows.clean(i.registeredType()), KeyFactRows.clean(i.fullTime()), KeyFactRows.clean(i.duty()),
+                KeyFactRows.clean(i.largestShareholderRelation()), KeyFactRows.clean(i.tenure()),
+                KeyFactRows.clean(i.termEnd()));
     }
 
     private static Dividend dividend(DividendItem i) {
-        return new Dividend(name(i.category()), clean(i.stockKind()), clean(i.currentTerm()), clean(i.priorTerm()),
-                clean(i.twoTermsAgo()));
-    }
-
-    /** 원문 값 그대로. 앞뒤 공백만 지우고, '-'·빈 값은 null(없는 값). */
-    static String clean(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.strip();
-        return trimmed.isEmpty() || "-".equals(trimmed) ? null : trimmed;
-    }
-
-    /** 이름은 짝짓는 기준이라 줄바꿈·연속 공백을 공백 하나로 바꾼다(원문 표의 줄바꿈). */
-    static String name(String value) {
-        String cleaned = clean(value);
-        return cleaned == null ? null : cleaned.replaceAll("\\s+", " ");
-    }
-
-    private static LocalDate date(String value) {
-        String cleaned = clean(value);
-        if (cleaned == null) {
-            return null;
-        }
-        try {
-            return LocalDate.parse(cleaned);
-        } catch (DateTimeParseException e) {
-            return null;
-        }
+        return new Dividend(KeyFactRows.name(i.category()), KeyFactRows.clean(i.stockKind()),
+                KeyFactRows.clean(i.currentTerm()), KeyFactRows.clean(i.priorTerm()),
+                KeyFactRows.clean(i.twoTermsAgo()));
     }
 
     private record Fetcher<T, I>(KeyFactKind kind, Class<T> rowType, Function<Report, PeriodicReportInfoPage<I>> fetch,
