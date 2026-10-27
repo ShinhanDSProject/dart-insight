@@ -1,21 +1,12 @@
 package com.dartinsight.analysis.controller;
 
-import com.dartinsight.analysis.domain.Analysis;
 import com.dartinsight.analysis.dto.FinancialChangeDetailResponse;
 import com.dartinsight.analysis.dto.FinancialChangeListResponse;
-import com.dartinsight.analysis.service.AnalysisResultService.CompletedChange;
-import com.dartinsight.analysis.service.AnalysisResultService.CompletedResult;
-import com.dartinsight.analysis.dto.FinancialChangeListResponse.FinancialChangeItem;
-import com.dartinsight.analysis.dto.FinancialChangeListResponse.StatementSummary;
-import com.dartinsight.analysis.service.AnalysisResultService;
+import com.dartinsight.analysis.service.FinancialChangeQueryService.FinancialChangeEvidence;
+import com.dartinsight.analysis.service.FinancialChangeQueryService;
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.web.ApiPaths;
-import com.dartinsight.comparison.domain.StatementRules;
-import com.dartinsight.comparison.domain.StatementRules.StatementRule;
 import com.dartinsight.financial.domain.StatementType;
-import com.dartinsight.report.domain.Report;
-import com.dartinsight.report.service.ReportService;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,8 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class FinancialChangeController {
 
-    private final AnalysisResultService resultService;
-    private final ReportService reportService;
+    private final FinancialChangeQueryService queryService;
 
     @GetMapping
     public FinancialChangeListResponse list(@PathVariable Long analysisId,
@@ -40,29 +30,12 @@ public class FinancialChangeController {
             @RequestParam(defaultValue = "false") boolean changedOnly) {
         StatementType selected = StatementType.of(sjDiv)
                 .orElseThrow(() -> ApiException.invalidInput("sjDiv", "BS, IS, CIS, CF, SCE 중 하나여야 합니다."));
-        CompletedResult result = resultService.completedResult(analysisId);
-        Analysis analysis = result.analysis();
-        List<StatementRule> rules = StatementRules.rules(
-                reportService.report(analysis.getPreviousRceptNo()).getReportType(),
-                reportService.report(analysis.getCurrentRceptNo()).getReportType());
-
-        List<StatementSummary> statements = rules.stream()
-                .map(rule -> StatementSummary.of(rule, result.changes())).toList();
-        List<FinancialChangeItem> items = result.changes().stream()
-                .filter(c -> c.getSjDiv().equals(selected.name()))
-                .filter(c -> !changedOnly || c.changedOrUncalculated())
-                .map(FinancialChangeItem::from)
-                .toList();
-        return new FinancialChangeListResponse(analysisId, analysis.getFsDiv(), selected.name(), changedOnly,
-                statements, items);
+        return FinancialChangeListResponse.of(analysisId, selected, changedOnly, queryService.changes(analysisId));
     }
 
     @GetMapping(ApiPaths.BY_CHANGE_ID)
     public FinancialChangeDetailResponse detail(@PathVariable Long analysisId, @PathVariable Long changeId) {
-        CompletedChange result = resultService.completedChange(analysisId, changeId);
-        Analysis analysis = result.analysis();
-        Report previous = reportService.report(analysis.getPreviousRceptNo());
-        Report current = reportService.report(analysis.getCurrentRceptNo());
-        return FinancialChangeDetailResponse.of(result.change(), previous, current);
+        FinancialChangeEvidence evidence = queryService.change(analysisId, changeId);
+        return FinancialChangeDetailResponse.of(evidence.change(), evidence.previous(), evidence.current());
     }
 }

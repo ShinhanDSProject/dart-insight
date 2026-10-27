@@ -1,13 +1,9 @@
 package com.dartinsight.analysis.controller;
 
-import com.dartinsight.analysis.domain.Analysis;
 import com.dartinsight.analysis.domain.TextChangeFilter;
 import com.dartinsight.analysis.domain.TextChangeRow;
 import com.dartinsight.analysis.dto.TextChangeDetailResponse;
 import com.dartinsight.analysis.dto.TextChangeHistoryResponse;
-import com.dartinsight.analysis.dto.TextChangeItemResponse;
-import com.dartinsight.analysis.dto.TextChangeListResponse.Counts;
-import com.dartinsight.analysis.dto.TextChangeListResponse.SectionView;
 import com.dartinsight.analysis.dto.TextChangeListResponse;
 import com.dartinsight.analysis.service.TextChangeHistoryService;
 import com.dartinsight.analysis.service.TextChangeQueryService.TextChangePage;
@@ -36,7 +32,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class TextChangeController {
 
     private static final Set<String> TYPES = Set.copyOf(TextChangeRow.TYPES);
-    private static final String TYPE_SEPARATOR = ",";
     private static final int MAX_SIZE = 100;
     private static final int MAX_SECTION = 500;
     private static final int MIN_QUERY = 2;
@@ -85,16 +80,9 @@ public class TextChangeController {
             throw ApiException.invalidInput("q", MIN_QUERY + "자 이상 " + MAX_QUERY + "자 이하로 입력해 주세요.");
         }
         long offset = (long) page * size; // 큰 page에서 int가 넘쳐 음수가 되지 않게
-        TextChangePage result = queryService.page(analysisId, new TextChangeFilter(types, sectionTitle, query),
-                "priority".equals(sort), offset, size);
-        Analysis analysis = result.analysis();
-        Counts counts = Counts.of(result.counts());
-        int total = types.isEmpty() ? counts.all() : types.stream().mapToInt(result.counts()::get).sum();
-        List<SectionView> sections = result.sections().stream().map(SectionView::from).toList();
-        List<TextChangeItemResponse> items = result.changes().stream().map(TextChangeItemResponse::from).toList();
-        String typeEcho = types.isEmpty() ? null : String.join(TYPE_SEPARATOR, types);
-        return new TextChangeListResponse(analysisId, analysis.getTextStatus(), analysis.getTextMessage(), typeEcho,
-                sort, sectionTitle, query, page, size, total, counts, sections, items);
+        TextChangeFilter filter = new TextChangeFilter(types, sectionTitle, query);
+        TextChangePage result = queryService.page(analysisId, filter, "priority".equals(sort), offset, size);
+        return TextChangeListResponse.of(analysisId, filter, sort, page, size, result);
     }
 
     /**
@@ -107,7 +95,7 @@ public class TextChangeController {
             return List.of();
         }
         Set<String> types = new LinkedHashSet<>();
-        for (String part : value.split(TYPE_SEPARATOR, -1)) {
+        for (String part : value.split(TextChangeFilter.TYPE_SEPARATOR, -1)) {
             String name = part.strip();
             if (!TYPES.contains(name)) {
                 throw ApiException.invalidInput("type",

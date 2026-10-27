@@ -18,6 +18,9 @@ public record TextChangeFilter(List<String> types, String section, String q) {
     /** 섹션 경로에서 상위·하위 섹션 제목을 잇는 글 */
     public static final String PATH_SEPARATOR = " > ";
 
+    /** 요청의 type 값에서 여러 유형을 잇는 글(#304) */
+    public static final String TYPE_SEPARATOR = ",";
+
     public static final TextChangeFilter NONE = new TextChangeFilter(List.of(), null, null);
 
     /** 섹션별 건수를 셀 때: 섹션 조건만 뺀다 */

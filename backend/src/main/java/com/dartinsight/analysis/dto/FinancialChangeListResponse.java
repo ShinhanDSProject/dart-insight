@@ -2,14 +2,30 @@ package com.dartinsight.analysis.dto;
 
 import com.dartinsight.analysis.domain.CalcStatus;
 import com.dartinsight.analysis.domain.FinancialChange;
+import com.dartinsight.analysis.service.FinancialChangeQueryService.FinancialChanges;
 import com.dartinsight.comparison.domain.AmountBasis;
 import com.dartinsight.comparison.domain.StatementRules.StatementRule;
 import com.dartinsight.financial.domain.FsDiv;
+import com.dartinsight.financial.domain.StatementType;
 import java.math.BigDecimal;
 import java.util.List;
 
 public record FinancialChangeListResponse(Long analysisId, FsDiv fsDiv, String sjDiv, boolean changedOnly,
         List<StatementSummary> statements, List<FinancialChangeItem> items) {
+
+    /** 재무제표 요약은 전부, 계정 목록은 고른 재무제표의 것만(changedOnly면 값이 바뀌었거나 계산하지 못한 계정만) */
+    public static FinancialChangeListResponse of(Long analysisId, StatementType selected, boolean changedOnly,
+            FinancialChanges result) {
+        List<StatementSummary> statements = result.rules().stream()
+                .map(rule -> StatementSummary.of(rule, result.changes())).toList();
+        List<FinancialChangeItem> items = result.changes().stream()
+                .filter(c -> c.getSjDiv().equals(selected.name()))
+                .filter(c -> !changedOnly || c.changedOrUncalculated())
+                .map(FinancialChangeItem::from)
+                .toList();
+        return new FinancialChangeListResponse(analysisId, result.analysis().getFsDiv(), selected.name(), changedOnly,
+                statements, items);
+    }
 
     /**
      * @param total   계정 수
