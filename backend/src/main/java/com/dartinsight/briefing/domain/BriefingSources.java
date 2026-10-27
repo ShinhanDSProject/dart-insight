@@ -58,48 +58,74 @@ public final class BriefingSources {
         if (business.isEmpty()) {
             return List.of();
         }
+        Map<Integer, List<DocumentSection>> children = children(sections);
+        int businessNo = business.get().sectionNo();
+        Map<BriefingTopic, List<DocumentBlock>> picked = pickByTopic(topicSections(businessNo, children), blocks);
+        if (picked.getOrDefault(BriefingTopic.RISK, List.of()).size() < PER_TOPIC) {
+            topLevel(sections, INVESTOR_PROTECTION)
+                    .ifPresent(section -> fillRisk(picked, section.sectionNo(), children, blocks));
+        }
+        if (!described(picked)) {
+            List<DocumentBlock> overview = paragraphs(blocksIn(subtree(businessNo, children), blocks));
+            picked.put(BriefingTopic.OVERVIEW, overview.subList(0, Math.min(FALLBACK_OVERVIEW, overview.size())));
+        }
+        return toSources(picked, paths);
+    }
+
+    /** 상위 섹션 번호 → 바로 아래 섹션들(문서 순서) */
+    private static Map<Integer, List<DocumentSection>> children(List<DocumentSection> sections) {
         Map<Integer, List<DocumentSection>> children = new HashMap<>();
         for (DocumentSection section : sections) {
             if (section.parentNo() != null) {
                 children.computeIfAbsent(section.parentNo(), k -> new ArrayList<>()).add(section);
             }
         }
-        Map<Integer, List<DocumentBlock>> bySection = new HashMap<>();
-        for (DocumentBlock block : blocks) {
-            bySection.computeIfAbsent(block.sectionNo(), k -> new ArrayList<>()).add(block);
-        }
+        return children;
+    }
 
+    /** '사업의 내용' 아래 하위 목차 제목으로 정한 주제 → 그 하위 목차와 그 아래 섹션 번호 */
+    private static Map<BriefingTopic, Set<Integer>> topicSections(int businessNo,
+            Map<Integer, List<DocumentSection>> children) {
         Map<BriefingTopic, Set<Integer>> topicSections = new EnumMap<>(BriefingTopic.class);
-        for (DocumentSection child : children.getOrDefault(business.get().sectionNo(), List.of())) {
+        for (DocumentSection child : children.getOrDefault(businessNo, List.of())) {
             topic(child.title()).ifPresent(topic -> topicSections.computeIfAbsent(topic, k -> new HashSet<>())
                     .addAll(subtree(child.sectionNo(), children)));
         }
+        return topicSections;
+    }
 
+    private static Map<BriefingTopic, List<DocumentBlock>> pickByTopic(Map<BriefingTopic, Set<Integer>> topicSections,
+            List<DocumentBlock> blocks) {
         Map<BriefingTopic, List<DocumentBlock>> picked = new EnumMap<>(BriefingTopic.class);
         for (Map.Entry<BriefingTopic, Set<Integer>> entry : topicSections.entrySet()) {
             picked.put(entry.getKey(), pick(blocksIn(entry.getValue(), blocks), PER_TOPIC));
         }
-        if (picked.getOrDefault(BriefingTopic.RISK, List.of()).size() < PER_TOPIC) {
-            topLevel(sections, INVESTOR_PROTECTION).ifPresent(section -> {
-                List<DocumentBlock> risk = new ArrayList<>(picked.getOrDefault(BriefingTopic.RISK, List.of()));
-                for (DocumentBlock block : paragraphs(blocksIn(subtree(section.sectionNo(), children), blocks))) {
-                    if (risk.size() >= PER_TOPIC) {
-                        break;
-                    }
-                    risk.add(block);
-                }
-                if (!risk.isEmpty()) {
-                    picked.put(BriefingTopic.RISK, risk);
-                }
-            });
-        }
-        boolean described = picked.entrySet().stream()
-                .anyMatch(e -> e.getKey() != BriefingTopic.RISK && !e.getValue().isEmpty());
-        if (!described) {
-            List<DocumentBlock> overview = paragraphs(blocksIn(subtree(business.get().sectionNo(), children), blocks));
-            picked.put(BriefingTopic.OVERVIEW, overview.subList(0, Math.min(FALLBACK_OVERVIEW, overview.size())));
-        }
+        return picked;
+    }
 
+    /** 모자란 RISK를 '투자자 보호' 대목차의 문단으로 채운다 */
+    private static void fillRisk(Map<BriefingTopic, List<DocumentBlock>> picked, int protectionNo,
+            Map<Integer, List<DocumentSection>> children, List<DocumentBlock> blocks) {
+        List<DocumentBlock> risk = new ArrayList<>(picked.getOrDefault(BriefingTopic.RISK, List.of()));
+        for (DocumentBlock block : paragraphs(blocksIn(subtree(protectionNo, children), blocks))) {
+            if (risk.size() >= PER_TOPIC) {
+                break;
+            }
+            risk.add(block);
+        }
+        if (!risk.isEmpty()) {
+            picked.put(BriefingTopic.RISK, risk);
+        }
+    }
+
+    /** 개요·제품·매출 중 하나라도 고른 블록이 있는지 */
+    private static boolean described(Map<BriefingTopic, List<DocumentBlock>> picked) {
+        return picked.entrySet().stream().anyMatch(e -> e.getKey() != BriefingTopic.RISK && !e.getValue().isEmpty());
+    }
+
+    /** 주제 순서로 최대 8개, 같은 블록은 한 번만 */
+    private static List<BriefingSource> toSources(Map<BriefingTopic, List<DocumentBlock>> picked,
+            Map<Integer, String> paths) {
         List<BriefingSource> sources = new ArrayList<>();
         Set<Integer> used = new HashSet<>();
         for (BriefingTopic topic : BriefingTopic.values()) {
