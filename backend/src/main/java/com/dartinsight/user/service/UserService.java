@@ -1,7 +1,8 @@
-package com.dartinsight.user;
+package com.dartinsight.user.service;
 
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
+import com.dartinsight.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;

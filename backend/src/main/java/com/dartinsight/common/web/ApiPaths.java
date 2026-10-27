@@ -15,8 +15,11 @@ public final class ApiPaths {
     public static final String CURRENT_SESSION = SESSIONS + CURRENT;
     public static final String SESSION_REFRESHES = BASE + "/session-refreshes";
     public static final String SOCIAL_SESSIONS = BASE + "/social-sessions";
-    public static final String SOCIAL_SESSION_CALLBACK = SOCIAL_SESSIONS + "/callback";
-    public static final String SOCIAL_SESSION_FAILURE = SOCIAL_SESSIONS + "/failure";
+    /** SOCIAL_SESSIONS 아래. 제공자 로그인 성공·실패 뒤 화면으로 돌려보낸다 */
+    public static final String CALLBACK = "/callback";
+    public static final String FAILURE = "/failure";
+    public static final String SOCIAL_SESSION_CALLBACK = SOCIAL_SESSIONS + CALLBACK;
+    public static final String SOCIAL_SESSION_FAILURE = SOCIAL_SESSIONS + FAILURE;
     // Spring Security OAuth2 Client 기본 경로(로그인 시작·제공자 콜백)
     public static final String OAUTH2_AUTHORIZATION = "/oauth2/authorization/**";
     public static final String OAUTH2_CALLBACK = "/login/oauth2/code/**";

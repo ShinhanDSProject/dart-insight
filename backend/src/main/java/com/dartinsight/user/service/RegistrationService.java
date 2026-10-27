@@ -1,12 +1,20 @@
-package com.dartinsight.user;
+package com.dartinsight.user.service;
 
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
+import com.dartinsight.user.domain.LocalCredential;
+import com.dartinsight.user.domain.RegistrationInput;
+import com.dartinsight.user.domain.User;
+import com.dartinsight.user.dto.RegistrationResponse;
+import com.dartinsight.user.repository.LocalCredentialRepository;
+import com.dartinsight.user.repository.UserRepository;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.exception.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -15,13 +23,26 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 @RequiredArgsConstructor
 public class RegistrationService {
+    private static final Logger log = LoggerFactory.getLogger(RegistrationService.class);
     private final UserRepository users;
     private final LocalCredentialRepository credentials;
     private final PasswordEncoder passwords;
     private final TransactionTemplate transactions;
     private final Clock clock;
 
-    public RegisteredUser register(Object rawEmail, Object rawPassword) {
+    public RegistrationResponse register(Object rawEmail, Object rawPassword) {
+        try {
+            return registerChecked(rawEmail, rawPassword);
+        } catch (ApiException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            // 예상하지 못한 등록 실패도 입력값·해시·DB 메시지를 로그에 남기지 않는다.
+            log.error("회원가입 처리 실패: {}", e.getClass().getSimpleName());
+            throw new ApiException(ErrorCode.COMMON_INTERNAL_ERROR);
+        }
+    }
+
+    private RegistrationResponse registerChecked(Object rawEmail, Object rawPassword) {
         String email = RegistrationInput.email(rawEmail);
         String password = RegistrationInput.password(rawPassword);
         if (credentials.existsByEmail(email)) {
@@ -33,7 +54,7 @@ public class RegistrationService {
             return transactions.execute(status -> {
                 User user = users.saveAndFlush(User.create(LocalDateTime.now(clock)));
                 credentials.saveAndFlush(LocalCredential.create(user, email, hash));
-                return new RegisteredUser(user.getId(), email);
+                return new RegistrationResponse(user.getId(), email);
             });
         } catch (DataIntegrityViolationException e) {
             // 트랜잭션이 롤백된 뒤, 해당 UNIQUE 위반만 중복 가입으로 분류한다.
@@ -49,6 +70,4 @@ public class RegistrationService {
             throw new ApiException(ErrorCode.COMMON_INTERNAL_ERROR);
         }
     }
-
-    public record RegisteredUser(long userId, String email) {}
 }

@@ -1,4 +1,4 @@
-package com.dartinsight.user;
+package com.dartinsight.user.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -24,7 +24,7 @@ public class User {
 
     protected User() {}
 
-    static User create(LocalDateTime now) {
+    public static User create(LocalDateTime now) {
         User user = new User();
         user.createdAt = now;
         user.updatedAt = now;

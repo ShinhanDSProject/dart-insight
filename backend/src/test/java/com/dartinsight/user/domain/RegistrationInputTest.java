@@ -1,9 +1,10 @@
-package com.dartinsight.user;
+package com.dartinsight.user.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.dartinsight.common.error.ApiException;
+import com.dartinsight.user.dto.RegistrationRequest;
 import org.junit.jupiter.api.Test;
 
 class RegistrationInputTest {
@@ -40,7 +41,7 @@ class RegistrationInputTest {
                 .isInstanceOf(ApiException.class);
         assertThatThrownBy(() -> RegistrationInput.password("Αlpha!1234"))
                 .isInstanceOf(ApiException.class);
-        assertThat(new RegistrationController.RegistrationRequest().toString())
+        assertThat(new RegistrationRequest(null, null).toString())
                 .isEqualTo("RegistrationRequest[redacted]");
     }
 }

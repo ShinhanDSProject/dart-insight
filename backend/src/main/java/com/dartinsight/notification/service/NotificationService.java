@@ -15,7 +15,7 @@ import com.dartinsight.notification.repository.NotificationRepository;
 import com.dartinsight.notification.repository.WatchedReportRepository;
 import com.dartinsight.report.domain.Report;
 import com.dartinsight.report.service.ReportService;
-import com.dartinsight.user.UserService;
+import com.dartinsight.user.service.UserService;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;

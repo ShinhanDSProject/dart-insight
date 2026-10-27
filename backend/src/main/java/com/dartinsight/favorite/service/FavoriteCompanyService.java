@@ -5,7 +5,7 @@ import com.dartinsight.company.service.CompanyService;
 import com.dartinsight.favorite.domain.FavoriteCompany;
 import com.dartinsight.favorite.dto.FavoriteCompanyResponse;
 import com.dartinsight.favorite.repository.FavoriteCompanyRepository;
-import com.dartinsight.user.UserService;
+import com.dartinsight.user.service.UserService;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
