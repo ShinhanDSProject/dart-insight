@@ -29,7 +29,7 @@ describe('인증 갱신', () => {
 })
 
 describe('apiGet', () => {
-  it('returns parsed JSON and drops empty query values', async () => {
+  it('JSON을 읽어 돌려주고 빈 쿼리 값은 뺀다', async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, { items: [] }))
     vi.stubGlobal('fetch', fetchMock)
 
@@ -39,7 +39,7 @@ describe('apiGet', () => {
     expect(fetchMock.mock.calls[0][0]).toBe('/api/companies?query=%EC%82%BC%EC%84%B1')
   })
 
-  it('turns an error body into ApiError with code, message, traceId and errors', async () => {
+  it('에러 본문을 code·message·traceId·errors가 담긴 ApiError로 바꾼다', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
@@ -64,7 +64,7 @@ describe('apiGet', () => {
     })
   })
 
-  it('uses a common error when the error body is not JSON', async () => {
+  it('에러 본문이 JSON이 아니면 공통 에러로 바꾼다', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(new Response('Bad Gateway', { status: 502, headers: { 'X-Trace-Id': 't-502' } })),
@@ -75,7 +75,7 @@ describe('apiGet', () => {
     expect(error).toMatchObject({ status: 502, code: 'COMMON_INTERNAL_ERROR', traceId: 't-502' })
   })
 
-  it('reports a network failure as NETWORK_ERROR', async () => {
+  it('연결 실패는 NETWORK_ERROR로 알린다', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
 
     const error = await apiGet('/api/companies').catch((e: unknown) => e)
@@ -85,7 +85,7 @@ describe('apiGet', () => {
 })
 
 describe('apiPost', () => {
-  it('sends a JSON body', async () => {
+  it('JSON 본문을 보낸다', async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(202, { analysisId: 1 }))
     vi.stubGlobal('fetch', fetchMock)
 
@@ -127,8 +127,8 @@ describe('apiPut', () => {
   })
 })
 
-describe('non-JSON success', () => {
-  it('is not treated as success (e.g. index.html returned for a wrong API address)', async () => {
+describe('JSON이 아닌 성공 응답', () => {
+  it('성공으로 보지 않는다(잘못된 API 주소로 index.html을 받은 경우 등)', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(new Response('<!doctype html><html></html>', { status: 200, headers: { 'Content-Type': 'text/html' } })),
