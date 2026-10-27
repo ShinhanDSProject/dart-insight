@@ -89,6 +89,18 @@ app:
     health-timeout: 3s
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  data-go-kr:
+    # 공공데이터포털 일반 인증키(ADR-0033). 포털 화면의 키를 그대로 넣는다(인코딩된 모양이어도 됨)
+    api-key: ${DATA_GO_KR_API_KEY:}
+    base-url: https://apis.data.go.kr
+    connect-timeout: 5s
+    read-timeout: 30s
+  featured:
+    # 첫 화면 대표 기업(1.5): 시작할 때와 하루마다 오래됐으면 받음(on-stale), 받지 않음(never)
+    sync: ${FEATURED_COMPANY_SYNC:on-stale}
+    refresh-after: 30d
+    check-interval: 1d
+    limit: 100
   opendart:
     api-key: ${OPENDART_API_KEY:}
     base-url: https://opendart.fss.or.kr

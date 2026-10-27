@@ -17,6 +17,8 @@ public interface CompanyRepository extends JpaRepository<Company, Long> {
 
     List<Company> findByCorpCodeIn(Collection<String> corpCodes);
 
+    List<Company> findByStockCodeIn(Collection<String> stockCodes);
+
     /**
      * 공백을 뺀 소문자 회사명(corp_name_key) 일부로 찾는다. 정확히 같은 회사, 상장사, 짧은 이름 순서.
      * pattern·exact는 CompanyNameKey.key로 만든 값이고, pattern의 %·_는 호출하는 쪽에서 '!'로 이스케이프한다.
