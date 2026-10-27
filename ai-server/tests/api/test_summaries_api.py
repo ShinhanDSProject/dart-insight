@@ -86,7 +86,8 @@ def test_financial_candidates_are_searched_in_the_document_blocks() -> None:
             {
                 "evidenceId": f"{CUR}#B9",
                 "sectionPath": mdna,
-                "text": "매출액은 메모리 수요 회복으로 전년 대비 증가하였습니다.",
+                "text": "매출액은 메모리 수요 회복으로 전년 대비 증가하였습니다. "
+                "주요 제품의 판매량과 판매 가격이 함께 올랐습니다.",
             },
         ],
     }

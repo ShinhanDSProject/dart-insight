@@ -1,6 +1,6 @@
 """재무 설명 후보 검색(ADR-0032). backend가 보낸 현재 보고서 문단에서 계정 검색어로 후보를 고른다.
 
-- 후보 조건: 공백을 뺀 글에 검색어가 하나 이상 그대로 들어 있고, 공백을 뺀 길이가 20자 이상인 문단.
+- 후보 조건: 공백을 뺀 글에 검색어가 하나 이상 그대로 들어 있고, 공백을 뺀 길이가 40자 이상인 문단.
   목차 제목처럼 짧은 줄과 검색어가 없는 문단은 후보가 아니다.
 - 순위: 공백을 뺀 글을 글자 2개 단위로 나눠 Okapi BM25로 점수를 매기고 섹션 가중치를 곱한다.
   점수가 같으면 문서 순서(보낸 순서)가 앞선 것. 상위 CANDIDATE_LIMIT개를 등급 판정에 넘긴다.
@@ -20,7 +20,8 @@ from dataclasses import replace
 from app.summary.model import Source
 
 CANDIDATE_LIMIT = 5
-MIN_CHARS = 20
+# BM25는 짧은 글을 우대해, 출처·안건 같은 짧은 줄이 설명 문단을 앞지르지 않게 한다(ADR-0032 측정)
+MIN_CHARS = 40
 MAX_SOURCE_CHARS = 1500
 K1 = 1.5
 B = 0.75
@@ -75,7 +76,7 @@ class Index:
         return score
 
     def candidates(self, aliases: list[str], limit: int = CANDIDATE_LIMIT) -> list[Source]:
-        """검색어가 든 20자 이상 문단을 점수 높은 순(같으면 문서 순서)으로 limit개"""
+        """검색어가 든 40자 이상 문단을 점수 높은 순(같으면 문서 순서)으로 limit개"""
         terms = [t for t in (compact(a) for a in aliases) if t]
         if not terms:
             return []
