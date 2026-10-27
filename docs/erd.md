@@ -24,6 +24,7 @@
 | `notification` | 회원별 분석 완료 알림과 읽음 여부 | #38 (6.4) | 미정 |
 | `company` | 기업. OpenDART 고유번호 기준 | 4.4 (#51) | M1 |
 | `company_overview` | 기업 개황(OpenDART `company.json`) 캐시. 고유번호 기준, 받은 시각으로 다시 받음 | 1.2 (#329) | M2 |
+| `featured_company` | 첫 화면 대표 기업(유가증권시장 시가총액 상위 100). 공공데이터포털에서 월 1회 통째로 바꿈 | #399 (1.5) | 미정 |
 | `report` | 정기보고서. 접수번호 기준 | 4.1 (#27) | M1 |
 | `financial_statement_fetch` | 재무제표 API를 부른 기록(보고서·연결/별도 단위) | 4.5 (#52) | M1 |
 | `financial_account` | 재무제표 계정 값(API 응답 한 줄) | 4.5 (#52) | M1 |
@@ -111,6 +112,7 @@ erDiagram
     }
     company ||--o{ report : "corp_code"
     company ||--o| company_overview : "corp_code"
+    company ||--o| featured_company : "corp_code (#399)"
     company ||--o{ financial_statement_fetch : "corp_code"
     company ||--o| company_disclosure_fetch : "corp_code"
     company ||--o{ company_disclosure : "corp_code"
@@ -154,6 +156,14 @@ erDiagram
         varchar corp_cls "법인구분 Y K N E"
         date est_dt "설립일"
         datetime fetched_at "OpenDART에서 받은 시각"
+    }
+    featured_company {
+        bigint id PK
+        int rank_no UK
+        varchar corp_code FK
+        bigint market_cap
+        date base_date
+        datetime fetched_at
     }
     report {
         bigint id PK
@@ -339,6 +349,21 @@ OpenDART `corpCode.xml`에서 받습니다(4.4).
 | `reports_fetched_at` | DATETIME(6) | | 예 | 정기보고서 목록을 마지막으로 받은 시각(4.1). null이면 아직 안 받음 |
 | `created_at` | DATETIME(6) | | 아니오 | |
 | `updated_at` | DATETIME(6) | | 아니오 | |
+
+### featured_company — 대표 기업(#399)
+
+> 마이그레이션: `V34__create_featured_company.sql`. [ADR-0033](adr/0033-featured-companies-from-public-data-portal.md)
+
+공공데이터포털 '금융위원회_주식시세정보'에서 유가증권시장 종목을 받아, 종목코드로 `company`와 이은 종목 중 시가총액 상위 100곳을 넣습니다. 다시 받을 때는 표 전체를 한 트랜잭션에서 지우고 다시 넣습니다. `market_cap`은 순위의 근거로만 남기고 API·화면에 내보내지 않습니다.
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT AUTO_INCREMENT | PK | 아니오 | 자동 증가 |
+| `rank_no` | INT | UK | 아니오 | 순위(1부터) |
+| `corp_code` | VARCHAR(8) | UK, FK | 아니오 | `company.corp_code` |
+| `market_cap` | BIGINT | | 아니오 | 기준일 시가총액(원, 응답 `mrktTotAmt`). 내보내지 않음 |
+| `base_date` | DATE | | 아니오 | 시세 기준일(응답 `basDt`) |
+| `fetched_at` | DATETIME(6) | | 아니오 | 받은 시각. 30일(`app.featured.refresh-after`)이 지나면 다시 받음 |
 
 ### company_overview
 
@@ -996,6 +1021,8 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `company` | `idx_company_stock_code` | `stock_code` | 인덱스 | 종목코드 검색 |
 | `company` | (없음) | `corp_name_key`, `corp_name_chosung` | — | 검색은 부분 일치(`%검색어%`)라 B-tree 인덱스를 쓰지 못해 두지 않음. 10만 행 정도는 전체 읽기로 충분하고, 느려지면 전문 검색(n-gram)을 검토 |
 | `company_overview` | `uk_company_overview_corp_code` | `corp_code` | 유니크 | 회사마다 개황 한 행 |
+| `featured_company` | `uk_featured_company_rank` | `rank_no` | 유니크 | 순위마다 한 곳 |
+| `featured_company` | `uk_featured_company_corp_code` | `corp_code` | 유니크 | 같은 기업을 두 번 넣지 않음 |
 | `report` | `uk_report_rcept_no` | `rcept_no` | 유니크 | 접수번호 중복 방지(외래 키가 참조) |
 | `report` | `idx_report_corp_period` | `corp_code, period_end` | 인덱스 | 기업별 보고서 목록 |
 | `financial_statement_fetch` | `uk_fs_fetch` | `corp_code, fiscal_year, reprt_code, fs_div` | 유니크 | 같은 호출을 두 번 저장하지 않음 |
