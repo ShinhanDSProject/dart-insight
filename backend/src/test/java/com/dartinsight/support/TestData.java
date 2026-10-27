@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 public final class TestData {
 
     private static final List<String> TABLES_CHILD_FIRST = List.of(
+            "judgment_note_item",
             "notification",
             "related_disclosure",
             "related_disclosure_run",

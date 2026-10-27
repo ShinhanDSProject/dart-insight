@@ -76,6 +76,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, ApiPaths.CURRENT_SESSION).authenticated()
                         .requestMatchers(ApiPaths.FAVORITE_COMPANIES, ApiPaths.FAVORITE_COMPANIES + "/**").authenticated()
                         .requestMatchers(ApiPaths.NOTIFICATIONS, ApiPaths.NOTIFICATIONS + "/**").authenticated()
+                        .requestMatchers(ApiPaths.NOTES, ApiPaths.NOTES + "/**").authenticated()
                         .anyRequest().permitAll())
                 .oauth2ResourceServer(oauth -> oauth.jwt(Customizer.withDefaults())
                         .authenticationEntryPoint((request, response, exception) -> {

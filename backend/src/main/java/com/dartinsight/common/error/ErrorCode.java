@@ -16,6 +16,7 @@ public enum ErrorCode {
 
     COMPANY_NOT_FOUND(404, "기업을 찾을 수 없습니다."),
     COMPANY_LIST_NOT_LOADED(503, "기업 목록을 아직 받지 않았습니다. 관리자에게 기업 목록 갱신을 요청해 주세요."),
+    COMPANY_NOTE_NOT_FOUND(404, "노트 항목을 찾을 수 없습니다. 노트 목록을 다시 불러와 주세요."),
     COMPANY_DISCLOSURE_NOT_FOUND(404, "이 기업의 최근 공시에서 찾을 수 없거나 핵심 수치를 지원하지 않는 공시입니다. 최근 공시를 다시 불러와 주세요."),
 
     REPORT_NOT_FOUND(404, "보고서를 찾을 수 없습니다. 보고서 목록을 다시 불러와 주세요."),
