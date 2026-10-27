@@ -1,4 +1,4 @@
-package com.dartinsight.question.domain;
+package com.dartinsight.document.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -17,6 +17,14 @@ class EvidenceRefTest {
     @DisplayName("'#B'가 없으면 둘 다 null, 블록 번호가 숫자가 아니면 블록 번호만 null이다")
     void parseLeavesUnknownPartsNull() {
         assertThat(EvidenceRef.parse("F1")).isEqualTo(new EvidenceRef(null, null));
+        assertThat(EvidenceRef.parse("20260814001234")).isEqualTo(new EvidenceRef(null, null));
         assertThat(EvidenceRef.parse("20260814001234#Bx")).isEqualTo(new EvidenceRef("20260814001234", null));
+    }
+
+    @Test
+    @DisplayName("만든 근거 ID는 다시 같은 접수번호와 블록 번호로 풀린다")
+    void idRoundTrips() {
+        assertThat(EvidenceRef.id("20260814001234", 123)).isEqualTo("20260814001234#B123");
+        assertThat(EvidenceRef.parse(EvidenceRef.id("20260814001234", 7))).isEqualTo(new EvidenceRef("20260814001234", 7));
     }
 }

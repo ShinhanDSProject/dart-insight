@@ -17,7 +17,7 @@ import com.dartinsight.document.domain.ReportDocument;
 import com.dartinsight.document.service.DocumentService;
 import com.dartinsight.question.domain.AnswerMarkers;
 import com.dartinsight.question.domain.CitedSource;
-import com.dartinsight.question.domain.EvidenceRef;
+import com.dartinsight.document.domain.EvidenceRef;
 import com.dartinsight.question.domain.FeedbackReason;
 import com.dartinsight.question.domain.QuestionFact;
 import com.dartinsight.question.domain.QuestionFacts;

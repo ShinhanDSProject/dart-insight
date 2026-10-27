@@ -12,7 +12,7 @@ import com.dartinsight.document.domain.DocumentBlock;
 import com.dartinsight.document.domain.ReportDocument;
 import com.dartinsight.document.service.DocumentService;
 import com.dartinsight.question.domain.CompanyQuestionRecord;
-import com.dartinsight.question.domain.EvidenceRef;
+import com.dartinsight.document.domain.EvidenceRef;
 import com.dartinsight.question.domain.QuestionRetriever;
 import com.dartinsight.question.domain.QuestionSource;
 import com.dartinsight.question.dto.AnswerAiRequest;
