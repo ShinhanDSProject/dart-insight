@@ -21,6 +21,8 @@ import { SegmentedControl } from './SegmentedControl'
 import { ServiceNotice } from './ServiceNotice'
 import { ShareBar } from './ShareBar'
 import { SidePanel } from './SidePanel'
+import { Skeleton } from './Skeleton'
+import { StatNumber } from './StatNumber'
 import { AlertState, EmptyState, ErrorState, LoadingState } from './StateView'
 import { Tabs } from './Tabs'
 
@@ -254,6 +256,26 @@ describe('공통 UI 접근성(axe)', () => {
             <Kbd>?</Kbd> 도움말 열기
           </p>
         </Dialog>
+      </div>,
+    )
+  })
+  it('큰 숫자 지표(값 있음·없음)와 불러오는 자리에 위반이 없다', async () => {
+    await expectNoViolations(
+      <div>
+        <StatNumber
+          label="매출액"
+          value={152_000_000_000_000}
+          format={(v) => String(Math.round(v))}
+          unit="원"
+          change={{ direction: 'up', amount: '7조원', rate: '+4.8%' }}
+          source={<span>접수번호 {rceptNo}</span>}
+        />
+        <StatNumber label="영업이익" value={null} format={String} changeNote="전기 값이 없어요." />
+        <Skeleton label="불러오는 중입니다…" shape="card" count={3} />
+        <Skeleton label="요약을 불러오는 중입니다…" />
+        <Card interactive>
+          <a href="/companies/00126380">삼성전자</a>
+        </Card>
       </div>,
     )
   })

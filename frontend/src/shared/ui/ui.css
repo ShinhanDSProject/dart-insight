@@ -236,6 +236,19 @@
   background: var(--color-accent-subtle);
 }
 
+/* 고를 수 있는 카드(Card interactive, FS-58). 정적 카드는 들리지 않는다 */
+.card--interactive {
+  transition:
+    box-shadow var(--motion-base) var(--ease-out),
+    transform var(--motion-base) var(--ease-out);
+}
+
+.card--interactive:hover,
+.card--interactive:focus-within {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(var(--motion-lift));
+}
+
 /* 표(DataTable) */
 .table-scroll {
   overflow-x: auto;
@@ -340,6 +353,7 @@ th[aria-sort='none'] .data-table__sort-mark {
 
 /* 밑줄 탭(Tabs). 고른 탭은 굵은 남색 글자와 3px 밑줄 */
 .tabs {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   gap: 0 28px;
@@ -372,6 +386,29 @@ th[aria-sort='none'] .data-table__sort-mark {
   border-bottom-color: var(--color-primary);
   color: var(--color-primary);
   font-weight: var(--font-weight-bold);
+}
+
+/* 고른 탭 아래로 옮겨 가는 밑줄 하나(FS-58). 위치를 잰 뒤에만 보이고, 그때는 탭 자기 밑줄을 감춘다 */
+.tabs__indicator {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 0;
+  height: 3px;
+  background: var(--color-primary);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--motion-slow) var(--ease-out),
+    width var(--motion-slow) var(--ease-out);
+}
+
+.tabs[data-indicator='ready'] .tabs__indicator {
+  opacity: 1;
+}
+
+.tabs[data-indicator='ready'] .tabs__item[aria-current='page'] {
+  border-bottom-color: transparent;
 }
 
 /* 여러 값 중 하나를 고르는 버튼 묶음(SegmentedControl) */
@@ -551,6 +588,131 @@ th[aria-sort='none'] .data-table__sort-mark {
   color: var(--color-text);
   font: inherit;
   font-size: var(--font-size-sm);
+}
+
+/* 큰 숫자 지표(StatNumber, FS-58). 숫자는 크게, 나머지는 작고 옅게. 증감 줄은 중립색(design-system.md 3-3) */
+.stat-number {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.stat-number p {
+  margin: 0;
+}
+
+.stat-number__label {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.stat-number__value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-1);
+  font-family: var(--font-num);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-number__unit {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.stat-number__missing {
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-regular);
+}
+
+.stat-number__change {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-number__delta {
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.stat-number__source {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  overflow-wrap: anywhere;
+}
+
+/* 불러오는 자리(Skeleton, FS-58). 채울 내용과 같은 크기로 두고 옅게 반짝인다. 동작 줄이기면 멈춘다(global.css) */
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.skeleton--card {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-4);
+}
+
+.skeleton__line,
+.skeleton__block,
+.skeleton__card {
+  display: block;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb, var(--color-border) 70%, transparent),
+      transparent
+    )
+    var(--color-bg-subtle);
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: skeleton-shimmer var(--motion-shimmer) linear infinite;
+}
+
+.skeleton__line {
+  height: var(--space-4);
+}
+
+.skeleton__line:first-of-type {
+  width: 40%;
+}
+
+.skeleton__line:last-of-type:not(:first-of-type) {
+  width: 70%;
+}
+
+.skeleton__block {
+  height: var(--skeleton-height, 160px);
+  border-radius: var(--radius-md);
+}
+
+.skeleton__card {
+  height: var(--skeleton-height, 112px);
+  border-radius: var(--radius-lg);
+}
+
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 150% 0;
+  }
+
+  to {
+    background-position: -50% 0;
+  }
 }
 
 /* 상태(StateView) */
