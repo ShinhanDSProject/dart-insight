@@ -842,6 +842,249 @@ th[aria-sort='none'] .data-table__sort-mark {
 }
 
 /*
+ * 점 타임라인(DotTimeline, 4-20). 이름 칸 | 점을 놓는 칸, 아래에 월 눈금 축 하나.
+ * 점은 한 색(--color-chart-current, 두 테마 배경 대비 3:1 이상)이고 바탕색 2px 테두리로 겹친 점을 가른다.
+ * 누르는 자리는 점보다 큰 24px 상자다. 좁으면(520px 미만) 이름·건수를 두 줄로 쌓고 분기 달(1·4·7·10월) 눈금 글자만 남긴다
+ */
+.dot-timeline {
+  --dot-timeline-row-height: calc(var(--space-6) + var(--space-3));
+  --dot-timeline-lane: var(--space-3);
+  --dot-timeline-hit: var(--space-5);
+  --dot-timeline-dot: calc(var(--space-2) + var(--radius-xs));
+  --dot-timeline-inset: var(--space-3);
+
+  display: grid;
+  gap: var(--space-3);
+  container-type: inline-size;
+}
+
+.dot-timeline__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.dot-timeline__legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dot-timeline__plot {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  grid-template-rows: repeat(var(--dot-timeline-rows), var(--dot-timeline-row-height)) auto;
+  column-gap: var(--space-3);
+}
+
+.dot-timeline__label {
+  grid-column: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.dot-timeline__count {
+  color: var(--color-text-muted);
+  font-family: var(--font-num);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.dot-timeline__area {
+  position: relative;
+  grid-column: 2;
+  grid-row: 1 / -2;
+  display: grid;
+  grid-template-rows: repeat(var(--dot-timeline-rows), var(--dot-timeline-row-height));
+  margin-inline: var(--dot-timeline-inset);
+}
+
+/* 월 눈금 세로선: 바탕에서 한 단계 떨어진 1px 실선(흐리게) */
+.dot-timeline__grid {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--color-chart-grid);
+}
+
+.dot-timeline__track {
+  position: relative;
+}
+
+/* 줄마다 가운데 1px 기준선 */
+.dot-timeline__track::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: var(--color-chart-grid);
+}
+
+.dot-timeline__point {
+  position: absolute;
+  top: calc(50% + var(--lane) * var(--dot-timeline-lane));
+  display: grid;
+  place-items: center;
+  width: var(--dot-timeline-hit);
+  height: var(--dot-timeline-hit);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  animation: fade-in var(--motion-base) var(--ease-out) both;
+}
+
+.dot-timeline__point:hover,
+.dot-timeline__point:focus-visible {
+  z-index: 2;
+}
+
+.dot-timeline__dot,
+.dot-timeline__mark {
+  display: block;
+  width: var(--dot-timeline-dot);
+  height: var(--dot-timeline-dot);
+  border-radius: var(--radius-pill);
+  background: var(--color-chart-current);
+}
+
+.dot-timeline__dot {
+  box-shadow: 0 0 0 2px var(--color-bg);
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.dot-timeline__point:hover .dot-timeline__dot,
+.dot-timeline__point:focus-visible .dot-timeline__dot {
+  transform: scale(1.4);
+}
+
+/* 강조 점(정기보고서): 마름모 */
+.dot-timeline__point--emphasis .dot-timeline__dot,
+.dot-timeline__mark--emphasis {
+  border-radius: var(--radius-xs);
+  transform: rotate(45deg);
+}
+
+.dot-timeline__point--emphasis:hover .dot-timeline__dot,
+.dot-timeline__point--emphasis:focus-visible .dot-timeline__dot {
+  transform: rotate(45deg) scale(1.4);
+}
+
+.dot-timeline__tooltip {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  gap: var(--space-1);
+  width: max-content;
+  max-width: min(calc(var(--space-7) * 6), 80cqi);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-md);
+  font-size: var(--font-size-xs);
+  animation: fade-in var(--motion-fast) var(--ease-out) both;
+}
+
+/* 툴팁 가장자리를 누르는 상자 끝(점 가운데에서 12px)에 붙여, 점에서 툴팁으로 포인터를 옮겨도 닫히지 않는다 */
+.dot-timeline__tooltip--above {
+  bottom: calc(50% - var(--lane) * var(--dot-timeline-lane) + var(--dot-timeline-hit) / 2);
+}
+
+.dot-timeline__tooltip--below {
+  top: calc(50% + var(--lane) * var(--dot-timeline-lane) + var(--dot-timeline-hit) / 2);
+}
+
+.dot-timeline__tooltip--center {
+  transform: translateX(-50%);
+}
+
+.dot-timeline__tooltip--start {
+  transform: translateX(calc(var(--dot-timeline-hit) / -2));
+}
+
+.dot-timeline__tooltip--end {
+  transform: translateX(calc(-100% + var(--dot-timeline-hit) / 2));
+}
+
+.dot-timeline__tooltip-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.dot-timeline__tooltip-meta {
+  color: var(--color-text-muted);
+}
+
+.dot-timeline__tooltip-action {
+  font-weight: var(--font-weight-medium);
+}
+
+.dot-timeline__axis {
+  position: relative;
+  grid-column: 2;
+  min-height: calc(var(--space-6) + var(--space-2));
+  margin-inline: var(--dot-timeline-inset);
+  border-top: 1px solid var(--color-border-strong);
+  color: var(--color-text-muted);
+  font-family: var(--font-num);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.dot-timeline__tick {
+  position: absolute;
+  top: 0;
+  display: grid;
+  justify-items: center;
+  padding-top: var(--space-2);
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+/* 축의 눈금 표시(4px, 축과 같은 3:1 색) */
+.dot-timeline__tick::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 1px;
+  height: var(--space-1);
+  background: var(--color-border-strong);
+}
+
+.dot-timeline__year {
+  font-size: var(--font-size-2xs);
+}
+
+@container (max-width: 519px) {
+  .dot-timeline__label {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0;
+    font-size: var(--font-size-xs);
+  }
+
+  .dot-timeline__tick:not(.dot-timeline__tick--major) .dot-timeline__tick-label {
+    visibility: hidden;
+  }
+}
+
+/*
  * 좁은 화면(FS-11). 넓은 화면 모양은 그대로 두고, 인쇄에는 쓰지 않는다(screen).
  * 터치 영역: 글자 크기·줄 간격은 그대로 두고, 위아래 안쪽 여백을 늘린 만큼 바깥 여백을 줄여(자리는 그대로)
  * 누르는 상자만 --touch-target-min 이상으로 키운다.
