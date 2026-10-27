@@ -38,6 +38,11 @@ vi.mock('@/shared/api/favoriteCompanies', () => favoritesApi)
 vi.mock('@/shared/api/featuredCompanies', () => ({
   getFeaturedCompanies: () => Promise.resolve({ baseDate: null, source: '금융위원회, 공공데이터포털', items: [] }),
 }))
+// 이번 시즌 변화가 큰 기업(#420)은 컴포넌트 테스트에서 따로 본다
+vi.mock('@/shared/api/seasonChanges', () => ({
+  getSeasonChanges: () =>
+    Promise.resolve({ season: null, seasons: [], computedAt: null, scoreVersion: 'season-1', candidateCount: 0, rankedCount: 0, excluded: { noReport: 0, failed: 0 }, items: [] }),
+}))
 
 // 관심 기업 새 공시(FS-52)는 컴포넌트 테스트에서 따로 본다
 vi.mock('@/shared/api/disclosures', () => ({

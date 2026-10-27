@@ -288,6 +288,64 @@
   padding-right: var(--space-3);
 }
 
+/* 이번 시즌 변화가 큰 기업 Top 10(#420). 대표 기업 아래, 순위·기업·한 줄 요약·변경 건수 */
+.season-changes {
+  max-width: 720px;
+  margin-bottom: var(--space-5);
+  animation: rise-in var(--motion-base) var(--ease-out);
+}
+
+.season-changes__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.season-changes__list {
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+}
+
+.season-changes__item {
+  display: grid;
+  grid-template-columns: var(--space-5) 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.season-changes__rank {
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.season-changes__link {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.season-changes__link:hover .season-changes__name {
+  text-decoration: underline;
+}
+
+.season-changes__name {
+  font-weight: 600;
+}
+
+.season-changes__highlight {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
 /* 관심 기업(FS-18). 검색어가 없을 때 검색창 아래 둥근 칩으로 보인다 */
 .favorite-companies {
   max-width: 720px;
