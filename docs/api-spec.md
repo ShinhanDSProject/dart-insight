@@ -83,6 +83,7 @@
 | GET | `/api/notes/export` | 기업 노트를 출처와 함께 Markdown으로 내보내기(`?corpCode=`) | #413 (6.5) | 판단 노트(신규) | 초안 |
 | GET | `/api/companies` | 기업 검색 | #8 (1.1) | W-01 ① | 초안 |
 | GET | `/api/featured-companies` | 첫 화면 대표 기업(유가증권시장 시가총액 상위 100) | #399 (1.5) | W-01 ① | 초안 |
+| GET | `/api/season-changes` | 첫 화면 이번 시즌 변화가 큰 기업 Top 10 | #420 (1.7) | W-01 ① | 초안 |
 | GET | `/api/companies/{corpCode}` | 기업 정보 | #8 (1.1) | W-01 ② | 초안 |
 | GET | `/api/companies/{corpCode}/overview` | 기업 개황(대표자·법인 구분·업종·설립일·결산월 등) | #329 (1.2) | 기업 화면 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/reports` | 기업별 정기보고서 목록 | #9 (1.2), #10 (1.3) | W-01 ② | 초안 |
@@ -439,6 +440,66 @@
 
 - 아직 받지 못했으면 `baseDate: null`, `items: []`입니다(에러가 아님). 화면은 안내를 보이고 검색은 그대로 둡니다.
 - `corpName`·`stockCode`는 우리 `company`의 값입니다.
+
+### GET /api/season-changes — 이번 시즌 변화가 큰 기업
+
+- 이슈: #420 (1.7) · 화면: W-01 ① 대표 기업 아래 · [ADR-0037](adr/0037-season-change-ranking.md)
+- 로그인 없이 씁니다. backend가 시즌마다 한 번 계산해 저장한 순위를 돌려줍니다(요청마다 계산·외부 호출하지 않음).
+- 대상은 대표 기업(`GET /api/featured-companies`)이고, 시즌(정기보고서 종류·사업연도)의 보고서를 같은 종류의 전년 보고서와 비교합니다.
+- 점수(`scoreVersion` `season-1`)는 코드가 계산합니다: 추가·삭제·수정 문장 변경의 확인 우선순위 점수(2.6) 합 ÷ (두 원문 블록 수 평균 ÷ 1,000). 숫자만 바뀜·위치 이동·검토 필요는 넣지 않습니다. 점수는 바뀐 양이지 좋고 나쁨이 아닙니다.
+- 상위 10곳만 `items`에 넣습니다. 그 10곳은 요약까지 있는 전년 동기 분석을 서버가 요청해 두고 `analysisId`로 줍니다. 분석이 아직 끝나지 않았을 수 있습니다(화면은 `/analyses/{analysisId}`로 보내고, 그 화면이 진행 상태를 보입니다).
+
+**요청**
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| query | `reportType` | string | 아니오 | `Q1`·`HALF`·`Q3`·`ANNUAL`. `fiscalYear`와 함께 줍니다 |
+| query | `fiscalYear` | number | 아니오 | 사업연도. 둘 다 없으면 계산한 가장 최근 시즌 |
+
+**응답 200**
+
+```json
+{
+  "season": { "reportType": "HALF", "fiscalYear": 2026, "previousFiscalYear": 2025 },
+  "seasons": [
+    { "reportType": "HALF", "fiscalYear": 2026 },
+    { "reportType": "Q1", "fiscalYear": 2026 }
+  ],
+  "computedAt": "2026-08-22T04:12:00",
+  "scoreVersion": "season-1",
+  "candidateCount": 100,
+  "rankedCount": 94,
+  "excluded": { "noReport": 4, "failed": 2 },
+  "items": [
+    {
+      "rank": 1,
+      "corpCode": "00126380",
+      "corpName": "삼성전자",
+      "stockCode": "005930",
+      "previousRceptNo": "20250814003156",
+      "currentRceptNo": "20260814003699",
+      "changeCount": 147,
+      "highlight": "사업의 내용 수정 31곳 · 위험관리 문단 12개 추가",
+      "analysisId": 42
+    }
+  ]
+}
+```
+
+| 필드 | 설명 |
+| --- | --- |
+| `season` | 돌려준 시즌. 계산한 시즌이 하나도 없으면 null이고 `items: []`(에러 아님, 화면은 안내) |
+| `seasons` | 계산한 시즌 전부, 최근 순(화면의 시즌 고르기) |
+| `candidateCount`·`rankedCount` | 계산할 때의 대표 기업 수와 그중 점수를 매긴 수 |
+| `excluded` | 순위에서 뺀 수. `noReport` 그 시즌·전년 보고서가 없음, `failed` 문장 비교 실패·일부만 비교 |
+| `changeCount` | 점수에 넣은 문장 변경(추가·삭제·수정) 건수 |
+| `highlight` | 코드가 만든 한 줄 요약(최상위 섹션·변경 종류별 점수 합이 큰 두 묶음) |
+| `analysisId` | 요약까지 있는 전년 동기 분석. 요청에 실패했으면 null(화면은 기업 화면으로 보냄) |
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | `reportType`·`fiscalYear` 중 하나만 있거나 값이 맞지 않음(`errors[].field`) |
+| 404 | `COMMON_NOT_FOUND` | 계산하지 않은 시즌 |
 
 ### GET /api/companies/{corpCode} — 기업 정보
 
