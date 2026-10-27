@@ -2,6 +2,7 @@ package com.dartinsight.company.repository;
 
 import com.dartinsight.company.domain.CompanyNameKey;
 import com.dartinsight.dart.domain.CorpCodeEntry;
+import jakarta.persistence.EntityManager;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -22,6 +23,7 @@ public class CompanyStore {
     private static final int BATCH = 500;
 
     private final JdbcTemplate jdbcTemplate;
+    private final EntityManager entityManager;
 
     public void insertAll(List<CorpCodeEntry> entries, LocalDateTime now) {
         Timestamp at = Timestamp.valueOf(now);
@@ -58,6 +60,12 @@ public class CompanyStore {
                     ps.setLong(3, row.id());
                 });
         return rows.size();
+    }
+
+    /** 열린 트랜잭션에서 JPA 엔티티로 고친 기업을 DB에 내보내고 영속성 컨텍스트를 비운다(한 트랜잭션에서 많이 저장할 때 메모리를 아낌) */
+    public void flushAndClear() {
+        entityManager.flush();
+        entityManager.clear();
     }
 
     private record NameRow(long id, String corpName) {

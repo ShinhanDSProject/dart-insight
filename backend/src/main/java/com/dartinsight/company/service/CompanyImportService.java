@@ -6,7 +6,6 @@ import com.dartinsight.company.repository.CompanyStore;
 import com.dartinsight.dart.domain.CorpCodeEntry;
 import com.dartinsight.dart.client.CorpCodeParser;
 import com.dartinsight.dart.client.OpenDartClient;
-import jakarta.persistence.EntityManager;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -38,7 +37,6 @@ public class CompanyImportService {
     private final CompanyRepository companyRepository;
     private final CompanyStore companyStore;
     private final TransactionTemplate transactionTemplate;
-    private final EntityManager entityManager;
     private final Clock clock;
 
     /** OpenDART에서 받아 저장한다. 받기나 읽기에 실패하면 기존 데이터는 그대로 둔다. */
@@ -51,17 +49,21 @@ public class CompanyImportService {
     }
 
     public ImportResult save(List<CorpCodeEntry> entries) {
-        // 같은 고유번호가 두 번 나오면 뒤의 값을 쓴다
-        List<CorpCodeEntry> unique = new ArrayList<>(entries.stream()
-                .collect(Collectors.toMap(CorpCodeEntry::corpCode, Function.identity(), (a, b) -> b,
-                        LinkedHashMap::new))
-                .values());
+        List<CorpCodeEntry> unique = uniqueByCorpCode(entries);
         if (companyRepository.count() == 0) {
             // 처음 받을 때는 한 트랜잭션으로 저장한다. 중간에 실패하면 빈 채로 남아 다음 시작 때 다시 받는다
             // (일부만 저장되면 on-empty 설정에서 다시 받지 않아 목록이 빠진 채로 남기 때문)
             return transactionTemplate.execute(status -> saveChunks(unique, true));
         }
         return saveChunks(unique, false);
+    }
+
+    /** 같은 고유번호가 두 번 나오면 뒤의 값을 쓴다(처음 나온 자리에 둔다) */
+    private static List<CorpCodeEntry> uniqueByCorpCode(List<CorpCodeEntry> entries) {
+        return new ArrayList<>(entries.stream()
+                .collect(Collectors.toMap(CorpCodeEntry::corpCode, Function.identity(), (a, b) -> b,
+                        LinkedHashMap::new))
+                .values());
     }
 
     /**
@@ -73,21 +75,20 @@ public class CompanyImportService {
         int updated = 0;
         for (int from = 0; from < unique.size(); from += CHUNK_SIZE) {
             List<CorpCodeEntry> chunk = unique.subList(from, Math.min(from + CHUNK_SIZE, unique.size()));
-            int[] counts;
+            ChunkCounts counts;
             if (inOneTransaction) {
                 counts = saveChunk(chunk);
-                entityManager.flush();
-                entityManager.clear();
+                companyStore.flushAndClear();
             } else {
                 counts = transactionTemplate.execute(status -> saveChunk(chunk));
             }
-            inserted += counts[0];
-            updated += counts[1];
+            inserted += counts.inserted();
+            updated += counts.updated();
         }
         return new ImportResult(unique.size(), inserted, updated);
     }
 
-    private int[] saveChunk(List<CorpCodeEntry> chunk) {
+    private ChunkCounts saveChunk(List<CorpCodeEntry> chunk) {
         LocalDateTime now = LocalDateTime.now(clock);
         Map<String, Company> existing = companyRepository
                 .findByCorpCodeIn(chunk.stream().map(CorpCodeEntry::corpCode).toList())
@@ -104,7 +105,7 @@ public class CompanyImportService {
             }
         }
         companyStore.insertAll(created, now);
-        return new int[] {created.size(), updated};
+        return new ChunkCounts(created.size(), updated);
     }
 
     /**
@@ -128,5 +129,8 @@ public class CompanyImportService {
     }
 
     public record ImportResult(int total, int inserted, int updated) {
+    }
+
+    private record ChunkCounts(int inserted, int updated) {
     }
 }
