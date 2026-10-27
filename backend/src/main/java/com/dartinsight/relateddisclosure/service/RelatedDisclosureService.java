@@ -116,6 +116,13 @@ public class RelatedDisclosureService {
     public ChangeRelatedDisclosures forChange(Long analysisId, Long changeId) {
         CompletedTextChange completed = textChangeQueryService.completedChange(analysisId, changeId);
         DisclosureWindow window = window(completed.analysis());
+        int changeNo = completed.change().changeNo();
+        // 저장돼 있으면 이 변경의 연결만 읽는다(분석 하나에 연결이 수천 건일 수 있음)
+        Optional<RelatedRun> saved = store.findRun(analysisId, RelatedDisclosureRules.RULE_VERSION);
+        if (saved.isPresent()) {
+            return found(analysisId, changeId, window, saved.get(), store.findLinks(saved.get().id(), changeNo),
+                    true, false);
+        }
         RelatedDisclosures all;
         try {
             all = get(analysisId);
@@ -127,14 +134,16 @@ public class RelatedDisclosureService {
             return new ChangeRelatedDisclosures(analysisId, changeId, RelatedStatus.UNAVAILABLE, e.errorCode(), false,
                     window, RelatedDisclosureRules.RULE_VERSION, now(), false, List.of());
         }
-        int changeNo = completed.change().changeNo();
-        List<RelatedLink> links = all.links().stream()
-                .filter(link -> link.changeNo() == changeNo)
-                .sorted(SCREEN_ORDER)
-                .toList();
+        List<RelatedLink> links = all.links().stream().filter(link -> link.changeNo() == changeNo).toList();
+        return found(analysisId, changeId, window, all.run(), links, all.cached(), all.partial());
+    }
+
+    private static ChangeRelatedDisclosures found(long analysisId, long changeId, DisclosureWindow window,
+            RelatedRun run, List<RelatedLink> changeLinks, boolean cached, boolean partial) {
+        List<RelatedLink> links = changeLinks.stream().sorted(SCREEN_ORDER).toList();
         return new ChangeRelatedDisclosures(analysisId, changeId,
-                links.isEmpty() ? RelatedStatus.NOT_FOUND : RelatedStatus.FOUND, null, all.partial(), window,
-                all.run().ruleVersion(), all.run().computedAt(), all.cached(), links);
+                links.isEmpty() ? RelatedStatus.NOT_FOUND : RelatedStatus.FOUND, null, partial, window,
+                run.ruleVersion(), run.computedAt(), cached, links);
     }
 
     private Optional<RelatedDisclosures> findSaved(long analysisId) {

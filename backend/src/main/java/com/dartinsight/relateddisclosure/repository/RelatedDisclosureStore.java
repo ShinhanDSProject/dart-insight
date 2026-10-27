@@ -8,6 +8,8 @@ import com.dartinsight.relateddisclosure.domain.RelatedRun;
 import com.dartinsight.relateddisclosure.domain.WindowDisclosure;
 import java.sql.Date;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Objects;
@@ -25,6 +27,11 @@ import org.springframework.stereotype.Repository;
 @Repository
 @RequiredArgsConstructor
 public class RelatedDisclosureStore {
+
+    private static final String LINK_SELECT = "SELECT r.change_no, r.latest_rcept_no, r.timing, r.match_rule,"
+            + " r.match_level, r.matched_fields, i.id AS item_id, i.rcept_no, i.detail_type, i.report_name,"
+            + " i.filer_name, i.rcept_dt, i.remark FROM related_disclosure r"
+            + " JOIN disclosure_window_item i ON i.id = r.item_id";
 
     private static final int BATCH = 500;
 
@@ -47,26 +54,33 @@ public class RelatedDisclosureStore {
 
     /** 계산 기록의 연결. 변경 순서, 같은 변경 안에서는 접수일·접수번호 순서 */
     public List<RelatedLink> findLinks(long runId) {
-        return jdbcTemplate.query("SELECT r.change_no, r.latest_rcept_no, r.timing, r.match_rule, r.match_level,"
-                + " r.matched_fields, i.id AS item_id, i.rcept_no, i.detail_type, i.report_name, i.filer_name,"
-                + " i.rcept_dt, i.remark FROM related_disclosure r JOIN disclosure_window_item i ON i.id = r.item_id"
-                + " WHERE r.run_id = ? ORDER BY r.change_no, i.rcept_dt, i.rcept_no",
-                (rs, rowNum) -> new RelatedLink(
-                        rs.getInt("change_no"),
-                        new WindowDisclosure(
-                                rs.getLong("item_id"),
-                                rs.getString("rcept_no"),
-                                DisclosureDetailType.valueOf(rs.getString("detail_type")),
-                                rs.getString("report_name"),
-                                rs.getString("filer_name"),
-                                rs.getDate("rcept_dt").toLocalDate(),
-                                rs.getString("remark")),
-                        rs.getString("latest_rcept_no"),
-                        DisclosureTiming.valueOf(rs.getString("timing")),
-                        rs.getString("match_rule"),
-                        MatchLevel.valueOf(rs.getString("match_level")),
-                        rs.getString("matched_fields")),
-                runId);
+        return jdbcTemplate.query(LINK_SELECT + " WHERE r.run_id = ? ORDER BY r.change_no, i.rcept_dt, i.rcept_no",
+                RelatedDisclosureStore::link, runId);
+    }
+
+    /** 계산 기록 중 변경 하나의 연결(접수일·접수번호 순서). UNIQUE(run_id, change_no, item_id)의 앞부분으로 찾는다 */
+    public List<RelatedLink> findLinks(long runId, int changeNo) {
+        return jdbcTemplate.query(
+                LINK_SELECT + " WHERE r.run_id = ? AND r.change_no = ? ORDER BY i.rcept_dt, i.rcept_no",
+                RelatedDisclosureStore::link, runId, changeNo);
+    }
+
+    private static RelatedLink link(ResultSet rs, int rowNum) throws SQLException {
+        return new RelatedLink(
+                rs.getInt("change_no"),
+                new WindowDisclosure(
+                        rs.getLong("item_id"),
+                        rs.getString("rcept_no"),
+                        DisclosureDetailType.valueOf(rs.getString("detail_type")),
+                        rs.getString("report_name"),
+                        rs.getString("filer_name"),
+                        rs.getDate("rcept_dt").toLocalDate(),
+                        rs.getString("remark")),
+                rs.getString("latest_rcept_no"),
+                DisclosureTiming.valueOf(rs.getString("timing")),
+                rs.getString("match_rule"),
+                MatchLevel.valueOf(rs.getString("match_level")),
+                rs.getString("matched_fields"));
     }
 
     /**

@@ -236,7 +236,11 @@ class RelatedDisclosureApiTest {
         mockMvc.perform(get(path(changeId(2))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.cached").value(true))
-                .andExpect(jsonPath("$.items", hasSize(2)));
+                .andExpect(jsonPath("$.partial").value(false))
+                // 저장된 결과에서 이 변경의 연결만 읽어도 내용 일치가 먼저다
+                .andExpect(jsonPath("$.items[*].rceptNo", contains("20260108000598", "20260630000676")))
+                .andExpect(jsonPath("$.items[*].matchLevel", contains("STRONG", "TYPE_ONLY")))
+                .andExpect(jsonPath("$.items[1].latestRceptNo").value("20261013000198"));
         assertThat(SERVER.requests()).hasSize(calls);
         assertThat(count("related_disclosure_run")).isEqualTo(1);
     }
