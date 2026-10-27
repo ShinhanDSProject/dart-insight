@@ -1513,7 +1513,7 @@
   "unavailableReason": null,
   "partial": false,
   "window": { "from": "2025-06-30", "periodEnd": "2026-06-30", "to": "2026-08-14" },
-  "ruleVersion": "related-1",
+  "ruleVersion": "related-2",
   "computedAt": "2026-11-05T10:12:40",
   "cached": false,
   "items": [

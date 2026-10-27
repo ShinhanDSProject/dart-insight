@@ -865,7 +865,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | --- | --- | --- | --- | --- |
 | `id` | BIGINT | PK | 아니오 | 자동 증가 |
 | `analysis_id` | BIGINT | FK, UK | 아니오 | `analysis.id` |
-| `rule_version` | VARCHAR(20) | UK | 아니오 | 연결 규칙 버전(`related-1`) |
+| `rule_version` | VARCHAR(20) | UK | 아니오 | 연결 규칙 버전(`related-2`) |
 | `window_fetch_id` | BIGINT | FK | 아니오 | 쓴 공시 목록(`disclosure_window_fetch.id`) |
 | `period_end` | DATE | | 아니오 | 현재 보고서 기간 말일(기간 안·뒤 구분 기준) |
 | `link_count` | INT | | 아니오 | 저장한 연결 수 |

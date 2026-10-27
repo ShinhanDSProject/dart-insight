@@ -23,11 +23,11 @@ class RelatedDisclosureRulesTest {
     }
 
     @Test
-    @DisplayName("규칙은 8개이고 버전은 related-1이다")
+    @DisplayName("규칙은 8개이고 버전은 related-2이다")
     void hasEightRulesAndVersion() {
         assertThat(keys(RelatedDisclosureRules.RULES)).containsExactly("litigation", "supply-contract",
                 "equity-financing", "debt-financing", "investment", "restructuring", "going-concern", "earnings");
-        assertThat(RelatedDisclosureRules.RULE_VERSION).isEqualTo("related-1");
+        assertThat(RelatedDisclosureRules.RULE_VERSION).isEqualTo("related-2");
     }
 
     @ParameterizedTest(name = "{0}: {3}")
