@@ -4,6 +4,7 @@ import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.dart.config.OpenDartProperties;
 import com.dartinsight.dart.domain.CompanyOverviewEntry;
+import com.dartinsight.dart.dto.AuditOpinionItem;
 import com.dartinsight.dart.dto.DartCompanyResponse;
 import com.dartinsight.dart.dto.DisclosureListResponse;
 import com.dartinsight.dart.dto.DividendItem;
@@ -222,6 +223,16 @@ public class OpenDartClient {
     /** 정기보고서 주요정보: 배당에 관한 사항(alotMatter.json). 자료가 없으면(013) noData가 true다. */
     public PeriodicReportInfoPage<DividendItem> dividends(String corpCode, int fiscalYear, String reprtCode) {
         return periodicReportInfo(OpenDartPaths.DIVIDENDS, corpCode, fiscalYear, reprtCode,
+                new ParameterizedTypeReference<>() {
+                });
+    }
+
+    /**
+     * 정기보고서 주요정보: 회계감사인의 명칭 및 감사의견(accnutAdtorNmNdAdtOpinion.json). 자료가 없으면(013) noData가 true다.
+     * https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS002&apiId=2020009
+     */
+    public PeriodicReportInfoPage<AuditOpinionItem> auditOpinions(String corpCode, int fiscalYear, String reprtCode) {
+        return periodicReportInfo(OpenDartPaths.AUDIT_OPINIONS, corpCode, fiscalYear, reprtCode,
                 new ParameterizedTypeReference<>() {
                 });
     }
