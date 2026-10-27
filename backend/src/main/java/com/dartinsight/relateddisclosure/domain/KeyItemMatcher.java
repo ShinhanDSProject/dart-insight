@@ -44,7 +44,8 @@ public final class KeyItemMatcher {
     private static final Pattern COMPANY_MARKS = Pattern.compile("주식회사|\\(주\\)|（주）|㈜");
     private static final Pattern NAME_SEPARATORS = Pattern.compile("[,，、/\\n]");
     private static final Pattern OTHERS_SUFFIX = Pattern.compile("외\\s*\\d+\\s*(?:인|명|사|개사)?$");
-    private static final Pattern FORMER_NAME = Pattern.compile("\\(\\s*구\\s*[:：]?\\s*([^)]+)\\)");
+    /** '(구: 옛 사명)'·'(구 옛 사명)'. '(구로지점)'처럼 '구' 뒤에 콜론·공백이 없으면 옛 사명으로 보지 않는다 */
+    private static final Pattern FORMER_NAME = Pattern.compile("\\(\\s*구\\s*[:：\\s]\\s*([^)]+)\\)");
     private static final int MIN_NAME = 2;
     private static final int MIN_SHARES_DIGITS = 4;
 
@@ -129,16 +130,18 @@ public final class KeyItemMatcher {
     }
 
     private static boolean hasTargetCompany(DisclosureKeyItems keyItems, String text) {
-        Optional<String> company = value(keyItems, "iscmp_cmpnm");
-        if (company.isEmpty()) {
+        Optional<String> value = value(keyItems, "iscmp_cmpnm");
+        if (value.isEmpty()) {
             return false;
         }
+        // '(주)'의 닫는 괄호에서 옛 사명이 끊기지 않게 회사 표시를 먼저 뺀다
+        String company = COMPANY_MARKS.matcher(value.get()).replaceAll("");
         List<String> names = new ArrayList<>();
-        Matcher former = FORMER_NAME.matcher(company.get());
+        Matcher former = FORMER_NAME.matcher(company);
         while (former.find()) {
             names.add(former.group(1));
         }
-        names.add(FORMER_NAME.matcher(company.get()).replaceAll(""));
+        names.add(FORMER_NAME.matcher(company).replaceAll(""));
         String target = name(text);
         for (String candidate : names) {
             String normalized = name(candidate);
