@@ -7,17 +7,12 @@ import com.dartinsight.datagokr.dto.StockPriceRow;
 import com.dartinsight.featured.config.FeaturedProperties;
 import com.dartinsight.featured.domain.FeaturedCompany;
 import com.dartinsight.featured.dto.FeaturedCompanyListResponse;
-import com.dartinsight.featured.dto.FeaturedCompanyResponse;
 import com.dartinsight.featured.repository.FeaturedCompanyRepository;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -45,12 +40,7 @@ public class FeaturedCompanyService {
         List<FeaturedCompany> rows = featured.findAllByOrderByRankNoAsc();
         Map<String, Company> companies = companyService.getAll(rows.stream().map(FeaturedCompany::getCorpCode).toList())
                 .stream().collect(Collectors.toMap(Company::getCorpCode, Function.identity()));
-        List<FeaturedCompanyResponse> items = rows.stream()
-                .filter(row -> companies.containsKey(row.getCorpCode()))
-                .map(row -> FeaturedCompanyResponse.of(row, companies.get(row.getCorpCode())))
-                .toList();
-        LocalDate baseDate = rows.isEmpty() ? null : rows.get(0).getBaseDate();
-        return new FeaturedCompanyListResponse(baseDate, FeaturedCompanyListResponse.SOURCE, items);
+        return FeaturedCompanyListResponse.of(rows, companies);
     }
 
     /** 대표 기업 고유번호, 순위 순(1.7 시즌 순위의 후보) */
@@ -83,32 +73,11 @@ public class FeaturedCompanyService {
         return ranked.size();
     }
 
-    /**
-     * 시가총액 큰 순으로, 우리 기업 목록과 하나로 이어지는 종목만 limit곳. 순위는 이어진 종목 안에서 1부터 다시 매긴다.
-     * 우선주처럼 종목코드가 없거나, 같은 종목코드의 기업이 여럿이면 뺀다.
-     */
+    /** 받은 종목의 종목코드로 우리 기업을 찾아 순위를 매긴다({@link FeaturedCompanyRanking#rank}) */
     private List<FeaturedCompany> rank(List<StockPriceRow> rows, LocalDateTime fetchedAt) {
         Map<String, List<Company>> byStockCode = companyService.findByStockCodes(
                         rows.stream().map(StockPriceRow::stockCode).collect(Collectors.toSet()))
                 .stream().collect(Collectors.groupingBy(Company::getStockCode));
-        List<FeaturedCompany> ranked = new ArrayList<>();
-        Set<String> corpCodes = new HashSet<>();
-        for (StockPriceRow row : rows.stream().sorted(Comparator.comparingLong(StockPriceRow::marketCap).reversed()).toList()) {
-            List<Company> matches = byStockCode.getOrDefault(row.stockCode(), List.of());
-            if (matches.size() != 1) {
-                // 없거나, 같은 종목코드의 기업이 여럿이면 어느 기업인지 정할 수 없어 뺀다
-                continue;
-            }
-            Company company = matches.get(0);
-            if (!corpCodes.add(company.getCorpCode())) {
-                continue;
-            }
-            ranked.add(FeaturedCompany.create(ranked.size() + 1, company.getCorpCode(), row.marketCap(),
-                    row.baseDate(), fetchedAt));
-            if (ranked.size() == properties.limit()) {
-                break;
-            }
-        }
-        return ranked;
+        return FeaturedCompanyRanking.rank(rows, byStockCode, properties.limit(), fetchedAt);
     }
 }
