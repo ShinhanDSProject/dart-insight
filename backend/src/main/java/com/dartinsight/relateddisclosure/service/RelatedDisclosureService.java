@@ -10,21 +10,16 @@ import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.common.trace.TraceContext;
 import com.dartinsight.company.service.CompanyService;
 import com.dartinsight.disclosure.domain.DisclosureKeyItems;
-import com.dartinsight.disclosure.domain.KeyItemRules;
 import com.dartinsight.disclosure.domain.KeyItemTarget;
 import com.dartinsight.disclosure.service.DisclosureKeyItemService;
 import com.dartinsight.relateddisclosure.domain.ChangeRelatedDisclosures;
-import com.dartinsight.relateddisclosure.domain.DisclosureDetailType;
 import com.dartinsight.relateddisclosure.domain.DisclosureWindow;
 import com.dartinsight.relateddisclosure.domain.KeyItemMatcher;
-import com.dartinsight.relateddisclosure.domain.MatchLevel;
 import com.dartinsight.relateddisclosure.domain.RelatedDisclosureMatcher;
 import com.dartinsight.relateddisclosure.domain.RelatedDisclosureRules;
 import com.dartinsight.relateddisclosure.domain.RelatedDisclosures;
 import com.dartinsight.relateddisclosure.domain.RelatedLink;
 import com.dartinsight.relateddisclosure.domain.RelatedRun;
-import com.dartinsight.relateddisclosure.domain.RelatedStatus;
-import com.dartinsight.relateddisclosure.domain.WindowDisclosure;
 import com.dartinsight.relateddisclosure.domain.WindowDisclosures;
 import com.dartinsight.relateddisclosure.repository.RelatedDisclosureStore;
 import com.dartinsight.report.domain.Report;
@@ -32,9 +27,7 @@ import com.dartinsight.report.service.ReportService;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -71,11 +64,6 @@ public class RelatedDisclosureService {
     /** 공시 목록을 받지 못한 사유 중 '일시 미제공'으로 답하는 것(api-spec unavailableReason) */
     private static final Set<ErrorCode> UNAVAILABLE_REASONS = Set.of(ErrorCode.DART_REQUEST_FAILED,
             ErrorCode.DART_RATE_LIMITED, ErrorCode.DART_KEY_MISSING);
-    /** 화면 순서: 내용 일치 먼저, 같으면 접수일이 최근인 것, 같은 날이면 접수번호가 큰 것 */
-    private static final Comparator<RelatedLink> SCREEN_ORDER = Comparator
-            .comparing((RelatedLink link) -> link.matchLevel() == MatchLevel.STRONG ? 0 : 1)
-            .thenComparing((RelatedLink link) -> link.disclosure().rceptDt(), Comparator.reverseOrder())
-            .thenComparing((RelatedLink link) -> link.disclosure().rceptNo(), Comparator.reverseOrder());
 
     static {
         for (int i = 0; i < LOCKS.length; i++) {
@@ -120,8 +108,8 @@ public class RelatedDisclosureService {
         // 저장돼 있으면 이 변경의 연결만 읽는다(분석 하나에 연결이 수천 건일 수 있음)
         Optional<RelatedRun> saved = store.findRun(analysisId, RelatedDisclosureRules.RULE_VERSION);
         if (saved.isPresent()) {
-            return found(analysisId, changeId, window, saved.get(), store.findLinks(saved.get().id(), changeNo),
-                    true, false);
+            return ChangeRelatedDisclosures.found(analysisId, changeId, window, saved.get(),
+                    store.findLinks(saved.get().id(), changeNo), true, false);
         }
         RelatedDisclosures all;
         try {
@@ -131,19 +119,10 @@ public class RelatedDisclosureService {
                 throw e;
             }
             log.warn("관련 수시공시 공시 목록을 받지 못해 일시 미제공으로 답합니다 analysis={}: {}", analysisId, e.errorCode());
-            return new ChangeRelatedDisclosures(analysisId, changeId, RelatedStatus.UNAVAILABLE, e.errorCode(), false,
-                    window, RelatedDisclosureRules.RULE_VERSION, now(), false, List.of());
+            return ChangeRelatedDisclosures.unavailable(analysisId, changeId, window, e.errorCode(), now());
         }
-        List<RelatedLink> links = all.links().stream().filter(link -> link.changeNo() == changeNo).toList();
-        return found(analysisId, changeId, window, all.run(), links, all.cached(), all.partial());
-    }
-
-    private static ChangeRelatedDisclosures found(long analysisId, long changeId, DisclosureWindow window,
-            RelatedRun run, List<RelatedLink> changeLinks, boolean cached, boolean partial) {
-        List<RelatedLink> links = changeLinks.stream().sorted(SCREEN_ORDER).toList();
-        return new ChangeRelatedDisclosures(analysisId, changeId,
-                links.isEmpty() ? RelatedStatus.NOT_FOUND : RelatedStatus.FOUND, null, partial, window,
-                run.ruleVersion(), run.computedAt(), cached, links);
+        return ChangeRelatedDisclosures.found(analysisId, changeId, window, all.run(), all.linksOf(changeNo),
+                all.cached(), all.partial());
     }
 
     private Optional<RelatedDisclosures> findSaved(long analysisId) {
@@ -172,9 +151,7 @@ public class RelatedDisclosureService {
             Long id = transactionTemplate.execute(status -> store.insert(run, links));
             log.info("관련 수시공시 연결 저장 analysis={}: 변경 {}건, 공시 {}건, 연결 {}건", analysisId,
                     completed.changes().size(), disclosures.items().size(), links.size());
-            return new RelatedDisclosures(new RelatedRun(id, run.analysisId(), run.ruleVersion(),
-                    run.windowFetchId(), run.periodEnd(), run.linkCount(), run.traceId(), run.computedAt()), links,
-                    false, false);
+            return new RelatedDisclosures(run.withId(id), links, false, false);
         } catch (DataIntegrityViolationException e) {
             // 같은 분석을 다른 서버·잠금 밖에서 먼저 저장한 경우에만 저장된 것을 쓴다
             return findSaved(analysisId).orElseThrow(() -> e);
@@ -186,19 +163,8 @@ public class RelatedDisclosureService {
      * 부르지 않는다(020 한도 초과일 때 더 부르지 않기 위함).
      */
     private Optional<Map<String, DisclosureKeyItems>> keyItems(String corpCode, List<RelatedLink> links) {
-        Map<String, KeyItemTarget> targets = new LinkedHashMap<>();
-        for (RelatedLink link : links) {
-            WindowDisclosure d = link.disclosure();
-            if (d.detailType() != DisclosureDetailType.B001 || targets.containsKey(d.rceptNo())) {
-                continue;
-            }
-            KeyItemRules.classify(d.reportName())
-                    .filter(KeyItemMatcher.KINDS::contains)
-                    .ifPresent(kind -> targets.put(d.rceptNo(),
-                            KeyItemTarget.of(d.rceptNo(), d.reportName(), d.rceptDt(), kind, d.remark())));
-        }
         Map<String, DisclosureKeyItems> keyItems = new HashMap<>();
-        for (KeyItemTarget target : targets.values()) {
+        for (KeyItemTarget target : KeyItemMatcher.targets(links)) {
             try {
                 keyItems.put(target.rceptNo(), keyItemService.load(corpCode, target));
             } catch (ApiException e) {

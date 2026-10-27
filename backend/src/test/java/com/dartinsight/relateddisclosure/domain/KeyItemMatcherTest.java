@@ -1,10 +1,13 @@
 package com.dartinsight.relateddisclosure.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import com.dartinsight.disclosure.domain.DisclosureKeyItems;
 import com.dartinsight.disclosure.domain.KeyItemKind;
 import com.dartinsight.disclosure.domain.KeyItemStatus;
+import com.dartinsight.disclosure.domain.KeyItemTarget;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -153,5 +156,26 @@ class KeyItemMatcherTest {
         assertThat(match(noData, "신주 0주")).isEmpty();
         assertThat(match(capitalIncrease("9,900,990"), null)).isEmpty();
         assertThat(match(treasury, "자기주식 364,698주")).isEmpty();
+    }
+
+    private static RelatedLink link(int changeNo, String rceptNo, DisclosureDetailType type, String reportName) {
+        WindowDisclosure disclosure = new WindowDisclosure(null, rceptNo, type, reportName, "고려아연",
+                LocalDate.of(2026, 7, 1), null);
+        return new RelatedLink(changeNo, disclosure, null, DisclosureTiming.AFTER, "RULE", MatchLevel.TYPE_ONLY, null);
+    }
+
+    @Test
+    @DisplayName("주요정보를 받을 공시는 2단계 종류의 B001 공시이고, 접수번호마다 한 번만 연결 순서로 둔다")
+    void targetsAreB001KeyItemDisclosuresOnce() {
+        List<KeyItemTarget> targets = KeyItemMatcher.targets(List.of(
+                link(1, "20260701000001", DisclosureDetailType.B001, "주요사항보고서(유상증자결정)"),
+                link(2, "20260701000001", DisclosureDetailType.B001, "주요사항보고서(유상증자결정)"),
+                link(2, "20260701000002", DisclosureDetailType.B001, "주요사항보고서(자기주식취득결정)"),
+                link(3, "20260701000003", DisclosureDetailType.I001, "주요사항보고서(소송등의제기)"),
+                link(3, "20260701000004", DisclosureDetailType.B001, "주요사항보고서(소송등의제기)")));
+
+        assertThat(targets).extracting(KeyItemTarget::rceptNo, KeyItemTarget::kind).containsExactly(
+                tuple("20260701000001", KeyItemKind.CAPITAL_INCREASE),
+                tuple("20260701000004", KeyItemKind.LITIGATION));
     }
 }
