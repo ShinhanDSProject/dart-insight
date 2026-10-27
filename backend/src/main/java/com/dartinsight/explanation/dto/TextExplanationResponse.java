@@ -1,5 +1,6 @@
 package com.dartinsight.explanation.dto;
 
+import com.dartinsight.document.domain.EvidenceRef;
 import com.dartinsight.explanation.domain.ExplanationStatus;
 import com.dartinsight.explanation.domain.TextExplanationRecord;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -54,20 +55,12 @@ public record TextExplanationResponse(Long changeId, ExplanationStatus status, S
         static Evidence of(String evidenceId, Location location, String currentRceptNo, String previousRceptNo) {
             Integer sectionNo = location == null ? null : location.sectionNo();
             String sectionPath = location == null ? null : location.sectionPath();
-            int mark = evidenceId.indexOf("#B");
-            if (mark < 0) {
-                return new Evidence(null, null, sectionNo, null, sectionPath, evidenceId);
-            }
-            String rceptNo = evidenceId.substring(0, mark);
-            String side = rceptNo.equals(currentRceptNo) ? "current"
+            EvidenceRef ref = EvidenceRef.parse(evidenceId);
+            String rceptNo = ref.rceptNo();
+            String side = rceptNo == null ? null
+                    : rceptNo.equals(currentRceptNo) ? "current"
                     : rceptNo.equals(previousRceptNo) ? "previous" : null;
-            Integer blockNo;
-            try {
-                blockNo = Integer.valueOf(evidenceId.substring(mark + 2));
-            } catch (NumberFormatException e) {
-                blockNo = null;
-            }
-            return new Evidence(side, rceptNo, sectionNo, blockNo, sectionPath, evidenceId);
+            return new Evidence(side, rceptNo, sectionNo, ref.blockNo(), sectionPath, evidenceId);
         }
     }
 

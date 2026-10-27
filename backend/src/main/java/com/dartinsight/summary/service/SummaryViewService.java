@@ -4,7 +4,7 @@ import com.dartinsight.analysis.domain.Analysis;
 import com.dartinsight.document.domain.DocumentBlock;
 import com.dartinsight.document.domain.ReportDocument;
 import com.dartinsight.document.service.DocumentService;
-import com.dartinsight.summary.domain.EvidenceRef;
+import com.dartinsight.document.domain.EvidenceRef;
 import com.dartinsight.summary.domain.SummaryItemRow;
 import com.dartinsight.summary.dto.SummaryResponse;
 import com.dartinsight.summary.dto.SummaryResponse.EvidenceView;

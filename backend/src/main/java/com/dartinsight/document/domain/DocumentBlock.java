@@ -18,6 +18,6 @@ public record DocumentBlock(String rceptNo, int blockNo, int sectionNo, String t
     }
 
     public static String evidenceId(String rceptNo, int blockNo) {
-        return rceptNo + "#B" + blockNo;
+        return EvidenceRef.id(rceptNo, blockNo);
     }
 }
