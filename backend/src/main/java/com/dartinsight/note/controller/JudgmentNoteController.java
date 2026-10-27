@@ -46,8 +46,7 @@ public class JudgmentNoteController {
     @PostMapping
     public ResponseEntity<NoteItemResponse> create(@AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody NoteCreateRequest request) {
-        NoteItemResponse item = noteService.create(userId(jwt), request.kind(), request.analysisId(),
-                request.changeId(), request.memo());
+        NoteItemResponse item = noteService.create(userId(jwt), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(item);
     }
 

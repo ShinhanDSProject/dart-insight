@@ -13,6 +13,9 @@ import com.dartinsight.analysis.service.TextEvidenceService.TextEvidence;
 import com.dartinsight.financial.domain.StatementType;
 import com.dartinsight.note.domain.NoteKind;
 import com.dartinsight.note.domain.NoteSnapshot;
+import com.dartinsight.question.domain.CitedSource;
+import com.dartinsight.question.domain.QuestionSource;
+import com.dartinsight.question.service.QuestionService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
@@ -21,7 +24,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 /**
- * 담을 근거를 저장된 분석 결과에서 찾아 사본을 만든다(ADR-0034). 화면이 보낸 글은 쓰지 않는다.
+ * 담을 근거를 저장된 분석 결과·질문 답에서 찾아 사본을 만든다(ADR-0034). 화면이 보낸 글은 쓰지 않는다.
  * 재무 값 문장은 저장된 계산 결과(금액·증감액·증감률·계산 상태)를 코드로 옮긴 것이고 LLM을 쓰지 않는다.
  */
 @Service
@@ -34,12 +37,29 @@ public class NoteSnapshotFactory {
 
     private final AnalysisResultService resultService;
     private final TextEvidenceService evidenceService;
+    private final QuestionService questionService;
 
     public NoteSnapshot create(NoteKind kind, long analysisId, long changeId) {
         return switch (kind) {
             case FINANCIAL_CHANGE -> financial(resultService.completedChange(analysisId, changeId));
             case TEXT_CHANGE -> text(resultService.completed(analysisId), evidenceService.evidence(analysisId, changeId));
+            case ANSWER_CITATION -> throw new IllegalArgumentException("AI 답 인용은 answerCitation으로 만든다");
         };
+    }
+
+    /**
+     * AI 답의 인용 하나. 이름은 섹션 경로, 글은 저장된 원문의 그 문단, 질문은 저장된 질문 글이다(#432).
+     * 원래 위치는 원문 확인 탭(보고서 쪽·섹션·블록)이다.
+     */
+    public NoteSnapshot answerCitation(long analysisId, long questionId, int citationNo) {
+        Analysis analysis = resultService.completed(analysisId);
+        CitedSource cited = questionService.citedSource(analysis, questionId, citationNo);
+        QuestionSource source = cited.source();
+        String label = source.sectionPath() == null || source.sectionPath().isBlank() ? UNKNOWN_SECTION
+                : source.sectionPath();
+        return new NoteSnapshot(analysis.getCorpCode(), NoteKind.ANSWER_CITATION, analysis.getId(),
+                analysis.getAnalysisVersion(), null, null, source.rceptNo(), source.sectionNo(), source.blockNo(),
+                null, label, source.text(), cited.questionId(), cited.question(), source.side());
     }
 
     private static NoteSnapshot financial(CompletedChange result) {

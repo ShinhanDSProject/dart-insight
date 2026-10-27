@@ -47,9 +47,16 @@ final class NoteMarkdown {
             md.append("- 종류: 재무 수치\n");
             md.append("- 담은 값: ").append(oneLine(item.text())).append('\n');
         } else {
-            md.append("- 종류: 문장 변경");
-            if (item.changeType() != null) {
-                md.append(" · ").append(CHANGE_TYPES.getOrDefault(item.changeType(), item.changeType()));
+            if (item.kind() == NoteKind.ANSWER_CITATION) {
+                md.append("- 종류: AI 답 인용");
+                if (item.question() != null) {
+                    md.append('\n').append("- 질문: ").append(oneLine(item.question()));
+                }
+            } else {
+                md.append("- 종류: 문장 변경");
+                if (item.changeType() != null) {
+                    md.append(" · ").append(CHANGE_TYPES.getOrDefault(item.changeType(), item.changeType()));
+                }
             }
             md.append('\n').append("- 담은 문장:\n\n");
             for (String line : item.text().split("\\R")) {
