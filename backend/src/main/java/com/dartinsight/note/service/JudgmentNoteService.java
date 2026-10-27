@@ -9,15 +9,14 @@ import com.dartinsight.note.domain.NoteSnapshot;
 import com.dartinsight.note.dto.NoteCreateRequest;
 import com.dartinsight.note.dto.NoteItemResponse;
 import com.dartinsight.note.dto.NoteListResponse;
-import com.dartinsight.note.dto.NoteListResponse.CompanyNote;
 import com.dartinsight.note.repository.JudgmentNoteItemRepository;
 import com.dartinsight.user.UserService;
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -48,16 +47,7 @@ public class JudgmentNoteService {
         List<JudgmentNoteItem> rows = corpCode == null
                 ? items.findByUserIdOrderByCreatedAtDescIdDesc(userId)
                 : items.findByUserIdAndCorpCodeOrderByCreatedAtDescIdDesc(userId, requireCorpCode(corpCode));
-        Map<String, List<NoteItemResponse>> byCompany = new LinkedHashMap<>();
-        for (JudgmentNoteItem row : rows) {
-            byCompany.computeIfAbsent(row.getCorpCode(), key -> new ArrayList<>())
-                    .add(NoteItemResponse.from(row));
-        }
-        Map<String, Company> companies = companyService.getAll(byCompany.keySet()).stream()
-                .collect(Collectors.toMap(Company::getCorpCode, Function.identity()));
-        return new NoteListResponse(byCompany.entrySet().stream()
-                .map(e -> new CompanyNote(e.getKey(), corpName(companies, e.getKey()), List.copyOf(e.getValue())))
-                .toList());
+        return NoteListResponse.of(rows, companiesOf(rows));
     }
 
     /**
@@ -75,7 +65,7 @@ public class JudgmentNoteService {
             }
         };
         JudgmentNoteItem saved = items.save(
-                JudgmentNoteItem.create(userId, snapshot, normalizeMemo(request.memo()), LocalDateTime.now(clock)));
+                JudgmentNoteItem.create(userId, snapshot, request.memo(), LocalDateTime.now(clock)));
         return NoteItemResponse.from(saved);
     }
 
@@ -91,7 +81,7 @@ public class JudgmentNoteService {
     public NoteItemResponse updateMemo(long userId, long itemId, String memo) {
         userService.requireExisting(userId);
         JudgmentNoteItem item = findOwnedOrThrow(userId, itemId);
-        item.changeMemo(normalizeMemo(memo), LocalDateTime.now(clock));
+        item.changeMemo(memo, LocalDateTime.now(clock));
         return NoteItemResponse.from(item);
     }
 
@@ -128,18 +118,12 @@ public class JudgmentNoteService {
         return corpCode;
     }
 
-    private static String corpName(Map<String, Company> companies, String corpCode) {
-        Company company = companies.get(corpCode);
-        return company == null ? null : company.getCorpName();
-    }
-
-    /** 앞뒤 공백을 지우고, 비었으면 null */
-    private static String normalizeMemo(String memo) {
-        if (memo == null) {
-            return null;
-        }
-        String trimmed = memo.strip();
-        return trimmed.isEmpty() ? null : trimmed;
+    /** 항목에 나온 기업(처음 나온 순서). 고유번호 → 기업 */
+    private Map<String, Company> companiesOf(List<JudgmentNoteItem> rows) {
+        Set<String> corpCodes = rows.stream().map(JudgmentNoteItem::getCorpCode)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        return companyService.getAll(corpCodes).stream()
+                .collect(Collectors.toMap(Company::getCorpCode, Function.identity()));
     }
 
     public record NoteExport(String fileName, String markdown) {

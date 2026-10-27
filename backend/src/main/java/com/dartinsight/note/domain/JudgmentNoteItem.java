@@ -102,16 +102,25 @@ public class JudgmentNoteItem {
         item.questionId = snapshot.questionId();
         item.snapshotQuestion = snapshot.question();
         item.docSide = snapshot.side();
-        item.memo = memo;
+        item.memo = normalizeMemo(memo);
         item.createdAt = now;
         item.updatedAt = now;
         return item;
     }
 
-    /** 메모만 바꾼다. null이면 메모를 지운다 */
+    /** 메모만 바꾼다. null이거나 공백뿐이면 메모를 지운다 */
     public void changeMemo(String newMemo, LocalDateTime now) {
-        this.memo = newMemo;
+        this.memo = normalizeMemo(newMemo);
         this.updatedAt = now;
+    }
+
+    /** 앞뒤 공백을 지우고, 비었으면 null */
+    private static String normalizeMemo(String memo) {
+        if (memo == null) {
+            return null;
+        }
+        String trimmed = memo.strip();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     /** 담을 때의 분석 버전이 지금 서버의 분석 버전과 다른지(AC4) */
