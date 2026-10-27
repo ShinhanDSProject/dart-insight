@@ -275,6 +275,7 @@
   flex-direction: column;
   gap: var(--space-3);
   margin-top: var(--space-3);
+  container-type: inline-size;
 }
 
 .fin-trend__controls {
@@ -285,11 +286,23 @@
 
 .fin-trend__charts {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
   gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* 차트(최대 6개)가 한 줄에 들어갈 폭이면 한 줄로 둔다(#388). 좁으면 위의 규칙대로 여러 줄 */
+@container (min-width: 900px) {
+  .fin-trend__charts {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  /* 기간이 5개 이상이면(예: 사업보고서만 내는 회사) 한 줄 6칸은 막대·기간 이름이 비좁아 한 줄 3칸으로 둔다 */
+  .fin-trend__charts:has(.fin-trend__labels li:nth-child(5)) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .fin-trend__card {
@@ -325,7 +338,9 @@
   position: relative;
   display: flex;
   gap: var(--space-2);
-  height: 96px;
+  height: 112px;
+  /* 위쪽 눈금 글자(최대값)가 막대와 겹치지 않게 막대 위에 자리를 둔다 */
+  padding-top: var(--space-4);
   border-bottom: 1px solid var(--color-chart-grid);
 }
 
@@ -391,7 +406,10 @@
 
 .fin-trend__labels li {
   flex: 1;
+  min-width: 0;
   text-align: center;
+  /* 칸이 좁으면 '2025 반기'를 연도와 종류 두 줄로 나눈다(글자 중간에서는 끊지 않음) */
+  word-break: keep-all;
 }
 
 .fin-trend__corrected {
