@@ -889,3 +889,67 @@
   align-self: flex-start;
   font-size: var(--font-size-sm);
 }
+
+/* 확인해 볼 공시(FS-55, #411). 종류별 건수를 칸으로 늘어놓고, 해당 공시는 최근 공시와 같은 줄 모양으로 둔다 */
+.disclosure-signals__body {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.disclosure-signals__kinds,
+.disclosure-signals__items {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.disclosure-signals__kinds {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  gap: var(--space-1) var(--space-4);
+}
+
+.disclosure-signals__kind {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-2);
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-sm);
+}
+
+.disclosure-signals__count {
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.disclosure-signals__items {
+  gap: var(--space-3);
+}
+
+.disclosure-signals__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+}
+
+.disclosure-signals__main {
+  display: grid;
+  flex: 1 1 240px;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.disclosure-signals__sentence {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.disclosure-signals__meta {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
