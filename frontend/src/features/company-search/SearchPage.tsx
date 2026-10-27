@@ -11,10 +11,12 @@ import { useFavoriteCompanies } from '@/shared/hooks/useFavoriteCompanies'
 import { useRecentAnalyses } from '@/shared/hooks/useRecentAnalyses'
 import { isOnboardingVisible } from '@/shared/lib/onboarding'
 import { pageTitle } from '@/shared/lib/pageTitle'
+import { useFeaturedCompanies } from './hooks/useFeaturedCompanies'
 import { useCompanySearch, type SearchResult as SearchData } from './hooks/useCompanySearch'
 import { useAutoSearch } from './hooks/useAutoSearch'
 import { CompanyList, RESULT_LINK_SELECTOR } from './components/CompanyList'
 import { FavoriteCompanies } from './components/FavoriteCompanies'
+import { FeaturedCompanies } from './components/FeaturedCompanies'
 import { FavoriteDisclosureFeed } from './components/FavoriteDisclosureFeed'
 import { OnboardingGuide } from './components/OnboardingGuide'
 import { RecentAnalyses } from './components/RecentAnalyses'
@@ -111,15 +113,17 @@ function OnboardingSection({ query }: { query: string }) {
 }
 
 /**
- * 검색어가 없을 때만 보이는 첫 화면 아래쪽. 로그인한 회원의 관심 기업(#36) 칩을 전체 폭으로 두고, 그 아래에
+ * 검색어가 없을 때만 보이는 첫 화면 아래쪽. 맨 위에 대표 기업(#399)을, 그 아래 로그인한 회원의 관심 기업(#36) 칩을 전체 폭으로 두고, 그 아래에
  * 최근 본 분석(FS-7)과 관심 기업 새 공시(FS-52)를 같은 폭 두 열로 둔다(#378). 두 열은 제목 줄·목록·아래 줄이 맞는다.
  * 관심 기업 목록이 비거나 로그인하지 않았으면 칩은 보이지 않고 새 공시 자리에 짧은 안내만 보인다.
  * 목록을 받지 못했으면 빈 목록처럼 숨기지 않고 다시 시도를 안내한다.
  */
 function HomeSections() {
   const favorites = useFavoriteCompanies()
+  const featured = useFeaturedCompanies()
   return (
     <>
+      <FeaturedCompanies state={featured.state} onRetry={featured.reload} />
       {match(favorites.status)
         .with('error', () => (
           <AlertState title="관심 기업을 불러오지 못했어요.">

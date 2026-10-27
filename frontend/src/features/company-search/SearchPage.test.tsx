@@ -35,6 +35,9 @@ const favoritesApi = vi.hoisted(() => ({
   removeFavoriteCompany: vi.fn(),
 }))
 vi.mock('@/shared/api/favoriteCompanies', () => favoritesApi)
+vi.mock('@/shared/api/featuredCompanies', () => ({
+  getFeaturedCompanies: () => Promise.resolve({ baseDate: null, source: '금융위원회, 공공데이터포털', items: [] }),
+}))
 
 // 관심 기업 새 공시(FS-52)는 컴포넌트 테스트에서 따로 본다
 vi.mock('@/shared/api/disclosures', () => ({
