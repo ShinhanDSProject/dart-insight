@@ -1177,6 +1177,11 @@ th[aria-sort='none'] .data-table__sort-mark {
   line-height: 1;
 }
 
+/* '999+'(네 글자)도 가장 큰 원 안에 들어가게 글자 사이를 좁힌다 */
+.dot-timeline__cluster--size-3 .dot-timeline__cluster-dot {
+  letter-spacing: -0.06em;
+}
+
 .dot-timeline__cluster-dot {
   width: var(--dot-timeline-cluster);
   height: var(--dot-timeline-cluster);
