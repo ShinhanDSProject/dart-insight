@@ -43,6 +43,7 @@ public class SummaryService {
     private static final Logger log = LoggerFactory.getLogger(SummaryService.class);
     private static final String MISSING = "요약 결과에 이 항목이 없었어요.";
     private static final String BAD_EVIDENCE = "요약 문장의 근거가 보낸 원문 위치가 아니라 쓰지 않았어요.";
+    private static final String BAD_QUOTE = "설명의 등급이나 인용 위치를 확인하지 못해 쓰지 않았어요.";
 
     private final AiServerClient aiServerClient;
     private final DocumentService documentService;
@@ -82,9 +83,7 @@ public class SummaryService {
         if (textItems.isEmpty() && financialItems.stream().allMatch(i -> i.candidates().isEmpty())) {
             // LLM이 쓸 것이 없으면(문장 변화도 설명 후보도 없음) AI 서버를 부르지 않는다
             List<SummaryItemRow> rows = financialPicked.stream()
-                    .map(i -> new SummaryItemRow(SummaryItemRow.FINANCIAL, SummaryItemRow.SHOWN,
-                            FinancialFacts.sentence(financial.get(i)), null, "NOT_FOUND", List.of(), i, null, null,
-                            null, null, null, List.of()))
+                    .map(i -> notFound(FinancialFacts.sentence(financial.get(i)), i, null))
                     .toList();
             return new SummaryResult(SummaryStatus.COMPLETED, null, rows, List.of());
         }
@@ -206,28 +205,41 @@ public class SummaryService {
         String reason;
         if (item == null) {
             if (allowed.isEmpty()) {
-                return notFound(fact, index);
+                return notFound(fact, index, null);
             }
             reason = MISSING;
         } else if (!"OK".equals(item.status())) {
             reason = reason(item);
         } else if (item.explanation() == null) {
-            return notFound(fact, index);
+            // 코드가 등급을 NONE으로 낮췄으면 AI 서버가 그 사유를 reviewReason에 준다(후보가 없던 NONE과 화면 문구가 다름)
+            return notFound(fact, index, item.reviewReason());
         } else if (!citesOnly(item.evidenceIds(), allowed)) {
             reason = BAD_EVIDENCE;
+        } else if (!quoted(item, allowed)) {
+            reason = BAD_QUOTE;
         } else {
             return new SummaryItemRow(SummaryItemRow.FINANCIAL, SummaryItemRow.SHOWN, fact, item.explanation(),
-                    "FOUND", item.evidenceIds(), index, null, null, response.model(), response.promptVersion(),
-                    generatedAt, List.of());
+                    SummaryItemRow.FOUND, item.evidenceIds(), index, null, item.reviewReason(), response.model(),
+                    response.promptVersion(), generatedAt, List.of(), item.grade(), item.quote(),
+                    item.quoteEvidenceId());
         }
         // 수치 문장(코드가 만듦)은 보이고, 설명만 검토 필요로 둔다
         return new SummaryItemRow(SummaryItemRow.FINANCIAL, SummaryItemRow.SHOWN, fact, null,
                 SummaryItemRow.REVIEW_NEEDED, List.of(), index, null, reason, null, null, null, blocked(item));
     }
 
-    private static SummaryItemRow notFound(String fact, int index) {
-        return new SummaryItemRow(SummaryItemRow.FINANCIAL, SummaryItemRow.SHOWN, fact, null, "NOT_FOUND", List.of(),
-                index, null, null, null, null, null, List.of());
+    /** @param downgradeReason 코드가 등급을 NONE으로 낮춘 사유. 후보가 없었거나 LLM이 NONE이라 했으면 null */
+    private static SummaryItemRow notFound(String fact, int index, String downgradeReason) {
+        return new SummaryItemRow(SummaryItemRow.FINANCIAL, SummaryItemRow.SHOWN, fact, null,
+                SummaryItemRow.NOT_FOUND, List.of(), index, null, downgradeReason, null, null, null, List.of(),
+                SummaryItemRow.NONE, null, null);
+    }
+
+    /** 설명의 등급이 STATED·RELATED이고, 인용문이 있으며 인용 위치가 그 항목에 보낸 후보인지 */
+    private static boolean quoted(SummaryAiResponse.Item item, Set<String> allowed) {
+        return (SummaryItemRow.STATED.equals(item.grade()) || SummaryItemRow.RELATED.equals(item.grade()))
+                && item.quote() != null && !item.quote().isBlank()
+                && item.quoteEvidenceId() != null && allowed.contains(item.quoteEvidenceId());
     }
 
     /** 투자 권유성 표현 검사(5.5)에 걸린 규칙. 없으면 빈 목록 */
