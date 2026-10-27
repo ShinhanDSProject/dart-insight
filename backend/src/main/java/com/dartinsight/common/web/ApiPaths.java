@@ -48,6 +48,8 @@ public final class ApiPaths {
     /** 확인해 볼 공시(FS-55) */
     public static final String COMPANY_DISCLOSURE_SIGNALS = COMPANIES + "/{corpCode}/disclosure-signals";
     public static final String COMPANY_BRIEFING =COMPANIES + "/{corpCode}/briefing";
+    /** 회사가 밝힌 전망·계획(FS-59, ADR-0039) */
+    public static final String COMPANY_OUTLOOK = COMPANIES + "/{corpCode}/outlook";
     /** 사업보고서에 근거해 묻기(FS-53) */
     public static final String COMPANY_QUESTIONS = COMPANIES + "/{corpCode}/questions";
     public static final String REPORT_BY_RCEPT_NO = "/reports/{rceptNo}";
