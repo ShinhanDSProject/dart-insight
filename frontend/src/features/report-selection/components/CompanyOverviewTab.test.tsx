@@ -40,6 +40,11 @@ vi.mock('./DisclosureSignalsSection', () => ({
     <section aria-label="확인해 볼 공시" data-section="disclosure-signals" data-corp-code={corpCode} />
   ),
 }))
+vi.mock('./DisclosureChartSection', () => ({
+  DisclosureChartSection: ({ corpCode }: { corpCode: string }) => (
+    <section aria-label="공시 타임라인" data-section="disclosure-chart" data-corp-code={corpCode} />
+  ),
+}))
 vi.mock('./DisclosureTimelineSection', () => ({
   DisclosureTimelineSection: ({ corpCode }: { corpCode: string }) => (
     <section aria-label="최근 공시" data-section="disclosures" data-corp-code={corpCode} />
@@ -85,7 +90,7 @@ describe('기업 개요 탭의 영역 순서', () => {
 
     await screen.findByRole('region', { name: '기업 개황' })
     const names = screen.getAllByRole('region').map(regionName)
-    expect(names).toEqual(['AI 기업 브리핑', '기업 개황', 'AI에게 묻기', '주요 재무 흐름', '최대주주·임원·배당 변화', '확인해 볼 공시', '최근 공시'])
+    expect(names).toEqual(['AI 기업 브리핑', '기업 개황', 'AI에게 묻기', '주요 재무 흐름', '최대주주·임원·배당 변화', '확인해 볼 공시', '공시 타임라인', '최근 공시'])
     const stubs = Array.from(container.querySelectorAll('[data-section]'))
     expect(stubs.every((el) => el.getAttribute('data-corp-code') === '00126380')).toBe(true)
   })
@@ -99,7 +104,7 @@ describe('기업 개요 바로 가기(#385)', () => {
 
     const nav = screen.getByRole('navigation', { name: '기업 개요 바로 가기' })
     const links = within(nav).getAllByRole('link')
-    expect(links.map((link) => link.textContent)).toEqual(['AI 브리핑', '기업 개황', 'AI에게 묻기', '재무 흐름', '주주·임원·배당', '확인해 볼 공시', '최근 공시'])
+    expect(links.map((link) => link.textContent)).toEqual(['AI 브리핑', '기업 개황', 'AI에게 묻기', '재무 흐름', '주주·임원·배당', '확인해 볼 공시', '공시 타임라인', '최근 공시'])
     expect(links[0].getAttribute('aria-current')).toBe('location')
     for (const link of links) {
       const id = link.getAttribute('href')!.slice(1)

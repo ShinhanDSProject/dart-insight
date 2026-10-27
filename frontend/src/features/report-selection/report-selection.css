@@ -959,3 +959,26 @@
   color: var(--color-text-muted);
   overflow-wrap: anywhere;
 }
+
+/* 공시 타임라인 차트(FS-58, #445). 차트 모양은 ui.css의 .dot-timeline(4-20), 여기는 영역 안 배치만 */
+.disclosure-chart__body {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.disclosure-chart__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.disclosure-chart__head .panel__note {
+  flex: 1 1 280px;
+}
+
+.disclosure-chart__more {
+  display: flex;
+  justify-content: center;
+}
