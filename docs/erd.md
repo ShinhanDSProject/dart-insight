@@ -26,6 +26,7 @@
 | `company` | 기업. OpenDART 고유번호 기준 | 4.4 (#51) | M1 |
 | `company_overview` | 기업 개황(OpenDART `company.json`) 캐시. 고유번호 기준, 받은 시각으로 다시 받음 | 1.2 (#329) | M2 |
 | `featured_company` | 첫 화면 대표 기업(유가증권시장 시가총액 상위 100). 공공데이터포털에서 월 1회 통째로 바꿈 | #399 (1.5) | 미정 |
+| `season_change` | 시즌별 대표 기업 문장 변경 점수·순위(이번 시즌 변화가 큰 기업) | #420 (1.7) | 미정 |
 | `report` | 정기보고서. 접수번호 기준 | 4.1 (#27) | M1 |
 | `financial_statement_fetch` | 재무제표 API를 부른 기록(보고서·연결/별도 단위) | 4.5 (#52) | M1 |
 | `financial_account` | 재무제표 계정 값(API 응답 한 줄) | 4.5 (#52) | M1 |
@@ -130,6 +131,8 @@ erDiagram
     company ||--o{ report : "corp_code"
     company ||--o| company_overview : "corp_code"
     company ||--o| featured_company : "corp_code (#399)"
+    company ||--o{ season_change : "corp_code (#420)"
+    analysis ||--o{ season_change : "analysis_id (#420)"
     company ||--o{ financial_statement_fetch : "corp_code"
     company ||--o| company_disclosure_fetch : "corp_code"
     company ||--o{ company_disclosure : "corp_code"
@@ -182,6 +185,17 @@ erDiagram
         bigint market_cap
         date base_date
         datetime fetched_at
+    }
+    season_change {
+        bigint id PK
+        varchar report_type UK
+        int fiscal_year UK
+        varchar corp_code FK
+        varchar status
+        decimal score
+        int rank_no
+        bigint analysis_id FK
+        datetime computed_at
     }
     report {
         bigint id PK
@@ -390,6 +404,30 @@ OpenDART `corpCode.xml`에서 받습니다(4.4).
 | `market_cap` | BIGINT | | 아니오 | 기준일 시가총액(원, 응답 `mrktTotAmt`). 내보내지 않음 |
 | `base_date` | DATE | | 아니오 | 시세 기준일(응답 `basDt`) |
 | `fetched_at` | DATETIME(6) | | 아니오 | 받은 시각. 30일(`app.featured.refresh-after`)이 지나면 다시 받음 |
+
+### season_change — 이번 시즌 변화가 큰 기업(#420)
+
+> 마이그레이션: `V37__create_season_change.sql`. [ADR-0037](adr/0037-season-change-ranking.md)
+
+시즌(정기보고서 종류·사업연도)마다 계산할 때의 대표 기업 한 곳이 한 줄입니다. 문장 비교만 하고 분석·문장 변경 행은 저장하지 않습니다. 점수를 매기지 못한 기업도 사유(`status`)와 함께 넣어 빠진 수를 셉니다. 계산한 시즌은 다시 계산하지 않습니다.
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT AUTO_INCREMENT | PK | 아니오 | 자동 증가 |
+| `report_type` | VARCHAR(10) | UK 묶음 | 아니오 | 시즌의 보고서 종류 `Q1`·`HALF`·`Q3`·`ANNUAL` |
+| `fiscal_year` | INT | UK 묶음 | 아니오 | 시즌의 사업연도 |
+| `corp_code` | VARCHAR(8) | UK 묶음, FK | 아니오 | `company.corp_code` |
+| `status` | VARCHAR(20) | | 아니오 | `SCORED` 점수 매김, `NO_REPORT` 그 시즌·전년 보고서 없음, `FAILED` 문장 비교 실패·일부만 비교 |
+| `previous_rcept_no`, `current_rcept_no` | VARCHAR(14) | | 예 | 비교한 전년·이번 보고서. 없으면 null |
+| `score` | DECIMAL(12,2) | | 예 | `SCORED`일 때 점수(`score_version` 식). 그 밖은 null |
+| `change_count` | INT | | 예 | 점수에 넣은 변경(추가·삭제·수정) 건수 |
+| `highlight` | VARCHAR(300) | | 예 | 코드가 만든 한 줄 요약 |
+| `rank_no` | INT | | 예 | 시즌 안 순위(1부터, `SCORED`만) |
+| `analysis_id` | BIGINT | FK | 예 | 상위 10곳의 요약까지 있는 전년 동기 분석. 그 밖·요청 실패면 null |
+| `reason` | VARCHAR(500) | | 예 | `FAILED` 사유 |
+| `score_version` | VARCHAR(20) | | 아니오 | 점수 식 버전(`season-1`) |
+| `candidate_count` | INT | | 아니오 | 계산할 때의 대표 기업 수 |
+| `computed_at` | DATETIME(6) | | 아니오 | 계산한 시각 |
 
 ### company_overview
 
@@ -1093,6 +1131,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `company_overview` | `uk_company_overview_corp_code` | `corp_code` | 유니크 | 회사마다 개황 한 행 |
 | `featured_company` | `uk_featured_company_rank` | `rank_no` | 유니크 | 순위마다 한 곳 |
 | `featured_company` | `uk_featured_company_corp_code` | `corp_code` | 유니크 | 같은 기업을 두 번 넣지 않음 |
+| `season_change` | `uk_season_change_season_corp` | `report_type`, `fiscal_year`, `corp_code` | 유니크 | 시즌마다 기업 한 줄. 시즌별 조회에도 씀 |
 | `report` | `uk_report_rcept_no` | `rcept_no` | 유니크 | 접수번호 중복 방지(외래 키가 참조) |
 | `report` | `idx_report_corp_period` | `corp_code, period_end` | 인덱스 | 기업별 보고서 목록 |
 | `financial_statement_fetch` | `uk_fs_fetch` | `corp_code, fiscal_year, reprt_code, fs_div` | 유니크 | 같은 호출을 두 번 저장하지 않음 |
