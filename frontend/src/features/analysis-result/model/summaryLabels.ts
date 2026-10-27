@@ -48,7 +48,7 @@ export function gradeLabel(grade: ExplanationGrade | null): string | null {
 
 /** 관련 내용(RELATED)은 회사가 이 변화를 설명한 문장이 아님을 알린다. 원인으로 읽히는 말을 쓰지 않는다 */
 export function gradeNote(grade: ExplanationGrade | null): string | null {
-  return grade === 'RELATED' ? '공시에서 이 계정과 함께 나온 내용이에요. 회사가 직접 밝힌 설명은 아니에요.' : null
+  return grade === 'RELATED' ? '이 변화와 관련된 공시 내용이에요. 회사가 직접 밝힌 설명은 아니에요.' : null
 }
 
 /** 인용문 제목. 인용문은 AI가 쓴 문장이 아니라 공시 원문 그대로다 */
