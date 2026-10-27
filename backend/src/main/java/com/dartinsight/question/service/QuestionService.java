@@ -17,11 +17,12 @@ import com.dartinsight.document.domain.ReportDocument;
 import com.dartinsight.document.service.DocumentService;
 import com.dartinsight.question.domain.AnswerMarkers;
 import com.dartinsight.question.domain.CitedSource;
+import com.dartinsight.question.domain.EvidenceRef;
 import com.dartinsight.question.domain.FeedbackReason;
 import com.dartinsight.question.domain.QuestionFact;
-import com.dartinsight.question.domain.QuestionRetriever;
 import com.dartinsight.question.domain.QuestionFeedback;
 import com.dartinsight.question.domain.QuestionRecord;
+import com.dartinsight.question.domain.QuestionRetriever;
 import com.dartinsight.question.domain.QuestionSource;
 import com.dartinsight.question.domain.QuestionStatus;
 import com.dartinsight.question.domain.QuestionUsage;
@@ -47,12 +48,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -70,8 +68,6 @@ public class QuestionService {
     static final int SECTION_CHANGES = 200;
     private static final String NOT_ANSWERED = "답한 질문만 평가할 수 있어요.";
     private static final String CITATION_NOT_FOUND = "답의 인용을 찾을 수 없습니다. 질문 기록을 다시 불러와 주세요.";
-
-    private static final Logger log = LoggerFactory.getLogger(QuestionService.class);
 
     private final AnalysisResultService resultService;
     private final TextChangeQueryService textChangeQueryService;
@@ -94,8 +90,7 @@ public class QuestionService {
         Analysis analysis = result.analysis();
         ReportDetail current = reportService.get(analysis.getCurrentRceptNo());
         ReportDetail previous = reportService.get(analysis.getPreviousRceptNo());
-        Map<String, String> reportNames = Map.of(current.report().getRceptNo(), current.report().getReportName(),
-                previous.report().getRceptNo(), previous.report().getReportName());
+        Map<String, String> reportNames = reportNames(current, previous);
 
         List<QuestionSource> sources = sources(analysisId, analysis, question);
         List<QuestionFact> facts = QuestionFacts.match(question, result.changes());
@@ -103,34 +98,21 @@ public class QuestionService {
         String traceId = TraceContext.currentTraceId();
 
         if (sources.isEmpty() && facts.isEmpty()) {
-            QuestionRecord row = new QuestionRecord(null, analysisId, question, QuestionStatus.NOT_FOUND, null,
-                    List.of(), List.of(), null, List.of(), null, null, null, traceId, createdAt, null);
+            QuestionRecord row = QuestionRecord.notFound(analysisId, question, traceId, createdAt);
             return QuestionResponse.of(save(row, List.of()), List.of(), List.of());
         }
 
-        AnswerAiResponse response = aiServerClient.postJson(AiServerPaths.ANSWERS, new AnswerAiRequest(
-                current.company().getCorpName(), previous.report().getReportName(), current.report().getReportName(),
-                question, facts.stream().map(f -> new AnswerAiRequest.Fact(f.ref(), f.sentence())).toList(),
-                sources.stream().map(s -> new AnswerAiRequest.Source(s.evidenceId(), s.side(), s.sectionPath(),
-                        s.text())).toList()), AnswerAiResponse.class);
-        if (response == null || response.status() == null) {
-            throw new AiServerException(null, "AI 서버 답 응답이 비어 있어요.", null);
-        }
-        List<LlmCallRow> calls = response.calls() == null ? List.of()
-                : response.calls().stream().map(c -> AnswerResults.call(c, traceId)).toList();
+        AnswerAiResponse response = AnswerResults.requireStatus(aiServerClient.postJson(AiServerPaths.ANSWERS,
+                request(current, previous, question, facts, sources), AnswerAiResponse.class));
+        List<LlmCallRow> calls = AnswerResults.calls(response, traceId);
 
-        Map<String, QuestionSource> byEvidence = sources.stream()
-                .collect(Collectors.toMap(QuestionSource::evidenceId, Function.identity(), (a, b) -> a));
+        Map<String, QuestionSource> byEvidence = AnswerResults.byEvidence(sources);
         Map<String, QuestionFact> byRef = facts.stream()
                 .collect(Collectors.toMap(QuestionFact::ref, Function.identity(), (a, b) -> a));
-        QuestionRecord row = interpret(analysisId, question, response, byEvidence.keySet(), byRef, traceId,
-                createdAt);
-        QuestionRecord saved = save(row, calls);
+        AnswerResults.Verdict verdict = AnswerResults.verdict(response, byEvidence.keySet(), byRef.keySet());
+        QuestionRecord saved = save(record(analysisId, question, verdict, byRef, traceId, createdAt), calls);
 
-        List<Citation> citations = new ArrayList<>();
-        for (String evidenceId : saved.evidenceIds()) {
-            citations.add(citation(citations.size() + 1, byEvidence.get(evidenceId), reportNames));
-        }
+        List<Citation> citations = citations(saved.evidenceIds(), byEvidence::get, reportNames);
         List<QuestionFact> cited = AnswerMarkers.factRefs(saved.answer()).stream().map(byRef::get).toList();
         return QuestionResponse.of(saved, citations, cited);
     }
@@ -153,30 +135,14 @@ public class QuestionService {
         if (rows.isEmpty()) {
             return new QuestionListResponse(List.of());
         }
-        Map<String, String> reportNames = new HashMap<>();
-        for (String rceptNo : List.of(analysis.getCurrentRceptNo(), analysis.getPreviousRceptNo())) {
-            reportNames.put(rceptNo, reportService.report(rceptNo).getReportName());
-        }
-        Map<Long, FinancialChange> changes = rows.stream().anyMatch(r -> !r.factChangeIds().isEmpty())
-                ? resultService.completedResult(analysisId).changes().stream()
-                        .collect(Collectors.toMap(FinancialChange::getId, Function.identity()))
-                : Map.of();
+        Map<String, String> reportNames = reportNames(analysis);
+        Map<Long, FinancialChange> changes = citedChanges(analysisId, rows);
         Documents documents = new Documents();
         List<QuestionResponse> items = new ArrayList<>();
         for (QuestionRecord row : rows) {
-            List<Citation> citations = new ArrayList<>();
-            for (String evidenceId : row.evidenceIds()) {
-                citations.add(citation(citations.size() + 1, documents.source(analysis, evidenceId), reportNames));
-            }
-            List<String> refs = AnswerMarkers.factRefs(row.answer());
-            List<QuestionFact> facts = new ArrayList<>();
-            for (int i = 0; i < refs.size() && i < row.factChangeIds().size(); i++) {
-                FinancialChange change = changes.get(row.factChangeIds().get(i));
-                if (change != null && QuestionFacts.hasFact(change)) {
-                    facts.add(QuestionFacts.fact(refs.get(i), change));
-                }
-            }
-            items.add(QuestionResponse.of(row, citations, facts));
+            List<Citation> citations = citations(row.evidenceIds(), id -> documents.source(analysis, id),
+                    reportNames);
+            items.add(QuestionResponse.of(row, citations, storedFacts(row, changes)));
         }
         return new QuestionListResponse(items);
     }
@@ -192,7 +158,7 @@ public class QuestionService {
         transactionTemplate.executeWithoutResult(status -> {
             QuestionRecord row = questionStore.find(analysisId, questionId)
                     .orElseThrow(() -> new ApiException(ErrorCode.ANALYSIS_QUESTION_NOT_FOUND));
-            if (row.status() != QuestionStatus.ANSWERED) {
+            if (!row.answered()) {
                 throw new ApiException(ErrorCode.COMMON_INVALID_INPUT, NOT_ANSWERED);
             }
             questionStore.updateFeedback(questionId, feedback);
@@ -207,13 +173,13 @@ public class QuestionService {
      */
     public CitedSource citedSource(Analysis analysis, long questionId, int citationNo) {
         QuestionRecord row = questionStore.find(analysis.getId(), questionId)
-                .filter(r -> r.status() == QuestionStatus.ANSWERED)
+                .filter(QuestionRecord::answered)
                 .orElseThrow(() -> new ApiException(ErrorCode.ANALYSIS_QUESTION_NOT_FOUND));
         if (citationNo < 1 || citationNo > row.evidenceIds().size()) {
             throw new ApiException(ErrorCode.ANALYSIS_QUESTION_NOT_FOUND, CITATION_NOT_FOUND);
         }
         QuestionSource source = new Documents().source(analysis, row.evidenceIds().get(citationNo - 1));
-        if (source.side() == null || source.sectionNo() == null || source.text() == null || source.text().isBlank()) {
+        if (!source.hasParagraph()) {
             throw new ApiException(ErrorCode.ANALYSIS_QUESTION_NOT_FOUND, CITATION_NOT_FOUND);
         }
         return new CitedSource(questionId, row.question(), source);
@@ -251,48 +217,71 @@ public class QuestionService {
                 prev.paths());
     }
 
-    /** AI 서버의 답을 저장할 기록으로 바꾼다. 답의 근거 표시는 여기서 다시 확인한다 */
-    private QuestionRecord interpret(Long analysisId, String question, AnswerAiResponse response,
-            Set<String> evidenceIds, Map<String, QuestionFact> facts, String traceId, LocalDateTime createdAt) {
-        LocalDateTime generatedAt = AnswerResults.time(response.generatedAt());
-        List<String> blocked = response.blockedRules() == null ? List.of() : response.blockedRules();
-        QuestionStatus status;
-        try {
-            status = QuestionStatus.valueOf(response.status());
-        } catch (IllegalArgumentException e) {
-            log.warn("AI 서버 답 상태를 알 수 없어 검토 필요로 둡니다: {}", response.status());
-            return review(analysisId, question, AnswerResults.UNKNOWN_STATUS, blocked, response, generatedAt,
-                    traceId, createdAt);
-        }
-        if (status == QuestionStatus.REVIEW_NEEDED) {
-            return review(analysisId, question, response.reviewReason(), blocked, response, generatedAt, traceId,
-                    createdAt);
-        }
-        if (status != QuestionStatus.ANSWERED) {
-            return new QuestionRecord(null, analysisId, question, status, null, List.of(), List.of(), null, blocked,
-                    response.model(), response.promptVersion(), generatedAt, traceId, createdAt, null);
-        }
-        AnswerMarkers.Converted converted = AnswerMarkers.convert(response.answer(), evidenceIds, facts.keySet());
-        if (!converted.valid() || converted.answer().length() > AnswerResults.MAX_ANSWER_CHARS) {
-            log.warn("AI 서버 답의 근거 표시를 확인하지 못해 검토 필요로 둡니다");
-            return review(analysisId, question, AnswerResults.BAD_EVIDENCE, blocked, response, generatedAt, traceId, createdAt);
-        }
-        List<Long> changeIds = converted.factRefs().stream().map(ref -> facts.get(ref).changeId()).toList();
-        return new QuestionRecord(null, analysisId, question, QuestionStatus.ANSWERED, converted.answer(),
-                converted.evidenceIds(), changeIds, null, List.of(), response.model(), response.promptVersion(),
-                generatedAt, traceId, createdAt, null);
+    private static AnswerAiRequest request(ReportDetail current, ReportDetail previous, String question,
+            List<QuestionFact> facts, List<QuestionSource> sources) {
+        return new AnswerAiRequest(current.company().getCorpName(), previous.report().getReportName(),
+                current.report().getReportName(), question,
+                facts.stream().map(f -> new AnswerAiRequest.Fact(f.ref(), f.sentence())).toList(),
+                AnswerResults.requestSources(sources));
     }
 
-    private static QuestionRecord review(Long analysisId, String question, String reason, List<String> blocked,
-            AnswerAiResponse response, LocalDateTime generatedAt, String traceId, LocalDateTime createdAt) {
-        return new QuestionRecord(null, analysisId, question, QuestionStatus.REVIEW_NEEDED, null, List.of(),
-                List.of(), reason == null ? AnswerResults.NOT_VERIFIED : reason, blocked, response.model(),
-                response.promptVersion(), generatedAt, traceId, createdAt, null);
+    /** 판정한 답을 저장할 기록으로. 인용한 사실 ref는 그 사실의 변경 ID로 바꾼다 */
+    private static QuestionRecord record(Long analysisId, String question, AnswerResults.Verdict verdict,
+            Map<String, QuestionFact> facts, String traceId, LocalDateTime createdAt) {
+        List<Long> changeIds = verdict.factRefs().stream().map(ref -> facts.get(ref).changeId()).toList();
+        return new QuestionRecord(null, analysisId, question, verdict.status(), verdict.answer(),
+                verdict.evidenceIds(), changeIds, verdict.reviewReason(), verdict.blockedRules(), verdict.model(),
+                verdict.promptVersion(), verdict.generatedAt(), traceId, createdAt, null);
     }
 
     private QuestionRecord save(QuestionRecord row, List<LlmCallRow> calls) {
         Long id = transactionTemplate.execute(status -> questionStore.save(row, calls));
         return row.withId(id);
+    }
+
+    private static Map<String, String> reportNames(ReportDetail current, ReportDetail previous) {
+        return Map.of(current.report().getRceptNo(), current.report().getReportName(),
+                previous.report().getRceptNo(), previous.report().getReportName());
+    }
+
+    private Map<String, String> reportNames(Analysis analysis) {
+        Map<String, String> reportNames = new HashMap<>();
+        for (String rceptNo : List.of(analysis.getCurrentRceptNo(), analysis.getPreviousRceptNo())) {
+            reportNames.put(rceptNo, reportService.report(rceptNo).getReportName());
+        }
+        return reportNames;
+    }
+
+    /** 사실을 인용한 질문이 있을 때만 분석의 재무 변경을 읽는다(변경 ID → 변경) */
+    private Map<Long, FinancialChange> citedChanges(Long analysisId, List<QuestionRecord> rows) {
+        if (rows.stream().allMatch(r -> r.factChangeIds().isEmpty())) {
+            return Map.of();
+        }
+        return resultService.completedResult(analysisId).changes().stream()
+                .collect(Collectors.toMap(FinancialChange::getId, Function.identity()));
+    }
+
+    /** 저장된 답의 사실 ref와 변경 ID를 순서대로 짝지어 사실 문장을 다시 만든다 */
+    private static List<QuestionFact> storedFacts(QuestionRecord row, Map<Long, FinancialChange> changes) {
+        List<String> refs = AnswerMarkers.factRefs(row.answer());
+        List<QuestionFact> facts = new ArrayList<>();
+        for (int i = 0; i < refs.size() && i < row.factChangeIds().size(); i++) {
+            FinancialChange change = changes.get(row.factChangeIds().get(i));
+            if (change != null && QuestionFacts.hasFact(change)) {
+                facts.add(QuestionFacts.fact(refs.get(i), change));
+            }
+        }
+        return facts;
+    }
+
+    /** 인용 번호 순서의 근거 ID를 1부터 번호를 붙인 인용으로 */
+    private static List<Citation> citations(List<String> evidenceIds, Function<String, QuestionSource> source,
+            Map<String, String> reportNames) {
+        List<Citation> citations = new ArrayList<>();
+        for (String evidenceId : evidenceIds) {
+            citations.add(citation(citations.size() + 1, source.apply(evidenceId), reportNames));
+        }
+        return citations;
     }
 
     private static Citation citation(int no, QuestionSource source, Map<String, String> reportNames) {
@@ -321,25 +310,22 @@ public class QuestionService {
 
         /** 저장된 근거 ID를 원문 위치로 다시 푼다. 블록을 찾지 못하면 위치 없이 */
         QuestionSource source(Analysis analysis, String evidenceId) {
-            int mark = evidenceId.indexOf("#B");
-            if (mark < 0) {
-                return new QuestionSource(evidenceId, null, null, null, null, null, null);
+            EvidenceRef ref = EvidenceRef.parse(evidenceId);
+            if (ref.rceptNo() == null) {
+                return QuestionSource.unresolved(evidenceId, null, null, null);
             }
-            String rceptNo = evidenceId.substring(0, mark);
-            String side = rceptNo.equals(analysis.getCurrentRceptNo()) ? QuestionSource.CURRENT
-                    : rceptNo.equals(analysis.getPreviousRceptNo()) ? QuestionSource.PREVIOUS : null;
-            Integer blockNo;
-            try {
-                blockNo = Integer.valueOf(evidenceId.substring(mark + 2));
-            } catch (NumberFormatException e) {
-                return new QuestionSource(evidenceId, side, rceptNo, null, null, null, null);
+            String rceptNo = ref.rceptNo();
+            String side = QuestionSource.sideOf(rceptNo, analysis.getCurrentRceptNo(), analysis.getPreviousRceptNo());
+            Integer blockNo = ref.blockNo();
+            if (blockNo == null) {
+                return QuestionSource.unresolved(evidenceId, side, rceptNo, null);
             }
             DocumentView view = of(rceptNo);
             Optional<DocumentBlock> block = view.document() == null ? Optional.empty()
                     : documentService.block(view.document(), blockNo);
             return block.map(b -> new QuestionSource(evidenceId, side, rceptNo, b.sectionNo(), blockNo,
                             view.paths().get(b.sectionNo()), b.text()))
-                    .orElseGet(() -> new QuestionSource(evidenceId, side, rceptNo, null, blockNo, null, null));
+                    .orElseGet(() -> QuestionSource.unresolved(evidenceId, side, rceptNo, blockNo));
         }
     }
 

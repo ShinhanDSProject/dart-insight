@@ -13,4 +13,19 @@ public record QuestionSource(String evidenceId, String side, String rceptNo, Int
 
     public static final String CURRENT = "current";
     public static final String PREVIOUS = "previous";
+
+    /** 원문에서 블록을 찾지 못한 근거. 섹션·글 없이 아는 위치만 둔다 */
+    public static QuestionSource unresolved(String evidenceId, String side, String rceptNo, Integer blockNo) {
+        return new QuestionSource(evidenceId, side, rceptNo, null, blockNo, null, null);
+    }
+
+    /** 분석의 현재 보고서면 current, 비교 보고서면 previous, 둘 다 아니면 null */
+    public static String sideOf(String rceptNo, String currentRceptNo, String previousRceptNo) {
+        return rceptNo.equals(currentRceptNo) ? CURRENT : rceptNo.equals(previousRceptNo) ? PREVIOUS : null;
+    }
+
+    /** 분석의 한쪽 보고서에서 섹션과 글까지 찾은 문단인지(판단 노트에 담을 수 있는지) */
+    public boolean hasParagraph() {
+        return side != null && sectionNo != null && text != null && !text.isBlank();
+    }
 }
