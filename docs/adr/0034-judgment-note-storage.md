@@ -44,3 +44,8 @@
 - AI 답의 인용(FS-57의 `ANSWER_CITATION`)이나 기업 화면의 근거도 담게 될 때(`kind`·참조 열 추가).
 - 옛 버전 분석 행을 지우는 정리 작업을 만들 때(참조가 끊겨도 사본은 남는지 확인).
 - 노트를 다른 사람과 공유하거나 노트 단위 속성이 생길 때(노트 표 분리).
+
+## 덧붙임: AI 답 인용(#432)
+
+- 위 '다시 볼 때'의 첫 경우를 같은 결정 안에서 더했다. `kind`에 `ANSWER_CITATION`을 두고, 참조 열 `question_id`·`doc_side`와 사본 열 `snapshot_question`을 `V38__add_judgment_note_answer_citation.sql`로 더했다.
+- 화면은 `analysisId`·`questionId`·`citationNo`만 보낸다. backend가 저장된 질문의 근거 ID로 원문 문단을 다시 찾아 사본(`snapshot_label` 섹션 경로, `snapshot_text` 문단 글, `snapshot_question` 질문 글)을 만든다. 사본·참조·`outdated`·회원 분리 규칙은 위와 같다.

@@ -77,7 +77,7 @@
 | GET | `/api/notifications` | 내 분석 완료 알림 목록 | #38 (6.4) | 헤더 알림 | 초안 |
 | PUT·DELETE | `/api/notifications/{notificationId}/read` | 알림 읽음 표시·해제 | #38 (6.4) | 헤더 알림 | 초안 |
 | GET | `/api/notes` | 내 판단 노트 목록(기업별, `?corpCode=`로 한 기업) | #413 (6.5) | 판단 노트(신규) | 초안 |
-| POST | `/api/notes` | 노트에 근거 담기(재무 계정 변화·문장 변경) | #413 (6.5) | W-03 ②③ | 초안 |
+| POST | `/api/notes` | 노트에 근거 담기(재무 계정 변화·문장 변경·AI 답 인용) | #413·#432 (6.5) | W-03 ②③⑤ | 초안 |
 | PUT | `/api/notes/{itemId}/memo` | 노트 항목 메모 고치기 | #413 (6.5) | 판단 노트(신규) | 초안 |
 | DELETE | `/api/notes/{itemId}` | 노트 항목 하나 지우기 | #413 (6.5) | 판단 노트(신규) | 초안 |
 | GET | `/api/notes/export` | 기업 노트를 출처와 함께 Markdown으로 내보내기(`?corpCode=`) | #413 (6.5) | 판단 노트(신규) | 초안 |
@@ -283,10 +283,10 @@
 
 ### GET·POST·PUT·DELETE /api/notes — 내 판단 노트
 
-- 이슈: #413 (6.5, FS-57) · 화면: W-03 ② 수치 근거 상세·W-03 ③ 문장 변경 카드의 '노트에 담기', 판단 노트 화면(`/notes`, 와이어프레임 없음)
+- 이슈: #413·#432 (6.5, FS-57) · 화면: W-03 ② 수치 근거 상세·W-03 ③ 문장 변경 카드·W-03 ⑤ AI 질문 답의 인용마다 '노트에 담기', 판단 노트 화면(`/notes`, 와이어프레임 없음)
 - 로그인한 사용자만 씁니다. 모든 요청에 Bearer Access Token이 필요하고, 없거나 잘못된 JWT는 `AUTH_UNAUTHORIZED`(401)입니다. 사용자는 토큰의 `sub`로만 정해서 다른 사용자의 노트는 읽거나 바꾸거나 지울 수 없습니다(다른 사용자의 항목은 없는 항목과 같이 404).
-- 노트는 기업별입니다. 분석 결과의 근거 하나(재무 계정 변화 또는 문장 변경)를 항목 하나로 담고, 메모를 붙입니다. 저장 방식은 [ADR-0034](adr/0034-judgment-note-storage.md)입니다.
-- 항목의 `label`·`text`는 담을 때의 사본입니다. 화면이 보낸 글이 아니라 backend가 저장된 분석 결과에서 만듭니다(재무 값 문장도 코드가 저장된 계산 결과로 만듦). 나중에 분석이 다시 만들어져도 바뀌지 않습니다.
+- 노트는 기업별입니다. 분석 결과의 근거 하나(재무 계정 변화, 문장 변경, AI 질문 답이 인용한 원문 문단)를 항목 하나로 담고, 메모를 붙입니다. 저장 방식은 [ADR-0034](adr/0034-judgment-note-storage.md)입니다.
+- 항목의 `label`·`text`·`question`은 담을 때의 사본입니다. 화면이 보낸 글이 아니라 backend가 저장된 분석 결과에서 만듭니다(재무 값 문장도 코드가 저장된 계산 결과로 만듦). 나중에 분석이 다시 만들어져도 바뀌지 않습니다.
 - 노트 내용(사본·메모)은 AI 서버·LLM에 보내지 않습니다.
 
 **항목 모양** (`NoteItem`, 아래 응답에서 같이 씀)
@@ -298,6 +298,7 @@
   "kind": "FINANCIAL_CHANGE",
   "label": "손익계산서 · 매출액",
   "text": "이전 1,000,000원 → 현재 1,200,000원, 증감 +200,000원(+20.0%)",
+  "question": null,
   "changeType": null,
   "memo": "환율 효과인지 사업의 내용에서 확인",
   "source": {
@@ -308,6 +309,8 @@
     "rceptNo": "20261114001234",
     "sectionNo": null,
     "blockNo": null,
+    "questionId": null,
+    "side": null,
     "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261114001234"
   },
   "outdated": false,
@@ -318,12 +321,13 @@
 
 | 필드 | 설명 |
 | --- | --- |
-| `kind` | `FINANCIAL_CHANGE` 재무 계정 변화(`financial_change`), `TEXT_CHANGE` 문장·표 변경(`text_change`) |
-| `label` | 담을 때의 이름. 재무는 `재무제표 · 계정명`(자본변동표는 `· 구성요소`를 더함), 문장은 섹션 경로 |
-| `text` | 담을 때의 값·문장. 재무는 `이전 값 → 현재 값, 증감액(증감률)`(값은 보고서 통화 정수에 천 단위 쉼표, 증감률을 계산하지 않았으면 그 사유, 없는 값은 '미기재'), 문장은 현재 보고서 쪽 글(삭제면 이전 쪽 글, 검토 필요면 사유). 4,000자를 넘으면 끝을 줄여 `…`을 붙임 |
-| `changeType` | 문장 변경 유형(`changeType` (문장) 공통 값). 재무는 null |
+| `kind` | `FINANCIAL_CHANGE` 재무 계정 변화(`financial_change`), `TEXT_CHANGE` 문장·표 변경(`text_change`), `ANSWER_CITATION` AI 질문 답이 인용한 원문 문단(`analysis_question`, #432) |
+| `label` | 담을 때의 이름. 재무는 `재무제표 · 계정명`(자본변동표는 `· 구성요소`를 더함), 문장·AI 답 인용은 섹션 경로 |
+| `text` | 담을 때의 값·문장. 재무는 `이전 값 → 현재 값, 증감액(증감률)`(값은 보고서 통화 정수에 천 단위 쉼표, 증감률을 계산하지 않았으면 그 사유, 없는 값은 '미기재'), 문장은 현재 보고서 쪽 글(삭제면 이전 쪽 글, 검토 필요면 사유), AI 답 인용은 저장된 원문의 그 문단 전체(답 화면의 `quote`는 앞 160자). 4,000자를 넘으면 끝을 줄여 `…`을 붙임 |
+| `question` | AI 답 인용만. 담을 때의 질문 글(저장된 질문). 다른 종류는 null |
+| `changeType` | 문장 변경 유형(`changeType` (문장) 공통 값). 재무·AI 답 인용은 null |
 | `memo` | 사용자가 쓴 메모. 없으면 null. 1,000자 이하 |
-| `source` | 원래 위치. `analysisId`·`changeId`로 결과 화면의 그 근거로 돌아가고(재무 `/analyses/{analysisId}?tab=financial&sj={sjDiv}&change={changeId}`, 문장 `?tab=text&tc={changeId}`), `rceptNo`·`dartUrl`은 근거 보고서(재무·문장 모두 현재 보고서, 삭제된 문장은 이전 보고서). `sjDiv`는 재무만, `sectionNo`·`blockNo`는 문장만(검토 필요 항목은 `blockNo` null) |
+| `source` | 원래 위치. `analysisId`·`changeId`로 결과 화면의 그 근거로 돌아가고(재무 `/analyses/{analysisId}?tab=financial&sj={sjDiv}&change={changeId}`, 문장 `?tab=text&tc={changeId}`), `rceptNo`·`dartUrl`은 근거 보고서(재무·문장 모두 현재 보고서, 삭제된 문장은 이전 보고서). `sjDiv`는 재무만, `sectionNo`·`blockNo`는 문장·AI 답 인용만(검토 필요 항목은 `blockNo` null). AI 답 인용은 `changeId`가 null이고 `questionId`(질문)와 `side`(`current`·`previous`, 근거 보고서가 분석의 어느 쪽인지)가 있어 원문 확인 탭 `?tab=source&doc={side}&section={sectionNo}&block={blockNo}`로 돌아가며, `rceptNo`는 인용한 보고서 |
 | `outdated` | 담을 때의 분석 버전(`source.analysisVersion`)이 지금 서버의 분석 버전과 다르면 true. 화면은 '분석 방식이 바뀌어 위치가 달라졌을 수 있어요'를 보이고, `label`·`text`는 그대로 보인다 |
 | `createdAt`·`updatedAt` | 담은 시각·메모를 고친 시각(한국 시간, `yyyy-MM-dd'T'HH:mm:ss`) |
 
@@ -347,16 +351,20 @@
 
 ```json
 { "kind": "FINANCIAL_CHANGE", "analysisId": 42, "changeId": 901, "memo": "환율 효과인지 사업의 내용에서 확인" }
+{ "kind": "ANSWER_CITATION", "analysisId": 42, "questionId": 15, "citationNo": 1, "memo": null }
 ```
 
 | 이름 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
-| `kind` | string | 예 | `FINANCIAL_CHANGE` 또는 `TEXT_CHANGE` |
+| `kind` | string | 예 | `FINANCIAL_CHANGE`, `TEXT_CHANGE`, `ANSWER_CITATION` |
 | `analysisId` | number | 예 | 완료된 분석 ID |
-| `changeId` | number | 예 | 그 분석의 재무 계정 변화 ID(`GET .../financial-changes`의 `changeId`) 또는 문장 변경 ID(`GET .../text-changes`의 `changeId`) |
+| `changeId` | number | 재무·문장만 | 그 분석의 재무 계정 변화 ID(`GET .../financial-changes`의 `changeId`) 또는 문장 변경 ID(`GET .../text-changes`의 `changeId`) |
+| `questionId` | number | AI 답 인용만 | 그 분석의 질문 ID(`GET .../questions`의 `questionId`) |
+| `citationNo` | number | AI 답 인용만 | 그 답의 인용 번호(`citations[].no`, 1부터) |
 | `memo` | string | 아니오 | 1,000자 이하. 앞뒤 공백을 지우고, 비었으면 null |
 
 - 기업은 분석의 기업입니다. 같은 근거를 여러 번 담으면 항목이 따로 생깁니다.
+- AI 답 인용은 backend가 저장된 질문과 답의 근거 ID로 원문 문단을 다시 찾아 사본을 만듭니다(화면이 보낸 글은 쓰지 않음, LLM을 부르지 않음).
 
 **PUT /api/notes/{itemId}/memo**: 메모 고치기. 200과 고친 `NoteItem`
 
@@ -371,16 +379,17 @@
 **GET /api/notes/export?corpCode=**: 기업 노트 내보내기(Markdown)
 
 - `corpCode`는 필수입니다. 200, `Content-Type: text/markdown;charset=UTF-8`, `Content-Disposition: attachment; filename="judgment-note-{corpCode}.md"`.
-- 본문은 기업 이름·고유번호·내보낸 시각·출처 안내 뒤에, 항목마다 `label`, 담은 값·문장, 메모, 근거(접수번호, 재무제표 또는 섹션·문단 번호, 분석 ID), DART 원문 주소, (`outdated`면) 위치 안내를 적습니다. 담은 것이 없으면 '담은 항목이 없어요.'만 적습니다.
+- 본문은 기업 이름·고유번호·내보낸 시각·출처 안내 뒤에, 항목마다 `label`, 담은 값·문장(AI 답 인용은 질문도), 메모, 근거(접수번호, 재무제표 또는 섹션·문단 번호, 분석 ID), DART 원문 주소, (`outdated`면) 위치 안내를 적습니다. 담은 것이 없으면 '담은 항목이 없어요.'만 적습니다.
 - 에러는 다른 API와 같은 JSON 형식입니다.
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
-| 400 | `COMMON_INVALID_INPUT` | `kind`가 없거나 허용 값이 아님, `analysisId`·`changeId`가 없거나 1보다 작음, `memo`가 1,000자 초과, `corpCode`가 8자리 숫자가 아님(내보내기는 없을 때도). `errors[].field`에 필드 이름 |
+| 400 | `COMMON_INVALID_INPUT` | `kind`가 없거나 허용 값이 아님, `analysisId`가 없거나 종류에 필요한 `changeId`·`questionId`·`citationNo`가 없음, 이 값들이 1보다 작음, `memo`가 1,000자 초과, `corpCode`가 8자리 숫자가 아님(내보내기는 없을 때도). `errors[].field`에 필드 이름 |
 | 401 | `AUTH_UNAUTHORIZED` | Access Token이 없거나 유효하지 않음 |
 | 404 | `ANALYSIS_NOT_FOUND` | POST에서 없는 분석 |
 | 409 | `ANALYSIS_NOT_READY` | POST에서 완료되지 않은 분석 |
 | 404 | `ANALYSIS_CHANGE_NOT_FOUND` · `ANALYSIS_TEXT_CHANGE_NOT_FOUND` | POST에서 그 분석의 계정·문장 변경이 아님 |
+| 404 | `ANALYSIS_QUESTION_NOT_FOUND` | POST(AI 답 인용)에서 그 분석의 답한 질문이 아니거나, 그 번호의 인용이 없거나, 저장된 원문에서 인용 문단을 찾지 못함 |
 | 404 | `COMPANY_NOT_FOUND` | 내보내기에서 없는 고유번호 |
 | 404 | `COMPANY_NOTE_NOT_FOUND` | PUT·DELETE에서 없는 항목이거나 다른 사용자의 항목 |
 
