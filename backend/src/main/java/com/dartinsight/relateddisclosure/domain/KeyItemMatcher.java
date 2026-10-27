@@ -20,7 +20,8 @@ import java.util.regex.Pattern;
  *   <li>유상증자({@link KeyItemKind#CAPITAL_INCREASE}): 신주 수(보통·기타). 쉼표를 뺀 4자리 이상 숫자가 글에 같은 숫자로
  *       있으면(앞뒤에 다른 숫자가 붙지 않음) {@link #NEW_SHARES}</li>
  *   <li>소송({@link KeyItemKind#LITIGATION}): 원고·신청인(쉼표 등으로 나눈 이름마다, 회사 자신은 뺌)이 글에 있으면
- *       {@link #PLAINTIFF}, 사건의 명칭이 공백을 뺀 글에 있으면 {@link #CASE_NAME}</li>
+ *       {@link #PLAINTIFF}. 사건의 명칭은 '항소'처럼 흔한 말이 많아 원고가 맞았을 때만 공백을 뺀 글에 있는지 보고
+ *       {@link #CASE_NAME}을 더한다(ADR-0032)</li>
  *   <li>양수({@link KeyItemKind#STOCK_ACQUISITION}): 발행회사 이름이 글에 있으면 {@link #TARGET_COMPANY}. 발행회사 이름에
  *       '(구: …)'가 있으면 옛 사명도 본다. 글 쪽 '㈜새 사명(구: 옛 사명)'은 옛 사명이 글 안에 그대로 있어 걸린다</li>
  * </ul>
@@ -72,9 +73,9 @@ public final class KeyItemMatcher {
             case LITIGATION -> {
                 if (hasPlaintiff(keyItems, text, companyName)) {
                     fields.add(PLAINTIFF);
-                }
-                if (hasCaseName(keyItems, text)) {
-                    fields.add(CASE_NAME);
+                    if (hasCaseName(keyItems, text)) {
+                        fields.add(CASE_NAME);
+                    }
                 }
             }
             case STOCK_ACQUISITION -> {
