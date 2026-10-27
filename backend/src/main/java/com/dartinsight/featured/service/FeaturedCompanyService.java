@@ -53,6 +53,11 @@ public class FeaturedCompanyService {
         return new FeaturedCompanyListResponse(baseDate, FeaturedCompanyListResponse.SOURCE, items);
     }
 
+    /** 대표 기업 고유번호, 순위 순(1.7 시즌 순위의 후보) */
+    public List<String> corpCodes() {
+        return featured.findAllByOrderByRankNoAsc().stream().map(FeaturedCompany::getCorpCode).toList();
+    }
+
     /** 비었거나 받은 지 refresh-after가 지났으면 다시 받아야 한다. */
     public boolean isStale() {
         List<FeaturedCompany> rows = featured.findAllByOrderByRankNoAsc();
