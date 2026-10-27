@@ -15,7 +15,7 @@
 
 | 테이블 | 설명 | 만드는 이슈 | 마일스톤 |
 | --- | --- | --- | --- |
-| `app_user` | 공통 회원 | #136 | 미정 |
+| `app_user` | 공통 회원(닉네임·역할은 6.6 #459) | #136, 6.6 (#459) | 미정 |
 | `local_credential` | 일반 가입 정보 | #136 | 미정 |
 | `refresh_token` | 일반 로그인 Refresh Token 해시·회전 기록 | 6.2 | 미정 |
 | `social_account` | Google·Kakao·Naver 계정과 공통 회원 연결 | #225 (6.3) | 미정 |
@@ -23,6 +23,14 @@
 | `watched_report` | 즐겨찾기 폴링이 찾아 자동 분석을 요청한 새 정기보고서 | #38 (6.4) | 미정 |
 | `notification` | 회원별 분석 완료 알림과 읽음 여부 | #38 (6.4) | 미정 |
 | `judgment_note_item` | 회원이 기업별 판단 노트에 담은 근거 한 건(담을 때의 사본, 원래 위치 참조, 메모) | #413 (6.5) | 미정 |
+| `community_post` | 기업별 커뮤니티 글(본문, 상태, 좋아요·댓글 수) | 6.6 (#460) | 미정 |
+| `community_quote` | 글에 붙인 변경점 인용 카드(담을 때의 사본, 원래 위치 참조). 글당 최대 하나 | 6.6 (#464) | 미정 |
+| `community_comment` | 글의 댓글과 한 단계 답글 | 6.6 (#460) | 미정 |
+| `community_like` | 글·댓글 좋아요(회원당 대상마다 하나) | 6.6 (#460) | 미정 |
+| `community_report` | 신고된 글·댓글 한 건(대상마다 한 행)과 처리 상태 | 6.6 (#461) | 미정 |
+| `community_report_entry` | 회원 한 명의 신고 한 번(사유) | 6.6 (#461) | 미정 |
+| `community_moderation` | 관리자의 처리 기록(유지·블라인드·삭제, 사유, 기한) | 6.6 (#461) | 미정 |
+| `community_repost_request` | 블라인드에 대한 작성자의 재게시 청구 | 6.6 (#461) | 미정 |
 | `company` | 기업. OpenDART 고유번호 기준 | 4.4 (#51) | M1 |
 | `company_overview` | 기업 개황(OpenDART `company.json`) 캐시. 고유번호 기준, 받은 시각으로 다시 받음 | 1.2 (#329) | M2 |
 | `featured_company` | 첫 화면 대표 기업(유가증권시장 시가총액 상위 100). 공공데이터포털에서 월 1회 통째로 바꿈 | #399 (1.5) | 미정 |
@@ -69,6 +77,17 @@ erDiagram
     report ||--o| watched_report : "rcept_no (#38)"
     app_user ||--o{ notification : "user_id (#38)"
     analysis ||--o{ notification : "analysis_id (#38)"
+    company ||--o{ community_post : "corp_code (6.6)"
+    app_user ||--o{ community_post : "user_id (6.6)"
+    community_post ||--o| community_quote : "post_id (6.6)"
+    community_post ||--o{ community_comment : "post_id (6.6)"
+    community_comment ||--o{ community_comment : "parent_id 한 단계 (6.6)"
+    app_user ||--o{ community_comment : "user_id (6.6)"
+    app_user ||--o{ community_like : "user_id (6.6)"
+    community_report ||--o{ community_report_entry : "report_id (6.6)"
+    app_user ||--o{ community_report_entry : "reporter_id (6.6)"
+    community_report ||--o{ community_moderation : "report_id (6.6)"
+    community_moderation ||--o| community_repost_request : "moderation_id (6.6)"
     app_user {
         bigint id PK
         datetime created_at
@@ -1044,6 +1063,8 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `id` | BIGINT AUTO_INCREMENT | PK | 아니오 | 이메일·소셜 제공자에 종속되지 않는 내부 회원 ID |
 | `created_at` | DATETIME(6) | | 아니오 | 가입 시각(한국 시간), 기존 Clock 설정 사용 |
 | `updated_at` | DATETIME(6) | | 아니오 | 변경 시각(한국 시간) |
+| `nickname` | VARCHAR(12) | UNIQUE | 예 | 커뮤니티에 보이는 이름(6.6 #459). 처음 글·댓글을 쓸 때 정하고, 나중에 바꿀 수 있다(바꾸면 예전 글에도 새 닉네임이 보임). 2~12자, 한글 완성형·영문·숫자만(공백·특수문자 없음). `utf8mb4_unicode_ci`라 대소문자만 다른 닉네임은 같은 것으로 본다. 정하지 않았으면 null |
+| `role` | VARCHAR(10) DEFAULT 'USER' | | 아니오 | `USER`, `ADMIN`. 관리자 API 권한(6.6 #459, [ADR-0040](adr/0040-user-role-in-app-user.md)). 첫 관리자는 환경변수 `ADMIN_EMAILS`의 이메일로 로그인할 때 `ADMIN`이 된다 |
 
 **local_credential**
 
@@ -1055,10 +1076,10 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `password_hash` | VARCHAR(255) | | 아니오 | salt와 인코더 식별자를 포함한 단방향 해시 |
 | `email_verified` | BOOLEAN DEFAULT FALSE | | 아니오 | 실제 주소 소유 확인 여부. 이번 가입에서는 false |
 
-- 제약 이름: `pk_app_user`, `pk_local_credential`, `fk_local_credential_user`, `uk_local_credential_user_id`, `uk_local_credential_email`.
+- 제약 이름: `pk_app_user`, `uk_app_user_nickname`(6.6), `pk_local_credential`, `fk_local_credential_user`, `uk_local_credential_user_id`, `uk_local_credential_email`.
 - 회원·일반 가입 정보 저장은 한 트랜잭션으로 처리하고 실패 시 모두 롤백합니다. UNIQUE 제약으로 동시 중복 가입을 막습니다.
 - 이메일은 일반 가입 식별자이며 공통 회원 PK로 쓰지 않습니다. 이메일 일치만으로 미래 소셜 계정을 자동 연결하지 않습니다.
-- 소셜 연결·토큰·역할 테이블 및 회원과 기존 분석 결과의 연결은 이번 이슈에서 추가하지 않습니다.
+- 소셜 연결·토큰 테이블 및 회원과 기존 분석 결과의 연결은 이번 이슈에서 추가하지 않습니다. 역할은 별도 테이블이 아니라 `app_user.role` 칼럼으로 둡니다(6.6, ADR-0040).
 - 해시는 [ADR-0019](adr/0019-user-registration.md)의 PBKDF2 정책을 따릅니다. 원문·비밀번호 확인은 DB에 저장하지 않습니다.
 
 ### refresh_token — 로그인 상태 갱신(6.2)
@@ -1146,6 +1167,132 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `created_at` | DATETIME(6) | | 아니오 | 담은 시각. 목록은 이 값의 최근 순 |
 | `updated_at` | DATETIME(6) | | 아니오 | 메모를 고친 시각(처음엔 담은 시각) |
 
+### 커뮤니티(6.6, FS-58)
+
+> 마이그레이션: #459(`app_user` 칼럼), #460(글·댓글·좋아요), #461(신고·처리), #464(인용). 번호는 각 PR을 올릴 때 origin/main에서 정한다. 원칙은 "기본은 자유, 법이 막는 것만 막는다"(결정 로그 '커뮤니티(기업별 게시판) 범위와 운영 원칙'). 신고만으로 글을 가리지 않고, 관리자가 처리할 때만 상태가 바뀐다. 이용자 글은 서비스의 분석이 아니므로 AI 서버·LLM에 보내지 않고 표현 검사(5.5) 대상도 아니다. 작성자는 응답에 닉네임으로만 나간다(`app_user.nickname`, API에 이메일·사용자 ID 없음).
+
+**상태 값**
+
+| 칼럼 | 값 |
+| --- | --- |
+| `community_post.status`, `community_comment.status` | `VISIBLE` 보임, `BLINDED` 관리자가 가림(작성자에게만 본문), `DELETED` 지움(작성자 또는 관리자). 지운 글에 지우지 않은 댓글이 있으면 '삭제된 글입니다'로 남기고, 없으면 목록에서 뺀다. 댓글도 같다(지우지 않은 답글이 있으면 '삭제된 댓글입니다') |
+| `community_report.status` | `OPEN` 처리 대기, `KEPT` 유지, `BLINDED` 블라인드, `DELETED` 삭제. `KEPT` 뒤에 다른 회원의 새 신고가 오면 다시 `OPEN` |
+| `community_moderation.decision` | `KEEP` 유지, `BLIND` 블라인드, `DELETE` 삭제 |
+| `community_report_entry.reason` | `DEFAMATION` 특정인 모욕·명예훼손, `FALSE_RUMOR` 허위 풍문, `PAID_LEADING` 유료 리딩방·상담 유인, `PERSONAL_INFO` 개인정보 노출 |
+
+관리자 신고 목록의 '처리할 것'은 따로 저장하지 않고 읽을 때 정한다: `OPEN`은 '대기', `BLINDED`이면서 마지막 처리 뒤에 재게시 청구가 있으면 '재게시 청구', `BLINDED`이면서 `blind_until`이 지났으면 '기한 지남'. 기한이 지나도 자동으로 풀거나 지우지 않고 가린 채 둔다(스케줄러 없음).
+
+**community_post**
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT AUTO_INCREMENT | PK | 아니오 | 글 ID(API `postId`) |
+| `corp_code` | VARCHAR(8) | FK, INDEX | 아니오 | `company.corp_code`. 게시판 기업 |
+| `user_id` | BIGINT | FK | 아니오 | 작성자 `app_user.id` |
+| `body` | VARCHAR(2000) | | 아니오 | 본문(앞뒤 공백을 지운 1~2,000자). 지우거나 가려도 남긴다(신고 처리·재게시 판단에 씀) |
+| `status` | VARCHAR(10) | | 아니오 | 위 상태 값. 기본 `VISIBLE` |
+| `like_count` | INT DEFAULT 0 | | 아니오 | 좋아요 수. 좋아요를 더하고 뺄 때 같은 트랜잭션에서 `+1`·`-1`로 고친다 |
+| `comment_count` | INT DEFAULT 0 | | 아니오 | 지우지 않은 댓글·답글 수(가려진 것 포함). 인기순 = `like_count + comment_count` |
+| `created_at` | DATETIME(6) | | 아니오 | 쓴 시각. 최신순 기준 |
+| `edited_at` | DATETIME(6) | | 예 | 마지막으로 본문을 고친 시각. 고치지 않았으면 null |
+| `deleted_at` | DATETIME(6) | | 예 | 지운 시각 |
+
+**community_quote** — 글에 붙인 변경점 인용(사본)
+
+판단 노트([ADR-0034](adr/0034-judgment-note-storage.md))와 같이 담을 때의 이름·글을 사본으로 두고, 원래 위치는 참조로 둔다. 사본은 backend가 저장된 분석 결과로 만들고 화면이 보낸 글은 쓰지 않는다. 글을 고쳐도 인용은 바꿀 수 없다.
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT AUTO_INCREMENT | PK | 아니오 | 인용 ID |
+| `post_id` | BIGINT | FK, UK | 아니오 | `community_post.id`. 글당 하나 |
+| `kind` | VARCHAR(20) | | 아니오 | `FINANCIAL_CHANGE` 재무 계정 변화, `TEXT_CHANGE` 문장·표 변경 |
+| `analysis_id` | BIGINT | | 아니오 | 인용한 분석. 참조라 외래 키 없음(노트와 같음) |
+| `analysis_version` | VARCHAR(20) | | 아니오 | 담을 때 분석 버전. 지금 서버 버전과 다르면 API `outdated: true` |
+| `change_id` | BIGINT | | 아니오 | `financial_change.id` 또는 `text_change.id`. 참조라 외래 키 없음 |
+| `sj_div` | VARCHAR(5) | | 예 | 재무제표 종류. 재무만 |
+| `change_type` | VARCHAR(20) | | 예 | 문장 변경 유형. 문장만 |
+| `rcept_no` | VARCHAR(14) | | 아니오 | 근거 보고서 접수번호(노트와 같은 기준: 현재 보고서, 삭제된 문장은 이전 보고서) |
+| `section_no`, `block_no` | INT | | 예 | 문장만. 근거 원문 섹션·블록(검토 필요는 `block_no` null) |
+| `previous_report_name`, `current_report_name` | VARCHAR(100) | | 아니오 | 담을 때 분석의 두 보고서 이름(카드의 '보고서 쌍') |
+| `snapshot_label` | VARCHAR(1000) | | 아니오 | 재무 `재무제표 · 계정명`, 문장 섹션 경로 |
+| `snapshot_text` | VARCHAR(1000) | | 아니오 | 재무는 코드가 만든 `이전 → 현재, 증감액(증감률)` 문장(노트와 같은 문장), 문장은 원문 글. 1,000자를 넘으면 줄여 `…` |
+| `created_at` | DATETIME(6) | | 아니오 | 담은 시각 |
+
+**community_comment**
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT AUTO_INCREMENT | PK | 아니오 | 댓글 ID(API `commentId`) |
+| `post_id` | BIGINT | FK, INDEX | 아니오 | `community_post.id` |
+| `parent_id` | BIGINT | FK | 예 | 답글이면 부모 댓글 `community_comment.id`. 부모는 답글이 아닌 댓글이어야 한다(한 단계, 코드에서 확인) |
+| `user_id` | BIGINT | FK | 아니오 | 작성자 `app_user.id` |
+| `body` | VARCHAR(500) | | 아니오 | 앞뒤 공백을 지운 1~500자 |
+| `status` | VARCHAR(10) | | 아니오 | 위 상태 값. 기본 `VISIBLE` |
+| `like_count` | INT DEFAULT 0 | | 아니오 | 좋아요 수 |
+| `created_at` | DATETIME(6) | | 아니오 | 쓴 시각. 글 안에서 오래된 순으로 보인다 |
+| `edited_at`, `deleted_at` | DATETIME(6) | | 예 | 고친·지운 시각 |
+
+**community_like**
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT AUTO_INCREMENT | PK | 아니오 | 행 ID |
+| `target_type` | VARCHAR(10) | UK 묶음 | 아니오 | `POST`, `COMMENT` |
+| `target_id` | BIGINT | UK 묶음 | 아니오 | 글 또는 댓글 ID. 대상이 두 표라 외래 키를 두지 않는다(글·댓글은 지워도 행을 지우지 않아 끊기지 않음) |
+| `user_id` | BIGINT | FK, UK 묶음 | 아니오 | 누른 회원 `app_user.id` |
+| `created_at` | DATETIME(6) | | 아니오 | 누른 시각 |
+
+- 같은 회원이 같은 대상에 두 번 누르면 UNIQUE 제약이 막는다(동시 요청 포함). 이미 있으면 수를 다시 더하지 않는다.
+
+**community_report** — 신고된 대상 한 건
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT AUTO_INCREMENT | PK | 아니오 | 신고 건 ID(API `reportId`) |
+| `target_type` | VARCHAR(10) | UK 묶음 | 아니오 | `POST`, `COMMENT` |
+| `target_id` | BIGINT | UK 묶음 | 아니오 | 글 또는 댓글 ID(외래 키 없음, `community_like`와 같은 이유) |
+| `post_id` | BIGINT | FK | 아니오 | 대상이 속한 글(`community_post.id`). 댓글이면 그 댓글의 글. 관리자 화면에서 글로 이동할 때 쓴다 |
+| `status` | VARCHAR(10) | INDEX | 아니오 | 위 상태 값. 처음엔 `OPEN` |
+| `report_count` | INT | | 아니오 | 지금까지 신고한 회원 수 |
+| `blind_until` | DATETIME(6) | | 예 | `BLINDED`일 때 블라인드 기한. 그 밖에는 null |
+| `last_reported_at` | DATETIME(6) | | 아니오 | 마지막 신고 시각. 관리자 목록 정렬 |
+| `created_at`, `updated_at` | DATETIME(6) | | 아니오 | 처음 신고된 시각, 상태를 바꾼 시각 |
+
+**community_report_entry** — 회원 한 명의 신고
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT AUTO_INCREMENT | PK | 아니오 | 행 ID |
+| `report_id` | BIGINT | FK, UK 묶음 | 아니오 | `community_report.id` |
+| `reporter_id` | BIGINT | FK, UK 묶음 | 아니오 | 신고한 회원 `app_user.id`. 같은 대상에 한 번만(UNIQUE) |
+| `reason` | VARCHAR(20) | | 아니오 | 위 사유 값 |
+| `created_at` | DATETIME(6) | | 아니오 | 신고 시각 |
+
+**community_moderation** — 관리자 처리 기록
+
+정보통신망법 제44조의2 임시조치의 기록으로 쓴다. 처리할 때마다 한 행을 더하고 고치거나 지우지 않는다.
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT AUTO_INCREMENT | PK | 아니오 | 처리 ID |
+| `report_id` | BIGINT | FK, INDEX | 아니오 | `community_report.id` |
+| `admin_id` | BIGINT | FK | 아니오 | 처리한 관리자 `app_user.id`(ADR-0040) |
+| `decision` | VARCHAR(10) | | 아니오 | 위 결정 값 |
+| `reason` | VARCHAR(500) | | 아니오 | 처리 사유(1~500자). 블라인드면 작성자에게 보인다 |
+| `blind_days` | INT | | 예 | 블라인드 기간(1~30일). 블라인드만 |
+| `blind_until` | DATETIME(6) | | 예 | 처리 시각 + `blind_days`. 블라인드만 |
+| `created_at` | DATETIME(6) | | 아니오 | 처리 시각 |
+
+**community_repost_request** — 재게시 청구
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT AUTO_INCREMENT | PK | 아니오 | 청구 ID |
+| `moderation_id` | BIGINT | FK, UK | 아니오 | 청구한 블라인드 처리(`community_moderation.id`, `BLIND`만). 블라인드마다 한 번 |
+| `user_id` | BIGINT | FK | 아니오 | 청구한 작성자 `app_user.id` |
+| `message` | VARCHAR(500) | | 예 | 작성자가 남긴 말. 없으면 null |
+| `created_at` | DATETIME(6) | | 아니오 | 청구 시각 |
+
 ## 4. 인덱스·제약
 
 | 테이블 | 이름 | 컬럼 | 종류 | 이유 |
@@ -1161,6 +1308,16 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `notification` | `uk_notification_user_analysis` | `user_id`, `analysis_id` | 유니크 | 같은 회원·분석의 알림을 두 번 만들지 않음(재시도·중복 이벤트) |
 | `notification` | `idx_notification_user_created` | `user_id`, `created_at` | 인덱스 | 회원별 최근 알림 목록 |
 | `judgment_note_item` | `idx_judgment_note_item_user_corp` | `user_id`, `corp_code`, `created_at` | 인덱스 | 회원의 기업별 노트 목록·내보내기 |
+| `app_user` | `uk_app_user_nickname` | `nickname` | 유니크 | 같은 닉네임을 두 사람이 쓰지 않음(NULL은 여럿 허용). 동시에 정해도 하나만 성공 |
+| `community_post` | `idx_community_post_corp_created` | `corp_code`, `created_at` | 인덱스 | 기업별 최신순 목록 |
+| `community_quote` | `uk_community_quote_post` | `post_id` | 유니크 | 글당 인용 하나 |
+| `community_comment` | `idx_community_comment_post` | `post_id`, `created_at` | 인덱스 | 글의 댓글을 오래된 순으로 조회 |
+| `community_like` | `uk_community_like_target_user` | `target_type`, `target_id`, `user_id` | 유니크 | 회원당 대상마다 좋아요 하나(동시에 눌러도) |
+| `community_report` | `uk_community_report_target` | `target_type`, `target_id` | 유니크 | 대상마다 신고 건 하나 |
+| `community_report` | `idx_community_report_status` | `status`, `last_reported_at` | 인덱스 | 관리자 신고 목록 |
+| `community_report_entry` | `uk_community_report_entry_reporter` | `report_id`, `reporter_id` | 유니크 | 같은 회원이 같은 대상을 두 번 신고하지 않음 |
+| `community_moderation` | `idx_community_moderation_report` | `report_id`, `created_at` | 인덱스 | 신고 건의 처리 기록·마지막 처리 |
+| `community_repost_request` | `uk_community_repost_request_moderation` | `moderation_id` | 유니크 | 블라인드마다 재게시 청구 하나 |
 | `company` | `uk_company_corp_code` | `corp_code` | 유니크 | 고유번호 중복 방지(외래 키가 참조) |
 | `company` | `idx_company_corp_name` | `corp_name` | 인덱스 | 회사명 정렬·완전 일치. 부분 일치 검색(`%검색어%`)에는 쓰이지 않음 |
 | `company` | `idx_company_stock_code` | `stock_code` | 인덱스 | 종목코드 검색 |
@@ -1204,7 +1361,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `related_disclosure_run` | `uk_related_disclosure_run` | `analysis_id, rule_version` | 유니크 | 분석·규칙 버전마다 한 번만 계산 |
 | `related_disclosure` | `uk_related_disclosure` | `run_id, change_no, item_id` | 유니크 | 같은 변경·공시 연결 중복 방지. 변경별 조회에도 씀 |
 
-외래 키: `local_credential.user_id`, `refresh_token.user_id` → `app_user.id` / `judgment_note_item.user_id` → `app_user.id`, `judgment_note_item.corp_code` → `company.corp_code` / `refresh_token.replaced_by_id` → `refresh_token.id` / `report.corp_code`, `company_overview.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code`, `company_disclosure_fetch.corp_code`, `company_disclosure.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no`, `report_key_account_fetch.rcept_no`, `report_key_account.rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no`, `report_key_fact.rcept_no`, `company_briefing.rcept_no`, `company_question.rcept_no` → `report.rcept_no` / `llm_call.company_briefing_id` → `company_briefing.id` / `llm_call.company_question_id` → `company_question.id` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id`, `analysis_question.analysis_id`, `text_change_explanation.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id` / (3.6) `disclosure_window_fetch.corp_code` → `company.corp_code` / `disclosure_window_item.fetch_id`, `related_disclosure_run.window_fetch_id` → `disclosure_window_fetch.id` / `related_disclosure_run.analysis_id` → `analysis.id` / `related_disclosure.run_id` → `related_disclosure_run.id` / `related_disclosure.item_id` → `disclosure_window_item.id`
+외래 키: `local_credential.user_id`, `refresh_token.user_id` → `app_user.id` / `judgment_note_item.user_id` → `app_user.id`, `judgment_note_item.corp_code` → `company.corp_code` / `refresh_token.replaced_by_id` → `refresh_token.id` / `report.corp_code`, `company_overview.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code`, `company_disclosure_fetch.corp_code`, `company_disclosure.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no`, `report_key_account_fetch.rcept_no`, `report_key_account.rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no`, `report_key_fact.rcept_no`, `company_briefing.rcept_no`, `company_question.rcept_no` → `report.rcept_no` / `llm_call.company_briefing_id` → `company_briefing.id` / `llm_call.company_question_id` → `company_question.id` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id`, `analysis_question.analysis_id`, `text_change_explanation.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id` / (3.6) `disclosure_window_fetch.corp_code` → `company.corp_code` / `disclosure_window_item.fetch_id`, `related_disclosure_run.window_fetch_id` → `disclosure_window_fetch.id` / `related_disclosure_run.analysis_id` → `analysis.id` / `related_disclosure.run_id` → `related_disclosure_run.id` / `related_disclosure.item_id` → `disclosure_window_item.id` / (6.6) `community_post.corp_code` → `company.corp_code` / `community_post.user_id`, `community_comment.user_id`, `community_like.user_id`, `community_report_entry.reporter_id`, `community_moderation.admin_id`, `community_repost_request.user_id` → `app_user.id` / `community_quote.post_id`, `community_comment.post_id`, `community_report.post_id` → `community_post.id` / `community_comment.parent_id` → `community_comment.id` / `community_report_entry.report_id`, `community_moderation.report_id` → `community_report.id` / `community_repost_request.moderation_id` → `community_moderation.id`
 
 외래 키(1.9, #465): `company_outlook.rcept_no` → `report.rcept_no` / `llm_call.company_outlook_id` → `company_outlook.id`
 
