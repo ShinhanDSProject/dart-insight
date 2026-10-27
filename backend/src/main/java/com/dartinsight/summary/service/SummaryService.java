@@ -10,6 +10,8 @@ import com.dartinsight.document.domain.DocumentBlock;
 import com.dartinsight.document.domain.DocumentSection;
 import com.dartinsight.document.service.DocumentService;
 import com.dartinsight.document.domain.ReportDocument;
+import com.dartinsight.summary.domain.AccountAliases;
+import com.dartinsight.summary.domain.FinancialFacts;
 import com.dartinsight.summary.domain.LlmCallRow;
 import com.dartinsight.summary.domain.SummaryItemRow;
 import com.dartinsight.summary.domain.SummaryResult;
@@ -26,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +46,8 @@ public class SummaryService {
     private static final Logger log = LoggerFactory.getLogger(SummaryService.class);
     private static final String MISSING = "요약 결과에 이 항목이 없었어요.";
     private static final String BAD_EVIDENCE = "요약 문장의 근거가 보낸 원문 위치가 아니라 쓰지 않았어요.";
+    private static final String FINANCIAL_REF = "F";
+    private static final String TEXT_REF = "T";
     private static final String BAD_QUOTE = "설명의 등급이나 인용 위치를 확인하지 못해 쓰지 않았어요.";
 
     private final AiServerClient aiServerClient;
@@ -55,31 +60,13 @@ public class SummaryService {
         if (financialPicked.isEmpty() && textPicked.isEmpty()) {
             return SummaryResult.empty("요약할 변화가 없어요.");
         }
-
-        Optional<ReportDocument> document = documentService.find(currentRceptNo).filter(d -> d.getStatus().usable());
-        List<DocumentSection> sections = document.map(documentService::sections).orElse(List.of());
-        List<DocumentBlock> blocks = document.map(documentService::blocks).orElse(List.of());
         // 재무 설명 후보는 AI 서버가 이 문단들에서 검색어로 고른다(ADR-0036)
-        List<SummaryAiRequest.Source> paragraphs = SummarySelector.paragraphs(sections, blocks);
-
-        Map<String, Integer> financialRefs = new HashMap<>();
-        List<SummaryAiRequest.FinancialItem> financialItems = new ArrayList<>();
-        for (int index : financialPicked) {
-            FinancialChangeRow row = financial.get(index);
-            String ref = "F" + (index + 1);
-            financialRefs.put(ref, index);
-            List<String> terms = AccountAliases.of(row.current() == null ? null : row.current().accountId(),
-                    row.accountName());
-            financialItems.add(new SummaryAiRequest.FinancialItem(ref, row.accountName(), row.direction(), terms));
-        }
-        Map<String, Integer> textRefs = new HashMap<>();
-        List<SummaryAiRequest.TextItem> textItems = new ArrayList<>();
-        for (int index : textPicked) {
-            TextChangeRow row = text.get(index);
-            String ref = "T" + (index + 1);
-            textRefs.put(ref, index);
-            textItems.add(new SummaryAiRequest.TextItem(ref, row.changeType(), row.sectionPath(), sources(row)));
-        }
+        List<SummaryAiRequest.Source> paragraphs = paragraphs(currentRceptNo);
+        Map<String, Integer> financialRefs = refs(FINANCIAL_REF, financialPicked);
+        List<SummaryAiRequest.FinancialItem> financialItems = financialPicked.stream()
+                .map(i -> financialItem(financial.get(i), i)).toList();
+        Map<String, Integer> textRefs = refs(TEXT_REF, textPicked);
+        List<SummaryAiRequest.TextItem> textItems = textPicked.stream().map(i -> textItem(text.get(i), i)).toList();
 
         if (textItems.isEmpty() && paragraphs.isEmpty()) {
             // LLM이 쓸 것이 없으면(문장 변화도 설명을 찾을 원문도 없음) AI 서버를 부르지 않는다
@@ -89,24 +76,11 @@ public class SummaryService {
             return new SummaryResult(SummaryStatus.COMPLETED, null, rows, List.of());
         }
 
-        SummaryAiResponse response = aiServerClient.postJson(AiServerPaths.SUMMARIES, new SummaryAiRequest(
-                companyName, previousReport, currentReport, textItems, financialItems, paragraphs),
-                SummaryAiResponse.class);
-        if (response == null || response.items() == null) {
-            throw new AiServerException(null, "AI 서버 요약 응답이 비어 있어요.", null);
-        }
+        SummaryAiResponse response = requestSummaries(new SummaryAiRequest(companyName, previousReport,
+                currentReport, textItems, financialItems, paragraphs));
         LocalDateTime generatedAt = time(response.generatedAt());
-
-        // AI 서버도 확인하지만, 저장하기 전에 여기서 다시 본다: 요청한 항목인지, 겹치지 않는지, 근거가 보낸 원문 위치인지
-        // (재무 설명은 보낸 문단 중 어느 것이든. 후보는 AI 서버가 그 안에서 골랐다)
-        Map<String, SummaryAiResponse.Item> answers = new LinkedHashMap<>();
-        for (SummaryAiResponse.Item item : response.items()) {
-            if (item == null || !(textRefs.containsKey(item.ref()) || financialRefs.containsKey(item.ref()))) {
-                log.warn("요약 응답에 요청하지 않은 항목이 있어 뺐습니다: {}", item == null ? null : item.ref());
-            } else if (answers.putIfAbsent(item.ref(), item) != null) {
-                log.warn("요약 응답에 같은 항목이 두 번 있어 처음 것만 씁니다: {}", item.ref());
-            }
-        }
+        Map<String, SummaryAiResponse.Item> answers = answers(response,
+                ref -> textRefs.containsKey(ref) || financialRefs.containsKey(ref));
         List<SummaryItemRow> rows = new ArrayList<>();
         for (SummaryAiRequest.TextItem item : textItems) {
             rows.add(textRow(answers.get(item.ref()), textRefs.get(item.ref()) + 1, ids(item.sources()), response,
@@ -118,12 +92,67 @@ public class SummaryService {
             rows.add(financialRow(answers.get(item.ref()), index, financial.get(index), paragraphIds, response,
                     generatedAt));
         }
-        boolean review = rows.stream().anyMatch(r -> SummaryItemRow.REVIEW_NEEDED.equals(r.status())
-                || SummaryItemRow.REVIEW_NEEDED.equals(r.explanationStatus()));
-        List<LlmCallRow> calls = response.calls() == null ? List.of()
-                : response.calls().stream().map(SummaryService::call).toList();
+        boolean review = rows.stream().anyMatch(r -> r.reviewNeeded() || r.explanationReviewNeeded());
         return new SummaryResult(review ? SummaryStatus.PARTIAL : SummaryStatus.COMPLETED,
-                review ? "근거를 확인하지 못한 항목은 요약에서 빼고 '검토 필요'로 남겼어요." : null, rows, calls);
+                review ? "근거를 확인하지 못한 항목은 요약에서 빼고 '검토 필요'로 남겼어요." : null, rows, calls(response));
+    }
+
+    /** 현재 보고서의 문단 블록 전부(설명 후보를 찾을 곳). 쓸 수 있는 원문이 없으면 빈 목록 */
+    private List<SummaryAiRequest.Source> paragraphs(String currentRceptNo) {
+        Optional<ReportDocument> document = documentService.find(currentRceptNo).filter(d -> d.getStatus().usable());
+        List<DocumentSection> sections = document.map(documentService::sections).orElse(List.of());
+        List<DocumentBlock> blocks = document.map(documentService::blocks).orElse(List.of());
+        return SummarySelector.paragraphs(sections, blocks);
+    }
+
+    /** 요청 항목 ID(F1·T3처럼 접두어 + 목록 안 순서 + 1) → 목록 안 순서 */
+    private static Map<String, Integer> refs(String prefix, List<Integer> picked) {
+        Map<String, Integer> refs = new HashMap<>();
+        picked.forEach(index -> refs.put(prefix + (index + 1), index));
+        return refs;
+    }
+
+    private static SummaryAiRequest.FinancialItem financialItem(FinancialChangeRow row, int index) {
+        List<String> terms = AccountAliases.of(row.current() == null ? null : row.current().accountId(),
+                row.accountName());
+        return new SummaryAiRequest.FinancialItem(FINANCIAL_REF + (index + 1), row.accountName(), row.direction(),
+                terms);
+    }
+
+    private static SummaryAiRequest.TextItem textItem(TextChangeRow row, int index) {
+        return new SummaryAiRequest.TextItem(TEXT_REF + (index + 1), row.changeType(), row.sectionPath(),
+                sources(row));
+    }
+
+    /** AI 서버 요약 호출. 응답이 비어 있으면 AiServerException */
+    private SummaryAiResponse requestSummaries(SummaryAiRequest request) {
+        SummaryAiResponse response = aiServerClient.postJson(AiServerPaths.SUMMARIES, request,
+                SummaryAiResponse.class);
+        if (response == null || response.items() == null) {
+            throw new AiServerException(null, "AI 서버 요약 응답이 비어 있어요.", null);
+        }
+        return response;
+    }
+
+    /**
+     * 항목 ID → 응답 항목. AI 서버도 확인하지만, 저장하기 전에 여기서 다시 본다: 요청한 항목인지, 겹치지 않는지
+     * (근거가 보낸 원문 위치인지는 줄을 만들 때 본다. 재무 설명은 보낸 문단 중 어느 것이든. 후보는 AI 서버가 그 안에서 골랐다)
+     */
+    private static Map<String, SummaryAiResponse.Item> answers(SummaryAiResponse response,
+            Predicate<String> requested) {
+        Map<String, SummaryAiResponse.Item> answers = new LinkedHashMap<>();
+        for (SummaryAiResponse.Item item : response.items()) {
+            if (item == null || !requested.test(item.ref())) {
+                log.warn("요약 응답에 요청하지 않은 항목이 있어 뺐습니다: {}", item == null ? null : item.ref());
+            } else if (answers.putIfAbsent(item.ref(), item) != null) {
+                log.warn("요약 응답에 같은 항목이 두 번 있어 처음 것만 씁니다: {}", item.ref());
+            }
+        }
+        return answers;
+    }
+
+    private static List<LlmCallRow> calls(SummaryAiResponse response) {
+        return response.calls() == null ? List.of() : response.calls().stream().map(SummaryService::call).toList();
     }
 
     /**
@@ -139,20 +168,14 @@ public class SummaryService {
         if (!explainable(row)) {
             throw new IllegalStateException("원문이 없는 변경은 풀이를 만들지 않습니다: " + changeNo);
         }
-        SummaryAiRequest.TextItem item = new SummaryAiRequest.TextItem("T" + changeNo, row.changeType(),
+        SummaryAiRequest.TextItem item = new SummaryAiRequest.TextItem(TEXT_REF + changeNo, row.changeType(),
                 row.sectionPath(), sources);
-        SummaryAiResponse response = aiServerClient.postJson(AiServerPaths.SUMMARIES, new SummaryAiRequest(
-                companyName, previousReport, currentReport, List.of(item), List.of(), List.of()),
-                SummaryAiResponse.class);
-        if (response == null || response.items() == null) {
-            throw new AiServerException(null, "AI 서버 요약 응답이 비어 있어요.", null);
-        }
+        SummaryAiResponse response = requestSummaries(new SummaryAiRequest(companyName, previousReport,
+                currentReport, List.of(item), List.of(), List.of()));
         SummaryAiResponse.Item answer = response.items().stream()
                 .filter(i -> i != null && item.ref().equals(i.ref())).findFirst().orElse(null);
         SummaryItemRow explained = textRow(answer, changeNo, ids(sources), response, time(response.generatedAt()));
-        List<LlmCallRow> calls = response.calls() == null ? List.of()
-                : response.calls().stream().map(SummaryService::call).toList();
-        return new TextExplanation(explained, calls);
+        return new TextExplanation(explained, calls(response));
     }
 
     /** 짝지은 원문(블록 번호와 글이 있는 쪽)이 하나라도 있어 풀이할 수 있는 변경인지. 검토 필요 유형은 풀이하지 않는다 */

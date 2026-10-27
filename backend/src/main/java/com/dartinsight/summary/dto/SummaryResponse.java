@@ -41,9 +41,30 @@ public record SummaryResponse(Long analysisId, SummaryStatus summaryStatus, Stri
     public record ItemView(int itemNo, String kind, Target target, String factSentence, String aiText,
             boolean aiGenerated, String explanationStatus, String explanationGrade, String quote,
             EvidenceView quoteEvidence, String gradeReason, List<EvidenceView> evidence, AiInfo ai) {
+
+        /** 요약에 보이는 줄. reviewReason은 설명이 검토 필요가 아닐 때만 코드가 설명 등급을 낮춘 사유다 */
+        public static ItemView of(int itemNo, Target target, SummaryItemRow row, EvidenceView quoteEvidence,
+                List<EvidenceView> evidence) {
+            String gradeReason = row.explanationReviewNeeded() ? null : row.reviewReason();
+            return new ItemView(itemNo, row.kind(), target, row.factSentence(), row.aiText(), row.aiGenerated(),
+                    row.explanationStatus(), row.explanationGrade(), row.quote(), quoteEvidence, gradeReason,
+                    evidence, AiInfo.from(row));
+        }
     }
 
     /** @param blockedRules 투자 권유성 표현 검사(5.5)에 걸린 규칙 ID. 근거 확인에 실패한 것이면 빈 목록 */
     public record ReviewView(int itemNo, String kind, Target target, String reason, List<String> blockedRules) {
+
+        /** 근거·숫자 확인을 통과하지 못해 요약에서 뺀 줄 */
+        public static ReviewView of(int itemNo, Target target, SummaryItemRow row) {
+            return new ReviewView(itemNo, row.kind(), target, row.reviewReason(), row.blockedRules());
+        }
+
+        /** 수치 문장은 보이고 설명만 검토 필요인 재무 수치 */
+        public static ReviewView ofExplanation(int itemNo, Target target, SummaryItemRow row) {
+            return new ReviewView(itemNo, row.kind(), target,
+                    "설명의 근거를 확인하지 못했어요. " + (row.reviewReason() == null ? "" : row.reviewReason()),
+                    row.blockedRules());
+        }
     }
 }

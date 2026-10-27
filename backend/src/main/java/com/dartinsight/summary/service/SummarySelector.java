@@ -102,10 +102,6 @@ public final class SummarySelector {
         return found;
     }
 
-    static String compact(String text) {
-        return text == null ? "" : text.replaceAll("\\s+", "");
-    }
-
     static Map<Integer, String> paths(List<DocumentSection> sections) {
         Map<Integer, DocumentSection> byNo = new HashMap<>();
         sections.forEach(s -> byNo.put(s.sectionNo(), s));

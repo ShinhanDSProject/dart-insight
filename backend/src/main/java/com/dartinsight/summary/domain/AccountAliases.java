@@ -1,4 +1,4 @@
-package com.dartinsight.summary.service;
+package com.dartinsight.summary.domain;
 
 import com.dartinsight.financial.domain.FinancialAccount;
 import java.util.LinkedHashSet;
@@ -52,7 +52,7 @@ public final class AccountAliases {
 
     /** 공백을 뺀 계정명에서 괄호 밖 글과 괄호 안 글을 나눈다. 예: 영업이익(손실) → [영업이익, 손실] */
     static List<String> fromName(String accountName) {
-        String name = SummarySelector.compact(accountName);
+        String name = compact(accountName);
         if (name.isEmpty()) {
             return List.of();
         }
@@ -64,5 +64,9 @@ public final class AccountAliases {
         }
         parts.remove("");
         return List.copyOf(parts);
+    }
+
+    private static String compact(String text) {
+        return text == null ? "" : text.replaceAll("\\s+", "");
     }
 }
