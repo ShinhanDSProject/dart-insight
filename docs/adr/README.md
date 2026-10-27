@@ -81,3 +81,4 @@ M0~M2에서 이미 내린 결정은 2026-10-22에 소급해 기록했습니다(0
 | [0033](0033-featured-companies-from-public-data-portal.md) | 대표 기업 목록은 공공데이터포털 주식시세정보로 시가총액 순위를 받아 backend가 월 1회 저장하고, 숫자는 내보내지 않는다 | 채택 | 2026-10-27 |
 | [0034](0034-judgment-note-storage.md) | 판단 노트는 담을 때의 값·문장을 사본으로 저장하고, 원래 위치는 참조로 함께 남긴다 | 제안 | 2026-10-27 |
 | [0035](0035-disclosure-signals-from-titles-and-audit-opinion.md) | 확인해 볼 공시는 저장된 최근 공시 목록의 제목 규칙과 사업보고서별 감사의견 API로 요청 때 만들고, 결과는 따로 저장하지 않는다 | 채택 | 2026-10-27 |
+| [0036](0036-bm25-explanation-candidate-search.md) | 재무 설명 후보는 ai-server가 현재 보고서 문단 전체에서 글자 2개 단위 BM25로 찾는다 | 채택 | 2026-10-27 |
