@@ -2,6 +2,7 @@ import { match } from 'ts-pattern'
 import type { FinancialTrend, FsDiv, KeyAccountKey, TrendPeriod } from '@/shared/api/financialTrends'
 import type { ReportType } from '@/shared/api/reports'
 import { barSpan, formatCompactAmount, niceScale, type Scale } from '@/shared/lib/chartScale'
+import { periodRatios, RATIO_DEFINITIONS, type RatioKey, type RatioResult } from '@/shared/lib/financialRatios'
 
 /**
  * 기업 개요의 주요 재무 흐름(FS-46). 응답 값을 고르고 늘어놓기만 하고 새 숫자를 만들지 않는다(ADR-0018).
@@ -13,6 +14,9 @@ export type IncomeBasis = 'CUMULATIVE' | 'QUARTER'
 
 /** 차트 보기 · 표 보기 */
 export type TrendView = 'chart' | 'table'
+
+/** 금액(주요계정) · 비율(주요계정으로 계산, FS-54) */
+export type TrendMeasure = 'amount' | 'ratio'
 
 const REPORT_TYPE_ORDER: readonly ReportType[] = ['ANNUAL', 'HALF', 'Q1', 'Q3']
 
@@ -150,6 +154,13 @@ export function formatTrendAmount(value: number | null): string {
   return scaled === 0 ? `${sign}1 미만` : `${sign}${numberFormat.format(scaled)}`
 }
 
+/** 비율 근거의 금액(표와 같은 백만원 단위). 예: 123,400백만원, 원화가 아니면 1,000 백만 USD. 없는 값은 '값 없음' */
+export function formatRatioAmount(value: number | null, currency: string | null): string {
+  if (value === null) return '값 없음'
+  const unit = currency === null || currency === 'KRW' ? '백만원' : ` 백만 ${currency}`
+  return `${formatTrendAmount(value)}${unit}`
+}
+
 /** 표의 단위. 원화가 아니면 통화 코드를 붙인다(예: 백만 USD) */
 export function tableUnitLabel(series: TrendSeries): string {
   const currency = series.accounts.flatMap((a) => a.points).find((p) => p.currency !== null)?.currency ?? 'KRW'
@@ -192,4 +203,51 @@ export function columnBars(amounts: (number | null)[]): Columns {
 export function accountSummary(account: SeriesAccount): string {
   const parts = account.points.map((p) => `${periodShortLabel(p.period)} ${formatChartAmount(p.amount, p.currency)}`)
   return `${account.name}: ${parts.join(', ')}`
+}
+
+export interface RatioRow {
+  key: RatioKey
+  name: string
+  formula: string
+  /** ratioTable의 periods와 같은 순서 */
+  cells: RatioResult[]
+}
+
+export interface RatioTable {
+  /** 고른 종류 중 값을 받은 보고서. 오래된 기간부터(금액 차트와 같은 순서) */
+  periods: TrendPeriod[]
+  rows: RatioRow[]
+  /** 고른 종류 중 값을 받지 못했거나 값이 없어 뺀 보고서 수 */
+  skipped: number
+}
+
+/**
+ * 같은 종류 보고서끼리 기간별 재무 비율(FS-54). 값을 받은 기간(AVAILABLE)만 열로 두고, 손익은 금액 보기와 같은 기준(누적·3개월)을 쓴다.
+ * 계산은 shared/lib/financialRatios가 하고, 여기서는 기간을 고르고 늘어놓기만 한다.
+ */
+export function ratioTable(trend: FinancialTrend, type: ReportType, basis: IncomeBasis): RatioTable {
+  const income = effectiveBasis(type, basis)
+  const ofType = trend.periods
+    .map((period, index) => ({ period, index }))
+    .filter(({ period }) => period.reportType === type)
+  const indexes = ofType.filter(({ period }) => period.dataStatus === 'AVAILABLE').reverse()
+  const columns = indexes.map(({ index }) => periodRatios(trend, index, income))
+  return {
+    periods: indexes.map(({ period }) => period),
+    rows: RATIO_DEFINITIONS.map((def, row) => ({
+      key: def.key,
+      name: def.name,
+      formula: def.formula,
+      cells: columns.map((results) => results[row]),
+    })),
+    skipped: ofType.length - indexes.length,
+  }
+}
+
+/** 손익 비율의 금액 기준 짧은 문구(연환산하지 않음). 예: 누적(01.01 ~ 06.30), 그 분기 3개월, 사업연도 1년 */
+export function incomeBasisLabel(type: ReportType, basis: IncomeBasis, periodEnd: string): string {
+  return match(effectiveBasis(type, basis))
+    .with('CUMULATIVE', () => (type === 'ANNUAL' ? '사업연도 1년' : `누적(01.01 ~ ${monthDay(periodEnd)})`))
+    .with('QUARTER', () => '그 분기 3개월')
+    .exhaustive()
 }
