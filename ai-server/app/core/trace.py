@@ -17,7 +17,7 @@ __all__ = ["TRACE_HEADER", "TraceIdMiddleware", "current_trace_id", "trace_id_va
 TRACE_HEADER = "X-Trace-Id"
 _VALID = re.compile(r"^[A-Za-z0-9-]{1,64}$")
 
-logger = logging.getLogger("app")
+logger = logging.getLogger("app.core")
 
 
 def resolve_trace_id(header_value: str | None) -> str:
@@ -32,7 +32,7 @@ def install_log_record_factory() -> None:
     if getattr(old_factory, "_adds_trace_id", False):
         return
 
-    def factory(*args, **kwargs) -> logging.LogRecord:
+    def factory(*args: object, **kwargs: object) -> logging.LogRecord:
         record = old_factory(*args, **kwargs)
         record.trace_id = trace_id_var.get()
         return record

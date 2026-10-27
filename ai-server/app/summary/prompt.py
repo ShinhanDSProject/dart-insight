@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from app.compare.text_diff import ADDED, DELETED, MODIFIED, MOVED, NUMERIC_UPDATE
 from app.llm.prompting import SOURCE_RULE, attr, disclosure
 from app.llm.providers import LlmRequest
-from app.summary.model import GRADES, SummaryInput
+from app.summary.model import DOWN, GRADES, UP, SummaryInput
 
 # 결과가 달라지게 바꾸면 이 버전과 backend Analysis.CURRENT_VERSION을 함께 올린다
 PROMPT_VERSION = "summary-3"
@@ -12,11 +13,11 @@ TASK = "summary"
 MAX_SOURCE_CHARS = 1500
 
 CHANGE_LABELS = {
-    "ADDED": "추가",
-    "DELETED": "삭제(문서에서 빠짐)",
-    "MODIFIED": "수정",
-    "NUMERIC_UPDATE": "숫자만 바뀜",
-    "MOVED": "위치 이동(내용은 그대로)",
+    ADDED: "추가",
+    DELETED: "삭제(문서에서 빠짐)",
+    MODIFIED: "수정",
+    NUMERIC_UPDATE: "숫자만 바뀜",
+    MOVED: "위치 이동(내용은 그대로)",
 }
 
 SYSTEM = "\n".join(
@@ -107,7 +108,7 @@ def build_request(summary: SummaryInput) -> LlmRequest:
             "sentence는 null입니다. 수치는 코드가 계산해 따로 보여 주므로 다시 쓰지 않습니다.",
         ]
         for item in explained:
-            direction = {"UP": "증가", "DOWN": "감소"}.get(item.direction or "", "변화")
+            direction = {UP: "증가", DOWN: "감소"}.get(item.direction or "", "변화")
             aliases = ""
             if item.account_aliases:
                 aliases = f' aliases="{attr(", ".join(item.account_aliases))}"'

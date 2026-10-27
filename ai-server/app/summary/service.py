@@ -26,7 +26,7 @@ logger = logging.getLogger("app.summary")
 FAKE_RESPONDERS[TASK] = fake.respond
 
 
-@dataclass
+@dataclass(frozen=True)
 class SummaryOutput:
     items: list[ItemResult]
     model: str | None

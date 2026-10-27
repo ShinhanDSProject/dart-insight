@@ -9,6 +9,7 @@ from app.api import paths
 from app.api.deps import get_llm_client
 from app.core.errors import ApiError, ErrorCode
 from app.llm import LlmClient, LlmUnavailable
+from app.summary.model import OK
 from app.summary.schema import SummaryRequest, output_json
 from app.summary.service import summarize
 
@@ -32,7 +33,7 @@ def summaries(
     logger.info(
         "요약 %d건(검토 필요 %d건) model=%s prompt=%s",
         len(output.items),
-        sum(1 for i in output.items if i.status != "OK"),
+        sum(1 for i in output.items if i.status != OK),
         output.model,
         output.prompt_version,
     )

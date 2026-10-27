@@ -21,7 +21,7 @@ from __future__ import annotations
 import io
 import re
 import zipfile
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from html.parser import HTMLParser
 
 # 결과가 달라지게 바꾸면 이 버전과 backend Analysis.CURRENT_VERSION을 함께 올린다
@@ -33,6 +33,21 @@ FAILED = "FAILED"
 
 PARAGRAPH = "PARAGRAPH"
 TABLE = "TABLE"
+
+# 실패 사유(failure_code)
+INVALID_ZIP = "INVALID_ZIP"
+MAIN_FILE_NOT_FOUND = "MAIN_FILE_NOT_FOUND"
+FILE_TOO_LARGE = "FILE_TOO_LARGE"
+PARSE_ERROR = "PARSE_ERROR"
+UNSUPPORTED_FORMAT = "UNSUPPORTED_FORMAT"
+
+# 경고(Notice.code). PARTIAL_WARNINGS가 있으면 빠진 내용이 있을 수 있어 PARTIAL이다
+NO_BODY_TAG = "NO_BODY_TAG"
+ENCODING_REPLACED = "ENCODING_REPLACED"
+CELL_COUNT_MISMATCH = "CELL_COUNT_MISMATCH"
+PARAGRAPH_COUNT_MISMATCH = "PARAGRAPH_COUNT_MISMATCH"
+UNTITLED_SECTION = "UNTITLED_SECTION"
+PARTIAL_WARNINGS = frozenset({ENCODING_REPLACED, CELL_COUNT_MISMATCH, PARAGRAPH_COUNT_MISMATCH})
 
 _CELL_TAGS = {"td", "th", "te", "tu"}
 # 읽지 않는 요소: 열 너비, 그림, 문서 앞의 요약(추출 값) 영역
@@ -52,7 +67,7 @@ _HAS_BODY = re.compile(r"<BODY(?=[\s>/])", re.IGNORECASE)
 _TITLE_TAG = re.compile(r"<(/?)TITLE(?=[\s>/])", re.IGNORECASE)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Cell:
     text: str
     header: bool = False
@@ -60,7 +75,7 @@ class Cell:
     rowspan: int = 1
 
 
-@dataclass
+@dataclass(frozen=True)
 class Block:
     block_no: int
     section_no: int
@@ -69,7 +84,7 @@ class Block:
     rows: list[list[Cell]] | None = None
 
 
-@dataclass
+@dataclass(frozen=True)
 class Section:
     section_no: int
     parent_no: int | None
@@ -80,13 +95,13 @@ class Section:
     blocks: list[Block] = field(default_factory=list)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Notice:
     code: str
     message: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class StructuredDocument:
     rcept_no: str
     status: str
@@ -121,7 +136,7 @@ def structure_zip(rcept_no: str, data: bytes) -> StructuredDocument:
     try:
         archive = zipfile.ZipFile(io.BytesIO(data))
     except zipfile.BadZipFile:
-        return failed(rcept_no, "INVALID_ZIP", "원문 파일이 ZIP 형식이 아니에요.")
+        return failed(rcept_no, INVALID_ZIP, "원문 파일이 ZIP 형식이 아니에요.")
     with archive:
         names = [n for n in archive.namelist() if n.lower().endswith(".xml")]
         main = _choose_main(rcept_no, names)
@@ -129,23 +144,20 @@ def structure_zip(rcept_no: str, data: bytes) -> StructuredDocument:
         if main is None:
             return failed(
                 rcept_no,
-                "MAIN_FILE_NOT_FOUND",
+                MAIN_FILE_NOT_FOUND,
                 f"ZIP 안에서 본문 파일({rcept_no}.xml)을 찾지 못했어요.",
                 attachments=attachments,
             )
         if archive.getinfo(main).file_size > MAX_MAIN_FILE_BYTES:
             return failed(
                 rcept_no,
-                "FILE_TOO_LARGE",
+                FILE_TOO_LARGE,
                 "본문 파일이 너무 커서 읽지 않았어요(압축을 풀면 300MB 초과).",
                 main_file=main,
                 attachments=attachments,
             )
         raw = archive.read(main)
-    document = structure_xml(rcept_no, raw)
-    document.main_file = main
-    document.attachments = attachments
-    return document
+    return replace(structure_xml(rcept_no, raw), main_file=main, attachments=attachments)
 
 
 def _choose_main(rcept_no: str, names: list[str]) -> str | None:
@@ -185,31 +197,23 @@ def structure_xml(rcept_no: str, raw: bytes) -> StructuredDocument:
     except Exception as e:  # html.parser는 거의 실패하지 않지만, 실패를 성공으로 처리하지 않는다
         return failed(
             rcept_no,
-            "PARSE_ERROR",
+            PARSE_ERROR,
             f"원문을 읽다 오류가 났어요: {type(e).__name__}",
             encoding=encoding,
         )
 
-    document = StructuredDocument(
-        rcept_no,
-        STRUCTURED,
-        encoding=encoding,
-        document_name=reader.document_name,
-        company_name=reader.company_name,
-        sections=reader.sections,
-    )
     if not any(s.level > 0 and not s.cover for s in reader.sections):
         return failed(
             rcept_no,
-            "UNSUPPORTED_FORMAT",
+            UNSUPPORTED_FORMAT,
             "원문에서 목차(SECTION·TITLE)를 찾지 못했어요.",
             encoding=encoding,
         )
 
     body = _BODY.search(_COMMENT.sub("", text))
     source = body.group(0) if body else text
-    blocks = document.blocks
-    document.counts = {
+    blocks = [b for s in reader.sections for b in s.blocks]
+    counts = {
         "sections": len(reader.sections),
         "paragraphs": sum(1 for b in blocks if b.type == PARAGRAPH),
         "tables": sum(1 for b in blocks if b.type == TABLE),
@@ -219,40 +223,42 @@ def structure_xml(rcept_no: str, raw: bytes) -> StructuredDocument:
         "sourceParagraphTags": len(_SOURCE_P.findall(source)),
         "repairedAmpersands": amp_count,
     }
+    warnings: list[Notice] = []
     if not has_body:
-        document.warnings.append(
-            Notice("NO_BODY_TAG", "원문에 BODY 태그가 없어 문서 전체를 읽었어요.")
-        )
+        warnings.append(Notice(NO_BODY_TAG, "원문에 BODY 태그가 없어 문서 전체를 읽었어요."))
     if replaced:
-        document.warnings.append(
-            Notice("ENCODING_REPLACED", "인코딩을 확인하지 못해 읽을 수 없는 글자를 대체했어요.")
+        warnings.append(
+            Notice(ENCODING_REPLACED, "인코딩을 확인하지 못해 읽을 수 없는 글자를 대체했어요.")
         )
-    if document.counts["cells"] != document.counts["sourceCells"]:
-        document.warnings.append(
+    if counts["cells"] != counts["sourceCells"]:
+        warnings.append(
             Notice(
-                "CELL_COUNT_MISMATCH",
-                f"표 셀 수가 원문과 달라요(원문 {document.counts['sourceCells']}개, "
-                f"읽은 셀 {document.counts['cells']}개).",
+                CELL_COUNT_MISMATCH,
+                f"표 셀 수가 원문과 달라요(원문 {counts['sourceCells']}개, "
+                f"읽은 셀 {counts['cells']}개).",
             )
         )
-    if document.counts["paragraphTags"] != document.counts["sourceParagraphTags"]:
-        document.warnings.append(
+    if counts["paragraphTags"] != counts["sourceParagraphTags"]:
+        warnings.append(
             Notice(
-                "PARAGRAPH_COUNT_MISMATCH",
-                f"문단 태그 수가 원문과 달라요(원문 {document.counts['sourceParagraphTags']}개, "
-                f"읽은 문단 {document.counts['paragraphTags']}개).",
+                PARAGRAPH_COUNT_MISMATCH,
+                f"문단 태그 수가 원문과 달라요(원문 {counts['sourceParagraphTags']}개, "
+                f"읽은 문단 {counts['paragraphTags']}개).",
             )
         )
     if reader.untitled:
-        document.warnings.append(
-            Notice("UNTITLED_SECTION", f"제목이 없는 섹션이 {reader.untitled}개 있어요.")
-        )
-    if any(
-        w.code in {"ENCODING_REPLACED", "CELL_COUNT_MISMATCH", "PARAGRAPH_COUNT_MISMATCH"}
-        for w in document.warnings
-    ):
-        document.status = PARTIAL
-    return document
+        warnings.append(Notice(UNTITLED_SECTION, f"제목이 없는 섹션이 {reader.untitled}개 있어요."))
+    partial = any(w.code in PARTIAL_WARNINGS for w in warnings)
+    return StructuredDocument(
+        rcept_no,
+        PARTIAL if partial else STRUCTURED,
+        encoding=encoding,
+        document_name=reader.document_name,
+        company_name=reader.company_name,
+        warnings=warnings,
+        sections=reader.sections,
+        counts=counts,
+    )
 
 
 def normalize_space(text: str) -> str:

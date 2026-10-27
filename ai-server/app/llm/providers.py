@@ -66,6 +66,9 @@ class Provider(Protocol):
 
 Responder = Callable[[LlmRequest], Any]
 
+FAKE_PROVIDER = "fake"
+FAKE_DEFAULT_MODEL = "fake-model"
+
 
 class FakeProvider:
     """테스트·개발용 가짜 응답. 실제 LLM을 부르지 않는다.
@@ -77,13 +80,13 @@ class FakeProvider:
     둘 다 없으면 빈 JSON 객체를 돌려준다.
     """
 
-    name = "fake"
+    name = FAKE_PROVIDER
 
     def __init__(
         self,
         script: Iterable[Any] = (),
         responders: dict[str, Responder] | None = None,
-        model: str = "fake-model",
+        model: str = FAKE_DEFAULT_MODEL,
     ) -> None:
         self.model = model
         self._script: deque[Any] = deque(script)
@@ -114,6 +117,12 @@ class FakeProvider:
 
 OPENAI_DEFAULT_MODEL = "gpt-6.1-sol"
 OPENAI_SCHEMA_NAME = "result"
+# Responses API 응답의 상태·항목 유형
+STATUS_COMPLETED = "completed"
+STATUS_INCOMPLETE = "incomplete"
+OUTPUT_MESSAGE = "message"
+PART_OUTPUT_TEXT = "output_text"
+PART_REFUSAL = "refusal"
 INCOMPLETE_MAX_OUTPUT_TOKENS = "max_output_tokens"
 INCOMPLETE_CONTENT_FILTER = "content_filter"
 # 다시 시도하면 나아질 수 있는 상태 코드(호출 한도, 충돌). 5xx는 따로 본다
@@ -185,7 +194,7 @@ class OpenAIProvider:
 
 
 def _openai_response(response: Any, fallback_model: str) -> ProviderResponse:
-    if response.status == "incomplete":
+    if response.status == STATUS_INCOMPLETE:
         details = response.incomplete_details
         reason = details.reason if details is not None else None
         if reason == INCOMPLETE_MAX_OUTPUT_TOKENS:
@@ -193,16 +202,16 @@ def _openai_response(response: Any, fallback_model: str) -> ProviderResponse:
         if reason == INCOMPLETE_CONTENT_FILTER:
             raise ProviderError("OpenAI 응답이 콘텐츠 필터로 중단됐습니다.")
         raise ProviderError(f"OpenAI 응답이 끝나지 않았습니다(사유: {reason}).")
-    if response.status not in (None, "completed"):
+    if response.status not in (None, STATUS_COMPLETED):
         raise ProviderError(f"OpenAI 응답 상태가 완료가 아닙니다({response.status}).")
     texts: list[str] = []
     for item in response.output or []:
-        if getattr(item, "type", None) != "message":
+        if getattr(item, "type", None) != OUTPUT_MESSAGE:
             continue
         for part in item.content or []:
-            if part.type == "refusal":
+            if part.type == PART_REFUSAL:
                 raise ProviderError("OpenAI 모델이 답을 거절했습니다(refusal).")
-            if part.type == "output_text" and part.text is not None:
+            if part.type == PART_OUTPUT_TEXT and part.text is not None:
                 texts.append(part.text)
     # 출력 문장이 없으면 빈 문자열을 돌려주고, LlmClient가 JSON 검증 실패로 다시 생성한다
     usage = response.usage
@@ -294,8 +303,8 @@ def create_provider(settings: LlmSettings) -> Provider | None:
     """
     if not settings.provider:
         return None
-    if settings.provider == "fake":
-        return FakeProvider(responders=FAKE_RESPONDERS, model=settings.model or "fake-model")
+    if settings.provider == FakeProvider.name:
+        return FakeProvider(responders=FAKE_RESPONDERS, model=settings.model or FAKE_DEFAULT_MODEL)
     if settings.provider == OpenAIProvider.name:
         return OpenAIProvider(
             api_key=settings.api_key,

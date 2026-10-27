@@ -110,7 +110,7 @@ class BlockIn:
     text: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class DocumentIn:
     rcept_no: str
     sections: list[SectionIn]
@@ -123,7 +123,7 @@ class Position:
     block_no: int | None = None
 
 
-@dataclass
+@dataclass(frozen=True)
 class Change:
     change_type: str
     block_type: str
@@ -140,7 +140,7 @@ class Change:
     order: tuple[int, int, int] = field(default=(0, 0, 0), compare=False)
 
 
-@dataclass
+@dataclass(frozen=True)
 class DiffResult:
     changes: list[Change]
     section_counts: dict[str, int]

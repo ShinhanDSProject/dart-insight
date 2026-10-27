@@ -41,7 +41,7 @@ QUOTE_NOT_IN_SOURCE = "인용문이 후보 원문에 그대로 없어 설명으�
 QUOTE_WITHOUT_ACCOUNT = "인용문에 계정 이름이 없어 '관련 내용'으로 낮췄어요."
 
 
-@dataclass
+@dataclass(frozen=True)
 class Checked:
     results: dict[str, ItemResult]
     problems: list[str]
