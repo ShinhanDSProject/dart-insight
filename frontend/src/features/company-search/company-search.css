@@ -26,6 +26,12 @@
   font-size: var(--font-size-sm);
 }
 
+.company-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
 .company-list {
   list-style: none;
   margin: 0;
@@ -39,13 +45,18 @@
   border-top: 1px solid var(--color-border);
 }
 
+/* 결과 한 행. 넓은 화면에서는 한 줄(왼쪽 이름·배지, 오른쪽 종목코드·고유번호)이고, 폭이 모자라면 오른쪽 묶음이 아랫줄로 내려간다 */
 .company-list__item {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  padding: var(--space-4) var(--space-5);
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+  min-height: var(--touch-target-min);
+  padding: var(--space-2) var(--space-4);
   color: inherit;
   text-decoration: none;
+  transition: background-color var(--motion-fast) var(--ease-out);
 }
 
 .company-list__item:hover,
@@ -53,15 +64,12 @@
   background: var(--color-accent-subtle);
 }
 
-.company-list__item {
-  transition: background-color var(--motion-fast) var(--ease-out);
-}
-
 .company-list__head {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
+  min-width: 0;
 }
 
 .company-list__same {
@@ -82,9 +90,12 @@
 .company-list__meta {
   display: flex;
   flex-wrap: wrap;
+  align-items: baseline;
   gap: var(--space-3);
   color: var(--color-text-muted);
+  font-family: var(--font-num);
   font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
 }
 
 /* 검색어와 맞는 부분(FS-32). 줄의 hover·focus 배경(accent-subtle)과 다른 색이고, 글자는 본문색이라 어두운 테마에서도 대비가 남는다 */

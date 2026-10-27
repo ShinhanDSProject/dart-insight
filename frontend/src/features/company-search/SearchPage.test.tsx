@@ -14,8 +14,19 @@ const companies: Company[] = [
   { corpCode: '00999999', corpName: '삼성 전자서비스', stockCode: null, listed: false },
 ]
 
+/** 검색 API가 돌려줄 결과. 결과가 많은 경우를 보는 테스트만 바꾼다 */
+let results: Company[] = companies
+
+/** 결과가 많은 경우. 열두 곳이면 처음 10곳만 보이고 2곳이 접힌다 */
+const manyCompanies: Company[] = Array.from({ length: 12 }, (_, i) => ({
+  corpCode: String(10000000 + i),
+  corpName: `삼성테스트${String(i + 1).padStart(2, '0')}`,
+  stockCode: null,
+  listed: false,
+}))
+
 vi.mock('@/shared/api/companies', () => ({
-  searchCompanies: () => Promise.resolve({ items: companies }),
+  searchCompanies: () => Promise.resolve({ items: results }),
 }))
 
 const favoritesApi = vi.hoisted(() => ({
@@ -33,6 +44,7 @@ vi.mock('@/shared/api/disclosures', () => ({
 
 afterEach(() => {
   cleanup()
+  results = companies
   syncFavoriteCompanies(null)
 })
 
@@ -125,6 +137,65 @@ describe('검색어와 맞는 부분 강조(FS-32)', () => {
   it('검색 결과와 입력 안내에 접근성 위반이 없다', async () => {
     const { container } = renderAt('ㅅㅅㅈㅈ')
     await screen.findByRole('list', { name: '검색 결과 3곳' })
+    expect(await axeViolations(container)).toBe('')
+  })
+})
+
+describe('결과가 많을 때 접기', () => {
+  it('결과가 10곳 이하이면 모두 보이고 더 보기 버튼이 없다', async () => {
+    renderAt('삼성')
+    const list = await screen.findByRole('list', { name: '검색 결과 3곳' })
+    expect(within(list).getAllByRole('link')).toHaveLength(3)
+    expect(screen.queryByRole('button', { name: /더 보기/ })).toBeNull()
+  })
+
+  it('결과가 10곳보다 많으면 처음 10곳만 보이고 더 보기로 펼치고 접기로 다시 접는다', async () => {
+    results = manyCompanies
+    renderAt('삼성')
+    const list = await screen.findByRole('list', { name: '검색 결과 12곳' })
+    expect(within(list).getAllByRole('link')).toHaveLength(10)
+    expect(within(list).queryByRole('link', { name: /^삼성테스트11/ })).toBeNull()
+
+    const more = screen.getByRole('button', { name: '더 보기 (2개)' })
+    expect(more.getAttribute('aria-expanded')).toBe('false')
+    expect(more.getAttribute('aria-controls')).toBe(list.id)
+
+    fireEvent.click(more)
+    expect(within(list).getAllByRole('link')).toHaveLength(12)
+    const less = screen.getByRole('button', { name: '접기' })
+    expect(less.getAttribute('aria-expanded')).toBe('true')
+
+    fireEvent.click(less)
+    expect(within(list).getAllByRole('link')).toHaveLength(10)
+  })
+
+  it('접혀 있으면 ↓·End로 숨은 결과에 가지 않고 열 번째 결과에서 멈춘다', async () => {
+    results = manyCompanies
+    renderAt('삼성')
+    await screen.findByRole('list', { name: '검색 결과 12곳' })
+    fireEvent.keyDown(screen.getByRole('textbox', { name: '회사명 또는 종목코드' }), { key: 'ArrowDown' })
+    fireEvent.keyDown(document.activeElement!, { key: 'End' })
+    expect(document.activeElement).toBe(resultLink(/^삼성테스트10/))
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' })
+    expect(document.activeElement).toBe(resultLink(/^삼성테스트10/))
+  })
+
+  it('펼치면 ↓·End로 열한 번째부터 마지막 결과까지 간다', async () => {
+    results = manyCompanies
+    renderAt('삼성')
+    await screen.findByRole('list', { name: '검색 결과 12곳' })
+    fireEvent.click(screen.getByRole('button', { name: '더 보기 (2개)' }))
+    fireEvent.keyDown(screen.getByRole('textbox', { name: '회사명 또는 종목코드' }), { key: 'ArrowDown' })
+    fireEvent.keyDown(document.activeElement!, { key: 'End' })
+    expect(document.activeElement).toBe(resultLink(/^삼성테스트12/))
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowUp' })
+    expect(document.activeElement).toBe(resultLink(/^삼성테스트11/))
+  })
+
+  it('접힌 결과 목록과 더 보기 버튼에 접근성 위반이 없다', async () => {
+    results = manyCompanies
+    const { container } = renderAt('삼성')
+    await screen.findByRole('list', { name: '검색 결과 12곳' })
     expect(await axeViolations(container)).toBe('')
   })
 })
