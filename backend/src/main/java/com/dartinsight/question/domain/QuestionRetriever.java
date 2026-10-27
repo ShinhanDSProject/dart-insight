@@ -1,7 +1,6 @@
-package com.dartinsight.question.service;
+package com.dartinsight.question.domain;
 
 import com.dartinsight.document.domain.DocumentBlock;
-import com.dartinsight.question.domain.QuestionSource;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -25,7 +24,7 @@ public final class QuestionRetriever {
 
     static final int MAX_SOURCES = 6;
     static final int MAX_SOURCE_CHARS = 1200;
-    static final int MIN_TERM_LENGTH = 2;
+    public static final int MIN_TERM_LENGTH = 2;
     static final int MIN_STRIP_LENGTH = 3;
 
     /** 긴 것부터 맞춘다(으로가 로보다, 에서가 에보다 먼저) */
@@ -129,7 +128,7 @@ public final class QuestionRetriever {
     }
 
     /** 공백을 빼고 소문자로 바꾼 글 */
-    static String compact(String text) {
+    public static String compact(String text) {
         return text == null ? "" : text.replaceAll("\\s+", "").toLowerCase(Locale.ROOT);
     }
 

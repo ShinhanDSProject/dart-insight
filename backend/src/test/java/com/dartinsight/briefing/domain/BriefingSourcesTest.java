@@ -1,10 +1,8 @@
-package com.dartinsight.briefing.service;
+package com.dartinsight.briefing.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.dartinsight.analysis.service.TextEvidenceService;
-import com.dartinsight.briefing.domain.BriefingSource;
-import com.dartinsight.briefing.domain.BriefingTopic;
 import com.dartinsight.document.domain.DocumentBlock;
 import com.dartinsight.document.domain.DocumentSection;
 import java.util.ArrayList;

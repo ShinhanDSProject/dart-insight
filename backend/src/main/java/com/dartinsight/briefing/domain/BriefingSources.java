@@ -1,7 +1,5 @@
-package com.dartinsight.briefing.service;
+package com.dartinsight.briefing.domain;
 
-import com.dartinsight.briefing.domain.BriefingSource;
-import com.dartinsight.briefing.domain.BriefingTopic;
 import com.dartinsight.document.domain.DocumentBlock;
 import com.dartinsight.document.domain.DocumentSection;
 import java.util.ArrayList;
@@ -24,7 +22,7 @@ import java.util.regex.Pattern;
  *   <li>주제마다 40자 이상 문단을 문서 순서로, 모자라면 표로 최대 2개. 글은 2,000자까지</li>
  *   <li>개요·제품·매출을 하나도 찾지 못하면 '사업의 내용' 아래 앞 문단 3개를 개요로 쓴다</li>
  * </ol>
- * 고르는 규칙을 바꾸면 결과가 달라지므로 {@link BriefingService#PROMPT_VERSION}을 올린다.
+ * 고르는 규칙을 바꾸면 결과가 달라지므로 {@code BriefingService.PROMPT_VERSION}을 올린다.
  */
 public final class BriefingSources {
 

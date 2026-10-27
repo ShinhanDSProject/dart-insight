@@ -15,6 +15,7 @@ import com.dartinsight.dart.service.DartCacheLoader;
 import com.dartinsight.keyfact.domain.Dividend;
 import com.dartinsight.keyfact.domain.Executive;
 import com.dartinsight.keyfact.domain.KeyFactChange;
+import com.dartinsight.keyfact.domain.KeyFactChanges;
 import com.dartinsight.keyfact.domain.KeyFactKind;
 import com.dartinsight.keyfact.domain.KeyFactSection;
 import com.dartinsight.keyfact.domain.KeyFactStatus;

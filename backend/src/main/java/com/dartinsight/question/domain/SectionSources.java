@@ -1,11 +1,10 @@
-package com.dartinsight.question.service;
+package com.dartinsight.question.domain;
 
 import com.dartinsight.analysis.domain.TextChange;
 import com.dartinsight.analysis.domain.TextChangeFilter;
 import com.dartinsight.analysis.domain.TextChangeRow;
 import com.dartinsight.analysis.domain.TextChangeRow.Side;
 import com.dartinsight.document.domain.DocumentBlock;
-import com.dartinsight.question.domain.QuestionSource;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;

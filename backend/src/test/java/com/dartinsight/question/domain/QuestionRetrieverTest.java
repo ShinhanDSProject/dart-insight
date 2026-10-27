@@ -1,9 +1,8 @@
-package com.dartinsight.question.service;
+package com.dartinsight.question.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.dartinsight.document.domain.DocumentBlock;
-import com.dartinsight.question.domain.QuestionSource;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

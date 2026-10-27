@@ -1,4 +1,4 @@
-package com.dartinsight.question.service;
+package com.dartinsight.question.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

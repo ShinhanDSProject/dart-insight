@@ -3,6 +3,7 @@ package com.dartinsight.question.service;
 import com.dartinsight.analysis.domain.FinancialChange;
 import com.dartinsight.analysis.domain.FinancialChangeRow;
 import com.dartinsight.question.domain.QuestionFact;
+import com.dartinsight.question.domain.QuestionRetriever;
 import com.dartinsight.summary.domain.AccountAliases;
 import com.dartinsight.summary.domain.FinancialFacts;
 import java.util.ArrayList;
