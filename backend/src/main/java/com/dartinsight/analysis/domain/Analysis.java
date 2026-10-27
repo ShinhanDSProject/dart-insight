@@ -31,8 +31,9 @@ public class Analysis {
      * m2-11: 원문 파서 dart-xml-2(표 안의 표·빈 표, #397).
      * m2-12: 계산 상태 판정(흑자·적자 전환과 이익 계정 목록 PROFIT_ACCOUNT_IDS, #144).
      * m2-13: 문장 우선순위 핵심어에 '계속기업' 추가(priority-3, #145).
+     * m2-14: 재무 설명 후보를 ai-server가 보고서 문단 전체에서 BM25로 찾음(ADR-0032, #146).
      */
-    public static final String CURRENT_VERSION = "m2-13";
+    public static final String CURRENT_VERSION = "m2-14";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
