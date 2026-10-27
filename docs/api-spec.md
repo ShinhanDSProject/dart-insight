@@ -1521,7 +1521,7 @@
 
 ### GET /api/analyses/{analysisId}/text-changes — 문장·표 변경 목록
 
-- 이슈: #16 (2.5), #17 (2.6), #25 (3.7) · 화면: W-03 ③
+- 이슈: #16 (2.5), #17 (2.6), #25 (3.7), #466 (3.9 위험 요인 변화, FS-61) · 화면: W-03 ③
 - 완료된 분석의 그 분석 결과만 돌려줍니다. 섹션 거르기·검색도 그 분석의 변경 안에서만 합니다.
 - 기본 순서는 확인 우선순위(2.6)입니다. 점수가 높은 것부터, 같으면 문서 순서이고, 순위를 매기지 않은 항목(`UNRANKED`, 판단 유보)은 뒤에 문서 순서로 둡니다. 우선순위는 확인할 순서이며 투자 판단이 아닙니다.
 - `sort=document`면 현재 보고서의 문서 순서입니다(짝이 없는 이전 보고서 항목은 이전 보고서에서 있던 자리).
@@ -1533,6 +1533,8 @@
 - 검색(3.7): `q`는 변경 전·후 전체 글(미리보기가 아니라 저장한 글)과 `sectionPath`에 들어 있는 것을 찾습니다. 대소문자를 가리지 않고, 앞뒤 공백은 지웁니다.
 - `type`·`section`·`q`는 함께 씁니다(모두 맞는 것). 정렬과 쪽 나누기는 거른 뒤에 합니다.
 - 유형 여러 개(#304): `type`에 유형을 쉼표로 이어 주면 그중 하나에 맞는 변경을 돌려줍니다. 화면의 '내용 변경'은 `type=ADDED,DELETED,MODIFIED`입니다. 알 수 없는 값이 하나라도 있으면 400입니다.
+- 위험 관련(#466, FS-61): 섹션 경로(`sectionPath`나 `previousSectionPath` 중 하나라도)의 목차 제목에 아래 낱말이 들어 있으면 위험 관련(`riskRelated: true`)입니다. 공백은 빼고 비교합니다. 낱말: `위험`, `파생거래`, `우발`, `소송`, `제재`. 사업보고서 목차로는 `II. 사업의 내용 > 5. 위험관리 및 파생거래`, `XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항`(그 아래 `가. 중요한 소송사건` 등), `XI. … > 3. 제재 등과 관련된 사항`이 해당합니다. 목차 제목으로 나눈 것이라 실제 내용과 다를 수 있고, 위험의 크기나 좋고 나쁨을 판단하지 않습니다(LLM 없음, 저장하지 않고 조회할 때 정함).
+- `risk=true`면 위험 관련 변경만 돌려줍니다. `type`·`section`·`q`와 함께 씁니다(모두 맞는 것).
 
 **요청**
 
@@ -1542,6 +1544,7 @@
 | query | `sort` | string | 아니오 | `priority`(기본) 확인 우선순위, `document` 문서 순서 |
 | query | `section` | string | 아니오 | 최상위 섹션 제목(`sections[].title`과 같은 글). 500자까지. 없거나 빈 값이면 전체. 이 분석에 없는 섹션이면 `items`가 비어 있음 |
 | query | `q` | string | 아니오 | 찾을 글. 앞뒤 공백을 지운 뒤 2~100자. 없거나 빈 값이면 검색하지 않음 |
+| query | `risk` | boolean | 아니오 | `true`면 위험 관련 변경만(#466). 기본 `false`(전체) |
 | query | `page` | int | 아니오 | 0부터. 기본 0 |
 | query | `size` | int | 아니오 | 1~100. 기본 20 |
 
@@ -1556,10 +1559,12 @@
   "sort": "priority",
   "section": null,
   "q": null,
+  "risk": false,
   "page": 0,
   "size": 20,
   "totalItems": 57,
   "counts": { "all": 57, "added": 10, "deleted": 5, "modified": 22, "numericUpdate": 15, "moved": 3, "reviewNeeded": 2 },
+  "riskCounts": { "all": 6, "added": 2, "deleted": 1, "modified": 2, "numericUpdate": 1, "moved": 0, "reviewNeeded": 0 },
   "sections": [
     { "title": "I. 회사의 개요", "count": 6 },
     { "title": "II. 사업의 내용", "count": 31 },
@@ -1584,7 +1589,8 @@
         "level": "HIGH",
         "score": 60,
         "reasons": ["사업의 내용 섹션 +30", "수정 +10", "크게 바뀜(비슷한 정도 0.7 미만) +10", "문단 +10"]
-      }
+      },
+      "riskRelated": false
     }
   ]
 }
@@ -1596,10 +1602,13 @@
 | `priority.score` | 적용한 규칙 점수의 합. `UNRANKED`면 null |
 | `priority.reasons` | 적용한 규칙과 점수(잠정 규칙, 5절) |
 | `type` | 요청에 쓴 유형. 공백과 겹친 값을 뺀 뒤 처음 나온 순서대로 쉼표로 잇습니다(예: `ADDED,DELETED,MODIFIED`). 없으면 null |
-| `totalItems` | `type`·`section`·`q`에 모두 맞는 전체 건수(쪽 나누기 전) |
+| `totalItems` | `type`·`section`·`q`·`risk`에 모두 맞는 전체 건수(쪽 나누기 전) |
 | `section`·`q` | 요청에 쓴 거르기 값(`q`는 앞뒤 공백을 지운 값). 없으면 null |
-| `counts` | 변경 유형별 건수(`added`·`deleted`·`modified`·`numericUpdate`·`moved`·`reviewNeeded`, `all`은 합). `section`·`q`에 맞는 것만 셉니다(`type`은 보지 않음). 둘 다 없으면 분석 전체 |
-| `sections` | 이 분석에 변경이 있는 최상위 섹션 전부(문서 순서). `count`는 그 섹션에서 `type`·`q`에 맞는 건수(`section`은 보지 않음)이고 0일 수 있습니다. 변경이 하나도 없으면 빈 배열 |
+| `risk` | 요청에 쓴 위험 관련 거르기(#466). 없으면 false |
+| `counts` | 변경 유형별 건수(`added`·`deleted`·`modified`·`numericUpdate`·`moved`·`reviewNeeded`, `all`은 합). `section`·`q`·`risk`에 맞는 것만 셉니다(`type`은 보지 않음). 모두 없으면 분석 전체 |
+| `riskCounts` | 위험 관련 변경의 유형별 건수(#466, `counts`와 같은 모양). `section`·`q`에 맞는 것만 셉니다(`type`·`risk`는 보지 않음). 없으면 0 |
+| `sections` | 이 분석에 변경이 있는 최상위 섹션 전부(문서 순서). `count`는 그 섹션에서 `type`·`q`·`risk`에 맞는 건수(`section`은 보지 않음)이고 0일 수 있습니다. 변경이 하나도 없으면 빈 배열 |
+| `riskRelated` | 위험 관련 목차의 변경인지(#466, 위 규칙). 목차 제목으로 나눈 것이며 위험의 크기·좋고 나쁨이 아닙니다 |
 | `blockType` | `PARAGRAPH` 문단, `TABLE` 표, `SECTION` 섹션 단위 검토 필요 |
 | `numbersOnly` | 숫자만 바뀜(재무 표 등). `changeType`이 `NUMERIC_UPDATE`면 true, 그 밖은 false(`m2-8`까지의 결과에서는 `MODIFIED`에 true가 있음) |
 | `previousSectionPath` | 위치 이동(`MOVED`)일 때 이전 보고서 쪽 섹션 경로(같은 섹션 안에서 순서만 바뀌었으면 `sectionPath`와 같음). 그 밖은 null |
@@ -1609,7 +1618,7 @@
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
-| 400 | `COMMON_INVALID_INPUT` | `type`에 알 수 없는 값이 하나라도 있음(빈 항목 포함, 예: `ADDED,`), `sort`·`page`·`size`가 범위 밖, `section`이 500자 초과, `q`가 2자 미만이거나 100자 초과(`errors[].field`에 이름) |
+| 400 | `COMMON_INVALID_INPUT` | `type`에 알 수 없는 값이 하나라도 있음(빈 항목 포함, 예: `ADDED,`), `risk`가 참·거짓이 아님, `sort`·`page`·`size`가 범위 밖, `section`이 500자 초과, `q`가 2자 미만이거나 100자 초과(`errors[].field`에 이름) |
 | 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 ID |
 | 409 | `ANALYSIS_NOT_READY` | 분석이 아직 완료되지 않음 |
 
