@@ -238,6 +238,22 @@ class DisclosureKeyItemApiTest {
     }
 
     @Test
+    @DisplayName("비고 '정'인 원본은 원본 접수일 하루로 불러 행이 하나면 최신 정정본 값을 쓰고 그 접수번호를 저장한다(3.6과 같은 결과)")
+    void correctedOriginalUsesSingleLatestRow() throws Exception {
+        SERVER.on("/api/piicDecsn.json", json("capital-increase-ecoprobm-original-20260630000676"));
+        disclosure("20260630000676", "주요사항보고서(유상증자결정)", "2026-06-30", "정");
+
+        mockMvc.perform(get(path("20260630000676")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("AVAILABLE"))
+                .andExpect(jsonPath("$.kind").value("CAPITAL_INCREASE"))
+                .andExpect(jsonPath("$.items[0].value").value("9,900,990"));
+        assertThat(last("/api/piicDecsn.json")).contains("bgn_de=20260630").contains("end_de=20260630");
+        assertThat(jdbcTemplate.queryForObject("SELECT source_rcept_no FROM disclosure_key_item WHERE rcept_no = ?",
+                String.class, "20260630000676")).isEqualTo("20261013000198");
+    }
+
+    @Test
     @DisplayName("한 번 받은 공시는 다시 부르지 않는다")
     void doesNotRefetchSameDisclosure() throws Exception {
         mockMvc.perform(get(path("20261023000414"))).andExpect(status().isOk());
@@ -313,9 +329,13 @@ class DisclosureKeyItemApiTest {
     }
 
     private void disclosure(String rceptNo, String reportName, String rceptDt) {
+        disclosure(rceptNo, reportName, rceptDt, null);
+    }
+
+    private void disclosure(String rceptNo, String reportName, String rceptDt, String remark) {
         jdbcTemplate.update("INSERT INTO company_disclosure (corp_code, rcept_no, report_name, filer_name, rcept_dt,"
                 + " remark, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)", CORP, rceptNo, reportName, "예시전자",
-                Date.valueOf(rceptDt), null, Timestamp.valueOf(LocalDateTime.of(2026, 10, 26, 9, 0)));
+                Date.valueOf(rceptDt), remark, Timestamp.valueOf(LocalDateTime.of(2026, 10, 26, 9, 0)));
     }
 
     private static String last(String apiPath) {
