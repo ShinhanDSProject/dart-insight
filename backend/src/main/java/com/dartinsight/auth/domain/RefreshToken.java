@@ -7,7 +7,10 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "refresh_token")
 public class RefreshToken {
@@ -30,8 +33,6 @@ public class RefreshToken {
     private LocalDateTime revokedAt;
     @Column(name = "replaced_by_id")
     private Long replacedById;
-
-    protected RefreshToken() {}
 
     public static RefreshToken create(long userId, String tokenHash, String familyId,
             LocalDateTime now, LocalDateTime expiresAt) {

@@ -10,11 +10,16 @@ import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Objects;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * 기업. 기본키는 자동 증가 id이고, 회사는 OpenDART 고유번호(corp_code, UNIQUE)로 가리킨다(docs/erd.md, ADR-0017).
  * 기업 목록을 새로 넣을 때는 CompanyStore로 일괄 저장한다.
  */
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "company")
 public class Company {
@@ -53,9 +58,6 @@ public class Company {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    protected Company() {
-    }
-
     /** 바뀐 값이 있으면 고치고 true를 돌려준다. 검색용 이름(corp_name_key·corp_name_chosung)도 회사명에 맞춘다. */
     public boolean updateFrom(CorpCodeEntry entry, LocalDateTime now) {
         String nameKey = CompanyNameKey.key(entry.corpName());
@@ -85,49 +87,5 @@ public class Company {
 
     public boolean isListed() {
         return stockCode != null;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getCorpCode() {
-        return corpCode;
-    }
-
-    public String getCorpName() {
-        return corpName;
-    }
-
-    public String getCorpNameKey() {
-        return corpNameKey;
-    }
-
-    public String getCorpNameChosung() {
-        return corpNameChosung;
-    }
-
-    public String getCorpEngName() {
-        return corpEngName;
-    }
-
-    public String getStockCode() {
-        return stockCode;
-    }
-
-    public LocalDate getModifyDate() {
-        return modifyDate;
-    }
-
-    public LocalDateTime getReportsFetchedAt() {
-        return reportsFetchedAt;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
     }
 }

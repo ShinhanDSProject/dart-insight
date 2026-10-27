@@ -8,8 +8,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /** 첫 화면 대표 기업 한 곳(1.5, #399). 시가총액은 순위의 근거로만 남기고 내보내지 않는다(ADR-0033). */
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "featured_company")
 public class FeaturedCompany {
@@ -32,8 +37,6 @@ public class FeaturedCompany {
     @Column(name = "fetched_at", nullable = false)
     private LocalDateTime fetchedAt;
 
-    protected FeaturedCompany() {}
-
     public static FeaturedCompany create(int rankNo, String corpCode, long marketCap, LocalDate baseDate,
             LocalDateTime fetchedAt) {
         FeaturedCompany featured = new FeaturedCompany();
@@ -44,12 +47,4 @@ public class FeaturedCompany {
         featured.fetchedAt = fetchedAt;
         return featured;
     }
-
-    public int getRankNo() { return rankNo; }
-
-    public String getCorpCode() { return corpCode; }
-
-    public LocalDate getBaseDate() { return baseDate; }
-
-    public LocalDateTime getFetchedAt() { return fetchedAt; }
 }

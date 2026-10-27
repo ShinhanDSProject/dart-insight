@@ -7,8 +7,13 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /** 회원 한 명에게 남긴 분석 완료 알림(6.4, #38). 회원과 분석 쌍은 한 번만 있다. */
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "notification")
 public class Notification {
@@ -28,8 +33,6 @@ public class Notification {
     @Column(name = "read_at")
     private LocalDateTime readAt;
 
-    protected Notification() {}
-
     public static Notification create(long userId, long analysisId, LocalDateTime now) {
         Notification notification = new Notification();
         notification.userId = userId;
@@ -48,12 +51,4 @@ public class Notification {
     public void markUnread() {
         readAt = null;
     }
-
-    public Long getId() { return id; }
-
-    public Long getAnalysisId() { return analysisId; }
-
-    public LocalDateTime getCreatedAt() { return createdAt; }
-
-    public LocalDateTime getReadAt() { return readAt; }
 }

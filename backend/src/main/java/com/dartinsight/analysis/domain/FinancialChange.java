@@ -11,12 +11,17 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 /**
  * 저장된 계정별 비교 결과(docs/erd.md financial_change). 한 분석에만 속하고, 다른 분석 결과와 섞지 않는다.
  */
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "financial_change")
 public class FinancialChange {
@@ -92,9 +97,6 @@ public class FinancialChange {
     @Column(name = "current_period_name", length = 50)
     private String currentPeriodName;
 
-    protected FinancialChange() {
-    }
-
     public static FinancialChange of(Long analysisId, FinancialChangeRow row) {
         FinancialChange c = new FinancialChange();
         c.analysisId = analysisId;
@@ -135,89 +137,5 @@ public class FinancialChange {
             return null;
         }
         return changeAmount > 0 ? "UP" : changeAmount < 0 ? "DOWN" : "SAME";
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public Long getAnalysisId() {
-        return analysisId;
-    }
-
-    public String getSjDiv() {
-        return sjDiv;
-    }
-
-    public FsDiv getFsDiv() {
-        return fsDiv;
-    }
-
-    public String getAccountKey() {
-        return accountKey;
-    }
-
-    public String getAccountName() {
-        return accountName;
-    }
-
-    public String getAccountDetail() {
-        return accountDetail;
-    }
-
-    public int getDisplayOrder() {
-        return displayOrder;
-    }
-
-    public AmountBasis getAmountBasis() {
-        return amountBasis;
-    }
-
-    public Long getPreviousAmount() {
-        return previousAmount;
-    }
-
-    public Long getCurrentAmount() {
-        return currentAmount;
-    }
-
-    public Long getChangeAmount() {
-        return changeAmount;
-    }
-
-    public BigDecimal getChangeRate() {
-        return changeRate;
-    }
-
-    public CalcStatus getCalcStatus() {
-        return calcStatus;
-    }
-
-    public String getCurrency() {
-        return currency;
-    }
-
-    public String getPreviousRceptNo() {
-        return previousRceptNo;
-    }
-
-    public String getCurrentRceptNo() {
-        return currentRceptNo;
-    }
-
-    public String getPreviousAccountId() {
-        return previousAccountId;
-    }
-
-    public String getCurrentAccountId() {
-        return currentAccountId;
-    }
-
-    public String getPreviousPeriodName() {
-        return previousPeriodName;
-    }
-
-    public String getCurrentPeriodName() {
-        return currentPeriodName;
     }
 }

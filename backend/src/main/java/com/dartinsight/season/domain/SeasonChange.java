@@ -11,8 +11,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /** 시즌 하나의 대표 기업 한 곳(1.7, #420, ADR-0037). 점수를 매기지 못했으면 사유(status)만 있다 */
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "season_change")
 public class SeasonChange {
@@ -67,8 +72,6 @@ public class SeasonChange {
     @Column(name = "computed_at", nullable = false)
     private LocalDateTime computedAt;
 
-    protected SeasonChange() {}
-
     private static SeasonChange of(Season season, String corpCode, SeasonChangeStatus status, int candidateCount,
             LocalDateTime now) {
         SeasonChange change = new SeasonChange();
@@ -113,32 +116,4 @@ public class SeasonChange {
     public void linkAnalysis(long analysisId) {
         this.analysisId = analysisId;
     }
-
-    public Long getId() { return id; }
-
-    public ReportType getReportType() { return reportType; }
-
-    public int getFiscalYear() { return fiscalYear; }
-
-    public String getCorpCode() { return corpCode; }
-
-    public SeasonChangeStatus getStatus() { return status; }
-
-    public String getPreviousRceptNo() { return previousRceptNo; }
-
-    public String getCurrentRceptNo() { return currentRceptNo; }
-
-    public BigDecimal getScore() { return score; }
-
-    public Integer getChangeCount() { return changeCount; }
-
-    public String getHighlight() { return highlight; }
-
-    public Integer getRankNo() { return rankNo; }
-
-    public Long getAnalysisId() { return analysisId; }
-
-    public int getCandidateCount() { return candidateCount; }
-
-    public LocalDateTime getComputedAt() { return computedAt; }
 }

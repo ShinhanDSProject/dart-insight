@@ -13,12 +13,17 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import java.time.LocalDateTime;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 /**
  * 분석 작업(docs/erd.md). 기업·현재 보고서·이전 보고서·비교 기준·분석 버전으로 결과를 식별한다.
  */
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "analysis")
 public class Analysis {
@@ -80,6 +85,7 @@ public class Analysis {
     @Column(name = "request_trace_id", length = 64)
     private String requestTraceId;
 
+    /** 문장 비교 상태. M1 분석이나 완료 전이면 null */
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "text_status", length = 20)
@@ -88,6 +94,7 @@ public class Analysis {
     @Column(name = "text_message", length = 500)
     private String textMessage;
 
+    /** 요약 상태. 완료 전이면 null */
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "summary_status", length = 20)
@@ -99,6 +106,7 @@ public class Analysis {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    /** 상태나 단계가 마지막으로 바뀐 시각 */
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
@@ -112,9 +120,6 @@ public class Analysis {
     @Version
     @Column(name = "version", nullable = false)
     private Long version;
-
-    protected Analysis() {
-    }
 
     public static Analysis request(String corpCode, String currentRceptNo, String previousRceptNo,
             ComparisonBasis basis, String requestTraceId, LocalDateTime now) {
@@ -206,91 +211,8 @@ public class Analysis {
         updatedAt = now;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public String getCorpCode() {
-        return corpCode;
-    }
-
-    public String getCurrentRceptNo() {
-        return currentRceptNo;
-    }
-
-    public String getPreviousRceptNo() {
-        return previousRceptNo;
-    }
-
-    public ComparisonBasis getBasis() {
-        return basis;
-    }
-
-    public String getAnalysisVersion() {
-        return analysisVersion;
-    }
-
     /** 지금 서버의 분석 방식(CURRENT_VERSION)과 다른 버전으로 만든 결과인지. */
     public boolean isOutdated() {
         return !CURRENT_VERSION.equals(analysisVersion);
-    }
-
-    public FsDiv getFsDiv() {
-        return fsDiv;
-    }
-
-    public AnalysisStatus getStatus() {
-        return status;
-    }
-
-    public AnalysisStep getStep() {
-        return step;
-    }
-
-    public String getErrorCode() {
-        return errorCode;
-    }
-
-    public String getErrorMessage() {
-        return errorMessage;
-    }
-
-    public String getRequestTraceId() {
-        return requestTraceId;
-    }
-
-    /** 문장 비교 상태. M1 분석이나 완료 전이면 null */
-    public TextStatus getTextStatus() {
-        return textStatus;
-    }
-
-    public String getTextMessage() {
-        return textMessage;
-    }
-
-    /** 요약 상태. 완료 전이면 null */
-    public SummaryStatus getSummaryStatus() {
-        return summaryStatus;
-    }
-
-    public String getSummaryMessage() {
-        return summaryMessage;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    /** 상태나 단계가 마지막으로 바뀐 시각 */
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public LocalDateTime getStartedAt() {
-        return startedAt;
-    }
-
-    public LocalDateTime getCompletedAt() {
-        return completedAt;
     }
 }

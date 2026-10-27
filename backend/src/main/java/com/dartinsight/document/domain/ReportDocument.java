@@ -11,12 +11,17 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.Objects;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 /**
  * 보고서 원문 구조화 기록(docs/erd.md). 보고서(접수번호)마다 하나. 목차·문단·표는 document_section·document_block에 있다.
  */
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "report_document")
 public class ReportDocument {
@@ -48,6 +53,7 @@ public class ReportDocument {
     @Column(name = "encoding", length = 20)
     private String encoding;
 
+    /** 경고. 한 줄에 하나({@code 코드: 설명}) */
     @Column(name = "warnings", length = 2000)
     private String warnings;
 
@@ -71,9 +77,6 @@ public class ReportDocument {
 
     @Column(name = "structured_at")
     private LocalDateTime structuredAt;
-
-    protected ReportDocument() {
-    }
 
     public static ReportDocument notAvailable(String rceptNo, String dartStatus, String message, LocalDateTime now) {
         ReportDocument document = new ReportDocument();
@@ -163,10 +166,6 @@ public class ReportDocument {
         return value == null || value.length() <= max ? value : value.substring(0, max);
     }
 
-    public Long getId() {
-        return id;
-    }
-
     /** 화면에 보여 줄 상태 설명. 끝까지 읽었으면 null, 일부만 읽었으면 경고, 못 읽었으면 실패 사유 */
     public String statusMessage() {
         return switch (status) {
@@ -174,66 +173,5 @@ public class ReportDocument {
             case PARTIAL -> warnings == null ? "원문 일부를 읽지 못했을 수 있어요." : "원문 일부를 읽지 못했을 수 있어요. (" + warnings + ")";
             case FAILED, NOT_AVAILABLE -> failureMessage;
         };
-    }
-
-    public String getRceptNo() {
-        return rceptNo;
-    }
-
-    public DocumentStatus getStatus() {
-        return status;
-    }
-
-    public String getParserVersion() {
-        return parserVersion;
-    }
-
-    public String getFailureCode() {
-        return failureCode;
-    }
-
-    public String getFailureMessage() {
-        return failureMessage;
-    }
-
-    public String getMainFile() {
-        return mainFile;
-    }
-
-    public String getEncoding() {
-        return encoding;
-    }
-
-    /** 경고. 한 줄에 하나({@code 코드: 설명}) */
-    public String getWarnings() {
-        return warnings;
-    }
-
-    public int getSectionCount() {
-        return sectionCount;
-    }
-
-    public int getBlockCount() {
-        return blockCount;
-    }
-
-    public int getCellCount() {
-        return cellCount;
-    }
-
-    public int getSourceCellCount() {
-        return sourceCellCount;
-    }
-
-    public Long getZipBytes() {
-        return zipBytes;
-    }
-
-    public LocalDateTime getFetchedAt() {
-        return fetchedAt;
-    }
-
-    public LocalDateTime getStructuredAt() {
-        return structuredAt;
     }
 }
