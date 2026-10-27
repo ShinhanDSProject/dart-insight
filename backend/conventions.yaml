@@ -21,13 +21,13 @@ slap:  # What과 How를 나누고 메서드 하나는 한 추상화 수준(SLAP)
   SLAP-4: "Controller는 요청 검증·DTO 변환(Response.from/of)·라우팅만 한다. 분기·계산·스트림 가공이 필요하면 Service나 응답 record의 정적 팩터리로 옮긴다"
   SLAP-5: "순수 계산·규칙 클래스는 service 패키지가 아니라 domain(또는 그 도메인의 rule·policy 클래스)에 둔다. 상태 없는 static 메서드면 단위 테스트를 같이 둔다"
 di:
-  DI-1: "Spring 빈(Service·Controller·Client·Store 등)은 private final 필드 + @RequiredArgsConstructor로 주입받는다. 인자를 필드에 대입만 하는 생성자는 손으로 쓰지 않는다. 생성자 안에서 값을 만들거나 계산해야 할 때만(예: AnalysisRunner의 실행기, OpenDartClient의 RestClient) 생성자를 직접 쓴다. 필드 주입(@Autowired 필드) 금지. Lombok은 이 용도에만 쓴다"
+  DI-1: "Spring 빈(Service·Controller·Client·Store 등)은 private final 필드 + @RequiredArgsConstructor로 주입받는다. 인자를 필드에 대입만 하는 생성자는 손으로 쓰지 않는다. 생성자 안에서 값을 만들거나 계산해야 할 때만(예: AnalysisRunner의 실행기, OpenDartClient의 RestClient) 생성자를 직접 쓴다. 필드 주입(@Autowired 필드) 금지. Lombok은 이 용도와 EN-1의 엔티티 @Getter·@NoArgsConstructor에만 쓴다"
 dto:
-  DTO-1: 요청·응답은 record. 이름은 {대상}{동작?}Request·Response. Dto 접미사 금지. DTO·엔티티에는 Lombok을 쓰지 않는다
+  DTO-1: 요청·응답은 record. 이름은 {대상}{동작?}Request·Response. Dto 접미사 금지. DTO에는 Lombok을 쓰지 않는다(엔티티는 EN-1)
   DTO-2: HTTP 요청·응답 record는 컨트롤러 안에 두지 않고 같은 도메인의 dto 패키지에 파일로 둔다. 다른 도메인 컨트롤러의 DTO를 import하지 않는다
   DTO-3: 변환은 응답 record의 static from(...)·of(...). 컴포넌트 이름이 곧 JSON 필드라 함부로 바꾸지 않는다(api-spec 먼저)
 entity:
-  EN-1: Lombok 포함 setter·@Setter·@Builder·@AllArgsConstructor 금지(DI-1의 @RequiredArgsConstructor도 엔티티에는 쓰지 않음). protected 기본 생성자 + static 팩터리 + 도메인 메서드(start·fail…)
+  EN-1: "엔티티는 @NoArgsConstructor(access = AccessLevel.PROTECTED) + static 팩터리 + 도메인 메서드(start·fail…)로 만든다. 읽기는 클래스에 @Getter를 붙인다. 비밀값(passwordHash·tokenHash)을 가진 엔티티(LocalCredential·RefreshToken)는 @Getter 대신 필요한 값만 메서드로 연다. setter·@Setter·@Builder·@AllArgsConstructor·@Data·@Value는 금지(@RequiredArgsConstructor도 엔티티에는 쓰지 않음) [checkstyle]"
   EN-2: "상태 변경은 허용 전이표(canMoveTo)를 거친다. 완료 처리(Analysis.complete·recordText·recordSummary)는 AnalysisResultService만 부른다 [archunit] [adr:0004, adr:0016]"
   EN-3: 현재 시각은 주입한 Clock으로만. LocalDateTime.now() 직접 금지
   EN-4: 스키마는 Flyway 새 파일로만, 엔티티와 docs/erd.md를 같은 PR에서 [adr:0007]
