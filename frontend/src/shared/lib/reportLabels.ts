@@ -34,6 +34,16 @@ export function formatDate(isoDate: string): string {
 }
 
 /**
+ * 날짜 구간. 같은 해면 끝날의 연도를 줄이고 같은 날이면 하루만 쓴다.
+ * 예: "2026.03.10 ~ 03.13", "2025.12.30 ~ 2026.01.02", "2026.03.10"
+ */
+export function formatDateRange(from: string, to: string): string {
+  if (from === to) return formatDate(from)
+  const end = from.slice(0, 4) === to.slice(0, 4) ? formatDate(to).slice(5) : formatDate(to)
+  return `${formatDate(from)} ~ ${end}`
+}
+
+/**
  * 대상 기간. 12월 결산 보고서만 다루므로 사업연도는 1월 1일에 시작한다.
  * 예: 반기보고서 → "2026 반기 (2026.01.01 ~ 2026.06.30)"
  */

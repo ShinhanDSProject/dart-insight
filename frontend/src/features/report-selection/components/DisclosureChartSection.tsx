@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { match } from 'ts-pattern'
 import type { DisclosureList } from '@/shared/api/disclosures'
@@ -55,6 +55,10 @@ export function DisclosureChartSection({ corpCode }: { corpCode: string }) {
 
 function DisclosureChart({ corpCode, list }: { corpCode: string; list: DisclosureList }) {
   const [view, setView] = useState<ChartView>(() => defaultChartView(window.matchMedia?.(NARROW_CHART_QUERY).matches ?? false))
+  // 모음 점 툴팁의 '표로 보기'로 왔으면 표로 초점을 옮긴다(누른 버튼이 사라지므로)
+  const [focusTable, setFocusTable] = useState(false)
+  const rows = useMemo(() => chartRows(list.groups), [list.groups])
+  const points = useMemo(() => chartPoints(corpCode, list.items), [corpCode, list.items])
   const period = `${formatDate(list.from)} ~ ${formatDate(list.to)}`
   const source = <DartSourceLine detail={`OpenDART 공시검색 · 기준 기간 ${period} 접수(정정 전 공시는 빼고 최종본만)`} />
 
@@ -74,8 +78,17 @@ function DisclosureChart({ corpCode, list }: { corpCode: string; list: Disclosur
       <div className="disclosure-chart__head">
         <p className="panel__note">
           최근 1년 공시 {list.items.length}건을 접수일과 묶음으로 놓았어요. 점을 누르면 DART 원문이 새 창으로 열려요.
+          숫자가 쓰인 점은 가까운 날의 공시 모음이라 누르면 목록이 열려요.
         </p>
-        <SegmentedControl aria-label="보기" options={viewOptions} value={view} onChange={setView} />
+        <SegmentedControl
+          aria-label="보기"
+          options={viewOptions}
+          value={view}
+          onChange={(next) => {
+            setFocusTable(false)
+            setView(next)
+          }}
+        />
       </div>
       {list.refreshError && (
         <Notice tone="attention" role="status">
@@ -86,15 +99,19 @@ function DisclosureChart({ corpCode, list }: { corpCode: string; list: Disclosur
         .with('chart', () => (
           <DotTimeline
             label={`최근 1년 공시 타임라인(${period})`}
-            rows={chartRows(list.groups)}
-            points={chartPoints(corpCode, list.items)}
+            rows={rows}
+            points={points}
             from={list.from}
             to={list.to}
             emphasisLabel="정기보고서"
             otherLabel="그 밖의 공시"
+            onShowTable={() => {
+              setFocusTable(true)
+              setView('table')
+            }}
           />
         ))
-        .with('table', () => <DisclosureChartTable corpCode={corpCode} list={list} period={period} />)
+        .with('table', () => <DisclosureChartTable corpCode={corpCode} list={list} period={period} focusOnMount={focusTable} />)
         .exhaustive()}
       <p className="panel__note">묶음은 공시 제목의 낱말로 나눈 것이라 실제 내용과 다를 수 있어요. 원문으로 확인해 주세요.</p>
       {source}
@@ -102,15 +119,27 @@ function DisclosureChart({ corpCode, list }: { corpCode: string; list: Disclosur
   )
 }
 
-function DisclosureChartTable({ corpCode, list, period }: { corpCode: string; list: DisclosureList; period: string }) {
+interface DisclosureChartTableProps {
+  corpCode: string
+  list: DisclosureList
+  period: string
+  /** 처음 그릴 때 표로 초점을 옮긴다 */
+  focusOnMount: boolean
+}
+
+function DisclosureChartTable({ corpCode, list, period, focusOnMount }: DisclosureChartTableProps) {
   const [limit, setLimit] = useState(CHART_TABLE_PAGE_SIZE)
   const tableId = useId()
   const shown = list.items.slice(0, limit)
   const remaining = list.items.length - shown.length
 
+  useEffect(() => {
+    if (focusOnMount) document.getElementById(tableId)?.focus()
+  }, [focusOnMount, tableId])
+
   return (
     <>
-      <DataTable id={tableId} caption={`최근 1년 공시(${period}), 접수일이 최근인 순서`} density="dense">
+      <DataTable id={tableId} tabIndex={-1} caption={`최근 1년 공시(${period}), 접수일이 최근인 순서`} density="dense">
         <thead>
           <tr>
             <th scope="col">접수일</th>
