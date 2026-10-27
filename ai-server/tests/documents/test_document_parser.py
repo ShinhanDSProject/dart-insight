@@ -249,3 +249,83 @@ def test_document_without_body_tag_is_read_whole_with_warning() -> None:
     assert document.status == STRUCTURED
     assert "NO_BODY_TAG" in [w.code for w in document.warnings]
     assert document.sections[1].title == "I. 회사의 개요"
+
+
+def _body(inner: str) -> bytes:
+    return f"""<?xml version="1.0" encoding="utf-8"?>
+<DOCUMENT><BODY><SECTION-1><TITLE ATOC="Y">III. 재무에 관한 사항</TITLE>
+{inner}
+</SECTION-1></BODY></DOCUMENT>""".encode()
+
+
+def test_single_cell_frame_table_is_unwrapped_into_paragraphs_and_tables() -> None:
+    # 주석 하나를 감싸는 1×1 '틀' 표 안에 문단과 표가 있다(#397, 연결재무제표 주석)
+    document = structure_xml(
+        RCEPT,
+        _body(
+            "<TABLE><TBODY><TR><TD>"
+            "<P>가. 연결회사의 개요</P><P>회사는 1969년 설립되었습니다.</P>"
+            "<TABLE><TBODY><TR><TH>구분</TH><TH>당기</TH></TR>"
+            "<TR><TD>매출</TD><TD>100</TD></TR></TBODY></TABLE>"
+            "<P>나. 종속기업 현황</P>"
+            "</TD></TR></TBODY></TABLE>"
+        ),
+    )
+    blocks = document.blocks
+    assert [(b.type, b.text) for b in blocks] == [
+        (PARAGRAPH, "가. 연결회사의 개요"),
+        (PARAGRAPH, "회사는 1969년 설립되었습니다."),
+        (TABLE, "구분 | 당기\n매출 | 100"),
+        (PARAGRAPH, "나. 종속기업 현황"),
+    ]
+    assert [b.block_no for b in blocks] == [1, 2, 3, 4]
+    assert document.counts["cells"] == document.counts["sourceCells"] == 5
+
+
+def test_frame_tables_nested_twice_are_unwrapped_in_order() -> None:
+    document = structure_xml(
+        RCEPT,
+        _body(
+            "<TABLE><TR><TD><P>바깥 머리</P>"
+            "<TABLE><TR><TD><P>안쪽 문단</P>"
+            "<TABLE><TR><TD>가</TD><TD>1</TD></TR></TABLE>"
+            "</TD></TR></TABLE>"
+            "</TD></TR></TABLE>"
+        ),
+    )
+    assert [(b.type, b.text) for b in document.blocks] == [
+        (PARAGRAPH, "바깥 머리"),
+        (PARAGRAPH, "안쪽 문단"),
+        (TABLE, "가 | 1"),
+    ]
+
+
+def test_table_inside_a_multi_cell_table_stays_as_cell_text() -> None:
+    document = structure_xml(
+        RCEPT,
+        _body(
+            "<TABLE><TR><TD>구분</TD><TD>내용"
+            "<TABLE><TR><TD>세부</TD><TD>10</TD></TR></TABLE>"
+            "</TD></TR></TABLE>"
+        ),
+    )
+    (block,) = document.blocks
+    assert block.type == TABLE
+    assert [[c.text for c in row] for row in block.rows or []] == [["구분", "내용 세부 10"]]
+
+
+def test_single_cell_table_with_one_paragraph_is_kept_as_a_table() -> None:
+    unit_table = "<TABLE><TR><TD><P>(단위 : 백만원)</P></TD></TR></TABLE>"
+    document = structure_xml(RCEPT, _body(unit_table))
+    (block,) = document.blocks
+    assert (block.type, block.text) == (TABLE, "(단위 : 백만원)")
+
+
+def test_table_whose_cells_are_all_empty_is_not_a_block() -> None:
+    document = structure_xml(
+        RCEPT,
+        _body("<P>앞</P><TABLE><TR><TD> </TD><TD></TD></TR></TABLE><P>뒤</P>"),
+    )
+    assert [b.text for b in document.blocks] == ["앞", "뒤"]
+    assert [b.block_no for b in document.blocks] == [1, 2]
+    assert document.counts["cells"] == document.counts["sourceCells"] == 2

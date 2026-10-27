@@ -11,6 +11,9 @@ XML 파서가 내용을 버릴 수 있다. 그래서 관대한 `html.parser`로 
 - `SECTION-n`과 그 첫 `TITLE`로 목차(섹션)를 만들고,
   `P`는 문단, `TABLE`은 표(TD·TH·TE·TU 셀)로 모은다.
 - 섹션·블록 번호는 문서 순서대로 1부터 매긴다. 블록 번호가 원문 위치(근거 ID)의 기준이다.
+- 표 안의 표(#397): 칸이 하나뿐인 '틀' 표가 표나 여러 문단을 감싸고 있으면 틀을 풀어 안의 문단·표를
+  차례대로 블록으로 둔다. 칸이 여럿인 표 안의 표는 그 칸의 글로 넣는다.
+  모든 칸이 빈 표는 블록으로 두지 않는다.
 """
 
 from __future__ import annotations
@@ -22,7 +25,7 @@ from dataclasses import dataclass, field
 from html.parser import HTMLParser
 
 # 결과가 달라지게 바꾸면 이 버전과 backend Analysis.CURRENT_VERSION을 함께 올린다
-PARSER_VERSION = "dart-xml-1"
+PARSER_VERSION = "dart-xml-2"
 
 STRUCTURED = "STRUCTURED"
 PARTIAL = "PARTIAL"
@@ -264,15 +267,60 @@ class _SectionContext:
     has_content: bool = False
 
 
+@dataclass(frozen=True)
+class _Break:
+    """표 칸 안의 문단 경계(P). 칸 글에서는 띄어쓰기이고, 틀 표를 풀 때는 문단을 나눈다."""
+
+
+_BREAK = _Break()
+
+
 @dataclass
 class _Table:
     rows: list[list[Cell]] = field(default_factory=list)
     row: list[Cell] | None = None
-    cell: list[str] | None = None
+    # 지금 읽는 칸의 내용: 글, 문단 경계, 칸 안의 표
+    cell: list[str | _Break | _Table] | None = None
     cell_header: bool = False
     cell_colspan: int = 1
     cell_rowspan: int = 1
-    depth: int = 1  # 표 안의 표는 바깥 셀의 글로 넣는다
+    # 마친 칸마다의 내용(틀 표를 풀 때 쓴다). rows의 칸 순서와 같다
+    cell_parts: list[list[str | _Break | _Table]] = field(default_factory=list)
+
+    def wrapper_parts(self) -> list[str | _Break | _Table] | None:
+        """칸이 하나뿐이고 그 안에 표나 여러 문단이 있으면 그 내용, 아니면 None(풀지 않는 표)."""
+        if len(self.rows) != 1 or len(self.rows[0]) != 1 or len(self.cell_parts) != 1:
+            return None
+        parts = self.cell_parts[0]
+        if any(isinstance(part, _Table) for part in parts):
+            return parts
+        paragraphs = 0
+        chunk = False
+        for part in parts:
+            if isinstance(part, _Break):
+                paragraphs += chunk
+                chunk = False
+            elif part.strip():
+                chunk = True
+        paragraphs += chunk
+        return parts if paragraphs > 1 else None
+
+
+def _parts_text(parts: list[str | _Break | _Table]) -> str:
+    """칸 내용을 칸 글로 만든다. 칸 안의 표는 칸 글을 띄어 써서 넣는다."""
+    out: list[str] = []
+    for part in parts:
+        if isinstance(part, _Break):
+            out.append(" ")
+        elif isinstance(part, _Table):
+            out.append(" " + _table_text(part) + " ")
+        else:
+            out.append(part)
+    return normalize_space("".join(out))
+
+
+def _table_text(table: _Table) -> str:
+    return " ".join(cell.text for row in table.rows for cell in row if cell.text)
 
 
 class _DartReader(HTMLParser):
@@ -294,9 +342,14 @@ class _DartReader(HTMLParser):
         self._title_ref: str | None = None
         self._para: list[str] | None = None
         self._loose: list[str] = []
-        self._table: _Table | None = None
+        # 열린 표(안쪽 표가 뒤). 맨 바깥 표를 닫을 때 블록을 만든다
+        self._tables: list[_Table] = []
         self._skip = 0
         self._block_no = 0
+
+    @property
+    def _table(self) -> _Table | None:
+        return self._tables[-1] if self._tables else None
 
     # ── 태그 열고 닫기 ──────────────────────────────────────
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
@@ -366,33 +419,34 @@ class _DartReader(HTMLParser):
         elif tag == "table":
             self._flush_loose()
             self._finish_para()
-            self._table = _Table()
+            self._tables.append(_Table())
 
     def _open_in_table(self, tag: str, attrs: dict[str, str | None]) -> None:
         table = self._table
         assert table is not None
         if tag == "table":
-            table.depth += 1
+            # 표 안의 표는 따로 모았다가, 닫을 때 바깥 칸의 내용으로 넣는다
+            self._tables.append(_Table())
         elif tag == "p":
             self.p_tags += 1
-            self._append(" ")
+            if table.cell is not None:
+                table.cell.append(_BREAK)
+            else:
+                self._append(" ")
         elif tag == "br":
             self._append("\n")
-        elif table.depth == 1 and tag == "tr":
+        elif tag == "tr":
             self._finish_row()
             table.row = []
         elif tag in _CELL_TAGS:
             self.cell_tags += 1
-            if table.depth == 1:
-                self._finish_cell()
-                if table.row is None:
-                    table.row = []
-                table.cell = []
-                table.cell_header = tag == "th"
-                table.cell_colspan = _span(attrs.get("colspan"))
-                table.cell_rowspan = _span(attrs.get("rowspan"))
-            else:
-                self._append(" ")
+            self._finish_cell()
+            if table.row is None:
+                table.row = []
+            table.cell = []
+            table.cell_header = tag == "th"
+            table.cell_colspan = _span(attrs.get("colspan"))
+            table.cell_rowspan = _span(attrs.get("rowspan"))
 
     def _close(self, tag: str) -> None:
         if tag == self._meta:
@@ -429,19 +483,52 @@ class _DartReader(HTMLParser):
         table = self._table
         assert table is not None
         if tag == "table":
-            if table.depth > 1:
-                table.depth -= 1
-                return
             self._finish_row()
-            self._table = None
-            rows = [r for r in table.rows if r]
-            if rows:
-                text = "\n".join(" | ".join(c.text for c in row) for row in rows)
-                self._add_block(TABLE, text, rows)
-        elif table.depth == 1 and tag in _CELL_TAGS:
+            self._tables.pop()
+            parent = self._table
+            if parent is None:
+                self._emit_table(table)
+            elif parent.cell is not None:
+                parent.cell.append(table)
+            elif text := _table_text(table):
+                # 칸 밖에 놓인 안쪽 표. 버리지 않고 바깥 표의 한 행으로 둔다
+                parent.rows.append([Cell(text)])
+                parent.cell_parts.append([text])
+        elif tag in _CELL_TAGS:
             self._finish_cell()
-        elif table.depth == 1 and tag == "tr":
+        elif tag == "tr":
             self._finish_row()
+
+    def _emit_table(self, table: _Table) -> None:
+        """맨 바깥 표를 블록으로 만든다.
+
+        틀 표는 풀어 안의 문단·표를 차례대로 두고, 모든 칸이 빈 표는 두지 않는다.
+        """
+        parts = table.wrapper_parts()
+        if parts is not None:
+            buffer: list[str] = []
+
+            def flush() -> None:
+                text = normalize_space("".join(buffer))
+                buffer.clear()
+                if text:
+                    self._add_block(PARAGRAPH, text)
+
+            for part in parts:
+                if isinstance(part, _Table):
+                    flush()
+                    self._emit_table(part)
+                elif isinstance(part, _Break):
+                    flush()
+                else:
+                    buffer.append(part)
+            flush()
+            return
+        rows = [r for r in table.rows if r]
+        if not any(cell.text for row in rows for cell in row):
+            return
+        text = "\n".join(" | ".join(c.text for c in row) for row in rows)
+        self._add_block(TABLE, text, rows)
 
     # ── 글 모으기 ───────────────────────────────────────────
     def handle_data(self, data: str) -> None:
@@ -458,7 +545,9 @@ class _DartReader(HTMLParser):
                 self._table.cell.append(data)
             elif data.strip():
                 # 셀 밖에 있는 표 안의 글. 버리지 않고 별도 행으로 둔다
-                self._table.rows.append([Cell(normalize_space(data))])
+                text = normalize_space(data)
+                self._table.rows.append([Cell(text)])
+                self._table.cell_parts.append([text])
             return
         if self._title is not None:
             self._title.append(data)
@@ -507,7 +596,7 @@ class _DartReader(HTMLParser):
         if table is None or table.cell is None:
             return
         cell = Cell(
-            normalize_space("".join(table.cell)),
+            _parts_text(table.cell),
             table.cell_header,
             table.cell_colspan,
             table.cell_rowspan,
@@ -515,6 +604,7 @@ class _DartReader(HTMLParser):
         if table.row is None:
             table.row = []
         table.row.append(cell)
+        table.cell_parts.append(table.cell)
         table.cell = None
 
     def _finish_row(self) -> None:
