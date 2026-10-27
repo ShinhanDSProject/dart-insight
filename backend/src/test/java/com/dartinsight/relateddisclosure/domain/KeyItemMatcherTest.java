@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 /** 값은 사전 조사(docs/research/3.6-related-disclosure.md 3·4장)의 실제 DS005 응답과 반기보고서 문장이다 */
 class KeyItemMatcherTest {
@@ -47,16 +49,31 @@ class KeyItemMatcherTest {
     }
 
     @Test
-    @DisplayName("소송은 원고 이름(회사 표시·공백 무시)이 맞을 때만 일치이고, 사건의 명칭(공백 무시)은 그때 함께 남긴다(고려아연 20260108000598, ADR-0032)")
-    void litigationMatchesPlaintiffAndCaseName() {
+    @DisplayName("소송은 원고(회사 표시·공백 무시)와 사건 명칭이 함께 있을 때만 일치이고, 원고만 맞으면 일치가 아니다(고려아연 20260108000598, ADR-0038)")
+    void litigationNeedsPlaintiffAndCaseName() {
         DisclosureKeyItems lawsuit = keyItems(KeyItemKind.LITIGATION,
                 Map.of("icnm", "신주발행무효의 소", "ac_ap", "주식회사 엠제이파트너스"));
 
         assertThat(match(lawsuit, "(주)엠제이파트너스가 신주발행무효의소를 제기하였습니다."))
                 .containsExactly(KeyItemMatcher.PLAINTIFF, KeyItemMatcher.CASE_NAME);
-        assertThat(match(lawsuit, "엠제이 파트너스 관련 소송")).containsExactly(KeyItemMatcher.PLAINTIFF);
+        // 꼬리('의 소')를 떼고 보므로 '소송'으로 적어도 같은 사건이다
+        assertThat(match(lawsuit, "엠제이파트너스는 신주발행무효 소송을 제기하였습니다."))
+                .containsExactly(KeyItemMatcher.PLAINTIFF, KeyItemMatcher.CASE_NAME);
+        assertThat(match(lawsuit, "엠제이 파트너스 관련 소송")).isEmpty();
         assertThat(match(lawsuit, "신주발행무효의 소가 진행 중입니다")).isEmpty();
-        assertThat(match(lawsuit, "신주발행금지 가처분")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("원고가 같아도 사건 명칭이 다르면 다른 사건으로 본다(고려아연 신주발행금지 가처분 ↔ 신주발행무효의 소, M8)")
+    void samePlaintiffDifferentCaseIsNotMatch() {
+        DisclosureKeyItems injunction = keyItems(KeyItemKind.LITIGATION,
+                Map.of("icnm", "신주발행금지 가처분", "ac_ap", "주식회사 영풍, 한국기업투자홀딩스 주식회사, 유한회사 와이피씨"));
+
+        assertThat(match(injunction, "유한회사 와이피씨는 당사를 상대로 신주발행무효의 소를 제기하였으며 1심에서 패소하였습니다."))
+                .isEmpty();
+        assertThat(match(injunction, "주식회사 영풍 등이 제기한 주주총회결의취소 소송이 진행 중입니다.")).isEmpty();
+        assertThat(match(injunction, "유한회사 와이피씨가 신청한 신주발행금지 가처분이 기각되었습니다."))
+                .containsExactly(KeyItemMatcher.PLAINTIFF, KeyItemMatcher.CASE_NAME);
     }
 
     @Test
@@ -67,10 +84,22 @@ class KeyItemMatcherTest {
         DisclosureKeyItems injunction = keyItems(KeyItemKind.LITIGATION,
                 Map.of("icnm", "신주발행금지 가처분", "ac_ap", "주식회사 영풍, 한국기업투자홀딩스 주식회사, 주식회사 와이피씨"));
 
-        assertThat(match(appeal, "고려아연 주식회사는 소송을 진행 중입니다.")).isEmpty();
-        // 원고가 회사 자신이면 흔한 사건 명칭('항소')만으로 일치시키지 않는다
-        assertThat(match(appeal, "1심 판결에 대해 항소하였습니다.")).isEmpty();
-        assertThat(match(injunction, "와이피씨가 제기한 소송")).containsExactly(KeyItemMatcher.PLAINTIFF);
+        assertThat(match(appeal, "고려아연 주식회사는 항소를 진행 중입니다.")).isEmpty();
+        assertThat(match(injunction, "한국기업투자홀딩스가 신주발행금지가처분을 신청하였습니다."))
+                .containsExactly(KeyItemMatcher.PLAINTIFF, KeyItemMatcher.CASE_NAME);
+    }
+
+    @ParameterizedTest(name = "{0} → {1}")
+    @DisplayName("사건 명칭은 공백과 끝의 흔한 꼬리를 뗀 핵심으로 본다")
+    @CsvSource(delimiter = '|', textBlock = """
+            신주발행무효의 소           | 신주발행무효
+            신주발행금지가처분신청서     | 신주발행금지가처분
+            손해배상청구의 소           | 손해배상
+            주주총회결의 취소 소송       | 주주총회결의취소
+            항소                       | 항소
+            """)
+    void caseNameCoreDropsCommonTails(String caseName, String core) {
+        assertThat(KeyItemMatcher.caseNameCore(caseName)).isEqualTo(core);
     }
 
     @Test
