@@ -1,12 +1,16 @@
+import { useId, useState } from 'react'
 import { Link } from 'react-router'
 import { match, P } from 'ts-pattern'
 import type { CompanyAnalysisItem } from '@/shared/api/analyses'
 import { Panel, PanelTitle } from '@/shared/ui'
 import { useCompanyAnalyses } from '@/shared/hooks/useCompanyAnalyses'
 import { pastAnalysisLabel } from '@/shared/lib/pastAnalyses'
+import { visiblePastAnalyses } from '../model/reportVisibility'
+import { MoreToggle } from './MoreToggle'
 
 /**
  * 기업 화면 보고서 고르기 위의 '이미 분석한 비교'(#288). 누르면 결과 화면으로 바로 간다.
+ * 처음엔 최근 3개만 보이고 나머지는 '더 보기'로 펼친다.
  * 목록이 없거나, 불러오는 중이거나, 불러오지 못하면 영역을 보이지 않는다(화면의 다른 기능을 막지 않음).
  */
 export function PastAnalyses({ corpCode }: { corpCode: string }) {
@@ -20,16 +24,30 @@ export function PastAnalyses({ corpCode }: { corpCode: string }) {
 }
 
 export function PastAnalysesList({ items }: { items: CompanyAnalysisItem[] }) {
+  const listId = useId()
+  const [expanded, setExpanded] = useState(false)
+  const { rows, hiddenCount } = visiblePastAnalyses(items, expanded)
+
   return (
     <Panel className="past-analyses" aria-labelledby="past-analyses-title">
       <PanelTitle id="past-analyses-title">이미 분석한 비교</PanelTitle>
-      <ul className="past-analyses__list">
-        {items.map((item) => (
+      <ul id={listId} className="past-analyses__list">
+        {rows.map((item) => (
           <li key={item.analysisId}>
             <Link className="list-link" to={`/analyses/${item.analysisId}`}>{pastAnalysisLabel(item)}</Link>
           </li>
         ))}
       </ul>
+      {hiddenCount > 0 && (
+        <div className="past-analyses__more">
+          <MoreToggle
+            controls={listId}
+            expanded={expanded}
+            hiddenCount={hiddenCount}
+            onToggle={() => setExpanded((open) => !open)}
+          />
+        </div>
+      )}
     </Panel>
   )
 }

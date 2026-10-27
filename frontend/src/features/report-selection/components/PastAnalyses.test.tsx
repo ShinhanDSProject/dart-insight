@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CompanyAnalysisItem, CompanyAnalysisList } from '@/shared/api/analyses'
@@ -48,6 +48,32 @@ describe('이미 분석한 비교', () => {
     expect(screen.getAllByRole('link')).toHaveLength(2)
     expect(screen.getByRole('region', { name: '이미 분석한 비교' })).toBeTruthy()
     expect(listCompanyAnalyses).toHaveBeenCalledWith('00126380', expect.any(AbortSignal), 5)
+  })
+
+  it('처음엔 최근 3개만 보이고 더 보기로 나머지를 펼치고 접는다', async () => {
+    listCompanyAnalyses.mockResolvedValue({
+      items: [15, 14, 13, 12, 11].map((id) => item(id, `2026-10-${id + 9}T09:00:00`)),
+    })
+    renderPanel()
+
+    const more = await screen.findByRole('button', { name: '더 보기 (2개)' })
+    expect(screen.getAllByRole('link')).toHaveLength(3)
+    expect(more.getAttribute('aria-expanded')).toBe('false')
+    expect(more.getAttribute('aria-controls')).toBe(screen.getByRole('list').id)
+
+    fireEvent.click(more)
+    expect(screen.getAllByRole('link')).toHaveLength(5)
+    expect(screen.getByRole('button', { name: '접기' }).getAttribute('aria-expanded')).toBe('true')
+
+    fireEvent.click(screen.getByRole('button', { name: '접기' }))
+    expect(screen.getAllByRole('link')).toHaveLength(3)
+  })
+
+  it('3개 이하면 더 보기 버튼을 두지 않는다', async () => {
+    listCompanyAnalyses.mockResolvedValue({ items: [item(15, '2026-10-24T15:20:31'), item(14, '2026-10-23T09:00:00')] })
+    renderPanel()
+    await screen.findAllByRole('link')
+    expect(screen.queryByRole('button')).toBeNull()
   })
 
   it('목록이 비면 영역을 보이지 않는다', async () => {

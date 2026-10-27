@@ -126,6 +126,20 @@
   margin-top: 0;
 }
 
+/* 보고서 정보의 자세한 항목. 표와 겹치는 값이 많아 '보고서 자세히'에 접어 둔다 */
+.report-detail > summary {
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+}
+
+.report-detail[open] > summary {
+  margin-bottom: var(--space-3);
+}
+
+.report-detail > .facts + * {
+  margin-top: var(--space-3);
+}
+
 .pair-actions {
   display: flex;
   justify-content: flex-end;
