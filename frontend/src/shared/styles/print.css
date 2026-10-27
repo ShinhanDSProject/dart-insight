@@ -106,6 +106,16 @@
     box-shadow: none;
   }
 
+  /* 위에 붙는 기업 탭 줄(FS-58)은 종이에서는 제자리에 둔다. 작은 회사명은 위 제목과 겹치므로 뺀다 */
+  .company-bar {
+    position: static;
+    box-shadow: none;
+  }
+
+  .company-bar__name {
+    display: none;
+  }
+
   thead {
     display: table-header-group;
   }

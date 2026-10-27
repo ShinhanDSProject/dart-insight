@@ -11,6 +11,7 @@ import { DisclosureSignalsSection } from './DisclosureSignalsSection'
 import { DisclosureTimelineSection } from './DisclosureTimelineSection'
 import { FinancialTrendSection } from './FinancialTrendSection'
 import { KeyFactsSection } from './KeyFactsSection'
+import { OverviewMetricsRow } from './OverviewMetricsRow'
 
 interface OverviewSection {
   key: string
@@ -60,6 +61,7 @@ export function CompanyOverviewTab(props: OverviewSectionProps) {
 
   return (
     <>
+      <OverviewMetricsRow corpCode={props.corpCode} />
       <nav className="overview-nav" aria-label="기업 개요 바로 가기">
         <ul className="overview-nav__list">
           {sections.map(({ key, label }) => (

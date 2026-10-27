@@ -45,6 +45,9 @@ vi.mock('./DisclosureChartSection', () => ({
     <section aria-label="공시 타임라인" data-section="disclosure-chart" data-corp-code={corpCode} />
   ),
 }))
+vi.mock('./OverviewMetricsRow', () => ({
+  OverviewMetricsRow: () => null,
+}))
 vi.mock('./DisclosureTimelineSection', () => ({
   DisclosureTimelineSection: ({ corpCode }: { corpCode: string }) => (
     <section aria-label="최근 공시" data-section="disclosures" data-corp-code={corpCode} />

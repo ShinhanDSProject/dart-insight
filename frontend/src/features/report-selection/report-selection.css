@@ -41,6 +41,117 @@
   color: var(--color-text-muted);
 }
 
+/* 위에 붙는 기업 화면 탭 줄(FS-58). 회사명이 화면 위로 나가면(data-compact) 오른쪽에 작은 회사명과 옅은 그림자가 나타난다.
+   탭 줄 높이는 접혀도 그대로라 아래 내용이 튀지 않는다 */
+.company-bar__sentinel {
+  height: 0;
+}
+
+.company-bar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+  transition: box-shadow var(--motion-base) var(--ease-out);
+}
+
+.company-bar .tabs {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+.company-bar__name {
+  flex: none;
+  max-width: 40%;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(var(--space-1));
+  transition:
+    opacity var(--motion-base) var(--ease-out),
+    transform var(--motion-base) var(--ease-out);
+}
+
+.company-bar[data-compact] {
+  box-shadow: var(--shadow-sm);
+}
+
+.company-bar[data-compact] .company-bar__name {
+  opacity: 1;
+  transform: none;
+}
+
+.company-skeleton {
+  margin-top: var(--space-3);
+}
+
+/* 기업 개요 상단 지표 줄(FS-58). 숫자를 크게, 나머지는 작고 옅게. 불러오는 자리와 같은 높이로 둔다 */
+.overview-metrics {
+  margin-bottom: var(--space-4);
+}
+
+.overview-metrics__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4) var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.overview-metrics__item {
+  min-height: var(--overview-metric-height);
+}
+
+.overview-metrics__item + .overview-metrics__item {
+  padding-left: var(--space-5);
+  border-left: 1px solid var(--color-border);
+}
+
+.overview-metrics,
+.overview-metrics__skeleton {
+  --overview-metric-height: calc(var(--space-7) * 3);
+  --skeleton-height: var(--overview-metric-height);
+}
+
+.overview-metrics__skeleton {
+  /* 성공 때 위아래의 안내·출처 줄 자리까지 비워 두어 아래 영역이 밀리지 않게 한다 */
+  padding-block: var(--space-6);
+}
+
+@media screen and (max-width: 900px) {
+  .company-bar__name {
+    max-width: 30%;
+    font-size: var(--font-size-sm);
+  }
+
+  .overview-metrics__list {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-metrics__item {
+    min-height: 0;
+  }
+
+  .overview-metrics__item + .overview-metrics__item {
+    padding-top: var(--space-4);
+    padding-left: 0;
+    border-top: 1px solid var(--color-border);
+    border-left: none;
+  }
+}
+
 .facts {
   display: grid;
   gap: var(--space-2);
@@ -187,8 +298,8 @@
 
 .company-overview__slot {
   min-width: 0;
-  /* 바로 가기로 옮겼을 때 위에 붙는 바로 가기 바에 가리지 않게 */
-  scroll-margin-top: calc(var(--touch-target-min) + var(--space-5));
+  /* 바로 가기로 옮겼을 때 위에 붙는 기업 탭 줄과 바로 가기 바에 가리지 않게 */
+  scroll-margin-top: calc(var(--company-bar-height, 0px) + var(--touch-target-min) + var(--space-5));
 }
 
 .company-overview__slot:focus {
@@ -227,7 +338,8 @@
 
 .overview-nav {
   position: sticky;
-  top: 0;
+  /* 위에 붙는 기업 탭 줄(CompanyFrame) 바로 밑 */
+  top: var(--company-bar-height, 0px);
   z-index: 2;
   margin: 0 0 var(--space-4);
   padding: var(--space-2) 0;
