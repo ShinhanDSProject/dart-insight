@@ -167,7 +167,7 @@ describe('핵심 수치', () => {
     renderSection()
 
     fireEvent.click(await screen.findByRole('button', { name: /^핵심 수치/ }))
-    expect(await screen.findByText(/접수번호 20251118000105\(최신 정정본, 원본 20251020000144\)/)).toBeTruthy()
+    expect(await screen.findByText(/접수번호 20251118000105 \(최신 정정본, 원본 20251020000144\)/)).toBeTruthy()
     expect(screen.getByRole('link', { name: /원문 보기/ }).getAttribute('href')).toBe(
       'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20251118000105',
     )

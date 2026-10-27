@@ -69,7 +69,7 @@ function SourceLine({ data }: { data: DisclosureKeyItems }) {
   return (
     <p className="dart-source">
       출처: OpenDART 주요사항보고서 주요정보({data.kindLabel}) · 접수번호 {sourceRceptNo}
-      {data.sourceRceptNo !== null && `(최신 정정본, 원본 ${data.rceptNo})`} · {fetched}
+      {data.sourceRceptNo !== null && ` (최신 정정본, 원본 ${data.rceptNo})`} · {fetched}
       {url !== null && (
         <>
           {' · '}
