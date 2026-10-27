@@ -7,8 +7,13 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /** 회원이 고정한 관심 기업 한 곳(6.2, #36). 회원과 기업 쌍은 한 번만 있다. */
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "favorite_company")
 public class FavoriteCompany {
@@ -25,8 +30,6 @@ public class FavoriteCompany {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    protected FavoriteCompany() {}
-
     public static FavoriteCompany create(long userId, String corpCode, LocalDateTime now) {
         FavoriteCompany favorite = new FavoriteCompany();
         favorite.userId = userId;
@@ -34,8 +37,4 @@ public class FavoriteCompany {
         favorite.createdAt = now;
         return favorite;
     }
-
-    public String getCorpCode() { return corpCode; }
-
-    public LocalDateTime getCreatedAt() { return createdAt; }
 }

@@ -12,6 +12,9 @@ import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Objects;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -20,6 +23,8 @@ import org.hibernate.type.SqlTypes;
  * lastSeenAt은 OpenDART 최신 목록에서 마지막으로 본 시각이다. 정정되어 최신 목록에서 빠진 보고서는
  * 지우지 않고(이미 분석에 쓰였을 수 있음) 목록에만 보이지 않게 한다.
  */
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "report")
 public class Report {
@@ -71,9 +76,6 @@ public class Report {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    protected Report() {
-    }
-
     public static Report create(String rceptNo, String corpCode, String reportName, ParsedReportName parsed,
             LocalDate rceptDt, String remark, String filerName, LocalDateTime now) {
         Report report = new Report();
@@ -110,59 +112,11 @@ public class Report {
         this.updatedAt = now;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public String getRceptNo() {
-        return rceptNo;
-    }
-
-    public String getCorpCode() {
-        return corpCode;
-    }
-
-    public String getReportName() {
-        return reportName;
-    }
-
-    public ReportType getReportType() {
-        return reportType;
-    }
-
-    public int getFiscalYear() {
-        return fiscalYear;
-    }
-
-    public LocalDate getPeriodEnd() {
-        return periodEnd;
-    }
-
-    public LocalDate getRceptDt() {
-        return rceptDt;
-    }
-
-    public Correction getCorrection() {
-        return correction;
-    }
-
-    public String getRemark() {
-        return remark;
-    }
-
-    public String getFilerName() {
-        return filerName;
-    }
-
     /**
      * 기업의 보고서 목록을 마지막으로 받았을 때(reportsFetchedAt) 이 보고서가 그 목록에 있었는지.
      * 정정 공시로 대체됐으면 false. 목록을 받은 적이 없으면 true
      */
     public boolean inLatestList(LocalDateTime reportsFetchedAt) {
         return reportsFetchedAt == null || !lastSeenAt.isBefore(reportsFetchedAt);
-    }
-
-    public LocalDateTime getLastSeenAt() {
-        return lastSeenAt;
     }
 }

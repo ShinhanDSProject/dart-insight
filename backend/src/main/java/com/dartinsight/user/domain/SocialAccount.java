@@ -7,7 +7,12 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "social_account")
 public class SocialAccount {
@@ -29,8 +34,6 @@ public class SocialAccount {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    protected SocialAccount() {}
-
     public static SocialAccount create(long userId, SocialIdentity identity, LocalDateTime now) {
         SocialAccount account = new SocialAccount();
         account.userId = userId;
@@ -42,6 +45,4 @@ public class SocialAccount {
         account.updatedAt = now;
         return account;
     }
-
-    public long userId() { return userId; }
 }

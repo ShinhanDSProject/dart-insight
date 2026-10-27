@@ -9,6 +9,9 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -16,6 +19,8 @@ import org.hibernate.type.SqlTypes;
  * 회원이 기업 노트에 담은 근거 한 건(6.5, #413, ADR-0034). 담을 때의 이름·값·문장(사본)과 원래 위치(참조), 메모를 둔다.
  * 사본은 담은 뒤 바뀌지 않는다. 바꿀 수 있는 것은 메모뿐이다.
  */
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "judgment_note_item")
 public class JudgmentNoteItem {
@@ -82,8 +87,6 @@ public class JudgmentNoteItem {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    protected JudgmentNoteItem() {}
-
     public static JudgmentNoteItem create(long userId, NoteSnapshot snapshot, String memo, LocalDateTime now) {
         JudgmentNoteItem item = new JudgmentNoteItem();
         item.userId = userId;
@@ -127,44 +130,4 @@ public class JudgmentNoteItem {
     public boolean isOutdated(String currentVersion) {
         return analysisVersion != null && !analysisVersion.equals(currentVersion);
     }
-
-    public Long getId() { return id; }
-
-    public Long getUserId() { return userId; }
-
-    public String getCorpCode() { return corpCode; }
-
-    public NoteKind getKind() { return kind; }
-
-    public Long getAnalysisId() { return analysisId; }
-
-    public String getAnalysisVersion() { return analysisVersion; }
-
-    public Long getChangeId() { return changeId; }
-
-    public String getSjDiv() { return sjDiv; }
-
-    public String getRceptNo() { return rceptNo; }
-
-    public Integer getSectionNo() { return sectionNo; }
-
-    public Integer getBlockNo() { return blockNo; }
-
-    public String getChangeType() { return changeType; }
-
-    public String getSnapshotLabel() { return snapshotLabel; }
-
-    public String getSnapshotText() { return snapshotText; }
-
-    public Long getQuestionId() { return questionId; }
-
-    public String getSnapshotQuestion() { return snapshotQuestion; }
-
-    public String getDocSide() { return docSide; }
-
-    public String getMemo() { return memo; }
-
-    public LocalDateTime getCreatedAt() { return createdAt; }
-
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

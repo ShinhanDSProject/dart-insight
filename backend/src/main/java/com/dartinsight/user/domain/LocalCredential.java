@@ -9,9 +9,12 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 /** 일반 가입 정보. 소셜 회원은 이 행 없이 같은 User를 사용할 수 있다. */
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "local_credential")
 public class LocalCredential {
@@ -31,8 +34,6 @@ public class LocalCredential {
 
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified;
-
-    protected LocalCredential() {}
 
     public static LocalCredential create(User user, String email, String passwordHash) {
         LocalCredential credential = new LocalCredential();

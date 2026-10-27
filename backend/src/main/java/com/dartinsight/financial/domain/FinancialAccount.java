@@ -6,11 +6,16 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * 재무제표 계정 한 줄(docs/erd.md). 근거로 접수번호·재무제표 종류(sj_div)·계정 ID를 남긴다.
  * 금액은 원 단위이고, 없는 값은 null이다(0과 구분).
  */
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "financial_account")
 public class FinancialAccount {
@@ -55,9 +60,11 @@ public class FinancialAccount {
     @Column(name = "frmtrm_name", length = 50)
     private String frmtrmName;
 
+    /** 당기 금액. 분·반기 손익계산서는 3개월 금액 */
     @Column(name = "thstrm_amount")
     private Long thstrmAmount;
 
+    /** 당기 누적 금액(분·반기 손익) */
     @Column(name = "thstrm_add_amount")
     private Long thstrmAddAmount;
 
@@ -69,9 +76,6 @@ public class FinancialAccount {
 
     @Column(name = "frmtrm_add_amount")
     private Long frmtrmAddAmount;
-
-    protected FinancialAccount() {
-    }
 
     /** 받은 재무제표의 계정 한 줄. 금액은 보고서 통화의 정수이고 없으면 null이다. */
     public static FinancialAccount create(Long fetchId, String rceptNo, String sjDiv, String sjName,
@@ -106,75 +110,5 @@ public class FinancialAccount {
 
     public boolean isStandardAccount() {
         return accountId != null && !accountId.isBlank() && !NON_STANDARD_ACCOUNT_ID.equals(accountId);
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public Long getFetchId() {
-        return fetchId;
-    }
-
-    public String getRceptNo() {
-        return rceptNo;
-    }
-
-    public String getSjDiv() {
-        return sjDiv;
-    }
-
-    public String getSjName() {
-        return sjName;
-    }
-
-    public String getAccountId() {
-        return accountId;
-    }
-
-    public String getAccountName() {
-        return accountName;
-    }
-
-    public String getAccountDetail() {
-        return accountDetail;
-    }
-
-    public Integer getOrd() {
-        return ord;
-    }
-
-    public String getCurrency() {
-        return currency;
-    }
-
-    public String getThstrmName() {
-        return thstrmName;
-    }
-
-    public String getFrmtrmName() {
-        return frmtrmName;
-    }
-
-    /** 당기 금액. 분·반기 손익계산서는 3개월 금액 */
-    public Long getThstrmAmount() {
-        return thstrmAmount;
-    }
-
-    /** 당기 누적 금액(분·반기 손익) */
-    public Long getThstrmAddAmount() {
-        return thstrmAddAmount;
-    }
-
-    public Long getFrmtrmAmount() {
-        return frmtrmAmount;
-    }
-
-    public Long getFrmtrmQAmount() {
-        return frmtrmQAmount;
-    }
-
-    public Long getFrmtrmAddAmount() {
-        return frmtrmAddAmount;
     }
 }

@@ -10,12 +10,17 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 /**
  * 재무제표 API를 한 번 부른 결과(docs/erd.md). 같은 기업·사업연도·보고서 코드·기준은 다시 부르지 않는다.
  */
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "financial_statement_fetch")
 public class FinancialStatementFetch {
@@ -49,9 +54,6 @@ public class FinancialStatementFetch {
     @Column(name = "fetched_at", nullable = false)
     private LocalDateTime fetchedAt;
 
-    protected FinancialStatementFetch() {
-    }
-
     /** 사업연도·보고서 코드·재무제표 구분 하나를 받은 결과. */
     public static FinancialStatementFetch create(String corpCode, int fiscalYear, String reprtCode, FsDiv fsDiv,
             FetchStatus status, String rceptNo, LocalDateTime fetchedAt) {
@@ -76,30 +78,6 @@ public class FinancialStatementFetch {
         this.fetchedAt = fetchedAt;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public String getCorpCode() {
-        return corpCode;
-    }
-
-    public int getFiscalYear() {
-        return fiscalYear;
-    }
-
-    public String getReprtCode() {
-        return reprtCode;
-    }
-
-    public FsDiv getFsDiv() {
-        return fsDiv;
-    }
-
-    public FetchStatus getStatus() {
-        return status;
-    }
-
     public boolean hasData() {
         return status == FetchStatus.OK;
     }
@@ -117,13 +95,5 @@ public class FinancialStatementFetch {
      */
     public boolean needsRefetchFor(Report report) {
         return !serves(report) && report.getLastSeenAt().isAfter(fetchedAt);
-    }
-
-    public String getRceptNo() {
-        return rceptNo;
-    }
-
-    public LocalDateTime getFetchedAt() {
-        return fetchedAt;
     }
 }

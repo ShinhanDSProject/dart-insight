@@ -7,8 +7,13 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /** 즐겨찾기 폴링이 찾아 자동 분석을 요청한 새 정기보고서(6.4, ADR-0031). 이 보고서의 분석이 끝나면 알린다. */
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "watched_report")
 public class WatchedReport {
@@ -21,8 +26,6 @@ public class WatchedReport {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
-
-    protected WatchedReport() {}
 
     public static WatchedReport create(String rceptNo, LocalDateTime now) {
         WatchedReport watched = new WatchedReport();

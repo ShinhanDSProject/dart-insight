@@ -22,7 +22,7 @@ public class SocialAuthenticationService {
     public long authenticate(SocialIdentity identity) {
         SocialIdentity.requireValid(identity);
         return socialAccounts.findByProviderAndProviderUserId(identity.provider(), identity.providerUserId())
-                .map(SocialAccount::userId)
+                .map(SocialAccount::getUserId)
                 .orElseGet(() -> create(identity));
     }
 
