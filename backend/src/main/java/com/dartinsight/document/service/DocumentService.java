@@ -7,7 +7,6 @@ import com.dartinsight.dart.client.OpenDartClient;
 import com.dartinsight.dart.client.OpenDartClient.DocumentFile;
 import com.dartinsight.document.domain.DocumentBlock;
 import com.dartinsight.document.domain.DocumentSection;
-import com.dartinsight.document.domain.DocumentStatus;
 import com.dartinsight.document.domain.ReportDocument;
 import com.dartinsight.document.dto.StructuredDocumentResponse;
 import com.dartinsight.document.repository.DocumentFileCache;
@@ -19,7 +18,6 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -74,14 +72,14 @@ public class DocumentService {
         String rceptNo = report.getRceptNo();
         synchronized (LOCKS[Math.floorMod(rceptNo.hashCode(), LOCKS.length)]) {
             Optional<ReportDocument> saved = documentRepository.findByRceptNo(rceptNo);
-            if (saved.isPresent() && saved.get().getStatus() == DocumentStatus.NOT_AVAILABLE
-                    && !report.getLastSeenAt().isAfter(saved.get().getFetchedAt())) {
-                return saved.get();
+            Optional<ReportDocument> stillUnavailable = saved.filter(d -> d.unavailableSince(report.getLastSeenAt()));
+            if (stillUnavailable.isPresent()) {
+                return stillUnavailable.get();
             }
             String parserVersion = parserVersion();
-            if (saved.isPresent() && saved.get().getStatus() != DocumentStatus.NOT_AVAILABLE
-                    && Objects.equals(saved.get().getParserVersion(), parserVersion)) {
-                return saved.get();
+            Optional<ReportDocument> upToDate = saved.filter(d -> d.structuredWith(parserVersion));
+            if (upToDate.isPresent()) {
+                return upToDate.get();
             }
 
             LocalDateTime fetchedAt = now();
@@ -89,7 +87,7 @@ public class DocumentService {
             byte[] zip;
             if (cached.isPresent()) {
                 zip = cached.get();
-                if (saved.isPresent() && saved.get().getStatus() != DocumentStatus.NOT_AVAILABLE) {
+                if (saved.isPresent() && saved.get().fileReceived()) {
                     fetchedAt = saved.get().getFetchedAt();
                 }
             } else {
@@ -104,12 +102,7 @@ public class DocumentService {
                 fileCache.write(rceptNo, zip);
             }
 
-            StructuredDocumentResponse response = aiServerClient.postBytes(
-                    AiServerPaths.documentStructure(rceptNo), zip, MediaType.valueOf("application/zip"),
-                    StructuredDocumentResponse.class);
-            if (response == null || !rceptNo.equals(response.rceptNo())) {
-                throw new AiServerException(null, "AI 서버가 다른 보고서의 구조화 결과를 돌려줬습니다.", null);
-            }
+            StructuredDocumentResponse response = structure(rceptNo, zip);
             long zipBytes = zip.length;
             LocalDateTime fetched = fetchedAt;
             ReportDocument result = save(rceptNo, saved.map(ReportDocument::getId).orElse(null),
@@ -141,6 +134,17 @@ public class DocumentService {
     public Optional<DocumentBlock> block(ReportDocument document, int blockNo) {
         return document.getStatus().usable()
                 ? store.block(document.getId(), document.getRceptNo(), blockNo) : Optional.empty();
+    }
+
+    /** 원문 ZIP을 AI 서버에서 목차·문단·표로 구조화한다. 다른 보고서의 결과가 오면 실패로 본다 */
+    private StructuredDocumentResponse structure(String rceptNo, byte[] zip) {
+        StructuredDocumentResponse response = aiServerClient.postBytes(
+                AiServerPaths.documentStructure(rceptNo), zip, MediaType.valueOf("application/zip"),
+                StructuredDocumentResponse.class);
+        if (response == null || !rceptNo.equals(response.rceptNo())) {
+            throw new AiServerException(null, "AI 서버가 다른 보고서의 구조화 결과를 돌려줬습니다.", null);
+        }
+        return response;
     }
 
     private String parserVersion() {
