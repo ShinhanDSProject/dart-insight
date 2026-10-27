@@ -12,7 +12,7 @@ export interface Scale {
 function niceStep(rough: number): number {
   const power = 10 ** Math.floor(Math.log10(rough))
   const fraction = rough / power
-  const nice = fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 5 ? 5 : 10
+  const nice = [1, 2, 5].find((step) => fraction <= step) ?? 10
   return nice * power
 }
 

@@ -32,6 +32,12 @@ interface Snapshot {
 const EMPTY: FavoriteCompany[] = []
 const ANONYMOUS: Snapshot = { userId: null, status: 'anonymous', items: EMPTY }
 
+/** 로그인하지 않았으면 anonymous, 이 회원의 목록을 아직 받기 전이면 loading */
+function favoriteStatusOf(userId: number | null, mine: Snapshot): FavoriteCompaniesStatus {
+  if (userId === null) return 'anonymous'
+  return mine.userId === null ? 'loading' : mine.status
+}
+
 // 검색 화면의 목록·검색 결과 별 표시·보고서 선택 화면 별 버튼이 같은 목록을 보도록 한 곳에 둔다
 let snapshot: Snapshot = ANONYMOUS
 // 로그인·로그아웃·다시 받기마다 올린다. 앞선 세션이나 앞선 요청의 응답이 지금 목록을 덮지 못하게 한다
@@ -114,6 +120,6 @@ export function useFavoriteCompanies(): FavoriteCompaniesController {
   const mine = current.userId === userId ? current : ANONYMOUS
   const items = mine.status === 'ready' ? mine.items : EMPTY
   const isFavorite = useCallback((corpCode: string) => items.some((item) => item.corpCode === corpCode), [items])
-  const status: FavoriteCompaniesStatus = userId === null ? 'anonymous' : mine.userId === null ? 'loading' : mine.status
+  const status = favoriteStatusOf(userId, mine)
   return { status, items, isFavorite, toggle: toggleFavorite, remove: removeFavorite, reload: reloadFavorites }
 }

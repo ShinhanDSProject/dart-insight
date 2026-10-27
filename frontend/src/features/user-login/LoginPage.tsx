@@ -1,15 +1,29 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { match } from 'ts-pattern'
-import { apiBaseUrl, ApiError } from '@/shared/api/client'
+import { apiBaseUrl, ApiError, NETWORK_ERROR } from '@/shared/api/client'
 import { endpoints } from '@/shared/api/endpoints'
 import { useAuth } from '@/shared/auth/authContext'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
 import { pageTitle } from '@/shared/lib/pageTitle'
+import { Button } from '@/shared/ui'
 import './user-login.css'
 
 type SubmitState = { status: 'idle' } | { status: 'loading' }
   | { status: 'error'; message: string; traceId?: string | null }
+
+type SocialProvider = 'google' | 'kakao' | 'naver'
+
+const SOCIAL_PROVIDERS: SocialProvider[] = ['google', 'kakao', 'naver']
+const SOCIAL_LABELS: Record<SocialProvider, string> = { google: 'Google', kakao: '카카오', naver: '네이버' }
+
+/** 로그인 실패 안내. 에러 코드로 고른다(API-3) */
+function loginFailureMessage(error: ApiError | null): string {
+  return match(error?.code)
+    .with('AUTH_INVALID_CREDENTIALS', () => '이메일 또는 비밀번호를 확인해 주세요.')
+    .with(NETWORK_ERROR, () => '서버에 연결하지 못했습니다. 연결 상태를 확인해 주세요.')
+    .otherwise(() => '로그인하지 못했습니다. 잠시 뒤 다시 시도해 주세요.')
+}
 
 export function LoginPage() {
   useDocumentTitle(pageTitle(['로그인']))
@@ -36,12 +50,7 @@ export function LoginPage() {
       await navigate('/')
     } catch (error: unknown) {
       const apiError = error instanceof ApiError ? error : null
-      const message = apiError?.code === 'AUTH_INVALID_CREDENTIALS'
-        ? '이메일 또는 비밀번호를 확인해 주세요.'
-        : apiError?.status === 0
-          ? '서버에 연결하지 못했습니다. 연결 상태를 확인해 주세요.'
-          : '로그인하지 못했습니다. 잠시 뒤 다시 시도해 주세요.'
-      setSubmit({ status: 'error', message, traceId: apiError?.traceId })
+      setSubmit({ status: 'error', message: loginFailureMessage(apiError), traceId: apiError?.traceId })
     }
   }
 
@@ -74,16 +83,16 @@ export function LoginPage() {
               {state.traceId && <p className="state__meta">문의 시 전달할 오류 번호: {state.traceId}</p>}
             </div>
           )).otherwise(() => null)}
-          <button type="submit" className="button button--primary login__submit" disabled={loading}>
+          <Button type="submit" variant="primary" className="login__submit" disabled={loading}>
             {loading ? '로그인 중…' : '로그인'}
-          </button>
+          </Button>
         </form>
         <div className="login__divider"><span>또는</span></div>
         <div className="login__social" aria-label="소셜 로그인">
-          {(['google', 'kakao', 'naver'] as const).map((provider) => (
+          {SOCIAL_PROVIDERS.map((provider) => (
             <a className={`login__social-button login__social-button--${provider}`}
               href={`${apiBaseUrl}${endpoints.socialLogin(provider)}`} key={provider}>
-              {provider === 'google' ? 'Google' : provider === 'kakao' ? '카카오' : '네이버'}로 계속하기
+              {SOCIAL_LABELS[provider]}로 계속하기
             </a>
           ))}
         </div>

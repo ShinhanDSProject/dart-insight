@@ -1,4 +1,5 @@
 import { useEffect, useReducer, type ReactNode } from 'react'
+import { match } from 'ts-pattern'
 import { apiDelete, apiPost, setAccessToken } from '@/shared/api/client'
 import { endpoints } from '@/shared/api/endpoints'
 import { AuthContext, type AuthState } from './authContext'
@@ -13,13 +14,17 @@ type AuthAction =
   | { type: 'anonymous' }
   | { type: 'authenticated'; session: SessionResponse }
 
-function reducer(_state: AuthState, action: AuthAction): AuthState {
-  if (action.type === 'authenticated') {
-    setAccessToken(action.session.accessToken)
-    return { status: 'authenticated', userId: action.session.userId }
-  }
-  setAccessToken(null)
-  return { status: 'anonymous' }
+function authReducer(_state: AuthState, action: AuthAction): AuthState {
+  return match(action)
+    .with({ type: 'authenticated' }, ({ session }): AuthState => {
+      setAccessToken(session.accessToken)
+      return { status: 'authenticated', userId: session.userId }
+    })
+    .with({ type: 'anonymous' }, (): AuthState => {
+      setAccessToken(null)
+      return { status: 'anonymous' }
+    })
+    .exhaustive()
 }
 
 // 재발급은 Refresh Token을 회전시키고, 이미 쓴 토큰이 다시 오면 서버가 재사용으로 보고 그 로그인을 모두 끊는다(ADR-0020).
@@ -35,7 +40,7 @@ function restoreSession(): Promise<SessionResponse> {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, { status: 'loading' })
+  const [state, dispatch] = useReducer(authReducer, { status: 'loading' })
 
   useEffect(() => {
     let active = true

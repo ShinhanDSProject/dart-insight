@@ -1,4 +1,5 @@
 import { useId, useState, type ReactNode } from 'react'
+import { formatInteger } from '@/shared/lib/numberFormat'
 import { Button } from './Button'
 import { FieldHint, FieldLabel, TextArea } from './Field'
 
@@ -47,7 +48,7 @@ export function MemoForm({ initial = null, maxLength, submitLabel, label = '메�
         onChange={(e) => setDraft(e.target.value)}
       />
       <FieldHint id={`${id}-count`}>
-        {draft.length.toLocaleString('ko-KR')} / {maxLength.toLocaleString('ko-KR')}자{over ? ' · 글자 수를 줄여 주세요.' : ''}
+        {formatInteger(draft.length)} / {formatInteger(maxLength)}자{over ? ' · 글자 수를 줄여 주세요.' : ''}
       </FieldHint>
       {error}
       <div className="memo-form__actions">
