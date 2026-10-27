@@ -179,6 +179,25 @@ public class Analysis {
         completedAt = now;
     }
 
+    public boolean isCompleted() {
+        return status == AnalysisStatus.COMPLETED;
+    }
+
+    /** 같은 조건의 요청에 다시 쓸 수 있는 완료 결과인지. 문장 비교가 실패로 끝났으면 다시 비교하도록 쓰지 않는다 */
+    public boolean isReusableResult() {
+        return isCompleted() && textStatus != TextStatus.FAILED;
+    }
+
+    /** 끝나지 않았는데 이 시각 전부터 상태가 바뀌지 않았는지(멈춘 분석) */
+    public boolean stalledBefore(LocalDateTime staleBefore) {
+        return !status.finished() && updatedAt.isBefore(staleBefore);
+    }
+
+    /** 문장 비교 결과가 있는지(비교하지 않았거나 실패했으면 false). 문장 변경 이력(3.8)에 이어 붙일 수 있다 */
+    public boolean hasTextResult() {
+        return textStatus != null && textStatus != TextStatus.FAILED;
+    }
+
     private void moveTo(AnalysisStatus next, LocalDateTime now) {
         if (!status.canMoveTo(next)) {
             throw new IllegalStateException("분석 상태를 바꿀 수 없습니다: " + status + " → " + next);

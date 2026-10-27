@@ -1,7 +1,6 @@
 package com.dartinsight.analysis.service;
 
 import com.dartinsight.analysis.domain.Analysis;
-import com.dartinsight.analysis.domain.AnalysisStatus;
 import com.dartinsight.analysis.repository.AnalysisRepository;
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
@@ -92,7 +91,7 @@ public class AnalysisService {
             String previousRceptNo, ComparisonBasis basis) {
         synchronized (lock) {
             return resultService.findReusable(corpCode, currentRceptNo, previousRceptNo, basis)
-                    .map(a -> new RequestResult(a, a.getStatus() == AnalysisStatus.COMPLETED, true));
+                    .map(a -> new RequestResult(a, a.isCompleted(), true));
         }
     }
 
