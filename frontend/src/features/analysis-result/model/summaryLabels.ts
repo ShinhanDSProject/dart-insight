@@ -35,9 +35,16 @@ export function textCoverageNote(textStatus: TextStatus | null): string | null {
 export function explanationNote(status: ExplanationStatus | null, gradeReason: string | null = null): string | null {
   if (status === 'NOT_FOUND' && gradeReason) return `${NO_EXPLANATION} · 관련 문단은 있지만 인용을 원문에서 확인하지 못했어요.`
   if (status === 'NOT_FOUND') return `${NO_EXPLANATION} · 공시에서 이 변화의 이유를 적은 문단을 찾지 못했어요.`
+  if (status === 'TEMPLATE') return '검토 필요 · AI 설명은 근거를 확인하지 못해 보여 주지 않아요.'
   if (status === 'REVIEW_NEEDED') return '검토 필요 · 설명의 근거를 확인하지 못해 보여 주지 않아요.'
   return null
 }
+
+/** 템플릿 요약(#149)의 회사 설명 제목. 인용문은 코드가 원문에서 확인한 것이고 AI 문장이 아니다 */
+export const TEMPLATE_CAPTION = '회사 설명 · 공시 원문 인용'
+
+/** 템플릿 요약에 확인된 인용이 없을 때 */
+export const TEMPLATE_NO_QUOTE = `회사 설명: ${NO_EXPLANATION}`
 
 /** 재무 수치 설명의 등급 제목. 설명이 없거나 등급 기능 전 분석이면 null */
 export function gradeLabel(grade: ExplanationGrade | null): string | null {
