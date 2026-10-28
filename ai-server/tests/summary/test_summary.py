@@ -428,6 +428,47 @@ def test_causal_claim_left_after_retries_is_review_needed() -> None:
     assert len(provider.requests) == 3
 
 
+def test_quote_checked_against_the_source_is_kept_when_the_explanation_fails() -> None:
+    # 설명은 끝내 실패해도, 원문에 그대로 있는 인용은 backend 템플릿 요약에 쓴다(#149)
+    causal = graded(grade=RELATED, explanation="원가절감 활동으로 인해 영업적자폭이 줄었어요.")
+    llm, _ = client(causal, causal, causal)
+
+    (item,) = summarize(llm, EXPLAINED_SUMMARY).items
+
+    assert (item.status, item.grade, item.explanation) == (REVIEW_NEEDED, None, None)
+    assert (item.quote, item.quote_evidence_id) == (
+        "원가절감 활동으로 영업적자폭을 축소하였습니다.",
+        f"{CUR}#B300",
+    )
+
+
+def test_quote_failing_the_source_check_is_not_kept_when_the_explanation_fails() -> None:
+    for fields in (
+        {"quote": "원가절감으로 영업적자를 줄였습니다."},  # 원문에 없음
+        {"quoteEvidenceId": f"{CUR}#B12"},  # 후보가 아님
+        {"quote": None},
+    ):
+        broken = graded(evidenceIds=[f"{CUR}#B999"], **fields)  # 설명의 근거가 후보가 아니어서 실패
+        llm, _ = client(broken, broken, broken)
+
+        (item,) = summarize(llm, EXPLAINED_SUMMARY).items
+
+        assert item.status == REVIEW_NEEDED
+        assert (item.quote, item.quote_evidence_id) == (None, None)
+
+
+def test_quote_is_kept_when_the_explanation_is_blocked_as_advice() -> None:
+    advice = graded(explanation="회사는 원가절감 활동으로 영업적자폭을 줄였어요. 지금 매수하세요.")
+    llm, _ = client(advice, advice, advice)
+
+    (item,) = summarize(llm, EXPLAINED_SUMMARY).items
+
+    assert item.status == REVIEW_NEEDED
+    assert item.explanation is None
+    assert item.blocked_rules == ["TRADE_RECOMMENDATION"]
+    assert item.quote_evidence_id == f"{CUR}#B300"
+
+
 def test_causal_claim_is_allowed_when_stated() -> None:
     stated = graded(explanation="원가절감 활동 때문에 영업적자폭이 줄었다고 적었어요.")
 

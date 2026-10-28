@@ -3,6 +3,7 @@
 근거 ID가 주어진 원문 위치인지, 숫자가 인용한 원문에 있는지 코드가 확인한다.
 재무 설명은 인용문을 확인해 등급을 낮추고(다시 생성하지 않음), STATED가 아닌 설명의
 원인 표현은 다시 생성한다(ADR-0015). 등급 규칙을 바꾸면 causal.GRADE_RULES_VERSION을 올린다.
+검토 필요가 된 재무 항목도 인용 실재 검사를 통과한 인용은 남긴다(backend 템플릿 요약, #149).
 통과한 문장도 투자 권유성 표현 검사(app.compliance)에 걸리면 내보내지 않는다.
 """
 
@@ -83,7 +84,17 @@ def check(data: Any, summary: SummaryInput) -> Checked:
             continue
         if problem:
             problems.append(f"{ref}: {problem}")
-            result = ItemResult(ref, result.kind, REVIEW_NEEDED, review_reason=problem)
+            quote, quote_evidence_id = (None, None)
+            if result.kind == FINANCIAL:
+                quote, quote_evidence_id = _verified_quote(financial_items[ref], raw)
+            result = ItemResult(
+                ref,
+                result.kind,
+                REVIEW_NEEDED,
+                review_reason=problem,
+                quote=quote,
+                quote_evidence_id=quote_evidence_id,
+            )
         else:
             result = _check_expressions(result, problems)
         results[ref] = result
@@ -111,6 +122,9 @@ def _check_expressions(result: ItemResult, problems: list[str]) -> ItemResult:
         REVIEW_NEEDED,
         review_reason=f"투자 권유로 읽힐 수 있는 표현({labels})이 있어 내보내지 않았어요.",
         blocked_rules=rules,
+        # 인용은 LLM 문장이 아니라 원문 그대로라 남긴다(이미 인용 실재 검사를 통과함)
+        quote=result.quote,
+        quote_evidence_id=result.quote_evidence_id,
     )
 
 
@@ -197,10 +211,33 @@ def _downgrade(
     # 설명이 근거로 든 문단이 아닌 곳을 인용하면 설명과 인용이 서로 다른 문단을 가리킨다
     if quote_evidence_id not in evidence:
         return NONE, QUOTE_NOT_EVIDENCE
-    quoted = _SPACES.sub("", quote) if isinstance(quote, str) else ""
-    if not quoted or quoted not in _SPACES.sub("", sources[quote_evidence_id]):
+    if not _in_source(quote, sources[quote_evidence_id]):
         return NONE, QUOTE_NOT_IN_SOURCE
+    quoted = _SPACES.sub("", quote)
     terms = [_SPACES.sub("", t) for t in item.account_aliases or [item.account_name]]
     if grade == STATED and not any(t and t in quoted for t in terms):
         return RELATED, QUOTE_WITHOUT_ACCOUNT
     return grade, None
+
+
+def _in_source(quote: Any, source: str) -> bool:
+    """공백을 모두 뺀 인용문이 그 문단에 그대로 있는지"""
+    quoted = _SPACES.sub("", quote) if isinstance(quote, str) else ""
+    return bool(quoted) and quoted in _SPACES.sub("", source)
+
+
+def _verified_quote(item: FinancialItem, raw: dict[str, Any]) -> tuple[str | None, str | None]:
+    """인용 위치가 그 항목의 후보이고 인용문이 그 문단에 그대로 있으면 (인용문, 위치).
+    아니면 (None, None).
+
+    설명이 검증에 실패한 항목에 쓴다. 설명의 근거·계정 이름은 보지 않는다(설명을 보이지 않으므로).
+    """
+    sources = {s.evidence_id: s.text for s in item.candidates}
+    quote, quote_evidence_id = raw.get("quote"), raw.get("quoteEvidenceId")
+    if (
+        isinstance(quote_evidence_id, str)
+        and quote_evidence_id in sources
+        and _in_source(quote, sources[quote_evidence_id])
+    ):
+        return quote, quote_evidence_id
+    return None, None

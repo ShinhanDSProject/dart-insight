@@ -76,7 +76,8 @@ class ItemResult:
     evidence_ids: list[str] = field(default_factory=list)
     review_reason: str | None = None
     blocked_rules: list[str] = field(default_factory=list)
-    # 재무 설명만. 문장 변화와 '검토 필요' 항목은 None
+    # 재무 설명만. 문장 변화는 None. '검토 필요' 재무 항목은 grade가 None이고,
+    # 인용 실재 검사를 통과한 인용만 남는다(#149)
     grade: str | None = None
     quote: str | None = None
     quote_evidence_id: str | None = None
