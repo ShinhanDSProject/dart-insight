@@ -61,10 +61,19 @@ public record SummaryResponse(Long analysisId, SummaryStatus summaryStatus, Stri
             return new ReviewView(itemNo, row.kind(), target, row.reviewReason(), row.blockedRules());
         }
 
-        /** 수치 문장은 보이고 설명만 검토 필요인 재무 수치. 템플릿에 인용이 있으면 그것만 보인다고 알린다 */
+        /**
+         * 수치 문장은 보이고 설명만 검토 필요인 재무 수치. 템플릿(#149)은 근거 말고도 원인·투자 권유 표현 등으로 실패하므로
+         * 검증 실패로만 알리고, 인용이 있으면 그것만 보인다고 알린다
+         */
         public static ReviewView ofExplanation(int itemNo, Target target, SummaryItemRow row) {
-            String lead = row.quote() == null ? "설명의 근거를 확인하지 못했어요. "
-                    : "설명의 근거를 확인하지 못해 원문 인용만 보여 줘요. ";
+            String lead;
+            if (!SummaryItemRow.TEMPLATE.equals(row.explanationStatus())) {
+                lead = "설명의 근거를 확인하지 못했어요. ";
+            } else if (row.quote() == null) {
+                lead = "AI 설명이 검증을 통과하지 못했어요. ";
+            } else {
+                lead = "AI 설명이 검증을 통과하지 못해 원문 인용만 보여 줘요. ";
+            }
             return new ReviewView(itemNo, row.kind(), target,
                     lead + (row.reviewReason() == null ? "" : row.reviewReason()), row.blockedRules());
         }

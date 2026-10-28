@@ -111,7 +111,7 @@ describe('SummaryExplanation', () => {
 
     expect(screen.getByText('회사 설명 · 공시 원문 인용')).toBeTruthy()
     expect(screen.getByText('매출액은 메모리 수요 회복으로 증가하였습니다')).toBeTruthy()
-    expect(screen.getByText(/^검토 필요 · AI 설명은/)).toBeTruthy()
+    expect(screen.getByText(/^검토 필요 · AI 설명이 검증을 통과하지 못해/)).toBeTruthy()
     expect(screen.queryByText('AI 생성')).toBeNull()
     expect(screen.queryByText('회사가 공시에서 밝힌 설명')).toBeNull()
     expect(await axeViolations(container)).toBe('')
