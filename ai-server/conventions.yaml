@@ -8,7 +8,7 @@ see: {api: "docs/api-spec.md 3장", adr: "docs/adr/0008·0009·0010·0012·0013"
 
 dir:  # app/ 아래
   DIR-1: "api/: 라우터만(입력 검증·호출·응답 변환). 판단·계산은 기능 패키지에"
-  DIR-2: "core/: 설정·에러·추적 ID. llm/: LLM 호출 단일 모듈. 기능 패키지: documents·compare·summary·answer·briefing·outlook·compliance"
+  DIR-2: "core/: 설정·에러·추적 ID. llm/: LLM 호출 단일 모듈. 기능 패키지: documents·compare·summary·answer·briefing·outlook·followup·compliance"
   DIR-3: "기능 패키지 안: schema.py(API 모양, pydantic) / model.py 또는 dataclass(내부 값) / service.py(흐름) / 순수 함수 모듈"
   DIR-4: 기능 패키지는 api·fastapi를 import하지 않는다. 기능끼리는 공개 함수·타입만 쓴다
   DIR-5: 내부 API 경로는 api/paths.py에만 둔다
