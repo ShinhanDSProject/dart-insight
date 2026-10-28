@@ -11,6 +11,7 @@ SUMMARIES = "/summaries"
 ANSWERS = "/answers"
 BRIEFINGS = "/briefings"
 OUTLOOKS = "/outlooks"
+PLAN_FOLLOWUPS = "/plan-followups"
 TEXT_CHANGES = "/text-changes"
 
 DOCUMENTS_PREFIX = f"{INTERNAL_PREFIX}/documents"
