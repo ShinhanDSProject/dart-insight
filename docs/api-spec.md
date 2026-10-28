@@ -109,6 +109,7 @@
 | GET | `/api/companies/{corpCode}/disclosure-signals` | 최근 1년 확인해 볼 공시(종류별 건수·사실 문장·원문 링크) | #411 (1.2, FS-55) | 기업 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/briefing` | AI 기업 브리핑(저장된 것 또는 새로 만듦) | #333 (1.2) | 기업 화면 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/outlook` | 회사가 밝힌 전망·계획(최신 사업보고서, 저장된 것 또는 새로 만듦) | #465 (1.9, FS-59) | 기업 화면 개요 탭 | 초안 |
+| GET | `/api/companies/{corpCode}/plan-followups` | 약속과 실제 대조(작년 사업보고서 계획 → 올해 사업보고서 관련 문단, 저장된 것 또는 새로 만듦) | #467 (1.10, FS-60) | 기업 화면 개요 탭 | 초안 |
 | POST | `/api/companies/{corpCode}/questions` | 최신 사업보고서에 근거해 묻기(AI) | #365 (1.2) | 기업 화면 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/questions` | 최신 사업보고서에 한 질문·답 기록 | #365 (1.2) | 기업 화면 개요 탭 | 초안 |
 | POST | `/api/comparability-checks` | 비교 가능성 검증 | #13 (2.2) | W-01 ③ | 초안 |
@@ -1482,6 +1483,73 @@
 | 503 | `DART_RATE_LIMITED`, `DART_KEY_MISSING` | OpenDART 호출 한도 초과, 키 없음 |
 | 503 | `AI_SERVER_UNAVAILABLE` | AI 서버 또는 LLM을 쓸 수 없음(저장하지 않음. 다시 요청하면 다시 만듦) |
 
+### GET /api/companies/{corpCode}/plan-followups — 약속과 실제 대조(작년 계획 → 올해 보고서)
+
+- 이슈: #467 (1.10) · 기획서 FS-60 · 화면: 기업 화면 개요 탭 '작년 계획, 올해는' · [ADR-0041](adr/0041-plan-followups.md)
+- 올해(현재)는 이 기업 정기보고서 목록(위 `GET …/reports`와 같은 캐시 규칙)에서 대상 기간이 가장 최근인 **사업보고서**, 작년(이전)은 그보다 사업연도가 한 해 앞선 사업보고서입니다. 반기·분기보고서로 대신하지 않습니다.
+- 작년 계획은 이전 사업보고서의 '회사가 밝힌 전망·계획'(위 `GET …/outlook`과 같은 저장 결과, 없으면 이 요청 안에서 만듦) 중 '시장·업황 전망'을 뺀 항목(투자·설비, 신규 사업·제품, 재무·주주 정책, 기타)입니다.
+- 계획마다 올해 보고서 문단에서 BM25로 고른 후보 3개 안에서 AI가 관련 문단을 고릅니다(ADR-0041). 두 보고서·현재 프롬프트 버전으로 저장된 결과가 있으면 그대로 돌려줍니다(동기 호출, 처음엔 수 초~수십 초).
+- 서비스는 계획을 지켰는지 평가하지 않습니다. 두 해의 회사 공시 문장과 그 요지만 나란히 놓습니다. '찾지 못함'은 이행하지 않았다는 뜻이 아닙니다. 사용자 정보는 쓰지 않습니다.
+
+**요청**
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| path | `corpCode` | string | 예 | 고유번호 |
+
+**응답 200**
+
+```json
+{
+  "corpCode": "00126380",
+  "status": "GENERATED",
+  "reason": null,
+  "message": null,
+  "previousReport": { "rceptNo": "20250311000456", "reportName": "사업보고서 (2024.12)", "reportType": "ANNUAL",
+    "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250311000456" },
+  "currentReport": { "rceptNo": "20260310000123", "reportName": "사업보고서 (2025.12)", "reportType": "ANNUAL",
+    "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260310000123" },
+  "items": [
+    { "planNo": 1, "category": "INVESTMENT", "categoryLabel": "투자·설비",
+      "plan": { "summary": "평택 신규 라인 증설을 2026년까지 마칠 계획이라고 밝혔어요.",
+        "quote": "당사는 평택 신규 라인 증설을 2026년까지 완료할 계획입니다.",
+        "evidence": { "evidenceId": "20250311000456#B300", "rceptNo": "20250311000456", "sectionNo": 30,
+          "blockNo": 300, "sectionPath": "II. 사업의 내용 > 3. 원재료 및 생산설비" } },
+      "followup": { "status": "MENTIONED", "statusLabel": "관련 언급 있음",
+        "summary": "평택 신규 라인 증설을 진행하고 있다고 적었어요.",
+        "quote": "평택 신규 라인은 증설 공사를 진행 중입니다.",
+        "evidence": { "evidenceId": "20260310000123#B310", "rceptNo": "20260310000123", "sectionNo": 31,
+          "blockNo": 310, "sectionPath": "II. 사업의 내용 > 3. 원재료 및 생산설비" } } },
+    { "planNo": 2, "category": "FINANCIAL", "categoryLabel": "재무·주주 정책",
+      "plan": { "summary": "…", "quote": "…", "evidence": { "…": "…" } },
+      "followup": { "status": "NOT_FOUND", "statusLabel": "찾지 못함", "summary": null, "quote": null,
+        "evidence": null } }
+  ],
+  "aiGenerated": true,
+  "ai": { "model": "fake-model", "promptVersion": "plan-followup-1", "generatedAt": "2026-10-27T10:12:03" }
+}
+```
+
+- `status`
+  - `GENERATED`: `items`에 계획마다 하나(1~10개). 화면에 'AI 생성'으로 표시합니다. 저장합니다.
+  - `EMPTY`: 작년 보고서에서 회사 행동 계획을 찾지 못함(`items` 빈 배열). AI를 부르지 않고 저장하지 않습니다.
+  - `REVIEW_NEEDED`: 대조를 만들었지만 근거·인용·숫자·표현 검사를 2회 다시 만든 뒤에도 통과하지 못했거나(저장, `aiGenerated` true), 작년 전망·계획이 검토 필요라 대조하지 않았음(`reason` `PREVIOUS_REVIEW_NEEDED`, 저장하지 않음, `aiGenerated` false). `items`는 빈 배열, `message`에 사유
+  - `NOT_AVAILABLE`: 대조할 자료가 없음. 저장하지 않습니다.
+- `reason`(`GENERATED`와 대조를 만든 뒤의 `REVIEW_NEEDED`면 null): `NO_REPORT` 사업보고서가 없음(두 보고서 모두 null), `NO_PREVIOUS_REPORT` 사업연도가 한 해 앞선 사업보고서가 없음(`previousReport` null), `NO_PREVIOUS_SOURCE` 작년 보고서 원문에서 전망·계획 목차를 찾지 못하거나 원문을 읽지 못함, `NO_DOCUMENT` 올해 보고서 원문을 받거나 읽지 못함, `NO_CURRENT_SOURCE` 올해 보고서 원문에 쓸 문단이 없음(이상 `NOT_AVAILABLE`), `NO_PREVIOUS_PLAN`(`EMPTY`), `PREVIOUS_REVIEW_NEEDED`(`REVIEW_NEEDED`)
+- `message`: `GENERATED`가 아니면 화면 안내, 아니면 null
+- `items[]`: 작년 전망·계획의 순서(종류 순서, 같은 종류 안에서는 AI가 낸 순서)이고 `planNo`는 1부터입니다. `categoryLabel`은 화면 이름입니다.
+  - `plan`: 작년 보고서의 요지(AI가 줄임)·인용(원문 그대로)·근거 위치(`evidence`, 이전 보고서 접수번호)
+  - `followup.status`: `MENTIONED` 올해 보고서가 같은 계획을 다시 언급하거나 진행 상황을 적음(`statusLabel` '관련 언급 있음'), `CHANGED` 계획이 바뀌거나 중단·연기됐다고 적음('계획 변경 언급'), `NOT_FOUND` 후보 문단에서 관련 문장을 찾지 못함('찾지 못함')
+  - `followup.summary`·`quote`·`evidence`: `MENTIONED`·`CHANGED`면 올해 문단의 요지(숫자는 `quote`에 있는 것만)·원문 인용·근거 위치(현재 보고서 접수번호), `NOT_FOUND`면 모두 null
+- `aiGenerated`·`ai`: AI가 만든 대조(저장한 것)면 true와 모델·프롬프트 버전·생성 시각, 아니면 false와 null입니다.
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 404 | `COMPANY_NOT_FOUND` | 없는 고유번호 |
+| 502 | `DART_REQUEST_FAILED` | 보고서 목록이나 원문을 OpenDART에서 받지 못함(저장된 목록이 있으면 그 목록을 씀) |
+| 503 | `DART_RATE_LIMITED`, `DART_KEY_MISSING` | OpenDART 호출 한도 초과, 키 없음 |
+| 503 | `AI_SERVER_UNAVAILABLE` | AI 서버 또는 LLM을 쓸 수 없음(작년 전망·계획 뽑기 포함. 저장하지 않음. 다시 요청하면 다시 만듦) |
+
 ### POST /api/companies/{corpCode}/questions — 사업보고서에 근거해 묻기
 
 - 이슈: #365 (1.2) · 기획서 FS-53 · 화면: 기업 화면 개요 탭 'AI에게 묻기 · 사업보고서 기준' · [ADR-0029](adr/0029-company-question-answering.md)
@@ -2512,6 +2580,7 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 | POST | `/internal/summaries` | 근거 기반 요약·설명(LLM) | #20 (3.2) | 초안 |
 | POST | `/internal/briefings` | AI 기업 브리핑(LLM) | #333 (1.2) | 초안 |
 | POST | `/internal/outlooks` | 회사가 밝힌 전망·계획 뽑기(LLM) | #465 (1.9) | 초안 |
+| POST | `/internal/plan-followups` | 작년 계획과 올해 보고서 문단 대조(LLM) | #467 (1.10) | 초안 |
 
 | code | 상태 | 뜻 |
 | --- | --- | --- |
@@ -2839,6 +2908,54 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | 상태 | code | 언제 |
 | --- | --- | --- |
 | 400 | `COMMON_INVALID_INPUT` | 필드 누락, `sources`가 비었거나 12개 초과, `evidenceId` 겹침, `promptVersion`이 다름 |
+| 503 | `AI_LLM_UNAVAILABLE` | LLM을 쓸 수 없음 |
+
+### POST /internal/plan-followups — 작년 계획과 올해 보고서 문단 대조
+
+- 이슈: #467 (1.10) · [ADR-0041](adr/0041-plan-followups.md) · LLM은 `app/llm`의 한 모듈로만 부릅니다.
+- backend가 작년 사업보고서의 회사 행동 계획(`plans`, 1~10개)과 계획마다 올해 사업보고서에서 BM25로 고른 후보 문단(`candidates`, 0~3개)을 보냅니다. 계획은 `<plan id category>` 태그, 후보 원문은 계획마다 `<disclosure id sectionPath>` 태그로 감싸 자료로만 씁니다. 회사·보고서 이름은 `<context>` 태그 속성에 넣습니다. 사용자 정보는 넣지 않습니다.
+- `promptVersion`은 backend `PlanFollowupService.PROMPT_VERSION`과 ai-server `app/followup/prompt.py`의 버전입니다. 다르면 LLM을 부르지 않고 400입니다.
+- LLM 출력: `{"followups": [{"planId": "P1", "status": "MENTIONED", "summary": "…", "quote": "…", "evidenceIds": ["…"]}]}`. `status`는 `MENTIONED`(같은 계획을 다시 언급하거나 진행 상황을 적음)·`CHANGED`(계획이 바뀌거나 중단·연기됐다고 적음)·`NOT_FOUND`. 회사 문장만 요약하고 계획을 지켰는지 평가하지 않도록 지시합니다.
+- 확인: 모든 계획에 정확히 하나씩. `MENTIONED`·`CHANGED`는 `evidenceIds`가 하나 이상이고 모두 **그 계획의 후보** 근거 ID, `quote`가 인용한 후보 글의 부분 문자열(이어진 공백은 한 칸으로 맞춰 비교), `summary`의 숫자·크기 표현이 `quote`에 있음, 원인 표현은 `quote`에도 있을 때만, `summary`가 표현 검사(5.5)와 평가 낱말 검사(지켰다·어겼다·이행했다·이행하지 못했다·우수·실패·성공적 등)를 통과. `NOT_FOUND`는 `summary`·`quote`가 비고 `evidenceIds`가 빈 배열. 후보가 없는 계획은 `NOT_FOUND`만 됩니다. 하나라도 어기면 2회까지 다시 만들고, 끝내 실패하면 `REVIEW_NEEDED`(`followups` 빈 배열)입니다. 돌려주는 `quote`는 이어진 공백을 한 칸으로 맞춘 글이고, `NOT_FOUND`의 `summary`·`quote`는 null입니다.
+
+**요청**
+
+```json
+{
+  "promptVersion": "plan-followup-1",
+  "companyName": "삼성전자",
+  "previousReportName": "사업보고서 (2024.12)",
+  "currentReportName": "사업보고서 (2025.12)",
+  "plans": [{ "planId": "P1", "category": "INVESTMENT",
+    "summary": "평택 신규 라인 증설을 2026년까지 마칠 계획이라고 밝혔어요.",
+    "quote": "당사는 평택 신규 라인 증설을 2026년까지 완료할 계획입니다.",
+    "candidates": [{ "evidenceId": "20260310000123#B310",
+      "sectionPath": "II. 사업의 내용 > 3. 원재료 및 생산설비", "text": "…" }] }]
+}
+```
+
+**응답 200**
+
+```json
+{
+  "promptVersion": "plan-followup-1",
+  "expressionRulesVersion": "expr-1",
+  "model": "fake-model",
+  "generatedAt": "2026-10-27T10:12:03",
+  "status": "GENERATED",
+  "followups": [{ "planId": "P1", "status": "MENTIONED", "summary": "평택 신규 라인 증설을 진행하고 있다고 적었어요.",
+    "quote": "평택 신규 라인은 증설 공사를 진행 중입니다.", "evidenceIds": ["20260310000123#B310"] }],
+  "reviewReason": null,
+  "blockedRules": [],
+  "calls": [{ "task": "plan_followup", "provider": "fake", "model": "fake-model", "promptVersion": "plan-followup-1",
+    "calledAt": "2026-10-27T10:12:02", "traceId": "…", "inputTokens": 3000, "outputTokens": 400,
+    "latencyMs": 900, "attempt": 1, "outcome": "OK", "error": null }]
+}
+```
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | 필드 누락, `plans`가 비었거나 10개 초과, 계획 하나의 `candidates`가 3개 초과, `planId` 겹침, 한 계획 안 `evidenceId` 겹침, `category`가 정한 값(`INVESTMENT`·`NEW_BUSINESS`·`FINANCIAL`·`OTHER`)이 아님, `promptVersion`이 다름 |
 | 503 | `AI_LLM_UNAVAILABLE` | LLM을 쓸 수 없음 |
 
 ## 4. 에러 코드

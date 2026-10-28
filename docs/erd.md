@@ -58,6 +58,7 @@
 | `company_briefing` | 보고서 하나의 AI 기업 브리핑(상태·문장과 근거·모델·프롬프트 버전) | 1.2 (#333) | M2 |
 | `company_question` | 기업의 최신 사업보고서에 한 질문과 AI 답(상태·근거 ID·모델·프롬프트 버전) | 1.2 (#365) | M2 |
 | `company_outlook` | 사업보고서 하나에서 회사가 밝힌 전망·계획 항목(상태·종류·요지·인용과 근거 위치·모델·프롬프트 버전) | 1.9 (#465) | M2 |
+| `plan_followup` | 작년·올해 사업보고서 한 쌍의 약속과 실제 대조(상태·계획별 작년 인용과 올해 관련 문단·근거 위치·모델·프롬프트 버전) | 1.10 (#467) | M2 |
 | `disclosure_window_fetch` | 분석 기간 단위로 수시공시 목록을 받은 기록. 고유번호·기간 기준, 한 번만 받음 | 3.6 (#339) | 미정 |
 | `disclosure_window_item` | 받아 둔 수시공시 한 건(정정 전 원본 포함) | 3.6 (#339) | 미정 |
 | `related_disclosure_run` | 분석 하나의 관련 수시공시를 규칙 버전별로 계산한 기록 | 3.6 (#340) | 미정 |
@@ -304,6 +305,15 @@ erDiagram
     company_briefing ||--o{ llm_call : "company_briefing_id (#333)"
     company_question ||--o{ llm_call : "company_question_id (#365)"
     company_outlook ||--o{ llm_call : "company_outlook_id (#465)"
+    plan_followup ||--o{ llm_call : "plan_followup_id (#467)"
+    plan_followup {
+        bigint id PK
+        varchar previous_rcept_no FK "UK(previous_rcept_no, current_rcept_no, prompt_version)"
+        varchar current_rcept_no FK
+        varchar prompt_version
+        varchar status "GENERATED REVIEW_NEEDED"
+        mediumtext items "계획·올해 문단·근거 위치 JSON"
+    }
     company_outlook {
         bigint id PK
         varchar rcept_no FK "UK(rcept_no, prompt_version)"
@@ -331,6 +341,7 @@ erDiagram
         bigint company_briefing_id FK
         bigint company_question_id FK
         bigint company_outlook_id FK
+        bigint plan_followup_id FK
         varchar model
         varchar prompt_version
         int input_tokens
@@ -870,7 +881,8 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `company_briefing_id` | BIGINT | FK | 예 | `company_briefing.id`. 브리핑 호출일 때만(`V23`) |
 | `company_question_id` | BIGINT | FK | 예 | `company_question.id`. 기업 질문 호출일 때만(`V27`, task `answer`) |
 | `company_outlook_id` | BIGINT | FK | 예 | `company_outlook.id`. 전망·계획 호출일 때만(`V39`, task `outlook`) |
-| `task` | VARCHAR(30) | | 아니오 | 작업(`summary`, `answer`, `briefing`) |
+| `plan_followup_id` | BIGINT | FK | 예 | `plan_followup.id`. 약속과 실제 대조 호출일 때만(`V40`, task `plan_followup`) |
+| `task` | VARCHAR(30) | | 아니오 | 작업(`summary`, `answer`, `briefing`, `outlook`, `plan_followup`) |
 | `provider`, `model` | VARCHAR(30), VARCHAR(100) | | 아니오 | 제공자(`fake` 등)와 모델 |
 | `prompt_version` | VARCHAR(30) | | 아니오 | 프롬프트 버전 |
 | `called_at` | DATETIME(6) | | 예 | 호출 시각(한국 시간) |
@@ -985,6 +997,27 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `blocked_rules` | VARCHAR(200) | | 예 | 표현 검사(5.5)에 걸린 규칙 ID(쉼표로 이음) |
 | `model` | VARCHAR(100) | | 예 | 항목을 만든 모델 |
 | `generated_at` | DATETIME(6) | | 예 | 항목을 만든 시각(한국 시간) |
+| `trace_id` | VARCHAR(64) | | 예 | 만든 요청의 추적 ID |
+| `created_at` | DATETIME(6) | | 아니오 | 저장한 시각(한국 시간) |
+
+### plan_followup
+
+> 마이그레이션: `V40__create_plan_followup.sql`(같은 파일에서 `llm_call.plan_followup_id`를 더함).
+
+작년(이전)·올해(현재) 사업보고서 한 쌍의 약속과 실제 대조입니다(1.10, FS-60, [ADR-0041](adr/0041-plan-followups.md)). 작년 계획은 이전 보고서의 `company_outlook` 항목 중 시장·업황 전망을 뺀 것이고, 저장할 때의 계획 모습을 `items`에 함께 남깁니다. 두 보고서·프롬프트 버전마다 하나만 저장하고 다시 만들지 않습니다. AI를 부르지 않은 결과(`NOT_AVAILABLE`, `EMPTY`, 작년 전망이 검토 필요)는 저장하지 않습니다. 항목은 모델·프롬프트 버전·생성 시각과 함께 저장합니다(화면 'AI 생성').
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT | PK | 아니오 | |
+| `previous_rcept_no` | VARCHAR(14) | FK, UK | 아니오 | 작년 사업보고서(`report.rcept_no`) |
+| `current_rcept_no` | VARCHAR(14) | FK, UK | 아니오 | 올해 사업보고서(`report.rcept_no`) |
+| `prompt_version` | VARCHAR(30) | UK | 아니오 | 프롬프트 버전(`plan-followup-1`) |
+| `status` | VARCHAR(20) | | 아니오 | `GENERATED`, `REVIEW_NEEDED` |
+| `items` | MEDIUMTEXT | | 아니오 | 계획별 JSON: `[{"planNo", "category", "plan": {"summary", "quote", "evidence"}, "followup": {"status", "summary", "quote", "evidence"}}]`. `evidence`는 `{"evidenceId", "rceptNo", "sectionNo", "blockNo", "sectionPath"}`이고 `followup.status`가 `NOT_FOUND`면 `followup`의 `summary`·`quote`·`evidence`는 null. `GENERATED`가 아니면 `[]` |
+| `review_reason` | VARCHAR(500) | | 예 | 검토 필요 사유 |
+| `blocked_rules` | VARCHAR(200) | | 예 | 표현 검사(5.5)·평가 낱말 검사에 걸린 규칙 ID(쉼표로 이음) |
+| `model` | VARCHAR(100) | | 예 | 대조를 만든 모델 |
+| `generated_at` | DATETIME(6) | | 예 | 대조를 만든 시각(한국 시간) |
 | `trace_id` | VARCHAR(64) | | 예 | 만든 요청의 추적 ID |
 | `created_at` | DATETIME(6) | | 아니오 | 저장한 시각(한국 시간) |
 
@@ -1357,6 +1390,8 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `llm_call` | `idx_llm_call_company_question` | `company_question_id` | 인덱스 | 기업 질문별 호출 기록 |
 | `company_outlook` | `uk_company_outlook` | `rcept_no, prompt_version` | 유니크 | 보고서·프롬프트 버전마다 전망·계획 하나 |
 | `llm_call` | `idx_llm_call_outlook` | `company_outlook_id` | 인덱스 | 전망·계획별 호출 기록 |
+| `plan_followup` | `uk_plan_followup` | `previous_rcept_no, current_rcept_no, prompt_version` | 유니크 | 두 보고서·프롬프트 버전마다 대조 하나 |
+| `llm_call` | `idx_llm_call_plan_followup` | `plan_followup_id` | 인덱스 | 약속과 실제 대조별 호출 기록 |
 | `disclosure_window_fetch` | `uk_disclosure_window_fetch` | `corp_code, begin_date, end_date` | 유니크 | 같은 기업·기간을 한 번만 받음 |
 | `disclosure_window_item` | `uk_disclosure_window_item` | `fetch_id, rcept_no` | 유니크 | 같은 공시를 두 번 저장하지 않음 |
 | `related_disclosure_run` | `uk_related_disclosure_run` | `analysis_id, rule_version` | 유니크 | 분석·규칙 버전마다 한 번만 계산 |
@@ -1365,6 +1400,8 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 외래 키: `local_credential.user_id`, `refresh_token.user_id` → `app_user.id` / `judgment_note_item.user_id` → `app_user.id`, `judgment_note_item.corp_code` → `company.corp_code` / `refresh_token.replaced_by_id` → `refresh_token.id` / `report.corp_code`, `company_overview.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code`, `company_disclosure_fetch.corp_code`, `company_disclosure.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no`, `report_key_account_fetch.rcept_no`, `report_key_account.rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no`, `report_key_fact.rcept_no`, `company_briefing.rcept_no`, `company_question.rcept_no` → `report.rcept_no` / `llm_call.company_briefing_id` → `company_briefing.id` / `llm_call.company_question_id` → `company_question.id` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id`, `analysis_question.analysis_id`, `text_change_explanation.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id` / (3.6) `disclosure_window_fetch.corp_code` → `company.corp_code` / `disclosure_window_item.fetch_id`, `related_disclosure_run.window_fetch_id` → `disclosure_window_fetch.id` / `related_disclosure_run.analysis_id` → `analysis.id` / `related_disclosure.run_id` → `related_disclosure_run.id` / `related_disclosure.item_id` → `disclosure_window_item.id` / (6.6) `community_post.corp_code` → `company.corp_code` / `community_post.user_id`, `community_comment.user_id`, `community_like.user_id`, `community_report_entry.reporter_id`, `community_moderation.admin_id`, `community_repost_request.user_id` → `app_user.id` / `community_quote.post_id`, `community_comment.post_id`, `community_report.post_id` → `community_post.id` / `community_comment.parent_id` → `community_comment.id` / `community_report_entry.report_id`, `community_moderation.report_id` → `community_report.id` / `community_repost_request.moderation_id` → `community_moderation.id`
 
 외래 키(1.9, #465): `company_outlook.rcept_no` → `report.rcept_no` / `llm_call.company_outlook_id` → `company_outlook.id`
+
+외래 키(1.10, #467): `plan_followup.previous_rcept_no`, `plan_followup.current_rcept_no` → `report.rcept_no` / `llm_call.plan_followup_id` → `plan_followup.id`
 
 ## 5. 작성 규칙
 
