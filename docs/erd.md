@@ -838,14 +838,14 @@ OpenDART 정기보고서 주요정보 API를 보고서(접수번호)·종류마�
 | `status` | VARCHAR(20) | | 아니오 | `SHOWN`(요약에 보임), `REVIEW_NEEDED`(근거·숫자 확인을 통과하지 못해 요약에서 뺌) |
 | `fact_sentence` | VARCHAR(500) | | 예 | 코드가 만든 사실 문장(재무 수치). 문장 변화면 null |
 | `ai_text` | VARCHAR(1000) | | 예 | AI가 만든 문장(문장 변화 요약, 재무 수치 설명). 없으면 null |
-| `explanation_status` | VARCHAR(20) | | 예 | 재무 수치 설명: `FOUND`, `NOT_FOUND`(확인된 설명 없음), `REVIEW_NEEDED`. 문장 변화면 null |
+| `explanation_status` | VARCHAR(20) | | 예 | 재무 수치 설명: `FOUND`, `NOT_FOUND`(확인된 설명 없음), `TEMPLATE`(검증 실패 뒤 코드가 정한 틀로 보임, #149), `REVIEW_NEEDED`(분석 버전 m2-14 이하의 검증 실패). 문장 변화면 null |
 | `evidence_ids` | VARCHAR(2000) | | 예 | `ai_text`의 근거 ID(`{rcept_no}#B{block_no}`)를 쉼표로 이음 |
 | `financial_change_id` | BIGINT | FK | 예 | 재무 수치 항목(`financial_change.id`) |
 | `text_change_no` | INT | | 예 | 문장 변화 항목(`text_change.change_no`) |
 | `review_reason` | VARCHAR(500) | | 예 | 검토 필요 사유. `SHOWN`인 재무 수치면 코드가 설명 등급을 낮춘 사유(#143) |
 | `explanation_grade` | VARCHAR(10) | | 예 | 재무 수치 설명 등급(ADR-0015, #143): `STATED`(회사가 직접 밝힘), `RELATED`(관련 내용), `NONE`(확인된 설명 없음). 문장 변화·`REVIEW_NEEDED`·등급 기능 전 분석이면 null |
-| `quote` | VARCHAR(1500) | | 예 | 등급의 근거로 후보 원문에서 그대로 옮긴 인용문. `NONE`이면 null |
-| `quote_evidence_id` | VARCHAR(40) | | 예 | 인용 위치(`{rcept_no}#B{block_no}`). `NONE`이면 null |
+| `quote` | VARCHAR(1500) | | 예 | 등급의 근거로 후보 원문에서 그대로 옮긴 인용문. `TEMPLATE`이면 인용 실재 검사를 통과한 인용(없으면 null). `NONE`이면 null |
+| `quote_evidence_id` | VARCHAR(40) | | 예 | 인용 위치(`{rcept_no}#B{block_no}`). `quote`가 null이면 null |
 | `model`, `prompt_version` | VARCHAR(100), VARCHAR(30) | | 예 | AI 문장을 만든 모델과 프롬프트 버전(`summary-1`) |
 | `generated_at` | DATETIME(6) | | 예 | AI 문장을 만든 시각(한국 시간) |
 | `blocked_rules` | VARCHAR(200) | | 예 | 투자 권유성 표현 검사(5.5)에 걸려 내보내지 않은 AI 문장의 규칙 ID(쉼표로 이음, 예: `TARGET_PRICE`). 걸리지 않았으면 null |
@@ -856,7 +856,8 @@ OpenDART 정기보고서 주요정보 API를 보고서(접수번호)·종류마�
 | --- | --- | --- |
 | `FOUND` | `STATED` 또는 `RELATED` | 코드가 `RELATED`로 낮췄으면 사유, 아니면 null |
 | `NOT_FOUND` | `NONE` | 코드가 `NONE`으로 낮췄으면 사유, 후보가 없었거나 LLM이 `NONE`이라 했으면 null |
-| `REVIEW_NEEDED` | null | 검토 필요 사유 |
+| `TEMPLATE` | null | 검토 필요 사유(#149) |
+| `REVIEW_NEEDED` | null | 검토 필요 사유(분석 버전 m2-14 이하) |
 
 ### llm_call
 
