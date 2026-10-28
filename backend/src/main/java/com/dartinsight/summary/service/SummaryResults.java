@@ -161,9 +161,21 @@ final class SummaryResults {
                     response.promptVersion(), generatedAt, List.of(), item.grade(), item.quote(),
                     item.quoteEvidenceId());
         }
-        // 수치 문장(코드가 만듦)은 보이고, 설명만 검토 필요로 둔다
+        // 수치 문장(코드가 만듦)은 보이고, 설명 자리는 템플릿으로 채운다(#149). LLM 설명은 실패했으니 검토 필요로도 센다
+        boolean quoted = templateQuoted(item, allowed);
         return new SummaryItemRow(SummaryItemRow.FINANCIAL, SummaryItemRow.SHOWN, fact, null,
-                SummaryItemRow.REVIEW_NEEDED, List.of(), index, null, reason, null, null, null, blocked(item));
+                SummaryItemRow.TEMPLATE, List.of(), index, null, reason, null, null, null, blocked(item), null,
+                quoted ? item.quote() : null, quoted ? item.quoteEvidenceId() : null);
+    }
+
+    /**
+     * 템플릿 요약에 쓸 인용이 있는지. AI 서버가 검토 필요로 끝낸 항목에 남긴 인용(인용 실재 검사를 통과함)만 쓰고,
+     * 인용 위치가 그 항목에 보낸 후보인지 다시 본다. backend가 받아들이지 않은 OK 항목의 인용은 쓰지 않는다
+     */
+    private static boolean templateQuoted(SummaryAiResponse.Item item, Set<String> allowed) {
+        return item != null && SummaryItemRow.REVIEW_NEEDED.equals(item.status())
+                && item.quote() != null && !item.quote().isBlank()
+                && item.quoteEvidenceId() != null && allowed.contains(item.quoteEvidenceId());
     }
 
     /** @param downgradeReason 코드가 등급을 NONE으로 낮춘 사유. 후보가 없었거나 LLM이 NONE이라 했으면 null */

@@ -32,8 +32,9 @@ public record SummaryResponse(Long analysisId, SummaryStatus summaryStatus, Stri
      *
      * @param factSentence      코드가 만든 사실 문장(재무 수치). 문장 변화면 null
      * @param aiText            AI가 만든 문장(문장 변화 요약, 재무 수치 설명). 없으면 null
-     * @param explanationStatus 재무 수치의 설명: FOUND, NOT_FOUND('확인된 설명 없음'), REVIEW_NEEDED
-     * @param explanationGrade  재무 수치 설명 등급(ADR-0015): STATED, RELATED, NONE. 문장 변화·REVIEW_NEEDED·등급 기능 전이면 null
+     * @param explanationStatus 재무 수치의 설명: FOUND, NOT_FOUND('확인된 설명 없음'), TEMPLATE(#149), REVIEW_NEEDED
+     * @param explanationGrade  재무 수치 설명 등급(ADR-0015): STATED, RELATED, NONE. 문장 변화·TEMPLATE·REVIEW_NEEDED·등급 기능
+     *                          전이면 null
      * @param quote             후보 원문에서 그대로 옮긴 인용문. 없으면 null
      * @param quoteEvidence     인용 위치. 없으면 null
      * @param gradeReason       코드가 설명 등급을 낮춘 사유. 낮추지 않았으면 null
@@ -60,11 +61,12 @@ public record SummaryResponse(Long analysisId, SummaryStatus summaryStatus, Stri
             return new ReviewView(itemNo, row.kind(), target, row.reviewReason(), row.blockedRules());
         }
 
-        /** 수치 문장은 보이고 설명만 검토 필요인 재무 수치 */
+        /** 수치 문장은 보이고 설명만 검토 필요인 재무 수치. 템플릿에 인용이 있으면 그것만 보인다고 알린다 */
         public static ReviewView ofExplanation(int itemNo, Target target, SummaryItemRow row) {
+            String lead = row.quote() == null ? "설명의 근거를 확인하지 못했어요. "
+                    : "설명의 근거를 확인하지 못해 원문 인용만 보여 줘요. ";
             return new ReviewView(itemNo, row.kind(), target,
-                    "설명의 근거를 확인하지 못했어요. " + (row.reviewReason() == null ? "" : row.reviewReason()),
-                    row.blockedRules());
+                    lead + (row.reviewReason() == null ? "" : row.reviewReason()), row.blockedRules());
         }
     }
 }

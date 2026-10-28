@@ -10,14 +10,17 @@ import java.util.List;
  * @param status            SHOWN 요약에 보임, REVIEW_NEEDED 근거·숫자 확인을 통과하지 못해 요약에서 뺌
  * @param factSentence      코드가 만든 사실 문장(재무 수치). 문장 변화면 null
  * @param aiText            AI가 만든 문장(문장 변화의 요약, 재무 수치의 설명). 없으면 null
- * @param explanationStatus 재무 수치의 설명: FOUND, NOT_FOUND('확인된 설명 없음'), REVIEW_NEEDED. 문장 변화면 null
+ * @param explanationStatus 재무 수치의 설명: FOUND, NOT_FOUND('확인된 설명 없음'), TEMPLATE(검증 실패 뒤 코드가 정한 틀로
+ *                          보임, #149), REVIEW_NEEDED(분석 버전 m2-14 이하의 검증 실패). 문장 변화면 null
  * @param evidenceIds       aiText의 근거 원문 위치({접수번호}#B{블록 번호})
  * @param financialIndex    재무 수치 결과 목록 안의 순서(저장할 때 financial_change.id로 바꾼다)
  * @param textChangeNo      문장 변경 번호(text_change.change_no)
  * @param reviewReason      검토 필요 사유. SHOWN인 재무 수치면 코드가 설명 등급을 낮춘 사유(없으면 null)
  * @param blockedRules      투자 권유성 표현 검사(5.5)에 걸려 내보내지 않았으면 걸린 규칙 ID. 아니면 빈 목록
- * @param explanationGrade  재무 수치 설명 등급(ADR-0015): STATED, RELATED, NONE. 문장 변화·REVIEW_NEEDED·등급 기능 전이면 null
- * @param quote             등급의 근거로 후보 원문에서 그대로 옮긴 인용문. NONE이면 null
+ * @param explanationGrade  재무 수치 설명 등급(ADR-0015): STATED, RELATED, NONE. 문장 변화·TEMPLATE·REVIEW_NEEDED·등급 기능
+ *                          전이면 null
+ * @param quote             등급의 근거로 후보 원문에서 그대로 옮긴 인용문. TEMPLATE이면 인용 실재 검사를 통과한 인용(없으면
+ *                          null). NONE이면 null
  * @param quoteEvidenceId   인용 위치({접수번호}#B{블록 번호}). NONE이면 null
  */
 public record SummaryItemRow(String kind, String status, String factSentence, String aiText,
@@ -31,6 +34,7 @@ public record SummaryItemRow(String kind, String status, String factSentence, St
     public static final String REVIEW_NEEDED = "REVIEW_NEEDED";
     public static final String FOUND = "FOUND";
     public static final String NOT_FOUND = "NOT_FOUND";
+    public static final String TEMPLATE = "TEMPLATE";
     public static final String STATED = "STATED";
     public static final String RELATED = "RELATED";
     public static final String NONE = "NONE";
@@ -49,9 +53,9 @@ public record SummaryItemRow(String kind, String status, String factSentence, St
         return REVIEW_NEEDED.equals(status);
     }
 
-    /** 재무 수치의 설명만 검토 필요인지(수치 문장은 요약에 보임) */
+    /** 재무 수치의 설명만 검토 필요인지(수치 문장은 요약에 보임). 템플릿으로 보이는 설명도 LLM 설명은 실패한 것이다 */
     public boolean explanationReviewNeeded() {
-        return REVIEW_NEEDED.equals(explanationStatus);
+        return REVIEW_NEEDED.equals(explanationStatus) || TEMPLATE.equals(explanationStatus);
     }
 
     /** AI가 만든 문장이 있는지('AI 생성' 표시) */
