@@ -19,6 +19,7 @@ describe('summaryLabels', () => {
     expect(explanationNote('FOUND')).toBeNull()
     expect(explanationNote('NOT_FOUND')).toMatch(/^확인된 설명 없음/)
     expect(explanationNote('REVIEW_NEEDED')).toMatch(/^검토 필요/)
+    expect(explanationNote('TEMPLATE')).toMatch(/^검토 필요 · AI 설명은/)
   })
 
   it('코드가 인용을 확인하지 못해 낮춘 설명 없음은 후보가 없던 경우와 다른 문구를 쓴다', () => {

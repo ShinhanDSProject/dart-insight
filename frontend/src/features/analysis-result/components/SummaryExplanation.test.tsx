@@ -104,6 +104,30 @@ describe('SummaryExplanation', () => {
     expect(screen.queryByText(/확인된 설명 없음/)).toBeNull()
   })
 
+  it("템플릿 요약은 'AI 생성' 없이 코드가 확인한 인용을 회사 설명으로 보이고 인용 위치를 연다", async () => {
+    const { container, onOpenSource } = draw(
+      financial({ explanationStatus: 'TEMPLATE', explanationGrade: null, quote: '매출액은 메모리 수요 회복으로 증가하였습니다', quoteEvidence: at812 }),
+    )
+
+    expect(screen.getByText('회사 설명 · 공시 원문 인용')).toBeTruthy()
+    expect(screen.getByText('매출액은 메모리 수요 회복으로 증가하였습니다')).toBeTruthy()
+    expect(screen.getByText(/^검토 필요 · AI 설명은/)).toBeTruthy()
+    expect(screen.queryByText('AI 생성')).toBeNull()
+    expect(screen.queryByText('회사가 공시에서 밝힌 설명')).toBeNull()
+    expect(await axeViolations(container)).toBe('')
+
+    fireEvent.click(screen.getByRole('button', { name: '인용 위치: 반기보고서 (2025.06) 원문 위치 보기' }))
+    expect(onOpenSource).toHaveBeenCalledWith({ side: 'current', section: 41, block: 812 })
+  })
+
+  it("템플릿 요약에 확인된 인용이 없으면 '회사 설명: 확인된 설명 없음'으로 보인다", () => {
+    draw(financial({ explanationStatus: 'TEMPLATE', explanationGrade: null }))
+
+    expect(screen.getByText('회사 설명: 확인된 설명 없음')).toBeTruthy()
+    expect(screen.queryByText('회사 설명 · 공시 원문 인용')).toBeNull()
+    expect(screen.queryByText('AI 생성')).toBeNull()
+  })
+
   it('등급 기능 전에 만든 설명은 등급 제목과 인용 없이 설명만 보인다', () => {
     draw(financial({ aiText: '회사는 수요 회복을 적었어요.', aiGenerated: true, explanationStatus: 'FOUND', explanationGrade: null }))
 

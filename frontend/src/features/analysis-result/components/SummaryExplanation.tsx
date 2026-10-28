@@ -4,7 +4,7 @@ import type { SummaryEvidence, SummaryItem } from '@/shared/api/summary'
 import { Badge, Button } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import type { SourceTarget } from '../model/resultParams'
-import { aiInfoLabel, explanationNote, gradeLabel, gradeNote, QUOTE_CAPTION } from '../model/summaryLabels'
+import { aiInfoLabel, explanationNote, gradeLabel, gradeNote, QUOTE_CAPTION, TEMPLATE_CAPTION, TEMPLATE_NO_QUOTE } from '../model/summaryLabels'
 
 interface SummaryExplanationProps {
   item: SummaryItem
@@ -15,11 +15,13 @@ interface SummaryExplanationProps {
 /**
  * 요약 한 줄의 AI 문장과 근거. 재무 수치는 설명 등급(ADR-0015, #143)에 따라 '회사가 밝힌 설명'과 '관련 공시 내용'을 나누고,
  * 등급의 근거인 인용문과 그 원문 위치를 함께 보인다. 설명이 없거나 검토 필요면 그 안내만 보인다.
+ * 검증에 실패한 설명(TEMPLATE, #149)은 AI 문장 없이 코드가 확인한 인용만 '회사 설명'으로 보인다('AI 생성' 아님).
  */
 export function SummaryExplanation({ item, analysis, onOpenSource }: SummaryExplanationProps) {
   const missing = item.kind === 'FINANCIAL' ? explanationNote(item.explanationStatus, item.gradeReason) : null
   const grade = item.kind === 'FINANCIAL' ? gradeLabel(item.explanationGrade) : null
   const note = item.kind === 'FINANCIAL' ? gradeNote(item.explanationGrade) : null
+  const review = item.explanationStatus === 'REVIEW_NEEDED' || item.explanationStatus === 'TEMPLATE'
   return (
     <>
       {item.aiText && (
@@ -29,15 +31,7 @@ export function SummaryExplanation({ item, analysis, onOpenSource }: SummaryExpl
             {item.aiGenerated && <Badge tone="accent">AI 생성</Badge>} {item.aiText}
           </p>
           {note && <p className="summary-item__grade-note">{note}</p>}
-          {item.quote && (
-            <figure className="summary-item__quote">
-              <figcaption>{QUOTE_CAPTION}</figcaption>
-              <blockquote>{item.quote}</blockquote>
-              {item.quoteEvidence && (
-                <SourceLink evidence={item.quoteEvidence} analysis={analysis} label="인용 위치" onOpenSource={onOpenSource} />
-              )}
-            </figure>
-          )}
+          {item.quote && <Quote item={item} caption={QUOTE_CAPTION} analysis={analysis} onOpenSource={onOpenSource} />}
           {item.ai && (
             <details className="summary-item__meta">
               <summary>생성 정보</summary>
@@ -55,8 +49,34 @@ export function SummaryExplanation({ item, analysis, onOpenSource }: SummaryExpl
           )}
         </div>
       )}
-      {missing && <p className={`summary-item__missing${item.explanationStatus === 'REVIEW_NEEDED' ? ' summary-item__missing--review' : ''}`}>{missing}</p>}
+      {item.explanationStatus === 'TEMPLATE' &&
+        (item.quote ? (
+          <Quote item={item} caption={TEMPLATE_CAPTION} analysis={analysis} onOpenSource={onOpenSource} />
+        ) : (
+          <p className="summary-item__missing">{TEMPLATE_NO_QUOTE}</p>
+        ))}
+      {missing && <p className={`summary-item__missing${review ? ' summary-item__missing--review' : ''}`}>{missing}</p>}
     </>
+  )
+}
+
+interface QuoteProps {
+  item: SummaryItem
+  caption: string
+  analysis: Analysis
+  onOpenSource: (target: SourceTarget) => void
+}
+
+/** 공시 원문 인용문과 그 위치 */
+function Quote({ item, caption, analysis, onOpenSource }: QuoteProps) {
+  return (
+    <figure className="summary-item__quote">
+      <figcaption>{caption}</figcaption>
+      <blockquote>{item.quote}</blockquote>
+      {item.quoteEvidence && (
+        <SourceLink evidence={item.quoteEvidence} analysis={analysis} label="인용 위치" onOpenSource={onOpenSource} />
+      )}
+    </figure>
   )
 }
 

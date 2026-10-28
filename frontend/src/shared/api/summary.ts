@@ -7,7 +7,8 @@ import type { TextStatus } from './textChanges'
 /** docs/api-spec.md GET /api/analyses/{id}/summary */
 export type SummaryStatus = 'COMPLETED' | 'PARTIAL' | 'EMPTY'
 export type SummaryKind = 'FINANCIAL' | 'TEXT'
-export type ExplanationStatus = 'FOUND' | 'NOT_FOUND' | 'REVIEW_NEEDED'
+/** TEMPLATE: 검증에 실패한 설명 대신 코드가 정한 틀로 보임(#149). REVIEW_NEEDED: 분석 버전 m2-14 이하의 검증 실패 */
+export type ExplanationStatus = 'FOUND' | 'NOT_FOUND' | 'TEMPLATE' | 'REVIEW_NEEDED'
 /** 재무 수치 설명 등급(ADR-0015): 회사가 직접 밝힘, 관련 내용, 확인된 설명 없음 */
 export type ExplanationGrade = 'STATED' | 'RELATED' | 'NONE'
 
