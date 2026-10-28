@@ -2201,9 +2201,9 @@
 
 ### GET /api/analyses/{analysisId}/summary — 근거 기반 요약·설명
 
-- 이슈: #20 (3.2), #143 (설명 등급·인용) · 화면: W-03 ① · [ADR-0015](adr/0015-explanation-grade-and-quote-check.md)
+- 이슈: #20 (3.2), #143 (설명 등급·인용), #149 (템플릿 요약) · 화면: W-03 ① · [ADR-0015](adr/0015-explanation-grade-and-quote-check.md)
 - 요약할 변화는 코드가 고릅니다(5절 잠정 규칙). 재무 수치의 사실 문장(`factSentence`)은 코드가 계산한 값으로 만들고, LLM은 문장 변화의 요약과 공시에 적힌 설명(`aiText`)만 씁니다.
-- AI 서버가 LLM 문장의 근거 ID가 보낸 원문 위치인지, 문장의 숫자가 그 원문에 있는지 확인하고, 투자 권유성 표현 검사(5.5)를 합니다. 통과하지 못하면 2회까지 다시 만들고, 그래도 통과하지 못한 항목은 요약에서 빼고 `reviewNeeded`에 남깁니다. 표현 검사에 걸린 항목은 `reviewNeeded[].blockedRules`에 걸린 규칙 ID가 있습니다(5절 잠정 규칙).
+- AI 서버가 LLM 문장의 근거 ID가 보낸 원문 위치인지, 문장의 숫자가 그 원문에 있는지 확인하고, 투자 권유성 표현 검사(5.5)를 합니다. 통과하지 못하면 2회까지 다시 만들고, 그래도 통과하지 못한 항목은 요약에서 빼고 `reviewNeeded`에 남깁니다. 재무 수치는 사실 문장을 그대로 보이고 설명 자리만 템플릿으로 채웁니다(`explanationStatus: TEMPLATE`, #149). 표현 검사에 걸린 항목은 `reviewNeeded[].blockedRules`에 걸린 규칙 ID가 있습니다(5절 잠정 규칙).
 - backend도 저장하기 전에 다시 확인합니다: 요청한 항목인지, 같은 항목이 두 번 오지 않았는지, AI 문장의 근거가 보낸 원문 위치인지(문장 변화는 그 항목의 원문, 재무 설명은 보낸 문단 블록, ADR-0036). 통과하지 못하거나 응답에 빠진 항목은 `reviewNeeded`에 남습니다.
 - 분석이 끝난 뒤 원문을 다시 구조화했으면 근거의 `sectionNo`·`blockNo`가 null입니다(블록 번호가 다른 글을 가리킬 수 있어 열지 않음).
 - 분석이 끝나지 않았으면 `ANALYSIS_NOT_READY`(409)입니다.
@@ -2246,6 +2246,20 @@
       "ai": null
     },
     {
+      "itemNo": 4, "kind": "FINANCIAL",
+      "target": { "type": "FINANCIAL", "changeId": 103, "sjDiv": "IS" },
+      "factSentence": "당기순이익이 −7.7조 원에서 23.5조 원으로 바뀌어 흑자로 돌아섰어요.",
+      "aiText": null,
+      "aiGenerated": false,
+      "explanationStatus": "TEMPLATE",
+      "explanationGrade": null,
+      "quote": "당기순이익은 영업이익 증가와 법인세비용 감소로 흑자 전환하였습니다",
+      "quoteEvidence": { "evidenceId": "20260814001234#B815", "side": "current", "rceptNo": "20260814001234", "sectionNo": 41, "blockNo": 815 },
+      "gradeReason": null,
+      "evidence": [],
+      "ai": null
+    },
+    {
       "itemNo": 2, "kind": "TEXT",
       "target": { "type": "TEXT", "changeId": 5512, "sjDiv": null },
       "factSentence": null,
@@ -2257,17 +2271,19 @@
       "ai": { "model": "fake-model", "promptVersion": "summary-3", "generatedAt": "2026-10-21T14:07:12" }
     }
   ],
-  "reviewNeededCount": 1,
+  "reviewNeededCount": 2,
   "reviewNeeded": [
-    { "itemNo": 4, "kind": "TEXT", "target": { "type": "TEXT", "changeId": 5520, "sjDiv": null }, "reason": "원문에 없는 숫자(3)를 썼어요.", "blockedRules": [] }
+    { "itemNo": 4, "kind": "FINANCIAL", "target": { "type": "FINANCIAL", "changeId": 103, "sjDiv": "IS" }, "reason": "설명의 근거를 확인하지 못해 원문 인용만 보여 줘요. 다시 생성해도 근거·숫자 확인을 통과하지 못했어요.", "blockedRules": [] },
+    { "itemNo": 5, "kind": "TEXT", "target": { "type": "TEXT", "changeId": 5520, "sjDiv": null }, "reason": "원문에 없는 숫자(3)를 썼어요.", "blockedRules": [] }
   ]
 }
 ```
 
 - `summaryStatus`: `COMPLETED`(모두 근거 확인), `PARTIAL`(검토 필요 항목이 있음), `EMPTY`(요약할 변화가 없음). M1에서 만든 분석에는 `null`입니다.
 - `kind`: `FINANCIAL`(재무 수치. `target.changeId`는 `financial-changes`의 `changeId`), `TEXT`(문장 변화. `target.changeId`는 `text-changes`의 `changeId`).
-- `explanationStatus`(재무 수치만): `FOUND`(공시에 적힌 설명이 있음), `NOT_FOUND`(확인된 설명 없음. 화면에 그렇게 표시), `REVIEW_NEEDED`(설명을 만들었지만 근거를 확인하지 못함. 사실 문장은 보이고 설명은 `reviewNeeded`에도 셈).
-- `explanationGrade`(재무 수치만, ADR-0015): 후보 원문이 그 변화를 어떻게 다루는지입니다. 문장 변화와 `REVIEW_NEEDED`면 null이고, 등급 기능 전에 만든 분석(분석 버전 m2-9 이하)도 null입니다.
+- `explanationStatus`(재무 수치만): `FOUND`(공시에 적힌 설명이 있음), `NOT_FOUND`(확인된 설명 없음. 화면에 그렇게 표시), `TEMPLATE`(설명을 만들었지만 2회 다시 만든 뒤에도 검증을 통과하지 못해 코드가 정한 틀로 보여 줌, #149), `REVIEW_NEEDED`(분석 버전 m2-14 이하에서 `TEMPLATE` 대신 쓰던 값. 설명 없이 검토 필요만 표시).
+  - `TEMPLATE`: `aiText`는 null, `aiGenerated`는 false(코드가 만든 틀이라 'AI 생성'이 아님), `explanationGrade`는 null입니다. 화면은 사실 문장 아래에 "회사 설명: " + `quote`(위치 `quoteEvidence`)를 보이고, `quote`가 null이면 "회사 설명: 확인된 설명 없음"을 보입니다. `quote`는 AI 서버가 인용 실재 검사(후보 위치이고 원문에 그대로 있음)를 통과한 것만 줍니다. LLM 설명은 실패했으므로 `summaryStatus`는 `PARTIAL`이고 `reviewNeeded`에도 셉니다.
+- `explanationGrade`(재무 수치만, ADR-0015): 후보 원문이 그 변화를 어떻게 다루는지입니다. 문장 변화와 `TEMPLATE`·`REVIEW_NEEDED`면 null이고, 등급 기능 전에 만든 분석(분석 버전 m2-9 이하)도 null입니다.
 
   | 값 | `explanationStatus` | 화면 | `quote`·`quoteEvidence` |
   | --- | --- | --- | --- |
@@ -2679,7 +2695,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 ```
 
 - `status`: `OK` 또는 `REVIEW_NEEDED`(`reviewReason`에 사유). 투자 권유성 표현 검사(5.5)에 걸려 내보내지 않은 항목은 `blockedRules`에 규칙 ID가 있고, 문장(`sentence`·`explanation`)은 null입니다. `expressionRulesVersion`(응답 맨 위, 예: `expr-1`)은 검사 규칙 버전입니다. `gradeRulesVersion`(예: `grade-2`)은 등급을 낮추는 규칙과 원인 표현 목록의 버전입니다. `calls`는 이 요청에서 LLM을 부른 기록(다시 만든 것 포함)이고 backend가 `llm_call`에 저장합니다.
-- `grade`·`quote`·`quoteEvidenceId`: 문장 변화 항목과 `REVIEW_NEEDED`인 재무 항목은 null입니다. `reviewReason`이 있는 `OK` 재무 항목은 코드가 등급을 낮춘 경우입니다(화면에서 후보가 없던 `NONE`과 다른 사유 문구, #143).
+- `grade`·`quote`·`quoteEvidenceId`: 문장 변화 항목은 null입니다. `REVIEW_NEEDED`인 재무 항목은 `grade`가 null이고, 마지막 응답의 인용이 인용 실재 검사(`quoteEvidenceId`가 그 항목의 후보 위치이고 `quote`가 공백을 모두 뺀 뒤 그 문단에 그대로 있음)를 통과했으면 `quote`·`quoteEvidenceId`를 남깁니다(아니면 null). backend는 이 인용으로 템플릿 요약을 만듭니다(#149). `reviewReason`이 있는 `OK` 재무 항목은 코드가 등급을 낮춘 경우입니다(화면에서 후보가 없던 `NONE`과 다른 사유 문구, #143).
 - 시각은 한국 시간 `YYYY-MM-DDTHH:mm:ss`입니다.
 
 | 상태 | code | 언제 |
