@@ -361,7 +361,7 @@ class SummaryPipelineTest {
     }
 
     @Test
-    @DisplayName("인용 위치가 보낸 후보가 아니거나 등급이 없는 설명은 보이지 않고 검토 필요로 센다")
+    @DisplayName("인용 위치가 보낸 후보가 아니거나 등급이 없는 설명은 보이지 않고 템플릿으로 바꿔 검토 필요로 센다")
     void explanationWithoutAValidQuoteIsReviewNeeded() throws Exception {
         AI.on(SUMMARIES, summaryReply("OK", """
                 "status":"OK","explanation":"회사는 메모리 수요 회복으로 매출이 늘었다고 적었어요.","evidenceIds":["%s#B2"],
@@ -371,7 +371,7 @@ class SummaryPipelineTest {
 
         mockMvc.perform(get("/api/analyses/{id}/summary", id))
                 .andExpect(jsonPath("$.summaryStatus").value("PARTIAL"))
-                .andExpect(jsonPath("$.items[1].explanationStatus").value("REVIEW_NEEDED"))
+                .andExpect(jsonPath("$.items[1].explanationStatus").value("TEMPLATE"))
                 .andExpect(jsonPath("$.items[1].explanationGrade").doesNotExist())
                 .andExpect(jsonPath("$.items[1].aiText").doesNotExist())
                 .andExpect(jsonPath("$.items[1].gradeReason").doesNotExist())
@@ -380,7 +380,7 @@ class SummaryPipelineTest {
     }
 
     @Test
-    @DisplayName("설명의 근거가 아닌 곳을 인용한 설명은 보이지 않고 검토 필요로 센다")
+    @DisplayName("설명의 근거가 아닌 곳을 인용한 설명은 보이지 않고 그 인용도 템플릿에 쓰지 않는다")
     void explanationQuotingOutsideItsEvidenceIsReviewNeeded() throws Exception {
         // 사업의 개요(B1)에도 매출액이 있어 후보가 B1·B2 둘이다. 설명은 B2를 근거로 들고 인용은 B1에서 가져온다
         AI.on("/internal/documents/" + CUR + "/structure", Reply.ok(document(CUR, "당사의 매출액은 메모리에서 나옵니다.",
@@ -392,9 +392,52 @@ class SummaryPipelineTest {
         long id = analyze();
 
         mockMvc.perform(get("/api/analyses/{id}/summary", id))
-                .andExpect(jsonPath("$.items[1].explanationStatus").value("REVIEW_NEEDED"))
+                .andExpect(jsonPath("$.items[1].explanationStatus").value("TEMPLATE"))
                 .andExpect(jsonPath("$.items[1].quote").doesNotExist())
                 .andExpect(jsonPath("$.reviewNeeded[0].reason").value(containsString("인용 위치")));
+    }
+
+    @Test
+    @DisplayName("다시 만들어도 검증을 통과하지 못한 설명은 템플릿으로 바꾸고, 원문에서 확인한 인용만 회사 설명으로 보인다")
+    void explanationFailingAfterRetriesIsShownAsATemplateWithTheCheckedQuote() throws Exception {
+        AI.on(SUMMARIES, summaryReply("OK", """
+                "status":"REVIEW_NEEDED","explanation":null,"evidenceIds":[],"grade":null,
+                "reviewReason":"원인 표현('로 인해')은 회사가 원인을 직접 밝힌(STATED) 설명에만 씁니다.",
+                "quote":"매출액은 메모리 수요 회복으로 늘었습니다","quoteEvidenceId":"%s#B2\"""".formatted(CUR)));
+
+        long id = analyze();
+
+        mockMvc.perform(get("/api/analyses/{id}/summary", id))
+                .andExpect(jsonPath("$.summaryStatus").value("PARTIAL"))
+                .andExpect(jsonPath("$.items[1].factSentence").isNotEmpty())
+                .andExpect(jsonPath("$.items[1].explanationStatus").value("TEMPLATE"))
+                .andExpect(jsonPath("$.items[1].aiText").doesNotExist())
+                .andExpect(jsonPath("$.items[1].aiGenerated").value(false))
+                .andExpect(jsonPath("$.items[1].ai").doesNotExist())
+                .andExpect(jsonPath("$.items[1].explanationGrade").doesNotExist())
+                .andExpect(jsonPath("$.items[1].gradeReason").doesNotExist())
+                .andExpect(jsonPath("$.items[1].quote").value("매출액은 메모리 수요 회복으로 늘었습니다"))
+                .andExpect(jsonPath("$.items[1].quoteEvidence.side").value("current"))
+                .andExpect(jsonPath("$.items[1].quoteEvidence.blockNo").value(2))
+                .andExpect(jsonPath("$.reviewNeededCount").value(1))
+                .andExpect(jsonPath("$.reviewNeeded[0].reason").value(containsString("원문 인용만 보여 줘요")));
+    }
+
+    @Test
+    @DisplayName("템플릿의 인용 위치가 보낸 후보가 아니면 인용 없이 '확인된 설명 없음' 자리로 둔다")
+    void templateQuoteOutsideTheCandidatesIsDropped() throws Exception {
+        AI.on(SUMMARIES, summaryReply("OK", """
+                "status":"REVIEW_NEEDED","explanation":null,"evidenceIds":[],"grade":null,
+                "reviewReason":"다시 생성해도 근거·숫자 확인을 통과하지 못했어요.",
+                "quote":"매출액은 메모리 수요 회복으로 늘었습니다","quoteEvidenceId":"20990101000001#B2\""""));
+
+        long id = analyze();
+
+        mockMvc.perform(get("/api/analyses/{id}/summary", id))
+                .andExpect(jsonPath("$.items[1].explanationStatus").value("TEMPLATE"))
+                .andExpect(jsonPath("$.items[1].quote").doesNotExist())
+                .andExpect(jsonPath("$.items[1].quoteEvidence").doesNotExist())
+                .andExpect(jsonPath("$.reviewNeeded[0].reason").value(containsString("설명의 근거를 확인하지 못했어요.")));
     }
 
     @Test
@@ -417,9 +460,9 @@ class SummaryPipelineTest {
                 .andExpect(jsonPath("$.summaryStatus").value("PARTIAL"))
                 .andExpect(jsonPath("$.items[?(@.kind == 'TEXT')]", hasSize(0)))
                 .andExpect(jsonPath("$.items[0].factSentence").isNotEmpty())
-                .andExpect(jsonPath("$.items[0].explanationStatus").value("REVIEW_NEEDED"))
+                .andExpect(jsonPath("$.items[0].explanationStatus").value("TEMPLATE"))
                 // 후보는 AI 서버가 고르고 재무 항목마다 늘 답하므로(후보가 없으면 NONE), 빠진 항목은 검토 필요다(ADR-0036)
-                .andExpect(jsonPath("$.items[1].explanationStatus").value("REVIEW_NEEDED"))
+                .andExpect(jsonPath("$.items[1].explanationStatus").value("TEMPLATE"))
                 .andExpect(jsonPath("$.reviewNeededCount").value(3));
         assertThat(summaryStore.items(id)).hasSize(3);
     }
