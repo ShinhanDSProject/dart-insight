@@ -420,7 +420,7 @@ class SummaryPipelineTest {
                 .andExpect(jsonPath("$.items[1].quoteEvidence.side").value("current"))
                 .andExpect(jsonPath("$.items[1].quoteEvidence.blockNo").value(2))
                 .andExpect(jsonPath("$.reviewNeededCount").value(1))
-                .andExpect(jsonPath("$.reviewNeeded[0].reason").value(containsString("원문 인용만 보여 줘요")));
+                .andExpect(jsonPath("$.reviewNeeded[0].reason").value(containsString("AI 설명이 검증을 통과하지 못해 원문 인용만 보여 줘요")));
     }
 
     @Test
@@ -437,7 +437,7 @@ class SummaryPipelineTest {
                 .andExpect(jsonPath("$.items[1].explanationStatus").value("TEMPLATE"))
                 .andExpect(jsonPath("$.items[1].quote").doesNotExist())
                 .andExpect(jsonPath("$.items[1].quoteEvidence").doesNotExist())
-                .andExpect(jsonPath("$.reviewNeeded[0].reason").value(containsString("설명의 근거를 확인하지 못했어요.")));
+                .andExpect(jsonPath("$.reviewNeeded[0].reason").value(containsString("AI 설명이 검증을 통과하지 못했어요.")));
     }
 
     @Test

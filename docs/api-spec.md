@@ -2213,8 +2213,8 @@
 ```json
 {
   "analysisId": 42,
-  "summaryStatus": "COMPLETED",
-  "summaryMessage": null,
+  "summaryStatus": "PARTIAL",
+  "summaryMessage": "근거를 확인하지 못한 항목은 요약에서 빼고 '검토 필요'로 남겼어요.",
   "textStatus": "COMPLETED",
   "items": [
     {
@@ -2273,7 +2273,7 @@
   ],
   "reviewNeededCount": 2,
   "reviewNeeded": [
-    { "itemNo": 4, "kind": "FINANCIAL", "target": { "type": "FINANCIAL", "changeId": 103, "sjDiv": "IS" }, "reason": "설명의 근거를 확인하지 못해 원문 인용만 보여 줘요. 다시 생성해도 근거·숫자 확인을 통과하지 못했어요.", "blockedRules": [] },
+    { "itemNo": 4, "kind": "FINANCIAL", "target": { "type": "FINANCIAL", "changeId": 103, "sjDiv": "IS" }, "reason": "AI 설명이 검증을 통과하지 못해 원문 인용만 보여 줘요. 다시 생성해도 근거·숫자 확인을 통과하지 못했어요.", "blockedRules": [] },
     { "itemNo": 5, "kind": "TEXT", "target": { "type": "TEXT", "changeId": 5520, "sjDiv": null }, "reason": "원문에 없는 숫자(3)를 썼어요.", "blockedRules": [] }
   ]
 }
