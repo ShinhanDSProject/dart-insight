@@ -12,6 +12,7 @@ import { ReportCompareView } from './components/ReportCompareView'
 import { useCompactHeader } from './hooks/useCompactHeader'
 import { useCompany } from './hooks/useCompany'
 import { useCompanyView } from './hooks/useCompanyView'
+import { useRecordCurrentCompany } from '@/shared/hooks/useCurrentCompany'
 import type { CompanyView } from './model/companyView'
 import './report-selection.css'
 
@@ -88,6 +89,8 @@ interface CompanyFrameProps {
  * 탭 줄 높이는 --company-bar-height로 넘겨, 기업 개요의 바로 가기 바가 그 밑에 붙는다.
  */
 function CompanyFrame({ company, view, onSelectView, children }: CompanyFrameProps) {
+  // 왼쪽 메뉴 '지금 보는 기업'을 이 기업으로 바꾼다(#502)
+  useRecordCurrentCompany({ corpCode: company.corpCode, corpName: company.corpName, stockCode: company.stockCode })
   const { sentinelRef, barRef, compact, height } = useCompactHeader<HTMLDivElement, HTMLDivElement>()
   return (
     <>

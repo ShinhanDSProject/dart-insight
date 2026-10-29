@@ -10,6 +10,7 @@ import { useAnalysisProgress } from './hooks/useAnalysisProgress'
 import { useCompletionNotification } from './hooks/useCompletionNotification'
 import { useProgressTitle } from './hooks/useProgressTitle'
 import { MAX_POLL_FAILURES, statusLabel, stepMarker, stepStateLabel, stepSummary } from './model/progress'
+import { useRecordCurrentCompany } from '@/shared/hooks/useCurrentCompany'
 import './analysis-progress.css'
 
 /**
@@ -67,6 +68,8 @@ export function AnalysisProgressPage() {
 }
 
 function Progress({ analysis }: { analysis: Analysis }) {
+  // 왼쪽 메뉴 '지금 보는 기업'을 이 기업으로 바꾼다. 아직 결과가 없어 분석은 넘기지 않는다(#502)
+  useRecordCurrentCompany({ corpCode: analysis.corpCode, corpName: analysis.corpName })
   return (
     <>
       <p className="page__lead">

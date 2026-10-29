@@ -162,39 +162,40 @@ a.app-nav__item:not([aria-current='page']):hover {
   font-weight: var(--font-weight-bold);
 }
 
-.app-nav__item--disabled {
-  cursor: not-allowed;
+/* 왼쪽 메뉴 '지금 보는 기업' 묶음(#502). 공통 메뉴 아래, 기업 이름과 그 기업에 딸린 메뉴 */
+.app-nav__group {
+  margin-top: var(--space-5);
 }
 
-.app-guide {
+.app-nav__company {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: auto;
-  padding: var(--space-4);
-  border-radius: var(--radius-lg);
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0 0 7px;
+  padding: var(--space-2) 14px;
+  border-radius: var(--radius-md);
   background: var(--color-accent-subtle);
   color: var(--color-text);
-}
-
-.app-guide__title,
-.app-guide__text {
-  margin: 0;
-}
-
-.app-guide__title {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
 }
 
-.app-guide__text {
+.app-nav__company-code {
   color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
 }
 
-/* ui.css의 .link-button(font: inherit)보다 뒤에 읽혀도 작은 글자를 지키도록 두 단계로 고른다 */
-.app-guide .app-guide__action {
-  align-self: flex-start;
+.app-nav__list--sub .app-nav__item {
+  padding-left: var(--space-5);
+}
+
+.app-nav__placeholder {
+  margin: var(--space-5) 0 0;
+  padding: var(--space-3);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
   font-size: var(--font-size-xs);
 }
 
@@ -339,7 +340,7 @@ a.app-nav__item:not([aria-current='page']):hover {
     flex-direction: column;
   }
 
-  /* 위 줄: 로고 | 사용법 다시 보기, 아래 줄: 메뉴 */
+  /* 위 줄: 로고, 아래 줄: 메뉴 */
   .app-sidebar {
     position: static;
     display: grid;
@@ -363,17 +364,12 @@ a.app-nav__item:not([aria-current='page']):hover {
     display: none;
   }
 
-  /* 안내 카드는 접고 '사용법 다시 보기'만 로고 오른쪽에 남긴다(FS-11) */
-  .app-guide {
-    grid-column: 2;
-    grid-row: 1;
-    display: block;
-    margin-top: 0;
-    padding: 0;
-    background: none;
+  /* 좁은 화면에서는 기업 묶음을 공통 메뉴 다음 줄에 이어 두고, 안내 글은 숨긴다(#502) */
+  .app-nav__group {
+    margin-top: var(--space-2);
   }
 
-  .app-guide > :not(.app-guide__action) {
+  .app-nav__placeholder {
     display: none;
   }
 
