@@ -13,9 +13,11 @@ import java.util.Map;
  * @param byModel 제공자·모델별 호출 수와 토큰 합(제공자, 모델 이름 순서)
  * @param analyses 기간 안에 호출이 있는 분석(analysis_id)들의 수와 모델별 토큰 합
  * @param briefings 기간 안에 호출이 있는 기업 브리핑(company_briefing_id)들의 수와 모델별 토큰 합
+ * @param outlooks 기간 안에 호출이 있는 전망·계획(company_outlook_id, FS-59)들의 수와 모델별 토큰 합
+ * @param planFollowups 기간 안에 호출이 있는 약속과 실제 대조(plan_followup_id, FS-60)들의 수와 모델별 토큰 합
  */
 public record LlmCallUsage(Map<String, Long> byOutcome, List<TaskUsage> byTask, List<ModelUsage> byModel,
-        UnitUsage analyses, UnitUsage briefings) {
+        UnitUsage analyses, UnitUsage briefings, UnitUsage outlooks, UnitUsage planFollowups) {
 
     /** llm_call.outcome으로 기록하는 값(docs/erd.md) */
     public static final List<String> OUTCOMES = List.of("OK", "INVALID_OUTPUT", "TRANSIENT_ERROR", "ERROR");
@@ -45,7 +47,7 @@ public record LlmCallUsage(Map<String, Long> byOutcome, List<TaskUsage> byTask, 
     }
 
     /**
-     * 작업 단위(분석·브리핑) 묶음의 집계.
+     * 작업 단위(분석·브리핑·전망·대조) 묶음의 집계.
      *
      * @param count 기간 안에 호출이 하나라도 있는 단위 수
      * @param byModel 그 단위들의 호출을 제공자·모델별로 더한 토큰 합(비용은 모델 가격으로 따로 계산한다)

@@ -38,7 +38,8 @@ public record AiUsageResponse(int days, LocalDate from, LocalDate to, Questions 
                         cost(pricing.price(m.provider(), m.model()), m.inputTokens(), m.outputTokens()),
                         taskCalls(m.byTask())))
                 .toList();
-        PerUnit perUnit = new PerUnit(unitAverage(llm.analyses(), pricing), unitAverage(llm.briefings(), pricing));
+        PerUnit perUnit = new PerUnit(unitAverage(llm.analyses(), pricing), unitAverage(llm.briefings(), pricing),
+                unitAverage(llm.outlooks(), pricing), unitAverage(llm.planFollowups(), pricing));
         return new AiUsageResponse(days, from, to,
                 new Questions(sum(questionsByStatus), questionsByStatus),
                 feedback,
@@ -140,8 +141,8 @@ public record AiUsageResponse(int days, LocalDate from, LocalDate to, Questions 
             Double estimatedCostUsd, List<TaskCalls> byTask) {
     }
 
-    /** 분석·브리핑 1건당 평균(FS-50) */
-    public record PerUnit(UnitAverage analysis, UnitAverage briefing) {
+    /** 분석·브리핑·전망·계획(FS-59)·약속 대조(FS-60) 1건당 평균(FS-50) */
+    public record PerUnit(UnitAverage analysis, UnitAverage briefing, UnitAverage outlook, UnitAverage planFollowup) {
     }
 
     /** count는 기간 안에 호출이 하나라도 있는 단위 수. 평균은 count가 0이거나 값을 모르면 null */
