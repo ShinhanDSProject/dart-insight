@@ -46,8 +46,9 @@ public class Analysis {
      * m2-14: 재무 설명 후보를 ai-server가 보고서 문단 전체에서 BM25로 찾음(ADR-0036, #146).
      * m2-15: 검증에 실패한 재무 설명을 템플릿(TEMPLATE)과 검증된 인용으로 보임(#149).
      * m2-16: 이전·현재 값이 모두 없는 계정을 재무 비교 결과에서 뺌(#355).
+     * m2-17: 요약할 재무 수치에 현금흐름표(CF) 1개와 영업활동현금흐름 검색어 추가(#481).
      */
-    public static final String CURRENT_VERSION = "m2-16";
+    public static final String CURRENT_VERSION = "m2-17";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

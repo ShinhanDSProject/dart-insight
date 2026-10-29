@@ -13,8 +13,9 @@ import java.util.regex.Pattern;
  * <ul>
  *   <li>정리 규칙: 공백을 빼고, {@code X(Y)} 꼴은 X와 Y를 각각 검색어로 쓴다. 여기서 나온 2글자 이하 검색어는
  *   버린다('손실'·'매출'이 다른 계정 문단에 걸리지 않게).</li>
- *   <li>사전: 같은 표준계정이라도 회사·연도마다 계정명이 달라(영업이익 / 영업이익(손실) / 영업손실) ID로 찾는다.
- *   실제 공시의 설명 문장에서 확인한 표현만 넣는다(2024 사업보고서 5건, 접수번호는 AccountAliasesTest).</li>
+ *   <li>사전: 같은 표준계정이라도 회사·연도마다 계정명이 달라(영업이익 / 영업이익(손실) / 영업손실, 영업활동현금흐름 /
+ *   영업활동순현금흐름) ID로 찾는다. 실제 공시의 설명 문장에서 확인한 표현만 넣는다(2024 사업보고서 5건, 접수번호는
+ *   AccountAliasesTest).</li>
  * </ul>
  * 결과가 달라지게 바꾸면 backend Analysis.CURRENT_VERSION을 함께 올린다.
  */
@@ -31,7 +32,8 @@ public final class AccountAliases {
             "ifrs-full_ProfitLossFromOperatingActivities", OPERATING_INCOME,
             "ifrs-full_ProfitLoss", List.of("당기순이익", "당기순손실", "순이익", "순손실"),
             "ifrs-full_Assets", List.of("자산총계", "자산총액", "총자산"),
-            "ifrs-full_Liabilities", List.of("부채총계", "부채총액"));
+            "ifrs-full_Liabilities", List.of("부채총계", "부채총액"),
+            "ifrs-full_CashFlowsFromUsedInOperatingActivities", List.of("영업활동현금흐름", "영업현금흐름"));
 
     private AccountAliases() {
     }

@@ -59,6 +59,15 @@ class AccountAliasesTest {
     }
 
     @Test
+    @DisplayName("현금흐름표 영업활동현금흐름은 계정명이 달라도 표준계정 ID로 영업활동현금흐름·영업현금흐름을 검색어로 쓴다")
+    void operatingCashFlowIncludesBodyExpressions() {
+        assertThat(AccountAliases.of("ifrs-full_CashFlowsFromUsedInOperatingActivities", "영업활동현금흐름"))
+                .containsExactly("영업활동현금흐름", "영업현금흐름");
+        assertThat(AccountAliases.of("ifrs-full_CashFlowsFromUsedInOperatingActivities", "영업활동순현금흐름"))
+                .containsExactly("영업활동순현금흐름", "영업활동현금흐름", "영업현금흐름");
+    }
+
+    @Test
     @DisplayName("표준계정이 아니거나 사전에 없는 계정은 정리 규칙만 쓴다")
     void nonStandardOrUnknownAccountsUseOnlyTheName() {
         assertThat(AccountAliases.of(FinancialAccount.NON_STANDARD_ACCOUNT_ID, "기타금융수익"))
