@@ -366,4 +366,59 @@ class FinancialComparatorTest {
         assertThat(find(rows, "BS", "c").calcStatus()).isEqualTo(CalcStatus.ONLY_CURRENT);
         assertThat(find(rows, "BS", "b").calcStatus()).isEqualTo(CalcStatus.ONLY_PREVIOUS);
     }
+
+    @Test
+    @DisplayName("이전·현재 값이 모두 없는 계정은 결과에서 빼고 화면 순서를 이어 붙인다(#355)")
+    void accountsWithoutAnyValueAreLeftOut() {
+        List<FinancialChangeRow> rows = compare(ReportType.ANNUAL, ReportType.ANNUAL,
+                List.of(account(PREV, "BS", "a", "자산총계", 1, 10L, null),
+                        account(PREV, "BS", "both", "양쪽 빈 값", 2, null, null),
+                        account(PREV, "BS", "prevOnly", "파생상품자산", 3, null, null)),
+                List.of(account(CUR, "BS", "a", "자산총계", 1, 12L, null),
+                        account(CUR, "BS", "both", "양쪽 빈 값", 2, null, null),
+                        account(CUR, "BS", "curOnly", "관계기업투자주식", 3, null, null),
+                        account(CUR, "BS", "c", "부채총계", 4, 5L, null)));
+
+        assertThat(rows).extracting(FinancialChangeRow::accountKey).containsExactly("a", "c");
+        assertThat(rows).extracting(FinancialChangeRow::displayOrder).containsExactly(0, 1);
+    }
+
+    @Test
+    @DisplayName("한쪽 값만 없는 계정은 남기고, 0은 없는 값과 구분한다")
+    void oneMissingValueOrZeroIsKept() {
+        List<FinancialChangeRow> rows = compare(ReportType.ANNUAL, ReportType.ANNUAL,
+                List.of(account(PREV, "BS", "curNull", "현재 없음", 1, 7L, null),
+                        account(PREV, "BS", "prevNull", "이전 없음", 2, null, null),
+                        account(PREV, "BS", "zeroNull", "이전 0 현재 없음", 3, 0L, null),
+                        account(PREV, "BS", "zeros", "둘 다 0", 4, 0L, null),
+                        account(PREV, "BS", "prevOnly", "이전에만", 5, 0L, null)),
+                List.of(account(CUR, "BS", "curNull", "현재 없음", 1, null, null),
+                        account(CUR, "BS", "prevNull", "이전 없음", 2, 3L, null),
+                        account(CUR, "BS", "zeroNull", "이전 0 현재 없음", 3, null, null),
+                        account(CUR, "BS", "zeros", "둘 다 0", 4, 0L, null),
+                        account(CUR, "BS", "curOnly", "현재에만", 5, 4L, null)));
+
+        assertThat(find(rows, "BS", "curNull").calcStatus()).isEqualTo(CalcStatus.CURRENT_MISSING);
+        assertThat(find(rows, "BS", "prevNull").calcStatus()).isEqualTo(CalcStatus.PREVIOUS_MISSING);
+        FinancialChangeRow zeroNull = find(rows, "BS", "zeroNull");
+        assertThat(zeroNull.calcStatus()).isEqualTo(CalcStatus.CURRENT_MISSING);
+        assertThat(zeroNull.previousAmount()).isZero();
+        FinancialChangeRow zeros = find(rows, "BS", "zeros");
+        assertThat(zeros.calcStatus()).isEqualTo(CalcStatus.PREVIOUS_ZERO);
+        assertThat(zeros.changeAmount()).isZero();
+        assertThat(find(rows, "BS", "curOnly").calcStatus()).isEqualTo(CalcStatus.ONLY_CURRENT);
+        FinancialChangeRow prevOnly = find(rows, "BS", "prevOnly");
+        assertThat(prevOnly.calcStatus()).isEqualTo(CalcStatus.ONLY_PREVIOUS);
+        assertThat(prevOnly.previousAmount()).as("0은 없는 값이 아니다").isZero();
+    }
+
+    @Test
+    @DisplayName("기간이 달라 비교하지 않는 재무제표의 계정은 값이 없어도 남긴다")
+    void periodMismatchRowsAreKept() {
+        List<FinancialChangeRow> rows = compare(ReportType.Q1, ReportType.HALF,
+                List.of(account(PREV, "CF", "cash", "영업활동현금흐름", 1, null, null)),
+                List.of(account(CUR, "CF", "cash", "영업활동현금흐름", 1, null, null)));
+
+        assertThat(find(rows, "CF", "cash").calcStatus()).isEqualTo(CalcStatus.PERIOD_MISMATCH);
+    }
 }

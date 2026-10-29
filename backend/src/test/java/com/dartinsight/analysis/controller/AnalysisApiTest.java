@@ -173,6 +173,37 @@ class AnalysisApiTest {
     }
 
     @Test
+    @DisplayName("이전·현재 값이 모두 없는 계정(빈 값·'-')은 재무 수치 변화와 계정 수에서 빠진다(#355)")
+    void accountsWithoutAnyValueAreNotListed() throws Exception {
+        SERVER.on(PATH,
+                Response.json(FinancialJson.ok(
+                        account(CUR, "BS", "ifrs-full_Assets", "자산총계", 1, "1153"),
+                        account(CUR, "BS", "ifrs-full_Liabilities", "부채총계", 2, "-"),
+                        account(CUR, "BS", "ifrs-full_DerivativeFinancialAssets", "파생상품자산", 3, "-"),
+                        account(CUR, "BS", "ifrs-full_Inventories", "재고자산", 4, ""))),
+                Response.json(FinancialJson.ok(
+                        account(PREV, "BS", "ifrs-full_Assets", "자산총계", 1, "1000"),
+                        account(PREV, "BS", "ifrs-full_Liabilities", "부채총계", 2, ""),
+                        account(PREV, "BS", "ifrs-full_Inventories", "재고자산", 3, "0"))));
+
+        String body = request(CUR, PREV).andExpect(status().isAccepted()).andReturn().getResponse()
+                .getContentAsString();
+        long id = ((Number) JsonPath.read(body, "$.analysisId")).longValue();
+
+        mockMvc.perform(get("/api/analyses/{id}/financial-changes", id).param("sjDiv", "BS"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.statements[?(@.sjDiv == 'BS')].total").value(2))
+                .andExpect(jsonPath("$.items", hasSize(2)))
+                .andExpect(jsonPath("$.items[0].accountName").value("자산총계"))
+                .andExpect(jsonPath("$.items[0].calcStatus").value("OK"))
+                // 이전 값 0은 없는 값이 아니어서 남는다
+                .andExpect(jsonPath("$.items[1].accountName").value("재고자산"))
+                .andExpect(jsonPath("$.items[1].previousAmount").value(0))
+                .andExpect(jsonPath("$.items[1].currentAmount").value(nullValue()))
+                .andExpect(jsonPath("$.items[1].calcStatus").value("CURRENT_MISSING"));
+    }
+
+    @Test
     void sameRequestReusesCompletedResultWithoutCallingAgain() throws Exception {
         givenStatements();
         long first = ((Number) JsonPath.read(request(CUR, PREV).andReturn().getResponse().getContentAsString(),

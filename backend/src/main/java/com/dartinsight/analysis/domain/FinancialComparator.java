@@ -33,6 +33,7 @@ import java.util.function.Function;
  *   <li>금액 기준: 비교 규칙(StatementRules)이 정한 시점·누적·3개월 금액.</li>
  *   <li>증감액 = 현재 값 − 이전 값. 증감률 = 증감액 ÷ 이전 값(이전 값이 양수이고 현재 값이 음수가 아닐 때만,
  *       소수 6자리 반올림). 부호가 바뀌거나 이전 값이 음수면 {@link #status}가 정한 상태로 두고 증감률을 비운다.</li>
+ *   <li>이전·현재 값이 모두 없는 계정은 결과에 넣지 않는다({@link #bothMissing}).</li>
  * </ul>
  */
 public final class FinancialComparator {
@@ -70,10 +71,23 @@ public final class FinancialComparator {
             List<Pair> pairs = match(accountsOf(previous, sjDiv), accountsOf(current, sjDiv), rule.type());
             int order = 0;
             for (Pair pair : pairs) {
-                rows.add(row(fsDiv, rule, pair, previous.reportType(), current.reportType(), order++));
+                FinancialChangeRow row = row(fsDiv, rule, pair, previous.reportType(), current.reportType(), order);
+                if (!bothMissing(row)) {
+                    rows.add(row);
+                    order++;
+                }
             }
         }
         return rows;
+    }
+
+    /**
+     * 이전·현재 값이 모두 없는 행인지(#355). 공시 표에 계정 행만 있고 금액이 빈 값이나 '-'인 경우로, 비교할 변화가 없어
+     * 결과에 넣지 않는다. 기간이 달라 값을 읽지 않은 재무제표(PERIOD_MISMATCH)의 행은 해당하지 않는다.
+     */
+    static boolean bothMissing(FinancialChangeRow row) {
+        return row.calcStatus() != CalcStatus.PERIOD_MISMATCH
+                && row.previousAmount() == null && row.currentAmount() == null;
     }
 
     private static List<FinancialAccount> accountsOf(Side side, String sjDiv) {
