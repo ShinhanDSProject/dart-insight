@@ -89,10 +89,10 @@
 | POST | `/api/posts/{postId}/comments` | 댓글·답글(한 단계) 쓰기 | #460 (6.6) | W-01 ② 커뮤니티 탭 | 구현 |
 | PATCH·DELETE | `/api/comments/{commentId}` | 내 댓글 고치기·지우기 | #460 (6.6) | W-01 ② 커뮤니티 탭 | 구현 |
 | PUT·DELETE | `/api/posts/{postId}/like`, `/api/comments/{commentId}/like` | 좋아요·취소 | #460 (6.6) | W-01 ② 커뮤니티 탭 | 구현 |
-| POST | `/api/posts/{postId}/reports`, `/api/comments/{commentId}/reports` | 신고(사유 4가지) | #461 (6.6) | W-01 ② 커뮤니티 탭 | 초안 |
-| GET | `/api/admin/reports` | 관리자 신고 목록(처리할 것·전체) | #461 (6.6) | 관리자 신고 목록(신규) | 초안 |
-| PATCH | `/api/admin/reports/{reportId}` | 신고 처리(유지·블라인드·삭제) | #461 (6.6) | 관리자 신고 목록(신규) | 초안 |
-| POST | `/api/reports/{reportId}/repost-requests` | 블라인드 재게시 청구 | #461 (6.6) | W-01 ② 커뮤니티 탭 | 초안 |
+| POST | `/api/posts/{postId}/reports`, `/api/comments/{commentId}/reports` | 신고(사유 4가지) | #461 (6.6) | W-01 ② 커뮤니티 탭 | 구현 |
+| GET | `/api/admin/reports` | 관리자 신고 목록(처리할 것·전체) | #461 (6.6) | 관리자 신고 목록(신규) | 구현 |
+| PATCH | `/api/admin/reports/{reportId}` | 신고 처리(유지·블라인드·삭제) | #461 (6.6) | 관리자 신고 목록(신규) | 구현 |
+| POST | `/api/reports/{reportId}/repost-requests` | 블라인드 재게시 청구 | #461 (6.6) | W-01 ② 커뮤니티 탭 | 구현 |
 | GET | `/api/companies` | 기업 검색 | #8 (1.1) | W-01 ① | 초안 |
 | GET | `/api/featured-companies` | 첫 화면 대표 기업(유가증권시장 시가총액 상위 100) | #399 (1.5) | W-01 ① | 초안 |
 | GET | `/api/season-changes` | 첫 화면 이번 시즌 변화가 큰 기업 Top 10 | #420 (1.7) | W-01 ① | 초안 |
@@ -551,7 +551,8 @@
 | `PERSONAL_INFO` | 개인정보 노출 |
 
 - 204. 신고만으로 글은 가려지지 않습니다. 같은 대상에 한 사람이 한 번만 신고합니다. 자기 글·댓글은 신고할 수 없습니다(`COMMUNITY_FORBIDDEN`).
-- `VISIBLE`인 대상만 신고합니다. 이미 처리(유지)된 대상에 다른 사람이 신고하면 다시 처리 대기가 됩니다.
+- `VISIBLE`인 대상만 신고합니다(가려지거나 지운 대상은 409 `COMMUNITY_TARGET_UNAVAILABLE`). 이미 처리(유지)된 대상에 다른 사람이 신고하면 다시 처리 대기가 됩니다.
+- 에러: `reason`이 네 값이 아니면(문자열이 아님 포함) 400 `COMMON_INVALID_INPUT`(`errors[].field`는 `reason`), 없는 글·댓글은 404 `COMMUNITY_POST_NOT_FOUND`·`COMMUNITY_COMMENT_NOT_FOUND`, 같은 대상을 다시 신고하면 409 `COMMUNITY_ALREADY_REPORTED`.
 
 #### GET /api/admin/reports — 관리자 신고 목록 (#461, 관리자만)
 
@@ -601,6 +602,9 @@
 - 200과 처리한 신고 항목(위 `items`의 항목). 처리 기록을 한 줄 더합니다(누가·언제·결정·사유·기한).
 - `KEEP`: 대상을 보이게 둡니다(가려져 있었으면 풀기). `BLIND`: 대상을 처리 시각부터 `blindDays`일 동안 가립니다. `DELETE`: 대상을 지웁니다(작성자가 지운 것과 같이 보임).
 - 이미 지운(`DELETED`) 신고는 다시 처리할 수 없습니다(`COMMUNITY_REPORT_CLOSED`).
+- 작성자가 먼저 지운 대상은 유지·삭제로만 닫을 수 있고(지운 것은 다시 살리지 않음), 블라인드하면 409 `COMMUNITY_TARGET_UNAVAILABLE`입니다.
+- `blindDays`는 `BLIND`일 때만 씁니다. 다른 결정에 보내면 무시합니다. 숫자가 아니거나(문자열 `"7"` 포함) 1~30 밖이면 400입니다.
+- 없는 신고 건은 404 `COMMUNITY_REPORT_NOT_FOUND`입니다.
 
 #### POST /api/reports/{reportId}/repost-requests — 재게시 청구 (#461)
 
@@ -608,7 +612,7 @@
 { "message": "출처 기사 링크를 붙여 다시 올립니다." }
 ```
 
-- 블라인드된 글·댓글의 작성자만 청구합니다. `message`는 아니오, 500자 이하(비었으면 null). 201 `{ "reportId": 8, "createdAt": "2026-10-28T09:00:00" }`.
+- 블라인드된 글·댓글의 작성자만 청구합니다. `message`는 아니오, 앞뒤 공백을 지운 500자 이하(비었으면 null). 남길 말이 없으면 본문 없이 보내도 됩니다. 201 `{ "reportId": 8, "createdAt": "2026-10-28T09:00:00" }`.
 - 청구하면 관리자 목록에 `REPOST_REQUESTED`로 올라갑니다. 지금 블라인드에 이미 청구했으면 409 `COMMUNITY_REPOST_ALREADY_REQUESTED`입니다(관리자가 다시 블라인드하면 새로 청구할 수 있음).
 - 작성자는 `reportId`를 글·댓글 응답의 `blind.reportId`에서 얻습니다.
 
