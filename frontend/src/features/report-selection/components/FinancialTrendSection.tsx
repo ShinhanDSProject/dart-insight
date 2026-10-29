@@ -1,12 +1,14 @@
 import { useState, type CSSProperties } from 'react'
 import { match } from 'ts-pattern'
+import type { CompanyAnalysisItem } from '@/shared/api/analyses'
 import type { FinancialTrend, FsDiv } from '@/shared/api/financialTrends'
 import type { ReportType } from '@/shared/api/reports'
 import { formatCompactAmount, position } from '@/shared/lib/chartScale'
 import { dartViewerUrl, verifiedDartUrl } from '@/shared/lib/dart'
 import { reportTypeLabel } from '@/shared/lib/reportLabels'
-import { Button, DataTable, Notice, Panel, PanelTitle, SegmentedControl, Skeleton, type SegmentOption } from '@/shared/ui'
+import { Button, ButtonLink, DataTable, Notice, Panel, PanelTitle, SegmentedControl, Skeleton, type SegmentOption } from '@/shared/ui'
 import { EmptyState, ErrorState } from '@/shared/ui/StateView'
+import { useCompanyAnalyses } from '@/shared/hooks/useCompanyAnalyses'
 import { useFinancialTrends } from '../hooks/useFinancialTrends'
 import {
   accountSummary,
@@ -29,6 +31,7 @@ import {
   type TrendSeries,
   type TrendView,
 } from '../model/financialTrend'
+import { trendCompareAction } from '../model/financialTrendCompare'
 import { FinancialRatioTable } from './FinancialRatioTable'
 
 const fsDivOptions: readonly SegmentOption<FsDiv>[] = [
@@ -57,15 +60,33 @@ const errorMessages: Record<string, string> = {
   DART_REQUEST_FAILED: 'OpenDART에서 보고서 목록을 받지 못했어요. 잠시 뒤 다시 시도해 주세요.',
 }
 
+const EMPTY_ANALYSES: readonly CompanyAnalysisItem[] = []
+const COMPLETED_ANALYSES_LIMIT = 20
+
 /**
  * 기업 개요 탭의 '주요 재무 흐름'(FS-46, #330). 최근 정기보고서들의 OpenDART 주요계정을 같은 종류 보고서끼리
  * (예: 반기끼리) 작은 막대 차트와 표로 보여 준다. 차트는 라이브러리 없이 그린다(ADR-0018).
  * 없는 값은 0으로 그리지 않고 '—'(값 없음)로 둔다. 표의 열 머리글이 값의 근거 공시(접수번호) 링크다.
  * '비율'로 바꾸면 같은 응답의 금액으로 코드가 계산한 재무 비율을 기간별로 보여 준다(FS-54, #410, FinancialRatioTable).
  */
-export function FinancialTrendSection({ corpCode }: { corpCode: string }) {
+export function FinancialTrendSection({
+  corpCode,
+  completedAnalyses,
+}: {
+  corpCode: string
+  completedAnalyses?: readonly CompanyAnalysisItem[]
+}) {
   const [fsDiv, setFsDiv] = useState<FsDiv>('CFS')
   const { state, reload } = useFinancialTrends(corpCode, fsDiv)
+  const fetchedAnalyses = useCompanyAnalyses(corpCode, COMPLETED_ANALYSES_LIMIT)
+  const analyses: readonly CompanyAnalysisItem[] | null =
+    completedAnalyses !== undefined
+      ? completedAnalyses
+      : match(fetchedAnalyses.state)
+          .with({ status: 'loading' }, () => null)
+          .with({ status: 'success' }, ({ data }) => data.items)
+          .with({ status: 'error' }, () => EMPTY_ANALYSES)
+          .exhaustive()
 
   return (
     <Panel className="fin-trend" aria-labelledby="fin-trend-title">
@@ -81,13 +102,25 @@ export function FinancialTrendSection({ corpCode }: { corpCode: string }) {
       {match(state)
         .with({ status: 'loading' }, () => <Skeleton label="주요 재무 흐름을 불러오는 중이에요…" shape="card" count={3} />)
         .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} messages={errorMessages} />)
-        .with({ status: 'success' }, ({ data }) => <TrendBody trend={data} onRetry={reload} />)
+        .with({ status: 'success' }, ({ data }) => (
+          <TrendBody trend={data} corpCode={corpCode} completedAnalyses={analyses} onRetry={reload} />
+        ))
         .exhaustive()}
     </Panel>
   )
 }
 
-function TrendBody({ trend, onRetry }: { trend: FinancialTrend; onRetry: () => void }) {
+function TrendBody({
+  trend,
+  corpCode,
+  completedAnalyses,
+  onRetry,
+}: {
+  trend: FinancialTrend
+  corpCode: string
+  completedAnalyses: readonly CompanyAnalysisItem[] | null
+  onRetry: () => void
+}) {
   const [chosenType, setChosenType] = useState<ReportType | null>(null)
   const [basis, setBasis] = useState<IncomeBasis>('CUMULATIVE')
   const [view, setView] = useState<TrendView>('chart')
@@ -101,6 +134,8 @@ function TrendBody({ trend, onRetry }: { trend: FinancialTrend; onRetry: () => v
   const typeOptions = availableReportTypes(trend.periods).map((value) => ({ value, label: reportTypeLabel(value) }))
   const failed = failedCount(trend.periods)
   const latest = series.periods.at(-1) ?? null
+  const compareAction =
+    completedAnalyses === null ? null : trendCompareAction(corpCode, type, series.periods, completedAnalyses)
 
   return (
     <div className="fin-trend__body">
@@ -117,6 +152,11 @@ function TrendBody({ trend, onRetry }: { trend: FinancialTrend; onRetry: () => v
         )}
         {measure === 'amount' && (
           <SegmentedControl aria-label="보기" options={viewOptions} value={view} onChange={setView} />
+        )}
+        {compareAction !== null && (
+          <ButtonLink variant="secondary" className="fin-trend__compare" to={compareAction.to}>
+            {compareAction.label}
+          </ButtonLink>
         )}
       </div>
       <p className="panel__note">{basisNote(type, basis, trend.fsDiv, latest?.periodEnd ?? null)}</p>
