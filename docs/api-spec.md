@@ -76,9 +76,9 @@
 | DELETE | `/api/favorite-companies/{corpCode}` | 관심 기업 빼기 | #36 (6.2) | W-01 ①② | 초안 |
 | GET | `/api/notifications` | 내 분석 완료 알림 목록 | #38 (6.4) | 헤더 알림 | 초안 |
 | PUT·DELETE | `/api/notifications/{notificationId}/read` | 알림 읽음 표시·해제 | #38 (6.4) | 헤더 알림 | 초안 |
-| GET | `/api/notes` | 내 판단 노트 목록(기업별, `?corpCode=`로 한 기업) | #413 (6.5) | 판단 노트(신규) | 초안 |
-| POST | `/api/notes` | 노트에 근거 담기(재무 계정 변화·문장 변경·AI 답 인용) | #413·#432 (6.5) | W-03 ②③⑤ | 초안 |
-| PUT | `/api/notes/{itemId}/memo` | 노트 항목 메모 고치기 | #413 (6.5) | 판단 노트(신규) | 초안 |
+| GET | `/api/notes` | 내 판단 노트 목록(기업별, 후속 분석·공시 포함, `?corpCode=`로 한 기업) | #413·#504 (6.5) | 판단 노트(신규) | 초안 |
+| POST | `/api/notes` | 노트에 근거 담기(재무 계정 변화·문장 변경·AI 답 인용) | #413·#432·#504 (6.5) | W-03 ②③⑤ | 초안 |
+| PUT | `/api/notes/{itemId}/memo` | 노트 항목 메모 고치기 | #413·#504 (6.5) | 판단 노트(신규) | 초안 |
 | DELETE | `/api/notes/{itemId}` | 노트 항목 하나 지우기 | #413 (6.5) | 판단 노트(신규) | 초안 |
 | GET | `/api/notes/export` | 기업 노트를 출처와 함께 Markdown으로 내보내기(`?corpCode=`) | #413 (6.5) | 판단 노트(신규) | 초안 |
 | PUT | `/api/users/current/nickname` | 커뮤니티 닉네임 정하기·바꾸기 | #459 (6.6) | 닉네임 정하기(신규) | 구현 |
@@ -300,11 +300,11 @@
 
 ### GET·POST·PUT·DELETE /api/notes — 내 판단 노트
 
-- 이슈: #413·#432 (6.5, FS-57) · 화면: W-03 ② 수치 근거 상세·W-03 ③ 문장 변경 카드·W-03 ⑤ AI 질문 답의 인용마다 '노트에 담기', 판단 노트 화면(`/notes`, 와이어프레임 없음)
+- 이슈: #413·#432·#504 (6.5, FS-57) · 화면: W-03 ② 수치 근거 상세·W-03 ③ 문장 변경 카드·W-03 ⑤ AI 질문 답의 인용마다 '노트에 담기', 판단 노트 화면(`/notes`, 와이어프레임 없음)
 - 로그인한 사용자만 씁니다. 모든 요청에 Bearer Access Token이 필요하고, 없거나 잘못된 JWT는 `AUTH_UNAUTHORIZED`(401)입니다. 사용자는 토큰의 `sub`로만 정해서 다른 사용자의 노트는 읽거나 바꾸거나 지울 수 없습니다(다른 사용자의 항목은 없는 항목과 같이 404).
 - 노트는 기업별입니다. 분석 결과의 근거 하나(재무 계정 변화, 문장 변경, AI 질문 답이 인용한 원문 문단)를 항목 하나로 담고, 메모를 붙입니다. 저장 방식은 [ADR-0034](adr/0034-judgment-note-storage.md)입니다.
 - 항목의 `label`·`text`·`question`은 담을 때의 사본입니다. 화면이 보낸 글이 아니라 backend가 저장된 분석 결과에서 만듭니다(재무 값 문장도 코드가 저장된 계산 결과로 만듦). 나중에 분석이 다시 만들어져도 바뀌지 않습니다.
-- 노트 내용(사본·메모)은 AI 서버·LLM에 보내지 않습니다.
+- 노트 내용(사본·메모)은 AI 서버·LLM이나 외부 API(OpenDART)에 보내지 않습니다. 후속 분석·공시 연결(#504)도 이미 저장된 `analysis`·`report`·`company_disclosure`와 결정론적 코드 규칙으로만 계산합니다.
 
 **항목 모양** (`NoteItem`, 아래 응답에서 같이 씀)
 
@@ -323,13 +323,22 @@
     "analysisVersion": "m2-13",
     "changeId": 901,
     "sjDiv": "IS",
-    "rceptNo": "20261114001234",
+    "rceptNo": "20260814000001",
     "sectionNo": null,
     "blockNo": null,
     "questionId": null,
     "side": null,
-    "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261114001234"
+    "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260814000001"
   },
+  "relatedDisclosures": [
+    {
+      "rceptNo": "20260910000123",
+      "reportName": "단일판매ㆍ공급계약체결",
+      "rceptDt": "2026-09-10",
+      "matchLabel": "공급계약",
+      "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260910000123"
+    }
+  ],
   "outdated": false,
   "createdAt": "2026-10-27T10:15:00",
   "updatedAt": "2026-10-27T10:15:00"
@@ -345,6 +354,7 @@
 | `changeType` | 문장 변경 유형(`changeType` (문장) 공통 값). 재무·AI 답 인용은 null |
 | `memo` | 사용자가 쓴 메모. 없으면 null. 1,000자 이하 |
 | `source` | 원래 위치. `analysisId`·`changeId`로 결과 화면의 그 근거로 돌아가고(재무 `/analyses/{analysisId}?tab=financial&sj={sjDiv}&change={changeId}`, 문장 `?tab=text&tc={changeId}`), `rceptNo`·`dartUrl`은 근거 보고서(재무·문장 모두 현재 보고서, 삭제된 문장은 이전 보고서). `sjDiv`는 재무만, `sectionNo`·`blockNo`는 문장·AI 답 인용만(검토 필요 항목은 `blockNo` null). AI 답 인용은 `changeId`가 null이고 `questionId`(질문)와 `side`(`current`·`previous`, 근거 보고서가 분석의 어느 쪽인지)가 있어 원문 확인 탭 `?tab=source&doc={side}&section={sectionNo}&block={blockNo}`로 돌아가며, `rceptNo`는 인용한 보고서 |
+| `relatedDisclosures` | 근거 보고서(`source.rceptNo`, 14자리 숫자) 이후에 접수된 저장 공시(`company_disclosure`, `rcept_no > source.rceptNo`, 철회 `'철'` 제외) 가운데, ① 항목의 `label`·`text`·`memo`와 공시 제목이 공통으로 걸리는 첫 규칙(`RelatedDisclosureRules.RULES`, 재무 항목의 `매출액`·`영업이익`·`당기순이익`은 `실적` 포함)의 이름(`matchLabel`, 예: `"공급계약"`, `"실적"`) 또는 ② 사용자 메모의 2자 이상 핵심어(흔한 일반어 `'확인'`·`'예정'`·`'여부'`·`'관련'`·`'비교'`·`'보고서'`·`'공시'`·`'내용'`·`'변화'`·`'증가'`·`'감소'` 제외)가 정리된 공시 제목에 들어 있을 때 `"메모 '{낱말}'"`로 연결한 최근 공시 최대 3건(접수일 최근 순, 같으면 접수번호 큰 순). 없으면 `[]` (#504) |
 | `outdated` | 담을 때의 분석 버전(`source.analysisVersion`)이 지금 서버의 분석 버전과 다르면 true. 화면은 '분석 방식이 바뀌어 위치가 달라졌을 수 있어요'를 보이고, `label`·`text`는 그대로 보인다 |
 | `createdAt`·`updatedAt` | 담은 시각·메모를 고친 시각(한국 시간, `yyyy-MM-dd'T'HH:mm:ss`) |
 
@@ -357,12 +367,37 @@
 ```json
 {
   "companies": [
-    { "corpCode": "00126380", "corpName": "삼성전자", "items": [ { "itemId": 5, "...": "위 NoteItem" } ] }
+    {
+      "corpCode": "00126380",
+      "corpName": "삼성전자",
+      "newerAnalyses": [
+        {
+          "analysisId": 10,
+          "basis": "YOY",
+          "previousReportName": "반기보고서 (2025.06)",
+          "currentRceptNo": "20260814003699",
+          "currentReportName": "반기보고서 (2026.06)"
+        }
+      ],
+      "newerDisclosures": [
+        {
+          "rceptNo": "20260910000123",
+          "reportName": "단일판매ㆍ공급계약체결",
+          "rceptDt": "2026-09-10",
+          "disclosureGroup": "BUSINESS",
+          "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260910000123"
+        }
+      ],
+      "items": [ { "itemId": 5, "...": "위 NoteItem" } ]
+    }
   ]
 }
 ```
 
 - 기업은 가장 최근에 담은 항목 순, 항목은 최근에 담은 순입니다. 담은 것이 없으면 `companies: []`입니다.
+- 기업별 `newerAnalyses`·`newerDisclosures`(#504)는 그 기업의 노트 항목들이 가진 `source.rceptNo`(14자리 숫자, null 제외) 가운데 가장 이른 접수번호(`baselineRceptNo`)를 기준으로 삼습니다. 기준 접수번호가 없으면 둘 다 `[]`입니다.
+  - `newerAnalyses`: 저장된 완료(`COMPLETED`) 분석 중 `currentRceptNo > baselineRceptNo`이고 그 기업의 노트 항목들이 이미 가리키는 `analysisId`가 아닌 최근 완료 분석 최대 3건(같은 보고서 쌍·비교 기준은 가장 최근 완료 하나만).
+  - `newerDisclosures`: 저장된 `company_disclosure` 중 `rcept_no > baselineRceptNo`(철회 `'철'` 제외)인 최근 공시 최대 5건(접수일 최근 순, 같으면 접수번호 큰 순). `disclosureGroup`은 공시 묶음(`PERIODIC`·`OWNERSHIP`·`FUNDING`·`GOVERNANCE`·`BUSINESS`·`OTHER`).
 
 **POST /api/notes**: 항목 담기. 201과 담은 `NoteItem`
 
@@ -389,7 +424,7 @@
 { "memo": "사업의 내용 2장에서 확인함" }
 ```
 
-- `memo`는 1,000자 이하입니다. null이거나 비었으면 메모를 지웁니다. 담은 `label`·`text`는 바뀌지 않습니다.
+- `memo`는 1,000자 이하입니다. null이거나 비었으면 메모를 지웁니다. 담은 `label`·`text`는 바뀌지 않으며, 응답의 `relatedDisclosures`는 고친 메모를 기준으로 바로 다시 계산됩니다.
 
 **DELETE /api/notes/{itemId}**: 항목 하나 지우기. 204
 
