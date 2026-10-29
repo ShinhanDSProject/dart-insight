@@ -37,7 +37,12 @@ public enum ErrorCode {
 
     AI_SERVER_UNAVAILABLE(503, "AI 서버가 응답하지 않습니다. 잠시 뒤 다시 시도해 주세요."),
 
-    COMMUNITY_NICKNAME_TAKEN(409, "다른 사람이 쓰는 닉네임입니다.");
+    COMMUNITY_FORBIDDEN(403, "내 글·댓글만 고치거나 지울 수 있습니다."),
+    COMMUNITY_POST_NOT_FOUND(404, "글을 찾을 수 없습니다. 글 목록을 다시 불러와 주세요."),
+    COMMUNITY_COMMENT_NOT_FOUND(404, "댓글을 찾을 수 없습니다. 글을 다시 불러와 주세요."),
+    COMMUNITY_NICKNAME_REQUIRED(409, "글을 쓰려면 먼저 닉네임을 정해 주세요."),
+    COMMUNITY_NICKNAME_TAKEN(409, "다른 사람이 쓰는 닉네임입니다."),
+    COMMUNITY_TARGET_UNAVAILABLE(409, "가려지거나 지운 글·댓글입니다. 글을 다시 불러와 주세요.");
 
     private final int status;
     private final String defaultMessage;

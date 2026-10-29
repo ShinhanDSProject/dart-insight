@@ -10,7 +10,10 @@ import com.dartinsight.user.repository.SocialAccountRepository;
 import com.dartinsight.user.repository.UserRepository;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -44,6 +47,19 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserProfile profile(long userId) {
         return UserProfile.from(findOrThrow(userId));
+    }
+
+    /** 글·댓글을 쓰기 전에 닉네임을 정했는지(6.6). 정하지 않았으면 409 COMMUNITY_NICKNAME_REQUIRED */
+    @Transactional(readOnly = true)
+    public void requireNickname(long userId) {
+        if (findOrThrow(userId).getNickname() == null) throw new ApiException(ErrorCode.COMMUNITY_NICKNAME_REQUIRED);
+    }
+
+    /** 회원 ID → 닉네임(정하지 않은 회원은 빠짐). 커뮤니티 작성자 표시에 쓴다 */
+    @Transactional(readOnly = true)
+    public Map<Long, String> nicknames(Collection<Long> userIds) {
+        return users.findAllById(userIds).stream().filter(user -> user.getNickname() != null)
+                .collect(Collectors.toMap(User::getId, User::getNickname));
     }
 
     /** 관리자 확인(ADR-0040). 회원 행이 없으면 관리자가 아니다. */

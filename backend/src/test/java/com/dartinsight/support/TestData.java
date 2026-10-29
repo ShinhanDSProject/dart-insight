@@ -10,6 +10,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 public final class TestData {
 
     private static final List<String> TABLES_CHILD_FIRST = List.of(
+            "community_like",
+            // 답글이 부모 댓글을 가리키므로(자기 참조 외래 키) 답글부터 지운다
+            "community_comment WHERE parent_id IS NOT NULL",
+            "community_comment",
+            "community_post",
             "judgment_note_item",
             "notification",
             "season_change",
