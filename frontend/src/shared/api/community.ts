@@ -165,3 +165,78 @@ export function getCurrentMember(options?: RequestOptions): Promise<CurrentMembe
 export function setNickname(nickname: string): Promise<{ nickname: string }> {
   return apiPut<{ nickname: string }>(endpoints.currentNickname(), { nickname })
 }
+
+/** 관리자 신고 목록(GET /api/admin/reports, 관리자만). todo: 처리할 것, all: 처리한 것 포함 전체 */
+export type ReportQueue = 'todo' | 'all'
+
+/** OPEN 대기, KEPT 유지, BLINDED 블라인드, DELETED 삭제 */
+export type ReportStatus = 'OPEN' | 'KEPT' | 'BLINDED' | 'DELETED'
+
+/** 처리할 이유. PENDING 새 신고, REPOST_REQUESTED 재게시 청구, EXPIRED 블라인드 기한 지남 */
+export type ReportTodo = 'PENDING' | 'REPOST_REQUESTED' | 'EXPIRED'
+
+export type ModerationDecision = 'KEEP' | 'BLIND' | 'DELETE'
+
+export interface ReportTarget {
+  type: 'POST' | 'COMMENT'
+  postId: number
+  /** 댓글이면 댓글 ID, 글이면 null */
+  commentId: number | null
+  corpCode: string
+  corpName: string
+  author: { nickname: string }
+  /** 가렸거나 지운 것도 본문 전체 */
+  body: string
+  state: ContentState
+}
+
+export interface Moderation {
+  decision: ModerationDecision
+  reason: string
+  blindDays: number | null
+  blindUntil: string | null
+  /** 관리자가 닉네임을 정하지 않았으면 null */
+  admin: { nickname: string | null }
+  createdAt: string
+}
+
+export interface AdminReport {
+  reportId: number
+  status: ReportStatus
+  todo: ReportTodo | null
+  target: ReportTarget
+  reportCount: number
+  reasonCounts: Record<ReportReason, number>
+  lastReportedAt: string
+  blindUntil: string | null
+  repostRequest: { message: string | null; createdAt: string } | null
+  /** 처리 기록, 최근 순 */
+  moderations: Moderation[]
+}
+
+export interface AdminReportList {
+  queue: ReportQueue
+  page: number
+  size: number
+  totalItems: number
+  items: AdminReport[]
+}
+
+/** 처리 사유 1~500자(앞뒤 공백을 지운 길이), 블라인드 1~30일 */
+export const MODERATION_REASON_MAX = 500
+export const BLIND_DAYS_MAX = 30
+
+/** blindDays는 BLIND일 때만 보낸다 */
+export interface ModerationRequest {
+  decision: ModerationDecision
+  reason: string
+  blindDays?: number
+}
+
+export function getAdminReports(queue: ReportQueue, page: number, options?: RequestOptions): Promise<AdminReportList> {
+  return apiGet<AdminReportList>(endpoints.adminReports(), { queue, page }, options)
+}
+
+export function moderateReport(reportId: number, request: ModerationRequest): Promise<AdminReport> {
+  return apiPatch<AdminReport>(endpoints.adminReport(reportId), request)
+}

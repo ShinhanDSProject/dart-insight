@@ -24,6 +24,9 @@ const CompanyComparisonPage = lazyPage(() =>
   import('@/features/company-comparison/CompanyComparisonPage').then((m) => m.CompanyComparisonPage),
 )
 const AiUsagePage = lazyPage(() => import('@/features/ai-usage/AiUsagePage').then((m) => m.AiUsagePage))
+const AdminReportsPage = lazyPage(() =>
+  import('@/features/admin-reports/AdminReportsPage').then((m) => m.AdminReportsPage),
+)
 
 /**
  * 화면 경로(와이어프레임 번호)
@@ -35,6 +38,7 @@ const AiUsagePage = lazyPage(() => import('@/features/ai-usage/AiUsagePage').the
  * - /notes                          내 판단 노트(FS-57, 로그인한 회원)
  * - /compare/companies              여러 기업 나란히 보기(FS-56, ?corps=고유번호,…&type=ANNUAL&fs=CFS)
  * - /system/ai-usage                AI 사용 현황(FS-15, ?days=7|30)
+ * - /admin/reports                  신고 관리(FS-58, 관리자만, ?queue=all&page=)
  * handle.crumb는 상단 헤더의 경로 표시에 쓴다.
  */
 export const router = createBrowserRouter([
@@ -83,6 +87,11 @@ export const router = createBrowserRouter([
             path: '/system/ai-usage',
             element: <PageSuspense><AiUsagePage /></PageSuspense>,
             handle: { crumb: 'AI 사용 현황' },
+          },
+          {
+            path: '/admin/reports',
+            element: <PageSuspense><AdminReportsPage /></PageSuspense>,
+            handle: { crumb: '신고 관리' },
           },
           { path: '*', element: <NotFoundPage />, handle: { crumb: '페이지 없음' } },
         ],
