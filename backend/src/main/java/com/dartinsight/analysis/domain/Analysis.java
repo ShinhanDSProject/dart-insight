@@ -29,10 +29,17 @@ import org.hibernate.type.SqlTypes;
 public class Analysis {
 
     /**
-     * 분석 결과 버전. 결과가 달라지는 규칙이 바뀌면 올려서 옛 결과를 다시 쓰지 않는다:
-     * 재무 비교·계산, 원문 파서(PARSER_VERSION), 문장 비교(DIFF_VERSION), 우선순위(priority-n),
-     * 요약 프롬프트(PROMPT_VERSION), 표현 검사 규칙(RULESET_VERSION), 설명 후보 검색어(AccountAliases),
-     * 재무 설명 등급 규칙(GRADE_RULES_VERSION), 요약에 저장하는 값(m2-10: 설명 등급·인용, #143),
+     * 분석 결과 버전. 결과가 달라지는 규칙이 바뀌면 올려서 옛 결과를 다시 쓰지 않는다(ADR-0014). 올려야 하는 곳:
+     * <ul>
+     *   <li>backend: 재무 비교·계산(FinancialComparator, 계산 상태·이익 계정 목록), 근거 확인(EvidenceVerifier),
+     *   요약 대상 고르기(SummarySelector: 재무·문장 항목 수와 순서, 설명 후보 문단), 사실 문장(FinancialFacts),
+     *   설명 후보 검색어(AccountAliases), 요약 응답 판정·템플릿 요약(SummaryResults)</li>
+     *   <li>ai-server: 원문 파서(PARSER_VERSION), 문장 비교(DIFF_VERSION), 우선순위(PRIORITY_VERSION, priority-n),
+     *   요약 프롬프트(PROMPT_VERSION), 요약 검증(summary/validate.py), 설명 후보 검색(summary/search.py),
+     *   표현 검사 규칙(RULESET_VERSION), 재무 설명 등급 규칙(GRADE_RULES_VERSION)</li>
+     * </ul>
+     * 각 클래스·모듈 주석에도 같은 규칙을 적는다. 바뀐 내역:
+     * 요약에 저장하는 값(m2-10: 설명 등급·인용, #143),
      * m2-11: 원문 파서 dart-xml-2(표 안의 표·빈 표, #397).
      * m2-12: 계산 상태 판정(흑자·적자 전환과 이익 계정 목록 PROFIT_ACCOUNT_IDS, #144).
      * m2-13: 문장 우선순위 핵심어에 '계속기업' 추가(priority-3, #145).

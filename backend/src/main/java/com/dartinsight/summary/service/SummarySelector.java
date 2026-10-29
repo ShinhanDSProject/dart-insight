@@ -22,6 +22,7 @@ import java.util.Set;
  *   <li>문장 변화: 우선순위(2.6) 높음·중간 중 점수가 높은 5개(숫자만 바뀜·위치 이동·검토 필요는 뺌)</li>
  *   <li>설명 후보를 찾을 문단: 현재 보고서의 문단 블록 전부. 후보는 AI 서버가 검색어로 고른다(ADR-0036)</li>
  * </ul>
+ * 고르는 규칙을 바꿔 결과가 달라지면 {@link com.dartinsight.analysis.domain.Analysis#CURRENT_VERSION}을 함께 올린다.
  */
 public final class SummarySelector {
 
