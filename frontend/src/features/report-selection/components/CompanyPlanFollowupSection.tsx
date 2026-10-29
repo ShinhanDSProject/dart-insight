@@ -1,14 +1,18 @@
 import { match } from 'ts-pattern'
+import type { CompanyAnalysisItem } from '@/shared/api/analyses'
 import type { BriefingReport } from '@/shared/api/briefing'
 import type { OutlookEvidence } from '@/shared/api/outlook'
 import type { CompanyPlanFollowups, PlanFollowupItem } from '@/shared/api/planFollowups'
-import { Badge, Notice, Panel, PanelTitle, Skeleton } from '@/shared/ui'
+import { Badge, ButtonLink, Notice, Panel, PanelTitle, Skeleton } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState } from '@/shared/ui/StateView'
 import { useCompanyPlanFollowups } from '../hooks/useCompanyPlanFollowups'
+import { useCompletedPairAnalyses } from '../hooks/useCompletedPairAnalyses'
 import { briefingAiLabel, evidenceLocation } from '../model/companyBriefing'
+import { findMatchingAnalysis, planFollowupPairAction } from '../model/overviewAnalysisLink'
 import { FOLLOWUP_NOTICE, NOT_FOUND_TEXT, PLAN_FOLLOWUP_ERROR_MESSAGES, followupTone } from '../model/planFollowup'
 import '../report-selection.css'
+import '../overview-analysis-links.css'
 
 const TITLE_ID = 'company-plan-followups-title'
 
@@ -17,7 +21,15 @@ const TITLE_ID = 'company-plan-followups-title'
  * 관련 문단을 계획마다 두 칸으로 나란히 보인다(좁은 화면은 위아래). 서비스는 계획을 지켰는지 평가하지 않고,
  * 상태 배지는 중립색만 쓴다. 처음 만드는 기업은 수십 초 걸릴 수 있다.
  */
-export function CompanyPlanFollowupSection({ corpCode }: { corpCode: string }) {
+export function CompanyPlanFollowupSection({
+  corpCode,
+  completedAnalyses,
+}: {
+  corpCode: string
+  completedAnalyses?: readonly CompanyAnalysisItem[]
+}) {
+  const fetchedAnalyses = useCompletedPairAnalyses(corpCode)
+  const analyses = completedAnalyses ?? fetchedAnalyses
   const { state, reload } = useCompanyPlanFollowups(corpCode)
   const result = state.status === 'success' ? state.data : null
   return (
@@ -37,16 +49,41 @@ export function CompanyPlanFollowupSection({ corpCode }: { corpCode: string }) {
         .with({ status: 'error' }, ({ error }) => (
           <ErrorState error={error} onRetry={reload} messages={PLAN_FOLLOWUP_ERROR_MESSAGES} />
         ))
-        .with({ status: 'success' }, ({ data }) => <PlanFollowupBody result={data} />)
+        .with({ status: 'success' }, ({ data }) => (
+          <PlanFollowupBody result={data} corpCode={corpCode} completedAnalyses={analyses} />
+        ))
         .exhaustive()}
     </Panel>
   )
 }
 
-export function PlanFollowupBody({ result }: { result: CompanyPlanFollowups }) {
+export function PlanFollowupBody({
+  result,
+  corpCode,
+  completedAnalyses = [],
+}: {
+  result: CompanyPlanFollowups
+  corpCode?: string
+  completedAnalyses?: readonly CompanyAnalysisItem[]
+}) {
+  const prevRceptNo = result.previousReport?.rceptNo
+  const curRceptNo = result.currentReport?.rceptNo
+  const matching = findMatchingAnalysis(completedAnalyses, prevRceptNo, curRceptNo)
+  const pairAction =
+    corpCode && prevRceptNo && curRceptNo
+      ? planFollowupPairAction(corpCode, prevRceptNo, curRceptNo, matching?.analysisId ?? null)
+      : null
+
   return (
     <>
       <SourceReports previous={result.previousReport} current={result.currentReport} />
+      {pairAction && (
+        <div className="plan-followups__action-row">
+          <ButtonLink to={pairAction.to} variant="secondary">
+            {pairAction.label}
+          </ButtonLink>
+        </div>
+      )}
       {match(result.status)
         .with('GENERATED', () => (
           <ol className="plan-followups__list">

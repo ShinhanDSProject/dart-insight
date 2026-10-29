@@ -1,16 +1,28 @@
 // @vitest-environment jsdom
+import type { ReactElement } from 'react'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { CompanyAnalysisList } from '@/shared/api/analyses'
 import { ApiError } from '@/shared/api/client'
 import type { CheckpointItem, CompanyCheckpoints } from '@/shared/api/checkpoints'
 import { axeViolations } from '@/test/axe'
 import { FinancialCheckpointsSection } from './FinancialCheckpointsSection'
 
 const getCompanyCheckpoints = vi.fn<(corpCode: string, signal?: AbortSignal) => Promise<CompanyCheckpoints>>()
+const listCompanyAnalyses = vi.fn<(corpCode: string, signal?: AbortSignal, limit?: number) => Promise<CompanyAnalysisList>>()
 
 vi.mock('@/shared/api/checkpoints', () => ({
   getCompanyCheckpoints: (corpCode: string, signal?: AbortSignal) => getCompanyCheckpoints(corpCode, signal),
 }))
+vi.mock('@/shared/api/analyses', () => ({
+  listCompanyAnalyses: (corpCode: string, signal?: AbortSignal, limit?: number) =>
+    listCompanyAnalyses(corpCode, signal, limit),
+}))
+
+function renderWithRouter(ui: ReactElement) {
+  return render(<MemoryRouter>{ui}</MemoryRouter>)
+}
 
 const CUR = '20260310000123'
 const PREV = '20250311000456'
@@ -83,13 +95,17 @@ function available(items: CheckpointItem[] = [receivables, inventories, funding]
   }
 }
 
-beforeEach(() => getCompanyCheckpoints.mockReset())
+beforeEach(() => {
+  getCompanyCheckpoints.mockReset()
+  listCompanyAnalyses.mockReset()
+  listCompanyAnalyses.mockResolvedValue({ items: [] })
+})
 afterEach(cleanup)
 
 describe('재무 체크 포인트', () => {
   it('항목마다 상태·수치·계산식·기준값·근거와 왜 보나를 보이고, 좋고 나쁨을 판단하지 않는다고 알린다', async () => {
     getCompanyCheckpoints.mockResolvedValue(available())
-    const { container } = render(<FinancialCheckpointsSection corpCode="00126380" />)
+    const { container } = renderWithRouter(<FinancialCheckpointsSection corpCode="00126380" />)
 
     const card = (await screen.findByRole('heading', { name: '매출채권' })).closest('article')!
     expect(screen.getByText('투자자들이 흔히 확인하는 항목을 규칙으로 계산한 것이에요. 좋고 나쁨을 판단하지 않아요.')).toBeTruthy()
@@ -113,7 +129,7 @@ describe('재무 체크 포인트', () => {
 
   it('확인해 볼 점만 주의 색 배지이고 특이사항 없음·자료 없음은 중립색이다', async () => {
     getCompanyCheckpoints.mockResolvedValue(available())
-    render(<FinancialCheckpointsSection corpCode="00126380" />)
+    renderWithRouter(<FinancialCheckpointsSection corpCode="00126380" />)
     await screen.findByRole('heading', { name: '매출채권' })
     expect(screen.getByText('확인해 볼 점').className).toContain('badge--attention')
     const noData = screen.getAllByText('자료 없음').find((el) => el.classList.contains('badge'))!
@@ -123,7 +139,7 @@ describe('재무 체크 포인트', () => {
 
   it('계정을 찾지 못하면 0이 아니라 자료 없음으로 보인다', async () => {
     getCompanyCheckpoints.mockResolvedValue(available())
-    render(<FinancialCheckpointsSection corpCode="00126380" />)
+    renderWithRouter(<FinancialCheckpointsSection corpCode="00126380" />)
     const card = (await screen.findByRole('heading', { name: '재고자산' })).closest('article')!
     expect(within(card).getByText('올해 재고자산 값을 찾지 못했어요.')).toBeTruthy()
     const value = within(card).getByText('재고자산 (올해)').nextElementSibling!
@@ -140,7 +156,7 @@ describe('재무 체크 포인트', () => {
       fsDiv: null,
       statementStatus: null,
     })
-    const { container } = render(<FinancialCheckpointsSection corpCode="00126380" />)
+    const { container } = renderWithRouter(<FinancialCheckpointsSection corpCode="00126380" />)
     expect(await screen.findByText('전년 사업보고서가 없어요')).toBeTruthy()
     expect(screen.getByText(/한 해 앞선 사업보고서가 없어/)).toBeTruthy()
     expect(await axeViolations(container)).toBe('')
@@ -148,14 +164,14 @@ describe('재무 체크 포인트', () => {
 
   it('재무제표를 받지 못하면 위에 알린다', async () => {
     getCompanyCheckpoints.mockResolvedValue({ ...available([inventories]), statementStatus: 'FETCH_FAILED', fsDiv: null })
-    render(<FinancialCheckpointsSection corpCode="00126380" />)
+    renderWithRouter(<FinancialCheckpointsSection corpCode="00126380" />)
     expect(await screen.findByText(/재무제표를 OpenDART에서 받지 못해/)).toBeTruthy()
   })
 
   it('불러오는 동안 자리를 비워 두고, 실패하면 다시 시도할 수 있다', async () => {
     let reject: (error: unknown) => void = () => {}
     getCompanyCheckpoints.mockReturnValueOnce(new Promise((_, r) => (reject = r)))
-    const { container } = render(<FinancialCheckpointsSection corpCode="00126380" />)
+    const { container } = renderWithRouter(<FinancialCheckpointsSection corpCode="00126380" />)
     expect(container.querySelector('.skeleton')?.getAttribute('aria-busy')).toBe('true')
     expect(await axeViolations(container)).toBe('')
 
@@ -164,5 +180,56 @@ describe('재무 체크 포인트', () => {
     getCompanyCheckpoints.mockResolvedValueOnce(available())
     fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
     expect(await screen.findByRole('heading', { name: '매출채권' })).toBeTruthy()
+  })
+
+  it('완료된 분석이 있으면 상단에 분석 보기 버튼과 카드에 맞춤 딥링크를 제공한다', async () => {
+    getCompanyCheckpoints.mockResolvedValue(available())
+    listCompanyAnalyses.mockResolvedValue({
+      items: [
+        {
+          analysisId: 99,
+          basis: 'YOY',
+          previous: { rceptNo: PREV, reportName: '작년', periodEnd: '2024-12-31' },
+          current: { rceptNo: CUR, reportName: '올해', periodEnd: '2025-12-31' },
+          completedAt: '2026-03-20T10:00:00',
+        },
+      ],
+    })
+    const { container } = renderWithRouter(<FinancialCheckpointsSection corpCode="00126380" />)
+    const headerLink = await screen.findByRole('link', { name: '이 두 사업보고서 분석 보기' })
+    expect(headerLink.getAttribute('href')).toBe('/analyses/99')
+
+    const card = (await screen.findByRole('heading', { name: '매출채권' })).closest('article')!
+    const deepLink = within(card).getByRole('link', { name: '매출채권 매출채권 수치 변화 보기' })
+    expect(deepLink.getAttribute('href')).toBe(`/analyses/99?tab=financial&sj=BS&q=${encodeURIComponent('매출채권')}`)
+    expect(await axeViolations(container)).toBe('')
+  })
+
+  it('완료된 분석이 없으면 상단 및 CHECK 카드에서 비교 조건 확인 링크로 이동한다', async () => {
+    getCompanyCheckpoints.mockResolvedValue(available())
+    listCompanyAnalyses.mockResolvedValue({ items: [] })
+    renderWithRouter(<FinancialCheckpointsSection corpCode="00126380" />)
+
+    const headerLink = await screen.findByRole('link', { name: '이 두 사업보고서 비교하기' })
+    expect(headerLink.getAttribute('href')).toBe(`/companies/00126380/compare?current=${CUR}&previous=${PREV}&basis=YOY`)
+
+    // 매출채권(CHECK 상태): 비교 조건 확인 링크 존재
+    const card = (await screen.findByRole('heading', { name: '매출채권' })).closest('article')!
+    const cardLink = within(card).getByRole('link', { name: '매출채권 이 두 사업보고서 비교하기' })
+    expect(cardLink.getAttribute('href')).toBe(`/companies/00126380/compare?current=${CUR}&previous=${PREV}&basis=YOY`)
+
+    // 자금 조달 공시(OK 상태): 카드 액션 링크 없음
+    const fundingCard = (await screen.findByRole('heading', { name: '자금 조달 공시' })).closest('article')!
+    expect(within(fundingCard).queryByRole('link', { name: /이 두 사업보고서/ })).toBeNull()
+  })
+
+  it('분석 목록 조회가 실패해도 체크 포인트 본문은 정상 표시되고 비교 조건 확인 링크로 폴백한다', async () => {
+    getCompanyCheckpoints.mockResolvedValue(available())
+    listCompanyAnalyses.mockRejectedValue(new Error('Network error'))
+    renderWithRouter(<FinancialCheckpointsSection corpCode="00126380" />)
+
+    expect(await screen.findByRole('heading', { name: '매출채권' })).toBeTruthy()
+    const headerLink = screen.getByRole('link', { name: '이 두 사업보고서 비교하기' })
+    expect(headerLink.getAttribute('href')).toBe(`/companies/00126380/compare?current=${CUR}&previous=${PREV}&basis=YOY`)
   })
 })

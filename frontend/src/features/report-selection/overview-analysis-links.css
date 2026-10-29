@@ -1,0 +1,36 @@
+/* 기업 개요 보고서 비교 연결 링크(FS-60, FS-62 후속 #513) */
+
+.checkpoints__summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.checkpoints__action {
+  margin: var(--space-3) 0 0;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--font-size-sm);
+}
+
+.checkpoints__action-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-link);
+  font-weight: var(--font-weight-medium);
+  text-decoration: underline;
+  text-decoration-color: var(--color-link-underline);
+  word-break: keep-all;
+}
+
+.checkpoints__action-link:hover {
+  color: var(--color-link-hover);
+}
+
+.plan-followups__action-row {
+  margin: var(--space-3) 0 var(--space-4);
+}
