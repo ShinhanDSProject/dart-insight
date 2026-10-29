@@ -11,7 +11,7 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * 화면(React 개발 서버)에서 /api/**를 부를 수 있게 CORS를 연다.
+ * 화면(React 개발 서버)에서 /api/**를 부를 수 있게 CORS를 연다. PATCH는 커뮤니티 글·댓글 고치기가 쓴다.
  */
 @Configuration
 @EnableConfigurationProperties(WebConfig.CorsProperties.class)
@@ -24,7 +24,7 @@ public class WebConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping(ApiPaths.CORS_PATTERN)
                 .allowedOrigins(corsProperties.allowedOrigins().toArray(String[]::new))
-                .allowedMethods("GET", "POST", "PUT", "DELETE")
+                .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE")
                 .allowCredentials(true)
                 .exposedHeaders(TraceContext.HEADER);
     }
