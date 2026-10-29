@@ -1,4 +1,5 @@
 import { match } from 'ts-pattern'
+import { Link } from 'react-router'
 import type { ReportType } from '@/shared/api/reports'
 import { dartViewerUrl } from '@/shared/lib/dart'
 import { formatRatio, ratioReasonLabel } from '@/shared/lib/financialRatios'
@@ -116,7 +117,7 @@ function ColumnHead({ column }: { column: ComparisonColumn }) {
 }
 
 function ReadyHead({ column }: { column: ReadyColumn }) {
-  const { period, sourceRceptNo } = column
+  const { period, previousPeriod, sourceRceptNo } = column
   const corrected = sourceRceptNo !== period.rceptNo
   return (
     <>
@@ -134,6 +135,24 @@ function ReadyHead({ column }: { column: ReadyColumn }) {
       {column.newerFailed && (
         <span className="company-compare__meta">더 최근 보고서의 값을 받지 못해 이 보고서를 보여 드려요.</span>
       )}
+      <div className="company-compare__links">
+        <Link
+          to={`/companies/${encodeURIComponent(column.corpCode)}?view=overview`}
+          className="company-compare__link"
+          aria-label={`${column.name} 기업 개요`}
+        >
+          기업 개요
+        </Link>
+        {previousPeriod && (
+          <Link
+            to={`/companies/${encodeURIComponent(column.corpCode)}/compare?current=${encodeURIComponent(period.rceptNo)}&previous=${encodeURIComponent(previousPeriod.rceptNo)}&basis=YOY`}
+            className="company-compare__link"
+            aria-label={`${column.name} 전년 동기 보고서 비교`}
+          >
+            전년 동기 비교
+          </Link>
+        )}
+      </div>
     </>
   )
 }
@@ -178,7 +197,12 @@ function ColumnState({
 
 function AmountText({ cell }: { cell: AmountCell }) {
   return match(cell)
-    .with({ status: 'value' }, ({ amount, currency }) => <>{formatAmount(amount, currency)}</>)
+    .with({ status: 'value' }, ({ amount, currency, yoy }) => (
+      <>
+        <span className="company-compare__amount">{formatAmount(amount, currency)}</span>
+        {yoy && <span className="company-compare__yoy">{yoy}</span>}
+      </>
+    ))
     .with({ status: 'missing' }, () => <span className="company-compare__none">자료 없음</span>)
     .with({ status: 'none' }, () => null)
     .exhaustive()
@@ -186,9 +210,16 @@ function AmountText({ cell }: { cell: AmountCell }) {
 
 function RatioText({ cell }: { cell: RatioCell }) {
   return match(cell)
-    .with({ status: 'value' }, ({ result }) => {
+    .with({ status: 'value' }, ({ result, yoy }) => {
       const value = formatRatio(result.value)
-      return value === null ? <span className="company-compare__none">{ratioReasonLabel(result)}</span> : <>{value}</>
+      return value === null ? (
+        <span className="company-compare__none">{ratioReasonLabel(result)}</span>
+      ) : (
+        <>
+          <span className="company-compare__ratio">{value}</span>
+          {yoy && <span className="company-compare__yoy">{yoy}</span>}
+        </>
+      )
     })
     .with({ status: 'none' }, () => null)
     .exhaustive()
