@@ -1122,6 +1122,124 @@
   overflow-wrap: anywhere;
 }
 
+/* 재무 체크 포인트(FS-62, #479). 항목마다 카드 하나. 상태 배지는 '확인해 볼 점'만 주의 색이고 수치 칸은 중립색 */
+.checkpoints__body {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.checkpoints__summary {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.checkpoints__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.checkpoints__list > li {
+  display: grid;
+}
+
+.checkpoints__card {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.checkpoints__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.checkpoints__title {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.checkpoints__note {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.checkpoints__facts {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.checkpoints__fact {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0 var(--space-2);
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-sm);
+}
+
+.checkpoints__fact dt {
+  color: var(--color-text-muted);
+}
+
+.checkpoints__fact dd {
+  display: grid;
+  justify-items: end;
+  margin: 0;
+  text-align: right;
+}
+
+.checkpoints__value {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-medium);
+}
+
+.checkpoints__evidence,
+.checkpoints__rule,
+.checkpoints__disclosures {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.checkpoints__rule {
+  margin: 0;
+}
+
+.checkpoints__rule-label {
+  font-weight: var(--font-weight-semibold);
+}
+
+.checkpoints__disclosures {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.checkpoints__why > summary {
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+}
+
+.checkpoints__why > p {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-sm);
+}
+
 /* 공시 타임라인 차트(FS-58, #445). 차트 모양은 ui.css의 .dot-timeline(4-20), 여기는 영역 안 배치만 */
 .disclosure-chart__body {
   display: grid;
