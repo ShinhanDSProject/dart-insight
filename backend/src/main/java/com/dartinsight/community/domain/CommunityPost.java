@@ -80,6 +80,11 @@ public class CommunityPost implements CommunityContent {
         return status.shownBody(body, isOwnedBy(viewerId));
     }
 
+    /** 인용은 보이는 글이면 누구에게나, 가렸거나 지운 글이면 작성자에게만 보인다(API 명세 Post.quote) */
+    public boolean showsQuoteTo(Long viewerId) {
+        return status == ContentStatus.VISIBLE || isOwnedBy(viewerId);
+    }
+
     public void requireOwner(long viewerId) {
         if (!isOwnedBy(viewerId)) throw new ApiException(ErrorCode.COMMUNITY_FORBIDDEN);
     }

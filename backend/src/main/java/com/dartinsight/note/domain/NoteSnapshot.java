@@ -33,7 +33,7 @@ public record NoteSnapshot(String corpCode, NoteKind kind, Long analysisId, Stri
     }
 
     /** 열 길이를 넘으면 끝을 줄이고 '…'을 붙인다 */
-    static String clip(String value, int max) {
+    public static String clip(String value, int max) {
         if (value.length() <= max) {
             return value;
         }

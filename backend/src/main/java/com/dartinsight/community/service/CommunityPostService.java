@@ -6,6 +6,7 @@ import com.dartinsight.community.domain.CommentThread;
 import com.dartinsight.community.domain.CommunityPost;
 import com.dartinsight.community.domain.CommunityText;
 import com.dartinsight.community.domain.PostQuery;
+import com.dartinsight.community.domain.QuoteCommand;
 import com.dartinsight.community.dto.PostDetailResponse;
 import com.dartinsight.community.dto.PostListResponse;
 import com.dartinsight.community.dto.PostResponse;
@@ -34,6 +35,7 @@ public class CommunityPostService {
     private final CommunityPostRepository posts;
     private final CommunityCommentRepository comments;
     private final CommunityViews views;
+    private final PostQuotes quotes;
     private final CompanyService companyService;
     private final UserService userService;
     private final Clock clock;
@@ -50,12 +52,17 @@ public class CommunityPostService {
                 views.posts(found.getContent(), viewerId));
     }
 
+    /** 인용(#464)이 있으면 글을 저장하기 전에 사본을 만들어 검증하고, 잘못되면 글도 저장하지 않는다 */
     @Transactional
-    public PostResponse create(String corpCode, long userId, Object rawBody) {
+    public PostResponse create(String corpCode, long userId, Object rawBody, Object rawQuote) {
         String corp = requireCompany(corpCode);
         String body = CommunityText.postBody(rawBody);
+        QuoteCommand quoteCommand = QuoteCommand.of(rawQuote);
         userService.requireNickname(userId);
-        CommunityPost post = posts.save(CommunityPost.create(corp, userId, body, LocalDateTime.now(clock)));
+        PostQuotes.Draft quote = quoteCommand == null ? null : quotes.prepare(corp, quoteCommand);
+        LocalDateTime now = LocalDateTime.now(clock);
+        CommunityPost post = posts.save(CommunityPost.create(corp, userId, body, now));
+        if (quote != null) quotes.save(post.getId(), quote, now);
         return views.post(post, userId);
     }
 
