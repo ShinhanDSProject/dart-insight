@@ -444,6 +444,22 @@
   color: var(--color-text-muted);
 }
 
+/* 증감액 아래 크기 맥락 보조 줄(#480). 크기만 보이므로 중립색 */
+.fin-table__scale {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+  white-space: nowrap;
+}
+
+.evidence__scale {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
 .evidence__head {
   display: flex;
   align-items: center;

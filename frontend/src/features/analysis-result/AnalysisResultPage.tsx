@@ -188,6 +188,7 @@ function ResultTabPanel({ analysis, params, update, ask, suggestions, askSection
         changedOnly={params.changedOnly}
         unit={params.unit}
         accountQuery={params.accountQuery}
+        order={params.financialOrder}
         selectedChangeId={params.selectedChangeId}
         onChange={(c) => update(financialParamChanges(c))}
         onAsk={askAndOpen}
