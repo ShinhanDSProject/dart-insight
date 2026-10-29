@@ -34,7 +34,9 @@ public enum SummaryLens {
     static final Set<String> REVENUE_NAMES = Set.of("매출액", "매출", "영업수익");
     static final List<String> PROFIT_WORDS = List.of("이익", "손실", "손익", "비용", "원가", "수익", "관리비");
     static final List<String> BALANCE_WORDS = List.of("자산", "부채", "자본", "차입", "사채");
-    static final List<String> SHAREHOLDER_SECTION_WORDS = List.of("배당");
+    static final List<String> SHAREHOLDER_SECTION_WORDS = List.of("배당", "주식의총수");
+    /** 증권 발행으로 자금을 조달한 내역('7. 증권의 발행을 통한 자금조달' 등) */
+    static final List<String> STABILITY_SECTION_WORDS = List.of("자금조달");
     static final List<String> GROWTH_SECTION_WORDS = List.of("매출및수주");
 
     private final String label;
@@ -91,6 +93,9 @@ public enum SummaryLens {
         String paths = compact(sectionPath) + "\n" + compact(previousSectionPath);
         if (containsAny(paths, SHAREHOLDER_SECTION_WORDS)) {
             return SHAREHOLDER;
+        }
+        if (containsAny(paths, STABILITY_SECTION_WORDS)) {
+            return STABILITY;
         }
         return containsAny(paths, GROWTH_SECTION_WORDS) ? GROWTH : OTHER;
     }

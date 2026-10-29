@@ -74,6 +74,12 @@ class SummaryLensTest {
         assertThat(SummaryLens.ofText("II. 사업의 내용 > 1. 사업의 개요", null)).isEqualTo(SummaryLens.OTHER);
         assertThat(SummaryLens.ofText("XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 1. 공시내용 진행 및 변경사항", null))
                 .isEqualTo(SummaryLens.OTHER);
+        // 삼성전자 2026 반기보고서(20260814003699, 분석 10) 원문 목차
+        assertThat(SummaryLens.ofText("I. 회사의 개요 > 4. 주식의 총수 등", null)).isEqualTo(SummaryLens.SHAREHOLDER);
+        assertThat(SummaryLens.ofText("III. 재무에 관한 사항 > 7. 증권의 발행을 통한 자금조달에 관한 사항", null))
+                .isEqualTo(SummaryLens.STABILITY);
+        assertThat(SummaryLens.ofText("IV. 이사의 경영진단 및 분석의견 > 4. 유동성 및 자금조달과 지출", null))
+                .isEqualTo(SummaryLens.STABILITY);
         assertThat(SummaryLens.ofText(null, null)).isEqualTo(SummaryLens.OTHER);
     }
 

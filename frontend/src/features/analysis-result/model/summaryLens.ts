@@ -10,12 +10,12 @@ export const summaryLenses: SummaryLens[] = ['PROFITABILITY', 'GROWTH', 'STABILI
  * 기타는 주제가 정해지지 않아 질문을 두지 않는다.
  */
 export const LENS_QUESTIONS: Record<SummaryLens, string | null> = {
-  PROFITABILITY: '매출이 늘 때 이익도 따라 늘었는가?',
-  GROWTH: '외형이 커졌는가?',
-  STABILITY: '빚과 자본의 균형이 바뀌었는가?',
-  CASH_FLOW: '이익이 현금으로 들어왔는가?',
-  SHAREHOLDER: '배당·자기주식에 변화가 있는가?',
-  RISK: '회사가 밝힌 위험이 바뀌었는가?',
+  PROFITABILITY: '매출이 늘 때 이익도 따라 늘었을까요?',
+  GROWTH: '외형이 커졌을까요?',
+  STABILITY: '빚과 자본의 균형이 바뀌었을까요?',
+  CASH_FLOW: '이익이 현금으로 들어왔을까요?',
+  SHAREHOLDER: '배당·자기주식에 변화가 있을까요?',
+  RISK: '회사가 밝힌 위험이 바뀌었을까요?',
   OTHER: null,
 }
 
