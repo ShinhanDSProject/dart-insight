@@ -11,6 +11,7 @@ import { CommunityBodyForm } from './CommunityBodyForm'
 import { CommunityComments } from './CommunityComments'
 import { ContentBody, DeleteDialog, LikeButton } from './CommunityContentParts'
 import { CommunityMenu, type MenuItem } from './CommunityMenu'
+import { CommunityQuoteCard } from './CommunityQuoteCard'
 import { CommunityReportDialog } from './CommunityReportDialog'
 
 /** view: 보기, edit: 본문 고치기, report: 신고 대화상자, delete: 지우기 확인 */
@@ -23,7 +24,7 @@ interface CommunityPostCardProps {
 }
 
 /**
- * 글 카드(FS-58): 닉네임 · 몇 분 전 · 본문 · 좋아요 · 댓글 · ⋯ 메뉴(신고, 내 글이면 수정·삭제).
+ * 글 카드(FS-58): 닉네임 · 몇 분 전 · 본문 · 붙인 변경점(#464) · 좋아요 · 댓글 · ⋯ 메뉴(신고, 내 글이면 수정·삭제).
  * 댓글은 '댓글'을 눌러 펼칠 때 불러온다.
  */
 export function CommunityPostCard({ post, now, onChange }: CommunityPostCardProps) {
@@ -86,6 +87,8 @@ export function CommunityPostCard({ post, now, onChange }: CommunityPostCardProp
             }
           />
         ))}
+
+      {post.quote !== null && <CommunityQuoteCard quote={post.quote} />}
 
       <div className="community-card__actions">
         <LikeButton

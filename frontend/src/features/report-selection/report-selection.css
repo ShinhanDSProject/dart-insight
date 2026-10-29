@@ -1530,3 +1530,123 @@
   gap: var(--space-2);
   min-height: var(--touch-target-min);
 }
+
+/* 글에 붙인 변경점(#464) */
+.community-form__attach {
+  justify-self: start;
+}
+
+.community-quote {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.community-quote__link {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+a.community-quote__link:hover,
+a.community-quote__link:focus-visible {
+  border-color: var(--color-border-accent);
+  border-left-color: var(--color-accent);
+}
+
+.community-quote__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.community-quote__label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.community-quote__text {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-height: var(--line-height-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.community-quote__pair {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.community-quote__notice {
+  margin: 0;
+}
+
+.community-quote__remove {
+  justify-self: start;
+}
+
+.quote-picker__body {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.quote-picker__field {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.quote-picker__list {
+  display: grid;
+  gap: var(--space-2);
+  max-height: 50vh;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.quote-picker__item {
+  display: grid;
+  gap: var(--space-1);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.quote-picker__item:hover,
+.quote-picker__item:focus-visible {
+  border-color: var(--color-border-accent);
+  background: var(--color-bg-subtle);
+}
+
+.quote-picker__item-head {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.quote-picker__item-text {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
