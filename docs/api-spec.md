@@ -115,7 +115,7 @@
 | POST | `/api/comparability-checks` | 비교 가능성 검증 | #13 (2.2) | W-01 ③ | 초안 |
 | POST | `/api/analyses` | 분석 요청 | #14 (2.3) | W-01 ③ → W-02 | 초안 |
 | GET | `/api/analyses/{analysisId}` | 분석 상태·단계 | #14 (2.3) | W-02, W-03 | 초안 |
-| GET | `/api/analyses/{analysisId}/financial-changes` | 재무 수치 변화 목록 | #15 (2.4), #19 (3.1) | W-03 ② | 초안 |
+| GET | `/api/analyses/{analysisId}/financial-changes` | 재무 수치 변화 목록 | #15 (2.4), #19 (3.1), #480 (2.8) | W-03 ② | 초안 |
 | GET | `/api/analyses/{analysisId}/financial-changes/{changeId}` | 수치 근거 상세 | #21 (3.3) | W-03 ② | 초안 |
 | GET | `/api/analyses/{analysisId}/text-changes` | 문장·표 변경 목록(섹션 거르기·검색 #25) | #16 (2.5) | W-03 ③ | 초안 |
 | GET | `/api/analyses/{analysisId}/text-changes/{changeId}` | 문장·표 근거 상세 | #22 (3.4) | W-03 ③ | 초안 |
@@ -1777,7 +1777,7 @@
 
 ### GET /api/analyses/{analysisId}/financial-changes — 재무 수치 변화
 
-- 이슈: #15 (2.4), #19 (3.1) · 화면: W-03 ②
+- 이슈: #15 (2.4), #19 (3.1), #480 (2.8 크기 맥락, FS-63) · 화면: W-03 ②
 
 **요청**
 
@@ -1785,10 +1785,11 @@
 | --- | --- | --- | --- | --- |
 | query | `sjDiv` | string | 아니오 | 재무제표 종류. 기본 `BS` |
 | query | `changedOnly` | boolean | 아니오 | `true`면 값이 바뀌었거나 계산할 수 없는 항목만. 기본 `false` |
+| query | `sort` | string | 아니오 | `document`(기본) 원문 계정 순서, `scale` 규모 큰 순(#480). 그 밖의 값이면 400 |
 
 - 완료된 분석의 결과만, 그 분석에 저장된 결과만 돌려줍니다(다른 분석 결과와 섞지 않음).
 - `statements`는 다섯 재무제표가 늘 들어 있고, 비교 규칙(2.2)과 계정 수를 담습니다. `changed`는 증감액이 0이 아니거나 계산하지 못한 계정 수입니다.
-- `items`는 고른 재무제표의 계정을 원문 순서대로 돌려줍니다.
+- `items`는 고른 재무제표의 계정을 원문 순서대로 돌려줍니다. `sort=scale`이면 `scale.ratio`의 절댓값이 큰 것부터이고, 같으면 원문 순서, `ratio`가 null인 항목은 맨 뒤에 원문 순서로 둡니다. 거르기(`changedOnly`) 뒤에 정렬합니다.
 - 이전·현재 값이 모두 없는 계정(공시 표에 계정 이름만 있고 두 보고서 모두 금액이 비어 있거나 `-`)은 `items`와 `total`·`changed`에 넣지 않습니다. 비교할 변화가 없기 때문입니다(#355). 값이 한쪽에만 있는 계정은 지금처럼 `ONLY_CURRENT`·`ONLY_PREVIOUS`(계정이 한쪽 보고서에만 있음)나 `PREVIOUS_MISSING`·`CURRENT_MISSING`(계정은 양쪽에 있고 한쪽 값이 없음)입니다. 기간이 달라 비교하지 않는 재무제표(`PERIOD_MISMATCH`)의 계정은 그대로 둡니다.
 
 **응답 200**
@@ -1799,6 +1800,7 @@
   "fsDiv": "CFS",
   "sjDiv": "IS",
   "changedOnly": false,
+  "sort": "document",
   "statements": [
     { "sjDiv": "BS", "label": "재무상태표", "comparable": true, "amountBasis": "POINT", "note": null, "total": 58, "changed": 41 },
     { "sjDiv": "IS", "label": "손익계산서", "comparable": true, "amountBasis": "CUMULATIVE", "note": null, "total": 21, "changed": 19 }
@@ -1817,7 +1819,14 @@
       "direction": "UP",
       "calcStatus": "OK",
       "calcMessage": null,
-      "currency": "KRW"
+      "currency": "KRW",
+      "scale": {
+        "base": "REVENUE",
+        "baseAccountName": "매출액",
+        "baseAmount": 152000000000000,
+        "ratio": 0.046053,
+        "reason": null
+      }
     }
   ]
 }
@@ -1829,13 +1838,28 @@
 | `direction` | `UP`, `DOWN`, `SAME`. 계산하지 못하면 null |
 | `calcStatus` | ERD의 `financial_change.calc_status`와 같은 값 |
 | `calcMessage` | 계산하지 못한 사유(예: "이전 값이 0이라 증감률을 계산하지 않습니다.") |
+| `scale` | 증감액의 크기 맥락(#480, FS-63). 늘 들어 있음. 아래 '크기 맥락' |
+| `scale.base` | 기준 종류. `REVENUE` 매출액(손익계산서·포괄손익계산서·현금흐름표 계정), `TOTAL_ASSETS` 자산총계(재무상태표 계정), `TOTAL_EQUITY` 자본총계(자본변동표 계정) |
+| `scale.baseAccountName` | 기준으로 쓴 계정의 이름(현재 보고서 원문 그대로, 예: `매출액`). 기준 계정을 찾지 못하면 null |
+| `scale.baseAmount` | 기준 계정의 현재 보고서 값. 찾지 못했거나 값이 없으면 null |
+| `scale.ratio` | 증감액 ÷ 기준 값(비율, 0.046053 = 4.6053%). 소수 6자리 반올림(HALF_UP, `changeRate`와 같음). 계산하지 않으면 null |
+| `scale.reason` | `ratio`가 null인 사유. `CHANGE_NOT_CALCULATED` 증감액이 없음, `BASE_NOT_FOUND` 기준 계정을 찾지 못함, `BASE_MISSING` 기준 계정의 현재 값이 없음, `BASE_NOT_POSITIVE` 기준 값이 0 이하. 계산했으면 null |
+
+**크기 맥락(#480, FS-63)**: '증감액이 매출액·자산총계 대비 얼마인지'를 코드가 계산합니다. 크기만 보이고 좋고 나쁨은 판단하지 않습니다. 저장하지 않고 조회할 때 그 분석에 저장된 계정 결과로 계산하므로 분석 버전에 영향이 없습니다.
+
+- 기준 계정은 같은 분석(같은 연결·별도 구분)의 현재 보고서 값입니다. 고르는 순서:
+  - `REVENUE`: 손익계산서 계정은 손익계산서에서, 포괄손익계산서 계정은 포괄손익계산서 → 손익계산서 순, 현금흐름표 계정은 손익계산서 → 포괄손익계산서 순으로 찾습니다. 재무제표 안에서는 현재 보고서 계정 ID가 `ifrs-full_Revenue`인 계정, 없으면 계정명(공백 무시)이 `매출액`인 계정의 원문 순서 첫 번째입니다(ADR-0015 `ifrs-full_Revenue` = 매출액·매출·영업수익, 주요계정 `REVENUE`와 같은 이름 규칙). 금융회사처럼 이 계정이 없으면 `BASE_NOT_FOUND`입니다.
+  - `TOTAL_ASSETS`: 재무상태표에서 계정 ID가 `ifrs-full_Assets`인 계정, 없으면 계정명이 `자산총계`인 계정.
+  - `TOTAL_EQUITY`: 재무상태표에서 계정명이 `자본총계`인 계정. 없으면 계산하지 않습니다(`BASE_NOT_FOUND`).
+- 사유는 이 순서로 정합니다: 증감액이 없으면 `CHANGE_NOT_CALCULATED`(기준 계정을 찾았으면 `baseAccountName`·`baseAmount`는 채움), 기준 계정이 없으면 `BASE_NOT_FOUND`, 기준 값이 없으면 `BASE_MISSING`, 0 이하면 `BASE_NOT_POSITIVE`.
+- 기준 계정 자신도 비율이 있습니다(예: 매출액 증감액 ÷ 현재 매출액).
 
 - 부호가 바뀌거나 이전 값이 음수인 계정은 증감률(`changeRate`)이 null이고 증감액만 있습니다(#144). 손익계산서의 이익 계정은 `TURNED_PROFIT`(흑자전환)·`TURNED_LOSS`(적자전환)·`LOSS_NARROWED`(적자폭 축소)·`LOSS_WIDENED`(적자폭 확대)로, 그 밖의 계정은 `SIGN_CHANGED`("부호가 바뀌어 증감률을 계산하지 않아요.")나 `PREVIOUS_NEGATIVE`로 둡니다. 판정표는 ERD `financial_change.calc_status`에 있습니다.
 - 이익 계정 목록(표준계정 ID): `dart_OperatingIncomeLoss`(영업이익), `ifrs-full_ProfitLossFromOperatingActivities`(금융회사 영업이익), `ifrs-full_GrossProfit`(매출총이익), `ifrs-full_ProfitLossBeforeTax`(법인세비용차감전순이익), `ifrs-full_ProfitLoss`(당기순이익), `ifrs-full_ProfitLossAttributableToOwnersOfParent`(지배기업 소유주지분 순이익). 흑자·적자 표현은 이 계정에만 씁니다. 비지배지분 순이익·총포괄손익·주당이익은 넣지 않습니다(2024 사업보고서 7곳의 실제 응답으로 확인, #144). 법인세비용처럼 이익이 아닌 계정의 부호 변화를 '흑자전환'으로 부르지 않기 위해서입니다.
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
-| 400 | `COMMON_INVALID_INPUT` | `sjDiv`가 BS·IS·CIS·CF·SCE가 아님 |
+| 400 | `COMMON_INVALID_INPUT` | `sjDiv`가 BS·IS·CIS·CF·SCE가 아니거나 `sort`가 document·scale이 아님 |
 | 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 ID |
 | 409 | `ANALYSIS_NOT_READY` | 분석이 아직 완료되지 않음 |
 
@@ -1846,6 +1870,7 @@
 - 계산하지 못한 항목은 `formula`·`rateFormula`가 null이고 `calcMessage`에 사유가 있습니다. 숫자를 채우지 않습니다. 증감액만 계산한 항목(`PREVIOUS_ZERO`, 부호 변화 상태 등)은 `formula`만 있고 `rateFormula`는 null입니다.
 - 계산식의 금액마다 그 보고서의 기간 이름(`periodName`)을 괄호로 붙여 어느 기간끼리 비교했는지 보입니다(#144). 음수는 괄호로 감쌉니다. 기간 이름이 없으면 붙이지 않습니다.
 - 한쪽 보고서에만 있는 계정이면 없는 쪽의 `previous` 또는 `current`가 null입니다.
+- `scale`(#480)은 목록의 `scale`에 `baseChangeId`(기준 계정의 `changeId`), `formula`(크기 계산식), `baseSource`(기준 값의 근거, `current`와 같은 모양)를 더한 것입니다. 기준 계정을 찾지 못하면 셋 다 null이고, 비율을 계산하지 않았으면 `formula`가 null입니다. `formula`는 `증감액 ÷ 기준 값(기간 이름) × 100 = 퍼센트`이고, 퍼센트는 두 금액으로 바로 계산해 소수 2자리 반올림(HALF_UP)합니다(`rateFormula`와 같은 방식).
 
 **응답 200**: 목록 항목 필드에 아래를 더합니다.
 
@@ -1869,7 +1894,17 @@
     "accountId": "ifrs-full_Revenue",
     "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250814000987"
   },
-  "current": { "rceptNo": "20260814001234", "...": "previous와 같은 모양" }
+  "current": { "rceptNo": "20260814001234", "...": "previous와 같은 모양" },
+  "scale": {
+    "base": "REVENUE",
+    "baseAccountName": "매출액",
+    "baseAmount": 152000000000000,
+    "ratio": 0.046053,
+    "reason": null,
+    "baseChangeId": 901,
+    "formula": "7,000,000,000,000 ÷ 152,000,000,000,000(제 57 기 반기) × 100 = 4.61%",
+    "baseSource": { "rceptNo": "20260814001234", "sjDiv": "IS", "accountId": "ifrs-full_Revenue", "...": "previous와 같은 모양" }
+  }
 }
 ```
 
