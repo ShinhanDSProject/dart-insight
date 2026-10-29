@@ -2030,6 +2030,8 @@
 - 계산식의 금액마다 그 보고서의 기간 이름(`periodName`)을 괄호로 붙여 어느 기간끼리 비교했는지 보입니다(#144). 음수는 괄호로 감쌉니다. 기간 이름이 없으면 붙이지 않습니다.
 - 한쪽 보고서에만 있는 계정이면 없는 쪽의 `previous` 또는 `current`가 null입니다.
 - `scale`(#480)은 목록의 `scale`에 `baseChangeId`(기준 계정의 `changeId`), `formula`(크기 계산식), `baseSource`(기준 값의 근거, `current`와 같은 모양)를 더한 것입니다. 기준 계정을 찾지 못하면 셋 다 null이고, 비율을 계산하지 않았으면 `formula`가 null입니다. `formula`는 `증감액 ÷ 기준 값(기간 이름) × 100 = 퍼센트`이고, 퍼센트는 두 금액으로 바로 계산해 소수 2자리 반올림(HALF_UP)합니다(`rateFormula`와 같은 방식).
+- `previous`·`current`·`baseSource`의 근거 위치(#512): 구조화된 원문(`III. 재무에 관한 사항` 내 해당 재무제표 표 블록)에서 찾은 `sectionNo`·`blockNo`를 함께 돌려줍니다. 원문이 미구조화되었거나 분석 완료 시점 이후 재구조화된 경우 또는 표 블록을 특정하지 못한 경우 null입니다.
+- `relatedTextChanges`(#512): 같은 분석의 문장 변경(`UNCHANGED` 및 `reviewNeeded` 제외) 중 이 계정의 정규화 계정명(2자 이상) 또는 `AccountAliases` 별칭이 본문(`currentText`·`previousText`)이나 `sectionPath`에 포함된 항목을 찾아 최대 3건 돌려줍니다(없으면 `[]`). `재무에 관한 사항`·`주석`·`사업의 내용` 목차와 중요도 순으로 정렬하며, 삭제(`DELETED`)면 이전 보고서 쪽(`side="previous"`), 그 외는 현재 보고서 쪽(`side="current"`)의 위치를 줍니다.
 
 **응답 200**: 목록 항목 필드에 아래를 더합니다.
 
@@ -2051,9 +2053,11 @@
     "periodName": "제 56 기 반기",
     "sjDiv": "IS",
     "accountId": "ifrs-full_Revenue",
-    "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250814000987"
+    "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250814000987",
+    "sectionNo": 12,
+    "blockNo": 45
   },
-  "current": { "rceptNo": "20260814001234", "...": "previous와 같은 모양" },
+  "current": { "rceptNo": "20260814001234", "...": "previous와 같은 모양", "sectionNo": 14, "blockNo": 50 },
   "scale": {
     "base": "REVENUE",
     "baseAccountName": "매출액",
@@ -2062,8 +2066,19 @@
     "reason": null,
     "baseChangeId": 901,
     "formula": "7,000,000,000,000 ÷ 152,000,000,000,000(제 57 기 반기) × 100 = 4.61%",
-    "baseSource": { "rceptNo": "20260814001234", "sjDiv": "IS", "accountId": "ifrs-full_Revenue", "...": "previous와 같은 모양" }
-  }
+    "baseSource": { "rceptNo": "20260814001234", "sjDiv": "IS", "accountId": "ifrs-full_Revenue", "sectionNo": 14, "blockNo": 50, "...": "previous와 같은 모양" }
+  },
+  "relatedTextChanges": [
+    {
+      "changeId": 102,
+      "changeType": "MODIFIED",
+      "sectionPath": "III. 재무에 관한 사항 > 5. 연결재무제표 주석",
+      "preview": "당반기 중 연결회사의 주요 매출은 메모리 사업 부문에서 발생하였으며...",
+      "side": "current",
+      "sectionNo": 15,
+      "blockNo": 320
+    }
+  ]
 }
 ```
 
