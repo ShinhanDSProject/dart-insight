@@ -487,6 +487,13 @@
 }
 
 /* 처음 쓰는 사용자 안내(FS-10). 검색어가 없는 첫 화면에서 검색창 위에 보인다 */
+/* 처음 쓰는 사용자 안내를 닫았을 때 그 자리에 남는 작은 다시 열기 버튼(#502) */
+.onboarding-reopen {
+  margin: 0 0 var(--space-4);
+  text-align: right;
+  font-size: var(--font-size-xs);
+}
+
 .onboarding {
   display: flex;
   flex-direction: column;

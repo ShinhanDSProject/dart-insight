@@ -1,5 +1,5 @@
 /**
- * 처음 쓰는 사용자 안내(FS-10). 검색 화면이 보여 주고 사이드바가 다시 열므로 shared에 둔다(DIR-4).
+ * 처음 쓰는 사용자 안내(FS-10). 검색 화면이 보여 주고 다시 연다.
  * 닫았다는 표시만 브라우저(localStorage)에 남긴다. 저장을 쓸 수 없으면 null로 돌려, 화면이 이번 방문 동안만 기억하게 한다.
  */
 export const ONBOARDING_DISMISSED_KEY = 'dart-insight:onboarding-dismissed'
