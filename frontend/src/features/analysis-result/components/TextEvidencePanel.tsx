@@ -8,13 +8,17 @@ import { Dialog } from '@/shared/ui/Dialog'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { formatDate, reportTypeLabel } from '@/shared/lib/reportLabels'
+import { displaySectionPath } from '@/shared/lib/sectionTitle'
+import { AddToNote } from './AddToNote'
 import { NumberChangesLine } from './NumberChangesLine'
 import { RelatedDisclosures } from './RelatedDisclosures'
 import { TableView } from './TableView'
 import { TextHistory } from './TextHistory'
 import { useTextChangeDetail } from '../hooks/useTextChanges'
+import { sectionAskQuestion } from '../model/askQuestion'
 import { numberChanges } from '../model/numberChanges'
 import type { SourceTarget } from '../model/resultParams'
+import { tableDiff, tableDiffSummaryLabel, type TableSideDiff } from '../model/tableDiff'
 import {
   changeTypeLabel,
   comparesWords,
@@ -24,7 +28,6 @@ import {
   showsNumbersOnlyMark,
 } from '../model/textLabels'
 import { wordDiff, type DiffPart } from '../model/wordDiff'
-import { displaySectionPath } from '@/shared/lib/sectionTitle'
 
 interface TextEvidencePanelProps {
   analysis: Analysis
@@ -32,14 +35,25 @@ interface TextEvidencePanelProps {
   onClose: () => void
   /** 앱 안 원문 확인(3.5)에서 이 위치를 연다 */
   onOpenSource: (target: SourceTarget) => void
+  /** 이 항목 변화를 AI에게 묻는다(#524). 질문을 보내고 AI 질문 탭으로 옮긴다 */
+  onAsk?: (question: string) => void
+  /** 다른 질문을 보내는 중 */
+  asking?: boolean
 }
 
 /**
- * W-03 ③ 문장·표 근거 상세(3.4)를 '원문 비교' 창(모달)으로 띄운다(#507). 변경 전·후 원문 전체를 나란히 보여 주고,
+ * W-03 ③ 문장·표 근거 상세(3.4)를 '원문 비교' 창(모달)으로 띄운다(#507, #524). 변경 전·후 원문 전체를 나란히 보여 주고,
  * 각 원문의 보고서·종류·기간·항목·위치를 붙인다. 원문이 없거나 짝을 정하지 못한 항목은 근거가 있는 것처럼 보이지 않게 '검토 필요'로 보여 준다.
  * 화면에 들어올 때 .page의 애니메이션(transform)이 고정 위치를 페이지 기준으로 바꾸므로 body에 띄운다.
  */
-export function TextEvidencePanel({ analysis, changeId, onClose, onOpenSource }: TextEvidencePanelProps) {
+export function TextEvidencePanel({
+  analysis,
+  changeId,
+  onClose,
+  onOpenSource,
+  onAsk,
+  asking = false,
+}: TextEvidencePanelProps) {
   const { state, reload } = useTextChangeDetail(analysis.analysisId, changeId)
   return createPortal(
     <Dialog titleId={`text-evidence-${changeId}`} title="원문 비교" onClose={onClose} className="text-compare-dialog">
@@ -54,7 +68,14 @@ export function TextEvidencePanel({ analysis, changeId, onClose, onOpenSource }:
         ))
         .with({ status: 'success' }, ({ data }) => (
           <>
-            <EvidenceBody detail={data} onOpenSource={onOpenSource} />
+            <EvidenceBody
+              analysis={analysis}
+              detail={data}
+              onClose={onClose}
+              onOpenSource={onOpenSource}
+              onAsk={onAsk}
+              asking={asking}
+            />
             <TextHistory analysisId={analysis.analysisId} changeId={changeId} />
             <RelatedDisclosures analysisId={analysis.analysisId} changeId={changeId} />
           </>
@@ -68,17 +89,33 @@ export function TextEvidencePanel({ analysis, changeId, onClose, onOpenSource }:
 /** 근거 패널은 전문을 받아 숫자가 많을 수 있어 카드(5쌍)보다 많이 보인다 */
 const PANEL_MAX_NUMBER_PAIRS = 10
 
-function EvidenceBody({ detail, onOpenSource }: { detail: TextChangeDetail; onOpenSource: (target: SourceTarget) => void }) {
+interface EvidenceBodyProps {
+  analysis: Analysis
+  detail: TextChangeDetail
+  onClose: () => void
+  onOpenSource: (target: SourceTarget) => void
+  onAsk?: (question: string) => void
+  asking: boolean
+}
+
+function EvidenceBody({ analysis, detail, onClose, onOpenSource, onAsk, asking }: EvidenceBodyProps) {
   const { change, previous, current } = detail
   const review = change.changeType === 'REVIEW_NEEDED'
   const bothParagraphs =
     previous?.text != null && current?.text != null && previous.table === null && current.table === null
   const diff = comparesWords(change.changeType) && bothParagraphs ? wordDiff(previous.text!, current.text!) : null
+  const bothTables = previous?.table != null && current?.table != null
+  const tables =
+    comparesWords(change.changeType) && bothTables ? tableDiff(previous.table!, current.table!) : null
+  const tableSummary = tableDiffSummaryLabel(tables)
   // '숫자만 바뀜'이면 잘리지 않은 전문으로 바뀐 숫자를 짝짓는다(#308). 패널은 최대 10쌍, 짝이 확실하지 않으면 숨김
   const numbers =
     change.changeType === 'NUMERIC_UPDATE'
       ? numberChanges(previous?.text ?? null, current?.text ?? null, PANEL_MAX_NUMBER_PAIRS)
       : null
+  const sectionLabel = displaySectionPath(change.sectionPath)
+  const askQuestionText = !review ? sectionAskQuestion(change.sectionPath) : null
+
   return (
     <>
       {review && (
@@ -96,6 +133,7 @@ function EvidenceBody({ detail, onOpenSource }: { detail: TextChangeDetail; onOp
           blockType={change.blockType}
           missing={missingSideLabel(change.changeType, 'previous')}
           parts={diff?.previous ?? null}
+          tableSideDiff={tables?.previous ?? null}
           review={review}
         />
         <SourceSide
@@ -106,6 +144,7 @@ function EvidenceBody({ detail, onOpenSource }: { detail: TextChangeDetail; onOp
           blockType={change.blockType}
           missing={missingSideLabel(change.changeType, 'current')}
           parts={diff?.current ?? null}
+          tableSideDiff={tables?.current ?? null}
           review={review}
         />
       </div>
@@ -117,9 +156,26 @@ function EvidenceBody({ detail, onOpenSource }: { detail: TextChangeDetail; onOp
           ? ` · 두 글이 비슷한 정도 ${Math.round(change.similarity * 100)}%`
           : ''}
         {diff ? ' · 바뀐 낱말에 밑줄을 그었어요.' : ''}
+        {tableSummary !== null ? ` · ${tableSummary}` : ''}
       </p>
       {change.changeType === 'DELETED' && <p className="panel__note">{DELETED_NOTE}</p>}
       {change.changeType === 'MOVED' && <p className="panel__note">{MOVED_NOTE}</p>}
+      <div className="text-evidence__actions">
+        <AddToNote target={{ kind: 'TEXT_CHANGE', changeId: change.changeId }} analysisId={analysis.analysisId} label={sectionLabel} />
+        {onAsk && askQuestionText !== null && (
+          <Button
+            variant="secondary"
+            disabled={asking}
+            aria-label={`이 항목 변화 AI에게 묻기: ${askQuestionText}`}
+            onClick={() => {
+              onClose()
+              onAsk(askQuestionText)
+            }}
+          >
+            이 항목 변화 AI에게 묻기
+          </Button>
+        )}
+      </div>
     </>
   )
 }
@@ -133,10 +189,11 @@ interface SourceSideProps {
   blockType: string
   missing: string
   parts: DiffPart[] | null
+  tableSideDiff: TableSideDiff | null
   review: boolean
 }
 
-function SourceSide({ role, side, onOpenSource, source, blockType, missing, parts, review }: SourceSideProps) {
+function SourceSide({ role, side, onOpenSource, source, blockType, missing, parts, tableSideDiff, review }: SourceSideProps) {
   if (source === null) {
     return (
       <div className="evidence__source">
@@ -165,7 +222,7 @@ function SourceSide({ role, side, onOpenSource, source, blockType, missing, part
           </>
         )}
       </span>
-      <SourceText role={role} source={source} parts={parts} review={review} />
+      <SourceText role={role} source={source} parts={parts} tableSideDiff={tableSideDiff} review={review} />
       {!source.blockMatches && source.blockNo !== null && !review && (
         <span className="evidence__meta">
           원문을 다시 읽어 위치가 달라졌을 수 있어 분석할 때 저장한 글을 보여 줘요.
@@ -187,10 +244,16 @@ function SourceSide({ role, side, onOpenSource, source, blockType, missing, part
 }
 
 /** 근거 원문 글. 짝을 정하지 못했거나 글이 없으면 그 사유, 표면 표, 문단이면 바뀐 낱말에 밑줄 */
-function SourceText({ role, source, parts, review }: Pick<SourceSideProps, 'role' | 'parts' | 'review'> & { source: TextSource }) {
+function SourceText({
+  role,
+  source,
+  parts,
+  tableSideDiff,
+  review,
+}: Pick<SourceSideProps, 'role' | 'parts' | 'tableSideDiff' | 'review'> & { source: TextSource }) {
   if (review) return <p className="change-side__missing">짝을 정하지 못한 항목이라 원문을 짝지어 보여 주지 않아요.</p>
   if (source.text === null) return <p className="change-side__missing">원문 글을 찾지 못했어요(검토 필요).</p>
-  if (source.table) return <TableView rows={source.table} caption={`${role} 표: ${source.sectionPath}`} />
+  if (source.table) return <TableView rows={source.table} caption={`${role} 표: ${source.sectionPath}`} diff={tableSideDiff} />
   return (
     <p className="text-evidence__text">
       {parts ? parts.map((part, i) => <DiffText key={i} part={part} />) : source.text}

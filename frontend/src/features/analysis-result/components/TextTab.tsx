@@ -139,6 +139,8 @@ export function TextTab({
         changeId={selectedChangeId}
         onClose={() => onChange({ change: null })}
         onOpenSource={onOpenSource}
+        onAsk={onAsk}
+        asking={asking}
       />
     )
   const changeList = (items: TextChangeItem[]) => {
@@ -155,6 +157,8 @@ export function TextTab({
               pinned={pins.isPinned(item.changeId)}
               explanations={explanations}
               onOpenSource={onOpenSource}
+              onAsk={onAsk}
+              asking={asking}
               onTogglePin={() => pins.toggle(item.changeId)}
               onToggle={() => toggleEvidence(item.changeId)}
               onClose={() => {
@@ -391,9 +395,24 @@ interface ChangeCardProps {
   onToggle: () => void
   onClose: () => void
   onOpenSource: (target: SourceTarget) => void
+  onAsk: (question: string) => void
+  asking: boolean
 }
 
-function ChangeCard({ item, analysis, showTypeNote, selected, pinned, explanations, onTogglePin, onToggle, onClose, onOpenSource }: ChangeCardProps) {
+function ChangeCard({
+  item,
+  analysis,
+  showTypeNote,
+  selected,
+  pinned,
+  explanations,
+  onTogglePin,
+  onToggle,
+  onClose,
+  onOpenSource,
+  onAsk,
+  asking,
+}: ChangeCardProps) {
   const section = displaySectionPath(item.sectionPath)
   const review = item.changeType === 'REVIEW_NEEDED'
   // '숫자만 바뀜' 카드에만 바뀐 숫자 쌍을 보인다(짝이 확실하지 않으면 null이라 숨김)
@@ -493,7 +512,15 @@ function ChangeCard({ item, analysis, showTypeNote, selected, pinned, explanatio
         />
       )}
       {selected && (
-        <TextEvidencePanel key={item.changeId} analysis={analysis} changeId={item.changeId} onClose={onClose} onOpenSource={onOpenSource} />
+        <TextEvidencePanel
+          key={item.changeId}
+          analysis={analysis}
+          changeId={item.changeId}
+          onClose={onClose}
+          onOpenSource={onOpenSource}
+          onAsk={onAsk}
+          asking={asking}
+        />
       )}
     </Card>
   )
