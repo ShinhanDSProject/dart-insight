@@ -42,7 +42,7 @@ export function setAccessToken(token: string | null) {
   accessToken = token
 }
 
-type Method = 'GET' | 'POST' | 'PUT' | 'DELETE'
+type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
 type Query = Record<string, string | number | boolean | undefined | null>
 
@@ -205,6 +205,11 @@ export function apiPut<T>(path: string, body: unknown, options?: RequestOptions)
   return request<T>('PUT', path, undefined, body, options)
 }
 
-export function apiDelete(path: string, options?: RequestOptions): Promise<void> {
-  return request<void>('DELETE', path, undefined, undefined, options)
+/** 있는 것의 일부를 고친다(글 본문 고치기 등) */
+export function apiPatch<T>(path: string, body: unknown, options?: RequestOptions): Promise<T> {
+  return request<T>('PATCH', path, undefined, body, options)
+}
+
+export function apiDelete<T = void>(path: string, options?: RequestOptions): Promise<T> {
+  return request<T>('DELETE', path, undefined, undefined, options)
 }

@@ -63,4 +63,14 @@ export const endpoints = {
   questionFeedback: (analysisId: number, questionId: number) =>
     `${analysis(analysisId)}/questions/${seg(questionId)}/feedback`,
   aiUsage: () => '/api/system/ai-usage',
+  currentNickname: () => '/api/users/current/nickname',
+  companyPosts: (corpCode: string) => `/api/companies/${seg(corpCode)}/posts`,
+  post: (postId: number) => `/api/posts/${seg(postId)}`,
+  postComments: (postId: number) => `/api/posts/${seg(postId)}/comments`,
+  postLike: (postId: number) => `/api/posts/${seg(postId)}/like`,
+  postReports: (postId: number) => `/api/posts/${seg(postId)}/reports`,
+  comment: (commentId: number) => `/api/comments/${seg(commentId)}`,
+  commentLike: (commentId: number) => `/api/comments/${seg(commentId)}/like`,
+  commentReports: (commentId: number) => `/api/comments/${seg(commentId)}/reports`,
+  repostRequests: (reportId: number) => `/api/reports/${seg(reportId)}/repost-requests`,
 }

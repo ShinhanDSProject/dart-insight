@@ -6,6 +6,7 @@ import { Skeleton, Tabs, type TabItem } from '@/shared/ui'
 import { ErrorState } from '@/shared/ui/StateView'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
 import { companyPageTitle } from '@/shared/lib/pageTitle'
+import { CommunityTab } from './components/CommunityTab'
 import { CompanyOverviewTab } from './components/CompanyOverviewTab'
 import { FavoriteToggle } from './components/FavoriteToggle'
 import { ReportCompareView } from './components/ReportCompareView'
@@ -23,15 +24,17 @@ const errorMessages: Record<string, string> = {
 const viewTabs: readonly TabItem<CompanyView>[] = [
   { value: 'overview', label: '기업 개요' },
   { value: 'compare', label: '보고서 비교' },
+  { value: 'community', label: '커뮤니티' },
 ]
 
 const viewTitles: Record<CompanyView, string> = {
   overview: '기업 개요',
   compare: '보고서 고르기',
+  community: '커뮤니티',
 }
 
 /**
- * 기업 화면. 회사명 아래 탭 '기업 개요 | 보고서 비교'(주소 ?view=overview|compare, FS-45).
+ * 기업 화면. 회사명 아래 탭 '기업 개요 | 보고서 비교 | 커뮤니티'(주소 ?view=overview|compare|community, FS-45·FS-58).
  * 기본은 보고서 비교라 ?view가 없던 기존 주소와 흐름은 그대로다.
  * 탭마다 자기 자료를 따로 불러오므로 한쪽이 OpenDART 오류여도 다른 탭은 열린다.
  * 탭 줄은 화면 위에 붙고, 회사명이 화면 위로 나가면 작게 접혀 탭 줄 오른쪽에 회사명만 남는다(FS-58, CompanyFrame).
@@ -68,6 +71,7 @@ export function CompanyPage() {
             {match(view)
               .with('overview', () => <CompanyOverviewTab corpCode={corpCode} company={data} />)
               .with('compare', () => <ReportCompareView corpCode={corpCode} />)
+              .with('community', () => <CommunityTab corpCode={corpCode} />)
               .exhaustive()}
           </CompanyFrame>
         ))
