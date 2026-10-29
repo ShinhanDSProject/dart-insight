@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
-import type { FinancialChangeItem, SjDiv, StatementSummary } from '@/shared/api/results'
+import type { FinancialChangeItem, FinancialOrder, SjDiv, StatementSummary } from '@/shared/api/results'
 import {
   Button,
   DataTable,
@@ -38,6 +38,7 @@ import { useAccountSearch } from '../hooks/useAccountSearch'
 import { useFinancialChanges } from '../hooks/useFinancialChanges'
 import { ACCOUNT_SEARCH_MAX_LENGTH, filterAccounts, foundAccountsLabel } from '../model/accountFilter'
 import { accountLabel, componentName } from '../model/accountLabel'
+import { scaleLine } from '../model/changeScale'
 import { buildFinancialCsv, csvFileName } from '../model/financialCsv'
 import type { FinancialViewChange } from '../model/resultParams'
 import {
@@ -61,6 +62,11 @@ const statementOptions: { sjDiv: SjDiv; label: string }[] = [
   { sjDiv: 'SCE', label: '자본변동표' },
 ]
 
+const orderOptions: { value: FinancialOrder; label: string }[] = [
+  { value: 'document', label: '원문 순서' },
+  { value: 'scale', label: '규모 큰 순' },
+]
+
 const ACCOUNT_SEARCH_INPUT_ID = 'fin-account-query'
 
 interface FinancialTabProps {
@@ -70,6 +76,8 @@ interface FinancialTabProps {
   unit: AmountUnit
   /** 계정 찾기 검색어(FS-14). null이면 모든 계정 */
   accountQuery: string | null
+  /** 계정 목록 순서(#480). scale이면 서버가 규모(기준 대비 비율의 절댓값) 큰 순으로 준다. 주소에 남는다 */
+  order: FinancialOrder
   /** 근거를 보고 있는 계정(3.3) */
   selectedChangeId: number | null
   onChange: (changes: FinancialViewChange) => void
@@ -80,19 +88,21 @@ interface FinancialTabProps {
 
 /** W-03 ② 재무 수치 변화(3.1). 이 분석의 결과만 보여 준다. 계정 이름을 누르면 수치 근거(3.3)를 오른쪽 패널로 연다.
  * 증감액·증감률 머리글로 정렬하고, 계산하지 못한 행은 정렬해도 맨 아래에 둔다(FS-4 AC9).
- * 계정 이름으로 찾으면 받아 둔 계정을 화면에서 걸러 표·차트·CSV에 함께 쓴다(FS-14). */
+ * 계정 이름으로 찾으면 받아 둔 계정을 화면에서 걸러 표·차트·CSV에 함께 쓴다(FS-14).
+ * 증감 옆에 매출액·자산총계 대비 크기를 보조 줄로 보이고, '규모 큰 순'으로 고를 수 있다(#480, FS-63). */
 export function FinancialTab({
   analysis,
   sjDiv,
   changedOnly,
   unit,
   accountQuery,
+  order,
   selectedChangeId,
   onChange,
   onAsk,
   asking,
 }: FinancialTabProps) {
-  const { state, reload, statements } = useFinancialChanges(analysis.analysisId, sjDiv, changedOnly)
+  const { state, reload, statements } = useFinancialChanges(analysis.analysisId, sjDiv, changedOnly, order)
   const selected = statements.find((s) => s.sjDiv === sjDiv)
   const basis = selected?.amountBasis ?? null
   const currency = state.status === 'success' ? (state.data.items.find((i) => i.currency)?.currency ?? null) : null
@@ -164,6 +174,22 @@ export function FinancialTab({
           value={changedOnly ? 'changed' : 'all'}
           onChange={(view) => onChange({ changed: view === 'changed' })}
         />
+        <FieldLabel htmlFor="fin-order">정렬</FieldLabel>
+        <Select
+          id="fin-order"
+          value={order}
+          onChange={(e) => {
+            // 고른 순서가 보이도록 머리글 정렬은 풀어 둔다
+            setSort(originalOrder)
+            onChange({ order: e.target.value as FinancialOrder })
+          }}
+        >
+          {orderOptions.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </Select>
         <FieldLabel htmlFor="fin-unit">단위</FieldLabel>
         <Select id="fin-unit" value={unit} onChange={(e) => onChange({ unit: e.target.value as AmountUnit })}>
           {unitOptions.map((o) => (
@@ -316,6 +342,7 @@ export function FinancialTab({
       />
       <p className="panel__note">
         단위 {unitLabel(unit, currency)}. 증가·감소는 ▲▼와 부호로 표시하고 좋고 나쁨의 평가와 구분해요. 없는 값은 0으로 보지 않아요.
+        '매출액 대비'·'자산총계 대비'는 증감액을 현재 보고서의 기준 계정 값으로 나눈 크기예요.
       </p>
     </Panel>
   )
@@ -345,6 +372,7 @@ function ChangeRow({ item, unit, selected, onSelect }: ChangeRowProps) {
   const change = formatChange(item.changeAmount, unit)
   const rate = formatRate(item.changeRate)
   const reason = shortCalcLabel(item.calcStatus)
+  const scale = scaleLine(item.scale)
   return (
     <DataTableRow selected={selected}>
       <th scope="row">
@@ -367,7 +395,10 @@ function ChangeRow({ item, unit, selected, onSelect }: ChangeRowProps) {
         </td>
       ) : (
         <>
-          <td className="num">{change}</td>
+          <td className="num">
+            {change}
+            {scale !== null && <span className="fin-table__scale">{scale}</span>}
+          </td>
           <td className={`num${rate === null && !isProfitState(item.calcStatus) ? ' fin-table__reason' : ''}`} title={item.calcMessage ?? undefined}>
             {rate ?? reason}
           </td>

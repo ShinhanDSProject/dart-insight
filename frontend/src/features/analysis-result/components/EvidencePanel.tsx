@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
-import type { FinancialChangeDetail, ValueSource } from '@/shared/api/results'
+import type { ChangeScaleDetail, FinancialChangeDetail, ValueSource } from '@/shared/api/results'
 import { Button, CompareBars, Notice, PanelTitle, SidePanel } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
@@ -9,6 +9,7 @@ import { useFinancialChangeDetail } from '../hooks/useFinancialChanges'
 import { accountQuestion } from '../model/askQuestion'
 import { amountPeriodLabel, formatAmount, missingValueLabel, unitLabel, type AmountUnit } from '../model/format'
 import { accountLabel } from '../model/accountLabel'
+import { scaleBaseName, scaleReasonMessage } from '../model/changeScale'
 import { AddToNote } from './AddToNote'
 
 const statementLabels: Record<string, string> = {
@@ -33,6 +34,7 @@ interface EvidencePanelProps {
 /**
  * W-03 ② 수치 근거 상세(3.3). 두 보고서의 값·기준일·단위와 계산식, 원문 링크를 보여 준다.
  * 계산하지 못한 항목은 숫자를 채우지 않고 사유를 보여 준다.
+ * 증감액의 크기 맥락(매출액·자산총계 대비, #480)은 계산식과 기준 계정 값의 근거를 함께 보여 준다.
  */
 export function EvidencePanel({ analysis, changeId, unit, onClose, onAsk, asking }: EvidencePanelProps) {
   const { state, reload } = useFinancialChangeDetail(analysis.analysisId, changeId)
@@ -135,6 +137,7 @@ function EvidenceBody({ analysis, detail, unit, onAsk, asking }: EvidenceBodyPro
           계산하지 않았어요. {detail.calcMessage}
         </Notice>
       )}
+      {detail.changeAmount !== null && <ScaleEvidence scale={detail.scale} unit={unit} currency={detail.currency} />}
       <p className="evidence__note">관련 설명: <strong>확인된 설명 없음</strong></p>
       <Button
         variant="secondary"
@@ -154,6 +157,40 @@ function EvidenceBody({ analysis, detail, unit, onAsk, asking }: EvidenceBodyPro
         수치는 OpenDART 재무제표 API 값으로 코드가 계산했어요. 원문 표 안의 위치로 바로 이동하는 기능은 3.5(M2)에서 붙어요.
       </p>
     </>
+  )
+}
+
+interface ScaleEvidenceProps {
+  scale: ChangeScaleDetail
+  unit: AmountUnit
+  currency: string | null
+}
+
+/** 크기 맥락: 계산식(증감액 ÷ 기준 계정 현재 값)과 기준 계정 값의 근거. 비율이 없으면 사유. 좋고 나쁨은 판단하지 않는다 */
+function ScaleEvidence({ scale, unit, currency }: ScaleEvidenceProps) {
+  const baseName = scaleBaseName(scale)
+  const baseValue = formatAmount(scale.baseAmount, unit)
+  const source = scale.baseSource
+  return (
+    <div className="evidence__scale" role="group" aria-label={`${baseName} 대비 크기`}>
+      {scale.formula !== null ? (
+        <p className="evidence__formula">
+          {baseName} 대비 = 증감액 ÷ {baseName}(현재 보고서) × 100 = {scale.formula}
+        </p>
+      ) : (
+        <p className="evidence__note">
+          {baseName} 대비: {scale.reason !== null ? scaleReasonMessage(scale.reason, scale.base) : '계산하지 않았어요.'}
+        </p>
+      )}
+      {source !== null && (
+        <span className="evidence__meta">
+          기준 계정 {baseName}
+          {baseValue !== null ? ` ${baseValue} ${unitLabel(unit, currency)}` : ''} · {statementLabels[source.sjDiv] ?? source.sjDiv}
+          {source.periodName ? ` · ${source.periodName}` : ''} · 계정 ID <code>{source.accountId}</code> · 접수번호{' '}
+          <code>{source.rceptNo}</code> · <DartLinkInline rceptNo={source.rceptNo} dartUrl={source.dartUrl} label={`기준 계정 ${baseName} ${source.reportName}`} />
+        </span>
+      )}
+    </div>
   )
 }
 

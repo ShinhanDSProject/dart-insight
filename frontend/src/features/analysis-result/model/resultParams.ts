@@ -1,5 +1,5 @@
 import type { DocumentSide } from '@/shared/api/documents'
-import type { SjDiv } from '@/shared/api/results'
+import type { FinancialOrder, SjDiv } from '@/shared/api/results'
 import type { SummaryLens } from '@/shared/api/summary'
 import type { ChangeType, TextSort } from '@/shared/api/textChanges'
 import { positiveInt, type ParamChanges } from '@/shared/lib/searchParams'
@@ -10,7 +10,7 @@ import { CONTENT_FILTER, searchQueryOf, type TextTypeFilter } from './textFilter
 
 /**
  * W-03 결과 화면의 주소 상태(ST-6).
- * ?slens=&sview= 요약(관점 거르기·보기), ?tab=&sj=&changed=&unit=&fq=&change= 재무 수치, ?tab=ask AI 질문, ?ttype=&tsort=&tsec=&tq=&trisk=&tpin=&tc= 문장 변화, ?doc=&section=&block= 원문 확인
+ * ?slens=&sview= 요약(관점 거르기·보기), ?tab=&sj=&changed=&unit=&fq=&fsort=&change= 재무 수치, ?tab=ask AI 질문, ?ttype=&tsort=&tsec=&tq=&trisk=&tpin=&tc= 문장 변화, ?doc=&section=&block= 원문 확인
  */
 export type ResultTab = 'summary' | 'financial' | 'text' | 'ask' | 'source'
 
@@ -38,6 +38,8 @@ export interface ResultParams {
   selectedChangeId: number | null
   /** 계정 찾기 검색어(FS-14). 재무제표를 바꿔도 남는다. 없으면 null */
   accountQuery: string | null
+  /** 계정 목록 순서(#480). scale이면 규모 큰 순(fsort=scale) */
+  financialOrder: FinancialOrder
   /** 유형 거르기. CONTENT는 '내용 변경'(추가·삭제·수정, #304). null이면 전체 */
   textType: TextTypeFilter | null
   textSort: TextSort
@@ -70,6 +72,7 @@ export function parseResultParams(params: URLSearchParams): ResultParams {
     unit: parseUnit(params.get('unit')),
     selectedChangeId: positiveInt(params.get('change')),
     accountQuery: accountQueryOf(params.get('fq') ?? ''),
+    financialOrder: params.get('fsort') === 'scale' ? 'scale' : 'document',
     textType: textTypeFilters.includes(ttype as TextTypeFilter) ? (ttype as TextTypeFilter) : null,
     textSort: params.get('tsort') === 'document' ? 'document' : 'priority',
     textSection: params.get('tsec')?.trim() || null,
@@ -103,6 +106,8 @@ export interface FinancialViewChange {
   unit?: AmountUnit
   /** 계정 찾기 검색어. null이면 주소에서 지운다 */
   q?: string | null
+  /** 계정 목록 순서. 원문 순서(기본)면 주소에서 지운다 */
+  order?: FinancialOrder
   change?: number | null
 }
 
@@ -134,6 +139,7 @@ export function financialParamChanges(c: FinancialViewChange): ParamChanges {
     ...(c.changed !== undefined ? { changed: c.changed ? '1' : null } : {}),
     ...(c.unit !== undefined ? { unit: c.unit } : {}),
     ...(c.q !== undefined ? { fq: c.q } : {}),
+    ...(c.order !== undefined ? { fsort: c.order === 'document' ? null : c.order } : {}),
   }
 }
 

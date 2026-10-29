@@ -17,6 +17,7 @@ function item(overrides: Partial<FinancialChangeItem> = {}): FinancialChangeItem
     calcStatus: 'OK',
     calcMessage: null,
     currency: 'KRW',
+    scale: { base: 'TOTAL_ASSETS', baseAccountName: null, baseAmount: null, ratio: null, reason: 'BASE_NOT_FOUND' },
     ...overrides,
   }
 }

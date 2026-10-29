@@ -28,6 +28,7 @@ describe('parseResultParams', () => {
       unit: 'MILLION',
       selectedChangeId: null,
       accountQuery: null,
+      financialOrder: 'document',
       textType: null,
       textSort: 'priority',
       textSection: null,
@@ -102,6 +103,13 @@ describe('고르기를 주소 값으로 바꾸기', () => {
   it('계정 찾기 검색어를 fq로 남기고 지우면 주소에서 뺀다', () => {
     expect(financialParamChanges({ q: '차입금' })).toEqual({ fq: '차입금' })
     expect(financialParamChanges({ q: null })).toEqual({ fq: null })
+  })
+
+  it('규모 큰 순을 fsort=scale로 남기고 원문 순서면 주소에서 지운다(#480)', () => {
+    expect(financialParamChanges({ order: 'scale' })).toEqual({ fsort: 'scale' })
+    expect(financialParamChanges({ order: 'document' })).toEqual({ fsort: null })
+    expect(parseResultParams(new URLSearchParams({ fsort: 'scale' })).financialOrder).toBe('scale')
+    expect(parseResultParams(new URLSearchParams({ fsort: 'size' })).financialOrder).toBe('document')
   })
 
   it('재무제표를 바꿔도 계정 찾기 검색어는 그대로 둔다', () => {
