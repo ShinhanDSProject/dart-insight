@@ -1,16 +1,22 @@
 import { useEffect, useRef } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
-import type { ChangeScaleDetail, FinancialChangeDetail, ValueSource } from '@/shared/api/results'
-import { Button, CompareBars, Notice, PanelTitle, SidePanel } from '@/shared/ui'
+import type { ChangeScaleDetail, FinancialChangeDetail, RelatedTextChange, ValueSource } from '@/shared/api/results'
+import { Badge, Button, CompareBars, Notice, PanelTitle, SidePanel } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
+import { displaySectionPath } from '@/shared/lib/sectionTitle'
 import { useFinancialChangeDetail } from '../hooks/useFinancialChanges'
+import { useSummary } from '../hooks/useSummary'
 import { accountQuestion } from '../model/askQuestion'
 import { amountPeriodLabel, formatAmount, missingValueLabel, unitLabel, type AmountUnit } from '../model/format'
 import { accountLabel } from '../model/accountLabel'
 import { scaleBaseName, scaleReasonMessage } from '../model/changeScale'
+import type { SourceTarget } from '../model/resultParams'
+import { changeTypeLabel } from '../model/textLabels'
 import { AddToNote } from './AddToNote'
+import { SummaryExplanation } from './SummaryExplanation'
+import './evidence-panel.css'
 
 const statementLabels: Record<string, string> = {
   BS: '재무상태표',
@@ -29,14 +35,25 @@ interface EvidencePanelProps {
   onAsk: (question: string) => void
   /** 질문을 보내는 중이면 묻기 버튼을 끈다 */
   asking: boolean
+  onOpenSource?: (target: SourceTarget) => void
+  onOpenText?: (changeId: number) => void
 }
 
 /**
- * W-03 ② 수치 근거 상세(3.3). 두 보고서의 값·기준일·단위와 계산식, 원문 링크를 보여 준다.
+ * W-03 ② 수치 근거 상세(3.3, 3.14). 두 보고서의 값·기준일·단위와 계산식, 원문 링크를 보여 준다.
  * 계산하지 못한 항목은 숫자를 채우지 않고 사유를 보여 준다.
  * 증감액의 크기 맥락(매출액·자산총계 대비, #480)은 계산식과 기준 계정 값의 근거를 함께 보여 준다.
  */
-export function EvidencePanel({ analysis, changeId, unit, onClose, onAsk, asking }: EvidencePanelProps) {
+export function EvidencePanel({
+  analysis,
+  changeId,
+  unit,
+  onClose,
+  onAsk,
+  asking,
+  onOpenSource,
+  onOpenText,
+}: EvidencePanelProps) {
   const { state, reload } = useFinancialChangeDetail(analysis.analysisId, changeId)
   const title = state.status === 'success' ? `${accountLabel(state.data)} · 근거` : '수치 근거'
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -66,7 +83,15 @@ export function EvidencePanel({ analysis, changeId, unit, onClose, onAsk, asking
           />
         ))
         .with({ status: 'success' }, ({ data }) => (
-          <EvidenceBody analysis={analysis} detail={data} unit={unit} onAsk={onAsk} asking={asking} />
+          <EvidenceBody
+            analysis={analysis}
+            detail={data}
+            unit={unit}
+            onAsk={onAsk}
+            asking={asking}
+            onOpenSource={onOpenSource}
+            onOpenText={onOpenText}
+          />
         ))
         .exhaustive()}
     </SidePanel>
@@ -79,14 +104,39 @@ interface EvidenceBodyProps {
   unit: AmountUnit
   onAsk: (question: string) => void
   asking: boolean
+  onOpenSource?: (target: SourceTarget) => void
+  onOpenText?: (changeId: number) => void
 }
 
-function EvidenceBody({ analysis, detail, unit, onAsk, asking }: EvidenceBodyProps) {
+function EvidenceBody({
+  analysis,
+  detail,
+  unit,
+  onAsk,
+  asking,
+  onOpenSource,
+  onOpenText,
+}: EvidenceBodyProps) {
   const basis = detail.fsDiv === 'OFS' ? '별도' : '연결'
   const currency = detail.currency === 'KRW' ? '원(KRW)' : (detail.currency ?? '통화 확인 안 됨')
   const baseUnit = unitLabel('WON', detail.currency)
   // 요약 탭 예시 질문과 같은 문구(예: 매출액은 왜 늘었나요?)
   const question = accountQuestion(detail)
+
+  const summary = useSummary(analysis.analysisId)
+  const summaryItem = match(summary.state)
+    .with({ status: 'success' }, ({ data }) => {
+      const item = data.items.find((i) => i.kind === 'FINANCIAL' && i.target.changeId === detail.changeId)
+      if (!item) return null
+      const isReviewNeeded =
+        item.explanationStatus === 'REVIEW_NEEDED' || data.reviewNeeded.some((r) => r.itemNo === item.itemNo)
+      return isReviewNeeded ? null : item
+    })
+    .otherwise(() => null)
+
+  const hasSummaryExplanation = Boolean(summaryItem && summaryItem.aiText)
+  const hasRelatedTexts = detail.relatedTextChanges && detail.relatedTextChanges.length > 0
+
   return (
     <>
       <div className="evidence__sources">
@@ -100,6 +150,7 @@ function EvidenceBody({ analysis, detail, unit, onAsk, asking }: EvidenceBodyPro
           unit={unit}
           basis={basis}
           currency={currency}
+          onOpenSource={onOpenSource}
         />
         <SourceCard
           role="현재 보고서"
@@ -111,6 +162,7 @@ function EvidenceBody({ analysis, detail, unit, onAsk, asking }: EvidenceBodyPro
           unit={unit}
           basis={basis}
           currency={currency}
+          onOpenSource={onOpenSource}
         />
       </div>
       <CompareBars
@@ -138,7 +190,23 @@ function EvidenceBody({ analysis, detail, unit, onAsk, asking }: EvidenceBodyPro
         </Notice>
       )}
       {detail.changeAmount !== null && <ScaleEvidence scale={detail.scale} unit={unit} currency={detail.currency} />}
-      <p className="evidence__note">관련 설명: <strong>확인된 설명 없음</strong></p>
+
+      {hasSummaryExplanation && summaryItem && (
+        <SummaryExplanation item={summaryItem} analysis={analysis} onOpenSource={onOpenSource ?? (() => {})} />
+      )}
+
+      {hasRelatedTexts && (
+        <RelatedTextChanges
+          items={detail.relatedTextChanges}
+          onOpenText={onOpenText}
+          onOpenSource={onOpenSource}
+        />
+      )}
+
+      {!hasSummaryExplanation && !hasRelatedTexts && (
+        <p className="evidence__note">관련 설명: <strong>확인된 설명 없음</strong></p>
+      )}
+
       <Button
         variant="secondary"
         className="evidence__ask"
@@ -154,9 +222,59 @@ function EvidenceBody({ analysis, detail, unit, onAsk, asking }: EvidenceBodyPro
         label={accountLabel(detail)}
       />
       <p className="panel__note">
-        수치는 OpenDART 재무제표 API 값으로 코드가 계산했어요. 원문 표 안의 위치로 바로 이동하는 기능은 3.5(M2)에서 붙어요.
+        수치는 OpenDART 재무제표 API 값으로 코드가 계산했어요.
       </p>
     </>
+  )
+}
+
+interface RelatedTextChangesProps {
+  items: RelatedTextChange[]
+  onOpenText?: (changeId: number) => void
+  onOpenSource?: (target: SourceTarget) => void
+}
+
+function RelatedTextChanges({ items, onOpenText, onOpenSource }: RelatedTextChangesProps) {
+  return (
+    <section className="evidence-related-texts" aria-label="관련 본문·주석 변경">
+      <h3 className="evidence-related-texts__title">관련 본문·주석 변경</h3>
+      <ul className="evidence-related-texts__list">
+        {items.map((tc) => (
+          <li key={tc.changeId} className="evidence-related-texts__item">
+            <div className="evidence-related-texts__header">
+              <Badge tone={tc.changeType === 'REVIEW_NEEDED' ? 'attention' : 'accent'}>
+                {changeTypeLabel(tc.changeType)}
+              </Badge>
+              <span className="evidence-related-texts__path">{displaySectionPath(tc.sectionPath)}</span>
+            </div>
+            <p className="evidence-related-texts__preview">{tc.preview}</p>
+            <div className="evidence-related-texts__actions">
+              {onOpenText && (
+                <Button variant="secondary" onClick={() => onOpenText(tc.changeId)}>
+                  문장 변경 보기
+                </Button>
+              )}
+              {onOpenSource && tc.sectionNo !== null && (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    if (tc.sectionNo !== null) {
+                      onOpenSource({
+                        side: tc.side,
+                        section: tc.sectionNo,
+                        block: tc.blockNo,
+                      })
+                    }
+                  }}
+                >
+                  원문 보기
+                </Button>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 
@@ -204,9 +322,21 @@ interface SourceCardProps {
   unit: AmountUnit
   basis: string
   currency: string
+  onOpenSource?: (target: SourceTarget) => void
 }
 
-function SourceCard({ role, source, fallbackReport, amount, missing, detail, unit, basis, currency }: SourceCardProps) {
+function SourceCard({
+  role,
+  source,
+  fallbackReport,
+  amount,
+  missing,
+  detail,
+  unit,
+  basis,
+  currency,
+  onOpenSource,
+}: SourceCardProps) {
   const report = source ?? fallbackReport
   const scaled = formatAmount(amount, unit)
   const exact = formatAmount(amount, 'WON')
@@ -238,6 +368,23 @@ function SourceCard({ role, source, fallbackReport, amount, missing, detail, uni
           <span className="evidence__meta">
             출처: DART · <DartLinkInline rceptNo={source.rceptNo} dartUrl={source.dartUrl} label={`${role} ${report.reportName}`} />
           </span>
+          {source.sectionNo !== null && onOpenSource && (
+            <Button
+              variant="secondary"
+              className="evidence-source-btn"
+              onClick={() => {
+                if (source.sectionNo !== null) {
+                  onOpenSource({
+                    side: role === '이전 보고서' ? 'previous' : 'current',
+                    section: source.sectionNo,
+                    block: source.blockNo,
+                  })
+                }
+              }}
+            >
+              원문 표 보기
+            </Button>
+          )}
         </>
       ) : (
         <span className="evidence__meta">이 보고서에는 이 계정이 없어요.</span>

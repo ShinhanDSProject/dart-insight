@@ -40,7 +40,7 @@ import { ACCOUNT_SEARCH_MAX_LENGTH, filterAccounts, foundAccountsLabel } from '.
 import { accountLabel, componentName } from '../model/accountLabel'
 import { scaleLine } from '../model/changeScale'
 import { buildFinancialCsv, csvFileName } from '../model/financialCsv'
-import type { FinancialViewChange } from '../model/resultParams'
+import type { FinancialViewChange, SourceTarget } from '../model/resultParams'
 import {
   ariaSortOf,
   nextFinancialSort,
@@ -84,6 +84,8 @@ interface FinancialTabProps {
   /** 근거 패널의 '이 계정 변화 AI에게 묻기'(3.10). 질문을 보내고 AI 질문 탭으로 옮긴다 */
   onAsk: (question: string) => void
   asking: boolean
+  onOpenSource?: (target: SourceTarget) => void
+  onOpenText?: (changeId: number) => void
 }
 
 /** W-03 ② 재무 수치 변화(3.1). 이 분석의 결과만 보여 준다. 계정 이름을 누르면 수치 근거(3.3)를 오른쪽 패널로 연다.
@@ -101,6 +103,8 @@ export function FinancialTab({
   onChange,
   onAsk,
   asking,
+  onOpenSource,
+  onOpenText,
 }: FinancialTabProps) {
   const { state, reload, statements } = useFinancialChanges(analysis.analysisId, sjDiv, changedOnly, order)
   const selected = statements.find((s) => s.sjDiv === sjDiv)
@@ -323,6 +327,8 @@ export function FinancialTab({
           unit={unit}
           onAsk={onAsk}
           asking={asking}
+          onOpenSource={onOpenSource}
+          onOpenText={onOpenText}
           onClose={() => {
             const id = selectedChangeId
             const opener = openerRef.current
