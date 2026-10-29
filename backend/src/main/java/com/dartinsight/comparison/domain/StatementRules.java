@@ -2,6 +2,7 @@ package com.dartinsight.comparison.domain;
 
 import com.dartinsight.financial.domain.StatementType;
 import com.dartinsight.report.domain.ReportType;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -41,6 +42,12 @@ public final class StatementRules {
                 income(StatementType.CIS, sameType, bothInterim),
                 cumulativeOnly(StatementType.CF, sameType),
                 cumulativeOnly(StatementType.SCE, sameType));
+    }
+
+    /** 보고서 쌍 자체를 비교할 수 없을 때: 다섯 재무제표 모두 비교하지 않는다. */
+    public static List<StatementRule> notComparablePair() {
+        String note = "비교할 수 없는 보고서 쌍이라 재무제표를 비교하지 않아요.";
+        return Arrays.stream(StatementType.values()).map(type -> StatementRule.not(type, note)).toList();
     }
 
     private static StatementRule income(StatementType type, boolean sameType, boolean bothInterim) {
