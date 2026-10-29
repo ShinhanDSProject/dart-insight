@@ -32,7 +32,9 @@ public record ChangeScale(Base base, FinancialChange baseChange, BigDecimal rati
         /** 기준 계정의 현재 값이 없음 */
         BASE_MISSING,
         /** 기준 값이 0 이하 */
-        BASE_NOT_POSITIVE
+        BASE_NOT_POSITIVE,
+        /** 주당 금액(주당이익 등)이라 회사 전체 금액과 비교하지 않음 */
+        PER_SHARE
     }
 
     /** 기준 계정의 이름. 찾지 못하면 null */

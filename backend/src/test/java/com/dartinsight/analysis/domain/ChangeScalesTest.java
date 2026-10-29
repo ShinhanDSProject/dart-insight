@@ -115,6 +115,18 @@ class ChangeScalesTest {
     }
 
     @Test
+    @DisplayName("주당이익처럼 주당 금액은 매출액과 비교하지 않고 PER_SHARE 사유를 둔다")
+    void perShareAmountsAreNotCompared() {
+        FinancialChange revenue = change("IS", "ifrs-full_Revenue", "매출액", 0, 1_000L, 2_000L);
+        FinancialChange eps = change("IS", "ifrs-full_BasicEarningsLossPerShare", "기본주당이익(손실)", 9, 100L, 300L);
+
+        ChangeScale scale = ChangeScales.of(List.of(revenue, eps)).scaleOf(eps);
+
+        assertThat(scale.reason()).isEqualTo(Reason.PER_SHARE);
+        assertThat(scale.ratio()).isNull();
+    }
+
+    @Test
     @DisplayName("자본총계는 계정 이름이 달라도 표준계정 ID(ifrs-full_Equity)로 찾는다")
     void totalEquityIsFoundByAccountId() {
         FinancialChange equity = change("BS", "ifrs-full_Equity", "자본 총계", 9, 500L, 1_000L);

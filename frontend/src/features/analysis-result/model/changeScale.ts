@@ -34,6 +34,7 @@ export function shortScaleReason(reason: ScaleReason, base: ScaleBase): string {
     .with('BASE_NOT_FOUND', () => `${scaleBaseLabel(base)} 확인 안 됨`)
     .with('BASE_MISSING', () => `${scaleBaseLabel(base)} 값 없음`)
     .with('BASE_NOT_POSITIVE', () => `${scaleBaseLabel(base)} 0 이하`)
+    .with('PER_SHARE', () => '주당 금액')
     .exhaustive()
 }
 
@@ -45,6 +46,7 @@ export function scaleReasonMessage(reason: ScaleReason, base: ScaleBase): string
     .with('BASE_NOT_FOUND', () => `기준 계정(${label})을 이 분석의 재무제표에서 찾지 못해 비율을 계산하지 않았어요.`)
     .with('BASE_MISSING', () => `기준 계정(${label})의 현재 값이 없어 비율을 계산하지 않았어요.`)
     .with('BASE_NOT_POSITIVE', () => `기준 계정(${label})의 현재 값이 0 이하라 비율을 계산하지 않았어요.`)
+    .with('PER_SHARE', () => `주당 금액이라 회사 전체 금액인 ${label}과 비교하지 않았어요.`)
     .exhaustive()
 }
 
@@ -54,6 +56,6 @@ export function scaleReasonMessage(reason: ScaleReason, base: ScaleBase): string
  */
 export function scaleLine(scale: ChangeScale): string | null {
   if (scale.ratio !== null) return `${scaleBaseName(scale)} 대비 ${formatScaleRatio(scale.ratio)}`
-  if (scale.reason === null || scale.reason === 'CHANGE_NOT_CALCULATED') return null
+  if (scale.reason === null || scale.reason === 'CHANGE_NOT_CALCULATED' || scale.reason === 'PER_SHARE') return null
   return `${scaleBaseLabel(scale.base)} 대비 · ${shortScaleReason(scale.reason, scale.base)}`
 }
