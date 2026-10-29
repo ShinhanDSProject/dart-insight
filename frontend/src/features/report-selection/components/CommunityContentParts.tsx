@@ -2,11 +2,12 @@ import { useId, useState } from 'react'
 import { match } from 'ts-pattern'
 import { REPOST_MESSAGE_MAX, requestRepost, setLike, type Blind, type LikeResult, type LikeTarget } from '@/shared/api/community'
 import { useAsyncAction } from '@/shared/hooks/useAsyncAction'
+import { dateTimeLabel } from '@/shared/lib/communityLabels'
 import { formatInteger } from '@/shared/lib/numberFormat'
 import { Button, Dialog, FieldHint, FieldLabel, Notice, TextArea } from '@/shared/ui'
 import { ErrorState } from '@/shared/ui/StateView'
 import { useCommunity } from '../hooks/useCommunityGate'
-import { blindUntilLabel, communityErrorMessages, type ContentView } from '../model/community'
+import { communityErrorMessages, type ContentView } from '../model/community'
 
 /** 글·댓글 본문 자리. 가려지거나 지운 것은 안내 한 줄, 가려진 내 것은 본문과 사유·기한·재게시 청구 */
 export function ContentBody({ view, noun, onRepostRequested }: { view: ContentView; noun: '글' | '댓글'; onRepostRequested: () => void }) {
@@ -37,7 +38,7 @@ function BlindNotice({ blind, noun, onRequested }: { blind: Blind; noun: '글' |
         <dd>{blind.reason}</dd>
         <dt>가리는 기한</dt>
         <dd>
-          {blindUntilLabel(blind.blindUntil)}까지
+          {dateTimeLabel(blind.blindUntil)}까지
           {blind.expired && ' · 기한이 지나 관리자가 다시 확인할 때까지 가려 둬요'}
         </dd>
       </dl>
