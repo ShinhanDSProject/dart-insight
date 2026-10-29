@@ -18,6 +18,8 @@ interface CommunityBodyFormProps {
   rows?: number
   /** 저장 실패 안내 */
   error?: ReactNode
+  /** 입력칸 아래에 붙는 것(글쓰기의 '변경점 붙이기', #464) */
+  attachment?: ReactNode
 }
 
 /**
@@ -36,6 +38,7 @@ export function CommunityBodyForm({
   onCancel,
   rows = 3,
   error,
+  attachment,
 }: CommunityBodyFormProps) {
   const id = useId()
   const [draft, setDraft] = useState(initial)
@@ -72,6 +75,7 @@ export function CommunityBodyForm({
         aria-describedby={`${id}-count`}
         onChange={(e) => setDraft(e.target.value)}
       />
+      {attachment}
       <div className="community-form__foot">
         <FieldHint id={`${id}-count`}>
           {formatInteger(draft.trim().length)} / {formatInteger(maxLength)}자{shownProblem ? ` · ${shownProblem}` : ''}

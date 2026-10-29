@@ -32,9 +32,11 @@ export interface Blind {
   repostRequested: boolean
 }
 
-/** 붙인 변경점 인용(#464). 이 화면은 아직 보이지 않는다 */
+export type QuoteKind = 'FINANCIAL_CHANGE' | 'TEXT_CHANGE'
+
+/** 붙인 변경점 인용(#464). label·text·reportPair는 backend가 저장된 분석 결과로 만든 사본이다 */
 export interface PostQuote {
-  kind: 'FINANCIAL_CHANGE' | 'TEXT_CHANGE'
+  kind: QuoteKind
   label: string
   text: string
   changeType: string | null
@@ -110,8 +112,15 @@ export function getPosts(corpCode: string, sort: PostSort, page: number, options
   return apiGet<PostList>(endpoints.companyPosts(corpCode), { sort, page }, options)
 }
 
-export function createPost(corpCode: string, body: string): Promise<Post> {
-  return apiPost<Post>(endpoints.companyPosts(corpCode), { body })
+/** 글에 붙일 변경점(#464). 종류와 원래 위치만 보내고, 이름·글은 backend가 만든다 */
+export interface QuoteRequest {
+  kind: QuoteKind
+  analysisId: number
+  changeId: number
+}
+
+export function createPost(corpCode: string, body: string, quote: QuoteRequest | null = null): Promise<Post> {
+  return apiPost<Post>(endpoints.companyPosts(corpCode), quote === null ? { body } : { body, quote })
 }
 
 export function getPostDetail(postId: number, options?: RequestOptions): Promise<PostDetail> {

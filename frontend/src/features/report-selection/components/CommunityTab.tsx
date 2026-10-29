@@ -7,12 +7,15 @@ import { EmptyState, ErrorState } from '@/shared/ui/StateView'
 import { CommunityGateContext, useCommunityGate } from '../hooks/useCommunityGate'
 import { useCommunityPosts } from '../hooks/useCommunityPosts'
 import { COMMUNITY_DISCLAIMER, communityErrorMessages, hasMorePosts, sortOptions } from '../model/community'
+import type { QuotePick } from '../model/postQuote'
 import { CommunityBodyForm } from './CommunityBodyForm'
 import { CommunityPostCard } from './CommunityPostCard'
+import { QuotePreview } from './CommunityQuoteCard'
 import { NicknameDialog } from './NicknameDialog'
+import { QuotePickerDialog } from './QuotePickerDialog'
 
 /**
- * 기업 화면의 커뮤니티 탭(FS-58, W-01 ②). 위에서부터 고정 문구, 글쓰기, 정렬, 글 카드.
+ * 기업 화면의 커뮤니티 탭(FS-58, W-01 ②). 위에서부터 고정 문구, 글쓰기(변경점 붙이기 #464), 정렬, 글 카드.
  * 읽기는 로그인 없이 되고, 쓰기·좋아요·신고를 누르면 로그인 안내가 뜬다. 닉네임이 없으면 처음 쓸 때 닉네임 정하기가 먼저 뜬다.
  * 글을 불러오지 못해도 이 탭 안에서만 안내하므로 다른 탭은 그대로 쓴다.
  */
@@ -21,6 +24,9 @@ export function CommunityTab({ corpCode }: { corpCode: string }) {
   const [sort, setSort] = useState<PostSort>('latest')
   const posts = useCommunityPosts(corpCode, sort)
   const write = useAsyncAction<Post>()
+  // 글에 붙일 변경점(#464)과 고르기 대화상자
+  const [quote, setQuote] = useState<QuotePick | null>(null)
+  const [picking, setPicking] = useState(false)
   // 몇 분 전 표시의 기준. 그릴 때마다 정해 방금 쓴 글도 '방금 전'으로 보인다
   const now = new Date()
   const sortLabelId = useId()
@@ -39,12 +45,22 @@ export function CommunityTab({ corpCode }: { corpCode: string }) {
           maxLength={POST_BODY_MAX}
           submitLabel="올리기"
           saving={write.state.status === 'loading'}
+          attachment={
+            quote === null ? (
+              <Button variant="link" className="community-form__attach" onClick={() => setPicking(true)}>
+                변경점 붙이기
+              </Button>
+            ) : (
+              <QuotePreview pick={quote} onRemove={() => setQuote(null)} disabled={write.state.status === 'loading'} />
+            )
+          }
           onSubmit={async (body) => {
             if (!gate.requireLogin()) return false
             let done = false
             await write.run(async () => {
-              const post = await gate.withNickname(() => createPost(corpCode, body))
+              const post = await gate.withNickname(() => createPost(corpCode, body, quote?.request ?? null))
               posts.dispatch({ type: 'add-post', post })
+              setQuote(null)
               done = true
               return post
             })
@@ -98,6 +114,16 @@ export function CommunityTab({ corpCode }: { corpCode: string }) {
         .with({ kind: 'nickname' }, () => <NicknameDialog onSaved={gate.nicknameSaved} onClose={gate.closeDialog} />)
         .with({ kind: 'none' }, () => null)
         .exhaustive()}
+      {picking && (
+        <QuotePickerDialog
+          corpCode={corpCode}
+          onClose={() => setPicking(false)}
+          onPick={(pick) => {
+            setQuote(pick)
+            setPicking(false)
+          }}
+        />
+      )}
     </CommunityGateContext.Provider>
   )
 }

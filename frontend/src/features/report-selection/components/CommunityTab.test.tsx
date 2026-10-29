@@ -10,7 +10,7 @@ import { CommunityTab } from './CommunityTab'
 
 const getPosts = vi.fn<(corpCode: string, sort: string, page: number) => Promise<PostList>>()
 const getPostDetail = vi.fn<(postId: number) => Promise<PostDetail>>()
-const createPost = vi.fn<(corpCode: string, body: string) => Promise<Post>>()
+const createPost = vi.fn<(corpCode: string, body: string, quote?: unknown) => Promise<Post>>()
 const setNickname = vi.fn<(nickname: string) => Promise<{ nickname: string }>>()
 const reportContent = vi.fn<(target: unknown, reason: string) => Promise<void>>()
 const requestRepost = vi.fn<(reportId: number, message: string | null) => Promise<unknown>>()
@@ -19,7 +19,7 @@ vi.mock('@/shared/api/community', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/shared/api/community')>()),
   getPosts: (corpCode: string, sort: string, page: number) => getPosts(corpCode, sort, page),
   getPostDetail: (postId: number) => getPostDetail(postId),
-  createPost: (corpCode: string, body: string) => createPost(corpCode, body),
+  createPost: (corpCode: string, body: string, quote?: unknown) => createPost(corpCode, body, quote),
   setNickname: (nickname: string) => setNickname(nickname),
   reportContent: (target: unknown, reason: string) => reportContent(target, reason),
   requestRepost: (reportId: number, message: string | null) => requestRepost(reportId, message),
@@ -177,7 +177,7 @@ describe('커뮤니티 탭', () => {
 
     expect(await screen.findByText('첫 의견')).toBeTruthy()
     expect(screen.queryByRole('dialog')).toBeNull()
-    expect(createPost).toHaveBeenNthCalledWith(2, '00126380', '첫 의견')
+    expect(createPost).toHaveBeenNthCalledWith(2, '00126380', '첫 의견', null)
     expect((screen.getByLabelText('글쓰기') as HTMLTextAreaElement).value).toBe('')
   })
 
