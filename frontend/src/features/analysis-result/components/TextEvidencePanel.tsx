@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { DocumentSide } from '@/shared/api/documents'
 import type { TextChangeDetail, TextSource } from '@/shared/api/textChanges'
-import { Button, Notice, Panel, PanelTitle } from '@/shared/ui'
+import { Button, Notice } from '@/shared/ui'
+import { Dialog } from '@/shared/ui/Dialog'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { formatDate, reportTypeLabel } from '@/shared/lib/reportLabels'
@@ -34,30 +35,14 @@ interface TextEvidencePanelProps {
 }
 
 /**
- * W-03 ③ 문장·표 근거 상세(3.4). 변경 전·후 원문을 나란히 보여 주고, 각 원문의 보고서·종류·기간·항목·위치를 붙인다.
- * 원문이 없거나 짝을 정하지 못한 항목은 근거가 있는 것처럼 보이지 않게 '검토 필요'로 보여 준다.
+ * W-03 ③ 문장·표 근거 상세(3.4)를 '원문 비교' 창(모달)으로 띄운다(#507). 변경 전·후 원문 전체를 나란히 보여 주고,
+ * 각 원문의 보고서·종류·기간·항목·위치를 붙인다. 원문이 없거나 짝을 정하지 못한 항목은 근거가 있는 것처럼 보이지 않게 '검토 필요'로 보여 준다.
+ * 화면에 들어올 때 .page의 애니메이션(transform)이 고정 위치를 페이지 기준으로 바꾸므로 body에 띄운다.
  */
 export function TextEvidencePanel({ analysis, changeId, onClose, onOpenSource }: TextEvidencePanelProps) {
   const { state, reload } = useTextChangeDetail(analysis.analysisId, changeId)
-  const headingRef = useRef<HTMLHeadingElement>(null)
-
-  // 열리면 제목으로 초점과 화면을 옮긴다(키보드·화면 읽기 사용자)
-  useEffect(() => {
-    headingRef.current?.focus()
-    headingRef.current?.scrollIntoView?.({ block: 'nearest' })
-  }, [])
-
-  const headingId = `text-evidence-${changeId}`
-  return (
-    <Panel className="evidence" aria-labelledby={headingId}>
-      <div className="evidence__head">
-        <PanelTitle as="h4" id={headingId} ref={headingRef} tabIndex={-1}>
-          문장·표 근거
-        </PanelTitle>
-        <Button variant="secondary" onClick={onClose}>
-          닫기
-        </Button>
-      </div>
+  return createPortal(
+    <Dialog titleId={`text-evidence-${changeId}`} title="원문 비교" onClose={onClose} className="text-compare-dialog">
       {match(state)
         .with({ status: 'loading' }, () => <LoadingState message="원문 근거를 불러오는 중입니다…" />)
         .with({ status: 'error' }, ({ error }) => (
@@ -75,7 +60,8 @@ export function TextEvidencePanel({ analysis, changeId, onClose, onOpenSource }:
           </>
         ))
         .exhaustive()}
-    </Panel>
+    </Dialog>,
+    document.body,
   )
 }
 
