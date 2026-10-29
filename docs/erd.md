@@ -737,6 +737,8 @@ OpenDART 정기보고서 주요정보 API를 보고서(접수번호)·종류마�
 
 `calc_status`: `OK`, `PREVIOUS_ZERO`(이전 값 0), `PREVIOUS_NEGATIVE`(이전 값 음수), `TURNED_PROFIT`(흑자전환), `TURNED_LOSS`(적자전환), `LOSS_NARROWED`(적자폭 축소), `LOSS_WIDENED`(적자폭 확대), `SIGN_CHANGED`(부호가 바뀜), `PREVIOUS_MISSING`(이전 값 미기재), `CURRENT_MISSING`(현재 값 미기재), `ONLY_CURRENT`(현재 보고서에만 있음), `ONLY_PREVIOUS`(이전 보고서에만 있음), `AMBIGUOUS_MATCH`(같은 계정이 여러 개이고 두 보고서의 개수가 달라 짝을 확정하지 못함, 검토 필요), `PERIOD_MISMATCH`(기간이 달라 계산하지 않음). 가장 긴 값이 17자라 VARCHAR(20)에 들어갑니다.
 
+이전·현재 값이 모두 없는 계정은 비교할 변화가 없어 결과에 넣지 않습니다(#355). OpenDART 재무제표 응답에 계정 행은 있지만 금액 칸이 빈 값이나 `-`(없는 값, 0이 아님)인 경우로, 한쪽 보고서에만 있는 계정이면서 그 값이 없거나 두 보고서 모두 값이 없는 계정입니다. 기간이 달라 계산하지 않는 재무제표(`PERIOD_MISMATCH`)는 값을 읽지 않으므로 그대로 둡니다. 분석 버전 m2-16 전의 결과에는 이런 행이 `ONLY_CURRENT`·`ONLY_PREVIOUS`·`CURRENT_MISSING`으로 남아 있습니다.
+
 두 값이 모두 있을 때 증감률을 계산하지 않는 상태는 이렇게 정합니다(#144). 모두 증감액은 계산하고 증감률은 null입니다. '이익 계정'은 손익계산서(`IS`·`CIS`)에 있으면서 현재 보고서의 표준계정 ID가 이익 계정 목록(`docs/api-spec.md` 재무 수치 변화)에 있는 계정입니다. 표준계정 ID가 없는 회사 고유 계정은 이익 계정이 아닙니다.
 
 | 이전 → 현재 | 이익 계정 | 그 밖의 계정 |
