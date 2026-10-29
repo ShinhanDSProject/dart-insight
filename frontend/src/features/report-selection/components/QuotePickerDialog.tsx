@@ -1,22 +1,27 @@
-import { useId, useState } from 'react'
+import { useId, useReducer, useState } from 'react'
 import { match } from 'ts-pattern'
 import type { CompanyAnalysisItem } from '@/shared/api/analyses'
 import type { QuoteKind } from '@/shared/api/community'
 import type { SjDiv } from '@/shared/api/results'
 import { useCompanyAnalyses } from '@/shared/hooks/useCompanyAnalyses'
-import { Dialog, FieldLabel, Input, SegmentedControl, Select, Skeleton } from '@/shared/ui'
+import { Button, Dialog, FieldLabel, Input, SegmentedControl, Select, Skeleton } from '@/shared/ui'
 import { EmptyState, ErrorState } from '@/shared/ui/StateView'
 import { useFinancialCandidates, useTextCandidates } from '../hooks/useQuoteCandidates'
 import {
   accountName,
   amountChangeLabel,
   analysisOptionLabel,
+  EMPTY_TEXT_SEARCH,
   financialPick,
+  hasNextPage,
+  pageRangeLabel,
   quoteKindLabel,
   quoteKindOptions,
+  SEARCH_MAX,
   searchQuery,
   statementOptions,
   textPick,
+  textSearchReducer,
   type QuotePick,
 } from '../model/postQuote'
 
@@ -85,15 +90,22 @@ function Picker({ analyses, onPick }: { analyses: CompanyAnalysisItem[]; onPick:
 
 function TextCandidates({ analysis, onPick }: { analysis: CompanyAnalysisItem; onPick: (pick: QuotePick) => void }) {
   const id = useId()
-  const [input, setInput] = useState('')
-  const q = searchQuery(input)
-  const candidates = useTextCandidates(analysis.analysisId, q)
+  const [search, dispatch] = useReducer(textSearchReducer, EMPTY_TEXT_SEARCH)
+  const q = searchQuery(search.input)
+  const candidates = useTextCandidates(analysis.analysisId, q, search.page)
 
   return (
     <>
       <div className="quote-picker__field">
         <FieldLabel htmlFor={`${id}-q`}>문장 찾기</FieldLabel>
-        <Input id={`${id}-q`} type="search" value={input} placeholder="두 글자 이상" onChange={(e) => setInput(e.target.value)} />
+        <Input
+          id={`${id}-q`}
+          type="search"
+          value={search.input}
+          maxLength={SEARCH_MAX}
+          placeholder="두 글자 이상"
+          onChange={(e) => dispatch({ type: 'set-input', input: e.target.value })}
+        />
       </div>
       {match(candidates.state)
         .with({ status: 'idle' }, { status: 'loading' }, () => <Skeleton label="문장 변경을 불러오는 중입니다…" shape="line" count={4} />)
@@ -102,20 +114,41 @@ function TextCandidates({ analysis, onPick }: { analysis: CompanyAnalysisItem; o
           data.items.length === 0 ? (
             <EmptyState title={q === null ? '이 분석에는 문장 변경이 없어요' : '찾는 문장 변경이 없어요'} />
           ) : (
-            <ul className="quote-picker__list" aria-label="문장 변경 후보">
-              {data.items.map((item) => (
-                <li key={item.changeId}>
-                  <button type="button" className="quote-picker__item" onClick={() => onPick(textPick(analysis, item))}>
-                    <span className="quote-picker__item-head">
-                      {quoteKindLabel({ kind: 'TEXT_CHANGE', changeType: item.changeType })} · {item.sectionPath}
-                    </span>
-                    <span className="quote-picker__item-text">
-                      {item.currentPreview ?? item.previousPreview ?? item.reviewReason}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <>
+              <ul className="quote-picker__list" aria-label="문장 변경 후보">
+                {data.items.map((item) => (
+                  <li key={item.changeId}>
+                    <button type="button" className="quote-picker__item" onClick={() => onPick(textPick(analysis, item))}>
+                      <span className="quote-picker__item-head">
+                        {quoteKindLabel({ kind: 'TEXT_CHANGE', changeType: item.changeType })} · {item.sectionPath}
+                      </span>
+                      <span className="quote-picker__item-text">
+                        {item.currentPreview ?? item.previousPreview ?? item.reviewReason}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {(data.page > 0 || hasNextPage(data)) && (
+                <nav className="quote-picker__pages" aria-label="문장 변경 쪽 이동">
+                  <Button
+                    variant="secondary"
+                    disabled={data.page === 0}
+                    onClick={() => dispatch({ type: 'set-page', page: data.page - 1 })}
+                  >
+                    이전
+                  </Button>
+                  <span>{pageRangeLabel(data)}</span>
+                  <Button
+                    variant="secondary"
+                    disabled={!hasNextPage(data)}
+                    onClick={() => dispatch({ type: 'set-page', page: data.page + 1 })}
+                  >
+                    다음
+                  </Button>
+                </nav>
+              )}
+            </>
           ),
         )
         .exhaustive()}

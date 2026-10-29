@@ -6,12 +6,16 @@ import {
   accountName,
   amountChangeLabel,
   EMPTY_COMPOSER,
+  EMPTY_TEXT_SEARCH,
+  hasNextPage,
+  pageRangeLabel,
   quoteComposerReducer,
   quoteKindLabel,
   quoteLink,
   searchQuery,
   statementOptions,
   textPick,
+  textSearchReducer,
   type QuotePick,
 } from './postQuote'
 
@@ -68,9 +72,24 @@ describe('변경점 고르기', () => {
     expect(statementOptions([s('BS', true, 2), s('IS', false, 3), s('CF', true, 0)]).map((o) => o.value)).toEqual(['BS'])
   })
 
-  it('문장 찾기는 앞뒤 공백을 지운 두 글자 이상만 보낸다', () => {
+  it('문장 찾기는 앞뒤 공백을 지운 2~100자만 보낸다(넘으면 앞 100자)', () => {
     expect(searchQuery(' H ')).toBeNull()
     expect(searchQuery(' HBM ')).toBe('HBM')
+    expect(searchQuery('가'.repeat(150))).toBe('가'.repeat(100))
+  })
+
+  it('다음 쪽은 전체 건수로 알고, 범위를 건수와 함께 보인다', () => {
+    const page = (n: number, total: number, count = 20) => ({ page: n, size: 20, totalItems: total, items: Array(count).fill(0) })
+    expect(hasNextPage(page(0, 20))).toBe(false)
+    expect(hasNextPage(page(0, 21))).toBe(true)
+    expect(pageRangeLabel(page(1, 1054))).toBe('21~40 / 1,054건')
+    expect(pageRangeLabel(page(52, 1054, 14))).toBe('1,041~1,054 / 1,054건')
+  })
+
+  it('검색어를 바꾸면 첫 쪽으로 돌아가고, 쪽은 0 밑으로 내려가지 않는다', () => {
+    const moved = textSearchReducer(EMPTY_TEXT_SEARCH, { type: 'set-page', page: 3 })
+    expect(textSearchReducer(moved, { type: 'set-input', input: 'HBM' })).toEqual({ input: 'HBM', page: 0 })
+    expect(textSearchReducer(moved, { type: 'set-page', page: -1 }).page).toBe(0)
   })
 })
 

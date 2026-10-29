@@ -314,4 +314,27 @@ describe('글에 붙인 변경점(#464)', () => {
     )
     expect(api.getTextChanges.mock.calls.some(([, query]) => query.q === 'H')).toBe(false)
   })
+
+  it('문장 변경이 한 쪽보다 많으면 다음 쪽을 받고, 검색어를 바꾸면 첫 쪽부터 찾는다', async () => {
+    api.getTextChanges.mockImplementation((_id: number, query: { page: number }) =>
+      Promise.resolve({ ...textList([textItem(3001 + query.page * 20)]), page: query.page, totalItems: 45 }),
+    )
+    renderTab()
+    await screen.findByText('HBM 이야기 1')
+    fireEvent.click(screen.getByRole('button', { name: '변경점 붙이기' }))
+    const dialog = await screen.findByRole('dialog')
+    const pages = await within(dialog).findByRole('navigation', { name: '문장 변경 쪽 이동' })
+    expect((within(pages).getByRole('button', { name: '이전' }) as HTMLButtonElement).disabled).toBe(true)
+
+    fireEvent.click(within(pages).getByRole('button', { name: '다음' }))
+    await waitFor(() => expect(api.getTextChanges).toHaveBeenLastCalledWith(42, expect.objectContaining({ page: 1 }), expect.anything()))
+    expect(await within(dialog).findByText('21~21 / 45건')).toBeTruthy()
+
+    const search = within(dialog).getByRole('searchbox', { name: '문장 찾기' })
+    expect(search.getAttribute('maxlength')).toBe('100')
+    fireEvent.change(search, { target: { value: 'HBM' } })
+    await waitFor(() =>
+      expect(api.getTextChanges).toHaveBeenLastCalledWith(42, expect.objectContaining({ q: 'HBM', page: 0 }), expect.anything()),
+    )
+  })
 })

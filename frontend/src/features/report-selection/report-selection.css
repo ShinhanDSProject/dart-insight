@@ -1650,3 +1650,12 @@ a.community-quote__link:focus-visible {
   font-size: var(--font-size-sm);
   overflow-wrap: anywhere;
 }
+
+.quote-picker__pages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-sm);
+}
