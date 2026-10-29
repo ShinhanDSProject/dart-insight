@@ -12,6 +12,7 @@ import {
   parseResultParams,
   resultTabs,
   sourceParamChanges,
+  summaryParamChanges,
   textParamChanges,
 } from './resultParams'
 import { shortcutResultTabs } from '@/shared/lib/shortcuts'
@@ -20,6 +21,8 @@ describe('parseResultParams', () => {
   it('값이 없으면 기본값으로 읽는다', () => {
     expect(parseResultParams(new URLSearchParams())).toEqual({
       tab: 'summary',
+      summaryLens: null,
+      summaryView: 'lens',
       sjDiv: 'BS',
       changedOnly: false,
       unit: 'MILLION',
@@ -192,5 +195,19 @@ describe('AI 질문 탭 주소', () => {
 describe('단축키 탭 순서', () => {
   it('1~5 단축키의 탭 순서가 결과 화면의 탭 순서와 같다', () => {
     expect([...shortcutResultTabs]).toEqual(resultTabs)
+  })
+})
+
+describe('요약 관점 거르기(FS-64)', () => {
+  it('관점과 보기를 주소에서 읽고, 모르는 값은 전체·관점별로 본다', () => {
+    const read = (q: string) => parseResultParams(new URLSearchParams(q))
+    expect(read('slens=CASH_FLOW&sview=list')).toMatchObject({ summaryLens: 'CASH_FLOW', summaryView: 'list' })
+    expect(read('slens=cheap&sview=grid')).toMatchObject({ summaryLens: null, summaryView: 'lens' })
+  })
+
+  it('기본값(전체·관점별)은 주소에서 지운다', () => {
+    expect(summaryParamChanges({ lens: 'RISK' })).toEqual({ slens: 'RISK' })
+    expect(summaryParamChanges({ lens: null, view: 'lens' })).toEqual({ slens: null, sview: null })
+    expect(summaryParamChanges({ view: 'list' })).toEqual({ sview: 'list' })
   })
 })

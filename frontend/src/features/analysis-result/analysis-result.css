@@ -2604,3 +2604,46 @@
   color: var(--color-text-muted);
   font-weight: var(--font-weight-regular);
 }
+
+/* 요약 투자자 관점(3.10, FS-64). 관점은 주제로 묶을 뿐이라 중립색만 쓴다 */
+.summary-lens-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.summary-lens-controls__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.summary-lens-controls > .panel__note {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.summary-lenses {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.summary-lens__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+}
+
+.summary-lens__question {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.summary-lens__lead {
+  font-weight: var(--font-weight-semibold);
+}

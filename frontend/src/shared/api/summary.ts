@@ -12,6 +12,9 @@ export type ExplanationStatus = 'FOUND' | 'NOT_FOUND' | 'TEMPLATE' | 'REVIEW_NEE
 /** 재무 수치 설명 등급(ADR-0015): 회사가 직접 밝힘, 관련 내용, 확인된 설명 없음 */
 export type ExplanationGrade = 'STATED' | 'RELATED' | 'NONE'
 
+/** 요약 한 줄을 묶는 투자자 관점(FS-64). 주제로 묶을 뿐 좋고 나쁨을 판단하지 않는다 */
+export type SummaryLens = 'PROFITABILITY' | 'GROWTH' | 'STABILITY' | 'CASH_FLOW' | 'SHAREHOLDER' | 'RISK' | 'OTHER'
+
 export interface SummaryTarget {
   type: SummaryKind
   /** FINANCIAL이면 financial-changes의 changeId, TEXT면 text-changes의 changeId */
@@ -38,6 +41,9 @@ export interface SummaryItem {
   itemNo: number
   kind: SummaryKind
   target: SummaryTarget
+  lens: SummaryLens
+  /** 관점의 화면 이름(예: 재무 안정성) */
+  lensLabel: string
   /** 코드가 계산한 값으로 만든 사실 문장(재무 수치). 문장 변화면 null */
   factSentence: string | null
   /** AI가 만든 문장(문장 변화 요약, 재무 수치 설명) */
@@ -60,9 +66,18 @@ export interface ReviewItem {
   itemNo: number
   kind: SummaryKind
   target: SummaryTarget
+  lens: SummaryLens
+  lensLabel: string
   reason: string | null
   /** 투자 권유성 표현 검사(5.5)에 걸린 규칙 ID. 근거 확인에 실패한 것이면 빈 목록 */
   blockedRules: string[]
+}
+
+/** 관점 하나의 보이는 줄(items) 수 */
+export interface LensCount {
+  lens: SummaryLens
+  lensLabel: string
+  count: number
 }
 
 export interface Summary {
@@ -71,6 +86,8 @@ export interface Summary {
   summaryMessage: string | null
   textStatus: TextStatus | null
   items: SummaryItem[]
+  /** 일곱 관점을 정한 순서로 모두 준다(없으면 count 0) */
+  lensCounts: LensCount[]
   reviewNeededCount: number
   reviewNeeded: ReviewItem[]
 }
