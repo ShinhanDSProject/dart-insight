@@ -43,6 +43,7 @@ public class FinancialChangeController {
     public FinancialChangeDetailResponse detail(@PathVariable Long analysisId, @PathVariable Long changeId) {
         FinancialChangeEvidence evidence = queryService.change(analysisId, changeId);
         return FinancialChangeDetailResponse.of(evidence.change(), evidence.scale(), evidence.previous(),
-                evidence.current());
+                evidence.current(), evidence.prevTable(), evidence.currTable(), evidence.baseTable(),
+                evidence.relatedTextChanges());
     }
 }

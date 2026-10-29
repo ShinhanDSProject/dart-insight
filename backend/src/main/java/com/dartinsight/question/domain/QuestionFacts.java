@@ -2,7 +2,7 @@ package com.dartinsight.question.domain;
 
 import com.dartinsight.analysis.domain.FinancialChange;
 import com.dartinsight.analysis.domain.FinancialChangeRow;
-import com.dartinsight.summary.domain.AccountAliases;
+import com.dartinsight.financial.domain.AccountAliases;
 import com.dartinsight.summary.domain.FinancialFacts;
 import java.util.ArrayList;
 import java.util.Comparator;

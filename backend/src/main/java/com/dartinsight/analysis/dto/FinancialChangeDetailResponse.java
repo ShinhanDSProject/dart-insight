@@ -5,6 +5,8 @@ import com.dartinsight.analysis.domain.ChangeScale;
 import com.dartinsight.analysis.domain.ChangeScale.Base;
 import com.dartinsight.analysis.domain.ChangeScale.Reason;
 import com.dartinsight.analysis.domain.FinancialChange;
+import com.dartinsight.analysis.domain.FinancialEvidenceMatcher.RelatedTextChange;
+import com.dartinsight.analysis.domain.FinancialEvidenceMatcher.TableLocation;
 import com.dartinsight.comparison.domain.AmountBasis;
 import com.dartinsight.financial.domain.FsDiv;
 import com.dartinsight.report.domain.DartLinks;
@@ -14,14 +16,16 @@ import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Locale;
 
 /**
- * @param formula     증감액 계산식(원 단위). 계산하지 않았으면 null
- * @param rateFormula 증감률 계산식. 계산하지 않았으면 null
- * @param previous    이전 값의 근거. 이전 보고서에 없는 계정이면 null
- * @param current     현재 값의 근거. 현재 보고서에 없는 계정이면 null
- * @param scale       증감액의 크기 맥락과 계산식(#480)
+ * @param formula            증감액 계산식(원 단위). 계산하지 않았으면 null
+ * @param rateFormula        증감률 계산식. 계산하지 않았으면 null
+ * @param previous           이전 값의 근거. 이전 보고서에 없는 계정이면 null
+ * @param current            현재 값의 근거. 현재 보고서에 없는 계정이면 null
+ * @param scale              증감액의 크기 맥락과 계산식(#480)
+ * @param relatedTextChanges 같은 분석의 관련 문장 변경(#512)
  */
 public record FinancialChangeDetailResponse(
         Long changeId,
@@ -43,20 +47,30 @@ public record FinancialChangeDetailResponse(
         String rateFormula,
         Source previous,
         Source current,
-        ScaleDetail scale) {
+        ScaleDetail scale,
+        List<RelatedTextChange> relatedTextChanges) {
 
     public static FinancialChangeDetailResponse of(FinancialChange c, ChangeScale scale, Report previous,
             Report current) {
+        return of(c, scale, previous, current, null, null, null, List.of());
+    }
+
+    public static FinancialChangeDetailResponse of(FinancialChange c, ChangeScale scale, Report previous,
+            Report current, TableLocation prevTable, TableLocation currTable, TableLocation baseTable,
+            List<RelatedTextChange> relatedTextChanges) {
         return new FinancialChangeDetailResponse(c.getId(), c.getSjDiv(), c.getAccountName(), c.getAccountDetail(),
                 c.getAccountKey(),
                 c.getFsDiv(), c.getAmountBasis(), c.getPreviousAmount(), c.getCurrentAmount(), c.getChangeAmount(),
                 c.getChangeRate(), c.direction(), c.getCalcStatus(), c.getCalcStatus().message(), c.getCurrency(),
                 formula(c), rateFormula(c),
                 c.getPreviousRceptNo() == null ? null : Source.of(previous, c.getSjDiv(), c.getPreviousAccountId(),
-                        c.getPreviousPeriodName()),
+                        c.getPreviousPeriodName(), prevTable == null ? null : prevTable.sectionNo(),
+                        prevTable == null ? null : prevTable.blockNo()),
                 c.getCurrentRceptNo() == null ? null : Source.of(current, c.getSjDiv(), c.getCurrentAccountId(),
-                        c.getCurrentPeriodName()),
-                ScaleDetail.of(c, scale, current));
+                        c.getCurrentPeriodName(), currTable == null ? null : currTable.sectionNo(),
+                        currTable == null ? null : currTable.blockNo()),
+                ScaleDetail.of(c, scale, current, baseTable),
+                relatedTextChanges == null ? List.of() : relatedTextChanges);
     }
 
     /** 증감액 계산식(원 단위). 금액마다 그 보고서의 기간 이름을 붙인다(#144). 계산하지 않았으면 null */
@@ -93,6 +107,10 @@ public record FinancialChangeDetailResponse(
             Long baseChangeId, String formula, Source baseSource) {
 
         static ScaleDetail of(FinancialChange c, ChangeScale scale, Report current) {
+            return of(c, scale, current, null);
+        }
+
+        static ScaleDetail of(FinancialChange c, ChangeScale scale, Report current, TableLocation baseTable) {
             FinancialChange baseChange = scale.baseChange();
             if (baseChange == null) {
                 return new ScaleDetail(scale.base(), null, null, null, scale.reason(), null, null, null);
@@ -100,7 +118,9 @@ public record FinancialChangeDetailResponse(
             return new ScaleDetail(scale.base(), scale.baseAccountName(), scale.baseAmount(), scale.ratio(),
                     scale.reason(), baseChange.getId(), scaleFormula(c, scale),
                     Source.of(current, baseChange.getSjDiv(), baseChange.getCurrentAccountId(),
-                            baseChange.getCurrentPeriodName()));
+                            baseChange.getCurrentPeriodName(),
+                            baseTable == null ? null : baseTable.sectionNo(),
+                            baseTable == null ? null : baseTable.blockNo()));
         }
     }
 
@@ -133,13 +153,21 @@ public record FinancialChangeDetailResponse(
      * 수치의 원천: 보고서와 재무제표 안의 계정.
      *
      * @param periodName 재무제표 API의 당기 이름(예: 제 57 기 반기)
+     * @param sectionNo  구조화된 원문 섹션 번호(#512)
+     * @param blockNo    구조화된 원문 표 블록 번호(#512)
      */
     public record Source(String rceptNo, String reportName, int fiscalYear, LocalDate periodEnd, String periodName,
-            String sjDiv, String accountId, String dartUrl) {
+            String sjDiv, String accountId, String dartUrl, Integer sectionNo, Integer blockNo) {
 
         static Source of(Report report, String sjDiv, String accountId, String periodName) {
+            return of(report, sjDiv, accountId, periodName, null, null);
+        }
+
+        static Source of(Report report, String sjDiv, String accountId, String periodName, Integer sectionNo,
+                Integer blockNo) {
             return new Source(report.getRceptNo(), report.getReportName(), report.getFiscalYear(),
-                    report.getPeriodEnd(), periodName, sjDiv, accountId, DartLinks.viewer(report.getRceptNo()));
+                    report.getPeriodEnd(), periodName, sjDiv, accountId, DartLinks.viewer(report.getRceptNo()),
+                    sectionNo, blockNo);
         }
     }
 }

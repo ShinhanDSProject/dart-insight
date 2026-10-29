@@ -4,7 +4,7 @@ import com.dartinsight.analysis.domain.FinancialChangeRow;
 import com.dartinsight.analysis.domain.TextChangeRow;
 import com.dartinsight.analysis.domain.TextChangeRow.Side;
 import com.dartinsight.document.domain.DocumentBlock;
-import com.dartinsight.summary.domain.AccountAliases;
+import com.dartinsight.financial.domain.AccountAliases;
 import com.dartinsight.summary.domain.FinancialFacts;
 import com.dartinsight.summary.domain.LlmCallRow;
 import com.dartinsight.summary.domain.SummaryItemRow;
