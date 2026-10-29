@@ -23,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 기업의 최근 공시 타임라인(1.2, #332). 목록은 기업별로 저장해 두고, 받은 지 정한 시간이 지났거나 받은 기간이
@@ -67,6 +68,12 @@ public class DisclosureService {
         LocalDate shownFrom = fetch.fromDate().isAfter(from) ? fetch.fromDate() : from;
         List<Disclosure> all = store.findSince(corpCode, shownFrom);
         return DisclosureTimeline.of(corpCode, days, shownFrom, fetch, refreshError, all, group);
+    }
+
+    /** 저장된 이 기업의 공시(접수일 최근 순, 같은 날이면 접수번호 큰 순). OpenDART를 부르지 않는다 */
+    @Transactional(readOnly = true)
+    public List<Disclosure> stored(String corpCode) {
+        return store.findAll(corpCode);
     }
 
     /**

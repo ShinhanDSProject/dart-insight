@@ -80,6 +80,10 @@ public class FakeAiServer implements AutoCloseable {
         return "http://127.0.0.1:" + server.getAddress().getPort();
     }
 
+    public List<Request> requests() {
+        return new ArrayList<>(requests);
+    }
+
     public List<Request> requests(String path) {
         return new ArrayList<>(requests.stream().filter(r -> r.path().equals(path)).toList());
     }

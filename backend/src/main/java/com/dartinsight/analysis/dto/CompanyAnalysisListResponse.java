@@ -1,6 +1,6 @@
 package com.dartinsight.analysis.dto;
 
-import com.dartinsight.analysis.service.CompanyAnalysisService.CompletedAnalysis;
+import com.dartinsight.analysis.domain.CompletedAnalysis;
 import com.dartinsight.comparison.domain.ComparisonBasis;
 import com.dartinsight.report.domain.Report;
 import com.fasterxml.jackson.annotation.JsonFormat;

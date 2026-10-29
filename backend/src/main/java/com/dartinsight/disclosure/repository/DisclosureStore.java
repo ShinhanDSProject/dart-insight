@@ -33,6 +33,19 @@ public class DisclosureStore {
                 .stream().findFirst();
     }
 
+    /** 이 기업의 저장된 공시 전체. 접수일이 최근인 순서, 같은 날이면 접수번호가 큰 순서 */
+    public List<Disclosure> findAll(String corpCode) {
+        return jdbcTemplate.query("SELECT rcept_no, report_name, filer_name, rcept_dt, remark FROM company_disclosure"
+                + " WHERE corp_code = ? ORDER BY rcept_dt DESC, rcept_no DESC",
+                (rs, rowNum) -> new Disclosure(
+                        rs.getString("rcept_no"),
+                        rs.getString("report_name"),
+                        rs.getString("filer_name"),
+                        rs.getDate("rcept_dt").toLocalDate(),
+                        rs.getString("remark")),
+                corpCode);
+    }
+
     /** 접수일이 from 이후인 공시. 접수일이 최근인 순서, 같은 날이면 접수번호가 큰 순서 */
     public List<Disclosure> findSince(String corpCode, LocalDate from) {
         return jdbcTemplate.query("SELECT rcept_no, report_name, filer_name, rcept_dt, remark FROM company_disclosure"
