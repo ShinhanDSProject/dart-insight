@@ -19,9 +19,10 @@ import java.util.Set;
  * <ul>
  *   <li>기준: 손익계산서·포괄손익계산서·현금흐름표 계정은 매출액, 재무상태표 계정은 자산총계, 자본변동표 계정은 자본총계.
  *       모두 같은 분석(같은 연결·별도 구분)의 현재 보고서 값이다.</li>
- *   <li>기준 계정 찾기: 현재 보고서 계정 ID가 확인된 표준계정({@link #REVENUE_ACCOUNT_ID}, {@link #ASSETS_ACCOUNT_ID})이면
+ *   <li>기준 계정 찾기: 현재 보고서 계정 ID가 확인된 표준계정({@link #REVENUE_ACCOUNT_ID}, {@link #ASSETS_ACCOUNT_ID},
+ *       {@link #EQUITY_ACCOUNT_ID})이면
  *       그 계정, 없으면 계정명이 주요계정({@link KeyAccount})의 이름과 같은 계정. 재무제표 안에서는 원문 순서 첫 번째.
- *       추측한 계정 ID는 넣지 않는다(자본총계는 이름으로만 찾는다).</li>
+ *       추측한 계정 ID는 넣지 않는다.</li>
  *   <li>비율 = 증감액 ÷ 기준 값, 소수 6자리 반올림(HALF_UP). 증감액이 없거나 기준 값이 없거나 0 이하면 null과 사유.</li>
  * </ul>
  * 저장하지 않고 조회 때 계산하므로 Analysis.CURRENT_VERSION과 관계없다.
@@ -35,6 +36,9 @@ public final class ChangeScales {
 
     /** 자산총계 표준계정 ID(AccountAliases) */
     static final String ASSETS_ACCOUNT_ID = "ifrs-full_Assets";
+
+    /** 자본총계 표준계정 ID. 삼성전자 2026 반기보고서(20260814003699) 재무상태표 '자본총계' 행으로 확인 */
+    static final String EQUITY_ACCOUNT_ID = "ifrs-full_Equity";
 
     private final List<FinancialChange> changes;
 
@@ -120,7 +124,7 @@ public final class ChangeScales {
         Set<String> ids = switch (base) {
             case REVENUE -> Set.of(REVENUE_ACCOUNT_ID);
             case TOTAL_ASSETS -> Set.of(ASSETS_ACCOUNT_ID);
-            case TOTAL_EQUITY -> Set.of();
+            case TOTAL_EQUITY -> Set.of(EQUITY_ACCOUNT_ID);
         };
         return rows.stream().filter(c -> ids.contains(c.getCurrentAccountId())).findFirst();
     }

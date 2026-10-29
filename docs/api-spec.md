@@ -1850,7 +1850,7 @@
 - 기준 계정은 같은 분석(같은 연결·별도 구분)의 현재 보고서 값입니다. 고르는 순서:
   - `REVENUE`: 손익계산서 계정은 손익계산서에서, 포괄손익계산서 계정은 포괄손익계산서 → 손익계산서 순, 현금흐름표 계정은 손익계산서 → 포괄손익계산서 순으로 찾습니다. 재무제표 안에서는 현재 보고서 계정 ID가 `ifrs-full_Revenue`인 계정, 없으면 계정명(공백 무시)이 `매출액`인 계정의 원문 순서 첫 번째입니다(ADR-0015 `ifrs-full_Revenue` = 매출액·매출·영업수익, 주요계정 `REVENUE`와 같은 이름 규칙). 금융회사처럼 이 계정이 없으면 `BASE_NOT_FOUND`입니다.
   - `TOTAL_ASSETS`: 재무상태표에서 계정 ID가 `ifrs-full_Assets`인 계정, 없으면 계정명이 `자산총계`인 계정.
-  - `TOTAL_EQUITY`: 재무상태표에서 계정명이 `자본총계`인 계정. 없으면 계산하지 않습니다(`BASE_NOT_FOUND`).
+  - `TOTAL_EQUITY`: 재무상태표에서 계정 ID가 `ifrs-full_Equity`인 계정, 없으면 계정명이 `자본총계`인 계정. 없으면 계산하지 않습니다(`BASE_NOT_FOUND`).
 - 사유는 이 순서로 정합니다: 증감액이 없으면 `CHANGE_NOT_CALCULATED`(기준 계정을 찾았으면 `baseAccountName`·`baseAmount`는 채움), 기준 계정이 없으면 `BASE_NOT_FOUND`, 기준 값이 없으면 `BASE_MISSING`, 0 이하면 `BASE_NOT_POSITIVE`.
 - 기준 계정 자신도 비율이 있습니다(예: 매출액 증감액 ÷ 현재 매출액).
 
