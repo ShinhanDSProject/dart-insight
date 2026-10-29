@@ -2,9 +2,10 @@ import { useId, useState } from 'react'
 import { match } from 'ts-pattern'
 import { reportContent, type LikeTarget, type ReportReason } from '@/shared/api/community'
 import { useAsyncAction } from '@/shared/hooks/useAsyncAction'
+import { reportReasonOptions } from '@/shared/lib/communityLabels'
 import { Button, Dialog } from '@/shared/ui'
 import { ErrorState } from '@/shared/ui/StateView'
-import { communityErrorMessages, reportReasonOptions } from '../model/community'
+import { communityErrorMessages } from '../model/community'
 
 /**
  * 신고(FS-58). 네 사유 중 하나를 고른다. 신고만으로는 글이 가려지지 않고 관리자가 확인한다는 것을 알린다.

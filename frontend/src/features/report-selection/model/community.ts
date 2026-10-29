@@ -1,8 +1,7 @@
 import { match } from 'ts-pattern'
-import type { Blind, Comment, ContentState, Post, PostDetail, PostList, PostSort, ReportReason } from '@/shared/api/community'
+import type { Blind, Comment, ContentState, Post, PostDetail, PostList, PostSort } from '@/shared/api/community'
 import { formatInteger } from '@/shared/lib/numberFormat'
 import { viewedAtLabel } from '@/shared/lib/recentAnalyses'
-import { formatDate } from '@/shared/lib/reportLabels'
 import type { SegmentOption } from '@/shared/ui'
 
 /** 커뮤니티 탭 맨 위에 고정하는 문구(FS-58). 이용자 글을 서비스의 분석과 섞어 보이지 않게 한다 */
@@ -11,13 +10,6 @@ export const COMMUNITY_DISCLAIMER = '이용자 의견이며 서비스의 분석�
 export const sortOptions: readonly SegmentOption<PostSort>[] = [
   { value: 'popular', label: '인기순' },
   { value: 'latest', label: '최신순' },
-]
-
-export const reportReasonOptions: readonly { value: ReportReason; label: string }[] = [
-  { value: 'DEFAMATION', label: '특정인 모욕·명예훼손' },
-  { value: 'FALSE_RUMOR', label: '허위 풍문' },
-  { value: 'PAID_LEADING', label: '유료 리딩방·상담 유인' },
-  { value: 'PERSONAL_INFO', label: '개인정보 노출' },
 ]
 
 /** 서버 에러 코드별 안내(API-3). 없는 코드는 서버 message를 그대로 쓴다 */
@@ -57,11 +49,6 @@ export function contentView(content: { state: ContentState; body: string | null;
 /** 쓴 시각 표시('3분 전', 7일이 넘으면 날짜). 서버 시각은 한국 시간이고 시간대 표시가 없어 +09:00을 붙여 읽는다 */
 export function postedAtLabel(kstDateTime: string, now: Date): string {
   return viewedAtLabel(`${kstDateTime}+09:00`, now)
-}
-
-/** 블라인드 기한 표시: 2026-11-03T10:15:00 → 2026.11.03 10:15 */
-export function blindUntilLabel(kstDateTime: string): string {
-  return `${formatDate(kstDateTime.slice(0, 10))} ${kstDateTime.slice(11, 16)}`
 }
 
 /** 내 글·댓글이고 보이는 상태일 때만 고칠 수 있다(서버도 VISIBLE만 고친다) */

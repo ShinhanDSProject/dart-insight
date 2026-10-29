@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Comment, Post, PostList } from '@/shared/api/community'
 import {
-  blindUntilLabel,
   bodyError,
   canDelete,
   canEdit,
@@ -111,10 +110,6 @@ describe('시각 표시', () => {
     const now = new Date('2026-10-27T01:20:00Z') // 한국 10:20
     expect(postedAtLabel('2026-10-27T10:15:00', now)).toBe('5분 전')
     expect(postedAtLabel('2026-10-10T10:15:00', now)).toBe('2026.10.10')
-  })
-
-  it('블라인드 기한은 날짜와 시각으로 보인다', () => {
-    expect(blindUntilLabel('2026-11-03T10:15:00')).toBe('2026.11.03 10:15')
   })
 })
 
