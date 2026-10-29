@@ -7,9 +7,11 @@ import com.dartinsight.community.dto.CommunityBodyRequest;
 import com.dartinsight.community.dto.LikeResponse;
 import com.dartinsight.community.dto.PostDetailResponse;
 import com.dartinsight.community.dto.PostResponse;
+import com.dartinsight.community.dto.ReportRequest;
 import com.dartinsight.community.service.CommunityCommentService;
 import com.dartinsight.community.service.CommunityLikeService;
 import com.dartinsight.community.service.CommunityPostService;
+import com.dartinsight.community.service.CommunityReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,7 +27,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 커뮤니티 글 하나와 그 댓글·좋아요(docs/api-spec.md 6.6 커뮤니티). 글 읽기만 로그인 없이 된다. */
+/** 커뮤니티 글 하나와 그 댓글·좋아요·신고(docs/api-spec.md 6.6 커뮤니티). 글 읽기만 로그인 없이 된다. */
 @RestController
 @RequestMapping(ApiPaths.POSTS)
 @RequiredArgsConstructor
@@ -33,6 +35,7 @@ public class PostController {
     private final CommunityPostService postService;
     private final CommunityCommentService commentService;
     private final CommunityLikeService likeService;
+    private final CommunityReportService reportService;
 
     @GetMapping(ApiPaths.BY_POST_ID)
     public PostDetailResponse detail(@AuthenticationPrincipal Jwt jwt, @PathVariable long postId) {
@@ -66,6 +69,13 @@ public class PostController {
     @DeleteMapping(ApiPaths.POST_LIKE)
     public LikeResponse unlike(@AuthenticationPrincipal Jwt jwt, @PathVariable long postId) {
         return likeService.unlikePost(postId, userId(jwt));
+    }
+
+    @PostMapping(ApiPaths.POST_REPORTS)
+    public ResponseEntity<Void> report(@AuthenticationPrincipal Jwt jwt, @PathVariable long postId,
+            @RequestBody ReportRequest request) {
+        reportService.reportPost(postId, userId(jwt), request.reason());
+        return ResponseEntity.noContent().build();
     }
 
     /** 쓰기 경로는 SecurityConfig가 로그인을 요구해 토큰이 언제나 있다 */

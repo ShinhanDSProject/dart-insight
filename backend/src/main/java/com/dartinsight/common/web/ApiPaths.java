@@ -15,6 +15,9 @@ public final class ApiPaths {
     public static final String NICKNAME = "/nickname";
     /** 관리자만 쓰는 API(ADR-0040). 이 아래 경로는 SecurityConfig가 관리자인지 확인한다 */
     public static final String ADMIN = BASE + "/admin";
+    /** 관리자 신고 목록·처리(6.6 #461) */
+    public static final String ADMIN_REPORTS = ADMIN + "/reports";
+    public static final String BY_REPORT_ID = "/{reportId}";
     public static final String SESSIONS = BASE + "/sessions";
     public static final String CURRENT = "/current";
     public static final String CURRENT_SESSION = SESSIONS + CURRENT;
@@ -87,9 +90,13 @@ public final class ApiPaths {
     public static final String BY_POST_ID = "/{postId}";
     public static final String POST_COMMENTS = BY_POST_ID + "/comments";
     public static final String POST_LIKE = BY_POST_ID + "/like";
+    public static final String POST_REPORTS = BY_POST_ID + "/reports";
     public static final String COMMENTS = BASE + "/comments";
     public static final String BY_COMMENT_ID = "/{commentId}";
     public static final String COMMENT_LIKE = BY_COMMENT_ID + "/like";
+    public static final String COMMENT_REPORTS = BY_COMMENT_ID + "/reports";
+    /** 블라인드된 글·댓글의 재게시 청구(6.6 #461). 보고서(REPORT_BY_RCEPT_NO)가 아니라 커뮤니티 신고 건이다 */
+    public static final String REPORT_REPOST_REQUESTS = BASE + "/reports/{reportId}/repost-requests";
 
     public static final String SYSTEM = BASE + "/system";
     public static final String HEALTH = "/health";

@@ -26,8 +26,8 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * 관리자 지정과 관리자 API 확인(ADR-0040). 관리자 API(#461)가 아직 없어서 관리자 경로 아래의 없는 주소로
- * 확인한다: 관리자가 아니면 403에서 막히고, 관리자면 확인을 지나 404가 된다.
+ * 관리자 지정과 관리자 API 확인(ADR-0040). 관리자 신고 목록(#461)으로 확인한다:
+ * 관리자가 아니면 403에서 막히고, 관리자면 확인을 지나 목록을 받는다.
  */
 @SpringBootTest(properties = "app.auth.admin-emails= Admin@Example.com ,social-admin@example.com")
 @AutoConfigureMockMvc
@@ -56,8 +56,8 @@ class AdminAccessApiTest {
         mvc.perform(get("/api/sessions/current").header("Authorization", "Bearer " + token))
                 .andExpect(jsonPath("$.admin").value(true));
         mvc.perform(get(ADMIN_PATH).header("Authorization", "Bearer " + token))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("COMMON_NOT_FOUND"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.queue").value("todo"));
     }
 
     @Test

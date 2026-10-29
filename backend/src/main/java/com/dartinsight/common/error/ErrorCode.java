@@ -42,7 +42,12 @@ public enum ErrorCode {
     COMMUNITY_COMMENT_NOT_FOUND(404, "댓글을 찾을 수 없습니다. 글을 다시 불러와 주세요."),
     COMMUNITY_NICKNAME_REQUIRED(409, "글을 쓰려면 먼저 닉네임을 정해 주세요."),
     COMMUNITY_NICKNAME_TAKEN(409, "다른 사람이 쓰는 닉네임입니다."),
-    COMMUNITY_TARGET_UNAVAILABLE(409, "가려지거나 지운 글·댓글입니다. 글을 다시 불러와 주세요.");
+    COMMUNITY_TARGET_UNAVAILABLE(409, "가려지거나 지운 글·댓글입니다. 글을 다시 불러와 주세요."),
+    COMMUNITY_REPORT_NOT_FOUND(404, "신고 건을 찾을 수 없습니다. 신고 목록을 다시 불러와 주세요."),
+    COMMUNITY_ALREADY_REPORTED(409, "이미 신고한 글·댓글입니다."),
+    COMMUNITY_REPORT_CLOSED(409, "삭제로 처리한 신고는 다시 처리할 수 없습니다."),
+    COMMUNITY_REPOST_NOT_ALLOWED(409, "가려진 글·댓글만 재게시를 청구할 수 있습니다."),
+    COMMUNITY_REPOST_ALREADY_REQUESTED(409, "이번 블라인드에는 이미 재게시를 청구했습니다.");
 
     private final int status;
     private final String defaultMessage;
