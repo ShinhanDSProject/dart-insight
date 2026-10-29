@@ -109,3 +109,27 @@ export function searchQuery(input: string): string | null {
   const q = input.trim()
   return q.length >= 2 ? q : null
 }
+
+/** 글쓰기 칸의 변경점 붙이기 상태. pick: 붙인 변경점, picking: 고르기 대화상자가 열림 */
+export interface QuoteComposer {
+  pick: QuotePick | null
+  picking: boolean
+}
+
+export type QuoteComposerAction =
+  | { type: 'open-picker' }
+  | { type: 'close-picker' }
+  | { type: 'pick'; pick: QuotePick }
+  | { type: 'remove' }
+
+export const EMPTY_COMPOSER: QuoteComposer = { pick: null, picking: false }
+
+/** 고르면 붙이고 대화상자를 닫는다. 닫기만 하면 붙인 것은 그대로다. 빼기와 올린 뒤에는 비운다(remove) */
+export function quoteComposerReducer(state: QuoteComposer, action: QuoteComposerAction): QuoteComposer {
+  return match<QuoteComposerAction, QuoteComposer>(action)
+    .with({ type: 'open-picker' }, () => ({ ...state, picking: true }))
+    .with({ type: 'close-picker' }, () => ({ ...state, picking: false }))
+    .with({ type: 'pick' }, ({ pick }) => ({ pick, picking: false }))
+    .with({ type: 'remove' }, () => ({ ...state, pick: null }))
+    .exhaustive()
+}
