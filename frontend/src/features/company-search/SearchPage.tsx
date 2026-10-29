@@ -110,10 +110,19 @@ export function SearchPage() {
   )
 }
 
-/** 검색어가 없고 닫지 않았을 때만 보이는 처음 쓰는 사용자 안내(FS-10) */
+/** 검색어가 없을 때 보이는 처음 쓰는 사용자 안내(FS-10). 닫으면 그 자리에 작은 '사용법 보기' 버튼만 남는다(#502) */
 function OnboardingSection({ query }: { query: string }) {
   const onboarding = useOnboarding()
-  if (!isOnboardingVisible(query, !onboarding.visible)) return null
+  if (query !== '') return null
+  if (!isOnboardingVisible(query, !onboarding.visible)) {
+    return (
+      <p className="onboarding-reopen">
+        <Button variant="link" onClick={onboarding.reopen}>
+          처음이신가요? 사용법 보기
+        </Button>
+      </p>
+    )
+  }
   return <OnboardingGuide onDismiss={onboarding.dismiss} />
 }
 

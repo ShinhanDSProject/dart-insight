@@ -12,7 +12,7 @@ export interface OnboardingController {
   /** 닫지 않았으면 true(검색어 조건은 화면이 더한다) */
   visible: boolean
   dismiss: () => void
-  /** 닫은 표시를 지워 다시 보이게 한다(사이드바 '사용법 다시 보기') */
+  /** 닫은 표시를 지워 다시 보이게 한다(첫 화면 '사용법 보기') */
   reopen: () => void
 }
 
@@ -38,7 +38,7 @@ function subscribe(onChange: () => void): () => void {
 function setDismissed(dismissed: boolean): void {
   sessionDismissed = dismissed
   saveOnboardingDismissed(browserStorage(), dismissed)
-  // 사이드바와 검색 화면이 같은 값을 보도록 같은 탭 안에 알린다
+  // 같은 탭의 다른 곳도 같은 값을 보도록 알린다
   window.dispatchEvent(new Event(ONBOARDING_CHANGE_EVENT))
 }
 
