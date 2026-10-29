@@ -3,7 +3,7 @@ services:
   lab:
     build: .
     mem_limit: 6g
-    cpus: 2
+    cpus: 1.0
     environment:
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nlpai-lab/KURE-v1}
       EMBEDDING_REVISION: ${EMBEDDING_REVISION:-main}
