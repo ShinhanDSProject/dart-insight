@@ -85,6 +85,10 @@ public class SecurityConfig {
                         .requestMatchers(ApiPaths.NOTIFICATIONS, ApiPaths.NOTIFICATIONS + "/**").authenticated()
                         .requestMatchers(ApiPaths.NOTES, ApiPaths.NOTES + "/**").authenticated()
                         .requestMatchers(ApiPaths.CURRENT_USER, ApiPaths.CURRENT_USER + "/**").authenticated()
+                        // 커뮤니티는 읽기(GET)만 로그인 없이 되고 쓰기는 로그인이 필요하다(6.6)
+                        .requestMatchers(HttpMethod.GET, ApiPaths.COMPANY_POSTS, ApiPaths.POSTS + "/**").permitAll()
+                        .requestMatchers(ApiPaths.COMPANY_POSTS, ApiPaths.POSTS + "/**", ApiPaths.COMMENTS + "/**")
+                                .authenticated()
                         .requestMatchers(ApiPaths.ADMIN, ApiPaths.ADMIN + "/**").access(adminAuthorizationManager)
                         .anyRequest().permitAll())
                 .exceptionHandling(exceptions -> exceptions.accessDeniedHandler((request, response, exception) ->

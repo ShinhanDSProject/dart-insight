@@ -59,6 +59,8 @@ public final class ApiPaths {
     public static final String COMPANY_PLAN_FOLLOWUPS = COMPANIES + "/{corpCode}/plan-followups";
     /** 재무 체크 포인트(FS-62) */
     public static final String COMPANY_CHECKPOINTS = COMPANIES + "/{corpCode}/checkpoints";
+    /** 기업 게시판 글 목록·쓰기(6.6, FS-58) */
+    public static final String COMPANY_POSTS = COMPANIES + "/{corpCode}/posts";
     /** 사업보고서에 근거해 묻기(FS-53) */
     public static final String COMPANY_QUESTIONS = COMPANIES + "/{corpCode}/questions";
     public static final String REPORT_BY_RCEPT_NO = "/reports/{rceptNo}";
@@ -79,6 +81,15 @@ public final class ApiPaths {
     public static final String QUESTION_FEEDBACK = "/{questionId}/feedback";
     public static final String ANALYSIS_DOCUMENT= ANALYSES + "/{analysisId}/documents/{side}";
     public static final String DOCUMENT_SECTION = "/sections/{sectionNo}";
+
+    /** 커뮤니티 글·댓글(6.6, FS-58) */
+    public static final String POSTS = BASE + "/posts";
+    public static final String BY_POST_ID = "/{postId}";
+    public static final String POST_COMMENTS = BY_POST_ID + "/comments";
+    public static final String POST_LIKE = BY_POST_ID + "/like";
+    public static final String COMMENTS = BASE + "/comments";
+    public static final String BY_COMMENT_ID = "/{commentId}";
+    public static final String COMMENT_LIKE = BY_COMMENT_ID + "/like";
 
     public static final String SYSTEM = BASE + "/system";
     public static final String HEALTH = "/health";
