@@ -1,10 +1,12 @@
 import { apiDelete, apiGet, apiGetText, apiPost, apiPut } from './client'
-import { endpoints } from './endpoints'
+import type { DisclosureGroup } from './disclosures'
 import type { DocumentSide } from './documents'
+import { endpoints } from './endpoints'
+import type { ComparisonBasis } from './reports'
 import type { SjDiv } from './results'
 import type { ChangeType } from './textChanges'
 
-/** docs/api-spec.md /api/notes (6.5, FS-57). 로그인한 회원만 쓴다 */
+/** docs/api-spec.md /api/notes (6.5, FS-57·#504). 로그인한 회원만 쓴다 */
 export type NoteKind = 'FINANCIAL_CHANGE' | 'TEXT_CHANGE' | 'ANSWER_CITATION'
 
 /** 원래 위치. 결과 화면의 그 근거와 DART 원문으로 돌아간다 */
@@ -25,6 +27,15 @@ export interface NoteSource {
   dartUrl: string | null
 }
 
+/** 노트 항목의 근거 보고서 이후에 나온 관련 후속 공시(#504) */
+export interface NoteRelatedDisclosure {
+  rceptNo: string
+  reportName: string
+  rceptDt: string
+  matchLabel: string
+  dartUrl: string
+}
+
 export interface NoteItem {
   itemId: number
   corpCode: string
@@ -39,16 +50,38 @@ export interface NoteItem {
   changeType: ChangeType | null
   memo: string | null
   source: NoteSource
+  /** 근거 보고서 이후 관련 후속 공시(최대 3건, 없으면 빈 배열) */
+  relatedDisclosures: NoteRelatedDisclosure[]
   /** 담을 때의 분석 버전이 지금 서버 버전과 다름 */
   outdated: boolean
   createdAt: string
   updatedAt: string
 }
 
+/** 기업의 노트 기준 접수번호 이후에 완료된 새 분석(#504) */
+export interface NoteNewerAnalysis {
+  analysisId: number
+  basis: ComparisonBasis
+  previousReportName: string
+  currentRceptNo: string
+  currentReportName: string
+}
+
+/** 기업의 노트 기준 접수번호 이후에 접수된 공시(#504) */
+export interface NoteNewerDisclosure {
+  rceptNo: string
+  reportName: string
+  rceptDt: string
+  disclosureGroup: DisclosureGroup
+  dartUrl: string
+}
+
 export interface CompanyNote {
   corpCode: string
   /** 기업 목록에 없으면 null */
   corpName: string | null
+  newerAnalyses: NoteNewerAnalysis[]
+  newerDisclosures: NoteNewerDisclosure[]
   items: NoteItem[]
 }
 

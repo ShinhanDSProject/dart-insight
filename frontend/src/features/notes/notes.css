@@ -1,4 +1,4 @@
-/* 내 판단 노트(FS-57) */
+/* 내 판단 노트(FS-57·#504) */
 .notes__companies {
   display: grid;
   gap: var(--space-5);
@@ -17,10 +17,79 @@
   margin: 0;
 }
 
+.notes__company-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
 .notes__count {
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-regular);
+}
+
+.notes__followups {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+}
+
+.notes__followup-title {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.notes__followup-group {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.notes__followup-label {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.notes__followup-list,
+.note-item__related-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notes__followup-item,
+.note-item__related-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.notes__followup-name,
+.note-item__related-name {
+  overflow-wrap: anywhere;
+}
+
+.notes__followup-date,
+.note-item__related-date {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.notes__followup-notice {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
 }
 
 .notes__items {
@@ -92,6 +161,21 @@
   margin: 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.note-item__related {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+}
+
+.note-item__related-title {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
 }
 
 .note-item__actions {

@@ -1,19 +1,31 @@
+import { Link } from 'react-router'
 import { match } from 'ts-pattern'
 import { exportNotes, type CompanyNote } from '@/shared/api/notes'
 import { useAsyncAction } from '@/shared/hooks/useAsyncAction'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
+import { basisLabel } from '@/shared/lib/comparisonBasis'
 import { downloadTextFile } from '@/shared/lib/download'
 import { pageTitle } from '@/shared/lib/pageTitle'
-import { Button, ButtonLink, Panel, PanelTitle } from '@/shared/ui'
+import { formatDate } from '@/shared/lib/reportLabels'
+import { Badge, Button, ButtonLink, Panel, PanelTitle } from '@/shared/ui'
+import { DartLinkInline } from '@/shared/ui/DartLink'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { NoteItemCard } from './components/NoteItemCard'
 import { useNotes, type NotesController } from './hooks/useNotes'
-import { exportFileName } from './model/notes'
+import {
+  companyOverviewLink,
+  disclosureGroupLabel,
+  exportFileName,
+  FOLLOWUP_NOTICE,
+  hasCompanyFollowups,
+  newerAnalysisLink,
+} from './model/notes'
 import './notes.css'
 
 /**
- * 내 판단 노트(FS-57). 분석 결과에서 담은 근거를 기업별로 모아 메모와 함께 다시 보고, 지우고, 출처와 함께 내보낸다.
- * 로그인한 회원만 쓴다. 노트 내용은 AI에 보내지 않는다.
+ * 내 판단 노트(FS-57·#504). 분석 결과에서 담은 근거를 기업별로 모아 메모와 함께 다시 보고,
+ * 근거 이후의 후속 분석·공시를 확인하며, 지우거나 출처와 함께 내보낸다.
+ * 로그인한 회원만 쓴다. 노트 내용은 AI나 외부 API에 보내지 않는다.
  */
 export function NotesPage() {
   useDocumentTitle(pageTitle(['내 판단 노트']))
@@ -60,6 +72,9 @@ export function NotesPage() {
 function CompanyNotes({ company, notes }: { company: CompanyNote; notes: NotesController }) {
   const name = company.corpName ?? company.corpCode
   const titleId = `notes-company-${company.corpCode}`
+  const followupsTitleId = `notes-followups-${company.corpCode}`
+  const showFollowups = hasCompanyFollowups(company)
+  const hasRelatedOnItems = company.items.some((item) => item.relatedDisclosures.length > 0)
   const exporting = useAsyncAction<void>()
   const download = () => {
     void exporting.run(async () => {
@@ -73,16 +88,59 @@ function CompanyNotes({ company, notes }: { company: CompanyNote; notes: NotesCo
         <PanelTitle id={titleId}>
           {name} <span className="notes__count">{company.items.length}건</span>
         </PanelTitle>
-        <Button
-          variant="secondary"
-          disabled={exporting.state.status === 'loading'}
-          aria-label={`${name} 노트 내보내기`}
-          onClick={download}
-        >
-          {exporting.state.status === 'loading' ? '내보내는 중…' : '내보내기'}
-        </Button>
+        <div className="notes__company-actions">
+          <ButtonLink variant="secondary" to={companyOverviewLink(company.corpCode)} aria-label={`${name} 기업 개요 보기`}>
+            기업 개요 보기
+          </ButtonLink>
+          <Button
+            variant="secondary"
+            disabled={exporting.state.status === 'loading'}
+            aria-label={`${name} 노트 내보내기`}
+            onClick={download}
+          >
+            {exporting.state.status === 'loading' ? '내보내는 중…' : '내보내기'}
+          </Button>
+        </div>
       </div>
       {exporting.state.status === 'error' && <ErrorState error={exporting.state.error} />}
+      {showFollowups && (
+        <section className="notes__followups" aria-labelledby={followupsTitleId}>
+          <h3 id={followupsTitleId} className="notes__followup-title">
+            담은 보고서 이후 소식
+          </h3>
+          {company.newerAnalyses.length > 0 && (
+            <div className="notes__followup-group">
+              <span className="notes__followup-label">후속 정기보고서 분석</span>
+              <ul className="notes__followup-list">
+                {company.newerAnalyses.map((analysis) => (
+                  <li key={analysis.analysisId} className="notes__followup-item">
+                    <Badge tone="accent">{basisLabel(analysis.basis)}</Badge>
+                    <Link to={newerAnalysisLink(analysis.analysisId)}>
+                      {analysis.previousReportName} → {analysis.currentReportName} 분석 보기
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {company.newerDisclosures.length > 0 && (
+            <div className="notes__followup-group">
+              <span className="notes__followup-label">이후 접수된 공시</span>
+              <ul className="notes__followup-list">
+                {company.newerDisclosures.map((disclosure) => (
+                  <li key={disclosure.rceptNo} className="notes__followup-item">
+                    <Badge>{disclosureGroupLabel(disclosure.disclosureGroup)}</Badge>
+                    <span className="notes__followup-name">{disclosure.reportName}</span>
+                    <span className="notes__followup-date">{formatDate(disclosure.rceptDt)}</span>
+                    <DartLinkInline rceptNo={disclosure.rceptNo} dartUrl={disclosure.dartUrl} label={disclosure.reportName} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <p className="notes__followup-notice">{FOLLOWUP_NOTICE}</p>
+        </section>
+      )}
       <ul className="notes__items">
         {company.items.map((item) => (
           <li key={item.itemId}>
@@ -90,6 +148,7 @@ function CompanyNotes({ company, notes }: { company: CompanyNote; notes: NotesCo
           </li>
         ))}
       </ul>
+      {!showFollowups && hasRelatedOnItems && <p className="notes__followup-notice">{FOLLOWUP_NOTICE}</p>}
     </Panel>
   )
 }

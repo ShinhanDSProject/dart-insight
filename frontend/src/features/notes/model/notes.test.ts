@@ -1,12 +1,24 @@
 import { describe, expect, it } from 'vitest'
 import type { NoteList } from '@/shared/api/notes'
-import { noteItem } from '@/test/fixtures/notes'
-import { noteKindLabel, noteLocation, noteResultLink, notesReducer, noteTime, type NotesState } from './notes'
+import { companyNote, noteItem } from '@/test/fixtures/notes'
+import {
+  companyOverviewLink,
+  disclosureGroupLabel,
+  FOLLOWUP_NOTICE,
+  hasCompanyFollowups,
+  newerAnalysisLink,
+  noteKindLabel,
+  noteLocation,
+  noteResultLink,
+  notesReducer,
+  noteTime,
+  type NotesState,
+} from './notes'
 
 const list: NoteList = {
   companies: [
-    { corpCode: '00126380', corpName: '삼성전자', items: [noteItem({ itemId: 1 }), noteItem({ itemId: 2 })] },
-    { corpCode: '00164779', corpName: 'SK하이닉스', items: [noteItem({ itemId: 3, corpCode: '00164779' })] },
+    companyNote({ corpCode: '00126380', corpName: '삼성전자', items: [noteItem({ itemId: 1 }), noteItem({ itemId: 2 })] }),
+    companyNote({ corpCode: '00164779', corpName: 'SK하이닉스', items: [noteItem({ itemId: 3, corpCode: '00164779' })] }),
   ],
 }
 const success: NotesState = { status: 'success', data: list }
@@ -18,9 +30,22 @@ describe('notesReducer', () => {
     expect(notesReducer({ status: 'loading' }, { type: 'reject', error: 'x' })).toEqual({ status: 'error', error: 'x' })
   })
 
-  it('메모를 고친 항목만 바꾼다', () => {
-    const next = notesReducer(success, { type: 'replace-item', item: noteItem({ itemId: 2, memo: '새 메모' }) })
-    expect(next.status === 'success' && next.data.companies[0].items.map((i) => i.memo)).toEqual([null, '새 메모'])
+  it('메모를 고친 항목만 관련 후속 공시와 함께 바꾼다', () => {
+    const related = [
+      {
+        rceptNo: '20261201000001',
+        reportName: '단일판매·공급계약체결',
+        rceptDt: '2026-12-01',
+        matchLabel: "메모 '공급계약'",
+        dartUrl: 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261201000001',
+      },
+    ]
+    const next = notesReducer(success, {
+      type: 'replace-item',
+      item: noteItem({ itemId: 2, memo: '공급계약 확인', relatedDisclosures: related }),
+    })
+    expect(next.status === 'success' && next.data.companies[0].items.map((i) => i.memo)).toEqual([null, '공급계약 확인'])
+    expect(next.status === 'success' && next.data.companies[0].items[1].relatedDisclosures).toEqual(related)
   })
 
   it('항목 하나만 빼고, 기업에 남은 항목이 없으면 기업도 뺀다', () => {
@@ -76,5 +101,57 @@ describe('표시 문구', () => {
 
   it('담은 시각을 점으로 끊어 보인다', () => {
     expect(noteTime('2026-10-27T10:15:00')).toBe('2026.10.27 10:15')
+  })
+})
+
+describe('후속 분석·공시 연결(#504)', () => {
+  it('기업 개요와 후속 분석 결과 주소를 만든다', () => {
+    expect(companyOverviewLink('00126380')).toBe('/companies/00126380')
+    expect(newerAnalysisLink(108)).toBe('/analyses/108')
+  })
+
+  it('후속 분석이나 이후 공시가 하나라도 있을 때만 소식 구역을 연다', () => {
+    expect(hasCompanyFollowups({ newerAnalyses: [], newerDisclosures: [] })).toBe(false)
+    expect(
+      hasCompanyFollowups({
+        newerAnalyses: [
+          {
+            analysisId: 108,
+            basis: 'YOY',
+            previousReportName: '사업보고서 (2025.12)',
+            currentRceptNo: '20270330000111',
+            currentReportName: '사업보고서 (2026.12)',
+          },
+        ],
+        newerDisclosures: [],
+      }),
+    ).toBe(true)
+    expect(
+      hasCompanyFollowups({
+        newerAnalyses: [],
+        newerDisclosures: [
+          {
+            rceptNo: '20261201000001',
+            reportName: '단일판매·공급계약체결',
+            rceptDt: '2026-12-01',
+            disclosureGroup: 'BUSINESS',
+            dartUrl: 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261201000001',
+          },
+        ],
+      }),
+    ).toBe(true)
+  })
+
+  it('공시 분류 코드를 한국어 이름으로 바꾼다', () => {
+    expect(disclosureGroupLabel('PERIODIC')).toBe('정기보고서')
+    expect(disclosureGroupLabel('OWNERSHIP')).toBe('지분 변동')
+    expect(disclosureGroupLabel('FUNDING')).toBe('자금 조달')
+    expect(disclosureGroupLabel('GOVERNANCE')).toBe('지배구조')
+    expect(disclosureGroupLabel('BUSINESS')).toBe('실적·영업')
+    expect(disclosureGroupLabel('OTHER')).toBe('기타')
+  })
+
+  it('인과관계 오해를 막는 고정 안내 문구를 둔다', () => {
+    expect(FOLLOWUP_NOTICE).toBe('같은 기업에서 이후에 공시된 내역이며 인과관계를 뜻하지 않아요.')
   })
 })

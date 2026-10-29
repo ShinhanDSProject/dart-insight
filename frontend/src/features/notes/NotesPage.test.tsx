@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { NoteList } from '@/shared/api/notes'
 import type { AuthState } from '@/shared/auth/authContext'
 import { axeViolations } from '@/test/axe'
-import { noteItem } from '@/test/fixtures/notes'
+import { companyNote, noteItem } from '@/test/fixtures/notes'
 import { NotesPage } from './NotesPage'
 
 const auth = vi.hoisted(() => ({ state: { status: 'authenticated', userId: 1 } as AuthState }))
@@ -40,7 +40,7 @@ const citationItem = noteItem({
   source: { ...noteItem().source, sjDiv: null, changeId: null, questionId: 7, side: 'current', sectionNo: 3, blockNo: 12 },
 })
 const list: NoteList = {
-  companies: [{ corpCode: '00126380', corpName: '삼성전자', items: [textItem, noteItem({ itemId: 1, memo: null })] }],
+  companies: [companyNote({ corpCode: '00126380', corpName: '삼성전자', items: [textItem, noteItem({ itemId: 1, memo: null })] })],
 }
 
 function renderPage(state: AuthState = { status: 'authenticated', userId: 1 }) {
@@ -94,7 +94,7 @@ describe('NotesPage(FS-57)', () => {
   })
 
   it('AI 답 인용은 질문·인용 문단을 보이고 원래 위치 보기가 원문 확인 탭으로 간다', async () => {
-    api.getNotes.mockResolvedValue({ companies: [{ corpCode: '00126380', corpName: '삼성전자', items: [citationItem] }] })
+    api.getNotes.mockResolvedValue({ companies: [companyNote({ corpCode: '00126380', corpName: '삼성전자', items: [citationItem] })] })
     const { container } = renderPage()
     const card = await screen.findByRole('article', { name: 'II. 사업의 내용 > 1. 사업의 개요 노트' })
     expect(within(card).getByText('AI 답 인용')).toBeTruthy()
@@ -149,5 +149,112 @@ describe('NotesPage(FS-57)', () => {
     const { container } = renderPage()
     await screen.findByRole('region', { name: /삼성전자/ })
     expect(await axeViolations(container)).toBe('')
+  })
+
+  it('기업 헤더에 기업 개요 보기 링크를 두고, 후속 분석·공시가 없으면 소식 구역을 숨긴다', async () => {
+    api.getNotes.mockResolvedValue(list)
+    renderPage()
+    const company = await screen.findByRole('region', { name: /삼성전자/ })
+    expect(within(company).getByRole('link', { name: '삼성전자 기업 개요 보기' }).getAttribute('href')).toBe(
+      '/companies/00126380',
+    )
+    expect(within(company).queryByRole('region', { name: '담은 보고서 이후 소식' })).toBeNull()
+    expect(within(company).queryByText('같은 기업에서 이후에 공시된 내역이며 인과관계를 뜻하지 않아요.')).toBeNull()
+  })
+
+  it('담은 보고서 이후 소식에 후속 분석·이후 공시·인과관계 안내 문구를 보이고 가치판단 표현이 없다', async () => {
+    api.getNotes.mockResolvedValue({
+      companies: [
+        companyNote({
+          corpCode: '00126380',
+          corpName: '삼성전자',
+          newerAnalyses: [
+            {
+              analysisId: 108,
+              basis: 'YOY',
+              previousReportName: '사업보고서 (2025.12)',
+              currentRceptNo: '20270330000111',
+              currentReportName: '사업보고서 (2026.12)',
+            },
+          ],
+          newerDisclosures: [
+            {
+              rceptNo: '20261201000001',
+              reportName: '단일판매·공급계약체결',
+              rceptDt: '2026-12-01',
+              disclosureGroup: 'BUSINESS',
+              dartUrl: 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261201000001',
+            },
+          ],
+          items: [
+            noteItem({
+              itemId: 1,
+              relatedDisclosures: [
+                {
+                  rceptNo: '20261120000002',
+                  reportName: '연결재무제표기준영업(잠정)실적(공정공시)',
+                  rceptDt: '2026-11-20',
+                  matchLabel: '실적',
+                  dartUrl: 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261120000002',
+                },
+              ],
+            }),
+          ],
+        }),
+      ],
+    })
+    const { container } = renderPage()
+    const followups = await screen.findByRole('region', { name: '담은 보고서 이후 소식' })
+    expect(within(followups).getByText('전년 동기')).toBeTruthy()
+    expect(
+      within(followups).getByRole('link', { name: '사업보고서 (2025.12) → 사업보고서 (2026.12) 분석 보기' }).getAttribute('href'),
+    ).toBe('/analyses/108')
+    expect(within(followups).getByText('실적·영업')).toBeTruthy()
+    expect(within(followups).getByText('단일판매·공급계약체결')).toBeTruthy()
+    expect(within(followups).getByText('2026.12.01')).toBeTruthy()
+    expect(
+      within(followups).getByRole('link', { name: '단일판매·공급계약체결 DART 원문 새 창으로 열기' }).getAttribute('href'),
+    ).toBe('https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261201000001')
+    expect(within(followups).getByText('같은 기업에서 이후에 공시된 내역이며 인과관계를 뜻하지 않아요.')).toBeTruthy()
+
+    const card = screen.getByRole('article', { name: '손익계산서 · 매출액 노트' })
+    expect(within(card).getByText('관련 후속 공시')).toBeTruthy()
+    expect(within(card).getByText('실적')).toBeTruthy()
+    expect(within(card).getByText('연결재무제표기준영업(잠정)실적(공정공시)')).toBeTruthy()
+    expect(within(card).getByText('2026.11.20')).toBeTruthy()
+    expect(
+      within(card)
+        .getByRole('link', { name: '연결재무제표기준영업(잠정)실적(공정공시) DART 원문 새 창으로 열기' })
+        .getAttribute('href'),
+    ).toBe('https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261120000002')
+
+    expect(container.textContent).not.toMatch(/매수|매도|추천|목표주가|저평가|고평가|호재|악재|유망/)
+    expect(await axeViolations(container)).toBe('')
+  })
+
+  it('메모를 고쳐 관련 후속 공시가 새로 붙으면 사유 배지와 고정 안내 문구를 곧바로 보인다', async () => {
+    api.getNotes.mockResolvedValue(list)
+    api.updateNoteMemo.mockResolvedValue({
+      ...textItem,
+      memo: '파운드리 공급계약 추이',
+      relatedDisclosures: [
+        {
+          rceptNo: '20261205000009',
+          reportName: '단일판매·공급계약체결(파운드리)',
+          rceptDt: '2026-12-05',
+          matchLabel: "메모 '파운드리'",
+          dartUrl: 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261205000009',
+        },
+      ],
+    })
+    renderPage()
+    const card = await screen.findByRole('article', { name: 'II. 사업의 내용 > 1. 사업의 개요 노트' })
+    fireEvent.click(within(card).getByRole('button', { name: '메모 고치기' }))
+    fireEvent.change(within(card).getByRole('textbox', { name: '메모' }), { target: { value: '파운드리 공급계약 추이' } })
+    fireEvent.click(within(card).getByRole('button', { name: '메모 저장' }))
+
+    expect(await within(card).findByText("메모 '파운드리'")).toBeTruthy()
+    expect(within(card).getByText('단일판매·공급계약체결(파운드리)')).toBeTruthy()
+    expect(screen.getByText('같은 기업에서 이후에 공시된 내역이며 인과관계를 뜻하지 않아요.')).toBeTruthy()
   })
 })

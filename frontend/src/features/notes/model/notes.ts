@@ -1,5 +1,6 @@
 import { match } from 'ts-pattern'
-import type { NoteItem, NoteList } from '@/shared/api/notes'
+import type { DisclosureGroup } from '@/shared/api/disclosures'
+import type { CompanyNote, NoteItem, NoteList } from '@/shared/api/notes'
 
 /** 판단 노트 화면 상태(ST-1). anonymous: 로그인하지 않음(서버를 부르지 않음) */
 export type NotesState =
@@ -97,6 +98,31 @@ export function noteKindLabel(item: Pick<NoteItem, 'kind' | 'changeType'>): stri
     .exhaustive()
 }
 
+const disclosureGroupLabels: Record<DisclosureGroup, string> = {
+  PERIODIC: '정기보고서',
+  OWNERSHIP: '지분 변동',
+  FUNDING: '자금 조달',
+  GOVERNANCE: '지배구조',
+  BUSINESS: '실적·영업',
+  OTHER: '기타',
+}
+
+export function disclosureGroupLabel(group: DisclosureGroup): string {
+  return disclosureGroupLabels[group]
+}
+
+export function companyOverviewLink(corpCode: string): string {
+  return `/companies/${encodeURIComponent(corpCode)}`
+}
+
+export function newerAnalysisLink(analysisId: number): string {
+  return `/analyses/${encodeURIComponent(analysisId)}`
+}
+
+export function hasCompanyFollowups(company: Pick<CompanyNote, 'newerAnalyses' | 'newerDisclosures'>): boolean {
+  return company.newerAnalyses.length > 0 || company.newerDisclosures.length > 0
+}
+
 /** 근거 위치 한 줄: '접수번호 … · 섹션 2 · 문단 1' */
 export function noteLocation(item: NoteItem): string | null {
   const { rceptNo, sectionNo, blockNo } = item.source
@@ -113,6 +139,9 @@ export function noteTime(iso: string): string {
 }
 
 export const OUTDATED_NOTE = '분석 방식이 바뀌어 위치가 달라졌을 수 있어요'
+
+/** 후속 분석·공시 연결 고정 안내 문구(#504 AC5) */
+export const FOLLOWUP_NOTICE = '같은 기업에서 이후에 공시된 내역이며 인과관계를 뜻하지 않아요.'
 
 /** 내보내기 파일 이름(서버의 Content-Disposition과 같음) */
 export function exportFileName(corpCode: string): string {
