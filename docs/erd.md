@@ -1249,7 +1249,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `change_type` | VARCHAR(20) | | 예 | 문장 변경 유형. 문장만 |
 | `rcept_no` | VARCHAR(14) | | 아니오 | 근거 보고서 접수번호(노트와 같은 기준: 현재 보고서, 삭제된 문장은 이전 보고서) |
 | `section_no`, `block_no` | INT | | 예 | 문장만. 근거 원문 섹션·블록(검토 필요는 `block_no` null) |
-| `previous_report_name`, `current_report_name` | VARCHAR(100) | | 아니오 | 담을 때 분석의 두 보고서 이름(카드의 '보고서 쌍') |
+| `previous_report_name`, `current_report_name` | VARCHAR(200) | | 아니오 | 담을 때 분석의 두 보고서 이름(카드의 '보고서 쌍', `report.report_name`과 같은 길이) |
 | `snapshot_label` | VARCHAR(1000) | | 아니오 | 재무 `재무제표 · 계정명`, 문장 섹션 경로 |
 | `snapshot_text` | VARCHAR(1000) | | 아니오 | 재무는 코드가 만든 `이전 → 현재, 증감액(증감률)` 문장(노트와 같은 문장), 문장은 원문 글. 1,000자를 넘으면 줄여 `…` |
 | `created_at` | DATETIME(6) | | 아니오 | 담은 시각 |
