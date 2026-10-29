@@ -1666,7 +1666,7 @@
 | --- | --- |
 | `level` | `FULL` 다섯 재무제표 모두 비교, `PARTIAL` 기간 길이가 달라 일부만 비교, `NOT_COMPARABLE` 비교 불가 |
 | `fsDiv` | 비교에 쓸 재무제표 기준. 두 보고서 모두 연결이 있으면 `CFS`, 아니면 둘 다 있는 `OFS`. 비교 불가면 null |
-| `statements[]` | 재무제표 종류별 비교 여부와 금액 기준(`amountBasis`). 비교하지 않으면 `note`에 이유 |
+| `statements[]` | 재무제표 종류별 비교 여부와 금액 기준(`amountBasis`). 비교하지 않으면 `comparable: false`, `amountBasis: null`이고 `note`에 이유. 보고서 쌍 자체를 비교할 수 없으면(`comparable: false`) 다섯 개 모두 `comparable: false`이고 `note`는 '비교할 수 없는 보고서 쌍이라 재무제표를 비교하지 않아요.' |
 | `checks[].status` | `OK`, `WARN`(비교는 하지만 알릴 것), `FAIL`(비교 불가 사유), `SKIPPED`(앞 항목이 실패해 확인하지 않음) |
 | `reasons[]` | 비교할 수 없는 사유 `{ code, message, nextAction }` |
 
