@@ -2,12 +2,12 @@ import type { CSSProperties } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { FinancialChangeItem, SjDiv } from '@/shared/api/results'
-import type { Summary, SummaryItem, SummaryTarget } from '@/shared/api/summary'
+import type { Summary, SummaryItem, SummaryLens, SummaryTarget } from '@/shared/api/summary'
 import type { ChangeType } from '@/shared/api/textChanges'
 import type { LoadState } from '@/shared/hooks/asyncState'
 import type { AsyncResult } from '@/shared/hooks/useAsync'
 import { formatCompactAmount } from '@/shared/lib/chartScale'
-import { Badge, Button, Card, CompareBars, Notice, Panel, PanelTitle, Skeleton } from '@/shared/ui'
+import { Badge, Button, Card, Chip, CompareBars, Notice, Panel, PanelTitle, SegmentedControl, Skeleton } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState } from '@/shared/ui/StateView'
 import { useSummary } from '../hooks/useSummary'
@@ -18,7 +18,16 @@ import { AskEntryCard } from './AskEntryCard'
 import { ChangeOverview } from './ChangeOverview'
 import { SummaryExplanation } from './SummaryExplanation'
 import { SummaryHeadline } from './SummaryHeadline'
-import type { SourceTarget } from '../model/resultParams'
+import type { SourceTarget, SummaryViewChange } from '../model/resultParams'
+import {
+  effectiveLens,
+  filterByLens,
+  groupByLens,
+  LENS_NOTE,
+  LENS_QUESTION_LEAD,
+  visibleLensCounts,
+  type SummaryView,
+} from '../model/summaryLens'
 import {
   kindLabel,
   SUMMARY_NOTE,
@@ -34,6 +43,14 @@ interface SummaryTabProps {
   /** 문장 변화 탭에서 그 변경의 근거를 연다 */
   onOpenText: (changeId: number) => void
   onOpenSource: (target: SourceTarget) => void
+}
+
+interface LensControls {
+  /** 고른 투자자 관점(FS-64, 주소 slens). null이면 전체 */
+  lens: SummaryLens | null
+  /** 관점별(기본) 또는 목록 보기(주소 sview) */
+  view: SummaryView
+  onChangeLens: (change: SummaryViewChange) => void
 }
 
 interface AskEntry {
@@ -71,7 +88,10 @@ export function SummaryTab({
   onAsk,
   onOpenAsk,
   asking,
-}: SummaryTabProps & OverviewLinks & AskEntry) {
+  lens,
+  view,
+  onChangeLens,
+}: SummaryTabProps & OverviewLinks & AskEntry & LensControls) {
   // 핵심 3줄(FS-21)과 요약 본문이 같은 요약 응답을 쓴다(한 번만 불러온다)
   const summary = useSummary(analysis.analysisId)
   // 열 수 없는 항목(결과에서 찾지 못함)은 버튼을 그리지 않는다
@@ -91,12 +111,20 @@ export function SummaryTab({
         onOpenTextSection={onOpenTextSection}
       />
       <AskEntryCard suggestions={suggestions} onAsk={onAsk} onOpenAsk={onOpenAsk} sending={asking} />
-      <SummaryContent summary={summary} analysis={analysis} opener={opener} onOpenSource={onOpenSource} />
+      <SummaryContent
+        summary={summary}
+        analysis={analysis}
+        opener={opener}
+        onOpenSource={onOpenSource}
+        lens={lens}
+        view={view}
+        onChangeLens={onChangeLens}
+      />
     </>
   )
 }
 
-interface SummaryContentProps {
+interface SummaryContentProps extends LensControls {
   summary: AsyncResult<LoadState<Summary>>
   analysis: Analysis
   opener: (target: SummaryTarget) => (() => void) | null
@@ -104,7 +132,7 @@ interface SummaryContentProps {
 }
 
 /** 요약 본문. 변화 개요를 못 불러와도 따로 불러와 그대로 보인다 */
-function SummaryContent({ summary, analysis, opener, onOpenSource }: SummaryContentProps) {
+function SummaryContent({ summary, ...rest }: SummaryContentProps) {
   const { state, reload } = summary
 
   return match(state)
@@ -118,18 +146,39 @@ function SummaryContent({ summary, analysis, opener, onOpenSource }: SummaryCont
         <ErrorState error={error} onRetry={reload} />
       </Panel>
     ))
-    .with({ status: 'success' }, ({ data }) => <SummaryBody data={data} analysis={analysis} opener={opener} onOpenSource={onOpenSource} />)
+    .with({ status: 'success' }, ({ data }) => <SummaryBody data={data} {...rest} />)
     .exhaustive()
 }
 
-function SummaryBody({ data, analysis, opener, onOpenSource }: Omit<SummaryContentProps, 'summary'> & { data: Summary }) {
+function SummaryBody({
+  data,
+  analysis,
+  opener,
+  onOpenSource,
+  lens: requestedLens,
+  view,
+  onChangeLens,
+}: Omit<SummaryContentProps, 'summary'> & { data: Summary }) {
   const notice = summaryStatusNotice(data.summaryStatus, data.summaryMessage)
   const coverage = data.summaryStatus === null ? null : textCoverageNote(data.textStatus)
-  const financial = data.items.filter((i) => i.kind === 'FINANCIAL')
+  // 주소에 남은 관점이 이 요약에 없으면 전체로 본다
+  const lens = effectiveLens(requestedLens, data.lensCounts)
+  const items = filterByLens(data.items, lens)
+  const reviewNeeded = filterByLens(data.reviewNeeded, lens)
+  const financial = items.filter((i) => i.kind === 'FINANCIAL')
   const amountsState = useSummaryAmounts(analysis.analysisId, summarySjDivs(data.items)).state
   // 금액을 못 불러오면 비교 막대만 빠진다(사실 문장은 그대로)
   const amounts = amountsState.status === 'success' ? amountsState.data : null
-  const text = data.items.filter((i) => i.kind === 'TEXT')
+  const text = items.filter((i) => i.kind === 'TEXT')
+  const card = (item: SummaryItem) => (
+    <SummaryCard
+      item={item}
+      analysis={analysis}
+      amount={item.kind !== 'FINANCIAL' || item.target.changeId === null ? undefined : amounts?.get(item.target.changeId)}
+      onOpen={opener(item.target)}
+      onOpenSource={onOpenSource}
+    />
+  )
 
   return (
     <Panel className="summary-panel" aria-label="요약·설명">
@@ -146,56 +195,78 @@ function SummaryBody({ data, analysis, opener, onOpenSource }: Omit<SummaryConte
         </EmptyState>
       )}
 
-      {/* 넓으면 재무·문장 두 묶음을 양옆에 두고, 같은 순번 항목끼리 높이를 맞춘다(#390) */}
-      <div
-        className="summary-columns"
-        style={{ '--summary-rows': Math.max(financial.length, text.length) } as CSSProperties}
-      >
-        {financial.length > 0 && (
-          <section className="summary-group" aria-labelledby="summary-financial">
-            <PanelTitle id="summary-financial">주요 재무 수치 변화</PanelTitle>
-            <ol className="summary-list">
-              {financial.map((item) => (
-                <li key={item.itemNo}>
-                  <SummaryCard
-                    item={item}
-                    analysis={analysis}
-                    amount={item.target.changeId === null ? undefined : amounts?.get(item.target.changeId)}
-                    onOpen={opener(item.target)}
-                    onOpenSource={onOpenSource}
-                  />
-                </li>
-              ))}
-            </ol>
-          </section>
-        )}
+      {data.items.length > 0 && (
+        <LensFilter data={data} lens={lens} view={view} onChangeLens={onChangeLens} />
+      )}
 
-        {text.length > 0 && (
-          <section className="summary-group" aria-labelledby="summary-text">
-            <PanelTitle id="summary-text">주요 문장·내용 변화</PanelTitle>
-            <ol className="summary-list">
-              {text.map((item) => (
-                <li key={item.itemNo}>
-                  <SummaryCard item={item} analysis={analysis} onOpen={opener(item.target)} onOpenSource={onOpenSource} />
-                </li>
-              ))}
-            </ol>
-          </section>
-        )}
-      </div>
+      {match(view)
+        .with('lens', () => (
+          <div className="summary-lenses">
+            {groupByLens(items).map((group) => (
+              <section key={group.lens} className="summary-group summary-lens" aria-labelledby={`summary-lens-${group.lens}`}>
+                <div className="summary-lens__head">
+                  <PanelTitle id={`summary-lens-${group.lens}`}>
+                    {group.label} {group.items.length}건
+                  </PanelTitle>
+                  {group.question && (
+                    <p className="summary-lens__question">
+                      <span className="summary-lens__lead">{LENS_QUESTION_LEAD}</span> {group.question}
+                    </p>
+                  )}
+                </div>
+                <ol className="summary-list">
+                  {group.items.map((item) => (
+                    <li key={item.itemNo}>{card(item)}</li>
+                  ))}
+                </ol>
+              </section>
+            ))}
+          </div>
+        ))
+        .with('list', () => (
+          /* 넓으면 재무·문장 두 묶음을 양옆에 두고, 같은 순번 항목끼리 높이를 맞춘다(#390) */
+          <div
+            className="summary-columns"
+            style={{ '--summary-rows': Math.max(financial.length, text.length) } as CSSProperties}
+          >
+            {financial.length > 0 && (
+              <section className="summary-group" aria-labelledby="summary-financial">
+                <PanelTitle id="summary-financial">주요 재무 수치 변화</PanelTitle>
+                <ol className="summary-list">
+                  {financial.map((item) => (
+                    <li key={item.itemNo}>{card(item)}</li>
+                  ))}
+                </ol>
+              </section>
+            )}
 
-      {data.reviewNeededCount > 0 && (
+            {text.length > 0 && (
+              <section className="summary-group" aria-labelledby="summary-text">
+                <PanelTitle id="summary-text">주요 문장·내용 변화</PanelTitle>
+                <ol className="summary-list">
+                  {text.map((item) => (
+                    <li key={item.itemNo}>{card(item)}</li>
+                  ))}
+                </ol>
+              </section>
+            )}
+          </div>
+        ))
+        .exhaustive()}
+
+      {reviewNeeded.length > 0 && (
         <section className="summary-group summary-group--review" aria-labelledby="summary-review">
-          <PanelTitle id="summary-review">검토 필요 {data.reviewNeededCount}건</PanelTitle>
+          <PanelTitle id="summary-review">검토 필요 {reviewNeeded.length}건</PanelTitle>
           <p className="panel__note">
             근거를 확인하지 못했거나 투자 권유로 읽힐 수 있는 표현이 있어 요약에 넣지 않은 항목이에요. 원래 결과에서 직접 확인해 주세요.
           </p>
           <ul className="summary-review">
-            {data.reviewNeeded.map((review) => {
+            {reviewNeeded.map((review) => {
               const openReview = opener(review.target)
               return (
                 <li key={`${review.itemNo}-${review.reason ?? ''}`}>
                   <Badge tone="attention">{kindLabel(review.kind)}</Badge>
+                  <Badge>{review.lensLabel}</Badge>
                   {review.blockedRules.length > 0 && <Badge tone="attention">표현 검사</Badge>}
                   <span>{review.reason ?? '근거를 확인하지 못했어요.'}</span>
                   {openReview && (
@@ -218,6 +289,38 @@ function SummaryBody({ data, analysis, opener, onOpenSource }: Omit<SummaryConte
       />
       <p className="panel__note">{SUMMARY_NOTE}</p>
     </Panel>
+  )
+}
+
+const viewOptions = [
+  { value: 'lens', label: '관점별로 보기' },
+  { value: 'list', label: '목록으로 보기' },
+] as const
+
+/** 요약 위 투자자 관점 거르기(FS-64). 0건 관점은 그리지 않는다. 고른 관점과 보기는 주소에 남는다 */
+function LensFilter({ data, lens, view, onChangeLens }: { data: Summary } & LensControls) {
+  return (
+    <div className="summary-lens-controls">
+      <div className="summary-lens-controls__chips" role="group" aria-label="투자자 관점">
+        <Chip pressed={lens === null} count={data.items.length} onClick={() => lens !== null && onChangeLens({ lens: null })}>
+          전체
+        </Chip>
+        {visibleLensCounts(data.lensCounts).map((c) => (
+          <Chip key={c.lens} pressed={lens === c.lens} count={c.count} onClick={() => lens !== c.lens && onChangeLens({ lens: c.lens })}>
+            {c.lensLabel}
+          </Chip>
+        ))}
+      </div>
+      <SegmentedControl
+        aria-label="요약 보기"
+        options={viewOptions}
+        value={view}
+        onChange={(next) => {
+          if (next !== view) onChangeLens({ view: next })
+        }}
+      />
+      <p className="panel__note">{LENS_NOTE}</p>
+    </div>
   )
 }
 

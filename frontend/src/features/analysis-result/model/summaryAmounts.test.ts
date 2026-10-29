@@ -8,6 +8,8 @@ function summary(kind: 'FINANCIAL' | 'TEXT', sjDiv: 'IS' | 'BS' | null, changeId
     itemNo: changeId,
     kind,
     target: { type: kind, changeId, sjDiv },
+    lens: 'OTHER',
+    lensLabel: '기타',
     factSentence: null,
     aiText: null,
     aiGenerated: false,

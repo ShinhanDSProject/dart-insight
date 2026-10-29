@@ -1,14 +1,16 @@
 import type { DocumentSide } from '@/shared/api/documents'
 import type { SjDiv } from '@/shared/api/results'
+import type { SummaryLens } from '@/shared/api/summary'
 import type { ChangeType, TextSort } from '@/shared/api/textChanges'
 import { positiveInt, type ParamChanges } from '@/shared/lib/searchParams'
 import { parseUnit, type AmountUnit } from './format'
+import { parseSummaryLens, type SummaryView } from './summaryLens'
 import { accountQueryOf } from './accountFilter'
 import { CONTENT_FILTER, searchQueryOf, type TextTypeFilter } from './textFilter'
 
 /**
  * W-03 결과 화면의 주소 상태(ST-6).
- * ?tab=&sj=&changed=&unit=&fq=&change= 재무 수치, ?tab=ask AI 질문, ?ttype=&tsort=&tsec=&tq=&trisk=&tpin=&tc= 문장 변화, ?doc=&section=&block= 원문 확인
+ * ?slens=&sview= 요약(관점 거르기·보기), ?tab=&sj=&changed=&unit=&fq=&change= 재무 수치, ?tab=ask AI 질문, ?ttype=&tsort=&tsec=&tq=&trisk=&tpin=&tc= 문장 변화, ?doc=&section=&block= 원문 확인
  */
 export type ResultTab = 'summary' | 'financial' | 'text' | 'ask' | 'source'
 
@@ -25,6 +27,10 @@ export interface SourceTarget {
 
 export interface ResultParams {
   tab: ResultTab
+  /** 요약에서 고른 투자자 관점(FS-64). null이면 전체 */
+  summaryLens: SummaryLens | null
+  /** 요약을 관점별로 묶어 볼지(기본) 목록으로 볼지 */
+  summaryView: SummaryView
   sjDiv: SjDiv
   changedOnly: boolean
   unit: AmountUnit
@@ -57,6 +63,8 @@ export function parseResultParams(params: URLSearchParams): ResultParams {
   const ttype = params.get('ttype')
   return {
     tab: resultTabs.includes(tab as ResultTab) ? (tab as ResultTab) : 'summary',
+    summaryLens: parseSummaryLens(params.get('slens')),
+    summaryView: params.get('sview') === 'list' ? 'list' : 'lens',
     sjDiv: sjDivs.includes(sj as SjDiv) ? (sj as SjDiv) : 'BS',
     changedOnly: params.get('changed') === '1',
     unit: parseUnit(params.get('unit')),
@@ -72,6 +80,20 @@ export function parseResultParams(params: URLSearchParams): ResultParams {
     sourceSide: params.get('doc') === 'previous' ? 'previous' : 'current',
     sourceSection: positiveInt(params.get('section')),
     sourceBlock: positiveInt(params.get('block')),
+  }
+}
+
+export interface SummaryViewChange {
+  /** null이면 전체(주소에서 지운다) */
+  lens?: SummaryLens | null
+  view?: SummaryView
+}
+
+/** 요약의 관점 거르기·보기를 주소 값으로. 기본값(전체·관점별)은 주소에서 지운다 */
+export function summaryParamChanges(c: SummaryViewChange): ParamChanges {
+  return {
+    ...(c.lens !== undefined ? { slens: c.lens } : {}),
+    ...(c.view !== undefined ? { sview: c.view === 'lens' ? null : c.view } : {}),
   }
 }
 

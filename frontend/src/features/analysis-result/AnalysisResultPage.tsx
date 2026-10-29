@@ -34,6 +34,7 @@ import {
   openTextSection,
   resultTabs,
   sourceParamChanges,
+  summaryParamChanges,
   textParamChanges,
   type ResultParams,
   type ResultTab,
@@ -207,6 +208,9 @@ function ResultTabPanel({ analysis, params, update, ask, suggestions, askSection
         onAsk={askAndOpen}
         onOpenAsk={() => update(openAsk())}
         asking={asking}
+        lens={params.summaryLens}
+        view={params.summaryView}
+        onChangeLens={(change) => update(summaryParamChanges(change))}
       />
     ))
     .with('text', () => (
