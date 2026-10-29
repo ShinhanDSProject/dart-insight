@@ -2271,11 +2271,12 @@
 
 ### GET /api/analyses/{analysisId}/summary — 근거 기반 요약·설명
 
-- 이슈: #20 (3.2), #143 (설명 등급·인용), #149 (템플릿 요약) · 화면: W-03 ① · [ADR-0015](adr/0015-explanation-grade-and-quote-check.md)
+- 이슈: #20 (3.2), #143 (설명 등급·인용), #149 (템플릿 요약), #481 (3.10 투자자 관점, FS-64) · 화면: W-03 ① · [ADR-0015](adr/0015-explanation-grade-and-quote-check.md)
 - 요약할 변화는 코드가 고릅니다(5절 잠정 규칙). 재무 수치의 사실 문장(`factSentence`)은 코드가 계산한 값으로 만들고, LLM은 문장 변화의 요약과 공시에 적힌 설명(`aiText`)만 씁니다.
 - AI 서버가 LLM 문장의 근거 ID가 보낸 원문 위치인지, 문장의 숫자가 그 원문에 있는지 확인하고, 투자 권유성 표현 검사(5.5)를 합니다. 통과하지 못하면 2회까지 다시 만들고, 그래도 통과하지 못한 항목은 요약에서 빼고 `reviewNeeded`에 남깁니다. 재무 수치는 사실 문장을 그대로 보이고 설명 자리만 템플릿으로 채웁니다(`explanationStatus: TEMPLATE`, #149). 표현 검사에 걸린 항목은 `reviewNeeded[].blockedRules`에 걸린 규칙 ID가 있습니다(5절 잠정 규칙).
 - backend도 저장하기 전에 다시 확인합니다: 요청한 항목인지, 같은 항목이 두 번 오지 않았는지, AI 문장의 근거가 보낸 원문 위치인지(문장 변화는 그 항목의 원문, 재무 설명은 보낸 문단 블록, ADR-0036). 통과하지 못하거나 응답에 빠진 항목은 `reviewNeeded`에 남습니다.
 - 분석이 끝난 뒤 원문을 다시 구조화했으면 근거의 `sectionNo`·`blockNo`가 null입니다(블록 번호가 다른 글을 가리킬 수 있어 열지 않음).
+- 투자자 관점(`lens`, #481)은 저장하지 않고 조회할 때 코드가 정합니다(아래 '투자자 관점'). 규칙이 바뀌어도 분석 버전을 올리지 않습니다.
 - 분석이 끝나지 않았으면 `ANALYSIS_NOT_READY`(409)입니다.
 
 **응답 200**
@@ -2290,6 +2291,7 @@
     {
       "itemNo": 1, "kind": "FINANCIAL",
       "target": { "type": "FINANCIAL", "changeId": 101, "sjDiv": "IS" },
+      "lens": "GROWTH", "lensLabel": "성장",
       "factSentence": "매출액이 145조 원에서 152조 원으로 늘었어요(+4.8%).",
       "aiText": "회사는 메모리 수요 회복으로 매출이 늘었다고 적었어요.",
       "aiGenerated": true,
@@ -2304,6 +2306,7 @@
     {
       "itemNo": 3, "kind": "FINANCIAL",
       "target": { "type": "FINANCIAL", "changeId": 102, "sjDiv": "IS" },
+      "lens": "PROFITABILITY", "lensLabel": "수익성",
       "factSentence": "영업이익이 6조 원에서 9조 원으로 늘었어요(+50.0%).",
       "aiText": null,
       "aiGenerated": false,
@@ -2318,6 +2321,7 @@
     {
       "itemNo": 4, "kind": "FINANCIAL",
       "target": { "type": "FINANCIAL", "changeId": 103, "sjDiv": "IS" },
+      "lens": "PROFITABILITY", "lensLabel": "수익성",
       "factSentence": "당기순이익이 −7.7조 원에서 23.5조 원으로 바뀌어 흑자로 돌아섰어요.",
       "aiText": null,
       "aiGenerated": false,
@@ -2332,6 +2336,7 @@
     {
       "itemNo": 2, "kind": "TEXT",
       "target": { "type": "TEXT", "changeId": 5512, "sjDiv": null },
+      "lens": "OTHER", "lensLabel": "기타",
       "factSentence": null,
       "aiText": "미국에 공장 2곳을 새로 짓는다는 내용이 들어갔어요.",
       "aiGenerated": true,
@@ -2341,10 +2346,19 @@
       "ai": { "model": "fake-model", "promptVersion": "summary-3", "generatedAt": "2026-10-21T14:07:12" }
     }
   ],
+  "lensCounts": [
+    { "lens": "PROFITABILITY", "lensLabel": "수익성", "count": 2 },
+    { "lens": "GROWTH", "lensLabel": "성장", "count": 1 },
+    { "lens": "STABILITY", "lensLabel": "재무 안정성", "count": 0 },
+    { "lens": "CASH_FLOW", "lensLabel": "현금흐름", "count": 0 },
+    { "lens": "SHAREHOLDER", "lensLabel": "주주 환원", "count": 0 },
+    { "lens": "RISK", "lensLabel": "위험", "count": 0 },
+    { "lens": "OTHER", "lensLabel": "기타", "count": 1 }
+  ],
   "reviewNeededCount": 2,
   "reviewNeeded": [
-    { "itemNo": 4, "kind": "FINANCIAL", "target": { "type": "FINANCIAL", "changeId": 103, "sjDiv": "IS" }, "reason": "AI 설명이 검증을 통과하지 못해 원문 인용만 보여 줘요. 다시 생성해도 근거·숫자 확인을 통과하지 못했어요.", "blockedRules": [] },
-    { "itemNo": 5, "kind": "TEXT", "target": { "type": "TEXT", "changeId": 5520, "sjDiv": null }, "reason": "원문에 없는 숫자(3)를 썼어요.", "blockedRules": [] }
+    { "itemNo": 4, "kind": "FINANCIAL", "target": { "type": "FINANCIAL", "changeId": 103, "sjDiv": "IS" }, "lens": "PROFITABILITY", "lensLabel": "수익성", "reason": "AI 설명이 검증을 통과하지 못해 원문 인용만 보여 줘요. 다시 생성해도 근거·숫자 확인을 통과하지 못했어요.", "blockedRules": [] },
+    { "itemNo": 5, "kind": "TEXT", "target": { "type": "TEXT", "changeId": 5520, "sjDiv": null }, "lens": "RISK", "lensLabel": "위험", "reason": "원문에 없는 숫자(3)를 썼어요.", "blockedRules": [] }
   ]
 }
 ```
@@ -2365,6 +2379,21 @@
 - `gradeReason`: 코드가 LLM의 등급을 낮췄을 때만 그 사유입니다(인용 위치가 후보가 아님·인용문이 원문에 없음이면 `NONE`, 인용문에 계정 이름이 없으면 `RELATED`). 낮추지 않았으면 null입니다. 화면은 `NONE`일 때 이 값이 있으면 후보가 없던 경우와 다른 문구를 씁니다.
 - `aiGenerated`가 true인 문장(`aiText`)은 화면에 'AI 생성'으로 표시하고 `ai`(모델·프롬프트 버전·생성 시각)를 함께 보여 줍니다. 사실 문장(`factSentence`)은 코드가 만든 문장이라 'AI 생성'이 아닙니다.
 - `evidence[]`는 `aiText`의 근거입니다. `side`·`sectionNo`·`blockNo`로 원문 확인(④)을 엽니다. `side`가 null이면 분석의 보고서가 아닌 근거라 열지 않습니다.
+- `lens`·`lensLabel`(#481, FS-64): 그 줄을 묶는 투자자 관점과 화면 이름입니다. `items[]`와 `reviewNeeded[]`에 모두 있습니다. 관점은 주제로 묶는 것이고 좋고 나쁨을 판단하지 않습니다. 정하는 규칙(backend `SummaryLens`)은 아래와 같고 위에서부터 처음 맞는 것을 씁니다. 가리키는 변경을 찾지 못했으면 `OTHER`입니다.
+
+  | 줄 | 조건(공백을 빼고 비교) | `lens` | `lensLabel` |
+  | --- | --- | --- | --- |
+  | 재무 수치 | 계정 이름에 '배당'·'자기주식' | `SHAREHOLDER` | 주주 환원 |
+  | 재무 수치 | 현금흐름표(`CF`) | `CASH_FLOW` | 현금흐름 |
+  | 재무 수치 | 손익계산서(`IS`·`CIS`)이고 표준계정 `ifrs-full_Revenue` 또는 계정 이름이 매출액·매출·영업수익 | `GROWTH` | 성장 |
+  | 재무 수치 | 손익계산서(`IS`·`CIS`)이고 계정 이름에 이익·손실·손익·비용·원가·수익·관리비 | `PROFITABILITY` | 수익성 |
+  | 재무 수치 | 재무상태표·자본변동표(`BS`·`SCE`)이고 계정 이름에 자산·부채·자본·차입·사채 | `STABILITY` | 재무 안정성 |
+  | 문장 변화 | 섹션 경로(현재·이전 중 하나)가 위험 관련 목차(`trisk`와 같은 규칙, 3.9) | `RISK` | 위험 |
+  | 문장 변화 | 섹션 경로에 '배당'(예: III. 재무에 관한 사항 > 6. 배당에 관한 사항) | `SHAREHOLDER` | 주주 환원 |
+  | 문장 변화 | 섹션 경로에 '매출및수주'(II. 사업의 내용 > 4. 매출 및 수주상황) | `GROWTH` | 성장 |
+  | 그 밖 | | `OTHER` | 기타 |
+
+- `lensCounts`(#481): 관점별 `items[]`(보이는 줄) 수입니다. 위 표의 일곱 관점을 수익성·성장·재무 안정성·현금흐름·주주 환원·위험·기타 순서로 늘 모두 주고, 없으면 `count`가 0입니다.
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
