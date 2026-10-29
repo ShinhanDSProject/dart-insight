@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 /**
  * 재무 수치 변화의 사실 문장(3.2). 숫자는 코드가 계산한 값을 그대로 쓰고 LLM이 만들지 않는다.
  * 증감은 '늘었어요·줄었어요'로만 쓰고 좋고 나쁨을 평가하지 않는다.
+ * 문장을 바꾸면 저장되는 요약이 달라지므로 {@code Analysis.CURRENT_VERSION}을 함께 올린다.
  */
 public final class FinancialFacts {
 
