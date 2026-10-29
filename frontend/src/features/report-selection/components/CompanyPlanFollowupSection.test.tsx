@@ -1,16 +1,28 @@
 // @vitest-environment jsdom
+import type { ReactElement } from 'react'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { CompanyAnalysisList } from '@/shared/api/analyses'
 import { ApiError } from '@/shared/api/client'
 import type { CompanyPlanFollowups } from '@/shared/api/planFollowups'
 import { axeViolations } from '@/test/axe'
 import { CompanyPlanFollowupSection } from './CompanyPlanFollowupSection'
 
 const getCompanyPlanFollowups = vi.fn<(corpCode: string, signal?: AbortSignal) => Promise<CompanyPlanFollowups>>()
+const listCompanyAnalyses = vi.fn<(corpCode: string, signal?: AbortSignal, limit?: number) => Promise<CompanyAnalysisList>>()
 
 vi.mock('@/shared/api/planFollowups', () => ({
   getCompanyPlanFollowups: (corpCode: string, signal?: AbortSignal) => getCompanyPlanFollowups(corpCode, signal),
 }))
+vi.mock('@/shared/api/analyses', () => ({
+  listCompanyAnalyses: (corpCode: string, signal?: AbortSignal, limit?: number) =>
+    listCompanyAnalyses(corpCode, signal, limit),
+}))
+
+function renderWithRouter(ui: ReactElement) {
+  return render(<MemoryRouter>{ui}</MemoryRouter>)
+}
 
 const PREV = '20250311000456'
 const CUR = '20260310000123'
@@ -86,6 +98,8 @@ function stopped(status: CompanyPlanFollowups['status'], reason: CompanyPlanFoll
 
 beforeEach(() => {
   getCompanyPlanFollowups.mockReset()
+  listCompanyAnalyses.mockReset()
+  listCompanyAnalyses.mockResolvedValue({ items: [] })
 })
 afterEach(cleanup)
 
@@ -93,7 +107,7 @@ describe('작년 계획, 올해는', () => {
   it('만드는 동안 자리 모양을 보이고, 끝나면 계획마다 작년·올해를 두 칸으로 양쪽 근거와 함께 보인다(AC1)', async () => {
     let resolve: (value: CompanyPlanFollowups) => void = () => {}
     getCompanyPlanFollowups.mockReturnValue(new Promise((r) => (resolve = r)))
-    const { container } = render(<CompanyPlanFollowupSection corpCode="00126380" />)
+    const { container } = renderWithRouter(<CompanyPlanFollowupSection corpCode="00126380" />)
 
     expect(screen.getByRole('status').textContent).toContain('나란히 놓는 중')
     expect(getCompanyPlanFollowups).toHaveBeenCalledWith('00126380', expect.any(AbortSignal))
@@ -125,7 +139,7 @@ describe('작년 계획, 올해는', () => {
 
   it('찾지 못한 계획은 올해 칸에 찾지 못했다고 쓰고, 이행하지 않았다는 뜻이 아니라는 안내를 둔다(AC2)', async () => {
     getCompanyPlanFollowups.mockResolvedValue(generated())
-    render(<CompanyPlanFollowupSection corpCode="00126380" />)
+    renderWithRouter(<CompanyPlanFollowupSection corpCode="00126380" />)
 
     const current = await screen.findByRole('region', { name: '3번 올해 보고서' })
     expect(current.textContent).toContain('올해 보고서에서 찾지 못했어요')
@@ -135,7 +149,7 @@ describe('작년 계획, 올해는', () => {
 
   it('상태 배지는 중립색만 쓰고, 화면 문구에 평가 표현이 없다(AC7)', async () => {
     getCompanyPlanFollowups.mockResolvedValue(generated())
-    const { container } = render(<CompanyPlanFollowupSection corpCode="00126380" />)
+    const { container } = renderWithRouter(<CompanyPlanFollowupSection corpCode="00126380" />)
     await screen.findByText('관련 언급 있음')
 
     const badges = Array.from(container.querySelectorAll('.plan-followups__title .badge'))
@@ -150,11 +164,12 @@ describe('작년 계획, 올해는', () => {
       ...stopped('NOT_AVAILABLE', 'NO_PREVIOUS_REPORT', '사업연도가 한 해 앞선 사업보고서가 없어 작년 계획과 나란히 볼 수 없어요.'),
       previousReport: null,
     })
-    const { container } = render(<CompanyPlanFollowupSection corpCode="00126380" />)
+    const { container } = renderWithRouter(<CompanyPlanFollowupSection corpCode="00126380" />)
 
     expect(await screen.findByText('이전 사업보고서가 없어요')).toBeTruthy()
     expect(screen.getByText('사업연도가 한 해 앞선 사업보고서가 없어 작년 계획과 나란히 볼 수 없어요.')).toBeTruthy()
     expect(screen.queryByText('AI 생성')).toBeNull()
+    expect(screen.queryByRole('link', { name: /비교/ })).toBeNull()
     expect(await axeViolations(container)).toBe('')
   })
 
@@ -162,7 +177,7 @@ describe('작년 계획, 올해는', () => {
     getCompanyPlanFollowups.mockResolvedValue(
       stopped('EMPTY', 'NO_PREVIOUS_PLAN', '작년 사업보고서에서 회사가 밝힌 투자·사업·재무 계획을 찾지 못했어요.'),
     )
-    render(<CompanyPlanFollowupSection corpCode="00126380" />)
+    renderWithRouter(<CompanyPlanFollowupSection corpCode="00126380" />)
 
     expect(await screen.findByText('작년 계획이 없어요')).toBeTruthy()
     expect(screen.getByText('작년 사업보고서에서 회사가 밝힌 투자·사업·재무 계획을 찾지 못했어요.')).toBeTruthy()
@@ -176,7 +191,7 @@ describe('작년 계획, 올해는', () => {
       message: '다시 생성해도 인용·근거·숫자 확인을 통과하지 못했어요.',
       items: [],
     })
-    render(<CompanyPlanFollowupSection corpCode="00126380" />)
+    renderWithRouter(<CompanyPlanFollowupSection corpCode="00126380" />)
 
     expect(await screen.findByText('검토 필요')).toBeTruthy()
     expect(screen.getByText(/다시 생성해도 인용·근거·숫자 확인을 통과하지 못했어요/)).toBeTruthy()
@@ -188,12 +203,41 @@ describe('작년 계획, 올해는', () => {
     getCompanyPlanFollowups
       .mockRejectedValueOnce(new ApiError(503, { code: 'AI_SERVER_UNAVAILABLE', message: 'AI 서버가 응답하지 않습니다.', traceId: 't-1', errors: [] }))
       .mockResolvedValueOnce(generated())
-    render(<CompanyPlanFollowupSection corpCode="00126380" />)
+    renderWithRouter(<CompanyPlanFollowupSection corpCode="00126380" />)
 
     expect(await screen.findByText(/AI 서버를 지금 쓸 수 없어 작년 계획과 올해 보고서를 나란히 놓지 못했어요/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
 
     expect(await screen.findByText('평택 신규 라인 증설을 2026년까지 마칠 계획이라고 밝혔어요.')).toBeTruthy()
     expect(getCompanyPlanFollowups).toHaveBeenCalledTimes(2)
+  })
+
+  it('완료된 분석이 있으면 두 사업보고서 문장 변화 전체 보기 버튼을 제공한다', async () => {
+    getCompanyPlanFollowups.mockResolvedValue(generated())
+    listCompanyAnalyses.mockResolvedValue({
+      items: [
+        {
+          analysisId: 105,
+          basis: 'YOY',
+          previous: { rceptNo: PREV, reportName: '작년', periodEnd: '2024-12-31' },
+          current: { rceptNo: CUR, reportName: '올해', periodEnd: '2025-12-31' },
+          completedAt: '2026-03-20T10:00:00',
+        },
+      ],
+    })
+    const { container } = renderWithRouter(<CompanyPlanFollowupSection corpCode="00126380" />)
+
+    const link = await screen.findByRole('link', { name: '두 사업보고서 문장 변화 전체 보기' })
+    expect(link.getAttribute('href')).toBe('/analyses/105?tab=text')
+    expect(await axeViolations(container)).toBe('')
+  })
+
+  it('완료된 분석이 아직 없으면 이 두 사업보고서 비교하기 링크를 제공한다', async () => {
+    getCompanyPlanFollowups.mockResolvedValue(generated())
+    listCompanyAnalyses.mockResolvedValue({ items: [] })
+    renderWithRouter(<CompanyPlanFollowupSection corpCode="00126380" />)
+
+    const link = await screen.findByRole('link', { name: '이 두 사업보고서 비교하기' })
+    expect(link.getAttribute('href')).toBe(`/companies/00126380/compare?current=${CUR}&previous=${PREV}&basis=YOY`)
   })
 })
