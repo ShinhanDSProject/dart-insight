@@ -104,7 +104,8 @@ public class SummaryStore {
                 (rs, i) -> new TaskUsage(rs.getString("task"), rs.getLong("n"), nullableLong(rs, "input_sum"),
                         nullableLong(rs, "output_sum")), timestamp(from), timestamp(to));
         return new LlmCallUsage(byOutcome, byTask, byModel(from, to), units("analysis_id", from, to),
-                units("company_briefing_id", from, to));
+                units("company_briefing_id", from, to), units("company_outlook_id", from, to),
+                units("plan_followup_id", from, to));
     }
 
     /** 제공자·모델별 호출 수·토큰 합과 그 안의 작업별 집계(제공자, 모델, 작업 이름 순서) */
@@ -127,9 +128,10 @@ public class SummaryStore {
     }
 
     /**
-     * 기간 안에 호출이 있는 작업 단위(분석·브리핑)의 수와, 그 호출들의 제공자·모델별 토큰 합.
+     * 기간 안에 호출이 있는 작업 단위(분석·브리핑·전망·대조)의 수와, 그 호출들의 제공자·모델별 토큰 합.
      *
-     * @param unitColumn analysis_id 또는 company_briefing_id(이 클래스 안에서만 넘기는 고정 값)
+     * @param unitColumn analysis_id, company_briefing_id, company_outlook_id, plan_followup_id 중 하나
+     *     (이 클래스 안에서만 넘기는 고정 값)
      */
     private UnitUsage units(String unitColumn, LocalDateTime from, LocalDateTime to) {
         String window = " FROM llm_call WHERE called_at >= ? AND called_at < ? AND " + unitColumn + " IS NOT NULL";

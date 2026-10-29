@@ -102,7 +102,11 @@ class AiUsageApiTest {
                 .andExpect(jsonPath("$.llmCalls.perUnit.analysis.avgInputTokens").isEmpty())
                 .andExpect(jsonPath("$.llmCalls.perUnit.analysis.avgCostUsd").isEmpty())
                 .andExpect(jsonPath("$.llmCalls.perUnit.briefing.count").value(0))
-                .andExpect(jsonPath("$.llmCalls.perUnit.briefing.avgOutputTokens").isEmpty());
+                .andExpect(jsonPath("$.llmCalls.perUnit.briefing.avgOutputTokens").isEmpty())
+                .andExpect(jsonPath("$.llmCalls.perUnit.outlook.count").value(0))
+                .andExpect(jsonPath("$.llmCalls.perUnit.outlook.avgInputTokens").isEmpty())
+                .andExpect(jsonPath("$.llmCalls.perUnit.planFollowup.count").value(0))
+                .andExpect(jsonPath("$.llmCalls.perUnit.planFollowup.avgCostUsd").isEmpty());
     }
 
     @Test
@@ -304,6 +308,61 @@ class AiUsageApiTest {
         jdbcTemplate.update("INSERT INTO company_briefing (rcept_no, prompt_version, status, sentences, created_at) "
                 + "VALUES (?, ?, 'OK', '[]', ?)", CUR, promptVersion, Timestamp.valueOf(now));
         return jdbcTemplate.queryForObject("SELECT id FROM company_briefing WHERE prompt_version = ?", Long.class,
+                promptVersion);
+    }
+
+    @Test
+    @DisplayName("전망·계획과 약속 대조도 브리핑과 같은 방식으로 1건당 평균을 낸다")
+    void averagesTokensAndCostPerOutlookAndPlanFollowup() throws Exception {
+        seedAnalysis();
+        long outlookA = outlook("op-1");
+        long outlookB = outlook("op-2");
+        long followup = planFollowup("pf-1");
+        LocalDateTime recent = now.minusDays(1);
+        unitCall("company_outlook_id", outlookA, "openai", "gpt-6.1-sol", "outlook", recent, 4000, 400);
+        unitCall("company_outlook_id", outlookA, "openai", "gpt-6.1-sol", "outlook", recent, 2000, 200);
+        unitCall("company_outlook_id", outlookB, "openai", "gpt-6.1-sol", "outlook", recent, 1000, 101);
+        unitCall("company_outlook_id", outlookB, "openai", "gpt-6.1-sol", "outlook", now.minusDays(40), 9999, 9999);
+        unitCall("plan_followup_id", followup, "fake", "fake-model", "plan_followup", recent, 300, 30);
+
+        // 전망: 입력 (6000 + 1000) ÷ 2 = 3500, 출력 (600 + 101) ÷ 2 = 350.5 → 351,
+        // 비용 (7000 × 2 + 701 × 10) ÷ 1,000,000 ÷ 2 = 0.010505 → 0.0105
+        // 대조: 가짜 제공자 호출뿐이라 비용 평균은 null
+        mockMvc.perform(get("/api/system/ai-usage").param("days", "7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.llmCalls.perUnit.outlook.count").value(2))
+                .andExpect(jsonPath("$.llmCalls.perUnit.outlook.avgInputTokens").value(3500))
+                .andExpect(jsonPath("$.llmCalls.perUnit.outlook.avgOutputTokens").value(351))
+                .andExpect(jsonPath("$.llmCalls.perUnit.outlook.avgCostUsd").value(0.0105))
+                .andExpect(jsonPath("$.llmCalls.perUnit.planFollowup.count").value(1))
+                .andExpect(jsonPath("$.llmCalls.perUnit.planFollowup.avgInputTokens").value(300))
+                .andExpect(jsonPath("$.llmCalls.perUnit.planFollowup.avgOutputTokens").value(30))
+                .andExpect(jsonPath("$.llmCalls.perUnit.planFollowup.avgCostUsd").isEmpty())
+                .andExpect(jsonPath("$.llmCalls.perUnit.analysis.count").value(0))
+                .andExpect(jsonPath("$.llmCalls.perUnit.briefing.count").value(0));
+    }
+
+    /** 단위 열(company_outlook_id·plan_followup_id) 하나에 묶인 호출. 열 이름은 이 테스트의 고정 값 */
+    private void unitCall(String unitColumn, long unitId, String provider, String model, String task,
+            LocalDateTime calledAt, Integer inputTokens, Integer outputTokens) {
+        jdbcTemplate.update("INSERT INTO llm_call (" + unitColumn + ", task, provider, model, prompt_version, "
+                + "called_at, input_tokens, output_tokens, latency_ms, attempt, outcome) "
+                + "VALUES (?, ?, ?, ?, 'v1', ?, ?, ?, 100, 1, 'OK')", unitId, task, provider, model,
+                Timestamp.valueOf(calledAt), inputTokens, outputTokens);
+    }
+
+    private long outlook(String promptVersion) {
+        jdbcTemplate.update("INSERT INTO company_outlook (rcept_no, prompt_version, status, items, created_at) "
+                + "VALUES (?, ?, 'OK', '[]', ?)", CUR, promptVersion, Timestamp.valueOf(now));
+        return jdbcTemplate.queryForObject("SELECT id FROM company_outlook WHERE prompt_version = ?", Long.class,
+                promptVersion);
+    }
+
+    private long planFollowup(String promptVersion) {
+        jdbcTemplate.update("INSERT INTO plan_followup (previous_rcept_no, current_rcept_no, prompt_version, status, "
+                + "items, created_at) VALUES (?, ?, ?, 'OK', '[]', ?)", PREV, CUR, promptVersion,
+                Timestamp.valueOf(now));
+        return jdbcTemplate.queryForObject("SELECT id FROM plan_followup WHERE prompt_version = ?", Long.class,
                 promptVersion);
     }
 }
