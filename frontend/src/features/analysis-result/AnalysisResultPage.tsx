@@ -11,6 +11,7 @@ import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
 import { useRecordRecentAnalysis } from '@/shared/hooks/useRecentAnalyses'
 import { useRecordCurrentCompany } from '@/shared/hooks/useCurrentCompany'
 import { AskTab } from './components/AskTab'
+import { ExportBriefButton } from './components/ExportBriefButton'
 import { FinancialTab } from './components/FinancialTab'
 import { ComparisonContextCard } from './components/ComparisonContextCard'
 import { OtherAnalyses } from './components/OtherAnalyses'
@@ -109,6 +110,7 @@ function AnalysisResult({ analysis, params, update }: AnalysisResultProps) {
           <ButtonLink to={selectionPath(analysis)} variant="secondary">
             보고서 선택 변경
           </ButtonLink>
+          {analysis.status === 'COMPLETED' && <ExportBriefButton analysis={analysis} />}
           {/* 인쇄용 화면은 메뉴·버튼·근거 패널을 빼고 비교 맥락·지금 탭·출처를 남긴다(FS-8 R3, print.css) */}
           <Button onClick={() => window.print()}>인쇄</Button>
         </div>
