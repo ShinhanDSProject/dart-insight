@@ -5,6 +5,7 @@ import { Icon, type IconName } from '@/shared/ui/Icon'
 import { useOnboarding } from '@/shared/hooks/useOnboarding'
 import { useAuth } from '@/shared/auth/authContext'
 import { NotificationMenu } from '@/features/notifications/components/NotificationMenu'
+import { NotificationSignInLink } from '@/features/notifications/components/NotificationSignInLink'
 import { Kbd } from '@/shared/ui/Dialog'
 import type { ShortcutPage } from '@/shared/lib/shortcuts'
 import { ShortcutHelp } from './ShortcutHelp'
@@ -172,6 +173,7 @@ export function Layout() {
                 ))
                 .with('loading', 'anonymous', () => (
                   <>
+                    <NotificationSignInLink />
                     <ButtonLink to="/login" variant="secondary" aria-current={pathname === '/login' ? 'page' : undefined}>로그인</ButtonLink>
                     <ButtonLink to="/signup" variant="secondary" aria-current={pathname === '/signup' ? 'page' : undefined}>회원가입</ButtonLink>
                   </>
