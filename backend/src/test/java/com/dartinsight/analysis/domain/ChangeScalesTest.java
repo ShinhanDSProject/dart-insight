@@ -115,6 +115,18 @@ class ChangeScalesTest {
     }
 
     @Test
+    @DisplayName("자본총계는 계정 이름이 달라도 표준계정 ID(ifrs-full_Equity)로 찾는다")
+    void totalEquityIsFoundByAccountId() {
+        FinancialChange equity = change("BS", "ifrs-full_Equity", "자본 총계", 9, 500L, 1_000L);
+        FinancialChange dividend = change("SCE", "dart_Dividends", "배당금지급", 0, -10L, -50L);
+
+        ChangeScale scale = ChangeScales.of(List.of(equity, dividend)).scaleOf(dividend);
+
+        assertThat(scale.baseAccountName()).isEqualTo("자본 총계");
+        assertThat(scale.ratio()).isEqualByComparingTo("-0.04");
+    }
+
+    @Test
     @DisplayName("기준 계정이 없으면 BASE_NOT_FOUND, 현재 보고서에 값이 없으면 BASE_MISSING이다")
     void missingBaseHasReason() {
         FinancialChange interest = change("IS", "dart_InterestIncome", "이자수익", 0, 100L, 120L);
