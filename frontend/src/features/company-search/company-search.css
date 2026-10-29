@@ -387,10 +387,23 @@
   animation: rise-in var(--motion-base) var(--ease-out);
 }
 
+.favorite-companies__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
 .favorite-companies__title {
   margin: 0 0 var(--space-3);
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-bold);
+}
+
+.favorite-companies__head .favorite-companies__title {
+  margin: 0;
 }
 
 .favorite-companies__list {

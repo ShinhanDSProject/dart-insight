@@ -2,6 +2,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { CompanyAnalysisItem } from '@/shared/api/analyses'
 import type { Company } from '@/shared/api/companies'
 import type { FinancialTrend, FsDiv, TrendPeriod } from '@/shared/api/financialTrends'
 import { ApiError } from '@/shared/api/client'
@@ -22,8 +23,10 @@ const api = vi.hoisted(() => ({
   searchCompanies: vi.fn(),
   getCompany: vi.fn(),
   getFinancialTrends: vi.fn<(corpCode: string, fsDiv: FsDiv, signal?: AbortSignal) => Promise<FinancialTrend>>(),
+  listCompanyAnalyses: vi.fn<(corpCode: string, signal?: AbortSignal, limit?: number) => Promise<{ items: CompanyAnalysisItem[] }>>(),
 }))
 
+vi.mock('@/shared/api/analyses', () => ({ listCompanyAnalyses: api.listCompanyAnalyses }))
 vi.mock('@/shared/api/companies', () => ({
   searchCompanies: api.searchCompanies,
   getCompany: api.getCompany,
@@ -70,15 +73,20 @@ function annualTrend(corpCode: string, periodEnd = '2025-12-31', rceptNo = `2026
 }
 
 let trends: Record<string, () => Promise<FinancialTrend>>
+let analysesByCorp: Record<string, CompanyAnalysisItem[]>
 
 beforeEach(() => {
   trends = {}
+  analysesByCorp = {}
   api.searchCompanies.mockImplementation((query: string) =>
     Promise.resolve({ items: Object.values(companies).filter((c) => c.corpName.includes(query) || query === '기업들') }),
   )
   api.getCompany.mockImplementation((corpCode: string) => Promise.resolve(companies[corpCode]))
   api.getFinancialTrends.mockImplementation((corpCode: string) =>
     (trends[corpCode] ?? (() => Promise.resolve(annualTrend(corpCode))))(),
+  )
+  api.listCompanyAnalyses.mockImplementation((corpCode: string) =>
+    Promise.resolve({ items: analysesByCorp[corpCode] ?? [] }),
   )
 })
 
@@ -442,5 +450,58 @@ describe('여러 기업 나란히 보기', () => {
 
     // 접근성(axe) 통과
     expect(await axeViolations(container)).toBe('')
+  })
+
+  it('정정 공시가 있어도 정기보고서 접수번호 쌍을 쓰고 완료된 분석이 있으면 결과 화면으로 바로 연결한다(#534)', async () => {
+    const curRceptNo = '20260310000001'
+    const prevRceptNo = '20250310000001'
+    const restatedSourceRceptNo = '20260415000099'
+    trends['00126380'] = () =>
+      Promise.resolve({
+        ...annualTrend('00126380', '2025-12-31', curRceptNo),
+        periods: [
+          { ...period(curRceptNo, 'ANNUAL', '2025-12-31'), sourceRceptNo: restatedSourceRceptNo },
+          { ...period(prevRceptNo, 'ANNUAL', '2024-12-31'), sourceRceptNo: curRceptNo },
+        ],
+        accounts: annualTrend('00126380', '2025-12-31', curRceptNo).accounts.map((acc) => ({
+          ...acc,
+          values: [
+            { ...acc.values[0], sourceRceptNo: restatedSourceRceptNo },
+            { rceptNo: prevRceptNo, amount: acc.values[0].amount, quarterAmount: null, currency: acc.values[0].currency, sourceRceptNo: curRceptNo },
+          ],
+        })),
+      })
+    analysesByCorp['00126380'] = [
+      {
+        analysisId: 77,
+        basis: 'YOY',
+        previous: { rceptNo: prevRceptNo, reportName: '사업보고서 (2024.12)', periodEnd: '2024-12-31' },
+        current: { rceptNo: curRceptNo, reportName: '사업보고서 (2025.12)', periodEnd: '2025-12-31' },
+        completedAt: '2026-10-20T09:00:00',
+      },
+    ]
+
+    renderAt('?corps=00126380,00164779')
+    const table = await screen.findByRole('table')
+    await within(table).findByText('삼성전자')
+    const samsungHead = within(table).getAllByRole('columnheader')[1]
+
+    expect(within(samsungHead).getByText(`접수번호 ${restatedSourceRceptNo} (정정 공시 값)`)).toBeTruthy()
+    const analysisLink = within(samsungHead).getByRole('link', { name: '삼성전자 전년 동기 분석 결과 보기' })
+    expect(analysisLink.getAttribute('href')).toBe('/analyses/77?tab=financial')
+    expect(analysisLink.textContent).toBe('전년 동기 분석 보기')
+  })
+
+  it('아직 고른 기업이 없고 관심 기업이 2곳 이상이면 한 번에 최대 4곳까지 담는다(#534)', async () => {
+    favoritesApi.getFavoriteCompanies.mockResolvedValue({
+      items: Object.values(companies).map((c, idx) => ({ ...c, addedAt: `2026-10-0${idx + 1}T10:00:00` })),
+    })
+    const member: AuthContextValue = { state: { status: 'authenticated', userId: 7 }, login: vi.fn(), logout: vi.fn() }
+    renderAt('', member)
+
+    const fillButton = await screen.findByRole('button', { name: '최근 4곳 담기' })
+    fireEvent.click(fillButton)
+    expect(location()).toBe('?corps=00126380,00164779,00000003,00000004')
+    expect(screen.queryByRole('button', { name: '최근 4곳 담기' })).toBeNull()
   })
 })

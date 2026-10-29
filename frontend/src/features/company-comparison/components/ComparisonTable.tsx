@@ -2,7 +2,7 @@ import { match } from 'ts-pattern'
 import { Link } from 'react-router'
 import type { ReportType } from '@/shared/api/reports'
 import { dartViewerUrl } from '@/shared/lib/dart'
-import { formatRatio, periodSourceRceptNo, ratioReasonLabel } from '@/shared/lib/financialRatios'
+import { formatRatio, ratioReasonLabel } from '@/shared/lib/financialRatios'
 import { periodLabel, reportTypeLabel } from '@/shared/lib/reportLabels'
 import { Button, DataTable } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
@@ -117,9 +117,8 @@ function ColumnHead({ column }: { column: ComparisonColumn }) {
 }
 
 function ReadyHead({ column }: { column: ReadyColumn }) {
-  const { period, previousPeriod, sourceRceptNo } = column
+  const { period, sourceRceptNo, yoyLink } = column
   const corrected = sourceRceptNo !== period.rceptNo
-  const prevSourceRceptNo = previousPeriod ? periodSourceRceptNo(previousPeriod) : null
   return (
     <>
       <span className="company-compare__meta">{period.reportName}</span>
@@ -144,13 +143,9 @@ function ReadyHead({ column }: { column: ReadyColumn }) {
         >
           기업 개요
         </Link>
-        {previousPeriod && prevSourceRceptNo && (
-          <Link
-            to={`/companies/${encodeURIComponent(column.corpCode)}/compare?current=${encodeURIComponent(sourceRceptNo)}&previous=${encodeURIComponent(prevSourceRceptNo)}&basis=YOY`}
-            className="company-compare__link"
-            aria-label={`${column.name} 전년 동기 보고서 비교`}
-          >
-            전년 동기 비교
+        {yoyLink && (
+          <Link to={yoyLink.to} className="company-compare__link" aria-label={yoyLink.ariaLabel}>
+            {yoyLink.label}
           </Link>
         )}
       </div>

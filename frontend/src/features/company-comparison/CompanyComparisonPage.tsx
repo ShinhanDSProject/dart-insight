@@ -14,6 +14,7 @@ import { useComparisonQuery } from './hooks/useComparisonQuery'
 import {
   addCompany,
   buildColumns,
+  fillFavoriteCorps,
   FULL_MESSAGE,
   MAX_COMPANIES,
   MIN_COMPANIES,
@@ -74,6 +75,20 @@ export function CompanyComparisonPage() {
     setCorps(removeCompany(corps, corpCode))
   }
 
+  function fillFavorites(items: readonly Company[]) {
+    const next = fillFavoriteCorps(corps, items)
+    if (next.length === corps.length) return
+    setNames((prev) => {
+      const updated = { ...prev }
+      items.forEach((company) => {
+        if (next.includes(company.corpCode)) updated[company.corpCode] = company.corpName
+      })
+      return updated
+    })
+    setMessage(null)
+    setCorps(next)
+  }
+
   return (
     <section className="page company-compare">
       <h1 className="page__title">기업 나란히 보기</h1>
@@ -84,7 +99,14 @@ export function CompanyComparisonPage() {
 
       <Panel aria-labelledby="company-compare-pick">
         <PanelTitle id="company-compare-pick">비교할 기업</PanelTitle>
-        <CompanyPicker corps={corps} nameOf={nameOf} onAdd={add} onRemove={remove} message={message} />
+        <CompanyPicker
+          corps={corps}
+          nameOf={nameOf}
+          onAdd={add}
+          onRemove={remove}
+          onFillFavorites={fillFavorites}
+          message={message}
+        />
       </Panel>
 
       <Panel aria-labelledby="company-compare-table">

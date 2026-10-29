@@ -6,7 +6,9 @@ import {
   buildColumns,
   calculateAmountYoy,
   calculateRatioYoy,
+  columnYoyLink,
   comparisonRows,
+  fillFavoriteCorps,
   findPreviousPeriod,
   formatAmount,
   loadKey,
@@ -96,6 +98,57 @@ describe('기업 더하기·빼기', () => {
 
   it('뺀 기업만 지우고 나머지 순서는 그대로 둔다', () => {
     expect(removeCompany(['00000001', '00000002', '00000003'], '00000002')).toEqual(['00000001', '00000003'])
+  })
+
+  it('관심 기업을 순서대로 중복 없이 최대 4곳까지 채운다', () => {
+    const favorites = [
+      { corpCode: '00126380' },
+      { corpCode: '00164779' },
+      { corpCode: '00000003' },
+      { corpCode: '00000004' },
+      { corpCode: '00000005' },
+    ]
+    expect(fillFavoriteCorps([], favorites)).toEqual(['00126380', '00164779', '00000003', '00000004'])
+    expect(fillFavoriteCorps(['00164779'], favorites)).toEqual(['00164779', '00126380', '00000003', '00000004'])
+  })
+})
+
+describe('열 머리글 전년 동기 연결(#534)', () => {
+  it('정정 공시 근거 접수번호가 달라도 정기보고서 접수번호 쌍으로 비교 조건 주소를 만든다', () => {
+    const cur = period('20260310000001', 'ANNUAL', '2025-12-31', 'AVAILABLE', '20260415000099')
+    const prev = period('20250310000001', 'ANNUAL', '2024-12-31', 'AVAILABLE', '20260310000001')
+    expect(columnYoyLink('00126380', '삼성전자', cur, prev, [])).toEqual({
+      to: '/companies/00126380/compare?current=20260310000001&previous=20250310000001&basis=YOY',
+      label: '전년 동기 비교',
+      ariaLabel: '삼성전자 전년 동기 보고서 비교',
+      reused: false,
+    })
+  })
+
+  it('해당 보고서 쌍의 완료 분석이 있으면 분석 결과 재무 탭으로 바로 연결한다', () => {
+    const cur = period('20260310000001', 'ANNUAL', '2025-12-31')
+    const prev = period('20250310000001', 'ANNUAL', '2024-12-31')
+    expect(
+      columnYoyLink('00126380', '삼성전자', cur, prev, [
+        {
+          analysisId: 42,
+          basis: 'YOY',
+          previous: { rceptNo: '20250310000001', reportName: '사업보고서', periodEnd: '2024-12-31' },
+          current: { rceptNo: '20260310000001', reportName: '사업보고서', periodEnd: '2025-12-31' },
+          completedAt: '2026-10-20T09:00:00',
+        },
+      ]),
+    ).toEqual({
+      to: '/analyses/42?tab=financial',
+      label: '전년 동기 분석 보기',
+      ariaLabel: '삼성전자 전년 동기 분석 결과 보기',
+      reused: true,
+    })
+  })
+
+  it('전년 보고서가 없으면 null이다', () => {
+    const cur = period('20260310000001', 'ANNUAL', '2025-12-31')
+    expect(columnYoyLink('00126380', '삼성전자', cur, null, [])).toBeNull()
   })
 })
 
