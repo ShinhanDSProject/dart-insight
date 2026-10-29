@@ -38,8 +38,9 @@ public class Analysis {
      * m2-13: 문장 우선순위 핵심어에 '계속기업' 추가(priority-3, #145).
      * m2-14: 재무 설명 후보를 ai-server가 보고서 문단 전체에서 BM25로 찾음(ADR-0036, #146).
      * m2-15: 검증에 실패한 재무 설명을 템플릿(TEMPLATE)과 검증된 인용으로 보임(#149).
+     * m2-16: 이전·현재 값이 모두 없는 계정을 재무 비교 결과에서 뺌(#355).
      */
-    public static final String CURRENT_VERSION = "m2-15";
+    public static final String CURRENT_VERSION = "m2-16";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
