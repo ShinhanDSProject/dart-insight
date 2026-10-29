@@ -1,6 +1,5 @@
-package com.dartinsight.summary.domain;
+package com.dartinsight.financial.domain;
 
-import com.dartinsight.financial.domain.FinancialAccount;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -59,16 +58,33 @@ public final class AccountAliases {
             return List.of();
         }
         Set<String> parts = new LinkedHashSet<>();
-        parts.add(PARENTHESES.matcher(name).replaceAll(""));
-        Matcher inside = PARENTHESES.matcher(name);
-        while (inside.find()) {
-            parts.add(inside.group(1));
+        Matcher matcher = PARENTHESES.matcher(name);
+        StringBuilder outside = new StringBuilder();
+        int last = 0;
+        while (matcher.find()) {
+            outside.append(name, last, matcher.start());
+            String inside = matcher.group(1).trim();
+            if (!inside.isEmpty()) {
+                parts.add(inside);
+            }
+            last = matcher.end();
         }
-        parts.remove("");
+        outside.append(name, last, name.length());
+        String out = outside.toString().trim();
+        if (!out.isEmpty()) {
+            // 괄호 밖 글이 가장 온전한 계정 이름이므로 먼저 둔다
+            Set<String> ordered = new LinkedHashSet<>();
+            ordered.add(out);
+            ordered.addAll(parts);
+            return List.copyOf(ordered);
+        }
         return List.copyOf(parts);
     }
 
-    private static String compact(String text) {
-        return text == null ? "" : text.replaceAll("\\s+", "");
+    static String compact(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replaceAll("\\s+", "");
     }
 }

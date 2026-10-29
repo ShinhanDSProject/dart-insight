@@ -134,7 +134,8 @@ class FinancialChangeDetailTest {
                 .andExpect(jsonPath("$.previous.accountId").value("ifrs-full_Revenue"))
                 .andExpect(jsonPath("$.previous.dartUrl")
                         .value("https://dart.fss.or.kr/dsaf001/main.do?rcpNo=" + PREV))
-                .andExpect(jsonPath("$.current.rceptNo").value(CUR));
+                .andExpect(jsonPath("$.current.rceptNo").value(CUR))
+                .andExpect(jsonPath("$.relatedTextChanges").isArray());
     }
 
     @Test
