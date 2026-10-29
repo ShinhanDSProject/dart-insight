@@ -66,6 +66,9 @@ class DisclosureStoreTest {
         assertThat(all.get(2)).isEqualTo(
                 new Disclosure("20260814000001", "반기보고서 (2026.06)", "예시전자", LocalDate.of(2026, 8, 14), "유"));
         assertThat(store.findSince("00000001", LocalDate.of(2026, 10, 1))).hasSize(2);
+        assertThat(store.findAll("00000001")).extracting(Disclosure::rceptNo)
+                .containsExactly("20261020000005", "20261020000002", "20260814000001");
+        assertThat(store.findAll("00000002")).isEmpty();
     }
 
     @Test

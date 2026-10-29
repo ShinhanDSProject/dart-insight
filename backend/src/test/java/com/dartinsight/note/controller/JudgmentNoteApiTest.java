@@ -14,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.dartinsight.aiserver.client.FakeAiServer;
 import com.dartinsight.analysis.domain.Analysis;
 import com.dartinsight.analysis.domain.CalcStatus;
 import com.dartinsight.analysis.domain.FinancialChangeRow;
@@ -27,7 +28,11 @@ import com.dartinsight.analysis.service.AnalysisResultService;
 import com.dartinsight.company.service.CompanyImportService;
 import com.dartinsight.comparison.domain.AmountBasis;
 import com.dartinsight.comparison.domain.ComparisonBasis;
+import com.dartinsight.dart.client.FakeOpenDartServer;
 import com.dartinsight.dart.domain.CorpCodeEntry;
+import com.dartinsight.disclosure.domain.Disclosure;
+import com.dartinsight.disclosure.domain.DisclosureFetch;
+import com.dartinsight.disclosure.repository.DisclosureStore;
 import com.dartinsight.document.domain.ReportDocument;
 import com.dartinsight.document.dto.StructuredDocumentResponse;
 import com.dartinsight.document.dto.StructuredDocumentResponse.Block;
@@ -42,6 +47,8 @@ import com.dartinsight.report.domain.ReportType;
 import com.dartinsight.report.repository.ReportRepository;
 import com.dartinsight.support.TestData;
 import com.jayway.jsonpath.JsonPath;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -56,24 +63,45 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /** 내 판단 노트 API(6.5, #413): 로그인, 회원별 분리, 사본, 메모, 버전 안내, 내보내기 */
 @SpringBootTest
 @AutoConfigureMockMvc
 class JudgmentNoteApiTest {
+    private static final FakeOpenDartServer DART = startDart();
+    private static final FakeAiServer AI = new FakeAiServer();
     private static final String PASSWORD = "Sample!password";
     private static final String CORP = "00000001";
     private static final String CUR = "20260814000001";
     private static final String PREV = "20250814000001";
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 10, 21, 9, 0);
 
+    @DynamicPropertySource
+    static void servers(DynamicPropertyRegistry registry) {
+        registry.add("app.opendart.base-url", DART::baseUrl);
+        registry.add("app.ai-server.base-url", AI::baseUrl);
+    }
+
+    private static FakeOpenDartServer startDart() {
+        try {
+            return new FakeOpenDartServer();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     @Autowired MockMvc mvc;
     @Autowired JdbcTemplate jdbc;
+    @Autowired TransactionTemplate transactionTemplate;
     @Autowired CompanyImportService companyImportService;
     @Autowired ReportRepository reportRepository;
     @Autowired AnalysisRepository analysisRepository;
     @Autowired AnalysisResultService resultService;
+    @Autowired DisclosureStore disclosureStore;
     @Autowired ReportDocumentRepository documentRepository;
     @Autowired DocumentStore documentStore;
 
@@ -157,6 +185,7 @@ class JudgmentNoteApiTest {
                 .andExpect(jsonPath("$.source.sjDiv").value("IS"))
                 .andExpect(jsonPath("$.source.rceptNo").value(CUR))
                 .andExpect(jsonPath("$.source.dartUrl").value("https://dart.fss.or.kr/dsaf001/main.do?rcpNo=" + CUR))
+                .andExpect(jsonPath("$.relatedDisclosures", hasSize(0)))
                 .andExpect(jsonPath("$.outdated").value(false))
                 .andExpect(jsonPath("$.createdAt").isString());
     }
@@ -287,6 +316,8 @@ class JudgmentNoteApiTest {
                 .andExpect(jsonPath("$.companies", hasSize(1)))
                 .andExpect(jsonPath("$.companies[0].corpCode").value(CORP))
                 .andExpect(jsonPath("$.companies[0].corpName").value("예시전자"))
+                .andExpect(jsonPath("$.companies[0].newerAnalyses", hasSize(0)))
+                .andExpect(jsonPath("$.companies[0].newerDisclosures", hasSize(0)))
                 .andExpect(jsonPath("$.companies[0].items[*].itemId", contains((int) second, (int) first)));
         mvc.perform(get("/api/notes").param("corpCode", "00000002").header("Authorization", bearer(token)))
                 .andExpect(jsonPath("$.companies", hasSize(0)));
@@ -454,6 +485,84 @@ class JudgmentNoteApiTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].field").value("citationNo"));
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM judgment_note_item", Integer.class)).isZero();
+    }
+
+    @Test
+    @DisplayName("저장된 후속 분석·공시와 메모 핵심어 매칭을 외부 호출이나 가치 판단 없이 돌려준다")
+    void connectsNewerAnalysesAndDisclosuresWithoutExternalCalls() throws Exception {
+        String q3Prev = "20251114000001";
+        String q3Cur = "20261114000001";
+        reportRepository.save(Report.create(q3Prev, CORP, "분기보고서 (2025.09)",
+                new ParsedReportName(ReportType.Q3, 2025, LocalDate.of(2025, 9, 30), Correction.ORIGINAL),
+                LocalDate.of(2025, 11, 14), null, "예시전자", NOW));
+        reportRepository.save(Report.create(q3Cur, CORP, "분기보고서 (2026.09)",
+                new ParsedReportName(ReportType.Q3, 2026, LocalDate.of(2026, 9, 30), Correction.ORIGINAL),
+                LocalDate.of(2026, 11, 14), null, "예시전자", NOW));
+        Analysis newerCompleted = Analysis.request(CORP, q3Cur, q3Prev, ComparisonBasis.YOY, null, NOW.plusDays(1));
+        newerCompleted.start(NOW.plusDays(1));
+        long newerAnalysisId = analysisRepository.save(newerCompleted).getId();
+        resultService.saveAndComplete(newerAnalysisId, List.of());
+
+        // 아직 끝나지 않은 분석은 후속 분석에 넣지 않는다
+        analysisRepository.save(Analysis.request(CORP, q3Cur, CUR, ComparisonBasis.PREV, null, NOW.plusDays(2)));
+
+        transactionTemplate.executeWithoutResult(s -> disclosureStore.replace(
+                new DisclosureFetch(CORP, LocalDate.of(2026, 8, 1), LocalDate.of(2026, 11, 15), NOW),
+                List.of(
+                        new Disclosure("20260801000001", "단일판매ㆍ공급계약체결", "예시전자", LocalDate.of(2026, 8, 1), "유"),
+                        new Disclosure("20260901000001", "단일판매ㆍ공급계약체결", "예시전자", LocalDate.of(2026, 9, 1), "철"),
+                        new Disclosure("20260910000123", "단일판매ㆍ공급계약체결", "예시전자", LocalDate.of(2026, 9, 10), "유"),
+                        new Disclosure("20260915000456", "주식소각결정", "예시전자", LocalDate.of(2026, 9, 15), "유"),
+                        new Disclosure("20261028000789", "영업(잠정)실적(공정공시)", "예시전자", LocalDate.of(2026, 10, 28),
+                                "유"))));
+
+        AI.clear();
+        int dartBefore = DART.requests().size();
+        String token = login("member@example.com");
+
+        String created = mvc.perform(post("/api/notes").header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(financialBody("공급계약 수주 영향 확인")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.relatedDisclosures", hasSize(2)))
+                .andExpect(jsonPath("$.relatedDisclosures[0].rceptNo").value("20261028000789"))
+                .andExpect(jsonPath("$.relatedDisclosures[0].matchLabel").value("실적"))
+                .andExpect(jsonPath("$.relatedDisclosures[1].rceptNo").value("20260910000123"))
+                .andExpect(jsonPath("$.relatedDisclosures[1].matchLabel").value("공급계약"))
+                .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        long itemId = ((Number) JsonPath.read(created, "$.itemId")).longValue();
+
+        // 메모를 고치면 메모 핵심어 매칭도 바로 바뀐다
+        mvc.perform(put("/api/notes/" + itemId + "/memo").header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"memo\":\"자기주식 소각 여부 확인\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.relatedDisclosures", hasSize(2)))
+                .andExpect(jsonPath("$.relatedDisclosures[0].rceptNo").value("20261028000789"))
+                .andExpect(jsonPath("$.relatedDisclosures[0].matchLabel").value("실적"))
+                .andExpect(jsonPath("$.relatedDisclosures[1].rceptNo").value("20260915000456"))
+                .andExpect(jsonPath("$.relatedDisclosures[1].matchLabel").value("메모 '소각'"));
+
+        String listed = mvc.perform(get("/api/notes").header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.companies", hasSize(1)))
+                .andExpect(jsonPath("$.companies[0].newerAnalyses", hasSize(1)))
+                .andExpect(jsonPath("$.companies[0].newerAnalyses[0].analysisId").value(newerAnalysisId))
+                .andExpect(jsonPath("$.companies[0].newerAnalyses[0].basis").value("YOY"))
+                .andExpect(jsonPath("$.companies[0].newerAnalyses[0].previousReportName").value("분기보고서 (2025.09)"))
+                .andExpect(jsonPath("$.companies[0].newerAnalyses[0].currentRceptNo").value(q3Cur))
+                .andExpect(jsonPath("$.companies[0].newerAnalyses[0].currentReportName").value("분기보고서 (2026.09)"))
+                .andExpect(jsonPath("$.companies[0].newerDisclosures", hasSize(3)))
+                .andExpect(jsonPath("$.companies[0].newerDisclosures[*].rceptNo",
+                        contains("20261028000789", "20260915000456", "20260910000123")))
+                .andExpect(jsonPath("$.companies[0].newerDisclosures[0].disclosureGroup").value("BUSINESS"))
+                .andExpect(jsonPath("$.companies[0].newerDisclosures[1].disclosureGroup").value("OWNERSHIP"))
+                .andExpect(jsonPath("$.companies[0].items[0].relatedDisclosures", hasSize(2)))
+                .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+
+        assertThat(DART.requests()).hasSize(dartBefore);
+        assertThat(AI.requests()).isEmpty();
+        assertThat(listed).doesNotContain("매수", "매도", "목표주가", "저평가", "고평가", "추천");
     }
 
     private void document(String rceptNo, String explanation) {

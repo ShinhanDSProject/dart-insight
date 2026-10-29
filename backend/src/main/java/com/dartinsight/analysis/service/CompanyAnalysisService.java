@@ -2,6 +2,7 @@ package com.dartinsight.analysis.service;
 
 import com.dartinsight.analysis.domain.Analysis;
 import com.dartinsight.analysis.domain.AnalysisStatus;
+import com.dartinsight.analysis.domain.CompletedAnalysis;
 import com.dartinsight.analysis.repository.AnalysisRepository;
 import com.dartinsight.company.service.CompanyService;
 import com.dartinsight.comparison.domain.ComparisonBasis;
@@ -34,11 +35,15 @@ public class CompanyAnalysisService {
      */
     public List<CompletedAnalysis> recentCompleted(String corpCode, int limit) {
         companyService.get(corpCode);
+        return completed(corpCode).stream().limit(limit).toList();
+    }
+
+    /** 저장된 완료 분석(완료 시각 최근 순, 같은 보고서 쌍·비교 기준은 최근 하나만). OpenDART를 부르지 않는다 */
+    public List<CompletedAnalysis> completed(String corpCode) {
         Set<PairKey> seen = new HashSet<>();
         List<Analysis> analyses = analysisRepository
                 .findByCorpCodeAndStatusOrderByCompletedAtDescIdDesc(corpCode, AnalysisStatus.COMPLETED).stream()
                 .filter(a -> seen.add(new PairKey(a.getPreviousRceptNo(), a.getCurrentRceptNo(), a.getBasis())))
-                .limit(limit)
                 .toList();
         Map<String, Report> reports = reportService.reports(analyses.stream()
                 .flatMap(a -> Stream.of(a.getPreviousRceptNo(), a.getCurrentRceptNo()))
@@ -57,9 +62,6 @@ public class CompanyAnalysisService {
             throw new IllegalStateException("분석의 보고서가 저장되어 있지 않습니다: " + rceptNo);
         }
         return report;
-    }
-
-    public record CompletedAnalysis(Analysis analysis, Report previous, Report current) {
     }
 
     private record PairKey(String previousRceptNo, String currentRceptNo, ComparisonBasis basis) {

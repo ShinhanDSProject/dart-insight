@@ -1,9 +1,13 @@
 package com.dartinsight.note.service;
 
+import com.dartinsight.analysis.domain.CompletedAnalysis;
+import com.dartinsight.analysis.service.CompanyAnalysisService;
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.company.domain.Company;
 import com.dartinsight.company.service.CompanyService;
+import com.dartinsight.disclosure.domain.Disclosure;
+import com.dartinsight.disclosure.service.DisclosureService;
 import com.dartinsight.note.domain.JudgmentNoteItem;
 import com.dartinsight.note.domain.NoteSnapshot;
 import com.dartinsight.note.dto.NoteCreateRequest;
@@ -13,6 +17,7 @@ import com.dartinsight.note.repository.JudgmentNoteItemRepository;
 import com.dartinsight.user.service.UserService;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -25,9 +30,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 로그인한 회원의 판단 노트(6.5, #413, ADR-0034). 회원은 언제나 토큰의 사용자 ID로만 정해,
+ * 로그인한 회원의 판단 노트(6.5, #413·#504, ADR-0034). 회원은 언제나 토큰의 사용자 ID로만 정해,
  * 다른 회원의 항목은 읽거나 바꾸거나 지울 수 없다(없는 항목과 같이 404).
- * 노트 내용(사본·메모)은 AI 서버·LLM에 보내지 않는다.
+ * 노트 내용(사본·메모)은 AI 서버·LLM이나 외부 API(OpenDART)에 보내지 않는다.
  */
 @Service
 @RequiredArgsConstructor
@@ -37,6 +42,8 @@ public class JudgmentNoteService {
     private final JudgmentNoteItemRepository items;
     private final NoteSnapshotFactory snapshots;
     private final CompanyService companyService;
+    private final CompanyAnalysisService companyAnalysisService;
+    private final DisclosureService disclosureService;
     private final UserService userService;
     private final Clock clock;
 
@@ -47,7 +54,9 @@ public class JudgmentNoteService {
         List<JudgmentNoteItem> rows = corpCode == null
                 ? items.findByUserIdOrderByCreatedAtDescIdDesc(userId)
                 : items.findByUserIdAndCorpCodeOrderByCreatedAtDescIdDesc(userId, requireCorpCode(corpCode));
-        return NoteListResponse.of(rows, companiesOf(rows));
+        Set<String> corpCodes = corpCodesOf(rows);
+        return NoteListResponse.of(rows, companiesOf(corpCodes), completedAnalysesOf(corpCodes),
+                disclosuresOf(corpCodes));
     }
 
     /**
@@ -66,7 +75,7 @@ public class JudgmentNoteService {
         };
         JudgmentNoteItem saved = items.save(
                 JudgmentNoteItem.create(userId, snapshot, request.memo(), LocalDateTime.now(clock)));
-        return NoteItemResponse.from(saved);
+        return NoteItemResponse.from(saved, disclosureService.stored(saved.getCorpCode()));
     }
 
     /** 종류에 따라 있어야 하는 요청 값 */
@@ -82,7 +91,7 @@ public class JudgmentNoteService {
         userService.requireExisting(userId);
         JudgmentNoteItem item = findOwnedOrThrow(userId, itemId);
         item.changeMemo(memo, LocalDateTime.now(clock));
-        return NoteItemResponse.from(item);
+        return NoteItemResponse.from(item, disclosureService.stored(item.getCorpCode()));
     }
 
     /** 항목 하나만 지운다(AC6) */
@@ -118,12 +127,40 @@ public class JudgmentNoteService {
         return corpCode;
     }
 
-    /** 항목에 나온 기업(처음 나온 순서). 고유번호 → 기업 */
-    private Map<String, Company> companiesOf(List<JudgmentNoteItem> rows) {
-        Set<String> corpCodes = rows.stream().map(JudgmentNoteItem::getCorpCode)
+    private static Set<String> corpCodesOf(List<JudgmentNoteItem> rows) {
+        return rows.stream().map(JudgmentNoteItem::getCorpCode)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    /** 항목에 나온 기업(처음 나온 순서). 고유번호 → 기업 */
+    private Map<String, Company> companiesOf(Set<String> corpCodes) {
+        if (corpCodes.isEmpty()) {
+            return Map.of();
+        }
         return companyService.getAll(corpCodes).stream()
                 .collect(Collectors.toMap(Company::getCorpCode, Function.identity()));
+    }
+
+    private Map<String, List<CompletedAnalysis>> completedAnalysesOf(Set<String> corpCodes) {
+        if (corpCodes.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, List<CompletedAnalysis>> byCorp = new LinkedHashMap<>();
+        for (String code : corpCodes) {
+            byCorp.put(code, companyAnalysisService.completed(code));
+        }
+        return byCorp;
+    }
+
+    private Map<String, List<Disclosure>> disclosuresOf(Set<String> corpCodes) {
+        if (corpCodes.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, List<Disclosure>> byCorp = new LinkedHashMap<>();
+        for (String code : corpCodes) {
+            byCorp.put(code, disclosureService.stored(code));
+        }
+        return byCorp;
     }
 
     public record NoteExport(String fileName, String markdown) {
