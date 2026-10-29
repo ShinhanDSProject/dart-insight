@@ -54,7 +54,7 @@ describe('summaryLens', () => {
       ['GROWTH', '성장', [1]],
       ['OTHER', '기타', [3]],
     ])
-    expect(groups[0].question).toBe('매출이 늘 때 이익도 따라 늘었는가?')
+    expect(groups[0].question).toBe('매출이 늘 때 이익도 따라 늘었을까요?')
     expect(groups[2].question).toBeNull()
   })
 

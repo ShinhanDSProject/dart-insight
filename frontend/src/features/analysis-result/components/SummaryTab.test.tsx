@@ -109,8 +109,8 @@ describe('요약 투자자 관점(FS-64)', () => {
     const filters = screen.getByRole('group', { name: '투자자 관점' })
     expect(within(filters).getAllByRole('button').map((b) => b.textContent)).toEqual(['전체 3', '수익성 1', '성장 1', '위험 1'])
     expect(screen.getByRole('heading', { name: '수익성 1건' })).toBeTruthy()
-    expect(screen.getByText('매출이 늘 때 이익도 따라 늘었는가?')).toBeTruthy()
-    expect(screen.getByText('회사가 밝힌 위험이 바뀌었는가?')).toBeTruthy()
+    expect(screen.getByText('매출이 늘 때 이익도 따라 늘었을까요?')).toBeTruthy()
+    expect(screen.getByText('회사가 밝힌 위험이 바뀌었을까요?')).toBeTruthy()
     expect(screen.queryByRole('heading', { name: '주요 재무 수치 변화' })).toBeNull()
   })
 
