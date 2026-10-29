@@ -221,6 +221,13 @@ class CheckpointRulesTest {
         assertThat(one.disclosures()).hasSize(1);
         assertThat(fact(one, "자금 조달 공시")).isEqualByComparingTo("1");
         assertThat(CheckpointRules.funding(Optional.of(List.of())).status()).isEqualTo(CheckpointStatus.OK);
+        // 회사채 같은 채무증권만의 공시는 주식 관련 자금 조달로 세지 않는다
+        CheckpointItem debtOnly = CheckpointRules.funding(Optional.of(List.of(
+                disclosure("20260901000002", "증권신고서(채무증권)"), disclosure("20260901000003", "투자설명서"))));
+        assertThat(debtOnly.status()).isEqualTo(CheckpointStatus.OK);
+        assertThat(fact(debtOnly, "자금 조달 공시")).isEqualByComparingTo("0");
+        assertThat(CheckpointRules.funding(Optional.of(List.of(
+                disclosure("20260901000004", "[발행조건확정]증권신고서(지분증권)")))).status()).isEqualTo(CheckpointStatus.CHECK);
         CheckpointItem unknown = CheckpointRules.funding(Optional.empty());
         assertThat(unknown.status()).isEqualTo(CheckpointStatus.NO_DATA);
         assertThat(reason(unknown, "자금 조달 공시")).isEqualTo(Reason.NOT_CHECKED);
