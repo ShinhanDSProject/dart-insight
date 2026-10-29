@@ -1276,7 +1276,59 @@
   font-size: var(--font-size-sm);
 }
 
-/* 긴 항목의 소제목 고르기(#396) */
+/* 긴 항목의 소제목 고르기(#396)와 항목 내 검색(#523) */
+.source-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+}
+
+.source-search__field {
+  display: flex;
+  flex: 1 1 240px;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.source-search__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.source-search__status {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.source-search__hit {
+  padding: 0;
+  border-radius: var(--radius-xs);
+  background: var(--color-border-accent);
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: underline;
+}
+
+.source-block--search-active {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1.5px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-accent-subtle);
+}
+
 .source-parts {
   display: flex;
   flex-wrap: wrap;

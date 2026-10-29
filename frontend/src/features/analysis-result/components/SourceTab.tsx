@@ -1,19 +1,34 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react'
+import { useEffect, useId, useLayoutEffect, useMemo, useReducer, useRef, useState, type RefObject } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import { firstContentSection, type DocumentOutline, type DocumentSide, type SectionContent, type SourceBlock } from '@/shared/api/documents'
 import type { TextSectionCount } from '@/shared/api/textChanges'
-import { Badge, Button, FieldLabel, Notice, Panel, PanelTitle, SegmentedControl, Select } from '@/shared/ui'
+import { Badge, Button, FieldLabel, Input, Notice, Panel, PanelTitle, SegmentedControl, Select } from '@/shared/ui'
 import { DartLinkActions } from '@/shared/ui/DartLink'
 import { verifiedDartUrl } from '@/shared/lib/dart'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
-import { TableView } from './TableView'
+import { SourceHighlightText, TableView } from './TableView'
 import { useDocumentOutline, useSection } from '../hooks/useDocument'
 import { useScrolledPast } from '../hooks/useScrolledPast'
 import { formatCount } from '../model/overview'
 import type { SourceViewChange } from '../model/resultParams'
 import { sectionChangeCounts } from '../model/sectionChangeCounts'
-import { partIndexOf, splitParts } from '../model/sourceParts'
+import { splitParts } from '../model/sourceParts'
+import {
+  buildSectionOrigin,
+  initialSourceSectionMatchState,
+  matchOutlineSection,
+  sourceSectionMatchReducer,
+} from '../model/sourceSectionMatch'
+import {
+  EMPTY_SOURCE_SEARCH_RESULT,
+  SOURCE_SEARCH_MAX_LENGTH,
+  findSourceHits,
+  initialSourceSearchState,
+  parseSourceSearch,
+  sourceSearchReducer,
+  sourceSearchStatusLabel,
+} from '../model/sourceSearch'
 import { displaySectionPath, displaySectionTitle } from '@/shared/lib/sectionTitle'
 
 interface SourceTabProps {
@@ -44,20 +59,42 @@ const sideOptions: { value: DocumentSide; label: string }[] = [
 export function SourceTab({ analysis, side, sectionNo, blockNo, onChange, sectionCounts, onOpenTextSection }: SourceTabProps) {
   const { state: outline, reload } = useDocumentOutline(analysis.analysisId, side)
   const changeCounts = useMemo(() => sectionChangeCounts(sectionCounts), [sectionCounts])
+  const [matchState, dispatchMatch] = useReducer(sourceSectionMatchReducer, initialSourceSectionMatchState)
 
   const report = side === 'current' ? analysis.current : analysis.previous
+  const currentOutline =
+    outline.status === 'success' && outline.data.rceptNo === report.rceptNo ? outline.data : null
+
+  useEffect(() => {
+    if (matchState.status !== 'pending' || matchState.targetSide !== side || currentOutline === null) return
+    const matched = matchOutlineSection(currentOutline.sections, matchState.origin)
+    dispatchMatch({
+      type: 'resolve-match',
+      side,
+      matched: matched !== null,
+      label: matchState.origin.label,
+    })
+    if (matched !== null && matched !== sectionNo) {
+      onChange({ section: matched, block: null })
+    }
+  }, [matchState, side, currentOutline, sectionNo, onChange])
+
+  const switchSide = (next: DocumentSide) => {
+    if (next === side) return
+    const activeSectionNo = currentOutline ? (sectionNo ?? firstContentSection(currentOutline.sections)) : sectionNo
+    const origin = currentOutline ? buildSectionOrigin(currentOutline.sections, activeSectionNo) : null
+    if (origin !== null) {
+      dispatchMatch({ type: 'request-match', targetSide: next, origin })
+    } else {
+      dispatchMatch({ type: 'clear-match' })
+    }
+    onChange({ side: next, section: null, block: null })
+  }
 
   return (
     <Panel aria-label="원문 확인">
       <div className="source-head">
-        <SegmentedControl
-          aria-label="보고서"
-          options={sideOptions}
-          value={side}
-          onChange={(next) => {
-            if (next !== side) onChange({ side: next, section: null, block: null })
-          }}
-        />
+        <SegmentedControl aria-label="보고서" options={sideOptions} value={side} onChange={switchSide} />
         <p className="source-head__report">
           {report.reportName} · 접수번호 <code>{report.rceptNo}</code>
         </p>
@@ -66,24 +103,39 @@ export function SourceTab({ analysis, side, sectionNo, blockNo, onChange, sectio
       {match(outline)
         .with({ status: 'loading' }, () => <LoadingState message="원문 목차를 불러오는 중입니다…" />)
         .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} />)
-        .with({ status: 'success' }, ({ data }) =>
-          data.rceptNo !== report.rceptNo ? (
+        .with({ status: 'success' }, ({ data }) => {
+          if (data.rceptNo !== report.rceptNo) {
             // 근거가 이 화면의 보고서 쌍과 맞는지 확인한다. 다르면 원문을 보여 주지 않는다
-            <Notice tone="attention" role="alert">
-              이 분석의 보고서(접수번호 {report.rceptNo})와 다른 원문이 와서 보여 주지 않아요. 새로고침해 주세요.
-            </Notice>
-          ) : (
+            return (
+              <Notice tone="attention" role="alert">
+                이 분석의 보고서(접수번호 {report.rceptNo})와 다른 원문이 와서 보여 주지 않아요. 새로고침해 주세요.
+              </Notice>
+            )
+          }
+          const pendingMatched =
+            matchState.status === 'pending' && matchState.targetSide === side
+              ? matchOutlineSection(data.sections, matchState.origin)
+              : null
+          const unmatchedLabel =
+            matchState.status === 'unmatched' && matchState.side === side && blockNo === null
+              ? matchState.label
+              : null
+          return (
             <SourceBody
               analysis={analysis}
               outline={data}
-              sectionNo={sectionNo ?? firstContentSection(data.sections)}
+              sectionNo={sectionNo ?? pendingMatched ?? firstContentSection(data.sections)}
               blockNo={blockNo}
-              onSelect={(section) => onChange({ section, block: null })}
+              unmatchedLabel={unmatchedLabel}
+              onSelect={(section) => {
+                dispatchMatch({ type: 'clear-match' })
+                onChange({ section, block: null })
+              }}
               changeCounts={changeCounts}
               onOpenTextSection={onOpenTextSection}
             />
-          ),
-        )
+          )
+        })
         .exhaustive()}
     </Panel>
   )
@@ -94,12 +146,22 @@ interface SourceBodyProps {
   outline: DocumentOutline
   sectionNo: number | null
   blockNo: number | null
+  unmatchedLabel: string | null
   onSelect: (sectionNo: number) => void
   changeCounts: Map<string, number>
   onOpenTextSection: (section: string) => void
 }
 
-function SourceBody({ analysis, outline, sectionNo, blockNo, onSelect, changeCounts, onOpenTextSection }: SourceBodyProps) {
+function SourceBody({
+  analysis,
+  outline,
+  sectionNo,
+  blockNo,
+  unmatchedLabel,
+  onSelect,
+  changeCounts,
+  onOpenTextSection,
+}: SourceBodyProps) {
   if (!USABLE.has(outline.documentStatus)) {
     return (
       <>
@@ -116,6 +178,11 @@ function SourceBody({ analysis, outline, sectionNo, blockNo, onSelect, changeCou
       {outline.documentStatus === 'PARTIAL' && (
         <Notice tone="attention" role="status">
           {outline.statusMessage}
+        </Notice>
+      )}
+      {unmatchedLabel !== null && (
+        <Notice as="p" tone="info" role="status">
+          선택한 &apos;{unmatchedLabel}&apos; 항목은 이 보고서에서 찾지 못해 첫 항목을 열었어요.
         </Notice>
       )}
       <div className="source-layout">
@@ -211,19 +278,46 @@ const TALL_BLOCK_PX = 600
 const BACK_TO_TOP_PX = 1200
 
 function SectionBlocks({ outline, data, blockNo, headingRef }: SectionBlocksProps) {
+  const searchInputId = useId()
   const dartUrl = verifiedDartUrl(outline.rceptNo, outline.dartUrl)
   const highlighted = blockNo !== null && data.blocks.some((b) => b.blockNo === blockNo)
   // 긴 항목은 소제목별로 하나씩 보인다(#396). 근거 위치에서 왔으면 그 블록이 든 소제목을 연다
   const parts = useMemo(() => splitParts(data.blocks), [data.blocks])
-  const [partIndex, setPartIndex] = useState(() => partIndexOf(parts, blockNo))
-  useEffect(() => setPartIndex(partIndexOf(parts, blockNo)), [parts, blockNo])
+  const [viewState, dispatchView] = useReducer(sourceSearchReducer, undefined, () =>
+    initialSourceSearchState(parts, blockNo),
+  )
+  useEffect(() => dispatchView({ type: 'sync-anchor', parts, blockNo }), [parts, blockNo])
+
+  const queryState = useMemo(() => parseSourceSearch(viewState.input), [viewState.input])
+  const activeQuery = queryState.status === 'ready' ? queryState.query : null
+  const searchResult = useMemo(
+    () => (activeQuery !== null ? findSourceHits(parts, activeQuery) : EMPTY_SOURCE_SEARCH_RESULT),
+    [parts, activeQuery],
+  )
+  const hitBlockNos = useMemo(() => new Set(searchResult.blocks.map((b) => b.blockNo)), [searchResult.blocks])
+  const activeHitBlock =
+    searchResult.blocks.length > 0
+      ? searchResult.blocks[Math.min(viewState.activeHitIndex, searchResult.blocks.length - 1)]
+      : null
+  const statusLabel = sourceSearchStatusLabel(queryState, searchResult, viewState.activeHitIndex)
+
   const split = parts.length > 1
-  const part = parts[Math.min(partIndex, parts.length - 1)]
-  const showPart = (index: number) => {
-    setPartIndex(index)
-    headingRef.current?.focus({ preventScroll: true })
-    headingRef.current?.scrollIntoView?.({ block: 'start' })
-  }
+  const partIndex = Math.min(viewState.partIndex, parts.length - 1)
+  const part = parts[partIndex]
+  const showPart = (index: number) => dispatchView({ type: 'select-part', partIndex: index })
+
+  useEffect(() => {
+    if (viewState.navSeq === 0) return
+    if (viewState.navTarget === 'heading') {
+      headingRef.current?.focus({ preventScroll: true })
+      headingRef.current?.scrollIntoView?.({ block: 'start' })
+      return
+    }
+    if (viewState.navTarget === 'hit' && activeHitBlock !== null) {
+      document.getElementById(blockId(activeHitBlock.blockNo))?.scrollIntoView?.({ block: 'center' })
+    }
+  }, [viewState.navSeq, viewState.navTarget, activeHitBlock, headingRef])
+
   const scrolled = useScrolledPast(BACK_TO_TOP_PX)
 
   return (
@@ -242,6 +336,59 @@ function SectionBlocks({ outline, data, blockNo, headingRef }: SectionBlocksProp
         </Notice>
       )}
       {data.blocks.length === 0 && <p className="panel__note">이 항목에는 바로 속한 문단·표가 없어요. 하위 항목을 골라 주세요.</p>}
+      {data.blocks.length > 0 && (
+        <div className="source-search">
+          <div className="source-search__field">
+            <FieldLabel htmlFor={searchInputId}>이 항목 안에서 찾기</FieldLabel>
+            <Input
+              id={searchInputId}
+              type="search"
+              value={viewState.input}
+              maxLength={SOURCE_SEARCH_MAX_LENGTH}
+              placeholder="계정명이나 찾을 단어 (2자 이상)"
+              onChange={(e) => dispatchView({ type: 'set-query', input: e.target.value, parts })}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && searchResult.blocks.length > 0) {
+                  e.preventDefault()
+                  dispatchView({
+                    type: 'step-hit',
+                    delta: e.shiftKey ? -1 : 1,
+                    blocks: searchResult.blocks,
+                  })
+                }
+              }}
+            />
+          </div>
+          <div className="source-search__controls">
+            {statusLabel !== null && (
+              <span className="source-search__status" role="status" aria-live="polite">
+                {statusLabel}
+              </span>
+            )}
+            <Button
+              variant="secondary"
+              disabled={searchResult.blocks.length === 0}
+              aria-label="이전 일치 위치"
+              onClick={() => dispatchView({ type: 'step-hit', delta: -1, blocks: searchResult.blocks })}
+            >
+              이전
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={searchResult.blocks.length === 0}
+              aria-label="다음 일치 위치"
+              onClick={() => dispatchView({ type: 'step-hit', delta: 1, blocks: searchResult.blocks })}
+            >
+              다음
+            </Button>
+            {viewState.input.length > 0 && (
+              <Button variant="link" onClick={() => dispatchView({ type: 'clear-query' })}>
+                지우기
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
       {split && (
         <div className="source-parts">
           <FieldLabel htmlFor="source-part">소제목</FieldLabel>
@@ -262,6 +409,9 @@ function SectionBlocks({ outline, data, blockNo, headingRef }: SectionBlocksProp
           key={block.blockNo}
           block={block}
           selected={block.blockNo === blockNo}
+          hasSearchHit={hitBlockNos.has(block.blockNo)}
+          activeHit={activeHitBlock?.blockNo === block.blockNo}
+          highlightQuery={activeQuery}
           caption={`${data.sectionPath} 표`}
         />
       ))}
@@ -313,32 +463,58 @@ function SectionBlocks({ outline, data, blockNo, headingRef }: SectionBlocksProp
 
 /**
  * 원문 블록 하나. 아주 높은 블록은 처음에 TALL_BLOCK_PX까지만 보이고 '표 전체 보기'로 펼친다(#396).
- * 근거로 고른 블록은 접지 않는다.
+ * 근거로 고른 블록이나 검색어가 든 블록은 접지 않는다.
  */
 function expandLabel(block: SourceBlock): string {
   return block.table ? '표 전체 보기' : '전체 보기'
 }
 
-function SourceBlockView({ block, selected, caption }: { block: SourceBlock; selected: boolean; caption: string }) {
+interface SourceBlockViewProps {
+  block: SourceBlock
+  selected: boolean
+  hasSearchHit: boolean
+  activeHit: boolean
+  highlightQuery: string | null
+  caption: string
+}
+
+function sourceBlockLabel(selected: boolean, activeHit: boolean): string | null {
+  return match([selected, activeHit] as const)
+    .with([true, true], () => '선택한 근거 위치 · 찾은 위치')
+    .with([true, false], () => '선택한 근거 위치')
+    .with([false, true], () => '찾은 위치')
+    .with([false, false], () => null)
+    .exhaustive()
+}
+
+function SourceBlockView({ block, selected, hasSearchHit, activeHit, highlightQuery, caption }: SourceBlockViewProps) {
   const bodyRef = useRef<HTMLDivElement>(null)
   const [tall, setTall] = useState(false)
   const [open, setOpen] = useState(false)
   useLayoutEffect(() => {
     setTall((bodyRef.current?.scrollHeight ?? 0) > TALL_BLOCK_PX)
   }, [block])
-  const collapsed = tall && !open && !selected
+  const collapsed = tall && !open && !selected && !hasSearchHit
   const bodyId = `${blockId(block.blockNo)}-body`
+  const blockLabel = sourceBlockLabel(selected, activeHit)
+
   return (
     <div
       id={blockId(block.blockNo)}
-      className={`source-block${selected ? ' source-block--selected' : ''}`}
-      tabIndex={selected ? -1 : undefined}
+      className={`source-block${selected ? ' source-block--selected' : ''}${activeHit && !selected ? ' source-block--search-active' : ''}`}
+      tabIndex={selected || activeHit ? -1 : undefined}
     >
-      {selected && <span className="source-block__label">선택한 근거 위치</span>}
+      {blockLabel !== null && <span className="source-block__label">{blockLabel}</span>}
       <div ref={bodyRef} id={bodyId} className={collapsed ? 'source-block__body source-block__body--collapsed' : 'source-block__body'}>
-        {block.table ? <TableView rows={block.table} caption={caption} /> : <p className="source-block__text">{block.text}</p>}
+        {block.table ? (
+          <TableView rows={block.table} caption={caption} highlightQuery={highlightQuery} />
+        ) : (
+          <p className="source-block__text">
+            <SourceHighlightText text={block.text} query={highlightQuery} />
+          </p>
+        )}
       </div>
-      {tall && !selected && (
+      {tall && !selected && !hasSearchHit && (
         <Button variant="link" className="source-block__toggle" aria-expanded={open} aria-controls={bodyId} onClick={() => setOpen((v) => !v)}>
           {open ? '접기' : expandLabel(block)}
         </Button>
