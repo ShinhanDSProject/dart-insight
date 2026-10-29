@@ -1,0 +1,176 @@
+/* 관리자 신고 목록(FS-58·#463) */
+.admin-reports__toolbar {
+  display: flex;
+  margin-bottom: var(--space-4);
+}
+
+.admin-reports__count {
+  margin: 0 0 var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.admin-reports__list {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-reports__card {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.admin-reports__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+}
+
+.admin-reports__title {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.admin-reports__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.admin-reports__body {
+  margin: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+  line-height: var(--line-height-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.admin-reports__link {
+  justify-self: start;
+  font-size: var(--font-size-sm);
+}
+
+.admin-reports__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.admin-reports__meta dt {
+  font-weight: var(--font-weight-semibold);
+}
+
+.admin-reports__meta dd {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.admin-reports__reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-reports__repost p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.admin-reports__history {
+  font-size: var(--font-size-sm);
+}
+
+.admin-reports__history summary {
+  cursor: pointer;
+  min-height: var(--touch-target-min);
+  display: flex;
+  align-items: center;
+}
+
+.admin-reports__history ol {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-5);
+}
+
+.admin-reports__history p {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-muted);
+  white-space: pre-wrap;
+}
+
+.admin-reports__form {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.admin-reports__decisions {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.admin-reports__decisions legend {
+  margin-bottom: var(--space-2);
+  font-weight: var(--font-weight-semibold);
+}
+
+.admin-reports__decision {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch-target-min);
+}
+
+.admin-reports__field {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.admin-reports__field .select {
+  justify-self: start;
+}
+
+.admin-reports__form-error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}
+
+.admin-reports__form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.admin-reports__closed {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.admin-reports__pages {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}

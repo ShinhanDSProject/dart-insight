@@ -73,4 +73,6 @@ export const endpoints = {
   commentLike: (commentId: number) => `/api/comments/${seg(commentId)}/like`,
   commentReports: (commentId: number) => `/api/comments/${seg(commentId)}/reports`,
   repostRequests: (reportId: number) => `/api/reports/${seg(reportId)}/repost-requests`,
+  adminReports: () => '/api/admin/reports',
+  adminReport: (reportId: number) => `/api/admin/reports/${seg(reportId)}`,
 }
