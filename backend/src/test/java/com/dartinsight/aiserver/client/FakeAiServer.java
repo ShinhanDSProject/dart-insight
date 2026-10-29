@@ -9,6 +9,7 @@ import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,7 +26,22 @@ public class FakeAiServer implements AutoCloseable {
         }
     }
 
-    public record Reply(int status, String json) {
+    /** headers는 응답에 더할 헤더(예: X-Llm-Calls) */
+    public record Reply(int status, String json, Map<String, String> headers) {
+
+        public Reply {
+            headers = Map.copyOf(headers);
+        }
+
+        public Reply(int status, String json) {
+            this(status, json, Map.of());
+        }
+
+        public Reply withHeader(String name, String value) {
+            Map<String, String> more = new HashMap<>(headers);
+            more.put(name, value);
+            return new Reply(status, json, more);
+        }
 
         public static Reply ok(String json) {
             return new Reply(200, json);
@@ -87,6 +103,7 @@ public class FakeAiServer implements AutoCloseable {
         Reply reply = handler == null ? Reply.error(404, "COMMON_NOT_FOUND", "없음") : handler.apply(request);
         byte[] bytes = reply.json().getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", "application/json");
+        reply.headers().forEach((name, value) -> exchange.getResponseHeaders().set(name, value));
         exchange.sendResponseHeaders(reply.status(), bytes.length);
         try (OutputStream out = exchange.getResponseBody()) {
             out.write(bytes);

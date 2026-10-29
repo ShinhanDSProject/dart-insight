@@ -18,6 +18,7 @@ import com.dartinsight.company.service.CompanyService;
 import com.dartinsight.comparison.service.ComparabilityService;
 import com.dartinsight.comparison.service.ComparabilityService.ComparabilityResult;
 import com.dartinsight.financial.service.FinancialStatementService;
+import com.dartinsight.summary.domain.LlmCallRow;
 import com.dartinsight.summary.domain.SummaryResult;
 import com.dartinsight.summary.service.SummaryService;
 import java.time.Clock;
@@ -41,6 +42,7 @@ import org.springframework.stereotype.Component;
  * 결과 저장과 완료 표시는 한 트랜잭션이다(4.3). 어느 단계에서든 실패하면 그 단계에 FAILED로 남긴다.
  * 문장 비교(2.5)는 원문을 받지 못해도 분석을 실패로 만들지 않고, 문장 비교 상태에 사유를 남긴다.
  * 요약(3.2)은 근거 확인 단계에서 만들며, LLM·AI 서버를 부를 수 없으면 분석을 실패(ANALYSIS_SUMMARY_FAILED)로 끝낸다.
+ * 요약이나 결과 저장에서 실패해도 그때까지 받은 LLM 호출 기록은 llm_call에 남긴다(#137, ADR-0042).
  * 실행은 대기열이 있는 스레드 풀에서 하므로 요청 스레드를 막지 않는다. 서버가 다시 뜨면 끝나지 않은 분석을 실패로 바꾼다.
  */
 @Component
@@ -165,6 +167,8 @@ public class AnalysisRunner implements DisposableBean {
                         check.current().getReportName(), analysis.getCurrentRceptNo(), rows, text.rows());
             } catch (AiServerException e) {
                 // LLM이나 AI 서버를 부를 수 없으면 분석을 실패로 끝낸다(0.7). 요약 없는 결과를 완료로 보이지 않는다
+                // 그때까지 부른 호출 기록은 남긴다(비용 집계, ADR-0042)
+                saveFailedCalls(analysisId, summaryService.failedCalls(e));
                 fail(analysisId, "ANALYSIS_SUMMARY_FAILED", "요약을 만들지 못했어요. 잠시 뒤 다시 요청해 주세요. ("
                         + e.getMessage() + ")");
                 return;
@@ -174,6 +178,7 @@ public class AnalysisRunner implements DisposableBean {
                 resultService.saveAndComplete(analysis.getId(), rows, text, summary);
             } catch (RuntimeException e) {
                 log.warn("분석 {} 결과 저장 실패", analysisId, e);
+                saveFailedCalls(analysisId, summary.calls());
                 fail(analysisId, "ANALYSIS_SAVE_FAILED", "결과를 저장하지 못했어요. 다시 요청해 주세요.");
                 return;
             }
@@ -204,6 +209,15 @@ public class AnalysisRunner implements DisposableBean {
     private String companyName(Analysis analysis, ComparabilityResult check) {
         return companyService.find(analysis.getCorpCode()).map(Company::getCorpName)
                 .orElse(check.current().getFilerName());
+    }
+
+    /** 실패로 끝나는 분석의 LLM 호출 기록을 남긴다. 저장하지 못해도 분석은 실패로 끝내므로 로그만 남긴다 */
+    private void saveFailedCalls(Long analysisId, List<LlmCallRow> calls) {
+        try {
+            resultService.saveFailedCalls(analysisId, calls);
+        } catch (RuntimeException e) {
+            log.warn("분석 {} 의 LLM 호출 기록 {}건을 저장하지 못했습니다", analysisId, calls.size(), e);
+        }
     }
 
     /** 실패로 남긴다. 이미 끝난 분석이면 그대로 둔다. 다시 읽어서 바꾸므로 다른 곳의 변경을 덮어쓰지 않는다. */
