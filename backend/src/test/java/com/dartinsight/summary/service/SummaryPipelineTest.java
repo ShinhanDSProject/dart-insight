@@ -279,6 +279,54 @@ class SummaryPipelineTest {
     }
 
     @Test
+    @DisplayName("현금흐름표에서 증감액이 가장 큰 1개도 골라 현금흐름 관점으로 요약 응답에 담는다(#481)")
+    void cashFlowLargestChangeIsSummarizedUnderTheCashFlowLens() throws Exception {
+        DART.on(STATEMENTS,
+                Response.json(FinancialJson.ok(account(CUR, "IS", "ifrs-full_Revenue", "매출액", 1, "40", "70"),
+                        account(CUR, "CF", "ifrs-full_CashFlowsFromUsedInOperatingActivities", "영업활동순현금흐름", 1, "90"),
+                        account(CUR, "CF", "ifrs-full_CashFlowsFromUsedInInvestingActivities", "투자활동현금흐름", 2, "-25"))),
+                Response.json(FinancialJson.ok(account(PREV, "IS", "ifrs-full_Revenue", "매출액", 1, "30", "55"),
+                        account(PREV, "CF", "ifrs-full_CashFlowsFromUsedInOperatingActivities", "영업활동순현금흐름", 1, "50"),
+                        account(PREV, "CF", "ifrs-full_CashFlowsFromUsedInInvestingActivities", "투자활동현금흐름", 2, "-20"))));
+        AI.on(SUMMARIES, request -> {
+            String body = request.bodyText();
+            String text = JsonPath.<List<String>>read(body, "$.textItems[*].ref").getFirst();
+            String revenue = JsonPath.<List<String>>read(body, "$.financialItems[?(@.accountName=='매출액')].ref")
+                    .getFirst();
+            String cash = JsonPath.<List<String>>read(body, "$.financialItems[?(@.accountName=='영업활동순현금흐름')].ref")
+                    .getFirst();
+            return Reply.ok("""
+                    {"promptVersion":"summary-1","model":"fake-model","generatedAt":"2026-10-22T09:00:00","items":[
+                     {"ref":"%s","kind":"TEXT","status":"OK","sentence":"사업의 개요에 파운드리가 더해졌어요.",
+                      "explanation":null,"evidenceIds":["%s#B1"],"reviewReason":null},
+                     {"ref":"%s","kind":"FINANCIAL","sentence":null,%s},
+                     {"ref":"%s","kind":"FINANCIAL","status":"OK","sentence":null,"explanation":null,"evidenceIds":[],
+                      "grade":"NONE","quote":null,"quoteEvidenceId":null}
+                    ],"calls":[]}
+                    """.formatted(text, CUR, revenue, STATED_REVENUE, cash));
+        });
+
+        long id = analyze();
+
+        mockMvc.perform(get("/api/analyses/{id}/summary", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.summaryStatus").value("COMPLETED"))
+                .andExpect(jsonPath("$.items", hasSize(3)))
+                .andExpect(jsonPath("$.items[2].target.sjDiv").value("CF"))
+                .andExpect(jsonPath("$.items[2].factSentence").value("영업활동순현금흐름이 50 원에서 90 원으로 늘었어요(+80%)."))
+                .andExpect(jsonPath("$.items[2].lens").value("CASH_FLOW"))
+                .andExpect(jsonPath("$.items[2].lensLabel").value("현금흐름"))
+                .andExpect(jsonPath("$.lensCounts[3].lens").value("CASH_FLOW"))
+                .andExpect(jsonPath("$.lensCounts[3].count").value(1));
+        Request sent = AI.requests(SUMMARIES).getFirst();
+        assertThat(JsonPath.<List<String>>read(sent.bodyText(), "$.financialItems[*].accountName"))
+                .containsExactly("매출액", "영업활동순현금흐름");
+        assertThat(JsonPath.<List<List<String>>>read(sent.bodyText(),
+                "$.financialItems[?(@.accountName=='영업활동순현금흐름')].accountAliases"))
+                .containsExactly(List.of("영업활동순현금흐름", "영업활동현금흐름", "영업현금흐름"));
+    }
+
+    @Test
     void itemsThatFailedTheirChecksAreCountedAsReviewNeeded() throws Exception {
         AI.on(SUMMARIES, summaryReply("REVIEW_NEEDED"));
 

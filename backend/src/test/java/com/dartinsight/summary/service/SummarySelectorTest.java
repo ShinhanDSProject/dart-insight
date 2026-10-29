@@ -44,9 +44,10 @@ class SummarySelectorTest {
                 fin("BS", "자산총계", 1000L, 1100L, CalcStatus.OK),
                 fin("BS", "부채총계", 500L, 520L, CalcStatus.OK),
                 fin("BS", "자본총계", 500L, 501L, CalcStatus.OK),
-                fin("CF", "현금", 1L, 999L, CalcStatus.OK));
+                fin("CF", "영업활동현금흐름", 1L, 999L, CalcStatus.OK),
+                fin("CF", "투자활동현금흐름", 10L, 20L, CalcStatus.OK));
 
-        assertThat(SummarySelector.financial(rows)).containsExactly(0, 1, 4, 6, 7);
+        assertThat(SummarySelector.financial(rows)).containsExactly(0, 1, 4, 6, 7, 9);
     }
 
     @Test
