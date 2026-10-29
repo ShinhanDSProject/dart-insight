@@ -1,7 +1,7 @@
 import { match } from 'ts-pattern'
 import type { CompanyAnalysisItem } from '@/shared/api/analyses'
 import type { PostQuote, QuoteKind, QuoteRequest } from '@/shared/api/community'
-import type { FinancialChangeItem, StatementSummary } from '@/shared/api/results'
+import type { FinancialChangeItem, SjDiv, StatementSummary } from '@/shared/api/results'
 import type { TextChangeItem } from '@/shared/api/textChanges'
 import { formatInteger } from '@/shared/lib/numberFormat'
 import type { SegmentOption } from '@/shared/ui'
@@ -60,11 +60,25 @@ export interface QuotePick {
   reportPair: PostQuote['reportPair']
 }
 
-function pair(analysis: CompanyAnalysisItem): PostQuote['reportPair'] {
+type QuoteAnalysis = Pick<CompanyAnalysisItem, 'analysisId' | 'previous' | 'current'>
+
+const statementLabels: Record<SjDiv, string> = {
+  BS: '재무상태표',
+  IS: '손익계산서',
+  CIS: '포괄손익계산서',
+  CF: '현금흐름표',
+  SCE: '자본변동표',
+}
+
+export function statementLabel(sjDiv: SjDiv): string {
+  return statementLabels[sjDiv]
+}
+
+function pair(analysis: QuoteAnalysis): PostQuote['reportPair'] {
   return { previous: analysis.previous.reportName, current: analysis.current.reportName }
 }
 
-export function textPick(analysis: CompanyAnalysisItem, item: TextChangeItem): QuotePick {
+export function textPick(analysis: QuoteAnalysis, item: TextChangeItem): QuotePick {
   return {
     request: { kind: 'TEXT_CHANGE', analysisId: analysis.analysisId, changeId: item.changeId },
     kindLabel: quoteKindLabel({ kind: 'TEXT_CHANGE', changeType: item.changeType }),
@@ -74,7 +88,7 @@ export function textPick(analysis: CompanyAnalysisItem, item: TextChangeItem): Q
   }
 }
 
-export function financialPick(analysis: CompanyAnalysisItem, statement: string, item: FinancialChangeItem): QuotePick {
+export function financialPick(analysis: QuoteAnalysis, statement: string, item: FinancialChangeItem): QuotePick {
   return {
     request: { kind: 'FINANCIAL_CHANGE', analysisId: analysis.analysisId, changeId: item.changeId },
     kindLabel: '재무 계정',

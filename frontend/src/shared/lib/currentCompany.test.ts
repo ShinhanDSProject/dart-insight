@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
+  companyOverviewLink,
   compareLink,
   isCurrentRoute,
   loadCurrentCompany,
   nextCurrentCompany,
+  overviewLink,
   parseCurrentCompany,
   saveCurrentCompany,
   sourceLink,
@@ -31,8 +33,10 @@ describe('nextCurrentCompany(#502)', () => {
     expect(sourceLink(next)).toBeNull()
   })
 
-  it('분석 결과를 열면 공시 비교는 그 분석으로, 원문 확인은 원문 탭으로 간다', () => {
+  it('분석 결과를 열면 기업 개요는 개요 탭으로, 공시 비교는 그 분석으로, 원문 확인은 원문 탭으로 간다', () => {
     const next = nextCurrentCompany(null, { corpCode: '00126380', corpName: '삼성전자', analysisId: 7 })
+    expect(companyOverviewLink('00126380')).toBe('/companies/00126380?view=overview')
+    expect(overviewLink(next)).toBe('/companies/00126380?view=overview')
     expect(compareLink(next)).toBe('/analyses/7')
     expect(sourceLink(next)).toBe('/analyses/7?tab=source')
   })

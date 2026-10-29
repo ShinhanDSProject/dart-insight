@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Analysis } from '@/shared/api/analyses'
 import type { FinancialChangeDetail } from '@/shared/api/results'
@@ -140,19 +141,26 @@ describe('Financial EvidencePanel (#512)', () => {
 
   afterEach(cleanup)
 
+  function renderEvidence(props: { onOpenSource?: (t: { side: 'previous' | 'current'; section: number; block: number | null }) => void; onOpenText?: (id: number) => void } = {}) {
+    return render(
+      <MemoryRouter>
+        <EvidencePanel
+          analysis={mockAnalysis}
+          changeId={101}
+          unit="WON"
+          onClose={() => {}}
+          onAsk={() => {}}
+          asking={false}
+          onOpenSource={props.onOpenSource}
+          onOpenText={props.onOpenText}
+        />
+      </MemoryRouter>,
+    )
+  }
+
   it('원문 표 위치(sectionNo)가 있으면 원문 표 보기 버튼을 표시하고 클릭 시 onOpenSource를 호출한다', () => {
     const onOpenSource = vi.fn()
-    render(
-      <EvidencePanel
-        analysis={mockAnalysis}
-        changeId={101}
-        unit="WON"
-        onClose={() => {}}
-        onAsk={() => {}}
-        asking={false}
-        onOpenSource={onOpenSource}
-      />,
-    )
+    renderEvidence({ onOpenSource })
 
     const buttons = screen.getAllByRole('button', { name: '원문 표 보기' })
     expect(buttons).toHaveLength(2)
@@ -167,21 +175,14 @@ describe('Financial EvidencePanel (#512)', () => {
     // M2 임시 문구는 제거되어 있어야 함
     expect(screen.queryByText(/원문 표 안의 위치로 바로 이동하는 기능은 3.5\(M2\)에서 붙어요/)).toBeNull()
     expect(screen.getByText('수치는 OpenDART 재무제표 API 값으로 코드가 계산했어요.')).toBeTruthy()
+    expect(screen.getByRole('link', { name: '커뮤니티에 인용' }).getAttribute('href')).toBe(
+      '/companies/00126380?view=community&quoteAnalysis=10&quoteKind=FINANCIAL_CHANGE&quoteChange=101&quoteSj=IS',
+    )
   })
 
   it('관련 본문·주석 변경이 있으면 목록과 문장 변경 보기 버튼을 표시한다', () => {
     const onOpenText = vi.fn()
-    render(
-      <EvidencePanel
-        analysis={mockAnalysis}
-        changeId={101}
-        unit="WON"
-        onClose={() => {}}
-        onAsk={() => {}}
-        asking={false}
-        onOpenText={onOpenText}
-      />,
-    )
+    renderEvidence({ onOpenText })
 
     const section = screen.getByRole('region', { name: '관련 본문·주석 변경' })
     expect(section).toBeTruthy()
@@ -227,16 +228,7 @@ describe('Financial EvidencePanel (#512)', () => {
       },
     }
 
-    render(
-      <EvidencePanel
-        analysis={mockAnalysis}
-        changeId={101}
-        unit="WON"
-        onClose={() => {}}
-        onAsk={() => {}}
-        asking={false}
-      />,
-    )
+    renderEvidence()
 
     expect(screen.getByText('AI 생성')).toBeTruthy()
     expect(screen.getByText(/메모리 가격 상승으로 수익성이 개선되었어요/)).toBeTruthy()
@@ -264,31 +256,13 @@ describe('Financial EvidencePanel (#512)', () => {
       },
     }
 
-    render(
-      <EvidencePanel
-        analysis={mockAnalysis}
-        changeId={101}
-        unit="WON"
-        onClose={() => {}}
-        onAsk={() => {}}
-        asking={false}
-      />,
-    )
+    renderEvidence()
 
     expect(screen.getByText('확인된 설명 없음')).toBeTruthy()
   })
 
   it('웹 접근성(axe) 위반이 없다', async () => {
-    const { container } = render(
-      <EvidencePanel
-        analysis={mockAnalysis}
-        changeId={101}
-        unit="WON"
-        onClose={() => {}}
-        onAsk={() => {}}
-        asking={false}
-      />,
-    )
+    const { container } = renderEvidence()
 
     const violations = await axeViolations(container)
     expect(violations).toHaveLength(0)

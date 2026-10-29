@@ -10,6 +10,7 @@ import type { LoadState } from '@/shared/hooks/asyncState'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
 import { useRecordRecentAnalysis } from '@/shared/hooks/useRecentAnalyses'
 import { useRecordCurrentCompany } from '@/shared/hooks/useCurrentCompany'
+import { companyOverviewLink } from '@/shared/lib/currentCompany'
 import { AskTab } from './components/AskTab'
 import { ExportBriefButton } from './components/ExportBriefButton'
 import { FinancialTab } from './components/FinancialTab'
@@ -95,7 +96,8 @@ function AnalysisResult({ analysis, params, update }: AnalysisResultProps) {
   return (
     <section className="page">
       <nav className="breadcrumb" aria-label="현재 위치">
-        <Link to="/">기업 검색</Link> / 분석 결과 / {analysis.corpName}
+        <Link to="/">기업 검색</Link> / 분석 결과 /{' '}
+        <Link to={companyOverviewLink(analysis.corpCode)}>{analysis.corpName}</Link>
       </nav>
       <div className="result-head">
         <h1 className="page__title">두 보고서 사이의 변화</h1>

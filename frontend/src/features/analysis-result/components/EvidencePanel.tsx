@@ -2,9 +2,10 @@ import { useEffect, useRef } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { ChangeScaleDetail, FinancialChangeDetail, RelatedTextChange, ValueSource } from '@/shared/api/results'
-import { Badge, Button, CompareBars, Notice, PanelTitle, SidePanel } from '@/shared/ui'
+import { Badge, Button, ButtonLink, CompareBars, Notice, PanelTitle, SidePanel } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
+import { communityQuotePath } from '@/shared/lib/communityQuoteLink'
 import { displaySectionPath } from '@/shared/lib/sectionTitle'
 import { useFinancialChangeDetail } from '../hooks/useFinancialChanges'
 import { useSummary } from '../hooks/useSummary'
@@ -207,15 +208,31 @@ function EvidenceBody({
         <p className="evidence__note">관련 설명: <strong>확인된 설명 없음</strong></p>
       )}
 
-      <Button
-        variant="secondary"
-        className="evidence__ask"
-        disabled={asking}
-        aria-label={`이 계정 변화 AI에게 묻기: ${question}`}
-        onClick={() => onAsk(question)}
-      >
-        이 계정 변화 AI에게 묻기
-      </Button>
+      <div className="evidence__actions">
+        <Button
+          variant="secondary"
+          className="evidence__ask"
+          disabled={asking}
+          aria-label={`이 계정 변화 AI에게 묻기: ${question}`}
+          onClick={() => onAsk(question)}
+        >
+          이 계정 변화 AI에게 묻기
+        </Button>
+        {Boolean(analysis.corpCode) && (
+          <ButtonLink
+            variant="secondary"
+            to={communityQuotePath({
+              corpCode: analysis.corpCode,
+              analysisId: analysis.analysisId,
+              kind: 'FINANCIAL_CHANGE',
+              changeId: detail.changeId,
+              sjDiv: detail.sjDiv,
+            })}
+          >
+            커뮤니티에 인용
+          </ButtonLink>
+        )}
+      </div>
       <AddToNote
         target={{ kind: 'FINANCIAL_CHANGE', changeId: detail.changeId }}
         analysisId={analysis.analysisId}
