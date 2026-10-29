@@ -14,6 +14,7 @@ export function ServiceNotice() {
             <strong>이용 안내</strong> · AI가 만든 문장에는 'AI 생성'이 붙고, 투자 조언이 아니에요.
           </span>
           <span className="service-notice__more">자세히</span>
+          <span className="service-notice__less">접기</span>
         </summary>
         <ul>
           {SERVICE_NOTICE.map((line) => (

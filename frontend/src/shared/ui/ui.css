@@ -205,14 +205,20 @@
   display: none;
 }
 
-.service-notice__more {
+.service-notice__more,
+.service-notice__less {
   flex: none;
   color: var(--color-link);
   text-decoration: underline;
 }
 
+.service-notice__less,
 .service-notice details[open] .service-notice__more {
-  visibility: hidden;
+  display: none;
+}
+
+.service-notice details[open] .service-notice__less {
+  display: inline;
 }
 
 .service-notice ul {
