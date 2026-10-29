@@ -3,7 +3,7 @@ package com.dartinsight.community.service;
 import com.dartinsight.community.domain.CommunityComment;
 import com.dartinsight.community.domain.CommunityLike;
 import com.dartinsight.community.domain.CommunityPost;
-import com.dartinsight.community.domain.LikeTarget;
+import com.dartinsight.community.domain.TargetType;
 import com.dartinsight.community.dto.LikeResponse;
 import com.dartinsight.community.repository.CommunityCommentRepository;
 import com.dartinsight.community.repository.CommunityLikeRepository;
@@ -37,8 +37,8 @@ public class CommunityLikeService {
         CommunityPost post = lockedPost(postId);
         userService.requireExisting(userId);
         post.requireVisible();
-        if (find(LikeTarget.POST, postId, userId).isEmpty()) {
-            likes.save(CommunityLike.create(LikeTarget.POST, postId, userId, LocalDateTime.now(clock)));
+        if (find(TargetType.POST, postId, userId).isEmpty()) {
+            likes.save(CommunityLike.create(TargetType.POST, postId, userId, LocalDateTime.now(clock)));
             post.addLike();
         }
         return new LikeResponse(true, post.getLikeCount());
@@ -48,7 +48,7 @@ public class CommunityLikeService {
     public LikeResponse unlikePost(long postId, long userId) {
         CommunityPost post = lockedPost(postId);
         userService.requireExisting(userId);
-        find(LikeTarget.POST, postId, userId).ifPresent(like -> {
+        find(TargetType.POST, postId, userId).ifPresent(like -> {
             likes.delete(like);
             post.removeLike();
         });
@@ -60,8 +60,8 @@ public class CommunityLikeService {
         CommunityComment comment = lockedComment(commentId);
         userService.requireExisting(userId);
         comment.requireVisible();
-        if (find(LikeTarget.COMMENT, commentId, userId).isEmpty()) {
-            likes.save(CommunityLike.create(LikeTarget.COMMENT, commentId, userId, LocalDateTime.now(clock)));
+        if (find(TargetType.COMMENT, commentId, userId).isEmpty()) {
+            likes.save(CommunityLike.create(TargetType.COMMENT, commentId, userId, LocalDateTime.now(clock)));
             comment.addLike();
         }
         return new LikeResponse(true, comment.getLikeCount());
@@ -71,14 +71,14 @@ public class CommunityLikeService {
     public LikeResponse unlikeComment(long commentId, long userId) {
         CommunityComment comment = lockedComment(commentId);
         userService.requireExisting(userId);
-        find(LikeTarget.COMMENT, commentId, userId).ifPresent(like -> {
+        find(TargetType.COMMENT, commentId, userId).ifPresent(like -> {
             likes.delete(like);
             comment.removeLike();
         });
         return new LikeResponse(false, comment.getLikeCount());
     }
 
-    private Optional<CommunityLike> find(LikeTarget target, long targetId, long userId) {
+    private Optional<CommunityLike> find(TargetType target, long targetId, long userId) {
         return likes.findByTargetTypeAndTargetIdAndUserId(target, targetId, userId);
     }
 

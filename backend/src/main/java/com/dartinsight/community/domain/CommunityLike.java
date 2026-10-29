@@ -28,7 +28,7 @@ public class CommunityLike {
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "target_type", nullable = false, length = 10)
-    private LikeTarget targetType;
+    private TargetType targetType;
 
     @Column(name = "target_id", nullable = false)
     private Long targetId;
@@ -39,7 +39,7 @@ public class CommunityLike {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    public static CommunityLike create(LikeTarget targetType, long targetId, long userId, LocalDateTime now) {
+    public static CommunityLike create(TargetType targetType, long targetId, long userId, LocalDateTime now) {
         CommunityLike like = new CommunityLike();
         like.targetType = targetType;
         like.targetId = targetId;

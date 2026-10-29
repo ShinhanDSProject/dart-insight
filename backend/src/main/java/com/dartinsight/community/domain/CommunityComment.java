@@ -22,7 +22,7 @@ import org.hibernate.type.SqlTypes;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "community_comment")
-public class CommunityComment {
+public class CommunityComment implements CommunityContent {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -82,10 +82,6 @@ public class CommunityComment {
         return status == ContentStatus.DELETED;
     }
 
-    public boolean isOwnedBy(Long viewerId) {
-        return userId.equals(viewerId);
-    }
-
     public String shownBody(Long viewerId) {
         return status.shownBody(body, isOwnedBy(viewerId));
     }
@@ -106,10 +102,26 @@ public class CommunityComment {
 
     /** 지웠으면 true. 이미 지운 댓글이면 false(글의 댓글 수를 다시 빼지 않게) */
     public boolean delete(LocalDateTime now) {
-        if (isDeleted()) return false;
-        status = ContentStatus.DELETED;
-        deletedAt = now;
-        return true;
+        return moderate(ModerationDecision.DELETE, now);
+    }
+
+    @Override
+    public TargetType targetType() {
+        return TargetType.COMMENT;
+    }
+
+    @Override
+    public Long boardPostId() {
+        return postId;
+    }
+
+    @Override
+    public boolean moderate(ModerationDecision decision, LocalDateTime now) {
+        ContentStatus next = status.moderated(decision);
+        boolean deleted = next == ContentStatus.DELETED && !isDeleted();
+        if (deleted) deletedAt = now;
+        status = next;
+        return deleted;
     }
 
     public void addLike() {

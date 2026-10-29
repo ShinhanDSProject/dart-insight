@@ -89,6 +89,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, ApiPaths.COMPANY_POSTS, ApiPaths.POSTS + "/**").permitAll()
                         .requestMatchers(ApiPaths.COMPANY_POSTS, ApiPaths.POSTS + "/**", ApiPaths.COMMENTS + "/**")
                                 .authenticated()
+                        .requestMatchers(ApiPaths.REPORT_REPOST_REQUESTS).authenticated()
                         .requestMatchers(ApiPaths.ADMIN, ApiPaths.ADMIN + "/**").access(adminAuthorizationManager)
                         .anyRequest().permitAll())
                 .exceptionHandling(exceptions -> exceptions.accessDeniedHandler((request, response, exception) ->

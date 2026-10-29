@@ -25,7 +25,7 @@ import org.hibernate.type.SqlTypes;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "community_post")
-public class CommunityPost {
+public class CommunityPost implements CommunityContent {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -71,10 +71,6 @@ public class CommunityPost {
         return post;
     }
 
-    public boolean isOwnedBy(Long viewerId) {
-        return userId.equals(viewerId);
-    }
-
     /** 지웠고 남은 댓글도 없어 목록·상세에서 빠진 글 */
     public boolean isGone() {
         return status == ContentStatus.DELETED && commentCount == 0;
@@ -101,9 +97,26 @@ public class CommunityPost {
 
     /** 이미 지웠으면 그대로 둔다. 가린 글도 작성자가 지울 수 있다 */
     public void delete(LocalDateTime now) {
-        if (status == ContentStatus.DELETED) return;
-        status = ContentStatus.DELETED;
-        deletedAt = now;
+        moderate(ModerationDecision.DELETE, now);
+    }
+
+    @Override
+    public TargetType targetType() {
+        return TargetType.POST;
+    }
+
+    @Override
+    public Long boardPostId() {
+        return id;
+    }
+
+    @Override
+    public boolean moderate(ModerationDecision decision, LocalDateTime now) {
+        ContentStatus next = status.moderated(decision);
+        boolean deleted = next == ContentStatus.DELETED && status != ContentStatus.DELETED;
+        if (deleted) deletedAt = now;
+        status = next;
+        return deleted;
     }
 
     public void addComment() {

@@ -32,13 +32,14 @@ public record PostQuery(Sort sort, int page, int size) {
         };
     }
 
-    private static int page(Integer raw) {
+    /** 쪽 번호. 관리자 신고 목록(ReportQuery)도 같은 규칙을 쓴다 */
+    static int page(Integer raw) {
         if (raw == null) return 0;
         if (raw < 0) throw ApiException.invalidInput("page", "0 이상이어야 합니다.");
         return raw;
     }
 
-    private static int size(Integer raw) {
+    static int size(Integer raw) {
         if (raw == null) return DEFAULT_SIZE;
         if (raw < 1 || raw > MAX_SIZE) throw ApiException.invalidInput("size", "1~50이어야 합니다.");
         return raw;
