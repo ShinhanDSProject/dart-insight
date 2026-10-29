@@ -7,18 +7,24 @@ import { formatInteger } from '@/shared/lib/numberFormat'
 import { Button, Dialog, FieldHint, FieldLabel, Notice, TextArea } from '@/shared/ui'
 import { ErrorState } from '@/shared/ui/StateView'
 import { useCommunity } from '../hooks/useCommunityGate'
+import { useProfanityMaskSetting } from '../hooks/useProfanityMask'
 import { communityErrorMessages, type ContentView } from '../model/community'
+import { shownBody } from '../model/profanityMask'
 
-/** 글·댓글 본문 자리. 가려지거나 지운 것은 안내 한 줄, 가려진 내 것은 본문과 사유·기한·재게시 청구 */
+/**
+ * 글·댓글 본문 자리. 가려지거나 지운 것은 안내 한 줄, 가려진 내 것은 본문과 사유·기한·재게시 청구.
+ * 욕설 가리기(#468)를 켰으면 보이는 본문만 바꾼다(고치기 칸에는 원문이 들어간다).
+ */
 export function ContentBody({ view, noun, onRepostRequested }: { view: ContentView; noun: '글' | '댓글'; onRepostRequested: () => void }) {
+  const mask = useProfanityMaskSetting()
   return match(view)
-    .with({ kind: 'visible' }, ({ body }) => <p className="community-body">{body}</p>)
+    .with({ kind: 'visible' }, ({ body }) => <p className="community-body">{shownBody(body, mask)}</p>)
     .with({ kind: 'blinded' }, () => <p className="community-body community-body--muted">신고로 가려진 {noun}입니다</p>)
     .with({ kind: 'deleted' }, () => <p className="community-body community-body--muted">삭제된 {noun}입니다</p>)
     .with({ kind: 'blinded-mine' }, ({ body, blind }) => (
       <>
         <BlindNotice blind={blind} noun={noun} onRequested={onRepostRequested} />
-        <p className="community-body community-body--hidden">{body}</p>
+        <p className="community-body community-body--hidden">{shownBody(body, mask)}</p>
       </>
     ))
     .exhaustive()

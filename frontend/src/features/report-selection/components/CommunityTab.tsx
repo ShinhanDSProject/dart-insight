@@ -6,6 +6,7 @@ import { Button, ButtonLink, Dialog, Notice, SegmentedControl, Skeleton } from '
 import { EmptyState, ErrorState } from '@/shared/ui/StateView'
 import { CommunityGateContext, useCommunityGate } from '../hooks/useCommunityGate'
 import { useCommunityPosts } from '../hooks/useCommunityPosts'
+import { ProfanityMaskContext, useProfanityMask } from '../hooks/useProfanityMask'
 import { COMMUNITY_DISCLAIMER, communityErrorMessages, hasMorePosts, sortOptions } from '../model/community'
 import { EMPTY_COMPOSER, quoteComposerReducer } from '../model/postQuote'
 import { CommunityBodyForm } from './CommunityBodyForm'
@@ -15,7 +16,7 @@ import { NicknameDialog } from './NicknameDialog'
 import { QuotePickerDialog } from './QuotePickerDialog'
 
 /**
- * 기업 화면의 커뮤니티 탭(FS-58, W-01 ②). 위에서부터 고정 문구, 글쓰기(변경점 붙이기 #464), 정렬, 글 카드.
+ * 기업 화면의 커뮤니티 탭(FS-58, W-01 ②). 위에서부터 고정 문구, 글쓰기(변경점 붙이기 #464), 정렬과 욕설 가리기(#468), 글 카드.
  * 읽기는 로그인 없이 되고, 쓰기·좋아요·신고를 누르면 로그인 안내가 뜬다. 닉네임이 없으면 처음 쓸 때 닉네임 정하기가 먼저 뜬다.
  * 글을 불러오지 못해도 이 탭 안에서만 안내하므로 다른 탭은 그대로 쓴다.
  */
@@ -27,87 +28,95 @@ export function CommunityTab({ corpCode }: { corpCode: string }) {
   // 글에 붙일 변경점(#464)과 고르기 대화상자
   const [composer, dispatchQuote] = useReducer(quoteComposerReducer, EMPTY_COMPOSER)
   const quote = composer.pick
+  // 욕설 가리기(#468). 보이는 본문만 바꾸고 보내는 글은 그대로다
+  const [maskProfanity, setMaskProfanity] = useProfanityMask()
   // 몇 분 전 표시의 기준. 그릴 때마다 정해 방금 쓴 글도 '방금 전'으로 보인다
   const now = new Date()
   const sortLabelId = useId()
 
   return (
     <CommunityGateContext.Provider value={gate}>
-      <div className="community">
-        <Notice as="p" className="community__disclaimer">
-          {COMMUNITY_DISCLAIMER}
-        </Notice>
+      <ProfanityMaskContext.Provider value={maskProfanity}>
+        <div className="community">
+          <Notice as="p" className="community__disclaimer">
+            {COMMUNITY_DISCLAIMER}
+          </Notice>
 
-        <CommunityBodyForm
-          label="글쓰기"
-          labelHidden
-          placeholder="이 기업 어떻게 보세요?"
-          maxLength={POST_BODY_MAX}
-          submitLabel="올리기"
-          saving={write.state.status === 'loading'}
-          attachment={
-            quote === null ? (
-              <Button variant="link" className="community-form__attach" onClick={() => dispatchQuote({ type: 'open-picker' })}>
-                변경점 붙이기
-              </Button>
-            ) : (
-              <QuotePreview pick={quote} onRemove={() => dispatchQuote({ type: 'remove' })} disabled={write.state.status === 'loading'} />
+          <CommunityBodyForm
+            label="글쓰기"
+            labelHidden
+            placeholder="이 기업 어떻게 보세요?"
+            maxLength={POST_BODY_MAX}
+            submitLabel="올리기"
+            saving={write.state.status === 'loading'}
+            attachment={
+              quote === null ? (
+                <Button variant="link" className="community-form__attach" onClick={() => dispatchQuote({ type: 'open-picker' })}>
+                  변경점 붙이기
+                </Button>
+              ) : (
+                <QuotePreview pick={quote} onRemove={() => dispatchQuote({ type: 'remove' })} disabled={write.state.status === 'loading'} />
+              )
+            }
+            onSubmit={async (body) => {
+              if (!gate.requireLogin()) return false
+              let done = false
+              await write.run(async () => {
+                const post = await gate.withNickname(() => createPost(corpCode, body, quote?.request ?? null))
+                posts.dispatch({ type: 'add-post', post })
+                dispatchQuote({ type: 'remove' })
+                done = true
+                return post
+              })
+              return done
+            }}
+            error={write.state.status === 'error' ? <ErrorState error={write.state.error} messages={communityErrorMessages} /> : undefined}
+          />
+
+          <div className="community__toolbar">
+            <span id={sortLabelId} className="visually-hidden">
+              글 정렬
+            </span>
+            <SegmentedControl aria-labelledby={sortLabelId} options={sortOptions} value={sort} onChange={setSort} />
+            <label className="community__mask">
+              <input type="checkbox" checked={maskProfanity} onChange={(e) => setMaskProfanity(e.target.checked)} />
+              <span>욕설 가리기</span>
+            </label>
+          </div>
+
+          {match(posts.state)
+            .with({ status: 'loading' }, () => <Skeleton label="글을 불러오는 중입니다…" shape="line" count={4} />)
+            .with({ status: 'error' }, ({ error }) => (
+              <ErrorState error={error} onRetry={posts.reload} messages={communityErrorMessages} />
+            ))
+            .with({ status: 'success' }, (state) =>
+              state.items.length === 0 ? (
+                <EmptyState title="아직 글이 없습니다. 첫 의견을 남겨 보세요" />
+              ) : (
+                <>
+                  <ul className="community__list" aria-label="글 목록">
+                    {state.items.map((post) => (
+                      <li key={post.postId}>
+                        <CommunityPostCard post={post} now={now} onChange={posts.dispatch} />
+                      </li>
+                    ))}
+                  </ul>
+                  {hasMorePosts(state) && (
+                    <div className="community__more">
+                      {state.more.status === 'error' && (
+                        <ErrorState error={state.more.error} messages={communityErrorMessages} />
+                      )}
+                      <Button onClick={posts.loadMore} disabled={state.more.status === 'loading'}>
+                        {state.more.status === 'loading' ? '불러오는 중…' : '글 더 보기'}
+                      </Button>
+                    </div>
+                  )}
+                </>
+              ),
             )
-          }
-          onSubmit={async (body) => {
-            if (!gate.requireLogin()) return false
-            let done = false
-            await write.run(async () => {
-              const post = await gate.withNickname(() => createPost(corpCode, body, quote?.request ?? null))
-              posts.dispatch({ type: 'add-post', post })
-              dispatchQuote({ type: 'remove' })
-              done = true
-              return post
-            })
-            return done
-          }}
-          error={write.state.status === 'error' ? <ErrorState error={write.state.error} messages={communityErrorMessages} /> : undefined}
-        />
-
-        <div className="community__toolbar">
-          <span id={sortLabelId} className="visually-hidden">
-            글 정렬
-          </span>
-          <SegmentedControl aria-labelledby={sortLabelId} options={sortOptions} value={sort} onChange={setSort} />
+            .exhaustive()}
         </div>
-
-        {match(posts.state)
-          .with({ status: 'loading' }, () => <Skeleton label="글을 불러오는 중입니다…" shape="line" count={4} />)
-          .with({ status: 'error' }, ({ error }) => (
-            <ErrorState error={error} onRetry={posts.reload} messages={communityErrorMessages} />
-          ))
-          .with({ status: 'success' }, (state) =>
-            state.items.length === 0 ? (
-              <EmptyState title="아직 글이 없습니다. 첫 의견을 남겨 보세요" />
-            ) : (
-              <>
-                <ul className="community__list" aria-label="글 목록">
-                  {state.items.map((post) => (
-                    <li key={post.postId}>
-                      <CommunityPostCard post={post} now={now} onChange={posts.dispatch} />
-                    </li>
-                  ))}
-                </ul>
-                {hasMorePosts(state) && (
-                  <div className="community__more">
-                    {state.more.status === 'error' && (
-                      <ErrorState error={state.more.error} messages={communityErrorMessages} />
-                    )}
-                    <Button onClick={posts.loadMore} disabled={state.more.status === 'loading'}>
-                      {state.more.status === 'loading' ? '불러오는 중…' : '글 더 보기'}
-                    </Button>
-                  </div>
-                )}
-              </>
-            ),
-          )
-          .exhaustive()}
-      </div>
+      </ProfanityMaskContext.Provider>
 
       {match(gate.dialog)
         .with({ kind: 'login' }, () => <LoginDialog onClose={gate.closeDialog} />)
