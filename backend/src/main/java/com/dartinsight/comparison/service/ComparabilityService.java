@@ -41,7 +41,7 @@ public class ComparabilityService {
         Check company = checkCompany(corpCode, current, previous, reasons);
         Check period = checkPeriod(basis, cur, prev, reasons);
         Check correction = checkCorrection(current, previous, reasons);
-        List<StatementRule> statements = StatementRules.rules(prev.getReportType(), cur.getReportType());
+        List<StatementRule> rules = StatementRules.rules(prev.getReportType(), cur.getReportType());
 
         DataResult data = null;
         Check financialBasis;
@@ -57,6 +57,7 @@ public class ComparabilityService {
         }
 
         boolean comparable = reasons.isEmpty();
+        List<StatementRule> statements = comparable ? rules : StatementRules.notComparablePair();
         Level level = !comparable ? Level.NOT_COMPARABLE
                 : statements.stream().allMatch(StatementRule::comparable) ? Level.FULL : Level.PARTIAL;
         return new ComparabilityResult(comparable, level, comparable ? data.fsDiv() : null, cur, prev,

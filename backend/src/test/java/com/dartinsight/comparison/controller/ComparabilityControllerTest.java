@@ -3,7 +3,9 @@ package com.dartinsight.comparison.controller;
 import static com.dartinsight.dart.client.FinancialJson.account;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -191,7 +193,10 @@ class ComparabilityControllerTest {
                 .andExpect(jsonPath("$.checks[2].status").value("SKIPPED"))
                 .andExpect(jsonPath("$.checks[4].status").value("SKIPPED"))
                 .andExpect(jsonPath("$.reasons[0].code").value("DIFFERENT_COMPANY"))
-                .andExpect(jsonPath("$.reasons[0].nextAction").isNotEmpty());
+                .andExpect(jsonPath("$.reasons[0].nextAction").isNotEmpty())
+                .andExpect(jsonPath("$.statements", hasSize(5)))
+                .andExpect(jsonPath("$.statements[*].comparable", everyItem(is(false))))
+                .andExpect(jsonPath("$.statements[*].amountBasis", everyItem(nullValue())));
         assertThat(calls()).isEqualTo(before);
     }
 
@@ -199,9 +204,13 @@ class ComparabilityControllerTest {
     void previousMustBeEarlier() throws Exception {
         check(HALF_2025, HALF_2026, "CUSTOM")
                 .andExpect(jsonPath("$.comparable").value(false))
-                .andExpect(jsonPath("$.reasons[0].code").value("PREVIOUS_NOT_EARLIER"));
+                .andExpect(jsonPath("$.reasons[0].code").value("PREVIOUS_NOT_EARLIER"))
+                .andExpect(jsonPath("$.statements[*].comparable", everyItem(is(false))));
         check(HALF_2026, HALF_2026, "CUSTOM")
-                .andExpect(jsonPath("$.reasons[0].code").value("SAME_REPORT"));
+                .andExpect(jsonPath("$.reasons[0].code").value("SAME_REPORT"))
+                .andExpect(jsonPath("$.statements[*].comparable", everyItem(is(false))))
+                .andExpect(jsonPath("$.statements[0].note")
+                        .value("비교할 수 없는 보고서 쌍이라 재무제표를 비교하지 않아요."));
     }
 
     @Test
@@ -284,6 +293,7 @@ class ComparabilityControllerTest {
                 .andExpect(jsonPath("$.checks[4].status").value("FAIL"))
                 .andExpect(jsonPath("$.reasons", hasSize(1)))
                 .andExpect(jsonPath("$.reasons[0].code").value("NO_COMMON_BASIS"))
+                .andExpect(jsonPath("$.statements[*].comparable", everyItem(is(false))))
                 .andExpect(jsonPath("$.reasons[0].nextAction").value("같은 기준의 재무제표가 있는 다른 보고서를 고르세요."));
     }
 
