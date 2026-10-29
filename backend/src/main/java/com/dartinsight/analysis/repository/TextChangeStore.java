@@ -199,10 +199,10 @@ public class TextChangeStore {
         }
     }
 
-    /** 변경 번호(change_no)로 찾은 변경 ID */
-    public Optional<Long> idOf(long analysisId, int changeNo) {
-        return jdbcTemplate.query("SELECT id FROM text_change WHERE analysis_id = ? AND change_no = ?",
-                (rs, i) -> rs.getLong("id"), analysisId, changeNo).stream().findFirst();
+    /** 변경 번호(change_no)로 찾은 변경 */
+    public Optional<TextChange> findByChangeNo(long analysisId, int changeNo) {
+        return jdbcTemplate.query("SELECT " + COLUMNS + " FROM text_change WHERE analysis_id = ? AND change_no = ?",
+                TextChangeStore::map, analysisId, changeNo).stream().findFirst();
     }
 
     /**

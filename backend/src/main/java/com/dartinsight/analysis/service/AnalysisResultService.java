@@ -4,6 +4,7 @@ import com.dartinsight.analysis.domain.Analysis;
 import com.dartinsight.analysis.domain.AnalysisCompleted;
 import com.dartinsight.analysis.domain.FinancialChange;
 import com.dartinsight.analysis.domain.FinancialChangeRow;
+import com.dartinsight.analysis.domain.TextChange;
 import com.dartinsight.analysis.domain.TextComparison;
 import com.dartinsight.analysis.repository.AnalysisRepository;
 import com.dartinsight.analysis.repository.FinancialChangeRepository;
@@ -150,16 +151,16 @@ public class AnalysisResultService {
         return new CompletedChange(analysis, change);
     }
 
-    /** 재무 수치 결과 하나의 재무제표 구분(sj_div). 없으면 빈 값 */
+    /** 재무 수치 결과 하나(요약이 가리키는 계정의 재무제표 구분·계정). 없으면 빈 값 */
     @Transactional(readOnly = true)
-    public Optional<String> financialSjDiv(Long changeId) {
-        return changeRepository.findById(changeId).map(FinancialChange::getSjDiv);
+    public Optional<FinancialChange> financialChange(Long changeId) {
+        return changeRepository.findById(changeId);
     }
 
-    /** 분석 안의 변경 번호(change_no)로 찾은 문장 변경 ID. 없으면 빈 값 */
+    /** 분석 안의 변경 번호(change_no)로 찾은 문장 변경. 없으면 빈 값 */
     @Transactional(readOnly = true)
-    public Optional<Long> textChangeId(Long analysisId, int changeNo) {
-        return textChangeStore.idOf(analysisId, changeNo);
+    public Optional<TextChange> textChange(Long analysisId, int changeNo) {
+        return textChangeStore.findByChangeNo(analysisId, changeNo);
     }
 
     public record CompletedResult(Analysis analysis, List<FinancialChange> changes) {

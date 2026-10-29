@@ -1,9 +1,12 @@
 package com.dartinsight.summary.service;
 
 import com.dartinsight.analysis.domain.Analysis;
+import com.dartinsight.analysis.domain.FinancialChange;
+import com.dartinsight.analysis.domain.TextChange;
 import com.dartinsight.analysis.service.AnalysisResultService;
 import com.dartinsight.summary.domain.LlmCallUsage;
 import com.dartinsight.summary.domain.SummaryItemRow;
+import com.dartinsight.summary.domain.SummaryLens;
 import com.dartinsight.summary.repository.SummaryStore.StoredItem;
 import com.dartinsight.summary.repository.SummaryStore;
 import java.time.LocalDateTime;
@@ -45,13 +48,16 @@ public class SummaryQueryService {
 
     private SummaryEntry entry(Long analysisId, StoredItem stored) {
         if (stored.financialChangeId() != null) {
-            String sjDiv = resultService.financialSjDiv(stored.financialChangeId()).orElse(null);
+            Optional<FinancialChange> change = resultService.financialChange(stored.financialChangeId());
             return new SummaryEntry(stored.itemNo(), stored.row(), SummaryEntry.FINANCIAL, stored.financialChangeId(),
-                    sjDiv);
+                    change.map(FinancialChange::getSjDiv).orElse(null),
+                    change.map(SummaryLens::of).orElse(SummaryLens.OTHER));
         }
         Integer changeNo = stored.row().textChangeNo();
-        Long changeId = changeNo == null ? null : resultService.textChangeId(analysisId, changeNo).orElse(null);
-        return new SummaryEntry(stored.itemNo(), stored.row(), SummaryEntry.TEXT, changeId, null);
+        Optional<TextChange> change = changeNo == null ? Optional.empty()
+                : resultService.textChange(analysisId, changeNo);
+        return new SummaryEntry(stored.itemNo(), stored.row(), SummaryEntry.TEXT,
+                change.map(TextChange::id).orElse(null), null, change.map(SummaryLens::of).orElse(SummaryLens.OTHER));
     }
 
     public record StoredSummary(Analysis analysis, List<SummaryEntry> entries) {
@@ -64,8 +70,10 @@ public class SummaryQueryService {
      * @param targetType FINANCIAL(재무 수치의 계정) 또는 TEXT(문장 변경)
      * @param changeId   가리키는 변경 ID. 찾지 못했으면 null
      * @param sjDiv      재무 수치면 재무제표 구분. 문장 변경이거나 찾지 못했으면 null
+     * @param lens       투자자 관점(FS-64). 가리키는 변경을 찾지 못했으면 OTHER
      */
-    public record SummaryEntry(int itemNo, SummaryItemRow row, String targetType, Long changeId, String sjDiv) {
+    public record SummaryEntry(int itemNo, SummaryItemRow row, String targetType, Long changeId, String sjDiv,
+            SummaryLens lens) {
 
         static final String FINANCIAL = "FINANCIAL";
         static final String TEXT = "TEXT";
