@@ -1,37 +1,18 @@
 // @vitest-environment jsdom
+import { useState } from 'react'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Analysis } from '@/shared/api/analyses'
-import type { DocumentOutline, SectionItem, SourceBlock } from '@/shared/api/documents'
+import type { DocumentOutline, DocumentSide, SectionItem, SourceBlock } from '@/shared/api/documents'
 import type { TextSectionCount } from '@/shared/api/textChanges'
 import { axeViolations } from '@/test/axe'
+import type { SourceViewChange } from '../model/resultParams'
 import { SourceTab } from './SourceTab'
 
-afterEach(() => {
-  cleanup()
-  sectionState.value = { status: 'loading' }
-})
-
-// 목차만 보려고 원문 훅은 고정된 목차를 돌려주고, 항목 본문은 불러오는 중으로 둔다
-const outline = vi.hoisted(() => ({ data: null as DocumentOutline | null }))
-const sectionState = vi.hoisted(() => ({ value: { status: 'loading' } as unknown }))
-vi.mock('../hooks/useDocument', () => ({
-  useDocumentOutline: () => ({ state: { status: 'success', data: outline.data }, reload: () => {} }),
-  useSection: () => ({ state: sectionState.value, reload: () => {} }),
-}))
-
 const RCEPT_NO = '20250814000123'
-const analysis = {
-  analysisId: 16,
-  current: { rceptNo: RCEPT_NO, reportName: '반기보고서 (2025.06)' },
-  previous: { rceptNo: '20250515000456', reportName: '분기보고서 (2025.03)' },
-} as Analysis
+const PREV_RCEPT_NO = '20250515000456'
 
-function section(sectionNo: number, depth: number, title: string, parentNo: number | null = null): SectionItem {
-  return { sectionNo, parentNo, depth, title, cover: false, blockCount: 1 }
-}
-
-outline.data = {
+const defaultCurrentOutline: DocumentOutline = {
   side: 'current',
   rceptNo: RCEPT_NO,
   reportName: '반기보고서 (2025.06)',
@@ -49,6 +30,39 @@ outline.data = {
   ],
 }
 
+// 목차만 보려고 원문 훅은 고정된 목차를 돌려주고, 항목 본문은 불러오는 중으로 둔다
+const outline = vi.hoisted(() => ({
+  data: null as DocumentOutline | null,
+  bySide: null as Record<DocumentSide, DocumentOutline> | null,
+}))
+const sectionState = vi.hoisted(() => ({ value: { status: 'loading' } as unknown }))
+vi.mock('../hooks/useDocument', () => ({
+  useDocumentOutline: (_analysisId: number, side: DocumentSide) => ({
+    state: { status: 'success', data: outline.bySide ? outline.bySide[side] : outline.data },
+    reload: () => {},
+  }),
+  useSection: () => ({ state: sectionState.value, reload: () => {} }),
+}))
+
+afterEach(() => {
+  cleanup()
+  outline.data = defaultCurrentOutline
+  outline.bySide = null
+  sectionState.value = { status: 'loading' }
+})
+
+const analysis = {
+  analysisId: 16,
+  current: { rceptNo: RCEPT_NO, reportName: '반기보고서 (2025.06)' },
+  previous: { rceptNo: PREV_RCEPT_NO, reportName: '분기보고서 (2025.03)' },
+} as Analysis
+
+function section(sectionNo: number, depth: number, title: string, parentNo: number | null = null): SectionItem {
+  return { sectionNo, parentNo, depth, title, cover: false, blockCount: 1 }
+}
+
+outline.data = defaultCurrentOutline
+
 const counts: TextSectionCount[] = [
   { title: 'I. 회사의 개요', count: 0 },
   { title: 'III. 재무에 관한 사항', count: 448 },
@@ -56,7 +70,12 @@ const counts: TextSectionCount[] = [
 ]
 
 function renderTab(
-  overrides: { onChange?: () => void; onOpenTextSection?: (s: string) => void; sectionCounts?: TextSectionCount[]; blockNo?: number } = {},
+  overrides: {
+    onChange?: (c: SourceViewChange) => void
+    onOpenTextSection?: (s: string) => void
+    sectionCounts?: TextSectionCount[]
+    blockNo?: number
+  } = {},
 ) {
   return render(
     <SourceTab
@@ -121,6 +140,17 @@ function para(text: string): SourceBlock {
   return { blockNo: blockSeq, evidenceId: `${RCEPT_NO}#B${blockSeq}`, type: 'PARAGRAPH', text, table: null }
 }
 
+function table(rows: string[][]): SourceBlock {
+  blockSeq += 1
+  return {
+    blockNo: blockSeq,
+    evidenceId: `${RCEPT_NO}#B${blockSeq}`,
+    type: 'TABLE',
+    text: '',
+    table: rows.map((row, r) => row.map((text) => ({ text, header: r === 0, colspan: 1, rowspan: 1 }))),
+  }
+}
+
 /** 소제목 3개(각 15문단)가 있는 긴 항목 */
 function longSection() {
   blockSeq = 0
@@ -181,5 +211,137 @@ describe('원문 확인 긴 항목(#396)', () => {
     } finally {
       scroll.mockRestore()
     }
+  })
+})
+
+function ControlledSourceTab({ initialSectionNo }: { initialSectionNo: number }) {
+  const [side, setSide] = useState<DocumentSide>('current')
+  const [sectionNo, setSectionNo] = useState<number | null>(initialSectionNo)
+  const [blockNo, setBlockNo] = useState<number | null>(null)
+  return (
+    <SourceTab
+      analysis={analysis}
+      side={side}
+      sectionNo={sectionNo}
+      blockNo={blockNo}
+      onChange={(c) => {
+        if (c.side !== undefined) setSide(c.side)
+        if (c.section !== undefined) setSectionNo(c.section)
+        if (c.block !== undefined) setBlockNo(c.block)
+      }}
+      sectionCounts={counts}
+      onOpenTextSection={() => {}}
+    />
+  )
+}
+
+describe('원문 확인 보고서 전환 시 목차 자동 매칭과 항목 내 검색(#523)', () => {
+  it('보고서를 전환하면 반대편 보고서에서 같은 계층 경로의 목차를 자동으로 연다', () => {
+    outline.bySide = {
+      current: {
+        ...defaultCurrentOutline,
+        sections: [
+          section(1, 1, 'I. 회사의 개요'),
+          section(2, 1, 'III. 재무에 관한 사항'),
+          section(5, 2, '3. 연결재무제표 주석', 2),
+          section(6, 1, 'IV. 이사의 경영진단 및 분석의견'),
+        ],
+      },
+      previous: {
+        ...defaultCurrentOutline,
+        side: 'previous',
+        rceptNo: PREV_RCEPT_NO,
+        reportName: '분기보고서 (2025.03)',
+        sections: [
+          section(10, 1, 'I. 회사의 개요'),
+          section(20, 1, 'Ⅲ. 재무에 관한 사항'),
+          section(28, 2, '4. 연결재무제표 주석', 20),
+        ],
+      },
+    }
+
+    render(<ControlledSourceTab initialSectionNo={5} />)
+    fireEvent.click(screen.getByRole('button', { name: '비교 보고서' }))
+
+    const matchedButton = screen.getByRole('button', { name: '4. 연결재무제표 주석' })
+    expect(matchedButton.getAttribute('aria-current')).toBe('location')
+  })
+
+  it('반대편 보고서에 없는 목차를 보고 있다가 전환하면 첫 항목을 열고 안내 문구를 보인 뒤 목차를 고르면 안내를 닫는다', () => {
+    outline.bySide = {
+      current: defaultCurrentOutline,
+      previous: {
+        ...defaultCurrentOutline,
+        side: 'previous',
+        rceptNo: PREV_RCEPT_NO,
+        reportName: '분기보고서 (2025.03)',
+        sections: [
+          section(10, 1, 'I. 회사의 개요'),
+          section(20, 1, 'III. 재무에 관한 사항'),
+        ],
+      },
+    }
+
+    render(<ControlledSourceTab initialSectionNo={4} />)
+    fireEvent.click(screen.getByRole('button', { name: '비교 보고서' }))
+
+    expect(
+      screen.getByText("선택한 'IV. 이사의 경영진단 및 분석의견' 항목은 이 보고서에서 찾지 못해 첫 항목을 열었어요."),
+    ).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'I. 회사의 개요' }).getAttribute('aria-current')).toBe('location')
+
+    fireEvent.click(screen.getByRole('button', { name: 'III. 재무에 관한 사항' }))
+    expect(
+      screen.queryByText("선택한 'IV. 이사의 경영진단 및 분석의견' 항목은 이 보고서에서 찾지 못해 첫 항목을 열었어요."),
+    ).toBeNull()
+  })
+
+  it('이 항목 안에서 찾기로 긴 항목의 다른 소제목 문단과 표 셀을 강조하고 이전·다음으로 이동한다', async () => {
+    blockSeq = 0
+    const blocks = [
+      para('1. 일반적 사항'),
+      ...Array.from({ length: 14 }, (_, i) => para(`일반 본문 ${i}이에요.`)),
+      para('2. 회계정책'),
+      ...Array.from({ length: 14 }, (_, i) => para(`회계정책 본문 ${i}이에요.`)),
+      para('3. 우발부채와 약정사항'),
+      para('진행 중인 소송 관련 우발부채 내역이에요.'),
+      table([
+        ['구분', '기말 금액'],
+        ['우발부채 합계', '12,500'],
+      ]),
+      ...Array.from({ length: 12 }, (_, i) => para(`약정 본문 ${i}이에요.`)),
+    ]
+    sectionState.value = {
+      status: 'success',
+      data: {
+        side: 'current',
+        rceptNo: RCEPT_NO,
+        sectionNo: 1,
+        sectionPath: 'III. 재무에 관한 사항 > 3. 연결재무제표 주석',
+        blocks,
+      },
+    }
+
+    const { container } = renderTab()
+    const searchInput = screen.getByLabelText('이 항목 안에서 찾기')
+    fireEvent.change(searchInput, { target: { value: '우발부채' } })
+
+    const picker = screen.getByRole('combobox', { name: '소제목' }) as HTMLSelectElement
+    expect(picker.value).toBe('2')
+    expect(screen.getByText('3건 일치 (1 / 3)')).toBeTruthy()
+
+    const marks = container.querySelectorAll('mark.source-search__hit')
+    expect(marks.length).toBe(3)
+
+    fireEvent.click(screen.getByRole('button', { name: '다음 일치 위치' }))
+    expect(screen.getByText('3건 일치 (2 / 3)')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: '다음 일치 위치' }))
+    expect(screen.getByText('3건 일치 (3 / 3)')).toBeTruthy()
+
+    expect(await axeViolations(container)).toBe('')
+
+    fireEvent.click(screen.getByRole('button', { name: '지우기' }))
+    expect(container.querySelectorAll('mark.source-search__hit').length).toBe(0)
   })
 })
