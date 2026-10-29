@@ -50,8 +50,13 @@ public class SummaryStore {
                     + "model, prompt_version, generated_at, blocked_rules, explanation_grade, quote, "
                     + "quote_evidence_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", items);
         }
+        saveCalls(analysisId, summary.calls());
+    }
+
+    /** 분석의 LLM 호출 기록. 분석이 실패로 끝날 때는 요약 없이 이것만 부른다(#137, ADR-0042) */
+    public void saveCalls(long analysisId, List<LlmCallRow> llmCalls) {
         List<Object[]> calls = new ArrayList<>();
-        for (LlmCallRow call : summary.calls()) {
+        for (LlmCallRow call : llmCalls) {
             calls.add(new Object[] {analysisId, limit(call.task(), 30), limit(call.provider(), 30),
                     limit(call.model(), 100), limit(call.promptVersion(), 30), timestamp(call.calledAt()),
                     limit(call.traceId(), 64), call.inputTokens(), call.outputTokens(), call.latencyMs(),

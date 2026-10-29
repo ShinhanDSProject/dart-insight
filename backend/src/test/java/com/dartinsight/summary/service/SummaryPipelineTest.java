@@ -28,8 +28,10 @@ import com.dartinsight.support.TestDocuments;
 import com.jayway.jsonpath.JsonPath;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.List;
 import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
@@ -490,5 +492,54 @@ class SummaryPipelineTest {
                 .andExpect(jsonPath("$.error.retryable").value(true));
         assertThat(summaryStore.items(id)).isEmpty();
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM financial_change", Integer.class)).isZero();
+    }
+
+    @Test
+    @DisplayName("LLM을 쓸 수 없어 요약이 실패한 분석도 그때까지의 LLM 호출 기록은 llm_call에 남는다(#137)")
+    void unavailableLlmStillStoresTheCallsMadeSoFar() throws Exception {
+        String calls = """
+                [{"task":"summary","provider":"fake","model":"fake-model","promptVersion":"summary-3",
+                  "calledAt":"2026-10-21T09:00:01","traceId":"trace-summary","inputTokens":1200,"outputTokens":80,
+                  "latencyMs":900,"attempt":1,"outcome":"TRANSIENT_ERROR","error":"시간 초과"},
+                 {"task":"summary","provider":"fake","model":"fake-model","promptVersion":"summary-3",
+                  "calledAt":"2026-10-21T09:00:03","traceId":"trace-summary","inputTokens":null,"outputTokens":null,
+                  "latencyMs":40,"attempt":2,"outcome":"ERROR","error":"인증 실패"}]
+                """;
+        AI.on(SUMMARIES, Reply.error(503, "AI_LLM_UNAVAILABLE", "AI 모델을 쓸 수 없어요.").withHeader("X-Llm-Calls",
+                Base64.getUrlEncoder().encodeToString(calls.getBytes(StandardCharsets.UTF_8))));
+
+        long id = analyze();
+
+        mockMvc.perform(get("/api/analyses/{id}", id))
+                .andExpect(jsonPath("$.status").value("FAILED"))
+                .andExpect(jsonPath("$.error.code").value("ANALYSIS_SUMMARY_FAILED"));
+        assertThat(summaryStore.items(id)).isEmpty();
+        assertThat(summaryStore.calls(id)).satisfiesExactly(
+                first -> {
+                    assertThat(first.outcome()).isEqualTo("TRANSIENT_ERROR");
+                    assertThat(first.inputTokens()).isEqualTo(1200);
+                    assertThat(first.calledAt()).isEqualTo(LocalDateTime.of(2026, 10, 21, 9, 0, 1));
+                    assertThat(first.traceId()).isEqualTo("trace-summary");
+                },
+                second -> {
+                    assertThat(second.outcome()).isEqualTo("ERROR");
+                    assertThat(second.attempt()).isEqualTo(2);
+                    assertThat(second.inputTokens()).isNull();
+                    assertThat(second.error()).isEqualTo("인증 실패");
+                });
+    }
+
+    @Test
+    @DisplayName("호출 기록 헤더를 읽을 수 없어도 분석은 같은 사유로 실패하고 llm_call은 비어 있다")
+    void unreadableCallHeaderStillFailsTheAnalysis() throws Exception {
+        AI.on(SUMMARIES, Reply.error(503, "AI_LLM_UNAVAILABLE", "AI 모델을 쓸 수 없어요.")
+                .withHeader("X-Llm-Calls", "not-base64!"));
+
+        long id = analyze();
+
+        mockMvc.perform(get("/api/analyses/{id}", id))
+                .andExpect(jsonPath("$.status").value("FAILED"))
+                .andExpect(jsonPath("$.error.code").value("ANALYSIS_SUMMARY_FAILED"));
+        assertThat(summaryStore.calls(id)).isEmpty();
     }
 }

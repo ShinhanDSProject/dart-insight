@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 근거 기반 요약(3.2). 코드가 요약할 변화를 고르고 사실 문장(수치)을 만들며, AI 서버(LLM)는 문장 변화의 요약과
@@ -36,6 +37,7 @@ public class SummaryService {
 
     private final AiServerClient aiServerClient;
     private final DocumentService documentService;
+    private final JsonMapper jsonMapper;
 
     public SummaryResult summarize(String companyName, String previousReport, String currentReport,
             String currentRceptNo, List<FinancialChangeRow> financial, List<TextChangeRow> text) {
@@ -118,6 +120,14 @@ public class SummaryService {
         SummaryItemRow explained = SummaryResults.textRow(SummaryResults.answer(response, item.ref()), changeNo,
                 SummaryResults.ids(sources), response, SummaryResults.time(response.generatedAt()));
         return new TextExplanation(explained, SummaryResults.calls(response));
+    }
+
+    /**
+     * 요약 요청이 실패했을 때 AI 서버가 알려 준 그때까지의 LLM 호출 기록(헤더 X-Llm-Calls, ADR-0042).
+     * 기록이 없거나 읽지 못하면 빈 목록
+     */
+    public List<LlmCallRow> failedCalls(AiServerException e) {
+        return SummaryResults.failedCalls(e.llmCallsJson(), jsonMapper);
     }
 
     /** 짝지은 원문(블록 번호와 글이 있는 쪽)이 하나라도 있어 풀이할 수 있는 변경인지. 검토 필요 유형은 풀이하지 않는다 */

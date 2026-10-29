@@ -15,18 +15,23 @@ import com.dartinsight.summary.dto.SummaryAiResponse;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * AI 서버 요약 요청 만들기와 응답 판정(SummaryService). 항목마다 근거가 그 항목에 보낸 원문 위치인지 여기서 다시 확인한다.
+ * 판정·템플릿 요약을 바꿔 저장되는 요약이 달라지면 {@code Analysis.CURRENT_VERSION}을 함께 올린다.
  */
 final class SummaryResults {
 
@@ -200,6 +205,24 @@ final class SummaryResults {
 
     private static String reason(SummaryAiResponse.Item item) {
         return item.reviewReason() == null ? "근거를 확인하지 못했어요." : item.reviewReason();
+    }
+
+    /**
+     * 실패한 요약 요청의 호출 기록(에러 응답 헤더를 푼 JSON 배열, ADR-0042). 없거나 읽지 못하면 빈 목록.
+     * 읽지 못해도 분석 실패 처리는 그대로 하므로 경고만 남긴다.
+     */
+    static List<LlmCallRow> failedCalls(String json, JsonMapper jsonMapper) {
+        if (json == null || json.isBlank()) {
+            return List.of();
+        }
+        try {
+            SummaryAiResponse.Call[] calls = jsonMapper.readValue(json, SummaryAiResponse.Call[].class);
+            return calls == null ? List.of() : Arrays.stream(calls).filter(Objects::nonNull)
+                    .map(SummaryResults::call).toList();
+        } catch (JacksonException e) {
+            log.warn("실패한 요약 요청의 LLM 호출 기록을 읽지 못했습니다: {}", e.getOriginalMessage());
+            return List.of();
+        }
     }
 
     private static LlmCallRow call(SummaryAiResponse.Call call) {

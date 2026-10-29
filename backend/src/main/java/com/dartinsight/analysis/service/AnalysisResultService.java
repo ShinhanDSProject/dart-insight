@@ -11,6 +11,7 @@ import com.dartinsight.analysis.repository.TextChangeStore;
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.comparison.domain.ComparisonBasis;
+import com.dartinsight.summary.domain.LlmCallRow;
 import com.dartinsight.summary.domain.SummaryResult;
 import com.dartinsight.summary.repository.SummaryStore;
 import java.time.Clock;
@@ -92,6 +93,17 @@ public class AnalysisResultService {
         analysis.recordSummary(summary.status(), summary.message());
         analysis.complete(now());
         events.publishEvent(new AnalysisCompleted(analysisId));
+    }
+
+    /**
+     * 실패로 끝나는 분석의 LLM 호출 기록만 저장한다(#137, ADR-0042). 결과·요약은 저장하지 않고 상태도 바꾸지 않는다
+     * (실패 전이는 부른 쪽이 허용 전이표로 한다). 완료 경로의 기록은 {@link #saveAndComplete}가 결과와 함께 넣는다.
+     */
+    @Transactional
+    public void saveFailedCalls(Long analysisId, List<LlmCallRow> calls) {
+        if (!calls.isEmpty()) {
+            summaryStore.saveCalls(analysisId, calls);
+        }
     }
 
     /** 요약 없이 저장하는 경우(요약할 변화가 없거나 테스트 자료) */

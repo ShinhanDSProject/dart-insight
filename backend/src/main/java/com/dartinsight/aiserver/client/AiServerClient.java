@@ -7,6 +7,7 @@ import com.dartinsight.common.trace.TraceContext;
 import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -28,6 +29,8 @@ public class AiServerClient {
 
     private static final Logger log = LoggerFactory.getLogger(AiServerClient.class);
     private static final Pattern ERROR_CODE = Pattern.compile("\"code\"\\s*:\\s*\"([A-Z_]+)\"");
+    /** 실패한 요청의 LLM 호출 기록(base64url JSON 배열). docs/api-spec.md 3절, ADR-0042 */
+    public static final String LLM_CALLS_HEADER = "X-Llm-Calls";
     private static final Pattern ERROR_MESSAGE = Pattern.compile("\"message\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"");
 
     private final RestClient restClient;
@@ -107,7 +110,9 @@ public class AiServerClient {
     private static AiServerException failure(String method, String path, RestClientException e) {
         String remoteCode = null;
         String message = ErrorCode.AI_SERVER_UNAVAILABLE.defaultMessage();
+        String llmCalls = null;
         if (e instanceof RestClientResponseException response) {
+            llmCalls = llmCalls(response);
             // AI 서버(FastAPI)는 charset 없이 application/json으로 UTF-8을 보낸다. 기본값(ISO-8859-1)으로 읽지 않는다
             String body = response.getResponseBodyAsString(StandardCharsets.UTF_8);
             Matcher code = ERROR_CODE.matcher(body);
@@ -121,7 +126,22 @@ public class AiServerClient {
         }
         log.warn("AI 서버 호출 실패: {} {} ({}{})", method, path, remoteCode == null ? "" : remoteCode + " ",
                 e.getMessage());
-        return new AiServerException(remoteCode, message, e);
+        return new AiServerException(remoteCode, message, e, llmCalls);
+    }
+
+    /** 에러 응답 헤더의 LLM 호출 기록을 푼 JSON 글. 없거나 base64url이 아니면 null */
+    private static String llmCalls(RestClientResponseException response) {
+        String encoded = response.getResponseHeaders() == null ? null
+                : response.getResponseHeaders().getFirst(LLM_CALLS_HEADER);
+        if (encoded == null || encoded.isBlank()) {
+            return null;
+        }
+        try {
+            return new String(Base64.getUrlDecoder().decode(encoded.trim()), StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException ex) {
+            log.warn("AI 서버 응답의 {} 헤더를 읽지 못했습니다", LLM_CALLS_HEADER);
+            return null;
+        }
     }
 
     /** JSON 문자열 이스케이프(따옴표, 역슬래시, 줄바꿈, 유니코드 이스케이프 등)를 푼다. */
