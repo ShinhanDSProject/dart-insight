@@ -36,8 +36,8 @@ public class CommunityLikeService {
     public LikeResponse likePost(long postId, long userId) {
         CommunityPost post = lockedPost(postId);
         userService.requireExisting(userId);
+        post.requireVisible();
         if (find(LikeTarget.POST, postId, userId).isEmpty()) {
-            post.requireVisible();
             likes.save(CommunityLike.create(LikeTarget.POST, postId, userId, LocalDateTime.now(clock)));
             post.addLike();
         }
@@ -59,8 +59,8 @@ public class CommunityLikeService {
     public LikeResponse likeComment(long commentId, long userId) {
         CommunityComment comment = lockedComment(commentId);
         userService.requireExisting(userId);
+        comment.requireVisible();
         if (find(LikeTarget.COMMENT, commentId, userId).isEmpty()) {
-            comment.requireVisible();
             likes.save(CommunityLike.create(LikeTarget.COMMENT, commentId, userId, LocalDateTime.now(clock)));
             comment.addLike();
         }

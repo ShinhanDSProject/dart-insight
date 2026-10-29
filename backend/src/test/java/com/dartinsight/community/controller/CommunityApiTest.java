@@ -350,6 +350,12 @@ class CommunityApiTest {
         mvc.perform(withToken(delete("/api/comments/" + withReply), bob)).andExpect(status().isNoContent());
         mvc.perform(withToken(delete("/api/comments/" + withReply), bob)).andExpect(status().isNoContent());
         mvc.perform(withToken(delete("/api/comments/" + alone), bob)).andExpect(status().isNoContent());
+        writeComment(alice, postId, "지운 댓글에 답글", withReply)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("COMMUNITY_TARGET_UNAVAILABLE"));
+        writeComment(alice, postId, "없는 댓글과 같은 댓글에 답글", alone)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("parentId"));
 
         mvc.perform(get("/api/posts/" + postId))
                 .andExpect(jsonPath("$.post.commentCount").value(1))
@@ -399,6 +405,23 @@ class CommunityApiTest {
                 .andExpect(status().isMethodNotAllowed());
         like("/api/posts/999999", bob).andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("COMMUNITY_POST_NOT_FOUND"));
+    }
+
+    @Test
+    @DisplayName("지운 글에는 이미 눌렀어도 다시 누르면 409이고, 취소는 된다")
+    void likeOnDeletedPostIsUnavailableButUnlikeWorks() throws Exception {
+        long postId = postId(writePost(alice, "글"));
+        writeComment(bob, postId, "댓글", null);
+        like("/api/posts/" + postId, bob).andExpect(status().isOk());
+        mvc.perform(withToken(delete("/api/posts/" + postId), alice)).andExpect(status().isNoContent());
+
+        like("/api/posts/" + postId, bob)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("COMMUNITY_TARGET_UNAVAILABLE"));
+        mvc.perform(withToken(delete("/api/posts/" + postId + "/like"), bob))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.liked").value(false))
+                .andExpect(jsonPath("$.likeCount").value(0));
     }
 
     @Test

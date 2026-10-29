@@ -16,6 +16,10 @@ public interface CommunityCommentRepository extends JpaRepository<CommunityComme
     @Query("select c from CommunityComment c where c.id = :id")
     Optional<CommunityComment> findByIdForUpdate(@Param("id") Long id);
 
+    /** 댓글의 글 ID만 읽는다. 엔티티를 올리지 않아 뒤의 잠금 조회가 최신 행을 받는다 */
+    @Query("select c.postId from CommunityComment c where c.id = :id")
+    Optional<Long> findPostIdById(@Param("id") Long id);
+
     List<CommunityComment> findByPostIdOrderByCreatedAtAscIdAsc(Long postId);
 
     List<CommunityComment> findByParentIdOrderByCreatedAtAscIdAsc(Long parentId);
