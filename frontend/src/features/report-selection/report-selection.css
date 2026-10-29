@@ -1320,3 +1320,213 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* 커뮤니티 탭(FS-58). 글 카드는 Card, 버튼은 Button, 안내는 Notice를 쓰고 배치만 정한다 */
+.community {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.community__disclaimer {
+  margin: 0;
+}
+
+.community__toolbar {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.community__list,
+.community-comments__list,
+.community-comments__replies,
+.community-menu__list {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.community__more {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+}
+
+.community-form {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.community-form__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.community-form__actions,
+.community-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.community-card {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.community-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.community-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.community-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1);
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.community-meta strong {
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.community-meta__mine {
+  font-size: var(--font-size-xs);
+}
+
+.community-body {
+  margin: 0;
+  line-height: var(--line-height-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.community-body--muted {
+  color: var(--color-text-muted);
+}
+
+/* 가려진 내 글: 본문은 나에게만 보인다는 것을 옅게 */
+.community-body--hidden {
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--color-border-strong);
+  color: var(--color-text-muted);
+}
+
+.community-blind {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.community-blind p {
+  margin: 0;
+}
+
+.community-blind__facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+
+.community-blind__facts dt {
+  font-weight: var(--font-weight-semibold);
+}
+
+.community-blind__facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.community-action {
+  font-size: var(--font-size-sm);
+}
+
+.community-menu {
+  position: relative;
+}
+
+.community-menu__list {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 5;
+  gap: 0;
+  min-width: max-content;
+  padding: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+  box-shadow: var(--shadow-md);
+}
+
+.community-menu__item {
+  display: block;
+  width: 100%;
+  min-height: var(--touch-target-min);
+  padding: var(--space-1) var(--space-2);
+  text-align: left;
+}
+
+.community-comments {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.community-comment {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.community-comments__replies {
+  padding-left: var(--space-4);
+  border-left: 2px solid var(--color-border);
+}
+
+.community-dialog form,
+.community-dialog__form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.community-dialog p {
+  margin: 0;
+}
+
+.community-dialog__reasons {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.community-dialog__reasons legend {
+  margin-bottom: var(--space-2);
+  font-weight: var(--font-weight-semibold);
+}
+
+.community-dialog__reason {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch-target-min);
+}

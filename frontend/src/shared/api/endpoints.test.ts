@@ -30,6 +30,16 @@ describe('endpoints', () => {
     expect(endpoints.note(5)).toBe('/api/notes/5')
     expect(endpoints.noteMemo(5)).toBe('/api/notes/5/memo')
     expect(endpoints.notesExport()).toBe('/api/notes/export')
+    expect(endpoints.currentNickname()).toBe('/api/users/current/nickname')
+    expect(endpoints.companyPosts('00126380')).toBe('/api/companies/00126380/posts')
+    expect(endpoints.post(31)).toBe('/api/posts/31')
+    expect(endpoints.postComments(31)).toBe('/api/posts/31/comments')
+    expect(endpoints.postLike(31)).toBe('/api/posts/31/like')
+    expect(endpoints.postReports(31)).toBe('/api/posts/31/reports')
+    expect(endpoints.comment(7)).toBe('/api/comments/7')
+    expect(endpoints.commentLike(7)).toBe('/api/comments/7/like')
+    expect(endpoints.commentReports(7)).toBe('/api/comments/7/reports')
+    expect(endpoints.repostRequests(8)).toBe('/api/reports/8/repost-requests')
   })
 
   it('경로 변수는 항상 인코딩한다', () => {

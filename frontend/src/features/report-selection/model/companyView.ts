@@ -4,12 +4,13 @@ import type { ParamChanges } from '@/shared/lib/searchParams'
  * 기업 화면의 맨 위 탭(FS-45, 주소 ?view=, ST-6).
  * - overview: 기업 개요(개황·재무 흐름·주주·공시·AI 브리핑)
  * - compare: 보고서 비교(W-01 ②). 기본값이라 ?view가 없던 기존 주소는 그대로 보고서 비교를 연다
+ * - community: 커뮤니티(기업별 게시판, FS-58). 이용자 의견이라 분석 화면과 나눈 탭에 둔다
  */
-export type CompanyView = 'overview' | 'compare'
+export type CompanyView = 'overview' | 'compare' | 'community'
 
 export const DEFAULT_COMPANY_VIEW: CompanyView = 'compare'
 
-const views: readonly CompanyView[] = ['overview', 'compare']
+const views: readonly CompanyView[] = ['overview', 'compare', 'community']
 
 /** 주소 값을 읽는다. 없거나 모르는 값이면 보고서 비교다 */
 export function parseCompanyView(params: URLSearchParams): CompanyView {
