@@ -1843,7 +1843,7 @@
 | `scale.baseAccountName` | 기준으로 쓴 계정의 이름(현재 보고서 원문 그대로, 예: `매출액`). 기준 계정을 찾지 못하면 null |
 | `scale.baseAmount` | 기준 계정의 현재 보고서 값. 찾지 못했거나 값이 없으면 null |
 | `scale.ratio` | 증감액 ÷ 기준 값(비율, 0.046053 = 4.6053%). 소수 6자리 반올림(HALF_UP, `changeRate`와 같음). 계산하지 않으면 null |
-| `scale.reason` | `ratio`가 null인 사유. `CHANGE_NOT_CALCULATED` 증감액이 없음, `BASE_NOT_FOUND` 기준 계정을 찾지 못함, `BASE_MISSING` 기준 계정의 현재 값이 없음, `BASE_NOT_POSITIVE` 기준 값이 0 이하. 계산했으면 null |
+| `scale.reason` | `ratio`가 null인 사유. `CHANGE_NOT_CALCULATED` 증감액이 없음, `BASE_NOT_FOUND` 기준 계정을 찾지 못함, `BASE_MISSING` 기준 계정의 현재 값이 없음, `BASE_NOT_POSITIVE` 기준 값이 0 이하, `PER_SHARE` 주당 금액(계정 ID에 `PerShare`가 있거나 계정명에 '주당', 예: `ifrs-full_BasicEarningsLossPerShare` 기본주당이익)이라 비교하지 않음. 계산했으면 null |
 
 **크기 맥락(#480, FS-63)**: '증감액이 매출액·자산총계 대비 얼마인지'를 코드가 계산합니다. 크기만 보이고 좋고 나쁨은 판단하지 않습니다. 저장하지 않고 조회할 때 그 분석에 저장된 계정 결과로 계산하므로 분석 버전에 영향이 없습니다.
 
@@ -1851,7 +1851,7 @@
   - `REVENUE`: 손익계산서 계정은 손익계산서에서, 포괄손익계산서 계정은 포괄손익계산서 → 손익계산서 순, 현금흐름표 계정은 손익계산서 → 포괄손익계산서 순으로 찾습니다. 재무제표 안에서는 현재 보고서 계정 ID가 `ifrs-full_Revenue`인 계정, 없으면 계정명(공백 무시)이 `매출액`인 계정의 원문 순서 첫 번째입니다(ADR-0015 `ifrs-full_Revenue` = 매출액·매출·영업수익, 주요계정 `REVENUE`와 같은 이름 규칙). 금융회사처럼 이 계정이 없으면 `BASE_NOT_FOUND`입니다.
   - `TOTAL_ASSETS`: 재무상태표에서 계정 ID가 `ifrs-full_Assets`인 계정, 없으면 계정명이 `자산총계`인 계정.
   - `TOTAL_EQUITY`: 재무상태표에서 계정 ID가 `ifrs-full_Equity`인 계정, 없으면 계정명이 `자본총계`인 계정. 없으면 계산하지 않습니다(`BASE_NOT_FOUND`).
-- 사유는 이 순서로 정합니다: 증감액이 없으면 `CHANGE_NOT_CALCULATED`(기준 계정을 찾았으면 `baseAccountName`·`baseAmount`는 채움), 기준 계정이 없으면 `BASE_NOT_FOUND`, 기준 값이 없으면 `BASE_MISSING`, 0 이하면 `BASE_NOT_POSITIVE`.
+- 사유는 이 순서로 정합니다: 주당 금액이면 `PER_SHARE`, 증감액이 없으면 `CHANGE_NOT_CALCULATED`(기준 계정을 찾았으면 `baseAccountName`·`baseAmount`는 채움), 기준 계정이 없으면 `BASE_NOT_FOUND`, 기준 값이 없으면 `BASE_MISSING`, 0 이하면 `BASE_NOT_POSITIVE`.
 - 기준 계정 자신도 비율이 있습니다(예: 매출액 증감액 ÷ 현재 매출액).
 
 - 부호가 바뀌거나 이전 값이 음수인 계정은 증감률(`changeRate`)이 null이고 증감액만 있습니다(#144). 손익계산서의 이익 계정은 `TURNED_PROFIT`(흑자전환)·`TURNED_LOSS`(적자전환)·`LOSS_NARROWED`(적자폭 축소)·`LOSS_WIDENED`(적자폭 확대)로, 그 밖의 계정은 `SIGN_CHANGED`("부호가 바뀌어 증감률을 계산하지 않아요.")나 `PREVIOUS_NEGATIVE`로 둡니다. 판정표는 ERD `financial_change.calc_status`에 있습니다.

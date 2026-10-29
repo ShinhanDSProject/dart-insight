@@ -57,7 +57,7 @@ public final class ChangeScales {
     public ChangeScale scaleOf(FinancialChange change) {
         Base base = baseOf(change.getSjDiv());
         FinancialChange baseChange = findBase(base, change.getSjDiv()).orElse(null);
-        Reason reason = reason(change.getChangeAmount(), baseChange);
+        Reason reason = isPerShare(change) ? Reason.PER_SHARE : reason(change.getChangeAmount(), baseChange);
         BigDecimal ratio = reason == null ? ratio(change.getChangeAmount(), baseChange.getCurrentAmount()) : null;
         return new ChangeScale(base, baseChange, ratio, reason);
     }
@@ -140,6 +140,16 @@ public final class ChangeScales {
     static BigDecimal ratio(long changeAmount, long baseAmount) {
         return BigDecimal.valueOf(changeAmount).divide(BigDecimal.valueOf(baseAmount), RATIO_SCALE,
                 RoundingMode.HALF_UP);
+    }
+
+    /**
+     * 주당 금액(주당이익 등, 원/주)인지. 회사 전체 금액인 기준 계정과 나누면 뜻이 없어 비교하지 않는다.
+     * 삼성전자 2026 반기보고서(20260814003699)의 'ifrs-full_BasicEarningsLossPerShare'·'…DilutedEarningsLossPerShare'로 확인
+     */
+    static boolean isPerShare(FinancialChange change) {
+        String id = change.getCurrentAccountId() != null ? change.getCurrentAccountId() : change.getPreviousAccountId();
+        String name = change.getAccountName() == null ? "" : change.getAccountName().replace(" ", "");
+        return (id != null && id.contains("PerShare")) || name.contains("주당");
     }
 
     /** 사유 판정(순서는 docs/api-spec.md '크기 맥락'). 계산할 수 있으면 null */

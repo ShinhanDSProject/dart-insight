@@ -36,7 +36,7 @@ export interface StatementSummary {
 export type ScaleBase = 'REVENUE' | 'TOTAL_ASSETS' | 'TOTAL_EQUITY'
 
 /** 크기 비율을 계산하지 않은 사유 */
-export type ScaleReason = 'CHANGE_NOT_CALCULATED' | 'BASE_NOT_FOUND' | 'BASE_MISSING' | 'BASE_NOT_POSITIVE'
+export type ScaleReason = 'CHANGE_NOT_CALCULATED' | 'BASE_NOT_FOUND' | 'BASE_MISSING' | 'BASE_NOT_POSITIVE' | 'PER_SHARE'
 
 /** 증감액의 크기 맥락(#480, FS-63). 증감액 ÷ 기준 계정의 현재 값 */
 export interface ChangeScale {
