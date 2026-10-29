@@ -3,7 +3,7 @@ import { match } from 'ts-pattern'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { Icon, type IconName } from '@/shared/ui/Icon'
 import { useCurrentCompany } from '@/shared/hooks/useCurrentCompany'
-import { compareLink, isCurrentRoute, sourceLink, type CurrentCompany } from '@/shared/lib/currentCompany'
+import { compareLink, isCurrentRoute, overviewLink, sourceLink, type CurrentCompany } from '@/shared/lib/currentCompany'
 import { useAuth } from '@/shared/auth/authContext'
 import { NotificationMenu } from '@/features/notifications/components/NotificationMenu'
 import { NotificationSignInLink } from '@/features/notifications/components/NotificationSignInLink'
@@ -16,7 +16,7 @@ import { useTheme } from '@/shared/hooks/useTheme'
 import { THEME_OPTIONS, type ThemeChoice } from '@/shared/lib/theme'
 import type { SegmentOption } from '@/shared/ui/SegmentedControl'
 
-type Section = 'search' | 'compare' | 'source' | 'notes' | 'companies'
+type Section = 'search' | 'overview' | 'compare' | 'source' | 'notes' | 'companies'
 
 const THEME_ICONS: Record<ThemeChoice, IconName> = { system: 'monitor', light: 'sun', dark: 'moon' }
 const THEME_SEGMENTS: SegmentOption<ThemeChoice>[] = THEME_OPTIONS.map((option) => ({
@@ -45,8 +45,15 @@ export function Layout() {
   const current = useCurrentCompany()
 
   const onResult = analysisId !== undefined && !pathname.endsWith('/progress')
-  const tab = new URLSearchParams(search).get('tab')
-  const active = activeSection(pathname, onResult && tab === 'source', corpCode !== undefined || analysisId !== undefined)
+  const query = new URLSearchParams(search)
+  const tab = query.get('tab')
+  const onOverview = corpCode !== undefined && !pathname.endsWith('/compare') && query.get('view') === 'overview'
+  const active = activeSection(
+    pathname,
+    onOverview,
+    onResult && tab === 'source',
+    corpCode !== undefined || analysisId !== undefined,
+  )
   const shortcutPage = shortcutPageOf(pathname, onResult)
   const shortcuts = useShortcuts(shortcutPage)
 
@@ -165,13 +172,14 @@ function NavLink({ item, active }: { item: NavItem; active: Section | null }) {
   )
 }
 
-/** '지금 보는 기업' 묶음(#502). 기업을 연 적이 없으면 안내 글만, 분석이 없으면 '원문 확인' 없이 보인다 */
+/** '지금 보는 기업' 묶음(#502, #525). 기업을 연 적이 없으면 안내 글만, 분석이 없으면 '원문 확인' 없이 보인다 */
 function CompanyNav({ company, active }: { company: CurrentCompany | null; active: Section | null }) {
   if (company === null) {
-    return <p className="app-nav__placeholder">기업을 열면 여기에 공시 비교·원문 확인이 생겨요.</p>
+    return <p className="app-nav__placeholder">기업을 열면 여기에 기업 개요·공시 비교·원문 확인이 생겨요.</p>
   }
   const source = sourceLink(company)
   const items: NavItem[] = [
+    { section: 'overview', label: '기업 개요', icon: 'book-open', to: overviewLink(company) },
     { section: 'compare', label: '공시 비교', icon: 'columns-2', to: compareLink(company) },
     ...(source === null ? [] : [{ section: 'source' as const, label: '원문 확인', icon: 'file-search' as const, to: source }]),
   ]
@@ -195,11 +203,12 @@ function CompanyNav({ company, active }: { company: CurrentCompany | null; activ
   )
 }
 
-/** 지금 주소에 해당하는 메뉴. 분석 결과의 원문 탭은 '원문 확인', 그 밖의 기업·분석 화면은 '공시 비교' */
-function activeSection(pathname: string, onSourceTab: boolean, onCompare: boolean): Section | null {
+/** 지금 주소에 해당하는 메뉴. 기업 개요 탭은 '기업 개요', 분석 결과의 원문 탭은 '원문 확인', 그 밖의 기업·분석 화면은 '공시 비교' */
+function activeSection(pathname: string, onOverview: boolean, onSourceTab: boolean, onCompare: boolean): Section | null {
   if (pathname === '/') return 'search'
   if (pathname === '/notes') return 'notes'
   if (pathname === '/compare/companies') return 'companies'
+  if (onOverview) return 'overview'
   if (onSourceTab) return 'source'
   if (onCompare) return 'compare'
   return null

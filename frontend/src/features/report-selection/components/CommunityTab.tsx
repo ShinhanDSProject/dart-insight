@@ -6,6 +6,7 @@ import { Button, ButtonLink, Dialog, Notice, SegmentedControl, Skeleton } from '
 import { EmptyState, ErrorState } from '@/shared/ui/StateView'
 import { CommunityGateContext, useCommunityGate } from '../hooks/useCommunityGate'
 import { useCommunityPosts } from '../hooks/useCommunityPosts'
+import { useInitialQuotePick } from '../hooks/useInitialQuotePick'
 import { ProfanityMaskContext, useProfanityMask } from '../hooks/useProfanityMask'
 import { COMMUNITY_DISCLAIMER, communityErrorMessages, hasMorePosts, sortOptions } from '../model/community'
 import { EMPTY_COMPOSER, quoteComposerReducer } from '../model/postQuote'
@@ -25,8 +26,9 @@ export function CommunityTab({ corpCode }: { corpCode: string }) {
   const [sort, setSort] = useState<PostSort>('latest')
   const posts = useCommunityPosts(corpCode, sort)
   const write = useAsyncAction<Post>()
-  // 글에 붙일 변경점(#464)과 고르기 대화상자
+  // 글에 붙일 변경점(#464)과 고르기 대화상자, 분석 결과에서 바로 넘겨받은 인용(#525)
   const [composer, dispatchQuote] = useReducer(quoteComposerReducer, EMPTY_COMPOSER)
+  useInitialQuotePick(corpCode, dispatchQuote)
   const quote = composer.pick
   // 욕설 가리기(#468). 보이는 본문만 바꾸고 보내는 글은 그대로다
   const [maskProfanity, setMaskProfanity] = useProfanityMask()

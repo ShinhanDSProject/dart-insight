@@ -3,10 +3,11 @@ import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { DocumentSide } from '@/shared/api/documents'
 import type { TextChangeDetail, TextSource } from '@/shared/api/textChanges'
-import { Button, Notice } from '@/shared/ui'
+import { Button, ButtonLink, Notice } from '@/shared/ui'
 import { Dialog } from '@/shared/ui/Dialog'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
+import { communityQuotePath } from '@/shared/lib/communityQuoteLink'
 import { formatDate, reportTypeLabel } from '@/shared/lib/reportLabels'
 import { displaySectionPath } from '@/shared/lib/sectionTitle'
 import { AddToNote } from './AddToNote'
@@ -162,6 +163,19 @@ function EvidenceBody({ analysis, detail, onClose, onOpenSource, onAsk, asking }
       {change.changeType === 'MOVED' && <p className="panel__note">{MOVED_NOTE}</p>}
       <div className="text-evidence__actions">
         <AddToNote target={{ kind: 'TEXT_CHANGE', changeId: change.changeId }} analysisId={analysis.analysisId} label={sectionLabel} />
+        {!review && Boolean(analysis.corpCode) && (
+          <ButtonLink
+            variant="secondary"
+            to={communityQuotePath({
+              corpCode: analysis.corpCode,
+              analysisId: analysis.analysisId,
+              kind: 'TEXT_CHANGE',
+              changeId: change.changeId,
+            })}
+          >
+            커뮤니티에 인용
+          </ButtonLink>
+        )}
         {onAsk && askQuestionText !== null && (
           <Button
             variant="secondary"

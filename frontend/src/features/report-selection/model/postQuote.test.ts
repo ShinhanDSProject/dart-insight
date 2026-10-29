@@ -13,6 +13,7 @@ import {
   quoteKindLabel,
   quoteLink,
   searchQuery,
+  statementLabel,
   statementOptions,
   textPick,
   textSearchReducer,
@@ -70,6 +71,8 @@ describe('변경점 고르기', () => {
       sjDiv, label: sjDiv, comparable, amountBasis: null, note: null, total: 1, changed,
     })
     expect(statementOptions([s('BS', true, 2), s('IS', false, 3), s('CF', true, 0)]).map((o) => o.value)).toEqual(['BS'])
+    expect(statementLabel('IS')).toBe('손익계산서')
+    expect(statementLabel('SCE')).toBe('자본변동표')
   })
 
   it('문장 찾기는 앞뒤 공백을 지운 2~100자만 보낸다(넘으면 앞 100자)', () => {

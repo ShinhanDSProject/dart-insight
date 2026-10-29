@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { MemoryRouter } from 'react-router'
+import { MemoryRouter, useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { CompanyAnalysisItem } from '@/shared/api/analyses'
+import type { Analysis, CompanyAnalysisItem } from '@/shared/api/analyses'
 import type { Post, PostList, PostQuote, QuoteRequest } from '@/shared/api/community'
-import type { FinancialChangeItem, FinancialChangeList } from '@/shared/api/results'
-import type { TextChangeItem, TextChangeList } from '@/shared/api/textChanges'
+import type { FinancialChangeDetail, FinancialChangeItem, FinancialChangeList } from '@/shared/api/results'
+import type { TextChangeDetail, TextChangeItem, TextChangeList } from '@/shared/api/textChanges'
 import { AuthContext, type AuthContextValue } from '@/shared/auth/authContext'
 import { axeViolations } from '@/test/axe'
 import { CommunityTab } from './CommunityTab'
@@ -13,9 +13,12 @@ import { CommunityTab } from './CommunityTab'
 const api = vi.hoisted(() => ({
   getPosts: vi.fn(),
   createPost: vi.fn(),
+  getAnalysis: vi.fn(),
   listCompanyAnalyses: vi.fn(),
   getTextChanges: vi.fn(),
+  getTextChange: vi.fn(),
   getFinancialChanges: vi.fn(),
+  getFinancialChange: vi.fn(),
 }))
 vi.mock('@/shared/api/community', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/shared/api/community')>()),
@@ -24,15 +27,18 @@ vi.mock('@/shared/api/community', async (importOriginal) => ({
 }))
 vi.mock('@/shared/api/analyses', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/shared/api/analyses')>()),
+  getAnalysis: api.getAnalysis,
   listCompanyAnalyses: api.listCompanyAnalyses,
 }))
 vi.mock('@/shared/api/textChanges', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/shared/api/textChanges')>()),
   getTextChanges: api.getTextChanges,
+  getTextChange: api.getTextChange,
 }))
 vi.mock('@/shared/api/results', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/shared/api/results')>()),
   getFinancialChanges: api.getFinancialChanges,
+  getFinancialChange: api.getFinancialChange,
 }))
 
 const textQuote: PostQuote = {
@@ -163,11 +169,17 @@ function auth(): AuthContextValue {
   return { state: { status: 'authenticated', userId: 1 }, login: vi.fn(), logout: vi.fn() }
 }
 
-function renderTab() {
+function LocationSearch() {
+  const { search } = useLocation()
+  return <output data-testid="search">{search}</output>
+}
+
+function renderTab(initialEntry = '/companies/00126380?view=community') {
   return render(
     <AuthContext.Provider value={auth()}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[initialEntry]}>
         <CommunityTab corpCode="00126380" />
+        <LocationSearch />
       </MemoryRouter>
     </AuthContext.Provider>,
   )
@@ -336,5 +348,62 @@ describe('글에 붙인 변경점(#464)', () => {
     await waitFor(() =>
       expect(api.getTextChanges).toHaveBeenLastCalledWith(42, expect.objectContaining({ q: 'HBM', page: 0 }), expect.anything()),
     )
+  })
+
+  it('분석 결과에서 문장·재무 변경 인용 주소로 들어오면 글쓰기 칸에 자동 첨부하고 임시 쿼리를 지운다(#525)', async () => {
+    const completedAnalysis = {
+      analysisId: 42,
+      corpCode: '00126380',
+      corpName: '삼성전자',
+      status: 'COMPLETED',
+      previous: analysis.previous,
+      current: analysis.current,
+    } as unknown as Analysis
+    api.getAnalysis.mockResolvedValue(completedAnalysis)
+    api.getTextChange.mockResolvedValue({
+      change: textItem(3001),
+      previous: null,
+      current: null,
+    } satisfies TextChangeDetail)
+
+    const { container } = renderTab('/companies/00126380?view=community&quoteAnalysis=42&quoteKind=TEXT_CHANGE&quoteChange=3001')
+    expect(await screen.findByText('문장 변경 · 추가')).toBeTruthy()
+    expect(screen.getByText('II. 사업의 내용 > 3. 원재료 및 생산설비')).toBeTruthy()
+    await waitFor(() => expect(screen.getByTestId('search').textContent).toBe('?view=community'))
+    expect(await axeViolations(container)).toBe('')
+
+    cleanup()
+    api.getFinancialChange.mockResolvedValue({
+      ...financialItem(),
+      accountKey: 'ifrs-full_Revenue',
+      fsDiv: 'CFS',
+      formula: null,
+      rateFormula: null,
+      previous: null,
+      current: null,
+      scale: { ...financialItem().scale, baseChangeId: null, formula: null, baseSource: null },
+      relatedTextChanges: [],
+    } satisfies FinancialChangeDetail)
+
+    renderTab('/companies/00126380?view=community&quoteAnalysis=42&quoteKind=FINANCIAL_CHANGE&quoteChange=501&quoteSj=IS')
+    expect(await screen.findByText('손익계산서 · 매출액')).toBeTruthy()
+    expect(screen.getByText('이전 1,000,000 → 현재 없음')).toBeTruthy()
+    await waitFor(() => expect(screen.getByTestId('search').textContent).toBe('?view=community'))
+  })
+
+  it('다른 기업의 분석 ID나 검토 필요 항목은 글쓰기 칸에 붙이지 않고 쿼리만 정리한다(#525)', async () => {
+    api.getAnalysis.mockResolvedValue({
+      analysisId: 99,
+      corpCode: '00164779',
+      corpName: 'SK하이닉스',
+      status: 'COMPLETED',
+      previous: analysis.previous,
+      current: analysis.current,
+    } as unknown as Analysis)
+
+    renderTab('/companies/00126380?view=community&quoteAnalysis=99&quoteKind=TEXT_CHANGE&quoteChange=3001')
+    await waitFor(() => expect(screen.getByTestId('search').textContent).toBe('?view=community'))
+    expect(screen.getByRole('button', { name: '변경점 붙이기' })).toBeTruthy()
+    expect(api.getTextChange).not.toHaveBeenCalled()
   })
 })

@@ -17,7 +17,7 @@ vi.mock('../hooks/useTextChanges', () => ({
 
 afterEach(cleanup)
 
-const analysis = { analysisId: 16 } as Analysis
+const analysis = { analysisId: 16, corpCode: '00126380' } as Analysis
 
 const anonymousAuth: AuthContextValue = {
   state: { status: 'anonymous' },
@@ -224,6 +224,9 @@ describe('TextEvidencePanel 표 변경 강조와 후속 행동(#524)', () => {
 
     const dialog = screen.getByRole('dialog', { name: '원문 비교' })
     expect(within(dialog).getByRole('button', { name: '노트에 담기: III. 재무에 관한 사항 > 3. 우발부채와 약정사항' })).toBeTruthy()
+    expect(within(dialog).getByRole('link', { name: '커뮤니티에 인용' }).getAttribute('href')).toBe(
+      '/companies/00126380?view=community&quoteAnalysis=16&quoteKind=TEXT_CHANGE&quoteChange=44',
+    )
 
     const askButton = within(dialog).getByRole('button', { name: /이 항목 변화 AI에게 묻기/ })
     fireEvent.click(askButton)
@@ -231,7 +234,7 @@ describe('TextEvidencePanel 표 변경 강조와 후속 행동(#524)', () => {
     expect(onAsk).toHaveBeenCalledWith("'3. 우발부채와 약정사항'에서 무엇이 바뀌었나요?")
   })
 
-  it('검토 필요 항목에서는 표 변경 강조와 AI 질문 버튼을 두지 않는다', () => {
+  it('검토 필요 항목에서는 표 변경 강조와 AI 질문·커뮤니티 인용을 두지 않는다', () => {
     givenTableChange('REVIEW_NEEDED')
     const onAsk = vi.fn()
     renderPanel({ changeId: 44, onAsk })
@@ -239,5 +242,6 @@ describe('TextEvidencePanel 표 변경 강조와 후속 행동(#524)', () => {
     const dialog = screen.getByRole('dialog', { name: '원문 비교' })
     expect(dialog.querySelectorAll('mark.text-evidence__changed').length).toBe(0)
     expect(within(dialog).queryByRole('button', { name: /이 항목 변화 AI에게 묻기/ })).toBeNull()
+    expect(within(dialog).queryByRole('link', { name: '커뮤니티에 인용' })).toBeNull()
   })
 })

@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { match, P } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { TextChangeItem, TextSort } from '@/shared/api/textChanges'
-import { Badge, Button, Card, Chip, FieldHint, FieldLabel, Icon, Input, Notice, Panel, SegmentedControl, Select, Skeleton } from '@/shared/ui'
+import { Badge, Button, ButtonLink, Card, Chip, FieldHint, FieldLabel, Icon, Input, Notice, Panel, SegmentedControl, Select, Skeleton } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
+import { communityQuotePath } from '@/shared/lib/communityQuoteLink'
 import { AddToNote } from './AddToNote'
 import { ChangeTypeHelp } from './ChangeTypeHelp'
 import { CopyWithSourcesButton } from './CopyWithSourcesButton'
@@ -490,6 +491,19 @@ function ChangeCard({
         >
           {explainOpen ? '풀이 접기' : 'AI 한 줄 풀이'}
         </Button>
+        {!review && Boolean(analysis.corpCode) && (
+          <ButtonLink
+            variant="secondary"
+            to={communityQuotePath({
+              corpCode: analysis.corpCode,
+              analysisId: analysis.analysisId,
+              kind: 'TEXT_CHANGE',
+              changeId: item.changeId,
+            })}
+          >
+            커뮤니티에 인용
+          </ButtonLink>
+        )}
         {item.priority && item.priority.reasons.length > 0 && (
           <details className="change-card__why">
             <summary>우선순위를 정한 규칙</summary>

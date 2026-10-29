@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { useState } from 'react'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { MemoryRouter } from 'react-router'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Analysis } from '@/shared/api/analyses'
 import type { TextChangeCounts, TextChangeItem, TextChangeList } from '@/shared/api/textChanges'
@@ -60,6 +61,7 @@ afterEach(cleanup)
 const report = (rceptNo: string, reportName: string) => ({ rceptNo, reportName, reportType: 'ANNUAL', fiscalYear: 2024 })
 const analysis = {
   analysisId: 16,
+  corpCode: '00126380',
   textStatus: 'COMPLETED',
   textMessage: null,
   previous: report('20240314000100', '사업보고서 (2023.12)'),
@@ -89,22 +91,24 @@ function item(changeId: number, sectionTitle: string): TextChangeItem {
 function renderTab(onChange = vi.fn()) {
   list.items = [item(1, '1. 사업의 개요'), item(2, '2. 주요 제품'), item(3, '3. 원재료')]
   const view = render(
-    <main>
-      <TextTab
-        analysis={analysis}
-        type={null}
-        sort="priority"
-        section={null}
-        q={null}
-        risk={false}
-        pinned={false}
-        selectedChangeId={null}
-        onChange={onChange}
-        onOpenSource={() => {}}
-        onAsk={() => {}}
-        asking={false}
-      />
-    </main>,
+    <MemoryRouter>
+      <main>
+        <TextTab
+          analysis={analysis}
+          type={null}
+          sort="priority"
+          section={null}
+          q={null}
+          risk={false}
+          pinned={false}
+          selectedChangeId={null}
+          onChange={onChange}
+          onOpenSource={() => {}}
+          onAsk={() => {}}
+          asking={false}
+        />
+      </main>
+    </MemoryRouter>,
   )
   const cards = screen.getAllByRole('article')
   return { ...view, cards, onChange }
@@ -185,24 +189,26 @@ describe('TextTab 원문 비교(#507)', () => {
   function Harness({ initial }: { initial: number | null }) {
     const [selected, setSelected] = useState<number | null>(initial)
     return (
-      <main>
-        <TextTab
-          analysis={analysis}
-          type={null}
-          sort="priority"
-          section={null}
-          q={null}
-          risk={false}
-          pinned={false}
-          selectedChangeId={selected}
-          onChange={(change) => {
-            if ('change' in change) setSelected(change.change ?? null)
-          }}
-          onOpenSource={() => {}}
-          onAsk={() => {}}
-          asking={false}
-        />
-      </main>
+      <MemoryRouter>
+        <main>
+          <TextTab
+            analysis={analysis}
+            type={null}
+            sort="priority"
+            section={null}
+            q={null}
+            risk={false}
+            pinned={false}
+            selectedChangeId={selected}
+            onChange={(change) => {
+              if ('change' in change) setSelected(change.change ?? null)
+            }}
+            onOpenSource={() => {}}
+            onAsk={() => {}}
+            asking={false}
+          />
+        </main>
+      </MemoryRouter>
     )
   }
 
@@ -226,10 +232,13 @@ describe('TextTab 원문 비교(#507)', () => {
     expect(screen.getByRole('dialog', { name: '원문 비교' })).toBeTruthy()
   })
 
-  it('카드에는 문단 펼치기가 없고, 원문 비교를 누르면 그 항목을 고른다', () => {
+  it('카드에는 문단 펼치기가 없고, 원문 비교와 커뮤니티에 인용을 제공한다', () => {
     const { cards, onChange } = renderTab()
     expect(cards[0].textContent).not.toContain('문단 펼치기')
     expect(cards[0].querySelector('.change-card__sides--clamped')).not.toBeNull()
+    expect(within(cards[0]).getByRole('link', { name: '커뮤니티에 인용' }).getAttribute('href')).toBe(
+      '/companies/00126380?view=community&quoteAnalysis=16&quoteKind=TEXT_CHANGE&quoteChange=1',
+    )
     const button = within(cards[0]).getByRole('button', { name: '원문 비교' })
     expect(button.getAttribute('aria-haspopup')).toBe('dialog')
     fireEvent.click(button)
@@ -244,22 +253,24 @@ describe('TextTab 종류 안내(#393)', () => {
       { ...item(2, '2. 주요 제품'), changeType: 'DELETED', currentPreview: null },
     ]
     render(
-      <main>
-        <TextTab
-          analysis={analysis}
-          type={null}
-          sort="priority"
-          section={null}
-          q={null}
-          risk={false}
-          pinned={false}
-          selectedChangeId={null}
-          onChange={vi.fn()}
-          onOpenSource={() => {}}
-          onAsk={() => {}}
-          asking={false}
-        />
-      </main>,
+      <MemoryRouter>
+        <main>
+          <TextTab
+            analysis={analysis}
+            type={null}
+            sort="priority"
+            section={null}
+            q={null}
+            risk={false}
+            pinned={false}
+            selectedChangeId={null}
+            onChange={vi.fn()}
+            onOpenSource={() => {}}
+            onAsk={() => {}}
+            asking={false}
+          />
+        </main>
+      </MemoryRouter>,
     )
     const cards = screen.getAllByRole('article')
     expect(cards[0].textContent).toContain('문서에서 빠졌다는 뜻이에요')
@@ -272,22 +283,24 @@ describe('TextTab 위험 요인 변화(3.9, FS-61)', () => {
 
   function renderRisk(risk: boolean, onChange = vi.fn()) {
     render(
-      <main>
-        <TextTab
-          analysis={analysis}
-          type={null}
-          sort="priority"
-          section={null}
-          q={null}
-          risk={risk}
-          pinned={false}
-          selectedChangeId={null}
-          onChange={onChange}
-          onOpenSource={() => {}}
-          onAsk={() => {}}
-          asking={false}
-        />
-      </main>,
+      <MemoryRouter>
+        <main>
+          <TextTab
+            analysis={analysis}
+            type={null}
+            sort="priority"
+            section={null}
+            q={null}
+            risk={risk}
+            pinned={false}
+            selectedChangeId={null}
+            onChange={onChange}
+            onOpenSource={() => {}}
+            onAsk={() => {}}
+            asking={false}
+          />
+        </main>
+      </MemoryRouter>,
     )
     return { onChange, card: screen.getByRole('region', { name: '위험 요인 변화' }) }
   }

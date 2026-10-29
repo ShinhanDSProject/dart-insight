@@ -89,13 +89,15 @@ describe('이전 방식 분석 안내', () => {
     expect(button.compareDocumentPosition(context) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it('지금 방식으로 만든 결과면 안내를 보이지 않는다', async () => {
+  it('지금 방식으로 만든 결과면 안내를 보이지 않고 상단 경로 회사명이 기업 개요로 연결된다', async () => {
     getAnalysis.mockResolvedValue(analysis(false))
     renderPage()
     await screen.findByRole('region', { name: '비교 맥락' })
     expect(screen.queryByText(/이전 분석 방식/)).toBeNull()
     expect(screen.queryByRole('button', { name: '새 방식으로 다시 분석' })).toBeNull()
     expect(screen.getByRole('button', { name: '브리프 내려받기' })).toBeTruthy()
+    const companyLink = screen.getByRole('link', { name: '삼성전자' })
+    expect(companyLink.getAttribute('href')).toBe('/companies/00126380?view=overview')
   })
 
   it('다시 분석하면 같은 기업·보고서·비교 기준으로 요청하고, 새로 만들면 진행 화면으로 간다', async () => {

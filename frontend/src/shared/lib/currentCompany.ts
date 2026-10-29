@@ -42,6 +42,16 @@ export function nextCurrentCompany(previous: CurrentCompany | null, visit: Compa
   }
 }
 
+/** 기업 개요 화면 주소(?view=overview, #525) */
+export function companyOverviewLink(corpCode: string): string {
+  return `/companies/${encodeURIComponent(corpCode)}?view=overview`
+}
+
+/** '기업 개요'가 갈 곳(#525) */
+export function overviewLink(company: CurrentCompany): string {
+  return companyOverviewLink(company.corpCode)
+}
+
 /** '공시 비교'가 갈 곳: 마지막으로 본 화면이 분석이면 그 분석, 아니면 기업 화면 */
 export function compareLink(company: CurrentCompany): string {
   return company.view === 'analysis' && company.analysisId !== null
