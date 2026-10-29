@@ -10,6 +10,11 @@ public final class ApiPaths {
     public static final String CORS_PATTERN = BASE + "/**";
 
     public static final String USERS = BASE + "/users";
+    /** USERS 아래 현재 사용자. 커뮤니티 닉네임(6.6) */
+    public static final String CURRENT_USER = USERS + "/current";
+    public static final String NICKNAME = "/nickname";
+    /** 관리자만 쓰는 API(ADR-0040). 이 아래 경로는 SecurityConfig가 관리자인지 확인한다 */
+    public static final String ADMIN = BASE + "/admin";
     public static final String SESSIONS = BASE + "/sessions";
     public static final String CURRENT = "/current";
     public static final String CURRENT_SESSION = SESSIONS + CURRENT;

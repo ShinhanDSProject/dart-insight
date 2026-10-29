@@ -6,6 +6,7 @@ import com.dartinsight.auth.dto.SessionResponse;
 import com.dartinsight.auth.service.AuthService;
 import com.dartinsight.auth.service.RefreshCookieService;
 import com.dartinsight.common.web.ApiPaths;
+import com.dartinsight.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class SessionController {
     private final AuthService authService;
     private final RefreshCookieService cookies;
+    private final UserService users;
 
     @PostMapping
     public ResponseEntity<SessionResponse> login(@RequestBody SessionRequest request) {
@@ -40,7 +42,7 @@ public class SessionController {
 
     @GetMapping(ApiPaths.CURRENT)
     public CurrentSessionResponse current(@AuthenticationPrincipal Jwt jwt) {
-        return new CurrentSessionResponse(Long.parseLong(jwt.getSubject()));
+        return CurrentSessionResponse.from(users.profile(Long.parseLong(jwt.getSubject())));
     }
 
     private ResponseEntity<SessionResponse> session(AuthService.IssuedSession issued) {

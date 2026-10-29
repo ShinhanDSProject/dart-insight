@@ -1,8 +1,11 @@
 package com.dartinsight.auth.config;
 
+import com.dartinsight.common.error.ErrorCode;
 import com.dartinsight.common.trace.TraceContext;
 import com.dartinsight.common.web.ApiPaths;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -12,6 +15,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -22,6 +26,7 @@ import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 
 @Configuration
@@ -66,9 +71,11 @@ public class SecurityConfig {
     }
 
     // 나머지 API는 세션 없이 Bearer JWT로만 인증한다.
+    // 관리자 API는 그 위에 요청마다 DB의 역할을 확인한다(ADR-0040, auth/service/AdminAuthorizationManager).
     @Bean
     @Order(2)
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+            AuthorizationManager<RequestAuthorizationContext> adminAuthorizationManager) throws Exception {
         http.csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -77,16 +84,24 @@ public class SecurityConfig {
                         .requestMatchers(ApiPaths.FAVORITE_COMPANIES, ApiPaths.FAVORITE_COMPANIES + "/**").authenticated()
                         .requestMatchers(ApiPaths.NOTIFICATIONS, ApiPaths.NOTIFICATIONS + "/**").authenticated()
                         .requestMatchers(ApiPaths.NOTES, ApiPaths.NOTES + "/**").authenticated()
+                        .requestMatchers(ApiPaths.CURRENT_USER, ApiPaths.CURRENT_USER + "/**").authenticated()
+                        .requestMatchers(ApiPaths.ADMIN, ApiPaths.ADMIN + "/**").access(adminAuthorizationManager)
                         .anyRequest().permitAll())
+                .exceptionHandling(exceptions -> exceptions.accessDeniedHandler((request, response, exception) ->
+                        writeError(response, ErrorCode.AUTH_FORBIDDEN)))
                 .oauth2ResourceServer(oauth -> oauth.jwt(Customizer.withDefaults())
-                        .authenticationEntryPoint((request, response, exception) -> {
-                            response.setStatus(401);
-                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                            String traceId = TraceContext.currentTraceId();
-                            response.getWriter().write("{\"code\":\"AUTH_UNAUTHORIZED\","
-                                    + "\"message\":\"로그인이 필요합니다.\",\"traceId\":\""
-                                    + (traceId == null ? "" : traceId) + "\",\"errors\":[]}");
-                        }));
+                        .authenticationEntryPoint((request, response, exception) ->
+                                writeError(response, ErrorCode.AUTH_UNAUTHORIZED)));
         return http.build();
+    }
+
+    // 컨트롤러 밖(보안 필터)에서 나는 401·403도 공통 에러 형식으로 쓴다. 메시지는 따옴표 없는 고정 문구다.
+    private static void writeError(HttpServletResponse response, ErrorCode code) throws IOException {
+        response.setStatus(code.status());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding("UTF-8");
+        String traceId = TraceContext.currentTraceId();
+        response.getWriter().write("{\"code\":\"" + code.name() + "\",\"message\":\"" + code.defaultMessage()
+                + "\",\"traceId\":\"" + (traceId == null ? "" : traceId) + "\",\"errors\":[]}");
     }
 }

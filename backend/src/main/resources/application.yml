@@ -80,6 +80,8 @@ app:
     refresh-token-ttl: ${REFRESH_TOKEN_TTL:14d}
     secure-cookie: ${AUTH_SECURE_COOKIE:false}
     social-login-redirect-url: ${SOCIAL_LOGIN_REDIRECT_URL:http://localhost:5173/login}
+    # 쉼표로 구분한 관리자 이메일(ADR-0040). 비어 있으면 아무도 관리자로 올리지 않는다
+    admin-emails: ${ADMIN_EMAILS:}
   ai-server:
     base-url: ${AI_SERVER_URL:http://localhost:8000}
     connect-timeout: 2s

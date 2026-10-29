@@ -13,4 +13,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select u from User u where u.id = :id")
     Optional<User> findByIdForUpdate(@Param("id") Long id);
+
+    /** 대소문자만 다른 닉네임도 같은 것으로 본다(API 명세 6.6). */
+    boolean existsByNicknameIgnoreCaseAndIdNot(String nickname, Long id);
 }
