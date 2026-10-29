@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends
 
 from app.api import paths
 from app.api.deps import get_llm_client
+from app.api.llm_calls import llm_unavailable
 from app.core.errors import ApiError, ErrorCode
 from app.llm import LlmClient, LlmUnavailable
 from app.summary.model import OK
@@ -21,7 +22,10 @@ logger = logging.getLogger("app.summary")
 def summaries(
     request: SummaryRequest, llm: Annotated[LlmClient, Depends(get_llm_client)]
 ) -> dict[str, Any]:
-    """항목별 요약 문장·설명과 근거 ID, 호출 기록. LLM을 부를 수 없으면 503 AI_LLM_UNAVAILABLE."""
+    """항목별 요약 문장·설명과 근거 ID, 호출 기록.
+
+    LLM을 부를 수 없으면 503 AI_LLM_UNAVAILABLE. 그때까지의 호출 기록은 X-Llm-Calls 헤더(ADR-0042).
+    """
     try:
         summary = request.to_input()
     except ValueError as e:
@@ -29,7 +33,7 @@ def summaries(
     try:
         output = summarize(llm, summary)
     except LlmUnavailable as e:
-        raise ApiError(ErrorCode.AI_LLM_UNAVAILABLE, e.message) from e
+        raise llm_unavailable(e) from e
     logger.info(
         "요약 %d건(검토 필요 %d건) model=%s prompt=%s",
         len(output.items),

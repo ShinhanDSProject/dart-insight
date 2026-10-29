@@ -28,12 +28,21 @@ class ErrorCode(Enum):
 
 
 class ApiError(Exception):
-    """정해진 에러 코드로 응답할 때 던진다."""
+    """정해진 에러 코드로 응답할 때 던진다.
 
-    def __init__(self, code: ErrorCode, message: str | None = None) -> None:
+    headers는 에러와 함께 넘길 부가 정보(예: X-Llm-Calls, ADR-0042). 본문 형식은 바꾸지 않는다.
+    """
+
+    def __init__(
+        self,
+        code: ErrorCode,
+        message: str | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> None:
         super().__init__(message or code.default_message)
         self.code = code
         self.message = message or code.default_message
+        self.headers = headers
 
 
 def error_response(
@@ -65,7 +74,7 @@ _STATUS_TO_CODE = {
 def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(ApiError)
     async def handle_api_error(_: Request, exc: ApiError) -> JSONResponse:
-        return error_response(exc.code, exc.message)
+        return error_response(exc.code, exc.message, headers=exc.headers)
 
     @app.exception_handler(RequestValidationError)
     async def handle_validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:

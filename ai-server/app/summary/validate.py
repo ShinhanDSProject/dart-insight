@@ -5,6 +5,9 @@
 원인 표현은 다시 생성한다(ADR-0015). 등급 규칙을 바꾸면 causal.GRADE_RULES_VERSION을 올린다.
 검토 필요가 된 재무 항목도 인용 실재 검사를 통과한 인용은 남긴다(backend 템플릿 요약, #149).
 통과한 문장도 투자 권유성 표현 검사(app.compliance)에 걸리면 내보내지 않는다.
+
+결과가 달라지게 바꾸면(근거 ID·숫자 확인, 인용 확인, 검토 필요로 두는 조건) backend
+Analysis.CURRENT_VERSION을 함께 올린다. 등급 규칙이면 causal.GRADE_RULES_VERSION도 올린다.
 """
 
 from __future__ import annotations
