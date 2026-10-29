@@ -31,7 +31,7 @@ export interface AiUsageModel {
   byTask: AiUsageTask[]
 }
 
-/** 작업 단위(분석·브리핑) 1건당 평균. count가 0이거나 값을 모르면 평균은 null */
+/** 작업 단위(분석·브리핑·전망·계획·약속 대조) 1건당 평균. count가 0이거나 값을 모르면 평균은 null */
 export interface AiUsageUnitAverage {
   count: number
   avgInputTokens: number | null
@@ -69,6 +69,10 @@ export interface AiUsage {
     perUnit: {
       analysis: AiUsageUnitAverage
       briefing: AiUsageUnitAverage
+      /** 회사가 밝힌 전망·계획(FS-59) */
+      outlook: AiUsageUnitAverage
+      /** 약속과 실제 대조(FS-60) */
+      planFollowup: AiUsageUnitAverage
     }
   }
 }

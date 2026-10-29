@@ -5,7 +5,7 @@ import { formatCount, formatTokens } from '../model/aiUsage'
 import { formatUsd, modelRows, providerLabel, unitStats } from '../model/modelUsage'
 
 /**
- * 제공자·모델별 호출·토큰·추정 비용과 분석·브리핑 1건당 평균(FS-50).
+ * 제공자·모델별 호출·토큰·추정 비용과 분석·브리핑·전망·계획·약속 대조 1건당 평균(FS-50).
  * 비용은 backend가 설정한 공식 가격으로 계산한 값이고, 가격 설정이 없으면 '가격 설정 없음'이다.
  */
 export function ModelUsagePanel({
@@ -76,7 +76,7 @@ export function ModelUsagePanel({
         ))}
       <p className="ai-usage__hint">
         추정 비용은 공식 가격 페이지의 100만 토큰당 단가로 계산해요. 가격을 설정하지 않은 모델(가짜 제공자 포함)은 '가격
-        설정 없음'이에요. 1건당 평균은 이 기간에 호출이 있는 분석·브리핑 기준이고, 가격이 없는 모델 호출이 섞이면 비용을
+        설정 없음'이에요. 1건당 평균은 이 기간에 호출이 있는 분석·브리핑·전망·계획·약속 대조 기준이고(실패한 분석 포함), 가격이 없는 모델 호출이 섞이면 비용을
         보이지 않아요.
       </p>
     </Panel>

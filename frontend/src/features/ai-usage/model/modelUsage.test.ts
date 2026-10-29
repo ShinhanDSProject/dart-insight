@@ -29,7 +29,7 @@ function usage(overrides: Partial<AiUsage['llmCalls']> = {}): AiUsage {
       byOutcome: { OK: 2, INVALID_OUTPUT: 0, TRANSIENT_ERROR: 0, ERROR: 0 },
       byTask: [],
       byModel: [fake, openai],
-      perUnit: { analysis: emptyUnit, briefing: emptyUnit },
+      perUnit: { analysis: emptyUnit, briefing: emptyUnit, outlook: emptyUnit, planFollowup: emptyUnit },
       ...overrides,
     },
   }
@@ -73,12 +73,14 @@ describe('formatUsd', () => {
 })
 
 describe('unitStats', () => {
-  it('분석·브리핑 1건당 평균 토큰과 비용을 보이고, 단위가 없으면 기록 없음', () => {
+  it('분석·브리핑·전망·계획·약속 대조 1건당 평균 토큰과 비용을 이 순서로 보이고, 단위가 없으면 기록 없음', () => {
     const stats = unitStats(
       usage({
         perUnit: {
           analysis: { count: 2, avgInputTokens: 30000, avgOutputTokens: 2001, avgCostUsd: 0.08 },
           briefing: { count: 0, avgInputTokens: null, avgOutputTokens: null, avgCostUsd: null },
+          outlook: { count: 3, avgInputTokens: 3500, avgOutputTokens: 351, avgCostUsd: 0.0105 },
+          planFollowup: { count: 1, avgInputTokens: 300, avgOutputTokens: 30, avgCostUsd: null },
         },
       }),
     )
@@ -97,6 +99,20 @@ describe('unitStats', () => {
         cost: '기록 없음',
         detail: '호출이 있는 브리핑 0건 기준',
       },
+      {
+        key: 'outlook',
+        label: '전망·계획 1건당 평균',
+        tokens: '입력 3,500 · 출력 351 토큰',
+        cost: '$0.0105',
+        detail: '호출이 있는 전망·계획 3건 기준',
+      },
+      {
+        key: 'planFollowup',
+        label: '약속 대조 1건당 평균',
+        tokens: '입력 300 · 출력 30 토큰',
+        cost: '가격 설정 없음',
+        detail: '호출이 있는 약속 대조 1건 기준',
+      },
     ])
   })
 
@@ -106,6 +122,8 @@ describe('unitStats', () => {
         perUnit: {
           analysis: { count: 1, avgInputTokens: 100, avgOutputTokens: 10, avgCostUsd: null },
           briefing: { count: 0, avgInputTokens: null, avgOutputTokens: null, avgCostUsd: null },
+          outlook: { count: 0, avgInputTokens: null, avgOutputTokens: null, avgCostUsd: null },
+          planFollowup: { count: 0, avgInputTokens: null, avgOutputTokens: null, avgCostUsd: null },
         },
       }),
     )
