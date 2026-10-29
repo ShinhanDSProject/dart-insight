@@ -104,10 +104,43 @@ export function analysisOptionLabel(analysis: CompanyAnalysisItem): string {
   return reportPairLabel(pair(analysis))
 }
 
-/** 문장 변경 검색어. 앞뒤 공백을 지워 2자 이상일 때만 보낸다(서버 규칙) */
+/** 문장 변경 검색어 길이(서버 규칙: 앞뒤 공백을 지운 2~100자) */
+export const SEARCH_MIN = 2
+export const SEARCH_MAX = 100
+
+/** 문장 변경 검색어. 앞뒤 공백을 지워 2자 이상일 때만 보내고, 100자를 넘으면 앞 100자만 보낸다 */
 export function searchQuery(input: string): string | null {
-  const q = input.trim()
-  return q.length >= 2 ? q : null
+  const q = input.trim().slice(0, SEARCH_MAX).trim()
+  return q.length >= SEARCH_MIN ? q : null
+}
+
+/** 문장 변경 후보의 쪽(0부터). 다음 쪽이 있는지는 서버가 준 전체 건수로 안다 */
+export function hasNextPage(list: { page: number; size: number; totalItems: number }): boolean {
+  return (list.page + 1) * list.size < list.totalItems
+}
+
+/** '21~40 / 1,054건' */
+export function pageRangeLabel(list: { page: number; size: number; totalItems: number; items: readonly unknown[] }): string {
+  const from = list.page * list.size + 1
+  const to = list.page * list.size + list.items.length
+  return `${formatInteger(from)}~${formatInteger(to)} / ${formatInteger(list.totalItems)}건`
+}
+
+/** 문장 변경 후보 찾기: 입력한 검색어와 보는 쪽(0부터). 검색어를 바꾸면 첫 쪽으로 돌아간다 */
+export interface TextSearch {
+  input: string
+  page: number
+}
+
+export type TextSearchAction = { type: 'set-input'; input: string } | { type: 'set-page'; page: number }
+
+export const EMPTY_TEXT_SEARCH: TextSearch = { input: '', page: 0 }
+
+export function textSearchReducer(state: TextSearch, action: TextSearchAction): TextSearch {
+  return match<TextSearchAction, TextSearch>(action)
+    .with({ type: 'set-input' }, ({ input }) => ({ input, page: 0 }))
+    .with({ type: 'set-page' }, ({ page }) => ({ ...state, page: Math.max(0, page) }))
+    .exhaustive()
 }
 
 /** 글쓰기 칸의 변경점 붙이기 상태. pick: 붙인 변경점, picking: 고르기 대화상자가 열림 */
