@@ -37,6 +37,8 @@ const usage: AiUsage = {
     perUnit: {
       analysis: { count: 2, avgInputTokens: 30000, avgOutputTokens: 2001, avgCostUsd: 0.08 },
       briefing: { count: 1, avgInputTokens: 1000, avgOutputTokens: 100, avgCostUsd: null },
+      outlook: { count: 1, avgInputTokens: 2000, avgOutputTokens: 200, avgCostUsd: 0.006 },
+      planFollowup: { count: 0, avgInputTokens: null, avgOutputTokens: null, avgCostUsd: null },
     },
   },
 }
@@ -52,6 +54,10 @@ describe('ModelUsagePanel', () => {
     expect(screen.getAllByText('가격 설정 없음')).toHaveLength(2)
     expect(screen.getByText('분석 1건당 평균')).toBeTruthy()
     expect(screen.getByText('$0.08')).toBeTruthy()
+    expect(screen.getByText('전망·계획 1건당 평균')).toBeTruthy()
+    expect(screen.getByText('$0.006')).toBeTruthy()
+    expect(screen.getByText('약속 대조 1건당 평균')).toBeTruthy()
+    expect(screen.getByText('기록 없음')).toBeTruthy()
     expect(await axeViolations(container)).toBe('')
   })
 

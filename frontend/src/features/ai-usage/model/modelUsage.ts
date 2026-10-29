@@ -35,8 +35,10 @@ export function formatUsd(value: number | null): string {
   return value === null ? '가격 설정 없음' : `$${usdFormat.format(value)}`
 }
 
+export type UnitKey = 'analysis' | 'briefing' | 'outlook' | 'planFollowup'
+
 export interface UnitStat {
-  key: 'analysis' | 'briefing'
+  key: UnitKey
   label: string
   /** 1건당 평균 입력·출력 토큰 */
   tokens: string
@@ -44,20 +46,29 @@ export interface UnitStat {
   detail: string
 }
 
-const UNIT_LABELS = { analysis: '분석 1건당 평균', briefing: '브리핑 1건당 평균' } as const
+/** 단위 이름(화면 문구) */
+const UNIT_NAMES: Record<UnitKey, string> = {
+  analysis: '분석',
+  briefing: '브리핑',
+  outlook: '전망·계획',
+  planFollowup: '약속 대조',
+}
 
-function unitStat(key: UnitStat['key'], unit: AiUsageUnitAverage): UnitStat {
+/** 칸을 보이는 순서 */
+const UNIT_ORDER: UnitKey[] = ['analysis', 'briefing', 'outlook', 'planFollowup']
+
+function unitStat(key: UnitKey, unit: AiUsageUnitAverage): UnitStat {
   return {
     key,
-    label: UNIT_LABELS[key],
+    label: `${UNIT_NAMES[key]} 1건당 평균`,
     tokens: `입력 ${formatTokens(unit.avgInputTokens)} · 출력 ${formatTokens(unit.avgOutputTokens)} 토큰`,
     cost: unit.count === 0 ? '기록 없음' : formatUsd(unit.avgCostUsd),
-    detail: `호출이 있는 ${key === 'analysis' ? '분석' : '브리핑'} ${formatCount(unit.count)}건 기준`,
+    detail: `호출이 있는 ${UNIT_NAMES[key]} ${formatCount(unit.count)}건 기준`,
   }
 }
 
-/** 분석·브리핑 1건당 평균 칸 */
+/** 분석·브리핑·전망·계획·약속 대조 1건당 평균 칸 */
 export function unitStats(usage: AiUsage): UnitStat[] {
-  const { analysis, briefing } = usage.llmCalls.perUnit
-  return [unitStat('analysis', analysis), unitStat('briefing', briefing)]
+  const { perUnit } = usage.llmCalls
+  return UNIT_ORDER.map((key) => unitStat(key, perUnit[key]))
 }

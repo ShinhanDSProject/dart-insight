@@ -36,6 +36,8 @@ function usage(overrides: Partial<AiUsage> = {}): AiUsage {
       perUnit: {
         analysis: { count: 0, avgInputTokens: null, avgOutputTokens: null, avgCostUsd: null },
         briefing: { count: 0, avgInputTokens: null, avgOutputTokens: null, avgCostUsd: null },
+        outlook: { count: 0, avgInputTokens: null, avgOutputTokens: null, avgCostUsd: null },
+        planFollowup: { count: 0, avgInputTokens: null, avgOutputTokens: null, avgCostUsd: null },
       },
     },
     ...overrides,
