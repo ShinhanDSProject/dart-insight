@@ -9,7 +9,7 @@ import { AlertState } from '@/shared/ui/StateView'
 import { MoreToggle } from './MoreToggle'
 
 /** 처음에 보이는 대표 기업 수. 나머지는 '더 보기'로 펼친다 */
-export const FEATURED_VISIBLE = 12
+export const FEATURED_VISIBLE = 10
 
 const LIST_ID = 'featured-companies-list'
 

@@ -1,3 +1,24 @@
+/* 첫 화면 위 가운데 검색 영역(#486). 제목·한 줄 설명·검색창을 가운데로 모은다 */
+.search-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: var(--space-4);
+  text-align: center;
+}
+
+.search-hero__lead {
+  margin: 0 0 var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.search-hero .search-form {
+  width: 100%;
+  max-width: 720px;
+  margin-bottom: 0;
+}
+
 .search-form {
   margin-bottom: var(--space-5);
 }
@@ -271,7 +292,20 @@
   flex: none;
 }
 
-/* 대표 기업(#399). 검색창 바로 아래, 관심 기업과 같은 칩 모양(UI-1). 삭제 버튼이 없어 오른쪽 여백만 넓힌다 */
+/* 대표 기업과 이번 시즌 변화가 큰 기업을 나란히 두 칸으로(#486). 두 칸이 들어갈 폭이 안 되면 위아래로 쌓인다 */
+.home-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+  align-items: start;
+  gap: var(--space-5) var(--space-6);
+  margin-bottom: var(--space-5);
+}
+
+.home-pair > * {
+  min-width: 0;
+}
+
+/* 대표 기업(#399). 관심 기업과 같은 칩 모양(UI-1). 삭제 버튼이 없어 오른쪽 여백만 넓힌다 */
 .featured-companies {
   max-width: 720px;
   margin-bottom: var(--space-5);

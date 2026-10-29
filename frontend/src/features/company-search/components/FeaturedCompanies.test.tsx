@@ -31,7 +31,7 @@ function renderWith(state: LoadState<FeaturedCompanyListResponse>, onRetry = vi.
 }
 
 describe('FeaturedCompanies(#399)', () => {
-  it('순서대로 처음 12곳을 보이고, 누르면 그 기업 화면으로 간다', () => {
+  it('순서대로 처음 10곳을 보이고, 누르면 그 기업 화면으로 간다', () => {
     renderWith({ status: 'success', data: list(20) })
     const links = within(screen.getByRole('region', { name: '대표 기업' })).getAllByRole('link')
     expect(links).toHaveLength(FEATURED_VISIBLE)
@@ -41,7 +41,7 @@ describe('FeaturedCompanies(#399)', () => {
 
   it('더 보기를 누르면 나머지를 펼친다', () => {
     renderWith({ status: 'success', data: list(20) })
-    fireEvent.click(screen.getByRole('button', { name: '더 보기 (8곳)' }))
+    fireEvent.click(screen.getByRole('button', { name: `더 보기 (${20 - FEATURED_VISIBLE}곳)` }))
     expect(screen.getAllByRole('link')).toHaveLength(20)
   })
 
