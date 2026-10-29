@@ -83,7 +83,7 @@
 | GET | `/api/notes/export` | 기업 노트를 출처와 함께 Markdown으로 내보내기(`?corpCode=`) | #413 (6.5) | 판단 노트(신규) | 초안 |
 | PUT | `/api/users/current/nickname` | 커뮤니티 닉네임 정하기·바꾸기 | #459 (6.6) | 닉네임 정하기(신규) | 구현 |
 | GET | `/api/companies/{corpCode}/posts` | 기업 게시판 글 목록(최신순·인기순) | #460 (6.6) | W-01 ② 커뮤니티 탭 | 구현 |
-| POST | `/api/companies/{corpCode}/posts` | 글 쓰기(변경점 인용 선택, #464) | #460·#464 (6.6) | W-01 ② 커뮤니티 탭 | 구현(인용은 #464) |
+| POST | `/api/companies/{corpCode}/posts` | 글 쓰기(변경점 인용 선택, #464) | #460·#464 (6.6) | W-01 ② 커뮤니티 탭 | 구현 |
 | GET | `/api/posts/{postId}` | 글과 댓글 | #460 (6.6) | W-01 ② 커뮤니티 탭 | 구현 |
 | PATCH·DELETE | `/api/posts/{postId}` | 내 글 고치기·지우기 | #460 (6.6) | W-01 ② 커뮤니티 탭 | 구현 |
 | POST | `/api/posts/{postId}/comments` | 댓글·답글(한 단계) 쓰기 | #460 (6.6) | W-01 ② 커뮤니티 탭 | 구현 |
