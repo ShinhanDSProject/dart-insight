@@ -5,7 +5,7 @@ import { useFavoriteCompanies } from '@/shared/hooks/useFavoriteCompanies'
 import { Button, Chip, FieldHint, FieldLabel, Icon, Input } from '@/shared/ui'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { useCompanyLookup } from '../hooks/useCompanyLookup'
-import { MAX_COMPANIES } from '../model/companyComparison'
+import { MAX_COMPANIES, MIN_COMPANIES } from '../model/companyComparison'
 import { LOOKUP_LIMIT, MIN_LOOKUP_LENGTH, nextResultFocus } from '../model/companyPicker'
 
 interface CompanyPickerProps {
@@ -14,6 +14,7 @@ interface CompanyPickerProps {
   nameOf: (corpCode: string) => string
   onAdd: (company: Company) => void
   onRemove: (corpCode: string) => void
+  onFillFavorites?: (companies: readonly Company[]) => void
   /** 더하지 못한 이유(예: 4곳이 차 있음). 없으면 null */
   message: string | null
 }
@@ -29,7 +30,7 @@ interface CompanyPickerProps {
 
 /** 검색 결과에서 키보드로 옮겨 다닐 '더하기' 버튼(이미 고른 기업은 버튼이 없어 건너뜀) */
 const PICK_BUTTON = '[data-pick-button]'
-export function CompanyPicker({ corps, nameOf, onAdd, onRemove, message }: CompanyPickerProps) {
+export function CompanyPicker({ corps, nameOf, onAdd, onRemove, onFillFavorites, message }: CompanyPickerProps) {
   const inputId = useId()
   const hintId = useId()
   const favoritesId = useId()
@@ -185,9 +186,16 @@ export function CompanyPicker({ corps, nameOf, onAdd, onRemove, message }: Compa
 
       {favorites.status === 'ready' && favorites.items.length > 0 && (
         <div className="company-picker__favorites">
-          <p className="company-picker__label" id={favoritesId}>
-            관심 기업에서 고르기
-          </p>
+          <div className="company-picker__favorites-head">
+            <p className="company-picker__label" id={favoritesId}>
+              관심 기업에서 고르기
+            </p>
+            {corps.length === 0 && favorites.items.length >= MIN_COMPANIES && onFillFavorites && (
+              <Button variant="secondary" onClick={() => onFillFavorites(favorites.items)}>
+                {favorites.items.length > MAX_COMPANIES ? `최근 ${MAX_COMPANIES}곳 담기` : '한 번에 담기'}
+              </Button>
+            )}
+          </div>
           <div className="company-picker__chips" role="group" aria-labelledby={favoritesId}>
             {favorites.items.map((company) => {
               const picked = corps.includes(company.corpCode)

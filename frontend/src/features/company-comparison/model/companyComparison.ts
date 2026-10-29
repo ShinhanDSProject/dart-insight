@@ -1,8 +1,11 @@
 import { match } from 'ts-pattern'
+import type { CompanyAnalysisItem } from '@/shared/api/analyses'
 import type { Company } from '@/shared/api/companies'
 import type { FinancialTrend, FsDiv, KeyAccountKey, TrendPeriod, TrendValue } from '@/shared/api/financialTrends'
 import type { ReportType } from '@/shared/api/reports'
+import { compareConditionPath, findMatchingAnalysis } from '@/shared/lib/analysisPairLink'
 import { formatCompactAmount } from '@/shared/lib/chartScale'
+import { MAX_COMPARE_COMPANIES, MIN_COMPARE_COMPANIES, pickComparisonCorps } from '@/shared/lib/companyComparisonLink'
 import { periodRatios, periodSourceRceptNo, RATIO_DEFINITIONS, type RatioResult } from '@/shared/lib/financialRatios'
 
 /**
@@ -10,22 +13,17 @@ import { periodRatios, periodSourceRceptNo, RATIO_DEFINITIONS, type RatioResult 
  * 열은 고른 순서 그대로이고 정렬·순위·최고·최저 강조는 하지 않는다(결정 로그 '열 정렬 허용 여부', 잠정: 정렬 없음).
  */
 
-export const MIN_COMPANIES = 2
-export const MAX_COMPANIES = 4
+export const MIN_COMPANIES = MIN_COMPARE_COMPANIES
+export const MAX_COMPANIES = MAX_COMPARE_COMPANIES
 export const FULL_MESSAGE = `최대 ${MAX_COMPANIES}곳까지 비교할 수 있어요.`
 export const PERIOD_MISMATCH_MESSAGE = '대상 기간이 달라요 · 기업마다 표시한 기간을 확인해 주세요'
 
 const REPORT_TYPES: readonly ReportType[] = ['ANNUAL', 'HALF', 'Q1', 'Q3']
-const CORP_CODE = /^\d{8}$/
 
 /** 주소의 corps(쉼표로 이은 고유번호 8자리). 잘못된 값·겹치는 값은 빼고 앞에서부터 4곳까지 */
 export function parseCorps(value: string | null): string[] {
   if (value === null) return []
-  const codes = value
-    .split(',')
-    .map((code) => code.trim())
-    .filter((code) => CORP_CODE.test(code))
-  return [...new Set(codes)].slice(0, MAX_COMPANIES)
+  return pickComparisonCorps(value.split(','))
 }
 
 /** 주소에 쓰는 corps 값. 비었으면 null(쿼리에서 지움) */
@@ -56,12 +54,25 @@ export function removeCompany(corps: readonly string[], corpCode: string): strin
   return corps.filter((code) => code !== corpCode)
 }
 
+/** 현재 고른 기업 뒤에 관심 기업을 순서대로 중복 없이 최대 4곳까지 채운다(#534) */
+export function fillFavoriteCorps(
+  corps: readonly string[],
+  favorites: readonly Pick<Company, 'corpCode'>[],
+): string[] {
+  return pickComparisonCorps([...corps, ...favorites.map((item) => item.corpCode)])
+}
+
 // --- 기업마다 불러온 결과 ---
 
 /** 한 기업의 기업 정보·주요 재무 흐름. 이름은 기업 정보를 받지 못해도 비워 두고 표는 그대로 그린다 */
 export type CompanyLoad =
   | { status: 'loading' }
-  | { status: 'success'; company: Company | null; trend: FinancialTrend }
+  | {
+      status: 'success'
+      company: Company | null
+      trend: FinancialTrend
+      completedAnalyses?: readonly CompanyAnalysisItem[]
+    }
   | { status: 'error'; company: Company | null; error: unknown }
 
 export type SettledLoad = Exclude<CompanyLoad, { status: 'loading' }>
@@ -162,6 +173,43 @@ interface ColumnBase {
   name: string
 }
 
+export interface ColumnYoyLink {
+  to: string
+  label: string
+  ariaLabel: string
+  reused: boolean
+}
+
+/**
+ * 열 머리글의 전년 동기 비교 동선(#534).
+ * DART 원문 링크(sourceRceptNo)와 달리 두 보고서 비교는 정기보고서 접수번호 쌍(previousPeriod.rceptNo → period.rceptNo)을 쓴다.
+ * 완료된 분석이 이미 있으면 결과 화면 재무 탭으로 바로 연결한다.
+ */
+export function columnYoyLink(
+  corpCode: string,
+  name: string,
+  period: TrendPeriod,
+  previousPeriod: TrendPeriod | null,
+  completedAnalyses: readonly CompanyAnalysisItem[] = [],
+): ColumnYoyLink | null {
+  if (previousPeriod === null || previousPeriod.rceptNo === period.rceptNo) return null
+  const matched = findMatchingAnalysis(completedAnalyses, previousPeriod.rceptNo, period.rceptNo)
+  if (matched !== null) {
+    return {
+      to: `/analyses/${matched.analysisId}?tab=financial`,
+      label: '전년 동기 분석 보기',
+      ariaLabel: `${name} 전년 동기 분석 결과 보기`,
+      reused: true,
+    }
+  }
+  return {
+    to: compareConditionPath(corpCode, previousPeriod.rceptNo, period.rceptNo),
+    label: '전년 동기 비교',
+    ariaLabel: `${name} 전년 동기 보고서 비교`,
+    reused: false,
+  }
+}
+
 export type ComparisonColumn =
   | (ColumnBase & { status: 'loading' })
   | (ColumnBase & { status: 'failed'; error: unknown })
@@ -174,6 +222,8 @@ export type ComparisonColumn =
       previousPeriod: TrendPeriod | null
       /** 값의 근거 공시 접수번호(정정 공시 값이면 그 접수번호) */
       sourceRceptNo: string
+      /** 전년 동기 분석 결과 또는 비교 조건 확인 주소. 직전 연도 보고서가 없으면 null */
+      yoyLink: ColumnYoyLink | null
       newerFailed: boolean
       /** ACCOUNT_ROWS 순서. 응답에 계정이 없으면 null */
       amounts: (TrendValue | null)[]
@@ -201,12 +251,17 @@ export function buildColumns(
     return match<CompanyLoad, ComparisonColumn>(load)
       .with({ status: 'loading' }, () => ({ ...base, status: 'loading' }))
       .with({ status: 'error' }, ({ error }) => ({ ...base, status: 'failed', error }))
-      .with({ status: 'success' }, ({ trend }) => readyColumn(base, trend, type))
+      .with({ status: 'success' }, ({ trend, completedAnalyses }) => readyColumn(base, trend, type, completedAnalyses))
       .exhaustive()
   })
 }
 
-function readyColumn(base: ColumnBase, trend: FinancialTrend, type: ReportType): ComparisonColumn {
+function readyColumn(
+  base: ColumnBase,
+  trend: FinancialTrend,
+  type: ReportType,
+  completedAnalyses: readonly CompanyAnalysisItem[] = [],
+): ComparisonColumn {
   const pick = pickLatestPeriod(trend.periods, type)
   return match<PeriodPick, ComparisonColumn>(pick)
     .with({ status: 'no-report' }, () => ({ ...base, status: 'no-report' }))
@@ -214,12 +269,14 @@ function readyColumn(base: ColumnBase, trend: FinancialTrend, type: ReportType):
     .with({ status: 'fetch-failed' }, () => ({ ...base, status: 'failed', error: null }))
     .with({ status: 'picked' }, ({ index, period, newerFailed }) => {
       const prev = findPreviousPeriod(trend.periods, type, period.fiscalYear)
+      const previousPeriod = prev?.period ?? null
       return {
         ...base,
         status: 'ready',
         period,
-        previousPeriod: prev?.period ?? null,
+        previousPeriod,
         sourceRceptNo: periodSourceRceptNo(period),
+        yoyLink: columnYoyLink(base.corpCode, base.name, period, previousPeriod, completedAnalyses),
         newerFailed,
         amounts: ACCOUNT_ROWS.map(({ key }) => trend.accounts.find((a) => a.key === key)?.values[index] ?? null),
         previousAmounts: prev
