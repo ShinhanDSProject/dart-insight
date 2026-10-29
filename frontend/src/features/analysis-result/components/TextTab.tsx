@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { match, P } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { TextChangeItem, TextSort } from '@/shared/api/textChanges'
@@ -133,16 +133,13 @@ export function TextTab({
   const outsideEvidence = (items: TextChangeItem[]) =>
     selectedChangeId !== null &&
     !items.some((i) => i.changeId === selectedChangeId) && (
-      <div className="change-list__outside">
-        <p className="panel__note">지금 목록에 보이지 않는 항목의 근거예요.</p>
-        <TextEvidencePanel
-          key={selectedChangeId}
-          analysis={analysis}
-          changeId={selectedChangeId}
-          onClose={() => onChange({ change: null })}
-          onOpenSource={onOpenSource}
-        />
-      </div>
+      <TextEvidencePanel
+        key={selectedChangeId}
+        analysis={analysis}
+        changeId={selectedChangeId}
+        onClose={() => onChange({ change: null })}
+        onOpenSource={onOpenSource}
+      />
     )
   const changeList = (items: TextChangeItem[]) => {
     const noted = firstNotedIds(items)
@@ -162,7 +159,7 @@ export function TextTab({
               onToggle={() => toggleEvidence(item.changeId)}
               onClose={() => {
                 onChange({ change: null })
-                // 닫으면 그 항목의 '근거 상세' 버튼으로 초점을 돌려준다
+                // 닫으면 그 항목의 '원문 비교' 버튼으로 초점을 돌려준다
                 requestAnimationFrame(() => document.getElementById(evidenceButtonId(item.changeId))?.focus())
               }}
             />
@@ -408,15 +405,6 @@ function ChangeCard({ item, analysis, showTypeNote, selected, pinned, explanatio
     if (!explainOpen) explanations.request(item.changeId)
     setExplainOpen(!explainOpen)
   }
-  // 이전·현재 문단은 처음에 3줄만 보이고, 실제로 잘린 글이 있을 때만 '문단 펼치기'를 둔다(#390)
-  const sidesRef = useRef<HTMLDivElement>(null)
-  const [textOpen, setTextOpen] = useState(false)
-  const [clipped, setClipped] = useState(false)
-  const sidesId = `text-sides-${item.changeId}`
-  useLayoutEffect(() => {
-    const texts = sidesRef.current?.querySelectorAll<HTMLElement>('.change-side__body') ?? []
-    setClipped(Array.from(texts).some((text) => text.scrollHeight > text.clientHeight + 1))
-  }, [item.previousPreview, item.currentPreview])
   return (
     <Card
       as="article"
@@ -451,11 +439,8 @@ function ChangeCard({ item, analysis, showTypeNote, selected, pinned, explanatio
           {item.reviewReason ?? '두 보고서의 항목을 짝짓지 못했어요.'} 빠진 것으로 숨기지 않고 여기에 보여 줘요.
         </p>
       ) : (
-        <div
-          ref={sidesRef}
-          id={sidesId}
-          className={`change-card__sides${textOpen ? '' : ' change-card__sides--clamped'}`}
-        >
+        // 카드에는 이전·현재 문단을 3줄씩만 보이고, 전체는 '원문 비교' 창에서 본다(#507)
+        <div className="change-card__sides change-card__sides--clamped">
           <SidePreview
             role={`이전 · ${analysis.previous.reportName}`}
             text={item.previousPreview}
@@ -474,19 +459,8 @@ function ChangeCard({ item, analysis, showTypeNote, selected, pinned, explanatio
       {showTypeNote && item.changeType === 'DELETED' && <p className="panel__note">{DELETED_NOTE}</p>}
       <MovedPaths item={item} withNote={showTypeNote} />
       <div className="change-card__actions">
-        {!review && (clipped || textOpen) && (
-          <Button
-            variant="secondary"
-            className="change-card__expand"
-            aria-expanded={textOpen}
-            aria-controls={sidesId}
-            onClick={() => setTextOpen((open) => !open)}
-          >
-            {textOpen ? '문단 접기' : '문단 펼치기'}
-          </Button>
-        )}
-        <Button variant="secondary" id={evidenceButtonId(item.changeId)} aria-expanded={selected} onClick={onToggle}>
-          {selected ? '근거 닫기' : '근거 상세'}
+        <Button variant="secondary" id={evidenceButtonId(item.changeId)} aria-haspopup="dialog" onClick={onToggle}>
+          원문 비교
         </Button>
         <Button
           variant="secondary"

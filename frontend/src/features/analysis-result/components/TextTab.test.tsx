@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { useState } from 'react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Analysis } from '@/shared/api/analyses'
 import type { TextChangeCounts, TextChangeItem, TextChangeList } from '@/shared/api/textChanges'
@@ -25,6 +26,8 @@ vi.mock('../hooks/useTextChanges', () => ({
     reload: () => {},
     loadMore: () => {},
   }),
+  // 원문 비교 창의 내용은 TextEvidencePanel 테스트가 본다. 여기서는 창이 열리고 닫히는 것만 본다
+  useTextChangeDetail: () => ({ state: { status: 'loading' }, reload: () => {} }),
 }))
 vi.mock('../hooks/usePinnedChanges', () => ({
   usePinnedChanges: () => ({
@@ -177,36 +180,60 @@ describe('TextTab 카드 키보드 검토', () => {
   })
 })
 
-describe('TextTab 문단 줄이기(#390)', () => {
-  it('문단이 3줄을 넘어 잘리면 문단 펼치기를 두고, 누르면 전체를 보였다가 다시 접는다', () => {
-    // jsdom은 높이를 계산하지 않으므로 글 상자가 잘린 것처럼 높이를 준다
-    const scroll = vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockImplementation(function (this: HTMLElement) {
-      return this.classList.contains('change-side__body') ? 120 : 0
-    })
-    const client = vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(function (this: HTMLElement) {
-      return this.classList.contains('change-side__body') ? 72 : 0
-    })
-    try {
-      const { cards } = renderTab()
-      const expand = cards[0].querySelector<HTMLButtonElement>('.change-card__expand')!
-      expect(expand.textContent).toBe('문단 펼치기')
-      expect(expand.getAttribute('aria-expanded')).toBe('false')
-      const sides = document.getElementById(expand.getAttribute('aria-controls')!)!
-      expect(sides.classList.contains('change-card__sides--clamped')).toBe(true)
+describe('TextTab 원문 비교(#507)', () => {
+  // 주소의 tc처럼 고른 항목을 실제로 바꾸는 화면
+  function Harness({ initial }: { initial: number | null }) {
+    const [selected, setSelected] = useState<number | null>(initial)
+    return (
+      <main>
+        <TextTab
+          analysis={analysis}
+          type={null}
+          sort="priority"
+          section={null}
+          q={null}
+          risk={false}
+          pinned={false}
+          selectedChangeId={selected}
+          onChange={(change) => {
+            if ('change' in change) setSelected(change.change ?? null)
+          }}
+          onOpenSource={() => {}}
+          onAsk={() => {}}
+          asking={false}
+        />
+      </main>
+    )
+  }
 
-      fireEvent.click(expand)
-      expect(expand.textContent).toBe('문단 접기')
-      expect(expand.getAttribute('aria-expanded')).toBe('true')
-      expect(sides.classList.contains('change-card__sides--clamped')).toBe(false)
-    } finally {
-      scroll.mockRestore()
-      client.mockRestore()
-    }
+  it('카드에서 열면 창이 뜨고, Esc로 닫으면 창이 사라지고 그 카드의 원문 비교로 초점이 돌아온다', async () => {
+    list.items = [item(1, '1. 사업의 개요'), item(2, '2. 주요 제품')]
+    render(<Harness initial={null} />)
+    const button = within(screen.getAllByRole('article')[1]).getByRole('button', { name: '원문 비교' })
+    button.focus()
+    fireEvent.click(button)
+
+    const dialog = screen.getByRole('dialog', { name: '원문 비교' })
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    await waitFor(() => expect(document.activeElement).toBe(button))
   })
 
-  it('문단이 잘리지 않으면 문단 펼치기를 두지 않는다', () => {
-    const { cards } = renderTab()
-    expect(cards[0].querySelector('.change-card__expand')).toBeNull()
+  it('지금 목록에 없는 항목을 주소로 고르면 같은 창이 열린다', () => {
+    list.items = [item(1, '1. 사업의 개요')]
+    render(<Harness initial={99} />)
+    expect(screen.getByRole('dialog', { name: '원문 비교' })).toBeTruthy()
+  })
+
+  it('카드에는 문단 펼치기가 없고, 원문 비교를 누르면 그 항목을 고른다', () => {
+    const { cards, onChange } = renderTab()
+    expect(cards[0].textContent).not.toContain('문단 펼치기')
+    expect(cards[0].querySelector('.change-card__sides--clamped')).not.toBeNull()
+    const button = within(cards[0]).getByRole('button', { name: '원문 비교' })
+    expect(button.getAttribute('aria-haspopup')).toBe('dialog')
+    fireEvent.click(button)
+    expect(onChange).toHaveBeenCalledWith({ change: 1 })
   })
 })
 

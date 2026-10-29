@@ -791,7 +791,7 @@
   color: var(--color-text-muted);
 }
 
-/* 처음에는 문단을 3줄까지만 보인다(#390). '문단 펼치기'를 누르면 전체 */
+/* 카드에는 문단을 3줄까지만 보인다(#390). 전체는 '원문 비교' 창에서 본다(#507) */
 .change-card__sides--clamped .change-side__body {
   display: -webkit-box;
   overflow: hidden;
@@ -1021,6 +1021,11 @@
   padding: var(--space-4);
 }
 
+/* 문장·표 근거 상세(3.4)를 띄우는 '원문 비교' 창(#507). 이전·현재 문단을 나란히 넓게 보여 준다 */
+.dialog.text-compare-dialog {
+  width: min(960px, 100%);
+}
+
 /* 문장·표 근거 상세(3.4) */
 .text-evidence__sources {
   align-items: start;
@@ -1138,12 +1143,6 @@
   color: inherit;
   text-decoration: underline;
   text-underline-offset: 3px;
-}
-
-.change-list__outside {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
 }
 
 .text-evidence__links {

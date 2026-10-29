@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Analysis } from '@/shared/api/analyses'
 import type { ChangeType, TextChangeDetail, TextSource } from '@/shared/api/textChanges'
@@ -101,7 +101,21 @@ describe('TextEvidencePanel 바뀐 숫자', () => {
 
   it('바뀐 숫자 줄이 있는 근거 패널에 접근성 위반이 없다', async () => {
     given('NUMERIC_UPDATE', previousText, currentText)
-    const { container } = renderPanel()
-    expect(await axeViolations(container)).toBe('')
+    renderPanel()
+    // 창은 body에 띄우므로 body 전체를 검사한다
+    expect(await axeViolations(document.body)).toBe('')
+  })
+})
+
+describe('TextEvidencePanel 원문 비교 창(#507)', () => {
+  it('원문 비교 창으로 뜨고, 닫기와 Esc로 닫는다', () => {
+    given('NUMERIC_UPDATE', previousText, currentText)
+    const onClose = vi.fn()
+    render(<TextEvidencePanel analysis={analysis} changeId={31} onClose={onClose} onOpenSource={() => {}} />)
+
+    const dialog = screen.getByRole('dialog', { name: '원문 비교' })
+    fireEvent.click(within(dialog).getByRole('button', { name: '닫기' }))
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+    expect(onClose).toHaveBeenCalledTimes(2)
   })
 })
