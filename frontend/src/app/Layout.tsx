@@ -1,8 +1,9 @@
-import { Link, Outlet, useLocation, useMatches, useNavigate, useParams } from 'react-router'
+import { Link, Outlet, useLocation, useMatches, useParams } from 'react-router'
 import { match } from 'ts-pattern'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { Icon, type IconName } from '@/shared/ui/Icon'
-import { useOnboarding } from '@/shared/hooks/useOnboarding'
+import { useCurrentCompany } from '@/shared/hooks/useCurrentCompany'
+import { compareLink, isCurrentRoute, sourceLink, type CurrentCompany } from '@/shared/lib/currentCompany'
 import { useAuth } from '@/shared/auth/authContext'
 import { NotificationMenu } from '@/features/notifications/components/NotificationMenu'
 import { NotificationSignInLink } from '@/features/notifications/components/NotificationSignInLink'
@@ -27,29 +28,21 @@ interface NavItem {
   section: Section
   label: string
   icon: IconName
-  /** 지금 화면에서 갈 곳이 없으면 null(누를 수 없게 보여 줌) */
-  to: string | null
-  hint?: string
+  to: string
 }
 
 /**
  * 화면 골격: 왼쪽 메뉴, 상단 헤더(경로 표시), 본문, 하단 출처·안내 줄.
- * 메뉴의 선택 상태와 이동할 곳은 주소만 보고 정한다(데이터를 따로 불러오지 않음).
+ * 왼쪽 메뉴는 어디서나 쓰는 공통 메뉴와, 마지막으로 연 기업에 딸린 '지금 보는 기업' 묶음으로 나눈다(#502).
+ * 선택 상태는 주소로, 기업 묶음은 기업·분석 화면이 남긴 값으로 정한다(데이터를 따로 불러오지 않음).
  */
 export function Layout() {
   const { pathname, search } = useLocation()
   const { corpCode, analysisId } = useParams()
   const crumb = useCrumb()
   const auth = useAuth()
-  const navigate = useNavigate()
-  const onboarding = useOnboarding()
   const theme = useTheme()
-
-  /** 사용법 안내(FS-10)를 다시 열고, 안내가 보이는 검색 첫 화면(검색어 없음)으로 간다 */
-  function showGuideAgain() {
-    onboarding.reopen()
-    navigate('/')
-  }
+  const current = useCurrentCompany()
 
   const onResult = analysisId !== undefined && !pathname.endsWith('/progress')
   const tab = new URLSearchParams(search).get('tab')
@@ -59,19 +52,6 @@ export function Layout() {
 
   const items: NavItem[] = [
     { section: 'search', label: '기업 찾기', icon: 'search', to: '/' },
-    {
-      section: 'compare',
-      label: '공시 비교',
-      icon: 'columns-2',
-      to: compareTarget(corpCode, analysisId),
-    },
-    {
-      section: 'source',
-      label: '원문 확인',
-      icon: 'file-search',
-      to: analysisId !== undefined ? `/analyses/${encodeURIComponent(analysisId)}?tab=source` : null,
-      hint: '분석 결과에서 열 수 있어요',
-    },
     {
       section: 'companies',
       label: '기업 나란히 보기',
@@ -105,34 +85,12 @@ export function Layout() {
           <ul className="app-nav__list">
             {items.map((item) => (
               <li key={item.section}>
-                {item.to === null ? (
-                  <span className="app-nav__item app-nav__item--disabled" aria-disabled="true" title={item.hint}>
-                    <Icon name={item.icon} />
-                    {item.label}
-                  </span>
-                ) : (
-                  <Link
-                    to={item.to}
-                    className="app-nav__item"
-                    aria-current={active === item.section ? 'page' : undefined}
-                  >
-                    <Icon name={item.icon} />
-                    {item.label}
-                  </Link>
-                )}
+                <NavLink item={item} active={active} />
               </li>
             ))}
           </ul>
+          <CompanyNav company={current} active={current !== null && isCurrentRoute(current, { corpCode, analysisId }) ? active : null} />
         </nav>
-
-        <div className="app-guide">
-          <Icon name="book-open" />
-          <p className="app-guide__title">변화는 비교하고, 근거는 직접 확인하세요.</p>
-          <p className="app-guide__text">공시 기재 내용에 한정해 숫자와 문장을 연결합니다.</p>
-          <Button variant="link" className="app-guide__action" onClick={showGuideAgain}>
-            사용법 다시 보기
-          </Button>
-        </div>
       </aside>
 
       <div className="app-workspace">
@@ -198,6 +156,45 @@ export function Layout() {
   )
 }
 
+function NavLink({ item, active }: { item: NavItem; active: Section | null }) {
+  return (
+    <Link to={item.to} className="app-nav__item" aria-current={active === item.section ? 'page' : undefined}>
+      <Icon name={item.icon} />
+      {item.label}
+    </Link>
+  )
+}
+
+/** '지금 보는 기업' 묶음(#502). 기업을 연 적이 없으면 안내 글만, 분석이 없으면 '원문 확인' 없이 보인다 */
+function CompanyNav({ company, active }: { company: CurrentCompany | null; active: Section | null }) {
+  if (company === null) {
+    return <p className="app-nav__placeholder">기업을 열면 여기에 공시 비교·원문 확인이 생겨요.</p>
+  }
+  const source = sourceLink(company)
+  const items: NavItem[] = [
+    { section: 'compare', label: '공시 비교', icon: 'columns-2', to: compareLink(company) },
+    ...(source === null ? [] : [{ section: 'source' as const, label: '원문 확인', icon: 'file-search' as const, to: source }]),
+  ]
+  return (
+    <div className="app-nav__group" role="group" aria-labelledby="app-nav-company-title">
+      <p className="app-nav__title" id="app-nav-company-title">
+        지금 보는 기업
+      </p>
+      <p className="app-nav__company">
+        {company.corpName}
+        {company.stockCode && <span className="app-nav__company-code">{company.stockCode}</span>}
+      </p>
+      <ul className="app-nav__list app-nav__list--sub">
+        {items.map((item) => (
+          <li key={item.section}>
+            <NavLink item={item} active={active} />
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 /** 지금 주소에 해당하는 메뉴. 분석 결과의 원문 탭은 '원문 확인', 그 밖의 기업·분석 화면은 '공시 비교' */
 function activeSection(pathname: string, onSourceTab: boolean, onCompare: boolean): Section | null {
   if (pathname === '/') return 'search'
@@ -212,13 +209,6 @@ function shortcutPageOf(pathname: string, onResult: boolean): ShortcutPage {
   if (pathname === '/') return 'search'
   if (onResult) return 'result'
   return 'other'
-}
-
-/** '공시 비교' 메뉴가 갈 곳. 보고 있는 기업이나 분석이 있으면 그 화면, 없으면 검색 첫 화면 */
-function compareTarget(corpCode: string | undefined, analysisId: string | undefined): string {
-  if (corpCode !== undefined) return `/companies/${encodeURIComponent(corpCode)}`
-  if (analysisId !== undefined) return `/analyses/${encodeURIComponent(analysisId)}`
-  return '/'
 }
 
 /** 가장 안쪽 경로의 handle.crumb(router.tsx) */
