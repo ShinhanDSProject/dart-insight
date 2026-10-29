@@ -10,6 +10,7 @@ public enum ErrorCode {
     AUTH_INVALID_CREDENTIALS(401, "이메일 또는 비밀번호를 확인해 주세요."),
     AUTH_INVALID_REFRESH_TOKEN(401, "로그인 정보가 만료되었습니다. 다시 로그인해 주세요."),
     AUTH_UNAUTHORIZED(401, "로그인이 필요합니다."),
+    AUTH_FORBIDDEN(403, "관리자만 쓸 수 있습니다."),
     COMMON_NOT_FOUND(404, "요청한 주소를 찾을 수 없습니다."),
     COMMON_METHOD_NOT_ALLOWED(405, "지원하지 않는 요청 방식입니다."),
     COMMON_INTERNAL_ERROR(500, "서버에서 오류가 발생했습니다."),
@@ -34,7 +35,9 @@ public enum ErrorCode {
     DART_RATE_LIMITED(503, "OpenDART 호출 한도를 넘었습니다. 저장된 자료만 볼 수 있습니다."),
     DART_KEY_MISSING(503, "서버에 OpenDART 인증키가 설정되지 않았습니다."),
 
-    AI_SERVER_UNAVAILABLE(503, "AI 서버가 응답하지 않습니다. 잠시 뒤 다시 시도해 주세요.");
+    AI_SERVER_UNAVAILABLE(503, "AI 서버가 응답하지 않습니다. 잠시 뒤 다시 시도해 주세요."),
+
+    COMMUNITY_NICKNAME_TAKEN(409, "다른 사람이 쓰는 닉네임입니다.");
 
     private final int status;
     private final String defaultMessage;

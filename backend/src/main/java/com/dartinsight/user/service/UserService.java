@@ -2,8 +2,18 @@ package com.dartinsight.user.service;
 
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
+import com.dartinsight.user.domain.Nickname;
+import com.dartinsight.user.domain.User;
+import com.dartinsight.user.domain.UserProfile;
+import com.dartinsight.user.repository.LocalCredentialRepository;
+import com.dartinsight.user.repository.SocialAccountRepository;
 import com.dartinsight.user.repository.UserRepository;
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class UserService {
     private final UserRepository users;
+    private final LocalCredentialRepository credentials;
+    private final SocialAccountRepository socialAccounts;
+    private final Clock clock;
 
     @Transactional(readOnly = true)
     public void requireExisting(long userId) {
@@ -26,5 +39,52 @@ public class UserService {
     @Transactional(propagation = Propagation.MANDATORY)
     public void lock(long userId) {
         users.findByIdForUpdate(userId).orElseThrow(() -> new ApiException(ErrorCode.AUTH_UNAUTHORIZED));
+    }
+
+    @Transactional(readOnly = true)
+    public UserProfile profile(long userId) {
+        return UserProfile.from(findOrThrow(userId));
+    }
+
+    /** 관리자 확인(ADR-0040). 회원 행이 없으면 관리자가 아니다. */
+    @Transactional(readOnly = true)
+    public boolean isAdmin(long userId) {
+        return users.findById(userId).map(User::isAdmin).orElse(false);
+    }
+
+    /** 닉네임을 정하거나 바꾼다. 다른 사람이 쓰는 닉네임이면 409(동시에 정하면 DB UNIQUE가 하나만 남긴다). */
+    @Transactional
+    public String changeNickname(long userId, Object rawNickname) {
+        String nickname = Nickname.of(rawNickname);
+        User user = findOrThrow(userId);
+        if (users.existsByNicknameIgnoreCaseAndIdNot(nickname, userId)) throw nicknameTaken();
+        user.changeNickname(nickname, LocalDateTime.now(clock));
+        try {
+            users.saveAndFlush(user);
+        } catch (DataIntegrityViolationException e) {
+            throw nicknameTaken();
+        }
+        return user.getNickname();
+    }
+
+    /** 이 회원이 소유를 확인한 이메일(일반 가입·소셜). 관리자 지정에만 쓴다(ADR-0040). */
+    @Transactional(readOnly = true)
+    public List<String> verifiedEmails(long userId) {
+        return Stream.concat(credentials.findVerifiedEmails(userId).stream(),
+                socialAccounts.findVerifiedEmails(userId).stream()).toList();
+    }
+
+    /** 관리자로 올린다. 이미 관리자였으면 false. */
+    @Transactional
+    public boolean grantAdmin(long userId) {
+        return findOrThrow(userId).grantAdmin(LocalDateTime.now(clock));
+    }
+
+    private User findOrThrow(long userId) {
+        return users.findById(userId).orElseThrow(() -> new ApiException(ErrorCode.AUTH_UNAUTHORIZED));
+    }
+
+    private ApiException nicknameTaken() {
+        return new ApiException(ErrorCode.COMMUNITY_NICKNAME_TAKEN);
     }
 }
