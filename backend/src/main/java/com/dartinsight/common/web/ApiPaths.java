@@ -57,6 +57,8 @@ public final class ApiPaths {
     public static final String COMPANY_OUTLOOK = COMPANIES + "/{corpCode}/outlook";
     /** 약속과 실제 대조(FS-60, ADR-0041) */
     public static final String COMPANY_PLAN_FOLLOWUPS = COMPANIES + "/{corpCode}/plan-followups";
+    /** 재무 체크 포인트(FS-62) */
+    public static final String COMPANY_CHECKPOINTS = COMPANIES + "/{corpCode}/checkpoints";
     /** 사업보고서에 근거해 묻기(FS-53) */
     public static final String COMPANY_QUESTIONS = COMPANIES + "/{corpCode}/questions";
     public static final String REPORT_BY_RCEPT_NO = "/reports/{rceptNo}";
