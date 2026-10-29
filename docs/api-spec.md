@@ -34,7 +34,7 @@
 }
 ```
 
-`errors`는 입력값 검증 실패일 때만 들어 있고, 그 밖에는 빈 배열입니다.
+`errors`는 입력값 검증 실패일 때만 들어 있고, 그 밖에는 빈 배열입니다. 본문에는 이 네 필드만 둡니다(필드를 더하지 않음). 에러와 함께 넘겨야 하는 부가 정보는 응답 헤더로 줍니다(예: 내부 API의 `X-Llm-Calls`, 3절).
 
 요청 본문(JSON)의 값을 정해진 타입으로 읽을 수 없으면 `errors[].field`에 JSON 경로(예: `basis`, `items[1].type`)를 넣고, enum이면 `reason`에 허용 값을 적습니다(예: `{ "field": "basis", "reason": "허용 값: YOY, PREV, CUSTOM" }`). 그 밖의 타입 오류는 `"값의 형식이 맞지 않습니다."`입니다. JSON 자체가 깨졌으면 필드를 알 수 없어 `errors`는 빈 배열이고 `message`는 `"요청 본문을 읽을 수 없습니다. JSON 형식을 확인해 주세요."`입니다.
 
@@ -1763,8 +1763,8 @@
 | --- | --- | --- |
 | `ANALYSIS_NOT_COMPARABLE` | 실행 중 다시 확인했을 때 비교할 수 없음 | false |
 | `ANALYSIS_EVIDENCE_MISMATCH` | 근거 확인 실패(값의 근거가 그 보고서가 아니거나 증감액이 두 값의 차와 다름) | true |
-| `ANALYSIS_SUMMARY_FAILED` | 요약에 LLM이 필요한데 AI 서버나 LLM을 부를 수 없음(0.7). 요약 없는 결과를 완료로 보이지 않음 | true |
-| `ANALYSIS_SAVE_FAILED` | 결과 저장 실패. 완료로 표시하지 않음 | true |
+| `ANALYSIS_SUMMARY_FAILED` | 요약에 LLM이 필요한데 AI 서버나 LLM을 부를 수 없음(0.7). 요약 없는 결과를 완료로 보이지 않음. 그때까지의 LLM 호출 기록은 남김(#137) | true |
+| `ANALYSIS_SAVE_FAILED` | 결과 저장 실패. 완료로 표시하지 않음. 받은 요약의 LLM 호출 기록은 따로 남김(#137) | true |
 | `ANALYSIS_FAILED` | 알 수 없는 오류 | true |
 | `ANALYSIS_BUSY` | 분석 요청이 많아 대기열에 넣지 못함 | true |
 | `ANALYSIS_INTERRUPTED` | 실행 중에 서버가 다시 시작됨(서버가 뜰 때 끝나지 않은 작업을 실패로 바꿈) | true |
@@ -2548,7 +2548,9 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
     ],
     "perUnit": {
       "analysis": { "count": 2, "avgInputTokens": 4500, "avgOutputTokens": 600, "avgCostUsd": null },
-      "briefing": { "count": 0, "avgInputTokens": null, "avgOutputTokens": null, "avgCostUsd": null }
+      "briefing": { "count": 0, "avgInputTokens": null, "avgOutputTokens": null, "avgCostUsd": null },
+      "outlook": { "count": 1, "avgInputTokens": null, "avgOutputTokens": null, "avgCostUsd": null },
+      "planFollowup": { "count": 0, "avgInputTokens": null, "avgOutputTokens": null, "avgCostUsd": null }
     }
   }
 }
@@ -2560,7 +2562,7 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 - `llmCalls`: 다시 만든 호출도 한 번씩 셉니다. `byOutcome`은 `OK`·`INVALID_OUTPUT`·`TRANSIENT_ERROR`·`ERROR`(그 밖의 값이 기록돼 있으면 그 값도 키로 들어감). `byTask`는 작업(`summary`, `answer`, `explanation` 등) 이름 순서이고 기록이 없으면 빈 배열입니다. `inputTokens`·`outputTokens`는 제공자가 알려 준 호출의 토큰 합이고, 그 작업의 호출이 모두 토큰을 모르면 null입니다.
 - `llmCalls.byModel`: 제공자·모델(`llm_call.provider`·`model`)별 호출 수·토큰 합(#349, FS-50). 제공자, 모델 이름 순서이고 기록이 없으면 빈 배열입니다. 가짜 제공자(`fake`)와 실제 제공자(`openai` 등)를 따로 셉니다. `byTask`는 그 모델 안의 작업별 집계로 위 `byTask`와 같은 모양·순서입니다. 토큰이 null인 규칙도 위와 같습니다.
 - `estimatedCostUsd`: 추정 비용(USD). backend 설정 `app.ai-usage.prices`(`제공자:모델` → 100만 토큰당 입력·출력 USD, 공식 가격 페이지 값)에 그 모델의 가격이 있을 때만 코드가 계산합니다: (입력 토큰 × 입력 단가 + 출력 토큰 × 출력 단가) ÷ 1,000,000, 소수 넷째 자리 반올림. 토큰을 모르는 호출은 0으로 더합니다. 가격 설정이 없거나(`fake` 포함) 입력·출력 토큰이 모두 null이면 null입니다(0과 구분). 가격은 추측해 넣지 않습니다.
-- `llmCalls.perUnit`: 작업 단위 1건당 평균. `analysis`는 기간 안에 호출이 하나라도 있는 분석(`llm_call.analysis_id`가 같은 호출 묶음), `briefing`은 같은 기준의 기업 브리핑(`company_briefing_id`)입니다. 기간 밖의 호출은 넣지 않습니다. `count`는 그 단위 수, `avgInputTokens`·`avgOutputTokens`는 단위들의 토큰 합 ÷ `count`(정수로 반올림), `avgCostUsd`는 단위들의 추정 비용 합 ÷ `count`(소수 넷째 자리 반올림)입니다. `count`가 0이거나 토큰을 모두 모르면 평균은 null이고, 그 단위들의 호출 중 가격 설정이 없는 모델(`fake` 등)의 호출이 하나라도 있으면 `avgCostUsd`는 null입니다(일부만 더한 값을 비용처럼 보이지 않음).
+- `llmCalls.perUnit`: 작업 단위 1건당 평균. `analysis`는 기간 안에 호출이 하나라도 있는 분석(`llm_call.analysis_id`가 같은 호출 묶음), `briefing`은 같은 기준의 기업 브리핑(`company_briefing_id`), `outlook`은 회사가 밝힌 전망·계획(`company_outlook_id`, task `outlook`, FS-59), `planFollowup`은 약속과 실제 대조(`plan_followup_id`, task `plan_followup`, FS-60)입니다(`outlook`·`planFollowup`은 #137 PR에서 더함). 분석의 단위에는 실패한 분석의 호출(#137)도 들어갑니다. 기간 밖의 호출은 넣지 않습니다. `count`는 그 단위 수, `avgInputTokens`·`avgOutputTokens`는 단위들의 토큰 합 ÷ `count`(정수로 반올림), `avgCostUsd`는 단위들의 추정 비용 합 ÷ `count`(소수 넷째 자리 반올림)입니다. `count`가 0이거나 토큰을 모두 모르면 평균은 null이고, 그 단위들의 호출 중 가격 설정이 없는 모델(`fake` 등)의 호출이 하나라도 있으면 `avgCostUsd`는 null입니다(일부만 더한 값을 비용처럼 보이지 않음).
 
 **에러**
 
@@ -2571,6 +2573,8 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 ## 3. 내부 API (Spring Boot → FastAPI)
 
 외부에 열지 않습니다. 요청 헤더에 항상 `X-Trace-Id`를 넣습니다. 에러 형식은 외부 API와 같습니다. AI 서버만 쓰는 에러 코드는 `AI_`로 시작합니다(아래 표).
+
+**실패한 요청의 LLM 호출 기록(`X-Llm-Calls`, #137, [ADR-0042](adr/0042-failed-llm-calls-in-response-header.md))**: LLM을 부르다 끝내 쓸 수 없게 된 요청(503 `AI_LLM_UNAVAILABLE`)도 그때까지 부른 기록이 있으면 응답 헤더 `X-Llm-Calls`에 담습니다. 값은 호출 기록 배열(200 응답의 `calls`와 같은 객체 모양)을 UTF-8 JSON으로 만든 뒤 base64url(패딩 있음)로 바꾼 글자입니다. 기록이 없으면(제공자 미설정 등) 헤더를 넣지 않습니다. 에러 본문은 공통 형식 그대로입니다. 지금은 `POST /internal/summaries`만 넣고, backend는 분석 실패 때 이 기록을 `llm_call`에 저장합니다.
 
 | 메서드 | 경로 | 설명 | 이슈 | 상태 |
 | --- | --- | --- | --- | --- |
@@ -2587,7 +2591,7 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 | code | 상태 | 뜻 |
 | --- | --- | --- |
 | `AI_DOCUMENT_TOO_LARGE` | 413 | 원문 ZIP이 80MB를 넘음 |
-| `AI_LLM_UNAVAILABLE` | 503 | LLM 제공자가 설정되지 않았거나 다시 시도해도 응답하지 않음(0.7). backend는 분석을 `ANALYSIS_SUMMARY_FAILED`로 끝냄 |
+| `AI_LLM_UNAVAILABLE` | 503 | LLM 제공자가 설정되지 않았거나 다시 시도해도 응답하지 않음(0.7). backend는 분석을 `ANALYSIS_SUMMARY_FAILED`로 끝내고, 헤더 `X-Llm-Calls`의 호출 기록은 `llm_call`에 저장함(#137) |
 
 ### GET /internal/documents/parser — 원문 파서 버전
 
@@ -2772,7 +2776,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | 상태 | code | 언제 |
 | --- | --- | --- |
 | 400 | `COMMON_INVALID_INPUT` | `ref`가 겹침, 필드 누락 |
-| 503 | `AI_LLM_UNAVAILABLE` | LLM을 쓸 수 없음 |
+| 503 | `AI_LLM_UNAVAILABLE` | LLM을 쓸 수 없음. 그때까지 부른 기록은 응답 헤더 `X-Llm-Calls`(3절 첫머리) |
 
 ### POST /internal/answers — 근거로 답하기
 
