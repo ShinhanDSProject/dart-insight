@@ -261,21 +261,18 @@ export function calculateAmountYoy(
   const cur = currentVal.amount
   const prev = previousVal.amount
 
-  if (cur === prev) return '전년과 같음 (0.0%)'
-  if (prev === 0) return '전년 대비 (전년 0)'
-
   const isProfit = key === 'OPERATING_INCOME' || key === 'NET_INCOME'
-  if (isProfit) {
-    if (prev < 0 && cur > 0) return '전년 대비 흑자 전환'
-    if (prev > 0 && cur < 0) return '전년 대비 적자 전환'
-    if (prev < 0 && cur <= 0) return '전년 대비 (전년 음수)'
-  } else {
-    if (prev < 0) return '전년 대비 (전년 음수)'
-  }
 
-  if (prev > 0 && cur < 0) {
+  if (prev === 0) return '전년 대비 (전년 0)'
+  if (prev < 0) {
+    if (isProfit && cur > 0) return '전년 대비 흑자 전환'
     return '전년 대비 (전년 음수)'
   }
+  if (cur < 0) {
+    if (isProfit) return '전년 대비 적자 전환'
+    return '전년 대비 (음수 전환)'
+  }
+  if (cur === prev) return '전년과 같음 (0.0%)'
 
   const rate = ((cur - prev) / prev) * 100
   const rounded = Math.round(Math.abs(rate) * 10) / 10

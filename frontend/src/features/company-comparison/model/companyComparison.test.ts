@@ -376,10 +376,13 @@ describe('전년 동기 대비 증감률 및 변동폭 계산', () => {
 
   it('주요계정의 이전 값 0, 흑자 전환, 적자 전환, 전년 음수를 사유로 구분한다', () => {
     expect(calculateAmountYoy('REVENUE', val(100), val(0), true)).toBe('전년 대비 (전년 0)')
+    expect(calculateAmountYoy('REVENUE', val(0), val(0), true)).toBe('전년 대비 (전년 0)')
     expect(calculateAmountYoy('OPERATING_INCOME', val(50), val(-30), true)).toBe('전년 대비 흑자 전환')
     expect(calculateAmountYoy('NET_INCOME', val(-20), val(80), true)).toBe('전년 대비 적자 전환')
     expect(calculateAmountYoy('OPERATING_INCOME', val(-40), val(-10), true)).toBe('전년 대비 (전년 음수)')
+    expect(calculateAmountYoy('OPERATING_INCOME', val(-10), val(-10), true)).toBe('전년 대비 (전년 음수)')
     expect(calculateAmountYoy('TOTAL_EQUITY', val(50), val(-20), true)).toBe('전년 대비 (전년 음수)')
+    expect(calculateAmountYoy('TOTAL_EQUITY', val(-20), val(50), true)).toBe('전년 대비 (음수 전환)')
   })
 
   it('재무 비율의 전년 대비 변동폭(%p)을 계산한다', () => {

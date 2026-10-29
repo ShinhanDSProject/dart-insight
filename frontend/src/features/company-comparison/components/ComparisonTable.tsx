@@ -2,7 +2,7 @@ import { match } from 'ts-pattern'
 import { Link } from 'react-router'
 import type { ReportType } from '@/shared/api/reports'
 import { dartViewerUrl } from '@/shared/lib/dart'
-import { formatRatio, ratioReasonLabel } from '@/shared/lib/financialRatios'
+import { formatRatio, periodSourceRceptNo, ratioReasonLabel } from '@/shared/lib/financialRatios'
 import { periodLabel, reportTypeLabel } from '@/shared/lib/reportLabels'
 import { Button, DataTable } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
@@ -119,6 +119,7 @@ function ColumnHead({ column }: { column: ComparisonColumn }) {
 function ReadyHead({ column }: { column: ReadyColumn }) {
   const { period, previousPeriod, sourceRceptNo } = column
   const corrected = sourceRceptNo !== period.rceptNo
+  const prevSourceRceptNo = previousPeriod ? periodSourceRceptNo(previousPeriod) : null
   return (
     <>
       <span className="company-compare__meta">{period.reportName}</span>
@@ -143,9 +144,9 @@ function ReadyHead({ column }: { column: ReadyColumn }) {
         >
           기업 개요
         </Link>
-        {previousPeriod && (
+        {previousPeriod && prevSourceRceptNo && (
           <Link
-            to={`/companies/${encodeURIComponent(column.corpCode)}/compare?current=${encodeURIComponent(period.rceptNo)}&previous=${encodeURIComponent(previousPeriod.rceptNo)}&basis=YOY`}
+            to={`/companies/${encodeURIComponent(column.corpCode)}/compare?current=${encodeURIComponent(sourceRceptNo)}&previous=${encodeURIComponent(prevSourceRceptNo)}&basis=YOY`}
             className="company-compare__link"
             aria-label={`${column.name} 전년 동기 보고서 비교`}
           >
