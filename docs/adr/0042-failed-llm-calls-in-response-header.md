@@ -1,7 +1,7 @@
 # ADR-0042: LLM을 쓸 수 없어 실패한 요약 요청의 호출 기록은 에러 응답 헤더로 넘기고, backend는 분석을 실패로 끝낼 때도 llm_call에 저장한다
 
 - 상태: 채택
-- 결정한 날: 2026-10-27
+- 결정한 날: 2026-10-29
 - 관련: [이슈 #137](https://github.com/ShinhanDSProject/dart-insight/issues/137)(3.2), #113·#117(ADR 코드 대조 검토), [ADR-0004](0004-async-analysis-job.md), [ADR-0005](0005-error-format-and-trace-id.md), [ADR-0008](0008-single-llm-module.md)(이 ADR이 '호출 기록은 분석이 완료될 때만 저장' 부분을 대체), backend `conventions.yaml` EXC-4·LY-2
 
 ## 맥락
