@@ -328,4 +328,119 @@ describe('여러 기업 나란히 보기', () => {
     expect(location()).toBe('?corps=00126380,00164779')
     expect(screen.getByRole('button', { name: 'SK하이닉스' }).getAttribute('aria-pressed')).toBe('true')
   })
+
+  it('전년 동기 보고서가 있으면 전년 대비 증감률·변동폭을 보조 줄로 표시하고 열 머리글에 기업 개요 및 전년 동기 비교 링크를 둔다', async () => {
+    const curRceptNo = '20260310000001'
+    const prevRceptNo = '20250310000001'
+    trends['00126380'] = () =>
+      Promise.resolve({
+        corpCode: '00126380',
+        fsDiv: 'CFS',
+        refreshError: null,
+        periods: [
+          period(curRceptNo, 'ANNUAL', '2025-12-31'),
+          period(prevRceptNo, 'ANNUAL', '2024-12-31'),
+        ],
+        accounts: [
+          {
+            key: 'REVENUE',
+            name: '매출액',
+            sjDiv: 'IS',
+            amountBasis: 'CUMULATIVE',
+            values: [
+              { rceptNo: curRceptNo, amount: 300_000_000_000_000, quarterAmount: null, currency: 'KRW' },
+              { rceptNo: prevRceptNo, amount: 200_000_000_000_000, quarterAmount: null, currency: 'KRW' },
+            ],
+          },
+          {
+            key: 'OPERATING_INCOME',
+            name: '영업이익',
+            sjDiv: 'IS',
+            amountBasis: 'CUMULATIVE',
+            values: [
+              { rceptNo: curRceptNo, amount: 30_000_000_000_000, quarterAmount: null, currency: 'KRW' },
+              { rceptNo: prevRceptNo, amount: -10_000_000_000_000, quarterAmount: null, currency: 'KRW' },
+            ],
+          },
+          {
+            key: 'NET_INCOME',
+            name: '당기순이익',
+            sjDiv: 'IS',
+            amountBasis: 'CUMULATIVE',
+            values: [
+              { rceptNo: curRceptNo, amount: 20_000_000_000_000, quarterAmount: null, currency: 'KRW' },
+              { rceptNo: prevRceptNo, amount: null, quarterAmount: null, currency: 'KRW' },
+            ],
+          },
+          {
+            key: 'TOTAL_ASSETS',
+            name: '자산총계',
+            sjDiv: 'BS',
+            amountBasis: 'POINT',
+            values: [
+              { rceptNo: curRceptNo, amount: 500_000_000_000_000, quarterAmount: null, currency: 'KRW' },
+              { rceptNo: prevRceptNo, amount: 400_000_000_000_000, quarterAmount: null, currency: 'KRW' },
+            ],
+          },
+          {
+            key: 'TOTAL_LIABILITIES',
+            name: '부채총계',
+            sjDiv: 'BS',
+            amountBasis: 'POINT',
+            values: [
+              { rceptNo: curRceptNo, amount: 100_000_000_000_000, quarterAmount: null, currency: 'KRW' },
+              { rceptNo: prevRceptNo, amount: 100_000_000_000_000, quarterAmount: null, currency: 'KRW' },
+            ],
+          },
+          {
+            key: 'TOTAL_EQUITY',
+            name: '자본총계',
+            sjDiv: 'BS',
+            amountBasis: 'POINT',
+            values: [
+              { rceptNo: curRceptNo, amount: 400_000_000_000_000, quarterAmount: null, currency: 'KRW' },
+              { rceptNo: prevRceptNo, amount: 300_000_000_000_000, quarterAmount: null, currency: 'KRW' },
+            ],
+          },
+        ],
+      })
+
+    const { container } = renderAt('?corps=00126380,00164779')
+    const table = await screen.findByRole('table')
+    await within(table).findByText('삼성전자')
+
+    // 머리글 링크 확인
+    const headers = within(table).getAllByRole('columnheader')
+    const samsungHead = headers[1] // col 1: 항목, col 2: 삼성전자
+    const skHead = headers[2] // col 3: SK하이닉스
+
+    expect(within(samsungHead).getByRole('link', { name: '삼성전자 기업 개요' }).getAttribute('href')).toBe(
+      '/companies/00126380?view=overview',
+    )
+    expect(
+      within(samsungHead).getByRole('link', { name: '삼성전자 전년 동기 보고서 비교' }).getAttribute('href'),
+    ).toBe(`/companies/00126380/compare?current=${curRceptNo}&previous=${prevRceptNo}&basis=YOY`)
+
+    // SK하이닉스는 1개 연도만 있으므로 '기업 개요'만 있고 '전년 동기 비교'는 없음
+    expect(within(skHead).getByRole('link', { name: 'SK하이닉스 기업 개요' })).toBeTruthy()
+    expect(within(skHead).queryByRole('link', { name: 'SK하이닉스 전년 동기 보고서 비교' })).toBeNull()
+
+    // 주요계정 보조 줄 확인
+    const rows = within(table).getAllByRole('row')
+    const revRow = rows.find((r) => r.querySelector('th')?.textContent?.trim() === '매출액 · 원')!
+    expect(within(revRow).getByText('전년 대비 ▲ +50.0%')).toBeTruthy()
+
+    const opRow = rows.find((r) => r.querySelector('th')?.textContent?.trim() === '영업이익 · 원')!
+    expect(within(opRow).getByText('전년 대비 흑자 전환')).toBeTruthy()
+
+    const netRow = rows.find((r) => r.querySelector('th')?.textContent?.trim() === '당기순이익 · 원')!
+    expect(within(netRow).getByText('전년 자료 없음')).toBeTruthy()
+
+    // 부채비율 변동폭 확인 (33.3% -> 25.0% = -8.3%p)
+    const debtRow = rows.find((r) => r.querySelector('th')?.textContent?.includes('부채비율'))!
+    expect(within(debtRow).getByText('전년 대비 ▼ −8.3%p')).toBeTruthy()
+
+    // 접근성(axe) 통과
+    expect(await axeViolations(container)).toBe('')
+  })
 })

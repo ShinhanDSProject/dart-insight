@@ -129,6 +129,22 @@ export function pickLatestPeriod(periods: readonly TrendPeriod[], type: ReportTy
   return { status: 'picked', index, period, newerFailed }
 }
 
+/** 고른 보고서와 같은 종류이면서 직전 회계연도(fiscalYear - 1)이고 값(AVAILABLE)이 있는 보고서 */
+export function findPreviousPeriod(
+  periods: readonly TrendPeriod[],
+  type: ReportType,
+  currentFiscalYear: number,
+): { period: TrendPeriod; index: number } | null {
+  const candidates = periods
+    .map((period, index) => ({ period, index }))
+    .filter(
+      ({ period }) =>
+        period.reportType === type && period.fiscalYear === currentFiscalYear - 1 && period.dataStatus === 'AVAILABLE',
+    )
+    .sort((a, b) => b.period.periodEnd.localeCompare(a.period.periodEnd))
+  return candidates[0] ?? null
+}
+
 // --- 열(기업 하나) ---
 
 export const ACCOUNT_ROWS: readonly { key: KeyAccountKey; name: string }[] = [
@@ -154,13 +170,17 @@ export type ComparisonColumn =
   | (ColumnBase & {
       status: 'ready'
       period: TrendPeriod
+      /** 직전 연도 동종 보고서. 없으면 null */
+      previousPeriod: TrendPeriod | null
       /** 값의 근거 공시 접수번호(정정 공시 값이면 그 접수번호) */
       sourceRceptNo: string
       newerFailed: boolean
       /** ACCOUNT_ROWS 순서. 응답에 계정이 없으면 null */
       amounts: (TrendValue | null)[]
+      previousAmounts: (TrendValue | null)[] | null
       /** RATIO_DEFINITIONS 순서 */
       ratios: RatioResult[]
+      previousRatios: RatioResult[] | null
     })
 
 /**
@@ -192,15 +212,23 @@ function readyColumn(base: ColumnBase, trend: FinancialTrend, type: ReportType):
     .with({ status: 'no-report' }, () => ({ ...base, status: 'no-report' }))
     .with({ status: 'no-data' }, () => ({ ...base, status: 'no-data' }))
     .with({ status: 'fetch-failed' }, () => ({ ...base, status: 'failed', error: null }))
-    .with({ status: 'picked' }, ({ index, period, newerFailed }) => ({
-      ...base,
-      status: 'ready',
-      period,
-      sourceRceptNo: periodSourceRceptNo(period),
-      newerFailed,
-      amounts: ACCOUNT_ROWS.map(({ key }) => trend.accounts.find((a) => a.key === key)?.values[index] ?? null),
-      ratios: periodRatios(trend, index, 'CUMULATIVE'),
-    }))
+    .with({ status: 'picked' }, ({ index, period, newerFailed }) => {
+      const prev = findPreviousPeriod(trend.periods, type, period.fiscalYear)
+      return {
+        ...base,
+        status: 'ready',
+        period,
+        previousPeriod: prev?.period ?? null,
+        sourceRceptNo: periodSourceRceptNo(period),
+        newerFailed,
+        amounts: ACCOUNT_ROWS.map(({ key }) => trend.accounts.find((a) => a.key === key)?.values[index] ?? null),
+        previousAmounts: prev
+          ? ACCOUNT_ROWS.map(({ key }) => trend.accounts.find((a) => a.key === key)?.values[prev.index] ?? null)
+          : null,
+        ratios: periodRatios(trend, index, 'CUMULATIVE'),
+        previousRatios: prev ? periodRatios(trend, prev.index, 'CUMULATIVE') : null,
+      }
+    })
     .exhaustive()
 }
 
@@ -212,9 +240,78 @@ export function isReady(column: ComparisonColumn): column is ReadyColumn {
 
 // --- 행 ---
 
+/**
+ * 주요계정 전년 동기 대비 증감률 보조 문구 계산.
+ * - 전년 보고서가 없으면 null (보조 줄 미표시)
+ * - 전년 값이 없으면 '전년 자료 없음'
+ * - 정상 증감: '전년 대비 ▲ +12.3%', '전년 대비 ▼ −8.5%', '전년과 같음 (0.0%)'
+ * - 전년 0: '전년 대비 (전년 0)'
+ * - 전년 음수/부호 전환: 손익계정(영업이익, 순이익)은 '전년 대비 흑자 전환' / '전년 대비 적자 전환', 비손익이나 음수 유지는 '전년 대비 (전년 음수)'
+ */
+export function calculateAmountYoy(
+  key: KeyAccountKey,
+  currentVal: TrendValue | null,
+  previousVal: TrendValue | null,
+  hasPreviousPeriod: boolean,
+): string | null {
+  if (!hasPreviousPeriod) return null
+  if (currentVal === null || currentVal.amount === null) return null
+  if (previousVal === null || previousVal.amount === null) return '전년 자료 없음'
+
+  const cur = currentVal.amount
+  const prev = previousVal.amount
+
+  if (cur === prev) return '전년과 같음 (0.0%)'
+  if (prev === 0) return '전년 대비 (전년 0)'
+
+  const isProfit = key === 'OPERATING_INCOME' || key === 'NET_INCOME'
+  if (isProfit) {
+    if (prev < 0 && cur > 0) return '전년 대비 흑자 전환'
+    if (prev > 0 && cur < 0) return '전년 대비 적자 전환'
+    if (prev < 0 && cur <= 0) return '전년 대비 (전년 음수)'
+  } else {
+    if (prev < 0) return '전년 대비 (전년 음수)'
+  }
+
+  if (prev > 0 && cur < 0) {
+    return '전년 대비 (전년 음수)'
+  }
+
+  const rate = ((cur - prev) / prev) * 100
+  const rounded = Math.round(Math.abs(rate) * 10) / 10
+  if (rounded === 0) return '전년과 같음 (0.0%)'
+  const formatted = rounded.toFixed(1)
+  return rate > 0 ? `전년 대비 ▲ +${formatted}%` : `전년 대비 ▼ −${formatted}%`
+}
+
+/**
+ * 재무 비율 전년 동기 대비 변동폭(%p) 보조 문구 계산.
+ * - 전년 보고서가 없거나, 이전 비율/현재 비율 중 하나라도 계산 불가(null)이면 null (생략)
+ * - '전년 대비 ▲ +3.4%p', '전년 대비 ▼ −1.2%p', '전년 대비 0.0%p'
+ */
+export function calculateRatioYoy(
+  currentResult: Pick<RatioResult, 'value'>,
+  previousResult: Pick<RatioResult, 'value'> | null,
+  hasPreviousPeriod: boolean,
+): string | null {
+  if (!hasPreviousPeriod || previousResult === null) return null
+  if (currentResult.value === null || previousResult.value === null) return null
+
+  const diff = currentResult.value - previousResult.value
+  const rounded = Math.round(Math.abs(diff) * 10) / 10
+  if (rounded === 0) return '전년 대비 0.0%p'
+  const formatted = rounded.toFixed(1)
+  return diff > 0 ? `전년 대비 ▲ +${formatted}%p` : `전년 대비 ▼ −${formatted}%p`
+}
+
 /** 칸 하나. none은 그 열이 준비되지 않아 칸 대신 열 전체에 상태를 보여 준다 */
-export type AmountCell = { status: 'value'; amount: number; currency: string | null } | { status: 'missing' } | { status: 'none' }
-export type RatioCell = { status: 'value'; result: RatioResult } | { status: 'none' }
+export type AmountCell =
+  | { status: 'value'; amount: number; currency: string | null; yoy: string | null }
+  | { status: 'missing' }
+  | { status: 'none' }
+export type RatioCell =
+  | { status: 'value'; result: RatioResult; yoy: string | null }
+  | { status: 'none' }
 
 export type ComparisonRow =
   | { kind: 'amount'; key: KeyAccountKey; name: string; cells: AmountCell[] }
@@ -229,9 +326,10 @@ export function comparisonRows(columns: readonly ComparisonColumn[]): Comparison
     cells: columns.map((column): AmountCell => {
       if (!isReady(column)) return { status: 'none' }
       const value = column.amounts[row]
-      return value === null || value.amount === null
-        ? { status: 'missing' }
-        : { status: 'value', amount: value.amount, currency: value.currency }
+      if (value === null || value.amount === null) return { status: 'missing' }
+      const prevValue = column.previousAmounts ? column.previousAmounts[row] : null
+      const yoy = calculateAmountYoy(key, value, prevValue, column.previousPeriod !== null)
+      return { status: 'value', amount: value.amount, currency: value.currency, yoy }
     }),
   }))
   const ratioRows: ComparisonRow[] = RATIO_DEFINITIONS.map((def, row) => ({
@@ -239,7 +337,13 @@ export function comparisonRows(columns: readonly ComparisonColumn[]): Comparison
     key: def.key,
     name: def.name,
     formula: def.formula,
-    cells: columns.map((column): RatioCell => (isReady(column) ? { status: 'value', result: column.ratios[row] } : { status: 'none' })),
+    cells: columns.map((column): RatioCell => {
+      if (!isReady(column)) return { status: 'none' }
+      const currentResult = column.ratios[row]
+      const prevResult = column.previousRatios ? column.previousRatios[row] : null
+      const yoy = calculateRatioYoy(currentResult, prevResult, column.previousPeriod !== null)
+      return { status: 'value', result: currentResult, yoy }
+    }),
   }))
   return [...amountRows, ...ratioRows]
 }

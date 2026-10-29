@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import type { FinancialTrend, KeyAccountKey, TrendPeriod } from '@/shared/api/financialTrends'
+import type { FinancialTrend, KeyAccountKey, TrendPeriod, TrendValue } from '@/shared/api/financialTrends'
+import type { RatioResult } from '@/shared/lib/financialRatios'
 import {
   addCompany,
   buildColumns,
+  calculateAmountYoy,
+  calculateRatioYoy,
   comparisonRows,
+  findPreviousPeriod,
   formatAmount,
   loadKey,
   loadsReducer,
@@ -207,12 +211,72 @@ describe('비교 표', () => {
       '순이익률',
     ])
     expect(rows[0].cells).toEqual([
-      { status: 'value', amount: 300_000_000_000_000, currency: 'KRW' },
-      { status: 'value', amount: 0, currency: 'KRW' },
+      { status: 'value', amount: 300_000_000_000_000, currency: 'KRW', yoy: null },
+      { status: 'value', amount: 0, currency: 'KRW', yoy: null },
       { status: 'none' },
     ])
     expect(rows[2].cells[0]).toEqual({ status: 'missing' })
     expect(rows[1].cells[1]).toEqual({ status: 'missing' })
+  })
+
+  it('전년 동기 보고서가 있으면 주요계정과 비율에 전년 대비 증감 보조 줄이 들어간다', () => {
+    const twoYearSamsung = trend(
+      [
+        period('20260310000001', 'ANNUAL', '2025-12-31'),
+        period('20250310000001', 'ANNUAL', '2024-12-31'),
+      ],
+      {
+        REVENUE: [300_000_000_000_000, 200_000_000_000_000],
+        OPERATING_INCOME: [30_000_000_000_000, -10_000_000_000_000],
+        NET_INCOME: [20_000_000_000_000, null],
+        TOTAL_ASSETS: [500_000_000_000_000, 400_000_000_000_000],
+        TOTAL_LIABILITIES: [100_000_000_000_000, 100_000_000_000_000],
+        TOTAL_EQUITY: [400_000_000_000_000, 300_000_000_000_000],
+      },
+    )
+    const twoYearLoads: LoadsState = {
+      [loadKey('00126380', 'CFS')]: {
+        status: 'success',
+        company: { corpCode: '00126380', corpName: '삼성전자', stockCode: '005930', listed: true },
+        trend: twoYearSamsung,
+      },
+    }
+    const columns = buildColumns(['00126380'], twoYearLoads, 'CFS', 'ANNUAL', {})
+    const rows = comparisonRows(columns)
+    expect(columns[0]).toMatchObject({
+      status: 'ready',
+      period: { fiscalYear: 2025 },
+      previousPeriod: { fiscalYear: 2024 },
+    })
+
+    // 매출액: 200조 -> 300조 (+50.0%)
+    expect(rows[0].cells[0]).toEqual({
+      status: 'value',
+      amount: 300_000_000_000_000,
+      currency: 'KRW',
+      yoy: '전년 대비 ▲ +50.0%',
+    })
+    // 영업이익: -10조 -> 30조 (흑자전환)
+    expect(rows[1].cells[0]).toEqual({
+      status: 'value',
+      amount: 30_000_000_000_000,
+      currency: 'KRW',
+      yoy: '전년 대비 흑자 전환',
+    })
+    // 당기순이익: 이전 값 미기재
+    expect(rows[2].cells[0]).toEqual({
+      status: 'value',
+      amount: 20_000_000_000_000,
+      currency: 'KRW',
+      yoy: '전년 자료 없음',
+    })
+    // 부채비율: 2024년 100/300=33.3%, 2025년 100/400=25.0% (-8.3%p)
+    const debtRatioRow = rows[6]
+    if (debtRatioRow.kind !== 'ratio') throw new Error('부채비율 행이 아님')
+    expect(debtRatioRow.cells[0]).toMatchObject({
+      status: 'value',
+      yoy: '전년 대비 ▼ −8.3%p',
+    })
   })
 
   it('비율은 공통 계산 함수로 만들고, 계산하지 못하면 이유를 남긴다', () => {
@@ -243,5 +307,97 @@ describe('금액 표시', () => {
     expect(formatAmount(-371_770_000_000, 'KRW')).toBe('−3717.7억원')
     expect(formatAmount(0, 'KRW')).toBe('0원')
     expect(formatAmount(1_500_000, 'USD')).toBe('150만 USD')
+  })
+})
+
+describe('전년 동기 보고서 찾기', () => {
+  it('같은 보고서 종류의 직전 회계연도이면서 AVAILABLE인 보고서를 찾는다', () => {
+    const periods = [
+      period('20260310000001', 'ANNUAL', '2025-12-31'),
+      period('20250814000001', 'HALF', '2025-06-30'),
+      period('20250310000001', 'ANNUAL', '2024-12-31'),
+      period('20240310000001', 'ANNUAL', '2023-12-31'),
+    ]
+    const found = findPreviousPeriod(periods, 'ANNUAL', 2025)
+    expect(found).not.toBeNull()
+    expect(found?.period.rceptNo).toBe('20250310000001')
+    expect(found?.index).toBe(2)
+  })
+
+  it('직전 연도 보고서가 없거나 자료가 없으면 null을 돌려준다', () => {
+    const periods = [
+      period('20260310000001', 'ANNUAL', '2025-12-31'),
+      period('20250310000001', 'ANNUAL', '2024-12-31', 'NOT_AVAILABLE'),
+    ]
+    expect(findPreviousPeriod(periods, 'ANNUAL', 2025)).toBeNull()
+    expect(findPreviousPeriod(periods, 'HALF', 2025)).toBeNull()
+  })
+})
+
+describe('전년 동기 대비 증감률 및 변동폭 계산', () => {
+  const val = (amount: number | null): TrendValue => ({
+    rceptNo: '20260310000001',
+    amount,
+    quarterAmount: null,
+    currency: 'KRW',
+  })
+
+  const ratio = (value: number | null, reason: RatioResult['reason'] = null): RatioResult => ({
+    key: 'DEBT_RATIO',
+    name: '부채비율',
+    formula: '부채총계 ÷ 자본총계 × 100',
+    numeratorName: '부채총계',
+    denominatorName: '자본총계',
+    numerator: 100,
+    denominator: 400,
+    currency: 'KRW',
+    value,
+    reason,
+    sourceRceptNos: [],
+  })
+
+  it('전년 보고서가 없으면 주요계정과 비율 모두 null이다', () => {
+    expect(calculateAmountYoy('REVENUE', val(100), val(80), false)).toBeNull()
+    const curRatio = ratio(25)
+    const prevRatio = ratio(20)
+    expect(calculateRatioYoy(curRatio, prevRatio, false)).toBeNull()
+  })
+
+  it('주요계정에서 이전 값이 없으면 전년 자료 없음이고, 현재 값이 없으면 null이다', () => {
+    expect(calculateAmountYoy('REVENUE', val(100), val(null), true)).toBe('전년 자료 없음')
+    expect(calculateAmountYoy('REVENUE', val(null), val(80), true)).toBeNull()
+  })
+
+  it('주요계정의 정상 증감률을 부호와 기호로 계산한다', () => {
+    expect(calculateAmountYoy('REVENUE', val(150), val(100), true)).toBe('전년 대비 ▲ +50.0%')
+    expect(calculateAmountYoy('REVENUE', val(75), val(100), true)).toBe('전년 대비 ▼ −25.0%')
+    expect(calculateAmountYoy('REVENUE', val(100), val(100), true)).toBe('전년과 같음 (0.0%)')
+  })
+
+  it('주요계정의 이전 값 0, 흑자 전환, 적자 전환, 전년 음수를 사유로 구분한다', () => {
+    expect(calculateAmountYoy('REVENUE', val(100), val(0), true)).toBe('전년 대비 (전년 0)')
+    expect(calculateAmountYoy('OPERATING_INCOME', val(50), val(-30), true)).toBe('전년 대비 흑자 전환')
+    expect(calculateAmountYoy('NET_INCOME', val(-20), val(80), true)).toBe('전년 대비 적자 전환')
+    expect(calculateAmountYoy('OPERATING_INCOME', val(-40), val(-10), true)).toBe('전년 대비 (전년 음수)')
+    expect(calculateAmountYoy('TOTAL_EQUITY', val(50), val(-20), true)).toBe('전년 대비 (전년 음수)')
+  })
+
+  it('재무 비율의 전년 대비 변동폭(%p)을 계산한다', () => {
+    const curRatio = ratio(25.4)
+    const prevRatio = ratio(22.0)
+    expect(calculateRatioYoy(curRatio, prevRatio, true)).toBe('전년 대비 ▲ +3.4%p')
+
+    const lowerRatio = ratio(20.8)
+    expect(calculateRatioYoy(lowerRatio, prevRatio, true)).toBe('전년 대비 ▼ −1.2%p')
+
+    const sameRatio = ratio(22.0)
+    expect(calculateRatioYoy(sameRatio, prevRatio, true)).toBe('전년 대비 0.0%p')
+  })
+
+  it('재무 비율에서 이전 또는 현재 비율이 계산 불가면 변동폭을 생략한다', () => {
+    const curRatio = ratio(25.4)
+    const nullRatio = ratio(null, 'DENOMINATOR_NEGATIVE')
+    expect(calculateRatioYoy(curRatio, nullRatio, true)).toBeNull()
+    expect(calculateRatioYoy(nullRatio, curRatio, true)).toBeNull()
   })
 })

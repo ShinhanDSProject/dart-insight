@@ -132,11 +132,45 @@
   width: 20%;
 }
 
-/* 머리글 높이를 정해 두어, 불러오는 중(이름만)과 다 받은 뒤(보고서·기간·접수번호)의 높이가 같다 */
+/* 머리글 높이를 정해 두어, 불러오는 중(이름만)과 다 받은 뒤(보고서·기간·접수번호·이동 링크)의 높이가 같다 */
 .company-compare__head {
-  height: 6.5rem;
+  height: 8.5rem;
   vertical-align: top;
   overflow-wrap: anywhere;
+}
+
+.company-compare__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.company-compare__link {
+  color: var(--color-link);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  text-decoration: underline;
+  text-decoration-color: var(--color-link-underline);
+  word-break: keep-all;
+}
+
+.company-compare__link:hover {
+  color: var(--color-link-hover);
+}
+
+.company-compare__amount,
+.company-compare__ratio {
+  display: block;
+}
+
+.company-compare__yoy {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+  word-break: keep-all;
 }
 
 .company-compare__head--empty,
