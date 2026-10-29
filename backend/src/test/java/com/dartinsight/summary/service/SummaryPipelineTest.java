@@ -2,6 +2,7 @@ package com.dartinsight.summary.service;
 
 import static com.dartinsight.dart.client.FinancialJson.account;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -243,7 +244,18 @@ class SummaryPipelineTest {
                 .andExpect(jsonPath("$.items[2].quote").doesNotExist())
                 .andExpect(jsonPath("$.items[2].gradeReason").doesNotExist())
                 .andExpect(jsonPath("$.items[2].aiGenerated").value(false))
-                .andExpect(jsonPath("$.items[2].ai").doesNotExist());
+                .andExpect(jsonPath("$.items[2].ai").doesNotExist())
+                // 투자자 관점(FS-64): 조회할 때 재무제표 구분·계정 이름과 섹션 경로로 정한다
+                .andExpect(jsonPath("$.items[0].lens").value("OTHER"))
+                .andExpect(jsonPath("$.items[0].lensLabel").value("기타"))
+                .andExpect(jsonPath("$.items[1].lens").value("GROWTH"))
+                .andExpect(jsonPath("$.items[1].lensLabel").value("성장"))
+                .andExpect(jsonPath("$.items[2].lens").value("STABILITY"))
+                .andExpect(jsonPath("$.items[2].lensLabel").value("재무 안정성"))
+                .andExpect(jsonPath("$.lensCounts[*].lens").value(contains("PROFITABILITY", "GROWTH", "STABILITY",
+                        "CASH_FLOW", "SHAREHOLDER", "RISK", "OTHER")))
+                .andExpect(jsonPath("$.lensCounts[*].count").value(contains(0, 1, 1, 0, 0, 0, 1)))
+                .andExpect(jsonPath("$.lensCounts[2].lensLabel").value("재무 안정성"));
 
         Request sent = AI.requests(SUMMARIES).getFirst();
         assertThat(sent.traceId()).isEqualTo("trace-summary");
@@ -280,6 +292,9 @@ class SummaryPipelineTest {
                 .andExpect(jsonPath("$.reviewNeeded[0].kind").value("TEXT"))
                 .andExpect(jsonPath("$.reviewNeeded[0].target.changeId").isNumber())
                 .andExpect(jsonPath("$.reviewNeeded[0].reason").value("원문에 없는 숫자(3)를 썼어요."))
+                .andExpect(jsonPath("$.reviewNeeded[0].lens").value("OTHER"))
+                .andExpect(jsonPath("$.reviewNeeded[0].lensLabel").value("기타"))
+                .andExpect(jsonPath("$.lensCounts[6].count").value(0))
                 .andExpect(jsonPath("$.reviewNeeded[0].blockedRules", hasSize(0)));
     }
 

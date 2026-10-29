@@ -44,25 +44,26 @@ public class SummaryViewService {
             SummaryItemRow row = entry.row();
             Target target = new Target(entry.targetType(), entry.changeId(), entry.sjDiv());
             if (row.reviewNeeded()) {
-                review.add(ReviewView.of(entry.itemNo(), target, row));
+                review.add(ReviewView.of(entry.itemNo(), target, entry.lens(), row));
                 continue;
             }
             if (row.explanationReviewNeeded()) {
-                review.add(ReviewView.ofExplanation(entry.itemNo(), target, row));
+                review.add(ReviewView.ofExplanation(entry.itemNo(), target, entry.lens(), row));
             }
-            shown.add(shownItem(entry.itemNo(), target, row, analysis, documents));
+            shown.add(shownItem(entry, target, analysis, documents));
         }
-        return new SummaryResponse(analysisId, analysis.getSummaryStatus(), analysis.getSummaryMessage(),
-                analysis.getTextStatus(), shown, review.size(), review);
+        return SummaryResponse.of(analysisId, analysis.getSummaryStatus(), analysis.getSummaryMessage(),
+                analysis.getTextStatus(), shown, review);
     }
 
-    private ItemView shownItem(int itemNo, Target target, SummaryItemRow row, Analysis analysis,
+    private ItemView shownItem(SummaryEntry entry, Target target, Analysis analysis,
             Map<String, Optional<ReportDocument>> documents) {
+        SummaryItemRow row = entry.row();
         List<EvidenceView> evidence = row.evidenceIds().stream()
                 .map(id -> evidence(analysis, id, documents)).toList();
         EvidenceView quoteEvidence = row.quoteEvidenceId() == null ? null
                 : evidence(analysis, row.quoteEvidenceId(), documents);
-        return ItemView.of(itemNo, target, row, quoteEvidence, evidence);
+        return ItemView.of(entry.itemNo(), target, entry.lens(), row, quoteEvidence, evidence);
     }
 
     /** 근거 ID({접수번호}#B{블록 번호})를 화면에서 열 수 있는 위치로 푼다. */
