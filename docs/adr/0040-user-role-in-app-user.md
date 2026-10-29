@@ -15,7 +15,7 @@
 ## 결정
 
 - `app_user`에 `role VARCHAR(10) NOT NULL DEFAULT 'USER'`을 더한다. 값은 `USER`, `ADMIN` 두 가지이고 `ENUM`을 쓰지 않는다(erd 작성 규칙). 닉네임 `nickname`도 같은 마이그레이션에서 더한다(`docs/erd.md`).
-- 역할은 JWT에 넣지 않는다. 관리자 경로(`/api/admin/**`)는 `SecurityConfig`에서 인증을 요구하고, 그 위에 요청마다 `sub`로 `app_user.role`을 읽어 `ADMIN`이 아니면 403 `AUTH_FORBIDDEN`으로 막는 `AuthorizationManager`(`auth/config/AdminAuthorizationManager`)를 둔다. 관리자 판단은 이 한 곳에서만 한다. 커뮤니티 서비스는 다시 확인하지 않는다.
+- 역할은 JWT에 넣지 않는다. 관리자 경로(`/api/admin/**`)는 `SecurityConfig`에서 인증을 요구하고, 그 위에 요청마다 `sub`로 `app_user.role`을 읽어 `ADMIN`이 아니면 403 `AUTH_FORBIDDEN`으로 막는 `AuthorizationManager`(`auth/service/AdminAuthorizationManager`)를 둔다. 관리자 판단은 이 한 곳에서만 한다. 커뮤니티 서비스는 다시 확인하지 않는다.
 - 첫 관리자는 환경변수 `ADMIN_EMAILS`(쉼표로 구분한 이메일 목록, 기본은 빈 값)로 정한다. 로그인에 성공한 순간(일반 로그인 `POST /api/sessions`, 소셜 로그인 콜백) 그 사용자의 이메일이 목록에 있으면 `role`을 `ADMIN`으로 바꾼다.
   - 소유가 확인된 이메일로만 대조한다: 일반 가입은 `local_credential.email_verified = true`인 이메일, 소셜 로그인은 제공자가 확인했다고 한 이메일(`social_account.email_verified = true`). 지금 일반 가입은 이메일 소유를 확인하지 않아(ADR-0019, `email_verified`가 항상 false) 일반 가입 계정은 목록에 있어도 관리자가 되지 않는다. 첫 관리자는 이메일을 확인해 주는 소셜 계정(예: Google)으로 로그인해 정한다.
   - 목록은 올리기만 한다. 목록에서 빠져도 `ADMIN`을 자동으로 내리지 않는다(내릴 때는 DB를 직접 고친다. 절차는 `docs/local-setup.md`에 적는다).

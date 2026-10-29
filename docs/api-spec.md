@@ -66,7 +66,7 @@
 | POST | `/api/users` | 일반 회원가입 | #136 | 회원가입(신규) | 구현 |
 | POST | `/api/sessions` | 일반 로그인 | 6.2 | 로그인(신규) | 구현 |
 | POST | `/api/session-refreshes` | Access Token 재발급 | 6.2 | 공통 | 구현 |
-| GET | `/api/sessions/current` | 현재 인증 사용자(닉네임·관리자 여부는 #459) | 6.2 | 공통 | 구현 |
+| GET | `/api/sessions/current` | 현재 인증 사용자(닉네임·관리자 여부, #459) | 6.2·#459 | 공통 | 구현 |
 | DELETE | `/api/sessions/current` | 로그아웃 | 6.2 | 공통 | 구현 |
 | GET | `/oauth2/authorization/{provider}` | 소셜 로그인 시작(`google`, `kakao`, `naver`) | #225 (6.3) | 로그인 | 구현 |
 | GET | `/login/oauth2/code/{provider}` | 소셜 제공자 OAuth 콜백 | #225 (6.3) | 로그인 | 구현 |
@@ -81,7 +81,7 @@
 | PUT | `/api/notes/{itemId}/memo` | 노트 항목 메모 고치기 | #413 (6.5) | 판단 노트(신규) | 초안 |
 | DELETE | `/api/notes/{itemId}` | 노트 항목 하나 지우기 | #413 (6.5) | 판단 노트(신규) | 초안 |
 | GET | `/api/notes/export` | 기업 노트를 출처와 함께 Markdown으로 내보내기(`?corpCode=`) | #413 (6.5) | 판단 노트(신규) | 초안 |
-| PUT | `/api/users/current/nickname` | 커뮤니티 닉네임 정하기·바꾸기 | #459 (6.6) | 닉네임 정하기(신규) | 초안 |
+| PUT | `/api/users/current/nickname` | 커뮤니티 닉네임 정하기·바꾸기 | #459 (6.6) | 닉네임 정하기(신규) | 구현 |
 | GET | `/api/companies/{corpCode}/posts` | 기업 게시판 글 목록(최신순·인기순) | #460 (6.6) | W-01 ② 커뮤니티 탭 | 초안 |
 | POST | `/api/companies/{corpCode}/posts` | 글 쓰기(변경점 인용 선택, #464) | #460·#464 (6.6) | W-01 ② 커뮤니티 탭 | 초안 |
 | GET | `/api/posts/{postId}` | 글과 댓글 | #460 (6.6) | W-01 ② 커뮤니티 탭 | 초안 |
@@ -470,6 +470,7 @@
 
 - 200 `{ "nickname": "반도체공부중" }`. 지금 닉네임과 같으면 그대로 200입니다.
 - 동시에 같은 닉네임을 정하면 하나만 성공합니다(DB UNIQUE).
+- 에러: 토큰이 없거나 잘못되면 401 `AUTH_UNAUTHORIZED`, 닉네임 규칙에 맞지 않으면(문자열이 아님 포함) 400 `COMMON_INVALID_INPUT`(`errors[].field`는 `nickname`), 다른 사람이 쓰는 닉네임이면 409 `COMMUNITY_NICKNAME_TAKEN`.
 
 #### GET /api/companies/{corpCode}/posts — 기업 게시판 글 목록 (#460)
 
