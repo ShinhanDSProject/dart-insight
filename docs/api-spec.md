@@ -110,6 +110,7 @@
 | GET | `/api/companies/{corpCode}/briefing` | AI 기업 브리핑(저장된 것 또는 새로 만듦) | #333 (1.2) | 기업 화면 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/outlook` | 회사가 밝힌 전망·계획(최신 사업보고서, 저장된 것 또는 새로 만듦) | #465 (1.9, FS-59) | 기업 화면 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/plan-followups` | 약속과 실제 대조(작년 사업보고서 계획 → 올해 사업보고서 관련 문단, 저장된 것 또는 새로 만듦) | #467 (1.10, FS-60) | 기업 화면 개요 탭 | 초안 |
+| GET | `/api/companies/{corpCode}/checkpoints` | 재무 체크 포인트(최근·전년 사업보고서로 정해 둔 일곱 항목을 규칙으로 계산, 상태·수치·계산식·근거) | #479 (1.11, FS-62) | 기업 화면 개요 탭 | 초안 |
 | POST | `/api/companies/{corpCode}/questions` | 최신 사업보고서에 근거해 묻기(AI) | #365 (1.2) | 기업 화면 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/questions` | 최신 사업보고서에 한 질문·답 기록 | #365 (1.2) | 기업 화면 개요 탭 | 초안 |
 | POST | `/api/comparability-checks` | 비교 가능성 검증 | #13 (2.2) | W-01 ③ | 초안 |
@@ -1550,6 +1551,125 @@
 | 502 | `DART_REQUEST_FAILED` | 보고서 목록이나 원문을 OpenDART에서 받지 못함(저장된 목록이 있으면 그 목록을 씀) |
 | 503 | `DART_RATE_LIMITED`, `DART_KEY_MISSING` | OpenDART 호출 한도 초과, 키 없음 |
 | 503 | `AI_SERVER_UNAVAILABLE` | AI 서버 또는 LLM을 쓸 수 없음(작년 전망·계획 뽑기 포함. 저장하지 않음. 다시 요청하면 다시 만듦) |
+
+### GET /api/companies/{corpCode}/checkpoints — 재무 체크 포인트
+
+- 이슈: #479 (1.11) · 기획서: FS-62 · 화면: 기업 화면 '기업 개요' 탭의 '재무 체크 포인트' 영역
+- 투자자들이 흔히 확인하는 항목 일곱 가지를 정해 둔 규칙으로 계산해 항목마다 상태·수치·계산식·기준값·근거를 돌려줍니다. 서비스는 좋고 나쁨을 판단하지 않고, 점수·등급·추천을 만들지 않습니다(LLM을 쓰지 않음). 숫자는 모두 코드가 계산합니다. 결과는 저장하지 않고 요청 때 만듭니다.
+- **보고서 고르기**: 약속과 실제 대조(`GET …/plan-followups`)와 같습니다. 올해(현재)는 정기보고서 목록에서 대상 기간이 가장 최근인 **사업보고서**, 작년(이전)은 그보다 사업연도가 한 해 앞선 사업보고서입니다(`AnnualReportPair`). 반기·분기보고서로 대신하지 않습니다. 둘 중 하나라도 없으면 `status` `NOT_AVAILABLE`이고 `items`는 빈 배열입니다.
+- **재무제표**: 재무 수치 변화와 같은 OpenDART 단일회사 전체 재무제표(`fnlttSinglAcntAll.json`, `financial_statement_fetch`·`financial_account` 캐시)를 씁니다. 올해 보고서는 연결(`CFS`)을 먼저 보고 자료가 없으면 별도(`OFS`)를 보며, 작년 보고서는 올해와 같은 기준으로 봅니다. 저장돼 있지 않으면 이 요청 안에서 받아 저장합니다(OpenDART 호출은 트랜잭션 밖). 값은 각 사업보고서의 당기 금액(`thstrm_amount`)입니다(재무상태표는 기말 잔액, 손익·현금흐름은 1년).
+- **계정 찾기**(`backend/.../checkpoint/domain/CheckpointAccount.java`): 정해 둔 재무제표(`sj_div`) 안에서 표준계정 ID(`account_id`)가 목록에 있는 계정을 먼저, 없으면 공백을 뺀 계정명이 목록에 있는 계정을 씁니다. 같은 조건의 계정이 여럿이면 원문 순서(`ord`)가 앞선 것입니다. 목록은 저장된 실제 응답(삼성전자 `20160330003536`·`20250311001085`·`20260310002820`·`20260814003699`, SK하이닉스 `20260814003509`, 에코프로비엠 `20260515001109`·`20260814002535`, KB금융 `20260814004200`)에서 확인한 ID·이름만 넣었습니다. 찾지 못한 계정은 0이 아니라 '자료 없음'(`value` null, `reason` `MISSING`)입니다.
+
+  | 계정 | 재무제표 | 표준계정 ID | 계정명 |
+  | --- | --- | --- | --- |
+  | 매출 | `IS`, 없으면 `CIS` | `ifrs-full_Revenue`, `ifrs_Revenue` | 매출액, 매출, 영업수익, 수익(매출액) |
+  | 영업이익 | `IS`, 없으면 `CIS` | `dart_OperatingIncomeLoss`, `ifrs-full_ProfitLossFromOperatingActivities` | 영업이익, 영업이익(손실) |
+  | 영업활동현금흐름 | `CF` | `ifrs-full_CashFlowsFromUsedInOperatingActivities`, `ifrs_CashFlowsFromUsedInOperatingActivities` | 영업활동현금흐름, 영업활동순현금흐름 |
+  | 매출채권 | `BS` | `ifrs-full_CurrentTradeReceivables` | 매출채권 |
+  | 재고자산 | `BS` | `ifrs-full_Inventories`, `ifrs_Inventories` | 재고자산 |
+  | 단기차입금 | `BS` | `ifrs-full_ShorttermBorrowings`, `dart_ShortTermBorrowings`, `dart_CurrentLoansReceived` | 단기차입금 |
+  | 유동성장기부채 | `BS` | `ifrs-full_CurrentPortionOfLongtermBorrowings`, `ifrs_CurrentPortionOfLongtermBorrowings` | 유동성장기부채, 유동성장기차입금 |
+  | 부채총계 | `BS` | `ifrs-full_Liabilities`, `ifrs_Liabilities` | 부채총계 |
+  | 자본총계 | `BS` | `ifrs-full_Equity`, `ifrs_Equity` | 자본총계 |
+
+  '매출채권및기타채권'처럼 다른 채권이 함께 들어간 계정은 매출채권으로 보지 않습니다.
+- **증가율** = (올해 − 작년) ÷ 작년 × 100, 소수 첫째 자리 반올림(HALF_UP). 작년 값이 0이면 `PREVIOUS_ZERO`, 음수면 `PREVIOUS_NEGATIVE`로 두고 계산하지 않습니다. 두 증가율의 차이(%p)는 반올림한 증가율끼리 뺍니다(화면에 보이는 수와 같게). 부채비율 = 부채총계 ÷ 자본총계 × 100(소수 첫째 자리).
+- **항목과 규칙**(`backend/.../checkpoint/domain/CheckpointRules.java`). 기준값은 코드 상수이고 응답 `threshold`에 같은 문구로 나갑니다. 규칙에 필요한 값이 하나라도 없거나 계산할 수 없으면 `NO_DATA`입니다.
+
+  | `key` | `title` | `CHECK`(확인해 볼 점) | `OK`(특이사항 없음) |
+  | --- | --- | --- | --- |
+  | `EARNINGS_QUALITY` | 이익과 현금흐름 | 올해 영업이익 > 0이고 영업활동현금흐름 < 0, 또는 영업이익이 늘었는데(올해 > 작년) 영업활동현금흐름이 줄었음(올해 < 작년) | 그 밖(올해 두 값이 있어야 함. 작년 값이 없으면 앞 조건만 봄) |
+  | `RECEIVABLES` | 매출채권 | 매출채권 증가율 − 매출 증가율 ≥ 10%p | 차이 < 10%p |
+  | `INVENTORIES` | 재고자산 | 재고자산 증가율 − 매출 증가율 ≥ 10%p | 차이 < 10%p |
+  | `DEBT_RATIO` | 부채비율 | 올해 자본총계 ≤ 0(자본잠식, 부채비율은 계산하지 않음), 또는 올해 부채비율 − 작년 부채비율 ≥ 20%p | 변화 < 20%p. 작년 자본총계 ≤ 0이라 작년 부채비율을 계산할 수 없으면 `NO_DATA` |
+  | `SHORT_TERM_BORROWINGS` | 단기 차입금 | 단기 차입금 증가율 − 매출 증가율 ≥ 20%p. 단기 차입금 = 단기차입금 + 유동성장기부채 중 두 해 모두 찾은 계정의 합 | 차이 < 20%p. 두 해 모두 찾은 계정이 하나도 없으면 `NO_DATA` |
+  | `FUNDING_DISCLOSURES` | 자금 조달 공시 | 최근 1년(최근 공시 타임라인 `days=365`와 같은 목록) '자금 조달'(`FUNDING`) 묶음 공시가 1건 이상 | 0건. 공시 목록을 받지 못하면 `NO_DATA` |
+  | `AUDIT_OPINION` | 감사의견 | 확인해 볼 공시(`GET …/disclosure-signals`)의 `NON_CLEAN_AUDIT_OPINION`이 1건 이상 | 0건. 그 종류가 `UNAVAILABLE`이면 `NO_DATA` |
+
+  '자금 조달' 묶음은 최근 공시 타임라인의 규칙(`DisclosureGroupRules`)을 그대로 씁니다(유상증자·전환사채·신주인수권부사채·교환사채·사채권·증권신고서 등). 감사의견 항목은 확인해 볼 공시의 결과를 그대로 쓰고, 감사인 변경 건수는 참고 수치로만 넣습니다(상태에 쓰지 않음). 감사보고서의 계속기업 관련 문단은 지금 받는 감사의견 자료에 없어 이 항목에서 보지 않습니다.
+
+**요청**
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| path | `corpCode` | string | 예 | 고유번호 |
+
+**응답 200** (가짜 회사·금액으로 만든 예시. 항목 둘만 적음)
+
+```json
+{
+  "corpCode": "00000001",
+  "status": "AVAILABLE",
+  "reason": null,
+  "message": null,
+  "currentReport": { "rceptNo": "20260310000123", "reportName": "사업보고서 (2025.12)", "fiscalYear": 2025,
+    "periodEnd": "2025-12-31", "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260310000123" },
+  "previousReport": { "rceptNo": "20250311000456", "reportName": "사업보고서 (2024.12)", "fiscalYear": 2024,
+    "periodEnd": "2024-12-31", "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250311000456" },
+  "fsDiv": "CFS",
+  "statementStatus": "AVAILABLE",
+  "disclosureFrom": "2025-10-29",
+  "disclosureTo": "2026-10-29",
+  "items": [
+    {
+      "key": "RECEIVABLES",
+      "title": "매출채권",
+      "status": "CHECK",
+      "statusLabel": "확인해 볼 점",
+      "why": "매출채권은 물건이나 서비스를 팔고 아직 받지 못한 돈이에요. 매출보다 빨리 늘면 대금을 받는 조건이나 거래처가 바뀌었는지 주석에서 함께 살펴보는 경우가 많아요.",
+      "formula": "증가율 = (올해 − 작년) ÷ 작년 × 100, 차이 = 매출채권 증가율 − 매출 증가율",
+      "threshold": "매출채권 증가율 − 매출 증가율이 10%p 이상이면 확인해 볼 점",
+      "note": null,
+      "facts": [
+        { "label": "매출 (올해)", "value": 1100, "unit": "AMOUNT", "currency": "KRW", "reason": null,
+          "evidence": { "rceptNo": "20260310000123", "fsDiv": "CFS", "sjDiv": "IS", "statementName": "손익계산서",
+            "accountId": "ifrs-full_Revenue", "accountName": "매출액",
+            "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260310000123" } },
+        { "label": "매출 (작년)", "value": 1000, "unit": "AMOUNT", "currency": "KRW", "reason": null,
+          "evidence": { "rceptNo": "20250311000456", "fsDiv": "CFS", "sjDiv": "IS", "statementName": "손익계산서",
+            "accountId": "ifrs-full_Revenue", "accountName": "매출액",
+            "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250311000456" } },
+        { "label": "매출채권 (올해)", "value": 150, "unit": "AMOUNT", "currency": "KRW", "reason": null, "evidence": { "…": "…" } },
+        { "label": "매출채권 (작년)", "value": 100, "unit": "AMOUNT", "currency": "KRW", "reason": null, "evidence": { "…": "…" } },
+        { "label": "매출 증가율", "value": 10.0, "unit": "PERCENT", "currency": null, "reason": null, "evidence": null },
+        { "label": "매출채권 증가율", "value": 50.0, "unit": "PERCENT", "currency": null, "reason": null, "evidence": null },
+        { "label": "증가율 차이", "value": 40.0, "unit": "PERCENT_POINT", "currency": null, "reason": null, "evidence": null }
+      ],
+      "disclosures": []
+    },
+    {
+      "key": "FUNDING_DISCLOSURES",
+      "title": "자금 조달 공시",
+      "status": "OK",
+      "statusLabel": "특이사항 없음",
+      "why": "…",
+      "formula": "최근 1년 공시 가운데 '자금 조달' 묶음 공시 건수",
+      "threshold": "최근 1년 '자금 조달' 묶음 공시가 1건 이상이면 확인해 볼 점",
+      "note": null,
+      "facts": [ { "label": "자금 조달 공시", "value": 0, "unit": "COUNT", "currency": null, "reason": null, "evidence": null } ],
+      "disclosures": []
+    }
+  ]
+}
+```
+
+- `status`: `AVAILABLE` 항목을 계산함(`items`에 일곱 항목이 위 표 순서로 항상 다 있음), `NOT_AVAILABLE` 나란히 볼 사업보고서가 없음(`items` 빈 배열, `reason`·`message`에 사유)
+- `reason`: `NO_REPORT` 사업보고서가 없음(두 보고서 null), `NO_PREVIOUS_REPORT` 사업연도가 한 해 앞선 사업보고서가 없음(`previousReport` null). `AVAILABLE`이면 null
+- `fsDiv`: 쓴 재무제표 기준(`CFS`·`OFS`). 올해 재무제표가 없거나 `NOT_AVAILABLE`이면 null(그때 재무 항목 다섯 개는 `NO_DATA`)
+- `statementStatus`: `AVAILABLE` 두 보고서 모두 재무제표가 있음, `NOT_AVAILABLE` 어느 한쪽이라도 재무제표 자료가 없음(`013`, 2015 사업연도 이전 포함), `FETCH_FAILED` 어느 한쪽이라도 OpenDART에서 받지 못함(다음 요청에 다시 받음). `NOT_AVAILABLE` 응답이면 null
+- `disclosureFrom`·`disclosureTo`: 자금 조달 공시를 센 접수일 기간(최근 공시 타임라인과 같음). 공시 목록을 받지 못했거나 `NOT_AVAILABLE` 응답이면 null
+- `items[].status`·`statusLabel`: `CHECK` '확인해 볼 점', `OK` '특이사항 없음', `NO_DATA` '자료 없음'. 화면은 `CHECK`만 주의 색 배지, 나머지는 중립색입니다(빨강·초록을 쓰지 않음).
+- `items[].why`: 투자자가 이 항목을 왜 보는지 한두 문장. 이 회사를 평가하는 문장이 아니라 항목마다 정해 둔 일반 설명입니다.
+- `items[].formula`·`threshold`: 계산식과 기준값 문구(코드 상수)
+- `items[].note`: 상태를 정한 이유가 수치만으로 보이지 않을 때의 사실 문장(예: '자본총계가 0 이하예요(자본잠식).', '작년 매출이 0이라 증가율을 계산하지 않았어요.'). 없으면 null
+- `items[].facts[]`: 계산에 쓴 값. `unit`은 `AMOUNT`(금액, `currency`에 통화), `PERCENT`(%), `PERCENT_POINT`(%p), `COUNT`(건). `value`가 null이면 `reason`이 그 이유입니다: `MISSING` 계정을 찾지 못함·자료 없음, `PREVIOUS_ZERO` 작년 값이 0, `PREVIOUS_NEGATIVE` 작년 값이 음수, `EQUITY_NOT_POSITIVE` 자본총계가 0 이하라 부채비율을 계산하지 않음, `NOT_CHECKED` 자료를 받지 못해 세지 못함. `evidence`는 재무제표 계정 값이면 그 계정의 근거(OpenDART 응답의 접수번호, 기준, 재무제표 종류·이름, 표준계정 ID, 계정명, DART 원문 주소), 계산한 값·건수면 null입니다.
+- `items[].disclosures[]`: `FUNDING_DISCLOSURES`·`AUDIT_OPINION` 항목에서 센 공시(접수일이 최근인 순서, `rceptNo`·`reportName`·`receivedDate`·`dartUrl`). 그 밖의 항목은 빈 배열
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 404 | `COMPANY_NOT_FOUND` | 없는 고유번호 |
+| 502 | `DART_REQUEST_FAILED` | 보고서 목록을 OpenDART에서 받지 못하고 저장된 목록도 없음(재무제표·공시 목록을 받지 못한 것은 에러가 아니라 `statementStatus`·`NO_DATA`로 알림) |
+| 503 | `DART_RATE_LIMITED`, `DART_KEY_MISSING` | 보고서 목록을 받을 때 OpenDART 호출 한도 초과, 키 없음 |
 
 ### POST /api/companies/{corpCode}/questions — 사업보고서에 근거해 묻기
 
