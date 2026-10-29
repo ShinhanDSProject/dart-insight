@@ -27,15 +27,22 @@ public class FinancialChangeController {
     @GetMapping
     public FinancialChangeListResponse list(@PathVariable Long analysisId,
             @RequestParam(defaultValue = "BS") String sjDiv,
-            @RequestParam(defaultValue = "false") boolean changedOnly) {
+            @RequestParam(defaultValue = "false") boolean changedOnly,
+            @RequestParam(defaultValue = FinancialChangeListResponse.SORT_DOCUMENT) String sort) {
         StatementType selected = StatementType.of(sjDiv)
                 .orElseThrow(() -> ApiException.invalidInput("sjDiv", "BS, IS, CIS, CF, SCE 중 하나여야 합니다."));
-        return FinancialChangeListResponse.of(analysisId, selected, changedOnly, queryService.changes(analysisId));
+        if (!FinancialChangeListResponse.SORT_DOCUMENT.equals(sort)
+                && !FinancialChangeListResponse.SORT_SCALE.equals(sort)) {
+            throw ApiException.invalidInput("sort", "document 또는 scale이어야 합니다.");
+        }
+        return FinancialChangeListResponse.of(analysisId, selected, changedOnly, sort,
+                queryService.changes(analysisId));
     }
 
     @GetMapping(ApiPaths.BY_CHANGE_ID)
     public FinancialChangeDetailResponse detail(@PathVariable Long analysisId, @PathVariable Long changeId) {
         FinancialChangeEvidence evidence = queryService.change(analysisId, changeId);
-        return FinancialChangeDetailResponse.of(evidence.change(), evidence.previous(), evidence.current());
+        return FinancialChangeDetailResponse.of(evidence.change(), evidence.scale(), evidence.previous(),
+                evidence.current());
     }
 }

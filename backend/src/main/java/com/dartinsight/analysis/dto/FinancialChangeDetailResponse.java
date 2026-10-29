@@ -1,6 +1,9 @@
 package com.dartinsight.analysis.dto;
 
 import com.dartinsight.analysis.domain.CalcStatus;
+import com.dartinsight.analysis.domain.ChangeScale;
+import com.dartinsight.analysis.domain.ChangeScale.Base;
+import com.dartinsight.analysis.domain.ChangeScale.Reason;
 import com.dartinsight.analysis.domain.FinancialChange;
 import com.dartinsight.comparison.domain.AmountBasis;
 import com.dartinsight.financial.domain.FsDiv;
@@ -18,6 +21,7 @@ import java.util.Locale;
  * @param rateFormula 증감률 계산식. 계산하지 않았으면 null
  * @param previous    이전 값의 근거. 이전 보고서에 없는 계정이면 null
  * @param current     현재 값의 근거. 현재 보고서에 없는 계정이면 null
+ * @param scale       증감액의 크기 맥락과 계산식(#480)
  */
 public record FinancialChangeDetailResponse(
         Long changeId,
@@ -38,9 +42,11 @@ public record FinancialChangeDetailResponse(
         String formula,
         String rateFormula,
         Source previous,
-        Source current) {
+        Source current,
+        ScaleDetail scale) {
 
-    public static FinancialChangeDetailResponse of(FinancialChange c, Report previous, Report current) {
+    public static FinancialChangeDetailResponse of(FinancialChange c, ChangeScale scale, Report previous,
+            Report current) {
         return new FinancialChangeDetailResponse(c.getId(), c.getSjDiv(), c.getAccountName(), c.getAccountDetail(),
                 c.getAccountKey(),
                 c.getFsDiv(), c.getAmountBasis(), c.getPreviousAmount(), c.getCurrentAmount(), c.getChangeAmount(),
@@ -49,7 +55,8 @@ public record FinancialChangeDetailResponse(
                 c.getPreviousRceptNo() == null ? null : Source.of(previous, c.getSjDiv(), c.getPreviousAccountId(),
                         c.getPreviousPeriodName()),
                 c.getCurrentRceptNo() == null ? null : Source.of(current, c.getSjDiv(), c.getCurrentAccountId(),
-                        c.getCurrentPeriodName()));
+                        c.getCurrentPeriodName()),
+                ScaleDetail.of(c, scale, current));
     }
 
     /** 증감액 계산식(원 단위). 금액마다 그 보고서의 기간 이름을 붙인다(#144). 계산하지 않았으면 null */
@@ -73,6 +80,41 @@ public record FinancialChangeDetailResponse(
                 .divide(BigDecimal.valueOf(c.getPreviousAmount()), 2, RoundingMode.HALF_UP);
         return won(c.getChangeAmount()) + " ÷ " + term(c.getPreviousAmount(), c.getPreviousPeriodName()) + " × 100 = "
                 + percent.toPlainString() + "%";
+    }
+
+    /**
+     * 크기 맥락과 그 계산식·근거(#480). 목록의 scale에 기준 계정의 changeId, 계산식, 기준 값의 근거를 더한다.
+     *
+     * @param baseChangeId 기준 계정의 changeId. 찾지 못하면 null
+     * @param formula      증감액 ÷ 기준 값(기간 이름) × 100 = 퍼센트. 비율을 계산하지 않았으면 null
+     * @param baseSource   기준 값의 근거(현재 보고서). 찾지 못하면 null
+     */
+    public record ScaleDetail(Base base, String baseAccountName, Long baseAmount, BigDecimal ratio, Reason reason,
+            Long baseChangeId, String formula, Source baseSource) {
+
+        static ScaleDetail of(FinancialChange c, ChangeScale scale, Report current) {
+            FinancialChange baseChange = scale.baseChange();
+            if (baseChange == null) {
+                return new ScaleDetail(scale.base(), null, null, null, scale.reason(), null, null, null);
+            }
+            return new ScaleDetail(scale.base(), scale.baseAccountName(), scale.baseAmount(), scale.ratio(),
+                    scale.reason(), baseChange.getId(), scaleFormula(c, scale),
+                    Source.of(current, baseChange.getSjDiv(), baseChange.getCurrentAccountId(),
+                            baseChange.getCurrentPeriodName()));
+        }
+    }
+
+    /**
+     * 크기 계산식. 비율을 계산하지 않았으면 null. 퍼센트는 rateFormula처럼 식에 적는 두 금액으로 바로 계산한다(소수 2자리).
+     */
+    private static String scaleFormula(FinancialChange c, ChangeScale scale) {
+        if (scale.ratio() == null) {
+            return null;
+        }
+        BigDecimal percent = BigDecimal.valueOf(c.getChangeAmount()).movePointRight(2)
+                .divide(BigDecimal.valueOf(scale.baseAmount()), 2, RoundingMode.HALF_UP);
+        return won(c.getChangeAmount()) + " ÷ " + term(scale.baseAmount(), scale.baseChange().getCurrentPeriodName())
+                + " × 100 = " + percent.toPlainString().replace("-", "−") + "%";
     }
 
     /** 식 안의 금액. 음수는 빼기 기호와 헷갈리지 않게 괄호로 감싸고, 기간 이름이 있으면 괄호로 붙인다 */

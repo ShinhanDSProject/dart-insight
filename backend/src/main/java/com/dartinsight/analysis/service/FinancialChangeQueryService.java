@@ -1,6 +1,8 @@
 package com.dartinsight.analysis.service;
 
 import com.dartinsight.analysis.domain.Analysis;
+import com.dartinsight.analysis.domain.ChangeScale;
+import com.dartinsight.analysis.domain.ChangeScales;
 import com.dartinsight.analysis.domain.FinancialChange;
 import com.dartinsight.analysis.service.AnalysisResultService.CompletedChange;
 import com.dartinsight.analysis.service.AnalysisResultService.CompletedResult;
@@ -32,18 +34,27 @@ public class FinancialChangeQueryService {
         return new FinancialChanges(analysis, rules, result.changes());
     }
 
-    /** 완료된 분석의 계정 하나와 두 보고서. 다른 분석의 항목이면 404 */
+    /** 완료된 분석의 계정 하나, 그 크기 맥락(#480)과 두 보고서. 다른 분석의 항목이면 404 */
     public FinancialChangeEvidence change(Long analysisId, Long changeId) {
         CompletedChange result = resultService.completedChange(analysisId, changeId);
         Analysis analysis = result.analysis();
+        ChangeScale scale = ChangeScales.of(resultService.completedResult(analysisId).changes())
+                .scaleOf(result.change());
         Report previous = reportService.report(analysis.getPreviousRceptNo());
         Report current = reportService.report(analysis.getCurrentRceptNo());
-        return new FinancialChangeEvidence(result.change(), previous, current);
+        return new FinancialChangeEvidence(result.change(), scale, previous, current);
     }
 
-    public record FinancialChanges(Analysis analysis, List<StatementRule> rules, List<FinancialChange> changes) {
+    /** @param scales 이 분석의 계정 결과로 만든 크기 맥락 계산기(#480) */
+    public record FinancialChanges(Analysis analysis, List<StatementRule> rules, List<FinancialChange> changes,
+            ChangeScales scales) {
+
+        public FinancialChanges(Analysis analysis, List<StatementRule> rules, List<FinancialChange> changes) {
+            this(analysis, rules, changes, ChangeScales.of(changes));
+        }
     }
 
-    public record FinancialChangeEvidence(FinancialChange change, Report previous, Report current) {
+    public record FinancialChangeEvidence(FinancialChange change, ChangeScale scale, Report previous,
+            Report current) {
     }
 }
