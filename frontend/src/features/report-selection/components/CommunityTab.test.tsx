@@ -181,6 +181,28 @@ describe('커뮤니티 탭', () => {
     expect((screen.getByLabelText('글쓰기') as HTMLTextAreaElement).value).toBe('')
   })
 
+  it('닉네임을 정하는 사이 대화상자를 닫으면 정한 뒤에도 글을 올리지 않는다', async () => {
+    createPost.mockRejectedValue(
+      new ApiError(409, { code: 'COMMUNITY_NICKNAME_REQUIRED', message: '닉네임 필요', traceId: null, errors: [] }),
+    )
+    let finish: (value: { nickname: string }) => void = () => {}
+    setNickname.mockReturnValue(new Promise((resolve) => { finish = resolve }))
+    renderTab()
+    await screen.findByText('HBM 이야기 1')
+
+    fireEvent.change(screen.getByLabelText('글쓰기'), { target: { value: '첫 의견' } })
+    fireEvent.click(screen.getByRole('button', { name: '올리기' }))
+    const dialog = await screen.findByRole('dialog', { name: '닉네임 정하기' })
+    fireEvent.change(within(dialog).getByLabelText('닉네임'), { target: { value: '새닉네임' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: '정하고 올리기' }))
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+    finish({ nickname: '새닉네임' })
+
+    expect(await screen.findByText('닉네임을 정해야 글·댓글을 쓸 수 있어요.')).toBeTruthy()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(createPost).toHaveBeenCalledTimes(1)
+  })
+
   it('내 글에만 수정·삭제가 있고, 남의 글에는 신고만 있다', async () => {
     getPosts.mockResolvedValue(list([post(1, { author: me }), post(2)]))
     renderTab()
