@@ -524,7 +524,7 @@
 ```
 
 - `body`는 앞뒤 공백을 지운 1~500자, `parentId`는 답글일 때 이 글의 댓글 ID입니다. 201과 쓴 `Comment`.
-- 답글에 다시 답글을 달면 400 `COMMON_INVALID_INPUT`(`errors[].field`는 `parentId`, 답글은 한 단계만)입니다. 다른 글의 댓글이거나 없는 댓글이어도 같은 400입니다.
+- 답글에 다시 답글을 달면 400 `COMMON_INVALID_INPUT`(`errors[].field`는 `parentId`, 답글은 한 단계만)입니다. 다른 글의 댓글이거나 없는 댓글(보일 답글도 없는 지운 댓글 포함)이어도 같은 400입니다. '삭제된 댓글'로 남은 댓글에 답글을 달면 409 `COMMUNITY_TARGET_UNAVAILABLE`입니다.
 - 글이 `VISIBLE`일 때만 씁니다.
 
 #### PATCH·DELETE /api/comments/{commentId} — 댓글 고치기·지우기 (#460)
@@ -535,7 +535,7 @@
 
 - PUT은 누르기, DELETE는 취소입니다. 본문 없음. 200 `{ "liked": true, "likeCount": 4 }`.
 - 이미 누른 상태에서 PUT, 누르지 않은 상태에서 DELETE는 아무것도 바꾸지 않고 지금 상태를 돌려줍니다. 같은 사람이 동시에 여러 번 눌러도 수는 한 번만 더해집니다(DB UNIQUE).
-- 대상이 `VISIBLE`일 때만 누를 수 있고, 취소는 언제든 됩니다. 자기 글·댓글에도 누를 수 있습니다.
+- 대상이 `VISIBLE`일 때만 누를 수 있고(이미 누른 상태여도 PUT은 409 `COMMUNITY_TARGET_UNAVAILABLE`), 취소는 언제든 됩니다. 자기 글·댓글에도 누를 수 있습니다.
 
 #### POST /api/posts/{postId}/reports, /api/comments/{commentId}/reports — 신고 (#461)
 

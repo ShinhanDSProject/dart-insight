@@ -69,7 +69,8 @@ public class CommunityPostService {
     @Transactional
     public PostResponse edit(long postId, long userId, Object rawBody) {
         String body = CommunityText.postBody(rawBody);
-        CommunityPost post = findShownOrThrow(postId);
+        CommunityPost post = posts.findByIdForUpdate(postId).orElseThrow(CommunityPostService::postNotFound);
+        if (post.isGone()) throw postNotFound();
         post.requireOwner(userId);
         post.edit(body, LocalDateTime.now(clock));
         return views.post(post, userId);

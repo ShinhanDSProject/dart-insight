@@ -57,12 +57,13 @@ public class CommunityComment {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
-    /** parent가 있으면 그 댓글의 답글. 부모는 같은 글의 답글이 아닌 댓글이어야 한다(아니면 400 parentId) */
+    /** parent가 있으면 그 댓글의 답글. 부모는 같은 글의 답글이 아닌 댓글이어야 하고(아니면 400 parentId), 보여야 한다(아니면 409) */
     public static CommunityComment create(CommunityPost post, CommunityComment parent, long userId,
             String validBody, LocalDateTime now) {
         if (parent != null && (!parent.postId.equals(post.getId()) || parent.isReply())) {
             throw ApiException.invalidInput("parentId", "이 글의 댓글에만 답글을 달 수 있습니다(답글은 한 단계).");
         }
+        if (parent != null) parent.requireVisible();
         CommunityComment comment = new CommunityComment();
         comment.postId = post.getId();
         comment.parentId = parent == null ? null : parent.id;
