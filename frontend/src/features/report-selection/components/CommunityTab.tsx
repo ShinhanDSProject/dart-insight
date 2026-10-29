@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useId, useReducer, useState } from 'react'
 import { match } from 'ts-pattern'
 import { createPost, POST_BODY_MAX, type Post, type PostSort } from '@/shared/api/community'
 import { useAsyncAction } from '@/shared/hooks/useAsyncAction'
@@ -7,7 +7,7 @@ import { EmptyState, ErrorState } from '@/shared/ui/StateView'
 import { CommunityGateContext, useCommunityGate } from '../hooks/useCommunityGate'
 import { useCommunityPosts } from '../hooks/useCommunityPosts'
 import { COMMUNITY_DISCLAIMER, communityErrorMessages, hasMorePosts, sortOptions } from '../model/community'
-import type { QuotePick } from '../model/postQuote'
+import { EMPTY_COMPOSER, quoteComposerReducer } from '../model/postQuote'
 import { CommunityBodyForm } from './CommunityBodyForm'
 import { CommunityPostCard } from './CommunityPostCard'
 import { QuotePreview } from './CommunityQuoteCard'
@@ -25,8 +25,8 @@ export function CommunityTab({ corpCode }: { corpCode: string }) {
   const posts = useCommunityPosts(corpCode, sort)
   const write = useAsyncAction<Post>()
   // 글에 붙일 변경점(#464)과 고르기 대화상자
-  const [quote, setQuote] = useState<QuotePick | null>(null)
-  const [picking, setPicking] = useState(false)
+  const [composer, dispatchQuote] = useReducer(quoteComposerReducer, EMPTY_COMPOSER)
+  const quote = composer.pick
   // 몇 분 전 표시의 기준. 그릴 때마다 정해 방금 쓴 글도 '방금 전'으로 보인다
   const now = new Date()
   const sortLabelId = useId()
@@ -47,11 +47,11 @@ export function CommunityTab({ corpCode }: { corpCode: string }) {
           saving={write.state.status === 'loading'}
           attachment={
             quote === null ? (
-              <Button variant="link" className="community-form__attach" onClick={() => setPicking(true)}>
+              <Button variant="link" className="community-form__attach" onClick={() => dispatchQuote({ type: 'open-picker' })}>
                 변경점 붙이기
               </Button>
             ) : (
-              <QuotePreview pick={quote} onRemove={() => setQuote(null)} disabled={write.state.status === 'loading'} />
+              <QuotePreview pick={quote} onRemove={() => dispatchQuote({ type: 'remove' })} disabled={write.state.status === 'loading'} />
             )
           }
           onSubmit={async (body) => {
@@ -60,7 +60,7 @@ export function CommunityTab({ corpCode }: { corpCode: string }) {
             await write.run(async () => {
               const post = await gate.withNickname(() => createPost(corpCode, body, quote?.request ?? null))
               posts.dispatch({ type: 'add-post', post })
-              setQuote(null)
+              dispatchQuote({ type: 'remove' })
               done = true
               return post
             })
@@ -114,14 +114,11 @@ export function CommunityTab({ corpCode }: { corpCode: string }) {
         .with({ kind: 'nickname' }, () => <NicknameDialog onSaved={gate.nicknameSaved} onClose={gate.closeDialog} />)
         .with({ kind: 'none' }, () => null)
         .exhaustive()}
-      {picking && (
+      {composer.picking && (
         <QuotePickerDialog
           corpCode={corpCode}
-          onClose={() => setPicking(false)}
-          onPick={(pick) => {
-            setQuote(pick)
-            setPicking(false)
-          }}
+          onClose={() => dispatchQuote({ type: 'close-picker' })}
+          onPick={(pick) => dispatchQuote({ type: 'pick', pick })}
         />
       )}
     </CommunityGateContext.Provider>

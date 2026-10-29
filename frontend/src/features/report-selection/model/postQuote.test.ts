@@ -5,11 +5,14 @@ import type { StatementSummary } from '@/shared/api/results'
 import {
   accountName,
   amountChangeLabel,
+  EMPTY_COMPOSER,
+  quoteComposerReducer,
   quoteKindLabel,
   quoteLink,
   searchQuery,
   statementOptions,
   textPick,
+  type QuotePick,
 } from './postQuote'
 
 const source: PostQuote['source'] = { analysisId: 42, changeId: 3001, rceptNo: '20261114001234', sectionNo: 12, blockNo: 340 }
@@ -68,5 +71,21 @@ describe('변경점 고르기', () => {
   it('문장 찾기는 앞뒤 공백을 지운 두 글자 이상만 보낸다', () => {
     expect(searchQuery(' H ')).toBeNull()
     expect(searchQuery(' HBM ')).toBe('HBM')
+  })
+})
+
+describe('글쓰기 칸의 변경점 붙이기', () => {
+  const pick = { request: { kind: 'TEXT_CHANGE', analysisId: 42, changeId: 7 } } as QuotePick
+
+  it('고르면 붙이고 대화상자를 닫는다', () => {
+    const open = quoteComposerReducer(EMPTY_COMPOSER, { type: 'open-picker' })
+    expect(open).toEqual({ pick: null, picking: true })
+    expect(quoteComposerReducer(open, { type: 'pick', pick })).toEqual({ pick, picking: false })
+  })
+
+  it('닫기만 하면 붙인 것은 그대로이고, 빼면 비운다', () => {
+    const picked = { pick, picking: true }
+    expect(quoteComposerReducer(picked, { type: 'close-picker' })).toEqual({ pick, picking: false })
+    expect(quoteComposerReducer({ pick, picking: false }, { type: 'remove' })).toEqual(EMPTY_COMPOSER)
   })
 })
