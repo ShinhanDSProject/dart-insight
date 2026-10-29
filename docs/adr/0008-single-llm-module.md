@@ -1,6 +1,6 @@
 # ADR-0008: LLM은 ai-server의 LlmClient 하나로만 부르고, 제공자를 정하기 전에는 가짜 제공자를 쓴다
 
-- 상태: 채택
+- 상태: 채택(호출 기록을 분석이 완료될 때만 저장하는 부분은 ADR-0042가 대체)
 - 결정한 날: 2026-10-22
 - 관련: [이슈 #50](https://github.com/ShinhanDSProject/dart-insight/issues/50)(0.7), [PR #100](https://github.com/ShinhanDSProject/dart-insight/pull/100), 노션 결정 로그 [LLM 제공자·모델 선택](https://app.notion.com/p/400b6afffc6f8192bbd7e98fb597c38b)(미결정), 노션 개발 기준 3·8장
 
