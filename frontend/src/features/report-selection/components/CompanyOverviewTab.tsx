@@ -11,6 +11,7 @@ import { CompanyProfileCard } from './CompanyProfileCard'
 import { DisclosureChartSection } from './DisclosureChartSection'
 import { DisclosureSignalsSection } from './DisclosureSignalsSection'
 import { DisclosureTimelineSection } from './DisclosureTimelineSection'
+import { FinancialCheckpointsSection } from './FinancialCheckpointsSection'
 import { FinancialTrendSection } from './FinancialTrendSection'
 import { KeyFactsSection } from './KeyFactsSection'
 import { OverviewMetricsRow } from './OverviewMetricsRow'
@@ -28,6 +29,7 @@ interface OverviewSection {
  * 기업 개요 탭의 영역을 위에서부터 그리는 순서(FS-45~49, FS-53).
  * 정해 둔 순서: AI 브리핑(FS-49) | 기업 개황(FS-45)을 한 줄에 나란히(#385) → AI에게 묻기(FS-53, #365)
  * → 회사가 밝힌 전망·계획(FS-59, #465) → 작년 계획, 올해는(FS-60, #467) → 재무 흐름(FS-46)
+ * → 재무 체크 포인트(FS-62, #479)
  * → 주주·임원·배당(FS-47) → 확인해 볼 공시(FS-55, #411) → 공시 타임라인(FS-58, #445) → 최근 공시(FS-48). 아직 없는 영역은 자리도 보이지 않는다.
  *
  * 영역을 더할 때: OverviewSectionProps를 받는 컴포넌트를 만들고 이 배열의 정해 둔 자리에 한 줄을 더한다.
@@ -41,6 +43,7 @@ const sections: readonly OverviewSection[] = [
   { key: 'outlook', label: '전망·계획', Component: CompanyOutlookSection },
   { key: 'plan-followups', label: '작년 계획, 올해는', Component: CompanyPlanFollowupSection },
   { key: 'financial-trends', label: '재무 흐름', Component: FinancialTrendSection },
+  { key: 'checkpoints', label: '재무 체크 포인트', Component: FinancialCheckpointsSection },
   { key: 'key-facts', label: '주주·임원·배당', Component: KeyFactsSection },
   { key: 'disclosure-signals', label: '확인해 볼 공시', Component: DisclosureSignalsSection },
   { key: 'disclosure-chart', label: '공시 타임라인', Component: DisclosureChartSection },
