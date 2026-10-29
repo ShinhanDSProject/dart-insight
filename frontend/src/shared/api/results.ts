@@ -1,6 +1,7 @@
 import { apiGet } from './client'
 import { endpoints } from './endpoints'
 import type { AmountBasis, FsDiv } from './comparability'
+import type { ChangeType } from './textChanges'
 
 export type CalcStatus =
   | 'OK'
@@ -112,6 +113,18 @@ export interface ValueSource {
   sjDiv: SjDiv
   accountId: string
   dartUrl: string
+  sectionNo: number | null
+  blockNo: number | null
+}
+
+export interface RelatedTextChange {
+  changeId: number
+  changeType: ChangeType
+  sectionPath: string
+  preview: string
+  side: 'previous' | 'current'
+  sectionNo: number | null
+  blockNo: number | null
 }
 
 export interface FinancialChangeDetail extends FinancialChangeItem {
@@ -124,6 +137,7 @@ export interface FinancialChangeDetail extends FinancialChangeItem {
   previous: ValueSource | null
   current: ValueSource | null
   scale: ChangeScaleDetail
+  relatedTextChanges: RelatedTextChange[]
 }
 
 export function getFinancialChange(analysisId: number, changeId: number, signal?: AbortSignal): Promise<FinancialChangeDetail> {

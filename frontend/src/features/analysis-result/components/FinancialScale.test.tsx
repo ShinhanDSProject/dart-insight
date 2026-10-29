@@ -121,6 +121,7 @@ describe('근거 상세의 크기 맥락(#480)', () => {
         previous: null,
         current: null,
         scale,
+        relatedTextChanges: [],
       },
     }
     render(<EvidencePanel analysis={analysis} changeId={1} unit="WON" onClose={() => {}} onAsk={() => {}} asking={false} />)
@@ -144,6 +145,8 @@ describe('근거 상세의 크기 맥락(#480)', () => {
         sjDiv: 'IS',
         accountId: 'ifrs-full_Revenue',
         dartUrl: 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260814000001',
+        sectionNo: null,
+        blockNo: null,
       },
     })
     const group = screen.getByRole('group', { name: '매출액 대비 크기' })

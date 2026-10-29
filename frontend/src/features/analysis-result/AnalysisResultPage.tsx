@@ -176,6 +176,7 @@ interface ResultTabPanelProps extends AnalysisResultProps {
 
 function ResultTabPanel({ analysis, params, update, ask, suggestions, askSections, sectionCounts }: ResultTabPanelProps) {
   const openSource = (target: SourceTarget) => update(openSourceChanges(target))
+  const openText = (changeId: number) => update(openTextChanges(changeId))
   const openFinancial = (sj: SjDiv, change: number) => update(openFinancialChanges(sj, change))
   // 요약의 예시 질문, 문장 변화의 '이 항목 변화 AI에게 묻기', 재무 근거의 '이 계정 변화 AI에게 묻기'가 같이 쓴다: 질문을 보내고 AI 질문 탭으로 옮긴다
   const askAndOpen = (question: string) => {
@@ -197,6 +198,8 @@ function ResultTabPanel({ analysis, params, update, ask, suggestions, askSection
         onChange={(c) => update(financialParamChanges(c))}
         onAsk={askAndOpen}
         asking={asking}
+        onOpenSource={openSource}
+        onOpenText={openText}
       />
     ))
     .with('summary', () => (
@@ -204,7 +207,7 @@ function ResultTabPanel({ analysis, params, update, ask, suggestions, askSection
         key={analysis.analysisId}
         analysis={analysis}
         onOpenFinancial={openFinancial}
-        onOpenText={(change) => update(openTextChanges(change))}
+        onOpenText={openText}
         onOpenSource={openSource}
         onOpenChangedAccounts={(sj) => update(openChangedAccounts(sj))}
         onOpenTextList={(type) => update(openTextList(type))}
