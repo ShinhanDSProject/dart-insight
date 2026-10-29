@@ -1,7 +1,11 @@
+import base64
+import json
+
 from fastapi.testclient import TestClient
 
 from app.core.config import LlmSettings
 from app.llm import FakeProvider, LlmClient
+from app.llm.providers import ProviderError, ProviderTransientError
 from app.main import create_app
 from app.summary import fake
 from app.summary.schema import SummaryRequest
@@ -115,9 +119,11 @@ def test_no_candidate_anywhere_does_not_call_the_llm() -> None:
         ],
     }
 
-    data = app_with(FakeProvider(responders={"summary": fake.respond})).post(
-        "/internal/summaries", json=body
-    ).json()
+    data = (
+        app_with(FakeProvider(responders={"summary": fake.respond}))
+        .post("/internal/summaries", json=body)
+        .json()
+    )
 
     assert data["items"][0]["grade"] == "NONE"
     assert data["calls"] == []
@@ -146,3 +152,31 @@ def test_duplicate_refs_are_rejected() -> None:
     response = app_with(FakeProvider()).post("/internal/summaries", json=body)
 
     assert response.status_code == 400
+
+
+def test_no_llm_without_calls_has_no_call_header() -> None:
+    response = app_with(None).post("/internal/summaries", json=BODY)
+
+    assert "x-llm-calls" not in response.headers
+    assert set(response.json()) == {"code", "message", "traceId", "errors"}
+
+
+def test_unavailable_llm_returns_the_calls_so_far_in_a_header() -> None:
+    # 일시 오류로 한 번 다시 시도한 뒤 인증 오류로 LLM을 더 부를 수 없음(#137, ADR-0042)
+    provider = FakeProvider(
+        script=[ProviderTransientError("시간 초과"), ProviderError("인증 실패")]
+    )
+    llm = LlmClient(provider, LlmSettings(provider="fake"), sleep=lambda _: None)
+    client = TestClient(create_app(llm_client=llm))
+
+    response = client.post("/internal/summaries", json=BODY, headers={"X-Trace-Id": "sum-fail"})
+
+    assert response.status_code == 503
+    body = response.json()
+    assert body["code"] == "AI_LLM_UNAVAILABLE"
+    assert set(body) == {"code", "message", "traceId", "errors"}
+    calls = json.loads(base64.urlsafe_b64decode(response.headers["X-Llm-Calls"]).decode("utf-8"))
+    assert [c["outcome"] for c in calls] == ["TRANSIENT_ERROR", "ERROR"]
+    assert [c["attempt"] for c in calls] == [1, 2]
+    assert all(c["task"] == "summary" and c["traceId"] == "sum-fail" for c in calls)
+    assert "인증 실패" in calls[1]["error"]
