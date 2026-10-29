@@ -33,6 +33,12 @@ public final class CheckpointRules {
     public static final int BORROWINGS_GAP = 20;
     /** 최근 1년 자금 조달 묶음 공시 건수 */
     public static final int FUNDING_COUNT = 1;
+    /**
+     * 자금 조달 공시 가운데 발행 주식 수가 늘어날 수 있는(희석) 조달로 세는 제목 낱말. 회사채·기업어음 같은 채무증권만의
+     * 공시는 세지 않는다. 낱말은 에코프로비엠 2026 공시 목록 제목(유상증자결정·전환사채·증권신고서(지분증권) 등)으로 확인
+     */
+    public static final List<String> EQUITY_WORDS = List.of("유상증자", "전환사채", "신주인수권", "교환사채", "주식관련사채",
+            "지분증권", "전환가액");
     /** 최근 1년 적정이 아닌 감사의견 건수 */
     public static final int AUDIT_COUNT = 1;
 
@@ -208,13 +214,19 @@ public final class CheckpointRules {
             return CheckpointItem.of(CheckpointKey.FUNDING_DISCLOSURES, CheckpointStatus.NO_DATA,
                     "공시 목록을 받지 못해 세지 못했어요.", List.of(CheckpointFact.count("자금 조달 공시", null)));
         }
-        List<Disclosure> found = disclosures.get();
+        List<Disclosure> found = disclosures.get().stream().filter(CheckpointRules::isEquityFunding).toList();
         boolean check = found.size() >= FUNDING_COUNT;
         String note = check ? "공시마다 조달 방식(주식·사채)과 조건이 달라요. 발행 주식 수가 늘어날 수 있는지는 각 공시 원문에 있어요."
                 : null;
         return new CheckpointItem(CheckpointKey.FUNDING_DISCLOSURES,
                 check ? CheckpointStatus.CHECK : CheckpointStatus.OK, note,
                 List.of(CheckpointFact.count("자금 조달 공시", found.size())), List.copyOf(found));
+    }
+
+    /** 제목(공백 무시)에 주식 관련 낱말이 있는 자금 조달 공시인지 */
+    static boolean isEquityFunding(Disclosure disclosure) {
+        String title = disclosure.reportName() == null ? "" : disclosure.reportName().replace(" ", "");
+        return EQUITY_WORDS.stream().anyMatch(title::contains);
     }
 
     /**
