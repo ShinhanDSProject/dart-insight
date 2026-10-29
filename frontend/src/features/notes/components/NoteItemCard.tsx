@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { match } from 'ts-pattern'
 import { NOTE_MEMO_MAX, type NoteItem } from '@/shared/api/notes'
 import { verifiedDartUrl } from '@/shared/lib/dart'
+import { formatDate } from '@/shared/lib/reportLabels'
 import { Badge, Button, ButtonAnchor, ButtonLink, Card, MemoForm, Notice } from '@/shared/ui'
+import { DartLinkInline } from '@/shared/ui/DartLink'
 import { AlertState } from '@/shared/ui/StateView'
 import { noteKindLabel, noteLocation, noteResultLink, noteTime, OUTDATED_NOTE } from '../model/notes'
 
@@ -20,7 +22,7 @@ type CardState =
   | { status: 'removing' }
 
 /**
- * 노트 항목 하나. 담을 때의 이름·값·문장(사본)과 메모, 원래 위치로 돌아가는 링크, DART 원문, 지우기.
+ * 노트 항목 하나. 담을 때의 이름·값·문장(사본)과 메모, 관련 후속 공시(#504), 원래 위치로 돌아가는 링크, DART 원문, 지우기.
  * 분석 버전이 바뀌었으면(AC4) 위치가 달라졌을 수 있다고 알리고, 담은 값은 그대로 보인다.
  */
 export function NoteItemCard({ item, onSaveMemo, onRemove }: NoteItemCardProps) {
@@ -94,6 +96,25 @@ export function NoteItemCard({ item, onSaveMemo, onRemove }: NoteItemCardProps) 
               <span className="note-item__memo-label">메모</span>
               <p>{item.memo ?? '메모가 없어요.'}</p>
             </div>
+            {item.relatedDisclosures.length > 0 && (
+              <div className="note-item__related">
+                <h4 className="note-item__related-title">관련 후속 공시</h4>
+                <ul className="note-item__related-list">
+                  {item.relatedDisclosures.map((disclosure) => (
+                    <li key={disclosure.rceptNo} className="note-item__related-item">
+                      <Badge>{disclosure.matchLabel}</Badge>
+                      <span className="note-item__related-name">{disclosure.reportName}</span>
+                      <span className="note-item__related-date">{formatDate(disclosure.rceptDt)}</span>
+                      <DartLinkInline
+                        rceptNo={disclosure.rceptNo}
+                        dartUrl={disclosure.dartUrl}
+                        label={disclosure.reportName}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <div className="note-item__actions">
               {link !== null && (
                 <ButtonLink variant="secondary" to={link}>
