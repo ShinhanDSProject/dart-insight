@@ -46,9 +46,16 @@ export function useCommunityGate(): CommunityGate {
     task().catch((error: unknown) => {
       if (!(error instanceof ApiError && error.code === 'COMMUNITY_NICKNAME_REQUIRED')) throw error
       return new Promise<T>((resolve, reject) => {
+        // 다시 보내기와 닫기 중 먼저 온 것만 쓴다. 닉네임을 정하는 사이 대화상자를 닫았으면 정한 뒤에도 글을 보내지 않는다
+        let settled = false
+        const once = (run: () => void) => () => {
+          if (settled) return
+          settled = true
+          run()
+        }
         setDialog({
           kind: 'nickname',
-          pending: { retry: () => task().then(resolve, reject), cancel: () => reject(error) },
+          pending: { retry: once(() => void task().then(resolve, reject)), cancel: once(() => reject(error)) },
         })
       })
     }), [])
