@@ -4,6 +4,7 @@ import com.dartinsight.community.domain.CommentThread;
 import com.dartinsight.community.domain.CommunityComment;
 import com.dartinsight.community.domain.CommunityContent;
 import com.dartinsight.community.domain.CommunityPost;
+import com.dartinsight.community.domain.CommunityQuote;
 import com.dartinsight.community.domain.ContentStatus;
 import com.dartinsight.community.domain.TargetType;
 import com.dartinsight.community.dto.BlindResponse;
@@ -33,6 +34,7 @@ class CommunityViews {
     private final UserService userService;
     private final CommunityLikeRepository likes;
     private final ReportStates reportStates;
+    private final PostQuotes quotes;
     private final Clock clock;
 
     /** @param viewerId 요청한 회원. 로그인하지 않았으면 null */
@@ -40,9 +42,10 @@ class CommunityViews {
         Map<Long, String> nicknames = userService.nicknames(posts.stream().map(CommunityPost::getUserId).toList());
         Set<Long> liked = liked(TargetType.POST, posts.stream().map(CommunityPost::getId).toList(), viewerId);
         Map<Long, BlindResponse> blinds = blinds(TargetType.POST, posts, viewerId);
+        Map<Long, CommunityQuote> quoted = quotes.forPosts(posts.stream().map(CommunityPost::getId).toList());
         return posts.stream()
                 .map(post -> PostResponse.of(post, nicknames.get(post.getUserId()), viewerId,
-                        liked.contains(post.getId()), blinds.get(post.getId())))
+                        liked.contains(post.getId()), blinds.get(post.getId()), quoted.get(post.getId())))
                 .toList();
     }
 

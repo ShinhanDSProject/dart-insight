@@ -15,6 +15,7 @@ public final class TestData {
             "community_report_entry",
             "community_report",
             "community_like",
+            "community_quote",
             // 답글이 부모 댓글을 가리키므로(자기 참조 외래 키) 답글부터 지운다
             "community_comment WHERE parent_id IS NOT NULL",
             "community_comment",

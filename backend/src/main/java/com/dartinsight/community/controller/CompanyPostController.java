@@ -1,7 +1,7 @@
 package com.dartinsight.community.controller;
 
 import com.dartinsight.common.web.ApiPaths;
-import com.dartinsight.community.dto.CommunityBodyRequest;
+import com.dartinsight.community.dto.PostCreateRequest;
 import com.dartinsight.community.dto.PostListResponse;
 import com.dartinsight.community.dto.PostResponse;
 import com.dartinsight.community.service.CommunityPostService;
@@ -34,9 +34,9 @@ public class CompanyPostController {
 
     @PostMapping
     public ResponseEntity<PostResponse> create(@AuthenticationPrincipal Jwt jwt, @PathVariable String corpCode,
-            @RequestBody CommunityBodyRequest request) {
+            @RequestBody PostCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(postService.create(corpCode, userId(jwt), request.body()));
+                .body(postService.create(corpCode, userId(jwt), request.body(), request.quote()));
     }
 
     /** 쓰기 경로는 SecurityConfig가 로그인을 요구해 토큰이 언제나 있다 */
