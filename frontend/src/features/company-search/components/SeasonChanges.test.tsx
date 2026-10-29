@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SeasonChangeList, SeasonKey } from '@/shared/api/seasonChanges'
 import { axeViolations } from '@/test/axe'
-import { SeasonChanges } from './SeasonChanges'
+import { SEASON_VISIBLE, SeasonChanges } from './SeasonChanges'
 
 // 서버 대신 고른 시즌에 따라 고정된 순위를 돌려주고, 어떤 시즌을 불렀는지 남긴다
 const api = vi.hoisted(() => ({ calls: [] as (SeasonKey | null)[], list: null as unknown as SeasonChangeList }))
@@ -66,6 +66,20 @@ function renderSection() {
 }
 
 describe('SeasonChanges', () => {
+  it('처음엔 5위까지 보이고 더 보기로 10위까지 펼친다', async () => {
+    const base = ranked.items[0]
+    api.list = {
+      ...ranked,
+      items: Array.from({ length: 10 }, (_, i) => ({ ...base, rank: i + 1, corpCode: `0000000${i}`, corpName: `기업${i + 1}` })),
+    }
+    renderSection()
+
+    expect(await screen.findAllByRole('listitem')).toHaveLength(SEASON_VISIBLE)
+    fireEvent.click(screen.getByRole('button', { name: '더 보기 (5곳)' }))
+    expect(screen.getAllByRole('listitem')).toHaveLength(10)
+    expect(screen.getByRole('button', { name: '접기' }).getAttribute('aria-expanded')).toBe('true')
+  })
+
   it('순위·한 줄 요약·변경 건수와 비교 기간·빠진 기업·계산 방식을 보이고, 줄은 분석 결과로 간다', async () => {
     api.list = ranked
     const { container } = renderSection()

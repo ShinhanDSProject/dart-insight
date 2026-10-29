@@ -63,41 +63,45 @@ export function SearchPage() {
 
   return (
     <section className="page">
-      <h1 className="page__title">기업 검색</h1>
-      <p className="page__lead">회사명이나 종목코드로 기업을 찾고, 같은 기업의 두 정기보고서를 비교합니다.</p>
+      <div className="search-hero">
+        <h1 className="page__title">기업 검색</h1>
+        <p className="search-hero__lead">회사명이나 종목코드로 기업을 찾고, 두 정기보고서를 비교해요.</p>
+
+        <form className="search-form" onSubmit={handleSubmit} noValidate>
+          {/* 보이는 제목 대신 입력창 안내 글을 쓰고, 화면 읽기 프로그램에는 이름을 그대로 준다(#486) */}
+          <label htmlFor="company-query" className="visually-hidden">
+            회사명 또는 종목코드
+          </label>
+          <div className="search-form__row">
+            <Input
+              id="company-query"
+              ref={inputRef}
+              invalid={inputError !== null}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleInputKeyDown}
+              placeholder="회사명 또는 종목코드 (예: 삼성전자, ㅅㅅㅈㅈ, 005930)"
+              autoComplete="off"
+              aria-describedby={inputError ? 'company-query-hint company-query-error' : 'company-query-hint'}
+            />
+            <Button type="submit" variant="primary" size="lg">
+              검색
+            </Button>
+          </div>
+          <FieldHint id="company-query-hint" className="search-form__hint">
+            초성으로도 찾을 수 있어요. 결과는 ↓ 키로 고르고 Enter로 열어요.
+          </FieldHint>
+          {inputError && (
+            <p id="company-query-error" className="field-error">
+              {inputError}
+            </p>
+          )}
+        </form>
+      </div>
+
       <ServiceNotice />
 
       <OnboardingSection query={query} />
-
-      <form className="search-form" onSubmit={handleSubmit} noValidate>
-        <label htmlFor="company-query" className="search-form__label">
-          회사명 또는 종목코드
-        </label>
-        <div className="search-form__row">
-          <Input
-            id="company-query"
-            ref={inputRef}
-            invalid={inputError !== null}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleInputKeyDown}
-            placeholder="예: 삼성전자, ㅅㅅㅈㅈ, 005930"
-            autoComplete="off"
-            aria-describedby={inputError ? 'company-query-hint company-query-error' : 'company-query-hint'}
-          />
-          <Button type="submit" variant="primary" size="lg">
-            검색
-          </Button>
-        </div>
-        <FieldHint id="company-query-hint" className="search-form__hint">
-          초성으로도 찾을 수 있어요. 결과는 ↓ 키로 고르고 Enter로 열어요.
-        </FieldHint>
-        {inputError && (
-          <p id="company-query-error" className="field-error">
-            {inputError}
-          </p>
-        )}
-      </form>
 
       {query === '' && <HomeSections />}
 
@@ -114,7 +118,8 @@ function OnboardingSection({ query }: { query: string }) {
 }
 
 /**
- * 검색어가 없을 때만 보이는 첫 화면 아래쪽. 맨 위에 대표 기업(#399)과 이번 시즌 변화가 큰 기업(#420)을, 그 아래 로그인한 회원의 관심 기업(#36) 칩을 전체 폭으로 두고, 그 아래에
+ * 검색어가 없을 때만 보이는 첫 화면 아래쪽. 맨 위에 로그인한 회원의 관심 기업(#36) 칩을, 그 아래 대표 기업(#399)과 이번 시즌 변화가 큰 기업(#420)을
+ * 나란히 두 칸으로 둔다(#486). 그 아래에
  * 최근 본 분석(FS-7)과 관심 기업 새 공시(FS-52)를 같은 폭 두 열로 둔다(#378). 두 열은 제목 줄·목록·아래 줄이 맞는다.
  * 관심 기업 목록이 비거나 로그인하지 않았으면 칩은 보이지 않고 새 공시 자리에 짧은 안내만 보인다.
  * 목록을 받지 못했으면 빈 목록처럼 숨기지 않고 다시 시도를 안내한다.
@@ -124,8 +129,6 @@ function HomeSections() {
   const featured = useFeaturedCompanies()
   return (
     <>
-      <FeaturedCompanies state={featured.state} onRetry={featured.reload} />
-      <SeasonChanges />
       {match(favorites.status)
         .with('error', () => (
           <AlertState title="관심 기업을 불러오지 못했어요.">
@@ -137,6 +140,10 @@ function HomeSections() {
         .with('loading', 'anonymous', () => null)
         .with('ready', () => <FavoriteCompanies items={favorites.items} onRemove={favorites.remove} />)
         .exhaustive()}
+      <div className="home-pair">
+        <FeaturedCompanies state={featured.state} onRetry={featured.reload} />
+        <SeasonChanges />
+      </div>
       <div className="home-columns">
         <RecentAnalysesSection />
         {favorites.status !== 'error' && (

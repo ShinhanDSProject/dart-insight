@@ -4,6 +4,7 @@ import { match } from 'ts-pattern'
 import type { SeasonChangeItem, SeasonChangeList, SeasonKey } from '@/shared/api/seasonChanges'
 import { Badge, Button, Select } from '@/shared/ui'
 import { AlertState } from '@/shared/ui/StateView'
+import { collapseList } from '../model/collapsedList'
 import { useSeasonChanges } from '../hooks/useSeasonChanges'
 import {
   excludedNote,
@@ -13,8 +14,12 @@ import {
   seasonOptionLabel,
   seasonValue,
 } from '../model/seasonChanges'
+import { MoreToggle } from './MoreToggle'
 
 const TITLE_ID = 'season-changes-title'
+const LIST_ID = 'season-changes-list'
+/** 대표 기업 옆 칸과 높이를 맞추려고 처음엔 5위까지만 보인다(#486) */
+export const SEASON_VISIBLE = 5
 
 /**
  * W-01 ① 대표 기업 아래 '이번 시즌 변화가 큰 기업' Top 10(#420, ADR-0037). 대표 기업을 문장 비교만으로 잰 순위이고,
@@ -40,6 +45,8 @@ export function SeasonChanges() {
 function SeasonChangesBody({ data, onSeasonChange }: { data: SeasonChangeList; onSeasonChange: (season: SeasonKey) => void }) {
   const season = data.season
   const excluded = excludedNote(data.excluded)
+  const [expanded, setExpanded] = useState(false)
+  const list = collapseList(data.items, SEASON_VISIBLE, expanded)
   return (
     <section className="season-changes" aria-labelledby={TITLE_ID}>
       <div className="season-changes__head">
@@ -78,11 +85,22 @@ function SeasonChangesBody({ data, onSeasonChange }: { data: SeasonChangeList; o
           {data.items.length === 0 ? (
             <p className="featured-companies__note">이 시즌에 순위를 매긴 기업이 없어요.</p>
           ) : (
-            <ol className="season-changes__list">
-              {data.items.map((item) => (
-                <SeasonChangeRow key={item.corpCode} item={item} />
-              ))}
-            </ol>
+            <>
+              <ol className="season-changes__list" id={LIST_ID}>
+                {list.shown.map((item) => (
+                  <SeasonChangeRow key={item.corpCode} item={item} />
+                ))}
+              </ol>
+              {list.toggleable && (
+                <MoreToggle
+                  controls={LIST_ID}
+                  expanded={expanded}
+                  hiddenCount={list.hiddenCount}
+                  unit="곳"
+                  onToggle={() => setExpanded((v) => !v)}
+                />
+              )}
+            </>
           )}
           {excluded && <p className="featured-companies__note">{excluded}</p>}
           <p className="featured-companies__note">{SEASON_SCORE_NOTE} 출처: DART</p>
