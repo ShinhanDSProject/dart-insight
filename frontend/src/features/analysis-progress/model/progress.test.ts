@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import type { Analysis, AnalysisStepView, StepState } from '@/shared/api/analyses'
 import { ApiError } from '@/shared/api/client'
-import { analysisPolling, isClientError, nextPollDelay, statusLabel, stepMarker, stepStateLabel, stepSummary } from './progress'
+import {
+  analysisPolling,
+  isClientError,
+  nextPollDelay,
+  progressHeader,
+  statusLabel,
+  stepMarker,
+  stepProgress,
+  stepStateLabel,
+  stepSummary,
+} from './progress'
 
 const steps = (states: AnalysisStepView['state'][]): AnalysisStepView[] =>
   (['RECEIVED', 'COMPARING', 'VERIFYING', 'DONE'] as const).map((step, i) => ({
@@ -57,5 +67,26 @@ describe('분석 상태 조회', () => {
     expect(stepMarker('DONE')).toBe('✓')
     expect(stepMarker('FAILED')).toBe('!')
     expect(stepMarker('ACTIVE')).toBe('')
+  })
+
+  it('진행 막대는 끝난 단계와 진행 중 단계의 절반만큼 차고, 실패하면 그 앞에서 멈춘다', () => {
+    expect(stepProgress([])).toBe(0)
+    expect(stepProgress(steps(['ACTIVE', 'PENDING', 'PENDING', 'PENDING']))).toBe(0.125)
+    expect(stepProgress(steps(['DONE', 'ACTIVE', 'PENDING', 'PENDING']))).toBe(0.375)
+    expect(stepProgress(steps(['DONE', 'DONE', 'FAILED', 'PENDING']))).toBe(0.5)
+    expect(stepProgress(steps(['DONE', 'DONE', 'DONE', 'DONE']))).toBe(1)
+  })
+
+  it('화면 머리는 진행 중·완료·실패마다 제목과 배지를 바꾼다', () => {
+    expect(progressHeader('RUNNING')).toEqual({
+      title: '보고서의 변화를 분석하고 있어요',
+      badge: { tone: 'accent', label: '분석 중' },
+    })
+    expect(progressHeader('PENDING').badge.label).toBe('대기 중')
+    expect(progressHeader('COMPLETED').badge).toEqual({ tone: 'neutral', label: '완료' })
+    expect(progressHeader('FAILED')).toEqual({
+      title: '분석을 완료하지 못했어요',
+      badge: { tone: 'danger', label: '분석 실패' },
+    })
   })
 })

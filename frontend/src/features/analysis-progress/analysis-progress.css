@@ -1,37 +1,33 @@
+/* 단계 카드(#549): 단계마다 옅은 회색 칸, 진행 중인 단계는 옅은 보라. 좁으면 줄을 바꾼다 */
 .steps {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-4) 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
+  gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .steps__item {
-  flex: 1 1 140px;
-  display: grid;
-  grid-template-columns: 28px 1fr;
-  grid-template-rows: auto auto;
-  column-gap: var(--space-2);
-  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+  transition: background-color var(--motion-base) var(--ease-out);
 }
 
-.steps__marker {
-  grid-row: span 2;
+.steps__label {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 2px solid var(--color-border-strong);
-  border-radius: var(--radius-pill);
-  font-family: var(--font-num);
+  gap: var(--space-1);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
 }
 
-.steps__label {
-  font-weight: var(--font-weight-bold);
+.steps__marker:empty {
+  display: none;
 }
 
 .steps__state {
@@ -39,42 +35,27 @@
   font-size: var(--font-size-xs);
 }
 
-.steps__item--done .steps__marker {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
-  color: var(--color-primary-text);
-}
-
-.steps__item--active .steps__marker {
-  border-width: 3px;
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+.steps__item--active {
+  background: var(--color-accent-subtle);
 }
 
 .steps__item--active .steps__state {
-  color: var(--color-primary);
+  color: var(--color-accent);
   font-weight: var(--font-weight-bold);
 }
 
-.steps__item--failed .steps__marker {
-  border-color: var(--color-attention);
-  color: var(--color-attention);
+.steps__item--failed {
+  background: var(--color-danger-subtle);
 }
 
+.steps__item--failed .steps__marker,
 .steps__item--failed .steps__state {
-  color: var(--color-attention);
+  color: var(--color-danger);
   font-weight: var(--font-weight-bold);
 }
 
 .steps__item--pending .steps__label {
   color: var(--color-text-muted);
-  font-weight: var(--font-weight-regular);
-}
-
-.progress__status {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
 }
 
 .progress__retrying {
@@ -82,7 +63,6 @@
   font-size: var(--font-size-sm);
 }
 
-.progress__outcome,
 .progress__actions {
   display: flex;
   flex-wrap: wrap;
@@ -91,8 +71,21 @@
   margin-top: var(--space-4);
 }
 
+/* 실패: 왼쪽 '보고서 다시 선택', 오른쪽 '분석 실행' */
+.progress__actions--split {
+  justify-content: space-between;
+}
+
+.progress__failed {
+  margin-top: var(--space-4);
+}
+
 .progress__failed p {
   margin: 0 0 var(--space-2);
+}
+
+.progress__failed p:last-child {
+  margin-bottom: 0;
 }
 
 .progress__notify {

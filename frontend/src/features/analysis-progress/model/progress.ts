@@ -2,6 +2,7 @@ import { match } from 'ts-pattern'
 import type { Analysis, AnalysisStatus, AnalysisStepView, StepState } from '@/shared/api/analyses'
 import { ApiError } from '@/shared/api/client'
 import type { PollingOptions } from '@/shared/hooks/pollingState'
+import type { BadgeTone } from '@/shared/ui'
 
 /** 상태 조회 주기(W-02): 1초. 조회가 실패하면 간격을 늘려 다시 시도하고, 5번 실패하면 멈춘다. */
 export const POLL_INTERVAL_MS = 1000
@@ -64,4 +65,30 @@ export function stepMarker(state: StepState): string {
     .with('DONE', () => '✓')
     .with('FAILED', () => '!')
     .otherwise(() => '')
+}
+
+/**
+ * 진행 막대 비율(0~1, #549). 끝난 단계 수에 진행 중인 단계의 절반을 더해 단계 수로 나눈다.
+ * 실패한 단계는 더하지 않아 막대가 그 앞에서 멈춘다. 단계가 없으면 0
+ */
+export function stepProgress(steps: AnalysisStepView[]): number {
+  if (steps.length === 0) return 0
+  const done = steps.filter((s) => s.state === 'DONE').length
+  const active = steps.some((s) => s.state === 'ACTIVE') ? 0.5 : 0
+  return Math.min(1, (done + active) / steps.length)
+}
+
+export interface ProgressHeader {
+  title: string
+  badge: { tone: BadgeTone; label: string }
+}
+
+/** 분석 진행 화면 머리(#549): 상태별 제목과 오른쪽 위 배지('분석 중' 보라, '분석 실패' 분홍) */
+export function progressHeader(status: AnalysisStatus): ProgressHeader {
+  return match(status)
+    .with('PENDING', () => ({ title: '보고서의 변화를 분석하고 있어요', badge: { tone: 'accent' as const, label: '대기 중' } }))
+    .with('RUNNING', () => ({ title: '보고서의 변화를 분석하고 있어요', badge: { tone: 'accent' as const, label: '분석 중' } }))
+    .with('COMPLETED', () => ({ title: '분석을 마쳤어요', badge: { tone: 'neutral' as const, label: '완료' } }))
+    .with('FAILED', () => ({ title: '분석을 완료하지 못했어요', badge: { tone: 'danger' as const, label: '분석 실패' } }))
+    .exhaustive()
 }
