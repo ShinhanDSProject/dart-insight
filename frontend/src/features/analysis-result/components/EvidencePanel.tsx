@@ -276,12 +276,12 @@ function EvidenceBody({
             커뮤니티에 인용
           </ButtonLink>
         )}
+        <AddToNote
+          target={{ kind: 'FINANCIAL_CHANGE', changeId: detail.changeId }}
+          analysisId={analysis.analysisId}
+          label={accountLabel(detail)}
+        />
       </div>
-      <AddToNote
-        target={{ kind: 'FINANCIAL_CHANGE', changeId: detail.changeId }}
-        analysisId={analysis.analysisId}
-        label={accountLabel(detail)}
-      />
       <p className="panel__note">
         수치는 OpenDART 재무제표 API 값으로 코드가 계산했어요.
       </p>
