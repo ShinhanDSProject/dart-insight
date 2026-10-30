@@ -158,11 +158,11 @@ describe('shortcutGroups 도움말 목록', () => {
 })
 
 describe('shortcutGroups 문장 변화 묶음', () => {
-  it('j·k·Enter·p를 보이고 문장·내용 변화 탭에서 쓴다고 늘 안내한다', () => {
+  it('j·k·Enter·p를 보이고 문장 변화 탭에서 쓴다고 늘 안내한다', () => {
     const text = shortcutGroups('result').find((g) => g.id === 'text')
     expect(text?.title).toBe('문장 변화')
     expect(text?.items.map((i) => i.keys)).toEqual([['J', '↓'], ['K', '↑'], ['Enter'], ['P']])
-    expect(text?.note).toContain('문장·내용 변화 탭')
+    expect(text?.note).toContain('문장 변화 탭')
   })
 
   it('결과 화면에서는 결과 화면 묶음에 안내를 달지 않고, 다른 화면에서는 단다', () => {

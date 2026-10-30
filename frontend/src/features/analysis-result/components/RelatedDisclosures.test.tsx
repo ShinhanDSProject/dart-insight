@@ -103,7 +103,8 @@ describe('RelatedDisclosures', () => {
     const { container } = render(<RelatedDisclosures analysisId={2} changeId={2585} />)
     openPanel()
 
-    expect(screen.getByText('보조')).toBeTruthy()
+    expect(screen.getByText('보조 근거 · 수시공시')).toBeTruthy()
+    expect(screen.getByText('인과관계는 확인되지 않았습니다.')).toBeTruthy()
     const items = screen.getAllByRole('listitem')
     expect(items).toHaveLength(2)
     expect(items[0].textContent).toContain('주요사항보고서(유상증자결정)')

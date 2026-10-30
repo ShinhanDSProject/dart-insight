@@ -95,7 +95,9 @@ describe('이전 방식 분석 안내', () => {
     await screen.findByRole('region', { name: '비교 맥락' })
     expect(screen.queryByText(/이전 분석 방식/)).toBeNull()
     expect(screen.queryByRole('button', { name: '새 방식으로 다시 분석' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
     expect(screen.getByRole('button', { name: '브리프 내려받기' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '인쇄' })).toBeTruthy()
     const companyLink = screen.getByRole('link', { name: '삼성전자' })
     expect(companyLink.getAttribute('href')).toBe('/companies/00126380?view=overview')
   })
@@ -146,5 +148,44 @@ describe('이전 방식 분석 안내', () => {
     const { container } = renderPage()
     await reanalyze()
     expect(await axeViolations(container)).toBe('')
+  })
+})
+
+describe('결과 머리(#550)', () => {
+  it('기업명 제목 아래에 보고서 쌍·비교 기준·수치 기준과 보고서 바꾸기 링크를 둔다', async () => {
+    getAnalysis.mockResolvedValue(analysis(false))
+    renderPage()
+    expect(await screen.findByRole('heading', { level: 1, name: '삼성전자' })).toBeTruthy()
+    const lead = document.querySelector('.result-head__lead')
+    expect(lead?.textContent).toContain('반기보고서 (2025.06) → 현재 보고서 반기보고서 (2026.06)')
+    expect(lead?.textContent).toContain('전년 동기')
+    expect(lead?.textContent).toContain('연결재무제표')
+    expect(screen.getByRole('link', { name: '보고서 바꾸기' }).getAttribute('href')).toBe(
+      '/companies/00126380?current=20260814001234&basis=YOY',
+    )
+  })
+
+  it('탭은 요약·재무 수치·문장 변화·AI 질문·원문 다섯 개다', async () => {
+    getAnalysis.mockResolvedValue(analysis(false))
+    renderPage()
+    const tabs = await screen.findByRole('navigation', { name: '결과 보기' })
+    expect(Array.from(tabs.querySelectorAll('a, button')).map((el) => el.textContent)).toEqual([
+      '요약',
+      '재무 수치',
+      '문장 변화',
+      'AI 질문',
+      '원문',
+    ])
+  })
+
+  it('내보내기는 펼치기 전에는 항목을 숨기고 Esc로 닫는다', async () => {
+    getAnalysis.mockResolvedValue(analysis(false))
+    renderPage()
+    const button = await screen.findByRole('button', { name: '내보내기' })
+    expect(screen.queryByRole('button', { name: '인쇄' })).toBeNull()
+    fireEvent.click(button)
+    expect(button.getAttribute('aria-expanded')).toBe('true')
+    fireEvent.keyDown(screen.getByRole('button', { name: '인쇄' }), { key: 'Escape' })
+    expect(button.getAttribute('aria-expanded')).toBe('false')
   })
 })

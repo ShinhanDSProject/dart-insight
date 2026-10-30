@@ -5,7 +5,7 @@ import { getSummary } from '@/shared/api/summary'
 import { getTextChanges } from '@/shared/api/textChanges'
 import { useAsyncAction } from '@/shared/hooks/useAsyncAction'
 import { downloadTextFile } from '@/shared/lib/download'
-import { Button } from '@/shared/ui/Button'
+import { MenuItem } from '@/shared/ui'
 import {
   briefFileName,
   buildAnalysisBriefMarkdown,
@@ -82,14 +82,14 @@ export function ExportBriefButton({ analysis }: ExportBriefButtonProps) {
 
   return (
     <div className="export-brief">
-      <Button
-        variant="secondary"
+      {/* 머리의 '내보내기' 펼침 상자(MenuButton) 안 항목. 오류 문구가 보이도록 누른 뒤에도 상자를 닫지 않는다 */}
+      <MenuItem
         onClick={handleExport}
         disabled={isLoading}
         aria-busy={isLoading}
       >
         {isLoading ? '내보내는 중…' : '브리프 내려받기'}
-      </Button>
+      </MenuItem>
       {match(isError)
         .with(true, () => (
           <p role="alert" className="export-brief__error">

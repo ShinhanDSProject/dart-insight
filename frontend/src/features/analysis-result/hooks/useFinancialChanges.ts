@@ -7,6 +7,7 @@ import {
   type StatementSummary,
 } from '@/shared/api/results'
 import { useAsync } from '@/shared/hooks/useAsync'
+import { KEY_NUMBER_STATEMENTS, keyNumbers, type StatementItems } from '../model/keyNumbers'
 
 /**
  * 재무제표 하나의 계정별 결과(3.1). statements는 마지막으로 받은 재무제표별 개수로,
@@ -29,5 +30,26 @@ export function useFinancialChanges(analysisId: number, sjDiv: SjDiv, changedOnl
 /** 계정 하나의 수치 근거(3.3) */
 export function useFinancialChangeDetail(analysisId: number, changeId: number) {
   const load = useCallback((signal: AbortSignal) => getFinancialChange(analysisId, changeId, signal), [analysisId, changeId])
+  return useAsync(load)
+}
+
+/**
+ * 재무 수치 탭 맨 위 '핵심 숫자'(#550). 이미 쓰는 재무 변화 목록 API를 재무제표별 전체 계정으로 받아 다섯 계정을 찾는다(새 API 없음).
+ * 재무제표 하나를 못 받아도 나머지 칸은 보이고, 못 받은 칸은 '자료 없음'이다.
+ */
+export function useKeyNumbers(analysisId: number) {
+  const load = useCallback(
+    (signal: AbortSignal) =>
+      Promise.allSettled(KEY_NUMBER_STATEMENTS.map((sjDiv) => getFinancialChanges(analysisId, sjDiv, false, signal))).then(
+        (results) => {
+          const statements: StatementItems = {}
+          results.forEach((result, index) => {
+            if (result.status === 'fulfilled') statements[KEY_NUMBER_STATEMENTS[index]] = result.value.items
+          })
+          return keyNumbers(statements)
+        },
+      ),
+    [analysisId],
+  )
   return useAsync(load)
 }

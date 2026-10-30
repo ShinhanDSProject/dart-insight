@@ -1,12 +1,12 @@
 .export-brief {
-  display: inline-flex;
+  display: flex;
   flex-direction: column;
-  align-items: flex-end;
   gap: var(--space-xs);
 }
 
 .export-brief__error {
   margin: 0;
+  padding: 0 var(--space-3);
   font-size: var(--font-size-xs);
   color: var(--color-danger);
   line-height: var(--line-height-tight);

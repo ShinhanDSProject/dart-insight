@@ -21,7 +21,7 @@ describe('resultTitle', () => {
 
   it('탭을 바꾸면 탭 이름만 바뀐다', () => {
     expect(resultTitle(analysis, 'financial')).toBe(
-      '삼성전자 사업보고서 (2024.12) → 반기보고서 (2025.06) · 재무 수치 변화 · DART Insight',
+      '삼성전자 사업보고서 (2024.12) → 반기보고서 (2025.06) · 재무 수치 · DART Insight',
     )
   })
 

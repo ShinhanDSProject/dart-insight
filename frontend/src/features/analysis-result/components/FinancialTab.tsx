@@ -4,14 +4,16 @@ import type { Analysis } from '@/shared/api/analyses'
 import type { FinancialChangeItem, FinancialOrder, SjDiv, StatementSummary } from '@/shared/api/results'
 import {
   Button,
+  Chip,
   DataTable,
   DataTableRow,
   FieldHint,
   FieldLabel,
   Icon,
   Input,
+  MenuButton,
+  MenuItem,
   Notice,
-  Panel,
   SegmentedControl,
   Select,
   Skeleton,
@@ -22,6 +24,7 @@ import { downloadTextFile } from '@/shared/lib/download'
 import { EmptyState, ErrorState } from '@/shared/ui/StateView'
 import { EvidencePanel } from './EvidencePanel'
 import { FinancialChart } from './FinancialChart'
+import { KeyNumbers } from './KeyNumbers'
 import {
   amountPeriodLabel,
   formatAmount,
@@ -61,6 +64,12 @@ const statementOptions: { sjDiv: SjDiv; label: string }[] = [
   { sjDiv: 'CF', label: '현금흐름표' },
   { sjDiv: 'SCE', label: '자본변동표' },
 ]
+
+/** 칩으로 바로 보이는 재무제표와 '그 밖의 표'에 접는 재무제표(#550) */
+const mainStatements = statementOptions.filter((o) => o.sjDiv === 'BS' || o.sjDiv === 'IS' || o.sjDiv === 'CF')
+const otherStatements = statementOptions.filter((o) => o.sjDiv === 'CIS' || o.sjDiv === 'SCE')
+
+const SETTINGS_ID = 'fin-table-settings'
 
 const orderOptions: { value: FinancialOrder; label: string }[] = [
   { value: 'document', label: '원문 순서' },
@@ -112,6 +121,9 @@ export function FinancialTab({
   const currency = state.status === 'success' ? (state.data.items.find((i) => i.currency)?.currency ?? null) : null
   // 표 정렬은 공유할 화면 상태가 아니라서 컴포넌트 상태로 둔다(ST-6)
   const [sort, setSort] = useState<FinancialSort>(originalOrder)
+  // 표 설정(보기·정렬·단위·CSV)은 접어 둔다. 주소에 남길 상태가 아니라 컴포넌트 상태다
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const otherSelected = otherStatements.find((o) => o.sjDiv === sjDiv)
   const searchBox = useAccountSearch(accountQuery, (q) => onChange({ q }))
   // 지우면 바로 다시 입력할 수 있게 입력창으로 초점을 옮긴다
   const clearSearch = () => {
@@ -154,24 +166,58 @@ export function FinancialTab({
   }, [selectedChangeId])
 
   return (
-    <Panel aria-label="재무 수치 변화">
-      <div className="fin-controls">
-        <FieldLabel htmlFor="fin-statement">재무제표</FieldLabel>
-        <Select
-          id="fin-statement"
-          value={sjDiv}
-          onChange={(e) => onChange({ sj: e.target.value as SjDiv })}
-        >
-          {statementOptions.map((option) => {
-            const summary = statements.find((s) => s.sjDiv === option.sjDiv)
-            return (
-              <option key={option.sjDiv} value={option.sjDiv}>
-                {statementOptionLabel(option.label, summary)}
-              </option>
-            )
-          })}
-        </Select>
-        <span className="fin-controls__basis">{analysis.fsDiv === 'OFS' ? '별도' : '연결'} 재무제표 기준</span>
+    <>
+    <KeyNumbers analysisId={analysis.analysisId} onOpen={(item) => onChange({ sj: item.sjDiv, change: item.changeId })} />
+    <section className="fin-section" aria-label="재무 수치">
+      {/* 재무제표 칩 | 오른쪽에 지금 단위·정렬과 '표 설정'(#550, 시안 14) */}
+      <div className="fin-bar">
+        <div className="fin-bar__statements" role="group" aria-label="재무제표">
+          {mainStatements.map((option) => (
+            <Chip key={option.sjDiv} pressed={sjDiv === option.sjDiv} onClick={() => sjDiv !== option.sjDiv && onChange({ sj: option.sjDiv })}>
+              {option.label}
+            </Chip>
+          ))}
+          <MenuButton
+            trigger="chip"
+            align="start"
+            selected={otherSelected !== undefined}
+            label={otherSelected?.label ?? '그 밖의 표'}
+            aria-label={otherSelected ? `그 밖의 표: ${otherSelected.label}` : '그 밖의 표'}
+          >
+            {(close) =>
+              otherStatements.map((option) => (
+                <MenuItem
+                  key={option.sjDiv}
+                  aria-pressed={sjDiv === option.sjDiv}
+                  onClick={() => {
+                    close()
+                    if (sjDiv !== option.sjDiv) onChange({ sj: option.sjDiv })
+                  }}
+                >
+                  {option.label}
+                </MenuItem>
+              ))
+            }
+          </MenuButton>
+        </div>
+        <div className="fin-bar__aside">
+          <span className="fin-bar__summary">
+            단위 {unitLabel(unit, currency)} · {orderOptions.find((o) => o.value === order)?.label}
+            {changedOnly ? ' · 변경 항목만' : ''}
+          </span>
+          <Button aria-expanded={settingsOpen} aria-controls={SETTINGS_ID} onClick={() => setSettingsOpen((v) => !v)}>
+            <Icon name="table-2" size={16} /> 표 설정
+          </Button>
+        </div>
+      </div>
+      {selected && (
+        <p className="panel__note">
+          {statementOptionLabel(selected.label, selected)} · {analysis.fsDiv === 'OFS' ? '별도' : '연결'} 재무제표 기준
+        </p>
+      )}
+
+      {/* 표 설정: 보기·정렬·단위와 CSV. 고른 값은 주소에 남는다 */}
+      <div id={SETTINGS_ID} className="fin-controls" hidden={!settingsOpen}>
         <SegmentedControl
           aria-label="보기"
           options={viewOptions}
@@ -202,36 +248,37 @@ export function FinancialTab({
             </option>
           ))}
         </Select>
-        <div className="fin-search">
-          <FieldLabel htmlFor={ACCOUNT_SEARCH_INPUT_ID}>계정 찾기</FieldLabel>
-          <div className="fin-search__box">
-            <Input
-              id={ACCOUNT_SEARCH_INPUT_ID}
-              type="text"
-              className="fin-search__input"
-              placeholder="예: 차입금"
-              autoComplete="off"
-              maxLength={ACCOUNT_SEARCH_MAX_LENGTH}
-              value={searchBox.input}
-              aria-describedby={accountQuery !== null ? 'fin-account-count' : undefined}
-              onChange={(e) => searchBox.setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape' && searchBox.input !== '') clearSearch()
-              }}
-            />
-            {searchBox.input !== '' && (
-              <Button variant="icon" className="fin-search__clear" aria-label="검색어 지우기" onClick={clearSearch}>
-                <Icon name="x" size={16} />
-              </Button>
-            )}
-          </div>
-          <FieldHint id="fin-account-count" className="fin-search__count" aria-live="polite">
-            {accountQuery !== null && state.status === 'success' ? foundAccountsLabel(shownItems.length) : ''}
-          </FieldHint>
-        </div>
         <Button className="fin-controls__export" disabled={exportItems.length === 0} onClick={downloadCsv}>
           CSV 내려받기
         </Button>
+      </div>
+
+      <div className="fin-search">
+        <FieldLabel htmlFor={ACCOUNT_SEARCH_INPUT_ID}>계정 찾기</FieldLabel>
+        <div className="fin-search__box">
+          <Input
+            id={ACCOUNT_SEARCH_INPUT_ID}
+            type="text"
+            className="fin-search__input"
+            placeholder="예: 차입금"
+            autoComplete="off"
+            maxLength={ACCOUNT_SEARCH_MAX_LENGTH}
+            value={searchBox.input}
+            aria-describedby={accountQuery !== null ? 'fin-account-count' : undefined}
+            onChange={(e) => searchBox.setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape' && searchBox.input !== '') clearSearch()
+            }}
+          />
+          {searchBox.input !== '' && (
+            <Button variant="icon" className="fin-search__clear" aria-label="검색어 지우기" onClick={clearSearch}>
+              <Icon name="x" size={16} />
+            </Button>
+          )}
+        </div>
+        <FieldHint id="fin-account-count" className="fin-search__count" aria-live="polite">
+          {accountQuery !== null && state.status === 'success' ? foundAccountsLabel(shownItems.length) : ''}
+        </FieldHint>
       </div>
 
       {selected && !selected.comparable && (
@@ -286,7 +333,7 @@ export function FinancialTab({
                   이전 · {amountPeriodLabel(analysis.previous, basis)}
                 </th>
                 <th scope="col" className="num">
-                  현재 · {amountPeriodLabel(analysis.current, basis)}
+                  지금 · {amountPeriodLabel(analysis.current, basis)}
                 </th>
                 <SortableHeader
                   numeric
@@ -350,7 +397,8 @@ export function FinancialTab({
         단위 {unitLabel(unit, currency)}. 증가·감소는 ▲▼와 부호로 표시하고 좋고 나쁨의 평가와 구분해요. 없는 값은 0으로 보지 않아요.
         '매출액 대비'·'자산총계 대비'는 증감액을 현재 보고서의 기준 계정 값으로 나눈 크기예요.
       </p>
-    </Panel>
+    </section>
+    </>
   )
 }
 
@@ -406,6 +454,12 @@ function ChangeRow({ item, unit, selected, onSelect }: ChangeRowProps) {
             {scale !== null && <span className="fin-table__scale">{scale}</span>}
           </td>
           <td className={`num${rate === null && !isProfitState(item.calcStatus) ? ' fin-table__reason' : ''}`} title={item.calcMessage ?? undefined}>
+            {/* 증감률 옆 작은 막대(#550): 크기만 보이는 중립색, 100% 이상은 가득. 값은 글자로 읽는다 */}
+            {item.changeRate !== null && (
+              <span className="fin-table__rate-bar" aria-hidden="true">
+                <span style={{ width: `${Math.min(Math.abs(item.changeRate), 1) * 100}%` }} />
+              </span>
+            )}
             {rate ?? reason}
           </td>
         </>

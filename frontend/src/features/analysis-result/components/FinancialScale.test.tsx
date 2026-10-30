@@ -19,6 +19,7 @@ vi.mock('../hooks/useFinancialChanges', () => ({
     return { state: data.list, reload: () => {}, statements: data.list.status === 'success' ? data.list.data.statements : [] }
   },
   useFinancialChangeDetail: () => ({ state: data.detail, reload: () => {} }),
+  useKeyNumbers: () => ({ state: { status: 'loading' }, reload: () => {} }),
 }))
 vi.mock('./AddToNote', () => ({ AddToNote: () => null }))
 
@@ -104,6 +105,41 @@ describe('재무 탭의 크기 맥락(#480)', () => {
     renderTab('scale')
     expect((screen.getByLabelText('정렬') as HTMLSelectElement).value).toBe('scale')
     expect(data.order).toContain('scale')
+  })
+})
+
+describe('재무 수치 탭 배치(#550)', () => {
+  it('재무제표는 칩 세 개와 그 밖의 표 펼침으로 고르고, 고른 칩은 눌린 상태다', () => {
+    const onChange = renderTab('document')
+    const group = screen.getByRole('group', { name: '재무제표' })
+    expect(within(group).getByRole('button', { name: '손익계산서' }).getAttribute('aria-pressed')).toBe('true')
+    fireEvent.click(within(group).getByRole('button', { name: '재무상태표' }))
+    expect(onChange).toHaveBeenCalledWith({ sj: 'BS' })
+
+    const other = within(group).getByRole('button', { name: '그 밖의 표' })
+    fireEvent.click(other)
+    expect(other.getAttribute('aria-expanded')).toBe('true')
+    fireEvent.click(screen.getByRole('button', { name: '자본변동표' }))
+    expect(onChange).toHaveBeenCalledWith({ sj: 'SCE' })
+    expect(other.getAttribute('aria-expanded')).toBe('false')
+  })
+
+  it("표 설정을 펼치면 보기·정렬·단위·CSV가 보이고, 오른쪽 글에 지금 단위와 정렬을 적는다", () => {
+    renderTab('scale')
+    expect(document.querySelector('.fin-bar__summary')?.textContent).toBe('단위 백만원 · 규모 큰 순')
+    const toggle = screen.getByRole('button', { name: '표 설정' })
+    expect(screen.queryByRole('button', { name: 'CSV 내려받기' })).toBeNull()
+    fireEvent.click(toggle)
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    expect(screen.getByRole('button', { name: 'CSV 내려받기' })).toBeTruthy()
+  })
+
+  it('표 머리는 계정·이전·지금·증감액·증감률이고 증감률 옆에 작은 막대를 둔다', () => {
+    renderTab('document')
+    const headers = screen.getAllByRole('columnheader').map((th) => th.textContent ?? '')
+    expect(headers[2]).toMatch(/^지금 · /)
+    expect(screen.getAllByRole('row')[1].querySelector('.fin-table__rate-bar')).toBeTruthy()
+    expect(screen.getAllByRole('row')[3].querySelector('.fin-table__rate-bar')).toBeNull()
   })
 })
 

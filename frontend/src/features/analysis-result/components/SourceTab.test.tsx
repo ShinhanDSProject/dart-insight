@@ -53,8 +53,25 @@ afterEach(() => {
 
 const analysis = {
   analysisId: 16,
-  current: { rceptNo: RCEPT_NO, reportName: '반기보고서 (2025.06)' },
-  previous: { rceptNo: PREV_RCEPT_NO, reportName: '분기보고서 (2025.03)' },
+  corpName: '삼성전자',
+  current: {
+    rceptNo: RCEPT_NO,
+    reportName: '반기보고서 (2025.06)',
+    reportType: 'HALF',
+    fiscalYear: 2025,
+    periodEnd: '2025-06-30',
+    receivedAt: '2025-08-14',
+    correction: 'ORIGINAL',
+  },
+  previous: {
+    rceptNo: PREV_RCEPT_NO,
+    reportName: '분기보고서 (2025.03)',
+    reportType: 'Q1',
+    fiscalYear: 2025,
+    periodEnd: '2025-03-31',
+    receivedAt: '2025-05-15',
+    correction: 'ORIGINAL',
+  },
 } as Analysis
 
 function section(sectionNo: number, depth: number, title: string, parentNo: number | null = null): SectionItem {
@@ -89,6 +106,39 @@ function renderTab(
     />,
   )
 }
+
+describe('원문 뷰어 머리(#550)', () => {
+  it("제목 '관련 원문 위치'와 보고서 이름 줄을 두고, 근거 위치에서 오면 '주된 근거' 배지를 붙인다", () => {
+    renderTab({ blockNo: 5 })
+    expect(screen.getByRole('heading', { name: '관련 원문 위치' })).toBeTruthy()
+    expect(document.querySelector('.source-report__name')?.textContent).toBe('반기보고서 (2025.06)')
+    expect(document.querySelector('.source-report')?.textContent).toContain('제출일 2025.08.14')
+    expect(screen.getByText('주된 근거')).toBeTruthy()
+  })
+
+  it('근거 위치 없이 열면 주된 근거 배지를 두지 않는다', () => {
+    renderTab()
+    expect(screen.queryByText('주된 근거')).toBeNull()
+  })
+
+  it('분석 결과로 돌아가기를 누르면 onBack을 부른다', () => {
+    const onBack = vi.fn()
+    render(
+      <SourceTab
+        analysis={analysis}
+        side="current"
+        sectionNo={1}
+        blockNo={null}
+        onChange={() => {}}
+        sectionCounts={counts}
+        onOpenTextSection={() => {}}
+        onBack={onBack}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '분석 결과로 돌아가기' }))
+    expect(onBack).toHaveBeenCalled()
+  })
+})
 
 describe('원문 확인 목차의 섹션별 변경 건수', () => {
   it('변경이 있는 최상위 항목 옆에 변경 건수 배지를 보이고 변경이 없는 항목에는 두지 않는다', () => {

@@ -6,56 +6,41 @@ import { getReportPair, type ComparisonBasis, type ReportItem } from '@/shared/a
 import { useAsyncAction } from '@/shared/hooks/useAsyncAction'
 import { basisOptions } from '@/shared/lib/comparisonBasis'
 import { correctionLabel, formatDate, periodLabel, reportTypeLabel } from '@/shared/lib/reportLabels'
-import { Card, FieldHint, FieldLabel, Notice, SegmentedControl, Term } from '@/shared/ui'
+import { FieldHint, FieldLabel, Notice, SegmentedControl, Term } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState } from '@/shared/ui/StateView'
+import type { ResultTab } from '../model/resultParams'
+import { OtherAnalyses } from './OtherAnalyses'
 
 /**
- * 결과 화면 위쪽의 비교 맥락 카드(FS-4 R5). 회사와 이전 → 현재 보고서(원문 링크)를 한 줄, 비교 기준과 수치 기준을 한 줄에 두고,
- * 접수번호·보고서별 상세(종류·대상 기간·제출일·정정 여부)와 분석 한계는 '비교 조건·보고서 자세히'에 접어 둔다(#390).
- * 모든 탭 위에 놓이므로 높이를 줄여 본문이 위에서 시작하게 한다.
+ * 결과 머리 아래의 비교 맥락(FS-4 R5, #550). 보고서 쌍·비교 기준·수치 기준은 머리 한 줄에 있으므로,
+ * 여기에는 비교 기준 바꾸기(전년 동기·직전 기간·직접 선택)·이 기업의 다른 분석과 접수번호·보고서별 상세(종류·대상 기간·제출일·정정 여부·원문)·
+ * 분석 한계를 '비교 기준 바꾸기·보고서 자세히'에 접어 둔다. 모든 탭 위에 놓이므로 접힌 한 줄로 둔다.
  */
-export function ComparisonContextCard({ analysis }: { analysis: Analysis }) {
+export function ComparisonContextCard({ analysis, tab }: { analysis: Analysis; tab: ResultTab }) {
   const fsDivLabel = analysis.fsDiv === 'OFS' ? '별도' : '연결'
   return (
-    <Card as="section" className="context-card" aria-label="비교 맥락">
-      <p className="context-card__pair">
-        <span className="context-card__corp">{analysis.corpName}</span>
-        <ReportName role="이전 보고서" report={analysis.previous} />
-        <span className="context-card__arrow" aria-hidden="true">
-          →
-        </span>
-        <ReportName role="현재 보고서" report={analysis.current} />
-      </p>
-      <BasisSwitcher analysis={analysis}>
-        <span className="context-card__fs">
-          수치 기준: <Term name="fsDiv">{fsDivLabel}</Term> 재무제표
-        </span>
-      </BasisSwitcher>
+    <section className="context-card" aria-label="비교 맥락">
       <details className="context-card__details">
-        <summary>비교 조건·보고서 자세히</summary>
-        <p className="context-card__note">
-          금액은 보고서 통화 기준이고, 단위는 재무 수치 변화에서 바꿀 수 있어요 · 분석 한계: 비교할 수치가 없는 항목은 계산하지 않아요.
-        </p>
-        <div className="context-card__facts">
-          <ReportFacts role="이전 보고서" report={analysis.previous} withTerms />
-          <ReportFacts role="현재 보고서" report={analysis.current} />
+        <summary>비교 기준 바꾸기 · 보고서 자세히</summary>
+        <div className="context-card__body">
+          <BasisSwitcher analysis={analysis}>
+            <span className="context-card__fs">
+              수치 기준: <Term name="fsDiv">{fsDivLabel}</Term> 재무제표
+            </span>
+          </BasisSwitcher>
+          {/* 분석을 옮기면 펼침 상태를 새로 시작한다 */}
+          <OtherAnalyses key={analysis.analysisId} corpCode={analysis.corpCode} analysisId={analysis.analysisId} tab={tab} />
+          <div className="context-card__facts">
+            <ReportFacts role="이전 보고서" report={analysis.previous} withTerms />
+            <ReportFacts role="현재 보고서" report={analysis.current} />
+          </div>
+          <p className="context-card__note">
+            금액은 보고서 통화 기준이고, 단위는 재무 수치 탭의 '표 설정'에서 바꿀 수 있어요 · 분석 한계: 비교할 수치가 없는 항목은 계산하지 않아요.
+          </p>
         </div>
       </details>
-    </Card>
-  )
-}
-
-/** 보고서 이름과 원문 링크 한 덩어리. 역할(이전·현재)은 화살표와 함께 읽히도록 숨김 글로 둔다 */
-function ReportName({ role, report }: { role: string; report: ReportItem }) {
-  return (
-    <span className="context-card__report">
-      <span className="visually-hidden">{role}: </span>
-      <span className="context-card__name">{report.reportName}</span>{' '}
-      <span className="context-card__meta">
-        <DartLinkInline rceptNo={report.rceptNo} dartUrl={report.dartUrl} label={`${role} ${report.reportName}`} />
-      </span>
-    </span>
+    </section>
   )
 }
 
