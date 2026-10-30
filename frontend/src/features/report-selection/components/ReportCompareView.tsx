@@ -1,14 +1,13 @@
 import { Link } from 'react-router'
 import { match } from 'ts-pattern'
 import type { ReportList } from '@/shared/api/reports'
-import { ButtonLink, FieldHint, Notice, Panel, PanelTitle } from '@/shared/ui'
+import { Badge, ButtonLink, FieldHint, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { formatDate } from '@/shared/lib/reportLabels'
 import { useCompanyReports } from '../hooks/useCompanyReports'
 import { useReportSelection } from '../hooks/useReportSelection'
 import { PairSelector } from './PairSelector'
 import { PastAnalyses } from './PastAnalyses'
-import { ReportDetailPanel } from './ReportDetailPanel'
 import { ReportTable } from './ReportTable'
 
 const errorMessages: Record<string, string> = {
@@ -29,6 +28,7 @@ const refreshErrorMessages: Record<string, string> = {
  * - ?basis=YOY|PREV|CUSTOM: 비교 기준. 없으면 전년 동기(잠정안)
  * - ?previous=접수번호: 직접 선택(CUSTOM)에서 고른 비교 보고서
  * 두 보고서를 고르면 비교 검증(W-01 ③, /companies/:corpCode/compare)으로 간다.
+ * 배치(#549): 제목·'기업 변경' → 비교 기준 → 이전·현재 보고서 카드 → '정기보고서 목록' 표 → 주의 안내 → 오른쪽 아래 주 버튼.
  */
 export function ReportCompareView({ corpCode }: { corpCode: string }) {
   const { state, reload } = useCompanyReports(corpCode)
@@ -54,8 +54,18 @@ function ReportSelection({ corpCode, reports, selection }: ReportSelectionProps)
   const { current, basis, previous, lookup, retryLookup, selectCurrent, selectBasis, selectPrevious } = selection
 
   return (
-    <>
-      <p className="page__lead">비교할 두 보고서를 고르세요. 현재 보고서는 기본으로 가장 최근 보고서예요.</p>
+    <section className="pick" aria-labelledby="pick-title">
+      <div className="pick__head">
+        <div className="pick__heading">
+          <h2 className="pick__title" id="pick-title">
+            비교할 보고서 두 건을 선택하세요
+          </h2>
+          <p className="pick__lead">현재 보고서는 기본으로 가장 최근 보고서예요.</p>
+        </div>
+        <ButtonLink to="/" variant="secondary">
+          기업 변경
+        </ButtonLink>
+      </div>
 
       {reports.refreshError && (
         <Notice tone="attention" role="status">
@@ -65,39 +75,28 @@ function ReportSelection({ corpCode, reports, selection }: ReportSelectionProps)
 
       <PastAnalyses corpCode={corpCode} />
 
-      <Panel as="div">
-        {current && (
-          <PairSelector
-            items={reportItems}
-            basis={basis}
-            current={current}
-            previous={previous}
-            lookup={lookup}
-            onBasisChange={selectBasis}
-            onCurrentChange={selectCurrent}
-            onPreviousChange={selectPrevious}
-            onRetry={retryLookup}
-          />
-        )}
-        {/* 다음 단계 버튼은 긴 보고서 목록 위에 둔다(목록 아래면 길게 스크롤해야 찾음) */}
-        {current && (
-          <div className="pair-actions">
-            {previous ? (
-              <ButtonLink
-                to={`/companies/${encodeURIComponent(corpCode)}/compare?${new URLSearchParams({
-                  current: current.rceptNo,
-                  previous: previous.rceptNo,
-                  basis,
-                }).toString()}`}
-                variant="primary"
-              >
-                비교 조건 확인 →
-              </ButtonLink>
-            ) : (
-              <FieldHint>비교 보고서를 고르면 비교 조건을 확인할 수 있어요.</FieldHint>
-            )}
-          </div>
-        )}
+      {current && (
+        <PairSelector
+          items={reportItems}
+          basis={basis}
+          current={current}
+          previous={previous}
+          lookup={lookup}
+          onBasisChange={selectBasis}
+          onCurrentChange={selectCurrent}
+          onPreviousChange={selectPrevious}
+          onRetry={retryLookup}
+        />
+      )}
+
+      <Panel aria-labelledby="report-list-title">
+        <div className="pick__list-head">
+          <PanelTitle id="report-list-title">정기보고서 목록</PanelTitle>
+          <Badge>
+            {reportItems.length}
+            <span className="visually-hidden">개</span>
+          </Badge>
+        </div>
         {reportItems.length === 0 ? (
           <EmptyState title="이 기업의 정기보고서가 없어요.">
             <p>
@@ -114,27 +113,31 @@ function ReportSelection({ corpCode, reports, selection }: ReportSelectionProps)
             onSelectCurrent={(report) => selectCurrent(report.rceptNo)}
           />
         )}
-        <p className="panel__note">
-          대상 기간과 제출일은 따로 보여 줘요. 정정 여부를 확인하지 못하면 추정하지 않고 '확인 안 됨'으로 표시해요.
-          <br />
-          12월 결산 회사의 사업·반기·분기보고서만 비교할 수 있어요.
-        </p>
       </Panel>
 
+      <Notice tone="attention" title="12월 결산 회사의 사업·반기·분기보고서만 비교할 수 있어요" className="pick__notice">
+        대상 기간과 제출일은 따로 보여 줘요. 정정 여부를 확인하지 못하면 추정하지 않고 '확인 안 됨'으로 표시해요.
+      </Notice>
+
       {current && (
-        <div className="pair-details">
+        <div className="pick__actions">
           {previous ? (
-            <ReportDetailPanel key={previous.rceptNo} rceptNo={previous.rceptNo} title="비교 보고서 정보" />
+            <ButtonLink
+              to={`/companies/${encodeURIComponent(corpCode)}/compare?${new URLSearchParams({
+                current: current.rceptNo,
+                previous: previous.rceptNo,
+                basis,
+              }).toString()}`}
+              variant="primary"
+            >
+              선택한 보고서 비교 확인 →
+            </ButtonLink>
           ) : (
-            <Panel>
-              <PanelTitle>비교 보고서 정보</PanelTitle>
-              <p className="panel__note">비교 보고서를 고르면 종류·대상 기간·제출일·정정 여부를 여기서 확인할 수 있어요.</p>
-            </Panel>
+            <FieldHint>이전 보고서를 고르면 비교 조건을 확인할 수 있어요.</FieldHint>
           )}
-          <ReportDetailPanel key={current.rceptNo} rceptNo={current.rceptNo} title="현재 보고서 정보" />
         </div>
       )}
-    </>
+    </section>
   )
 }
 

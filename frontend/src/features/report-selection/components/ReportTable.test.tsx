@@ -46,18 +46,27 @@ describe('정기보고서 표', () => {
     expect(bodyRows()).toHaveLength(8)
   })
 
-  it('접힌 범위에 있는 비교 보고서도 비교 배지와 함께 보인다', () => {
+  it('접힌 범위에 있는 이전 보고서도 선택 칸에 이전 배지와 함께 보인다', () => {
     render(<ReportTable items={items} current={items[0]} previous={items[11]} onSelectCurrent={vi.fn()} />)
     expect(bodyRows()).toHaveLength(9)
     const last = bodyRows()[8]
     expect(within(last).getByRole('button', { name: items[11].reportName })).toBeTruthy()
-    expect(within(last).getByText('비교')).toBeTruthy()
+    expect(within(last).getByText('이전')).toBeTruthy()
     expect(screen.getByRole('button', { name: '더 보기 (3개)' })).toBeTruthy()
   })
 
   it('접힌 범위에 있는 현재 보고서도 눌린 상태로 보인다', () => {
     render(<ReportTable items={items} current={items[10]} previous={null} onSelectCurrent={vi.fn()} />)
     expect(screen.getByRole('button', { name: items[10].reportName }).getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('선택 칸에 현재·이전 배지와 고르지 않은 보고서의 미선택을 보인다', () => {
+    render(<ReportTable items={items.slice(0, 3)} current={items[0]} previous={items[1]} onSelectCurrent={vi.fn()} />)
+    const [first, second, third] = bodyRows()
+    expect(within(first).getByText('현재')).toBeTruthy()
+    expect(within(second).getByText('이전')).toBeTruthy()
+    expect(within(third).getByText('미선택')).toBeTruthy()
+    expect(within(screen.getByRole('table')).getByRole('columnheader', { name: '선택' })).toBeTruthy()
   })
 
   it('8개 이하면 더 보기 버튼을 두지 않는다', () => {

@@ -1,7 +1,6 @@
-import { useId } from 'react'
 import { match } from 'ts-pattern'
-import type { ReportDetail } from '@/shared/api/reports'
-import { Notice, Panel, PanelTitle } from '@/shared/ui'
+import type { ReportDetail as ReportDetailData } from '@/shared/api/reports'
+import { Notice } from '@/shared/ui'
 import { DartLinkActions } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import {
@@ -19,27 +18,21 @@ const errorMessages: Record<string, string> = {
 }
 
 /**
- * W-01 ② 고른 보고서의 메타데이터(1.3). 대상 기간과 제출일을 따로 보여 주고, 모르는 값은 추정하지 않는다.
- * 보고서 이름·대상 기간·제출일·정정 여부·자료 상태는 위 표와 겹쳐서 '보고서 자세히'에 접어 둔다.
+ * W-01 ② 고른 보고서의 메타데이터(1.3). 이전·현재 보고서 카드 안에 붙는다(#549).
+ * 대상 기간과 제출일을 따로 보여 주고, 모르는 값은 추정하지 않는다.
+ * 보고서 이름·대상 기간·제출일·정정 여부·자료 상태는 카드·표와 겹쳐서 '보고서 자세히'에 접어 둔다.
  * 정정본으로 대체된 보고서라는 안내와 불러오기 오류는 접지 않는다.
  */
-export function ReportDetailPanel({ rceptNo, title = '현재 보고서 정보' }: { rceptNo: string; title?: string }) {
-  const titleId = useId()
+export function ReportDetail({ rceptNo }: { rceptNo: string }) {
   const { state, reload } = useReportDetail(rceptNo)
-
-  return (
-    <Panel aria-labelledby={titleId}>
-      <PanelTitle id={titleId}>{title}</PanelTitle>
-      {match(state)
-        .with({ status: 'loading' }, () => <LoadingState message="보고서 정보를 불러오는 중입니다…" />)
-        .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} messages={errorMessages} />)
-        .with({ status: 'success' }, ({ data }) => <ReportFacts report={data} />)
-        .exhaustive()}
-    </Panel>
-  )
+  return match(state)
+    .with({ status: 'loading' }, () => <LoadingState message="보고서 정보를 불러오는 중입니다…" />)
+    .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} messages={errorMessages} />)
+    .with({ status: 'success' }, ({ data }) => <ReportFacts report={data} />)
+    .exhaustive()
 }
 
-function ReportFacts({ report }: { report: ReportDetail }) {
+function ReportFacts({ report }: { report: ReportDetailData }) {
   return (
     <>
       {!report.latest && (
