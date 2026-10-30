@@ -136,6 +136,18 @@ async function search(text: string) {
 }
 
 describe('여러 기업 나란히 보기', () => {
+  it('화면 머리에 위치·제목과 고른 기업 수 배지를 두고, 수치 기준·출처는 표 아래 안내 상자에 둔다', async () => {
+    renderAt('?corps=00126380')
+    const crumb = screen.getByRole('navigation', { name: '현재 위치' })
+    expect(within(crumb).getByRole('link', { name: '기업 검색' }).getAttribute('href')).toBe('/')
+    expect(screen.getByRole('heading', { level: 1, name: '기업 나란히 보기' })).toBeTruthy()
+    expect(screen.getByText('1 / 4곳 고름')).toBeTruthy()
+    const notes = screen.getByRole('complementary')
+    expect(within(notes).getByText('수치 기준과 출처')).toBeTruthy()
+    expect(within(notes).getByText(/출처: DART\(OpenDART 단일회사 주요계정\)/)).toBeTruthy()
+    expect(await screen.findByRole('button', { name: '삼성전자 빼기' })).toBeTruthy()
+  })
+
   it('2곳보다 적으면 고르는 방법을 같은 자리에 안내하고, 표 틀(4칸)은 그대로 둔다', async () => {
     renderAt('?corps=00126380')
     expect(screen.getByText(/비교할 기업을 2곳 이상 골라 주세요/)).toBeTruthy()

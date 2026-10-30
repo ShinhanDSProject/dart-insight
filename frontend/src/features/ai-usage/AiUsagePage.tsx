@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react'
+import { Link } from 'react-router'
 import { match } from 'ts-pattern'
 import type { AiUsage } from '@/shared/api/system'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
 import { pageTitle } from '@/shared/lib/pageTitle'
-import { Card, DataTable, Panel, PanelTitle, SegmentedControl, ShareBar, type ShareSegment } from '@/shared/ui'
+import { Card, DataTable, Page, PageHeader, Panel, PanelTitle, SegmentedControl, ShareBar, type ShareSegment } from '@/shared/ui'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { ModelUsagePanel } from './components/ModelUsagePanel'
 import { useAiUsage, useRealOnly, useUsageDays } from './hooks/useAiUsage'
@@ -35,27 +36,33 @@ export function AiUsagePage() {
   const { realOnly, setRealOnly } = useRealOnly()
 
   return (
-    <section className="page ai-usage">
-      <h1 className="page__title">AI 사용 현황</h1>
-      <p className="page__lead">
-        AI 질문·답 평가·문장 풀이·LLM 호출을 기간별로 집계해요. 질문 내용과 사용자 정보는 보이지 않아요.
-      </p>
-
-      <div className="ai-usage__toolbar">
-        <SegmentedControl
-          aria-label="집계 기간"
-          options={DAYS_OPTIONS}
-          value={`${days}`}
-          onChange={(value) => setDays(parseDays(value))}
-        />
-        {match(state)
-          .with({ status: 'success' }, ({ data }) => (
-            <p className="ai-usage__period">
-              최근 {data.days}일 ({periodText(data.from, data.to)})
-            </p>
-          ))
-          .otherwise(() => null)}
-      </div>
+    <Page width="wide" className="ai-usage">
+      <PageHeader
+        breadcrumb={
+          <>
+            <Link to="/">기업 검색</Link> / AI 사용 현황
+          </>
+        }
+        title="AI 사용 현황"
+        lead="AI 질문·답 평가·문장 풀이·LLM 호출을 기간별로 집계해요. 질문 내용과 사용자 정보는 보이지 않아요."
+        aside={
+          <>
+            {match(state)
+              .with({ status: 'success' }, ({ data }) => (
+                <p className="ai-usage__period">
+                  최근 {data.days}일 ({periodText(data.from, data.to)})
+                </p>
+              ))
+              .otherwise(() => null)}
+            <SegmentedControl
+              aria-label="집계 기간"
+              options={DAYS_OPTIONS}
+              value={`${days}`}
+              onChange={(value) => setDays(parseDays(value))}
+            />
+          </>
+        }
+      />
 
       {match(state)
         .with({ status: 'loading' }, () => <LoadingState message="AI 사용 현황을 불러오는 중이에요…" />)
@@ -71,7 +78,7 @@ export function AiUsagePage() {
             .exhaustive(),
         )
         .exhaustive()}
-    </section>
+    </Page>
   )
 }
 

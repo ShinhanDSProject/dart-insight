@@ -1,13 +1,5 @@
 /* AI 사용 현황(FS-15) */
 
-.ai-usage__toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3);
-  margin-bottom: var(--space-5);
-}
-
 .ai-usage__period {
   margin: 0;
   color: var(--color-text-muted);

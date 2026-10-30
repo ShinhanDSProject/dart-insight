@@ -4,7 +4,8 @@ import { match, P } from 'ts-pattern'
 import { ApiError, NETWORK_ERROR, type FieldError } from '@/shared/api/client'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
 import { pageTitle } from '@/shared/lib/pageTitle'
-import { Button, ButtonLink } from '@/shared/ui'
+import { Button, ButtonLink, Card, FieldHint, FieldLabel, Input, PageHeader } from '@/shared/ui'
+import { AlertState } from '@/shared/ui/StateView'
 import { registerUser } from './api'
 import { normalizeEmail, validateRegistration, type RegistrationErrors, type RegistrationFields } from './model/registration'
 import './user-registration.css'
@@ -117,54 +118,62 @@ export function SignupPage() {
   if (registeredEmail !== null) {
     return (
       <section className="signup page" aria-labelledby="signup-success-title">
-        <div className="signup__card signup__complete">
+        <Card className="signup__card signup__complete">
           <span className="signup__check" aria-hidden="true">✓</span>
           <h1 className="page__title" id="signup-success-title" ref={success} tabIndex={-1}>회원가입이 완료됐어요</h1>
           <p className="signup__email">{registeredEmail}</p>
           <p className="page__lead">DART Insight에 오신 것을 환영합니다.</p>
           <ButtonLink to="/" variant="primary">기업 검색으로 이동</ButtonLink>
-        </div>
+        </Card>
       </section>
     )
   }
 
   return (
     <section className="signup page" aria-labelledby="signup-title">
-      <div className="signup__card">
-        <p className="page__step">DART Insight</p>
-        <h1 className="page__title" id="signup-title">회원가입</h1>
-        <p className="page__lead">이메일로 간편하게 가입하세요.</p>
+      <Card className="signup__card">
+        <PageHeader
+          breadcrumb={
+            <>
+              <Link to="/">기업 검색</Link> / 회원가입
+            </>
+          }
+          title="회원가입"
+          titleId="signup-title"
+          lead="이메일로 간편하게 가입하세요."
+        />
         <form ref={form} onSubmit={submit} noValidate aria-busy={pending}>
           <div className="signup__field">
-            <label htmlFor="signup-email">이메일</label>
-            <input id="signup-email" name="email" type="email" autoComplete="email" inputMode="email"
+            <FieldLabel htmlFor="signup-email">이메일</FieldLabel>
+            <Input id="signup-email" name="email" type="email" autoComplete="email" inputMode="email"
               autoCapitalize="none" spellCheck={false} required
               value={fields.email} onChange={(event) => change('email', event.target.value)} disabled={pending}
-              placeholder="name@example.com" aria-invalid={Boolean(errors.email)}
+              placeholder="name@example.com" invalid={Boolean(errors.email)}
               aria-describedby={errors.email ? 'signup-email-error' : undefined} />
             {errors.email && <p className="signup__error" id="signup-email-error">{errors.email}</p>}
           </div>
           <div className="signup__field">
-            <label htmlFor="signup-password">비밀번호</label>
-            <input id="signup-password" name="password" type="password" autoComplete="new-password" required
+            <FieldLabel htmlFor="signup-password">비밀번호</FieldLabel>
+            <Input id="signup-password" name="password" type="password" autoComplete="new-password" required
               value={fields.password} onChange={(event) => change('password', event.target.value)} disabled={pending}
-              aria-invalid={Boolean(errors.password)}
+              invalid={Boolean(errors.password)}
               aria-describedby={'signup-password-help' + (errors.password ? ' signup-password-error' : '')} />
-            <p className="signup__hint" id="signup-password-help">10~128자이며, 영문 대문자와 특수문자를 각각 1개 이상 포함해 주세요.</p>
+            <FieldHint id="signup-password-help">10~128자이며, 영문 대문자와 특수문자를 각각 1개 이상 포함해 주세요.</FieldHint>
             {errors.password && <p className="signup__error" id="signup-password-error">{errors.password}</p>}
           </div>
           <div className="signup__field">
-            <label htmlFor="signup-confirm">비밀번호 확인</label>
-            <input id="signup-confirm" name="passwordConfirm" type="password" autoComplete="new-password" required
+            <FieldLabel htmlFor="signup-confirm">비밀번호 확인</FieldLabel>
+            <Input id="signup-confirm" name="passwordConfirm" type="password" autoComplete="new-password" required
               value={fields.passwordConfirm} onChange={(event) => change('passwordConfirm', event.target.value)} disabled={pending}
-              aria-invalid={Boolean(errors.passwordConfirm)}
+              invalid={Boolean(errors.passwordConfirm)}
               aria-describedby={errors.passwordConfirm ? 'signup-confirm-error' : undefined} />
             {errors.passwordConfirm && <p className="signup__error" id="signup-confirm-error">{errors.passwordConfirm}</p>}
           </div>
           {match(submitState).with({ status: 'error' }, (failure) => (
-            <div className="state state--error signup__failure" role="alert">
-              <p>{failure.message}</p>
-              {failure.traceId && <p className="state__meta">문의 시 전달할 오류 번호: {failure.traceId}</p>}
+            <div className="signup__failure">
+              <AlertState title={failure.message}>
+                {failure.traceId && <p className="state__meta">문의 시 전달할 오류 번호: {failure.traceId}</p>}
+              </AlertState>
             </div>
           )).otherwise(() => null)}
           <Button type="submit" variant="primary" className="signup__submit" disabled={pending}>
@@ -173,7 +182,7 @@ export function SignupPage() {
           <p className="signup__status" role="status">{pending ? '회원가입을 처리하고 있습니다.' : ''}</p>
         </form>
         <Link className="signup__back" to="/">기업 검색으로 돌아가기</Link>
-      </div>
+      </Card>
     </section>
   )
 }
