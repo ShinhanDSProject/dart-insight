@@ -41,7 +41,7 @@ function renderLayout(initialEntry: string) {
 
 afterEach(cleanup)
 
-describe("Layout '지금 보는 기업' 메뉴(#525)", () => {
+describe("Layout '지금 보는 기업' 줄(#525, #548)", () => {
   it('분석 결과를 보는 중에도 기업 개요 바로 가기를 보이고, 기업 개요 주소에서는 현재 화면으로 표시한다', async () => {
     currentCompany.value = {
       corpCode: '00126380',
@@ -51,9 +51,10 @@ describe("Layout '지금 보는 기업' 메뉴(#525)", () => {
       view: 'analysis',
     }
     const first = renderLayout('/analyses/14')
-    const group = screen.getByRole('group', { name: '지금 보는 기업' })
+    const group = screen.getByRole('navigation', { name: '지금 보는 기업' })
     const overview = within(group).getByRole('link', { name: '기업 개요' })
     const compare = within(group).getByRole('link', { name: '공시 비교' })
+    expect(within(group).getByRole('link', { name: '원문 확인' })).toBeTruthy()
     expect(overview.getAttribute('href')).toBe('/companies/00126380?view=overview')
     expect(overview.getAttribute('aria-current')).toBeNull()
     expect(compare.getAttribute('aria-current')).toBe('page')
@@ -61,8 +62,14 @@ describe("Layout '지금 보는 기업' 메뉴(#525)", () => {
 
     cleanup()
     renderLayout('/companies/00126380?view=overview')
-    const nextGroup = screen.getByRole('group', { name: '지금 보는 기업' })
+    const nextGroup = screen.getByRole('navigation', { name: '지금 보는 기업' })
     expect(within(nextGroup).getByRole('link', { name: '기업 개요' }).getAttribute('aria-current')).toBe('page')
     expect(within(nextGroup).getByRole('link', { name: '공시 비교' }).getAttribute('aria-current')).toBeNull()
+  })
+
+  it('기업을 연 적이 없으면 지금 보는 기업 줄을 두지 않는다', () => {
+    currentCompany.value = null
+    renderLayout('/analyses/14')
+    expect(screen.queryByRole('navigation', { name: '지금 보는 기업' })).toBeNull()
   })
 })

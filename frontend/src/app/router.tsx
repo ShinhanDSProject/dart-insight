@@ -39,7 +39,7 @@ const AdminReportsPage = lazyPage(() =>
  * - /compare/companies              여러 기업 나란히 보기(FS-56, ?corps=고유번호,…&type=ANNUAL&fs=CFS)
  * - /system/ai-usage                AI 사용 현황(FS-15, ?days=7|30)
  * - /admin/reports                  신고 관리(FS-58, 관리자만, ?queue=all&page=)
- * handle.crumb는 상단 헤더의 경로 표시에 쓴다.
+ * handle.crumb는 화면 이름이다. 상단 바에는 보이지 않는다(#548, 화면 머리의 브레드크럼은 화면이 PageHeader로 그린다).
  */
 export const router = createBrowserRouter([
   {
@@ -47,7 +47,7 @@ export const router = createBrowserRouter([
     errorElement: <RouteError />,
     children: [
       {
-        // 화면 안에서 난 오류(화면 코드를 받지 못한 경우 포함)도 왼쪽 메뉴·상단 헤더 안에 보여 준다
+        // 화면 안에서 난 오류(화면 코드를 받지 못한 경우 포함)도 상단 바·하단 바 안에 보여 준다
         errorElement: <RouteError />,
         children: [
           { path: '/', element: <PageSuspense><SearchPage /></PageSuspense>, handle: { crumb: '기업 검색' } },

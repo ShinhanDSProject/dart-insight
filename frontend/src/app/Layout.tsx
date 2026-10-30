@@ -1,4 +1,5 @@
-import { Link, Outlet, useLocation, useMatches, useParams } from 'react-router'
+import { useRef, useState, type KeyboardEvent } from 'react'
+import { Link, Outlet, useLocation, useParams } from 'react-router'
 import { match } from 'ts-pattern'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { Icon, type IconName } from '@/shared/ui/Icon'
@@ -7,22 +8,14 @@ import { compareLink, isCurrentRoute, overviewLink, sourceLink, type CurrentComp
 import { useAuth } from '@/shared/auth/authContext'
 import { NotificationMenu } from '@/features/notifications/components/NotificationMenu'
 import { NotificationSignInLink } from '@/features/notifications/components/NotificationSignInLink'
-import { Kbd } from '@/shared/ui/Dialog'
 import type { ShortcutPage } from '@/shared/lib/shortcuts'
+import { HeaderSearch } from './HeaderSearch'
+import { ServiceNoticeDialog } from './ServiceNoticeDialog'
 import { ShortcutHelp } from './ShortcutHelp'
+import { ThemeMenu } from './ThemeMenu'
 import { useShortcuts } from './useShortcuts'
-import { SegmentedControl } from '@/shared/ui/SegmentedControl'
-import { useTheme } from '@/shared/hooks/useTheme'
-import { THEME_OPTIONS, type ThemeChoice } from '@/shared/lib/theme'
-import type { SegmentOption } from '@/shared/ui/SegmentedControl'
 
 type Section = 'search' | 'overview' | 'compare' | 'source' | 'notes' | 'companies'
-
-const THEME_ICONS: Record<ThemeChoice, IconName> = { system: 'monitor', light: 'sun', dark: 'moon' }
-const THEME_SEGMENTS: SegmentOption<ThemeChoice>[] = THEME_OPTIONS.map((option) => ({
-  ...option,
-  icon: THEME_ICONS[option.value],
-}))
 
 interface NavItem {
   section: Section
@@ -31,18 +24,26 @@ interface NavItem {
   to: string
 }
 
+const MENU_ID = 'app-header-menu'
+
 /**
- * 화면 골격: 왼쪽 메뉴, 상단 헤더(경로 표시), 본문, 하단 출처·안내 줄.
- * 왼쪽 메뉴는 어디서나 쓰는 공통 메뉴와, 마지막으로 연 기업에 딸린 '지금 보는 기업' 묶음으로 나눈다(#502).
- * 선택 상태는 주소로, 기업 묶음은 기업·분석 화면이 남긴 값으로 정한다(데이터를 따로 불러오지 않음).
+ * 화면 골격(#548 심플 통일): 위 상단 바, 가운데 본문, 아래 하단 바. 왼쪽 메뉴는 없다.
+ * - 상단 바: 로고(첫 화면), 둥근 기업 검색(첫 화면 밖), 기업 나란히 보기·내 판단 노트, 화면 테마, 로그인/알림.
+ *   좁은 화면(900px 이하)에서는 로고 옆 메뉴 버튼으로 접는다. 화면을 옮기면 접힌다.
+ * - '지금 보는 기업' 줄(#502, #525): 마지막으로 연 기업이 있으면 상단 바 아래에 기업 이름과 기업 개요·공시 비교·원문 확인을 둔다.
+ *   선택 상태는 주소로, 기업은 기업·분석 화면이 남긴 값으로 정한다(데이터를 따로 불러오지 않음).
+ * - 하단 바: 출처·AI 안내와 이용 안내·단축키·AI 사용 현황.
  */
 export function Layout() {
   const { pathname, search } = useLocation()
   const { corpCode, analysisId } = useParams()
-  const crumb = useCrumb()
   const auth = useAuth()
-  const theme = useTheme()
   const current = useCurrentCompany()
+  const [noticeOpen, setNoticeOpen] = useState(false)
+  // 메뉴를 연 주소. 주소가 바뀌면(화면 이동) 따로 닫지 않아도 접힌다
+  const [menuOpenAt, setMenuOpenAt] = useState<string | null>(null)
+  const menuOpen = menuOpenAt === pathname + search
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
 
   const onResult = analysisId !== undefined && !pathname.endsWith('/progress')
   const query = new URLSearchParams(search)
@@ -58,7 +59,6 @@ export function Layout() {
   const shortcuts = useShortcuts(shortcutPage)
 
   const items: NavItem[] = [
-    { section: 'search', label: '기업 찾기', icon: 'search', to: '/' },
     {
       section: 'companies',
       label: '기업 나란히 보기',
@@ -68,97 +68,104 @@ export function Layout() {
     { section: 'notes', label: '내 판단 노트', icon: 'bookmark', to: '/notes' },
   ]
 
+  function onMenuKeyDown(event: KeyboardEvent) {
+    if (event.key === 'Escape' && menuOpen) {
+      setMenuOpenAt(null)
+      menuButtonRef.current?.focus()
+    }
+  }
+
   return (
     <div className="app">
       <a className="skip-link" href="#main">
         본문으로 건너뛰기
       </a>
-      <aside className="app-sidebar">
-        <Link to="/" className="app-brand" aria-label="DART Insight 첫 화면">
+      <header className="app-header" onKeyDown={onMenuKeyDown}>
+        <Link to="/" className="app-brand" aria-label="DART Insight 첫 화면" aria-current={active === 'search' ? 'page' : undefined}>
           <span className="app-brand__mark" aria-hidden="true">
             <span className="app-brand__sheet" />
             <span className="app-brand__sheet app-brand__sheet--tall" />
           </span>
-          <span className="app-brand__words">
-            <span className="app-brand__name">DART Insight</span>
-            <span className="app-brand__tagline">공시의 변화를 읽다</span>
-          </span>
+          <span className="app-brand__name">DART Insight</span>
         </Link>
 
-        <nav className="app-nav" aria-labelledby="app-nav-title">
-          <p className="app-nav__title" id="app-nav-title">
-            WORKSPACE
-          </p>
-          <ul className="app-nav__list">
-            {items.map((item) => (
-              <li key={item.section}>
-                <NavLink item={item} active={active} />
-              </li>
-            ))}
-          </ul>
-          <CompanyNav company={current} active={current !== null && isCurrentRoute(current, { corpCode, analysisId }) ? active : null} />
-        </nav>
-      </aside>
+        <Button
+          ref={menuButtonRef}
+          variant="icon"
+          className="app-header__menu-button"
+          aria-label="메뉴"
+          aria-expanded={menuOpen}
+          aria-controls={MENU_ID}
+          onClick={() => setMenuOpenAt(menuOpen ? null : pathname + search)}
+        >
+          <Icon name={menuOpen ? 'x' : 'menu'} />
+        </Button>
+
+        <div id={MENU_ID} className="app-header__menu" data-open={menuOpen}>
+          {pathname !== '/' && <HeaderSearch />}
+          <nav className="app-nav" aria-label="주 메뉴">
+            <ul className="app-nav__list">
+              {items.map((item) => (
+                <li key={item.section}>
+                  <NavLink item={item} active={active} />
+                </li>
+              ))}
+            </ul>
+          </nav>
+          <div className="app-header__tools">
+            <ThemeMenu />
+            {match(auth.state.status)
+              .with('authenticated', () => (
+                <>
+                  <NotificationMenu refreshKey={pathname} />
+                  <Button variant="secondary" onClick={() => void auth.logout()}>로그아웃</Button>
+                </>
+              ))
+              .with('loading', 'anonymous', () => (
+                <>
+                  <NotificationSignInLink />
+                  <ButtonLink to="/signup" variant="secondary" aria-current={pathname === '/signup' ? 'page' : undefined}>회원가입</ButtonLink>
+                  <ButtonLink to="/login" variant="primary" aria-current={pathname === '/login' ? 'page' : undefined}>로그인</ButtonLink>
+                </>
+              ))
+              .exhaustive()}
+          </div>
+        </div>
+      </header>
 
       <div className="app-workspace">
-        <header className="app-header">
-          <p className="app-header__path">
-            <Icon name="panels-top-left" size={18} />
-            <span>정기공시 비교</span>
-            {crumb && (
-              <>
-                <Icon name="chevron-right" size={14} />
-                <strong className="app-header__current">{crumb}</strong>
-              </>
-            )}
-          </p>
-          <div className="app-header__tools">
-            <SegmentedControl
-              variant="icon"
-              options={THEME_SEGMENTS}
-              value={theme.choice}
-              onChange={theme.setChoice}
-              aria-label="화면 테마"
-            />
-            <Button
-              className="app-header__shortcuts"
-              aria-haspopup="dialog"
-              aria-keyshortcuts="?"
-              onClick={shortcuts.openHelp}
-            >
-              단축키 <Kbd>?</Kbd>
-            </Button>
-            <div className="app-header__auth">
-              {match(auth.state.status)
-                .with('authenticated', () => (
-                  <>
-                    <NotificationMenu refreshKey={pathname} />
-                    <Button variant="secondary" onClick={() => void auth.logout()}>로그아웃</Button>
-                  </>
-                ))
-                .with('loading', 'anonymous', () => (
-                  <>
-                    <NotificationSignInLink />
-                    <ButtonLink to="/login" variant="secondary" aria-current={pathname === '/login' ? 'page' : undefined}>로그인</ButtonLink>
-                    <ButtonLink to="/signup" variant="secondary" aria-current={pathname === '/signup' ? 'page' : undefined}>회원가입</ButtonLink>
-                  </>
-                ))
-                .exhaustive()}
-            </div>
-          </div>
-        </header>
+        {current !== null && (
+          <CompanyNav company={current} active={isCurrentRoute(current, { corpCode, analysisId }) ? active : null} />
+        )}
         <main className="app-main" id="main" tabIndex={-1}>
           <Outlet />
         </main>
+
         <footer className="app-footer">
-          <Icon name="shield-alert" size={16} />
-          <p>출처: 금융감독원 전자공시시스템(DART). 투자 판단을 돕는 정보가 아니며, 매수·매도를 권하지 않습니다.</p>
-          <Link to="/system/ai-usage" className="app-footer__link">
-            시스템 · AI 사용 현황
-          </Link>
+          <p className="app-footer__source">
+            출처: 금융감독원 전자공시시스템(DART) · AI가 만든 문장에는 ‘AI 생성’이 붙고, 투자 조언이 아니에요.
+          </p>
+          <ul className="app-footer__links">
+            <li>
+              <Button variant="link" className="app-footer__link" aria-haspopup="dialog" onClick={() => setNoticeOpen(true)}>
+                이용 안내
+              </Button>
+            </li>
+            <li className="app-footer__shortcuts">
+              <Button variant="link" className="app-footer__link" aria-haspopup="dialog" aria-keyshortcuts="?" onClick={shortcuts.openHelp}>
+                단축키
+              </Button>
+            </li>
+            <li>
+              <Link to="/system/ai-usage" className="app-footer__link">
+                AI 사용 현황
+              </Link>
+            </li>
+          </ul>
         </footer>
       </div>
       {shortcuts.helpOpen && <ShortcutHelp page={shortcutPage} onClose={shortcuts.closeHelp} />}
+      {noticeOpen && <ServiceNoticeDialog onClose={() => setNoticeOpen(false)} />}
     </div>
   )
 }
@@ -166,17 +173,14 @@ export function Layout() {
 function NavLink({ item, active }: { item: NavItem; active: Section | null }) {
   return (
     <Link to={item.to} className="app-nav__item" aria-current={active === item.section ? 'page' : undefined}>
-      <Icon name={item.icon} />
+      <Icon name={item.icon} size={16} />
       {item.label}
     </Link>
   )
 }
 
-/** '지금 보는 기업' 묶음(#502, #525). 기업을 연 적이 없으면 안내 글만, 분석이 없으면 '원문 확인' 없이 보인다 */
-function CompanyNav({ company, active }: { company: CurrentCompany | null; active: Section | null }) {
-  if (company === null) {
-    return <p className="app-nav__placeholder">기업을 열면 여기에 기업 개요·공시 비교·원문 확인이 생겨요.</p>
-  }
+/** '지금 보는 기업' 줄(#502, #525, #548). 분석이 없으면 '원문 확인' 없이 보인다 */
+function CompanyNav({ company, active }: { company: CurrentCompany; active: Section | null }) {
   const source = sourceLink(company)
   const items: NavItem[] = [
     { section: 'overview', label: '기업 개요', icon: 'book-open', to: overviewLink(company) },
@@ -184,22 +188,24 @@ function CompanyNav({ company, active }: { company: CurrentCompany | null; activ
     ...(source === null ? [] : [{ section: 'source' as const, label: '원문 확인', icon: 'file-search' as const, to: source }]),
   ]
   return (
-    <div className="app-nav__group" role="group" aria-labelledby="app-nav-company-title">
-      <p className="app-nav__title" id="app-nav-company-title">
-        지금 보는 기업
-      </p>
-      <p className="app-nav__company">
-        {company.corpName}
-        {company.stockCode && <span className="app-nav__company-code">{company.stockCode}</span>}
-      </p>
-      <ul className="app-nav__list app-nav__list--sub">
-        {items.map((item) => (
-          <li key={item.section}>
-            <NavLink item={item} active={active} />
-          </li>
-        ))}
-      </ul>
-    </div>
+    <nav className="app-context" aria-labelledby="app-context-title">
+      <div className="app-context__inner">
+        <p className="app-context__title" id="app-context-title">
+          지금 보는 기업
+        </p>
+        <p className="app-context__company">
+          {company.corpName}
+          {company.stockCode && <span className="app-context__code">{company.stockCode}</span>}
+        </p>
+        <ul className="app-context__list">
+          {items.map((item) => (
+            <li key={item.section}>
+              <NavLink item={item} active={active} />
+            </li>
+          ))}
+        </ul>
+      </div>
+    </nav>
   )
 }
 
@@ -218,14 +224,4 @@ function shortcutPageOf(pathname: string, onResult: boolean): ShortcutPage {
   if (pathname === '/') return 'search'
   if (onResult) return 'result'
   return 'other'
-}
-
-/** 가장 안쪽 경로의 handle.crumb(router.tsx) */
-function useCrumb(): string | null {
-  const matches = useMatches()
-  for (let i = matches.length - 1; i >= 0; i--) {
-    const handle = matches[i].handle as { crumb?: string } | undefined
-    if (handle?.crumb) return handle.crumb
-  }
-  return null
 }
