@@ -1,12 +1,14 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { match } from 'ts-pattern'
 import type { Company } from '@/shared/api/companies'
 import type { FsDiv } from '@/shared/api/financialTrends'
 import type { ReportType } from '@/shared/api/reports'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
+import { formatInteger } from '@/shared/lib/numberFormat'
 import { pageTitle } from '@/shared/lib/pageTitle'
 import { reportTypeLabel } from '@/shared/lib/reportLabels'
-import { Panel, PanelTitle, SegmentedControl, type SegmentOption } from '@/shared/ui'
+import { Badge, Notice, Page, PageHeader, Panel, PanelTitle, SegmentedControl, type SegmentOption } from '@/shared/ui'
 import { CompanyPicker } from './components/CompanyPicker'
 import { ComparisonTable } from './components/ComparisonTable'
 import { useCompanyComparison } from './hooks/useCompanyComparison'
@@ -90,12 +92,17 @@ export function CompanyComparisonPage() {
   }
 
   return (
-    <section className="page company-compare">
-      <h1 className="page__title">기업 나란히 보기</h1>
-      <p className="page__lead">
-        {MIN_COMPANIES}~{MAX_COMPANIES}곳을 고르면 기업마다 고른 종류의 최신 보고서에서 주요계정과 비율을 한 표에 나란히 보여
-        드려요. 기업은 고른 순서대로 놓고, 순위를 매기지 않아요.
-      </p>
+    <Page width="wide" className="company-compare">
+      <PageHeader
+        breadcrumb={
+          <>
+            <Link to="/">기업 검색</Link> / 기업 나란히 보기
+          </>
+        }
+        title="기업 나란히 보기"
+        lead={`${MIN_COMPANIES}~${MAX_COMPANIES}곳을 고르면 기업마다 고른 종류의 최신 보고서에서 주요계정과 비율을 한 표에 나란히 보여 드려요. 기업은 고른 순서대로 놓고, 순위를 매기지 않아요.`}
+        aside={<Badge tone={corps.length >= MIN_COMPANIES ? 'accent' : 'neutral'}>{`${formatInteger(corps.length)} / ${formatInteger(MAX_COMPANIES)}곳 고름`}</Badge>}
+      />
 
       <Panel aria-labelledby="company-compare-pick">
         <PanelTitle id="company-compare-pick">비교할 기업</PanelTitle>
@@ -125,18 +132,21 @@ export function CompanyComparisonPage() {
           {statusMessage(corps.length, periodsDiffer(columns))}
         </p>
         <ComparisonTable columns={columns} type={type} onRetry={retry} />
-        <p className="panel__note">
+      </Panel>
+
+      <Notice as="aside" title="수치 기준과 출처" className="company-compare__notes">
+        <p>
           {fsDiv === 'CFS' ? '연결' : '별도'} 기준 · 재무상태표는 기말 잔액, 손익은 사업연도 시작부터 누적 금액이에요
           (연환산하지 않아요). 금액 단위는 원이고 조·억으로 줄여 보여 드려요. 값이 없으면 0이 아니라 '자료 없음'이에요.
         </p>
-        <p className="panel__note">
+        <p>
           전년 동기 대비 증감률·변동폭(%p)은 전년 같은 종류 보고서가 있을 때 코드가 계산했어요. 이전 값이 0·음수이거나 결측인 경우 또는 흑자·적자 전환 시에는 사유를 표시해요.
         </p>
-        <p className="panel__note">비율은 주요계정 값으로 코드가 계산했어요. 업종이나 기준값과 비교하지 않아요.</p>
-        <p className="panel__note">
+        <p>비율은 주요계정 값으로 코드가 계산했어요. 업종이나 기준값과 비교하지 않아요.</p>
+        <p>
           출처: DART(OpenDART 단일회사 주요계정). 열 머리글에서 근거 보고서의 DART 원문을 열 수 있어요.
         </p>
-      </Panel>
-    </section>
+      </Notice>
+    </Page>
   )
 }

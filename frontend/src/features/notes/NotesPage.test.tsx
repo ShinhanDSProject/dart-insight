@@ -62,6 +62,9 @@ describe('NotesPage(FS-57)', () => {
   it('로그인하지 않았으면 서버를 부르지 않고 로그인 안내를 보인다', () => {
     renderPage({ status: 'anonymous' })
     expect(screen.getByText('로그인하면 판단 노트를 쓸 수 있어요')).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 1, name: '내 판단 노트' })).toBeTruthy()
+    const crumb = screen.getByRole('navigation', { name: '현재 위치' })
+    expect(within(crumb).getByRole('link', { name: '기업 검색' }).getAttribute('href')).toBe('/')
     expect(screen.getByRole('link', { name: '로그인하기' }).getAttribute('href')).toBe('/login')
     expect(api.getNotes).not.toHaveBeenCalled()
   })

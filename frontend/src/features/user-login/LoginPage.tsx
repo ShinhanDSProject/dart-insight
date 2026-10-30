@@ -6,7 +6,8 @@ import { endpoints } from '@/shared/api/endpoints'
 import { useAuth } from '@/shared/auth/authContext'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
 import { pageTitle } from '@/shared/lib/pageTitle'
-import { Button } from '@/shared/ui'
+import { Button, Card, FieldLabel, Input, PageHeader } from '@/shared/ui'
+import { AlertState } from '@/shared/ui/StateView'
 import './user-login.css'
 
 type SubmitState = { status: 'idle' } | { status: 'loading' }
@@ -57,30 +58,38 @@ export function LoginPage() {
   const loading = submit.status === 'loading'
   return (
     <section className="login page" aria-labelledby="login-title">
-      <div className="login__card">
-        <p className="page__step">DART Insight</p>
-        <h1 className="page__title" id="login-title">로그인</h1>
-        <p className="page__lead">가입한 이메일과 비밀번호를 입력해 주세요.</p>
+      <Card className="login__card">
+        <PageHeader
+          breadcrumb={
+            <>
+              <Link to="/">기업 검색</Link> / 로그인
+            </>
+          }
+          title="로그인"
+          titleId="login-title"
+          lead="가입한 이메일과 비밀번호를 입력해 주세요."
+        />
         {searchParams.get('social') === 'error' && (
-          <div className="state state--error login__failure" role="alert">
-            <p>소셜 로그인에 실패했습니다. 다시 시도해 주세요.</p>
+          <div className="login__failure">
+            <AlertState title="소셜 로그인에 실패했습니다. 다시 시도해 주세요." />
           </div>
         )}
         <form onSubmit={onSubmit} aria-busy={loading}>
           <div className="login__field">
-            <label htmlFor="login-email">이메일</label>
-            <input id="login-email" type="email" autoComplete="email" required disabled={loading}
+            <FieldLabel htmlFor="login-email">이메일</FieldLabel>
+            <Input id="login-email" type="email" autoComplete="email" required disabled={loading}
               value={email} onChange={(event) => setEmail(event.target.value)} />
           </div>
           <div className="login__field">
-            <label htmlFor="login-password">비밀번호</label>
-            <input id="login-password" type="password" autoComplete="current-password" required disabled={loading}
+            <FieldLabel htmlFor="login-password">비밀번호</FieldLabel>
+            <Input id="login-password" type="password" autoComplete="current-password" required disabled={loading}
               value={password} onChange={(event) => setPassword(event.target.value)} />
           </div>
           {match(submit).with({ status: 'error' }, (state) => (
-            <div className="state state--error login__failure" role="alert">
-              <p>{state.message}</p>
-              {state.traceId && <p className="state__meta">문의 시 전달할 오류 번호: {state.traceId}</p>}
+            <div className="login__failure">
+              <AlertState title={state.message}>
+                {state.traceId && <p className="state__meta">문의 시 전달할 오류 번호: {state.traceId}</p>}
+              </AlertState>
             </div>
           )).otherwise(() => null)}
           <Button type="submit" variant="primary" className="login__submit" disabled={loading}>
@@ -97,7 +106,7 @@ export function LoginPage() {
           ))}
         </div>
         <p className="login__signup">아직 계정이 없나요? <Link to="/signup">회원가입</Link></p>
-      </div>
+      </Card>
     </section>
   )
 }

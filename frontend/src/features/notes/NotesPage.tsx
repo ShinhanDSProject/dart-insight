@@ -9,7 +9,7 @@ import { downloadTextFile } from '@/shared/lib/download'
 import { formatInteger } from '@/shared/lib/numberFormat'
 import { pageTitle } from '@/shared/lib/pageTitle'
 import { formatDate } from '@/shared/lib/reportLabels'
-import { Badge, Button, ButtonLink, Chip, FieldLabel, Input, Panel, PanelTitle } from '@/shared/ui'
+import { Badge, Button, ButtonLink, Card, Chip, FieldLabel, Input, Page, PageHeader, Panel, PanelTitle } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { NoteItemCard } from './components/NoteItemCard'
@@ -47,11 +47,16 @@ export function NotesPage() {
   const [filter, dispatchFilter] = useReducer(noteFilterReducer, INITIAL_NOTE_FILTER)
 
   return (
-    <section className="page notes">
-      <h1 className="page__title">내 판단 노트</h1>
-      <p className="page__lead">
-        분석 결과에서 담은 수치·문장을 기업별로 모았어요. 담을 때의 값과 출처가 함께 남고, 메모는 나만 볼 수 있어요.
-      </p>
+    <Page className="notes">
+      <PageHeader
+        breadcrumb={
+          <>
+            <Link to="/">기업 검색</Link> / 내 판단 노트
+          </>
+        }
+        title="내 판단 노트"
+        lead="분석 결과에서 담은 수치·문장을 기업별로 모았어요. 담을 때의 값과 출처가 함께 남고, 메모는 나만 볼 수 있어요."
+      />
       {match(notes.state)
         .with({ status: 'anonymous' }, () => (
           <EmptyState title="로그인하면 판단 노트를 쓸 수 있어요">
@@ -81,7 +86,7 @@ export function NotesPage() {
           ),
         )
         .exhaustive()}
-    </section>
+    </Page>
   )
 }
 
@@ -135,7 +140,7 @@ interface NotesFilterBarProps {
 
 function NotesFilterBar({ filter, counts, showInlineReset, summary, dispatchFilter }: NotesFilterBarProps) {
   return (
-    <div className="notes-filter" role="search" aria-label="내 판단 노트 거르기">
+    <Card tone="subtle" className="notes-filter" role="search" aria-label="내 판단 노트 거르기">
       <div className="notes-filter__search">
         <FieldLabel htmlFor="notes-search-input">노트 찾기</FieldLabel>
         <Input
@@ -175,7 +180,7 @@ function NotesFilterBar({ filter, counts, showInlineReset, summary, dispatchFilt
           </Button>
         )}
       </div>
-    </div>
+    </Card>
   )
 }
 
@@ -195,9 +200,10 @@ function CompanyNotes({ company, notes }: { company: CompanyNote; notes: NotesCo
   return (
     <Panel as="section" className="notes__company" aria-labelledby={titleId}>
       <div className="notes__company-head">
-        <PanelTitle id={titleId}>
-          {name} <span className="notes__count">{formatInteger(company.items.length)}건</span>
-        </PanelTitle>
+        <div className="notes__company-name">
+          <PanelTitle id={titleId}>{name}</PanelTitle>
+          <Badge>{formatInteger(company.items.length)}건</Badge>
+        </div>
         <div className="notes__company-actions">
           <ButtonLink variant="secondary" to={companyOverviewLink(company.corpCode)} aria-label={`${name} 기업 개요 보기`}>
             기업 개요 보기
@@ -214,7 +220,7 @@ function CompanyNotes({ company, notes }: { company: CompanyNote; notes: NotesCo
       </div>
       {exporting.state.status === 'error' && <ErrorState error={exporting.state.error} />}
       {showFollowups && (
-        <section className="notes__followups" aria-labelledby={followupsTitleId}>
+        <Card as="section" tone="subtle" className="notes__followups" aria-labelledby={followupsTitleId}>
           <h3 id={followupsTitleId} className="notes__followup-title">
             담은 보고서 이후 소식
           </h3>
@@ -249,7 +255,7 @@ function CompanyNotes({ company, notes }: { company: CompanyNote; notes: NotesCo
             </div>
           )}
           <p className="notes__followup-notice">{FOLLOWUP_NOTICE}</p>
-        </section>
+        </Card>
       )}
       <ul className="notes__items">
         {company.items.map((item) => (

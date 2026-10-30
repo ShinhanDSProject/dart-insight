@@ -1,11 +1,12 @@
 import { useId } from 'react'
+import { Link } from 'react-router'
 import { match } from 'ts-pattern'
 import type { AdminReportList, ReportQueue } from '@/shared/api/community'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
 import { useQueryParams } from '@/shared/hooks/useQueryParams'
 import { formatInteger } from '@/shared/lib/numberFormat'
 import { pageTitle } from '@/shared/lib/pageTitle'
-import { Button, ButtonLink, SegmentedControl } from '@/shared/ui'
+import { Button, ButtonLink, Page, PageHeader, SegmentedControl } from '@/shared/ui'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { ReportCard } from './components/ReportCard'
 import { useAdminReports, type AdminReportsController } from './hooks/useAdminReports'
@@ -37,11 +38,16 @@ export function AdminReportsPage() {
   )
 
   return (
-    <section className="page admin-reports">
-      <h1 className="page__title">신고 관리</h1>
-      <p className="page__lead">
-        커뮤니티 신고를 확인하고 유지·블라인드·삭제로 처리해요. 처리 사유는 기록에 남고, 블라인드 사유는 작성자에게 보여요.
-      </p>
+    <Page className="admin-reports">
+      <PageHeader
+        breadcrumb={
+          <>
+            <Link to="/">기업 검색</Link> / 신고 관리
+          </>
+        }
+        title="신고 관리"
+        lead="커뮤니티 신고를 확인하고 유지·블라인드·삭제로 처리해요. 처리 사유는 기록에 남고, 블라인드 사유는 작성자에게 보여요."
+      />
       {match(reports.state)
         .with({ status: 'anonymous' }, () => (
           <EmptyState title="로그인한 관리자만 볼 수 있어요">
@@ -77,7 +83,7 @@ export function AdminReportsPage() {
           </>
         ))
         .exhaustive()}
-    </section>
+    </Page>
   )
 }
 
