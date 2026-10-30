@@ -30,9 +30,9 @@ class AuditOpinionMapperTest {
     @DisplayName("이 보고서 접수번호의 행만 쓰고, 사업연도 공백을 빼고 '-'는 null로 둔다")
     void usesRowsOfThisReport() {
         AuditOpinions opinions = map(List.of(
-                new AuditOpinionItem("20260101000009", "제60기\n(당기)", "다른회계법인", "적정의견", "2025-12-31"),
-                new AuditOpinionItem(RCEPT_NO, "제60기\n(당기)", " 대주회계법인 ", "의견거절", "2025-12-31"),
-                new AuditOpinionItem(RCEPT_NO, "제59기 (전기)", "현대회계법인", "-", "2025-12-31")));
+                new AuditOpinionItem("20260101000009", "제60기\n(당기)", "다른회계법인", "적정의견", "-", "-", "-", "2025-12-31"),
+                new AuditOpinionItem(RCEPT_NO, "제60기\n(당기)", " 대주회계법인 ", "의견거절", "-", "-", "-", "2025-12-31"),
+                new AuditOpinionItem(RCEPT_NO, "제59기 (전기)", "현대회계법인", "-", "-", "-", "-", "2025-12-31")));
 
         assertThat(opinions.available()).isTrue();
         assertThat(opinions.sourceRceptNo()).isNull();
@@ -42,10 +42,26 @@ class AuditOpinionMapperTest {
     }
 
     @Test
+    @DisplayName("강조사항 등·특기사항·핵심감사사항을 원문 그대로(앞뒤 공백만 빼고) 읽고 '-'는 null로 둔다")
+    void readsMatters() {
+        // 문구는 가짜다. 필드 이름은 OpenDART 개발가이드 DS002 2020009(emphs_matter 등)와 같다
+        AuditOpinions opinions = map(List.of(
+                new AuditOpinionItem(RCEPT_NO, "제60기\n(당기)", "대주회계법인", "적정의견", "-",
+                        " 계속기업 가정에 관한 중요한 불확실성\n회사는 당기 순손실이 발생하였습니다. ", "수익인식", "2025-12-31"),
+                new AuditOpinionItem(RCEPT_NO, "제59기(전기)", "대주회계법인", "적정의견", "특기사항 없음", "", "-",
+                        "2025-12-31")));
+
+        assertThat(opinions.rows()).containsExactly(
+                new AuditOpinionRow("제60기(당기)", "대주회계법인", "적정의견",
+                        "계속기업 가정에 관한 중요한 불확실성\n회사는 당기 순손실이 발생하였습니다.", null, "수익인식"),
+                new AuditOpinionRow("제59기(전기)", "대주회계법인", "적정의견", null, "특기사항 없음", null));
+    }
+
+    @Test
     @DisplayName("이 보고서의 행이 없으면 첫 행의 접수번호(정정본)를 근거로 둔다")
     void fallsBackToFirstRceptNo() {
         AuditOpinions opinions = map(List.of(
-                new AuditOpinionItem("20260401000002", "제60기(당기)", "대주회계법인", "적정의견", "2025-12-31")));
+                new AuditOpinionItem("20260401000002", "제60기(당기)", "대주회계법인", "적정의견", "-", "-", "-", "2025-12-31")));
 
         assertThat(opinions.available()).isTrue();
         assertThat(opinions.sourceRceptNo()).isEqualTo("20260401000002");
@@ -54,9 +70,9 @@ class AuditOpinionMapperTest {
     @Test
     @DisplayName("접수번호가 없는 행만 있거나 결산기준일이 대상 기간 끝과 다르면 자료 없음이다")
     void noDataWithoutEvidenceOrOtherPeriod() {
-        assertThat(map(List.of(new AuditOpinionItem("-", "제60기(당기)", "대주회계법인", "적정의견", null)))
+        assertThat(map(List.of(new AuditOpinionItem("-", "제60기(당기)", "대주회계법인", "적정의견", "-", "-", "-", null)))
                 .available()).isFalse();
-        assertThat(map(List.of(new AuditOpinionItem(RCEPT_NO, "제59기(당기)", "대주회계법인", "적정의견", "2024-12-31")))
+        assertThat(map(List.of(new AuditOpinionItem(RCEPT_NO, "제59기(당기)", "대주회계법인", "적정의견", "-", "-", "-", "2024-12-31")))
                 .available()).isFalse();
         assertThat(AuditOpinionMapper.toOpinions(RCEPT_NO, FY2025, new PeriodicReportInfoPage<>(true, List.of()), NOW)
                 .available()).isFalse();

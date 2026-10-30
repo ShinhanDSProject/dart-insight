@@ -9,12 +9,15 @@ import java.math.BigDecimal;
  * @param value    값이 없거나 계산하지 않았으면 null(0과 구분). 그때 reason이 이유다
  * @param currency 금액(AMOUNT)일 때 통화, 아니면 null
  * @param evidence 재무제표 계정 값이면 그 계정, 계산한 값·건수면 null
+ * @param quote    공시 문구가 근거인 값(계속기업 관련 강조사항이 있음)이면 그 원문 일부, 아니면 null
  */
 public record CheckpointFact(String label, BigDecimal value, Unit unit, String currency, Reason reason,
-        Evidence evidence) {
+        Evidence evidence, Quote quote) {
 
     public enum Unit {
-        AMOUNT, PERCENT, PERCENT_POINT, COUNT
+        AMOUNT, PERCENT, PERCENT_POINT, COUNT,
+        /** 있음 1, 없음 0(#546) */
+        PRESENCE
     }
 
     /** 값이 null인 이유 */
@@ -40,31 +43,54 @@ public record CheckpointFact(String label, BigDecimal value, Unit unit, String c
             String accountName) {
     }
 
+    /**
+     * 공시 문구 근거.
+     *
+     * @param text    원문 일부(원문 그대로)
+     * @param rceptNo 근거 접수번호
+     */
+    public record Quote(String text, String rceptNo) {
+    }
+
     public static CheckpointFact amount(String label, AccountValue value) {
         if (value == null || value.amount() == null) {
             return new CheckpointFact(label, null, Unit.AMOUNT, value == null ? null : value.currency(), Reason.MISSING,
-                    value == null ? null : value.evidence());
+                    value == null ? null : value.evidence(), null);
         }
         return new CheckpointFact(label, BigDecimal.valueOf(value.amount()), Unit.AMOUNT, value.currency(), null,
-                value.evidence());
+                value.evidence(), null);
     }
 
     /** 합계처럼 계정 하나로 가리킬 수 없는 금액 */
     public static CheckpointFact sum(String label, Long amount, String currency) {
-        return amount == null ? new CheckpointFact(label, null, Unit.AMOUNT, currency, Reason.MISSING, null)
-                : new CheckpointFact(label, BigDecimal.valueOf(amount), Unit.AMOUNT, currency, null, null);
+        return amount == null ? new CheckpointFact(label, null, Unit.AMOUNT, currency, Reason.MISSING, null, null)
+                : new CheckpointFact(label, BigDecimal.valueOf(amount), Unit.AMOUNT, currency, null, null, null);
     }
 
     public static CheckpointFact rate(String label, Rate rate) {
-        return new CheckpointFact(label, rate.value(), Unit.PERCENT, null, rate.reason(), null);
+        return new CheckpointFact(label, rate.value(), Unit.PERCENT, null, rate.reason(), null, null);
     }
 
     public static CheckpointFact points(String label, Rate rate) {
-        return new CheckpointFact(label, rate.value(), Unit.PERCENT_POINT, null, rate.reason(), null);
+        return new CheckpointFact(label, rate.value(), Unit.PERCENT_POINT, null, rate.reason(), null, null);
+    }
+
+    /**
+     * 있음·없음.
+     *
+     * @param present 확인하지 못했으면 null
+     * @param quote   있음일 때 근거 문구
+     */
+    public static CheckpointFact presence(String label, Boolean present, Quote quote) {
+        if (present == null) {
+            return new CheckpointFact(label, null, Unit.PRESENCE, null, Reason.NOT_CHECKED, null, null);
+        }
+        return new CheckpointFact(label, present ? BigDecimal.ONE : BigDecimal.ZERO, Unit.PRESENCE, null, null, null,
+                present ? quote : null);
     }
 
     public static CheckpointFact count(String label, Integer count) {
-        return count == null ? new CheckpointFact(label, null, Unit.COUNT, null, Reason.NOT_CHECKED, null)
-                : new CheckpointFact(label, BigDecimal.valueOf(count), Unit.COUNT, null, null, null);
+        return count == null ? new CheckpointFact(label, null, Unit.COUNT, null, Reason.NOT_CHECKED, null, null)
+                : new CheckpointFact(label, BigDecimal.valueOf(count), Unit.COUNT, null, null, null, null);
     }
 }

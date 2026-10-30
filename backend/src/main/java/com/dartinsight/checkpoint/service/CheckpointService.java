@@ -1,12 +1,12 @@
 package com.dartinsight.checkpoint.service;
 
+import com.dartinsight.checkpoint.domain.AuditFindings;
 import com.dartinsight.checkpoint.domain.CheckpointItem;
 import com.dartinsight.checkpoint.domain.CheckpointReason;
 import com.dartinsight.checkpoint.domain.CheckpointRules;
 import com.dartinsight.checkpoint.domain.StatementStatus;
 import com.dartinsight.checkpoint.domain.YearAccounts;
 import com.dartinsight.common.error.ApiException;
-import com.dartinsight.disclosure.domain.Disclosure;
 import com.dartinsight.disclosure.domain.DisclosureGroup;
 import com.dartinsight.disclosure.domain.DisclosureSignal;
 import com.dartinsight.disclosure.domain.DisclosureSignalKind;
@@ -60,7 +60,7 @@ public class CheckpointService {
         Optional<DisclosureTimeline> funding = fundingDisclosures(corpCode);
         Optional<DisclosureSignals> signals = disclosureSignals(corpCode);
         List<CheckpointItem> items = CheckpointRules.all(statements.current(), statements.previous(),
-                funding.map(DisclosureTimeline::items), nonCleanAudits(signals),
+                funding.map(DisclosureTimeline::items), auditFindings(signals),
                 signalCount(signals, DisclosureSignalKind.AUDITOR_CHANGE));
         return new CompanyCheckpoints(corpCode, null, pair.current(), pair.previous(), statements.fsDiv(),
                 statements.status(), funding.map(DisclosureTimeline::from).orElse(null),
@@ -116,15 +116,15 @@ public class CheckpointService {
         }
     }
 
-    /** 적정이 아닌 감사의견이 적힌 사업보고서. 확인하지 못했으면 빈 값 */
-    private static Optional<List<Disclosure>> nonCleanAudits(Optional<DisclosureSignals> signals) {
+    /** 적정이 아닌 감사의견이 적힌 사업보고서와 계속기업 문구가 있는 사업보고서. 확인하지 못했으면 빈 값 */
+    private static Optional<AuditFindings> auditFindings(Optional<DisclosureSignals> signals) {
         return signals
                 .filter(s -> s.statuses().get(DisclosureSignalKind.NON_CLEAN_AUDIT_OPINION)
                         == DisclosureSignalStatus.CHECKED)
-                .map(s -> s.items().stream()
+                .map(s -> new AuditFindings(s.items().stream()
                         .filter(item -> item.kind() == DisclosureSignalKind.NON_CLEAN_AUDIT_OPINION)
                         .map(DisclosureSignal::disclosure)
-                        .toList());
+                        .toList(), s.goingConcern()));
     }
 
     /** 종류의 건수. 확인하지 못했으면 null */

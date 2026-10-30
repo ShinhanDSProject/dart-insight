@@ -54,7 +54,8 @@ final class AuditOpinionMapper {
         Set<AuditOpinionRow> rows = new LinkedHashSet<>();
         for (AuditOpinionItem item : items) {
             rows.add(new AuditOpinionRow(DisclosureSignalRules.compact(clean(item.term())), clean(item.auditor()),
-                    clean(item.opinion())));
+                    clean(item.opinion()), clean(item.emphasisMatter()), clean(item.specialMatter()),
+                    clean(item.keyAuditMatter())));
         }
         return new AuditOpinions(rceptNo, true, source.equals(rceptNo) ? null : source, List.copyOf(rows), now);
     }

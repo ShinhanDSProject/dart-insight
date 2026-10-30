@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -40,6 +41,15 @@ public final class DisclosureSignalRules {
 
     /** 공백을 뺀 감사의견에 이 낱말이 있으면 적정이 아님 */
     public static final List<String> NON_CLEAN_OPINION_WORDS = List.of("한정", "부적정", "거절");
+
+    /** 공백을 무시하고 '계속기업'을 찾는다(#546) */
+    private static final Pattern GOING_CONCERN = Pattern.compile("계\\s*속\\s*기\\s*업");
+    /** 계속기업 문구 원문 일부의 최대 글자 수 */
+    public static final int GOING_CONCERN_EXCERPT_LENGTH = 200;
+    /** 원문 일부를 '계속기업'이 처음 나온 곳 몇 글자 앞부터 자르는지 */
+    static final int GOING_CONCERN_EXCERPT_BEFORE = 60;
+    static final String EMPHASIS_MATTER = "강조사항 등";
+    static final String SPECIAL_MATTER = "감사보고서 특기사항";
 
     private static final String CURRENT_TERM = "(당기)";
     private static final String PRIOR_TERM = "(전기)";
@@ -96,6 +106,42 @@ public final class DisclosureSignalRules {
         }
         return Optional.of(new AuditorChange(term(rows, PRIOR_TERM), List.copyOf(prior.values()),
                 term(rows, CURRENT_TERM), List.copyOf(current.values())));
+    }
+
+    /**
+     * 당기 행의 강조사항 등(없으면 감사보고서 특기사항)에 공백을 무시하고 '계속기업'이 있는 첫 문구(#546). 핵심감사사항은 보지 않는다.
+     * 원문 일부는 처음 나온 곳 {@link #GOING_CONCERN_EXCERPT_BEFORE}자 앞부터 {@link #GOING_CONCERN_EXCERPT_LENGTH}자 이내로 자른
+     * 원문 그대로(앞뒤 공백만 뺌)다.
+     */
+    public static Optional<GoingConcernNote> goingConcern(List<AuditOpinionRow> rows) {
+        for (AuditOpinionRow row : rows) {
+            if (!isCurrent(row.term())) {
+                continue;
+            }
+            Optional<GoingConcernNote> emphasis = goingConcern(row.term(), EMPHASIS_MATTER, row.emphasisMatter());
+            if (emphasis.isPresent()) {
+                return emphasis;
+            }
+            Optional<GoingConcernNote> special = goingConcern(row.term(), SPECIAL_MATTER, row.specialMatter());
+            if (special.isPresent()) {
+                return special;
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static Optional<GoingConcernNote> goingConcern(String term, String field, String text) {
+        if (text == null) {
+            return Optional.empty();
+        }
+        Matcher matcher = GOING_CONCERN.matcher(text);
+        if (!matcher.find()) {
+            return Optional.empty();
+        }
+        int end = Math.min(text.length(), Math.max(0, matcher.start() - GOING_CONCERN_EXCERPT_BEFORE)
+                + GOING_CONCERN_EXCERPT_LENGTH);
+        int start = Math.max(0, end - GOING_CONCERN_EXCERPT_LENGTH);
+        return Optional.of(new GoingConcernNote(term, field, text.substring(start, end).strip()));
     }
 
     /** 예: "사업보고서에 적힌 제60기(당기) 감사의견은 '의견거절'이에요." */
@@ -193,5 +239,15 @@ public final class DisclosureSignalRules {
      */
     public record AuditorChange(String previousTerm, List<String> previousAuditors, String currentTerm,
             List<String> currentAuditors) {
+    }
+
+    /**
+     * 감사의견 자료의 계속기업 문구(#546).
+     *
+     * @param term    사업연도(공백을 뺀 값, 예 "제16기(당기)")
+     * @param field   찾은 필드 이름('강조사항 등' 또는 '감사보고서 특기사항')
+     * @param excerpt 원문 일부({@link #GOING_CONCERN_EXCERPT_LENGTH}자 이내, 원문 그대로)
+     */
+    public record GoingConcernNote(String term, String field, String excerpt) {
     }
 }
