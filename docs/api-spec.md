@@ -1356,7 +1356,7 @@
 - 최근 1년(오늘 − 365일 ~ 오늘, 한국 시간, 접수일 기준)에 이 기업이 낸 공시 가운데 아래 종류에 해당하는 공시를 모읍니다. 점수·등급·평가는 만들지 않고, 종류마다 공시 건수와 코드가 만든 사실 문장만 돌려줍니다(LLM을 쓰지 않음).
 - 자료는 두 곳에서 옵니다.
   - **공시 목록**: 최근 공시 타임라인(`GET /api/companies/{corpCode}/disclosures?days=365`)과 같은 저장된 목록(`company_disclosure`, 같은 캐시)입니다. 공시 제목 규칙으로 종류를 정합니다.
-  - **회계감사인의 명칭 및 감사의견**: 위 목록에 있는 사업보고서마다 OpenDART 정기보고서 주요정보 `accnutAdtorNmNdAdtOpinion.json`([DS002 2020009](https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS002&apiId=2020009))을 `corp_code`·`bsns_year`(보고서명의 사업연도)·`reprt_code=11011`(사업보고서)로 부릅니다. 응답 필드 `bsns_year`(예 `제60기\n(당기)`), `adtor`(감사인), `adt_opinion`(감사의견), `stlm_dt`(결산기준일), `rcept_no`를 씁니다.
+  - **회계감사인의 명칭 및 감사의견**: 위 목록에 있는 사업보고서마다 OpenDART 정기보고서 주요정보 `accnutAdtorNmNdAdtOpinion.json`([DS002 2020009](https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS002&apiId=2020009))을 `corp_code`·`bsns_year`(보고서명의 사업연도)·`reprt_code=11011`(사업보고서)로 부릅니다. 응답 필드 `bsns_year`(예 `제60기\n(당기)`), `adtor`(감사인), `adt_opinion`(감사의견), `stlm_dt`(결산기준일), `rcept_no`를 씁니다. `emphs_matter`(강조사항 등)·`adt_reprt_spcmnt_matter`(감사보고서 특기사항)·`core_adt_matter`(핵심감사사항)도 저장하지만(#546) 이 API의 종류에는 쓰지 않습니다(재무 체크 포인트 감사의견 항목이 씀).
 - **종류 정하기**(`backend/.../disclosure/domain/DisclosureSignalRules.java`). 제목은 최근 공시 타임라인과 같이 보고서명에서 앞머리 꼬리표(`[기재정정]` 등)와 뒤 설명(공백 여러 칸 뒤)을 떼고 공백을 모두 뺀 값입니다. 제목에 `자회사의주요경영사항`·`종속회사의주요경영사항`이 있으면 이 회사가 아닌 자회사의 일이라 어느 종류에도 넣지 않습니다. 제목은 2026-03-16~31·2026-07-01~09-30 OpenDART 공시검색(거래소공시·주요사항보고서) 실제 응답에 나온 것에서만 골랐습니다.
 
   | `kind` | `label` | 자료 | 맞는 규칙 | `sentence` |
@@ -1623,9 +1623,11 @@
   | `DEBT_RATIO` | 부채비율 | 올해 자본총계 ≤ 0(자본잠식, 부채비율은 계산하지 않음), 또는 올해 부채비율 − 작년 부채비율 ≥ 20%p | 변화 < 20%p. 작년 자본총계 ≤ 0이라 작년 부채비율을 계산할 수 없으면 `NO_DATA` |
   | `SHORT_TERM_BORROWINGS` | 단기 차입금 | 단기 차입금 증가율 − 매출 증가율 ≥ 20%p. 단기 차입금 = 단기차입금 + 유동성장기부채 중 두 해 모두 찾은 계정의 합 | 차이 < 20%p. 두 해 모두 찾은 계정이 하나도 없으면 `NO_DATA` |
   | `FUNDING_DISCLOSURES` | 주식 관련 자금 조달 공시 | 최근 1년(최근 공시 타임라인 `days=365`와 같은 목록) '자금 조달'(`FUNDING`) 묶음 공시 가운데 제목(공백 무시)에 유상증자·전환사채·신주인수권·교환사채·주식관련사채·지분증권·전환가액이 있는 공시가 1건 이상(회사채·기업어음 같은 채무증권만의 공시는 세지 않음) | 0건. 공시 목록을 받지 못하면 `NO_DATA` |
-  | `AUDIT_OPINION` | 감사의견 | 확인해 볼 공시(`GET …/disclosure-signals`)의 `NON_CLEAN_AUDIT_OPINION`이 1건 이상 | 0건. 그 종류가 `UNAVAILABLE`이면 `NO_DATA` |
+  | `AUDIT_OPINION` | 감사의견 | 확인해 볼 공시(`GET …/disclosure-signals`)의 `NON_CLEAN_AUDIT_OPINION`이 1건 이상, 또는 같은 사업보고서 감사의견 자료의 당기 행 강조사항 등(`emphs_matter`)이나 감사보고서 특기사항(`adt_reprt_spcmnt_matter`)에 공백을 무시하고 `계속기업`이 있음(#546) | 둘 다 없음. 감사의견 종류가 `UNAVAILABLE`이면 `NO_DATA` |
 
-  '자금 조달' 묶음은 최근 공시 타임라인의 규칙(`DisclosureGroupRules`)을 쓰고, 그 가운데 주식 관련 낱말이 있는 제목만 셉니다(발행 주식 수가 늘어날 수 있는지 살펴보는 항목이라서). 감사의견 항목은 확인해 볼 공시의 결과를 그대로 쓰고, 감사인 변경 건수는 참고 수치로만 넣습니다(상태에 쓰지 않음). 감사보고서의 계속기업 관련 문단은 지금 받는 감사의견 자료에 없어 이 항목에서 보지 않습니다.
+  '자금 조달' 묶음은 최근 공시 타임라인의 규칙(`DisclosureGroupRules`)을 쓰고, 그 가운데 주식 관련 낱말이 있는 제목만 셉니다(발행 주식 수가 늘어날 수 있는지 살펴보는 항목이라서). 감사의견 항목은 확인해 볼 공시의 결과를 그대로 쓰고, 감사인 변경 건수는 참고 수치로만 넣습니다(상태에 쓰지 않음).
+
+  **계속기업 관련 강조사항**(#546): 확인해 볼 공시가 받은 사업보고서마다(같은 사업연도는 최근 것 하나) 감사의견 자료의 당기 행(`bsns_year`에 `(당기)`)에서 강조사항 등을 먼저, 없으면 특기사항을 봅니다(2019-12-08까지는 특기사항 필드만 있음). 핵심감사사항(`core_adt_matter`)은 저장만 하고 보지 않습니다. 찾으면 `facts`의 `계속기업 관련 강조사항`이 `PRESENCE` 1(있음)이고 `quote`에 원문 일부와 근거 접수번호를, `note`에 어느 기의 어느 필드인지를 넣습니다. 원문 일부는 '계속기업'이 처음 나온 곳 앞 60자부터 200자 이내로 자른 원문 그대로(앞뒤 공백만 뺌)이고, 근거 접수번호는 감사의견 응답 행의 접수번호(정정본이면 그 접수번호)입니다. 사업보고서가 여럿이면 접수일이 최근인 것을 씁니다. 없으면 0(없음), 감사의견 자료를 받지 못하면 null(`NOT_CHECKED`)입니다.
 
 **요청**
 
@@ -1663,16 +1665,16 @@
         { "label": "매출 (올해)", "value": 1100, "unit": "AMOUNT", "currency": "KRW", "reason": null,
           "evidence": { "rceptNo": "20260310000123", "fsDiv": "CFS", "sjDiv": "IS", "statementName": "손익계산서",
             "accountId": "ifrs-full_Revenue", "accountName": "매출액",
-            "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260310000123" } },
+            "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260310000123" }, "quote": null },
         { "label": "매출 (작년)", "value": 1000, "unit": "AMOUNT", "currency": "KRW", "reason": null,
           "evidence": { "rceptNo": "20250311000456", "fsDiv": "CFS", "sjDiv": "IS", "statementName": "손익계산서",
             "accountId": "ifrs-full_Revenue", "accountName": "매출액",
-            "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250311000456" } },
-        { "label": "매출채권 (올해)", "value": 150, "unit": "AMOUNT", "currency": "KRW", "reason": null, "evidence": { "…": "…" } },
-        { "label": "매출채권 (작년)", "value": 100, "unit": "AMOUNT", "currency": "KRW", "reason": null, "evidence": { "…": "…" } },
-        { "label": "매출 증가율", "value": 10.0, "unit": "PERCENT", "currency": null, "reason": null, "evidence": null },
-        { "label": "매출채권 증가율", "value": 50.0, "unit": "PERCENT", "currency": null, "reason": null, "evidence": null },
-        { "label": "증가율 차이", "value": 40.0, "unit": "PERCENT_POINT", "currency": null, "reason": null, "evidence": null }
+            "dartUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250311000456" }, "quote": null },
+        { "label": "매출채권 (올해)", "value": 150, "unit": "AMOUNT", "currency": "KRW", "reason": null, "evidence": { "…": "…" }, "quote": null },
+        { "label": "매출채권 (작년)", "value": 100, "unit": "AMOUNT", "currency": "KRW", "reason": null, "evidence": { "…": "…" }, "quote": null },
+        { "label": "매출 증가율", "value": 10.0, "unit": "PERCENT", "currency": null, "reason": null, "evidence": null, "quote": null },
+        { "label": "매출채권 증가율", "value": 50.0, "unit": "PERCENT", "currency": null, "reason": null, "evidence": null, "quote": null },
+        { "label": "증가율 차이", "value": 40.0, "unit": "PERCENT_POINT", "currency": null, "reason": null, "evidence": null, "quote": null }
       ],
       "disclosures": []
     },
@@ -1685,7 +1687,7 @@
       "formula": "최근 1년 '자금 조달' 묶음 공시 가운데 제목에 주식 관련 낱말(유상증자·전환사채·신주인수권·교환사채·주식관련사채·지분증권·전환가액)이 있는 공시 건수",
       "threshold": "최근 1년 주식 관련 자금 조달 공시가 1건 이상이면 확인해 볼 점",
       "note": null,
-      "facts": [ { "label": "자금 조달 공시", "value": 0, "unit": "COUNT", "currency": null, "reason": null, "evidence": null } ],
+      "facts": [ { "label": "자금 조달 공시", "value": 0, "unit": "COUNT", "currency": null, "reason": null, "evidence": null, "quote": null } ],
       "disclosures": []
     }
   ]
@@ -1701,8 +1703,8 @@
 - `items[].why`: 투자자가 이 항목을 왜 보는지 한두 문장. 이 회사를 평가하는 문장이 아니라 항목마다 정해 둔 일반 설명입니다.
 - `items[].formula`·`threshold`: 계산식과 기준값 문구(코드 상수)
 - `items[].note`: 상태를 정한 이유가 수치만으로 보이지 않을 때의 사실 문장(예: '자본총계가 0 이하예요(자본잠식).', '작년 매출이 0이라 증가율을 계산하지 않았어요.'). 없으면 null
-- `items[].facts[]`: 계산에 쓴 값. `unit`은 `AMOUNT`(금액, `currency`에 통화), `PERCENT`(%), `PERCENT_POINT`(%p), `COUNT`(건). `value`가 null이면 `reason`이 그 이유입니다: `MISSING` 계정을 찾지 못함·자료 없음, `PREVIOUS_ZERO` 작년 값이 0, `PREVIOUS_NEGATIVE` 작년 값이 음수, `EQUITY_NOT_POSITIVE` 자본총계가 0 이하라 부채비율을 계산하지 않음, `NOT_CHECKED` 자료를 받지 못해 세지 못함. `evidence`는 재무제표 계정 값이면 그 계정의 근거(OpenDART 응답의 접수번호, 기준, 재무제표 종류·이름, 표준계정 ID, 계정명, DART 원문 주소), 계산한 값·건수면 null입니다.
-- `items[].disclosures[]`: `FUNDING_DISCLOSURES`·`AUDIT_OPINION` 항목에서 센 공시(접수일이 최근인 순서, `rceptNo`·`reportName`·`receivedDate`·`dartUrl`). 그 밖의 항목은 빈 배열
+- `items[].facts[]`: 계산에 쓴 값. `unit`은 `AMOUNT`(금액, `currency`에 통화), `PERCENT`(%), `PERCENT_POINT`(%p), `COUNT`(건), `PRESENCE`(있음 1·없음 0, #546). `value`가 null이면 `reason`이 그 이유입니다: `MISSING` 계정을 찾지 못함·자료 없음, `PREVIOUS_ZERO` 작년 값이 0, `PREVIOUS_NEGATIVE` 작년 값이 음수, `EQUITY_NOT_POSITIVE` 자본총계가 0 이하라 부채비율을 계산하지 않음, `NOT_CHECKED` 자료를 받지 못해 세지 못함. `evidence`는 재무제표 계정 값이면 그 계정의 근거(OpenDART 응답의 접수번호, 기준, 재무제표 종류·이름, 표준계정 ID, 계정명, DART 원문 주소), 계산한 값·건수면 null입니다. `quote`는 공시 문구가 근거인 값(지금은 `계속기업 관련 강조사항`이 있음일 때)의 `{ "text": 원문 일부, "rceptNo": 근거 접수번호, "dartUrl": DART 원문 주소 }`이고 그 밖에는 null입니다.
+- `items[].disclosures[]`: `FUNDING_DISCLOSURES`·`AUDIT_OPINION` 항목에서 센 공시(접수일이 최근인 순서, `rceptNo`·`reportName`·`receivedDate`·`dartUrl`. 감사의견은 적정이 아닌 의견이나 계속기업 문구가 있는 사업보고서, 같은 보고서는 한 번). 그 밖의 항목은 빈 배열
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
