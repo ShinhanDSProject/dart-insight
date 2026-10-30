@@ -55,15 +55,31 @@ const answer: QuestionAnswer = {
   createdAt: '2025-10-20T10:00:00+09:00',
 }
 
-function renderAnswer(state: AuthState, analysisId?: number) {
+function renderAnswer(state: AuthState, analysisId?: number, corpCode?: string, withFact = false) {
   auth.state = state
   const links = { onOpenSource: vi.fn(), onOpenFinancial: vi.fn(), onSearchText: vi.fn() }
+  const item: QuestionAnswer = withFact
+    ? {
+        ...answer,
+        answer: '반도체 판매가 늘었어요[1][F1].',
+        facts: [
+          {
+            ref: 'F1',
+            changeId: 901,
+            sjDiv: 'IS',
+            accountName: '매출액',
+            sentence: '매출액이 145조 원에서 152조 원으로 늘었어요(+4.8%).',
+          },
+        ],
+      }
+    : answer
   return render(
     <MemoryRouter>
       <main>
         <AnswerCard
-          item={answer}
+          item={item}
           analysisId={analysisId}
+          corpCode={corpCode}
           links={links}
           onFeedback={() => Promise.resolve()}
           followUp={{ questions: [], onAsk: vi.fn(), disabled: false }}
@@ -161,5 +177,30 @@ describe('AddToNote(FS-57)', () => {
     const anonymous = renderAdd({ status: 'anonymous' })
     fireEvent.click(screen.getByRole('button', { name: '노트에 담기: 매출액' }))
     expect(await axeViolations(anonymous.container)).toBe('')
+  })
+
+  it('AI 답의 계산한 수치 근거도 노트에 담기(FINANCIAL_CHANGE)와 커뮤니티에 인용을 함께 제공한다(#536)', async () => {
+    api.createNote.mockResolvedValue(noteItem({ kind: 'FINANCIAL_CHANGE' }))
+    const { container } = renderAnswer({ status: 'authenticated', userId: 1 }, 42, '00126380', true)
+
+    expect(screen.getByRole('link', { name: '커뮤니티에 인용: 매출액' }).getAttribute('href')).toBe(
+      '/companies/00126380?view=community&quoteAnalysis=42&quoteKind=FINANCIAL_CHANGE&quoteChange=901&quoteSj=IS',
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '노트에 담기: 매출액' }))
+    expect(await axeViolations(container)).toBe('')
+    fireEvent.click(screen.getByRole('button', { name: '노트에 저장' }))
+    expect(await screen.findByText(/노트에 담았어요/)).toBeTruthy()
+    expect(api.createNote).toHaveBeenCalledWith({
+      kind: 'FINANCIAL_CHANGE',
+      changeId: 901,
+      analysisId: 42,
+      memo: null,
+    })
+
+    cleanup()
+    renderAnswer({ status: 'authenticated', userId: 1 }, 42, undefined, true)
+    expect(screen.getByRole('button', { name: '노트에 담기: 매출액' })).toBeTruthy()
+    expect(screen.queryByRole('link', { name: /^커뮤니티에 인용:/ })).toBeNull()
   })
 })

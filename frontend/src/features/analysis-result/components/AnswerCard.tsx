@@ -3,9 +3,10 @@ import { match } from 'ts-pattern'
 import type { DocumentSide } from '@/shared/api/documents'
 import type { AnswerFeedback, QuestionAnswer, QuestionCitation, QuestionFact } from '@/shared/api/questions'
 import type { SjDiv } from '@/shared/api/results'
+import { communityQuotePath } from '@/shared/lib/communityQuoteLink'
 import { cx } from '@/shared/lib/cx'
 import { displaySectionPath } from '@/shared/lib/sectionTitle'
-import { Badge, Button, Card, Chip, Notice, type BadgeTone } from '@/shared/ui'
+import { Badge, Button, ButtonLink, Card, Chip, Notice, type BadgeTone } from '@/shared/ui'
 import { ErrorState } from '@/shared/ui/StateView'
 import { useAnswerFeedback } from '../hooks/useAnswerFeedback'
 import { FEEDBACK_REASONS, feedbackStatusLabel } from '../model/answerFeedback'
@@ -92,18 +93,22 @@ interface AnswerCardProps {
   links: AnswerLinks
   onFeedback: SendFeedback
   followUp: FollowUp
-  /** 주면 인용마다 '노트에 담기'(FS-57 ANSWER_CITATION)를 둔다 */
+  /** 주면 인용·수치 근거마다 '노트에 담기'(FS-57·#536)를 둔다 */
   analysisId?: number
+  /** 주면 계산한 수치 근거에 '커뮤니티에 인용'(#536)을 둔다 */
+  corpCode?: string
 }
 
 /** 받은 답 하나. 상태마다 다른 안내를 보인다 */
-export function AnswerCard({ item, links, onFeedback, followUp, analysisId }: AnswerCardProps) {
+export function AnswerCard({ item, links, onFeedback, followUp, analysisId, corpCode }: AnswerCardProps) {
   const headId = `ask-q-${item.questionId}`
   return (
     <Card as="article" className="answer-card" aria-labelledby={headId}>
       <QuestionLine id={headId} question={item.question} time={askedAtLabel(item.createdAt)} />
       {match(item.status)
-        .with('ANSWERED', () => <AnsweredBody item={item} links={links} onFeedback={onFeedback} analysisId={analysisId} />)
+        .with('ANSWERED', () => (
+          <AnsweredBody item={item} links={links} onFeedback={onFeedback} analysisId={analysisId} corpCode={corpCode} />
+        ))
         .with('NOT_FOUND', () => (
           <Notice tone="attention" className="answer-card__notice" title="관련 내용을 찾지 못했어요">
             <p>{item.message ?? '두 보고서에서 이 질문과 관련된 문단이나 수치를 찾지 못했어요.'}</p>
@@ -196,9 +201,10 @@ interface AnsweredBodyProps {
   links: AnswerLinks
   onFeedback: SendFeedback
   analysisId?: number
+  corpCode?: string
 }
 
-function AnsweredBody({ item, links, onFeedback, analysisId }: AnsweredBodyProps) {
+function AnsweredBody({ item, links, onFeedback, analysisId, corpCode }: AnsweredBodyProps) {
   const { active, idOf, focus } = useFocusRef(item.questionId)
   const segments = parseAnswer(item.answer ?? '', item.citations, item.facts)
   const citeKey = (c: QuestionCitation) => `c${c.no}`
@@ -313,6 +319,30 @@ function AnsweredBody({ item, links, onFeedback, analysisId }: AnsweredBodyProps
                 <Button variant="link" className="answer-cite__open" onClick={() => links.onOpenFinancial(f.sjDiv, f.changeId)}>
                   수치 근거<span className="visually-hidden"> ({f.accountName})</span>
                 </Button>
+                {analysisId !== undefined && (
+                  <div className="answer-cite__note answer-cite__fact-actions">
+                    <AddToNote
+                      target={{ kind: 'FINANCIAL_CHANGE', changeId: f.changeId }}
+                      analysisId={analysisId}
+                      label={f.accountName}
+                    />
+                    {corpCode && (
+                      <ButtonLink
+                        variant="secondary"
+                        aria-label={`커뮤니티에 인용: ${f.accountName}`}
+                        to={communityQuotePath({
+                          corpCode,
+                          analysisId,
+                          kind: 'FINANCIAL_CHANGE',
+                          changeId: f.changeId,
+                          sjDiv: f.sjDiv,
+                        })}
+                      >
+                        커뮤니티에 인용
+                      </ButtonLink>
+                    )}
+                  </div>
+                )}
               </li>
             ))}
           </ul>

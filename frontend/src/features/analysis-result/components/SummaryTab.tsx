@@ -7,13 +7,14 @@ import type { ChangeType } from '@/shared/api/textChanges'
 import type { LoadState } from '@/shared/hooks/asyncState'
 import type { AsyncResult } from '@/shared/hooks/useAsync'
 import { formatCompactAmount } from '@/shared/lib/chartScale'
-import { Badge, Button, Card, Chip, CompareBars, Notice, Panel, PanelTitle, SegmentedControl, Skeleton } from '@/shared/ui'
+import { Badge, Button, ButtonLink, Card, Chip, CompareBars, Notice, Panel, PanelTitle, SegmentedControl, Skeleton } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState } from '@/shared/ui/StateView'
 import { useSummary } from '../hooks/useSummary'
 import { useSummaryAmounts } from '../hooks/useSummaryAmounts'
 import { summarySjDivs } from '../model/summaryAmounts'
 import { headlineItems } from '../model/summaryHeadline'
+import { AddToNote } from './AddToNote'
 import { AskEntryCard } from './AskEntryCard'
 import { ChangeOverview } from './ChangeOverview'
 import { SummaryExplanation } from './SummaryExplanation'
@@ -31,7 +32,11 @@ import {
 import {
   kindLabel,
   SUMMARY_NOTE,
+  summaryItemQuestion,
   summaryLink,
+  summaryNoteLabel,
+  summaryNoteTarget,
+  summaryQuoteLink,
   summaryStatusNotice,
   textCoverageNote,
 } from '../model/summaryLabels'
@@ -116,6 +121,8 @@ export function SummaryTab({
         analysis={analysis}
         opener={opener}
         onOpenSource={onOpenSource}
+        onAsk={onAsk}
+        asking={asking}
         lens={lens}
         view={view}
         onChangeLens={onChangeLens}
@@ -129,6 +136,8 @@ interface SummaryContentProps extends LensControls {
   analysis: Analysis
   opener: (target: SummaryTarget) => (() => void) | null
   onOpenSource: (target: SourceTarget) => void
+  onAsk: (question: string) => void
+  asking: boolean
 }
 
 /** 요약 본문. 변화 개요를 못 불러와도 따로 불러와 그대로 보인다 */
@@ -155,6 +164,8 @@ function SummaryBody({
   analysis,
   opener,
   onOpenSource,
+  onAsk,
+  asking,
   lens: requestedLens,
   view,
   onChangeLens,
@@ -177,6 +188,8 @@ function SummaryBody({
       amount={item.kind !== 'FINANCIAL' || item.target.changeId === null ? undefined : amounts?.get(item.target.changeId)}
       onOpen={opener(item.target)}
       onOpenSource={onOpenSource}
+      onAsk={onAsk}
+      asking={asking}
     />
   )
 
@@ -332,9 +345,17 @@ interface SummaryCardProps {
   /** 결과 화면에서 이 항목을 연다. 열 수 없으면 null(버튼을 그리지 않음) */
   onOpen: (() => void) | null
   onOpenSource: (target: SourceTarget) => void
+  onAsk: (question: string) => void
+  asking: boolean
 }
 
-function SummaryCard({ item, analysis, amount, onOpen, onOpenSource }: SummaryCardProps) {
+function SummaryCard({ item, analysis, amount, onOpen, onOpenSource, onAsk, asking }: SummaryCardProps) {
+  const noteTarget = summaryNoteTarget(item.target)
+  const noteLabel = summaryNoteLabel(item, amount)
+  const quoteLink = summaryQuoteLink(analysis.corpCode, analysis.analysisId, item.target)
+  const question = summaryItemQuestion(item, amount)
+  const hasActions = onOpen !== null || quoteLink !== null || question !== null
+
   return (
     <Card as="article" className="summary-item">
       {item.factSentence && <p className="summary-item__fact">{item.factSentence}</p>}
@@ -346,12 +367,32 @@ function SummaryCard({ item, analysis, amount, onOpen, onOpenSource }: SummaryCa
         />
       )}
       <SummaryExplanation item={item} analysis={analysis} onOpenSource={onOpenSource} />
-      {onOpen && (
+      {hasActions && (
         <div className="summary-item__actions">
-          <Button variant="secondary" onClick={onOpen}>
-            {item.kind === 'FINANCIAL' ? '수치 근거 보기' : '변경 근거 보기'}
-          </Button>
+          {onOpen && (
+            <Button variant="secondary" onClick={onOpen}>
+              {item.kind === 'FINANCIAL' ? '수치 근거 보기' : '변경 근거 보기'}
+            </Button>
+          )}
+          {quoteLink !== null && (
+            <ButtonLink variant="secondary" to={quoteLink} aria-label={`커뮤니티에 인용: ${noteLabel}`}>
+              커뮤니티에 인용
+            </ButtonLink>
+          )}
+          {question !== null && (
+            <Button
+              variant="secondary"
+              disabled={asking}
+              aria-label={`AI에 질문: ${question}`}
+              onClick={() => onAsk(question)}
+            >
+              AI에 질문
+            </Button>
+          )}
         </div>
+      )}
+      {noteTarget !== null && (
+        <AddToNote target={noteTarget} analysisId={analysis.analysisId} label={noteLabel} />
       )}
     </Card>
   )

@@ -1585,6 +1585,8 @@
 
 .summary-item__actions {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-2);
 }
 
@@ -2395,9 +2397,21 @@
   white-space: nowrap;
 }
 
-/* 인용의 '노트에 담기'(FS-57). 메모 칸이 열려도 인용 본문 너비를 쓰도록 번호 다음 칸부터 끝까지 둔다 */
+/* 인용·수치의 '노트에 담기'·'커뮤니티에 인용'(FS-57·#536). 메모 칸이 열려도 본문 너비를 쓰도록 번호 다음 칸부터 끝까지 둔다 */
 .answer-cite__note {
   grid-column: 2 / -1;
+}
+
+.answer-cite__fact-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.answer-cite__fact-actions .note-add:has(.memo-form),
+.answer-cite__fact-actions .note-add:has(.note-add__login) {
+  flex-basis: 100%;
 }
 
 .answer-card__notice {

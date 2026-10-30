@@ -1,6 +1,10 @@
-import type { SjDiv } from '@/shared/api/results'
-import type { AiInfo, ExplanationGrade, ExplanationStatus, SummaryKind, SummaryStatus, SummaryTarget } from '@/shared/api/summary'
+import type { NoteTarget } from '@/shared/api/notes'
+import type { FinancialChangeItem, SjDiv } from '@/shared/api/results'
+import type { AiInfo, ExplanationGrade, ExplanationStatus, SummaryItem, SummaryKind, SummaryStatus, SummaryTarget } from '@/shared/api/summary'
 import type { TextStatus } from '@/shared/api/textChanges'
+import { communityQuotePath } from '@/shared/lib/communityQuoteLink'
+import { parseQuestion } from '@/shared/lib/questionText'
+import { accountQuestion, type SuggestionAccount } from './askQuestion'
 
 /** 요약·설명(W-03 ①) 화면 문구. 요약은 공시에 적힌 내용만 옮기며 투자 판단이 아니다. */
 
@@ -75,4 +79,60 @@ export function summaryLink(target: SummaryTarget): SummaryLink | null {
   if (target.changeId === null) return null
   if (target.type === 'FINANCIAL') return target.sjDiv ? { tab: 'financial', sjDiv: target.sjDiv, changeId: target.changeId } : null
   return { tab: 'text', changeId: target.changeId }
+}
+
+const SUMMARY_LABEL_MAX = 32
+const SUMMARY_QUESTION_SNIPPET_MAX = 40
+
+/** 요약 카드에서 노트에 담을 대상(#536). 원본 변경 ID가 없으면 null */
+export function summaryNoteTarget(target: SummaryTarget): NoteTarget | null {
+  if (target.changeId === null) return null
+  return {
+    kind: target.type === 'FINANCIAL' ? 'FINANCIAL_CHANGE' : 'TEXT_CHANGE',
+    changeId: target.changeId,
+  }
+}
+
+/** 요약 카드의 '노트에 담기' 화면 읽기용 이름 */
+export function summaryNoteLabel(
+  item: Pick<SummaryItem, 'itemNo' | 'kind' | 'factSentence' | 'aiText'>,
+  amount?: Pick<FinancialChangeItem, 'accountName'>,
+): string {
+  const account = amount?.accountName.trim() ?? ''
+  if (account !== '') return account
+  const sentence = (item.factSentence ?? item.aiText ?? '').trim().replace(/\s+/g, ' ').replace(/[.。]+$/, '')
+  if (sentence === '') return `요약 ${item.itemNo}번 (${kindLabel(item.kind)})`
+  return sentence.length > SUMMARY_LABEL_MAX ? `${sentence.slice(0, SUMMARY_LABEL_MAX).trimEnd()}…` : sentence
+}
+
+/** 요약 카드에서 기업 커뮤니티 인용 글쓰기 칸으로 가는 주소(#536). 기업 코드나 변경 ID가 없으면 null */
+export function summaryQuoteLink(corpCode: string | undefined, analysisId: number, target: SummaryTarget): string | null {
+  if (!corpCode || target.changeId === null) return null
+  return communityQuotePath({
+    corpCode,
+    analysisId,
+    kind: target.type === 'FINANCIAL' ? 'FINANCIAL_CHANGE' : 'TEXT_CHANGE',
+    changeId: target.changeId,
+    sjDiv: target.type === 'FINANCIAL' ? target.sjDiv : null,
+  })
+}
+
+/**
+ * 요약 카드에서 AI 질문 탭으로 바로 보낼 중립적 사실 확인 질문(#536).
+ * 원본 변경 ID가 확인된 항목만 만들며, 재무 항목에 계정 정보가 있으면 예시 질문과 같은 accountQuestion을 쓴다.
+ */
+export function summaryItemQuestion(
+  item: Pick<SummaryItem, 'kind' | 'target' | 'factSentence' | 'aiText'>,
+  amount?: SuggestionAccount,
+): string | null {
+  if (item.target.changeId === null) return null
+  if (item.kind === 'FINANCIAL' && amount && amount.accountName.trim() !== '') {
+    const byAccount = accountQuestion(amount)
+    if (parseQuestion(byAccount).kind === 'ready') return byAccount
+  }
+  const raw = (item.factSentence ?? item.aiText ?? '').trim().replace(/\s+/g, ' ').replace(/[.。]+$/, '')
+  if (raw === '') return null
+  const short = raw.length > SUMMARY_QUESTION_SNIPPET_MAX ? `${raw.slice(0, SUMMARY_QUESTION_SNIPPET_MAX).trimEnd()}…` : raw
+  const question = `'${short}' 관련 공시 원문 내용은 무엇인가요?`
+  return parseQuestion(question).kind === 'ready' ? question : null
 }
