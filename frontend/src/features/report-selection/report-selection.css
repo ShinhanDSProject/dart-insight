@@ -191,52 +191,6 @@
   gap: var(--space-2) var(--space-4);
 }
 
-.pair__slots {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
-  gap: var(--space-4);
-}
-
-.pair__slot {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: 22px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-}
-
-.pair__value {
-  margin: 0;
-  font-size: var(--font-size-sm);
-}
-
-.pair__value p {
-  margin: 0 0 var(--space-2);
-}
-
-.pair__value--muted {
-  color: var(--color-text-muted);
-}
-
-.pair__value--missing {
-  padding: var(--space-3);
-  border-radius: var(--radius-md);
-  background: var(--color-attention-subtle);
-  color: var(--color-attention);
-}
-
-.pair-details {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr));
-  gap: var(--space-4);
-  margin-top: var(--space-4);
-}
-
-.pair-details > .panel + .panel {
-  margin-top: 0;
-}
-
 /* 보고서 정보의 자세한 항목. 표와 겹치는 값이 많아 '보고서 자세히'에 접어 둔다 */
 .report-detail > summary {
   cursor: pointer;
@@ -251,14 +205,62 @@
   margin-top: var(--space-3);
 }
 
-.pair-actions {
+/* 보고서 비교 탭(#549): 제목·'기업 변경' → 비교 기준 → 보고서 카드 두 장 → 정기보고서 목록 → 주의 안내 → 주 버튼 */
+.pick {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.pick > .panel + .panel {
+  margin-top: 0;
+}
+
+.pick__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.pick__heading {
+  min-width: 0;
+}
+
+.pick__title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+.pick__lead {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.pick__list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.pick__actions {
   display: flex;
   justify-content: flex-end;
   align-items: center;
 }
 
-.report-table__badge {
-  margin-left: var(--space-2);
+/* 이전·현재 카드 묶음의 아래 여백은 .pick의 간격이 맡는다 */
+.pick .report-card-pair {
+  margin-bottom: 0;
+}
+
+.report-table__unselected {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
 }
 
 .report-table__more {

@@ -1,9 +1,10 @@
 import { match, P } from 'ts-pattern'
 import type { ComparisonBasis, ReportItem } from '@/shared/api/reports'
-import { Button, FieldHint, FieldLabel, SegmentedControl, Select } from '@/shared/ui'
+import { Button, FieldHint, FieldLabel, ReportCard, ReportCardPair, SegmentedControl, Select } from '@/shared/ui'
 import { ErrorState } from '@/shared/ui/StateView'
 import { basisOptions } from '@/shared/lib/comparisonBasis'
 import { customCandidates, reportOptionLabel, type PairLookup } from '../model/pairSelection'
+import { ReportDetail } from './ReportDetail'
 
 interface PairSelectorProps {
   items: ReportItem[]
@@ -18,11 +19,12 @@ interface PairSelectorProps {
 }
 
 /**
- * W-01 ② 비교 기준과 두 보고서 고르기(2.1).
- * 현재 보고서는 오른쪽에 두고, 비교 기준을 바꾸면 왼쪽 비교 보고서만 바뀐다.
+ * W-01 ② 비교 기준과 두 보고서 고르기(2.1, #549).
+ * 비교 기준 세그먼트 아래에 이전·현재 보고서 카드 두 장을 나란히 둔다(현재는 옅은 바탕, 오른쪽).
+ * 비교 기준을 바꾸면 왼쪽 이전 보고서만 바뀐다. 카드마다 고르기 칸과 '보고서 자세히'가 붙는다.
  */
 export function PairSelector(props: PairSelectorProps) {
-  const { items, basis, current, lookup, onBasisChange, onCurrentChange } = props
+  const { items, basis, current, previous, lookup, onBasisChange, onCurrentChange } = props
 
   return (
     <div className="pair">
@@ -34,28 +36,28 @@ export function PairSelector(props: PairSelectorProps) {
         <FieldHint>전년 동기는 작년 같은 기간 보고서와 비교해요. 계절에 따른 차이를 덜 받아요.</FieldHint>
       </div>
 
-      <div className="pair__slots">
-        <div className="pair__slot">
-          <PreviousSlot {...props} />
-        </div>
-        <div className="pair__slot">
-          <FieldLabel htmlFor="pair-current">
-            현재 보고서 <FieldHint>· 오른쪽에 고정</FieldHint>
-          </FieldLabel>
-          <Select
-            id="pair-current"
-            value={current.rceptNo}
-            onChange={(e) => onCurrentChange(e.target.value)}
-          >
-            {items.map((r, i) => (
-              <option key={r.rceptNo} value={r.rceptNo}>
-                {reportOptionLabel(r)}
-                {i === 0 ? ' · 최신' : ''}
-              </option>
-            ))}
-          </Select>
-        </div>
-      </div>
+      <ReportCardPair>
+        <ReportCard side="previous" report={previous} emptyText={<PreviousEmpty {...props} />}>
+          <div className="report-card__extra">
+            <PreviousControl {...props} />
+            {previous && <ReportDetail key={previous.rceptNo} rceptNo={previous.rceptNo} />}
+          </div>
+        </ReportCard>
+        <ReportCard side="current" report={current}>
+          <div className="report-card__extra">
+            <FieldLabel htmlFor="pair-current">현재 보고서 바꾸기</FieldLabel>
+            <Select id="pair-current" value={current.rceptNo} onChange={(e) => onCurrentChange(e.target.value)}>
+              {items.map((r, i) => (
+                <option key={r.rceptNo} value={r.rceptNo}>
+                  {reportOptionLabel(r)}
+                  {i === 0 ? ' · 최신' : ''}
+                </option>
+              ))}
+            </Select>
+            <ReportDetail key={current.rceptNo} rceptNo={current.rceptNo} />
+          </div>
+        </ReportCard>
+      </ReportCardPair>
       {match(lookup)
         .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={props.onRetry} />)
         .with({ status: P.union('idle', 'loading', 'success') }, () => null)
@@ -64,14 +66,23 @@ export function PairSelector(props: PairSelectorProps) {
   )
 }
 
-function PreviousSlot({ items, basis, current, previous, lookup, onBasisChange, onPreviousChange }: PairSelectorProps) {
+/** 이전 보고서가 아직 없을 때 카드에 보이는 문구 */
+function PreviousEmpty({ basis, lookup }: PairSelectorProps) {
+  if (basis === 'CUSTOM') return <>아래에서 이전 보고서를 고르세요.</>
+  return match(lookup)
+    .with({ status: 'loading' }, () => <>비교 기준에 맞는 보고서를 찾는 중…</>)
+    .with({ status: 'success' }, ({ data }) => <>{data.reason ?? '비교 기준에 맞는 이전 보고서가 없어요.'}</>)
+    .with({ status: P.union('idle', 'error') }, () => <>이전 보고서를 정하지 못했어요.</>)
+    .exhaustive()
+}
+
+/** 직접 선택이면 이전 보고서 고르는 칸, 아니면 자동 지정 안내나 '직접 선택으로 고르기' */
+function PreviousControl({ items, basis, current, previous, lookup, onBasisChange, onPreviousChange }: PairSelectorProps) {
   if (basis === 'CUSTOM') {
     const candidates = customCandidates(items, current)
     return (
       <>
-        <FieldLabel htmlFor="pair-previous">
-          비교 보고서 <FieldHint>· 왼쪽에 표시</FieldHint>
-        </FieldLabel>
+        <FieldLabel htmlFor="pair-previous">이전 보고서 고르기</FieldLabel>
         <Select
           id="pair-previous"
           value={previous?.rceptNo ?? ''}
@@ -90,30 +101,16 @@ function PreviousSlot({ items, basis, current, previous, lookup, onBasisChange, 
     )
   }
 
-  return (
-    <>
-      <FieldLabel as="span">
-        비교 보고서 <FieldHint>· 왼쪽에 표시</FieldHint>
-      </FieldLabel>
-      {match(lookup)
-        .with({ status: 'loading' }, () => <p className="pair__value pair__value--muted">비교 기준에 맞는 보고서를 찾는 중…</p>)
-        .with({ status: 'success' }, ({ data }) =>
-          previous ? (
-            <p className="pair__value">
-              {reportOptionLabel(previous)}
-              <FieldHint> · 기준에 따라 자동 지정</FieldHint>
-            </p>
-          ) : (
-            <div className="pair__value pair__value--missing" role="status">
-              <p>{data.reason ?? '비교 기준에 맞는 이전 보고서가 없어요.'}</p>
-              <Button variant="secondary" onClick={() => onBasisChange('CUSTOM')}>
-                직접 선택으로 고르기
-              </Button>
-            </div>
-          ),
-        )
-        .with({ status: P.union('idle', 'error') }, () => null)
-        .exhaustive()}
-    </>
-  )
+  return match(lookup)
+    .with({ status: 'success' }, () =>
+      previous ? (
+        <FieldHint>비교 기준에 따라 자동으로 정했어요.</FieldHint>
+      ) : (
+        <Button variant="secondary" onClick={() => onBasisChange('CUSTOM')}>
+          직접 선택으로 고르기
+        </Button>
+      ),
+    )
+    .with({ status: P.union('idle', 'loading', 'error') }, () => null)
+    .exhaustive()
 }
