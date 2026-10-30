@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { aiInfoLabel, explanationNote, gradeLabel, gradeNote, kindLabel, summaryLink, summaryStatusNotice, textCoverageNote } from './summaryLabels'
+import {
+  aiInfoLabel,
+  explanationNote,
+  gradeLabel,
+  gradeNote,
+  kindLabel,
+  summaryItemQuestion,
+  summaryLink,
+  summaryNoteLabel,
+  summaryNoteTarget,
+  summaryQuoteLink,
+  summaryStatusNotice,
+  textCoverageNote,
+} from './summaryLabels'
 
 describe('summaryLabels', () => {
   it('요약 상태가 정상이면 안내가 없고, 아니면 사유를 보여 준다', () => {
@@ -56,5 +69,66 @@ describe('summaryLabels', () => {
     expect(summaryLink({ type: 'TEXT', changeId: 7, sjDiv: null })).toEqual({ tab: 'text', changeId: 7 })
     expect(summaryLink({ type: 'FINANCIAL', changeId: 3, sjDiv: null })).toBeNull()
     expect(summaryLink({ type: 'TEXT', changeId: null, sjDiv: null })).toBeNull()
+  })
+
+  it('요약 카드의 노트 담기·커뮤니티 인용·AI 질문을 원본 변경 ID 기준으로 조립한다(#536)', () => {
+    expect(summaryNoteTarget({ type: 'FINANCIAL', changeId: 3, sjDiv: 'IS' })).toEqual({
+      kind: 'FINANCIAL_CHANGE',
+      changeId: 3,
+    })
+    expect(summaryNoteTarget({ type: 'TEXT', changeId: 7, sjDiv: null })).toEqual({
+      kind: 'TEXT_CHANGE',
+      changeId: 7,
+    })
+    expect(summaryNoteTarget({ type: 'TEXT', changeId: null, sjDiv: null })).toBeNull()
+
+    expect(
+      summaryNoteLabel(
+        { itemNo: 1, kind: 'FINANCIAL', factSentence: '매출액이 늘었어요.', aiText: null },
+        { accountName: '매출액' },
+      ),
+    ).toBe('매출액')
+    expect(
+      summaryNoteLabel({ itemNo: 2, kind: 'TEXT', factSentence: null, aiText: '우발부채 문단에 소송 1건이 더해졌어요.' }),
+    ).toBe('우발부채 문단에 소송 1건이 더해졌어요')
+
+    expect(summaryQuoteLink('00126380', 42, { type: 'FINANCIAL', changeId: 3, sjDiv: 'IS' })).toBe(
+      '/companies/00126380?view=community&quoteAnalysis=42&quoteKind=FINANCIAL_CHANGE&quoteChange=3&quoteSj=IS',
+    )
+    expect(summaryQuoteLink('00126380', 42, { type: 'TEXT', changeId: 7, sjDiv: null })).toBe(
+      '/companies/00126380?view=community&quoteAnalysis=42&quoteKind=TEXT_CHANGE&quoteChange=7',
+    )
+    expect(summaryQuoteLink(undefined, 42, { type: 'TEXT', changeId: 7, sjDiv: null })).toBeNull()
+    expect(summaryQuoteLink('00126380', 42, { type: 'TEXT', changeId: null, sjDiv: null })).toBeNull()
+
+    expect(
+      summaryItemQuestion(
+        {
+          kind: 'FINANCIAL',
+          target: { type: 'FINANCIAL', changeId: 3, sjDiv: 'IS' },
+          factSentence: '매출액이 145조 원에서 152조 원으로 늘었어요(+4.8%).',
+          aiText: null,
+        },
+        { accountName: '매출액', direction: 'UP' },
+      ),
+    ).toBe('매출액은 왜 늘었나요?')
+
+    const textQ = summaryItemQuestion({
+      kind: 'TEXT',
+      target: { type: 'TEXT', changeId: 7, sjDiv: null },
+      factSentence: null,
+      aiText: '우발부채 문단에 소송 1건이 더해졌어요.',
+    })
+    expect(textQ).toBe("'우발부채 문단에 소송 1건이 더해졌어요' 관련 공시 원문 내용은 무엇인가요?")
+    expect(textQ).not.toMatch(/매수|매도|추천|목표주가|저평가|고평가|유망|호재|악재/)
+
+    expect(
+      summaryItemQuestion({
+        kind: 'TEXT',
+        target: { type: 'TEXT', changeId: null, sjDiv: null },
+        factSentence: null,
+        aiText: '변경 ID 없는 문장',
+      }),
+    ).toBeNull()
   })
 })

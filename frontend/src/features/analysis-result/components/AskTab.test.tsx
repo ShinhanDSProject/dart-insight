@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { useReducer } from 'react'
+import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Analysis } from '@/shared/api/analyses'
 import type { QuestionAnswer } from '@/shared/api/questions'
+import { AuthContext, type AuthContextValue } from '@/shared/auth/authContext'
 import type { AskController } from '../hooks/useAsk'
 import { askReducer, initialAskState } from '../model/askState'
 import { AskTab } from './AskTab'
@@ -12,6 +14,8 @@ const sections = ['(목차 밖 본문)', 'I. 회사의 개요', 'II. 사업의 �
 const INVESTOR_QUESTION = "'XI. 그 밖에 투자자 보호를 위하여 필요한 사항'에서 무엇이 바뀌었나요?"
 const noop = () => {}
 
+const anonymousAuth: AuthContextValue = { state: { status: 'anonymous' }, login: vi.fn(), logout: vi.fn() }
+
 interface HarnessProps {
   submitDraft: () => void
   items?: QuestionAnswer[]
@@ -19,10 +23,11 @@ interface HarnessProps {
   onAsk?: (question: string) => void
   onSearchText?: (q: string) => void
   sending?: boolean
+  corpCode?: string
 }
 
 // 입력창 글은 실제 reducer로 두고, 보내기만 바꿔 끼워 불렸는지 본다
-function Harness({ submitDraft, items = [], suggestions = [], onAsk = noop, onSearchText = noop, sending = false }: HarnessProps) {
+function Harness({ submitDraft, items = [], suggestions = [], onAsk = noop, onSearchText = noop, sending = false, corpCode }: HarnessProps) {
   const [state, dispatch] = useReducer(askReducer, {
     ...initialAskState,
     items,
@@ -38,19 +43,24 @@ function Harness({ submitDraft, items = [], suggestions = [], onAsk = noop, onSe
     sendFeedback: () => Promise.resolve(),
   } as unknown as AskController
   return (
-    <AskTab
-      analysis={{
-        analysisId: 42,
-        previous: { rceptNo: '20240814000001', reportName: '반기보고서 (2024.06)', dartUrl: null },
-        current: { rceptNo: '20250814000123', reportName: '반기보고서 (2025.06)', dartUrl: null },
-      } as unknown as Pick<Analysis, 'analysisId' | 'previous' | 'current'>}
-      ask={ask}
-      suggestions={{ status: 'success', data: suggestions }}
-      sections={sections}
-      onOpenSource={noop}
-      onOpenFinancial={noop}
-      onSearchText={onSearchText}
-    />
+    <AuthContext.Provider value={anonymousAuth}>
+      <MemoryRouter>
+        <AskTab
+          analysis={{
+            analysisId: 42,
+            corpCode,
+            previous: { rceptNo: '20240814000001', reportName: '반기보고서 (2024.06)', dartUrl: null },
+            current: { rceptNo: '20250814000123', reportName: '반기보고서 (2025.06)', dartUrl: null },
+          } as unknown as Pick<Analysis, 'analysisId' | 'previous' | 'current'> & { corpCode?: string }}
+          ask={ask}
+          suggestions={{ status: 'success', data: suggestions }}
+          sections={sections}
+          onOpenSource={noop}
+          onOpenFinancial={noop}
+          onSearchText={onSearchText}
+        />
+      </MemoryRouter>
+    </AuthContext.Provider>
   )
 }
 
@@ -269,5 +279,31 @@ describe('AskTab 답을 못 했을 때 다음 행동', () => {
     expect(onSearchText).toHaveBeenCalledWith('우주')
     fireEvent.click(chipsIn(article, '이 분석에서 물어볼 수 있는 질문')[0])
     expect(onAsk).toHaveBeenCalledWith('매출액은 왜 늘었나요?')
+  })
+
+  it('답의 계산한 수치 근거에 분석 ID와 기업 코드를 넘겨 노트에 담기와 커뮤니티에 인용을 노출한다(#536)', () => {
+    const answeredWithFact: QuestionAnswer = {
+      ...answers(1)[0],
+      questionId: 25,
+      question: '매출액은 왜 늘었나요?',
+      status: 'ANSWERED',
+      answer: '매출액이 늘었습니다[F1].',
+      aiGenerated: true,
+      facts: [
+        {
+          ref: 'F1',
+          changeId: 901,
+          sjDiv: 'IS',
+          accountName: '매출액',
+          sentence: '매출액이 145조 원에서 152조 원으로 늘었어요(+4.8%).',
+        },
+      ],
+    }
+    render(<Harness submitDraft={noop} items={[answeredWithFact]} corpCode="00126380" />)
+    const factGroup = within(card(25)).getByRole('group', { name: '계산한 수치' })
+    expect(within(factGroup).getByRole('button', { name: '노트에 담기: 매출액' })).toBeTruthy()
+    expect(within(factGroup).getByRole('link', { name: '커뮤니티에 인용: 매출액' }).getAttribute('href')).toBe(
+      '/companies/00126380?view=community&quoteAnalysis=42&quoteKind=FINANCIAL_CHANGE&quoteChange=901&quoteSj=IS',
+    )
   })
 })

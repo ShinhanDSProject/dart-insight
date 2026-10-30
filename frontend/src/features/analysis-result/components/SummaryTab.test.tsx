@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Analysis } from '@/shared/api/analyses'
 import type { Summary, SummaryItem, SummaryLens } from '@/shared/api/summary'
+import { AuthContext, type AuthContextValue } from '@/shared/auth/authContext'
 import { axeViolations } from '@/test/axe'
 import type { SummaryView } from '../model/summaryLens'
 import { SummaryTab } from './SummaryTab'
@@ -66,9 +67,12 @@ vi.mock('../hooks/useChangeOverview', () => ({
 
 const analysis = {
   analysisId: 42,
+  corpCode: '00126380',
   previous: { rceptNo: '20250814000001', reportName: '반기보고서 (2025.06)', dartUrl: null },
   current: { rceptNo: '20260814000001', reportName: '반기보고서 (2026.06)', dartUrl: null },
 } as unknown as Analysis
+
+const anonymousAuth: AuthContextValue = { state: { status: 'anonymous' }, login: vi.fn(), logout: vi.fn() }
 
 const noop = () => {}
 /** 핵심 3줄(위)에도 같은 문장이 나오므로 요약 본문 안에서만 찾는다 */
@@ -76,31 +80,34 @@ const body = () => within(screen.getByRole('region', { name: '요약·설명' })
 
 afterEach(cleanup)
 
-function draw(lens: SummaryLens | null, view: SummaryView) {
+function draw(lens: SummaryLens | null, view: SummaryView, options?: { asking?: boolean }) {
   const onChangeLens = vi.fn()
+  const onAsk = vi.fn()
   const result = render(
-    <MemoryRouter>
-      <main>
-        <SummaryTab
-          analysis={analysis}
-          onOpenFinancial={noop}
-          onOpenText={noop}
-          onOpenSource={noop}
-          onOpenChangedAccounts={noop}
-          onOpenTextList={noop}
-          onOpenTextSection={noop}
-          suggestions={{ status: 'success', data: [] }}
-          onAsk={noop}
-          onOpenAsk={noop}
-          asking={false}
-          lens={lens}
-          view={view}
-          onChangeLens={onChangeLens}
-        />
-      </main>
-    </MemoryRouter>,
+    <AuthContext.Provider value={anonymousAuth}>
+      <MemoryRouter>
+        <main>
+          <SummaryTab
+            analysis={analysis}
+            onOpenFinancial={noop}
+            onOpenText={noop}
+            onOpenSource={noop}
+            onOpenChangedAccounts={noop}
+            onOpenTextList={noop}
+            onOpenTextSection={noop}
+            suggestions={{ status: 'success', data: [] }}
+            onAsk={onAsk}
+            onOpenAsk={noop}
+            asking={options?.asking ?? false}
+            lens={lens}
+            view={view}
+            onChangeLens={onChangeLens}
+          />
+        </main>
+      </MemoryRouter>
+    </AuthContext.Provider>,
   )
-  return { ...result, onChangeLens }
+  return { ...result, onChangeLens, onAsk }
 }
 
 describe('요약 투자자 관점(FS-64)', () => {
@@ -138,11 +145,33 @@ describe('요약 투자자 관점(FS-64)', () => {
     expect(body().getByText(/매출액이/)).toBeTruthy()
   })
 
-  it('관점별·목록 보기 모두 접근성 위반이 없다(axe)', async () => {
+  it('관점별 보기에 접근성 위반이 없다(axe)', async () => {
     const lens = draw(null, 'lens')
     expect(await axeViolations(lens.container)).toBe('')
-    cleanup()
+  })
+
+  it('목록 보기에 접근성 위반이 없다(axe)', async () => {
     const list = draw('RISK', 'list')
     expect(await axeViolations(list.container)).toBe('')
+  })
+
+  it('요약 카드에서 바로 노트에 담고 커뮤니티에 인용하며 AI 후속 질문을 보낼 수 있고 전송 중에는 질문을 끈다(#536)', () => {
+    const { onAsk } = draw('GROWTH', 'list')
+    const region = body()
+    expect(region.getByRole('button', { name: /^노트에 담기:/ })).toBeTruthy()
+    expect(region.getByRole('link', { name: /^커뮤니티에 인용:/ }).getAttribute('href')).toBe(
+      '/companies/00126380?view=community&quoteAnalysis=42&quoteKind=FINANCIAL_CHANGE&quoteChange=1&quoteSj=IS',
+    )
+
+    const askButton = region.getByRole('button', { name: /^AI에 질문:/ })
+    fireEvent.click(askButton)
+    expect(onAsk).toHaveBeenCalledWith("'매출액이 145조 원에서 152조 원으로 늘었어요(+4.8%)' 관련 공시 원문 내용은 무엇인가요?")
+
+    cleanup()
+    draw('RISK', 'list', { asking: true })
+    expect(body().getByRole('link', { name: '커뮤니티에 인용: 우발부채 문단에 소송 1건이 더해졌어요' }).getAttribute('href')).toBe(
+      '/companies/00126380?view=community&quoteAnalysis=42&quoteKind=TEXT_CHANGE&quoteChange=3',
+    )
+    expect(body().getByRole('button', { name: /^AI에 질문:/ })).toHaveProperty('disabled', true)
   })
 })
