@@ -1,6 +1,7 @@
 import { match } from 'ts-pattern'
 import type { DisclosureGroup } from '@/shared/api/disclosures'
 import type { CompanyNote, NoteItem, NoteList } from '@/shared/api/notes'
+import { communityQuotePath } from '@/shared/lib/communityQuoteLink'
 
 /** 판단 노트 화면 상태(ST-1). anonymous: 로그인하지 않음(서버를 부르지 않음) */
 export type NotesState =
@@ -76,6 +77,24 @@ export function noteResultLink(item: NoteItem): string | null {
       return `${base}?${params}`
     })
     .exhaustive()
+}
+
+/**
+ * 노트 항목을 해당 기업 커뮤니티 글쓰기 칸에 근거로 붙여 여는 주소(#535).
+ * 분석 버전이 바뀌었거나(outdated), 검토 필요 항목이거나, AI 답 인용이거나, 변경 ID가 없으면 null(링크를 두지 않음)
+ */
+export function noteQuoteLink(item: NoteItem): string | null {
+  if (item.outdated || item.changeType === 'REVIEW_NEEDED') return null
+  if (item.kind !== 'FINANCIAL_CHANGE' && item.kind !== 'TEXT_CHANGE') return null
+  const { analysisId, changeId, sjDiv } = item.source
+  if (analysisId === null || changeId === null) return null
+  return communityQuotePath({
+    corpCode: item.corpCode,
+    analysisId,
+    kind: item.kind,
+    changeId,
+    sjDiv,
+  })
 }
 
 const changeTypeLabels: Record<string, string> = {

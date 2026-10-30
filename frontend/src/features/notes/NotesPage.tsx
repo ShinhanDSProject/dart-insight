@@ -1,3 +1,4 @@
+import { useReducer, type Dispatch } from 'react'
 import { Link } from 'react-router'
 import { match } from 'ts-pattern'
 import { exportNotes, type CompanyNote } from '@/shared/api/notes'
@@ -5,13 +6,26 @@ import { useAsyncAction } from '@/shared/hooks/useAsyncAction'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
 import { basisLabel } from '@/shared/lib/comparisonBasis'
 import { downloadTextFile } from '@/shared/lib/download'
+import { formatInteger } from '@/shared/lib/numberFormat'
 import { pageTitle } from '@/shared/lib/pageTitle'
 import { formatDate } from '@/shared/lib/reportLabels'
-import { Badge, Button, ButtonLink, Panel, PanelTitle } from '@/shared/ui'
+import { Badge, Button, ButtonLink, Chip, FieldLabel, Input, Panel, PanelTitle } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { NoteItemCard } from './components/NoteItemCard'
 import { useNotes, type NotesController } from './hooks/useNotes'
+import {
+  countNotes,
+  filterCompanyNotes,
+  INITIAL_NOTE_FILTER,
+  isNoteFilterActive,
+  NOTE_KIND_OPTIONS,
+  noteFilterReducer,
+  noteFilterSummary,
+  type NoteCounts,
+  type NoteFilter,
+  type NoteFilterAction,
+} from './model/noteFilter'
 import {
   companyOverviewLink,
   disclosureGroupLabel,
@@ -30,6 +44,7 @@ import './notes.css'
 export function NotesPage() {
   useDocumentTitle(pageTitle(['내 판단 노트']))
   const notes = useNotes()
+  const [filter, dispatchFilter] = useReducer(noteFilterReducer, INITIAL_NOTE_FILTER)
 
   return (
     <section className="page notes">
@@ -57,15 +72,110 @@ export function NotesPage() {
               </ButtonLink>
             </EmptyState>
           ) : (
-            <div className="notes__companies">
-              {data.companies.map((company) => (
-                <CompanyNotes key={company.corpCode} company={company} notes={notes} />
-              ))}
-            </div>
+            <NotesLoaded
+              companies={data.companies}
+              notes={notes}
+              filter={filter}
+              dispatchFilter={dispatchFilter}
+            />
           ),
         )
         .exhaustive()}
     </section>
+  )
+}
+
+interface NotesLoadedProps {
+  companies: readonly CompanyNote[]
+  notes: NotesController
+  filter: NoteFilter
+  dispatchFilter: Dispatch<NoteFilterAction>
+}
+
+function NotesLoaded({ companies, notes, filter, dispatchFilter }: NotesLoadedProps) {
+  const counts = countNotes(companies)
+  const active = isNoteFilterActive(filter)
+  const filteredCompanies = filterCompanyNotes(companies, filter)
+  const summary = noteFilterSummary(companies.length, counts.total, filteredCompanies, active)
+
+  return (
+    <>
+      <NotesFilterBar
+        filter={filter}
+        counts={counts}
+        showInlineReset={active && filteredCompanies.length > 0}
+        summary={summary}
+        dispatchFilter={dispatchFilter}
+      />
+      {filteredCompanies.length === 0 ? (
+        <EmptyState title="조건에 맞는 노트가 없어요">
+          <p>검색어나 유형·메모 거르기를 바꿔 보세요.</p>
+          <Button variant="secondary" onClick={() => dispatchFilter({ type: 'reset' })}>
+            필터 초기화
+          </Button>
+        </EmptyState>
+      ) : (
+        <div className="notes__companies">
+          {filteredCompanies.map((company) => (
+            <CompanyNotes key={company.corpCode} company={company} notes={notes} />
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
+interface NotesFilterBarProps {
+  filter: NoteFilter
+  counts: NoteCounts
+  showInlineReset: boolean
+  summary: string
+  dispatchFilter: Dispatch<NoteFilterAction>
+}
+
+function NotesFilterBar({ filter, counts, showInlineReset, summary, dispatchFilter }: NotesFilterBarProps) {
+  return (
+    <div className="notes-filter" role="search" aria-label="내 판단 노트 거르기">
+      <div className="notes-filter__search">
+        <FieldLabel htmlFor="notes-search-input">노트 찾기</FieldLabel>
+        <Input
+          id="notes-search-input"
+          type="search"
+          value={filter.query}
+          placeholder="기업명, 항목명, 본문, 질문, 메모, 접수번호로 찾기"
+          onChange={(e) => dispatchFilter({ type: 'set-query', query: e.target.value })}
+        />
+      </div>
+      <div className="notes-filter__chips-row">
+        <div className="notes-filter__chips" role="group" aria-label="노트 유형">
+          {NOTE_KIND_OPTIONS.map((option) => (
+            <Chip
+              key={option.value}
+              pressed={filter.kind === option.value}
+              count={option.value === 'ALL' ? counts.total : counts.byKind[option.value]}
+              onClick={() => dispatchFilter({ type: 'set-kind', kind: option.value })}
+            >
+              {option.label}
+            </Chip>
+          ))}
+        </div>
+        <Chip
+          pressed={filter.memoOnly}
+          count={counts.memo}
+          onClick={() => dispatchFilter({ type: 'toggle-memo-only' })}
+        >
+          메모 있음
+        </Chip>
+      </div>
+      <div className="notes-filter__summary">
+        <span role="status">{summary}</span>
+        {showInlineReset && (
+          <Button variant="link" onClick={() => dispatchFilter({ type: 'reset' })}>
+            필터 초기화
+          </Button>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -86,7 +196,7 @@ function CompanyNotes({ company, notes }: { company: CompanyNote; notes: NotesCo
     <Panel as="section" className="notes__company" aria-labelledby={titleId}>
       <div className="notes__company-head">
         <PanelTitle id={titleId}>
-          {name} <span className="notes__count">{company.items.length}건</span>
+          {name} <span className="notes__count">{formatInteger(company.items.length)}건</span>
         </PanelTitle>
         <div className="notes__company-actions">
           <ButtonLink variant="secondary" to={companyOverviewLink(company.corpCode)} aria-label={`${name} 기업 개요 보기`}>

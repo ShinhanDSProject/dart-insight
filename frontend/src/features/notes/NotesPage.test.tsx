@@ -257,4 +257,93 @@ describe('NotesPage(FS-57)', () => {
     expect(within(card).getByText('단일판매·공급계약체결(파운드리)')).toBeTruthy()
     expect(screen.getByText('같은 기업에서 이후에 공시된 내역이며 인과관계를 뜻하지 않아요.')).toBeTruthy()
   })
+
+  it('검색어·유형 칩·메모 있음 칩으로 기업과 항목을 즉시 거르고 빈 결과에서 필터 초기화로 되돌린다(#535)', async () => {
+    api.getNotes.mockResolvedValue({
+      companies: [
+        companyNote({ corpCode: '00126380', corpName: '삼성전자', items: [textItem, noteItem({ itemId: 1, memo: null })] }),
+        companyNote({
+          corpCode: '00164779',
+          corpName: 'SK하이닉스',
+          items: [{ ...citationItem, corpCode: '00164779' }],
+        }),
+      ],
+    })
+    const { container } = renderPage()
+    await screen.findByRole('region', { name: /삼성전자/ })
+
+    const filterRegion = screen.getByRole('search', { name: '내 판단 노트 거르기' })
+    expect(within(filterRegion).getByText('전체 2개 기업 · 3건')).toBeTruthy()
+    const kindGroup = within(filterRegion).getByRole('group', { name: '노트 유형' })
+    expect(within(kindGroup).getAllByRole('button').map((b) => b.textContent)).toEqual([
+      '전체 3',
+      '재무 수치 1',
+      '문장 변경 1',
+      'AI 답 인용 1',
+    ])
+    const memoChip = within(filterRegion).getByRole('button', { name: /^메모 있음/ })
+    expect(memoChip.textContent).toBe('메모 있음 2')
+
+    fireEvent.click(within(kindGroup).getByRole('button', { name: /^AI 답 인용/ }))
+    expect(screen.queryByRole('region', { name: /삼성전자/ })).toBeNull()
+    expect(screen.getByRole('region', { name: /SK하이닉스/ })).toBeTruthy()
+    expect(within(filterRegion).getByText('일치 1개 기업 · 1건 (전체 3건)')).toBeTruthy()
+
+    const searchInput = within(filterRegion).getByRole('searchbox', { name: '노트 찾기' })
+    fireEvent.change(searchInput, { target: { value: '없는검색어' } })
+    expect(screen.getByText('조건에 맞는 노트가 없어요')).toBeTruthy()
+    expect(await axeViolations(container)).toBe('')
+
+    fireEvent.click(screen.getByRole('button', { name: '필터 초기화' }))
+    expect(screen.getByRole('region', { name: /삼성전자/ })).toBeTruthy()
+    expect(screen.getByRole('region', { name: /SK하이닉스/ })).toBeTruthy()
+  })
+
+  it('유효한 재무·문장 노트에만 커뮤니티에 인용 링크를 두고 버전 변경·검토 필요·AI 답 인용에는 두지 않는다(#535)', async () => {
+    const validText = noteItem({
+      itemId: 10,
+      kind: 'TEXT_CHANGE',
+      label: 'I. 회사의 개요',
+      changeType: 'MODIFIED',
+      outdated: false,
+      source: { ...noteItem().source, sjDiv: null, changeId: 55 },
+    })
+    const reviewText = noteItem({
+      itemId: 11,
+      kind: 'TEXT_CHANGE',
+      label: 'IV. 이사의 경영진단',
+      changeType: 'REVIEW_NEEDED',
+      outdated: false,
+      source: { ...noteItem().source, sjDiv: null, changeId: 56 },
+    })
+    api.getNotes.mockResolvedValue({
+      companies: [
+        companyNote({
+          corpCode: '00126380',
+          corpName: '삼성전자',
+          items: [noteItem({ itemId: 1 }), validText, textItem, reviewText, citationItem],
+        }),
+      ],
+    })
+    renderPage()
+    const company = await screen.findByRole('region', { name: /삼성전자/ })
+
+    const financialCard = within(company).getByRole('article', { name: '손익계산서 · 매출액 노트' })
+    expect(within(financialCard).getByRole('link', { name: '커뮤니티에 인용' }).getAttribute('href')).toBe(
+      '/companies/00126380?view=community&quoteAnalysis=42&quoteKind=FINANCIAL_CHANGE&quoteChange=901&quoteSj=IS',
+    )
+
+    const validTextCard = within(company).getByRole('article', { name: 'I. 회사의 개요 노트' })
+    expect(within(validTextCard).getByRole('link', { name: '커뮤니티에 인용' }).getAttribute('href')).toBe(
+      '/companies/00126380?view=community&quoteAnalysis=42&quoteKind=TEXT_CHANGE&quoteChange=55',
+    )
+
+    const reviewCard = within(company).getByRole('article', { name: 'IV. 이사의 경영진단 노트' })
+    expect(within(reviewCard).queryByRole('link', { name: '커뮤니티에 인용' })).toBeNull()
+
+    const sameLabelCards = within(company).getAllByRole('article', { name: 'II. 사업의 내용 > 1. 사업의 개요 노트' })
+    for (const card of sameLabelCards) {
+      expect(within(card).queryByRole('link', { name: '커뮤니티에 인용' })).toBeNull()
+    }
+  })
 })
