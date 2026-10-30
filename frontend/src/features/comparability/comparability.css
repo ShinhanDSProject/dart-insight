@@ -23,20 +23,18 @@
 }
 
 .check-table__status {
-  width: 96px;
+  width: 120px;
   text-align: right !important;
-  font-weight: var(--font-weight-bold);
   white-space: nowrap;
 }
 
-.check-table__status--warn,
-.check-table__status--fail {
-  color: var(--color-attention);
+/* 비교 조건 표 아래 안내 상자, 그 아래 재무제표 패널(#549) */
+.check-notice {
+  margin-top: var(--space-4);
 }
 
-.check-table__status--skipped {
-  color: var(--color-text-muted);
-  font-weight: var(--font-weight-regular);
+.check-notice + .panel {
+  margin-top: var(--space-4);
 }
 
 .statement-list {
@@ -84,4 +82,10 @@
 
 .not-comparable__next {
   color: var(--color-text-muted);
+}
+
+.not-comparable__note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
 }
