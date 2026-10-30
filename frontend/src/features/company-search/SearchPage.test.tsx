@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { syncFavoriteCompanies } from '@/shared/hooks/useFavoriteCompanies'
+import { browserStorage, saveRecentAnalyses } from '@/shared/lib/recentAnalyses'
 import type { Company } from '@/shared/api/companies'
 import { AuthContext, type AuthContextValue } from '@/shared/auth/authContext'
 import { axeViolations } from '@/test/axe'
@@ -35,8 +36,19 @@ const favoritesApi = vi.hoisted(() => ({
   removeFavoriteCompany: vi.fn(),
 }))
 vi.mock('@/shared/api/favoriteCompanies', () => favoritesApi)
+const featuredItems = [
+  { rank: 1, corpCode: '00126380', corpName: '삼성전자', stockCode: '005930' },
+  { rank: 2, corpCode: '00164779', corpName: 'SK하이닉스', stockCode: '000660' },
+]
+let featuredAvailable = false
+
 vi.mock('@/shared/api/featuredCompanies', () => ({
-  getFeaturedCompanies: () => Promise.resolve({ baseDate: null, source: '금융위원회, 공공데이터포털', items: [] }),
+  getFeaturedCompanies: () =>
+    Promise.resolve({
+      baseDate: featuredAvailable ? '2026-10-24' : null,
+      source: '금융위원회, 공공데이터포털',
+      items: featuredAvailable ? featuredItems : [],
+    }),
 }))
 // 이번 시즌 변화가 큰 기업(#420)은 컴포넌트 테스트에서 따로 본다
 vi.mock('@/shared/api/seasonChanges', () => ({
@@ -53,6 +65,8 @@ vi.mock('@/shared/api/disclosures', () => ({
 afterEach(() => {
   cleanup()
   results = companies
+  featuredAvailable = false
+  window.localStorage.clear()
   syncFavoriteCompanies(null)
 })
 
@@ -220,5 +234,76 @@ describe('관심 기업(#36)', () => {
     fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
     const section = await screen.findByRole('region', { name: '관심 기업' })
     expect(within(section).getByRole('link', { name: /삼성전자/ })).toBeTruthy()
+  })
+})
+
+describe('첫 화면 구글형 중앙 레이아웃과 단일 탭 정돈(#538)', () => {
+  it('비로그인 첫 화면은 빠른 대표 기업 바로가기와 시즌·대표 기업 두 탭만 보이고 빈 로그인 상자를 두지 않는다', async () => {
+    featuredAvailable = true
+    const { container } = renderAt('')
+
+    const quickNav = await screen.findByRole('navigation', { name: '대표 기업 바로가기' })
+    expect(within(quickNav).getByRole('link', { name: /삼성전자/ }).getAttribute('href')).toBe('/companies/00126380')
+    expect(within(quickNav).getByText('유가증권시장 시가총액 상위 · 2026.10.24 기준 · 출처: 금융위원회, 공공데이터포털')).toBeTruthy()
+
+    const shelfTabs = screen.getByRole('navigation', { name: '첫 화면 둘러보기' })
+    expect(within(shelfTabs).getAllByRole('button').map((b) => b.textContent)).toEqual(['이번 시즌 변화', '대표 기업'])
+    expect(screen.queryByText(/로그인하면 관심 기업의 새 공시를 모아 볼 수 있어요/)).toBeNull()
+
+    fireEvent.click(within(shelfTabs).getByRole('button', { name: '대표 기업' }))
+    expect(await screen.findByRole('region', { name: '대표 기업' })).toBeTruthy()
+    expect(await axeViolations(container)).toBe('')
+  })
+
+  it('사용법 보기와 이용 안내를 누르면 대화상자로 열고 Esc로 닫는다', async () => {
+    const { container } = renderAt('')
+
+    fireEvent.click(screen.getByRole('button', { name: '처음이신가요? 사용법 보기' }))
+    const guideDialog = screen.getByRole('dialog', { name: '처음이신가요? 이렇게 써 보세요' })
+    expect(within(guideDialog).getByRole('link', { name: '삼성전자로 해보기' }).getAttribute('href')).toBe(
+      '/companies/00126380',
+    )
+    expect(await axeViolations(container)).toBe('')
+    fireEvent.keyDown(guideDialog, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: '이용 안내' }))
+    const noticeDialog = screen.getByRole('dialog', { name: '이용 안내' })
+    expect(noticeDialog.textContent).toContain('투자 조언')
+    fireEvent.keyDown(noticeDialog, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('최근 본 분석과 관심 기업이 있는 회원은 개인화 탭을 앞에 두고 검색어 지우기로 첫 화면으로 돌아온다', async () => {
+    saveRecentAnalyses(browserStorage(), [
+      {
+        analysisId: 12,
+        corpName: '삼성전자',
+        previousReportName: '사업보고서 (2024.12)',
+        currentReportName: '사업보고서 (2025.12)',
+        basisLabel: '전년 동기',
+        viewedAt: '2026-10-26T10:00:00+09:00',
+      },
+    ])
+    favoritesApi.getFavoriteCompanies.mockResolvedValue({
+      items: [{ ...companies[0], addedAt: '2026-10-26T10:00:00' }],
+    })
+    const signedIn: AuthContextValue = { state: { status: 'authenticated', userId: 1 }, login: vi.fn(), logout: vi.fn() }
+    renderAt('', signedIn)
+
+    await screen.findByRole('region', { name: '관심 기업' })
+    const shelfTabs = screen.getByRole('navigation', { name: '첫 화면 둘러보기' })
+    expect(within(shelfTabs).getAllByRole('button').map((b) => b.textContent)).toEqual([
+      '최근 본 분석',
+      '관심 기업 새 공시',
+      '이번 시즌 변화',
+      '대표 기업',
+    ])
+    expect(screen.getByRole('region', { name: '최근 본 분석' })).toBeTruthy()
+
+    const input = screen.getByRole('textbox', { name: '회사명 또는 종목코드' }) as HTMLInputElement
+    fireEvent.change(input, { target: { value: '삼성' } })
+    fireEvent.click(screen.getByRole('button', { name: '검색어 지우기' }))
+    expect(input.value).toBe('')
   })
 })

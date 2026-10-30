@@ -1,27 +1,36 @@
-import { useCallback, useRef, type FormEvent, type KeyboardEvent, type Ref } from 'react'
-import { useSearchParams } from 'react-router'
+import { useCallback, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent, type Ref } from 'react'
+import { Link, useSearchParams } from 'react-router'
 import { match } from 'ts-pattern'
-import { Button, FieldHint, Input } from '@/shared/ui'
-import { ServiceNotice } from '@/shared/ui/ServiceNotice'
-import { AlertState, EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import type { AsyncState } from '@/shared/hooks/asyncState'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
-import { useOnboarding } from '@/shared/hooks/useOnboarding'
 import { useFavoriteCompanies } from '@/shared/hooks/useFavoriteCompanies'
 import { useRecentAnalyses } from '@/shared/hooks/useRecentAnalyses'
-import { isOnboardingVisible } from '@/shared/lib/onboarding'
+import { cx } from '@/shared/lib/cx'
+import { ONBOARDING_EXAMPLE_CORP_CODE } from '@/shared/lib/onboarding'
 import { pageTitle } from '@/shared/lib/pageTitle'
-import { useFeaturedCompanies } from './hooks/useFeaturedCompanies'
-import { useCompanySearch, type SearchResult as SearchData } from './hooks/useCompanySearch'
-import { useAutoSearch } from './hooks/useAutoSearch'
+import { formatDate } from '@/shared/lib/reportLabels'
+import { SERVICE_NOTICE } from '@/shared/lib/serviceNotice'
+import { Button, ButtonLink, Dialog, FieldHint, Icon, Input, Tabs } from '@/shared/ui'
+import { AlertState, EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { CompanyList, RESULT_LINK_SELECTOR } from './components/CompanyList'
 import { FavoriteCompanies } from './components/FavoriteCompanies'
-import { FeaturedCompanies } from './components/FeaturedCompanies'
-import { SeasonChanges } from './components/SeasonChanges'
 import { FavoriteDisclosureFeed } from './components/FavoriteDisclosureFeed'
-import { OnboardingGuide } from './components/OnboardingGuide'
+import { FeaturedCompanies } from './components/FeaturedCompanies'
+import { OnboardingStepsList } from './components/OnboardingGuide'
 import { RecentAnalyses } from './components/RecentAnalyses'
+import { SeasonChanges } from './components/SeasonChanges'
+import { useAutoSearch } from './hooks/useAutoSearch'
+import { useCompanySearch, type SearchResult as SearchData } from './hooks/useCompanySearch'
+import { useFeaturedCompanies } from './hooks/useFeaturedCompanies'
 import { useSearchForm } from './hooks/useSearchForm'
+import {
+  buildHomeTabs,
+  pickQuickFeatured,
+  resolveHomeTab,
+  serializeHomeTab,
+  type HomeModal,
+  type QuickFeatured,
+} from './model/homeLayout'
 import { nextResultFocus } from './model/resultFocus'
 import './company-search.css'
 
@@ -29,13 +38,21 @@ const errorMessages: Record<string, string> = {
   COMPANY_LIST_NOT_LOADED: '기업 목록이 아직 준비되지 않았어요. 관리자에게 기업 목록 갱신을 요청해 주세요.',
 }
 
-/** W-01 ① 기업 검색. 검색어는 주소(?q=)에 남겨 뒤로 가기를 해도 결과가 유지된다. 입력을 멈추면 Enter 없이도 찾는다. */
+/**
+ * W-01 ① 기업 검색(#538).
+ * 검색 전 첫 화면은 중앙 집중 검색창과 핵심 바로가기 칩만 첫 시야에 두고,
+ * 보조 탐색 목록(최근 본 분석·관심 기업 새 공시·이번 시즌 변화·대표 기업)은 아래 단일 탭 보드로 정돈한다.
+ * 검색어는 주소(?q=)에 남겨 뒤로 가기를 해도 결과가 유지되며, 입력을 멈추면 Enter 없이도 찾는다.
+ */
 export function SearchPage() {
   useDocumentTitle(pageTitle(['기업 검색']))
   const [searchParams, setSearchParams] = useSearchParams()
   const query = searchParams.get('q') ?? ''
+  const rawTab = searchParams.get('tab')
+  const isHome = query === ''
   const { input, inputError, setInput, submit } = useSearchForm(query)
   const { state, reload } = useCompanySearch(query)
+  const [modal, setModal] = useState<HomeModal>('none')
   // 입력 중 자동 검색은 방문 기록을 쌓지 않는다(replace)
   const searchAsTyped = useCallback((next: string) => setSearchParams({ q: next }, { replace: true }), [setSearchParams])
   useAutoSearch(input, query, searchAsTyped)
@@ -61,116 +78,215 @@ export function SearchPage() {
     }
   }
 
-  return (
-    <section className="page">
-      <div className="search-hero">
-        <h1 className="page__title">기업 검색</h1>
-        <p className="search-hero__lead">회사명이나 종목코드로 기업을 찾고, 두 정기보고서를 비교해요.</p>
+  function handleClear() {
+    setInput('')
+    if (query !== '') {
+      setSearchParams({}, { replace: true })
+    }
+    focusInput()
+  }
 
-        <form className="search-form" onSubmit={handleSubmit} noValidate>
-          {/* 보이는 제목 대신 입력창 안내 글을 쓰고, 화면 읽기 프로그램에는 이름을 그대로 준다(#486) */}
-          <label htmlFor="company-query" className="visually-hidden">
-            회사명 또는 종목코드
-          </label>
-          <div className="search-form__row">
-            <Input
-              id="company-query"
-              ref={inputRef}
-              invalid={inputError !== null}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleInputKeyDown}
-              placeholder="회사명 또는 종목코드 (예: 삼성전자, ㅅㅅㅈㅈ, 005930)"
-              autoComplete="off"
-              aria-describedby={inputError ? 'company-query-hint company-query-error' : 'company-query-hint'}
-            />
-            <Button type="submit" variant="primary" size="lg">
-              검색
-            </Button>
-          </div>
-          <FieldHint id="company-query-hint" className="search-form__hint">
-            초성으로도 찾을 수 있어요. 결과는 ↓ 키로 고르고 Enter로 열어요.
-          </FieldHint>
-          {inputError && (
-            <p id="company-query-error" className="field-error">
-              {inputError}
-            </p>
-          )}
-        </form>
+  return (
+    <section className="page search-page">
+      <div className="search-page__shell">
+        <div className={cx('search-hero', isHome && 'search-hero--home')}>
+          <h1 className="page__title search-hero__title">기업 검색</h1>
+          <p className="search-hero__lead">회사명이나 종목코드로 기업을 찾고, 두 정기보고서를 비교해요.</p>
+
+          <form className="search-form" onSubmit={handleSubmit} noValidate>
+            {/* 보이는 제목 대신 입력창 안내 글을 쓰고, 화면 읽기 프로그램에는 이름을 그대로 준다(#486) */}
+            <label htmlFor="company-query" className="visually-hidden">
+              회사명 또는 종목코드
+            </label>
+            <div className={cx('search-bar', inputError !== null && 'search-bar--invalid')}>
+              <span className="search-bar__icon" aria-hidden="true">
+                <Icon name="search" size={18} />
+              </span>
+              <Input
+                id="company-query"
+                ref={inputRef}
+                className="search-bar__input"
+                invalid={inputError !== null}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleInputKeyDown}
+                placeholder="회사명 또는 종목코드 (예: 삼성전자, ㅅㅅㅈㅈ, 005930)"
+                autoComplete="off"
+                aria-describedby={inputError ? 'company-query-hint company-query-error' : 'company-query-hint'}
+              />
+              {input !== '' && (
+                <Button variant="icon" className="search-bar__clear" aria-label="검색어 지우기" onClick={handleClear}>
+                  <Icon name="x" size={16} />
+                </Button>
+              )}
+              <Button type="submit" variant="primary" className="search-bar__submit">
+                검색
+              </Button>
+            </div>
+            <FieldHint id="company-query-hint" className="search-form__hint">
+              초성으로도 찾을 수 있어요. 결과는 ↓ 키로 고르고 Enter로 열어요.
+            </FieldHint>
+            {inputError && (
+              <p id="company-query-error" className="field-error">
+                {inputError}
+              </p>
+            )}
+          </form>
+        </div>
+
+        {isHome && (
+          <HomeBody
+            rawTab={rawTab}
+            onChangeTab={(serialized) =>
+              setSearchParams(serialized === null ? {} : { tab: serialized }, { replace: true })
+            }
+            onOpenModal={setModal}
+          />
+        )}
+
+        <SearchResult state={state} onRetry={reload} listRef={listRef} onBackToInput={focusInput} />
       </div>
 
-      <ServiceNotice />
+      {modal === 'guide' && (
+        <Dialog titleId="home-guide-title" title="처음이신가요? 이렇게 써 보세요" onClose={() => setModal('none')}>
+          <div className="home-dialog">
+            <OnboardingStepsList />
+            <div className="onboarding__actions">
+              <ButtonLink variant="primary" to={`/companies/${ONBOARDING_EXAMPLE_CORP_CODE}`}>
+                삼성전자로 해보기
+              </ButtonLink>
+              <Button variant="secondary" onClick={() => setModal('none')}>
+                닫기
+              </Button>
+            </div>
+          </div>
+        </Dialog>
+      )}
 
-      <OnboardingSection query={query} />
-
-      {query === '' && <HomeSections />}
-
-      <SearchResult state={state} onRetry={reload} listRef={listRef} onBackToInput={focusInput} />
+      {modal === 'notice' && (
+        <Dialog titleId="home-notice-title" title="이용 안내" onClose={() => setModal('none')}>
+          <div className="home-dialog">
+            <ul className="home-dialog__list">
+              {SERVICE_NOTICE.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+            <div className="onboarding__actions">
+              <Button variant="secondary" onClick={() => setModal('none')}>
+                닫기
+              </Button>
+            </div>
+          </div>
+        </Dialog>
+      )}
     </section>
   )
 }
 
-/** 검색어가 없을 때 보이는 처음 쓰는 사용자 안내(FS-10). 닫으면 그 자리에 작은 '사용법 보기' 버튼만 남는다(#502) */
-function OnboardingSection({ query }: { query: string }) {
-  const onboarding = useOnboarding()
-  if (query !== '') return null
-  if (!isOnboardingVisible(query, !onboarding.visible)) {
-    return (
-      <p className="onboarding-reopen">
-        <Button variant="link" onClick={onboarding.reopen}>
-          처음이신가요? 사용법 보기
-        </Button>
-      </p>
-    )
-  }
-  return <OnboardingGuide onDismiss={onboarding.dismiss} />
+interface HomeBodyProps {
+  rawTab: string | null
+  onChangeTab: (serialized: string | null) => void
+  onOpenModal: (modal: Exclude<HomeModal, 'none'>) => void
 }
 
-/**
- * 검색어가 없을 때만 보이는 첫 화면 아래쪽. 맨 위에 로그인한 회원의 관심 기업(#36) 칩을, 그 아래 대표 기업(#399)과 이번 시즌 변화가 큰 기업(#420)을
- * 나란히 두 칸으로 둔다(#486). 그 아래에
- * 최근 본 분석(FS-7)과 관심 기업 새 공시(FS-52)를 같은 폭 두 열로 둔다(#378). 두 열은 제목 줄·목록·아래 줄이 맞는다.
- * 관심 기업 목록이 비거나 로그인하지 않았으면 칩은 보이지 않고 새 공시 자리에 짧은 안내만 보인다.
- * 목록을 받지 못했으면 빈 목록처럼 숨기지 않고 다시 시도를 안내한다.
- */
-function HomeSections() {
+function HomeBody({ rawTab, onChangeTab, onOpenModal }: HomeBodyProps) {
   const favorites = useFavoriteCompanies()
   const featured = useFeaturedCompanies()
+  const recent = useRecentAnalyses()
+
+  const hasRecent = recent.items.length > 0
+  const hasFavorites = favorites.status === 'ready' && favorites.items.length > 0
+  const tabs = buildHomeTabs({ hasRecent, hasFavorites })
+  const activeTab = resolveHomeTab(rawTab, tabs)
+  const quickFeatured =
+    !hasFavorites && featured.state.status === 'success' ? pickQuickFeatured(featured.state.data) : null
+
   return (
     <>
-      {match(favorites.status)
-        .with('error', () => (
-          <AlertState title="관심 기업을 불러오지 못했어요.">
-            <Button variant="secondary" onClick={favorites.reload}>
-              다시 시도
-            </Button>
-          </AlertState>
-        ))
-        .with('loading', 'anonymous', () => null)
-        .with('ready', () => <FavoriteCompanies items={favorites.items} onRemove={favorites.remove} />)
-        .exhaustive()}
-      <div className="home-pair">
-        <FeaturedCompanies state={featured.state} onRetry={featured.reload} />
-        <SeasonChanges />
+      <div className="home-shortcuts">
+        {match(favorites.status)
+          .with('error', () => (
+            <AlertState title="관심 기업을 불러오지 못했어요.">
+              <Button variant="secondary" onClick={favorites.reload}>
+                다시 시도
+              </Button>
+            </AlertState>
+          ))
+          .with('ready', () =>
+            favorites.items.length > 0 ? (
+              <FavoriteCompanies items={favorites.items} onRemove={favorites.remove} />
+            ) : (
+              <QuickFeaturedChips data={quickFeatured} />
+            ),
+          )
+          .with('loading', 'anonymous', () => <QuickFeaturedChips data={quickFeatured} />)
+          .exhaustive()}
       </div>
-      <div className="home-columns">
-        <RecentAnalysesSection />
-        {favorites.status !== 'error' && (
-          <FavoriteDisclosureFeed
-            companies={favorites.items}
-            signedOut={favorites.status === 'anonymous'}
-            waiting={favorites.status === 'loading'}
-          />
-        )}
+
+      <div className="home-meta" role="group" aria-label="서비스 안내 바로가기">
+        <Button variant="link" className="home-meta__button" onClick={() => onOpenModal('guide')}>
+          처음이신가요? 사용법 보기
+        </Button>
+        <span className="home-meta__dot" aria-hidden="true">
+          ·
+        </span>
+        <span className="home-meta__text">AI 생성 표시 · 투자 조언 아님</span>
+        <span className="home-meta__dot" aria-hidden="true">
+          ·
+        </span>
+        <Button variant="link" className="home-meta__button" onClick={() => onOpenModal('notice')}>
+          이용 안내
+        </Button>
+      </div>
+
+      <div className="home-shelf">
+        <Tabs
+          label="첫 화면 둘러보기"
+          items={tabs}
+          value={activeTab}
+          onChange={(next) => {
+            if (next !== activeTab) onChangeTab(serializeHomeTab(next, tabs))
+          }}
+        />
+        <div className="home-shelf__panel">
+          {match(activeTab)
+            .with('recent', () => (
+              <RecentAnalyses items={recent.items} onRemove={recent.remove} onClear={recent.clear} />
+            ))
+            .with('disclosures', () => (
+              <FavoriteDisclosureFeed companies={favorites.items} waiting={favorites.status === 'loading'} />
+            ))
+            .with('season', () => <SeasonChanges />)
+            .with('featured', () => <FeaturedCompanies state={featured.state} onRetry={featured.reload} />)
+            .exhaustive()}
+        </div>
       </div>
     </>
   )
 }
 
-/** 검색어가 없을 때만 보이는 최근 본 분석(FS-7). 목록이 비면 아무것도 보이지 않는다 */
-function RecentAnalysesSection() {
-  const recent = useRecentAnalyses()
-  return <RecentAnalyses items={recent.items} onRemove={recent.remove} onClear={recent.clear} />
+function QuickFeaturedChips({ data }: { data: QuickFeatured | null }) {
+  if (data === null) return null
+  return (
+    <nav className="quick-featured" aria-label="대표 기업 바로가기">
+      <ul className="quick-featured__list">
+        {data.items.map((item, index) => (
+          <li key={item.corpCode} className="favorite-chip" style={{ '--row': index } as CSSProperties}>
+            <Link
+              to={`/companies/${encodeURIComponent(item.corpCode)}`}
+              className="favorite-chip__link featured-chip__link"
+            >
+              <span className="favorite-chip__name">{item.corpName}</span>
+              {item.stockCode && <span className="favorite-chip__meta">{item.stockCode}</span>}
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <p className="quick-featured__note">
+        유가증권시장 시가총액 상위 · {formatDate(data.baseDate)} 기준 · 출처: {data.source}
+      </p>
+    </nav>
+  )
 }
 
 interface SearchResultProps {
