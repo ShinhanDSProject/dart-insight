@@ -1,39 +1,108 @@
-/* 첫 화면 위 가운데 검색 영역(#486). 제목·한 줄 설명·검색창을 가운데로 모은다 */
+/* 첫 화면 중앙 집중 레이아웃(#486, #538). 검색창·바로가기 칩·검색 결과·보조 탐색 보드를 하나의 가운데 축에 정돈한다 */
+.search-page__shell {
+  width: 100%;
+  max-width: 720px;
+  margin-inline: auto;
+}
+
 .search-hero {
   display: flex;
   flex-direction: column;
   align-items: center;
   margin-bottom: var(--space-4);
   text-align: center;
+  transition: padding-top var(--motion-base) var(--ease-out);
+}
+
+.search-hero--home {
+  padding-top: var(--space-7);
+}
+
+.search-hero__title {
+  margin-bottom: var(--space-2);
 }
 
 .search-hero__lead {
-  margin: 0 0 var(--space-4);
+  margin: 0 0 var(--space-5);
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }
 
 .search-hero .search-form {
   width: 100%;
-  max-width: 720px;
   margin-bottom: 0;
 }
 
 .search-form {
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
 }
 
-.search-form__label {
-  display: block;
-  margin-bottom: var(--space-2);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-}
-
-.search-form__row {
+/* 구글형 둥근 검색 바(#538). 돋보기·입력창·지우기·검색 버튼을 한 알약 상자 안에 둔다 */
+.search-bar {
   display: flex;
-  gap: var(--space-3);
-  max-width: 720px;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 56px;
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-base) var(--ease-out);
+}
+
+.search-bar:hover,
+.search-bar:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.search-bar:focus-within {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.search-bar--invalid,
+.search-bar--invalid:hover,
+.search-bar--invalid:focus-within {
+  border-color: var(--color-danger);
+}
+
+.search-bar__icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.search-bar .search-bar__input {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--control-height);
+  padding: 0 var(--space-1);
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: var(--font-size-md);
+}
+
+.search-bar .search-bar__input:focus-visible {
+  outline: none;
+}
+
+.search-bar .search-bar__clear {
+  flex: none;
+  border-radius: var(--radius-pill);
+}
+
+.search-bar .search-bar__submit {
+  flex: none;
+  min-height: var(--control-height);
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-pill);
 }
 
 .search-form__hint {
@@ -44,6 +113,79 @@
 .field-error {
   margin: var(--space-2) 0 0;
   color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}
+
+/* 검색창 바로 아래 빠른 바로가기(관심 기업 또는 대표 기업 상위 칩)와 한 줄 안내 바 */
+.home-shortcuts {
+  margin-bottom: var(--space-3);
+}
+
+.quick-featured__list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.quick-featured__note {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  text-align: center;
+}
+
+.home-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.home-meta .home-meta__button {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.home-meta .home-meta__button:hover,
+.home-meta .home-meta__button:focus-visible {
+  color: var(--color-text);
+}
+
+.home-meta__dot {
+  color: var(--color-border-strong);
+}
+
+/* 첫 화면 아래 단일 탭 탐색 보드(#538) */
+.home-shelf {
+  margin-top: var(--space-6);
+  padding-top: var(--space-2);
+}
+
+.home-shelf .tabs {
+  margin-bottom: var(--space-4);
+}
+
+.home-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.home-dialog__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding-left: var(--space-5);
+  color: var(--color-text);
   font-size: var(--font-size-sm);
 }
 
@@ -134,34 +276,15 @@
   animation: pop-in var(--motion-base) var(--ease-out);
 }
 
-/* 첫 화면 두 열(#374, #378). 왼쪽 최근 본 분석, 오른쪽 관심 기업 새 공시를 같은 폭으로 두고, 두 열의 제목 줄·목록·아래 줄을
-   subgrid로 같은 높이에 맞춘다. 목록의 행도 같은 높이라 행 경계가 나란히 맞는다. 두 열이 들어갈 폭이 안 되면 위아래로 쌓이고,
-   최근 본 분석이 없으면 새 공시가 폭을 다 쓴다 */
-.home-columns {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
-  gap: var(--space-3) var(--space-6);
-  margin-bottom: var(--space-5);
-  container-type: inline-size;
-}
-
+/* 최근 본 분석·관심 기업 새 공시 목록 상자(#374, #538) */
 .home-list {
-  /* 행 높이 = 위아래 여백 8px×2 + 윗줄 22px + 사이 2px + 본문 두 줄(14px × 1.45 × 2 ≈ 41px) */
   --home-line-height: 22px;
   --home-main-line-height: 1.45;
-  --home-row-height: 82px;
-  display: grid;
-  grid-row: span 3;
-  grid-template-rows: subgrid;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
   min-width: 0;
   animation: rise-in var(--motion-base) var(--ease-out);
-}
-
-/* 위아래로 쌓였을 때만 두 영역 사이를 띄운다(나란할 때 띄우면 줄이 어긋남) */
-@container (max-width: 791px) {
-  .home-list + .home-list {
-    margin-top: var(--space-4);
-  }
 }
 
 .home-list__head {
@@ -185,9 +308,7 @@
   min-width: 0;
 }
 
-/* 행 목록 상자. 옆 열보다 행이 적어도 상자 아래 끝이 맞도록 남은 높이를 채운다 */
 .home-list__rows {
-  flex: 1;
   margin: 0;
   padding: 0;
   border: 1px solid var(--color-border);
@@ -196,16 +317,12 @@
   overflow: hidden;
 }
 
-/* 두 열이 같은 행 높이를 쓰도록 행 높이를 고정한다(#378). 윗줄은 이름·배지·날짜, 아랫줄 본문은 두 줄까지 줄바꿈해 공시 이름이
-   잘리지 않게 하고(#381), 그 높이(윗줄 22px + 본문 두 줄)를 행 높이로 잡는다. 글은 위에서부터 놓아 한 줄짜리 행과 두 줄짜리 행의
-   윗줄이 두 열에서 같은 높이에 온다. 두 줄을 넘는 드문 이름만 말줄임표로 줄이고 전체는 title에 둔다 */
 .home-list__row {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  gap: 2px;
-  height: var(--home-row-height);
-  padding: var(--space-2) var(--space-4);
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -217,7 +334,7 @@
   display: flex;
   flex: none;
   align-items: center;
-  height: var(--home-line-height);
+  min-height: var(--home-line-height);
   gap: var(--space-2);
   min-width: 0;
   white-space: nowrap;
@@ -277,7 +394,7 @@
   flex: 1;
   align-self: stretch;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
   min-width: 0;
   color: inherit;
   text-decoration: none;
@@ -292,23 +409,8 @@
   flex: none;
 }
 
-/* 대표 기업과 이번 시즌 변화가 큰 기업을 나란히 두 칸으로(#486). 두 칸이 들어갈 폭이 안 되면 위아래로 쌓인다 */
-.home-pair {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
-  align-items: start;
-  gap: var(--space-5) var(--space-6);
-  margin-bottom: var(--space-5);
-}
-
-.home-pair > * {
-  min-width: 0;
-}
-
-/* 대표 기업(#399). 관심 기업과 같은 칩 모양(UI-1). 삭제 버튼이 없어 오른쪽 여백만 넓힌다 */
+/* 대표 기업(#399). 관심 기업과 같은 칩 모양(UI-1) */
 .featured-companies {
-  max-width: 720px;
-  margin-bottom: var(--space-5);
   animation: rise-in var(--motion-base) var(--ease-out);
 }
 
@@ -322,10 +424,8 @@
   padding-right: var(--space-3);
 }
 
-/* 이번 시즌 변화가 큰 기업 Top 10(#420). 대표 기업 아래, 순위·기업·한 줄 요약·변경 건수 */
+/* 이번 시즌 변화가 큰 기업 Top 10(#420) */
 .season-changes {
-  max-width: 720px;
-  margin-bottom: var(--space-5);
   animation: rise-in var(--motion-base) var(--ease-out);
 }
 
@@ -335,12 +435,20 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.season-changes__head .favorite-companies__title {
+  margin: 0;
 }
 
 .season-changes__list {
   margin: 0 0 var(--space-3);
   padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   list-style: none;
+  overflow: hidden;
 }
 
 .season-changes__item {
@@ -348,13 +456,19 @@
   grid-template-columns: var(--space-5) 1fr auto;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3) 0;
+  padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--color-border);
+}
+
+.season-changes__item:last-child {
+  border-bottom: none;
 }
 
 .season-changes__rank {
   color: var(--color-text-muted);
+  font-family: var(--font-num);
   font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 
 .season-changes__link {
@@ -382,8 +496,6 @@
 
 /* 관심 기업(FS-18). 검색어가 없을 때 검색창 아래 둥근 칩으로 보인다 */
 .favorite-companies {
-  max-width: 720px;
-  margin-bottom: var(--space-5);
   animation: rise-in var(--motion-base) var(--ease-out);
 }
 
@@ -393,7 +505,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2) var(--space-3);
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-2);
 }
 
 .favorite-companies__title {
@@ -413,6 +525,10 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.home-shortcuts .favorite-companies__list {
+  justify-content: center;
 }
 
 .favorite-chip {
@@ -486,7 +602,7 @@
   border-radius: var(--radius-md);
   background: linear-gradient(90deg, var(--color-bg-subtle) 25%, var(--color-border) 50%, var(--color-bg-subtle) 75%);
   background-size: 200% 100%;
-  animation: favorite-feed-shimmer 1.4s linear infinite;
+  animation: favorite-feed-shimmer var(--motion-shimmer) linear infinite;
 }
 
 @keyframes favorite-feed-shimmer {
@@ -499,14 +615,7 @@
   }
 }
 
-/* 처음 쓰는 사용자 안내(FS-10). 검색어가 없는 첫 화면에서 검색창 위에 보인다 */
-/* 처음 쓰는 사용자 안내를 닫았을 때 그 자리에 남는 작은 다시 열기 버튼(#502) */
-.onboarding-reopen {
-  margin: 0 0 var(--space-4);
-  text-align: right;
-  font-size: var(--font-size-xs);
-}
-
+/* 처음 쓰는 사용자 안내(FS-10) */
 .onboarding {
   display: flex;
   flex-direction: column;
@@ -538,6 +647,10 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.home-dialog .onboarding__steps {
+  grid-template-columns: 1fr;
 }
 
 .onboarding__step {
@@ -591,6 +704,19 @@
 }
 
 @media (max-width: 900px) {
+  .search-hero--home {
+    padding-top: var(--space-4);
+  }
+
+  .search-bar {
+    min-height: 48px;
+    padding-left: var(--space-3);
+  }
+
+  .search-bar .search-bar__submit {
+    padding: 0 var(--space-4);
+  }
+
   .onboarding {
     padding: var(--space-4);
   }
