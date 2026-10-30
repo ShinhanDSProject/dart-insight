@@ -6,6 +6,7 @@ import static com.dartinsight.dart.client.FinancialJson.account;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -133,12 +134,16 @@ class CheckpointApiTest {
     }
 
     private static String auditPage(String opinion) {
+        return auditPage(opinion, "-");
+    }
+
+    private static String auditPage(String opinion, String emphasis) {
         return """
                 {"status":"000","message":"정상","list":[
                  {"rcept_no":"%1$s","corp_cls":"K","corp_code":"00000001","corp_name":"예시전자","bsns_year":"제16기\\n(당기)",
-                  "adtor":"가회계법인","adt_opinion":"%2$s","adt_reprt_spcmnt_matter":"-","emphs_matter":"-",
+                  "adtor":"가회계법인","adt_opinion":"%2$s","adt_reprt_spcmnt_matter":"-","emphs_matter":"%3$s",
                   "core_adt_matter":"-","stlm_dt":"2025-12-31"}]}
-                """.formatted(CUR, opinion);
+                """.formatted(CUR, opinion, emphasis);
     }
 
     @Test
@@ -223,12 +228,63 @@ class CheckpointApiTest {
                 // 감사의견 적정
                 .andExpect(jsonPath("$.items[6].key").value("AUDIT_OPINION"))
                 .andExpect(jsonPath("$.items[6].status").value("OK"))
+                .andExpect(jsonPath("$.items[6].facts[1].value").value(0))
+                .andExpect(jsonPath("$.items[6].facts[1].quote").value(nullValue()))
                 .andExpect(jsonPath("$.items[6].disclosures", hasSize(0)));
 
         assertThat(DART.requests()).anyMatch(r -> r.startsWith(STATEMENTS) && r.contains("bsns_year=2025")
                 && r.contains("reprt_code=11011") && r.contains("fs_div=CFS"));
         assertThat(DART.requests()).anyMatch(r -> r.startsWith(STATEMENTS) && r.contains("bsns_year=2024")
                 && r.contains("fs_div=CFS"));
+    }
+
+    @Test
+    @DisplayName("적정의견이어도 당기 강조사항 등에 계속기업 문구가 있으면 감사의견이 확인해 볼 점이고 원문 일부와 근거를 준다")
+    void auditOpinionShowsGoingConcern() throws Exception {
+        bothReports();
+        DART.on(STATEMENTS, Response.status(500));
+        DART.on(LIST, Response.json(page(1, 1, item(CUR, "사업보고서 (2025.12)", daysAgo(200), "코"))));
+        // 문구는 가짜다
+        DART.on(AUDIT, Response.json(auditPage("적정의견",
+                "계속기업 가정에 관한 중요한 불확실성\\n회사는 당기 영업손실이 발생하였습니다.")));
+
+        mockMvc.perform(get(PATH))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[6].key").value("AUDIT_OPINION"))
+                .andExpect(jsonPath("$.items[6].status").value("CHECK"))
+                .andExpect(jsonPath("$.items[6].note").value(startsWith(
+                        "사업보고서에 적힌 제16기(당기) 강조사항 등에 '계속기업' 문구가 있어요.")))
+                .andExpect(jsonPath("$.items[6].facts[0].label").value("적정이 아닌 감사의견"))
+                .andExpect(jsonPath("$.items[6].facts[0].value").value(0))
+                .andExpect(jsonPath("$.items[6].facts[1].label").value("계속기업 관련 강조사항"))
+                .andExpect(jsonPath("$.items[6].facts[1].value").value(1))
+                .andExpect(jsonPath("$.items[6].facts[1].unit").value("PRESENCE"))
+                .andExpect(jsonPath("$.items[6].facts[1].quote.text")
+                        .value("계속기업 가정에 관한 중요한 불확실성\n회사는 당기 영업손실이 발생하였습니다."))
+                .andExpect(jsonPath("$.items[6].facts[1].quote.rceptNo").value(CUR))
+                .andExpect(jsonPath("$.items[6].facts[1].quote.dartUrl")
+                        .value("https://dart.fss.or.kr/dsaf001/main.do?rcpNo=" + CUR))
+                .andExpect(jsonPath("$.items[6].disclosures", hasSize(1)))
+                .andExpect(jsonPath("$.items[6].disclosures[0].rceptNo").value(CUR));
+
+        String rows = jdbcTemplate.queryForObject("SELECT rows_json FROM disclosure_audit_opinion WHERE rcept_no = ?",
+                String.class, CUR);
+        assertThat(rows).contains("\"emphasisMatter\":\"계속기업 가정에 관한");
+    }
+
+    @Test
+    @DisplayName("감사의견을 받지 못하면 계속기업 관련 강조사항도 자료 없음이다")
+    void auditFailureIsNoData() throws Exception {
+        bothReports();
+        DART.on(STATEMENTS, Response.status(500));
+        DART.on(LIST, Response.json(page(1, 1, item(CUR, "사업보고서 (2025.12)", daysAgo(200), "코"))));
+        DART.on(AUDIT, Response.status(500));
+
+        mockMvc.perform(get(PATH))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[6].status").value("NO_DATA"))
+                .andExpect(jsonPath("$.items[6].facts[1].value").value(nullValue()))
+                .andExpect(jsonPath("$.items[6].facts[1].reason").value("NOT_CHECKED"));
     }
 
     @Test

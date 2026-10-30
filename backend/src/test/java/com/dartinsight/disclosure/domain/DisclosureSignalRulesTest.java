@@ -3,6 +3,7 @@ package com.dartinsight.disclosure.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.dartinsight.disclosure.domain.DisclosureSignalRules.AuditorChange;
+import com.dartinsight.disclosure.domain.DisclosureSignalRules.GoingConcernNote;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -172,6 +173,39 @@ class DisclosureSignalRulesTest {
                 new AuditOpinionRow("-(전기)", null, null));
 
         assertThat(DisclosureSignalRules.auditorChange(rows)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("당기 행의 강조사항 등에 공백을 무시하고 '계속기업'이 있으면 그 원문 일부를 200자 이내로 돌려준다")
+    void findsGoingConcernInCurrentEmphasis() {
+        // 문구는 가짜다
+        String emphasis = "가".repeat(300) + "계속 기업 가정에 관한 중요한 불확실성" + "나".repeat(300);
+        List<AuditOpinionRow> rows = List.of(
+                new AuditOpinionRow("제16기(전기)", "가회계법인", "적정의견", "계속기업 가정", null, null),
+                new AuditOpinionRow("제16기(당기)", "가회계법인", "적정의견", emphasis, null, null));
+
+        GoingConcernNote note = DisclosureSignalRules.goingConcern(rows).orElseThrow();
+
+        assertThat(note.term()).isEqualTo("제16기(당기)");
+        assertThat(note.field()).isEqualTo("강조사항 등");
+        assertThat(note.excerpt()).hasSize(200).contains("계속 기업 가정");
+        assertThat(emphasis).contains(note.excerpt());
+        assertThat(note.excerpt()).startsWith("가".repeat(60) + "계속 기업");
+    }
+
+    @Test
+    @DisplayName("강조사항 등이 없으면 감사보고서 특기사항을 보고, 짧은 문구는 그대로 둔다. 핵심감사사항과 전기 행은 보지 않는다")
+    void fallsBackToSpecialMatterOnly() {
+        List<AuditOpinionRow> special = List.of(new AuditOpinionRow("제5기(당기)", "가", "적정의견", null,
+                "회사의 계속기업으로서의 존속능력에 유의적 의문", null));
+        assertThat(DisclosureSignalRules.goingConcern(special)).contains(new GoingConcernNote("제5기(당기)",
+                "감사보고서 특기사항", "회사의 계속기업으로서의 존속능력에 유의적 의문"));
+
+        assertThat(DisclosureSignalRules.goingConcern(List.of(
+                new AuditOpinionRow("제5기(당기)", "가", "적정의견", "수익인식", null, "계속기업"),
+                new AuditOpinionRow("제4기(전기)", "가", "적정의견", "계속기업", null, null)))).isEmpty();
+        assertThat(DisclosureSignalRules.goingConcern(List.of(new AuditOpinionRow("제5기(당기)", "가", "적정의견"))))
+                .isEmpty();
     }
 
     @Test

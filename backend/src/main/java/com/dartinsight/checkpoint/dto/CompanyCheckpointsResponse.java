@@ -51,13 +51,23 @@ public record CompanyCheckpointsResponse(String corpCode, String status, Checkpo
         }
     }
 
-    /** @param value 없으면 null(0과 구분), 그때 reason이 이유 */
+    /**
+     * @param value 없으면 null(0과 구분), 그때 reason이 이유
+     * @param quote 공시 문구가 근거인 값이면 그 원문 일부, 아니면 null
+     */
     public record Fact(String label, BigDecimal value, CheckpointFact.Unit unit, String currency,
-            CheckpointFact.Reason reason, Evidence evidence) {
+            CheckpointFact.Reason reason, Evidence evidence, Quote quote) {
 
         static Fact from(CheckpointFact fact) {
             return new Fact(fact.label(), fact.value(), fact.unit(), fact.currency(), fact.reason(),
-                    Evidence.from(fact.evidence()));
+                    Evidence.from(fact.evidence()), Quote.from(fact.quote()));
+        }
+    }
+
+    public record Quote(String text, String rceptNo, String dartUrl) {
+
+        static Quote from(CheckpointFact.Quote quote) {
+            return quote == null ? null : new Quote(quote.text(), quote.rceptNo(), DartLinks.viewer(quote.rceptNo()));
         }
     }
 

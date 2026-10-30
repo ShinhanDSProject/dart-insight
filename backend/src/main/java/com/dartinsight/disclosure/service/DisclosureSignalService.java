@@ -15,6 +15,7 @@ import com.dartinsight.disclosure.domain.DisclosureSignalKind;
 import com.dartinsight.disclosure.domain.DisclosureSignalKind.Source;
 import com.dartinsight.disclosure.domain.DisclosureSignalRules;
 import com.dartinsight.disclosure.domain.DisclosureSignalStatus;
+import com.dartinsight.disclosure.domain.GoingConcernFinding;
 import com.dartinsight.disclosure.repository.DisclosureAuditOpinionStore;
 import com.dartinsight.disclosure.service.DisclosureService.DisclosureTimeline;
 import com.dartinsight.report.domain.ReportNameParser;
@@ -67,28 +68,35 @@ public class DisclosureSignalService {
             timeline = disclosureService.timeline(corpCode, DAYS, null);
         } catch (ApiException e) {
             log.warn("확인해 볼 공시의 공시 목록을 받지 못했습니다 {}: {}", corpCode, e.errorCode());
-            return DisclosureSignals.of(corpCode, today.minusDays(DAYS), today, Set.of(Source.values()), List.of());
+            return DisclosureSignals.of(corpCode, today.minusDays(DAYS), today, Set.of(Source.values()), List.of(),
+                    List.of());
         }
 
         List<DisclosureSignal> signals = new ArrayList<>();
+        List<GoingConcernFinding> goingConcern = new ArrayList<>();
         for (Disclosure disclosure : timeline.items()) {
             DisclosureSignalRules.classify(disclosure.reportName()).ifPresent(kind ->
                     signals.add(new DisclosureSignal(kind, disclosure, kind.sentence())));
         }
-        boolean auditUnavailable = !auditSignals(corpCode, timeline.items(), signals);
+        boolean auditUnavailable = !auditSignals(corpCode, timeline.items(), signals, goingConcern);
         signals.sort(Comparator.comparing((DisclosureSignal s) -> s.disclosure().rceptDt())
                 .thenComparing(s -> s.disclosure().rceptNo())
                 .reversed());
         Set<Source> unavailable = auditUnavailable ? Set.of(Source.AUDIT_OPINION) : Set.of();
-        return DisclosureSignals.of(corpCode, timeline.from(), timeline.to(), unavailable, signals);
+        goingConcern.sort(Comparator.comparing((GoingConcernFinding f) -> f.disclosure().rceptDt())
+                .thenComparing(f -> f.disclosure().rceptNo())
+                .reversed());
+        return DisclosureSignals.of(corpCode, timeline.from(), timeline.to(), unavailable, signals, goingConcern);
     }
 
     /**
-     * 목록의 12월 결산 사업보고서마다(같은 사업연도는 최근 것 하나) 감사의견을 보고 신호를 더한다.
+     * 목록의 12월 결산 사업보고서마다(같은 사업연도는 최근 것 하나) 감사의견을 보고 신호를 더한다. 당기 계속기업 문구(#546)는
+     * 신호가 아니라 goingConcern에 따로 모은다(재무 체크 포인트가 씀).
      *
      * @return 모두 확인했으면 true. 받지 못한 보고서가 있거나 사업연도를 정할 수 없는 사업보고서가 있으면 false
      */
-    private boolean auditSignals(String corpCode, List<Disclosure> disclosures, List<DisclosureSignal> signals) {
+    private boolean auditSignals(String corpCode, List<Disclosure> disclosures, List<DisclosureSignal> signals,
+            List<GoingConcernFinding> goingConcern) {
         boolean checked = true;
         Set<Integer> years = new HashSet<>();
         for (Disclosure disclosure : disclosures) {
@@ -118,6 +126,8 @@ public class DisclosureSignalService {
             DisclosureSignalRules.nonCleanOpinion(rows).ifPresent(row -> signals.add(new DisclosureSignal(
                     DisclosureSignalKind.NON_CLEAN_AUDIT_OPINION, disclosure,
                     DisclosureSignalRules.auditOpinionSentence(row))));
+            DisclosureSignalRules.goingConcern(rows).ifPresent(note -> goingConcern.add(
+                    new GoingConcernFinding(disclosure, opinions.get().evidenceRceptNo(), note)));
         }
         return checked;
     }
@@ -155,13 +165,15 @@ public class DisclosureSignalService {
      * @param statuses 종류마다 상태(모든 종류)
      * @param counts   종류마다 건수. UNAVAILABLE이면 null
      * @param items    접수일이 최근인 순서. UNAVAILABLE 종류의 항목은 없다
+     * @param goingConcern 당기 감사의견 자료에 계속기업 문구가 있는 사업보고서(#546, 접수일이 최근인 순서). 응답에는 넣지 않는다.
+     *                 감사의견 자료가 UNAVAILABLE이면 빈 목록
      */
     public record DisclosureSignals(String corpCode, LocalDate from, LocalDate to,
             Map<DisclosureSignalKind, DisclosureSignalStatus> statuses, Map<DisclosureSignalKind, Integer> counts,
-            List<DisclosureSignal> items) {
+            List<DisclosureSignal> items, List<GoingConcernFinding> goingConcern) {
 
         static DisclosureSignals of(String corpCode, LocalDate from, LocalDate to, Set<Source> unavailable,
-                List<DisclosureSignal> signals) {
+                List<DisclosureSignal> signals, List<GoingConcernFinding> goingConcern) {
             Map<DisclosureSignalKind, DisclosureSignalStatus> statuses = new EnumMap<>(DisclosureSignalKind.class);
             Map<DisclosureSignalKind, Integer> counts = new EnumMap<>(DisclosureSignalKind.class);
             for (DisclosureSignalKind kind : DisclosureSignalKind.values()) {
@@ -177,7 +189,9 @@ public class DisclosureSignalService {
             for (DisclosureSignal signal : items) {
                 counts.merge(signal.kind(), 1, Integer::sum);
             }
-            return new DisclosureSignals(corpCode, from, to, statuses, counts, items);
+            List<GoingConcernFinding> found = unavailable.contains(Source.AUDIT_OPINION) ? List.of()
+                    : List.copyOf(goingConcern);
+            return new DisclosureSignals(corpCode, from, to, statuses, counts, items, found);
         }
     }
 }

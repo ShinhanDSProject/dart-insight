@@ -11,9 +11,14 @@ import static com.dartinsight.checkpoint.domain.CheckpointAccount.TOTAL_LIABILIT
 import static com.dartinsight.checkpoint.domain.CheckpointAccount.TRADE_RECEIVABLES;
 
 import com.dartinsight.checkpoint.domain.CheckpointFact.Reason;
+import com.dartinsight.checkpoint.domain.CheckpointFact.Quote;
 import com.dartinsight.disclosure.domain.Disclosure;
+import com.dartinsight.disclosure.domain.GoingConcernFinding;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -42,6 +47,9 @@ public final class CheckpointRules {
     /** 최근 1년 적정이 아닌 감사의견 건수 */
     public static final int AUDIT_COUNT = 1;
 
+    /** 감사의견 항목의 계속기업 사실 줄 이름(#546) */
+    public static final String GOING_CONCERN_LABEL = "계속기업 관련 강조사항";
+
     static final String CURRENT = "올해";
     static final String PREVIOUS = "작년";
 
@@ -50,7 +58,7 @@ public final class CheckpointRules {
 
     /** 일곱 항목을 정해 둔 순서로 */
     public static List<CheckpointItem> all(YearAccounts current, YearAccounts previous,
-            Optional<List<Disclosure>> funding, Optional<List<Disclosure>> nonCleanAudits, Integer auditorChanges) {
+            Optional<List<Disclosure>> funding, Optional<AuditFindings> audits, Integer auditorChanges) {
         return List.of(
                 earningsQuality(current, previous),
                 receivables(current, previous),
@@ -58,7 +66,7 @@ public final class CheckpointRules {
                 debtRatio(current, previous),
                 shortTermBorrowings(current, previous),
                 funding(funding),
-                audit(nonCleanAudits, auditorChanges));
+                audit(audits, auditorChanges));
     }
 
     /**
@@ -230,25 +238,46 @@ public final class CheckpointRules {
     }
 
     /**
-     * 감사의견. 확인해 볼 공시의 '감사의견(적정이 아님)'이 {@link #AUDIT_COUNT}건 이상이면 CHECK. 감사인 변경 건수는 참고 수치다.
+     * 감사의견. 확인해 볼 공시의 '감사의견(적정이 아님)'이 {@link #AUDIT_COUNT}건 이상이거나, 당기 강조사항 등·감사보고서
+     * 특기사항에 '계속기업'이 있으면(#546) CHECK. 감사인 변경 건수는 참고 수치다.
      *
-     * @param nonClean       적정이 아닌 감사의견이 적힌 사업보고서. 확인하지 못했으면 빈 값
+     * @param findings       확인해 볼 공시의 감사의견 결과. 확인하지 못했으면 빈 값
      * @param auditorChanges 감사인 변경 건수. 확인하지 못했으면 null
      */
-    public static CheckpointItem audit(Optional<List<Disclosure>> nonClean, Integer auditorChanges) {
+    public static CheckpointItem audit(Optional<AuditFindings> findings, Integer auditorChanges) {
         String reference = "감사인 변경 건수는 참고로만 보여 줘요.";
-        if (nonClean.isEmpty()) {
+        if (findings.isEmpty()) {
             return CheckpointItem.of(CheckpointKey.AUDIT_OPINION, CheckpointStatus.NO_DATA,
                     "사업보고서 감사의견을 받지 못해 확인하지 못했어요.", List.of(
                             CheckpointFact.count("적정이 아닌 감사의견", null),
+                            CheckpointFact.presence(GOING_CONCERN_LABEL, null, null),
                             CheckpointFact.count("감사인 변경 (참고)", auditorChanges)));
         }
-        List<Disclosure> found = nonClean.get();
-        return new CheckpointItem(CheckpointKey.AUDIT_OPINION,
-                found.size() >= AUDIT_COUNT ? CheckpointStatus.CHECK : CheckpointStatus.OK, reference,
-                List.of(CheckpointFact.count("적정이 아닌 감사의견", found.size()),
+        List<Disclosure> nonClean = findings.get().nonClean();
+        Optional<GoingConcernFinding> goingConcern = findings.get().goingConcern().stream().findFirst();
+        boolean check = nonClean.size() >= AUDIT_COUNT || goingConcern.isPresent();
+        String note = goingConcern
+                .map(f -> "사업보고서에 적힌 " + f.note().term() + " " + f.note().field() + "에 '계속기업' 문구가 있어요. "
+                        + reference)
+                .orElse(reference);
+        Quote quote = goingConcern.map(f -> new Quote(f.note().excerpt(), f.rceptNo())).orElse(null);
+        return new CheckpointItem(CheckpointKey.AUDIT_OPINION, check ? CheckpointStatus.CHECK : CheckpointStatus.OK,
+                note,
+                List.of(CheckpointFact.count("적정이 아닌 감사의견", nonClean.size()),
+                        CheckpointFact.presence(GOING_CONCERN_LABEL, goingConcern.isPresent(), quote),
                         CheckpointFact.count("감사인 변경 (참고)", auditorChanges)),
-                List.copyOf(found));
+                auditDisclosures(nonClean, findings.get().goingConcern()));
+    }
+
+    /** 적정이 아닌 의견이나 계속기업 문구가 있는 사업보고서. 같은 보고서는 한 번, 접수일이 최근인 순서 */
+    private static List<Disclosure> auditDisclosures(List<Disclosure> nonClean, List<GoingConcernFinding> goingConcern) {
+        Map<String, Disclosure> byRceptNo = new LinkedHashMap<>();
+        nonClean.forEach(d -> byRceptNo.putIfAbsent(d.rceptNo(), d));
+        goingConcern.forEach(f -> byRceptNo.putIfAbsent(f.disclosure().rceptNo(), f.disclosure()));
+        return byRceptNo.values().stream()
+                .sorted(Comparator.comparing(Disclosure::rceptDt).thenComparing(Disclosure::rceptNo)
+                        .reversed())
+                .toList();
     }
 
     static String label(CheckpointAccount account, String year) {

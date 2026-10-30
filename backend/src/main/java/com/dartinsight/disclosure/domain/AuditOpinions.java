@@ -14,4 +14,9 @@ import java.util.List;
  */
 public record AuditOpinions(String rceptNo, boolean available, String sourceRceptNo, List<AuditOpinionRow> rows,
         LocalDateTime fetchedAt) {
+
+    /** 응답 행의 접수번호(정정본이면 그 접수번호, 아니면 이 보고서 접수번호) */
+    public String evidenceRceptNo() {
+        return sourceRceptNo == null ? rceptNo : sourceRceptNo;
+    }
 }

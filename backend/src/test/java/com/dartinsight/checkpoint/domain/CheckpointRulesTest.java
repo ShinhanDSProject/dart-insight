@@ -11,8 +11,11 @@ import static com.dartinsight.checkpoint.domain.CheckpointAccount.TOTAL_LIABILIT
 import static com.dartinsight.checkpoint.domain.CheckpointAccount.TRADE_RECEIVABLES;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.dartinsight.checkpoint.domain.CheckpointFact.Quote;
 import com.dartinsight.checkpoint.domain.CheckpointFact.Reason;
 import com.dartinsight.disclosure.domain.Disclosure;
+import com.dartinsight.disclosure.domain.DisclosureSignalRules.GoingConcernNote;
+import com.dartinsight.disclosure.domain.GoingConcernFinding;
 import com.dartinsight.financial.domain.FsDiv;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -40,6 +43,14 @@ class CheckpointRulesTest {
 
     private static BigDecimal fact(CheckpointItem item, String label) {
         return item.facts().stream().filter(f -> f.label().equals(label)).findFirst().orElseThrow().value();
+    }
+
+    private static Quote quote(CheckpointItem item, String label) {
+        return item.facts().stream().filter(f -> f.label().equals(label)).findFirst().orElseThrow().quote();
+    }
+
+    private static Optional<AuditFindings> audits(List<Disclosure> nonClean) {
+        return Optional.of(new AuditFindings(nonClean, List.of()));
     }
 
     private static Reason reason(CheckpointItem item, String label) {
@@ -237,9 +248,38 @@ class CheckpointRulesTest {
     @DisplayName("적정이 아닌 감사의견이 있으면 확인해 볼 점이고 감사인 변경은 상태에 쓰지 않는다")
     void auditOpinion() {
         Disclosure annual = disclosure("20260320000001", "사업보고서 (2025.12)");
-        assertThat(CheckpointRules.audit(Optional.of(List.of(annual)), 0).status()).isEqualTo(CheckpointStatus.CHECK);
-        assertThat(CheckpointRules.audit(Optional.of(List.of()), 1).status()).isEqualTo(CheckpointStatus.OK);
-        assertThat(CheckpointRules.audit(Optional.empty(), null).status()).isEqualTo(CheckpointStatus.NO_DATA);
+        assertThat(CheckpointRules.audit(audits(List.of(annual)), 0).status()).isEqualTo(CheckpointStatus.CHECK);
+        CheckpointItem clean = CheckpointRules.audit(audits(List.of()), 1);
+        assertThat(clean.status()).isEqualTo(CheckpointStatus.OK);
+        assertThat(fact(clean, CheckpointRules.GOING_CONCERN_LABEL)).isEqualByComparingTo("0");
+        assertThat(quote(clean, CheckpointRules.GOING_CONCERN_LABEL)).isNull();
+        CheckpointItem unknown = CheckpointRules.audit(Optional.empty(), null);
+        assertThat(unknown.status()).isEqualTo(CheckpointStatus.NO_DATA);
+        assertThat(fact(unknown, CheckpointRules.GOING_CONCERN_LABEL)).isNull();
+        assertThat(reason(unknown, CheckpointRules.GOING_CONCERN_LABEL)).isEqualTo(Reason.NOT_CHECKED);
+    }
+
+    @Test
+    @DisplayName("적정의견이어도 당기 강조사항에 계속기업 문구가 있으면 확인해 볼 점이고 원문 일부와 근거 접수번호를 둔다")
+    void auditOpinionChecksGoingConcern() {
+        Disclosure annual = disclosure("20260320000001", "사업보고서 (2025.12)");
+        GoingConcernFinding finding = new GoingConcernFinding(annual, "20260401000002",
+                new GoingConcernNote("제16기(당기)", "강조사항 등", "계속기업 가정에 관한 중요한 불확실성"));
+
+        CheckpointItem item = CheckpointRules.audit(Optional.of(new AuditFindings(List.of(), List.of(finding))), 0);
+
+        assertThat(item.status()).isEqualTo(CheckpointStatus.CHECK);
+        assertThat(item.note()).startsWith("사업보고서에 적힌 제16기(당기) 강조사항 등에 '계속기업' 문구가 있어요.");
+        assertThat(fact(item, "적정이 아닌 감사의견")).isEqualByComparingTo("0");
+        assertThat(fact(item, CheckpointRules.GOING_CONCERN_LABEL)).isEqualByComparingTo("1");
+        assertThat(quote(item, CheckpointRules.GOING_CONCERN_LABEL))
+                .isEqualTo(new Quote("계속기업 가정에 관한 중요한 불확실성", "20260401000002"));
+        assertThat(item.disclosures()).containsExactly(annual);
+
+        // 같은 사업보고서가 적정이 아닌 의견에도 있으면 공시는 한 번만
+        CheckpointItem both = CheckpointRules.audit(Optional.of(new AuditFindings(List.of(annual), List.of(finding))),
+                0);
+        assertThat(both.disclosures()).containsExactly(annual);
     }
 
     @Test
@@ -270,8 +310,10 @@ class CheckpointRulesTest {
         YearAccounts previous = year(OPERATING_INCOME, 5, OPERATING_CASH_FLOW, 3, TOTAL_LIABILITIES, 1,
                 TOTAL_EQUITY, 0, REVENUE, 0, CURRENT_PORTION_OF_LONG_TERM_BORROWINGS, 3);
         Disclosure annual = disclosure("20260320000001", "사업보고서 (2025.12)");
+        GoingConcernFinding finding = new GoingConcernFinding(annual, "20260320000001",
+                new GoingConcernNote("제16기(당기)", "강조사항 등", "계속기업"));
         for (CheckpointItem item : CheckpointRules.all(current, previous, Optional.of(List.of(annual)),
-                Optional.of(List.of(annual)), 1)) {
+                Optional.of(new AuditFindings(List.of(annual), List.of(finding))), 1)) {
             if (item.note() != null) {
                 texts.add(item.note());
             }
