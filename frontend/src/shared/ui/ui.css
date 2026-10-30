@@ -1630,3 +1630,121 @@ th[aria-sort='none'] .data-table__sort-mark {
 .term__definition {
   display: block;
 }
+
+/* 로고(BrandLogo, #549). md는 상단 바, lg는 첫 화면 가운데 */
+.brand-logo {
+  --brand-mark: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text);
+}
+
+.brand-logo--lg {
+  --brand-mark: var(--space-7);
+  gap: var(--space-3);
+}
+
+.brand-logo__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--brand-mark) / 8);
+  flex-shrink: 0;
+  width: var(--brand-mark);
+  height: var(--brand-mark);
+  border-radius: calc(var(--brand-mark) * 0.28);
+  background: var(--color-primary);
+}
+
+.brand-logo__sheet {
+  width: calc(var(--brand-mark) * 0.16);
+  height: calc(var(--brand-mark) * 0.44);
+  border-radius: var(--radius-xs);
+  background: var(--color-primary-text);
+}
+
+.brand-logo__sheet--tall {
+  height: calc(var(--brand-mark) * 0.56);
+}
+
+.brand-logo__name {
+  font-family: var(--font-num);
+  font-size: var(--font-size-brand);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  white-space: nowrap;
+}
+
+.brand-logo--lg .brand-logo__name {
+  font-size: var(--font-size-xl);
+}
+
+/* 진행 막대(ProgressBar, #549) */
+.progress-bar {
+  height: var(--space-1);
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-border);
+}
+
+.progress-bar__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+  transform: scaleX(var(--progress, 0));
+  transform-origin: left center;
+  transition: transform var(--motion-slow) var(--ease-out);
+}
+
+/* 이전·현재 보고서 카드(ReportCard, #549). 넓으면 두 장을 나란히, 좁으면 위아래로 */
+.report-card-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.report-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.report-card__badge {
+  margin-bottom: var(--space-1);
+}
+
+.report-card__title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  overflow-wrap: anywhere;
+}
+
+.report-card__meta,
+.report-card__empty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.report-card__empty {
+  font-size: var(--font-size-sm);
+}
+
+/* 고르기 칸·자세히 보기처럼 카드 아래 덧붙인 내용은 카드 폭을 다 쓴다 */
+.report-card__extra {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.report-card__extra > .button {
+  align-self: flex-start;
+}
