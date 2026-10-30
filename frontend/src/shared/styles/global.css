@@ -76,37 +76,6 @@ code {
   text-decoration: none;
 }
 
-.app-brand__mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-1);
-  flex-shrink: 0;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-md);
-  background: var(--color-primary);
-}
-
-.app-brand__sheet {
-  width: 5px;
-  height: 14px;
-  border-radius: var(--radius-xs);
-  background: var(--color-primary-text);
-}
-
-.app-brand__sheet--tall {
-  height: 18px;
-}
-
-.app-brand__name {
-  font-family: var(--font-num);
-  font-size: var(--font-size-brand);
-  font-weight: var(--font-weight-bold);
-  line-height: var(--line-height-tight);
-  white-space: nowrap;
-}
-
 /* 넓은 화면에서는 메뉴 버튼을 숨기고 메뉴를 늘 펼쳐 둔다 */
 .app-header .app-header__menu-button {
   display: none;

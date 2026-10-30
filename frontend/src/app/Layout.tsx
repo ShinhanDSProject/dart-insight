@@ -1,6 +1,7 @@
 import { useRef, useState, type KeyboardEvent } from 'react'
 import { Link, Outlet, useLocation, useParams } from 'react-router'
 import { match } from 'ts-pattern'
+import { BrandLogo } from '@/shared/ui/BrandLogo'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { Icon, type IconName } from '@/shared/ui/Icon'
 import { useCurrentCompany } from '@/shared/hooks/useCurrentCompany'
@@ -82,11 +83,7 @@ export function Layout() {
       </a>
       <header className="app-header" onKeyDown={onMenuKeyDown}>
         <Link to="/" className="app-brand" aria-label="DART Insight 첫 화면" aria-current={active === 'search' ? 'page' : undefined}>
-          <span className="app-brand__mark" aria-hidden="true">
-            <span className="app-brand__sheet" />
-            <span className="app-brand__sheet app-brand__sheet--tall" />
-          </span>
-          <span className="app-brand__name">DART Insight</span>
+          <BrandLogo />
         </Link>
 
         <Button
