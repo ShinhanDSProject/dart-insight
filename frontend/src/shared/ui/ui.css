@@ -739,6 +739,8 @@ th[aria-sort='none'] .data-table__sort-mark {
   padding: 0 18px;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
+  /* 바탕을 정하지 않으면 다크 테마에서 브라우저 기본 회색이 보인다(#558) */
+  background: var(--color-bg);
   color: var(--color-text);
   font: inherit;
   font-size: var(--font-size-md);
