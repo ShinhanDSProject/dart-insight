@@ -28,10 +28,14 @@ export function RelatedDisclosures({ analysisId, changeId }: RelatedDisclosuresP
       </Button>
       {open && (
         <div id={bodyId} className="related-disclosures__box">
+          {/* 보조 근거(#550, 시안 12): 배지로 정기보고서(주된 근거)와 나누고, 인과관계가 아님을 주의 안내로 둔다 */}
           <div className="related-disclosures__head">
-            <Badge>보조</Badge>
-            <span className="evidence__meta">정기보고서 밖의 공시예요. 위 정기보고서 근거와 따로 보세요.</span>
+            <Badge>보조 근거 · 수시공시</Badge>
+            <span className="evidence__meta">정기보고서 밖의 공시예요. 위 정기보고서 근거(주된 근거)와 따로 보세요.</span>
           </div>
+          <Notice as="p" tone="attention" title="인과관계는 확인되지 않았습니다.">
+            같은 기간에 같은 규칙에 걸린 공시일 뿐, 이 변경의 원인이라는 뜻은 아니에요.
+          </Notice>
           <RelatedBody analysisId={analysisId} changeId={changeId} />
         </div>
       )}

@@ -158,11 +158,11 @@ export function shortcutGroups(page: ShortcutPage): ShortcutGroup[] {
     available: page === 'result',
     note: page === 'result' ? null : '분석 결과 화면에서 쓸 수 있어요.',
     items: [
-      { keys: ['1'], label: '요약·설명 탭' },
-      { keys: ['2'], label: '재무 수치 변화 탭' },
-      { keys: ['3'], label: '문장·내용 변화 탭' },
+      { keys: ['1'], label: '요약 탭' },
+      { keys: ['2'], label: '재무 수치 탭' },
+      { keys: ['3'], label: '문장 변화 탭' },
       { keys: ['4'], label: 'AI 질문 탭' },
-      { keys: ['5'], label: '원문 확인 탭' },
+      { keys: ['5'], label: '원문 탭' },
       { keys: ['A'], label: 'AI 질문 입력창으로 가기' },
     ],
   }
@@ -171,7 +171,7 @@ export function shortcutGroups(page: ShortcutPage): ShortcutGroup[] {
     title: '문장 변화',
     available: page === 'result',
     // 결과 화면에서도 문장 변화 탭에서만 동작하므로 늘 안내한다
-    note: '분석 결과의 문장·내용 변화 탭에서 쓸 수 있어요.',
+    note: '분석 결과의 문장 변화 탭에서 쓸 수 있어요.',
     items: [
       { keys: ['J', '↓'], label: '다음 카드로 가기(↓는 카드에 초점이 있을 때)' },
       { keys: ['K', '↑'], label: '이전 카드로 가기(↑는 카드에 초점이 있을 때)' },

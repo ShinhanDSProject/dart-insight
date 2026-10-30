@@ -3,13 +3,13 @@ import type { Analysis } from '@/shared/api/analyses'
 import { pageTitle } from '@/shared/lib/pageTitle'
 import type { ResultTab } from './resultParams'
 
-/** 결과 화면 탭 이름. 탭 목록과 브라우저 탭 제목이 같이 쓴다 */
+/** 결과 화면 탭 이름(심플 통일 #550). 탭 목록과 브라우저 탭 제목이 같이 쓴다 */
 export const resultTabLabels: Record<ResultTab, string> = {
-  summary: '요약·설명',
-  financial: '재무 수치 변화',
-  text: '문장·내용 변화',
+  summary: '요약',
+  financial: '재무 수치',
+  text: '문장 변화',
   ask: 'AI 질문',
-  source: '원문 확인',
+  source: '원문',
 }
 
 type TitleAnalysis = Pick<Analysis, 'corpName' | 'status'> & {

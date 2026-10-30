@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { ChangeScaleDetail, FinancialChangeDetail, RelatedTextChange, ValueSource } from '@/shared/api/results'
-import { Badge, Button, ButtonLink, CompareBars, Notice, PanelTitle, SidePanel } from '@/shared/ui'
+import { Badge, Button, ButtonLink, CompareBars, Icon, Notice, PanelTitle, SidePanel } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { communityQuotePath } from '@/shared/lib/communityQuoteLink'
@@ -71,7 +71,7 @@ export function EvidencePanel({
           {title}
         </PanelTitle>
         <Button variant="secondary" onClick={onClose}>
-          닫기
+          <Icon name="x" size={16} /> 닫기
         </Button>
       </div>
       {match(state)
@@ -138,8 +138,69 @@ function EvidenceBody({
   const hasSummaryExplanation = Boolean(summaryItem && summaryItem.aiText)
   const hasRelatedTexts = detail.relatedTextChanges && detail.relatedTextChanges.length > 0
 
+  const statementLabel = statementLabels[detail.sjDiv] ?? detail.sjDiv
+  // 원문 위치 보기: 현재 보고서 표 위치, 없으면 이전 보고서 표 위치
+  const located = [
+    { side: 'current' as const, source: detail.current },
+    { side: 'previous' as const, source: detail.previous },
+  ].find((s) => s.source !== null && s.source.sectionNo !== null)
+  const previousText = amountText(detail.previousAmount, unit, detail.currency, missingValueLabel(detail.calcStatus, 'previous'))
+  const currentText = amountText(detail.currentAmount, unit, detail.currency, missingValueLabel(detail.calcStatus, 'current'))
+
   return (
     <>
+      {/* 주된 근거(정기보고서) 표시와 출처(#550, 시안 11). 수시공시는 '보조 근거'로 따로 구분한다 */}
+      <p className="evidence__lead">
+        <Badge tone="accent">주된 근거 · 정기보고서</Badge>
+        <span className="evidence__meta">
+          {analysis.corpName} · DART · {statementLabel}
+        </span>
+      </p>
+      <div className="evidence__calc">
+        {/* 계산식 상자: 이전·현재 값과 증감액·증감률 계산식(코드가 계산한 값) */}
+        <div className="evidence__formula-box">
+          <p className="evidence__pair">
+            이전 {previousText} / 현재 {currentText} · {basis}
+          </p>
+          {detail.formula ? (
+            <>
+              <p className="evidence__formula">
+                증감액 = 현재 값 − 이전 값 = {detail.formula} {baseUnit}
+              </p>
+              <p className="evidence__formula">
+                {detail.rateFormula ? `증감률 = 증감액 ÷ 이전 값 × 100 = ${detail.rateFormula}` : `증감률: ${detail.calcMessage}`}
+              </p>
+            </>
+          ) : (
+            <Notice as="p" tone="attention" role="status">
+              계산하지 않았어요. {detail.calcMessage}
+            </Notice>
+          )}
+        </div>
+        {/* 원문 위치: 재무제표 안의 계정 경로와 기준일, '원문 위치 보기' */}
+        <div className="evidence__location">
+          <p className="evidence__location-label">원문 위치</p>
+          <p className="evidence__location-path">
+            재무제표 → {statementLabel} → {accountLabel(detail)}
+          </p>
+          <p className="evidence__meta">
+            {amountPeriodLabel(analysis.previous, detail.amountBasis)} / {amountPeriodLabel(analysis.current, detail.amountBasis)}{' '}
+            {detail.amountBasis === 'POINT' ? '기준' : '기간'}
+          </p>
+          {located !== undefined && located.source !== null && located.source.sectionNo !== null && onOpenSource && (
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (located.source !== null && located.source.sectionNo !== null) {
+                  onOpenSource({ side: located.side, section: located.source.sectionNo, block: located.source.blockNo })
+                }
+              }}
+            >
+              원문 위치 보기
+            </Button>
+          )}
+        </div>
+      </div>
       <div className="evidence__sources">
         <SourceCard
           role="이전 보고서"
@@ -168,28 +229,9 @@ function EvidenceBody({
       </div>
       <CompareBars
         className="evidence__compare"
-        previous={{
-          label: '이전',
-          value: detail.previousAmount,
-          text: amountText(detail.previousAmount, unit, detail.currency, missingValueLabel(detail.calcStatus, 'previous')),
-        }}
-        current={{
-          label: '현재',
-          value: detail.currentAmount,
-          text: amountText(detail.currentAmount, unit, detail.currency, missingValueLabel(detail.calcStatus, 'current')),
-        }}
+        previous={{ label: '이전', value: detail.previousAmount, text: previousText }}
+        current={{ label: '현재', value: detail.currentAmount, text: currentText }}
       />
-      {detail.formula ? (
-        <p className="evidence__formula">
-          증감액 = 현재 값 − 이전 값 = {detail.formula} {baseUnit}
-          <br />
-          {detail.rateFormula ? `증감률 = 증감액 ÷ 이전 값 × 100 = ${detail.rateFormula}` : `증감률: ${detail.calcMessage}`}
-        </p>
-      ) : (
-        <Notice as="p" role="status">
-          계산하지 않았어요. {detail.calcMessage}
-        </Notice>
-      )}
       {detail.changeAmount !== null && <ScaleEvidence scale={detail.scale} unit={unit} currency={detail.currency} />}
 
       {hasSummaryExplanation && summaryItem && (
@@ -205,7 +247,9 @@ function EvidenceBody({
       )}
 
       {!hasSummaryExplanation && !hasRelatedTexts && (
-        <p className="evidence__note">관련 설명: <strong>확인된 설명 없음</strong></p>
+        <Notice as="p" tone="attention">
+          관련 설명: <strong>확인된 설명 없음</strong> · 공시에서 확인되지 않은 원인은 추정하지 않아요.
+        </Notice>
       )}
 
       <div className="evidence__actions">

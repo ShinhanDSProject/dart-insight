@@ -1,8 +1,9 @@
+import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { match, P } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { ParamChanges } from '@/shared/lib/searchParams'
-import { Button, ButtonLink, Notice, Skeleton, Tabs, type TabItem } from '@/shared/ui'
+import { Icon, MenuButton, MenuItem, Notice, Page, PageHeader, Skeleton, Tabs, type TabItem } from '@/shared/ui'
 import { ErrorState } from '@/shared/ui/StateView'
 import type { SjDiv } from '@/shared/api/results'
 import type { TextSectionCount } from '@/shared/api/textChanges'
@@ -10,12 +11,12 @@ import type { LoadState } from '@/shared/hooks/asyncState'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
 import { useRecordRecentAnalysis } from '@/shared/hooks/useRecentAnalyses'
 import { useRecordCurrentCompany } from '@/shared/hooks/useCurrentCompany'
+import { basisLabel } from '@/shared/lib/comparisonBasis'
 import { companyOverviewLink } from '@/shared/lib/currentCompany'
 import { AskTab } from './components/AskTab'
 import { ExportBriefButton } from './components/ExportBriefButton'
 import { FinancialTab } from './components/FinancialTab'
 import { ComparisonContextCard } from './components/ComparisonContextCard'
-import { OtherAnalyses } from './components/OtherAnalyses'
 import { OutdatedNotice } from './components/OutdatedNotice'
 import { SourceTab } from './components/SourceTab'
 import { SummaryTab } from './components/SummaryTab'
@@ -68,19 +69,19 @@ export function AnalysisResultPage() {
 
   return match(state)
     .with({ status: 'loading' }, () => (
-      <section className="page">
+      <Page width="wide">
         <Skeleton label="분석 결과를 불러오는 중입니다…" shape="block" />
-      </section>
+      </Page>
     ))
     .with({ status: 'error' }, ({ error }) => (
-      <section className="page">
-        <h1 className="page__title">분석 결과</h1>
+      <Page width="wide">
+        <PageHeader title="분석 결과" />
         <ErrorState
           error={error}
           onRetry={reload}
           messages={{ ANALYSIS_NOT_FOUND: '분석을 찾지 못했어요. 기업 검색에서 다시 시작해 주세요.' }}
         />
-      </section>
+      </Page>
     ))
     .with({ status: 'success' }, ({ data }) => <AnalysisResult analysis={data} params={params} update={update} />)
     .exhaustive()
@@ -94,44 +95,58 @@ interface AnalysisResultProps {
 
 function AnalysisResult({ analysis, params, update }: AnalysisResultProps) {
   return (
-    <section className="page">
-      <nav className="breadcrumb" aria-label="현재 위치">
-        <Link to="/">기업 검색</Link> / 분석 결과 /{' '}
-        <Link to={companyOverviewLink(analysis.corpCode)}>{analysis.corpName}</Link>
-      </nav>
-      <div className="result-head">
-        <h1 className="page__title">두 보고서 사이의 변화</h1>
-        <div className="result-head__actions">
-          {/* 분석을 옮기면 펼침 상태를 새로 시작한다 */}
-          <OtherAnalyses
-            key={analysis.analysisId}
-            corpCode={analysis.corpCode}
-            analysisId={analysis.analysisId}
-            tab={params.tab}
-          />
-          <ButtonLink to={selectionPath(analysis)} variant="secondary">
-            보고서 선택 변경
-          </ButtonLink>
-          {analysis.status === 'COMPLETED' && <ExportBriefButton analysis={analysis} />}
-          {/* 인쇄용 화면은 메뉴·버튼·근거 패널을 빼고 비교 맥락·지금 탭·출처를 남긴다(FS-8 R3, print.css) */}
-          <Button onClick={() => window.print()}>인쇄</Button>
-        </div>
-      </div>
+    <Page width="wide">
+      {/* 결과 머리(#550): 분석 결과 / 기업명 → 큰 기업명 → 보고서 쌍·비교 기준·수치 기준·보고서 바꾸기, 오른쪽 위 내보내기 */}
+      <PageHeader
+        className="result-head"
+        breadcrumb={
+          <>
+            분석 결과 / <Link to={companyOverviewLink(analysis.corpCode)}>{analysis.corpName}</Link>
+          </>
+        }
+        title={analysis.corpName}
+        lead={<ResultLead analysis={analysis} />}
+        aside={<ExportMenu analysis={analysis} />}
+      />
 
       {match(analysis.status)
         .with('COMPLETED', () => (
           <CompletedResult key={analysis.analysisId} analysis={analysis} params={params} update={update} />
         ))
-        .with(P.union('PENDING', 'RUNNING', 'FAILED'), () => (
-          <>
-            <p className="page__lead">
-              {analysis.previous.reportName} → {analysis.current.reportName}
-            </p>
-            <NotCompleted analysis={analysis} />
-          </>
-        ))
+        .with(P.union('PENDING', 'RUNNING', 'FAILED'), () => <NotCompleted analysis={analysis} />)
         .exhaustive()}
-    </section>
+    </Page>
+  )
+}
+
+/** 제목 아래 한 줄: 이전 → 현재 보고서 · 비교 기준 · 연결·별도 재무제표 · 보고서 바꾸기(보고서 선택 화면) */
+function ResultLead({ analysis }: { analysis: Analysis }) {
+  return (
+    <span className="result-head__lead">
+      <span>
+        <span className="visually-hidden">이전 보고서 </span>
+        {analysis.previous.reportName} <span aria-hidden="true">→</span>
+        <span className="visually-hidden"> 현재 보고서</span> {analysis.current.reportName}
+      </span>
+      <span aria-hidden="true"> · </span>
+      <span>{basisLabel(analysis.basis)}</span>
+      <span aria-hidden="true"> · </span>
+      <span>{analysis.fsDiv === 'OFS' ? '별도' : '연결'}재무제표</span>
+      <Link className="result-head__change" to={selectionPath(analysis)}>
+        보고서 바꾸기
+      </Link>
+    </span>
+  )
+}
+
+/** 오른쪽 위 '내보내기'. 브리프 내려받기(완료된 분석만)와 인쇄를 묶는다. 표 CSV는 재무 수치 탭의 '표 설정'에 있다 */
+function ExportMenu({ analysis }: { analysis: Analysis }) {
+  return (
+    <MenuButton label={<><Icon name="download" size={16} /> 내보내기</>} aria-label="내보내기">
+      {analysis.status === 'COMPLETED' && <ExportBriefButton analysis={analysis} />}
+      {/* 인쇄용 화면은 메뉴·버튼·근거 패널을 빼고 비교 맥락·지금 탭·출처를 남긴다(FS-8 R3, print.css) */}
+      <MenuItem onClick={() => window.print()}>인쇄</MenuItem>
+    </MenuButton>
   )
 }
 
@@ -147,7 +162,7 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
   return (
     <>
       {analysis.outdated && <OutdatedNotice analysis={analysis} />}
-      <ComparisonContextCard analysis={analysis} />
+      <ComparisonContextCard analysis={analysis} tab={params.tab} />
 
       {/* 스크롤해도 탭을 위에 붙여 두어 긴 결과를 내려 본 뒤에도 바로 다른 탭으로 옮긴다(#390) */}
       <div className="result-tabs">
@@ -186,6 +201,7 @@ function ResultTabPanel({ analysis, params, update, ask, suggestions, askSection
     update(openAsk())
   }
   const asking = ask.state.request.status === 'sending'
+  const returnTab = useReturnTab(params.tab)
   return match(params.tab)
     .with('financial', () => (
       <FinancialTab
@@ -261,9 +277,20 @@ function ResultTabPanel({ analysis, params, update, ask, suggestions, askSection
         onChange={(c) => update(sourceParamChanges(c))}
         sectionCounts={sectionCounts}
         onOpenTextSection={(section) => update(openTextSection(section))}
+        onBack={() => update({ tab: returnTab })}
       />
     ))
     .exhaustive()
+}
+
+/**
+ * 원문 탭의 '← 분석 결과로 돌아가기'(#550)가 갈 탭: 원문을 열기 전에 마지막으로 본 탭. 처음부터 원문 탭이면 요약.
+ * 주소에 새 값을 두지 않고 화면 안에서만 기억한다. 근거 계정(change)·문장(tc)은 주소에 남아 있어 돌아가면 근거도 다시 열린다.
+ */
+function useReturnTab(tab: ResultTab): Exclude<ResultTab, 'source'> {
+  const [last, setLast] = useState<Exclude<ResultTab, 'source'>>('summary')
+  if (tab !== 'source' && tab !== last) setLast(tab)
+  return last
 }
 
 function selectionPath(analysis: Analysis): string {

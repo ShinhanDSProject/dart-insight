@@ -76,7 +76,7 @@ const anonymousAuth: AuthContextValue = { state: { status: 'anonymous' }, login:
 
 const noop = () => {}
 /** 핵심 3줄(위)에도 같은 문장이 나오므로 요약 본문 안에서만 찾는다 */
-const body = () => within(screen.getByRole('region', { name: '요약·설명' }))
+const body = () => within(screen.getByRole('region', { name: '주요 변화 요약' }))
 
 afterEach(cleanup)
 

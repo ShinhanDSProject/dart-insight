@@ -7,10 +7,11 @@ import type { ChangeType } from '@/shared/api/textChanges'
 import type { LoadState } from '@/shared/hooks/asyncState'
 import type { AsyncResult } from '@/shared/hooks/useAsync'
 import { formatCompactAmount } from '@/shared/lib/chartScale'
-import { Badge, Button, ButtonLink, Card, Chip, CompareBars, Notice, Panel, PanelTitle, SegmentedControl, Skeleton } from '@/shared/ui'
+import { Badge, Button, ButtonLink, Card, Chip, Notice, Panel, PanelTitle, SegmentedControl, Skeleton } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState } from '@/shared/ui/StateView'
 import { useSummary } from '../hooks/useSummary'
+import { formatRate } from '../model/format'
 import { useSummaryAmounts } from '../hooks/useSummaryAmounts'
 import { summarySjDivs } from '../model/summaryAmounts'
 import { headlineItems } from '../model/summaryHeadline'
@@ -146,12 +147,12 @@ function SummaryContent({ summary, ...rest }: SummaryContentProps) {
 
   return match(state)
     .with({ status: 'loading' }, () => (
-      <Panel aria-label="요약·설명">
+      <Panel aria-label="요약">
         <Skeleton label="요약을 불러오는 중입니다…" shape="line" count={4} />
       </Panel>
     ))
     .with({ status: 'error' }, ({ error }) => (
-      <Panel aria-label="요약·설명">
+      <Panel aria-label="요약">
         <ErrorState error={error} onRetry={reload} />
       </Panel>
     ))
@@ -194,7 +195,12 @@ function SummaryBody({
   )
 
   return (
-    <Panel className="summary-panel" aria-label="요약·설명">
+    <Panel className="summary-panel" aria-labelledby="summary-panel-title">
+      {/* 주요 변화 요약(#550, 시안 09): 제목 | 주된 근거 배지 */}
+      <div className="summary-panel__head">
+        <PanelTitle id="summary-panel-title">주요 변화 요약</PanelTitle>
+        <Badge>정기보고서 · 주된 근거</Badge>
+      </div>
       {notice && (
         <Notice tone={data.summaryStatus === 'PARTIAL' ? 'attention' : 'info'} role="status">
           {notice}
@@ -204,7 +210,7 @@ function SummaryBody({
 
       {data.items.length === 0 && data.reviewNeededCount === 0 && data.summaryStatus !== null && data.summaryStatus !== 'EMPTY' && (
         <EmptyState title="요약할 변화가 없어요.">
-          <p>'재무 수치 변화'와 '문장·내용 변화'에서 전체 결과를 볼 수 있어요.</p>
+          <p>'재무 수치'와 '문장 변화' 탭에서 전체 결과를 볼 수 있어요.</p>
         </EmptyState>
       )}
 
@@ -354,26 +360,24 @@ function SummaryCard({ item, analysis, amount, onOpen, onOpenSource, onAsk, aski
   const noteLabel = summaryNoteLabel(item, amount)
   const quoteLink = summaryQuoteLink(analysis.corpCode, analysis.analysisId, item.target)
   const question = summaryItemQuestion(item, amount)
-  const hasActions = onOpen !== null || quoteLink !== null || question !== null
-
+  
   return (
-    <Card as="article" className="summary-item">
-      {item.factSentence && <p className="summary-item__fact">{item.factSentence}</p>}
-      {amount && (
-        <CompareBars
-          className="summary-item__compare"
-          previous={{ label: '이전', value: amount.previousAmount, text: compactAmount(amount.previousAmount, amount.currency) }}
-          current={{ label: '현재', value: amount.currentAmount, text: compactAmount(amount.currentAmount, amount.currency) }}
-        />
-      )}
+    <Card as="article" tone="subtle" className="summary-item">
+      {/* 위: 사실 문장과 이전 → 현재 큰 숫자 | 오른쪽 근거 버튼(#550, 시안 09) */}
+      <div className="summary-item__top">
+        <div className="summary-item__main">
+          {item.factSentence && <p className="summary-item__fact">{item.factSentence}</p>}
+          {amount && <SummaryAmounts amount={amount} />}
+        </div>
+        {onOpen && (
+          <Button className="summary-item__open" onClick={onOpen}>
+            {item.kind === 'FINANCIAL' ? '수치 근거' : '문장 근거'} <span aria-hidden="true">→</span>
+          </Button>
+        )}
+      </div>
       <SummaryExplanation item={item} analysis={analysis} onOpenSource={onOpenSource} />
-      {hasActions && (
+      {(quoteLink !== null || question !== null) && (
         <div className="summary-item__actions">
-          {onOpen && (
-            <Button variant="secondary" onClick={onOpen}>
-              {item.kind === 'FINANCIAL' ? '수치 근거 보기' : '변경 근거 보기'}
-            </Button>
-          )}
           {quoteLink !== null && (
             <ButtonLink variant="secondary" to={quoteLink} aria-label={`커뮤니티에 인용: ${noteLabel}`}>
               커뮤니티에 인용
@@ -395,6 +399,35 @@ function SummaryCard({ item, analysis, amount, onOpen, onOpenSource, onAsk, aski
         <AddToNote target={noteTarget} analysisId={analysis.analysisId} label={noteLabel} />
       )}
     </Card>
+  )
+}
+
+/**
+ * 재무 항목의 이전 → 현재 큰 숫자와 증감 배지(#550). 증감은 중립색 배지에 ▲▼·부호로 보이고(좋고 나쁨 색 없음),
+ * 증감률을 계산하지 않았으면 배지를 두지 않는다. 숫자는 서버가 준 금액 그대로다.
+ */
+const ARROWS: Record<'UP' | 'DOWN' | 'SAME', string | null> = { UP: '▲', DOWN: '▼', SAME: null }
+
+function SummaryAmounts({ amount }: { amount: FinancialChangeItem }) {
+  const rate = formatRate(amount.changeRate)
+  const arrow = amount.direction === null ? null : ARROWS[amount.direction]
+  return (
+    <p className="summary-item__amounts">
+      <span className="visually-hidden">이전 </span>
+      <span className="summary-item__previous">{compactAmount(amount.previousAmount, amount.currency)}</span>
+      <span className="summary-item__arrow" aria-hidden="true">
+        →
+      </span>
+      <span className="visually-hidden">현재 </span>
+      <span className="summary-item__current">{compactAmount(amount.currentAmount, amount.currency)}</span>
+      {rate !== null && (
+        <Badge>
+          {arrow !== null && <span aria-hidden="true">{arrow} </span>}
+          <span className="visually-hidden">증감률 </span>
+          {rate}
+        </Badge>
+      )}
+    </p>
   )
 }
 

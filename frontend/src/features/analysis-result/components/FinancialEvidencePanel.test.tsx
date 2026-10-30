@@ -180,6 +180,22 @@ describe('Financial EvidencePanel (#512)', () => {
     )
   })
 
+  it('주된 근거 배지와 출처, 계산식 상자, 원문 위치 경로와 원문 위치 보기(현재 보고서 표)를 보인다(#550)', () => {
+    const onOpenSource = vi.fn()
+    const { container } = renderEvidence({ onOpenSource })
+
+    expect(screen.getByText('주된 근거 · 정기보고서')).toBeTruthy()
+    const box = container.querySelector('.evidence__formula-box')
+    expect(box?.textContent).toContain('증감액 = 현재 값 − 이전 값 = 12조 − 10조 = 2조')
+    expect(box?.textContent).toContain('증감률 = 증감액 ÷ 이전 값 × 100 = 2조 ÷ 10조 × 100 = 20.0%')
+    expect(container.querySelector('.evidence__location-path')?.textContent).toBe('재무제표 → 손익계산서 → 영업이익')
+
+    const open = screen.getByRole('button', { name: '원문 위치 보기' })
+    expect(open.className).toContain('button--primary')
+    fireEvent.click(open)
+    expect(onOpenSource).toHaveBeenCalledWith({ side: 'current', section: 14, block: 50 })
+  })
+
   it('관련 본문·주석 변경이 있으면 목록과 문장 변경 보기 버튼을 표시한다', () => {
     const onOpenText = vi.fn()
     renderEvidence({ onOpenText })

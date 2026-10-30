@@ -1,7 +1,7 @@
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { SummaryEvidence, SummaryItem } from '@/shared/api/summary'
-import { Badge, Button } from '@/shared/ui'
+import { Badge, Button, Notice } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import type { SourceTarget } from '../model/resultParams'
 import { aiInfoLabel, explanationNote, gradeLabel, gradeNote, QUOTE_CAPTION, TEMPLATE_CAPTION, TEMPLATE_NO_QUOTE } from '../model/summaryLabels'
@@ -21,7 +21,6 @@ export function SummaryExplanation({ item, analysis, onOpenSource }: SummaryExpl
   const missing = item.kind === 'FINANCIAL' ? explanationNote(item.explanationStatus, item.gradeReason) : null
   const grade = item.kind === 'FINANCIAL' ? gradeLabel(item.explanationGrade) : null
   const note = item.kind === 'FINANCIAL' ? gradeNote(item.explanationGrade) : null
-  const review = item.explanationStatus === 'REVIEW_NEEDED' || item.explanationStatus === 'TEMPLATE'
   return (
     <>
       {item.aiText && (
@@ -55,7 +54,12 @@ export function SummaryExplanation({ item, analysis, onOpenSource }: SummaryExpl
         ) : (
           <p className="summary-item__missing">{TEMPLATE_NO_QUOTE}</p>
         ))}
-      {missing && <p className={`summary-item__missing${review ? ' summary-item__missing--review' : ''}`}>{missing}</p>}
+      {/* 확인된 설명 없음·검토 필요는 주의 안내 상자로 둔다(#550, 시안 09). 원인을 추정하지 않는다 */}
+      {missing && (
+        <Notice as="p" tone="attention" title={missing} className="summary-item__missing">
+          공시에서 확인되지 않은 원인은 추정하지 않아요.
+        </Notice>
+      )}
     </>
   )
 }

@@ -6,6 +6,7 @@ import type { TextSectionCount } from '@/shared/api/textChanges'
 import { Badge, Button, FieldLabel, Input, Notice, Panel, PanelTitle, SegmentedControl, Select } from '@/shared/ui'
 import { DartLinkActions } from '@/shared/ui/DartLink'
 import { verifiedDartUrl } from '@/shared/lib/dart'
+import { correctionLabel, formatDate, periodLabel } from '@/shared/lib/reportLabels'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { SourceHighlightText, TableView } from './TableView'
 import { useDocumentOutline, useSection } from '../hooks/useDocument'
@@ -43,6 +44,8 @@ interface SourceTabProps {
   sectionCounts: TextSectionCount[]
   /** 문장 변화 탭을 그 최상위 섹션(원래 제목)으로 거른다(#313) */
   onOpenTextSection: (section: string) => void
+  /** '← 분석 결과로 돌아가기': 원문을 열기 전에 보던 탭으로 간다(#550) */
+  onBack?: () => void
 }
 
 const USABLE = new Set(['STRUCTURED', 'PARTIAL'])
@@ -56,7 +59,7 @@ const sideOptions: { value: DocumentSide; label: string }[] = [
  * W-03 ④ 원문 확인(3.5). 비교·현재 보고서를 전환하며 목차와 선택한 근거 위치를 보여 준다.
  * 원문은 분석할 때 구조화한 것이고, DART 원문 안의 위치로 바로 가는 기능은 없어(위치 이동 미지원) 항목 정보를 함께 안내한다.
  */
-export function SourceTab({ analysis, side, sectionNo, blockNo, onChange, sectionCounts, onOpenTextSection }: SourceTabProps) {
+export function SourceTab({ analysis, side, sectionNo, blockNo, onChange, sectionCounts, onOpenTextSection, onBack }: SourceTabProps) {
   const { state: outline, reload } = useDocumentOutline(analysis.analysisId, side)
   const changeCounts = useMemo(() => sectionChangeCounts(sectionCounts), [sectionCounts])
   const [matchState, dispatchMatch] = useReducer(sourceSectionMatchReducer, initialSourceSectionMatchState)
@@ -92,12 +95,33 @@ export function SourceTab({ analysis, side, sectionNo, blockNo, onChange, sectio
   }
 
   return (
-    <Panel aria-label="원문 확인">
+    <Panel aria-label="원문">
+      {/* 원문 뷰어 머리(#550, 시안 13): 제목 | 돌아가기 → 보고서 이름 줄과 '주된 근거' 배지 */}
       <div className="source-head">
-        <SegmentedControl aria-label="보고서" options={sideOptions} value={side} onChange={switchSide} />
-        <p className="source-head__report">
-          {report.reportName} · 접수번호 <code>{report.rceptNo}</code>
-        </p>
+        <div className="source-head__main">
+          <PanelTitle>관련 원문 위치</PanelTitle>
+          <p className="panel__note">
+            {blockNo !== null ? '분석 결과에서 고른 근거 위치를 강조해 보여 줘요.' : '목차에서 항목을 골라 원문을 읽어요.'}
+          </p>
+        </div>
+        {onBack && (
+          <Button onClick={onBack}>
+            <span aria-hidden="true">←</span> 분석 결과로 돌아가기
+          </Button>
+        )}
+      </div>
+      <div className="source-report">
+        <div className="source-report__main">
+          <p className="source-report__name">{report.reportName}</p>
+          <p className="panel__note">
+            {analysis.corpName} · 대상 기간 {periodLabel(report)} · 제출일 {formatDate(report.receivedAt)} · 정정 여부{' '}
+            {correctionLabel(report.correction)} · 접수번호 <code>{report.rceptNo}</code>
+          </p>
+        </div>
+        <div className="source-report__aside">
+          {blockNo !== null && <Badge tone="accent">주된 근거</Badge>}
+          <SegmentedControl aria-label="보고서" options={sideOptions} value={side} onChange={switchSide} />
+        </div>
       </div>
 
       {match(outline)
@@ -426,9 +450,9 @@ function SectionBlocks({ outline, data, blockNo, headingRef }: SectionBlocksProp
           </Button>
         </nav>
       )}
-      <div className="source-foot">
+      <Notice className="source-foot" title={`출처: DART / ${outline.reportName}`}>
         <span>
-          출처 DART · {outline.reportName} · 접수번호 <code>{outline.rceptNo}</code>
+          접수번호 <code>{outline.rceptNo}</code> · 앱 안의 원문은 분석할 때 구조화한 것이에요.{' '}
         </span>
         {dartUrl ? (
           <a href={dartUrl} target="_blank" rel="noopener noreferrer">
@@ -438,7 +462,7 @@ function SectionBlocks({ outline, data, blockNo, headingRef }: SectionBlocksProp
         ) : (
           <span>원문 링크를 확인하지 못했어요. DART에서 접수번호로 검색해 주세요.</span>
         )}
-      </div>
+      </Notice>
       {!outline.positionLinkSupported && (
         <p className="panel__note">
           위치 이동 미지원 · DART 원문 안의 이 위치로 바로 가지는 못해요. DART 원문을 열고 목차에서 '{data.sectionPath}'를 찾아 주세요.

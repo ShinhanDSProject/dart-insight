@@ -177,7 +177,7 @@ export function TextTab({
   const failed = analysis.textStatus === 'FAILED' || analysis.textStatus === null
 
   return (
-    <Panel aria-label="문장·내용 변화">
+    <Panel aria-label="문장 변화">
       {notice && (
         <Notice tone="attention" role="status">
           {notice}
@@ -371,7 +371,7 @@ export function TextTab({
             ]}
           />
           <p className="panel__note">
-            원문에서 문단·표 단위로 비교했고, 숫자만 바뀐 표는 '재무 수치 변화'와 겹쳐 뒤로 미뤘어요.
+            원문에서 문단·표 단위로 비교했고, 숫자만 바뀐 표는 '재무 수치' 탭과 겹쳐 뒤로 미뤘어요.
           </p>
         </>
       )}
@@ -455,9 +455,9 @@ function ChangeCard({
         </Button>
       </div>
       {review ? (
-        <p className="change-card__review">
+        <Notice as="p" tone="attention" className="change-card__review">
           {item.reviewReason ?? '두 보고서의 항목을 짝짓지 못했어요.'} 빠진 것으로 숨기지 않고 여기에 보여 줘요.
-        </p>
+        </Notice>
       ) : (
         // 카드에는 이전·현재 문단을 3줄씩만 보이고, 전체는 '원문 비교' 창에서 본다(#507)
         <div className="change-card__sides change-card__sides--clamped">
