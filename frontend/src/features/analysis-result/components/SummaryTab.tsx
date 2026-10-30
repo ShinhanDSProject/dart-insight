@@ -376,7 +376,7 @@ function SummaryCard({ item, analysis, amount, onOpen, onOpenSource, onAsk, aski
         )}
       </div>
       <SummaryExplanation item={item} analysis={analysis} onOpenSource={onOpenSource} />
-      {(quoteLink !== null || question !== null) && (
+      {(quoteLink !== null || question !== null || noteTarget !== null) && (
         <div className="summary-item__actions">
           {quoteLink !== null && (
             <ButtonLink variant="secondary" to={quoteLink} aria-label={`커뮤니티에 인용: ${noteLabel}`}>
@@ -393,10 +393,10 @@ function SummaryCard({ item, analysis, amount, onOpen, onOpenSource, onAsk, aski
               AI에 질문
             </Button>
           )}
+          {noteTarget !== null && (
+            <AddToNote target={noteTarget} analysisId={analysis.analysisId} label={noteLabel} />
+          )}
         </div>
-      )}
-      {noteTarget !== null && (
-        <AddToNote target={noteTarget} analysisId={analysis.analysisId} label={noteLabel} />
       )}
     </Card>
   )

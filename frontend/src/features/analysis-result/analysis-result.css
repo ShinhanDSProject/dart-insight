@@ -551,11 +551,16 @@
   align-self: flex-start;
 }
 
-/* 노트에 담기(FS-57): 버튼, 메모 칸, 로그인 안내 */
+/* 노트에 담기(FS-57): 버튼, 메모 칸, 로그인 안내. 행동 버튼 줄(flex)에서는 다른 버튼과 나란히 서고, 메모 칸·로그인 안내가 열리면 줄 전체 폭을 쓴다(#556) */
 .note-add {
   display: grid;
   gap: var(--space-2);
   justify-items: start;
+}
+
+.note-add:has(.memo-form),
+.note-add:has(.note-add__login) {
+  flex-basis: 100%;
 }
 
 .note-add .memo-form,
@@ -2637,11 +2642,6 @@
   flex-wrap: wrap;
   align-items: flex-start;
   gap: var(--space-2);
-}
-
-.answer-cite__fact-actions .note-add:has(.memo-form),
-.answer-cite__fact-actions .note-add:has(.note-add__login) {
-  flex-basis: 100%;
 }
 
 .answer-card__notice {

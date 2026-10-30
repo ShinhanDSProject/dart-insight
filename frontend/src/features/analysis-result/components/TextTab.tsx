@@ -504,6 +504,7 @@ function ChangeCard({
             커뮤니티에 인용
           </ButtonLink>
         )}
+        <AddToNote target={{ kind: 'TEXT_CHANGE', changeId: item.changeId }} analysisId={analysis.analysisId} label={section} />
         {item.priority && item.priority.reasons.length > 0 && (
           <details className="change-card__why">
             <summary>우선순위를 정한 규칙</summary>
@@ -515,7 +516,6 @@ function ChangeCard({
           </details>
         )}
       </div>
-      <AddToNote target={{ kind: 'TEXT_CHANGE', changeId: item.changeId }} analysisId={analysis.analysisId} label={section} />
       {explainOpen && (
         <TextExplanationBox
           id={explainId}
