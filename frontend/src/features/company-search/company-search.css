@@ -18,12 +18,15 @@
   padding-top: var(--space-7);
 }
 
+/* 로고가 화면 제목이다(#549) */
 .search-hero__title {
-  margin-bottom: var(--space-2);
+  margin: 0 0 var(--space-5);
+  line-height: 1;
 }
 
+/* 검색창 아래 회색 한 줄 설명 */
 .search-hero__lead {
-  margin: 0 0 var(--space-5);
+  margin: var(--space-3) 0 0;
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }
@@ -108,6 +111,7 @@
 .search-form__hint {
   display: block;
   margin-top: var(--space-2);
+  text-align: left;
 }
 
 .field-error {
@@ -116,9 +120,37 @@
   font-size: var(--font-size-sm);
 }
 
-/* 검색창 바로 아래 빠른 바로가기(관심 기업 또는 대표 기업 상위 칩)와 한 줄 안내 바 */
+/* 검색창 아래 '자주 찾는 기업' 카드(로그인 전엔 로그인 한 줄)와 대표 기업 바로가기 칩, 한 줄 안내 바 */
 .home-shortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
   margin-bottom: var(--space-3);
+}
+
+.home-signin {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-block: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.home-signin__icon {
+  display: inline-flex;
+  flex: none;
+}
+
+.home-signin__text {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+.home-signin__link {
+  flex: none;
+  font-weight: var(--font-weight-bold);
 }
 
 .quick-featured__list {
@@ -163,14 +195,19 @@
   color: var(--color-border-strong);
 }
 
-/* 첫 화면 아래 단일 탭 탐색 보드(#538) */
+/* 첫 화면 아래 탭 카드(#538, #549). 탭 줄 아래 목록은 카드 안이라 목록 상자의 테두리를 겹쳐 그리지 않는다 */
 .home-shelf {
-  margin-top: var(--space-6);
-  padding-top: var(--space-2);
+  margin-top: var(--space-5);
 }
 
 .home-shelf .tabs {
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.home-shelf .home-list__rows,
+.home-shelf .season-changes__list {
+  border: none;
+  border-radius: 0;
 }
 
 .home-dialog {
@@ -195,31 +232,75 @@
   gap: var(--space-3);
 }
 
+/* 검색 결과 카드(#549): 제목 줄 + 결과 행, 아래 안내 상자 */
+.search-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  text-align: left;
+}
+
+.search-results__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.search-results__title {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.search-results__notice {
+  margin-top: var(--space-4);
+}
+
 .company-list {
   list-style: none;
-  margin: 0;
+  margin: 0 calc(var(--space-3) * -1);
   padding: 0;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
 }
 
 .company-list li + li {
   border-top: 1px solid var(--color-border);
 }
 
-/* 결과 한 행. 넓은 화면에서는 한 줄(왼쪽 이름·배지, 오른쪽 종목코드·고유번호)이고, 폭이 모자라면 오른쪽 묶음이 아랫줄로 내려간다 */
+/* 결과 한 행: 왼쪽에 이름·배지와 그 아래 종목코드·고유번호, 오른쪽에 '기업 선택 →' */
 .company-list__item {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-1) var(--space-4);
+  gap: var(--space-4);
   min-height: var(--touch-target-min);
-  padding: var(--space-2) var(--space-4);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
   color: inherit;
   text-decoration: none;
   transition: background-color var(--motion-fast) var(--ease-out);
+}
+
+.company-list__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.company-list__go {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-link);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.company-list__item:hover .company-list__go,
+.company-list__item:focus .company-list__go {
+  color: var(--color-link-hover);
 }
 
 .company-list__item:hover,
@@ -247,6 +328,7 @@
 }
 
 .company-list__name {
+  font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
 }
 
@@ -494,8 +576,12 @@
   overflow-wrap: anywhere;
 }
 
-/* 관심 기업(FS-18). 검색어가 없을 때 검색창 아래 둥근 칩으로 보인다 */
+/* 자주 찾는 기업(즐겨찾기, FS-18, #549). 검색창 아래 카드: 제목·개수·오른쪽 동작, 그 아래 둥근 칩 */
 .favorite-companies {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  text-align: left;
   animation: rise-in var(--motion-base) var(--ease-out);
 }
 
@@ -503,9 +589,32 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-2) var(--space-3);
-  margin-bottom: var(--space-2);
+}
+
+.favorite-companies__star {
+  display: inline-flex;
+  color: var(--color-accent);
+}
+
+.favorite-companies .favorite-companies__title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.favorite-companies__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-left: auto;
+}
+
+.favorite-companies__empty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
 }
 
 .favorite-companies__title {
@@ -525,10 +634,6 @@
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.home-shortcuts .favorite-companies__list {
-  justify-content: center;
 }
 
 .favorite-chip {
@@ -563,12 +668,6 @@
   color: inherit;
   font-size: var(--font-size-sm);
   text-decoration: none;
-}
-
-.favorite-chip__star {
-  display: inline-flex;
-  flex: none;
-  color: var(--color-accent);
 }
 
 .favorite-chip__name {

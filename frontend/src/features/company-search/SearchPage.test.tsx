@@ -232,12 +232,12 @@ describe('관심 기업(#36)', () => {
     renderAt('', signedIn)
     expect((await screen.findByRole('alert')).textContent).toContain('관심 기업을 불러오지 못했어요')
     fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
-    const section = await screen.findByRole('region', { name: '관심 기업' })
+    const section = await screen.findByRole('region', { name: '자주 찾는 기업 (즐겨찾기)' })
     expect(within(section).getByRole('link', { name: /삼성전자/ })).toBeTruthy()
   })
 })
 
-describe('첫 화면 구글형 중앙 레이아웃과 단일 탭 정돈(#538)', () => {
+describe('첫 화면 로고·검색창·즐겨찾기 카드·탭 카드(#538, #549)', () => {
   it('비로그인 첫 화면은 빠른 대표 기업 바로가기와 시즌·대표 기업 두 탭만 보이고 빈 로그인 상자를 두지 않는다', async () => {
     featuredAvailable = true
     const { container } = renderAt('')
@@ -248,7 +248,10 @@ describe('첫 화면 구글형 중앙 레이아웃과 단일 탭 정돈(#538)', 
 
     const shelfTabs = screen.getByRole('navigation', { name: '첫 화면 둘러보기' })
     expect(within(shelfTabs).getAllByRole('button').map((b) => b.textContent)).toEqual(['이번 시즌 변화', '대표 기업'])
-    expect(screen.queryByText(/로그인하면 관심 기업의 새 공시를 모아 볼 수 있어요/)).toBeNull()
+    // 즐겨찾기 카드 자리에는 로그인 안내 한 줄만 둔다(#549)
+    expect(screen.getByText('관심 기업의 새 공시는 로그인하면 여기에 모여요')).toBeTruthy()
+    expect(screen.getByRole('link', { name: '로그인' }).getAttribute('href')).toBe('/login')
+    expect(screen.queryByRole('region', { name: '자주 찾는 기업 (즐겨찾기)' })).toBeNull()
 
     fireEvent.click(within(shelfTabs).getByRole('button', { name: '대표 기업' }))
     expect(await screen.findByRole('region', { name: '대표 기업' })).toBeTruthy()
@@ -291,7 +294,7 @@ describe('첫 화면 구글형 중앙 레이아웃과 단일 탭 정돈(#538)', 
     const signedIn: AuthContextValue = { state: { status: 'authenticated', userId: 1 }, login: vi.fn(), logout: vi.fn() }
     renderAt('', signedIn)
 
-    await screen.findByRole('region', { name: '관심 기업' })
+    await screen.findByRole('region', { name: '자주 찾는 기업 (즐겨찾기)' })
     const shelfTabs = screen.getByRole('navigation', { name: '첫 화면 둘러보기' })
     expect(within(shelfTabs).getAllByRole('button').map((b) => b.textContent)).toEqual([
       '최근 본 분석',
@@ -305,5 +308,53 @@ describe('첫 화면 구글형 중앙 레이아웃과 단일 탭 정돈(#538)', 
     fireEvent.change(input, { target: { value: '삼성' } })
     fireEvent.click(screen.getByRole('button', { name: '검색어 지우기' }))
     expect(input.value).toBe('')
+  })
+})
+
+describe('검색 결과 카드(#549)', () => {
+  it('결과는 검색 결과 N곳 카드 안에 기업 선택 행으로 보이고 아래에 다음 단계 안내가 있다', async () => {
+    renderAt('삼성')
+    const card = await screen.findByRole('region', { name: '검색 결과 3곳' })
+    expect(within(card).getByRole('list', { name: '검색 결과 3곳' })).toBeTruthy()
+    expect(within(card).getAllByText('기업 선택')).toHaveLength(3)
+    expect(screen.getByText(/기업을 선택하면 정기보고서 목록에서 이전 보고서와 현재 보고서를 지정할 수 있어요/)).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('DART Insight 기업 검색')
+  })
+
+  it('결과가 없어도 같은 카드 틀에 0곳과 다시 찾는 방법을 보인다', async () => {
+    results = []
+    const { container } = renderAt('없는회사')
+    const card = await screen.findByRole('region', { name: '검색 결과 0곳' })
+    expect(within(card).getByText("'없는회사'에 맞는 기업이 없습니다.")).toBeTruthy()
+    expect(await axeViolations(container)).toBe('')
+  })
+})
+
+describe('자주 찾는 기업 카드(#549)', () => {
+  const signedIn: AuthContextValue = { state: { status: 'authenticated', userId: 1 }, login: vi.fn(), logout: vi.fn() }
+
+  it('관심 기업을 개수와 칩으로 보이고 기업 추가를 누르면 검색창으로 초점을 옮긴다', async () => {
+    favoritesApi.getFavoriteCompanies.mockResolvedValue({
+      items: [
+        { ...companies[0], addedAt: '2026-10-26T10:00:00' },
+        { ...companies[1], addedAt: '2026-10-25T10:00:00' },
+      ],
+    })
+    const { container } = renderAt('', signedIn)
+    const card = await screen.findByRole('region', { name: '자주 찾는 기업 (즐겨찾기)' })
+    expect(within(card).getByText('2')).toBeTruthy()
+    expect(within(card).getByRole('link', { name: /^삼성전자/ }).getAttribute('href')).toBe('/companies/00126380')
+    expect(within(card).getByRole('button', { name: '삼성전기 관심 기업에서 빼기' })).toBeTruthy()
+
+    fireEvent.click(within(card).getByRole('button', { name: '+ 기업 추가' }))
+    expect(document.activeElement).toBe(screen.getByRole('textbox', { name: '회사명 또는 종목코드' }))
+    expect(await axeViolations(container)).toBe('')
+  })
+
+  it('관심 기업이 없으면 별로 더하는 방법을 알린다', async () => {
+    favoritesApi.getFavoriteCompanies.mockResolvedValue({ items: [] })
+    renderAt('', signedIn)
+    const card = await screen.findByRole('region', { name: '자주 찾는 기업 (즐겨찾기)' })
+    expect(within(card).getByText(/별을 누르면 자주 찾는 기업으로 여기에 모여요/)).toBeTruthy()
   })
 })

@@ -16,7 +16,7 @@ describe('첫 화면 관심 기업(#534)', () => {
   it('관심 기업이 1곳뿐이면 나란히 보기 링크를 두지 않는다', () => {
     render(
       <MemoryRouter>
-        <FavoriteCompanies items={[fav('00126380', '삼성전자')]} onRemove={vi.fn(() => Promise.resolve())} />
+        <FavoriteCompanies items={[fav('00126380', '삼성전자')]} onRemove={vi.fn(() => Promise.resolve())} onAdd={vi.fn()} />
       </MemoryRouter>,
     )
     expect(screen.getByRole('link', { name: /삼성전자/ })).toBeTruthy()
@@ -29,6 +29,7 @@ describe('첫 화면 관심 기업(#534)', () => {
         <FavoriteCompanies
           items={[fav('00126380', '삼성전자'), fav('00164779', 'SK하이닉스')]}
           onRemove={vi.fn(() => Promise.resolve())}
+          onAdd={vi.fn()}
         />
       </MemoryRouter>,
     )
@@ -50,6 +51,7 @@ describe('첫 화면 관심 기업(#534)', () => {
             fav('00000005', '다섯째기업', false),
           ]}
           onRemove={vi.fn(() => Promise.resolve())}
+          onAdd={vi.fn()}
         />
       </MemoryRouter>,
     )
