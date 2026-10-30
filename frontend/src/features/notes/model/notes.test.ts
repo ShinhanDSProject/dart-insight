@@ -9,6 +9,7 @@ import {
   newerAnalysisLink,
   noteKindLabel,
   noteLocation,
+  noteQuoteLink,
   noteResultLink,
   notesReducer,
   noteTime,
@@ -83,6 +84,45 @@ describe('noteResultLink', () => {
 
   it('분석 ID가 없으면 링크를 만들지 않는다', () => {
     expect(noteResultLink(noteItem({ source: { ...noteItem().source, analysisId: null } }))).toBeNull()
+  })
+})
+
+describe('noteQuoteLink(#535)', () => {
+  it('유효한 재무·문장 노트는 기업 커뮤니티 인용 글쓰기 주소를 만든다', () => {
+    expect(noteQuoteLink(noteItem())).toBe(
+      '/companies/00126380?view=community&quoteAnalysis=42&quoteKind=FINANCIAL_CHANGE&quoteChange=901&quoteSj=IS',
+    )
+    expect(
+      noteQuoteLink(
+        noteItem({
+          kind: 'TEXT_CHANGE',
+          changeType: 'MODIFIED',
+          source: { ...noteItem().source, sjDiv: null, changeId: 77 },
+        }),
+      ),
+    ).toBe('/companies/00126380?view=community&quoteAnalysis=42&quoteKind=TEXT_CHANGE&quoteChange=77')
+  })
+
+  it('버전이 바뀌었거나 검토 필요이거나 AI 답 인용이거나 변경 ID가 없으면 링크를 만들지 않는다', () => {
+    expect(noteQuoteLink(noteItem({ outdated: true }))).toBeNull()
+    expect(
+      noteQuoteLink(
+        noteItem({
+          kind: 'TEXT_CHANGE',
+          changeType: 'REVIEW_NEEDED',
+          source: { ...noteItem().source, sjDiv: null, changeId: 77 },
+        }),
+      ),
+    ).toBeNull()
+    expect(
+      noteQuoteLink(
+        noteItem({
+          kind: 'ANSWER_CITATION',
+          source: { ...noteItem().source, sjDiv: null, changeId: null, questionId: 7, side: 'current', sectionNo: 2, blockNo: 1 },
+        }),
+      ),
+    ).toBeNull()
+    expect(noteQuoteLink(noteItem({ source: { ...noteItem().source, changeId: null } }))).toBeNull()
   })
 })
 

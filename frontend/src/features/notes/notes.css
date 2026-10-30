@@ -1,4 +1,43 @@
-/* 내 판단 노트(FS-57·#504) */
+/* 내 판단 노트(FS-57·#504·#535) */
+.notes-filter {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-subtle);
+}
+
+.notes-filter__search {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.notes-filter__chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.notes-filter__chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.notes-filter__summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
 .notes__companies {
   display: grid;
   gap: var(--space-5);

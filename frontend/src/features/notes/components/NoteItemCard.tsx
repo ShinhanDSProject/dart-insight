@@ -6,7 +6,7 @@ import { formatDate } from '@/shared/lib/reportLabels'
 import { Badge, Button, ButtonAnchor, ButtonLink, Card, MemoForm, Notice } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { AlertState } from '@/shared/ui/StateView'
-import { noteKindLabel, noteLocation, noteResultLink, noteTime, OUTDATED_NOTE } from '../model/notes'
+import { noteKindLabel, noteLocation, noteQuoteLink, noteResultLink, noteTime, OUTDATED_NOTE } from '../model/notes'
 
 interface NoteItemCardProps {
   item: NoteItem
@@ -28,6 +28,7 @@ type CardState =
 export function NoteItemCard({ item, onSaveMemo, onRemove }: NoteItemCardProps) {
   const [card, setCard] = useState<CardState>({ status: 'viewing', failed: null })
   const link = noteResultLink(item)
+  const quoteLink = noteQuoteLink(item)
   const location = noteLocation(item)
   const dartUrl = item.source.rceptNo === null ? null : verifiedDartUrl(item.source.rceptNo, item.source.dartUrl)
 
@@ -119,6 +120,11 @@ export function NoteItemCard({ item, onSaveMemo, onRemove }: NoteItemCardProps) 
               {link !== null && (
                 <ButtonLink variant="secondary" to={link}>
                   원래 위치 보기
+                </ButtonLink>
+              )}
+              {quoteLink !== null && (
+                <ButtonLink variant="secondary" to={quoteLink}>
+                  커뮤니티에 인용
                 </ButtonLink>
               )}
               {dartUrl !== null && (
