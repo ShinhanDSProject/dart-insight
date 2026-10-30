@@ -1206,6 +1206,12 @@
   text-align: right;
 }
 
+.checkpoints__quote {
+  justify-self: stretch;
+  text-align: left;
+  white-space: pre-line;
+}
+
 .checkpoints__value {
   font-variant-numeric: tabular-nums;
   font-weight: var(--font-weight-medium);

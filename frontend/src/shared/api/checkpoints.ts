@@ -14,7 +14,8 @@ export type CheckpointKey =
 /** CHECK 확인해 볼 점, OK 특이사항 없음, NO_DATA 자료 없음(0과 구분). 좋고 나쁨이 아니다 */
 export type CheckpointStatus = 'CHECK' | 'OK' | 'NO_DATA'
 
-export type CheckpointFactUnit = 'AMOUNT' | 'PERCENT' | 'PERCENT_POINT' | 'COUNT'
+/** PRESENCE는 있음 1·없음 0(#546) */
+export type CheckpointFactUnit = 'AMOUNT' | 'PERCENT' | 'PERCENT_POINT' | 'COUNT' | 'PRESENCE'
 
 /** 값이 null인 이유 */
 export type CheckpointFactReason = 'MISSING' | 'PREVIOUS_ZERO' | 'PREVIOUS_NEGATIVE' | 'EQUITY_NOT_POSITIVE' | 'NOT_CHECKED'
@@ -30,6 +31,13 @@ export interface CheckpointEvidence {
   dartUrl: string
 }
 
+/** 공시 문구가 근거인 값의 원문 일부(#546). text는 원문 그대로 */
+export interface CheckpointQuote {
+  text: string
+  rceptNo: string
+  dartUrl: string
+}
+
 export interface CheckpointFact {
   label: string
   /** 없으면 null(0과 구분). 그때 reason이 이유 */
@@ -40,6 +48,8 @@ export interface CheckpointFact {
   reason: CheckpointFactReason | null
   /** 재무제표 계정 값이면 근거, 계산한 값·건수면 null */
   evidence: CheckpointEvidence | null
+  /** 공시 문구가 근거인 값(계속기업 관련 강조사항이 있음)이면 원문 일부, 아니면 null */
+  quote?: CheckpointQuote | null
 }
 
 export interface CheckpointDisclosure {
