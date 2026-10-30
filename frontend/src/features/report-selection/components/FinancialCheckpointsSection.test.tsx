@@ -127,6 +127,39 @@ describe('재무 체크 포인트', () => {
     expect(await axeViolations(container)).toBe('')
   })
 
+  it('감사의견 카드에 계속기업 관련 강조사항 있음과 원문 일부·근거 접수번호를 보인다', async () => {
+    const audit: CheckpointItem = {
+      ...receivables,
+      key: 'AUDIT_OPINION',
+      title: '감사의견',
+      note: "사업보고서에 적힌 제16기(당기) 강조사항 등에 '계속기업' 문구가 있어요. 감사인 변경 건수는 참고로만 보여 줘요.",
+      facts: [
+        { label: '적정이 아닌 감사의견', value: 0, unit: 'COUNT', currency: null, reason: null, evidence: null, quote: null },
+        {
+          label: '계속기업 관련 강조사항',
+          value: 1,
+          unit: 'PRESENCE',
+          currency: null,
+          reason: null,
+          evidence: null,
+          quote: { text: '계속기업 가정에 관한 중요한 불확실성', rceptNo: CUR, dartUrl: url(CUR) },
+        },
+      ],
+      disclosures: [],
+    }
+    getCompanyCheckpoints.mockResolvedValue(available([audit]))
+    const { container } = renderWithRouter(<FinancialCheckpointsSection corpCode="00126380" />)
+
+    const card = (await screen.findByRole('heading', { name: '감사의견' })).closest('article')!
+    expect(within(card).getByText('있음')).toBeTruthy()
+    expect(within(card).getByText('“계속기업 가정에 관한 중요한 불확실성”')).toBeTruthy()
+    expect(within(card).getByText(new RegExp(`원문 일부 · 접수번호 ${CUR}`))).toBeTruthy()
+    const link = within(card).getByRole('link', { name: '계속기업 관련 강조사항 근거 DART 원문 새 창으로 열기' })
+    expect(link.getAttribute('href')).toBe(url(CUR))
+    expect(container.textContent).not.toMatch(JUDGMENT)
+    expect(await axeViolations(container)).toBe('')
+  })
+
   it('확인해 볼 점만 주의 색 배지이고 특이사항 없음·자료 없음은 중립색이다', async () => {
     getCompanyCheckpoints.mockResolvedValue(available())
     renderWithRouter(<FinancialCheckpointsSection corpCode="00126380" />)

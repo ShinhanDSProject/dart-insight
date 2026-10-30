@@ -212,6 +212,7 @@ function CheckpointCard({
 function FactRow({ fact }: { fact: CheckpointFact }) {
   const exact = exactAmount(fact)
   const evidence = fact.evidence
+  const quote = fact.quote
   return (
     <div className="checkpoints__fact">
       <dt>{fact.label}</dt>
@@ -224,6 +225,17 @@ function FactRow({ fact }: { fact: CheckpointFact }) {
             {evidence.statementName} · {evidence.accountName} · 접수번호 {evidence.rceptNo}{' '}
             <DartLinkInline rceptNo={evidence.rceptNo} dartUrl={evidence.dartUrl} label={`${fact.label} 근거`} />
           </span>
+        )}
+        {quote && (
+          <>
+            <blockquote className="company-outlook__quote checkpoints__quote">
+              <p>“{quote.text}”</p>
+            </blockquote>
+            <span className="checkpoints__evidence">
+              원문 일부 · 접수번호 {quote.rceptNo}{' '}
+              <DartLinkInline rceptNo={quote.rceptNo} dartUrl={quote.dartUrl} label={`${fact.label} 근거`} />
+            </span>
+          </>
         )}
       </dd>
     </div>

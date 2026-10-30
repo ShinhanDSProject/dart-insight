@@ -60,6 +60,7 @@ export function formatFactValue(fact: CheckpointFact): string {
     .with('PERCENT', () => (isGrowth(fact) ? `${signed(value)}%` : `${decimalFormat.format(value)}%`))
     .with('PERCENT_POINT', () => `${signed(value)}%p`)
     .with('COUNT', () => `${formatInteger(value)}건`)
+    .with('PRESENCE', () => (value > 0 ? '있음' : '없음'))
     .exhaustive()
 }
 

@@ -32,6 +32,9 @@ describe('재무 체크 포인트 표시', () => {
     expect(formatFactValue(fact({ label: '증가율 차이', unit: 'PERCENT_POINT', value: 40 }))).toBe('+40.0%p')
     expect(formatFactValue(fact({ label: '부채비율 (올해)', unit: 'PERCENT', value: 240 }))).toBe('240.0%')
     expect(formatFactValue(fact({ label: '자금 조달 공시', unit: 'COUNT', value: 0 }))).toBe('0건')
+    expect(formatFactValue(fact({ label: '계속기업 관련 강조사항', unit: 'PRESENCE', value: 1 }))).toBe('있음')
+    expect(formatFactValue(fact({ label: '계속기업 관련 강조사항', unit: 'PRESENCE', value: 0 }))).toBe('없음')
+    expect(formatFactValue(fact({ unit: 'PRESENCE', value: null, reason: 'NOT_CHECKED' }))).toBe('확인하지 못함')
   })
 
   it('금액은 짧게, 원 단위 그대로도 보여 준다', () => {
