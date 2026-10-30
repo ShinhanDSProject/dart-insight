@@ -17,6 +17,10 @@ export type IconName =
   | 'moon'
   | 'bookmark'
   | 'table-2'
+  | 'info'
+  | 'circle-alert'
+  | 'triangle-alert'
+  | 'menu'
 
 // lucide 'star' 모양. 채운 별은 같은 모양을 글자색으로 채운다(켜진 관심 기업)
 const STAR_PATH =
@@ -97,6 +101,36 @@ const shapes: Record<IconName, ReactNode> = {
   bookmark: <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />,
   'table-2': (
     <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18" />
+  ),
+  // 안내 상자(Notice) 세 가지: 정보 / 오류·진행 불가 / 주의(#548)
+  info: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 16v-4" />
+      <path d="M12 8h.01" />
+    </>
+  ),
+  'circle-alert': (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 8v4" />
+      <path d="M12 16h.01" />
+    </>
+  ),
+  'triangle-alert': (
+    <>
+      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+      <path d="M12 9v4" />
+      <path d="M12 17h.01" />
+    </>
+  ),
+  // 좁은 화면 상단 바의 메뉴 버튼(#548)
+  menu: (
+    <>
+      <path d="M4 6h16" />
+      <path d="M4 12h16" />
+      <path d="M4 18h16" />
+    </>
   ),
 }
 

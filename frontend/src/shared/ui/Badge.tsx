@@ -1,8 +1,11 @@
 import type { ComponentPropsWithoutRef } from 'react'
 import { cx } from '@/shared/lib/cx'
 
-/** neutral: 기본(회색), accent: 현재 보고서·진행 상태·'AI 생성'·변경 유형, attention: '검토 필요' */
-export type BadgeTone = 'neutral' | 'accent' | 'attention'
+/**
+ * 작은 알약 표식(#548). neutral: 기본(회색), accent: 현재 보고서·진행 상태·'AI 생성'·변경 유형·'분석 준비'(보라),
+ * attention: '검토 필요'(옅은 노랑), danger: '비교 불가'·'분석 실패'처럼 진행할 수 없는 상태(옅은 분홍)
+ */
+export type BadgeTone = 'neutral' | 'accent' | 'attention' | 'danger'
 
 type BadgeProps = { tone?: BadgeTone } & ComponentPropsWithoutRef<'span'>
 
