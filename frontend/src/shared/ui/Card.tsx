@@ -1,8 +1,8 @@
 import type { ComponentPropsWithoutRef } from 'react'
 import { cx } from '@/shared/lib/cx'
 
-/** attention: '검토 필요' 항목(주의 색 테두리) */
-export type CardTone = 'default' | 'attention'
+/** attention: '검토 필요' 항목(주의 색 테두리), subtle: 옅은 회보라 바탕(현재 보고서처럼 짝 중 기준이 되는 카드, #548) */
+export type CardTone = 'default' | 'attention' | 'subtle'
 
 type CardProps = {
   as?: 'div' | 'section' | 'article'
@@ -13,7 +13,7 @@ type CardProps = {
   interactive?: boolean
 } & ComponentPropsWithoutRef<'div'>
 
-/** 목록 안의 카드(보고서·요약·변경 카드). 안쪽 배치는 className으로 정한다. */
+/** 목록 안의 카드(보고서·요약·변경 카드). 흰 바탕, 1px 테두리, 모서리 12. 안쪽 배치는 className으로 정한다. */
 export function Card({ as: Tag = 'div', tone = 'default', selected = false, interactive = false, className, ...rest }: CardProps) {
   return <Tag className={cx('card', tone !== 'default' && `card--${tone}`, selected && 'card--selected', interactive && 'card--interactive', className)} {...rest} />
 }
