@@ -590,13 +590,24 @@ API는 사업연도·보고서 코드마다 최신 공시 하나의 값만 줍�
 
 ### disclosure_audit_opinion — 사업보고서의 회계감사인·감사의견(#411, FS-55)
 
-> 마이그레이션: `V36__create_disclosure_audit_opinion.sql`. 캐시 정책은 [ADR-0024](adr/0024-company-info-cache.md)(보고서에 딸린 자료는 접수번호로 한 번만 받음).
+> 마이그레이션: `V36__create_disclosure_audit_opinion.sql`, `V45__refetch_disclosure_audit_opinion.sql`(행에 강조사항 등·특기사항·핵심감사사항을 더하며 그 값이 없는 저장 행을 지움, #546). 캐시 정책은 [ADR-0024](adr/0024-company-info-cache.md)(보고서에 딸린 자료는 접수번호로 한 번만 받음).
 
 확인해 볼 공시(`GET /api/companies/{corpCode}/disclosure-signals`)가 최근 공시 목록의 사업보고서(접수번호)마다 OpenDART '회계감사인의 명칭 및 감사의견'(`accnutAdtorNmNdAdtOpinion.json`, DS002 2020009)을 부른 결과입니다.
 
 - 자료가 있으면(`OK`) 다시 받지 않습니다. 정정 공시는 새 접수번호라 새로 받습니다.
 - `013`(자료 없음)이거나 쓸 행이 없으면(접수번호가 없는 행뿐, 결산기준일이 다른 기간) `NO_DATA`로 저장하고, 받은 지 `app.disclosures.refresh-after`(1시간)가 지나면 한 번 더 받습니다. 호출 실패는 저장하지 않습니다.
-- 행은 몇 개(당기·전기·전전기, 연결·별도로 겹침)라 표로 나누지 않고, backend가 정리한 행 목록(`term`·`auditor`·`opinion`, 원문 값에서 앞뒤 공백만 빼고 `-`·빈 값은 null)을 JSON 한 칸(`rows_json`)에 둡니다. 같은 행은 한 번만 둡니다. 저장·조회는 `DisclosureAuditOpinionStore`(JdbcTemplate)가 합니다.
+- 행은 몇 개(당기·전기·전전기, 연결·별도로 겹침)라 표로 나누지 않고, backend가 정리한 행 목록을 JSON 한 칸(`rows_json`)에 둡니다. 값은 원문에서 앞뒤 공백만 빼고 `-`·빈 값은 null입니다. 같은 행은 한 번만 둡니다. 저장·조회는 `DisclosureAuditOpinionStore`(JdbcTemplate)가 합니다.
+
+  | 행 필드 | OpenDART 필드 | 설명 |
+  | --- | --- | --- |
+  | `term` | `bsns_year` | 사업연도(공백을 모두 뺀 값, 예 `제60기(당기)`) |
+  | `auditor` | `adtor` | 감사인 |
+  | `opinion` | `adt_opinion` | 감사의견 |
+  | `emphasisMatter` | `emphs_matter` | 강조사항 등(2019-12-09부터 있는 필드, #546) |
+  | `specialMatter` | `adt_reprt_spcmnt_matter` | 감사보고서 특기사항(2019-12-08까지 쓰던 필드, #546) |
+  | `keyAuditMatter` | `core_adt_matter` | 핵심감사사항(2019-12-09부터, 저장만 하고 아직 쓰지 않음, #546) |
+
+  새 필드는 행마다 값이 달라(당기·전기, 연결·별도) 표의 열이 아니라 같은 JSON 행에 둡니다. 이 필드를 더하기 전에 받은 행에는 값이 없어 계속기업 문구를 볼 수 없으므로 `V45`에서 저장된 행을 모두 지웠습니다(캐시라 다음 요청에 사업보고서마다 다시 받음).
 - `company_disclosure`는 기업 목록을 다시 받을 때 통째로 지우고 넣으므로 외래 키를 걸지 않습니다. `report`에도 없을 수 있어(보고서 목록을 아직 받지 않은 기업) 외래 키를 걸지 않습니다.
 
 | 컬럼 | 타입 | 키 | null | 설명 |
@@ -605,7 +616,7 @@ API는 사업연도·보고서 코드마다 최신 공시 하나의 값만 줍�
 | `rcept_no` | VARCHAR(14) | UK | 아니오 | 사업보고서 접수번호(최근 공시의 `rcept_no`) |
 | `status` | VARCHAR(10) | | 아니오 | `OK` 자료 있음, `NO_DATA` 자료 없음 |
 | `source_rcept_no` | VARCHAR(14) | | 예 | 응답 행의 접수번호가 `rcept_no`와 다를 때(뒤에 나온 정정본) 그 접수번호. 같으면 null |
-| `rows_json` | MEDIUMTEXT | | 아니오 | 행 목록 JSON 배열. `NO_DATA`면 `[]` |
+| `rows_json` | MEDIUMTEXT | | 아니오 | 행 목록 JSON 배열(위 '행 필드'). `NO_DATA`면 `[]` |
 | `fetched_at` | DATETIME(6) | | 아니오 | 받은 시각 |
 
 ### financial_account
