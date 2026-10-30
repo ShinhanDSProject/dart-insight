@@ -53,6 +53,22 @@ describe('StatNumber', () => {
     expect(line).toContain('100억원 (−12.5%)')
   })
 
+  it('이전 값 줄을 값 아래에 두고, 앞말이 빈 문자열이면 증감만 보인다', () => {
+    reduceMotion(true)
+    const { container } = render(
+      <StatNumber
+        label="매출액"
+        value={1234}
+        format={format}
+        previousText="이전 1,000"
+        changeLabel=""
+        change={{ direction: 'up', amount: '234', rate: '+23.4%' }}
+      />,
+    )
+    expect(container.querySelector('.stat-number__previous')?.textContent).toBe('이전 1,000')
+    expect(container.querySelector('.stat-number__change')?.textContent).toBe('▲증가 234 (+23.4%)')
+  })
+
   it('증감률을 계산하지 않았으면 사유 문구만 보인다', () => {
     reduceMotion(true)
     const { container } = render(<StatNumber label="영업이익" value={10} format={format} changeNote="전기 값이 없어요." />)

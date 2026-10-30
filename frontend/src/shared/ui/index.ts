@@ -11,6 +11,7 @@ export { DataTable, DataTableRow, SortableHeader, type SortState } from './DataT
 export { FieldHint, FieldLabel, Input, Select, TextArea } from './Field'
 export { Icon, type IconName } from './Icon'
 export { MemoForm } from './MemoForm'
+export { MenuButton, MenuItem } from './MenuButton'
 export { Notice, type NoticeTone } from './Notice'
 export { Page, PageHeader } from './PageHeader'
 export { Panel, PanelTitle } from './Panel'

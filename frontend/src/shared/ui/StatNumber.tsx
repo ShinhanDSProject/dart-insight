@@ -23,7 +23,9 @@ interface StatNumberProps {
   format: (value: number) => string
   /** 숫자 뒤의 단위(예: 원) */
   unit?: string
-  /** 보조 줄 앞말(예: 전기 대비) */
+  /** 값 아래 작은 줄의 이전 값 문구(예: 이전 153.7조). 없으면 그리지 않는다(#550 핵심 숫자) */
+  previousText?: string | null
+  /** 보조 줄 앞말(예: 전기 대비). 빈 문자열이면 앞말 없이 증감만 */
   changeLabel?: string
   /** 증감. 없으면 보조 줄을 그리지 않고, changeNote만 있으면 그 문구만 보인다 */
   change?: StatChange | null
@@ -46,6 +48,7 @@ export function StatNumber({
   value,
   format,
   unit,
+  previousText = null,
   changeLabel = '전기 대비',
   change = null,
   changeNote = null,
@@ -78,9 +81,10 @@ export function StatNumber({
           </span>
         </p>
       )}
+      {previousText !== null && <p className="stat-number__previous">{previousText}</p>}
       {(change !== null || changeNote !== null) && (
         <p className="stat-number__change">
-          <span>{changeLabel}</span>
+          {changeLabel !== '' && <span>{changeLabel}</span>}
           {change !== null && <ChangeText change={change} />}
           {changeNote !== null && <span className="stat-number__note">{changeNote}</span>}
         </p>
