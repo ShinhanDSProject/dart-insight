@@ -7,6 +7,7 @@ import { lazyPage } from './lazyPage'
 
 // 화면 코드는 그 화면을 처음 열 때 받는다(첫 로딩을 줄이기 위해). 받지 못하면 RouteError가 '다시 시도'를 보여 준다.
 const SearchPage = lazyPage(() => import('@/features/company-search/SearchPage').then((m) => m.SearchPage))
+const ExplorePage = lazyPage(() => import('@/features/company-search/ExplorePage').then((m) => m.ExplorePage))
 const SignupPage = lazyPage(() => import('@/features/user-registration/SignupPage').then((m) => m.SignupPage))
 const LoginPage = lazyPage(() => import('@/features/user-login/LoginPage').then((m) => m.LoginPage))
 const CompanyPage = lazyPage(() => import('@/features/report-selection/CompanyPage').then((m) => m.CompanyPage))
@@ -51,6 +52,7 @@ export const router = createBrowserRouter([
         errorElement: <RouteError />,
         children: [
           { path: '/', element: <PageSuspense><SearchPage /></PageSuspense>, handle: { crumb: '기업 검색' } },
+          { path: '/explore', element: <PageSuspense><ExplorePage /></PageSuspense>, handle: { crumb: '둘러보기' } },
           { path: '/signup', element: <PageSuspense><SignupPage /></PageSuspense>, handle: { crumb: '회원가입' } },
           { path: '/login', element: <PageSuspense><LoginPage /></PageSuspense>, handle: { crumb: '로그인' } },
           {

@@ -1,35 +1,23 @@
 import { useCallback, useRef, useState, type FormEvent, type KeyboardEvent, type MouseEvent, type Ref } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { Link, Navigate, useSearchParams } from 'react-router'
 import { match } from 'ts-pattern'
-import { useAuth } from '@/shared/auth/authContext'
 import type { AsyncState } from '@/shared/hooks/asyncState'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
-import { useFavoriteCompanies } from '@/shared/hooks/useFavoriteCompanies'
+import { useFavoriteCompanies, type FavoriteCompaniesStatus } from '@/shared/hooks/useFavoriteCompanies'
 import { useRecentAnalyses } from '@/shared/hooks/useRecentAnalyses'
 import { cx } from '@/shared/lib/cx'
 import { ONBOARDING_EXAMPLE_CORP_CODE } from '@/shared/lib/onboarding'
 import { pageTitle } from '@/shared/lib/pageTitle'
-import { SERVICE_NOTICE } from '@/shared/lib/serviceNotice'
-import { BrandLogo, Button, ButtonLink, Card, Dialog, FieldHint, Icon, Input, Notice, Page, Tabs } from '@/shared/ui'
-import { AlertState, EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
+import type { FavoriteCompany } from '@/shared/api/favoriteCompanies'
+import { BrandLogo, Button, ButtonLink, Card, Dialog, FieldHint, Icon, Input, Notice, Page } from '@/shared/ui'
+import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { CompanyList, RESULT_LINK_SELECTOR } from './components/CompanyList'
-import { FavoriteCompanies } from './components/FavoriteCompanies'
-import { FavoriteDisclosureFeed } from './components/FavoriteDisclosureFeed'
-import { FeaturedCompanies } from './components/FeaturedCompanies'
 import { OnboardingStepsList } from './components/OnboardingGuide'
 import { RecentAnalyses } from './components/RecentAnalyses'
-import { SeasonChanges } from './components/SeasonChanges'
 import { useAutoSearch } from './hooks/useAutoSearch'
 import { useCompanySearch, type SearchResult as SearchData } from './hooks/useCompanySearch'
-import { useFeaturedCompanies } from './hooks/useFeaturedCompanies'
 import { useSearchForm } from './hooks/useSearchForm'
-import {
-  buildHomeTabs,
-  EXAMPLE_QUERIES,
-  resolveHomeTab,
-  serializeHomeTab,
-  type HomeModal,
-} from './model/homeLayout'
+import { EXAMPLE_QUERIES, type HomeModal } from './model/homeLayout'
 import { nextResultFocus } from './model/resultFocus'
 import './company-search.css'
 
@@ -38,9 +26,9 @@ const errorMessages: Record<string, string> = {
 }
 
 /**
- * W-01 ① 기업 검색(#538, #560).
- * 검색 전 첫 화면은 첫 시야에 로고·검색창·안내 한 줄·예시 검색어만 두고, 최근 본 분석과 로그인 안내는
- * 빈 검색창에 초점을 줄 때 아래로 펼친다. 관심 기업·이번 시즌 변화·대표 기업은 첫 시야 아래 탭 보드에 둔다.
+ * W-01 ① 기업 검색(#538, #560, FS-67).
+ * 검색 전 첫 화면은 로고와 검색창만 둔다. 빈 검색창에 초점을 주면 아래로 펼침 상자(최근 본 분석·자주 찾는 기업·
+ * 예시 검색어·둘러보기·사용법)가 열리고, 관심 기업 새 공시·이번 시즌 변화·대표 기업 탭은 둘러보기 화면(/explore)에 둔다.
  * 검색어는 주소(?q=)에 남겨 뒤로 가기를 해도 결과가 유지되며, 입력을 멈추면 Enter 없이도 찾는다.
  */
 export function SearchPage() {
@@ -51,8 +39,8 @@ export function SearchPage() {
   const isHome = query === ''
   const { input, inputError, setInput, submit } = useSearchForm(query)
   const { state, reload } = useCompanySearch(query)
-  const auth = useAuth()
   const recent = useRecentAnalyses()
+  const favorites = useFavoriteCompanies()
   const [modal, setModal] = useState<HomeModal>('none')
   // 입력 중 자동 검색은 방문 기록을 쌓지 않는다(replace)
   const searchAsTyped = useCallback((next: string) => setSearchParams({ q: next }, { replace: true }), [setSearchParams])
@@ -85,6 +73,11 @@ export function SearchPage() {
       setSearchParams({}, { replace: true })
     }
     focusInput()
+  }
+
+  // 예전 첫 화면 탭 주소(/?tab=)는 둘러보기 화면으로 보낸다(FS-67 R5)
+  if (isHome && rawTab !== null) {
+    return <Navigate to={{ pathname: '/explore', search: `?tab=${encodeURIComponent(rawTab)}` }} replace />
   }
 
   return (
@@ -128,7 +121,12 @@ export function SearchPage() {
               </Button>
             </div>
             {isHome && input === '' && (
-              <SearchDrop recent={recent} anonymous={auth.state.status === 'anonymous'} />
+              <SearchDrop
+                recent={recent}
+                favoritesStatus={favorites.status}
+                favorites={favorites.items}
+                onOpenGuide={() => setModal('guide')}
+              />
             )}
             <FieldHint id="company-query-hint" className="visually-hidden">
               초성으로도 찾을 수 있어요. 결과는 ↓ 키로 고르고 Enter로 열어요.
@@ -139,20 +137,7 @@ export function SearchPage() {
               </p>
             )}
           </form>
-          <p className="search-hero__lead">회사를 찾고, 보고서 두 개를 고르면, 바뀐 수치와 문장을 원문 근거와 함께 보여 드려요.</p>
-          {isHome && <ExampleQueries />}
         </div>
-
-        {isHome && (
-          <HomeBody
-            rawTab={rawTab}
-            onChangeTab={(serialized) =>
-              setSearchParams(serialized === null ? {} : { tab: serialized }, { replace: true })
-            }
-            onOpenModal={setModal}
-            onAddFavorite={focusInput}
-          />
-        )}
 
         <SearchResult state={state} onRetry={reload} listRef={listRef} onBackToInput={focusInput} />
       </div>
@@ -173,105 +158,11 @@ export function SearchPage() {
         </Dialog>
       )}
 
-      {modal === 'notice' && (
-        <Dialog titleId="home-notice-title" title="이용 안내" onClose={() => setModal('none')}>
-          <div className="home-dialog">
-            <ul className="home-dialog__list">
-              {SERVICE_NOTICE.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-            <div className="onboarding__actions">
-              <Button variant="secondary" onClick={() => setModal('none')}>
-                닫기
-              </Button>
-            </div>
-          </div>
-        </Dialog>
-      )}
     </Page>
   )
 }
 
-interface HomeBodyProps {
-  rawTab: string | null
-  onChangeTab: (serialized: string | null) => void
-  onOpenModal: (modal: Exclude<HomeModal, 'none'>) => void
-  /** 자주 찾는 기업 카드의 '+ 기업 추가'(검색창으로 초점) */
-  onAddFavorite: () => void
-}
-
-/**
- * 검색 전 첫 화면 본문(#538, #549). 검색창 아래 '자주 찾는 기업 (즐겨찾기)' 카드(로그인 전엔 로그인 안내 한 줄),
- * 관심 기업이 없으면 대표 기업 바로가기 칩, 서비스 안내 한 줄, 그 아래 탭 카드(최근 본 분석·관심 기업 새 공시·이번 시즌 변화·대표 기업).
- */
-function HomeBody({ rawTab, onChangeTab, onOpenModal, onAddFavorite }: HomeBodyProps) {
-  const favorites = useFavoriteCompanies()
-  const featured = useFeaturedCompanies()
-
-  const hasFavorites = favorites.status === 'ready' && favorites.items.length > 0
-  const tabs = buildHomeTabs({ hasFavorites })
-  const activeTab = resolveHomeTab(rawTab, tabs)
-
-  return (
-    <>
-      <div className="home-shortcuts">
-        {match(favorites.status)
-          .with('error', () => (
-            <AlertState title="관심 기업을 불러오지 못했어요.">
-              <Button variant="secondary" onClick={favorites.reload}>
-                다시 시도
-              </Button>
-            </AlertState>
-          ))
-          .with('ready', () => (
-            <FavoriteCompanies items={favorites.items} onRemove={favorites.remove} onAdd={onAddFavorite} />
-          ))
-          // 로그인 전 안내는 검색창 아래 펼침 상자에 있다(#560)
-          .with('anonymous', 'loading', () => null)
-          .exhaustive()}
-      </div>
-
-      <div className="home-meta" role="group" aria-label="서비스 안내 바로가기">
-        <Button variant="link" className="home-meta__button" onClick={() => onOpenModal('guide')}>
-          처음이신가요? 사용법 보기
-        </Button>
-        <span className="home-meta__dot" aria-hidden="true">
-          ·
-        </span>
-        <span className="home-meta__text">AI 생성 표시 · 투자 조언 아님</span>
-        <span className="home-meta__dot" aria-hidden="true">
-          ·
-        </span>
-        <Button variant="link" className="home-meta__button" onClick={() => onOpenModal('notice')}>
-          이용 안내
-        </Button>
-      </div>
-
-      <Card className="home-shelf">
-        <Tabs
-          label="첫 화면 둘러보기"
-          items={tabs}
-          value={activeTab}
-          onChange={(next) => {
-            if (next !== activeTab) onChangeTab(serializeHomeTab(next, tabs))
-          }}
-        />
-        <div className="home-shelf__panel">
-          {match(activeTab)
-            .with('disclosures', () => (
-              <FavoriteDisclosureFeed companies={favorites.items} waiting={favorites.status === 'loading'} />
-            ))
-            .with('season', () => <SeasonChanges />)
-            .with('featured', () => <FeaturedCompanies state={featured.state} onRetry={featured.reload} />)
-            .exhaustive()}
-        </div>
-      </Card>
-    </>
-  )
-}
-
-/** 시안의 '이렇게 찾아보세요'(#560). 검색어를 넣은 검색 결과로 간다 */
+/** 시안의 '이렇게 찾아보세요'(#560). 검색어를 넣은 검색 결과로 간다. FS-67부터 펼침 상자 안에 둔다 */
 function ExampleQueries() {
   return (
     <nav className="example-queries" aria-label="검색 예시">
@@ -291,7 +182,9 @@ function ExampleQueries() {
 
 interface SearchDropProps {
   recent: ReturnType<typeof useRecentAnalyses>
-  anonymous: boolean
+  favoritesStatus: FavoriteCompaniesStatus
+  favorites: FavoriteCompany[]
+  onOpenGuide: () => void
 }
 
 // 누를 때 입력창의 초점을 지켜야 펼침 상자가 닫히지 않는다(Safari는 버튼을 눌러도 초점을 옮기지 않는다)
@@ -300,21 +193,46 @@ function keepInputFocus(event: MouseEvent) {
 }
 
 /**
- * 빈 검색창에 초점을 주면 아래로 펼치는 상자(#560): 최근 본 분석, 로그인 전이면 관심 기업 로그인 안내.
- * 보이고 숨기는 것은 CSS(.search-form:focus-within)가 정한다. 보일 내용이 없으면 그리지 않는다.
+ * 빈 검색창에 초점을 주면 아래로 펼치는 상자(#560, FS-67): 최근 본 분석, 자주 찾는 기업(로그인 전엔 로그인 안내),
+ * 예시 검색어, 맨 아래 둘러보기·사용법 보기. 보이고 숨기는 것은 CSS(.search-form:focus-within)가 정한다.
  */
-function SearchDrop({ recent, anonymous }: SearchDropProps) {
-  if (recent.items.length === 0 && !anonymous) return null
+function SearchDrop({ recent, favoritesStatus, favorites, onOpenGuide }: SearchDropProps) {
   return (
     <div className="search-drop" onMouseDown={keepInputFocus}>
       <RecentAnalyses items={recent.items} onRemove={recent.remove} onClear={recent.clear} />
-      {anonymous && (
+      {favoritesStatus === 'ready' && favorites.length > 0 && (
+        <section className="search-drop__favorites" aria-labelledby="search-drop-favorites-title">
+          <h2 className="search-drop__title" id="search-drop-favorites-title">
+            자주 찾는 기업
+          </h2>
+          <ul className="search-drop__chips">
+            {favorites.map((item) => (
+              <li key={item.corpCode}>
+                <Link to={`/companies/${encodeURIComponent(item.corpCode)}`} className="example-queries__chip">
+                  <Icon name="star-filled" size={14} />
+                  {item.corpName}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {favoritesStatus === 'anonymous' && (
         <p className="search-drop__signin">
           <Icon name="star" size={16} />
           <span>관심 기업의 새 공시는 로그인하면 여기에 모여요</span>
           <Link to="/login">로그인</Link>
         </p>
       )}
+      <ExampleQueries />
+      <div className="search-drop__foot">
+        <Link to="/explore" className="search-drop__explore">
+          둘러보기 · 관심 기업 새 공시·이번 시즌 변화·대표 기업 <span aria-hidden="true">→</span>
+        </Link>
+        <Button variant="link" className="search-drop__guide" onClick={onOpenGuide}>
+          처음이신가요? 사용법 보기
+        </Button>
+      </div>
     </div>
   )
 }

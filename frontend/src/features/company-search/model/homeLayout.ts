@@ -7,7 +7,8 @@ import type { TabItem } from '@/shared/ui'
 
 export type HomeTab = 'disclosures' | 'season' | 'featured'
 
-export type HomeModal = 'none' | 'guide' | 'notice'
+/** 첫 화면에서 여는 대화상자. 이용 안내는 하단 바에서 연다(FS-67) */
+export type HomeModal = 'none' | 'guide'
 
 /** 검색창 아래 '이렇게 찾아보세요' 예시 검색어(#560, 시안 그대로) */
 export const EXAMPLE_QUERIES = ['삼성전자', '에코프로비엠', '고려아연'] as const
