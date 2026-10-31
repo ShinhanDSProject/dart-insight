@@ -19,6 +19,7 @@ import { headlineItems } from '../model/summaryHeadline'
 import { AddToNote } from './AddToNote'
 import { AskEntryCard } from './AskEntryCard'
 import { ChangeOverview } from './ChangeOverview'
+import { PeriodDisclosures } from './PeriodDisclosures'
 import { SectionChangeChart } from './SectionChangeChart'
 import { SummaryExplanation } from './SummaryExplanation'
 import { SummaryHeadline } from './SummaryHeadline'
@@ -83,7 +84,7 @@ interface OverviewLinks {
 
 /**
  * W-03 ① 요약·설명(3.2). 왼쪽에 핵심 3줄(FS-21)과 그 아래 변화 개요 한 줄(FS-4 R6), AI 질문 입력(3.10), 관점별 요약을,
- * 오른쪽에 변경이 많은 섹션을 둔다(#560 시안). 수치 문장은 코드가 계산한 값이고, AI가 쓴 문장은 'AI 생성'으로 따로 표시해 사실과 구분한다.
+ * 오른쪽에 변경이 많은 섹션과 이 기간 수시공시를 둔다(#560 시안). 수치 문장은 코드가 계산한 값이고, AI가 쓴 문장은 'AI 생성'으로 따로 표시해 사실과 구분한다.
  * 공시에 설명이 없으면 '확인된 설명 없음', 근거를 확인하지 못한 항목은 요약에서 빼고 '검토 필요'로 센다.
  */
 export function SummaryTab({
@@ -147,6 +148,7 @@ export function SummaryTab({
           onOpenSection={onOpenTextSection}
           onOpenAll={() => onOpenTextList(null)}
         />
+        <PeriodDisclosures analysis={analysis} />
       </aside>
     </div>
   )
