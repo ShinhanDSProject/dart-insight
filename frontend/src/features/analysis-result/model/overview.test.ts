@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { StatementSummary } from '@/shared/api/results'
-import { shares } from '@/shared/lib/compare'
-import { financialOverview, formatCount, textOverview, textShareSegments } from './overview'
+import { financialOverview, formatCount, textOverview } from './overview'
 
 function statement(sjDiv: StatementSummary['sjDiv'], comparable: boolean, changed: number, total = 10): StatementSummary {
   return { sjDiv, label: sjDiv, comparable, amountBasis: null, note: null, total, changed }
@@ -54,40 +53,5 @@ describe('변화 개요', () => {
     expect(formatCount(1234)).toBe('1,234')
     expect(formatCount(0)).toBe('0')
     expect(formatCount(null)).toBe('확인 안 됨')
-  })
-
-  it('옛 결과(m2-8, 숫자만 바뀜·위치 이동 0)의 비율 막대는 전처럼 추가·수정·삭제 세 칸이다', () => {
-    const segments = textShareSegments({ added: 10, modified: 30, deleted: 0, numericUpdate: 0, moved: 0 })
-    expect(segments).toEqual([
-      { label: '추가', value: 10, text: '10', tone: 'added' },
-      { label: '수정', value: 30, text: '30', tone: 'modified' },
-      { label: '삭제', value: 0, text: '0', tone: 'deleted' },
-    ])
-  })
-
-  it('새 결과(m2-9)는 숫자만 바뀜·위치 이동을 중립색 칸으로 더하고 비율 합이 전체의 100%다', () => {
-    // 분석 16: 전체 1,053 = 추가 267 + 수정 427 + 삭제 142 + 숫자만 바뀜 215 + 위치 이동 2 (검토 필요 0)
-    const segments = textShareSegments({ added: 267, modified: 427, deleted: 142, numericUpdate: 215, moved: 2 })
-    expect(segments.map((s) => [s.label, s.text, s.tone])).toEqual([
-      ['추가', '267', 'added'],
-      ['수정', '427', 'modified'],
-      ['삭제', '142', 'deleted'],
-      ['숫자만 바뀜', '215', 'neutral'],
-      ['위치 이동', '2', 'neutral'],
-    ])
-    const percents = shares(segments.map((s) => s.value))
-    expect(percents.reduce((sum, p) => sum + p, 0)).toBeCloseTo(100)
-    expect(percents[0]).toBeCloseTo((267 / 1053) * 100)
-  })
-
-  it('비율의 분모는 짝지은 변경 전부(전체 − 검토 필요)이고 검토 필요는 막대에 넣지 않는다', () => {
-    const segments = textShareSegments(counts)
-    expect(segments.reduce((sum, s) => sum + s.value, 0)).toBe(counts.all - counts.reviewNeeded)
-    expect(segments.map((s) => s.label)).not.toContain('검토 필요')
-  })
-
-  it('숫자만 바뀜과 위치 이동은 0인 쪽만 뺀다', () => {
-    const segments = textShareSegments({ added: 1, modified: 1, deleted: 1, numericUpdate: 0, moved: 3 })
-    expect(segments.map((s) => s.label)).toEqual(['추가', '수정', '삭제', '위치 이동'])
   })
 })

@@ -34,22 +34,23 @@ const many: TextSectionCount[] = [
   { title: 'X. 대주주 등과의 거래내용', count: 1 },
 ]
 
-describe('섹션별 문장 변경 막대', () => {
-  it('건수가 많은 순으로 8개까지 보이고 나머지는 그 밖 섹션으로 묶는다', () => {
-    render(<SectionChangeChart state={loaded(many)} onOpenSection={noop} />)
-    const rows = screen.getAllByRole('button')
-    expect(rows).toHaveLength(8)
+describe('변경이 많은 섹션 막대(#560)', () => {
+  it('건수가 많은 순으로 3개만 보이고, 섹션 전체 보기에 변경이 있는 섹션 수를 적는다', () => {
+    const onOpenAll = vi.fn()
+    render(<SectionChangeChart state={loaded(many)} onOpenSection={noop} onOpenAll={onOpenAll} />)
+    const rows = screen.getAllByRole('button', { name: /문장 탭에서 보기$/ })
+    expect(rows).toHaveLength(3)
     expect(rows[0].getAttribute('aria-label')).toBe('II. 사업의 내용: 문장 변경 31건. 문장 탭에서 보기')
     expect(rows[1].getAttribute('aria-label')).toBe('I. 회사의 개요: 문장 변경 12건. 문장 탭에서 보기')
-    expect(screen.getByText(/그 밖 2개 섹션 2건/)).not.toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '섹션 전체 보기 (10개)' }))
+    expect(onOpenAll).toHaveBeenCalledTimes(1)
   })
 
   it('목차 밖 본문은 표시 이름으로 보이고 누르면 원래 제목으로 문장 탭을 거른다', () => {
     const onOpenSection = vi.fn()
-    render(<SectionChangeChart state={loaded([{ title: '(목차 밖 본문)', count: 4 }])} onOpenSection={onOpenSection} />)
+    render(<SectionChangeChart state={loaded([{ title: '(목차 밖 본문)', count: 4 }])} onOpenSection={onOpenSection} onOpenAll={noop} />)
     fireEvent.click(screen.getByRole('button', { name: /표지·목차 앞 내용: 문장 변경 4건/ }))
     expect(onOpenSection).toHaveBeenCalledWith('(목차 밖 본문)')
-    expect(screen.queryByText(/그 밖/)).toBeNull()
   })
 
   it('변경이 없거나 문장을 비교하지 못했거나 불러오지 못하면 그리지 않는다', () => {
@@ -61,29 +62,29 @@ describe('섹션별 문장 변경 막대', () => {
       { status: 'error', error: apiError },
     ]
     for (const state of states) {
-      const { container } = render(<SectionChangeChart state={state} onOpenSection={noop} />)
+      const { container } = render(<SectionChangeChart state={state} onOpenSection={noop} onOpenAll={noop} />)
       expect(container.innerHTML).toBe('')
       cleanup()
     }
   })
 
   it('불러오는 중에는 제목과 함께 기다린다고 알린다', () => {
-    render(<SectionChangeChart state={{ status: 'loading' }} onOpenSection={noop} />)
-    expect(screen.getByRole('heading', { name: '섹션별 문장 변경' })).not.toBeNull()
+    render(<SectionChangeChart state={{ status: 'loading' }} onOpenSection={noop} onOpenAll={noop} />)
+    expect(screen.getByRole('heading', { name: '변경이 많은 섹션' })).not.toBeNull()
     expect(screen.getByRole('status').textContent).toContain('불러오는 중')
   })
 
   it('막대와 불러오는 중 상태에 접근성 위반이 없다', async () => {
     const { container } = render(
       <main>
-        <SectionChangeChart state={loaded(many)} onOpenSection={noop} />
+        <SectionChangeChart state={loaded(many)} onOpenSection={noop} onOpenAll={noop} />
       </main>,
     )
     expect(await axeViolations(container)).toBe('')
     cleanup()
     const pending = render(
       <main>
-        <SectionChangeChart state={{ status: 'loading' }} onOpenSection={noop} />
+        <SectionChangeChart state={{ status: 'loading' }} onOpenSection={noop} onOpenAll={noop} />
       </main>,
     )
     expect(await axeViolations(pending.container)).toBe('')

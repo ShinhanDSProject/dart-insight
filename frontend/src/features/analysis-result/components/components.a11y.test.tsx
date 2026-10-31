@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Analysis } from '@/shared/api/analyses'
 import { ApiError } from '@/shared/api/client'
 import type { QuestionAnswer } from '@/shared/api/questions'
-import type { FinancialChangeItem } from '@/shared/api/results'
 import type { TextExplanation } from '@/shared/api/textChanges'
 import type { LoadState } from '@/shared/hooks/asyncState'
 import { axeViolations } from '@/test/axe'
@@ -13,7 +12,6 @@ import type { FinancialOverview, TextOverview } from '../model/overview'
 import type { HeadlineLine } from '../model/summaryHeadline'
 import { AnswerCard, FailedAnswerCard, PendingAnswerCard, type FollowUp } from './AnswerCard'
 import { ChangeOverview } from './ChangeOverview'
-import { FinancialChart } from './FinancialChart'
 import { NumberChangesLine } from './NumberChangesLine'
 import { PastAnswers } from './PastAnswers'
 import { SummaryHeadline } from './SummaryHeadline'
@@ -83,26 +81,6 @@ const explanation: TextExplanation = {
   cached: false,
 }
 
-function chartItem(changeId: number, accountName: string, previousAmount: number, currentAmount: number): FinancialChangeItem {
-  const changeAmount = currentAmount - previousAmount
-  return {
-    changeId,
-    sjDiv: 'BS',
-    accountName,
-    accountDetail: null,
-    amountBasis: null,
-    previousAmount,
-    currentAmount,
-    changeAmount,
-    changeRate: previousAmount > 0 ? changeAmount / previousAmount : null,
-    direction: changeAmount > 0 ? 'UP' : changeAmount < 0 ? 'DOWN' : 'SAME',
-    calcStatus: previousAmount > 0 ? 'OK' : 'PREVIOUS_ZERO',
-    calcMessage: null,
-    currency: 'KRW',
-    scale: { base: 'TOTAL_ASSETS', baseAccountName: null, baseAmount: null, ratio: null, reason: 'BASE_NOT_FOUND' },
-  }
-}
-
 afterEach(cleanup)
 
 async function expectNoViolations(ui: ReactNode) {
@@ -165,6 +143,18 @@ describe('질문 답 카드 접근성(axe)', () => {
   })
 })
 
+/** 요약 탭이 넘기는 것처럼 모킹한 개요 응답을 그대로 넘긴다 */
+function Overview() {
+  return (
+    <ChangeOverview
+      financial={{ state: overview.financial, reload: noop }}
+      text={{ state: overview.text, reload: noop }}
+      onOpenChangedAccounts={noop}
+      onOpenTextList={noop}
+    />
+  )
+}
+
 describe('변화 개요 접근성(axe)', () => {
   beforeEach(() => {
     overview.financial = { status: 'loading' }
@@ -191,23 +181,18 @@ describe('변화 개요 접근성(axe)', () => {
         ],
       },
     }
-    const container = await expectNoViolations(
-      <ChangeOverview analysisId={1} onOpenChangedAccounts={noop} onOpenTextList={noop} onOpenTextSection={noop} />,
-    )
-    expect(container.querySelectorAll('.section-chart__row')).toHaveLength(2)
-    const legend = container.querySelector('.share-bar__legend')?.textContent ?? ''
-    expect(legend).toContain('숫자만 바뀜 1')
-    expect(legend).toContain('위치 이동 1')
-    expect(container.querySelectorAll('.share-bar__part--neutral')).toHaveLength(4) // 막대 2칸 + 범례 표식 2개
+    const container = await expectNoViolations(<Overview />)
+    expect(container.querySelectorAll('.overview-stat')).toHaveLength(3)
+    expect(container.textContent).toContain('바뀐 문장20')
   })
 
   it('불러오는 중·실패·확인 안 됨 개요에 위반이 없다', async () => {
     overview.financial = { status: 'error', error: apiError }
-    await expectNoViolations(<ChangeOverview analysisId={1} onOpenChangedAccounts={noop} onOpenTextList={noop} onOpenTextSection={noop} />)
+    await expectNoViolations(<Overview />)
     cleanup()
     overview.financial = { status: 'success', data: { changed: null, firstChangedSjDiv: null } }
     overview.text = { status: 'success', data: { status: 'unavailable' } }
-    await expectNoViolations(<ChangeOverview analysisId={1} onOpenChangedAccounts={noop} onOpenTextList={noop} onOpenTextSection={noop} />)
+    await expectNoViolations(<Overview />)
   })
 })
 
@@ -237,30 +222,6 @@ describe('핵심 3줄 접근성(axe)', () => {
   it('고를 줄이 없으면 그리지 않는다', () => {
     const { container } = render(<SummaryHeadline lines={[]} opener={opener} />)
     expect(container.innerHTML).toBe('')
-  })
-})
-
-describe('재무 수치 차트 접근성(axe)', () => {
-  const items = [
-    chartItem(1, '자산총계', 1_000_000_000, 1_200_000_000),
-    chartItem(2, '부채총계', 800_000_000, 600_000_000),
-    chartItem(3, '이익잉여금', 0, 50_000_000),
-  ]
-  const props = {
-    items,
-    statementLabel: '재무상태표',
-    unit: 'MILLION' as const,
-    currency: 'KRW',
-    previousPeriod: '2024.06.30',
-    currentPeriod: '2025.06.30',
-    selectedChangeId: 1,
-    onSelect: noop,
-  }
-
-  it('증감률 보기와 금액 보기에 위반이 없다', async () => {
-    const container = await expectNoViolations(<FinancialChart {...props} />)
-    fireEvent.click(screen.getByRole('button', { name: '금액' }))
-    expect(await axeViolations(container)).toBe('')
   })
 })
 

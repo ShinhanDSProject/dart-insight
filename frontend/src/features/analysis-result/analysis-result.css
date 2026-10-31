@@ -190,7 +190,8 @@
   background: var(--color-bg-subtle);
 }
 
-.fin-controls[hidden] {
+.fin-controls[hidden],
+.fin-search[hidden] {
   display: none;
 }
 
@@ -269,247 +270,6 @@
 
   .fin-search__box {
     flex-basis: 100%;
-  }
-}
-
-/* 재무 수치 변화 차트(FS-3, ADR-0018): 이름 | 그림 | 값 세 칸. 행 전체가 근거를 여는 버튼 */
-.fin-chart {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-}
-
-.fin-chart__head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-2) var(--space-4);
-}
-
-.fin-chart__title {
-  margin: 0;
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-bold);
-}
-
-.fin-chart__sub {
-  margin: var(--space-1) 0 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-}
-
-.fin-chart__legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-4);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-}
-
-.fin-chart__legend li {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-.fin-chart__key {
-  width: 10px;
-  height: 10px;
-  border-radius: var(--radius-pill);
-}
-
-.fin-chart__key--previous {
-  background: var(--color-chart-previous);
-}
-
-.fin-chart__key--current {
-  background: var(--color-chart-current);
-}
-
-.fin-chart__rows {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.fin-chart__row,
-.fin-chart__axis {
-  display: grid;
-  grid-template-columns: minmax(96px, 168px) minmax(0, 1fr) 128px;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.fin-chart__row {
-  position: relative;
-  width: 100%;
-  min-height: 36px;
-  padding: 0 var(--space-2);
-  border: none;
-  border-radius: var(--radius-sm);
-  background: none;
-  color: var(--color-text);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: background-color var(--motion-fast) var(--ease-out);
-}
-
-.fin-chart__row:hover,
-.fin-chart__row[aria-pressed='true'] {
-  background: var(--color-accent-subtle);
-}
-
-.fin-chart__name {
-  overflow: hidden;
-  font-size: var(--font-size-sm);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fin-chart__plot {
-  position: relative;
-  height: 36px;
-}
-
-.fin-chart__grid {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: var(--color-chart-grid);
-}
-
-.fin-chart__grid--zero {
-  background: var(--color-border-strong);
-}
-
-.fin-chart__bar {
-  position: absolute;
-  top: 10px;
-  height: 16px;
-  min-width: 2px;
-  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
-  background: var(--color-chart-current);
-  transform-origin: left center;
-  animation: grow-x var(--motion-slow) var(--ease-out) both;
-  animation-delay: calc(var(--row, 0) * var(--motion-stagger));
-}
-
-.fin-chart__bar--down {
-  border-radius: var(--radius-xs) 0 0 var(--radius-xs);
-  transform-origin: right center;
-}
-
-/* 막대·연결선은 0(또는 이전 값)에서 자라고(grow-x), 점은 제자리에서 나타난다(pop-in). 키프레임은 global.css */
-
-.fin-chart__link {
-  position: absolute;
-  top: 17px;
-  height: 2px;
-  background: var(--color-border-strong);
-  transform-origin: left center;
-  animation: grow-x var(--motion-slow) var(--ease-out) both;
-  animation-delay: calc(var(--row, 0) * var(--motion-stagger));
-}
-
-.fin-chart__link--back {
-  transform-origin: right center;
-}
-
-.fin-chart__dot {
-  position: absolute;
-  top: 12px;
-  width: 12px;
-  height: 12px;
-  margin-left: -6px;
-  border: 2px solid var(--color-bg);
-  border-radius: var(--radius-pill);
-  animation: pop-in var(--motion-base) var(--ease-out) both;
-  animation-delay: calc(var(--row, 0) * var(--motion-stagger));
-}
-
-.fin-chart__dot--previous {
-  background: var(--color-chart-previous);
-}
-
-.fin-chart__dot--current {
-  background: var(--color-chart-current);
-  /* 현재 값 점은 연결선이 다 자란 뒤에 나타난다 */
-  animation-delay: calc(var(--row, 0) * var(--motion-stagger) + var(--motion-slow) - var(--motion-base));
-}
-
-.fin-chart__dot--previous {
-  z-index: 1;
-}
-
-.fin-chart__value {
-  font-family: var(--font-num);
-  font-size: var(--font-size-sm);
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  white-space: nowrap;
-}
-
-.fin-chart__value--muted {
-  color: var(--color-text-muted);
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  white-space: normal;
-}
-
-.fin-chart__tip {
-  position: absolute;
-  bottom: calc(100% + var(--space-1));
-  left: 50%;
-  z-index: 5;
-  display: none;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
-  background: var(--color-primary);
-  color: var(--color-primary-text);
-  font-size: var(--font-size-xs);
-  white-space: nowrap;
-  pointer-events: none;
-  transform: translateX(-50%);
-}
-
-.fin-chart__row:hover .fin-chart__tip,
-.fin-chart__row:focus-visible .fin-chart__tip {
-  display: block;
-  animation: fade-in var(--motion-fast) var(--ease-out);
-}
-
-.fin-chart__axis {
-  padding: 0 var(--space-2);
-}
-
-.fin-chart__ticks {
-  position: relative;
-  height: 18px;
-}
-
-.fin-chart__tick {
-  position: absolute;
-  color: var(--color-text-muted);
-  font-family: var(--font-num);
-  font-size: var(--font-size-2xs);
-  white-space: nowrap;
-  transform: translateX(-50%);
-}
-
-@media (max-width: 900px) {
-  .fin-chart__row,
-  .fin-chart__axis {
-    grid-template-columns: 88px minmax(0, 1fr) 84px;
-    gap: var(--space-2);
   }
 }
 
@@ -1688,12 +1448,32 @@
   list-style: none;
 }
 
-/* 요약 항목 카드(#550, 시안 09): 옅은 바탕 카드, 위 줄은 사실 문장·큰 숫자 | 오른쪽 근거 버튼 */
+/* 요약 항목 한 줄(#560 시안): 사실 문장 | 설명 상태 · 근거. 금액·인용·행동 버튼은 '더 보기' 안 */
 .summary-item {
   display: flex;
   flex-direction: column;
+  gap: var(--space-2);
+  padding-block: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.summary-item__status {
+  flex: none;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.summary-item__more > summary {
+  width: fit-content;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+}
+
+.summary-item__more[open] {
+  display: flex;
+  flex-direction: column;
   gap: var(--space-3);
-  border-color: transparent;
 }
 
 .summary-item__top {
@@ -1754,9 +1534,10 @@
 }
 
 .summary-item__fact {
+  flex: 1 1 280px;
+  min-width: 0;
   margin: 0;
   font-size: var(--font-size-md);
-  font-weight: var(--font-weight-bold);
 }
 
 .summary-item__ai {
@@ -1914,74 +1695,57 @@
 }
 
 /* 요약 탭 맨 위의 변화 개요(FS-4 R6) */
+/* 핵심 3줄 카드 아래 개요 한 줄(#560 시안): 바뀐 계정 312 · 바뀐 문장 1,259 · 검토 필요 0 */
 .overview {
-  margin-bottom: var(--space-4);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
 }
 
 .overview__list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
-  gap: var(--space-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.overview__list > li {
-  display: flex;
-}
-
-/* link-button 모양(밑줄·여백 없음)을 덮어 카드처럼 보이게 한다 */
-.overview .overview-stat {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: var(--space-1);
-  margin: 0;
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg);
-  color: var(--color-text);
-  text-decoration: none;
-  transition:
-    background-color var(--motion-fast) var(--ease-out),
-    border-color var(--motion-fast) var(--ease-out);
-}
-
-.overview .overview-stat.link-button:hover {
-  border-color: var(--color-border-accent);
-  background: var(--color-accent-subtle);
-}
-
-.overview-stat__label {
   color: var(--color-text-muted);
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-bold);
-}
-
-.overview-stat__value {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-  line-height: var(--line-height-tight);
-}
-
-.overview-stat__detail {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-}
-
-.overview-stat--pending .overview-stat__detail {
   font-size: var(--font-size-sm);
 }
 
-/* 요약 탭 섹션별 문장 변경 막대(#295, ADR-0018): 이름 | 막대 | 건수. 행 전체가 문장 탭을 그 섹션으로 여는 버튼. 막대는 fin-chart와 같은 중립색 */
+.overview__list > li + li::before {
+  content: '·';
+  margin-right: var(--space-3);
+}
+
+.overview .overview-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.overview .overview-stat.link-button:hover .overview-stat__value {
+  text-decoration: underline;
+}
+
+.overview-stat__value {
+  color: var(--color-text);
+  font-weight: var(--font-weight-bold);
+}
+
+.overview-stat__detail {
+  font-size: var(--font-size-xs);
+}
+
+/* 요약 탭 섹션별 문장 변경 막대(#295, ADR-0018): 이름 | 막대 | 건수. 행 전체가 문장 탭을 그 섹션으로 여는 버튼. 막대는 중립색 */
 .section-chart {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: var(--space-3);
-  margin-top: var(--space-3);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-bg);
@@ -1993,13 +1757,41 @@
   font-weight: var(--font-weight-bold);
 }
 
-.section-chart__sub {
-  margin: var(--space-1) 0 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
+/* 오른쪽 좁은 칸: 이름 위, 막대·건수 아래 */
+.summary-layout__aside .section-chart__row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'name value'
+    'plot plot';
+  gap: var(--space-1) var(--space-2);
+  padding-block: var(--space-1);
+}
+
+.summary-layout__aside .section-chart__name {
+  grid-area: name;
+}
+
+.summary-layout__aside .section-chart__value {
+  grid-area: value;
+}
+
+.summary-layout__aside .section-chart__plot {
+  grid-area: plot;
+  height: 8px;
+}
+
+.summary-layout__aside .section-chart__bar {
+  top: 0;
+  height: 8px;
+  border-radius: var(--radius-xs);
+}
+
+.section-chart__all {
+  font-size: var(--font-size-sm);
 }
 
 .section-chart__rows {
+  align-self: stretch;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -2827,10 +2619,25 @@
   border-color: var(--color-accent);
 }
 
-.ask-entry__head {
+.ask-entry {
+  align-items: stretch;
+  border-color: var(--color-border);
+  background: var(--color-bg);
+}
+
+.ask-entry__form {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-2);
+}
+
+.ask-entry__input {
+  flex: 1;
+  min-width: 0;
+  border-radius: var(--radius-pill);
+}
+
+.ask-entry__form .button {
+  border-radius: var(--radius-pill);
 }
 
 .ask-entry__title {
@@ -2949,4 +2756,36 @@
 
 .summary-lens__lead {
   font-weight: var(--font-weight-semibold);
+}
+
+/* 요약 탭 두 열(#560 시안): 왼쪽 본문 | 오른쪽 곁 정보. 좁으면 한 열로 쌓는다 */
+.summary-layout {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.summary-layout__main {
+  min-width: 0;
+}
+
+@media (min-width: 1100px) {
+  .summary-layout {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    align-items: start;
+  }
+
+  .summary-layout__aside {
+    position: sticky;
+    top: var(--space-5);
+  }
+}
+
+.summary-item .summary-item__open {
+  flex: none;
+  font-size: var(--font-size-sm);
+}
+
+/* 표 아래 '모두 보기'(#560 시안) */
+.fin-table__more {
+  margin-top: var(--space-3);
 }

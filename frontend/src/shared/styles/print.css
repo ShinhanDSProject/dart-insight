@@ -60,7 +60,6 @@
   .dart-link__actions,
   .dart-link__manual,
   .data-table__sort-mark,
-  .fin-chart__tip,
   .term__icon,
   .term__popover,
   .ask-form,
@@ -125,8 +124,7 @@
   .card,
   .notice,
   .context-card,
-  tr,
-  .fin-chart__row {
+  tr {
     break-inside: avoid;
   }
 
@@ -136,8 +134,7 @@
     break-after: avoid;
   }
 
-  /* 차트 막대·점과 문장 변경 비율 막대는 배경색이라, 인쇄에서도 색을 남긴다 */
-  .fin-chart,
+  /* 비율 막대는 배경색이라, 인쇄에서도 색을 남긴다 */
   .share-bar,
   .badge {
     print-color-adjust: exact;
