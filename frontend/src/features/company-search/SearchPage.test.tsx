@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { syncFavoriteCompanies } from '@/shared/hooks/useFavoriteCompanies'
 import { browserStorage, saveRecentAnalyses } from '@/shared/lib/recentAnalyses'
@@ -73,13 +73,20 @@ afterEach(() => {
 // 관심 기업은 로그인한 회원만 쓴다. 이 테스트는 검색만 보므로 로그인하지 않은 상태로 그린다
 const anonymous: AuthContextValue = { state: { status: 'anonymous' }, login: vi.fn(), logout: vi.fn() }
 
-function renderAt(query: string, auth: AuthContextValue = anonymous) {
+/** 둘러보기로 보낸 주소를 확인하는 자리 */
+function ExploreProbe() {
+  const location = useLocation()
+  return <p>둘러보기 {location.search}</p>
+}
+
+function renderAt(query: string, auth: AuthContextValue = anonymous, entry = `/?q=${encodeURIComponent(query)}`) {
   return render(
     <AuthContext.Provider value={auth}>
-      <MemoryRouter initialEntries={[`/?q=${encodeURIComponent(query)}`]}>
+      <MemoryRouter initialEntries={[entry]}>
         <Routes>
           <Route path="/" element={<SearchPage />} />
           <Route path="/companies/:corpCode" element={<p>기업 화면</p>} />
+          <Route path="/explore" element={<ExploreProbe />} />
         </Routes>
       </MemoryRouter>
     </AuthContext.Provider>,
@@ -222,102 +229,6 @@ describe('결과가 많을 때 접기', () => {
   })
 })
 
-describe('관심 기업(#36)', () => {
-  const signedIn: AuthContextValue = { state: { status: 'authenticated', userId: 1 }, login: vi.fn(), logout: vi.fn() }
-
-  it('목록을 받지 못하면 빈 목록처럼 숨기지 않고 안내하며, 다시 시도하면 목록을 보인다', async () => {
-    favoritesApi.getFavoriteCompanies
-      .mockRejectedValueOnce(new Error('network'))
-      .mockResolvedValueOnce({ items: [{ ...companies[0], addedAt: '2026-10-26T10:00:00' }] })
-    renderAt('', signedIn)
-    expect((await screen.findByRole('alert')).textContent).toContain('관심 기업을 불러오지 못했어요')
-    fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
-    const section = await screen.findByRole('region', { name: '자주 찾는 기업 (즐겨찾기)' })
-    expect(within(section).getByRole('link', { name: /삼성전자/ })).toBeTruthy()
-  })
-})
-
-describe('첫 화면 로고·검색창·즐겨찾기 카드·탭 카드(#538, #549)', () => {
-  it('비로그인 첫 화면은 검색 예시 칩과 시즌·대표 기업 두 탭을 보이고, 로그인 안내는 검색창 펼침 상자에 둔다(#560)', async () => {
-    featuredAvailable = true
-    const { container } = renderAt('')
-
-    const examples = screen.getByRole('navigation', { name: '검색 예시' })
-    expect(within(examples).getAllByRole('link').map((a) => a.textContent)).toEqual(['삼성전자', '에코프로비엠', '고려아연'])
-    expect(within(examples).getByRole('link', { name: '에코프로비엠' }).getAttribute('href')).toBe(
-      `/?q=${encodeURIComponent('에코프로비엠')}`,
-    )
-
-    const shelfTabs = screen.getByRole('navigation', { name: '첫 화면 둘러보기' })
-    expect(within(shelfTabs).getAllByRole('button').map((b) => b.textContent)).toEqual(['이번 시즌 변화', '대표 기업'])
-    expect(screen.getByText('관심 기업의 새 공시는 로그인하면 여기에 모여요')).toBeTruthy()
-    expect(screen.getByRole('link', { name: '로그인' }).getAttribute('href')).toBe('/login')
-    expect(screen.queryByRole('region', { name: '자주 찾는 기업 (즐겨찾기)' })).toBeNull()
-
-    fireEvent.click(within(shelfTabs).getByRole('button', { name: '대표 기업' }))
-    expect(await screen.findByRole('region', { name: '대표 기업' })).toBeTruthy()
-    expect(await axeViolations(container)).toBe('')
-  })
-
-  it('검색어를 넣으면 펼침 상자(최근 본 분석·로그인 안내)를 그리지 않는다(#560)', () => {
-    renderAt('')
-    const input = screen.getByRole('textbox', { name: '회사명 또는 종목코드' })
-    fireEvent.change(input, { target: { value: '삼성' } })
-    expect(screen.queryByText('관심 기업의 새 공시는 로그인하면 여기에 모여요')).toBeNull()
-  })
-
-  it('사용법 보기와 이용 안내를 누르면 대화상자로 열고 Esc로 닫는다', async () => {
-    const { container } = renderAt('')
-
-    fireEvent.click(screen.getByRole('button', { name: '처음이신가요? 사용법 보기' }))
-    const guideDialog = screen.getByRole('dialog', { name: '처음이신가요? 이렇게 써 보세요' })
-    expect(within(guideDialog).getByRole('link', { name: '삼성전자로 해보기' }).getAttribute('href')).toBe(
-      '/companies/00126380',
-    )
-    expect(await axeViolations(container)).toBe('')
-    fireEvent.keyDown(guideDialog, { key: 'Escape' })
-    expect(screen.queryByRole('dialog')).toBeNull()
-
-    fireEvent.click(screen.getByRole('button', { name: '이용 안내' }))
-    const noticeDialog = screen.getByRole('dialog', { name: '이용 안내' })
-    expect(noticeDialog.textContent).toContain('투자 조언')
-    fireEvent.keyDown(noticeDialog, { key: 'Escape' })
-    expect(screen.queryByRole('dialog')).toBeNull()
-  })
-
-  it('관심 기업이 있는 회원은 새 공시 탭을 앞에 두고, 최근 본 분석은 검색창 펼침 상자에 있다', async () => {
-    saveRecentAnalyses(browserStorage(), [
-      {
-        analysisId: 12,
-        corpName: '삼성전자',
-        previousReportName: '사업보고서 (2024.12)',
-        currentReportName: '사업보고서 (2025.12)',
-        basisLabel: '전년 동기',
-        viewedAt: '2026-10-26T10:00:00+09:00',
-      },
-    ])
-    favoritesApi.getFavoriteCompanies.mockResolvedValue({
-      items: [{ ...companies[0], addedAt: '2026-10-26T10:00:00' }],
-    })
-    const signedIn: AuthContextValue = { state: { status: 'authenticated', userId: 1 }, login: vi.fn(), logout: vi.fn() }
-    renderAt('', signedIn)
-
-    await screen.findByRole('region', { name: '자주 찾는 기업 (즐겨찾기)' })
-    const shelfTabs = screen.getByRole('navigation', { name: '첫 화면 둘러보기' })
-    expect(within(shelfTabs).getAllByRole('button').map((b) => b.textContent)).toEqual([
-      '관심 기업 새 공시',
-      '이번 시즌 변화',
-      '대표 기업',
-    ])
-    expect(screen.getByRole('region', { name: '최근 본 분석' })).toBeTruthy()
-
-    const input = screen.getByRole('textbox', { name: '회사명 또는 종목코드' }) as HTMLInputElement
-    fireEvent.change(input, { target: { value: '삼성' } })
-    fireEvent.click(screen.getByRole('button', { name: '검색어 지우기' }))
-    expect(input.value).toBe('')
-  })
-})
-
 describe('검색 결과 카드(#549)', () => {
   it('결과는 검색 결과 N곳 카드 안에 기업 선택 행으로 보이고 아래에 다음 단계 안내가 있다', async () => {
     renderAt('삼성')
@@ -337,31 +248,76 @@ describe('검색 결과 카드(#549)', () => {
   })
 })
 
-describe('자주 찾는 기업 카드(#549)', () => {
+
+describe('첫 화면 검색창과 펼침 상자(#560, FS-67)', () => {
   const signedIn: AuthContextValue = { state: { status: 'authenticated', userId: 1 }, login: vi.fn(), logout: vi.fn() }
 
-  it('관심 기업을 개수와 칩으로 보이고 기업 추가를 누르면 검색창으로 초점을 옮긴다', async () => {
-    favoritesApi.getFavoriteCompanies.mockResolvedValue({
-      items: [
-        { ...companies[0], addedAt: '2026-10-26T10:00:00' },
-        { ...companies[1], addedAt: '2026-10-25T10:00:00' },
-      ],
-    })
-    const { container } = renderAt('', signedIn)
-    const card = await screen.findByRole('region', { name: '자주 찾는 기업 (즐겨찾기)' })
-    expect(within(card).getByText('2')).toBeTruthy()
-    expect(within(card).getByRole('link', { name: /^삼성전자/ }).getAttribute('href')).toBe('/companies/00126380')
-    expect(within(card).getByRole('button', { name: '삼성전기 관심 기업에서 빼기' })).toBeTruthy()
+  it('비로그인 첫 화면은 탭 보드·즐겨찾기 카드 없이, 펼침 상자에 로그인 안내·예시 칩·둘러보기·사용법을 둔다', async () => {
+    featuredAvailable = true
+    const { container } = renderAt('')
 
-    fireEvent.click(within(card).getByRole('button', { name: '+ 기업 추가' }))
-    expect(document.activeElement).toBe(screen.getByRole('textbox', { name: '회사명 또는 종목코드' }))
+    expect(screen.queryByRole('navigation', { name: '첫 화면 둘러보기' })).toBeNull()
+    expect(screen.queryByRole('region', { name: '자주 찾는 기업 (즐겨찾기)' })).toBeNull()
+
+    const examples = screen.getByRole('navigation', { name: '검색 예시' })
+    expect(within(examples).getAllByRole('link').map((a) => a.textContent)).toEqual(['삼성전자', '에코프로비엠', '고려아연'])
+    expect(within(examples).getByRole('link', { name: '에코프로비엠' }).getAttribute('href')).toBe(
+      `/?q=${encodeURIComponent('에코프로비엠')}`,
+    )
+    expect(screen.getByText('관심 기업의 새 공시는 로그인하면 여기에 모여요')).toBeTruthy()
+    expect(screen.getByRole('link', { name: '로그인' }).getAttribute('href')).toBe('/login')
+    expect(screen.getByRole('link', { name: /둘러보기/ }).getAttribute('href')).toBe('/explore')
     expect(await axeViolations(container)).toBe('')
   })
 
-  it('관심 기업이 없으면 별로 더하는 방법을 알린다', async () => {
-    favoritesApi.getFavoriteCompanies.mockResolvedValue({ items: [] })
+  it('검색어를 넣으면 펼침 상자를 그리지 않는다(#560)', () => {
+    renderAt('')
+    const input = screen.getByRole('textbox', { name: '회사명 또는 종목코드' })
+    fireEvent.change(input, { target: { value: '삼성' } })
+    expect(screen.queryByText('관심 기업의 새 공시는 로그인하면 여기에 모여요')).toBeNull()
+    expect(screen.queryByRole('navigation', { name: '검색 예시' })).toBeNull()
+  })
+
+  it('사용법 보기를 누르면 대화상자로 열고 Esc로 닫는다', async () => {
+    const { container } = renderAt('')
+    fireEvent.click(screen.getByRole('button', { name: '처음이신가요? 사용법 보기' }))
+    const guideDialog = screen.getByRole('dialog', { name: '처음이신가요? 이렇게 써 보세요' })
+    expect(within(guideDialog).getByRole('link', { name: '삼성전자로 해보기' }).getAttribute('href')).toBe(
+      '/companies/00126380',
+    )
+    expect(await axeViolations(container)).toBe('')
+    fireEvent.keyDown(guideDialog, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('회원이면 펼침 상자에 최근 본 분석과 자주 찾는 기업을 보이고, 검색어를 지우면 다시 첫 화면이다', async () => {
+    saveRecentAnalyses(browserStorage(), [
+      {
+        analysisId: 12,
+        corpName: '삼성전자',
+        previousReportName: '사업보고서 (2024.12)',
+        currentReportName: '사업보고서 (2025.12)',
+        basisLabel: '전년 동기',
+        viewedAt: '2026-10-26T10:00:00+09:00',
+      },
+    ])
+    favoritesApi.getFavoriteCompanies.mockResolvedValue({ items: [{ ...companies[1], addedAt: '2026-10-26T10:00:00' }] })
     renderAt('', signedIn)
-    const card = await screen.findByRole('region', { name: '자주 찾는 기업 (즐겨찾기)' })
-    expect(within(card).getByText(/별을 누르면 자주 찾는 기업으로 여기에 모여요/)).toBeTruthy()
+
+    expect(screen.getByRole('region', { name: '최근 본 분석' })).toBeTruthy()
+    const favorites = await screen.findByRole('region', { name: '자주 찾는 기업' })
+    expect(within(favorites).getByRole('link', { name: /삼성전기/ }).getAttribute('href')).toBe('/companies/00126371')
+    expect(screen.queryByText('관심 기업의 새 공시는 로그인하면 여기에 모여요')).toBeNull()
+
+    const input = screen.getByRole('textbox', { name: '회사명 또는 종목코드' }) as HTMLInputElement
+    fireEvent.change(input, { target: { value: '삼성' } })
+    fireEvent.click(screen.getByRole('button', { name: '검색어 지우기' }))
+    expect(input.value).toBe('')
+    expect(screen.getByRole('region', { name: '최근 본 분석' })).toBeTruthy()
+  })
+
+  it('예전 첫 화면 탭 주소(/?tab=)는 둘러보기로 보낸다', async () => {
+    renderAt('', anonymous, '/?tab=season')
+    expect(await screen.findByText('둘러보기 ?tab=season')).toBeTruthy()
   })
 })
