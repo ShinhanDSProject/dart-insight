@@ -316,6 +316,24 @@ describe('첫 화면 검색창과 펼침 상자(#560, FS-67)', () => {
     expect(screen.getByRole('region', { name: '최근 본 분석' })).toBeTruthy()
   })
 
+  it('Esc로 펼침 상자를 닫고, 검색창을 다시 누르거나 입력하면 다시 연다', () => {
+    renderAt('')
+    const input = screen.getByRole('textbox', { name: '회사명 또는 종목코드' })
+    input.focus()
+    fireEvent.keyDown(input, { key: 'Escape' })
+    expect(screen.queryByRole('navigation', { name: '검색 예시' })).toBeNull()
+
+    fireEvent.click(input)
+    expect(screen.getByRole('navigation', { name: '검색 예시' })).toBeTruthy()
+
+    // 상자 안 링크에서 Esc를 누르면 닫히고 초점은 검색창으로 돌아오며, 다시 열리지 않는다
+    const link = screen.getByRole('link', { name: /둘러보기/ })
+    link.focus()
+    fireEvent.keyDown(link, { key: 'Escape' })
+    expect(document.activeElement).toBe(input)
+    expect(screen.queryByRole('navigation', { name: '검색 예시' })).toBeNull()
+  })
+
   it('예전 첫 화면 탭 주소(/?tab=)는 둘러보기로 보낸다', async () => {
     renderAt('', anonymous, '/?tab=season')
     expect(await screen.findByText('둘러보기 ?tab=season')).toBeTruthy()

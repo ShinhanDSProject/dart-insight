@@ -1,4 +1,13 @@
-import { useCallback, useRef, useState, type FormEvent, type KeyboardEvent, type MouseEvent, type Ref } from 'react'
+import {
+  useCallback,
+  useRef,
+  useState,
+  type FocusEvent as ReactFocusEvent,
+  type FormEvent,
+  type KeyboardEvent,
+  type MouseEvent,
+  type Ref,
+} from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router'
 import { match } from 'ts-pattern'
 import type { AsyncState } from '@/shared/hooks/asyncState'
@@ -42,6 +51,8 @@ export function SearchPage() {
   const recent = useRecentAnalyses()
   const favorites = useFavoriteCompanies()
   const [modal, setModal] = useState<HomeModal>('none')
+  // 펼침 상자는 초점이 있으면 CSS로 보이고, Esc로 닫으면 다시 누르거나 입력할 때까지 그리지 않는다(FS-67 R3)
+  const [drop, setDrop] = useState<'auto' | 'dismissed'>('auto')
   // 입력 중 자동 검색은 방문 기록을 쌓지 않는다(replace)
   const searchAsTyped = useCallback((next: string) => setSearchParams({ q: next }, { replace: true }), [setSearchParams])
   useAutoSearch(input, query, searchAsTyped)
@@ -57,6 +68,20 @@ export function SearchPage() {
     if (next === null || next === 'input') return
     event.preventDefault()
     links[next]?.focus()
+  }
+
+  function handleFormKeyDown(event: KeyboardEvent<HTMLFormElement>) {
+    if (event.key !== 'Escape' || drop === 'dismissed' || !isHome || input !== '') return
+    setDrop('dismissed')
+    // 상자 안 링크에서 눌렀으면 검색창으로 초점을 돌린다(검색창 onFocus는 상자 안에서 온 초점이면 다시 열지 않는다)
+    focusInput()
+  }
+
+  /** 바깥에서 검색창으로 초점이 오면 상자를 다시 연다. 상자 안에서 돌아온 초점은 그대로 둔다 */
+  function handleInputFocus(event: ReactFocusEvent<HTMLInputElement>) {
+    const from = event.relatedTarget
+    if (from instanceof Node && event.currentTarget.form?.contains(from)) return
+    setDrop('auto')
   }
 
   function handleSubmit(event: FormEvent) {
@@ -90,7 +115,7 @@ export function SearchPage() {
             <span className="visually-hidden"> 기업 검색</span>
           </h1>
 
-          <form className="search-form" onSubmit={handleSubmit} noValidate>
+          <form className="search-form" onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} noValidate>
             {/* 보이는 제목 대신 입력창 안내 글을 쓰고, 화면 읽기 프로그램에는 이름을 그대로 준다(#486) */}
             <label htmlFor="company-query" className="visually-hidden">
               회사명 또는 종목코드
@@ -105,8 +130,13 @@ export function SearchPage() {
                 className="search-bar__input"
                 invalid={inputError !== null}
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => {
+                  setInput(e.target.value)
+                  setDrop('auto')
+                }}
                 onKeyDown={handleInputKeyDown}
+                onFocus={handleInputFocus}
+                onClick={() => setDrop('auto')}
                 placeholder="회사명·종목코드·초성 (예: 삼성전자, 005930, ㅅㅅㅈㅈ)"
                 autoComplete="off"
                 aria-describedby={inputError ? 'company-query-hint company-query-error' : 'company-query-hint'}
@@ -120,7 +150,7 @@ export function SearchPage() {
                 검색
               </Button>
             </div>
-            {isHome && input === '' && (
+            {isHome && input === '' && drop === 'auto' && (
               <SearchDrop
                 recent={recent}
                 favoritesStatus={favorites.status}
@@ -227,7 +257,7 @@ function SearchDrop({ recent, favoritesStatus, favorites, onOpenGuide }: SearchD
       <ExampleQueries />
       <div className="search-drop__foot">
         <Link to="/explore" className="search-drop__explore">
-          둘러보기 · 관심 기업 새 공시·이번 시즌 변화·대표 기업 <span aria-hidden="true">→</span>
+          둘러보기 · 새 공시·시즌 변화·대표 기업 <span aria-hidden="true">→</span>
         </Link>
         <Button variant="link" className="search-drop__guide" onClick={onOpenGuide}>
           처음이신가요? 사용법 보기
