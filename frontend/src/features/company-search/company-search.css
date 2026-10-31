@@ -845,8 +845,11 @@
 }
 
 @media (max-width: 900px) {
+  /* 좁은 화면에서는 검색창을 위쪽에 둬, 펼침 상자와 화면 키보드가 함께 보이게 한다(FS-67) */
   .search-hero--home {
-    min-height: 50vh;
+    justify-content: flex-start;
+    min-height: 0;
+    padding-top: var(--space-7);
   }
 
   .search-bar {
