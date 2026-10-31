@@ -1739,6 +1739,47 @@
   font-size: var(--font-size-xs);
 }
 
+/* 요약 탭 오른쪽 '이 기간 수시공시'(시안). 변경이 많은 섹션과 같은 상자 모양 */
+.period-disclosures__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.period-disclosures__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-sm);
+}
+
+.period-disclosures__list li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.period-disclosures__title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.period-disclosures__count {
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.period-disclosures__note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
 /* 요약 탭 섹션별 문장 변경 막대(#295, ADR-0018): 이름 | 막대 | 건수. 행 전체가 문장 탭을 그 섹션으로 여는 버튼. 막대는 중립색 */
 .section-chart {
   display: flex;
@@ -2766,6 +2807,12 @@
 
 .summary-layout__main {
   min-width: 0;
+}
+
+.summary-layout__aside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
 @media (min-width: 1100px) {
