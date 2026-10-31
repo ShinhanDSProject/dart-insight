@@ -23,7 +23,6 @@ import { DartSourceLine } from '@/shared/ui/DartSource'
 import { downloadTextFile } from '@/shared/lib/download'
 import { EmptyState, ErrorState } from '@/shared/ui/StateView'
 import { EvidencePanel } from './EvidencePanel'
-import { FinancialChart } from './FinancialChart'
 import { KeyNumbers } from './KeyNumbers'
 import {
   amountPeriodLabel,
@@ -77,6 +76,9 @@ const orderOptions: { value: FinancialOrder; label: string }[] = [
 ]
 
 const ACCOUNT_SEARCH_INPUT_ID = 'fin-account-query'
+const SEARCH_ID = 'fin-account-search'
+/** 표가 처음에 보이는 계정 수(#560 시안) */
+const TABLE_INITIAL_ROWS = 10
 
 interface FinancialTabProps {
   analysis: Analysis
@@ -99,7 +101,8 @@ interface FinancialTabProps {
 
 /** W-03 ② 재무 수치 변화(3.1). 이 분석의 결과만 보여 준다. 계정 이름을 누르면 수치 근거(3.3)를 오른쪽 패널로 연다.
  * 증감액·증감률 머리글로 정렬하고, 계산하지 못한 행은 정렬해도 맨 아래에 둔다(FS-4 AC9).
- * 계정 이름으로 찾으면 받아 둔 계정을 화면에서 걸러 표·차트·CSV에 함께 쓴다(FS-14).
+ * 계정 이름으로 찾으면 받아 둔 계정을 화면에서 걸러 표·CSV에 함께 쓴다(FS-14). 찾기 칸은 돋보기 버튼으로 연다.
+ * 표는 처음에 10개만 보이고 '모두 보기'로 펼친다(#560 시안). 근거를 연 계정이 그 아래에 있거나 찾는 중이면 모두 보인다.
  * 증감 옆에 매출액·자산총계 대비 크기를 보조 줄로 보이고, '규모 큰 순'으로 고를 수 있다(#480, FS-63). */
 export function FinancialTab({
   analysis,
@@ -125,16 +128,28 @@ export function FinancialTab({
   const [settingsOpen, setSettingsOpen] = useState(false)
   const otherSelected = otherStatements.find((o) => o.sjDiv === sjDiv)
   const searchBox = useAccountSearch(accountQuery, (q) => onChange({ q }))
+  // 계정 찾기 칸(#560): 찾는 중이면 열어 둔다
+  const [searchOpen, setSearchOpen] = useState(accountQuery !== null)
+  const toggleSearch = () => {
+    setSearchOpen((open) => !open)
+    requestAnimationFrame(() => document.getElementById(ACCOUNT_SEARCH_INPUT_ID)?.focus())
+  }
+  const [showAll, setShowAll] = useState(false)
   // 지우면 바로 다시 입력할 수 있게 입력창으로 초점을 옮긴다
   const clearSearch = () => {
     searchBox.clear()
     document.getElementById(ACCOUNT_SEARCH_INPUT_ID)?.focus()
   }
-  // 찾은 계정. 표·차트·CSV가 모두 이 목록을 쓴다
+  // 찾은 계정. 표·CSV가 모두 이 목록을 쓴다
   const shownItems = state.status === 'success' ? filterAccounts(state.data.items, accountQuery) : []
 
   // CSV는 표와 같은 재무제표·보기·찾기·정렬의 계정을 그대로 옮긴다. 불러오는 중·오류·빈 결과면 받지 않는다(FS-8 R4)
   const exportItems = sortFinancialItems(shownItems, sort)
+  // 찾는 중이거나 근거를 연 계정이 접힌 줄 아래에 있으면 늘 펼친다. 이때는 접을 수 없어 버튼을 두지 않는다
+  const forcedOpen =
+    accountQuery !== null || exportItems.findIndex((item) => item.changeId === selectedChangeId) >= TABLE_INITIAL_ROWS
+  const expanded = showAll || forcedOpen
+  const tableItems = expanded ? exportItems : exportItems.slice(0, TABLE_INITIAL_ROWS)
   const downloadCsv = () => {
     const statementLabel = statementOptions.find((o) => o.sjDiv === sjDiv)?.label ?? sjDiv
     const csv = buildFinancialCsv({
@@ -208,6 +223,9 @@ export function FinancialTab({
           <Button aria-expanded={settingsOpen} aria-controls={SETTINGS_ID} onClick={() => setSettingsOpen((v) => !v)}>
             <Icon name="table-2" size={16} /> 표 설정
           </Button>
+          <Button variant="icon" aria-label="계정 찾기" aria-expanded={searchOpen} aria-controls={SEARCH_ID} onClick={toggleSearch}>
+            <Icon name="search" size={16} />
+          </Button>
         </div>
       </div>
       {selected && (
@@ -253,7 +271,7 @@ export function FinancialTab({
         </Button>
       </div>
 
-      <div className="fin-search">
+      <div id={SEARCH_ID} className="fin-search" hidden={!searchOpen}>
         <FieldLabel htmlFor={ACCOUNT_SEARCH_INPUT_ID}>계정 찾기</FieldLabel>
         <div className="fin-search__box">
           <Input
@@ -308,18 +326,6 @@ export function FinancialTab({
         )
         .with({ status: 'success' }, () => (
           <>
-          {selected?.comparable !== false && (
-            <FinancialChart
-              items={shownItems}
-              statementLabel={selected?.label ?? ''}
-              unit={unit}
-              currency={currency}
-              previousPeriod={amountPeriodLabel(analysis.previous, basis)}
-              currentPeriod={amountPeriodLabel(analysis.current, basis)}
-              selectedChangeId={selectedChangeId}
-              onSelect={openEvidence}
-            />
-          )}
           <DataTable
             caption={`계정별 이전 값, 현재 값, 증감액, 증감률. 계정 이름을 누르면 근거를 볼 수 있어요. 단위 ${unitLabel(unit, currency)}`}
             density="dense"
@@ -352,7 +358,7 @@ export function FinancialTab({
               </tr>
             </thead>
             <tbody>
-              {exportItems.map((item) => (
+              {tableItems.map((item) => (
                 <ChangeRow
                   key={item.changeId}
                   item={item}
@@ -363,6 +369,11 @@ export function FinancialTab({
               ))}
             </tbody>
           </DataTable>
+          {exportItems.length > TABLE_INITIAL_ROWS && !forcedOpen && (
+            <Button className="fin-table__more" aria-expanded={expanded} onClick={() => setShowAll(!expanded)}>
+              {expanded ? '접기' : `${changedOnly ? '바뀐 계정' : '계정'} ${exportItems.length}개 모두 보기`}
+            </Button>
+          )}
           </>
         ))
         .exhaustive()}

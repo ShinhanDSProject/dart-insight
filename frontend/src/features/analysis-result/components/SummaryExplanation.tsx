@@ -10,6 +10,8 @@ interface SummaryExplanationProps {
   item: SummaryItem
   analysis: Analysis
   onOpenSource: (target: SourceTarget) => void
+  /** AI 문장과 '설명 없음' 안내를 줄에서 이미 보였으면 false(#560) */
+  showText?: boolean
 }
 
 /**
@@ -17,8 +19,8 @@ interface SummaryExplanationProps {
  * 등급의 근거인 인용문과 그 원문 위치를 함께 보인다. 설명이 없거나 검토 필요면 그 안내만 보인다.
  * 검증에 실패한 설명(TEMPLATE, #149)은 AI 문장 없이 코드가 확인한 인용만 '회사 설명'으로 보인다('AI 생성' 아님).
  */
-export function SummaryExplanation({ item, analysis, onOpenSource }: SummaryExplanationProps) {
-  const missing = item.kind === 'FINANCIAL' ? explanationNote(item.explanationStatus, item.gradeReason) : null
+export function SummaryExplanation({ item, analysis, onOpenSource, showText = true }: SummaryExplanationProps) {
+  const missing = showText && item.kind === 'FINANCIAL' ? explanationNote(item.explanationStatus, item.gradeReason) : null
   const grade = item.kind === 'FINANCIAL' ? gradeLabel(item.explanationGrade) : null
   const note = item.kind === 'FINANCIAL' ? gradeNote(item.explanationGrade) : null
   return (
@@ -26,9 +28,11 @@ export function SummaryExplanation({ item, analysis, onOpenSource }: SummaryExpl
       {item.aiText && (
         <div className="summary-item__ai">
           {grade && <p className="summary-item__grade">{grade}</p>}
-          <p className="summary-item__ai-text">
-            {item.aiGenerated && <Badge tone="accent">AI 생성</Badge>} {item.aiText}
-          </p>
+          {showText && (
+            <p className="summary-item__ai-text">
+              {item.aiGenerated && <Badge tone="accent">AI 생성</Badge>} {item.aiText}
+            </p>
+          )}
           {note && <p className="summary-item__grade-note">{note}</p>}
           {item.quote && <Quote item={item} caption={QUOTE_CAPTION} analysis={analysis} onOpenSource={onOpenSource} />}
           {item.ai && (

@@ -7,9 +7,10 @@ import type { ChangeType } from '@/shared/api/textChanges'
 import type { LoadState } from '@/shared/hooks/asyncState'
 import type { AsyncResult } from '@/shared/hooks/useAsync'
 import { formatCompactAmount } from '@/shared/lib/chartScale'
-import { Badge, Button, ButtonLink, Card, Chip, Notice, Panel, PanelTitle, SegmentedControl, Skeleton } from '@/shared/ui'
+import { Badge, Button, ButtonLink, Chip, Notice, Panel, PanelTitle, SegmentedControl, Skeleton } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState } from '@/shared/ui/StateView'
+import { useChangeOverview } from '../hooks/useChangeOverview'
 import { useSummary } from '../hooks/useSummary'
 import { formatRate } from '../model/format'
 import { useSummaryAmounts } from '../hooks/useSummaryAmounts'
@@ -18,6 +19,7 @@ import { headlineItems } from '../model/summaryHeadline'
 import { AddToNote } from './AddToNote'
 import { AskEntryCard } from './AskEntryCard'
 import { ChangeOverview } from './ChangeOverview'
+import { SectionChangeChart } from './SectionChangeChart'
 import { SummaryExplanation } from './SummaryExplanation'
 import { SummaryHeadline } from './SummaryHeadline'
 import type { SourceTarget, SummaryViewChange } from '../model/resultParams'
@@ -31,6 +33,7 @@ import {
   type SummaryView,
 } from '../model/summaryLens'
 import {
+  explanationNote,
   kindLabel,
   SUMMARY_NOTE,
   summaryItemQuestion,
@@ -79,7 +82,8 @@ interface OverviewLinks {
 }
 
 /**
- * W-03 ① 요약·설명(3.2). 맨 위에 핵심 3줄(FS-21), 변화 개요(FS-4 R6)와 AI 질문 진입 카드(3.10)를 둔다. 수치 문장은 코드가 계산한 값이고, AI가 쓴 문장은 'AI 생성'으로 따로 표시해 사실과 구분한다.
+ * W-03 ① 요약·설명(3.2). 왼쪽에 핵심 3줄(FS-21)과 그 아래 변화 개요 한 줄(FS-4 R6), AI 질문 입력(3.10), 관점별 요약을,
+ * 오른쪽에 변경이 많은 섹션을 둔다(#560 시안). 수치 문장은 코드가 계산한 값이고, AI가 쓴 문장은 'AI 생성'으로 따로 표시해 사실과 구분한다.
  * 공시에 설명이 없으면 '확인된 설명 없음', 근거를 확인하지 못한 항목은 요약에서 빼고 '검토 필요'로 센다.
  */
 export function SummaryTab({
@@ -100,6 +104,8 @@ export function SummaryTab({
 }: SummaryTabProps & OverviewLinks & AskEntry & LensControls) {
   // 핵심 3줄(FS-21)과 요약 본문이 같은 요약 응답을 쓴다(한 번만 불러온다)
   const summary = useSummary(analysis.analysisId)
+  // 개요 한 줄과 오른쪽 섹션 막대가 같은 응답을 쓴다(한 번만 불러온다)
+  const overview = useChangeOverview(analysis.analysisId)
   // 열 수 없는 항목(결과에서 찾지 못함)은 버튼을 그리지 않는다
   const opener = (target: SummaryTarget): (() => void) | null => {
     const link = summaryLink(target)
@@ -108,13 +114,19 @@ export function SummaryTab({
   }
 
   return (
-    <>
-      {summary.state.status === 'success' && <SummaryHeadline lines={headlineItems(summary.state.data)} opener={opener} />}
-      <ChangeOverview
-        analysisId={analysis.analysisId}
-        onOpenChangedAccounts={onOpenChangedAccounts}
-        onOpenTextList={onOpenTextList}
-        onOpenTextSection={onOpenTextSection}
+    <div className="summary-layout">
+      <div className="summary-layout__main">
+      <SummaryHeadline
+        lines={summary.state.status === 'success' ? headlineItems(summary.state.data) : []}
+        opener={opener}
+        footer={
+          <ChangeOverview
+            financial={overview.financial}
+            text={overview.text}
+            onOpenChangedAccounts={onOpenChangedAccounts}
+            onOpenTextList={onOpenTextList}
+          />
+        }
       />
       <AskEntryCard suggestions={suggestions} onAsk={onAsk} onOpenAsk={onOpenAsk} sending={asking} />
       <SummaryContent
@@ -128,7 +140,15 @@ export function SummaryTab({
         view={view}
         onChangeLens={onChangeLens}
       />
-    </>
+      </div>
+      <aside className="summary-layout__aside" aria-label="요약 곁 정보">
+        <SectionChangeChart
+          state={overview.text.state}
+          onOpenSection={onOpenTextSection}
+          onOpenAll={() => onOpenTextList(null)}
+        />
+      </aside>
+    </div>
   )
 }
 
@@ -360,45 +380,55 @@ function SummaryCard({ item, analysis, amount, onOpen, onOpenSource, onAsk, aski
   const noteLabel = summaryNoteLabel(item, amount)
   const quoteLink = summaryQuoteLink(analysis.corpCode, analysis.analysisId, item.target)
   const question = summaryItemQuestion(item, amount)
-  
+  // 줄 오른쪽에는 '확인된 설명 없음'처럼 앞말만 두고, 자세한 이유는 '더 보기' 안에 둔다(#560)
+  const missing = item.kind === 'FINANCIAL' ? explanationNote(item.explanationStatus, item.gradeReason)?.split(' · ')[0] : null
+  const lead = item.factSentence ?? item.aiText
+
   return (
-    <Card as="article" tone="subtle" className="summary-item">
-      {/* 위: 사실 문장과 이전 → 현재 큰 숫자 | 오른쪽 근거 버튼(#550, 시안 09) */}
+    <article className="summary-item">
+      {/* 한 줄: 사실 문장(문장 변화는 AI 문장) | 설명 상태 · 근거 버튼(#560 시안) */}
       <div className="summary-item__top">
-        <div className="summary-item__main">
-          {item.factSentence && <p className="summary-item__fact">{item.factSentence}</p>}
-          {amount && <SummaryAmounts amount={amount} />}
-        </div>
+        <p className="summary-item__fact">
+          {item.factSentence === null && item.aiGenerated && <Badge tone="accent">AI 생성</Badge>} {lead}
+        </p>
+        {missing && <span className="summary-item__status">{missing}</span>}
         {onOpen && (
-          <Button className="summary-item__open" onClick={onOpen}>
-            {item.kind === 'FINANCIAL' ? '수치 근거' : '문장 근거'} <span aria-hidden="true">→</span>
+          <Button variant="link" className="summary-item__open" onClick={onOpen}>
+            {item.kind === 'FINANCIAL' ? '수치 근거' : '변경 근거'}
           </Button>
         )}
       </div>
-      <SummaryExplanation item={item} analysis={analysis} onOpenSource={onOpenSource} />
-      {(quoteLink !== null || question !== null || noteTarget !== null) && (
-        <div className="summary-item__actions">
-          {quoteLink !== null && (
-            <ButtonLink variant="secondary" to={quoteLink} aria-label={`커뮤니티에 인용: ${noteLabel}`}>
-              커뮤니티에 인용
-            </ButtonLink>
-          )}
-          {question !== null && (
-            <Button
-              variant="secondary"
-              disabled={asking}
-              aria-label={`AI에 질문: ${question}`}
-              onClick={() => onAsk(question)}
-            >
-              AI에 질문
-            </Button>
-          )}
-          {noteTarget !== null && (
-            <AddToNote target={noteTarget} analysisId={analysis.analysisId} label={noteLabel} />
-          )}
-        </div>
+      {item.factSentence !== null && item.aiText && (
+        <p className="summary-item__ai-text">
+          {item.aiGenerated && <Badge tone="accent">AI 생성</Badge>} {item.aiText}
+        </p>
       )}
-    </Card>
+      <details className="summary-item__more">
+        <summary>더 보기</summary>
+        {amount && <SummaryAmounts amount={amount} />}
+        <SummaryExplanation item={item} analysis={analysis} onOpenSource={onOpenSource} showText={false} />
+        {(quoteLink !== null || question !== null || noteTarget !== null) && (
+          <div className="summary-item__actions">
+            {quoteLink !== null && (
+              <ButtonLink variant="secondary" to={quoteLink} aria-label={`커뮤니티에 인용: ${noteLabel}`}>
+                커뮤니티에 인용
+              </ButtonLink>
+            )}
+            {question !== null && (
+              <Button
+                variant="secondary"
+                disabled={asking}
+                aria-label={`AI에 질문: ${question}`}
+                onClick={() => onAsk(question)}
+              >
+                AI에 질문
+              </Button>
+            )}
+            {noteTarget !== null && <AddToNote target={noteTarget} analysisId={analysis.analysisId} label={noteLabel} />}
+          </div>
+        )}
+      </details>
+    </article>
   )
 }
 
