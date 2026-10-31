@@ -1,4 +1,3 @@
-import type { FeaturedCompany, FeaturedCompanyListResponse } from '@/shared/api/featuredCompanies'
 import type { TabItem } from '@/shared/ui'
 
 /**
@@ -6,22 +5,20 @@ import type { TabItem } from '@/shared/ui'
  * 비로그인 빈 상자나 기록이 없는 빈 탭은 노출하지 않고, 내용이 있는 탭만 정돈해 보여 준다.
  */
 
-export type HomeTab = 'recent' | 'disclosures' | 'season' | 'featured'
+export type HomeTab = 'disclosures' | 'season' | 'featured'
 
 export type HomeModal = 'none' | 'guide' | 'notice'
 
-/** 검색창 바로 아래 빠른 바로가기로 보여 줄 대표 기업 최대 수 */
-export const QUICK_FEATURED_LIMIT = 6
+/** 검색창 아래 '이렇게 찾아보세요' 예시 검색어(#560, 시안 그대로) */
+export const EXAMPLE_QUERIES = ['삼성전자', '에코프로비엠', '고려아연'] as const
 
 export interface HomeTabContext {
-  hasRecent: boolean
   hasFavorites: boolean
 }
 
-/** 현재 회원·기록 상태에 맞춰 실제 내용이 있는 탭만 순서대로 만든다 */
-export function buildHomeTabs({ hasRecent, hasFavorites }: HomeTabContext): TabItem<HomeTab>[] {
+/** 현재 회원 상태에 맞춰 실제 내용이 있는 탭만 순서대로 만든다. 최근 본 분석은 검색창 펼침 상자에 있다(#560) */
+export function buildHomeTabs({ hasFavorites }: HomeTabContext): TabItem<HomeTab>[] {
   const tabs: TabItem<HomeTab>[] = []
-  if (hasRecent) tabs.push({ value: 'recent', label: '최근 본 분석' })
   if (hasFavorites) tabs.push({ value: 'disclosures', label: '관심 기업 새 공시' })
   tabs.push({ value: 'season', label: '이번 시즌 변화' })
   tabs.push({ value: 'featured', label: '대표 기업' })
@@ -42,20 +39,4 @@ export function resolveHomeTab(rawTab: string | null, tabs: readonly TabItem<Hom
 /** 기본 탭이면 주소 쿼리를 비우고(null), 다른 탭을 골랐을 때만 남긴다 */
 export function serializeHomeTab(tab: HomeTab, tabs: readonly TabItem<HomeTab>[]): string | null {
   return tab === defaultHomeTab(tabs) ? null : tab
-}
-
-export interface QuickFeatured {
-  baseDate: string
-  source: string
-  items: FeaturedCompany[]
-}
-
-/** 검색창 아래 빠른 바로가기용 상위 대표 기업. 기준일·출처(공공누리 표시, ADR-0033)가 없거나 비었으면 null */
-export function pickQuickFeatured(data: FeaturedCompanyListResponse | null): QuickFeatured | null {
-  if (data === null || data.baseDate === null || data.items.length === 0) return null
-  return {
-    baseDate: data.baseDate,
-    source: data.source,
-    items: data.items.slice(0, QUICK_FEATURED_LIMIT),
-  }
 }

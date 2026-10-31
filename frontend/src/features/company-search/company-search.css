@@ -15,7 +15,10 @@
 }
 
 .search-hero--home {
-  padding-top: var(--space-7);
+  /* 첫 시야에는 검색만 둔다(#560). 아래 탭 보드는 스크롤해야 보인다 */
+  justify-content: center;
+  min-height: 62vh;
+  margin-bottom: var(--space-7);
 }
 
 /* 로고가 화면 제목이다(#549) */
@@ -37,7 +40,89 @@
 }
 
 .search-form {
+  position: relative;
   margin-bottom: var(--space-4);
+}
+
+/* 빈 검색창에 초점이 있을 때만 아래로 펼친다(#560) */
+.search-drop {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: none;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-md);
+  text-align: left;
+}
+
+.search-form:focus-within .search-drop {
+  display: flex;
+}
+
+.search-drop__signin {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.search-drop__signin span {
+  flex: 1;
+}
+
+.search-drop__signin a {
+  font-weight: var(--font-weight-bold);
+}
+
+/* 검색창 아래 '이렇게 찾아보세요' 예시 칩(#560) */
+.example-queries {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.example-queries__label {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.example-queries__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.example-queries__chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  text-decoration: none;
+}
+
+.example-queries__chip:hover,
+.example-queries__chip:focus-visible {
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-subtle);
 }
 
 /* 구글형 둥근 검색 바(#538). 돋보기·입력창·지우기·검색 버튼을 한 알약 상자 안에 둔다 */
@@ -108,66 +193,18 @@
   border-radius: var(--radius-pill);
 }
 
-.search-form__hint {
-  display: block;
-  margin-top: var(--space-2);
-  text-align: left;
-}
-
 .field-error {
   margin: var(--space-2) 0 0;
   color: var(--color-danger);
   font-size: var(--font-size-sm);
 }
 
-/* 검색창 아래 '자주 찾는 기업' 카드(로그인 전엔 로그인 한 줄)와 대표 기업 바로가기 칩, 한 줄 안내 바 */
+/* 첫 시야 아래 '자주 찾는 기업' 카드와 한 줄 안내 바 */
 .home-shortcuts {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   margin-bottom: var(--space-3);
-}
-
-.home-signin {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding-block: var(--space-3);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
-}
-
-.home-signin__icon {
-  display: inline-flex;
-  flex: none;
-}
-
-.home-signin__text {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-}
-
-.home-signin__link {
-  flex: none;
-  font-weight: var(--font-weight-bold);
-}
-
-.quick-featured__list {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.quick-featured__note {
-  margin: var(--space-2) 0 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-  text-align: center;
 }
 
 .home-meta {
@@ -804,7 +841,7 @@
 
 @media (max-width: 900px) {
   .search-hero--home {
-    padding-top: var(--space-4);
+    min-height: 50vh;
   }
 
   .search-bar {
