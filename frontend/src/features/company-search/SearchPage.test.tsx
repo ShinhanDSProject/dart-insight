@@ -238,17 +238,18 @@ describe('관심 기업(#36)', () => {
 })
 
 describe('첫 화면 로고·검색창·즐겨찾기 카드·탭 카드(#538, #549)', () => {
-  it('비로그인 첫 화면은 빠른 대표 기업 바로가기와 시즌·대표 기업 두 탭만 보이고 빈 로그인 상자를 두지 않는다', async () => {
+  it('비로그인 첫 화면은 검색 예시 칩과 시즌·대표 기업 두 탭을 보이고, 로그인 안내는 검색창 펼침 상자에 둔다(#560)', async () => {
     featuredAvailable = true
     const { container } = renderAt('')
 
-    const quickNav = await screen.findByRole('navigation', { name: '대표 기업 바로가기' })
-    expect(within(quickNav).getByRole('link', { name: /삼성전자/ }).getAttribute('href')).toBe('/companies/00126380')
-    expect(within(quickNav).getByText('유가증권시장 시가총액 상위 · 2026.10.24 기준 · 출처: 금융위원회, 공공데이터포털')).toBeTruthy()
+    const examples = screen.getByRole('navigation', { name: '검색 예시' })
+    expect(within(examples).getAllByRole('link').map((a) => a.textContent)).toEqual(['삼성전자', '에코프로비엠', '고려아연'])
+    expect(within(examples).getByRole('link', { name: '에코프로비엠' }).getAttribute('href')).toBe(
+      `/?q=${encodeURIComponent('에코프로비엠')}`,
+    )
 
     const shelfTabs = screen.getByRole('navigation', { name: '첫 화면 둘러보기' })
     expect(within(shelfTabs).getAllByRole('button').map((b) => b.textContent)).toEqual(['이번 시즌 변화', '대표 기업'])
-    // 즐겨찾기 카드 자리에는 로그인 안내 한 줄만 둔다(#549)
     expect(screen.getByText('관심 기업의 새 공시는 로그인하면 여기에 모여요')).toBeTruthy()
     expect(screen.getByRole('link', { name: '로그인' }).getAttribute('href')).toBe('/login')
     expect(screen.queryByRole('region', { name: '자주 찾는 기업 (즐겨찾기)' })).toBeNull()
@@ -256,6 +257,13 @@ describe('첫 화면 로고·검색창·즐겨찾기 카드·탭 카드(#538, #5
     fireEvent.click(within(shelfTabs).getByRole('button', { name: '대표 기업' }))
     expect(await screen.findByRole('region', { name: '대표 기업' })).toBeTruthy()
     expect(await axeViolations(container)).toBe('')
+  })
+
+  it('검색어를 넣으면 펼침 상자(최근 본 분석·로그인 안내)를 그리지 않는다(#560)', () => {
+    renderAt('')
+    const input = screen.getByRole('textbox', { name: '회사명 또는 종목코드' })
+    fireEvent.change(input, { target: { value: '삼성' } })
+    expect(screen.queryByText('관심 기업의 새 공시는 로그인하면 여기에 모여요')).toBeNull()
   })
 
   it('사용법 보기와 이용 안내를 누르면 대화상자로 열고 Esc로 닫는다', async () => {
@@ -277,7 +285,7 @@ describe('첫 화면 로고·검색창·즐겨찾기 카드·탭 카드(#538, #5
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
-  it('최근 본 분석과 관심 기업이 있는 회원은 개인화 탭을 앞에 두고 검색어 지우기로 첫 화면으로 돌아온다', async () => {
+  it('관심 기업이 있는 회원은 새 공시 탭을 앞에 두고, 최근 본 분석은 검색창 펼침 상자에 있다', async () => {
     saveRecentAnalyses(browserStorage(), [
       {
         analysisId: 12,
@@ -297,7 +305,6 @@ describe('첫 화면 로고·검색창·즐겨찾기 카드·탭 카드(#538, #5
     await screen.findByRole('region', { name: '자주 찾는 기업 (즐겨찾기)' })
     const shelfTabs = screen.getByRole('navigation', { name: '첫 화면 둘러보기' })
     expect(within(shelfTabs).getAllByRole('button').map((b) => b.textContent)).toEqual([
-      '최근 본 분석',
       '관심 기업 새 공시',
       '이번 시즌 변화',
       '대표 기업',
