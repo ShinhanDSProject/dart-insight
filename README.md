@@ -79,7 +79,7 @@ npm run check     # CI와 같은 검사: backend build, ai-server ruff·pytest, 
 | 화면 설계 | [노션 · 사용자 흐름·화면 와이어프레임](https://app.notion.com/p/c0f540f74d92496c9c20f23867afc15a) | 화면 W-01~W-03, 예외·상태 처리 |
 | 공시 용어 | [노션 · 공시·재무 도메인 가이드](https://app.notion.com/p/3ffb6afffc6f804d85f4d36e6013635c) | 정기보고서, 재무제표, 비교 기준 |
 | OpenDART | [노션 · OpenDART 데이터 가이드](https://app.notion.com/p/400b6afffc6f81cc8870ee13d02d8ac1) | API 코드와 응답 필드 |
-| 프로젝트 개요 상세 | [`docs/project-overview.md`](docs/project-overview.md) | 노션 프로젝트 개요의 10/14 초안과 근거 |
+| 프로젝트 가이드 | [노션 · DART Insight 프로젝트 가이드](https://app.notion.com/p/40cb6afffc6f8112a942e346df022393) | 기획자·개발자가 기능·원칙·아키텍처·데이터·AI·API·워크플로우를 한 번에 파악하는 문서 |
 | 배경 조사 | [`docs/project-background-research.md`](docs/project-background-research.md) | 유사 서비스, OpenDART, LLM 기법, 규제 조사 |
 | ERD | [`docs/erd.md`](docs/erd.md) | 테이블과 관계. 스키마를 바꾸는 PR에서 함께 고침 |
 | API 명세 | [`docs/api-spec.md`](docs/api-spec.md) | 외부·내부 API, 에러 코드. API를 바꾸는 PR에서 함께 고침 |
