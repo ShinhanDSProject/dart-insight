@@ -51,9 +51,9 @@ mariadb -u root -p -e "source backend/db/local-init.sql"
 
 접속 정보는 `backend/.env.example`과 같아서, 값을 바꾸지 않았다면 `.env`도 그대로 쓰면 됩니다.
 
-### 2.3 Chroma(벡터 DB)
+### 2.3 벡터 DB
 
-따로 설치하거나 띄우지 않습니다. ai-server가 필요할 때 자기 폴더 안에 파일로 저장하는 방식으로 씁니다(4.2·2.5에서 확정).
+지금은 쓰지 않아 설치할 것이 없습니다. 근거 문단 검색은 ai-server의 BM25입니다([ADR-0036](adr/0036-bm25-explanation-candidate-search.md)). 임베딩·Chroma는 벡터 검색 이슈(#148)에서 정합니다.
 
 ### 2.4 포트가 겹칠 때
 
