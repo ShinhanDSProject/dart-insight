@@ -23,10 +23,10 @@ DART 정기보고서 두 개를 비교해, 바뀐 재무 수치와 문장을 원
 | --- | --- | --- |
 | `frontend/` | 웹 화면 | React + TypeScript |
 | `backend/` | 서비스 API, OpenDART 조회·캐시, 분석 작업 관리 | Spring Boot |
-| `ai-server/` | 원문 파싱·구조화, 문장 변경 탐지, 요약·설명 | FastAPI, LangChain·LangGraph (Python) |
+| `ai-server/` | 원문 파싱·구조화, 문장 변경 탐지, 근거 문단 검색, 요약·설명 | FastAPI (Python), LLM은 `openai` SDK |
 | `docs/` | 프로젝트 개요·배경 조사, API 명세·ERD, 협업 가이드 | — |
 
-- DB는 MariaDB(정형 데이터)와 Chroma(본문 임베딩)를 씁니다. 외부 데이터는 OpenDART입니다.
+- DB는 MariaDB를 씁니다. 외부 데이터는 OpenDART입니다. 근거 문단은 ai-server가 BM25로 찾고, LangChain·LangGraph와 임베딩·Chroma는 지금 쓰지 않습니다(벡터 검색은 #148).
 - 호출 방향은 React → Spring Boot → FastAPI입니다. React는 Spring Boot만 호출합니다.
 
 ## 로컬 실행
