@@ -135,6 +135,7 @@ PR마다 비밀정보 검사(gitleaks)가 돌고, 바뀐 서비스 폴더의 CI�
 ## 참고 문서
 
 - 노션: [개발 기준](https://app.notion.com/p/400b6afffc6f813aac54dd697afc9d8e) · [개발 워크플로우](https://app.notion.com/p/401b6afffc6f81ab85f5e0996089ef57) · [기능 명세·WBS](https://app.notion.com/p/3ffb6afffc6f80179ffbfd4817a5aaa0) · [화면 와이어프레임](https://app.notion.com/p/c0f540f74d92496c9c20f23867afc15a) · [공시·재무 도메인 가이드](https://app.notion.com/p/3ffb6afffc6f804d85f4d36e6013635c) · [OpenDART 데이터 가이드](https://app.notion.com/p/400b6afffc6f81cc8870ee13d02d8ac1) (팀 워크스페이스 권한 필요)
-- 저장소: `docs/project-overview.md`(프로젝트 개요), `docs/adr/`(아키텍처 결정 기록), `docs/monorepo-team-guide.md`(Git·PR 절차), `docs/templates/`(API 명세·ERD·ADR 템플릿)
+- 프로젝트 전체 파악: 노션 [DART Insight 프로젝트 가이드](https://app.notion.com/p/40cb6afffc6f8112a942e346df022393)
+- 저장소: `docs/adr/`(아키텍처 결정 기록), `docs/monorepo-team-guide.md`(Git·PR 절차), `docs/templates/`(API 명세·ERD·ADR 템플릿)
 - 워크플로우 자료(노션): [성공 기준(SC)](https://app.notion.com/p/401b6afffc6f810bbb4bff6e32ec9172) · [기능 기획서 DB](https://app.notion.com/p/e1f20d0ae0584b6ba85e2b80906814d1) · [결정 로그](https://app.notion.com/p/4ce942f6c0bc4d77a490ceeda26d4a18) · [MVP 요구사항·범위](https://app.notion.com/p/3ffb6afffc6f80c0ad55ce2ffba2d7f6)
 - 작업 이슈: [GitHub Issues](https://github.com/ShinhanDSProject/dart-insight/issues)
