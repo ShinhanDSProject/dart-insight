@@ -13,6 +13,7 @@ BRIEFINGS = "/briefings"
 OUTLOOKS = "/outlooks"
 PLAN_FOLLOWUPS = "/plan-followups"
 TEXT_CHANGES = "/text-changes"
+AGENT_STEPS = "/agent-steps"
 
 DOCUMENTS_PREFIX = f"{INTERNAL_PREFIX}/documents"
 DOCUMENT_PARSER = "/parser"
