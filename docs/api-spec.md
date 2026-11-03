@@ -2156,11 +2156,44 @@
 - 유형 여러 개(#304): `type`에 유형을 쉼표로 이어 주면 그중 하나에 맞는 변경을 돌려줍니다. 화면의 '내용 변경'은 `type=ADDED,DELETED,MODIFIED`입니다. 알 수 없는 값이 하나라도 있으면 400입니다.
 - 위험 관련(#466, FS-61): 섹션 경로(`sectionPath`나 `previousSectionPath` 중 하나라도)의 목차 제목에 아래 낱말이 들어 있으면 위험 관련(`riskRelated: true`)입니다. 공백은 빼고 비교합니다. 낱말: `위험`, `파생거래`, `예측정보`, `우발`, `소송`, `제재`. 사업보고서 목차로는 `II. 사업의 내용 > 5. 위험관리 및 파생거래`, `XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항`(그 아래 `가. 중요한 소송사건` 등), `XI. … > 3. 제재 등과 관련된 사항`, `IV. 이사의 경영진단 및 분석의견 > 1. 예측정보에 대한 주의사항`이 해당합니다. 목차 제목으로 나눈 것이라 실제 내용과 다를 수 있고, 위험의 크기나 좋고 나쁨을 판단하지 않습니다(LLM 없음, 저장하지 않고 조회할 때 정함).
 - `risk=true`면 위험 관련 변경만 돌려줍니다. `type`·`section`·`q`와 함께 씁니다(모두 맞는 것).
+- 목록 분류(2.9, [ADR-0047](adr/0047-text-change-list-classification.md)): 변경마다 묶음(`listGroup`) 하나에 속하고, 기본 목록(`MAIN`)의 변경은 분야(`field`)를 가집니다. `group`·`field`를 주지 않으면 지금처럼 모든 변경을 돌려주므로, 채팅의 `search_text_changes`와 `q` 검색은 접힌 변경도 찾습니다. 화면만 `group=MAIN`으로 기본 목록을 부릅니다. 규칙은 잠정이고, 숫자는 코드가 셉니다(LLM 없음).
+- `group`이 `NOTE` 하나면 연결 주석, 별도 주석, 구분할 수 없는 주석 순서로 묶어 돌려주고, 그 안에서 `sort`를 따릅니다.
+- 분류 규칙은 아래 순서로 처음 맞는 것입니다. 잡음 판정은 미리보기가 아니라 전체 글로 합니다.
+
+  | `listGroup` | 조건 | 기본 목록 |
+  | --- | --- | --- |
+  | `UNPAIRED` | `REVIEW_NEEDED` | 건수에 세지 않지만 접지 않고 항상 보여 줌 |
+  | `MOVED` | `MOVED` | 접음 |
+  | `PAIRED_TABLE` | 같은 섹션의 추가된 표와 행 비교가 된 삭제된 표. 비교 결과는 추가된 표 쪽에 있음 | 접음 |
+  | `MAIN` + `raisedFromNote` | 재무제표 주석 중 소송, 우발부채, 담보, 채무보증, 보고기간 후 사건이 글이나 섹션 경로에 있는 변경. `NUMERIC_UPDATE`와 아래 두 잡음은 올리지 않음 | 보임 |
+  | `NOTE` | 그 밖의 재무제표 주석(섹션 경로에 `주석`) | 접음 |
+  | `FORMATTING` | `MODIFIED`인데 숫자·글자가 같고 띄어쓰기·기호만 다름 | 접음 |
+  | `HEADING` | `ADDED`·`DELETED`인데 글자가 20자 미만 | 접음 |
+  | `MAIN` | 그 밖 전부(`NUMERIC_UPDATE` 포함) | 보임 |
+
+- 분야(`field`)는 아래 순서로 처음 맞는 것입니다. 주석에서 올린 변경은 소송·우발부채면 `LITIGATION`, 담보·채무보증이면 `FUNDING`, 보고기간 후 사건이면 `OTHER`입니다. 목차 제목으로 나눈 것이라 실제 내용과 다를 수 있습니다.
+
+  | `field` | 화면 이름 | 섹션 경로 |
+  | --- | --- | --- |
+  | `LITIGATION` | 소송·제재 | `우발부채`, `제재` |
+  | `CONTRACT` | 주요 계약 | `주요계약` |
+  | `BUSINESS` | 사업 내용 | `II.`, `IV.`, `IX.`로 시작(주요계약 제외) |
+  | `DIVIDEND` | 배당 | `배당에 관한` |
+  | `FUNDING` | 자금 조달 | `III.`로 시작하면서 `자금조달` |
+  | `BOARD` | 이사회·임원 | `VI.`, `VIII.`로 시작 |
+  | `SHAREHOLDER` | 주주 | `VII.`, `X.`로 시작, `주식의 총수` |
+  | `AUDIT` | 감사 | `V.`로 시작 |
+  | `OTHER` | 그 밖의 변경 | 그 밖 전부 |
+
+- 행 비교(`rowDiff`): 표 변경에서 두 표의 공통 열 중 표 안에서 값이 겹치지 않고 비어 있지 않은 열을 고르고, 그중 양쪽에 함께 있는 값이 가장 많은 열로 행을 짝짓습니다(같으면 앞쪽 열). 짝지을 열을 정할 수 없거나 칸 수가 맞지 않으면 `NOT_COMPARED`이고 짝을 추측하지 않습니다. 짝이 없는 표의 `ADDED`·`DELETED`와 문단은 `rowDiff`가 null입니다.
+- 옛 분석: 분석 버전을 올리기 전에 저장한 행은 분류 값이 없습니다(`listVersion`, `fieldCounts`, `missingFields`, `groupCounts`, 항목의 분류 값이 모두 null). 이때 `group`·`field`를 주면 `items`가 비어 있습니다. 화면은 `listVersion`이 null이면 표와 묶음 없이 지금 목록을 보여 줍니다.
 
 **요청**
 
 | 위치 | 이름 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- | --- |
+| query | `group` | string | 아니오 | `MAIN`, `HEADING`, `FORMATTING`, `MOVED`, `NOTE`, `PAIRED_TABLE`, `UNPAIRED` 중 하나 이상을 쉼표로 이어서. 없으면 전체 |
+| query | `field` | string | 아니오 | `LITIGATION`, `CONTRACT`, `BUSINESS`, `DIVIDEND`, `FUNDING`, `BOARD`, `SHAREHOLDER`, `AUDIT`, `OTHER` 중 하나. 없으면 전체 |
 | query | `type` | string | 아니오 | `ADDED`, `DELETED`, `MODIFIED`, `NUMERIC_UPDATE`, `MOVED`, `REVIEW_NEEDED` 중 하나 이상을 쉼표로 이어서(예: `ADDED,DELETED,MODIFIED`, 그중 하나에 맞는 것). 값마다 앞뒤 공백은 지우고, 같은 값을 두 번 써도 됩니다. 없거나 빈 값이면 전체 |
 | query | `sort` | string | 아니오 | `priority`(기본) 확인 우선순위, `document` 문서 순서 |
 | query | `section` | string | 아니오 | 최상위 섹션 제목(`sections[].title`과 같은 글). 500자까지. 없거나 빈 값이면 전체. 이 분석에 없는 섹션이면 `items`가 비어 있음 |
@@ -2186,6 +2219,15 @@
   "totalItems": 57,
   "counts": { "all": 57, "added": 10, "deleted": 5, "modified": 22, "numericUpdate": 15, "moved": 3, "reviewNeeded": 2 },
   "riskCounts": { "all": 6, "added": 2, "deleted": 1, "modified": 2, "numericUpdate": 1, "moved": 0, "reviewNeeded": 0 },
+  "group": null,
+  "field": null,
+  "listVersion": "text-list-1",
+  "fieldCounts": {
+    "LITIGATION": 2, "CONTRACT": 1, "BUSINESS": 10, "DIVIDEND": 0, "FUNDING": 3,
+    "BOARD": 4, "SHAREHOLDER": 2, "AUDIT": 1, "OTHER": 2
+  },
+  "missingFields": ["DIVIDEND"],
+  "groupCounts": { "MAIN": 25, "HEADING": 5, "FORMATTING": 2, "MOVED": 3, "NOTE": 18, "PAIRED_TABLE": 2, "UNPAIRED": 2 },
   "sections": [
     { "title": "I. 회사의 개요", "count": 6 },
     { "title": "II. 사업의 내용", "count": 31 },
@@ -2211,7 +2253,31 @@
         "score": 60,
         "reasons": ["사업의 내용 섹션 +30", "수정 +10", "크게 바뀜(비슷한 정도 0.7 미만) +10", "문단 +10"]
       },
-      "riskRelated": false
+      "riskRelated": false,
+      "listGroup": "MAIN",
+      "field": "BUSINESS",
+      "raisedFromNote": false,
+      "noteScope": null,
+      "rowDiff": null
+    },
+    {
+      "changeId": 3002,
+      "changeType": "ADDED",
+      "blockType": "TABLE",
+      "...": "위와 같은 모양",
+      "listGroup": "MAIN",
+      "field": "LITIGATION",
+      "raisedFromNote": false,
+      "noteScope": null,
+      "rowDiff": {
+        "status": "COMPARED",
+        "keyColumn": "사건의 명칭(사건번호)",
+        "counts": { "changed": 2, "added": 3, "missing": 11, "same": 1 },
+        "pairedPrevious": { "rceptNo": "20250814000987", "sectionNo": 40, "blockNo": 512 },
+        "changedRows": [
+          { "key": "주주총회결의취소 청구의 소(서울중앙지방법원 2025가합9085)", "cells": [{ "column": "진행상황", "previous": "진행 중", "current": "화해권고결정" }] }
+        ]
+      }
     }
   ]
 }
@@ -2219,6 +2285,19 @@
 
 | 필드 | 설명 |
 | --- | --- |
+| `group`·`field` | 요청에 쓴 거르기 값. 없으면 null |
+| `listVersion` | 분류 규칙 버전. 옛 분석이면 null |
+| `fieldCounts` | 분야별 기본 목록 건수. 거르기와 상관없이 분석 전체를 세고, 합은 `groupCounts.MAIN`과 같습니다. 옛 분석이면 null |
+| `missingFields` | 두 보고서 어느 쪽에도 그 분야의 섹션이 없는 분야. `fieldCounts`가 0이면서 여기 있으면 '보고서에 해당 내용 없음', 없으면 '확인된 변화 없음'입니다. `OTHER`는 들어가지 않습니다. 옛 분석이면 null |
+| `groupCounts` | 묶음별 건수. 거르기와 상관없이 분석 전체를 셉니다. 옛 분석이면 null |
+| `listGroup` | 이 변경의 묶음(위 표). 옛 분석이면 null |
+| `field` | 이 변경의 분야. `MAIN`이 아니거나 옛 분석이면 null |
+| `raisedFromNote` | 재무제표 주석에서 기본 목록으로 올린 변경인지. 옛 분석이면 null |
+| `noteScope` | 주석이면 `CONSOLIDATED` 연결, `SEPARATE` 별도, `UNKNOWN` 구분할 수 없음. 주석이 아니면 null |
+| `rowDiff` | 표 행 비교 결과. 목록은 `changedRows`를 앞에서 3개까지 주고, 근거 상세는 전부와 `addedKeys`·`missingKeys`를 줍니다. 비교하지 않았으면 null |
+| `rowDiff.status` | `COMPARED` 행을 비교함, `NOT_COMPARED` 짝지을 값이 없어 비교하지 않음(`keyColumn`·`counts`·`pairedPrevious`는 null, `changedRows`는 빈 배열) |
+| `rowDiff.counts` | `changed` 바뀐 행, `added` 새 행, `missing` 이번 표에 없는 행, `same` 그대로인 행. '이번 표에 없음'은 끝났다는 뜻이 아닙니다. 코드가 셉니다 |
+| `rowDiff.pairedPrevious` | 구성이 바뀌어 `DELETED`로 잡힌 이전 표의 위치. 같은 변경 안에서 비교했으면 null |
 | `priority.level` | `HIGH` 중요도 높음(60점 이상), `MEDIUM` 중간(30점 이상), `LOW` 낮음, `UNRANKED` 판단 유보(검토 필요 항목. 규칙으로 판단할 수 없어 순위를 매기지 않음) |
 | `priority.score` | 적용한 규칙 점수의 합. `UNRANKED`면 null |
 | `priority.reasons` | 적용한 규칙과 점수(잠정 규칙, 5절) |
@@ -2239,7 +2318,7 @@
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
-| 400 | `COMMON_INVALID_INPUT` | `type`에 알 수 없는 값이 하나라도 있음(빈 항목 포함, 예: `ADDED,`), `risk`가 참·거짓이 아님, `sort`·`page`·`size`가 범위 밖, `section`이 500자 초과, `q`가 2자 미만이거나 100자 초과(`errors[].field`에 이름) |
+| 400 | `COMMON_INVALID_INPUT` | `type`·`group`에 알 수 없는 값이 하나라도 있음(빈 항목 포함, 예: `ADDED,`), `field`가 알 수 없는 값, `risk`가 참·거짓이 아님, `sort`·`page`·`size`가 범위 밖, `section`이 500자 초과, `q`가 2자 미만이거나 100자 초과(`errors[].field`에 이름) |
 | 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 ID |
 | 409 | `ANALYSIS_NOT_READY` | 분석이 아직 완료되지 않음 |
 
@@ -2255,7 +2334,7 @@
 
 ```json
 {
-  "change": { "changeId": 3001, "changeType": "MODIFIED", "...": "목록 항목과 같은 모양" },
+  "change": { "changeId": 3001, "changeType": "MODIFIED", "...": "목록 항목과 같은 모양. rowDiff는 changedRows 전부와 addedKeys·missingKeys를 포함" },
   "previous": {
     "rceptNo": "20250814000987",
     "reportName": "반기보고서 (2025.06)",
@@ -3096,6 +3175,8 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 ```json
 {
   "diffVersion": "text-diff-2",
+  "listVersion": "text-list-1",
+  "missingFields": ["DIVIDEND"],
   "sectionCounts": { "matched": 118, "renamed": 1, "added": 2, "deleted": 1, "ambiguous": 0 },
   "changes": [
     {
@@ -3103,12 +3184,15 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
       "sectionTitle": "1. 사업의 개요", "sectionPath": "II. 사업의 내용 > 1. 사업의 개요",
       "previous": { "sectionNo": 3, "blockNo": 41 }, "current": { "sectionNo": 3, "blockNo": 44 },
       "previousSectionPath": null, "numbersOnly": false, "similarity": 0.6818, "reviewReason": null,
-      "priority": { "level": "HIGH", "score": 60, "reasons": ["사업의 내용 섹션 +30", "수정 +10", "크게 바뀜(비슷한 정도 0.7 미만) +10", "문단 +10"] }
+      "priority": { "level": "HIGH", "score": 60, "reasons": ["사업의 내용 섹션 +30", "수정 +10", "크게 바뀜(비슷한 정도 0.7 미만) +10", "문단 +10"] },
+      "listGroup": "MAIN", "field": "BUSINESS", "raisedFromNote": false, "noteScope": null, "rowDiff": null
     }
   ]
 }
 ```
 
+- 목록 분류(2.9, [ADR-0047](adr/0047-text-change-list-classification.md)): `listVersion`, `missingFields`, 각 변경의 `listGroup`·`field`·`raisedFromNote`·`noteScope`·`rowDiff`의 뜻과 규칙은 `GET /api/analyses/{analysisId}/text-changes`와 같습니다. `rowDiff`는 `changedRows` 전부와 `addedKeys`·`missingKeys`를 담고, `pairedPrevious`는 접수번호 없이 `sectionNo`·`blockNo`만 줍니다. 분류를 해도 `changeType`, 위치, `priority`는 바뀌지 않습니다.
+- backend는 `listVersion`이 없으면 그 비교를 실패로 끝냅니다(옛 ai-server와 함께 돌 때 분류 없는 결과가 새 분석 버전으로 남지 않게).
 - `numbersOnly`는 `NUMERIC_UPDATE`일 때만 true입니다. `previousSectionPath`는 `MOVED`일 때만 있고 그 밖은 null입니다.
 - `priorityVersion`(응답 맨 위, 예: `priority-3`)은 우선순위 규칙 버전입니다. 각 변경의 `priority`는 확인할 순서를 정하는 점수와 적용한 규칙입니다(2.6, 5절의 잠정 규칙). `REVIEW_NEEDED`는 `UNRANKED`이고 점수가 없습니다.
 

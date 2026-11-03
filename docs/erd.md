@@ -292,6 +292,8 @@ erDiagram
         varchar priority "HIGH MEDIUM LOW UNRANKED"
         int previous_block_no
         int current_block_no
+        varchar list_group "MAIN HEADING FORMATTING MOVED NOTE PAIRED_TABLE UNPAIRED (2.9)"
+        varchar list_field "분야, MAIN만 (2.9)"
     }
     summary_item {
         bigint id PK
@@ -718,6 +720,7 @@ OpenDART 정기보고서 주요정보 API를 보고서(접수번호)·종류마�
 | `request_trace_id` | VARCHAR(64) | | 예 | 분석을 요청한 요청의 추적 ID(`X-Trace-Id`) |
 | `text_status` | VARCHAR(20) | | 예 | 문장 비교(2.5) 상태. `COMPLETED`, `PARTIAL`(원문 일부를 읽지 못했을 수 있음), `FAILED`(비교하지 못함). 원문을 받지 못해도 분석은 재무 결과로 완료하고 여기에 남김. 완료 전이면 null |
 | `text_message` | VARCHAR(500) | | 예 | 문장 비교가 `PARTIAL`·`FAILED`인 사유 |
+| `text_missing_fields` | VARCHAR(200) | | 예 | 두 보고서 어느 쪽에도 섹션이 없는 분야(쉼표로 이음, 없으면 빈 글, 2.9). 분류 전에 만든 분석이면 null |
 | `summary_status` | VARCHAR(20) | | 예 | 요약(3.2) 상태. `COMPLETED`, `PARTIAL`(검토 필요 항목이 있음), `EMPTY`(요약할 변화가 없음). 완료 전이거나 요약 전에 만든 분석이면 null. 요약에 LLM이 필요한데 부를 수 없으면 분석이 `FAILED`(`ANALYSIS_SUMMARY_FAILED`) |
 | `summary_message` | VARCHAR(500) | | 예 | 요약 상태 사유 |
 | `created_at`, `updated_at` | DATETIME(6) | | 아니오 | `updated_at`이 30분 넘게 바뀌지 않은 진행 중 분석은 멈춘 것으로 보고 실패로 바꿈 |
@@ -825,7 +828,7 @@ OpenDART 정기보고서 주요정보 API를 보고서(접수번호)·종류마�
 
 두 보고서의 문장·표 변경입니다(2.5). 문단·표 하나가 한 줄이고, 위치는 원문 구조화(`document_section`·`document_block`)의 번호입니다. 변경 전·후 글을 함께 저장합니다(원문을 다시 구조화해도 결과가 바뀌지 않게).
 
-> 마이그레이션: `V6__create_text_change.sql`, `V7__add_text_change_priority.sql`(우선순위), `V17__add_text_change_previous_section_path.sql`(위치 이동의 이전 섹션 경로, #150).
+> 마이그레이션: `V6__create_text_change.sql`, `V7__add_text_change_priority.sql`(우선순위), `V17__add_text_change_previous_section_path.sql`(위치 이동의 이전 섹션 경로, #150), `V47__add_text_change_list_classification.sql`(목록 분류, 2.9. 번호는 병합 전에 다시 확인).
 
 | 컬럼 | 타입 | 키 | null | 설명 |
 | --- | --- | --- | --- | --- |
@@ -849,6 +852,12 @@ OpenDART 정기보고서 주요정보 API를 보고서(접수번호)·종류마�
 | `priority_score` | INT | | 예 | 적용한 규칙 점수의 합. `UNRANKED`면 null |
 | `priority_reasons` | VARCHAR(1000) | | 예 | 적용한 규칙(한 줄에 하나, 예: `사업의 내용 섹션 +30`) |
 | `priority_version` | VARCHAR(20) | | 예 | 우선순위 규칙 버전(잠정 규칙 `priority-3`) |
+| `list_group` | VARCHAR(20) | | 예 | 목록 묶음(2.9, [ADR-0047](adr/0047-text-change-list-classification.md)): `MAIN`, `HEADING`, `FORMATTING`, `MOVED`, `NOTE`, `PAIRED_TABLE`, `UNPAIRED`. 분류 전에 만든 분석이면 null |
+| `list_field` | VARCHAR(20) | | 예 | 분야: `LITIGATION`, `CONTRACT`, `BUSINESS`, `DIVIDEND`, `FUNDING`, `BOARD`, `SHAREHOLDER`, `AUDIT`, `OTHER`. `MAIN`일 때만 있음 |
+| `raised_from_note` | BOOLEAN | | 예 | 재무제표 주석에서 기본 목록으로 올린 변경인지. 분류 전에 만든 분석이면 null |
+| `note_scope` | VARCHAR(20) | | 예 | 주석이면 `CONSOLIDATED`, `SEPARATE`, `UNKNOWN`. 주석이 아니면 null |
+| `row_diff` | MEDIUMTEXT | | 예 | 표 행 비교 결과(JSON, 모양은 API 명세의 `rowDiff`). 비교하지 않았으면 null |
+| `list_version` | VARCHAR(20) | | 예 | 분류 규칙 버전(잠정 규칙 `text-list-1`). 분류 전에 만든 분석이면 null |
 
 ### summary_item
 
@@ -1404,6 +1413,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `document_block` | `idx_document_block_section` | `document_id, section_no, block_no` | 인덱스 | 섹션별 원문 조회(3.5) |
 | `text_change` | `uk_text_change_no` | `analysis_id, change_no` | 유니크 | 변경 순서 중복 방지 |
 | `text_change` | `idx_text_change_type` | `analysis_id, change_type, change_no` | 인덱스 | 유형별 목록(W-03 ③) |
+| `text_change` | `idx_text_change_list` | `analysis_id, list_group, list_field, change_no` | 인덱스 | 묶음·분야별 목록과 건수(2.9) |
 | `summary_item` | `uk_summary_item_no` | `analysis_id, item_no` | 유니크 | 요약 순서 중복 방지 |
 | `llm_call` | `idx_llm_call_analysis` | `analysis_id` | 인덱스 | 분석별 호출 기록·비용 집계 |
 | `analysis_question` | `idx_analysis_question_analysis` | `analysis_id, id` | 인덱스 | 분석별 최신 질문 조회 |
