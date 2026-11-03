@@ -97,6 +97,15 @@ app:
     base-url: https://apis.data.go.kr
     connect-timeout: 5s
     read-timeout: 30s
+  naver-search:
+    # NAVER API HUB 뉴스 검색(ADR-0046). 네이버 클라우드 콘솔 NAVER API HUB 애플리케이션의 인증 정보
+    client-id: ${NAVER_SEARCH_CLIENT_ID:}
+    client-secret: ${NAVER_SEARCH_CLIENT_SECRET:}
+    base-url: https://naverapihub.apigw.ntruss.com
+    connect-timeout: 3s
+    read-timeout: 10s
+    # 기업별 뉴스 목록을 메모리에 두는 시간
+    cache-ttl: 30m
   featured:
     # 첫 화면 대표 기업(1.5): 시작할 때와 하루마다 오래됐으면 받음(on-stale), 받지 않음(never)
     sync: ${FEATURED_COMPANY_SYNC:on-stale}
