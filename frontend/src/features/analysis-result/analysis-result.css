@@ -1790,6 +1790,12 @@
   color: var(--color-text-muted);
 }
 
+.period-disclosures__breakdown {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
 .period-disclosures__note {
   margin: 0;
   color: var(--color-text-muted);
