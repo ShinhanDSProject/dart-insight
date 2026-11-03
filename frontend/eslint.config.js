@@ -5,6 +5,16 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
 import { globalIgnores } from 'eslint/config'
 
+/** shared 아래 기능을 모르는 공통 폴더와 두 화면 이상이 쓰는 기능 묶음(DIR-2). 새 폴더를 만들면 둘 중 하나에 더한다 */
+const SHARED_COMMON = ['api', 'ui', 'hooks', 'lib', 'styles', 'auth']
+const SHARED_FEATURES = ['community']
+const sharedBoundary = [
+  {
+    group: ['@/features/*', '@/app/*', '../../*'],
+    message: 'shared는 features·app을 import하지 않습니다(DIR-1). shared 안의 다른 폴더는 @/shared/...로 씁니다.',
+  },
+]
+
 export default tseslint.config([
   globalIgnores(['dist']),
   {
@@ -31,14 +41,21 @@ export default tseslint.config([
   },
   {
     files: ['src/shared/**/*.{ts,tsx}'],
+    rules: { 'no-restricted-imports': ['error', { patterns: sharedBoundary }] },
+  },
+  // 기능을 모르는 공통 폴더는 shared/<기능> 묶음을 쓰지 않는다(DIR-1·2). 묶음은 공통 폴더를 써도 된다
+  {
+    files: [`src/shared/{${SHARED_COMMON.join(',')}}/**/*.{ts,tsx}`],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           patterns: [
+            ...sharedBoundary,
             {
-              group: ['@/features/*', '@/app/*', '../../*'],
-              message: 'shared는 features·app을 import하지 않습니다(DIR-1). shared 안의 다른 폴더는 @/shared/...로 씁니다.',
+              // 같은 shared 안의 상대 경로(../community/...)로 돌아가는 것도 막는다
+              group: SHARED_FEATURES.flatMap((name) => [`@/shared/${name}`, `@/shared/${name}/*`, `../${name}`, `../${name}/*`]),
+              message: '기능을 모르는 shared 폴더는 shared/<기능> 묶음을 import하지 않습니다(DIR-1·2).',
             },
           ],
         },
