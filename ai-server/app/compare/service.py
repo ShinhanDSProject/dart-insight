@@ -1,10 +1,10 @@
-"""문장·표 변경 탐지(2.5), 확인 우선순위(2.6), 목록 분류(2.10)를 차례로 부르는 흐름."""
+"""문장·표 변경 탐지(2.5), 확인 우선순위(2.6), 목록 분류·표 행 비교(2.10·2.11)를 부르는 흐름."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.compare.listing import ListEntry, classify, missing_fields
+from app.compare.listing import ListEntry, list_entries, missing_fields
 from app.compare.priority import Priority, prioritize
 from app.compare.text_diff import DiffResult, DocumentIn, diff_documents
 
@@ -24,10 +24,9 @@ def compare_documents(previous: DocumentIn, current: DocumentIn) -> TextChanges:
     previous_texts = {b.block_no: b.text for b in previous.blocks}
     current_texts = {b.block_no: b.text for b in current.blocks}
     priorities: list[Priority] = []
-    entries: list[ListEntry] = []
     for change in result.changes:
         previous_text = previous_texts.get(change.previous.block_no) if change.previous else None
         current_text = current_texts.get(change.current.block_no) if change.current else None
         priorities.append(prioritize(change, previous_text, current_text))
-        entries.append(classify(change, previous_text, current_text))
+    entries = list_entries(result.changes, previous_texts, current_texts)
     return TextChanges(result, priorities, entries, missing_fields(previous, current))
