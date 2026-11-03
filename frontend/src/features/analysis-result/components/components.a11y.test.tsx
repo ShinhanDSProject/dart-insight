@@ -4,16 +4,17 @@ import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Analysis } from '@/shared/api/analyses'
 import { ApiError } from '@/shared/api/client'
-import type { QuestionAnswer } from '@/shared/api/questions'
+import type { ChatMessageResponse } from '@/shared/api/agentChat'
 import type { TextExplanation } from '@/shared/api/textChanges'
 import type { LoadState } from '@/shared/hooks/asyncState'
 import { axeViolations } from '@/test/axe'
 import type { FinancialOverview, TextOverview } from '../model/overview'
 import type { HeadlineLine } from '../model/summaryHeadline'
-import { AnswerCard, FailedAnswerCard, PendingAnswerCard, type FollowUp } from './AnswerCard'
+import type { AgentChatController } from '../hooks/useAgentChat'
+import { initialChatState, type ChatState } from '../model/chatState'
 import { ChangeOverview } from './ChangeOverview'
+import { ChatPanel } from './ChatPanel'
 import { NumberChangesLine } from './NumberChangesLine'
-import { PastAnswers } from './PastAnswers'
 import { SummaryHeadline } from './SummaryHeadline'
 import { TextExplanationBox } from './TextExplanationBox'
 
@@ -30,36 +31,54 @@ vi.mock('../hooks/useChangeOverview', () => ({
 }))
 
 const noop = () => {}
-const links = { onOpenSource: noop, onOpenFinancial: noop, onSearchText: noop }
-const onFeedback = () => Promise.resolve()
-const followUp: FollowUp = { questions: ['매출 변화의 이유는 무엇인가요?', '새로 생긴 위험 요인이 있나요?'], onAsk: noop, disabled: false }
 const ai = { model: 'test-model', promptVersion: 'ask-v1', generatedAt: '2025-10-20T10:00:00+09:00' }
 const apiError = new ApiError(503, { code: 'AI_SERVER_UNAVAILABLE', message: 'AI 서버를 쓸 수 없어요.', traceId: 'trace-1', errors: [] })
 
-const answered: QuestionAnswer = {
-  questionId: 7,
-  question: '매출이 왜 늘었나요?',
+const chatAnswer: ChatMessageResponse = {
   status: 'ANSWERED',
-  answer: '반도체 판매가 늘었어요[1]. 매출액은 10.0% 늘었어요[F1].',
+  answer: '소송 관련 변경은 1건이에요[1]. 영업이익은 줄었어요[2].',
   message: null,
   citations: [
     {
       no: 1,
-      evidenceId: '20250814000123#B12',
-      side: 'current',
+      kind: 'TEXT_CHANGE',
+      evidenceId: 'T5012',
+      changeId: 5012,
+      changeType: 'ADDED',
       rceptNo: '20250814000123',
       reportName: '반기보고서 (2025.06)',
-      sectionNo: 3,
-      blockNo: 12,
-      sectionPath: 'II. 사업의 내용 > 1. 사업의 개요',
-      quote: '반도체 부문의 판매가 늘었습니다.',
+      sectionPath: 'XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항',
+      quote: '당사는 특허 침해 소송을 제기받았습니다.',
     },
+    { no: 2, kind: 'FINANCIAL_CHANGE', evidenceId: 'F31', changeId: 31, sjDiv: 'IS', accountName: '영업이익', sentence: '영업이익이 줄었어요.' },
   ],
-  facts: [{ ref: 'F1', changeId: 31, sjDiv: 'IS', accountName: '매출액', sentence: '매출액이 1,000억원에서 1,100억원으로 10.0% 늘었어요.' }],
+  actions: [
+    { type: 'OPEN_TAB', label: '문장 변화에서 보기', tab: 'text', filters: { q: '소송' } },
+    { type: 'OPEN_GLOSSARY', label: '용어 사전 열기', term: '정정공시' },
+    { type: 'DOWNLOAD_BRIEF', label: '비교 브리프 내려받기' },
+  ],
+  format: 'CHAT',
+  crossCheck: null,
+  questionId: null,
   aiGenerated: true,
   ai,
-  feedback: { helpful: false, reason: 'WRONG_SOURCE' },
-  createdAt: '2025-10-20T10:00:00+09:00',
+}
+
+function chatController(state: ChatState): AgentChatController {
+  return { state, send: noop, retry: noop, setDraft: noop }
+}
+
+function chatPanel(state: ChatState) {
+  return (
+    <ChatPanel
+      chat={chatController(state)}
+      context={{ tab: 'text' }}
+      suggestions={['매출 변화의 이유는 무엇인가요?']}
+      onNavigate={noop}
+      onDownloadBrief={noop}
+      onClose={noop}
+    />
+  )
 }
 
 const analysis = {
@@ -89,56 +108,31 @@ async function expectNoViolations(ui: ReactNode) {
   return container
 }
 
-describe('질문 답 카드 접근성(axe)', () => {
-  it('인용·수치·평가 사유·이어서 물어보기가 있는 답이 여러 개 쌓여도 위반이 없다', async () => {
-    await expectNoViolations(
-      <>
-        <AnswerCard item={answered} links={links} onFeedback={onFeedback} followUp={followUp} />
-        <AnswerCard item={{ ...answered, questionId: 8, feedback: null }} links={links} onFeedback={onFeedback} followUp={followUp} />
-      </>,
-    )
+describe('AI 에이전트 채팅 패널 접근성(axe)', () => {
+  it('예시 요청만 있는 빈 패널에 위반이 없다', async () => {
+    await expectNoViolations(chatPanel(initialChatState))
   })
 
-  it('찾지 못함·답하지 않음·검토 필요 답에 위반이 없다', async () => {
-    const base = { ...answered, answer: null, citations: [], facts: [], aiGenerated: false, feedback: null }
-    await expectNoViolations(
-      <>
-        <AnswerCard item={{ ...base, questionId: 1, status: 'NOT_FOUND', ai: null }} links={links} onFeedback={onFeedback} followUp={followUp} />
-        <AnswerCard
-          item={{ ...base, questionId: 2, status: 'OUT_OF_SCOPE', ai: null }}
-          links={links}
-          onFeedback={onFeedback}
-          followUp={{ ...followUp, questions: [] }}
-        />
-        <AnswerCard
-          item={{ ...base, questionId: 4, question: '삼성전자 주식 지금 사도 될까요?', status: 'OUT_OF_SCOPE', ai: null }}
-          links={links}
-          onFeedback={onFeedback}
-          followUp={{ ...followUp, disabled: true }}
-        />
-        <AnswerCard item={{ ...base, questionId: 3, status: 'REVIEW_NEEDED' }} links={links} onFeedback={onFeedback} followUp={{ ...followUp, disabled: true }} />
-      </>,
-    )
-  })
-
-  it('이전 질문 목록에서 답 하나를 펼쳐도 위반이 없다', async () => {
-    const items = Array.from({ length: 7 }, (_, i) => ({ ...answered, questionId: 100 + i, question: `질문 ${i}` }))
-    const container = await expectNoViolations(
-      <PastAnswers
-        items={items}
-        renderAnswer={(item) => <AnswerCard item={item} links={links} onFeedback={onFeedback} followUp={followUp} />}
-      />,
-    )
-    fireEvent.click(screen.getByRole('button', { name: /질문 0/ }))
+  it('근거 칩·액션이 있는 답과 답이 없는 상태들이 쌓여도 위반이 없다', async () => {
+    const empty = { ...chatAnswer, answer: null, citations: [], actions: [], aiGenerated: false, ai: null }
+    const exchanges = [
+      { id: 1, message: '소송 관련 변경 보여줘', response: chatAnswer },
+      { id: 2, message: '합병 관련 변경', response: { ...empty, status: 'NOT_FOUND' as const, message: '확인된 설명 없음' } },
+      { id: 3, message: '지금 사도 돼?', response: { ...empty, status: 'OUT_OF_SCOPE' as const } },
+      { id: 4, message: '전부 찾아줘', response: { ...empty, status: 'INCOMPLETE' as const } },
+      { id: 5, message: '이유는?', response: { ...empty, status: 'REVIEW_NEEDED' as const } },
+    ]
+    const container = await expectNoViolations(chatPanel({ ...initialChatState, exchanges }))
+    fireEvent.click(screen.getByRole('button', { name: '용어 사전 열기: 정정공시' }))
+    expect(screen.getByText(/이미 낸 보고서를 고쳐 다시 낸 것이에요/)).toBeTruthy()
     expect(await axeViolations(container)).toBe('')
   })
 
-  it('답을 기다리는 카드와 보내지 못한 카드에 위반이 없다', async () => {
+  it('보내는 중·보내지 못한 상태에 위반이 없다', async () => {
+    await expectNoViolations(chatPanel({ ...initialChatState, request: { status: 'sending', message: '영업이익 어디 있어?' } }))
+    cleanup()
     await expectNoViolations(
-      <>
-        <PendingAnswerCard question="매출이 왜 늘었나요?" />
-        <FailedAnswerCard question="영업이익은요?" error={apiError} onRetry={noop} />
-      </>,
+      chatPanel({ ...initialChatState, request: { status: 'error', message: '영업이익은요?', error: apiError } }),
     )
   })
 })

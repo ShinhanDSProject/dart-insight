@@ -1,0 +1,69 @@
+import { describe, expect, it } from 'vitest'
+import type { ChatMessageResponse } from '@/shared/api/agentChat'
+import { chatMessageOf, chatReducer, historyOf, initialChatState, type ChatExchange } from './chatState'
+
+const response = (answer: string | null, message: string | null = null): ChatMessageResponse => ({
+  status: answer === null ? 'NOT_FOUND' : 'ANSWERED',
+  answer,
+  message,
+  citations: [],
+  actions: [],
+  format: 'CHAT',
+  crossCheck: null,
+  questionId: null,
+  aiGenerated: answer !== null,
+  ai: null,
+})
+
+describe('chatReducer', () => {
+  it('보내면 입력창을 비우고, 답이 오면 대화에 쌓는다', () => {
+    const sending = chatReducer({ ...initialChatState, draft: '소송' }, { type: 'send', message: '소송 관련 변경' })
+    expect(sending.draft).toBe('')
+    expect(sending.request).toEqual({ status: 'sending', message: '소송 관련 변경' })
+    const answered = chatReducer(sending, { type: 'answer', response: response('1건이에요[1].') })
+    expect(answered.request.status).toBe('idle')
+    expect(answered.exchanges.map((e) => [e.id, e.message])).toEqual([[1, '소송 관련 변경']])
+  })
+
+  it('보내는 중이 아니면 늦게 온 답·실패를 버린다', () => {
+    expect(chatReducer(initialChatState, { type: 'answer', response: response('답') })).toBe(initialChatState)
+    expect(chatReducer(initialChatState, { type: 'fail', error: new Error('x') })).toBe(initialChatState)
+  })
+
+  it('실패하면 보낸 메시지를 남겨 다시 보낼 수 있게 한다', () => {
+    const sending = chatReducer(initialChatState, { type: 'send', message: '영업이익' })
+    const failed = chatReducer(sending, { type: 'fail', error: 'boom' })
+    expect(failed.request).toEqual({ status: 'error', message: '영업이익', error: 'boom' })
+  })
+})
+
+describe('chatMessageOf', () => {
+  it('앞뒤 공백을 뺀 2~500자만 보낼 수 있다', () => {
+    expect(chatMessageOf('  소송  ')).toBe('소송')
+    expect(chatMessageOf(' 가 ')).toBeNull()
+    expect(chatMessageOf('가'.repeat(501))).toBeNull()
+  })
+})
+
+describe('historyOf', () => {
+  it('최근 6개만 오래된 것부터 보내고, 답의 근거 표시는 빼며 답이 없으면 안내 문구를 보낸다', () => {
+    const exchanges: ChatExchange[] = [1, 2, 3, 4].map((id) => ({
+      id,
+      message: `질문 ${id}`,
+      response: id === 4 ? response(null, '확인된 설명 없음') : response(`답 ${id}이에요[1].`),
+    }))
+    expect(historyOf(exchanges)).toEqual([
+      { role: 'user', text: '질문 2' },
+      { role: 'assistant', text: '답 2이에요.' },
+      { role: 'user', text: '질문 3' },
+      { role: 'assistant', text: '답 3이에요.' },
+      { role: 'user', text: '질문 4' },
+      { role: 'assistant', text: '확인된 설명 없음' },
+    ])
+  })
+
+  it('한 턴은 1,000자까지로 자른다', () => {
+    const [user] = historyOf([{ id: 1, message: '가'.repeat(1200), response: response('답') }])
+    expect(user.text).toHaveLength(1000)
+  })
+})
