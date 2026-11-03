@@ -10,11 +10,11 @@ import { CONTENT_FILTER, searchQueryOf, type TextTypeFilter } from './textFilter
 
 /**
  * W-03 결과 화면의 주소 상태(ST-6).
- * ?tab=overview 기업 개요(#589), ?slens=&sview= 요약(관점 거르기·보기), ?tab=&sj=&changed=&unit=&fq=&fsort=&change= 재무 수치, ?tab=community 커뮤니티(#575), ?ttype=&tsort=&tsec=&tq=&trisk=&tpin=&tc= 문장 변화, ?doc=&section=&block= 원문 확인
+ * ?tab=overview 기업 개요(#589), ?slens=&sview= 요약(관점 거르기·보기), ?tab=&sj=&changed=&unit=&fq=&fsort=&change= 재무 수치, ?tab=community 커뮤니티(#575), ?tab=news 뉴스(#592), ?ttype=&tsort=&tsec=&tq=&trisk=&tpin=&tc= 문장 변화, ?doc=&section=&block= 원문 확인
  */
-export type ResultTab = 'overview' | 'summary' | 'financial' | 'text' | 'community' | 'source'
+export type ResultTab = 'overview' | 'summary' | 'financial' | 'text' | 'community' | 'news' | 'source'
 
-export const resultTabs: ResultTab[] = ['overview', 'summary', 'financial', 'text', 'community', 'source']
+export const resultTabs: ResultTab[] = ['overview', 'summary', 'financial', 'text', 'community', 'news', 'source']
 const sjDivs: SjDiv[] = ['BS', 'IS', 'CIS', 'CF', 'SCE']
 const textTypeFilters: TextTypeFilter[] = ['ADDED', 'DELETED', 'MODIFIED', 'NUMERIC_UPDATE', 'MOVED', 'REVIEW_NEEDED', CONTENT_FILTER]
 

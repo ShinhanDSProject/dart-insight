@@ -44,11 +44,12 @@ describe('shortcutFor 키 대응', () => {
     expect(shortcutFor(key('2'), result)).toEqual({ kind: 'open-tab', tab: 'financial' })
     expect(shortcutFor(key('3'), result)).toEqual({ kind: 'open-tab', tab: 'text' })
     expect(shortcutFor(key('4'), result)).toEqual({ kind: 'open-tab', tab: 'community' })
-    expect(shortcutFor(key('5'), result)).toEqual({ kind: 'open-tab', tab: 'source' })
+    expect(shortcutFor(key('5'), result)).toEqual({ kind: 'open-tab', tab: 'news' })
+    expect(shortcutFor(key('6'), result)).toEqual({ kind: 'open-tab', tab: 'source' })
   })
 
-  it('결과 화면에서 6·0은 단축키가 아니다', () => {
-    expect(shortcutFor(key('6'), result)).toBeNull()
+  it('결과 화면에서 7·0은 단축키가 아니다', () => {
+    expect(shortcutFor(key('7'), result)).toBeNull()
     expect(shortcutFor(key('0'), result)).toBeNull()
   })
 
@@ -148,7 +149,7 @@ describe('shortcutGroups 도움말 목록', () => {
 
   it('결과 화면 묶음은 탭 다섯 개와 AI 질문 입력창을 보여 준다', () => {
     const resultGroup = shortcutGroups('result').find((g) => g.id === 'result')
-    expect(resultGroup?.items.map((i) => i.keys[0])).toEqual(['1', '2', '3', '4', '5', 'A'])
+    expect(resultGroup?.items.map((i) => i.keys[0])).toEqual(['1', '2', '3', '4', '5', '6', 'A'])
   })
 
   it('검색 화면에서는 /의 설명이 검색창으로 가기다', () => {
