@@ -2156,7 +2156,7 @@
 - 유형 여러 개(#304): `type`에 유형을 쉼표로 이어 주면 그중 하나에 맞는 변경을 돌려줍니다. 화면의 '내용 변경'은 `type=ADDED,DELETED,MODIFIED`입니다. 알 수 없는 값이 하나라도 있으면 400입니다.
 - 위험 관련(#466, FS-61): 섹션 경로(`sectionPath`나 `previousSectionPath` 중 하나라도)의 목차 제목에 아래 낱말이 들어 있으면 위험 관련(`riskRelated: true`)입니다. 공백은 빼고 비교합니다. 낱말: `위험`, `파생거래`, `예측정보`, `우발`, `소송`, `제재`. 사업보고서 목차로는 `II. 사업의 내용 > 5. 위험관리 및 파생거래`, `XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항`(그 아래 `가. 중요한 소송사건` 등), `XI. … > 3. 제재 등과 관련된 사항`, `IV. 이사의 경영진단 및 분석의견 > 1. 예측정보에 대한 주의사항`이 해당합니다. 목차 제목으로 나눈 것이라 실제 내용과 다를 수 있고, 위험의 크기나 좋고 나쁨을 판단하지 않습니다(LLM 없음, 저장하지 않고 조회할 때 정함).
 - `risk=true`면 위험 관련 변경만 돌려줍니다. `type`·`section`·`q`와 함께 씁니다(모두 맞는 것).
-- 목록 분류(2.9, [ADR-0047](adr/0047-text-change-list-classification.md)): 변경마다 묶음(`listGroup`) 하나에 속하고, 기본 목록(`MAIN`)의 변경은 분야(`field`)를 가집니다. `group`·`field`를 주지 않으면 지금처럼 모든 변경을 돌려주므로, 채팅의 `search_text_changes`와 `q` 검색은 접힌 변경도 찾습니다. 화면만 `group=MAIN`으로 기본 목록을 부릅니다. 규칙은 잠정이고, 숫자는 코드가 셉니다(LLM 없음).
+- 목록 분류(2.9, [ADR-0047](adr/0047-text-change-list-classification.md)): 변경마다 묶음(`listGroup`) 하나에 속하고, 기본 목록(`MAIN`)의 변경은 분야(`field`)를 가집니다. `group`·`field`를 주지 않으면 지금처럼 모든 변경을 돌려주므로, 채팅의 `search_text_changes`와 `q` 검색은 접힌 변경도 찾습니다. 화면은 `group=MAIN,UNPAIRED`로 기본 목록을 부릅니다(`UNPAIRED`는 접지 않고, 분야가 없어 `field`로 거르면 빠집니다). `totalItems`와 쪽 나누기는 `group`·`field`까지 거른 결과로 하고, `counts`·`riskCounts`·`sections`는 두 값을 보지 않습니다. 규칙은 잠정이고, 숫자는 코드가 셉니다(LLM 없음).
 - `group`이 `NOTE` 하나면 연결 주석, 별도 주석, 구분할 수 없는 주석 순서로 묶어 돌려주고, 그 안에서 `sort`를 따릅니다.
 - 분류 규칙은 아래 순서로 처음 맞는 것입니다. 잡음 판정은 미리보기가 아니라 전체 글로 합니다.
 
@@ -2164,7 +2164,7 @@
   | --- | --- | --- |
   | `UNPAIRED` | `REVIEW_NEEDED` | 건수에 세지 않지만 접지 않고 항상 보여 줌 |
   | `MOVED` | `MOVED` | 접음 |
-  | `PAIRED_TABLE` | 같은 섹션의 추가된 표와 행 비교가 된 삭제된 표. 비교 결과는 추가된 표 쪽에 있음 | 접음 |
+  | `PAIRED_TABLE` | 추가된 표와 짝지어 행 비교가 된 삭제된 표(아래 표 짝짓기). 비교 결과는 추가된 표 쪽에 있음 | 접음 |
   | `MAIN` + `raisedFromNote` | 재무제표 주석 중 소송, 우발부채, 담보, 채무보증, 보고기간 후 사건이 글이나 섹션 경로에 있는 변경. `NUMERIC_UPDATE`와 아래 두 잡음은 올리지 않음 | 보임 |
   | `NOTE` | 그 밖의 재무제표 주석(섹션 경로에 `주석`) | 접음 |
   | `FORMATTING` | `MODIFIED`인데 숫자·글자가 같고 띄어쓰기·기호만 다름 | 접음 |
@@ -2186,7 +2186,8 @@
   | `OTHER` | 그 밖의 변경 | 그 밖 전부 |
 
 - 행 비교(`rowDiff`): 표 변경에서 두 표의 공통 열 중 표 안에서 값이 겹치지 않고 비어 있지 않은 열을 고르고, 그중 양쪽에 함께 있는 값이 가장 많은 열로 행을 짝짓습니다(같으면 앞쪽 열). 짝지을 열을 정할 수 없거나 칸 수가 맞지 않으면 `NOT_COMPARED`이고 짝을 추측하지 않습니다. 짝이 없는 표의 `ADDED`·`DELETED`와 문단은 `rowDiff`가 null입니다.
-- 옛 분석: 분석 버전을 올리기 전에 저장한 행은 분류 값이 없습니다(`listVersion`, `fieldCounts`, `missingFields`, `groupCounts`, 항목의 분류 값이 모두 null). 이때 `group`·`field`를 주면 `items`가 비어 있습니다. 화면은 `listVersion`이 null이면 표와 묶음 없이 지금 목록을 보여 줍니다.
+- 표 짝짓기: 구성이 바뀌어 `DELETED`·`ADDED`로 잡힌 표는 같은 섹션에서 머리글(첫 행)이 같고 위 규칙으로 짝지을 열이 있는 것끼리만 짝짓습니다. 양쪽에 함께 있는 값이 가장 많은 쌍부터 정하고, 같으면 이전 표, 현재 표의 문서 순서가 앞선 쌍을 먼저 정합니다. 표 하나는 한 쌍에만 들어갑니다. 정해진 쌍의 `ADDED`에 `rowDiff`를 두고 `DELETED`를 `PAIRED_TABLE`로 접으며, 짝이 없는 표는 그대로 둡니다.
+- 옛 분석: 분석 버전을 올리기 전에 저장한 행은 분류 값이 없습니다(`listVersion`, `fieldCounts`, `missingFields`, `groupCounts`, 항목의 분류 값이 모두 null). 이때 `group`·`field`는 무시하고(응답의 두 값도 null) 모든 변경을 돌려주므로, 화면은 첫 요청에서 옛 분석인지 몰라도 됩니다. 화면은 `listVersion`이 null이면 표와 묶음 없이 지금 목록을 보여 줍니다.
 
 **요청**
 
@@ -2297,12 +2298,12 @@
 | `rowDiff` | 표 행 비교 결과. 목록은 `changedRows`를 앞에서 3개까지 주고, 근거 상세는 전부와 `addedKeys`·`missingKeys`를 줍니다. 비교하지 않았으면 null |
 | `rowDiff.status` | `COMPARED` 행을 비교함, `NOT_COMPARED` 짝지을 값이 없어 비교하지 않음(`keyColumn`·`counts`·`pairedPrevious`는 null, `changedRows`는 빈 배열) |
 | `rowDiff.counts` | `changed` 바뀐 행, `added` 새 행, `missing` 이번 표에 없는 행, `same` 그대로인 행. '이번 표에 없음'은 끝났다는 뜻이 아닙니다. 코드가 셉니다 |
-| `rowDiff.pairedPrevious` | 구성이 바뀌어 `DELETED`로 잡힌 이전 표의 위치. 같은 변경 안에서 비교했으면 null |
+| `rowDiff.pairedPrevious` | 구성이 바뀌어 `DELETED`로 잡힌 이전 표의 위치. ai-server가 준 `sectionNo`·`blockNo`에 backend가 이전 보고서의 `rceptNo`를 붙입니다. 같은 변경 안에서 비교했으면 null |
 | `priority.level` | `HIGH` 중요도 높음(60점 이상), `MEDIUM` 중간(30점 이상), `LOW` 낮음, `UNRANKED` 판단 유보(검토 필요 항목. 규칙으로 판단할 수 없어 순위를 매기지 않음) |
 | `priority.score` | 적용한 규칙 점수의 합. `UNRANKED`면 null |
 | `priority.reasons` | 적용한 규칙과 점수(잠정 규칙, 5절) |
 | `type` | 요청에 쓴 유형. 공백과 겹친 값을 뺀 뒤 처음 나온 순서대로 쉼표로 잇습니다(예: `ADDED,DELETED,MODIFIED`). 없으면 null |
-| `totalItems` | `type`·`section`·`q`·`risk`에 모두 맞는 전체 건수(쪽 나누기 전) |
+| `totalItems` | `type`·`section`·`q`·`risk`·`group`·`field`에 모두 맞는 전체 건수(쪽 나누기 전) |
 | `section`·`q` | 요청에 쓴 거르기 값(`q`는 앞뒤 공백을 지운 값). 없으면 null |
 | `risk` | 요청에 쓴 위험 관련 거르기(#466). 없으면 false |
 | `counts` | 변경 유형별 건수(`added`·`deleted`·`modified`·`numericUpdate`·`moved`·`reviewNeeded`, `all`은 합). `section`·`q`·`risk`에 맞는 것만 셉니다(`type`은 보지 않음). 모두 없으면 분석 전체 |
@@ -3191,7 +3192,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 }
 ```
 
-- 목록 분류(2.9, [ADR-0047](adr/0047-text-change-list-classification.md)): `listVersion`, `missingFields`, 각 변경의 `listGroup`·`field`·`raisedFromNote`·`noteScope`·`rowDiff`의 뜻과 규칙은 `GET /api/analyses/{analysisId}/text-changes`와 같습니다. `rowDiff`는 `changedRows` 전부와 `addedKeys`·`missingKeys`를 담고, `pairedPrevious`는 접수번호 없이 `sectionNo`·`blockNo`만 줍니다. 분류를 해도 `changeType`, 위치, `priority`는 바뀌지 않습니다.
+- 목록 분류(2.9, [ADR-0047](adr/0047-text-change-list-classification.md)): `listVersion`, `missingFields`, 각 변경의 `listGroup`·`field`·`raisedFromNote`·`noteScope`·`rowDiff`의 뜻과 규칙은 `GET /api/analyses/{analysisId}/text-changes`와 같습니다. `rowDiff`는 `changedRows` 전부와 `addedKeys`·`missingKeys`를 담고, `pairedPrevious`는 접수번호 없이 `sectionNo`·`blockNo`만 줍니다(접수번호는 backend가 붙입니다). 분류를 해도 `changeType`, 위치, `priority`는 바뀌지 않습니다.
 - backend는 `listVersion`이 없으면 그 비교를 실패로 끝냅니다(옛 ai-server와 함께 돌 때 분류 없는 결과가 새 분석 버전으로 남지 않게).
 - `numbersOnly`는 `NUMERIC_UPDATE`일 때만 true입니다. `previousSectionPath`는 `MOVED`일 때만 있고 그 밖은 null입니다.
 - `priorityVersion`(응답 맨 위, 예: `priority-3`)은 우선순위 규칙 버전입니다. 각 변경의 `priority`는 확인할 순서를 정하는 점수와 적용한 규칙입니다(2.6, 5절의 잠정 규칙). `REVIEW_NEEDED`는 `UNRANKED`이고 점수가 없습니다.
