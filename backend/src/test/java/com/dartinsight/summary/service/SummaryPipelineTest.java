@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -218,7 +219,8 @@ class SummaryPipelineTest {
                 .andExpect(jsonPath("$.items[0].target.changeId").isNumber())
                 // 문장 변경 유형(FS-70): 화면이 삭제 줄에 '끝났다는 뜻은 아니에요' 안내를 붙이는 데 쓴다. 재무 줄은 없음
                 .andExpect(jsonPath("$.items[0].target.changeType").value("MODIFIED"))
-                .andExpect(jsonPath("$.items[1].target.changeType").doesNotExist())
+                .andExpect(jsonPath("$.items[1].target.changeType").hasJsonPath())
+                .andExpect(jsonPath("$.items[1].target.changeType").value(nullValue()))
                 .andExpect(jsonPath("$.items[0].aiText").value("사업의 개요에 파운드리가 더해졌어요."))
                 .andExpect(jsonPath("$.items[0].aiGenerated").value(true))
                 .andExpect(jsonPath("$.items[0].ai.model").value("fake-model"))
@@ -342,6 +344,7 @@ class SummaryPipelineTest {
                 .andExpect(jsonPath("$.reviewNeededCount").value(1))
                 .andExpect(jsonPath("$.reviewNeeded[0].kind").value("TEXT"))
                 .andExpect(jsonPath("$.reviewNeeded[0].target.changeId").isNumber())
+                .andExpect(jsonPath("$.reviewNeeded[0].target.changeType").value("MODIFIED"))
                 .andExpect(jsonPath("$.reviewNeeded[0].reason").value("원문에 없는 숫자(3)를 썼어요."))
                 .andExpect(jsonPath("$.reviewNeeded[0].lens").value("OTHER"))
                 .andExpect(jsonPath("$.reviewNeeded[0].lensLabel").value("기타"))

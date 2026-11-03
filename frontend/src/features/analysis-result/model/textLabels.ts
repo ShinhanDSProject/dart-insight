@@ -125,7 +125,8 @@ export function missingSideLabel(type: ChangeType, side: 'previous' | 'current')
   return '짝을 정하지 못해 보여 주지 않아요'
 }
 
-export const DELETED_NOTE = '문서에서 빠졌다는 뜻이에요. 실제 사업·계약이 끝났다고 단정하지 않아요.'
+/** 삭제(DELETED) 안내. 문장 근거 패널과 요약의 삭제 줄(FS-70)이 같은 말을 쓴다. 빠진 이유는 추정하지 않는다 */
+export const DELETED_NOTE = '빠졌다고 끝났다는 뜻은 아니에요. 빠진 이유는 원문에서 확인해 주세요.'
 export const PRIORITY_NOTE = '우선순위는 먼저 확인할 순서를 정한 잠정 규칙이며, 투자 판단이 아니에요.'
 
 /** 문장 비교 상태 안내. 문제가 없으면 null */

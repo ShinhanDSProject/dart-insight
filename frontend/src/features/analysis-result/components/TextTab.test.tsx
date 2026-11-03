@@ -273,8 +273,8 @@ describe('TextTab 종류 안내(#393)', () => {
       </MemoryRouter>,
     )
     const cards = screen.getAllByRole('article')
-    expect(cards[0].textContent).toContain('문서에서 빠졌다는 뜻이에요')
-    expect(cards[1].textContent).not.toContain('문서에서 빠졌다는 뜻이에요')
+    expect(cards[0].textContent).toContain('빠졌다고 끝났다는 뜻은 아니에요')
+    expect(cards[1].textContent).not.toContain('빠졌다고 끝났다는 뜻은 아니에요')
   })
 })
 
