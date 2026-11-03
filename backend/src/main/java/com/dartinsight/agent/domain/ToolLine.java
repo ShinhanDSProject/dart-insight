@@ -10,4 +10,9 @@ public record ToolLine(Evidence evidence, String text) {
     public String evidenceId() {
         return evidence == null ? null : evidence.evidenceId();
     }
+
+    /** 저장된 재무 설명 등급. ai-server 검토 노드가 등급을 바꾼 답을 반려하는 데 쓴다 */
+    public String grade() {
+        return evidence == null ? null : evidence.grade();
+    }
 }
