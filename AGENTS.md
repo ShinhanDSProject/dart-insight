@@ -12,10 +12,10 @@ AI 코딩 도구(Claude Code, Codex, Cursor, Copilot 등)가 이 저장소에서
 | --- | --- | --- |
 | `frontend/` | 화면 | React + TypeScript |
 | `backend/` | 서비스 API, OpenDART 조회·캐시, 분석 작업 관리 | Spring Boot |
-| `ai-server/` | 원문 파싱·구조화, 문장 변경 탐지, 근거 문단 검색, 요약·설명 | FastAPI (Python), LLM은 `openai` SDK |
+| `ai-server/` | 원문 파싱·구조화, 문장 변경 탐지, 근거 문단 검색, 요약·설명, 에이전트 채팅 한 단계 | FastAPI (Python), LLM은 `openai` SDK, 에이전트 단계는 LangGraph |
 | `docs/` | 프로젝트 개요, API 명세·ERD, 협업 가이드 | — |
 
-DB는 MariaDB이고, 외부 데이터는 OpenDART입니다. 근거 문단은 ai-server가 BM25로 찾습니다([ADR-0036](docs/adr/0036-bm25-explanation-candidate-search.md)). LangChain·LangGraph와 임베딩·Chroma는 지금 쓰지 않습니다(벡터 검색은 #148, 에이전트 채팅의 LangGraph는 ADR-0045로 채택해 #576에서 넣음).
+DB는 MariaDB이고, 외부 데이터는 OpenDART(공시·재무·원문)와 기업 뉴스용 NAVER API HUB([ADR-0046](docs/adr/0046-company-news-from-naver-api-hub.md), 화면에만 보이고 AI에는 넣지 않음)입니다. 근거 문단은 ai-server가 BM25로 찾습니다([ADR-0036](docs/adr/0036-bm25-explanation-candidate-search.md)). 에이전트 채팅의 한 단계는 ai-server의 LangGraph 그래프로 만들고, Tool은 backend가 실행합니다([ADR-0044](docs/adr/0044-agent-tools-run-in-backend.md)·[ADR-0045](docs/adr/0045-langgraph-agent-step-graph.md)). LangChain과 임베딩·Chroma는 쓰지 않습니다(벡터 검색은 #148).
 
 ## 작업 전에
 
