@@ -286,3 +286,22 @@ def test_number_is_checked_against_its_own_sentence() -> None:
 
     assert review(draft(swapped, ["F1", "F2"]), step(*items)).rules == [NUMBER_NOT_IN_TOOL_RESULT]
     assert review(draft(matched, ["F1", "F2"]), step(*items)).final is not None
+
+
+def test_section_numbers_do_not_split_a_sentence() -> None:
+    item = ResultItem("T1", "XI. 그 밖에 투자자 보호를 위하여 필요한 사항: 과징금 16.5백만원")
+    text = "과징금 16.5백만원은 XI. 그 밖에 투자자 보호 항목에 추가됐어요[T1]."
+
+    reviewed = review(draft(text, ["T1"]), step(item))
+
+    assert reviewed.final is not None
+
+
+def test_sentence_ending_in_korean_still_splits() -> None:
+    items = (
+        ResultItem("F1", "II. 사업의 내용: 매출액이 153.7조 원으로 늘었습니다."),
+        ResultItem("F2", "영업이익이 6.6조 원으로 줄었습니다."),
+    )
+    swapped = "II. 사업의 내용에서 매출액은 6.6조 원이에요[F1]. 영업이익은 153.7조 원이에요[F2]."
+
+    assert review(draft(swapped, ["F1", "F2"]), step(*items)).rules == [NUMBER_NOT_IN_TOOL_RESULT]
