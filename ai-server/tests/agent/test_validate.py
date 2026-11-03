@@ -320,6 +320,11 @@ def test_sentence_ending_in_korean_still_splits() -> None:
             ["XI. 그 밖에 항목과 1. 개요, Samsung Inc. 내용이에요[T1]."],
         ),
         ("영업이익은 6.6조 원이에요[F1]. 끝", ["영업이익은 6.6조 원이에요[F1].", "끝"]),
+        (
+            "매출액은 1.[F1] 영업이익은 6조 원이에요[F2].",
+            ["매출액은 1.[F1]", "영업이익은 6조 원이에요[F2]."],
+        ),
+        ("항목 XI. [T1] 다음 문장이에요.", ["항목 XI. [T1]", "다음 문장이에요."]),
     ],
 )
 def test_sentences_split_at_real_endings_only(answer: str, expected: list[str]) -> None:
@@ -332,5 +337,15 @@ def test_numbers_swapped_after_digit_ending_are_rejected() -> None:
         ResultItem("F2", "영업이익이 6.6조 원으로 줄었습니다. 기준연도 2026"),
     )
     swapped = "매출액 기준은 2026. 매출액은 6.6조 원이에요[F1]. 영업이익은 153.7조 원이에요[F2]."
+
+    assert review(draft(swapped, ["F1", "F2"]), step(*items)).rules == [NUMBER_NOT_IN_TOOL_RESULT]
+
+
+def test_numbers_swapped_after_short_number_with_marker_are_rejected() -> None:
+    items = (
+        ResultItem("F1", "매출액 순위 1"),
+        ResultItem("F2", "영업이익이 6조 원으로 줄었습니다."),
+    )
+    swapped = "매출액은 6조 원이에요. 순위는 1.[F1] 영업이익은 1위예요[F2]."
 
     assert review(draft(swapped, ["F1", "F2"]), step(*items)).rules == [NUMBER_NOT_IN_TOOL_RESULT]

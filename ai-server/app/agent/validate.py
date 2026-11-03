@@ -278,7 +278,8 @@ def _sentences(answer: str) -> list[str]:
     sentences: list[str] = []
     start = 0
     for end in _SENTENCE_END.finditer(answer):
-        if end.group(0)[0] == "." and _NOT_SENTENCE_END.search(answer[start : end.start()]):
+        # 근거 표시가 붙은 마침표는 목차 번호 뒤라도 문장 끝이다
+        if end.group(0) == "." and _NOT_SENTENCE_END.search(answer[start : end.start()]):
             continue
         sentences.append(answer[start : end.end()])
         start = end.end()
