@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Analysis, AnalysisCreated } from '@/shared/api/analyses'
@@ -64,9 +64,9 @@ function Where() {
   )
 }
 
-function renderPage() {
+function renderPage(path = '/analyses/14') {
   return render(
-    <MemoryRouter initialEntries={['/analyses/14']}>
+    <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route
           path="/analyses/:analysisId"
@@ -190,6 +190,14 @@ describe('결과 머리(#550)', () => {
       '뉴스',
       '원문',
     ])
+  })
+
+  it('예전 AI 질문 탭 주소(?tab=ask)로 들어오면 요약 탭을 보이고 채팅 패널을 연다', async () => {
+    getAnalysis.mockResolvedValue(analysis(false))
+    renderPage('/analyses/14?tab=ask')
+    expect(await screen.findByRole('dialog', { name: 'AI 에이전트' })).toBeTruthy()
+    await waitFor(() => expect(screen.getByTestId('where-search').textContent).toBe('?tab=summary'))
+    expect(screen.getByRole('dialog', { name: 'AI 에이전트' })).toBeTruthy()
   })
 
   it('AI 에이전트 버튼으로 채팅 패널을 열고, 탭을 바꿔도 패널이 닫히지 않는다(AC20)', async () => {

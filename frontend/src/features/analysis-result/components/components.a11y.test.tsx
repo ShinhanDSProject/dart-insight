@@ -6,7 +6,7 @@ import type { Analysis } from '@/shared/api/analyses'
 import { ApiError } from '@/shared/api/client'
 import type { ChatMessageResponse } from '@/shared/api/agentChat'
 import type { TextExplanation } from '@/shared/api/textChanges'
-import type { LoadState } from '@/shared/hooks/asyncState'
+import type { AsyncState, LoadState } from '@/shared/hooks/asyncState'
 import { axeViolations } from '@/test/axe'
 import type { FinancialOverview, TextOverview } from '../model/overview'
 import type { HeadlineLine } from '../model/summaryHeadline'
@@ -68,9 +68,10 @@ function chatController(state: ChatState): AgentChatController {
   return { state, send: noop, retry: noop, setDraft: noop }
 }
 
-function chatPanel(state: ChatState) {
+function chatPanel(state: ChatState, briefState: AsyncState<void> = { status: 'idle' }) {
   return (
     <ChatPanel
+      briefState={briefState}
       chat={chatController(state)}
       context={{ tab: 'text' }}
       suggestions={['매출 변화의 이유는 무엇인가요?']}
@@ -126,6 +127,16 @@ describe('AI 에이전트 채팅 패널 접근성(axe)', () => {
     fireEvent.click(screen.getByRole('button', { name: '용어 사전 열기: 정정공시' }))
     expect(screen.getByText(/이미 낸 보고서를 고쳐 다시 낸 것이에요/)).toBeTruthy()
     expect(await axeViolations(container)).toBe('')
+  })
+
+  it('브리프를 받는 중이면 버튼을 끄고, 실패하면 다시 시도하라고 알린다', async () => {
+    const exchanges = [{ id: 1, message: '브리프 줘', response: chatAnswer }]
+    await expectNoViolations(chatPanel({ ...initialChatState, exchanges }, { status: 'loading' }))
+    expect((screen.getByRole('button', { name: /내보내는 중/ }) as HTMLButtonElement).disabled).toBe(true)
+    cleanup()
+    await expectNoViolations(chatPanel({ ...initialChatState, exchanges }, { status: 'error', error: apiError }))
+    expect(screen.getByRole('alert').textContent).toContain('브리프를 내려받지 못했어요')
+    expect((screen.getByRole('button', { name: /비교 브리프 내려받기/ }) as HTMLButtonElement).disabled).toBe(false)
   })
 
   it('보내는 중·보내지 못한 상태에 위반이 없다', async () => {

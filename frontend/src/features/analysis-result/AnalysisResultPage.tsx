@@ -1,5 +1,5 @@
-import { useContext, useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { useContext, useEffect, useState } from 'react'
+import { Link, useParams, useSearchParams } from 'react-router'
 import { match, P } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { ParamChanges } from '@/shared/lib/searchParams'
@@ -33,6 +33,7 @@ import { chatContextOf } from './model/chatLinks'
 import { resultTabLabels, resultTitle } from './model/resultTitle'
 import {
   financialParamChanges,
+  isLegacyAskTab,
   openChangedAccounts,
   openFinancialChanges,
   openSourceChanges,
@@ -164,7 +165,12 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
   useRecordRecentAnalysis(analysis)
   useRecordCurrentCompany({ corpCode: analysis.corpCode, corpName: analysis.corpName, analysisId: analysis.analysisId })
   const chat = useAgentChat(analysis.analysisId)
-  const [chatOpen, setChatOpen] = useState(false)
+  // 예전 AI 질문 탭 주소(?tab=ask)로 들어오면 패널을 열고 주소는 요약 탭으로 바꾼다(#579)
+  const [search] = useSearchParams()
+  const [chatOpen, setChatOpen] = useState(() => isLegacyAskTab(search))
+  useEffect(() => {
+    if (isLegacyAskTab(search)) update({ tab: 'summary' })
+  }, [search, update])
   const brief = useExportBrief(analysis)
   const { questions: suggestions, sectionCounts } = useAskSuggestions(analysis.analysisId)
   const examples = match(suggestions)
@@ -209,6 +215,7 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
           suggestions={examples}
           onNavigate={update}
           onDownloadBrief={brief.exportBrief}
+          briefState={brief.state}
           onClose={() => setChatOpen(false)}
         />
       ) : (
