@@ -18,6 +18,7 @@ import { AskTab } from './components/AskTab'
 import { ExportBriefButton } from './components/ExportBriefButton'
 import { FinancialTab } from './components/FinancialTab'
 import { ComparisonContextCard } from './components/ComparisonContextCard'
+import { NewsTab } from './components/NewsTab'
 import { OutdatedNotice } from './components/OutdatedNotice'
 import { SourceTab } from './components/SourceTab'
 import { SummaryTab } from './components/SummaryTab'
@@ -271,6 +272,7 @@ function ResultTabPanel({ analysis, params, update, ask, suggestions, askSection
       />
     ))
     .with('community', () => <CommunityTab corpCode={analysis.corpCode} />)
+    .with('news', () => <NewsTab corpCode={analysis.corpCode} />)
     .with('source', () => (
       <SourceTab
         key={analysis.analysisId}

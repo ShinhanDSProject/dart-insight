@@ -2785,3 +2785,47 @@
 .result-overview {
   --company-bar-height: var(--control-height);
 }
+
+/* 뉴스 탭(#592): 외부 기사 목록. 제목은 원문 링크, 아래 요약 한두 줄과 언론사·시각 */
+.news__notice {
+  margin: var(--space-3) 0 var(--space-4);
+}
+
+.news__list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.news__list > li + li {
+  border-top: 1px solid var(--color-border);
+}
+
+.news-item {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3) 0;
+}
+
+.news-item__title {
+  font-weight: var(--font-weight-bold);
+  overflow-wrap: anywhere;
+}
+
+.news-item__description {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.news-item__meta {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}

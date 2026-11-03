@@ -31,6 +31,7 @@ export const endpoints = {
   companyAnalyses: (corpCode: string) => `/api/companies/${seg(corpCode)}/analyses`,
   companyFinancialTrends: (corpCode: string) => `/api/companies/${seg(corpCode)}/financial-trends`,
   companyKeyFacts: (corpCode: string) => `/api/companies/${seg(corpCode)}/key-facts`,
+  companyNews: (corpCode: string) => `/api/companies/${seg(corpCode)}/news`,
   companyDisclosures: (corpCode: string) => `/api/companies/${seg(corpCode)}/disclosures`,
   disclosureKeyItems: (corpCode: string, rceptNo: string) =>
     `/api/companies/${seg(corpCode)}/disclosures/${seg(rceptNo)}/key-items`,
