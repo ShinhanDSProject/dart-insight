@@ -18,6 +18,8 @@ export function apiOrderOf(order: FinancialTableOrder): FinancialOrder {
 /**
  * 표 설정의 순서대로 계정을 놓는다. 원래 배열은 바꾸지 않는다.
  * 증감액 큰 순은 증감액 절댓값이 큰 것부터이고, 같으면 원래 순서, 증감액을 계산하지 못한 행은 맨 아래에 원래 순서대로 둔다.
+ * 앞 행과 이전·현재 금액이 똑같은 '…총계'(예: 자산총계와 늘 같은 부채와자본총계)는 새 정보가 없어
+ * 계산된 행들의 맨 뒤로 내린다. 숨기지 않으므로 계정 찾기·모두 보기에는 그대로 나온다.
  */
 export function orderFinancialItems(items: FinancialChangeItem[], order: FinancialTableOrder): FinancialChangeItem[] {
   return match(order)
@@ -30,9 +32,27 @@ export function orderFinancialItems(items: FinancialChangeItem[], order: Financi
         else calculated.push({ item, size: Math.abs(item.changeAmount) })
       }
       calculated.sort((a, b) => b.size - a.size)
-      return [...calculated.map((c) => c.item), ...uncalculated]
+      const { distinct, repeated } = demoteRepeatedTotals(calculated.map((c) => c.item))
+      return [...distinct, ...repeated, ...uncalculated]
     })
     .exhaustive()
+}
+
+/** 앞에 나온 행과 이전·현재 금액이 같은 '…총계' 행을 따로 뺀다(순서는 지킴) */
+function demoteRepeatedTotals(sorted: FinancialChangeItem[]): {
+  distinct: FinancialChangeItem[]
+  repeated: FinancialChangeItem[]
+} {
+  const seen = new Set<string>()
+  const distinct: FinancialChangeItem[] = []
+  const repeated: FinancialChangeItem[] = []
+  for (const item of sorted) {
+    const amounts = `${item.previousAmount}|${item.currentAmount}`
+    if (item.accountName.endsWith('총계') && seen.has(amounts)) repeated.push(item)
+    else distinct.push(item)
+    seen.add(amounts)
+  }
+  return { distinct, repeated }
 }
 
 /** 재무 표를 정렬할 수 있는 열 */

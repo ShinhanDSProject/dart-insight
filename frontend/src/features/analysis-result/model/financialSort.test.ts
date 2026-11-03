@@ -92,6 +92,15 @@ describe('orderFinancialItems', () => {
     expect(ids(items)).toEqual([1, 2, 3, 4, 5])
   })
 
+  it('증감액 큰 순에서 앞 행과 금액이 같은 총계는 계산된 행들의 맨 뒤로 내리고 빼지는 않는다', () => {
+    const assets = { ...item(1, 50, 0.5), accountName: '자산총계' }
+    const liabilitiesAndEquity = { ...item(2, 50, 0.5), accountName: '부채와자본총계' }
+    const sameAmountNotTotal = { ...item(3, 50, 0.5), accountName: '유동자산' }
+    const smaller = item(4, 10, 0.1)
+    const ordered = orderFinancialItems([assets, liabilitiesAndEquity, sameAmountNotTotal, smaller, item(5, null, null)], 'amount')
+    expect(ids(ordered)).toEqual([1, 3, 4, 2, 5])
+  })
+
   it('원문 순서·규모 큰 순은 서버가 준 순서 그대로 둔다', () => {
     expect(ids(orderFinancialItems(items, 'document'))).toEqual([1, 2, 3, 4, 5])
     expect(ids(orderFinancialItems(items, 'scale'))).toEqual([1, 2, 3, 4, 5])
