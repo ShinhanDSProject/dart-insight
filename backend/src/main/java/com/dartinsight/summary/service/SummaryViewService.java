@@ -42,7 +42,7 @@ public class SummaryViewService {
         List<ReviewView> review = new ArrayList<>();
         for (SummaryEntry entry : summary.entries()) {
             SummaryItemRow row = entry.row();
-            Target target = new Target(entry.targetType(), entry.changeId(), entry.sjDiv());
+            Target target = new Target(entry.targetType(), entry.changeId(), entry.sjDiv(), entry.changeType());
             if (row.reviewNeeded()) {
                 review.add(ReviewView.of(entry.itemNo(), target, entry.lens(), row));
                 continue;

@@ -32,8 +32,12 @@ public record SummaryResponse(Long analysisId, SummaryStatus summaryStatus, Stri
         }
     }
 
-    /** @param type FINANCIAL(재무 수치 탭의 계정) 또는 TEXT(문장 변화 탭의 변경) */
-    public record Target(String type, Long changeId, String sjDiv) {
+    /**
+     * @param type       FINANCIAL(재무 수치 탭의 계정) 또는 TEXT(문장 변화 탭의 변경)
+     * @param changeType 문장 변경의 유형(ADDED·DELETED·MODIFIED·NUMERIC_UPDATE·MOVED·REVIEW_NEEDED). 화면은 DELETED 줄에
+     *                   '빠졌다고 끝났다는 뜻은 아니에요' 안내를 붙인다(FS-70). 재무 수치이거나 변경을 찾지 못했으면 null
+     */
+    public record Target(String type, Long changeId, String sjDiv, String changeType) {
     }
 
     /** @param side current·previous. 분석의 보고서가 아니면 null(화면은 근거로 쓰지 않음) */
