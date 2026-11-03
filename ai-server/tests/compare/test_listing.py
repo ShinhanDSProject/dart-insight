@@ -75,6 +75,38 @@ def test_modified_with_a_changed_digit_is_not_formatting() -> None:
     assert classify(change(MODIFIED), "직원 100명 (정규직)", "직원 120명 정규직").group == MAIN
 
 
+@pytest.mark.parametrize(
+    ("previous", "current"),
+    [
+        ("영업손실 △1,000", "영업손실 1,000"),
+        ("가격 ▲50", "가격 ▼50"),
+        ("신용등급 BBB+", "신용등급 BBB-"),
+        ("금액 $100", "금액 ₩100"),
+        ("비율 100%", "비율 100"),
+        ("해당 여부 ○", "해당 여부 ×"),
+        ("구분 | 100 | | 200", "구분 | | 100 | 200"),
+    ],
+)
+def test_modified_with_a_meaningful_symbol_stays_in_main(previous: str, current: str) -> None:
+    assert classify(change(MODIFIED), previous, current).group == MAIN
+
+
+def test_changed_list_number_style_is_formatting() -> None:
+    assert (
+        classify(change(MODIFIED), "(1) 개인별 보수지급금액", "1. 개인별 보수지급금액").group
+        == FORMATTING
+    )
+
+
+def test_added_bullet_hyphen_is_formatting() -> None:
+    previous, current = "법인의 대표이사 변동내역", "- 법인의 대표이사 변동내역"
+    assert classify(change(MODIFIED), previous, current).group == FORMATTING
+
+
+def test_changed_numbering_with_a_hyphen_is_formatting() -> None:
+    assert classify(change(MODIFIED), "(2-1) 이사 전체", "2-1. 이사 전체").group == FORMATTING
+
+
 def test_numeric_update_stays_in_main() -> None:
     entry = classify(change(NUMERIC_UPDATE), "매출 100억원", "매출 120억원")
     assert (entry.group, entry.field) == (MAIN, BUSINESS)
@@ -98,6 +130,29 @@ def test_text_with_twenty_letters_stays_in_main() -> None:
 
 def test_digits_and_symbols_do_not_count_as_letters() -> None:
     assert classify(change(ADDED), None, "가" * 19 + " 1,234 (%)").group == HEADING
+
+
+def test_short_table_with_one_line_is_heading() -> None:
+    entry = classify(change(ADDED, block="TABLE"), None, " | (단위 : 백만원)")
+    assert entry.group == HEADING
+
+
+def test_short_table_with_several_rows_stays_in_main() -> None:
+    entry = classify(
+        change(ADDED, block="TABLE"),
+        None,
+        "변동일 | 변동 전 | 변동 후\n2025.03.14 | ㈜영풍 | (유)와이피씨",
+    )
+    assert (entry.group, entry.field) == (MAIN, BUSINESS)
+
+
+def test_short_table_with_one_row_of_values_is_heading() -> None:
+    entry = classify(change(ADDED, block="TABLE"), None, " | \n | (단위 : 백만원)")
+    assert entry.group == HEADING
+
+
+def test_short_paragraph_with_a_line_break_is_heading() -> None:
+    assert classify(change(ADDED), None, "(2)\n손상차손").group == HEADING
 
 
 def test_short_modified_text_is_not_heading() -> None:
@@ -135,6 +190,20 @@ def test_note_with_exception_words_is_raised_to_its_field(text: str, field: str)
     entry = classify(change(ADDED, NOTE_PATH), None, text)
     assert (entry.group, entry.field, entry.raised_from_note) == (MAIN, field, True)
     assert entry.note_scope == CONSOLIDATED
+
+
+def test_note_with_only_unsecured_is_not_raised() -> None:
+    entry = classify(
+        change(ADDED, NOTE_PATH), None, "당사는 무담보사채를 발행하였으며 만기는 3년입니다."
+    )
+    assert (entry.group, entry.raised_from_note) == (NOTE, False)
+
+
+def test_note_with_unsecured_and_collateral_is_raised() -> None:
+    entry = classify(
+        change(ADDED, NOTE_PATH), None, "무담보사채와 별도로 토지를 담보로 제공하고 있습니다."
+    )
+    assert (entry.group, entry.field) == (MAIN, FUNDING)
 
 
 def test_note_section_title_can_raise_the_change() -> None:
