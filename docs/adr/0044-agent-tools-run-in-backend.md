@@ -17,7 +17,7 @@
 
 - **실행 주체**: Tool은 backend가 실행한다. ai-server(LangGraph)는 한 번 부를 때마다 '다음에 부를 Tool과 인자' 또는 '최종 답' 하나를 정해 돌려준다. ADR-0002의 호출 방향은 그대로다.
 - **왕복 흐름**
-  1. React가 `POST /api/agent/chat`에 질문, 최근 몇 턴, 화면 맥락(기업, 분석 ID, 탭, 고른 변경)을 보낸다.
+  1. React가 `POST /api/analyses/{analysisId}/chat-messages`에 질문, 최근 몇 턴, 화면 맥락(기업, 분석 ID, 탭, 고른 변경)을 보낸다.
   2. backend가 허용 Tool 목록(이름·설명·인자 형식)과 지금까지의 Tool 결과를 붙여 ai-server 내부 API를 부른다.
   3. ai-server는 `TOOL_CALLS`(부를 Tool과 인자), `FINAL`(답, 근거 ID, UI 액션), `OUT_OF_SCOPE` 중 하나를 돌려준다.
   4. `TOOL_CALLS`면 backend가 Tool을 실행하고 결과를 붙여 2로 돌아간다. `FINAL`이나 `OUT_OF_SCOPE`면 응답한다.
