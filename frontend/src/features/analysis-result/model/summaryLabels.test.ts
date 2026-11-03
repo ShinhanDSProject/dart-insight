@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
   aiInfoLabel,
-  DELETED_NOTE,
   deletedNote,
   explanationNote,
   gradeLabel,
@@ -15,6 +14,7 @@ import {
   summaryStatusNotice,
   textCoverageNote,
 } from './summaryLabels'
+import { DELETED_NOTE } from './textLabels'
 
 describe('summaryLabels', () => {
   it('요약 상태가 정상이면 안내가 없고, 아니면 사유를 보여 준다', () => {

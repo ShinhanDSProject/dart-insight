@@ -2,6 +2,7 @@ import type { NoteTarget } from '@/shared/api/notes'
 import type { FinancialChangeItem, SjDiv } from '@/shared/api/results'
 import type { AiInfo, ExplanationGrade, ExplanationStatus, SummaryItem, SummaryKind, SummaryStatus, SummaryTarget } from '@/shared/api/summary'
 import type { TextStatus } from '@/shared/api/textChanges'
+import { DELETED_NOTE } from './textLabels'
 import { communityQuotePath } from '@/shared/lib/communityQuoteLink'
 import { parseQuestion } from '@/shared/lib/questionText'
 import { accountQuestion, type SuggestionAccount } from './askQuestion'
@@ -139,10 +140,8 @@ export function summaryItemQuestion(
 
 /**
  * 이전 보고서에만 있던 문장(삭제)을 말하는 요약 줄에 붙이는 안내(FS-70). '빠졌어요'를 '끝났다·해결됐다'로 읽지 않게 하고,
- * 이유를 추정하지 않고 원문에서 확인하게 한다. AI 문장에 섞지 않고 코드가 붙인다. 삭제가 아니면 null
+ * 이유를 추정하지 않고 원문에서 확인하게 한다. AI 문장에 섞지 않고 코드가 붙인다. 문장 근거 패널과 같은 말(DELETED_NOTE). 삭제가 아니면 null
  */
-export const DELETED_NOTE = '빠졌다고 끝났다는 뜻은 아니에요. 빠진 이유는 원문에서 확인해 주세요.'
-
 export function deletedNote(target: Pick<SummaryTarget, 'type' | 'changeType'>): string | null {
   return target.type === 'TEXT' && target.changeType === 'DELETED' ? DELETED_NOTE : null
 }

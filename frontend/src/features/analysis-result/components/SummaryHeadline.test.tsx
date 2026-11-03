@@ -3,7 +3,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { axeViolations } from '@/test/axe'
 import type { HeadlineLine } from '../model/summaryHeadline'
-import { DELETED_NOTE } from '../model/summaryLabels'
+import { DELETED_NOTE } from '../model/textLabels'
 import { SummaryHeadline } from './SummaryHeadline'
 
 afterEach(cleanup)
