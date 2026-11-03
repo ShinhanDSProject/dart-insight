@@ -3,6 +3,7 @@ import logging
 from fastapi import FastAPI
 
 from app.api import (
+    agent_steps,
     answers,
     briefings,
     documents,
@@ -54,6 +55,7 @@ def create_app(llm_client: LlmClient | None = None) -> FastAPI:
     app.include_router(briefings.router)
     app.include_router(outlooks.router)
     app.include_router(plan_followups.router)
+    app.include_router(agent_steps.router)
     return app
 
 
