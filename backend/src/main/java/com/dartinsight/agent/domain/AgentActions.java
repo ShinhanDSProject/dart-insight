@@ -76,8 +76,8 @@ public final class AgentActions {
                 "questionId", integer("근거 질문 ID(답 인용일 때)"),
                 "citationNo", integer("그 답의 인용 번호(답 인용일 때)"),
                 "memo", string("사용자가 남기라고 한 메모(1,000자 이하)")), List.of("kind"))), List.of("note")));
-        specs.put(CONFIRM_FAVORITE, object(properties("corpCode", string("이 분석 기업의 고유번호")),
-                List.of("corpCode")));
+        // 관심 기업은 이 분석의 기업만. 고유번호는 backend가 채운다(ai-server 요청에 고유번호가 없음)
+        specs.put(CONFIRM_FAVORITE, object(properties(), List.of()));
         return specs;
     }
 

@@ -63,9 +63,21 @@ class AgentActionCheck {
             }
         }
         if (AgentActions.CONFIRM_FAVORITE.equals(type)) {
-            return corpCode.equals(action.get("corpCode")) ? action : null;
+            return favorite(corpCode, action);
         }
         return exists(analysisId, action) ? action : null;
+    }
+
+    /** 관심 기업 추가: 이 분석의 기업으로 채운다. 다른 기업을 가리키면 뺀다 */
+    private static Map<String, Object> favorite(String corpCode, Map<String, Object> action) {
+        Object requested = action.get("corpCode");
+        if (requested != null && !corpCode.equals(requested)) {
+            return null;
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("type", AgentActions.CONFIRM_FAVORITE);
+        out.put("corpCode", corpCode);
+        return out;
     }
 
     /** 노트에 담기: 종류마다 담을 대상이 이 분석(또는 이 채팅의 질문)에 있는지. 맞으면 POST /api/notes 본문 */
