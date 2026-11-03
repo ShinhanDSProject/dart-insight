@@ -59,6 +59,13 @@ export function compareLink(company: CurrentCompany): string {
     : `/companies/${encodeURIComponent(company.corpCode)}`
 }
 
+/** 기업 이름이 갈 곳(#572): 마지막으로 연 분석이 있으면 그 분석 결과, 없으면 기업 화면 */
+export function companyLink(company: CurrentCompany): string {
+  return company.analysisId === null
+    ? `/companies/${encodeURIComponent(company.corpCode)}`
+    : `/analyses/${company.analysisId}`
+}
+
 /** '원문 확인'이 갈 곳. 분석이 없으면 null */
 export function sourceLink(company: CurrentCompany): string | null {
   return company.analysisId === null ? null : `/analyses/${company.analysisId}?tab=source`
