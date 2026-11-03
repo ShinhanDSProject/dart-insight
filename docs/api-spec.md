@@ -3406,7 +3406,9 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 - `final.status`: `ANSWERED`, `NOT_FOUND`, `REVIEW_NEEDED`. 답의 근거 ID 표시는 그대로 두고 backend가 번호로 바꿉니다.
 - `final.actions`: 받은 `actions` 목록의 종류와 형식만. 근거가 아니라서 검토 노드는 형식만 봅니다(값 확인은 backend).
 - `rejections`: 검토 노드가 반려한 회차(`attempt`, 그때까지의 생성 횟수)와 규칙. 반려가 없으면 빈 배열입니다. 규칙: `ANSWER_EMPTY`, `ANSWER_TOO_LONG`, `EVIDENCE_MISSING`, `EVIDENCE_NOT_IN_TOOL_RESULT`, `MARKER_MISMATCH`, `NUMBER_NOT_IN_TOOL_RESULT`, `CAUSAL_NOT_IN_SOURCE`, `GRADE_CHANGED`, `BLOCKED_EXPRESSION`, `ACTION_INVALID`, `NOT_FOUND_AFTER_TOOL_FAILURE`
-- 빠른 명령: 메시지가 `/요약`·`/재무`·`/위험`으로 시작하고 그 Tool(`get_summary`·`get_financial_changes`·`search_text_changes`(`risk: true`))이 `tools`에 있으면 LLM 없이 그 Tool을 부르고, 결과가 오면 답합니다.
+- 빠른 명령: 메시지가 `/요약`·`/재무`·`/위험`으로 시작하고 그 Tool(`get_summary`·`get_financial_changes`·`search_text_changes`(`risk: true`))이 `tools`에 있고 정해 둔 인자가 그 Tool의 `parameters`에 맞으면 LLM 없이 그 Tool을 부르고, 결과가 오면 답합니다. 인자가 맞지 않으면(예: `risk`를 받지 않는 `search_text_changes`) 빠른 명령으로 보지 않고 LLM이 Tool을 고릅니다.
+- `parameters`는 OpenAI 엄격 구조화 출력(ADR-0026)에 그대로 들어가므로 그 제약 안에서 씁니다: `type: object`이고 `properties`를 둠(빈 객체도 `properties: {}`), 지원 키워드는 문자열 `pattern`·`format`, 숫자 `minimum`·`maximum`·`exclusiveMinimum`·`exclusiveMaximum`·`multipleOf`, 배열 `minItems`·`maxItems`, `enum`, `anyOf`(최상위 제외). `allOf`·`not`·`if/then/else`는 쓰지 않습니다. 문자열 `minLength`·`maxLength`는 엄격 모드가 보장하지 않으므로 ai-server 코드 검사로만 걸립니다. 전체 10단계·속성 5,000개·enum 값 1,000개 이내(OpenAI Structured Outputs 'Supported schemas', 2026-11-03 확인). 필수가 아닌 필드는 ai-server가 null 허용으로 바꿔 보냅니다(`strict_schema`). 실제 OpenAI 호출로는 아직 확인하지 않았습니다(#577에서 Tool 목록이 생긴 뒤 확인).
+- 인자·액션 값의 형식 검사는 받은 `parameters`(JSON Schema)대로 합니다. 엄격 구조화 출력이 필수가 아닌 필드를 null로 채우므로 필수가 아닌 필드의 null은 없는 것으로 보고, 필수 필드의 null은 형식 오류입니다. 액션 값이 이 분석에 실제로 있는지는 ai-server가 보지 않고 backend가 확인합니다(없으면 그 액션을 빼고 로그).
 - `calls`: 이 단계에서 부른 LLM 기록(task `agent_plan` 다음 Tool 고르기, `agent_answer` 답 만들기). LLM을 부르지 않았으면 빈 배열이고 `model`·`generatedAt`은 null입니다.
 - `final.format`·`final.crossCheck`: 공개 API의 `format`·`crossCheck`와 같습니다.
 
@@ -3450,7 +3452,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
-| 400 | `COMMON_INVALID_INPUT` | 필드 누락, `tools`가 비었음, Tool 이름·`callId` 겹침, `toolResults`의 `name`이 `tools`에 없음, `remainingSteps`가 0보다 작음 |
+| 400 | `COMMON_INVALID_INPUT` | 필드 누락, `tools`가 비었음, Tool 이름·`callId` 겹침, `toolResults`의 `name`이 `tools`에 없음, `remainingSteps`가 0보다 작음, `history`가 6개 초과, Tool·액션의 `parameters`가 `type: object`인 올바른 JSON Schema(Draft 2020-12)가 아님 |
 | 503 | `AI_LLM_UNAVAILABLE` | LLM을 쓸 수 없음. 그때까지 부른 기록은 응답 헤더 `X-Llm-Calls`(3절 첫머리) |
 
 ## 4. 에러 코드
