@@ -46,6 +46,23 @@ def test_changes_come_back_with_positions() -> None:
     assert change["priority"]["reasons"][0].startswith("사업의 내용 섹션")
 
 
+def test_changes_come_back_with_list_classification() -> None:
+    response = client.post(
+        "/internal/text-changes",
+        json=body("메모리를 만듭니다.", "메모리와 파운드리를 만듭니다."),
+    )
+
+    data = response.json()
+    assert data["listVersion"] == "text-list-1"
+    assert "BUSINESS" not in data["missingFields"]
+    assert "LITIGATION" in data["missingFields"]
+    (change,) = data["changes"]
+    assert change["listGroup"] == "MAIN"
+    assert change["field"] == "BUSINESS"
+    assert change["raisedFromNote"] is False
+    assert change["noteScope"] is None
+
+
 def test_moved_change_has_both_locations_and_previous_section_path() -> None:
     sections = [*SECTIONS, {"sectionNo": 3, "parentNo": 1, "level": 2, "title": "2. 주요 제품"}]
     text = "당사는 미국 텍사스주에 반도체 공장을 짓고 있습니다."

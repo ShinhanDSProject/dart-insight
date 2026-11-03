@@ -16,7 +16,10 @@ logger = logging.getLogger("app.compare")
 
 @router.post(paths.TEXT_CHANGES)
 def text_changes(request: TextChangeRequest) -> dict[str, Any]:
-    """두 원문의 추가·삭제·수정·검토 필요 항목과 확인 우선순위(2.6). 글은 돌려주지 않는다."""
+    """두 원문의 추가·삭제·수정·검토 필요 항목과 확인 우선순위(2.6), 목록 분류(2.10).
+
+    글은 돌려주지 않는다.
+    """
     try:
         previous = request.previous.to_input()
         current = request.current.to_input()
@@ -30,4 +33,4 @@ def text_changes(request: TextChangeRequest) -> dict[str, Any]:
         len(compared.result.changes),
         compared.result.section_counts,
     )
-    return result_json(compared.result, compared.priorities)
+    return result_json(compared)

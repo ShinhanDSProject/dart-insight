@@ -224,6 +224,12 @@ class _Tree:
         return " > ".join(self.sections[no].title for no in reversed(self.ancestors(section_no)))
 
 
+def section_paths(document: DocumentIn) -> list[str]:
+    """문서의 모든 섹션 경로(문서 순서)."""
+    tree = _Tree(document)
+    return [tree.title_path(no) for no in tree.order]
+
+
 def match_sections(
     previous: _Tree, current: _Tree
 ) -> tuple[dict[int, int], dict[int, str], set[int], set[int]]:

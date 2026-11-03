@@ -5,8 +5,10 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
+from app.compare.listing import LIST_VERSION, ListEntry
 from app.compare.priority import PRIORITY_VERSION, Priority
-from app.compare.text_diff import BlockIn, Change, DiffResult, DocumentIn, Position, SectionIn
+from app.compare.service import TextChanges
+from app.compare.text_diff import BlockIn, Change, DocumentIn, Position, SectionIn
 
 
 class _Model(BaseModel):
@@ -63,7 +65,7 @@ def _position(position: Position | None) -> dict[str, Any] | None:
     return {"sectionNo": position.section_no, "blockNo": position.block_no}
 
 
-def _change(change: Change, priority: Priority) -> dict[str, Any]:
+def _change(change: Change, priority: Priority, entry: ListEntry) -> dict[str, Any]:
     return {
         "changeType": change.change_type,
         "blockType": change.block_type,
@@ -81,13 +83,23 @@ def _change(change: Change, priority: Priority) -> dict[str, Any]:
             "score": priority.score,
             "reasons": priority.reasons,
         },
+        "listGroup": entry.group,
+        "field": entry.field,
+        "raisedFromNote": entry.raised_from_note,
+        "noteScope": entry.note_scope,
     }
 
 
-def result_json(result: DiffResult, priorities: list[Priority]) -> dict[str, Any]:
+def result_json(compared: TextChanges) -> dict[str, Any]:
+    result = compared.result
     return {
         "diffVersion": result.diff_version,
         "priorityVersion": PRIORITY_VERSION,
+        "listVersion": LIST_VERSION,
+        "missingFields": compared.missing_fields,
         "sectionCounts": result.section_counts,
-        "changes": [_change(c, p) for c, p in zip(result.changes, priorities, strict=True)],
+        "changes": [
+            _change(c, p, e)
+            for c, p, e in zip(result.changes, compared.priorities, compared.entries, strict=True)
+        ],
     }
