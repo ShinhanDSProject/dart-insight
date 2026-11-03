@@ -64,8 +64,10 @@ NOT_FOUND_AFTER_TOOL_FAILURE = "NOT_FOUND_AFTER_TOOL_FAILURE"
 _MARKER = re.compile(r"\[([^\[\]\n]+)\]")
 # 회사가 직접 밝힌 설명(STATED)의 꼴. 등급이 RELATED·NONE인 결과를 이렇게 쓰면 등급을 바꾼 것이다
 _STATED_FORM = re.compile(r"밝혔|밝히고|설명했|설명하고|라고\s*(?:공시|했|적)")
-# 문장 하나: 마침표·물음표·느낌표와 그 뒤 근거 표시까지. '6.6조'의 점은 뒤에 공백이 없어 끊지 않는다
-_SENTENCE = re.compile(r".*?[.!?](?:\s*\[[^\[\]\n]+\])*(?=\s|$)|.+$", re.S)
+# 문장 하나: 마침표·물음표·느낌표와 그 뒤 근거 표시까지. '6.6조'의 점은 뒤에 공백이 없어 끊지 않고,
+# 영문·숫자 바로 뒤의 점('II. 사업의 내용', '1. 개요', 'Inc.')은 목차 번호·약어라
+# 문장 끝으로 보지 않는다
+_SENTENCE = re.compile(r".*?(?<![A-Za-z0-9])[.!?](?:\s*\[[^\[\]\n]+\])*(?=\s|$)|.+$", re.S)
 
 
 @dataclass(frozen=True)
