@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Analysis, AnalysisCreated } from '@/shared/api/analyses'
@@ -21,7 +21,6 @@ vi.mock('@/shared/api/analyses', async (importOriginal) => ({
 
 // 안내만 보려고 탭·카드와 그 안에서 불러오는 훅은 빈 조각으로 바꾼다
 vi.mock('@/shared/hooks/useRecentAnalyses', () => ({ useRecordRecentAnalysis: () => {} }))
-vi.mock('./hooks/useAsk', () => ({ useAsk: () => ({ state: { request: { status: 'idle' } } }) }))
 vi.mock('./hooks/useAskSuggestions', () => ({
   useAskSuggestions: () => ({ questions: { status: 'loading' }, sections: [], sectionCounts: [] }),
 }))
@@ -191,6 +190,20 @@ describe('결과 머리(#550)', () => {
       '뉴스',
       '원문',
     ])
+  })
+
+  it('AI 에이전트 버튼으로 채팅 패널을 열고, 탭을 바꿔도 패널이 닫히지 않는다(AC20)', async () => {
+    getAnalysis.mockResolvedValue(analysis(false))
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: 'AI 에이전트' }))
+    const panel = screen.getByRole('dialog', { name: 'AI 에이전트' })
+    expect(within(panel).getByText(/개인정보는 쓰지 마세요/)).toBeTruthy()
+    const tabs = screen.getByRole('navigation', { name: '결과 보기' })
+    fireEvent.click(within(tabs).getByText('문장 변화'))
+    expect(screen.getByTestId('where-search').textContent).toContain('tab=text')
+    expect(screen.getByRole('dialog', { name: 'AI 에이전트' })).toBeTruthy()
+    fireEvent.click(within(panel).getByRole('button', { name: '닫기' }))
+    expect(screen.queryByRole('dialog', { name: 'AI 에이전트' })).toBeNull()
   })
 
   it('기업 개요 탭은 화면을 옮기지 않고 탭 줄 아래에 그 기업의 개요를 그린다(#589)', async () => {
