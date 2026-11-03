@@ -16,6 +16,7 @@ from app.agent.model import (
     Turn,
 )
 from app.agent.service import StepOutput
+from app.agent.validate import schema_error
 from app.compliance import RULESET_VERSION
 
 MAX_HISTORY = 6
@@ -85,6 +86,13 @@ class StepRequest(_Model):
             raise ValueError("remainingSteps는 0 이상이어야 합니다.")
         if any(turn.role not in ROLES for turn in self.history):
             raise ValueError(f"history의 role은 {list(ROLES)} 중 하나여야 합니다.")
+        for label, parameters in [
+            *((f"tools[{t.name}]", t.parameters) for t in self.tools),
+            *((f"actions[{a.type}]", a.parameters) for a in self.actions),
+        ]:
+            problem = schema_error(parameters)
+            if problem:
+                raise ValueError(f"{label}.parameters가 올바른 JSON Schema가 아닙니다: {problem}")
         return StepInput(
             self.company_name,
             self.previous_report,

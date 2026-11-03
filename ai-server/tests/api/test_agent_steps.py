@@ -139,3 +139,15 @@ def test_fields_outside_the_contract_never_reach_the_prompt() -> None:
     (request,) = provider.requests
     assert "someone@example.com" not in request.user + request.system
     assert "닉네임" not in request.user + request.system
+
+
+def test_invalid_tool_parameters_schema_is_invalid_input() -> None:
+    broken = {**TOOL, "parameters": {"type": "object", "properties": {"q": {"type": "strng"}}}}
+    not_object = {**TOOL, "parameters": {"type": "array"}}
+    client = app_with(fake_provider())
+
+    assert client.post("/internal/agent-steps", json={**BODY, "tools": [broken]}).status_code == 400
+    assert (
+        client.post("/internal/agent-steps", json={**BODY, "tools": [not_object]}).status_code
+        == 400
+    )
