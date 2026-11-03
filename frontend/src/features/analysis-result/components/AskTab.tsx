@@ -1,4 +1,4 @@
-import { useReducer, type KeyboardEvent } from 'react'
+import { useEffect, useReducer, useRef, type KeyboardEvent } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { QuestionAnswer } from '@/shared/api/questions'
@@ -26,13 +26,18 @@ interface AskTabProps extends AnswerLinks {
 }
 
 /**
- * W-03 ⑤ AI 질문(3.10, FS-5). 예시 질문을 누르거나 직접 물으면, 두 보고서 원문 문단과 코드가 계산한 수치로만 답한다.
+ * W-03 ⑤ AI 질문(3.10, FS-5). 요약 탭 안에 둔다(#575). 예시 질문을 누르거나 직접 물으면, 두 보고서 원문 문단과 코드가 계산한 수치로만 답한다.
+ * 다른 탭의 'AI에게 묻기'로 질문이 오면 이 묶음이 보이게 화면을 옮긴다.
  * 답의 [1]·[F1]을 누르면 아래 근거 줄로 가고, '원문 보기'·'수치 근거'로 원문 확인·재무 수치 탭의 그 위치를 연다.
  */
 export function AskTab({ analysis, ask, suggestions, sections, ...links }: AskTabProps) {
   const { state, history } = ask
   const sending = state.request.status === 'sending'
   const lastAnswered = state.items.find((i) => i.questionId === state.lastAnsweredId)
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  useEffect(() => {
+    if (sending) titleRef.current?.scrollIntoView?.({ block: 'nearest' })
+  }, [sending])
   const suggestionList = match(suggestions)
     .with({ status: 'loading' }, () => [])
     .with({ status: 'error' }, () => [RISK_QUESTION])
@@ -65,7 +70,9 @@ export function AskTab({ analysis, ask, suggestions, sections, ...links }: AskTa
   return (
     <Panel className="ask" aria-labelledby="ask-title">
       <div className="ask__head">
-        <PanelTitle id="ask-title">AI에게 물어보기</PanelTitle>
+        <PanelTitle id="ask-title" ref={titleRef}>
+          AI에게 물어보기
+        </PanelTitle>
         <p className="ask__intro">{ASK_INTRO}</p>
       </div>
 

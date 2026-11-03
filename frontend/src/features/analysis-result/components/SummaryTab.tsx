@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { FinancialChangeItem, SjDiv } from '@/shared/api/results'
@@ -17,7 +17,6 @@ import { useSummaryAmounts } from '../hooks/useSummaryAmounts'
 import { summarySjDivs } from '../model/summaryAmounts'
 import { headlineItems } from '../model/summaryHeadline'
 import { AddToNote } from './AddToNote'
-import { AskEntryCard } from './AskEntryCard'
 import { ChangeOverview } from './ChangeOverview'
 import { PeriodDisclosures } from './PeriodDisclosures'
 import { SectionChangeChart } from './SectionChangeChart'
@@ -64,11 +63,10 @@ interface LensControls {
 }
 
 interface AskEntry {
-  /** AI 질문 진입 카드의 예시 질문 */
-  suggestions: LoadState<string[]>
-  /** AI 질문 탭으로 가서 바로 묻는다 */
+  /** AI 질문(AskTab). 탭 대신 요약 안에 둔다(#575) */
+  askPanel: ReactNode
+  /** 요약 카드의 'AI에게 묻기': 질문을 보낸다 */
   onAsk: (question: string) => void
-  onOpenAsk: () => void
   /** 다른 질문을 보내는 중 */
   asking: boolean
 }
@@ -95,9 +93,8 @@ export function SummaryTab({
   onOpenChangedAccounts,
   onOpenTextList,
   onOpenTextSection,
-  suggestions,
+  askPanel,
   onAsk,
-  onOpenAsk,
   asking,
   lens,
   view,
@@ -129,7 +126,7 @@ export function SummaryTab({
           />
         }
       />
-      <AskEntryCard suggestions={suggestions} onAsk={onAsk} onOpenAsk={onOpenAsk} sending={asking} />
+      {askPanel}
       <SummaryContent
         summary={summary}
         analysis={analysis}

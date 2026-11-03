@@ -13,6 +13,7 @@ import { useRecordRecentAnalysis } from '@/shared/hooks/useRecentAnalyses'
 import { useRecordCurrentCompany } from '@/shared/hooks/useCurrentCompany'
 import { basisLabel } from '@/shared/lib/comparisonBasis'
 import { companyOverviewLink } from '@/shared/lib/currentCompany'
+import { CommunityTab } from '@/shared/community/components/CommunityTab'
 import { AskTab } from './components/AskTab'
 import { ExportBriefButton } from './components/ExportBriefButton'
 import { FinancialTab } from './components/FinancialTab'
@@ -51,7 +52,7 @@ const tabs: TabItem<ResultTab>[] = resultTabs.map((value) => ({ value, label: re
 /**
  * W-03 분석 결과(3.1). 화면 전체가 분석 ID 하나의 결과만 보여 주므로, 비교 기준을 바꾸면 새 분석으로 옮겨 가고
  * 이전 결과와 섞이지 않는다. 고른 탭·재무제표·보기·단위·근거 계정은 주소(?tab=&sj=&changed=&unit=&change=)에,
- * 문장 변화의 유형·정렬·근거 항목은 ?ttype=&tsort=&tc=에, AI 질문 탭은 ?tab=ask(질문·답은 주소에 남기지 않음), 원문 확인의 보고서·항목·근거 위치는 ?doc=&section=&block=에 남긴다.
+ * 문장 변화의 유형·정렬·근거 항목은 ?ttype=&tsort=&tc=에, 커뮤니티 탭은 ?tab=community(#575, AI 질문은 요약 탭 안이고 질문·답은 주소에 남기지 않음), 원문 확인의 보고서·항목·근거 위치는 ?doc=&section=&block=에 남긴다.
  */
 export function AnalysisResultPage() {
   const { analysisId = '' } = useParams()
@@ -151,7 +152,7 @@ function ExportMenu({ analysis }: { analysis: Analysis }) {
 }
 
 /**
- * 완료된 분석의 결과. AI 질문의 상태와 예시 질문은 여기에 두어, 요약 진입 카드와 AI 질문 탭이 같이 쓰고
+ * 완료된 분석의 결과. AI 질문의 상태와 예시 질문은 여기에 두어, 요약 탭의 AI 질문과 다른 탭의 'AI에게 묻기'가 같이 쓰고
  * 다른 탭에 다녀와도 받은 답·보내는 질문이 남는다. 열면 검색 화면의 '최근 본 분석'(FS-7)과 왼쪽 메뉴 '지금 보는 기업'(#502)에 남긴다.
  */
 function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
@@ -195,7 +196,7 @@ function ResultTabPanel({ analysis, params, update, ask, suggestions, askSection
   const openSource = (target: SourceTarget) => update(openSourceChanges(target))
   const openText = (changeId: number) => update(openTextChanges(changeId))
   const openFinancial = (sj: SjDiv, change: number) => update(openFinancialChanges(sj, change))
-  // 요약의 예시 질문, 문장 변화의 '이 항목 변화 AI에게 묻기', 재무 근거의 '이 계정 변화 AI에게 묻기'가 같이 쓴다: 질문을 보내고 AI 질문 탭으로 옮긴다
+  // 요약 카드, 문장 변화의 '이 항목 변화 AI에게 묻기', 재무 근거의 '이 계정 변화 AI에게 묻기'가 같이 쓴다: 질문을 보내고 AI 질문이 있는 요약 탭으로 옮긴다(#575)
   const askAndOpen = (question: string) => {
     ask.ask(question)
     update(openAsk())
@@ -230,9 +231,18 @@ function ResultTabPanel({ analysis, params, update, ask, suggestions, askSection
         onOpenChangedAccounts={(sj) => update(openChangedAccounts(sj))}
         onOpenTextList={(type) => update(openTextList(type))}
         onOpenTextSection={(section) => update(openTextSection(section))}
-        suggestions={suggestions}
+        askPanel={
+          <AskTab
+            analysis={analysis}
+            ask={ask}
+            suggestions={suggestions}
+            sections={askSections}
+            onOpenSource={openSource}
+            onOpenFinancial={openFinancial}
+            onSearchText={(q) => update(openTextSearch(q))}
+          />
+        }
         onAsk={askAndOpen}
-        onOpenAsk={() => update(openAsk())}
         asking={asking}
         lens={params.summaryLens}
         view={params.summaryView}
@@ -256,17 +266,7 @@ function ResultTabPanel({ analysis, params, update, ask, suggestions, askSection
         asking={asking}
       />
     ))
-    .with('ask', () => (
-      <AskTab
-        analysis={analysis}
-        ask={ask}
-        suggestions={suggestions}
-        sections={askSections}
-        onOpenSource={openSource}
-        onOpenFinancial={openFinancial}
-        onSearchText={(q) => update(openTextSearch(q))}
-      />
-    ))
+    .with('community', () => <CommunityTab corpCode={analysis.corpCode} />)
     .with('source', () => (
       <SourceTab
         key={analysis.analysisId}

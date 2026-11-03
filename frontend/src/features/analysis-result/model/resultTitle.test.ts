@@ -14,8 +14,8 @@ describe('resultTitle', () => {
   })
 
   it('완료된 분석은 회사명·두 보고서 뒤에 지금 탭 이름을 붙인다', () => {
-    expect(resultTitle(analysis, 'ask')).toBe(
-      '삼성전자 사업보고서 (2024.12) → 반기보고서 (2025.06) · AI 질문 · DART Insight',
+    expect(resultTitle(analysis, 'community')).toBe(
+      '삼성전자 사업보고서 (2024.12) → 반기보고서 (2025.06) · 커뮤니티 · DART Insight',
     )
   })
 
@@ -26,7 +26,7 @@ describe('resultTitle', () => {
   })
 
   it('완료되지 않은 분석은 탭이 보이지 않으므로 탭 이름을 붙이지 않는다', () => {
-    expect(resultTitle({ ...analysis, status: 'FAILED' }, 'ask')).toBe(
+    expect(resultTitle({ ...analysis, status: 'FAILED' }, 'community')).toBe(
       '삼성전자 사업보고서 (2024.12) → 반기보고서 (2025.06) · DART Insight',
     )
   })

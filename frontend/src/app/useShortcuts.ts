@@ -63,7 +63,8 @@ export function useShortcuts(page: ShortcutPage): ShortcutsController {
           goToTab(action.tab)
           return
         case 'focus-ask':
-          if (goToTab('ask')) pendingFocus.current = ASK_INPUT_ID
+          // AI 질문은 요약 탭에 있다(#575)
+          if (goToTab('summary')) pendingFocus.current = ASK_INPUT_ID
           else focusById(ASK_INPUT_ID)
           return
       }

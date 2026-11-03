@@ -95,9 +95,8 @@ function draw(lens: SummaryLens | null, view: SummaryView, options?: { asking?: 
             onOpenChangedAccounts={noop}
             onOpenTextList={noop}
             onOpenTextSection={noop}
-            suggestions={{ status: 'success', data: [] }}
+            askPanel={null}
             onAsk={onAsk}
-            onOpenAsk={noop}
             asking={options?.asking ?? false}
             lens={lens}
             view={view}

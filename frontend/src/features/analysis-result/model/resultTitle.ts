@@ -8,7 +8,7 @@ export const resultTabLabels: Record<ResultTab, string> = {
   summary: '요약',
   financial: '재무 수치',
   text: '문장 변화',
-  ask: 'AI 질문',
+  community: '커뮤니티',
   source: '원문',
 }
 
