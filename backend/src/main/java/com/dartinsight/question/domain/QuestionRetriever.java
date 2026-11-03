@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * 질문의 후보 문단 찾기(ADR-0023). 벡터 검색이 들어오기 전까지 쓰는 낱말 검색이다.
@@ -16,8 +17,12 @@ import java.util.Set;
  *   <li>3자 이상 낱말은 끝의 조사(은·는·이·가·을·를·에·의·로·으로·과·와·도·에서·까지) 하나를 뗀다.
  *   낱말의 원래 끝 글자를 떼는 경우가 있어도(매출원가 → 매출원) 문단 안에 들어 있는지로 보므로 원래 낱말은 그대로 찾는다.</li>
  *   <li>의문·요청 낱말(왜, 무엇, 어떻게, …나요, …주세요)과 너무 흔한 낱말(관련, 내용, 변화)은 버린다.</li>
+ *   <li>3자 이상이고 '액'으로 끝나는 낱말은 '액'을 뗀 말도 같은 낱말로 본다. 공시는 매출액을 '매출은 … 증가'처럼
+ *   쓰는 일이 많다(삼성전자 20260814003699 B100·B140, #600).</li>
  *   <li>두 보고서의 문단(PARAGRAPH)마다 낱말이 몇 개(서로 다른 것) 들어 있는지 센다(공백 무시).
- *   점수가 높은 순, 같으면 현재 보고서 먼저, 그다음 문서 순서로 최대 6개를 고른다. 문단 글은 1,200자까지 보낸다.</li>
+ *   질문에 증감 방향(늘·증가, 줄·감소)이 있으면 그 방향 낱말이 든 문단에 1점을 더한다. 최소 점수 판정에는 넣지 않는다.</li>
+ *   <li>점수가 높은 순, 같으면 문장(…다.)이 든 문단을 제목 줄·목록 항목보다 먼저, 그다음 현재 보고서 먼저, 문서 순서로
+ *   최대 6개를 고른다. 문단 글은 1,200자까지 보낸다.</li>
  * </ol>
  */
 public final class QuestionRetriever {
@@ -36,6 +41,14 @@ public final class QuestionRetriever {
             "변화", "대해", "대한", "대해서", "이유", "원인", "늘어난", "줄어든", "늘어", "줄어", "바뀐", "달라진", "새로",
             "생긴");
     private static final List<String> QUESTION_ENDINGS = List.of("나요", "까요", "가요", "세요", "니까");
+    /** 떼어도 같은 낱말로 보는 끝 글자(매출액 → 매출) */
+    private static final String AMOUNT_SUFFIX = "액";
+    /** 질문에 이 말이 있으면 문단에서 방향 낱말을 찾아 1점을 더한다 */
+    private static final List<String> INCREASE_CUES = List.of("늘", "증가");
+    private static final List<String> INCREASE_WORDS = List.of("증가", "늘어", "늘었");
+    private static final List<String> DECREASE_CUES = List.of("줄", "감소");
+    private static final List<String> DECREASE_WORDS = List.of("감소", "줄어", "줄었");
+    private static final Pattern SENTENCE_END = Pattern.compile("다\\.|다$");
 
     private QuestionRetriever() {
     }
@@ -82,35 +95,66 @@ public final class QuestionRetriever {
         String compact = compact(text);
         int score = 0;
         for (String term : terms) {
-            if (compact.contains(term)) {
+            if (variants(term).stream().anyMatch(compact::contains)) {
                 score++;
             }
         }
         return score;
     }
 
+    /** 낱말과 같은 낱말로 보는 말. 예: 매출액 → [매출액, 매출] */
+    static List<String> variants(String term) {
+        if (term.length() >= MIN_STRIP_LENGTH && term.endsWith(AMOUNT_SUFFIX)) {
+            return List.of(term, term.substring(0, term.length() - AMOUNT_SUFFIX.length()));
+        }
+        return List.of(term);
+    }
+
+    /** 질문의 증감 방향에 맞는 문단 낱말. 방향이 없으면 빈 목록 */
+    static List<String> directionWords(String question) {
+        String compact = compact(question);
+        List<String> words = new ArrayList<>();
+        if (INCREASE_CUES.stream().anyMatch(compact::contains)) {
+            words.addAll(INCREASE_WORDS);
+        }
+        if (DECREASE_CUES.stream().anyMatch(compact::contains)) {
+            words.addAll(DECREASE_WORDS);
+        }
+        return List.copyOf(words);
+    }
+
+    /** 문장(…다.)이 든 문단인지. 제목 줄('(3) 판매경로별 매출액 비중')·목록 항목은 아니다 */
+    static boolean isSentence(String text) {
+        return SENTENCE_END.matcher(text.strip()).find();
+    }
+
     /**
      * 두 보고서에서 고른 후보 문단.
      *
+     * @param question     사용자의 질문(낱말과 증감 방향을 여기서 뽑는다)
      * @param current      현재 보고서의 블록(문서 순서)
      * @param previous     이전 보고서의 블록(문서 순서)
      * @param currentPaths 현재 보고서의 섹션 번호 → 섹션 경로
      */
-    public static List<QuestionSource> sources(List<String> terms, List<DocumentBlock> current,
+    public static List<QuestionSource> sources(String question, List<DocumentBlock> current,
             Map<Integer, String> currentPaths, List<DocumentBlock> previous, Map<Integer, String> previousPaths) {
+        List<String> terms = terms(question);
         if (terms.isEmpty()) {
             return List.of();
         }
+        List<String> direction = directionWords(question);
         List<Scored> scored = new ArrayList<>();
-        collect(scored, terms, current, currentPaths, QuestionSource.CURRENT, 0);
-        collect(scored, terms, previous, previousPaths, QuestionSource.PREVIOUS, 1);
-        scored.sort(Comparator.comparingInt((Scored s) -> -s.score()).thenComparingInt(Scored::sideOrder)
+        collect(scored, terms, direction, current, currentPaths, QuestionSource.CURRENT, 0);
+        collect(scored, terms, direction, previous, previousPaths, QuestionSource.PREVIOUS, 1);
+        scored.sort(Comparator.comparingInt((Scored s) -> -s.score())
+                .thenComparing(Scored::sentence, Comparator.reverseOrder())
+                .thenComparingInt(Scored::sideOrder)
                 .thenComparingInt(Scored::order));
         return scored.stream().limit(MAX_SOURCES).map(Scored::source).toList();
     }
 
-    private static void collect(List<Scored> scored, List<String> terms, List<DocumentBlock> blocks,
-            Map<Integer, String> paths, String side, int sideOrder) {
+    private static void collect(List<Scored> scored, List<String> terms, List<String> direction,
+            List<DocumentBlock> blocks, Map<Integer, String> paths, String side, int sideOrder) {
         for (int i = 0; i < blocks.size(); i++) {
             DocumentBlock block = blocks.get(i);
             if (!DocumentBlock.PARAGRAPH.equals(block.type()) || block.text() == null) {
@@ -120,10 +164,15 @@ public final class QuestionRetriever {
             if (score < minScore(terms.size())) {
                 continue;
             }
+            String compact = compact(block.text());
+            if (direction.stream().anyMatch(compact::contains)) {
+                score++;
+            }
             String text = block.text().length() <= MAX_SOURCE_CHARS ? block.text()
                     : block.text().substring(0, MAX_SOURCE_CHARS);
-            scored.add(new Scored(score, sideOrder, i, new QuestionSource(block.evidenceId(), side, block.rceptNo(),
-                    block.sectionNo(), block.blockNo(), paths.getOrDefault(block.sectionNo(), ""), text)));
+            scored.add(new Scored(score, isSentence(block.text()), sideOrder, i, new QuestionSource(
+                    block.evidenceId(), side, block.rceptNo(), block.sectionNo(), block.blockNo(),
+                    paths.getOrDefault(block.sectionNo(), ""), text)));
         }
     }
 
@@ -132,6 +181,6 @@ public final class QuestionRetriever {
         return text == null ? "" : text.replaceAll("\\s+", "").toLowerCase(Locale.ROOT);
     }
 
-    private record Scored(int score, int sideOrder, int order, QuestionSource source) {
+    private record Scored(int score, boolean sentence, int sideOrder, int order, QuestionSource source) {
     }
 }

@@ -112,7 +112,7 @@ public class CompanyQuestionService {
     }
 
     private List<QuestionSource> sources(ReportDocument document, String question) {
-        return QuestionRetriever.sources(QuestionRetriever.terms(question), documentService.blocks(document),
+        return QuestionRetriever.sources(question, documentService.blocks(document),
                 TextEvidenceService.paths(documentService.sections(document)), List.of(), Map.of());
     }
 

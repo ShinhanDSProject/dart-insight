@@ -214,7 +214,7 @@ public class QuestionService {
         Documents documents = new Documents();
         DocumentView cur = documents.of(analysis.getCurrentRceptNo());
         DocumentView prev = documents.of(analysis.getPreviousRceptNo());
-        return QuestionRetriever.sources(QuestionRetriever.terms(question), blocks(cur), cur.paths(), blocks(prev),
+        return QuestionRetriever.sources(question, blocks(cur), cur.paths(), blocks(prev),
                 prev.paths());
     }
 
