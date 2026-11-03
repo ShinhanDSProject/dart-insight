@@ -3201,8 +3201,9 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 - 질문은 `<question>`, 원문은 `<disclosure id>`, 사실은 `<fact ref>` 태그로 감싸 자료로만 씁니다. 질문 안의 지시는 따르지 않습니다. 사용자 정보는 넣지 않습니다.
 - `previousReport`는 선택입니다. 없으면(null) 보고서 하나에 대한 질문(기업 단위, #365)이고 `<context>`에 `previous` 속성을 넣지 않습니다. 이때 `sources[].side`는 모두 `current`, `facts`는 빈 배열입니다.
 - 매수·매도·목표주가·주가 전망 질문(규칙 `OUT_OF_SCOPE_QUESTION`)은 LLM을 부르지 않고 `OUT_OF_SCOPE`, 후보(`sources`)와 사실(`facts`)이 모두 비었으면 LLM을 부르지 않고 `NOT_FOUND`입니다.
-- LLM 출력: `{"status": "ANSWERED"|"NOT_FOUND", "answer": "…", "evidenceIds": […], "factRefs": […]}`. 답은 해요체 3문장·400자 이내, 문장마다 `[근거 ID]`나 `[F1]`을 붙여 쓰게 하고, ai-server가 근거 ID 표시를 그대로 둡니다(backend가 번호로 바꿈).
-- 확인: `evidenceIds`·`factRefs`가 보낸 것이고 `ANSWERED`면 둘 중 하나 이상 있음, 답의 숫자·크기 표현이 인용한 원문·사실에 있음, 원인 표현(ADR-0015 `CAUSAL_CLAIM`)은 인용한 원문에도 원인 표현이 있을 때만, 표현 검사(5.5) 통과. 실패하면 문제를 알려 주며 2회까지 다시 만들고 끝내 실패하면 `REVIEW_NEEDED`(`answer` null, `reviewReason`)입니다. 표현 검사에 걸리면 `blockedRules`에 규칙 ID가 남습니다.
+- LLM 출력: `{"status": "ANSWERED"|"NOT_FOUND", "answer": "…", "evidenceIds": […], "factRefs": […], "reasonNotStated": false}`. 답은 해요체 3문장·400자 이내, 문장마다 `[근거 ID]`나 `[F1]`을 붙여 쓰게 하고, ai-server가 근거 ID 표시를 그대로 둡니다(backend가 번호로 바꿈).
+- 이유를 묻는 질문인데 원문이 이유를 직접 밝히지 않으면, LLM은 사실·원문으로 무엇이 얼마나 바뀌었는지만 답하고 `reasonNotStated`를 true로 둡니다. 그러면 ai-server가 `answer` 끝에 "원문에서 이유를 직접 밝힌 문장은 찾지 못했어요."를 붙입니다. 이 문장은 코드가 붙이므로 근거 표시가 없습니다. `NOT_FOUND`는 사실·원문 어느 것도 질문과 관련이 없을 때만 씁니다(#601, `answer-3`). 응답 모양은 같습니다.
+- 확인: `reasonNotStated`는 불리언(없으면 false), `evidenceIds`·`factRefs`가 보낸 것이고 `ANSWERED`면 둘 중 하나 이상 있음, 답의 숫자·크기 표현이 인용한 원문·사실에 있음, 원인 표현(ADR-0015 `CAUSAL_CLAIM`)은 인용한 원문에도 원인 표현이 있을 때만, 표현 검사(5.5) 통과. 실패하면 문제를 알려 주며 2회까지 다시 만들고 끝내 실패하면 `REVIEW_NEEDED`(`answer` null, `reviewReason`)입니다. 표현 검사에 걸리면 `blockedRules`에 규칙 ID가 남습니다.
 
 **요청**
 

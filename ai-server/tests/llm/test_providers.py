@@ -275,4 +275,10 @@ def test_strict_schema_keeps_required_enum_without_null() -> None:
     status = result["properties"]["status"]
     assert status["type"] == "string"
     assert None not in status["enum"]
-    assert result["required"] == ["status", "answer", "evidenceIds", "factRefs"]
+    assert result["required"] == [
+        "status",
+        "answer",
+        "evidenceIds",
+        "factRefs",
+        "reasonNotStated",
+    ]
