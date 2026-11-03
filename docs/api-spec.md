@@ -3372,8 +3372,8 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 }
 ```
 
-- `toolResults`는 지금까지 실행한 순서대로 모두 보냅니다. `items[].text`는 backend가 만든 글입니다(재무는 저장된 계산 결과로 만든 사실 문장, 문장 변경은 유형·섹션 경로·글). 한 결과는 10개·4,000자까지로 줄이고, 줄였으면 `truncated: true`입니다.
-- 실행하지 못한 Tool(목록에 없음, 인자 형식 틀림, 없는 ID)은 `ok: false`와 `error`(짧은 사유)로 돌려줍니다. `ok: false` 결과는 자료가 없다는 뜻이 아닙니다. `NOT_FOUND`는 `ok: true`인 결과가 하나 이상 있고 그 `items`에 관련 자료가 없을 때만 쓰고, 실행한 Tool이 모두 `ok: false`라 답을 만들 수 없으면 `REVIEW_NEEDED`(`reviewReason`에 사유)입니다. 검토 노드가 이 규칙도 확인합니다.
+- `toolResults`는 지금까지 실행한 순서대로 모두 보냅니다. `items[].text`는 backend가 만든 글입니다(재무는 저장된 계산 결과로 만든 사실 문장, 문장 변경은 유형·섹션 경로·글). 한 결과는 10개·4,000자까지로 줄이고, 줄였으면 `truncated: true`입니다. `items[].evidenceId`는 답의 근거로 쓸 수 있는 위치이고 없으면(null) 근거로 쓸 수 없는 줄입니다(기업 찾기 결과 등). `items[].grade`는 저장된 재무 설명 등급(`STATED`·`RELATED`·`NONE`)이 있는 줄에만 넣습니다. 검토 노드가 등급을 바꾼 답(예: `RELATED`인 설명을 '회사가 밝혔다'로 씀)을 반려하는 데 씁니다.
+- 실행하지 못한 Tool(목록에 없음, 인자 형식 틀림, 없는 ID)은 `ok: false`와 `error`(짧은 사유)로 돌려줍니다. `ok: false` 결과는 자료가 없다는 뜻이 아닙니다. `NOT_FOUND`는 `ok: true`인 결과의 `items`에 관련 자료가 없을 때나 Tool을 하나도 실행하지 않았을 때 쓰고, 실행한 Tool이 모두 `ok: false`인데 `NOT_FOUND`이면 다시 쓰지 않고 바로 `REVIEW_NEEDED`(`reviewReason`에 사유)입니다. 검토 노드가 이 규칙도 확인합니다.
 
 **응답 200**
 
@@ -3405,7 +3405,8 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 - `type`: `TOOL_CALLS`(`toolCalls`에 `{ "callId", "name", "arguments" }`, `final`은 null), `FINAL`, `OUT_OF_SCOPE`(`final`은 null, LLM 없음)
 - `final.status`: `ANSWERED`, `NOT_FOUND`, `REVIEW_NEEDED`. 답의 근거 ID 표시는 그대로 두고 backend가 번호로 바꿉니다.
 - `final.actions`: 받은 `actions` 목록의 종류와 형식만. 근거가 아니라서 검토 노드는 형식만 봅니다(값 확인은 backend).
-- `rejections`: 검토 노드가 반려한 회차와 규칙. 반려가 없으면 빈 배열입니다.
+- `rejections`: 검토 노드가 반려한 회차(`attempt`, 그때까지의 생성 횟수)와 규칙. 반려가 없으면 빈 배열입니다. 규칙: `ANSWER_EMPTY`, `ANSWER_TOO_LONG`, `EVIDENCE_MISSING`, `EVIDENCE_NOT_IN_TOOL_RESULT`, `MARKER_MISMATCH`, `NUMBER_NOT_IN_TOOL_RESULT`, `CAUSAL_NOT_IN_SOURCE`, `GRADE_CHANGED`, `BLOCKED_EXPRESSION`, `ACTION_INVALID`, `NOT_FOUND_AFTER_TOOL_FAILURE`
+- 빠른 명령: 메시지가 `/요약`·`/재무`·`/위험`으로 시작하고 그 Tool(`get_summary`·`get_financial_changes`·`search_text_changes`(`risk: true`))이 `tools`에 있으면 LLM 없이 그 Tool을 부르고, 결과가 오면 답합니다.
 - `calls`: 이 단계에서 부른 LLM 기록(task `agent_plan` 다음 Tool 고르기, `agent_answer` 답 만들기). LLM을 부르지 않았으면 빈 배열이고 `model`·`generatedAt`은 null입니다.
 - `final.format`·`final.crossCheck`: 공개 API의 `format`·`crossCheck`와 같습니다.
 
