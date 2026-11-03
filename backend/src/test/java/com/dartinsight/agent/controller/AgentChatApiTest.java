@@ -1,0 +1,439 @@
+package com.dartinsight.agent.controller;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.hasSize;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.dartinsight.aiserver.client.FakeAiServer;
+import com.dartinsight.aiserver.client.FakeAiServer.Reply;
+import com.dartinsight.analysis.domain.Analysis;
+import com.dartinsight.analysis.domain.CalcStatus;
+import com.dartinsight.analysis.domain.FinancialChangeRow;
+import com.dartinsight.analysis.domain.FinancialChangeRow.Evidence;
+import com.dartinsight.analysis.domain.TextChangeRow;
+import com.dartinsight.analysis.domain.TextChangeRow.Priority;
+import com.dartinsight.analysis.domain.TextChangeRow.Side;
+import com.dartinsight.analysis.domain.TextComparison;
+import com.dartinsight.analysis.domain.TextStatus;
+import com.dartinsight.analysis.repository.AnalysisRepository;
+import com.dartinsight.analysis.repository.FinancialChangeRepository;
+import com.dartinsight.analysis.service.AnalysisResultService;
+import com.dartinsight.company.service.CompanyImportService;
+import com.dartinsight.comparison.domain.AmountBasis;
+import com.dartinsight.comparison.domain.ComparisonBasis;
+import com.dartinsight.dart.domain.CorpCodeEntry;
+import com.dartinsight.document.domain.ReportDocument;
+import com.dartinsight.document.dto.StructuredDocumentResponse;
+import com.dartinsight.document.dto.StructuredDocumentResponse.Block;
+import com.dartinsight.document.dto.StructuredDocumentResponse.Section;
+import com.dartinsight.document.repository.DocumentStore;
+import com.dartinsight.document.repository.ReportDocumentRepository;
+import com.dartinsight.financial.domain.FsDiv;
+import com.dartinsight.report.domain.Correction;
+import com.dartinsight.report.domain.Report;
+import com.dartinsight.report.domain.ReportNameParser.ParsedReportName;
+import com.dartinsight.report.domain.ReportType;
+import com.dartinsight.report.repository.ReportRepository;
+import com.dartinsight.support.TestData;
+import com.jayway.jsonpath.JsonPath;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+
+/** AI 에이전트 채팅(ADR-0044): POST /api/analyses/{analysisId}/chat-messages, 가짜 AI 서버(/internal/agent-steps) */
+@SpringBootTest
+@AutoConfigureMockMvc
+class AgentChatApiTest {
+
+    static final FakeAiServer AI = new FakeAiServer();
+    static final String STEPS = "/internal/agent-steps";
+    static final String CUR = "20260814000001";
+    static final String PREV = "20250814000001";
+    static final LocalDateTime NOW = LocalDateTime.of(2026, 11, 3, 9, 0);
+    static final String CALL = """
+            {"task":"%s","provider":"fake","model":"fake-model","promptVersion":"agent-1",
+             "calledAt":"2026-11-03T10:12:02","traceId":"trace-agent","inputTokens":100,"outputTokens":20,
+             "latencyMs":50,"attempt":1,"outcome":"OK","error":null}
+            """;
+
+    @DynamicPropertySource
+    static void servers(DynamicPropertyRegistry registry) {
+        registry.add("app.ai-server.base-url", AI::baseUrl);
+    }
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private AnalysisRepository analysisRepository;
+
+    @Autowired
+    private AnalysisResultService resultService;
+
+    @Autowired
+    private FinancialChangeRepository changeRepository;
+
+    @Autowired
+    private ReportDocumentRepository documentRepository;
+
+    @Autowired
+    private DocumentStore documentStore;
+
+    @Autowired
+    private CompanyImportService companyImportService;
+
+    @Autowired
+    private ReportRepository reportRepository;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    private Long analysisId;
+    private long lawsuitChangeId;
+
+    @BeforeEach
+    void setUp() {
+        TestData.clearAll(jdbcTemplate);
+        AI.clear();
+        companyImportService.save(List.of(
+                new CorpCodeEntry("00000001", "예시전자", null, "900001", LocalDate.of(2026, 1, 1))));
+        for (int year : new int[] {2025, 2026}) {
+            reportRepository.save(Report.create(year == 2026 ? CUR : PREV, "00000001", "반기보고서 (" + year + ".06)",
+                    new ParsedReportName(ReportType.HALF, year, LocalDate.of(year, 6, 30), Correction.ORIGINAL),
+                    LocalDate.of(year, 8, 14), null, "예시전자", NOW));
+        }
+        document(CUR);
+        document(PREV);
+        Analysis analysis = Analysis.request("00000001", CUR, PREV, ComparisonBasis.YOY, null, NOW);
+        analysis.start(NOW);
+        analysis.recordFsDiv(FsDiv.CFS);
+        analysisId = analysisRepository.save(analysis).getId();
+        resultService.saveAndComplete(analysisId, List.of(
+                new FinancialChangeRow("IS", FsDiv.CFS, "dart_OperatingIncomeLoss", "영업이익", 0,
+                        AmountBasis.CUMULATIVE, 6_600_000_000_000L, 4_300_000_000_000L, -2_300_000_000_000L,
+                        new BigDecimal("-0.348485"), CalcStatus.OK, "KRW",
+                        new Evidence(PREV, "IS", "dart_OperatingIncomeLoss", "영업이익", "제 56 기 반기"),
+                        new Evidence(CUR, "IS", "dart_OperatingIncomeLoss", "영업이익", "제 57 기 반기"))),
+                new TextComparison(TextStatus.COMPLETED, null, List.of(
+                        new TextChangeRow(TextChangeRow.ADDED, "PARAGRAPH", false, "MATCHED", "2. 우발부채 등에 관한 사항",
+                                "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항", null,
+                                new Side(CUR, 3, 5, "당사는 특허 침해 소송을 제기받았습니다."), null, null,
+                                new Priority("HIGH", 70, List.of(), "priority-3")))));
+        lawsuitChangeId = jdbcTemplate.queryForObject("SELECT id FROM text_change WHERE analysis_id = ?", Long.class,
+                analysisId);
+    }
+
+    private void document(String rceptNo) {
+        List<Section> sections = List.of(
+                new Section(1, null, 1, "II. 사업의 내용", null, false,
+                        List.of(new Block(1, "PARAGRAPH", "사업의 내용 개요입니다.", null))),
+                new Section(2, 1, 2, "1. 사업의 개요", null, false,
+                        List.of(new Block(2, "PARAGRAPH", "당사는 메모리를 만듭니다.", null))),
+                new Section(3, null, 1, "XI. 그 밖에 투자자 보호를 위하여 필요한 사항", null, false, List.of(
+                        new Block(5, "PARAGRAPH", "당사는 특허 침해 소송을 제기받았습니다.", null))));
+        StructuredDocumentResponse response = new StructuredDocumentResponse(rceptNo, "dart-xml-1", "STRUCTURED",
+                null, null, rceptNo + ".xml", "utf-8", "반기보고서", "예시전자", List.of(), List.of(),
+                Map.of("cells", 0, "sourceCells", 0), sections);
+        ReportDocument saved = documentRepository.save(ReportDocument.structured(rceptNo, response, 100, NOW, NOW));
+        documentStore.replace(saved.getId(), sections);
+    }
+
+    private ResultActions chat(Long id, String body) throws Exception {
+        return mockMvc.perform(post("/api/analyses/{a}/chat-messages", id).header("X-Trace-Id", "trace-agent")
+                .contentType(MediaType.APPLICATION_JSON).content(body));
+    }
+
+    private ResultActions chat(String message) throws Exception {
+        return chat(analysisId, "{\"message\":\"" + message + "\"}");
+    }
+
+    private static String toolCalls(String calls) {
+        return """
+                {"promptVersion":"agent-1","model":"fake-model","generatedAt":"2026-11-03T10:12:03",
+                 "type":"TOOL_CALLS","toolCalls":[%s],"final":null,"rejections":[],"calls":[%s]}
+                """.formatted(calls, CALL.formatted("agent_plan"));
+    }
+
+    private static String finalAnswer(String status, String answer, String evidenceIds, String actions) {
+        return """
+                {"promptVersion":"agent-1","model":"fake-model","generatedAt":"2026-11-03T10:12:03","type":"FINAL",
+                 "toolCalls":[],"final":{"status":"%s","answer":%s,"evidenceIds":[%s],"actions":[%s],
+                 "reviewReason":null,"blockedRules":[],"format":"CHAT","crossCheck":null},
+                 "rejections":[],"calls":[%s]}
+                """.formatted(status, answer == null ? "null" : "\"" + answer + "\"", evidenceIds, actions,
+                CALL.formatted("agent_answer"));
+    }
+
+    /** 첫 왕복은 calls, 다음 왕복부터는 then으로 답하는 가짜 AI 서버 */
+    private static Function<FakeAiServer.Request, Reply> twoSteps(String calls,
+            Function<FakeAiServer.Request, String> then) {
+        return request -> {
+            List<?> results = JsonPath.read(request.bodyText(), "$.toolResults");
+            return Reply.ok(results.isEmpty() ? toolCalls(calls) : then.apply(request));
+        };
+    }
+
+    private int llmCalls() {
+        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM llm_call WHERE analysis_id = ?", Integer.class,
+                analysisId);
+    }
+
+    @Test
+    @DisplayName("메시지가 2자 미만·500자 초과, 대화가 6개 초과, 모르는 탭이면 400이고 AI 서버를 부르지 않는다")
+    void rejectsInvalidRequests() throws Exception {
+        for (String message : new String[] {"", " 가 ", "가".repeat(501)}) {
+            chat(message).andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.errors[0].field").value("message"));
+        }
+        String turn = "{\"role\":\"user\",\"text\":\"질문\"}";
+        chat(analysisId, "{\"message\":\"영업이익\",\"history\":[" + String.join(",", List.of(turn, turn, turn,
+                turn, turn, turn, turn)) + "]}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("history"));
+        chat(analysisId, "{\"message\":\"영업이익\",\"history\":[{\"role\":\"system\",\"text\":\"x\"}]}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("history[0].role"));
+        chat(analysisId, "{\"message\":\"영업이익\",\"context\":{\"tab\":\"ask\"}}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("context.tab"));
+        assertThat(AI.requests(STEPS)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("없는 분석은 404, 끝나지 않은 분석은 409")
+    void unknownAnalysisIsNotFoundAndUnfinishedIsNotReady() throws Exception {
+        chat(999_999L, "{\"message\":\"영업이익\"}").andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ANALYSIS_NOT_FOUND"));
+        Long running = analysisRepository.save(
+                Analysis.request("00000001", CUR, PREV, ComparisonBasis.PREV, null, NOW)).getId();
+        chat(running, "{\"message\":\"영업이익\"}").andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ANALYSIS_NOT_READY"));
+        assertThat(AI.requests(STEPS)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Tool을 실행하고 결과를 붙여 다시 부른 뒤, 근거 칩과 확인한 화면 액션이 붙은 답을 돌려준다")
+    void runsToolsAndAnswersWithCitationsAndActions() throws Exception {
+        String evidence = "T" + lawsuitChangeId;
+        AI.on(STEPS, twoSteps("{\"callId\":\"c1\",\"name\":\"search_text_changes\",\"arguments\":{\"q\":\"소송\"}}",
+                request -> finalAnswer("ANSWERED", "소송 관련 변경은 1건이에요[" + evidence + "].",
+                        "\"" + evidence + "\"",
+                        "{\"type\":\"OPEN_TAB\",\"tab\":\"text\",\"filters\":{\"q\":\"소송\",\"risk\":null}},"
+                                + "{\"type\":\"OPEN_TEXT_CHANGE\",\"changeId\":" + lawsuitChangeId + "},"
+                                + "{\"type\":\"OPEN_TEXT_CHANGE\",\"changeId\":9999},"
+                                + "{\"type\":\"DELETE_POST\",\"postId\":1}")));
+
+        chat("소송 관련 변경 보여줘")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ANSWERED"))
+                .andExpect(jsonPath("$.answer").value("소송 관련 변경은 1건이에요[1]."))
+                .andExpect(jsonPath("$.citations", hasSize(1)))
+                .andExpect(jsonPath("$.citations[0].kind").value("TEXT_CHANGE"))
+                .andExpect(jsonPath("$.citations[0].evidenceId").value(evidence))
+                .andExpect(jsonPath("$.citations[0].changeId").value(lawsuitChangeId))
+                .andExpect(jsonPath("$.citations[0].changeType").value("ADDED"))
+                .andExpect(jsonPath("$.citations[0].rceptNo").value(CUR))
+                .andExpect(jsonPath("$.citations[0].reportName").value("반기보고서 (2026.06)"))
+                .andExpect(jsonPath("$.citations[0].quote").value("당사는 특허 침해 소송을 제기받았습니다."))
+                .andExpect(jsonPath("$.actions", hasSize(2)))
+                .andExpect(jsonPath("$.actions[0].label").value("문장 변화에서 보기"))
+                .andExpect(jsonPath("$.actions[0].filters.q").value("소송"))
+                .andExpect(jsonPath("$.actions[0].filters.risk").doesNotExist())
+                .andExpect(jsonPath("$.actions[1].type").value("OPEN_TEXT_CHANGE"))
+                .andExpect(jsonPath("$.actions[1].label").value("이 변경 보기"))
+                .andExpect(jsonPath("$.format").value("CHAT"))
+                .andExpect(jsonPath("$.questionId").doesNotExist())
+                .andExpect(jsonPath("$.aiGenerated").value(true))
+                .andExpect(jsonPath("$.ai.promptVersion").value("agent-1"));
+
+        List<FakeAiServer.Request> requests = AI.requests(STEPS);
+        assertThat(requests).hasSize(2);
+        assertThat(requests).allSatisfy(r -> assertThat(r.traceId()).isEqualTo("trace-agent"));
+        String first = requests.getFirst().bodyText();
+        assertThat(JsonPath.<String>read(first, "$.companyName")).isEqualTo("예시전자");
+        assertThat(JsonPath.<List<String>>read(first, "$.tools[*].name")).containsExactly("search_text_changes",
+                "get_text_change", "get_financial_changes", "get_document_outline", "get_document_section");
+        assertThat(JsonPath.<List<String>>read(first, "$.actions[*].type")).containsExactly("OPEN_TAB",
+                "OPEN_TEXT_CHANGE", "OPEN_FINANCIAL_CHANGE", "OPEN_DOCUMENT", "OPEN_GLOSSARY", "DOWNLOAD_BRIEF");
+        assertThat(JsonPath.<Integer>read(first, "$.remainingSteps")).isEqualTo(4);
+        String second = requests.get(1).bodyText();
+        assertThat(JsonPath.<Integer>read(second, "$.remainingSteps")).isEqualTo(3);
+        assertThat(JsonPath.<Boolean>read(second, "$.toolResults[0].ok")).isTrue();
+        assertThat(JsonPath.<List<String>>read(second, "$.toolResults[0].items[*].evidenceId")).contains(evidence);
+        assertThat(jdbcTemplate.queryForList("SELECT task FROM llm_call WHERE analysis_id = ? ORDER BY id",
+                String.class, analysisId)).containsExactly("agent_plan", "agent_answer");
+    }
+
+    @Test
+    @DisplayName("재무 변화 Tool은 저장된 계산 결과의 사실 문장을 근거 F{changeId}로 보낸다")
+    void financialChangesAreSentAsStoredFacts() throws Exception {
+        long changeId = changeRepository.findByAnalysisIdOrderBySjDivAscDisplayOrderAsc(analysisId).getFirst()
+                .getId();
+        AI.on(STEPS, twoSteps("{\"callId\":\"c1\",\"name\":\"get_financial_changes\",\"arguments\":{\"q\":\"영업 이익\"}}",
+                request -> finalAnswer("ANSWERED", "영업이익이 줄었어요[F" + changeId + "].", "\"F" + changeId + "\"",
+                        "")));
+
+        chat("영업이익 어디 있어?")
+                .andExpect(jsonPath("$.citations[0].kind").value("FINANCIAL_CHANGE"))
+                .andExpect(jsonPath("$.citations[0].accountName").value("영업이익"))
+                .andExpect(jsonPath("$.citations[0].sjDiv").value("IS"));
+
+        String second = AI.requests(STEPS).get(1).bodyText();
+        String text = JsonPath.read(second, "$.toolResults[0].items[0].text");
+        assertThat(text).startsWith("[IS, changeId " + changeId + "] ").contains("영업이익");
+    }
+
+    @Test
+    @DisplayName("원문 목차·항목 Tool은 항목 번호(#S)와 문단(#B) 근거를 보낸다")
+    void documentToolsSendSectionsAndBlocks() throws Exception {
+        AI.on(STEPS, request -> {
+            List<?> results = JsonPath.read(request.bodyText(), "$.toolResults");
+            return Reply.ok(switch (results.size()) {
+                case 0 -> toolCalls("{\"callId\":\"c1\",\"name\":\"get_document_outline\",\"arguments\":"
+                        + "{\"side\":\"current\"}}");
+                case 1 -> toolCalls("{\"callId\":\"c2\",\"name\":\"get_document_section\",\"arguments\":"
+                        + "{\"side\":\"current\",\"sectionNo\":1}}");
+                default -> finalAnswer("ANSWERED", "사업의 내용을 열었어요[" + CUR + "#S1].", "\"" + CUR + "#S1\"",
+                        "{\"type\":\"OPEN_DOCUMENT\",\"side\":\"current\",\"sectionNo\":1,\"blockNo\":null}");
+            });
+        });
+
+        chat("사업의 내용 열어줘")
+                .andExpect(jsonPath("$.citations[0].kind").value("SECTION"))
+                .andExpect(jsonPath("$.citations[0].sectionNo").value(1))
+                .andExpect(jsonPath("$.actions[0].type").value("OPEN_DOCUMENT"))
+                .andExpect(jsonPath("$.actions[0].blockNo").doesNotExist());
+
+        String last = AI.requests(STEPS).get(2).bodyText();
+        assertThat(JsonPath.<List<String>>read(last, "$.toolResults[0].items[*].evidenceId"))
+                .containsExactly(CUR + "#S1", CUR + "#S3");
+        assertThat(JsonPath.<String>read(last, "$.toolResults[0].items[0].text"))
+                .isEqualTo("[항목 1] II. 사업의 내용 — 하위: [항목 2] 1. 사업의 개요");
+        assertThat(JsonPath.<List<String>>read(last, "$.toolResults[1].items[*].evidenceId"))
+                .containsExactly(CUR + "#B1");
+    }
+
+    @Test
+    @DisplayName("근거 ID가 이 채팅의 Tool 결과에 없으면 답을 버리고 검토 필요로 끝낸다")
+    void answerCitingUnknownEvidenceIsReviewNeeded() throws Exception {
+        AI.on(STEPS, Reply.ok(finalAnswer("ANSWERED", "소송이 있어요[T999].", "\"T999\"", "")));
+
+        chat("소송 있어?")
+                .andExpect(jsonPath("$.status").value("REVIEW_NEEDED"))
+                .andExpect(jsonPath("$.answer").doesNotExist())
+                .andExpect(jsonPath("$.citations", hasSize(0)))
+                .andExpect(jsonPath("$.aiGenerated").value(false));
+        assertThat(llmCalls()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("투자 판단 요청은 OUT_OF_SCOPE 안내로 끝난다")
+    void outOfScopeEndsWithMessage() throws Exception {
+        AI.on(STEPS, Reply.ok("""
+                {"promptVersion":"agent-1","model":null,"generatedAt":null,"type":"OUT_OF_SCOPE","toolCalls":[],
+                 "final":null,"rejections":[],"calls":[]}
+                """));
+
+        chat("이 회사 지금 사도 돼?")
+                .andExpect(jsonPath("$.status").value("OUT_OF_SCOPE"))
+                .andExpect(jsonPath("$.message").isNotEmpty())
+                .andExpect(jsonPath("$.aiGenerated").value(false));
+        assertThat(llmCalls()).isZero();
+    }
+
+    @Test
+    @DisplayName("NOT_FOUND는 확인된 설명 없음 안내다")
+    void notFoundShowsNoConfirmedExplanation() throws Exception {
+        AI.on(STEPS, Reply.ok(finalAnswer("NOT_FOUND", null, "", "")));
+
+        chat("합병 관련 변경 있어?")
+                .andExpect(jsonPath("$.status").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.answer").doesNotExist())
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.startsWith("확인된 설명 없음")));
+    }
+
+    @Test
+    @DisplayName("왕복 상한(5회)을 넘으면 부분 결과 없이 INCOMPLETE이고 남은 왕복 수를 줄여 보낸다")
+    void stopsAtStepLimit() throws Exception {
+        AI.on(STEPS, request -> Reply.ok(toolCalls("{\"callId\":\"c" + AI.requests(STEPS).size()
+                + "\",\"name\":\"search_text_changes\",\"arguments\":{\"q\":\"소송" + AI.requests(STEPS).size()
+                + "\"}}")));
+
+        chat("소송 관련 변경 계속 찾아줘")
+                .andExpect(jsonPath("$.status").value("INCOMPLETE"))
+                .andExpect(jsonPath("$.answer").doesNotExist())
+                .andExpect(jsonPath("$.citations", hasSize(0)));
+        assertThat(AI.requests(STEPS).stream().map(r -> JsonPath.<Integer>read(r.bodyText(), "$.remainingSteps")))
+                .containsExactly(4, 3, 2, 1, 0);
+        assertThat(llmCalls()).isEqualTo(5);
+    }
+
+    @Test
+    @DisplayName("목록에 없는 Tool·형식이 틀린 인자·없는 ID는 실행하지 않고 실패한 결과로 돌려준다")
+    void invalidToolCallsComeBackAsFailedResults() throws Exception {
+        AI.on(STEPS, twoSteps("{\"callId\":\"c1\",\"name\":\"delete_note\",\"arguments\":{}},"
+                        + "{\"callId\":\"c2\",\"name\":\"get_text_change\",\"arguments\":{\"changeId\":\"x\"}},"
+                        + "{\"callId\":\"c3\",\"name\":\"get_text_change\",\"arguments\":{\"changeId\":999999}}",
+                request -> finalAnswer("NOT_FOUND", null, "", "")));
+
+        chat("이 변경 보여줘").andExpect(status().isOk());
+
+        String second = AI.requests(STEPS).get(1).bodyText();
+        assertThat(JsonPath.<List<Boolean>>read(second, "$.toolResults[*].ok")).containsExactly(false, false, false);
+        assertThat(JsonPath.<List<String>>read(second, "$.toolResults[*].error")).allSatisfy(e -> assertThat(e)
+                .isNotBlank());
+    }
+
+    @Test
+    @DisplayName("화면에서 고른 변경은 첫 왕복 전에 Tool 결과로 넣고, 이 분석에 없는 ID는 뺀다")
+    void selectedChangeIsSentBeforeFirstStep() throws Exception {
+        AI.on(STEPS, Reply.ok(finalAnswer("NOT_FOUND", null, "", "")));
+
+        chat(analysisId, "{\"message\":\"이 변경 좋은 거야?\",\"context\":{\"tab\":\"text\",\"textChangeId\":"
+                + lawsuitChangeId + ",\"financialChangeId\":999999}}").andExpect(status().isOk());
+
+        String first = AI.requests(STEPS).getFirst().bodyText();
+        assertThat(JsonPath.<List<String>>read(first, "$.toolResults[*].callId")).containsExactly("ctx-text");
+        assertThat(JsonPath.<List<String>>read(first, "$.toolResults[0].items[*].evidenceId"))
+                .containsExactly("T" + lawsuitChangeId, CUR + "#B5");
+        assertThat(JsonPath.<String>read(first, "$.context.tab")).isEqualTo("text");
+    }
+
+    @Test
+    @DisplayName("AI 서버나 LLM을 쓸 수 없으면 503이고, 그때까지의 호출 기록은 저장한다")
+    void unavailableAiServerIs503AndKeepsCallRecords() throws Exception {
+        String header = Base64.getUrlEncoder().encodeToString(("[" + CALL.formatted("agent_answer") + "]")
+                .getBytes(StandardCharsets.UTF_8));
+        AI.on(STEPS, request -> {
+            List<?> results = JsonPath.read(request.bodyText(), "$.toolResults");
+            return results.isEmpty()
+                    ? Reply.ok(toolCalls("{\"callId\":\"c1\",\"name\":\"search_text_changes\",\"arguments\":{}}"))
+                    : Reply.error(503, "AI_LLM_UNAVAILABLE", "LLM을 쓸 수 없어요.").withHeader("X-Llm-Calls", header);
+        });
+
+        chat("소송 관련 변경")
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("AI_SERVER_UNAVAILABLE"));
+        assertThat(jdbcTemplate.queryForList("SELECT task FROM llm_call WHERE analysis_id = ? ORDER BY id",
+                String.class, analysisId)).containsExactly("agent_plan", "agent_answer");
+    }
+}
