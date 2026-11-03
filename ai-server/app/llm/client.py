@@ -147,19 +147,29 @@ class LlmClient:
     def available(self) -> bool:
         return self.provider is not None
 
-    def generate[T](self, request: LlmRequest, validate: Callable[[Any], T]) -> LlmResult[T]:
+    def generate[T](
+        self,
+        request: LlmRequest,
+        validate: Callable[[Any], T],
+        max_output_retries: int | None = None,
+    ) -> LlmResult[T]:
         """JSON 결과를 받아 validate로 검사해 값으로 바꾼다.
 
         validate는 문제가 있으면 OutputProblem을 던진다. 그러면 문제를 알려 주며 다시 생성한다.
+        max_output_retries는 이 요청에서 다시 생성할 수 있는 횟수다. 설정값을 넘지 못하고,
+        주지 않으면 설정값이다. 여러 번 생성을 한 예산으로 세는 쪽(ADR-0045)이 남은 횟수를 넘긴다.
         """
         if self.provider is None:
             raise LlmUnavailable("LLM 제공자가 설정되지 않았어요(LLM_PROVIDER).")
+        retries = self.settings.max_output_retries
+        if max_output_retries is not None:
+            retries = min(max(max_output_retries, 0), retries)
         calls: list[CallRecord] = []
         problems: list[str] = []
         last_output: Any = None
         current = request
         deadline = self._monotonic() + self.settings.total_timeout_seconds
-        for round_no in range(self.settings.max_output_retries + 1):
+        for round_no in range(retries + 1):
             if problems:
                 if self._monotonic() >= deadline:
                     break
@@ -183,7 +193,7 @@ class LlmClient:
                 logger.info(
                     "LLM 결과 검증 실패(%d/%d): %s",
                     round_no + 1,
-                    self.settings.max_output_retries + 1,
+                    retries + 1,
                     e,
                 )
                 continue

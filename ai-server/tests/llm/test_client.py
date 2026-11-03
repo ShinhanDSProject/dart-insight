@@ -144,6 +144,24 @@ def test_output_failing_three_times_is_not_treated_as_success() -> None:
     assert len(provider.requests) == 3
 
 
+def test_request_retry_limit_lowers_regenerations() -> None:
+    llm, provider = client({"x": 1}, {"answer": "두 번째는 묻지 않음"})
+
+    with pytest.raises(LlmOutputInvalid):
+        llm.generate(REQUEST, need_answer, max_output_retries=0)
+
+    assert len(provider.requests) == 1
+
+
+def test_request_retry_limit_cannot_exceed_the_setting() -> None:
+    llm, provider = client({"x": 1}, {"x": 2}, {"x": 3}, {"answer": "네 번째는 묻지 않음"})
+
+    with pytest.raises(LlmOutputInvalid):
+        llm.generate(REQUEST, need_answer, max_output_retries=5)
+
+    assert len(provider.requests) == 3
+
+
 def test_transient_errors_are_retried() -> None:
     sleeps: list[float] = []
     llm, _ = client(ProviderTransientError("timeout"), {"answer": "됨"}, sleeps=sleeps)
