@@ -2786,7 +2786,7 @@
 - 흐름: backend가 허용 Tool·액션 목록과 지금까지의 Tool 결과를 붙여 ai-server `POST /internal/agent-steps`(3절)를 부릅니다. 응답이 `TOOL_CALLS`면 Tool을 실행하고 결과를 붙여 다시 부르고, `FINAL`·`OUT_OF_SCOPE`면 아래 응답으로 바꿔 돌려줍니다. 한 요청의 모든 왕복은 같은 `X-Trace-Id`를 씁니다.
 - 근거 질문 Tool(`answer_with_evidence`)을 실행하면 `POST /api/analyses/{analysisId}/questions`와 같은 규칙으로 답하고 `analysis_question`에 저장합니다. 그 질문 ID가 응답 `questionId`이고, 화면은 이 값으로 답 평가(`PUT .../questions/{questionId}/feedback`)와 인용 노트 담기(`ANSWER_CITATION`)를 합니다.
 - 응답 전에 backend는 근거 ID가 이 분석에 저장된 위치인지 다시 확인합니다. 하나라도 아니면 답을 버리고 `REVIEW_NEEDED`로 끝내며 오류 로그를 남깁니다(ADR-0044).
-- 상한: 한 요청에서 ai-server 왕복 최대 5회, 전체 60초(설정값, 잠정). 넘으면 검증하지 않은 부분 결과 없이 `INCOMPLETE`입니다.
+- 상한: 한 요청에서 ai-server 왕복 최대 5회, 전체 60초(설정 `app.agent.max-steps`·`timeout`, 잠정). 시간은 왕복을 시작하기 전마다 확인하고 이미 시작한 호출은 끊지 않으므로 실제로는 조금 넘을 수 있습니다. 넘으면 검증하지 않은 부분 결과 없이 `INCOMPLETE`입니다.
 
 **요청**
 
@@ -3422,7 +3422,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 }
 ```
 
-- `toolResults`는 지금까지 실행한 순서대로 모두 보냅니다. `items[].text`는 backend가 만든 글입니다(재무는 저장된 계산 결과로 만든 사실 문장, 문장 변경은 유형·섹션 경로·글). 한 결과는 10개·4,000자까지로 줄이고, 줄였으면 `truncated: true`입니다. `items[].evidenceId`는 답의 근거로 쓸 수 있는 위치이고 없으면(null) 근거로 쓸 수 없는 줄입니다(기업 찾기 결과 등). `items[].grade`는 저장된 재무 설명 등급(`STATED`·`RELATED`·`NONE`)이 있는 줄에만 넣습니다. 검토 노드가 등급을 바꾼 답(예: `RELATED`인 설명을 '회사가 밝혔다'로 씀)을 반려하는 데 씁니다.
+- `toolResults`는 지금까지 실행한 순서대로 모두 보냅니다. `items[].text`는 backend가 만든 글입니다(재무는 저장된 계산 결과로 만든 사실 문장, 문장 변경은 유형·섹션 경로·글). 한 결과는 10개(원문 목차는 30개)·4,000자까지로 줄이고, 줄였으면 `truncated: true`입니다. 줄 글에는 다음 Tool·액션 값으로 쓸 `changeId`·항목 번호가 들어 있습니다. 화면에서 고른 변경은 `callId`가 `ctx-text`·`ctx-financial`인 결과로 첫 왕복 전에 넣습니다. `items[].evidenceId`는 답의 근거로 쓸 수 있는 위치이고 없으면(null) 근거로 쓸 수 없는 줄입니다(기업 찾기 결과 등). `items[].grade`는 저장된 재무 설명 등급(`STATED`·`RELATED`·`NONE`)이 있는 줄에만 넣습니다. 검토 노드가 등급을 바꾼 답(예: `RELATED`인 설명을 '회사가 밝혔다'로 씀)을 반려하는 데 씁니다.
 - 실행하지 못한 Tool(목록에 없음, 인자 형식 틀림, 없는 ID)은 `ok: false`와 `error`(짧은 사유)로 돌려줍니다. `ok: false` 결과는 자료가 없다는 뜻이 아닙니다. `NOT_FOUND`는 `ok: true`인 결과의 `items`에 관련 자료가 없을 때나 Tool을 하나도 실행하지 않았을 때 쓰고, 실행한 Tool이 모두 `ok: false`인데 `NOT_FOUND`이면 다시 쓰지 않고 바로 `REVIEW_NEEDED`(`reviewReason`에 사유)입니다. 검토 노드가 이 규칙도 확인합니다.
 
 **응답 200**
@@ -3473,7 +3473,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | `explain_text_change` | `changeId` | `POST .../text-changes/{changeId}/explanations`(저장된 풀이가 있으면 그것) | `T{changeId}` |
 | `find_related_disclosures` | `changeId` | `GET .../text-changes/{changeId}/related-disclosures` | `D{rceptNo}` |
 | `get_financial_changes` | `sjDiv`, `q`(계정 이름), `size`(1~10) | `GET .../financial-changes`(저장된 설명 등급·인용 포함) | `F{changeId}` |
-| `get_document_outline` | `side` | `GET .../documents/{side}` | `{rceptNo}#S{sectionNo}` |
+| `get_document_outline` | `side` | `GET .../documents/{side}`(최상위 항목마다 한 줄과 하위 항목 번호·제목. 이 결과만 30줄까지) | `{rceptNo}#S{sectionNo}` |
 | `get_document_section` | `side`, `sectionNo` | `GET .../documents/{side}/sections/{sectionNo}`(앞 4,000자) | `{rceptNo}#B{blockNo}` |
 | `get_summary` | — | `GET .../summary`(저장된 요약만, 새로 만들지 않음) | `F{changeId}`, `T{changeId}`, `{rceptNo}#B{blockNo}` |
 | `answer_with_evidence` | `question` | `POST .../questions`(같은 검사, `analysis_question`에 저장) | 그 답의 근거 ID |
