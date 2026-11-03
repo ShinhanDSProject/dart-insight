@@ -137,3 +137,12 @@ span.chat-panel__citation {
 .chat-entry__form input {
   flex: 1;
 }
+
+/* 예시 질문 버튼은 길면 줄을 바꿔 패널 폭 안에 둔다(가로 스크롤이 생기지 않게) */
+.chat-panel__chips > button {
+  max-width: 100%;
+  height: auto;
+  white-space: normal;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
