@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.dartinsight.aiserver.client.FakeAiServer;
 import com.dartinsight.aiserver.client.FakeAiServer.Reply;
+import com.dartinsight.common.config.ClockConfig;
 import com.dartinsight.company.domain.Company;
 import com.dartinsight.company.repository.CompanyRepository;
 import com.dartinsight.company.service.CompanyImportService;
@@ -135,6 +136,9 @@ class CompanyQuestionApiTest {
                 """.formatted(ANNUAL, PRODUCTS)));
     }
 
+    /** LLM 호출 시각. AI 사용 현황(최근 7일)에 잡히도록 오늘로 둔다(날짜를 고정하면 일주일 뒤 깨짐) */
+    private static final String CALLED_AT = LocalDateTime.now(ClockConfig.SEOUL).withNano(0).toString();
+
     private static String answered(String answer, String... evidenceIds) {
         String ids = evidenceIds.length == 0 ? "" : "\"" + String.join("\",\"", evidenceIds) + "\"";
         return """
@@ -142,9 +146,9 @@ class CompanyQuestionApiTest {
                  "generatedAt":"2026-10-26T10:12:03","status":"ANSWERED","answer":"%s",
                  "evidenceIds":[%s],"factRefs":[],"reviewReason":null,"blockedRules":[],
                  "calls":[{"task":"answer","provider":"fake","model":"fake-model","promptVersion":"answer-2",
-                  "calledAt":"2026-10-26T10:12:02","traceId":"trace-c1","inputTokens":900,"outputTokens":120,
+                  "calledAt":"%s","traceId":"trace-c1","inputTokens":900,"outputTokens":120,
                   "latencyMs":800,"attempt":1,"outcome":"OK","error":null}]}
-                """.formatted(answer, ids);
+                """.formatted(answer, ids, CALLED_AT);
     }
 
     private static String withoutLlm(String status) {

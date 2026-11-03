@@ -65,7 +65,7 @@ class NaverNewsClientTest {
 
     private NaverNewsClient client(String id, String secret) {
         return new NaverNewsClient(new NaverSearchProperties(id, secret, server.baseUrl(), Duration.ofSeconds(1),
-                Duration.ofSeconds(2), Duration.ofMinutes(30)), JsonMapper.builder().build());
+                Duration.ofSeconds(2), Duration.ofMinutes(30), 20_000), JsonMapper.builder().build());
     }
 
     private static FakeOpenDartServer start() {

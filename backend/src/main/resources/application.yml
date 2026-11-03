@@ -106,6 +106,8 @@ app:
     read-timeout: 10s
     # 기업별 뉴스 목록을 메모리에 두는 시간
     cache-ttl: 30m
+    # 하루에 네이버를 부르는 최대 횟수(로그인 없는 API라 공용 키 한도 25,000회를 지키려고 낮게 둠)
+    daily-budget: 20000
   featured:
     # 첫 화면 대표 기업(1.5): 시작할 때와 하루마다 오래됐으면 받음(on-stale), 받지 않음(never)
     sync: ${FEATURED_COMPANY_SYNC:on-stale}

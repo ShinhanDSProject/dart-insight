@@ -10,6 +10,7 @@ import com.dartinsight.news.domain.CompanyNews;
 import com.dartinsight.news.domain.CompanyNewsCache;
 import com.dartinsight.news.domain.NewsArticle;
 import com.dartinsight.news.dto.NaverNewsItem;
+import com.dartinsight.news.repository.NewsCallUsageStore;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,7 +21,7 @@ import org.springframework.stereotype.Service;
 
 /**
  * 기업 뉴스(#592, ADR-0046). 기업 이름으로 최신 뉴스를 받아 제목에 그 이름이 있는 기사만 남기고, 기업별로 메모리에 캐시한다.
- * 뉴스는 화면 목록에만 쓰고 LLM에는 넣지 않는다(네이버 약관). DB를 쓰지 않아 트랜잭션이 없다.
+ * 뉴스는 화면 목록에만 쓰고 LLM에는 넣지 않는다(네이버 약관). 부른 횟수만 DB에 세고(문장마다 바로 커밋) 트랜잭션은 없다.
  */
 @Service
 public class CompanyNewsService {
@@ -32,21 +33,25 @@ public class CompanyNewsService {
 
     private final CompanyService companyService;
     private final NaverNewsClient naverNewsClient;
+    private final NewsCallUsageStore newsCallUsageStore;
     private final Clock clock;
+    private final int dailyBudget;
     private final CompanyNewsCache cache;
 
     public CompanyNewsService(CompanyService companyService, NaverNewsClient naverNewsClient,
-            NaverSearchProperties properties, Clock clock) {
+            NewsCallUsageStore newsCallUsageStore, NaverSearchProperties properties, Clock clock) {
         this.companyService = companyService;
         this.naverNewsClient = naverNewsClient;
+        this.newsCallUsageStore = newsCallUsageStore;
         this.clock = clock;
+        this.dailyBudget = properties.dailyBudget();
         this.cache = new CompanyNewsCache(properties.cacheTtl());
     }
 
     /**
-     * 그 기업의 최신 뉴스. 받은 지 cache-ttl이 안 지났으면 캐시를 준다.
+     * 그 기업의 최신 뉴스. 받은 지 cache-ttl이 안 지났으면 캐시를 준다. 캐시가 없고 오늘 부를 수 있는 횟수를 다 썼으면 부르지 않는다.
      *
-     * @throws ApiException 없는 기업(404 COMPANY_NOT_FOUND), 키가 없거나 호출 실패(503 COMPANY_NEWS_UNAVAILABLE)
+     * @throws ApiException 없는 기업(404 COMPANY_NOT_FOUND), 키가 없거나 호출 실패·하루 횟수 다 씀(503 COMPANY_NEWS_UNAVAILABLE)
      */
     public CompanyNews news(String corpCode) {
         Company company = companyService.get(corpCode);
@@ -54,6 +59,10 @@ public class CompanyNewsService {
         Optional<CompanyNews> cached = cache.fresh(corpCode, now);
         if (cached.isPresent()) {
             return cached.get();
+        }
+        if (!newsCallUsageStore.tryUse(now.toLocalDate(), dailyBudget)) {
+            log.warn("오늘 뉴스 검색 횟수를 다 써 네이버를 부르지 않습니다: {}", corpCode);
+            throw new ApiException(ErrorCode.COMPANY_NEWS_UNAVAILABLE);
         }
         String query = company.getCorpName();
         List<NaverNewsItem> fetched;
