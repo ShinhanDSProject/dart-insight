@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   companyOverviewLink,
   compareLink,
+  companyLink,
   isCurrentRoute,
   loadCurrentCompany,
   nextCurrentCompany,
@@ -25,6 +26,12 @@ describe('nextCurrentCompany(#502)', () => {
     expect(next).toEqual({ ...samsung, view: 'company' })
     expect(compareLink(next)).toBe('/companies/00126380')
     expect(sourceLink(next)).toBe('/analyses/42?tab=source')
+  })
+
+  it('기업 이름은 마지막으로 연 분석이 있으면 그 분석 결과로, 없으면 기업 화면으로 간다', () => {
+    expect(companyLink(samsung)).toBe('/analyses/42')
+    expect(companyLink({ ...samsung, view: 'company' })).toBe('/analyses/42')
+    expect(companyLink({ ...samsung, analysisId: null, view: 'company' })).toBe('/companies/00126380')
   })
 
   it('다른 기업을 열면 전 기업의 분석과 종목코드를 버린다', () => {

@@ -5,7 +5,7 @@ import { BrandLogo } from '@/shared/ui/BrandLogo'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { Icon, type IconName } from '@/shared/ui/Icon'
 import { useCurrentCompany } from '@/shared/hooks/useCurrentCompany'
-import { compareLink, isCurrentRoute, overviewLink, sourceLink, type CurrentCompany } from '@/shared/lib/currentCompany'
+import { compareLink, companyLink, isCurrentRoute, overviewLink, sourceLink, type CurrentCompany } from '@/shared/lib/currentCompany'
 import { useAuth } from '@/shared/auth/authContext'
 import { NotificationMenu } from '@/features/notifications/components/NotificationMenu'
 import { NotificationSignInLink } from '@/features/notifications/components/NotificationSignInLink'
@@ -191,7 +191,9 @@ function CompanyNav({ company, active }: { company: CurrentCompany; active: Sect
           지금 보는 기업
         </p>
         <p className="app-context__company">
-          {company.corpName}
+          <Link to={companyLink(company)} className="app-context__name">
+            {company.corpName}
+          </Link>
           {company.stockCode && <span className="app-context__code">{company.stockCode}</span>}
         </p>
         <ul className="app-context__list">
