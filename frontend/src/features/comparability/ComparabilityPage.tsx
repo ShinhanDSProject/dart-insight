@@ -19,7 +19,7 @@ import {
   ReportCardPair,
 } from '@/shared/ui'
 import { AlertState, ErrorState, LoadingState } from '@/shared/ui/StateView'
-import { checkHeader, checkStatusLabel, checkStatusTone, resultSummary, statementBasisLabel } from './model/comparabilityLabels'
+import { checkBadgeLabel, checkHeader, checkStatusTone, resultSummary, statementBasisLabel } from './model/comparabilityLabels'
 import { basisLabel, parseBasis } from '@/shared/lib/comparisonBasis'
 import { useComparabilityCheck } from './hooks/useComparabilityCheck'
 import { useCompanyInfo } from './hooks/useCompanyInfo'
@@ -34,7 +34,8 @@ const errorMessages: Record<string, string> = {
 
 /**
  * W-01 ③ 비교 검증(2.2). 주소: /companies/:corpCode/compare?current=&previous=&basis=
- * 비교할 수 없으면 분석을 시작하지 않고 사유와 다음 행동을 보여 준다('분석 실행'은 비활성).
+ * 비교할 수 없으면 분석을 시작하지 않고 사유와 다음 행동을 보여 준다('분석 실행'은 비활성). 제목은 첫 사유에 맞추고,
+ * 사유가 정해지는 조건 행에는 '동일 보고서' 같은 짧은 사유 배지를 단다(FS-68 AC4).
  * 비교할 수 있으면 '분석 실행'으로 분석을 요청하고 W-02로 간다(2.3).
  * 배치(#549): 화면 머리(상태 배지) → 이전·현재 보고서 카드 → '비교 조건' 표 → 안내 상자 → '보고서 다시 선택' / '분석 실행'.
  */
@@ -150,7 +151,7 @@ function CheckResult({ result }: { result: ComparabilityResult }) {
                 <th scope="row">{check.label}</th>
                 <td>{check.detail}</td>
                 <td className="check-table__status">
-                  <Badge tone={checkStatusTone(check.status)}>{checkStatusLabel(check.status)}</Badge>
+                  <Badge tone={checkStatusTone(check.status)}>{checkBadgeLabel(check, result.reasons)}</Badge>
                 </td>
               </tr>
             ))}
