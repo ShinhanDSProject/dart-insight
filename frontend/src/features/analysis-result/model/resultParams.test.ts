@@ -28,7 +28,7 @@ describe('parseResultParams', () => {
       unit: 'MILLION',
       selectedChangeId: null,
       accountQuery: null,
-      financialOrder: 'document',
+      financialOrder: 'amount',
       textType: null,
       textSort: 'priority',
       textSection: null,
@@ -105,11 +105,17 @@ describe('고르기를 주소 값으로 바꾸기', () => {
     expect(financialParamChanges({ q: null })).toEqual({ fq: null })
   })
 
-  it('규모 큰 순을 fsort=scale로 남기고 원문 순서면 주소에서 지운다(#480)', () => {
+  it('증감액 큰 순(기본)이면 주소에서 지우고 원문 순서·규모 큰 순은 fsort로 남긴다(FS-68, #480)', () => {
+    expect(financialParamChanges({ order: 'amount' })).toEqual({ fsort: null })
     expect(financialParamChanges({ order: 'scale' })).toEqual({ fsort: 'scale' })
-    expect(financialParamChanges({ order: 'document' })).toEqual({ fsort: null })
+    expect(financialParamChanges({ order: 'document' })).toEqual({ fsort: 'document' })
+  })
+
+  it('fsort가 없거나 모르는 값이면 증감액 큰 순이고 예전 주소의 값은 그대로 읽는다', () => {
+    expect(parseResultParams(new URLSearchParams()).financialOrder).toBe('amount')
+    expect(parseResultParams(new URLSearchParams({ fsort: 'size' })).financialOrder).toBe('amount')
     expect(parseResultParams(new URLSearchParams({ fsort: 'scale' })).financialOrder).toBe('scale')
-    expect(parseResultParams(new URLSearchParams({ fsort: 'size' })).financialOrder).toBe('document')
+    expect(parseResultParams(new URLSearchParams({ fsort: 'document' })).financialOrder).toBe('document')
   })
 
   it('재무제표를 바꿔도 계정 찾기 검색어는 그대로 둔다', () => {

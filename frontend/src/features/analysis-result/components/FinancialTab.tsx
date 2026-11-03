@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
-import type { FinancialChangeItem, FinancialOrder, SjDiv, StatementSummary } from '@/shared/api/results'
+import type { FinancialChangeItem, SjDiv, StatementSummary } from '@/shared/api/results'
 import {
   Button,
   Chip,
@@ -44,11 +44,14 @@ import { scaleLine } from '../model/changeScale'
 import { buildFinancialCsv, csvFileName } from '../model/financialCsv'
 import type { FinancialViewChange, SourceTarget } from '../model/resultParams'
 import {
+  apiOrderOf,
   ariaSortOf,
   nextFinancialSort,
+  orderFinancialItems,
   originalOrder,
   sortFinancialItems,
   type FinancialSort,
+  type FinancialTableOrder,
 } from '../model/financialSort'
 
 const viewOptions = [
@@ -70,7 +73,8 @@ const otherStatements = statementOptions.filter((o) => o.sjDiv === 'CIS' || o.sj
 
 const SETTINGS_ID = 'fin-table-settings'
 
-const orderOptions: { value: FinancialOrder; label: string }[] = [
+const orderOptions: { value: FinancialTableOrder; label: string }[] = [
+  { value: 'amount', label: '증감액 큰 순' },
   { value: 'document', label: '원문 순서' },
   { value: 'scale', label: '규모 큰 순' },
 ]
@@ -87,8 +91,8 @@ interface FinancialTabProps {
   unit: AmountUnit
   /** 계정 찾기 검색어(FS-14). null이면 모든 계정 */
   accountQuery: string | null
-  /** 계정 목록 순서(#480). scale이면 서버가 규모(기준 대비 비율의 절댓값) 큰 순으로 준다. 주소에 남는다 */
-  order: FinancialOrder
+  /** 계정 목록 순서. 기본은 증감액(절댓값) 큰 순(FS-68), scale이면 서버가 규모(기준 대비 비율의 절댓값) 큰 순으로 준다(#480). 주소에 남는다 */
+  order: FinancialTableOrder
   /** 근거를 보고 있는 계정(3.3) */
   selectedChangeId: number | null
   onChange: (changes: FinancialViewChange) => void
@@ -100,7 +104,7 @@ interface FinancialTabProps {
 }
 
 /** W-03 ② 재무 수치 변화(3.1). 이 분석의 결과만 보여 준다. 계정 이름을 누르면 수치 근거(3.3)를 오른쪽 패널로 연다.
- * 증감액·증감률 머리글로 정렬하고, 계산하지 못한 행은 정렬해도 맨 아래에 둔다(FS-4 AC9).
+ * 처음에는 증감액(절댓값) 큰 순이고 표 설정에서 원문 순서·규모 큰 순을 고를 수 있다(FS-68 AC1). 증감액·증감률 머리글로 정렬하고, 계산하지 못한 행은 정렬해도 맨 아래에 둔다(FS-4 AC9).
  * 계정 이름으로 찾으면 받아 둔 계정을 화면에서 걸러 표·CSV에 함께 쓴다(FS-14). 찾기 칸은 돋보기 버튼으로 연다.
  * 표는 처음에 10개만 보이고 '모두 보기'로 펼친다(#560 시안). 근거를 연 계정이 그 아래에 있거나 찾는 중이면 모두 보인다.
  * 증감 옆에 매출액·자산총계 대비 크기를 보조 줄로 보이고, '규모 큰 순'으로 고를 수 있다(#480, FS-63). */
@@ -118,7 +122,7 @@ export function FinancialTab({
   onOpenSource,
   onOpenText,
 }: FinancialTabProps) {
-  const { state, reload, statements } = useFinancialChanges(analysis.analysisId, sjDiv, changedOnly, order)
+  const { state, reload, statements } = useFinancialChanges(analysis.analysisId, sjDiv, changedOnly, apiOrderOf(order))
   const selected = statements.find((s) => s.sjDiv === sjDiv)
   const basis = selected?.amountBasis ?? null
   const currency = state.status === 'success' ? (state.data.items.find((i) => i.currency)?.currency ?? null) : null
@@ -141,7 +145,7 @@ export function FinancialTab({
     document.getElementById(ACCOUNT_SEARCH_INPUT_ID)?.focus()
   }
   // 찾은 계정. 표·CSV가 모두 이 목록을 쓴다
-  const shownItems = state.status === 'success' ? filterAccounts(state.data.items, accountQuery) : []
+  const shownItems = state.status === 'success' ? orderFinancialItems(filterAccounts(state.data.items, accountQuery), order) : []
 
   // CSV는 표와 같은 재무제표·보기·찾기·정렬의 계정을 그대로 옮긴다. 불러오는 중·오류·빈 결과면 받지 않는다(FS-8 R4)
   const exportItems = sortFinancialItems(shownItems, sort)
@@ -249,7 +253,7 @@ export function FinancialTab({
           onChange={(e) => {
             // 고른 순서가 보이도록 머리글 정렬은 풀어 둔다
             setSort(originalOrder)
-            onChange({ order: e.target.value as FinancialOrder })
+            onChange({ order: e.target.value as FinancialTableOrder })
           }}
         >
           {orderOptions.map((o) => (

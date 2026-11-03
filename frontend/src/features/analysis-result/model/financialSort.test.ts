@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { FinancialChangeItem } from '@/shared/api/results'
-import { ariaSortOf, nextFinancialSort, originalOrder, sortFinancialItems } from './financialSort'
+import { apiOrderOf, ariaSortOf, nextFinancialSort, orderFinancialItems, originalOrder, sortFinancialItems } from './financialSort'
 
 function item(changeId: number, changeAmount: number | null, changeRate: number | null): FinancialChangeItem {
   return {
@@ -81,5 +81,25 @@ describe('sortFinancialItems', () => {
     expect(ids(sortFinancialItems(same, { by: 'changeAmount', direction: 'descending' }))).toEqual([1, 2, 3])
     sortFinancialItems(items, { by: 'changeRate', direction: 'ascending' })
     expect(ids(items)).toEqual([1, 2, 3, 4, 5, 6])
+  })
+})
+
+describe('orderFinancialItems', () => {
+  const items = [item(1, 10, 0.1), item(2, null, null), item(3, -30, -0.3), item(4, 50, null), item(5, -10, 0.5)]
+
+  it('증감액 큰 순은 절댓값이 큰 것부터 두고 같으면 원래 순서, 계산하지 못한 행은 맨 아래에 둔다', () => {
+    expect(ids(orderFinancialItems(items, 'amount'))).toEqual([4, 3, 1, 5, 2])
+    expect(ids(items)).toEqual([1, 2, 3, 4, 5])
+  })
+
+  it('원문 순서·규모 큰 순은 서버가 준 순서 그대로 둔다', () => {
+    expect(ids(orderFinancialItems(items, 'document'))).toEqual([1, 2, 3, 4, 5])
+    expect(ids(orderFinancialItems(items, 'scale'))).toEqual([1, 2, 3, 4, 5])
+  })
+
+  it('증감액 큰 순은 서버에 원문 순서로 묻는다', () => {
+    expect(apiOrderOf('amount')).toBe('document')
+    expect(apiOrderOf('document')).toBe('document')
+    expect(apiOrderOf('scale')).toBe('scale')
   })
 })
