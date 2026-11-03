@@ -1,6 +1,6 @@
 /**
  * 왼쪽 메뉴 '지금 보는 기업'(#502). 마지막으로 연 기업·분석을 브라우저(localStorage)에 남겨, 홈에 나갔다가도
- * '공시 비교'·'원문 확인'으로 돌아가게 한다. 서버에는 보내지 않고, 저장을 쓸 수 없으면 이번 방문 동안만 기억한다.
+ * 기업 이름으로 그 분석 결과에 돌아가게 한다(#572). 서버에는 보내지 않고, 저장을 쓸 수 없으면 이번 방문 동안만 기억한다.
  */
 export const CURRENT_COMPANY_KEY = 'dart-insight:current-company'
 /** 같은 탭 안에서 바뀐 것을 알리는 이벤트 이름(다른 탭은 storage 이벤트로 안다) */
@@ -12,9 +12,9 @@ export interface CurrentCompany {
   corpCode: string
   corpName: string
   stockCode: string | null
-  /** 이 기업에서 마지막으로 연 분석. 없으면 null('원문 확인'을 숨김) */
+  /** 이 기업에서 마지막으로 연 분석. 없으면 null(기업 이름이 기업 화면으로 감) */
   analysisId: number | null
-  /** 마지막으로 본 화면. '공시 비교'가 이곳으로 간다 */
+  /** 마지막으로 본 화면(기업 화면·분석 결과) */
   view: 'company' | 'analysis'
 }
 
@@ -47,38 +47,11 @@ export function companyOverviewLink(corpCode: string): string {
   return `/companies/${encodeURIComponent(corpCode)}?view=overview`
 }
 
-/** '기업 개요'가 갈 곳(#525) */
-export function overviewLink(company: CurrentCompany): string {
-  return companyOverviewLink(company.corpCode)
-}
-
-/** '공시 비교'가 갈 곳: 마지막으로 본 화면이 분석이면 그 분석, 아니면 기업 화면 */
-export function compareLink(company: CurrentCompany): string {
-  return company.view === 'analysis' && company.analysisId !== null
-    ? `/analyses/${company.analysisId}`
-    : `/companies/${encodeURIComponent(company.corpCode)}`
-}
-
 /** 기업 이름이 갈 곳(#572): 마지막으로 연 분석이 있으면 그 분석 결과, 없으면 기업 화면 */
 export function companyLink(company: CurrentCompany): string {
   return company.analysisId === null
     ? `/companies/${encodeURIComponent(company.corpCode)}`
     : `/analyses/${company.analysisId}`
-}
-
-/** '원문 확인'이 갈 곳. 분석이 없으면 null */
-export function sourceLink(company: CurrentCompany): string | null {
-  return company.analysisId === null ? null : `/analyses/${company.analysisId}?tab=source`
-}
-
-/**
- * 지금 주소가 '지금 보는 기업'의 화면인지. 아니면(진행 화면에서 아직 기록 전, 다른 기업 화면을 여는 중 등)
- * 묶음의 메뉴를 지금 화면으로 표시하지 않는다
- */
-export function isCurrentRoute(company: CurrentCompany, route: { corpCode?: string; analysisId?: string }): boolean {
-  if (route.corpCode !== undefined) return route.corpCode === company.corpCode
-  if (route.analysisId !== undefined) return route.analysisId === String(company.analysisId)
-  return false
 }
 
 /** 저장된 글을 읽는다. 모양이 맞지 않으면(옛 값·손댄 값) 없는 것으로 본다 */

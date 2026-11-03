@@ -5,7 +5,7 @@ import { BrandLogo } from '@/shared/ui/BrandLogo'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { Icon, type IconName } from '@/shared/ui/Icon'
 import { useCurrentCompany } from '@/shared/hooks/useCurrentCompany'
-import { compareLink, companyLink, isCurrentRoute, overviewLink, sourceLink, type CurrentCompany } from '@/shared/lib/currentCompany'
+import { companyLink, type CurrentCompany } from '@/shared/lib/currentCompany'
 import { useAuth } from '@/shared/auth/authContext'
 import { NotificationMenu } from '@/features/notifications/components/NotificationMenu'
 import { NotificationSignInLink } from '@/features/notifications/components/NotificationSignInLink'
@@ -16,7 +16,7 @@ import { ShortcutHelp } from './ShortcutHelp'
 import { ThemeMenu } from './ThemeMenu'
 import { useShortcuts } from './useShortcuts'
 
-type Section = 'search' | 'overview' | 'compare' | 'source' | 'notes' | 'companies'
+type Section = 'search' | 'notes' | 'companies'
 
 interface NavItem {
   section: Section
@@ -31,8 +31,8 @@ const MENU_ID = 'app-header-menu'
  * 화면 골격(#548 심플 통일): 위 상단 바, 가운데 본문, 아래 하단 바. 왼쪽 메뉴는 없다.
  * - 상단 바: 로고(첫 화면), 둥근 기업 검색(첫 화면 밖), 기업 나란히 보기·내 판단 노트, 화면 테마, 로그인/알림.
  *   좁은 화면(900px 이하)에서는 로고 옆 메뉴 버튼으로 접는다. 화면을 옮기면 접힌다.
- * - '지금 보는 기업' 줄(#502, #525): 마지막으로 연 기업이 있으면 상단 바 아래에 기업 이름과 기업 개요·공시 비교·원문 확인을 둔다.
- *   선택 상태는 주소로, 기업은 기업·분석 화면이 남긴 값으로 정한다(데이터를 따로 불러오지 않음).
+ * - '지금 보는 기업' 줄(#502, #589): 마지막으로 연 기업이 있으면 상단 바 아래에 기업 이름(누르면 마지막 분석 결과, #572)과 종목코드를 둔다.
+ *   기업은 기업·분석 화면이 남긴 값으로 정한다(데이터를 따로 불러오지 않음). 기업 개요는 분석 결과 탭 줄에 있다.
  * - 하단 바: 출처·AI 안내와 이용 안내·단축키·AI 사용 현황.
  */
 export function Layout() {
@@ -47,15 +47,7 @@ export function Layout() {
   const menuButtonRef = useRef<HTMLButtonElement>(null)
 
   const onResult = analysisId !== undefined && !pathname.endsWith('/progress')
-  const query = new URLSearchParams(search)
-  const tab = query.get('tab')
-  const onOverview = corpCode !== undefined && !pathname.endsWith('/compare') && query.get('view') === 'overview'
-  const active = activeSection(
-    pathname,
-    onOverview,
-    onResult && tab === 'source',
-    corpCode !== undefined || analysisId !== undefined,
-  )
+  const active = activeSection(pathname)
   const shortcutPage = shortcutPageOf(pathname, onResult)
   const shortcuts = useShortcuts(shortcutPage)
 
@@ -132,7 +124,7 @@ export function Layout() {
 
       <div className="app-workspace">
         {current !== null && (
-          <CompanyNav company={current} active={isCurrentRoute(current, { corpCode, analysisId }) ? active : null} />
+          <CompanyNav company={current} />
         )}
         <main className="app-main" id="main" tabIndex={-1}>
           <Outlet />
@@ -176,14 +168,8 @@ function NavLink({ item, active }: { item: NavItem; active: Section | null }) {
   )
 }
 
-/** '지금 보는 기업' 줄(#502, #525, #548). 분석이 없으면 '원문 확인' 없이 보인다 */
-function CompanyNav({ company, active }: { company: CurrentCompany; active: Section | null }) {
-  const source = sourceLink(company)
-  const items: NavItem[] = [
-    { section: 'overview', label: '기업 개요', icon: 'book-open', to: overviewLink(company) },
-    { section: 'compare', label: '공시 비교', icon: 'columns-2', to: compareLink(company) },
-    ...(source === null ? [] : [{ section: 'source' as const, label: '원문 확인', icon: 'file-search' as const, to: source }]),
-  ]
+/** '지금 보는 기업' 줄(#502, #548, #589). 기업 이름과 종목코드만 둔다 */
+function CompanyNav({ company }: { company: CurrentCompany }) {
   return (
     <nav className="app-context" aria-labelledby="app-context-title">
       <div className="app-context__inner">
@@ -196,26 +182,16 @@ function CompanyNav({ company, active }: { company: CurrentCompany; active: Sect
           </Link>
           {company.stockCode && <span className="app-context__code">{company.stockCode}</span>}
         </p>
-        <ul className="app-context__list">
-          {items.map((item) => (
-            <li key={item.section}>
-              <NavLink item={item} active={active} />
-            </li>
-          ))}
-        </ul>
       </div>
     </nav>
   )
 }
 
-/** 지금 주소에 해당하는 메뉴. 기업 개요 탭은 '기업 개요', 분석 결과의 원문 탭은 '원문 확인', 그 밖의 기업·분석 화면은 '공시 비교' */
-function activeSection(pathname: string, onOverview: boolean, onSourceTab: boolean, onCompare: boolean): Section | null {
+/** 지금 주소에 해당하는 상단 바 메뉴 */
+function activeSection(pathname: string): Section | null {
   if (pathname === '/') return 'search'
   if (pathname === '/notes') return 'notes'
   if (pathname === '/compare/companies') return 'companies'
-  if (onOverview) return 'overview'
-  if (onSourceTab) return 'source'
-  if (onCompare) return 'compare'
   return null
 }
 

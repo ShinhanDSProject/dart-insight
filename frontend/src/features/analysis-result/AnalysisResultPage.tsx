@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useContext, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { match, P } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
@@ -22,6 +22,7 @@ import { OutdatedNotice } from './components/OutdatedNotice'
 import { SourceTab } from './components/SourceTab'
 import { SummaryTab } from './components/SummaryTab'
 import { TextTab } from './components/TextTab'
+import { ResultOverviewContext } from './overviewSlot'
 import { useAnalysis } from './hooks/useAnalysis'
 import { useAsk, type AskController } from './hooks/useAsk'
 import { useAskSuggestions } from './hooks/useAskSuggestions'
@@ -203,7 +204,10 @@ function ResultTabPanel({ analysis, params, update, ask, suggestions, askSection
   }
   const asking = ask.state.request.status === 'sending'
   const returnTab = useReturnTab(params.tab)
+  const renderOverview = useContext(ResultOverviewContext)
   return match(params.tab)
+    // 기업 개요(#589): 기업 화면의 개요를 이 탭 줄 아래에 그대로 그린다. 바로 가기 바는 위에 붙은 탭 줄 밑에 붙는다
+    .with('overview', () => <div className="result-overview">{renderOverview?.(analysis.corpCode)}</div>)
     .with('financial', () => (
       <FinancialTab
         key={analysis.analysisId}
