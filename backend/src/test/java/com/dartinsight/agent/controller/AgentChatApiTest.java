@@ -631,4 +631,53 @@ class AgentChatApiTest {
                 .andExpect(jsonPath("$.citations[0].accountName").value("영업이익"))
                 .andExpect(jsonPath("$.citations[0].grade").value("RELATED"));
     }
+
+    @Test
+    @DisplayName("요약 인용 위치가 원문 블록 ID가 아니면 그 인용만 빼고 요약 Tool은 답한다")
+    void summaryToolSkipsMalformedQuoteEvidenceId() throws Exception {
+        jdbcTemplate.update("UPDATE summary_item SET quote_evidence_id = ? WHERE analysis_id = ?", CUR + "#Bx",
+                analysisId);
+        long changeId = financialChangeId();
+        AI.on(STEPS, twoSteps("{\"callId\":\"c1\",\"name\":\"get_summary\",\"arguments\":{}}",
+                request -> finalAnswer("ANSWERED", "영업이익이 줄었어요[F" + changeId + "].", "\"F" + changeId + "\"", "")));
+
+        chat("요약해 줘")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ANSWERED"));
+
+        String second = AI.requests(STEPS).get(1).bodyText();
+        assertThat(JsonPath.<List<String>>read(second, "$.toolResults[0].items[*].evidenceId"))
+                .containsExactly("F" + changeId);
+    }
+
+    @Test
+    @DisplayName("AI 한 줄 풀이를 먼저 받아도 문장 변경 근거의 미리보기는 원문이고, 뒤에 받은 조회 Tool의 위치가 채워진다")
+    void explanationFirstKeepsSourceQuoteAndLocation() throws Exception {
+        AI.on("/internal/summaries", request -> Reply.ok("""
+                {"promptVersion":"summary-2","model":"fake-model","generatedAt":"2026-11-03T09:40:11","items":[
+                 {"ref":"%s","kind":"TEXT","status":"OK","sentence":"현재 보고서에 특허 소송이 새로 적혔어요.",
+                  "evidenceIds":["%s#B5"],"reviewReason":null,"blockedRules":[]}],
+                 "calls":[%s]}
+                """.formatted(JsonPath.<String>read(request.bodyText(), "$.textItems[0].ref"), CUR,
+                CALL.formatted("summary"))));
+        String changeArgs = "{\"changeId\":" + lawsuitChangeId + "}";
+        AI.on(STEPS, request -> {
+            List<?> results = JsonPath.read(request.bodyText(), "$.toolResults");
+            return Reply.ok(switch (results.size()) {
+                case 0 -> toolCalls("{\"callId\":\"c1\",\"name\":\"explain_text_change\",\"arguments\":"
+                        + changeArgs + "}");
+                case 1 -> toolCalls("{\"callId\":\"c2\",\"name\":\"get_text_change\",\"arguments\":"
+                        + changeArgs + "}");
+                default -> finalAnswer("ANSWERED", "특허 소송이 새로 적혔어요[T" + lawsuitChangeId + "].",
+                        "\"T" + lawsuitChangeId + "\"", "");
+            });
+        });
+
+        chat("이 문장 무슨 뜻이야?")
+                .andExpect(jsonPath("$.citations[0].kind").value("TEXT_CHANGE"))
+                .andExpect(jsonPath("$.citations[0].quote").value("당사는 특허 침해 소송을 제기받았습니다."))
+                .andExpect(jsonPath("$.citations[0].changeType").value("ADDED"))
+                .andExpect(jsonPath("$.citations[0].sectionPath")
+                        .value("XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항"));
+    }
 }

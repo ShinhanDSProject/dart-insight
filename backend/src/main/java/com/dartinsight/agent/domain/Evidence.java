@@ -62,6 +62,20 @@ public record Evidence(String evidenceId, Kind kind, String side, String rceptNo
                 sectionPath, quote, changeId, changeType, sjDiv, accountName, sentence, value);
     }
 
+    /** 비어 있는 값만 같은 근거의 다른 값으로 채운다(요약 Tool은 위치 없이, 조회 Tool은 등급 없이 줌) */
+    public Evidence fill(Evidence other) {
+        return new Evidence(evidenceId, kind, or(side, other.side), or(rceptNo, other.rceptNo),
+                or(reportName, other.reportName), or(rceptDt, other.rceptDt), or(dartUrl, other.dartUrl),
+                or(sectionNo, other.sectionNo), or(blockNo, other.blockNo), or(sectionPath, other.sectionPath),
+                or(quote, other.quote), or(changeId, other.changeId), or(changeType, other.changeType),
+                or(sjDiv, other.sjDiv), or(accountName, other.accountName), or(sentence, other.sentence),
+                or(grade, other.grade));
+    }
+
+    private static <T> T or(T value, T fallback) {
+        return value != null ? value : fallback;
+    }
+
     public static String textChangeId(long changeId) {
         return "T" + changeId;
     }

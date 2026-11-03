@@ -290,11 +290,14 @@ public class AgentTools {
                         + "] " + row.factSentence() + (row.aiText() == null ? "" : " / 설명: " + row.aiText());
                 lines.add(new ToolLine(Evidence.financialChange(entry.changeId(), entry.sjDiv(), null,
                         stored.analysis().getCurrentRceptNo(), row.factSentence()).withGrade(grade), text));
-                if (row.quote() != null && row.quoteEvidenceId() != null) {
+                // 인용 위치가 원문 블록 ID({접수번호}#B{번호})가 아니면 인용을 넘기지 않는다
+                if (row.quote() != null && row.quoteEvidenceId() != null
+                        && EvidenceRef.parse(row.quoteEvidenceId()).blockNo() != null) {
                     lines.add(quoteLine(stored.analysis().getCurrentRceptNo(), row, grade));
                 }
             } else if (row.aiText() != null) {
-                lines.add(new ToolLine(Evidence.textChange(entry.changeId(), null, null, null, row.aiText()),
+                // AI 문장은 원문 미리보기(quote)에 넣지 않는다
+                lines.add(new ToolLine(Evidence.textChange(entry.changeId(), null, null, null, null),
                         "[요약 문장 변화, changeId " + entry.changeId() + "] " + row.aiText()));
             }
         }
@@ -330,7 +333,7 @@ public class AgentTools {
             return List.of(new ToolLine(null, "[풀이 " + response.status() + "] " + response.message()));
         }
         List<ToolLine> lines = new ArrayList<>();
-        lines.add(new ToolLine(Evidence.textChange(changeId, null, null, null, response.sentence()),
+        lines.add(new ToolLine(Evidence.textChange(changeId, null, null, null, null),
                 "[AI 한 줄 풀이, changeId " + changeId + "] " + response.sentence()));
         for (TextExplanationResponse.Evidence e : response.evidence()) {
             if (e.sectionNo() != null && e.blockNo() != null) {
