@@ -1,11 +1,12 @@
 import type { DocumentSide } from '@/shared/api/documents'
-import type { FinancialOrder, SjDiv } from '@/shared/api/results'
+import type { SjDiv } from '@/shared/api/results'
 import type { SummaryLens } from '@/shared/api/summary'
 import type { ChangeType, TextSort } from '@/shared/api/textChanges'
 import { positiveInt, type ParamChanges } from '@/shared/lib/searchParams'
 import { parseUnit, type AmountUnit } from './format'
 import { parseSummaryLens, type SummaryView } from './summaryLens'
 import { accountQueryOf } from './accountFilter'
+import type { FinancialTableOrder } from './financialSort'
 import { CONTENT_FILTER, searchQueryOf, type TextTypeFilter } from './textFilter'
 
 /**
@@ -38,8 +39,8 @@ export interface ResultParams {
   selectedChangeId: number | null
   /** 계정 찾기 검색어(FS-14). 재무제표를 바꿔도 남는다. 없으면 null */
   accountQuery: string | null
-  /** 계정 목록 순서(#480). scale이면 규모 큰 순(fsort=scale) */
-  financialOrder: FinancialOrder
+  /** 계정 목록 순서. 기본은 증감액 큰 순(FS-68), fsort=document 원문 순서, fsort=scale 규모 큰 순(#480) */
+  financialOrder: FinancialTableOrder
   /** 유형 거르기. CONTENT는 '내용 변경'(추가·삭제·수정, #304). null이면 전체 */
   textType: TextTypeFilter | null
   textSort: TextSort
@@ -72,7 +73,7 @@ export function parseResultParams(params: URLSearchParams): ResultParams {
     unit: parseUnit(params.get('unit')),
     selectedChangeId: positiveInt(params.get('change')),
     accountQuery: accountQueryOf(params.get('fq') ?? ''),
-    financialOrder: params.get('fsort') === 'scale' ? 'scale' : 'document',
+    financialOrder: parseFinancialOrder(params.get('fsort')),
     textType: textTypeFilters.includes(ttype as TextTypeFilter) ? (ttype as TextTypeFilter) : null,
     textSort: params.get('tsort') === 'document' ? 'document' : 'priority',
     textSection: params.get('tsec')?.trim() || null,
@@ -84,6 +85,11 @@ export function parseResultParams(params: URLSearchParams): ResultParams {
     sourceSection: positiveInt(params.get('section')),
     sourceBlock: positiveInt(params.get('block')),
   }
+}
+
+/** 재무 표 순서. 모르는 값이나 값이 없으면 증감액 큰 순(기본). 예전 주소의 fsort=scale은 그대로 읽는다 */
+function parseFinancialOrder(value: string | null): FinancialTableOrder {
+  return value === 'document' || value === 'scale' ? value : 'amount'
 }
 
 export interface SummaryViewChange {
@@ -106,8 +112,8 @@ export interface FinancialViewChange {
   unit?: AmountUnit
   /** 계정 찾기 검색어. null이면 주소에서 지운다 */
   q?: string | null
-  /** 계정 목록 순서. 원문 순서(기본)면 주소에서 지운다 */
-  order?: FinancialOrder
+  /** 계정 목록 순서. 증감액 큰 순(기본)이면 주소에서 지운다 */
+  order?: FinancialTableOrder
   change?: number | null
 }
 
@@ -139,7 +145,7 @@ export function financialParamChanges(c: FinancialViewChange): ParamChanges {
     ...(c.changed !== undefined ? { changed: c.changed ? '1' : null } : {}),
     ...(c.unit !== undefined ? { unit: c.unit } : {}),
     ...(c.q !== undefined ? { fq: c.q } : {}),
-    ...(c.order !== undefined ? { fsort: c.order === 'document' ? null : c.order } : {}),
+    ...(c.order !== undefined ? { fsort: c.order === 'amount' ? null : c.order } : {}),
   }
 }
 
