@@ -23,6 +23,14 @@ public final class AgentActions {
     public static final String OPEN_DOCUMENT = "OPEN_DOCUMENT";
     public static final String OPEN_GLOSSARY = "OPEN_GLOSSARY";
     public static final String DOWNLOAD_BRIEF = "DOWNLOAD_BRIEF";
+    /** 확인 버튼(쓰기). 누르면 화면이 기존 API를 부른다. 채팅 API는 저장하지 않는다(ADR-0044) */
+    public static final String CONFIRM_SAVE_NOTE = "CONFIRM_SAVE_NOTE";
+    public static final String CONFIRM_FAVORITE = "CONFIRM_FAVORITE";
+
+    /** 노트 항목 종류(POST /api/notes의 kind) */
+    public static final List<String> NOTE_KINDS = List.of("FINANCIAL_CHANGE", "TEXT_CHANGE", "ANSWER_CITATION");
+    /** 노트 메모 최대 길이(POST /api/notes) */
+    public static final int MAX_MEMO = 1000;
 
     public static final List<String> TABS = List.of("summary", "financial", "text", "source");
     public static final List<String> SIDES = List.of("previous", "current");
@@ -32,7 +40,7 @@ public final class AgentActions {
             "재무 수치에서 보기", "text", "문장 변화에서 보기", "source", "원문에서 보기");
     private static final Map<String, String> LABELS = Map.of(OPEN_TEXT_CHANGE, "이 변경 보기",
             OPEN_FINANCIAL_CHANGE, "수치 근거 보기", OPEN_DOCUMENT, "원문 열기", OPEN_GLOSSARY, "용어 사전 열기",
-            DOWNLOAD_BRIEF, "비교 브리프 내려받기");
+            DOWNLOAD_BRIEF, "비교 브리프 내려받기", CONFIRM_SAVE_NOTE, "노트에 담기", CONFIRM_FAVORITE, "관심 기업에 추가");
 
     /** 종류 → type을 뺀 필드의 스키마(ai-server에 보내는 순서) */
     public static final Map<String, Map<String, Object>> SPECS = specs();
@@ -60,6 +68,16 @@ public final class AgentActions {
                 "blockNo", integer("문단 번호")), List.of("side", "sectionNo")));
         specs.put(OPEN_GLOSSARY, object(properties("term", string("용어")), List.of("term")));
         specs.put(DOWNLOAD_BRIEF, object(properties(), List.of()));
+        // 분석 ID는 backend가 채운다(LLM이 정하지 않음)
+        specs.put(CONFIRM_SAVE_NOTE, object(properties("note", object(properties(
+                "kind", oneOf("FINANCIAL_CHANGE 재무 계정 변화, TEXT_CHANGE 문장 변경, ANSWER_CITATION 근거 질문 답의 인용",
+                        NOTE_KINDS),
+                "changeId", integer("재무·문장 변경 ID(재무·문장일 때)"),
+                "questionId", integer("근거 질문 ID(답 인용일 때)"),
+                "citationNo", integer("그 답의 인용 번호(답 인용일 때)"),
+                "memo", string("사용자가 남기라고 한 메모(1,000자 이하)")), List.of("kind"))), List.of("note")));
+        specs.put(CONFIRM_FAVORITE, object(properties("corpCode", string("이 분석 기업의 고유번호")),
+                List.of("corpCode")));
         return specs;
     }
 

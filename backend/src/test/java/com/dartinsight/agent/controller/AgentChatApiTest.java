@@ -36,6 +36,12 @@ import com.dartinsight.report.domain.Report;
 import com.dartinsight.report.domain.ReportNameParser.ParsedReportName;
 import com.dartinsight.report.domain.ReportType;
 import com.dartinsight.report.repository.ReportRepository;
+import com.dartinsight.note.domain.NoteKind;
+import com.dartinsight.note.dto.NoteCreateRequest;
+import com.dartinsight.note.service.JudgmentNoteService;
+import com.dartinsight.summary.domain.SummaryItemRow;
+import com.dartinsight.summary.domain.SummaryResult;
+import com.dartinsight.summary.domain.SummaryStatus;
 import com.dartinsight.support.TestData;
 import com.jayway.jsonpath.JsonPath;
 import java.math.BigDecimal;
@@ -46,6 +52,8 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -107,6 +115,9 @@ class AgentChatApiTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private JudgmentNoteService noteService;
+
     private Long analysisId;
     private long lawsuitChangeId;
 
@@ -137,7 +148,11 @@ class AgentChatApiTest {
                         new TextChangeRow(TextChangeRow.ADDED, "PARAGRAPH", false, "MATCHED", "2. 우발부채 등에 관한 사항",
                                 "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항", null,
                                 new Side(CUR, 3, 5, "당사는 특허 침해 소송을 제기받았습니다."), null, null,
-                                new Priority("HIGH", 70, List.of(), "priority-3")))));
+                                new Priority("HIGH", 70, List.of(), "priority-3")))),
+                new SummaryResult(SummaryStatus.COMPLETED, null, List.of(new SummaryItemRow(SummaryItemRow.FINANCIAL,
+                        SummaryItemRow.SHOWN, "영업이익이 6.6조 원에서 4.3조 원으로 줄었어요(-34.8%).", "관련 공시 내용으로 소송이 있어요.",
+                        SummaryItemRow.FOUND, List.of(CUR + "#B5"), 0, null, null, "summary-model", "summary-2", NOW,
+                        List.of(), SummaryItemRow.RELATED, "당사는 특허 침해 소송을 제기받았습니다.", CUR + "#B5")), List.of()));
         lawsuitChangeId = jdbcTemplate.queryForObject("SELECT id FROM text_change WHERE analysis_id = ?", Long.class,
                 analysisId);
     }
@@ -271,9 +286,11 @@ class AgentChatApiTest {
         String first = requests.getFirst().bodyText();
         assertThat(JsonPath.<String>read(first, "$.companyName")).isEqualTo("예시전자");
         assertThat(JsonPath.<List<String>>read(first, "$.tools[*].name")).containsExactly("search_text_changes",
-                "get_text_change", "get_financial_changes", "get_document_outline", "get_document_section");
+                "get_text_change", "get_financial_changes", "get_document_outline", "get_document_section",
+                "answer_with_evidence", "get_summary", "explain_text_change", "find_related_disclosures");
         assertThat(JsonPath.<List<String>>read(first, "$.actions[*].type")).containsExactly("OPEN_TAB",
-                "OPEN_TEXT_CHANGE", "OPEN_FINANCIAL_CHANGE", "OPEN_DOCUMENT", "OPEN_GLOSSARY", "DOWNLOAD_BRIEF");
+                "OPEN_TEXT_CHANGE", "OPEN_FINANCIAL_CHANGE", "OPEN_DOCUMENT", "OPEN_GLOSSARY", "DOWNLOAD_BRIEF",
+                "CONFIRM_SAVE_NOTE", "CONFIRM_FAVORITE");
         assertThat(JsonPath.<Integer>read(first, "$.remainingSteps")).isEqualTo(4);
         String second = requests.get(1).bodyText();
         assertThat(JsonPath.<Integer>read(second, "$.remainingSteps")).isEqualTo(3);
@@ -475,5 +492,115 @@ class AgentChatApiTest {
         String second = AI.requests(STEPS).get(1).bodyText();
         assertThat(JsonPath.<List<String>>read(second, "$.toolResults[0].items[*].evidenceId"))
                 .containsExactly("T" + lawsuitChangeId);
+    }
+
+    private static final String ANSWERS = "/internal/answers";
+
+    private long financialChangeId() {
+        return changeRepository.findByAnalysisIdOrderBySjDivAscDisplayOrderAsc(analysisId).getFirst().getId();
+    }
+
+    @Test
+    @DisplayName("근거 질문 Tool은 기존 질문 서비스로 답해 analysis_question에 저장하고, 그 질문 ID와 답 인용 노트 담기 확인 액션을 돌려준다")
+    void answerToolSavesQuestionAndReturnsQuestionId() throws Exception {
+        String block = CUR + "#B5";
+        AI.on(ANSWERS, Reply.ok("""
+                {"promptVersion":"answer-2","expressionRulesVersion":"expr-1","model":"fake-model",
+                 "generatedAt":"2026-11-03T10:12:03","status":"ANSWERED","answer":"특허 침해 소송을 제기받았어요[%s].",
+                 "evidenceIds":["%s"],"factRefs":[],"reviewReason":null,"blockedRules":[],
+                 "calls":[%s]}
+                """.formatted(block, block, CALL.formatted("answer"))));
+        AI.on(STEPS, twoSteps("{\"callId\":\"c1\",\"name\":\"answer_with_evidence\",\"arguments\":"
+                        + "{\"question\":\"소송이 왜 생겼나요?\"}}",
+                request -> {
+                    String first = JsonPath.read(request.bodyText(), "$.toolResults[0].items[0].text");
+                    Matcher id = Pattern.compile("질문 ID (\\d+)").matcher(first);
+                    assertThat(id.find()).isTrue();
+                    return finalAnswer("ANSWERED", "특허 침해 소송을 제기받았어요[" + block + "].", "\"" + block + "\"",
+                            "{\"type\":\"CONFIRM_SAVE_NOTE\",\"note\":{\"kind\":\"ANSWER_CITATION\",\"questionId\":"
+                                    + id.group(1) + ",\"citationNo\":1,\"memo\":\"소송 확인\"}},"
+                                    + "{\"type\":\"CONFIRM_SAVE_NOTE\",\"note\":{\"kind\":\"ANSWER_CITATION\","
+                                    + "\"questionId\":" + id.group(1) + ",\"citationNo\":2}}");
+                }));
+
+        String body = chat("소송이 왜 생겼어?")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ANSWERED"))
+                .andExpect(jsonPath("$.citations[0].kind").value("BLOCK"))
+                .andExpect(jsonPath("$.citations[0].evidenceId").value(block))
+                .andExpect(jsonPath("$.actions", hasSize(1)))
+                .andExpect(jsonPath("$.actions[0].label").value("노트에 담기"))
+                .andExpect(jsonPath("$.actions[0].note.analysisId").value(analysisId))
+                .andExpect(jsonPath("$.actions[0].note.citationNo").value(1))
+                .andExpect(jsonPath("$.actions[0].note.memo").value("소송 확인"))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        Long saved = jdbcTemplate.queryForObject("SELECT id FROM analysis_question WHERE analysis_id = ?", Long.class,
+                analysisId);
+        assertThat(JsonPath.<Integer>read(body, "$.questionId").longValue()).isEqualTo(saved);
+        assertThat(JsonPath.<Integer>read(body, "$.actions[0].note.questionId").longValue()).isEqualTo(saved);
+        assertThat(jdbcTemplate.queryForList("SELECT task FROM llm_call WHERE analysis_id = ? ORDER BY id",
+                String.class, analysisId)).contains("answer", "agent_plan", "agent_answer");
+    }
+
+    @Test
+    @DisplayName("요약 Tool은 저장된 요약만 보내고 재무 설명 등급·인용을 그대로 넘긴다")
+    void summaryToolSendsStoredGrades() throws Exception {
+        long changeId = financialChangeId();
+        AI.on(STEPS, twoSteps("{\"callId\":\"c1\",\"name\":\"get_summary\",\"arguments\":{}}",
+                request -> finalAnswer("ANSWERED", "관련 공시 내용으로 소송이 있어요[" + CUR + "#B5].",
+                        "\"" + CUR + "#B5\"", "")));
+
+        chat("이 변경 좋은 거야?")
+                .andExpect(jsonPath("$.citations[0].kind").value("BLOCK"))
+                .andExpect(jsonPath("$.citations[0].grade").value("RELATED"));
+
+        String second = AI.requests(STEPS).get(1).bodyText();
+        assertThat(JsonPath.<List<String>>read(second, "$.toolResults[0].items[*].evidenceId"))
+                .containsExactly("F" + changeId, CUR + "#B5");
+        assertThat(JsonPath.<List<String>>read(second, "$.toolResults[0].items[*].grade"))
+                .containsExactly("RELATED", "RELATED");
+    }
+
+    @Test
+    @DisplayName("확인 액션은 이 분석의 변경·이 채팅의 질문·이 기업일 때만 남기고, 분석 ID는 backend가 채운다")
+    void confirmActionsAreChecked() throws Exception {
+        long changeId = financialChangeId();
+        AI.on(STEPS, Reply.ok(finalAnswer("NOT_FOUND", null, "",
+                "{\"type\":\"CONFIRM_SAVE_NOTE\",\"note\":{\"kind\":\"FINANCIAL_CHANGE\",\"changeId\":" + changeId
+                        + ",\"memo\":\"  환율 확인  \"}},"
+                        + "{\"type\":\"CONFIRM_SAVE_NOTE\",\"note\":{\"kind\":\"TEXT_CHANGE\",\"changeId\":999999}},"
+                        + "{\"type\":\"CONFIRM_SAVE_NOTE\",\"note\":{\"kind\":\"ANSWER_CITATION\",\"questionId\":7,"
+                        + "\"citationNo\":1}},"
+                        + "{\"type\":\"CONFIRM_SAVE_NOTE\",\"note\":{\"kind\":\"TEXT_CHANGE\",\"changeId\":"
+                        + lawsuitChangeId + ",\"memo\":\"" + "가".repeat(1001) + "\"}},"
+                        + "{\"type\":\"CONFIRM_FAVORITE\",\"corpCode\":\"00000001\"},"
+                        + "{\"type\":\"CONFIRM_FAVORITE\",\"corpCode\":\"99999999\"}")));
+
+        chat("이 계정 노트에 담고 관심 기업에도 넣어줘")
+                .andExpect(jsonPath("$.actions", hasSize(2)))
+                .andExpect(jsonPath("$.actions[0].type").value("CONFIRM_SAVE_NOTE"))
+                .andExpect(jsonPath("$.actions[0].note.kind").value("FINANCIAL_CHANGE"))
+                .andExpect(jsonPath("$.actions[0].note.analysisId").value(analysisId))
+                .andExpect(jsonPath("$.actions[0].note.changeId").value(changeId))
+                .andExpect(jsonPath("$.actions[0].note.memo").value("환율 확인"))
+                .andExpect(jsonPath("$.actions[1].type").value("CONFIRM_FAVORITE"))
+                .andExpect(jsonPath("$.actions[1].label").value("관심 기업에 추가"));
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM judgment_note_item", Integer.class)).isZero();
+    }
+
+    @Test
+    @DisplayName("저장된 노트의 메모는 ai-server로 보내지 않는다")
+    void savedNoteMemoIsNotSentToAiServer() throws Exception {
+        jdbcTemplate.update("INSERT INTO app_user (created_at, updated_at) VALUES (CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
+        long userId = jdbcTemplate.queryForObject("SELECT MAX(id) FROM app_user", Long.class);
+        noteService.create(userId, new NoteCreateRequest(NoteKind.FINANCIAL_CHANGE, analysisId, financialChangeId(),
+                null, null, "아무도 모르는 비밀 메모"));
+        AI.on(STEPS, twoSteps("{\"callId\":\"c1\",\"name\":\"get_summary\",\"arguments\":{}}",
+                request -> finalAnswer("NOT_FOUND", null, "", "")));
+
+        chat("영업이익 노트 보여줘").andExpect(status().isOk());
+
+        assertThat(AI.requests(STEPS)).allSatisfy(r -> assertThat(r.bodyText()).doesNotContain("비밀 메모"));
     }
 }
