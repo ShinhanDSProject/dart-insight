@@ -3,6 +3,7 @@ package com.dartinsight.agent.service;
 import com.dartinsight.agent.domain.AgentActions;
 import com.dartinsight.analysis.service.FinancialChangeQueryService;
 import com.dartinsight.analysis.service.SourceDocumentService;
+import com.dartinsight.analysis.service.SourceDocumentService.SourceSection;
 import com.dartinsight.analysis.service.TextChangeQueryService;
 import com.dartinsight.common.error.ApiException;
 import java.util.ArrayList;
@@ -53,16 +54,29 @@ class AgentActionCheck {
                 case AgentActions.OPEN_FINANCIAL_CHANGE -> id(action.get("changeId")) != null
                         && financialChangeQueryService.changes(analysisId).changes().stream()
                         .anyMatch(c -> c.getId().equals(id(action.get("changeId"))));
-                case AgentActions.OPEN_DOCUMENT -> AgentActions.SIDES.contains(action.get("side"))
-                        && id(action.get("sectionNo")) != null
-                        && sourceDocumentService.section(analysisId, (String) action.get("side"),
-                        id(action.get("sectionNo")).intValue()) != null;
+                case AgentActions.OPEN_DOCUMENT -> documentExists(analysisId, action);
                 case AgentActions.OPEN_GLOSSARY -> action.get("term") instanceof String term && !term.isBlank();
                 default -> true;
             };
         } catch (ApiException e) {
             return false;
         }
+    }
+
+    /** 원문 항목이 있고, 문단 번호가 있으면 그 항목 안의 문단인지 */
+    private boolean documentExists(Long analysisId, Map<String, Object> action) {
+        Long sectionNo = id(action.get("sectionNo"));
+        if (!AgentActions.SIDES.contains(action.get("side")) || sectionNo == null) {
+            return false;
+        }
+        SourceSection section = sourceDocumentService.section(analysisId, (String) action.get("side"),
+                sectionNo.intValue());
+        Object blockNo = action.get("blockNo");
+        if (blockNo == null) {
+            return true;
+        }
+        Long block = id(blockNo);
+        return block != null && section.blocks().stream().anyMatch(b -> b.blockNo() == block);
     }
 
     private static Long id(Object value) {

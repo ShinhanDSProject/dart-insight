@@ -12,7 +12,6 @@ import com.dartinsight.agent.domain.ToolArgs;
 import com.dartinsight.agent.domain.ToolLine;
 import com.dartinsight.agent.domain.ToolLines;
 import com.dartinsight.agent.domain.ToolTexts;
-import com.dartinsight.analysis.domain.TextChange;
 import com.dartinsight.analysis.domain.TextChangeFilter;
 import com.dartinsight.analysis.service.FinancialChangeQueryService;
 import com.dartinsight.analysis.service.SourceDocumentService;
@@ -161,12 +160,7 @@ public class AgentTools {
         TextChangePage page = textChangeQueryService.page(analysisId,
                 new TextChangeFilter(types, args.string("section"), q, args.flag("risk")), byPriority, 0,
                 args.integer("size", 1, MAX_SIZE, MAX_SIZE));
-        List<ToolLine> lines = new ArrayList<>();
-        lines.add(new ToolLine(null, "유형별 건수(유형 조건 제외): " + page.counts()));
-        for (TextChange change : page.changes()) {
-            lines.add(ToolTexts.textChange(change));
-        }
-        return lines;
+        return page.changes().stream().map(ToolTexts::textChange).toList();
     }
 
     private List<ToolLine> textChange(Long analysisId, ToolArgs args) {
@@ -191,7 +185,7 @@ public class AgentTools {
     }
 
     private List<ToolLine> outline(Long analysisId, ToolArgs args) {
-        String side = args.choice("side", AgentActions.SIDES, null);
+        String side = args.requiredChoice("side", AgentActions.SIDES);
         SourceOutline outline = sourceDocumentService.outline(analysisId, side);
         if (outline.document().isEmpty()) {
             return List.of(new ToolLine(null, "이 보고서의 원문을 아직 받지 않았어요."));
@@ -200,7 +194,7 @@ public class AgentTools {
     }
 
     private List<ToolLine> section(Long analysisId, ToolArgs args) {
-        String side = args.choice("side", AgentActions.SIDES, null);
+        String side = args.requiredChoice("side", AgentActions.SIDES);
         SourceSection section = sourceDocumentService.section(analysisId, side,
                 (int) args.requiredId("sectionNo"));
         return section.blocks().stream()
