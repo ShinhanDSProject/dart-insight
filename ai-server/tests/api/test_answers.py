@@ -36,7 +36,7 @@ def test_answer_and_call_records_are_returned() -> None:
 
     assert response.status_code == 200
     data = response.json()
-    assert data["promptVersion"] == "answer-2"
+    assert data["promptVersion"] == "answer-3"
     assert data["expressionRulesVersion"] == "expr-1"
     assert data["model"] == "fake-model"
     assert data["generatedAt"] is not None
@@ -51,7 +51,7 @@ def test_answer_and_call_records_are_returned() -> None:
     (call,) = data["calls"]
     assert call["task"] == "answer"
     assert call["traceId"] == "ans-1"
-    assert call["promptVersion"] == "answer-2"
+    assert call["promptVersion"] == "answer-3"
 
 
 def test_investment_question_is_out_of_scope_without_llm_call() -> None:

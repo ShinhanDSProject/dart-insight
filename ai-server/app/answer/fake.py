@@ -27,16 +27,29 @@ def respond(request: LlmRequest) -> dict[str, Any]:
             "answer": answer,
             "evidenceIds": [source.evidence_id],
             "factRefs": [],
+            "reasonNotStated": False,
         }
     if question.facts:
         fact = question.facts[0]
         answer = f"{fact.sentence.strip().rstrip('.')}[{fact.ref}]."
-        return {"status": ANSWERED, "answer": answer, "evidenceIds": [], "factRefs": [fact.ref]}
+        return {
+            "status": ANSWERED,
+            "answer": answer,
+            "evidenceIds": [],
+            "factRefs": [fact.ref],
+            "reasonNotStated": False,
+        }
     return _not_found()
 
 
 def _not_found() -> dict[str, Any]:
-    return {"status": NOT_FOUND, "answer": None, "evidenceIds": [], "factRefs": []}
+    return {
+        "status": NOT_FOUND,
+        "answer": None,
+        "evidenceIds": [],
+        "factRefs": [],
+        "reasonNotStated": False,
+    }
 
 
 def _snippet(text: str) -> str:

@@ -6,6 +6,7 @@
 - 숫자·크기 표현이 인용한 원문·사실에 있다(app.llm.grounding).
 - 원인 표현(ADR-0015)은 인용한 원문에도 원인 표현이 있을 때만 쓴다.
 - 투자 권유성 표현 검사(app.compliance)를 통과한다. 걸리면 규칙 ID를 blocked_rules에 남긴다.
+- reasonNotStated는 불리언이다(없으면 false). true면 답 끝에 REASON_NOT_STATED를 붙인다(#601).
 """
 
 from __future__ import annotations
@@ -14,7 +15,14 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-from app.answer.model import ANSWERED, LLM_STATUSES, NOT_FOUND, AnswerInput, AnswerResult
+from app.answer.model import (
+    ANSWERED,
+    LLM_STATUSES,
+    NOT_FOUND,
+    REASON_NOT_STATED,
+    AnswerInput,
+    AnswerResult,
+)
 from app.compliance import scan
 from app.llm.grounding import number_problem
 from app.summary.causal import find as find_causal
@@ -52,6 +60,9 @@ def check(data: Any, question: AnswerInput) -> Checked:
     refs = _strings(data.get("factRefs"))
     if evidence is None or refs is None:
         return Checked(None, ["evidenceIds·factRefs는 문자열 배열이어야 합니다."])
+    reason_not_stated = data.get("reasonNotStated", False)
+    if not isinstance(reason_not_stated, bool):
+        return Checked(None, ["reasonNotStated는 true·false여야 합니다."])
     answer = data.get("answer")
     problem = _answer_problem(answer, evidence, refs, question)
     if problem:
@@ -69,7 +80,10 @@ def check(data: Any, question: AnswerInput) -> Checked:
             ],
             sorted({f.rule_id for f in findings}),
         )
-    return Checked(AnswerResult(ANSWERED, answer.strip(), evidence, refs))
+    text = answer.strip()
+    if reason_not_stated:
+        text = f"{text} {REASON_NOT_STATED}"
+    return Checked(AnswerResult(ANSWERED, text, evidence, refs))
 
 
 def _without_markers(answer: str) -> str:

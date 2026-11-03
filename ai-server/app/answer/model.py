@@ -11,6 +11,8 @@ OUT_OF_SCOPE = "OUT_OF_SCOPE"
 REVIEW_NEEDED = "REVIEW_NEEDED"
 # LLM이 고를 수 있는 상태
 LLM_STATUSES = (ANSWERED, NOT_FOUND)
+# 이유를 묻는 질문에 원문이 이유를 직접 밝히지 않았을 때 코드가 답 끝에 붙이는 문장(#601)
+REASON_NOT_STATED = "원문에서 이유를 직접 밝힌 문장은 찾지 못했어요."
 
 
 @dataclass(frozen=True)
