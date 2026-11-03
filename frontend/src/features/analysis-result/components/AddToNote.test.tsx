@@ -5,10 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '@/shared/api/client'
 import type { AuthState } from '@/shared/auth/authContext'
 import { axeViolations } from '@/test/axe'
-import type { QuestionAnswer } from '@/shared/api/questions'
 import { noteItem } from '@/test/fixtures/notes'
 import { AddToNote } from './AddToNote'
-import { AnswerCard } from './AnswerCard'
 
 const auth = vi.hoisted(() => ({ state: { status: 'anonymous' } as AuthState }))
 vi.mock('@/shared/auth/authContext', () => ({
@@ -29,62 +27,15 @@ function renderAdd(state: AuthState) {
   )
 }
 
-const answer: QuestionAnswer = {
-  questionId: 7,
-  question: '매출이 왜 늘었나요?',
-  status: 'ANSWERED',
-  answer: '반도체 판매가 늘었어요[1].',
-  message: null,
-  citations: [
-    {
-      no: 1,
-      evidenceId: '20250814000123#B12',
-      side: 'current',
-      rceptNo: '20250814000123',
-      reportName: '반기보고서 (2025.06)',
-      sectionNo: 3,
-      blockNo: 12,
-      sectionPath: 'II. 사업의 내용 > 1. 사업의 개요',
-      quote: '반도체 부문의 판매가 늘었습니다.',
-    },
-  ],
-  facts: [],
-  aiGenerated: true,
-  ai: null,
-  feedback: null,
-  createdAt: '2025-10-20T10:00:00+09:00',
-}
-
-function renderAnswer(state: AuthState, analysisId?: number, corpCode?: string, withFact = false) {
+function renderCitation(state: AuthState) {
   auth.state = state
-  const links = { onOpenSource: vi.fn(), onOpenFinancial: vi.fn(), onSearchText: vi.fn() }
-  const item: QuestionAnswer = withFact
-    ? {
-        ...answer,
-        answer: '반도체 판매가 늘었어요[1][F1].',
-        facts: [
-          {
-            ref: 'F1',
-            changeId: 901,
-            sjDiv: 'IS',
-            accountName: '매출액',
-            sentence: '매출액이 145조 원에서 152조 원으로 늘었어요(+4.8%).',
-          },
-        ],
-      }
-    : answer
   return render(
     <MemoryRouter>
-      <main>
-        <AnswerCard
-          item={item}
-          analysisId={analysisId}
-          corpCode={corpCode}
-          links={links}
-          onFeedback={() => Promise.resolve()}
-          followUp={{ questions: [], onAsk: vi.fn(), disabled: false }}
-        />
-      </main>
+      <AddToNote
+        target={{ kind: 'ANSWER_CITATION', questionId: 7, citationNo: 1 }}
+        analysisId={42}
+        label="인용 1 II. 사업의 내용 > 1. 사업의 개요"
+      />
     </MemoryRouter>,
   )
 }
@@ -144,7 +95,7 @@ describe('AddToNote(FS-57)', () => {
 
   it('AI 답의 인용을 담으면 질문 ID·인용 번호와 메모만 보낸다(글은 보내지 않음)', async () => {
     api.createNote.mockResolvedValue(noteItem({ kind: 'ANSWER_CITATION' }))
-    renderAnswer({ status: 'authenticated', userId: 1 }, 42)
+    renderCitation({ status: 'authenticated', userId: 1 })
     fireEvent.click(screen.getByRole('button', { name: CITATION_BUTTON }))
     fireEvent.change(screen.getByRole('textbox', { name: '메모(선택)' }), { target: { value: '설명 확인' } })
     fireEvent.click(screen.getByRole('button', { name: '노트에 저장' }))
@@ -158,15 +109,12 @@ describe('AddToNote(FS-57)', () => {
     })
   })
 
-  it('AI 답의 인용도 로그인하지 않았으면 로그인 안내만 보이고, 분석 ID가 없으면 버튼을 두지 않는다', async () => {
-    const { container } = renderAnswer({ status: 'anonymous' }, 42)
+  it('AI 답의 인용도 로그인하지 않았으면 로그인 안내만 보인다', async () => {
+    const { container } = renderCitation({ status: 'anonymous' })
     fireEvent.click(screen.getByRole('button', { name: CITATION_BUTTON }))
     expect(screen.getByRole('link', { name: '로그인하기' })).toBeTruthy()
     expect(api.createNote).not.toHaveBeenCalled()
     expect(await axeViolations(container)).toBe('')
-    cleanup()
-    renderAnswer({ status: 'anonymous' })
-    expect(screen.queryByRole('button', { name: CITATION_BUTTON })).toBeNull()
   })
 
   it('메모 칸과 로그인 안내에 접근성 위반이 없다', async () => {
@@ -177,30 +125,5 @@ describe('AddToNote(FS-57)', () => {
     const anonymous = renderAdd({ status: 'anonymous' })
     fireEvent.click(screen.getByRole('button', { name: '노트에 담기: 매출액' }))
     expect(await axeViolations(anonymous.container)).toBe('')
-  })
-
-  it('AI 답의 계산한 수치 근거도 노트에 담기(FINANCIAL_CHANGE)와 커뮤니티에 인용을 함께 제공한다(#536)', async () => {
-    api.createNote.mockResolvedValue(noteItem({ kind: 'FINANCIAL_CHANGE' }))
-    const { container } = renderAnswer({ status: 'authenticated', userId: 1 }, 42, '00126380', true)
-
-    expect(screen.getByRole('link', { name: '커뮤니티에 인용: 매출액' }).getAttribute('href')).toBe(
-      '/companies/00126380?view=community&quoteAnalysis=42&quoteKind=FINANCIAL_CHANGE&quoteChange=901&quoteSj=IS',
-    )
-
-    fireEvent.click(screen.getByRole('button', { name: '노트에 담기: 매출액' }))
-    expect(await axeViolations(container)).toBe('')
-    fireEvent.click(screen.getByRole('button', { name: '노트에 저장' }))
-    expect(await screen.findByText(/노트에 담았어요/)).toBeTruthy()
-    expect(api.createNote).toHaveBeenCalledWith({
-      kind: 'FINANCIAL_CHANGE',
-      changeId: 901,
-      analysisId: 42,
-      memo: null,
-    })
-
-    cleanup()
-    renderAnswer({ status: 'authenticated', userId: 1 }, 42, undefined, true)
-    expect(screen.getByRole('button', { name: '노트에 담기: 매출액' })).toBeTruthy()
-    expect(screen.queryByRole('link', { name: /^커뮤니티에 인용:/ })).toBeNull()
   })
 })

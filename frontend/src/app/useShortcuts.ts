@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router'
 import { applyParamChanges } from '@/shared/lib/searchParams'
 import { shortcutFor, type ShortcutAction, type ShortcutPage, type ShortcutResultTab } from '@/shared/lib/shortcuts'
 
-/** 단축키로 초점을 옮길 곳. 기업 검색창(SearchPage)과 AI 질문 입력창(AskTab)의 id */
+/** 단축키로 초점을 옮길 곳. 기업 검색창(SearchPage)과 요약 탭 AI 에이전트 입구(ChatEntry) 입력창의 id */
 const SEARCH_INPUT_ID = 'company-query'
 const ASK_INPUT_ID = 'ask-input'
 /** 도움말 대화상자 제목 id. 다른 대화상자가 열렸는지 볼 때 도움말은 뺀다 */

@@ -3,18 +3,18 @@ import { Link, useParams } from 'react-router'
 import { match, P } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { ParamChanges } from '@/shared/lib/searchParams'
-import { Icon, MenuButton, MenuItem, Notice, Page, PageHeader, Skeleton, Tabs, type TabItem } from '@/shared/ui'
+import { Button, Icon, MenuButton, MenuItem, Notice, Page, PageHeader, Skeleton, Tabs, type TabItem } from '@/shared/ui'
 import { ErrorState } from '@/shared/ui/StateView'
 import type { SjDiv } from '@/shared/api/results'
 import type { TextSectionCount } from '@/shared/api/textChanges'
-import type { LoadState } from '@/shared/hooks/asyncState'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
 import { useRecordRecentAnalysis } from '@/shared/hooks/useRecentAnalyses'
 import { useRecordCurrentCompany } from '@/shared/hooks/useCurrentCompany'
 import { basisLabel } from '@/shared/lib/comparisonBasis'
 import { companyOverviewLink } from '@/shared/lib/currentCompany'
 import { CommunityTab } from '@/shared/community/components/CommunityTab'
-import { AskTab } from './components/AskTab'
+import { ChatEntry } from './components/ChatEntry'
+import { ChatPanel } from './components/ChatPanel'
 import { ExportBriefButton } from './components/ExportBriefButton'
 import { FinancialTab } from './components/FinancialTab'
 import { ComparisonContextCard } from './components/ComparisonContextCard'
@@ -25,20 +25,20 @@ import { SummaryTab } from './components/SummaryTab'
 import { TextTab } from './components/TextTab'
 import { ResultOverviewContext } from './overviewSlot'
 import { useAnalysis } from './hooks/useAnalysis'
-import { useAsk, type AskController } from './hooks/useAsk'
+import { useAgentChat, type AgentChatController } from './hooks/useAgentChat'
 import { useAskSuggestions } from './hooks/useAskSuggestions'
+import { useExportBrief } from './hooks/useExportBrief'
 import { useResultParams } from './hooks/useResultParams'
+import { chatContextOf } from './model/chatLinks'
 import { resultTabLabels, resultTitle } from './model/resultTitle'
 import {
   financialParamChanges,
   openChangedAccounts,
-  openAsk,
   openFinancialChanges,
   openSourceChanges,
   openTextChanges,
   openPriorityList,
   openTextList,
-  openTextSearch,
   openTextSection,
   resultTabs,
   sourceParamChanges,
@@ -155,14 +155,33 @@ function ExportMenu({ analysis }: { analysis: Analysis }) {
 }
 
 /**
- * 완료된 분석의 결과. AI 질문의 상태와 예시 질문은 여기에 두어, 요약 탭의 AI 질문과 다른 탭의 'AI에게 묻기'가 같이 쓰고
- * 다른 탭에 다녀와도 받은 답·보내는 질문이 남는다. 열면 검색 화면의 '최근 본 분석'(FS-7)과 왼쪽 메뉴 '지금 보는 기업'(#502)에 남긴다.
+ * 완료된 분석의 결과. AI 에이전트 채팅(ADR-0044)의 대화는 여기에 두어 탭을 바꿔도 패널과 대화가 남는다(AC20).
+ * 채팅 패널은 탭 밖 오른쪽(SidePanel)이고, 근거 패널과 자리가 같아 근거를 보는 동안에는 숨긴다(대화는 남음).
+ * 요약 카드·문장 변화·재무 근거의 'AI에게 묻기'는 그 요청을 지금 화면 맥락과 함께 채팅으로 보낸다.
+ * 열면 검색 화면의 '최근 본 분석'(FS-7)과 왼쪽 메뉴 '지금 보는 기업'(#502)에 남긴다.
  */
 function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
   useRecordRecentAnalysis(analysis)
   useRecordCurrentCompany({ corpCode: analysis.corpCode, corpName: analysis.corpName, analysisId: analysis.analysisId })
-  const ask = useAsk(analysis.analysisId)
-  const { questions: suggestions, sections: askSections, sectionCounts } = useAskSuggestions(analysis.analysisId)
+  const chat = useAgentChat(analysis.analysisId)
+  const [chatOpen, setChatOpen] = useState(false)
+  const brief = useExportBrief(analysis)
+  const { questions: suggestions, sectionCounts } = useAskSuggestions(analysis.analysisId)
+  const examples = match(suggestions)
+    .with({ status: 'success' }, ({ data }) => data)
+    .otherwise(() => [])
+  const evidenceOpen =
+    (params.tab === 'financial' && params.selectedChangeId !== null) ||
+    (params.tab === 'text' && params.selectedTextChangeId !== null)
+  // 채팅을 열면 보던 근거 패널을 닫는다(같은 자리). 보낼 화면 맥락은 닫기 전 주소로 만든다
+  const openChat = () => {
+    setChatOpen(true)
+    if (evidenceOpen) update({ change: null, tc: null })
+  }
+  const askChat = (message: string) => {
+    chat.send(message, chatContextOf(params))
+    openChat()
+  }
   return (
     <>
       {analysis.outdated && <OutdatedNotice analysis={analysis} />}
@@ -177,34 +196,47 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
         analysis={analysis}
         params={params}
         update={update}
-        ask={ask}
-        suggestions={suggestions}
-        askSections={askSections}
+        chat={chat}
+        onAskChat={askChat}
+        suggestions={examples}
         sectionCounts={sectionCounts}
       />
+
+      {chatOpen && !evidenceOpen ? (
+        <ChatPanel
+          chat={chat}
+          context={chatContextOf(params)}
+          suggestions={examples}
+          onNavigate={update}
+          onDownloadBrief={brief.exportBrief}
+          onClose={() => setChatOpen(false)}
+        />
+      ) : (
+        <Button variant="primary" className="chat-launcher" onClick={openChat}>
+          AI 에이전트
+        </Button>
+      )}
     </>
   )
 }
 
 interface ResultTabPanelProps extends AnalysisResultProps {
-  ask: AskController
-  suggestions: LoadState<string[]>
-  /** 입력 중 섹션 질문 제안에 쓰는 최상위 섹션 제목(#267) */
-  askSections: string[]
+  chat: AgentChatController
+  /** 요청을 지금 화면 맥락과 함께 채팅으로 보내고 패널을 연다 */
+  onAskChat: (message: string) => void
+  /** 이 분석에서 답할 수 있는 예시 질문 */
+  suggestions: string[]
   /** 원문 확인 목차의 '변경 N' 배지에 쓰는 최상위 섹션별 문장 변경 건수(#313). 예시 질문과 같은 문장 변화 응답에서 온다 */
   sectionCounts: TextSectionCount[]
 }
 
-function ResultTabPanel({ analysis, params, update, ask, suggestions, askSections, sectionCounts }: ResultTabPanelProps) {
+function ResultTabPanel({ analysis, params, update, chat, onAskChat, suggestions, sectionCounts }: ResultTabPanelProps) {
   const openSource = (target: SourceTarget) => update(openSourceChanges(target))
   const openText = (changeId: number) => update(openTextChanges(changeId))
   const openFinancial = (sj: SjDiv, change: number) => update(openFinancialChanges(sj, change))
-  // 요약 카드, 문장 변화의 '이 항목 변화 AI에게 묻기', 재무 근거의 '이 계정 변화 AI에게 묻기'가 같이 쓴다: 질문을 보내고 AI 질문이 있는 요약 탭으로 옮긴다(#575)
-  const askAndOpen = (question: string) => {
-    ask.ask(question)
-    update(openAsk())
-  }
-  const asking = ask.state.request.status === 'sending'
+  // 요약 카드, 문장 변화의 '이 항목 변화 AI에게 묻기', 재무 근거의 '이 계정 변화 AI에게 묻기'가 같이 쓴다: 채팅으로 보낸다
+  const askAndOpen = onAskChat
+  const asking = chat.state.request.status === 'sending'
   const returnTab = useReturnTab(params.tab)
   const renderOverview = useContext(ResultOverviewContext)
   return match(params.tab)
@@ -238,17 +270,7 @@ function ResultTabPanel({ analysis, params, update, ask, suggestions, askSection
         onOpenTextList={(type) => update(openTextList(type))}
         onOpenPriorityList={() => update(openPriorityList())}
         onOpenTextSection={(section) => update(openTextSection(section))}
-        askPanel={
-          <AskTab
-            analysis={analysis}
-            ask={ask}
-            suggestions={suggestions}
-            sections={askSections}
-            onOpenSource={openSource}
-            onOpenFinancial={openFinancial}
-            onSearchText={(q) => update(openTextSearch(q))}
-          />
-        }
+        askPanel={<ChatEntry suggestions={suggestions} onAsk={onAskChat} disabled={asking} />}
         onAsk={askAndOpen}
         asking={asking}
         lens={params.summaryLens}
