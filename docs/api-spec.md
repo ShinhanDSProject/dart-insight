@@ -2729,7 +2729,8 @@
 
 - 이슈: 기능 기획서 'AI 에이전트 채팅'(초안, FS 번호 전) · 화면: W-03 채팅 패널(새 화면, AI 질문 탭 ⑤를 없애고 탭 밖에 둠) · [ADR-0044](adr/0044-agent-tools-run-in-backend.md), [ADR-0045](adr/0045-langgraph-agent-step-graph.md)
 - 완료된 분석에서만 씁니다. 동기 호출입니다. Tool을 부를 때마다 ai-server와 한 번 더 왕복하므로 근거 질문보다 오래 걸릴 수 있습니다.
-- 로그인 없이 씁니다(AI 질문과 같음). 쓰기는 이 API가 하지 않고 확인 액션(`CONFIRM_*`)으로만 돌려줍니다. 사용자가 확인을 누르면 화면이 기존 API(`POST /api/notes`, `PUT /api/favorite-companies/{corpCode}`)를 부르고, 그 API의 로그인 규칙을 따릅니다.
+- 로그인 없이 씁니다(AI 질문과 같음). 쓰기는 이 API가 하지 않고 확인 액션(`CONFIRM_*`)으로만 돌려줍니다. 사용자가 확인을 누르면 화면이 기존 API(`POST /api/notes`, `PUT /api/favorite-companies/{corpCode}`, `POST /api/analyses`)를 부르고, 그 API의 로그인 규칙을 따릅니다. 커뮤니티 글은 초안을 채운 글쓰기 화면만 열고, 게시·삭제는 사용자만 합니다.
+- 다른 기업·기간도 다룹니다("SK하이닉스와 비교", "3년 매출"). 기업 단위 Tool은 `corpCode`를 받고, 없으면 이 분석의 기업입니다.
 - 대화(`message`·`history`)는 서버에 저장하지 않습니다. 근거 질문 Tool(`answer_with_evidence`)의 질문과 답만 `analysis_question`에 저장합니다(아래). 화면이 최근 대화(`history`)와 화면 맥락(`context`)을 요청마다 보냅니다. 지난 답은 말뜻을 풀 때만 쓰고 근거로 쓰지 않습니다. 근거는 이번 요청에서 실행한 Tool의 결과뿐입니다.
 - ai-server에 보내지 않는 사용자 정보는 계정 정보(이메일·닉네임·로그인 여부)와 저장된 노트·메모·관심 기업 내용입니다. 사용자가 채팅에 직접 쓴 글(`message`·`history[].text`)은 AI 질문의 `question`과 같이 고치지 않고 그대로 질문으로 보냅니다(ADR-0044 '보내지 않는 것'). 그래서 채팅 패널은 입력창에 개인정보를 쓰지 말라는 안내를 둡니다.
 - 흐름: backend가 허용 Tool·액션 목록과 지금까지의 Tool 결과를 붙여 ai-server `POST /internal/agent-steps`(3절)를 부릅니다. 응답이 `TOOL_CALLS`면 Tool을 실행하고 결과를 붙여 다시 부르고, `FINAL`·`OUT_OF_SCOPE`면 아래 응답으로 바꿔 돌려줍니다. 한 요청의 모든 왕복은 같은 `X-Trace-Id`를 씁니다.
@@ -2782,6 +2783,8 @@
   "actions": [
     { "type": "OPEN_TAB", "label": "문장 변화에서 보기", "tab": "text", "filters": { "q": "소송", "risk": true } }
   ],
+  "format": "CHAT",
+  "crossCheck": null,
   "questionId": null,
   "aiGenerated": true,
   "ai": { "model": "fake-model", "promptVersion": "agent-1", "generatedAt": "2026-11-03T10:12:03" }
@@ -2802,7 +2805,11 @@
   | `SECTION` | `{rceptNo}#S{sectionNo}` | `side`, `rceptNo`, `reportName`, `sectionNo`, `sectionPath` |
   | `TEXT_CHANGE` | `T{changeId}` | `changeId`, `changeType`, `rceptNo`(현재 쪽, `DELETED`면 이전 쪽), `reportName`, `sectionPath`, `quote` |
   | `FINANCIAL_CHANGE` | `F{changeId}` | `changeId`, `sjDiv`, `accountName`, `rceptNo`(현재 보고서), `sentence`(코드가 저장된 계산 결과로 만든 사실 문장) |
-  | `DISCLOSURE` | `D{rceptNo}` | `rceptNo`, `reportName`, `rceptDt`, `dartUrl`(관련 수시공시, 보조 근거) |
+  | `DISCLOSURE` | `D{rceptNo}` | `rceptNo`, `reportName`, `rceptDt`, `dartUrl`(수시공시·공시 목록, 보조 근거) |
+  | `REPORT_VALUE` | `{rceptNo}#V{n}` | `rceptNo`, `reportName`, `source`(`FINANCIAL_TREND`·`KEY_FACT`·`CHECKPOINT`·`DISCLOSURE_KEY_ITEM`), `label`(항목 이름), `value`·`unit`·`currency`(그 API가 준 값 그대로), `dartUrl`. `n`은 한 요청 안에서 backend가 붙인 번호이고, `rceptNo`는 값의 근거 접수번호(`sourceRceptNo`가 있으면 그것) |
+  | `COMPANY` | `C{corpCode}` | `corpCode`, `corpName`, `label`, `value`(기업 개황 `GET /api/companies/{corpCode}/overview`의 값) |
+
+- 재무 계정 변화·원문 문단 근거가 저장된 요약의 설명 인용이면 `grade`(`STATED`·`RELATED`)가 함께 옵니다. `grade`가 없는 근거는 이번 요청에서 Tool로 새로 찾은 문장이고, 화면은 원인 설명처럼 보이지 않게 '관련 문장'으로 표시합니다. 에이전트는 새 설명 등급을 만들지 않습니다(ADR-0015, 변경 원인 추적).
 
 - `actions`: 화면이 할 일. 화면은 아래 종류만 실행하고 모르는 종류는 무시합니다. `label`은 backend가 종류별로 정한 문구입니다(LLM 문장이 아님). 인자가 이 분석에 없는 값을 가리키면 backend가 그 액션을 빼고 로그를 남깁니다.
 
@@ -2816,10 +2823,22 @@
   | `DOWNLOAD_BRIEF` | — | 비교 브리프 Markdown 내려받기(#515, LLM 없음) |
   | `CONFIRM_SAVE_NOTE` | `note`(`POST /api/notes` 본문과 같음: `kind`·`analysisId`·`changeId`·`questionId`·`citationNo`·`memo`) | 확인 버튼. 누르면 `POST /api/notes`. 로그인하지 않았으면 버튼 대신 로그인 안내 |
   | `CONFIRM_FAVORITE` | `corpCode` | 확인 버튼. 누르면 `PUT /api/favorite-companies/{corpCode}`. 로그인 안내는 위와 같음 |
+  | `PIN_CHANGE` | `changeId` | 문장 변화 탭의 변경 고정(`usePinnedChanges`, 브라우저에만 저장, 확인 없음) |
+  | `OPEN_POST_DRAFT` | `corpCode`, `quote`(`POST /api/companies/{corpCode}/posts`의 `quote`와 같음), `body` | 기업 게시판 글쓰기를 인용과 초안을 채워 엶. `body`는 검토 노드를 통과한 `answer`에서 근거 표시를 뺀 글. 게시는 사용자가 누를 때만 |
+  | `OPEN_ANALYSIS` | `analysisId` | 이미 끝난 다른 분석의 결과 화면으로 이동 |
+  | `OPEN_COMPANY_COMPARE` | `corpCodes`(2개 이상) | 기업 나란히 보기(`/compare/companies?corps=`) |
+  | `CONFIRM_REQUEST_ANALYSIS` | `corpCode`, `previousRceptNo`, `currentRceptNo`, `basis` | 확인 버튼. 비교 가능성 Tool 결과가 `comparable: true`일 때만 옴. 누르면 `POST /api/analyses` 뒤 분석 진행 화면(W-02)으로 |
 
 - `questionId`: 이번 요청에서 근거 질문 Tool을 실행해 `analysis_question`에 저장했으면 그 ID, 아니면 null
 - `aiGenerated`: LLM이 `answer`를 만들었으면 true. LLM 없이 정해진 문구로 답했거나 `answer`가 null이면 false
 - `ai`: LLM이 답을 만들었을 때만(모델·프롬프트 버전·생성 시각). 그 밖에는 null
+- `format`: `CHAT` 대화 답(해요체 3문장·400자 이내), `BRIEF` 사용자가 정리 형식("3줄 요약", "IR용 정리", "확인할 점")을 요청한 답(1,500자 이내, 줄마다 근거 표시). 검사는 같습니다. 비교 브리프 파일은 LLM 없이 `DOWNLOAD_BRIEF`로 받습니다.
+- `crossCheck`: 교차 검증 요청("회사 설명과 재무 수치가 일치해?")일 때만, 아니면 null. `{ "result": "POTENTIAL_MISMATCH", "reason": "…" }`
+  - `CONSISTENT`: 같은 기준의 수치 방향과 회사 설명·계획 대조가 어긋나지 않음
+  - `POTENTIAL_MISMATCH`: 방향·크기가 어긋나는 곳이 있음. 검토할 신호이고 허위·오류로 확정하지 않습니다
+  - `INSUFFICIENT_EVIDENCE`: 대조할 근거가 부족함(설명 인용이 없거나 Tool 결과가 하나뿐)
+  - `NOT_COMPARABLE`: 기업·기간·연결/별도·계정 기준이 달라 대조하지 않음
+  - 기준 일치와 숫자·방향 대조는 코드가 정하고, LLM은 그 결과를 바꾸지 못합니다. 수시공시는 본문을 비교하지 않고 주요정보(DS005) 값만 씁니다.
 
 **에러**
 
@@ -3320,6 +3339,9 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 - Tool·액션 목록은 요청으로 받습니다(ai-server 코드에 따로 두지 않음). Tool 이름은 받은 목록의 enum, 인자는 Tool마다 받은 `parameters` 형식으로 구조화 출력 스키마를 만듭니다.
 - 투자 판단 요청(규칙 `OUT_OF_SCOPE_QUESTION`)은 LLM을 부르지 않고 `OUT_OF_SCOPE`입니다.
 - `TOOL_CALLS`: 한 번에 1~3개. 읽기 Tool만 부릅니다. 쓰기는 Tool로 부르지 않고 `FINAL`의 확인 액션(`CONFIRM_*`)으로 돌려줍니다. `remainingSteps`가 0이면 `TOOL_CALLS`를 돌려주지 않고 받은 결과로 `FINAL`을 만듭니다.
+- Workflow(ADR-0045 `workflow_step`): 변경 원인 추적과 교차 검증은 LLM이 Tool을 고르지 않고 코드가 정한 순서로 부릅니다. 받은 `tools`에 필요한 Tool이 없으면 Workflow를 쓰지 않고 일반 경로로 갑니다.
+  - 원인 추적: `get_financial_changes` → `get_summary` → (설명 인용이 없거나 더 필요하면) `search_text_changes`. 저장된 설명 등급·인용을 그대로 쓰고, 새로 찾은 문장은 등급 없이 '관련 문장'입니다.
+  - 교차 검증: `get_financial_changes` → `get_summary` → `get_plan_followups` → (관련 수시공시가 있으면) `get_disclosure_key_items`. `crossCheck.result`는 코드가 정합니다(공개 API `crossCheck`).
 - `FINAL` 확인(검토 노드): `evidenceIds`가 받은 Tool 결과의 근거 ID에 있음, 답의 숫자·크기 표현이 Tool 결과에 있음, 원인 표현은 인용한 원문에도 원인 표현이 있을 때만, Tool 결과의 재무 설명 등급을 바꾸지 않음, 표현 검사(5.5) 통과. 반려되면 사유를 붙여 다시 만들고, 처음 생성 1회와 다시 생성 2회(형식 실패 포함)를 넘으면 `REVIEW_NEEDED`입니다.
 
 **요청**
@@ -3369,7 +3391,9 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
     "evidenceIds": ["T5012"],
     "actions": [{ "type": "OPEN_TAB", "tab": "text", "filters": { "q": "소송", "risk": true } }],
     "reviewReason": null,
-    "blockedRules": []
+    "blockedRules": [],
+    "format": "CHAT",
+    "crossCheck": null
   },
   "rejections": [{ "attempt": 1, "rules": ["NUMBER_NOT_IN_TOOL_RESULT"] }],
   "calls": [{ "task": "agent_answer", "provider": "fake", "model": "fake-model", "promptVersion": "agent-1",
@@ -3383,8 +3407,11 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 - `final.actions`: 받은 `actions` 목록의 종류와 형식만. 근거가 아니라서 검토 노드는 형식만 봅니다(값 확인은 backend).
 - `rejections`: 검토 노드가 반려한 회차와 규칙. 반려가 없으면 빈 배열입니다.
 - `calls`: 이 단계에서 부른 LLM 기록(task `agent_plan` 다음 Tool 고르기, `agent_answer` 답 만들기). LLM을 부르지 않았으면 빈 배열이고 `model`·`generatedAt`은 null입니다.
+- `final.format`·`final.crossCheck`: 공개 API의 `format`·`crossCheck`와 같습니다.
 
-**1차 Tool 목록** (backend `com.dartinsight.agent`에 한 곳에 둠. 모두 읽기이고 기존 서비스 메서드를 부름)
+**Tool 목록** (backend `com.dartinsight.agent`에 한 곳에 둠. 모두 읽기이고 기존 서비스 메서드를 부름. 근거 ID가 '—'인 결과는 답의 근거로 쓸 수 없고 액션 값으로만 씀)
+
+분석(이 분석 안):
 
 | Tool | 인자 | 실행하는 기존 기능 | 결과 근거 ID |
 | --- | --- | --- | --- |
@@ -3398,7 +3425,26 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | `get_summary` | — | `GET .../summary`(저장된 요약만, 새로 만들지 않음) | `F{changeId}`, `T{changeId}`, `{rceptNo}#B{blockNo}` |
 | `answer_with_evidence` | `question` | `POST .../questions`(같은 검사, `analysis_question`에 저장) | 그 답의 근거 ID |
 
-- 2차(기획서 R11~R13 등): 기업 주요정보·전망·계획, 기존 분석 찾기·분석 요청, 원인 추적·교차 검증 Workflow. 넣을 때 이 표에 더합니다.
+기업·기간(인자 `corpCode`가 없으면 이 분석의 기업):
+
+| Tool | 인자 | 실행하는 기존 기능 | 결과 근거 ID |
+| --- | --- | --- | --- |
+| `search_companies` | `query` | `GET /api/companies?query=` | — |
+| `get_company_overview` | `corpCode` | `GET /api/companies/{corpCode}/overview` | `C{corpCode}` |
+| `get_financial_trends` | `corpCode` | `GET /api/companies/{corpCode}/financial-trends` | `{rceptNo}#V{n}` |
+| `get_key_facts` | `corpCode` | `GET /api/companies/{corpCode}/key-facts`(최대주주·임원·배당) | `{rceptNo}#V{n}` |
+| `get_checkpoints` | `corpCode` | `GET /api/companies/{corpCode}/checkpoints` | `{rceptNo}#V{n}` |
+| `get_disclosures` | `corpCode`, `group` | `GET /api/companies/{corpCode}/disclosures` | `D{rceptNo}` |
+| `get_disclosure_signals` | `corpCode` | `GET /api/companies/{corpCode}/disclosure-signals` | `D{rceptNo}` |
+| `get_disclosure_key_items` | `corpCode`, `rceptNo` | `GET .../disclosures/{rceptNo}/key-items`(DS005 주요정보) | `{rceptNo}#V{n}` |
+| `get_company_briefing` | `corpCode` | `GET /api/companies/{corpCode}/briefing` | `{rceptNo}#B{blockNo}` |
+| `get_outlook` | `corpCode` | `GET /api/companies/{corpCode}/outlook` | `{rceptNo}#B{blockNo}` |
+| `get_plan_followups` | `corpCode` | `GET /api/companies/{corpCode}/plan-followups` | `{rceptNo}#B{blockNo}` |
+| `find_analyses` | `corpCode` | `GET /api/companies/{corpCode}/analyses` | — |
+| `get_report_pairs` | `corpCode`, `basis` | `GET /api/companies/{corpCode}/report-pairs` | — |
+| `check_comparability` | `corpCode`, `previousRceptNo`, `currentRceptNo`, `basis` | `POST /api/comparability-checks` | — |
+
+- 브리핑·전망·계획 대조는 저장된 것이 없으면 기존 API처럼 새로 만듭니다(그 API의 LLM 호출·저장 규칙 그대로). 그래서 첫 호출은 오래 걸릴 수 있습니다.
 - 액션 목록은 공개 API의 `actions` 표와 같습니다.
 
 | 상태 | code | 언제 |
