@@ -23,6 +23,7 @@ public final class TestData {
             "judgment_note_item",
             "notification",
             "season_change",
+            "news_call_usage",
             "related_disclosure",
             "related_disclosure_run",
             "analysis_question",

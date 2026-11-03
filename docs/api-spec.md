@@ -1720,6 +1720,7 @@
 - 기업 이름(`company.corp_name`)을 검색어로 NAVER API HUB 뉴스 검색(`GET https://naverapihub.apigw.ntruss.com/search/v1/news`, `sort=date`, `display=100`)을 부릅니다. 태그(`<b>`)와 HTML 엔티티를 뺀 제목에 기업 이름(공백을 빼고 비교)이 있는 기사만 최신순으로 최대 10건 돌려줍니다. 결과가 없으면 `items`가 빈 배열입니다(에러 아님).
 - 뉴스는 DART 공시가 아니라 외부 자료입니다. 화면에 '외부 뉴스 · 공시 근거 아님'을 붙이고, 요약·AI 질문 등 LLM에 넣지 않습니다(네이버 약관).
 - 캐시: backend 메모리에 기업별로 30분(`app.naver-search.cache-ttl`). 그 안에 같은 기업을 다시 부르면 네이버를 부르지 않고 같은 응답(`fetchedAt` 그대로)을 줍니다. 실패는 캐시하지 않습니다.
+- 하루에 네이버를 부르는 횟수는 20,000회까지입니다(`app.naver-search.daily-budget`, 공용 키 하루 한도 25,000회보다 낮게). 횟수는 DB `news_call_usage`에 세어 backend를 다시 켜도 이어집니다. 다 쓰면 캐시가 없는 기업은 503입니다.
 
 **요청**
 
@@ -1760,7 +1761,7 @@
 | 상태 | code | 언제 |
 | --- | --- | --- |
 | 404 | `COMPANY_NOT_FOUND` | 없는 기업 |
-| 503 | `COMPANY_NEWS_UNAVAILABLE` | 뉴스 검색 키가 없거나 NAVER API HUB 호출·응답이 잘못됨 |
+| 503 | `COMPANY_NEWS_UNAVAILABLE` | 뉴스 검색 키가 없거나 NAVER API HUB 호출·응답이 잘못됨, 또는 오늘 부를 수 있는 횟수를 다 씀 |
 
 ### POST /api/companies/{corpCode}/questions — 사업보고서에 근거해 묻기
 

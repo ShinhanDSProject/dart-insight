@@ -35,6 +35,7 @@
 | `company_overview` | 기업 개황(OpenDART `company.json`) 캐시. 고유번호 기준, 받은 시각으로 다시 받음 | 1.2 (#329) | M2 |
 | `featured_company` | 첫 화면 대표 기업(유가증권시장 시가총액 상위 100). 공공데이터포털에서 월 1회 통째로 바꿈 | #399 (1.5) | 미정 |
 | `season_change` | 시즌별 대표 기업 문장 변경 점수·순위(이번 시즌 변화가 큰 기업) | #420 (1.7) | 미정 |
+| `news_call_usage` | 기업 뉴스가 NAVER API HUB를 부른 날짜별 횟수(하루 한도 지키기) | #592 (3.1) | 미정 |
 | `report` | 정기보고서. 접수번호 기준 | 4.1 (#27) | M1 |
 | `financial_statement_fetch` | 재무제표 API를 부른 기록(보고서·연결/별도 단위) | 4.5 (#52) | M1 |
 | `financial_account` | 재무제표 계정 값(API 응답 한 줄) | 4.5 (#52) | M1 |
@@ -1176,6 +1177,16 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `rcept_no` | VARCHAR(14) | FK, UK | 아니오 | `report.rcept_no`. 새로 찾은 보고서 |
 | `created_at` | DATETIME(6) | | 아니오 | 찾은 시각 |
 
+### news_call_usage — 기업 뉴스 호출 횟수(#592)
+
+> 마이그레이션: `V46__create_news_call_usage.sql`. 기업 뉴스(`GET /api/companies/{corpCode}/news`)가 NAVER API HUB를 부를 때마다 그날(한국 시간) 행의 `call_count`를 `call_count < app.naver-search.daily-budget`일 때만 1 올린다(조건부 UPDATE, 없으면 1로 넣음). 다 쓰면 부르지 않는다(ADR-0046). 뉴스 자체는 저장하지 않는다.
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT AUTO_INCREMENT | PK | 아니오 | 행 ID |
+| `usage_date` | DATE | UK | 아니오 | 부른 날(한국 시간) |
+| `call_count` | INT | | 아니오 | 그날 부른 횟수 |
+
 ### notification — 분석 완료 알림(#38)
 
 > 마이그레이션: `V28__create_notification.sql`. 분석이 완료돼 결과가 저장된 뒤에만 만든다. 대기·진행·실패한 분석에는 행이 없다.
@@ -1373,6 +1384,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `featured_company` | `uk_featured_company_rank` | `rank_no` | 유니크 | 순위마다 한 곳 |
 | `featured_company` | `uk_featured_company_corp_code` | `corp_code` | 유니크 | 같은 기업을 두 번 넣지 않음 |
 | `season_change` | `uk_season_change_season_corp` | `report_type`, `fiscal_year`, `corp_code` | 유니크 | 시즌마다 기업 한 줄. 시즌별 조회에도 씀 |
+| `news_call_usage` | `uk_news_call_usage_date` | `usage_date` | 유니크 | 날짜마다 한 행. 같은 날 첫 호출이 동시에 와도 한 행만 생김 |
 | `report` | `uk_report_rcept_no` | `rcept_no` | 유니크 | 접수번호 중복 방지(외래 키가 참조) |
 | `report` | `idx_report_corp_period` | `corp_code, period_end` | 인덱스 | 기업별 보고서 목록 |
 | `financial_statement_fetch` | `uk_fs_fetch` | `corp_code, fiscal_year, reprt_code, fs_div` | 유니크 | 같은 호출을 두 번 저장하지 않음 |

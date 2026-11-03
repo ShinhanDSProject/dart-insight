@@ -16,8 +16,9 @@
 ## 결정
 
 - 뉴스는 NAVER API HUB 뉴스 검색으로 받는다. 키는 `NAVER_SEARCH_CLIENT_ID`·`NAVER_SEARCH_CLIENT_SECRET`(`app.naver-search.*`, `news/config/NaverSearchProperties`). 소셜 로그인 키와 따로 둔다.
-- backend `news` 패키지가 부른다(`news/client/NaverNewsClient`, 경로는 `NaverSearchPaths`). 회사 이름을 검색어로 최신순(`sort=date`) 100건(한 번에 받을 수 있는 최대)을 받아, 태그·HTML 엔티티를 뺀 제목에 회사 이름(공백 무시)이 있는 기사만 앞에서 10건 쓴다(`news/domain/NewsArticles`). 링크는 `originallink`(없으면 `link`), 언론사는 그 링크의 도메인으로 보인다.
-- 캐시는 backend 메모리에 기업별로 30분 둔다(`news/service/CompanyNewsService`, `app.naver-search.cache-ttl`). DB에는 저장하지 않는다. 키가 없거나 호출·응답이 잘못되면 503 `COMPANY_NEWS_UNAVAILABLE`이고 실패는 캐시하지 않는다.
+- backend `news` 패키지가 부른다(`news/client/NaverNewsClient`, 경로는 `NaverSearchPaths`). 회사 이름을 검색어로 최신순(`sort=date`) 100건(한 번에 받을 수 있는 최대)을 받아, 태그·HTML 엔티티를 뺀 제목에 회사 이름(공백 무시)이 있는 기사만 앞에서 10건 쓴다(`news/domain/NewsArticle`, `news/service/CompanyNewsService`). 링크는 `originallink`(없으면 `link`), 언론사는 그 링크의 도메인으로 보인다.
+- 캐시는 backend 메모리에 기업별로 30분 둔다(`news/service/CompanyNewsService`, `app.naver-search.cache-ttl`). 뉴스 자체는 DB에 저장하지 않는다(부른 횟수만 센다). 키가 없거나 호출·응답이 잘못되면 503 `COMPANY_NEWS_UNAVAILABLE`이고 실패는 캐시하지 않는다. 캐시는 넣을 때 30분 지난 기업을 지운다(`news/domain/CompanyNewsCache`).
+- 뉴스 API는 로그인 없이 열려 있어 여러 기업을 돌아가며 부르면 공용 키의 하루 한도를 다 쓸 수 있다. 하루에 네이버를 부르는 횟수를 한도보다 낮은 20,000회로 막는다(`app.naver-search.daily-budget`, 한국 시간 날짜마다). backend를 다시 켜도 이어 세도록 횟수는 DB `news_call_usage`(날짜마다 한 행, `V46`)에 두고, 조건부 UPDATE(`call_count < 한도`) 한 번으로 원자적으로 센다(`news/repository/NewsCallUsageStore`). 다 쓰면 캐시가 없는 요청은 부르지 않고 503이다. 요청자별 제한은 두지 않는다(로그인 없는 API라 요청자별 제한만으로는 전체 사용량을 막지 못하고, 앱에 요청자별 제한 장치가 없음).
 - 뉴스는 화면 목록에만 쓴다. 요약·AI 질문·에이전트 채팅 등 LLM에 넣지 않는다. 화면에 '외부 뉴스 · 공시 근거 아님'을 붙인다.
 - API: `GET /api/companies/{corpCode}/news`(`docs/api-spec.md`).
 
@@ -28,7 +29,8 @@
 | 뉴스 사이트를 직접 긁어 오기(크롤링) | 약관·저작권 문제, 사이트 구조가 바뀌면 깨지고 차단될 수 있음 |
 | 네이버 개발자센터 검색 API | 2026-07 말 신규 신청 중단. 기존 애플리케이션에도 더할 수 없음 |
 | 구글 뉴스 RSS | 공식 API가 아니라 언제든 바뀔 수 있고, 링크가 구글을 거침 |
-| 뉴스를 DB에 저장(테이블) | 30분이면 지나가는 목록이라 저장할 이유가 없고 마이그레이션만 늘어남. 서버를 여러 대 띄우면 다시 봄 |
+| 뉴스를 DB에 저장(테이블) | 30분이면 지나가는 목록이라 저장할 이유가 없음. 서버를 여러 대 띄우면 다시 봄 |
+| 하루 횟수를 메모리에만 세기 | backend를 같은 날 다시 켜면 0부터 다시 세어 한도를 지키지 못함 |
 
 ## 결과
 

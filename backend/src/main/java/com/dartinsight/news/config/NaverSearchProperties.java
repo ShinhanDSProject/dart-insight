@@ -10,6 +10,7 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  * @param clientId     환경변수 NAVER_SEARCH_CLIENT_ID로만 넣는다(소셜 로그인 키와 다름)
  * @param clientSecret 환경변수 NAVER_SEARCH_CLIENT_SECRET로만 넣는다
  * @param cacheTtl     기업별 뉴스 목록을 메모리에 두는 시간
+ * @param dailyBudget  하루에 네이버를 부르는 최대 횟수. NAVER API HUB 하루 한도(25,000)보다 낮게 둔다
  */
 @ConfigurationProperties(prefix = "app.naver-search")
 public record NaverSearchProperties(
@@ -18,7 +19,8 @@ public record NaverSearchProperties(
         @DefaultValue("https://naverapihub.apigw.ntruss.com") String baseUrl,
         @DefaultValue("3s") Duration connectTimeout,
         @DefaultValue("10s") Duration readTimeout,
-        @DefaultValue("30m") Duration cacheTtl) {
+        @DefaultValue("30m") Duration cacheTtl,
+        @DefaultValue("20000") int dailyBudget) {
 
     public boolean hasKeys() {
         return clientId != null && !clientId.isBlank() && clientSecret != null && !clientSecret.isBlank();
