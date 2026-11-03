@@ -220,7 +220,10 @@ class CompanyQuestionApiTest {
     @DisplayName("기업 질문도 AI 사용 현황의 질문 상태별 수와 작업별 LLM 호출에 잡힌다")
     void companyQuestionIsCountedInAiUsage() throws Exception {
         annualReport();
-        AI.on(ANSWERS, Reply.ok(answered("주요 제품을 밝혔어요[" + ANNUAL + "#B2].", ANNUAL + "#B2")));
+        // AI 사용 현황은 오늘부터 거꾸로 센다. 고정 날짜로 두면 날이 지나 기간 밖이 되므로 호출 시각을 지금으로 둔다
+        String calledAt = LocalDateTime.now(clock).withNano(0).toString();
+        AI.on(ANSWERS, Reply.ok(answered("주요 제품을 밝혔어요[" + ANNUAL + "#B2].", ANNUAL + "#B2")
+                .replace("2026-10-26T10:12:02", calledAt)));
         ask("주요 제품은 무엇인가요?").andExpect(status().isOk());
 
         mockMvc.perform(get("/api/system/ai-usage").param("days", "7"))
