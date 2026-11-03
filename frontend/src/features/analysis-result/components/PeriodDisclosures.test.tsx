@@ -71,7 +71,7 @@ function disclosure(reportName: string, receivedDate: string, group: string, rce
 }
 
 describe('요약 탭 이 기간 수시공시(시안)', () => {
-  it('기간 안 수시공시 건수와 많이 낸 제목, 지분 변동을 뺀 사실과 원문 링크를 보인다', async () => {
+  it('실적·영업 등 수시공시 건수, 기타를 포함한 묶음별 건수, 많이 낸 제목의 횟수와 원문 링크를 보인다', async () => {
     disclosuresApi.listDisclosures.mockResolvedValue({
       corpCode: '00126380',
       days: 365,
@@ -84,6 +84,7 @@ describe('요약 탭 이 기간 수시공시(시안)', () => {
         disclosure('연결재무제표기준영업(잠정)실적(공정공시)', '2026-07-07', 'BUSINESS', '20260707000001'),
         disclosure('연결재무제표기준영업(잠정)실적(공정공시)', '2026-04-07', 'BUSINESS', '20260407000001'),
         disclosure('임원ㆍ주요주주특정증권등소유상황보고서', '2026-05-02', 'OWNERSHIP', '20260502000001'),
+        disclosure('기타경영사항(자율공시)', '2026-05-03', 'OTHER', '20260503000001'),
       ],
     })
     const { container } = render(
@@ -94,11 +95,16 @@ describe('요약 탭 이 기간 수시공시(시안)', () => {
     const box = await screen.findByRole('region', { name: '이 기간 수시공시 2건' })
     const link = within(box).getByRole('link', { name: /연결재무제표기준영업\(잠정\)실적/ })
     expect(link.getAttribute('href')).toContain('rcpNo=20260707000001')
-    expect(within(box).getByText('2건')).toBeTruthy()
+    expect(within(box).getByText('2회')).toBeTruthy()
+    // 네 묶음 제목이 셋보다 적어 기타 제목으로 채운다
+    expect(within(box).getByRole('link', { name: /기타경영사항/ })).toBeTruthy()
+    expect(within(box).getByText('기타 · 1회')).toBeTruthy()
+    expect(box.textContent).toContain('실적·영업 2 · 자금 조달 0 · 지배구조 0 · 기타 1 · 지분 변동 1건 제외')
+    expect(within(box).getByText('보조 근거')).toBeTruthy()
     // 이전 보고서(2025-08-14)가 최근 1년 밖이라 받은 기간부터 셌다고 알린다
     expect(box.textContent).toContain('최근 1년만 셌어요')
-    expect(box.textContent).toContain('지분 변동 1건은 빼고 셌어요')
-    expect(box.textContent).toContain('인과관계는 확인되지 않았어요')
+    expect(box.textContent).toContain('2건은 실적·영업·자금 조달·지배구조만 센 수예요')
+    expect(box.textContent).toContain('정기보고서 밖의 공시라 원인이라고 단정하지 않아요')
     expect(within(box).getByRole('link', { name: '기업 개요에서 공시 타임라인 보기' }).getAttribute('href')).toBe(
       '/companies/00126380?view=overview',
     )
