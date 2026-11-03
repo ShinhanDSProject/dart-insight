@@ -154,42 +154,42 @@
  * - 헤더에서 '어둡게'를 고르면 <html data-theme="dark">, '밝게'면 data-theme="light", '시스템'이면 속성을 지우고 운영체제 설정을 따른다.
  * - 아래 두 블록은 같은 값이다(CSS로 한 블록을 두 조건에 걸 수 없어서). 하나를 고치면 다른 하나도 고친다(tokens.test.ts가 확인).
  * - screen에만 걸어, 인쇄는 테마와 상관없이 밝은 값(위 :root와 아래 @media print)을 쓴다.
- * - 글자는 배경과 4.5:1, 입력 경계는 3:1 이상. 차트 색은 어두운 배경(#0f1320·#161b2c) 기준 색 검사를 통과한 값(design-system.md 3-3).
- * - 주색은 어두운 배경에서 남색이 보이지 않으므로 밝은 남보라로 두고, 주색 위 글자는 어두운 색으로 바꾼다.
+ * - 글자는 배경과 4.5:1, 입력 경계는 3:1 이상. 차트 이전·현재·수정은 시안 하늘색 계열로 다시 고른 값(색맹 구분 ΔE 15.5), 그 밖의 차트 색은 이전 색 검사를 통과한 값이며 시안 배경(#080f17·#101b26)에서 대비 3:1 이상(design-system.md 3-3).
+ * - 색은 Figma '다크 모드' 시안 팔레트(FS-69): 배경 #080f17, 주색 하늘색 #a8d9e8, 링크 #79b9ce. 주색 위 글자는 어두운 색이다.
  */
 @media screen {
   :root[data-theme='dark'] {
-    --color-text: #e6e8f0;
-    --color-text-muted: #a3a7b7;
-    --color-bg: #0f1320;
-    --color-bg-subtle: #161b2c;
-    --color-bg-raised: #2a3047;
-    --color-border: #2a3047;
-    --color-border-strong: #6b7088;
-    --color-primary: #aab4f0;
-    --color-primary-text: #0f1320;
-    --color-accent: #a69ef0;
-    --color-accent-subtle: #241f45;
-    --color-border-accent: #3d3770;
-    --color-increase: #5fcf9c;
-    --color-increase-subtle: #12291f;
-    --color-decrease: #f08a96;
-    --color-decrease-subtle: #2e161b;
-    --color-chart-previous: #5e61a1;
-    --color-chart-current: #8a81ef;
+    --color-text: #f1f6f7;
+    --color-text-muted: #a9bbc4;
+    --color-bg: #080f17;
+    --color-bg-subtle: #101b26;
+    --color-bg-raised: #172632;
+    --color-border: #29404c;
+    --color-border-strong: #477d93;
+    --color-primary: #a8d9e8;
+    --color-primary-text: #080f17;
+    --color-accent: #79b9ce;
+    --color-accent-subtle: #1a2a34;
+    --color-border-accent: #33505d;
+    --color-increase: #8fc8bc;
+    --color-increase-subtle: #1a272c;
+    --color-decrease: #e39a9a;
+    --color-decrease-subtle: #242128;
+    --color-chart-previous: #3489b0;
+    --color-chart-current: #5bbee0;
     --color-chart-added: #36a06d;
-    --color-chart-modified: #8a81ef;
+    --color-chart-modified: #5bbee0;
     --color-chart-deleted: #c98034;
     --color-attention: #e2b86b;
     --color-attention-subtle: #2a2110;
-    --color-danger: #f08a96;
-    --color-danger-subtle: #2e161b;
+    --color-danger: #e39a9a;
+    --color-danger-subtle: #242128;
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
     --shadow-hover: 0 6px 16px rgba(0, 0, 0, 0.55);
     --color-overlay: rgba(0, 0, 0, 0.6);
-    /* AI 사용 현황 구성 막대(FS-15) 다크 값. 어두운 배경(#0f1320·#161b2c) 기준 색 검사 통과 */
-    --color-chart-series-1: #8a81ef;
+    /* AI 사용 현황 구성 막대(FS-15) 다크 값. 어두운 배경(#0f1320·#161b2c) 기준 색 검사를 통과한 값이고, 시안 배경(#080f17·#101b26)에서도 대비 3:1 이상 */
+    --color-chart-series-1: #5bbee0;
     --color-chart-series-2: #2a9d8f;
     --color-chart-series-3: #c98034;
     --color-chart-series-4: #c06aa6;
@@ -199,37 +199,37 @@
 
 @media screen and (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --color-text: #e6e8f0;
-    --color-text-muted: #a3a7b7;
-    --color-bg: #0f1320;
-    --color-bg-subtle: #161b2c;
-    --color-bg-raised: #2a3047;
-    --color-border: #2a3047;
-    --color-border-strong: #6b7088;
-    --color-primary: #aab4f0;
-    --color-primary-text: #0f1320;
-    --color-accent: #a69ef0;
-    --color-accent-subtle: #241f45;
-    --color-border-accent: #3d3770;
-    --color-increase: #5fcf9c;
-    --color-increase-subtle: #12291f;
-    --color-decrease: #f08a96;
-    --color-decrease-subtle: #2e161b;
-    --color-chart-previous: #5e61a1;
-    --color-chart-current: #8a81ef;
+    --color-text: #f1f6f7;
+    --color-text-muted: #a9bbc4;
+    --color-bg: #080f17;
+    --color-bg-subtle: #101b26;
+    --color-bg-raised: #172632;
+    --color-border: #29404c;
+    --color-border-strong: #477d93;
+    --color-primary: #a8d9e8;
+    --color-primary-text: #080f17;
+    --color-accent: #79b9ce;
+    --color-accent-subtle: #1a2a34;
+    --color-border-accent: #33505d;
+    --color-increase: #8fc8bc;
+    --color-increase-subtle: #1a272c;
+    --color-decrease: #e39a9a;
+    --color-decrease-subtle: #242128;
+    --color-chart-previous: #3489b0;
+    --color-chart-current: #5bbee0;
     --color-chart-added: #36a06d;
-    --color-chart-modified: #8a81ef;
+    --color-chart-modified: #5bbee0;
     --color-chart-deleted: #c98034;
     --color-attention: #e2b86b;
     --color-attention-subtle: #2a2110;
-    --color-danger: #f08a96;
-    --color-danger-subtle: #2e161b;
+    --color-danger: #e39a9a;
+    --color-danger-subtle: #242128;
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
     --shadow-hover: 0 6px 16px rgba(0, 0, 0, 0.55);
     --color-overlay: rgba(0, 0, 0, 0.6);
-    /* AI 사용 현황 구성 막대(FS-15) 다크 값. 어두운 배경(#0f1320·#161b2c) 기준 색 검사 통과 */
-    --color-chart-series-1: #8a81ef;
+    /* AI 사용 현황 구성 막대(FS-15) 다크 값. 어두운 배경(#0f1320·#161b2c) 기준 색 검사를 통과한 값이고, 시안 배경(#080f17·#101b26)에서도 대비 3:1 이상 */
+    --color-chart-series-1: #5bbee0;
     --color-chart-series-2: #2a9d8f;
     --color-chart-series-3: #c98034;
     --color-chart-series-4: #c06aa6;
