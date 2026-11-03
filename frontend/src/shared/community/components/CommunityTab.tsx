@@ -15,9 +15,10 @@ import { CommunityPostCard } from './CommunityPostCard'
 import { QuotePreview } from './CommunityQuoteCard'
 import { NicknameDialog } from './NicknameDialog'
 import { QuotePickerDialog } from './QuotePickerDialog'
+import '../community.css'
 
 /**
- * 기업 화면의 커뮤니티 탭(FS-58, W-01 ②). 위에서부터 고정 문구, 글쓰기(변경점 붙이기 #464), 정렬과 욕설 가리기(#468), 글 카드.
+ * 기업 화면과 분석 결과(#575)의 커뮤니티 탭(FS-58, W-01 ②). 위에서부터 고정 문구, 글쓰기(변경점 붙이기 #464), 정렬과 욕설 가리기(#468), 글 카드.
  * 읽기는 로그인 없이 되고, 쓰기·좋아요·신고를 누르면 로그인 안내가 뜬다. 닉네임이 없으면 처음 쓸 때 닉네임 정하기가 먼저 뜬다.
  * 글을 불러오지 못해도 이 탭 안에서만 안내하므로 다른 탭은 그대로 쓴다.
  */
