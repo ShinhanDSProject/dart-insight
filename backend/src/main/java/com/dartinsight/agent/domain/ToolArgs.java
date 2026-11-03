@@ -52,6 +52,15 @@ public final class ToolArgs {
         return value;
     }
 
+    /** 꼭 있어야 하는 선택지 값 */
+    public String requiredChoice(String name, Collection<String> allowed) {
+        String value = choice(name, allowed, null);
+        if (value == null) {
+            throw new IllegalArgumentException(name + "가 없습니다.");
+        }
+        return value;
+    }
+
     public boolean flag(String name) {
         Object value = values.get(name);
         if (value == null) {

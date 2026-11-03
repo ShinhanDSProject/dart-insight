@@ -436,4 +436,44 @@ class AgentChatApiTest {
         assertThat(jdbcTemplate.queryForList("SELECT task FROM llm_call WHERE analysis_id = ? ORDER BY id",
                 String.class, analysisId)).containsExactly("agent_plan", "agent_answer");
     }
+
+    @Test
+    @DisplayName("원문 Tool에 필수 side가 없으면 500이 아니라 실패한 Tool 결과다")
+    void missingSideIsFailedToolResult() throws Exception {
+        AI.on(STEPS, twoSteps("{\"callId\":\"c1\",\"name\":\"get_document_outline\",\"arguments\":{}},"
+                        + "{\"callId\":\"c2\",\"name\":\"get_document_section\",\"arguments\":{\"sectionNo\":1}}",
+                request -> finalAnswer("NOT_FOUND", null, "", "")));
+
+        chat("목차 보여줘").andExpect(status().isOk());
+
+        String second = AI.requests(STEPS).get(1).bodyText();
+        assertThat(JsonPath.<List<Boolean>>read(second, "$.toolResults[*].ok")).containsExactly(false, false);
+    }
+
+    @Test
+    @DisplayName("원문 열기 액션의 문단 번호는 그 항목에 있을 때만 남긴다")
+    void documentActionKeepsOnlyExistingBlock() throws Exception {
+        String evidence = "T" + lawsuitChangeId;
+        AI.on(STEPS, twoSteps("{\"callId\":\"c1\",\"name\":\"search_text_changes\",\"arguments\":{}}",
+                request -> finalAnswer("ANSWERED", "소송이 있어요[" + evidence + "].", "\"" + evidence + "\"",
+                        "{\"type\":\"OPEN_DOCUMENT\",\"side\":\"current\",\"sectionNo\":3,\"blockNo\":5},"
+                                + "{\"type\":\"OPEN_DOCUMENT\",\"side\":\"current\",\"sectionNo\":3,\"blockNo\":1}")));
+
+        chat("소송 원문 열어줘")
+                .andExpect(jsonPath("$.actions", hasSize(1)))
+                .andExpect(jsonPath("$.actions[0].blockNo").value(5));
+    }
+
+    @Test
+    @DisplayName("문장 변경 검색 결과는 변경 줄만이라 size만큼 변경을 보낸다")
+    void searchResultHasOnlyChangeLines() throws Exception {
+        AI.on(STEPS, twoSteps("{\"callId\":\"c1\",\"name\":\"search_text_changes\",\"arguments\":{\"size\":1}}",
+                request -> finalAnswer("NOT_FOUND", null, "", "")));
+
+        chat("변경 하나만").andExpect(status().isOk());
+
+        String second = AI.requests(STEPS).get(1).bodyText();
+        assertThat(JsonPath.<List<String>>read(second, "$.toolResults[0].items[*].evidenceId"))
+                .containsExactly("T" + lawsuitChangeId);
+    }
 }
