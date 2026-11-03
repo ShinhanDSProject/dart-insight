@@ -2844,7 +2844,7 @@
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
-| 400 | `COMMON_INVALID_INPUT` | `message`가 비었거나 2자 미만·500자 초과(`errors[].field`=`message`), `history`가 6개 초과이거나 `role`·`text`가 맞지 않음, `context.tab`이 위 값이 아님 |
+| 400 | `COMMON_INVALID_INPUT` | `message`가 비었거나 2자 미만·500자 초과(`errors[].field`=`message`), `history`가 6개 초과이거나 `role`·`text`가 맞지 않음, `context.tab`·`context.side`가 위 값이 아님 |
 | 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 |
 | 409 | `ANALYSIS_NOT_READY` | 분석이 끝나지 않음 |
 | 503 | `AI_SERVER_UNAVAILABLE` | AI 서버 또는 LLM을 쓸 수 없음 |
