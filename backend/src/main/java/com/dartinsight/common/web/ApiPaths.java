@@ -64,6 +64,8 @@ public final class ApiPaths {
     public static final String COMPANY_CHECKPOINTS = COMPANIES + "/{corpCode}/checkpoints";
     /** 기업 게시판 글 목록·쓰기(6.6, FS-58) */
     public static final String COMPANY_POSTS = COMPANIES + "/{corpCode}/posts";
+    /** 기업 뉴스(NAVER API HUB, #592, ADR-0046) */
+    public static final String COMPANY_NEWS = COMPANIES + "/{corpCode}/news";
     /** 사업보고서에 근거해 묻기(FS-53) */
     public static final String COMPANY_QUESTIONS = COMPANIES + "/{corpCode}/questions";
     public static final String REPORT_BY_RCEPT_NO = "/reports/{rceptNo}";

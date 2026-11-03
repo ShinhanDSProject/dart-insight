@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -41,6 +42,7 @@ public class FakeOpenDartServer implements AutoCloseable {
     private final HttpServer server;
     private final Map<String, List<Response>> responses = new ConcurrentHashMap<>();
     private final List<String> requests = new CopyOnWriteArrayList<>();
+    private final List<Map<String, List<String>>> requestHeaders = new CopyOnWriteArrayList<>();
 
     public FakeOpenDartServer() throws IOException {
         server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
@@ -62,6 +64,11 @@ public class FakeOpenDartServer implements AutoCloseable {
         return new ArrayList<>(requests);
     }
 
+    /** 받은 요청의 헤더(받은 순서). 헤더 이름은 소문자로 바꾼다 */
+    public List<Map<String, List<String>>> requestHeaders() {
+        return new ArrayList<>(requestHeaders);
+    }
+
     public OpenDartProperties properties(String apiKey) {
         return new OpenDartProperties(apiKey, baseUrl(), Duration.ofSeconds(1), Duration.ofSeconds(2), 2,
                 OpenDartProperties.CorpCodeSync.NEVER);
@@ -70,6 +77,9 @@ public class FakeOpenDartServer implements AutoCloseable {
     private void handle(HttpExchange exchange) throws IOException {
         String path = exchange.getRequestURI().getPath();
         requests.add(exchange.getRequestURI().toString());
+        Map<String, List<String>> headers = new ConcurrentHashMap<>();
+        exchange.getRequestHeaders().forEach((name, values) -> headers.put(name.toLowerCase(Locale.ROOT), values));
+        requestHeaders.add(headers);
         List<Response> queue = responses.get(path);
         Response response = queue == null || queue.isEmpty() ? Response.status(404)
                 : queue.size() > 1 ? queue.remove(0) : queue.get(0);

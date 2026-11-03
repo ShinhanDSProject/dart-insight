@@ -19,6 +19,11 @@ app:
     # 테스트는 공공데이터포털을 실제로 부르지 않는다(가짜 서버를 띄움)
     api-key: test-key-not-real
     base-url: http://127.0.0.1:1
+  naver-search:
+    # 테스트는 NAVER API HUB를 실제로 부르지 않는다(가짜 서버를 띄움)
+    client-id: test-id-not-real
+    client-secret: test-secret-not-real
+    base-url: http://127.0.0.1:1
   featured:
     sync: never
   season-changes:
