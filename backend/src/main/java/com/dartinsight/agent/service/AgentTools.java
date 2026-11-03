@@ -25,6 +25,8 @@ import com.dartinsight.analysis.service.TextEvidenceService;
 import com.dartinsight.analysis.service.TextEvidenceService.SourceEvidence;
 import com.dartinsight.analysis.service.TextEvidenceService.TextEvidence;
 import com.dartinsight.common.error.ApiException;
+import com.dartinsight.document.domain.EvidenceRef;
+import com.dartinsight.document.service.DocumentService;
 import com.dartinsight.explanation.domain.ExplanationStatus;
 import com.dartinsight.explanation.dto.TextExplanationResponse;
 import com.dartinsight.explanation.service.ExplanationService;
@@ -78,6 +80,7 @@ public class AgentTools {
     private final SummaryQueryService summaryQueryService;
     private final ExplanationService explanationService;
     private final RelatedDisclosureService relatedDisclosureService;
+    private final DocumentService documentService;
 
     /**
      * Tool 하나.
@@ -288,7 +291,7 @@ public class AgentTools {
                 lines.add(new ToolLine(Evidence.financialChange(entry.changeId(), entry.sjDiv(), null,
                         stored.analysis().getCurrentRceptNo(), row.factSentence()).withGrade(grade), text));
                 if (row.quote() != null && row.quoteEvidenceId() != null) {
-                    lines.add(quoteLine(stored, row, grade));
+                    lines.add(quoteLine(stored.analysis().getCurrentRceptNo(), row, grade));
                 }
             } else if (row.aiText() != null) {
                 lines.add(new ToolLine(Evidence.textChange(entry.changeId(), null, null, null, row.aiText()),
@@ -301,12 +304,21 @@ public class AgentTools {
         return lines;
     }
 
-    private static ToolLine quoteLine(StoredSummary stored, SummaryItemRow row, String grade) {
-        String evidenceId = row.quoteEvidenceId();
-        String rceptNo = evidenceId.substring(0, evidenceId.indexOf('#'));
-        String side = rceptNo.equals(stored.analysis().getCurrentRceptNo()) ? "current" : "previous";
-        Evidence evidence = new Evidence(evidenceId, Evidence.Kind.BLOCK, side, rceptNo, null, null, null, null, null,
-                null, row.quote(), null, null, null, null, null, grade);
+    /**
+     * 요약 인용 한 줄. 근거 ID로 저장된 원문의 문단을 찾아 항목 번호·섹션 경로를 붙인다(근거 칩으로 원문을 열 수 있게).
+     * 원문에서 찾지 못하면 위치 없이 인용만 둔다.
+     */
+    private ToolLine quoteLine(String currentRceptNo, SummaryItemRow row, String grade) {
+        EvidenceRef ref = EvidenceRef.parse(row.quoteEvidenceId());
+        String side = ref.rceptNo().equals(currentRceptNo) ? "current" : "previous";
+        Evidence evidence = documentService.find(ref.rceptNo())
+                .flatMap(document -> documentService.block(document, ref.blockNo()).map(block -> Evidence.block(
+                        block.evidenceId(), side, block.rceptNo(), block.sectionNo(), block.blockNo(),
+                        TextEvidenceService.paths(documentService.sections(document)).get(block.sectionNo()),
+                        row.quote())))
+                .orElseGet(() -> new Evidence(row.quoteEvidenceId(), Evidence.Kind.BLOCK, side, ref.rceptNo(), null,
+                        null, null, null, null, null, row.quote(), null, null, null, null, null, null))
+                .withGrade(grade);
         return new ToolLine(evidence, "[요약 인용, 등급 " + grade + "] " + row.quote());
     }
 

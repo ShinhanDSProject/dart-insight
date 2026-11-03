@@ -79,6 +79,11 @@ public class AgentChatService {
         }
     }
 
+    /** 먼저 받은 근거를 두고, 나중에 온 같은 근거(요약)에만 설명 등급이 있으면 그 등급을 보탠다 */
+    private static Evidence withGrade(Evidence first, Evidence later) {
+        return first.grade() == null && later.grade() != null ? first.withGrade(later.grade()) : first;
+    }
+
     private void saveCalls(long analysisId, List<LlmCallRow> calls) {
         if (!calls.isEmpty()) {
             transactionTemplate.executeWithoutResult(status -> callStore.save(analysisId, calls));
@@ -171,7 +176,7 @@ public class AgentChatService {
             List<AgentStepAiRequest.Item> items = new ArrayList<>();
             for (ToolLine line : run.lines().lines()) {
                 if (line.evidence() != null) {
-                    evidence.putIfAbsent(line.evidenceId(), line.evidence());
+                    evidence.merge(line.evidenceId(), line.evidence(), AgentChatService::withGrade);
                 }
                 items.add(new AgentStepAiRequest.Item(line.evidenceId(), line.text(), line.grade()));
             }

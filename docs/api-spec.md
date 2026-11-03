@@ -2872,7 +2872,7 @@
   | `OPEN_GLOSSARY` | `term` | 용어 사전(`shared/lib/glossary.ts`)을 그 용어로 엶. 사전에 없으면 '등록된 용어가 없어요'(뜻을 지어내지 않음) |
   | `DOWNLOAD_BRIEF` | — | 비교 브리프 Markdown 내려받기(#515, LLM 없음) |
   | `CONFIRM_SAVE_NOTE` | `note`(`POST /api/notes` 본문과 같음: `kind`·`analysisId`·`changeId`·`questionId`·`citationNo`·`memo`) | 확인 버튼. 누르면 `POST /api/notes`. 로그인하지 않았으면 버튼 대신 로그인 안내 |
-  | `CONFIRM_FAVORITE` | `corpCode` | 확인 버튼. 누르면 `PUT /api/favorite-companies/{corpCode}`. 로그인 안내는 위와 같음 |
+  | `CONFIRM_FAVORITE` | `corpCode`(이 분석의 기업. LLM이 정하지 않고 backend가 채움) | 확인 버튼. 누르면 `PUT /api/favorite-companies/{corpCode}`. 로그인 안내는 위와 같음 |
   | `PIN_CHANGE` | `changeId` | 문장 변화 탭의 변경 고정(`usePinnedChanges`, 브라우저에만 저장, 확인 없음) |
   | `OPEN_POST_DRAFT` | `corpCode`, `quote`(`POST /api/companies/{corpCode}/posts`의 `quote`와 같음), `body` | 기업 게시판 글쓰기를 인용과 초안을 채워 엶. `body`는 검토 노드를 통과한 `answer`에서 근거 표시를 뺀 글. 게시는 사용자가 누를 때만 |
   | `OPEN_ANALYSIS` | `analysisId` | 이미 끝난 다른 분석의 결과 화면으로 이동 |

@@ -553,7 +553,11 @@ class AgentChatApiTest {
 
         chat("이 변경 좋은 거야?")
                 .andExpect(jsonPath("$.citations[0].kind").value("BLOCK"))
-                .andExpect(jsonPath("$.citations[0].grade").value("RELATED"));
+                .andExpect(jsonPath("$.citations[0].grade").value("RELATED"))
+                .andExpect(jsonPath("$.citations[0].side").value("current"))
+                .andExpect(jsonPath("$.citations[0].sectionNo").value(3))
+                .andExpect(jsonPath("$.citations[0].blockNo").value(5))
+                .andExpect(jsonPath("$.citations[0].sectionPath").value("XI. 그 밖에 투자자 보호를 위하여 필요한 사항"));
 
         String second = AI.requests(STEPS).get(1).bodyText();
         assertThat(JsonPath.<List<String>>read(second, "$.toolResults[0].items[*].evidenceId"))
@@ -574,7 +578,7 @@ class AgentChatApiTest {
                         + "\"citationNo\":1}},"
                         + "{\"type\":\"CONFIRM_SAVE_NOTE\",\"note\":{\"kind\":\"TEXT_CHANGE\",\"changeId\":"
                         + lawsuitChangeId + ",\"memo\":\"" + "가".repeat(1001) + "\"}},"
-                        + "{\"type\":\"CONFIRM_FAVORITE\",\"corpCode\":\"00000001\"},"
+                        + "{\"type\":\"CONFIRM_FAVORITE\"},"
                         + "{\"type\":\"CONFIRM_FAVORITE\",\"corpCode\":\"99999999\"}")));
 
         chat("이 계정 노트에 담고 관심 기업에도 넣어줘")
@@ -585,7 +589,12 @@ class AgentChatApiTest {
                 .andExpect(jsonPath("$.actions[0].note.changeId").value(changeId))
                 .andExpect(jsonPath("$.actions[0].note.memo").value("환율 확인"))
                 .andExpect(jsonPath("$.actions[1].type").value("CONFIRM_FAVORITE"))
-                .andExpect(jsonPath("$.actions[1].label").value("관심 기업에 추가"));
+                .andExpect(jsonPath("$.actions[1].label").value("관심 기업에 추가"))
+                .andExpect(jsonPath("$.actions[1].corpCode").value("00000001"));
+        // 관심 기업 액션은 고유번호를 LLM이 정하지 않는다(ai-server 요청에 고유번호가 없음)
+        String request = AI.requests(STEPS).getFirst().bodyText();
+        assertThat(JsonPath.<List<String>>read(request,
+                "$.actions[?(@.type == 'CONFIRM_FAVORITE')].parameters.required[*]")).isEmpty();
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM judgment_note_item", Integer.class)).isZero();
     }
 
@@ -602,5 +611,24 @@ class AgentChatApiTest {
         chat("영업이익 노트 보여줘").andExpect(status().isOk());
 
         assertThat(AI.requests(STEPS)).allSatisfy(r -> assertThat(r.bodyText()).doesNotContain("비밀 메모"));
+    }
+
+    @Test
+    @DisplayName("재무 Tool로 먼저 받은 계정 근거에도 뒤에 받은 요약의 설명 등급이 붙는다")
+    void summaryGradeIsAddedToEarlierFinancialEvidence() throws Exception {
+        long changeId = financialChangeId();
+        AI.on(STEPS, request -> {
+            List<?> results = JsonPath.read(request.bodyText(), "$.toolResults");
+            return Reply.ok(switch (results.size()) {
+                case 0 -> toolCalls("{\"callId\":\"c1\",\"name\":\"get_financial_changes\",\"arguments\":{}}");
+                case 1 -> toolCalls("{\"callId\":\"c2\",\"name\":\"get_summary\",\"arguments\":{}}");
+                default -> finalAnswer("ANSWERED", "영업이익이 줄었어요[F" + changeId + "].", "\"F" + changeId + "\"", "");
+            });
+        });
+
+        chat("영업이익은 왜 줄었어?")
+                .andExpect(jsonPath("$.citations[0].kind").value("FINANCIAL_CHANGE"))
+                .andExpect(jsonPath("$.citations[0].accountName").value("영업이익"))
+                .andExpect(jsonPath("$.citations[0].grade").value("RELATED"));
     }
 }
