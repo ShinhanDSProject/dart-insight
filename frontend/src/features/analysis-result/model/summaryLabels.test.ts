@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   aiInfoLabel,
+  DELETED_NOTE,
+  deletedNote,
   explanationNote,
   gradeLabel,
   gradeNote,
@@ -65,22 +67,22 @@ describe('summaryLabels', () => {
   })
 
   it('요약 항목은 열 수 있는 결과로만 이어진다', () => {
-    expect(summaryLink({ type: 'FINANCIAL', changeId: 3, sjDiv: 'IS' })).toEqual({ tab: 'financial', sjDiv: 'IS', changeId: 3 })
-    expect(summaryLink({ type: 'TEXT', changeId: 7, sjDiv: null })).toEqual({ tab: 'text', changeId: 7 })
-    expect(summaryLink({ type: 'FINANCIAL', changeId: 3, sjDiv: null })).toBeNull()
-    expect(summaryLink({ type: 'TEXT', changeId: null, sjDiv: null })).toBeNull()
+    expect(summaryLink({ type: 'FINANCIAL', changeId: 3, sjDiv: 'IS', changeType: null })).toEqual({ tab: 'financial', sjDiv: 'IS', changeId: 3 })
+    expect(summaryLink({ type: 'TEXT', changeId: 7, sjDiv: null, changeType: null })).toEqual({ tab: 'text', changeId: 7 })
+    expect(summaryLink({ type: 'FINANCIAL', changeId: 3, sjDiv: null, changeType: null })).toBeNull()
+    expect(summaryLink({ type: 'TEXT', changeId: null, sjDiv: null, changeType: null })).toBeNull()
   })
 
   it('요약 카드의 노트 담기·커뮤니티 인용·AI 질문을 원본 변경 ID 기준으로 조립한다(#536)', () => {
-    expect(summaryNoteTarget({ type: 'FINANCIAL', changeId: 3, sjDiv: 'IS' })).toEqual({
+    expect(summaryNoteTarget({ type: 'FINANCIAL', changeId: 3, sjDiv: 'IS', changeType: null })).toEqual({
       kind: 'FINANCIAL_CHANGE',
       changeId: 3,
     })
-    expect(summaryNoteTarget({ type: 'TEXT', changeId: 7, sjDiv: null })).toEqual({
+    expect(summaryNoteTarget({ type: 'TEXT', changeId: 7, sjDiv: null, changeType: null })).toEqual({
       kind: 'TEXT_CHANGE',
       changeId: 7,
     })
-    expect(summaryNoteTarget({ type: 'TEXT', changeId: null, sjDiv: null })).toBeNull()
+    expect(summaryNoteTarget({ type: 'TEXT', changeId: null, sjDiv: null, changeType: null })).toBeNull()
 
     expect(
       summaryNoteLabel(
@@ -92,20 +94,20 @@ describe('summaryLabels', () => {
       summaryNoteLabel({ itemNo: 2, kind: 'TEXT', factSentence: null, aiText: '우발부채 문단에 소송 1건이 더해졌어요.' }),
     ).toBe('우발부채 문단에 소송 1건이 더해졌어요')
 
-    expect(summaryQuoteLink('00126380', 42, { type: 'FINANCIAL', changeId: 3, sjDiv: 'IS' })).toBe(
+    expect(summaryQuoteLink('00126380', 42, { type: 'FINANCIAL', changeId: 3, sjDiv: 'IS', changeType: null })).toBe(
       '/companies/00126380?view=community&quoteAnalysis=42&quoteKind=FINANCIAL_CHANGE&quoteChange=3&quoteSj=IS',
     )
-    expect(summaryQuoteLink('00126380', 42, { type: 'TEXT', changeId: 7, sjDiv: null })).toBe(
+    expect(summaryQuoteLink('00126380', 42, { type: 'TEXT', changeId: 7, sjDiv: null, changeType: null })).toBe(
       '/companies/00126380?view=community&quoteAnalysis=42&quoteKind=TEXT_CHANGE&quoteChange=7',
     )
-    expect(summaryQuoteLink(undefined, 42, { type: 'TEXT', changeId: 7, sjDiv: null })).toBeNull()
-    expect(summaryQuoteLink('00126380', 42, { type: 'TEXT', changeId: null, sjDiv: null })).toBeNull()
+    expect(summaryQuoteLink(undefined, 42, { type: 'TEXT', changeId: 7, sjDiv: null, changeType: null })).toBeNull()
+    expect(summaryQuoteLink('00126380', 42, { type: 'TEXT', changeId: null, sjDiv: null, changeType: null })).toBeNull()
 
     expect(
       summaryItemQuestion(
         {
           kind: 'FINANCIAL',
-          target: { type: 'FINANCIAL', changeId: 3, sjDiv: 'IS' },
+          target: { type: 'FINANCIAL', changeId: 3, sjDiv: 'IS', changeType: null },
           factSentence: '매출액이 145조 원에서 152조 원으로 늘었어요(+4.8%).',
           aiText: null,
         },
@@ -115,7 +117,7 @@ describe('summaryLabels', () => {
 
     const textQ = summaryItemQuestion({
       kind: 'TEXT',
-      target: { type: 'TEXT', changeId: 7, sjDiv: null },
+      target: { type: 'TEXT', changeId: 7, sjDiv: null, changeType: null },
       factSentence: null,
       aiText: '우발부채 문단에 소송 1건이 더해졌어요.',
     })
@@ -125,10 +127,24 @@ describe('summaryLabels', () => {
     expect(
       summaryItemQuestion({
         kind: 'TEXT',
-        target: { type: 'TEXT', changeId: null, sjDiv: null },
+        target: { type: 'TEXT', changeId: null, sjDiv: null, changeType: null },
         factSentence: null,
         aiText: '변경 ID 없는 문장',
       }),
     ).toBeNull()
+  })
+})
+
+describe('deletedNote(FS-70)', () => {
+  it('문장 변화의 삭제 줄에만 끝났다는 뜻이 아니라는 안내를 붙인다', () => {
+    expect(deletedNote({ type: 'TEXT', changeType: 'DELETED' })).toBe(DELETED_NOTE)
+    expect(DELETED_NOTE).toBe('빠졌다고 끝났다는 뜻은 아니에요. 빠진 이유는 원문에서 확인해 주세요.')
+  })
+
+  it('추가·수정 줄, 유형을 모르는 줄, 재무 줄에는 안내를 붙이지 않는다', () => {
+    expect(deletedNote({ type: 'TEXT', changeType: 'ADDED' })).toBeNull()
+    expect(deletedNote({ type: 'TEXT', changeType: 'MODIFIED' })).toBeNull()
+    expect(deletedNote({ type: 'TEXT', changeType: null })).toBeNull()
+    expect(deletedNote({ type: 'FINANCIAL', changeType: null })).toBeNull()
   })
 })

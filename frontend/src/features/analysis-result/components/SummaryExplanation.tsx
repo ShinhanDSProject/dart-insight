@@ -4,7 +4,7 @@ import type { SummaryEvidence, SummaryItem } from '@/shared/api/summary'
 import { Badge, Button, Notice } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import type { SourceTarget } from '../model/resultParams'
-import { aiInfoLabel, explanationNote, gradeLabel, gradeNote, QUOTE_CAPTION, TEMPLATE_CAPTION, TEMPLATE_NO_QUOTE } from '../model/summaryLabels'
+import { aiInfoLabel, deletedNote, explanationNote, gradeLabel, gradeNote, QUOTE_CAPTION, TEMPLATE_CAPTION, TEMPLATE_NO_QUOTE } from '../model/summaryLabels'
 
 interface SummaryExplanationProps {
   item: SummaryItem
@@ -23,6 +23,7 @@ export function SummaryExplanation({ item, analysis, onOpenSource, showText = tr
   const missing = showText && item.kind === 'FINANCIAL' ? explanationNote(item.explanationStatus, item.gradeReason) : null
   const grade = item.kind === 'FINANCIAL' ? gradeLabel(item.explanationGrade) : null
   const note = item.kind === 'FINANCIAL' ? gradeNote(item.explanationGrade) : null
+  const deleted = showText ? deletedNote(item.target) : null
   return (
     <>
       {item.aiText && (
@@ -33,6 +34,7 @@ export function SummaryExplanation({ item, analysis, onOpenSource, showText = tr
               {item.aiGenerated && <Badge tone="accent">AI 생성</Badge>} {item.aiText}
             </p>
           )}
+          {deleted && <p className="deleted-note">{deleted}</p>}
           {note && <p className="summary-item__grade-note">{note}</p>}
           {item.quote && <Quote item={item} caption={QUOTE_CAPTION} analysis={analysis} onOpenSource={onOpenSource} />}
           {item.ai && (

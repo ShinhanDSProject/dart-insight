@@ -63,7 +63,7 @@ const mockSummary: Summary = {
     {
       itemNo: 1,
       kind: 'FINANCIAL',
-      target: { type: 'FINANCIAL', changeId: 1, sjDiv: 'IS' },
+      target: { type: 'FINANCIAL', changeId: 1, sjDiv: 'IS', changeType: null },
       lens: 'PROFITABILITY',
       lensLabel: '수익성',
       factSentence: '영업이익이 1조 2,000억원 증가했어요.',
@@ -92,7 +92,7 @@ const mockSummary: Summary = {
     {
       itemNo: 2,
       kind: 'FINANCIAL',
-      target: { type: 'FINANCIAL', changeId: 2, sjDiv: 'BS' },
+      target: { type: 'FINANCIAL', changeId: 2, sjDiv: 'BS', changeType: null },
       lens: 'STABILITY',
       lensLabel: '재무 안정성',
       factSentence: '차입금이 5,000억원 감소했어요.',
@@ -113,7 +113,7 @@ const mockSummary: Summary = {
     {
       itemNo: 3,
       kind: 'TEXT',
-      target: { type: 'TEXT', changeId: 10, sjDiv: null },
+      target: { type: 'TEXT', changeId: 10, sjDiv: null, changeType: null },
       lens: 'RISK',
       lensLabel: '위험',
       factSentence: null,
@@ -150,7 +150,7 @@ const mockSummary: Summary = {
     {
       itemNo: 2,
       kind: 'FINANCIAL',
-      target: { type: 'FINANCIAL', changeId: 2, sjDiv: 'BS' },
+      target: { type: 'FINANCIAL', changeId: 2, sjDiv: 'BS', changeType: null },
       lens: 'STABILITY',
       lensLabel: '재무 안정성',
       reason: '근거 확인 실패',

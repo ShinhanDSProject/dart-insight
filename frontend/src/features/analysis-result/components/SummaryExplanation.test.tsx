@@ -22,7 +22,7 @@ function financial(fields: Partial<SummaryItem>): SummaryItem {
   return {
     itemNo: 1,
     kind: 'FINANCIAL',
-    target: { type: 'FINANCIAL', changeId: 101, sjDiv: 'IS' },
+    target: { type: 'FINANCIAL', changeId: 101, sjDiv: 'IS', changeType: null },
     lens: 'GROWTH',
     lensLabel: '성장',
     factSentence: '매출액이 145조 원에서 152조 원으로 늘었어요(+4.8%).',

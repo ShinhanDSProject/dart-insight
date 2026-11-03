@@ -1578,6 +1578,15 @@
   color: var(--color-text-muted);
 }
 
+/* 삭제 줄 안내(FS-70): '빠졌어요'를 해결로 읽지 않게. 주의 색(--color-attention, 대비 5.8 · 다크 10.4) */
+.deleted-note {
+  display: block;
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-attention);
+}
+
 .summary-item__quote {
   display: flex;
   flex-direction: column;

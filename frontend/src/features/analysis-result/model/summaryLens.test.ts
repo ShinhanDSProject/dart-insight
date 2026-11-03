@@ -26,7 +26,7 @@ function item(itemNo: number, lens: SummaryLens, kind: 'FINANCIAL' | 'TEXT' = 'F
   return {
     itemNo,
     kind,
-    target: { type: kind, changeId: itemNo, sjDiv: kind === 'FINANCIAL' ? 'IS' : null },
+    target: { type: kind, changeId: itemNo, sjDiv: kind === 'FINANCIAL' ? 'IS' : null, changeType: null },
     lens,
     lensLabel: labels[lens],
     factSentence: null,

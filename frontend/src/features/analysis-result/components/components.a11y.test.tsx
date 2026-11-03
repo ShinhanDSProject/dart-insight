@@ -206,9 +206,9 @@ describe('변화 개요 접근성(axe)', () => {
 
 describe('핵심 3줄 접근성(axe)', () => {
   const lines: HeadlineLine[] = [
-    { itemNo: 1, kind: 'FINANCIAL', text: '매출액이 1,000억원에서 1,100억원으로 10.0% 늘었어요.', aiGenerated: false, target: { type: 'FINANCIAL', changeId: 31, sjDiv: 'IS' } },
-    { itemNo: 2, kind: 'FINANCIAL', text: '부채총계가 800억원에서 600억원으로 25.0% 줄었어요.', aiGenerated: false, target: { type: 'FINANCIAL', changeId: null, sjDiv: 'BS' } },
-    { itemNo: 3, kind: 'TEXT', text: '새 공장 투자 계획이 추가됐어요.', aiGenerated: true, target: { type: 'TEXT', changeId: 5, sjDiv: null } },
+    { itemNo: 1, kind: 'FINANCIAL', text: '매출액이 1,000억원에서 1,100억원으로 10.0% 늘었어요.', aiGenerated: false, target: { type: 'FINANCIAL', changeId: 31, sjDiv: 'IS', changeType: null } },
+    { itemNo: 2, kind: 'FINANCIAL', text: '부채총계가 800억원에서 600억원으로 25.0% 줄었어요.', aiGenerated: false, target: { type: 'FINANCIAL', changeId: null, sjDiv: 'BS', changeType: null } },
+    { itemNo: 3, kind: 'TEXT', text: '새 공장 투자 계획이 추가됐어요.', aiGenerated: true, target: { type: 'TEXT', changeId: 5, sjDiv: null, changeType: null } },
   ]
   const opener = (target: HeadlineLine['target']) => (target.changeId === null ? null : noop)
 

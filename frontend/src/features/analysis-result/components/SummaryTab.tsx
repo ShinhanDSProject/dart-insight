@@ -33,6 +33,7 @@ import {
   type SummaryView,
 } from '../model/summaryLens'
 import {
+  deletedNote,
   explanationNote,
   kindLabel,
   SUMMARY_NOTE,
@@ -386,6 +387,7 @@ function SummaryCard({ item, analysis, amount, onOpen, onOpenSource, onAsk, aski
   // 줄 오른쪽에는 '확인된 설명 없음'처럼 앞말만 두고, 자세한 이유는 '더 보기' 안에 둔다(#560)
   const missing = item.kind === 'FINANCIAL' ? explanationNote(item.explanationStatus, item.gradeReason)?.split(' · ')[0] : null
   const lead = item.factSentence ?? item.aiText
+  const deleted = deletedNote(item.target)
 
   return (
     <article className="summary-item">
@@ -401,6 +403,7 @@ function SummaryCard({ item, analysis, amount, onOpen, onOpenSource, onAsk, aski
           </Button>
         )}
       </div>
+      {deleted && <p className="deleted-note">{deleted}</p>}
       {item.factSentence !== null && item.aiText && (
         <p className="summary-item__ai-text">
           {item.aiGenerated && <Badge tone="accent">AI 생성</Badge>} {item.aiText}

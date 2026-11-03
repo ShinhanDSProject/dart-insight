@@ -2,7 +2,7 @@ import { apiGet } from './client'
 import { endpoints } from './endpoints'
 import type { DocumentSide } from './documents'
 import type { SjDiv } from './results'
-import type { TextStatus } from './textChanges'
+import type { ChangeType, TextStatus } from './textChanges'
 
 /** docs/api-spec.md GET /api/analyses/{id}/summary */
 export type SummaryStatus = 'COMPLETED' | 'PARTIAL' | 'EMPTY'
@@ -20,6 +20,8 @@ export interface SummaryTarget {
   /** FINANCIAL이면 financial-changes의 changeId, TEXT면 text-changes의 changeId */
   changeId: number | null
   sjDiv: SjDiv | null
+  /** 문장 변화면 그 변경의 유형, 재무 수치이거나 변경을 찾지 못했으면 null(FS-70). DELETED 줄에 안내를 붙인다 */
+  changeType: ChangeType | null
 }
 
 export interface SummaryEvidence {

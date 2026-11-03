@@ -6,7 +6,7 @@ function financial(itemNo: number, factSentence: string | null, aiText: string |
   return {
     itemNo,
     kind: 'FINANCIAL',
-    target: { type: 'FINANCIAL', changeId: itemNo * 10, sjDiv: 'IS' },
+    target: { type: 'FINANCIAL', changeId: itemNo * 10, sjDiv: 'IS', changeType: null },
     lens: 'PROFITABILITY',
     lensLabel: '수익성',
     factSentence,
@@ -26,7 +26,7 @@ function text(itemNo: number, aiText: string | null): SummaryItem {
   return {
     itemNo,
     kind: 'TEXT',
-    target: { type: 'TEXT', changeId: itemNo * 10, sjDiv: null },
+    target: { type: 'TEXT', changeId: itemNo * 10, sjDiv: null, changeType: null },
     lens: 'OTHER',
     lensLabel: '기타',
     factSentence: null,
@@ -64,14 +64,14 @@ describe('headlineItems', () => {
     const [line] = headlineItems({ items: [financial(1, '매출액이 10.0% 늘었어요.', '반도체 판매가 늘었어요.')] })
     expect(line.text).toBe('매출액이 10.0% 늘었어요.')
     expect(line.aiGenerated).toBe(false)
-    expect(line.target).toEqual({ type: 'FINANCIAL', changeId: 10, sjDiv: 'IS' })
+    expect(line.target).toEqual({ type: 'FINANCIAL', changeId: 10, sjDiv: 'IS', changeType: null })
   })
 
   it("문장 줄은 AI 요약을 쓰고 'AI 생성'으로 표시하며 그 변경을 가리킨다", () => {
     const [line] = headlineItems({ items: [text(1, '새 공장 투자 계획이 추가됐어요.')] })
     expect(line.text).toBe('새 공장 투자 계획이 추가됐어요.')
     expect(line.aiGenerated).toBe(true)
-    expect(line.target).toEqual({ type: 'TEXT', changeId: 10, sjDiv: null })
+    expect(line.target).toEqual({ type: 'TEXT', changeId: 10, sjDiv: null, changeType: null })
   })
 
   it('항목이 부족하면 있는 만큼만 고른다', () => {

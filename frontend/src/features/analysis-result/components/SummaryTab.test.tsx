@@ -23,7 +23,7 @@ function item(itemNo: number, lens: SummaryLens, kind: 'FINANCIAL' | 'TEXT', sen
   return {
     itemNo,
     kind,
-    target: { type: kind, changeId: itemNo, sjDiv: kind === 'FINANCIAL' ? 'IS' : null },
+    target: { type: kind, changeId: itemNo, sjDiv: kind === 'FINANCIAL' ? 'IS' : null, changeType: kind === 'TEXT' ? 'ADDED' : null },
     lens,
     lensLabel: labels[lens],
     factSentence: kind === 'FINANCIAL' ? sentence : null,
@@ -55,7 +55,7 @@ const summary: Summary = {
   lensCounts: (Object.keys(labels) as SummaryLens[]).map((lens) => ({ lens, lensLabel: labels[lens], count: counts[lens] ?? 0 })),
   reviewNeededCount: 1,
   reviewNeeded: [
-    { itemNo: 4, kind: 'TEXT', target: { type: 'TEXT', changeId: 4, sjDiv: null }, lens: 'RISK', lensLabel: '위험', reason: '원문에 없는 숫자(3)를 썼어요.', blockedRules: [] },
+    { itemNo: 4, kind: 'TEXT', target: { type: 'TEXT', changeId: 4, sjDiv: null, changeType: null }, lens: 'RISK', lensLabel: '위험', reason: '원문에 없는 숫자(3)를 썼어요.', blockedRules: [] },
   ],
 }
 

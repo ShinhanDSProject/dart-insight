@@ -7,7 +7,7 @@ function summary(kind: 'FINANCIAL' | 'TEXT', sjDiv: 'IS' | 'BS' | null, changeId
   return {
     itemNo: changeId,
     kind,
-    target: { type: kind, changeId, sjDiv },
+    target: { type: kind, changeId, sjDiv, changeType: null },
     lens: 'OTHER',
     lensLabel: '기타',
     factSentence: null,
