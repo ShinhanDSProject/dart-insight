@@ -2632,7 +2632,7 @@
   "items": [
     {
       "itemNo": 1, "kind": "FINANCIAL",
-      "target": { "type": "FINANCIAL", "changeId": 101, "sjDiv": "IS" },
+      "target": { "type": "FINANCIAL", "changeId": 101, "sjDiv": "IS", "changeType": null },
       "lens": "GROWTH", "lensLabel": "성장",
       "factSentence": "매출액이 145조 원에서 152조 원으로 늘었어요(+4.8%).",
       "aiText": "회사는 메모리 수요 회복으로 매출이 늘었다고 적었어요.",
@@ -2647,7 +2647,7 @@
     },
     {
       "itemNo": 3, "kind": "FINANCIAL",
-      "target": { "type": "FINANCIAL", "changeId": 102, "sjDiv": "IS" },
+      "target": { "type": "FINANCIAL", "changeId": 102, "sjDiv": "IS", "changeType": null },
       "lens": "PROFITABILITY", "lensLabel": "수익성",
       "factSentence": "영업이익이 6조 원에서 9조 원으로 늘었어요(+50.0%).",
       "aiText": null,
@@ -2662,7 +2662,7 @@
     },
     {
       "itemNo": 4, "kind": "FINANCIAL",
-      "target": { "type": "FINANCIAL", "changeId": 103, "sjDiv": "IS" },
+      "target": { "type": "FINANCIAL", "changeId": 103, "sjDiv": "IS", "changeType": null },
       "lens": "PROFITABILITY", "lensLabel": "수익성",
       "factSentence": "당기순이익이 −7.7조 원에서 23.5조 원으로 바뀌어 흑자로 돌아섰어요.",
       "aiText": null,
@@ -2677,7 +2677,7 @@
     },
     {
       "itemNo": 2, "kind": "TEXT",
-      "target": { "type": "TEXT", "changeId": 5512, "sjDiv": null },
+      "target": { "type": "TEXT", "changeId": 5512, "sjDiv": null, "changeType": "ADDED" },
       "lens": "OTHER", "lensLabel": "기타",
       "factSentence": null,
       "aiText": "미국에 공장 2곳을 새로 짓는다는 내용이 들어갔어요.",
@@ -2699,14 +2699,15 @@
   ],
   "reviewNeededCount": 2,
   "reviewNeeded": [
-    { "itemNo": 4, "kind": "FINANCIAL", "target": { "type": "FINANCIAL", "changeId": 103, "sjDiv": "IS" }, "lens": "PROFITABILITY", "lensLabel": "수익성", "reason": "AI 설명이 검증을 통과하지 못해 원문 인용만 보여 줘요. 다시 생성해도 근거·숫자 확인을 통과하지 못했어요.", "blockedRules": [] },
-    { "itemNo": 5, "kind": "TEXT", "target": { "type": "TEXT", "changeId": 5520, "sjDiv": null }, "lens": "RISK", "lensLabel": "위험", "reason": "원문에 없는 숫자(3)를 썼어요.", "blockedRules": [] }
+    { "itemNo": 4, "kind": "FINANCIAL", "target": { "type": "FINANCIAL", "changeId": 103, "sjDiv": "IS", "changeType": null }, "lens": "PROFITABILITY", "lensLabel": "수익성", "reason": "AI 설명이 검증을 통과하지 못해 원문 인용만 보여 줘요. 다시 생성해도 근거·숫자 확인을 통과하지 못했어요.", "blockedRules": [] },
+    { "itemNo": 5, "kind": "TEXT", "target": { "type": "TEXT", "changeId": 5520, "sjDiv": null, "changeType": "ADDED" }, "lens": "RISK", "lensLabel": "위험", "reason": "원문에 없는 숫자(3)를 썼어요.", "blockedRules": [] }
   ]
 }
 ```
 
 - `summaryStatus`: `COMPLETED`(모두 근거 확인), `PARTIAL`(검토 필요 항목이 있음), `EMPTY`(요약할 변화가 없음). M1에서 만든 분석에는 `null`입니다.
 - `kind`: `FINANCIAL`(재무 수치. `target.changeId`는 `financial-changes`의 `changeId`), `TEXT`(문장 변화. `target.changeId`는 `text-changes`의 `changeId`).
+- `target.changeType`: 문장 변화면 그 변경의 유형(`ADDED`·`DELETED`·`MODIFIED`·`NUMERIC_UPDATE`·`MOVED`·`REVIEW_NEEDED`), 재무 수치이거나 변경을 찾지 못했으면 `null`. 화면은 `DELETED` 줄에 '빠졌다고 끝났다는 뜻은 아니에요. 빠진 이유는 원문에서 확인해 주세요.'를 코드로 붙인다(FS-70, AI 문장과 섞지 않음).
 - `explanationStatus`(재무 수치만): `FOUND`(공시에 적힌 설명이 있음), `NOT_FOUND`(확인된 설명 없음. 화면에 그렇게 표시), `TEMPLATE`(설명을 만들었지만 2회 다시 만든 뒤에도 검증을 통과하지 못해 코드가 정한 틀로 보여 줌, #149), `REVIEW_NEEDED`(분석 버전 m2-14 이하에서 `TEMPLATE` 대신 쓰던 값. 설명 없이 검토 필요만 표시).
   - `TEMPLATE`: `aiText`는 null, `aiGenerated`는 false(코드가 만든 틀이라 'AI 생성'이 아님), `explanationGrade`는 null입니다. 화면은 사실 문장 아래에 "회사 설명: " + `quote`(위치 `quoteEvidence`)를 보이고, `quote`가 null이면 "회사 설명: 확인된 설명 없음"을 보입니다. `quote`는 AI 서버가 인용 실재 검사(후보 위치이고 원문에 그대로 있음)를 통과한 것만 줍니다. LLM 설명은 실패했으므로 `summaryStatus`는 `PARTIAL`이고 `reviewNeeded`에도 셉니다.
 - `explanationGrade`(재무 수치만, ADR-0015): 후보 원문이 그 변화를 어떻게 다루는지입니다. 문장 변화와 `TEMPLATE`·`REVIEW_NEEDED`면 null이고, 등급 기능 전에 만든 분석(분석 버전 m2-9 이하)도 null입니다.

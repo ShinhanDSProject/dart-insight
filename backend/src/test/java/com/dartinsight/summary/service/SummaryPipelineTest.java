@@ -216,6 +216,9 @@ class SummaryPipelineTest {
                 .andExpect(jsonPath("$.items[0].kind").value("TEXT"))
                 .andExpect(jsonPath("$.items[0].target.type").value("TEXT"))
                 .andExpect(jsonPath("$.items[0].target.changeId").isNumber())
+                // 문장 변경 유형(FS-70): 화면이 삭제 줄에 '끝났다는 뜻은 아니에요' 안내를 붙이는 데 쓴다. 재무 줄은 없음
+                .andExpect(jsonPath("$.items[0].target.changeType").value("MODIFIED"))
+                .andExpect(jsonPath("$.items[1].target.changeType").doesNotExist())
                 .andExpect(jsonPath("$.items[0].aiText").value("사업의 개요에 파운드리가 더해졌어요."))
                 .andExpect(jsonPath("$.items[0].aiGenerated").value(true))
                 .andExpect(jsonPath("$.items[0].ai.model").value("fake-model"))
