@@ -57,9 +57,16 @@ vi.mock('@/shared/api/analyses', () => ({
   requestAnalysis: vi.fn(),
 }))
 
+const comparability = vi.hoisted(() => ({ check: vi.fn() }))
+
+vi.mock('@/shared/api/comparability', () => ({
+  checkComparability: comparability.check,
+}))
+
 afterEach(() => {
   cleanup()
   analysis = running
+  comparability.check.mockReset()
 })
 
 function renderPage() {
@@ -95,6 +102,7 @@ describe('분석 진행 화면(#549)', () => {
   })
 
   it('실패하면 분석 실패 배지, 오류 안내, 보고서 다시 선택과 분석 실행을 보인다', async () => {
+    comparability.check.mockRejectedValue(new Error('network'))
     analysis = {
       ...running,
       status: 'FAILED',
@@ -111,6 +119,39 @@ describe('분석 진행 화면(#549)', () => {
       '/companies/00126380?current=20260814000001&previous=20250814000001&basis=YOY',
     )
     expect(screen.getByRole('button', { name: '↻ 분석 실행' })).toBeTruthy()
+    expect(await axeViolations(container)).toBe('')
+  })
+
+  it('실패하면 비교 조건을 다시 확인해 조건 표를 실패 안내 위에 보이고, 진행 중에는 확인하지 않는다(FS-69)', async () => {
+    comparability.check.mockResolvedValue({
+      checks: [
+        { item: 'COMPANY', label: '기업', status: 'OK', detail: '두 보고서 모두 삼성전자의 보고서예요.' },
+        { item: 'REPORT_PERIOD', label: '보고서 종류·기간', status: 'OK', detail: '2025 반기 → 2026 반기(전년 동기)' },
+      ],
+      reasons: [],
+    })
+    const { unmount } = renderPage()
+    await screen.findByRole('region', { name: '원문에서 근거까지, 순서대로 확인해요' })
+    expect(comparability.check).not.toHaveBeenCalled()
+    unmount()
+
+    analysis = {
+      ...running,
+      status: 'FAILED',
+      steps: running.steps.map((s) => (s.step === 'COMPARING' ? { ...s, state: 'FAILED' } : s)),
+      error: { code: 'ANALYSIS_FAILED', message: '분석 중 오류가 났어요.', retryable: true },
+    }
+    const { container } = renderPage()
+    const table = await screen.findByRole('region', { name: '비교 조건' })
+    expect(comparability.check).toHaveBeenCalledWith(
+      { corpCode: '00126380', currentRceptNo: '20260814000001', previousRceptNo: '20250814000001', basis: 'YOY' },
+      expect.anything(),
+    )
+    expect(within(table).getAllByRole('row').map((row) => row.textContent)).toEqual([
+      '기업두 보고서 모두 삼성전자의 보고서예요.확인됨',
+      '보고서 종류·기간2025 반기 → 2026 반기(전년 동기)확인됨',
+    ])
+    expect(table.compareDocumentPosition(screen.getByRole('alert')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(await axeViolations(container)).toBe('')
   })
 })

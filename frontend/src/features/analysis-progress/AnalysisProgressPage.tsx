@@ -29,13 +29,15 @@ import {
   stepSummary,
 } from './model/progress'
 import { useRecordCurrentCompany } from '@/shared/hooks/useCurrentCompany'
+import { CheckTable } from '@/shared/comparability/components/CheckTable'
+import { useComparabilityCheck } from '@/shared/comparability/hooks/useComparabilityCheck'
 import './analysis-progress.css'
 
 /**
  * W-02 분석 진행(2.3). 1초마다 상태를 묻고, 완료되면 결과 화면(W-03)으로 간다.
  * 실패하면 사유와 '분석 실행'(다시 요청)을 보여 준다. 결과가 저장되기 전에는 완료로 보이지 않는다(서버가 보장).
  * 탭 제목에 상태를 보이고, 원하면 탭이 숨겨진 채 끝났을 때 브라우저 알림을 띄운다(4.3).
- * 배치(#549): 화면 머리(상태 배지) → 이전·현재 보고서 카드 → 단계 카드와 진행 막대 → 실패 안내·다음 행동.
+ * 배치(#549): 화면 머리(상태 배지) → 이전·현재 보고서 카드 → 단계 카드와 진행 막대 → (실패면) 비교 조건 표(FS-69) → 실패 안내·다음 행동.
  */
 export function AnalysisProgressPage() {
   const { analysisId = '' } = useParams()
@@ -181,6 +183,7 @@ function Outcome({ analysis }: { analysis: Analysis }) {
     ))
     .with({ status: 'FAILED', error: P.nonNullable }, ({ error }) => (
       <>
+        <FailedConditions analysis={analysis} />
         <Notice tone="blocked" title="분석에 실패했어요" className="progress__failed" role="alert">
           <p>{error.message} 확인되지 않은 결과는 보여 드리지 않아요.</p>
           <p className="state__meta">사유 코드: {error.code}</p>
@@ -203,5 +206,23 @@ function Outcome({ analysis }: { analysis: Analysis }) {
     ))
     // 진행 중이거나 실패 사유가 없으면 보여 줄 것이 없다
     .with({ status: P.union('PENDING', 'RUNNING', 'FAILED') }, () => null)
+    .exhaustive()
+}
+
+/**
+ * 실패한 분석의 비교 조건 표(FS-69, 시안 '분석 실패'). 실패했을 때만 조건을 다시 확인한다.
+ * 모두 '확인'이면 고른 보고서 문제가 아니므로 다시 실행하면 되고, 아니면 보고서를 다시 고르면 된다는 것을 표가 보여 준다.
+ * 확인 중이거나 확인하지 못하면 표를 두지 않는다(실패 안내와 다음 행동은 그대로 보임).
+ */
+function FailedConditions({ analysis }: { analysis: Analysis }) {
+  const check = useComparabilityCheck({
+    corpCode: analysis.corpCode,
+    currentRceptNo: analysis.current.rceptNo,
+    previousRceptNo: analysis.previous.rceptNo,
+    basis: analysis.basis,
+  })
+  return match(check.state)
+    .with({ status: 'success' }, ({ data }) => <CheckTable result={data} titleId="failed-check-title" />)
+    .with({ status: P.union('idle', 'loading', 'error') }, () => null)
     .exhaustive()
 }
