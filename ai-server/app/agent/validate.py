@@ -8,7 +8,8 @@
   - 원인 표현은 인용한 결과에도 원인 표현이 있고, 등급이 있으면 STATED일 때만(ADR-0015)
   - '회사가 밝혔다' 같은 직접 설명 꼴은 인용한 결과의 등급이 STATED일 때만(등급을 바꾸지 않음)
   - 투자 권유성 표현 검사(app.compliance) 통과. 걸리면 규칙 ID를 blocked_rules에 남긴다
-  - 액션은 받은 목록의 종류와 형식만
+  - 액션은 받은 목록의 종류와 형식(JSON Schema)만. 값이 이 분석에 실제로 있는지는 backend가
+    확인하고 없으면 그 액션을 뺀다(ADR-0044, docs/api-spec.md `final.actions`)
   - Tool을 모두 실패했는데 NOT_FOUND면 다시 써도 고칠 수 없으므로 바로 '검토 필요'
 """
 
@@ -17,6 +18,9 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from typing import Any
+
+from jsonschema import Draft202012Validator
+from jsonschema.exceptions import SchemaError
 
 from app.agent.model import (
     ANSWERED,
@@ -58,14 +62,6 @@ NOT_FOUND_AFTER_TOOL_FAILURE = "NOT_FOUND_AFTER_TOOL_FAILURE"
 _MARKER = re.compile(r"\[([^\[\]\n]+)\]")
 # 회사가 직접 밝힌 설명(STATED)의 꼴. 등급이 RELATED·NONE인 결과를 이렇게 쓰면 등급을 바꾼 것이다
 _STATED_FORM = re.compile(r"밝혔|밝히고|설명했|설명하고|라고\s*(?:공시|했|적)")
-_JSON_TYPES: dict[str, tuple[type, ...]] = {
-    "string": (str,),
-    "integer": (int,),
-    "number": (int, float),
-    "boolean": (bool,),
-    "array": (list,),
-    "object": (dict,),
-}
 
 
 @dataclass(frozen=True)
@@ -177,37 +173,49 @@ def without_markers(answer: str) -> str:
 
 
 def schema_problem(value: Any, schema: dict[str, Any]) -> str | None:
-    """인자가 받은 JSON Schema(object)에 맞는지. 필수 키·모르는 키·타입·enum만 본다.
+    """값이 받은 JSON Schema에 맞는지(jsonschema, Draft 2020-12). 맞으면 None, 아니면 첫 문제.
 
     실제 제공자는 엄격한 구조화 출력으로 같은 스키마를 지키지만, 가짜 제공자와 형식이 깨진
-    응답을 막으려고 코드로도 확인한다.
+    응답을 막으려고 코드로도 확인한다. 엄격 모드는 필수가 아닌 필드를 null로 채우므로
+    (app.llm.providers.strict_schema), 필수가 아닌 필드의 null은 없는 것으로 보고 검사한다.
+    필수 필드의 null은 타입이 틀린 것으로 걸린다.
     """
-    if not isinstance(value, dict):
-        return "객체가 아닙니다."
-    properties: dict[str, Any] = schema.get("properties") or {}
-    missing = [k for k in schema.get("required") or [] if k not in value]
-    if missing:
-        return f"필수 값이 없습니다: {missing}"
-    if schema.get("additionalProperties") is False:
-        unknown = [k for k in value if k not in properties]
-        if unknown:
-            return f"모르는 값이 있습니다: {unknown}"
-    for key, item in value.items():
-        prop = properties.get(key)
-        if not isinstance(prop, dict) or item is None:
-            continue
-        if "enum" in prop and item not in prop["enum"]:
-            return f"{key}는 {prop['enum']} 중 하나여야 합니다."
-        types = prop.get("type")
-        allowed = [types] if isinstance(types, str) else list(types or [])
-        python_types = tuple(t for name in allowed for t in _JSON_TYPES.get(name, ()))
-        # bool은 int의 하위 타입이라 정수 자리에 true가 들어오는 것을 따로 막는다
-        if python_types and (
-            not isinstance(item, python_types)
-            or (isinstance(item, bool) and "boolean" not in allowed)
-        ):
-            return f"{key}의 타입이 {allowed}가 아닙니다."
+    errors = sorted(
+        Draft202012Validator(schema).iter_errors(_drop_optional_nulls(value, schema)),
+        key=lambda e: list(e.absolute_path),
+    )
+    if not errors:
+        return None
+    error = errors[0]
+    where = ".".join(str(p) for p in error.absolute_path) or "(전체)"
+    return f"{where}: {error.message}"
+
+
+def schema_error(schema: dict[str, Any]) -> str | None:
+    """받은 parameters가 올바른 JSON Schema(object)인지. 요청을 받을 때 확인한다."""
+    if schema.get("type") != "object":
+        return "type이 object여야 합니다."
+    try:
+        Draft202012Validator.check_schema(schema)
+    except SchemaError as e:
+        return e.message
     return None
+
+
+def _drop_optional_nulls(value: Any, schema: Any) -> Any:
+    if not isinstance(schema, dict):
+        return value
+    if isinstance(value, dict):
+        properties = schema.get("properties") or {}
+        required = set(schema.get("required") or [])
+        return {
+            key: _drop_optional_nulls(item, properties.get(key))
+            for key, item in value.items()
+            if item is not None or key in required
+        }
+    if isinstance(value, list) and isinstance(schema.get("items"), dict):
+        return [_drop_optional_nulls(item, schema["items"]) for item in value]
+    return value
 
 
 def _strings(value: Any) -> list[str] | None:

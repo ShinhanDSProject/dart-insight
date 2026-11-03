@@ -144,3 +144,77 @@ def test_action_must_be_listed_with_valid_fields() -> None:
 def test_schema_problem_rejects_boolean_for_integer() -> None:
     assert schema_problem({"changeId": True}, TOOL.parameters) is not None
     assert schema_problem({"changeId": 3}, TOOL.parameters) is None
+
+
+SCHEMA = {
+    "type": "object",
+    "properties": {
+        "changeId": {"type": "integer", "minimum": 1},
+        "q": {"type": "string", "maxLength": 5},
+        "filters": {
+            "type": "object",
+            "properties": {"risk": {"type": "boolean"}},
+            "additionalProperties": False,
+        },
+        "corpCodes": {"type": "array", "items": {"type": "string"}, "minItems": 2},
+    },
+    "required": ["changeId"],
+    "additionalProperties": False,
+}
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        {"changeId": None},
+        {},
+        {"changeId": "5012"},
+        {"changeId": 0},
+        {"changeId": 1, "q": "여섯글자이상"},
+        {"changeId": 1, "filters": {"unknown": True}},
+        {"changeId": 1, "filters": {"risk": "yes"}},
+        {"changeId": 1, "corpCodes": ["00126380", 164779]},
+        {"changeId": 1, "corpCodes": ["00126380"]},
+        {"changeId": 1, "page": 2},
+    ],
+)
+def test_schema_problem_follows_json_schema(value: dict) -> None:
+    assert schema_problem(value, SCHEMA) is not None
+
+
+def test_optional_null_from_strict_output_counts_as_absent() -> None:
+    value = {"changeId": 1, "q": None, "filters": {"risk": None}, "corpCodes": None}
+
+    assert schema_problem(value, SCHEMA) is None
+
+
+def test_plan_rejects_null_for_required_argument() -> None:
+    call = {"name": "get_text_change", "arguments": {"changeId": None}}
+
+    with pytest.raises(OutputProblem):
+        parse_plan({"decision": "CALL_TOOLS", "toolCalls": [call]}, step())
+
+
+def test_action_target_values_are_left_to_backend() -> None:
+    # 액션 값이 이 분석에 실제로 있는지는 backend가 확인하고 없으면 그 액션을 뺀다(ADR-0044).
+    # ai-server는 종류와 형식만 본다: Tool 결과에 없는 changeId라도 형식이 맞으면 그대로 넘긴다
+    action = {"type": "OPEN_TEXT_CHANGE", "changeId": 9999}
+
+    reviewed = review(
+        draft("변경이 있어요[T5012].", ["T5012"], [action]), step(ResultItem("T5012", "변경"))
+    )
+
+    assert reviewed.final is not None
+    assert reviewed.final.actions == [action]
+
+
+def test_not_found_drops_answer_and_evidence_from_llm() -> None:
+    reviewed = review(
+        Draft("NOT_FOUND", "변경이 있어요[T5012].", ["T5012"], []),
+        step(ResultItem("T5012", "변경")),
+    )
+
+    assert reviewed.final is not None
+    assert reviewed.final.status == "NOT_FOUND"
+    assert reviewed.final.answer is None
+    assert reviewed.final.evidence_ids == []
