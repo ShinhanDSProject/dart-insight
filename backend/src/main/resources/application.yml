@@ -89,6 +89,13 @@ app:
     read-timeout: 180s
     # 연결 상태 확인은 짧게 기다린다
     health-timeout: 3s
+  agent:
+    # 채팅 한 번의 ai-server 왕복 상한과 전체 시간(ADR-0044). 이미 시작한 왕복은 끊지 않아 조금 넘을 수 있다
+    max-steps: 5
+    timeout: 60s
+    # 한 Tool 결과를 줄여 보내는 크기(docs/api-spec.md 3절)
+    max-items: 10
+    max-result-chars: 4000
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
   data-go-kr:

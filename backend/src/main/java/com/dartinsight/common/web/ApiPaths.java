@@ -84,6 +84,8 @@ public final class ApiPaths {
     public static final String TEXT_CHANGE_RELATED_DISCLOSURES = ANALYSIS_TEXT_CHANGES + "/{changeId}/related-disclosures";
     public static final String ANALYSIS_QUESTIONS = ANALYSES + "/{analysisId}/questions";
     public static final String QUESTION_FEEDBACK = "/{questionId}/feedback";
+    /** AI 에이전트 채팅(ADR-0044). 대화는 저장하지 않는다 */
+    public static final String ANALYSIS_CHAT_MESSAGES = ANALYSES + "/{analysisId}/chat-messages";
     public static final String ANALYSIS_DOCUMENT= ANALYSES + "/{analysisId}/documents/{side}";
     public static final String DOCUMENT_SECTION = "/sections/{sectionNo}";
 
