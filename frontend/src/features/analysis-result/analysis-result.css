@@ -1739,6 +1739,22 @@
   font-size: var(--font-size-xs);
 }
 
+/* '바뀐 문장 N (먼저 볼 것 M)'(FS-68): 두 버튼을 한 칸에 잇고 뒤 버튼을 괄호로 감싼다 */
+.overview__pair {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1);
+}
+
+.overview .overview-stat--nested::before {
+  content: '(';
+}
+
+.overview .overview-stat--nested::after {
+  content: ')';
+}
+
 /* 요약 탭 오른쪽 '이 기간 수시공시'(시안). 변경이 많은 섹션과 같은 상자 모양 */
 .period-disclosures__head {
   display: flex;

@@ -4,6 +4,7 @@ import type { SjDiv } from '@/shared/api/results'
 import type { ChangeType } from '@/shared/api/textChanges'
 import type { LoadState } from '@/shared/hooks/asyncState'
 import type { AsyncResult } from '@/shared/hooks/useAsync'
+import { cx } from '@/shared/lib/cx'
 import { Button } from '@/shared/ui'
 import { formatCount, type FinancialOverview, type TextOverview } from '../model/overview'
 
@@ -15,13 +16,16 @@ interface ChangeOverviewProps {
   onOpenChangedAccounts: (sjDiv: SjDiv | null) => void
   /** 문장 변화 탭을 그 유형으로 거른다(null이면 전체) */
   onOpenTextList: (type: ChangeType | null) => void
+  /** '먼저 볼 것'(우선순위 높음): 문장 변화 탭을 우선순위 순으로 연다(FS-68 AC2) */
+  onOpenPriorityList: () => void
 }
 
 /**
  * 핵심 3줄 아래 변화 개요 한 줄(FS-4 R6, #560). 바뀐 계정·바뀐 문장·검토 필요 수를 보여 주고, 누르면 그 탭·거르기로 간다.
+ * 바뀐 문장 옆 '(먼저 볼 것 M)'은 우선순위 높음 수이고 누르면 문장 변화 탭을 우선순위 순으로 연다(FS-68 AC2). 정확히 셀 수 없으면 두지 않는다.
  * 불러오지 못한 숫자는 그 자리에만 짧게 알리고, 확인하지 못한 값은 0이 아니라 '확인 안 됨'으로 보인다.
  */
-export function ChangeOverview({ financial, text, onOpenChangedAccounts, onOpenTextList }: ChangeOverviewProps) {
+export function ChangeOverview({ financial, text, onOpenChangedAccounts, onOpenTextList, onOpenPriorityList }: ChangeOverviewProps) {
   return (
     <section className="overview" aria-label="변화 개요">
       <ul className="overview__list">
@@ -43,13 +47,25 @@ export function ChangeOverview({ financial, text, onOpenChangedAccounts, onOpenT
             {(data: TextOverview) =>
               match(data)
                 .with({ status: 'available' }, (t) => (
-                  <Stat
-                    label="바뀐 문장"
-                    value={formatCount(t.all)}
-                    hint="문장·내용 변화에서 전체 보기"
-                    detail={t.partial ? '일부 섹션만 비교했어요' : null}
-                    onOpen={() => onOpenTextList(null)}
-                  />
+                  <span className="overview__pair">
+                    <Stat
+                      label="바뀐 문장"
+                      value={formatCount(t.all)}
+                      hint="문장·내용 변화에서 전체 보기"
+                      detail={t.partial ? '일부 섹션만 비교했어요' : null}
+                      onOpen={() => onOpenTextList(null)}
+                    />
+                    {t.high !== null && (
+                      <Stat
+                        className="overview-stat--nested"
+                        label="먼저 볼 것"
+                        value={formatCount(t.high)}
+                        hint="우선순위 높음, 문장·내용 변화에서 우선순위 순으로 보기"
+                        detail={null}
+                        onOpen={onOpenPriorityList}
+                      />
+                    )}
+                  </span>
                 ))
                 .with({ status: 'unavailable' }, () => (
                   <Stat
@@ -127,6 +143,7 @@ function LoadedStat<T>({ label, state, onRetry, children }: LoadedStatProps<T>) 
 }
 
 interface StatProps {
+  className?: string
   label: string
   value: string
   /** 누르면 어디로 가는지(화면 읽기 프로그램용) */
@@ -135,9 +152,9 @@ interface StatProps {
   onOpen: () => void
 }
 
-function Stat({ label, value, hint, detail, onOpen }: StatProps) {
+function Stat({ className, label, value, hint, detail, onOpen }: StatProps) {
   return (
-    <Button variant="link" className="overview-stat" onClick={onOpen}>
+    <Button variant="link" className={cx('overview-stat', className)} onClick={onOpen}>
       <span className="overview-stat__label">{label}</span>
       <span className="overview-stat__value">{value}</span>
       {detail && <span className="overview-stat__detail">({detail})</span>}
