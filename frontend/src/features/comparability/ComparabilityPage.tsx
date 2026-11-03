@@ -19,9 +19,10 @@ import {
   ReportCardPair,
 } from '@/shared/ui'
 import { AlertState, ErrorState, LoadingState } from '@/shared/ui/StateView'
-import { checkBadgeLabel, checkHeader, checkStatusTone, resultSummary, statementBasisLabel } from './model/comparabilityLabels'
+import { CheckTable } from '@/shared/comparability/components/CheckTable'
+import { useComparabilityCheck } from '@/shared/comparability/hooks/useComparabilityCheck'
+import { checkHeader, resultSummary, statementBasisLabel } from '@/shared/comparability/model/comparabilityLabels'
 import { basisLabel, parseBasis } from '@/shared/lib/comparisonBasis'
-import { useComparabilityCheck } from './hooks/useComparabilityCheck'
 import { useCompanyInfo } from './hooks/useCompanyInfo'
 import './comparability.css'
 
@@ -141,23 +142,7 @@ function CheckResult({ result }: { result: ComparabilityResult }) {
         <ReportCard side="current" report={result.current} />
       </ReportCardPair>
 
-      <Panel aria-labelledby="check-title">
-        <PanelTitle id="check-title">비교 조건</PanelTitle>
-        <table className="check-table">
-          <caption className="visually-hidden">비교 조건 확인 결과. 항목, 내용, 결과 순입니다.</caption>
-          <tbody>
-            {result.checks.map((check) => (
-              <tr key={check.item}>
-                <th scope="row">{check.label}</th>
-                <td>{check.detail}</td>
-                <td className="check-table__status">
-                  <Badge tone={checkStatusTone(check.status)}>{checkBadgeLabel(check, result.reasons)}</Badge>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Panel>
+      <CheckTable result={result} titleId="check-title" />
 
       {result.comparable ? (
         <Notice title="비교 조건을 확인했어요" role="status" className="check-notice">
