@@ -82,7 +82,7 @@ describe('비교 확인 화면(#549)', () => {
     expect(await axeViolations(container)).toBe('')
   })
 
-  it('비교할 수 없으면 비교 불가 배지, 문제 행의 분홍 배지, 오류 안내와 비활성 분석 실행을 보인다', async () => {
+  it('비교할 수 없으면 사유에 맞춘 제목, 비교 불가 배지, 문제 행의 분홍 사유 배지, 오류 안내와 비활성 분석 실행을 보인다', async () => {
     result = {
       ...base,
       comparable: false,
@@ -90,7 +90,7 @@ describe('비교 확인 화면(#549)', () => {
       current: base.previous,
       checks: [
         base.checks[0],
-        { item: 'PERIOD', label: '종류·기간', status: 'FAIL', detail: '반기보고서 / 반기보고서' },
+        { item: 'REPORT_PERIOD', label: '종류·기간', status: 'FAIL', detail: '반기보고서 / 반기보고서' },
       ],
       reasons: [{ code: 'SAME_REPORT', message: '같은 보고서를 두 번 골랐어요.', nextAction: '서로 다른 보고서를 골라 주세요.' }],
     }
@@ -99,8 +99,8 @@ describe('비교 확인 화면(#549)', () => {
     expect(alert.textContent).toContain('비교 불가')
     expect(alert.textContent).toContain('같은 보고서를 두 번 골랐어요.')
 
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('이 두 보고서는 비교할 수 없어요')
-    const failBadge = within(screen.getByRole('table')).getByText('비교 불가')
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('서로 다른 보고서를 선택해 주세요')
+    const failBadge = within(screen.getByRole('table')).getByText('동일 보고서')
     expect(failBadge.className).toContain('badge--danger')
     const run = screen.getByRole('button', { name: '분석 실행' }) as HTMLButtonElement
     expect(run.disabled).toBe(true)
