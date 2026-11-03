@@ -33,14 +33,15 @@ from app.agent.model import (
     ToolCall,
 )
 from app.agent.prompt import build_answer_request, build_plan_request
-from app.agent.validate import Draft, parse_draft, parse_plan, review
+from app.agent.validate import Draft, parse_draft, parse_plan, review, schema_problem
 from app.compliance import scan_question
 from app.llm import CallRecord, LlmClient, LlmOutputInvalid, LlmUnavailable
 from app.llm.client import OUTCOME_INVALID_OUTPUT, OUTCOME_OK
 
 logger = logging.getLogger("app.agent")
 
-# 빠른 명령: LLM 없이 정해진 Tool로 보낸다. 받은 Tool 목록에 그 Tool이 있을 때만 쓴다
+# 빠른 명령: LLM 없이 정해진 Tool로 보낸다. 받은 Tool 목록에 그 Tool이 있고 정해 둔 인자가
+# 그 Tool의 parameters에 맞을 때만 쓴다. 맞지 않으면 빠른 명령으로 보지 않고 LLM이 Tool을 고른다
 QUICK_COMMANDS: dict[str, tuple[str, dict[str, Any]]] = {
     "/요약": ("get_summary", {}),
     "/재무": ("get_financial_changes", {}),
@@ -205,7 +206,17 @@ def _generation_count(calls: list[CallRecord]) -> int:
 def _quick_command(step: StepInput) -> tuple[str, dict[str, Any]] | None:
     words = step.message.strip().split()
     command = QUICK_COMMANDS.get(words[0]) if words else None
-    if command is None or step.tool(command[0]) is None:
+    if command is None:
+        return None
+    name, arguments = command
+    tool = step.tool(name)
+    if tool is None:
+        return None
+    problem = schema_problem(arguments, tool.parameters)
+    if problem:
+        logger.info(
+            "빠른 명령 %s의 인자가 %s 형식과 맞지 않아 LLM으로 보냄: %s", words[0], name, problem
+        )
         return None
     return command
 
