@@ -29,7 +29,8 @@ const MENU_ID = 'app-header-menu'
 
 /**
  * 화면 골격(#548 심플 통일): 위 상단 바, 가운데 본문, 아래 하단 바. 왼쪽 메뉴는 없다.
- * - 상단 바: 로고(첫 화면), 둥근 기업 검색(첫 화면 밖), 기업 나란히 보기·내 판단 노트, 화면 테마, 로그인/알림.
+ * - 상단 바: 로고(첫 화면), 둥근 기업 검색(첫 화면 밖, 기업·분석 화면에서는 그 기업 이름), 기업 나란히 보기·내 판단 노트, 화면 테마, 로그인/알림.
+ *   로그인 전 버튼은 시안처럼 '로그인' 하나다(회원가입은 로그인 화면의 링크, FS-69).
  *   좁은 화면(900px 이하)에서는 로고 옆 메뉴 버튼으로 접는다. 화면을 옮기면 접힌다.
  * - '지금 보는 기업' 줄(#502, #589): 마지막으로 연 기업이 있으면 상단 바 아래에 기업 이름(누르면 마지막 분석 결과, #572)과 종목코드를 둔다.
  *   기업은 기업·분석 화면이 남긴 값으로 정한다(데이터를 따로 불러오지 않음). 기업 개요는 분석 결과 탭 줄에 있다.
@@ -47,6 +48,10 @@ export function Layout() {
   const menuButtonRef = useRef<HTMLButtonElement>(null)
 
   const onResult = analysisId !== undefined && !pathname.endsWith('/progress')
+  // 상단 검색창에 넣어 둘 기업 이름(FS-69). 그 기업의 화면·분석 결과에 있을 때만
+  const searchCompany = current !== null && (corpCode === current.corpCode || (onResult && Number(analysisId) === current.analysisId))
+    ? current.corpName
+    : null
   const active = activeSection(pathname)
   const shortcutPage = shortcutPageOf(pathname, onResult)
   const shortcuts = useShortcuts(shortcutPage)
@@ -91,7 +96,7 @@ export function Layout() {
         </Button>
 
         <div id={MENU_ID} className="app-header__menu" data-open={menuOpen}>
-          {pathname !== '/' && <HeaderSearch />}
+          {pathname !== '/' && <HeaderSearch key={searchCompany ?? ''} companyName={searchCompany} />}
           <nav className="app-nav" aria-label="주 메뉴">
             <ul className="app-nav__list">
               {items.map((item) => (
@@ -113,7 +118,6 @@ export function Layout() {
               .with('loading', 'anonymous', () => (
                 <>
                   <NotificationSignInLink />
-                  <ButtonLink to="/signup" variant="secondary" aria-current={pathname === '/signup' ? 'page' : undefined}>회원가입</ButtonLink>
                   <ButtonLink to="/login" variant="primary" aria-current={pathname === '/login' ? 'page' : undefined}>로그인</ButtonLink>
                 </>
               ))
