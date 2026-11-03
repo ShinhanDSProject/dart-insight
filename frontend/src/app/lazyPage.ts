@@ -13,7 +13,7 @@ export class ChunkLoadError extends Error {
  * 화면은 named export라서 import 결과에서 컴포넌트를 골라 넘긴다: lazyPage(() => import('...').then((m) => m.SearchPage))
  * 받는 동안은 PageSuspense가 로딩 표시를 보여 준다.
  */
-export function lazyPage(load: () => Promise<ComponentType>) {
+export function lazyPage<P extends object = object>(load: () => Promise<ComponentType<P>>) {
   return lazy(() =>
     load().then(
       (Page) => ({ default: Page }),

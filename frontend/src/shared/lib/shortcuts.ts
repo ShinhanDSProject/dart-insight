@@ -3,7 +3,7 @@
  * 입력창에 글을 쓰는 중·한글 조합 중·Ctrl/Cmd/Alt 조합·다른 대화상자가 열렸을 때는 아무것도 하지 않는다(AC4).
  */
 
-/** 분석 결과 화면의 탭 주소 값(?tab=). 1~5 키의 순서이고 결과 화면의 탭 순서와 같다 */
+/** 분석 결과 화면의 탭 주소 값(?tab=). 1~5 키의 순서이고 결과 화면의 탭 순서와 같다(맨 앞 기업 개요 탭(#589)은 키가 없다) */
 export const shortcutResultTabs = ['summary', 'financial', 'text', 'community', 'source'] as const
 export type ShortcutResultTab = (typeof shortcutResultTabs)[number]
 

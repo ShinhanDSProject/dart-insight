@@ -2780,3 +2780,8 @@
 .fin-table__more {
   margin-top: var(--space-3);
 }
+
+/* 기업 개요 탭(#589): 개요의 바로 가기 바가 위에 붙은 결과 탭 줄 밑에 붙게 탭 줄 높이를 넘긴다 */
+.result-overview {
+  --company-bar-height: var(--control-height);
+}

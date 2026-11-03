@@ -5,6 +5,7 @@ import type { ResultTab } from './resultParams'
 
 /** 결과 화면 탭 이름(심플 통일 #550). 탭 목록과 브라우저 탭 제목이 같이 쓴다 */
 export const resultTabLabels: Record<ResultTab, string> = {
+  overview: '기업 개요',
   summary: '요약',
   financial: '재무 수치',
   text: '문장 변화',

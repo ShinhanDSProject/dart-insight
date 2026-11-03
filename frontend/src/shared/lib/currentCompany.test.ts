@@ -1,15 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
   companyOverviewLink,
-  compareLink,
   companyLink,
-  isCurrentRoute,
   loadCurrentCompany,
   nextCurrentCompany,
-  overviewLink,
   parseCurrentCompany,
   saveCurrentCompany,
-  sourceLink,
   type CurrentCompany,
 } from './currentCompany'
 
@@ -21,11 +17,10 @@ function memoryStorage(): Pick<Storage, 'getItem' | 'setItem'> {
 }
 
 describe('nextCurrentCompany(#502)', () => {
-  it('같은 기업의 기업 화면을 열면 분석과 종목코드를 이어 쓰고, 공시 비교는 기업 화면으로 간다', () => {
+  it('같은 기업의 기업 화면을 열면 분석과 종목코드를 이어 쓴다', () => {
     const next = nextCurrentCompany(samsung, { corpCode: '00126380', corpName: '삼성전자' })
     expect(next).toEqual({ ...samsung, view: 'company' })
-    expect(compareLink(next)).toBe('/companies/00126380')
-    expect(sourceLink(next)).toBe('/analyses/42?tab=source')
+    expect(companyLink(next)).toBe('/analyses/42')
   })
 
   it('기업 이름은 마지막으로 연 분석이 있으면 그 분석 결과로, 없으면 기업 화면으로 간다', () => {
@@ -37,26 +32,13 @@ describe('nextCurrentCompany(#502)', () => {
   it('다른 기업을 열면 전 기업의 분석과 종목코드를 버린다', () => {
     const next = nextCurrentCompany(samsung, { corpCode: '00164779', corpName: 'SK하이닉스' })
     expect(next).toEqual({ corpCode: '00164779', corpName: 'SK하이닉스', stockCode: null, analysisId: null, view: 'company' })
-    expect(sourceLink(next)).toBeNull()
+    expect(companyLink(next)).toBe('/companies/00164779')
   })
 
-  it('분석 결과를 열면 기업 개요는 개요 탭으로, 공시 비교는 그 분석으로, 원문 확인은 원문 탭으로 간다', () => {
+  it('분석 결과를 열면 기업 이름은 그 분석으로 가고, 기업 개요 주소는 개요 탭이다', () => {
     const next = nextCurrentCompany(null, { corpCode: '00126380', corpName: '삼성전자', analysisId: 7 })
     expect(companyOverviewLink('00126380')).toBe('/companies/00126380?view=overview')
-    expect(overviewLink(next)).toBe('/companies/00126380?view=overview')
-    expect(compareLink(next)).toBe('/analyses/7')
-    expect(sourceLink(next)).toBe('/analyses/7?tab=source')
-  })
-})
-
-describe('isCurrentRoute', () => {
-  it('같은 기업 화면이나 같은 분석일 때만 지금 화면으로 본다', () => {
-    expect(isCurrentRoute(samsung, { corpCode: '00126380' })).toBe(true)
-    expect(isCurrentRoute(samsung, { analysisId: '42' })).toBe(true)
-    expect(isCurrentRoute(samsung, { corpCode: '00164779' })).toBe(false)
-    // 다른 분석의 진행 화면처럼 아직 기록하지 않은 화면
-    expect(isCurrentRoute(samsung, { analysisId: '43' })).toBe(false)
-    expect(isCurrentRoute(samsung, {})).toBe(false)
+    expect(companyLink(next)).toBe('/analyses/7')
   })
 })
 

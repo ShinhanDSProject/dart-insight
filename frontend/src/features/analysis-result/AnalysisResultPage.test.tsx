@@ -7,6 +7,7 @@ import type { ComparabilityRequest } from '@/shared/api/comparability'
 import { ApiError } from '@/shared/api/client'
 import type { ReportItem } from '@/shared/api/reports'
 import { axeViolations } from '@/test/axe'
+import { ResultOverviewContext } from './overviewSlot'
 import { AnalysisResultPage } from './AnalysisResultPage'
 
 const getAnalysis = vi.fn<(analysisId: string | number) => Promise<Analysis>>()
@@ -56,14 +57,26 @@ function analysis(outdated: boolean): Analysis {
 
 function Where() {
   const location = useLocation()
-  return <p data-testid="where">{location.pathname}</p>
+  return (
+    <>
+      <p data-testid="where">{location.pathname}</p>
+      <p data-testid="where-search">{location.search}</p>
+    </>
+  )
 }
 
 function renderPage() {
   return render(
     <MemoryRouter initialEntries={['/analyses/14']}>
       <Routes>
-        <Route path="/analyses/:analysisId" element={<AnalysisResultPage />} />
+        <Route
+          path="/analyses/:analysisId"
+          element={
+            <ResultOverviewContext.Provider value={(corpCode) => <p>기업 개요 {corpCode}</p>}>
+              <AnalysisResultPage />
+            </ResultOverviewContext.Provider>
+          }
+        />
         <Route path="*" element={null} />
       </Routes>
       <Where />
@@ -165,17 +178,28 @@ describe('결과 머리(#550)', () => {
     )
   })
 
-  it('탭은 요약·재무 수치·문장 변화·커뮤니티·원문 다섯 개다(#575)', async () => {
+  it('탭은 기업 개요(#589)·요약·재무 수치·문장 변화·커뮤니티·원문 여섯 개다', async () => {
     getAnalysis.mockResolvedValue(analysis(false))
     renderPage()
     const tabs = await screen.findByRole('navigation', { name: '결과 보기' })
     expect(Array.from(tabs.querySelectorAll('a, button')).map((el) => el.textContent)).toEqual([
+      '기업 개요',
       '요약',
       '재무 수치',
       '문장 변화',
       '커뮤니티',
       '원문',
     ])
+  })
+
+  it('기업 개요 탭은 화면을 옮기지 않고 탭 줄 아래에 그 기업의 개요를 그린다(#589)', async () => {
+    getAnalysis.mockResolvedValue(analysis(false))
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: '기업 개요' }))
+    expect(screen.getByText('기업 개요 00126380')).toBeTruthy()
+    expect(screen.getByTestId('where').textContent).toBe('/analyses/14')
+    expect(screen.getByTestId('where-search').textContent).toBe('?tab=overview')
+    expect(screen.getByRole('navigation', { name: '결과 보기' })).toBeTruthy()
   })
 
   it('내보내기는 펼치기 전에는 항목을 숨기고 Esc로 닫는다', async () => {
