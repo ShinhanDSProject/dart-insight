@@ -4,7 +4,7 @@
 - parse_draft: 답 초안의 형식. 형식이 틀리면 LlmClient가 다시 생성한다
 - review: 검토 노드의 내용 검사. 반려하면 사유(규칙 ID)를 붙여 다시 쓰게 한다
   - 근거 ID가 실행에 성공한 Tool 결과에 있음, 답의 근거 표시와 evidenceIds가 같음
-  - 숫자·크기 표현이 인용한 Tool 결과에 있음(app.llm.grounding)
+  - 숫자·크기 표현이 그 문장이 인용한 Tool 결과에 있음(app.llm.grounding)
   - 원인 표현은 그 문장이 인용한 결과에도 원인 표현이 있고, 등급이 있으면 STATED일 때만(ADR-0015)
   - '회사가 밝혔다' 같은 직접 설명 꼴은 그 문장이 인용한 결과의 등급이 STATED일 때만
     (등급을 바꾸지 않음). 원인·등급은 문장마다 그 문장 끝의 근거 표시로 본다
@@ -215,7 +215,7 @@ def _drop_optional_nulls(value: Any, schema: Any) -> Any:
         return {
             key: _drop_optional_nulls(item, properties.get(key))
             for key, item in value.items()
-            if item is not None or key in required
+            if item is not None or key in required or key not in properties
         }
     if isinstance(value, list) and isinstance(schema.get("items"), dict):
         return [_drop_optional_nulls(item, schema["items"]) for item in value]
@@ -263,11 +263,6 @@ def _answer_problem(draft: Draft, step: StepInput) -> tuple[str, str | None]:
             "답의 근거 표시 [id]와 evidenceIds가 같아야 합니다"
             f"(표시만 있음: {not_listed[:3]}, 표시 없음: {not_marked[:3]})."
         )
-    body = without_markers(answer)
-    texts = {e: evidence[e].text for e in draft.evidence_ids}
-    problem = number_problem(body, texts, draft.evidence_ids)
-    if problem:
-        return NUMBER_NOT_IN_TOOL_RESULT, problem
     for sentence in _sentences(answer):
         rule, problem = _sentence_problem(sentence, evidence)
         if problem:
@@ -280,12 +275,16 @@ def _sentences(answer: str) -> list[str]:
 
 
 def _sentence_problem(sentence: str, evidence: dict[str, ResultItem]) -> tuple[str, str | None]:
-    """한 문장의 원인 표현·직접 설명 꼴이 그 문장이 인용한 근거에 맞는지(ADR-0015).
+    """한 문장의 숫자·원인 표현·직접 설명 꼴이 그 문장이 인용한 근거에 맞는지(ADR-0015).
 
-    다른 문장의 근거가 STATED라고 이 문장의 RELATED 근거를 원인·직접 설명처럼 쓸 수 없다.
+    다른 문장의 근거에 있는 숫자나 STATED 등급으로 이 문장을 통과시키지 않는다.
     """
     body = without_markers(sentence)
-    cited = [evidence[m] for m in dict.fromkeys(_MARKER.findall(sentence)) if m in evidence]
+    markers = [m for m in dict.fromkeys(_MARKER.findall(sentence)) if m in evidence]
+    problem = number_problem(body, {m: evidence[m].text for m in markers}, markers)
+    if problem:
+        return NUMBER_NOT_IN_TOOL_RESULT, problem
+    cited = [evidence[m] for m in markers]
     claim = find_causal(body)
     if claim and not any(
         find_causal(item.text) and item.grade in (None, GRADE_STATED) for item in cited

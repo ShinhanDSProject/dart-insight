@@ -8,6 +8,7 @@ from app.agent.validate import (
     EVIDENCE_NOT_IN_TOOL_RESULT,
     GRADE_CHANGED,
     MARKER_MISMATCH,
+    NUMBER_NOT_IN_TOOL_RESULT,
     Draft,
     parse_draft,
     parse_plan,
@@ -268,3 +269,20 @@ def test_decimal_point_does_not_split_a_sentence() -> None:
     )
 
     assert reviewed.final is not None
+
+
+def test_null_for_property_outside_schema_is_still_rejected() -> None:
+    assert schema_problem({"changeId": 1, "unknown": None}, SCHEMA) is not None
+    assert schema_problem({"changeId": 1, "filters": {"unknown": None}}, SCHEMA) is not None
+
+
+def test_number_is_checked_against_its_own_sentence() -> None:
+    items = (
+        ResultItem("F1", "매출액이 153.7조 원으로 늘었습니다."),
+        ResultItem("F2", "영업이익이 6.6조 원으로 줄었습니다."),
+    )
+    swapped = "매출액은 6.6조 원으로 늘었어요[F1]. 영업이익은 153.7조 원으로 줄었어요[F2]."
+    matched = "매출액은 153.7조 원으로 늘었어요[F1]. 영업이익은 6.6조 원으로 줄었어요[F2]."
+
+    assert review(draft(swapped, ["F1", "F2"]), step(*items)).rules == [NUMBER_NOT_IN_TOOL_RESULT]
+    assert review(draft(matched, ["F1", "F2"]), step(*items)).final is not None
