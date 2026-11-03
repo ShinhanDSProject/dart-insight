@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  isLegacyAskTab,
   financialParamChanges,
   openChangedAccounts,
   openFinancialChanges,
@@ -236,5 +237,13 @@ describe('요약 관점 거르기(FS-64)', () => {
     expect(summaryParamChanges({ lens: 'RISK' })).toEqual({ slens: 'RISK' })
     expect(summaryParamChanges({ lens: null, view: 'lens' })).toEqual({ slens: null, sview: null })
     expect(summaryParamChanges({ view: 'list' })).toEqual({ sview: 'list' })
+  })
+})
+
+describe('isLegacyAskTab', () => {
+  it('예전 AI 질문 탭 주소(?tab=ask)만 알아본다', () => {
+    expect(isLegacyAskTab(new URLSearchParams('tab=ask'))).toBe(true)
+    expect(isLegacyAskTab(new URLSearchParams('tab=summary'))).toBe(false)
+    expect(isLegacyAskTab(new URLSearchParams(''))).toBe(false)
   })
 })

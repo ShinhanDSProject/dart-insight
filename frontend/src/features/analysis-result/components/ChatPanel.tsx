@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { match } from 'ts-pattern'
 import type { ChatAction, ChatCitation, ChatContext, ChatMessageResponse } from '@/shared/api/agentChat'
+import type { AsyncState } from '@/shared/hooks/asyncState'
 import type { ParamChanges } from '@/shared/lib/searchParams'
 import { Badge, Button, Icon, Notice, PanelTitle, SidePanel, TextArea } from '@/shared/ui'
 import { ErrorState } from '@/shared/ui/StateView'
@@ -34,6 +35,8 @@ interface ChatPanelProps {
   onNavigate: (changes: ParamChanges) => void
   /** 비교 브리프 내려받기 액션 */
   onDownloadBrief: () => void
+  /** 브리프 내려받기 진행 상태('내보내기' 메뉴와 같은 상태). 받는 중이면 버튼을 끄고 실패하면 알린다 */
+  briefState: AsyncState<void>
   onClose: () => void
 }
 
@@ -41,7 +44,7 @@ interface ChatPanelProps {
  * AI 에이전트 채팅 패널(ADR-0044, 탭 밖 오른쪽). 탭을 바꿔도 열린 채로 대화를 이어 간다(AC20).
  * 답의 [1]은 근거 칩이고 누르면 그 변경·계정·원문 위치를 연다. 쓰기(노트·관심 기업)는 #580에서 확인 버튼으로 더한다.
  */
-export function ChatPanel({ chat, context, suggestions, onNavigate, onDownloadBrief, onClose }: ChatPanelProps) {
+export function ChatPanel({ chat, context, suggestions, onNavigate, onDownloadBrief, briefState, onClose }: ChatPanelProps) {
   const headingRef = useRef<HTMLHeadingElement>(null)
   const endRef = useRef<HTMLDivElement>(null)
   const { exchanges, request, draft } = chat.state
@@ -81,6 +84,7 @@ export function ChatPanel({ chat, context, suggestions, onNavigate, onDownloadBr
             exchange={exchange}
             onNavigate={onNavigate}
             onDownloadBrief={onDownloadBrief}
+            briefState={briefState}
           />
         ))}
         {match(request)
@@ -141,9 +145,10 @@ interface ExchangeProps {
   exchange: ChatExchange
   onNavigate: (changes: ParamChanges) => void
   onDownloadBrief: () => void
+  briefState: AsyncState<void>
 }
 
-function Exchange({ exchange, onNavigate, onDownloadBrief }: ExchangeProps) {
+function Exchange({ exchange, onNavigate, onDownloadBrief, briefState }: ExchangeProps) {
   const { response } = exchange
   return (
     <article className="chat-panel__exchange" aria-label={`요청: ${exchange.message}`}>
@@ -172,7 +177,7 @@ function Exchange({ exchange, onNavigate, onDownloadBrief }: ExchangeProps) {
             </Notice>
           ))
           .exhaustive()}
-        <Actions response={response} onNavigate={onNavigate} onDownloadBrief={onDownloadBrief} />
+        <Actions response={response} onNavigate={onNavigate} onDownloadBrief={onDownloadBrief} briefState={briefState} />
       </div>
     </article>
   )
@@ -220,7 +225,7 @@ function CitationChip({ citation, onNavigate }: { citation: ChatCitation; onNavi
   )
 }
 
-function Actions({ response, onNavigate, onDownloadBrief }: { response: ChatMessageResponse } & Omit<ExchangeProps, 'exchange'>) {
+function Actions({ response, onNavigate, onDownloadBrief, briefState }: { response: ChatMessageResponse } & Omit<ExchangeProps, 'exchange'>) {
   const targets = response.actions
     .map((action) => ({ action, target: chatActionTarget(action, response.citations) }))
     .filter(({ target }) => target.kind !== 'ignore')
@@ -228,7 +233,14 @@ function Actions({ response, onNavigate, onDownloadBrief }: { response: ChatMess
   return (
     <div className="chat-panel__actions">
       {targets.map(({ action, target }, i) => (
-        <ActionButton key={i} action={action} target={target} onNavigate={onNavigate} onDownloadBrief={onDownloadBrief} />
+        <ActionButton
+          key={i}
+          action={action}
+          target={target}
+          onNavigate={onNavigate}
+          onDownloadBrief={onDownloadBrief}
+          briefState={briefState}
+        />
       ))}
     </div>
   )
@@ -239,9 +251,10 @@ interface ActionButtonProps {
   target: ChatActionTarget
   onNavigate: (changes: ParamChanges) => void
   onDownloadBrief: () => void
+  briefState: AsyncState<void>
 }
 
-function ActionButton({ action, target, onNavigate, onDownloadBrief }: ActionButtonProps) {
+function ActionButton({ action, target, onNavigate, onDownloadBrief, briefState }: ActionButtonProps) {
   const [showTerm, setShowTerm] = useState(false)
   const label = action.label ?? '열기'
   return match(target)
@@ -250,11 +263,7 @@ function ActionButton({ action, target, onNavigate, onDownloadBrief }: ActionBut
         {label}
       </Button>
     ))
-    .with({ kind: 'brief' }, () => (
-      <Button variant="secondary" onClick={onDownloadBrief}>
-        <Icon name="download" size={16} /> {label}
-      </Button>
-    ))
+    .with({ kind: 'brief' }, () => <BriefButton label={label} state={briefState} onDownload={onDownloadBrief} />)
     .with({ kind: 'glossary' }, ({ term, entry }) => (
       <div className="chat-panel__term">
         <Button variant="secondary" aria-expanded={showTerm} onClick={() => setShowTerm((v) => !v)}>
@@ -269,6 +278,26 @@ function ActionButton({ action, target, onNavigate, onDownloadBrief }: ActionBut
     ))
     .with({ kind: 'ignore' }, () => null)
     .exhaustive()
+}
+
+/** 비교 브리프 내려받기. 받는 중이면 끄고, 실패하면 다시 누를 수 있게 알린다('내보내기' 메뉴와 같은 안내) */
+function BriefButton({ label, state, onDownload }: { label: string; state: AsyncState<void>; onDownload: () => void }) {
+  const loading = state.status === 'loading'
+  return (
+    <div className="chat-panel__brief">
+      <Button variant="secondary" disabled={loading} aria-busy={loading} onClick={onDownload}>
+        <Icon name="download" size={16} /> {loading ? '내보내는 중…' : label}
+      </Button>
+      {match(state)
+        .with({ status: 'error' }, () => (
+          <p role="alert" className="chat-panel__brief-error">
+            브리프를 내려받지 못했어요. 다시 시도해 주세요.
+          </p>
+        ))
+        .with({ status: 'idle' }, { status: 'loading' }, { status: 'success' }, () => null)
+        .exhaustive()}
+    </div>
+  )
 }
 
 interface ChatFormProps {

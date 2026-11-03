@@ -217,6 +217,14 @@ export function openTextSection(section: string): ParamChanges {
   return { tab: 'text', ttype: null, tsort: null, tsec: section, tq: null, trisk: null, tpin: null, tc: null }
 }
 
+/**
+ * 예전 AI 질문 탭 주소(?tab=ask)인지. 이 탭은 없어졌고(#575) AI 질문은 채팅 패널로 바뀌어(#579),
+ * 이 주소로 들어오면 요약 탭을 보이고 채팅 패널을 연다
+ */
+export function isLegacyAskTab(params: URLSearchParams): boolean {
+  return params.get('tab') === 'ask'
+}
+
 /** AI 질문이 있는 요약 탭으로 간다(3.10, #575). 질문·답은 주소에 남기지 않는다 */
 export function openAsk(): ParamChanges {
   return { tab: 'summary' }
