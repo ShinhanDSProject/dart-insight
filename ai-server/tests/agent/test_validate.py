@@ -10,6 +10,7 @@ from app.agent.validate import (
     MARKER_MISMATCH,
     NUMBER_NOT_IN_TOOL_RESULT,
     Draft,
+    _sentences,
     parse_draft,
     parse_plan,
     review,
@@ -303,5 +304,33 @@ def test_sentence_ending_in_korean_still_splits() -> None:
         ResultItem("F2", "영업이익이 6.6조 원으로 줄었습니다."),
     )
     swapped = "II. 사업의 내용에서 매출액은 6.6조 원이에요[F1]. 영업이익은 153.7조 원이에요[F2]."
+
+    assert review(draft(swapped, ["F1", "F2"]), step(*items)).rules == [NUMBER_NOT_IN_TOOL_RESULT]
+
+
+@pytest.mark.parametrize(
+    ("answer", "expected"),
+    [
+        ("공시일은 2026. 매출은 늘었어요.", ["공시일은 2026.", "매출은 늘었어요."]),
+        ("담당은 ABC. 이익은 줄었어요.", ["담당은 ABC.", "이익은 줄었어요."]),
+        ("ABC? 이익은 줄었어요!", ["ABC?", "이익은 줄었어요!"]),
+        ("늘었어요[F1]? 줄었어요[F2]!", ["늘었어요[F1]?", "줄었어요[F2]!"]),
+        (
+            "XI. 그 밖에 항목과 1. 개요, Samsung Inc. 내용이에요[T1].",
+            ["XI. 그 밖에 항목과 1. 개요, Samsung Inc. 내용이에요[T1]."],
+        ),
+        ("영업이익은 6.6조 원이에요[F1]. 끝", ["영업이익은 6.6조 원이에요[F1].", "끝"]),
+    ],
+)
+def test_sentences_split_at_real_endings_only(answer: str, expected: list[str]) -> None:
+    assert _sentences(answer) == expected
+
+
+def test_numbers_swapped_after_digit_ending_are_rejected() -> None:
+    items = (
+        ResultItem("F1", "매출액이 153.7조 원으로 늘었습니다. 기준연도 2025"),
+        ResultItem("F2", "영업이익이 6.6조 원으로 줄었습니다. 기준연도 2026"),
+    )
+    swapped = "매출액 기준은 2026. 매출액은 6.6조 원이에요[F1]. 영업이익은 153.7조 원이에요[F2]."
 
     assert review(draft(swapped, ["F1", "F2"]), step(*items)).rules == [NUMBER_NOT_IN_TOOL_RESULT]
