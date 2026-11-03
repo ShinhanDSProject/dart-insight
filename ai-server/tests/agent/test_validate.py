@@ -218,3 +218,53 @@ def test_not_found_drops_answer_and_evidence_from_llm() -> None:
     assert reviewed.final.status == "NOT_FOUND"
     assert reviewed.final.answer is None
     assert reviewed.final.evidence_ids == []
+
+
+def mixed_step() -> StepInput:
+    return step(
+        ResultItem(
+            "F1", "매출이 환율 영향으로 늘었습니다. 신규 라인을 가동했습니다.", grade="RELATED"
+        ),
+        ResultItem(
+            "F2",
+            "원가가 원자재 가격 상승 때문에 늘었습니다. 영업이익이 줄었습니다.",
+            grade="STATED",
+        ),
+    )
+
+
+def test_stated_form_is_checked_against_its_own_sentence() -> None:
+    text = "회사는 신규 라인을 가동했다고 밝혔어요[F1]. 영업이익이 줄었어요[F2]."
+
+    reviewed = review(draft(text, ["F1", "F2"]), mixed_step())
+
+    assert reviewed.rules == [GRADE_CHANGED]
+
+
+def test_causal_claim_is_checked_against_its_own_sentence() -> None:
+    text = "매출은 환율 영향으로 늘었어요[F1]. 원가는 원자재 가격 상승 때문에 늘었어요[F2]."
+
+    reviewed = review(draft(text, ["F1", "F2"]), mixed_step())
+
+    assert reviewed.rules == [CAUSAL_NOT_IN_SOURCE]
+
+
+def test_related_and_stated_sources_pass_when_each_sentence_fits() -> None:
+    text = (
+        "관련 공시 내용으로 신규 라인 가동이 있어요[F1]. "
+        "원가는 원자재 가격 상승 때문에 늘었어요[F2]."
+    )
+
+    reviewed = review(draft(text, ["F1", "F2"]), mixed_step())
+
+    assert reviewed.final is not None
+
+
+def test_decimal_point_does_not_split_a_sentence() -> None:
+    item = ResultItem("F2", "영업이익이 6.6조 원에서 원가 상승 때문에 줄었습니다.", grade="STATED")
+
+    reviewed = review(
+        draft("영업이익은 6.6조 원에서 원가 상승 때문에 줄었어요[F2].", ["F2"]), step(item)
+    )
+
+    assert reviewed.final is not None

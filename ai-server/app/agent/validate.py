@@ -5,8 +5,9 @@
 - review: 검토 노드의 내용 검사. 반려하면 사유(규칙 ID)를 붙여 다시 쓰게 한다
   - 근거 ID가 실행에 성공한 Tool 결과에 있음, 답의 근거 표시와 evidenceIds가 같음
   - 숫자·크기 표현이 인용한 Tool 결과에 있음(app.llm.grounding)
-  - 원인 표현은 인용한 결과에도 원인 표현이 있고, 등급이 있으면 STATED일 때만(ADR-0015)
-  - '회사가 밝혔다' 같은 직접 설명 꼴은 인용한 결과의 등급이 STATED일 때만(등급을 바꾸지 않음)
+  - 원인 표현은 그 문장이 인용한 결과에도 원인 표현이 있고, 등급이 있으면 STATED일 때만(ADR-0015)
+  - '회사가 밝혔다' 같은 직접 설명 꼴은 그 문장이 인용한 결과의 등급이 STATED일 때만
+    (등급을 바꾸지 않음). 원인·등급은 문장마다 그 문장 끝의 근거 표시로 본다
   - 투자 권유성 표현 검사(app.compliance) 통과. 걸리면 규칙 ID를 blocked_rules에 남긴다
   - 액션은 받은 목록의 종류와 형식(JSON Schema)만. 값이 이 분석에 실제로 있는지는 backend가
     확인하고 없으면 그 액션을 뺀다(ADR-0044, docs/api-spec.md `final.actions`)
@@ -28,6 +29,7 @@ from app.agent.model import (
     MAX_TOOL_CALLS,
     NOT_FOUND,
     FinalAnswer,
+    ResultItem,
     StepInput,
     ToolCall,
 )
@@ -62,6 +64,8 @@ NOT_FOUND_AFTER_TOOL_FAILURE = "NOT_FOUND_AFTER_TOOL_FAILURE"
 _MARKER = re.compile(r"\[([^\[\]\n]+)\]")
 # 회사가 직접 밝힌 설명(STATED)의 꼴. 등급이 RELATED·NONE인 결과를 이렇게 쓰면 등급을 바꾼 것이다
 _STATED_FORM = re.compile(r"밝혔|밝히고|설명했|설명하고|라고\s*(?:공시|했|적)")
+# 문장 하나: 마침표·물음표·느낌표와 그 뒤 근거 표시까지. '6.6조'의 점은 뒤에 공백이 없어 끊지 않는다
+_SENTENCE = re.compile(r".*?[.!?](?:\s*\[[^\[\]\n]+\])*(?=\s|$)|.+$", re.S)
 
 
 @dataclass(frozen=True)
@@ -264,20 +268,38 @@ def _answer_problem(draft: Draft, step: StepInput) -> tuple[str, str | None]:
     problem = number_problem(body, texts, draft.evidence_ids)
     if problem:
         return NUMBER_NOT_IN_TOOL_RESULT, problem
-    cited = [evidence[e] for e in draft.evidence_ids]
+    for sentence in _sentences(answer):
+        rule, problem = _sentence_problem(sentence, evidence)
+        if problem:
+            return rule, problem
+    return "", None
+
+
+def _sentences(answer: str) -> list[str]:
+    return [m.group(0).strip() for m in _SENTENCE.finditer(answer) if m.group(0).strip()]
+
+
+def _sentence_problem(sentence: str, evidence: dict[str, ResultItem]) -> tuple[str, str | None]:
+    """한 문장의 원인 표현·직접 설명 꼴이 그 문장이 인용한 근거에 맞는지(ADR-0015).
+
+    다른 문장의 근거가 STATED라고 이 문장의 RELATED 근거를 원인·직접 설명처럼 쓸 수 없다.
+    """
+    body = without_markers(sentence)
+    cited = [evidence[m] for m in dict.fromkeys(_MARKER.findall(sentence)) if m in evidence]
     claim = find_causal(body)
     if claim and not any(
         find_causal(item.text) and item.grade in (None, GRADE_STATED) for item in cited
     ):
         return CAUSAL_NOT_IN_SOURCE, (
-            f"원인 표현('{claim}')은 인용한 자료가 원인을 직접 밝혔을 때만 씁니다. "
+            f"원인 표현('{claim}')은 그 문장이 인용한 자료가 원인을 직접 밝혔을 때만 씁니다. "
             "자료에 적힌 내용만 원인 없이 쓰세요."
         )
     graded = [item for item in cited if item.grade]
     stated_form = _STATED_FORM.search(body)
     if stated_form and graded and not any(item.grade == GRADE_STATED for item in graded):
         return GRADE_CHANGED, (
-            f"'{stated_form.group(0)}'처럼 회사가 직접 설명한 것으로 쓰려면 인용한 설명의 등급이 "
-            "STATED여야 합니다. RELATED는 '관련 공시 내용', NONE은 '확인된 설명 없음'으로 쓰세요."
+            f"'{stated_form.group(0)}'처럼 회사가 직접 설명한 것으로 쓰려면 그 문장이 인용한 "
+            "설명의 등급이 STATED여야 합니다. RELATED는 '관련 공시 내용', NONE은 "
+            "'확인된 설명 없음'으로 쓰세요."
         )
     return "", None
