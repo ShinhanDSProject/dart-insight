@@ -1,3 +1,4 @@
+from app.compare.listing import BUSINESS, DIVIDEND, HEADING, MAIN
 from app.compare.priority import HIGH
 from app.compare.service import compare_documents
 from app.compare.text_diff import ADDED, BlockIn, DocumentIn, SectionIn
@@ -19,3 +20,28 @@ def test_each_change_gets_a_priority_from_its_own_text() -> None:
     assert len(compared.priorities) == 1
     assert compared.priorities[0].level == HIGH
     assert "핵심어 '소송' +15" in compared.priorities[0].reasons
+
+
+def test_each_change_gets_a_list_entry_from_its_own_text() -> None:
+    previous = DocumentIn("20250311000001", SECTIONS, [])
+    current = DocumentIn(
+        "20260310000001",
+        SECTIONS,
+        [
+            BlockIn(1, 1, "PARAGRAPH", "(2) 손상차손"),
+            BlockIn(2, 1, "PARAGRAPH", "당사는 미국 텍사스주에 새 반도체 공장을 짓고 있습니다."),
+        ],
+    )
+
+    compared = compare_documents(previous, current)
+
+    assert [(e.group, e.field) for e in compared.entries] == [(HEADING, None), (MAIN, BUSINESS)]
+
+
+def test_missing_fields_come_from_both_documents() -> None:
+    document = DocumentIn("20250311000001", SECTIONS, [])
+
+    compared = compare_documents(document, document)
+
+    assert BUSINESS not in compared.missing_fields
+    assert DIVIDEND in compared.missing_fields
