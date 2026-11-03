@@ -8,7 +8,7 @@
 | --- | --- |
 | 상태 | 초안 (M1 범위) |
 | 담당 | 백엔드·프론트 |
-| 마지막 수정 | 2026-10-27 |
+| 마지막 수정 | 2026-11-03 |
 | 관련 문서 | ERD(`docs/erd.md`), [화면 와이어프레임](https://app.notion.com/p/c0f540f74d92496c9c20f23867afc15a), 이슈 #47 |
 
 ## 0. 공통
@@ -126,7 +126,8 @@
 | GET | `/api/analyses/{analysisId}/summary` | 근거 기반 요약·설명 | #20 (3.2) | W-03 ① | 초안 |
 | POST | `/api/analyses/{analysisId}/questions` | 근거로 답하는 질문(AI) | #219 (3.10) | W-03 ⑤ | 초안 |
 | GET | `/api/analyses/{analysisId}/questions` | 이 분석에서 한 질문·답 기록 | #219 (3.10) | W-03 ⑤ | 초안 |
-| PUT | `/api/analyses/{analysisId}/questions/{questionId}/feedback` | AI 답 평가(도움 여부·사유) | #236 (3.12) | W-03 ⑤ | 초안 |
+| PUT | `/api/analyses/{analysisId}/questions/{questionId}/feedback` | AI 답 평가(도움 여부·사유) | #236 (3.12) | W-03 ⑤ → 채팅 패널 | 초안 |
+| POST | `/api/analyses/{analysisId}/chat-messages` | AI 에이전트 채팅(답·근거·화면 액션, 대화는 저장 안 함) | 에이전트 채팅(FS 전) | W-03 채팅 패널(신규) | 초안 |
 | GET | `/api/analyses/{analysisId}/documents/{side}` | 분석 보고서 원문 목차 | #23 (3.5) | W-03 ④ | 초안 |
 | GET | `/api/analyses/{analysisId}/documents/{side}/sections/{sectionNo}` | 원문 한 항목의 문단·표 | #23 (3.5) | W-03 ④ | 초안 |
 | GET | `/api/system/health` | 서비스 연결 상태 | #48 (0.5) | — | 초안 |
@@ -2724,6 +2725,110 @@
 | 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 |
 | 404 | `ANALYSIS_QUESTION_NOT_FOUND` | 없는 질문, 또는 이 분석의 질문이 아님 |
 
+### POST /api/analyses/{analysisId}/chat-messages — AI 에이전트 채팅
+
+- 이슈: 기능 기획서 'AI 에이전트 채팅'(초안, FS 번호 전) · 화면: W-03 채팅 패널(새 화면, AI 질문 탭 ⑤를 없애고 탭 밖에 둠) · [ADR-0044](adr/0044-agent-tools-run-in-backend.md), [ADR-0045](adr/0045-langgraph-agent-step-graph.md)
+- 완료된 분석에서만 씁니다. 동기 호출입니다. Tool을 부를 때마다 ai-server와 한 번 더 왕복하므로 근거 질문보다 오래 걸릴 수 있습니다.
+- 로그인 없이 씁니다(AI 질문과 같음). 쓰기는 이 API가 하지 않고 확인 액션(`CONFIRM_*`)으로만 돌려줍니다. 사용자가 확인을 누르면 화면이 기존 API(`POST /api/notes`, `PUT /api/favorite-companies/{corpCode}`)를 부르고, 그 API의 로그인 규칙을 따릅니다.
+- 대화는 서버에 저장하지 않습니다. 화면이 최근 대화(`history`)와 화면 맥락(`context`)을 요청마다 보냅니다. 지난 답은 말뜻을 풀 때만 쓰고 근거로 쓰지 않습니다. 근거는 이번 요청에서 실행한 Tool의 결과뿐입니다.
+- 흐름: backend가 허용 Tool·액션 목록과 지금까지의 Tool 결과를 붙여 ai-server `POST /internal/agent-steps`(3절)를 부릅니다. 응답이 `TOOL_CALLS`면 Tool을 실행하고 결과를 붙여 다시 부르고, `FINAL`·`OUT_OF_SCOPE`면 아래 응답으로 바꿔 돌려줍니다. 한 요청의 모든 왕복은 같은 `X-Trace-Id`를 씁니다.
+- 근거 질문 Tool(`answer_with_evidence`)을 실행하면 `POST /api/analyses/{analysisId}/questions`와 같은 규칙으로 답하고 `analysis_question`에 저장합니다. 그 질문 ID가 응답 `questionId`이고, 화면은 이 값으로 답 평가(`PUT .../questions/{questionId}/feedback`)와 인용 노트 담기(`ANSWER_CITATION`)를 합니다.
+- 응답 전에 backend는 근거 ID가 이 분석에 저장된 위치인지 다시 확인합니다. 하나라도 아니면 답을 버리고 `REVIEW_NEEDED`로 끝내며 오류 로그를 남깁니다(ADR-0044).
+- 상한: 한 요청에서 ai-server 왕복 최대 5회, 전체 60초(설정값, 잠정). 넘으면 검증하지 않은 부분 결과 없이 `INCOMPLETE`입니다.
+
+**요청**
+
+```json
+{
+  "message": "소송 관련 변경만 보여줘",
+  "history": [
+    { "role": "user", "text": "영업이익 어디 있어?" },
+    { "role": "assistant", "text": "영업이익은 6.6조 원에서 4.3조 원으로 줄었어요." }
+  ],
+  "context": { "tab": "financial", "textChangeId": null, "financialChangeId": 4221, "side": null, "sectionNo": null }
+}
+```
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| body | `message` | string | 예 | 앞뒤 공백을 뺀 2~500자 |
+| body | `history` | array | 아니오 | 최근 대화. 최대 6개, 오래된 것부터. 더 많으면 400 |
+| body | `history[].role` | string | 예 | `user`, `assistant` |
+| body | `history[].text` | string | 예 | 1,000자 이하. 화면이 보여 준 글 그대로(근거 칩 표시 제외) |
+| body | `context.tab` | string | 아니오 | 지금 보는 탭. `summary`, `financial`, `text`, `source` |
+| body | `context.textChangeId` | number | 아니오 | 고른 문장 변경 ID |
+| body | `context.financialChangeId` | number | 아니오 | 고른 재무 계정 변화 ID |
+| body | `context.side`, `context.sectionNo` | string, number | 아니오 | 원문 뷰어에서 보는 쪽(`previous`·`current`)과 항목 번호 |
+
+- `context`의 ID가 이 분석에 없으면(다시 만든 분석 등) 에러 없이 그 값을 빼고 처리합니다.
+- 고른 변경이 있으면 backend가 첫 왕복 전에 그 상세를 Tool 결과로 넣어 보냅니다("이 변경 좋은 거야?"의 '이 변경').
+
+**응답 200**
+
+```json
+{
+  "status": "ANSWERED",
+  "answer": "위험 관련 섹션에서 소송이 나오는 변경은 2건이에요[1][2].",
+  "message": null,
+  "citations": [
+    { "no": 1, "kind": "TEXT_CHANGE", "evidenceId": "T5012", "changeId": 5012, "changeType": "ADDED",
+      "rceptNo": "20260814003699", "reportName": "반기보고서 (2026.06)",
+      "sectionPath": "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항", "quote": "…" },
+    { "no": 2, "kind": "TEXT_CHANGE", "evidenceId": "T5020", "changeId": 5020, "changeType": "MODIFIED",
+      "rceptNo": "20260814003699", "reportName": "반기보고서 (2026.06)",
+      "sectionPath": "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항", "quote": "…" }
+  ],
+  "actions": [
+    { "type": "OPEN_TAB", "label": "문장 변화에서 보기", "tab": "text", "filters": { "q": "소송", "risk": true } }
+  ],
+  "questionId": null,
+  "aiGenerated": true,
+  "ai": { "model": "fake-model", "promptVersion": "agent-1", "generatedAt": "2026-11-03T10:12:03" }
+}
+```
+
+- `status`
+  - `ANSWERED`: `answer`에 답. 문장 안의 `[1]`은 `citations[].no`입니다. 화면 이동만 하는 요청("사업의 내용 열어줘")도 `ANSWERED`이고, `answer`에 짧은 안내와 `actions`가 있습니다.
+  - `NOT_FOUND`: 실행한 Tool 결과에 관련 자료가 없음. `answer`는 null, `message`에 '확인된 설명 없음' 안내
+  - `OUT_OF_SCOPE`: 매수·매도·목표주가·주가 전망 요청. LLM을 부르지 않음
+  - `REVIEW_NEEDED`: 답이 근거·숫자·표현 검사를 통과하지 못함(처음 생성 1회와 다시 생성 2회 뒤, ADR-0045), 또는 backend 근거 확인 실패. `answer`는 null
+  - `INCOMPLETE`: 왕복·시간 상한을 넘음. `answer`는 null, `message`에 다시 보내 달라는 안내
+- `citations`: 답이 인용한 근거만 번호 순서대로. 종류(`kind`)마다 위치 필드가 다릅니다.
+
+  | `kind` | 근거 ID 모양 | 위치 필드 |
+  | --- | --- | --- |
+  | `BLOCK` | `{rceptNo}#B{blockNo}` | `side`, `rceptNo`, `reportName`, `sectionNo`, `blockNo`, `sectionPath`, `quote`(문단 앞 160자). 근거 질문 `citations`와 같음 |
+  | `SECTION` | `{rceptNo}#S{sectionNo}` | `side`, `rceptNo`, `reportName`, `sectionNo`, `sectionPath` |
+  | `TEXT_CHANGE` | `T{changeId}` | `changeId`, `changeType`, `rceptNo`(현재 쪽, `DELETED`면 이전 쪽), `reportName`, `sectionPath`, `quote` |
+  | `FINANCIAL_CHANGE` | `F{changeId}` | `changeId`, `sjDiv`, `accountName`, `rceptNo`(현재 보고서), `sentence`(코드가 저장된 계산 결과로 만든 사실 문장) |
+  | `DISCLOSURE` | `D{rceptNo}` | `rceptNo`, `reportName`, `rceptDt`, `dartUrl`(관련 수시공시, 보조 근거) |
+
+- `actions`: 화면이 할 일. 화면은 아래 종류만 실행하고 모르는 종류는 무시합니다. `label`은 backend가 종류별로 정한 문구입니다(LLM 문장이 아님). 인자가 이 분석에 없는 값을 가리키면 backend가 그 액션을 빼고 로그를 남깁니다.
+
+  | `type` | 필드 | 화면 동작 |
+  | --- | --- | --- |
+  | `OPEN_TAB` | `tab`(`summary`·`financial`·`text`·`source`), `filters`(선택, `text` 탭만: `type`·`section`·`q`·`risk`·`sort`, 값은 `GET .../text-changes` 쿼리와 같음) | 그 탭을 열고 거르기를 적용 |
+  | `OPEN_TEXT_CHANGE` | `changeId` | 문장 변화 탭에서 그 변경을 펼침 |
+  | `OPEN_FINANCIAL_CHANGE` | `changeId` | 재무 수치 탭에서 그 계정의 근거 상세를 엶 |
+  | `OPEN_DOCUMENT` | `side`, `sectionNo`, `blockNo`(선택) | 원문 뷰어에서 그 항목(문단)을 엶 |
+  | `OPEN_GLOSSARY` | `term` | 용어 사전(`shared/lib/glossary.ts`)을 그 용어로 엶. 사전에 없으면 '등록된 용어가 없어요'(뜻을 지어내지 않음) |
+  | `DOWNLOAD_BRIEF` | — | 비교 브리프 Markdown 내려받기(#515, LLM 없음) |
+  | `CONFIRM_SAVE_NOTE` | `note`(`POST /api/notes` 본문과 같음: `kind`·`analysisId`·`changeId`·`questionId`·`citationNo`·`memo`) | 확인 버튼. 누르면 `POST /api/notes`. 로그인하지 않았으면 버튼 대신 로그인 안내 |
+  | `CONFIRM_FAVORITE` | `corpCode` | 확인 버튼. 누르면 `PUT /api/favorite-companies/{corpCode}`. 로그인 안내는 위와 같음 |
+
+- `questionId`: 이번 요청에서 근거 질문 Tool을 실행해 `analysis_question`에 저장했으면 그 ID, 아니면 null
+- `aiGenerated`: LLM이 `answer`를 만들었으면 true. LLM 없이 정해진 문구로 답했거나 `answer`가 null이면 false
+- `ai`: LLM이 답을 만들었을 때만(모델·프롬프트 버전·생성 시각). 그 밖에는 null
+
+**에러**
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | `message`가 비었거나 2자 미만·500자 초과(`errors[].field`=`message`), `history`가 6개 초과이거나 `role`·`text`가 맞지 않음, `context.tab`이 위 값이 아님 |
+| 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 |
+| 409 | `ANALYSIS_NOT_READY` | 분석이 끝나지 않음 |
+| 503 | `AI_SERVER_UNAVAILABLE` | AI 서버 또는 LLM을 쓸 수 없음 |
+
 ### GET /api/system/health — 연결 상태
 
 - 이슈: #48 (0.5)
@@ -2828,6 +2933,7 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 | POST | `/internal/briefings` | AI 기업 브리핑(LLM) | #333 (1.2) | 초안 |
 | POST | `/internal/outlooks` | 회사가 밝힌 전망·계획 뽑기(LLM) | #465 (1.9) | 초안 |
 | POST | `/internal/plan-followups` | 작년 계획과 올해 보고서 문단 대조(LLM) | #467 (1.10) | 초안 |
+| POST | `/internal/agent-steps` | 에이전트 한 단계: 다음에 부를 Tool 또는 최종 답(LLM, ADR-0044·0045) | 에이전트 채팅(FS 전) | 초안 |
 
 | code | 상태 | 뜻 |
 | --- | --- | --- |
@@ -3205,6 +3311,100 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | 400 | `COMMON_INVALID_INPUT` | 필드 누락, `plans`가 비었거나 10개 초과, 계획 하나의 `candidates`가 3개 초과, `planId` 겹침, 한 계획 안 `evidenceId` 겹침, `category`가 정한 값(`INVESTMENT`·`NEW_BUSINESS`·`FINANCIAL`·`OTHER`)이 아님, `promptVersion`이 다름 |
 | 503 | `AI_LLM_UNAVAILABLE` | LLM을 쓸 수 없음 |
 
+### POST /internal/agent-steps — 에이전트 한 단계
+
+- [ADR-0044](adr/0044-agent-tools-run-in-backend.md)·[ADR-0045](adr/0045-langgraph-agent-step-graph.md) · 공개 API는 `POST /api/analyses/{analysisId}/chat-messages`(2절)
+- ai-server는 대화도 그래프 상태도 저장하지 않습니다. 요청마다 backend가 보낸 것으로 그래프를 처음부터 돌려 '다음에 부를 Tool' 또는 '최종 답' 하나를 정합니다. Tool은 실행하지 않습니다.
+- 사용자 메시지는 `<question>`, 최근 대화는 `<history>`, Tool 결과는 `<tool_result>` 태그로 감싸 자료로만 씁니다. 그 안의 지시는 따르지 않습니다. 사용자 정보(이메일·닉네임)와 노트·메모·관심 기업 내용은 보내지 않습니다.
+- Tool·액션 목록은 요청으로 받습니다(ai-server 코드에 따로 두지 않음). Tool 이름은 받은 목록의 enum, 인자는 Tool마다 받은 `parameters` 형식으로 구조화 출력 스키마를 만듭니다.
+- 투자 판단 요청(규칙 `OUT_OF_SCOPE_QUESTION`)은 LLM을 부르지 않고 `OUT_OF_SCOPE`입니다.
+- `TOOL_CALLS`: 한 번에 1~3개. 읽기 Tool만 부릅니다. 쓰기는 Tool로 부르지 않고 `FINAL`의 확인 액션(`CONFIRM_*`)으로 돌려줍니다. `remainingSteps`가 0이면 `TOOL_CALLS`를 돌려주지 않고 받은 결과로 `FINAL`을 만듭니다.
+- `FINAL` 확인(검토 노드): `evidenceIds`가 받은 Tool 결과의 근거 ID에 있음, 답의 숫자·크기 표현이 Tool 결과에 있음, 원인 표현은 인용한 원문에도 원인 표현이 있을 때만, Tool 결과의 재무 설명 등급을 바꾸지 않음, 표현 검사(5.5) 통과. 반려되면 사유를 붙여 다시 만들고, 처음 생성 1회와 다시 생성 2회(형식 실패 포함)를 넘으면 `REVIEW_NEEDED`입니다.
+
+**요청**
+
+```json
+{
+  "companyName": "삼성전자",
+  "previousReport": "반기보고서 (2025.06)",
+  "currentReport": "반기보고서 (2026.06)",
+  "message": "소송 관련 변경만 보여줘",
+  "history": [{ "role": "user", "text": "영업이익 어디 있어?" }],
+  "context": { "tab": "financial" },
+  "tools": [
+    { "name": "search_text_changes", "description": "이 분석의 문장 변경을 유형·섹션·검색어·위험 관련으로 거른다",
+      "parameters": { "type": "object", "properties": { "q": { "type": "string" }, "risk": { "type": "boolean" } },
+        "required": [], "additionalProperties": false } }
+  ],
+  "actions": [
+    { "type": "OPEN_TAB", "parameters": { "type": "object", "properties": { "tab": { "enum": ["summary", "financial", "text", "source"] } },
+      "required": ["tab"], "additionalProperties": false } }
+  ],
+  "toolResults": [
+    { "callId": "s1-1", "name": "search_text_changes", "arguments": { "q": "소송", "risk": true }, "ok": true, "error": null,
+      "truncated": false,
+      "items": [{ "evidenceId": "T5012", "text": "[추가] XI. … > 2. 우발부채 등에 관한 사항: 당사는 … 소송을 제기받았습니다." }] }
+  ],
+  "remainingSteps": 4
+}
+```
+
+- `toolResults`는 지금까지 실행한 순서대로 모두 보냅니다. `items[].text`는 backend가 만든 글입니다(재무는 저장된 계산 결과로 만든 사실 문장, 문장 변경은 유형·섹션 경로·글). 한 결과는 10개·4,000자까지로 줄이고, 줄였으면 `truncated: true`입니다.
+- 실행하지 못한 Tool(목록에 없음, 인자 형식 틀림, 없는 ID)은 `ok: false`와 `error`(짧은 사유)로 돌려줍니다.
+
+**응답 200**
+
+```json
+{
+  "promptVersion": "agent-1",
+  "expressionRulesVersion": "expr-1",
+  "model": "fake-model",
+  "generatedAt": "2026-11-03T10:12:03",
+  "type": "FINAL",
+  "toolCalls": [],
+  "final": {
+    "status": "ANSWERED",
+    "answer": "위험 관련 섹션에서 소송이 나오는 변경은 1건이에요[T5012].",
+    "evidenceIds": ["T5012"],
+    "actions": [{ "type": "OPEN_TAB", "tab": "text", "filters": { "q": "소송", "risk": true } }],
+    "reviewReason": null,
+    "blockedRules": []
+  },
+  "rejections": [{ "attempt": 1, "rules": ["NUMBER_NOT_IN_TOOL_RESULT"] }],
+  "calls": [{ "task": "agent_answer", "provider": "fake", "model": "fake-model", "promptVersion": "agent-1",
+    "calledAt": "2026-11-03T10:12:02", "traceId": "…", "inputTokens": 1500, "outputTokens": 120,
+    "latencyMs": 900, "attempt": 1, "outcome": "OK", "error": null }]
+}
+```
+
+- `type`: `TOOL_CALLS`(`toolCalls`에 `{ "callId", "name", "arguments" }`, `final`은 null), `FINAL`, `OUT_OF_SCOPE`(`final`은 null, LLM 없음)
+- `final.status`: `ANSWERED`, `NOT_FOUND`, `REVIEW_NEEDED`. 답의 근거 ID 표시는 그대로 두고 backend가 번호로 바꿉니다.
+- `final.actions`: 받은 `actions` 목록의 종류와 형식만. 근거가 아니라서 검토 노드는 형식만 봅니다(값 확인은 backend).
+- `rejections`: 검토 노드가 반려한 회차와 규칙. 반려가 없으면 빈 배열입니다.
+- `calls`: 이 단계에서 부른 LLM 기록(task `agent_plan` 다음 Tool 고르기, `agent_answer` 답 만들기). LLM을 부르지 않았으면 빈 배열이고 `model`·`generatedAt`은 null입니다.
+
+**1차 Tool 목록** (backend `com.dartinsight.agent`에 한 곳에 둠. 모두 읽기이고 기존 서비스 메서드를 부름)
+
+| Tool | 인자 | 실행하는 기존 기능 | 결과 근거 ID |
+| --- | --- | --- | --- |
+| `search_text_changes` | `type`, `section`, `q`, `risk`, `sort`, `size`(1~10) | `GET .../text-changes`와 같은 조회 | `T{changeId}` |
+| `get_text_change` | `changeId` | `GET .../text-changes/{changeId}` | `T{changeId}`, `{rceptNo}#B{blockNo}` |
+| `explain_text_change` | `changeId` | `POST .../text-changes/{changeId}/explanations`(저장된 풀이가 있으면 그것) | `T{changeId}` |
+| `find_related_disclosures` | `changeId` | `GET .../text-changes/{changeId}/related-disclosures` | `D{rceptNo}` |
+| `get_financial_changes` | `sjDiv`, `q`(계정 이름), `size`(1~10) | `GET .../financial-changes`(저장된 설명 등급·인용 포함) | `F{changeId}` |
+| `get_document_outline` | `side` | `GET .../documents/{side}` | `{rceptNo}#S{sectionNo}` |
+| `get_document_section` | `side`, `sectionNo` | `GET .../documents/{side}/sections/{sectionNo}`(앞 4,000자) | `{rceptNo}#B{blockNo}` |
+| `get_summary` | — | `GET .../summary`(저장된 요약만, 새로 만들지 않음) | `F{changeId}`, `T{changeId}`, `{rceptNo}#B{blockNo}` |
+| `answer_with_evidence` | `question` | `POST .../questions`(같은 검사, `analysis_question`에 저장) | 그 답의 근거 ID |
+
+- 2차(기획서 R11~R13 등): 기업 주요정보·전망·계획, 기존 분석 찾기·분석 요청, 원인 추적·교차 검증 Workflow. 넣을 때 이 표에 더합니다.
+- 액션 목록은 공개 API의 `actions` 표와 같습니다.
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | 필드 누락, `tools`가 비었음, Tool 이름·`callId` 겹침, `toolResults`의 `name`이 `tools`에 없음, `remainingSteps`가 0보다 작음 |
+| 503 | `AI_LLM_UNAVAILABLE` | LLM을 쓸 수 없음. 그때까지 부른 기록은 응답 헤더 `X-Llm-Calls`(3절 첫머리) |
+
 ## 4. 에러 코드
 
 `code`는 `영역_내용` 형식의 대문자 스네이크입니다. 화면은 `code`를 보고 예외 상태를 고릅니다. 분석 작업이 실패한 사유(`GET /api/analyses/{analysisId}`의 `error.code`)는 HTTP 에러가 아니라서 이 표에 없고, 그 절의 표에 있습니다.
@@ -3261,5 +3461,6 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | 투자 권유성 금지 표현(5.5) | `expr-1`: 매수·매도 권유(`TRADE_RECOMMENDATION`: '매수하세요', '매수하는 것이 좋아요', '매도 의견', '매수 기회', '저점 매수', '비중 확대를 권해요' 등), 투자 권유(`INVESTMENT_ADVICE`: '투자를 고려해 볼 만한'), 목표주가(`TARGET_PRICE`), 주가 예측(`PRICE_FORECAST`: '주가가 오를', '주가 상승이 기대', '주가 전망', 상한가·하한가), 가치 판단(`VALUE_JUDGMENT`: 저평가·고평가, 투자 매력, 호재·악재, 수혜주 등), 수익 보장(`RETURN_GUARANTEE`: '원금이 보장돼요', '확실한 수익'). 공시에 흔한 사실(자기주식 매도, 해외 투자 비중 확대, 주가 변동 위험, 원금 보장형 상품, 수익 보장 약정, 경영 목표)은 막지 않도록 권유·예측의 꼴만 잡음. AI 문장에만 적용. 규칙은 `ai-server/app/compliance/expressions.py` | [투자 권유성 금지 표현 기준](https://app.notion.com/p/400b6afffc6f81bab915c86bdd8183aa) |
 | 요약할 변화 고르기(3.2) | 재무 수치: 계산한 계정 중 손익계산서 증감액 상위 3개(손익계산서가 없으면 포괄손익계산서), 재무상태표 2개, 현금흐름표 1개. 문장 변화: 우선순위 높음·중간 중 점수 상위 5개(숫자만 바뀜 `NUMERIC_UPDATE`·위치 이동 `MOVED`·검토 필요 제외). 설명 후보: 현재 보고서 '경영진단'·'사업의 내용' 섹션 문단 중 계정 이름이 나오는 앞의 2개(문단당 1,500자까지) | [공시 변화 평가 규칙과 중립·판단 유보 도입 여부](https://app.notion.com/p/400b6afffc6f8139ae35e8183960af19) |
 | 변경 항목 우선순위 규칙(2.6) | 점수 합(`priority-3`): 섹션(사업의 내용 30, 경영진단·투자자 보호·우발·소송 25, 대주주·특수관계 20, 재무에 관한 사항 10, 그 밖 5) + 추가·삭제 20, 수정 10(비슷한 정도 0.7 미만이면 +10), 숫자만 바뀜 −20, 위치 이동 −20 + 문단 10 + 새로 들어간 낱말(추가는 현재 글, 삭제는 이전 글)의 핵심어(계속기업·소송·제재·합병 등, 계속기업을 먼저 셈, #145) 15씩 최대 2개. 60점 이상 높음, 30점 이상 중간. 검토 필요는 판단 유보 | [공시 변화 평가 규칙과 중립·판단 유보 도입 여부](https://app.notion.com/p/400b6afffc6f8139ae35e8183960af19) |
+| 에이전트 채팅 상한·한도 | 한 요청 ai-server 왕복 5회·전체 60초, `history` 6개, Tool 결과 하나 10개·4,000자. 로그인 없이 쓰므로 사용자·IP당 호출 한도는 미정 | — (기능 기획서 열린 질문) |
 | 관련 수시공시 범위와 규칙(3.6) | #337·[ADR-0030](adr/0030-related-disclosure-matching.md): 문장 변경(`text_change`)에만 연결, 상세유형 `B001`·`I001`·`I002`, 제목 규칙 8개(`related-1`, 사전 조사 2장 수정안 반영), '내용 일치'는 DS005 3개 유형(신주 수·원고·사건 명칭·대상 회사). 재무 변경·실적 공시 연결, 자회사 공시 포함 여부는 미정 | [관련 수시공시 처리 범위와 표시 방식](https://app.notion.com/p/1a5f2f2c711282b98425019f69576d81) |
 | 커뮤니티 운영(6.6, FS-58) | 정함(#457): 첫 관리자는 `ADMIN_EMAILS`(ADR-0040), 블라인드 기한이 지나면 자동으로 풀지 않고 관리자 목록에 '기한 지남'으로 다시 올림, 닉네임은 2~12자 한글·영문·숫자·중복 불가·바꿀 수 있음, 욕설 가리기 단어 목록은 팀이 직접 고른 짧은 목록을 frontend(`features/report-selection/model/profanityMask.ts`)에 두고 화면에서만 가림(#468, API 없음). 아직 미정: 시연용 글을 테스트 계정 글로 밝히는 방법, 작성자에게 처리 결과를 알리는 방법(지금은 글 화면의 `blind`만) | 커뮤니티(기업별 게시판) 범위와 운영 원칙 |
