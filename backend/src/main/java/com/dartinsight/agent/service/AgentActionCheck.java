@@ -1,12 +1,14 @@
 package com.dartinsight.agent.service;
 
 import com.dartinsight.agent.domain.AgentActions;
+import com.dartinsight.agent.domain.AskedQuestion;
 import com.dartinsight.analysis.service.FinancialChangeQueryService;
 import com.dartinsight.analysis.service.SourceDocumentService;
 import com.dartinsight.analysis.service.SourceDocumentService.SourceSection;
 import com.dartinsight.analysis.service.TextChangeQueryService;
 import com.dartinsight.common.error.ApiException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -28,17 +30,99 @@ class AgentActionCheck {
     private final FinancialChangeQueryService financialChangeQueryService;
     private final SourceDocumentService sourceDocumentService;
 
-    /** 확인을 통과한 액션(받은 순서), 버튼 문구를 붙임 */
-    List<Map<String, Object>> valid(Long analysisId, List<Map<String, Object>> actions) {
+    /**
+     * 확인을 통과한 액션(받은 순서), 버튼 문구를 붙임.
+     *
+     * @param corpCode  이 분석의 기업(관심 기업 확인은 이 기업만)
+     * @param questions 이 채팅에서 근거 질문 Tool이 저장한 질문(답 인용 노트는 이 질문·인용만)
+     */
+    List<Map<String, Object>> valid(Long analysisId, String corpCode, Map<Long, AskedQuestion> questions,
+            List<Map<String, Object>> actions) {
         List<Map<String, Object>> kept = new ArrayList<>();
         for (Map<String, Object> action : actions == null ? List.<Map<String, Object>>of() : actions) {
-            if (action != null && exists(analysisId, action)) {
-                kept.add(AgentActions.withLabel(action));
+            Map<String, Object> checked = action == null ? null : checked(analysisId, corpCode, questions, action);
+            if (checked != null) {
+                kept.add(AgentActions.withLabel(checked));
             } else {
                 log.warn("이 분석에 없는 값을 가리키는 화면 액션을 뺐습니다: {}", action == null ? null : action.get("type"));
             }
         }
         return kept;
+    }
+
+    /** 확인을 통과하면 화면에 보낼 액션(노트는 분석 ID를 채움), 아니면 null */
+    private Map<String, Object> checked(Long analysisId, String corpCode, Map<Long, AskedQuestion> questions,
+            Map<String, Object> action) {
+        Object type = action.get("type");
+        if (AgentActions.CONFIRM_SAVE_NOTE.equals(type)) {
+            try {
+                return note(analysisId, questions, action);
+            } catch (ApiException e) {
+                // 없는 변경(404) 등: 그 액션만 뺀다
+                return null;
+            }
+        }
+        if (AgentActions.CONFIRM_FAVORITE.equals(type)) {
+            return corpCode.equals(action.get("corpCode")) ? action : null;
+        }
+        return exists(analysisId, action) ? action : null;
+    }
+
+    /** 노트에 담기: 종류마다 담을 대상이 이 분석(또는 이 채팅의 질문)에 있는지. 맞으면 POST /api/notes 본문 */
+    private Map<String, Object> note(Long analysisId, Map<Long, AskedQuestion> questions, Map<String, Object> action) {
+        if (!(action.get("note") instanceof Map<?, ?> raw)) {
+            return null;
+        }
+        Object kind = raw.get("kind");
+        Object memo = raw.get("memo");
+        if (memo != null && (!(memo instanceof String text) || text.length() > AgentActions.MAX_MEMO)) {
+            return null;
+        }
+        Map<String, Object> note = new LinkedHashMap<>();
+        note.put("kind", kind);
+        note.put("analysisId", analysisId);
+        boolean found = switch (kind instanceof String name ? name : "") {
+            case "FINANCIAL_CHANGE" -> putChange(note, raw) && financialExists(analysisId, id(raw.get("changeId")));
+            case "TEXT_CHANGE" -> putChange(note, raw) && textExists(analysisId, id(raw.get("changeId")));
+            case "ANSWER_CITATION" -> putCitation(note, questions, raw);
+            default -> false;
+        };
+        if (!found) {
+            return null;
+        }
+        note.put("memo", memo == null || ((String) memo).isBlank() ? null : ((String) memo).strip());
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("type", AgentActions.CONFIRM_SAVE_NOTE);
+        out.put("note", note);
+        return out;
+    }
+
+    private static boolean putChange(Map<String, Object> note, Map<?, ?> raw) {
+        Long changeId = id(raw.get("changeId"));
+        note.put("changeId", changeId);
+        return changeId != null;
+    }
+
+    private boolean financialExists(Long analysisId, Long changeId) {
+        return changeId != null && financialChangeQueryService.changes(analysisId).changes().stream()
+                .anyMatch(c -> c.getId().equals(changeId));
+    }
+
+    private boolean textExists(Long analysisId, Long changeId) {
+        return changeId != null && textChangeQueryService.completedChange(analysisId, changeId) != null;
+    }
+
+    /** 답 인용: 이 채팅에서 근거 질문 Tool이 저장한 질문이고 그 답에 있는 인용 번호여야 한다 */
+    private static boolean putCitation(Map<String, Object> note, Map<Long, AskedQuestion> questions, Map<?, ?> raw) {
+        Long questionId = id(raw.get("questionId"));
+        Long citationNo = id(raw.get("citationNo"));
+        AskedQuestion question = questionId == null ? null : questions.get(questionId);
+        if (question == null || citationNo == null || !question.hasCitation(citationNo)) {
+            return false;
+        }
+        note.put("questionId", questionId);
+        note.put("citationNo", citationNo);
+        return true;
     }
 
     private boolean exists(Long analysisId, Map<String, Object> action) {

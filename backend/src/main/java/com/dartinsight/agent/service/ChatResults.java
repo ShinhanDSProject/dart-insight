@@ -44,12 +44,12 @@ final class ChatResults {
      * @param actions  값 확인을 통과한 화면 액션
      */
     static ChatMessageResponse finalAnswer(AgentStepAiResponse response, Map<String, Evidence> evidence,
-            Map<String, String> reportNames, List<Map<String, Object>> actions) {
+            Map<String, String> reportNames, List<Map<String, Object>> actions, Long questionId) {
         AgentStepAiResponse.Final result = response.finalAnswer();
         String format = result.format() == null ? AgentStep.FORMAT_CHAT : result.format();
         if (ChatStatus.NOT_FOUND.name().equals(result.status())) {
             return new ChatMessageResponse(ChatStatus.NOT_FOUND.name(), null, NOT_FOUND, List.of(), actions, format,
-                    null, null, false, null);
+                    null, questionId, false, null);
         }
         if (!ChatStatus.ANSWERED.name().equals(result.status())) {
             String reason = result.reviewReason() == null ? NOT_VERIFIED : result.reviewReason();
@@ -68,7 +68,7 @@ final class ChatResults {
         ChatMessageResponse.Ai ai = new ChatMessageResponse.Ai(response.model(), response.promptVersion(),
                 time(response.generatedAt()));
         return new ChatMessageResponse(ChatStatus.ANSWERED.name(), converted.answer(), null, citations, actions,
-                format, result.crossCheck(), null, true, ai);
+                format, result.crossCheck(), questionId, true, ai);
     }
 
     static List<LlmCallRow> calls(AgentStepAiResponse response, String traceId) {
@@ -82,9 +82,16 @@ final class ChatResults {
     }
 
     private static Citation citation(int no, Evidence e, Map<String, String> reportNames) {
+        String reportName = e.reportName() != null ? e.reportName()
+                : e.rceptNo() == null ? null : reportNames.get(e.rceptNo());
         return new Citation(no, e.kind().name(), e.evidenceId(), e.changeId(), e.changeType(), e.side(), e.rceptNo(),
-                e.rceptNo() == null ? null : reportNames.get(e.rceptNo()), e.sectionNo(), e.blockNo(), e.sectionPath(),
-                e.quote(), e.sjDiv(), e.accountName(), e.sentence(), null);
+                reportName, e.rceptDt(), e.dartUrl(), e.sectionNo(), e.blockNo(), e.sectionPath(), e.quote(), e.sjDiv(),
+                e.accountName(), e.sentence(), gradeOf(e));
+    }
+
+    /** 응답의 등급은 설명이 있는 것(STATED·RELATED)만. NONE은 '확인된 설명 없음'이라 등급을 붙이지 않는다 */
+    private static String gradeOf(Evidence e) {
+        return "STATED".equals(e.grade()) || "RELATED".equals(e.grade()) ? e.grade() : null;
     }
 
     static LocalDateTime time(String value) {

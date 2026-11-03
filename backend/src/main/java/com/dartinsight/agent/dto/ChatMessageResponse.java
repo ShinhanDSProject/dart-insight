@@ -22,8 +22,8 @@ public record ChatMessageResponse(String status, String answer, String message, 
     /** 답이 인용한 근거 하나. 종류(kind)마다 채우는 필드가 다르다 */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Citation(int no, String kind, String evidenceId, Long changeId, String changeType, String side,
-            String rceptNo, String reportName, Integer sectionNo, Integer blockNo, String sectionPath, String quote,
-            String sjDiv, String accountName, String sentence, String grade) {
+            String rceptNo, String reportName, String rceptDt, String dartUrl, Integer sectionNo, Integer blockNo,
+            String sectionPath, String quote, String sjDiv, String accountName, String sentence, String grade) {
     }
 
     public record Ai(String model, String promptVersion, LocalDateTime generatedAt) {

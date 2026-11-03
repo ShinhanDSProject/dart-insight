@@ -3,6 +3,7 @@ package com.dartinsight.agent.service;
 import com.dartinsight.agent.config.AgentProperties;
 import com.dartinsight.agent.domain.AgentActions;
 import com.dartinsight.agent.domain.AgentStep;
+import com.dartinsight.agent.domain.AskedQuestion;
 import com.dartinsight.agent.domain.ChatStatus;
 import com.dartinsight.agent.domain.Evidence;
 import com.dartinsight.agent.domain.ToolLine;
@@ -94,6 +95,8 @@ public class AgentChatService {
         private final List<AgentStepAiRequest.ToolResult> results = new ArrayList<>();
         private final Map<String, Evidence> evidence = new LinkedHashMap<>();
         private final List<LlmCallRow> calls = new ArrayList<>();
+        /** 이 채팅에서 근거 질문 Tool이 저장한 질문(질문 ID → 인용 수). 마지막 것이 응답의 questionId */
+        private final Map<Long, AskedQuestion> questions = new LinkedHashMap<>();
         private final String traceId = TraceContext.currentTraceId();
 
         private Chat(Long analysisId, Checked input, ReportDetail current, ReportDetail previous) {
@@ -119,7 +122,8 @@ public class AgentChatService {
                 }
                 if (AgentStep.FINAL.equals(type) && response.finalAnswer() != null) {
                     return ChatResults.finalAnswer(response, evidence, reportNames(),
-                            actionCheck.valid(analysisId, response.finalAnswer().actions()));
+                            actionCheck.valid(analysisId, current.company().getCorpCode(), questions,
+                                    response.finalAnswer().actions()), lastQuestionId());
                 }
                 if (!AgentStep.TOOL_CALLS.equals(type) || response.toolCalls() == null
                         || response.toolCalls().isEmpty()) {
@@ -151,7 +155,7 @@ public class AgentChatService {
                 agentTools.selectedFinancialChange(analysisId, context.financialChangeId()).ifPresent(line -> add(
                         CONTEXT_CALL + "-financial", AgentTools.GET_FINANCIAL_CHANGES,
                         Map.of("changeId", context.financialChangeId()),
-                        new AgentTools.Run(true, null, new ToolLines.Limited(List.of(line), false))));
+                        new AgentTools.Run(true, null, new ToolLines.Limited(List.of(line), false), null)));
             }
         }
 
@@ -161,12 +165,15 @@ public class AgentChatService {
         }
 
         private void add(String callId, String name, Map<String, Object> arguments, AgentTools.Run run) {
+            if (run.question() != null) {
+                questions.put(run.question().id(), run.question());
+            }
             List<AgentStepAiRequest.Item> items = new ArrayList<>();
             for (ToolLine line : run.lines().lines()) {
                 if (line.evidence() != null) {
                     evidence.putIfAbsent(line.evidenceId(), line.evidence());
                 }
-                items.add(new AgentStepAiRequest.Item(line.evidenceId(), line.text(), null));
+                items.add(new AgentStepAiRequest.Item(line.evidenceId(), line.text(), line.grade()));
             }
             results.add(new AgentStepAiRequest.ToolResult(callId, name, arguments, run.ok(), run.error(),
                     run.lines().truncated(), items));
@@ -195,6 +202,10 @@ public class AgentChatService {
             }
             screen.values().removeIf(v -> v == null);
             return screen;
+        }
+
+        private Long lastQuestionId() {
+            return questions.isEmpty() ? null : List.copyOf(questions.keySet()).getLast();
         }
 
         private Map<String, String> reportNames() {
