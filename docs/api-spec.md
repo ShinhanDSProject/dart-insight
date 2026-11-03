@@ -111,6 +111,7 @@
 | GET | `/api/companies/{corpCode}/outlook` | 회사가 밝힌 전망·계획(최신 사업보고서, 저장된 것 또는 새로 만듦) | #465 (1.9, FS-59) | 기업 화면 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/plan-followups` | 약속과 실제 대조(작년 사업보고서 계획 → 올해 사업보고서 관련 문단, 저장된 것 또는 새로 만듦) | #467 (1.10, FS-60) | 기업 화면 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/checkpoints` | 재무 체크 포인트(최근·전년 사업보고서로 정해 둔 일곱 항목을 규칙으로 계산, 상태·수치·계산식·근거) | #479 (1.11, FS-62) | 기업 화면 개요 탭 | 초안 |
+| GET | `/api/companies/{corpCode}/news` | 회사 이름으로 검색한 최신 뉴스(NAVER API HUB, 30분 캐시) | #592 (3.1) | 분석 결과 '뉴스' 탭 | 초안 |
 | POST | `/api/companies/{corpCode}/questions` | 최신 사업보고서에 근거해 묻기(AI) | #365 (1.2) | 기업 화면 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/questions` | 최신 사업보고서에 한 질문·답 기록 | #365 (1.2) | 기업 화면 개요 탭 | 초안 |
 | POST | `/api/comparability-checks` | 비교 가능성 검증 | #13 (2.2) | W-01 ③ | 초안 |
@@ -1712,6 +1713,54 @@
 | 404 | `COMPANY_NOT_FOUND` | 없는 고유번호 |
 | 502 | `DART_REQUEST_FAILED` | 보고서 목록을 OpenDART에서 받지 못하고 저장된 목록도 없음(재무제표·공시 목록을 받지 못한 것은 에러가 아니라 `statementStatus`·`NO_DATA`로 알림) |
 | 503 | `DART_RATE_LIMITED`, `DART_KEY_MISSING` | 보고서 목록을 받을 때 OpenDART 호출 한도 초과, 키 없음 |
+
+### GET /api/companies/{corpCode}/news — 기업 뉴스
+
+- 이슈: #592 (3.1) · 화면: 분석 결과 '뉴스' 탭 · [ADR-0046](adr/0046-company-news-from-naver-api-hub.md)
+- 기업 이름(`company.corp_name`)을 검색어로 NAVER API HUB 뉴스 검색(`GET https://naverapihub.apigw.ntruss.com/search/v1/news`, `sort=date`, `display=100`)을 부릅니다. 태그(`<b>`)와 HTML 엔티티를 뺀 제목에 기업 이름(공백을 빼고 비교)이 있는 기사만 최신순으로 최대 10건 돌려줍니다. 결과가 없으면 `items`가 빈 배열입니다(에러 아님).
+- 뉴스는 DART 공시가 아니라 외부 자료입니다. 화면에 '외부 뉴스 · 공시 근거 아님'을 붙이고, 요약·AI 질문 등 LLM에 넣지 않습니다(네이버 약관).
+- 캐시: backend 메모리에 기업별로 30분(`app.naver-search.cache-ttl`). 그 안에 같은 기업을 다시 부르면 네이버를 부르지 않고 같은 응답(`fetchedAt` 그대로)을 줍니다. 실패는 캐시하지 않습니다.
+
+**요청**
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| path | `corpCode` | string | 예 | 고유번호 |
+
+**응답 200**
+
+```json
+{
+  "corpCode": "00126380",
+  "query": "삼성전자",
+  "fetchedAt": "2026-11-03T12:10:00",
+  "items": [
+    {
+      "title": "삼성전자, 새 반도체 공장 착공",
+      "description": "삼성전자가 3일 새 반도체 공장 착공식을 열었다…",
+      "url": "https://www.example-news.co.kr/article/123",
+      "source": "example-news.co.kr",
+      "publishedAt": "2026-11-03T11:52:00"
+    }
+  ]
+}
+```
+
+| 필드 | 설명 |
+| --- | --- |
+| `query` | 네이버에 보낸 검색어(기업 이름) |
+| `fetchedAt` | 네이버에서 받은 시각(한국 시간). 캐시된 응답이면 처음 받은 시각 |
+| `title`·`description` | 태그·HTML 엔티티를 뺀 제목과 요약 한두 줄. 본문은 받지 않음 |
+| `url` | 언론사 원문(`originallink`). 없으면 네이버 뉴스 링크(`link`) |
+| `source` | `url`의 도메인(`www.` 뺌). 네이버 응답에 언론사 이름이 없어 도메인으로 보임 |
+| `publishedAt` | 네이버 `pubDate`를 한국 시간으로. 읽지 못하면 null |
+
+**에러**
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 404 | `COMPANY_NOT_FOUND` | 없는 기업 |
+| 503 | `COMPANY_NEWS_UNAVAILABLE` | 뉴스 검색 키가 없거나 NAVER API HUB 호출·응답이 잘못됨 |
 
 ### POST /api/companies/{corpCode}/questions — 사업보고서에 근거해 묻기
 
@@ -3474,6 +3523,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | `COMPANY_LIST_NOT_LOADED` | 503 | 기업 목록을 아직 받지 않음 | 관리자에게 기업 목록 갱신 요청 안내 |
 | `COMPANY_DISCLOSURE_NOT_FOUND` | 404 | 이 기업의 최근 공시에 없거나 핵심 수치를 지원하지 않는 공시(FS-51) | 최근 공시 다시 불러오기 |
 | `COMPANY_NOTE_NOT_FOUND` | 404 | 없는 노트 항목(또는 다른 회원의 항목, #413) | 노트 목록 다시 불러오기 |
+| `COMPANY_NEWS_UNAVAILABLE` | 503 | 뉴스 검색(NAVER API HUB) 키가 없거나 호출이 실패함(#592) | 뉴스 탭 안에서 다시 시도 안내 |
 | `REPORT_NOT_FOUND` | 404 | 없는 보고서 | 보고서 목록 다시 불러오기 |
 | `REPORT_SECTION_NOT_FOUND` | 404 | 원문에 없는 항목 | 목차에서 다시 고르기 |
 | `ANALYSIS_NOT_FOUND` | 404 | 없는 분석 | 처음부터 다시 |
