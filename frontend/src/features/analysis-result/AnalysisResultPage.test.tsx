@@ -165,7 +165,7 @@ describe('결과 머리(#550)', () => {
     )
   })
 
-  it('탭은 요약·재무 수치·문장 변화·AI 질문·원문 다섯 개다', async () => {
+  it('탭은 요약·재무 수치·문장 변화·커뮤니티·원문 다섯 개다(#575)', async () => {
     getAnalysis.mockResolvedValue(analysis(false))
     renderPage()
     const tabs = await screen.findByRole('navigation', { name: '결과 보기' })
@@ -173,7 +173,7 @@ describe('결과 머리(#550)', () => {
       '요약',
       '재무 수치',
       '문장 변화',
-      'AI 질문',
+      '커뮤니티',
       '원문',
     ])
   })

@@ -4,7 +4,7 @@
  */
 
 /** 분석 결과 화면의 탭 주소 값(?tab=). 1~5 키의 순서이고 결과 화면의 탭 순서와 같다 */
-export const shortcutResultTabs = ['summary', 'financial', 'text', 'ask', 'source'] as const
+export const shortcutResultTabs = ['summary', 'financial', 'text', 'community', 'source'] as const
 export type ShortcutResultTab = (typeof shortcutResultTabs)[number]
 
 /** 단축키 판단에 쓰는 화면. search: 기업 검색(/), result: 분석 결과, other: 그 밖 */
@@ -161,7 +161,7 @@ export function shortcutGroups(page: ShortcutPage): ShortcutGroup[] {
       { keys: ['1'], label: '요약 탭' },
       { keys: ['2'], label: '재무 수치 탭' },
       { keys: ['3'], label: '문장 변화 탭' },
-      { keys: ['4'], label: 'AI 질문 탭' },
+      { keys: ['4'], label: '커뮤니티 탭' },
       { keys: ['5'], label: '원문 탭' },
       { keys: ['A'], label: 'AI 질문 입력창으로 가기' },
     ],

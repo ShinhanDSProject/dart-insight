@@ -188,10 +188,14 @@ describe('고르기를 주소 값으로 바꾸기', () => {
   })
 })
 
-describe('AI 질문 탭 주소', () => {
-  it('?tab=ask를 AI 질문 탭으로 읽는다', () => {
-    expect(parseResultParams(new URLSearchParams('tab=ask')).tab).toBe('ask')
-    expect(openAsk()).toEqual({ tab: 'ask' })
+describe('AI 질문·커뮤니티 탭 주소', () => {
+  it('AI 질문은 요약 탭에서 하고, 예전 주소 ?tab=ask도 요약으로 연다(#575)', () => {
+    expect(parseResultParams(new URLSearchParams('tab=ask')).tab).toBe('summary')
+    expect(openAsk()).toEqual({ tab: 'summary' })
+  })
+
+  it('?tab=community를 커뮤니티 탭으로 읽는다(#575)', () => {
+    expect(parseResultParams(new URLSearchParams('tab=community')).tab).toBe('community')
   })
 
   it('찾지 못한 질문은 문장 변화 탭을 그 낱말로 검색해 연다', () => {

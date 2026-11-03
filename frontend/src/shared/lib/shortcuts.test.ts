@@ -43,7 +43,7 @@ describe('shortcutFor 키 대응', () => {
     expect(shortcutFor(key('1'), result)).toEqual({ kind: 'open-tab', tab: 'summary' })
     expect(shortcutFor(key('2'), result)).toEqual({ kind: 'open-tab', tab: 'financial' })
     expect(shortcutFor(key('3'), result)).toEqual({ kind: 'open-tab', tab: 'text' })
-    expect(shortcutFor(key('4'), result)).toEqual({ kind: 'open-tab', tab: 'ask' })
+    expect(shortcutFor(key('4'), result)).toEqual({ kind: 'open-tab', tab: 'community' })
     expect(shortcutFor(key('5'), result)).toEqual({ kind: 'open-tab', tab: 'source' })
   })
 

@@ -10,11 +10,11 @@ import { CONTENT_FILTER, searchQueryOf, type TextTypeFilter } from './textFilter
 
 /**
  * W-03 결과 화면의 주소 상태(ST-6).
- * ?slens=&sview= 요약(관점 거르기·보기), ?tab=&sj=&changed=&unit=&fq=&fsort=&change= 재무 수치, ?tab=ask AI 질문, ?ttype=&tsort=&tsec=&tq=&trisk=&tpin=&tc= 문장 변화, ?doc=&section=&block= 원문 확인
+ * ?slens=&sview= 요약(관점 거르기·보기), ?tab=&sj=&changed=&unit=&fq=&fsort=&change= 재무 수치, ?tab=community 커뮤니티(#575), ?ttype=&tsort=&tsec=&tq=&trisk=&tpin=&tc= 문장 변화, ?doc=&section=&block= 원문 확인
  */
-export type ResultTab = 'summary' | 'financial' | 'text' | 'ask' | 'source'
+export type ResultTab = 'summary' | 'financial' | 'text' | 'community' | 'source'
 
-export const resultTabs: ResultTab[] = ['summary', 'financial', 'text', 'ask', 'source']
+export const resultTabs: ResultTab[] = ['summary', 'financial', 'text', 'community', 'source']
 const sjDivs: SjDiv[] = ['BS', 'IS', 'CIS', 'CF', 'SCE']
 const textTypeFilters: TextTypeFilter[] = ['ADDED', 'DELETED', 'MODIFIED', 'NUMERIC_UPDATE', 'MOVED', 'REVIEW_NEEDED', CONTENT_FILTER]
 
@@ -203,9 +203,9 @@ export function openTextSection(section: string): ParamChanges {
   return { tab: 'text', ttype: null, tsort: null, tsec: section, tq: null, trisk: null, tpin: null, tc: null }
 }
 
-/** AI 질문 탭으로 간다(3.10). 질문·답은 주소에 남기지 않는다 */
+/** AI 질문이 있는 요약 탭으로 간다(3.10, #575). 질문·답은 주소에 남기지 않는다 */
 export function openAsk(): ParamChanges {
-  return { tab: 'ask' }
+  return { tab: 'summary' }
 }
 
 /** AI 질문에서 찾지 못한 질문을 문장 변화 탭의 검색으로 넘긴다(유형·정렬·섹션·위험 관련은 기본값). 낱말이 없으면 검색 없이 연다 */
