@@ -61,6 +61,8 @@ export const endpoints = {
   documentSection: (analysisId: number, side: string, sectionNo: number) =>
     `${analysis(analysisId)}/documents/${seg(side)}/sections/${seg(sectionNo)}`,
   questions: (analysisId: number) => `${analysis(analysisId)}/questions`,
+  /** AI 에이전트 채팅(ADR-0044). 대화는 저장하지 않는다 */
+  chatMessages: (analysisId: number) => `${analysis(analysisId)}/chat-messages`,
   questionFeedback: (analysisId: number, questionId: number) =>
     `${analysis(analysisId)}/questions/${seg(questionId)}/feedback`,
   aiUsage: () => '/api/system/ai-usage',
