@@ -63,6 +63,67 @@ def test_changes_come_back_with_list_classification() -> None:
     assert change["noteScope"] is None
 
 
+def table_body(prev_text: str, cur_text: str) -> dict:
+    data = body(prev_text, cur_text)
+    data["previous"]["blocks"][0]["type"] = "TABLE"
+    data["current"]["blocks"][0]["type"] = "TABLE"
+    return data
+
+
+def test_modified_table_comes_back_with_its_row_comparison() -> None:
+    response = client.post(
+        "/internal/text-changes",
+        json=table_body(
+            "사건번호 | 진행상황\n2025가합1 | 진행 중\n2025가합2 | 진행 중\n2025가합3 | 진행 중",
+            "사건번호 | 진행상황\n2025가합1 | 화해권고\n2025가합3 | 진행 중\n2026가합9 | 진행 중",
+        ),
+    )
+
+    (change,) = response.json()["changes"]
+    assert change["rowDiff"] == {
+        "status": "COMPARED",
+        "keyColumn": "사건번호",
+        "counts": {"changed": 1, "added": 1, "missing": 1, "same": 1},
+        "pairedPrevious": None,
+        "changedRows": [
+            {
+                "key": "2025가합1",
+                "cells": [{"column": "진행상황", "previous": "진행 중", "current": "화해권고"}],
+            }
+        ],
+        "addedKeys": ["2026가합9"],
+        "missingKeys": ["2025가합2"],
+    }
+
+
+def test_table_that_cannot_be_compared_says_so_with_empty_values() -> None:
+    response = client.post(
+        "/internal/text-changes",
+        json=table_body("구분 | 값\n가 | 1\n가 | 1", "구분 | 값\n가 | 1\n가 | 1\n가 | 1"),
+    )
+
+    (change,) = response.json()["changes"]
+    assert change["rowDiff"] == {
+        "status": "NOT_COMPARED",
+        "keyColumn": None,
+        "counts": None,
+        "pairedPrevious": None,
+        "changedRows": [],
+        "addedKeys": [],
+        "missingKeys": [],
+    }
+
+
+def test_paragraph_has_no_row_comparison() -> None:
+    response = client.post(
+        "/internal/text-changes",
+        json=body("메모리를 만듭니다.", "메모리와 파운드리를 만듭니다."),
+    )
+
+    (change,) = response.json()["changes"]
+    assert change["rowDiff"] is None
+
+
 def test_moved_change_has_both_locations_and_previous_section_path() -> None:
     sections = [*SECTIONS, {"sectionNo": 3, "parentNo": 1, "level": 2, "title": "2. 주요 제품"}]
     text = "당사는 미국 텍사스주에 반도체 공장을 짓고 있습니다."

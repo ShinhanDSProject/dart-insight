@@ -1,11 +1,12 @@
 """문장 변경 탐지 내부 API의 요청·응답 모양(camelCase)."""
 
+from dataclasses import asdict
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-from app.compare.listing import LIST_VERSION, ListEntry
+from app.compare.listing import LIST_VERSION, ListEntry, RowDiff
 from app.compare.priority import PRIORITY_VERSION, Priority
 from app.compare.service import TextChanges
 from app.compare.text_diff import BlockIn, Change, DocumentIn, Position, SectionIn
@@ -65,6 +66,24 @@ def _position(position: Position | None) -> dict[str, Any] | None:
     return {"sectionNo": position.section_no, "blockNo": position.block_no}
 
 
+def _row_diff(diff: RowDiff | None) -> dict[str, Any] | None:
+    if diff is None:
+        return None
+    counts = diff.counts
+    return {
+        "status": diff.status,
+        "keyColumn": diff.key_column,
+        "counts": asdict(counts) if counts else None,
+        "pairedPrevious": _position(diff.paired_previous),
+        "changedRows": [
+            {"key": row.key, "cells": [asdict(cell) for cell in row.cells]}
+            for row in diff.changed_rows
+        ],
+        "addedKeys": diff.added_keys,
+        "missingKeys": diff.missing_keys,
+    }
+
+
 def _change(change: Change, priority: Priority, entry: ListEntry) -> dict[str, Any]:
     return {
         "changeType": change.change_type,
@@ -87,6 +106,7 @@ def _change(change: Change, priority: Priority, entry: ListEntry) -> dict[str, A
         "field": entry.field,
         "raisedFromNote": entry.raised_from_note,
         "noteScope": entry.note_scope,
+        "rowDiff": _row_diff(entry.row_diff),
     }
 
 

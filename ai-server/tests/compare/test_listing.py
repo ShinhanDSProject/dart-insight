@@ -4,6 +4,7 @@ from app.compare.listing import (
     AUDIT,
     BOARD,
     BUSINESS,
+    COMPARED,
     CONSOLIDATED,
     CONTRACT,
     DIVIDEND,
@@ -13,14 +14,21 @@ from app.compare.listing import (
     HEADING,
     LITIGATION,
     MAIN,
+    NOT_COMPARED,
     NOTE,
     OTHER,
+    PAIRED_TABLE,
     SEPARATE,
     SHAREHOLDER,
     UNKNOWN,
     UNPAIRED,
+    CellChange,
+    ChangedRow,
+    RowCounts,
     classify,
+    compare_table_rows,
     field_for_path,
+    list_entries,
     missing_fields,
 )
 from app.compare.text_diff import (
@@ -32,6 +40,7 @@ from app.compare.text_diff import (
     REVIEW_NEEDED,
     Change,
     DocumentIn,
+    Position,
     SectionIn,
 )
 
@@ -298,3 +307,263 @@ def test_a_field_found_only_under_a_parent_section_is_not_missing() -> None:
 def test_other_is_never_missing() -> None:
     empty = document("20250311000001", [])
     assert OTHER not in missing_fields(empty, empty)
+
+
+LAWSUIT_PATH = "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항"
+PREVIOUS = (
+    "소제기일 | 사건번호 | 진행상황\n"
+    "2025.01.10 | 2025가합1 | 진행 중\n"
+    "2025.01.10 | 2025가합2 | 진행 중\n"
+    "2025.02.01 | 2025가합3 | 진행 중"
+)
+CURRENT = (
+    "소제기일 | 사건번호 | 진행상황\n"
+    "2025.01.10 | 2025가합1 | 화해권고결정\n"
+    "2025.02.01 | 2025가합3 | 진행 중\n"
+    "2026.03.05 | 2026가합9 | 진행 중"
+)
+
+
+def test_rows_are_split_into_changed_added_missing_and_same() -> None:
+    diff = compare_table_rows(PREVIOUS, CURRENT)
+    assert diff.status == COMPARED
+    assert diff.key_column == "사건번호"
+    assert diff.counts == RowCounts(changed=1, added=1, missing=1, same=1)
+    assert diff.added_keys == ["2026가합9"]
+    assert diff.missing_keys == ["2025가합2"]
+
+
+def test_changed_row_lists_only_the_changed_cells() -> None:
+    diff = compare_table_rows(PREVIOUS, CURRENT)
+    assert diff.changed_rows == [
+        ChangedRow("2025가합1", [CellChange("진행상황", "진행 중", "화해권고결정")])
+    ]
+
+
+def test_column_with_repeated_values_is_not_the_key() -> None:
+    assert compare_table_rows(PREVIOUS, CURRENT).key_column != "소제기일"
+
+
+def test_key_is_the_column_with_the_most_shared_values() -> None:
+    previous = "이름 | 번호\n가 | a1\n나 | a2\n다 | a3"
+    current = "이름 | 번호\n가 | a1\n라 | a2\n마 | a9"
+    assert compare_table_rows(previous, current).key_column == "번호"
+
+
+def test_tie_goes_to_the_earlier_column() -> None:
+    previous = "이름 | 코드\n가 | a\n나 | b"
+    current = "이름 | 코드\n가 | a\n다 | c"
+    assert compare_table_rows(previous, current).key_column == "이름"
+
+
+def test_columns_only_in_one_table_are_ignored() -> None:
+    previous = "번호 | 없어진 열 | 값\nA1 | p | 10\nA2 | q | 20"
+    current = "번호 | 값 | 새 열\nA1 | 10 | r\nA2 | 25 | s"
+    diff = compare_table_rows(previous, current)
+    assert diff.counts == RowCounts(changed=1, added=0, missing=0, same=1)
+    assert diff.changed_rows == [ChangedRow("A2", [CellChange("값", "20", "25")])]
+
+
+def test_spacing_alone_is_not_a_changed_cell() -> None:
+    previous = "번호 | 값\nA1 | 진행 중\nA2 | 끝"
+    current = "번호 | 값\nA1 | 진행중\nA2 | 끝"
+    assert compare_table_rows(previous, current).counts.same == 2
+
+
+def test_spacing_alone_does_not_break_the_key() -> None:
+    previous = "이름 | 값\n서울 지점 | 1\n부산 | 2"
+    current = "이름 | 값\n서울지점 | 1\n부산 | 2"
+    assert compare_table_rows(previous, current).counts == RowCounts(0, 0, 0, 2)
+
+
+def assert_not_compared(previous: str, current: str) -> None:
+    diff = compare_table_rows(previous, current)
+    assert diff.status == NOT_COMPARED
+    assert (diff.key_column, diff.counts, diff.paired_previous) == (None, None, None)
+    assert (diff.changed_rows, diff.added_keys, diff.missing_keys) == ([], [], [])
+
+
+def test_table_whose_columns_all_repeat_is_not_compared() -> None:
+    assert_not_compared("구분 | 값\n가 | 1\n가 | 1", "구분 | 값\n가 | 2\n가 | 2")
+
+
+def test_column_with_an_empty_value_is_not_a_key() -> None:
+    assert_not_compared("구분 | 값\n | 1\n가 | 1", "구분 | 값\n | 2\n가 | 2")
+
+
+def test_table_with_a_row_of_different_length_is_not_compared() -> None:
+    assert_not_compared("구분 | 값\n가 | 1\n나", "구분 | 값\n가 | 1\n나 | 2")
+
+
+def test_table_without_a_shared_value_is_not_compared() -> None:
+    assert_not_compared("구분 | 값\n가 | 1\n나 | 2", "구분 | 값\n다 | 3\n라 | 4")
+
+
+def test_column_of_amounts_is_not_a_key() -> None:
+    assert_not_compared(
+        "구분 | 금액\n가 | 1,000\n가 | (200)", "구분 | 금액\n가 | 1,000\n가 | 30.5%"
+    )
+
+
+def test_column_with_a_placeholder_is_not_a_key() -> None:
+    assert_not_compared("일자 | 값\n- | x\n2025.01.01 | x", "일자 | 값\n- | y\n2025.01.01 | y")
+
+
+def test_column_of_dates_can_be_a_key() -> None:
+    previous = "일자 | 값\n2025.01.01 | 1\n2025.02.01 | 1"
+    current = "일자 | 값\n2025.01.01 | 2\n2025.03.01 | 1"
+    diff = compare_table_rows(previous, current)
+    assert diff.key_column == "일자"
+    assert diff.counts == RowCounts(changed=1, added=1, missing=1, same=0)
+
+
+def test_table_without_a_common_column_is_not_compared() -> None:
+    assert_not_compared("구분 | 값\n가 | 1", "항목 | 금액\n가 | 1")
+
+
+def test_table_with_only_a_header_is_not_compared() -> None:
+    assert_not_compared("구분 | 값", "구분 | 값\n가 | 1")
+
+
+def test_column_named_twice_is_not_a_key() -> None:
+    assert_not_compared("값 | 값\nA1 | 2\nA3 | 4", "값 | 값\nA1 | 2\nA3 | 5")
+
+
+def block_change(
+    kind: str, previous_no: int | None, current_no: int | None, path: str = LAWSUIT_PATH
+) -> Change:
+    previous = Position(1, previous_no) if previous_no is not None else None
+    current = Position(1, current_no) if current_no is not None else None
+    return Change(kind, "TABLE", "MATCHED", path.split(" > ")[-1], path, previous, current)
+
+
+def test_deleted_and_added_tables_are_paired_and_the_deleted_one_folded() -> None:
+    changes = [block_change(DELETED, 5, None), block_change(ADDED, None, 7)]
+    deleted, added = list_entries(changes, {5: PREVIOUS}, {7: CURRENT})
+    assert (deleted.group, deleted.field, deleted.row_diff) == (PAIRED_TABLE, None, None)
+    assert added.group == MAIN
+    assert added.row_diff.status == COMPARED
+    assert added.row_diff.counts == RowCounts(changed=1, added=1, missing=1, same=1)
+    assert added.row_diff.paired_previous == Position(1, 5)
+
+
+def test_tables_with_different_headers_are_not_paired() -> None:
+    changes = [block_change(DELETED, 5, None), block_change(ADDED, None, 7)]
+    current = CURRENT.replace("진행상황", "진행 상태")
+    deleted, added = list_entries(changes, {5: PREVIOUS}, {7: current})
+    assert deleted.group == MAIN
+    assert (deleted.row_diff, added.row_diff) == (None, None)
+
+
+def test_tables_in_different_sections_are_not_paired() -> None:
+    changes = [
+        block_change(DELETED, 5, None),
+        block_change(ADDED, None, 7, "VII. 주주에 관한 사항"),
+    ]
+    deleted, added = list_entries(changes, {5: PREVIOUS}, {7: CURRENT})
+    assert deleted.group == MAIN
+    assert added.row_diff is None
+
+
+def test_tables_without_a_key_are_not_paired() -> None:
+    changes = [block_change(DELETED, 5, None), block_change(ADDED, None, 7)]
+    previous, current = "구분 | 값\n가 | 1\n가 | 1", "구분 | 값\n가 | 2\n가 | 2"
+    deleted, added = list_entries(changes, {5: previous}, {7: current})
+    assert deleted.group == MAIN
+    assert added.row_diff is None
+
+
+def test_pair_with_the_most_shared_values_is_chosen_first() -> None:
+    first = "번호 | 값\nA1 | 가\nA2 | 나\nA3 | 다"
+    second = "번호 | 값\nA4 | 가\nA5 | 나\nA6 | 다"
+    changes = [
+        block_change(DELETED, 1, None),
+        block_change(DELETED, 2, None),
+        block_change(ADDED, None, 3),
+        block_change(ADDED, None, 4),
+    ]
+    entries = list_entries(
+        changes,
+        {1: first, 2: second},
+        {3: "번호 | 값\nA4 | x\nA5 | 나\nA6 | 다", 4: "번호 | 값\nA1 | x\nA9 | 나\nA8 | 다"},
+    )
+    assert entries[2].row_diff.paired_previous == Position(1, 2)
+    assert entries[3].row_diff.paired_previous == Position(1, 1)
+
+
+def test_tie_goes_to_the_earlier_tables_in_document_order() -> None:
+    table = "번호 | 값\nA1 | 가\nA2 | 나"
+    changes = [
+        block_change(DELETED, 2, None),
+        block_change(DELETED, 1, None),
+        block_change(ADDED, None, 4),
+        block_change(ADDED, None, 3),
+    ]
+    entries = list_entries(changes, {1: table, 2: table}, {3: table, 4: table})
+    by_current = {c.current.block_no: e for c, e in zip(changes, entries, strict=True) if c.current}
+    assert by_current[3].row_diff.paired_previous == Position(1, 1)
+    assert by_current[4].row_diff.paired_previous == Position(1, 2)
+
+
+def test_a_table_joins_only_one_pair() -> None:
+    table = "번호 | 값\nA1 | 가\nA2 | 나"
+    changes = [
+        block_change(DELETED, 1, None),
+        block_change(DELETED, 2, None),
+        block_change(ADDED, None, 3),
+    ]
+    entries = list_entries(changes, {1: table, 2: table}, {3: table})
+    assert [e.group for e in entries[:2]] == [PAIRED_TABLE, MAIN]
+    assert entries[2].row_diff.paired_previous == Position(1, 1)
+
+
+def test_paired_note_table_stays_a_note_with_its_comparison() -> None:
+    changes = [
+        block_change(DELETED, 5, None, NOTE_PATH),
+        block_change(ADDED, None, 7, NOTE_PATH),
+    ]
+    previous = "번호 | 값\nA1 | 가나다라마바사\nA2 | 나"
+    current = "번호 | 값\nA1 | 가나다라마바사\nA2 | 다"
+    deleted, added = list_entries(changes, {5: previous}, {7: current})
+    assert (deleted.group, deleted.note_scope) == (PAIRED_TABLE, "CONSOLIDATED")
+    assert added.group == NOTE
+    assert added.row_diff.counts == RowCounts(changed=1, added=0, missing=0, same=1)
+
+
+def test_modified_table_is_compared_without_a_paired_previous() -> None:
+    changes = [block_change(MODIFIED, 5, 7)]
+    [entry] = list_entries(changes, {5: PREVIOUS}, {7: CURRENT})
+    assert entry.row_diff.status == COMPARED
+    assert entry.row_diff.paired_previous is None
+
+
+def test_numeric_update_table_is_compared() -> None:
+    changes = [block_change(NUMERIC_UPDATE, 5, 7)]
+    previous, current = "구분 | 값\n가 | 1\n나 | 2", "구분 | 값\n가 | 1\n나 | 3"
+    [entry] = list_entries(changes, {5: previous}, {7: current})
+    assert entry.row_diff.changed_rows == [ChangedRow("나", [CellChange("값", "2", "3")])]
+
+
+def test_moved_table_is_compared() -> None:
+    table = "구분 | 값\n가 | 1\n나 | 2"
+    [entry] = list_entries([block_change(MOVED, 5, 7)], {5: table}, {7: table})
+    assert entry.row_diff.counts == RowCounts(changed=0, added=0, missing=0, same=2)
+
+
+def test_modified_table_without_a_key_says_not_compared() -> None:
+    previous, current = "구분 | 값\n가 | 1\n가 | 1", "구분 | 값\n가 | 2\n가 | 2"
+    [entry] = list_entries([block_change(MODIFIED, 5, 7)], {5: previous}, {7: current})
+    assert entry.row_diff.status == NOT_COMPARED
+
+
+def test_paragraph_has_no_row_comparison() -> None:
+    change = Change(
+        MODIFIED, "PARAGRAPH", "MATCHED", "t", LAWSUIT_PATH, Position(1, 5), Position(1, 7)
+    )
+    [entry] = list_entries([change], {5: "가나다"}, {7: "가나라"})
+    assert entry.row_diff is None
+
+
+def test_added_table_without_a_partner_has_no_row_comparison() -> None:
+    [entry] = list_entries([block_change(ADDED, None, 7)], {}, {7: CURRENT})
+    assert entry.row_diff is None
