@@ -64,10 +64,12 @@ NOT_FOUND_AFTER_TOOL_FAILURE = "NOT_FOUND_AFTER_TOOL_FAILURE"
 _MARKER = re.compile(r"\[([^\[\]\n]+)\]")
 # 회사가 직접 밝힌 설명(STATED)의 꼴. 등급이 RELATED·NONE인 결과를 이렇게 쓰면 등급을 바꾼 것이다
 _STATED_FORM = re.compile(r"밝혔|밝히고|설명했|설명하고|라고\s*(?:공시|했|적)")
-# 문장 하나: 마침표·물음표·느낌표와 그 뒤 근거 표시까지. '6.6조'의 점은 뒤에 공백이 없어 끊지 않고,
-# 영문·숫자 바로 뒤의 점('II. 사업의 내용', '1. 개요', 'Inc.')은 목차 번호·약어라
-# 문장 끝으로 보지 않는다
-_SENTENCE = re.compile(r".*?(?<![A-Za-z0-9])[.!?](?:\s*\[[^\[\]\n]+\])*(?=\s|$)|.+$", re.S)
+# 문장 끝: 마침표·물음표·느낌표와 그 뒤 근거 표시, 그다음 공백이나 글 끝.
+# '6.6조'의 점은 뒤에 공백이 없어 끊지 않는다
+_SENTENCE_END = re.compile(r"[.!?](?:\s*\[[^\[\]\n]+\])*(?=\s|$)")
+# 마침표 앞 낱말이 목차 번호(로마 숫자 'XI', 한두 자리 숫자 '1')나 약어('Inc')면 문장 끝이 아니다.
+# '2026.'처럼 그 밖의 숫자·영문 뒤 마침표와 물음표·느낌표는 문장 끝이다
+_NOT_SENTENCE_END = re.compile(r"(?:^|[\s(\[‘'\"“])(?:[IVXL]+|\d{1,2}|Inc|Co|Ltd|Corp|No|vs|etc)$")
 
 
 @dataclass(frozen=True)
@@ -273,7 +275,15 @@ def _answer_problem(draft: Draft, step: StepInput) -> tuple[str, str | None]:
 
 
 def _sentences(answer: str) -> list[str]:
-    return [m.group(0).strip() for m in _SENTENCE.finditer(answer) if m.group(0).strip()]
+    sentences: list[str] = []
+    start = 0
+    for end in _SENTENCE_END.finditer(answer):
+        if end.group(0)[0] == "." and _NOT_SENTENCE_END.search(answer[start : end.start()]):
+            continue
+        sentences.append(answer[start : end.end()])
+        start = end.end()
+    sentences.append(answer[start:])
+    return [s.strip() for s in sentences if s.strip()]
 
 
 def _sentence_problem(sentence: str, evidence: dict[str, ResultItem]) -> tuple[str, str | None]:
