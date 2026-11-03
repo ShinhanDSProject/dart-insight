@@ -1,6 +1,6 @@
 # ADR-0045: ai-server의 에이전트 한 단계는 LangGraph 그래프로 만들고, 답은 작성 → 검토 → 반려 시 다시 작성하는 루프로 만든다
 
-- 상태: 제안
+- 상태: 채택
 - 결정한 날: 2026-10-30
 - 관련: [ADR-0044](0044-agent-tools-run-in-backend.md), [ADR-0008](0008-single-llm-module.md), [ADR-0026](0026-openai-llm-provider.md), 노션 [LangGraph AI Agent 최종 기능별 아키텍처 v1.2](https://app.notion.com/p/40939c0917458118b6cafebde67a0298), 기능 기획서 초안 'AI 에이전트 채팅(AI 질문 탭 대체)', `docs/project-overview.md`(LangGraph Manager-Worker, Risk Reviewer 반려 루프)
 

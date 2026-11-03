@@ -1,6 +1,6 @@
 # ADR-0044: 에이전트 채팅의 Tool은 backend가 실행하고, ai-server는 다음에 부를 Tool과 최종 답만 정한다
 
-- 상태: 제안
+- 상태: 채택
 - 결정한 날: 2026-10-30
 - 관련: 노션 [LangGraph AI Agent 최종 기능별 아키텍처 v1.2](https://app.notion.com/p/40939c0917458118b6cafebde67a0298), 기능 기획서 초안 'AI 에이전트 채팅(AI 질문 탭 대체)', ADR-0002·0008·0023·0029
 
