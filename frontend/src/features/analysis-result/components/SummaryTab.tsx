@@ -76,6 +76,8 @@ interface OverviewLinks {
   onOpenChangedAccounts: (sjDiv: SjDiv | null) => void
   /** 변화 개요의 '문장 변경'·'검토 필요': 문장 변화 탭을 그 유형으로 연다 */
   onOpenTextList: (type: ChangeType | null) => void
+  /** 변화 개요의 '먼저 볼 것': 문장 변화 탭을 우선순위 순으로 연다(FS-68) */
+  onOpenPriorityList: () => void
   /** 섹션별 문장 변경 막대: 문장 변화 탭을 그 최상위 섹션으로 거른다 */
   onOpenTextSection: (section: string) => void
 }
@@ -92,6 +94,7 @@ export function SummaryTab({
   onOpenSource,
   onOpenChangedAccounts,
   onOpenTextList,
+  onOpenPriorityList,
   onOpenTextSection,
   askPanel,
   onAsk,
@@ -123,6 +126,7 @@ export function SummaryTab({
             text={overview.text}
             onOpenChangedAccounts={onOpenChangedAccounts}
             onOpenTextList={onOpenTextList}
+            onOpenPriorityList={onOpenPriorityList}
           />
         }
       />

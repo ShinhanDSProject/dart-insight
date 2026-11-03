@@ -36,6 +36,7 @@ import {
   openFinancialChanges,
   openSourceChanges,
   openTextChanges,
+  openPriorityList,
   openTextList,
   openTextSearch,
   openTextSection,
@@ -235,6 +236,7 @@ function ResultTabPanel({ analysis, params, update, ask, suggestions, askSection
         onOpenSource={openSource}
         onOpenChangedAccounts={(sj) => update(openChangedAccounts(sj))}
         onOpenTextList={(type) => update(openTextList(type))}
+        onOpenPriorityList={() => update(openPriorityList())}
         onOpenTextSection={(section) => update(openTextSection(section))}
         askPanel={
           <AskTab

@@ -94,6 +94,7 @@ function draw(lens: SummaryLens | null, view: SummaryView, options?: { asking?: 
             onOpenSource={noop}
             onOpenChangedAccounts={noop}
             onOpenTextList={noop}
+            onOpenPriorityList={noop}
             onOpenTextSection={noop}
             askPanel={null}
             onAsk={onAsk}

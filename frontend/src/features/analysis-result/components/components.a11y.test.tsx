@@ -151,6 +151,7 @@ function Overview() {
       text={{ state: overview.text, reload: noop }}
       onOpenChangedAccounts={noop}
       onOpenTextList={noop}
+      onOpenPriorityList={noop}
     />
   )
 }
@@ -175,6 +176,7 @@ describe('변화 개요 접근성(axe)', () => {
         moved: 1,
         reviewNeeded: 2,
         partial: true,
+        high: 4,
         sections: [
           { title: '(목차 밖 본문)', count: 2 },
           { title: 'II. 사업의 내용', count: 18 },
@@ -182,8 +184,9 @@ describe('변화 개요 접근성(axe)', () => {
       },
     }
     const container = await expectNoViolations(<Overview />)
-    expect(container.querySelectorAll('.overview-stat')).toHaveLength(3)
-    expect(container.textContent).toContain('바뀐 문장20')
+    expect(container.querySelectorAll('.overview-stat')).toHaveLength(4)
+    expect(container.textContent).toContain('바뀐 문장20(일부 섹션만 비교했어요)')
+    expect(container.textContent).toContain('먼저 볼 것4, 우선순위 높음')
   })
 
   it('불러오는 중·실패·확인 안 됨 개요에 위반이 없다', async () => {
