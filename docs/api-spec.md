@@ -2730,7 +2730,8 @@
 - 이슈: 기능 기획서 'AI 에이전트 채팅'(초안, FS 번호 전) · 화면: W-03 채팅 패널(새 화면, AI 질문 탭 ⑤를 없애고 탭 밖에 둠) · [ADR-0044](adr/0044-agent-tools-run-in-backend.md), [ADR-0045](adr/0045-langgraph-agent-step-graph.md)
 - 완료된 분석에서만 씁니다. 동기 호출입니다. Tool을 부를 때마다 ai-server와 한 번 더 왕복하므로 근거 질문보다 오래 걸릴 수 있습니다.
 - 로그인 없이 씁니다(AI 질문과 같음). 쓰기는 이 API가 하지 않고 확인 액션(`CONFIRM_*`)으로만 돌려줍니다. 사용자가 확인을 누르면 화면이 기존 API(`POST /api/notes`, `PUT /api/favorite-companies/{corpCode}`)를 부르고, 그 API의 로그인 규칙을 따릅니다.
-- 대화는 서버에 저장하지 않습니다. 화면이 최근 대화(`history`)와 화면 맥락(`context`)을 요청마다 보냅니다. 지난 답은 말뜻을 풀 때만 쓰고 근거로 쓰지 않습니다. 근거는 이번 요청에서 실행한 Tool의 결과뿐입니다.
+- 대화(`message`·`history`)는 서버에 저장하지 않습니다. 근거 질문 Tool(`answer_with_evidence`)의 질문과 답만 `analysis_question`에 저장합니다(아래). 화면이 최근 대화(`history`)와 화면 맥락(`context`)을 요청마다 보냅니다. 지난 답은 말뜻을 풀 때만 쓰고 근거로 쓰지 않습니다. 근거는 이번 요청에서 실행한 Tool의 결과뿐입니다.
+- ai-server에 보내지 않는 사용자 정보는 계정 정보(이메일·닉네임·로그인 여부)와 저장된 노트·메모·관심 기업 내용입니다. 사용자가 채팅에 직접 쓴 글(`message`·`history[].text`)은 AI 질문의 `question`과 같이 고치지 않고 그대로 질문으로 보냅니다(ADR-0044 '보내지 않는 것'). 그래서 채팅 패널은 입력창에 개인정보를 쓰지 말라는 안내를 둡니다.
 - 흐름: backend가 허용 Tool·액션 목록과 지금까지의 Tool 결과를 붙여 ai-server `POST /internal/agent-steps`(3절)를 부릅니다. 응답이 `TOOL_CALLS`면 Tool을 실행하고 결과를 붙여 다시 부르고, `FINAL`·`OUT_OF_SCOPE`면 아래 응답으로 바꿔 돌려줍니다. 한 요청의 모든 왕복은 같은 `X-Trace-Id`를 씁니다.
 - 근거 질문 Tool(`answer_with_evidence`)을 실행하면 `POST /api/analyses/{analysisId}/questions`와 같은 규칙으로 답하고 `analysis_question`에 저장합니다. 그 질문 ID가 응답 `questionId`이고, 화면은 이 값으로 답 평가(`PUT .../questions/{questionId}/feedback`)와 인용 노트 담기(`ANSWER_CITATION`)를 합니다.
 - 응답 전에 backend는 근거 ID가 이 분석에 저장된 위치인지 다시 확인합니다. 하나라도 아니면 답을 버리고 `REVIEW_NEEDED`로 끝내며 오류 로그를 남깁니다(ADR-0044).
@@ -2789,7 +2790,7 @@
 
 - `status`
   - `ANSWERED`: `answer`에 답. 문장 안의 `[1]`은 `citations[].no`입니다. 화면 이동만 하는 요청("사업의 내용 열어줘")도 `ANSWERED`이고, `answer`에 짧은 안내와 `actions`가 있습니다.
-  - `NOT_FOUND`: 실행한 Tool 결과에 관련 자료가 없음. `answer`는 null, `message`에 '확인된 설명 없음' 안내
+  - `NOT_FOUND`: 실행에 성공한 Tool 결과에 관련 자료가 없음. Tool 실행이 모두 실패했으면 `NOT_FOUND`가 아니라 `REVIEW_NEEDED`(3절 `POST /internal/agent-steps`). `answer`는 null, `message`에 '확인된 설명 없음' 안내
   - `OUT_OF_SCOPE`: 매수·매도·목표주가·주가 전망 요청. LLM을 부르지 않음
   - `REVIEW_NEEDED`: 답이 근거·숫자·표현 검사를 통과하지 못함(처음 생성 1회와 다시 생성 2회 뒤, ADR-0045), 또는 backend 근거 확인 실패. `answer`는 null
   - `INCOMPLETE`: 왕복·시간 상한을 넘음. `answer`는 null, `message`에 다시 보내 달라는 안내
@@ -3350,7 +3351,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 ```
 
 - `toolResults`는 지금까지 실행한 순서대로 모두 보냅니다. `items[].text`는 backend가 만든 글입니다(재무는 저장된 계산 결과로 만든 사실 문장, 문장 변경은 유형·섹션 경로·글). 한 결과는 10개·4,000자까지로 줄이고, 줄였으면 `truncated: true`입니다.
-- 실행하지 못한 Tool(목록에 없음, 인자 형식 틀림, 없는 ID)은 `ok: false`와 `error`(짧은 사유)로 돌려줍니다.
+- 실행하지 못한 Tool(목록에 없음, 인자 형식 틀림, 없는 ID)은 `ok: false`와 `error`(짧은 사유)로 돌려줍니다. `ok: false` 결과는 자료가 없다는 뜻이 아닙니다. `NOT_FOUND`는 `ok: true`인 결과가 하나 이상 있고 그 `items`에 관련 자료가 없을 때만 쓰고, 실행한 Tool이 모두 `ok: false`라 답을 만들 수 없으면 `REVIEW_NEEDED`(`reviewReason`에 사유)입니다. 검토 노드가 이 규칙도 확인합니다.
 
 **응답 200**
 
