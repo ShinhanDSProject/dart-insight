@@ -223,7 +223,7 @@ describe('Financial EvidencePanel (#512)', () => {
           {
             itemNo: 1,
             kind: 'FINANCIAL',
-            target: { type: 'FINANCIAL', changeId: 101, sjDiv: 'IS' },
+            target: { type: 'FINANCIAL', changeId: 101, sjDiv: 'IS', changeType: null },
             lens: 'PROFITABILITY',
             lensLabel: '수익성',
             factSentence: '영업이익이 2조원 증가했어요.',
