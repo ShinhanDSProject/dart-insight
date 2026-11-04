@@ -29,5 +29,9 @@ def text_changes(analysis_id: int) -> str:
     return f"/api/analyses/{_seg(analysis_id)}/text-changes"
 
 
+def text_change(analysis_id: int, change_id: int) -> str:
+    return f"/api/analyses/{_seg(analysis_id)}/text-changes/{_seg(change_id)}"
+
+
 def financial_changes(analysis_id: int) -> str:
     return f"/api/analyses/{_seg(analysis_id)}/financial-changes"
