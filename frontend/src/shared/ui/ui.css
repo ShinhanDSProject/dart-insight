@@ -1047,7 +1047,8 @@ th[aria-sort='none'] .data-table__sort-mark {
 /* 넓은 화면(901px 이상, FS-71): 패널은 상단 바를 덮지 않고 그 아래에서 시작한다. 패널이 열린 동안 상단 바를 위에 고정해
    메뉴(나란히 보기·노트·로그인)를 계속 쓰게 하고, 위에 붙는 요소(결과 탭 줄 등)는 --sticky-top만큼 내려 상단 바 아래에 붙인다 */
 @media (min-width: 901px) {
-  .has-side-panel {
+  /* 문서 루트에 두어 스크롤 여백(scroll-padding-top)과 본문 속 요소가 같이 쓴다 */
+  :root:has(body.has-side-panel) {
     --sticky-top: var(--header-height);
   }
 

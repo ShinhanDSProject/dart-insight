@@ -42,7 +42,7 @@ code {
   position: absolute;
   top: var(--space-2);
   left: var(--space-2);
-  z-index: 10;
+  z-index: 30; /* 패널이 열린 동안 고정되는 상단 바(21) 위(FS-71) */
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-md);
   background: var(--color-primary);
