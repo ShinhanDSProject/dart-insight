@@ -30,6 +30,15 @@ class QuestionRetrieverTest {
     }
 
     @Test
+    @DisplayName("'변경'·'사항'과 '…줘' 요청 낱말은 버려 주제 낱말만 남긴다(#622)")
+    void termsDropChangeWordsAndImperativeEndings() {
+        assertThat(QuestionRetriever.terms("소송 관련 변경 사항을 설명해줘")).containsExactly("소송");
+        assertThat(QuestionRetriever.terms("소송 관련 변경을 설명해줘")).containsExactly("소송");
+        assertThat(QuestionRetriever.terms("최대주주 변경사항 보여줘")).containsExactly("최대주주");
+        assertThat(QuestionRetriever.terms("배당 정책이 바뀌었어?")).containsExactly("배당", "정책");
+    }
+
+    @Test
     @DisplayName("2자 낱말은 조사처럼 보여도 떼지 않는다")
     void shortTokensKeepTheirLastLetter() {
         assertThat(QuestionRetriever.stripParticle("주가")).isEqualTo("주가");
