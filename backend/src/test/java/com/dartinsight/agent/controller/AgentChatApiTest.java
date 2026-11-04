@@ -435,6 +435,23 @@ class AgentChatApiTest {
     }
 
     @Test
+    @DisplayName("요약처럼 정보를 보는 Tool은 결과에 노트 대상이 들어 있어도 조회로 보아 NOT_FOUND를 감추지 않는다")
+    void summaryLookupWithNoteTargetStaysNotFound() throws Exception {
+        long changeId = financialChangeId();
+        AI.on(STEPS, twoSteps("{\"callId\":\"c1\",\"name\":\"get_summary\",\"arguments\":{}}",
+                request -> {
+                    assertThat(request.bodyText()).contains("\"F" + changeId + "\"");
+                    return finalAnswer("NOT_FOUND", null, "", "{\"type\":\"CONFIRM_SAVE_NOTE\",\"note\":"
+                            + "{\"kind\":\"FINANCIAL_CHANGE\",\"changeId\":" + changeId + "}}");
+                }));
+
+        chat("영업이익 감소 이유를 설명하고 해당 변경을 노트에 담아줘")
+                .andExpect(jsonPath("$.status").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.answer").doesNotExist())
+                .andExpect(jsonPath("$.actions[0].type").value("CONFIRM_SAVE_NOTE"));
+    }
+
+    @Test
     @DisplayName("저장 대상 Tool과 함께 따로 조회한 Tool이 못 찾았으면 노트 확인 버튼이 있어도 NOT_FOUND를 감추지 않는다")
     void lookupBesideNoteTargetStaysNotFound() throws Exception {
         long changeId = financialChangeId();

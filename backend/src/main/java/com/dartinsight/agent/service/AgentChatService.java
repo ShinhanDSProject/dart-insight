@@ -7,6 +7,7 @@ import com.dartinsight.agent.domain.AskedQuestion;
 import com.dartinsight.agent.domain.ChatStatus;
 import com.dartinsight.agent.domain.Evidence;
 import com.dartinsight.agent.domain.ToolLine;
+import com.dartinsight.agent.domain.ToolLookup;
 import com.dartinsight.agent.domain.ToolLines;
 import com.dartinsight.agent.dto.AgentStepAiRequest;
 import com.dartinsight.agent.dto.AgentStepAiResponse;
@@ -30,7 +31,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -100,8 +100,8 @@ public class AgentChatService {
         private final List<LlmCallRow> calls = new ArrayList<>();
         /** 이 채팅에서 근거 질문 Tool이 저장한 질문(질문 ID → 질문). 응답의 questionId는 AskedQuestion.ratedBy로 고른다 */
         private final Map<Long, AskedQuestion> questions = new LinkedHashMap<>();
-        /** LLM이 고른 Tool마다 그 결과의 근거 ID(화면 맥락으로 먼저 넣은 결과는 빼고). 조회 요청이었는지 가린다 */
-        private final List<Set<String>> lookups = new ArrayList<>();
+        /** LLM이 고른 Tool 실행(화면 맥락으로 먼저 넣은 결과는 빼고). 저장 확인만 하는 요청인지 가린다 */
+        private final List<ToolLookup> lookups = new ArrayList<>();
         private final String traceId = TraceContext.currentTraceId();
 
         private Chat(Long analysisId, Checked input, ReportDetail current, ReportDetail previous) {
@@ -167,8 +167,8 @@ public class AgentChatService {
         private void execute(String callId, String name, Map<String, Object> arguments) {
             AgentTools.Run run = agentTools.run(name, analysisId, arguments, properties.maxItems(),
                     properties.maxResultChars());
-            lookups.add(run.lines().lines().stream().map(ToolLine::evidenceId).filter(Objects::nonNull)
-                    .collect(Collectors.toSet()));
+            lookups.add(new ToolLookup(AgentTools.locatesChange(name), run.lines().lines().stream()
+                    .map(ToolLine::evidenceId).filter(Objects::nonNull).collect(Collectors.toSet())));
             add(callId, name, arguments == null ? Map.of() : arguments, run);
         }
 
