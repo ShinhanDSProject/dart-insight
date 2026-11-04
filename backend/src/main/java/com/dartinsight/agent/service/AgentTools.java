@@ -69,8 +69,6 @@ public class AgentTools {
     static final String GET_SUMMARY = "get_summary";
     static final String EXPLAIN_TEXT_CHANGE = "explain_text_change";
     static final String FIND_RELATED_DISCLOSURES = "find_related_disclosures";
-    /** 변경 목록·변경 하나를 찾는 Tool. 노트에 담을 대상을 찾는 데 쓸 수 있다(설명·요약·질문·원문 Tool은 아님) */
-    private static final Set<String> CHANGE_LOCATORS = Set.of(SEARCH_TEXT_CHANGES, GET_TEXT_CHANGE, GET_FINANCIAL_CHANGES);
 
     static final int MAX_SIZE = 10;
     /** 목차는 최상위 항목마다 한 줄이라 일반 결과보다 줄 수를 넉넉히 둔다(사업보고서 최상위 항목 12개 안팎) */
@@ -111,10 +109,6 @@ public class AgentTools {
      *
      * @param question 근거 질문 Tool이 저장한 질문. 그 밖의 Tool은 null
      */
-    static boolean locatesChange(String name) {
-        return CHANGE_LOCATORS.contains(name);
-    }
-
     record Output(List<ToolLine> lines, AskedQuestion question) {
 
         static Output of(List<ToolLine> lines) {
