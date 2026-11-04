@@ -38,6 +38,12 @@ public class UserService {
         if (!users.existsById(userId)) throw new ApiException(ErrorCode.AUTH_UNAUTHORIZED);
     }
 
+    /** 회원 행이 있는지. 로그인 없이도 쓰는 기록(요금제 관심, FS-73)이 탈퇴한 회원 ID를 남기지 않게 한다 */
+    @Transactional(readOnly = true)
+    public boolean exists(long userId) {
+        return users.existsById(userId);
+    }
+
     /** 회원 행을 잠가 같은 회원의 변경을 한 줄로 세운다. 부른 쪽 트랜잭션이 끝나면 풀린다. */
     @Transactional(propagation = Propagation.MANDATORY)
     public void lock(long userId) {

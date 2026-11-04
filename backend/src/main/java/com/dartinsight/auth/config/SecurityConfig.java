@@ -21,10 +21,14 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
+import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
@@ -75,7 +79,8 @@ public class SecurityConfig {
     @Bean
     @Order(2)
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
-            AuthorizationManager<RequestAuthorizationContext> adminAuthorizationManager) throws Exception {
+            AuthorizationManager<RequestAuthorizationContext> adminAuthorizationManager, JwtDecoder jwtDecoder)
+            throws Exception {
         http.csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -94,10 +99,33 @@ public class SecurityConfig {
                         .anyRequest().permitAll())
                 .exceptionHandling(exceptions -> exceptions.accessDeniedHandler((request, response, exception) ->
                         writeError(response, ErrorCode.AUTH_FORBIDDEN)))
-                .oauth2ResourceServer(oauth -> oauth.jwt(Customizer.withDefaults())
+                .oauth2ResourceServer(oauth -> oauth.bearerTokenResolver(bearerTokenResolver(jwtDecoder))
+                        .jwt(Customizer.withDefaults())
                         .authenticationEntryPoint((request, response, exception) ->
                                 writeError(response, ErrorCode.AUTH_UNAUTHORIZED)));
         return http.build();
+    }
+
+    /**
+     * Authorization 헤더의 Bearer 토큰을 읽는다. 요금제 '관심 있어요'(POST /api/plan-interests, FS-73)만은
+     * 토큰이 잘못됐으면 401 대신 토큰이 없는 것으로 본다(이 기록만을 위해 다시 로그인하게 하지 않음).
+     * 그 경로는 확인하려고 한 번 더 디코딩한다.
+     */
+    private static BearerTokenResolver bearerTokenResolver(JwtDecoder decoder) {
+        DefaultBearerTokenResolver standard = new DefaultBearerTokenResolver();
+        return request -> {
+            if (!HttpMethod.POST.matches(request.getMethod())
+                    || !ApiPaths.PLAN_INTERESTS.equals(request.getRequestURI())) {
+                return standard.resolve(request);
+            }
+            try {
+                String token = standard.resolve(request);
+                if (token != null) decoder.decode(token);
+                return token;
+            } catch (OAuth2AuthenticationException | JwtException e) {
+                return null;
+            }
+        };
     }
 
     // 컨트롤러 밖(보안 필터)에서 나는 401·403도 공통 에러 형식으로 쓴다. 메시지는 따옴표 없는 고정 문구다.
