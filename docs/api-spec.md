@@ -124,10 +124,10 @@
 | GET | `/api/analyses/{analysisId}/text-changes/{changeId}/history` | 문장 변경 이력(여러 기간) | #26 (3.8) | — | 초안 |
 | POST | `/api/analyses/{analysisId}/text-changes/{changeId}/explanations` | 문장 변경 AI 한 줄 풀이(만들거나 저장된 것) | #227 (3.11) | W-03 ③ | 초안 |
 | GET | `/api/analyses/{analysisId}/text-changes/{changeId}/related-disclosures` | 문장 변경의 관련 수시공시(보조 근거, 처음이면 계산해 저장) | #343 (3.6) | W-03 ③ | 초안 |
-| POST | `/api/analyses/{analysisId}/event-runs` | 주요 사건 만들기 시작 | #642 (2.13), #646 (3.36) | W-03 ③ | 제안 |
-| GET | `/api/analyses/{analysisId}/event-runs/current` | 주요 사건 작업 상태 | #642 (2.13), #646 (3.36) | W-03 ③ | 제안 |
-| GET | `/api/analyses/{analysisId}/events` | 주요 사건 목록, 칸별 사건 수, 묶이지 않은 후보 | #642 (2.13), #646 (3.36) | W-03 ③ | 제안 |
-| GET | `/api/analyses/{analysisId}/events/{eventId}` | 주요 사건 하나 | #642 (2.13), #646 (3.36) | W-03 ③ | 제안 |
+| POST | `/api/analyses/{analysisId}/event-runs` | 주요 사건 만들기 시작 | #642 (2.13), #646 (3.36) | W-03 ③ | 초안 |
+| GET | `/api/analyses/{analysisId}/event-runs/current` | 주요 사건 작업 상태 | #642 (2.13), #646 (3.36) | W-03 ③ | 초안 |
+| GET | `/api/analyses/{analysisId}/events` | 주요 사건 목록, 칸별 사건 수, 묶이지 않은 후보 | #642 (2.13), #646 (3.36) | W-03 ③ | 초안 |
+| GET | `/api/analyses/{analysisId}/events/{eventId}` | 주요 사건 하나 | #642 (2.13), #646 (3.36) | W-03 ③ | 초안 |
 | GET | `/api/analyses/{analysisId}/summary` | 근거 기반 요약·설명 | #20 (3.2) | W-03 ① | 초안 |
 | POST | `/api/analyses/{analysisId}/questions` | 근거로 답하는 질문(AI) | #219 (3.10) | W-03 ⑤ | 초안 |
 | GET | `/api/analyses/{analysisId}/questions` | 이 분석에서 한 질문·답 기록 | #219 (3.10) | W-03 ⑤ | 초안 |
@@ -2617,7 +2617,7 @@
 
 ### POST /api/analyses/{analysisId}/event-runs — 주요 사건 만들기 시작
 
-> 상태: 제안. 구조와 이유는 [ADR-0050](adr/0050-text-events-after-analysis.md)에 있습니다. 구현은 #644·#646입니다. 7.7을 통과하기 전에는 설정으로 꺼 둡니다.
+> 상태: 초안. 구조와 이유는 [ADR-0050](adr/0050-text-events-after-analysis.md)에 있습니다. 구현은 #644·#646입니다. 7.7을 통과하기 전에는 설정으로 꺼 둡니다.
 
 - 이슈: #642 (2.13), #646 (3.36) · 화면: 문장 변화 탭 주요 사건 영역
 - 화면이 완료된 분석의 문장 변화 탭을 처음 열 때 부릅니다. 분석 상태에는 영향을 주지 않습니다. 사건이 실패해도 분석은 `COMPLETED`이고 `text-changes`는 그대로입니다.
@@ -3196,7 +3196,7 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 
 외부에 열지 않습니다. 요청 헤더에 항상 `X-Trace-Id`를 넣습니다. 에러 형식은 외부 API와 같습니다. AI 서버만 쓰는 에러 코드는 `AI_`로 시작합니다(아래 표).
 
-**실패한 요청의 LLM 호출 기록(`X-Llm-Calls`, #137, [ADR-0042](adr/0042-failed-llm-calls-in-response-header.md))**: LLM을 부르다 끝내 쓸 수 없게 된 요청(503 `AI_LLM_UNAVAILABLE`)도 그때까지 부른 기록이 있으면 응답 헤더 `X-Llm-Calls`에 담습니다. 값은 호출 기록 배열(200 응답의 `calls`와 같은 객체 모양)을 UTF-8 JSON으로 만든 뒤 base64url(패딩 있음)로 바꾼 글자입니다. 기록이 없으면(제공자 미설정 등) 헤더를 넣지 않습니다. 에러 본문은 공통 형식 그대로입니다. 지금은 `POST /internal/summaries`만 넣고, backend는 분석 실패 때 이 기록을 `llm_call`에 저장합니다. `POST /internal/text-events`(제안, ADR-0050)도 503과 502 `AI_EVENTS_INVALID_OUTPUT`에 같은 헤더를 넣습니다.
+**실패한 요청의 LLM 호출 기록(`X-Llm-Calls`, #137, [ADR-0042](adr/0042-failed-llm-calls-in-response-header.md))**: LLM을 부르다 끝내 쓸 수 없게 된 요청(503 `AI_LLM_UNAVAILABLE`)도 그때까지 부른 기록이 있으면 응답 헤더 `X-Llm-Calls`에 담습니다. 값은 호출 기록 배열(200 응답의 `calls`와 같은 객체 모양)을 UTF-8 JSON으로 만든 뒤 base64url(패딩 있음)로 바꾼 글자입니다. 기록이 없으면(제공자 미설정 등) 헤더를 넣지 않습니다. 에러 본문은 공통 형식 그대로입니다. 지금은 `POST /internal/summaries`만 넣고, backend는 분석 실패 때 이 기록을 `llm_call`에 저장합니다. `POST /internal/text-events`(구현 전, ADR-0050)도 503과 502 `AI_EVENTS_INVALID_OUTPUT`에 같은 헤더를 넣습니다.
 
 | 메서드 | 경로 | 설명 | 이슈 | 상태 |
 | --- | --- | --- | --- | --- |
@@ -3210,7 +3210,7 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 | POST | `/internal/outlooks` | 회사가 밝힌 전망·계획 뽑기(LLM) | #465 (1.9) | 초안 |
 | POST | `/internal/plan-followups` | 작년 계획과 올해 보고서 문단 대조(LLM) | #467 (1.10) | 초안 |
 | POST | `/internal/agent-steps` | 에이전트 한 단계: 다음에 부를 Tool 또는 최종 답(LLM, ADR-0044·0045) | 에이전트 채팅(FS 전) | 초안 |
-| POST | `/internal/text-events` | 문장 변경을 주요 사건으로 묶기(LLM, ADR-0050) | #642 (2.13) | 제안 |
+| POST | `/internal/text-events` | 문장 변경을 주요 사건으로 묶기(LLM, ADR-0050) | #642 (2.13) | 초안 |
 
 | code | 상태 | 뜻 |
 | --- | --- | --- |
@@ -3734,7 +3734,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 
 ### POST /internal/text-events — 문장 변경을 주요 사건으로 묶기
 
-> 상태: 제안([ADR-0050](adr/0050-text-events-after-analysis.md)). 입력 크기와 제한시간은 2.12 전이라 가정입니다.
+> 상태: 초안([ADR-0050](adr/0050-text-events-after-analysis.md)). 입력 크기와 제한시간은 2.12 전이라 가정입니다.
 
 - 이슈: #642 (2.13), #643 (2.14), #644 (2.15), #645 (2.16)
 - backend가 분석의 기본 목록(`list_group` `MAIN`·`UNPAIRED`)을 보냅니다. ai-server는 후보를 고르고, LLM으로 묶고, 인용·근거와 표현을 검사하고, 코드로 정렬합니다. DB는 쓰지 않습니다.
