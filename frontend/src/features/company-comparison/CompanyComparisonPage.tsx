@@ -22,6 +22,7 @@ import {
   MIN_COMPANIES,
   PERIOD_MISMATCH_MESSAGE,
   periodsDiffer,
+  unavailableCount,
   removeCompany,
 } from './model/companyComparison'
 import './company-comparison.css'
@@ -36,10 +37,13 @@ const fsDivOptions: readonly SegmentOption<FsDiv>[] = [
   { value: 'OFS', label: '별도' },
 ]
 
-/** 표 위 한 줄 안내. 기업이 모자라면 고르기 안내, 대상 기간이 다르면 경고 */
-function statusMessage(count: number, periodMismatch: boolean): string {
+/** 표 위 한 줄 안내. 기업이 모자라면 고르기 안내, 수치가 없는 기업이 있거나 대상 기간이 다르면 경고 */
+function statusMessage(count: number, unavailable: number, periodMismatch: boolean): string {
   if (count < MIN_COMPANIES) {
     return `비교할 기업을 ${MIN_COMPANIES}곳 이상 골라 주세요. 위 검색 칸이나 관심 기업에서 최대 ${MAX_COMPANIES}곳까지 고를 수 있어요.`
+  }
+  if (unavailable > 0) {
+    return `${count}곳 중 ${unavailable}곳은 고른 종류 보고서의 수치가 없어요. 보고서 종류나 재무제표 기준을 바꿔 보세요.`
   }
   if (periodMismatch) return `${PERIOD_MISMATCH_MESSAGE}. 기업마다 결산월이나 최신 보고서가 달라 대상 기간이 다를 수 있어요.`
   return `${count}곳을 같은 종류 보고서로 나란히 보여 드려요.`
@@ -126,10 +130,14 @@ export function CompanyComparisonPage() {
         </div>
         {/* 안내·경고는 늘 같은 한 줄 자리에 둬, 나타나고 사라질 때 표가 위아래로 밀리지 않게 한다(#424) */}
         <p
-          className={periodsDiffer(columns) ? 'company-compare__status company-compare__status--attention' : 'company-compare__status'}
+          className={
+            periodsDiffer(columns) || unavailableCount(columns) > 0
+              ? 'company-compare__status company-compare__status--attention'
+              : 'company-compare__status'
+          }
           role="status"
         >
-          {statusMessage(corps.length, periodsDiffer(columns))}
+          {statusMessage(corps.length, unavailableCount(columns), periodsDiffer(columns))}
         </p>
         <ComparisonTable columns={columns} type={type} onRetry={retry} />
       </Panel>
