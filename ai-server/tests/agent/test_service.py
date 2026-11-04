@@ -197,7 +197,8 @@ def test_plan_answer_without_valid_draft_falls_back_to_answer_call() -> None:
 
 def test_brief_request_answers_in_lines_each_with_evidence() -> None:
     brief = (
-        "- 영업이익은 6.6조 원에서 4.3조 원으로 줄었어요[F4221].\n- 관련 공시 내용이 있어요[F4221]."
+        "- 영업이익은 6.6조 원에서 4.3조 원으로 줄었어요. [F4221]\n"
+        "- 관련 공시 내용이 있어요. [F4221]"
     )
     draft = answer(brief, ["F4221"])
     client, provider = llm({"decision": "ANSWER", "toolCalls": [], "draft": draft})
@@ -211,8 +212,8 @@ def test_brief_request_answers_in_lines_each_with_evidence() -> None:
 
 
 def test_brief_line_without_evidence_is_rejected() -> None:
-    bare = "- 영업이익은 6.6조 원에서 4.3조 원으로 줄었어요[F4221].\n- 더 볼 점이 있어요."
-    fixed = "- 영업이익은 6.6조 원에서 4.3조 원으로 줄었어요[F4221]."
+    bare = "- 영업이익은 6.6조 원에서 4.3조 원으로 줄었어요. [F4221]\n- 더 볼 점이 있어요."
+    fixed = "- 영업이익은 6.6조 원에서 4.3조 원으로 줄었어요. [F4221]"
     client, _ = llm(
         {"decision": "ANSWER", "toolCalls": [], "draft": answer(bare, ["F4221"])},
         answer(fixed, ["F4221"]),
@@ -223,6 +224,73 @@ def test_brief_line_without_evidence_is_rejected() -> None:
     assert output.final is not None
     assert output.final.status == "ANSWERED"
     assert [r.rules for r in output.rejections] == [["BRIEF_LINE_WITHOUT_EVIDENCE"]]
+
+
+GAP = ToolResult("c2", "get_summary", {}, True, items=[ResultItem("F9", "차이는 2.3조 원이에요.")])
+THIRD = ToolResult(
+    "c3", "get_summary", {}, True, items=[ResultItem("F10", "매출은 153.7조 원이에요.")]
+)
+
+
+def test_brief_checks_numbers_per_line_with_only_that_lines_evidence() -> None:
+    # 줄 끝에 마침표가 없어도 두 줄이 한 문장으로 묶여
+    # 둘째 줄 근거의 숫자로 첫 줄이 통과하면 안 된다
+    wrong = "- 영업이익은 2.3조 원 줄었어요 [F4221]\n- 차이는 2.3조 원이에요 [F9]"
+    fixed = "- 영업이익은 6.6조 원에서 4.3조 원으로 줄었어요 [F4221]\n- 차이는 2.3조 원이에요 [F9]"
+    client, _ = llm(
+        {"decision": "ANSWER", "toolCalls": [], "draft": answer(wrong, ["F4221", "F9"])},
+        answer(fixed, ["F4221", "F9"]),
+    )
+
+    output = run_step(client, step("요점 정리해줘", results=[FINANCIAL, GAP]))
+
+    assert output.final is not None
+    assert output.final.status == "ANSWERED"
+    assert [r.rules for r in output.rejections] == [["NUMBER_NOT_IN_TOOL_RESULT"]]
+
+
+def test_brief_with_requested_line_count_must_match_when_evidence_allows() -> None:
+    two = "- 영업이익은 줄었어요. [F4221]\n- 차이는 2.3조 원이에요. [F9]"
+    three = two + "\n- 매출은 153.7조 원이에요. [F10]"
+    client, _ = llm(
+        {"decision": "ANSWER", "toolCalls": [], "draft": answer(two, ["F4221", "F9"])},
+        answer(three, ["F4221", "F9", "F10"]),
+    )
+
+    output = run_step(client, step("3줄 요약해줘", results=[FINANCIAL, GAP, THIRD]))
+
+    assert output.final is not None
+    assert output.final.status == "ANSWERED"
+    assert [r.rules for r in output.rejections] == [["BRIEF_LINE_COUNT"]]
+    assert len((output.final.answer or "").splitlines()) == 3
+
+
+def test_brief_with_fewer_evidence_than_requested_lines_is_not_forced_to_pad() -> None:
+    one = "- 영업이익은 6.6조 원에서 4.3조 원으로 줄었어요. [F4221]"
+    client, _ = llm({"decision": "ANSWER", "toolCalls": [], "draft": answer(one, ["F4221"])})
+
+    output = run_step(client, step("3줄 요약해줘", results=[FINANCIAL]))
+
+    assert output.final is not None
+    assert output.final.status == "ANSWERED"
+    assert output.rejections == []
+
+
+def test_brief_line_must_start_with_bullet_and_end_with_marker() -> None:
+    no_bullet = "영업이익은 6.6조 원에서 4.3조 원으로 줄었어요. [F4221]"
+    marker_inside = "- 영업이익은 [F4221] 6.6조 원에서 4.3조 원으로 줄었어요."
+    fixed = "- 영업이익은 6.6조 원에서 4.3조 원으로 줄었어요. [F4221]"
+    client, _ = llm(
+        {"decision": "ANSWER", "toolCalls": [], "draft": answer(no_bullet, ["F4221"])},
+        answer(marker_inside, ["F4221"]),
+        answer(fixed, ["F4221"]),
+    )
+
+    output = run_step(client, step("항목별로 정리해줘", results=[FINANCIAL]))
+
+    assert output.final is not None
+    assert output.final.status == "ANSWERED"
+    assert [r.rules for r in output.rejections] == [["BRIEF_FORMAT"], ["BRIEF_FORMAT"]]
 
 
 def test_chat_answer_keeps_400_char_limit_while_brief_allows_1500() -> None:
@@ -237,7 +305,7 @@ def test_chat_answer_keeps_400_char_limit_while_brief_allows_1500() -> None:
 
     assert chat.final is not None and chat.final.status == REVIEW_NEEDED
     assert chat.rejections[0].rules == ["ANSWER_TOO_LONG"]
-    brief_text = "\n".join(["- 영업이익은 6.6조 원에서 4.3조 원으로 줄었어요[F4221]."] * 12)
+    brief_text = "\n".join(["- 영업이익은 6.6조 원에서 4.3조 원으로 줄었어요. [F4221]"] * 12)
     client, _ = llm({"decision": "ANSWER", "toolCalls": [], "draft": answer(brief_text, ["F4221"])})
     brief = run_step(client, step("확인할 점 정리해줘", results=[FINANCIAL]))
     assert brief.final is not None and brief.final.status == "ANSWERED"
