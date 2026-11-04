@@ -13,6 +13,7 @@ AI 코딩 도구(Claude Code, Codex, Cursor, Copilot 등)가 이 저장소에서
 | `frontend/` | 화면 | React + TypeScript |
 | `backend/` | 서비스 API, OpenDART 조회·캐시, 분석 작업 관리 | Spring Boot |
 | `ai-server/` | 원문 파싱·구조화, 문장 변경 탐지, 근거 문단 검색, 요약·설명, 에이전트 채팅 한 단계 | FastAPI (Python), LLM은 `openai` SDK, 에이전트 단계는 LangGraph |
+| `mcp-server/` | 외부 AI 에이전트용 MCP 서버(읽기 전용 시제품, [ADR-0052](docs/adr/0052-mcp-server-read-only.md)) | Python, `mcp` SDK |
 | `docs/` | 프로젝트 개요, API 명세·ERD, 협업 가이드 | — |
 
 DB는 MariaDB이고, 외부 데이터는 OpenDART(공시·재무·원문)와 기업 뉴스용 NAVER API HUB([ADR-0046](docs/adr/0046-company-news-from-naver-api-hub.md), 화면에만 보이고 AI에는 넣지 않음)입니다. 근거 문단은 ai-server가 BM25로 찾습니다([ADR-0036](docs/adr/0036-bm25-explanation-candidate-search.md)). 에이전트 채팅의 한 단계는 ai-server의 LangGraph 그래프로 만들고, Tool은 backend가 실행합니다([ADR-0044](docs/adr/0044-agent-tools-run-in-backend.md)·[ADR-0045](docs/adr/0045-langgraph-agent-step-graph.md)). LangChain과 임베딩·Chroma는 쓰지 않습니다(벡터 검색은 #148).
@@ -27,7 +28,7 @@ DB는 MariaDB이고, 외부 데이터는 OpenDART(공시·재무·원문)와 기
 
 ## 구조 규칙
 
-- 호출 방향은 React → Spring Boot → FastAPI입니다. React는 Spring Boot만 부르고, FastAPI나 OpenDART를 직접 부르지 않습니다.
+- 호출 방향은 React → Spring Boot → FastAPI입니다. React와 MCP 서버(`mcp-server/`)는 Spring Boot 공개 API만 부르고, FastAPI나 OpenDART를 직접 부르지 않습니다.
 - OpenDART 호출과 캐시는 backend가, 원문 파싱·구조화는 ai-server가 맡습니다. 받은 데이터는 접수번호 기준으로 캐시하고 같은 요청을 반복하지 않습니다.
 - 분석은 비동기 작업입니다: 요청 → 작업 ID 발급 → 상태 조회 → 결과 조회.
 - 분석 작업 상태는 `PENDING → RUNNING → COMPLETED` 또는 `FAILED`로만 바뀝니다. 코드에 허용 전이표를 두고 다른 전이는 거부합니다. 결과를 저장하기 전에는 `COMPLETED`로 바꾸지 않습니다.
@@ -127,6 +128,7 @@ CI(`.github/workflows/`)도 같은 명령을 씁니다. 버전은 backend Java 2
 | backend | `./gradlew build` (backend/) | 빌드에 포함(Checkstyle) |
 | frontend | `npm test && npm run build` (frontend/) | `npm run lint` |
 | ai-server | `pytest` (ai-server/) | `ruff check .` |
+| mcp-server | `pytest` (mcp-server/) | `ruff check .` |
 
 저장소 루트에서 `npm run check`(전체)나 `npm run test:backend`처럼 같은 명령을 한 번에 돌릴 수도 있습니다(`package.json`, `docs/local-setup.md` 5장).
 
