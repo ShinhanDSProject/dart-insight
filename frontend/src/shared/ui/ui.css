@@ -1044,10 +1044,33 @@ th[aria-sort='none'] .data-table__sort-mark {
   }
 }
 
+/* 넓은 화면(901px 이상, FS-71): 패널은 상단 바를 덮지 않고 그 아래에서 시작한다. 패널이 열린 동안 상단 바를 위에 고정해
+   메뉴(나란히 보기·노트·로그인)를 계속 쓰게 하고, 위에 붙는 요소(결과 탭 줄 등)는 --sticky-top만큼 내려 상단 바 아래에 붙인다 */
+@media (min-width: 901px) {
+  .has-side-panel {
+    --sticky-top: var(--header-height);
+  }
+
+  .has-side-panel .app-header {
+    position: sticky;
+    top: 0;
+    z-index: 21;
+  }
+
+  .side-panel {
+    top: var(--header-height);
+    height: calc(100vh - var(--header-height));
+  }
+}
+
 @media (min-width: 1200px) {
-  /* 패널 폭만큼 작업 영역(기업 줄·본문·하단 바)을 비우고 그 안에서 본문을 가운데 둔다. 상단 바는 패널 아래로 그대로 둔다 */
+  /* 패널 폭만큼 작업 영역(기업 줄·본문·하단 바)을 비우고 그 안에서 본문을 가운데 둔다. 덮지 않으므로 그림자 없이 경계선으로만 나눈다 */
   .has-side-panel .app-workspace {
     padding-right: var(--side-panel-width);
+  }
+
+  .side-panel {
+    box-shadow: none;
   }
 }
 
