@@ -56,14 +56,24 @@ public class CommunityModerationService {
             return new AdminReportListResponse(query.queueName(), query.page(), query.size(),
                     found.getTotalElements(), views.items(reportStates.of(found.getContent()), now));
         }
-        List<ReportState> todo = ReportState.todoQueue(
-                reportStates.of(reports.findByStatusIn(List.of(ReportStatus.OPEN, ReportStatus.BLINDED))), now);
+        List<ReportState> todo = todoQueue(now);
         List<ReportState> pageItems = todo.stream()
                 .skip((long) query.page() * query.size())
                 .limit(query.size())
                 .toList();
         return new AdminReportListResponse(query.queueName(), query.page(), query.size(), todo.size(),
                 views.items(pageItems, now));
+    }
+
+    /** '처리할 것'의 수. 관리자 목록(queue=todo)의 totalItems와 같다(관리자 개요의 openReports) */
+    @Transactional(readOnly = true)
+    public long todoCount() {
+        return todoQueue(LocalDateTime.now(clock)).size();
+    }
+
+    private List<ReportState> todoQueue(LocalDateTime now) {
+        return ReportState.todoQueue(
+                reportStates.of(reports.findByStatusIn(List.of(ReportStatus.OPEN, ReportStatus.BLINDED))), now);
     }
 
     /**

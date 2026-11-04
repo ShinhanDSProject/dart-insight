@@ -16,6 +16,8 @@ import com.dartinsight.company.service.CompanyService;
 import com.dartinsight.user.service.UserService;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.Map;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -50,6 +52,18 @@ public class CommunityPostService {
                 ? posts.findPopular(corp, pageable) : posts.findLatest(corp, pageable);
         return new PostListResponse(corp, query.sortName(), query.page(), query.size(), found.getTotalElements(),
                 views.posts(found.getContent(), viewerId));
+    }
+
+    /** [from, to)에 쓴 글 수(지운 글 포함). 관리자 개요 */
+    @Transactional(readOnly = true)
+    public long countWritten(LocalDateTime from, LocalDateTime to) {
+        return posts.countByCreatedAtGreaterThanEqualAndCreatedAtLessThan(from, to);
+    }
+
+    /** 회원 ID → 지우지 않은 글 수(글이 없는 회원은 빠짐). 관리자 회원 목록 */
+    @Transactional(readOnly = true)
+    public Map<Long, Long> countsByAuthor(Collection<Long> userIds) {
+        return posts.countByAuthor(userIds);
     }
 
     /** 인용(#464)이 있으면 글을 저장하기 전에 사본을 만들어 검증하고, 잘못되면 글도 저장하지 않는다 */

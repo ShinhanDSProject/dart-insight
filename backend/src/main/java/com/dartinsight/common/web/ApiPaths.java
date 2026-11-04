@@ -18,6 +18,10 @@ public final class ApiPaths {
     /** 관리자 신고 목록·처리(6.6 #461) */
     public static final String ADMIN_REPORTS = ADMIN + "/reports";
     public static final String BY_REPORT_ID = "/{reportId}";
+    /** 관리자 개요·분석 작업·회원 목록(3.34, FS-72) */
+    public static final String ADMIN_OVERVIEW = ADMIN + "/overview";
+    public static final String ADMIN_ANALYSES = ADMIN + "/analyses";
+    public static final String ADMIN_USERS = ADMIN + "/users";
     /** 요금제 '관심 있어요'(3.34, FS-73). 로그인 없이도 쓰고, 잘못된 토큰은 무시한다 */
     public static final String PLAN_INTERESTS = BASE + "/plan-interests";
     public static final String SESSIONS = BASE + "/sessions";

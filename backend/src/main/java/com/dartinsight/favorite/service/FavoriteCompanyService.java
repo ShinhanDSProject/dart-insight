@@ -3,16 +3,22 @@ package com.dartinsight.favorite.service;
 import com.dartinsight.company.domain.Company;
 import com.dartinsight.company.service.CompanyService;
 import com.dartinsight.favorite.domain.FavoriteCompany;
+import com.dartinsight.favorite.domain.WatchStats;
+import com.dartinsight.favorite.domain.WatchStats.WatchedCompany;
 import com.dartinsight.favorite.dto.FavoriteCompanyResponse;
+import com.dartinsight.favorite.repository.CorpFavoriteCount;
 import com.dartinsight.favorite.repository.FavoriteCompanyRepository;
+import com.dartinsight.favorite.repository.UserFavoriteCount;
 import com.dartinsight.user.service.UserService;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,6 +51,23 @@ public class FavoriteCompanyService {
     /** 이 기업을 지금 즐겨찾기한 회원 ID */
     public List<Long> userIdsFavoriting(String corpCode) {
         return favorites.findUserIdsByCorpCode(corpCode);
+    }
+
+    /** 지금 전체 관심 기업 수와 많이 담은 기업 top개(관리자 개요) */
+    public WatchStats watchStats(int top) {
+        List<CorpFavoriteCount> most = favorites.findMostFavorited(PageRequest.of(0, top));
+        Map<String, String> names = companyService.getAll(most.stream().map(CorpFavoriteCount::getCorpCode).toList())
+                .stream().collect(Collectors.toMap(Company::getCorpCode, Company::getCorpName));
+        return new WatchStats(favorites.count(), favorites.countDistinctCorpCodes(), most.stream()
+                .map(row -> new WatchedCompany(row.getCorpCode(), names.get(row.getCorpCode()), row.getCount()))
+                .toList());
+    }
+
+    /** 회원 ID → 관심 기업 수(없는 회원은 빠짐). 관리자 회원 목록 */
+    public Map<Long, Long> countsByUser(Collection<Long> userIds) {
+        if (userIds.isEmpty()) return Map.of();
+        return favorites.countByUserIds(userIds).stream()
+                .collect(Collectors.toMap(UserFavoriteCount::getUserId, UserFavoriteCount::getCount));
     }
 
     /** 이미 있으면 그대로 돌려준다(중복 행·시각 변경 없음). 없는 기업은 COMPANY_NOT_FOUND. */

@@ -3,7 +3,12 @@ package com.dartinsight.community.repository;
 import com.dartinsight.community.domain.CommunityPost;
 import com.dartinsight.community.domain.ContentStatus;
 import jakarta.persistence.LockModeType;
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -38,4 +43,18 @@ public interface CommunityPostRepository extends JpaRepository<CommunityPost, Lo
             + " order by (p.likeCount + p.commentCount) desc, p.createdAt desc, p.id desc")
     Page<CommunityPost> findPopular(@Param("corpCode") String corpCode, @Param("deleted") ContentStatus deleted,
             Pageable pageable);
+
+    long countByCreatedAtGreaterThanEqualAndCreatedAtLessThan(LocalDateTime from, LocalDateTime to);
+
+    /** 회원 ID → 지우지 않은 글 수. 글이 없는 회원은 빠진다 */
+    default Map<Long, Long> countByAuthor(Collection<Long> userIds) {
+        if (userIds.isEmpty()) return Map.of();
+        return countByAuthor(userIds, ContentStatus.DELETED).stream()
+                .collect(Collectors.toMap(AuthorCount::getUserId, AuthorCount::getCount));
+    }
+
+    @Query("select p.userId as userId, count(p) as count from CommunityPost p"
+            + " where p.userId in :userIds and p.status <> :deleted group by p.userId")
+    List<AuthorCount> countByAuthor(@Param("userIds") Collection<Long> userIds,
+            @Param("deleted") ContentStatus deleted);
 }

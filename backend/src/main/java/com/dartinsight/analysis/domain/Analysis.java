@@ -12,6 +12,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.AccessLevel;
@@ -237,6 +238,21 @@ public class Analysis {
         }
         status = next;
         updatedAt = now;
+    }
+
+    /**
+     * 걸린 시간(정수 초, 관리자 화면). 완료면 completed_at − started_at, 실패면 updated_at − started_at,
+     * 진행 중이거나 시작 전(시작하지 않고 실패한 것 포함)이면 null.
+     */
+    public Long durationSeconds() {
+        if (startedAt == null) {
+            return null;
+        }
+        return switch (status) {
+            case COMPLETED -> completedAt == null ? null : Duration.between(startedAt, completedAt).toSeconds();
+            case FAILED -> Duration.between(startedAt, updatedAt).toSeconds();
+            case PENDING, RUNNING -> null;
+        };
     }
 
     /** 지금 서버의 분석 방식(CURRENT_VERSION)과 다른 버전으로 만든 결과인지. */
