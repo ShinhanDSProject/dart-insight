@@ -2628,7 +2628,7 @@
 | --- | --- | --- |
 | 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 |
 | 409 | `ANALYSIS_NOT_READY` | 분석이 끝나지 않음 |
-| 429 | `ANALYSIS_EVENTS_RETRY_LIMITED` | 이 분석·버전이 최근 24시간에 3번 실패함 |
+| 429 | `ANALYSIS_EVENTS_RETRY_LIMITED` | 이 분석·버전이 최근 24시간에 3번 실패함(`canRetry`가 false) |
 
 ### GET /api/analyses/{analysisId}/event-runs/current — 주요 사건 작업 상태
 
@@ -2651,11 +2651,23 @@
 }
 ```
 
-- `status`: `NOT_STARTED` 실행 없음, `PENDING`, `RUNNING`, `COMPLETED`, `FAILED`, `NOT_CREATED` 만들지 않음
-- `notCreatedReason`: `NOT_CREATED`일 때만. `DISABLED` 설정으로 꺼 둠, `OLD_ANALYSIS` 분류 전 분석(`listVersion` null), `TEXT_COMPARE_FAILED` 문장 비교 실패, `FAKE_MODEL` LLM 제공자가 fake, `NO_CANDIDATES` 후보 변경 없음. 앞의 셋은 저장하지 않고 조회할 때 정합니다. `FAKE_MODEL`은 다음 시작 때 새 실행을 만들고, `NO_CANDIDATES`는 같은 버전이면 그대로입니다
-- `errorCode`: `FAILED`일 때 사유. 화면에는 사유 대신 공통 실패 문구와 다시 시도를 보여 줍니다
-- `canRetry`: `FAILED`이고 재시도 한도에 걸리지 않았으면 true
+- `status`: `PENDING`, `RUNNING`, `COMPLETED`, `FAILED`, `NOT_CREATED` 만들지 않음, `NOT_STARTED` 실행이 없고 만들지 않을 사유도 없음
+- `notCreatedReason`: `NOT_CREATED`일 때만. `DISABLED` 설정으로 꺼 둠, `OLD_ANALYSIS` 분류 전 분석(`listVersion` null), `TEXT_COMPARE_FAILED` 문장 비교 실패, `FAKE_MODEL` LLM 제공자가 fake, `NO_CANDIDATES` 후보 변경 없음. 앞의 셋은 저장하지 않고 조회할 때 정하며, 해당하면 실행 행이 없어도 `status`는 `NOT_CREATED`입니다. `FAKE_MODEL`은 다음 시작 때 새 실행을 만들고, `NO_CANDIDATES`는 같은 버전이면 그대로입니다
+- `errorCode`: `FAILED`일 때 사유(아래 표). 화면에는 사유 대신 공통 실패 문구와 다시 시도를 보여 줍니다
+- `canRetry`: `FAILED`이고 이 분석·버전의 최근 24시간 실패가 3번 미만이면 true입니다. `errorCode`로 나누지 않습니다. false일 때 시작을 요청하면 429입니다
+- 실패 횟수: 검증 실패로 다시 만드는 최대 2회는 한 실행 안의 일이라 세지 않습니다. `ANALYSIS_EVENTS_BUSY`는 LLM 비용이 없어 세지 않습니다
 - `startedAt`·`finishedAt`: 실행이 없거나 끝나지 않았으면 null
+
+| `errorCode` | 뜻 |
+| --- | --- |
+| `AI_SERVER_UNAVAILABLE` | AI 서버를 부를 수 없거나 제한시간을 넘음 |
+| `AI_LLM_UNAVAILABLE` | LLM을 쓸 수 없음 |
+| `AI_EVENTS_INVALID_OUTPUT` | 쓸 수 있는 사건이 하나도 없음, 또는 backend 재확인에서 변경 번호·근거 ID가 어긋남 |
+| `ANALYSIS_EVENTS_SAVE_FAILED` | 결과 저장 실패 |
+| `ANALYSIS_EVENTS_INTERRUPTED` | 서버 재시작으로 실행이 끊김 |
+| `ANALYSIS_EVENTS_BUSY` | 실행 대기열이 가득 참 |
+
+`ANALYSIS_EVENTS_` 세 코드는 실행 상태의 값으로만 주고, HTTP 에러로 돌려주지 않습니다.
 
 ### GET /api/analyses/{analysisId}/events — 주요 사건 목록
 
@@ -3795,7 +3807,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
     }
   ],
   "unboundChangeNos": [13],
-  "calls": [{ "task": "text_event", "provider": "fake", "model": "fake-model", "promptVersion": "text-event-1",
+  "calls": [{ "task": "text_event", "provider": "openai", "model": "모델 이름", "promptVersion": "text-event-1",
     "calledAt": "2026-11-05T10:13:01", "traceId": "…", "inputTokens": 28000, "outputTokens": 3000,
     "latencyMs": 42000, "attempt": 1, "outcome": "OK", "error": null }]
 }
