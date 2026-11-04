@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 public final class TestData {
 
     private static final List<String> TABLES_CHILD_FIRST = List.of(
+            "plan_interest",
             "community_repost_request",
             "community_moderation",
             "community_report_entry",
