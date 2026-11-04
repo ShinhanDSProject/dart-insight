@@ -343,14 +343,22 @@ export function TextTab({
                       </Button>
                     </EmptyState>
                   ))
-                  .with({ searched: false, riskOnly: true }, () => (
+                  // 분야와 다른 거르기가 함께 걸려 0건이면 어느 한쪽이 없다고 말할 수 없다
+                  .with({ searched: false, riskOnly: true, field: P.nonNullable }, { searched: false, riskOnly: false, field: P.nonNullable, type: P.nonNullable }, () => (
+                    <EmptyState title="조건에 맞는 변경이 없어요.">
+                      <Button variant="secondary" onClick={clearFilters}>
+                        조건 지우기
+                      </Button>
+                    </EmptyState>
+                  ))
+                  .with({ searched: false, riskOnly: true, field: null }, () => (
                     <EmptyState title={RISK_EMPTY}>
                       <Button variant="secondary" onClick={() => onChange({ risk: false })}>
                         전체 변경 보기
                       </Button>
                     </EmptyState>
                   ))
-                  .with({ searched: false, riskOnly: false, field: P.nonNullable }, ({ field: current }) => (
+                  .with({ searched: false, riskOnly: false, field: P.nonNullable, type: null }, ({ field: current }) => (
                     <EmptyState title={`${textFieldLabel(current)} 변경이 없어요.`}>
                       <Button variant="secondary" onClick={() => chooseField(null)}>
                         {ALL_FIELDS_LABEL}

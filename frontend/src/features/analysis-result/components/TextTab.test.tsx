@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Analysis } from '@/shared/api/analyses'
-import type { TextChangeCounts, TextChangeItem, TextChangeList, TextField, TextListing } from '@/shared/api/textChanges'
+import type { ChangeType, TextChangeCounts, TextChangeItem, TextChangeList, TextField, TextListing } from '@/shared/api/textChanges'
 import { axeViolations } from '@/test/axe'
 import type { TextListState } from '../model/textList'
 import { TextTab } from './TextTab'
@@ -17,6 +17,7 @@ const list = vi.hoisted(() => ({
   counts: null as TextChangeCounts | null,
   listing: null as TextListing | null,
   state: null as TextListState | null,
+  type: null as ChangeType | null,
   reload: vi.fn(),
 }))
 vi.mock('../hooks/useTextChanges', () => ({
@@ -32,7 +33,7 @@ vi.mock('../hooks/useTextChanges', () => ({
     riskCounts: list.riskCounts,
     listing: list.listing,
     contentAvailable: false,
-    type: null,
+    type: list.type,
     reload: list.reload,
     loadMore: () => {},
   }),
@@ -67,6 +68,7 @@ beforeEach(() => {
   list.counts = null
   list.listing = null
   list.state = null
+  list.type = null
   list.reload.mockReset()
 })
 afterEach(cleanup)
@@ -388,7 +390,7 @@ describe('TextTab 분야별 표(3.28)', () => {
     missingFields: ['SHAREHOLDER'],
   }
 
-  function renderFields(field: TextField | null, onChange = vi.fn(), items: TextChangeItem[] = [item(1, '1. 사업의 개요')]) {
+  function renderFields(field: TextField | null, onChange = vi.fn(), items: TextChangeItem[] = [item(1, '1. 사업의 개요')], risk = false) {
     list.items = items
     render(
       <MemoryRouter>
@@ -399,7 +401,7 @@ describe('TextTab 분야별 표(3.28)', () => {
             sort="priority"
             section={null}
             q={null}
-            risk={false}
+            risk={risk}
             field={field}
             pinned={false}
             selectedChangeId={null}
@@ -465,6 +467,25 @@ describe('TextTab 분야별 표(3.28)', () => {
     expect(screen.getByText('배당 변경이 없어요.')).toBeTruthy()
     fireEvent.click(within(screen.getByText('배당 변경이 없어요.').parentElement as HTMLElement).getByRole('button', { name: '전체 분야 보기' }))
     expect(onChange).toHaveBeenLastCalledWith({ field: null })
+  })
+
+  it('분야와 유형을 함께 걸어 0건이면 그 분야에 변경이 없다고 말하지 않고 조건을 지울 수 있다', () => {
+    list.listing = listing
+    list.type = 'ADDED'
+    const onChange = renderFields('AUDIT', vi.fn(), [])
+    expect(screen.queryByText('감사 변경이 없어요.')).toBeNull()
+    expect(screen.getByText('조건에 맞는 변경이 없어요.')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '조건 지우기' }))
+    expect(onChange).toHaveBeenLastCalledWith({ type: null, section: null, q: null, risk: false, field: null })
+  })
+
+  it('분야와 위험 관련을 함께 걸어 0건이면 위험 관련 변경이 없다고 말하지 않고 분야까지 지운다', () => {
+    list.listing = listing
+    const onChange = renderFields('AUDIT', vi.fn(), [], true)
+    expect(screen.queryByText('위험 관련 목차에서 바뀐 문장이 없어요.')).toBeNull()
+    expect(screen.getByText('조건에 맞는 변경이 없어요.')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '조건 지우기' }))
+    expect(onChange).toHaveBeenLastCalledWith({ type: null, section: null, q: null, risk: false, field: null })
   })
 
   it('옛 분석이면 표가 없고 주소의 분야는 없는 것으로 본다', () => {
