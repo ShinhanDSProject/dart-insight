@@ -92,3 +92,4 @@ M0~M2에서 이미 내린 결정은 2026-10-22에 소급해 기록했습니다(0
 | [0045](0045-langgraph-agent-step-graph.md) | ai-server의 에이전트 한 단계는 LangGraph 그래프로 만들고, 답은 작성 → 검토 → 반려 시 다시 작성하는 루프로 만든다 | 채택 | 2026-10-30 |
 | [0046](0046-company-news-from-naver-api-hub.md) | 기업 뉴스는 NAVER API HUB 뉴스 검색으로 받아 backend가 기업별 30분 메모리 캐시로 두고, 화면에만 보이며 AI에는 넣지 않는다 | 채택 | 2026-11-03 |
 | [0047](0047-text-change-list-classification.md) | 문장 변경의 목록 분류와 표 행 비교는 ai-server가 비교할 때 정하고, backend가 변경과 함께 저장한다 | 제안 | 2026-11-03 |
+| [0048](0048-agent-evidence-kinds-and-recheck.md) | 에이전트 채팅의 근거는 7가지 종류로 두고, backend는 근거 ID가 이 채팅에서 저장된 자료로 만든 근거 표에 있는지 다시 확인한다 | 채택 | 2026-11-04 |
