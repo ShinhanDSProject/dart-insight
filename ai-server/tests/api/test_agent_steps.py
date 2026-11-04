@@ -4,6 +4,7 @@ import json
 from fastapi.testclient import TestClient
 
 from app.agent import fake
+from app.agent.prompt import PROMPT_VERSION
 from app.core.config import LlmSettings
 from app.llm import FakeProvider, LlmClient, ProviderError
 from app.main import create_app
@@ -61,7 +62,7 @@ def test_first_step_returns_tool_calls() -> None:
     assert data["type"] == "TOOL_CALLS"
     assert data["toolCalls"] == [{"callId": "c1", "name": "get_summary", "arguments": {}}]
     assert data["final"] is None
-    assert data["promptVersion"] == "agent-1"
+    assert data["promptVersion"] == PROMPT_VERSION
     assert data["expressionRulesVersion"] == "expr-1"
     (call,) = data["calls"]
     assert (call["task"], call["traceId"]) == ("agent_plan", "agent-1")
