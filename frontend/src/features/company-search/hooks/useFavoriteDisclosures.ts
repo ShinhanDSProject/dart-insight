@@ -11,6 +11,7 @@ import {
   isFeedSeen,
   kstDate,
   loadFeedSeenAt,
+  nextFeedSeen,
   saveFeedSeenAt,
   type FeedCompany,
   type FeedView,
@@ -33,7 +34,7 @@ export interface FavoriteDisclosuresResult {
  * 관심 기업들의 최근 30일 공시를 모아 '관심 기업 새 공시' 피드로 만든다(FS-52, #364).
  * 앞의 10곳까지만, 한 번에 3곳씩 부른다. 기업마다 성공·실패를 따로 두어 한 곳이 실패해도 나머지는 보인다.
  * 목록이 바뀌거나 언마운트하면 진행 중인 요청을 취소한다(ST-5).
- * '새 공시'는 처음 그릴 때 읽은 '마지막으로 본 날'로 정하고, 피드를 다 받은 뒤 오늘(한국 시간)로 바꾼다.
+ * '새 공시'는 처음 그릴 때 읽은 '마지막으로 본 기록'으로 정하고, 피드를 다 받은 뒤 오늘(한국 시간)과 오늘 본 접수번호로 바꾼다.
  */
 export function useFavoriteDisclosures(companies: readonly FeedCompany[]): FavoriteDisclosuresResult {
   const targets = companies.slice(0, FEED_COMPANY_LIMIT)
@@ -71,10 +72,10 @@ export function useFavoriteDisclosures(companies: readonly FeedCompany[]): Favor
   const seen = isFeedSeen(view)
 
   useEffect(() => {
-    if (!seen || saved.current) return
+    if (!seen || saved.current || view.status !== 'success') return
     saved.current = true
-    saveFeedSeenAt(browserStorage(), kstDate(new Date()))
-  }, [seen])
+    saveFeedSeenAt(browserStorage(), nextFeedSeen(kstDate(new Date()), view.items, lastSeen))
+  }, [seen, view, lastSeen])
 
   const retryFailed = useCallback(() => {
     const failed = Object.keys(results).filter((code) => results[code].status === 'error')

@@ -1,6 +1,7 @@
 /**
  * '관심 기업 새 공시'(FS-52, #364). 관심 기업마다 받은 최근 공시를 날짜순으로 합치고,
- * 이 브라우저에서 피드를 마지막으로 본 날 이후 접수된 공시에 '새 공시'를 붙인다.
+ * 이 브라우저에서 피드를 마지막으로 본 뒤 접수된 공시에 '새 공시'를 붙인다. 공시는 날짜까지만 오므로, 본 날에 접수된 공시는
+ * 그때 본 접수번호를 함께 남겨 같은 날 나중에 나온 공시도 새 공시로 본다.
  */
 import { match } from 'ts-pattern'
 import type { DisclosureItem } from '@/shared/api/disclosures'
@@ -18,6 +19,14 @@ export const FEED_INITIAL_COUNT = 5
 
 export const FEED_SEEN_AT_KEY = 'dart-insight:favorite-feed-seen-at'
 
+/** 피드를 마지막으로 본 기록 */
+export interface FeedSeen {
+  /** 본 날(한국 시간 YYYY-MM-DD) */
+  date: string
+  /** 그날 접수돼 이미 본 공시의 접수번호. null이면 그날 공시를 모두 본 것으로 친다(날짜만 남기던 예전 기록) */
+  rceptNos: readonly string[] | null
+}
+
 export interface FeedCompany {
   corpCode: string
   corpName: string
@@ -26,7 +35,7 @@ export interface FeedCompany {
 export interface FeedEntry extends DisclosureItem {
   corpCode: string
   corpName: string
-  /** 마지막으로 본 날 이후 접수됐는지 */
+  /** 마지막으로 본 뒤 접수됐는지 */
   isNew: boolean
 }
 
@@ -68,7 +77,7 @@ export type FeedView =
   | { status: 'error'; failed: FeedCompany[] }
   | { status: 'success'; items: FeedEntry[]; failed: FeedCompany[]; pending: number }
 
-export function feedView(companies: readonly FeedCompany[], results: FeedResults, lastSeen: string | null): FeedView {
+export function feedView(companies: readonly FeedCompany[], results: FeedResults, lastSeen: FeedSeen | null): FeedView {
   if (companies.length === 0) return { status: 'idle' }
   const loaded: { company: FeedCompany; items: DisclosureItem[] }[] = []
   const failed: FeedCompany[] = []
@@ -95,7 +104,7 @@ export function isFeedSeen(view: FeedView): boolean {
  */
 export function mergeFeed(
   loaded: readonly { company: FeedCompany; items: readonly DisclosureItem[] }[],
-  lastSeen: string | null,
+  lastSeen: FeedSeen | null,
   limit: number = FEED_ITEM_LIMIT,
 ): FeedEntry[] {
   const seen = new Set<string>()
@@ -108,7 +117,7 @@ export function mergeFeed(
         ...item,
         corpCode: company.corpCode,
         corpName: company.corpName,
-        isNew: isNewDisclosure(item.receivedDate, lastSeen),
+        isNew: isNewDisclosure(item, lastSeen),
       })
     }
   }
@@ -121,9 +130,19 @@ function compareDesc(a: string, b: string): number {
   return a < b ? 1 : -1
 }
 
-/** 마지막으로 본 날(YYYY-MM-DD)보다 뒤에 접수됐으면 새 공시. 본 적이 없으면 표시하지 않는다 */
-export function isNewDisclosure(receivedDate: string, lastSeen: string | null): boolean {
-  return lastSeen !== null && receivedDate > lastSeen
+/** 본 날보다 뒤에 접수됐거나, 본 날 접수됐지만 그때 보지 못한 공시면 새 공시. 본 적이 없으면 표시하지 않는다 */
+export function isNewDisclosure(item: Pick<DisclosureItem, 'receivedDate' | 'rceptNo'>, lastSeen: FeedSeen | null): boolean {
+  if (lastSeen === null) return false
+  if (item.receivedDate !== lastSeen.date) return item.receivedDate > lastSeen.date
+  return lastSeen.rceptNos !== null && !lastSeen.rceptNos.includes(item.rceptNo)
+}
+
+/** 오늘 피드를 다 본 뒤 남길 기록. 오늘 접수된 공시 가운데 보인 것과, 오늘 앞서 본 것을 함께 남긴다 */
+export function nextFeedSeen(today: string, items: readonly FeedEntry[], lastSeen: FeedSeen | null): FeedSeen {
+  const earlier = lastSeen?.date === today ? lastSeen.rceptNos : []
+  if (earlier === null) return { date: today, rceptNos: null }
+  const shown = items.filter((item) => item.receivedDate === today).map((item) => item.rceptNo)
+  return { date: today, rceptNos: [...new Set([...earlier, ...shown])] }
 }
 
 const KST_OFFSET = 9 * 60 * 60 * 1000
@@ -138,22 +157,29 @@ export type FeedStorage = Pick<Storage, 'getItem' | 'setItem'>
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/
 
-/** 마지막으로 본 날. 없거나 깨졌거나 저장소를 쓸 수 없으면 null */
-export function loadFeedSeenAt(storage: FeedStorage | null): string | null {
+/** 마지막으로 본 기록. 없거나 깨졌거나 저장소를 쓸 수 없으면 null. 날짜만 남긴 예전 기록은 그날을 모두 본 것으로 읽는다 */
+export function loadFeedSeenAt(storage: FeedStorage | null): FeedSeen | null {
   if (storage === null) return null
   try {
     const raw = storage.getItem(FEED_SEEN_AT_KEY)
-    return raw !== null && DATE.test(raw) ? raw : null
+    if (raw === null) return null
+    if (DATE.test(raw)) return { date: raw, rceptNos: null }
+    const parsed: unknown = JSON.parse(raw)
+    if (typeof parsed !== 'object' || parsed === null) return null
+    const { date, rceptNos } = parsed as { date?: unknown; rceptNos?: unknown }
+    if (typeof date !== 'string' || !DATE.test(date)) return null
+    if (!Array.isArray(rceptNos) || !rceptNos.every((no) => typeof no === 'string')) return null
+    return { date, rceptNos }
   } catch {
     return null
   }
 }
 
-/** 본 날을 남긴다. 저장하지 못하면(용량·권한) 그냥 넘어간다 */
-export function saveFeedSeenAt(storage: FeedStorage | null, date: string): void {
+/** 본 기록을 남긴다. 저장하지 못하면(용량·권한) 그냥 넘어간다 */
+export function saveFeedSeenAt(storage: FeedStorage | null, seen: FeedSeen): void {
   if (storage === null) return
   try {
-    storage.setItem(FEED_SEEN_AT_KEY, date)
+    storage.setItem(FEED_SEEN_AT_KEY, JSON.stringify(seen))
   } catch {
     // 저장을 쓸 수 없으면 '새 공시' 표시만 빠지고 피드는 그대로 보인다
   }

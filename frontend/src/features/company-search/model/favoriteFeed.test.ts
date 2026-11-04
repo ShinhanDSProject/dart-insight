@@ -9,6 +9,7 @@ import {
   kstDate,
   loadFeedSeenAt,
   mergeFeed,
+  nextFeedSeen,
   saveFeedSeenAt,
   type FeedStorage,
 } from './favoriteFeed'
@@ -60,7 +61,7 @@ describe('mergeFeed', () => {
   it('마지막으로 본 날보다 뒤에 접수된 공시만 새 공시다', () => {
     const merged = mergeFeed(
       [{ company: samsung, items: [item('20261021000001', '2026-10-21'), item('20261020000001', '2026-10-20')] }],
-      '2026-10-20',
+      { date: '2026-10-20', rceptNos: null },
     )
     expect(merged.map((e) => e.isNew)).toEqual([true, false])
   })
@@ -68,12 +69,40 @@ describe('mergeFeed', () => {
 
 describe('isNewDisclosure', () => {
   it('본 적이 없으면 새 공시로 표시하지 않는다', () => {
-    expect(isNewDisclosure('2026-10-21', null)).toBe(false)
+    expect(isNewDisclosure(item('20261021000001', '2026-10-21'), null)).toBe(false)
   })
 
-  it('본 날과 같은 날 접수된 공시는 새 공시가 아니다', () => {
-    expect(isNewDisclosure('2026-10-20', '2026-10-20')).toBe(false)
-    expect(isNewDisclosure('2026-10-21', '2026-10-20')).toBe(true)
+  it('본 날 뒤에 접수됐으면 새 공시, 앞이면 아니다', () => {
+    const seen = { date: '2026-10-20', rceptNos: [] }
+    expect(isNewDisclosure(item('20261021000001', '2026-10-21'), seen)).toBe(true)
+    expect(isNewDisclosure(item('20261019000001', '2026-10-19'), seen)).toBe(false)
+  })
+
+  it('본 날 접수된 공시는 그때 본 것이 아니면 새 공시다(오전에 보고 오후에 나온 공시)', () => {
+    const seen = { date: '2026-10-20', rceptNos: ['20261020000001'] }
+    expect(isNewDisclosure(item('20261020000001', '2026-10-20'), seen)).toBe(false)
+    expect(isNewDisclosure(item('20261020000777', '2026-10-20'), seen)).toBe(true)
+  })
+
+  it('날짜만 남긴 예전 기록이면 그날 공시는 모두 본 것으로 친다', () => {
+    expect(isNewDisclosure(item('20261020000777', '2026-10-20'), { date: '2026-10-20', rceptNos: null })).toBe(false)
+  })
+})
+
+describe('nextFeedSeen', () => {
+  const shown = mergeFeed([{ company: samsung, items: [item('20261020000002', '2026-10-20'), item('20261019000001', '2026-10-19')] }], null)
+
+  it('오늘 접수돼 보인 공시만 남기고, 오늘 앞서 본 것도 이어 남긴다', () => {
+    expect(nextFeedSeen('2026-10-20', shown, null)).toEqual({ date: '2026-10-20', rceptNos: ['20261020000002'] })
+    expect(nextFeedSeen('2026-10-20', shown, { date: '2026-10-20', rceptNos: ['20261020000001'] })).toEqual({
+      date: '2026-10-20',
+      rceptNos: ['20261020000001', '20261020000002'],
+    })
+  })
+
+  it('다른 날 기록은 잇지 않고, 오늘 남긴 예전 기록(날짜만)은 그대로 둔다', () => {
+    expect(nextFeedSeen('2026-10-20', shown, { date: '2026-10-19', rceptNos: ['x'] }).rceptNos).toEqual(['20261020000002'])
+    expect(nextFeedSeen('2026-10-20', shown, { date: '2026-10-20', rceptNos: null })).toEqual({ date: '2026-10-20', rceptNos: null })
   })
 })
 
@@ -104,23 +133,25 @@ describe('본 날 저장', () => {
     },
   }
 
-  it('저장한 날을 읽는다', () => {
+  it('저장한 기록을 읽고, 날짜만 남긴 예전 기록은 그날 모두 본 것으로 읽는다', () => {
     const storage = memory()
-    saveFeedSeenAt(storage, '2026-10-26')
-    expect(storage.data[FEED_SEEN_AT_KEY]).toBe('2026-10-26')
-    expect(loadFeedSeenAt(storage)).toBe('2026-10-26')
+    saveFeedSeenAt(storage, { date: '2026-10-26', rceptNos: ['20261026000001'] })
+    expect(loadFeedSeenAt(storage)).toEqual({ date: '2026-10-26', rceptNos: ['20261026000001'] })
+    expect(loadFeedSeenAt(memory({ [FEED_SEEN_AT_KEY]: '2026-10-26' }))).toEqual({ date: '2026-10-26', rceptNos: null })
   })
 
-  it('없거나 날짜 모양이 아니면 null이다', () => {
+  it('없거나 모양이 맞지 않으면 null이다', () => {
     expect(loadFeedSeenAt(memory())).toBeNull()
     expect(loadFeedSeenAt(memory({ [FEED_SEEN_AT_KEY]: 'yesterday' }))).toBeNull()
+    expect(loadFeedSeenAt(memory({ [FEED_SEEN_AT_KEY]: '{"date":"x","rceptNos":[]}' }))).toBeNull()
+    expect(loadFeedSeenAt(memory({ [FEED_SEEN_AT_KEY]: '{"date":"2026-10-26","rceptNos":[1]}' }))).toBeNull()
     expect(loadFeedSeenAt(null)).toBeNull()
   })
 
   it('저장소가 예외를 던져도 읽기는 null, 쓰기는 조용히 넘어간다', () => {
     expect(loadFeedSeenAt(broken)).toBeNull()
-    expect(() => saveFeedSeenAt(broken, '2026-10-26')).not.toThrow()
-    expect(() => saveFeedSeenAt(null, '2026-10-26')).not.toThrow()
+    expect(() => saveFeedSeenAt(broken, { date: '2026-10-26', rceptNos: [] })).not.toThrow()
+    expect(() => saveFeedSeenAt(null, { date: '2026-10-26', rceptNos: [] })).not.toThrow()
   })
 })
 
