@@ -30,6 +30,15 @@ public record UserQuery(String text, UserRole role, PageParams page) {
         return text == null ? null : text.toLowerCase(Locale.ROOT);
     }
 
+    /**
+     * 일반 가입 이메일과 비교할 소문자 검색어. local_credential.email은 ASCII(ascii_bin)로 정규화해 저장하므로
+     * ASCII가 아닌 검색어는 맞을 수 없고, MariaDB에서 문자셋이 섞인 비교(Illegal mix of collations)가 되므로 null로 둔다.
+     */
+    public String localEmail() {
+        String email = email();
+        return email != null && email.chars().allMatch(c -> c < 128) ? email : null;
+    }
+
     private static String text(String raw) {
         if (raw == null || raw.isBlank()) return null;
         String stripped = raw.strip();

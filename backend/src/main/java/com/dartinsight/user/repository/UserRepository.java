@@ -32,13 +32,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * 관리자 회원 목록(GET /api/admin/users). 조건이 null이면 그 조건으로 거르지 않는다. 가입 최근 순(같으면 ID 큰 순).
      *
      * @param nicknamePattern 소문자 닉네임 LIKE 패턴('!' 이스케이프)
-     * @param email 소문자 이메일. 일반 가입·소셜 계정 이메일과 대소문자 없이 전체 일치
+     * @param email 소문자 이메일. 소셜 계정 이메일과 대소문자 없이 전체 일치. null이면 검색어 조건이 없다
+     * @param localEmail email이 ASCII일 때만 같은 값. 일반 가입 이메일(소문자로 정규화한 ascii_bin)과 전체 일치
      */
     @Query("select u from User u where (:role is null or u.role = :role)"
             + " and (:email is null or lower(u.nickname) like :nicknamePattern escape '!'"
-            + " or exists (select c.id from LocalCredential c where c.user = u and lower(c.email) = :email)"
+            + " or exists (select c.id from LocalCredential c where c.user = u and c.email = :localEmail)"
             + " or exists (select a.id from SocialAccount a where a.userId = u.id and lower(a.email) = :email))"
             + " order by u.createdAt desc, u.id desc")
     Page<User> search(@Param("role") UserRole role, @Param("nicknamePattern") String nicknamePattern,
-            @Param("email") String email, Pageable pageable);
+            @Param("email") String email, @Param("localEmail") String localEmail, Pageable pageable);
 }
