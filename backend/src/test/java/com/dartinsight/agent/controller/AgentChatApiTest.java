@@ -304,10 +304,11 @@ class AgentChatApiTest {
                 "answer_with_evidence", "get_summary", "explain_text_change", "find_related_disclosures",
                 "search_companies", "get_company_overview", "get_financial_trends", "get_key_facts", "get_checkpoints",
                 "get_disclosures", "get_disclosure_signals", "get_disclosure_key_items", "get_company_briefing",
-                "get_outlook", "get_plan_followups");
+                "get_outlook", "get_plan_followups", "find_analyses", "get_report_pairs", "check_comparability");
         assertThat(JsonPath.<List<String>>read(first, "$.actions[*].type")).containsExactly("OPEN_TAB",
                 "OPEN_TEXT_CHANGE", "OPEN_FINANCIAL_CHANGE", "OPEN_DOCUMENT", "OPEN_GLOSSARY", "DOWNLOAD_BRIEF",
-                "CONFIRM_SAVE_NOTE", "CONFIRM_FAVORITE");
+                "CONFIRM_SAVE_NOTE", "CONFIRM_FAVORITE", "PIN_CHANGE", "OPEN_POST_DRAFT", "OPEN_ANALYSIS",
+                "OPEN_COMPANY_COMPARE", "CONFIRM_REQUEST_ANALYSIS");
         assertThat(JsonPath.<Integer>read(first, "$.remainingSteps")).isEqualTo(4);
         String second = requests.get(1).bodyText();
         assertThat(JsonPath.<Integer>read(second, "$.remainingSteps")).isEqualTo(3);
@@ -392,6 +393,45 @@ class AgentChatApiTest {
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.aiGenerated").value(false));
         assertThat(llmCalls()).isZero();
+    }
+
+    @Test
+    @DisplayName("게시판 글 초안은 backend가 기업·인용 분석과 본문(검토를 통과한 답에서 근거 표시를 뺀 글)을 채우고, 이 분석에 없는 변경이면 인용만 뺀다(AC26)")
+    void postDraftIsFilledByBackend() throws Exception {
+        AI.on(STEPS, twoSteps("{\"callId\":\"c1\",\"name\":\"search_text_changes\",\"arguments\":{\"q\":\"소송\"}}",
+                request -> finalAnswer("ANSWERED", "특허 침해 소송 문장이 새로 들어갔어요[T" + lawsuitChangeId + "].",
+                        "\"T" + lawsuitChangeId + "\"",
+                        "{\"type\":\"OPEN_POST_DRAFT\",\"quote\":{\"kind\":\"TEXT_CHANGE\",\"changeId\":"
+                                + lawsuitChangeId + "}},"
+                                + "{\"type\":\"OPEN_POST_DRAFT\",\"quote\":{\"kind\":\"TEXT_CHANGE\",\"changeId\":999999}},"
+                                + "{\"type\":\"PIN_CHANGE\",\"changeId\":" + lawsuitChangeId + "},"
+                                + "{\"type\":\"PIN_CHANGE\",\"changeId\":999999}")));
+
+        chat("이 소송 변경으로 게시판 글 써줘")
+                .andExpect(jsonPath("$.status").value("ANSWERED"))
+                .andExpect(jsonPath("$.actions", hasSize(3)))
+                .andExpect(jsonPath("$.actions[0].type").value("OPEN_POST_DRAFT"))
+                .andExpect(jsonPath("$.actions[0].corpCode").value("00000001"))
+                .andExpect(jsonPath("$.actions[0].quote.kind").value("TEXT_CHANGE"))
+                .andExpect(jsonPath("$.actions[0].quote.analysisId").value(analysisId))
+                .andExpect(jsonPath("$.actions[0].quote.changeId").value(lawsuitChangeId))
+                .andExpect(jsonPath("$.actions[0].body").value("특허 침해 소송 문장이 새로 들어갔어요."))
+                .andExpect(jsonPath("$.actions[1].type").value("OPEN_POST_DRAFT"))
+                .andExpect(jsonPath("$.actions[1].quote").doesNotExist())
+                .andExpect(jsonPath("$.actions[1].body").value("특허 침해 소송 문장이 새로 들어갔어요."))
+                .andExpect(jsonPath("$.actions[2].type").value("PIN_CHANGE"))
+                .andExpect(jsonPath("$.actions[2].changeId").value(lawsuitChangeId));
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM community_post", Integer.class)).isZero();
+    }
+
+    @Test
+    @DisplayName("답하지 못한(NOT_FOUND) 채팅에는 본문을 채울 답이 없어 게시판 글 초안 액션을 내보내지 않는다")
+    void postDraftIsDroppedWithoutAnswer() throws Exception {
+        AI.on(STEPS, Reply.ok(finalAnswer("NOT_FOUND", null, "", "{\"type\":\"OPEN_POST_DRAFT\"}")));
+
+        chat("게시판 글 써줘")
+                .andExpect(jsonPath("$.status").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.actions", hasSize(0)));
     }
 
     @Test

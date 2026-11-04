@@ -4,6 +4,7 @@ import com.dartinsight.agent.config.AgentProperties;
 import com.dartinsight.agent.domain.AgentActions;
 import com.dartinsight.agent.domain.AgentStep;
 import com.dartinsight.agent.domain.AskedQuestion;
+import com.dartinsight.agent.domain.ComparabilityCheck;
 import com.dartinsight.agent.domain.ChatStatus;
 import com.dartinsight.agent.domain.Evidence;
 import com.dartinsight.agent.domain.ToolLine;
@@ -99,6 +100,8 @@ public class AgentChatService {
         private final Map<Long, AskedQuestion> questions = new LinkedHashMap<>();
         /** 보고서 값 근거의 채팅 안 번호(같은 값 → 같은 번호). {접수번호}#V{n}의 n */
         private final Map<String, Integer> valueNumbers = new LinkedHashMap<>();
+        /** 이 채팅에서 실행한 비교 가능성 검증(분석 요청 확인 액션은 이 결과로만) */
+        private final List<ComparabilityCheck> comparabilityChecks = new ArrayList<>();
         /** LLM이 고른 Tool을 하나라도 실행했는지(화면 맥락으로 먼저 넣은 결과는 빼고). 조회 요청이었는지 가린다 */
         private boolean lookedUp;
         private final String traceId = TraceContext.currentTraceId();
@@ -126,7 +129,7 @@ public class AgentChatService {
                 }
                 if (AgentStep.FINAL.equals(type) && response.finalAnswer() != null) {
                     return ChatResults.finalAnswer(response, evidence, reportNames(),
-                            actionCheck.valid(analysisId, current.company().getCorpCode(), questions,
+                            actionCheck.valid(analysisId, current.company().getCorpCode(), questions, comparabilityChecks,
                                     response.finalAnswer().actions()), List.copyOf(questions.values()), lookedUp);
                 }
                 if (!AgentStep.TOOL_CALLS.equals(type) || response.toolCalls() == null
@@ -159,7 +162,7 @@ public class AgentChatService {
                 agentTools.selectedFinancialChange(analysisId, context.financialChangeId()).ifPresent(line -> add(
                         CONTEXT_CALL + "-financial", AgentTools.GET_FINANCIAL_CHANGES,
                         Map.of("changeId", context.financialChangeId()),
-                        new AgentTools.Run(true, null, new ToolLines.Limited(List.of(line), false), null)));
+                        new AgentTools.Run(true, null, new ToolLines.Limited(List.of(line), false), null, null)));
             }
         }
 
@@ -172,6 +175,9 @@ public class AgentChatService {
         private void add(String callId, String name, Map<String, Object> arguments, AgentTools.Run run) {
             if (run.question() != null) {
                 questions.put(run.question().id(), run.question());
+            }
+            if (run.comparability() != null) {
+                comparabilityChecks.add(run.comparability());
             }
             List<AgentStepAiRequest.Item> items = new ArrayList<>();
             for (ToolLine raw : run.lines().lines()) {

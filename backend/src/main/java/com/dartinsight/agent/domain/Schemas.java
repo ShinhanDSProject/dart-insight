@@ -46,6 +46,10 @@ public final class Schemas {
         return Map.of("type", "string", "description", description, "enum", values);
     }
 
+    public static Map<String, Object> array(String description, Map<String, Object> items) {
+        return Map.of("type", "array", "description", description, "items", items);
+    }
+
     /** 넣은 순서를 지키는 properties */
     public static Map<String, Object> properties(Object... nameAndSchema) {
         Map<String, Object> properties = new LinkedHashMap<>();

@@ -2,6 +2,9 @@ package com.dartinsight.agent.service;
 
 import com.dartinsight.agent.domain.AgentActions;
 import com.dartinsight.agent.domain.AskedQuestion;
+import com.dartinsight.agent.domain.ComparabilityCheck;
+import com.dartinsight.analysis.service.AnalysisResultService;
+import com.dartinsight.company.service.CompanyService;
 import com.dartinsight.analysis.service.FinancialChangeQueryService;
 import com.dartinsight.analysis.service.SourceDocumentService;
 import com.dartinsight.analysis.service.SourceDocumentService.SourceSection;
@@ -29,18 +32,22 @@ class AgentActionCheck {
     private final TextChangeQueryService textChangeQueryService;
     private final FinancialChangeQueryService financialChangeQueryService;
     private final SourceDocumentService sourceDocumentService;
+    private final AnalysisResultService analysisResultService;
+    private final CompanyService companyService;
 
     /**
      * 확인을 통과한 액션(받은 순서), 버튼 문구를 붙임.
      *
      * @param corpCode  이 분석의 기업(관심 기업 확인은 이 기업만)
      * @param questions 이 채팅에서 근거 질문 Tool이 저장한 질문(답 인용 노트는 이 질문·인용만)
+     * @param checks    이 채팅에서 실행한 비교 가능성 검증(분석 요청 확인은 같은 값으로 비교할 수 있었을 때만)
      */
     List<Map<String, Object>> valid(Long analysisId, String corpCode, Map<Long, AskedQuestion> questions,
-            List<Map<String, Object>> actions) {
+            List<ComparabilityCheck> checks, List<Map<String, Object>> actions) {
         List<Map<String, Object>> kept = new ArrayList<>();
         for (Map<String, Object> action : actions == null ? List.<Map<String, Object>>of() : actions) {
-            Map<String, Object> checked = action == null ? null : checked(analysisId, corpCode, questions, action);
+            Map<String, Object> checked = action == null ? null
+                    : checked(analysisId, corpCode, questions, checks, action);
             if (checked != null) {
                 kept.add(AgentActions.withLabel(checked));
             } else {
@@ -52,8 +59,17 @@ class AgentActionCheck {
 
     /** 확인을 통과하면 화면에 보낼 액션(노트는 분석 ID를 채움), 아니면 null */
     private Map<String, Object> checked(Long analysisId, String corpCode, Map<Long, AskedQuestion> questions,
-            Map<String, Object> action) {
+            List<ComparabilityCheck> checks, Map<String, Object> action) {
         Object type = action.get("type");
+        if (AgentActions.CONFIRM_REQUEST_ANALYSIS.equals(type)) {
+            return checks.stream().anyMatch(c -> c.allows(action)) ? action : null;
+        }
+        if (AgentActions.OPEN_POST_DRAFT.equals(type)) {
+            return postDraft(analysisId, corpCode, action);
+        }
+        if (AgentActions.OPEN_COMPANY_COMPARE.equals(type)) {
+            return companyCompare(action);
+        }
         if (AgentActions.CONFIRM_SAVE_NOTE.equals(type)) {
             try {
                 return note(analysisId, questions, action);
@@ -152,11 +168,60 @@ class AgentActionCheck {
                         .anyMatch(c -> c.getId().equals(id(action.get("changeId"))));
                 case AgentActions.OPEN_DOCUMENT -> documentExists(analysisId, action);
                 case AgentActions.OPEN_GLOSSARY -> action.get("term") instanceof String term && !term.isBlank();
+                case AgentActions.PIN_CHANGE -> textExists(analysisId, id(action.get("changeId")));
+                case AgentActions.OPEN_ANALYSIS -> id(action.get("analysisId")) != null
+                        && analysisResultService.completed(id(action.get("analysisId"))) != null;
                 default -> true;
             };
         } catch (ApiException e) {
             return false;
         }
+    }
+
+    /**
+     * 게시판 글 초안: 기업은 이 분석의 기업, 인용의 분석은 이 분석으로 채운다. 인용 변경이 이 분석에 없으면 인용만 뺀다.
+     * 본문은 검토를 통과한 최종 답으로 ChatResults가 채운다(LLM이 준 본문은 쓰지 않음).
+     */
+    private Map<String, Object> postDraft(Long analysisId, String corpCode, Map<String, Object> action) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("type", AgentActions.OPEN_POST_DRAFT);
+        out.put("corpCode", corpCode);
+        if (action.get("quote") instanceof Map<?, ?> quote && quote.get("kind") instanceof String kind
+                && AgentActions.QUOTE_KINDS.contains(kind)) {
+            Long changeId = id(quote.get("changeId"));
+            boolean found;
+            try {
+                found = "TEXT_CHANGE".equals(kind) ? textExists(analysisId, changeId)
+                        : financialExists(analysisId, changeId);
+            } catch (ApiException e) {
+                found = false;
+            }
+            if (found) {
+                Map<String, Object> kept = new LinkedHashMap<>();
+                kept.put("kind", kind);
+                kept.put("analysisId", analysisId);
+                kept.put("changeId", changeId);
+                out.put("quote", kept);
+            }
+        }
+        out.put("body", null);
+        return out;
+    }
+
+    /** 기업 나란히 보기: 기업 목록에 있는 고유번호만 겹치지 않게 남기고, 2곳 미만이면 뺀다 */
+    private Map<String, Object> companyCompare(Map<String, Object> action) {
+        if (!(action.get("corpCodes") instanceof List<?> codes)) {
+            return null;
+        }
+        List<String> kept = codes.stream().filter(String.class::isInstance).map(String.class::cast).distinct()
+                .filter(code -> companyService.find(code).isPresent()).toList();
+        if (kept.size() < 2) {
+            return null;
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("type", AgentActions.OPEN_COMPANY_COMPARE);
+        out.put("corpCodes", kept);
+        return out;
     }
 
     /** 원문 항목이 있고, 문단 번호가 있으면 그 항목 안의 문단인지 */

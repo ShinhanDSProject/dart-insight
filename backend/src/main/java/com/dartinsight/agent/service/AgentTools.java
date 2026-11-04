@@ -9,6 +9,7 @@ import static com.dartinsight.agent.domain.Schemas.string;
 
 import com.dartinsight.agent.domain.AgentActions;
 import com.dartinsight.agent.domain.AskedQuestion;
+import com.dartinsight.agent.domain.ComparabilityCheck;
 import com.dartinsight.agent.domain.Evidence;
 import com.dartinsight.agent.domain.ToolArgs;
 import com.dartinsight.agent.domain.ToolLine;
@@ -106,14 +107,15 @@ public class AgentTools {
     }
 
     /**
-     * Tool 하나가 만든 줄과, 근거 질문 Tool이면 그때 저장한 질문.
+     * Tool 하나가 만든 줄과, 근거 질문 Tool이면 그때 저장한 질문, 비교 가능성 Tool이면 그 결과.
      *
-     * @param question 근거 질문 Tool이 저장한 질문. 그 밖의 Tool은 null
+     * @param question      근거 질문 Tool이 저장한 질문. 그 밖의 Tool은 null
+     * @param comparability 비교 가능성 Tool의 결과(분석 요청 확인 액션에 씀). 그 밖의 Tool은 null
      */
-    record Output(List<ToolLine> lines, AskedQuestion question) {
+    record Output(List<ToolLine> lines, AskedQuestion question, ComparabilityCheck comparability) {
 
         static Output of(List<ToolLine> lines) {
-            return new Output(lines, null);
+            return new Output(lines, null, null);
         }
     }
 
@@ -173,10 +175,11 @@ public class AgentTools {
      *
      * @param lines 정해진 크기로 줄인 결과
      */
-    record Run(boolean ok, String error, ToolLines.Limited lines, AskedQuestion question) {
+    record Run(boolean ok, String error, ToolLines.Limited lines, AskedQuestion question,
+            ComparabilityCheck comparability) {
 
         static Run failed(String error) {
-            return new Run(false, error, new ToolLines.Limited(List.of(), false), null);
+            return new Run(false, error, new ToolLines.Limited(List.of(), false), null, null);
         }
     }
 
@@ -193,7 +196,8 @@ public class AgentTools {
             ToolArgs args = ToolArgs.of(arguments, tool.get().argumentNames());
             Output output = tool.get().executor().run(analysisId, args);
             int items = tool.get().maxItems() > 0 ? tool.get().maxItems() : maxItems;
-            return new Run(true, null, ToolLines.limit(output.lines(), items, maxChars), output.question());
+            return new Run(true, null, ToolLines.limit(output.lines(), items, maxChars), output.question(),
+                    output.comparability());
         } catch (IllegalArgumentException e) {
             return Run.failed(e.getMessage());
         } catch (ApiException e) {
@@ -286,7 +290,7 @@ public class AgentTools {
         Set<String> evidenceIds = lines.stream().map(ToolLine::evidenceId).filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         return new Output(lines, new AskedQuestion(response.questionId(), response.citations().size(),
-                response.status() == QuestionStatus.ANSWERED, evidenceIds));
+                response.status() == QuestionStatus.ANSWERED, evidenceIds), null);
     }
 
     /** 저장된 요약만(새로 만들지 않음). 재무 설명 등급과 인용을 그대로 넘긴다(ADR-0015) */

@@ -39,6 +39,8 @@ final class ChatResults {
     /** 근거 ID 모양으로 시작하는 근거 표시(ADR-0048): [T1]·[F1]·[D{접수번호}]·[C{고유번호}]·[{접수번호}#B·S·V{번호}] */
     private static final Pattern EVIDENCE_MARKER = Pattern.compile(
             "\\[\\s*(?:[TF]\\d+|D\\d{14}|C\\d{8}|\\d{14}#[BSV]\\d+)");
+    /** 바꾼 답의 근거 번호 표시([1]·[2]). 게시판 글 초안 본문에서 뺀다 */
+    private static final Pattern MARKER_NUMBER = Pattern.compile("\\s*\\[\\d+\\]");
 
     private ChatResults() {
     }
@@ -55,8 +57,12 @@ final class ChatResults {
      * @param lookedUp LLM이 고른 Tool을 실행했는지. 조회했는데 못 찾았으면 확인 버튼이 있어도 NOT_FOUND로 둔다
      */
     static ChatMessageResponse finalAnswer(AgentStepAiResponse response, Map<String, Evidence> evidence,
-            Map<String, String> reportNames, List<Map<String, Object>> actions, List<AskedQuestion> asked, boolean lookedUp) {
+            Map<String, String> reportNames, List<Map<String, Object>> checked, List<AskedQuestion> asked,
+            boolean lookedUp) {
         AgentStepAiResponse.Final result = response.finalAnswer();
+        // 게시판 글 초안은 검토를 통과한 LLM 답으로 본문을 채우므로, 그런 답이 아니면 뺀다
+        List<Map<String, Object>> actions = checked.stream()
+                .filter(a -> !AgentActions.OPEN_POST_DRAFT.equals(a.get("type"))).toList();
         String format = result.format() == null ? AgentStep.FORMAT_CHAT : result.format();
         if (ChatStatus.NOT_FOUND.name().equals(result.status()) && !lookedUp && AgentActions.hasConfirm(actions)) {
             // 저장 확인만 하는 요청(조회 Tool을 부르지 않음): 버튼을 누르면 되므로 '찾지 못함'으로 보이지 않게 한다.
@@ -94,8 +100,15 @@ final class ChatResults {
         }
         ChatMessageResponse.Ai ai = new ChatMessageResponse.Ai(response.model(), response.promptVersion(),
                 time(response.generatedAt()));
-        return new ChatMessageResponse(ChatStatus.ANSWERED.name(), converted.answer(), null, citations, actions,
-                format, result.crossCheck(), AskedQuestion.ratedBy(asked, converted.evidenceIds()), true, ai);
+        return new ChatMessageResponse(ChatStatus.ANSWERED.name(), converted.answer(), null, citations,
+                AgentActions.withPostBody(checked, postBody(converted.answer())), format, result.crossCheck(),
+                AskedQuestion.ratedBy(asked, converted.evidenceIds()), true, ai);
+    }
+
+    /** 게시판 글 초안 본문: 검토를 통과한 답에서 근거 표시([1])를 빼고 글 본문 길이까지 */
+    static String postBody(String answer) {
+        String body = MARKER_NUMBER.matcher(answer).replaceAll("").replaceAll("\\s{2,}", " ").strip();
+        return body.length() <= AgentActions.MAX_POST_BODY ? body : body.substring(0, AgentActions.MAX_POST_BODY);
     }
 
     /**
