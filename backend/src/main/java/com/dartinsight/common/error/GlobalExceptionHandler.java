@@ -15,6 +15,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
@@ -114,9 +115,23 @@ public class GlobalExceptionHandler {
                             ErrorCode.COMMON_INVALID_INPUT.defaultMessage(), TraceContext.currentTraceId(),
                             List.of()));
         }
+        // 브라우저가 먼저 연결을 끊었으면(페이지 이동, 요청 취소) 서버 오류가 아니고 응답을 쓸 곳도 없다
+        if (clientGone(e)) {
+            log.debug("클라이언트가 연결을 끊음: {}", e.getMessage());
+            return null;
+        }
         log.error("처리하지 못한 오류", e);
         return respond(ErrorCode.COMMON_INTERNAL_ERROR, ErrorCode.COMMON_INTERNAL_ERROR.defaultMessage(),
                 List.of());
+    }
+
+    private static boolean clientGone(Throwable e) {
+        for (Throwable cause = e; cause != null; cause = cause.getCause()) {
+            if (cause instanceof AsyncRequestNotUsableException) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static Optional<ErrorResponse.FieldError> fieldError(HttpMessageNotReadableException e) {

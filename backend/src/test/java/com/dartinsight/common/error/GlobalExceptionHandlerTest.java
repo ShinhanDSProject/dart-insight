@@ -4,6 +4,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -46,6 +47,13 @@ class GlobalExceptionHandlerTest {
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.code").value("COMMON_INTERNAL_ERROR"))
                 .andExpect(jsonPath("$.message").value(ErrorCode.COMMON_INTERNAL_ERROR.defaultMessage()));
+    }
+
+    @Test
+    @DisplayName("브라우저가 연결을 끊은 요청에는 에러 본문을 쓰지 않는다")
+    void clientGoneWritesNoErrorBody() throws Exception {
+        mockMvc.perform(get("/test-errors/client-gone"))
+                .andExpect(content().string(""));
     }
 
     @Test
