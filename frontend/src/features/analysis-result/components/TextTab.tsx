@@ -11,6 +11,7 @@ import { ChangeTypeHelp } from './ChangeTypeHelp'
 import { CopyWithSourcesButton } from './CopyWithSourcesButton'
 import { NumberChangesLine } from './NumberChangesLine'
 import { RiskChangesCard } from './RiskChangesCard'
+import { RowDiffBlock } from './RowDiffBlock'
 import { TextEvidencePanel } from './TextEvidencePanel'
 import { TextExplanationBox } from './TextExplanationBox'
 import { TextFieldTable } from './TextFieldTable'
@@ -25,10 +26,10 @@ import { sectionAskQuestion } from '../model/askQuestion'
 import { numberChanges } from '../model/numberChanges'
 import { pinnedChangesText } from '../model/copyText'
 import { RISK_BADGE, RISK_EMPTY } from '../model/riskChanges'
+import { cardTypeLabel, comparedRowsOf, isNotCompared, NOT_COMPARED_LABEL, NOT_COMPARED_NOTE } from '../model/rowDiff'
 import { PINNED_EMPTY, PINNED_LABEL, PINNED_NOTE } from '../model/pinnedList'
 import type { SourceTarget, TextViewChange } from '../model/resultParams'
 import {
-  changeTypeLabel,
   countFor,
   DELETED_NOTE,
   firstNotedIds,
@@ -93,6 +94,7 @@ interface TextTabProps {
  * 맨 위 분야별 표에서 분야마다 몇 건이 바뀌었는지 보이고, 칸을 눌러 그 분야로 거른다(3.28). 옛 분석에는 표가 없고 주소의 분야도 쓰지 않는다.
  * 거르지 않으면 기본 목록만 보이고 나머지는 아래 접힌 묶음에 둔다. 거르면 접힌 변경도 찾는다(3.29). 옛 분석에는 묶음이 없고 모든 변경이 목록에 있다.
  * 카드마다 고정할 수 있고, '고정' 거르기를 고르면 이 분석에서 고정한 변경만 보여 준다(3.3, 이 브라우저에만 남음).
+ * 표 변경 카드는 행을 비교했으면 양쪽 글 대신 행 건수와 바뀐 행을 보이고, 비교하지 않았으면 그렇게 표시한다(3.30).
  * 고정 보기에서는 고정한 변경을 원문·출처와 함께 한 번에 복사할 수 있다(FS-31).
  * 키보드로 카드를 옮겨 다니며(j·k·↑·↓) 근거를 열고(Enter) 고정할(p) 수 있다(#311).
  */
@@ -462,8 +464,10 @@ function ChangeCard({
   const section = displaySectionPath(item.sectionPath)
   const review = item.changeType === 'REVIEW_NEEDED'
   const scope = noteScopeLabel(item.noteScope)
-  // '숫자만 바뀜' 카드에만 바뀐 숫자 쌍을 보인다(짝이 확실하지 않으면 null이라 숨김)
-  const numbers = item.changeType === 'NUMERIC_UPDATE' ? numberChanges(item.previousPreview, item.currentPreview) : null
+  const comparedRows = comparedRowsOf(item.rowDiff)
+  const typeLabel = cardTypeLabel(item)
+  // '숫자만 바뀜' 카드에만 바뀐 숫자 쌍을 보인다(짝이 확실하지 않으면 null이라 숨김). 행을 비교했으면 바뀐 행이 대신한다
+  const numbers = item.changeType === 'NUMERIC_UPDATE' && comparedRows === null ? numberChanges(item.previousPreview, item.currentPreview) : null
   // 풀이 상자를 펼쳤는지는 카드 안 상태(주소에 남기지 않음). 처음 펼칠 때만 부른다
   const [explainOpen, setExplainOpen] = useState(false)
   const explainId = `text-explain-${item.changeId}`
@@ -480,13 +484,14 @@ function ChangeCard({
       // 키보드로 옮겨 오는 카드(#311). Tab 순서에는 넣지 않는다
       tabIndex={-1}
       {...{ [TEXT_CARD_ATTRIBUTE]: item.changeId }}
-      aria-label={`${section} ${changeTypeLabel(item.changeType)}`}
+      aria-label={`${section} ${typeLabel}`}
     >
       <div className="change-card__head">
         <h3 className="change-card__title">{section}</h3>
-        <Badge tone={review ? 'attention' : 'accent'}>{changeTypeLabel(item.changeType)}</Badge>
+        <Badge tone={review ? 'attention' : 'accent'}>{typeLabel}</Badge>
         {item.priority && <Badge>{priorityLabel(item.priority.level)}</Badge>}
         {item.blockType === 'TABLE' && <Badge>표</Badge>}
+        {isNotCompared(item.rowDiff) && <Badge>{NOT_COMPARED_LABEL}</Badge>}
         {showsNumbersOnlyMark(item) && <Badge>숫자만 바뀜</Badge>}
         {item.riskRelated && <Badge>{RISK_BADGE}</Badge>}
         {item.raisedFromNote === true && <Badge>주석에서 올림</Badge>}
@@ -502,11 +507,13 @@ function ChangeCard({
           <Icon name={pinned ? 'star-filled' : 'star'} size={16} />
         </Button>
       </div>
-      {review ? (
+      {review && (
         <Notice as="p" tone="attention" className="change-card__review">
           {item.reviewReason ?? '두 보고서의 항목을 짝짓지 못했어요.'} 빠진 것으로 숨기지 않고 여기에 보여 줘요.
         </Notice>
-      ) : (
+      )}
+      {comparedRows !== null && <RowDiffBlock diff={comparedRows} />}
+      {!review && comparedRows === null && (
         // 카드에는 이전·현재 문단을 3줄씩만 보이고, 전체는 '원문 비교' 창에서 본다(#507)
         <div className="change-card__sides change-card__sides--clamped">
           <SidePreview
@@ -523,6 +530,7 @@ function ChangeCard({
           />
         </div>
       )}
+      {isNotCompared(item.rowDiff) && <p className="panel__note">{NOT_COMPARED_NOTE}</p>}
       {numbers !== null && <NumberChangesLine changes={numbers} />}
       {showTypeNote && item.changeType === 'DELETED' && <p className="panel__note">{DELETED_NOTE}</p>}
       <MovedPaths item={item} withNote={showTypeNote} />

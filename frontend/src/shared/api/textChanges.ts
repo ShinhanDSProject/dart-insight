@@ -18,6 +18,46 @@ export type TextListGroup = 'MAIN' | 'HEADING' | 'FORMATTING' | 'MOVED' | 'NOTE'
 /** 주석의 연결·별도 구분. UNKNOWN은 구분할 수 없음 */
 export type NoteScope = 'CONSOLIDATED' | 'SEPARATE' | 'UNKNOWN'
 
+/** 표 행 비교의 행 건수. 코드가 센다 */
+export interface RowDiffCounts {
+  changed: number
+  added: number
+  /** 이번 표에 없는 행. 끝났다는 뜻이 아니다 */
+  missing: number
+  same: number
+}
+
+export interface ChangedRow {
+  /** 짝지은 열의 값 */
+  key: string
+  cells: { column: string; previous: string; current: string }[]
+}
+
+/** 행을 비교한 표. 목록은 changedRows를 앞에서 3개까지 주고, 근거 상세는 전부와 addedKeys·missingKeys를 준다 */
+export interface ComparedRowDiff {
+  status: 'COMPARED'
+  keyColumn: string
+  counts: RowDiffCounts
+  /** 구성이 바뀌어 DELETED로 잡힌 이전 표의 위치. 같은 변경 안에서 비교했으면 null */
+  pairedPrevious: { rceptNo: string; sectionNo: number; blockNo: number } | null
+  changedRows: ChangedRow[]
+  addedKeys?: string[]
+  missingKeys?: string[]
+}
+
+/** 짝지을 값이 없어 행을 비교하지 않은 표 */
+export interface NotComparedRowDiff {
+  status: 'NOT_COMPARED'
+  keyColumn: null
+  counts: null
+  pairedPrevious: null
+  changedRows: never[]
+  addedKeys?: string[]
+  missingKeys?: string[]
+}
+
+export type TextRowDiff = ComparedRowDiff | NotComparedRowDiff
+
 export interface ChangePriority {
   level: PriorityLevel
   /** 적용한 규칙 점수의 합. 판단 유보면 null */
@@ -55,6 +95,8 @@ export interface TextChangeItem {
   raisedFromNote: boolean | null
   /** 주석의 연결·별도 구분. 주석이 아니면 null */
   noteScope: NoteScope | null
+  /** 표 행 비교(3.30). 문단, 짝이 없는 표의 추가·삭제, 옛 분석이면 null */
+  rowDiff: TextRowDiff | null
 }
 
 export interface TextChangeCounts {

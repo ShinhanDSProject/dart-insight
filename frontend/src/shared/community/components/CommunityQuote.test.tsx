@@ -103,6 +103,7 @@ function textItem(changeId: number, overrides: Partial<TextChangeItem> = {}): Te
     field: 'BUSINESS',
     raisedFromNote: false,
     noteScope: null,
+    rowDiff: null,
     ...overrides,
   }
 }

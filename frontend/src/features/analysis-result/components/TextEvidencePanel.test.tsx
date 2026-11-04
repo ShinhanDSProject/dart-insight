@@ -84,6 +84,7 @@ function given(changeType: ChangeType, previous: string, current: string) {
         field: 'BUSINESS',
         raisedFromNote: false,
         noteScope: null,
+        rowDiff: null,
       },
       previous: source('previous', previous),
       current: source('current', current),
@@ -127,6 +128,7 @@ function givenTableChange(changeType: ChangeType = 'MODIFIED') {
         field: 'BUSINESS',
         raisedFromNote: false,
         noteScope: null,
+        rowDiff: null,
       },
       previous: {
         ...source('previous', '표 원문', prevTable),

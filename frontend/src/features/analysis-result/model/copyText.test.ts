@@ -180,6 +180,7 @@ describe('pinnedChangesText', () => {
     field: 'BUSINESS',
     raisedFromNote: false,
     noteScope: null,
+    rowDiff: null,
     ...over,
   })
 

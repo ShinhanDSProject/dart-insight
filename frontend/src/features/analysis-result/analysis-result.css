@@ -450,6 +450,80 @@
   gap: var(--space-2) var(--space-4);
 }
 
+/* 표 변경 카드의 행 비교(3.30). 증감이 아니므로 색으로 나누지 않는다 */
+.row-diff {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.row-diff__counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+}
+
+.row-diff__count {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.row-diff__count dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.row-diff__count dd {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.row-diff__rows,
+.row-diff__cells {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row-diff__rows {
+  gap: var(--space-3);
+}
+
+.row-diff__cells {
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+.row-diff__key {
+  overflow-wrap: anywhere;
+}
+
+.row-diff__cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.row-diff__column {
+  color: var(--color-text-muted);
+}
+
+/* 청구 내용처럼 긴 칸은 3줄만 보이고 전체는 원문 비교에서 본다 */
+.row-diff__values {
+  display: -webkit-box;
+  flex: 1 1 16rem;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
 /* 기본 목록에서 접은 변경(3.29) */
 .text-folded {
   display: flex;

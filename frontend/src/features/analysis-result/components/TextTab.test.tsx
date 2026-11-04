@@ -111,6 +111,7 @@ function item(changeId: number, sectionTitle: string): TextChangeItem {
     field: 'BUSINESS',
     raisedFromNote: false,
     noteScope: null,
+    rowDiff: null,
   }
 }
 
@@ -653,6 +654,102 @@ describe('TextTab 기본 목록과 접힌 묶음(3.29)', () => {
     list.groups = { NOTE: success([{ ...item(9, '주석 3. 금융상품'), listGroup: 'NOTE', noteScope: 'CONSOLIDATED' }]) }
     renderDefault()
     fireEvent.click(folded().getByRole('button', { name: /재무제표 주석 4건/ }))
+    expect(await axeViolations(document.body)).toBe('')
+  })
+})
+
+describe('TextTab 표 행 비교(3.30)', () => {
+  function renderCards(items: TextChangeItem[]) {
+    list.items = items
+    render(
+      <MemoryRouter>
+        <main>
+          <TextTab
+            analysis={analysis}
+            type={null}
+            sort="priority"
+            section={null}
+            q={null}
+            risk={false}
+            field={null}
+            pinned={false}
+            selectedChangeId={null}
+            onChange={() => {}}
+            onOpenSource={() => {}}
+            onAsk={() => {}}
+            asking={false}
+          />
+        </main>
+      </MemoryRouter>,
+    )
+    return screen.getAllByRole('article')
+  }
+
+  const litigation: TextChangeItem = {
+    ...item(1, '2. 우발부채 등에 관한 사항'),
+    changeType: 'ADDED',
+    blockType: 'TABLE',
+    previousPreview: null,
+    currentPreview: '소제기일 | 사건의 명칭(사건번호) | 진행상황',
+    rowDiff: {
+      status: 'COMPARED',
+      keyColumn: '사건의 명칭(사건번호)',
+      counts: { changed: 5, added: 3, missing: 11, same: 1 },
+      pairedPrevious: { rceptNo: '20260813001718', sectionNo: 40, blockNo: 2028 },
+      changedRows: [
+        {
+          key: '주주총회결의취소 청구의 소(서울중앙지방법원 2025가합9085)',
+          cells: [{ column: '진행상황', previous: '진행 중', current: '화해권고결정' }],
+        },
+        { key: '의결권행사허용가처분 재항고(대법원 2025마6793)', cells: [{ column: '진행상황', previous: '진행 중', current: '' }] },
+      ],
+    },
+  }
+
+  it('행 건수와 바뀐 행을 보이고 추가된 표처럼 보이지 않는다(AC7)', () => {
+    const [card] = renderCards([litigation])
+    const view = within(card)
+    expect(view.getByText('바뀜').parentElement?.textContent).toContain('5')
+    expect(view.getByText('새로').parentElement?.textContent).toContain('3')
+    expect(view.getByText('이번엔 없음').parentElement?.textContent).toContain('11')
+    expect(view.getByText('그대로').parentElement?.textContent).toContain('1')
+    expect(view.getByText(/2025가합9085/)).toBeTruthy()
+    expect(card.textContent).toContain('진행 중 → 화해권고결정')
+    expect(view.getByText('표 구성 바뀜')).toBeTruthy()
+    expect(view.queryByText('추가')).toBeNull()
+    expect(view.queryByText('이전 보고서에 없던 내용')).toBeNull()
+    expect(card.textContent).not.toContain('사라짐')
+  })
+
+  it('짝지은 열과 보이지 않는 바뀐 행 수를 알리고 빈 칸을 표시한다', () => {
+    const [card] = renderCards([litigation])
+    expect(card.textContent).toContain('사건의 명칭(사건번호)')
+    expect(card.textContent).toContain('바뀐 행 3개가 더 있어요')
+    expect(card.textContent).toContain('진행 중 → (빈 칸)')
+  })
+
+  it('행 비교를 하지 않은 표는 구분해 보이고 양쪽 글을 그대로 둔다(AC8)', () => {
+    const [card] = renderCards([
+      {
+        ...item(1, '3. 재고자산'),
+        blockType: 'TABLE',
+        rowDiff: { status: 'NOT_COMPARED', keyColumn: null, counts: null, pairedPrevious: null, changedRows: [] },
+      },
+    ])
+    expect(within(card).getByText('행 비교 안 함')).toBeTruthy()
+    expect(within(card).getByText('이전 문장이에요.')).toBeTruthy()
+    expect(within(card).queryByText('바뀜')).toBeNull()
+  })
+
+  it('문단이나 옛 분석(rowDiff null)에는 행 비교 표시가 없다', () => {
+    const [card] = renderCards([item(1, '1. 사업의 개요')])
+    expect(within(card).queryByText('행 비교 안 함')).toBeNull()
+    expect(within(card).queryByText('바뀜')).toBeNull()
+    expect(within(card).getByText('이전 문장이에요.')).toBeTruthy()
+  })
+
+  it('접근성 위반이 없다', async () => {
+    renderCards([litigation])
     expect(await axeViolations(document.body)).toBe('')
   })
 })
