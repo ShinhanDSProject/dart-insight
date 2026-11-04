@@ -112,6 +112,10 @@ const mockTextList: TextChangeList = {
   counts: { all: 0, added: 0, deleted: 0, modified: 0, numericUpdate: 0, moved: 0, reviewNeeded: 0 },
   riskCounts: { all: 0, added: 0, deleted: 0, modified: 0, numericUpdate: 0, moved: 0, reviewNeeded: 0 },
   sections: [],
+  field: null,
+  listVersion: null,
+  fieldCounts: null,
+  missingFields: null,
   items: [],
 }
 

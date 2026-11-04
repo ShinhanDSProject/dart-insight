@@ -70,14 +70,16 @@ export interface SectionOption {
 
 /**
  * 섹션 선택지. 맨 앞은 전체이고, 주소에 남은 섹션이 목록에 없으면(다른 분석에서 옮겨 온 주소 등) 0건으로 붙여 고른 값을 그대로 보여 준다.
+ * withCounts가 false면 건수를 붙이지 않는다(응답의 섹션 건수는 분야를 보지 않아 분야를 고르면 목록과 맞지 않는다).
  */
-export function sectionOptions(sections: TextSectionCount[], selected: string | null): SectionOption[] {
-  const options = sections.map((s) => ({ value: s.title, label: `${displaySectionTitle(s.title)} (${formatCount(s.count)})` }))
+export function sectionOptions(sections: TextSectionCount[], selected: string | null, withCounts = true): SectionOption[] {
+  const labelOf = (title: string, count: number) => (withCounts ? `${displaySectionTitle(title)} (${formatCount(count)})` : displaySectionTitle(title))
+  const options = sections.map((s) => ({ value: s.title, label: labelOf(s.title, s.count) }))
   const missing = selected !== null && !sections.some((s) => s.title === selected)
   return [
     { value: ALL_SECTIONS, label: '전체 섹션' },
     ...options,
-    ...(missing ? [{ value: selected, label: `${displaySectionTitle(selected)} (0)` }] : []),
+    ...(missing ? [{ value: selected, label: labelOf(selected, 0) }] : []),
   ]
 }
 

@@ -121,6 +121,10 @@ function textList(items: TextChangeItem[]): TextChangeList {
     counts,
     riskCounts: counts,
     sections: [],
+    field: null,
+    listVersion: null,
+    fieldCounts: null,
+    missingFields: null,
     items,
   }
 }

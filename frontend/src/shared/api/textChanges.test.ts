@@ -23,6 +23,12 @@ describe('textChangeParams', () => {
     })
   })
 
+  it('분야를 골랐을 때만 field를 보낸다(3.28)', () => {
+    expect(textChangeParams({ ...base, types: [], field: 'AUDIT' }).field).toBe('AUDIT')
+    expect(textChangeParams({ ...base, types: [], field: null }).field).toBeUndefined()
+    expect(textChangeParams({ ...base, types: [] }).field).toBeUndefined()
+  })
+
   it('위험 관련만 볼 때만 risk=true를 보낸다(3.9)', () => {
     expect(textChangeParams({ ...base, types: [], risk: true }).risk).toBe(true)
     expect(textChangeParams({ ...base, types: [], risk: false }).risk).toBeUndefined()

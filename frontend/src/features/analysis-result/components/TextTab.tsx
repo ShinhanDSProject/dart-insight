@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { match, P } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
-import type { TextChangeItem, TextSort } from '@/shared/api/textChanges'
+import type { TextChangeItem, TextField, TextSort } from '@/shared/api/textChanges'
 import { Badge, Button, ButtonLink, Card, Chip, FieldHint, FieldLabel, Icon, Input, Notice, Panel, SegmentedControl, Select, Skeleton } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
@@ -13,6 +13,7 @@ import { NumberChangesLine } from './NumberChangesLine'
 import { RiskChangesCard } from './RiskChangesCard'
 import { TextEvidencePanel } from './TextEvidencePanel'
 import { TextExplanationBox } from './TextExplanationBox'
+import { TextFieldTable } from './TextFieldTable'
 import { usePinnedChanges, usePinnedTextChanges } from '../hooks/usePinnedChanges'
 import { useTextChanges } from '../hooks/useTextChanges'
 import { useTextExplanations, type TextExplanations } from '../hooks/useTextExplanations'
@@ -49,6 +50,7 @@ import {
   sectionOptions,
   type TextTypeFilter,
 } from '../model/textFilter'
+import { ALL_FIELDS_LABEL, resolveTextField, textFieldLabel } from '../model/textFields'
 import { displaySectionPath } from '@/shared/lib/sectionTitle'
 
 const sortOptions: { value: TextSort; label: string }[] = [
@@ -67,6 +69,8 @@ interface TextTabProps {
   q: string | null
   /** 위험 관련 목차의 변경만 보는지(3.9) */
   risk: boolean
+  /** 분야별 표에서 고른 분야(3.28). null이면 전체 */
+  field: TextField | null
   /** 고정한 변경만 보는지(3.3) */
   pinned: boolean
   /** 근거를 보고 있는 변경(3.4) */
@@ -84,6 +88,7 @@ interface TextTabProps {
  * 최상위 섹션과 검색어로도 함께 거른다(3.7). 고른 값은 주소에 남아 공유된다.
  * 맨 위 '위험 요인 변화' 카드에 위험 관련 목차의 건수를 보이고 '위험 관련만'으로 거른다(3.9, FS-61).
  * 문장을 비교하지 못했으면 '변경 없음'이 아니라 사유를 보여 준다. 짝짓지 못한 항목은 숨기지 않고 '검토 필요'로 둔다.
+ * 맨 위 분야별 표에서 분야마다 몇 건이 바뀌었는지 보이고, 칸을 눌러 그 분야로 거른다(3.28). 옛 분석에는 표가 없고 주소의 분야도 쓰지 않는다.
  * 카드마다 고정할 수 있고, '고정' 거르기를 고르면 이 분석에서 고정한 변경만 보여 준다(3.3, 이 브라우저에만 남음).
  * 고정 보기에서는 고정한 변경을 원문·출처와 함께 한 번에 복사할 수 있다(FS-31).
  * 키보드로 카드를 옮겨 다니며(j·k·↑·↓) 근거를 열고(Enter) 고정할(p) 수 있다(#311).
@@ -95,6 +100,7 @@ export function TextTab({
   section,
   q,
   risk,
+  field: requestedField,
   pinned,
   selectedChangeId,
   onChange,
@@ -103,13 +109,16 @@ export function TextTab({
   asking,
 }: TextTabProps) {
   // type은 실제로 쓴 거르기다. '내용 변경'이 없는 분석에서 주소의 CONTENT는 전체로 본다
-  const { state, counts, sections, riskCounts, contentAvailable, type, reload, loadMore } = useTextChanges(analysis.analysisId, {
+  const { state, counts, sections, riskCounts, listing, contentAvailable, type, reload, loadMore } = useTextChanges(analysis.analysisId, {
     type: requestedType,
     sort,
     section,
     q,
     risk,
+    field: requestedField,
   })
+  // 옛 분석은 서버가 분야를 무시하므로 주소에 있어도 고르지 않은 것으로 본다
+  const field = resolveTextField(requestedField, listing)
   const searchBox = useTextSearch(q, (next) => onChange({ q: next }))
   // 받은 풀이는 거르기·정렬을 바꿔도 이 탭이 떠 있는 동안 남는다(3.11)
   const explanations = useTextExplanations(analysis.analysisId)
@@ -124,7 +133,11 @@ export function TextTab({
   const sectionQuestion = sectionAskQuestion(section)
   const clearFilters = () => {
     searchBox.setInput('')
-    onChange({ type: null, section: null, q: null, risk: false })
+    onChange({ type: null, section: null, q: null, risk: false, field: null })
+  }
+  const chooseField = (next: TextField | null) => {
+    if (next !== null) searchBox.setInput('')
+    onChange({ field: next })
   }
   const showPinned = () => {
     searchBox.setInput('')
@@ -183,6 +196,10 @@ export function TextTab({
           {notice}
         </Notice>
       )}
+      {/* 첫 조회가 실패하면 아래 목록 자리의 오류 안내만 보인다 */}
+      {!failed && !(state.status === 'error' && listing === null) && (
+        <TextFieldTable listing={listing} field={pinned ? null : field} onChoose={chooseField} />
+      )}
       {!failed && (
         <RiskChangesCard counts={riskCounts} risk={riskOnly} searched={searched} onToggle={(next) => onChange({ risk: next })} />
       )}
@@ -196,7 +213,7 @@ export function TextTab({
               value={section ?? ALL_SECTIONS}
               onChange={(e) => onChange({ section: e.target.value === ALL_SECTIONS ? null : e.target.value })}
             >
-              {sectionOptions(sections ?? [], section).map((option) => (
+              {sectionOptions(sections ?? [], section, field === null).map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -244,7 +261,8 @@ export function TextTab({
                 key={option.label}
                 tone={option.value === 'REVIEW_NEEDED' ? 'attention' : 'neutral'}
                 pressed={!pinned && type === option.value}
-                count={counts && countFor(counts, option.value)}
+                // 응답의 유형 건수는 분야를 보지 않아, 분야를 고르면 목록과 맞지 않으므로 숨긴다
+                count={field === null && counts ? countFor(counts, option.value) : null}
                 onClick={() => {
                   if (pinned || requestedType !== option.value) onChange({ type: option.value })
                 }}
@@ -310,13 +328,13 @@ export function TextTab({
           .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} />)
           .with({ status: 'success' }, ({ data, items, more }) => (
             <>
-              {(searched || riskOnly) && items.length > 0 && (
+              {(searched || riskOnly || field !== null) && items.length > 0 && (
                 <p className="panel__note" role="status">
                   조건에 맞는 변경 {resultCountLabel(data.totalItems)}
                 </p>
               )}
               {items.length === 0 &&
-                match({ searched, riskOnly, type })
+                match({ searched, riskOnly, field, type })
                   .with({ searched: true }, () => (
                     <EmptyState title="찾는 문장이 없어요">
                       <p>섹션이나 검색어를 바꾸거나, 조건을 지우고 전체 변경을 볼 수 있어요.</p>
@@ -332,8 +350,15 @@ export function TextTab({
                       </Button>
                     </EmptyState>
                   ))
-                  .with({ searched: false, riskOnly: false, type: null }, () => <EmptyState title="두 보고서 사이에 바뀐 문장·표가 없어요." />)
-                  .with({ searched: false, riskOnly: false, type: P.nonNullable }, ({ type: current }) => (
+                  .with({ searched: false, riskOnly: false, field: P.nonNullable }, ({ field: current }) => (
+                    <EmptyState title={`${textFieldLabel(current)} 변경이 없어요.`}>
+                      <Button variant="secondary" onClick={() => chooseField(null)}>
+                        {ALL_FIELDS_LABEL}
+                      </Button>
+                    </EmptyState>
+                  ))
+                  .with({ searched: false, riskOnly: false, field: null, type: null }, () => <EmptyState title="두 보고서 사이에 바뀐 문장·표가 없어요." />)
+                  .with({ searched: false, riskOnly: false, field: null, type: P.nonNullable }, ({ type: current }) => (
                     <EmptyState title={`${typeFilterLabel(current)} 항목이 없어요.`}>
                       <p>'전체'를 고르면 다른 유형의 변화도 볼 수 있어요.</p>
                     </EmptyState>

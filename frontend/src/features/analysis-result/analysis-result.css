@@ -450,6 +450,97 @@
   gap: var(--space-2) var(--space-4);
 }
 
+/* 분야별 표(3.28). 칸은 눌러서 거르는 버튼이고, 고른 칸은 주색 바탕으로 뒤집는다 */
+.field-table {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.field-table__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+.field-table__title {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+.field-table__total {
+  flex: 1;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.field-table__cells {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.field-table__note {
+  margin: 0;
+}
+
+.field-cell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.field-cell:hover:not(:disabled) {
+  background: var(--color-bg-subtle);
+}
+
+.field-cell:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.field-cell:disabled {
+  background: var(--color-bg-subtle);
+  cursor: default;
+}
+
+.field-cell[aria-pressed='true'],
+.field-cell[aria-pressed='true']:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+}
+
+.field-cell__label {
+  font-size: var(--font-size-sm);
+}
+
+.field-cell__value {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.field-cell:disabled .field-cell__value {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: normal;
+}
+
+@media screen and (max-width: 600px) {
+  .field-table__cells {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* 위험 요인 변화 카드(3.9, FS-61). 건수는 중립색 큰 숫자(StatNumber) */
 .risk-card {
   display: flex;
