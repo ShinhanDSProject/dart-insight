@@ -97,9 +97,11 @@ final class ChatResults {
     private static Citation citation(int no, Evidence e, Map<String, String> reportNames) {
         String reportName = e.reportName() != null ? e.reportName()
                 : e.rceptNo() == null ? null : reportNames.get(e.rceptNo());
+        Evidence.Value v = e.value() == null ? new Evidence.Value(null, null, null, null, null, null, null) : e.value();
         return new Citation(no, e.kind().name(), e.evidenceId(), e.changeId(), e.changeType(), e.side(), e.rceptNo(),
                 reportName, e.rceptDt(), e.dartUrl(), e.sectionNo(), e.blockNo(), e.sectionPath(), e.quote(), e.sjDiv(),
-                e.accountName(), e.sentence(), gradeOf(e));
+                e.accountName(), e.sentence(), gradeOf(e), v.source(), v.label(), v.value(), v.unit(), v.currency(),
+                v.corpCode(), v.corpName());
     }
 
     /** 응답의 등급은 설명이 있는 것(STATED·RELATED)만. NONE은 '확인된 설명 없음'이라 등급을 붙이지 않는다 */

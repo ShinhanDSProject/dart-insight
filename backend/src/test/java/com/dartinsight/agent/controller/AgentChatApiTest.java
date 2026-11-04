@@ -301,7 +301,10 @@ class AgentChatApiTest {
         assertThat(JsonPath.<String>read(first, "$.companyName")).isEqualTo("예시전자");
         assertThat(JsonPath.<List<String>>read(first, "$.tools[*].name")).containsExactly("search_text_changes",
                 "get_text_change", "get_financial_changes", "get_document_outline", "get_document_section",
-                "answer_with_evidence", "get_summary", "explain_text_change", "find_related_disclosures");
+                "answer_with_evidence", "get_summary", "explain_text_change", "find_related_disclosures",
+                "search_companies", "get_company_overview", "get_financial_trends", "get_key_facts", "get_checkpoints",
+                "get_disclosures", "get_disclosure_signals", "get_disclosure_key_items", "get_company_briefing",
+                "get_outlook", "get_plan_followups");
         assertThat(JsonPath.<List<String>>read(first, "$.actions[*].type")).containsExactly("OPEN_TAB",
                 "OPEN_TEXT_CHANGE", "OPEN_FINANCIAL_CHANGE", "OPEN_DOCUMENT", "OPEN_GLOSSARY", "DOWNLOAD_BRIEF",
                 "CONFIRM_SAVE_NOTE", "CONFIRM_FAVORITE");

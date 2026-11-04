@@ -23,7 +23,9 @@ public record ChatMessageResponse(String status, String answer, String message, 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Citation(int no, String kind, String evidenceId, Long changeId, String changeType, String side,
             String rceptNo, String reportName, String rceptDt, String dartUrl, Integer sectionNo, Integer blockNo,
-            String sectionPath, String quote, String sjDiv, String accountName, String sentence, String grade) {
+            String sectionPath, String quote, String sjDiv, String accountName, String sentence, String grade,
+            String source, String label, Object value, String unit, String currency, String corpCode,
+            String corpName) {
     }
 
     public record Ai(String model, String promptVersion, LocalDateTime generatedAt) {
