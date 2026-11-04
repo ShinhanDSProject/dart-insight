@@ -370,6 +370,36 @@ def test_spacing_alone_is_not_a_changed_cell() -> None:
     assert compare_table_rows(previous, current).counts.same == 2
 
 
+def test_key_column_named_with_different_spacing_is_the_same_column() -> None:
+    diff = compare_table_rows("구 분 | 값\n가 | 1\n나 | 2", "구분 | 값\n가 | 1\n나 | 3")
+    assert diff.key_column == "구 분"
+    assert diff.counts == RowCounts(changed=1, added=0, missing=0, same=1)
+
+
+def test_changed_cell_under_a_column_with_different_spacing_is_not_lost() -> None:
+    diff = compare_table_rows("코드 | 구 분\na | 진행\nb | 끝", "코드 | 구분\na | 끝\nb | 끝")
+    assert diff.changed_rows == [ChangedRow("a", [CellChange("구 분", "진행", "끝")])]
+
+
+def test_table_with_columns_that_differ_only_by_spacing_is_not_compared() -> None:
+    assert_not_compared(
+        "구 분 | 구분 | 코드\n가 | 나 | a\n다 | 라 | b",
+        "구 분 | 구분 | 코드\n가 | 마 | a\n다 | 라 | b",
+    )
+
+
+def test_table_with_an_unnamed_column_is_not_compared() -> None:
+    assert_not_compared(
+        "코드 |  | 값\na | 나 | x\nb | 라 | y", "코드 |  | 값\na | 마 | x\nb | 라 | y"
+    )
+
+
+def test_table_with_a_column_named_twice_is_not_compared_despite_a_key() -> None:
+    assert_not_compared(
+        "코드 | 값 | 값\na | 1 | 2\nb | 3 | 4", "코드 | 값 | 값\na | 1 | 9\nb | 3 | 4"
+    )
+
+
 def test_spacing_alone_does_not_break_the_key() -> None:
     previous = "이름 | 값\n서울 지점 | 1\n부산 | 2"
     current = "이름 | 값\n서울지점 | 1\n부산 | 2"

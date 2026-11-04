@@ -19,7 +19,7 @@
 from __future__ import annotations
 
 import re
-from collections import Counter, defaultdict
+from collections import defaultdict
 from dataclasses import dataclass, replace
 
 from app.compare.text_diff import (
@@ -153,6 +153,7 @@ class ListEntry:
 @dataclass(frozen=True)
 class _ParsedTable:
     header: list[str]
+    columns: list[str]  # 열을 가리키는 이름(머리글에서 띄어쓰기를 뺀 값)
     rows: list[list[str]]
 
 
@@ -190,16 +191,18 @@ def compare_table_rows(
 
     previous_rows = _rows_by_value(previous, key) or {}
     current_rows = _rows_by_value(current, key) or {}
+    # 열 이름은 이전 표의 글로 보여 준다(띄어쓰기만 다른 이름은 같은 열이다)
+    names = dict(zip(previous.columns, previous.header, strict=True))
     columns = [c for c in _common_columns(previous, current) if c != key]
     changed: list[ChangedRow] = []
     same = 0
     for value, row in current_rows.items():
         if value not in previous_rows:
             continue
-        before = dict(zip(previous.header, previous_rows[value], strict=True))
-        after = dict(zip(current.header, row, strict=True))
+        before = dict(zip(previous.columns, previous_rows[value], strict=True))
+        after = dict(zip(current.columns, row, strict=True))
         cells = [
-            CellChange(column, before[column], after[column])
+            CellChange(names[column], before[column], after[column])
             for column in columns
             if _compact(before[column]) != _compact(after[column])
         ]
@@ -208,13 +211,15 @@ def compare_table_rows(
         else:
             same += 1
     added = [
-        row[current.header.index(key)] for v, row in current_rows.items() if v not in previous_rows
+        row[current.columns.index(key)] for v, row in current_rows.items() if v not in previous_rows
     ]
     missing = [
-        row[previous.header.index(key)] for v, row in previous_rows.items() if v not in current_rows
+        row[previous.columns.index(key)]
+        for v, row in previous_rows.items()
+        if v not in current_rows
     ]
     counts = RowCounts(len(changed), len(added), len(missing), same)
-    return RowDiff(COMPARED, key, counts, paired_previous, changed, added, missing)
+    return RowDiff(COMPARED, names[key], counts, paired_previous, changed, added, missing)
 
 
 def classify(change: Change, previous_text: str | None, current_text: str | None) -> ListEntry:
@@ -291,7 +296,7 @@ def _pair_tables(
     for path, deleted_tables in deleted.items():
         for d, previous_table in deleted_tables:
             for a, current_table in added.get(path, []):
-                if _header_key(previous_table) != _header_key(current_table):
+                if previous_table.columns != current_table.columns:
                     continue
                 key = _key_column(previous_table, current_table)
                 if key is None:
@@ -316,11 +321,18 @@ def _document_order(change: Change) -> int:
 
 
 def _parse_table(text: str) -> _ParsedTable | None:
-    """표 글을 행과 칸으로 나눈다. 값 행이 없거나 칸 수가 맞지 않으면 None."""
+    """표 글을 행과 칸으로 나눈다.
+
+    값 행이 없거나 칸 수가 맞지 않으면 None. 이름이 없거나 겹치는 열이 있어도 None이다
+    (그 열을 빼고 비교하면 그 열만 바뀐 행이 그대로인 행으로 세어진다).
+    """
     lines = [[cell.strip() for cell in line.split(_CELL_SEPARATOR)] for line in text.split("\n")]
     if len(lines) < 2 or any(len(line) != len(lines[0]) for line in lines):
         return None
-    return _ParsedTable(lines[0], lines[1:])
+    columns = [_compact(cell) for cell in lines[0]]
+    if "" in columns or len(set(columns)) != len(columns):
+        return None
+    return _ParsedTable(lines[0], columns, lines[1:])
 
 
 def _key_column(previous: _ParsedTable, current: _ParsedTable) -> str | None:
@@ -334,13 +346,8 @@ def _key_column(previous: _ParsedTable, current: _ParsedTable) -> str | None:
 
 
 def _common_columns(previous: _ParsedTable, current: _ParsedTable) -> list[str]:
-    """양쪽에 이름이 한 번씩만 있는 열(이전 표의 순서)."""
-    previous_counts, current_counts = Counter(previous.header), Counter(current.header)
-    return [
-        column
-        for column in previous.header
-        if column and previous_counts[column] == 1 and current_counts[column] == 1
-    ]
+    """양쪽에 있는 열(이전 표의 순서)."""
+    return [column for column in previous.columns if column in current.columns]
 
 
 def _shared_values(previous: _ParsedTable, current: _ParsedTable, column: str) -> int:
@@ -354,7 +361,7 @@ def _shared_values(previous: _ParsedTable, current: _ParsedTable, column: str) -
 
 def _rows_by_value(table: _ParsedTable, column: str) -> dict[str, list[str]] | None:
     """열의 값으로 찾는 행(띄어쓰기를 뺀 값 기준). 짝지을 수 없는 값이 있거나 겹치면 None."""
-    index = table.header.index(column)
+    index = table.columns.index(column)
     rows = {_compact(row[index]): row for row in table.rows}
     if len(rows) != len(table.rows) or not all(_can_identify_row(value) for value in rows):
         return None
@@ -364,10 +371,6 @@ def _rows_by_value(table: _ParsedTable, column: str) -> dict[str, list[str]] | N
 def _can_identify_row(value: str) -> bool:
     """비었거나 -뿐인 값, 금액·비율처럼 숫자뿐인 값은 행을 가리키지 못한다."""
     return bool(_WORD_CHAR.search(value)) and not _AMOUNT.fullmatch(value)
-
-
-def _header_key(table: _ParsedTable) -> list[str]:
-    return [_compact(cell) for cell in table.header]
 
 
 def _compact(value: str) -> str:
