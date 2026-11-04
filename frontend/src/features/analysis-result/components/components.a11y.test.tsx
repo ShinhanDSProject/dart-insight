@@ -78,7 +78,7 @@ const chatAnswer: ChatMessageResponse = {
 }
 
 function chatController(state: ChatState): AgentChatController {
-  return { state, send: noop, retry: noop, setDraft: noop }
+  return { state, send: noop, retry: noop, setDraft: noop, markConfirmed: noop }
 }
 
 function chatPanel(state: ChatState, briefState: AsyncState<void> = { status: 'idle' }) {
@@ -156,8 +156,8 @@ describe('AI 에이전트 채팅 패널 접근성(axe)', () => {
     const groups = screen.getAllByRole('group', { name: '도움이 됐나요?' })
     expect(groups).toHaveLength(1)
     fireEvent.click(screen.getByRole('button', { name: '도움이 됐어요' }))
-    expect(feedbackApi.sendAnswerFeedback).toHaveBeenCalledWith(42, 7, { helpful: true, reason: null })
     expect(await screen.findByText('의견 고마워요')).toBeTruthy()
+    expect(feedbackApi.sendAnswerFeedback).toHaveBeenCalledWith(42, 7, { helpful: true, reason: null })
   })
 
   it('쓰기 확인 버튼은 로그인했으면 버튼으로, 아니면 로그인 안내로 보인다(AC9·AC10)', async () => {

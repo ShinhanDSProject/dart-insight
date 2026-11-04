@@ -43,7 +43,10 @@ export function useAgentChat(analysisId: number) {
 
   const setDraft = useCallback((draft: string) => dispatch({ type: 'set-draft', draft }), [])
 
-  return { state, send, retry, setDraft }
+  /** 확인 버튼의 저장이 끝났다(confirmKey). 패널을 다시 열어도 저장한 결과로 보인다 */
+  const markConfirmed = useCallback((key: string) => dispatch({ type: 'confirmed', key }), [])
+
+  return { state, send, retry, setDraft, markConfirmed }
 }
 
 export type AgentChatController = ReturnType<typeof useAgentChat>

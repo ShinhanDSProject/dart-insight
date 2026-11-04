@@ -16,7 +16,7 @@ import {
   parseChatAnswer,
   type ChatActionTarget,
 } from '../model/chatLinks'
-import { CHAT_EXAMPLES, chatMessageOf, MAX_MESSAGE, type ChatExchange } from '../model/chatState'
+import { CHAT_EXAMPLES, chatMessageOf, confirmKey, MAX_MESSAGE, type ChatExchange } from '../model/chatState'
 import { aiInfoLabel } from '../model/summaryLabels'
 import './chat-panel.css'
 
@@ -86,6 +86,8 @@ export function ChatPanel({ analysisId, chat, context, suggestions, onNavigate, 
             key={exchange.id}
             exchange={exchange}
             analysisId={analysisId}
+            confirmed={chat.state.confirmed}
+            onConfirmed={chat.markConfirmed}
             onNavigate={onNavigate}
             onDownloadBrief={onDownloadBrief}
             briefState={briefState}
@@ -148,12 +150,15 @@ function UserLine({ message }: { message: string }) {
 interface ExchangeProps {
   exchange: ChatExchange
   analysisId: number
+  /** 저장을 마친 확인 버튼(confirmKey) */
+  confirmed: string[]
+  onConfirmed: (key: string) => void
   onNavigate: (changes: ParamChanges) => void
   onDownloadBrief: () => void
   briefState: AsyncState<void>
 }
 
-function Exchange({ exchange, analysisId, onNavigate, onDownloadBrief, briefState }: ExchangeProps) {
+function Exchange({ exchange, analysisId, confirmed, onConfirmed, onNavigate, onDownloadBrief, briefState }: ExchangeProps) {
   const { response } = exchange
   return (
     <article className="chat-panel__exchange" aria-label={`요청: ${exchange.message}`}>
@@ -182,7 +187,15 @@ function Exchange({ exchange, analysisId, onNavigate, onDownloadBrief, briefStat
             </Notice>
           ))
           .exhaustive()}
-        <Actions response={response} onNavigate={onNavigate} onDownloadBrief={onDownloadBrief} briefState={briefState} />
+        <Actions
+          exchangeId={exchange.id}
+          response={response}
+          confirmed={confirmed}
+          onConfirmed={onConfirmed}
+          onNavigate={onNavigate}
+          onDownloadBrief={onDownloadBrief}
+          briefState={briefState}
+        />
         {response.status === 'ANSWERED' && response.questionId !== null && (
           <ChatFeedback analysisId={analysisId} questionId={response.questionId} />
         )}
@@ -233,18 +246,23 @@ function CitationChip({ citation, onNavigate }: { citation: ChatCitation; onNavi
   )
 }
 
-function Actions({ response, onNavigate, onDownloadBrief, briefState }: { response: ChatMessageResponse } & Omit<ExchangeProps, 'exchange' | 'analysisId'>) {
+type ActionsProps = { exchangeId: number; response: ChatMessageResponse } & Omit<ExchangeProps, 'exchange' | 'analysisId'>
+
+function Actions({ exchangeId, response, confirmed, onConfirmed, onNavigate, onDownloadBrief, briefState }: ActionsProps) {
+  // 키는 응답 actions 안의 순서로 정한다(무시한 액션을 빼도 바뀌지 않게)
   const targets = response.actions
-    .map((action) => ({ action, target: chatActionTarget(action, response.citations) }))
+    .map((action, index) => ({ action, key: confirmKey(exchangeId, index), target: chatActionTarget(action, response.citations) }))
     .filter(({ target }) => target.kind !== 'ignore')
   if (targets.length === 0) return null
   return (
     <div className="chat-panel__actions">
-      {targets.map(({ action, target }, i) => (
+      {targets.map(({ action, key, target }) => (
         <ActionButton
-          key={i}
+          key={key}
           action={action}
           target={target}
+          done={confirmed.includes(key)}
+          onDone={() => onConfirmed(key)}
           onNavigate={onNavigate}
           onDownloadBrief={onDownloadBrief}
           briefState={briefState}
@@ -257,12 +275,15 @@ function Actions({ response, onNavigate, onDownloadBrief, briefState }: { respon
 interface ActionButtonProps {
   action: ChatAction
   target: ChatActionTarget
+  /** 확인 버튼만: 이미 저장했다 */
+  done: boolean
+  onDone: () => void
   onNavigate: (changes: ParamChanges) => void
   onDownloadBrief: () => void
   briefState: AsyncState<void>
 }
 
-function ActionButton({ action, target, onNavigate, onDownloadBrief, briefState }: ActionButtonProps) {
+function ActionButton({ action, target, done, onDone, onNavigate, onDownloadBrief, briefState }: ActionButtonProps) {
   const [showTerm, setShowTerm] = useState(false)
   const label = action.label ?? '열기'
   return match(target)
@@ -272,7 +293,9 @@ function ActionButton({ action, target, onNavigate, onDownloadBrief, briefState 
       </Button>
     ))
     .with({ kind: 'brief' }, () => <BriefButton label={label} state={briefState} onDownload={onDownloadBrief} />)
-    .with({ kind: 'save-note' }, { kind: 'favorite' }, (confirm) => <ChatConfirmAction target={confirm} label={label} />)
+    .with({ kind: 'save-note' }, { kind: 'favorite' }, (confirm) => (
+      <ChatConfirmAction target={confirm} label={label} done={done} onDone={onDone} />
+    ))
     .with({ kind: 'glossary' }, ({ term, entry }) => (
       <div className="chat-panel__term">
         <Button variant="secondary" aria-expanded={showTerm} onClick={() => setShowTerm((v) => !v)}>
