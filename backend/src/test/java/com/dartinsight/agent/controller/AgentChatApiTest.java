@@ -420,6 +420,36 @@ class AgentChatApiTest {
     }
 
     @Test
+    @DisplayName("저장 대상을 찾으려고 부른 Tool만 있으면 순수 저장 요청으로 보고 NOT_FOUND를 정해진 안내의 ANSWERED로 바꾼다")
+    void noteTargetLookupStillCountsAsSaveOnly() throws Exception {
+        long changeId = financialChangeId();
+        AI.on(STEPS, twoSteps("{\"callId\":\"c1\",\"name\":\"get_financial_changes\",\"arguments\":{}}",
+                request -> finalAnswer("NOT_FOUND", null, "", "{\"type\":\"CONFIRM_SAVE_NOTE\",\"note\":"
+                        + "{\"kind\":\"FINANCIAL_CHANGE\",\"changeId\":" + changeId + "}}")));
+
+        chat("영업이익 변경을 노트에 담아줘")
+                .andExpect(jsonPath("$.status").value("ANSWERED"))
+                .andExpect(jsonPath("$.answer").value("아래 버튼을 누르면 저장해요."))
+                .andExpect(jsonPath("$.actions[0].type").value("CONFIRM_SAVE_NOTE"))
+                .andExpect(jsonPath("$.actions[0].note.changeId").value(changeId));
+    }
+
+    @Test
+    @DisplayName("저장 대상 Tool과 함께 따로 조회한 Tool이 못 찾았으면 노트 확인 버튼이 있어도 NOT_FOUND를 감추지 않는다")
+    void lookupBesideNoteTargetStaysNotFound() throws Exception {
+        long changeId = financialChangeId();
+        AI.on(STEPS, twoSteps("{\"callId\":\"c1\",\"name\":\"search_text_changes\",\"arguments\":{\"q\":\"합병\"}},"
+                        + "{\"callId\":\"c2\",\"name\":\"get_financial_changes\",\"arguments\":{}}",
+                request -> finalAnswer("NOT_FOUND", null, "", "{\"type\":\"CONFIRM_SAVE_NOTE\",\"note\":"
+                        + "{\"kind\":\"FINANCIAL_CHANGE\",\"changeId\":" + changeId + "}}")));
+
+        chat("합병 관련 변경을 알려주고 영업이익 변경은 노트에 담아줘")
+                .andExpect(jsonPath("$.status").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.answer").doesNotExist())
+                .andExpect(jsonPath("$.actions[0].type").value("CONFIRM_SAVE_NOTE"));
+    }
+
+    @Test
     @DisplayName("조회 Tool을 실행했는데 못 찾은 조회·저장 복합 요청은 확인 버튼이 있어도 NOT_FOUND를 감추지 않는다")
     void lookupAndConfirmNotFoundStaysNotFound() throws Exception {
         AI.on(STEPS, twoSteps("{\"callId\":\"c1\",\"name\":\"search_text_changes\",\"arguments\":{\"q\":\"합병\"}}",
