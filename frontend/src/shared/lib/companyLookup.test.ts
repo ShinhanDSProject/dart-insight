@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isLookupQuery, nextResultFocus } from './companyPicker'
+import { isLookupQuery, nextResultFocus } from './companyLookup'
 
 describe('기업 고르기 검색어', () => {
   it('앞뒤 공백을 뺀 2자 이상만 찾는다', () => {

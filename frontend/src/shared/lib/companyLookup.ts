@@ -1,4 +1,4 @@
-/** 기업 고르기 칸의 검색어 규칙(첫 화면 검색과 같은 2자 이상) */
+/** 작은 기업 찾기 칸(기업 나란히 보기의 기업 고르기, 상단 바 검색창 #655)의 검색어 규칙(첫 화면 검색과 같은 2자 이상) */
 export const MIN_LOOKUP_LENGTH = 2
 
 export function isLookupQuery(query: string): boolean {
