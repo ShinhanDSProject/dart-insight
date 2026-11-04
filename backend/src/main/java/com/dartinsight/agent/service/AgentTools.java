@@ -30,6 +30,7 @@ import com.dartinsight.document.service.DocumentService;
 import com.dartinsight.explanation.domain.ExplanationStatus;
 import com.dartinsight.explanation.dto.TextExplanationResponse;
 import com.dartinsight.explanation.service.ExplanationService;
+import com.dartinsight.question.domain.QuestionStatus;
 import com.dartinsight.question.dto.QuestionResponse;
 import com.dartinsight.question.service.QuestionService;
 import com.dartinsight.relateddisclosure.domain.ChangeRelatedDisclosures;
@@ -272,7 +273,8 @@ public class AgentTools {
             lines.add(new ToolLine(Evidence.financialChange(f.changeId(), f.sjDiv(), f.accountName(), null,
                     f.sentence()), "[" + f.sjDiv() + ", changeId " + f.changeId() + "] " + f.sentence()));
         }
-        return new Output(lines, new AskedQuestion(response.questionId(), response.citations().size()));
+        return new Output(lines, new AskedQuestion(response.questionId(), response.citations().size(),
+                response.status() == QuestionStatus.ANSWERED));
     }
 
     /** 저장된 요약만(새로 만들지 않음). 재무 설명 등급과 인용을 그대로 넘긴다(ADR-0015) */
