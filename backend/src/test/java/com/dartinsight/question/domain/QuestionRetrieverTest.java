@@ -39,6 +39,20 @@ class QuestionRetrieverTest {
     }
 
     @Test
+    @DisplayName("대표 질문(소송 관련 변경, 매출이 늘어난 이유)은 '변경 사항'이 많은 문단이 아니라 주제 문단을 후보로 찾는다(#622)")
+    void representativeQuestionsFindTopicParagraphs() {
+        List<DocumentBlock> current = List.of(
+                paragraph(CUR, 1, "회계정책의 변경 사항은 없으며 변경된 기준서의 적용 사항을 설명합니다."),
+                paragraph(CUR, 2, "당사는 특허 침해 소송을 제기받았습니다."),
+                paragraph(CUR, 3, "매출은 메모리 수요 회복으로 전년 동기 대비 증가했습니다."));
+
+        assertThat(QuestionRetriever.sources("소송 관련 변경 사항을 설명해줘", current, Map.of(), List.of(), Map.of()))
+                .extracting(QuestionSource::evidenceId).containsExactly(CUR + "#B2");
+        assertThat(QuestionRetriever.sources("매출이 늘어난 이유를 회사는 어떻게 설명했나요?", current, Map.of(), List.of(),
+                Map.of())).extracting(QuestionSource::evidenceId).first().isEqualTo(CUR + "#B3");
+    }
+
+    @Test
     @DisplayName("2자 낱말은 조사처럼 보여도 떼지 않는다")
     void shortTokensKeepTheirLastLetter() {
         assertThat(QuestionRetriever.stripParticle("주가")).isEqualTo("주가");
