@@ -4,27 +4,36 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Analysis } from '@/shared/api/analyses'
-import type { TextChangeCounts, TextChangeItem, TextChangeList } from '@/shared/api/textChanges'
+import type { TextChangeCounts, TextChangeItem, TextChangeList, TextField, TextListing } from '@/shared/api/textChanges'
 import { axeViolations } from '@/test/axe'
+import type { TextListState } from '../model/textList'
 import { TextTab } from './TextTab'
 
 // 카드 키보드 검토(#311)만 보도록 목록·고정·풀이 훅을 바꿔 끼운다
 const pins = vi.hoisted(() => ({ toggle: vi.fn(), ids: [] as number[] }))
-const list = vi.hoisted(() => ({ items: [] as TextChangeItem[], riskCounts: null as TextChangeCounts | null }))
+const list = vi.hoisted(() => ({
+  items: [] as TextChangeItem[],
+  riskCounts: null as TextChangeCounts | null,
+  counts: null as TextChangeCounts | null,
+  listing: null as TextListing | null,
+  state: null as TextListState | null,
+  reload: vi.fn(),
+}))
 vi.mock('../hooks/useTextChanges', () => ({
   useTextChanges: () => ({
-    state: {
+    state: list.state ?? {
       status: 'success',
       data: { page: 0, totalItems: list.items.length, items: list.items } as unknown as TextChangeList,
       items: list.items,
       more: { status: 'idle' },
     },
-    counts: null,
+    counts: list.counts,
     sections: [],
     riskCounts: list.riskCounts,
+    listing: list.listing,
     contentAvailable: false,
     type: null,
-    reload: () => {},
+    reload: list.reload,
     loadMore: () => {},
   }),
   // 원문 비교 창의 내용은 TextEvidencePanel 테스트가 본다. 여기서는 창이 열리고 닫히는 것만 본다
@@ -55,6 +64,10 @@ beforeEach(() => {
   pins.toggle.mockReset()
   pins.ids = []
   list.riskCounts = null
+  list.counts = null
+  list.listing = null
+  list.state = null
+  list.reload.mockReset()
 })
 afterEach(cleanup)
 
@@ -100,6 +113,7 @@ function renderTab(onChange = vi.fn()) {
           section={null}
           q={null}
           risk={false}
+          field={null}
           pinned={false}
           selectedChangeId={null}
           onChange={onChange}
@@ -198,6 +212,7 @@ describe('TextTab 원문 비교(#507)', () => {
             section={null}
             q={null}
             risk={false}
+            field={null}
             pinned={false}
             selectedChangeId={selected}
             onChange={(change) => {
@@ -262,6 +277,7 @@ describe('TextTab 종류 안내(#393)', () => {
             section={null}
             q={null}
             risk={false}
+            field={null}
             pinned={false}
             selectedChangeId={null}
             onChange={vi.fn()}
@@ -292,6 +308,7 @@ describe('TextTab 위험 요인 변화(3.9, FS-61)', () => {
             section={null}
             q={null}
             risk={risk}
+            field={null}
             pinned={false}
             selectedChangeId={null}
             onChange={onChange}
@@ -360,6 +377,122 @@ describe('TextTab 위험 요인 변화(3.9, FS-61)', () => {
     list.items = [item(1, '5. 위험관리 및 파생거래')]
     list.riskCounts = { ...zero, all: 2, added: 1, modified: 1 }
     renderRisk(false)
+    expect(await axeViolations(document.body)).toBe('')
+  })
+})
+
+describe('TextTab 분야별 표(3.28)', () => {
+  const listing: TextListing = {
+    listVersion: 'text-list-1',
+    fieldCounts: { LITIGATION: 38, CONTRACT: 11, BUSINESS: 247, DIVIDEND: 0, FUNDING: 46, BOARD: 93, SHAREHOLDER: 0, AUDIT: 15, OTHER: 132 },
+    missingFields: ['SHAREHOLDER'],
+  }
+
+  function renderFields(field: TextField | null, onChange = vi.fn(), items: TextChangeItem[] = [item(1, '1. 사업의 개요')]) {
+    list.items = items
+    render(
+      <MemoryRouter>
+        <main>
+          <TextTab
+            analysis={analysis}
+            type={null}
+            sort="priority"
+            section={null}
+            q={null}
+            risk={false}
+            field={field}
+            pinned={false}
+            selectedChangeId={null}
+            onChange={onChange}
+            onOpenSource={() => {}}
+            onAsk={() => {}}
+            asking={false}
+          />
+        </main>
+      </MemoryRouter>,
+    )
+    return onChange
+  }
+
+  const table = () => within(screen.getByRole('group', { name: '분야별 변경' }))
+
+  it('9칸과 합계를 보이고 0건과 섹션 없음을 구분한다(AC1, AC2)', () => {
+    list.listing = listing
+    renderFields(null)
+    expect(table().getAllByRole('button')).toHaveLength(9)
+    expect(screen.getByText('합계 582건')).toBeTruthy()
+    expect(table().getByRole('button', { name: /소송·제재.*38건/ })).toBeTruthy()
+    expect(table().getByRole('button', { name: /배당.*확인된 변화 없음/ })).toBeTruthy()
+    expect(table().getByRole('button', { name: /주주.*보고서에 해당 내용 없음/ })).toBeTruthy()
+  })
+
+  it('칸을 누르면 그 분야로 거르고 고른 칸을 표시한다(AC3)', () => {
+    list.listing = listing
+    const onChange = renderFields(null)
+    fireEvent.click(table().getByRole('button', { name: /감사/ }))
+    expect(onChange).toHaveBeenCalledWith({ field: 'AUDIT' })
+  })
+
+  it('고른 칸을 다시 누르거나 전체 분야 보기를 누르면 풀린다', () => {
+    list.listing = listing
+    const onChange = renderFields('AUDIT')
+    const cell = table().getByRole('button', { name: /감사/ })
+    expect(cell.getAttribute('aria-pressed')).toBe('true')
+    fireEvent.click(cell)
+    expect(onChange).toHaveBeenLastCalledWith({ field: null })
+    onChange.mockClear()
+    fireEvent.click(screen.getByRole('button', { name: '전체 분야 보기' }))
+    expect(onChange).toHaveBeenLastCalledWith({ field: null })
+  })
+
+  it('0건 칸은 누를 수 없다', () => {
+    list.listing = listing
+    renderFields(null)
+    expect((table().getByRole('button', { name: /배당/ }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('분야를 고르면 분석 전체를 센 유형 건수를 칩에 보이지 않는다', () => {
+    list.listing = listing
+    list.counts = { all: 900, added: 1, deleted: 1, modified: 1, numericUpdate: 0, moved: 0, reviewNeeded: 0 }
+    renderFields('AUDIT')
+    const chips = within(screen.getByRole('group', { name: '변경 유형' }))
+    expect(chips.queryByText(/900/)).toBeNull()
+  })
+
+  it('고른 분야에 변경이 없으면 그 분야가 없다고 안내하고 풀 수 있다', () => {
+    list.listing = listing
+    const onChange = renderFields('DIVIDEND', vi.fn(), [])
+    expect(screen.getByText('배당 변경이 없어요.')).toBeTruthy()
+    fireEvent.click(within(screen.getByText('배당 변경이 없어요.').parentElement as HTMLElement).getByRole('button', { name: '전체 분야 보기' }))
+    expect(onChange).toHaveBeenLastCalledWith({ field: null })
+  })
+
+  it('옛 분석이면 표가 없고 주소의 분야는 없는 것으로 본다', () => {
+    list.listing = { listVersion: null, fieldCounts: null, missingFields: null }
+    renderFields('AUDIT', vi.fn(), [])
+    expect(screen.queryByRole('group', { name: '분야별 변경' })).toBeNull()
+    expect(screen.getByText('두 보고서 사이에 바뀐 문장·표가 없어요.')).toBeTruthy()
+  })
+
+  it('첫 응답을 기다리는 동안 표 자리에 로딩을 보인다', () => {
+    list.state = { status: 'loading' }
+    renderFields(null)
+    expect(screen.getByText('분야별 변경을 불러오는 중입니다…')).toBeTruthy()
+  })
+
+  it('첫 조회가 실패하면 표는 그리지 않고 오류와 다시 시도를 보인다(AC11)', () => {
+    list.state = { status: 'error', error: new Error('실패') }
+    renderFields(null)
+    expect(screen.queryByRole('group', { name: '분야별 변경' })).toBeNull()
+    expect(screen.queryByText('두 보고서 사이에 바뀐 문장·표가 없어요.')).toBeNull()
+    expect(screen.queryByText('분야별 변경을 불러오는 중입니다…')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
+    expect(list.reload).toHaveBeenCalled()
+  })
+
+  it('접근성 위반이 없다', async () => {
+    list.listing = listing
+    renderFields('AUDIT')
     expect(await axeViolations(document.body)).toBe('')
   })
 })

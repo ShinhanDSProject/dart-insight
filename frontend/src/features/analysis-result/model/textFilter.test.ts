@@ -33,6 +33,13 @@ describe('parseTextSearch', () => {
   })
 })
 
+describe('sectionOptions 건수 숨기기(3.28)', () => {
+  it('withCounts가 false면 건수 없이 이름만 붙인다', () => {
+    const options = sectionOptions([{ title: 'II. 사업의 내용', count: 31 }], '없는 섹션', false)
+    expect(options.map((o) => o.label)).toEqual(['전체 섹션', 'II. 사업의 내용', '없는 섹션'])
+  })
+})
+
 describe('sectionOptions', () => {
   const sections = [
     { title: 'II. 사업의 내용', count: 1234 },

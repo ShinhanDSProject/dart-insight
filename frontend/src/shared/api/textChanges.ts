@@ -11,6 +11,8 @@ export type ChangeType = 'ADDED' | 'DELETED' | 'MODIFIED' | 'NUMERIC_UPDATE' | '
 export type BlockType = 'PARAGRAPH' | 'TABLE' | 'SECTION'
 export type PriorityLevel = 'HIGH' | 'MEDIUM' | 'LOW' | 'UNRANKED'
 export type TextSort = 'priority' | 'document'
+/** 변경의 분야(2.9). 목차 제목으로 나눈 것이라 실제 내용과 다를 수 있다 */
+export type TextField = 'LITIGATION' | 'CONTRACT' | 'BUSINESS' | 'DIVIDEND' | 'FUNDING' | 'BOARD' | 'SHAREHOLDER' | 'AUDIT' | 'OTHER'
 
 export interface ChangePriority {
   level: PriorityLevel
@@ -82,8 +84,19 @@ export interface TextChangeList {
   riskCounts: TextChangeCounts
   /** 이 분석에 변경이 있는 최상위 섹션 전부(문서 순서) */
   sections: TextSectionCount[]
+  /** 요청에 쓴 분야. 없거나 옛 분석이면 null */
+  field: TextField | null
+  /** 분류 규칙 버전. 옛 분석이거나 변경이 없는 분석이면 null */
+  listVersion: string | null
+  /** 분야별 기본 목록 건수. 거르기와 상관없이 분석 전체를 센다. listVersion이 null이면 null */
+  fieldCounts: Record<TextField, number> | null
+  /** 두 보고서 어느 쪽에도 그 분야의 섹션이 없는 분야. listVersion이 null이면 null */
+  missingFields: TextField[] | null
   items: TextChangeItem[]
 }
+
+/** 분야별 표에 쓰는 응답 값(3.28) */
+export type TextListing = Pick<TextChangeList, 'listVersion' | 'fieldCounts' | 'missingFields'>
 
 export interface TextChangeQuery {
   /** 그중 하나에 맞는 변경만(#304). 비었으면 전체 */
@@ -95,6 +108,8 @@ export interface TextChangeQuery {
   q: string | null
   /** true면 위험 관련 목차의 변경만(3.9). 없으면 전체 */
   risk?: boolean
+  /** 그 분야의 변경만(3.28). 없으면 전체 */
+  field?: TextField | null
   page: number
   size?: number
 }
@@ -107,6 +122,7 @@ export function textChangeParams(query: TextChangeQuery) {
     section: query.section ?? undefined,
     q: query.q ?? undefined,
     risk: query.risk ? true : undefined,
+    field: query.field ?? undefined,
     page: query.page,
     size: query.size ?? 20,
   }

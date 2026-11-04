@@ -1,17 +1,18 @@
 import type { DocumentSide } from '@/shared/api/documents'
 import type { SjDiv } from '@/shared/api/results'
 import type { SummaryLens } from '@/shared/api/summary'
-import type { ChangeType, TextSort } from '@/shared/api/textChanges'
+import type { ChangeType, TextField, TextSort } from '@/shared/api/textChanges'
 import { positiveInt, type ParamChanges } from '@/shared/lib/searchParams'
 import { parseUnit, type AmountUnit } from './format'
 import { parseSummaryLens, type SummaryView } from './summaryLens'
 import { accountQueryOf } from './accountFilter'
 import type { FinancialTableOrder } from './financialSort'
 import { CONTENT_FILTER, searchQueryOf, type TextTypeFilter } from './textFilter'
+import { parseTextField } from './textFields'
 
 /**
  * W-03 결과 화면의 주소 상태(ST-6).
- * ?tab=overview 기업 개요(#589), ?slens=&sview= 요약(관점 거르기·보기), ?tab=&sj=&changed=&unit=&fq=&fsort=&change= 재무 수치, ?tab=community 커뮤니티(#575), ?tab=news 뉴스(#592), ?ttype=&tsort=&tsec=&tq=&trisk=&tpin=&tc= 문장 변화, ?doc=&section=&block= 원문 확인
+ * ?tab=overview 기업 개요(#589), ?slens=&sview= 요약(관점 거르기·보기), ?tab=&sj=&changed=&unit=&fq=&fsort=&change= 재무 수치, ?tab=community 커뮤니티(#575), ?tab=news 뉴스(#592), ?ttype=&tsort=&tsec=&tq=&trisk=&tfield=&tpin=&tc= 문장 변화, ?doc=&section=&block= 원문 확인
  */
 export type ResultTab = 'overview' | 'summary' | 'financial' | 'text' | 'community' | 'news' | 'source'
 
@@ -50,6 +51,8 @@ export interface ResultParams {
   textQuery: string | null
   /** 위험 관련 목차의 변경만 보는지(3.9, trisk=1) */
   textRisk: boolean
+  /** 분야별 표에서 고른 분야(3.28, tfield). null이면 전체 */
+  textField: TextField | null
   /** 고정한 변경만 보는지(3.3, tpin=1) */
   textPinned: boolean
   /** 근거를 보고 있는 문장 변경(3.4) */
@@ -79,6 +82,7 @@ export function parseResultParams(params: URLSearchParams): ResultParams {
     textSection: params.get('tsec')?.trim() || null,
     textQuery: searchQueryOf(params.get('tq') ?? ''),
     textRisk: params.get('trisk') === '1',
+    textField: parseTextField(params.get('tfield')),
     textPinned: params.get('tpin') === '1',
     selectedTextChangeId: positiveInt(params.get('tc')),
     sourceSide: params.get('doc') === 'previous' ? 'previous' : 'current',
@@ -124,7 +128,9 @@ export interface TextViewChange {
   q?: string | null
   /** 위험 관련 목차의 변경만 보기(3.9) */
   risk?: boolean
-  /** 고정한 변경만 보기(3.3). 켜면 유형·섹션·검색어·위험 관련을 지운다 */
+  /** 분야별 표의 칸(3.28). 고르면 칸의 건수와 맞도록 유형·섹션·검색어·위험 관련·고정 보기를 지운다 */
+  field?: TextField | null
+  /** 고정한 변경만 보기(3.3). 켜면 유형·섹션·검색어·위험 관련·분야를 지운다 */
   pinned?: boolean
   change?: number | null
 }
@@ -160,14 +166,21 @@ export function textParamChanges(c: TextViewChange): ParamChanges {
     ...(c.section !== undefined ? { tsec: c.section, tpin: null, tc: null } : {}),
     ...(c.q !== undefined ? { tq: c.q, tpin: null, tc: null } : {}),
     ...(c.risk !== undefined ? { trisk: c.risk ? '1' : null, tpin: null, tc: null } : {}),
+    ...(c.field !== undefined ? fieldParamChanges(c.field) : {}),
     ...(c.pinned !== undefined ? pinnedParamChanges(c.pinned) : {}),
     ...(c.change !== undefined ? { tc: idParam(c.change) } : {}),
   }
 }
 
-/** '고정' 보기를 켜면 유형·섹션·검색어·위험 관련을 지우고, 끄면 '고정'만 지운다. 어느 쪽이든 보던 근거를 닫는다 */
+/** 칸을 고르면 목록이 칸의 건수와 맞도록 다른 거르기를 지우고, 풀면 분야만 지운다. 어느 쪽이든 보던 근거를 닫는다 */
+function fieldParamChanges(field: TextField | null): ParamChanges {
+  if (field === null) return { tfield: null, tc: null }
+  return { tfield: field, ttype: null, tsec: null, tq: null, trisk: null, tpin: null, tc: null }
+}
+
+/** '고정' 보기를 켜면 유형·섹션·검색어·위험 관련·분야를 지우고, 끄면 '고정'만 지운다. 어느 쪽이든 보던 근거를 닫는다 */
 function pinnedParamChanges(pinned: boolean): ParamChanges {
-  if (pinned) return { tpin: '1', ttype: null, tsec: null, tq: null, trisk: null, tc: null }
+  if (pinned) return { tpin: '1', ttype: null, tsec: null, tq: null, trisk: null, tfield: null, tc: null }
   return { tpin: null, tc: null }
 }
 
@@ -191,7 +204,7 @@ export function openFinancialChanges(sjDiv: SjDiv, changeId: number): ParamChang
 
 /** 요약에서 문장 변화 탭의 그 변경 근거로 간다(거르기·정렬·섹션·검색어·위험 관련은 기본값) */
 export function openTextChanges(changeId: number): ParamChanges {
-  return { tab: 'text', ttype: null, tsort: null, tsec: null, tq: null, trisk: null, tpin: null, tc: String(changeId) }
+  return { tab: 'text', ttype: null, tsort: null, tsec: null, tq: null, trisk: null, tfield: null, tpin: null, tc: String(changeId) }
 }
 
 /** 요약의 변화 개요에서 재무 수치 탭을 '변경 항목만'으로 연다(계정 찾기는 지운다). 재무제표를 주지 않으면 고른 것을 그대로 둔다 */
@@ -201,7 +214,7 @@ export function openChangedAccounts(sjDiv: SjDiv | null): ParamChanges {
 
 /** 요약의 변화 개요에서 문장 변화 탭을 그 유형으로 거른다(null이면 전체). 개요 건수와 맞도록 위험 관련 거르기는 끈다 */
 export function openTextList(type: ChangeType | null): ParamChanges {
-  return { tab: 'text', ttype: type, tsort: null, trisk: null, tpin: null, tc: null }
+  return { tab: 'text', ttype: type, tsort: null, trisk: null, tfield: null, tpin: null, tc: null }
 }
 
 /**
@@ -209,12 +222,12 @@ export function openTextList(type: ChangeType | null): ParamChanges {
  * 맨 위에 그 변경들이 오도록 유형·섹션·검색어·위험 관련·고정 거르기를 모두 지운다(우선순위 수준 거르기는 API에 없음)
  */
 export function openPriorityList(): ParamChanges {
-  return { tab: 'text', ttype: null, tsort: null, tsec: null, tq: null, trisk: null, tpin: null, tc: null }
+  return { tab: 'text', ttype: null, tsort: null, tsec: null, tq: null, trisk: null, tfield: null, tpin: null, tc: null }
 }
 
 /** 요약의 섹션별 문장 변경 막대에서 문장 변화 탭을 그 최상위 섹션으로 거른다(#295). 막대 건수와 맞도록 유형·검색어·위험 관련은 지운다 */
 export function openTextSection(section: string): ParamChanges {
-  return { tab: 'text', ttype: null, tsort: null, tsec: section, tq: null, trisk: null, tpin: null, tc: null }
+  return { tab: 'text', ttype: null, tsort: null, tsec: section, tq: null, trisk: null, tfield: null, tpin: null, tc: null }
 }
 
 /**
@@ -232,5 +245,5 @@ export function openAsk(): ParamChanges {
 
 /** AI 질문에서 찾지 못한 질문을 문장 변화 탭의 검색으로 넘긴다(유형·정렬·섹션·위험 관련은 기본값). 낱말이 없으면 검색 없이 연다 */
 export function openTextSearch(q: string | null): ParamChanges {
-  return { tab: 'text', ttype: null, tsort: null, tsec: null, tq: q, trisk: null, tpin: null, tc: null }
+  return { tab: 'text', ttype: null, tsort: null, tsec: null, tq: q, trisk: null, tfield: null, tpin: null, tc: null }
 }

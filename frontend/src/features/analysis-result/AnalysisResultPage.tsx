@@ -295,6 +295,7 @@ function ResultTabPanel({ analysis, params, update, chat, onAskChat, suggestions
         section={params.textSection}
         q={params.textQuery}
         risk={params.textRisk}
+        field={params.textField}
         pinned={params.textPinned}
         selectedChangeId={params.selectedTextChangeId}
         onChange={(c) => update(textParamChanges(c))}
