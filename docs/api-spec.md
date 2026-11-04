@@ -2939,7 +2939,7 @@
   | `FINANCIAL_CHANGE` | `F{changeId}` | `changeId`, `sjDiv`, `accountName`, `rceptNo`(현재 보고서), `sentence`(코드가 저장된 계산 결과로 만든 사실 문장) |
   | `DISCLOSURE` | `D{rceptNo}` | `rceptNo`, `reportName`, `rceptDt`, `dartUrl`(수시공시·공시 목록, 보조 근거) |
   | `REPORT_VALUE` | `{rceptNo}#V{n}` | `rceptNo`, `reportName`, `source`(`FINANCIAL_TREND`·`KEY_FACT`·`CHECKPOINT`·`DISCLOSURE_KEY_ITEM`), `label`(항목 이름), `value`·`unit`·`currency`(그 API가 준 값 그대로), `dartUrl`. `n`은 한 요청 안에서 backend가 붙인 번호이고, `rceptNo`는 값의 근거 접수번호(`sourceRceptNo`가 있으면 그것) |
-  | `COMPANY` | `C{corpCode}` | `corpCode`, `corpName`, `label`, `value`(기업 개황 `GET /api/companies/{corpCode}/overview`의 값) |
+  | `COMPANY` | `C{corpCode}` | `corpCode`, `corpName`, `label`, `value`(기업 개황 `GET /api/companies/{corpCode}/overview`의 값). 기업 검색(`search_companies`) 결과면 `label`은 `기업 검색`, `value`는 종목코드(비상장이면 null) |
 
 - 재무 계정 변화·원문 문단 근거가 저장된 요약의 설명 인용이면 `grade`(`STATED`·`RELATED`)가 함께 옵니다. `grade`가 없는 근거는 이번 요청에서 Tool로 새로 찾은 문장이고, 화면은 원인 설명처럼 보이지 않게 '관련 문장'으로 표시합니다. 에이전트는 새 설명 등급을 만들지 않습니다(ADR-0015, 변경 원인 추적).
 
@@ -3570,7 +3570,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 
 | Tool | 인자 | 실행하는 기존 기능 | 결과 근거 ID |
 | --- | --- | --- | --- |
-| `search_companies` | `query` | `GET /api/companies?query=` | — |
+| `search_companies` | `query` | `GET /api/companies?query=` | `C{corpCode}`(후보 기업. 같은 이름이 여럿이면 답이 후보를 인용해 되묻는 데 씀, AC27) |
 | `get_company_overview` | `corpCode` | `GET /api/companies/{corpCode}/overview` | `C{corpCode}` |
 | `get_financial_trends` | `corpCode` | `GET /api/companies/{corpCode}/financial-trends` | `{rceptNo}#V{n}` |
 | `get_key_facts` | `corpCode` | `GET /api/companies/{corpCode}/key-facts`(최대주주·임원·배당) | `{rceptNo}#V{n}` |
