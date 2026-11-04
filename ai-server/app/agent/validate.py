@@ -54,6 +54,7 @@ ANSWER_TOO_LONG = "ANSWER_TOO_LONG"
 BRIEF_LINE_WITHOUT_EVIDENCE = "BRIEF_LINE_WITHOUT_EVIDENCE"
 BRIEF_FORMAT = "BRIEF_FORMAT"
 BRIEF_LINE_COUNT = "BRIEF_LINE_COUNT"
+BRIEF_DUPLICATE_LINE = "BRIEF_DUPLICATE_LINE"
 # 정리 형식 줄의 머리와, 줄 끝 근거 표시(뒤 공백만 허용)
 BRIEF_BULLET = "- "
 _ENDS_WITH_MARKER = re.compile(r"\[[^\[\]\n]+\]\s*$")
@@ -329,20 +330,30 @@ def _brief_problem(
             "정리 형식은 줄마다 '- '로 시작하고 줄 끝에 근거 표시를 붙여야 합니다"
             f"(맞지 않는 줄: '{malformed[0][:40]}')."
         )
+    bodies = [_compact(without_markers(line)) for line in lines]
+    if len(set(bodies)) < len(bodies):
+        # 같은 내용을 되풀이해 줄 수를 채우지 않게 한다
+        return (
+            BRIEF_DUPLICATE_LINE,
+            "정리 형식에 같은 내용의 줄이 있습니다. 줄마다 다른 내용을 쓰세요.",
+        )
     requested = requested_lines(step.message)
-    if requested is not None:
-        # 근거가 줄 수보다 적으면 그만큼만 쓰게 둔다(지어내서 줄 수를 채우지 않게)
-        least = min(requested, len(evidence))
-        if not least <= len(lines) <= requested:
-            return BRIEF_LINE_COUNT, (
-                f"사용자가 {requested}줄을 요청했습니다. {requested}줄로 쓰세요. "
-                "Tool 결과의 근거가 모자라면 근거가 있는 만큼만 쓰고 내용을 지어내지 마세요."
-            )
+    # 줄 수는 근거 ID 수로 정하지 않는다(근거 하나에 사실이 여럿일 수 있음). 지어낸 줄은 줄마다
+    # 근거·숫자 검사와 같은 내용 되풀이 검사로 막는다
+    if requested is not None and len(lines) != requested:
+        return BRIEF_LINE_COUNT, (
+            f"사용자가 {requested}줄을 요청했습니다. {requested}줄로 쓰세요. "
+            "같은 내용을 되풀이하거나 Tool 결과에 없는 내용으로 줄을 채우지 마세요."
+        )
     for line in lines:
         rule, problem = _sentence_problem(line, evidence)
         if problem:
             return rule, problem
     return "", None
+
+
+def _compact(text: str) -> str:
+    return re.sub(r"[\s.,!?·'\"~-]+", "", text)
 
 
 def _sentences(answer: str) -> list[str]:
