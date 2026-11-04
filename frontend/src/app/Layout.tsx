@@ -4,7 +4,7 @@ import { match } from 'ts-pattern'
 import { BrandLogo } from '@/shared/ui/BrandLogo'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { Icon, type IconName } from '@/shared/ui/Icon'
-import { useCurrentCompany } from '@/shared/hooks/useCurrentCompany'
+import { useRecentCompanies } from '@/shared/hooks/useCurrentCompany'
 import { companyLink, type CurrentCompany } from '@/shared/lib/currentCompany'
 import { useAuth } from '@/shared/auth/authContext'
 import { NotificationMenu } from '@/features/notifications/components/NotificationMenu'
@@ -32,15 +32,16 @@ const MENU_ID = 'app-header-menu'
  * - 상단 바: 로고(첫 화면), 둥근 기업 검색(첫 화면 밖, 기업·분석 화면에서는 그 기업 이름), 기업 나란히 보기·내 판단 노트, 화면 테마, 로그인/알림.
  *   로그인 전 버튼은 시안처럼 '로그인' 하나다(회원가입은 로그인 화면의 링크, FS-69).
  *   좁은 화면(900px 이하)에서는 로고 옆 메뉴 버튼으로 접는다. 화면을 옮기면 접힌다.
- * - '지금 보는 기업' 줄(#502, #589): 마지막으로 연 기업이 있으면 상단 바 아래에 기업 이름(누르면 마지막 분석 결과, #572)과 종목코드를 둔다.
- *   기업은 기업·분석 화면이 남긴 값으로 정한다(데이터를 따로 불러오지 않음). 기업 개요는 분석 결과 탭 줄에 있다.
+ * - '최근 본 기업' 줄(#502, #589, #652): 연 기업이 있으면 상단 바 아래에 최근 기업 3개까지 가장 최근 것부터 왼쪽에 둔다.
+ *   각 기업은 이름(누르면 그 기업의 마지막 분석 결과, #572)과 종목코드다. 기업은 기업·분석 화면이 남긴 값으로 정한다(데이터를 따로 불러오지 않음). 기업 개요는 분석 결과 탭 줄에 있다.
  * - 하단 바: 출처·AI 안내와 이용 안내·단축키·AI 사용 현황.
  */
 export function Layout() {
   const { pathname, search } = useLocation()
   const { corpCode, analysisId } = useParams()
   const auth = useAuth()
-  const current = useCurrentCompany()
+  const recent = useRecentCompanies()
+  const current = recent[0] ?? null
   const [noticeOpen, setNoticeOpen] = useState(false)
   // 메뉴를 연 주소. 주소가 바뀌면(화면 이동) 따로 닫지 않아도 접힌다
   const [menuOpenAt, setMenuOpenAt] = useState<string | null>(null)
@@ -127,8 +128,8 @@ export function Layout() {
       </header>
 
       <div className="app-workspace">
-        {current !== null && (
-          <CompanyNav company={current} />
+        {recent.length > 0 && (
+          <CompanyNav companies={recent} />
         )}
         <main className="app-main" id="main" tabIndex={-1}>
           <Outlet />
@@ -172,20 +173,24 @@ function NavLink({ item, active }: { item: NavItem; active: Section | null }) {
   )
 }
 
-/** '지금 보는 기업' 줄(#502, #548, #589). 기업 이름과 종목코드만 둔다 */
-function CompanyNav({ company }: { company: CurrentCompany }) {
+/** '최근 본 기업' 줄(#502, #548, #589, #652). 맨 앞(가장 최근, 지금 보는 기업)을 진하게, 나머지는 흐리게 둔다 */
+function CompanyNav({ companies }: { companies: CurrentCompany[] }) {
   return (
     <nav className="app-context" aria-labelledby="app-context-title">
       <div className="app-context__inner">
         <p className="app-context__title" id="app-context-title">
-          지금 보는 기업
+          최근 본 기업
         </p>
-        <p className="app-context__company">
-          <Link to={companyLink(company)} className="app-context__name">
-            {company.corpName}
-          </Link>
-          {company.stockCode && <span className="app-context__code">{company.stockCode}</span>}
-        </p>
+        <ul className="app-context__list">
+          {companies.map((company, index) => (
+            <li key={company.corpCode} className={index === 0 ? 'app-context__company app-context__company--current' : 'app-context__company'}>
+              <Link to={companyLink(company)} className="app-context__name">
+                {company.corpName}
+              </Link>
+              {company.stockCode && <span className="app-context__code">{company.stockCode}</span>}
+            </li>
+          ))}
+        </ul>
       </div>
     </nav>
   )

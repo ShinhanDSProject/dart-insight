@@ -6,7 +6,7 @@ import { AuthContext, type AuthContextValue } from '@/shared/auth/authContext'
 import { axeViolations } from '@/test/axe'
 import { Layout } from './Layout'
 
-vi.mock('@/shared/hooks/useCurrentCompany', () => ({ useCurrentCompany: () => null }))
+vi.mock('@/shared/hooks/useCurrentCompany', () => ({ useRecentCompanies: () => [] }))
 
 const anonymousAuth: AuthContextValue = {
   state: { status: 'anonymous' },

@@ -159,7 +159,7 @@ function ExportMenu({ analysis }: { analysis: Analysis }) {
  * 완료된 분석의 결과. AI 에이전트 채팅(ADR-0044)의 대화는 여기에 두어 탭을 바꿔도 패널과 대화가 남는다(AC20).
  * 채팅 패널은 탭 밖 오른쪽(SidePanel)이고, 근거 패널과 자리가 같아 근거를 보는 동안에는 숨긴다(대화는 남음).
  * 요약 카드·문장 변화·재무 근거의 'AI에게 묻기'는 그 요청을 지금 화면 맥락과 함께 채팅으로 보낸다.
- * 열면 검색 화면의 '최근 본 분석'(FS-7)과 왼쪽 메뉴 '지금 보는 기업'(#502)에 남긴다.
+ * 열면 검색 화면의 '최근 본 분석'(FS-7)과 상단 '최근 본 기업'(#502, #652)에 남긴다.
  */
 function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
   useRecordRecentAnalysis(analysis)

@@ -1,8 +1,10 @@
 /**
- * 왼쪽 메뉴 '지금 보는 기업'(#502). 마지막으로 연 기업·분석을 브라우저(localStorage)에 남겨, 홈에 나갔다가도
+ * 상단 '최근 본 기업' 줄(#502, #652). 최근에 연 기업과 기업마다 마지막으로 연 분석을 브라우저(localStorage)에 남겨, 홈에 나갔다가도
  * 기업 이름으로 그 분석 결과에 돌아가게 한다(#572). 서버에는 보내지 않고, 저장을 쓸 수 없으면 이번 방문 동안만 기억한다.
  */
 export const CURRENT_COMPANY_KEY = 'dart-insight:current-company'
+/** 줄에 두는 기업 수(#652). 상단 줄이 좁아 몇 개만 둔다 */
+export const RECENT_COMPANY_LIMIT = 3
 /** 같은 탭 안에서 바뀐 것을 알리는 이벤트 이름(다른 탭은 storage 이벤트로 안다) */
 export const CURRENT_COMPANY_CHANGE_EVENT = 'dart-insight:current-company-change'
 
@@ -27,8 +29,8 @@ export interface CompanyVisit {
 }
 
 /**
- * 새로 연 화면으로 '지금 보는 기업'을 바꾼다. 같은 기업이면 모르는 값(종목코드·분석)은 전에 알던 것을 이어 쓰고,
- * 다른 기업이면 전 기업의 분석을 버린다.
+ * 새로 연 화면으로 기업 항목을 만든다. 같은 기업의 전 항목이 있으면 모르는 값(종목코드·분석)은 전에 알던 것을 이어 쓰고,
+ * 다른 기업(또는 처음 연 기업)이면 전 항목의 분석을 쓰지 않는다.
  */
 export function nextCurrentCompany(previous: CurrentCompany | null, visit: CompanyVisit): CurrentCompany {
   const same = previous !== null && previous.corpCode === visit.corpCode
@@ -54,38 +56,50 @@ export function companyLink(company: CurrentCompany): string {
     : `/analyses/${company.analysisId}`
 }
 
-/** 저장된 글을 읽는다. 모양이 맞지 않으면(옛 값·손댄 값) 없는 것으로 본다 */
-export function parseCurrentCompany(raw: string | null): CurrentCompany | null {
-  if (raw === null) return null
+/** 같은 기업을 다시 열면 그 항목을 맨 앞으로 옮긴다(#652). 가장 최근 기업이 맨 앞이고, 넘치면 가장 오래된 기업이 빠진다 */
+export function nextRecentCompanies(previous: CurrentCompany[], visit: CompanyVisit): CurrentCompany[] {
+  const same = previous.find((company) => company.corpCode === visit.corpCode) ?? null
+  const rest = previous.filter((company) => company.corpCode !== visit.corpCode)
+  return [nextCurrentCompany(same, visit), ...rest].slice(0, RECENT_COMPANY_LIMIT)
+}
+
+/** 저장된 글을 읽는다. 예전 값(기업 하나)도 읽고, 모양이 맞지 않는 항목(옛 값·손댄 값)은 버린다 */
+export function parseRecentCompanies(raw: string | null): CurrentCompany[] {
+  if (raw === null) return []
   try {
     const value: unknown = JSON.parse(raw)
-    if (typeof value !== 'object' || value === null) return null
-    const v = value as Record<string, unknown>
-    if (typeof v.corpCode !== 'string' || typeof v.corpName !== 'string') return null
-    const stockCode = typeof v.stockCode === 'string' ? v.stockCode : null
-    const analysisId = typeof v.analysisId === 'number' && Number.isInteger(v.analysisId) ? v.analysisId : null
-    const view = v.view === 'analysis' && analysisId !== null ? 'analysis' : 'company'
-    return { corpCode: v.corpCode, corpName: v.corpName, stockCode, analysisId, view }
+    const entries = Array.isArray(value) ? value : [value]
+    return entries.flatMap((entry) => parseEntry(entry) ?? []).slice(0, RECENT_COMPANY_LIMIT)
   } catch {
-    return null
+    return []
   }
 }
 
-/** 저장소가 없거나 읽다가 예외가 나면 null */
-export function loadCurrentCompany(storage: CurrentCompanyStorage | null): CurrentCompany | null {
-  if (storage === null) return null
+function parseEntry(value: unknown): CurrentCompany | null {
+  if (typeof value !== 'object' || value === null) return null
+  const v = value as Record<string, unknown>
+  if (typeof v.corpCode !== 'string' || typeof v.corpName !== 'string') return null
+  const stockCode = typeof v.stockCode === 'string' ? v.stockCode : null
+  const analysisId = typeof v.analysisId === 'number' && Number.isInteger(v.analysisId) ? v.analysisId : null
+  const view = v.view === 'analysis' && analysisId !== null ? 'analysis' : 'company'
+  return { corpCode: v.corpCode, corpName: v.corpName, stockCode, analysisId, view }
+}
+
+/** 저장소가 없거나 읽다가 예외가 나면 빈 목록 */
+export function loadRecentCompanies(storage: CurrentCompanyStorage | null): CurrentCompany[] {
+  if (storage === null) return []
   try {
-    return parseCurrentCompany(storage.getItem(CURRENT_COMPANY_KEY))
+    return parseRecentCompanies(storage.getItem(CURRENT_COMPANY_KEY))
   } catch {
-    return null
+    return []
   }
 }
 
 /** 저장했으면 true, 저장소가 없거나 실패하면 false */
-export function saveCurrentCompany(storage: CurrentCompanyStorage | null, company: CurrentCompany): boolean {
+export function saveRecentCompanies(storage: CurrentCompanyStorage | null, companies: CurrentCompany[]): boolean {
   if (storage === null) return false
   try {
-    storage.setItem(CURRENT_COMPANY_KEY, JSON.stringify(company))
+    storage.setItem(CURRENT_COMPANY_KEY, JSON.stringify(companies))
     return true
   } catch {
     return false
