@@ -20,6 +20,8 @@ export interface ChatState {
   exchanges: ChatExchange[]
   request: ChatRequest
   draft: string
+  /** 저장을 마친 확인 버튼(confirmKey). 패널을 닫았다 열어도 다시 저장하지 않게 대화와 함께 둔다 */
+  confirmed: string[]
 }
 
 export type ChatAction =
@@ -27,8 +29,14 @@ export type ChatAction =
   | { type: 'send'; message: string }
   | { type: 'answer'; response: ChatMessageResponse }
   | { type: 'fail'; error: unknown }
+  | { type: 'confirmed'; key: string }
 
-export const initialChatState: ChatState = { exchanges: [], request: { status: 'idle' }, draft: '' }
+export const initialChatState: ChatState = { exchanges: [], request: { status: 'idle' }, draft: '', confirmed: [] }
+
+/** 확인 버튼 하나를 가리키는 키: 답 번호와 그 답의 actions 안 순서 */
+export function confirmKey(exchangeId: number, actionIndex: number): string {
+  return `${exchangeId}:${actionIndex}`
+}
 
 /** 명세: 메시지는 앞뒤 공백을 뺀 2~500자, 최근 대화는 6개까지, 한 턴은 1,000자까지 */
 export const MIN_MESSAGE = 2
@@ -54,6 +62,8 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case 'fail':
       if (state.request.status !== 'sending') return state
       return { ...state, request: { status: 'error', message: state.request.message, error: action.error } }
+    case 'confirmed':
+      return state.confirmed.includes(action.key) ? state : { ...state, confirmed: [...state.confirmed, action.key] }
   }
 }
 

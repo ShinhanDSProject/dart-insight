@@ -14,22 +14,35 @@ const errorMessages: Record<string, string> = {
   AUTH_UNAUTHORIZED: '로그인이 끝났어요. 다시 로그인한 뒤 눌러 주세요.',
 }
 
+interface ChatConfirmActionProps {
+  target: ConfirmTarget
+  label: string
+  /** 이 버튼으로 이미 저장했다(채팅 상태에 남아 패널을 다시 열어도 유지) */
+  done: boolean
+  /** 저장이 끝났을 때 */
+  onDone: () => void
+}
+
 /**
  * 채팅의 쓰기 확인 버튼(AC9·AC10). 에이전트는 쓰지 않고 버튼만 보내며, 사용자가 누를 때만 저장한다.
  * 로그인하지 않았으면 버튼 대신 로그인 안내를 보이고 서버를 부르지 않는다.
+ * 저장을 마친 버튼은 다시 저장하지 않는다(노트는 같은 근거로 두 번 담기지 않게).
  */
-export function ChatConfirmAction({ target, label }: { target: ConfirmTarget; label: string }) {
+export function ChatConfirmAction({ target, label, done, onDone }: ChatConfirmActionProps) {
   const auth = useAuth()
   const save = useAsyncAction<unknown>()
 
   const confirm = () => {
-    void save.run(() =>
-      match(target)
-        .with({ kind: 'save-note' }, ({ note }) => createNote(note))
-        .with({ kind: 'favorite' }, ({ corpCode }) => addFavoriteCompany(corpCode))
-        .exhaustive(),
-    )
+    void save.run(async () => {
+      const saved = await match(target)
+        .with({ kind: 'save-note' }, ({ note }): Promise<unknown> => createNote(note))
+        .with({ kind: 'favorite' }, ({ corpCode }): Promise<unknown> => addFavoriteCompany(corpCode))
+        .exhaustive()
+      onDone()
+      return saved
+    })
   }
+  const state = done ? ({ status: 'success', data: null } as const) : save.state
 
   return match(auth.state)
     .with({ status: 'anonymous' }, () => (
@@ -43,7 +56,7 @@ export function ChatConfirmAction({ target, label }: { target: ConfirmTarget; la
     ))
     .with({ status: 'loading' }, { status: 'authenticated' }, ({ status }) => (
       <div className="chat-panel__confirm">
-        {match(save.state)
+        {match(state)
           .with({ status: 'success' }, () => (
             <p className="chat-panel__done" role="status">
               {match(target)

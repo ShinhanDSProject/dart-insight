@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ChatMessageResponse } from '@/shared/api/agentChat'
-import { chatMessageOf, chatReducer, historyOf, initialChatState, type ChatExchange } from './chatState'
+import { chatMessageOf, chatReducer, confirmKey, historyOf, initialChatState, type ChatExchange } from './chatState'
 
 const response = (answer: string | null, message: string | null = null): ChatMessageResponse => ({
   status: answer === null ? 'NOT_FOUND' : 'ANSWERED',
@@ -23,6 +23,13 @@ describe('chatReducer', () => {
     const answered = chatReducer(sending, { type: 'answer', response: response('1건이에요[1].') })
     expect(answered.request.status).toBe('idle')
     expect(answered.exchanges.map((e) => [e.id, e.message])).toEqual([[1, '소송 관련 변경']])
+  })
+
+  it('저장을 마친 확인 버튼을 답 번호·액션 순서로 한 번만 기억한다', () => {
+    const key = confirmKey(2, 0)
+    const once = chatReducer(initialChatState, { type: 'confirmed', key })
+    expect(once.confirmed).toEqual(['2:0'])
+    expect(chatReducer(once, { type: 'confirmed', key })).toBe(once)
   })
 
   it('보내는 중이 아니면 늦게 온 답·실패를 버린다', () => {

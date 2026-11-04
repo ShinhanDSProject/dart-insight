@@ -25,11 +25,11 @@ const note: ConfirmTarget = {
 }
 const favorite: ConfirmTarget = { kind: 'favorite', corpCode: '00126380' }
 
-function renderConfirm(state: AuthState, target: ConfirmTarget, label = '노트에 담기') {
+function renderConfirm(state: AuthState, target: ConfirmTarget, label = '노트에 담기', done = false, onDone = vi.fn()) {
   auth.state = state
   return render(
     <MemoryRouter>
-      <ChatConfirmAction target={target} label={label} />
+      <ChatConfirmAction target={target} label={label} done={done} onDone={onDone} />
     </MemoryRouter>,
   )
 }
@@ -49,6 +49,29 @@ describe('ChatConfirmAction', () => {
     expect(api.createNote).toHaveBeenCalledWith(note.note)
     expect(await screen.findByText(/노트에 담았어요/)).toBeTruthy()
     expect(screen.getByRole('link', { name: '내 판단 노트 보기' }).getAttribute('href')).toBe('/notes')
+  })
+
+  it('저장을 마치면 알리고, 이미 저장한 버튼은 다시 열어도 저장한 결과만 보인다', async () => {
+    api.createNote.mockResolvedValue(noteItem())
+    const onDone = vi.fn()
+    renderConfirm({ status: 'authenticated', userId: 1 }, note, '노트에 담기', false, onDone)
+    fireEvent.click(screen.getByRole('button', { name: '노트에 담기' }))
+    await screen.findByText(/노트에 담았어요/)
+    expect(onDone).toHaveBeenCalledTimes(1)
+    cleanup()
+
+    renderConfirm({ status: 'authenticated', userId: 1 }, note, '노트에 담기', true)
+    expect(screen.queryByRole('button', { name: '노트에 담기' })).toBeNull()
+    expect(screen.getByText(/노트에 담았어요/)).toBeTruthy()
+  })
+
+  it('저장에 실패하면 저장을 마친 것으로 알리지 않는다', async () => {
+    api.addFavoriteCompany.mockRejectedValue(new Error('network'))
+    const onDone = vi.fn()
+    renderConfirm({ status: 'authenticated', userId: 1 }, favorite, '관심 기업에 추가', false, onDone)
+    fireEvent.click(screen.getByRole('button', { name: '관심 기업에 추가' }))
+    await screen.findByRole('alert')
+    expect(onDone).not.toHaveBeenCalled()
   })
 
   it('관심 기업 확인은 누를 때 그 기업을 추가한다', async () => {
