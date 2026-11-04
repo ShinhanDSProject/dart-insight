@@ -1,11 +1,13 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
+import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Analysis } from '@/shared/api/analyses'
 import { ApiError } from '@/shared/api/client'
 import type { ChatMessageResponse } from '@/shared/api/agentChat'
 import type { TextExplanation } from '@/shared/api/textChanges'
+import type { AuthState } from '@/shared/auth/authContext'
 import type { AsyncState, LoadState } from '@/shared/hooks/asyncState'
 import { axeViolations } from '@/test/axe'
 import type { FinancialOverview, TextOverview } from '../model/overview'
@@ -28,6 +30,17 @@ vi.mock('../hooks/useChangeOverview', () => ({
     financial: { state: overview.financial, reload: () => {} },
     text: { state: overview.text, reload: () => {} },
   }),
+}))
+
+// 채팅의 쓰기 확인 버튼은 로그인 상태를 본다. 답 평가는 저장 호출만 바꿔 끼운다
+const auth = vi.hoisted(() => ({ state: { status: 'authenticated', userId: 1 } as AuthState }))
+vi.mock('@/shared/auth/authContext', () => ({
+  useAuth: () => ({ state: auth.state, login: vi.fn(), logout: vi.fn() }),
+}))
+const feedbackApi = vi.hoisted(() => ({ sendAnswerFeedback: vi.fn() }))
+vi.mock('@/shared/api/questions', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/shared/api/questions')>()),
+  sendAnswerFeedback: feedbackApi.sendAnswerFeedback,
 }))
 
 const noop = () => {}
@@ -70,15 +83,18 @@ function chatController(state: ChatState): AgentChatController {
 
 function chatPanel(state: ChatState, briefState: AsyncState<void> = { status: 'idle' }) {
   return (
-    <ChatPanel
-      briefState={briefState}
-      chat={chatController(state)}
-      context={{ tab: 'text' }}
-      suggestions={['매출 변화의 이유는 무엇인가요?']}
-      onNavigate={noop}
-      onDownloadBrief={noop}
-      onClose={noop}
-    />
+    <MemoryRouter>
+      <ChatPanel
+        analysisId={42}
+        briefState={briefState}
+        chat={chatController(state)}
+        context={{ tab: 'text' }}
+        suggestions={['매출 변화의 이유는 무엇인가요?']}
+        onNavigate={noop}
+        onDownloadBrief={noop}
+        onClose={noop}
+      />
+    </MemoryRouter>
   )
 }
 
@@ -127,6 +143,42 @@ describe('AI 에이전트 채팅 패널 접근성(axe)', () => {
     fireEvent.click(screen.getByRole('button', { name: '용어 사전 열기: 정정공시' }))
     expect(screen.getByText(/이미 낸 보고서를 고쳐 다시 낸 것이에요/)).toBeTruthy()
     expect(await axeViolations(container)).toBe('')
+  })
+
+  it('근거 질문으로 저장된 답에만 평가 버튼이 붙고, 누르면 그 질문에 평가를 저장한다(AC21)', async () => {
+    feedbackApi.sendAnswerFeedback.mockResolvedValue({ questionId: 7, helpful: true, reason: null, updatedAt: '2026-11-04T10:00:00' })
+    const asked = { ...chatAnswer, questionId: 7 }
+    const exchanges = [
+      { id: 1, message: '소송 관련 변경 보여줘', response: chatAnswer },
+      { id: 2, message: '소송 이유는?', response: asked },
+    ]
+    await expectNoViolations(chatPanel({ ...initialChatState, exchanges }))
+    const groups = screen.getAllByRole('group', { name: '도움이 됐나요?' })
+    expect(groups).toHaveLength(1)
+    fireEvent.click(screen.getByRole('button', { name: '도움이 됐어요' }))
+    expect(feedbackApi.sendAnswerFeedback).toHaveBeenCalledWith(42, 7, { helpful: true, reason: null })
+    expect(await screen.findByText('의견 고마워요')).toBeTruthy()
+  })
+
+  it('쓰기 확인 버튼은 로그인했으면 버튼으로, 아니면 로그인 안내로 보인다(AC9·AC10)', async () => {
+    const confirm = {
+      ...chatAnswer,
+      actions: [
+        { type: 'CONFIRM_SAVE_NOTE', label: '노트에 담기', note: { kind: 'TEXT_CHANGE', analysisId: 42, changeId: 5012, memo: null } },
+        { type: 'CONFIRM_FAVORITE', label: '관심 기업에 추가', corpCode: '00126380' },
+      ],
+    }
+    const exchanges = [{ id: 1, message: '이거 노트에 담아줘', response: confirm }]
+    await expectNoViolations(chatPanel({ ...initialChatState, exchanges }))
+    expect(screen.getByRole('button', { name: '노트에 담기' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '관심 기업에 추가' })).toBeTruthy()
+    cleanup()
+
+    auth.state = { status: 'anonymous' }
+    await expectNoViolations(chatPanel({ ...initialChatState, exchanges }))
+    expect(screen.queryByRole('button', { name: '노트에 담기' })).toBeNull()
+    expect(screen.getAllByRole('link', { name: '로그인하기' })).toHaveLength(2)
+    auth.state = { status: 'authenticated', userId: 1 }
   })
 
   it('브리프를 받는 중이면 버튼을 끄고, 실패하면 다시 시도하라고 알린다', async () => {

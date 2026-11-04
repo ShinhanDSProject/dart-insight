@@ -1,6 +1,7 @@
 import { match } from 'ts-pattern'
 import type { ChatAction, ChatCitation, ChatContext, ChatTab } from '@/shared/api/agentChat'
 import type { DocumentSide } from '@/shared/api/documents'
+import { NOTE_MEMO_MAX, type NoteCreate } from '@/shared/api/notes'
 import type { ChangeType } from '@/shared/api/textChanges'
 import { glossary, type GlossaryEntry } from '@/shared/lib/glossary'
 import type { ParamChanges } from '@/shared/lib/searchParams'
@@ -78,6 +79,10 @@ export type ChatActionTarget =
   | { kind: 'open'; changes: ParamChanges }
   | { kind: 'glossary'; term: string; entry: GlossaryEntry | null }
   | { kind: 'brief' }
+  /** 확인 버튼: 누르면 POST /api/notes(본문은 backend가 확인해 채운 값 그대로) */
+  | { kind: 'save-note'; note: NoteCreate }
+  /** 확인 버튼: 누르면 PUT /api/favorite-companies/{corpCode} */
+  | { kind: 'favorite'; corpCode: string }
   | { kind: 'ignore' }
 
 /** 화면 액션 하나가 할 일. citations는 재무 근거의 재무제표(sjDiv)를 찾는 데 쓴다 */
@@ -111,6 +116,14 @@ export function chatActionTarget(action: ChatAction, citations: ChatCitation[]):
         : { kind: 'ignore' }
     case 'DOWNLOAD_BRIEF':
       return { kind: 'brief' }
+    case 'CONFIRM_SAVE_NOTE': {
+      const note = isRecord(action.note) ? noteOf(action.note) : null
+      return note ? { kind: 'save-note', note } : { kind: 'ignore' }
+    }
+    case 'CONFIRM_FAVORITE':
+      return typeof action.corpCode === 'string' && CORP_CODE.test(action.corpCode)
+        ? { kind: 'favorite', corpCode: action.corpCode }
+        : { kind: 'ignore' }
     default:
       return { kind: 'ignore' }
   }
@@ -139,6 +152,28 @@ function typeFilterOf(value: unknown): TextTypeFilter | null {
   if (types.length === 1 && (CHANGE_TYPES as readonly string[]).includes(types[0])) return types[0] as ChangeType
   const content = [...CONTENT_TYPES].sort().join(',')
   return types.length === CONTENT_TYPES.length && [...types].sort().join(',') === content ? CONTENT_FILTER : null
+}
+
+/** 고유번호 8자리 */
+const CORP_CODE = /^\d{8}$/
+
+/** 노트에 담기 액션의 note를 POST /api/notes 본문으로. 종류에 필요한 ID가 없거나 메모가 글이 아니면 null */
+function noteOf(raw: Record<string, unknown>): NoteCreate | null {
+  if (!isId(raw.analysisId)) return null
+  const memo = raw.memo === undefined || raw.memo === null ? null : raw.memo
+  if (memo !== null && (typeof memo !== 'string' || memo.length > NOTE_MEMO_MAX)) return null
+  const base = { analysisId: raw.analysisId, memo: memo === null || memo.trim() === '' ? null : memo }
+  switch (raw.kind) {
+    case 'FINANCIAL_CHANGE':
+    case 'TEXT_CHANGE':
+      return isId(raw.changeId) ? { kind: raw.kind, changeId: raw.changeId, ...base } : null
+    case 'ANSWER_CITATION':
+      return isId(raw.questionId) && isId(raw.citationNo)
+        ? { kind: 'ANSWER_CITATION', questionId: raw.questionId, citationNo: raw.citationNo, ...base }
+        : null
+    default:
+      return null
+  }
 }
 
 function isId(value: unknown): value is number {

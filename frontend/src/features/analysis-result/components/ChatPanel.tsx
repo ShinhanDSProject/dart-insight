@@ -6,6 +6,8 @@ import type { ParamChanges } from '@/shared/lib/searchParams'
 import { Badge, Button, Icon, Notice, PanelTitle, SidePanel, TextArea } from '@/shared/ui'
 import { ErrorState } from '@/shared/ui/StateView'
 import type { AgentChatController } from '../hooks/useAgentChat'
+import { ChatConfirmAction } from './ChatConfirmAction'
+import { ChatFeedback } from './ChatFeedback'
 import {
   chatActionTarget,
   citationChanges,
@@ -26,6 +28,7 @@ const errorMessages: Record<string, string> = {
 }
 
 interface ChatPanelProps {
+  analysisId: number
   chat: AgentChatController
   /** 보낼 때의 화면 맥락(지금 보는 탭·고른 변경) */
   context: ChatContext
@@ -42,9 +45,9 @@ interface ChatPanelProps {
 
 /**
  * AI 에이전트 채팅 패널(ADR-0044, 탭 밖 오른쪽). 탭을 바꿔도 열린 채로 대화를 이어 간다(AC20).
- * 답의 [1]은 근거 칩이고 누르면 그 변경·계정·원문 위치를 연다. 쓰기(노트·관심 기업)는 #580에서 확인 버튼으로 더한다.
+ * 답의 [1]은 근거 칩이고 누르면 그 변경·계정·원문 위치를 연다. 쓰기(노트·관심 기업)는 사용자가 확인 버튼을 누를 때만 한다(AC9).
  */
-export function ChatPanel({ chat, context, suggestions, onNavigate, onDownloadBrief, briefState, onClose }: ChatPanelProps) {
+export function ChatPanel({ analysisId, chat, context, suggestions, onNavigate, onDownloadBrief, briefState, onClose }: ChatPanelProps) {
   const headingRef = useRef<HTMLHeadingElement>(null)
   const endRef = useRef<HTMLDivElement>(null)
   const { exchanges, request, draft } = chat.state
@@ -82,6 +85,7 @@ export function ChatPanel({ chat, context, suggestions, onNavigate, onDownloadBr
           <Exchange
             key={exchange.id}
             exchange={exchange}
+            analysisId={analysisId}
             onNavigate={onNavigate}
             onDownloadBrief={onDownloadBrief}
             briefState={briefState}
@@ -143,12 +147,13 @@ function UserLine({ message }: { message: string }) {
 
 interface ExchangeProps {
   exchange: ChatExchange
+  analysisId: number
   onNavigate: (changes: ParamChanges) => void
   onDownloadBrief: () => void
   briefState: AsyncState<void>
 }
 
-function Exchange({ exchange, onNavigate, onDownloadBrief, briefState }: ExchangeProps) {
+function Exchange({ exchange, analysisId, onNavigate, onDownloadBrief, briefState }: ExchangeProps) {
   const { response } = exchange
   return (
     <article className="chat-panel__exchange" aria-label={`요청: ${exchange.message}`}>
@@ -178,6 +183,9 @@ function Exchange({ exchange, onNavigate, onDownloadBrief, briefState }: Exchang
           ))
           .exhaustive()}
         <Actions response={response} onNavigate={onNavigate} onDownloadBrief={onDownloadBrief} briefState={briefState} />
+        {response.status === 'ANSWERED' && response.questionId !== null && (
+          <ChatFeedback analysisId={analysisId} questionId={response.questionId} />
+        )}
       </div>
     </article>
   )
@@ -225,7 +233,7 @@ function CitationChip({ citation, onNavigate }: { citation: ChatCitation; onNavi
   )
 }
 
-function Actions({ response, onNavigate, onDownloadBrief, briefState }: { response: ChatMessageResponse } & Omit<ExchangeProps, 'exchange'>) {
+function Actions({ response, onNavigate, onDownloadBrief, briefState }: { response: ChatMessageResponse } & Omit<ExchangeProps, 'exchange' | 'analysisId'>) {
   const targets = response.actions
     .map((action) => ({ action, target: chatActionTarget(action, response.citations) }))
     .filter(({ target }) => target.kind !== 'ignore')
@@ -264,6 +272,7 @@ function ActionButton({ action, target, onNavigate, onDownloadBrief, briefState 
       </Button>
     ))
     .with({ kind: 'brief' }, () => <BriefButton label={label} state={briefState} onDownload={onDownloadBrief} />)
+    .with({ kind: 'save-note' }, { kind: 'favorite' }, (confirm) => <ChatConfirmAction target={confirm} label={label} />)
     .with({ kind: 'glossary' }, ({ term, entry }) => (
       <div className="chat-panel__term">
         <Button variant="secondary" aria-expanded={showTerm} onClick={() => setShowTerm((v) => !v)}>

@@ -210,6 +210,7 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
 
       {chatOpen && !evidenceOpen ? (
         <ChatPanel
+          analysisId={analysis.analysisId}
           chat={chat}
           context={chatContextOf(params)}
           suggestions={examples}
