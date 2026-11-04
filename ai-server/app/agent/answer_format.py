@@ -43,9 +43,10 @@ def answer_format(message: str) -> str:
 
 
 def requested_lines(message: str) -> int | None:
-    """사용자가 정한 줄 수('3줄 요약', '요약 5줄'). 정하지 않았으면 None."""
-    found = _LINE_COUNT.search(re.sub(r"\s+", "", message))
-    return int(found.group(1)) if found else None
+    """사용자가 정한 줄 수('3줄 요약', '요약 5줄'). 정하지 않았거나 서로 다른 줄 수가 둘 이상이면
+    ('3줄 말고 5줄로') 어느 쪽인지 코드로 정하지 않고 None(줄 수를 검사하지 않음)."""
+    counts = {int(n) for n in _LINE_COUNT.findall(re.sub(r"\s+", "", message))}
+    return counts.pop() if len(counts) == 1 else None
 
 
 def max_answer(fmt: str) -> int:

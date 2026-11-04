@@ -330,7 +330,7 @@ def _brief_problem(
             "정리 형식은 줄마다 '- '로 시작하고 줄 끝에 근거 표시를 붙여야 합니다"
             f"(맞지 않는 줄: '{malformed[0][:40]}')."
         )
-    bodies = [_compact(without_markers(line)) for line in lines]
+    bodies = [_compact(without_markers(line)[len(BRIEF_BULLET) :]) for line in lines]
     if len(set(bodies)) < len(bodies):
         # 같은 줄을 되풀이해 줄 수를 채우지 않게 한다. 보장 범위는 글자 반복뿐이다: 근거 표시·공백·
         # 문장부호만 무시하고 비교하므로, 조사·어미만 바꾼 같은 사실('영업이익은 감소했어요'·
@@ -356,7 +356,8 @@ def _brief_problem(
 
 
 def _compact(text: str) -> str:
-    return re.sub(r"[\s.,!?·'\"~-]+", "", text)
+    """되풀이 비교용: 공백·문장부호를 빼되 숫자의 부호('-1')와 소수점('1.2')은 남긴다."""
+    return re.sub(r"""[\s,!?·'"~]+|-(?!\d)|(?<!\d)\.|\.(?!\d)""", "", text)
 
 
 def _sentences(answer: str) -> list[str]:
