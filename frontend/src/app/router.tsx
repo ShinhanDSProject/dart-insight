@@ -44,6 +44,17 @@ const CompanyComparisonPage = lazyPage(() =>
   import('@/features/company-comparison/CompanyComparisonPage').then((m) => m.CompanyComparisonPage),
 )
 const AiUsagePage = lazyPage(() => import('@/features/ai-usage/AiUsagePage').then((m) => m.AiUsagePage))
+const AdminConsoleLayout = lazyPage(() =>
+  import('@/features/admin-console/AdminConsoleLayout').then((m) => m.AdminConsoleLayout),
+)
+const AdminOverviewPage = lazyPage(() =>
+  import('@/features/admin-console/AdminOverviewPage').then((m) => m.AdminOverviewPage),
+)
+const AdminAnalysesPage = lazyPage(() =>
+  import('@/features/admin-console/AdminAnalysesPage').then((m) => m.AdminAnalysesPage),
+)
+const AdminUsersPage = lazyPage(() => import('@/features/admin-console/AdminUsersPage').then((m) => m.AdminUsersPage))
+const PricingPage = lazyPage(() => import('@/features/pricing/PricingPage').then((m) => m.PricingPage))
 const AdminReportsPage = lazyPage(() =>
   import('@/features/admin-reports/AdminReportsPage').then((m) => m.AdminReportsPage),
 )
@@ -58,10 +69,26 @@ const AdminReportsPage = lazyPage(() =>
  * - /notes                          내 판단 노트(FS-57, 로그인한 회원)
  * - /compare/companies              여러 기업 나란히 보기(FS-56, ?corps=고유번호,…&type=ANNUAL&fs=CFS)
  * - /system/ai-usage                AI 사용 현황(FS-15, ?days=7|30)
+ * - /pricing                        요금제(FS-73, 결제 없음 · '관심 있어요'만 셈)
+ * - /admin                          운영 콘솔 개요(FS-72, 관리자만, ?days=30). 서비스 상단 바 대신 콘솔 왼쪽 메뉴
+ * - /admin/analyses                 분석 작업(?status=FAILED&days=7&q=&page=)
+ * - /admin/users                    회원(?role=ADMIN&q=&page=)
  * - /admin/reports                  신고 관리(FS-58, 관리자만, ?queue=all&page=)
  * handle.crumb는 화면 이름이다. 상단 바에는 보이지 않는다(#548, 화면 머리의 브레드크럼은 화면이 PageHeader로 그린다).
  */
 export const router = createBrowserRouter([
+  {
+    // 운영 콘솔(FS-72): 서비스 상단 바·하단 바 없이 콘솔 틀(왼쪽 메뉴)을 쓴다
+    path: '/admin',
+    element: <PageSuspense><AdminConsoleLayout /></PageSuspense>,
+    errorElement: <RouteError />,
+    children: [
+      { index: true, element: <PageSuspense><AdminOverviewPage /></PageSuspense>, handle: { crumb: '운영 콘솔' } },
+      { path: 'analyses', element: <PageSuspense><AdminAnalysesPage /></PageSuspense>, handle: { crumb: '분석 작업' } },
+      { path: 'users', element: <PageSuspense><AdminUsersPage /></PageSuspense>, handle: { crumb: '회원' } },
+      { path: 'reports', element: <PageSuspense><AdminReportsPage /></PageSuspense>, handle: { crumb: '신고 관리' } },
+    ],
+  },
   {
     element: <Layout />,
     errorElement: <RouteError />,
@@ -116,9 +143,9 @@ export const router = createBrowserRouter([
             handle: { crumb: 'AI 사용 현황' },
           },
           {
-            path: '/admin/reports',
-            element: <PageSuspense><AdminReportsPage /></PageSuspense>,
-            handle: { crumb: '신고 관리' },
+            path: '/pricing',
+            element: <PageSuspense><PricingPage /></PageSuspense>,
+            handle: { crumb: '요금제' },
           },
           { path: '*', element: <NotFoundPage />, handle: { crumb: '페이지 없음' } },
         ],
