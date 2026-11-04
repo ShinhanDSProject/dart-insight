@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import type { NoteList } from '@/shared/api/notes'
 import { companyNote, noteItem } from '@/test/fixtures/notes'
 import {
-  companyOverviewLink,
   disclosureGroupLabel,
   FOLLOWUP_NOTICE,
   hasCompanyFollowups,
@@ -145,8 +144,7 @@ describe('표시 문구', () => {
 })
 
 describe('후속 분석·공시 연결(#504)', () => {
-  it('기업 개요와 후속 분석 결과 주소를 만든다', () => {
-    expect(companyOverviewLink('00126380')).toBe('/companies/00126380')
+  it('후속 분석 결과 주소를 만든다', () => {
     expect(newerAnalysisLink(108)).toBe('/analyses/108')
   })
 

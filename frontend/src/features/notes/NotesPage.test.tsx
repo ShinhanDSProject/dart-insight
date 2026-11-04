@@ -159,7 +159,7 @@ describe('NotesPage(FS-57)', () => {
     renderPage()
     const company = await screen.findByRole('region', { name: /삼성전자/ })
     expect(within(company).getByRole('link', { name: '삼성전자 기업 개요 보기' }).getAttribute('href')).toBe(
-      '/companies/00126380',
+      '/companies/00126380?view=overview',
     )
     expect(within(company).queryByRole('region', { name: '담은 보고서 이후 소식' })).toBeNull()
     expect(within(company).queryByText('같은 기업에서 이후에 공시된 내역이며 인과관계를 뜻하지 않아요.')).toBeNull()
