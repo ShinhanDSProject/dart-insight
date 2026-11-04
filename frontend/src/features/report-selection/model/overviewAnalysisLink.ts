@@ -12,7 +12,7 @@ export interface ActionLink {
 /**
  * 체크 포인트 항목별 맞춤 분석 딥링크(AC2).
  * - 현금흐름: 재무제표 탭 현금흐름표(CF)
- * - 매출채권/재고자산/부채비율/차입금: 재무제표 탭 재무상태표(BS) 검색어
+ * - 매출채권/재고자산/부채비율/차입금: 재무제표 탭 재무상태표(BS) 계정 찾기(분석 결과 주소의 fq)
  * - 자금조달/감사의견: 문장 탭 위험 필터(trisk=1)
  */
 export function checkpointAnalysisLink(analysisId: number, key: CheckpointKey): ActionLink {
@@ -22,19 +22,19 @@ export function checkpointAnalysisLink(analysisId: number, key: CheckpointKey): 
       label: '현금흐름 수치 변화 보기',
     }))
     .with('RECEIVABLES', () => ({
-      to: `/analyses/${analysisId}?tab=financial&sj=BS&q=${encodeURIComponent('매출채권')}`,
+      to: `/analyses/${analysisId}?tab=financial&sj=BS&fq=${encodeURIComponent('매출채권')}`,
       label: '매출채권 수치 변화 보기',
     }))
     .with('INVENTORIES', () => ({
-      to: `/analyses/${analysisId}?tab=financial&sj=BS&q=${encodeURIComponent('재고자산')}`,
+      to: `/analyses/${analysisId}?tab=financial&sj=BS&fq=${encodeURIComponent('재고자산')}`,
       label: '재고자산 수치 변화 보기',
     }))
     .with('DEBT_RATIO', () => ({
-      to: `/analyses/${analysisId}?tab=financial&sj=BS&q=${encodeURIComponent('부채')}`,
+      to: `/analyses/${analysisId}?tab=financial&sj=BS&fq=${encodeURIComponent('부채')}`,
       label: '부채·자본 수치 변화 보기',
     }))
     .with('SHORT_TERM_BORROWINGS', () => ({
-      to: `/analyses/${analysisId}?tab=financial&sj=BS&q=${encodeURIComponent('차입금')}`,
+      to: `/analyses/${analysisId}?tab=financial&sj=BS&fq=${encodeURIComponent('차입금')}`,
       label: '차입금 수치 변화 보기',
     }))
     .with('FUNDING_DISCLOSURES', () => ({

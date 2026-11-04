@@ -234,7 +234,7 @@ describe('재무 체크 포인트', () => {
 
     const card = (await screen.findByRole('heading', { name: '매출채권' })).closest('article')!
     const deepLink = within(card).getByRole('link', { name: '매출채권 매출채권 수치 변화 보기' })
-    expect(deepLink.getAttribute('href')).toBe(`/analyses/99?tab=financial&sj=BS&q=${encodeURIComponent('매출채권')}`)
+    expect(deepLink.getAttribute('href')).toBe(`/analyses/99?tab=financial&sj=BS&fq=${encodeURIComponent('매출채권')}`)
     expect(await axeViolations(container)).toBe('')
   })
 
