@@ -4,7 +4,7 @@
 우선순위 점수(priority.py)와 LLM을 쓰지 않는다. 좋고 나쁨을 판단하지 않는다.
 
 입력은 MAIN·UNPAIRED·HEADING 묶음이고, 아래 중 하나에 맞으면 후보다.
-1. 짝을 정하지 못한 항목, 제목 줄, 재무제표 주석에서 올린 변경
+1. 짝을 정하지 못한 항목, 제목 줄, 재무제표 주석에서 올린 변경(주석 예외. NOTE에 남은 변경은 아니다)
 2. 분야가 소송·제재, 주요 계약, 자금 조달, 배당, 감사인 변경
 3. 섹션 경로에 '작성기준일 이후', '회사의 연혁'이 있는 변경
 4. 새로 추가된 문단
@@ -58,8 +58,3 @@ def is_candidate(change: CandidateChange) -> bool:
         or any(section in key for section in _FOCUS_SECTIONS)
         or (change.change_type == ADDED and change.block_type == PARAGRAPH)
     )
-
-
-def select_candidates(changes: list[CandidateChange]) -> list[CandidateChange]:
-    """후보만 남긴다(입력 순서 유지)."""
-    return [change for change in changes if is_candidate(change)]

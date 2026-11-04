@@ -22,7 +22,7 @@ from app.compare.listing import (
 )
 from app.compare.text_diff import ADDED, DELETED, MODIFIED, NUMERIC_UPDATE, REVIEW_NEEDED
 from app.documents.parser import PARAGRAPH, TABLE
-from app.events.candidates import CandidateChange, is_candidate, select_candidates
+from app.events.candidates import CandidateChange, is_candidate
 
 AFTER_DATE = "XI. 그 밖 > 4. 작성기준일 이후 발생한 주요사항 등 기타사항"
 HISTORY = "I. 회사의 개요 > 2. 회사의 연혁"
@@ -94,10 +94,3 @@ def test_added_table_is_not_candidate_by_itself() -> None:
 def test_group_outside_input_is_not_candidate_even_in_named_section(group: str) -> None:
     assert not is_candidate(_change(group=group, field=None, section_path=AFTER_DATE))
     assert not is_candidate(_change(group=group, field=None, section_path=HISTORY))
-
-
-def test_select_candidates_keeps_input_order() -> None:
-    heading = _change(change_type=ADDED, group=HEADING, field=None)
-    ordinary = _change()
-    litigation = _change(field=LITIGATION)
-    assert select_candidates([litigation, ordinary, heading]) == [litigation, heading]
