@@ -2964,7 +2964,7 @@
 - `questionId`: 답 평가에 쓰는 질문 ID. `status`가 `ANSWERED`이고, 이번 요청에서 근거 질문 Tool이 답한(`ANSWERED`) 질문 중 최종 답(`citations`)이 그 질문의 근거를 인용한 것이 있으면 그중 마지막 질문의 ID입니다. 그런 질문이 없으면 null입니다: 근거 질문을 하지 않았거나, 근거 질문이 모두 `NOT_FOUND`·`OUT_OF_SCOPE`·`REVIEW_NEEDED`로 끝났거나, 답한 질문이 있어도 최종 답이 다른 Tool 결과만 인용한 경우(사용자가 보지 않은 답에 평가가 저장되지 않게)
 - `aiGenerated`: LLM이 `answer`를 만들었으면 true. LLM 없이 정해진 문구로 답했거나 `answer`가 null이면 false
 - `ai`: LLM이 답을 만들었을 때만(모델·프롬프트 버전·생성 시각). 그 밖에는 null
-- `format`: `CHAT` 대화 답(해요체 3문장·400자 이내), `BRIEF` 사용자가 정리 형식("3줄 요약", "IR용 정리", "확인할 점")을 요청한 답(1,500자 이내, 줄마다 근거 표시). 검사는 같습니다. 비교 브리프 파일은 LLM 없이 `DOWNLOAD_BRIEF`로 받습니다.
+- `format`: `CHAT` 대화 답(해요체 3문장·400자 이내), `BRIEF` 사용자가 정리 형식("3줄 요약", "IR용 정리", "확인할 점")을 요청한 답(1,500자 이내, 한 줄에 한 가지 내용을 `- `로 시작해 쓰고 줄마다 근거 표시, 줄은 줄바꿈 문자로 나눔). 형식은 LLM이 아니라 ai-server가 사용자 메시지로 정합니다(3절 '정리 형식'). 검사는 같고, `BRIEF`는 근거 표시가 없는 줄이 있으면 반려합니다. 비교 브리프 파일은 LLM 없이 `DOWNLOAD_BRIEF`로 받습니다.
 - `crossCheck`: 교차 검증 요청("회사 설명과 재무 수치가 일치해?")일 때만, 아니면 null. `{ "result": "POTENTIAL_MISMATCH", "reason": "…" }`
   - `CONSISTENT`: 같은 기준의 수치 방향과 회사 설명·계획 대조가 어긋나지 않음
   - `POTENTIAL_MISMATCH`: 방향·크기가 어긋나는 곳이 있음. 검토할 신호이고 허위·오류로 확정하지 않습니다
@@ -3545,6 +3545,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 - `final.actions`: 받은 `actions` 목록의 종류와 형식만. 근거가 아니라서 검토 노드는 형식만 봅니다(값 확인은 backend).
 - `rejections`: 검토 노드가 반려한 회차(`attempt`, 그때까지의 생성 횟수)와 규칙. 반려가 없으면 빈 배열입니다. 규칙: `ANSWER_EMPTY`, `ANSWER_TOO_LONG`, `EVIDENCE_MISSING`, `EVIDENCE_NOT_IN_TOOL_RESULT`, `MARKER_MISMATCH`, `NUMBER_NOT_IN_TOOL_RESULT`, `CAUSAL_NOT_IN_SOURCE`, `GRADE_CHANGED`, `BLOCKED_EXPRESSION`, `ACTION_INVALID`, `NOT_FOUND_AFTER_TOOL_FAILURE`
 - 빠른 명령: 메시지가 `/요약`·`/재무`·`/위험`으로 시작하고 그 Tool(`get_summary`·`get_financial_changes`·`search_text_changes`(`risk: true`))이 `tools`에 있고 정해 둔 인자가 그 Tool의 `parameters`에 맞으면 LLM 없이 그 Tool을 부르고, 결과가 오면 답합니다. 인자가 맞지 않으면(예: `risk`를 받지 않는 `search_text_changes`) 빠른 명령으로 보지 않고 LLM이 Tool을 고릅니다.
+- 정리 형식(#581): 메시지(공백 무시)에 'n줄 요약·정리', '요약 n줄', 'IR용', '요점', '확인할 점', '체크리스트', '정리해줘', '목록으로', '항목별로'가 있으면 `format`을 `BRIEF`로 정하고(`app/agent/answer_format.py`), 고르기·답 프롬프트에 그 형식을 알리며 검토 노드가 1,500자와 줄마다 근거 표시를 확인합니다(반려 규칙 `BRIEF_LINE_WITHOUT_EVIDENCE`). 그 밖은 `CHAT`(400자)입니다.
 - 정해진 요청(#631): 메시지 전체가 아래 꼴이면(앞뒤 공백·마침표·물음표·느낌표는 무시) LLM 없이 `FINAL`을 돌려줍니다. `status` `ANSWERED`, `answer`는 정해진 안내(근거 표시 없음), `evidenceIds`는 빈 배열, `actions`는 그 액션 하나, `model`·`generatedAt`은 null, `calls`는 빈 배열입니다. 꼴에 맞지 않거나, 그 액션이 `actions`에 없거나, 값을 하나로 정하지 못하면 지금처럼 LLM이 고릅니다(예: "사업의 내용에서 소송 찾아 열어줘"는 꼴에 맞지 않음).
 
   | 요청 꼴 | 돌려주는 액션 | `answer` |
