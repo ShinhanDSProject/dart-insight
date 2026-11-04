@@ -143,6 +143,8 @@ function textFilters(filters: Record<string, unknown>): ParamChanges {
     section: typeof filters.section === 'string' && filters.section.trim() !== '' ? filters.section.trim() : null,
     q: typeof filters.q === 'string' && filters.q.trim().length >= 2 ? filters.q.trim() : null,
     risk: filters.risk === true,
+    // 분야 거르기가 남으면 접힌 변경을 찾지 못한다(3.29)
+    field: null,
   })
 }
 

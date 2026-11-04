@@ -62,6 +62,11 @@ describe('chatActionTarget', () => {
     expect(content).toEqual({ kind: 'open', changes: expect.objectContaining({ ttype: 'CONTENT' }) })
   })
 
+  it('문장 변화로 옮기면 분야 거르기를 지워 접힌 변경도 찾게 한다(3.29, AC6)', () => {
+    const target = chatActionTarget({ type: 'OPEN_TAB', label: null, tab: 'text', filters: { q: '소송' } }, [])
+    expect(target).toEqual({ kind: 'open', changes: expect.objectContaining({ tq: '소송', tfield: null }) })
+  })
+
   it('재무 근거 열기는 근거에서 재무제표를 찾아 그 계정을 연다', () => {
     expect(chatActionTarget({ type: 'OPEN_FINANCIAL_CHANGE', label: null, changeId: 31 }, [financial])).toEqual({
       kind: 'open',
