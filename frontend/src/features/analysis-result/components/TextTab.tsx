@@ -473,7 +473,8 @@ function ChangeCard({
   const numbers = item.changeType === 'NUMERIC_UPDATE' && comparedRows === null ? numberChanges(item.previousPreview, item.currentPreview) : null
   // 풀이 상자를 펼쳤는지는 카드 안 상태(주소에 남기지 않음). 처음 펼칠 때만 부른다
   const [explainOpen, setExplainOpen] = useState(false)
-  const [noteOpen, setNoteOpen] = useState(false)
+  // 메뉴에서 '노트에 담기'를 고른 횟수. 닫으면 null(저장 뒤 다시 고를 때도 열리도록 횟수로 알린다)
+  const [noteRequest, setNoteRequest] = useState<number | null>(null)
   const explainId = `text-explain-${item.changeId}`
   const toggleExplain = () => {
     if (!explainOpen) explanations.request(item.changeId)
@@ -556,7 +557,7 @@ function ChangeCard({
               </MenuItem>
               <MenuItem
                 onClick={() => {
-                  setNoteOpen(true)
+                  setNoteRequest((count) => (count ?? 0) + 1)
                   close()
                 }}
               >
@@ -589,13 +590,13 @@ function ChangeCard({
           </details>
         )}
       </div>
-      {noteOpen && (
+      {noteRequest !== null && (
         <AddToNote
           target={{ kind: 'TEXT_CHANGE', changeId: item.changeId }}
           analysisId={analysis.analysisId}
           label={section}
-          startOpen
-          onClose={() => setNoteOpen(false)}
+          openRequest={noteRequest}
+          onClose={() => setNoteRequest(null)}
         />
       )}
       {explainOpen && (

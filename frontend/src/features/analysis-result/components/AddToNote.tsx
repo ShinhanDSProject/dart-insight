@@ -13,9 +13,9 @@ interface AddToNoteProps {
   analysisId: number
   /** 화면 읽기용 이름(계정명·섹션). 버튼 이름에 붙인다 */
   label: string
-  /** 메뉴에서 고른 경우처럼 버튼을 거치지 않고 바로 메모 칸이나 로그인 안내를 연다 */
-  startOpen?: boolean
-  /** startOpen으로 연 것을 저장하지 않고 닫았을 때 */
+  /** 메뉴에서 고를 때마다 커지는 번호. 주면 자기 버튼 없이 번호가 커질 때 메모 칸이나 로그인 안내를 연다 */
+  openRequest?: number
+  /** 메모 칸이나 로그인 안내를 저장하지 않고 닫았을 때 */
   onClose?: () => void
 }
 
@@ -27,12 +27,18 @@ type View = { status: 'closed' } | { status: 'login' } | { status: 'editing' } |
  * 로그인하지 않았으면 서버를 부르지 않고 로그인 안내만 보인다.
  * 담는 값·문장은 서버가 분석 ID와 변경 ID(AI 답 인용은 질문 ID·인용 번호)로 저장된 근거에서 만든다(화면이 글을 보내지 않음).
  */
-export function AddToNote({ target, analysisId, label, startOpen = false, onClose }: AddToNoteProps) {
+export function AddToNote({ target, analysisId, label, openRequest, onClose }: AddToNoteProps) {
   const auth = useAuth()
   const openedView = (): View => (auth.state.status === 'authenticated' ? { status: 'editing' } : { status: 'login' })
-  // 로그인 상태를 아직 모르면 눌리지 않는 버튼부터 둔다
-  const [view, setView] = useState<View>(() => (startOpen && auth.state.status !== 'loading' ? openedView() : { status: 'closed' }))
+  const [view, setView] = useState<View>({ status: 'closed' })
+  const [handledRequest, setHandledRequest] = useState(0)
   const save = useAsyncAction<NoteItem>()
+
+  // 로그인 상태를 아직 모르면 요청을 남겨 두고 눌리지 않는 버튼을 둔다. 메모를 쓰는 중이면 쓴 내용을 지우지 않는다
+  if (openRequest !== undefined && openRequest > handledRequest && auth.state.status !== 'loading') {
+    setHandledRequest(openRequest)
+    if (view.status === 'closed' || view.status === 'saved') setView(openedView())
+  }
 
   const open = () => {
     save.reset()
@@ -55,15 +61,17 @@ export function AddToNote({ target, analysisId, label, startOpen = false, onClos
       {match(view)
         .with({ status: 'closed' }, { status: 'saved' }, ({ status }) => (
           <>
-            <Button
-              variant="secondary"
-              className="note-add__button"
-              disabled={auth.state.status === 'loading'}
-              aria-label={`노트에 담기: ${label}`}
-              onClick={open}
-            >
-              노트에 담기
-            </Button>
+            {(status === 'closed' || openRequest === undefined) && (
+              <Button
+                variant="secondary"
+                className="note-add__button"
+                disabled={auth.state.status === 'loading'}
+                aria-label={`노트에 담기: ${label}`}
+                onClick={open}
+              >
+                노트에 담기
+              </Button>
+            )}
             {status === 'saved' && (
               <p className="note-add__done" role="status">
                 노트에 담았어요. <Link to="/notes">내 판단 노트 보기</Link>

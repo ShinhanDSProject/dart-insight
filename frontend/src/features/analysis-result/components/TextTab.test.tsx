@@ -849,6 +849,9 @@ describe('TextTab 카드 메뉴(3.31)', () => {
     expect(within(card).getByRole('link', { name: '로그인하기' })).toBeTruthy()
     fireEvent.click(within(card).getByRole('button', { name: '닫기' }))
     expect(within(card).queryByRole('link', { name: '로그인하기' })).toBeNull()
+    fireEvent.click(menuOf(card))
+    fireEvent.click(within(card).getByRole('button', { name: '노트에 담기' }))
+    expect(within(card).getByRole('link', { name: '로그인하기' })).toBeTruthy()
   })
 
   it('검토 필요 카드의 메뉴에는 커뮤니티에 인용이 없다', () => {
