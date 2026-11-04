@@ -130,10 +130,6 @@ export function disclosureGroupLabel(group: DisclosureGroup): string {
   return disclosureGroupLabels[group]
 }
 
-export function companyOverviewLink(corpCode: string): string {
-  return `/companies/${encodeURIComponent(corpCode)}`
-}
-
 export function newerAnalysisLink(analysisId: number): string {
   return `/analyses/${encodeURIComponent(analysisId)}`
 }

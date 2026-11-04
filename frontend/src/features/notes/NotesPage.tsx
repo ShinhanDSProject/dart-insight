@@ -5,6 +5,7 @@ import { exportNotes, type CompanyNote } from '@/shared/api/notes'
 import { useAsyncAction } from '@/shared/hooks/useAsyncAction'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
 import { basisLabel } from '@/shared/lib/comparisonBasis'
+import { companyOverviewLink } from '@/shared/lib/currentCompany'
 import { downloadTextFile } from '@/shared/lib/download'
 import { formatInteger } from '@/shared/lib/numberFormat'
 import { pageTitle } from '@/shared/lib/pageTitle'
@@ -27,7 +28,6 @@ import {
   type NoteFilterAction,
 } from './model/noteFilter'
 import {
-  companyOverviewLink,
   disclosureGroupLabel,
   exportFileName,
   FOLLOWUP_NOTICE,
