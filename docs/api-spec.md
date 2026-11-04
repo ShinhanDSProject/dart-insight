@@ -8,7 +8,7 @@
 | --- | --- |
 | 상태 | 초안 (M1 범위) |
 | 담당 | 백엔드·프론트 |
-| 마지막 수정 | 2026-11-03 |
+| 마지막 수정 | 2026-11-04 |
 | 관련 문서 | ERD(`docs/erd.md`), [화면 와이어프레임](https://app.notion.com/p/c0f540f74d92496c9c20f23867afc15a), 이슈 #47 |
 
 ## 0. 공통
@@ -124,6 +124,10 @@
 | GET | `/api/analyses/{analysisId}/text-changes/{changeId}/history` | 문장 변경 이력(여러 기간) | #26 (3.8) | — | 초안 |
 | POST | `/api/analyses/{analysisId}/text-changes/{changeId}/explanations` | 문장 변경 AI 한 줄 풀이(만들거나 저장된 것) | #227 (3.11) | W-03 ③ | 초안 |
 | GET | `/api/analyses/{analysisId}/text-changes/{changeId}/related-disclosures` | 문장 변경의 관련 수시공시(보조 근거, 처음이면 계산해 저장) | #343 (3.6) | W-03 ③ | 초안 |
+| POST | `/api/analyses/{analysisId}/event-runs` | 주요 사건 만들기 시작 | #642 (2.13), #646 (3.36) | W-03 ③ | 제안 |
+| GET | `/api/analyses/{analysisId}/event-runs/current` | 주요 사건 작업 상태 | #642 (2.13), #646 (3.36) | W-03 ③ | 제안 |
+| GET | `/api/analyses/{analysisId}/events` | 주요 사건 목록, 칸별 사건 수, 묶이지 않은 후보 | #642 (2.13), #646 (3.36) | W-03 ③ | 제안 |
+| GET | `/api/analyses/{analysisId}/events/{eventId}` | 주요 사건 하나 | #642 (2.13), #646 (3.36) | W-03 ③ | 제안 |
 | GET | `/api/analyses/{analysisId}/summary` | 근거 기반 요약·설명 | #20 (3.2) | W-03 ① | 초안 |
 | POST | `/api/analyses/{analysisId}/questions` | 근거로 답하는 질문(AI) | #219 (3.10) | W-03 ⑤ | 초안 |
 | GET | `/api/analyses/{analysisId}/questions` | 이 분석에서 한 질문·답 기록 | #219 (3.10) | W-03 ⑤ | 초안 |
@@ -2611,6 +2615,126 @@
 | 400 | `COMMON_INVALID_INPUT` | `side`가 `current`·`previous`가 아님 |
 | 404 | `ANALYSIS_NOT_FOUND`, `REPORT_SECTION_NOT_FOUND` | 없는 분석, 원문에 없는 섹션(또는 원문을 쓸 수 없음) |
 
+### POST /api/analyses/{analysisId}/event-runs — 주요 사건 만들기 시작
+
+> 상태: 제안. 구조와 이유는 [ADR-0050](adr/0050-text-events-after-analysis.md)에 있습니다. 구현은 #644·#646입니다. 7.7을 통과하기 전에는 설정으로 꺼 둡니다.
+
+- 이슈: #642 (2.13), #646 (3.36) · 화면: 문장 변화 탭 주요 사건 영역
+- 화면이 완료된 분석의 문장 변화 탭을 처음 열 때 부릅니다. 분석 상태에는 영향을 주지 않습니다. 사건이 실패해도 분석은 `COMPLETED`이고 `text-changes`는 그대로입니다.
+- 멱등합니다. 현재 버전의 실행이 진행 중이거나 완료됐으면 새로 만들지 않고 그 실행을 돌려줍니다. `FAILED`면 새 실행을 만듭니다(자동으로 다시 시도하지 않음). 그 밖의 경우는 아래 `notCreatedReason`을 봅니다.
+- 응답 본문은 `GET .../event-runs/current`와 같습니다. 새로 시작했거나 진행 중이면 202, 이미 끝났거나 만들지 않으면 200입니다. 실패한 실행을 다시 시작할 수 없으면 429입니다.
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 |
+| 409 | `ANALYSIS_NOT_READY` | 분석이 끝나지 않음 |
+| 429 | `ANALYSIS_EVENTS_RETRY_LIMITED` | 이 분석·버전이 최근 24시간에 3번 실패함 |
+
+### GET /api/analyses/{analysisId}/event-runs/current — 주요 사건 작업 상태
+
+- 이슈: #642 (2.13), #646 (3.36)
+- 현재 사건 버전(`eventVersion`)의 마지막 실행입니다. `GET /api/analyses/{analysisId}`처럼 작업 상태를 보는 API라 `FAILED`도 200이고, 결과를 달라는 `GET .../events`는 끝나지 않았거나 실패하면 409입니다.
+- 화면은 `PENDING`·`RUNNING` 동안 이 API를 다시 부릅니다.
+
+**응답 200**
+
+```json
+{
+  "analysisId": 42,
+  "status": "FAILED",
+  "eventVersion": "event-1",
+  "notCreatedReason": null,
+  "errorCode": "AI_LLM_UNAVAILABLE",
+  "canRetry": true,
+  "startedAt": "2026-11-05T10:12:40",
+  "finishedAt": "2026-11-05T10:13:02"
+}
+```
+
+- `status`: `NOT_STARTED` 실행 없음, `PENDING`, `RUNNING`, `COMPLETED`, `FAILED`, `NOT_CREATED` 만들지 않음
+- `notCreatedReason`: `NOT_CREATED`일 때만. `DISABLED` 설정으로 꺼 둠, `OLD_ANALYSIS` 분류 전 분석(`listVersion` null), `TEXT_COMPARE_FAILED` 문장 비교 실패, `FAKE_MODEL` LLM 제공자가 fake, `NO_CANDIDATES` 후보 변경 없음. 앞의 셋은 저장하지 않고 조회할 때 정합니다. `FAKE_MODEL`은 다음 시작 때 새 실행을 만들고, `NO_CANDIDATES`는 같은 버전이면 그대로입니다
+- `errorCode`: `FAILED`일 때 사유. 화면에는 사유 대신 공통 실패 문구와 다시 시도를 보여 줍니다
+- `canRetry`: `FAILED`이고 재시도 한도에 걸리지 않았으면 true
+- `startedAt`·`finishedAt`: 실행이 없거나 끝나지 않았으면 null
+
+### GET /api/analyses/{analysisId}/events — 주요 사건 목록
+
+- 이슈: #642 (2.13), #646 (3.36) · 화면: 문장 변화 탭 주요 사건 카드, 분야별 표의 사건 수
+- 현재 사건 버전의 `COMPLETED` 실행만 돌려줍니다. 순서는 코드가 정한 `sortOrder`입니다(2.16).
+- 한 변경이 여러 사건에 묶일 수 있습니다. 규모(`scaleAmount`)는 사건마다 보여 주고 **더하지 않습니다.** 코드가 공시에서 읽은 금액만 쓰고, 없으면 null입니다.
+- `fieldCounts`는 칸마다 관련 사건을 한 번만 셉니다. 묶인 변경이 속한 모든 칸에서 세므로 칸을 더한 값은 사건 수와 다를 수 있습니다.
+- `unboundChanges`는 후보였지만 어느 사건에도 들어가지 않은 변경입니다. 검증에 실패해 뺀 사건의 변경도 여기로 옵니다. `droppedEventCount`는 뺀 사건 수이고 0보다 크면 화면이 일부를 보여 주지 못했다고 알립니다.
+- 사건은 모두 AI가 묶은 것이고 `aiGenerated`는 코드가 항상 true로 넣습니다. 인용은 원문과 글자가 같아야 합니다.
+
+**응답 200**
+
+```json
+{
+  "analysisId": 42,
+  "eventVersion": "event-1",
+  "generatedAt": "2026-11-05T10:13:02",
+  "droppedEventCount": 0,
+  "fieldCounts": [{ "field": "LITIGATION", "eventCount": 2 }],
+  "items": [
+    {
+      "eventId": 7,
+      "sortOrder": 1,
+      "title": "사건 제목",
+      "kind": "소송",
+      "fields": ["LITIGATION"],
+      "changeIds": [2585, 2586],
+      "quotes": [
+        {
+          "changeId": 2585,
+          "purpose": "CHANGE",
+          "side": "CURRENT",
+          "text": "원문에서 그대로 옮긴 글",
+          "evidenceId": "20260814003958#B1576",
+          "sectionPath": "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항"
+        }
+      ],
+      "scaleAmount": null,
+      "currency": null,
+      "scaleEvidenceId": null,
+      "sortBasis": "ROW_COUNT",
+      "aiGenerated": true,
+      "model": "모델 이름",
+      "promptVersion": "text-event-1",
+      "generatedAt": "2026-11-05T10:13:02"
+    }
+  ],
+  "unboundChanges": [
+    {
+      "changeId": 2590,
+      "changeType": "MODIFIED",
+      "field": "CONTRACT",
+      "sectionPath": "II. 사업의 내용 > 4. 주요계약 및 연구개발활동",
+      "previousPreview": "이전 글 미리보기",
+      "currentPreview": "현재 글 미리보기"
+    }
+  ]
+}
+```
+
+- `quotes[].purpose`: `CHANGE` 바뀐 내용, `REASON` 공시에 적힌 이유. 이유 인용이 없으면 화면은 그 칸을 빼고 지어내지 않습니다
+- `quotes[].side`: `PREVIOUS`, `CURRENT`. `evidenceId`는 `{rcept_no}#B{block_no}`입니다
+- `sortBasis`: `FRONT_KIND` 맨 앞에 둘 종류, `AMOUNT` 금액, `ROW_COUNT` 바뀐 행 수
+- `kind`: AI가 붙인 사건 종류 이름입니다. 맨 앞에 둘지는 코드가 판정합니다
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 |
+| 409 | `ANALYSIS_NOT_READY` | 분석이 끝나지 않음 |
+| 409 | `ANALYSIS_EVENTS_NOT_READY` | 사건을 시작하지 않았거나 만드는 중 |
+| 409 | `ANALYSIS_EVENTS_FAILED` | 사건 만들기가 실패함 |
+| 409 | `ANALYSIS_EVENTS_NOT_CREATED` | 만들지 않음(사유는 `event-runs/current`) |
+
+### GET /api/analyses/{analysisId}/events/{eventId} — 주요 사건 하나
+
+- 이슈: #642 (2.13), #646 (3.36) · 화면: 사건 펼치기
+- `items[]` 하나와 같고, 묶인 변경 목록 `changes`가 더 있습니다. `changes[]`의 모양은 `text-changes` 목록 항목과 같습니다. 원문 비교는 기존 `text-changes/{changeId}`로 엽니다.
+- 에러는 목록과 같고, 이 분석의 현재 버전 사건이 아니면 404 `ANALYSIS_EVENT_NOT_FOUND`입니다.
+
 ### GET /api/analyses/{analysisId}/summary — 근거 기반 요약·설명
 
 - 이슈: #20 (3.2), #143 (설명 등급·인용), #149 (템플릿 요약), #481 (3.10 투자자 관점, FS-64) · 화면: W-03 ① · [ADR-0015](adr/0015-explanation-grade-and-quote-check.md)
@@ -3072,7 +3196,7 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 
 외부에 열지 않습니다. 요청 헤더에 항상 `X-Trace-Id`를 넣습니다. 에러 형식은 외부 API와 같습니다. AI 서버만 쓰는 에러 코드는 `AI_`로 시작합니다(아래 표).
 
-**실패한 요청의 LLM 호출 기록(`X-Llm-Calls`, #137, [ADR-0042](adr/0042-failed-llm-calls-in-response-header.md))**: LLM을 부르다 끝내 쓸 수 없게 된 요청(503 `AI_LLM_UNAVAILABLE`)도 그때까지 부른 기록이 있으면 응답 헤더 `X-Llm-Calls`에 담습니다. 값은 호출 기록 배열(200 응답의 `calls`와 같은 객체 모양)을 UTF-8 JSON으로 만든 뒤 base64url(패딩 있음)로 바꾼 글자입니다. 기록이 없으면(제공자 미설정 등) 헤더를 넣지 않습니다. 에러 본문은 공통 형식 그대로입니다. 지금은 `POST /internal/summaries`만 넣고, backend는 분석 실패 때 이 기록을 `llm_call`에 저장합니다.
+**실패한 요청의 LLM 호출 기록(`X-Llm-Calls`, #137, [ADR-0042](adr/0042-failed-llm-calls-in-response-header.md))**: LLM을 부르다 끝내 쓸 수 없게 된 요청(503 `AI_LLM_UNAVAILABLE`)도 그때까지 부른 기록이 있으면 응답 헤더 `X-Llm-Calls`에 담습니다. 값은 호출 기록 배열(200 응답의 `calls`와 같은 객체 모양)을 UTF-8 JSON으로 만든 뒤 base64url(패딩 있음)로 바꾼 글자입니다. 기록이 없으면(제공자 미설정 등) 헤더를 넣지 않습니다. 에러 본문은 공통 형식 그대로입니다. 지금은 `POST /internal/summaries`만 넣고, backend는 분석 실패 때 이 기록을 `llm_call`에 저장합니다. `POST /internal/text-events`(제안, ADR-0050)도 503과 502 `AI_EVENTS_INVALID_OUTPUT`에 같은 헤더를 넣습니다.
 
 | 메서드 | 경로 | 설명 | 이슈 | 상태 |
 | --- | --- | --- | --- | --- |
@@ -3086,11 +3210,13 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 | POST | `/internal/outlooks` | 회사가 밝힌 전망·계획 뽑기(LLM) | #465 (1.9) | 초안 |
 | POST | `/internal/plan-followups` | 작년 계획과 올해 보고서 문단 대조(LLM) | #467 (1.10) | 초안 |
 | POST | `/internal/agent-steps` | 에이전트 한 단계: 다음에 부를 Tool 또는 최종 답(LLM, ADR-0044·0045) | 에이전트 채팅(FS 전) | 초안 |
+| POST | `/internal/text-events` | 문장 변경을 주요 사건으로 묶기(LLM, ADR-0050) | #642 (2.13) | 제안 |
 
 | code | 상태 | 뜻 |
 | --- | --- | --- |
 | `AI_DOCUMENT_TOO_LARGE` | 413 | 원문 ZIP이 80MB를 넘음 |
 | `AI_LLM_UNAVAILABLE` | 503 | LLM 제공자가 설정되지 않았거나 다시 시도해도 응답하지 않음(0.7). backend는 분석을 `ANALYSIS_SUMMARY_FAILED`로 끝내고, 헤더 `X-Llm-Calls`의 호출 기록은 `llm_call`에 저장함(#137) |
+| `AI_EVENTS_INVALID_OUTPUT` | 502 | 다시 만들어도 쓸 수 있는 사건이 하나도 없음. backend는 사건 실행만 `FAILED`로 끝내고 분석에는 영향을 주지 않음 |
 
 ### GET /internal/documents/parser — 원문 파서 버전
 
@@ -3606,6 +3732,83 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | 400 | `COMMON_INVALID_INPUT` | 필드 누락, `tools`가 비었음, Tool 이름·`callId` 겹침, `toolResults`의 `name`이 `tools`에 없음, `remainingSteps`가 0보다 작음, `history`가 6개 초과, Tool·액션의 `parameters`가 `type: object`인 올바른 JSON Schema(Draft 2020-12)가 아님 |
 | 503 | `AI_LLM_UNAVAILABLE` | LLM을 쓸 수 없음. 그때까지 부른 기록은 응답 헤더 `X-Llm-Calls`(3절 첫머리) |
 
+### POST /internal/text-events — 문장 변경을 주요 사건으로 묶기
+
+> 상태: 제안([ADR-0050](adr/0050-text-events-after-analysis.md)). 입력 크기와 제한시간은 2.12 전이라 가정입니다.
+
+- 이슈: #642 (2.13), #643 (2.14), #644 (2.15), #645 (2.16)
+- backend가 분석의 기본 목록(`list_group` `MAIN`·`UNPAIRED`)을 보냅니다. ai-server는 후보를 고르고, LLM으로 묶고, 인용·근거와 표현을 검사하고, 코드로 정렬합니다. DB는 쓰지 않습니다.
+- 검증에 실패하면 최대 2회 다시 만듭니다. 그래도 잘못된 사건은 빼고 `droppedEventCount`에 세고, 그 변경은 `unboundChangeNos`로 보냅니다.
+- 제공자가 fake면 LLM을 부르지 않고 `created: false`, `notCreatedReason: FAKE_MODEL`로 답합니다. 후보가 없으면 `NO_CANDIDATES`입니다.
+
+**요청**
+
+```json
+{
+  "previousRceptNo": "20250814003156",
+  "currentRceptNo": "20260814003699",
+  "equityTotal": 1000000000000,
+  "currency": "KRW",
+  "changes": [
+    {
+      "changeNo": 12,
+      "changeType": "MODIFIED",
+      "blockType": "PARAGRAPH",
+      "listGroup": "MAIN",
+      "field": "LITIGATION",
+      "raisedFromNote": false,
+      "sectionPath": "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항",
+      "previousBlockNo": 2028,
+      "currentBlockNo": 1576,
+      "previousText": "변경 전 글",
+      "currentText": "변경 후 글"
+    }
+  ]
+}
+```
+
+`equityTotal`은 정렬에 쓰는 자본총계입니다. 없으면 null이고 0과 구분합니다.
+
+**응답 200**
+
+```json
+{
+  "created": true,
+  "notCreatedReason": null,
+  "model": "모델 이름",
+  "promptVersion": "text-event-1",
+  "generatedAt": "2026-11-05T10:13:02",
+  "droppedEventCount": 0,
+  "events": [
+    {
+      "sortOrder": 1,
+      "title": "사건 제목",
+      "kind": "소송",
+      "changeNos": [12],
+      "quotes": [
+        { "changeNo": 12, "purpose": "CHANGE", "side": "CURRENT", "text": "원문 글", "evidenceId": "20260814003699#B1576" }
+      ],
+      "scaleAmount": null,
+      "currency": null,
+      "scaleEvidenceId": null,
+      "sortBasis": "ROW_COUNT"
+    }
+  ],
+  "unboundChangeNos": [13],
+  "calls": [{ "task": "text_event", "provider": "fake", "model": "fake-model", "promptVersion": "text-event-1",
+    "calledAt": "2026-11-05T10:13:01", "traceId": "…", "inputTokens": 28000, "outputTokens": 3000,
+    "latencyMs": 42000, "attempt": 1, "outcome": "OK", "error": null }]
+}
+```
+
+backend는 저장하기 전에 `changeNos`가 이 분석의 변경인지, `evidenceId`가 그 변경의 접수번호·블록 번호와 같은지 다시 확인합니다. 하나라도 어긋나면 실행을 `FAILED`로 끝냅니다.
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | 필드 누락, `changeNo` 겹침 |
+| 502 | `AI_EVENTS_INVALID_OUTPUT` | 다시 만들어도 쓸 수 있는 사건이 하나도 없음. 호출 기록은 헤더 `X-Llm-Calls` |
+| 503 | `AI_LLM_UNAVAILABLE` | LLM을 쓸 수 없음. 호출 기록은 헤더 `X-Llm-Calls` |
+
 ## 4. 에러 코드
 
 `code`는 `영역_내용` 형식의 대문자 스네이크입니다. 화면은 `code`를 보고 예외 상태를 고릅니다. 분석 작업이 실패한 사유(`GET /api/analyses/{analysisId}`의 `error.code`)는 HTTP 에러가 아니라서 이 표에 없고, 그 절의 표에 있습니다.
@@ -3633,6 +3836,11 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | `ANALYSIS_NOT_READY` | 409 | 분석이 끝나지 않음 | W-02로 이동 |
 | `ANALYSIS_CHANGE_NOT_FOUND` | 404 | 없는 계정 항목 | 목록 다시 불러오기 |
 | `ANALYSIS_TEXT_CHANGE_NOT_FOUND` | 404 | 없는 문장 변경 항목 | 목록 다시 불러오기 |
+| `ANALYSIS_EVENT_NOT_FOUND` | 404 | 이 분석의 현재 버전 사건이 아님 | 사건 목록 다시 불러오기 |
+| `ANALYSIS_EVENTS_NOT_READY` | 409 | 주요 사건을 시작하지 않았거나 만드는 중 | 표를 보여 주고 사건 영역은 '만드는 중' |
+| `ANALYSIS_EVENTS_FAILED` | 409 | 주요 사건 만들기가 실패함 | 표를 보여 주고 실패 안내와 다시 시도 |
+| `ANALYSIS_EVENTS_NOT_CREATED` | 409 | 주요 사건을 만들지 않음 | 표와 전체 변경만 보여 줌 |
+| `ANALYSIS_EVENTS_RETRY_LIMITED` | 429 | 최근 24시간에 3번 실패해 다시 시작할 수 없음 | 표를 보여 주고 나중에 다시 시도 안내 |
 | `ANALYSIS_QUESTION_NOT_FOUND` | 404 | 없는 질문(또는 이 분석의 질문이 아님) | 질문 기록 다시 불러오기 |
 | `ANALYSIS_NOTIFICATION_NOT_FOUND` | 404 | 없는 알림(또는 다른 회원의 알림, #38) | 알림 목록 다시 불러오기 |
 | `COMMUNITY_FORBIDDEN` | 403 | 다른 사람의 글·댓글을 고치거나 지움, 자기 글 신고, 작성자가 아닌 재게시 청구(6.6) | 메뉴를 숨기고 안내 |
