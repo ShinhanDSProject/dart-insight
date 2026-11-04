@@ -97,6 +97,8 @@ public class AgentChatService {
         private final List<LlmCallRow> calls = new ArrayList<>();
         /** 이 채팅에서 근거 질문 Tool이 저장한 질문(질문 ID → 질문). 응답의 questionId는 AskedQuestion.ratedBy로 고른다 */
         private final Map<Long, AskedQuestion> questions = new LinkedHashMap<>();
+        /** LLM이 고른 Tool을 하나라도 실행했는지(화면 맥락으로 먼저 넣은 결과는 빼고). 조회 요청이었는지 가린다 */
+        private boolean lookedUp;
         private final String traceId = TraceContext.currentTraceId();
 
         private Chat(Long analysisId, Checked input, ReportDetail current, ReportDetail previous) {
@@ -123,7 +125,7 @@ public class AgentChatService {
                 if (AgentStep.FINAL.equals(type) && response.finalAnswer() != null) {
                     return ChatResults.finalAnswer(response, evidence, reportNames(),
                             actionCheck.valid(analysisId, current.company().getCorpCode(), questions,
-                                    response.finalAnswer().actions()), List.copyOf(questions.values()));
+                                    response.finalAnswer().actions()), List.copyOf(questions.values()), lookedUp);
                 }
                 if (!AgentStep.TOOL_CALLS.equals(type) || response.toolCalls() == null
                         || response.toolCalls().isEmpty()) {
@@ -160,6 +162,7 @@ public class AgentChatService {
         }
 
         private void execute(String callId, String name, Map<String, Object> arguments) {
+            lookedUp = true;
             add(callId, name, arguments == null ? Map.of() : arguments, agentTools.run(name, analysisId, arguments,
                     properties.maxItems(), properties.maxResultChars()));
         }

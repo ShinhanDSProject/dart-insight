@@ -48,13 +48,15 @@ final class ChatResults {
      * @param evidence 이 채팅에서 실행한 Tool 결과의 근거 ID → 위치
      * @param actions  값 확인을 통과한 화면 액션
      * @param asked    이 채팅에서 근거 질문 Tool이 만든 질문. 최종 답이 인용한 질문만 questionId로 내보낸다
+     * @param lookedUp LLM이 고른 Tool을 실행했는지. 조회했는데 못 찾았으면 확인 버튼이 있어도 NOT_FOUND로 둔다
      */
     static ChatMessageResponse finalAnswer(AgentStepAiResponse response, Map<String, Evidence> evidence,
-            Map<String, String> reportNames, List<Map<String, Object>> actions, List<AskedQuestion> asked) {
+            Map<String, String> reportNames, List<Map<String, Object>> actions, List<AskedQuestion> asked, boolean lookedUp) {
         AgentStepAiResponse.Final result = response.finalAnswer();
         String format = result.format() == null ? AgentStep.FORMAT_CHAT : result.format();
-        if (ChatStatus.NOT_FOUND.name().equals(result.status()) && AgentActions.hasConfirm(actions)) {
-            // 저장 확인만 하는 요청: Tool 결과가 없어도 버튼을 누르면 되므로 '찾지 못함'으로 보이지 않게 한다
+        if (ChatStatus.NOT_FOUND.name().equals(result.status()) && !lookedUp && AgentActions.hasConfirm(actions)) {
+            // 저장 확인만 하는 요청(조회 Tool을 부르지 않음): 버튼을 누르면 되므로 '찾지 못함'으로 보이지 않게 한다.
+            // 조회·저장을 함께 요청해 조회가 실패했으면 그 실패를 감추지 않는다
             return new ChatMessageResponse(ChatStatus.ANSWERED.name(), CONFIRM_ONLY, null, List.of(), actions, format,
                     null, null, false, null);
         }
