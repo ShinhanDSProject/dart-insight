@@ -84,6 +84,7 @@ public class AgentTools {
     private final ExplanationService explanationService;
     private final RelatedDisclosureService relatedDisclosureService;
     private final DocumentService documentService;
+    private final AgentCompanyTools companyTools;
 
     /**
      * Tool 하나.
@@ -116,8 +117,14 @@ public class AgentTools {
         }
     }
 
-    /** 이 채팅에서 쓸 수 있는 Tool(ai-server에 보내는 순서) */
+    /** 이 채팅에서 쓸 수 있는 Tool(ai-server에 보내는 순서). 분석 Tool 뒤에 기업·기간 Tool(AgentCompanyTools) */
     List<Tool> all() {
+        List<Tool> tools = new ArrayList<>(analysisTools());
+        tools.addAll(companyTools.all());
+        return List.copyOf(tools);
+    }
+
+    private List<Tool> analysisTools() {
         return List.of(
                 new Tool(SEARCH_TEXT_CHANGES, "이 분석의 문장·표 변경을 유형·섹션·검색어·위험 관련으로 거르고 확인 우선순위나 "
                         + "문서 순서로 고른다", object(properties(
@@ -327,7 +334,7 @@ public class AgentTools {
                         TextEvidenceService.paths(documentService.sections(document)).get(block.sectionNo()),
                         row.quote())))
                 .orElseGet(() -> new Evidence(row.quoteEvidenceId(), Evidence.Kind.BLOCK, side, ref.rceptNo(), null,
-                        null, null, null, null, null, row.quote(), null, null, null, null, null, null))
+                        null, null, null, null, null, row.quote(), null, null, null, null, null, null, null))
                 .withGrade(grade);
         return new ToolLine(evidence, "[요약 인용, 등급 " + grade + "] " + row.quote());
     }

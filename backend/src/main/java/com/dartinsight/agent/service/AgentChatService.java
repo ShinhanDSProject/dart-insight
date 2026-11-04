@@ -97,6 +97,8 @@ public class AgentChatService {
         private final List<LlmCallRow> calls = new ArrayList<>();
         /** 이 채팅에서 근거 질문 Tool이 저장한 질문(질문 ID → 질문). 응답의 questionId는 AskedQuestion.ratedBy로 고른다 */
         private final Map<Long, AskedQuestion> questions = new LinkedHashMap<>();
+        /** 보고서 값 근거의 채팅 안 번호(같은 값 → 같은 번호). {접수번호}#V{n}의 n */
+        private final Map<String, Integer> valueNumbers = new LinkedHashMap<>();
         /** LLM이 고른 Tool을 하나라도 실행했는지(화면 맥락으로 먼저 넣은 결과는 빼고). 조회 요청이었는지 가린다 */
         private boolean lookedUp;
         private final String traceId = TraceContext.currentTraceId();
@@ -172,7 +174,8 @@ public class AgentChatService {
                 questions.put(run.question().id(), run.question());
             }
             List<AgentStepAiRequest.Item> items = new ArrayList<>();
-            for (ToolLine line : run.lines().lines()) {
+            for (ToolLine raw : run.lines().lines()) {
+                ToolLine line = numbered(raw);
                 if (line.evidence() != null) {
                     evidence.merge(line.evidenceId(), line.evidence(), Evidence::fill);
                 }
@@ -180,6 +183,15 @@ public class AgentChatService {
             }
             results.add(new AgentStepAiRequest.ToolResult(callId, name, arguments, run.ok(), run.error(),
                     run.lines().truncated(), items));
+        }
+
+        /** 보고서 값 근거에 이 채팅 안의 번호를 붙인다(같은 값은 같은 번호) */
+        private ToolLine numbered(ToolLine line) {
+            if (line.evidence() == null || !line.evidence().unnumberedValue()) {
+                return line;
+            }
+            int no = valueNumbers.computeIfAbsent(line.evidence().valueKey(), k -> valueNumbers.size() + 1);
+            return new ToolLine(line.evidence().withValueNo(no), line.text());
         }
 
         private AgentStepAiRequest request(int remainingSteps) {

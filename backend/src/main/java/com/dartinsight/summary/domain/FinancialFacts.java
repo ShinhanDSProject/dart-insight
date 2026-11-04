@@ -56,7 +56,8 @@ public final class FinancialFacts {
         };
     }
 
-    static String amount(long value, String currency) {
+    /** 금액 표기(원화는 조·억 원, 그 밖은 통화 코드). 에이전트 기업 Tool도 같은 표기를 쓴다 */
+    public static String amount(long value, String currency) {
         String sign = value < 0 ? "−" : "";
         BigDecimal abs = BigDecimal.valueOf(value).abs();
         if (currency != null && !"KRW".equals(currency)) {
