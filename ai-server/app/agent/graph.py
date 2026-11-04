@@ -2,6 +2,7 @@
 
 route_intent ─┬─ OUT_OF_SCOPE ─────────────────────────→ build_response
              ├─ 빠른 명령 → TOOL_CALLS ───────────────→ build_response
+             ├─ 정해진 요청 → FINAL 또는 목차 TOOL_CALLS(LLM 없음, rules) → build_response
              └─ plan_next_tool ─┬─ TOOL_CALLS ────────→ build_response
                                 └─ draft_answer ↔ review_answer
                                        └─ 통과·예산 끝 → build_response
@@ -33,6 +34,7 @@ from app.agent.model import (
     ToolCall,
 )
 from app.agent.prompt import build_answer_request, build_plan_request
+from app.agent.rules import match_rule
 from app.agent.validate import Draft, parse_draft, parse_plan, review, schema_problem
 from app.compliance import scan_question
 from app.llm import CallRecord, LlmClient, LlmOutputInvalid, LlmUnavailable
@@ -88,6 +90,11 @@ def build_graph(llm: LlmClient) -> Any:
         quick = _quick_call(step)
         if quick is not None:
             return {"kind": TOOL_CALLS, "tool_calls": [quick], "next": _RESPOND}
+        rule = match_rule(step)
+        if isinstance(rule, FinalAnswer):
+            return {"kind": FINAL, "final": rule, "next": _RESPOND}
+        if isinstance(rule, ToolCall):
+            return {"kind": TOOL_CALLS, "tool_calls": [rule], "next": _RESPOND}
         if step.remaining_steps <= 0 or _quick_done(step):
             return {"next": _DRAFT}
         return {"next": _PLAN}
