@@ -70,6 +70,7 @@ class AgentCompanyToolsApiTest {
     static final String CUR = "20260814003699";
     static final String PREV = "20250814003156";
     static final String ANNUAL = "20260310000001";
+    static final String Q1 = "20260515000001";
     static final LocalDateTime NOW = LocalDateTime.of(2026, 11, 4, 9, 0);
     static final String CALL = """
             {"task":"%s","provider":"fake","model":"fake-model","promptVersion":"agent-2",
@@ -369,29 +370,52 @@ class AgentCompanyToolsApiTest {
     }
 
     @Test
-    @DisplayName("이 채팅에서 같은 네 값으로 비교할 수 있다고 나왔을 때만 분석 요청 확인 버튼을 남기고, 값이 다르거나 검증하지 않았으면 뺀다(AC18)")
+    @DisplayName("이 채팅에서 같은 네 값으로 비교할 수 있다고 나왔고 같은 쌍의 끝난 분석이 없을 때만 분석 요청 확인 버튼을 남기고, 값이 다르거나 검증하지 않았으면 뺀다(AC18)")
     void requestAnalysisNeedsComparableCheckInThisChat() throws Exception {
-        DART.on("/api/fnlttSinglAcntAll.json", statement(CUR), statement(PREV));
+        reportRepository.save(Report.create(Q1, CORP, "분기보고서 (2026.03)",
+                new ParsedReportName(ReportType.Q1, 2026, LocalDate.of(2026, 3, 31), Correction.ORIGINAL),
+                LocalDate.of(2026, 5, 15), null, "예시전자", NOW));
+        DART.on("/api/fnlttSinglAcntAll.json", statement(CUR), statement(Q1));
         String request = "{\"type\":\"CONFIRM_REQUEST_ANALYSIS\",\"corpCode\":\"" + CORP
-                + "\",\"previousRceptNo\":\"" + PREV + "\",\"currentRceptNo\":\"" + CUR + "\",\"basis\":\"%s\"}";
-        AI.on(STEPS, twoSteps(call("check_comparability", "{\"previousRceptNo\":\"" + PREV
-                + "\",\"currentRceptNo\":\"" + CUR + "\",\"basis\":\"YOY\"}"), r -> finalAnswer(
+                + "\",\"previousRceptNo\":\"" + Q1 + "\",\"currentRceptNo\":\"" + CUR + "\",\"basis\":\"%s\"}";
+        AI.on(STEPS, twoSteps(call("check_comparability", "{\"previousRceptNo\":\"" + Q1
+                + "\",\"currentRceptNo\":\"" + CUR + "\",\"basis\":\"PREV\"}"), r -> finalAnswer(
                 "두 보고서는 비교할 수 있어요[D" + CUR + "].", "\"D" + CUR + "\"",
-                request.formatted("YOY") + "," + request.formatted("PREV"))));
+                request.formatted("PREV") + "," + request.formatted("YOY"))));
 
-        ResultActions result = chat("작년 반기랑 비교 분석해줘");
-        assertThat(JsonPath.<List<String>>read(AI.requests(STEPS).get(1).bodyText(), "$.toolResults[0].items[*].text"))
-                .first().asString().contains("비교할 수 있음");
+        ResultActions result = chat("직전 분기랑 비교 분석해줘");
+        List<String> texts = JsonPath.read(AI.requests(STEPS).get(1).bodyText(), "$.toolResults[0].items[*].text");
+        assertThat(texts).first().asString().contains("비교할 수 있음");
+        assertThat(texts).noneMatch(t -> t.contains("같은 비교의 완료된 분석"));
         result.andExpect(jsonPath("$.status").value("ANSWERED"))
                 .andExpect(jsonPath("$.actions", org.hamcrest.Matchers.hasSize(1)))
                 .andExpect(jsonPath("$.actions[0].type").value("CONFIRM_REQUEST_ANALYSIS"))
-                .andExpect(jsonPath("$.actions[0].basis").value("YOY"))
+                .andExpect(jsonPath("$.actions[0].basis").value("PREV"))
                 .andExpect(jsonPath("$.actions[0].label").value("이 비교로 분석 요청"));
 
         AI.clear();
         AI.on(STEPS, twoSteps(call("find_analyses", "{}"), r -> finalAnswer("분석이 있어요[D" + CUR + "].",
-                "\"D" + CUR + "\"", request.formatted("YOY"))));
-        chat("작년 반기랑 비교 분석해줘").andExpect(jsonPath("$.actions", org.hamcrest.Matchers.hasSize(0)));
+                "\"D" + CUR + "\"", request.formatted("PREV"))));
+        chat("직전 분기랑 비교 분석해줘").andExpect(jsonPath("$.actions", org.hamcrest.Matchers.hasSize(0)));
+    }
+
+    @Test
+    @DisplayName("같은 보고서 쌍의 끝난 분석이 있으면 비교 가능성 결과에 그 분석을 알려 주고, 비교할 수 있어도 분석 요청 확인 버튼을 뺀다(AC18)")
+    void requestAnalysisIsDroppedWhenSamePairIsCompleted() throws Exception {
+        DART.on("/api/fnlttSinglAcntAll.json", statement(CUR), statement(PREV));
+        String request = "{\"type\":\"CONFIRM_REQUEST_ANALYSIS\",\"corpCode\":\"" + CORP
+                + "\",\"previousRceptNo\":\"" + PREV + "\",\"currentRceptNo\":\"" + CUR + "\",\"basis\":\"YOY\"}";
+        AI.on(STEPS, twoSteps(call("check_comparability", "{\"previousRceptNo\":\"" + PREV
+                + "\",\"currentRceptNo\":\"" + CUR + "\",\"basis\":\"YOY\"}"), r -> finalAnswer(
+                "이미 끝난 분석이 있어요[D" + CUR + "].", "\"D" + CUR + "\"",
+                request + ",{\"type\":\"OPEN_ANALYSIS\",\"analysisId\":" + analysisId + "}")));
+
+        ResultActions result = chat("작년 반기랑 비교 분석해줘");
+        assertThat(JsonPath.<List<String>>read(AI.requests(STEPS).get(1).bodyText(), "$.toolResults[0].items[*].text"))
+                .anyMatch(t -> t.contains("같은 비교의 완료된 분석 analysisId " + analysisId));
+        result.andExpect(jsonPath("$.actions", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.actions[0].type").value("OPEN_ANALYSIS"))
+                .andExpect(jsonPath("$.actions[0].analysisId").value(analysisId));
     }
 
     @Test

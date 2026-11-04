@@ -450,11 +450,20 @@ class AgentCompanyTools {
                 ? "[비교 가능성] 비교할 수 있음(" + result.level() + ", " + result.fsDiv() + ")"
                 : "[비교 가능성] 비교할 수 없음: " + result.reasons().stream()
                         .map(ComparabilityService.Reason::message).toList();
-        List<ToolLine> lines = List.of(
+        List<ToolLine> lines = new ArrayList<>(List.of(
                 new ToolLine(reportEvidence(result.current()), head + " 현재 " + reportText(result.current())),
-                new ToolLine(reportEvidence(result.previous()), "[비교 가능성] 이전 " + reportText(result.previous())));
+                new ToolLine(reportEvidence(result.previous()), "[비교 가능성] 이전 " + reportText(result.previous()))));
+        // 같은 보고서 쌍의 끝난 분석은 최근 몇 개가 아니라 전부에서 찾는다(있으면 새 분석 대신 그 분석을 연다, AC18)
+        Long existing = companyAnalysisService.completed(corpCode).stream()
+                .filter(c -> previous.equals(c.analysis().getPreviousRceptNo())
+                        && current.equals(c.analysis().getCurrentRceptNo()))
+                .map(c -> c.analysis().getId()).findFirst().orElse(null);
+        if (existing != null) {
+            lines.add(new ToolLine(null, "[같은 비교의 완료된 분석 analysisId " + existing + "] 새로 요청하지 말고 "
+                    + "OPEN_ANALYSIS로 이 분석을 연다"));
+        }
         return new Output(lines, null, new ComparabilityCheck(corpCode, previous, current, basis,
-                result.comparable()));
+                result.comparable(), existing));
     }
 
     private static String rceptNo(ToolArgs args, String name) {

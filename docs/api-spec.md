@@ -2959,7 +2959,7 @@
   | `OPEN_POST_DRAFT` | `corpCode`, `quote`(`POST /api/companies/{corpCode}/posts`의 `quote`와 같음: `kind`·`analysisId`·`changeId`), `body` | 기업 게시판 글쓰기를 인용과 초안을 채워 엶. 게시는 사용자가 누를 때만이고 이 API는 글을 저장하지 않음(AC26). 값은 backend가 채움: `corpCode`는 이 분석의 기업, `body`는 검토 노드를 통과한 최종 `answer`에서 근거 표시를 뺀 글(2,000자까지, LLM이 준 `body`는 쓰지 않음), `quote`의 `analysisId`는 이 분석. `quote.changeId`가 이 분석의 변경이 아니면 `quote`를 빼고, 최종 답이 없으면(ANSWERED가 아님) 액션을 뺌 |
   | `OPEN_ANALYSIS` | `analysisId` | 이미 끝난 다른 분석의 결과 화면으로 이동. 완료된(`COMPLETED`) 분석이 아니면 backend가 뺌(기업은 가리지 않음) |
   | `OPEN_COMPANY_COMPARE` | `corpCodes`(2개 이상) | 기업 나란히 보기(`/compare/companies?corps=`). backend가 기업 목록에 있는 고유번호만 겹치지 않게 남기고, 2곳 미만이면 뺌(AC27) |
-  | `CONFIRM_REQUEST_ANALYSIS` | `corpCode`, `previousRceptNo`, `currentRceptNo`, `basis` | 확인 버튼. 누르면 `POST /api/analyses` 뒤 분석 진행 화면(W-02)으로(분석 요청은 이 API가 하지 않음). backend는 이 채팅에서 같은 네 값으로 실행한 `check_comparability`가 `comparable: true`였을 때만 남기고, 아니면 뺌(AC18) |
+  | `CONFIRM_REQUEST_ANALYSIS` | `corpCode`, `previousRceptNo`, `currentRceptNo`, `basis` | 확인 버튼. 누르면 `POST /api/analyses` 뒤 분석 진행 화면(W-02)으로(분석 요청은 이 API가 하지 않음). backend는 이 채팅에서 같은 네 값으로 실행한 `check_comparability`가 `comparable: true`였고 같은 보고서 쌍(이전·현재 접수번호)의 완료된 분석이 없을 때만 남기고, 아니면 뺌(AC18: 끝난 분석이 있으면 `OPEN_ANALYSIS`) |
 
 - `questionId`: 답 평가에 쓰는 질문 ID. `status`가 `ANSWERED`이고, 이번 요청에서 근거 질문 Tool이 답한(`ANSWERED`) 질문 중 최종 답(`citations`)이 그 질문의 근거를 인용한 것이 있으면 그중 마지막 질문의 ID입니다. 그런 질문이 없으면 null입니다: 근거 질문을 하지 않았거나, 근거 질문이 모두 `NOT_FOUND`·`OUT_OF_SCOPE`·`REVIEW_NEEDED`로 끝났거나, 답한 질문이 있어도 최종 답이 다른 Tool 결과만 인용한 경우(사용자가 보지 않은 답에 평가가 저장되지 않게)
 - `aiGenerated`: LLM이 `answer`를 만들었으면 true. LLM 없이 정해진 문구로 답했거나 `answer`가 null이면 false
@@ -3596,7 +3596,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | `get_plan_followups` | `corpCode` | `GET /api/companies/{corpCode}/plan-followups` | `{rceptNo}#B{blockNo}` |
 | `find_analyses` | `corpCode` | `GET /api/companies/{corpCode}/analyses`(최근 5개) | `D{rceptNo}`(분석의 현재 보고서) |
 | `get_report_pairs` | `corpCode`, `basis` | `GET /api/companies/{corpCode}/report-pairs` | `D{rceptNo}`(고른 현재·이전 보고서) |
-| `check_comparability` | `corpCode`, `previousRceptNo`, `currentRceptNo`, `basis` | `POST /api/comparability-checks` | `D{rceptNo}`(두 보고서) |
+| `check_comparability` | `corpCode`, `previousRceptNo`, `currentRceptNo`, `basis` | `POST /api/comparability-checks`. 같은 보고서 쌍의 완료된 분석을 개수 제한 없이 찾아, 있으면 그 `analysisId`를 결과에 함께 넣음 | `D{rceptNo}`(두 보고서) |
 
 - 브리핑·전망·계획 대조는 저장된 것이 없으면 기존 API처럼 새로 만듭니다(그 API의 LLM 호출·저장 규칙 그대로). 그래서 첫 호출은 오래 걸릴 수 있습니다.
 - 액션 목록은 공개 API의 `actions` 표와 같습니다.
