@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AdminAnalysisItem, AdminOverview, AdminUserItem, PageOf } from '@/shared/api/admin'
@@ -44,7 +44,7 @@ const overview: AdminOverview = {
   watch: { favorites: 310, companies: 96, topWatched: [{ corpCode: '00126380', corpName: '삼성전자', count: 41 }] },
   community: { openReports: 3, postsInPeriod: 27 },
   ai: { calls: 220, failedCalls: 4, estimatedCostUsd: null, unpricedCalls: 220 },
-  planInterests: { total: 19, signedIn: 7, byPlan: { FREE: 2, PRO: 9, TEAM: 6, EMBED: 2 }, daily: [] },
+  planInterests: { total: 19, signedIn: 7, signedInMembers: 5, byPlan: { FREE: 2, PRO: 9, TEAM: 6, EMBED: 2 }, daily: [] },
 }
 
 const failed: AdminAnalysisItem = {
@@ -169,6 +169,7 @@ describe('분석 작업(FS-72 R2)', () => {
     expect(screen.getByText('trace-abc')).toBeTruthy()
     expect(screen.getByText('옛 버전')).toBeTruthy()
     expect(screen.getByText('1분 9초')).toBeTruthy()
+    expect(screen.getByText('비교 단계')).toBeTruthy()
     expect(screen.getByRole('link', { name: '분석 14 진행 화면' }).getAttribute('href')).toBe('/analyses/14/progress')
     expect(await axeViolations(container)).toBe('')
   })
@@ -181,6 +182,20 @@ describe('분석 작업(FS-72 R2)', () => {
     fireEvent.click(screen.getByRole('button', { name: '찾기' }))
     await waitFor(() => expect(api.analyses).toHaveBeenLastCalledWith({ status: null, days: null, q: 'trace-abc', page: 0 }, expect.anything()))
     expect(router.state.location.search).toBe('?q=trace-abc')
+    // 개요 화면 링크처럼 주소의 q만 바뀌어도 검색창이 그 값을 따른다
+    await act(() => router.navigate('/admin/analyses?q=00126380'))
+    await waitFor(() => expect((screen.getByRole('searchbox') as HTMLInputElement).value).toBe('00126380'))
+    await act(() => router.navigate('/admin/analyses'))
+    await waitFor(() => expect((screen.getByRole('searchbox') as HTMLInputElement).value).toBe(''))
+  })
+
+  it('기업 표에 없는 기업·저장 안 된 보고서는 고유번호·접수번호로 보인다', async () => {
+    api.analyses.mockResolvedValue(
+      page([{ ...failed, corpName: null, current: { rceptNo: '20260814003699', reportName: null }, previous: { ...failed.previous } }]),
+    )
+    renderAt('/admin/analyses')
+    expect(await screen.findByRole('rowheader', { name: /00126380/ })).toBeTruthy()
+    expect(screen.getByText('반기보고서 (2025.06) → 20260814003699')).toBeTruthy()
   })
 })
 

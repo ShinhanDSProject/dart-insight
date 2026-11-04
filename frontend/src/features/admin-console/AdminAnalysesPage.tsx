@@ -19,6 +19,7 @@ import {
   parsePage,
   shortDateTime,
   statusLabel,
+  stepLabel,
   statusTone,
 } from './model/adminConsole'
 
@@ -56,6 +57,12 @@ export function AdminAnalysesPage() {
   const daysLabelId = useId()
   const searchId = useId()
   const [draft, setDraft] = useState(q ?? '')
+  // 뒤로 가기나 개요 화면 링크로 q가 바뀌면 검색창도 그 값으로 맞춘다
+  const [shownQ, setShownQ] = useState(q)
+  if (shownQ !== q) {
+    setShownQ(q)
+    setDraft(q ?? '')
+  }
 
   function onSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -118,7 +125,7 @@ export function AdminAnalysesPage() {
                 </h2>
                 <span className="console-card__note">최근 요청 순</span>
               </div>
-              <DataTable caption="분석 작업 목록. 분석 ID, 기업, 비교, 상태, 단계, 소요 시간, 버전, 요청 시각 순입니다." density="compact">
+              <DataTable caption="분석 작업 목록. 분석 ID, 기업, 비교, 상태(끝나지 않았으면 단계), 소요 시간, 버전, 요청 시각 순입니다." density="compact">
                 <thead>
                   <tr>
                     <th scope="col">ID</th>
@@ -161,14 +168,15 @@ function AnalysisRow({ item }: { item: AdminAnalysisItem }) {
       <tr className={item.status === 'FAILED' ? 'jobs__row jobs__row--failed' : 'jobs__row'}>
         <td className="jobs__num">{item.analysisId}</td>
         <th scope="row" className="jobs__corp">
-          {item.corpName}
+          {item.corpName ?? item.corpCode}
           <span className="jobs__sub">{item.corpCode}</span>
         </th>
         <td>
-          {item.previous.reportName} → {item.current.reportName}
+          {item.previous.reportName ?? item.previous.rceptNo} → {item.current.reportName ?? item.current.rceptNo}
         </td>
         <td>
           <Badge tone={statusTone(item.status)}>{statusLabel(item.status)}</Badge>
+          {item.status !== 'COMPLETED' && <span className="jobs__sub">{stepLabel(item.step)} 단계</span>}
         </td>
         <td className="jobs__num">{formatDuration(item.durationSeconds)}</td>
         <td>
