@@ -144,7 +144,8 @@ public class AgentTools {
                         (a, args) -> Output.of(section(a, args))),
                 new Tool(ANSWER_WITH_EVIDENCE, "두 보고서 원문과 계산한 재무 사실로 질문에 근거를 들어 답한다(기존 AI 질문과 "
                         + "같은 검사, 질문은 저장됨). 변화의 이유·설명을 물을 때 쓴다", object(properties(
-                        "question", string("물을 질문(2~200자, 사용자의 말을 짧게)")), List.of("question")), 0,
+                        "question", string("묻는 내용만 짧게(2~200자). 회사·보고서·기간 이름과 '원문 근거와 함께' 같은 "
+                                + "근거 요청 말은 붙이지 않는다(이 분석의 두 보고서에서 찾음)")), List.of("question")), 0,
                         this::answer),
                 new Tool(GET_SUMMARY, "저장된 요약·설명(재무 설명 등급 STATED·RELATED·NONE과 인용 포함). 새로 만들지 않는다",
                         object(properties(), List.of()), 0, (a, args) -> Output.of(summary(a))),

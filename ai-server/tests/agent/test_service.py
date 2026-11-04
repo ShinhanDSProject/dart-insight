@@ -12,7 +12,7 @@ from app.agent.model import (
     ToolSpec,
     Turn,
 )
-from app.agent.prompt import TASK_ANSWER, TASK_PLAN
+from app.agent.prompt import PROMPT_VERSION, TASK_ANSWER, TASK_PLAN
 from app.agent.service import run_step
 from app.core.config import LlmSettings
 from app.llm import FakeProvider, LlmClient, LlmUnavailable, ProviderError
@@ -113,7 +113,7 @@ def test_first_step_returns_tool_calls_chosen_by_llm() -> None:
         {"q": "소송", "risk": True},
     )
     assert [c.task for c in output.calls] == ["agent_plan"]
-    assert output.calls[0].prompt_version == "agent-1"
+    assert output.calls[0].prompt_version == PROMPT_VERSION
     assert provider.requests[0].task == TASK_PLAN
 
 

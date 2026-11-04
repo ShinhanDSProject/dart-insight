@@ -17,7 +17,7 @@ from app.llm.prompting import SOURCE_RULE, attr, disclosure, escape
 from app.llm.providers import LlmRequest
 
 # 결과가 달라지게 바꾸면 이 버전을 올린다(검사 규칙 app/agent/validate.py 포함)
-PROMPT_VERSION = "agent-1"
+PROMPT_VERSION = "agent-2"
 TASK_PLAN = "agent_plan"
 TASK_ANSWER = "agent_answer"
 MAX_MESSAGE_CHARS = 500
@@ -46,6 +46,11 @@ PLAN_SYSTEM = "\n".join(
         "2. 이미 같은 인자로 부른 Tool은 다시 부르지 않습니다.",
         "3. 매수·매도·목표주가·주가 전망 같은 투자 판단을 위한 Tool 호출은 하지 않습니다.",
         "4. 노트·관심 기업 같은 저장은 Tool로 하지 않습니다. 답의 확인 액션으로만 돌려줍니다.",
+        "5. answer_with_evidence의 question에는 사용자의 질문을 한 문장으로 옮깁니다. "
+        "질문 낱말로 원문을 찾으므로 조건·구분·형식 같은 지시를 덧붙이지 않고, "
+        "이미 이 분석의 두 보고서에서 찾으므로 회사·보고서·기간 이름과 "
+        "'원문 근거와 함께' 같은 근거 요청 말도 붙이지 않습니다"
+        "(예: '소송 관련 변경을 원문 근거와 함께 설명해줘' → '소송 관련해서 무엇이 바뀌었나요?').",
         DATA_RULE,
         "답은 JSON 객체 하나만: "
         '{"decision": "CALL_TOOLS", "toolCalls": [{"name": "...", "arguments": {...}}]}',
