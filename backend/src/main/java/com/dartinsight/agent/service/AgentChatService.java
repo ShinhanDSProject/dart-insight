@@ -206,7 +206,7 @@ public class AgentChatService {
                     List.copyOf(results), remainingSteps);
         }
 
-        /** 화면 맥락. 고른 변경의 내용은 Tool 결과로 따로 보낸다 */
+        /** 화면 맥락. 고른 변경은 ID만 넣고(정해진 요청의 노트 담기, #631) 내용은 Tool 결과로 따로 보낸다 */
         private Map<String, Object> screen() {
             Map<String, Object> screen = new LinkedHashMap<>();
             ChatMessageRequest.Context context = input.context();
@@ -214,6 +214,8 @@ public class AgentChatService {
                 screen.put("tab", context.tab());
                 screen.put("side", context.side());
                 screen.put("sectionNo", context.sectionNo());
+                screen.put("textChangeId", context.textChangeId());
+                screen.put("financialChangeId", context.financialChangeId());
             }
             screen.values().removeIf(v -> v == null);
             return screen;

@@ -64,6 +64,11 @@ final class ChatResults {
             return new ChatMessageResponse(ChatStatus.NOT_FOUND.name(), null, NOT_FOUND, List.of(), actions, format,
                     null, null, false, null);
         }
+        if (ChatStatus.ANSWERED.name().equals(result.status()) && fixedAnswer(response)) {
+            // 정해진 요청(이동·저장 확인, #631): ai-server가 LLM 없이 정해진 안내로 답함. 근거 표시가 없다
+            return new ChatMessageResponse(ChatStatus.ANSWERED.name(), result.answer(), null, List.of(), actions,
+                    format, null, null, false, null);
+        }
         if (!ChatStatus.ANSWERED.name().equals(result.status())) {
             String reason = result.reviewReason() == null ? NOT_VERIFIED : result.reviewReason();
             return status(ChatStatus.REVIEW_NEEDED, reason);
@@ -82,6 +87,17 @@ final class ChatResults {
                 time(response.generatedAt()));
         return new ChatMessageResponse(ChatStatus.ANSWERED.name(), converted.answer(), null, citations, actions,
                 format, result.crossCheck(), AskedQuestion.ratedBy(asked, converted.evidenceIds()), true, ai);
+    }
+
+    /**
+     * ai-server가 LLM 없이 만든 정해진 안내인지: 모델·호출 기록이 없고 근거 ID·근거 표시가 없음.
+     * LLM이 만든 답(model 있음)은 근거 표시가 하나 이상 있어야 한다(ADR-0044).
+     */
+    private static boolean fixedAnswer(AgentStepAiResponse response) {
+        AgentStepAiResponse.Final result = response.finalAnswer();
+        return response.model() == null && (response.calls() == null || response.calls().isEmpty())
+                && (result.evidenceIds() == null || result.evidenceIds().isEmpty())
+                && result.answer() != null && !result.answer().isBlank() && result.answer().indexOf('[') < 0;
     }
 
     static List<LlmCallRow> calls(AgentStepAiResponse response, String traceId) {
