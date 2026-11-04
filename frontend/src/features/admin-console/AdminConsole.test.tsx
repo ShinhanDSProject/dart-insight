@@ -145,6 +145,8 @@ describe('개요(FS-72 R1·R4)', () => {
     expect(screen.getByText('ANALYSIS_SUMMARY_FAILED')).toBeTruthy()
     expect(screen.getByRole('link', { name: /처리할 신고/ }).getAttribute('href')).toBe('/admin/reports')
     expect(within(screen.getByRole('list', { name: '요금제별 관심' })).getAllByRole('listitem')).toHaveLength(4)
+    // signedIn(7)이 아니라 회원·요금제 쌍(signedInMembers 5)을 보인다
+    expect(within(screen.getByRole('region', { name: '요금제 관심' })).getByText(/로그인 회원·요금제 5쌍/)).toBeTruthy()
     expect(await axeViolations(container)).toBe('')
   })
 

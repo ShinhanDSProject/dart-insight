@@ -100,10 +100,11 @@ public record AdminOverviewResponse(int days, LocalDate from, LocalDate to, Anal
     public record Ai(long calls, long failedCalls, Double estimatedCostUsd, long unpricedCalls) {
     }
 
-    public record PlanInterests(long total, long signedIn, Map<String, Long> byPlan, List<CountDaily> daily) {
+    public record PlanInterests(long total, long signedIn, long signedInMembers, Map<String, Long> byPlan,
+            List<CountDaily> daily) {
 
         static PlanInterests of(PlanInterestTally t, UsagePeriod period) {
-            return new PlanInterests(t.total(), t.signedIn(), named(t.byPlan()),
+            return new PlanInterests(t.total(), t.signedIn(), t.signedInMembers(), named(t.byPlan()),
                     period.dailyCounts(t.createdAts()).entrySet().stream()
                             .map(e -> new CountDaily(e.getKey(), e.getValue()))
                             .toList());

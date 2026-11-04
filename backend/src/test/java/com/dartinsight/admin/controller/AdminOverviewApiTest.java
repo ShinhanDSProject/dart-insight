@@ -196,7 +196,10 @@ class AdminOverviewApiTest {
 
         AdminFixtures.planInterest(jdbc, "PRO", member, at(1, 9));
         AdminFixtures.planInterest(jdbc, "PRO", null, at(1, 10));
+        // 같은 회원이 PRO를 한 번 더 눌러도 signedInMembers는 (회원, PRO) 하나로 센다
+        AdminFixtures.planInterest(jdbc, "PRO", member, at(1, 11));
         AdminFixtures.planInterest(jdbc, "TEAM", null, at(0, 1));
+        AdminFixtures.planInterest(jdbc, "TEAM", member, at(0, 2));
         AdminFixtures.planInterest(jdbc, "FREE", null, at(10, 9));
 
         String body = mvc.perform(withToken(get(PATH), admin))
@@ -223,14 +226,15 @@ class AdminOverviewApiTest {
                 .andExpect(jsonPath("$.ai.failedCalls").value(1))
                 .andExpect(jsonPath("$.ai.estimatedCostUsd").value(0.045))
                 .andExpect(jsonPath("$.ai.unpricedCalls").value(1))
-                .andExpect(jsonPath("$.planInterests.total").value(3))
-                .andExpect(jsonPath("$.planInterests.signedIn").value(1))
+                .andExpect(jsonPath("$.planInterests.total").value(5))
+                .andExpect(jsonPath("$.planInterests.signedIn").value(3))
+                .andExpect(jsonPath("$.planInterests.signedInMembers").value(2))
                 .andExpect(jsonPath("$.planInterests.byPlan.FREE").value(0))
-                .andExpect(jsonPath("$.planInterests.byPlan.PRO").value(2))
-                .andExpect(jsonPath("$.planInterests.byPlan.TEAM").value(1))
+                .andExpect(jsonPath("$.planInterests.byPlan.PRO").value(3))
+                .andExpect(jsonPath("$.planInterests.byPlan.TEAM").value(2))
                 .andExpect(jsonPath("$.planInterests.byPlan.EMBED").value(0))
-                .andExpect(jsonPath("$.planInterests.daily[5].count").value(2))
-                .andExpect(jsonPath("$.planInterests.daily[6].count").value(1))
+                .andExpect(jsonPath("$.planInterests.daily[5].count").value(3))
+                .andExpect(jsonPath("$.planInterests.daily[6].count").value(2))
                 .andReturn().getResponse().getContentAsString();
         assertThat(body).doesNotContain("example.com", "gmail.com", "naver.com", "운영자");
 

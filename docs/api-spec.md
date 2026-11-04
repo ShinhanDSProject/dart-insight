@@ -679,7 +679,7 @@
   "community": { "openReports": 3, "postsInPeriod": 27 },
   "ai": { "calls": 220, "failedCalls": 4, "estimatedCostUsd": 1.8312, "unpricedCalls": 0 },
   "planInterests": {
-    "total": 19, "signedIn": 7,
+    "total": 19, "signedIn": 7, "signedInMembers": 5,
     "byPlan": { "FREE": 2, "PRO": 9, "TEAM": 6, "EMBED": 2 },
     "daily": [ { "date": "2026-10-29", "count": 3 } ]
   }
@@ -692,7 +692,7 @@
 - `watch`: 지금 전체 관심 기업(`favorite_company`). `favorites` = 행 수, `companies` = 서로 다른 기업 수, `topWatched` = 많이 담은 기업 상위 5개. 모니터링 수요를 보는 값입니다.
 - `community`: `openReports` = `GET /api/admin/reports?queue=todo`의 `totalItems`와 같은 수, `postsInPeriod` = 기간 안에 쓴 글 수(지운 글 포함).
 - `ai`: 기간 안 `llm_call`. `failedCalls` = `outcome`이 `OK`가 아닌 호출. `estimatedCostUsd`는 가격이 설정된 모델의 호출만 더한 값(`GET /api/system/ai-usage`의 계산식), 가격이 설정된 호출이 없으면 null. `unpricedCalls`는 가격이 없는 모델(가짜 제공자 포함)의 호출 수로, 0이 아니면 비용이 전부가 아님을 화면에 알립니다.
-- `planInterests`: 기간 안 `plan_interest`. `signedIn` = 로그인한 회원이 남긴 수. `byPlan`은 네 키를 모두 넣습니다.
+- `planInterests`: 기간 안 `plan_interest`. `signedIn` = 로그인한 회원이 남긴 수, `signedInMembers` = 로그인한 회원·요금제 쌍을 한 번씩만 센 수(같은 회원이 같은 요금제를 여러 번 눌러도 1). 로그인 없이 누른 수는 막지 않으므로 수요를 판단할 때는 `signedInMembers`를 함께 봅니다. `byPlan`은 네 키를 모두 넣습니다.
 - 사용자 개인정보(이메일 등)는 넣지 않습니다.
 
 **에러**: `days`가 7·30이 아니면 400 `COMMON_INVALID_INPUT`(`errors[].field`=`days`), 로그인 안 함 401 `AUTH_UNAUTHORIZED`, 관리자 아님 403 `AUTH_FORBIDDEN`.
