@@ -246,6 +246,20 @@ class AgentChatApiTest {
     }
 
     @Test
+    @DisplayName("목록에서 접히는 주석 변경도 채팅의 문장 변경 찾기로 찾는다")
+    void searchToolFindsFoldedNoteChanges() throws Exception {
+        jdbcTemplate.update("UPDATE text_change SET list_group = 'NOTE', note_scope = 'CONSOLIDATED', "
+                + "raised_from_note = FALSE, list_version = 'text-list-1' WHERE analysis_id = ?", analysisId);
+        AI.on(STEPS, twoSteps("{\"callId\":\"c1\",\"name\":\"search_text_changes\",\"arguments\":{\"q\":\"소송\"}}",
+                request -> finalAnswer("NOT_FOUND", null, "", "")));
+
+        chat("소송 관련 변경 보여줘").andExpect(status().isOk());
+
+        assertThat(JsonPath.<List<String>>read(AI.requests(STEPS).get(1).bodyText(),
+                "$.toolResults[0].items[*].evidenceId")).contains("T" + lawsuitChangeId);
+    }
+
+    @Test
     @DisplayName("Tool을 실행하고 결과를 붙여 다시 부른 뒤, 근거 칩과 확인한 화면 액션이 붙은 답을 돌려준다")
     void runsToolsAndAnswersWithCitationsAndActions() throws Exception {
         String evidence = "T" + lawsuitChangeId;

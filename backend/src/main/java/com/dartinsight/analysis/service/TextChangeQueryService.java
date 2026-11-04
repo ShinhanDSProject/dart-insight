@@ -3,6 +3,7 @@ package com.dartinsight.analysis.service;
 import com.dartinsight.analysis.domain.Analysis;
 import com.dartinsight.analysis.domain.TextChange;
 import com.dartinsight.analysis.domain.TextChangeFilter;
+import com.dartinsight.analysis.domain.TextChangeListing;
 import com.dartinsight.analysis.domain.TextSectionCount;
 import com.dartinsight.analysis.repository.TextChangeStore;
 import com.dartinsight.common.error.ApiException;
@@ -30,11 +31,17 @@ public class TextChangeQueryService {
     public TextChangePage page(Long analysisId, TextChangeFilter filter, boolean byPriority, long offset,
             int limit) {
         Analysis analysis = resultService.completed(analysisId);
-        Map<String, Integer> counts = store.counts(analysisId, filter);
-        Map<String, Integer> riskCounts = store.riskCounts(analysisId, filter);
-        List<TextSectionCount> sections = store.sections(analysisId, filter);
-        List<TextChange> changes = store.page(analysisId, filter, byPriority, offset, limit);
-        return new TextChangePage(analysis, counts, riskCounts, sections, changes);
+        String listVersion = store.listVersion(analysisId);
+        // 분류 전에 만든 분석은 묶음·분야를 무시하고 저장된 변경을 그대로 준다(ADR-0047)
+        TextChangeFilter applied = listVersion == null ? filter.withoutListing() : filter;
+        TextChangeListing.Summary listing = listVersion == null ? null : new TextChangeListing.Summary(listVersion,
+                store.fieldCounts(analysisId), analysis.missingTextFields(), store.groupCounts(analysisId));
+        Map<String, Integer> counts = store.counts(analysisId, applied);
+        Map<String, Integer> riskCounts = store.riskCounts(analysisId, applied);
+        List<TextSectionCount> sections = store.sections(analysisId, applied);
+        List<TextChange> changes = store.page(analysisId, applied, byPriority, offset, limit);
+        return new TextChangePage(analysis, applied, counts, riskCounts, sections, changes,
+                store.count(analysisId, applied), listing);
     }
 
     /** 완료된 분석의 문장 변경 하나. 없는 분석·변경은 404, 완료되지 않았으면 409 */
@@ -76,11 +83,15 @@ public class TextChangeQueryService {
     }
 
     /**
-     * @param counts     변경 종류 → 개수(섹션·검색·위험 관련에 맞는 것, 유형 조건은 보지 않음)
-     * @param riskCounts 위험 관련 목차의 변경 종류 → 개수(섹션·검색에 맞는 것, 유형·위험 관련 조건은 보지 않음, 3.9)
-     * @param sections   최상위 섹션별 개수(유형·검색·위험 관련에 맞는 것, 섹션 조건은 보지 않음)
+     * @param filter     실제로 쓴 거르기(분류 전에 만든 분석이면 묶음·분야를 뺀 것)
+     * @param counts     변경 종류 → 개수(섹션·검색·위험 관련에 맞는 것, 유형·묶음·분야는 보지 않음)
+     * @param riskCounts 위험 관련 목차의 변경 종류 → 개수(섹션·검색에 맞는 것, 유형·위험 관련·묶음·분야는 보지 않음, 3.9)
+     * @param sections   최상위 섹션별 개수(유형·검색·위험 관련에 맞는 것, 섹션·묶음·분야는 보지 않음)
+     * @param totalItems filter에 모두 맞는 전체 건수(쪽 나누기 전)
+     * @param listing    분석 전체의 분류 건수. 분류 전에 만든 분석이면 null
      */
-    public record TextChangePage(Analysis analysis, Map<String, Integer> counts, Map<String, Integer> riskCounts,
-            List<TextSectionCount> sections, List<TextChange> changes) {
+    public record TextChangePage(Analysis analysis, TextChangeFilter filter, Map<String, Integer> counts,
+            Map<String, Integer> riskCounts, List<TextSectionCount> sections, List<TextChange> changes,
+            int totalItems, TextChangeListing.Summary listing) {
     }
 }

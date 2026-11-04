@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.dartinsight.aiserver.client.FakeAiServer;
 import com.dartinsight.aiserver.client.FakeAiServer.Reply;
+import com.dartinsight.analysis.domain.TextChangeListing;
 import com.dartinsight.analysis.domain.TextChangeRow;
 import com.dartinsight.analysis.domain.TextComparison;
 import com.dartinsight.analysis.domain.TextStatus;
@@ -24,6 +25,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -89,7 +91,8 @@ class TextComparisonTest {
         AI.on("/internal/documents/" + CUR + "/structure", Reply.ok(document(CUR, "STRUCTURED",
                 "당사는 메모리와 파운드리를 만듭니다.", "구분 | 금액\\n매출 | 1,200")));
         AI.on(DIFF, Reply.ok("""
-                {"diffVersion":"text-diff-2","priorityVersion":"priority-2","sectionCounts":{"matched":2},"changes":[
+                {"diffVersion":"text-diff-2","priorityVersion":"priority-2","listVersion":"text-list-1",
+                 "missingFields":["DIVIDEND"],"sectionCounts":{"matched":2},"changes":[
                  {"changeType":"MODIFIED","blockType":"PARAGRAPH","sectionStatus":"MATCHED",
                   "sectionTitle":"1. 사업의 개요","sectionPath":"II. 사업의 내용 > 1. 사업의 개요",
                   "previous":{"sectionNo":2,"blockNo":1},"current":{"sectionNo":2,"blockNo":1},
@@ -209,12 +212,70 @@ class TextComparisonTest {
     @Test
     void positionWithoutStoredBlockHasNoText() {
         AI.on(DIFF, Reply.ok("""
-                {"changes":[{"changeType":"ADDED","blockType":"PARAGRAPH","sectionStatus":"MATCHED",
+                {"listVersion":"text-list-1","missingFields":[],
+                 "changes":[{"changeType":"ADDED","blockType":"PARAGRAPH","sectionStatus":"MATCHED",
                   "sectionTitle":"t","sectionPath":"t","previous":null,"current":{"sectionNo":2,"blockNo":99}}]}
                 """));
 
         TextComparison result = service.compare(previous, current);
 
         assertThat(result.rows().getFirst().current().text()).isNull();
+    }
+
+    @Test
+    @DisplayName("분류 버전이 없는 응답이면 분류 없는 결과를 남기지 않고 문장 비교를 실패로 끝낸다")
+    void responseWithoutListVersionFailsTheComparison() {
+        AI.on(DIFF, Reply.ok("""
+                {"changes":[{"changeType":"ADDED","blockType":"PARAGRAPH","sectionStatus":"MATCHED",
+                  "sectionTitle":"t","sectionPath":"t","previous":null,"current":{"sectionNo":2,"blockNo":1}}]}
+                """));
+
+        TextComparison result = service.compare(previous, current);
+
+        assertThat(result.status()).isEqualTo(TextStatus.FAILED);
+        assertThat(result.rows()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("분류와 행 비교를 받아 짝지은 이전 표에 이전 보고서 접수번호를 붙인다")
+    void classificationAndRowDiffAreKeptWithPreviousReceiptNumber() {
+        AI.on(DIFF, Reply.ok("""
+                {"listVersion":"text-list-1","missingFields":["DIVIDEND","AUDIT"],"changes":[
+                 {"changeType":"ADDED","blockType":"TABLE","sectionStatus":"MATCHED",
+                  "sectionTitle":"t","sectionPath":"t","previous":null,"current":{"sectionNo":2,"blockNo":2},
+                  "listGroup":"MAIN","field":"LITIGATION","raisedFromNote":true,"noteScope":"CONSOLIDATED",
+                  "rowDiff":{"status":"COMPARED","keyColumn":"사건번호",
+                   "counts":{"changed":1,"added":1,"missing":0,"same":2},
+                   "pairedPrevious":{"sectionNo":2,"blockNo":2},
+                   "changedRows":[{"key":"2025가합1",
+                    "cells":[{"column":"진행상황","previous":"진행 중","current":"기각"}]}],
+                   "addedKeys":["2026가합9"],"missingKeys":[]}},
+                 {"changeType":"MODIFIED","blockType":"TABLE","sectionStatus":"MATCHED",
+                  "sectionTitle":"t","sectionPath":"t",
+                  "previous":{"sectionNo":2,"blockNo":2},"current":{"sectionNo":2,"blockNo":2},
+                  "listGroup":"NOTE","field":null,"raisedFromNote":false,"noteScope":"SEPARATE",
+                  "rowDiff":{"status":"NOT_COMPARED","keyColumn":null,"counts":null,"pairedPrevious":null,
+                   "changedRows":[],"addedKeys":[],"missingKeys":[]}}
+                ]}
+                """));
+
+        TextComparison result = service.compare(previous, current);
+
+        assertThat(result.missingFields()).containsExactly("DIVIDEND", "AUDIT");
+        TextChangeListing paired = result.rows().get(0).listing();
+        assertThat(paired.version()).isEqualTo("text-list-1");
+        assertThat(paired.group()).isEqualTo("MAIN");
+        assertThat(paired.field()).isEqualTo("LITIGATION");
+        assertThat(paired.raisedFromNote()).isTrue();
+        assertThat(paired.noteScope()).isEqualTo("CONSOLIDATED");
+        assertThat(paired.rowDiff().counts().same()).isEqualTo(2);
+        assertThat(paired.rowDiff().pairedPrevious())
+                .isEqualTo(new TextChangeListing.RowDiff.PairedPrevious(PREV, 2, 2));
+        assertThat(paired.rowDiff().changedRows().getFirst().cells().getFirst().current()).isEqualTo("기각");
+        assertThat(paired.rowDiff().addedKeys()).containsExactly("2026가합9");
+        TextChangeListing note = result.rows().get(1).listing();
+        assertThat(note.field()).isNull();
+        assertThat(note.rowDiff().status()).isEqualTo("NOT_COMPARED");
+        assertThat(note.rowDiff().pairedPrevious()).isNull();
     }
 }

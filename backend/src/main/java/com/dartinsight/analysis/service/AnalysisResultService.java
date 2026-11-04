@@ -90,7 +90,7 @@ public class AnalysisResultService {
         changeRepository.flush();
         textChangeStore.saveAll(analysisId, text.rows());
         summaryStore.save(analysisId, summary, saved.stream().map(FinancialChange::getId).toList());
-        analysis.recordText(text.status(), text.message());
+        analysis.recordText(text.status(), text.message(), text.missingFields());
         analysis.recordSummary(summary.status(), summary.message());
         analysis.complete(now());
         events.publishEvent(new AnalysisCompleted(analysisId));
