@@ -84,7 +84,7 @@ export interface RankRow {
   to?: string
 }
 
-/** 이름 · 막대 · 수 목록(상위 기업, 요금제별 관심). 막대는 가장 큰 값 기준이고 수는 글자로 함께 둔다 */
+/** 이름 · 막대 · 수 목록(상위 기업, 요금제별 관심). 막대는 가장 큰 값 기준이고 수는 글자로 함께 둔다. 0이면 막대를 그리지 않는다 */
 export function RankList({ rows, label, tone = 'current' }: { rows: RankRow[]; label: string; tone?: 'current' | 'accent' }) {
   const max = Math.max(0, ...rows.map((r) => r.value))
   return (
@@ -99,7 +99,9 @@ export function RankList({ rows, label, tone = 'current' }: { rows: RankRow[]; l
             <span className="rank__name">{row.label}</span>
           )}
           <span className="rank__track" aria-hidden="true">
-            <span className={cx('rank__bar', `rank__bar--${tone}`)} style={{ width: `${barPercent(row.value, max)}%` }} />
+            {row.value > 0 && (
+              <span className={cx('rank__bar', `rank__bar--${tone}`)} style={{ width: `${barPercent(row.value, max)}%` }} />
+            )}
           </span>
           <span className="rank__value">{formatInteger(row.value)}</span>
         </li>

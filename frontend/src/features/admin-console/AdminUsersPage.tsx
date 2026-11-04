@@ -50,7 +50,7 @@ export function AdminUsersPage() {
             <div className="kpi-grid kpi-grid--four">
               <KpiTile label="전체 회원" value={formatInteger(data.users.total)} detail="지금 전체" />
               <KpiTile label="7일 신규" value={formatInteger(data.users.newInPeriod)} detail={`${data.from} ~ ${data.to}`} />
-              <KpiTile label="관리자" value={formatInteger(data.users.admins)} detail="운영자가 정한 이메일" />
+              <KpiTile label="관리자" value={formatInteger(data.users.admins)} detail="역할이 관리자인 회원" />
               <KpiTile
                 label="가입 방식 1위"
                 value={`${providerLabel(top)} ${formatInteger(data.users.byProvider[top])}`}
