@@ -373,6 +373,20 @@
   font-size: var(--font-size-2xs);
 }
 
+/* 빈 날짜 칸도 높이를 지켜 막대 바닥선이 맞도록 한 줄 높이를 둔다 */
+.daily__date {
+  min-height: 1lh;
+  white-space: nowrap;
+}
+
+.daily--dense .daily__plot {
+  gap: 2px;
+}
+
+.daily--dense .daily__stack {
+  width: min(16px, 100%);
+}
+
 .daily__stack {
   display: flex;
   flex-direction: column;
