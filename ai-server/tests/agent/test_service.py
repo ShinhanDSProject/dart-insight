@@ -354,6 +354,28 @@ def test_brief_rejects_lines_repeated_with_only_spacing_or_punctuation_changes()
     assert [r.rules for r in output.rejections] == [["BRIEF_DUPLICATE_LINE"]]
 
 
+def test_brief_duplicate_check_keeps_numeric_sign_and_decimal_point() -> None:
+    signs = ToolResult(
+        "c1",
+        "get_summary",
+        {},
+        True,
+        items=[ResultItem("F9", "차이는 -1.2조 원이고, 1.2조 원과 12조 원도 있어요.")],
+    )
+    lines = (
+        "- 차이는 -1.2조 원이에요. [F9]\n"
+        "- 차이는 1.2조 원이에요. [F9]\n"
+        "- 차이는 12조 원이에요. [F9]"
+    )
+    client, _ = llm({"decision": "ANSWER", "toolCalls": [], "draft": answer(lines, ["F9"])})
+
+    output = run_step(client, step("3줄 요약해줘", results=[signs]))
+
+    assert output.final is not None
+    assert output.final.status == "ANSWERED"
+    assert output.rejections == []
+
+
 def test_chat_answer_keeps_400_char_limit_while_brief_allows_1500() -> None:
     long_line = "영업이익은 6.6조 원에서 4.3조 원으로 줄었어요[F4221]. " * 12
     client, _ = llm(
