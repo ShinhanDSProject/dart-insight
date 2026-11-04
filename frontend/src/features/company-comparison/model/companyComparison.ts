@@ -403,6 +403,11 @@ export function comparisonRows(columns: readonly ComparisonColumn[]): Comparison
 }
 
 /** 표에 놓인 기업들의 대상 기간(끝 날짜)이 서로 다른지 */
+/** 고른 종류 보고서나 그 주요계정 값이 없어 표에 수치가 없는 기업 수 */
+export function unavailableCount(columns: readonly ComparisonColumn[]): number {
+  return columns.filter((column) => column.status === 'no-report' || column.status === 'no-data').length
+}
+
 export function periodsDiffer(columns: readonly ComparisonColumn[]): boolean {
   return new Set(columns.filter(isReady).map((column) => column.period.periodEnd)).size > 1
 }

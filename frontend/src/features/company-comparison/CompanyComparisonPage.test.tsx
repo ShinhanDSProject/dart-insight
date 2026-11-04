@@ -231,6 +231,8 @@ describe('여러 기업 나란히 보기', () => {
     const { container } = renderAt('?corps=00126380,00164779&type=HALF')
     expect(await screen.findAllByText('고른 종류의 보고서가 없어요')).toHaveLength(2)
     expect(screen.getAllByText('반기보고서가 없는 기업이에요. 다른 보고서 종류를 골라 보세요.')).toHaveLength(2)
+    // 표 위 안내도 나란히 볼 수 없는 기업이 있다고 알린다(2곳을 나란히 보여 준다고 하지 않는다)
+    expect(screen.getByText('2곳 중 2곳은 고른 종류 보고서의 수치가 없어요. 보고서 종류나 재무제표 기준을 바꿔 보세요.')).toBeTruthy()
     expect(await axeViolations(container)).toBe('')
 
     fireEvent.click(screen.getByRole('button', { name: '사업보고서' }))
