@@ -203,7 +203,7 @@ def test_brief_request_answers_in_lines_each_with_evidence() -> None:
     draft = answer(brief, ["F4221"])
     client, provider = llm({"decision": "ANSWER", "toolCalls": [], "draft": draft})
 
-    output = run_step(client, step("3줄 요약해줘", results=[FINANCIAL]))
+    output = run_step(client, step("요점 정리해줘", results=[FINANCIAL]))
 
     assert output.final is not None
     assert output.final.status == "ANSWERED"
@@ -265,15 +265,55 @@ def test_brief_with_requested_line_count_must_match_when_evidence_allows() -> No
     assert len((output.final.answer or "").splitlines()) == 3
 
 
-def test_brief_with_fewer_evidence_than_requested_lines_is_not_forced_to_pad() -> None:
-    one = "- 영업이익은 6.6조 원에서 4.3조 원으로 줄었어요. [F4221]"
-    client, _ = llm({"decision": "ANSWER", "toolCalls": [], "draft": answer(one, ["F4221"])})
+FACTS = ToolResult(
+    "c1",
+    "get_summary",
+    {},
+    True,
+    items=[
+        ResultItem(
+            "F1",
+            "매출액은 153.7조 원에서 305.4조 원으로 늘었어요. "
+            "영업이익은 11.4조 원에서 146.7조 원으로 늘었어요. "
+            "순이익은 9.8조 원에서 120.1조 원으로 늘었어요.",
+        )
+    ],
+)
 
-    output = run_step(client, step("3줄 요약해줘", results=[FINANCIAL]))
+
+def test_brief_writes_requested_lines_from_one_evidence_with_several_facts() -> None:
+    # 근거 ID가 하나여도 사실이 셋이면 3줄로 쓸 수 있다(근거 수로 줄 수를 줄이지 않음)
+    three = (
+        "- 매출액은 153.7조 원에서 305.4조 원으로 늘었어요. [F1]\n"
+        "- 영업이익은 11.4조 원에서 146.7조 원으로 늘었어요. [F1]\n"
+        "- 순이익은 9.8조 원에서 120.1조 원으로 늘었어요. [F1]"
+    )
+    client, _ = llm({"decision": "ANSWER", "toolCalls": [], "draft": answer(three, ["F1"])})
+
+    output = run_step(client, step("3줄 요약해줘", results=[FACTS]))
 
     assert output.final is not None
     assert output.final.status == "ANSWERED"
     assert output.rejections == []
+
+
+def test_brief_does_not_pad_requested_lines_with_repeated_content() -> None:
+    padded = (
+        "- 영업이익은 6.6조 원에서 4.3조 원으로 줄었어요. [F4221]\n"
+        "- 영업이익은 6.6조 원에서 4.3조 원으로 줄었어요! [F4221]\n"
+        "- 영업이익은 6.6조 원에서 4.3조 원으로 줄었어요. [F4221]"
+    )
+    client, _ = llm(
+        {"decision": "ANSWER", "toolCalls": [], "draft": answer(padded, ["F4221"])},
+        answer(padded, ["F4221"]),
+        answer(padded, ["F4221"]),
+    )
+
+    output = run_step(client, step("3줄 요약해줘", results=[FINANCIAL]))
+
+    assert output.final is not None
+    assert output.final.status == REVIEW_NEEDED
+    assert [r.rules for r in output.rejections] == [["BRIEF_DUPLICATE_LINE"]] * 3
 
 
 def test_brief_line_must_start_with_bullet_and_end_with_marker() -> None:
@@ -305,7 +345,10 @@ def test_chat_answer_keeps_400_char_limit_while_brief_allows_1500() -> None:
 
     assert chat.final is not None and chat.final.status == REVIEW_NEEDED
     assert chat.rejections[0].rules == ["ANSWER_TOO_LONG"]
-    brief_text = "\n".join(["- 영업이익은 6.6조 원에서 4.3조 원으로 줄었어요. [F4221]"] * 12)
+    names = ["가", "나", "다", "라", "마", "바", "사", "아", "자", "차", "카", "타"]
+    brief_text = "\n".join(
+        f"- {n} 항목: 영업이익은 6.6조 원에서 4.3조 원으로 줄었어요. [F4221]" for n in names
+    )
     client, _ = llm({"decision": "ANSWER", "toolCalls": [], "draft": answer(brief_text, ["F4221"])})
     brief = run_step(client, step("확인할 점 정리해줘", results=[FINANCIAL]))
     assert brief.final is not None and brief.final.status == "ANSWERED"
