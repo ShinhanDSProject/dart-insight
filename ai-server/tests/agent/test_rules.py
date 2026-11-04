@@ -205,6 +205,17 @@ def test_note_request_uses_selected_change_and_needs_one() -> None:
     assert match_rule(step("이거 노트에 담아줘")) is None
 
 
+def test_note_target_follows_the_active_tab_and_falls_back_when_ambiguous() -> None:
+    both = {"textChangeId": 5012, "financialChangeId": 31}
+    on_financial = match_rule(step("이거 노트에 담아줘", context={"tab": "financial", **both}))
+    on_text = match_rule(step("이거 노트에 담아줘", context={"tab": "text", **both}))
+
+    assert isinstance(on_financial, FinalAnswer) and isinstance(on_text, FinalAnswer)
+    assert on_financial.actions[0]["note"] == {"kind": "FINANCIAL_CHANGE", "changeId": 31}
+    assert on_text.actions[0]["note"] == {"kind": "TEXT_CHANGE", "changeId": 5012}
+    assert match_rule(step("이거 노트에 담아줘", context={"tab": "source", **both})) is None
+
+
 def test_requests_outside_the_patterns_go_to_llm() -> None:
     for message in [
         "사업의 내용에서 소송 찾아 열어줘",

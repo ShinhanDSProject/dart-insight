@@ -27,6 +27,8 @@ OUTLINE_TOOL = "get_document_outline"
 # 목차를 받지 않고 LLM에 둔다
 NOT_SECTION_WORDS = ("관련", "변경", "변화")
 CURRENT = "current"
+TEXT_CHANGE = "TEXT_CHANGE"
+FINANCIAL_CHANGE = "FINANCIAL_CHANGE"
 
 OPEN_TAB_ANSWER = "아래 버튼을 누르면 {} 탭을 열어요."
 OPEN_SECTION_ANSWER = "아래 버튼을 누르면 원문의 '{}' 항목을 열어요."
@@ -111,14 +113,27 @@ def _open_section(step: StepInput, name: str) -> FinalAnswer | ToolCall | None:
 
 
 def _selected_change(context: dict[str, Any]) -> dict[str, Any] | None:
-    """화면에서 고른 변경(노트에 담을 대상). 없으면 None"""
-    text_id = context.get("textChangeId")
-    financial_id = context.get("financialChangeId")
-    if isinstance(text_id, int) and text_id > 0:
-        return {"kind": "TEXT_CHANGE", "changeId": text_id}
-    if isinstance(financial_id, int) and financial_id > 0:
-        return {"kind": "FINANCIAL_CHANGE", "changeId": financial_id}
-    return None
+    """화면에서 고른 변경(노트에 담을 대상).
+
+    지금 탭의 변경을 고르고, 탭으로 정하지 못하면 하나뿐일 때만 쓴다. 둘 다 있는데 어느 쪽인지
+    모르면 None(LLM이 정함). 다른 변경을 담지 않게 한다.
+    """
+    chosen = {
+        TEXT_CHANGE: _positive(context.get("textChangeId")),
+        FINANCIAL_CHANGE: _positive(context.get("financialChangeId")),
+    }
+    by_tab = {"text": TEXT_CHANGE, "financial": FINANCIAL_CHANGE}.get(context.get("tab"))
+    if by_tab is not None and chosen[by_tab] is not None:
+        return {"kind": by_tab, "changeId": chosen[by_tab]}
+    present = [(kind, change_id) for kind, change_id in chosen.items() if change_id is not None]
+    if len(present) != 1:
+        return None
+    kind, change_id = present[0]
+    return {"kind": kind, "changeId": change_id}
+
+
+def _positive(value: Any) -> int | None:
+    return value if isinstance(value, int) and not isinstance(value, bool) and value > 0 else None
 
 
 def _final(step: StepInput, answer: str, action: dict[str, Any]) -> FinalAnswer | None:
