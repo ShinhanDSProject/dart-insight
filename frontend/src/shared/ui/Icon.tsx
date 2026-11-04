@@ -21,6 +21,7 @@ export type IconName =
   | 'circle-alert'
   | 'triangle-alert'
   | 'menu'
+  | 'ellipsis'
   | 'download'
 
 // lucide 'star' 모양. 채운 별은 같은 모양을 글자색으로 채운다(켜진 관심 기업)
@@ -133,6 +134,13 @@ const shapes: Record<IconName, ReactNode> = {
     </>
   ),
   // 좁은 화면 상단 바의 메뉴 버튼(#548)
+  ellipsis: (
+    <>
+      <circle cx="5" cy="12" r="1" />
+      <circle cx="12" cy="12" r="1" />
+      <circle cx="19" cy="12" r="1" />
+    </>
+  ),
   menu: (
     <>
       <path d="M4 6h16" />

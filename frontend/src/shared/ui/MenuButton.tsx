@@ -1,13 +1,13 @@
-import { useEffect, useId, useRef, useState, type ComponentPropsWithRef, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type ComponentPropsWithRef, type FocusEvent, type KeyboardEvent, type ReactNode } from 'react'
 import { cx } from '@/shared/lib/cx'
 
 interface MenuButtonProps {
-  /** 펼침 버튼의 글자(뒤에 ▾가 붙는다) */
+  /** 펼침 버튼의 글자(뒤에 ▾가 붙는다). icon이면 아이콘만 두고 aria-label을 준다 */
   label: ReactNode
   /** 버튼 이름을 글자와 다르게 읽힐 때 */
   'aria-label'?: string
-  /** button: 보조 버튼(알약), chip: 거르기 칩과 같은 모양 */
-  trigger?: 'button' | 'chip'
+  /** button: 보조 버튼(알약), chip: 거르기 칩과 같은 모양, icon: 아이콘만 있는 버튼(▾ 없음) */
+  trigger?: 'button' | 'chip' | 'icon'
   /** chip일 때 펼친 목록 안의 값이 지금 골라져 있으면 칩을 채운다 */
   selected?: boolean
   /** 펼친 상자를 버튼의 어느 쪽 끝에 맞출지 */
@@ -19,7 +19,7 @@ interface MenuButtonProps {
 
 /**
  * 버튼을 누르면 아래로 펼치는 작은 상자(#550). 내보내기·그 밖의 표·이 기업의 다른 분석처럼 자주 쓰지 않는 동작을 묶는다.
- * aria-expanded·aria-controls로 펼침을 알리고, Esc로 닫으면 초점을 버튼으로 돌려주며, 바깥을 누르면 닫는다.
+ * aria-expanded·aria-controls로 펼침을 알리고, Esc나 항목으로 닫으면 초점을 버튼으로 돌려주며, 바깥을 누르거나 초점이 밖으로 나가면 닫는다.
  */
 export function MenuButton({
   label,
@@ -34,7 +34,10 @@ export function MenuButton({
   const rootRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const panelId = useId()
-  const close = () => setOpen(false)
+  const close = () => {
+    setOpen(false)
+    buttonRef.current?.focus()
+  }
 
   useEffect(() => {
     if (!open) return
@@ -53,13 +56,20 @@ export function MenuButton({
     buttonRef.current?.focus()
   }
 
+  // Tab이나 단축키로 초점이 옮겨 가면 닫는다. 바깥을 누른 경우는 위에서 닫고, 받는 곳을 모르면(null) 그대로 둔다
+  const onBlur = (event: FocusEvent<HTMLDivElement>) => {
+    if (event.relatedTarget instanceof Node && !event.currentTarget.contains(event.relatedTarget)) setOpen(false)
+  }
+
   return (
-    <div ref={rootRef} className={cx('menu-button', className)} onKeyDown={onKeyDown}>
+    <div ref={rootRef} className={cx('menu-button', className)} onKeyDown={onKeyDown} onBlur={onBlur}>
       <button
         ref={buttonRef}
         type="button"
         className={cx(
-          trigger === 'chip' ? 'chip' : 'button button--secondary',
+          trigger === 'chip' && 'chip',
+          trigger === 'button' && 'button button--secondary',
+          trigger === 'icon' && 'icon-button',
           trigger === 'chip' && selected && 'chip--selected',
         )}
         aria-label={ariaLabel}
@@ -68,9 +78,11 @@ export function MenuButton({
         onClick={() => setOpen((v) => !v)}
       >
         {label}
-        <span className="menu-button__caret" aria-hidden="true">
-          ▾
-        </span>
+        {trigger !== 'icon' && (
+          <span className="menu-button__caret" aria-hidden="true">
+            ▾
+          </span>
+        )}
       </button>
       <div id={panelId} className={cx('menu-button__panel', `menu-button__panel--${align}`)} hidden={!open}>
         {typeof children === 'function' ? children(close) : children}
