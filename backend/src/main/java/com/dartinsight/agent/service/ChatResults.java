@@ -39,8 +39,10 @@ final class ChatResults {
     /** 근거 ID 모양으로 시작하는 근거 표시(ADR-0048): [T1]·[F1]·[D{접수번호}]·[C{고유번호}]·[{접수번호}#B·S·V{번호}] */
     private static final Pattern EVIDENCE_MARKER = Pattern.compile(
             "\\[\\s*(?:[TF]\\d+|D\\d{14}|C\\d{8}|\\d{14}#[BSV]\\d+)");
-    /** 바꾼 답의 근거 번호 표시([1]·[2]). 게시판 글 초안 본문에서 뺀다 */
-    private static final Pattern MARKER_NUMBER = Pattern.compile("\\s*\\[\\d+\\]");
+    /** 바꾼 답의 근거 번호 표시([1]·[2])와 그 앞의 가로 공백. 게시판 글 초안 본문에서 뺀다(줄바꿈은 둠) */
+    private static final Pattern MARKER_NUMBER = Pattern.compile("[ \\t]*\\[\\d+\\]");
+    /** 두 칸 이상 이어진 가로 공백(줄바꿈은 문단 나눔이라 건드리지 않음) */
+    private static final Pattern HORIZONTAL_SPACES = Pattern.compile("[ \\t]{2,}");
 
     private ChatResults() {
     }
@@ -107,7 +109,8 @@ final class ChatResults {
 
     /** 게시판 글 초안 본문: 검토를 통과한 답에서 근거 표시([1])를 빼고 글 본문 길이까지 */
     static String postBody(String answer) {
-        String body = MARKER_NUMBER.matcher(answer).replaceAll("").replaceAll("\\s{2,}", " ").strip();
+        String withoutMarkers = MARKER_NUMBER.matcher(answer).replaceAll("");
+        String body = HORIZONTAL_SPACES.matcher(withoutMarkers).replaceAll(" ").strip();
         return body.length() <= AgentActions.MAX_POST_BODY ? body : body.substring(0, AgentActions.MAX_POST_BODY);
     }
 
