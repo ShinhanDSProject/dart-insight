@@ -1,3 +1,4 @@
+import type { Analysis } from '@/shared/api/analyses'
 import type { DocumentSide } from '@/shared/api/documents'
 import type { SjDiv } from '@/shared/api/results'
 import type { SummaryLens } from '@/shared/api/summary'
@@ -14,9 +15,9 @@ import { parseTextField } from './textFields'
  * W-03 결과 화면의 주소 상태(ST-6).
  * ?tab=overview 기업 개요(#589), ?slens=&sview= 요약(관점 거르기·보기), ?tab=&sj=&changed=&unit=&fq=&fsort=&change= 재무 수치, ?tab=community 커뮤니티(#575), ?tab=news 뉴스(#592), ?ttype=&tsort=&tsec=&tq=&trisk=&tfield=&tpin=&tc= 문장 변화, ?doc=&section=&block= 원문 확인
  */
-export type ResultTab = 'overview' | 'summary' | 'financial' | 'text' | 'community' | 'news' | 'source'
+export type ResultTab = 'overview' | 'summary' | 'financial' | 'text' | 'community' | 'news' | 'source' | 'reports'
 
-export const resultTabs: ResultTab[] = ['overview', 'summary', 'financial', 'text', 'community', 'news', 'source']
+export const resultTabs: ResultTab[] = ['overview', 'summary', 'financial', 'text', 'community', 'news', 'source', 'reports']
 const sjDivs: SjDiv[] = ['BS', 'IS', 'CIS', 'CF', 'SCE']
 const textTypeFilters: TextTypeFilter[] = ['ADDED', 'DELETED', 'MODIFIED', 'NUMERIC_UPDATE', 'MOVED', 'REVIEW_NEEDED', CONTENT_FILTER]
 
@@ -195,6 +196,19 @@ export function sourceParamChanges(c: SourceViewChange): ParamChanges {
 /** 다른 탭에서 원문 확인 탭의 그 위치로 간다 */
 export function openSourceChanges(target: SourceTarget): ParamChanges {
   return { tab: 'source', doc: target.side, section: String(target.section), block: idParam(target.block) }
+}
+
+/**
+ * '보고서 선택' 탭(#659)에서 처음 고른 값: 이 분석의 현재 보고서·비교 기준, 직접 선택이면 이전 보고서.
+ * 보고서 선택(report-selection)과 같은 주소 값(?current=&basis=&previous=)이다. 이미 고른 값이 주소에 있으면 null(그대로 둔다)
+ */
+export function reportSelectionSeed(analysis: Analysis, params: URLSearchParams): ParamChanges | null {
+  if (params.has('current')) return null
+  return {
+    current: analysis.current.rceptNo,
+    basis: analysis.basis,
+    previous: analysis.basis === 'CUSTOM' ? analysis.previous.rceptNo : null,
+  }
 }
 
 /** 요약에서 재무 수치 탭의 그 계정 근거로 간다(전체 계정 보기, 계정 찾기는 지워 그 계정이 표에 보이게 한다) */

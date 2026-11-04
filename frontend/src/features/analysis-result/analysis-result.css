@@ -1,11 +1,6 @@
-/* 결과 머리(#550): 제목 아래 한 줄(보고서 쌍 · 비교 기준 · 수치 기준 · 보고서 바꾸기) */
+/* 결과 머리(#550): 제목 아래 한 줄(보고서 쌍 · 비교 기준 · 수치 기준) */
 .result-head__lead {
   display: inline;
-}
-
-.result-head__change {
-  margin-left: var(--space-3);
-  font-weight: var(--font-weight-medium);
 }
 
 .result-tabs {
