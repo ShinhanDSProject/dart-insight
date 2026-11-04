@@ -532,7 +532,7 @@
 .field-cell:disabled .field-cell__value {
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
-  font-weight: normal;
+  font-weight: var(--font-weight-regular);
 }
 
 @media screen and (max-width: 600px) {
