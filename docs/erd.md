@@ -20,6 +20,7 @@
 | `refresh_token` | 일반 로그인 Refresh Token 해시·회전 기록 | 6.2 | 미정 |
 | `social_account` | Google·Kakao·Naver 계정과 공통 회원 연결 | #225 (6.3) | 미정 |
 | `favorite_company` | 회원별 관심 기업 | #36 (6.2) | 미정 |
+| `plan_interest` | 요금제 '관심 있어요' 기록(요금제·누른 화면·로그인했으면 회원 ID). 결제·연락처 없음 | 3.34 (FS-73) | 미정 |
 | `watched_report` | 즐겨찾기 폴링이 찾아 자동 분석을 요청한 새 정기보고서 | #38 (6.4) | 미정 |
 | `notification` | 회원별 분석 완료 알림과 읽음 여부 | #38 (6.4) | 미정 |
 | `judgment_note_item` | 회원이 기업별 판단 노트에 담은 근거 한 건(담을 때의 사본, 원래 위치 참조, 메모) | #413 (6.5) | 미정 |
@@ -79,6 +80,7 @@ erDiagram
     app_user ||--o{ social_account : "user_id (6.3)"
     app_user ||--o{ favorite_company : "user_id (#36)"
     company ||--o{ favorite_company : "corp_code (#36)"
+    app_user |o--o{ plan_interest : "user_id (3.34, null이면 로그인 안 함)"
     app_user ||--o{ judgment_note_item : "user_id (#413)"
     company ||--o{ judgment_note_item : "corp_code (#413)"
     report ||--o| watched_report : "rcept_no (#38)"
@@ -1291,6 +1293,20 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `corp_code` | VARCHAR(8) | FK, UNIQUE 묶음 | 아니오 | `company.corp_code` |
 | `created_at` | DATETIME(6) | | 아니오 | 추가한 시각. 목록은 이 값의 최근 순 |
 
+### plan_interest — 요금제 '관심 있어요'(3.34, FS-73)
+
+> 마이그레이션: `V48__create_plan_interest.sql`. 결제 전에 요금제별 수요를 세는 기록입니다(수익화 전략, 결정 로그 '수익화: 가격 숫자 확정 방법'). 연락처 등 개인정보는 넣지 않습니다.
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT AUTO_INCREMENT | PK | 아니오 | 행 ID |
+| `plan` | VARCHAR(10) | INDEX 묶음 | 아니오 | `FREE`, `PRO`, `TEAM`, `EMBED` |
+| `source` | VARCHAR(40) | | 아니오 | 누른 화면(예: `pricing`) |
+| `user_id` | BIGINT | FK | 예 | `app_user.id`. 로그인하지 않았으면 null. 회원을 지우면 null로(`ON DELETE SET NULL`) |
+| `created_at` | DATETIME(6) | INDEX 묶음 | 아니오 | 누른 시각(한국 시간). 관리자 개요의 기간 집계 기준 |
+
+- 제약·인덱스: `pk_plan_interest`, `fk_plan_interest_user`, `idx_plan_interest_created_plan(created_at, plan)`.
+
 ### watched_report — 자동 분석한 새 정기보고서(#38)
 
 > 마이그레이션: `V28__create_notification.sql`. 즐겨찾기 폴링(6.3)이 새 보고서를 찾아 자동 분석을 요청할 때 한 줄 넣고, 분석이 완료되면 이 표에 있는 보고서(현재 보고서)의 분석에만 알림을 만든다(ADR-0031).
@@ -1486,6 +1502,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `social_account` | `uk_social_account_provider_user` | `provider`, `provider_user_id` | 유니크 | 제공자별 사용자를 한 계정에 한 번만 연결 |
 | `social_account` | `idx_social_account_user` | `user_id` | 인덱스 | 회원의 연결 계정 조회 |
 | `favorite_company` | `uk_favorite_company_user_corp` | `user_id`, `corp_code` | 유니크 | 같은 기업을 두 번 담지 않음. 회원별 목록 조회에도 씀 |
+| `plan_interest` | `idx_plan_interest_created_plan` | `created_at`, `plan` | 인덱스 | 관리자 개요의 기간·요금제별 집계(3.34) |
 | `watched_report` | `uk_watched_report_rcept_no` | `rcept_no` | 유니크 | 같은 보고서를 두 번 지켜보지 않음 |
 | `notification` | `uk_notification_user_analysis` | `user_id`, `analysis_id` | 유니크 | 같은 회원·분석의 알림을 두 번 만들지 않음(재시도·중복 이벤트) |
 | `notification` | `idx_notification_user_created` | `user_id`, `created_at` | 인덱스 | 회원별 최근 알림 목록 |
