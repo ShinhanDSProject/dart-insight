@@ -1,6 +1,6 @@
 # ADR-0050: 주요 사건은 분석이 끝난 뒤 처음 열 때 별도 작업으로 만들고, backend가 실행·저장을 ai-server가 묶기·검증을 맡는다
 
-- 상태: 채택
+- 상태: 대체됨(ADR-0051)
 - 결정한 날: 2026-11-04
 - 관련: 이슈 #642(2.13), 후속 #643(2.14)·#644(2.15)·#645(2.16)·#646(3.36)·#649(7.7), 기능 기획서 초안 '문장 변화 탭 개편'(FS 번호는 등록 후 채움), [ADR-0014](0014-analysis-reuse-and-version.md), [ADR-0030](0030-related-disclosure-matching.md), [ADR-0042](0042-failed-llm-calls-in-response-header.md), [ADR-0047](0047-text-change-list-classification.md)
 
