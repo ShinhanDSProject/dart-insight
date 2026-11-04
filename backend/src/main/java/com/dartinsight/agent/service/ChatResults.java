@@ -31,7 +31,8 @@ final class ChatResults {
             + "공시에 적힌 내용을 물어봐 주세요.";
     static final String INCOMPLETE = "요청을 끝내지 못했어요. 범위를 좁혀 다시 보내 주세요.";
     static final String NOT_VERIFIED = "답의 근거를 확인하지 못했어요.";
-    static final int MAX_ANSWER_CHARS = 1000;
+    /** 답 길이 상한. 정리 형식(BRIEF) 1,500자가 가장 길다(docs/api-spec.md format, #581) */
+    static final int MAX_ANSWER_CHARS = 1500;
     /** ai-server app/agent/prompt.py TASK_ANSWER. 호출 기록에 task가 없을 때 쓴다 */
     static final String TASK = "agent_answer";
 
