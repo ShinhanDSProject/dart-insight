@@ -1,0 +1,16 @@
+[project]
+name = "dart-insight-mcp"
+version = "0.0.1"
+description = "DART Insight MCP 서버(읽기 전용 시제품): AI 에이전트가 검증된 공시 비교 결과를 가져가게 한다"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
