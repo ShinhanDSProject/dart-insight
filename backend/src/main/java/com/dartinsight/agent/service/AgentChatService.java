@@ -95,7 +95,7 @@ public class AgentChatService {
         private final List<AgentStepAiRequest.ToolResult> results = new ArrayList<>();
         private final Map<String, Evidence> evidence = new LinkedHashMap<>();
         private final List<LlmCallRow> calls = new ArrayList<>();
-        /** 이 채팅에서 근거 질문 Tool이 저장한 질문(질문 ID → 인용 수). 마지막 것이 응답의 questionId */
+        /** 이 채팅에서 근거 질문 Tool이 저장한 질문(질문 ID → 인용 수). 답한(ANSWERED) 것 중 마지막이 응답의 questionId */
         private final Map<Long, AskedQuestion> questions = new LinkedHashMap<>();
         private final String traceId = TraceContext.currentTraceId();
 
@@ -205,7 +205,8 @@ public class AgentChatService {
         }
 
         private Long lastQuestionId() {
-            return questions.isEmpty() ? null : List.copyOf(questions.keySet()).getLast();
+            return questions.values().stream().filter(AskedQuestion::answered).map(AskedQuestion::id)
+                    .reduce((first, last) -> last).orElse(null);
         }
 
         private Map<String, String> reportNames() {

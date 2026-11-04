@@ -544,6 +544,29 @@ class AgentChatApiTest {
     }
 
     @Test
+    @DisplayName("근거 질문이 답하지 못했으면 채팅 답이 다른 Tool로 ANSWERED여도 questionId를 내보내지 않는다(평가할 답이 없음)")
+    void notAnsweredQuestionIsNotReturned() throws Exception {
+        AI.on(ANSWERS, Reply.ok("""
+                {"promptVersion":"answer-2","expressionRulesVersion":"expr-1","model":null,"generatedAt":null,
+                 "status":"NOT_FOUND","answer":null,"evidenceIds":[],"factRefs":[],"reviewReason":null,
+                 "blockedRules":[],"calls":[]}
+                """));
+        AI.on(STEPS, twoSteps("{\"callId\":\"c1\",\"name\":\"answer_with_evidence\",\"arguments\":"
+                        + "{\"question\":\"소송이 왜 생겼나요?\"}},"
+                        + "{\"callId\":\"c2\",\"name\":\"get_summary\",\"arguments\":{}}",
+                request -> finalAnswer("ANSWERED", "관련 공시 내용으로 소송이 있어요[" + CUR + "#B5].",
+                        "\"" + CUR + "#B5\"", "")));
+
+        chat("소송이 왜 생겼어?")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ANSWERED"))
+                .andExpect(jsonPath("$.questionId").doesNotExist());
+
+        assertThat(jdbcTemplate.queryForObject("SELECT status FROM analysis_question WHERE analysis_id = ?",
+                String.class, analysisId)).isEqualTo("NOT_FOUND");
+    }
+
+    @Test
     @DisplayName("요약 Tool은 저장된 요약만 보내고 재무 설명 등급·인용을 그대로 넘긴다")
     void summaryToolSendsStoredGrades() throws Exception {
         long changeId = financialChangeId();
