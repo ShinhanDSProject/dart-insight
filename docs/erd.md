@@ -8,7 +8,7 @@
 | --- | --- |
 | 상태 | 초안 (M1 확정, M2 진행 중: 원문 구조화·문장 변경·요약 확정) |
 | 담당 | 백엔드 |
-| 마지막 수정 | 2026-10-27 |
+| 마지막 수정 | 2026-11-04 |
 | 관련 문서 | API 명세(`docs/api-spec.md`), [OpenDART 데이터 가이드](https://app.notion.com/p/400b6afffc6f81cc8870ee13d02d8ac1), 이슈 #46 |
 
 ## 1. 테이블 목록
@@ -64,6 +64,11 @@
 | `disclosure_window_item` | 받아 둔 수시공시 한 건(정정 전 원본 포함) | 3.6 (#339) | 미정 |
 | `related_disclosure_run` | 분석 하나의 관련 수시공시를 규칙 버전별로 계산한 기록 | 3.6 (#340) | 미정 |
 | `related_disclosure` | 문장 변경과 수시공시의 연결 한 건(연결 강도·규칙·기간 구분) | 3.6 (#340, #341) | 미정 |
+| `text_event_run` | 분석 하나의 주요 사건 만들기 실행(상태·버전) | 2.13 (#642) | 미정 |
+| `text_event` | 주요 사건 하나(제목·규모·순서·모델·프롬프트 버전) | 2.13 (#642) | 미정 |
+| `text_event_change` | 사건과 문장 변경의 연결(한 변경이 여러 사건에 들어갈 수 있음) | 2.13 (#642) | 미정 |
+| `text_event_quote` | 사건의 인용과 근거 위치 | 2.13 (#642) | 미정 |
+| `text_event_unbound_change` | 후보였지만 사건에 묶이지 않은 변경 | 2.13 (#642) | 미정 |
 
 ## 2. 관계도
 
@@ -184,6 +189,11 @@ erDiagram
     analysis ||--o{ related_disclosure_run : "analysis_id (3.6)"
     related_disclosure_run ||--o{ related_disclosure : "run_id"
     disclosure_window_item ||--o{ related_disclosure : "item_id"
+    analysis ||--o{ text_event_run : "analysis_id (2.13)"
+    text_event_run ||--o{ text_event : "run_id"
+    text_event ||--o{ text_event_change : "event_id"
+    text_event ||--o{ text_event_quote : "event_id"
+    text_event_run ||--o{ text_event_unbound_change : "run_id"
 
     company {
         bigint id PK
@@ -337,6 +347,38 @@ erDiagram
         varchar prompt_version
         varchar status "GENERATED REVIEW_NEEDED"
         mediumtext sentences "문장·근거 JSON"
+    }
+    text_event_run {
+        bigint id PK
+        bigint analysis_id FK "UK(analysis_id, event_version, attempt_no)"
+        varchar event_version
+        int attempt_no
+        varchar status
+    }
+    text_event {
+        bigint id PK
+        bigint run_id FK "UK(run_id, sort_order)"
+        int sort_order
+        varchar title
+        varchar model
+        varchar prompt_version
+    }
+    text_event_change {
+        bigint id PK
+        bigint event_id FK "UK(event_id, change_no)"
+        int change_no
+    }
+    text_event_quote {
+        bigint id PK
+        bigint event_id FK "UK(event_id, quote_no)"
+        int quote_no
+        varchar rcept_no
+        int block_no
+    }
+    text_event_unbound_change {
+        bigint id PK
+        bigint run_id FK "UK(run_id, change_no)"
+        int change_no
     }
     llm_call {
         bigint id PK
@@ -905,7 +947,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `company_question_id` | BIGINT | FK | 예 | `company_question.id`. 기업 질문 호출일 때만(`V27`, task `answer`) |
 | `company_outlook_id` | BIGINT | FK | 예 | `company_outlook.id`. 전망·계획 호출일 때만(`V39`, task `outlook`) |
 | `plan_followup_id` | BIGINT | FK | 예 | `plan_followup.id`. 약속과 실제 대조 호출일 때만(`V40`, task `plan_followup`) |
-| `task` | VARCHAR(30) | | 아니오 | 작업(`summary`, `answer`, `briefing`, `outlook`, `plan_followup`, 에이전트 채팅의 `agent_plan` 다음 Tool 고르기·`agent_answer` 답 만들기). 에이전트 채팅 호출은 `analysis_id`만 채움(대화를 저장하지 않음). 채팅 안의 근거 질문은 지금처럼 task `answer` |
+| `task` | VARCHAR(30) | | 아니오 | 작업(`summary`, `answer`, `briefing`, `outlook`, `plan_followup`, 주요 사건 `text_event`(`analysis_id`만 채움, ADR-0050), 에이전트 채팅의 `agent_plan` 다음 Tool 고르기·`agent_answer` 답 만들기). 에이전트 채팅 호출은 `analysis_id`만 채움(대화를 저장하지 않음). 채팅 안의 근거 질문은 지금처럼 task `answer` |
 | `provider`, `model` | VARCHAR(30), VARCHAR(100) | | 아니오 | 제공자(`fake` 등)와 모델 |
 | `prompt_version` | VARCHAR(30) | | 아니오 | 프롬프트 버전 |
 | `called_at` | DATETIME(6) | | 예 | 호출 시각(한국 시간) |
@@ -1106,6 +1148,79 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `match_rule` | VARCHAR(30) | | 아니오 | 걸린 규칙 키(여러 개면 규칙 순서의 첫 규칙) |
 | `match_level` | VARCHAR(10) | | 아니오 | `TYPE_ONLY`, `STRONG` |
 | `matched_fields` | VARCHAR(100) | | 예 | `STRONG`일 때 일치한 값 종류(`NEW_SHARES`, `PLAINTIFF`, `CASE_NAME`, `TARGET_COMPANY`, 쉼표로 이음) |
+
+### text_event_run
+
+분석 하나의 주요 사건 만들기 실행입니다([ADR-0050](adr/0050-text-events-after-analysis.md)). 분석 상태와 별개이고, `FAILED`면 다음 시작 요청 때 `attempt_no`를 올려 새 행을 만듭니다. `DISABLED`·`OLD_ANALYSIS`·`TEXT_COMPARE_FAILED`는 조회할 때 정해 저장하지 않습니다.
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT | PK | 아니오 | 자동 증가 |
+| `analysis_id` | BIGINT | FK, UK | 아니오 | `analysis.id` |
+| `event_version` | VARCHAR(20) | UK | 아니오 | 사건 버전(`TextEvents.EVENT_VERSION`, `event-1`) |
+| `attempt_no` | INT | UK | 아니오 | 같은 분석·버전의 몇 번째 실행인지. 동시 시작을 막음 |
+| `status` | VARCHAR(20) | | 아니오 | `PENDING`, `RUNNING`, `COMPLETED`, `FAILED`, `NOT_CREATED` |
+| `not_created_reason` | VARCHAR(30) | | 예 | `FAKE_MODEL`, `NO_CANDIDATES`. `NOT_CREATED`일 때만 |
+| `error_code` | VARCHAR(50) | | 예 | `FAILED`일 때 사유 코드 |
+| `dropped_event_count` | INT | | 아니오 | 검증에 실패해 뺀 사건 수. 기본 0 |
+| `trace_id` | VARCHAR(64) | | 예 | 시작 요청의 추적 ID |
+| `created_at` | DATETIME(6) | | 아니오 | 만든 시각(한국 시간) |
+| `started_at`, `finished_at` | DATETIME(6) | | 예 | 시작·끝난 시각(한국 시간) |
+
+### text_event
+
+주요 사건 하나입니다. 모델·프롬프트 버전·호출 시각을 사건마다 저장합니다(AC24). 다시 만들면 새 실행의 행을 만들고 옛 행을 고치지 않습니다.
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT | PK | 아니오 | 사건 ID |
+| `run_id` | BIGINT | FK, UK | 아니오 | `text_event_run.id` |
+| `sort_order` | INT | UK | 아니오 | 코드가 정한 순서(1부터) |
+| `title` | VARCHAR(200) | | 아니오 | AI가 쓴 제목 |
+| `kind` | VARCHAR(30) | | 아니오 | AI가 붙인 사건 종류 이름 |
+| `scale_amount` | BIGINT | | 예 | 코드가 공시에서 읽은 금액. 모르면 null. 사건끼리 더하지 않음 |
+| `currency` | VARCHAR(3) | | 예 | `scale_amount`의 통화 |
+| `scale_evidence_id` | VARCHAR(40) | | 예 | 금액의 근거 ID(`{rcept_no}#B{block_no}`) |
+| `sort_basis` | VARCHAR(20) | | 아니오 | `FRONT_KIND`, `AMOUNT`, `ROW_COUNT` |
+| `model`, `prompt_version` | VARCHAR(100), VARCHAR(30) | | 아니오 | 만든 모델과 프롬프트 버전 |
+| `generated_at` | DATETIME(6) | | 아니오 | 호출 시각(한국 시간) |
+
+### text_event_change
+
+사건과 변경의 연결입니다. 한 변경이 여러 사건에 들어갈 수 있습니다. 변경은 `related_disclosure`처럼 `change_no`로 가리킵니다. `JdbcTemplate`으로 일괄 저장합니다(ADR-0011).
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT | PK | 아니오 | 자동 증가 |
+| `event_id` | BIGINT | FK, UK | 아니오 | `text_event.id` |
+| `change_no` | INT | UK | 아니오 | `text_change.change_no`(같은 분석) |
+
+### text_event_quote
+
+사건의 인용과 근거 위치입니다. 사건마다 `CHANGE` 인용이 하나 이상 있습니다. 글자가 원문과 같은 인용만 저장합니다.
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT | PK | 아니오 | 자동 증가 |
+| `event_id` | BIGINT | FK, UK | 아니오 | `text_event.id` |
+| `quote_no` | INT | UK | 아니오 | 사건 안 순서 |
+| `change_no` | INT | | 아니오 | `text_change.change_no`(같은 분석). 블록 번호가 있는 변경만 |
+| `purpose` | VARCHAR(10) | | 아니오 | `CHANGE` 바뀐 내용, `REASON` 공시에 적힌 이유 |
+| `side` | VARCHAR(10) | | 아니오 | `PREVIOUS`, `CURRENT` |
+| `rcept_no` | VARCHAR(14) | | 아니오 | 인용한 보고서 접수번호 |
+| `section_no` | INT | | 예 | `document_section.section_no` |
+| `block_no` | INT | | 아니오 | 블록 번호(근거 ID `{rcept_no}#B{block_no}`) |
+| `quote_text` | VARCHAR(2000) | | 아니오 | 인용한 글 |
+
+### text_event_unbound_change
+
+후보였지만 어느 사건에도 들어가지 않은 변경입니다(AC22).
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT | PK | 아니오 | 자동 증가 |
+| `run_id` | BIGINT | FK, UK | 아니오 | `text_event_run.id` |
+| `change_no` | INT | UK | 아니오 | `text_change.change_no`(같은 분석) |
 
 ### app_user / local_credential — 일반 회원가입 (#136)
 
@@ -1431,12 +1546,19 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `disclosure_window_item` | `uk_disclosure_window_item` | `fetch_id, rcept_no` | 유니크 | 같은 공시를 두 번 저장하지 않음 |
 | `related_disclosure_run` | `uk_related_disclosure_run` | `analysis_id, rule_version` | 유니크 | 분석·규칙 버전마다 한 번만 계산 |
 | `related_disclosure` | `uk_related_disclosure` | `run_id, change_no, item_id` | 유니크 | 같은 변경·공시 연결 중복 방지. 변경별 조회에도 씀 |
+| `text_event_run` | `uk_text_event_run` | `analysis_id, event_version, attempt_no` | 유니크 | 같은 실행을 두 번 만들지 않음. 동시 시작 방지 |
+| `text_event` | `uk_text_event` | `run_id, sort_order` | 유니크 | 실행 안 순서 하나 |
+| `text_event_change` | `uk_text_event_change` | `event_id, change_no` | 유니크 | 같은 사건·변경 연결 중복 방지 |
+| `text_event_quote` | `uk_text_event_quote` | `event_id, quote_no` | 유니크 | 사건 안 인용 순서 하나 |
+| `text_event_unbound_change` | `uk_text_event_unbound_change` | `run_id, change_no` | 유니크 | 같은 변경을 두 번 저장하지 않음 |
 
 외래 키: `local_credential.user_id`, `refresh_token.user_id` → `app_user.id` / `judgment_note_item.user_id` → `app_user.id`, `judgment_note_item.corp_code` → `company.corp_code` / `refresh_token.replaced_by_id` → `refresh_token.id` / `report.corp_code`, `company_overview.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code`, `company_disclosure_fetch.corp_code`, `company_disclosure.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no`, `report_key_account_fetch.rcept_no`, `report_key_account.rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no`, `report_key_fact.rcept_no`, `company_briefing.rcept_no`, `company_question.rcept_no` → `report.rcept_no` / `llm_call.company_briefing_id` → `company_briefing.id` / `llm_call.company_question_id` → `company_question.id` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id`, `analysis_question.analysis_id`, `text_change_explanation.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id` / (3.6) `disclosure_window_fetch.corp_code` → `company.corp_code` / `disclosure_window_item.fetch_id`, `related_disclosure_run.window_fetch_id` → `disclosure_window_fetch.id` / `related_disclosure_run.analysis_id` → `analysis.id` / `related_disclosure.run_id` → `related_disclosure_run.id` / `related_disclosure.item_id` → `disclosure_window_item.id` / (6.6) `community_post.corp_code` → `company.corp_code` / `community_post.user_id`, `community_comment.user_id`, `community_like.user_id`, `community_report_entry.reporter_id`, `community_moderation.admin_id`, `community_repost_request.user_id` → `app_user.id` / `community_quote.post_id`, `community_comment.post_id`, `community_report.post_id` → `community_post.id` / `community_comment.parent_id` → `community_comment.id` / `community_report_entry.report_id`, `community_moderation.report_id` → `community_report.id` / `community_repost_request.moderation_id` → `community_moderation.id`
 
 외래 키(1.9, #465): `company_outlook.rcept_no` → `report.rcept_no` / `llm_call.company_outlook_id` → `company_outlook.id`
 
 외래 키(1.10, #467): `plan_followup.previous_rcept_no`, `plan_followup.current_rcept_no` → `report.rcept_no` / `llm_call.plan_followup_id` → `plan_followup.id`
+
+외래 키(2.13, #642): `text_event_run.analysis_id` → `analysis.id` / `text_event.run_id`, `text_event_unbound_change.run_id` → `text_event_run.id` / `text_event_change.event_id`, `text_event_quote.event_id` → `text_event.id`
 
 ## 5. 작성 규칙
 
