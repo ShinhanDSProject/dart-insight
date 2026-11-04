@@ -11,6 +11,7 @@ CREDITS_PER_CALL: dict[str, int] = {
     "list_company_analyses": 0,
     "get_analysis_summary": 1,
     "list_text_changes": 1,
+    "get_text_change": 0,
     "list_financial_changes": 1,
 }
 

@@ -34,7 +34,7 @@ def payload(result) -> dict:
     return json.loads(result.content[0].text)
 
 
-def test_lists_six_read_only_tools_with_credit_hint_in_description():
+def test_lists_seven_read_only_tools_with_credit_hint_in_description():
     server, _ = server_with(lambda r: httpx.Response(200, json={}))
     tools = asyncio.run(server.list_tools())
     names = sorted(t.name for t in tools)
@@ -44,6 +44,7 @@ def test_lists_six_read_only_tools_with_credit_hint_in_description():
         "list_company_analyses",
         "get_analysis_summary",
         "list_text_changes",
+        "get_text_change",
         "list_financial_changes",
     ])
     assert all("크레딧 가설" in (t.description or "") for t in tools)
@@ -75,16 +76,23 @@ def test_text_changes_sorts_by_priority_filters_risk_and_caps_size():
         call(
             server,
             "list_text_changes",
-            {"analysis_id": 14, "risk_only": True, "change_type": "DELETED", "size": 500},
+            {
+                "analysis_id": 14,
+                "risk_only": True,
+                "change_type": "DELETED",
+                "size": 500,
+                "page": 2,
+            },
         )
     )
     params = seen[0].url.params
     assert seen[0].url.path == "/api/analyses/14/text-changes"
-    assert (params["sort"], params["risk"], params["type"], params["size"]) == (
+    assert (params["sort"], params["risk"], params["type"], params["size"], params["page"]) == (
         "priority",
         "true",
         "DELETED",
         "50",
+        "2",
     )
     assert body["billing"]["creditsHypothesis"] == 1
 
@@ -114,3 +122,21 @@ def test_backend_error_becomes_tool_error_with_code_and_trace_id_and_no_billing(
         asyncio.run(server.call_tool("get_analysis_summary", {"analysis_id": 999}))
     assert "ANALYSIS_NOT_FOUND (404)" in str(error.value)
     assert "traceId=t-1" in str(error.value)
+
+
+def test_text_change_detail_gives_evidence_location_path():
+    server, seen = server_with(lambda r: httpx.Response(200, json={"changeId": 25090}))
+    body = payload(call(server, "get_text_change", {"analysis_id": 14, "change_id": 25090}))
+    assert seen[0].url.path == "/api/analyses/14/text-changes/25090"
+    assert body["data"]["changeId"] == 25090
+
+
+def test_unreachable_backend_becomes_tool_error_with_code_and_trace_id():
+    def down(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("connection refused", request=request)
+
+    server, _ = server_with(down)
+    with pytest.raises(ToolError) as error:
+        asyncio.run(server.call_tool("search_companies", {"query": "삼성"}))
+    assert "MCP_BACKEND_UNREACHABLE (0)" in str(error.value)
+    assert "traceId=mcp-" in str(error.value)

@@ -29,7 +29,7 @@ INSTRUCTIONS = (
     "list_company_analyses로 이미 끝난 분석(analysisId)을 고른 뒤, "
     "get_analysis_summary·list_text_changes·list_financial_changes로 결과를 읽어요. "
     "숫자는 코드가 계산한 값이니 다시 계산하지 말고, "
-    "문장을 인용할 때는 evidence의 접수번호·블록 위치를 함께 밝혀 주세요. "
+    "문장 변화를 인용할 때는 get_text_change로 근거 위치(접수번호·블록)를 받아 함께 밝혀 주세요. "
     "투자 판단·종목 추천에 쓰지 마세요."
 )
 
@@ -91,8 +91,9 @@ def create_server(api: DartInsightApi | None = None) -> MCPServer:
 
     @server.tool(
         description=_describe(
-            "바뀐 문장·표 목록(우선순위 순). risk_only면 위험 관련만, "
-            "change_type으로 ADDED·DELETED·MODIFIED 등을 거를 수 있어요.",
+            "바뀐 문장·표 목록(우선순위 순, page는 0부터). risk_only면 위험 관련만, "
+            "change_type으로 ADDED·DELETED·MODIFIED 등을 거를 수 있어요. "
+            "totalItems가 size보다 크면 page를 늘려 이어서 읽어요.",
             "list_text_changes",
         )
     )
@@ -101,14 +102,26 @@ def create_server(api: DartInsightApi | None = None) -> MCPServer:
         risk_only: bool = False,
         change_type: TextChangeType | None = None,
         size: int = 20,
+        page: int = 0,
     ) -> dict[str, Any]:
         params = {
             "sort": "priority",
             "risk": "true" if risk_only else None,
             "type": change_type,
             "size": max(1, min(size, 50)),
+            "page": max(0, page),
         }
         return call("list_text_changes", paths.text_changes(analysis_id), params)
+
+    @server.tool(
+        description=_describe(
+            "문장·표 변경 하나의 이전·현재 원문과 근거 위치(접수번호·섹션·블록)를 돌려줘요. "
+            "인용할 때 이 위치를 함께 밝혀 주세요.",
+            "get_text_change",
+        )
+    )
+    def get_text_change(analysis_id: int, change_id: int) -> dict[str, Any]:
+        return call("get_text_change", paths.text_change(analysis_id, change_id))
 
     @server.tool(
         description=_describe(

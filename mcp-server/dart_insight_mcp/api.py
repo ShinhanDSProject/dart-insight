@@ -44,7 +44,12 @@ class DartInsightApi:
         """
         query = {k: v for k, v in (params or {}).items() if v is not None}
         trace_id = f"mcp-{uuid.uuid4()}"
-        response = self._client.get(path, params=query, headers={"X-Trace-Id": trace_id})
+        try:
+            response = self._client.get(path, params=query, headers={"X-Trace-Id": trace_id})
+        except httpx.RequestError as e:
+            # 연결 실패·시간 초과도 에이전트가 원인을 알 수 있게 코드와 추적 ID를 붙인다
+            message = f"backend에 연결하지 못했어요({type(e).__name__})."
+            raise ApiError(0, "MCP_BACKEND_UNREACHABLE", message, trace_id) from e
         if response.status_code >= 400:
             body = _json_or_none(response)
             if not isinstance(body, dict):
