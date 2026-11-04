@@ -1,0 +1,207 @@
+{
+  "corpName": "고려아연",
+  "previousRceptNo": "20260813001718",
+  "currentRceptNo": "20260814003958",
+  "events": [
+    {
+      "name": "Crucible JV 대상 제3자배정 유상증자(2,209,716주)",
+      "kind": "증자",
+      "core": true,
+      "changes": [
+        {
+          "previousBlock": null,
+          "currentBlock": 501
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 502
+        },
+        {
+          "previousBlock": 1727,
+          "currentBlock": 1252
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1253
+        }
+      ]
+    },
+    {
+      "name": "미국 통합 비철금속 제련소 투자와 Crucible JV 사업 제휴",
+      "kind": "신규 사업·투자",
+      "core": true,
+      "changes": [
+        {
+          "previousBlock": null,
+          "currentBlock": 503
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 504
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 551
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 552
+        }
+      ]
+    },
+    {
+      "name": "신주발행무효의 소 1심 패소와 항소",
+      "kind": "소송",
+      "core": true,
+      "changes": [
+        {
+          "previousBlock": null,
+          "currentBlock": 857
+        },
+        {
+          "previousBlock": 1728,
+          "currentBlock": null
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1573
+        }
+      ]
+    },
+    {
+      "name": "㈜영풍 등의 주주총회결의취소 소송과 경영권 분쟁 관련 소송·결정",
+      "kind": "소송",
+      "core": true,
+      "changes": [
+        {
+          "previousBlock": null,
+          "currentBlock": 1576
+        },
+        {
+          "previousBlock": 2030,
+          "currentBlock": null
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1578
+        }
+      ]
+    },
+    {
+      "name": "증선위·금융위 과징금과 감사인 지정, 재무제표 수정",
+      "kind": "제재",
+      "core": true,
+      "changes": [
+        {
+          "previousBlock": null,
+          "currentBlock": 1594
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1595
+        }
+      ]
+    },
+    {
+      "name": "보고기간 후 사건: Richmond Valley 출자·사채 발행·분기배당 결의",
+      "kind": "보고기간 후 사건",
+      "core": false,
+      "changes": [
+        {
+          "previousBlock": null,
+          "currentBlock": 910
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1211
+        }
+      ]
+    },
+    {
+      "name": "분기배당 실시와 배당 정책 변경",
+      "kind": "배당",
+      "core": false,
+      "changes": [
+        {
+          "previousBlock": 1692,
+          "currentBlock": null
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1244
+        }
+      ]
+    },
+    {
+      "name": "회계감사인 삼일→삼정 변경",
+      "kind": "감사인 변경",
+      "core": false,
+      "changes": [
+        {
+          "previousBlock": 1819,
+          "currentBlock": 1340
+        },
+        {
+          "previousBlock": 1828,
+          "currentBlock": 1352
+        },
+        {
+          "previousBlock": 1829,
+          "currentBlock": 1353
+        }
+      ]
+    },
+    {
+      "name": "산업안전보건법 벌금",
+      "kind": "제재",
+      "core": false,
+      "changes": [
+        {
+          "previousBlock": 2037,
+          "currentBlock": 1590
+        },
+        {
+          "previousBlock": 2038,
+          "currentBlock": 1591
+        }
+      ]
+    },
+    {
+      "name": "중대재해 내역 신규 기재(케이지그린텍 사망 1명)",
+      "kind": "안전사고",
+      "core": false,
+      "changes": [
+        {
+          "previousBlock": null,
+          "currentBlock": 1610
+        }
+      ]
+    },
+    {
+      "name": "자기주식 소각·보상 활용 계획",
+      "kind": "자기주식",
+      "core": false,
+      "changes": [
+        {
+          "previousBlock": null,
+          "currentBlock": 63
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 70
+        }
+      ]
+    },
+    {
+      "name": "종속회사 가동률 하락(켐코 93%→10%)",
+      "kind": "생산",
+      "core": false,
+      "changes": [
+        {
+          "previousBlock": 335,
+          "currentBlock": 292
+        }
+      ]
+    }
+  ]
+}

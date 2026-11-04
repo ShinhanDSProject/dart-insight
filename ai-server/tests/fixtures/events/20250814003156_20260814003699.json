@@ -1,0 +1,197 @@
+{
+  "corpName": "삼성전자",
+  "previousRceptNo": "20250814003156",
+  "currentRceptNo": "20260814003699",
+  "events": [
+    {
+      "name": "자기주식 취득·소각·임직원 지급",
+      "kind": "자기주식",
+      "core": true,
+      "changes": [
+        {
+          "previousBlock": null,
+          "currentBlock": 750
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1105
+        },
+        {
+          "previousBlock": 1012,
+          "currentBlock": 1111
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 68
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 69
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 70
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 71
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 72
+        }
+      ]
+    },
+    {
+      "name": "Harman 미국 법무부 벌금 USD 11,800,000",
+      "kind": "제재",
+      "core": true,
+      "changes": [
+        {
+          "previousBlock": null,
+          "currentBlock": 1870
+        }
+      ]
+    },
+    {
+      "name": "삼성디스플레이 중대재해(사망 1명)와 부분작업중지",
+      "kind": "안전사고",
+      "core": true,
+      "changes": [
+        {
+          "previousBlock": null,
+          "currentBlock": 1890
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1891
+        }
+      ]
+    },
+    {
+      "name": "대표이사 2인 각자 대표 체제(노태문 선임)",
+      "kind": "대표이사 변경",
+      "core": true,
+      "changes": [
+        {
+          "previousBlock": 47,
+          "currentBlock": 47
+        }
+      ]
+    },
+    {
+      "name": "FlaktGroup·Xealth·Sound United 지분 인수",
+      "kind": "인수",
+      "core": true,
+      "changes": [
+        {
+          "previousBlock": 56,
+          "currentBlock": 53
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1161
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1162
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1163
+        }
+      ]
+    },
+    {
+      "name": "삼성바이오로직스 행정소송 1차 처분 취소 확정",
+      "kind": "소송",
+      "core": false,
+      "changes": [
+        {
+          "previousBlock": 446,
+          "currentBlock": 497
+        }
+      ]
+    },
+    {
+      "name": "종속회사 등 과태료·시정조치 추가",
+      "kind": "제재",
+      "core": false,
+      "changes": [
+        {
+          "previousBlock": null,
+          "currentBlock": 1873
+        },
+        {
+          "previousBlock": 1674,
+          "currentBlock": 1874
+        },
+        {
+          "previousBlock": 1675,
+          "currentBlock": 1875
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1881
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1882
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1883
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1884
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1885
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1886
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1887
+        }
+      ]
+    },
+    {
+      "name": "시설투자 23.1조원→28.0조원",
+      "kind": "투자",
+      "core": false,
+      "changes": [
+        {
+          "previousBlock": 128,
+          "currentBlock": 137
+        }
+      ]
+    },
+    {
+      "name": "최대주주 등 지분 증여·지분율 변동",
+      "kind": "주주 변동",
+      "core": false,
+      "changes": [
+        {
+          "previousBlock": null,
+          "currentBlock": 1570
+        }
+      ]
+    },
+    {
+      "name": "성과조건부 주식(PSU) 도입",
+      "kind": "보상 제도",
+      "core": false,
+      "changes": [
+        {
+          "previousBlock": null,
+          "currentBlock": 1794
+        }
+      ]
+    }
+  ]
+}

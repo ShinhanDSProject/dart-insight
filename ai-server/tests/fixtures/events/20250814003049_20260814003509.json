@@ -1,0 +1,133 @@
+{
+  "corpName": "SK하이닉스",
+  "previousRceptNo": "20250814003049",
+  "currentRceptNo": "20260814003509",
+  "events": [
+    {
+      "name": "ADR 나스닥 상장과 제3자배정 유상증자(USD 26,507,100,000)",
+      "kind": "증자",
+      "core": true,
+      "changes": [
+        {
+          "previousBlock": null,
+          "currentBlock": 681
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1036
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1647
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1648
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1649
+        }
+      ]
+    },
+    {
+      "name": "M15·M15X 불소가스 화재, 청주 작업중지와 가동중지 명령",
+      "kind": "안전사고",
+      "core": true,
+      "changes": [
+        {
+          "previousBlock": null,
+          "currentBlock": 1637
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1638
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1639
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1641
+        }
+      ]
+    },
+    {
+      "name": "중대재해 내역 신규 기재(업무상 질병 사망)",
+      "kind": "안전사고",
+      "core": true,
+      "changes": [
+        {
+          "previousBlock": null,
+          "currentBlock": 1646
+        }
+      ]
+    },
+    {
+      "name": "중국 반독점법 조사 문구 삭제와 소송 부채 인식액 없음 추가",
+      "kind": "소송",
+      "core": false,
+      "changes": [
+        {
+          "previousBlock": 633,
+          "currentBlock": 639
+        },
+        {
+          "previousBlock": 982,
+          "currentBlock": 996
+        },
+        {
+          "previousBlock": 1558,
+          "currentBlock": null
+        },
+        {
+          "previousBlock": 1560,
+          "currentBlock": 1624
+        }
+      ]
+    },
+    {
+      "name": "회사채 미상환 잔액 감소(15.3조원→11.9조원)",
+      "kind": "자금 조달",
+      "core": false,
+      "changes": [
+        {
+          "previousBlock": 1086,
+          "currentBlock": 1099
+        }
+      ]
+    },
+    {
+      "name": "화학물질관리법 등 과태료 추가",
+      "kind": "제재",
+      "core": false,
+      "changes": [
+        {
+          "previousBlock": null,
+          "currentBlock": 1631
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1633
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1634
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1635
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1636
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1640
+        }
+      ]
+    }
+  ]
+}
