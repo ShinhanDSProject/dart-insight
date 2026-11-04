@@ -425,6 +425,37 @@ class AgentChatApiTest {
     }
 
     @Test
+    @DisplayName("정해진 안내에 목차 제목의 대괄호('[첨부]')가 있어도 근거 표시로 보지 않고 그대로 내보낸다")
+    void fixedAnswerWithBracketTitleIsSentAsIs() throws Exception {
+        AI.on(STEPS, Reply.ok("""
+                {"promptVersion":"agent-3","model":null,"generatedAt":null,"type":"FINAL","toolCalls":[],
+                 "final":{"status":"ANSWERED","answer":"아래 버튼을 누르면 원문의 '[첨부] 감사보고서' 항목을 열어요.",
+                  "evidenceIds":[],"actions":[{"type":"OPEN_DOCUMENT","side":"current","sectionNo":1}],
+                  "reviewReason":null,"blockedRules":[],"format":"CHAT","crossCheck":null},
+                 "rejections":[],"calls":[]}
+                """));
+
+        chat("[첨부] 감사보고서 열어줘")
+                .andExpect(jsonPath("$.status").value("ANSWERED"))
+                .andExpect(jsonPath("$.answer").value("아래 버튼을 누르면 원문의 '[첨부] 감사보고서' 항목을 열어요."))
+                .andExpect(jsonPath("$.actions[0].type").value("OPEN_DOCUMENT"))
+                .andExpect(jsonPath("$.aiGenerated").value(false));
+    }
+
+    @Test
+    @DisplayName("model 없는 답이라도 근거 ID 모양의 표시가 있으면 정해진 안내로 보지 않는다")
+    void answerWithEvidenceMarkerIsNotFixedAnswer() throws Exception {
+        AI.on(STEPS, Reply.ok("""
+                {"promptVersion":"agent-3","model":null,"generatedAt":null,"type":"FINAL","toolCalls":[],
+                 "final":{"status":"ANSWERED","answer":"영업이익이 줄었어요[F1].","evidenceIds":[],"actions":[],
+                  "reviewReason":null,"blockedRules":[],"format":"CHAT","crossCheck":null},
+                 "rejections":[],"calls":[]}
+                """));
+
+        chat("영업이익 알려줘").andExpect(jsonPath("$.status").value("REVIEW_NEEDED"));
+    }
+
+    @Test
     @DisplayName("정해진 안내의 버튼이 값 확인에서 빠지면(이 분석에 없는 변경) 저장 안내를 내보내지 않고 NOT_FOUND로 끝낸다")
     void fixedAnswerWithoutValidActionIsNotFound() throws Exception {
         AI.on(STEPS, Reply.ok("""
