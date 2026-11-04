@@ -1,8 +1,9 @@
 import { Link } from 'react-router'
 import { match } from 'ts-pattern'
 import type { ReportList } from '@/shared/api/reports'
-import { Badge, ButtonLink, FieldHint, Notice, Panel, PanelTitle } from '@/shared/ui'
+import { Badge, Button, ButtonLink, FieldHint, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
+import { openHeaderSearch } from '@/shared/lib/headerSearch'
 import { formatDate } from '@/shared/lib/reportLabels'
 import { useCompanyReports } from '../hooks/useCompanyReports'
 import { useReportSelection } from '../hooks/useReportSelection'
@@ -62,9 +63,10 @@ function ReportSelection({ corpCode, reports, selection }: ReportSelectionProps)
           </h2>
           <p className="pick__lead">현재 보고서는 기본으로 가장 최근 보고서예요.</p>
         </div>
-        <ButtonLink to="/" variant="secondary">
+        {/* 홈으로 가지 않고 상단 바 검색창에서 바로 다른 기업을 찾는다(#655) */}
+        <Button variant="secondary" onClick={openHeaderSearch}>
           기업 변경
-        </ButtonLink>
+        </Button>
       </div>
 
       {reports.refreshError && (

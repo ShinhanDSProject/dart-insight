@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { act, cleanup, render, screen, within } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AuthContext, type AuthContextValue } from '@/shared/auth/authContext'
 import type { CurrentCompany } from '@/shared/lib/currentCompany'
+import { openHeaderSearch } from '@/shared/lib/headerSearch'
 import { axeViolations } from '@/test/axe'
 import { Layout } from './Layout'
 
@@ -85,6 +86,16 @@ describe('Layout 상단 검색창과 로그인 버튼(FS-69)', () => {
     cleanup()
     renderLayout('/notes')
     expect((screen.getByRole('searchbox', { name: '회사명 또는 종목코드' }) as HTMLInputElement).value).toBe('')
+  })
+
+  it("화면 안의 '기업 변경'(#655)은 같은 화면에서 상단 검색창에 초점을 옮긴다", async () => {
+    recentCompanies.value = [samsung]
+    renderLayout('/companies/00126380')
+    await act(async () => {
+      openHeaderSearch()
+      await new Promise((resolve) => requestAnimationFrame(resolve))
+    })
+    expect(document.activeElement).toBe(screen.getByRole('searchbox', { name: '회사명 또는 종목코드' }))
   })
 
   it('로그인 전 상단 바에는 회원가입 버튼 없이 로그인만 둔다', () => {

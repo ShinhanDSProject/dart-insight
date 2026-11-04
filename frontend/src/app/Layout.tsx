@@ -1,4 +1,4 @@
-import { useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { Link, Outlet, useLocation, useParams } from 'react-router'
 import { match } from 'ts-pattern'
 import { BrandLogo } from '@/shared/ui/BrandLogo'
@@ -6,11 +6,12 @@ import { Button, ButtonLink } from '@/shared/ui/Button'
 import { Icon, type IconName } from '@/shared/ui/Icon'
 import { useRecentCompanies } from '@/shared/hooks/useCurrentCompany'
 import { companyLink, type CurrentCompany } from '@/shared/lib/currentCompany'
+import { OPEN_HEADER_SEARCH_EVENT } from '@/shared/lib/headerSearch'
 import { useAuth } from '@/shared/auth/authContext'
 import { NotificationMenu } from '@/features/notifications/components/NotificationMenu'
 import { NotificationSignInLink } from '@/features/notifications/components/NotificationSignInLink'
 import type { ShortcutPage } from '@/shared/lib/shortcuts'
-import { HeaderSearch } from './HeaderSearch'
+import { HEADER_SEARCH_ID, HeaderSearch } from './HeaderSearch'
 import { ServiceNoticeDialog } from './ServiceNoticeDialog'
 import { ShortcutHelp } from './ShortcutHelp'
 import { ThemeMenu } from './ThemeMenu'
@@ -66,6 +67,16 @@ export function Layout() {
     },
     { section: 'notes', label: '내 판단 노트', icon: 'bookmark', to: '/notes' },
   ]
+
+  // 화면 안의 '기업 변경'(#655): 좁은 화면이면 접힌 메뉴를 열고, 그려진 뒤 검색창에 초점을 옮긴다(글자 전체가 선택됨)
+  useEffect(() => {
+    const onOpen = () => {
+      if (menuButtonRef.current?.offsetParent) setMenuOpenAt(pathname + search)
+      requestAnimationFrame(() => document.getElementById(HEADER_SEARCH_ID)?.focus())
+    }
+    window.addEventListener(OPEN_HEADER_SEARCH_EVENT, onOpen)
+    return () => window.removeEventListener(OPEN_HEADER_SEARCH_EVENT, onOpen)
+  }, [pathname, search])
 
   function onMenuKeyDown(event: KeyboardEvent) {
     if (event.key === 'Escape' && menuOpen) {
