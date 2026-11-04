@@ -226,9 +226,9 @@ export function openChangedAccounts(sjDiv: SjDiv | null): ParamChanges {
   return { tab: 'financial', ...(sjDiv !== null ? { sj: sjDiv } : {}), changed: '1', change: null, fq: null }
 }
 
-/** 요약의 변화 개요에서 문장 변화 탭을 그 유형으로 거른다(null이면 전체). 개요 건수와 맞도록 위험 관련 거르기는 끈다 */
+/** 요약의 변화 개요에서 문장 변화 탭을 그 유형으로 거른다(null이면 전체). 개요 건수와 맞도록 섹션·검색어·위험 관련 거르기는 끈다 */
 export function openTextList(type: ChangeType | null): ParamChanges {
-  return { tab: 'text', ttype: type, tsort: null, trisk: null, tfield: null, tpin: null, tc: null }
+  return { tab: 'text', ttype: type, tsort: null, tsec: null, tq: null, trisk: null, tfield: null, tpin: null, tc: null }
 }
 
 /**
