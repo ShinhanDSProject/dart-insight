@@ -1,12 +1,12 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 import { match } from 'ts-pattern'
 import type { Company } from '@/shared/api/companies'
+import { useCompanyLookup } from '@/shared/hooks/useCompanyLookup'
 import { useFavoriteCompanies } from '@/shared/hooks/useFavoriteCompanies'
+import { LOOKUP_LIMIT, MIN_LOOKUP_LENGTH, nextResultFocus } from '@/shared/lib/companyLookup'
 import { Button, Chip, FieldHint, FieldLabel, Icon, Input } from '@/shared/ui'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
-import { useCompanyLookup } from '../hooks/useCompanyLookup'
 import { MAX_COMPANIES, MIN_COMPANIES } from '../model/companyComparison'
-import { LOOKUP_LIMIT, MIN_LOOKUP_LENGTH, nextResultFocus } from '../model/companyPicker'
 
 interface CompanyPickerProps {
   corps: readonly string[]

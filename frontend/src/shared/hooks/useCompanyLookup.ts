@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { searchCompanies } from '@/shared/api/companies'
 import { useAsync } from '@/shared/hooks/useAsync'
-import { isLookupQuery } from '../model/companyPicker'
+import { isLookupQuery } from '@/shared/lib/companyLookup'
 
 /** 입력을 멈추고 이만큼 지나면 찾는다(첫 화면 검색과 같은 값) */
 export const LOOKUP_DELAY_MS = 300
 
-/** 기업 고르기 칸의 검색. 입력을 멈추면 찾고, 검색어가 바뀌면 앞선 요청을 취소한다(useAsync) */
+/** 작은 기업 찾기 칸(기업 고르기, 상단 바 검색창)의 검색. 입력을 멈추면 찾고, 검색어가 바뀌면 앞선 요청을 취소한다(useAsync) */
 export function useCompanyLookup(input: string) {
   const [query, setQuery] = useState('')
   useEffect(() => {
