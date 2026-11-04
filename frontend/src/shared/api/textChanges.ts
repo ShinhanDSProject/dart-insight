@@ -13,6 +13,10 @@ export type PriorityLevel = 'HIGH' | 'MEDIUM' | 'LOW' | 'UNRANKED'
 export type TextSort = 'priority' | 'document'
 /** 변경의 분야(2.9). 목차 제목으로 나눈 것이라 실제 내용과 다를 수 있다 */
 export type TextField = 'LITIGATION' | 'CONTRACT' | 'BUSINESS' | 'DIVIDEND' | 'FUNDING' | 'BOARD' | 'SHAREHOLDER' | 'AUDIT' | 'OTHER'
+/** 변경의 묶음(2.9). MAIN·UNPAIRED가 화면의 기본 목록이고 나머지는 접는다 */
+export type TextListGroup = 'MAIN' | 'HEADING' | 'FORMATTING' | 'MOVED' | 'NOTE' | 'PAIRED_TABLE' | 'UNPAIRED'
+/** 주석의 연결·별도 구분. UNKNOWN은 구분할 수 없음 */
+export type NoteScope = 'CONSOLIDATED' | 'SEPARATE' | 'UNKNOWN'
 
 export interface ChangePriority {
   level: PriorityLevel
@@ -43,6 +47,14 @@ export interface TextChangeItem {
   priority: ChangePriority | null
   /** 위험 관련 목차의 변경인지(3.9, FS-61). 목차 제목으로 나눈 것이며 위험의 크기·좋고 나쁨이 아니다 */
   riskRelated: boolean
+  /** 이 변경의 묶음. 옛 분석이면 null */
+  listGroup: TextListGroup | null
+  /** 기본 목록(MAIN) 변경의 분야. 그 밖은 null */
+  field: TextField | null
+  /** 재무제표 주석에서 기본 목록으로 올린 변경인지. 옛 분석이면 null */
+  raisedFromNote: boolean | null
+  /** 주석의 연결·별도 구분. 주석이 아니면 null */
+  noteScope: NoteScope | null
 }
 
 export interface TextChangeCounts {
@@ -92,11 +104,15 @@ export interface TextChangeList {
   fieldCounts: Record<TextField, number> | null
   /** 두 보고서 어느 쪽에도 그 분야의 섹션이 없는 분야. listVersion이 null이면 null */
   missingFields: TextField[] | null
+  /** 요청에 쓴 묶음. 없거나 옛 분석이면 null */
+  group: string | null
+  /** 묶음별 건수. 거르기와 상관없이 분석 전체를 센다. 옛 분석이면 null */
+  groupCounts: Record<TextListGroup, number> | null
   items: TextChangeItem[]
 }
 
-/** 분야별 표에 쓰는 응답 값(3.28) */
-export type TextListing = Pick<TextChangeList, 'listVersion' | 'fieldCounts' | 'missingFields'>
+/** 분야별 표(3.28)와 접힌 묶음(3.29)에 쓰는 응답 값 */
+export type TextListing = Pick<TextChangeList, 'listVersion' | 'fieldCounts' | 'missingFields' | 'groupCounts'>
 
 export interface TextChangeQuery {
   /** 그중 하나에 맞는 변경만(#304). 비었으면 전체 */
@@ -110,6 +126,8 @@ export interface TextChangeQuery {
   risk?: boolean
   /** 그 분야의 변경만(3.28). 없으면 전체 */
   field?: TextField | null
+  /** 그 묶음의 변경만(3.29). 없거나 비었으면 전체 */
+  groups?: readonly TextListGroup[]
   page: number
   size?: number
 }
@@ -123,6 +141,7 @@ export function textChangeParams(query: TextChangeQuery) {
     q: query.q ?? undefined,
     risk: query.risk ? true : undefined,
     field: query.field ?? undefined,
+    group: query.groups && query.groups.length > 0 ? query.groups.join(',') : undefined,
     page: query.page,
     size: query.size ?? 20,
   }

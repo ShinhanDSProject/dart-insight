@@ -23,6 +23,12 @@ describe('textChangeParams', () => {
     })
   })
 
+  it('묶음이 있을 때만 쉼표로 이어 group을 보낸다(3.29)', () => {
+    expect(textChangeParams({ ...base, types: [], groups: ['MAIN', 'UNPAIRED'] }).group).toBe('MAIN,UNPAIRED')
+    expect(textChangeParams({ ...base, types: [], groups: [] }).group).toBeUndefined()
+    expect(textChangeParams({ ...base, types: [] }).group).toBeUndefined()
+  })
+
   it('분야를 골랐을 때만 field를 보낸다(3.28)', () => {
     expect(textChangeParams({ ...base, types: [], field: 'AUDIT' }).field).toBe('AUDIT')
     expect(textChangeParams({ ...base, types: [], field: null }).field).toBeUndefined()

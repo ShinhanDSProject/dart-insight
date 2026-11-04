@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Analysis } from '@/shared/api/analyses'
-import type { ChangeType, TextChangeCounts, TextChangeItem, TextChangeList, TextField, TextListing } from '@/shared/api/textChanges'
+import type { ChangeType, TextChangeCounts, TextChangeItem, TextChangeList, TextField, TextListGroup, TextListing } from '@/shared/api/textChanges'
 import { axeViolations } from '@/test/axe'
 import type { TextListState } from '../model/textList'
 import { TextTab } from './TextTab'
@@ -19,6 +19,7 @@ const list = vi.hoisted(() => ({
   state: null as TextListState | null,
   type: null as ChangeType | null,
   reload: vi.fn(),
+  groups: {} as Partial<Record<TextListGroup, TextListState>>,
 }))
 vi.mock('../hooks/useTextChanges', () => ({
   useTextChanges: () => ({
@@ -34,6 +35,11 @@ vi.mock('../hooks/useTextChanges', () => ({
     listing: list.listing,
     contentAvailable: false,
     type: list.type,
+    reload: list.reload,
+    loadMore: () => {},
+  }),
+  useTextChangeGroup: (_analysisId: number, group: TextListGroup) => ({
+    state: list.groups[group] ?? { status: 'loading' },
     reload: list.reload,
     loadMore: () => {},
   }),
@@ -70,6 +76,7 @@ beforeEach(() => {
   list.state = null
   list.type = null
   list.reload.mockReset()
+  list.groups = {}
 })
 afterEach(cleanup)
 
@@ -100,6 +107,10 @@ function item(changeId: number, sectionTitle: string): TextChangeItem {
     reviewReason: null,
     priority: null,
     riskRelated: false,
+    listGroup: 'MAIN',
+    field: 'BUSINESS',
+    raisedFromNote: false,
+    noteScope: null,
   }
 }
 
@@ -388,6 +399,7 @@ describe('TextTab 분야별 표(3.28)', () => {
     listVersion: 'text-list-1',
     fieldCounts: { LITIGATION: 38, CONTRACT: 11, BUSINESS: 247, DIVIDEND: 0, FUNDING: 46, BOARD: 93, SHAREHOLDER: 0, AUDIT: 15, OTHER: 132 },
     missingFields: ['SHAREHOLDER'],
+    groupCounts: null,
   }
 
   function renderFields(field: TextField | null, onChange = vi.fn(), items: TextChangeItem[] = [item(1, '1. 사업의 개요')], risk = false) {
@@ -489,7 +501,7 @@ describe('TextTab 분야별 표(3.28)', () => {
   })
 
   it('옛 분석이면 표가 없고 주소의 분야는 없는 것으로 본다', () => {
-    list.listing = { listVersion: null, fieldCounts: null, missingFields: null }
+    list.listing = { listVersion: null, fieldCounts: null, missingFields: null, groupCounts: null }
     renderFields('AUDIT', vi.fn(), [])
     expect(screen.queryByRole('group', { name: '분야별 변경' })).toBeNull()
     expect(screen.getByText('두 보고서 사이에 바뀐 문장·표가 없어요.')).toBeTruthy()
@@ -514,6 +526,133 @@ describe('TextTab 분야별 표(3.28)', () => {
   it('접근성 위반이 없다', async () => {
     list.listing = listing
     renderFields('AUDIT')
+    expect(await axeViolations(document.body)).toBe('')
+  })
+})
+
+describe('TextTab 기본 목록과 접힌 묶음(3.29)', () => {
+  const groupCounts = { MAIN: 2, HEADING: 3, FORMATTING: 0, MOVED: 1, NOTE: 4, PAIRED_TABLE: 0, UNPAIRED: 1 }
+  const fieldCounts = { LITIGATION: 0, CONTRACT: 0, BUSINESS: 2, DIVIDEND: 0, FUNDING: 0, BOARD: 0, SHAREHOLDER: 0, AUDIT: 0, OTHER: 0 }
+  const listing: TextListing = { listVersion: 'text-list-1', fieldCounts, missingFields: [], groupCounts }
+
+  function success(items: TextChangeItem[], totalItems = items.length): TextListState {
+    return { status: 'success', data: { page: 0, totalItems, items } as unknown as TextChangeList, items, more: { status: 'idle' } }
+  }
+
+  function renderDefault(over: Partial<Parameters<typeof TextTab>[0]> = {}, items: TextChangeItem[] = [item(1, '1. 사업의 개요')], current: TextListing = listing) {
+    list.items = items
+    list.listing = current
+    render(
+      <MemoryRouter>
+        <main>
+          <TextTab
+            analysis={analysis}
+            type={null}
+            sort="priority"
+            section={null}
+            q={null}
+            risk={false}
+            field={null}
+            pinned={false}
+            selectedChangeId={null}
+            onChange={() => {}}
+            onOpenSource={() => {}}
+            onAsk={() => {}}
+            asking={false}
+            {...over}
+          />
+        </main>
+      </MemoryRouter>,
+    )
+  }
+
+  const folded = () => within(screen.getByRole('region', { name: /접어 둔 변경/ }))
+
+  it('기본 목록 건수와 짝을 정하지 못한 항목 건수를 알린다(AC9)', () => {
+    renderDefault()
+    expect(screen.getByText(/기본 목록 2건 · 짝을 정하지 못한 항목 1건/)).toBeTruthy()
+  })
+
+  it('접힌 묶음을 건수와 함께 보이고 0건인 묶음은 뺀다(AC4)', () => {
+    renderDefault()
+    expect(screen.getByRole('heading', { name: /접어 둔 변경 8건/ })).toBeTruthy()
+    expect(folded().getByRole('button', { name: /재무제표 주석 4건/ }).getAttribute('aria-expanded')).toBe('false')
+    expect(folded().getByRole('button', { name: /제목 줄처럼 짧은 글 3건/ })).toBeTruthy()
+    expect(folded().getByRole('button', { name: /자리만 옮긴 글 1건/ })).toBeTruthy()
+    expect(folded().queryByRole('button', { name: /띄어쓰기/ })).toBeNull()
+  })
+
+  it('묶음을 펼치면 그 묶음의 변경이 보이고 다시 누르면 접힌다', () => {
+    list.groups = { NOTE: success([{ ...item(9, '주석 3. 금융상품'), listGroup: 'NOTE', noteScope: 'SEPARATE' }], 4) }
+    renderDefault()
+    const toggle = folded().getByRole('button', { name: /재무제표 주석 4건/ })
+    fireEvent.click(toggle)
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    expect(folded().getByText('별도 주석')).toBeTruthy()
+    expect(folded().getByText('1 / 4건')).toBeTruthy()
+    fireEvent.click(toggle)
+    expect(folded().queryByText('별도 주석')).toBeNull()
+  })
+
+  it('묶음을 불러오지 못하면 다시 시도할 수 있다', () => {
+    list.groups = { NOTE: { status: 'error', error: new Error('실패') } }
+    renderDefault()
+    fireEvent.click(folded().getByRole('button', { name: /재무제표 주석 4건/ }))
+    fireEvent.click(folded().getByRole('button', { name: /다시 시도/ }))
+    expect(list.reload).toHaveBeenCalled()
+  })
+
+  it('펼친 묶음의 변경을 고르면 원문 비교 창이 하나만 열린다', () => {
+    list.groups = { NOTE: success([{ ...item(9, '주석 3. 금융상품'), listGroup: 'NOTE' }]) }
+    renderDefault({ selectedChangeId: 9 })
+    fireEvent.click(folded().getByRole('button', { name: /재무제표 주석 4건/ }))
+    expect(screen.getAllByRole('dialog')).toHaveLength(1)
+  })
+
+  it.each([
+    ['검색', { q: '소송' }],
+    ['유형', { type: 'ADDED' }],
+    ['섹션', { section: 'II. 사업의 내용' }],
+    ['위험 관련', { risk: true }],
+    ['분야', { field: 'BUSINESS' }],
+    ['고정', { pinned: true }],
+  ] as const)('%s 거르기에는 접힌 묶음과 기본 목록 안내를 보이지 않는다', (_name, over) => {
+    // 유형은 훅이 실제로 쓴 값을 돌려준다
+    list.type = 'type' in over ? over.type : null
+    renderDefault(over)
+    expect(screen.queryByRole('region', { name: /접어 둔 변경/ })).toBeNull()
+    expect(screen.queryByText(/기본 목록 2건/)).toBeNull()
+  })
+
+  it('옛 분석에는 접힌 묶음과 기본 목록 안내가 없고 목록은 그대로다(AC13)', () => {
+    renderDefault({}, [item(1, '1. 사업의 개요')], { listVersion: null, fieldCounts: null, missingFields: null, groupCounts: null })
+    expect(screen.queryByRole('region', { name: /접어 둔 변경/ })).toBeNull()
+    expect(screen.queryByText(/기본 목록/)).toBeNull()
+    expect(screen.getByRole('article')).toBeTruthy()
+  })
+
+  it('기본 목록이 비어도 접힌 변경이 있으면 바뀐 것이 없다고 말하지 않는다', () => {
+    renderDefault({}, [])
+    expect(screen.queryByText('두 보고서 사이에 바뀐 문장·표가 없어요.')).toBeNull()
+    expect(screen.getByText('기본 목록에 보일 변경이 없어요.')).toBeTruthy()
+    expect(screen.getByRole('region', { name: /접어 둔 변경/ })).toBeTruthy()
+  })
+
+  it('올린 주석과 숫자만 바뀐 글을 카드에 표시한다(AC5, AC6)', () => {
+    renderDefault({}, [
+      { ...item(1, '주석 20. 우발부채'), raisedFromNote: true },
+      { ...item(2, '1. 사업의 개요'), changeType: 'NUMERIC_UPDATE', numbersOnly: true },
+    ])
+    const cards = screen.getAllByRole('article')
+    expect(within(cards[0]).getByText('주석에서 올림')).toBeTruthy()
+    expect(within(cards[1]).getByText('숫자만 바뀜')).toBeTruthy()
+    expect(within(cards[1]).queryByText('주석에서 올림')).toBeNull()
+  })
+
+  it('접근성 위반이 없다', async () => {
+    list.groups = { NOTE: success([{ ...item(9, '주석 3. 금융상품'), listGroup: 'NOTE', noteScope: 'CONSOLIDATED' }]) }
+    renderDefault()
+    fireEvent.click(folded().getByRole('button', { name: /재무제표 주석 4건/ }))
     expect(await axeViolations(document.body)).toBe('')
   })
 })

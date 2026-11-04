@@ -450,6 +450,37 @@
   gap: var(--space-2) var(--space-4);
 }
 
+/* 기본 목록에서 접은 변경(3.29) */
+.text-folded {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.text-folded__title {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+.text-folded__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.text-folded__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.text-folded__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
 /* 분야별 표(3.28). 칸은 눌러서 거르는 버튼이고, 고른 칸은 주색 바탕으로 뒤집는다 */
 .field-table {
   display: flex;
