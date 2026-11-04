@@ -220,6 +220,7 @@ const mockRiskChanges: TextChangeItem[] = [
     field: 'BUSINESS',
     raisedFromNote: false,
     noteScope: null,
+    rowDiff: null,
   },
 ]
 
