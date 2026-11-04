@@ -403,7 +403,7 @@ class AgentChatApiTest {
     }
 
     @Test
-    @DisplayName("저장 확인 버튼만 있는 NOT_FOUND는 정해진 안내의 ANSWERED로 바꾸고 버튼을 그대로 보낸다(#623)")
+    @DisplayName("조회 Tool 없이 저장 확인 버튼만 있는 NOT_FOUND는 정해진 안내의 ANSWERED로 바꾸고 버튼을 그대로 보낸다(#623)")
     void confirmOnlyNotFoundBecomesAnswered() throws Exception {
         AI.on(STEPS, Reply.ok(finalAnswer("NOT_FOUND", null, "", "{\"type\":\"CONFIRM_FAVORITE\"}")));
 
@@ -417,6 +417,20 @@ class AgentChatApiTest {
                 .andExpect(jsonPath("$.aiGenerated").value(false))
                 .andExpect(jsonPath("$.ai").doesNotExist())
                 .andExpect(jsonPath("$.questionId").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("조회 Tool을 실행했는데 못 찾은 조회·저장 복합 요청은 확인 버튼이 있어도 NOT_FOUND를 감추지 않는다")
+    void lookupAndConfirmNotFoundStaysNotFound() throws Exception {
+        AI.on(STEPS, twoSteps("{\"callId\":\"c1\",\"name\":\"search_text_changes\",\"arguments\":{\"q\":\"합병\"}}",
+                request -> finalAnswer("NOT_FOUND", null, "", "{\"type\":\"CONFIRM_FAVORITE\"}")));
+
+        chat("합병 관련 변경 내용을 알려주고 관심 기업에도 추가해줘")
+                .andExpect(jsonPath("$.status").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.answer").doesNotExist())
+                .andExpect(jsonPath("$.message").value("실행한 기능의 결과에서 관련 자료를 찾지 못했어요."))
+                .andExpect(jsonPath("$.actions[0].type").value("CONFIRM_FAVORITE"))
+                .andExpect(jsonPath("$.actions[0].corpCode").value("00000001"));
     }
 
     @Test
