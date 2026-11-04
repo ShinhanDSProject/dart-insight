@@ -23,8 +23,12 @@ def respond_plan(request: LlmRequest) -> dict[str, Any]:
     if isinstance(step, StepInput) and not step.tool_results:
         tool = next((t for t in step.tools if not t.parameters.get("required")), None)
         if tool is not None:
-            return {"decision": CALL_TOOLS, "toolCalls": [{"name": tool.name, "arguments": {}}]}
-    return {"decision": ANSWER, "toolCalls": []}
+            return {
+                "decision": CALL_TOOLS,
+                "toolCalls": [{"name": tool.name, "arguments": {}}],
+                "draft": None,
+            }
+    return {"decision": ANSWER, "toolCalls": [], "draft": None}
 
 
 def respond_answer(request: LlmRequest) -> dict[str, Any]:

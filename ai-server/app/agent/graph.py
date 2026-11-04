@@ -1,10 +1,11 @@
-"""에이전트 한 단계 그래프(ADR-0045).
+"""에이전트 한 단계 그래프(ADR-0045, ADR-0049).
 
 route_intent ─┬─ OUT_OF_SCOPE ─────────────────────────→ build_response
              ├─ 빠른 명령 → TOOL_CALLS ───────────────→ build_response
              ├─ 정해진 요청 → FINAL 또는 목차 TOOL_CALLS(LLM 없음, rules) → build_response
              └─ plan_next_tool ─┬─ TOOL_CALLS ────────→ build_response
-                                └─ draft_answer ↔ review_answer
+                                ├─ ANSWER + 초안 → review_answer(첫 생성으로 셈)
+                                └─ ANSWER(초안 없음) → draft_answer ↔ review_answer
                                        └─ 통과·예산 끝 → build_response
 (load_context는 따로 없다: 요청으로 받은 값이 곧 처음 상태다)
 
@@ -35,7 +36,14 @@ from app.agent.model import (
 )
 from app.agent.prompt import build_answer_request, build_plan_request
 from app.agent.rules import match_rule
-from app.agent.validate import Draft, parse_draft, parse_plan, review, schema_problem
+from app.agent.validate import (
+    Draft,
+    parse_draft,
+    parse_plan,
+    plan_draft,
+    review,
+    schema_problem,
+)
 from app.compliance import scan_question
 from app.llm import CallRecord, LlmClient, LlmOutputInvalid, LlmUnavailable
 from app.llm.client import OUTCOME_INVALID_OUTPUT, OUTCOME_OK
@@ -103,14 +111,27 @@ def build_graph(llm: LlmClient) -> Any:
         step = state["step"]
         calls = list(state.get("calls", []))
         try:
-            result = _generate(llm, calls, build_plan_request(step), lambda d: parse_plan(d, step))
+            result = _generate(
+                llm, calls, build_plan_request(step), lambda d: (parse_plan(d, step), plan_draft(d))
+            )
         except LlmOutputInvalid as e:
             # 다음 Tool을 고르지 못하면 지금까지의 결과로 답한다
             logger.warning("다음 Tool 고르기 실패, 받은 결과로 답함: %s", e.problems[:3])
             calls += e.calls
             return {"calls": calls, "next": _DRAFT}
         calls += result.calls
-        fresh = [c for c in result.value if not _already_called(step, c)]
+        chosen, draft = result.value
+        fresh = [c for c in chosen if not _already_called(step, c)]
+        if not fresh and draft is not None:
+            # 자료가 충분하다며 답 초안까지 썼다(ADR-0049). 첫 생성으로 세고 검토를 거친다
+            return {
+                "calls": calls,
+                "generations": state.get("generations", 0) + _generation_count(result.calls),
+                "draft": draft,
+                "model": result.model,
+                "generated_at": result.generated_at,
+                "next": _REVIEW,
+            }
         if not fresh:
             return {"calls": calls, "next": _DRAFT}
         return {

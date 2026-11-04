@@ -17,7 +17,7 @@ from app.llm.prompting import SOURCE_RULE, attr, disclosure, escape
 from app.llm.providers import LlmRequest
 
 # 결과가 달라지게 바꾸면 이 버전을 올린다(검사 규칙 app/agent/validate.py 포함)
-PROMPT_VERSION = "agent-3"
+PROMPT_VERSION = "agent-4"
 TASK_PLAN = "agent_plan"
 TASK_ANSWER = "agent_answer"
 MAX_MESSAGE_CHARS = 500
@@ -35,11 +35,37 @@ DATA_RULE = "\n".join(
     ]
 )
 
+# 답 규칙. 답 쓰기와, 자료가 충분할 때 답 초안까지 쓰는 Tool 고르기가 함께 쓴다(ADR-0049).
+# 한쪽만 고치지 않도록 여기 한 곳에만 둔다
+ANSWER_RULES = [
+    "1. <tool_result>의 내용만 근거로 씁니다. 여기에 없는 원인·전망·평가를 만들지 않습니다.",
+    "2. 매수·매도 권유, 목표주가, 주가 예측, '저평가'·'고평가'·'좋다'·'나쁘다' 같은 "
+    "가치 판단, 투자 조언을 쓰지 않습니다.",
+    "3. 숫자를 계산하거나 새로 만들지 않습니다. 숫자를 쓰면 인용한 결과에 있는 그대로 씁니다.",
+    "4. 원인 표현(때문, 탓, 덕분, 로 인해, 에 기인, 영향으로, 결과로)은 인용한 결과가 "
+    "원인을 직접 밝혔고 그 grade가 STATED이거나 없을 때만 씁니다.",
+    "5. grade가 있는 결과는 등급을 바꾸지 않습니다. STATED만 '회사는 ~라고 밝혔어요'로 쓰고, "
+    "RELATED는 '관련 공시 내용', NONE은 '확인된 설명 없음'으로 씁니다.",
+    f"6. '~어요'로 끝나는 해요체로 3문장 이내, {MAX_ANSWER}자 이내로 답합니다.",
+    "7. 문장마다 끝에 근거 표시 [근거 ID]를 붙입니다(예: [T5012], [F4221], "
+    "[20260814003699#B812]). <disclosure>의 id만 쓰고, 답에 쓴 근거를 evidenceIds에 적습니다. "
+    "<item>은 근거로 쓰지 않습니다.",
+    "8. 화면 이동이나 확인 버튼이 도움이 되면 actions에 주어진 액션 종류와 형식으로 적습니다. "
+    "값은 Tool 결과에 있는 것만 씁니다.",
+    "9. search_companies 결과에 기업이 여럿이고 사용자가 어느 기업인지 정하지 않았으면, "
+    "하나로 정하지 말고 후보 기업을 근거 표시와 함께 들어 "
+    "어느 기업인지 묻는 답(ANSWERED)을 씁니다"
+    "(예: '예시전자[C00000001]와 예시전자서비스[C00000002] 중 어느 기업인지 알려 주세요.').",
+    "10. Tool 결과로 답할 수 없으면 status를 NOT_FOUND로 하고 answer는 null, "
+    "evidenceIds는 빈 배열로 둡니다.",
+]
+
 PLAN_SYSTEM = "\n".join(
     [
         "당신은 한 기업의 정기보고서 비교 분석 화면에서 사용자의 요청을 돕는 도우미입니다.",
-        "지금까지의 Tool 결과로 요청에 답할 수 있으면 decision을 ANSWER로 하고, "
-        "자료가 더 필요하면 CALL_TOOLS로 하고 toolCalls에 부를 Tool을 적습니다.",
+        "지금까지의 Tool 결과로 요청에 답할 수 있으면 decision을 ANSWER로 하고 draft에 답을 "
+        "씁니다(아래 '답 규칙'). 자료가 더 필요하면 CALL_TOOLS로 하고 toolCalls에 부를 Tool을 "
+        "적고 draft는 null로 둡니다.",
         "규칙:",
         f"1. 주어진 Tool만, 한 번에 {MAX_TOOL_CALLS}개까지 부릅니다. "
         "arguments는 그 Tool의 parameters 형식을 지킵니다.",
@@ -53,9 +79,13 @@ PLAN_SYSTEM = "\n".join(
         "'원문 근거와 함께' 같은 근거 요청 말은 뺍니다"
         "(예: '소송 관련 변경을 원문 근거와 함께 설명해줘' → '소송 관련해서 무엇이 바뀌었나요?', "
         "'종속기업 소송은 원문에 어떻게 나와?' → '종속기업 소송은 어떻게 나와 있나요?').",
+        "답 규칙(draft):",
+        *ANSWER_RULES,
         DATA_RULE,
         "답은 JSON 객체 하나만: "
-        '{"decision": "CALL_TOOLS", "toolCalls": [{"name": "...", "arguments": {...}}]}',
+        '{"decision": "CALL_TOOLS", "toolCalls": [{"name": "...", "arguments": {...}}], '
+        '"draft": null} 또는 {"decision": "ANSWER", "toolCalls": [], "draft": '
+        '{"status": "ANSWERED", "answer": "...", "evidenceIds": ["..."], "actions": []}}',
     ]
 )
 
@@ -64,26 +94,7 @@ ANSWER_SYSTEM = "\n".join(
         "당신은 한 기업의 정기보고서 비교 분석 화면에서 사용자의 요청에 "
         "서비스가 실행한 Tool 결과로만 답하는 도우미입니다.",
         "규칙:",
-        "1. <tool_result>의 내용만 근거로 씁니다. 여기에 없는 원인·전망·평가를 만들지 않습니다.",
-        "2. 매수·매도 권유, 목표주가, 주가 예측, '저평가'·'고평가'·'좋다'·'나쁘다' 같은 "
-        "가치 판단, 투자 조언을 쓰지 않습니다.",
-        "3. 숫자를 계산하거나 새로 만들지 않습니다. 숫자를 쓰면 인용한 결과에 있는 그대로 씁니다.",
-        "4. 원인 표현(때문, 탓, 덕분, 로 인해, 에 기인, 영향으로, 결과로)은 인용한 결과가 "
-        "원인을 직접 밝혔고 그 grade가 STATED이거나 없을 때만 씁니다.",
-        "5. grade가 있는 결과는 등급을 바꾸지 않습니다. STATED만 '회사는 ~라고 밝혔어요'로 쓰고, "
-        "RELATED는 '관련 공시 내용', NONE은 '확인된 설명 없음'으로 씁니다.",
-        f"6. '~어요'로 끝나는 해요체로 3문장 이내, {MAX_ANSWER}자 이내로 답합니다.",
-        "7. 문장마다 끝에 근거 표시 [근거 ID]를 붙입니다(예: [T5012], [F4221], "
-        "[20260814003699#B812]). <disclosure>의 id만 쓰고, 답에 쓴 근거를 evidenceIds에 적습니다. "
-        "<item>은 근거로 쓰지 않습니다.",
-        "8. 화면 이동이나 확인 버튼이 도움이 되면 actions에 주어진 액션 종류와 형식으로 적습니다. "
-        "값은 Tool 결과에 있는 것만 씁니다.",
-        "9. search_companies 결과에 기업이 여럿이고 사용자가 어느 기업인지 정하지 않았으면, "
-        "하나로 정하지 말고 후보 기업을 근거 표시와 함께 들어 "
-        "어느 기업인지 묻는 답(ANSWERED)을 씁니다"
-        "(예: '예시전자[C00000001]와 예시전자서비스[C00000002] 중 어느 기업인지 알려 주세요.').",
-        "10. Tool 결과로 답할 수 없으면 status를 NOT_FOUND로 하고 answer는 null, "
-        "evidenceIds는 빈 배열로 둡니다.",
+        *ANSWER_RULES,
         DATA_RULE,
         "답은 JSON 객체 하나만: "
         '{"status": "ANSWERED", "answer": "...", "evidenceIds": ["..."], "actions": []}',
@@ -107,11 +118,13 @@ def plan_schema(step: StepInput) -> dict[str, Any]:
     ]
     return {
         "type": "object",
-        "required": ["decision", "toolCalls"],
+        "required": ["decision", "toolCalls", "draft"],
         "additionalProperties": False,
         "properties": {
             "decision": {"enum": list(DECISIONS)},
             "toolCalls": {"type": "array", "maxItems": MAX_TOOL_CALLS, "items": {"anyOf": calls}},
+            # 자료가 충분하면(ANSWER) 답 초안, 아니면 null(ADR-0049)
+            "draft": {"anyOf": [{"type": "null"}, answer_schema(step)]},
         },
     }
 
@@ -152,6 +165,9 @@ def build_plan_request(step: StepInput) -> LlmRequest:
         for t in step.tools
     ]
     lines = [*_common(step), "", "[Tool] 부를 수 있는 기능과 인자 형식입니다.", *tools]
+    actions = _actions(step)
+    if actions:
+        lines += ["", "[액션] 답(draft)에 붙일 수 있는 화면 동작과 형식입니다.", *actions]
     return LlmRequest(
         task=TASK_PLAN,
         prompt_version=PROMPT_VERSION,
@@ -159,18 +175,22 @@ def build_plan_request(step: StepInput) -> LlmRequest:
         user="\n".join(lines),
         output_schema=plan_schema(step),
         context=step,
-        # 추론 모델은 생각 토큰도 이 한도에 들어간다.
-        # Tool이 20개로 늘어 600에서 잘린 적이 있어 넉넉히 둔다(#582)
-        max_output_tokens=2000,
+        # 추론 모델은 생각 토큰도 이 한도에 들어간다. Tool이 20개로 늘어 600에서 잘린 적이
+        # 있고(#582), 자료가 충분하면 답 초안까지 쓰므로(ADR-0049) 답 쓰기 한도(1000)를 더해 둔다
+        max_output_tokens=3000,
     )
 
 
-def build_answer_request(step: StepInput, problems: list[str]) -> LlmRequest:
-    actions = [
+def _actions(step: StepInput) -> list[str]:
+    return [
         f'<action type="{attr(a.type)}">'
         f"{escape(json.dumps(a.parameters, ensure_ascii=False))}</action>"
         for a in step.actions
     ]
+
+
+def build_answer_request(step: StepInput, problems: list[str]) -> LlmRequest:
+    actions = _actions(step)
     lines = _common(step)
     if actions:
         lines += ["", "[액션] 답에 붙일 수 있는 화면 동작과 형식입니다.", *actions]
