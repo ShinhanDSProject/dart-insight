@@ -392,14 +392,42 @@ class AgentChatApiTest {
     }
 
     @Test
-    @DisplayName("NOT_FOUND는 확인된 설명 없음 안내다")
+    @DisplayName("NOT_FOUND는 찾지 못했다는 안내이고, 화면 제목('확인된 설명 없음')을 본문에 다시 넣지 않는다")
     void notFoundShowsNoConfirmedExplanation() throws Exception {
         AI.on(STEPS, Reply.ok(finalAnswer("NOT_FOUND", null, "", "")));
 
         chat("합병 관련 변경 있어?")
                 .andExpect(jsonPath("$.status").value("NOT_FOUND"))
                 .andExpect(jsonPath("$.answer").doesNotExist())
-                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.startsWith("확인된 설명 없음")));
+                .andExpect(jsonPath("$.message").value("실행한 기능의 결과에서 관련 자료를 찾지 못했어요."));
+    }
+
+    @Test
+    @DisplayName("저장 확인 버튼만 있는 NOT_FOUND는 정해진 안내의 ANSWERED로 바꾸고 버튼을 그대로 보낸다(#623)")
+    void confirmOnlyNotFoundBecomesAnswered() throws Exception {
+        AI.on(STEPS, Reply.ok(finalAnswer("NOT_FOUND", null, "", "{\"type\":\"CONFIRM_FAVORITE\"}")));
+
+        chat("이 기업 관심 기업에 추가해줘")
+                .andExpect(jsonPath("$.status").value("ANSWERED"))
+                .andExpect(jsonPath("$.answer").value("아래 버튼을 누르면 저장해요."))
+                .andExpect(jsonPath("$.message").doesNotExist())
+                .andExpect(jsonPath("$.citations", hasSize(0)))
+                .andExpect(jsonPath("$.actions[0].type").value("CONFIRM_FAVORITE"))
+                .andExpect(jsonPath("$.actions[0].corpCode").value("00000001"))
+                .andExpect(jsonPath("$.aiGenerated").value(false))
+                .andExpect(jsonPath("$.ai").doesNotExist())
+                .andExpect(jsonPath("$.questionId").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("이동 버튼만 있는 NOT_FOUND는 찾지 못했다는 것을 가리지 않게 그대로 둔다")
+    void navigationOnlyNotFoundStaysNotFound() throws Exception {
+        AI.on(STEPS, Reply.ok(finalAnswer("NOT_FOUND", null, "", "{\"type\":\"OPEN_TAB\",\"tab\":\"text\"}")));
+
+        chat("합병 관련 변경 있어?")
+                .andExpect(jsonPath("$.status").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.answer").doesNotExist())
+                .andExpect(jsonPath("$.actions[0].type").value("OPEN_TAB"));
     }
 
     @Test
