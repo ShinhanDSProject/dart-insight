@@ -91,6 +91,10 @@
 | PUT·DELETE | `/api/posts/{postId}/like`, `/api/comments/{commentId}/like` | 좋아요·취소 | #460 (6.6) | W-01 ② 커뮤니티 탭 | 구현 |
 | POST | `/api/posts/{postId}/reports`, `/api/comments/{commentId}/reports` | 신고(사유 4가지) | #461 (6.6) | W-01 ② 커뮤니티 탭 | 구현 |
 | GET | `/api/admin/reports` | 관리자 신고 목록(처리할 것·전체) | #461 (6.6) | 관리자 신고 목록(신규) | 구현 |
+| GET | `/api/admin/overview` | 관리자 개요(분석·회원·관심 기업·신고·AI 비용·요금제 관심 집계) | 3.34 (FS-72) | 관리자 콘솔 개요(신규) | 초안 |
+| GET | `/api/admin/analyses` | 관리자 분석 작업 목록(상태·기간·검색, 실패 사유·추적 ID) | 3.34 (FS-72) | 관리자 콘솔 분석 작업(신규) | 초안 |
+| GET | `/api/admin/users` | 관리자 회원 목록(가린 이메일·가입 방식·관심 기업·글 수) | 3.34 (FS-72) | 관리자 콘솔 회원(신규) | 초안 |
+| POST | `/api/plan-interests` | 요금제 '관심 있어요' 기록(로그인 없이도, 결제 없음) | 3.34 (FS-73) | 요금제(신규) | 초안 |
 | PATCH | `/api/admin/reports/{reportId}` | 신고 처리(유지·블라인드·삭제) | #461 (6.6) | 관리자 신고 목록(신규) | 구현 |
 | POST | `/api/reports/{reportId}/repost-requests` | 블라인드 재게시 청구 | #461 (6.6) | W-01 ② 커뮤니티 탭 | 구현 |
 | GET | `/api/companies` | 기업 검색 | #8 (1.1) | W-01 ① | 초안 |
@@ -646,6 +650,122 @@
 - 작성자가 먼저 지운 대상은 유지·삭제로만 닫을 수 있고(지운 것은 다시 살리지 않음), 블라인드하면 409 `COMMUNITY_TARGET_UNAVAILABLE`입니다.
 - `blindDays`는 `BLIND`일 때만 씁니다. 다른 결정에 보내면 무시합니다. 숫자가 아니거나(문자열 `"7"` 포함) 1~30 밖이면 400입니다.
 - 없는 신고 건은 404 `COMMUNITY_REPORT_NOT_FOUND`입니다.
+
+#### GET /api/admin/overview — 관리자 개요 (3.34, FS-72, 관리자만)
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| query | `days` | number | 아니오 | `7` 또는 `30`. 기본 `7` |
+
+```json
+{
+  "days": 7, "from": "2026-10-29", "to": "2026-11-04",
+  "analyses": {
+    "requested": 42, "completed": 37, "failed": 3, "inProgress": 2,
+    "completionRate": 0.925, "p50Seconds": 48, "p90Seconds": 131, "outdated": 5,
+    "daily": [ { "date": "2026-10-29", "requested": 6, "completed": 5, "failed": 1 } ],
+    "topFailures": [ { "errorCode": "ANALYSIS_SUMMARY_FAILED", "count": 2, "lastAt": "2026-11-03T14:02:11" } ],
+    "topCompanies": [ { "corpCode": "00126380", "corpName": "삼성전자", "count": 9 } ]
+  },
+  "users": {
+    "total": 128, "newInPeriod": 14, "admins": 2,
+    "byProvider": { "LOCAL": 80, "GOOGLE": 30, "KAKAO": 12, "NAVER": 6 },
+    "daily": [ { "date": "2026-10-29", "signups": 2 } ]
+  },
+  "watch": {
+    "favorites": 310, "companies": 96,
+    "topWatched": [ { "corpCode": "00126380", "corpName": "삼성전자", "count": 41 } ]
+  },
+  "community": { "openReports": 3, "postsInPeriod": 27 },
+  "ai": { "calls": 220, "failedCalls": 4, "estimatedCostUsd": 1.8312, "unpricedCalls": 0 },
+  "planInterests": {
+    "total": 19, "signedIn": 7,
+    "byPlan": { "FREE": 2, "PRO": 9, "TEAM": 6, "EMBED": 2 },
+    "daily": [ { "date": "2026-10-29", "count": 3 } ]
+  }
+}
+```
+
+- 기간은 한국 시간 날짜로 `to`(오늘)부터 거꾸로 `days`일입니다(`GET /api/system/ai-usage`와 같은 규칙). `daily`는 기간의 모든 날짜를 오래된 순으로 넣고, 기록이 없는 날은 0입니다.
+- `analyses`: `created_at`이 기간 안인 분석. `requested` = 전체 수, `completed`·`failed` = 지금 상태가 그 값인 수, `inProgress` = `PENDING`·`RUNNING`. `completionRate` = `completed` ÷ (`completed` + `failed`)(소수 넷째 자리 반올림), 분모가 0이면 null. `p50Seconds`·`p90Seconds` = 완료한 분석의 `completed_at` − `started_at`(초) 중앙값·90번째 백분위(가장 가까운 순위, 정수), 완료가 없으면 null. `outdated` = 완료했지만 `analysis_version`이 지금 계산 규칙 버전과 다른 분석 수. `topFailures`는 실패 사유 코드별 수 상위 5개(수 많은 순, 같으면 코드 순), `lastAt`은 그 코드의 가장 최근 `updated_at`. `topCompanies`는 분석 요청이 많은 기업 상위 5개.
+- `users`: `total`·`admins`는 지금 전체, `newInPeriod`·`daily`는 `created_at`이 기간 안인 회원. `byProvider`는 지금 전체 회원을 가입 방식으로 셉니다: 일반 가입(`local_credential`)이 있으면 `LOCAL`, 아니면 가장 먼저 연결한 소셜 제공자(`GOOGLE`·`KAKAO`·`NAVER`). 네 키를 모두 넣습니다.
+- `watch`: 지금 전체 관심 기업(`favorite_company`). `favorites` = 행 수, `companies` = 서로 다른 기업 수, `topWatched` = 많이 담은 기업 상위 5개. 모니터링 수요를 보는 값입니다.
+- `community`: `openReports` = `GET /api/admin/reports?queue=todo`의 `totalItems`와 같은 수, `postsInPeriod` = 기간 안에 쓴 글 수(지운 글 포함).
+- `ai`: 기간 안 `llm_call`. `failedCalls` = `outcome`이 `OK`가 아닌 호출. `estimatedCostUsd`는 가격이 설정된 모델의 호출만 더한 값(`GET /api/system/ai-usage`의 계산식), 가격이 설정된 호출이 없으면 null. `unpricedCalls`는 가격이 없는 모델(가짜 제공자 포함)의 호출 수로, 0이 아니면 비용이 전부가 아님을 화면에 알립니다.
+- `planInterests`: 기간 안 `plan_interest`. `signedIn` = 로그인한 회원이 남긴 수. `byPlan`은 네 키를 모두 넣습니다.
+- 사용자 개인정보(이메일 등)는 넣지 않습니다.
+
+**에러**: `days`가 7·30이 아니면 400 `COMMON_INVALID_INPUT`(`errors[].field`=`days`), 로그인 안 함 401 `AUTH_UNAUTHORIZED`, 관리자 아님 403 `AUTH_FORBIDDEN`.
+
+#### GET /api/admin/analyses — 관리자 분석 작업 목록 (3.34, FS-72, 관리자만)
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| query | `status` | string | 아니오 | `PENDING`·`RUNNING`·`COMPLETED`·`FAILED` 중 하나. 없으면 전체 |
+| query | `days` | number | 아니오 | `1`·`7`·`30`. 없으면 기간 제한 없음 |
+| query | `q` | string | 아니오 | 앞뒤 공백을 지운 1~50자. 숫자만이면 분석 ID, 8자리 숫자면 고유번호도, 그 밖에는 기업명(부분 일치)·추적 ID(일치)로 찾음 |
+| query | `page`, `size` | int | 아니오 | 0부터, 1~50(기본 20) |
+
+```json
+{
+  "page": 0, "size": 20, "totalItems": 1,
+  "items": [
+    {
+      "analysisId": 14, "corpCode": "00126380", "corpName": "삼성전자", "basis": "YOY",
+      "current": { "rceptNo": "20260814003699", "reportName": "반기보고서 (2026.06)" },
+      "previous": { "rceptNo": "20250814003156", "reportName": "반기보고서 (2025.06)" },
+      "status": "FAILED", "step": "COMPARING",
+      "errorCode": "ANALYSIS_SUMMARY_FAILED", "errorMessage": "요약을 만들지 못했어요.",
+      "traceId": "8f2c1a…", "analysisVersion": "m2-14", "outdated": false,
+      "createdAt": "2026-11-03T14:01:02", "startedAt": "2026-11-03T14:01:03", "completedAt": null,
+      "durationSeconds": 69
+    }
+  ]
+}
+```
+
+- 정렬은 `created_at` 최근 순(같으면 ID 큰 순). `durationSeconds`는 완료면 `completed_at` − `started_at`, 실패면 `updated_at` − `started_at`, 진행 중이거나 시작 전이면 null(정수 초). `outdated`는 `analysis_version`이 지금 계산 규칙 버전과 다르면 true. `traceId`는 `request_trace_id`(없으면 null).
+- 에러: `status`·`days`가 정한 값이 아니거나 `q`가 50자를 넘으면 400 `COMMON_INVALID_INPUT`(`errors[].field`), 401·403은 위와 같음.
+
+#### GET /api/admin/users — 관리자 회원 목록 (3.34, FS-72, 관리자만)
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| query | `q` | string | 아니오 | 앞뒤 공백을 지운 1~50자. 닉네임(부분 일치) 또는 이메일(전체 일치, 대소문자 무시)로 찾음 |
+| query | `role` | string | 아니오 | `USER`·`ADMIN` |
+| query | `page`, `size` | int | 아니오 | 0부터, 1~50(기본 20) |
+
+```json
+{
+  "page": 0, "size": 20, "totalItems": 1,
+  "items": [
+    {
+      "userId": 7, "nickname": "반도체공부중", "maskedEmail": "tj***@g***.com",
+      "providers": ["LOCAL", "GOOGLE"], "role": "USER",
+      "createdAt": "2026-10-21T09:12:44", "favoriteCount": 5, "postCount": 2
+    }
+  ]
+}
+```
+
+- 정렬은 가입 최근 순(같으면 ID 큰 순). `maskedEmail`은 일반 가입 이메일, 없으면 가장 먼저 연결한 소셜 계정 이메일을 가린 값입니다: 아이디 앞 2자(2자 이하면 1자) + `***`, `@`, 도메인 첫 글자 + `***`, 마지막 점 뒤 끝말(예: `.com`). 이메일이 없으면 null. 전체 이메일은 응답에 넣지 않습니다(이메일로 찾을 때도).
+- `providers`는 `LOCAL`(일반 가입)과 연결한 소셜 제공자(`GOOGLE`·`KAKAO`·`NAVER`)를 이 순서로. `postCount`는 지우지 않은 글 수.
+- 에러: `role`이 정한 값이 아니거나 `q`가 50자를 넘으면 400 `COMMON_INVALID_INPUT`, 401·403은 위와 같음.
+
+#### POST /api/plan-interests — 요금제 '관심 있어요' (3.34, FS-73)
+
+```json
+{ "plan": "PRO", "source": "pricing" }
+```
+
+| 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- |
+| `plan` | string | 예 | `FREE`·`PRO`·`TEAM`·`EMBED` |
+| `source` | string | 아니오 | 누른 화면. 영문 소문자·숫자·`-` 1~40자(예: `pricing`, `pricing-credits`). 없으면 `pricing` |
+
+- 204. 결제는 없고 수요를 세기만 합니다. 로그인 없이도 쓰며, Access Token이 있으면(유효하면) 그 회원 ID를 함께 남깁니다. 잘못된 토큰은 무시하고 로그인 없이 남깁니다(이 기록만을 위해 다시 로그인하게 하지 않음).
+- 이메일·연락처 같은 개인정보는 받지 않습니다. 같은 브라우저의 중복은 화면이 막고, 서버는 그대로 셉니다(관리자 개요의 `signedIn`으로 로그인 회원 수를 따로 봄).
+- 에러: `plan`이 네 값이 아니거나 `source` 형식이 틀리면 400 `COMMON_INVALID_INPUT`(`errors[].field`).
 
 #### POST /api/reports/{reportId}/repost-requests — 재게시 청구 (#461)
 
