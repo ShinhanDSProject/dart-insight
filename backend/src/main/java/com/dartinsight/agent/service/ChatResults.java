@@ -1,6 +1,7 @@
 package com.dartinsight.agent.service;
 
 import com.dartinsight.agent.domain.AgentStep;
+import com.dartinsight.agent.domain.AskedQuestion;
 import com.dartinsight.agent.domain.ChatStatus;
 import com.dartinsight.agent.domain.Evidence;
 import com.dartinsight.agent.dto.AgentStepAiResponse;
@@ -42,14 +43,15 @@ final class ChatResults {
     /**
      * @param evidence 이 채팅에서 실행한 Tool 결과의 근거 ID → 위치
      * @param actions  값 확인을 통과한 화면 액션
+     * @param asked    이 채팅에서 근거 질문 Tool이 만든 질문. 최종 답이 인용한 질문만 questionId로 내보낸다
      */
     static ChatMessageResponse finalAnswer(AgentStepAiResponse response, Map<String, Evidence> evidence,
-            Map<String, String> reportNames, List<Map<String, Object>> actions, Long questionId) {
+            Map<String, String> reportNames, List<Map<String, Object>> actions, List<AskedQuestion> asked) {
         AgentStepAiResponse.Final result = response.finalAnswer();
         String format = result.format() == null ? AgentStep.FORMAT_CHAT : result.format();
         if (ChatStatus.NOT_FOUND.name().equals(result.status())) {
             return new ChatMessageResponse(ChatStatus.NOT_FOUND.name(), null, NOT_FOUND, List.of(), actions, format,
-                    null, questionId, false, null);
+                    null, null, false, null);
         }
         if (!ChatStatus.ANSWERED.name().equals(result.status())) {
             String reason = result.reviewReason() == null ? NOT_VERIFIED : result.reviewReason();
@@ -68,7 +70,7 @@ final class ChatResults {
         ChatMessageResponse.Ai ai = new ChatMessageResponse.Ai(response.model(), response.promptVersion(),
                 time(response.generatedAt()));
         return new ChatMessageResponse(ChatStatus.ANSWERED.name(), converted.answer(), null, citations, actions,
-                format, result.crossCheck(), questionId, true, ai);
+                format, result.crossCheck(), AskedQuestion.ratedBy(asked, converted.evidenceIds()), true, ai);
     }
 
     static List<LlmCallRow> calls(AgentStepAiResponse response, String traceId) {
