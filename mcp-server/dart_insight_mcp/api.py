@@ -58,7 +58,9 @@ class DartInsightApi:
                 response.status_code,
                 body.get("code", "COMMON_UNKNOWN"),
                 body.get("message", response.reason_phrase),
-                response.headers.get("X-Trace-Id", trace_id),
+                # 에러 본문의 traceId가 backend 로그와 같은 값이다.
+                # 없으면 응답 헤더, 그것도 없으면 보낸 값을 쓴다
+                body.get("traceId") or response.headers.get("X-Trace-Id", trace_id),
             )
         return response.json()
 

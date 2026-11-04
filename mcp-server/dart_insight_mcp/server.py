@@ -131,8 +131,8 @@ def create_server(api: DartInsightApi | None = None) -> MCPServer:
         )
     )
     def list_financial_changes(analysis_id: int, sj_div: StatementDiv = "IS") -> dict[str, Any]:
-        params = {"sjDiv": sj_div, "size": 100}
-        return call("list_financial_changes", paths.financial_changes(analysis_id), params)
+        path = paths.financial_changes(analysis_id)
+        return call("list_financial_changes", path, {"sjDiv": sj_div})
 
     return server
 
