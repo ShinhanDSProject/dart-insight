@@ -10,7 +10,8 @@
 
 .result-tabs {
   position: sticky;
-  top: 0;
+  /* 오른쪽 패널이 열려 상단 바가 고정되면 그 아래(FS-71) */
+  top: var(--sticky-top, 0px);
   z-index: 3;
   margin-bottom: var(--space-5);
   background: var(--color-bg);
@@ -1323,8 +1324,8 @@
 @media (min-width: 900px) {
   .source-toc {
     position: sticky;
-    top: calc(var(--control-height) + var(--space-5));
-    max-height: calc(100vh - var(--control-height) - var(--space-7));
+    top: calc(var(--sticky-top, 0px) + var(--control-height) + var(--space-5));
+    max-height: calc(100vh - var(--sticky-top, 0px) - var(--control-height) - var(--space-7));
   }
 }
 
@@ -2979,7 +2980,7 @@
 
   .summary-layout__aside {
     position: sticky;
-    top: var(--space-5);
+    top: calc(var(--sticky-top, 0px) + var(--space-5));
   }
 }
 
