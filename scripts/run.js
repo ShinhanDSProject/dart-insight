@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// 저장소 루트에서 세 서비스를 준비·실행·검사합니다. 루트 package.json의 스크립트가 이 파일을 부릅니다.
-// 사용법: node scripts/run.js <setup|dev|test|lint|build|check> [backend|ai-server|frontend ...]
-// 서비스를 적지 않으면 세 서비스 모두에 실행합니다. 의존성 없이 Node.js 22 내장 모듈만 씁니다.
+// 저장소 루트에서 서비스들을 준비·실행·검사합니다. 루트 package.json의 스크립트가 이 파일을 부릅니다.
+// 사용법: node scripts/run.js <setup|dev|test|lint|build|check> [backend|ai-server|frontend|mcp-server ...]
+// 서비스를 적지 않으면 모든 서비스에 실행합니다. 의존성 없이 Node.js 22 내장 모듈만 씁니다.
 import { spawn, spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -44,6 +44,21 @@ const SERVICES = {
       [VENV_PYTHON, ['-m', 'pytest'], { okCodes: [PYTEST_NO_TESTS] }],
     ],
   },
+  // 에이전트용 MCP 서버(ADR-0052). 따로 띄우는 서버가 아니라 에이전트가 stdio로 부르므로 dev는 없습니다.
+  'mcp-server': {
+    color: 33,
+    needsVenv: true,
+    setup: [
+      [SYSTEM_PYTHON, ['-m', 'venv', '.venv'], { skipIf: VENV_PYTHON }],
+      [VENV_PYTHON, ['-m', 'pip', 'install', '-r', 'requirements.txt', '-r', 'requirements-dev.txt']],
+    ],
+    test: [[VENV_PYTHON, ['-m', 'pytest'], { okCodes: [PYTEST_NO_TESTS] }]],
+    lint: [[VENV_PYTHON, ['-m', 'ruff', 'check', '.']]],
+    check: [
+      [VENV_PYTHON, ['-m', 'ruff', 'check', '.']],
+      [VENV_PYTHON, ['-m', 'pytest'], { okCodes: [PYTEST_NO_TESTS] }],
+    ],
+  },
   frontend: {
     color: 36,
     setup: [['npm', ['ci']]],
@@ -58,7 +73,7 @@ const SERVICES = {
     ],
   },
 };
-const ALIASES = { ai: 'ai-server' };
+const ALIASES = { ai: 'ai-server', mcp: 'mcp-server' };
 const TASKS = ['setup', 'dev', 'test', 'lint', 'build', 'check'];
 
 const useColor = process.stdout.isTTY && !process.env.NO_COLOR;
@@ -78,7 +93,7 @@ function parseArgs(argv) {
   const names = rest.map((name) => ALIASES[name] ?? name);
   const unknown = names.filter((name) => !SERVICES[name]);
   if (unknown.length > 0) {
-    fail(`모르는 서비스: ${unknown.join(', ')} (쓸 수 있는 이름: ${Object.keys(SERVICES).join(', ')}, ai)`);
+    fail(`모르는 서비스: ${unknown.join(', ')} (쓸 수 있는 이름: ${Object.keys(SERVICES).join(', ')}, ${Object.keys(ALIASES).join(', ')})`);
   }
   return { task, names: names.length > 0 ? names : Object.keys(SERVICES) };
 }
@@ -228,7 +243,12 @@ function runParallel(names) {
 
 const { task, names } = parseArgs(process.argv.slice(2));
 if (task === 'dev') {
-  runParallel(names);
+  // mcp-server처럼 따로 띄우지 않는 서비스는 dev에서 뺍니다.
+  const runnable = names.filter((name) => SERVICES[name].dev);
+  if (runnable.length === 0) {
+    fail(`dev로 띄울 서비스가 없습니다: ${names.join(', ')}`);
+  }
+  runParallel(runnable);
 } else {
   runSequential(task, names);
 }
