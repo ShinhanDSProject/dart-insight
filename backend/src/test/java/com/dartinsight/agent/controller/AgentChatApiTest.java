@@ -425,6 +425,27 @@ class AgentChatApiTest {
     }
 
     @Test
+    @DisplayName("정해진 안내의 버튼이 값 확인에서 빠지면(이 분석에 없는 변경) 저장 안내를 내보내지 않고 NOT_FOUND로 끝낸다")
+    void fixedAnswerWithoutValidActionIsNotFound() throws Exception {
+        AI.on(STEPS, Reply.ok("""
+                {"promptVersion":"agent-3","model":null,"generatedAt":null,"type":"FINAL","toolCalls":[],
+                 "final":{"status":"ANSWERED","answer":"아래 버튼을 누르면 노트에 담아요.","evidenceIds":[],
+                  "actions":[{"type":"CONFIRM_SAVE_NOTE","note":{"kind":"FINANCIAL_CHANGE","changeId":999999}}],
+                  "reviewReason":null,"blockedRules":[],"format":"CHAT","crossCheck":null},
+                 "rejections":[],"calls":[]}
+                """));
+
+        chat(analysisId, "{\"message\":\"이거 노트에 담아줘\",\"context\":{\"tab\":\"financial\","
+                + "\"financialChangeId\":999999}}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.answer").doesNotExist())
+                .andExpect(jsonPath("$.message").value("실행한 기능의 결과에서 관련 자료를 찾지 못했어요."))
+                .andExpect(jsonPath("$.actions", hasSize(0)))
+                .andExpect(jsonPath("$.aiGenerated").value(false));
+    }
+
+    @Test
     @DisplayName("LLM이 만든 답(model 있음)에 근거 표시가 없으면 정해진 안내로 보지 않고 검토 필요로 끝낸다")
     void llmAnswerWithoutMarkerIsStillReviewNeeded() throws Exception {
         AI.on(STEPS, Reply.ok(finalAnswer("ANSWERED", "근거 없이 쓴 답이에요.", "", "")));

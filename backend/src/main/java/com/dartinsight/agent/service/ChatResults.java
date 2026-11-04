@@ -65,7 +65,12 @@ final class ChatResults {
                     null, null, false, null);
         }
         if (ChatStatus.ANSWERED.name().equals(result.status()) && fixedAnswer(response)) {
-            // 정해진 요청(이동·저장 확인, #631): ai-server가 LLM 없이 정해진 안내로 답함. 근거 표시가 없다
+            // 정해진 요청(이동·저장 확인, #631): ai-server가 LLM 없이 정해진 안내로 답함. 근거 표시가 없다.
+            // 안내는 버튼을 가리키므로, 값 확인에서 버튼이 빠졌으면(이 분석에 없는 변경 등) 안내를 내보내지 않는다
+            if (actions.isEmpty()) {
+                return new ChatMessageResponse(ChatStatus.NOT_FOUND.name(), null, NOT_FOUND, List.of(), List.of(),
+                        format, null, null, false, null);
+            }
             return new ChatMessageResponse(ChatStatus.ANSWERED.name(), result.answer(), null, List.of(), actions,
                     format, null, null, false, null);
         }

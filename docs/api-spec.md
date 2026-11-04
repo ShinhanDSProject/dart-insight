@@ -3550,14 +3550,14 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
   | 요청 꼴 | 돌려주는 액션 | `answer` |
   | --- | --- | --- |
   | `{탭}( 탭)? 열어줘·보여줘`(탭: 요약, 재무 수치·재무, 문장 변화, 원문) | `OPEN_TAB` | "아래 버튼을 누르면 {탭} 탭을 열어요." |
-  | `{목차 제목}( 항목)? 열어줘·보여줘` | `OPEN_DOCUMENT`(`side` `current`) | "아래 버튼을 누르면 원문의 '{목차 제목}' 항목을 열어요." |
+  | `{목차 제목} 열어줘`, `{목차 제목} 항목·목차 보여줘`('최대주주 보여줘' 같은 정보 조회는 목차를 받지 않음) | `OPEN_DOCUMENT`(`side` `current`) | "아래 버튼을 누르면 원문의 '{목차 제목}' 항목을 열어요." |
   | `(이 기업·이 회사)? 관심 기업(에)? 추가해줘·등록해줘·넣어줘` | `CONFIRM_FAVORITE` | "아래 버튼을 누르면 관심 기업에 추가해요." |
   | `(이거·이 변경·이 계정)? 노트에 담아줘·저장해줘·넣어줘`(`context`에 고른 변경이 있을 때만) | `CONFIRM_SAVE_NOTE`(`kind`는 고른 변경의 종류, `changeId`) | "아래 버튼을 누르면 노트에 담아요." |
 
   - 탭 이름이 목차 제목보다 먼저입니다("원문 보여줘"는 원문 탭).
-  - 목차 열기는 먼저 LLM 없이 `get_document_outline`(`side` `current`)을 부르고(`TOOL_CALLS`), 결과가 오면 최상위·하위 항목 제목(앞의 번호 'II.'·'1.'과 공백은 무시) 중 **하나와만** 같을 때 `FINAL`을 돌려줍니다. 맞는 항목이 없거나 둘 이상이면 받은 목차 결과로 LLM이 이어 갑니다. 목차 결과 줄의 꼴(`[항목 {번호}] {제목} — 하위: [항목 {번호}] {제목} …`)은 backend `ToolTexts.outline`과 같습니다.
+  - 목차 열기는 먼저 LLM 없이 `get_document_outline`(`side` `current`)을 부르고(`TOOL_CALLS`), 결과가 오면 최상위·하위 항목 제목(앞의 번호 'II.'·'1.'과 공백은 무시) 중 **하나와만** 같을 때 `FINAL`을 돌려줍니다. 맞는 항목이 없거나 둘 이상이거나, 목차 결과가 잘렸으면(`truncated`, 같은 제목이 하나만 보일 수 있음) 받은 목차 결과로 LLM이 이어 갑니다. 목차 결과 줄의 꼴(`[항목 {번호}] {제목} — 하위: [항목 {번호}] {제목} …`)은 backend `ToolTexts.outline`과 같습니다.
 - `context`: 공개 API의 `tab`·`side`·`sectionNo`와, 화면에서 고른 변경이 있으면 `textChangeId`·`financialChangeId`를 담습니다(정해진 요청의 노트 담기에 씀). 고른 변경의 내용은 Tool 결과로 따로 보냅니다.
-- backend는 `model`이 null이고 `calls`가 빈 `FINAL`이 `ANSWERED`이면서 근거 표시와 `evidenceIds`가 없으면 정해진 안내로 보고 그대로 내보냅니다(공개 응답 `aiGenerated: false`, `ai: null`, `citations` 빈 배열). LLM이 만든 답(`model`이 있음)은 지금처럼 근거 표시가 하나 이상 있어야 합니다.
+- backend는 `model`이 null이고 `calls`가 빈 `FINAL`이 `ANSWERED`이면서 근거 표시와 `evidenceIds`가 없으면 정해진 안내로 보고 그대로 내보냅니다(공개 응답 `aiGenerated: false`, `ai: null`, `citations` 빈 배열). 안내가 가리키는 버튼이 액션 값 확인에서 빠지면(이 분석에 없는 변경 등) 안내를 내보내지 않고 `NOT_FOUND`로 끝냅니다. LLM이 만든 답(`model`이 있음)은 지금처럼 근거 표시가 하나 이상 있어야 합니다.
 - `parameters`는 OpenAI 엄격 구조화 출력(ADR-0026)에 그대로 들어가므로 그 제약 안에서 씁니다: `type: object`이고 `properties`를 둠(빈 객체도 `properties: {}`), 지원 키워드는 문자열 `pattern`·`format`, 숫자 `minimum`·`maximum`·`exclusiveMinimum`·`exclusiveMaximum`·`multipleOf`, 배열 `minItems`·`maxItems`, `enum`, `anyOf`(최상위 제외). `allOf`·`not`·`if/then/else`는 쓰지 않습니다. 문자열 `minLength`·`maxLength`는 엄격 모드가 보장하지 않으므로 ai-server 코드 검사로만 걸립니다. 전체 10단계·속성 5,000개·enum 값 1,000개 이내(OpenAI Structured Outputs 'Supported schemas', 2026-11-03 확인). 필수가 아닌 필드는 ai-server가 null 허용으로 바꿔 보냅니다(`strict_schema`). 실제 OpenAI 호출로는 아직 확인하지 않았습니다(#577에서 Tool 목록이 생긴 뒤 확인).
 - 인자·액션 값의 형식 검사는 받은 `parameters`(JSON Schema)대로 합니다. 엄격 구조화 출력이 필수가 아닌 필드를 null로 채우므로 필수가 아닌 필드의 null은 없는 것으로 보고, 필수 필드의 null은 형식 오류입니다. 액션 값이 이 분석에 실제로 있는지는 ai-server가 보지 않고 backend가 확인합니다(없으면 그 액션을 빼고 로그).
 - `calls`: 이 단계에서 부른 LLM 기록(task `agent_plan` 다음 Tool 고르기, `agent_answer` 답 만들기). LLM을 부르지 않았으면 빈 배열이고 `model`·`generatedAt`은 null입니다.
