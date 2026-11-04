@@ -47,6 +47,38 @@ afterEach(() => {
   api.createNote.mockReset()
 })
 
+describe('AddToNote 메뉴에서 열기(3.31)', () => {
+  function renderOpened(state: AuthState, onClose = vi.fn()) {
+    auth.state = state
+    render(
+      <MemoryRouter>
+        <AddToNote target={{ kind: 'TEXT_CHANGE', changeId: 3 }} analysisId={42} label="사업의 개요" startOpen onClose={onClose} />
+      </MemoryRouter>,
+    )
+    return onClose
+  }
+  const signedIn = { status: 'authenticated', user: { userId: 1 } } as unknown as AuthState
+
+  it('로그인했으면 바로 메모 칸이 열리고, 취소하면 알린다', () => {
+    const onClose = renderOpened(signedIn)
+    expect(screen.getByLabelText(/메모/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '취소' }))
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('로그인하지 않았으면 바로 안내가 보이고, 닫으면 알린다', () => {
+    const onClose = renderOpened({ status: 'anonymous' })
+    expect(screen.getByRole('link', { name: '로그인하기' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '닫기' }))
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('로그인 상태를 아직 모르면 눌리지 않는 버튼을 둔다', () => {
+    renderOpened({ status: 'loading' })
+    expect((screen.getByRole('button', { name: /노트에 담기/ }) as HTMLButtonElement).disabled).toBe(true)
+  })
+})
+
 describe('AddToNote(FS-57)', () => {
   it('로그인하지 않았으면 로그인 안내만 보이고 저장하지 않는다', () => {
     renderAdd({ status: 'anonymous' })
