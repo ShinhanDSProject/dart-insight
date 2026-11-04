@@ -186,7 +186,11 @@ export function FinancialTab({
 
   return (
     <>
-    <KeyNumbers analysisId={analysis.analysisId} onOpen={(item) => onChange({ sj: item.sjDiv, change: item.changeId })} />
+    {/* 요약에서 계정으로 갈 때(openFinancialChanges)처럼 전체 계정·계정 찾기 없이 열어 그 계정 행이 표에 보이게 한다 */}
+    <KeyNumbers
+      analysisId={analysis.analysisId}
+      onOpen={(item) => onChange({ sj: item.sjDiv, change: item.changeId, changed: false, q: null })}
+    />
     <section className="fin-section" aria-label="재무 수치">
       {/* 재무제표 칩 | 오른쪽에 지금 단위·정렬과 '표 설정'(#550, 시안 14) */}
       <div className="fin-bar">
