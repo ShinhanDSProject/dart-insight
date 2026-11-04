@@ -420,18 +420,34 @@ class AgentChatApiTest {
     }
 
     @Test
-    @DisplayName("저장 대상을 찾으려고 부른 Tool만 있으면 순수 저장 요청으로 보고 NOT_FOUND를 정해진 안내의 ANSWERED로 바꾼다")
-    void noteTargetLookupStillCountsAsSaveOnly() throws Exception {
+    @DisplayName("변경을 찾는 Tool 결과에 노트 대상이 있어도 조회 의도를 가릴 수 없으면 NOT_FOUND를 감추지 않는다")
+    void changeLookupWithNoteTargetStaysNotFound() throws Exception {
         long changeId = financialChangeId();
         AI.on(STEPS, twoSteps("{\"callId\":\"c1\",\"name\":\"get_financial_changes\",\"arguments\":{}}",
                 request -> finalAnswer("NOT_FOUND", null, "", "{\"type\":\"CONFIRM_SAVE_NOTE\",\"note\":"
                         + "{\"kind\":\"FINANCIAL_CHANGE\",\"changeId\":" + changeId + "}}")));
 
-        chat("영업이익 변경을 노트에 담아줘")
+        chat("영업이익 변화 알려주고 노트에도 담아줘")
+                .andExpect(jsonPath("$.status").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.answer").doesNotExist())
+                .andExpect(jsonPath("$.actions[0].type").value("CONFIRM_SAVE_NOTE"))
+                .andExpect(jsonPath("$.actions[0].note.changeId").value(changeId));
+    }
+
+    @Test
+    @DisplayName("화면에서 고른 변경을 Tool 없이 노트에 담는 순수 저장 요청은 정해진 안내의 ANSWERED로 바꾼다")
+    void selectedChangeSaveWithoutToolBecomesAnswered() throws Exception {
+        long changeId = financialChangeId();
+        AI.on(STEPS, Reply.ok(finalAnswer("NOT_FOUND", null, "", "{\"type\":\"CONFIRM_SAVE_NOTE\",\"note\":"
+                + "{\"kind\":\"FINANCIAL_CHANGE\",\"changeId\":" + changeId + "}}")));
+
+        chat(analysisId, "{\"message\":\"이거 노트에 담아줘\",\"context\":{\"tab\":\"financial\","
+                + "\"financialChangeId\":" + changeId + "}}")
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ANSWERED"))
                 .andExpect(jsonPath("$.answer").value("아래 버튼을 누르면 저장해요."))
                 .andExpect(jsonPath("$.actions[0].type").value("CONFIRM_SAVE_NOTE"))
-                .andExpect(jsonPath("$.actions[0].note.changeId").value(changeId));
+                .andExpect(jsonPath("$.aiGenerated").value(false));
     }
 
     @Test
