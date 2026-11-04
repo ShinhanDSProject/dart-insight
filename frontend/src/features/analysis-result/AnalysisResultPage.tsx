@@ -23,7 +23,7 @@ import { OutdatedNotice } from './components/OutdatedNotice'
 import { SourceTab } from './components/SourceTab'
 import { SummaryTab } from './components/SummaryTab'
 import { TextTab } from './components/TextTab'
-import { ResultOverviewContext } from './overviewSlot'
+import { ResultOverviewContext, ResultReportsContext } from './overviewSlot'
 import { useAnalysis } from './hooks/useAnalysis'
 import { useAgentChat, type AgentChatController } from './hooks/useAgentChat'
 import { useAskSuggestions } from './hooks/useAskSuggestions'
@@ -41,6 +41,7 @@ import {
   openPriorityList,
   openTextList,
   openTextSection,
+  reportSelectionSeed,
   resultTabs,
   sourceParamChanges,
   summaryParamChanges,
@@ -101,7 +102,7 @@ interface AnalysisResultProps {
 function AnalysisResult({ analysis, params, update }: AnalysisResultProps) {
   return (
     <Page width="wide">
-      {/* 결과 머리(#550): 분석 결과 / 기업명 → 큰 기업명 → 보고서 쌍·비교 기준·수치 기준·보고서 바꾸기, 오른쪽 위 내보내기 */}
+      {/* 결과 머리(#550): 분석 결과 / 기업명 → 큰 기업명 → 보고서 쌍·비교 기준·수치 기준, 오른쪽 위 내보내기. 보고서는 '보고서 선택' 탭에서 바꾼다(#659) */}
       <PageHeader
         className="result-head"
         breadcrumb={
@@ -124,7 +125,7 @@ function AnalysisResult({ analysis, params, update }: AnalysisResultProps) {
   )
 }
 
-/** 제목 아래 한 줄: 이전 → 현재 보고서 · 비교 기준 · 연결·별도 재무제표 · 보고서 바꾸기(보고서 선택 화면) */
+/** 제목 아래 한 줄: 이전 → 현재 보고서 · 비교 기준 · 연결·별도 재무제표 */
 function ResultLead({ analysis }: { analysis: Analysis }) {
   return (
     <span className="result-head__lead">
@@ -137,9 +138,6 @@ function ResultLead({ analysis }: { analysis: Analysis }) {
       <span>{basisLabel(analysis.basis)}</span>
       <span aria-hidden="true"> · </span>
       <span>{analysis.fsDiv === 'OFS' ? '별도' : '연결'}재무제표</span>
-      <Link className="result-head__change" to={selectionPath(analysis)}>
-        보고서 바꾸기
-      </Link>
     </span>
   )
 }
@@ -247,6 +245,13 @@ function ResultTabPanel({ analysis, params, update, chat, onAskChat, suggestions
   const asking = chat.state.request.status === 'sending'
   const returnTab = useReturnTab(params.tab)
   const renderOverview = useContext(ResultOverviewContext)
+  const renderReports = useContext(ResultReportsContext)
+  // '보고서 선택' 탭을 처음 열면 이 분석의 보고서 쌍을 고른 값으로 둔다(#659). 탭 줄·단축키·주소 어디로 와도 같다
+  const [search] = useSearchParams()
+  const seed = params.tab === 'reports' ? reportSelectionSeed(analysis, search) : null
+  useEffect(() => {
+    if (seed !== null) update(seed)
+  }, [seed, update])
   return match(params.tab)
     // 기업 개요(#589): 기업 화면의 개요를 이 탭 줄 아래에 그대로 그린다. 바로 가기 바는 위에 붙은 탭 줄 밑에 붙는다
     .with('overview', () => <div className="result-overview">{renderOverview?.(analysis.corpCode)}</div>)
@@ -306,6 +311,8 @@ function ResultTabPanel({ analysis, params, update, chat, onAskChat, suggestions
     ))
     .with('community', () => <CommunityTab corpCode={analysis.corpCode} />)
     .with('news', () => <NewsTab corpCode={analysis.corpCode} />)
+    // 보고서 선택(#659): 기업 화면의 보고서 비교를 탭 줄 아래에 그린다. 고른 값을 넣기 전에는 그리지 않아 가장 최근 보고서가 잠깐 골라지지 않는다
+    .with('reports', () => (seed === null ? renderReports?.(analysis.corpCode) : null))
     .with('source', () => (
       <SourceTab
         key={analysis.analysisId}
@@ -330,12 +337,6 @@ function useReturnTab(tab: ResultTab): Exclude<ResultTab, 'source'> {
   const [last, setLast] = useState<Exclude<ResultTab, 'source'>>('summary')
   if (tab !== 'source' && tab !== last) setLast(tab)
   return last
-}
-
-function selectionPath(analysis: Analysis): string {
-  const params = new URLSearchParams({ current: analysis.current.rceptNo, basis: analysis.basis })
-  if (analysis.basis === 'CUSTOM') params.set('previous', analysis.previous.rceptNo)
-  return `/companies/${encodeURIComponent(analysis.corpCode)}?${params.toString()}`
 }
 
 function NotCompleted({ analysis }: { analysis: Analysis }) {

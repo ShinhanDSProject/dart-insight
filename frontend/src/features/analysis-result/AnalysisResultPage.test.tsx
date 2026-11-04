@@ -7,7 +7,7 @@ import type { ComparabilityRequest } from '@/shared/api/comparability'
 import { ApiError } from '@/shared/api/client'
 import type { ReportItem } from '@/shared/api/reports'
 import { axeViolations } from '@/test/axe'
-import { ResultOverviewContext } from './overviewSlot'
+import { ResultOverviewContext, ResultReportsContext } from './overviewSlot'
 import { AnalysisResultPage } from './AnalysisResultPage'
 
 const getAnalysis = vi.fn<(analysisId: string | number) => Promise<Analysis>>()
@@ -72,7 +72,9 @@ function renderPage(path = '/analyses/14') {
           path="/analyses/:analysisId"
           element={
             <ResultOverviewContext.Provider value={(corpCode) => <p>기업 개요 {corpCode}</p>}>
-              <AnalysisResultPage />
+              <ResultReportsContext.Provider value={(corpCode) => <p>보고서 선택 {corpCode}</p>}>
+                <AnalysisResultPage />
+              </ResultReportsContext.Provider>
             </ResultOverviewContext.Provider>
           }
         />
@@ -164,7 +166,7 @@ describe('이전 방식 분석 안내', () => {
 })
 
 describe('결과 머리(#550)', () => {
-  it('기업명 제목 아래에 보고서 쌍·비교 기준·수치 기준과 보고서 바꾸기 링크를 둔다', async () => {
+  it('기업명 제목 아래에 보고서 쌍·비교 기준·수치 기준을 두고, 보고서 바꾸기 대신 보고서 선택 탭을 이 분석의 보고서로 연다(#659)', async () => {
     getAnalysis.mockResolvedValue(analysis(false))
     renderPage()
     expect(await screen.findByRole('heading', { level: 1, name: '삼성전자' })).toBeTruthy()
@@ -172,12 +174,28 @@ describe('결과 머리(#550)', () => {
     expect(lead?.textContent).toContain('반기보고서 (2025.06) → 현재 보고서 반기보고서 (2026.06)')
     expect(lead?.textContent).toContain('전년 동기')
     expect(lead?.textContent).toContain('연결재무제표')
-    expect(screen.getByRole('link', { name: '보고서 바꾸기' }).getAttribute('href')).toBe(
-      '/companies/00126380?current=20260814001234&basis=YOY',
+    expect(screen.queryByRole('button', { name: '보고서 바꾸기' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '보고서 선택' }))
+    expect(await screen.findByText('보고서 선택 00126380')).toBeTruthy()
+    expect(screen.getByTestId('where').textContent).toBe('/analyses/14')
+    expect(new URLSearchParams(screen.getByTestId('where-search').textContent ?? '').toString()).toBe(
+      'tab=reports&current=20260814001234&basis=YOY',
     )
   })
 
-  it('탭은 기업 개요(#589)·요약·재무 수치·문장 변화·커뮤니티·뉴스(#592)·원문 일곱 개다', async () => {
+  it('보고서 선택 탭에 이미 고른 보고서가 주소에 있으면 그대로 두고, 직접 선택한 분석이면 이전 보고서도 넣는다(#659)', async () => {
+    getAnalysis.mockResolvedValue(analysis(false))
+    renderPage('/analyses/14?tab=reports&current=20250814000987')
+    expect(await screen.findByText('보고서 선택 00126380')).toBeTruthy()
+    expect(screen.getByTestId('where-search').textContent).toBe('?tab=reports&current=20250814000987')
+    cleanup()
+    getAnalysis.mockResolvedValue({ ...analysis(false), basis: 'CUSTOM' })
+    renderPage('/analyses/14?tab=reports')
+    expect(await screen.findByText('보고서 선택 00126380')).toBeTruthy()
+    expect(new URLSearchParams(screen.getByTestId('where-search').textContent ?? '').get('previous')).toBe('20250814000987')
+  })
+
+  it('탭은 기업 개요(#589)·요약·재무 수치·문장 변화·커뮤니티·뉴스(#592)·원문·보고서 선택(#659) 여덟 개다', async () => {
     getAnalysis.mockResolvedValue(analysis(false))
     renderPage()
     const tabs = await screen.findByRole('navigation', { name: '결과 보기' })
@@ -189,6 +207,7 @@ describe('결과 머리(#550)', () => {
       '커뮤니티',
       '뉴스',
       '원문',
+      '보고서 선택',
     ])
   })
 

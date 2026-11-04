@@ -4,7 +4,7 @@ import { RouteError } from './RouteError'
 import { NotFoundPage } from './NotFoundPage'
 import { PageSuspense } from './PageSuspense'
 import { lazyPage } from './lazyPage'
-import { ResultOverviewContext } from '@/features/analysis-result/overviewSlot'
+import { ResultOverviewContext, ResultReportsContext } from '@/features/analysis-result/overviewSlot'
 
 // 화면 코드는 그 화면을 처음 열 때 받는다(첫 로딩을 줄이기 위해). 받지 못하면 RouteError가 '다시 시도'를 보여 준다.
 const SearchPage = lazyPage(() => import('@/features/company-search/SearchPage').then((m) => m.SearchPage))
@@ -28,6 +28,15 @@ const CompanyOverviewPanel = lazyPage(() =>
 const renderResultOverview = (corpCode: string) => (
   <PageSuspense>
     <CompanyOverviewPanel corpCode={corpCode} />
+  </PageSuspense>
+)
+const ReportSelectionPanel = lazyPage(() =>
+  import('@/features/report-selection/components/ReportSelectionPanel').then((m) => m.ReportSelectionPanel),
+)
+/** 분석 결과의 '보고서 선택' 탭(#659)에 기업 화면의 보고서 비교를 넣는다 */
+const renderResultReports = (corpCode: string) => (
+  <PageSuspense>
+    <ReportSelectionPanel corpCode={corpCode} />
   </PageSuspense>
 )
 const NotesPage = lazyPage(() => import('@/features/notes/NotesPage').then((m) => m.NotesPage))
@@ -84,7 +93,9 @@ export const router = createBrowserRouter([
             path: '/analyses/:analysisId',
             element: (
               <ResultOverviewContext.Provider value={renderResultOverview}>
-                <PageSuspense><AnalysisResultPage /></PageSuspense>
+                <ResultReportsContext.Provider value={renderResultReports}>
+                  <PageSuspense><AnalysisResultPage /></PageSuspense>
+                </ResultReportsContext.Provider>
               </ResultOverviewContext.Provider>
             ),
             handle: { crumb: '분석 결과' },

@@ -12,6 +12,7 @@ export const resultTabLabels: Record<ResultTab, string> = {
   community: '커뮤니티',
   news: '뉴스',
   source: '원문',
+  reports: '보고서 선택',
 }
 
 type TitleAnalysis = Pick<Analysis, 'corpName' | 'status'> & {

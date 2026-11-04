@@ -3,8 +3,8 @@
  * 입력창에 글을 쓰는 중·한글 조합 중·Ctrl/Cmd/Alt 조합·다른 대화상자가 열렸을 때는 아무것도 하지 않는다(AC4).
  */
 
-/** 분석 결과 화면의 탭 주소 값(?tab=). 1~6 키의 순서이고 결과 화면의 탭 순서와 같다(맨 앞 기업 개요 탭(#589)은 키가 없다) */
-export const shortcutResultTabs = ['summary', 'financial', 'text', 'community', 'news', 'source'] as const
+/** 분석 결과 화면의 탭 주소 값(?tab=). 1~7 키의 순서이고 결과 화면의 탭 순서와 같다(맨 앞 기업 개요 탭(#589)은 키가 없다) */
+export const shortcutResultTabs = ['summary', 'financial', 'text', 'community', 'news', 'source', 'reports'] as const
 export type ShortcutResultTab = (typeof shortcutResultTabs)[number]
 
 /** 단축키 판단에 쓰는 화면. search: 기업 검색(/), result: 분석 결과, other: 그 밖 */
@@ -73,7 +73,7 @@ export function shortcutFor(event: ShortcutKeyEvent, context: ShortcutContext): 
   if (event.key === '/') return { kind: 'focus-search' }
   if (context.page !== 'result') return null
 
-  const index = ['1', '2', '3', '4', '5', '6'].indexOf(event.key)
+  const index = ['1', '2', '3', '4', '5', '6', '7'].indexOf(event.key)
   if (index >= 0) return { kind: 'open-tab', tab: shortcutResultTabs[index] }
   if (askKeys.has(event.key)) return { kind: 'focus-ask' }
   return null
@@ -164,6 +164,7 @@ export function shortcutGroups(page: ShortcutPage): ShortcutGroup[] {
       { keys: ['4'], label: '커뮤니티 탭' },
       { keys: ['5'], label: '뉴스 탭' },
       { keys: ['6'], label: '원문 탭' },
+      { keys: ['7'], label: '보고서 선택 탭' },
       { keys: ['A'], label: 'AI 질문 입력창으로 가기' },
     ],
   }
