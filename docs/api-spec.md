@@ -3560,7 +3560,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 - backend는 `model`이 null이고 `calls`가 빈 `FINAL`이 `ANSWERED`이면서 근거 표시와 `evidenceIds`가 없으면 정해진 안내로 보고 그대로 내보냅니다(공개 응답 `aiGenerated: false`, `ai: null`, `citations` 빈 배열). 안내가 가리키는 버튼이 액션 값 확인에서 빠지면(이 분석에 없는 변경 등) 안내를 내보내지 않고 `NOT_FOUND`로 끝냅니다. LLM이 만든 답(`model`이 있음)은 지금처럼 근거 표시가 하나 이상 있어야 합니다.
 - `parameters`는 OpenAI 엄격 구조화 출력(ADR-0026)에 그대로 들어가므로 그 제약 안에서 씁니다: `type: object`이고 `properties`를 둠(빈 객체도 `properties: {}`), 지원 키워드는 문자열 `pattern`·`format`, 숫자 `minimum`·`maximum`·`exclusiveMinimum`·`exclusiveMaximum`·`multipleOf`, 배열 `minItems`·`maxItems`, `enum`, `anyOf`(최상위 제외). `allOf`·`not`·`if/then/else`는 쓰지 않습니다. 문자열 `minLength`·`maxLength`는 엄격 모드가 보장하지 않으므로 ai-server 코드 검사로만 걸립니다. 전체 10단계·속성 5,000개·enum 값 1,000개 이내(OpenAI Structured Outputs 'Supported schemas', 2026-11-03 확인). 필수가 아닌 필드는 ai-server가 null 허용으로 바꿔 보냅니다(`strict_schema`). 실제 OpenAI 호출로는 아직 확인하지 않았습니다(#577에서 Tool 목록이 생긴 뒤 확인).
 - 인자·액션 값의 형식 검사는 받은 `parameters`(JSON Schema)대로 합니다. 엄격 구조화 출력이 필수가 아닌 필드를 null로 채우므로 필수가 아닌 필드의 null은 없는 것으로 보고, 필수 필드의 null은 형식 오류입니다. 액션 값이 이 분석에 실제로 있는지는 ai-server가 보지 않고 backend가 확인합니다(없으면 그 액션을 빼고 로그).
-- `calls`: 이 단계에서 부른 LLM 기록(task `agent_plan` 다음 Tool 고르기, `agent_answer` 답 만들기). LLM을 부르지 않았으면 빈 배열이고 `model`·`generatedAt`은 null입니다.
+- `calls`: 이 단계에서 부른 LLM 기록(task `agent_plan` 다음 Tool 고르기, `agent_answer` 답 만들기). 고르기가 자료가 충분하다고 판단하면 같은 호출에서 답 초안까지 쓰고(검토는 그대로 거침), 그때는 `agent_answer` 호출이 없거나 반려된 뒤에만 있습니다([ADR-0049](adr/0049-agent-plan-writes-answer.md)). LLM을 부르지 않았으면 빈 배열이고 `model`·`generatedAt`은 null입니다.
 - `final.format`·`final.crossCheck`: 공개 API의 `format`·`crossCheck`와 같습니다.
 
 **Tool 목록** (backend `com.dartinsight.agent`에 한 곳에 둠. 모두 읽기이고 기존 서비스 메서드를 부름. 근거 ID가 '—'인 결과는 답의 근거로 쓸 수 없고 액션 값으로만 씀)
