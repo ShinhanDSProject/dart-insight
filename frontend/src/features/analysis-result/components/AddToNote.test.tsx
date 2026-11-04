@@ -48,13 +48,14 @@ afterEach(() => {
 })
 
 describe('AddToNote 메뉴에서 열기(3.31)', () => {
+  const opened = (openRequest: number, onClose: () => void) => (
+    <MemoryRouter>
+      <AddToNote target={{ kind: 'TEXT_CHANGE', changeId: 3 }} analysisId={42} label="사업의 개요" openRequest={openRequest} onClose={onClose} />
+    </MemoryRouter>
+  )
   function renderOpened(state: AuthState, onClose = vi.fn()) {
     auth.state = state
-    render(
-      <MemoryRouter>
-        <AddToNote target={{ kind: 'TEXT_CHANGE', changeId: 3 }} analysisId={42} label="사업의 개요" startOpen onClose={onClose} />
-      </MemoryRouter>,
-    )
+    render(opened(1, onClose))
     return onClose
   }
   const signedIn = { status: 'authenticated', user: { userId: 1 } } as unknown as AuthState
@@ -76,6 +77,34 @@ describe('AddToNote 메뉴에서 열기(3.31)', () => {
   it('로그인 상태를 아직 모르면 눌리지 않는 버튼을 둔다', () => {
     renderOpened({ status: 'loading' })
     expect((screen.getByRole('button', { name: /노트에 담기/ }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('로그인 상태를 모를 때 고른 요청은 확인이 끝나면 다시 누르지 않아도 열린다', () => {
+    auth.state = { status: 'loading' }
+    const { rerender } = render(opened(1, vi.fn()))
+    auth.state = signedIn
+    rerender(opened(1, vi.fn()))
+    expect(screen.getByLabelText(/메모/)).toBeTruthy()
+  })
+
+  it('저장한 뒤에는 안내만 보이고 버튼이 다시 나오지 않으며, 메뉴에서 또 고르면 메모 칸이 열린다', async () => {
+    api.createNote.mockResolvedValue(noteItem())
+    auth.state = signedIn
+    const { rerender } = render(opened(1, vi.fn()))
+    fireEvent.click(screen.getByRole('button', { name: '노트에 저장' }))
+    expect(await screen.findByRole('link', { name: '내 판단 노트 보기' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /노트에 담기/ })).toBeNull()
+    rerender(opened(2, vi.fn()))
+    expect(screen.getByLabelText(/메모/)).toBeTruthy()
+    expect(screen.queryByRole('link', { name: '내 판단 노트 보기' })).toBeNull()
+  })
+
+  it('메모를 쓰는 중에 메뉴에서 또 골라도 쓴 내용이 남는다', () => {
+    auth.state = signedIn
+    const { rerender } = render(opened(1, vi.fn()))
+    fireEvent.change(screen.getByLabelText(/메모/), { target: { value: '다시 볼 것' } })
+    rerender(opened(2, vi.fn()))
+    expect((screen.getByLabelText(/메모/) as HTMLTextAreaElement).value).toBe('다시 볼 것')
   })
 })
 
