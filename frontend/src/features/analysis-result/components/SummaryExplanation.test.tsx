@@ -99,6 +99,12 @@ describe('SummaryExplanation', () => {
     expect(screen.queryByText('공시 원문 인용')).toBeNull()
   })
 
+  it("줄에서 '확인된 설명 없음'을 이미 보였으면(showText=false) 더 보기에는 줄에 없는 사유만 보인다", () => {
+    render(<SummaryExplanation item={financial({})} analysis={analysis} onOpenSource={vi.fn()} showText={false} />)
+    expect(screen.getByText('공시에서 이 변화의 이유를 적은 문단을 찾지 못했어요.')).toBeTruthy()
+    expect(screen.queryByText(/확인된 설명 없음/)).toBeNull()
+  })
+
   it("검토 필요는 등급·인용 없이 '검토 필요'로 보인다", () => {
     draw(financial({ explanationStatus: 'REVIEW_NEEDED', explanationGrade: null }))
 

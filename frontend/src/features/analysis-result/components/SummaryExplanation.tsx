@@ -10,7 +10,7 @@ interface SummaryExplanationProps {
   item: SummaryItem
   analysis: Analysis
   onOpenSource: (target: SourceTarget) => void
-  /** AI 문장과 '설명 없음' 안내를 줄에서 이미 보였으면 false(#560) */
+  /** AI 문장과 '설명 없음' 안내를 줄에서 이미 보였으면 false(#560). 그때 안내는 줄에 없는 사유만 보인다 */
   showText?: boolean
 }
 
@@ -20,7 +20,9 @@ interface SummaryExplanationProps {
  * 검증에 실패한 설명(TEMPLATE, #149)은 AI 문장 없이 코드가 확인한 인용만 '회사 설명'으로 보인다('AI 생성' 아님).
  */
 export function SummaryExplanation({ item, analysis, onOpenSource, showText = true }: SummaryExplanationProps) {
-  const missing = showText && item.kind === 'FINANCIAL' ? explanationNote(item.explanationStatus, item.gradeReason) : null
+  const missingNote = item.kind === 'FINANCIAL' ? explanationNote(item.explanationStatus, item.gradeReason) : null
+  // 줄에서 '확인된 설명 없음'처럼 앞부분을 이미 보였으면(showText=false) 여기서는 그 뒤의 사유만 보인다
+  const missing = showText ? missingNote : (missingNote?.split(' · ').slice(1).join(' · ') || null)
   const grade = item.kind === 'FINANCIAL' ? gradeLabel(item.explanationGrade) : null
   const note = item.kind === 'FINANCIAL' ? gradeNote(item.explanationGrade) : null
   return (
