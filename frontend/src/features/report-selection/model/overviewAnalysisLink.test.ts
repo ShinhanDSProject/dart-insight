@@ -65,19 +65,19 @@ describe('overviewAnalysisLink - checkpointAnalysisLink', () => {
       label: '현금흐름 수치 변화 보기',
     })
     expect(checkpointAnalysisLink(42, 'RECEIVABLES')).toEqual({
-      to: `/analyses/42?tab=financial&sj=BS&q=${encodeURIComponent('매출채권')}`,
+      to: `/analyses/42?tab=financial&sj=BS&fq=${encodeURIComponent('매출채권')}`,
       label: '매출채권 수치 변화 보기',
     })
     expect(checkpointAnalysisLink(42, 'INVENTORIES')).toEqual({
-      to: `/analyses/42?tab=financial&sj=BS&q=${encodeURIComponent('재고자산')}`,
+      to: `/analyses/42?tab=financial&sj=BS&fq=${encodeURIComponent('재고자산')}`,
       label: '재고자산 수치 변화 보기',
     })
     expect(checkpointAnalysisLink(42, 'DEBT_RATIO')).toEqual({
-      to: `/analyses/42?tab=financial&sj=BS&q=${encodeURIComponent('부채')}`,
+      to: `/analyses/42?tab=financial&sj=BS&fq=${encodeURIComponent('부채')}`,
       label: '부채·자본 수치 변화 보기',
     })
     expect(checkpointAnalysisLink(42, 'SHORT_TERM_BORROWINGS')).toEqual({
-      to: `/analyses/42?tab=financial&sj=BS&q=${encodeURIComponent('차입금')}`,
+      to: `/analyses/42?tab=financial&sj=BS&fq=${encodeURIComponent('차입금')}`,
       label: '차입금 수치 변화 보기',
     })
     expect(checkpointAnalysisLink(42, 'FUNDING_DISCLOSURES')).toEqual({
@@ -94,7 +94,7 @@ describe('overviewAnalysisLink - checkpointAnalysisLink', () => {
 describe('overviewAnalysisLink - checkpointCardAction', () => {
   it('완료 분석이 있으면 항목별 딥링크를 돌려준다', () => {
     const action = checkpointCardAction('00126380', 'PREV', 'CUR', 42, 'RECEIVABLES', 'OK')
-    expect(action?.to).toContain('/analyses/42?tab=financial&sj=BS&q=')
+    expect(action?.to).toContain('/analyses/42?tab=financial&sj=BS&fq=')
     expect(action?.label).toBe('매출채권 수치 변화 보기')
   })
 
