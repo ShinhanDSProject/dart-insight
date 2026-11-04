@@ -297,6 +297,19 @@ describe('buildAnalysisBriefMarkdown', () => {
     expect(md).toContain('출처: DART (금융감독원 전자공시시스템)')
   })
 
+  it('원화가 아닌 통화로 결산한 계정은 금액에 원 대신 통화 코드를 붙인다', () => {
+    const usd = { ...mockFinancialItem, currency: 'USD' }
+    const md = buildAnalysisBriefMarkdown({
+      analysis: mockAnalysis,
+      summary: mockSummary,
+      financialGroups: [{ sjDiv: 'IS', label: '손익계산서', comparable: true, note: null, items: [usd] }],
+      riskTextChanges: [],
+    })
+    expect(md).toContain('10,000,000,000,000 USD')
+    expect(md).toContain('▲ +1,200,000,000,000 USD')
+    expect(md).not.toContain('10,000,000,000,000원')
+  })
+
   it('투자 권유나 종목 추천 등 가치판단 표현이 포함되지 않는다', () => {
     const md = buildAnalysisBriefMarkdown({
       analysis: mockAnalysis,

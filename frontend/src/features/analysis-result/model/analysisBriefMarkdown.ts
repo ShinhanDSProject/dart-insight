@@ -28,16 +28,21 @@ export interface AnalysisBriefInput {
 
 const wonFormat = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 })
 
-function formatAmountWon(value: number | null): string {
-  if (value === null) return '-'
-  return `${wonFormat.format(value)}원`
+/** 금액 뒤에 붙일 통화. 원화가 아니면(외화로 결산하는 회사) 통화 코드를 붙인다 */
+function currencySuffix(currency: string | null): string {
+  return currency && currency !== 'KRW' ? ` ${currency}` : '원'
 }
 
-function formatChangeWon(value: number | null): string {
+function formatAmount(value: number | null, currency: string | null): string {
   if (value === null) return '-'
-  if (value === 0) return '0원'
+  return `${wonFormat.format(value)}${currencySuffix(currency)}`
+}
+
+function formatChange(value: number | null, currency: string | null): string {
+  if (value === null) return '-'
+  if (value === 0) return `0${currencySuffix(currency)}`
   const prefix = value > 0 ? '▲ +' : '▼ −'
-  return `${prefix}${wonFormat.format(Math.abs(value))}원`
+  return `${prefix}${wonFormat.format(Math.abs(value))}${currencySuffix(currency)}`
 }
 
 function markdownTableCell(value: string): string {
@@ -187,9 +192,9 @@ function buildFinancialSection(groups: FinancialBriefGroup[]): string {
 
     for (const item of topItems) {
       const name = markdownTableCell(accountLabel(item))
-      const prev = markdownTableCell(formatAmountWon(item.previousAmount))
-      const curr = markdownTableCell(formatAmountWon(item.currentAmount))
-      const change = markdownTableCell(formatChangeWon(item.changeAmount))
+      const prev = markdownTableCell(formatAmount(item.previousAmount, item.currency))
+      const curr = markdownTableCell(formatAmount(item.currentAmount, item.currency))
+      const change = markdownTableCell(formatChange(item.changeAmount, item.currency))
       const rateStr =
         item.calcStatus === 'OK' && item.changeRate !== null
           ? (formatRate(item.changeRate) ?? '-')
