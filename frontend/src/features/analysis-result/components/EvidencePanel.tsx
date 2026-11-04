@@ -135,7 +135,8 @@ function EvidenceBody({
     })
     .otherwise(() => null)
 
-  const hasSummaryExplanation = Boolean(summaryItem && summaryItem.aiText)
+  // 검증에 실패한 설명(TEMPLATE)은 AI 문장 없이 코드가 확인한 인용을 보인다. 요약 탭과 같은 내용이 보이도록 함께 연다
+  const hasSummaryExplanation = Boolean(summaryItem && (summaryItem.aiText || summaryItem.explanationStatus === 'TEMPLATE'))
   const hasRelatedTexts = detail.relatedTextChanges && detail.relatedTextChanges.length > 0
 
   const statementLabel = statementLabels[detail.sjDiv] ?? detail.sjDiv
