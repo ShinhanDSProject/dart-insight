@@ -34,7 +34,7 @@ FAVORITE_ANSWER = "아래 버튼을 누르면 관심 기업에 추가해요."
 NOTE_ANSWER = "아래 버튼을 누르면 노트에 담아요."
 
 _TRAILING = re.compile(r"[.?!。]+$")
-_OPEN = re.compile(r"^(?P<name>.+?)(?:탭|항목)?(?:열어|보여)(?:줘|주세요|줄래)$")
+_OPEN = re.compile(r"^(?P<name>.+?)(?P<kind>탭|항목|목차)?(?P<verb>열어|보여)(?:줘|주세요|줄래)$")
 _FAVORITE = re.compile(
     r"^(?:이기업|이회사)?관심기업(?:에|으로)?(?:추가해|등록해|넣어)(?:줘|주세요)$"
 )
@@ -65,6 +65,10 @@ def match_rule(step: StepInput) -> FinalAnswer | ToolCall | None:
     if tab is not None:
         answer = OPEN_TAB_ANSWER.format(TAB_LABELS[tab])
         return _final(step, answer, {"type": "OPEN_TAB", "tab": tab})
+    # 목차 이름은 '열어줘'나 '항목·목차 보여줘'일 때만 본다.
+    # '최대주주 보여줘' 같은 정보 조회는 목차를 받지 않는다
+    if opened.group("verb") == "보여" and opened.group("kind") not in ("항목", "목차"):
+        return None
     if any(word in name for word in NOT_SECTION_WORDS):
         return None
     return _open_section(step, name)
@@ -86,7 +90,8 @@ def _open_section(step: StepInput, name: str) -> FinalAnswer | ToolCall | None:
         if tool is None or step.remaining_steps <= 0 or schema_problem(arguments, tool.parameters):
             return None
         return ToolCall(f"c{len(step.tool_results) + 1}", OUTLINE_TOOL, arguments)
-    if not outline.ok:
+    # 잘린 목차에서는 같은 제목이 하나만 보일 수 있어 하나뿐이라고 정하지 않는다
+    if not outline.ok or outline.truncated:
         return None
     matches = [
         (int(no), title.strip())

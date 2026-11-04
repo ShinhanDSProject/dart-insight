@@ -144,6 +144,30 @@ def test_section_request_opens_the_only_matching_section_after_outline() -> None
     assert sub.actions[0]["sectionNo"] == 12
 
 
+def test_truncated_outline_does_not_open_a_section() -> None:
+    truncated = ToolResult(
+        "c1",
+        "get_document_outline",
+        {"side": "current"},
+        True,
+        truncated=True,
+        items=OUTLINE_RESULT.items,
+    )
+
+    assert match_rule(step("사업의 내용 열어줘", results=[truncated])) is None
+
+
+def test_show_request_for_information_does_not_fetch_outline() -> None:
+    assert match_rule(step("최대주주 보여줘")) is None
+    assert match_rule(step("주요 제품 및 서비스 항목 보여줘")) == ToolCall(
+        "c1", "get_document_outline", {"side": "current"}
+    )
+    # 탭은 '보여줘'도 연다
+    tab = match_rule(step("문장 변화 보여줘"))
+    assert isinstance(tab, FinalAnswer)
+    assert tab.actions == [{"type": "OPEN_TAB", "tab": "text"}]
+
+
 def test_section_title_matching_two_sections_or_none_goes_to_llm() -> None:
     # '회사의 개요'는 최상위(2)와 하위(3) 두 항목에 있다
     assert match_rule(step("회사의 개요 열어줘", results=[OUTLINE_RESULT])) is None
