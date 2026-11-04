@@ -10,7 +10,11 @@ import com.dartinsight.agent.domain.ToolArgs;
 import com.dartinsight.agent.domain.ToolLine;
 import com.dartinsight.agent.service.AgentTools.Output;
 import com.dartinsight.agent.service.AgentTools.Tool;
+import com.dartinsight.agent.domain.AgentActions;
+import com.dartinsight.agent.domain.ComparabilityCheck;
 import com.dartinsight.analysis.domain.Analysis;
+import com.dartinsight.analysis.domain.CompletedAnalysis;
+import com.dartinsight.analysis.service.CompanyAnalysisService;
 import com.dartinsight.analysis.service.AnalysisResultService;
 import com.dartinsight.briefing.dto.CompanyBriefingResponse;
 import com.dartinsight.briefing.service.BriefingService;
@@ -41,7 +45,11 @@ import com.dartinsight.keyfact.service.KeyFactService;
 import com.dartinsight.outlook.domain.OutlookItem;
 import com.dartinsight.outlook.dto.CompanyOutlookResponse;
 import com.dartinsight.outlook.service.OutlookService;
+import com.dartinsight.comparison.domain.ComparisonBasis;
+import com.dartinsight.comparison.service.ComparabilityService;
+import com.dartinsight.comparison.service.ReportPairService;
 import com.dartinsight.report.domain.DartLinks;
+import com.dartinsight.report.domain.Report;
 import com.dartinsight.summary.domain.FinancialFacts;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -72,6 +80,13 @@ class AgentCompanyTools {
     static final String GET_COMPANY_BRIEFING = "get_company_briefing";
     static final String GET_OUTLOOK = "get_outlook";
     static final String GET_PLAN_FOLLOWUPS = "get_plan_followups";
+    static final String FIND_ANALYSES = "find_analyses";
+    static final String GET_REPORT_PAIRS = "get_report_pairs";
+    static final String CHECK_COMPARABILITY = "check_comparability";
+    /** 완료된 분석 목록 수(기업 화면 기본값과 같음) */
+    static final int ANALYSES_LIMIT = 5;
+    /** 보고서 쌍을 고를 수 있는 비교 기준(직접 선택 CUSTOM은 화면에서 고름) */
+    private static final List<String> PAIR_BASES = List.of("YOY", "PREV");
 
     static final String FINANCIAL_TREND = "FINANCIAL_TREND";
     static final String KEY_FACT = "KEY_FACT";
@@ -101,6 +116,9 @@ class AgentCompanyTools {
     private final BriefingService briefingService;
     private final OutlookService outlookService;
     private final PlanFollowupService followupService;
+    private final CompanyAnalysisService companyAnalysisService;
+    private final ReportPairService reportPairService;
+    private final ComparabilityService comparabilityService;
 
     List<Tool> all() {
         Map<String, Object> corpOnly = object(properties(CORP, corpSchema()), List.of());
@@ -130,7 +148,18 @@ class AgentCompanyTools {
                 new Tool(GET_OUTLOOK, "최근 사업보고서에서 회사가 밝힌 전망·계획(원문 인용 포함). 저장된 것이 없으면 새로 만든다",
                         corpOnly, 0, (a, args) -> Output.of(outlook(a, args))),
                 new Tool(GET_PLAN_FOLLOWUPS, "작년 사업보고서의 계획과 올해 사업보고서의 관련 문단 대조. 저장된 것이 없으면 새로 "
-                        + "만든다", corpOnly, VALUE_ITEMS, (a, args) -> Output.of(planFollowups(a, args))));
+                        + "만든다", corpOnly, VALUE_ITEMS, (a, args) -> Output.of(planFollowups(a, args))),
+                new Tool(FIND_ANALYSES, "이 기업의 완료된 분석(최근 " + ANALYSES_LIMIT + "개)과 그 보고서 쌍. 같은 보고서 쌍의 "
+                        + "끝난 분석이 있으면 OPEN_ANALYSIS로 연다", corpOnly, 0, (a, args) -> Output.of(analyses(a, args))),
+                new Tool(GET_REPORT_PAIRS, "비교 기준(YOY 전년 동기, PREV 직전 기간)에 맞는 최근 보고서와 이전 보고서",
+                        object(properties(CORP, corpSchema(), "basis", oneOf("비교 기준", PAIR_BASES)),
+                                List.of("basis")), 0, (a, args) -> Output.of(reportPair(a, args))),
+                new Tool(CHECK_COMPARABILITY, "두 보고서를 비교할 수 있는지와 그 이유. 비교할 수 있을 때만 "
+                        + "CONFIRM_REQUEST_ANALYSIS(분석 요청 확인 버튼)를 돌려줄 수 있다", object(properties(CORP,
+                        corpSchema(), "previousRceptNo", string("이전 보고서 접수번호(14자리)"),
+                        "currentRceptNo", string("현재 보고서 접수번호(14자리)"), "basis", oneOf("비교 기준",
+                        AgentActions.BASES)), List.of("previousRceptNo", "currentRceptNo", "basis")), 0,
+                        this::comparability));
     }
 
     private static Map<String, Object> corpSchema() {
@@ -376,6 +405,75 @@ class AgentCompanyTools {
     private static ToolLine blockLine(Analysis analysis, OutlookItem.Evidence e, String quote, String text) {
         return new ToolLine(e == null ? null : Evidence.block(e.evidenceId(), side(analysis, e.rceptNo()), e.rceptNo(),
                 e.sectionNo(), e.blockNo(), e.sectionPath(), quote), text);
+    }
+
+    /** 완료된 분석마다 한 줄. 근거는 그 분석의 현재 보고서(D{접수번호}) */
+    private List<ToolLine> analyses(Long analysisId, ToolArgs args) {
+        List<CompletedAnalysis> found = companyAnalysisService.recentCompleted(corpCode(analysisId, args),
+                ANALYSES_LIMIT);
+        if (found.isEmpty()) {
+            return List.of(new ToolLine(null, "이 기업의 완료된 분석이 없어요."));
+        }
+        return found.stream().map(c -> new ToolLine(reportEvidence(c.current()), "[완료된 분석 analysisId "
+                + c.analysis().getId() + ", 기준 " + c.analysis().getBasis() + "] " + reportText(c.previous())
+                + " → " + reportText(c.current()) + ", 완료 " + c.analysis().getCompletedAt())).toList();
+    }
+
+    private List<ToolLine> reportPair(Long analysisId, ToolArgs args) {
+        String basis = args.requiredChoice("basis", PAIR_BASES);
+        ReportPairService.ReportPair pair = reportPairService.findPair(corpCode(analysisId, args),
+                ComparisonBasis.valueOf(basis), null);
+        List<ToolLine> lines = new ArrayList<>();
+        if (pair.current() != null) {
+            lines.add(new ToolLine(reportEvidence(pair.current()), "[보고서 쌍 " + basis + ", 현재] "
+                    + reportText(pair.current())));
+        }
+        if (pair.previous() != null) {
+            lines.add(new ToolLine(reportEvidence(pair.previous()), "[보고서 쌍 " + basis + ", 이전] "
+                    + reportText(pair.previous())));
+        }
+        if (pair.reason() != null) {
+            lines.add(new ToolLine(null, "[보고서 쌍 " + basis + "] 고르지 못함: " + pair.reason().message()));
+        }
+        return lines;
+    }
+
+    /** 비교 가능성 검증. 결과(네 값과 comparable)를 함께 넘겨 분석 요청 확인 액션을 이 결과로만 허용한다 */
+    private Output comparability(Long analysisId, ToolArgs args) {
+        String corpCode = corpCode(analysisId, args);
+        String previous = rceptNo(args, "previousRceptNo");
+        String current = rceptNo(args, "currentRceptNo");
+        String basis = args.requiredChoice("basis", AgentActions.BASES);
+        ComparabilityService.ComparabilityResult result = comparabilityService.check(corpCode, current, previous,
+                ComparisonBasis.valueOf(basis));
+        String head = result.comparable()
+                ? "[비교 가능성] 비교할 수 있음(" + result.level() + ", " + result.fsDiv() + ")"
+                : "[비교 가능성] 비교할 수 없음: " + result.reasons().stream()
+                        .map(ComparabilityService.Reason::message).toList();
+        List<ToolLine> lines = List.of(
+                new ToolLine(reportEvidence(result.current()), head + " 현재 " + reportText(result.current())),
+                new ToolLine(reportEvidence(result.previous()), "[비교 가능성] 이전 " + reportText(result.previous())));
+        return new Output(lines, null, new ComparabilityCheck(corpCode, previous, current, basis,
+                result.comparable()));
+    }
+
+    private static String rceptNo(ToolArgs args, String name) {
+        String value = args.string(name);
+        if (value == null || !RCEPT_NO.matcher(value).matches()) {
+            throw new IllegalArgumentException(name + "는 14자리 접수번호여야 합니다.");
+        }
+        return value;
+    }
+
+    /** 정기보고서 근거(D{접수번호}, ADR-0048의 공시 근거) */
+    private static Evidence reportEvidence(Report report) {
+        String rceptDt = report.getRceptDt() == null ? null : report.getRceptDt().toString();
+        return Evidence.disclosure(report.getRceptNo(), report.getReportName(), rceptDt,
+                DartLinks.viewer(report.getRceptNo()));
+    }
+
+    private static String reportText(Report report) {
+        return report.getReportName() + "(접수번호 " + report.getRceptNo() + ")";
     }
 
     /** 이 분석의 두 보고서 중 하나면 그 쪽(원문 확인 탭에서 열 수 있음), 아니면 null */

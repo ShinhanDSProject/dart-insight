@@ -1,5 +1,6 @@
 package com.dartinsight.agent.domain;
 
+import static com.dartinsight.agent.domain.Schemas.array;
 import static com.dartinsight.agent.domain.Schemas.bool;
 import static com.dartinsight.agent.domain.Schemas.integer;
 import static com.dartinsight.agent.domain.Schemas.object;
@@ -26,6 +27,18 @@ public final class AgentActions {
     /** 확인 버튼(쓰기). 누르면 화면이 기존 API를 부른다. 채팅 API는 저장하지 않는다(ADR-0044) */
     public static final String CONFIRM_SAVE_NOTE = "CONFIRM_SAVE_NOTE";
     public static final String CONFIRM_FAVORITE = "CONFIRM_FAVORITE";
+    /** 분석 찾기·요청과 기록·커뮤니티 액션(#583) */
+    public static final String PIN_CHANGE = "PIN_CHANGE";
+    public static final String OPEN_POST_DRAFT = "OPEN_POST_DRAFT";
+    public static final String OPEN_ANALYSIS = "OPEN_ANALYSIS";
+    public static final String OPEN_COMPANY_COMPARE = "OPEN_COMPANY_COMPARE";
+    public static final String CONFIRM_REQUEST_ANALYSIS = "CONFIRM_REQUEST_ANALYSIS";
+    /** 비교 기준(POST /api/analyses의 basis) */
+    public static final List<String> BASES = List.of("YOY", "PREV", "CUSTOM");
+    /** 게시판 글 인용 종류(POST /api/companies/{corpCode}/posts의 quote.kind) */
+    public static final List<String> QUOTE_KINDS = List.of("FINANCIAL_CHANGE", "TEXT_CHANGE");
+    /** 게시판 글 본문 최대 길이(POST /api/companies/{corpCode}/posts) */
+    public static final int MAX_POST_BODY = 2000;
 
     /** 노트 항목 종류(POST /api/notes의 kind) */
     public static final List<String> NOTE_KINDS = List.of("FINANCIAL_CHANGE", "TEXT_CHANGE", "ANSWER_CITATION");
@@ -38,9 +51,13 @@ public final class AgentActions {
 
     private static final Map<String, String> TAB_LABELS = Map.of("summary", "요약에서 보기", "financial",
             "재무 수치에서 보기", "text", "문장 변화에서 보기", "source", "원문에서 보기");
-    private static final Map<String, String> LABELS = Map.of(OPEN_TEXT_CHANGE, "이 변경 보기",
-            OPEN_FINANCIAL_CHANGE, "수치 근거 보기", OPEN_DOCUMENT, "원문 열기", OPEN_GLOSSARY, "용어 사전 열기",
-            DOWNLOAD_BRIEF, "비교 브리프 내려받기", CONFIRM_SAVE_NOTE, "노트에 담기", CONFIRM_FAVORITE, "관심 기업에 추가");
+    private static final Map<String, String> LABELS = Map.ofEntries(Map.entry(OPEN_TEXT_CHANGE, "이 변경 보기"),
+            Map.entry(OPEN_FINANCIAL_CHANGE, "수치 근거 보기"), Map.entry(OPEN_DOCUMENT, "원문 열기"),
+            Map.entry(OPEN_GLOSSARY, "용어 사전 열기"), Map.entry(DOWNLOAD_BRIEF, "비교 브리프 내려받기"),
+            Map.entry(CONFIRM_SAVE_NOTE, "노트에 담기"), Map.entry(CONFIRM_FAVORITE, "관심 기업에 추가"),
+            Map.entry(PIN_CHANGE, "이 변경 고정"), Map.entry(OPEN_POST_DRAFT, "게시판 글 초안 열기"),
+            Map.entry(OPEN_ANALYSIS, "이 분석 열기"), Map.entry(OPEN_COMPANY_COMPARE, "기업 나란히 보기"),
+            Map.entry(CONFIRM_REQUEST_ANALYSIS, "이 비교로 분석 요청"));
 
     /** 종류 → type을 뺀 필드의 스키마(ai-server에 보내는 순서) */
     public static final Map<String, Map<String, Object>> SPECS = specs();
@@ -78,6 +95,21 @@ public final class AgentActions {
                 "memo", string("사용자가 남기라고 한 메모(1,000자 이하)")), List.of("kind"))), List.of("note")));
         // 관심 기업은 이 분석의 기업만. 고유번호는 backend가 채운다(ai-server 요청에 고유번호가 없음)
         specs.put(CONFIRM_FAVORITE, object(properties(), List.of()));
+        specs.put(PIN_CHANGE, object(properties("changeId", integer("고정할 문장 변경 ID")), List.of("changeId")));
+        // 기업·본문·분석 ID는 backend가 채운다(본문은 검토를 통과한 최종 답)
+        specs.put(OPEN_POST_DRAFT, object(properties("quote", object(properties(
+                "kind", oneOf("붙일 변경점 종류", QUOTE_KINDS),
+                "changeId", integer("이 분석의 재무 계정 변화 또는 문장 변경 ID")), List.of("kind", "changeId"))),
+                List.of()));
+        specs.put(OPEN_ANALYSIS, object(properties("analysisId", integer("완료된 분석 ID(find_analyses 결과)")),
+                List.of("analysisId")));
+        specs.put(OPEN_COMPANY_COMPARE, object(properties("corpCodes", array("나란히 볼 기업 고유번호(2개 이상)",
+                string("기업 고유번호"))), List.of("corpCodes")));
+        specs.put(CONFIRM_REQUEST_ANALYSIS, object(properties(
+                "corpCode", string("기업 고유번호"),
+                "previousRceptNo", string("이전 보고서 접수번호"),
+                "currentRceptNo", string("현재 보고서 접수번호"),
+                "basis", oneOf("비교 기준", BASES)), List.of("corpCode", "previousRceptNo", "currentRceptNo", "basis")));
         return specs;
     }
 
@@ -89,6 +121,18 @@ public final class AgentActions {
     public static boolean hasConfirm(List<Map<String, Object>> actions) {
         return actions.stream().map(a -> a.get("type"))
                 .anyMatch(t -> CONFIRM_SAVE_NOTE.equals(t) || CONFIRM_FAVORITE.equals(t));
+    }
+
+    /** 게시판 글 초안 액션에 본문을 채운 목록(나머지 액션은 그대로) */
+    public static List<Map<String, Object>> withPostBody(List<Map<String, Object>> actions, String body) {
+        return actions.stream().map(action -> {
+            if (!OPEN_POST_DRAFT.equals(action.get("type"))) {
+                return action;
+            }
+            Map<String, Object> out = new LinkedHashMap<>(action);
+            out.put("body", body);
+            return out;
+        }).toList();
     }
 
     /** 화면에 보낼 액션: type, label, 그 밖의 필드(받은 순서) */

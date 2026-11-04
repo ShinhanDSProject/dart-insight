@@ -1,6 +1,7 @@
 package com.dartinsight.agent.controller;
 
 import static com.dartinsight.dart.client.DisclosureListJson.item;
+import static com.dartinsight.dart.client.FinancialJson.account;
 import static com.dartinsight.dart.client.DisclosureListJson.page;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.startsWith;
@@ -20,6 +21,7 @@ import com.dartinsight.company.repository.CompanyRepository;
 import com.dartinsight.company.service.CompanyImportService;
 import com.dartinsight.comparison.domain.ComparisonBasis;
 import com.dartinsight.dart.client.FakeOpenDartServer;
+import com.dartinsight.dart.client.FinancialJson;
 import com.dartinsight.dart.client.FakeOpenDartServer.Response;
 import com.dartinsight.dart.domain.CorpCodeEntry;
 import com.dartinsight.financial.domain.FsDiv;
@@ -169,12 +171,16 @@ class AgentCompanyToolsApiTest {
     }
 
     private static String finalAnswer(String answer, String evidenceIds) {
+        return finalAnswer(answer, evidenceIds, "");
+    }
+
+    private static String finalAnswer(String answer, String evidenceIds, String actions) {
         return """
                 {"promptVersion":"agent-2","model":"fake-model","generatedAt":"2026-11-04T10:12:03","type":"FINAL",
-                 "toolCalls":[],"final":{"status":"ANSWERED","answer":"%s","evidenceIds":[%s],"actions":[],
+                 "toolCalls":[],"final":{"status":"ANSWERED","answer":"%s","evidenceIds":[%s],"actions":[%s],
                  "reviewReason":null,"blockedRules":[],"format":"CHAT","crossCheck":null},
                  "rejections":[],"calls":[%s]}
-                """.formatted(answer, evidenceIds, CALL.formatted("agent_answer"));
+                """.formatted(answer, evidenceIds, actions, CALL.formatted("agent_answer"));
     }
 
     /** 첫 단계는 Tool 호출, Tool 결과가 붙은 다음 단계는 then이 만든 답 */
@@ -337,6 +343,74 @@ class AgentCompanyToolsApiTest {
                 .andExpect(jsonPath("$.citations[0].quote").value(FACILITY))
                 // 이 분석의 두 보고서가 아닌 원문이라 원문 확인 탭의 쪽(side)이 없다
                 .andExpect(jsonPath("$.citations[0].side").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("같은 보고서 쌍의 끝난 분석이 있으면 분석 목록을 보고서 근거(D{접수번호})로 넘기고, 완료된 분석만 열기 액션으로 남긴다(AC18)")
+    void existingAnalysisOpensWithOpenAnalysis() throws Exception {
+        String evidence = "D" + CUR;
+        AI.on(STEPS, twoSteps(call("find_analyses", "{}"), request -> finalAnswer(
+                "이미 끝난 전년 동기 비교 분석이 있어요[" + evidence + "].", "\"" + evidence + "\"",
+                "{\"type\":\"OPEN_ANALYSIS\",\"analysisId\":" + analysisId + "},"
+                        + "{\"type\":\"OPEN_ANALYSIS\",\"analysisId\":999999}")));
+
+        ResultActions result = chat("작년 반기와 비교한 분석 있어?");
+        String sent = AI.requests(STEPS).get(1).bodyText();
+        assertThat(JsonPath.<List<String>>read(sent, "$.toolResults[0].items[*].text")).first().asString()
+                .contains("analysisId " + analysisId, PREV, CUR);
+        result.andExpect(jsonPath("$.status").value("ANSWERED"))
+                .andExpect(jsonPath("$.citations[0].kind").value("DISCLOSURE"))
+                .andExpect(jsonPath("$.citations[0].rceptNo").value(CUR))
+                .andExpect(jsonPath("$.citations[0].reportName").value("반기보고서 (2026.06)"))
+                .andExpect(jsonPath("$.actions", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.actions[0].type").value("OPEN_ANALYSIS"))
+                .andExpect(jsonPath("$.actions[0].analysisId").value(analysisId))
+                .andExpect(jsonPath("$.actions[0].label").value("이 분석 열기"));
+    }
+
+    @Test
+    @DisplayName("이 채팅에서 같은 네 값으로 비교할 수 있다고 나왔을 때만 분석 요청 확인 버튼을 남기고, 값이 다르거나 검증하지 않았으면 뺀다(AC18)")
+    void requestAnalysisNeedsComparableCheckInThisChat() throws Exception {
+        DART.on("/api/fnlttSinglAcntAll.json", statement(CUR), statement(PREV));
+        String request = "{\"type\":\"CONFIRM_REQUEST_ANALYSIS\",\"corpCode\":\"" + CORP
+                + "\",\"previousRceptNo\":\"" + PREV + "\",\"currentRceptNo\":\"" + CUR + "\",\"basis\":\"%s\"}";
+        AI.on(STEPS, twoSteps(call("check_comparability", "{\"previousRceptNo\":\"" + PREV
+                + "\",\"currentRceptNo\":\"" + CUR + "\",\"basis\":\"YOY\"}"), r -> finalAnswer(
+                "두 보고서는 비교할 수 있어요[D" + CUR + "].", "\"D" + CUR + "\"",
+                request.formatted("YOY") + "," + request.formatted("PREV"))));
+
+        ResultActions result = chat("작년 반기랑 비교 분석해줘");
+        assertThat(JsonPath.<List<String>>read(AI.requests(STEPS).get(1).bodyText(), "$.toolResults[0].items[*].text"))
+                .first().asString().contains("비교할 수 있음");
+        result.andExpect(jsonPath("$.status").value("ANSWERED"))
+                .andExpect(jsonPath("$.actions", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.actions[0].type").value("CONFIRM_REQUEST_ANALYSIS"))
+                .andExpect(jsonPath("$.actions[0].basis").value("YOY"))
+                .andExpect(jsonPath("$.actions[0].label").value("이 비교로 분석 요청"));
+
+        AI.clear();
+        AI.on(STEPS, twoSteps(call("find_analyses", "{}"), r -> finalAnswer("분석이 있어요[D" + CUR + "].",
+                "\"D" + CUR + "\"", request.formatted("YOY"))));
+        chat("작년 반기랑 비교 분석해줘").andExpect(jsonPath("$.actions", org.hamcrest.Matchers.hasSize(0)));
+    }
+
+    @Test
+    @DisplayName("기업 나란히 보기는 기업 목록에 있는 고유번호만 겹치지 않게 남기고, 2곳 미만이면 뺀다(AC27)")
+    void companyCompareKeepsKnownCompaniesOnly() throws Exception {
+        AI.on(STEPS, twoSteps(call("search_companies", "{\"query\":\"예시전자\"}"), r -> finalAnswer(
+                "예시전자와 예시전자서비스를 나란히 볼 수 있어요[C" + CORP + "].", "\"C" + CORP + "\"",
+                "{\"type\":\"OPEN_COMPANY_COMPARE\",\"corpCodes\":[\"" + CORP + "\",\"00000002\",\"99999999\",\""
+                        + CORP + "\"]},{\"type\":\"OPEN_COMPANY_COMPARE\",\"corpCodes\":[\"" + CORP
+                        + "\",\"99999999\"]}")));
+
+        chat("예시전자랑 예시전자서비스 비교해줘")
+                .andExpect(jsonPath("$.actions", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.actions[0].type").value("OPEN_COMPANY_COMPARE"))
+                .andExpect(jsonPath("$.actions[0].corpCodes", org.hamcrest.Matchers.contains(CORP, "00000002")));
+    }
+
+    private static Response statement(String rceptNo) {
+        return Response.json(FinancialJson.ok(account(rceptNo, "BS", "ifrs-full_Assets", "자산총계", 1, "5000")));
     }
 
     /** '사업의 내용' 아래 생산설비 목차와 '이사의 경영진단' 대목차가 있는 구조화 결과(OutlookApiTest와 같음) */
