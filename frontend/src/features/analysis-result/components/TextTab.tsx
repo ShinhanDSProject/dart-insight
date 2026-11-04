@@ -1,8 +1,9 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { match, P } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { TextChangeItem, TextField, TextSort } from '@/shared/api/textChanges'
-import { Badge, Button, ButtonLink, Card, Chip, FieldHint, FieldLabel, Icon, Input, Notice, Panel, SegmentedControl, Select, Skeleton } from '@/shared/ui'
+import { Badge, Button, Card, Chip, FieldHint, FieldLabel, Icon, Input, MenuButton, MenuItem, Notice, Panel, SegmentedControl, Select, Skeleton } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { communityQuotePath } from '@/shared/lib/communityQuoteLink'
@@ -93,6 +94,7 @@ interface TextTabProps {
  * 문장을 비교하지 못했으면 '변경 없음'이 아니라 사유를 보여 준다. 짝짓지 못한 항목은 숨기지 않고 '검토 필요'로 둔다.
  * 맨 위 분야별 표에서 분야마다 몇 건이 바뀌었는지 보이고, 칸을 눌러 그 분야로 거른다(3.28). 옛 분석에는 표가 없고 주소의 분야도 쓰지 않는다.
  * 거르지 않으면 기본 목록만 보이고 나머지는 아래 접힌 묶음에 둔다. 거르면 접힌 변경도 찾는다(3.29). 옛 분석에는 묶음이 없고 모든 변경이 목록에 있다.
+ * 카드에는 '원문 비교'와 ⋯ 메뉴(고정, AI 한 줄 풀이, 노트, 커뮤니티 인용)를 둔다(3.31). 이력과 관련 수시공시는 원문 비교 창 안에 있다.
  * 카드마다 고정할 수 있고, '고정' 거르기를 고르면 이 분석에서 고정한 변경만 보여 준다(3.3, 이 브라우저에만 남음).
  * 표 변경 카드는 행을 비교했으면 양쪽 글 대신 행 건수와 바뀐 행을 보이고, 비교하지 않았으면 그렇게 표시한다(3.30).
  * 고정 보기에서는 고정한 변경을 원문·출처와 함께 한 번에 복사할 수 있다(FS-31).
@@ -471,6 +473,7 @@ function ChangeCard({
   const numbers = item.changeType === 'NUMERIC_UPDATE' && comparedRows === null ? numberChanges(item.previousPreview, item.currentPreview) : null
   // 풀이 상자를 펼쳤는지는 카드 안 상태(주소에 남기지 않음). 처음 펼칠 때만 부른다
   const [explainOpen, setExplainOpen] = useState(false)
+  const [noteOpen, setNoteOpen] = useState(false)
   const explainId = `text-explain-${item.changeId}`
   const toggleExplain = () => {
     if (!explainOpen) explanations.request(item.changeId)
@@ -495,18 +498,9 @@ function ChangeCard({
         {isNotCompared(item.rowDiff) && <Badge>{NOT_COMPARED_LABEL}</Badge>}
         {showsNumbersOnlyMark(item) && <Badge>숫자만 바뀜</Badge>}
         {item.riskRelated && <Badge>{RISK_BADGE}</Badge>}
+        {pinned && <Badge>고정됨</Badge>}
         {item.raisedFromNote === true && <Badge>주석에서 올림</Badge>}
         {item.listGroup === 'NOTE' && scope !== null && <Badge>{scope}</Badge>}
-        <Button
-          variant="icon"
-          className="change-card__pin"
-          aria-pressed={pinned}
-          aria-label={pinned ? `고정 해제: ${section}` : `고정: ${section}`}
-          title={pinned ? '고정 해제' : '고정'}
-          onClick={onTogglePin}
-        >
-          <Icon name={pinned ? 'star-filled' : 'star'} size={16} />
-        </Button>
       </div>
       {review && (
         <Notice as="p" tone="attention" className="change-card__review">
@@ -539,29 +533,51 @@ function ChangeCard({
         <Button variant="secondary" id={evidenceButtonId(item.changeId)} aria-haspopup="dialog" onClick={onToggle}>
           원문 비교
         </Button>
-        <Button
-          variant="secondary"
-          className="change-card__explain"
-          aria-expanded={explainOpen}
-          aria-controls={explainOpen ? explainId : undefined}
-          onClick={toggleExplain}
-        >
-          {explainOpen ? '풀이 접기' : 'AI 한 줄 풀이'}
-        </Button>
-        {!review && Boolean(analysis.corpCode) && (
-          <ButtonLink
-            variant="secondary"
-            to={communityQuotePath({
-              corpCode: analysis.corpCode,
-              analysisId: analysis.analysisId,
-              kind: 'TEXT_CHANGE',
-              changeId: item.changeId,
-            })}
-          >
-            커뮤니티에 인용
-          </ButtonLink>
-        )}
-        <AddToNote target={{ kind: 'TEXT_CHANGE', changeId: item.changeId }} analysisId={analysis.analysisId} label={section} />
+        <MenuButton label={<Icon name="ellipsis" size={16} />} trigger="icon" align="start" aria-label={`메뉴: ${section}`}>
+          {(close) => (
+            <>
+              <MenuItem
+                onClick={() => {
+                  onTogglePin()
+                  close()
+                }}
+              >
+                {pinned ? '고정 해제' : '고정'}
+              </MenuItem>
+              <MenuItem
+                aria-expanded={explainOpen}
+                aria-controls={explainOpen ? explainId : undefined}
+                onClick={() => {
+                  toggleExplain()
+                  close()
+                }}
+              >
+                {explainOpen ? '풀이 접기' : 'AI 한 줄 풀이'}
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  setNoteOpen(true)
+                  close()
+                }}
+              >
+                노트에 담기
+              </MenuItem>
+              {!review && Boolean(analysis.corpCode) && (
+                <Link
+                  className="menu-button__item"
+                  to={communityQuotePath({
+                    corpCode: analysis.corpCode,
+                    analysisId: analysis.analysisId,
+                    kind: 'TEXT_CHANGE',
+                    changeId: item.changeId,
+                  })}
+                >
+                  커뮤니티에 인용
+                </Link>
+              )}
+            </>
+          )}
+        </MenuButton>
         {item.priority && item.priority.reasons.length > 0 && (
           <details className="change-card__why">
             <summary>우선순위를 정한 규칙</summary>
@@ -573,6 +589,15 @@ function ChangeCard({
           </details>
         )}
       </div>
+      {noteOpen && (
+        <AddToNote
+          target={{ kind: 'TEXT_CHANGE', changeId: item.changeId }}
+          analysisId={analysis.analysisId}
+          label={section}
+          startOpen
+          onClose={() => setNoteOpen(false)}
+        />
+      )}
       {explainOpen && (
         <TextExplanationBox
           id={explainId}

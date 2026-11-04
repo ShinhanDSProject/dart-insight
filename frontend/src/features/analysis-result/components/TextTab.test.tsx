@@ -56,7 +56,7 @@ vi.mock('../hooks/usePinnedChanges', () => ({
   usePinnedTextChanges: () => ({ view: { status: 'success', items: [] }, reload: () => {} }),
 }))
 vi.mock('../hooks/useTextExplanations', () => ({
-  useTextExplanations: () => ({ request: () => {}, entryOf: () => undefined }),
+  useTextExplanations: () => ({ request: () => {}, entryOf: () => ({ status: 'loading' }) }),
 }))
 // 카드의 '노트에 담기'(FS-57)는 로그인 상태만 본다
 vi.mock('@/shared/auth/authContext', () => ({
@@ -179,7 +179,7 @@ describe('TextTab 카드 키보드 검토', () => {
 
   it('카드 안 버튼에서 누른 Enter는 단축키로 받지 않는다', () => {
     const { cards, onChange } = renderTab()
-    const button = cards[0].querySelector('button.change-card__explain') as HTMLButtonElement
+    const button = within(cards[0]).getByRole('button', { name: '원문 비교' })
     button.focus()
     press('Enter')
     expect(onChange).not.toHaveBeenCalled()
@@ -265,6 +265,7 @@ describe('TextTab 원문 비교(#507)', () => {
     const { cards, onChange } = renderTab()
     expect(cards[0].textContent).not.toContain('문단 펼치기')
     expect(cards[0].querySelector('.change-card__sides--clamped')).not.toBeNull()
+    fireEvent.click(within(cards[0]).getByRole('button', { name: /^메뉴:/ }))
     expect(within(cards[0]).getByRole('link', { name: '커뮤니티에 인용' }).getAttribute('href')).toBe(
       '/companies/00126380?view=community&quoteAnalysis=16&quoteKind=TEXT_CHANGE&quoteChange=1',
     )
@@ -771,6 +772,113 @@ describe('TextTab 표 행 비교(3.30)', () => {
 
   it('접근성 위반이 없다', async () => {
     renderCards([litigation])
+    expect(await axeViolations(document.body)).toBe('')
+  })
+})
+
+describe('TextTab 카드 메뉴(3.31)', () => {
+  function renderCard(items: TextChangeItem[] = [item(1, '1. 사업의 개요')], onChange = vi.fn()) {
+    list.items = items
+    render(
+      <MemoryRouter>
+        <main>
+          <TextTab
+            analysis={analysis}
+            type={null}
+            sort="priority"
+            section={null}
+            q={null}
+            risk={false}
+            field={null}
+            pinned={false}
+            selectedChangeId={null}
+            onChange={onChange}
+            onOpenSource={() => {}}
+            onAsk={() => {}}
+            asking={false}
+          />
+        </main>
+      </MemoryRouter>,
+    )
+    return screen.getAllByRole('article')[0]
+  }
+  const menuOf = (card: HTMLElement) => within(card).getByRole('button', { name: /^메뉴:/ })
+
+  it('닫힌 카드에는 원문 비교와 메뉴 버튼만 보인다', () => {
+    const view = within(renderCard())
+    expect(view.getByRole('button', { name: '원문 비교' })).toBeTruthy()
+    expect(view.queryByRole('button', { name: /^고정/ })).toBeNull()
+    expect(view.queryByRole('button', { name: 'AI 한 줄 풀이' })).toBeNull()
+    expect(view.queryByRole('button', { name: /노트에 담기/ })).toBeNull()
+    expect(view.queryByRole('link', { name: '커뮤니티에 인용' })).toBeNull()
+  })
+
+  it('메뉴의 고정을 누르면 그 카드를 고정하고 메뉴를 닫으며 초점을 메뉴 버튼으로 돌린다', () => {
+    const card = renderCard()
+    const menu = menuOf(card)
+    fireEvent.click(menu)
+    fireEvent.click(within(card).getByRole('button', { name: '고정' }))
+    expect(pins.toggle).toHaveBeenLastCalledWith(1)
+    expect(menu.getAttribute('aria-expanded')).toBe('false')
+    expect(document.activeElement).toBe(menu)
+  })
+
+  it('고정한 카드는 닫힌 채로도 고정됨이 보이고 메뉴에서 해제한다', () => {
+    pins.ids = [1]
+    const card = renderCard()
+    expect(within(card).getByText('고정됨')).toBeTruthy()
+    fireEvent.click(menuOf(card))
+    fireEvent.click(within(card).getByRole('button', { name: '고정 해제' }))
+    expect(pins.toggle).toHaveBeenLastCalledWith(1)
+  })
+
+  it('메뉴에서 AI 한 줄 풀이를 열고 접는다', () => {
+    const card = renderCard()
+    fireEvent.click(menuOf(card))
+    fireEvent.click(within(card).getByRole('button', { name: 'AI 한 줄 풀이' }))
+    expect(card.querySelector('#text-explain-1')).not.toBeNull()
+    fireEvent.click(menuOf(card))
+    fireEvent.click(within(card).getByRole('button', { name: '풀이 접기' }))
+    expect(card.querySelector('#text-explain-1')).toBeNull()
+  })
+
+  it('메뉴에서 노트에 담기를 누르면 카드에 안내가 열리고 닫으면 사라진다', () => {
+    const card = renderCard()
+    fireEvent.click(menuOf(card))
+    fireEvent.click(within(card).getByRole('button', { name: '노트에 담기' }))
+    expect(within(card).getByRole('link', { name: '로그인하기' })).toBeTruthy()
+    fireEvent.click(within(card).getByRole('button', { name: '닫기' }))
+    expect(within(card).queryByRole('link', { name: '로그인하기' })).toBeNull()
+  })
+
+  it('검토 필요 카드의 메뉴에는 커뮤니티에 인용이 없다', () => {
+    const card = renderCard([{ ...item(1, '1. 사업의 개요'), changeType: 'REVIEW_NEEDED' }])
+    fireEvent.click(menuOf(card))
+    expect(within(card).queryByRole('link', { name: '커뮤니티에 인용' })).toBeNull()
+    expect(within(card).getByRole('button', { name: '고정' })).toBeTruthy()
+  })
+
+  it('우선순위 규칙은 메뉴 밖 더 보기에 남는다', () => {
+    const card = renderCard([{ ...item(1, '1. 사업의 개요'), priority: { level: 'HIGH', score: 70, reasons: ['사업의 내용 섹션 +30'] } }])
+    expect(within(card).getByText('우선순위를 정한 규칙')).toBeTruthy()
+  })
+
+  it('메뉴를 연 채 p를 눌러도 고정되고 j로 다른 카드로 옮기면 메뉴가 닫힌다', () => {
+    renderCard([item(1, '1. 사업의 개요'), item(2, '2. 주요 제품')])
+    const [first, second] = screen.getAllByRole('article')
+    const menu = menuOf(first)
+    menu.focus()
+    fireEvent.click(menu)
+    press('p')
+    expect(pins.toggle).toHaveBeenLastCalledWith(1)
+    press('j')
+    expect(document.activeElement).toBe(second)
+    expect(menu.getAttribute('aria-expanded')).toBe('false')
+  })
+
+  it('메뉴를 펼친 카드에 접근성 위반이 없다', async () => {
+    const card = renderCard()
+    fireEvent.click(menuOf(card))
     expect(await axeViolations(document.body)).toBe('')
   })
 })
