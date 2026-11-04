@@ -558,6 +558,29 @@ class AgentChatApiTest {
     }
 
     @Test
+    @DisplayName("채팅이 넘긴 '소송 관련 변경 사항을 설명해줘'도 근거 질문이 소송 문단을 후보로 보내 답하고 questionId를 돌려준다(#622)")
+    void answerToolFindsLawsuitParagraphForChangeQuestion() throws Exception {
+        String block = CUR + "#B5";
+        AI.on(ANSWERS, Reply.ok("""
+                {"promptVersion":"answer-2","expressionRulesVersion":"expr-1","model":"fake-model",
+                 "generatedAt":"2026-11-03T10:12:03","status":"ANSWERED","answer":"특허 침해 소송을 제기받았어요[%s].",
+                 "evidenceIds":["%s"],"factRefs":[],"reviewReason":null,"blockedRules":[],
+                 "calls":[%s]}
+                """.formatted(block, block, CALL.formatted("answer"))));
+        AI.on(STEPS, twoSteps("{\"callId\":\"c1\",\"name\":\"answer_with_evidence\",\"arguments\":"
+                        + "{\"question\":\"소송 관련 변경 사항을 설명해줘\"}}",
+                request -> finalAnswer("ANSWERED", "특허 침해 소송을 제기받았어요[" + block + "].", "\"" + block + "\"", "")));
+
+        chat("소송 관련 변경을 원문 근거와 함께 설명해줘")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ANSWERED"))
+                .andExpect(jsonPath("$.questionId").isNumber());
+
+        String sent = AI.requests(ANSWERS).getFirst().bodyText();
+        assertThat(JsonPath.<List<String>>read(sent, "$.sources[*].evidenceId")).contains(block);
+    }
+
+    @Test
     @DisplayName("근거 질문이 답하지 못했으면 채팅 답이 다른 Tool로 ANSWERED여도 questionId를 내보내지 않는다(평가할 답이 없음)")
     void notAnsweredQuestionIsNotReturned() throws Exception {
         AI.on(ANSWERS, Reply.ok("""
