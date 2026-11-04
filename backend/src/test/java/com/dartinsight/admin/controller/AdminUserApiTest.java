@@ -135,6 +135,10 @@ class AdminUserApiTest {
                 .andExpect(jsonPath("$.items", hasSize(0)));
         mvc.perform(withToken(get(PATH).param("q", "%"), admin))
                 .andExpect(jsonPath("$.totalItems").value(0));
+        // ASCII가 아닌 검색어도 일반 가입 이메일(ascii_bin)과 비교하다 실패하지 않는다(MariaDB)
+        mvc.perform(withToken(get(PATH).param("q", "홍길동@example.com"), admin))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalItems").value(0));
     }
 
     @Test

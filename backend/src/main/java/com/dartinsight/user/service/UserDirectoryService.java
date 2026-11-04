@@ -39,7 +39,7 @@ public class UserDirectoryService {
     public UserPage search(String q, String role, Integer page, Integer size) {
         UserQuery query = UserQuery.of(q, role, page, size);
         Page<User> found = users.search(query.role(), query.nicknamePattern(), query.email(),
-                PageRequest.of(query.page().page(), query.page().size()));
+                query.localEmail(), PageRequest.of(query.page().page(), query.page().size()));
         List<Long> ids = found.getContent().stream().map(User::getId).toList();
         Map<Long, String> localEmails = ids.isEmpty() ? Map.of() : credentials.findByUserIds(ids).stream()
                 .collect(Collectors.toMap(LocalCredential::userId, LocalCredential::email));
