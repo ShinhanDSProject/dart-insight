@@ -1,4 +1,4 @@
-import { useCallback, useReducer } from 'react'
+import { useCallback, useReducer, useRef } from 'react'
 import type { PricingPlan } from '@/shared/api/admin'
 import { postPlanInterest } from '@/shared/api/pricing'
 import { initialInterest, interestReducer, parseSentPlans, type InterestState } from '../model/pricing'
@@ -28,16 +28,22 @@ function rememberSent(plan: PricingPlan) {
  */
 export function usePlanInterest(): { state: InterestState; send: (plan: PricingPlan) => void } {
   const [state, dispatch] = useReducer(interestReducer, undefined, () => initialInterest(readSent()))
+  // 상태가 화면에 반영되기 전에 같은 요금제를 또 눌러도 한 번만 보내도록, 보내는 중·보낸 요금제를 바로 기억한다
+  const busy = useRef(new Set<PricingPlan>())
   const send = useCallback(
     (plan: PricingPlan) => {
-      if (state[plan] === 'sent' || state[plan] === 'sending') return
+      if (state[plan] === 'sent' || busy.current.has(plan)) return
+      busy.current.add(plan)
       dispatch({ type: 'send', plan })
       postPlanInterest(plan).then(
         () => {
           rememberSent(plan)
           dispatch({ type: 'sent', plan })
         },
-        () => dispatch({ type: 'fail', plan }),
+        () => {
+          busy.current.delete(plan)
+          dispatch({ type: 'fail', plan })
+        },
       )
     },
     [state],
