@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +36,9 @@ final class ChatResults {
     static final String TASK = "agent_answer";
 
     private static final Logger log = LoggerFactory.getLogger(ChatResults.class);
+    /** 근거 ID 모양으로 시작하는 근거 표시(ADR-0048): [T1]·[F1]·[D{접수번호}]·[C{고유번호}]·[{접수번호}#B·S·V{번호}] */
+    private static final Pattern EVIDENCE_MARKER = Pattern.compile(
+            "\\[\\s*(?:[TF]\\d+|D\\d{14}|C\\d{8}|\\d{14}#[BSV]\\d+)");
 
     private ChatResults() {
     }
@@ -96,13 +100,15 @@ final class ChatResults {
 
     /**
      * ai-server가 LLM 없이 만든 정해진 안내인지: 모델·호출 기록이 없고 근거 ID·근거 표시가 없음.
+     * 근거 표시는 근거 ID 모양만 본다(목차 제목의 '[첨부]' 같은 대괄호는 근거 표시가 아님).
      * LLM이 만든 답(model 있음)은 근거 표시가 하나 이상 있어야 한다(ADR-0044).
      */
     private static boolean fixedAnswer(AgentStepAiResponse response) {
         AgentStepAiResponse.Final result = response.finalAnswer();
         return response.model() == null && (response.calls() == null || response.calls().isEmpty())
                 && (result.evidenceIds() == null || result.evidenceIds().isEmpty())
-                && result.answer() != null && !result.answer().isBlank() && result.answer().indexOf('[') < 0;
+                && result.answer() != null && !result.answer().isBlank()
+                && !EVIDENCE_MARKER.matcher(result.answer()).find();
     }
 
     static List<LlmCallRow> calls(AgentStepAiResponse response, String traceId) {
