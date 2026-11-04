@@ -13,6 +13,7 @@ import {
   shortDate,
   shortDateTime,
   statusLabel,
+  stepLabel,
   statusTone,
 } from './adminConsole'
 
@@ -53,6 +54,7 @@ describe('adminConsole 주소 값', () => {
 describe('adminConsole 표시 문구', () => {
   it('상태·가입 방식·요금제를 한국어로 보이고 실패는 위험 색이다', () => {
     expect(statusLabel('RUNNING')).toBe('진행 중')
+    expect(stepLabel('VERIFYING')).toBe('검증')
     expect(statusTone('FAILED')).toBe('danger')
     expect(statusTone('COMPLETED')).toBe('neutral')
     expect(providerLabel('KAKAO')).toBe('카카오')

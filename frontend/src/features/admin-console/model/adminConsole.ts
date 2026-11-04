@@ -1,5 +1,5 @@
 import { match } from 'ts-pattern'
-import type { AnalysisStatus } from '@/shared/api/analyses'
+import type { AnalysisStatus, AnalysisStepName } from '@/shared/api/analyses'
 import type { AdminAnalysisDays, AdminDays, PricingPlan, SignupProvider } from '@/shared/api/admin'
 import type { BadgeTone } from '@/shared/ui'
 
@@ -52,6 +52,16 @@ export function statusLabel(status: AnalysisStatus): string {
     .with('RUNNING', () => '진행 중')
     .with('COMPLETED', () => '완료')
     .with('FAILED', () => '실패')
+    .exhaustive()
+}
+
+/** 분석이 멈춘·진행 중인 단계. 실패면 어느 단계에서 멈췄는지 보여 준다 */
+export function stepLabel(step: AnalysisStepName): string {
+  return match(step)
+    .with('RECEIVED', () => '접수')
+    .with('COMPARING', () => '비교')
+    .with('VERIFYING', () => '검증')
+    .with('DONE', () => '끝')
     .exhaustive()
 }
 
