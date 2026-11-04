@@ -3023,7 +3023,7 @@
 | body | `message` | string | 예 | 앞뒤 공백을 뺀 2~500자 |
 | body | `history` | array | 아니오 | 최근 대화. 최대 6개, 오래된 것부터. 더 많으면 400 |
 | body | `history[].role` | string | 예 | `user`, `assistant` |
-| body | `history[].text` | string | 예 | 1,000자 이하. 화면이 보여 준 글 그대로(근거 칩 표시 제외) |
+| body | `history[].text` | string | 예 | 1,500자 이하(답 상한, 정리 형식 1,500자와 같음). 화면이 보여 준 글 그대로(근거 칩 표시 제외) |
 | body | `context.tab` | string | 아니오 | 지금 보는 탭. `summary`, `financial`, `text`, `source` |
 | body | `context.textChangeId` | number | 아니오 | 고른 문장 변경 ID |
 | body | `context.financialChangeId` | number | 아니오 | 고른 재무 계정 변화 ID |

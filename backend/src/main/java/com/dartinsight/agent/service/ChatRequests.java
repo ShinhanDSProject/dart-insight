@@ -14,7 +14,8 @@ final class ChatRequests {
     static final int MIN_MESSAGE = 2;
     static final int MAX_MESSAGE = 500;
     static final int MAX_HISTORY = 6;
-    static final int MAX_TURN = 1000;
+    /** 대화 한 턴 상한. 답 상한(정리 형식 1,500자)과 같다 */
+    static final int MAX_TURN = 1500;
     private static final Set<String> ROLES = Set.of("user", "assistant");
 
     private ChatRequests() {
