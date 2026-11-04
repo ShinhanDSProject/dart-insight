@@ -395,6 +395,46 @@ class AgentChatApiTest {
     }
 
     @Test
+    @DisplayName("ai-server가 LLM 없이 정해진 안내로 답하면(model·calls 없음) 근거 없이 그대로 내보내고 AI 생성 표시를 붙이지 않는다(#631)")
+    void fixedAnswerWithoutLlmIsSentAsIs() throws Exception {
+        long changeId = financialChangeId();
+        AI.on(STEPS, Reply.ok("""
+                {"promptVersion":"agent-3","model":null,"generatedAt":null,"type":"FINAL","toolCalls":[],
+                 "final":{"status":"ANSWERED","answer":"아래 버튼을 누르면 노트에 담아요.","evidenceIds":[],
+                  "actions":[{"type":"CONFIRM_SAVE_NOTE","note":{"kind":"FINANCIAL_CHANGE","changeId":%d}}],
+                  "reviewReason":null,"blockedRules":[],"format":"CHAT","crossCheck":null},
+                 "rejections":[],"calls":[]}
+                """.formatted(changeId)));
+
+        chat(analysisId, "{\"message\":\"이거 노트에 담아줘\",\"context\":{\"tab\":\"financial\","
+                + "\"financialChangeId\":" + changeId + "}}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ANSWERED"))
+                .andExpect(jsonPath("$.answer").value("아래 버튼을 누르면 노트에 담아요."))
+                .andExpect(jsonPath("$.citations", hasSize(0)))
+                .andExpect(jsonPath("$.actions[0].type").value("CONFIRM_SAVE_NOTE"))
+                .andExpect(jsonPath("$.actions[0].note.changeId").value(changeId))
+                .andExpect(jsonPath("$.actions[0].note.analysisId").value(analysisId))
+                .andExpect(jsonPath("$.aiGenerated").value(false))
+                .andExpect(jsonPath("$.ai").doesNotExist());
+
+        String sent = AI.requests(STEPS).getFirst().bodyText();
+        assertThat(JsonPath.<Integer>read(sent, "$.context.financialChangeId").longValue()).isEqualTo(changeId);
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM llm_call WHERE analysis_id = ?", Integer.class,
+                analysisId)).isZero();
+    }
+
+    @Test
+    @DisplayName("LLM이 만든 답(model 있음)에 근거 표시가 없으면 정해진 안내로 보지 않고 검토 필요로 끝낸다")
+    void llmAnswerWithoutMarkerIsStillReviewNeeded() throws Exception {
+        AI.on(STEPS, Reply.ok(finalAnswer("ANSWERED", "근거 없이 쓴 답이에요.", "", "")));
+
+        chat("영업이익 알려줘")
+                .andExpect(jsonPath("$.status").value("REVIEW_NEEDED"))
+                .andExpect(jsonPath("$.answer").doesNotExist());
+    }
+
+    @Test
     @DisplayName("NOT_FOUND는 찾지 못했다는 안내이고, 화면 제목('확인된 설명 없음')을 본문에 다시 넣지 않는다")
     void notFoundShowsNoConfirmedExplanation() throws Exception {
         AI.on(STEPS, Reply.ok(finalAnswer("NOT_FOUND", null, "", "")));
