@@ -11,13 +11,14 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from app.agent.answer_format import FORMAT_INSTRUCTIONS, answer_format
 from app.agent.model import LLM_STATUSES, MAX_TOOL_CALLS, StepInput, ToolResult
-from app.agent.validate import DECISIONS, MAX_ANSWER
+from app.agent.validate import DECISIONS
 from app.llm.prompting import SOURCE_RULE, attr, disclosure, escape
 from app.llm.providers import LlmRequest
 
 # 결과가 달라지게 바꾸면 이 버전을 올린다(검사 규칙 app/agent/validate.py 포함)
-PROMPT_VERSION = "agent-4"
+PROMPT_VERSION = "agent-5"
 TASK_PLAN = "agent_plan"
 TASK_ANSWER = "agent_answer"
 MAX_MESSAGE_CHARS = 500
@@ -46,7 +47,7 @@ ANSWER_RULES = [
     "원인을 직접 밝혔고 그 grade가 STATED이거나 없을 때만 씁니다.",
     "5. grade가 있는 결과는 등급을 바꾸지 않습니다. STATED만 '회사는 ~라고 밝혔어요'로 쓰고, "
     "RELATED는 '관련 공시 내용', NONE은 '확인된 설명 없음'으로 씁니다.",
-    f"6. '~어요'로 끝나는 해요체로 3문장 이내, {MAX_ANSWER}자 이내로 답합니다.",
+    "6. 답의 꼴과 길이는 아래 [형식]을 따릅니다.",
     "7. 문장마다 끝에 근거 표시 [근거 ID]를 붙입니다(예: [T5012], [F4221], "
     "[20260814003699#B812]). <disclosure>의 id만 쓰고, 답에 쓴 근거를 evidenceIds에 적습니다. "
     "<item>은 근거로 쓰지 않습니다.",
@@ -228,6 +229,8 @@ def _common(step: StepInput) -> list[str]:
         ]
         lines.append("</history>")
     lines.append(f"<question>\n{escape(_clip(step.message, MAX_MESSAGE_CHARS))}\n</question>")
+    # 답 형식은 사용자 메시지로 코드가 정한다(#581). 시스템 프롬프트는 그대로 두고 여기서 알린다
+    lines.append(FORMAT_INSTRUCTIONS[answer_format(step.message)])
     if step.tool_results:
         lines += ["", "[Tool 결과] 지금까지 실행한 순서입니다."]
         lines += [_tool_result(result) for result in step.tool_results]

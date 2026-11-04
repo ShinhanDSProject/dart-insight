@@ -23,6 +23,7 @@ LLM_STATUSES = (ANSWERED, NOT_FOUND)
 
 # 답 형식. 정리 형식(BRIEF)은 #581에서 더한다
 FORMAT_CHAT = "CHAT"
+FORMAT_BRIEF = "BRIEF"
 
 # 한 단계에서 부를 수 있는 Tool 수
 MAX_TOOL_CALLS = 3

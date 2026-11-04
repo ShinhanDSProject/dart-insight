@@ -23,8 +23,10 @@ from typing import Any
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import SchemaError
 
+from app.agent.answer_format import answer_format, max_answer
 from app.agent.model import (
     ANSWERED,
+    FORMAT_BRIEF,
     LLM_STATUSES,
     MAX_TOOL_CALLS,
     NOT_FOUND,
@@ -38,8 +40,6 @@ from app.llm import OutputProblem
 from app.llm.grounding import number_problem
 from app.summary.causal import find as find_causal
 
-MAX_ANSWER = 400
-
 # 다음 Tool 고르기 결과(decision)
 CALL_TOOLS = "CALL_TOOLS"
 ANSWER = "ANSWER"
@@ -51,6 +51,7 @@ GRADE_STATED = "STATED"
 # 검토 노드가 반려한 규칙(응답 rejections[].rules)
 ANSWER_EMPTY = "ANSWER_EMPTY"
 ANSWER_TOO_LONG = "ANSWER_TOO_LONG"
+BRIEF_LINE_WITHOUT_EVIDENCE = "BRIEF_LINE_WITHOUT_EVIDENCE"
 EVIDENCE_MISSING = "EVIDENCE_MISSING"
 EVIDENCE_NOT_IN_TOOL_RESULT = "EVIDENCE_NOT_IN_TOOL_RESULT"
 MARKER_MISMATCH = "MARKER_MISMATCH"
@@ -186,7 +187,15 @@ def review(draft: Draft, step: StepInput) -> Reviewed:
             [BLOCKED_EXPRESSION],
             sorted({f.rule_id for f in findings}),
         )
-    return Reviewed(FinalAnswer(ANSWERED, draft.answer.strip(), draft.evidence_ids, draft.actions))
+    return Reviewed(
+        FinalAnswer(
+            ANSWERED,
+            draft.answer.strip(),
+            draft.evidence_ids,
+            draft.actions,
+            format=answer_format(step.message),
+        )
+    )
 
 
 def without_markers(answer: str) -> str:
@@ -265,8 +274,10 @@ def _answer_problem(draft: Draft, step: StepInput) -> tuple[str, str | None]:
     answer = draft.answer
     if not answer or not answer.strip():
         return ANSWER_EMPTY, "ANSWERED이면 answer에 문장이 있어야 합니다(답할 수 없으면 NOT_FOUND)."
-    if len(answer) > MAX_ANSWER:
-        return ANSWER_TOO_LONG, f"answer가 {MAX_ANSWER}자를 넘습니다."
+    fmt = answer_format(step.message)
+    limit = max_answer(fmt)
+    if len(answer) > limit:
+        return ANSWER_TOO_LONG, f"answer가 {limit}자를 넘습니다."
     evidence = step.evidence()
     if not draft.evidence_ids:
         return EVIDENCE_MISSING, "근거가 없습니다. evidenceIds에 Tool 결과의 근거 ID를 적으세요."
@@ -281,6 +292,13 @@ def _answer_problem(draft: Draft, step: StepInput) -> tuple[str, str | None]:
             "답의 근거 표시 [id]와 evidenceIds가 같아야 합니다"
             f"(표시만 있음: {not_listed[:3]}, 표시 없음: {not_marked[:3]})."
         )
+    if fmt == FORMAT_BRIEF:
+        bare = [line for line in answer.splitlines() if line.strip() and not _MARKER.search(line)]
+        if bare:
+            line = bare[0].strip()[:40]
+            return BRIEF_LINE_WITHOUT_EVIDENCE, (
+                f"정리 형식은 줄마다 근거 표시가 있어야 합니다(근거 없는 줄: '{line}')."
+            )
     for sentence in _sentences(answer):
         rule, problem = _sentence_problem(sentence, evidence)
         if problem:

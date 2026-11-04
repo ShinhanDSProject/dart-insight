@@ -195,6 +195,55 @@ def test_plan_answer_without_valid_draft_falls_back_to_answer_call() -> None:
     assert output.rejections == []
 
 
+def test_brief_request_answers_in_lines_each_with_evidence() -> None:
+    brief = (
+        "- 영업이익은 6.6조 원에서 4.3조 원으로 줄었어요[F4221].\n- 관련 공시 내용이 있어요[F4221]."
+    )
+    draft = answer(brief, ["F4221"])
+    client, provider = llm({"decision": "ANSWER", "toolCalls": [], "draft": draft})
+
+    output = run_step(client, step("3줄 요약해줘", results=[FINANCIAL]))
+
+    assert output.final is not None
+    assert output.final.status == "ANSWERED"
+    assert output.final.format == "BRIEF"
+    assert "[형식] BRIEF" in provider.requests[0].user
+
+
+def test_brief_line_without_evidence_is_rejected() -> None:
+    bare = "- 영업이익은 6.6조 원에서 4.3조 원으로 줄었어요[F4221].\n- 더 볼 점이 있어요."
+    fixed = "- 영업이익은 6.6조 원에서 4.3조 원으로 줄었어요[F4221]."
+    client, _ = llm(
+        {"decision": "ANSWER", "toolCalls": [], "draft": answer(bare, ["F4221"])},
+        answer(fixed, ["F4221"]),
+    )
+
+    output = run_step(client, step("IR용 정리해줘", results=[FINANCIAL]))
+
+    assert output.final is not None
+    assert output.final.status == "ANSWERED"
+    assert [r.rules for r in output.rejections] == [["BRIEF_LINE_WITHOUT_EVIDENCE"]]
+
+
+def test_chat_answer_keeps_400_char_limit_while_brief_allows_1500() -> None:
+    long_line = "영업이익은 6.6조 원에서 4.3조 원으로 줄었어요[F4221]. " * 12
+    client, _ = llm(
+        {"decision": "ANSWER", "toolCalls": [], "draft": answer(long_line, ["F4221"])},
+        answer(long_line, ["F4221"]),
+        answer(long_line, ["F4221"]),
+    )
+
+    chat = run_step(client, step(results=[FINANCIAL]))
+
+    assert chat.final is not None and chat.final.status == REVIEW_NEEDED
+    assert chat.rejections[0].rules == ["ANSWER_TOO_LONG"]
+    brief_text = "\n".join(["- 영업이익은 6.6조 원에서 4.3조 원으로 줄었어요[F4221]."] * 12)
+    client, _ = llm({"decision": "ANSWER", "toolCalls": [], "draft": answer(brief_text, ["F4221"])})
+    brief = run_step(client, step("확인할 점 정리해줘", results=[FINANCIAL]))
+    assert brief.final is not None and brief.final.status == "ANSWERED"
+    assert 400 < len(brief.final.answer or "") <= 1500
+
+
 def test_wrong_number_is_rejected_and_second_draft_passes() -> None:
     client, provider = llm(
         answer("영업이익은 2.3조 원 줄었어요[F4221].", ["F4221"]),
