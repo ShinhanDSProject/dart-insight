@@ -1,5 +1,6 @@
 package com.dartinsight.agent.service;
 
+import com.dartinsight.agent.domain.AgentActions;
 import com.dartinsight.agent.domain.AgentStep;
 import com.dartinsight.agent.domain.AskedQuestion;
 import com.dartinsight.agent.domain.ChatStatus;
@@ -21,7 +22,10 @@ import org.slf4j.LoggerFactory;
 /** AI 서버의 최종 답을 채팅 응답으로 바꾼다. 근거 ID는 이 채팅에서 backend가 만든 근거 표로 다시 확인한다(ADR-0044) */
 final class ChatResults {
 
-    static final String NOT_FOUND = "확인된 설명 없음: 실행한 기능의 결과에서 관련 자료를 찾지 못했어요.";
+    /** 화면이 '확인된 설명 없음' 제목을 붙이므로 그 말을 다시 넣지 않는다(#623) */
+    static final String NOT_FOUND = "실행한 기능의 결과에서 관련 자료를 찾지 못했어요.";
+    /** 저장 확인 버튼만 돌려주는 답의 정해진 안내(LLM 없음) */
+    static final String CONFIRM_ONLY = "아래 버튼을 누르면 저장해요.";
     static final String OUT_OF_SCOPE = "매수·매도, 목표주가, 주가 전망 같은 투자 판단에는 답하지 않아요. "
             + "공시에 적힌 내용을 물어봐 주세요.";
     static final String INCOMPLETE = "요청을 끝내지 못했어요. 범위를 좁혀 다시 보내 주세요.";
@@ -49,6 +53,11 @@ final class ChatResults {
             Map<String, String> reportNames, List<Map<String, Object>> actions, List<AskedQuestion> asked) {
         AgentStepAiResponse.Final result = response.finalAnswer();
         String format = result.format() == null ? AgentStep.FORMAT_CHAT : result.format();
+        if (ChatStatus.NOT_FOUND.name().equals(result.status()) && AgentActions.hasConfirm(actions)) {
+            // 저장 확인만 하는 요청: Tool 결과가 없어도 버튼을 누르면 되므로 '찾지 못함'으로 보이지 않게 한다
+            return new ChatMessageResponse(ChatStatus.ANSWERED.name(), CONFIRM_ONLY, null, List.of(), actions, format,
+                    null, null, false, null);
+        }
         if (ChatStatus.NOT_FOUND.name().equals(result.status())) {
             return new ChatMessageResponse(ChatStatus.NOT_FOUND.name(), null, NOT_FOUND, List.of(), actions, format,
                     null, null, false, null);

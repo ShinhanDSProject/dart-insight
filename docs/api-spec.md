@@ -2924,7 +2924,8 @@
 
 - `status`
   - `ANSWERED`: `answer`에 답. 문장 안의 `[1]`은 `citations[].no`입니다. 화면 이동만 하는 요청("사업의 내용 열어줘")도 `ANSWERED`이고, `answer`에 짧은 안내와 `actions`가 있습니다.
-  - `NOT_FOUND`: 실행에 성공한 Tool 결과에 관련 자료가 없음. Tool 실행이 모두 실패했으면 `NOT_FOUND`가 아니라 `REVIEW_NEEDED`(3절 `POST /internal/agent-steps`). `answer`는 null, `message`에 '확인된 설명 없음' 안내
+    - 저장 확인만 하는 요청("관심 기업에 추가해줘", "이거 노트에 담아줘"): LLM이 `NOT_FOUND`로 끝내도 값 확인을 통과한 확인 액션(`CONFIRM_SAVE_NOTE`·`CONFIRM_FAVORITE`)이 하나라도 있으면 backend가 `ANSWERED`로 바꿉니다. `answer`는 정해진 안내 "아래 버튼을 누르면 저장해요."(LLM 없음, `aiGenerated: false`, `ai: null`), `citations`는 빈 배열입니다. 확인 버튼만 있는 답이 '확인된 설명 없음' 경고로 보이지 않게 하기 위해서입니다(#623). 이동 액션(`OPEN_*`)만 있는 `NOT_FOUND`는 그대로 두어 '찾지 못함'을 알립니다.
+  - `NOT_FOUND`: 실행에 성공한 Tool 결과에 관련 자료가 없음. Tool 실행이 모두 실패했으면 `NOT_FOUND`가 아니라 `REVIEW_NEEDED`(3절 `POST /internal/agent-steps`). `answer`는 null, `message`에 안내 "실행한 기능의 결과에서 관련 자료를 찾지 못했어요."(화면이 '확인된 설명 없음' 제목을 붙이므로 `message`에는 그 말을 다시 넣지 않음)
   - `OUT_OF_SCOPE`: 매수·매도·목표주가·주가 전망 요청. LLM을 부르지 않음
   - `REVIEW_NEEDED`: 답이 근거·숫자·표현 검사를 통과하지 못함(처음 생성 1회와 다시 생성 2회 뒤, ADR-0045), 또는 backend 근거 확인 실패. `answer`는 null
   - `INCOMPLETE`: 왕복·시간 상한을 넘음. `answer`는 null, `message`에 다시 보내 달라는 안내

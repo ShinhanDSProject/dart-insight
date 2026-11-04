@@ -85,6 +85,12 @@ public final class AgentActions {
         return type != null && SPECS.containsKey(type);
     }
 
+    /** 저장 확인 액션(노트 담기·관심 기업 추가)이 하나라도 있는지. 확인만 하는 요청을 '찾지 못함'으로 보이지 않게 쓴다(#623) */
+    public static boolean hasConfirm(List<Map<String, Object>> actions) {
+        return actions.stream().map(a -> a.get("type"))
+                .anyMatch(t -> CONFIRM_SAVE_NOTE.equals(t) || CONFIRM_FAVORITE.equals(t));
+    }
+
     /** 화면에 보낼 액션: type, label, 그 밖의 필드(받은 순서) */
     public static Map<String, Object> withLabel(Map<String, Object> action) {
         String type = (String) action.get("type");
