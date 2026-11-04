@@ -250,6 +250,46 @@ describe('Financial EvidencePanel (#512)', () => {
     expect(screen.getByText(/메모리 가격 상승으로 수익성이 개선되었어요/)).toBeTruthy()
   })
 
+  it('검증에 실패한 설명(TEMPLATE)은 요약 탭처럼 코드가 확인한 인용을 회사 설명으로 보인다', () => {
+    data.detail = { status: 'success', data: { ...mockDetail, relatedTextChanges: [] } }
+    data.summary = {
+      status: 'success',
+      data: {
+        analysisId: 10,
+        summaryStatus: 'COMPLETED',
+        summaryMessage: null,
+        textStatus: 'COMPLETED',
+        items: [
+          {
+            itemNo: 1,
+            kind: 'FINANCIAL',
+            target: { type: 'FINANCIAL', changeId: 101, sjDiv: 'IS', changeType: null },
+            lens: 'PROFITABILITY',
+            lensLabel: '수익성',
+            factSentence: '영업이익이 2조원 증가했어요.',
+            aiText: null,
+            aiGenerated: false,
+            explanationStatus: 'TEMPLATE',
+            explanationGrade: null,
+            quote: '메모리 판가 상승 영향',
+            quoteEvidence: { evidenceId: '20260814000123#B50', side: 'current', rceptNo: '20260814000123', sectionNo: 14, blockNo: 50 },
+            gradeReason: null,
+            evidence: [],
+            ai: null,
+          },
+        ],
+        lensCounts: [],
+        reviewNeededCount: 0,
+        reviewNeeded: [],
+      },
+    }
+
+    renderEvidence()
+
+    expect(screen.getByText(/메모리 판가 상승 영향/)).toBeTruthy()
+    expect(screen.queryByText('AI 생성')).toBeNull()
+  })
+
   it('요약 설명과 관련 문장 변경이 모두 없으면 확인된 설명 없음 문구를 표시한다', () => {
     data.detail = {
       status: 'success',
