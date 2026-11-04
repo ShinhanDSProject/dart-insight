@@ -7,9 +7,11 @@ import static com.dartinsight.agent.domain.Schemas.oneOf;
 import static com.dartinsight.agent.domain.Schemas.properties;
 import static com.dartinsight.agent.domain.Schemas.string;
 
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 화면 액션(docs/api-spec.md 공개 API의 actions 표). 화면은 이 종류만 실행한다. 버튼 문구(label)는 LLM 문장이 아니라
@@ -89,6 +91,36 @@ public final class AgentActions {
     public static boolean hasConfirm(List<Map<String, Object>> actions) {
         return actions.stream().map(a -> a.get("type"))
                 .anyMatch(t -> CONFIRM_SAVE_NOTE.equals(t) || CONFIRM_FAVORITE.equals(t));
+    }
+
+    /**
+     * 저장 확인만 하는 요청인지: 확인 액션이 있고, 실행한 Tool마다 그 결과에 노트에 담을 대상(재무·문장 변경)이
+     * 들어 있다(대상을 찾으려고 부른 Tool). 대상이 없는 Tool 결과가 하나라도 있으면 따로 조회한 것으로 본다.
+     *
+     * @param lookups 실행한 Tool마다 그 결과의 근거 ID
+     */
+    public static boolean onlySaves(List<Map<String, Object>> actions, List<Set<String>> lookups) {
+        if (!hasConfirm(actions)) {
+            return false;
+        }
+        Set<String> targets = noteTargets(actions);
+        return lookups.stream().allMatch(ids -> ids.stream().anyMatch(targets::contains));
+    }
+
+    /** 노트에 담기 액션이 가리키는 변경의 근거 ID(F{id}·T{id}) */
+    private static Set<String> noteTargets(List<Map<String, Object>> actions) {
+        Set<String> targets = new HashSet<>();
+        for (Map<String, Object> action : actions) {
+            if (CONFIRM_SAVE_NOTE.equals(action.get("type")) && action.get("note") instanceof Map<?, ?> note
+                    && note.get("changeId") instanceof Number changeId) {
+                if ("FINANCIAL_CHANGE".equals(note.get("kind"))) {
+                    targets.add(Evidence.financialChangeId(changeId.longValue()));
+                } else if ("TEXT_CHANGE".equals(note.get("kind"))) {
+                    targets.add(Evidence.textChangeId(changeId.longValue()));
+                }
+            }
+        }
+        return targets;
     }
 
     /** 화면에 보낼 액션: type, label, 그 밖의 필드(받은 순서) */
