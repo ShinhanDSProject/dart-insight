@@ -30,7 +30,8 @@ export interface AdminOverview {
     outdated: number
     daily: DailyAnalyses[]
     topFailures: { errorCode: string; count: number; lastAt: string }[]
-    topCompanies: { corpCode: string; corpName: string; count: number }[]
+    /** corpName은 기업 표에 없으면 null */
+    topCompanies: { corpCode: string; corpName: string | null; count: number }[]
   }
   users: {
     total: number
@@ -42,13 +43,15 @@ export interface AdminOverview {
   watch: {
     favorites: number
     companies: number
-    topWatched: { corpCode: string; corpName: string; count: number }[]
+    topWatched: { corpCode: string; corpName: string | null; count: number }[]
   }
   community: { openReports: number; postsInPeriod: number }
   ai: { calls: number; failedCalls: number; estimatedCostUsd: number | null; unpricedCalls: number }
   planInterests: {
     total: number
     signedIn: number
+    /** 로그인한 회원·요금제 쌍을 한 번씩만 센 수(로그인 없이 누른 수는 부풀릴 수 있어 함께 본다) */
+    signedInMembers: number
     byPlan: Record<PricingPlan, number>
     daily: { date: string; count: number }[]
   }
@@ -60,10 +63,12 @@ export type PricingPlan = 'FREE' | 'PRO' | 'TEAM' | 'EMBED'
 export interface AdminAnalysisItem {
   analysisId: number
   corpCode: string
-  corpName: string
+  /** 기업 표에 없으면 null */
+  corpName: string | null
   basis: ComparisonBasis
-  current: { rceptNo: string; reportName: string }
-  previous: { rceptNo: string; reportName: string }
+  /** reportName은 보고서가 저장돼 있지 않으면 null */
+  current: { rceptNo: string; reportName: string | null }
+  previous: { rceptNo: string; reportName: string | null }
   status: AnalysisStatus
   step: AnalysisStepName
   errorCode: string | null

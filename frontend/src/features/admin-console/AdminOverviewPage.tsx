@@ -161,7 +161,7 @@ function OverviewBody({ data, days }: { data: AdminOverview; days: AdminDays }) 
           ) : (
             <RankList
               label="관심 기업 상위"
-              rows={watch.topWatched.map((c) => ({ key: c.corpCode, label: c.corpName, value: c.count, to: `/companies/${encodeURIComponent(c.corpCode)}` }))}
+              rows={watch.topWatched.map((c) => ({ key: c.corpCode, label: c.corpName ?? c.corpCode, value: c.count, to: `/companies/${encodeURIComponent(c.corpCode)}` }))}
             />
           )}
           <p className="console-hint">모니터링 수요를 보는 값이에요.</p>
@@ -174,14 +174,14 @@ function OverviewBody({ data, days }: { data: AdminOverview; days: AdminDays }) 
               label="많이 분석한 기업"
               rows={analyses.topCompanies.map((c) => ({
                 key: c.corpCode,
-                label: c.corpName,
+                label: c.corpName ?? c.corpCode,
                 value: c.count,
                 to: `/admin/analyses?q=${encodeURIComponent(c.corpCode)}&days=${days}`,
               }))}
             />
           )}
         </ConsoleCard>
-        <ConsoleCard title="요금제 관심" titleId="overview-plans" note={`${formatInteger(planInterests.total)}회 · 로그인 ${formatInteger(planInterests.signedIn)}`}>
+        <ConsoleCard title="요금제 관심" titleId="overview-plans" note={`${formatInteger(planInterests.total)}회 · 로그인 회원·요금제 ${formatInteger(planInterests.signedInMembers)}쌍`}>
           <RankList
             label="요금제별 관심"
             tone="accent"
