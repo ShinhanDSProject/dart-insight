@@ -93,7 +93,7 @@ interface CompanyFrameProps {
  * 탭 줄 높이는 --company-bar-height로 넘겨, 기업 개요의 바로 가기 바가 그 밑에 붙는다.
  */
 function CompanyFrame({ company, view, onSelectView, children }: CompanyFrameProps) {
-  // 왼쪽 메뉴 '지금 보는 기업'을 이 기업으로 바꾼다(#502)
+  // 상단 '최근 본 기업' 맨 앞에 이 기업을 둔다(#502, #652)
   useRecordCurrentCompany({ corpCode: company.corpCode, corpName: company.corpName, stockCode: company.stockCode })
   const { sentinelRef, barRef, compact, height } = useCompactHeader<HTMLDivElement, HTMLDivElement>()
   return (

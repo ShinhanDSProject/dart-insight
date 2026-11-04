@@ -218,12 +218,34 @@ code {
   font-size: var(--font-size-xs);
 }
 
+.app-context__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
 .app-context__company {
   display: flex;
   align-items: baseline;
   gap: var(--space-2);
   margin: 0;
+  color: var(--color-text-muted);
   font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+/* 맨 앞이 지금 보는 기업이고, 이전에 본 기업은 구분선 뒤에 흐리게 둔다(#652) */
+.app-context__company + .app-context__company {
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--color-border);
+}
+
+.app-context__company--current {
+  color: var(--color-text);
   font-weight: var(--font-weight-bold);
 }
 

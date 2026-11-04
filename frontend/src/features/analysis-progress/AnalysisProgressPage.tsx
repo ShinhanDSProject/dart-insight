@@ -127,7 +127,7 @@ function ProgressHeading({ analysis }: { analysis: Analysis }) {
 }
 
 function Progress({ analysis }: { analysis: Analysis }) {
-  // 상단 바 아래 '지금 보는 기업'을 이 기업으로 바꾼다. 아직 결과가 없어 분석은 넘기지 않는다(#502)
+  // 상단 바 아래 '최근 본 기업' 맨 앞에 이 기업을 둔다. 아직 결과가 없어 분석은 넘기지 않는다(#502)
   useRecordCurrentCompany({ corpCode: analysis.corpCode, corpName: analysis.corpName })
   return (
     <>
