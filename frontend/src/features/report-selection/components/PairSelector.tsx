@@ -2,7 +2,7 @@ import { match, P } from 'ts-pattern'
 import type { ComparisonBasis, ReportItem } from '@/shared/api/reports'
 import { Button, FieldHint, FieldLabel, ReportCard, ReportCardPair, SegmentedControl, Select } from '@/shared/ui'
 import { ErrorState } from '@/shared/ui/StateView'
-import { basisOptions } from '@/shared/lib/comparisonBasis'
+import { basisHint, basisOptions } from '@/shared/lib/comparisonBasis'
 import { customCandidates, reportOptionLabel, type PairLookup } from '../model/pairSelection'
 import { ReportDetail } from './ReportDetail'
 
@@ -33,7 +33,7 @@ export function PairSelector(props: PairSelectorProps) {
           비교 기준
         </FieldLabel>
         <SegmentedControl aria-labelledby="basis-label" options={basisOptions} value={basis} onChange={onBasisChange} />
-        <FieldHint>전년 동기는 작년 같은 기간 보고서와 비교해요. 계절에 따른 차이를 덜 받아요.</FieldHint>
+        <FieldHint>{basisHint(basis)}</FieldHint>
       </div>
 
       <ReportCardPair>
