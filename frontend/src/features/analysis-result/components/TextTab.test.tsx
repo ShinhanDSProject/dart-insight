@@ -741,6 +741,27 @@ describe('TextTab 표 행 비교(3.30)', () => {
     expect(within(card).queryByText('바뀜')).toBeNull()
   })
 
+  it('새 표와 짝지은 이전 표는 삭제되었다고 말하지 않고 짝지은 표를 알린다', () => {
+    const [card] = renderCards([
+      { ...item(1, '2. 우발부채 등에 관한 사항'), changeType: 'DELETED', blockType: 'TABLE', listGroup: 'PAIRED_TABLE', currentPreview: null },
+    ])
+    const view = within(card)
+    expect(view.getByText('표 구성 바뀜(이전 표)')).toBeTruthy()
+    expect(view.queryByText('삭제')).toBeNull()
+    expect(view.queryByText('삭제됨')).toBeNull()
+    expect(card.textContent).not.toContain('현재 보고서에서 확인되지 않음')
+    expect(card.textContent).not.toContain('빠졌다고')
+    expect(card.textContent).toContain('구성이 바뀐 표로 이어져요')
+    expect(view.getByText('이전 문장이에요.')).toBeTruthy()
+  })
+
+  it('짝이 없는 삭제는 지금처럼 삭제로 보인다', () => {
+    const [card] = renderCards([{ ...item(1, '2. 주요 제품'), changeType: 'DELETED', currentPreview: null }])
+    expect(within(card).getByText('삭제')).toBeTruthy()
+    expect(within(card).getByText('삭제됨')).toBeTruthy()
+    expect(card.textContent).toContain('현재 보고서에서 확인되지 않음')
+  })
+
   it('문단이나 옛 분석(rowDiff null)에는 행 비교 표시가 없다', () => {
     const [card] = renderCards([item(1, '1. 사업의 개요')])
     expect(within(card).queryByText('행 비교 안 함')).toBeNull()
