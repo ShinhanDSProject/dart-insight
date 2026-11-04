@@ -59,6 +59,39 @@ describe('MenuButton', () => {
     expect(document.activeElement).toBe(button)
   })
 
+  it('항목을 골라 닫으면 초점이 버튼으로 돌아온다', () => {
+    renderMenu()
+    const button = screen.getByRole('button', { name: '그 밖의 표' })
+    fireEvent.click(button)
+    fireEvent.click(screen.getByRole('button', { name: '자본변동표' }))
+    expect(document.activeElement).toBe(button)
+  })
+
+  it('초점이 상자 밖으로 나가면 닫고, 상자 안에서 옮기면 닫지 않는다', () => {
+    renderMenu()
+    const button = screen.getByRole('button', { name: '그 밖의 표' })
+    fireEvent.click(button)
+    fireEvent.focusOut(button, { relatedTarget: screen.getByRole('button', { name: '자본변동표' }) })
+    expect(button.getAttribute('aria-expanded')).toBe('true')
+    fireEvent.focusOut(button, { relatedTarget: null })
+    expect(button.getAttribute('aria-expanded')).toBe('true')
+    fireEvent.focusOut(button, { relatedTarget: screen.getByTestId('outside') })
+    expect(button.getAttribute('aria-expanded')).toBe('false')
+  })
+
+  it('아이콘 버튼은 ▾ 없이 aria-label로 읽히고 접근성 위반이 없다', async () => {
+    const { container } = render(
+      <MenuButton label={<span aria-hidden="true">⋯</span>} trigger="icon" aria-label="메뉴">
+        <MenuItem>고정</MenuItem>
+      </MenuButton>,
+    )
+    const button = screen.getByRole('button', { name: '메뉴' })
+    expect(button.className).toContain('icon-button')
+    expect(container.querySelector('.menu-button__caret')).toBeNull()
+    fireEvent.click(button)
+    expect(await axeViolations(container)).toBe('')
+  })
+
   it('펼친 상태에 접근성 위반이 없다', async () => {
     const { container } = renderMenu()
     fireEvent.click(screen.getByRole('button', { name: '그 밖의 표' }))

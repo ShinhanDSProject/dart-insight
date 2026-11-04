@@ -263,7 +263,7 @@ W-03 ④ 원문 확인
 | `Notice` | `tone`: `info`·`attention`·`blocked`, `title`, `as`: `div`·`p`·`aside` | 안내 상자 세 가지(정보·주의·진행 불가). `title`이 있으면 아이콘 + 굵은 제목 + 설명 |
 | `Page` / `PageHeader` | `as`, `width`: `narrow`(기본, 940)·`wide`(1060) / `breadcrumb`, `title`, `titleId`, `lead`, `aside` | 화면 본문 폭과 화면 머리(4-25) |
 | `Tabs` | `label`, `items`, `value`, `onChange` | 결과 탭(주소가 바뀌므로 `nav` + `aria-current="page"`) |
-| `MenuButton` / `MenuItem` | `label`, `trigger`: `button`(보조 버튼)·`chip`, `selected`(chip), `align`: `start`·`end`, `children`(함수면 닫는 함수를 받음) / 버튼 속성, 고른 값은 `aria-pressed` | 자주 쓰지 않는 동작을 묶는 펼침 상자(4-29): 결과 머리 '내보내기', 재무제표 '그 밖의 표', 이 기업의 다른 분석 |
+| `MenuButton` / `MenuItem` | `label`, `trigger`: `button`(보조 버튼)·`chip`·`icon`(아이콘만, `aria-label` 필수), `selected`(chip), `align`: `start`·`end`, `children`(함수면 닫는 함수를 받음) / 버튼 속성, 고른 값은 `aria-pressed` | 자주 쓰지 않는 동작을 묶는 펼침 상자(4-29): 결과 머리 '내보내기', 재무제표 '그 밖의 표', 이 기업의 다른 분석, 문장 변화 카드의 ⋯ 메뉴 |
 | `SegmentedControl` | `options`(`icon`은 선택), `value`, `onChange`, `disabled`, `variant`: `text`(기본)·`icon`, `aria-label`·`aria-labelledby` | 비교 기준, 전체·변경 항목, 정렬, 비교·현재 보고서. `icon`은 아이콘만 있는 작은 알약 모양(각 `label`이 접근 가능한 이름·툴팁). 상단 바 화면 테마는 `ThemeMenu`가 아이콘 버튼 아래 펼침 상자에 글자 칸으로 둔다(#548) |
 | `Chip` | `pressed`, `tone`: `neutral`·`attention`, `count` | 변경 유형 거르기 |
 | `Panel` / `PanelTitle` | `as`: `section`·`div` / `as`: `h2`·`h3`·`h4` | 화면의 큰 묶음 상자와 제목 |
@@ -531,8 +531,8 @@ W-03 ④ 원문 확인
 
 ## 4-29. 펼침 버튼 (#550)
 
-- `MenuButton`: 보조 버튼(또는 `trigger="chip"`이면 거르기 칩) 뒤에 ▾를 붙이고, 누르면 아래로 떠 있는 작은 상자(흰 바탕, 1px 테두리, 모서리 9, `--shadow-md`)를 연다. 펼친 상자 안 값이 지금 골라져 있으면 칩을 채운다(`selected`, `chip--selected`).
-- `aria-expanded`·`aria-controls`로 펼침을 알린다. Esc로 닫으면 초점을 버튼으로 돌려주고(뒤 근거 패널은 닫지 않음), 바깥을 누르면 닫는다. 항목을 고른 뒤 닫으려면 `children`을 함수로 넘겨 닫는 함수를 받는다.
+- `MenuButton`: 보조 버튼(또는 `trigger="chip"`이면 거르기 칩) 뒤에 ▾를 붙이고, 누르면 아래로 떠 있는 작은 상자(흰 바탕, 1px 테두리, 모서리 9, `--shadow-md`)를 연다. 펼친 상자 안 값이 지금 골라져 있으면 칩을 채운다(`selected`, `chip--selected`). `trigger="icon"`이면 ▾ 없이 아이콘 버튼으로 둔다(문장 변화 카드의 ⋯ 메뉴, 3.31).
+- `aria-expanded`·`aria-controls`로 펼침을 알린다. Esc로 닫거나 항목을 골라 닫으면 초점을 버튼으로 돌려주고(뒤 근거 패널은 닫지 않음), 바깥을 누르거나 초점이 밖으로 나가면 닫는다. 항목을 고른 뒤 닫으려면 `children`을 함수로 넘겨 닫는 함수를 받는다.
 - 항목은 `MenuItem`(글자 버튼, hover·고른 항목은 옅은 바탕). 링크 항목은 `className="menu-button__item"`. 인쇄에서는 숨긴다.
 
 ---
