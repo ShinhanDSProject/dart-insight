@@ -2923,7 +2923,7 @@
 ```
 
 - `status`
-  - `ANSWERED`: `answer`에 답. 문장 안의 `[1]`은 `citations[].no`입니다. 화면 이동만 하는 요청("사업의 내용 열어줘")도 `ANSWERED`이고, `answer`에 짧은 안내와 `actions`가 있습니다.
+  - `ANSWERED`: `answer`에 답. 문장 안의 `[1]`은 `citations[].no`입니다. 화면 이동만 하는 요청("사업의 내용 열어줘")도 `ANSWERED`이고, `answer`에 짧은 안내와 `actions`가 있습니다. 이동·저장 확인만 하는 정해진 꼴의 요청은 LLM 없이 정해진 안내로 답합니다(`aiGenerated: false`, 3절 `POST /internal/agent-steps`의 '정해진 요청', #631).
     - 저장 확인만 하는 요청("관심 기업에 추가해줘", "이거 노트에 담아줘"): LLM이 조회 Tool을 하나도 부르지 않고 `NOT_FOUND`로 끝냈는데 값 확인을 통과한 확인 액션(`CONFIRM_SAVE_NOTE`·`CONFIRM_FAVORITE`)이 하나라도 있으면 backend가 `ANSWERED`로 바꿉니다. `answer`는 정해진 안내 "아래 버튼을 누르면 저장해요."(LLM 없음, `aiGenerated: false`, `ai: null`), `citations`는 빈 배열입니다. 확인 버튼만 있는 답이 '확인된 설명 없음' 경고로 보이지 않게 하기 위해서입니다(#623). Tool을 실행했는데 `NOT_FOUND`인 조회·저장 복합 요청("소송 관련 변경을 알려주고 관심 기업에도 추가해줘")과 이동 액션(`OPEN_*`)만 있는 `NOT_FOUND`는 그대로 두어 '찾지 못함'을 알리고, 확인 버튼은 `actions`에 그대로 둡니다. 화면 맥락으로 먼저 넣은 결과(`context`의 고른 변경)는 Tool 실행으로 세지 않습니다. Tool을 하나라도 실행한 요청은 저장 대상을 찾으려던 것인지 정보를 보려던 것인지 응답만으로 가릴 수 없으므로, 조회 실패를 감추지 않게 `NOT_FOUND`로 둡니다("영업이익 변화 알려주고 노트에도 담아줘"). 그때도 확인 버튼은 `actions`에 있습니다.
   - `NOT_FOUND`: 실행에 성공한 Tool 결과에 관련 자료가 없음. Tool 실행이 모두 실패했으면 `NOT_FOUND`가 아니라 `REVIEW_NEEDED`(3절 `POST /internal/agent-steps`). `answer`는 null, `message`에 안내 "실행한 기능의 결과에서 관련 자료를 찾지 못했어요."(화면이 '확인된 설명 없음' 제목을 붙이므로 `message`에는 그 말을 다시 넣지 않음)
   - `OUT_OF_SCOPE`: 매수·매도·목표주가·주가 전망 요청. LLM을 부르지 않음
@@ -3545,6 +3545,19 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 - `final.actions`: 받은 `actions` 목록의 종류와 형식만. 근거가 아니라서 검토 노드는 형식만 봅니다(값 확인은 backend).
 - `rejections`: 검토 노드가 반려한 회차(`attempt`, 그때까지의 생성 횟수)와 규칙. 반려가 없으면 빈 배열입니다. 규칙: `ANSWER_EMPTY`, `ANSWER_TOO_LONG`, `EVIDENCE_MISSING`, `EVIDENCE_NOT_IN_TOOL_RESULT`, `MARKER_MISMATCH`, `NUMBER_NOT_IN_TOOL_RESULT`, `CAUSAL_NOT_IN_SOURCE`, `GRADE_CHANGED`, `BLOCKED_EXPRESSION`, `ACTION_INVALID`, `NOT_FOUND_AFTER_TOOL_FAILURE`
 - 빠른 명령: 메시지가 `/요약`·`/재무`·`/위험`으로 시작하고 그 Tool(`get_summary`·`get_financial_changes`·`search_text_changes`(`risk: true`))이 `tools`에 있고 정해 둔 인자가 그 Tool의 `parameters`에 맞으면 LLM 없이 그 Tool을 부르고, 결과가 오면 답합니다. 인자가 맞지 않으면(예: `risk`를 받지 않는 `search_text_changes`) 빠른 명령으로 보지 않고 LLM이 Tool을 고릅니다.
+- 정해진 요청(#631): 메시지 전체가 아래 꼴이면(앞뒤 공백·마침표·물음표·느낌표는 무시) LLM 없이 `FINAL`을 돌려줍니다. `status` `ANSWERED`, `answer`는 정해진 안내(근거 표시 없음), `evidenceIds`는 빈 배열, `actions`는 그 액션 하나, `model`·`generatedAt`은 null, `calls`는 빈 배열입니다. 꼴에 맞지 않거나, 그 액션이 `actions`에 없거나, 값을 하나로 정하지 못하면 지금처럼 LLM이 고릅니다(예: "사업의 내용에서 소송 찾아 열어줘"는 꼴에 맞지 않음).
+
+  | 요청 꼴 | 돌려주는 액션 | `answer` |
+  | --- | --- | --- |
+  | `{탭}( 탭)? 열어줘·보여줘`(탭: 요약, 재무 수치·재무, 문장 변화, 원문) | `OPEN_TAB` | "아래 버튼을 누르면 {탭} 탭을 열어요." |
+  | `{목차 제목}( 항목)? 열어줘·보여줘` | `OPEN_DOCUMENT`(`side` `current`) | "아래 버튼을 누르면 원문의 '{목차 제목}' 항목을 열어요." |
+  | `(이 기업·이 회사)? 관심 기업(에)? 추가해줘·등록해줘·넣어줘` | `CONFIRM_FAVORITE` | "아래 버튼을 누르면 관심 기업에 추가해요." |
+  | `(이거·이 변경·이 계정)? 노트에 담아줘·저장해줘·넣어줘`(`context`에 고른 변경이 있을 때만) | `CONFIRM_SAVE_NOTE`(`kind`는 고른 변경의 종류, `changeId`) | "아래 버튼을 누르면 노트에 담아요." |
+
+  - 탭 이름이 목차 제목보다 먼저입니다("원문 보여줘"는 원문 탭).
+  - 목차 열기는 먼저 LLM 없이 `get_document_outline`(`side` `current`)을 부르고(`TOOL_CALLS`), 결과가 오면 최상위·하위 항목 제목(앞의 번호 'II.'·'1.'과 공백은 무시) 중 **하나와만** 같을 때 `FINAL`을 돌려줍니다. 맞는 항목이 없거나 둘 이상이면 받은 목차 결과로 LLM이 이어 갑니다. 목차 결과 줄의 꼴(`[항목 {번호}] {제목} — 하위: [항목 {번호}] {제목} …`)은 backend `ToolTexts.outline`과 같습니다.
+- `context`: 공개 API의 `tab`·`side`·`sectionNo`와, 화면에서 고른 변경이 있으면 `textChangeId`·`financialChangeId`를 담습니다(정해진 요청의 노트 담기에 씀). 고른 변경의 내용은 Tool 결과로 따로 보냅니다.
+- backend는 `model`이 null이고 `calls`가 빈 `FINAL`이 `ANSWERED`이면서 근거 표시와 `evidenceIds`가 없으면 정해진 안내로 보고 그대로 내보냅니다(공개 응답 `aiGenerated: false`, `ai: null`, `citations` 빈 배열). LLM이 만든 답(`model`이 있음)은 지금처럼 근거 표시가 하나 이상 있어야 합니다.
 - `parameters`는 OpenAI 엄격 구조화 출력(ADR-0026)에 그대로 들어가므로 그 제약 안에서 씁니다: `type: object`이고 `properties`를 둠(빈 객체도 `properties: {}`), 지원 키워드는 문자열 `pattern`·`format`, 숫자 `minimum`·`maximum`·`exclusiveMinimum`·`exclusiveMaximum`·`multipleOf`, 배열 `minItems`·`maxItems`, `enum`, `anyOf`(최상위 제외). `allOf`·`not`·`if/then/else`는 쓰지 않습니다. 문자열 `minLength`·`maxLength`는 엄격 모드가 보장하지 않으므로 ai-server 코드 검사로만 걸립니다. 전체 10단계·속성 5,000개·enum 값 1,000개 이내(OpenAI Structured Outputs 'Supported schemas', 2026-11-03 확인). 필수가 아닌 필드는 ai-server가 null 허용으로 바꿔 보냅니다(`strict_schema`). 실제 OpenAI 호출로는 아직 확인하지 않았습니다(#577에서 Tool 목록이 생긴 뒤 확인).
 - 인자·액션 값의 형식 검사는 받은 `parameters`(JSON Schema)대로 합니다. 엄격 구조화 출력이 필수가 아닌 필드를 null로 채우므로 필수가 아닌 필드의 null은 없는 것으로 보고, 필수 필드의 null은 형식 오류입니다. 액션 값이 이 분석에 실제로 있는지는 ai-server가 보지 않고 backend가 확인합니다(없으면 그 액션을 빼고 로그).
 - `calls`: 이 단계에서 부른 LLM 기록(task `agent_plan` 다음 Tool 고르기, `agent_answer` 답 만들기). LLM을 부르지 않았으면 빈 배열이고 `model`·`generatedAt`은 null입니다.
