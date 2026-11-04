@@ -20,6 +20,8 @@ _BRIEF_REQUEST = re.compile(
     r"|정리해(?:줘|주세요|줄래)|목록으로|항목별로"
 )
 
+_LINE_COUNT = re.compile(r"(\d+)줄")
+
 FORMAT_INSTRUCTIONS = {
     FORMAT_CHAT: (
         f"[형식] CHAT: '~어요'로 끝나는 해요체로 3문장 이내, {MAX_CHAT}자 이내로 답합니다."
@@ -38,6 +40,12 @@ def answer_format(message: str) -> str:
     """사용자 메시지로 정한 답 형식."""
     compact = re.sub(r"\s+", "", message).lower()
     return FORMAT_BRIEF if _BRIEF_REQUEST.search(compact) else FORMAT_CHAT
+
+
+def requested_lines(message: str) -> int | None:
+    """사용자가 정한 줄 수('3줄 요약', '요약 5줄'). 정하지 않았으면 None."""
+    found = _LINE_COUNT.search(re.sub(r"\s+", "", message))
+    return int(found.group(1)) if found else None
 
 
 def max_answer(fmt: str) -> int:

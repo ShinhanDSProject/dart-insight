@@ -23,7 +23,7 @@ from typing import Any
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import SchemaError
 
-from app.agent.answer_format import answer_format, max_answer
+from app.agent.answer_format import answer_format, max_answer, requested_lines
 from app.agent.model import (
     ANSWERED,
     FORMAT_BRIEF,
@@ -52,6 +52,11 @@ GRADE_STATED = "STATED"
 ANSWER_EMPTY = "ANSWER_EMPTY"
 ANSWER_TOO_LONG = "ANSWER_TOO_LONG"
 BRIEF_LINE_WITHOUT_EVIDENCE = "BRIEF_LINE_WITHOUT_EVIDENCE"
+BRIEF_FORMAT = "BRIEF_FORMAT"
+BRIEF_LINE_COUNT = "BRIEF_LINE_COUNT"
+# 정리 형식 줄의 머리와, 줄 끝 근거 표시(뒤 공백만 허용)
+BRIEF_BULLET = "- "
+_ENDS_WITH_MARKER = re.compile(r"\[[^\[\]\n]+\]\s*$")
 EVIDENCE_MISSING = "EVIDENCE_MISSING"
 EVIDENCE_NOT_IN_TOOL_RESULT = "EVIDENCE_NOT_IN_TOOL_RESULT"
 MARKER_MISMATCH = "MARKER_MISMATCH"
@@ -293,14 +298,48 @@ def _answer_problem(draft: Draft, step: StepInput) -> tuple[str, str | None]:
             f"(표시만 있음: {not_listed[:3]}, 표시 없음: {not_marked[:3]})."
         )
     if fmt == FORMAT_BRIEF:
-        bare = [line for line in answer.splitlines() if line.strip() and not _MARKER.search(line)]
-        if bare:
-            line = bare[0].strip()[:40]
-            return BRIEF_LINE_WITHOUT_EVIDENCE, (
-                f"정리 형식은 줄마다 근거 표시가 있어야 합니다(근거 없는 줄: '{line}')."
-            )
+        return _brief_problem(answer, step, evidence)
     for sentence in _sentences(answer):
         rule, problem = _sentence_problem(sentence, evidence)
+        if problem:
+            return rule, problem
+    return "", None
+
+
+def _brief_problem(
+    answer: str, step: StepInput, evidence: dict[str, ResultItem]
+) -> tuple[str, str | None]:
+    """정리 형식(BRIEF): 줄 단위로 꼴·줄 수를 보고, 숫자·원인·등급은 그 줄이 인용한 근거로만 본다.
+
+    줄 끝에 마침표가 없어도 줄끼리 한 문장으로 묶이지 않게 문장이 아니라 줄로 나눈다.
+    """
+    lines = [line.strip() for line in answer.splitlines() if line.strip()]
+    bare = [line for line in lines if not _MARKER.search(line)]
+    if bare:
+        return BRIEF_LINE_WITHOUT_EVIDENCE, (
+            f"정리 형식은 줄마다 근거 표시가 있어야 합니다(근거 없는 줄: '{bare[0][:40]}')."
+        )
+    malformed = [
+        line
+        for line in lines
+        if not line.startswith(BRIEF_BULLET) or not _ENDS_WITH_MARKER.search(line)
+    ]
+    if malformed:
+        return BRIEF_FORMAT, (
+            "정리 형식은 줄마다 '- '로 시작하고 줄 끝에 근거 표시를 붙여야 합니다"
+            f"(맞지 않는 줄: '{malformed[0][:40]}')."
+        )
+    requested = requested_lines(step.message)
+    if requested is not None:
+        # 근거가 줄 수보다 적으면 그만큼만 쓰게 둔다(지어내서 줄 수를 채우지 않게)
+        least = min(requested, len(evidence))
+        if not least <= len(lines) <= requested:
+            return BRIEF_LINE_COUNT, (
+                f"사용자가 {requested}줄을 요청했습니다. {requested}줄로 쓰세요. "
+                "Tool 결과의 근거가 모자라면 근거가 있는 만큼만 쓰고 내용을 지어내지 마세요."
+            )
+    for line in lines:
+        rule, problem = _sentence_problem(line, evidence)
         if problem:
             return rule, problem
     return "", None
