@@ -77,5 +77,9 @@ export const endpoints = {
   commentReports: (commentId: number) => `/api/comments/${seg(commentId)}/reports`,
   repostRequests: (reportId: number) => `/api/reports/${seg(reportId)}/repost-requests`,
   adminReports: () => '/api/admin/reports',
+  adminOverview: () => '/api/admin/overview',
+  adminAnalyses: () => '/api/admin/analyses',
+  adminUsers: () => '/api/admin/users',
+  planInterests: () => '/api/plan-interests',
   adminReport: (reportId: number) => `/api/admin/reports/${seg(reportId)}`,
 }
