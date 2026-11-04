@@ -13,6 +13,10 @@ interface AddToNoteProps {
   analysisId: number
   /** 화면 읽기용 이름(계정명·섹션). 버튼 이름에 붙인다 */
   label: string
+  /** 메뉴에서 고른 경우처럼 버튼을 거치지 않고 바로 메모 칸이나 로그인 안내를 연다 */
+  startOpen?: boolean
+  /** startOpen으로 연 것을 저장하지 않고 닫았을 때 */
+  onClose?: () => void
 }
 
 /** closed: 버튼만, login: 로그인 안내, editing: 메모 칸, saved: 담음 */
@@ -23,14 +27,20 @@ type View = { status: 'closed' } | { status: 'login' } | { status: 'editing' } |
  * 로그인하지 않았으면 서버를 부르지 않고 로그인 안내만 보인다.
  * 담는 값·문장은 서버가 분석 ID와 변경 ID(AI 답 인용은 질문 ID·인용 번호)로 저장된 근거에서 만든다(화면이 글을 보내지 않음).
  */
-export function AddToNote({ target, analysisId, label }: AddToNoteProps) {
+export function AddToNote({ target, analysisId, label, startOpen = false, onClose }: AddToNoteProps) {
   const auth = useAuth()
-  const [view, setView] = useState<View>({ status: 'closed' })
+  const openedView = (): View => (auth.state.status === 'authenticated' ? { status: 'editing' } : { status: 'login' })
+  // 로그인 상태를 아직 모르면 눌리지 않는 버튼부터 둔다
+  const [view, setView] = useState<View>(() => (startOpen && auth.state.status !== 'loading' ? openedView() : { status: 'closed' }))
   const save = useAsyncAction<NoteItem>()
 
   const open = () => {
     save.reset()
-    setView(auth.state.status === 'authenticated' ? { status: 'editing' } : { status: 'login' })
+    setView(openedView())
+  }
+  const dismiss = () => {
+    setView({ status: 'closed' })
+    onClose?.()
   }
   const submit = (memo: string | null) => {
     void save.run(async () => {
@@ -64,7 +74,7 @@ export function AddToNote({ target, analysisId, label }: AddToNoteProps) {
         .with({ status: 'login' }, () => (
           <Notice as="div" role="status" className="note-add__login">
             로그인하면 근거를 노트에 담고 메모를 남길 수 있어요. <Link to="/login">로그인하기</Link>{' '}
-            <Button variant="link" onClick={() => setView({ status: 'closed' })}>
+            <Button variant="link" onClick={dismiss}>
               닫기
             </Button>
           </Notice>
@@ -76,7 +86,7 @@ export function AddToNote({ target, analysisId, label }: AddToNoteProps) {
             maxLength={NOTE_MEMO_MAX}
             saving={save.state.status === 'loading'}
             onSave={submit}
-            onCancel={() => setView({ status: 'closed' })}
+            onCancel={dismiss}
             error={
               save.state.status === 'error' ? (
                 <ErrorState
