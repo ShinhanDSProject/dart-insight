@@ -1,3 +1,4 @@
+import { match } from 'ts-pattern'
 import type { NoteScope, TextField, TextListGroup } from '@/shared/api/textChanges'
 import { resultCountLabel } from './textFilter'
 import type { TextTypeFilter } from './textFilter'
@@ -66,7 +67,9 @@ export function defaultListNote(counts: GroupCounts): string {
 
 /** 주석 카드에 붙이는 이름. 구분할 수 없거나 주석이 아니면 null */
 export function noteScopeLabel(scope: NoteScope | null): string | null {
-  if (scope === 'CONSOLIDATED') return '연결 주석'
-  if (scope === 'SEPARATE') return '별도 주석'
-  return null
+  return match(scope)
+    .with('CONSOLIDATED', () => '연결 주석')
+    .with('SEPARATE', () => '별도 주석')
+    .with('UNKNOWN', null, () => null)
+    .exhaustive()
 }
