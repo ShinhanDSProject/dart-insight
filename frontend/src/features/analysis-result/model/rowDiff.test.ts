@@ -63,13 +63,19 @@ describe('visibleChangedRows·hiddenChangedRows', () => {
 
 describe('cardTypeLabel', () => {
   it('구성이 바뀌어 짝지은 표는 추가가 아니라 표 구성이 바뀐 것으로 보인다', () => {
-    expect(cardTypeLabel({ changeType: 'ADDED', rowDiff: compared })).toBe('표 구성 바뀜')
+    expect(cardTypeLabel({ changeType: 'ADDED', listGroup: 'MAIN', rowDiff: compared })).toBe('표 구성 바뀜')
+  })
+
+  it('새 표와 짝지어 접은 이전 표는 삭제가 아니라 이전 표로 보인다', () => {
+    expect(cardTypeLabel({ changeType: 'DELETED', listGroup: 'PAIRED_TABLE', rowDiff: null })).toBe('표 구성 바뀜(이전 표)')
   })
 
   it('그 밖에는 변경 유형 이름 그대로다', () => {
-    expect(cardTypeLabel({ changeType: 'ADDED', rowDiff: null })).toBe('추가')
-    expect(cardTypeLabel({ changeType: 'MODIFIED', rowDiff: { ...compared, pairedPrevious: null } })).toBe('수정')
-    expect(cardTypeLabel({ changeType: 'MODIFIED', rowDiff: notCompared })).toBe('수정')
+    expect(cardTypeLabel({ changeType: 'ADDED', listGroup: 'MAIN', rowDiff: null })).toBe('추가')
+    expect(cardTypeLabel({ changeType: 'DELETED', listGroup: 'MAIN', rowDiff: null })).toBe('삭제')
+    expect(cardTypeLabel({ changeType: 'DELETED', listGroup: null, rowDiff: null })).toBe('삭제')
+    expect(cardTypeLabel({ changeType: 'MODIFIED', listGroup: 'MAIN', rowDiff: { ...compared, pairedPrevious: null } })).toBe('수정')
+    expect(cardTypeLabel({ changeType: 'MODIFIED', listGroup: 'MAIN', rowDiff: notCompared })).toBe('수정')
   })
 })
 

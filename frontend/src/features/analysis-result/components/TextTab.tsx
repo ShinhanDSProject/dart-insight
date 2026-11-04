@@ -26,7 +26,7 @@ import { sectionAskQuestion } from '../model/askQuestion'
 import { numberChanges } from '../model/numberChanges'
 import { pinnedChangesText } from '../model/copyText'
 import { RISK_BADGE, RISK_EMPTY } from '../model/riskChanges'
-import { cardTypeLabel, comparedRowsOf, isNotCompared, NOT_COMPARED_LABEL, NOT_COMPARED_NOTE } from '../model/rowDiff'
+import { cardTypeLabel, comparedRowsOf, isNotCompared, isPairedPreviousTable, NOT_COMPARED_LABEL, NOT_COMPARED_NOTE, PAIRED_TABLE_CURRENT } from '../model/rowDiff'
 import { PINNED_EMPTY, PINNED_LABEL, PINNED_NOTE } from '../model/pinnedList'
 import type { SourceTarget, TextViewChange } from '../model/resultParams'
 import {
@@ -465,6 +465,7 @@ function ChangeCard({
   const review = item.changeType === 'REVIEW_NEEDED'
   const scope = noteScopeLabel(item.noteScope)
   const comparedRows = comparedRowsOf(item.rowDiff)
+  const pairedPrevious = isPairedPreviousTable(item)
   const typeLabel = cardTypeLabel(item)
   // '숫자만 바뀜' 카드에만 바뀐 숫자 쌍을 보인다(짝이 확실하지 않으면 null이라 숨김). 행을 비교했으면 바뀐 행이 대신한다
   const numbers = item.changeType === 'NUMERIC_UPDATE' && comparedRows === null ? numberChanges(item.previousPreview, item.currentPreview) : null
@@ -520,19 +521,19 @@ function ChangeCard({
             role={`이전 · ${analysis.previous.reportName}`}
             text={item.previousPreview}
             missing={missingSideLabel(item.changeType, 'previous')}
-            removed={item.changeType === 'DELETED'}
+            removed={item.changeType === 'DELETED' && !pairedPrevious}
           />
           <SidePreview
             role={`현재 · ${analysis.current.reportName}`}
             text={item.currentPreview}
-            missing={missingSideLabel(item.changeType, 'current')}
+            missing={pairedPrevious ? PAIRED_TABLE_CURRENT : missingSideLabel(item.changeType, 'current')}
             added={item.changeType === 'ADDED'}
           />
         </div>
       )}
       {isNotCompared(item.rowDiff) && <p className="panel__note">{NOT_COMPARED_NOTE}</p>}
       {numbers !== null && <NumberChangesLine changes={numbers} />}
-      {showTypeNote && item.changeType === 'DELETED' && <p className="panel__note">{DELETED_NOTE}</p>}
+      {showTypeNote && item.changeType === 'DELETED' && !pairedPrevious && <p className="panel__note">{DELETED_NOTE}</p>}
       <MovedPaths item={item} withNote={showTypeNote} />
       <div className="change-card__actions">
         <Button variant="secondary" id={evidenceButtonId(item.changeId)} aria-haspopup="dialog" onClick={onToggle}>
