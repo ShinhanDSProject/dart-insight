@@ -333,6 +333,27 @@ def test_brief_line_must_start_with_bullet_and_end_with_marker() -> None:
     assert [r.rules for r in output.rejections] == [["BRIEF_FORMAT"], ["BRIEF_FORMAT"]]
 
 
+def test_brief_rejects_lines_repeated_with_only_spacing_or_punctuation_changes() -> None:
+    repeated = (
+        "- 영업이익은 6.6조 원에서 4.3조 원으로 줄었어요. [F4221]\n"
+        "- 영업이익은  6.6조 원에서 4.3조 원으로 줄었어요! [F4221]"
+    )
+    distinct = (
+        "- 영업이익은 6.6조 원에서 4.3조 원으로 줄었어요. [F4221]\n"
+        "- 관련 공시 내용이 있어요. [F4221]"
+    )
+    client, _ = llm(
+        {"decision": "ANSWER", "toolCalls": [], "draft": answer(repeated, ["F4221"])},
+        answer(distinct, ["F4221"]),
+    )
+
+    output = run_step(client, step("2줄 요약해줘", results=[FINANCIAL]))
+
+    assert output.final is not None
+    assert output.final.status == "ANSWERED"
+    assert [r.rules for r in output.rejections] == [["BRIEF_DUPLICATE_LINE"]]
+
+
 def test_chat_answer_keeps_400_char_limit_while_brief_allows_1500() -> None:
     long_line = "영업이익은 6.6조 원에서 4.3조 원으로 줄었어요[F4221]. " * 12
     client, _ = llm(
@@ -345,12 +366,30 @@ def test_chat_answer_keeps_400_char_limit_while_brief_allows_1500() -> None:
 
     assert chat.final is not None and chat.final.status == REVIEW_NEEDED
     assert chat.rejections[0].rules == ["ANSWER_TOO_LONG"]
-    names = ["가", "나", "다", "라", "마", "바", "사", "아", "자", "차", "카", "타"]
-    brief_text = "\n".join(
-        f"- {n} 항목: 영업이익은 6.6조 원에서 4.3조 원으로 줄었어요. [F4221]" for n in names
-    )
-    client, _ = llm({"decision": "ANSWER", "toolCalls": [], "draft": answer(brief_text, ["F4221"])})
-    brief = run_step(client, step("확인할 점 정리해줘", results=[FINANCIAL]))
+    # 계정마다 근거가 따로 있는 서로 다른 사실 12줄
+    accounts = [
+        "매출액",
+        "매출원가",
+        "매출총이익",
+        "판매비와관리비",
+        "영업이익",
+        "금융수익",
+        "금융비용",
+        "법인세비용",
+        "당기순이익",
+        "자산총계",
+        "부채총계",
+        "자본총계",
+    ]
+    items = [
+        ResultItem(f"F{100 + i}", f"{name}은 {i + 1}.1조 원에서 {i + 1}.2조 원으로 늘었어요.")
+        for i, name in enumerate(accounts)
+    ]
+    many = ToolResult("c1", "get_financial_changes", {}, True, items=items)
+    brief_text = "\n".join(f"- {item.text} [{item.evidence_id}]" for item in items)
+    ids = [item.evidence_id for item in items]
+    client, _ = llm({"decision": "ANSWER", "toolCalls": [], "draft": answer(brief_text, ids)})
+    brief = run_step(client, step("확인할 점 정리해줘", results=[many]))
     assert brief.final is not None and brief.final.status == "ANSWERED"
     assert 400 < len(brief.final.answer or "") <= 1500
 

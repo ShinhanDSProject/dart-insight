@@ -332,7 +332,10 @@ def _brief_problem(
         )
     bodies = [_compact(without_markers(line)) for line in lines]
     if len(set(bodies)) < len(bodies):
-        # 같은 내용을 되풀이해 줄 수를 채우지 않게 한다
+        # 같은 줄을 되풀이해 줄 수를 채우지 않게 한다. 보장 범위는 글자 반복뿐이다: 근거 표시·공백·
+        # 문장부호만 무시하고 비교하므로, 조사·어미만 바꾼 같은 사실('영업이익은 감소했어요'·
+        # '영업이익 감소가 확인됐어요')은 잡지 않는다. 뜻이 같은지는 코드로 안정적으로 가릴 수 없고,
+        # 이 검사에 LLM 판정을 더하지 않는다(ADR-0045 검토 노드는 코드 규칙)
         return (
             BRIEF_DUPLICATE_LINE,
             "정리 형식에 같은 내용의 줄이 있습니다. 줄마다 다른 내용을 쓰세요.",
