@@ -94,17 +94,19 @@ public final class AgentActions {
     }
 
     /**
-     * 저장 확인만 하는 요청인지: 확인 액션이 있고, 실행한 Tool마다 그 결과에 노트에 담을 대상(재무·문장 변경)이
-     * 들어 있다(대상을 찾으려고 부른 Tool). 대상이 없는 Tool 결과가 하나라도 있으면 따로 조회한 것으로 본다.
+     * 저장 확인만 하는 요청인지: 확인 액션이 있고, 실행한 Tool이 모두 변경을 찾는 Tool이며 그 결과에 노트에 담을
+     * 대상(재무·문장 변경)이 들어 있다. 설명·요약·질문·원문처럼 정보를 보는 Tool을 하나라도 불렀으면 결과에 대상이
+     * 들어 있어도 조회한 것으로 본다(조회·저장 복합 요청의 실패를 감추지 않게). 관심 기업 추가는 대상이 없으므로
+     * Tool을 부르지 않았을 때만 저장 확인만 하는 요청이다.
      *
-     * @param lookups 실행한 Tool마다 그 결과의 근거 ID
+     * @param lookups LLM이 고른 Tool 실행(화면 맥락으로 먼저 넣은 결과는 빼고)
      */
-    public static boolean onlySaves(List<Map<String, Object>> actions, List<Set<String>> lookups) {
+    public static boolean onlySaves(List<Map<String, Object>> actions, List<ToolLookup> lookups) {
         if (!hasConfirm(actions)) {
             return false;
         }
         Set<String> targets = noteTargets(actions);
-        return lookups.stream().allMatch(ids -> ids.stream().anyMatch(targets::contains));
+        return lookups.stream().allMatch(l -> l.locatesChange() && l.evidenceIds().stream().anyMatch(targets::contains));
     }
 
     /** 노트에 담기 액션이 가리키는 변경의 근거 ID(F{id}·T{id}) */
