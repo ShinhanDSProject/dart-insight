@@ -4,12 +4,14 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.util.List;
+import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 
 /** 에러 처리 테스트에서만 쓰는 컨트롤러(src/test에만 있음). */
 @RestController
@@ -24,6 +26,12 @@ class ErrorTestController {
     @GetMapping("/unexpected")
     String unexpected() {
         throw new IllegalStateException("예상하지 못한 오류");
+    }
+
+    @GetMapping("/client-gone")
+    String clientGone() {
+        throw new HttpMessageNotWritableException("Could not write JSON",
+                new AsyncRequestNotUsableException("ServletOutputStream failed to write"));
     }
 
     @GetMapping("/param")
