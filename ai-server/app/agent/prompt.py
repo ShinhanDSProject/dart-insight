@@ -17,7 +17,7 @@ from app.llm.prompting import SOURCE_RULE, attr, disclosure, escape
 from app.llm.providers import LlmRequest
 
 # 결과가 달라지게 바꾸면 이 버전을 올린다(검사 규칙 app/agent/validate.py 포함)
-PROMPT_VERSION = "agent-2"
+PROMPT_VERSION = "agent-3"
 TASK_PLAN = "agent_plan"
 TASK_ANSWER = "agent_answer"
 MAX_MESSAGE_CHARS = 500
@@ -78,7 +78,11 @@ ANSWER_SYSTEM = "\n".join(
         "<item>은 근거로 쓰지 않습니다.",
         "8. 화면 이동이나 확인 버튼이 도움이 되면 actions에 주어진 액션 종류와 형식으로 적습니다. "
         "값은 Tool 결과에 있는 것만 씁니다.",
-        "9. Tool 결과로 답할 수 없으면 status를 NOT_FOUND로 하고 answer는 null, "
+        "9. search_companies 결과에 기업이 여럿이고 사용자가 어느 기업인지 정하지 않았으면, "
+        "하나로 정하지 말고 후보 기업을 근거 표시와 함께 들어 "
+        "어느 기업인지 묻는 답(ANSWERED)을 씁니다"
+        "(예: '예시전자[C00000001]와 예시전자서비스[C00000002] 중 어느 기업인지 알려 주세요.').",
+        "10. Tool 결과로 답할 수 없으면 status를 NOT_FOUND로 하고 answer는 null, "
         "evidenceIds는 빈 배열로 둡니다.",
         DATA_RULE,
         "답은 JSON 객체 하나만: "
@@ -155,7 +159,9 @@ def build_plan_request(step: StepInput) -> LlmRequest:
         user="\n".join(lines),
         output_schema=plan_schema(step),
         context=step,
-        max_output_tokens=600,
+        # 추론 모델은 생각 토큰도 이 한도에 들어간다.
+        # Tool이 20개로 늘어 600에서 잘린 적이 있어 넉넉히 둔다(#582)
+        max_output_tokens=2000,
     )
 
 
