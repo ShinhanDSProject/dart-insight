@@ -140,7 +140,7 @@ describe('관심 기업 새 공시(FS-52)', () => {
     expect(within(rows[0]).queryByText('새 공시')).toBeTruthy()
     expect(within(rows[1]).queryByText('새 공시')).toBeNull()
     await waitFor(() => expect(window.localStorage.getItem(FEED_SEEN_AT_KEY)).not.toBe('2026-10-22'))
-    expect(window.localStorage.getItem(FEED_SEEN_AT_KEY)).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(JSON.parse(window.localStorage.getItem(FEED_SEEN_AT_KEY) ?? '{}').date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     // 본 날을 바꿔도 지금 보이는 표시는 그대로다
     expect(within(rows[0]).queryByText('새 공시')).toBeTruthy()
   })
