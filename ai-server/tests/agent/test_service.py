@@ -138,6 +138,63 @@ def test_answer_cites_tool_result_after_review() -> None:
     assert [c.task for c in output.calls] == ["agent_plan", "agent_answer"]
 
 
+def test_plan_with_draft_answers_without_separate_answer_call() -> None:
+    draft = answer("영업이익은 6.6조 원에서 4.3조 원으로 줄었어요[F4221].", ["F4221"])
+    client, provider = llm({"decision": "ANSWER", "toolCalls": [], "draft": draft})
+
+    output = run_step(client, step(results=[FINANCIAL]))
+
+    assert output.kind == FINAL
+    assert output.final is not None
+    assert output.final.status == "ANSWERED"
+    assert output.final.evidence_ids == ["F4221"]
+    assert [r.task for r in provider.requests] == [TASK_PLAN]
+    assert output.rejections == []
+
+
+def test_rejected_plan_draft_is_rewritten_by_answer_call_within_budget() -> None:
+    wrong = answer("영업이익은 2.3조 원 줄었어요[F4221].", ["F4221"])
+    client, provider = llm(
+        {"decision": "ANSWER", "toolCalls": [], "draft": wrong},
+        answer("영업이익은 6.6조 원에서 4.3조 원으로 줄었어요[F4221].", ["F4221"]),
+    )
+
+    output = run_step(client, step(results=[FINANCIAL]))
+
+    assert output.final is not None
+    assert output.final.status == "ANSWERED"
+    assert [r.task for r in provider.requests] == [TASK_PLAN, TASK_ANSWER]
+    assert [(r.attempt, r.rules) for r in output.rejections] == [(1, ["NUMBER_NOT_IN_TOOL_RESULT"])]
+    assert "반려" in provider.requests[1].user
+
+
+def test_plan_draft_counts_as_first_generation_in_budget() -> None:
+    wrong = answer("영업이익은 2.3조 원 줄었어요[F4221].", ["F4221"])
+    client, provider = llm({"decision": "ANSWER", "toolCalls": [], "draft": wrong}, wrong, wrong)
+
+    output = run_step(client, step(results=[FINANCIAL]))
+
+    assert output.final is not None
+    assert output.final.status == REVIEW_NEEDED
+    # 고르기 초안 1 + 다시 쓰기 2 = 3회가 상한
+    assert [r.task for r in provider.requests] == [TASK_PLAN, TASK_ANSWER, TASK_ANSWER]
+    assert [r.attempt for r in output.rejections] == [1, 2, 3]
+
+
+def test_plan_answer_without_valid_draft_falls_back_to_answer_call() -> None:
+    client, provider = llm(
+        {"decision": "ANSWER", "toolCalls": [], "draft": {"status": "모름"}},
+        answer("영업이익은 6.6조 원에서 4.3조 원으로 줄었어요[F4221].", ["F4221"]),
+    )
+
+    output = run_step(client, step(results=[FINANCIAL]))
+
+    assert output.final is not None
+    assert output.final.status == "ANSWERED"
+    assert [r.task for r in provider.requests] == [TASK_PLAN, TASK_ANSWER]
+    assert output.rejections == []
+
+
 def test_wrong_number_is_rejected_and_second_draft_passes() -> None:
     client, provider = llm(
         answer("영업이익은 2.3조 원 줄었어요[F4221].", ["F4221"]),

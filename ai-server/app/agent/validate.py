@@ -124,6 +124,20 @@ def parse_plan(data: Any, step: StepInput) -> list[ToolCall]:
     return parsed
 
 
+def plan_draft(data: Any) -> Draft | None:
+    """Tool 고르기가 자료가 충분하다며(ANSWER) 함께 쓴 답 초안(ADR-0049).
+
+    CALL_TOOLS이거나 초안이 없거나 형식이 틀리면 None이다. 그때는 답 쓰기 노드가 답을 쓴다
+    (초안 형식 오류로 고르기를 다시 부르지 않는다).
+    """
+    if not isinstance(data, dict) or data.get("decision") != ANSWER:
+        return None
+    try:
+        return parse_draft(data.get("draft"))
+    except OutputProblem:
+        return None
+
+
 def parse_draft(data: Any) -> Draft:
     if not isinstance(data, dict):
         raise OutputProblem(["status·answer·evidenceIds·actions가 있는 JSON 객체가 필요합니다."])
