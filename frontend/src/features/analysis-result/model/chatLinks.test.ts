@@ -76,6 +76,51 @@ describe('chatActionTarget', () => {
     })
   })
 
+  it('노트에 담기 확인은 note를 POST /api/notes 본문으로 옮기고 빈 메모는 null로 둔다', () => {
+    expect(
+      chatActionTarget(
+        { type: 'CONFIRM_SAVE_NOTE', label: '노트에 담기', note: { kind: 'TEXT_CHANGE', analysisId: 42, changeId: 5012, memo: ' ' } },
+        [],
+      ),
+    ).toEqual({ kind: 'save-note', note: { kind: 'TEXT_CHANGE', analysisId: 42, changeId: 5012, memo: null } })
+    expect(
+      chatActionTarget(
+        {
+          type: 'CONFIRM_SAVE_NOTE',
+          label: null,
+          note: { kind: 'ANSWER_CITATION', analysisId: 42, questionId: 7, citationNo: 1, memo: '소송 확인' },
+        },
+        [],
+      ),
+    ).toEqual({
+      kind: 'save-note',
+      note: { kind: 'ANSWER_CITATION', analysisId: 42, questionId: 7, citationNo: 1, memo: '소송 확인' },
+    })
+  })
+
+  it('노트에 담기 확인은 종류에 필요한 ID가 없거나 메모가 글이 아니면 무시한다', () => {
+    const ignored = [
+      { kind: 'TEXT_CHANGE', analysisId: 42 },
+      { kind: 'ANSWER_CITATION', analysisId: 42, questionId: 7 },
+      { kind: 'FINANCIAL_CHANGE', changeId: 31 },
+      { kind: 'FINANCIAL_CHANGE', analysisId: 42, changeId: 31, memo: 3 },
+      { kind: 'POST', analysisId: 42, changeId: 31 },
+    ]
+    for (const note of ignored) {
+      expect(chatActionTarget({ type: 'CONFIRM_SAVE_NOTE', label: null, note }, [])).toEqual({ kind: 'ignore' })
+    }
+    expect(chatActionTarget({ type: 'CONFIRM_SAVE_NOTE', label: null }, [])).toEqual({ kind: 'ignore' })
+  })
+
+  it('관심 기업 확인은 고유번호 8자리일 때만 버튼이 된다', () => {
+    expect(chatActionTarget({ type: 'CONFIRM_FAVORITE', label: '관심 기업에 추가', corpCode: '00126380' }, [])).toEqual({
+      kind: 'favorite',
+      corpCode: '00126380',
+    })
+    expect(chatActionTarget({ type: 'CONFIRM_FAVORITE', label: null, corpCode: '005930' }, [])).toEqual({ kind: 'ignore' })
+    expect(chatActionTarget({ type: 'CONFIRM_FAVORITE', label: null }, [])).toEqual({ kind: 'ignore' })
+  })
+
   it('용어 사전에 없는 용어는 뜻을 지어내지 않고, 모르는 종류·값이 틀린 액션은 무시한다', () => {
     expect(chatActionTarget({ type: 'OPEN_GLOSSARY', label: null, term: '충당부채' }, [])).toEqual({
       kind: 'glossary',

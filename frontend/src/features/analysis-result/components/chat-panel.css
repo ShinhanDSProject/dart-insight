@@ -152,3 +152,18 @@ span.chat-panel__citation {
   font-size: var(--font-size-sm);
   color: var(--color-danger);
 }
+
+/* 쓰기 확인 버튼(노트·관심 기업, AC9·AC10). 안내·오류가 붙으면 한 줄을 다 쓴다 */
+.chat-panel__confirm:has(.state),
+.chat-panel__login {
+  flex-basis: 100%;
+}
+
+.chat-panel__login {
+  font-size: var(--font-size-sm);
+}
+
+.chat-panel__done {
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
