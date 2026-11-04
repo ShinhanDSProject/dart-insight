@@ -216,6 +216,10 @@ const mockRiskChanges: TextChangeItem[] = [
     reviewReason: null,
     priority: { level: 'HIGH', score: 85, reasons: ['위험 섹션'] },
     riskRelated: true,
+    listGroup: 'MAIN',
+    field: 'BUSINESS',
+    raisedFromNote: false,
+    noteScope: null,
   },
 ]
 

@@ -116,6 +116,8 @@ const mockTextList: TextChangeList = {
   listVersion: null,
   fieldCounts: null,
   missingFields: null,
+  group: null,
+  groupCounts: null,
   items: [],
 }
 

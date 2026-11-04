@@ -99,6 +99,10 @@ function textItem(changeId: number, overrides: Partial<TextChangeItem> = {}): Te
     reviewReason: null,
     priority: null,
     riskRelated: false,
+    listGroup: 'MAIN',
+    field: 'BUSINESS',
+    raisedFromNote: false,
+    noteScope: null,
     ...overrides,
   }
 }
@@ -125,6 +129,8 @@ function textList(items: TextChangeItem[]): TextChangeList {
     listVersion: null,
     fieldCounts: null,
     missingFields: null,
+    group: null,
+    groupCounts: null,
     items,
   }
 }

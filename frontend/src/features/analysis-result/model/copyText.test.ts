@@ -176,6 +176,10 @@ describe('pinnedChangesText', () => {
     reviewReason: null,
     priority: null,
     riskRelated: false,
+    listGroup: 'MAIN',
+    field: 'BUSINESS',
+    raisedFromNote: false,
+    noteScope: null,
     ...over,
   })
 

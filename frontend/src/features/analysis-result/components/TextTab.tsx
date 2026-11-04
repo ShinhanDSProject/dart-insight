@@ -14,6 +14,8 @@ import { RiskChangesCard } from './RiskChangesCard'
 import { TextEvidencePanel } from './TextEvidencePanel'
 import { TextExplanationBox } from './TextExplanationBox'
 import { TextFieldTable } from './TextFieldTable'
+import { TextFoldedGroups } from './TextFoldedGroups'
+import { TextListFooter } from './TextListFooter'
 import { usePinnedChanges, usePinnedTextChanges } from '../hooks/usePinnedChanges'
 import { useTextChanges } from '../hooks/useTextChanges'
 import { useTextExplanations, type TextExplanations } from '../hooks/useTextExplanations'
@@ -43,7 +45,6 @@ import {
 import {
   ALL_SECTIONS,
   hasSearchFilter,
-  moreLabel,
   resultCountLabel,
   SEARCH_MAX_LENGTH,
   SEARCH_TOO_SHORT,
@@ -51,6 +52,7 @@ import {
   type TextTypeFilter,
 } from '../model/textFilter'
 import { ALL_FIELDS_LABEL, resolveTextField, textFieldLabel } from '../model/textFields'
+import { DEFAULT_LIST_EMPTY, DEFAULT_LIST_EMPTY_NOTE, defaultListNote, foldedTotal, isDefaultList, noteScopeLabel } from '../model/textGroups'
 import { displaySectionPath } from '@/shared/lib/sectionTitle'
 
 const sortOptions: { value: TextSort; label: string }[] = [
@@ -89,6 +91,7 @@ interface TextTabProps {
  * 맨 위 '위험 요인 변화' 카드에 위험 관련 목차의 건수를 보이고 '위험 관련만'으로 거른다(3.9, FS-61).
  * 문장을 비교하지 못했으면 '변경 없음'이 아니라 사유를 보여 준다. 짝짓지 못한 항목은 숨기지 않고 '검토 필요'로 둔다.
  * 맨 위 분야별 표에서 분야마다 몇 건이 바뀌었는지 보이고, 칸을 눌러 그 분야로 거른다(3.28). 옛 분석에는 표가 없고 주소의 분야도 쓰지 않는다.
+ * 거르지 않으면 기본 목록만 보이고 나머지는 아래 접힌 묶음에 둔다. 거르면 접힌 변경도 찾는다(3.29). 옛 분석에는 묶음이 없고 모든 변경이 목록에 있다.
  * 카드마다 고정할 수 있고, '고정' 거르기를 고르면 이 분석에서 고정한 변경만 보여 준다(3.3, 이 브라우저에만 남음).
  * 고정 보기에서는 고정한 변경을 원문·출처와 함께 한 번에 복사할 수 있다(FS-31).
  * 키보드로 카드를 옮겨 다니며(j·k·↑·↓) 근거를 열고(Enter) 고정할(p) 수 있다(#311).
@@ -131,6 +134,9 @@ export function TextTab({
   const riskOnly = risk && !pinned
   // 섹션을 골랐을 때만 그 섹션 변화를 묻는 버튼을 둔다(목차 밖 본문은 빼고)
   const sectionQuestion = sectionAskQuestion(section)
+  const groupCounts = listing?.groupCounts ?? null
+  const defaultList = !pinned && isDefaultList({ type, section, q, risk, field })
+  const folded = groupCounts !== null && foldedTotal(groupCounts) > 0
   const clearFilters = () => {
     searchBox.setInput('')
     onChange({ type: null, section: null, q: null, risk: false, field: null })
@@ -143,7 +149,12 @@ export function TextTab({
     searchBox.setInput('')
     onChange({ pinned: true })
   }
-  // 고른 항목이 지금 목록(거르기·쪽·고정)에 없어도 근거는 연다(요약·주소에서 바로 온 경우)
+  const closeEvidence = (changeId: number) => {
+    onChange({ change: null })
+    // 닫으면 그 항목의 '원문 비교' 버튼으로 초점을 돌려준다
+    requestAnimationFrame(() => document.getElementById(evidenceButtonId(changeId))?.focus())
+  }
+  // 고른 항목이 지금 목록(거르기·쪽·고정)에 없어도 근거는 연다(요약·주소에서 바로 온 경우, 펼친 묶음의 변경)
   const outsideEvidence = (items: TextChangeItem[]) =>
     selectedChangeId !== null &&
     !items.some((i) => i.changeId === selectedChangeId) && (
@@ -151,13 +162,13 @@ export function TextTab({
         key={selectedChangeId}
         analysis={analysis}
         changeId={selectedChangeId}
-        onClose={() => onChange({ change: null })}
+        onClose={() => closeEvidence(selectedChangeId)}
         onOpenSource={onOpenSource}
         onAsk={onAsk}
         asking={asking}
       />
     )
-  const changeList = (items: TextChangeItem[]) => {
+  const changeList = (items: TextChangeItem[], inlineEvidence = true) => {
     const noted = firstNotedIds(items)
     return (
       <ol className="change-list">
@@ -168,6 +179,7 @@ export function TextTab({
               analysis={analysis}
               showTypeNote={noted.has(item.changeId)}
               selected={item.changeId === selectedChangeId}
+              inlineEvidence={inlineEvidence}
               pinned={pins.isPinned(item.changeId)}
               explanations={explanations}
               onOpenSource={onOpenSource}
@@ -175,11 +187,7 @@ export function TextTab({
               asking={asking}
               onTogglePin={() => pins.toggle(item.changeId)}
               onToggle={() => toggleEvidence(item.changeId)}
-              onClose={() => {
-                onChange({ change: null })
-                // 닫으면 그 항목의 '원문 비교' 버튼으로 초점을 돌려준다
-                requestAnimationFrame(() => document.getElementById(evidenceButtonId(item.changeId))?.focus())
-              }}
+              onClose={() => closeEvidence(item.changeId)}
             />
           </li>
         ))}
@@ -333,8 +341,13 @@ export function TextTab({
                   조건에 맞는 변경 {resultCountLabel(data.totalItems)}
                 </p>
               )}
+              {defaultList && groupCounts !== null && (
+                <p className="panel__note" role="status">
+                  {defaultListNote(groupCounts)}
+                </p>
+              )}
               {items.length === 0 &&
-                match({ searched, riskOnly, field, type })
+                match({ searched, riskOnly, field, type, folded })
                   .with({ searched: true }, () => (
                     <EmptyState title="찾는 문장이 없어요">
                       <p>섹션이나 검색어를 바꾸거나, 조건을 지우고 전체 변경을 볼 수 있어요.</p>
@@ -365,7 +378,12 @@ export function TextTab({
                       </Button>
                     </EmptyState>
                   ))
-                  .with({ searched: false, riskOnly: false, field: null, type: null }, () => <EmptyState title="두 보고서 사이에 바뀐 문장·표가 없어요." />)
+                  .with({ searched: false, riskOnly: false, field: null, type: null, folded: true }, () => (
+                    <EmptyState title={DEFAULT_LIST_EMPTY}>
+                      <p>{DEFAULT_LIST_EMPTY_NOTE}</p>
+                    </EmptyState>
+                  ))
+                  .with({ searched: false, riskOnly: false, field: null, type: null, folded: false }, () => <EmptyState title="두 보고서 사이에 바뀐 문장·표가 없어요." />)
                   .with({ searched: false, riskOnly: false, field: null, type: P.nonNullable }, ({ type: current }) => (
                     <EmptyState title={`${typeFilterLabel(current)} 항목이 없어요.`}>
                       <p>'전체'를 고르면 다른 유형의 변화도 볼 수 있어요.</p>
@@ -376,25 +394,16 @@ export function TextTab({
               {items.length > 0 && (
                 <>
                   {changeList(items)}
-                  <div className="change-list__more">
-                    <span className="panel__note" role="status">
-                      {items.length} / {data.totalItems}건
-                    </span>
-                    {items.length < data.totalItems && (
-                      <Button variant="secondary" disabled={more.status === 'loading'} onClick={loadMore}>
-                        {more.status === 'loading' ? '불러오는 중…' : moreLabel(items.length, data.totalItems)}
-                      </Button>
-                    )}
-                  </div>
-                  {match(more)
-                    .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={loadMore} />)
-                    .with({ status: P.union('idle', 'loading') }, () => null)
-                    .exhaustive()}
+                  <TextListFooter loaded={items.length} total={data.totalItems} more={more} onMore={loadMore} />
                 </>
               )}
             </>
           ))
           .exhaustive()}
+      {/* 정렬을 바꿔 목록을 다시 불러와도 펼친 묶음이 접히지 않도록 목록 상태 밖에 둔다 */}
+      {!failed && defaultList && groupCounts !== null && (
+        <TextFoldedGroups analysisId={analysis.analysisId} counts={groupCounts} sort={sort} renderList={(items) => changeList(items, false)} />
+      )}
       {!failed && (
         <>
           <DartSourceLine
@@ -422,6 +431,8 @@ interface ChangeCardProps {
   /** 종류 안내 문장(삭제·위치 이동)을 붙일지. 목록에서 그 종류의 첫 카드에만 붙인다(#393) */
   showTypeNote: boolean
   selected: boolean
+  /** 고르면 카드가 원문 비교 창을 여는지. 펼친 묶음의 카드는 탭이 대신 연다 */
+  inlineEvidence: boolean
   /** 고정했는지(3.3) */
   pinned: boolean
   explanations: TextExplanations
@@ -438,6 +449,7 @@ function ChangeCard({
   analysis,
   showTypeNote,
   selected,
+  inlineEvidence,
   pinned,
   explanations,
   onTogglePin,
@@ -449,6 +461,7 @@ function ChangeCard({
 }: ChangeCardProps) {
   const section = displaySectionPath(item.sectionPath)
   const review = item.changeType === 'REVIEW_NEEDED'
+  const scope = noteScopeLabel(item.noteScope)
   // '숫자만 바뀜' 카드에만 바뀐 숫자 쌍을 보인다(짝이 확실하지 않으면 null이라 숨김)
   const numbers = item.changeType === 'NUMERIC_UPDATE' ? numberChanges(item.previousPreview, item.currentPreview) : null
   // 풀이 상자를 펼쳤는지는 카드 안 상태(주소에 남기지 않음). 처음 펼칠 때만 부른다
@@ -476,6 +489,8 @@ function ChangeCard({
         {item.blockType === 'TABLE' && <Badge>표</Badge>}
         {showsNumbersOnlyMark(item) && <Badge>숫자만 바뀜</Badge>}
         {item.riskRelated && <Badge>{RISK_BADGE}</Badge>}
+        {item.raisedFromNote === true && <Badge>주석에서 올림</Badge>}
+        {item.listGroup === 'NOTE' && scope !== null && <Badge>{scope}</Badge>}
         <Button
           variant="icon"
           className="change-card__pin"
@@ -558,7 +573,7 @@ function ChangeCard({
           onOpenSource={onOpenSource}
         />
       )}
-      {selected && (
+      {selected && inlineEvidence && (
         <TextEvidencePanel
           key={item.changeId}
           analysis={analysis}

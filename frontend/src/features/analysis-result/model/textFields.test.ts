@@ -13,7 +13,7 @@ const fieldCounts: Record<TextField, number> = {
   AUDIT: 15,
   OTHER: 132,
 }
-const listing: TextListing = { listVersion: 'text-list-1', fieldCounts, missingFields: ['SHAREHOLDER'] }
+const listing: TextListing = { listVersion: 'text-list-1', fieldCounts, missingFields: ['SHAREHOLDER'], groupCounts: null }
 
 function cellOf(field: TextField) {
   const view = fieldTableView(listing)
@@ -29,7 +29,7 @@ describe('fieldTableView', () => {
   })
 
   it('옛 분석이나 변경이 없는 분석(listVersion null)이면 표를 그리지 않는다', () => {
-    expect(fieldTableView({ listVersion: null, fieldCounts: null, missingFields: null })).toEqual({ kind: 'hidden' })
+    expect(fieldTableView({ listVersion: null, fieldCounts: null, missingFields: null, groupCounts: null })).toEqual({ kind: 'hidden' })
   })
 
   it('9칸을 명세의 순서로 만들고 합계는 칸의 건수를 더한 값이다(AC1)', () => {
@@ -87,7 +87,7 @@ describe('fieldCellValue', () => {
 
 describe('resolveTextField', () => {
   it('옛 분석이면 주소의 분야를 쓰지 않고, 응답 전이나 새 분석이면 그대로 둔다', () => {
-    expect(resolveTextField('AUDIT', { listVersion: null, fieldCounts: null, missingFields: null })).toBeNull()
+    expect(resolveTextField('AUDIT', { listVersion: null, fieldCounts: null, missingFields: null, groupCounts: null })).toBeNull()
     expect(resolveTextField('AUDIT', null)).toBe('AUDIT')
     expect(resolveTextField('AUDIT', listing)).toBe('AUDIT')
   })
