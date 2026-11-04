@@ -237,6 +237,24 @@ class TextComparisonTest {
     }
 
     @Test
+    @DisplayName("행 비교에 바뀐 행 목록이 없어도 빈 목록으로 받아 저장된 결과가 목록 조회를 막지 않는다")
+    void missingChangedRowsBecomeAnEmptyList() {
+        AI.on(DIFF, Reply.ok("""
+                {"listVersion":"text-list-1","missingFields":[],"changes":[
+                 {"changeType":"MODIFIED","blockType":"TABLE","sectionStatus":"MATCHED",
+                  "sectionTitle":"t","sectionPath":"t",
+                  "previous":{"sectionNo":2,"blockNo":2},"current":{"sectionNo":2,"blockNo":2},
+                  "listGroup":"MAIN","field":"OTHER","raisedFromNote":false,"noteScope":null,
+                  "rowDiff":{"status":"NOT_COMPARED","keyColumn":null,"counts":null,"pairedPrevious":null}}
+                ]}
+                """));
+
+        TextComparison result = service.compare(previous, current);
+
+        assertThat(result.rows().getFirst().listing().rowDiff().changedRows()).isEmpty();
+    }
+
+    @Test
     @DisplayName("분류와 행 비교를 받아 짝지은 이전 표에 이전 보고서 접수번호를 붙인다")
     void classificationAndRowDiffAreKeptWithPreviousReceiptNumber() {
         AI.on(DIFF, Reply.ok("""

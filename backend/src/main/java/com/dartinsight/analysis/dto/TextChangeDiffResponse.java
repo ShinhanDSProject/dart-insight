@@ -40,7 +40,8 @@ public record TextChangeDiffResponse(String diffVersion, String priorityVersion,
         RowDiff toRowDiff(String previousRceptNo) {
             RowDiff.PairedPrevious paired = pairedPrevious == null ? null : new RowDiff.PairedPrevious(
                     previousRceptNo, pairedPrevious.sectionNo(), pairedPrevious.blockNo());
-            return new RowDiff(status, keyColumn, counts, paired, changedRows, addedKeys, missingKeys);
+            return new RowDiff(status, keyColumn, counts, paired, changedRows == null ? List.of() : changedRows,
+                    addedKeys, missingKeys);
         }
     }
 }
