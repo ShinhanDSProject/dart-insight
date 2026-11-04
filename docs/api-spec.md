@@ -2865,7 +2865,7 @@
 - 대화(`message`·`history`)는 서버에 저장하지 않습니다. 근거 질문 Tool(`answer_with_evidence`)의 질문과 답만 `analysis_question`에 저장합니다(아래). 화면이 최근 대화(`history`)와 화면 맥락(`context`)을 요청마다 보냅니다. 지난 답은 말뜻을 풀 때만 쓰고 근거로 쓰지 않습니다. 근거는 이번 요청에서 실행한 Tool의 결과뿐입니다.
 - ai-server에 보내지 않는 사용자 정보는 계정 정보(이메일·닉네임·로그인 여부)와 저장된 노트·메모·관심 기업 내용입니다. 사용자가 채팅에 직접 쓴 글(`message`·`history[].text`)은 AI 질문의 `question`과 같이 고치지 않고 그대로 질문으로 보냅니다(ADR-0044 '보내지 않는 것'). 그래서 채팅 패널은 입력창에 개인정보를 쓰지 말라는 안내를 둡니다.
 - 흐름: backend가 허용 Tool·액션 목록과 지금까지의 Tool 결과를 붙여 ai-server `POST /internal/agent-steps`(3절)를 부릅니다. 응답이 `TOOL_CALLS`면 Tool을 실행하고 결과를 붙여 다시 부르고, `FINAL`·`OUT_OF_SCOPE`면 아래 응답으로 바꿔 돌려줍니다. 한 요청의 모든 왕복은 같은 `X-Trace-Id`를 씁니다.
-- 근거 질문 Tool(`answer_with_evidence`)을 실행하면 `POST /api/analyses/{analysisId}/questions`와 같은 규칙으로 답하고 `analysis_question`에 저장합니다. 그 질문이 답한(`ANSWERED`) 질문이면 질문 ID가 응답 `questionId`이고, 화면은 이 값으로 답 평가(`PUT .../questions/{questionId}/feedback`)와 인용 노트 담기(`ANSWER_CITATION`)를 합니다. 근거 질문이 `NOT_FOUND` 등으로 끝났으면 채팅 답이 다른 Tool 결과로 `ANSWERED`여도 `questionId`는 null입니다(평가할 답이 없어 평가 API가 400이므로).
+- 근거 질문 Tool(`answer_with_evidence`)을 실행하면 `POST /api/analyses/{analysisId}/questions`와 같은 규칙으로 답하고 `analysis_question`에 저장합니다. 최종 답이 그 질문의 근거를 인용했고 그 질문이 답한(`ANSWERED`) 질문이면 그 질문 ID가 응답 `questionId`이고, 화면은 이 값으로 답 평가(`PUT .../questions/{questionId}/feedback`)를 합니다(아래 `questionId`). 인용 노트 담기(`ANSWER_CITATION`)는 응답 `questionId`가 아니라 `CONFIRM_SAVE_NOTE` 액션의 `note.questionId`·`note.citationNo`를 그대로 씁니다. 근거 질문을 여러 번 하면 두 값이 다를 수 있습니다.
 - 응답 전에 backend는 근거 ID가 이 분석에 저장된 위치인지 다시 확인합니다. 하나라도 아니면 답을 버리고 `REVIEW_NEEDED`로 끝내며 오류 로그를 남깁니다(ADR-0044).
 - 상한: 한 요청에서 ai-server 왕복 최대 5회, 전체 60초(설정 `app.agent.max-steps`·`timeout`, 잠정). 시간은 왕복을 시작하기 전마다 확인하고 이미 시작한 호출은 끊지 않으므로 실제로는 조금 넘을 수 있습니다. 넘으면 검증하지 않은 부분 결과 없이 `INCOMPLETE`입니다.
 
@@ -2960,7 +2960,7 @@
   | `OPEN_COMPANY_COMPARE` | `corpCodes`(2개 이상) | 기업 나란히 보기(`/compare/companies?corps=`) |
   | `CONFIRM_REQUEST_ANALYSIS` | `corpCode`, `previousRceptNo`, `currentRceptNo`, `basis` | 확인 버튼. 비교 가능성 Tool 결과가 `comparable: true`일 때만 옴. 누르면 `POST /api/analyses` 뒤 분석 진행 화면(W-02)으로 |
 
-- `questionId`: 이번 요청에서 근거 질문 Tool이 답한(`ANSWERED`) 질문을 `analysis_question`에 저장했으면 그 ID(여러 번이면 마지막 것), 아니면 null. 근거 질문이 `NOT_FOUND`·`OUT_OF_SCOPE`·`REVIEW_NEEDED`로 끝났으면 null입니다
+- `questionId`: 답 평가에 쓰는 질문 ID. `status`가 `ANSWERED`이고, 이번 요청에서 근거 질문 Tool이 답한(`ANSWERED`) 질문 중 최종 답(`citations`)이 그 질문의 근거를 인용한 것이 있으면 그중 마지막 질문의 ID입니다. 그런 질문이 없으면 null입니다: 근거 질문을 하지 않았거나, 근거 질문이 모두 `NOT_FOUND`·`OUT_OF_SCOPE`·`REVIEW_NEEDED`로 끝났거나, 답한 질문이 있어도 최종 답이 다른 Tool 결과만 인용한 경우(사용자가 보지 않은 답에 평가가 저장되지 않게)
 - `aiGenerated`: LLM이 `answer`를 만들었으면 true. LLM 없이 정해진 문구로 답했거나 `answer`가 null이면 false
 - `ai`: LLM이 답을 만들었을 때만(모델·프롬프트 버전·생성 시각). 그 밖에는 null
 - `format`: `CHAT` 대화 답(해요체 3문장·400자 이내), `BRIEF` 사용자가 정리 형식("3줄 요약", "IR용 정리", "확인할 점")을 요청한 답(1,500자 이내, 줄마다 근거 표시). 검사는 같습니다. 비교 브리프 파일은 LLM 없이 `DOWNLOAD_BRIEF`로 받습니다.

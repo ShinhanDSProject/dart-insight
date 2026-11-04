@@ -44,8 +44,10 @@ import com.dartinsight.question.domain.QuestionFacts;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -273,8 +275,10 @@ public class AgentTools {
             lines.add(new ToolLine(Evidence.financialChange(f.changeId(), f.sjDiv(), f.accountName(), null,
                     f.sentence()), "[" + f.sjDiv() + ", changeId " + f.changeId() + "] " + f.sentence()));
         }
+        Set<String> evidenceIds = lines.stream().map(ToolLine::evidenceId).filter(Objects::nonNull)
+                .collect(Collectors.toSet());
         return new Output(lines, new AskedQuestion(response.questionId(), response.citations().size(),
-                response.status() == QuestionStatus.ANSWERED));
+                response.status() == QuestionStatus.ANSWERED, evidenceIds));
     }
 
     /** 저장된 요약만(새로 만들지 않음). 재무 설명 등급과 인용을 그대로 넘긴다(ADR-0015) */

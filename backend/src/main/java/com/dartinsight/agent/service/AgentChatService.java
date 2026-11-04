@@ -95,7 +95,7 @@ public class AgentChatService {
         private final List<AgentStepAiRequest.ToolResult> results = new ArrayList<>();
         private final Map<String, Evidence> evidence = new LinkedHashMap<>();
         private final List<LlmCallRow> calls = new ArrayList<>();
-        /** 이 채팅에서 근거 질문 Tool이 저장한 질문(질문 ID → 인용 수). 답한(ANSWERED) 것 중 마지막이 응답의 questionId */
+        /** 이 채팅에서 근거 질문 Tool이 저장한 질문(질문 ID → 질문). 응답의 questionId는 AskedQuestion.ratedBy로 고른다 */
         private final Map<Long, AskedQuestion> questions = new LinkedHashMap<>();
         private final String traceId = TraceContext.currentTraceId();
 
@@ -123,7 +123,7 @@ public class AgentChatService {
                 if (AgentStep.FINAL.equals(type) && response.finalAnswer() != null) {
                     return ChatResults.finalAnswer(response, evidence, reportNames(),
                             actionCheck.valid(analysisId, current.company().getCorpCode(), questions,
-                                    response.finalAnswer().actions()), lastQuestionId());
+                                    response.finalAnswer().actions()), List.copyOf(questions.values()));
                 }
                 if (!AgentStep.TOOL_CALLS.equals(type) || response.toolCalls() == null
                         || response.toolCalls().isEmpty()) {
@@ -202,11 +202,6 @@ public class AgentChatService {
             }
             screen.values().removeIf(v -> v == null);
             return screen;
-        }
-
-        private Long lastQuestionId() {
-            return questions.values().stream().filter(AskedQuestion::answered).map(AskedQuestion::id)
-                    .reduce((first, last) -> last).orElse(null);
         }
 
         private Map<String, String> reportNames() {
