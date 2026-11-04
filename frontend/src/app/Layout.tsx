@@ -8,6 +8,7 @@ import { useRecentCompanies } from '@/shared/hooks/useCurrentCompany'
 import { companyLink, type CurrentCompany } from '@/shared/lib/currentCompany'
 import { OPEN_HEADER_SEARCH_EVENT } from '@/shared/lib/headerSearch'
 import { useAuth } from '@/shared/auth/authContext'
+import { useAdminAccess } from '@/shared/hooks/useAdminAccess'
 import { NotificationMenu } from '@/features/notifications/components/NotificationMenu'
 import { NotificationSignInLink } from '@/features/notifications/components/NotificationSignInLink'
 import type { ShortcutPage } from '@/shared/lib/shortcuts'
@@ -41,6 +42,8 @@ export function Layout() {
   const { pathname, search } = useLocation()
   const { corpCode, analysisId } = useParams()
   const auth = useAuth()
+  // 관리자에게만 상단 바에 '운영 콘솔'을 보인다(FS-72). 권한은 서버가 다시 확인한다
+  const { access: adminAccess } = useAdminAccess()
   const recent = useRecentCompanies()
   const current = recent[0] ?? null
   const [noticeOpen, setNoticeOpen] = useState(false)
@@ -123,6 +126,11 @@ export function Layout() {
             {match(auth.state.status)
               .with('authenticated', () => (
                 <>
+                  {adminAccess.status === 'admin' && (
+                    <ButtonLink to="/admin" variant="secondary">
+                      운영 콘솔
+                    </ButtonLink>
+                  )}
                   <NotificationMenu refreshKey={pathname} />
                   <Button variant="secondary" onClick={() => void auth.logout()}>로그아웃</Button>
                 </>
@@ -160,6 +168,11 @@ export function Layout() {
               <Button variant="link" className="app-footer__link" aria-haspopup="dialog" aria-keyshortcuts="?" onClick={shortcuts.openHelp}>
                 단축키
               </Button>
+            </li>
+            <li>
+              <Link to="/pricing" className="app-footer__link">
+                요금제
+              </Link>
             </li>
             <li>
               <Link to="/system/ai-usage" className="app-footer__link">

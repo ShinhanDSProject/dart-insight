@@ -42,7 +42,7 @@ export function AdminReportsPage() {
       <PageHeader
         breadcrumb={
           <>
-            <Link to="/">기업 검색</Link> / 신고 관리
+            <Link to="/admin">운영 콘솔</Link> / 신고 관리
           </>
         }
         title="신고 관리"
