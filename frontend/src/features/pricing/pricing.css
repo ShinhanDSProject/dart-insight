@@ -1,0 +1,147 @@
+/* 요금제(FS-73). Figma 사본 '최종' 페이지 '요금제 · /pricing · FS-73' */
+.pricing {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.pricing__plans {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plan {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+}
+
+.plan--primary {
+  border: 2px solid var(--color-accent);
+}
+
+.plan__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.plan__name {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.plan__price {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.plan__amount {
+  font-family: var(--font-num);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.plan__unit {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.plan__features {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-sm);
+}
+
+.plan__features li {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.plan__check {
+  color: var(--color-increase);
+  font-weight: var(--font-weight-bold);
+}
+
+.plan__cta {
+  justify-content: center;
+  width: 100%;
+}
+
+.plan__error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--font-size-xs);
+}
+
+.pricing__more {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.pricing__note {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.pricing__num {
+  font-family: var(--font-num);
+  text-align: right !important;
+  white-space: nowrap;
+}
+
+.pricing__promises {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.pricing__promises dt {
+  font-weight: var(--font-weight-semibold);
+}
+
+.pricing__promises dd {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.pricing__disclaimer {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+@media (max-width: 1100px) {
+  .pricing__plans {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .pricing__plans,
+  .pricing__more {
+    grid-template-columns: 1fr;
+  }
+}
