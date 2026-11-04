@@ -12,7 +12,7 @@ import java.time.LocalDate;
 public record TextChangeDetailResponse(TextChangeItemResponse change, SourceView previous, SourceView current) {
 
     public static TextChangeDetailResponse from(TextEvidence evidence) {
-        return new TextChangeDetailResponse(TextChangeItemResponse.from(evidence.change()),
+        return new TextChangeDetailResponse(TextChangeItemResponse.detail(evidence.change()),
                 SourceView.from(evidence.previous()), SourceView.from(evidence.current()));
     }
 

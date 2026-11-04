@@ -2,6 +2,7 @@ package com.dartinsight.analysis.dto;
 
 import com.dartinsight.analysis.domain.Analysis;
 import com.dartinsight.analysis.domain.TextChangeFilter;
+import com.dartinsight.analysis.domain.TextChangeListing;
 import com.dartinsight.analysis.domain.TextChangeRow;
 import com.dartinsight.analysis.domain.TextSectionCount;
 import com.dartinsight.analysis.domain.TextStatus;
@@ -9,28 +10,33 @@ import com.dartinsight.analysis.service.TextChangeQueryService.TextChangePage;
 import java.util.List;
 import java.util.Map;
 
-/** section·q는 요청에 쓴 거르기 값(없으면 null). sections는 고를 수 있는 최상위 섹션과 건수 */
+/**
+ * section·q·group·field는 요청에 쓴 거르기 값(없으면 null). sections는 고를 수 있는 최상위 섹션과 건수.
+ * listVersion·fieldCounts·missingFields·groupCounts는 분석 전체의 분류 값이고, 분류 전에 만든 분석이면 null이다(ADR-0047)
+ */
 public record TextChangeListResponse(Long analysisId, TextStatus textStatus, String textMessage, String type,
         String sort, String section, String q, boolean risk, int page, int size, int totalItems, Counts counts,
-        Counts riskCounts, List<SectionView> sections, List<TextChangeItemResponse> items) {
+        Counts riskCounts, String group, String field, String listVersion, Map<String, Integer> fieldCounts,
+        List<String> missingFields, Map<String, Integer> groupCounts, List<SectionView> sections,
+        List<TextChangeItemResponse> items) {
 
-    /**
-     * 목록 한 쪽. totalItems는 고른 유형 건수의 합(유형을 고르지 않았으면 전체), type은 고른 유형을 쉼표로 이은 값.
-     *
-     * @param filter 요청에 쓴 거르기(유형·섹션·검색어·위험 관련)
-     */
-    public static TextChangeListResponse of(Long analysisId, TextChangeFilter filter, String sort, int page,
-            int size, TextChangePage result) {
+    /** 목록 한 쪽. type·group은 고른 값을 쉼표로 이은 값이다. */
+    public static TextChangeListResponse of(Long analysisId, String sort, int page, int size, TextChangePage result) {
         Analysis analysis = result.analysis();
-        List<String> types = filter.types();
-        Counts counts = Counts.of(result.counts());
-        int total = types.isEmpty() ? counts.all() : types.stream().mapToInt(result.counts()::get).sum();
+        TextChangeFilter filter = result.filter();
+        TextChangeListing.Summary listing = result.listing();
         List<SectionView> sections = result.sections().stream().map(SectionView::from).toList();
         List<TextChangeItemResponse> items = result.changes().stream().map(TextChangeItemResponse::from).toList();
-        String typeEcho = types.isEmpty() ? null : String.join(TextChangeFilter.TYPE_SEPARATOR, types);
-        return new TextChangeListResponse(analysisId, analysis.getTextStatus(), analysis.getTextMessage(), typeEcho,
-                sort, filter.section(), filter.q(), filter.risk(), page, size, total, counts,
-                Counts.of(result.riskCounts()), sections, items);
+        return new TextChangeListResponse(analysisId, analysis.getTextStatus(), analysis.getTextMessage(),
+                joined(filter.types()), sort, filter.section(), filter.q(), filter.risk(), page, size,
+                result.totalItems(), Counts.of(result.counts()), Counts.of(result.riskCounts()),
+                joined(filter.groups()), filter.field(), listing == null ? null : listing.version(),
+                listing == null ? null : listing.fieldCounts(), listing == null ? null : listing.missingFields(),
+                listing == null ? null : listing.groupCounts(), sections, items);
+    }
+
+    private static String joined(List<String> values) {
+        return values.isEmpty() ? null : String.join(TextChangeFilter.TYPE_SEPARATOR, values);
     }
 
     public record Counts(int all, int added, int deleted, int modified, int numericUpdate, int moved,

@@ -133,7 +133,8 @@ class SeasonChangeRankerTest {
         }
         // 00000003의 원문은 ai-server가 읽지 못한다(등록하지 않은 경로는 404)
         AI.on(DIFF, Reply.ok("""
-                {"diffVersion":"text-diff-2","priorityVersion":"priority-2","sectionCounts":{"matched":2},"changes":[
+                {"diffVersion":"text-diff-2","priorityVersion":"priority-2","listVersion":"text-list-1",
+                 "missingFields":[],"sectionCounts":{"matched":2},"changes":[
                  {"changeType":"MODIFIED","blockType":"PARAGRAPH","sectionStatus":"MATCHED",
                   "sectionTitle":"1. 사업의 개요","sectionPath":"II. 사업의 내용 > 1. 사업의 개요",
                   "previous":{"sectionNo":2,"blockNo":1},"current":{"sectionNo":2,"blockNo":1},

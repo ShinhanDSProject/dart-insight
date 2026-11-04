@@ -13,6 +13,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import java.time.LocalDateTime;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -35,7 +36,7 @@ public class Analysis {
      *   요약 대상 고르기(SummarySelector: 재무·문장 항목 수와 순서, 설명 후보 문단), 사실 문장(FinancialFacts),
      *   설명 후보 검색어(AccountAliases), 요약 응답 판정·템플릿 요약(SummaryResults)</li>
      *   <li>ai-server: 원문 파서(PARSER_VERSION), 문장 비교(DIFF_VERSION), 우선순위(PRIORITY_VERSION, priority-n),
-     *   요약 프롬프트(PROMPT_VERSION), 요약 검증(summary/validate.py), 설명 후보 검색(summary/search.py),
+     *   목록 분류·표 행 비교(LIST_VERSION), 요약 프롬프트(PROMPT_VERSION), 요약 검증(summary/validate.py), 설명 후보 검색(summary/search.py),
      *   표현 검사 규칙(RULESET_VERSION), 재무 설명 등급 규칙(GRADE_RULES_VERSION)</li>
      * </ul>
      * 각 클래스·모듈 주석에도 같은 규칙을 적는다. 바뀐 내역:
@@ -47,8 +48,12 @@ public class Analysis {
      * m2-15: 검증에 실패한 재무 설명을 템플릿(TEMPLATE)과 검증된 인용으로 보임(#149).
      * m2-16: 이전·현재 값이 모두 없는 계정을 재무 비교 결과에서 뺌(#355).
      * m2-17: 요약할 재무 수치에 현금흐름표(CF) 1개와 영업활동현금흐름 검색어 추가(#481).
+     * m2-18: 문장 변경의 목록 분류와 표 행 비교를 저장(text-list-1, ADR-0047, #612).
      */
-    public static final String CURRENT_VERSION = "m2-17";
+    public static final String CURRENT_VERSION = "m2-18";
+
+    /** text_missing_fields에서 분야를 잇는 글 */
+    private static final String FIELD_SEPARATOR = ",";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -103,6 +108,10 @@ public class Analysis {
 
     @Column(name = "text_message", length = 500)
     private String textMessage;
+
+    /** 두 보고서 어느 쪽에도 섹션이 없는 분야(쉼표로 이음, 없으면 빈 글). 분류 전에 만든 분석이면 null */
+    @Column(name = "text_missing_fields", length = 200)
+    private String textMissingFields;
 
     /** 요약 상태. 완료 전이면 null */
     @Enumerated(EnumType.STRING)
@@ -167,9 +176,18 @@ public class Analysis {
     }
 
     /** 문장 비교 결과 상태. 결과를 저장하는 트랜잭션에서 완료와 함께 남긴다. */
-    public void recordText(TextStatus status, String message) {
+    public void recordText(TextStatus status, String message, List<String> missingFields) {
         this.textStatus = status;
         this.textMessage = message == null || message.length() <= 500 ? message : message.substring(0, 500);
+        this.textMissingFields = missingFields == null ? null : String.join(FIELD_SEPARATOR, missingFields);
+    }
+
+    /** 두 보고서 어느 쪽에도 섹션이 없는 분야. 분류 전에 만든 분석이면 null */
+    public List<String> missingTextFields() {
+        if (textMissingFields == null) {
+            return null;
+        }
+        return textMissingFields.isEmpty() ? List.of() : List.of(textMissingFields.split(FIELD_SEPARATOR));
     }
 
     /** 요약 상태. 결과를 저장하는 트랜잭션에서 완료와 함께 남긴다. */

@@ -3,6 +3,7 @@ package com.dartinsight.analysis.repository;
 import com.dartinsight.analysis.domain.RiskSections;
 import com.dartinsight.analysis.domain.TextChange;
 import com.dartinsight.analysis.domain.TextChangeFilter;
+import com.dartinsight.analysis.domain.TextChangeListing;
 import com.dartinsight.analysis.domain.TextChangeRow.Side;
 import com.dartinsight.analysis.domain.TextChangeRow;
 import com.dartinsight.analysis.domain.TextSectionCount;
@@ -20,6 +21,7 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 문장·표 변경 저장(text_change). 분석 하나에 수천 건이 될 수 있어 JDBC 일괄 저장을 쓴다.
@@ -34,15 +36,20 @@ public class TextChangeStore {
             + "section_title, section_path, previous_section_path, previous_rcept_no, previous_section_no, "
             + "previous_block_no, previous_text, "
             + "current_rcept_no, current_section_no, current_block_no, current_text, similarity, review_reason, "
-            + "priority, priority_score, priority_reasons, priority_version";
+            + "priority, priority_score, priority_reasons, priority_version, "
+            + "list_group, list_field, raised_from_note, note_scope, row_diff, list_version";
     /** 우선순위 순: 점수가 높은 것부터, 순위를 매기지 않은 것(판단 유보)은 뒤에 문서 순서로 */
     private static final String BY_PRIORITY = "CASE WHEN priority_score IS NULL THEN 1 ELSE 0 END, "
             + "priority_score DESC, change_no";
     /** 섹션 경로의 첫 제목(최상위 섹션). 구분 글이 없으면 경로 전체 */
     private static final String TOP_SECTION = "CASE WHEN LOCATE(' > ', section_path) > 0 "
             + "THEN SUBSTRING(section_path, 1, LOCATE(' > ', section_path) - 1) ELSE section_path END";
+    /** 주석 범위 순: 연결, 별도, 구분 없음 */
+    private static final String BY_NOTE_SCOPE = "CASE note_scope WHEN 'CONSOLIDATED' THEN 0 WHEN 'SEPARATE' THEN 1 "
+            + "ELSE 2 END, ";
 
     private final JdbcTemplate jdbcTemplate;
+    private final JsonMapper jsonMapper;
 
     /** 트랜잭션 안에서 부른다. */
     public void saveAll(long analysisId, List<TextChangeRow> rows) {
@@ -52,6 +59,7 @@ public class TextChangeStore {
             Side p = row.previous();
             Side c = row.current();
             TextChangeRow.Priority priority = row.priority();
+            TextChangeListing listing = row.listing();
             values.add(new Object[] {analysisId, i + 1, row.changeType(), row.blockType(), row.numbersOnly(),
                     row.sectionStatus(), limit(row.sectionTitle(), 500), limit(row.sectionPath(), 1000),
                     limit(row.previousSectionPath(), 1000),
@@ -62,14 +70,20 @@ public class TextChangeStore {
                     row.similarity(), limit(row.reviewReason(), 500),
                     priority == null ? null : priority.level(), priority == null ? null : priority.score(),
                     priority == null ? null : limit(String.join("\n", priority.reasons()), 1000),
-                    priority == null ? null : priority.version()});
+                    priority == null ? null : priority.version(),
+                    listing == null ? null : listing.group(), listing == null ? null : listing.field(),
+                    listing == null ? null : listing.raisedFromNote(), listing == null ? null : listing.noteScope(),
+                    listing == null || listing.rowDiff() == null ? null
+                            : jsonMapper.writeValueAsString(listing.rowDiff()),
+                    listing == null ? null : listing.version()});
         }
         String sql = "INSERT INTO text_change (analysis_id, change_no, change_type, block_type, numbers_only, "
                 + "section_status, section_title, section_path, previous_section_path, previous_rcept_no, "
                 + "previous_section_no, previous_block_no, previous_text, current_rcept_no, current_section_no, "
                 + "current_block_no, current_text, similarity, review_reason, priority, priority_score, "
-                + "priority_reasons, priority_version) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "priority_reasons, priority_version, list_group, list_field, raised_from_note, note_scope, "
+                + "row_diff, list_version) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         for (int from = 0; from < values.size(); from += BATCH) {
             jdbcTemplate.batchUpdate(sql, values.subList(from, Math.min(values.size(), from + BATCH)));
         }
@@ -101,6 +115,43 @@ public class TextChangeStore {
         return counts;
     }
 
+    /** filter에 모두 맞는 전체 건수(쪽 나누기 전) */
+    public int count(long analysisId, TextChangeFilter filter) {
+        Condition condition = Condition.of(filter);
+        List<Object> args = new ArrayList<>();
+        args.add(analysisId);
+        args.addAll(condition.args());
+        Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM text_change WHERE analysis_id = ?"
+                + condition.andSql(), Integer.class, args.toArray());
+        return count == null ? 0 : count;
+    }
+
+    /** 분류 규칙 버전. 분류 전에 만든 분석이거나 변경이 없으면 null */
+    public String listVersion(long analysisId) {
+        return jdbcTemplate.queryForObject("SELECT MAX(list_version) FROM text_change WHERE analysis_id = ?",
+                String.class, analysisId);
+    }
+
+    /** 분야별 기본 목록 건수. 없는 분야는 0 */
+    public Map<String, Integer> fieldCounts(long analysisId) {
+        return countBy(analysisId, "list_field", TextChangeListing.FIELDS, " AND list_group = 'MAIN'");
+    }
+
+    /** 묶음별 건수. 없는 묶음은 0 */
+    public Map<String, Integer> groupCounts(long analysisId) {
+        return countBy(analysisId, "list_group", TextChangeListing.GROUPS, "");
+    }
+
+    private Map<String, Integer> countBy(long analysisId, String column, List<String> keys, String andSql) {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        keys.forEach(key -> counts.put(key, 0));
+        jdbcTemplate.query("SELECT " + column + " AS k, COUNT(*) AS n FROM text_change WHERE analysis_id = ?"
+                + andSql + " AND " + column + " IS NOT NULL GROUP BY " + column, rs -> {
+                    counts.put(rs.getString("k"), rs.getInt("n"));
+                }, analysisId);
+        return counts;
+    }
+
     /**
      * 변경이 있는 최상위 섹션 전부(문서 순서: 섹션의 첫 change_no 순)와 filter에 맞는 건수(0일 수 있음).
      * filter의 section은 보지 않는다.
@@ -117,7 +168,7 @@ public class TextChangeStore {
     }
 
     /**
-     * filter에 모두 맞는 변경 한 쪽.
+     * filter에 모두 맞는 변경 한 쪽. 주석 묶음 하나만 고르면 주석 범위로 먼저 묶는다.
      *
      * @param byPriority true면 우선순위 순({@link #BY_PRIORITY}), false면 문서 순서
      */
@@ -130,14 +181,14 @@ public class TextChangeStore {
         args.add(limit);
         args.add(offset);
         return jdbcTemplate.query("SELECT " + COLUMNS + " FROM text_change WHERE analysis_id = ?"
-                + condition.andSql() + " ORDER BY " + (byPriority ? BY_PRIORITY : "change_no")
-                + " LIMIT ? OFFSET ?", TextChangeStore::map, args.toArray());
+                + condition.andSql() + " ORDER BY " + (filter.notesOnly() ? BY_NOTE_SCOPE : "")
+                + (byPriority ? BY_PRIORITY : "change_no") + " LIMIT ? OFFSET ?", this::map, args.toArray());
     }
 
     /** 분석의 변경 전부(문서 순서). 관련 수시공시(3.6)가 분석 전체를 한 번에 계산할 때 쓴다 */
     public List<TextChange> all(long analysisId) {
         return jdbcTemplate.query("SELECT " + COLUMNS + " FROM text_change WHERE analysis_id = ? ORDER BY change_no",
-                TextChangeStore::map, analysisId);
+                this::map, analysisId);
     }
 
     /** 변경이 있는 섹션 경로 전부(겹치지 않음, 문서 순서: 경로의 첫 change_no 순) */
@@ -174,6 +225,15 @@ public class TextChangeStore {
             if (filter.risk()) {
                 parts.add(riskSql(args));
             }
+            if (!filter.groups().isEmpty()) {
+                parts.add("list_group IN (" + String.join(", ", Collections.nCopies(filter.groups().size(), "?"))
+                        + ")");
+                args.addAll(filter.groups());
+            }
+            if (filter.field() != null) {
+                parts.add("list_field = ?");
+                args.add(filter.field());
+            }
             return new Condition(String.join(" AND ", parts), args);
         }
 
@@ -202,7 +262,7 @@ public class TextChangeStore {
     /** 변경 번호(change_no)로 찾은 변경 */
     public Optional<TextChange> findByChangeNo(long analysisId, int changeNo) {
         return jdbcTemplate.query("SELECT " + COLUMNS + " FROM text_change WHERE analysis_id = ? AND change_no = ?",
-                TextChangeStore::map, analysisId, changeNo).stream().findFirst();
+                this::map, analysisId, changeNo).stream().findFirst();
     }
 
     /**
@@ -212,7 +272,7 @@ public class TextChangeStore {
         String column = currentSide ? "current_text" : "previous_text";
         // 정렬 규칙(대소문자 무시)에 맞는 후보를 LIKE로 좁힌 뒤, 글자까지 똑같은 것만 고른다
         return jdbcTemplate.query("SELECT " + COLUMNS + " FROM text_change WHERE analysis_id = ? AND " + column
-                + " LIKE ? ESCAPE '!' ORDER BY change_no", TextChangeStore::map, analysisId,
+                + " LIKE ? ESCAPE '!' ORDER BY change_no", this::map, analysisId,
                 Condition.escapeLike(text)).stream()
                 .filter(change -> {
                     Side side = currentSide ? change.row().current() : change.row().previous();
@@ -230,17 +290,28 @@ public class TextChangeStore {
 
     public Optional<TextChange> find(long analysisId, long changeId) {
         return jdbcTemplate.query("SELECT " + COLUMNS + " FROM text_change WHERE analysis_id = ? AND id = ?",
-                TextChangeStore::map, analysisId, changeId).stream().findFirst();
+                this::map, analysisId, changeId).stream().findFirst();
     }
 
-    private static TextChange map(ResultSet rs, int rowNum) throws SQLException {
+    private TextChange map(ResultSet rs, int rowNum) throws SQLException {
         Side previous = side(rs, "previous");
         Side current = side(rs, "current");
         return new TextChange(rs.getLong("id"), rs.getInt("change_no"), new TextChangeRow(
                 rs.getString("change_type"), rs.getString("block_type"), rs.getBoolean("numbers_only"),
                 rs.getString("section_status"), rs.getString("section_title"), rs.getString("section_path"),
                 previous, current, rs.getBigDecimal("similarity"), rs.getString("review_reason"), priority(rs),
-                rs.getString("previous_section_path")));
+                rs.getString("previous_section_path"), listing(rs)));
+    }
+
+    private TextChangeListing listing(ResultSet rs) throws SQLException {
+        String version = rs.getString("list_version");
+        if (version == null) {
+            return null;
+        }
+        String rowDiff = rs.getString("row_diff");
+        return new TextChangeListing(rs.getString("list_group"), rs.getString("list_field"),
+                rs.getBoolean("raised_from_note"), rs.getString("note_scope"),
+                rowDiff == null ? null : jsonMapper.readValue(rowDiff, TextChangeListing.RowDiff.class), version);
     }
 
     private static TextChangeRow.Priority priority(ResultSet rs) throws SQLException {

@@ -72,6 +72,11 @@ public class TextComparisonService {
         if (diff == null || diff.changes() == null) {
             return TextComparison.failed("문장 비교 결과를 받지 못했어요. 다시 요청해 주세요.");
         }
+        if (diff.listVersion() == null) {
+            // 옛 ai-server와 함께 돌 때 분류 없는 결과가 새 분석 버전으로 남지 않게 한다(ADR-0047)
+            log.warn("문장 비교 응답에 분류 버전이 없음 {} / {}", previous.getRceptNo(), current.getRceptNo());
+            return TextComparison.failed("문장 비교 결과를 분류하지 못했어요. 다시 요청해 주세요.");
+        }
 
         Map<Integer, DocumentBlock> previousByNo = byNo(previousBlocks);
         Map<Integer, DocumentBlock> currentByNo = byNo(currentBlocks);
@@ -83,7 +88,8 @@ public class TextComparisonService {
                         change.sectionPath(), side(previous.getRceptNo(), change.previous(), previousByNo),
                         side(current.getRceptNo(), change.current(), currentByNo),
                         TextChangeStore.similarity(change.similarity()), change.reviewReason(),
-                        priority(change.priority(), diff.priorityVersion()), change.previousSectionPath()));
+                        priority(change.priority(), diff.priorityVersion()), change.previousSectionPath(),
+                        change.listing(diff.listVersion(), previous.getRceptNo())));
             }
         } catch (RuntimeException e) {
             // 받은 결과를 읽지 못해도 분석 전체를 실패로 만들지 않는다(문장 비교만 실패)
@@ -97,7 +103,8 @@ public class TextComparisonService {
         if (partial == null) {
             partial = partial("현재", currentDocument);
         }
-        return new TextComparison(partial == null ? TextStatus.COMPLETED : TextStatus.PARTIAL, partial, rows);
+        return new TextComparison(partial == null ? TextStatus.COMPLETED : TextStatus.PARTIAL, partial, rows,
+                diff.missingFields() == null ? List.of() : diff.missingFields());
     }
 
     private static String unusable(String side, ReportDocument document) {

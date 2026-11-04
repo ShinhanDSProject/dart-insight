@@ -119,7 +119,8 @@ class SummaryPipelineTest {
         AI.on("/internal/documents/" + CUR + "/structure", Reply.ok(document(CUR, "당사는 메모리와 파운드리를 만듭니다.",
                 "매출액은 메모리 수요 회복으로 늘었습니다.")));
         AI.on("/internal/text-changes", Reply.ok("""
-                {"diffVersion":"text-diff-1","priorityVersion":"priority-1","changes":[
+                {"diffVersion":"text-diff-1","priorityVersion":"priority-1","listVersion":"text-list-1",
+                 "missingFields":[],"changes":[
                  {"changeType":"MODIFIED","blockType":"PARAGRAPH","sectionStatus":"MATCHED",
                   "sectionTitle":"1. 사업의 개요","sectionPath":"II. 사업의 내용 > 1. 사업의 개요",
                   "previous":{"sectionNo":2,"blockNo":1},"current":{"sectionNo":2,"blockNo":1},

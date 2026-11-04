@@ -17,17 +17,26 @@ import java.util.List;
  * @param reviewReason        검토 필요 사유
  * @param priority            확인 우선순위(2.6). 규칙으로 판단할 수 없으면 UNRANKED
  * @param previousSectionPath 위치 이동일 때 이전 쪽 섹션 경로. 그 밖은 null
+ * @param listing             목록 분류와 표 행 비교(ADR-0047). 분류 전에 만든 분석이면 null
  */
 public record TextChangeRow(String changeType, String blockType, boolean numbersOnly, String sectionStatus,
         String sectionTitle, String sectionPath, Side previous, Side current, BigDecimal similarity,
-        String reviewReason, Priority priority, String previousSectionPath) {
+        String reviewReason, Priority priority, String previousSectionPath, TextChangeListing listing) {
+
+    /** 분류하지 않은 변경 */
+    public TextChangeRow(String changeType, String blockType, boolean numbersOnly, String sectionStatus,
+            String sectionTitle, String sectionPath, Side previous, Side current, BigDecimal similarity,
+            String reviewReason, Priority priority, String previousSectionPath) {
+        this(changeType, blockType, numbersOnly, sectionStatus, sectionTitle, sectionPath, previous, current,
+                similarity, reviewReason, priority, previousSectionPath, null);
+    }
 
     /** 위치 이동이 아닌 변경(이전 쪽 섹션 경로 없음) */
     public TextChangeRow(String changeType, String blockType, boolean numbersOnly, String sectionStatus,
             String sectionTitle, String sectionPath, Side previous, Side current, BigDecimal similarity,
             String reviewReason, Priority priority) {
         this(changeType, blockType, numbersOnly, sectionStatus, sectionTitle, sectionPath, previous, current,
-                similarity, reviewReason, priority, null);
+                similarity, reviewReason, priority, null, null);
     }
 
     /** 우선순위를 아직 매기지 않은 변경 */
@@ -35,7 +44,7 @@ public record TextChangeRow(String changeType, String blockType, boolean numbers
             String sectionTitle, String sectionPath, Side previous, Side current, BigDecimal similarity,
             String reviewReason) {
         this(changeType, blockType, numbersOnly, sectionStatus, sectionTitle, sectionPath, previous, current,
-                similarity, reviewReason, null, null);
+                similarity, reviewReason, null, null, null);
     }
 
     public static final String ADDED = "ADDED";
