@@ -687,7 +687,7 @@
 ```
 
 - 기간은 한국 시간 날짜로 `to`(오늘)부터 거꾸로 `days`일입니다(`GET /api/system/ai-usage`와 같은 규칙). `daily`는 기간의 모든 날짜를 오래된 순으로 넣고, 기록이 없는 날은 0입니다.
-- `analyses`: `created_at`이 기간 안인 분석. `requested` = 전체 수, `completed`·`failed` = 지금 상태가 그 값인 수, `inProgress` = `PENDING`·`RUNNING`. `completionRate` = `completed` ÷ (`completed` + `failed`)(소수 넷째 자리 반올림), 분모가 0이면 null. `p50Seconds`·`p90Seconds` = 완료한 분석의 `completed_at` − `started_at`(초) 중앙값·90번째 백분위(가장 가까운 순위, 정수), 완료가 없으면 null. `outdated` = 완료했지만 `analysis_version`이 지금 계산 규칙 버전과 다른 분석 수. `topFailures`는 실패 사유 코드별 수 상위 5개(수 많은 순, 같으면 코드 순), `lastAt`은 그 코드의 가장 최근 `updated_at`. `topCompanies`는 분석 요청이 많은 기업 상위 5개.
+- `analyses`: `created_at`이 기간 안인 분석. `requested` = 전체 수, `completed`·`failed` = 지금 상태가 그 값인 수, `inProgress` = `PENDING`·`RUNNING`. `completionRate` = `completed` ÷ (`completed` + `failed`)(소수 넷째 자리 반올림), 분모가 0이면 null. `p50Seconds`·`p90Seconds` = 완료한 분석의 `completed_at` − `started_at`(초) 중앙값·90번째 백분위(가장 가까운 순위, 정수), 완료가 없으면 null. `outdated` = 완료했지만 `analysis_version`이 지금 계산 규칙 버전과 다른 분석 수. `topFailures`는 실패 사유 코드별 수 상위 5개(수 많은 순, 같으면 코드 순, 사유 코드가 없는 실패는 뺌), `lastAt`은 그 코드의 가장 최근 `updated_at`. `topCompanies`는 분석 요청이 많은 기업 상위 5개(같으면 고유번호 순). `topWatched`도 같은 순서입니다.
 - `users`: `total`·`admins`는 지금 전체, `newInPeriod`·`daily`는 `created_at`이 기간 안인 회원. `byProvider`는 지금 전체 회원을 가입 방식으로 셉니다: 일반 가입(`local_credential`)이 있으면 `LOCAL`, 아니면 가장 먼저 연결한 소셜 제공자(`GOOGLE`·`KAKAO`·`NAVER`). 네 키를 모두 넣습니다.
 - `watch`: 지금 전체 관심 기업(`favorite_company`). `favorites` = 행 수, `companies` = 서로 다른 기업 수, `topWatched` = 많이 담은 기업 상위 5개. 모니터링 수요를 보는 값입니다.
 - `community`: `openReports` = `GET /api/admin/reports?queue=todo`의 `totalItems`와 같은 수, `postsInPeriod` = 기간 안에 쓴 글 수(지운 글 포함).
@@ -725,7 +725,8 @@
 ```
 
 - 정렬은 `created_at` 최근 순(같으면 ID 큰 순). `durationSeconds`는 완료면 `completed_at` − `started_at`, 실패면 `updated_at` − `started_at`, 진행 중이거나 시작 전이면 null(정수 초). `outdated`는 `analysis_version`이 지금 계산 규칙 버전과 다르면 true. `traceId`는 `request_trace_id`(없으면 null).
-- 에러: `status`·`days`가 정한 값이 아니거나 `q`가 50자를 넘으면 400 `COMMON_INVALID_INPUT`(`errors[].field`), 401·403은 위와 같음.
+- `days`는 관리자 개요와 같은 규칙으로 오늘(한국 시간)부터 거꾸로 `days`일입니다(`1`이면 오늘 요청한 것만). `q`의 기업명은 LIKE 특수 문자(`%`·`_`)를 글자 그대로 찾습니다.
+- 에러: `status`·`days`가 정한 값이 아니거나 `q`가 50자를 넘거나 `page`·`size`가 범위 밖이면 400 `COMMON_INVALID_INPUT`(`errors[].field`), 401·403은 위와 같음.
 
 #### GET /api/admin/users — 관리자 회원 목록 (3.34, FS-72, 관리자만)
 
@@ -748,9 +749,9 @@
 }
 ```
 
-- 정렬은 가입 최근 순(같으면 ID 큰 순). `maskedEmail`은 일반 가입 이메일, 없으면 가장 먼저 연결한 소셜 계정 이메일을 가린 값입니다: 아이디 앞 2자(2자 이하면 1자) + `***`, `@`, 도메인 첫 글자 + `***`, 마지막 점 뒤 끝말(예: `.com`). 이메일이 없으면 null. 전체 이메일은 응답에 넣지 않습니다(이메일로 찾을 때도).
+- 정렬은 가입 최근 순(같으면 ID 큰 순). `maskedEmail`은 일반 가입 이메일, 없으면 이메일이 있는 소셜 계정 중 가장 먼저 연결한 것의 이메일을 가린 값입니다: 아이디 앞 2자(2자 이하면 1자) + `***`, `@`, 도메인 첫 글자 + `***`, 마지막 점 뒤 끝말(예: `.com`). 이메일이 없으면 null. 전체 이메일은 응답에 넣지 않습니다(이메일로 찾을 때도).
 - `providers`는 `LOCAL`(일반 가입)과 연결한 소셜 제공자(`GOOGLE`·`KAKAO`·`NAVER`)를 이 순서로. `postCount`는 지우지 않은 글 수.
-- 에러: `role`이 정한 값이 아니거나 `q`가 50자를 넘으면 400 `COMMON_INVALID_INPUT`, 401·403은 위와 같음.
+- 에러: `role`이 정한 값이 아니거나 `q`가 50자를 넘거나 `page`·`size`가 범위 밖이면 400 `COMMON_INVALID_INPUT`(`errors[].field`), 401·403은 위와 같음.
 
 #### POST /api/plan-interests — 요금제 '관심 있어요' (3.34, FS-73)
 
@@ -763,7 +764,7 @@
 | `plan` | string | 예 | `FREE`·`PRO`·`TEAM`·`EMBED` |
 | `source` | string | 아니오 | 누른 화면. 영문 소문자·숫자·`-` 1~40자(예: `pricing`, `pricing-credits`). 없으면 `pricing` |
 
-- 204. 결제는 없고 수요를 세기만 합니다. 로그인 없이도 쓰며, Access Token이 있으면(유효하면) 그 회원 ID를 함께 남깁니다. 잘못된 토큰은 무시하고 로그인 없이 남깁니다(이 기록만을 위해 다시 로그인하게 하지 않음).
+- 204. 결제는 없고 수요를 세기만 합니다. 로그인 없이도 쓰며, Access Token이 있으면(유효하면) 그 회원 ID를 함께 남깁니다. 잘못된 토큰은 무시하고 로그인 없이 남깁니다(이 기록만을 위해 다시 로그인하게 하지 않음). 토큰은 유효하지만 회원이 없으면(탈퇴) 역시 로그인 없이 남깁니다.
 - 이메일·연락처 같은 개인정보는 받지 않습니다. 같은 브라우저의 중복은 화면이 막고, 서버는 그대로 셉니다(관리자 개요의 `signedIn`으로 로그인 회원 수를 따로 봄).
 - 에러: `plan`이 네 값이 아니거나 `source` 형식이 틀리면 400 `COMMON_INVALID_INPUT`(`errors[].field`).
 
