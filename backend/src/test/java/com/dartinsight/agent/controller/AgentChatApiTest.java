@@ -435,6 +435,29 @@ class AgentChatApiTest {
     }
 
     @Test
+    @DisplayName("대화 기록 한 턴은 답 상한과 같은 1,500자까지 받고 넘으면 400이다")
+    void historyTurnAllowsUpToAnswerLimit() throws Exception {
+        AI.on(STEPS, Reply.ok(finalAnswer("NOT_FOUND", null, "", "")));
+        String ok = "가".repeat(1500);
+        chat(analysisId, "{\"message\":\"이어서 알려줘\",\"history\":[{\"role\":\"assistant\",\"text\":\""
+                + ok + "\"}]}").andExpect(status().isOk());
+        chat(analysisId, "{\"message\":\"이어서 알려줘\",\"history\":[{\"role\":\"assistant\",\"text\":\""
+                + ok + "가\"}]}").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("history[0].text"));
+    }
+
+    @Test
+    @DisplayName("답 길이는 코드 포인트로 세어 보조 문자(이모지)를 1자로 본다")
+    void answerLengthCountsCodePoints() throws Exception {
+        String block = CUR + "#B5";
+        String answer = "특허 침해 소송이 있어요" + "😀".repeat(900) + "[" + block + "].";
+        AI.on(STEPS, twoSteps("{\"callId\":\"c1\",\"name\":\"get_summary\",\"arguments\":{}}",
+                request -> finalAnswer("ANSWERED", answer, "\"" + block + "\"", "")));
+
+        chat("소송 알려줘").andExpect(jsonPath("$.status").value("ANSWERED"));
+    }
+
+    @Test
     @DisplayName("ai-server가 LLM 없이 정해진 안내로 답하면(model·calls 없음) 근거 없이 그대로 내보내고 AI 생성 표시를 붙이지 않는다(#631)")
     void fixedAnswerWithoutLlmIsSentAsIs() throws Exception {
         long changeId = financialChangeId();

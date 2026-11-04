@@ -92,7 +92,9 @@ final class ChatResults {
             return status(ChatStatus.REVIEW_NEEDED, reason);
         }
         AnswerMarkers.Converted converted = AnswerMarkers.convert(result.answer(), evidence.keySet(), Set.of());
-        if (!converted.valid() || converted.answer().length() > MAX_ANSWER_CHARS) {
+        // 글자 수는 ai-server(파이썬 len)와 같게 코드 포인트로 센다(이모지 등 보조 문자를 1자로)
+        if (!converted.valid()
+                || converted.answer().codePointCount(0, converted.answer().length()) > MAX_ANSWER_CHARS) {
             // ai-server가 이미 Tool 결과와 대조했으므로 여기서 걸리면 오류다(ADR-0044)
             log.error("에이전트 답의 근거 ID가 이 채팅의 Tool 결과에 없어 검토 필요로 끝냅니다");
             return status(ChatStatus.REVIEW_NEEDED, NOT_VERIFIED);

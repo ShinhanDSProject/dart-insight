@@ -69,8 +69,8 @@ describe('historyOf', () => {
     ])
   })
 
-  it('한 턴은 1,000자까지로 자른다', () => {
-    const [user] = historyOf([{ id: 1, message: '가'.repeat(1200), response: response('답') }])
-    expect(user.text).toHaveLength(1000)
+  it('한 턴은 1,500자까지로 자른다(정리 형식 답 상한과 같음)', () => {
+    const [user] = historyOf([{ id: 1, message: '가'.repeat(1800), response: response('답') }])
+    expect(user.text).toHaveLength(1500)
   })
 })

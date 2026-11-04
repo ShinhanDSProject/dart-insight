@@ -42,7 +42,7 @@ export function confirmKey(exchangeId: number, actionIndex: number): string {
 export const MIN_MESSAGE = 2
 export const MAX_MESSAGE = 500
 export const MAX_HISTORY = 6
-export const MAX_TURN = 1000
+export const MAX_TURN = 1500
 
 /** 대화가 없을 때 보이는 예시 요청. 이 분석에서 만든 예시 질문 뒤에 붙인다 */
 export const CHAT_EXAMPLES = ['소송 관련 변경 보여줘', '영업이익 어디 있어?', '사업의 내용 열어줘']
