@@ -168,7 +168,8 @@ class LlmClient:
         problems: list[str] = []
         last_output: Any = None
         current = request
-        deadline = self._monotonic() + self.settings.total_timeout_seconds
+        total = request.total_timeout_seconds or self.settings.total_timeout_seconds
+        deadline = self._monotonic() + total
         for round_no in range(retries + 1):
             if problems:
                 if self._monotonic() >= deadline:
@@ -207,6 +208,7 @@ class LlmClient:
         self, request: LlmRequest, calls: list[CallRecord], deadline: float
     ) -> tuple[str, CallRecord]:
         assert self.provider is not None
+        timeout = request.timeout_seconds or self.settings.timeout_seconds
         attempt = 0
         while True:
             attempt += 1
@@ -218,9 +220,7 @@ class LlmClient:
             called_at = self._clock().strftime("%Y-%m-%dT%H:%M:%S")
             started = time.monotonic()
             try:
-                response = self.provider.complete(
-                    request, min(self.settings.timeout_seconds, remaining)
-                )
+                response = self.provider.complete(request, min(timeout, remaining))
             except ProviderTransientError as e:
                 record = self._record(
                     request, called_at, started, attempt, OUTCOME_TRANSIENT_ERROR, error=_short(e)

@@ -8,6 +8,8 @@ LLM을 쓸 수 없다고 판명되면 그 요청의 나머지 사건은 부르�
 from __future__ import annotations
 
 import re
+import time
+from collections.abc import Callable
 from dataclasses import replace
 from decimal import ROUND_HALF_UP, Decimal
 
@@ -33,6 +35,8 @@ from app.events.model import (
 from app.llm import CallRecord, LlmClient
 
 _RATIO_DIGITS = Decimal("0.000001")
+# 금액 고르기 전체 시간. 2.12 최대 약 165초(ADR-0057). 넘으면 남은 사건은 규칙으로 정한다
+PICK_BUDGET_SECONDS = 240.0
 
 # 사건의 제목·종류와 주요사항보고서 종류(backend KeyItemKind)를 잇는 낱말. 소송은 금액 항목이 없다
 _STRUCTURED_KINDS = {
@@ -174,19 +178,25 @@ def _from_text(
 
 
 def scale_events(
-    llm: LlmClient, data: EventInput, events: list[TextEvent], table: Rates | None = None
+    llm: LlmClient,
+    data: EventInput,
+    events: list[TextEvent],
+    table: Rates | None = None,
+    monotonic: Callable[[], float] = time.monotonic,
 ) -> tuple[list[TextEvent], list[CallRecord]]:
     rates = load_rates() if table is None else table
     changes = {c.change_no: c for c in data.changes}
     structured = _structured_by_event(events, data.structured_amounts)
     calls: list[CallRecord] = []
     llm_down = False
+    started = monotonic()
     scaled: list[TextEvent] = []
     for index, event in enumerate(events):
         if index in structured:
             scaled.append(replace(event, scale=_from_structured(structured[index], data, rates)))
             continue
         sources = _sources(event, changes, data)
+        llm_down = llm_down or monotonic() - started >= PICK_BUDGET_SECONDS
         scale, picked = _from_text(llm, event, sources, data, rates, llm_down)
         calls += picked.calls
         llm_down = llm_down or picked.unavailable

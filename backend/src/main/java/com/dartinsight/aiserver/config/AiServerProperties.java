@@ -17,5 +17,5 @@ public record AiServerProperties(
         @DefaultValue("2s") Duration connectTimeout,
         @DefaultValue("180s") Duration readTimeout,
         @DefaultValue("3s") Duration healthTimeout,
-        @DefaultValue("300s") Duration textEventsReadTimeout) {
+        @DefaultValue("900s") Duration textEventsReadTimeout) {
 }

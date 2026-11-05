@@ -13,8 +13,10 @@ from app.llm.providers import LlmRequest
 # backend TextEvents.EVENT_VERSION을 함께 올린다
 PROMPT_VERSION = "text-event-1"
 TASK = "text_event"
-# 후보 300건 안팎을 묶은 답이 잘리지 않을 만큼 둔다. 2.12에서 다시 본다
-MAX_OUTPUT_TOKENS = 16000
+# 2.12에서 잰 값의 약 1.6~1.7배다(출력 최대 18,610, 호출 최대 148초, ADR-0057)
+MAX_OUTPUT_TOKENS = 32000
+TIMEOUT_SECONDS = 240.0
+TOTAL_TIMEOUT_SECONDS = 480.0
 
 SYSTEM = "\n".join(
     [
@@ -97,4 +99,6 @@ def build_request(candidates: list[EventChange]) -> LlmRequest:
         user="\n".join(["아래 변경을 사건으로 묶으세요.", *[p for p in parts if p]]),
         output_schema=OUTPUT_SCHEMA,
         max_output_tokens=MAX_OUTPUT_TOKENS,
+        timeout_seconds=TIMEOUT_SECONDS,
+        total_timeout_seconds=TOTAL_TIMEOUT_SECONDS,
     )

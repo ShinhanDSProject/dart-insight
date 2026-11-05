@@ -1,4 +1,5 @@
 import re
+from dataclasses import replace
 
 import pytest
 
@@ -84,6 +85,28 @@ def test_transient_retries_stop_at_the_total_time() -> None:
 
     assert len(provider.requests) == 1
     assert [c.outcome for c in e.value.calls] == ["TRANSIENT_ERROR"]
+
+
+def test_request_timeouts_replace_the_settings() -> None:
+    clock = Clock(step=200.0)
+    provider = SlowProvider(clock, {"wrong": 1}, {"answer": "됨"})
+    llm = LlmClient(provider, SETTINGS, sleep=lambda _: None, monotonic=clock)
+    request = replace(REQUEST, timeout_seconds=240.0, total_timeout_seconds=480.0)
+
+    # 설정값 120초로는 두 번째를 부르지 못한다
+    assert llm.generate(request, need_answer).value == "됨"
+
+    assert provider.timeouts == [240.0, 240.0]
+
+
+def test_request_without_timeouts_keeps_the_settings() -> None:
+    clock = Clock(step=1.0)
+    provider = SlowProvider(clock, {"answer": "됨"})
+    llm = LlmClient(provider, SETTINGS, sleep=lambda _: None, monotonic=clock)
+
+    llm.generate(REQUEST, need_answer)
+
+    assert provider.timeouts == [60.0]
 
 
 def test_no_provider_is_unavailable() -> None:

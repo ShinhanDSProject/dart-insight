@@ -35,6 +35,14 @@ def test_request_has_task_version_and_source_rule() -> None:
     assert request.output_schema["required"] == ["events"]
 
 
+def test_request_has_limits_from_the_measurement() -> None:
+    request = build_request([change()])
+
+    assert request.max_output_tokens == 32000
+    assert request.timeout_seconds == 240.0
+    assert request.total_timeout_seconds == 480.0
+
+
 def test_both_sides_are_wrapped_in_disclosure_tags() -> None:
     user = build_request([change()]).user
 
