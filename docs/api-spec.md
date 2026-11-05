@@ -2857,7 +2857,7 @@
 }
 ```
 
-- `quotes[].purpose`: `CHANGE` 바뀐 내용, `REASON` 공시에 적힌 이유. 이유 인용이 없으면 화면은 그 칸을 빼고 지어내지 않습니다
+- `quotes[].purpose`: `CHANGE` 바뀐 내용, `REASON` 공시에 적힌 이유. 이유 인용이 없으면 화면은 그 칸에 '확인된 설명 없음'을 보이고 지어내지 않습니다
 - `quotes[].side`: `PREVIOUS`, `CURRENT`. `evidenceId`는 `{rcept_no}#B{block_no}`입니다
 - `sortBasis`: `FRONT_KIND` 맨 앞에 둘 종류, `AMOUNT` 금액, `UNIT_COUNT` 바뀐 단위 수(표의 바뀐 행 + 바뀐 문단, 각 1. 행을 비교하지 못한 표는 1)
 - 규모 칸([ADR-0053](adr/0053-event-scale-amount-candidates.md)). 숫자는 코드가 만들고 AI는 코드가 뽑은 후보의 번호만 고릅니다. 사건끼리 더하지 않습니다.
