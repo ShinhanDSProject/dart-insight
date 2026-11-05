@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Analysis } from '@/shared/api/analyses'
 import type { ChangeType, TextChangeCounts, TextChangeItem, TextChangeList, TextField, TextListGroup, TextListing } from '@/shared/api/textChanges'
+import type { TextEventList } from '@/shared/api/textEvents'
 import { axeViolations } from '@/test/axe'
 import type { TextListState } from '../model/textList'
 import { TextTab } from './TextTab'
@@ -46,6 +47,13 @@ vi.mock('../hooks/useTextChanges', () => ({
   // 원문 비교 창의 내용은 TextEvidencePanel 테스트가 본다. 여기서는 창이 열리고 닫히는 것만 본다
   useTextChangeDetail: () => ({ state: { status: 'loading' }, reload: () => {} }),
 }))
+// 사건 절의 내용은 TextEventsSection 테스트가 본다
+const events = vi.hoisted(() => ({ list: null as TextEventList | null }))
+const detail = vi.hoisted(() => ({ state: { status: 'loading' } as unknown }))
+vi.mock('../hooks/useTextEvents', () => ({
+  useTextEvents: () => events.list,
+  useTextEventDetail: () => ({ state: detail.state, reload: () => {} }),
+}))
 vi.mock('../hooks/usePinnedChanges', () => ({
   usePinnedChanges: () => ({
     ids: pins.ids,
@@ -77,6 +85,8 @@ beforeEach(() => {
   list.type = null
   list.reload.mockReset()
   list.groups = {}
+  events.list = null
+  detail.state = { status: 'loading' }
 })
 afterEach(cleanup)
 
@@ -393,6 +403,144 @@ describe('TextTab 위험 요인 변화(3.9, FS-61)', () => {
     list.riskCounts = { ...zero, all: 2, added: 1, modified: 1 }
     renderRisk(false)
     expect(await axeViolations(document.body)).toBe('')
+  })
+})
+
+describe('TextTab 주요 사건(3.37)', () => {
+  const listing: TextListing = {
+    listVersion: 'text-list-1',
+    fieldCounts: { LITIGATION: 38, CONTRACT: 0, BUSINESS: 247, DIVIDEND: 0, FUNDING: 0, BOARD: 0, SHAREHOLDER: 0, AUDIT: 0, OTHER: 0 },
+    missingFields: [],
+    groupCounts: null,
+  }
+  const textEvents = (changeId: number) =>
+    ({
+      droppedEventCount: 0,
+      fieldCounts: [{ field: 'LITIGATION', eventCount: 1 }],
+      items: [
+        {
+          eventId: 7,
+          title: '과징금을 새로 부과받았어요',
+          kind: '제재',
+          fields: ['LITIGATION'],
+          changeIds: [changeId],
+          quotes: [{ changeId, purpose: 'CHANGE', side: 'CURRENT', text: '이번 글', evidenceId: '20250314000100#B1', sectionPath: 'XI. 그 밖에' }],
+        },
+      ],
+      unboundChanges: [],
+    }) as unknown as TextEventList
+
+  function Harness({ field = null }: { field?: TextField | null }) {
+    const [selected, setSelected] = useState<number | null>(null)
+    return (
+      <MemoryRouter>
+        <main>
+          <TextTab
+            analysis={analysis}
+            type={null}
+            sort="priority"
+            section={null}
+            q={null}
+            risk={false}
+            field={field}
+            pinned={false}
+            selectedChangeId={selected}
+            onChange={(change) => {
+              if ('change' in change) setSelected(change.change ?? null)
+            }}
+            onOpenSource={() => {}}
+            onAsk={() => {}}
+            asking={false}
+          />
+        </main>
+      </MemoryRouter>
+    )
+  }
+
+  const table = () => within(screen.getByRole('group', { name: '분야별 변경' }))
+
+  beforeEach(() => {
+    list.listing = listing
+    list.items = [item(1, '1. 사업의 개요')]
+  })
+
+  it('사건을 받으면 표의 칸에 관련 사건 수가 보이고 표 아래에 사건 절이 있다(AC1)', () => {
+    events.list = textEvents(1)
+    render(<Harness />)
+
+    expect(table().getByRole('button', { name: /소송·제재.*관련 주요 사건 1건/ })).toBeTruthy()
+    expect(table().getByRole('button', { name: /사업 내용.*관련 주요 사건 없음/ })).toBeTruthy()
+    const heading = screen.getByRole('heading', { name: '주요 사건 1건' })
+    const fieldTable = screen.getByRole('group', { name: '분야별 변경' })
+    expect(fieldTable.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('사건이 없으면 사건 절과 칸의 사건 수만 빠지고 목록은 그대로다(AC21)', () => {
+    render(<Harness />)
+
+    expect(screen.queryByRole('heading', { name: /주요 사건/ })).toBeNull()
+    expect(screen.queryByText(/관련 주요 사건/)).toBeNull()
+    expect(screen.getByRole('article', { name: /1\. 사업의 개요/ })).toBeTruthy()
+  })
+
+  it('분야를 고르면 그 칸의 사건만 보이고 유형으로 거르면 사건 절이 빠진다', () => {
+    events.list = textEvents(1)
+    const { rerender } = render(<Harness field="LITIGATION" />)
+    expect(screen.getByRole('heading', { name: '주요 사건 1건' })).toBeTruthy()
+
+    rerender(<Harness field="BUSINESS" />)
+    expect(screen.queryByRole('heading', { name: /주요 사건/ })).toBeNull()
+
+    list.type = 'ADDED'
+    rerender(<Harness />)
+    expect(screen.queryByRole('heading', { name: /주요 사건/ })).toBeNull()
+  })
+
+  it('목록에 없는 변경도 인용에서 원문 비교를 열고, 닫으면 그 버튼으로 초점이 돌아온다', async () => {
+    events.list = textEvents(99)
+    render(<Harness />)
+    fireEvent.click(screen.getByRole('button', { name: '펼치기' }))
+    const opener = within(screen.getByRole('article', { name: '과징금을 새로 부과받았어요' })).getByRole('button', { name: '원문 비교' })
+    opener.focus()
+
+    fireEvent.click(opener)
+    expect(screen.getByRole('dialog')).toBeTruthy()
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    await waitFor(() => expect(document.activeElement).toBe(opener))
+  })
+
+  it('같은 변경이 목록에도 있을 때 사건 안에서 연 원문 비교를 닫으면 사건 안의 버튼으로 초점이 돌아온다', async () => {
+    events.list = textEvents(1)
+    detail.state = { status: 'success', data: { changes: [item(1, '1. 사업의 개요')] } }
+    render(<Harness />)
+    fireEvent.click(screen.getByRole('button', { name: '펼치기' }))
+    fireEvent.click(screen.getByRole('button', { name: '변경 보기 1건' }))
+    const opener = document.getElementById('text-evidence-button-event-7-1') as HTMLElement
+    opener.focus()
+
+    fireEvent.click(opener)
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    await new Promise((resolve) => requestAnimationFrame(resolve))
+    await waitFor(() => expect(document.activeElement).toBe(opener))
+  })
+
+  it('같은 변경이 목록과 사건 안에 함께 있어도 원문 비교 버튼의 id가 겹치지 않고 카드 메뉴가 그대로 있다(AC31)', () => {
+    events.list = textEvents(1)
+    list.groups = {}
+    render(<Harness />)
+    fireEvent.click(screen.getByRole('button', { name: '펼치기' }))
+    detail.state = { status: 'success', data: { changes: [item(1, '1. 사업의 개요')] } }
+
+    fireEvent.click(screen.getByRole('button', { name: '변경 보기 1건' }))
+
+    const ids = screen.getAllByRole('button', { name: '원문 비교' }).map((button) => button.id).filter(Boolean)
+    expect(ids).toHaveLength(2)
+    expect(new Set(ids).size).toBe(2)
+    expect(screen.getAllByRole('button', { name: /메뉴: / })).toHaveLength(2)
   })
 })
 
