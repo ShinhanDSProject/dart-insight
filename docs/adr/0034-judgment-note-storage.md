@@ -1,6 +1,6 @@
 # ADR-0034: 판단 노트는 담을 때의 값·문장을 사본으로 저장하고, 원래 위치는 참조로 함께 남긴다
 
-- 상태: 제안
+- 상태: 채택
 - 결정한 날: 2026-10-27
 - 관련: [#413](https://github.com/ShinhanDSProject/dart-insight/issues/413)(6.5, FS-57 내 판단 노트), 선행 #36(6.2 관심 기업), [ADR-0017](0017-auto-increment-id-primary-key.md), [ADR-0020](0020-jwt-access-and-rotating-refresh-token.md)
 
