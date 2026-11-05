@@ -31,6 +31,11 @@ public enum ErrorCode {
     ANALYSIS_TEXT_CHANGE_NOT_FOUND(404, "문장 변경 항목을 찾을 수 없습니다."),
     ANALYSIS_QUESTION_NOT_FOUND(404, "질문을 찾을 수 없습니다. 질문 기록을 다시 불러와 주세요."),
     ANALYSIS_NOTIFICATION_NOT_FOUND(404, "알림을 찾을 수 없습니다. 알림 목록을 다시 불러와 주세요."),
+    ANALYSIS_EVENT_NOT_FOUND(404, "주요 사건을 찾을 수 없습니다. 사건 목록을 다시 불러와 주세요."),
+    ANALYSIS_EVENTS_NOT_READY(409, "주요 사건을 아직 만들지 않았거나 만드는 중입니다."),
+    ANALYSIS_EVENTS_FAILED(409, "주요 사건을 만들지 못했습니다."),
+    ANALYSIS_EVENTS_NOT_CREATED(409, "이 분석에는 주요 사건을 만들지 않았습니다."),
+    ANALYSIS_EVENTS_RETRY_LIMITED(429, "주요 사건 만들기가 여러 번 실패했습니다. 나중에 다시 시도해 주세요."),
 
     DART_REQUEST_FAILED(502, "OpenDART에서 자료를 받지 못했습니다. 잠시 뒤 다시 시도해 주세요."),
     DART_RATE_LIMITED(503, "OpenDART 호출 한도를 넘었습니다. 저장된 자료만 볼 수 있습니다."),
