@@ -97,3 +97,9 @@
 .progress__notify .notice {
   margin: 0;
 }
+
+/* 상태 안내 캐릭터(#706): 진행 중이면 찾는 중, 실패면 설명 없음 */
+.progress__mascot {
+  display: block;
+  margin: 0 auto var(--space-3);
+}

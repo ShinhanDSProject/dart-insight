@@ -3103,3 +3103,10 @@
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
 }
+
+/* '이번 비교의 핵심' 제목 옆 캐릭터(#706) */
+.headline__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}

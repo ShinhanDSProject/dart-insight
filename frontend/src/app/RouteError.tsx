@@ -21,7 +21,7 @@ export function RouteError() {
         .with('not-found', () => (
           <>
             <PageHeader title="페이지를 찾을 수 없어요" />
-            <AlertState title="주소를 확인해 주세요.">{home}</AlertState>
+            <AlertState mascot title="주소를 확인해 주세요.">{home}</AlertState>
           </>
         ))
         .with('chunk', () => (
