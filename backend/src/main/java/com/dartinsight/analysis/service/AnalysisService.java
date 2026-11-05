@@ -9,6 +9,9 @@ import com.dartinsight.comparison.service.ComparabilityService;
 import com.dartinsight.comparison.service.ComparabilityService.ComparabilityResult;
 import com.dartinsight.comparison.domain.ComparisonBasis;
 import com.dartinsight.comparison.service.ReportPairService;
+import com.dartinsight.llmquota.domain.QuotaCaller;
+import com.dartinsight.llmquota.domain.QuotaKind;
+import com.dartinsight.llmquota.service.LlmQuotaService;
 import com.dartinsight.report.domain.Report;
 import com.dartinsight.report.service.ReportService;
 import java.time.Clock;
@@ -25,6 +28,7 @@ import org.springframework.stereotype.Service;
  *   <li>진행 중인 분석이 있으면 그 분석을 돌려준다(중복 수집·분석을 막음).</li>
  *   <li>비교 가능성 검증(2.2)을 통과하지 못하면 만들지 않고 422.</li>
  *   <li>전년 동기·직전 기간과 맞지 않는 보고서 쌍은 직접 선택으로 저장한다.</li>
+ *   <li>사용자가 요청한 분석은 새로 만들 때만 하루 한도로 센다(ADR-0056). 시스템 작업은 세지 않는다.</li>
  * </ul>
  */
 @Service
@@ -35,26 +39,37 @@ public class AnalysisService {
     private final ComparabilityService comparabilityService;
     private final AnalysisRunner runner;
     private final ReportService reportService;
+    private final LlmQuotaService llmQuota;
     private final Clock clock;
     /** 같은 조건의 요청이 동시에 와도 분석을 하나만 만들도록 조건별로 잠근다(서버 한 대 기준). 찾기·만들기만 잠근다 */
     private final Object[] locks = new Object[64];
 
     public AnalysisService(AnalysisResultService resultService, AnalysisRepository analysisRepository,
             ComparabilityService comparabilityService, AnalysisRunner runner, ReportService reportService,
-            Clock clock) {
+            LlmQuotaService llmQuota, Clock clock) {
         this.resultService = resultService;
         this.analysisRepository = analysisRepository;
         this.comparabilityService = comparabilityService;
         this.runner = runner;
         this.reportService = reportService;
+        this.llmQuota = llmQuota;
         this.clock = clock;
         for (int i = 0; i < locks.length; i++) {
             locks[i] = new Object();
         }
     }
 
+    /** 시스템 작업(관심 기업 자동 분석·시즌 순위)의 요청. 하루 한도로 세지 않는다 */
     public RequestResult request(String corpCode, String currentRceptNo, String previousRceptNo,
             ComparisonBasis requestedBasis) {
+        return request(corpCode, currentRceptNo, previousRceptNo, requestedBasis, null);
+    }
+
+    /**
+     * @param caller 사용자가 요청했으면 그 호출자. 새로 만들 때만 하루 한도로 센다(ADR-0056). null이면 세지 않는다
+     */
+    public RequestResult request(String corpCode, String currentRceptNo, String previousRceptNo,
+            ComparisonBasis requestedBasis, QuotaCaller caller) {
         ComparisonBasis basis = effectiveBasis(requestedBasis, currentRceptNo, previousRceptNo);
         Object lock = locks[Math.floorMod(String.join("|", corpCode, currentRceptNo, previousRceptNo,
                 basis.name()).hashCode(), locks.length)];
@@ -76,6 +91,10 @@ public class AnalysisService {
             reused = reuse(lock, corpCode, currentRceptNo, previousRceptNo, basis);
             if (reused.isPresent()) {
                 return reused.get();
+            }
+            if (caller != null) {
+                // 재사용·비교 불가는 세지 않고, 정말 새로 만들 때만 센다
+                llmQuota.acquire(QuotaKind.ANALYSIS, caller);
             }
             LocalDateTime now = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MICROS);
             Analysis analysis = Analysis.request(corpCode, currentRceptNo, previousRceptNo, basis,

@@ -7,15 +7,19 @@ import com.dartinsight.analysis.dto.AnalysisResponse;
 import com.dartinsight.analysis.service.AnalysisResultService;
 import com.dartinsight.analysis.service.AnalysisService;
 import com.dartinsight.common.web.ApiPaths;
+import com.dartinsight.llmquota.domain.QuotaCaller;
 import com.dartinsight.report.domain.FinancialDataStatus;
 import com.dartinsight.report.service.ReportService;
 import com.dartinsight.report.service.ReportService.ReportDetail;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -37,9 +41,13 @@ public class AnalysisController {
 
     /** 새 분석이나 진행 중인 분석은 202, 완료된 결과를 다시 쓰면 200 */
     @PostMapping
-    public ResponseEntity<AnalysisCreatedResponse> request(@Valid @RequestBody AnalysisRequest request) {
+    public ResponseEntity<AnalysisCreatedResponse> request(@Valid @RequestBody AnalysisRequest request,
+            @AuthenticationPrincipal Jwt jwt, HttpServletRequest http) {
+        // 새로 만들 때만 하루 한도로 센다(ADR-0056). 회원은 회원 ID, 아니면 클라이언트 IP
+        QuotaCaller caller = QuotaCaller.of(jwt == null ? null : Long.parseLong(jwt.getSubject()),
+                http.getRemoteAddr(), http.getHeader("X-Forwarded-For"));
         AnalysisService.RequestResult result = analysisService.request(request.corpCode(), request.currentRceptNo(),
-                request.previousRceptNo(), request.basis());
+                request.previousRceptNo(), request.basis(), caller);
         return ResponseEntity.status(result.completed() ? HttpStatus.OK : HttpStatus.ACCEPTED)
                 .body(AnalysisCreatedResponse.from(result));
     }

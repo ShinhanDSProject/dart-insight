@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -39,7 +40,13 @@ public class GlobalExceptionHandler {
         if (code.status() >= 500) {
             log.warn("{}: {}", code, e.getMessage(), e.getCause());
         }
-        return respond(code, e.getMessage(), e.fieldErrors());
+        ResponseEntity<ErrorResponse> response = respond(code, e.getMessage(), e.fieldErrors());
+        if (e.retryAfterSeconds() == null) {
+            return response;
+        }
+        return ResponseEntity.status(response.getStatusCode())
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(e.retryAfterSeconds()))
+                .body(response.getBody());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

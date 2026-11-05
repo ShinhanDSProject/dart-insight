@@ -37,4 +37,16 @@ class DailyQuotaCounterTest {
         assertThat(counter.acquire("a", 1, 1, DAY)).isEqualTo(QuotaDecision.TOTAL_EXCEEDED);
         assertThat(counter.acquire("a", 1, 1, DAY.plusDays(1))).isEqualTo(QuotaDecision.ALLOWED);
     }
+
+    @Test
+    @DisplayName("전체 한도 초과 알림은 하루에 한 번만 처음이고, 날짜가 바뀌면 다시 처음이다")
+    void reportsTotalExceededOncePerDay() {
+        DailyQuotaCounter counter = new DailyQuotaCounter();
+        counter.acquire("a", 1, 1, DAY);
+        assertThat(counter.acquire("b", 1, 1, DAY)).isEqualTo(QuotaDecision.TOTAL_EXCEEDED);
+        assertThat(counter.firstTotalExceededToday()).isTrue();
+        assertThat(counter.firstTotalExceededToday()).isFalse();
+        counter.acquire("a", 1, 1, DAY.plusDays(1));
+        assertThat(counter.firstTotalExceededToday()).isTrue();
+    }
 }
