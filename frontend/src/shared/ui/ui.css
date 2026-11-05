@@ -764,6 +764,8 @@ th[aria-sort='none'] .data-table__sort-mark {
 }
 
 .password-input .password-input__field {
+  /* 좁은 화면에서 입력창 기본 최소 폭 때문에 감싼 상자 밖으로 넘치지 않게 한다 */
+  min-width: 0;
   padding-right: calc(var(--touch-target-min) + var(--space-3));
 }
 

@@ -24,9 +24,15 @@ export function Input({ invalid = false, className, ...rest }: InputProps) {
 
 /**
  * 비밀번호 입력창(#689). 오른쪽 눈 버튼을 누르면 친 글자를 보이고(type=text) 다시 누르면 가린다.
- * 버튼 이름은 '비밀번호 보기'로 두고 보이는 상태는 aria-pressed로 알린다. 입력이 막히면 버튼도 막힌다
+ * 버튼 이름은 toggleLabel(기본 '비밀번호 보기')로 두고 보이는 상태는 aria-pressed로 알린다. 입력이 막히면 버튼도 막힌다.
+ * 한 화면에 둘 이상 두면 toggleLabel을 달리 줘 어느 칸의 버튼인지 구분하게 한다(예: '비밀번호 확인 보기')
  */
-export function PasswordInput({ className, disabled, ...rest }: Omit<InputProps, 'type'>) {
+export function PasswordInput({
+  className,
+  disabled,
+  toggleLabel = '비밀번호 보기',
+  ...rest
+}: Omit<InputProps, 'type'> & { toggleLabel?: string }) {
   const [shown, setShown] = useState(false)
   return (
     <span className="password-input">
@@ -34,7 +40,7 @@ export function PasswordInput({ className, disabled, ...rest }: Omit<InputProps,
       <Button
         variant="icon"
         className="password-input__toggle"
-        aria-label="비밀번호 보기"
+        aria-label={toggleLabel}
         aria-pressed={shown}
         disabled={disabled}
         onClick={() => setShown((value) => !value)}
