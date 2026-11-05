@@ -13,6 +13,7 @@ from app.events.amount_pick_prompt import build_request
 from app.events.amounts import AmountCandidate
 from app.events.model import AI_CHOICE, AMOUNT_NONE, AMOUNT_UNAVAILABLE, TextEvent
 from app.llm import CallRecord, LlmClient, LlmOutputInvalid, LlmUnavailable, OutputProblem
+from app.llm.client import OUTCOME_ERROR, OUTCOME_TRANSIENT_ERROR
 
 # 표의 숫자 칸이 많아도 프롬프트가 커지지 않게 원화 값이 큰 후보만 보여 준다
 MAX_SHOWN = 30
@@ -61,7 +62,9 @@ def pick_amount(
     try:
         generated = llm.generate(build_request(event, shown), validate)
     except LlmOutputInvalid as e:
-        return not_checked(e.calls)
+        # 다시 생성하다 호출이 실패해도 이 예외로 온다. 그때는 뒤 사건도 부르지 않는다
+        provider_failed = e.calls[-1].outcome in (OUTCOME_ERROR, OUTCOME_TRANSIENT_ERROR)
+        return not_checked(e.calls, unavailable=provider_failed)
     except LlmUnavailable as e:
         return not_checked(e.calls, unavailable=True)
     source = AI_CHOICE if generated.value else AMOUNT_NONE
