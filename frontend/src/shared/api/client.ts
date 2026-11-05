@@ -172,6 +172,11 @@ async function refreshAccessToken(): Promise<void> {
       const session = await response.json() as { accessToken?: unknown }
       if (typeof session.accessToken !== 'string') throw new Error('invalid refresh response')
       setAccessToken(session.accessToken)
+    }).catch((error: unknown) => {
+      // 같은 재발급을 기다린 요청이 여럿이어도 로그인이 끊겼다고 한 번만 알린다
+      setAccessToken(null)
+      sessionExpiredListeners.forEach((listener) => listener())
+      throw error
     }).finally(() => { refreshPromise = null })
   }
   return refreshPromise
@@ -194,8 +199,6 @@ async function request<T>(
     try {
       await refreshAccessToken()
     } catch {
-      setAccessToken(null)
-      sessionExpiredListeners.forEach((listener) => listener())
       throw error
     }
     return requestOnce<T>(method, path, query, body, options, kind)

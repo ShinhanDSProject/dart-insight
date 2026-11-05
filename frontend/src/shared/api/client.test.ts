@@ -44,6 +44,20 @@ describe('인증 갱신', () => {
     expect(expired).toHaveBeenCalledTimes(1)
     unsubscribe()
   })
+
+  it('동시에 401을 받은 요청들이 재발급 실패를 함께 겪어도 한 번만 알린다', async () => {
+    setAccessToken('expired-access')
+    vi.stubGlobal('fetch', vi.fn((url: string) => Promise.resolve(url === '/api/session-refreshes'
+      ? jsonResponse(401, { code: 'AUTH_INVALID_REFRESH_TOKEN', message: '만료', errors: [] })
+      : jsonResponse(401, { code: 'AUTH_UNAUTHORIZED', message: '만료', errors: [] }))))
+    const expired = vi.fn()
+    const unsubscribe = onSessionExpired(expired)
+
+    const results = await Promise.allSettled([apiGet('/api/notes'), apiGet('/api/favorites')])
+    expect(results.map((result) => result.status)).toEqual(['rejected', 'rejected'])
+    expect(expired).toHaveBeenCalledTimes(1)
+    unsubscribe()
+  })
 })
 
 describe('apiGet', () => {
