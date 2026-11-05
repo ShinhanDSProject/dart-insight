@@ -10,6 +10,7 @@ import { ResultOverviewContext, ResultReportsContext } from '@/features/analysis
 const SearchPage = lazyPage(() => import('@/features/company-search/SearchPage').then((m) => m.SearchPage))
 const SignupPage = lazyPage(() => import('@/features/user-registration/SignupPage').then((m) => m.SignupPage))
 const LoginPage = lazyPage(() => import('@/features/user-login/LoginPage').then((m) => m.LoginPage))
+const PasswordResetPage = lazyPage(() => import('@/features/password-reset/PasswordResetPage').then((m) => m.PasswordResetPage))
 const CompanyPage = lazyPage(() => import('@/features/report-selection/CompanyPage').then((m) => m.CompanyPage))
 const ComparabilityPage = lazyPage(() =>
   import('@/features/comparability/ComparabilityPage').then((m) => m.ComparabilityPage),
@@ -99,6 +100,7 @@ export const router = createBrowserRouter([
           { path: '/', element: <PageSuspense><SearchPage /></PageSuspense>, handle: { crumb: '기업 검색' } },
           { path: '/signup', element: <PageSuspense><SignupPage /></PageSuspense>, handle: { crumb: '회원가입' } },
           { path: '/login', element: <PageSuspense><LoginPage /></PageSuspense>, handle: { crumb: '로그인' } },
+          { path: '/password-reset', element: <PageSuspense><PasswordResetPage /></PageSuspense>, handle: { crumb: '비밀번호 찾기' } },
           {
             path: '/companies/:corpCode',
             element: <PageSuspense><CompanyPage /></PageSuspense>,

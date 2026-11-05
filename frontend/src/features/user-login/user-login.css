@@ -2,6 +2,7 @@
 /* Card(#548) 위에 폼만 넓게 띄운다. 그림자 없이 1px 테두리·모서리 12 */
 .login__card { padding: var(--space-6); }
 .login__field { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-5); }
+.login__forgot { align-self: flex-end; color: var(--color-text-muted); font-size: var(--font-size-sm); text-underline-offset: 3px; }
 .login__failure { margin-bottom: var(--space-4); }
 .login__failure .state__title:last-child { margin-bottom: 0; }
 .login__failure p { overflow-wrap: anywhere; }

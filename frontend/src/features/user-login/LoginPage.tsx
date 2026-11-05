@@ -84,6 +84,7 @@ export function LoginPage() {
             <FieldLabel htmlFor="login-password">비밀번호</FieldLabel>
             <PasswordInput id="login-password" autoComplete="current-password" required disabled={loading}
               value={password} onChange={(event) => setPassword(event.target.value)} />
+            <Link to="/password-reset" className="login__forgot">비밀번호를 잊으셨나요?</Link>
           </div>
           {match(submit).with({ status: 'error' }, (state) => (
             <div className="login__failure">
