@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { match, P } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
@@ -13,6 +13,7 @@ import { CopyWithSourcesButton } from './CopyWithSourcesButton'
 import { NumberChangesLine } from './NumberChangesLine'
 import { RiskChangesCard } from './RiskChangesCard'
 import { RowDiffBlock } from './RowDiffBlock'
+import { TextEventsSection } from './TextEventsSection'
 import { TextEvidencePanel } from './TextEvidencePanel'
 import { TextExplanationBox } from './TextExplanationBox'
 import { TextFieldTable } from './TextFieldTable'
@@ -20,6 +21,7 @@ import { TextFoldedGroups } from './TextFoldedGroups'
 import { TextListFooter } from './TextListFooter'
 import { usePinnedChanges, usePinnedTextChanges } from '../hooks/usePinnedChanges'
 import { useTextChanges } from '../hooks/useTextChanges'
+import { useTextEvents } from '../hooks/useTextEvents'
 import { useTextExplanations, type TextExplanations } from '../hooks/useTextExplanations'
 import { useTextSearch } from '../hooks/useTextSearch'
 import { TEXT_CARD_ATTRIBUTE, useTextCardKeys } from '../hooks/useTextCardKeys'
@@ -54,6 +56,7 @@ import {
   type TextTypeFilter,
 } from '../model/textFilter'
 import { ALL_FIELDS_LABEL, resolveTextField, textFieldLabel } from '../model/textFields'
+import { eventFieldCounts, visibleEvents } from '../model/textEvents'
 import { DEFAULT_LIST_EMPTY, DEFAULT_LIST_EMPTY_NOTE, defaultListNote, foldedTotal, isDefaultList, noteScopeLabel } from '../model/textGroups'
 import { displaySectionPath } from '@/shared/lib/sectionTitle'
 
@@ -93,6 +96,7 @@ interface TextTabProps {
  * 맨 위 '위험 요인 변화' 카드에 위험 관련 목차의 건수를 보이고 '위험 관련만'으로 거른다(3.9, FS-61).
  * 문장을 비교하지 못했으면 '변경 없음'이 아니라 사유를 보여 준다. 짝짓지 못한 항목은 숨기지 않고 '검토 필요'로 둔다.
  * 맨 위 분야별 표에서 분야마다 몇 건이 바뀌었는지 보이고, 칸을 눌러 그 분야로 거른다(3.28). 옛 분석에는 표가 없고 주소의 분야도 쓰지 않는다.
+ * 표 아래에 AI가 묶은 주요 사건을 카드로 보인다(3.37). 사건이 없으면 이 절만 빠지고 나머지는 그대로다.
  * 거르지 않으면 기본 목록만 보이고 나머지는 아래 접힌 묶음에 둔다. 거르면 접힌 변경도 찾는다(3.29). 옛 분석에는 묶음이 없고 모든 변경이 목록에 있다.
  * 카드에는 '원문 비교'와 ⋯ 메뉴(고정, AI 한 줄 풀이, 노트, 커뮤니티 인용)를 둔다(3.31). 이력과 관련 수시공시는 원문 비교 창 안에 있다.
  * 카드마다 고정할 수 있고, '고정' 거르기를 고르면 이 분석에서 고정한 변경만 보여 준다(3.3, 이 브라우저에만 남음).
@@ -131,7 +135,13 @@ export function TextTab({
   const explanations = useTextExplanations(analysis.analysisId)
   const pins = usePinnedChanges(analysis.analysisId)
   const pinnedList = usePinnedTextChanges(analysis.analysisId, pins.ids, pinned, pins.remove)
-  const toggleEvidence = (changeId: number) => onChange({ change: changeId === selectedChangeId ? null : changeId })
+  const textEvents = useTextEvents(analysis.analysisId)
+  // 같은 변경의 '원문 비교' 버튼이 목록과 사건 안에 함께 있을 수 있어, 창을 연 버튼을 기억해 닫을 때 그리로 돌아간다
+  const evidenceOpener = useRef<Element | null>(null)
+  const toggleEvidence = (changeId: number) => {
+    evidenceOpener.current = document.activeElement
+    onChange({ change: changeId === selectedChangeId ? null : changeId })
+  }
   useTextCardKeys({ onToggleEvidence: toggleEvidence, onTogglePin: pins.toggle })
   const searched = hasSearchFilter({ section, q })
   // 위험 관련만 보는 중이면(고정 보기가 아닐 때) 섹션·검색어처럼 거른 결과로 본다
@@ -156,7 +166,11 @@ export function TextTab({
   const closeEvidence = (changeId: number) => {
     onChange({ change: null })
     // 닫으면 그 항목의 '원문 비교' 버튼으로 초점을 돌려준다
-    requestAnimationFrame(() => document.getElementById(evidenceButtonId(changeId))?.focus())
+    const opener = evidenceOpener.current
+    requestAnimationFrame(() => {
+      const target = opener instanceof HTMLButtonElement && opener.isConnected ? opener : document.getElementById(evidenceButtonId(changeId))
+      target?.focus()
+    })
   }
   // 고른 항목이 지금 목록(거르기·쪽·고정)에 없어도 근거는 연다(요약·주소에서 바로 온 경우, 펼친 묶음의 변경)
   const outsideEvidence = (items: TextChangeItem[]) =>
@@ -172,7 +186,7 @@ export function TextTab({
         asking={asking}
       />
     )
-  const changeList = (items: TextChangeItem[], inlineEvidence = true) => {
+  const changeList = (items: TextChangeItem[], inlineEvidence = true, idScope = '') => {
     const noted = firstNotedIds(items)
     return (
       <ol className="change-list">
@@ -184,6 +198,7 @@ export function TextTab({
               showTypeNote={noted.has(item.changeId)}
               selected={item.changeId === selectedChangeId}
               inlineEvidence={inlineEvidence}
+              idScope={idScope}
               pinned={pins.isPinned(item.changeId)}
               explanations={explanations}
               onOpenSource={onOpenSource}
@@ -210,7 +225,16 @@ export function TextTab({
       )}
       {/* 첫 조회가 실패하면 아래 목록 자리의 오류 안내만 보인다 */}
       {!failed && !(state.status === 'error' && listing === null) && (
-        <TextFieldTable listing={listing} field={pinned ? null : field} onChoose={chooseField} />
+        <TextFieldTable listing={listing} field={pinned ? null : field} eventCounts={eventFieldCounts(textEvents)} onChoose={chooseField} />
+      )}
+      {!failed && textEvents !== null && (
+        <TextEventsSection
+          analysis={analysis}
+          list={textEvents}
+          items={visibleEvents(textEvents.items, { pinned, searched, riskOnly, type, field })}
+          onOpenEvidence={toggleEvidence}
+          renderChanges={(items, eventId) => changeList(items, false, `event-${eventId}-`)}
+        />
       )}
       {!failed && (
         <RiskChangesCard counts={riskCounts} risk={riskOnly} searched={searched} onToggle={(next) => onChange({ risk: next })} />
@@ -425,8 +449,8 @@ export function TextTab({
   )
 }
 
-function evidenceButtonId(changeId: number): string {
-  return `text-evidence-button-${changeId}`
+function evidenceButtonId(changeId: number, idScope = ''): string {
+  return `text-evidence-button-${idScope}${changeId}`
 }
 
 interface ChangeCardProps {
@@ -437,6 +461,8 @@ interface ChangeCardProps {
   selected: boolean
   /** 고르면 카드가 원문 비교 창을 여는지. 펼친 묶음의 카드는 탭이 대신 연다 */
   inlineEvidence: boolean
+  /** 같은 변경이 화면에 두 번 보일 때(사건 안) 요소 id가 겹치지 않게 붙이는 앞말 */
+  idScope: string
   /** 고정했는지(3.3) */
   pinned: boolean
   explanations: TextExplanations
@@ -454,6 +480,7 @@ function ChangeCard({
   showTypeNote,
   selected,
   inlineEvidence,
+  idScope,
   pinned,
   explanations,
   onTogglePin,
@@ -475,7 +502,7 @@ function ChangeCard({
   const [explainOpen, setExplainOpen] = useState(false)
   // 메뉴에서 '노트에 담기'를 고른 횟수. 닫으면 null(저장 뒤 다시 고를 때도 열리도록 횟수로 알린다)
   const [noteRequest, setNoteRequest] = useState<number | null>(null)
-  const explainId = `text-explain-${item.changeId}`
+  const explainId = `text-explain-${idScope}${item.changeId}`
   const toggleExplain = () => {
     if (!explainOpen) explanations.request(item.changeId)
     setExplainOpen(!explainOpen)
@@ -531,7 +558,7 @@ function ChangeCard({
       {showTypeNote && item.changeType === 'DELETED' && !pairedPrevious && <p className="panel__note">{DELETED_NOTE}</p>}
       <MovedPaths item={item} withNote={showTypeNote} />
       <div className="change-card__actions">
-        <Button variant="secondary" id={evidenceButtonId(item.changeId)} aria-haspopup="dialog" onClick={onToggle}>
+        <Button variant="secondary" id={evidenceButtonId(item.changeId, idScope)} aria-haspopup="dialog" onClick={onToggle}>
           원문 비교
         </Button>
         <MenuButton label={<Icon name="ellipsis" size={16} />} trigger="icon" align="start" aria-label={`메뉴: ${section}`}>

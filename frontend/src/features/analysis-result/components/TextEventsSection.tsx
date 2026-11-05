@@ -1,0 +1,160 @@
+import { useState, type ReactNode } from 'react'
+import { match } from 'ts-pattern'
+import type { Analysis } from '@/shared/api/analyses'
+import type { TextChangeItem } from '@/shared/api/textChanges'
+import type { TextEventItem, TextEventList, TextEventQuote } from '@/shared/api/textEvents'
+import { Badge, Button, Card, Notice, Skeleton } from '@/shared/ui'
+import { ErrorState } from '@/shared/ui/StateView'
+import { displaySectionPath } from '@/shared/lib/sectionTitle'
+import { useTextEventDetail } from '../hooks/useTextEvents'
+import {
+  CHANGE_QUOTES_TITLE,
+  EVENT_CHANGES_PAGE_SIZE,
+  EVENTS_DROPPED_NOTE,
+  EVENTS_NOTE,
+  EVENTS_TITLE,
+  eventQuotes,
+  NO_QUOTE,
+  NO_REASON,
+  REASON_QUOTES_TITLE,
+} from '../model/textEvents'
+import { resultCountLabel } from '../model/textFilter'
+import { TextListFooter } from './TextListFooter'
+
+interface TextEventsSectionProps {
+  analysis: Analysis
+  list: TextEventList
+  /** 지금 보여 줄 사건(거르기를 반영함) */
+  items: TextEventItem[]
+  /** 인용이 나온 변경의 원문 비교를 연다 */
+  onOpenEvidence: (changeId: number) => void
+  /** 묶인 변경을 변경 카드 목록으로 그린다 */
+  renderChanges: (items: TextChangeItem[], eventId: number) => ReactNode
+}
+
+/** 분야별 표 아래의 주요 사건(3.37). 순서는 서버가 정한 그대로이고, 카드를 펼치면 인용과 묶인 변경을 본다 */
+export function TextEventsSection({ analysis, list, items, onOpenEvidence, renderChanges }: TextEventsSectionProps) {
+  if (items.length === 0) return null
+  return (
+    <section className="text-events" aria-labelledby="text-events-title">
+      <h3 id="text-events-title" className="text-events__title">
+        {EVENTS_TITLE} {resultCountLabel(items.length)}
+      </h3>
+      <p className="panel__note">{EVENTS_NOTE}</p>
+      {list.droppedEventCount > 0 && (
+        <Notice as="p" tone="attention">
+          {EVENTS_DROPPED_NOTE}
+        </Notice>
+      )}
+      <ol className="text-events__list">
+        {items.map((item) => (
+          <li key={item.eventId}>
+            <TextEventCard analysis={analysis} item={item} onOpenEvidence={onOpenEvidence} renderChanges={renderChanges} />
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
+
+type TextEventCardProps = Omit<TextEventsSectionProps, 'list' | 'items'> & { item: TextEventItem }
+
+function TextEventCard({ analysis, item, onOpenEvidence, renderChanges }: TextEventCardProps) {
+  const [open, setOpen] = useState(false)
+  const [showChanges, setShowChanges] = useState(false)
+  const bodyId = `text-event-${item.eventId}`
+  const changesId = `text-event-changes-${item.eventId}`
+  const quotes = eventQuotes(item)
+  const quoteList = (entries: TextEventQuote[]) =>
+    entries.map((quote, index) => <QuoteBlock key={`${quote.evidenceId}-${index}`} quote={quote} onOpenEvidence={onOpenEvidence} />)
+  return (
+    <Card as="article" className="text-event" aria-label={item.title}>
+      <div className="text-event__head">
+        <h4 className="text-event__title">{item.title}</h4>
+        <Badge tone="accent">AI 생성</Badge>
+        <Badge>{item.kind}</Badge>
+      </div>
+      <Button variant="secondary" className="text-event__actions" aria-expanded={open} aria-controls={open ? bodyId : undefined} onClick={() => setOpen(!open)}>
+        {open ? '접기' : '펼치기'}
+      </Button>
+      {open && (
+        <div id={bodyId} className="text-event__body">
+          <div className="text-event__part">
+            <h5 className="text-event__part-title">{CHANGE_QUOTES_TITLE}</h5>
+            <div className="change-card__sides">
+              <div className="change-side text-event__quotes">
+                <span className="change-side__role">이전 · {analysis.previous.reportName}</span>
+                {quotes.previous.length > 0 ? quoteList(quotes.previous) : <p className="change-side__missing">{NO_QUOTE}</p>}
+              </div>
+              <div className="change-side text-event__quotes">
+                <span className="change-side__role">이번 · {analysis.current.reportName}</span>
+                {quotes.current.length > 0 ? quoteList(quotes.current) : <p className="change-side__missing">{NO_QUOTE}</p>}
+              </div>
+            </div>
+          </div>
+          <div className="text-event__part">
+            <h5 className="text-event__part-title">{REASON_QUOTES_TITLE}</h5>
+            {quotes.reasons.length > 0 ? (
+              <div className="change-side text-event__quotes">{quoteList(quotes.reasons)}</div>
+            ) : (
+              <p className="panel__note">{NO_REASON}</p>
+            )}
+          </div>
+          <Button
+            variant="secondary"
+            className="text-event__actions"
+            aria-expanded={showChanges}
+            aria-controls={showChanges ? changesId : undefined}
+            onClick={() => setShowChanges(!showChanges)}
+          >
+            {showChanges ? '변경 접기' : `변경 보기 ${resultCountLabel(item.changeIds.length)}`}
+          </Button>
+          {showChanges && (
+            <div id={changesId} className="text-event__part">
+              <EventChanges analysisId={analysis.analysisId} eventId={item.eventId} renderChanges={renderChanges} />
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
+  )
+}
+
+function QuoteBlock({ quote, onOpenEvidence }: { quote: TextEventQuote; onOpenEvidence: (changeId: number) => void }) {
+  return (
+    <div className="text-event__quote">
+      <p className="change-side__text">{quote.text}</p>
+      <div className="text-event__source">
+        <span title={`근거 ID ${quote.evidenceId}`}>{displaySectionPath(quote.sectionPath)}</span>
+        <Button variant="link" aria-haspopup="dialog" onClick={() => onOpenEvidence(quote.changeId)}>
+          원문 비교
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface EventChangesProps {
+  analysisId: number
+  eventId: number
+  renderChanges: TextEventsSectionProps['renderChanges']
+}
+
+/** 사건에 묶인 변경. 응답에 전부 오므로 화면에서만 나눠 보인다 */
+function EventChanges({ analysisId, eventId, renderChanges }: EventChangesProps) {
+  const { state, reload } = useTextEventDetail(analysisId, eventId)
+  const [shown, setShown] = useState(EVENT_CHANGES_PAGE_SIZE)
+  return match(state)
+    .with({ status: 'loading' }, () => <Skeleton label="묶인 변경을 불러오는 중입니다…" shape="card" count={2} />)
+    .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} />)
+    .with({ status: 'success' }, ({ data }) => {
+      const items = data.changes.slice(0, shown)
+      return (
+        <>
+          {renderChanges(items, eventId)}
+          <TextListFooter loaded={items.length} total={data.changes.length} more={{ status: 'idle' }} onMore={() => setShown(shown + EVENT_CHANGES_PAGE_SIZE)} />
+        </>
+      )
+    })
+    .exhaustive()
+}

@@ -2,6 +2,7 @@ import { match } from 'ts-pattern'
 import type { TextField, TextListing } from '@/shared/api/textChanges'
 import { Button, Card, Skeleton } from '@/shared/ui'
 import { resultCountLabel } from '../model/textFilter'
+import { fieldEventLabel, type EventFieldCounts } from '../model/textEvents'
 import { ALL_FIELDS_LABEL, FIELD_TABLE_NOTE, FIELD_TABLE_TITLE, fieldCellValue, fieldTableView } from '../model/textFields'
 
 interface TextFieldTableProps {
@@ -9,6 +10,8 @@ interface TextFieldTableProps {
   listing: TextListing | null
   /** 고른 분야. null이면 전체 */
   field: TextField | null
+  /** 칸마다 관련 주요 사건 수(3.37). 사건이 없으면 null이고 그 줄이 빠진다 */
+  eventCounts: EventFieldCounts | null
   /** 칸을 고르거나(분야) 풀었을 때(null) */
   onChoose: (field: TextField | null) => void
 }
@@ -17,7 +20,7 @@ interface TextFieldTableProps {
  * 문장 변화 탭 맨 위의 분야별 표(3.28). 건수는 코드가 센 기본 목록 건수이고, 칸을 누르면 아래 목록을 그 분야로 거른다.
  * 0건인 칸은 고를 것이 없어 누를 수 없다. 다만 주소로 이미 고른 칸은 풀 수 있게 둔다.
  */
-export function TextFieldTable({ listing, field, onChoose }: TextFieldTableProps) {
+export function TextFieldTable({ listing, field, eventCounts, onChoose }: TextFieldTableProps) {
   return match(fieldTableView(listing))
     .with({ kind: 'hidden' }, () => null)
     .with({ kind: 'loading' }, () => <Skeleton label={`${FIELD_TABLE_TITLE}을 불러오는 중입니다…`} shape="card" count={3} />)
@@ -37,6 +40,7 @@ export function TextFieldTable({ listing, field, onChoose }: TextFieldTableProps
         <div className="field-table__cells" role="group" aria-label={FIELD_TABLE_TITLE}>
           {cells.map((cell) => {
             const pressed = cell.field === field
+            const eventLabel = fieldEventLabel(cell, eventCounts)
             return (
               <button
                 key={cell.field}
@@ -48,6 +52,7 @@ export function TextFieldTable({ listing, field, onChoose }: TextFieldTableProps
               >
                 <span className="field-cell__label">{cell.label}</span>
                 <span className="field-cell__value">{fieldCellValue(cell)}</span>
+                {eventLabel !== null && <span className="field-cell__events">{eventLabel}</span>}
               </button>
             )
           })}
