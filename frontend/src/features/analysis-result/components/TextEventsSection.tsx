@@ -2,23 +2,38 @@ import { useState, type ReactNode } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { TextChangeItem } from '@/shared/api/textChanges'
-import type { TextEventItem, TextEventList, TextEventQuote } from '@/shared/api/textEvents'
+import type { TextEventItem, TextEventList, TextEventQuote, TextEventUnboundChange } from '@/shared/api/textEvents'
 import { Badge, Button, Card, Notice, Skeleton } from '@/shared/ui'
-import { ErrorState } from '@/shared/ui/StateView'
+import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { displaySectionPath } from '@/shared/lib/sectionTitle'
 import { useTextEventDetail } from '../hooks/useTextEvents'
 import {
   CHANGE_QUOTES_TITLE,
   EVENT_CHANGES_PAGE_SIZE,
+  EVENTS_BUILDING,
   EVENTS_DROPPED_NOTE,
+  EVENTS_EMPTY,
+  EVENTS_LOADING,
   EVENTS_NOTE,
+  EVENTS_RETRY_LIMITED,
   EVENTS_TITLE,
+  EVENTS_UNAVAILABLE,
   eventQuotes,
+  eventsNarrowed,
   NO_QUOTE,
   NO_REASON,
   REASON_QUOTES_TITLE,
+  UNBOUND_NOTE,
+  UNBOUND_TITLE,
+  visibleEvents,
+  visibleUnbound,
+  type EventScope,
+  type TextEventsView,
 } from '../model/textEvents'
+import { textFieldLabel } from '../model/textFields'
 import { resultCountLabel } from '../model/textFilter'
+import { changeTypeLabel, missingSideLabel } from '../model/textLabels'
+import { SidePreview } from './SidePreview'
 import { TextListFooter } from './TextListFooter'
 
 interface TextEventsSectionProps {
@@ -30,6 +45,46 @@ interface TextEventsSectionProps {
   onOpenEvidence: (changeId: number) => void
   /** 묶인 변경을 변경 카드 목록으로 그린다 */
   renderChanges: (items: TextChangeItem[], eventId: number) => ReactNode
+}
+
+type TextEventsAreaProps = Omit<TextEventsSectionProps, 'list' | 'items'> & {
+  view: TextEventsView
+  scope: EventScope
+  onRetry: () => void
+}
+
+/** 분야별 표 아래의 사건 자리(3.38). 사건을 만드는 중이거나 만들지 못해도 탭의 나머지는 그대로 쓴다 */
+export function TextEventsArea({ analysis, view, scope, onRetry, onOpenEvidence, renderChanges }: TextEventsAreaProps) {
+  if (eventsNarrowed(scope)) return null
+  return match(view)
+    .with({ status: 'hidden' }, () => null)
+    .with({ status: 'building' }, () => <LoadingState message={EVENTS_BUILDING} />)
+    .with({ status: 'loading' }, () => <Skeleton label={EVENTS_LOADING} shape="card" count={1} />)
+    .with({ status: 'unavailable' }, ({ retry }) => (
+      <Notice tone="attention" role="status" className="text-events__notice">
+        <p>
+          {EVENTS_UNAVAILABLE}
+          {retry === 'limited' && ` ${EVENTS_RETRY_LIMITED}`}
+        </p>
+        {retry === 'available' && (
+          <Button variant="secondary" onClick={onRetry}>
+            다시 시도
+          </Button>
+        )}
+      </Notice>
+    ))
+    .with({ status: 'empty' }, () => (
+      <Notice as="p" role="status">
+        {EVENTS_EMPTY}
+      </Notice>
+    ))
+    .with({ status: 'ready' }, ({ list }) => (
+      <>
+        <TextEventsSection analysis={analysis} list={list} items={visibleEvents(list.items, scope)} onOpenEvidence={onOpenEvidence} renderChanges={renderChanges} />
+        <UnboundChanges analysis={analysis} changes={visibleUnbound(list.unboundChanges, scope)} onOpenEvidence={onOpenEvidence} />
+      </>
+    ))
+    .exhaustive()
 }
 
 /** 분야별 표 아래의 주요 사건(3.37). 순서는 서버가 정한 그대로이고, 카드를 펼치면 인용과 묶인 변경을 본다 */
@@ -54,6 +109,55 @@ export function TextEventsSection({ analysis, list, items, onOpenEvidence, rende
         ))}
       </ol>
     </section>
+  )
+}
+
+interface UnboundChangesProps {
+  analysis: Analysis
+  changes: TextEventUnboundChange[]
+  onOpenEvidence: (changeId: number) => void
+}
+
+/** 후보였지만 어느 사건에도 들어가지 않은 변경(AC22). AI가 쓴 글이 없어 AI 표시를 두지 않는다. 응답에 전부 오므로 화면에서만 나눠 보인다 */
+function UnboundChanges({ analysis, changes, onOpenEvidence }: UnboundChangesProps) {
+  const [shown, setShown] = useState(EVENT_CHANGES_PAGE_SIZE)
+  if (changes.length === 0) return null
+  const items = changes.slice(0, shown)
+  return (
+    <section className="text-events" aria-labelledby="text-events-unbound-title">
+      <h3 id="text-events-unbound-title" className="text-events__title">
+        {UNBOUND_TITLE} {resultCountLabel(changes.length)}
+      </h3>
+      <p className="panel__note">{UNBOUND_NOTE}</p>
+      <ol className="text-events__list">
+        {items.map((change) => (
+          <li key={change.changeId}>
+            <UnboundCard analysis={analysis} change={change} onOpenEvidence={onOpenEvidence} />
+          </li>
+        ))}
+      </ol>
+      <TextListFooter loaded={items.length} total={changes.length} more={{ status: 'idle' }} onMore={() => setShown(shown + EVENT_CHANGES_PAGE_SIZE)} />
+    </section>
+  )
+}
+
+function UnboundCard({ analysis, change, onOpenEvidence }: { analysis: Analysis; change: TextEventUnboundChange; onOpenEvidence: (changeId: number) => void }) {
+  const section = displaySectionPath(change.sectionPath)
+  return (
+    <Card as="article" className="text-event" aria-label={section}>
+      <div className="text-event__head">
+        <h4 className="text-event__title">{section}</h4>
+        <Badge tone="accent">{changeTypeLabel(change.changeType)}</Badge>
+        {change.field !== null && <Badge>{textFieldLabel(change.field)}</Badge>}
+      </div>
+      <div className="change-card__sides change-card__sides--clamped">
+        <SidePreview role={`이전 · ${analysis.previous.reportName}`} text={change.previousPreview} missing={missingSideLabel(change.changeType, 'previous')} />
+        <SidePreview role={`이번 · ${analysis.current.reportName}`} text={change.currentPreview} missing={missingSideLabel(change.changeType, 'current')} />
+      </div>
+      <Button variant="secondary" className="text-event__actions" aria-haspopup="dialog" onClick={() => onOpenEvidence(change.changeId)}>
+        원문 비교
+      </Button>
+    </Card>
   )
 }
 

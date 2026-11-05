@@ -4,9 +4,10 @@ import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Analysis } from '@/shared/api/analyses'
 import type { TextChangeItem } from '@/shared/api/textChanges'
-import type { TextEventDetail, TextEventItem, TextEventList, TextEventQuote } from '@/shared/api/textEvents'
+import type { TextEventDetail, TextEventItem, TextEventList, TextEventQuote, TextEventUnboundChange } from '@/shared/api/textEvents'
+import type { TextEventsView } from '../model/textEvents'
 import { axeViolations } from '@/test/axe'
-import { TextEventsSection } from './TextEventsSection'
+import { TextEventsArea, TextEventsSection } from './TextEventsSection'
 
 const detail = vi.hoisted(() => ({ state: { status: 'loading' } as unknown, reload: vi.fn(), calledWith: [] as number[] }))
 vi.mock('../hooks/useTextEvents', () => ({
@@ -180,6 +181,139 @@ describe('TextEventsSection', () => {
   it('펼친 카드에 접근성 위반이 없다', async () => {
     const { container } = show([event()])
     open()
+
+    expect(await axeViolations(container)).toBe('')
+  })
+})
+
+describe('TextEventsArea', () => {
+  const noFilter = { pinned: false, searched: false, riskOnly: false, type: null, field: null }
+  const unbound = (changeId: number, overrides: Partial<TextEventUnboundChange> = {}): TextEventUnboundChange => ({
+    changeId,
+    changeType: 'MODIFIED',
+    field: 'CONTRACT',
+    sectionPath: `II. 사업의 내용 > ${changeId}. 주요계약`,
+    previousPreview: `이전 글 ${changeId}`,
+    currentPreview: `현재 글 ${changeId}`,
+    ...overrides,
+  })
+  const ready = (items: TextEventItem[], unboundChanges: TextEventUnboundChange[]): TextEventsView => ({
+    status: 'ready',
+    list: { droppedEventCount: 0, items, unboundChanges } as unknown as TextEventList,
+  })
+
+  function area(view: TextEventsView, scope = noFilter as Parameters<typeof TextEventsArea>[0]['scope']) {
+    const onOpenEvidence = vi.fn()
+    const onRetry = vi.fn()
+    const result = render(<TextEventsArea analysis={analysis} view={view} scope={scope} onRetry={onRetry} onOpenEvidence={onOpenEvidence} renderChanges={() => null} />)
+    return { ...result, onOpenEvidence, onRetry }
+  }
+
+  it('만드는 중이면 사건 자리에 진행 표시가 있고 카드는 없다(AC33)', () => {
+    area({ status: 'building' })
+
+    expect(screen.getByRole('status').textContent).toContain('주요 사건을 만드는 중이에요')
+    expect(screen.queryByRole('article')).toBeNull()
+  })
+
+  it('만들지 못했으면 안내가 있고 사건 카드는 없다(AC21)', () => {
+    area({ status: 'unavailable', retry: 'none' })
+
+    expect(screen.getByRole('status').textContent).toContain('주요 사건을 만들지 못했어요')
+    expect(screen.queryByRole('article')).toBeNull()
+    expect(screen.queryByRole('button')).toBeNull()
+  })
+
+  it('다시 시도할 수 있으면 버튼이 있고 누르면 다시 시도한다', () => {
+    const { onRetry } = area({ status: 'unavailable', retry: 'available' })
+
+    fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
+
+    expect(onRetry).toHaveBeenCalledTimes(1)
+  })
+
+  it('다시 시도 한도에 닿으면 버튼 없이 나중에 확인하라고 안내한다', () => {
+    area({ status: 'unavailable', retry: 'limited' })
+
+    expect(screen.getByRole('status').textContent).toContain('나중에 다시 확인해 주세요')
+    expect(screen.queryByRole('button')).toBeNull()
+  })
+
+  it('다시 시도 버튼이 있는 안내에 접근성 위반이 없다', async () => {
+    const { container } = area({ status: 'unavailable', retry: 'available' })
+
+    expect(await axeViolations(container)).toBe('')
+  })
+
+  it('묶은 사건이 없으면 실패가 아니라 없다고 안내한다', () => {
+    area({ status: 'empty' })
+
+    expect(screen.getByRole('status').textContent).toContain('주요 사건으로 묶은 변경이 없어요')
+  })
+
+  it('꺼 둔 기능이나 옛 분석이면 아무것도 그리지 않는다', () => {
+    const { container } = area({ status: 'hidden' })
+
+    expect(container.textContent).toBe('')
+  })
+
+  it('고정·검색 등으로 거르면 진행 표시와 안내도 빠진다', () => {
+    const { container } = area({ status: 'building' }, { ...noFilter, searched: true })
+
+    expect(container.textContent).toBe('')
+  })
+
+  it('묶이지 않은 변경이 AI 생성 표시 없이 원문 그대로 보인다(AC22)', () => {
+    area(ready([event()], [unbound(11)]))
+
+    const heading = screen.getByRole('heading', { name: '사건으로 묶이지 않은 주요 변경 1건' })
+    const section = within(heading.closest('section') as HTMLElement)
+    const card = within(section.getByRole('article'))
+    expect(card.getByText('이전 글 11')).toBeTruthy()
+    expect(card.getByText('현재 글 11')).toBeTruthy()
+    expect(card.getByText('주요 계약')).toBeTruthy()
+    expect(section.queryByText('AI 생성')).toBeNull()
+  })
+
+  it('사건이 하나도 없어도 묶이지 않은 변경은 보이고 주요 사건 제목은 없다', () => {
+    area(ready([], [unbound(11)]))
+
+    expect(screen.getByRole('heading', { name: '사건으로 묶이지 않은 주요 변경 1건' })).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: /^주요 사건/ })).toBeNull()
+  })
+
+  it('없는 쪽의 글은 지어내지 않고 없다고 적는다', () => {
+    area(ready([], [unbound(11, { changeType: 'ADDED', previousPreview: null })]))
+
+    expect(screen.getByText('이전 보고서에 없던 내용')).toBeTruthy()
+  })
+
+  it('원문 비교를 누르면 그 변경의 번호로 연다', () => {
+    const { onOpenEvidence } = area(ready([], [unbound(11)]))
+
+    fireEvent.click(screen.getByRole('button', { name: '원문 비교' }))
+
+    expect(onOpenEvidence).toHaveBeenCalledWith(11)
+  })
+
+  it('많으면 10건씩 나눠 보여 주고 더 보기로 이어 본다', () => {
+    area(ready([], Array.from({ length: 12 }, (_, i) => unbound(i + 1))))
+
+    expect(screen.getAllByRole('article')).toHaveLength(10)
+    fireEvent.click(screen.getByRole('button', { name: /더 보기/ }))
+    expect(screen.getAllByRole('article')).toHaveLength(12)
+  })
+
+  it('분야를 고르면 그 칸의 묶이지 않은 변경만 보인다', () => {
+    area(ready([], [unbound(11), unbound(12, { field: 'LITIGATION' })]), { ...noFilter, field: 'LITIGATION' })
+
+    expect(screen.getByRole('heading', { name: '사건으로 묶이지 않은 주요 변경 1건' })).toBeTruthy()
+    expect(screen.getByText('현재 글 12')).toBeTruthy()
+    expect(screen.queryByText('현재 글 11')).toBeNull()
+  })
+
+  it('묶이지 않은 변경에 접근성 위반이 없다', async () => {
+    const { container } = area(ready([event()], [unbound(11)]))
 
     expect(await axeViolations(container)).toBe('')
   })

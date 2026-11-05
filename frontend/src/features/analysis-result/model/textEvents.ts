@@ -1,11 +1,13 @@
+import { match, P } from 'ts-pattern'
 import { ApiError } from '@/shared/api/client'
 import type { TextField } from '@/shared/api/textChanges'
-import type { TextEventItem, TextEventList, TextEventQuote, TextEventRun } from '@/shared/api/textEvents'
-import type { PollingOptions } from '@/shared/hooks/pollingState'
+import type { TextEventItem, TextEventList, TextEventNotCreatedReason, TextEventQuote, TextEventRun, TextEventUnboundChange } from '@/shared/api/textEvents'
+import type { AsyncState } from '@/shared/hooks/asyncState'
+import type { PollingOptions, PollingState } from '@/shared/hooks/pollingState'
 import type { FieldCell } from './textFields'
 import { resultCountLabel } from './textFilter'
 
-/** 문장 변화 탭의 주요 사건(3.37) 화면 문구 */
+/** 문장 변화 탭의 주요 사건(3.37, 3.38) 화면 문구 */
 export const EVENTS_TITLE = '주요 사건'
 export const EVENTS_NOTE = 'AI가 변경을 사건으로 묶고 제목을 붙였어요. 인용은 원문 그대로예요. 투자 판단이나 추천이 아니에요.'
 export const EVENTS_DROPPED_NOTE = '근거를 확인하지 못한 사건은 보여 주지 않았어요.'
@@ -13,6 +15,13 @@ export const CHANGE_QUOTES_TITLE = '바뀐 내용'
 export const REASON_QUOTES_TITLE = '공시에 적힌 이유'
 export const NO_REASON = '확인된 설명 없음'
 export const NO_QUOTE = '이 쪽에서 인용한 글이 없어요.'
+export const EVENTS_BUILDING = '주요 사건을 만드는 중이에요. 분야별 표와 전체 변경은 먼저 볼 수 있어요.'
+export const EVENTS_LOADING = '주요 사건을 불러오는 중이에요…'
+export const EVENTS_UNAVAILABLE = '주요 사건을 만들지 못했어요. 분야별 표와 전체 변경은 그대로 볼 수 있어요.'
+export const EVENTS_RETRY_LIMITED = '여러 번 실패해 지금은 다시 시도할 수 없어요. 나중에 다시 확인해 주세요.'
+export const EVENTS_EMPTY = '이번 비교에는 주요 사건으로 묶은 변경이 없어요. 분야별 표와 전체 변경은 그대로 볼 수 있어요.'
+export const UNBOUND_TITLE = '사건으로 묶이지 않은 주요 변경'
+export const UNBOUND_NOTE = '주요 변경 후보로 꼽혔지만 어느 사건에도 들어가지 않은 변경이에요. 공시 글을 그대로 보여 드려요.'
 
 /** 묶인 변경을 한 번에 보이는 건수. 사건 API는 쪽을 나누지 않아 화면에서 나눈다 */
 export const EVENT_CHANGES_PAGE_SIZE = 10
@@ -34,6 +43,55 @@ export const eventRunPolling: PollingOptions<TextEventRun> = {
  */
 export function needsEventStart(run: TextEventRun): boolean {
   return run.status === 'NOT_STARTED' || (run.status === 'NOT_CREATED' && run.notCreatedReason === 'FAKE_MODEL')
+}
+
+/**
+ * 사건 자리에 무엇을 보일지.
+ * hidden 자리 없음(상태 확인 중, 꺼 둠, 옛 분석, 문장 비교 실패) / building 만드는 중 / loading 다 만든 사건을 받는 중 /
+ * unavailable 만들지 못함(실패, fake 모델, 조회 실패) / empty 묶은 사건 없음 / ready 받은 사건
+ * retry는 available 다시 시도할 수 있음 / limited 실패 횟수 한도에 닿음 / none 다시 시도해도 같음(fake 모델)
+ */
+export type TextEventsView =
+  | { status: 'hidden' | 'building' | 'loading' | 'empty' }
+  | { status: 'unavailable'; retry: 'available' | 'limited' | 'none' }
+  | { status: 'ready'; list: TextEventList }
+
+function notCreatedView(reason: TextEventNotCreatedReason | null): TextEventsView {
+  return match(reason)
+    .with('FAKE_MODEL', () => ({ status: 'unavailable', retry: 'none' }) as const)
+    .with('NO_CANDIDATES', () => ({ status: 'empty' }) as const)
+    .with(P.union('DISABLED', 'OLD_ANALYSIS', 'TEXT_COMPARE_FAILED', null), () => ({ status: 'hidden' }) as const)
+    .exhaustive()
+}
+
+function completedView(events: AsyncState<TextEventList>): TextEventsView {
+  return match<AsyncState<TextEventList>, TextEventsView>(events)
+    .with({ status: P.union('idle', 'loading') }, () => ({ status: 'loading' }))
+    .with({ status: 'error' }, () => ({ status: 'unavailable', retry: 'available' }))
+    .with({ status: 'success' }, ({ data }) => (data.items.length === 0 && data.unboundChanges.length === 0 ? { status: 'empty' } : { status: 'ready', list: data }))
+    .exhaustive()
+}
+
+/** 작업 상태와 받은 사건으로 사건 자리를 정한다. 조회가 실패해 알 수 없으면 만들지 못한 것으로 보이고, 사건이 있는 것처럼 보이지 않는다 */
+export function textEventsView(run: PollingState<TextEventRun>, events: AsyncState<TextEventList>): TextEventsView {
+  return match<PollingState<TextEventRun>, TextEventsView>(run)
+    .with({ status: 'loading' }, () => ({ status: 'hidden' }))
+    .with({ status: 'error' }, () => ({ status: 'unavailable', retry: 'available' }))
+    .with({ status: 'success' }, ({ data }) =>
+      match<TextEventRun['status'], TextEventsView>(data.status)
+        .with(P.union('PENDING', 'RUNNING'), () => ({ status: 'building' }))
+        .with('FAILED', () => ({ status: 'unavailable', retry: data.canRetry ? 'available' : 'limited' }))
+        .with('NOT_STARTED', () => ({ status: 'hidden' }))
+        .with('NOT_CREATED', () => notCreatedView(data.notCreatedReason))
+        .with('COMPLETED', () => completedView(events))
+        .exhaustive(),
+    )
+    .exhaustive()
+}
+
+/** 받은 사건 목록. 받지 못했으면 null */
+export function eventListOf(view: TextEventsView): TextEventList | null {
+  return view.status === 'ready' ? view.list : null
 }
 
 export interface EventQuotes {
@@ -74,8 +132,20 @@ export interface EventScope {
   field: TextField | null
 }
 
-/** 지금 보여 줄 사건. 분야를 고르면 그 칸에 세어진 사건만 보이고, 고정·검색·유형·위험으로 거르면 찾는 변경이 앞에 오도록 사건 절을 뺀다 */
-export function visibleEvents(items: TextEventItem[], { pinned, searched, riskOnly, type, field }: EventScope): TextEventItem[] {
-  if (pinned || searched || riskOnly || type !== null) return []
+/** 고정·검색·유형·위험으로 거르는 중인지. 이때는 찾는 변경이 앞에 오도록 사건 자리를 통째로 뺀다 */
+export function eventsNarrowed({ pinned, searched, riskOnly, type }: EventScope): boolean {
+  return pinned || searched || riskOnly || type !== null
+}
+
+/** 지금 보여 줄 사건. 분야를 고르면 그 칸에 세어진 사건만 보인다 */
+export function visibleEvents(items: TextEventItem[], scope: EventScope): TextEventItem[] {
+  const { field } = scope
+  if (eventsNarrowed(scope)) return []
   return field === null ? items : items.filter((item) => item.fields.includes(field))
+}
+
+/** 지금 보여 줄 묶이지 않은 변경. 분야를 고르면 그 칸의 변경만 보인다 */
+export function visibleUnbound(changes: TextEventUnboundChange[], scope: EventScope): TextEventUnboundChange[] {
+  if (eventsNarrowed(scope)) return []
+  return scope.field === null ? changes : changes.filter((change) => change.field === scope.field)
 }

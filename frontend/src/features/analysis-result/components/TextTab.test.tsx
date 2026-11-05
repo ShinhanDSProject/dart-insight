@@ -6,6 +6,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import type { Analysis } from '@/shared/api/analyses'
 import type { ChangeType, TextChangeCounts, TextChangeItem, TextChangeList, TextField, TextListGroup, TextListing } from '@/shared/api/textChanges'
 import type { TextEventList } from '@/shared/api/textEvents'
+import type { TextEventsView } from '../model/textEvents'
 import { axeViolations } from '@/test/axe'
 import type { TextListState } from '../model/textList'
 import { TextTab } from './TextTab'
@@ -48,10 +49,10 @@ vi.mock('../hooks/useTextChanges', () => ({
   useTextChangeDetail: () => ({ state: { status: 'loading' }, reload: () => {} }),
 }))
 // 사건 절의 내용은 TextEventsSection 테스트가 본다
-const events = vi.hoisted(() => ({ list: null as TextEventList | null }))
+const events = vi.hoisted(() => ({ list: null as TextEventList | null, view: { status: 'hidden' } as TextEventsView, retry: vi.fn() }))
 const detail = vi.hoisted(() => ({ state: { status: 'loading' } as unknown }))
 vi.mock('../hooks/useTextEvents', () => ({
-  useTextEvents: () => events.list,
+  useTextEvents: () => ({ view: events.list === null ? events.view : { status: 'ready', list: events.list }, retry: events.retry }),
   useTextEventDetail: () => ({ state: detail.state, reload: () => {} }),
 }))
 vi.mock('../hooks/usePinnedChanges', () => ({
@@ -86,6 +87,7 @@ beforeEach(() => {
   list.reload.mockReset()
   list.groups = {}
   events.list = null
+  events.view = { status: 'hidden' }
   detail.state = { status: 'loading' }
 })
 afterEach(cleanup)
@@ -481,6 +483,75 @@ describe('TextTab 주요 사건(3.37)', () => {
     expect(screen.queryByRole('heading', { name: /주요 사건/ })).toBeNull()
     expect(screen.queryByText(/관련 주요 사건/)).toBeNull()
     expect(screen.getByRole('article', { name: /1\. 사업의 개요/ })).toBeTruthy()
+  })
+
+  it('만드는 중이면 표 다음에 진행 표시가 있고 목록은 그대로 보인다(AC33)', () => {
+    events.view = { status: 'building' }
+    render(<Harness />)
+
+    const progress = screen.getByText(/주요 사건을 만드는 중이에요/)
+    const fieldTable = screen.getByRole('group', { name: '분야별 변경' })
+    expect(fieldTable.compareDocumentPosition(progress) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByRole('article', { name: /1\. 사업의 개요/ })).toBeTruthy()
+    expect(screen.queryByText(/관련 주요 사건/)).toBeNull()
+  })
+
+  it('만들지 못했으면 안내와 표, 목록이 보이고 칸의 사건 수는 없다(AC21)', () => {
+    events.view = { status: 'unavailable', retry: 'available' }
+    render(<Harness />)
+
+    expect(screen.getByText(/주요 사건을 만들지 못했어요/)).toBeTruthy()
+    expect(screen.getByRole('group', { name: '분야별 변경' })).toBeTruthy()
+    expect(screen.getByRole('article', { name: /1\. 사업의 개요/ })).toBeTruthy()
+    expect(screen.queryByText(/관련 주요 사건/)).toBeNull()
+  })
+
+  it('만들지 못한 안내의 다시 시도를 누르면 사건을 다시 만든다', () => {
+    events.view = { status: 'unavailable', retry: 'available' }
+    events.retry.mockReset()
+    render(<Harness />)
+
+    fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
+
+    expect(events.retry).toHaveBeenCalledTimes(1)
+  })
+
+  it('변경이 한 건도 없으면 빈 화면 안내만 있고 사건 자리는 없다(AC26)', () => {
+    list.listing = null
+    list.items = []
+    for (const view of [{ status: 'building' }, { status: 'unavailable', retry: 'available' }, { status: 'empty' }] as TextEventsView[]) {
+      events.view = view
+      const { unmount } = render(<Harness />)
+      expect(screen.getByText('두 보고서 사이에 바뀐 문장·표가 없어요.')).toBeTruthy()
+      expect(screen.queryByText(/주요 사건/)).toBeNull()
+      unmount()
+    }
+  })
+
+  it('옛 분석은 사건 자리 없이 지금 목록이 보인다', () => {
+    list.listing = null
+    render(<Harness />)
+
+    expect(screen.queryByText(/주요 사건/)).toBeNull()
+    expect(screen.getByRole('article', { name: /1\. 사업의 개요/ })).toBeTruthy()
+  })
+
+  it('묶이지 않은 변경의 원문 비교를 열었다가 닫으면 그 버튼으로 초점이 돌아온다', async () => {
+    events.list = {
+      ...textEvents(1),
+      unboundChanges: [{ changeId: 99, changeType: 'MODIFIED', field: 'CONTRACT', sectionPath: 'II. 사업의 내용', previousPreview: '이전 글', currentPreview: '현재 글' }],
+    }
+    render(<Harness />)
+    const section = within(screen.getByRole('heading', { name: /사건으로 묶이지 않은/ }).closest('section') as HTMLElement)
+    const opener = section.getByRole('button', { name: '원문 비교' })
+    opener.focus()
+
+    fireEvent.click(opener)
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    await new Promise((resolve) => requestAnimationFrame(resolve))
+    await waitFor(() => expect(document.activeElement).toBe(opener))
   })
 
   it('분야를 고르면 그 칸의 사건만 보이고 유형으로 거르면 사건 절이 빠진다', () => {

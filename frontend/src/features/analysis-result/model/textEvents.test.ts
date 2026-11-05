@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ApiError } from '@/shared/api/client'
-import type { TextEventItem, TextEventList, TextEventQuote, TextEventRun } from '@/shared/api/textEvents'
-import { eventFieldCounts, eventQuotes, eventRunPolling, fieldEventLabel, needsEventStart, visibleEvents } from './textEvents'
+import type { TextEventItem, TextEventList, TextEventQuote, TextEventRun, TextEventUnboundChange } from '@/shared/api/textEvents'
+import { eventFieldCounts, eventListOf, eventQuotes, eventRunPolling, fieldEventLabel, needsEventStart, textEventsView, visibleEvents, visibleUnbound } from './textEvents'
 import type { FieldCell } from './textFields'
 
 const run = (status: TextEventRun['status'], notCreatedReason: TextEventRun['notCreatedReason'] = null) => ({ status, notCreatedReason }) as TextEventRun
@@ -105,5 +105,93 @@ describe('visibleEvents', () => {
     expect(visibleEvents(items, { ...noFilter, searched: true })).toEqual([])
     expect(visibleEvents(items, { ...noFilter, riskOnly: true })).toEqual([])
     expect(visibleEvents(items, { ...noFilter, type: 'ADDED' })).toEqual([])
+  })
+})
+
+describe('textEventsView', () => {
+  const received = (data: TextEventRun) => ({ status: 'success', data, failures: 0 }) as const
+  const idle = { status: 'idle' } as const
+  const stored = (items: unknown[], unboundChanges: unknown[]) => ({ items, unboundChanges }) as unknown as TextEventList
+
+  it('상태를 아직 모르면 아무것도 보이지 않는다', () => {
+    expect(textEventsView({ status: 'loading', failures: 0 }, idle)).toEqual({ status: 'hidden' })
+  })
+
+  it('만드는 중이면 진행 표시다(AC33)', () => {
+    expect(textEventsView(received(run('PENDING')), idle)).toEqual({ status: 'building' })
+    expect(textEventsView(received(run('RUNNING')), idle)).toEqual({ status: 'building' })
+  })
+
+  it('실패한 실행은 다시 시작할 수 있는지에 따라 다시 시도를 정한다(AC21)', () => {
+    expect(textEventsView(received({ ...run('FAILED'), canRetry: true }), idle)).toEqual({ status: 'unavailable', retry: 'available' })
+    expect(textEventsView(received({ ...run('FAILED'), canRetry: false }), idle)).toEqual({ status: 'unavailable', retry: 'limited' })
+  })
+
+  it('fake 모델은 다시 시도해도 같으므로 다시 시도가 없다(AC21)', () => {
+    expect(textEventsView(received(run('NOT_CREATED', 'FAKE_MODEL')), idle)).toEqual({ status: 'unavailable', retry: 'none' })
+  })
+
+  it('상태 조회 실패는 다시 시도할 수 있다', () => {
+    expect(textEventsView({ status: 'error', error: new Error('실패'), data: null }, idle)).toEqual({ status: 'unavailable', retry: 'available' })
+  })
+
+  it('만드는 중에 상태 조회가 멈추면 진행 표시를 남기지 않는다', () => {
+    expect(textEventsView({ status: 'error', error: new Error('실패'), data: run('RUNNING') }, idle)).toEqual({ status: 'unavailable', retry: 'available' })
+  })
+
+  it('꺼 둔 기능, 옛 분석, 문장 비교 실패는 사건 자리를 두지 않는다', () => {
+    for (const reason of ['DISABLED', 'OLD_ANALYSIS', 'TEXT_COMPARE_FAILED'] as const) {
+      expect(textEventsView(received(run('NOT_CREATED', reason)), idle)).toEqual({ status: 'hidden' })
+    }
+  })
+
+  it('후보가 없으면 묶은 사건이 없다는 안내다', () => {
+    expect(textEventsView(received(run('NOT_CREATED', 'NO_CANDIDATES')), idle)).toEqual({ status: 'empty' })
+  })
+
+  it('끝났으면 사건을 받는 동안 불러오는 중이고, 받으면 사건을 내준다', () => {
+    const list = stored([{}], [])
+    expect(textEventsView(received(run('COMPLETED')), { status: 'loading' })).toEqual({ status: 'loading' })
+    expect(textEventsView(received(run('COMPLETED')), { status: 'success', data: list })).toEqual({ status: 'ready', list })
+  })
+
+  it('사건 없이 묶이지 않은 변경만 있어도 내준다(AC22)', () => {
+    const list = stored([], [{}])
+    expect(textEventsView(received(run('COMPLETED')), { status: 'success', data: list })).toEqual({ status: 'ready', list })
+  })
+
+  it('끝났는데 사건도 묶이지 않은 변경도 없으면 묶은 사건이 없다는 안내다', () => {
+    expect(textEventsView(received(run('COMPLETED')), { status: 'success', data: stored([], []) })).toEqual({ status: 'empty' })
+  })
+
+  it('끝난 실행의 사건을 받지 못하면 성공처럼 보이지 않는다', () => {
+    expect(textEventsView(received(run('COMPLETED')), { status: 'error', error: new Error('실패') })).toEqual({ status: 'unavailable', retry: 'available' })
+  })
+})
+
+describe('eventListOf', () => {
+  it('사건을 받았을 때만 목록을 내준다', () => {
+    const list = { items: [] } as unknown as TextEventList
+    expect(eventListOf({ status: 'ready', list })).toBe(list)
+    expect(eventListOf({ status: 'unavailable', retry: 'none' })).toBeNull()
+  })
+})
+
+describe('visibleUnbound', () => {
+  const changes = [{ changeId: 1, field: 'LITIGATION' }, { changeId: 2, field: 'CONTRACT' }, { changeId: 3, field: null }] as TextEventUnboundChange[]
+
+  it('거르지 않으면 모두 보인다', () => {
+    expect(visibleUnbound(changes, noFilter)).toEqual(changes)
+  })
+
+  it('분야를 고르면 그 칸의 변경만 보인다', () => {
+    expect(visibleUnbound(changes, { ...noFilter, field: 'CONTRACT' }).map((c) => c.changeId)).toEqual([2])
+  })
+
+  it('고정·검색·위험·유형으로 거르면 사건 절처럼 빠진다', () => {
+    expect(visibleUnbound(changes, { ...noFilter, pinned: true })).toEqual([])
+    expect(visibleUnbound(changes, { ...noFilter, searched: true })).toEqual([])
+    expect(visibleUnbound(changes, { ...noFilter, riskOnly: true })).toEqual([])
+    expect(visibleUnbound(changes, { ...noFilter, type: 'ADDED' })).toEqual([])
   })
 })
