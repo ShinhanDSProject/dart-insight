@@ -1,6 +1,7 @@
 import json
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -8,10 +9,18 @@ from app.core.config import LlmSettings
 from app.events.amount_pick import pick_amount
 from app.events.amount_pick_prompt import PROMPT_VERSION, TASK, build_request
 from app.events.amounts import AmountCandidate, AmountSource, extract_amounts
-from app.events.model import AI_CHOICE, AMOUNT_NONE, CHANGE, CURRENT, Quote, TextEvent
+from app.events.model import (
+    AI_CHOICE,
+    AMOUNT_NONE,
+    AMOUNT_UNAVAILABLE,
+    CHANGE,
+    CURRENT,
+    Quote,
+    TextEvent,
+)
 from app.llm import FakeProvider, LlmClient, ProviderError
 from app.llm.client import OUTCOME_INVALID_OUTPUT, OUTCOME_OK
-from app.llm.prompting import SOURCE_RULE
+from app.llm.prompting import SOURCE_RULE, attr, escape
 
 # 2.12에서 잘못 붙은 금액. 진짜 모델이 null로 답한 결과는 ADR-0058의 측정에 있다
 WRONG_AMOUNTS = json.loads(
@@ -118,14 +127,14 @@ def test_model_choosing_null_means_no_amount() -> None:
     assert picked.source == AMOUNT_NONE
 
 
-def test_number_not_in_list_gives_no_amount_after_retries() -> None:
+def test_number_not_in_list_is_reported_as_not_checked_after_retries() -> None:
     client, provider = llm({"choice": 3}, {"choice": 0}, {"choice": True})
 
     picked = pick(client)
 
     assert len(provider.requests) == 3
     assert picked.candidate is None
-    assert picked.source == AMOUNT_NONE
+    assert picked.source == AMOUNT_UNAVAILABLE
     assert picked.unavailable is False
     assert [c.outcome for c in picked.calls] == [OUTCOME_INVALID_OUTPUT] * 3
 
@@ -139,39 +148,42 @@ def test_retry_with_valid_number_is_used() -> None:
     assert picked.source == AI_CHOICE
 
 
-def test_unreadable_answer_gives_no_amount() -> None:
+def test_unreadable_answer_is_reported_as_not_checked() -> None:
     client, _ = llm("번호 아님", {}, [])
 
     picked = pick(client)
 
     assert picked.candidate is None
-    assert picked.source == AMOUNT_NONE
+    assert picked.source == AMOUNT_UNAVAILABLE
 
 
-def test_provider_failure_gives_no_amount_and_reports_unavailable() -> None:
+def test_provider_failure_is_reported_as_not_checked_and_unavailable() -> None:
     client, _ = llm(ProviderError("인증 실패"))
 
     picked = pick(client)
 
     assert picked.candidate is None
-    assert picked.source == AMOUNT_NONE
+    assert picked.source == AMOUNT_UNAVAILABLE
     assert picked.unavailable is True
     assert len(picked.calls) == 1
 
 
 @pytest.mark.parametrize("case", WRONG_AMOUNTS, ids=lambda case: case["title"][:20])
 def test_wrong_amount_reaches_the_model_with_its_sentence_and_null_gives_no_amount(
-    case: dict[str, str],
+    case: dict[str, Any],
 ) -> None:
     source = AmountSource(1, case["evidenceId"], case["context"])
     candidates = extract_amounts([source]).candidates
     wrong = [c for c in candidates if c.text == case["wrongAmount"]]
-    event = TextEvent(case["title"], case["kind"], [1], [])
+    quotes = [Quote(1, CHANGE, CURRENT, text, case["evidenceId"]) for text in case["quotes"]]
+    event = TextEvent(case["title"], case["kind"], [1], quotes)
     client, provider = llm({"choice": None})
 
     picked = pick_amount(client, event, wrong, krw_of)
 
     assert picked.candidate is None
     assert picked.source == AMOUNT_NONE
-    assert case["wrongAmount"] in provider.requests[0].user
-    assert case["title"][:10] in provider.requests[0].user
+    sent = provider.requests[0].user
+    assert attr(case["wrongAmount"]) in sent
+    assert attr(case["title"]) in sent
+    assert all(escape(text) in sent for text in case["quotes"])

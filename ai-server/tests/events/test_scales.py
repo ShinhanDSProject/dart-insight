@@ -8,6 +8,7 @@ from app.events.candidates import CandidateChange
 from app.events.model import (
     AI_CHOICE,
     AMOUNT_NONE,
+    AMOUNT_UNAVAILABLE,
     EQUITY_MISSING,
     EQUITY_NOT_POSITIVE,
     FX_RATE_MISSING,
@@ -141,17 +142,17 @@ def test_model_choosing_null_means_no_amount() -> None:
     assert scale.amount is None
 
 
-def test_model_error_gives_no_amount() -> None:
+def test_model_error_is_kept_apart_from_no_amount() -> None:
     client, _ = llm(ProviderError("인증 실패"))
 
     scale, calls = one(client, event_input(change(current="과징금 100억원, 소송 합계 1조원")))
 
-    assert scale.source == AMOUNT_NONE
+    assert scale.source == AMOUNT_UNAVAILABLE
     assert scale.amount is None
     assert len(calls) == 1
 
 
-def test_after_provider_failure_other_events_have_no_amount_without_calling() -> None:
+def test_after_provider_failure_other_events_are_not_checked_without_calling() -> None:
     client, provider = llm(ProviderError("인증 실패"))
     data = event_input(
         change(1, current="과징금 100억원, 소송 합계 1조원"),
@@ -162,11 +163,11 @@ def test_after_provider_failure_other_events_have_no_amount_without_calling() ->
 
     assert len(provider.requests) == 1
     assert len(calls) == 1
-    assert [e.scale.source for e in scaled] == [AMOUNT_NONE, AMOUNT_NONE]
+    assert [e.scale.source for e in scaled] == [AMOUNT_UNAVAILABLE, AMOUNT_UNAVAILABLE]
     assert [e.scale.amount for e in scaled] == [None, None]
 
 
-def test_events_after_the_pick_budget_have_no_amount_without_calling() -> None:
+def test_events_after_the_pick_budget_are_not_checked_without_calling() -> None:
     now = [-120.0]
     client, provider = llm({"choice": 1})
     data = event_input(
@@ -182,8 +183,19 @@ def test_events_after_the_pick_budget_have_no_amount_without_calling() -> None:
 
     assert len(provider.requests) == 1
     assert len(calls) == 1
-    assert [e.scale.source for e in scaled] == [AI_CHOICE, AMOUNT_NONE]
+    assert [e.scale.source for e in scaled] == [AI_CHOICE, AMOUNT_UNAVAILABLE]
     assert scaled[1].scale.amount is None
+
+
+def test_event_without_candidates_stays_no_amount_after_provider_failure() -> None:
+    client, _ = llm(ProviderError("인증 실패"))
+    data = event_input(
+        change(1, current="과징금 100억원"), change(2, current="내용만 있음", block=101)
+    )
+
+    scaled, _ = scale_events(client, data, [text_event(1), text_event(2)], {})
+
+    assert [e.scale.source for e in scaled] == [AMOUNT_UNAVAILABLE, AMOUNT_NONE]
 
 
 def test_events_within_the_pick_budget_keep_calling() -> None:

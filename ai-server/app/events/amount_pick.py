@@ -1,7 +1,7 @@
 """금액 후보가 그 사건의 금액인지 확인하기(2.18, ADR-0058). LLM은 app.llm.LlmClient로만 부른다.
 
-후보가 하나여도 부른다. null이면 금액 없음이다. 호출 실패, 읽을 수 없는 답, 없는 번호여도
-(최대 2회 다시 만든 뒤) 금액 없음이다. 실패가 사건 묶기 전체의 실패가 되지 않는다.
+후보가 하나여도 부른다. null이면 금액 없음(none)이다. 호출 실패, 읽을 수 없는 답, 없는 번호면
+(최대 2회 다시 만든 뒤) 금액은 없고 unavailable로 남긴다. 사건 묶기 전체의 실패가 되지 않는다.
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 
 from app.events.amount_pick_prompt import build_request
 from app.events.amounts import AmountCandidate
-from app.events.model import AI_CHOICE, AMOUNT_NONE, TextEvent
+from app.events.model import AI_CHOICE, AMOUNT_NONE, AMOUNT_UNAVAILABLE, TextEvent
 from app.llm import CallRecord, LlmClient, LlmOutputInvalid, LlmUnavailable, OutputProblem
 
 # 표의 숫자 칸이 많아도 프롬프트가 커지지 않게 원화 값이 큰 후보만 보여 준다
@@ -28,8 +28,9 @@ class Picked:
     unavailable: bool = False
 
 
-def no_amount(calls: list[CallRecord] | None = None, unavailable: bool = False) -> Picked:
-    return Picked(None, AMOUNT_NONE, calls or [], unavailable)
+def not_checked(calls: list[CallRecord] | None = None, unavailable: bool = False) -> Picked:
+    """확인하지 못해 금액이 없다. '금액 없음'과 구분해 남긴다."""
+    return Picked(None, AMOUNT_UNAVAILABLE, calls or [], unavailable)
 
 
 def _shown(candidates: list[AmountCandidate], krw_of: KrwOf) -> list[AmountCandidate]:
@@ -60,9 +61,8 @@ def pick_amount(
     try:
         generated = llm.generate(build_request(event, shown), validate)
     except LlmOutputInvalid as e:
-        return no_amount(e.calls)
+        return not_checked(e.calls)
     except LlmUnavailable as e:
-        return no_amount(e.calls, unavailable=True)
-    if generated.value is None:
-        return no_amount(generated.calls)
-    return Picked(generated.value, AI_CHOICE, generated.calls)
+        return not_checked(e.calls, unavailable=True)
+    source = AI_CHOICE if generated.value else AMOUNT_NONE
+    return Picked(generated.value, source, generated.calls)
