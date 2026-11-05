@@ -6,6 +6,7 @@ import { useAuth } from '@/shared/auth/authContext'
 import { useAsyncAction } from '@/shared/hooks/useAsyncAction'
 import { Button, MemoForm, Notice } from '@/shared/ui'
 import { ErrorState } from '@/shared/ui/StateView'
+import { useLoginHref } from '@/shared/hooks/useLoginHref'
 
 interface AddToNoteProps {
   /** 담을 근거(종류와 변경 ID, 또는 AI 답의 질문 ID·인용 번호) */
@@ -28,6 +29,7 @@ type View = { status: 'closed' } | { status: 'login' } | { status: 'editing' } |
  * 담는 값·문장은 서버가 분석 ID와 변경 ID(AI 답 인용은 질문 ID·인용 번호)로 저장된 근거에서 만든다(화면이 글을 보내지 않음).
  */
 export function AddToNote({ target, analysisId, label, openRequest, onClose }: AddToNoteProps) {
+  const loginHref = useLoginHref()
   const auth = useAuth()
   const openedView = (): View => (auth.state.status === 'authenticated' ? { status: 'editing' } : { status: 'login' })
   const [view, setView] = useState<View>({ status: 'closed' })
@@ -81,7 +83,7 @@ export function AddToNote({ target, analysisId, label, openRequest, onClose }: A
         ))
         .with({ status: 'login' }, () => (
           <Notice as="div" role="status" className="note-add__login">
-            로그인하면 근거를 노트에 담고 메모를 남길 수 있어요. <Link to="/login">로그인하기</Link>{' '}
+            로그인하면 근거를 노트에 담고 메모를 남길 수 있어요. <Link to={loginHref}>로그인하기</Link>{' '}
             <Button variant="link" onClick={dismiss}>
               닫기
             </Button>

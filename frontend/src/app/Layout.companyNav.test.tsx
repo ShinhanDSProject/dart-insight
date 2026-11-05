@@ -101,7 +101,7 @@ describe('Layout 상단 검색창과 로그인 버튼(FS-69)', () => {
   it('로그인 전 상단 바에는 회원가입 버튼 없이 로그인만 둔다', () => {
     recentCompanies.value = []
     renderLayout('/notes')
-    expect(screen.getByRole('link', { name: '로그인' }).getAttribute('href')).toBe('/login')
+    expect(screen.getByRole('link', { name: '로그인' }).getAttribute('href')).toBe('/login?next=%2Fnotes')
     expect(screen.queryByRole('link', { name: '회원가입' })).toBeNull()
   })
 })

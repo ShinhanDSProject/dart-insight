@@ -7,6 +7,7 @@ import { useAsyncAction } from '@/shared/hooks/useAsyncAction'
 import { Button, Notice } from '@/shared/ui'
 import { ErrorState } from '@/shared/ui/StateView'
 import type { ChatActionTarget } from '../model/chatLinks'
+import { useLoginHref } from '@/shared/hooks/useLoginHref'
 
 export type ConfirmTarget = Extract<ChatActionTarget, { kind: 'save-note' } | { kind: 'favorite' }>
 
@@ -29,6 +30,7 @@ interface ChatConfirmActionProps {
  * 저장을 마친 버튼은 다시 저장하지 않는다(노트는 같은 근거로 두 번 담기지 않게).
  */
 export function ChatConfirmAction({ target, label, done, onDone }: ChatConfirmActionProps) {
+  const loginHref = useLoginHref()
   const auth = useAuth()
   const save = useAsyncAction<unknown>()
 
@@ -51,7 +53,7 @@ export function ChatConfirmAction({ target, label, done, onDone }: ChatConfirmAc
           .with({ kind: 'save-note' }, () => '로그인하면 이 근거를 노트에 담을 수 있어요.')
           .with({ kind: 'favorite' }, () => '로그인하면 이 기업을 관심 기업에 추가할 수 있어요.')
           .exhaustive()}{' '}
-        <Link to="/login">로그인하기</Link>
+        <Link to={loginHref}>로그인하기</Link>
       </Notice>
     ))
     .with({ status: 'loading' }, { status: 'authenticated' }, ({ status }) => (

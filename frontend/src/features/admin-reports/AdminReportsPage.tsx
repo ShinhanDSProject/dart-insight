@@ -12,6 +12,7 @@ import { ReportCard } from './components/ReportCard'
 import { useAdminReports, type AdminReportsController } from './hooks/useAdminReports'
 import { adminErrorMessages, isForbidden, lastPage, parsePage, parseQueue, queueOptions } from './model/adminReports'
 import './adminReports.css'
+import { useLoginHref } from '@/shared/hooks/useLoginHref'
 
 /**
  * 관리자 신고 목록(FS-58, #463). 처리할 것(새 신고·재게시 청구·블라인드 기한 지남)이나 전체 신고를 보고
@@ -19,6 +20,7 @@ import './adminReports.css'
  * 큐와 쪽은 주소에 둔다(?queue=all&page=2).
  */
 export function AdminReportsPage() {
+  const loginHref = useLoginHref()
   useDocumentTitle(pageTitle(['신고 관리']))
   const { params, update } = useQueryParams()
   const queue = parseQueue(params.get('queue'))
@@ -51,7 +53,7 @@ export function AdminReportsPage() {
       {match(reports.state)
         .with({ status: 'anonymous' }, () => (
           <EmptyState title="로그인한 관리자만 볼 수 있어요">
-            <ButtonLink variant="primary" to="/login">
+            <ButtonLink variant="primary" to={loginHref}>
               로그인하기
             </ButtonLink>
           </EmptyState>

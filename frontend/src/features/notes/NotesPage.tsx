@@ -35,6 +35,7 @@ import {
   newerAnalysisLink,
 } from './model/notes'
 import './notes.css'
+import { useLoginHref } from '@/shared/hooks/useLoginHref'
 
 /**
  * 내 판단 노트(FS-57·#504). 분석 결과에서 담은 근거를 기업별로 모아 메모와 함께 다시 보고,
@@ -42,6 +43,7 @@ import './notes.css'
  * 로그인한 회원만 쓴다. 노트 내용은 AI나 외부 API에 보내지 않는다.
  */
 export function NotesPage() {
+  const loginHref = useLoginHref()
   useDocumentTitle(pageTitle(['내 판단 노트']))
   const notes = useNotes()
   const [filter, dispatchFilter] = useReducer(noteFilterReducer, INITIAL_NOTE_FILTER)
@@ -61,7 +63,7 @@ export function NotesPage() {
         .with({ status: 'anonymous' }, () => (
           <EmptyState title="로그인하면 판단 노트를 쓸 수 있어요">
             <p>분석 결과의 근거를 노트에 담고 메모를 남기려면 로그인해 주세요.</p>
-            <ButtonLink variant="primary" to="/login">
+            <ButtonLink variant="primary" to={loginHref}>
               로그인하기
             </ButtonLink>
           </EmptyState>

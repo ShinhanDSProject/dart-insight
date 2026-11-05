@@ -5,6 +5,7 @@ import { apiBaseUrl, ApiError, NETWORK_ERROR } from '@/shared/api/client'
 import { endpoints } from '@/shared/api/endpoints'
 import { useAuth } from '@/shared/auth/authContext'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
+import { rememberReturn, safeReturnPath, takeReturn } from '@/shared/lib/loginReturn'
 import { pageTitle } from '@/shared/lib/pageTitle'
 import { Button, Card, FieldLabel, Input, PageHeader, PasswordInput } from '@/shared/ui'
 import { AlertState } from '@/shared/ui/StateView'
@@ -35,9 +36,13 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [submit, setSubmit] = useState<SubmitState>({ status: 'idle' })
 
+  // 로그인 뒤 돌아갈 화면(로그인 링크가 ?next=로 실어 보냄). 없거나 이 앱 밖이면 첫 화면
+  const next = safeReturnPath(searchParams.get('next'))
+
   useEffect(() => {
     if (searchParams.get('social') === 'success' && auth.state.status === 'authenticated') {
-      void navigate('/', { replace: true })
+      // 소셜 로그인은 제공자를 거쳐 돌아오므로 떠날 때 남긴 주소를 쓴다
+      void navigate(takeReturn() ?? '/', { replace: true })
     }
   }, [auth.state.status, navigate, searchParams])
 
@@ -48,7 +53,7 @@ export function LoginPage() {
     try {
       await auth.login(email, password)
       setPassword('')
-      await navigate('/')
+      await navigate(next ?? '/')
     } catch (error: unknown) {
       const apiError = error instanceof ApiError ? error : null
       setSubmit({ status: 'error', message: loginFailureMessage(apiError), traceId: apiError?.traceId })
@@ -101,7 +106,8 @@ export function LoginPage() {
         <div className="login__social" aria-label="소셜 로그인">
           {SOCIAL_PROVIDERS.map((provider) => (
             <a className={`login__social-button login__social-button--${provider}`}
-              href={`${apiBaseUrl}${endpoints.socialLogin(provider)}`} key={provider}>
+              href={`${apiBaseUrl}${endpoints.socialLogin(provider)}`} key={provider}
+              onClick={() => rememberReturn(next)}>
               {SOCIAL_LABELS[provider]}로 계속하기
             </a>
           ))}

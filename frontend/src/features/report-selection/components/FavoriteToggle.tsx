@@ -4,6 +4,7 @@ import type { Company } from '@/shared/api/companies'
 import { useFavoriteCompanies } from '@/shared/hooks/useFavoriteCompanies'
 import { Button, ButtonLink, Icon } from '@/shared/ui'
 import { AlertState } from '@/shared/ui/StateView'
+import { useLoginHref } from '@/shared/hooks/useLoginHref'
 
 /**
  * 회사 이름 옆 별 버튼. 누르면 관심 기업에 더하고, 다시 누르면 뺀다.
@@ -11,6 +12,7 @@ import { AlertState } from '@/shared/ui/StateView'
  * 켜짐은 색만이 아니라 aria-pressed·채운 별·글자로도 알린다. 목록을 받는 중이거나 서버가 답할 때까지 버튼을 막는다.
  */
 export function FavoriteToggle({ company }: { company: Company }) {
+  const loginHref = useLoginHref()
   const favorites = useFavoriteCompanies()
   const [saving, setSaving] = useState<'idle' | 'saving' | 'error'>('idle')
   const pressed = favorites.isFavorite(company.corpCode)
@@ -20,7 +22,7 @@ export function FavoriteToggle({ company }: { company: Company }) {
   }
   return match(favorites.status)
     .with('anonymous', () => (
-      <ButtonLink className="favorite-toggle" to="/login">
+      <ButtonLink className="favorite-toggle" to={loginHref}>
         <span className="favorite-toggle__icon">
           <Icon name="star" size={16} />
         </span>

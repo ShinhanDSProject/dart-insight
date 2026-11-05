@@ -17,6 +17,7 @@ import { ServiceNoticeDialog } from './ServiceNoticeDialog'
 import { ShortcutHelp } from './ShortcutHelp'
 import { ThemeMenu } from './ThemeMenu'
 import { useShortcuts } from './useShortcuts'
+import { useLoginHref } from '@/shared/hooks/useLoginHref'
 
 type Section = 'search' | 'notes' | 'companies'
 
@@ -39,6 +40,7 @@ const MENU_ID = 'app-header-menu'
  * - 하단 바: 출처·AI 안내와 이용 안내·단축키·AI 사용 현황.
  */
 export function Layout() {
+  const loginHref = useLoginHref()
   const { pathname, search } = useLocation()
   const { corpCode, analysisId } = useParams()
   const auth = useAuth()
@@ -138,7 +140,7 @@ export function Layout() {
               .with('loading', 'anonymous', () => (
                 <>
                   <NotificationSignInLink />
-                  <ButtonLink to="/login" variant="primary" aria-current={pathname === '/login' ? 'page' : undefined}>로그인</ButtonLink>
+                  <ButtonLink to={loginHref} variant="primary" aria-current={pathname === '/login' ? 'page' : undefined}>로그인</ButtonLink>
                 </>
               ))
               .exhaustive()}

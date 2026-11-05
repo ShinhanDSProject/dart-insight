@@ -1,6 +1,7 @@
 import { useContext, type ReactNode } from 'react'
 import { ApiError, NETWORK_ERROR } from '@/shared/api/client'
 import { AuthContext } from '@/shared/auth/authContext'
+import { useLoginHref } from '@/shared/hooks/useLoginHref'
 import { Button, ButtonLink } from './Button'
 import { Mascot } from './Mascot'
 
@@ -56,11 +57,7 @@ export function ErrorState({ error, onRetry, messages }: ErrorStateProps) {
     <AlertState title={message}>
       {code === NETWORK_ERROR && <p>계속되면 관리자에게 알려 주세요.</p>}
       {apiError?.traceId && <p className="state__meta">추적 ID: <code>{apiError.traceId}</code></p>}
-      {suggestLogin && (
-        <ButtonLink variant="secondary" to="/login">
-          로그인하기
-        </ButtonLink>
-      )}
+      {suggestLogin && <LoginLink />}
       {onRetry && !quotaExceeded && (
         <Button variant="secondary" onClick={onRetry}>
           다시 시도
@@ -78,5 +75,15 @@ export function AlertState({ title, children, mascot = false }: { title: ReactNo
       <p className="state__title">{title}</p>
       {children}
     </div>
+  )
+}
+
+/** 로그인한 뒤 지금 화면으로 돌아오는 링크. 보일 때만 주소를 읽어, 라우터 밖에서 그리는 ErrorState는 영향을 받지 않는다 */
+function LoginLink() {
+  const loginHref = useLoginHref()
+  return (
+    <ButtonLink variant="secondary" to={loginHref}>
+      로그인하기
+    </ButtonLink>
   )
 }
