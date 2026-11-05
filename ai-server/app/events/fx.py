@@ -9,6 +9,7 @@ from __future__ import annotations
 import csv
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
+from functools import lru_cache
 from pathlib import Path
 
 from app.events.amounts import KRW
@@ -29,8 +30,12 @@ class Converted:
     rate_date: str | None = None
 
 
+@lru_cache(maxsize=1)
 def load_rates(path: Path = RATES_FILE) -> Rates:
-    """(통화, 기준일) → 1단위의 원화. 값이 빈 줄은 건너뛴다."""
+    """(통화, 기준일) → 1단위의 원화. 값이 빈 줄은 건너뛴다. 파일은 한 번만 읽는다.
+
+    잘못 적은 줄은 예외가 난다. 저장소 파일은 테스트가 읽어 보므로 CI에서 먼저 걸린다.
+    """
     with path.open(encoding="utf-8", newline="") as file:
         return {
             (row["currency"], row["base_date"]): Decimal(row["rate"]) / Decimal(row["unit"])
