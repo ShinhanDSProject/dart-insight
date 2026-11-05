@@ -43,6 +43,7 @@ import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
@@ -71,7 +72,8 @@ class AgentCompanyToolsApiTest {
     static final String PREV = "20250814003156";
     static final String ANNUAL = "20260310000001";
     static final String Q1 = "20260515000001";
-    static final LocalDateTime NOW = LocalDateTime.of(2026, 11, 4, 9, 0);
+    /** 날짜를 고정하면 보고서 목록 refresh-after(24h)가 지난 뒤 목록을 다시 받아 테스트가 실패한다 */
+    static final LocalDateTime NOW = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
     static final String CALL = """
             {"task":"%s","provider":"fake","model":"fake-model","promptVersion":"agent-2",
              "calledAt":"2026-11-04T10:12:02","traceId":"trace-agent","inputTokens":100,"outputTokens":20,
