@@ -2738,7 +2738,7 @@
 
 ### POST /api/analyses/{analysisId}/event-runs — 주요 사건 만들기 시작
 
-> 상태: 초안. 구조와 이유는 [ADR-0050](adr/0050-text-events-after-analysis.md)과 [ADR-0051](adr/0051-text-event-candidate-rules.md)에 있습니다. 구현은 #644·#646입니다. 7.7을 통과하기 전에는 설정으로 꺼 둡니다.
+> 상태: 구현됨(#646). 구조와 이유는 [ADR-0050](adr/0050-text-events-after-analysis.md)과 [ADR-0051](adr/0051-text-event-candidate-rules.md)에 있습니다. 7.7을 통과하기 전에는 설정(`TEXT_EVENTS_ENABLED`, 기본 false)으로 꺼 둡니다.
 
 - 이슈: #642 (2.13), #646 (3.36) · 화면: 문장 변화 탭 주요 사건 영역
 - 화면이 완료된 분석의 문장 변화 탭을 처음 열 때 부릅니다. 분석 상태에는 영향을 주지 않습니다. 사건이 실패해도 분석은 `COMPLETED`이고 `text-changes`는 그대로입니다.
@@ -2784,7 +2784,7 @@
 | `AI_SERVER_UNAVAILABLE` | AI 서버를 부를 수 없거나 제한시간을 넘음 |
 | `AI_LLM_UNAVAILABLE` | LLM을 쓸 수 없음 |
 | `AI_EVENTS_INVALID_OUTPUT` | 쓸 수 있는 사건이 하나도 없음, 또는 backend 재확인에서 변경 번호·근거 ID가 어긋남 |
-| `ANALYSIS_EVENTS_SAVE_FAILED` | 결과 저장 실패 |
+| `ANALYSIS_EVENTS_SAVE_FAILED` | 결과 저장 실패, 그 밖의 서버 오류 |
 | `ANALYSIS_EVENTS_INTERRUPTED` | 서버 재시작으로 실행이 끊김 |
 | `ANALYSIS_EVENTS_BUSY` | 실행 대기열이 가득 참 |
 

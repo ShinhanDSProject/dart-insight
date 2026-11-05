@@ -83,6 +83,11 @@ public final class ApiPaths {
     public static final String ANALYSIS_SUMMARY = ANALYSES + "/{analysisId}/summary";
     public static final String ANALYSIS_FINANCIAL_CHANGES = ANALYSES + "/{analysisId}/financial-changes";
     public static final String ANALYSIS_TEXT_CHANGES = ANALYSES + "/{analysisId}/text-changes";
+    /** ANALYSES 아래. 주요 사건 실행과 조회(3.36, ADR-0050) */
+    public static final String ANALYSIS_EVENT_RUNS = BY_ANALYSIS_ID + "/event-runs";
+    public static final String ANALYSIS_CURRENT_EVENT_RUN = ANALYSIS_EVENT_RUNS + CURRENT;
+    public static final String ANALYSIS_EVENTS = BY_ANALYSIS_ID + "/events";
+    public static final String ANALYSIS_EVENT = ANALYSIS_EVENTS + "/{eventId}";
     public static final String BY_CHANGE_ID = "/{changeId}";
     public static final String CHANGE_HISTORY = BY_CHANGE_ID + "/history";
     public static final String TEXT_CHANGE_EXPLANATIONS = ANALYSIS_TEXT_CHANGES + "/{changeId}/explanations";
