@@ -17,6 +17,7 @@ from app.events.model import FAKE_MODEL, NO_CANDIDATES, EventInput, TextEvent
 from app.events.prompt import PROMPT_VERSION, build_request
 from app.events.validate import check
 from app.llm import CallRecord, LlmClient, LlmOutputInvalid, OutputProblem
+from app.llm.client import OUTCOME_INVALID_OUTPUT
 from app.llm.providers import FAKE_PROVIDER
 
 logger = logging.getLogger("app.events")
@@ -57,10 +58,12 @@ def group_events(llm: LlmClient, event_input: EventInput) -> EventOutput:
             raise
         dropped = len(checked.problems)
         logger.warning("검증에 실패한 사건 %d건을 뺌 prompt=%s", dropped, PROMPT_VERSION)
+        # 다시 만드는 호출이 실패했을 수 있어, 사건을 만든 호출(검증 실패 기록)의 값을 쓴다
+        source = next(c for c in reversed(e.calls) if c.outcome == OUTCOME_INVALID_OUTPUT)
         events, model, generated_at, calls = (
             checked.events,
-            e.calls[-1].model,
-            e.calls[-1].called_at,
+            source.model,
+            source.called_at,
             e.calls,
         )
     else:
