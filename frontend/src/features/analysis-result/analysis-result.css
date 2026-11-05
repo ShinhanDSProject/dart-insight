@@ -661,6 +661,18 @@
   gap: var(--space-3);
 }
 
+.text-events__notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.text-events__notice p {
+  margin: 0;
+}
+
 .text-events__title,
 .text-event__part-title {
   margin: 0;

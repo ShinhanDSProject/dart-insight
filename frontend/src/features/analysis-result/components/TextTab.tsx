@@ -13,7 +13,8 @@ import { CopyWithSourcesButton } from './CopyWithSourcesButton'
 import { NumberChangesLine } from './NumberChangesLine'
 import { RiskChangesCard } from './RiskChangesCard'
 import { RowDiffBlock } from './RowDiffBlock'
-import { TextEventsSection } from './TextEventsSection'
+import { SidePreview } from './SidePreview'
+import { TextEventsArea } from './TextEventsSection'
 import { TextEvidencePanel } from './TextEvidencePanel'
 import { TextExplanationBox } from './TextExplanationBox'
 import { TextFieldTable } from './TextFieldTable'
@@ -56,7 +57,7 @@ import {
   type TextTypeFilter,
 } from '../model/textFilter'
 import { ALL_FIELDS_LABEL, resolveTextField, textFieldLabel } from '../model/textFields'
-import { eventFieldCounts, visibleEvents } from '../model/textEvents'
+import { eventFieldCounts, eventListOf } from '../model/textEvents'
 import { DEFAULT_LIST_EMPTY, DEFAULT_LIST_EMPTY_NOTE, defaultListNote, foldedTotal, isDefaultList, noteScopeLabel } from '../model/textGroups'
 import { displaySectionPath } from '@/shared/lib/sectionTitle'
 
@@ -96,7 +97,7 @@ interface TextTabProps {
  * 맨 위 '위험 요인 변화' 카드에 위험 관련 목차의 건수를 보이고 '위험 관련만'으로 거른다(3.9, FS-61).
  * 문장을 비교하지 못했으면 '변경 없음'이 아니라 사유를 보여 준다. 짝짓지 못한 항목은 숨기지 않고 '검토 필요'로 둔다.
  * 맨 위 분야별 표에서 분야마다 몇 건이 바뀌었는지 보이고, 칸을 눌러 그 분야로 거른다(3.28). 옛 분석에는 표가 없고 주소의 분야도 쓰지 않는다.
- * 표 아래에 AI가 묶은 주요 사건을 카드로 보인다(3.37). 사건이 없으면 이 절만 빠지고 나머지는 그대로다.
+ * 표 아래에 AI가 묶은 주요 사건을 카드로 보인다(3.37). 만드는 중이거나 만들지 못하면 그 자리에 진행 표시나 안내를 두고 나머지는 그대로이며, 어느 사건에도 들어가지 않은 후보는 원문 그대로 보인다(3.38).
  * 거르지 않으면 기본 목록만 보이고 나머지는 아래 접힌 묶음에 둔다. 거르면 접힌 변경도 찾는다(3.29). 옛 분석에는 묶음이 없고 모든 변경이 목록에 있다.
  * 카드에는 '원문 비교'와 ⋯ 메뉴(고정, AI 한 줄 풀이, 노트, 커뮤니티 인용)를 둔다(3.31). 이력과 관련 수시공시는 원문 비교 창 안에 있다.
  * 카드마다 고정할 수 있고, '고정' 거르기를 고르면 이 분석에서 고정한 변경만 보여 준다(3.3, 이 브라우저에만 남음).
@@ -135,7 +136,7 @@ export function TextTab({
   const explanations = useTextExplanations(analysis.analysisId)
   const pins = usePinnedChanges(analysis.analysisId)
   const pinnedList = usePinnedTextChanges(analysis.analysisId, pins.ids, pinned, pins.remove)
-  const textEvents = useTextEvents(analysis.analysisId)
+  const { view: textEvents, retry: retryEvents } = useTextEvents(analysis.analysisId)
   // 같은 변경의 '원문 비교' 버튼이 목록과 사건 안에 함께 있을 수 있어, 창을 연 버튼을 기억해 닫을 때 그리로 돌아간다
   const evidenceOpener = useRef<{ changeId: number; element: Element | null } | null>(null)
   const toggleEvidence = (changeId: number) => {
@@ -151,6 +152,8 @@ export function TextTab({
   const groupCounts = listing?.groupCounts ?? null
   const defaultList = !pinned && isDefaultList({ type, section, q, risk, field })
   const folded = groupCounts !== null && foldedTotal(groupCounts) > 0
+  // 변경이 한 건도 없는 분석은 빈 화면 안내만 두고 사건 자리를 두지 않는다
+  const noChanges = defaultList && !folded && state.status === 'success' && state.items.length === 0
   const clearFilters = () => {
     searchBox.setInput('')
     onChange({ type: null, section: null, q: null, risk: false, field: null })
@@ -225,13 +228,14 @@ export function TextTab({
       )}
       {/* 첫 조회가 실패하면 아래 목록 자리의 오류 안내만 보인다 */}
       {!failed && !(state.status === 'error' && listing === null) && (
-        <TextFieldTable listing={listing} field={pinned ? null : field} eventCounts={eventFieldCounts(textEvents)} onChoose={chooseField} />
+        <TextFieldTable listing={listing} field={pinned ? null : field} eventCounts={eventFieldCounts(eventListOf(textEvents))} onChoose={chooseField} />
       )}
-      {!failed && textEvents !== null && (
-        <TextEventsSection
+      {!failed && !noChanges && (
+        <TextEventsArea
           analysis={analysis}
-          list={textEvents}
-          items={visibleEvents(textEvents.items, { pinned, searched, riskOnly, type, field })}
+          view={textEvents}
+          scope={{ pinned, searched, riskOnly, type, field }}
+          onRetry={retryEvents}
           onOpenEvidence={toggleEvidence}
           renderChanges={(items, eventId) => changeList(items, false, `event-${eventId}-`)}
         />
@@ -661,32 +665,5 @@ function MovedPaths({ item, withNote }: { item: TextChangeItem; withNote: boolea
         : `옮기기 전: ${displaySectionPath(paths.from)} → 옮긴 뒤: ${displaySectionPath(paths.to)}`}
       {withNote && ` ${MOVED_NOTE}`}
     </p>
-  )
-}
-
-interface SidePreviewProps {
-  role: string
-  text: string | null
-  missing: string
-  added?: boolean
-  removed?: boolean
-}
-
-function SidePreview({ role, text, missing, added = false, removed = false }: SidePreviewProps) {
-  return (
-    <div className="change-side">
-      <span className="change-side__role">{role}</span>
-      {text === null ? (
-        <p className="change-side__missing">{missing}</p>
-      ) : (
-        <p className={`change-side__text${added ? ' change-side__text--added' : ''}${removed ? ' change-side__text--removed' : ''}`}>
-          <span className="change-side__body">
-            {added && <span className="visually-hidden">추가된 내용: </span>}
-            {removed && <span className="change-side__tag">삭제됨</span>}
-            {text}
-          </span>
-        </p>
-      )}
-    </div>
   )
 }
