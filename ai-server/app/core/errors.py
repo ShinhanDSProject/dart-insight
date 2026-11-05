@@ -21,6 +21,7 @@ class ErrorCode(Enum):
 
     AI_DOCUMENT_TOO_LARGE = (413, "원문 파일이 너무 큽니다.")
     AI_LLM_UNAVAILABLE = (503, "LLM을 부를 수 없습니다.")
+    AI_EVENTS_INVALID_OUTPUT = (502, "다시 만들어도 쓸 수 있는 사건이 없습니다.")
 
     def __init__(self, status: int, default_message: str) -> None:
         self.status = status
