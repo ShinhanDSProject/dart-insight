@@ -41,6 +41,14 @@ export function formatAmount(value: number | null, unit: AmountUnit): string | n
   return `${sign}${numberFormat.format(scaled)}`
 }
 
+const approxFormat = new Intl.NumberFormat('ko-KR', { maximumSignificantDigits: 3 })
+
+/** 환산 참고값처럼 대략의 크기만 보이는 원화 금액. 예: 약 163억원. 작은 금액이 0억원이 되지 않게 단위를 낮춘다 */
+export function formatApproxWon(value: number): string {
+  const unit = [...unitOptions].reverse().find((o) => o.value !== 'THOUSAND' && value >= o.divisor) ?? unitOptions[0]
+  return `약 ${approxFormat.format(value / unit.divisor)}${unit.label}`
+}
+
 /** 증감액: 방향 기호와 절댓값. 예: ▲ 1,234 / ▼ 1,234 / 0. 단위보다 작은 변화는 '1 미만' */
 export function formatChange(value: number | null, unit: AmountUnit): string | null {
   if (value === null) return null

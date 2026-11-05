@@ -19,10 +19,13 @@ import {
   EVENTS_TITLE,
   EVENTS_UNAVAILABLE,
   eventQuotes,
+  eventScaleView,
   eventsNarrowed,
   NO_QUOTE,
   NO_REASON,
   REASON_QUOTES_TITLE,
+  SCALE_AMOUNT_LABEL,
+  SCALE_CONVERTED_LABEL,
   UNBOUND_NOTE,
   UNBOUND_TITLE,
   visibleEvents,
@@ -169,6 +172,7 @@ function TextEventCard({ analysis, item, onOpenEvidence, renderChanges }: TextEv
   const bodyId = `text-event-${item.eventId}`
   const changesId = `text-event-changes-${item.eventId}`
   const quotes = eventQuotes(item)
+  const scale = eventScaleView(item)
   const quoteList = (entries: TextEventQuote[]) =>
     entries.map((quote, index) => <QuoteBlock key={`${quote.evidenceId}-${index}`} quote={quote} onOpenEvidence={onOpenEvidence} />)
   return (
@@ -178,6 +182,24 @@ function TextEventCard({ analysis, item, onOpenEvidence, renderChanges }: TextEv
         <Badge tone="accent">AI 생성</Badge>
         <Badge>{item.kind}</Badge>
       </div>
+      {scale !== null && (
+        <dl className="text-event__scale">
+          <div>
+            <dt>{SCALE_AMOUNT_LABEL}</dt>
+            <dd className="text-event__amount">{scale.amount}</dd>
+          </div>
+          {scale.converted !== null && (
+            <div>
+              <dt>{SCALE_CONVERTED_LABEL}</dt>
+              <dd>{scale.converted}</dd>
+            </div>
+          )}
+          <div>
+            <dt>근거 ID</dt>
+            <dd>{scale.evidenceId === null ? '검토 필요' : <code>{scale.evidenceId}</code>}</dd>
+          </div>
+        </dl>
+      )}
       <Button variant="secondary" className="text-event__actions" aria-expanded={open} aria-controls={open ? bodyId : undefined} onClick={() => setOpen(!open)}>
         {open ? '접기' : '펼치기'}
       </Button>

@@ -35,6 +35,9 @@ export interface TextEventQuote {
   sectionPath: string
 }
 
+/** 외화 환산에 쓴 환율. disclosed_rate 그 공시 글의 환율, reference_table 저장소 환율표, none 환율 없음 */
+export type TextEventFxSource = 'disclosed_rate' | 'reference_table' | 'none'
+
 /** docs/api-spec.md GET /api/analyses/{id}/events의 items[]. 규모(scale*)는 사건 순서를 정한 값이다 */
 export interface TextEventItem {
   eventId: number
@@ -54,7 +57,8 @@ export interface TextEventItem {
   scaleNotComputedReason: string | null
   scaleEvidenceId: string | null
   amountSource: string
-  fxSource: string | null
+  /** 외화일 때만 */
+  fxSource: TextEventFxSource | null
   fxRateDate: string | null
   sortBasis: string
   /** 코드가 항상 true로 넣는다. 'AI 생성' 표시는 이 값으로 한다 */

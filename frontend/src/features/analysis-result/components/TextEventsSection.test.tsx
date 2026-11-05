@@ -41,6 +41,13 @@ function event(overrides: Partial<TextEventItem> = {}): TextEventItem {
     fields: ['LITIGATION'],
     changeIds: [101, 102],
     quotes: [quote(101, 'CHANGE', 'PREVIOUS', '이전 보고서의 글'), quote(102, 'CHANGE', 'CURRENT', '이번 보고서의 글')],
+    scaleAmount: null,
+    scaleAmountText: null,
+    currency: null,
+    scaleAmountKrw: null,
+    scaleEvidenceId: null,
+    fxSource: null,
+    fxRateDate: null,
     aiGenerated: true,
     ...overrides,
   } as TextEventItem
@@ -73,6 +80,38 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('TextEventsSection', () => {
+  const foreign = { scaleAmount: 11_800_000, scaleAmountText: 'USD 11,800,000', currency: 'USD', scaleAmountKrw: 16_300_000_000, scaleEvidenceId: '20260814003958#B1576', fxSource: 'reference_table', fxRateDate: '2025-12-31' } as const
+
+  it('펼치지 않아도 원래 금액, 환산 참고값과 기준, 근거 ID가 따로 보인다', () => {
+    show([event(foreign)])
+
+    const card = within(screen.getByRole('article', { name: '과징금을 새로 부과받았어요' }))
+    expect(card.getByText('USD 11,800,000')).toBeTruthy()
+    expect(card.getByText('약 163억원 (기준: 한국은행 매매기준율 2025-12-31)')).toBeTruthy()
+    expect(card.getByText('20260814003958#B1576')).toBeTruthy()
+  })
+
+  it('금액이 없는 사건에는 금액 줄이 없다', () => {
+    show([event()])
+
+    expect(screen.queryByText('금액')).toBeNull()
+    expect(screen.queryByText(/근거 ID/)).toBeNull()
+  })
+
+  it('금액의 근거 위치가 없으면 검토 필요로 보인다', () => {
+    show([event({ ...foreign, scaleEvidenceId: null })])
+
+    expect(screen.getByText('검토 필요')).toBeTruthy()
+  })
+
+  it('사건마다 자기 금액만 보이고 더한 값을 보이지 않는다', () => {
+    show([event(foreign), event({ ...foreign, eventId: 8, title: '다른 사건', scaleAmount: 2_000_000, scaleAmountText: 'USD 2,000,000' })])
+
+    expect(screen.getByText('USD 11,800,000')).toBeTruthy()
+    expect(screen.getByText('USD 2,000,000')).toBeTruthy()
+    expect(screen.queryByText(/13,800,000/)).toBeNull()
+  })
+
   it('카드마다 제목, AI 생성, 사건 종류가 보이고 투자 판단이 아니라는 안내가 있다', () => {
     show([event()])
 
