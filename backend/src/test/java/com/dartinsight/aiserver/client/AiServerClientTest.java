@@ -60,7 +60,8 @@ class AiServerClientTest {
 
     private AiServerClient client(Duration readTimeout) {
         String baseUrl = "http://127.0.0.1:" + server.getAddress().getPort();
-        return new AiServerClient(new AiServerProperties(baseUrl, Duration.ofSeconds(1), readTimeout, readTimeout));
+        return new AiServerClient(new AiServerProperties(baseUrl, Duration.ofSeconds(1), readTimeout, readTimeout,
+                readTimeout));
     }
 
     @Test
@@ -79,7 +80,7 @@ class AiServerClientTest {
         try (FakeAiServer fake = new FakeAiServer()) {
             fake.on("/internal/echo", FakeAiServer.Reply.ok("{}"));
             AiServerClient client = new AiServerClient(new AiServerProperties(fake.baseUrl(), Duration.ofSeconds(1),
-                    Duration.ofSeconds(2), Duration.ofSeconds(2)));
+                    Duration.ofSeconds(2), Duration.ofSeconds(2), Duration.ofSeconds(2)));
             byte[] zip = {0x50, 0x4b, 0x03, 0x04, 1, 2, 3};
 
             client.postBytes("/internal/echo", zip, MediaType.valueOf("application/zip"), Map.class);
@@ -134,7 +135,7 @@ class AiServerClientTest {
         delayMillis = 3000;
         String baseUrl = "http://127.0.0.1:" + server.getAddress().getPort();
         AiServerClient client = new AiServerClient(new AiServerProperties(baseUrl, Duration.ofSeconds(1),
-                Duration.ofSeconds(30), Duration.ofMillis(300)));
+                Duration.ofSeconds(30), Duration.ofMillis(300), Duration.ofSeconds(30)));
         long started = System.nanoTime();
 
         assertThat(client.health()).isEqualTo(AiServerStatus.DOWN);
@@ -146,7 +147,8 @@ class AiServerClientTest {
         int port = server.getAddress().getPort();
         server.stop(0);
         AiServerClient client = new AiServerClient(new AiServerProperties(
-                "http://127.0.0.1:" + port, Duration.ofMillis(500), Duration.ofMillis(500), Duration.ofMillis(500)));
+                "http://127.0.0.1:" + port, Duration.ofMillis(500), Duration.ofMillis(500), Duration.ofMillis(500),
+                Duration.ofMillis(500)));
 
         assertThat(client.health()).isEqualTo(AiServerStatus.DOWN);
     }

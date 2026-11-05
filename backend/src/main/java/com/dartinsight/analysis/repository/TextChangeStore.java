@@ -12,6 +12,7 @@ import java.math.RoundingMode;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -257,6 +258,20 @@ public class TextChangeStore {
         private static String escapeLike(String value) {
             return value.replace("!", "!!").replace("%", "!%").replace("_", "!_");
         }
+    }
+
+    /** 변경 번호들로 찾은 변경(문서 순서). 번호가 겹쳐도 한 번만 준다 */
+    public List<TextChange> findByChangeNos(long analysisId, Collection<Integer> changeNos) {
+        List<Integer> distinct = changeNos.stream().distinct().toList();
+        if (distinct.isEmpty()) {
+            return List.of();
+        }
+        List<Object> args = new ArrayList<>();
+        args.add(analysisId);
+        args.addAll(distinct);
+        return jdbcTemplate.query("SELECT " + COLUMNS + " FROM text_change WHERE analysis_id = ? AND change_no IN ("
+                + String.join(", ", Collections.nCopies(distinct.size(), "?")) + ") ORDER BY change_no", this::map,
+                args.toArray());
     }
 
     /** 변경 번호(change_no)로 찾은 변경 */

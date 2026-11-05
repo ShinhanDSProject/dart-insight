@@ -62,6 +62,11 @@ public final class ChangeScales {
         return new ChangeScale(base, baseChange, ratio, reason);
     }
 
+    /** 재무상태표의 자본총계 계정. 없으면 비어 있다. 주요 사건의 규모 비율(ADR-0053)이 쓴다 */
+    public Optional<FinancialChange> equityTotal() {
+        return findBase(Base.TOTAL_EQUITY, StatementType.BS.name());
+    }
+
     /**
      * 규모 큰 순: 비율의 절댓값이 큰 것부터, 같으면 받은 순서. 비율이 없는 항목은 맨 뒤에 받은 순서로 둔다.
      * 받은 목록은 바꾸지 않는다.

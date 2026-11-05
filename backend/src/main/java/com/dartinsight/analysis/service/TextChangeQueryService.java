@@ -8,8 +8,11 @@ import com.dartinsight.analysis.domain.TextSectionCount;
 import com.dartinsight.analysis.repository.TextChangeStore;
 import com.dartinsight.common.error.ApiException;
 import com.dartinsight.common.error.ErrorCode;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,6 +59,18 @@ public class TextChangeQueryService {
     public CompletedTextChanges completedChanges(Long analysisId) {
         Analysis analysis = resultService.completed(analysisId);
         return new CompletedTextChanges(analysis, store.all(analysisId));
+    }
+
+    /** 분류 전에 만든 변경이 있는지(listVersion null). 변경이 없는 분석은 false. 주요 사건(3.36)이 쓴다 */
+    public boolean hasUnclassifiedChanges(Long analysisId) {
+        return store.listVersion(analysisId) == null
+                && store.count(analysisId, new TextChangeFilter(List.of(), null, null)) > 0;
+    }
+
+    /** 변경 번호 → 변경. 없는 번호는 빠진다. 분석이 완료됐는지는 부르는 쪽이 이미 확인했다고 본다. 주요 사건(3.36)이 쓴다 */
+    public Map<Integer, TextChange> changesByNo(Long analysisId, Collection<Integer> changeNos) {
+        return store.findByChangeNos(analysisId, changeNos).stream()
+                .collect(Collectors.toMap(TextChange::changeNo, Function.identity()));
     }
 
     /**

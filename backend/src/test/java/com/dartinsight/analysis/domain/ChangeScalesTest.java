@@ -36,6 +36,16 @@ class ChangeScalesTest {
     }
 
     @Test
+    @DisplayName("자본총계는 재무상태표에서 찾고 자본변동표의 같은 이름은 보지 않으며, 없으면 비어 있다")
+    void equityTotalComesFromBalanceSheet() {
+        FinancialChange inChanges = change("SCE", "ifrs-full_Equity", "자본총계", 0, 1L, 2L);
+        FinancialChange inBalanceSheet = change("BS", "ifrs-full_Equity", "자본총계", 1, 900L, 1_000L);
+
+        assertThat(ChangeScales.of(List.of(inChanges, inBalanceSheet)).equityTotal()).containsSame(inBalanceSheet);
+        assertThat(ChangeScales.of(List.of(inChanges)).equityTotal()).isEmpty();
+    }
+
+    @Test
     @DisplayName("손익계산서 계정은 같은 손익계산서의 현재 매출액 대비 비율을 소수 6자리로 계산한다")
     void incomeStatementAccountUsesCurrentRevenue() {
         FinancialChange revenue = change("IS", "ifrs-full_Revenue", "매출액", 0, 900L, 1_000L);
