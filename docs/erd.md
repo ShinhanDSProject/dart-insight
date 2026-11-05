@@ -1180,10 +1180,17 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `sort_order` | INT | UK | 아니오 | 코드가 정한 순서(1부터) |
 | `title` | VARCHAR(200) | | 아니오 | AI가 쓴 제목 |
 | `kind` | VARCHAR(30) | | 아니오 | AI가 붙인 사건 종류 이름 |
-| `scale_amount` | BIGINT | | 예 | 코드가 공시에서 읽은 금액. 모르면 null. 사건끼리 더하지 않음 |
+| `scale_amount` | BIGINT | | 예 | 코드가 공시에서 읽은 금액(원래 통화). 모르면 null. 사건끼리 더하지 않음 |
+| `scale_amount_text` | VARCHAR(100) | | 예 | 금액의 원문 표기 |
 | `currency` | VARCHAR(3) | | 예 | `scale_amount`의 통화 |
-| `scale_evidence_id` | VARCHAR(40) | | 예 | 금액의 근거 ID(`{rcept_no}#B{block_no}`) |
-| `sort_basis` | VARCHAR(20) | | 아니오 | `FRONT_KIND`, `AMOUNT`, `ROW_COUNT` |
+| `scale_amount_krw` | BIGINT | | 예 | 원화 금액. 외화면 환산한 참고값, 환율이 없으면 null |
+| `scale_ratio` | DECIMAL(20,6) | | 예 | 원화 금액 ÷ 자본총계. 계산하지 못하면 null |
+| `scale_not_computed_reason` | VARCHAR(30) | | 예 | `EQUITY_MISSING`, `EQUITY_NOT_POSITIVE`, `FX_RATE_MISSING` |
+| `scale_evidence_id` | VARCHAR(40) | | 예 | 금액의 근거 ID(`{rcept_no}#B{block_no}` 또는 `{rcept_no}#{OpenDART 필드}`) |
+| `amount_source` | VARCHAR(20) | | 아니오 | `structured`, `single_candidate`, `ai_choice`, `rule_fallback`, `none` |
+| `fx_source` | VARCHAR(20) | | 예 | 외화일 때 `disclosed_rate`, `reference_table`, `none` |
+| `fx_rate_date` | DATE | | 예 | 환율표의 기준일 |
+| `sort_basis` | VARCHAR(20) | | 아니오 | `FRONT_KIND`, `AMOUNT`, `UNIT_COUNT` |
 | `model`, `prompt_version` | VARCHAR(100), VARCHAR(30) | | 아니오 | 만든 모델과 프롬프트 버전 |
 | `generated_at` | DATETIME(6) | | 아니오 | 호출 시각(한국 시간) |
 

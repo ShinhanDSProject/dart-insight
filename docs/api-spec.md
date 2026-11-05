@@ -2827,9 +2827,16 @@
         }
       ],
       "scaleAmount": null,
+      "scaleAmountText": null,
       "currency": null,
+      "scaleAmountKrw": null,
+      "scaleRatio": null,
+      "scaleNotComputedReason": null,
       "scaleEvidenceId": null,
-      "sortBasis": "ROW_COUNT",
+      "amountSource": "none",
+      "fxSource": null,
+      "fxRateDate": null,
+      "sortBasis": "UNIT_COUNT",
       "aiGenerated": true,
       "model": "모델 이름",
       "promptVersion": "text-event-1",
@@ -2851,7 +2858,15 @@
 
 - `quotes[].purpose`: `CHANGE` 바뀐 내용, `REASON` 공시에 적힌 이유. 이유 인용이 없으면 화면은 그 칸을 빼고 지어내지 않습니다
 - `quotes[].side`: `PREVIOUS`, `CURRENT`. `evidenceId`는 `{rcept_no}#B{block_no}`입니다
-- `sortBasis`: `FRONT_KIND` 맨 앞에 둘 종류, `AMOUNT` 금액, `ROW_COUNT` 바뀐 행 수
+- `sortBasis`: `FRONT_KIND` 맨 앞에 둘 종류, `AMOUNT` 금액, `UNIT_COUNT` 바뀐 단위 수(표의 바뀐 행 + 바뀐 문단, 각 1. 행을 비교하지 못한 표는 1)
+- 규모 칸([ADR-0053](adr/0053-event-scale-amount-candidates.md)). 숫자는 코드가 만들고 AI는 코드가 뽑은 후보의 번호만 고릅니다. 사건끼리 더하지 않습니다.
+  - `scaleAmount`·`currency`: 원래 통화의 금액(정수)과 통화. `scaleAmountText`: 원문 표기. 모르면 모두 null
+  - `scaleAmountKrw`: 원화 금액. 외화면 환산한 참고값이고, 화면은 '약 OO억원 (기준: 한국은행 매매기준율 YYYY-MM-DD)'처럼 원래 금액과 따로 보여 줍니다. 환율이 없으면 null
+  - `scaleRatio`: `scaleAmountKrw` ÷ 자본총계(소수 6자리). 계산하지 못하면 null
+  - `scaleNotComputedReason`: 금액은 있는데 비율을 계산하지 못한 사유. `EQUITY_MISSING` 원화 자본총계 없음, `EQUITY_NOT_POSITIVE` 자본총계가 0 이하, `FX_RATE_MISSING` 환율 없음(순서는 금액 모르는 사건과 같은 줄). 비율을 계산했거나 금액이 없으면 null
+  - `scaleEvidenceId`: 글에서 읽었으면 `{rcept_no}#B{block_no}`, 구조화 값이면 `{rcept_no}#{OpenDART 필드}`
+  - `amountSource`: `structured` OpenDART 구조화 값, `single_candidate` 후보 하나, `ai_choice` AI가 번호로 고름, `rule_fallback` AI 실패로 규칙이 고름, `none` 금액 없음
+  - `fxSource`: 외화일 때만. `disclosed_rate` 그 공시 글의 환율, `reference_table` 저장소 환율표, `none` 환율 없음. `fxRateDate`: 환율표의 기준일(`YYYY-MM-DD`), 그 밖에는 null
 - `kind`: AI가 붙인 사건 종류 이름입니다. 맨 앞에 둘지는 코드가 판정합니다
 
 | 상태 | code | 언제 |
@@ -3874,6 +3889,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 - backend가 `list_group`이 `MAIN`·`UNPAIRED`·`HEADING`인 변경을 보냅니다. ai-server는 후보를 고르고(규칙은 ADR-0051, LLM·우선순위 점수를 쓰지 않음), LLM으로 묶고, 인용·근거와 표현을 검사하고, 코드로 정렬합니다. DB는 쓰지 않습니다.
 - 검증에 실패하면 최대 2회 다시 만듭니다. 그래도 잘못된 사건은 빼고 `droppedEventCount`에 세고, 그 변경은 `unboundChangeNos`로 보냅니다.
 - 모델이 검증을 통과한 응답으로 사건이 없다고 답하면 실패가 아닙니다. `created: true`, `events: []`이고 후보는 모두 `unboundChangeNos`로 보냅니다.
+- 규모는 사건마다 정합니다. 후보가 2개 이상이면 task `event_amount_pick`으로 번호만 고르고(호출 기록은 `calls`), 실패하면 규칙으로 대체하며 실행은 실패하지 않습니다.
 - 제공자가 fake면 LLM을 부르지 않고 `created: false`, `notCreatedReason: FAKE_MODEL`로 답합니다. 후보가 없으면 제공자와 상관없이 `NO_CANDIDATES`입니다. 만들지 않았을 때 `model`·`generatedAt`은 null이고 `events`·`unboundChangeNos`·`calls`는 빈 배열입니다.
 
 **요청**
@@ -3884,6 +3900,10 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
   "currentRceptNo": "20260814003699",
   "equityTotal": 1000000000000,
   "currency": "KRW",
+  "reportBaseDate": "2026-06-30",
+  "structuredAmounts": [
+    { "rceptNo": "20260219002746", "kind": "CAPITAL_INCREASE", "field": "fdpp_ocsa", "amount": 2833562221325, "currency": "KRW" }
+  ],
   "changes": [
     {
       "changeNo": 12,
@@ -3896,13 +3916,20 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
       "previousBlockNo": 2028,
       "currentBlockNo": 1576,
       "previousText": "변경 전 글",
-      "currentText": "변경 후 글"
+      "currentText": "변경 후 글",
+      "precedingBlockText": "(단위 : 천원)",
+      "changedUnitCount": 1
     }
   ]
 }
 ```
 
-`equityTotal`은 정렬에 쓰는 자본총계입니다. 없으면 null이고 0과 구분합니다.
+`equityTotal`은 비율에 쓰는 자본총계입니다(같은 분석의 연결·별도 구분). 없으면 null이고 0과 구분합니다.
+
+- `reportBaseDate`: 이번 보고서의 기준일. 외화를 환율표로 환산할 때 씁니다. 없으면 null
+- `structuredAmounts`: 비교 기간의 주요사항보고서(DS005) 금액. 결정 하나에 한 행이고 `kind`는 `keyItemsKind`와 같습니다. 유상증자처럼 항목이 여럿이면 backend가 그 결정 안에서 더해 `field`를 `fdpp`로 보냅니다. 없으면 생략합니다
+- `precedingBlockText`: 표 변경일 때 표 바로 앞 블록의 글(이번 글이 있으면 이번 쪽). 단위를 읽습니다. 그 밖에는 null이거나 생략합니다
+- `changedUnitCount`: 표는 `rowDiff.counts.changed`, 행을 비교하지 못한 표와 표가 아닌 변경은 1
 
 **응답 200**
 
@@ -3924,9 +3951,16 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
         { "changeNo": 12, "purpose": "CHANGE", "side": "CURRENT", "text": "원문 글", "evidenceId": "20260814003699#B1576" }
       ],
       "scaleAmount": null,
+      "scaleAmountText": null,
       "currency": null,
+      "scaleAmountKrw": null,
+      "scaleRatio": null,
+      "scaleNotComputedReason": null,
       "scaleEvidenceId": null,
-      "sortBasis": "ROW_COUNT"
+      "amountSource": "none",
+      "fxSource": null,
+      "fxRateDate": null,
+      "sortBasis": "UNIT_COUNT"
     }
   ],
   "unboundChangeNos": [13],
