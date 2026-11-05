@@ -34,7 +34,8 @@ vi.mock('../hooks/useChangeOverview', () => ({
 
 // 채팅의 쓰기 확인 버튼은 로그인 상태를 본다. 답 평가는 저장 호출만 바꿔 끼운다
 const auth = vi.hoisted(() => ({ state: { status: 'authenticated', userId: 1 } as AuthState }))
-vi.mock('@/shared/auth/authContext', () => ({
+vi.mock('@/shared/auth/authContext', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/shared/auth/authContext')>()),
   useAuth: () => ({ state: auth.state, login: vi.fn(), logout: vi.fn() }),
 }))
 const feedbackApi = vi.hoisted(() => ({ sendAnswerFeedback: vi.fn() }))

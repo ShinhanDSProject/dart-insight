@@ -67,7 +67,8 @@ vi.mock('../hooks/useTextExplanations', () => ({
   useTextExplanations: () => ({ request: () => {}, entryOf: () => ({ status: 'loading' }) }),
 }))
 // 카드의 '노트에 담기'(FS-57)는 로그인 상태만 본다
-vi.mock('@/shared/auth/authContext', () => ({
+vi.mock('@/shared/auth/authContext', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/shared/auth/authContext')>()),
   useAuth: () => ({ state: { status: 'anonymous' }, login: vi.fn(), logout: vi.fn() }),
 }))
 

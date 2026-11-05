@@ -9,7 +9,8 @@ import { axeViolations } from '@/test/axe'
 import { AdminReportsPage } from './AdminReportsPage'
 
 const auth = vi.hoisted(() => ({ state: { status: 'authenticated', userId: 1 } as AuthState }))
-vi.mock('@/shared/auth/authContext', () => ({
+vi.mock('@/shared/auth/authContext', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/shared/auth/authContext')>()),
   useAuth: () => ({ state: auth.state, login: vi.fn(), logout: vi.fn() }),
 }))
 const api = vi.hoisted(() => ({ getAdminReports: vi.fn(), moderateReport: vi.fn() }))

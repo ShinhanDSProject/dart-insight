@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react'
+import { useContext, type ReactNode } from 'react'
 import { ApiError, NETWORK_ERROR } from '@/shared/api/client'
-import { Button } from './Button'
+import { AuthContext } from '@/shared/auth/authContext'
+import { Button, ButtonLink } from './Button'
 
 /** 로딩·오류·빈 결과 상태. 상태를 숨기지 않고 항상 한 가지를 보여 준다. */
 
@@ -29,16 +30,29 @@ interface ErrorStateProps {
   messages?: Record<string, string>
 }
 
+/** 하루 AI 질문 한도를 넘음(429, ADR-0054) */
+export const AI_QUOTA_EXCEEDED = 'AI_QUOTA_EXCEEDED'
+
 export function ErrorState({ error, onRetry, messages }: ErrorStateProps) {
   const apiError = error instanceof ApiError ? error : null
   const code = apiError?.code ?? 'COMMON_INTERNAL_ERROR'
   const message = messages?.[code] ?? apiError?.message ?? '알 수 없는 오류가 발생했습니다.'
+  // 하루 AI 한도(ADR-0054)는 다시 눌러도 내일 0시까지 같은 답이라 '다시 시도' 대신 로그인(비로그인일 때)을 권한다.
+  // AuthProvider 밖(테스트·단독 화면)에서는 로그인 상태를 모르므로 로그인 링크를 보이지 않는다
+  const auth = useContext(AuthContext)
+  const quotaExceeded = code === AI_QUOTA_EXCEEDED
+  const suggestLogin = quotaExceeded && auth?.state.status === 'anonymous'
 
   return (
     <AlertState title={message}>
       {code === NETWORK_ERROR && <p>계속되면 관리자에게 알려 주세요.</p>}
       {apiError?.traceId && <p className="state__meta">추적 ID: <code>{apiError.traceId}</code></p>}
-      {onRetry && (
+      {suggestLogin && (
+        <ButtonLink variant="secondary" to="/login">
+          로그인하기
+        </ButtonLink>
+      )}
+      {onRetry && !quotaExceeded && (
         <Button variant="secondary" onClick={onRetry}>
           다시 시도
         </Button>

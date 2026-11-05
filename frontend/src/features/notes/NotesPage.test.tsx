@@ -9,7 +9,8 @@ import { companyNote, noteItem } from '@/test/fixtures/notes'
 import { NotesPage } from './NotesPage'
 
 const auth = vi.hoisted(() => ({ state: { status: 'authenticated', userId: 1 } as AuthState }))
-vi.mock('@/shared/auth/authContext', () => ({
+vi.mock('@/shared/auth/authContext', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/shared/auth/authContext')>()),
   useAuth: () => ({ state: auth.state, login: vi.fn(), logout: vi.fn() }),
 }))
 const api = vi.hoisted(() => ({ getNotes: vi.fn(), updateNoteMemo: vi.fn(), deleteNote: vi.fn(), exportNotes: vi.fn() }))
