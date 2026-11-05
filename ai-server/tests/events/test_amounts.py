@@ -71,6 +71,23 @@ def test_decimal_point_in_the_amount_does_not_end_the_sentence() -> None:
     assert candidate.context == "과징금 8,428.1백만원을 납부했습니다."
 
 
+def test_period_right_after_a_grouped_number_ends_the_sentence() -> None:
+    text = "계약금은 USD 11,800,000. 다음 거래는 USD 5,000,000입니다."
+
+    first, second = extract_amounts([source(text)]).candidates
+
+    assert first.context == "계약금은 USD 11,800,000."
+    assert second.context == "다음 거래는 USD 5,000,000입니다."
+
+
+def test_period_in_a_written_date_does_not_end_the_sentence() -> None:
+    sentence = "당사는 2026. 6. 30. 과징금 8,428백만원을 납부했습니다."
+
+    (candidate,) = extract_amounts([source(f"앞 문장입니다. {sentence} 끝.")]).candidates
+
+    assert candidate.context == sentence
+
+
 def test_period_of_an_abbreviation_does_not_end_the_sentence() -> None:
     sentence = "당사는 Poland sp. z o. o.에 각각 USD 71백만과 PLN 12백만을 보증합니다."
     text = f"앞 문장입니다. {sentence} 끝."

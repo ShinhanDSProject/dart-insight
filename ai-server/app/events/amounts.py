@@ -93,8 +93,9 @@ _PER_SHARE_AFTER = re.compile(r"\s*/\s*주")
 _RATE_WORD = re.compile(r"환율")
 _TOTAL_WORD = re.compile(r"합계|누계|한도|총액")
 _CLAUSE_END = re.compile(r",\s|\.\s|;|\n|\s\|\s")
-# 한글 뒤의 마침표만 문장 끝으로 본다. 'sp. z o. o.'와 금액의 소수점에서 끊지 않는다
-_SENTENCE_END = re.compile(r"(?<=[가-힣])\.|\n")
+# 한글 뒤나 쉼표로 묶은 숫자 뒤의 마침표만 문장 끝으로 본다.
+# 'sp. z o. o.', 금액의 소수점, '2026. 6. 30.' 같은 날짜에서 끊지 않는다
+_SENTENCE_END = re.compile(r"(?<=[가-힣])\.|(?<=,\d{3})\.(?=\s)|\n")
 
 _UNIT_HEAD = re.compile(r"단위\s*[:：]?\s*([^)\]\n|]*)")
 _UNIT_MONEY = re.compile(r"(천|백만|억|조|만)?\s*(원|USD|달러|EUR|유로|JPY|엔|CNY|위안)")
