@@ -724,6 +724,7 @@
 
 .text-event__amount {
   color: var(--color-text);
+  font-family: var(--font-num);
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
 }
