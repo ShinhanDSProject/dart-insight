@@ -2,6 +2,7 @@ import { useContext, type ReactNode } from 'react'
 import { ApiError, NETWORK_ERROR } from '@/shared/api/client'
 import { AuthContext } from '@/shared/auth/authContext'
 import { Button, ButtonLink } from './Button'
+import { Mascot } from './Mascot'
 
 /** 로딩·오류·빈 결과 상태. 상태를 숨기지 않고 항상 한 가지를 보여 준다. */
 
@@ -14,9 +15,17 @@ export function LoadingState({ message = '불러오는 중입니다…' }: { mes
   )
 }
 
-export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
+interface EmptyStateProps {
+  title: string
+  children?: ReactNode
+  /** '찾지 못함'처럼 사용자가 기대한 결과가 없을 때만 '설명 없음' 캐릭터를 둔다(#706). 단순히 비어 있는 목록에는 두지 않는다 */
+  mascot?: boolean
+}
+
+export function EmptyState({ title, children, mascot = false }: EmptyStateProps) {
   return (
     <div className="state state--empty">
+      {mascot && <Mascot mood="none" size="md" className="state__mascot" />}
       <p className="state__title">{title}</p>
       {children}
     </div>
@@ -62,9 +71,10 @@ export function ErrorState({ error, onRetry, messages }: ErrorStateProps) {
 }
 
 /** 화면을 이어 갈 수 없는 오류(요청 실패 등). ErrorState처럼 API 에러가 없을 때 제목과 다음 행동을 직접 넘긴다. */
-export function AlertState({ title, children }: { title: ReactNode; children?: ReactNode }) {
+export function AlertState({ title, children, mascot = false }: { title: ReactNode; children?: ReactNode; mascot?: boolean }) {
   return (
     <div className="state state--error" role="alert">
+      {mascot && <Mascot mood="none" size="md" className="state__mascot" />}
       <p className="state__title">{title}</p>
       {children}
     </div>

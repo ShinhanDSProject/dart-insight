@@ -10,6 +10,7 @@ export { DotTimeline, type DotTimelinePoint, type DotTimelineRow } from './DotTi
 export { DataTable, DataTableRow, SortableHeader, type SortState } from './DataTable'
 export { FieldHint, FieldLabel, Input, PasswordInput, Select, TextArea } from './Field'
 export { Icon, type IconName } from './Icon'
+export { Mascot, type MascotMood } from './Mascot'
 export { MemoForm } from './MemoForm'
 export { MenuButton, MenuItem } from './MenuButton'
 export { Notice, type NoticeTone } from './Notice'
