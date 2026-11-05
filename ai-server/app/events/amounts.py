@@ -93,7 +93,8 @@ _PER_SHARE_AFTER = re.compile(r"\s*/\s*주")
 _RATE_WORD = re.compile(r"환율")
 _TOTAL_WORD = re.compile(r"합계|누계|한도|총액")
 _CLAUSE_END = re.compile(r",\s|\.\s|;|\n|\s\|\s")
-_SENTENCE_END = re.compile(r"\.\s|\n")
+# 한글 뒤의 마침표만 문장 끝으로 본다. 'sp. z o. o.'와 금액의 소수점에서 끊지 않는다
+_SENTENCE_END = re.compile(r"(?<=[가-힣])\.|\n")
 
 _UNIT_HEAD = re.compile(r"단위\s*[:：]?\s*([^)\]\n|]*)")
 _UNIT_MONEY = re.compile(r"(천|백만|억|조|만)?\s*(원|USD|달러|EUR|유로|JPY|엔|CNY|위안)")
@@ -216,7 +217,7 @@ def _context(text: str, start: int, end: int) -> str:
     next_end = _SENTENCE_END.search(text, end)
     last = len(text)
     if next_end:
-        last = next_end.start() + 1 if next_end.group(0).startswith(".") else next_end.start()
+        last = next_end.end() if next_end.group(0) == "." else next_end.start()
     return text[max(first, start - _CONTEXT_CHARS) : min(last, end + _CONTEXT_CHARS)].strip()
 
 
@@ -317,10 +318,17 @@ def _from_cells(source: AmountSource) -> Iterator[AmountCandidate]:
                 written,
                 currency,
                 value * size,
-                f"{' | '.join(row)} (칸: {', '.join([*heads, written])})",
+                f"{_row_around(row, column)} (칸: {', '.join([*heads, written])})",
                 True,
                 any(_TOTAL_LABEL.fullmatch(label) for label in [row[0], *heads]),
             )
+
+
+def _row_around(row: list[str], column: int) -> str:
+    """그 칸이 있는 행. 너무 길면 칸의 앞뒤를 자른다."""
+    text = " | ".join(row)
+    start = len(" | ".join(row[: column + 1])) - len(row[column])
+    return text[max(0, start - _CONTEXT_CHARS) : start + len(row[column]) + _CONTEXT_CHARS]
 
 
 def _is_number(cell: str) -> bool:

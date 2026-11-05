@@ -71,6 +71,23 @@ def test_decimal_point_in_the_amount_does_not_end_the_sentence() -> None:
     assert candidate.context == "과징금 8,428.1백만원을 납부했습니다."
 
 
+def test_period_of_an_abbreviation_does_not_end_the_sentence() -> None:
+    sentence = "당사는 Poland sp. z o. o.에 각각 USD 71백만과 PLN 12백만을 보증합니다."
+    text = f"앞 문장입니다. {sentence} 끝."
+
+    (candidate,) = extract_amounts([source(text)]).candidates
+
+    assert candidate.context == sentence
+
+
+def test_sentence_ending_without_a_space_is_still_the_end() -> None:
+    text = "앞 문장입니다.* 잔여금액은 보수가 5억원 이상인 이사를 대상으로 합니다.※ 뒤 문장입니다."
+
+    (candidate,) = extract_amounts([source(text)]).candidates
+
+    assert candidate.context == "* 잔여금액은 보수가 5억원 이상인 이사를 대상으로 합니다."
+
+
 def test_context_of_a_very_long_sentence_is_limited_on_each_side() -> None:
     text = "가" * 400 + " 100억원 " + "나" * 400
 
@@ -222,6 +239,16 @@ def test_cell_context_has_the_whole_row_and_its_column_heads() -> None:
 
     assert candidates[0].context == "A사 | 2025.11.05 | 0.8 (칸: 금액, 0.8 (단위: 백만원))"
     assert candidates[1].context == "B사 | 2025.12.01 | 3 (칸: 금액, 3 (단위: 백만원))"
+
+
+def test_cell_context_of_a_very_long_row_is_limited_on_each_side() -> None:
+    text = "구분 | 금액 | 비고\n" + "가" * 400 + " | 3 | " + "나" * 400
+
+    (candidate,) = extract_amounts([source(text, True, "(단위: 백만원)")]).candidates
+
+    assert candidate.context == (
+        "가" * 197 + " | 3 | " + "나" * 197 + " (칸: 금액, 3 (단위: 백만원))"
+    )
 
 
 def test_unit_that_is_not_money_reads_no_cells() -> None:

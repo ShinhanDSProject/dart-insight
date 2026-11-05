@@ -76,7 +76,7 @@ class TextEventApiTest {
              "quotes":[{"changeNo":1,"purpose":"CHANGE","side":"CURRENT","text":"패소","evidenceId":"%s#B11"}],
              "scaleAmount":12000000000,"scaleAmountText":"120억원","currency":"KRW",
              "scaleAmountKrw":12000000000,"scaleRatio":0.012,"scaleNotComputedReason":null,
-             "scaleEvidenceId":"%s#B11","amountSource":"single_candidate","fxSource":null,"fxRateDate":null,
+             "scaleEvidenceId":"%s#B11","amountSource":"ai_choice","fxSource":null,"fxRateDate":null,
              "sortBasis":"AMOUNT"}""".formatted(CUR, CUR);
 
     @DynamicPropertySource
@@ -215,7 +215,7 @@ class TextEventApiTest {
                 .andExpect(jsonPath("$.items[0].quotes[0].sectionPath").value(LAWSUIT_PATH))
                 .andExpect(jsonPath("$.items[0].scaleAmount").value(12000000000L))
                 .andExpect(jsonPath("$.items[0].scaleRatio").value(0.012))
-                .andExpect(jsonPath("$.items[0].amountSource").value("single_candidate"))
+                .andExpect(jsonPath("$.items[0].amountSource").value("ai_choice"))
                 .andExpect(jsonPath("$.items[0].sortBasis").value("AMOUNT"))
                 .andExpect(jsonPath("$.items[0].aiGenerated").value(true))
                 .andExpect(jsonPath("$.items[0].model").value("m"))

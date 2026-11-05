@@ -1,7 +1,7 @@
 """사건마다 규모 정하기(2.16, ADR-0053).
 
 구조화 값 → 후보 없으면 금액 없음 → AI 확인(ADR-0058) 순서다. 숫자는 코드만 만든다.
-LLM을 쓸 수 없다고 판명되거나 예산을 넘기면 나머지 사건은 부르지 않고 금액 없음으로 둔다.
+LLM을 쓸 수 없다고 판명되거나 예산을 넘기면 나머지 사건은 부르지 않고 확인하지 못한 것으로 남긴다.
 사건끼리 금액을 더하지 않는다(ADR-0050).
 """
 
@@ -14,10 +14,11 @@ from dataclasses import replace
 from decimal import ROUND_HALF_UP, Decimal
 
 from app.documents.parser import TABLE
-from app.events.amount_pick import KrwOf, Picked, no_amount, pick_amount
+from app.events.amount_pick import KrwOf, Picked, not_checked, pick_amount
 from app.events.amounts import KRW, AmountCandidate, AmountSource, extract_amounts
 from app.events.fx import Converted, Rates, load_rates, to_krw
 from app.events.model import (
+    AMOUNT_NONE,
     CURRENT,
     EQUITY_MISSING,
     EQUITY_NOT_POSITIVE,
@@ -33,7 +34,7 @@ from app.events.model import (
 from app.llm import CallRecord, LlmClient
 
 _RATIO_DIGITS = Decimal("0.000001")
-# 금액 고르기 전체 시간. 2.12 최대 약 165초(ADR-0057). 넘으면 남은 사건은 금액 없음이다
+# 금액 고르기 전체 시간. 2.12 최대 약 165초(ADR-0057). 넘으면 남은 사건은 확인하지 못한 것이다
 PICK_BUDGET_SECONDS = 240.0
 
 # 사건의 제목·종류와 주요사항보고서 종류(backend KeyItemKind)를 잇는 낱말. 소송은 금액 항목이 없다
@@ -136,8 +137,10 @@ def _choose(
     krw_of: KrwOf,
     llm_down: bool,
 ) -> Picked:
-    if not candidates or llm_down:
-        return no_amount()
+    if not candidates:
+        return Picked(None, AMOUNT_NONE)
+    if llm_down:
+        return not_checked()
     return pick_amount(llm, event, candidates, krw_of)
 
 
@@ -158,7 +161,7 @@ def _from_text(
     picked = _choose(llm, event, extracted.candidates, lambda c: convert(c).krw, llm_down)
     chosen = picked.candidate
     if chosen is None:
-        return EventScale(), picked
+        return EventScale(source=picked.source), picked
     scale = _scale(
         chosen.value,
         chosen.currency,

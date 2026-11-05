@@ -31,6 +31,8 @@ UNIT_COUNT = "UNIT_COUNT"
 STRUCTURED = "structured"
 AI_CHOICE = "ai_choice"
 AMOUNT_NONE = "none"
+# 호출 실패, 읽을 수 없는 답, 시간 예산 초과로 확인하지 못함
+AMOUNT_UNAVAILABLE = "unavailable"
 # 금액은 있는데 비율을 계산하지 못한 사유
 EQUITY_MISSING = "EQUITY_MISSING"
 EQUITY_NOT_POSITIVE = "EQUITY_NOT_POSITIVE"
