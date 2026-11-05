@@ -163,7 +163,7 @@ export function SignupPage() {
           </div>
           <div className="signup__field">
             <FieldLabel htmlFor="signup-confirm">비밀번호 확인</FieldLabel>
-            <PasswordInput id="signup-confirm" name="passwordConfirm" autoComplete="new-password" required
+            <PasswordInput id="signup-confirm" name="passwordConfirm" toggleLabel="비밀번호 확인 보기" autoComplete="new-password" required
               value={fields.passwordConfirm} onChange={(event) => change('passwordConfirm', event.target.value)} disabled={pending}
               invalid={Boolean(errors.passwordConfirm)}
               aria-describedby={errors.passwordConfirm ? 'signup-confirm-error' : undefined} />

@@ -36,6 +36,17 @@ describe('비밀번호 보기 토글(#689)', () => {
     expect(screen.getByRole('button', { name: '비밀번호 보기' })).toHaveProperty('disabled', true)
   })
 
+  it('한 화면에 둘을 두면 버튼 이름을 달리 줄 수 있다', () => {
+    render(
+      <>
+        <PasswordInput aria-label="비밀번호" />
+        <PasswordInput aria-label="비밀번호 확인" toggleLabel="비밀번호 확인 보기" />
+      </>,
+    )
+    expect(screen.getByRole('button', { name: '비밀번호 보기' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '비밀번호 확인 보기' })).toBeTruthy()
+  })
+
   it('접근성 위반이 없다', async () => {
     const { container } = renderField()
     expect(await axeViolations(container)).toBe('')
