@@ -3873,7 +3873,8 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 - 이슈: #642 (2.13), #643 (2.14), #644 (2.15), #645 (2.16)
 - backend가 `list_group`이 `MAIN`·`UNPAIRED`·`HEADING`인 변경을 보냅니다. ai-server는 후보를 고르고(규칙은 ADR-0051, LLM·우선순위 점수를 쓰지 않음), LLM으로 묶고, 인용·근거와 표현을 검사하고, 코드로 정렬합니다. DB는 쓰지 않습니다.
 - 검증에 실패하면 최대 2회 다시 만듭니다. 그래도 잘못된 사건은 빼고 `droppedEventCount`에 세고, 그 변경은 `unboundChangeNos`로 보냅니다.
-- 제공자가 fake면 LLM을 부르지 않고 `created: false`, `notCreatedReason: FAKE_MODEL`로 답합니다. 후보가 없으면 `NO_CANDIDATES`입니다.
+- 모델이 검증을 통과한 응답으로 사건이 없다고 답하면 실패가 아닙니다. `created: true`, `events: []`이고 후보는 모두 `unboundChangeNos`로 보냅니다.
+- 제공자가 fake면 LLM을 부르지 않고 `created: false`, `notCreatedReason: FAKE_MODEL`로 답합니다. 후보가 없으면 제공자와 상관없이 `NO_CANDIDATES`입니다. 만들지 않았을 때 `model`·`generatedAt`은 null이고 `events`·`unboundChangeNos`·`calls`는 빈 배열입니다.
 
 **요청**
 
