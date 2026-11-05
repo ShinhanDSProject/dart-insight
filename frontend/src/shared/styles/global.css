@@ -265,6 +265,16 @@ code {
   animation: fade-in var(--motion-base) var(--ease-out);
 }
 
+/* 버튼 오른쪽 끝에 붙은 상자는 폭이 줄어 칸이 세로로 쌓이고 글자가 한 자씩 꺾였다. 내용 폭으로 두고 한 줄에 나란히 둔다 */
+.theme-menu__panel .segmented {
+  flex-wrap: nowrap;
+  width: max-content;
+}
+
+.theme-menu__panel .segmented__item {
+  white-space: nowrap;
+}
+
 /* '지금 보는 기업' 줄(#502, #548): 상단 바 아래, 본문과 같은 폭 안에 기업 이름과 그 기업 바로 가기 */
 .app-context {
   border-bottom: 1px solid var(--color-border);
