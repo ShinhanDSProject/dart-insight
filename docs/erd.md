@@ -18,6 +18,7 @@
 | `app_user` | 공통 회원(닉네임·역할은 6.6 #459) | #136, 6.6 (#459) | 미정 |
 | `local_credential` | 일반 가입 정보 | #136 | 미정 |
 | `refresh_token` | 일반 로그인 Refresh Token 해시·회전 기록 | 6.2 | 미정 |
+| `password_reset_token` | 비밀번호 재설정 링크 토큰 해시(30분·한 번) | 6.8 | 미정 |
 | `social_account` | Google·Kakao·Naver 계정과 공통 회원 연결 | #225 (6.3) | 미정 |
 | `favorite_company` | 회원별 관심 기업 | #36 (6.2) | 미정 |
 | `plan_interest` | 요금제 '관심 있어요' 기록(요금제·누른 화면·로그인했으면 회원 ID). 결제·연락처 없음 | 3.34 (FS-73) | 미정 |
@@ -77,6 +78,7 @@
 erDiagram
     app_user ||--o| local_credential : "user_id (#136)"
     app_user ||--o{ refresh_token : "user_id (6.2)"
+    app_user ||--o{ password_reset_token : "user_id (6.8)"
     app_user ||--o{ social_account : "user_id (6.3)"
     app_user ||--o{ favorite_company : "user_id (#36)"
     company ||--o{ favorite_company : "corp_code (#36)"
@@ -117,6 +119,14 @@ erDiagram
         datetime expires_at
         datetime revoked_at
         bigint replaced_by_id FK
+    }
+    password_reset_token {
+        bigint id PK
+        bigint user_id FK
+        varchar token_hash UK
+        datetime expires_at
+        datetime used_at
+        datetime created_at
     }
     social_account {
         bigint id PK
@@ -1275,6 +1285,19 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `last_used_at`, `revoked_at` | DATETIME(6) | | 예 | 마지막 사용·폐기 시각 |
 | `replaced_by_id` | BIGINT | FK | 예 | 회전 후 새 Refresh Token ID |
 
+### password_reset_token — 비밀번호 재설정 링크(6.8)
+
+> 마이그레이션: `V50__create_password_reset_token.sql`. [ADR-0055](adr/0055-password-reset-mail.md). 일반 가입 회원만 만든다.
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT AUTO_INCREMENT | PK | 아니오 | 재설정 토큰 기록 ID |
+| `user_id` | BIGINT | FK, INDEX 묶음 | 아니오 | `app_user.id` |
+| `token_hash` | VARCHAR(43) | UNIQUE | 아니오 | 원문(32바이트 난수 base64url)의 SHA-256 base64url 해시. 원문은 메일에만 있다 |
+| `expires_at` | DATETIME(6) | | 아니오 | 만료 시각(만든 뒤 30분) |
+| `used_at` | DATETIME(6) | | 예 | 비밀번호를 바꾼 시각, 또는 새 요청으로 대체된 시각. 값이 있으면 못 쓴다 |
+| `created_at` | DATETIME(6) | INDEX 묶음 | 아니오 | 만든 시각. 1분 안 다시 요청 막기에 쓴다 |
+
 ### social_account — 소셜 계정 연결(#225)
 
 > 마이그레이션: `V18__create_social_account.sql`.
@@ -1506,6 +1529,8 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `local_credential` | `uk_local_credential_email` | `email` | 유니크 | 일반 가입 중복 방지(#136) |
 | `refresh_token` | `uk_refresh_token_hash` | `token_hash` | 유니크 | 같은 Refresh Token 중복 저장 방지 |
 | `refresh_token` | `idx_refresh_token_family` | `family_id` | 인덱스 | 재사용 감지 시 계열 폐기 |
+| `password_reset_token` | `uk_password_reset_token_hash` | `token_hash` | 유니크 | 링크 토큰 찾기(6.8) |
+| `password_reset_token` | `idx_password_reset_token_user` | `user_id`, `created_at` | 인덱스 | 회원의 이전 토큰 대체·1분 안 다시 요청 확인 |
 | `social_account` | `uk_social_account_provider_user` | `provider`, `provider_user_id` | 유니크 | 제공자별 사용자를 한 계정에 한 번만 연결 |
 | `social_account` | `idx_social_account_user` | `user_id` | 인덱스 | 회원의 연결 계정 조회 |
 | `favorite_company` | `uk_favorite_company_user_corp` | `user_id`, `corp_code` | 유니크 | 같은 기업을 두 번 담지 않음. 회원별 목록 조회에도 씀 |
@@ -1576,7 +1601,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `text_event_quote` | `uk_text_event_quote` | `event_id, quote_no` | 유니크 | 사건 안 인용 순서 하나 |
 | `text_event_unbound_change` | `uk_text_event_unbound_change` | `run_id, change_no` | 유니크 | 같은 변경을 두 번 저장하지 않음 |
 
-외래 키: `local_credential.user_id`, `refresh_token.user_id` → `app_user.id` / `judgment_note_item.user_id` → `app_user.id`, `judgment_note_item.corp_code` → `company.corp_code` / `refresh_token.replaced_by_id` → `refresh_token.id` / `report.corp_code`, `company_overview.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code`, `company_disclosure_fetch.corp_code`, `company_disclosure.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no`, `report_key_account_fetch.rcept_no`, `report_key_account.rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no`, `report_key_fact.rcept_no`, `company_briefing.rcept_no`, `company_question.rcept_no` → `report.rcept_no` / `llm_call.company_briefing_id` → `company_briefing.id` / `llm_call.company_question_id` → `company_question.id` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id`, `analysis_question.analysis_id`, `text_change_explanation.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id` / (3.6) `disclosure_window_fetch.corp_code` → `company.corp_code` / `disclosure_window_item.fetch_id`, `related_disclosure_run.window_fetch_id` → `disclosure_window_fetch.id` / `related_disclosure_run.analysis_id` → `analysis.id` / `related_disclosure.run_id` → `related_disclosure_run.id` / `related_disclosure.item_id` → `disclosure_window_item.id` / (6.6) `community_post.corp_code` → `company.corp_code` / `community_post.user_id`, `community_comment.user_id`, `community_like.user_id`, `community_report_entry.reporter_id`, `community_moderation.admin_id`, `community_repost_request.user_id` → `app_user.id` / `community_quote.post_id`, `community_comment.post_id`, `community_report.post_id` → `community_post.id` / `community_comment.parent_id` → `community_comment.id` / `community_report_entry.report_id`, `community_moderation.report_id` → `community_report.id` / `community_repost_request.moderation_id` → `community_moderation.id`
+외래 키: `local_credential.user_id`, `refresh_token.user_id`, `password_reset_token.user_id`(6.8) → `app_user.id` / `judgment_note_item.user_id` → `app_user.id`, `judgment_note_item.corp_code` → `company.corp_code` / `refresh_token.replaced_by_id` → `refresh_token.id` / `report.corp_code`, `company_overview.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code`, `company_disclosure_fetch.corp_code`, `company_disclosure.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no`, `report_key_account_fetch.rcept_no`, `report_key_account.rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no`, `report_key_fact.rcept_no`, `company_briefing.rcept_no`, `company_question.rcept_no` → `report.rcept_no` / `llm_call.company_briefing_id` → `company_briefing.id` / `llm_call.company_question_id` → `company_question.id` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id`, `analysis_question.analysis_id`, `text_change_explanation.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id` / (3.6) `disclosure_window_fetch.corp_code` → `company.corp_code` / `disclosure_window_item.fetch_id`, `related_disclosure_run.window_fetch_id` → `disclosure_window_fetch.id` / `related_disclosure_run.analysis_id` → `analysis.id` / `related_disclosure.run_id` → `related_disclosure_run.id` / `related_disclosure.item_id` → `disclosure_window_item.id` / (6.6) `community_post.corp_code` → `company.corp_code` / `community_post.user_id`, `community_comment.user_id`, `community_like.user_id`, `community_report_entry.reporter_id`, `community_moderation.admin_id`, `community_repost_request.user_id` → `app_user.id` / `community_quote.post_id`, `community_comment.post_id`, `community_report.post_id` → `community_post.id` / `community_comment.parent_id` → `community_comment.id` / `community_report_entry.report_id`, `community_moderation.report_id` → `community_report.id` / `community_repost_request.moderation_id` → `community_moderation.id`
 
 외래 키(1.9, #465): `company_outlook.rcept_no` → `report.rcept_no` / `llm_call.company_outlook_id` → `company_outlook.id`
 
