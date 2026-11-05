@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, NETWORK_ERROR, apiGet, apiGetText, apiPost, apiPut, setAccessToken } from './client'
+import { ApiError, NETWORK_ERROR, apiGet, apiGetText, apiPost, apiPut, onSessionExpired, setAccessToken } from './client'
 
 function jsonResponse(status: number, body: unknown, headers: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), {
@@ -25,6 +25,24 @@ describe('인증 갱신', () => {
     await expect(apiGet('/api/companies')).resolves.toEqual({ items: [] })
     expect(fetchMock.mock.calls[1][0]).toBe('/api/session-refreshes')
     expect((fetchMock.mock.calls[2][1] as RequestInit).headers).toMatchObject({ Authorization: 'Bearer new-access' })
+  })
+
+  it('재발급이 실패하면 처음 401을 그대로 던지고 로그인이 끊겼다고 알린다(한 번만, 구독을 끊으면 알리지 않음)', async () => {
+    setAccessToken('expired-access')
+    const unauthorized = { code: 'AUTH_UNAUTHORIZED', message: '만료', errors: [] }
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce(jsonResponse(401, unauthorized))
+      .mockResolvedValueOnce(jsonResponse(401, { code: 'AUTH_INVALID_REFRESH_TOKEN', message: '만료', errors: [] }))
+      .mockResolvedValueOnce(jsonResponse(401, unauthorized)))
+    const expired = vi.fn()
+    const unsubscribe = onSessionExpired(expired)
+
+    await expect(apiGet('/api/notes')).rejects.toMatchObject({ status: 401, code: 'AUTH_UNAUTHORIZED' })
+    expect(expired).toHaveBeenCalledTimes(1)
+    // 토큰을 비웠으므로 다음 401은 재발급을 시도하지 않고 다시 알리지도 않는다
+    await expect(apiGet('/api/notes')).rejects.toMatchObject({ status: 401 })
+    expect(expired).toHaveBeenCalledTimes(1)
+    unsubscribe()
   })
 })
 

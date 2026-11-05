@@ -42,6 +42,20 @@ export function setAccessToken(token: string | null) {
   accessToken = token
 }
 
+type SessionExpiredListener = () => void
+const sessionExpiredListeners = new Set<SessionExpiredListener>()
+
+/**
+ * 로그인 중 Access Token 재발급이 실패해(Refresh Token 만료·폐기) 로그인이 끊겼을 때 부른다.
+ * 로그인 상태(AuthProvider)가 비로그인으로 바뀌어야 화면이 401을 되풀이하지 않는다. 반환값으로 구독을 끊는다.
+ */
+export function onSessionExpired(listener: SessionExpiredListener): () => void {
+  sessionExpiredListeners.add(listener)
+  return () => {
+    sessionExpiredListeners.delete(listener)
+  }
+}
+
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
 type Query = Record<string, string | number | boolean | undefined | null>
@@ -181,6 +195,7 @@ async function request<T>(
       await refreshAccessToken()
     } catch {
       setAccessToken(null)
+      sessionExpiredListeners.forEach((listener) => listener())
       throw error
     }
     return requestOnce<T>(method, path, query, body, options, kind)

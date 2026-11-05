@@ -1,6 +1,6 @@
 import { useEffect, useReducer, type ReactNode } from 'react'
 import { match } from 'ts-pattern'
-import { apiDelete, apiPost, setAccessToken } from '@/shared/api/client'
+import { apiDelete, apiPost, onSessionExpired, setAccessToken } from '@/shared/api/client'
 import { endpoints } from '@/shared/api/endpoints'
 import { AuthContext, type AuthState } from './authContext'
 
@@ -55,6 +55,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       active = false
     }
   }, [])
+
+  // 쓰는 도중 재발급이 실패하면(로그인이 끊김) 비로그인으로 바꿔, 화면이 로그인 안내를 보이고 401을 되풀이하지 않게 한다
+  useEffect(() => onSessionExpired(() => dispatch({ type: 'anonymous' })), [])
 
   async function login(email: string, password: string) {
     const session = await apiPost<SessionResponse>(endpoints.sessions(), { email, password })
