@@ -15,6 +15,8 @@ public final class AiServerPaths {
     public static final String PLAN_FOLLOWUPS = "/internal/plan-followups";
     /** 에이전트 한 단계(ADR-0044·0045): 다음에 부를 Tool 또는 최종 답 */
     public static final String AGENT_STEPS = "/internal/agent-steps";
+    /** 주요 사건 만들기(ADR-0050) */
+    public static final String TEXT_EVENTS = "/internal/text-events";
     public static final String DOCUMENT_PARSER = "/internal/documents/parser";
 
     private AiServerPaths() {

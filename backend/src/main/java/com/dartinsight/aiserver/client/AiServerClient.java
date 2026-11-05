@@ -35,10 +35,12 @@ public class AiServerClient {
 
     private final RestClient restClient;
     private final RestClient healthClient;
+    private final RestClient textEventsClient;
 
     public AiServerClient(AiServerProperties properties) {
         this.restClient = build(properties, properties.readTimeout());
         this.healthClient = build(properties, properties.healthTimeout());
+        this.textEventsClient = build(properties, properties.textEventsReadTimeout());
     }
 
     private static RestClient build(AiServerProperties properties, Duration readTimeout) {
@@ -90,8 +92,17 @@ public class AiServerClient {
 
     /** JSON 본문 POST. 실패하면 {@link AiServerException}. */
     public <T> T postJson(String path, Object body, Class<T> responseType) {
+        return postJson(restClient, path, body, responseType);
+    }
+
+    /** 주요 사건 만들기. 대기 시간이 따로 있다({@link AiServerProperties#textEventsReadTimeout()}). 실패하면 {@link AiServerException}. */
+    public <T> T postTextEvents(Object body, Class<T> responseType) {
+        return postJson(textEventsClient, AiServerPaths.TEXT_EVENTS, body, responseType);
+    }
+
+    private static <T> T postJson(RestClient client, String path, Object body, Class<T> responseType) {
         try {
-            return restClient.post().uri(path).contentType(MediaType.APPLICATION_JSON).body(body).retrieve()
+            return client.post().uri(path).contentType(MediaType.APPLICATION_JSON).body(body).retrieve()
                     .body(responseType);
         } catch (RestClientException e) {
             throw failure("POST", path, e);

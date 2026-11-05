@@ -107,6 +107,14 @@ public class AnalysisResultService {
         }
     }
 
+    /** 분석이 끝난 뒤 따로 부른 LLM 호출 기록을 저장한다(주요 사건, ADR-0050). 분석 상태는 바꾸지 않는다 */
+    @Transactional
+    public void saveCalls(Long analysisId, List<LlmCallRow> calls) {
+        if (!calls.isEmpty()) {
+            summaryStore.saveCalls(analysisId, calls);
+        }
+    }
+
     /** 요약 없이 저장하는 경우(요약할 변화가 없거나 테스트 자료) */
     @Transactional
     public void saveAndComplete(Long analysisId, List<FinancialChangeRow> rows, TextComparison text) {
