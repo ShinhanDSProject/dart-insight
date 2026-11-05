@@ -9,7 +9,8 @@ import { noteItem } from '@/test/fixtures/notes'
 import { ChatConfirmAction, type ConfirmTarget } from './ChatConfirmAction'
 
 const auth = vi.hoisted(() => ({ state: { status: 'anonymous' } as AuthState }))
-vi.mock('@/shared/auth/authContext', () => ({
+vi.mock('@/shared/auth/authContext', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/shared/auth/authContext')>()),
   useAuth: () => ({ state: auth.state, login: vi.fn(), logout: vi.fn() }),
 }))
 const api = vi.hoisted(() => ({ createNote: vi.fn(), addFavoriteCompany: vi.fn() }))
