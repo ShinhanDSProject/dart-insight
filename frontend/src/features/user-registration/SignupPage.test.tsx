@@ -54,6 +54,7 @@ describe('회원가입 화면', () => {
     const heading = screen.getByRole('heading', { name: '회원가입이 완료됐어요' })
     expect(document.activeElement).toBe(heading)
     expect(screen.queryByLabelText('비밀번호', { exact: true })).toBeNull()
+    expect(screen.getByRole('link', { name: '로그인하기' }).getAttribute('href')).toBe('/login')
     expect(screen.getByRole('link', { name: '기업 검색으로 이동' }).getAttribute('href')).toBe('/')
     expect(store).not.toHaveBeenCalled()
     expect(container.textContent).not.toContain(password)
