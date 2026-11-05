@@ -151,6 +151,9 @@ describe('taskLabel', () => {
   it('아는 작업은 한국어 이름, 모르는 작업은 기록된 이름 그대로', () => {
     expect(taskLabel('answer')).toBe('질문 답')
     expect(taskLabel('summary')).toBe('요약·풀이')
+    expect(taskLabel('agent_plan')).toBe('에이전트 채팅 · 다음 할 일 고르기')
+    expect(taskLabel('plan_followup')).toBe('약속과 실제 대조')
+    expect(taskLabel('event_amount_pick')).toBe('주요 사건 · 금액 고르기')
     expect(taskLabel('translate')).toBe('translate')
   })
 })

@@ -109,9 +109,17 @@ export function reasonRows(usage: AiUsage): { reason: FeedbackReason; label: str
   return FEEDBACK_REASONS.map(({ reason, label }) => ({ reason, label, count: usage.feedback.reasons[reason] ?? 0 }))
 }
 
+/** ai-server가 llm_call에 남기는 작업 이름(각 모듈 prompt.py의 TASK)의 한국어 이름 */
 const TASK_LABELS: Record<string, string> = {
   answer: '질문 답',
   summary: '요약·풀이',
+  briefing: '기업 브리핑',
+  outlook: '전망·계획 모으기',
+  plan_followup: '약속과 실제 대조',
+  agent_plan: '에이전트 채팅 · 다음 할 일 고르기',
+  agent_answer: '에이전트 채팅 · 답 쓰기',
+  text_event: '주요 사건 묶기',
+  event_amount_pick: '주요 사건 · 금액 고르기',
 }
 
 /** 작업 이름. 모르는 작업은 기록된 이름 그대로 */
