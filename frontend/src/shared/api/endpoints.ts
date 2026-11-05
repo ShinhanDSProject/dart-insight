@@ -57,6 +57,10 @@ export const endpoints = {
     `${analysis(analysisId)}/text-changes/${seg(changeId)}/history`,
   textChangeRelatedDisclosures: (analysisId: number, changeId: number) =>
     `${analysis(analysisId)}/text-changes/${seg(changeId)}/related-disclosures`,
+  eventRuns: (analysisId: number) => `${analysis(analysisId)}/event-runs`,
+  currentEventRun: (analysisId: number) => `${analysis(analysisId)}/event-runs/current`,
+  textEvents: (analysisId: number) => `${analysis(analysisId)}/events`,
+  textEvent: (analysisId: number, eventId: number) => `${analysis(analysisId)}/events/${seg(eventId)}`,
   document: (analysisId: number, side: string) => `${analysis(analysisId)}/documents/${seg(side)}`,
   documentSection: (analysisId: number, side: string, sectionNo: number) =>
     `${analysis(analysisId)}/documents/${seg(side)}/sections/${seg(sectionNo)}`,
