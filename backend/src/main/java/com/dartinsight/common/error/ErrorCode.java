@@ -11,6 +11,7 @@ public enum ErrorCode {
     AUTH_INVALID_REFRESH_TOKEN(401, "로그인 정보가 만료되었습니다. 다시 로그인해 주세요."),
     AUTH_UNAUTHORIZED(401, "로그인이 필요합니다."),
     AUTH_FORBIDDEN(403, "관리자만 쓸 수 있습니다."),
+    AUTH_INVALID_RESET_TOKEN(400, "비밀번호 재설정 링크가 만료됐거나 이미 쓰였습니다. 비밀번호 찾기를 다시 해 주세요."),
     COMMON_NOT_FOUND(404, "요청한 주소를 찾을 수 없습니다."),
     COMMON_METHOD_NOT_ALLOWED(405, "지원하지 않는 요청 방식입니다."),
     COMMON_INTERNAL_ERROR(500, "서버에서 오류가 발생했습니다."),
