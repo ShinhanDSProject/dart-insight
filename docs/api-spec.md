@@ -68,6 +68,8 @@
 | POST | `/api/session-refreshes` | Access Token 재발급 | 6.2 | 공통 | 구현 |
 | GET | `/api/sessions/current` | 현재 인증 사용자(닉네임·관리자 여부, #459) | 6.2·#459 | 공통 | 구현 |
 | DELETE | `/api/sessions/current` | 로그아웃 | 6.2 | 공통 | 구현 |
+| POST | `/api/password-resets` | 비밀번호 재설정 메일 요청 | #696 (6.8) | 비밀번호 찾기(신규) | 초안 |
+| POST | `/api/password-reset-confirmations` | 재설정 링크로 새 비밀번호 정하기 | #696 (6.8) | 비밀번호 재설정(신규) | 초안 |
 | GET | `/oauth2/authorization/{provider}` | 소셜 로그인 시작(`google`, `kakao`, `naver`) | #225 (6.3) | 로그인 | 구현 |
 | GET | `/login/oauth2/code/{provider}` | 소셜 제공자 OAuth 콜백 | #225 (6.3) | 로그인 | 구현 |
 | GET | `/api/social-sessions/callback` | 소셜 인증을 서비스 세션으로 전환 | #225 (6.3) | 로그인 | 구현 |
@@ -218,6 +220,23 @@
 - #459부터 GET 응답에 `nickname`(정하지 않았으면 null)과 `admin`(관리자면 true)을 더합니다: `{ "userId": 1, "nickname": "반도체공부중", "admin": false }`. 화면은 `nickname`으로 닉네임 정하기를 먼저 띄울지, `admin`으로 관리자 메뉴를 보일지 정합니다. 권한은 서버가 관리자 API마다 다시 확인합니다([ADR-0040](adr/0040-user-role-in-app-user.md)).
 - 일반 로그인·소셜 로그인에 성공했을 때 그 계정의 소유가 확인된 이메일(`email_verified = true`인 일반 가입 이메일, 또는 제공자가 확인한 소셜 이메일)이 환경변수 `ADMIN_EMAILS`에 있으면 관리자로 바꿉니다(ADR-0040). 응답 모양은 바뀌지 않습니다.
 - DELETE는 Refresh Token을 폐기하고 쿠키를 만료시킵니다. 이미 없더라도 204로 끝냅니다.
+
+### POST /api/password-resets — 비밀번호 재설정 메일 요청
+
+- 이슈: #696 (6.8) · [ADR-0055](adr/0055-password-reset-mail.md). 로그인 없이 씁니다.
+- 요청: `{ "email": "member@example.com" }`. 이메일은 회원가입과 같은 규칙으로 정규화·검사합니다(형식이 틀리면 400, `errors[].field`는 `email`).
+- 응답은 **언제나 204**입니다. 일반 가입(`local_credential`)에 없는 이메일·소셜 회원 이메일이어도 같고, 메일은 가지 않습니다. 가입 여부를 응답·응답 시간으로 알 수 없게 메일 발송은 응답과 따로(비동기) 합니다.
+- 가입된 이메일이면 새 재설정 토큰(32바이트 난수)을 만들고, 그 회원의 아직 쓰지 않은 이전 토큰은 못 쓰게 합니다. DB에는 SHA-256 해시만 둡니다. 메일 본문 링크는 `{화면 주소}/password-reset?token={원문}`이고 30분 동안 한 번만 씁니다.
+- 같은 회원이 1분 안에 다시 요청하면 새 토큰·메일을 만들지 않습니다(응답은 같은 204). 받는 사람의 메일함을 메일로 채우지 못하게 합니다.
+- 메일 발송이 실패해도 응답은 204이고, 서버 로그에 실패만 남깁니다(이메일·토큰은 남기지 않음).
+
+### POST /api/password-reset-confirmations — 새 비밀번호 정하기
+
+- 이슈: #696 (6.8). 로그인 없이 씁니다.
+- 요청: `{ "token": "메일 링크의 token", "password": "새 비밀번호" }`. 비밀번호는 회원가입과 같은 규칙입니다(틀리면 400 `COMMON_INVALID_INPUT`, `errors[].field`는 `password`).
+- 성공 204: 비밀번호 해시를 바꾸고, 토큰을 쓴 것으로 표시하고, `local_credential.email_verified`를 true로 바꾸고(링크를 연 사람이 메일함 주인, ADR-0055), 그 회원의 모든 Refresh Token을 폐기합니다. 로그인 상태는 만들지 않으며 화면이 로그인으로 보냅니다.
+- 없는·만료된·이미 쓴·새 요청으로 대체된 토큰은 모두 400 `AUTH_INVALID_RESET_TOKEN`입니다(구분하지 않음).
+- 토큰·비밀번호 원문은 로그에 남기지 않습니다.
 
 ### GET /oauth2/authorization/{provider} — 소셜 로그인
 
@@ -3992,6 +4011,7 @@ backend는 저장하기 전에 `changeNos`가 이 분석의 변경인지, `evide
 | `AUTH_INVALID_CREDENTIALS` | 401 | 이메일 또는 비밀번호가 맞지 않음 | 로그인 입력 확인 안내 |
 | `AUTH_INVALID_REFRESH_TOKEN` | 401 | Refresh Token이 없거나 만료·폐기·변조됨 | 로그인 화면으로 이동 |
 | `AUTH_UNAUTHORIZED` | 401 | Access Token이 없거나 유효하지 않음 | 재발급 또는 로그인 화면으로 이동 |
+| `AUTH_INVALID_RESET_TOKEN` | 400 | 비밀번호 재설정 토큰이 없거나 만료·사용·대체됨(6.8) | 재설정 메일을 다시 요청하게 안내 |
 | `AUTH_FORBIDDEN` | 403 | 관리자만 쓰는 API(ADR-0040, 6.6) | 권한 없음 안내 |
 | `COMMON_NOT_FOUND` | 404 | 없는 경로 | 공통 오류 안내 |
 | `COMMON_METHOD_NOT_ALLOWED` | 405 | 지원하지 않는 메서드 | 공통 오류 안내 |
