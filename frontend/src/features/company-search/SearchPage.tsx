@@ -8,7 +8,7 @@ import {
   type MouseEvent,
   type Ref,
 } from 'react'
-import { Link, Navigate, useSearchParams } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { match } from 'ts-pattern'
 import type { AsyncState } from '@/shared/hooks/asyncState'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
@@ -21,6 +21,7 @@ import type { FavoriteCompany } from '@/shared/api/favoriteCompanies'
 import { BrandLogo, Button, ButtonLink, Card, Dialog, FieldHint, Icon, Input, Notice, Page } from '@/shared/ui'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { CompanyList, RESULT_LINK_SELECTOR } from './components/CompanyList'
+import { HomeLists } from './components/HomeLists'
 import { OnboardingStepsList } from './components/OnboardingGuide'
 import { RecentAnalyses } from './components/RecentAnalyses'
 import { useAutoSearch } from './hooks/useAutoSearch'
@@ -37,14 +38,13 @@ const errorMessages: Record<string, string> = {
 /**
  * W-01 ① 기업 검색(#538, #560, FS-67).
  * 검색 전 첫 화면은 로고와 검색창만 둔다. 빈 검색창에 초점을 주면 아래로 펼침 상자(최근 본 분석·자주 찾는 기업·
- * 예시 검색어·둘러보기·사용법)가 열리고, 관심 기업 새 공시·이번 시즌 변화·대표 기업 탭은 둘러보기 화면(/explore)에 둔다.
+ * 예시 검색어·사용법)가 열린다. 검색창 아래에는 처음엔 접힌 대표 기업·시즌 변화 Top 10·관심 기업 새 공시 목록을 둔다(#686).
  * 검색어는 주소(?q=)에 남겨 뒤로 가기를 해도 결과가 유지되며, 입력을 멈추면 Enter 없이도 찾는다.
  */
 export function SearchPage() {
   useDocumentTitle(pageTitle(['기업 검색']))
   const [searchParams, setSearchParams] = useSearchParams()
   const query = searchParams.get('q') ?? ''
-  const rawTab = searchParams.get('tab')
   const isHome = query === ''
   const { input, inputError, setInput, submit } = useSearchForm(query)
   const { state, reload } = useCompanySearch(query)
@@ -98,11 +98,6 @@ export function SearchPage() {
       setSearchParams({}, { replace: true })
     }
     focusInput()
-  }
-
-  // 예전 첫 화면 탭 주소(/?tab=)는 둘러보기 화면으로 보낸다(FS-67 R5)
-  if (isHome && rawTab !== null) {
-    return <Navigate to={{ pathname: '/explore', search: `?tab=${encodeURIComponent(rawTab)}` }} replace />
   }
 
   return (
@@ -167,6 +162,7 @@ export function SearchPage() {
               </p>
             )}
           </form>
+          {isHome && <HomeLists favoritesStatus={favorites.status} favorites={favorites.items} />}
         </div>
 
         <SearchResult state={state} onRetry={reload} listRef={listRef} onBackToInput={focusInput} />
@@ -224,7 +220,7 @@ function keepInputFocus(event: MouseEvent) {
 
 /**
  * 빈 검색창에 초점을 주면 아래로 펼치는 상자(#560, FS-67): 최근 본 분석, 자주 찾는 기업(로그인 전엔 로그인 안내),
- * 예시 검색어, 맨 아래 둘러보기·사용법 보기. 보이고 숨기는 것은 CSS(.search-form:focus-within)가 정한다.
+ * 예시 검색어, 맨 아래 사용법 보기. 보이고 숨기는 것은 CSS(.search-form:focus-within)가 정한다.
  */
 function SearchDrop({ recent, favoritesStatus, favorites, onOpenGuide }: SearchDropProps) {
   return (
@@ -256,9 +252,6 @@ function SearchDrop({ recent, favoritesStatus, favorites, onOpenGuide }: SearchD
       )}
       <ExampleQueries />
       <div className="search-drop__foot">
-        <Link to="/explore" className="search-drop__explore">
-          둘러보기 · 새 공시·시즌 변화·대표 기업 <span aria-hidden="true">→</span>
-        </Link>
         <Button variant="link" className="search-drop__guide" onClick={onOpenGuide}>
           처음이신가요? 사용법 보기
         </Button>

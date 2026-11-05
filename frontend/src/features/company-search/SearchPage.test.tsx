@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
+import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { syncFavoriteCompanies } from '@/shared/hooks/useFavoriteCompanies'
 import { browserStorage, saveRecentAnalyses } from '@/shared/lib/recentAnalyses'
@@ -73,12 +73,6 @@ afterEach(() => {
 // 관심 기업은 로그인한 회원만 쓴다. 이 테스트는 검색만 보므로 로그인하지 않은 상태로 그린다
 const anonymous: AuthContextValue = { state: { status: 'anonymous' }, login: vi.fn(), logout: vi.fn() }
 
-/** 둘러보기로 보낸 주소를 확인하는 자리 */
-function ExploreProbe() {
-  const location = useLocation()
-  return <p>둘러보기 {location.search}</p>
-}
-
 function renderAt(query: string, auth: AuthContextValue = anonymous, entry = `/?q=${encodeURIComponent(query)}`) {
   return render(
     <AuthContext.Provider value={auth}>
@@ -86,7 +80,6 @@ function renderAt(query: string, auth: AuthContextValue = anonymous, entry = `/?
         <Routes>
           <Route path="/" element={<SearchPage />} />
           <Route path="/companies/:corpCode" element={<p>기업 화면</p>} />
-          <Route path="/explore" element={<ExploreProbe />} />
         </Routes>
       </MemoryRouter>
     </AuthContext.Provider>,
@@ -252,7 +245,7 @@ describe('검색 결과 카드(#549)', () => {
 describe('첫 화면 검색창과 펼침 상자(#560, FS-67)', () => {
   const signedIn: AuthContextValue = { state: { status: 'authenticated', userId: 1 }, login: vi.fn(), logout: vi.fn() }
 
-  it('비로그인 첫 화면은 탭 보드·즐겨찾기 카드 없이, 펼침 상자에 로그인 안내·예시 칩·둘러보기·사용법을 둔다', async () => {
+  it('비로그인 첫 화면은 탭 보드·즐겨찾기 카드 없이, 펼침 상자에 로그인 안내·예시 칩·사용법을 둔다', async () => {
     featuredAvailable = true
     const { container } = renderAt('')
 
@@ -266,8 +259,21 @@ describe('첫 화면 검색창과 펼침 상자(#560, FS-67)', () => {
     )
     expect(screen.getByText('관심 기업의 새 공시는 로그인하면 여기에 모여요')).toBeTruthy()
     expect(screen.getByRole('link', { name: '로그인' }).getAttribute('href')).toBe('/login')
-    expect(screen.getByRole('link', { name: /둘러보기/ }).getAttribute('href')).toBe('/explore')
+    expect(screen.queryByRole('link', { name: /둘러보기/ })).toBeNull()
     expect(await axeViolations(container)).toBe('')
+  })
+
+  it('첫 화면 검색창 아래에 접는 목록 두 개를 두고, 검색 결과 화면에는 두지 않는다(#686)', async () => {
+    renderAt('')
+    expect(screen.getByText('대표 기업').closest('details')?.open).toBe(false)
+    expect(screen.getByText('이번 시즌 변화가 큰 기업 Top 10').closest('details')?.open).toBe(false)
+    // 로그인 전에는 관심 기업 새 공시 토글이 없다
+    expect(screen.queryByText('관심 기업 새 공시')).toBeNull()
+    cleanup()
+
+    renderAt('삼성')
+    await screen.findByRole('list', { name: '검색 결과 3곳' })
+    expect(screen.queryByText('대표 기업')).toBeNull()
   })
 
   it('검색어를 넣으면 펼침 상자를 그리지 않는다(#560)', () => {
@@ -307,6 +313,7 @@ describe('첫 화면 검색창과 펼침 상자(#560, FS-67)', () => {
     expect(screen.getByRole('region', { name: '최근 본 분석' })).toBeTruthy()
     const favorites = await screen.findByRole('region', { name: '자주 찾는 기업' })
     expect(within(favorites).getByRole('link', { name: /삼성전기/ }).getAttribute('href')).toBe('/companies/00126371')
+    expect(screen.getByText('관심 기업 새 공시').closest('details')?.open).toBe(false)
     expect(screen.queryByText('관심 기업의 새 공시는 로그인하면 여기에 모여요')).toBeNull()
 
     const input = screen.getByRole('textbox', { name: '회사명 또는 종목코드' }) as HTMLInputElement
@@ -327,15 +334,10 @@ describe('첫 화면 검색창과 펼침 상자(#560, FS-67)', () => {
     expect(screen.getByRole('navigation', { name: '검색 예시' })).toBeTruthy()
 
     // 상자 안 링크에서 Esc를 누르면 닫히고 초점은 검색창으로 돌아오며, 다시 열리지 않는다
-    const link = screen.getByRole('link', { name: /둘러보기/ })
+    const link = within(screen.getByRole('navigation', { name: '검색 예시' })).getByRole('link', { name: '삼성전자' })
     link.focus()
     fireEvent.keyDown(link, { key: 'Escape' })
     expect(document.activeElement).toBe(input)
     expect(screen.queryByRole('navigation', { name: '검색 예시' })).toBeNull()
-  })
-
-  it('예전 첫 화면 탭 주소(/?tab=)는 둘러보기로 보낸다', async () => {
-    renderAt('', anonymous, '/?tab=season')
-    expect(await screen.findByText('둘러보기 ?tab=season')).toBeTruthy()
   })
 })
