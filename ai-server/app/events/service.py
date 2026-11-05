@@ -5,7 +5,7 @@
   그래도 잘못된 사건은 빼고 건수를 남기고, 그 변경은 묶이지 않은 후보로 돌아간다.
   쓸 수 있는 사건이 하나도 없으면 LlmOutputInvalid를 그대로 던진다(부른 쪽이 502로 바꿈).
 - LLM을 부를 수 없으면(LlmUnavailable) 그대로 던진다(부른 쪽이 503으로 바꿈).
-- 정렬은 2.16 전까지 변경 번호 순이다.
+- 규모와 순서는 코드가 정한다(scales.py, ordering.py, ADR-0053).
 """
 
 from __future__ import annotations
@@ -14,7 +14,9 @@ import logging
 from dataclasses import dataclass, field
 
 from app.events.model import FAKE_MODEL, NO_CANDIDATES, EventInput, TextEvent
+from app.events.ordering import rank
 from app.events.prompt import PROMPT_VERSION, build_request
+from app.events.scales import scale_events
 from app.events.validate import check
 from app.llm import CallRecord, LlmClient, LlmOutputInvalid, OutputProblem
 from app.llm.client import OUTCOME_INVALID_OUTPUT
@@ -74,13 +76,15 @@ def group_events(llm: LlmClient, event_input: EventInput) -> EventOutput:
             generated.calls,
         )
 
+    scaled, pick_calls = scale_events(llm, event_input, events)
+    changes = {c.change_no: c for c in event_input.changes}
     bound = {no for event in events for no in event.change_nos}
     return EventOutput(
         True,
         model=model,
         generated_at=generated_at,
         dropped_event_count=dropped,
-        events=sorted(events, key=lambda event: min(event.change_nos)),
+        events=rank(scaled, changes),
         unbound_change_nos=[c.change_no for c in candidates if c.change_no not in bound],
-        calls=calls,
+        calls=[*calls, *pick_calls],
     )
