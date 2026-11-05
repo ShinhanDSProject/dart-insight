@@ -101,7 +101,7 @@ describe('TextEventsSection', () => {
   it('금액의 근거 위치가 없으면 검토 필요로 보인다', () => {
     show([event({ ...foreign, scaleEvidenceId: null })])
 
-    expect(screen.getByText('검토 필요')).toBeTruthy()
+    expect(screen.getByText('검토 필요').className).toContain('attention')
   })
 
   it('사건마다 자기 금액만 보이고 더한 값을 보이지 않는다', () => {

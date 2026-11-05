@@ -196,7 +196,7 @@ function TextEventCard({ analysis, item, onOpenEvidence, renderChanges }: TextEv
           )}
           <div>
             <dt>근거 ID</dt>
-            <dd>{scale.evidenceId === null ? '검토 필요' : <code>{scale.evidenceId}</code>}</dd>
+            <dd>{scale.evidenceId === null ? <Badge tone="attention">검토 필요</Badge> : <code>{scale.evidenceId}</code>}</dd>
           </div>
         </dl>
       )}
