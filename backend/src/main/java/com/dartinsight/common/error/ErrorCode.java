@@ -42,6 +42,7 @@ public enum ErrorCode {
     DART_KEY_MISSING(503, "서버에 OpenDART 인증키가 설정되지 않았습니다."),
 
     AI_SERVER_UNAVAILABLE(503, "AI 서버가 응답하지 않습니다. 잠시 뒤 다시 시도해 주세요."),
+    AI_QUOTA_EXCEEDED(429, "오늘 AI 질문 횟수를 다 썼어요. 내일 0시에 다시 쓸 수 있어요."),
 
     COMMUNITY_FORBIDDEN(403, "내 글·댓글만 고치거나 지울 수 있습니다."),
     COMMUNITY_POST_NOT_FOUND(404, "글을 찾을 수 없습니다. 글 목록을 다시 불러와 주세요."),
