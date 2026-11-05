@@ -273,6 +273,7 @@ W-03 ④ 원문 확인
 | `Skeleton` | `label`(보이지 않는 '불러오는 중' 문구), `shape`: `line`·`block`·`card`, `count`, `height` | 화면의 주된 로딩 자리(4-22) |
 | `DataTable` / `DataTableRow` / `SortableHeader` | `caption`(보이지 않음), `density`: `default`·`dense`·`compact`, `stickyHeader` / `selected` / `sort`(aria-sort 값), `onSort`, `numeric` | 보고서 목록, 재무 계정 표(낮은 행·머리글 고정·증감 정렬), 원문 표 |
 | `FieldLabel` / `FieldHint` / `Input` / `Select` | `as`: `label`·`span` / — / `invalid` / — | 입력·선택창과 그 이름·도움말 |
+| `PasswordInput` | `Input`과 같음(`type` 제외) | 비밀번호 입력창. 오른쪽 안 눈 아이콘 버튼(`eye`/`eye-off`, 이름 '비밀번호 보기', `aria-pressed`)으로 친 글자 보기·가리기. 입력이 막히면 버튼도 막힘. 로그인·회원가입(#689) |
 | `BrandLogo` | `size`: `md`(상단 바)·`lg`(첫 화면) | 로고(4-26) |
 | `ReportCard` / `ReportCardPair` | `side`: `previous`·`current`, `report`(null이면 `emptyText`), `children` | 이전·현재 보고서 카드 두 장(4-27) |
 | `ProgressBar` | `value`(0~1), `label` | 분석 진행 막대(4-28) |

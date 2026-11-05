@@ -6,7 +6,7 @@ import { endpoints } from '@/shared/api/endpoints'
 import { useAuth } from '@/shared/auth/authContext'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
 import { pageTitle } from '@/shared/lib/pageTitle'
-import { Button, Card, FieldLabel, Input, PageHeader } from '@/shared/ui'
+import { Button, Card, FieldLabel, Input, PageHeader, PasswordInput } from '@/shared/ui'
 import { AlertState } from '@/shared/ui/StateView'
 import './user-login.css'
 
@@ -82,7 +82,7 @@ export function LoginPage() {
           </div>
           <div className="login__field">
             <FieldLabel htmlFor="login-password">비밀번호</FieldLabel>
-            <Input id="login-password" type="password" autoComplete="current-password" required disabled={loading}
+            <PasswordInput id="login-password" autoComplete="current-password" required disabled={loading}
               value={password} onChange={(event) => setPassword(event.target.value)} />
           </div>
           {match(submit).with({ status: 'error' }, (state) => (

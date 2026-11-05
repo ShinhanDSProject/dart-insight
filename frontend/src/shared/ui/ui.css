@@ -757,6 +757,30 @@ th[aria-sort='none'] .data-table__sort-mark {
   border-color: var(--color-danger);
 }
 
+/* 비밀번호 입력창(PasswordInput, #689). 눈 버튼은 입력창 오른쪽 안에 겹쳐 두고, 글자가 버튼 밑으로 가지 않게 오른쪽을 비운다 */
+.password-input {
+  position: relative;
+  display: flex;
+}
+
+.password-input .password-input__field {
+  padding-right: calc(var(--touch-target-min) + var(--space-3));
+}
+
+/* Edge가 따로 그리는 보기 버튼과 겹치지 않게 숨긴다 */
+.password-input__field::-ms-reveal {
+  display: none;
+}
+
+.password-input__toggle {
+  position: absolute;
+  top: 50%;
+  right: var(--space-2);
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  transform: translateY(-50%);
+}
+
 /* 메모 한 칸과 저장·취소(MemoForm) */
 .memo-form {
   display: grid;

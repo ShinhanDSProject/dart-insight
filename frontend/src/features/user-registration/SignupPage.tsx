@@ -4,7 +4,7 @@ import { match, P } from 'ts-pattern'
 import { ApiError, NETWORK_ERROR, type FieldError } from '@/shared/api/client'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
 import { pageTitle } from '@/shared/lib/pageTitle'
-import { Button, ButtonLink, Card, FieldHint, FieldLabel, Input, PageHeader } from '@/shared/ui'
+import { Button, ButtonLink, Card, FieldHint, FieldLabel, Input, PageHeader, PasswordInput } from '@/shared/ui'
 import { AlertState } from '@/shared/ui/StateView'
 import { registerUser } from './api'
 import { normalizeEmail, validateRegistration, type RegistrationErrors, type RegistrationFields } from './model/registration'
@@ -154,7 +154,7 @@ export function SignupPage() {
           </div>
           <div className="signup__field">
             <FieldLabel htmlFor="signup-password">비밀번호</FieldLabel>
-            <Input id="signup-password" name="password" type="password" autoComplete="new-password" required
+            <PasswordInput id="signup-password" name="password" autoComplete="new-password" required
               value={fields.password} onChange={(event) => change('password', event.target.value)} disabled={pending}
               invalid={Boolean(errors.password)}
               aria-describedby={'signup-password-help' + (errors.password ? ' signup-password-error' : '')} />
@@ -163,7 +163,7 @@ export function SignupPage() {
           </div>
           <div className="signup__field">
             <FieldLabel htmlFor="signup-confirm">비밀번호 확인</FieldLabel>
-            <Input id="signup-confirm" name="passwordConfirm" type="password" autoComplete="new-password" required
+            <PasswordInput id="signup-confirm" name="passwordConfirm" autoComplete="new-password" required
               value={fields.passwordConfirm} onChange={(event) => change('passwordConfirm', event.target.value)} disabled={pending}
               invalid={Boolean(errors.passwordConfirm)}
               aria-describedby={errors.passwordConfirm ? 'signup-confirm-error' : undefined} />
