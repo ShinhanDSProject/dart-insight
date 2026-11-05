@@ -4,6 +4,7 @@ import { useAdminAccess } from '@/shared/hooks/useAdminAccess'
 import { BrandLogo, ButtonLink, Icon, type IconName } from '@/shared/ui'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import './admin-console.css'
+import { useLoginHref } from '@/shared/hooks/useLoginHref'
 
 interface ConsoleNavItem {
   to: string
@@ -39,6 +40,7 @@ const NAV_GROUPS: { title: string; items: ConsoleNavItem[] }[] = [
  * 좁은 화면(900px 이하)에서는 메뉴가 위쪽 가로 줄이 된다.
  */
 export function AdminConsoleLayout() {
+  const loginHref = useLoginHref()
   const { access, reload } = useAdminAccess()
 
   return (
@@ -83,7 +85,7 @@ export function AdminConsoleLayout() {
           .with({ status: 'loading' }, () => <LoadingState message="권한을 확인하는 중이에요…" />)
           .with({ status: 'anonymous' }, () => (
             <EmptyState title="로그인한 관리자만 볼 수 있어요">
-              <ButtonLink variant="primary" to="/login">
+              <ButtonLink variant="primary" to={loginHref}>
                 로그인하기
               </ButtonLink>
             </EmptyState>

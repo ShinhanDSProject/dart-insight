@@ -47,7 +47,7 @@ describe('Layout 상단 바·하단 바(#548)', () => {
     expect(within(nav).getByRole('link', { name: '기업 나란히 보기' }).getAttribute('href')).toBe('/compare/companies')
     expect(within(nav).getByRole('link', { name: '내 판단 노트' }).getAttribute('aria-current')).toBe('page')
     expect(within(banner).getByRole('button', { name: /화면 테마/ })).toBeTruthy()
-    expect(within(banner).getByRole('link', { name: '로그인' }).getAttribute('href')).toBe('/login')
+    expect(within(banner).getByRole('link', { name: '로그인' }).getAttribute('href')).toBe('/login?next=%2Fnotes')
     expect(document.querySelector('aside.app-sidebar')).toBeNull()
     expect(await axeViolations(view.container)).toBe('')
   })

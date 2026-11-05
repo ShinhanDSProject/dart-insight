@@ -95,7 +95,7 @@ describe('AdminReportsPage(FS-58, #463)', () => {
   it('로그인하지 않았으면 서버를 부르지 않고 로그인 안내를 보인다', () => {
     renderPage({ status: 'anonymous' })
     expect(screen.getByText('로그인한 관리자만 볼 수 있어요')).toBeTruthy()
-    expect(screen.getByRole('link', { name: '로그인하기' }).getAttribute('href')).toBe('/login')
+    expect(screen.getByRole('link', { name: '로그인하기' }).getAttribute('href')).toBe('/login?next=%2Fadmin%2Freports')
     expect(api.getAdminReports).not.toHaveBeenCalled()
   })
 

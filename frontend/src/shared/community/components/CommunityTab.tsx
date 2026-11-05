@@ -16,6 +16,7 @@ import { QuotePreview } from './CommunityQuoteCard'
 import { NicknameDialog } from './NicknameDialog'
 import { QuotePickerDialog } from './QuotePickerDialog'
 import '../community.css'
+import { useLoginHref } from '@/shared/hooks/useLoginHref'
 
 /**
  * 기업 화면과 분석 결과(#575)의 커뮤니티 탭(FS-58, W-01 ②). 위에서부터 고정 문구, 글쓰기(변경점 붙이기 #464), 정렬과 욕설 가리기(#468), 글 카드.
@@ -138,13 +139,14 @@ export function CommunityTab({ corpCode }: { corpCode: string }) {
 }
 
 function LoginDialog({ onClose }: { onClose: () => void }) {
+  const loginHref = useLoginHref()
   const id = useId()
   return (
     <Dialog titleId={`${id}-title`} title="로그인이 필요해요" onClose={onClose} className="community-dialog">
       <p>글·댓글을 쓰고 좋아요·신고를 하려면 로그인해 주세요. 글은 로그인하지 않아도 읽을 수 있어요.</p>
       <div className="community-dialog__actions">
         <Button onClick={onClose}>계속 읽기</Button>
-        <ButtonLink variant="primary" to="/login">
+        <ButtonLink variant="primary" to={loginHref}>
           로그인하기
         </ButtonLink>
       </div>
