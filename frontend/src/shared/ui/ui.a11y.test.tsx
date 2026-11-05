@@ -15,6 +15,7 @@ import { DataTable, DataTableRow, SortableHeader } from './DataTable'
 import { Dialog, Kbd } from './Dialog'
 import { FieldHint, FieldLabel, Input, Select } from './Field'
 import { Icon } from './Icon'
+import { Mascot } from './Mascot'
 import { Notice } from './Notice'
 import { Panel, PanelTitle } from './Panel'
 import { SegmentedControl } from './SegmentedControl'
@@ -278,5 +279,29 @@ describe('공통 UI 접근성(axe)', () => {
         </Card>
       </div>,
     )
+  })
+})
+
+describe('상태 안내 캐릭터(#706)', () => {
+  it('네 가지 상태 모두 장식으로 숨겨져 보조기기에 읽히지 않고 위반이 없다', async () => {
+    const { container } = render(
+      <main>
+        <Mascot mood="search" size="lg" />
+        <Mascot mood="found" />
+        <Mascot mood="joy" />
+        <Mascot mood="none" size="md" />
+      </main>,
+    )
+    const svgs = container.querySelectorAll('svg.mascot')
+    expect(svgs).toHaveLength(4)
+    svgs.forEach((svg) => expect(svg.getAttribute('aria-hidden')).toBe('true'))
+    expect(await axeViolations(container)).toBe('')
+  })
+
+  it('빈 상태는 mascot을 줄 때만 캐릭터를 그린다', () => {
+    const { container, rerender } = render(<EmptyState title="맞는 기업이 없어요" />)
+    expect(container.querySelector('.mascot')).toBeNull()
+    rerender(<EmptyState mascot title="맞는 기업이 없어요" />)
+    expect(container.querySelector('.mascot--none')).not.toBeNull()
   })
 })

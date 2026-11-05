@@ -1897,3 +1897,227 @@ th[aria-sort='none'] .data-table__sort-mark {
 .report-card__extra > .button {
   align-self: flex-start;
 }
+
+/* 상태 안내 캐릭터(#706). 몸·눈은 로고 마크와 같은 토큰이라 다크 테마에서 민트 몸·어두운 눈이 된다 */
+.mascot {
+  flex: none;
+  overflow: visible;
+}
+
+.mascot * {
+  transform-box: fill-box;
+}
+
+.mascot--sm {
+  width: 40px;
+}
+
+.mascot--md {
+  width: 72px;
+}
+
+.mascot--lg {
+  width: 100px;
+}
+
+.mascot__ink {
+  fill: none;
+  stroke: var(--color-text);
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
+.mascot__foot {
+  fill: var(--color-text);
+}
+
+.mascot__hand {
+  fill: var(--color-bg);
+  stroke: var(--color-text);
+  stroke-width: 5;
+}
+
+.mascot__shadow {
+  fill: var(--color-text);
+  opacity: 0.1;
+}
+
+.mascot__body,
+.mascot__brow {
+  fill: var(--color-primary);
+}
+
+.mascot__eye {
+  fill: var(--color-primary-text);
+}
+
+.mascot__smile {
+  fill: none;
+  stroke: var(--color-primary-text);
+  stroke-width: 13;
+  stroke-linecap: round;
+}
+
+.mascot__handle {
+  stroke: var(--color-text-muted);
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
+.mascot__lens {
+  fill: var(--color-accent-subtle);
+  stroke: var(--color-accent);
+  stroke-width: 7;
+}
+
+.mascot__burst-mark {
+  fill: var(--color-accent);
+}
+
+.mascot__burst-line {
+  stroke: var(--color-accent);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+.mascot__doc {
+  fill: var(--color-bg);
+  stroke: var(--color-accent);
+  stroke-width: 5;
+}
+
+.mascot__doc-line {
+  stroke: var(--color-border);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+.mascot__highlight {
+  stroke: var(--color-attention);
+  stroke-width: 9;
+  stroke-linecap: round;
+  opacity: 0.6;
+  stroke-dasharray: 1;
+}
+
+.mascot__sweat {
+  fill: var(--color-accent);
+}
+
+/* 찾는 중: 두리번거리며 돋보기를 휘젓는다(끝날 때까지 반복) */
+.mascot--search .mascot__all {
+  transform-origin: 50% 100%;
+  animation: mascot-look 2.4s ease-in-out infinite;
+}
+
+.mascot--search .mascot__scan {
+  transform-origin: 0% 100%;
+  animation: mascot-scan 1.2s ease-in-out infinite;
+}
+
+.mascot--search .mascot__eyes {
+  animation: mascot-eyes 2.4s ease-in-out infinite;
+}
+
+/* 큰 변화 발견: 처음 두 번만 뛰고 멈춘다(내용을 읽는 데 방해되지 않게) */
+.mascot--found .mascot__all {
+  transform-origin: 50% 100%;
+  animation: mascot-jump 1.6s cubic-bezier(0.3, 0, 0.3, 1) 2;
+}
+
+.mascot--found .mascot__burst {
+  transform-origin: 50% 100%;
+  opacity: 0;
+  animation: mascot-burst 1.6s 2;
+}
+
+/* 근거 찾음: 세 번 통통 뛰고, 형광펜은 한 번 그어진 채 남는다 */
+.mascot--joy .mascot__all {
+  transform-origin: 50% 100%;
+  animation: mascot-hop 0.7s ease-in-out 3;
+}
+
+.mascot--joy .mascot__highlight {
+  stroke-dashoffset: 0;
+  animation: mascot-draw 1.2s ease-in-out;
+}
+
+/* 설명 없음: 축 처져 한숨 쉬고 땀 한 방울 */
+.mascot--none .mascot__top {
+  transform-origin: 50% 100%;
+  animation: mascot-sigh 3.2s ease-in-out infinite;
+}
+
+.mascot--none .mascot__sweat {
+  opacity: 0;
+  animation: mascot-sweat 3.2s ease-in infinite;
+}
+
+@keyframes mascot-look {
+  0%, 100% { transform: translateX(-4px) rotate(-3deg); }
+  50% { transform: translateX(4px) rotate(3deg); }
+}
+
+@keyframes mascot-scan {
+  0%, 100% { transform: rotate(-8deg); }
+  50% { transform: rotate(10deg); }
+}
+
+@keyframes mascot-eyes {
+  0%, 100% { transform: translate(-5px, -4px); }
+  50% { transform: translate(5px, -4px); }
+}
+
+@keyframes mascot-jump {
+  0%, 60%, 100% { transform: translateY(0) scale(1, 1); }
+  10% { transform: translateY(0) scale(1.06, 0.92); }
+  30% { transform: translateY(-22px) scale(0.96, 1.05); }
+  50% { transform: translateY(0) scale(1.04, 0.95); }
+}
+
+@keyframes mascot-burst {
+  0%, 15% { opacity: 0; transform: scale(0.4); }
+  30% { opacity: 1; transform: scale(1.15); }
+  55% { opacity: 1; transform: scale(1); }
+  75%, 100% { opacity: 0; transform: scale(1); }
+}
+
+@keyframes mascot-hop {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes mascot-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes mascot-sigh {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  40%, 60% { transform: translateY(4px) scale(1.03, 0.96); }
+}
+
+@keyframes mascot-sweat {
+  0%, 35% { opacity: 0; transform: translateY(-4px); }
+  45% { opacity: 1; }
+  90% { opacity: 1; transform: translateY(16px); }
+  100% { opacity: 0; transform: translateY(18px); }
+}
+
+/* 캐릭터를 안내 상자 왼쪽에 두는 줄(채팅·문장 풀이의 '설명 없음') */
+.mascot-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.mascot-row > :last-child {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 빈 상태·오류 상태 제목 위 캐릭터 */
+.state__mascot {
+  display: block;
+  margin-bottom: var(--space-2);
+}
