@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 public interface LocalCredentialRepository extends JpaRepository<LocalCredential, Long> {
     boolean existsByEmail(String email);
     Optional<LocalCredential> findByEmail(String email);
+    Optional<LocalCredential> findByUserId(long userId);
 
     /** 소유를 확인한 이메일만(ADR-0040). */
     @Query("select c.email from LocalCredential c where c.user.id = :userId and c.emailVerified = true")

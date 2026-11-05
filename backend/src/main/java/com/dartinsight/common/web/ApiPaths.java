@@ -28,6 +28,9 @@ public final class ApiPaths {
     public static final String CURRENT = "/current";
     public static final String CURRENT_SESSION = SESSIONS + CURRENT;
     public static final String SESSION_REFRESHES = BASE + "/session-refreshes";
+    /** 비밀번호 재설정 메일 요청·새 비밀번호 정하기(6.8, ADR-0055) */
+    public static final String PASSWORD_RESETS = BASE + "/password-resets";
+    public static final String PASSWORD_RESET_CONFIRMATIONS = BASE + "/password-reset-confirmations";
     public static final String SOCIAL_SESSIONS = BASE + "/social-sessions";
     /** SOCIAL_SESSIONS 아래. 제공자 로그인 성공·실패 뒤 화면으로 돌려보낸다 */
     public static final String CALLBACK = "/callback";

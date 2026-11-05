@@ -82,6 +82,17 @@ app:
     social-login-redirect-url: ${SOCIAL_LOGIN_REDIRECT_URL:http://localhost:5173/login}
     # 쉼표로 구분한 관리자 이메일(ADR-0040). 비어 있으면 아무도 관리자로 올리지 않는다
     admin-emails: ${ADMIN_EMAILS:}
+  # 비밀번호 재설정(6.8, ADR-0055). MAIL_HOST가 비면 메일을 보내지 않는다. 로컬 개발은 PASSWORD_RESET_LOG_LINK=true로 링크를 로그에서 본다
+  # Gmail: MAIL_HOST=smtp.gmail.com, MAIL_USERNAME=팀 계정, MAIL_PASSWORD=앱 비밀번호(노션 공용 키 모음·서버 환경변수에만)
+  password-reset:
+    page-url: ${PASSWORD_RESET_PAGE_URL:http://localhost:5173/password-reset}
+    mail-host: ${MAIL_HOST:}
+    mail-port: ${MAIL_PORT:587}
+    mail-username: ${MAIL_USERNAME:}
+    mail-password: ${MAIL_PASSWORD:}
+    mail-from: ${MAIL_FROM:}
+    # 메일 설정이 없을 때 링크를 로그에 남길지(로컬 개발 전용). 운영에서는 켜지 않는다
+    log-link-without-mail: ${PASSWORD_RESET_LOG_LINK:false}
   ai-server:
     base-url: ${AI_SERVER_URL:http://localhost:8000}
     connect-timeout: 2s

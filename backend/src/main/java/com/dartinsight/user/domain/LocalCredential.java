@@ -48,6 +48,12 @@ public class LocalCredential {
         return encoder.matches(password, passwordHash);
     }
 
+    /** 재설정 링크로 비밀번호를 바꾼다. 링크를 연 사람이 메일함 주인이므로 이메일 소유도 확인된 것으로 본다(ADR-0055) */
+    public void resetPassword(String newPasswordHash) {
+        passwordHash = newPasswordHash;
+        emailVerified = true;
+    }
+
     public long userId() { return user.getId(); }
 
     public String email() { return email; }

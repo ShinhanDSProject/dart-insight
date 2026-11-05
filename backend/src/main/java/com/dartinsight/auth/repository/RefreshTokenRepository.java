@@ -19,4 +19,10 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
     @Query("update RefreshToken token set token.revokedAt = :now "
             + "where token.familyId = :familyId and token.revokedAt is null")
     int revokeFamily(@Param("familyId") String familyId, @Param("now") LocalDateTime now);
+
+    /** 비밀번호를 바꾸면 그 회원의 모든 로그인을 끊는다(6.8) */
+    @Modifying
+    @Query("update RefreshToken token set token.revokedAt = :now "
+            + "where token.userId = :userId and token.revokedAt is null")
+    int revokeAllForUser(@Param("userId") long userId, @Param("now") LocalDateTime now);
 }
