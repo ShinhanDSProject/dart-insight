@@ -168,6 +168,16 @@ def test_provider_failure_is_reported_as_not_checked_and_unavailable() -> None:
     assert len(picked.calls) == 1
 
 
+def test_provider_failure_while_regenerating_is_also_unavailable() -> None:
+    client, provider = llm({"choice": 9}, ProviderError("인증 실패"))
+
+    picked = pick(client)
+
+    assert len(provider.requests) == 2
+    assert picked.source == AMOUNT_UNAVAILABLE
+    assert picked.unavailable is True
+
+
 @pytest.mark.parametrize("case", WRONG_AMOUNTS, ids=lambda case: case["title"][:20])
 def test_wrong_amount_reaches_the_model_with_its_sentence_and_null_gives_no_amount(
     case: dict[str, Any],
