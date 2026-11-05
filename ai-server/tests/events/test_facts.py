@@ -63,8 +63,12 @@ def test_year_month_date_is_found_in_full_source_date() -> None:
     assert fact_problem("2025년 3월 소송 제기", SOURCE) is None
 
 
-def test_full_date_passes_when_source_writes_year_apart_from_month_and_day() -> None:
-    assert fact_problem("2025년 3월 5일 제기", "2025년 중 3월 5일 제기했습니다") is None
+def test_full_date_is_a_problem_when_year_comes_from_elsewhere_in_source() -> None:
+    assert fact_problem("2024년 3월 5일 제기", "3월 5일 제기했습니다. 2024년 실적") is not None
+
+
+def test_month_day_written_without_year_is_found_in_source_without_year() -> None:
+    assert fact_problem("3월 5일 제기", "2025년 중 3월 5일 제기했습니다") is None
 
 
 def test_company_marker_before_a_plain_word_does_not_treat_that_word_as_a_name() -> None:

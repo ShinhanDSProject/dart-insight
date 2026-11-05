@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import re
 
-from app.llm.grounding import number_problem, numbers
+from app.llm.grounding import number_problem
 
 _SOURCE_KEY = "source"
 _SQUEEZE = re.compile(r"[\s,]")
@@ -75,16 +75,12 @@ def _month_days(text: str) -> set[tuple[int, int]]:
 
 def _date_problem(text: str, source: str) -> str | None:
     full = _full_dates(source)
-    month_days = _month_days(source)
-    known_month_days = month_days | {(m, d) for _, m, d in full if d is not None}
-    source_numbers = numbers(source)
+    known_month_days = _month_days(source) | {(m, d) for _, m, d in full if d is not None}
     for year, month, day in sorted(_full_dates(text), key=str):
         if day is None:
             found = any(y == year and m == month for y, m, _ in full)
         else:
-            found = (year, month, day) in full or (
-                (month, day) in month_days and str(year) in source_numbers
-            )
+            found = (year, month, day) in full
         if not found:
             return f"원문에 없는 날짜가 있습니다: {year}년 {month}월. 원문의 날짜만 쓰세요."
     for month, day in sorted(_month_days(text)):
