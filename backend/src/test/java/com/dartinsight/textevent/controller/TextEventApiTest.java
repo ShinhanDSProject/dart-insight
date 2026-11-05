@@ -194,7 +194,7 @@ class TextEventApiTest {
         mockMvc.perform(post(runsPath()).header("X-Trace-Id", "evt-1"))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.status").value("COMPLETED"))
-                .andExpect(jsonPath("$.eventVersion").value("event-1"));
+                .andExpect(jsonPath("$.eventVersion").value("event-2"));
 
         FakeAiServer.Request sent = AI.requests(AiServerPaths.TEXT_EVENTS).getFirst();
         assertThat(sent.traceId()).isEqualTo("evt-1");

@@ -29,9 +29,7 @@ AMOUNT = "AMOUNT"
 UNIT_COUNT = "UNIT_COUNT"
 # 금액을 정한 방법
 STRUCTURED = "structured"
-SINGLE_CANDIDATE = "single_candidate"
 AI_CHOICE = "ai_choice"
-RULE_FALLBACK = "rule_fallback"
 AMOUNT_NONE = "none"
 # 금액은 있는데 비율을 계산하지 못한 사유
 EQUITY_MISSING = "EQUITY_MISSING"
