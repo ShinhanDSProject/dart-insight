@@ -63,6 +63,14 @@
   text-align: center;
 }
 
+/* 가입 완료 뒤 다음 행동(로그인이 먼저, 둘러보기는 보조) */
+.signup__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
 .signup__email {
   overflow-wrap: anywhere;
   font-weight: var(--font-weight-semibold);

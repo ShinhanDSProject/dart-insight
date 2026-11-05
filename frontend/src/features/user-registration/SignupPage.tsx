@@ -123,7 +123,11 @@ export function SignupPage() {
           <h1 className="page__title" id="signup-success-title" ref={success} tabIndex={-1}>회원가입이 완료됐어요</h1>
           <p className="signup__email">{registeredEmail}</p>
           <p className="page__lead">DART Insight에 오신 것을 환영합니다.</p>
-          <ButtonLink to="/" variant="primary">기업 검색으로 이동</ButtonLink>
+          {/* 가입만으로는 로그인되지 않으므로 다음 행동은 로그인이다. 이메일을 주소에 담지 않는다(개인정보) */}
+          <div className="signup__actions">
+            <ButtonLink to="/login" variant="primary">로그인하기</ButtonLink>
+            <ButtonLink to="/" variant="secondary">기업 검색으로 이동</ButtonLink>
+          </div>
         </Card>
       </section>
     )
