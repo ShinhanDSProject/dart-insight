@@ -175,6 +175,7 @@ def test_wrong_amount_reaches_the_model_with_its_sentence_and_null_gives_no_amou
     source = AmountSource(1, case["evidenceId"], case["context"])
     candidates = extract_amounts([source]).candidates
     wrong = [c for c in candidates if c.text == case["wrongAmount"]]
+    assert len(wrong) == 1
     quotes = [Quote(1, CHANGE, CURRENT, text, case["evidenceId"]) for text in case["quotes"]]
     event = TextEvent(case["title"], case["kind"], [1], quotes)
     client, provider = llm({"choice": None})
@@ -184,6 +185,7 @@ def test_wrong_amount_reaches_the_model_with_its_sentence_and_null_gives_no_amou
     assert picked.candidate is None
     assert picked.source == AMOUNT_NONE
     sent = provider.requests[0].user
-    assert attr(case["wrongAmount"]) in sent
+    assert f'<disclosure id="1" label="{attr(wrong[0].text)}"' in sent
+    assert escape(wrong[0].context) in sent
     assert attr(case["title"]) in sent
     assert all(escape(text) in sent for text in case["quotes"])
