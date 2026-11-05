@@ -1,15 +1,23 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, render, screen } from '@testing-library/react'
 import { StrictMode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider } from './AuthProvider'
 import { useAuth } from './authContext'
 
-const client = vi.hoisted(() => ({
-  apiPost: vi.fn(),
-  apiDelete: vi.fn(),
-  setAccessToken: vi.fn(),
-}))
+const client = vi.hoisted(() => {
+  const expiredListeners = new Set<() => void>()
+  return {
+    apiPost: vi.fn(),
+    apiDelete: vi.fn(),
+    setAccessToken: vi.fn(),
+    onSessionExpired: vi.fn((listener: () => void) => {
+      expiredListeners.add(listener)
+      return () => expiredListeners.delete(listener)
+    }),
+    expire: () => expiredListeners.forEach((listener) => listener()),
+  }
+})
 vi.mock('@/shared/api/client', () => client)
 
 function Status() {
@@ -45,5 +53,17 @@ describe('AuthProvider 로그인 복구', () => {
     render(<AuthProvider><Status /></AuthProvider>)
     expect(await screen.findByText('anonymous')).toBeTruthy()
     expect(client.apiPost).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('AuthProvider 로그인 끊김', () => {
+  it('쓰는 도중 재발급이 실패했다고 알리면 비로그인으로 바뀐다', async () => {
+    client.apiPost.mockReset()
+    client.apiPost.mockResolvedValueOnce({ userId: 1, accessToken: 'token', expiresIn: 900 })
+    render(<AuthProvider><Status /></AuthProvider>)
+    expect(await screen.findByText('authenticated')).toBeTruthy()
+
+    act(() => client.expire())
+    expect(screen.getByText('anonymous')).toBeTruthy()
   })
 })
