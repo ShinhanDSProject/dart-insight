@@ -528,6 +528,52 @@ describe('TextTab 주요 사건(3.37)', () => {
     await waitFor(() => expect(document.activeElement).toBe(opener))
   })
 
+  it('버튼을 거치지 않고 다른 변경을 열었다가 닫으면 먼저 연 버튼이 아니라 그 변경의 버튼으로 초점이 돌아온다', async () => {
+    list.items = [item(1, '1. 사업의 개요'), item(2, '2. 주요 제품')]
+    function FromCitation() {
+      const [selected, setSelected] = useState<number | null>(null)
+      return (
+        <MemoryRouter>
+          <main>
+            {/* 채팅 인용처럼 주소의 변경 번호만 바꾸는 경로 */}
+            <button type="button" onClick={() => setSelected(2)}>
+              인용으로 열기
+            </button>
+            <TextTab
+              analysis={analysis}
+              type={null}
+              sort="priority"
+              section={null}
+              q={null}
+              risk={false}
+              field={null}
+              pinned={false}
+              selectedChangeId={selected}
+              onChange={(change) => {
+                if ('change' in change) setSelected(change.change ?? null)
+              }}
+              onOpenSource={() => {}}
+              onAsk={() => {}}
+              asking={false}
+            />
+          </main>
+        </MemoryRouter>
+      )
+    }
+    render(<FromCitation />)
+    const first = document.getElementById('text-evidence-button-1') as HTMLElement
+    first.focus()
+    fireEvent.click(first)
+    expect(screen.getByRole('dialog')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: '인용으로 열기' }))
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    await new Promise((resolve) => requestAnimationFrame(resolve))
+    await waitFor(() => expect(document.activeElement).toBe(document.getElementById('text-evidence-button-2')))
+  })
+
   it('같은 변경이 목록과 사건 안에 함께 있어도 원문 비교 버튼의 id가 겹치지 않고 카드 메뉴가 그대로 있다(AC31)', () => {
     events.list = textEvents(1)
     list.groups = {}
