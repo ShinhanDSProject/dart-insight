@@ -137,9 +137,9 @@ export function TextTab({
   const pinnedList = usePinnedTextChanges(analysis.analysisId, pins.ids, pinned, pins.remove)
   const textEvents = useTextEvents(analysis.analysisId)
   // 같은 변경의 '원문 비교' 버튼이 목록과 사건 안에 함께 있을 수 있어, 창을 연 버튼을 기억해 닫을 때 그리로 돌아간다
-  const evidenceOpener = useRef<Element | null>(null)
+  const evidenceOpener = useRef<{ changeId: number; element: Element | null } | null>(null)
   const toggleEvidence = (changeId: number) => {
-    evidenceOpener.current = document.activeElement
+    evidenceOpener.current = { changeId, element: document.activeElement }
     onChange({ change: changeId === selectedChangeId ? null : changeId })
   }
   useTextCardKeys({ onToggleEvidence: toggleEvidence, onTogglePin: pins.toggle })
@@ -166,7 +166,7 @@ export function TextTab({
   const closeEvidence = (changeId: number) => {
     onChange({ change: null })
     // 닫으면 그 항목의 '원문 비교' 버튼으로 초점을 돌려준다
-    const opener = evidenceOpener.current
+    const opener = evidenceOpener.current?.changeId === changeId ? evidenceOpener.current.element : null
     requestAnimationFrame(() => {
       const target = opener instanceof HTMLButtonElement && opener.isConnected ? opener : document.getElementById(evidenceButtonId(changeId))
       target?.focus()
