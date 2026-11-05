@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any
 
 import pytest
@@ -10,7 +11,7 @@ from app.events.candidates import CandidateChange
 from app.events.model import FAKE_MODEL, NO_CANDIDATES, EventChange, EventInput
 from app.events.service import group_events
 from app.llm import FakeProvider, LlmClient, LlmOutputInvalid, LlmUnavailable, ProviderError
-from app.llm.client import OUTCOME_INVALID_OUTPUT, OUTCOME_OK
+from app.llm.client import OUTCOME_ERROR, OUTCOME_INVALID_OUTPUT, OUTCOME_OK
 
 TEXT = "당사는 소송에서 패소하여 1,200억원을 지급했습니다."
 
@@ -147,6 +148,25 @@ def test_event_still_broken_after_two_retries_is_dropped_and_its_changes_are_unb
     assert output.model == "scripted-model"
     assert output.generated_at is not None
     assert [c.outcome for c in output.calls] == [OUTCOME_INVALID_OUTPUT] * 3
+
+
+def test_generated_at_is_from_the_call_that_produced_kept_events_when_retry_call_fails() -> None:
+    times = iter([datetime(2026, 11, 5, 10, 0, 0), datetime(2026, 11, 5, 10, 5, 0)])
+    provider = ScriptedProvider(
+        script=[
+            {"events": [event(1), event(2, title="1,500억원 패소")]},
+            ProviderError("인증 실패"),
+        ],
+        model="scripted-model",
+    )
+    settings = LlmSettings(provider="scripted", max_retries=0, max_output_retries=2)
+    client = LlmClient(provider, settings, sleep=lambda _: None, clock=lambda: next(times))
+
+    output = group_events(client, event_input(change(1), change(2)))
+
+    assert [c.outcome for c in output.calls] == [OUTCOME_INVALID_OUTPUT, OUTCOME_ERROR]
+    assert [e.change_nos for e in output.events] == [[1]]
+    assert output.generated_at == "2026-11-05T10:00:00"
 
 
 def test_change_bound_to_a_kept_event_is_not_unbound_when_another_event_is_dropped() -> None:
