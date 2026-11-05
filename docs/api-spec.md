@@ -1942,6 +1942,7 @@
 | 404 | `REPORT_NOT_FOUND` | 이 기업의 정기보고서가 없음 |
 | 502 | `DART_REQUEST_FAILED` | 보고서 목록이나 원문을 OpenDART에서 받지 못함 |
 | 503 | `DART_RATE_LIMITED`, `DART_KEY_MISSING` | OpenDART 호출 한도 초과, 키 없음 |
+| 429 | `AI_QUOTA_EXCEEDED` | 오늘 AI 질문 한도를 넘음(호출자별·서비스 전체, ADR-0054). LLM을 부르지 않고, `Retry-After`에 다음 날 0시(한국 시간)까지 남은 초 |
 | 503 | `AI_SERVER_UNAVAILABLE` | AI 서버 또는 LLM을 쓸 수 없음(저장하지 않음) |
 
 ### GET /api/companies/{corpCode}/questions — 사업보고서 질문 기록
@@ -3076,6 +3077,7 @@
 | 400 | `COMMON_INVALID_INPUT` | `question`이 비었거나 2자 미만·200자 초과(`errors[].field`=`question`) |
 | 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 |
 | 409 | `ANALYSIS_NOT_READY` | 분석이 끝나지 않음 |
+| 429 | `AI_QUOTA_EXCEEDED` | 오늘 AI 질문 한도를 넘음(호출자별·서비스 전체, ADR-0054). LLM을 부르지 않고, `Retry-After`에 다음 날 0시(한국 시간)까지 남은 초 |
 | 503 | `AI_SERVER_UNAVAILABLE` | AI 서버 또는 LLM을 쓸 수 없음 |
 
 ### GET /api/analyses/{analysisId}/questions — 질문·답 기록
@@ -3251,6 +3253,7 @@
 | 400 | `COMMON_INVALID_INPUT` | `message`가 비었거나 2자 미만·500자 초과(`errors[].field`=`message`), `history`가 6개 초과이거나 `role`·`text`가 맞지 않음, `context.tab`·`context.side`가 위 값이 아님 |
 | 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 |
 | 409 | `ANALYSIS_NOT_READY` | 분석이 끝나지 않음 |
+| 429 | `AI_QUOTA_EXCEEDED` | 오늘 AI 질문 한도를 넘음(호출자별·서비스 전체, ADR-0054). LLM을 부르지 않고, `Retry-After`에 다음 날 0시(한국 시간)까지 남은 초 |
 | 503 | `AI_SERVER_UNAVAILABLE` | AI 서버 또는 LLM을 쓸 수 없음 |
 
 ### GET /api/system/health — 연결 상태
@@ -4026,6 +4029,7 @@ backend는 저장하기 전에 `changeNos`가 이 분석의 변경인지, `evide
 | `DART_REQUEST_FAILED` | 502 | OpenDART 호출 실패 | 잠시 뒤 다시 시도 |
 | `DART_RATE_LIMITED` | 503 | OpenDART 호출 한도 초과(020) | 내일 다시 시도, 저장된 자료 사용 |
 | `DART_KEY_MISSING` | 503 | 서버에 OpenDART 키가 없음 | 관리자 안내 |
+| `AI_QUOTA_EXCEEDED` | 429 | 질문·에이전트 채팅의 하루 한도를 넘음(ADR-0054). 로그인 안 함은 IP별 20회, 회원은 100회, 서비스 전체 3,000회가 기본값 | 메시지를 그대로 보이고, 로그인 안 했으면 로그인 안내 |
 | `AI_SERVER_UNAVAILABLE` | 503 | AI 서버가 응답하지 않음 | 잠시 뒤 다시 시도 |
 
 ## 5. 정하지 못한 것
