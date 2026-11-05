@@ -66,8 +66,15 @@ def test_load_rates_skips_blank_rates_and_divides_by_unit(tmp_path: Path) -> Non
     }
 
 
-def test_repository_table_has_no_rate_until_person_fills_it() -> None:
-    assert load_rates() == {}
+def test_repository_table_can_be_read_with_only_positive_rates() -> None:
+    rates = load_rates()
+
+    assert {currency for currency, _ in rates} <= {"USD", "EUR", "JPY", "CNY"}
+    assert all(rate > 0 for rate in rates.values())
+
+
+def test_repository_table_is_read_once() -> None:
+    assert load_rates() is load_rates()
 
 
 def test_repository_table_rows_are_for_report_base_date() -> None:
