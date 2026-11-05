@@ -50,12 +50,41 @@ def test_original_text_context_and_evidence_are_kept() -> None:
     assert candidate.from_table is False
 
 
-def test_context_is_limited_to_about_forty_characters_on_each_side() -> None:
-    text = "가" * 100 + " 100억원 " + "나" * 100
+def test_context_is_the_whole_sentence_of_the_amount() -> None:
+    text = (
+        "당사는 자기주식을 매입 중이며, 매입 예상 규모는 약 3,911,908백만원으로 추정하고 있습니다. "
+        "미국 회사 젤스의 지분 100%를 인수하였습니다."
+    )
 
     (candidate,) = extract_amounts([source(text)]).candidates
 
-    assert candidate.context == "가" * 39 + " 100억원 " + "나" * 39
+    assert candidate.context == (
+        "당사는 자기주식을 매입 중이며, 매입 예상 규모는 약 3,911,908백만원으로 추정하고 있습니다."
+    )
+
+
+def test_decimal_point_in_the_amount_does_not_end_the_sentence() -> None:
+    text = "앞 문장입니다. 과징금 8,428.1백만원을 납부했습니다. 뒤 문장입니다."
+
+    (candidate,) = extract_amounts([source(text)]).candidates
+
+    assert candidate.context == "과징금 8,428.1백만원을 납부했습니다."
+
+
+def test_context_of_a_very_long_sentence_is_limited_on_each_side() -> None:
+    text = "가" * 400 + " 100억원 " + "나" * 400
+
+    (candidate,) = extract_amounts([source(text)]).candidates
+
+    assert candidate.context == "가" * 199 + " 100억원 " + "나" * 199
+
+
+def test_written_amount_in_a_table_has_its_whole_row_as_context() -> None:
+    text = "구분 | 내용\nA사 | 벌금 1억원 부과 | 납부 완료\nB사 | 시정명령"
+
+    (candidate,) = extract_amounts([source(text, True)]).candidates
+
+    assert candidate.context == "A사 | 벌금 1억원 부과 | 납부 완료"
 
 
 @pytest.mark.parametrize(
@@ -184,6 +213,15 @@ def test_table_unit_in_preceding_block_applies_to_number_cells() -> None:
     assert candidate.text == "13,924,465 (단위: 천원)"
     assert candidate.from_table is True
     assert "소송 금액" in candidate.context
+
+
+def test_cell_context_has_the_whole_row_and_its_column_heads() -> None:
+    text = "회사 | 처분일 | 금액\nA사 | 2025.11.05 | 0.8\nB사 | 2025.12.01 | 3"
+
+    candidates = extract_amounts([source(text, True, "(단위: 백만원)")]).candidates
+
+    assert candidates[0].context == "A사 | 2025.11.05 | 0.8 (칸: 금액, 0.8 (단위: 백만원))"
+    assert candidates[1].context == "B사 | 2025.12.01 | 3 (칸: 금액, 3 (단위: 백만원))"
 
 
 def test_unit_that_is_not_money_reads_no_cells() -> None:

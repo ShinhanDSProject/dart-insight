@@ -50,7 +50,7 @@ def event(no: int = 1, **overrides: Any) -> dict[str, Any]:
 
 
 def test_events_with_model_version_time_and_unbound_changes_are_returned() -> None:
-    client, _ = llm({"events": [event(1)]})
+    client, _ = llm({"events": [event(1)]}, {"choice": 1})
 
     output = group_events(client, event_input(change(1), change(2)))
 
@@ -62,7 +62,7 @@ def test_events_with_model_version_time_and_unbound_changes_are_returned() -> No
     assert output.dropped_event_count == 0
     assert [e.change_nos for e in output.events] == [[1]]
     assert output.unbound_change_nos == [2]
-    assert [c.outcome for c in output.calls] == [OUTCOME_OK]
+    assert [c.outcome for c in output.calls] == [OUTCOME_OK, OUTCOME_OK]
 
 
 def test_only_candidates_are_sent_and_counted_as_unbound() -> None:
@@ -125,38 +125,47 @@ def test_no_candidates_wins_over_fake_provider() -> None:
 
 
 def test_regenerated_output_replaces_the_broken_one() -> None:
-    client, provider = llm({"events": [event(1, title="1,500억원 패소")]}, {"events": [event(1)]})
+    client, provider = llm(
+        {"events": [event(1, title="1,500억원 패소")]}, {"events": [event(1)]}, {"choice": 1}
+    )
 
     output = group_events(client, event_input(change(1)))
 
     assert output.dropped_event_count == 0
     assert output.events[0].title == "소송 패소"
-    assert [c.outcome for c in output.calls] == [OUTCOME_INVALID_OUTPUT, OUTCOME_OK]
+    assert [c.outcome for c in output.calls] == [OUTCOME_INVALID_OUTPUT, OUTCOME_OK, OUTCOME_OK]
     assert "1번 사건" in provider.requests[1].user
 
 
 def test_event_still_broken_after_two_retries_is_dropped_and_its_changes_are_unbound() -> None:
     broken = {"events": [event(1), event(2, title="1,500억원 패소")]}
-    client, provider = llm(broken, broken, broken)
+    client, provider = llm(broken, broken, broken, {"choice": 1})
 
     output = group_events(client, event_input(change(1), change(2)))
 
-    assert len(provider.requests) == 3
+    assert len(provider.requests) == 4
     assert output.created is True
     assert output.dropped_event_count == 1
     assert [e.change_nos for e in output.events] == [[1]]
     assert output.unbound_change_nos == [2]
     assert output.model == "scripted-model"
     assert output.generated_at is not None
-    assert [c.outcome for c in output.calls] == [OUTCOME_INVALID_OUTPUT] * 3
+    assert [c.outcome for c in output.calls] == [OUTCOME_INVALID_OUTPUT] * 3 + [OUTCOME_OK]
 
 
 def test_generated_at_is_from_the_call_that_produced_kept_events_when_retry_call_fails() -> None:
-    times = iter([datetime(2026, 11, 5, 10, 0, 0), datetime(2026, 11, 5, 10, 5, 0)])
+    times = iter(
+        [
+            datetime(2026, 11, 5, 10, 0, 0),
+            datetime(2026, 11, 5, 10, 5, 0),
+            datetime(2026, 11, 5, 10, 6, 0),
+        ]
+    )
     provider = ScriptedProvider(
         script=[
             {"events": [event(1), event(2, title="1,500억원 패소")]},
             ProviderError("인증 실패"),
+            {"choice": 1},
         ],
         model="scripted-model",
     )
@@ -165,7 +174,7 @@ def test_generated_at_is_from_the_call_that_produced_kept_events_when_retry_call
 
     output = group_events(client, event_input(change(1), change(2)))
 
-    assert [c.outcome for c in output.calls] == [OUTCOME_INVALID_OUTPUT, OUTCOME_ERROR]
+    assert [c.outcome for c in output.calls] == [OUTCOME_INVALID_OUTPUT, OUTCOME_ERROR, OUTCOME_OK]
     assert [e.change_nos for e in output.events] == [[1]]
     assert output.generated_at == "2026-11-05T10:00:00"
 

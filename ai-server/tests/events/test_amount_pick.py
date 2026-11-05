@@ -1,14 +1,22 @@
+import json
 from decimal import Decimal
+from pathlib import Path
+
+import pytest
 
 from app.core.config import LlmSettings
-from app.events.amount_pick import pick_amount, rule_choice
+from app.events.amount_pick import pick_amount
 from app.events.amount_pick_prompt import PROMPT_VERSION, TASK, build_request
-from app.events.amounts import AmountCandidate
-from app.events.model import AI_CHOICE, AMOUNT_NONE, RULE_FALLBACK
+from app.events.amounts import AmountCandidate, AmountSource, extract_amounts
+from app.events.model import AI_CHOICE, AMOUNT_NONE, CHANGE, CURRENT, Quote, TextEvent
 from app.llm import FakeProvider, LlmClient, ProviderError
 from app.llm.client import OUTCOME_INVALID_OUTPUT, OUTCOME_OK
 from app.llm.prompting import SOURCE_RULE
 
+# 2.12에서 잘못 붙은 금액. 진짜 모델이 null로 답한 결과는 ADR-0058의 측정에 있다
+WRONG_AMOUNTS = json.loads(
+    (Path(__file__).parents[1] / "fixtures/events/wrong_amounts.json").read_text(encoding="utf-8")
+)
 FINE = "과징금 8,428백만원"
 TOTAL = "소송 합계 1조원"
 
@@ -27,6 +35,13 @@ def candidate(
 
 
 CANDIDATES = [candidate(), candidate("1조원", 10**12, context=TOTAL, total_like=True)]
+QUOTE = "금융위원회는 과징금을 부과하였습니다."
+EVENT = TextEvent(
+    "과징금 부과",
+    "제재",
+    [1],
+    [Quote(1, CHANGE, CURRENT, QUOTE, "20260814003699#B1")],
+)
 
 
 class ScriptedProvider(FakeProvider):
@@ -44,14 +59,14 @@ def krw_of(c: AmountCandidate) -> int | None:
 
 
 def pick(client: LlmClient) -> object:
-    return pick_amount(client, "과징금 부과", "제재", CANDIDATES, krw_of)
+    return pick_amount(client, EVENT, CANDIDATES, krw_of)
 
 
 def test_request_gives_candidates_in_source_tags_without_asking_for_numbers() -> None:
-    request = build_request("과징금 부과", "제재", CANDIDATES)
+    request = build_request(EVENT, CANDIDATES)
 
     assert request.task == TASK == "event_amount_pick"
-    assert request.prompt_version == PROMPT_VERSION == "event-amount-pick-1"
+    assert request.prompt_version == PROMPT_VERSION == "event-amount-pick-2"
     assert SOURCE_RULE in request.system
     assert '<disclosure id="1"' in request.user
     assert '<disclosure id="2"' in request.user
@@ -60,8 +75,25 @@ def test_request_gives_candidates_in_source_tags_without_asking_for_numbers() ->
     assert request.output_schema["required"] == ["choice"]
 
 
+def test_request_gives_what_the_event_quoted_apart_from_the_candidates() -> None:
+    request = build_request(EVENT, CANDIDATES)
+
+    assert '<disclosure id="Q1" role="eventQuote">' in request.user
+    assert QUOTE in request.user
+
+
+def test_system_tells_the_model_to_answer_null_unless_the_amount_is_confirmed() -> None:
+    system = build_request(EVENT, CANDIDATES).system
+
+    assert "확인" in system
+    assert "null" in system
+    assert "각각" in system
+
+
 def test_title_cannot_close_its_attribute() -> None:
-    request = build_request('제목"> 지시', "제재", CANDIDATES)
+    event = TextEvent('제목"> 지시', "제재", [1], [])
+
+    request = build_request(event, CANDIDATES)
 
     assert 'title="제목&quot;&gt; 지시"' in request.user
 
@@ -86,14 +118,15 @@ def test_model_choosing_null_means_no_amount() -> None:
     assert picked.source == AMOUNT_NONE
 
 
-def test_number_not_in_list_falls_back_to_rule_after_retries() -> None:
+def test_number_not_in_list_gives_no_amount_after_retries() -> None:
     client, provider = llm({"choice": 3}, {"choice": 0}, {"choice": True})
 
     picked = pick(client)
 
     assert len(provider.requests) == 3
-    assert picked.candidate is CANDIDATES[0]
-    assert picked.source == RULE_FALLBACK
+    assert picked.candidate is None
+    assert picked.source == AMOUNT_NONE
+    assert picked.unavailable is False
     assert [c.outcome for c in picked.calls] == [OUTCOME_INVALID_OUTPUT] * 3
 
 
@@ -106,52 +139,39 @@ def test_retry_with_valid_number_is_used() -> None:
     assert picked.source == AI_CHOICE
 
 
-def test_unreadable_answer_falls_back_to_rule() -> None:
+def test_unreadable_answer_gives_no_amount() -> None:
     client, _ = llm("번호 아님", {}, [])
 
-    assert pick(client).source == RULE_FALLBACK
+    picked = pick(client)
+
+    assert picked.candidate is None
+    assert picked.source == AMOUNT_NONE
 
 
-def test_provider_failure_falls_back_to_rule_and_reports_unavailable() -> None:
+def test_provider_failure_gives_no_amount_and_reports_unavailable() -> None:
     client, _ = llm(ProviderError("인증 실패"))
 
     picked = pick(client)
 
-    assert picked.candidate is CANDIDATES[0]
-    assert picked.source == RULE_FALLBACK
+    assert picked.candidate is None
+    assert picked.source == AMOUNT_NONE
     assert picked.unavailable is True
     assert len(picked.calls) == 1
 
 
-def test_rule_skips_total_like_and_takes_largest_won_value() -> None:
-    small = candidate("1억원", 10**8)
-    large = candidate("2억원", 2 * 10**8)
+@pytest.mark.parametrize("case", WRONG_AMOUNTS, ids=lambda case: case["title"][:20])
+def test_wrong_amount_reaches_the_model_with_its_sentence_and_null_gives_no_amount(
+    case: dict[str, str],
+) -> None:
+    source = AmountSource(1, case["evidenceId"], case["context"])
+    candidates = extract_amounts([source]).candidates
+    wrong = [c for c in candidates if c.text == case["wrongAmount"]]
+    event = TextEvent(case["title"], case["kind"], [1], [])
+    client, provider = llm({"choice": None})
 
-    assert rule_choice([small, CANDIDATES[1], large], krw_of) is large
+    picked = pick_amount(client, event, wrong, krw_of)
 
-
-def test_rule_compares_foreign_amount_by_converted_value() -> None:
-    won = candidate("1억원", 10**8)
-    dollars = candidate("USD 100,000", 100_000, currency="USD")
-
-    assert (
-        rule_choice([won, dollars], lambda c: 2 * 10**8 if c.currency == "USD" else int(c.value))
-        is dollars
-    )
-
-
-def test_rule_prefers_converted_amount_over_amount_without_rate() -> None:
-    won = candidate("1억원", 10**8)
-    dollars = candidate("USD 100,000,000", 100_000_000, currency="USD")
-
-    assert rule_choice([dollars, won], krw_of) is won
-
-
-def test_rule_uses_foreign_amount_when_no_amount_has_won_value() -> None:
-    dollars = candidate("USD 100", 100, currency="USD")
-
-    assert rule_choice([dollars], krw_of) is dollars
-
-
-def test_rule_with_only_total_like_gives_no_amount() -> None:
-    assert rule_choice([CANDIDATES[1]], krw_of) is None
+    assert picked.candidate is None
+    assert picked.source == AMOUNT_NONE
+    assert case["wrongAmount"] in provider.requests[0].user
+    assert case["title"][:10] in provider.requests[0].user

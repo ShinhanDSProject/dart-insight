@@ -83,7 +83,7 @@ def test_event_scale_and_order_are_filled_by_code_in_the_response() -> None:
     }
 
     response = post(
-        app_with({"events": [first, second]}),
+        app_with({"events": [first, second]}, {"choice": 1}, {"choice": 1}),
         BODY | {"changes": [small, large]},
     )
 
@@ -96,7 +96,7 @@ def test_event_scale_and_order_are_filled_by_code_in_the_response() -> None:
     assert events[0]["currency"] == "KRW"
     assert events[0]["scaleRatio"] == 0.3
     assert events[0]["scaleEvidenceId"] == f"{CURRENT_RCEPT}#B1577"
-    assert events[0]["amountSource"] == "single_candidate"
+    assert events[0]["amountSource"] == "ai_choice"
     assert events[0]["sortBasis"] == "AMOUNT"
 
 

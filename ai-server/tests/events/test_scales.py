@@ -11,8 +11,6 @@ from app.events.model import (
     EQUITY_MISSING,
     EQUITY_NOT_POSITIVE,
     FX_RATE_MISSING,
-    RULE_FALLBACK,
-    SINGLE_CANDIDATE,
     STRUCTURED,
     EventChange,
     EventInput,
@@ -93,19 +91,32 @@ def test_no_candidate_means_no_amount_without_calling_model() -> None:
     assert calls == []
 
 
-def test_one_candidate_is_used_without_calling_model() -> None:
-    client, provider = llm()
+def test_one_candidate_is_used_when_model_confirms_it() -> None:
+    client, provider = llm({"choice": 1})
 
-    scale, _ = one(client, event_input(change(current="과징금 8,428.1백만원을 납부")))
+    scale, calls = one(client, event_input(change(current="과징금 8,428.1백만원을 납부")))
 
-    assert scale.source == SINGLE_CANDIDATE
+    assert scale.source == AI_CHOICE
     assert scale.amount == 8_428_100_000
     assert scale.text == "8,428.1백만원"
     assert scale.currency == "KRW"
     assert scale.krw == 8_428_100_000
     assert scale.ratio == 0.008428
     assert scale.evidence_id == f"{CURRENT}#B100"
-    assert provider.requests == []
+    assert len(provider.requests) == 1
+    assert len(calls) == 1
+
+
+def test_one_candidate_the_model_rejects_gives_no_amount() -> None:
+    client, _ = llm({"choice": None})
+
+    scale, _ = one(client, event_input(change(current="매입 예상 규모는 3,911,908백만원입니다.")))
+
+    assert scale.source == AMOUNT_NONE
+    assert scale.amount is None
+    assert scale.krw is None
+    assert scale.text is None
+    assert scale.evidence_id is None
 
 
 def test_model_choosing_first_of_mixed_text_gets_the_fine() -> None:
@@ -130,37 +141,37 @@ def test_model_choosing_null_means_no_amount() -> None:
     assert scale.amount is None
 
 
-def test_model_error_falls_back_to_rule() -> None:
+def test_model_error_gives_no_amount() -> None:
     client, _ = llm(ProviderError("인증 실패"))
 
     scale, calls = one(client, event_input(change(current="과징금 100억원, 소송 합계 1조원")))
 
-    assert scale.source == RULE_FALLBACK
-    assert scale.amount == 10_000_000_000
+    assert scale.source == AMOUNT_NONE
+    assert scale.amount is None
     assert len(calls) == 1
 
 
-def test_after_provider_failure_other_events_use_rule_without_calling() -> None:
+def test_after_provider_failure_other_events_have_no_amount_without_calling() -> None:
     client, provider = llm(ProviderError("인증 실패"))
     data = event_input(
         change(1, current="과징금 100억원, 소송 합계 1조원"),
-        change(2, current="벌금 1억원, 과태료 2억원", block=101),
+        change(2, current="벌금 1억원", block=101),
     )
 
     scaled, calls = scale_events(client, data, [text_event(1), text_event(2)], {})
 
     assert len(provider.requests) == 1
     assert len(calls) == 1
-    assert [e.scale.source for e in scaled] == [RULE_FALLBACK, RULE_FALLBACK]
-    assert scaled[1].scale.amount == 200_000_000
+    assert [e.scale.source for e in scaled] == [AMOUNT_NONE, AMOUNT_NONE]
+    assert [e.scale.amount for e in scaled] == [None, None]
 
 
-def test_events_after_the_pick_budget_use_rule_without_calling() -> None:
+def test_events_after_the_pick_budget_have_no_amount_without_calling() -> None:
     now = [-120.0]
     client, provider = llm({"choice": 1})
     data = event_input(
         change(1, current="과징금 100억원, 소송 합계 1조원"),
-        change(2, current="벌금 1억원, 과태료 2억원", block=101),
+        change(2, current="벌금 1억원", block=101),
     )
 
     def clock() -> float:
@@ -171,7 +182,8 @@ def test_events_after_the_pick_budget_use_rule_without_calling() -> None:
 
     assert len(provider.requests) == 1
     assert len(calls) == 1
-    assert [e.scale.source for e in scaled] == [AI_CHOICE, RULE_FALLBACK]
+    assert [e.scale.source for e in scaled] == [AI_CHOICE, AMOUNT_NONE]
+    assert scaled[1].scale.amount is None
 
 
 def test_events_within_the_pick_budget_keep_calling() -> None:
@@ -193,7 +205,7 @@ def test_events_within_the_pick_budget_keep_calling() -> None:
 
 
 def test_harman_fine_is_converted_with_reference_table_and_compared_in_won() -> None:
-    client, _ = llm()
+    client, _ = llm({"choice": 1})
 
     scale, _ = one(
         client, event_input(change(current=HARMAN)), fx={("USD", BASE_DATE): Decimal(1400)}
@@ -210,7 +222,7 @@ def test_harman_fine_is_converted_with_reference_table_and_compared_in_won() -> 
 
 
 def test_rate_in_linked_text_comes_before_table() -> None:
-    client, _ = llm()
+    client, _ = llm({"choice": 1})
     data = event_input(
         change(1, current=HARMAN), change(2, current="적용 환율 1USD = 1,500원", block=101)
     )
@@ -223,7 +235,7 @@ def test_rate_in_linked_text_comes_before_table() -> None:
 
 
 def test_foreign_amount_without_rate_is_shown_with_reason() -> None:
-    client, _ = llm()
+    client, _ = llm({"choice": 1})
 
     scale, _ = one(client, event_input(change(current=HARMAN)))
 
@@ -236,7 +248,7 @@ def test_foreign_amount_without_rate_is_shown_with_reason() -> None:
 
 
 def test_missing_equity_leaves_ratio_uncomputed_with_reason() -> None:
-    client, _ = llm()
+    client, _ = llm({"choice": 1})
 
     scale, _ = one(client, event_input(change(current="벌금 1억원"), equity=None))
 
@@ -246,7 +258,7 @@ def test_missing_equity_leaves_ratio_uncomputed_with_reason() -> None:
 
 
 def test_equity_in_other_currency_counts_as_missing() -> None:
-    client, _ = llm()
+    client, _ = llm({"choice": 1})
 
     scale, _ = one(client, event_input(change(current="벌금 1억원"), currency="USD"))
 
@@ -255,7 +267,7 @@ def test_equity_in_other_currency_counts_as_missing() -> None:
 
 
 def test_zero_or_negative_equity_leaves_ratio_uncomputed_with_reason() -> None:
-    client, _ = llm()
+    client, _ = llm({"choice": 1}, {"choice": 1})
 
     for equity in (0, -5):
         scale, _ = one(client, event_input(change(current="벌금 1억원"), equity=equity))
@@ -273,17 +285,17 @@ def test_change_without_block_gives_no_candidate() -> None:
 
 
 def test_current_text_is_read_and_previous_amount_is_not() -> None:
-    client, _ = llm()
+    client, _ = llm({"choice": 1})
     data = event_input(change(current="시설투자 28.0조원", previous="시설투자 23.1조원"))
 
     scale, _ = one(client, data)
 
     assert scale.amount == 28 * 10**12
-    assert scale.source == SINGLE_CANDIDATE
+    assert scale.source == AI_CHOICE
 
 
 def test_previous_text_is_read_when_current_is_gone() -> None:
-    client, _ = llm()
+    client, _ = llm({"choice": 1})
     data = event_input(change(current=None, block=None, previous="벌금 1억원"))
 
     scale, _ = one(client, data)
@@ -293,7 +305,7 @@ def test_previous_text_is_read_when_current_is_gone() -> None:
 
 
 def test_table_unit_from_preceding_block_is_used() -> None:
-    client, _ = llm()
+    client, _ = llm({"choice": 1})
     data = event_input(
         change(current="소송 금액 | 13,924,465", block_type=TABLE, preceding="(단위 : 천원)")
     )
@@ -332,7 +344,7 @@ def test_structured_amount_of_other_kind_is_not_used() -> None:
 
 
 def test_structured_amount_is_not_used_when_kind_has_several_decisions() -> None:
-    client, _ = llm()
+    client, _ = llm({"choice": 1})
     structured = [
         StructuredAmount(
             "20260129000003", "TREASURY_STOCK_ACQUISITION", "aqpln_prc_ostk", 1, "KRW"
@@ -345,7 +357,7 @@ def test_structured_amount_is_not_used_when_kind_has_several_decisions() -> None
 
     scale, _ = one(client, data, text_event(1, title="자기주식 취득", kind="자기주식"))
 
-    assert scale.source == SINGLE_CANDIDATE
+    assert scale.source == AI_CHOICE
     assert scale.amount == 10 * 10**12
 
 

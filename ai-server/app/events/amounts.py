@@ -1,11 +1,12 @@
 """사건 글에서 금액 후보 뽑기(2.16, ADR-0053). LLM을 쓰지 않는 순수 함수다.
 
-숫자는 여기서만 만든다. AI는 이 후보의 번호만 고른다(amount_pick.py).
+숫자는 여기서만 만든다. AI는 이 후보가 사건의 금액인지 번호로만 답한다(amount_pick.py).
 - 단위: 원·천원·만원·백만원·억원·조원.
 - 표는 표 안이나 바로 앞 블록의 '단위'가 돈일 때만 숫자 칸을 읽는다.
 - 주당·액면 금액과 환율 표기는 후보에서 빼고 이유를 남긴다. 환율 표기는 공시 환율로 보관한다.
 - 외화(USD·EUR·JPY·CNY)는 후보에 남긴다. 환산은 fx.py가 한다.
 - 금액 가까이에 합계·누계·한도·총액이 있으면 표시한다. 같은 통화·같은 값은 처음 것만 남긴다.
+- 문맥은 금액이 있는 문장이나 표의 행 전체다(ADR-0058).
 
 결과가 달라지게 바꾸면 backend TextEvents.EVENT_VERSION을 올린다.
 """
@@ -29,7 +30,8 @@ PER_SHARE = "PER_SHARE"
 FX_RATE_TEXT = "FX_RATE_TEXT"
 UNREADABLE = "UNREADABLE"
 
-_CONTEXT_CHARS = 40
+# 긴 문장에서 금액 앞뒤로 보여 줄 글자 수
+_CONTEXT_CHARS = 200
 _BEFORE_CHARS = 20
 _TOTAL_BEFORE_CHARS = 8
 _TOTAL_AFTER_CHARS = 6
@@ -91,6 +93,7 @@ _PER_SHARE_AFTER = re.compile(r"\s*/\s*주")
 _RATE_WORD = re.compile(r"환율")
 _TOTAL_WORD = re.compile(r"합계|누계|한도|총액")
 _CLAUSE_END = re.compile(r",\s|\.\s|;|\n|\s\|\s")
+_SENTENCE_END = re.compile(r"\.\s|\n")
 
 _UNIT_HEAD = re.compile(r"단위\s*[:：]?\s*([^)\]\n|]*)")
 _UNIT_MONEY = re.compile(r"(천|백만|억|조|만)?\s*(원|USD|달러|EUR|유로|JPY|엔|CNY|위안)")
@@ -207,7 +210,14 @@ def _exclusion(before: str, after: str) -> str | None:
 
 
 def _context(text: str, start: int, end: int) -> str:
-    return " ".join(text[max(0, start - _CONTEXT_CHARS) : end + _CONTEXT_CHARS].split(" "))
+    """금액이 있는 문장이나 표의 행. 너무 길면 앞뒤를 자른다."""
+    ends_before = list(_SENTENCE_END.finditer(text, 0, start))
+    first = ends_before[-1].end() if ends_before else 0
+    next_end = _SENTENCE_END.search(text, end)
+    last = len(text)
+    if next_end:
+        last = next_end.start() + 1 if next_end.group(0).startswith(".") else next_end.start()
+    return text[max(first, start - _CONTEXT_CHARS) : min(last, end + _CONTEXT_CHARS)].strip()
 
 
 def _from_written(
@@ -307,7 +317,7 @@ def _from_cells(source: AmountSource) -> Iterator[AmountCandidate]:
                 written,
                 currency,
                 value * size,
-                " | ".join([row[0], *heads, written]),
+                f"{' | '.join(row)} (칸: {', '.join([*heads, written])})",
                 True,
                 any(_TOTAL_LABEL.fullmatch(label) for label in [row[0], *heads]),
             )
