@@ -2,15 +2,12 @@
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 from app.events.candidates import CandidateChange
-from app.events.model import EventChange, EventInput, TextEvent
+from app.events.model import EventChange, EventInput, StructuredAmount, TextEvent
 from app.events.service import EventOutput
-
-# 규모와 정렬은 2.16에서 코드가 정한다. 그 전에는 규모 없이 이 기준으로 답한다
-ROW_COUNT = "ROW_COUNT"
 
 
 class _Model(BaseModel):
@@ -29,14 +26,25 @@ class ChangeModel(_Model):
     current_block_no: int | None
     previous_text: str | None
     current_text: str | None
+    changed_unit_count: int = Field(ge=0)
+    preceding_block_text: str | None = None
+
+
+class StructuredAmountModel(_Model):
+    rcept_no: str
+    kind: str
+    field: str
+    amount: int
+    currency: str
 
 
 class TextEventRequest(_Model):
     previous_rcept_no: str
     current_rcept_no: str
-    # 자본총계와 통화는 정렬(2.16)에 쓴다
     equity_total: int | None
     currency: str | None
+    report_base_date: str | None = None
+    structured_amounts: list[StructuredAmountModel] = []
     changes: list[ChangeModel]
 
     def to_input(self) -> EventInput:
@@ -62,8 +70,17 @@ class TextEventRequest(_Model):
                     c.current_block_no,
                     c.previous_text,
                     c.current_text,
+                    c.changed_unit_count,
+                    c.preceding_block_text,
                 )
                 for c in self.changes
+            ],
+            self.equity_total,
+            self.currency,
+            self.report_base_date,
+            [
+                StructuredAmount(s.rcept_no, s.kind, s.field, s.amount, s.currency)
+                for s in self.structured_amounts
             ],
         )
 
@@ -84,10 +101,17 @@ def _event_json(sort_order: int, event: TextEvent) -> dict[str, Any]:
             }
             for q in event.quotes
         ],
-        "scaleAmount": None,
-        "currency": None,
-        "scaleEvidenceId": None,
-        "sortBasis": ROW_COUNT,
+        "scaleAmount": event.scale.amount,
+        "scaleAmountText": event.scale.text,
+        "currency": event.scale.currency,
+        "scaleAmountKrw": event.scale.krw,
+        "scaleRatio": event.scale.ratio,
+        "scaleNotComputedReason": event.scale.reason,
+        "scaleEvidenceId": event.scale.evidence_id,
+        "amountSource": event.scale.source,
+        "fxSource": event.scale.fx_source,
+        "fxRateDate": event.scale.fx_rate_date,
+        "sortBasis": event.basis,
     }
 
 

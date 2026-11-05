@@ -22,6 +22,7 @@ CHANGE = {
     "currentBlockNo": 1576,
     "previousText": "당사는 소송을 진행하고 있습니다.",
     "currentText": "당사는 소송에서 패소했습니다.",
+    "changedUnitCount": 1,
 }
 BODY = {
     "previousRceptNo": PREVIOUS_RCEPT,
@@ -59,6 +60,55 @@ def decoded_calls(response: Any) -> list[dict[str, Any]]:
     return json.loads(base64.urlsafe_b64decode(response.headers["X-Llm-Calls"]))
 
 
+def test_event_scale_and_order_are_filled_by_code_in_the_response() -> None:
+    small = CHANGE | {
+        "changeNo": 12,
+        "currentText": "당사는 소송에서 패소했습니다. 배상금은 100억원입니다.",
+    }
+    large = CHANGE | {
+        "changeNo": 13,
+        "currentBlockNo": 1577,
+        "currentText": "당사는 공장을 매각했습니다. 매각금액은 3,000억원입니다.",
+    }
+    second = {
+        "title": "공장 매각",
+        "kind": "자산 매각",
+        "changeNos": [13],
+        "quotes": [{"changeNo": 13, "purpose": "CHANGE", "side": "CURRENT", "text": "공장을 매각"}],
+    }
+    first = EVENT | {
+        "quotes": [
+            {"changeNo": 12, "purpose": "CHANGE", "side": "CURRENT", "text": "소송에서 패소"}
+        ]
+    }
+
+    response = post(
+        app_with({"events": [first, second]}),
+        BODY | {"changes": [small, large]},
+    )
+
+    assert response.status_code == 200
+    events = response.json()["events"]
+    assert [(e["sortOrder"], e["title"]) for e in events] == [(1, "공장 매각"), (2, "소송 패소")]
+    assert events[0]["scaleAmount"] == 300000000000
+    assert events[0]["scaleAmountKrw"] == 300000000000
+    assert events[0]["scaleAmountText"] == "3,000억원"
+    assert events[0]["currency"] == "KRW"
+    assert events[0]["scaleRatio"] == 0.3
+    assert events[0]["scaleEvidenceId"] == f"{CURRENT_RCEPT}#B1577"
+    assert events[0]["amountSource"] == "single_candidate"
+    assert events[0]["sortBasis"] == "AMOUNT"
+
+
+def test_change_without_unit_count_is_rejected_as_invalid_input() -> None:
+    change = {k: v for k, v in CHANGE.items() if k != "changedUnitCount"}
+
+    response = post(app_with({"events": [EVENT]}), BODY | {"changes": [change]})
+
+    assert response.status_code == 400
+    assert response.json()["code"] == "COMMON_INVALID_INPUT"
+
+
 def test_events_are_returned_in_spec_shape() -> None:
     response = post(app_with({"events": [EVENT]}))
 
@@ -93,9 +143,16 @@ def test_events_are_returned_in_spec_shape() -> None:
                 },
             ],
             "scaleAmount": None,
+            "scaleAmountText": None,
             "currency": None,
+            "scaleAmountKrw": None,
+            "scaleRatio": None,
+            "scaleNotComputedReason": None,
             "scaleEvidenceId": None,
-            "sortBasis": "ROW_COUNT",
+            "amountSource": "none",
+            "fxSource": None,
+            "fxRateDate": None,
+            "sortBasis": "UNIT_COUNT",
         }
     ]
     assert data["unboundChangeNos"] == [13]

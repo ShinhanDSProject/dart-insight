@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import datetime
 from typing import Any
 
@@ -8,7 +9,7 @@ from app.compare.text_diff import MODIFIED
 from app.core.config import LlmSettings
 from app.documents.parser import PARAGRAPH
 from app.events.candidates import CandidateChange
-from app.events.model import FAKE_MODEL, NO_CANDIDATES, EventChange, EventInput
+from app.events.model import AI_CHOICE, FAKE_MODEL, NO_CANDIDATES, EventChange, EventInput
 from app.events.service import group_events
 from app.llm import FakeProvider, LlmClient, LlmOutputInvalid, LlmUnavailable, ProviderError
 from app.llm.client import OUTCOME_ERROR, OUTCOME_INVALID_OUTPUT, OUTCOME_OK
@@ -221,3 +222,14 @@ def test_no_provider_raises_unavailable() -> None:
 
     with pytest.raises(LlmUnavailable):
         group_events(client, event_input(change(1)))
+
+
+def test_amount_pick_call_is_recorded_with_the_grouping_call() -> None:
+    text = "당사는 소송에서 패소하여 1,200억원을 지급했고 담보로 300억원을 공탁했습니다."
+    client, _ = llm({"events": [event(1)]}, {"choice": 2})
+
+    output = group_events(client, event_input(replace(change(1), current_text=text)))
+
+    assert [c.outcome for c in output.calls] == [OUTCOME_OK, OUTCOME_OK]
+    assert output.events[0].scale.amount == 30000000000
+    assert output.events[0].scale.source == AI_CHOICE
