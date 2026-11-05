@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import type { SummaryTarget } from '@/shared/api/summary'
-import { Badge, Button, Card, PanelTitle } from '@/shared/ui'
+import { Badge, Button, Card, Mascot, PanelTitle } from '@/shared/ui'
 import { HEADLINE_NOTE, type HeadlineLine } from '../model/summaryHeadline'
 import { deletedNote } from '../model/summaryLabels'
 
@@ -15,13 +15,16 @@ interface SummaryHeadlineProps {
 /**
  * 요약 탭 맨 위 '핵심 3줄'(FS-21). 재무 줄은 코드가 계산한 사실 문장, 문장 줄은 'AI 생성' 요약이다.
  * 줄을 누르면 재무 줄은 수치 근거, 문장 줄은 문장 변화 탭의 그 변경으로 간다. 고를 줄이 없으면 그리지 않는다.
- * 삭제 줄에는 '빠졌다고 끝났다는 뜻은 아니에요' 안내를 붙인다(FS-70).
+ * 삭제 줄에는 '빠졌다고 끝났다는 뜻은 아니에요' 안내를 붙인다(FS-70). 제목 옆 캐릭터는 처음 열 때 두 번 뛰고 멈춘다(#706).
  */
 export function SummaryHeadline({ lines, opener, footer }: SummaryHeadlineProps) {
   if (lines.length === 0) return footer ?? null
   return (
     <Card as="section" className="headline" aria-labelledby="summary-headline-title">
-      <PanelTitle id="summary-headline-title">이번 비교의 핵심</PanelTitle>
+      <div className="headline__head">
+        <Mascot mood="found" />
+        <PanelTitle id="summary-headline-title">이번 비교의 핵심</PanelTitle>
+      </div>
       <ol className="headline__list">
         {lines.map((line, index) => {
           const open = opener(line.target)

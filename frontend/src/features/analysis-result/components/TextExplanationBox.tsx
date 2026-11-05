@@ -2,7 +2,7 @@ import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { TextExplanation } from '@/shared/api/textChanges'
 import { displaySectionPath } from '@/shared/lib/sectionTitle'
-import { Badge, Button, Icon, Notice } from '@/shared/ui'
+import { Badge, Button, Icon, Mascot, Notice } from '@/shared/ui'
 import { ErrorState } from '@/shared/ui/StateView'
 import { CopyWithSourcesButton } from './CopyWithSourcesButton'
 import type { SourceTarget } from '../model/resultParams'
@@ -96,16 +96,22 @@ function ExplanationBody({
     ))
     .with('REVIEW_NEEDED', () => (
       <>
-        <Notice tone="attention" className="text-explain__notice" title="검토 필요">
-          <p>{explanation.message ?? EXPLANATION_REVIEW_DEFAULT}</p>
-        </Notice>
+        <div className="mascot-row">
+          <Mascot mood="none" />
+          <Notice tone="attention" className="text-explain__notice" title="검토 필요">
+            <p>{explanation.message ?? EXPLANATION_REVIEW_DEFAULT}</p>
+          </Notice>
+        </div>
         <AiMeta explanation={explanation} />
       </>
     ))
     .with('NO_SOURCE', () => (
-      <Notice className="text-explain__notice" title="풀이할 원문이 없어요">
-        <p>{explanation.message ?? EXPLANATION_NO_SOURCE_DEFAULT}</p>
-      </Notice>
+      <div className="mascot-row">
+        <Mascot mood="none" />
+        <Notice className="text-explain__notice" title="풀이할 원문이 없어요">
+          <p>{explanation.message ?? EXPLANATION_NO_SOURCE_DEFAULT}</p>
+        </Notice>
+      </div>
     ))
     .exhaustive()
 }

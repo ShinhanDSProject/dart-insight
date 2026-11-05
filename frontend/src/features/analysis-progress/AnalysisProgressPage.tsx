@@ -6,6 +6,7 @@ import {
   Badge,
   Button,
   ButtonLink,
+  Mascot,
   Notice,
   Page,
   PageHeader,
@@ -136,6 +137,11 @@ function Progress({ analysis }: { analysis: Analysis }) {
         <ReportCard side="current" report={analysis.current} />
       </ReportCardPair>
       <Panel aria-labelledby="progress-steps-title">
+        {match(analysis.status)
+          .with('PENDING', 'RUNNING', () => <Mascot mood="search" size="lg" className="progress__mascot" />)
+          .with('FAILED', () => <Mascot mood="none" size="md" className="progress__mascot" />)
+          .with('COMPLETED', () => null)
+          .exhaustive()}
         <PanelTitle id="progress-steps-title">원문에서 근거까지, 순서대로 확인해요</PanelTitle>
         <ol className="steps">
           {analysis.steps.map((step) => (

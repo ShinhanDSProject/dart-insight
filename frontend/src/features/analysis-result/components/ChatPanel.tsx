@@ -3,7 +3,7 @@ import { match } from 'ts-pattern'
 import type { ChatAction, ChatCitation, ChatContext, ChatMessageResponse } from '@/shared/api/agentChat'
 import type { AsyncState } from '@/shared/hooks/asyncState'
 import type { ParamChanges } from '@/shared/lib/searchParams'
-import { Badge, Button, Icon, Notice, PanelTitle, SidePanel, TextArea } from '@/shared/ui'
+import { Badge, Button, Icon, Mascot, Notice, PanelTitle, SidePanel, TextArea } from '@/shared/ui'
 import { ErrorState } from '@/shared/ui/StateView'
 import type { AgentChatController } from '../hooks/useAgentChat'
 import { ChatConfirmAction } from './ChatConfirmAction'
@@ -99,6 +99,7 @@ export function ChatPanel({ analysisId, chat, context, suggestions, onNavigate, 
             <>
               <UserLine message={message} />
               <p className="chat-panel__pending" role="status">
+                <Mascot mood="search" />
                 기능을 고르고 근거를 찾는 중이에요… 여러 번 찾으면 수십 초 걸릴 수 있어요.
               </p>
             </>
@@ -167,9 +168,12 @@ function Exchange({ exchange, analysisId, confirmed, onConfirmed, onNavigate, on
         {match(response.status)
           .with('ANSWERED', () => <AnswerBody response={response} onNavigate={onNavigate} />)
           .with('NOT_FOUND', () => (
-            <Notice tone="attention" title="확인된 설명 없음">
-              <p>{response.message ?? '실행한 기능의 결과에서 관련 자료를 찾지 못했어요.'}</p>
-            </Notice>
+            <div className="mascot-row">
+              <Mascot mood="none" />
+              <Notice tone="attention" title="확인된 설명 없음">
+                <p>{response.message ?? '실행한 기능의 결과에서 관련 자료를 찾지 못했어요.'}</p>
+              </Notice>
+            </div>
           ))
           .with('OUT_OF_SCOPE', () => (
             <Notice title="답하지 않는 요청이에요">
@@ -177,9 +181,12 @@ function Exchange({ exchange, analysisId, confirmed, onConfirmed, onNavigate, on
             </Notice>
           ))
           .with('REVIEW_NEEDED', () => (
-            <Notice tone="attention" title="검토 필요">
-              <p>{response.message ?? '답이 근거 확인을 통과하지 못해 보여 주지 않아요. 요청을 바꿔 다시 보내 주세요.'}</p>
-            </Notice>
+            <div className="mascot-row">
+              <Mascot mood="none" />
+              <Notice tone="attention" title="검토 필요">
+                <p>{response.message ?? '답이 근거 확인을 통과하지 못해 보여 주지 않아요. 요청을 바꿔 다시 보내 주세요.'}</p>
+              </Notice>
+            </div>
           ))
           .with('INCOMPLETE', () => (
             <Notice tone="attention" title="요청을 끝내지 못했어요">
@@ -208,6 +215,13 @@ function AnswerBody({ response, onNavigate }: { response: ChatMessageResponse; o
   const segments = parseChatAnswer(response.answer ?? '', response.citations)
   return (
     <>
+      {/* 근거 인용이 있는 답에만 붙인다(화면 이동·목록 같은 답은 원문을 찾은 것이 아니다) */}
+      {response.citations.length > 0 && (
+        <p className="chat-panel__found">
+          <Mascot mood="joy" />
+          원문에서 근거를 찾았어요
+        </p>
+      )}
       <p className="chat-panel__text">
         {segments.map((s, i) =>
           match(s)

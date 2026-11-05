@@ -167,3 +167,17 @@ span.chat-panel__citation {
   margin: 0;
   font-size: var(--font-size-sm);
 }
+
+/* 상태 안내 캐릭터(#706): 찾는 중·근거 찾음은 글 앞에 */
+.chat-panel__pending,
+.chat-panel__found {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.chat-panel__found {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
