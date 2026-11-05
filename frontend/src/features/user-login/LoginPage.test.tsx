@@ -26,6 +26,11 @@ function submit() {
 }
 
 describe('일반 로그인 화면', () => {
+  it('비밀번호 찾기로 가는 링크가 있다(#696)', () => {
+    renderLogin()
+    expect(screen.getByRole('link', { name: '비밀번호를 잊으셨나요?' }).getAttribute('href')).toBe('/password-reset')
+  })
+
   it('Google, 카카오, 네이버 로그인 경로를 제공한다', () => {
     renderLogin()
     expect(screen.getByRole('link', { name: 'Google로 계속하기' }).getAttribute('href'))
