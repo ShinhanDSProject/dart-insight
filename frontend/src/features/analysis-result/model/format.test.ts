@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { amountPeriodLabel, formatAmount, formatChange, formatRate, isProfitState, parseUnit, shortCalcLabel } from './format'
+import { amountPeriodLabel, formatAmount, formatApproxWon, formatChange, formatRate, isProfitState, parseUnit, shortCalcLabel } from './format'
+
+describe('formatApproxWon', () => {
+  it('1억원 이상은 억원으로, 세 자리까지만 보인다', () => {
+    expect(formatApproxWon(16_300_000_000)).toBe('약 163억원')
+    expect(formatApproxWon(1_234_567_890_000)).toBe('약 12,300억원')
+    expect(formatApproxWon(150_000_000)).toBe('약 1.5억원')
+  })
+
+  it('1억원보다 작아도 0억원이 되지 않게 단위를 낮춘다', () => {
+    expect(formatApproxWon(54_000_000)).toBe('약 54백만원')
+    expect(formatApproxWon(540_000)).toBe('약 540,000원')
+  })
+})
 
 describe('result format', () => {
   it('단위로 나눠 반올림하고 천 단위로 끊는다', () => {

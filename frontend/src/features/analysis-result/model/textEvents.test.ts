@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ApiError } from '@/shared/api/client'
 import type { TextEventItem, TextEventList, TextEventQuote, TextEventRun, TextEventUnboundChange } from '@/shared/api/textEvents'
-import { eventFieldCounts, eventListOf, eventQuotes, eventRunPolling, fieldEventLabel, needsEventStart, textEventsView, visibleEvents, visibleUnbound } from './textEvents'
+import { eventFieldCounts, eventListOf, eventQuotes, eventRunPolling, eventScaleView, fieldEventLabel, needsEventStart, textEventsView, visibleEvents, visibleUnbound } from './textEvents'
 import type { FieldCell } from './textFields'
 
 const run = (status: TextEventRun['status'], notCreatedReason: TextEventRun['notCreatedReason'] = null) => ({ status, notCreatedReason }) as TextEventRun
@@ -16,6 +16,62 @@ const quote = (purpose: TextEventQuote['purpose'], side: TextEventQuote['side'],
 const event = (eventId: number, fields: TextEventItem['fields']) => ({ eventId, fields }) as TextEventItem
 const cell = (state: FieldCell['state']): FieldCell => ({ field: 'LITIGATION', label: '소송·제재', count: state === 'changed' ? 3 : 0, state })
 const noFilter = { pinned: false, searched: false, riskOnly: false, type: null, field: null }
+
+const scale = (overrides: Partial<TextEventItem>) =>
+  ({
+    scaleAmount: 11_800_000,
+    scaleAmountText: 'USD 11,800,000',
+    currency: 'USD',
+    scaleAmountKrw: 16_300_000_000,
+    scaleEvidenceId: '20260814003958#B1576',
+    fxSource: 'reference_table',
+    fxRateDate: '2025-12-31',
+    ...overrides,
+  }) as TextEventItem
+
+describe('eventScaleView', () => {
+  it('금액을 모르면 줄을 두지 않고 0으로 보이지 않는다', () => {
+    expect(eventScaleView(scale({ scaleAmount: null, scaleAmountText: null, currency: null, scaleAmountKrw: null, scaleEvidenceId: null, fxSource: null, fxRateDate: null }))).toBeNull()
+  })
+
+  it('원래 금액은 원문 표기 그대로 보이고 근거 ID를 함께 준다', () => {
+    const view = eventScaleView(scale({}))
+    expect(view?.amount).toBe('USD 11,800,000')
+    expect(view?.evidenceId).toBe('20260814003958#B1576')
+  })
+
+  it('환율표로 환산한 외화는 한국은행 매매기준율과 기준일을 밝힌다', () => {
+    expect(eventScaleView(scale({}))?.converted).toBe('약 163억원 (기준: 한국은행 매매기준율 2025-12-31)')
+  })
+
+  it('공시 글의 환율로 환산한 외화는 한국은행 기준이라고 쓰지 않는다', () => {
+    expect(eventScaleView(scale({ fxSource: 'disclosed_rate', fxRateDate: null }))?.converted).toBe('약 163억원 (기준: 이 공시에 적힌 환율)')
+  })
+
+  it('환율이 없으면 원래 금액만 보인다', () => {
+    const view = eventScaleView(scale({ fxSource: 'none', scaleAmountKrw: null, fxRateDate: null }))
+    expect(view?.amount).toBe('USD 11,800,000')
+    expect(view?.converted).toBeNull()
+  })
+
+  it('환산액이 없으면 약 0원으로 보이지 않는다', () => {
+    expect(eventScaleView(scale({ scaleAmountKrw: null }))?.converted).toBeNull()
+  })
+
+  it('환율표 기준일을 모르면 기준을 밝힐 수 없어 환산액을 보이지 않는다', () => {
+    expect(eventScaleView(scale({ fxRateDate: null }))?.converted).toBeNull()
+  })
+
+  it('근거 위치가 없으면 근거 ID도 null이다', () => {
+    expect(eventScaleView(scale({ scaleEvidenceId: null }))?.evidenceId).toBeNull()
+  })
+
+  it('원화 금액에는 환산 줄이 없다', () => {
+    const view = eventScaleView(scale({ scaleAmount: 8_428_100_000, scaleAmountText: '8,428.1백만원', currency: 'KRW', scaleAmountKrw: 8_428_100_000, fxSource: null, fxRateDate: null }))
+    expect(view?.amount).toBe('8,428.1백만원')
+    expect(view?.converted).toBeNull()
+  })
+})
 
 describe('needsEventStart', () => {
   it('실행이 없으면 시작한다', () => {

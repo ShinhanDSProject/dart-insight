@@ -4,6 +4,7 @@ import type { TextField } from '@/shared/api/textChanges'
 import type { TextEventItem, TextEventList, TextEventNotCreatedReason, TextEventQuote, TextEventRun, TextEventUnboundChange } from '@/shared/api/textEvents'
 import type { AsyncState } from '@/shared/hooks/asyncState'
 import type { PollingOptions, PollingState } from '@/shared/hooks/pollingState'
+import { formatApproxWon } from './format'
 import type { FieldCell } from './textFields'
 import { resultCountLabel } from './textFilter'
 
@@ -22,6 +23,8 @@ export const EVENTS_RETRY_LIMITED = '여러 번 실패해 지금은 다시 시�
 export const EVENTS_EMPTY = '이번 비교에는 주요 사건으로 묶은 변경이 없어요. 분야별 표와 전체 변경은 그대로 볼 수 있어요.'
 export const UNBOUND_TITLE = '사건으로 묶이지 않은 주요 변경'
 export const UNBOUND_NOTE = '주요 변경 후보로 꼽혔지만 어느 사건에도 들어가지 않은 변경이에요. 공시 글을 그대로 보여 드려요.'
+export const SCALE_AMOUNT_LABEL = '금액'
+export const SCALE_CONVERTED_LABEL = '원화 환산 참고'
 
 /** 묶인 변경을 한 번에 보이는 건수. 사건 API는 쪽을 나누지 않아 화면에서 나눈다 */
 export const EVENT_CHANGES_PAGE_SIZE = 10
@@ -108,6 +111,30 @@ export function eventQuotes(item: TextEventItem): EventQuotes {
     current: changes.filter((quote) => quote.side === 'CURRENT'),
     reasons: item.quotes.filter((quote) => quote.purpose === 'REASON'),
   }
+}
+
+export interface EventScaleView {
+  /** 원래 통화의 금액. 원문 표기 그대로 */
+  amount: string
+  /** 외화의 원화 환산 참고값과 기준. 원화이거나 기준을 밝힐 수 없으면 null */
+  converted: string | null
+  evidenceId: string | null
+}
+
+function convertedLabel({ scaleAmountKrw, fxSource, fxRateDate }: TextEventItem): string | null {
+  if (scaleAmountKrw === null) return null
+  const approx = formatApproxWon(scaleAmountKrw)
+  return match(fxSource)
+    .with('disclosed_rate', () => `${approx} (기준: 이 공시에 적힌 환율)`)
+    .with('reference_table', () => (fxRateDate === null ? null : `${approx} (기준: 한국은행 매매기준율 ${fxRateDate})`))
+    .with(P.union('none', null), () => null)
+    .exhaustive()
+}
+
+/** 사건 카드의 금액 줄(ADR-0053). 금액을 모르면 null이고 줄이 없다. 사건끼리 더하지 않는다 */
+export function eventScaleView(item: TextEventItem): EventScaleView | null {
+  if (item.scaleAmount === null || item.scaleAmountText === null) return null
+  return { amount: item.scaleAmountText, converted: convertedLabel(item), evidenceId: item.scaleEvidenceId }
 }
 
 export type EventFieldCounts = ReadonlyMap<TextField, number>
