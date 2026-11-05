@@ -9,7 +9,7 @@ import base64
 import json
 
 from app.core.errors import ApiError, ErrorCode
-from app.llm import CallRecord, LlmUnavailable
+from app.llm import CallRecord, LlmOutputInvalid, LlmUnavailable
 
 LLM_CALLS_HEADER = "X-Llm-Calls"
 
@@ -23,3 +23,9 @@ def llm_unavailable(e: LlmUnavailable) -> ApiError:
     """503 AI_LLM_UNAVAILABLE. 호출 기록이 있으면 X-Llm-Calls 헤더에 담는다(없으면 헤더 없음)."""
     headers = {LLM_CALLS_HEADER: encode_calls(e.calls)} if e.calls else None
     return ApiError(ErrorCode.AI_LLM_UNAVAILABLE, e.message, headers=headers)
+
+
+def events_invalid_output(e: LlmOutputInvalid) -> ApiError:
+    """502 AI_EVENTS_INVALID_OUTPUT. 검증 실패한 호출 기록을 X-Llm-Calls 헤더에 담는다."""
+    headers = {LLM_CALLS_HEADER: encode_calls(e.calls)} if e.calls else None
+    return ApiError(ErrorCode.AI_EVENTS_INVALID_OUTPUT, headers=headers)

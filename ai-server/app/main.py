@@ -13,6 +13,7 @@ from app.api import (
     plan_followups,
     summaries,
     text_changes,
+    text_events,
 )
 from app.core.config import load_llm_settings
 from app.core.errors import register_error_handlers
@@ -50,6 +51,7 @@ def create_app(llm_client: LlmClient | None = None) -> FastAPI:
     app.include_router(internal.router)
     app.include_router(documents.router)
     app.include_router(text_changes.router)
+    app.include_router(text_events.router)
     app.include_router(summaries.router)
     app.include_router(answers.router)
     app.include_router(briefings.router)
