@@ -2075,6 +2075,7 @@
 | 400 | `COMMON_INVALID_INPUT` | 필수 값 없음, `basis`가 정해진 값이 아님(`errors[].field`=`basis`) |
 | 404 | `REPORT_NOT_FOUND` | 없는 보고서 |
 | 422 | `ANALYSIS_NOT_COMPARABLE` | 비교 가능성 검증을 통과하지 못함(`message`에 첫 번째 사유) |
+| 429 | `AI_QUOTA_EXCEEDED` | 새로 만들어야 하는데 오늘 새 분석 한도를 넘음(ADR-0056, 재사용·비교 불가는 세지 않음). `Retry-After`에 다음 날 0시(한국 시간)까지 남은 초 |
 | 502·503 | `DART_REQUEST_FAILED`, `DART_RATE_LIMITED`, `DART_KEY_MISSING` | 검증에 필요한 재무제표를 받지 못함 |
 
 ### GET /api/analyses/{analysisId} — 분석 상태
@@ -4049,7 +4050,7 @@ backend는 저장하기 전에 `changeNos`가 이 분석의 변경인지, `evide
 | `DART_REQUEST_FAILED` | 502 | OpenDART 호출 실패 | 잠시 뒤 다시 시도 |
 | `DART_RATE_LIMITED` | 503 | OpenDART 호출 한도 초과(020) | 내일 다시 시도, 저장된 자료 사용 |
 | `DART_KEY_MISSING` | 503 | 서버에 OpenDART 키가 없음 | 관리자 안내 |
-| `AI_QUOTA_EXCEEDED` | 429 | 질문·에이전트 채팅의 하루 한도를 넘음(ADR-0054). 로그인 안 함은 IP별 20회, 회원은 100회, 서비스 전체 3,000회가 기본값 | 메시지를 그대로 보이고, 로그인 안 했으면 로그인 안내 |
+| `AI_QUOTA_EXCEEDED` | 429 | 질문·에이전트 채팅(ADR-0054) 또는 새 분석(ADR-0056)의 하루 한도를 넘음. 기본값: 질문 비로그인 IP별 20·회원 100·전체 3,000회, 새 분석 비로그인 10·회원 30·전체 500회 | 메시지를 그대로 보이고, 로그인 안 했으면 로그인 안내(다시 시도는 숨김) |
 | `AI_SERVER_UNAVAILABLE` | 503 | AI 서버가 응답하지 않음 | 잠시 뒤 다시 시도 |
 
 ## 5. 정하지 못한 것
