@@ -12,6 +12,9 @@ spring:
       minimum-idle: 0
 
 app:
+  # 여러 테스트가 같은 IP로 질문을 부르므로 한도는 끄고, 한도 테스트(LlmQuotaApiTest)에서만 켠다
+  llm-quota:
+    enabled: false
   ai-server:
     # 테스트는 AI 서버를 실제로 부르지 않는다(가짜 서버를 띄우거나, 연결이 바로 거절되는 주소)
     base-url: http://127.0.0.1:1
