@@ -41,6 +41,7 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -100,6 +101,9 @@ class AgentCompanyToolsApiTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private Clock clock;
 
     @Autowired
     private AnalysisRepository analysisRepository;
@@ -311,11 +315,14 @@ class AgentCompanyToolsApiTest {
     @DisplayName("'회사가 밝힌 계획은?'에 전망·계획의 인용을 원문 문단 근거({접수번호}#B{번호})로 넘긴다(AC23)")
     void outlookQuoteIsBlockEvidence() throws Exception {
         Company company = companyRepository.findByCorpCode(CORP).orElseThrow();
-        company.markReportsFetched(NOW);
+        // 목록을 받은 지 24시간(refresh-after)이 지나면 다시 받으므로, 고정 시각(NOW)이 아니라 지금 시각으로 둔다.
+        // 저장된 목록은 받은 시각 이후에 본 보고서만 돌려주므로 보고서도 같은 시각으로 만든다
+        LocalDateTime fetchedAt = LocalDateTime.now(clock);
+        company.markReportsFetched(fetchedAt);
         companyRepository.save(company);
         reportRepository.save(Report.create(ANNUAL, CORP, "사업보고서 (2025.12)",
                 new ParsedReportName(ReportType.ANNUAL, 2025, LocalDate.of(2025, 12, 31), Correction.ORIGINAL),
-                LocalDate.of(2026, 3, 10), null, "예시전자", NOW));
+                LocalDate.of(2026, 3, 10), null, "예시전자", fetchedAt));
         AI.on("/internal/documents/parser", Reply.ok("{\"parserVersion\":\"dart-xml-1\"}"));
         DART.on("/api/document.xml", Response.zip(TestDocuments.zip(ANNUAL)));
         AI.on("/internal/documents/" + ANNUAL + "/structure", Reply.ok(structured()));
