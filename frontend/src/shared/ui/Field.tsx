@@ -1,5 +1,7 @@
-import type { ComponentPropsWithRef, ComponentPropsWithoutRef } from 'react'
+import { useState, type ComponentPropsWithRef, type ComponentPropsWithoutRef } from 'react'
 import { cx } from '@/shared/lib/cx'
+import { Button } from './Button'
+import { Icon } from './Icon'
 
 type FieldLabelProps = { as?: 'label' | 'span' } & ComponentPropsWithoutRef<'label'>
 
@@ -18,6 +20,29 @@ type InputProps = { invalid?: boolean } & Omit<ComponentPropsWithRef<'input'>, '
 /** 글자 입력창. invalid면 오류 색 테두리와 aria-invalid. ref는 input에 붙는다 */
 export function Input({ invalid = false, className, ...rest }: InputProps) {
   return <input className={cx('input', invalid && 'input--error', className)} aria-invalid={invalid} {...rest} />
+}
+
+/**
+ * 비밀번호 입력창(#689). 오른쪽 눈 버튼을 누르면 친 글자를 보이고(type=text) 다시 누르면 가린다.
+ * 버튼 이름은 '비밀번호 보기'로 두고 보이는 상태는 aria-pressed로 알린다. 입력이 막히면 버튼도 막힌다
+ */
+export function PasswordInput({ className, disabled, ...rest }: Omit<InputProps, 'type'>) {
+  const [shown, setShown] = useState(false)
+  return (
+    <span className="password-input">
+      <Input {...rest} disabled={disabled} type={shown ? 'text' : 'password'} className={cx('password-input__field', className)} />
+      <Button
+        variant="icon"
+        className="password-input__toggle"
+        aria-label="비밀번호 보기"
+        aria-pressed={shown}
+        disabled={disabled}
+        onClick={() => setShown((value) => !value)}
+      >
+        <Icon name={shown ? 'eye-off' : 'eye'} size={18} />
+      </Button>
+    </span>
+  )
 }
 
 /** 선택창 */
