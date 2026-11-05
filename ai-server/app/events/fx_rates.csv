@@ -1,0 +1,5 @@
+currency,base_date,unit,rate,source
+USD,2026-06-30,1,,한국은행 ECOS 매매기준율
+EUR,2026-06-30,1,,한국은행 ECOS 매매기준율
+JPY,2026-06-30,100,,한국은행 ECOS 매매기준율
+CNY,2026-06-30,1,,한국은행 ECOS 매매기준율
