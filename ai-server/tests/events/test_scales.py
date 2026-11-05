@@ -155,6 +155,43 @@ def test_after_provider_failure_other_events_use_rule_without_calling() -> None:
     assert scaled[1].scale.amount == 200_000_000
 
 
+def test_events_after_the_pick_budget_use_rule_without_calling() -> None:
+    now = [-120.0]
+    client, provider = llm({"choice": 1})
+    data = event_input(
+        change(1, current="과징금 100억원, 소송 합계 1조원"),
+        change(2, current="벌금 1억원, 과태료 2억원", block=101),
+    )
+
+    def clock() -> float:
+        now[0] += 120.0
+        return now[0]
+
+    scaled, calls = scale_events(client, data, [text_event(1), text_event(2)], {}, monotonic=clock)
+
+    assert len(provider.requests) == 1
+    assert len(calls) == 1
+    assert [e.scale.source for e in scaled] == [AI_CHOICE, RULE_FALLBACK]
+
+
+def test_events_within_the_pick_budget_keep_calling() -> None:
+    now = [-119.0]
+    client, provider = llm({"choice": 1}, {"choice": 1})
+    data = event_input(
+        change(1, current="과징금 100억원, 소송 합계 1조원"),
+        change(2, current="벌금 1억원, 과태료 2억원", block=101),
+    )
+
+    def clock() -> float:
+        now[0] += 119.0
+        return now[0]
+
+    scaled, _ = scale_events(client, data, [text_event(1), text_event(2)], {}, monotonic=clock)
+
+    assert len(provider.requests) == 2
+    assert [e.scale.source for e in scaled] == [AI_CHOICE, AI_CHOICE]
+
+
 def test_harman_fine_is_converted_with_reference_table_and_compared_in_won() -> None:
     client, _ = llm()
 

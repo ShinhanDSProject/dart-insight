@@ -30,6 +30,8 @@ class LlmRequest:
     output_schema: 받을 JSON의 모양(JSON Schema). 구조화 출력을 지원하는 제공자에 넘긴다.
     context: 프롬프트를 만든 구조화 자료. 실제 제공자는 쓰지 않고,
         가짜 응답이 그럴듯한 결과를 만들 때만 쓴다.
+    timeout_seconds / total_timeout_seconds: 이 요청에만 쓰는 호출당·전체 제한시간.
+        비우면 설정값이다(ADR-0057).
     """
 
     task: str
@@ -39,6 +41,8 @@ class LlmRequest:
     output_schema: dict[str, Any] = field(default_factory=dict)
     context: Any = None
     max_output_tokens: int = 2000
+    timeout_seconds: float | None = None
+    total_timeout_seconds: float | None = None
 
 
 @dataclass(frozen=True)
