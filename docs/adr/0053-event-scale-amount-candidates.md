@@ -1,6 +1,6 @@
 # ADR-0053: 사건 규모는 구조화 값을 먼저 쓰고, 코드가 뽑은 금액 후보 중 AI는 번호만 고른다
 
-- 상태: 채택 ('후보 1개면 그 값', 규칙 대체, 금액 문맥은 ADR-0058이 대체)
+- 상태: 채택('후보 1개면 그 값'과 규칙 대체는 ADR-0058이 대체)
 - 결정한 날: 2026-11-05
 - 관련: 이슈 #645(2.16), 기능 기획서 초안 '문장 변화 탭 개편'의 AC13(FS 번호는 등록 후 채움), [ADR-0050](0050-text-events-after-analysis.md)(규모를 코드만 정한다는 부분을 대체), [ADR-0030](0030-related-disclosure-matching.md), [ADR-0042](0042-failed-llm-calls-in-response-header.md), `ai-server/app/events/`
 

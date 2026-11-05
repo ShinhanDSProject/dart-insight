@@ -1197,7 +1197,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `scale_ratio` | DECIMAL(20,6) | | 예 | 원화 금액 ÷ 자본총계. 계산하지 못하면 null |
 | `scale_not_computed_reason` | VARCHAR(30) | | 예 | `EQUITY_MISSING`, `EQUITY_NOT_POSITIVE`, `FX_RATE_MISSING` |
 | `scale_evidence_id` | VARCHAR(40) | | 예 | 금액의 근거 ID(`{rcept_no}#B{block_no}` 또는 `{rcept_no}#{OpenDART 필드}`) |
-| `amount_source` | VARCHAR(20) | | 아니오 | `structured`, `ai_choice`, `none`. 이전 버전(`event-1`) 행에는 `single_candidate`, `rule_fallback`도 있다 |
+| `amount_source` | VARCHAR(20) | | 아니오 | `structured`, `ai_choice`, `none`, `unavailable`. 이전 버전(`event-1`) 행에는 `single_candidate`, `rule_fallback`도 있다 |
 | `fx_source` | VARCHAR(20) | | 예 | 외화일 때 `disclosed_rate`, `reference_table`, `none` |
 | `fx_rate_date` | DATE | | 예 | 환율표의 기준일 |
 | `sort_basis` | VARCHAR(20) | | 아니오 | `FRONT_KIND`, `AMOUNT`, `UNIT_COUNT` |
