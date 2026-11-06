@@ -84,7 +84,7 @@ export function MeaningPart({ item, onOpenEvidence }: { item: TextEventItem; onO
               <div key={term.term}>
                 <dt>{term.term}</dt>
                 <dd>
-                  {term.meaning} <span className="text-event__source">출처: {term.source}</span>
+                  {term.meaning} <span className="text-event__term-source">출처: {term.source}</span>
                 </dd>
               </div>
             ))}
