@@ -1169,7 +1169,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | --- | --- | --- | --- | --- |
 | `id` | BIGINT | PK | 아니오 | 자동 증가 |
 | `analysis_id` | BIGINT | FK, UK | 아니오 | `analysis.id` |
-| `event_version` | VARCHAR(20) | UK | 아니오 | 사건 버전(`TextEvents.EVENT_VERSION`, `event-2`) |
+| `event_version` | VARCHAR(20) | UK | 아니오 | 사건 버전(`TextEvents.EVENT_VERSION`, `event-3`) |
 | `attempt_no` | INT | UK | 아니오 | 같은 분석·버전의 몇 번째 실행인지. 동시 시작을 막음 |
 | `status` | VARCHAR(20) | | 아니오 | `PENDING`, `RUNNING`, `COMPLETED`, `FAILED`, `NOT_CREATED` |
 | `not_created_reason` | VARCHAR(30) | | 예 | `FAKE_MODEL`, `NO_CANDIDATES`. `NOT_CREATED`일 때만 |
