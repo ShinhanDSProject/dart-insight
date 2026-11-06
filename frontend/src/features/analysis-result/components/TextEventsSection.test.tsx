@@ -4,18 +4,63 @@ import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Analysis } from '@/shared/api/analyses'
 import type { TextChangeItem } from '@/shared/api/textChanges'
-import type { TextEventDetail, TextEventItem, TextEventList, TextEventQuote, TextEventUnboundChange } from '@/shared/api/textEvents'
+import type {
+  SignalTable,
+  TextEventDetail,
+  TextEventItem,
+  TextEventList,
+  TextEventQuote,
+  TextEventSentence,
+  TextEventSentenceItem,
+  TextEventUnboundChange,
+} from '@/shared/api/textEvents'
 import type { TextEventsView } from '../model/textEvents'
 import { axeViolations } from '@/test/axe'
 import { TextEventsArea, TextEventsSection } from './TextEventsSection'
 
 const detail = vi.hoisted(() => ({ state: { status: 'loading' } as unknown, reload: vi.fn(), calledWith: [] as number[] }))
+const signalTable = vi.hoisted(() => ({ state: { status: 'loading' } as unknown, reload: vi.fn() }))
 vi.mock('../hooks/useTextEvents', () => ({
   useTextEventDetail: (_analysisId: number, eventId: number) => {
     detail.calledWith.push(eventId)
     return { state: detail.state, reload: detail.reload }
   },
+  useSignalTable: () => ({ state: signalTable.state, reload: signalTable.reload }),
 }))
+
+const TABLE = {
+  version: 'signal-table-2',
+  signalNotice: '공시상 신호이며 투자 판단이 아니에요.',
+  kinds: [
+    {
+      code: 'SANCTION',
+      name: '제재',
+      front: false,
+      changes: [
+        { code: 'OCCURRED', name: '새로 발생', signal: 'CAUTION', explicitOnly: false, general: null },
+        { code: 'CANCELLED', name: '취소', signal: 'POSITIVE', explicitOnly: true, general: null },
+      ],
+      generalSides: null,
+    },
+  ],
+  glossary: [],
+} as SignalTable
+
+const EVIDENCE_PATH = 'XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 3. 제재 등'
+const sentenceItem = (type: TextEventSentenceItem['type'], text: string, evidenceId = '20260814003958#B102'): TextEventSentenceItem => ({
+  type,
+  text,
+  evidence: type === 'GENERAL' ? [] : [{ evidenceId, sectionPath: EVIDENCE_PATH }],
+})
+const sentence = (status: TextEventSentence['status'], items: TextEventSentenceItem[]): TextEventSentence => ({
+  status,
+  failReason: status === 'GENERATED' ? null : 'INVALID_OUTPUT',
+  aiGenerated: status === 'GENERATED',
+  items,
+  model: null,
+  promptVersion: null,
+  generatedAt: null,
+})
 
 const analysis = {
   analysisId: 16,
@@ -38,6 +83,16 @@ function event(overrides: Partial<TextEventItem> = {}): TextEventItem {
     sortOrder: 1,
     title: '과징금을 새로 부과받았어요',
     kind: '제재',
+    kindCode: 'SANCTION',
+    changeCode: 'OCCURRED',
+    changeName: '새로 발생',
+    signal: 'CAUTION',
+    holdReason: null,
+    rowCounts: null,
+    meaning: null,
+    signalReason: null,
+    glossary: [],
+    scaleRatio: null,
     fields: ['LITIGATION'],
     changeIds: [101, 102],
     quotes: [quote(101, 'CHANGE', 'PREVIOUS', '이전 보고서의 글'), quote(102, 'CHANGE', 'CURRENT', '이번 보고서의 글')],
@@ -76,6 +131,8 @@ beforeEach(() => {
   detail.state = { status: 'loading' }
   detail.reload.mockReset()
   detail.calledWith = []
+  signalTable.state = { status: 'success', data: TABLE }
+  signalTable.reload.mockReset()
 })
 afterEach(cleanup)
 
@@ -222,6 +279,165 @@ describe('TextEventsSection', () => {
     open()
 
     expect(await axeViolations(container)).toBe('')
+  })
+})
+
+describe('TextEventsSection 신호와 사건 문장', () => {
+  const part = (title: string) => within(screen.getByRole('heading', { name: new RegExp(`^${title}`) }).closest('section') as HTMLElement)
+  const generated = {
+    meaning: sentence('GENERATED', [sentenceItem('FACT', '지난 보고서에 없던 과징금이 새로 적혔어요.'), sentenceItem('ABSENT', '손익 영향은 이 문단에 적혀 있지 않아요.', '20260814003958#B103')]),
+    signalReason: sentence('GENERATED', [sentenceItem('REASON', '당국이 회계처리를 위반으로 판단했어요.'), sentenceItem('REASON', '대표이사에게도 과징금이 부과됐어요.')]),
+  }
+
+  it('접힌 카드에도 신호가 글자로 보인다(AC9)', () => {
+    show([event(), event({ eventId: 8, title: '보류 사건', signal: 'HOLD', holdReason: 'NO_CRITERIA' })])
+
+    expect(within(screen.getByRole('article', { name: '과징금을 새로 부과받았어요' })).getByText('주의 신호')).toBeTruthy()
+    expect(within(screen.getByRole('article', { name: '보류 사건' })).getByText('보류')).toBeTruthy()
+  })
+
+  it('기준표를 받으면 기준표의 안내가 사건 절에 보인다', () => {
+    show([event()])
+
+    expect(screen.getByText('공시상 신호이며 투자 판단이 아니에요.')).toBeTruthy()
+  })
+
+  it('기준표를 받지 못해도 투자 판단이나 추천이 아니라는 안내는 남는다(R15)', () => {
+    signalTable.state = { status: 'error', error: new Error('실패') }
+    show([event()])
+
+    expect(screen.getByText(/투자 판단이나 추천이 아니에요/)).toBeTruthy()
+  })
+
+  it('공시의 의미에 AI 생성 표시와 문장별 원문 위치가 있고, 없음 문장은 확인한 범위로 보인다(AC15)', () => {
+    show([event(generated)])
+    open()
+
+    const meaning = part('공시의 의미')
+    expect(meaning.getByText('AI 생성')).toBeTruthy()
+    expect(meaning.getByText('지난 보고서에 없던 과징금이 새로 적혔어요.')).toBeTruthy()
+    expect(meaning.getByText('손익 영향은 이 문단에 적혀 있지 않아요.')).toBeTruthy()
+    expect(meaning.getAllByText(/3\. 제재 등/)).toHaveLength(2)
+    expect(meaning.getByText(/확인한 범위/)).toBeTruthy()
+  })
+
+  it('근거가 인용과 같은 블록이면 그 변경의 원문 비교를 연다', () => {
+    const { onOpenEvidence } = show([event(generated)])
+    open()
+
+    fireEvent.click(part('공시의 의미').getByRole('button', { name: /원문 비교/ }))
+
+    expect(onOpenEvidence).toHaveBeenCalledWith(102)
+  })
+
+  it('공시의 의미가 실패하면 AI 문장 없이 용어 풀이만 보인다(AC16)', () => {
+    const glossary = [{ term: '약식명령', meaning: '정식 재판 없이 벌금 등을 정하는 절차예요.', source: '법령' }]
+    show([event({ meaning: sentence('FAILED', []), glossary })])
+    open()
+
+    expect(screen.queryByRole('heading', { name: /^공시의 의미/ })).toBeNull()
+    const terms = part('용어 풀이')
+    expect(terms.getByText('약식명령')).toBeTruthy()
+    expect(terms.getByText('정식 재판 없이 벌금 등을 정하는 절차예요.')).toBeTruthy()
+    expect(terms.queryByText('AI 생성')).toBeNull()
+  })
+
+  it('신호 이유에 판정 줄과 근거, 근거별 원문 위치가 있다(AC17)', () => {
+    show([event({ ...generated, scaleRatio: 0.000_7 })])
+    open()
+
+    const reason = part('신호 이유')
+    expect(reason.getByText('AI 생성')).toBeTruthy()
+    expect(reason.getByText('제재 · 새로 발생 · 자본총계의 약 0.07%')).toBeTruthy()
+    expect(reason.getByText('당국이 회계처리를 위반으로 판단했어요.')).toBeTruthy()
+    expect(reason.getByText('대표이사에게도 과징금이 부과됐어요.')).toBeTruthy()
+    expect(reason.getAllByText(/3\. 제재 등/)).toHaveLength(2)
+    expect(reason.queryByText('일반적인 설명이에요.')).toBeNull()
+  })
+
+  it('기준 보기를 누르면 기준표가 열리고 이 사건의 줄이 표시된다(AC17)', () => {
+    show([event(generated)])
+    open()
+
+    fireEvent.click(screen.getByRole('button', { name: '기준 보기' }))
+
+    const dialog = within(screen.getByRole('dialog', { name: '신호 기준표' }))
+    expect(dialog.getByText('공시상 신호이며 투자 판단이 아니에요.')).toBeTruthy()
+    const rows = dialog.getAllByRole('row').slice(1)
+    expect(rows.map((row) => row.textContent)).toEqual(['제재새로 발생주의 신호이 사건', '제재취소긍정 신호'])
+    fireEvent.click(dialog.getByRole('button', { name: '닫기' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('기준표를 받지 못하면 대화상자에서 다시 시도할 수 있다', () => {
+    signalTable.state = { status: 'error', error: new Error('실패') }
+    show([event(generated)])
+    open()
+    fireEvent.click(screen.getByRole('button', { name: '기준 보기' }))
+
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: '다시 시도' }))
+
+    expect(signalTable.reload).toHaveBeenCalled()
+  })
+
+  it('기준이 없거나 근거를 확인하지 못한 보류는 사유 문구가 보인다(AC14)', () => {
+    show([event({ title: '기준 없음', signal: 'HOLD', holdReason: 'NO_CRITERIA' }), event({ eventId: 8, title: '근거 없음', signal: 'HOLD', holdReason: 'EVIDENCE_NOT_CONFIRMED' })])
+    screen.getAllByRole('button', { name: '펼치기' }).forEach((button) => fireEvent.click(button))
+
+    expect(within(screen.getByRole('article', { name: '기준 없음' })).getByText('판단 기준이 아직 없는 사건이에요.')).toBeTruthy()
+    expect(within(screen.getByRole('article', { name: '근거 없음' })).getByText('근거를 확인하지 못했어요.')).toBeTruthy()
+  })
+
+  it('좋은 면과 나쁜 면이 함께인 보류는 좋은 면·나쁜 면이 근거 위치와 함께 보인다(AC18)', () => {
+    show([event({ signal: 'HOLD', holdReason: 'MIXED_SIDES', signalReason: sentence('GENERATED', [sentenceItem('GOOD', '자금이 들어와요.'), sentenceItem('BAD', '지분 비율이 줄 수 있어요.')]) })])
+    open()
+
+    const reason = part('신호 이유')
+    expect(reason.getByText('좋은 면과 나쁜 면이 함께 있어요.')).toBeTruthy()
+    expect(reason.getByText('좋은 면')).toBeTruthy()
+    expect(reason.getByText('나쁜 면')).toBeTruthy()
+    expect(reason.getAllByText(/3\. 제재 등/)).toHaveLength(2)
+  })
+
+  it('섞인 소송은 좋은 면·나쁜 면 없이 판단하지 않은 이유가 보인다(AC19)', () => {
+    show([event({ kind: '소송', changeName: '진행', signal: 'HOLD', holdReason: 'MIXED_LITIGATION', rowCounts: { changed: 2, added: 3, missing: 11 }, ...generated, signalReason: sentence('GENERATED', [sentenceItem('WHY_HOLD', '유불리는 사건마다 달라요.')]) })])
+    open()
+
+    const reason = part('신호 이유')
+    expect(reason.getByText('여러 소송의 진행 상황이 섞여 있어요.')).toBeTruthy()
+    expect(reason.getByText('유불리는 사건마다 달라요.')).toBeTruthy()
+    expect(reason.queryByText('좋은 면')).toBeNull()
+    expect(screen.getByRole('heading', { name: /^공시의 의미/ })).toBeTruthy()
+  })
+
+  it('신호 이유가 실패하면 일반 문구와 일반적인 설명이라는 표시가 AI 생성 표시 없이 보인다(AC20)', () => {
+    show([event({ signalReason: sentence('FALLBACK', [sentenceItem('GENERAL', '제재를 받은 것이라 부담이 생길 수 있어요.')]) })])
+    open()
+
+    const reason = part('신호 이유')
+    expect(reason.getByText('제재를 받은 것이라 부담이 생길 수 있어요.')).toBeTruthy()
+    expect(reason.getByText('일반적인 설명이에요.')).toBeTruthy()
+    expect(reason.queryByText('AI 생성')).toBeNull()
+  })
+
+  it('섞인 소송의 신호 이유가 실패하면 코드 첫 줄과 행 건수만 보인다(AC20)', () => {
+    show([event({ kind: '소송', changeName: '진행', signal: 'HOLD', holdReason: 'MIXED_LITIGATION', rowCounts: { changed: 2, added: 3, missing: 11 }, signalReason: sentence('FALLBACK', []) })])
+    open()
+
+    const reason = part('신호 이유')
+    expect(reason.getByText('여러 소송의 진행 상황이 섞여 있어요.')).toBeTruthy()
+    expect(reason.getByText('바뀐 행 2건 · 새 행 3건 · 이번엔 없는 행 11건')).toBeTruthy()
+    expect(reason.queryByText('일반적인 설명이에요.')).toBeNull()
+  })
+
+  it('모든 칸을 펼친 카드와 기준표에 접근성 위반이 없다', async () => {
+    const { container } = show([event({ ...generated, glossary: [{ term: '과징금', meaning: '뜻', source: '법령' }] })])
+    open()
+    expect(await axeViolations(container)).toBe('')
+
+    fireEvent.click(screen.getByRole('button', { name: '기준 보기' }))
+
+    expect(await axeViolations(document.body)).toBe('')
   })
 })
 

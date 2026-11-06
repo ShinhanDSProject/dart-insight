@@ -49,6 +49,16 @@ export function formatApproxWon(value: number): string {
   return `약 ${approxFormat.format(value / unit.divisor)}${unit.label}`
 }
 
+const approxPercentFormat = new Intl.NumberFormat('ko-KR', { maximumSignificantDigits: 2 })
+const MIN_PERCENT = 0.001
+
+/** 사건 규모처럼 대략의 크기만 보이는 비율. 예: 약 0.07%. 아주 작으면 0%가 되지 않게 '0.001% 미만' */
+export function formatApproxPercent(ratio: number): string {
+  const percent = ratio * 100
+  if (percent > 0 && percent < MIN_PERCENT) return `${MIN_PERCENT}% 미만`
+  return `약 ${approxPercentFormat.format(percent)}%`
+}
+
 /** 증감액: 방향 기호와 절댓값. 예: ▲ 1,234 / ▼ 1,234 / 0. 단위보다 작은 변화는 '1 미만' */
 export function formatChange(value: number | null, unit: AmountUnit): string | null {
   if (value === null) return null

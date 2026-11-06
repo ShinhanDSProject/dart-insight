@@ -105,6 +105,10 @@
   --color-added: var(--color-increase);
   --color-added-subtle: var(--color-increase-subtle);
 
+  /* 색: 사건의 긍정 신호(ADR-0060). 증가와 같은 초록이고, 배지에 '긍정 신호'를 글자로 함께 쓴다 */
+  --color-positive: var(--color-increase);
+  --color-positive-subtle: var(--color-increase-subtle);
+
   /* 색: 주의('검토 필요', '확인된 설명 없음', 예외 경로) — 하나만 쓴다. 옅은 노랑 바탕 + 갈색 글자(대비 5.8) */
   --color-attention: #8a5300;
   --color-attention-subtle: #fff5e0;

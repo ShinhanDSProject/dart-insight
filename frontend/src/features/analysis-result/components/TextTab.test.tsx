@@ -54,6 +54,7 @@ const detail = vi.hoisted(() => ({ state: { status: 'loading' } as unknown }))
 vi.mock('../hooks/useTextEvents', () => ({
   useTextEvents: () => ({ view: events.list === null ? events.view : { status: 'ready', list: events.list }, retry: events.retry }),
   useTextEventDetail: () => ({ state: detail.state, reload: () => {} }),
+  useSignalTable: () => ({ state: { status: 'loading' }, reload: () => {} }),
 }))
 vi.mock('../hooks/usePinnedChanges', () => ({
   usePinnedChanges: () => ({
@@ -425,11 +426,19 @@ describe('TextTab 주요 사건(3.37)', () => {
           eventId: 7,
           title: '과징금을 새로 부과받았어요',
           kind: '제재',
+          changeName: '새로 발생',
+          signal: 'CAUTION',
+          holdReason: null,
+          rowCounts: null,
+          meaning: null,
+          signalReason: null,
+          glossary: [],
           fields: ['LITIGATION'],
           changeIds: [changeId],
           quotes: [{ changeId, purpose: 'CHANGE', side: 'CURRENT', text: '이번 글', evidenceId: '20250314000100#B1', sectionPath: 'XI. 그 밖에' }],
           scaleAmount: null,
           scaleAmountText: null,
+          scaleRatio: null,
         },
       ],
       unboundChanges: [],

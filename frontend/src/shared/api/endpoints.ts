@@ -63,6 +63,7 @@ export const endpoints = {
   currentEventRun: (analysisId: number) => `${analysis(analysisId)}/event-runs/current`,
   textEvents: (analysisId: number) => `${analysis(analysisId)}/events`,
   textEvent: (analysisId: number, eventId: number) => `${analysis(analysisId)}/events/${seg(eventId)}`,
+  currentSignalTable: () => '/api/signal-tables/current',
   document: (analysisId: number, side: string) => `${analysis(analysisId)}/documents/${seg(side)}`,
   documentSection: (analysisId: number, side: string, sectionNo: number) =>
     `${analysis(analysisId)}/documents/${seg(side)}/sections/${seg(sectionNo)}`,
