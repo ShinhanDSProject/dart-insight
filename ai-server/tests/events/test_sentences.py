@@ -13,8 +13,11 @@ from app.events.model import (
     CAUTION,
     CURRENT,
     FAILED,
+    FALLBACK,
     GENERATED,
+    HOLD,
     LLM_UNAVAILABLE,
+    NO_CRITERIA,
     EventChange,
     EventInput,
     EventSignal,
@@ -22,6 +25,7 @@ from app.events.model import (
     TextEvent,
 )
 from app.events.sentences import MAX_CONCURRENT_CALLS, SENTENCE_BUDGET_SECONDS, write_sentences
+from app.events.signal_reason_prompt import TASK as REASON_TASK
 from app.llm import FakeProvider, LlmClient, LlmRequest, ProviderError
 from app.llm.providers import ProviderResponse
 
@@ -46,8 +50,17 @@ def answer(request: LlmRequest) -> dict[str, Any]:
     }
 
 
+def reasons(request: LlmRequest) -> dict[str, Any]:
+    first = request.context[0].evidence_id
+    item = {"type": "REASON", "text": "회사가 소송에서 졌어요.", "evidenceIds": [first]}
+    return {"items": [item, item]}
+
+
+RESPONDERS = {TASK: answer, REASON_TASK: reasons}
+
+
 def llm(provider: FakeProvider | None = None) -> LlmClient:
-    provider = provider or ScriptedProvider(responders={TASK: answer}, model="scripted-model")
+    provider = provider or ScriptedProvider(responders=RESPONDERS, model="scripted-model")
     settings = LlmSettings(provider="scripted", max_retries=0, max_output_retries=2)
     return LlmClient(provider, settings, sleep=lambda _: None)
 
@@ -67,14 +80,19 @@ def data(count: int) -> EventInput:
     return EventInput("20250814003156", CURRENT_RCEPT, changes)
 
 
-def events(count: int) -> list[TextEvent]:
+# 기준 없는 보류는 신호 이유를 부르지 않는다. 공시의 의미만 보는 테스트에 쓴다
+UNSIGNED = EventSignal("OTHER", "OTHER", "그 밖의 변화", HOLD, NO_CRITERIA)
+SIGNED = EventSignal("LITIGATION", "LOST", "패소", CAUTION)
+
+
+def events(count: int, signal: EventSignal = UNSIGNED) -> list[TextEvent]:
     return [
         TextEvent(
             f"사건 {no}",
             "소송",
             [no],
             [Quote(no, "CHANGE", CURRENT, "소송에서 졌습니다", evidence_of(no))],
-            signal=EventSignal("LITIGATION", "LOST", "패소", CAUTION),
+            signal=signal,
         )
         for no in range(1, count + 1)
     ]
@@ -162,3 +180,50 @@ def test_events_after_the_llm_becomes_unavailable_are_not_called() -> None:
 
 def test_no_events_make_no_calls() -> None:
     assert write_sentences(llm(), data(0), []) == ([], [])
+
+
+def test_signed_event_gets_a_signal_reason_after_its_meaning() -> None:
+    written, calls = write_sentences(llm(), data(2), events(2, SIGNED))
+
+    assert [c.task for c in calls] == [TASK, REASON_TASK, TASK, REASON_TASK]
+    reasons_of = [e.signal_reason for e in written]
+    assert [r.status if r else None for r in reasons_of] == [GENERATED, GENERATED]
+    assert [r.items[0].evidence_ids if r else None for r in reasons_of] == [
+        (evidence_of(1),),
+        (evidence_of(2),),
+    ]
+
+
+def test_hold_without_criteria_has_no_signal_reason() -> None:
+    written, calls = write_sentences(llm(), data(1), events(1))
+
+    assert written[0].signal_reason is None
+    assert [c.task for c in calls] == [TASK]
+
+
+def test_signal_reason_after_the_budget_falls_back_to_the_general_phrase() -> None:
+    times = iter([0.0, 0.0, SENTENCE_BUDGET_SECONDS])
+
+    written, calls = write_sentences(
+        llm(),
+        data(1),
+        events(1, SIGNED),
+        monotonic=lambda: next(times, SENTENCE_BUDGET_SECONDS),
+        workers=1,
+    )
+
+    reason = written[0].signal_reason
+    assert reason is not None
+    assert (reason.status, reason.fail_reason) == (FALLBACK, BUDGET_EXCEEDED)
+    assert reason.items[0].text.startswith("판결이 확정되면")
+    assert [c.task for c in calls] == [TASK]
+
+
+def test_signal_reason_after_the_llm_becomes_unavailable_falls_back() -> None:
+    provider = ScriptedProvider(script=[ProviderError("인증 실패")], responders=RESPONDERS)
+
+    written, _ = write_sentences(llm(provider), data(1), events(1, SIGNED), workers=1)
+
+    reason = written[0].signal_reason
+    assert reason is not None
+    assert (reason.status, reason.fail_reason) == (FALLBACK, LLM_UNAVAILABLE)
