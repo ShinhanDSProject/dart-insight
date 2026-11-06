@@ -141,6 +141,9 @@ def test_valid_answer_is_returned_with_call_record() -> None:
     assert call.outcome == "OK"
     assert call.input_tokens is not None and call.output_tokens is not None
     assert call.to_dict()["promptVersion"] == "test-v1"
+    # 세부 토큰 필드는 늘 있고 모르면 null이다(#633)
+    assert call.to_dict()["cachedInputTokens"] is None
+    assert call.to_dict()["reasoningTokens"] is None
     assert len(provider.requests) == 1
 
 

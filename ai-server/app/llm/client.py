@@ -89,6 +89,9 @@ class CallRecord:
     attempt: int
     outcome: str  # OUTCOME_*
     error: str | None = None
+    # input_tokens 중 캐시에서 읽은 토큰, output_tokens 중 추론 토큰. 모르면 None(#633)
+    cached_input_tokens: int | None = None
+    reasoning_tokens: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -100,6 +103,8 @@ class CallRecord:
             "traceId": self.trace_id,
             "inputTokens": self.input_tokens,
             "outputTokens": self.output_tokens,
+            "cachedInputTokens": self.cached_input_tokens,
+            "reasoningTokens": self.reasoning_tokens,
             "latencyMs": self.latency_ms,
             "attempt": self.attempt,
             "outcome": self.outcome,
@@ -250,6 +255,8 @@ class LlmClient:
                 model=response.model,
                 input_tokens=response.input_tokens,
                 output_tokens=response.output_tokens,
+                cached_input_tokens=response.cached_input_tokens,
+                reasoning_tokens=response.reasoning_tokens,
             )
             calls.append(record)
             return response.text, record
@@ -265,6 +272,8 @@ class LlmClient:
         input_tokens: int | None = None,
         output_tokens: int | None = None,
         error: str | None = None,
+        cached_input_tokens: int | None = None,
+        reasoning_tokens: int | None = None,
     ) -> CallRecord:
         assert self.provider is not None
         return CallRecord(
@@ -280,6 +289,8 @@ class LlmClient:
             attempt=attempt,
             outcome=outcome,
             error=error,
+            cached_input_tokens=cached_input_tokens,
+            reasoning_tokens=reasoning_tokens,
         )
 
 
