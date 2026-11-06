@@ -45,6 +45,24 @@ NO_CRITERIA = "NO_CRITERIA"
 EVIDENCE_NOT_CONFIRMED = "EVIDENCE_NOT_CONFIRMED"
 MIXED_SIDES = "MIXED_SIDES"
 MIXED_LITIGATION = "MIXED_LITIGATION"
+# 공시의 의미 문장의 종류(ADR-0060). ABSENT는 공시에 없는 것을 적은 '없음' 문장이다
+FACT = "FACT"
+ABSENT = "ABSENT"
+MEANING_TYPES = (FACT, ABSENT)
+# '없음' 문장이 없다고 쓴 항목
+TOPIC_AMOUNT = "AMOUNT"
+TOPIC_SCHEDULE = "SCHEDULE"
+TOPIC_PNL_IMPACT = "PNL_IMPACT"
+TOPIC_FOLLOW_UP = "FOLLOW_UP"
+TOPIC_BURDEN = "BURDEN"
+ABSENT_TOPICS = (TOPIC_AMOUNT, TOPIC_SCHEDULE, TOPIC_PNL_IMPACT, TOPIC_FOLLOW_UP, TOPIC_BURDEN)
+# 사건 문장의 상태와 실패 사유
+GENERATED = "GENERATED"
+FALLBACK = "FALLBACK"
+FAILED = "FAILED"
+INVALID_OUTPUT = "INVALID_OUTPUT"
+LLM_UNAVAILABLE = "LLM_UNAVAILABLE"
+BUDGET_EXCEEDED = "BUDGET_EXCEEDED"
 
 
 @dataclass(frozen=True)
@@ -175,6 +193,37 @@ class EventSignal:
 
 
 @dataclass(frozen=True)
+class GlossaryTerm:
+    """기준표의 용어 풀이. 출처(source)를 확인한 것만 사건에 붙인다."""
+
+    term: str
+    meaning: str
+    source: str | None
+
+
+@dataclass(frozen=True)
+class SentenceItem:
+    """사건 문장 하나. 근거 ID는 그 사건에 묶인 변경의 블록이다."""
+
+    type: str
+    text: str
+    evidence_ids: tuple[str, ...]
+    absent_topics: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class EventSentence:
+    """사건 문장 칸 하나(공시의 의미 등). model·prompt_version·generated_at은 마지막 호출이다."""
+
+    status: str
+    items: tuple[SentenceItem, ...] = ()
+    fail_reason: str | None = None
+    model: str | None = None
+    prompt_version: str | None = None
+    generated_at: str | None = None
+
+
+@dataclass(frozen=True)
 class TextEvent:
     title: str
     kind: str
@@ -184,3 +233,5 @@ class TextEvent:
     basis: str = UNIT_COUNT
     pick: SignalPick = SignalPick()
     signal: EventSignal | None = None
+    meaning: EventSentence | None = None
+    glossary: tuple[GlossaryTerm, ...] = ()
