@@ -6,7 +6,8 @@ import type { TextEventItem, TextEventList, TextEventQuote, TextEventUnboundChan
 import { Badge, Button, Card, Notice, Skeleton } from '@/shared/ui'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { displaySectionPath } from '@/shared/lib/sectionTitle'
-import { useTextEventDetail } from '../hooks/useTextEvents'
+import { useSignalTable, useTextEventDetail } from '../hooks/useTextEvents'
+import { signalBadge } from '../model/eventSignal'
 import {
   CHANGE_QUOTES_TITLE,
   EVENT_CHANGES_PAGE_SIZE,
@@ -37,6 +38,7 @@ import { textFieldLabel } from '../model/textFields'
 import { resultCountLabel } from '../model/textFilter'
 import { changeTypeLabel, missingSideLabel } from '../model/textLabels'
 import { SidePreview } from './SidePreview'
+import { MeaningPart, SignalCriteriaDialog, SignalReasonPart } from './TextEventSignalParts'
 import { TextListFooter } from './TextListFooter'
 
 interface TextEventsSectionProps {
@@ -90,8 +92,13 @@ export function TextEventsArea({ analysis, view, scope, onRetry, onOpenEvidence,
     .exhaustive()
 }
 
-/** 분야별 표 아래의 주요 사건(3.37). 순서는 서버가 정한 그대로이고, 카드를 펼치면 인용과 묶인 변경을 본다 */
+/**
+ * 분야별 표 아래의 주요 사건(3.37). 순서는 서버가 정한 그대로이고, 카드를 펼치면 인용, 사건 문장, 묶인 변경을 본다.
+ * 신호를 보여 주므로 기준표의 안내를 함께 둔다(ADR-0060). 기준표를 받지 못해도 '투자 판단이나 추천이 아니에요'는 남는다
+ */
 export function TextEventsSection({ analysis, list, items, onOpenEvidence, renderChanges }: TextEventsSectionProps) {
+  const { state: table, reload } = useSignalTable()
+  const [criteriaFor, setCriteriaFor] = useState<TextEventItem | null>(null)
   if (items.length === 0) return null
   return (
     <section className="text-events" aria-labelledby="text-events-title">
@@ -99,6 +106,7 @@ export function TextEventsSection({ analysis, list, items, onOpenEvidence, rende
         {EVENTS_TITLE} {resultCountLabel(items.length)}
       </h3>
       <p className="panel__note">{EVENTS_NOTE}</p>
+      {table.status === 'success' && <p className="panel__note">{table.data.signalNotice}</p>}
       {list.droppedEventCount > 0 && (
         <Notice as="p" tone="attention">
           {EVENTS_DROPPED_NOTE}
@@ -107,10 +115,11 @@ export function TextEventsSection({ analysis, list, items, onOpenEvidence, rende
       <ol className="text-events__list">
         {items.map((item) => (
           <li key={item.eventId}>
-            <TextEventCard analysis={analysis} item={item} onOpenEvidence={onOpenEvidence} renderChanges={renderChanges} />
+            <TextEventCard analysis={analysis} item={item} onOpenEvidence={onOpenEvidence} onOpenCriteria={() => setCriteriaFor(item)} renderChanges={renderChanges} />
           </li>
         ))}
       </ol>
+      {criteriaFor !== null && <SignalCriteriaDialog item={criteriaFor} table={table} onRetry={reload} onClose={() => setCriteriaFor(null)} />}
     </section>
   )
 }
@@ -164,21 +173,23 @@ function UnboundCard({ analysis, change, onOpenEvidence }: { analysis: Analysis;
   )
 }
 
-type TextEventCardProps = Omit<TextEventsSectionProps, 'list' | 'items'> & { item: TextEventItem }
+type TextEventCardProps = Omit<TextEventsSectionProps, 'list' | 'items'> & { item: TextEventItem; onOpenCriteria: () => void }
 
-function TextEventCard({ analysis, item, onOpenEvidence, renderChanges }: TextEventCardProps) {
+function TextEventCard({ analysis, item, onOpenEvidence, onOpenCriteria, renderChanges }: TextEventCardProps) {
   const [open, setOpen] = useState(false)
   const [showChanges, setShowChanges] = useState(false)
   const bodyId = `text-event-${item.eventId}`
   const changesId = `text-event-changes-${item.eventId}`
   const quotes = eventQuotes(item)
   const scale = eventScaleView(item)
+  const signal = signalBadge(item.signal)
   const quoteList = (entries: TextEventQuote[]) =>
     entries.map((quote, index) => <QuoteBlock key={`${quote.evidenceId}-${index}`} quote={quote} onOpenEvidence={onOpenEvidence} />)
   return (
     <Card as="article" className="text-event" aria-label={item.title}>
       <div className="text-event__head">
         <h4 className="text-event__title">{item.title}</h4>
+        <Badge tone={signal.tone}>{signal.label}</Badge>
         <Badge tone="accent">AI 생성</Badge>
         <Badge>{item.kind}</Badge>
       </div>
@@ -226,6 +237,8 @@ function TextEventCard({ analysis, item, onOpenEvidence, renderChanges }: TextEv
               <p className="panel__note">{NO_REASON}</p>
             )}
           </div>
+          <MeaningPart item={item} onOpenEvidence={onOpenEvidence} />
+          <SignalReasonPart item={item} onOpenEvidence={onOpenEvidence} onOpenCriteria={onOpenCriteria} />
           <Button
             variant="secondary"
             className="text-event__actions"

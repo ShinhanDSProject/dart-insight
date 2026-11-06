@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { amountPeriodLabel, formatAmount, formatApproxWon, formatChange, formatRate, isProfitState, parseUnit, shortCalcLabel } from './format'
+import { amountPeriodLabel, formatAmount, formatApproxPercent, formatApproxWon, formatChange, formatRate, isProfitState, parseUnit, shortCalcLabel } from './format'
+
+describe('formatApproxPercent', () => {
+  it('비율을 두 자리까지의 대략의 퍼센트로 보인다', () => {
+    expect(formatApproxPercent(0.000_7)).toBe('약 0.07%')
+    expect(formatApproxPercent(0.943_2)).toBe('약 94%')
+    expect(formatApproxPercent(0.24)).toBe('약 24%')
+  })
+
+  it('아주 작은 비율은 0%가 되지 않게 미만으로 보인다', () => {
+    expect(formatApproxPercent(0.000_000_8)).toBe('0.001% 미만')
+  })
+})
 
 describe('formatApproxWon', () => {
   it('1억원 이상은 억원으로, 세 자리까지만 보인다', () => {

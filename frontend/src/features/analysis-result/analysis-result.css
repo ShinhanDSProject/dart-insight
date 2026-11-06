@@ -748,6 +748,84 @@
   align-self: flex-start;
 }
 
+/* 사건 문장(공시의 의미, 신호 이유, 3.41). 문장마다 아래에 원문 위치를 둔다 */
+.text-event__part-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.text-event__part-title--minor {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.text-event__sentences {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.text-event__sentence {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.text-event__sentence p,
+.text-event__first-line,
+.text-event__judgment {
+  margin: 0;
+}
+
+.text-event__side {
+  margin-right: var(--space-2);
+}
+
+.text-event__judgment {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+  font-size: var(--font-size-sm);
+}
+
+.text-event__judgment-label {
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-semibold);
+}
+
+.text-event__glossary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.text-event__glossary dt {
+  font-weight: var(--font-weight-semibold);
+}
+
+.text-event__glossary dd {
+  margin: 0;
+}
+
+.signal-criteria p {
+  margin: 0 0 var(--space-3);
+}
+
+.signal-criteria__table {
+  max-height: 60vh;
+}
+
+.signal-criteria .badge {
+  margin-left: var(--space-2);
+}
+
 /* 위험 요인 변화 카드(3.9, FS-61). 건수는 중립색 큰 숫자(StatNumber) */
 .risk-card {
   display: flex;

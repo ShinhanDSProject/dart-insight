@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
-import { getCurrentEventRun, getTextEvent, getTextEvents, startEventRun, type TextEventRun } from '@/shared/api/textEvents'
+import { getCurrentEventRun, getSignalTable, getTextEvent, getTextEvents, startEventRun, type TextEventRun } from '@/shared/api/textEvents'
 import { useAsync } from '@/shared/hooks/useAsync'
 import { usePolling } from '@/shared/hooks/usePolling'
 import { eventRunPolling, needsEventStart, textEventsView, type TextEventsView } from '../model/textEvents'
@@ -40,6 +40,11 @@ export function useTextEvents(analysisId: number): TextEvents {
   }
   // 다시 시도를 누른 뒤 첫 응답을 기다리는 동안 자리가 비지 않게 한다
   return { view: retried && run.status === 'loading' ? { status: 'building' } : textEventsView(run, events), retry }
+}
+
+/** 지금 사건 버전의 신호 기준표. 안내(signalNotice)와 '기준 보기'에 쓴다 */
+export function useSignalTable() {
+  return useAsync(getSignalTable)
 }
 
 /** 사건 하나와 묶인 변경. '변경 보기'를 처음 누를 때 마운트해 부른다 */

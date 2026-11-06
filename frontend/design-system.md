@@ -165,6 +165,7 @@ W-03 ④ 원문 확인
 | 주의 | `#8a5300` on `#fff5e0` | `--color-attention`(`-subtle`) | '검토 필요', '확인된 설명 없음', 예외 안내(옅은 노랑 바탕 + 갈색 글자). 대비 5.8, 흰 배경 6.3 |
 | 오류 | `#b74250` on `#fff0f2` | `--color-danger`(`-subtle`) | 요청 실패, 비교 불가·분석 실패 안내 상자(`Notice blocked`)와 배지(`Badge danger`). 대비 5.4 |
 | 추가된 문장 | `#187653` on `#ecf8f1` | `--color-added`(`-subtle`) | 문장 변경의 추가 부분 |
+| 긍정 신호 | `#187653` on `#ecf8f1` | `--color-positive`(`-subtle`) | 사건의 '긍정 신호' 배지(`Badge positive`, ADR-0060). 증가색을 그대로 쓰고 이름을 글자로 함께 둔다. '주의 신호'는 `attention`, '보류'는 `neutral` |
 | 차트 이전·현재 | `#8f86d9` / `#4f479e` | `--color-chart-previous` / `--color-chart-current` | 재무 차트의 이전 값 점 / 현재 값 점·증감률 막대(ADR-0018). 증감의 좋고 나쁨을 뜻하지 않음 |
 | 문장 변경 구성 | `#2e9a63` / `#4f479e` / `#c0782b` / `#66666e` | `--color-chart-added` / `-modified` / `-deleted` / `--color-text-muted` | 문장 변경 비율 막대(ShareBar). 추가·수정·삭제·숫자만 바뀜·위치 이동 순서로 붙여 그리고 범례에 이름·건수·비율을 글자로 둔다. 숫자만 바뀜·위치 이동은 내용이 그대로인 변경이라 새 색을 늘리지 않고 중립색(`neutral`, 보조 글자 토큰) 하나를 같이 쓰며, 0이면 막대·범례에서 뺀다(m2-8까지의 결과는 세 칸 그대로). 분모는 짝지은 변경 전부(`all − reviewNeeded`)로 비율 합이 100%이고, 검토 필요는 옆 카드에 따로 센다(#297). 0보다 큰 조각은 최소 2px, 조각 사이 2px 틈. 중립색 대비: 흰 배경 5.7, 안쪽 상자 5.3, 카드 hover(`--color-accent-subtle`) 5.0 |
 | 상태 구성 | `#4f479e` / `#3a8fc0` / `#c0782b` / `#a8578f` | `--color-chart-series-1` ~ `-4` | AI 사용 현황의 질문 상태·풀이 상태·호출 결과 비율 막대(ShareBar `series-1`~`4`). 좋고 나쁨을 뜻하지 않는 범주 색이라 빨강·초록을 쓰지 않는다. 같은 값(예: 검토 필요)은 막대가 달라도 같은 색. 다크: `#5bbee0` / `#2a9d8f` / `#c98034` / `#c06aa6`(첫 색은 시안 하늘색, FS-69) |
@@ -260,7 +261,7 @@ W-03 ④ 원문 확인
 | --- | --- | --- |
 | `Button` | `variant`: `primary`·`secondary`(기본)·`link`·`icon`, `size`: `md`·`lg` | 모든 버튼. 켜고 끄는 버튼은 `aria-pressed`. `icon`은 아이콘만 있는 작은 버튼(카드 안 지우기)으로 `aria-label`을 꼭 넘긴다 |
 | `ButtonLink` / `ButtonAnchor` | `Button`과 같은 `variant`·`size` + `to`(앱 안) / `href`(바깥) | 버튼 모양의 링크 |
-| `Badge` | `tone`: `neutral`·`accent`·`attention`·`danger` | 현재·비교, 변경 유형, 진행 상태('분석 준비'), AI 생성, 검토 필요, 비교 불가·분석 실패 |
+| `Badge` | `tone`: `neutral`·`accent`·`attention`·`danger`·`positive` | 현재·비교, 변경 유형, 진행 상태('분석 준비'), AI 생성, 검토 필요, 비교 불가·분석 실패, 사건 신호 |
 | `Notice` | `tone`: `info`·`attention`·`blocked`, `title`, `as`: `div`·`p`·`aside` | 안내 상자 세 가지(정보·주의·진행 불가). `title`이 있으면 아이콘 + 굵은 제목 + 설명 |
 | `Page` / `PageHeader` | `as`, `width`: `narrow`(기본, 940)·`wide`(1060) / `breadcrumb`, `title`, `titleId`, `lead`, `aside` | 화면 본문 폭과 화면 머리(4-25) |
 | `Tabs` | `label`, `items`, `value`, `onChange` | 결과 탭(주소가 바뀌므로 `nav` + `aria-current="page"`) |
@@ -343,7 +344,7 @@ W-03 ④ 원문 확인
 
 ## 4-7. 배지
 
-작은 알약(12px 굵게, 옅은 바탕). 회색(`neutral`) / 보라(`accent`, '분석 준비'·현재·AI 생성) / 노랑(`attention`, 검토 필요) / 분홍(`danger`, 비교 불가·분석 실패). 화면 머리 오른쪽 위 상태 배지로도 쓴다.
+작은 알약(12px 굵게, 옅은 바탕). 회색(`neutral`) / 보라(`accent`, '분석 준비'·현재·AI 생성) / 노랑(`attention`, 검토 필요·주의 신호) / 분홍(`danger`, 비교 불가·분석 실패) / 초록(`positive`, 긍정 신호). 화면 머리 오른쪽 위 상태 배지로도 쓴다.
 
 - 변경 유형: 추가, 삭제, 수정
 - 검토 필요
