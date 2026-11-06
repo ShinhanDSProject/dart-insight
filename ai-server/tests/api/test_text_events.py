@@ -117,7 +117,7 @@ def test_events_are_returned_in_spec_shape() -> None:
     assert data["created"] is True
     assert data["notCreatedReason"] is None
     assert data["model"] == "scripted-model"
-    assert data["promptVersion"] == "text-event-1"
+    assert data["promptVersion"] == "text-event-2"
     assert data["generatedAt"] is not None
     assert data["droppedEventCount"] == 0
     assert data["events"] == [
@@ -158,7 +158,7 @@ def test_events_are_returned_in_spec_shape() -> None:
     assert data["unboundChangeNos"] == [13]
     (call,) = data["calls"]
     assert call["task"] == "text_event"
-    assert call["promptVersion"] == "text-event-1"
+    assert call["promptVersion"] == "text-event-2"
     assert call["traceId"] == "evt-1"
     assert call["outcome"] == "OK"
 
@@ -173,7 +173,7 @@ def test_fake_provider_is_reported_as_not_created() -> None:
     assert data["created"] is False
     assert data["notCreatedReason"] == "FAKE_MODEL"
     assert data["model"] is None
-    assert data["promptVersion"] == "text-event-1"
+    assert data["promptVersion"] == "text-event-2"
     assert data["events"] == []
     assert data["calls"] == []
 

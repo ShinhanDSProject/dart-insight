@@ -30,7 +30,7 @@ def test_request_has_task_version_and_source_rule() -> None:
     request = build_request([change()])
 
     assert request.task == TASK == "text_event"
-    assert request.prompt_version == PROMPT_VERSION == "text-event-1"
+    assert request.prompt_version == PROMPT_VERSION == "text-event-2"
     assert SOURCE_RULE in request.system
     assert request.output_schema["required"] == ["events"]
 
@@ -90,3 +90,19 @@ def test_system_prompt_forbids_calculation_and_investment_advice() -> None:
     assert "계산" in SYSTEM
     assert "매수" in SYSTEM
     assert "한 글자도 바꾸지" in SYSTEM
+
+
+def test_system_prompt_groups_steps_of_one_plan_and_light_sanctions() -> None:
+    assert "여러 단계" in SYSTEM
+    assert "과태료" in SYSTEM
+    assert "시정조치" in SYSTEM
+
+
+def test_system_prompt_keeps_serious_sanctions_apart_by_kind_not_amount() -> None:
+    for word in ("사망", "작업", "벌금", "과징금", "금액 크기"):
+        assert word in SYSTEM
+
+
+def test_system_prompt_leaves_out_routine_items() -> None:
+    for word in ("제품 출시", "연구개발", "용역"):
+        assert word in SYSTEM
