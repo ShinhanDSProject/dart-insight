@@ -9,6 +9,7 @@ from app.agent.model import (
     FINAL,
     ROLES,
     ActionSpec,
+    Facts,
     ResultItem,
     StepInput,
     ToolResult,
@@ -42,10 +43,26 @@ class ActionModel(_Model):
     parameters: dict[str, Any]
 
 
+class FactsModel(_Model):
+    change_id: int | None = None
+    direction: str | None = None
+    calc_status: str | None = None
+
+
 class ItemModel(_Model):
     evidence_id: str | None = None
     text: str
     grade: str | None = None
+    facts: FactsModel | None = None
+
+    def to_item(self) -> ResultItem:
+        facts = self.facts
+        return ResultItem(
+            self.evidence_id,
+            self.text,
+            self.grade,
+            Facts(facts.change_id, facts.direction, facts.calc_status) if facts else None,
+        )
 
 
 class ToolResultModel(_Model):
@@ -110,7 +127,7 @@ class StepRequest(_Model):
                     r.ok,
                     r.error,
                     r.truncated,
-                    [ResultItem(i.evidence_id, i.text, i.grade) for i in r.items],
+                    [i.to_item() for i in r.items],
                 )
                 for r in self.tool_results
             ],
@@ -139,7 +156,11 @@ def output_json(output: StepOutput) -> dict[str, Any]:
                 "reviewReason": final.review_reason,
                 "blockedRules": final.blocked_rules,
                 "format": final.format,
-                "crossCheck": None,
+                "crossCheck": (
+                    {"result": final.cross_check.result, "reason": final.cross_check.reason}
+                    if final.cross_check is not None
+                    else None
+                ),
             }
             if output.kind == FINAL and final is not None
             else None

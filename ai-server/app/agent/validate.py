@@ -104,12 +104,15 @@ class Reviewed:
 
 
 def parse_plan(data: Any, step: StepInput) -> list[ToolCall]:
-    """다음에 부를 Tool. 자료가 충분해 답하기로 했으면 빈 목록이다."""
+    """다음에 부를 Tool. 자료가 충분해 답하기로 했거나 Workflow만 골랐으면 빈 목록이다."""
     if not isinstance(data, dict) or data.get("decision") not in DECISIONS:
         raise OutputProblem(["decision이 CALL_TOOLS·ANSWER 중 하나인 JSON 객체가 필요합니다."])
     if data["decision"] == ANSWER:
         return []
     calls = data.get("toolCalls")
+    if isinstance(data.get("workflow"), dict) and calls == []:
+        # Workflow를 고르면 Tool 순서는 코드가 정한다(app.agent.workflow)
+        return []
     if not isinstance(calls, list) or not 1 <= len(calls) <= MAX_TOOL_CALLS:
         raise OutputProblem([f"CALL_TOOLS이면 toolCalls에 1~{MAX_TOOL_CALLS}개를 적으세요."])
     problems: list[str] = []

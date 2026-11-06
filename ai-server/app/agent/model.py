@@ -21,7 +21,7 @@ REVIEW_NEEDED = "REVIEW_NEEDED"
 # LLM이 고를 수 있는 상태
 LLM_STATUSES = (ANSWERED, NOT_FOUND)
 
-# 답 형식. 정리 형식(BRIEF)은 #581에서 더한다
+# 답 형식(#581)
 FORMAT_CHAT = "CHAT"
 FORMAT_BRIEF = "BRIEF"
 
@@ -52,6 +52,18 @@ class ActionSpec:
 
 
 @dataclass(frozen=True)
+class Facts:
+    """판정용 구조화 값(docs/api-spec.md 3절 items[].facts). 교차 검증이 글을 다시 읽지 않게 한다.
+
+    재무 줄은 세 값 모두, 요약 줄·요약 인용 줄은 change_id만 있다.
+    """
+
+    change_id: int | None = None
+    direction: str | None = None  # UP·DOWN·SAME
+    calc_status: str | None = None
+
+
+@dataclass(frozen=True)
 class ResultItem:
     """Tool 결과의 한 줄. text는 backend가 만든 글이다.
 
@@ -62,6 +74,7 @@ class ResultItem:
     evidence_id: str | None
     text: str
     grade: str | None = None
+    facts: Facts | None = None
 
 
 @dataclass(frozen=True)
@@ -123,6 +136,14 @@ class ToolCall:
 
 
 @dataclass(frozen=True)
+class CrossCheck:
+    """교차 검증 결과(공개 API crossCheck). 코드가 정하고 LLM은 바꾸지 못한다."""
+
+    result: str
+    reason: str
+
+
+@dataclass(frozen=True)
 class FinalAnswer:
     status: str
     answer: str | None = None
@@ -131,6 +152,7 @@ class FinalAnswer:
     review_reason: str | None = None
     blocked_rules: list[str] = field(default_factory=list)
     format: str = FORMAT_CHAT
+    cross_check: CrossCheck | None = None
 
 
 @dataclass(frozen=True)
