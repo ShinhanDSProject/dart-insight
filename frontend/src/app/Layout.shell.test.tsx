@@ -120,14 +120,13 @@ describe('Layout 상단 바·하단 바(#548)', () => {
   })
 })
 
-describe('숨은 페이지(#753)', () => {
-  const konami = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']
-
-  it('코나미 코드를 누르면 3주의 기록을 새 탭으로 여는 안내가 뜨고 Esc로 닫힌다', () => {
+describe('숨은 페이지(#753, #755)', () => {
+  it('Shift를 빠르게 두 번 누르면 3주의 기록을 새 탭으로 여는 안내가 뜨고 Esc로 닫힌다', () => {
     renderLayout('/notes')
     expect(screen.queryByRole('dialog', { name: '숨은 페이지를 찾았어요' })).toBeNull()
 
-    konami.forEach((key) => fireEvent.keyDown(document.body, { key }))
+    fireEvent.keyDown(document.body, { key: 'Shift' })
+    fireEvent.keyDown(document.body, { key: 'Shift' })
 
     const dialog = screen.getByRole('dialog', { name: '숨은 페이지를 찾았어요' })
     const link = within(dialog).getByRole('link', { name: '3주의 기록 보기' })
@@ -135,6 +134,14 @@ describe('숨은 페이지(#753)', () => {
     expect(link.getAttribute('target')).toBe('_blank')
 
     fireEvent.keyDown(dialog, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: '숨은 페이지를 찾았어요' })).toBeNull()
+  })
+
+  it('Shift 사이에 다른 키를 누르면 열리지 않는다', () => {
+    renderLayout('/notes')
+    fireEvent.keyDown(document.body, { key: 'Shift' })
+    fireEvent.keyDown(document.body, { key: 'A', shiftKey: true })
+    fireEvent.keyDown(document.body, { key: 'Shift' })
     expect(screen.queryByRole('dialog', { name: '숨은 페이지를 찾았어요' })).toBeNull()
   })
 })

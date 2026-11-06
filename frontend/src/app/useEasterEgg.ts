@@ -1,25 +1,28 @@
 import { useCallback, useEffect, useState } from 'react'
-import { KONAMI_KEYS, nextKonamiStep } from '@/shared/lib/easterEgg'
+import { nextShiftTap } from '@/shared/lib/easterEgg'
 
-/** 화면 어디서나 코나미 코드를 다 누르면 숨은 페이지 안내를 연다(#753). Layout에 한 번만 둔다 */
+/** 화면 어디서나 Shift를 빠르게 두 번 누르면 숨은 페이지 안내를 연다(#753, #755). Layout에 한 번만 둔다 */
 export function useEasterEgg() {
   const [found, setFound] = useState(false)
 
   useEffect(() => {
-    let step = 0
+    let lastShiftAt: number | null = null
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target instanceof HTMLElement ? event.target : null
-      step = nextKonamiStep(step, {
-        key: event.key,
-        ctrlKey: event.ctrlKey,
-        metaKey: event.metaKey,
-        altKey: event.altKey,
-        target: target && { tagName: target.tagName, isContentEditable: target.isContentEditable },
-      })
-      if (step === KONAMI_KEYS.length) {
-        step = 0
-        setFound(true)
-      }
+      const next = nextShiftTap(
+        lastShiftAt,
+        {
+          key: event.key,
+          ctrlKey: event.ctrlKey,
+          metaKey: event.metaKey,
+          altKey: event.altKey,
+          repeat: event.repeat,
+          target: target && { tagName: target.tagName, isContentEditable: target.isContentEditable },
+        },
+        performance.now(),
+      )
+      lastShiftAt = next.lastShiftAt
+      if (next.found) setFound(true)
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
