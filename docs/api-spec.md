@@ -1754,8 +1754,8 @@
       "key": "debtRatio",
       "term": "부채비율",
       "aliases": ["부채 비율"],
-      "definition": "회사가 가진 돈(자본)에 비해 빌린 돈(부채)이 얼마나 되는지 보는 비율이에요.",
-      "example": "자본이 100원이고 부채가 30원이면 부채비율은 30%예요.",
+      "definition": "부채총계를 자본총계로 나눈 비율이에요. 부채에는 빌린 돈뿐 아니라 아직 치르지 않은 대금 같은 갚아야 할 의무가 모두 들어가요.",
+      "example": "자본총계가 100원이고 부채총계가 30원이면 부채비율은 30%예요.",
       "whereToCheck": "재무상태표의 부채총계와 자본총계, 기업 화면 체크포인트",
       "noJudgment": "업종마다 보통 수준이 달라 이 숫자 하나로 좋고 나쁨을 정하지 않아요.",
       "related": ["capitalImpairment"],
@@ -3947,7 +3947,8 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 - `TOOL_CALLS`: 한 번에 1~3개. 읽기 Tool만 부릅니다. 쓰기는 Tool로 부르지 않고 `FINAL`의 확인 액션(`CONFIRM_*`)으로 돌려줍니다. `remainingSteps`가 0이면 `TOOL_CALLS`를 돌려주지 않고 받은 결과로 `FINAL`을 만듭니다.
 - Workflow(ADR-0045 `workflow_step`): 변경 원인 추적과 교차 검증은 LLM이 Tool을 고르지 않고 코드가 정한 순서로 부릅니다. 받은 `tools`에 필요한 Tool이 없으면 Workflow를 쓰지 않고 일반 경로로 갑니다.
   - 원인 추적: `get_financial_changes` → `get_summary` → (설명 인용이 없거나 더 필요하면) `search_text_changes`. 저장된 설명 등급·인용을 그대로 쓰고, 새로 찾은 문장은 등급 없이 '관련 문장'입니다.
-  - 용어 풀이(`TERM`, ADR-0061 제안): `lookup_terms` → 카드에 이 회사 값을 찾을 곳이 있으면 `get_checkpoints`나 `get_financial_changes` → `search_text_changes`(q=용어). 답은 한 줄 뜻 → 쉬운 예시 → 이 회사에서는 → 확인할 곳 순서이고, 이 회사 근거가 없으면 '이 보고서에서는 찾지 못했어요'라고 씁니다. 카드가 없으면 정의를 만들지 않고 '등록된 용어가 없어요'입니다.
+  - 용어 풀이(`TERM`, ADR-0061 제안): `lookup_terms` → 카드에 이 회사 값을 찾을 곳이 있으면 그 값(이 분석 기간은 `get_financial_changes`, 체크포인트는 최근 사업보고서 기준이라 쓸 때 그 보고서를 밝힘) → 이 분석의 문장 변경에서 용어가 나온 문장(`search_text_changes`, q=용어. 바뀌지 않은 원문은 찾지 않음). 답은 한 줄 뜻 → 쉬운 예시 → 이 회사에서는 → 확인할 곳 순서입니다. 카드(`G`)만 인용한 문장은 회사를 가리키지 않고 숫자는 카드 예시의 것만 쓰며, 회사에 관한 문장은 회사 근거를 인용합니다(검토 노드 반려 규칙).
+    - 카드가 하나도 없으면 LLM 없이 `FINAL`(`ANSWERED`, `model`·`calls` 없음)로 "'{용어}'는 등록된 용어가 없어요."를 돌려주고, 비슷한 카드마다 `OPEN_GLOSSARY` 액션(최대 3개)을 붙입니다. backend는 정해진 안내(#631)로 보고 `aiGenerated: false`로 내보냅니다.
   - 교차 검증: `get_financial_changes`·`get_summary`·(있으면) `get_plan_followups`를 한 번에 부릅니다. `crossCheck.result`는 코드가 정합니다(공개 API `crossCheck`). 수시공시 주요정보(`get_disclosure_key_items`)는 수시공시 접수번호가 있어야 해 Workflow에서 부르지 않습니다.
   - Workflow는 첫 Tool 고르기에서 LLM이 고르고(출력 `workflow`: `{ "type": "CAUSE_TRACE" | "CROSS_CHECK", "account": 계정 이름 또는 null }`), Workflow로 부른 Tool은 `callId` 머리(`cause-`·`cross-`)로 알아봅니다. backend는 `callId`를 받은 그대로 `toolResults`에 돌려줍니다.
   - 교차 검증 판정: `get_financial_changes` 결과의 계정마다(`facts.changeId`) 같은 `changeId`의 요약 인용(`get_summary`, 등급 `STATED`·`RELATED`) 원문에서 방향 낱말을 찾아 수치 방향과 대조합니다.
