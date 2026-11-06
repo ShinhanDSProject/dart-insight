@@ -132,7 +132,14 @@ def next_calls(step: StepInput, workflow: str) -> list[ToolCall]:
         return []
     if any(r.name == SEARCH_TEXT_CHANGES for r in step.tool_results):
         return []
-    if _explanation_quotes(step):
+    # 요약에 다른 계정의 설명 인용만 있으면 이 계정의 설명은 없는 것이다
+    asked = {
+        item.facts.change_id
+        for result in _ok(step, FINANCIAL_CHANGES)
+        for item in result.items
+        if item.facts is not None and item.facts.change_id is not None
+    }
+    if asked & _explanation_quotes(step).keys():
         return []
     account = next(
         (

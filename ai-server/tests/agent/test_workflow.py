@@ -323,6 +323,19 @@ def test_cause_trace_searches_text_changes_when_no_explanation_quote() -> None:
     assert provider.requests == []
 
 
+def test_cause_trace_searches_when_quotes_belong_only_to_other_accounts() -> None:
+    results = [
+        ToolResult(
+            "cause-1", "get_financial_changes", {"q": "영업이익"}, True, items=[change(1, "DOWN")]
+        ),
+        ToolResult("cause-2", "get_summary", {}, True, items=[quote(2, "매출은 증가했습니다.")]),
+    ]
+
+    calls = workflow.next_calls(step(results=results), workflow.CAUSE_TRACE)
+
+    assert [(c.name, c.arguments) for c in calls] == [("search_text_changes", {"q": "영업이익"})]
+
+
 def test_cause_trace_answers_with_stored_quote_without_searching() -> None:
     results = bundle(
         [change(1, "DOWN")],
