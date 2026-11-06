@@ -8,7 +8,7 @@ import pytest
 
 from app.answer.prompt import OUTPUT_SCHEMA as ANSWER_SCHEMA
 from app.core.config import LlmSettings, load_llm_settings
-from app.llm import LlmRequest, ProviderError, ProviderTransientError
+from app.llm import LlmRequest, ProviderError, ProviderQuotaError, ProviderTransientError
 from app.llm.providers import (
     OPENAI_DEFAULT_MODEL,
     OpenAIProvider,
@@ -221,6 +221,18 @@ def test_complete_maps_temporary_errors_to_transient(error: Exception) -> None:
 
     with pytest.raises(ProviderTransientError):
         p.complete(REQUEST, 10.0)
+
+
+def test_complete_maps_spent_quota_429_to_quota_error_not_transient() -> None:
+    request = httpx.Request("POST", "https://api.openai.com/v1/responses")
+    body = {"error": {"type": "insufficient_quota", "code": "project_spend_limit_exceeded"}}
+    error = openai.RateLimitError("오류", response=httpx.Response(429, request=request), body=body)
+    p, _ = provider(error)
+
+    # 지출 한도를 다 쓴 429는 기다려도 풀리지 않아 다시 시도하지 않는다
+    with pytest.raises(ProviderQuotaError, match="insufficient_quota") as caught:
+        p.complete(REQUEST, 10.0)
+    assert not isinstance(caught.value, ProviderTransientError)
 
 
 @pytest.mark.parametrize(

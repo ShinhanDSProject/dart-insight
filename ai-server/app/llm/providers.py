@@ -68,6 +68,13 @@ class ProviderTransientError(ProviderError):
     """잠시 뒤 다시 시도하면 나아질 수 있는 오류(시간 초과, 네트워크, 호출 한도, 5xx)."""
 
 
+class ProviderQuotaError(ProviderError):
+    """사용 한도(결제·지출 한도)를 다 써서 다시 시도해도 나아지지 않는 오류.
+
+    운영자가 제공자 쪽 한도를 올려야 풀린다.
+    """
+
+
 class Provider(Protocol):
     name: str
     model: str
@@ -138,6 +145,8 @@ INCOMPLETE_MAX_OUTPUT_TOKENS = "max_output_tokens"
 INCOMPLETE_CONTENT_FILTER = "content_filter"
 # 다시 시도하면 나아질 수 있는 상태 코드(호출 한도, 충돌). 5xx는 따로 본다
 TRANSIENT_STATUS_CODES = frozenset({408, 409, 429})
+# 429 중 '사용 한도를 다 씀'(결제·프로젝트 지출 한도)은 기다려도 풀리지 않아 다시 시도하지 않는다
+QUOTA_ERROR_CODE = "insufficient_quota"
 
 
 class OpenAIProvider:
@@ -197,12 +206,23 @@ class OpenAIProvider:
             raise ProviderTransientError(f"OpenAI 연결 실패: {type(e).__name__}") from e
         except openai.APIStatusError as e:
             message = f"OpenAI 오류 {e.status_code}: {type(e).__name__}"
+            if e.status_code == 429 and _error_type(e) == QUOTA_ERROR_CODE:
+                raise ProviderQuotaError(f"{message} ({QUOTA_ERROR_CODE}: 사용 한도 초과)") from e
             if e.status_code >= 500 or e.status_code in TRANSIENT_STATUS_CODES:
                 raise ProviderTransientError(message) from e
             raise ProviderError(message) from e
         except openai.OpenAIError as e:
             raise ProviderError(f"OpenAI 호출 실패: {type(e).__name__}") from e
         return _openai_response(response, model)
+
+
+def _error_type(error: Any) -> str | None:
+    """OpenAI 오류 본문의 error.type(없으면 error.code). 본문이 없거나 모양이 다르면 None."""
+    body = error.body if isinstance(error.body, dict) else None
+    detail = body.get("error", body) if body is not None else None
+    if not isinstance(detail, dict):
+        return None
+    return detail.get("type") or detail.get("code")
 
 
 def _openai_response(response: Any, fallback_model: str) -> ProviderResponse:

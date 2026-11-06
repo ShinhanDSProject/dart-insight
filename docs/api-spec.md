@@ -3521,7 +3521,7 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 | code | 상태 | 뜻 |
 | --- | --- | --- |
 | `AI_DOCUMENT_TOO_LARGE` | 413 | 원문 ZIP이 80MB를 넘음 |
-| `AI_LLM_UNAVAILABLE` | 503 | LLM 제공자가 설정되지 않았거나 다시 시도해도 응답하지 않음(0.7). backend는 분석을 `ANALYSIS_SUMMARY_FAILED`로 끝내고, 헤더 `X-Llm-Calls`의 호출 기록은 `llm_call`에 저장함(#137) |
+| `AI_LLM_UNAVAILABLE` | 503 | LLM 제공자가 설정되지 않았거나 다시 시도해도 응답하지 않음(0.7). 제공자의 사용 한도를 다 쓴 경우(OpenAI 429 `insufficient_quota`)는 기다려도 풀리지 않아 다시 시도하지 않고 바로 이 코드로 끝냄(#759). backend는 분석을 `ANALYSIS_SUMMARY_FAILED`로 끝내고, 헤더 `X-Llm-Calls`의 호출 기록은 `llm_call`에 저장함(#137) |
 | `AI_EVENTS_INVALID_OUTPUT` | 502 | 다시 만들어도 쓸 수 있는 사건이 하나도 없음. backend는 사건 실행만 `FAILED`로 끝내고 분석에는 영향을 주지 않음 |
 
 ### GET /internal/documents/parser — 원문 파서 버전

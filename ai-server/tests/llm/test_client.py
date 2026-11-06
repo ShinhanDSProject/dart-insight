@@ -13,6 +13,7 @@ from app.llm import (
     LlmUnavailable,
     OutputProblem,
     ProviderError,
+    ProviderQuotaError,
     ProviderTransientError,
 )
 from app.llm.prompting import disclosure
@@ -214,6 +215,17 @@ def test_provider_error_is_not_retried() -> None:
     llm, provider = client(ProviderError("invalid key"), {"answer": "안 옴"})
 
     with pytest.raises(LlmUnavailable) as error:
+        llm.generate(REQUEST, need_answer)
+
+    assert [c.outcome for c in error.value.calls] == ["ERROR"]
+    assert len(provider.requests) == 1
+
+
+def test_spent_quota_is_not_retried_and_says_limit() -> None:
+    quota = ProviderQuotaError("OpenAI 오류 429 (insufficient_quota)")
+    llm, provider = client(quota, {"answer": "안 옴"})
+
+    with pytest.raises(LlmUnavailable, match="사용 한도") as error:
         llm.generate(REQUEST, need_answer)
 
     assert [c.outcome for c in error.value.calls] == ["ERROR"]
