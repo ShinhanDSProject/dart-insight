@@ -3112,8 +3112,113 @@
   list-style: none;
 }
 
+.news__list > li {
+  display: grid;
+  grid-template-columns: var(--space-5) 1fr;
+  scroll-margin-top: var(--space-7);
+}
+
 .news__list > li + li {
   border-top: 1px solid var(--color-border);
+}
+
+/* '뉴스 한눈에 보기'의 번호를 눌러 온 기사(#765) */
+.news__list > li:target {
+  background: var(--color-accent-subtle);
+}
+
+.news__number {
+  padding-top: var(--space-3);
+  color: var(--color-accent);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+/* '뉴스 한눈에 보기'(#765) */
+.news-digest {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.news-digest__title {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+.news-digest__headline {
+  margin: 0;
+  font-weight: var(--font-weight-semibold);
+}
+
+.news-digest__topics {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.news-digest__topic {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.news-digest__label {
+  display: grid;
+  margin: 0;
+  color: var(--color-accent);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.news-digest__count {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+}
+
+.news-digest__first {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.news-digest__number {
+  display: inline-block;
+  min-width: 1.5em;
+  margin-left: var(--space-1);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-xs);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  text-align: center;
+  text-decoration: none;
+}
+
+.news-digest__number:hover {
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+
+.news-digest__note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+@media (width <= 640px) {
+  .news-digest__topic {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+  }
 }
 
 .news-item {
