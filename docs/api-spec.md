@@ -3948,7 +3948,8 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 - Workflow(ADR-0045 `workflow_step`): 변경 원인 추적과 교차 검증은 LLM이 Tool을 고르지 않고 코드가 정한 순서로 부릅니다. 받은 `tools`에 필요한 Tool이 없으면 Workflow를 쓰지 않고 일반 경로로 갑니다.
   - 원인 추적: `get_financial_changes` → `get_summary` → (설명 인용이 없거나 더 필요하면) `search_text_changes`. 저장된 설명 등급·인용을 그대로 쓰고, 새로 찾은 문장은 등급 없이 '관련 문장'입니다.
   - 용어 풀이(`TERM`, ADR-0061 제안): `lookup_terms` → 카드에 이 회사 값을 찾을 곳이 있으면 그 값(이 분석 기간은 `get_financial_changes`, 체크포인트는 최근 사업보고서 기준이라 쓸 때 그 보고서를 밝힘) → 이 분석의 문장 변경에서 용어가 나온 문장(`search_text_changes`, q=용어. 바뀌지 않은 원문은 찾지 않음). 답은 한 줄 뜻 → 쉬운 예시 → 이 회사에서는 → 확인할 곳 순서입니다. 카드(`G`)만 인용한 문장은 회사를 가리키지 않고 숫자는 카드 예시의 것만 쓰며, 회사에 관한 문장은 회사 근거를 인용합니다(검토 노드 반려 규칙).
-    - 카드가 하나도 없으면 LLM 없이 `FINAL`(`ANSWERED`, `model`·`calls` 없음)로 "'{용어}'는 등록된 용어가 없어요."를 돌려주고, 비슷한 카드마다 `OPEN_GLOSSARY` 액션(최대 3개)을 붙입니다. backend는 정해진 안내(#631)로 보고 `aiGenerated: false`로 내보냅니다.
+    - 카드가 없으면 `answer_with_evidence`(질문: "이 보고서에서 '{용어}'을(를) 어떻게 설명하나요?")로 이 보고서 원문(주로 주석의 회계정책 문단)의 설명을 찾고, 찾으면 그 문단(`#B`)을 근거로 '이 회사 보고서에 적힌 설명'이라고 밝혀 쉬운 말로 풉니다(인용 밖 내용을 더하지 않음, 등급 없음).
+    - 보고서에서도 못 찾으면 LLM 없이 `FINAL`(`ANSWERED`, 이 단계의 `model`·`calls` 없음)로 "'{용어}'는 등록된 용어가 없고, 이 보고서에서도 설명을 찾지 못했어요."를 돌려주고, 비슷한 카드마다 `OPEN_GLOSSARY` 액션(최대 3개)을 붙입니다. backend는 정해진 안내(#631)로 보고 `aiGenerated: false`로 내보냅니다.
   - 교차 검증: `get_financial_changes`·`get_summary`·(있으면) `get_plan_followups`를 한 번에 부릅니다. `crossCheck.result`는 코드가 정합니다(공개 API `crossCheck`). 수시공시 주요정보(`get_disclosure_key_items`)는 수시공시 접수번호가 있어야 해 Workflow에서 부르지 않습니다.
   - Workflow는 첫 Tool 고르기에서 LLM이 고르고(출력 `workflow`: `{ "type": "CAUSE_TRACE" | "CROSS_CHECK", "account": 계정 이름 또는 null }`), Workflow로 부른 Tool은 `callId` 머리(`cause-`·`cross-`)로 알아봅니다. backend는 `callId`를 받은 그대로 `toolResults`에 돌려줍니다.
   - 교차 검증 판정: `get_financial_changes` 결과의 계정마다(`facts.changeId`) 같은 `changeId`의 요약 인용(`get_summary`, 등급 `STATED`·`RELATED`) 원문에서 방향 낱말을 찾아 수치 방향과 대조합니다.
