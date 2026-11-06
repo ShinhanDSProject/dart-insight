@@ -151,6 +151,19 @@ class AiUsageApiTest {
     }
 
     @Test
+    @DisplayName("에이전트 Tool 고르기가 쓰는 gpt-6-luna도 설정 가격으로 추정 비용을 계산한다")
+    void estimatesCostForAgentPlanModel() throws Exception {
+        long analysisId = seedAnalysis();
+        call(analysisId, null, "openai", "gpt-6-luna", "agent_plan", "OK", now.minusDays(1), 10000, 2000);
+
+        // gpt-6-luna(입력 $0.1, 출력 $0.5 / 1M): (10000 × 0.1 + 2000 × 0.5) ÷ 1,000,000 = 0.002
+        mockMvc.perform(get("/api/system/ai-usage"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.llmCalls.byModel[0].model").value("gpt-6-luna"))
+                .andExpect(jsonPath("$.llmCalls.byModel[0].estimatedCostUsd").value(0.002));
+    }
+
+    @Test
     @DisplayName("분석·브리핑 1건당 평균 토큰·비용은 기간 안에 호출이 있는 단위의 합을 단위 수로 나눈다")
     void averagesTokensAndCostPerAnalysisAndBriefing() throws Exception {
         long first = seedAnalysis();
