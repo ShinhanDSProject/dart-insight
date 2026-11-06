@@ -1,9 +1,9 @@
 import { match } from 'ts-pattern'
 import type { NewsArticle } from '@/shared/api/news'
-import { Notice, Panel, PanelTitle, Skeleton } from '@/shared/ui'
+import { Card, Notice, Panel, PanelTitle, Skeleton } from '@/shared/ui'
 import { EmptyState, ErrorState } from '@/shared/ui/StateView'
 import { useCompanyNews } from '../hooks/useCompanyNews'
-import { NEWS_NOTICE, newsTime } from '../model/news'
+import { groupNews, NEWS_DIGEST_MIN, NEWS_NOTICE, newsTime } from '../model/news'
 
 const errorMessages: Record<string, string> = {
   COMPANY_NEWS_UNAVAILABLE: '뉴스를 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.',
@@ -28,16 +28,55 @@ export function NewsTab({ corpCode }: { corpCode: string }) {
           <EmptyState title={`'${data.query}' 이름이 제목에 들어간 최근 기사가 없어요.`} />
         ))
         .with({ status: 'success' }, ({ data }) => (
-          <ul className="news__list">
-            {data.items.map((article) => (
-              <li key={article.url}>
-                <NewsItem article={article} />
-              </li>
-            ))}
-          </ul>
+          <>
+            {data.items.length >= NEWS_DIGEST_MIN && <NewsDigest items={data.items} />}
+            <ol className="news__list">
+              {data.items.map((article, index) => (
+                <li key={article.url} id={`news-${index + 1}`}>
+                  <span className="news__number" aria-hidden="true">{index + 1}</span>
+                  <NewsItem article={article} />
+                </li>
+              ))}
+            </ol>
+          </>
         ))
         .exhaustive()}
     </Panel>
+  )
+}
+
+/** '뉴스 한눈에 보기'(#765). 기사 제목의 낱말로 주제를 나눈 것이고 AI 요약이 아니다(ADR-0046) */
+function NewsDigest({ items }: { items: NewsArticle[] }) {
+  const groups = groupNews(items)
+  return (
+    <Card as="section" tone="subtle" className="news-digest" aria-labelledby="news-digest-title">
+      <h3 id="news-digest-title" className="news-digest__title">뉴스 한눈에 보기</h3>
+      <p className="news-digest__headline">
+        기사 {items.length}건
+        {groups.map((group) => (
+          <span key={group.label}> · {group.label} {group.numbers.length}</span>
+        ))}
+      </p>
+      <ul className="news-digest__topics">
+        {groups.map((group) => (
+          <li key={group.label} className="news-digest__topic">
+            <p className="news-digest__label">
+              {group.label}
+              <span className="news-digest__count">{group.numbers.length}건</span>
+            </p>
+            <p className="news-digest__first">
+              {group.first.title}
+              {group.numbers.map((number) => (
+                <a key={number} className="news-digest__number" href={`#news-${number}`} aria-label={`${number}번 기사로 가기`}>
+                  {number}
+                </a>
+              ))}
+            </p>
+          </li>
+        ))}
+      </ul>
+      <p className="news-digest__note">기사 제목에 든 낱말로 주제를 나눴어요. AI 요약이 아니며, 주제마다 가장 최근 기사 제목을 보여요.</p>
+    </Card>
   )
 }
 
