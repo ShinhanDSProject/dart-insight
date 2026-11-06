@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** 주요 사건 만들기와 조회(3.36, ADR-0050). 분석 상태와 text-changes에는 영향을 주지 않는다. */
@@ -39,8 +40,9 @@ public class TextEventController {
     }
 
     @GetMapping(ApiPaths.ANALYSIS_EVENTS)
-    public TextEventListResponse events(@PathVariable Long analysisId) {
-        return TextEventListResponse.from(queryService.events(analysisId));
+    public TextEventListResponse events(@PathVariable Long analysisId,
+            @RequestParam(required = false) String signal) {
+        return TextEventListResponse.from(queryService.events(analysisId, signal));
     }
 
     @GetMapping(ApiPaths.ANALYSIS_EVENT)

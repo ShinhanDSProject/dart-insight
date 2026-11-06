@@ -12,7 +12,7 @@ public record TextEventDetailResponse(@JsonUnwrapped TextEventItemResponse event
         List<TextChangeItemResponse> changes) {
 
     public static TextEventDetailResponse from(EventDetail detail) {
-        return new TextEventDetailResponse(TextEventItemResponse.of(detail.event(), detail.changes()),
+        return new TextEventDetailResponse(TextEventItemResponse.of(detail.event(), detail.changes(), detail.financialChanges()),
                 detail.event().row().changeNos().stream()
                         .map(no -> TextChangeItemResponse.from(detail.changes().get(no))).toList());
     }

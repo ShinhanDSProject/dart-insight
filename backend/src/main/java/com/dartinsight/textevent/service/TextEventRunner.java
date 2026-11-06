@@ -8,6 +8,7 @@ import com.dartinsight.common.trace.TraceContext;
 import com.dartinsight.summary.domain.LlmCallRow;
 import com.dartinsight.summary.service.SummaryService;
 import com.dartinsight.textevent.domain.NotCreatedReason;
+import com.dartinsight.textevent.domain.TextEventRow;
 import com.dartinsight.textevent.domain.TextEventRun;
 import com.dartinsight.textevent.domain.TextEventRunStatus;
 import com.dartinsight.textevent.domain.TextEvents;
@@ -46,6 +47,7 @@ public class TextEventRunner implements DisposableBean {
     private final AiServerClient aiServerClient;
     private final AnalysisResultService analysisResultService;
     private final SummaryService summaryService;
+    private final SignalTableService signalTableService;
     private final Clock clock;
     private final TaskExecutor executor;
     /** 이 실행이 시작된 시각. 이보다 먼저 만들어진 실행만 이전 실행에서 끊긴 것으로 본다 */
@@ -53,14 +55,15 @@ public class TextEventRunner implements DisposableBean {
 
     public TextEventRunner(TextEventRunRepository runRepository, TextEventRequestService requestService,
             TextEventResultService resultService, AiServerClient aiServerClient,
-            AnalysisResultService analysisResultService, SummaryService summaryService, Clock clock,
-            AnalysisProperties properties) {
+            AnalysisResultService analysisResultService, SummaryService summaryService,
+            SignalTableService signalTableService, Clock clock, AnalysisProperties properties) {
         this.runRepository = runRepository;
         this.requestService = requestService;
         this.resultService = resultService;
         this.aiServerClient = aiServerClient;
         this.analysisResultService = analysisResultService;
         this.summaryService = summaryService;
+        this.signalTableService = signalTableService;
         this.clock = clock;
         this.bootedAt = now();
         if (properties.async()) {
@@ -152,8 +155,11 @@ public class TextEventRunner implements DisposableBean {
             return;
         }
         try {
-            resultService.saveAndComplete(run.getId(), TextEventResults.rows(response, input.sent()),
-                    TextEventResults.unbound(response), response.droppedEventCount(), calls, now());
+            // 기준표는 문장 근거가 어긋나 신호 이유를 일반 문구로 바꿀 때만 받는다(저장 트랜잭션 밖)
+            List<TextEventRow> rows = TextEventResults.rows(response, input.sent(),
+                    () -> signalTableService.table(response.signalTableVersion()));
+            resultService.saveAndComplete(run.getId(), rows, TextEventResults.unbound(response),
+                    response.droppedEventCount(), response.signalTableVersion(), calls, now());
             log.info("주요 사건 실행 {} 완료: 사건 {}건, 뺀 사건 {}건", run.getId(), response.events().size(),
                     response.droppedEventCount());
         } catch (RuntimeException e) {

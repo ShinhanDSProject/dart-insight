@@ -9,27 +9,27 @@ import java.time.LocalDateTime;
  * @param status {@link TextEventRunStatus} 이름 또는 {@link #NOT_STARTED}
  */
 public record TextEventRunView(long analysisId, Long runId, String status, NotCreatedReason notCreatedReason,
-        String errorCode, boolean canRetry, int droppedEventCount, LocalDateTime startedAt,
-        LocalDateTime finishedAt) {
+        String errorCode, boolean canRetry, int droppedEventCount, String signalTableVersion,
+        LocalDateTime startedAt, LocalDateTime finishedAt) {
 
     public static final String NOT_STARTED = "NOT_STARTED";
 
     /** 실행 행이 없는 상태 */
     public static TextEventRunView notStarted(long analysisId) {
-        return new TextEventRunView(analysisId, null, NOT_STARTED, null, null, false, 0, null, null);
+        return new TextEventRunView(analysisId, null, NOT_STARTED, null, null, false, 0, null, null, null);
     }
 
     /** 저장하지 않고 조회할 때 정한 '만들지 않음' */
     public static TextEventRunView notCreated(long analysisId, NotCreatedReason reason) {
         return new TextEventRunView(analysisId, null, TextEventRunStatus.NOT_CREATED.name(), reason, null, false, 0,
-                null, null);
+                null, null, null);
     }
 
     /** 실행 행의 상태. 시각은 끝난 실행일 때만 준다(docs/api-spec.md) */
     public static TextEventRunView of(TextEventRun run, boolean canRetry) {
         return new TextEventRunView(run.getAnalysisId(), run.getId(), run.getStatus().name(),
                 run.getNotCreatedReason(), run.getErrorCode(), canRetry, run.getDroppedEventCount(),
-                run.finished() ? run.getStartedAt() : null, run.finished() ? run.getFinishedAt() : null);
+                run.getSignalTableVersion(), run.finished() ? run.getStartedAt() : null, run.finished() ? run.getFinishedAt() : null);
     }
 
     public boolean is(TextEventRunStatus expected) {

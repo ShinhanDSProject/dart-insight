@@ -27,6 +27,7 @@ public final class TestData {
             "news_call_usage",
             "related_disclosure",
             "related_disclosure_run",
+            "text_event_sentence",
             "text_event_quote",
             "text_event_change",
             "text_event_unbound_change",
