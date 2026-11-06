@@ -52,6 +52,29 @@ export interface ChatCitation {
   sentence?: string
   /** 저장된 재무 설명 등급. 없으면 이번에 새로 찾은 '관련 문장' */
   grade?: 'STATED' | 'RELATED'
+  /** 수시공시 접수일(DISCLOSURE) */
+  rceptDt?: string
+  /** DART 원문 주소(DISCLOSURE·REPORT_VALUE) */
+  dartUrl?: string
+  /** 보고서 값의 출처(REPORT_VALUE) */
+  source?: 'FINANCIAL_TREND' | 'KEY_FACT' | 'CHECKPOINT' | 'DISCLOSURE_KEY_ITEM'
+  /** 항목 이름(REPORT_VALUE·COMPANY) */
+  label?: string
+  /** 그 API가 준 값 그대로(숫자 또는 글). REPORT_VALUE·COMPANY */
+  value?: number | string
+  unit?: string
+  currency?: string
+  /** 기업 근거(COMPANY) */
+  corpCode?: string
+  corpName?: string
+}
+
+/** 교차 검증 결과(코드가 정함, #581). 허위·오류 판정이 아니라 방향 대조 결과다 */
+export type CrossCheckResult = 'CONSISTENT' | 'POTENTIAL_MISMATCH' | 'INSUFFICIENT_EVIDENCE' | 'NOT_COMPARABLE'
+
+export interface ChatCrossCheck {
+  result: CrossCheckResult
+  reason: string
 }
 
 /** 화면 액션. type·label과 그 액션의 필드. 화면은 아는 종류만 실행하고 모르는 종류는 무시한다 */
@@ -69,7 +92,8 @@ export interface ChatMessageResponse {
   citations: ChatCitation[]
   actions: ChatAction[]
   format: 'CHAT' | 'BRIEF'
-  crossCheck: unknown
+  /** 교차 검증 요청일 때만. 답이 없어도(NOT_FOUND·REVIEW_NEEDED) 올 수 있다 */
+  crossCheck: ChatCrossCheck | null
   questionId: number | null
   aiGenerated: boolean
   ai: AiInfo | null

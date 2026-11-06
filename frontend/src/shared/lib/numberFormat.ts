@@ -1,8 +1,14 @@
 const integerFormat = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 })
+const decimalFormat = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 2 })
 
 /** 글자 수·건수 같은 정수 표시: 1,234 (NM-2) */
 export function formatInteger(value: number): string {
   return integerFormat.format(value)
+}
+
+/** API가 준 값을 그대로 보일 때: 정수는 1,234, 소수는 둘째 자리까지 12.35 (NM-2) */
+export function formatDecimal(value: number): string {
+  return decimalFormat.format(value)
 }
 
 /** 초를 '48초', '2분 11초', '1시간 3분'으로. null이면 '—' */

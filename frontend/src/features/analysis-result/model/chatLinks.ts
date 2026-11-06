@@ -1,9 +1,15 @@
 import { match } from 'ts-pattern'
-import type { ChatAction, ChatCitation, ChatContext, ChatTab } from '@/shared/api/agentChat'
+import type { ChatAction, ChatCitation, ChatContext, ChatCrossCheck, ChatTab } from '@/shared/api/agentChat'
+import type { ComparabilityRequest } from '@/shared/api/comparability'
+import type { QuoteKind } from '@/shared/api/community'
+import type { ComparisonBasis } from '@/shared/api/reports'
 import type { DocumentSide } from '@/shared/api/documents'
 import { NOTE_MEMO_MAX, type NoteCreate } from '@/shared/api/notes'
 import type { ChangeType } from '@/shared/api/textChanges'
+import { communityQuoteParamChanges } from '@/shared/lib/communityQuoteLink'
+import { companyComparisonPath } from '@/shared/lib/companyComparisonLink'
 import { glossary, type GlossaryEntry } from '@/shared/lib/glossary'
+import { formatDecimal } from '@/shared/lib/numberFormat'
 import type { ParamChanges } from '@/shared/lib/searchParams'
 import {
   openFinancialChanges,
@@ -54,13 +60,52 @@ export function citationChanges(c: ChatCitation): ParamChanges | null {
     .exhaustive()
 }
 
+/** 결과 화면 밖으로 여는 근거: 기업 근거는 기업 화면, 수시공시·보고서 값은 DART 원문. 없으면 null */
+export type CitationLink = { kind: 'route'; to: string } | { kind: 'external'; href: string }
+
+export function citationLink(c: ChatCitation): CitationLink | null {
+  return match(c.kind)
+    .with('COMPANY', () =>
+      c.corpCode && CORP_CODE.test(c.corpCode) ? { kind: 'route' as const, to: `/companies/${c.corpCode}` } : null,
+    )
+    .with('DISCLOSURE', 'REPORT_VALUE', () =>
+      c.dartUrl && DART_URL.test(c.dartUrl) ? { kind: 'external' as const, href: c.dartUrl } : null,
+    )
+    .with('BLOCK', 'SECTION', 'TEXT_CHANGE', 'FINANCIAL_CHANGE', () => null)
+    .exhaustive()
+}
+
+/** DART 공시 주소만 새 창으로 연다(응답 값을 그대로 링크로 쓰지 않게) */
+const DART_URL = /^https:\/\/dart\.fss\.or\.kr\//
+
 /** 근거 칩 이름 */
 export function citationLabel(c: ChatCitation): string {
   return match(c.kind)
     .with('FINANCIAL_CHANGE', () => c.accountName ?? '재무 수치')
     .with('TEXT_CHANGE', 'BLOCK', 'SECTION', () => lastTitle(c.sectionPath) ?? '원문')
-    .with('DISCLOSURE', 'REPORT_VALUE', 'COMPANY', () => c.reportName ?? '공시')
+    .with('REPORT_VALUE', () => c.label ?? c.reportName ?? '보고서 값')
+    .with('COMPANY', () => c.corpName ?? '기업')
+    .with('DISCLOSURE', () => c.reportName ?? '공시')
     .exhaustive()
+}
+
+/** 근거 칩에 마우스를 올렸을 때 보일 글. 보고서 값은 값과 단위를 API가 준 그대로 보인다 */
+export function citationTitle(c: ChatCitation): string | undefined {
+  return match(c.kind)
+    .with('REPORT_VALUE', 'COMPANY', () => {
+      const value = valueText(c.value, c.unit)
+      const head = c.kind === 'COMPANY' ? c.label : (c.reportName ?? c.label)
+      return [head, value].filter((part) => part !== null && part !== undefined && part !== '').join(': ') || undefined
+    })
+    .with('DISCLOSURE', () => [c.reportName, c.rceptDt].filter(Boolean).join(' · ') || undefined)
+    .with('BLOCK', 'SECTION', 'TEXT_CHANGE', 'FINANCIAL_CHANGE', () => c.quote ?? c.sentence ?? c.sectionPath)
+    .exhaustive()
+}
+
+function valueText(value: number | string | undefined, unit: string | undefined): string | null {
+  if (value === undefined || value === null || value === '') return null
+  const text = typeof value === 'number' ? formatDecimal(value) : value
+  return unit ? `${text} ${unit}` : text
 }
 
 /** 칩에 붙일 설명: 새로 찾은 문장은 원인 설명처럼 보이지 않게 '관련 문장'으로 적는다(ADR-0015) */
@@ -83,6 +128,14 @@ export type ChatActionTarget =
   | { kind: 'save-note'; note: NoteCreate }
   /** 확인 버튼: 누르면 PUT /api/favorite-companies/{corpCode} */
   | { kind: 'favorite'; corpCode: string }
+  /** 다른 화면으로 가는 링크(다른 분석 결과, 기업 나란히 보기) */
+  | { kind: 'link'; to: string }
+  /** 문장 변화 탭의 변경 고정(브라우저에만 저장, 확인 없음) */
+  | { kind: 'pin'; changeId: number }
+  /** 확인 버튼: 누르면 POST /api/analyses 뒤 분석 진행 화면(W-02) */
+  | { kind: 'request-analysis'; request: ComparabilityRequest }
+  /** 커뮤니티 탭 글쓰기 칸을 초안과 인용으로 채워 연다. 저장은 사용자가 올릴 때만 */
+  | { kind: 'post-draft'; body: string; quote: ParamChanges | null }
   | { kind: 'ignore' }
 
 /** 화면 액션 하나가 할 일. citations는 재무 근거의 재무제표(sjDiv)를 찾는 데 쓴다 */
@@ -124,6 +177,24 @@ export function chatActionTarget(action: ChatAction, citations: ChatCitation[]):
       return typeof action.corpCode === 'string' && CORP_CODE.test(action.corpCode)
         ? { kind: 'favorite', corpCode: action.corpCode }
         : { kind: 'ignore' }
+    case 'OPEN_ANALYSIS':
+      return isId(action.analysisId) ? { kind: 'link', to: `/analyses/${action.analysisId}` } : { kind: 'ignore' }
+    case 'OPEN_COMPANY_COMPARE': {
+      const corps = Array.isArray(action.corpCodes) ? action.corpCodes.filter((c): c is string => typeof c === 'string') : []
+      const to = companyComparisonPath(corps)
+      return to === null ? { kind: 'ignore' } : { kind: 'link', to }
+    }
+    case 'PIN_CHANGE':
+      return isId(action.changeId) ? { kind: 'pin', changeId: action.changeId } : { kind: 'ignore' }
+    case 'CONFIRM_REQUEST_ANALYSIS': {
+      const request = analysisRequestOf(action)
+      return request ? { kind: 'request-analysis', request } : { kind: 'ignore' }
+    }
+    case 'OPEN_POST_DRAFT': {
+      if (typeof action.body !== 'string' || action.body.trim() === '') return { kind: 'ignore' }
+      const quote = isRecord(action.quote) ? postQuoteOf(action.quote, citations) : null
+      return { kind: 'post-draft', body: action.body.trim(), quote }
+    }
     default:
       return { kind: 'ignore' }
   }
@@ -158,6 +229,51 @@ function typeFilterOf(value: unknown): TextTypeFilter | null {
 
 /** 고유번호 8자리 */
 const CORP_CODE = /^\d{8}$/
+/** 접수번호 14자리 */
+const RCEPT_NO = /^\d{14}$/
+const BASES: readonly ComparisonBasis[] = ['YOY', 'PREV', 'CUSTOM']
+const QUOTE_KINDS: readonly QuoteKind[] = ['FINANCIAL_CHANGE', 'TEXT_CHANGE']
+
+function analysisRequestOf(action: ChatAction): ComparabilityRequest | null {
+  const { corpCode, previousRceptNo, currentRceptNo, basis } = action
+  if (typeof corpCode !== 'string' || !CORP_CODE.test(corpCode)) return null
+  if (typeof previousRceptNo !== 'string' || !RCEPT_NO.test(previousRceptNo)) return null
+  if (typeof currentRceptNo !== 'string' || !RCEPT_NO.test(currentRceptNo)) return null
+  if (typeof basis !== 'string' || !(BASES as readonly string[]).includes(basis)) return null
+  return { corpCode, previousRceptNo, currentRceptNo, basis: basis as ComparisonBasis }
+}
+
+/** 글 초안의 인용(게시판 글 quote와 같은 모양)을 커뮤니티 탭 인용 쿼리로. 재무는 근거 칩의 재무제표를 함께 넘긴다 */
+function postQuoteOf(raw: Record<string, unknown>, citations: ChatCitation[]): ParamChanges | null {
+  const kind = QUOTE_KINDS.find((k) => k === raw.kind)
+  if (kind === undefined || !isId(raw.analysisId) || !isId(raw.changeId)) return null
+  const changeId = raw.changeId
+  const sjDiv =
+    kind === 'FINANCIAL_CHANGE'
+      ? (citations.find((c) => c.kind === 'FINANCIAL_CHANGE' && c.changeId === changeId)?.sjDiv ?? null)
+      : null
+  return communityQuoteParamChanges({ analysisId: raw.analysisId, kind, changeId, sjDiv })
+}
+
+/** 교차 검증 결과의 제목과 색. 어긋남도 '검토해 볼 신호'로만 보이고 오류처럼 보이지 않게 한다(AC19) */
+export function crossCheckView(check: ChatCrossCheck): { title: string; tone: 'info' | 'attention' } {
+  return match(check.result)
+    .with('CONSISTENT', () => ({ title: '방향이 맞아요', tone: 'info' as const }))
+    .with('POTENTIAL_MISMATCH', () => ({ title: '검토해 볼 신호', tone: 'attention' as const }))
+    .with('INSUFFICIENT_EVIDENCE', () => ({ title: '대조할 근거가 부족해요', tone: 'info' as const }))
+    .with('NOT_COMPARABLE', () => ({ title: '기준이 달라 대조하지 않았어요', tone: 'info' as const }))
+    .exhaustive()
+}
+
+export const CROSS_CHECK_NOTE = '공시 수치와 회사 설명의 방향만 비교한 결과예요.'
+
+/** 정리 형식(BRIEF) 답의 줄. 빈 줄은 빼고 줄 앞의 '- '는 목록 표시로 바꾸므로 뗀다(AC24) */
+export function briefLines(answer: string): string[] {
+  return answer
+    .split('\n')
+    .map((line) => line.trim().replace(/^-\s+/, ''))
+    .filter((line) => line !== '')
+}
 
 /** 노트에 담기 액션의 note를 POST /api/notes 본문으로. 종류에 필요한 ID가 없거나 메모가 글이 아니면 null */
 function noteOf(raw: Record<string, unknown>): NoteCreate | null {

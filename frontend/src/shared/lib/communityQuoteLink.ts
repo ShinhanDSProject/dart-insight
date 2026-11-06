@@ -39,6 +39,19 @@ export function communityQuotePath(target: CommunityQuoteTarget): string {
   return `/companies/${encodeURIComponent(target.corpCode)}?${params.toString()}`
 }
 
+/**
+ * 같은 화면(분석 결과의 커뮤니티 탭)에서 글쓰기 칸에 인용을 붙일 쿼리. 기업 화면 주소 없이 쿼리만 바꾼다
+ * (AI 에이전트 채팅의 글 초안 열기, #584)
+ */
+export function communityQuoteParamChanges(target: Omit<CommunityQuoteTarget, 'corpCode'>): ParamChanges {
+  return {
+    quoteAnalysis: String(target.analysisId),
+    quoteKind: target.kind,
+    quoteChange: String(target.changeId),
+    quoteSj: target.kind === 'FINANCIAL_CHANGE' && target.sjDiv ? target.sjDiv : null,
+  }
+}
+
 /** 주소에 인용 관련 쿼리가 하나라도 있는지(잘못된 값도 정리할 수 있게 확인) */
 export function hasCommunityQuoteParams(params: URLSearchParams): boolean {
   return (

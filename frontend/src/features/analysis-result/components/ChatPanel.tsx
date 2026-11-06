@@ -1,18 +1,25 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { Link } from 'react-router'
 import { match } from 'ts-pattern'
-import type { ChatAction, ChatCitation, ChatContext, ChatMessageResponse } from '@/shared/api/agentChat'
+import type { ChatAction, ChatCitation, ChatContext, ChatCrossCheck, ChatMessageResponse } from '@/shared/api/agentChat'
 import type { AsyncState } from '@/shared/hooks/asyncState'
 import type { ParamChanges } from '@/shared/lib/searchParams'
-import { Badge, Button, Icon, Mascot, Notice, PanelTitle, SidePanel, TextArea } from '@/shared/ui'
+import { Badge, Button, ButtonLink, Icon, Mascot, Notice, PanelTitle, SidePanel, TextArea } from '@/shared/ui'
 import { ErrorState } from '@/shared/ui/StateView'
 import type { AgentChatController } from '../hooks/useAgentChat'
 import { ChatConfirmAction } from './ChatConfirmAction'
 import { ChatFeedback } from './ChatFeedback'
+import { ChatPinAction, ChatRequestAnalysisAction } from './ChatNavigateActions'
 import {
+  briefLines,
   chatActionTarget,
   citationChanges,
   citationLabel,
+  citationLink,
   citationNote,
+  citationTitle,
+  CROSS_CHECK_NOTE,
+  crossCheckView,
   parseChatAnswer,
   type ChatActionTarget,
 } from '../model/chatLinks'
@@ -40,14 +47,28 @@ interface ChatPanelProps {
   onDownloadBrief: () => void
   /** 브리프 내려받기 진행 상태('내보내기' 메뉴와 같은 상태). 받는 중이면 버튼을 끄고 실패하면 알린다 */
   briefState: AsyncState<void>
+  /** 글 초안 열기 액션: 커뮤니티 탭 글쓰기 칸을 초안·인용으로 채운다(저장은 사용자가 올릴 때만, AC26) */
+  onPostDraft: (draft: PostDraft) => void
   onClose: () => void
 }
+
+export type PostDraft = Extract<ChatActionTarget, { kind: 'post-draft' }>
 
 /**
  * AI 에이전트 채팅 패널(ADR-0044, 탭 밖 오른쪽). 탭을 바꿔도 열린 채로 대화를 이어 간다(AC20).
  * 답의 [1]은 근거 칩이고 누르면 그 변경·계정·원문 위치를 연다. 쓰기(노트·관심 기업)는 사용자가 확인 버튼을 누를 때만 한다(AC9).
  */
-export function ChatPanel({ analysisId, chat, context, suggestions, onNavigate, onDownloadBrief, briefState, onClose }: ChatPanelProps) {
+export function ChatPanel({
+  analysisId,
+  chat,
+  context,
+  suggestions,
+  onNavigate,
+  onDownloadBrief,
+  briefState,
+  onPostDraft,
+  onClose,
+}: ChatPanelProps) {
   const headingRef = useRef<HTMLHeadingElement>(null)
   const endRef = useRef<HTMLDivElement>(null)
   const { exchanges, request, draft } = chat.state
@@ -91,6 +112,7 @@ export function ChatPanel({ analysisId, chat, context, suggestions, onNavigate, 
             onNavigate={onNavigate}
             onDownloadBrief={onDownloadBrief}
             briefState={briefState}
+            onPostDraft={onPostDraft}
           />
         ))}
         {match(request)
@@ -157,9 +179,19 @@ interface ExchangeProps {
   onNavigate: (changes: ParamChanges) => void
   onDownloadBrief: () => void
   briefState: AsyncState<void>
+  onPostDraft: (draft: PostDraft) => void
 }
 
-function Exchange({ exchange, analysisId, confirmed, onConfirmed, onNavigate, onDownloadBrief, briefState }: ExchangeProps) {
+function Exchange({
+  exchange,
+  analysisId,
+  confirmed,
+  onConfirmed,
+  onNavigate,
+  onDownloadBrief,
+  briefState,
+  onPostDraft,
+}: ExchangeProps) {
   const { response } = exchange
   return (
     <article className="chat-panel__exchange" aria-label={`요청: ${exchange.message}`}>
@@ -194,14 +226,18 @@ function Exchange({ exchange, analysisId, confirmed, onConfirmed, onNavigate, on
             </Notice>
           ))
           .exhaustive()}
+        {/* 교차 검증 결과는 코드가 정한 값이라 답이 없어도(검토 필요 등) 보인다 */}
+        {response.crossCheck !== null && <CrossCheckNotice check={response.crossCheck} />}
         <Actions
           exchangeId={exchange.id}
+          analysisId={analysisId}
           response={response}
           confirmed={confirmed}
           onConfirmed={onConfirmed}
           onNavigate={onNavigate}
           onDownloadBrief={onDownloadBrief}
           briefState={briefState}
+          onPostDraft={onPostDraft}
         />
         {response.status === 'ANSWERED' && response.questionId !== null && (
           <ChatFeedback analysisId={analysisId} questionId={response.questionId} />
@@ -212,7 +248,7 @@ function Exchange({ exchange, analysisId, confirmed, onConfirmed, onNavigate, on
 }
 
 function AnswerBody({ response, onNavigate }: { response: ChatMessageResponse; onNavigate: (c: ParamChanges) => void }) {
-  const segments = parseChatAnswer(response.answer ?? '', response.citations)
+  const answer = response.answer ?? ''
   return (
     <>
       {/* 근거 인용이 있는 답에만 붙인다(화면 이동·목록 같은 답은 원문을 찾은 것이 아니다) */}
@@ -222,16 +258,23 @@ function AnswerBody({ response, onNavigate }: { response: ChatMessageResponse; o
           원문에서 근거를 찾았어요
         </p>
       )}
-      <p className="chat-panel__text">
-        {segments.map((s, i) =>
-          match(s)
-            .with({ kind: 'text' }, ({ text }) => <span key={i}>{text}</span>)
-            .with({ kind: 'citation' }, ({ citation }) => (
-              <CitationChip key={i} citation={citation} onNavigate={onNavigate} />
-            ))
-            .exhaustive(),
-        )}
-      </p>
+      {match(response.format)
+        .with('BRIEF', () => (
+          // 정리 형식: 한 줄에 한 가지 내용, 줄 끝마다 근거 칩(AC24)
+          <ul className="chat-panel__brief-list">
+            {briefLines(answer).map((line, i) => (
+              <li key={i}>
+                <AnswerText text={line} citations={response.citations} onNavigate={onNavigate} />
+              </li>
+            ))}
+          </ul>
+        ))
+        .with('CHAT', () => (
+          <p className="chat-panel__text">
+            <AnswerText text={answer} citations={response.citations} onNavigate={onNavigate} />
+          </p>
+        ))
+        .exhaustive()}
       {response.aiGenerated && (
         <p className="chat-panel__meta">
           <Badge tone="accent">AI 생성</Badge> <span>{aiInfoLabel(response.ai)}</span>
@@ -241,17 +284,64 @@ function AnswerBody({ response, onNavigate }: { response: ChatMessageResponse; o
   )
 }
 
+interface AnswerTextProps {
+  text: string
+  citations: ChatCitation[]
+  onNavigate: (c: ParamChanges) => void
+}
+
+/** 답 글과 그 안의 근거 칩 */
+function AnswerText({ text, citations, onNavigate }: AnswerTextProps) {
+  return (
+    <>
+      {parseChatAnswer(text, citations).map((s, i) =>
+        match(s)
+          .with({ kind: 'text' }, ({ text }) => <span key={i}>{text}</span>)
+          .with({ kind: 'citation' }, ({ citation }) => <CitationChip key={i} citation={citation} onNavigate={onNavigate} />)
+          .exhaustive(),
+      )}
+    </>
+  )
+}
+
+/** 교차 검증 결과(AC19). 어긋남은 '검토해 볼 신호'로만 보이고 허위·오류로 단정하지 않는다 */
+function CrossCheckNotice({ check }: { check: ChatCrossCheck }) {
+  const view = crossCheckView(check)
+  return (
+    <Notice tone={view.tone} title={`교차 검증: ${view.title}`} className="chat-panel__cross-check">
+      <p>{check.reason}</p>
+      <p className="chat-panel__cross-check-note">{CROSS_CHECK_NOTE}</p>
+    </Notice>
+  )
+}
+
 function CitationChip({ citation, onNavigate }: { citation: ChatCitation; onNavigate: (c: ParamChanges) => void }) {
   const changes = citationChanges(citation)
   const note = citationNote(citation)
   const label = `[${citation.no}] ${citationLabel(citation)}${note ? ` · ${note}` : ''}`
-  const title = citation.quote ?? citation.sentence ?? citation.sectionPath
+  const title = citationTitle(citation)
   if (changes === null) {
-    return (
-      <span className="chat-panel__citation" title={title}>
-        {label}
-      </span>
-    )
+    const link = citationLink(citation)
+    if (link === null) {
+      return (
+        <span className="chat-panel__citation" title={title}>
+          {label}
+        </span>
+      )
+    }
+    return match(link)
+      .with({ kind: 'route' }, ({ to }) => (
+        <Link className="chat-panel__citation" title={title} to={to}>
+          {label}
+        </Link>
+      ))
+      .with({ kind: 'external' }, ({ href }) => (
+        <a className="chat-panel__citation" title={title} href={href} target="_blank" rel="noopener noreferrer">
+          {label}
+          <span className="visually-hidden"> (새 창에서 DART 원문 열기)</span>
+        </a>
+      ))
+      .exhaustive()
   }
   return (
     <button type="button" className="chat-panel__citation" title={title} onClick={() => onNavigate(changes)}>
@@ -260,9 +350,19 @@ function CitationChip({ citation, onNavigate }: { citation: ChatCitation; onNavi
   )
 }
 
-type ActionsProps = { exchangeId: number; response: ChatMessageResponse } & Omit<ExchangeProps, 'exchange' | 'analysisId'>
+type ActionsProps = { exchangeId: number; response: ChatMessageResponse } & Omit<ExchangeProps, 'exchange'>
 
-function Actions({ exchangeId, response, confirmed, onConfirmed, onNavigate, onDownloadBrief, briefState }: ActionsProps) {
+function Actions({
+  exchangeId,
+  analysisId,
+  response,
+  confirmed,
+  onConfirmed,
+  onNavigate,
+  onDownloadBrief,
+  briefState,
+  onPostDraft,
+}: ActionsProps) {
   // 키는 응답 actions 안의 순서로 정한다(무시한 액션을 빼도 바뀌지 않게)
   const targets = response.actions
     .map((action, index) => ({ action, key: confirmKey(exchangeId, index), target: chatActionTarget(action, response.citations) }))
@@ -273,6 +373,7 @@ function Actions({ exchangeId, response, confirmed, onConfirmed, onNavigate, onD
       {targets.map(({ action, key, target }) => (
         <ActionButton
           key={key}
+          analysisId={analysisId}
           action={action}
           target={target}
           done={confirmed.includes(key)}
@@ -280,6 +381,7 @@ function Actions({ exchangeId, response, confirmed, onConfirmed, onNavigate, onD
           onNavigate={onNavigate}
           onDownloadBrief={onDownloadBrief}
           briefState={briefState}
+          onPostDraft={onPostDraft}
         />
       ))}
     </div>
@@ -287,6 +389,7 @@ function Actions({ exchangeId, response, confirmed, onConfirmed, onNavigate, onD
 }
 
 interface ActionButtonProps {
+  analysisId: number
   action: ChatAction
   target: ChatActionTarget
   /** 확인 버튼만: 이미 저장했다 */
@@ -295,9 +398,20 @@ interface ActionButtonProps {
   onNavigate: (changes: ParamChanges) => void
   onDownloadBrief: () => void
   briefState: AsyncState<void>
+  onPostDraft: (draft: PostDraft) => void
 }
 
-function ActionButton({ action, target, done, onDone, onNavigate, onDownloadBrief, briefState }: ActionButtonProps) {
+function ActionButton({
+  analysisId,
+  action,
+  target,
+  done,
+  onDone,
+  onNavigate,
+  onDownloadBrief,
+  briefState,
+  onPostDraft,
+}: ActionButtonProps) {
   const [showTerm, setShowTerm] = useState(false)
   const label = action.label ?? '열기'
   return match(target)
@@ -321,6 +435,18 @@ function ActionButton({ action, target, done, onDone, onNavigate, onDownloadBrie
           </p>
         )}
       </div>
+    ))
+    .with({ kind: 'link' }, ({ to }) => (
+      <ButtonLink variant="secondary" to={to}>
+        {label}
+      </ButtonLink>
+    ))
+    .with({ kind: 'pin' }, ({ changeId }) => <ChatPinAction analysisId={analysisId} changeId={changeId} label={label} />)
+    .with({ kind: 'request-analysis' }, ({ request }) => <ChatRequestAnalysisAction request={request} label={label} />)
+    .with({ kind: 'post-draft' }, (draft) => (
+      <Button variant="secondary" onClick={() => onPostDraft(draft)}>
+        {label}
+      </Button>
     ))
     .with({ kind: 'ignore' }, () => null)
     .exhaustive()
