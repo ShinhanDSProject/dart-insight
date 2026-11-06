@@ -10,7 +10,6 @@ from app.events.candidates import CandidateChange, is_candidate
 TEXT_LIMIT = 1500
 # docs/erd.md의 text_event 칸 길이
 MAX_TITLE_CHARS = 200
-MAX_KIND_CHARS = 30
 
 # 인용의 쓰임
 CHANGE = "CHANGE"
@@ -37,6 +36,28 @@ AMOUNT_UNAVAILABLE = "unavailable"
 EQUITY_MISSING = "EQUITY_MISSING"
 EQUITY_NOT_POSITIVE = "EQUITY_NOT_POSITIVE"
 FX_RATE_MISSING = "FX_RATE_MISSING"
+# 사건 신호(ADR-0060). 코드가 기준표(signal_table.json)로 붙인다
+CAUTION = "CAUTION"
+POSITIVE = "POSITIVE"
+HOLD = "HOLD"
+# 보류 사유
+NO_CRITERIA = "NO_CRITERIA"
+EVIDENCE_NOT_CONFIRMED = "EVIDENCE_NOT_CONFIRMED"
+MIXED_SIDES = "MIXED_SIDES"
+MIXED_LITIGATION = "MIXED_LITIGATION"
+
+
+@dataclass(frozen=True)
+class RowCounts:
+    """표 변경의 행 비교(rowDiff.counts). backend가 계산한다."""
+
+    changed: int
+    added: int
+    missing: int
+
+    @property
+    def total(self) -> int:
+        return self.changed + self.added + self.missing
 
 
 @dataclass(frozen=True)
@@ -51,6 +72,8 @@ class EventChange:
     changed_unit_count: int = 0
     # 표 바로 앞 블록의 글. 단위를 읽는다
     preceding_block_text: str | None = None
+    # 행을 비교한 표만. 그 밖에는 None
+    row_counts: RowCounts | None = None
 
     def block_no(self, side: str) -> int | None:
         return self.previous_block_no if side == PREVIOUS else self.current_block_no
@@ -116,6 +139,42 @@ class EventScale:
 
 
 @dataclass(frozen=True)
+class SignalPick:
+    """AI가 고른 종류·변화와 그 근거. 코드가 아직 확인하지 않은 값이다.
+
+    evidence_id는 AI가 가리킨 변경·쪽으로 코드가 만든 근거 ID이고, 가리킬 수 없으면 None이다.
+    """
+
+    kind_code: str | None = None
+    change_code: str | None = None
+    side: str | None = None
+    evidence_id: str | None = None
+
+
+@dataclass(frozen=True)
+class FactAccount:
+    """사실 칸에 보일 계정 이름(기준표). 값은 backend가 채운다."""
+
+    account_name: str
+    account_type: str | None = None
+
+
+@dataclass(frozen=True)
+class EventSignal:
+    """기준표로 붙인 신호. AI가 정하지 않는다(ADR-0060)."""
+
+    kind_code: str
+    change_code: str
+    change_name: str
+    signal: str
+    hold_reason: str | None = None
+    evidence_id: str | None = None
+    # 맨 앞 종류가 새로 발생했고 근거를 확인함
+    front: bool = False
+    fact_accounts: tuple[FactAccount, ...] = ()
+
+
+@dataclass(frozen=True)
 class TextEvent:
     title: str
     kind: str
@@ -123,3 +182,5 @@ class TextEvent:
     quotes: list[Quote]
     scale: EventScale = EventScale()
     basis: str = UNIT_COUNT
+    pick: SignalPick = SignalPick()
+    signal: EventSignal | None = None
