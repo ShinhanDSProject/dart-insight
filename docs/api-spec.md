@@ -2784,7 +2784,7 @@
 {
   "analysisId": 42,
   "status": "FAILED",
-  "eventVersion": "event-2",
+  "eventVersion": "event-3",
   "notCreatedReason": null,
   "errorCode": "AI_LLM_UNAVAILABLE",
   "canRetry": true,
@@ -2825,7 +2825,7 @@
 ```json
 {
   "analysisId": 42,
-  "eventVersion": "event-2",
+  "eventVersion": "event-3",
   "generatedAt": "2026-11-05T10:13:02",
   "droppedEventCount": 0,
   "fieldCounts": [{ "field": "LITIGATION", "eventCount": 2 }],
@@ -2860,7 +2860,7 @@
       "sortBasis": "UNIT_COUNT",
       "aiGenerated": true,
       "model": "모델 이름",
-      "promptVersion": "text-event-1",
+      "promptVersion": "text-event-2",
       "generatedAt": "2026-11-05T10:13:02"
     }
   ],
@@ -3962,7 +3962,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
   "created": true,
   "notCreatedReason": null,
   "model": "모델 이름",
-  "promptVersion": "text-event-1",
+  "promptVersion": "text-event-2",
   "generatedAt": "2026-11-05T10:13:02",
   "droppedEventCount": 0,
   "events": [
@@ -3988,7 +3988,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
     }
   ],
   "unboundChangeNos": [13],
-  "calls": [{ "task": "text_event", "provider": "openai", "model": "모델 이름", "promptVersion": "text-event-1",
+  "calls": [{ "task": "text_event", "provider": "openai", "model": "모델 이름", "promptVersion": "text-event-2",
     "calledAt": "2026-11-05T10:13:01", "traceId": "…", "inputTokens": 28000, "outputTokens": 3000,
     "latencyMs": 42000, "attempt": 1, "outcome": "OK", "error": null }]
 }

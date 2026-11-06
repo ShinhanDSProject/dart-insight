@@ -68,7 +68,7 @@ class TextEventApiTest {
     private static final String LAWSUIT_PATH = "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항";
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 11, 5, 9, 0);
     private static final String CALL = """
-            {"task":"text_event","provider":"openai","model":"m","promptVersion":"text-event-1",
+            {"task":"text_event","provider":"openai","model":"m","promptVersion":"text-event-2",
              "calledAt":"2026-11-05T10:13:01","traceId":"evt-1","inputTokens":10,"outputTokens":5,
              "latencyMs":100,"attempt":1,"outcome":"OK","error":null}""";
     private static final String EVENT = """
@@ -160,14 +160,14 @@ class TextEventApiTest {
 
     private static String created(String events, String unbound, int dropped) {
         return """
-                {"created":true,"notCreatedReason":null,"model":"m","promptVersion":"text-event-1",
+                {"created":true,"notCreatedReason":null,"model":"m","promptVersion":"text-event-2",
                  "generatedAt":"2026-11-05T10:13:02","droppedEventCount":%d,"events":[%s],
                  "unboundChangeNos":[%s],"calls":[%s]}""".formatted(dropped, events, unbound, CALL);
     }
 
     private static String notCreated(String reason) {
         return """
-                {"created":false,"notCreatedReason":"%s","model":null,"promptVersion":"text-event-1",
+                {"created":false,"notCreatedReason":"%s","model":null,"promptVersion":"text-event-2",
                  "generatedAt":null,"droppedEventCount":0,"events":[],"unboundChangeNos":[],"calls":[]}"""
                 .formatted(reason);
     }
@@ -194,7 +194,7 @@ class TextEventApiTest {
         mockMvc.perform(post(runsPath()).header("X-Trace-Id", "evt-1"))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.status").value("COMPLETED"))
-                .andExpect(jsonPath("$.eventVersion").value("event-2"));
+                .andExpect(jsonPath("$.eventVersion").value("event-3"));
 
         FakeAiServer.Request sent = AI.requests(AiServerPaths.TEXT_EVENTS).getFirst();
         assertThat(sent.traceId()).isEqualTo("evt-1");
@@ -219,7 +219,7 @@ class TextEventApiTest {
                 .andExpect(jsonPath("$.items[0].sortBasis").value("AMOUNT"))
                 .andExpect(jsonPath("$.items[0].aiGenerated").value(true))
                 .andExpect(jsonPath("$.items[0].model").value("m"))
-                .andExpect(jsonPath("$.items[0].promptVersion").value("text-event-1"))
+                .andExpect(jsonPath("$.items[0].promptVersion").value("text-event-2"))
                 .andExpect(jsonPath("$.items[0].generatedAt").value("2026-11-05T10:13:02"))
                 .andExpect(jsonPath("$.unboundChanges[0].field").value("CONTRACT"))
                 .andExpect(jsonPath("$.unboundChanges[0].currentPreview").value("패소 글 13"));
