@@ -904,6 +904,22 @@ class AgentChatApiTest {
     }
 
     @Test
+    @DisplayName("요약 Tool로만 인용한 재무 근거에도 계정 이름을 채운다(#743)")
+    void summaryFinancialCitationHasAccountName() throws Exception {
+        long changeId = financialChangeId();
+        String accountName = jdbcTemplate.queryForObject("SELECT account_name FROM financial_change WHERE id = ?",
+                String.class, changeId);
+        AI.on(STEPS, twoSteps("{\"callId\":\"c1\",\"name\":\"get_summary\",\"arguments\":{}}",
+                request -> finalAnswer("ANSWERED", "계정이 바뀌었어요[F" + changeId + "].", "\"F" + changeId + "\"",
+                        "")));
+
+        chat("요약해줘")
+                .andExpect(jsonPath("$.citations[0].kind").value("FINANCIAL_CHANGE"))
+                .andExpect(jsonPath("$.citations[0].changeId").value(changeId))
+                .andExpect(jsonPath("$.citations[0].accountName").value(accountName));
+    }
+
+    @Test
     @DisplayName("요약 Tool은 저장된 요약만 보내고 재무 설명 등급·인용을 그대로 넘긴다")
     void summaryToolSendsStoredGrades() throws Exception {
         long changeId = financialChangeId();
