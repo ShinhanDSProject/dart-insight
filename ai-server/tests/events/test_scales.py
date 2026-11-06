@@ -409,3 +409,17 @@ def test_structured_amount_of_one_stage_is_still_used_for_that_stage() -> None:
     scale, _ = one(llm()[0], data, text_event(1, title="자기주식 처분 결정", kind="자기주식"))
 
     assert scale.source == STRUCTURED
+
+
+def test_event_covering_two_stages_gets_no_structured_amount_when_only_one_stage_has_it() -> None:
+    client, _ = llm({"choice": None})
+    structured = [
+        StructuredAmount(
+            "20260107000715", "TREASURY_STOCK_ACQUISITION", "aqpln_prc_ostk", 1, "KRW"
+        ),
+    ]
+    data = event_input(change(current="취득 금액 10조원"), structured=structured)
+
+    scale, _ = one(client, data, text_event(1, title="자기주식 취득·처분", kind="자기주식"))
+
+    assert scale.source != STRUCTURED
