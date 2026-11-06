@@ -154,7 +154,7 @@ def test_front_words_in_title_alone_do_not_make_front_kind() -> None:
 def test_signal_does_not_change_order_among_amounts() -> None:
     by_no = changes(change(1), change(2))
     caution_signal = EventSignal("SANCTION", "OCCURRED", "새로 발생", CAUTION)
-    positive_signal = EventSignal("MAJOR_CONTRACT", "NEW", "신규 계약", POSITIVE)
+    positive_signal = EventSignal("MAJOR_CONTRACT", "NEW_SUPPLY", "신규 공급·판매 계약", POSITIVE)
     caution = replace(event(1, 10), signal=caution_signal)
     positive = replace(event(2, 300), signal=positive_signal)
 

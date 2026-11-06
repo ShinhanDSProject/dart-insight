@@ -12,7 +12,7 @@ from app.llm.providers import LlmRequest
 
 # 결과가 달라지게 바꾸면(프롬프트, 검증 validate.py·facts.py, 기준표의 종류·변화) 이 버전과
 # backend TextEvents.EVENT_VERSION을 함께 올린다
-PROMPT_VERSION = "text-event-3"
+PROMPT_VERSION = "text-event-4"
 TASK = "text_event"
 # 2.12에서 잰 값의 약 1.6~1.7배다(출력 최대 18,610, 호출 최대 148초, ADR-0057)
 MAX_OUTPUT_TOKENS = 32000

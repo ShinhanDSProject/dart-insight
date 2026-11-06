@@ -89,8 +89,10 @@ def test_table_signal_is_attached_with_code_names_and_evidence() -> None:
 
 
 def test_same_kind_and_change_give_the_same_signal_regardless_of_scale() -> None:
-    small = signal_of(event("MAJOR_CONTRACT", "NEW", scale=EventScale(amount=1, krw=1)))
-    large = signal_of(event("MAJOR_CONTRACT", "NEW", scale=EventScale(amount=10**15, krw=10**15)))
+    small = signal_of(event("MAJOR_CONTRACT", "NEW_SUPPLY", scale=EventScale(amount=1, krw=1)))
+    large = signal_of(
+        event("MAJOR_CONTRACT", "NEW_SUPPLY", scale=EventScale(amount=10**15, krw=10**15))
+    )
 
     assert small == large
     assert small.signal == POSITIVE
@@ -215,7 +217,7 @@ def test_front_kind_evidenced_only_by_the_previous_report_is_not_front() -> None
 
 
 def test_resolved_front_kind_is_not_front() -> None:
-    assert signal_of(event("REHABILITATION", "RESOLVED")).front is False
+    assert signal_of(event("REHABILITATION", "CONCLUDED")).front is False
 
 
 def test_other_kinds_are_not_front() -> None:
@@ -246,7 +248,7 @@ def test_table_json_has_the_public_shape_and_leaves_out_unconfirmed_terms() -> N
 
     shown = table_json(table)
 
-    assert shown["version"] == table.version == "signal-table-1"
+    assert shown["version"] == table.version == "signal-table-2"
     assert "투자 판단이 아니" in shown["signalNotice"]
     assert set(shown) == {"version", "signalNotice", "kinds", "glossary"}
     sanction = next(k for k in shown["kinds"] if k["code"] == "SANCTION")
@@ -259,9 +261,16 @@ def test_table_json_has_the_public_shape_and_leaves_out_unconfirmed_terms() -> N
         "accountsByType",
         "generalSides",
     }
-    assert {"code": "CANCELLED", "name": "취소", "signal": "POSITIVE", "explicitOnly": True} in (
-        sanction["changes"]
-    )
+    cancelled = next(c for c in sanction["changes"] if c["code"] == "CANCELLED")
+    assert cancelled == {
+        "code": "CANCELLED",
+        "name": "취소",
+        "signal": "POSITIVE",
+        "explicitOnly": True,
+        "general": "제재가 취소됐다고 적힌 것이라, 그 제재로 생길 부담이 없어질 수 있어요.",
+    }
+    paid = next(k for k in shown["kinds"] if k["code"] == "CAPITAL_REDUCTION")["changes"][1]
+    assert (paid["signal"], paid["general"]) == ("MIXED", None)
     # 출처를 확인한 용어가 아직 없다(7.8)
     assert shown["glossary"] == []
 

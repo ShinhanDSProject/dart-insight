@@ -135,7 +135,7 @@
 
 ## 신호 기준표 (7.8)
 
-사건에 긍정·주의·보류 신호를 붙이는 기준표는 [`app/events/signal_table.json`](../../../app/events/signal_table.json)(`signal-table-1`)입니다. AI는 이 표의 사건 종류와 변화만 근거와 함께 고르고, 신호는 표로 코드가 붙입니다(`AGENTS.md` AI 기능 규칙).
+사건에 긍정·주의·보류 신호를 붙이는 기준표는 [`app/events/signal_table.json`](../../../app/events/signal_table.json)(7.8에서 `signal-table-1`, 2.23에서 일반 문구와 변화를 더해 `signal-table-2`)입니다. AI는 이 표의 사건 종류와 변화만 근거와 함께 고르고, 신호는 표로 코드가 붙입니다(`AGENTS.md` AI 기능 규칙).
 
 - 종류 30개입니다. 맨 앞 8종은 위 '맨 앞에 둘 사건 종류'와 같고 순서도 같습니다.
 - `signal`: `CAUTION`(주의), `POSITIVE`(긍정), `MIXED`(좋은 면과 나쁜 면이 함께 있어 보류), `null`(판단 기준이 아직 없어 보류).

@@ -3,6 +3,8 @@
 import json
 from pathlib import Path
 
+from app.compliance import scan
+
 TABLE = json.loads(
     (Path(__file__).parents[2] / "app" / "events" / "signal_table.json").read_text(encoding="utf-8")
 )
@@ -53,13 +55,12 @@ def test_kinds_with_mixed_changes_have_general_good_and_bad_sides():
 
 
 def test_sanction_and_contract_follow_the_spec_examples():
-    """기획서 AC12: 제재 새로 발생은 주의, 취소는 긍정, 신규 계약은 긍정, 계약 해지는 주의."""
-    signal = {
-        (k["code"], c["code"]): c["signal"] for k in TABLE["kinds"] for c in k["changes"]
-    }
+    """기획서 AC12: 제재 새로 발생은 주의, 취소는 긍정, 신규 공급 계약은 긍정, 계약 해지는 주의."""
+    signal = {(k["code"], c["code"]): c["signal"] for k in TABLE["kinds"] for c in k["changes"]}
     assert signal[("SANCTION", "OCCURRED")] == "CAUTION"
     assert signal[("SANCTION", "CANCELLED")] == "POSITIVE"
-    assert signal[("MAJOR_CONTRACT", "NEW")] == "POSITIVE"
+    # 신규 계약은 회사가 공급·판매하는 계약만 긍정이다(2.23)
+    assert signal[("MAJOR_CONTRACT", "NEW_SUPPLY")] == "POSITIVE"
     assert signal[("MAJOR_CONTRACT", "TERMINATED")] == "CAUTION"
 
 
@@ -110,3 +111,52 @@ def test_every_answer_event_has_a_kind_and_change_from_the_table():
 def test_glossary_terms_without_a_confirmed_source_are_marked():
     for g in TABLE["glossary"]:
         assert (g["source"] is None) == (g["sourceStatus"] == "출처 확인 못함"), g["term"]
+
+
+def test_caution_and_positive_changes_have_a_general_phrase_and_others_do_not():
+    """신호 이유가 대체 표시일 때 쓰는 일반 문구(2.23). 주의·긍정 변화만 있다."""
+    for kind in TABLE["kinds"]:
+        for change in kind["changes"]:
+            signed = change["signal"] in ("CAUTION", "POSITIVE")
+            assert bool(change.get("general")) == signed, (kind["code"], change["code"])
+
+
+def test_general_phrases_pass_the_expression_check():
+    phrases = [c["general"] for k in TABLE["kinds"] for c in k["changes"] if c.get("general")]
+    phrases += [
+        s for k in TABLE["kinds"] if k.get("generalSides") for s in k["generalSides"].values()
+    ]
+    assert len(phrases) == 33 + 22
+    assert [p for p in phrases if scan(p)] == []
+
+
+def test_rehabilitation_ending_is_split_by_how_it_ended():
+    """종결은 긍정, 폐지는 주의, 신청 취하·기각은 보류. 모두 그렇다고 적힌 문장이 필요하다."""
+    kind = next(k for k in TABLE["kinds"] if k["code"] == "REHABILITATION")
+    signal = {c["code"]: c["signal"] for c in kind["changes"]}
+    assert signal == {
+        "OCCURRED": "CAUTION",
+        "CONCLUDED": "POSITIVE",
+        "ABOLISHED": "CAUTION",
+        "WITHDRAWN_DISMISSED": None,
+    }
+    assert all(c.get("explicitOnly") for c in kind["changes"] if c["code"] != "OCCURRED")
+
+
+def test_creditor_management_is_positive_only_when_it_ended_with_normalization():
+    kind = next(k for k in TABLE["kinds"] if k["code"] == "CREDITOR_MANAGEMENT")
+    signal = {c["code"]: c["signal"] for c in kind["changes"]}
+    assert signal == {"OCCURRED": "CAUTION", "NORMALIZED": "POSITIVE", "STOPPED": "CAUTION"}
+    assert all(c.get("explicitOnly") for c in kind["changes"] if c["code"] != "OCCURRED")
+
+
+def test_new_contract_is_positive_only_when_the_company_supplies_or_sells():
+    kind = next(k for k in TABLE["kinds"] if k["code"] == "MAJOR_CONTRACT")
+    signal = {c["code"]: c["signal"] for c in kind["changes"]}
+    assert signal["NEW_SUPPLY"] == "POSITIVE"
+    assert signal["NEW_PURCHASE_OR_ALLIANCE"] is None
+    assert "NEW" not in signal
+
+
+def test_table_version_is_two():
+    assert TABLE["version"] == "signal-table-2"
