@@ -191,3 +191,8 @@ app:
       "[openai:gpt-6.1-sol]":
         input-per-million-usd: 2
         output-per-million-usd: 10
+      # OpenAI gpt-6-luna: 입력 0.1달러, 출력 0.5달러(2026-11-06 확인, ADR-0059 에이전트 Tool 고르기)
+      # 출처: OpenAI 모델 페이지 가격(ADR-0059 맥락에 적은 값). 바뀌면 공식 페이지를 다시 확인한다
+      "[openai:gpt-6-luna]":
+        input-per-million-usd: 0.1
+        output-per-million-usd: 0.5
