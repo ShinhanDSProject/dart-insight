@@ -3260,11 +3260,11 @@
 - `ai`: LLM이 답을 만들었을 때만(모델·프롬프트 버전·생성 시각). 그 밖에는 null
 - `format`: `CHAT` 대화 답(해요체 3문장·400자 이내), `BRIEF` 사용자가 정리 형식("3줄 요약", "IR용 정리", "확인할 점")을 요청한 답(1,500자 이내, 한 줄에 한 가지 내용을 `- `로 시작해 쓰고 줄마다 근거 표시, 줄은 줄바꿈 문자로 나눔). 형식은 LLM이 아니라 ai-server가 사용자 메시지로 정합니다(3절 '정리 형식'). 검사는 같고, `BRIEF`는 근거 표시가 없는 줄이 있으면 반려합니다. 비교 브리프 파일은 LLM 없이 `DOWNLOAD_BRIEF`로 받습니다.
 - `crossCheck`: 교차 검증 요청("회사 설명과 재무 수치가 일치해?")일 때만, 아니면 null. `{ "result": "POTENTIAL_MISMATCH", "reason": "…" }`
-  - `CONSISTENT`: 같은 기준의 수치 방향과 회사 설명·계획 대조가 어긋나지 않음
-  - `POTENTIAL_MISMATCH`: 방향·크기가 어긋나는 곳이 있음. 검토할 신호이고 허위·오류로 확정하지 않습니다
-  - `INSUFFICIENT_EVIDENCE`: 대조할 근거가 부족함(설명 인용이 없거나 Tool 결과가 하나뿐)
+  - `CONSISTENT`: 같은 기준의 수치 방향과 회사 설명 인용의 방향이 맞는 계정이 있고, 반대인 계정은 없음
+  - `POTENTIAL_MISMATCH`: 수치 방향과 회사 설명 인용의 방향이 반대인 계정이 있음. 검토할 신호이고 허위·오류로 확정하지 않습니다
+  - `INSUFFICIENT_EVIDENCE`: 대조할 근거가 부족함(설명 인용이 없거나, 인용에 방향을 나타내는 낱말이 없거나, 손실 계정처럼 방향을 대조하지 않는 계정만 있음)
   - `NOT_COMPARABLE`: 기업·기간·연결/별도·계정 기준이 달라 대조하지 않음
-  - 기준 일치와 숫자·방향 대조는 코드가 정하고, LLM은 그 결과를 바꾸지 못합니다. 수시공시는 본문을 비교하지 않고 주요정보(DS005) 값만 씁니다.
+  - 기준 일치와 방향 대조는 코드가 정하고(판정 규칙은 3절 내부 API `POST /internal/agent-steps`의 '교차 검증 판정'), LLM은 그 결과를 바꾸지 못합니다. 계획 대조는 판정에 넣지 않습니다. 수시공시는 본문을 비교하지 않고 주요정보(DS005) 값만 씁니다.
 
 **에러**
 
@@ -3777,6 +3777,11 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 - Workflow(ADR-0045 `workflow_step`): 변경 원인 추적과 교차 검증은 LLM이 Tool을 고르지 않고 코드가 정한 순서로 부릅니다. 받은 `tools`에 필요한 Tool이 없으면 Workflow를 쓰지 않고 일반 경로로 갑니다.
   - 원인 추적: `get_financial_changes` → `get_summary` → (설명 인용이 없거나 더 필요하면) `search_text_changes`. 저장된 설명 등급·인용을 그대로 쓰고, 새로 찾은 문장은 등급 없이 '관련 문장'입니다.
   - 교차 검증: `get_financial_changes` → `get_summary` → `get_plan_followups` → (관련 수시공시가 있으면) `get_disclosure_key_items`. `crossCheck.result`는 코드가 정합니다(공개 API `crossCheck`).
+  - 교차 검증 판정: `get_financial_changes` 결과의 계정마다(`facts.changeId`) 같은 `changeId`의 요약 인용(`get_summary`, 등급 `STATED`·`RELATED`) 원문에서 방향 낱말을 찾아 수치 방향과 대조합니다.
+    - 대조하는 계정: `calcStatus`가 `OK`·`PREVIOUS_ZERO`·`TURNED_PROFIT`·`TURNED_LOSS`이고 `direction`이 `UP`·`DOWN`. 기준이 다른 계정: `PERIOD_MISMATCH`·`AMBIGUOUS_MATCH`·`ONLY_CURRENT`·`ONLY_PREVIOUS`·`PREVIOUS_MISSING`·`CURRENT_MISSING`. 손실 계정(`LOSS_NARROWED`·`LOSS_WIDENED`·`PREVIOUS_NEGATIVE`·`SIGN_CHANGED`)과 `SAME`은 말과 금액의 방향이 거꾸로 읽힐 수 있어 대조하지 않습니다.
+    - 방향 낱말: 늘어남 '증가·늘·확대·상승·성장', 줄어듦 '감소·줄·축소·하락·감축'. 한 인용에 양쪽이 다 있거나 하나도 없으면 방향 없음. '개선'·'악화' 같은 가치판단 낱말은 쓰지 않습니다.
+    - 결과(이 순서로): 대조하는 계정이 없고 기준이 다른 계정만 있으면 `NOT_COMPARABLE` → 방향이 반대인 계정이 있으면 `POTENTIAL_MISMATCH` → 방향이 같은 계정이 있으면 `CONSISTENT` → 그 밖은 `INSUFFICIENT_EVIDENCE`. `reason`은 코드가 정해진 문구로 만듭니다(예: "대조한 계정 3개 중 1개(영업이익)의 설명 방향이 수치와 반대예요.").
+    - 계획 대조(`get_plan_followups`)와 수시공시 주요정보(`get_disclosure_key_items`)는 답의 근거로만 쓰고 판정에 넣지 않습니다. 계획 대조는 이행 여부를 평가하지 않기 때문입니다(ADR-0041). 설명 속 숫자와 증감액의 크기는 대조하지 않습니다.
 - `FINAL` 확인(검토 노드): `evidenceIds`가 받은 Tool 결과의 근거 ID에 있음, 답의 숫자·크기 표현이 Tool 결과에 있음, 원인 표현은 인용한 원문에도 원인 표현이 있을 때만, Tool 결과의 재무 설명 등급을 바꾸지 않음, 표현 검사(5.5) 통과. 반려되면 사유를 붙여 다시 만들고, 처음 생성 1회와 다시 생성 2회(형식 실패 포함)를 넘으면 `REVIEW_NEEDED`입니다.
 
 **요청**
@@ -3807,7 +3812,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 }
 ```
 
-- `toolResults`는 지금까지 실행한 순서대로 모두 보냅니다. `items[].text`는 backend가 만든 글입니다(재무는 저장된 계산 결과로 만든 사실 문장, 문장 변경은 유형·섹션 경로·글). 한 결과는 10개(원문 목차는 30개)·4,000자까지로 줄이고, 줄였으면 `truncated: true`입니다. 줄 글에는 다음 Tool·액션 값으로 쓸 `changeId`·항목 번호가 들어 있습니다. 화면에서 고른 변경은 `callId`가 `ctx-text`·`ctx-financial`인 결과로 첫 왕복 전에 넣습니다. `items[].evidenceId`는 답의 근거로 쓸 수 있는 위치이고 없으면(null) 근거로 쓸 수 없는 줄입니다(기업 찾기 결과 등). `items[].grade`는 저장된 재무 설명 등급(`STATED`·`RELATED`·`NONE`)이 있는 줄에만 넣습니다. 검토 노드가 등급을 바꾼 답(예: `RELATED`인 설명을 '회사가 밝혔다'로 씀)을 반려하는 데 씁니다.
+- `toolResults`는 지금까지 실행한 순서대로 모두 보냅니다. `items[].text`는 backend가 만든 글입니다(재무는 저장된 계산 결과로 만든 사실 문장, 문장 변경은 유형·섹션 경로·글). 한 결과는 10개(원문 목차는 30개)·4,000자까지로 줄이고, 줄였으면 `truncated: true`입니다. 줄 글에는 다음 Tool·액션 값으로 쓸 `changeId`·항목 번호가 들어 있습니다. 화면에서 고른 변경은 `callId`가 `ctx-text`·`ctx-financial`인 결과로 첫 왕복 전에 넣습니다. `items[].evidenceId`는 답의 근거로 쓸 수 있는 위치이고 없으면(null) 근거로 쓸 수 없는 줄입니다(기업 찾기 결과 등). `items[].grade`는 저장된 재무 설명 등급(`STATED`·`RELATED`·`NONE`)이 있는 줄에만 넣습니다. 검토 노드가 등급을 바꾼 답(예: `RELATED`인 설명을 '회사가 밝혔다'로 씀)을 반려하는 데 씁니다. `items[].facts`는 코드가 판정에 쓰는 구조화 값이고 해당하는 줄에만 넣습니다(없으면 생략): `get_financial_changes`의 재무 줄은 `{ "changeId": 901, "direction": "DOWN", "calcStatus": "OK" }`(`direction`·`calcStatus`는 재무 수치 변화 API와 같은 값, `direction`은 계산하지 못하면 null), `get_summary`의 재무 요약 줄과 요약 인용 줄은 `{ "changeId": 901 }`(그 인용이 어느 계정의 설명인지). 교차 검증 Workflow가 `crossCheck.result`를 글을 다시 읽지 않고 정하는 데 씁니다(위 '교차 검증 판정').
 - 실행하지 못한 Tool(목록에 없음, 인자 형식 틀림, 없는 ID)은 `ok: false`와 `error`(짧은 사유)로 돌려줍니다. `ok: false` 결과는 자료가 없다는 뜻이 아닙니다. `NOT_FOUND`는 `ok: true`인 결과의 `items`에 관련 자료가 없을 때나 Tool을 하나도 실행하지 않았을 때 쓰고, 실행한 Tool이 모두 `ok: false`인데 `NOT_FOUND`이면 다시 쓰지 않고 바로 `REVIEW_NEEDED`(`reviewReason`에 사유)입니다. 검토 노드가 이 규칙도 확인합니다.
 
 **응답 200**
