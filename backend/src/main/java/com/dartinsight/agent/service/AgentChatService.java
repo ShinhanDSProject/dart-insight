@@ -185,7 +185,8 @@ public class AgentChatService {
                 if (line.evidence() != null) {
                     evidence.merge(line.evidenceId(), line.evidence(), Evidence::fill);
                 }
-                items.add(new AgentStepAiRequest.Item(line.evidenceId(), line.text(), line.grade()));
+                items.add(new AgentStepAiRequest.Item(line.evidenceId(), line.text(), line.grade(),
+                        AgentStepAiRequest.Facts.from(line.facts())));
             }
             results.add(new AgentStepAiRequest.ToolResult(callId, name, arguments, run.ok(), run.error(),
                     run.lines().truncated(), items));
@@ -197,7 +198,7 @@ public class AgentChatService {
                 return line;
             }
             int no = valueNumbers.computeIfAbsent(line.evidence().valueKey(), k -> valueNumbers.size() + 1);
-            return new ToolLine(line.evidence().withValueNo(no), line.text());
+            return line.withEvidence(line.evidence().withValueNo(no));
         }
 
         private AgentStepAiRequest request(int remainingSteps) {

@@ -1,5 +1,7 @@
 package com.dartinsight.agent.dto;
 
+import com.dartinsight.agent.domain.ToolLine;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 import java.util.Map;
 
@@ -26,7 +28,18 @@ public record AgentStepAiRequest(String companyName, String previousReport, Stri
     /**
      * @param evidenceId 답의 근거로 쓸 수 있는 위치. 없으면 null
      * @param grade      저장된 재무 설명 등급(STATED·RELATED·NONE). 없으면 null
+     * @param facts      교차 검증 판정용 구조화 값. 없으면 보내지 않음
      */
-    public record Item(String evidenceId, String text, String grade) {
+    public record Item(String evidenceId, String text, String grade,
+            @JsonInclude(JsonInclude.Include.NON_NULL) Facts facts) {
+    }
+
+    /** 판정용 구조화 값. 값이 없는 필드는 보내지 않는다(요약 줄은 changeId만) */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record Facts(Long changeId, String direction, String calcStatus) {
+
+        public static Facts from(ToolLine.Facts facts) {
+            return facts == null ? null : new Facts(facts.changeId(), facts.direction(), facts.calcStatus());
+        }
     }
 }

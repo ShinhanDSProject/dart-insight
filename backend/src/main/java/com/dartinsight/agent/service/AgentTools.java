@@ -307,11 +307,12 @@ public class AgentTools {
                 String text = "[요약 재무, changeId " + entry.changeId() + ", 등급 " + (grade == null ? "없음" : grade)
                         + "] " + row.factSentence() + (row.aiText() == null ? "" : " / 설명: " + row.aiText());
                 lines.add(new ToolLine(Evidence.financialChange(entry.changeId(), entry.sjDiv(), null,
-                        stored.analysis().getCurrentRceptNo(), row.factSentence()).withGrade(grade), text));
+                        stored.analysis().getCurrentRceptNo(), row.factSentence()).withGrade(grade), text,
+                        ToolLine.Facts.change(entry.changeId())));
                 // 인용 위치가 원문 블록 ID({접수번호}#B{번호})가 아니면 인용을 넘기지 않는다
                 if (row.quote() != null && row.quoteEvidenceId() != null
                         && EvidenceRef.parse(row.quoteEvidenceId()).blockNo() != null) {
-                    lines.add(quoteLine(stored.analysis().getCurrentRceptNo(), row, grade));
+                    lines.add(quoteLine(stored.analysis().getCurrentRceptNo(), row, grade, entry.changeId()));
                 }
             } else if (row.aiText() != null) {
                 // AI 문장은 원문 미리보기(quote)에 넣지 않는다
@@ -329,7 +330,7 @@ public class AgentTools {
      * 요약 인용 한 줄. 근거 ID로 저장된 원문의 문단을 찾아 항목 번호·섹션 경로를 붙인다(근거 칩으로 원문을 열 수 있게).
      * 원문에서 찾지 못하면 위치 없이 인용만 둔다.
      */
-    private ToolLine quoteLine(String currentRceptNo, SummaryItemRow row, String grade) {
+    private ToolLine quoteLine(String currentRceptNo, SummaryItemRow row, String grade, Long changeId) {
         EvidenceRef ref = EvidenceRef.parse(row.quoteEvidenceId());
         String side = ref.rceptNo().equals(currentRceptNo) ? "current" : "previous";
         Evidence evidence = documentService.find(ref.rceptNo())
@@ -340,7 +341,7 @@ public class AgentTools {
                 .orElseGet(() -> new Evidence(row.quoteEvidenceId(), Evidence.Kind.BLOCK, side, ref.rceptNo(), null,
                         null, null, null, null, null, row.quote(), null, null, null, null, null, null, null))
                 .withGrade(grade);
-        return new ToolLine(evidence, "[요약 인용, 등급 " + grade + "] " + row.quote());
+        return new ToolLine(evidence, "[요약 인용, 등급 " + grade + "] " + row.quote(), ToolLine.Facts.change(changeId));
     }
 
     /** 문장 변경 한 줄 풀이(저장된 풀이 우선). 풀이가 없거나 검토 필요면 그 사유만 넘긴다 */

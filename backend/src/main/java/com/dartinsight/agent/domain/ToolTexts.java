@@ -70,7 +70,8 @@ public final class ToolTexts {
     public static ToolLine financialChange(FinancialChange c) {
         String sentence = QuestionFacts.fact(Evidence.financialChangeId(c.getId()), c).sentence();
         return new ToolLine(Evidence.financialChange(c.getId(), c.getSjDiv(), c.getAccountName(),
-                c.getCurrentRceptNo(), sentence), "[" + c.getSjDiv() + ", changeId " + c.getId() + "] " + sentence);
+                c.getCurrentRceptNo(), sentence), "[" + c.getSjDiv() + ", changeId " + c.getId() + "] " + sentence,
+                new ToolLine.Facts(c.getId(), c.direction(), c.getCalcStatus() == null ? null : c.getCalcStatus().name()));
     }
 
     /** 계정 이름에 찾을 글이 들어 있는지(공백 무시). q가 없으면 맞음 */
