@@ -101,3 +101,12 @@ npm run check     # CI와 같은 검사: backend build, ai-server ruff·pytest, 
 - API 키와 `.env`는 커밋하지 않습니다. 저장소에는 `.env.example`만 둡니다. 개발용 키(OpenDART, LLM, JWT, 소셜 로그인)는 팀 공용 키를 [노션 · 공용 키 모음](https://app.notion.com/p/405b6afffc6f8147aa17d7326618e548)에서 가져와 각 폴더의 `.env`에 넣어 씁니다.
 
 자세한 내용은 노션의 개발 기준과 [협업 가이드](docs/monorepo-team-guide.md)를 따릅니다.
+
+## 인프라 자동 배포 확인
+
+현재 Jenkins CI·CD 작업은 `chore/jenkins-runtime-images` 브랜치의 변경을 감지합니다.
+검사를 통과한 소스의 커밋 번호로 실행 이미지를 만들고 AI·백엔드, 웹 순서로 배포합니다.
+
+자동 실행 검증은 문서 변경 커밋으로 진행하며, 실행 원인과 체크아웃 커밋 및 배포 결과를 확인합니다.
+자동 실행 성공 여부는 Jenkins 결과를 확인한 뒤 기록합니다.
+배포 설정과 운영 절차의 저장소 정리는 [PR #751](https://github.com/ShinhanDSProject/dart-insight/pull/751)에서 검토합니다.
