@@ -26,7 +26,7 @@ const SERVICES = {
     // 이후 클래스가 바뀌면 DevTools가 서버를 다시 띄운다. 두 Gradle이 같은 빌드를 동시에 하지 않게 순서를 둔다.
     dev: [
       [GRADLEW, ['-t', 'classes', '--console=plain']],
-      [GRADLEW, ['bootRun', '--console=plain'], { after: /Waiting for changes to input files/ }],
+      [GRADLEW, ['bootRun', '--console=plain'], { afterSuccessfulBuild: true }],
     ],
     test: [[GRADLEW, ['test']]],
     lint: [[GRADLEW, ['checkstyleMain', 'checkstyleTest']]],
@@ -176,6 +176,33 @@ function prefixLines(name, stream, target) {
   });
 }
 
+// Gradle 연속 빌드(-t) 출력을 줄 단위로 읽어, 'BUILD SUCCESSFUL' 뒤에 'Waiting for changes'가 처음 나오면 한 번 부른다.
+// 출력이 조각나 와도 줄을 모아서 보고, 'BUILD FAILED'면 다음 성공을 기다린다.
+function whenBuildReady(stream, onReady) {
+  let buffer = '';
+  let succeeded = false;
+  let done = false;
+  stream.on('data', (chunk) => {
+    if (done) {
+      return;
+    }
+    buffer += chunk;
+    const lines = buffer.split(/\r?\n/);
+    buffer = lines.pop();
+    for (const line of lines) {
+      if (line.includes('BUILD FAILED')) {
+        succeeded = false;
+      } else if (line.includes('BUILD SUCCESSFUL')) {
+        succeeded = true;
+      } else if (succeeded && line.includes('Waiting for changes to input files')) {
+        done = true;
+        onReady();
+        return;
+      }
+    }
+  });
+}
+
 function stopChild(child) {
   if (child.exitCode !== null || child.signalCode !== null) {
     return;
@@ -242,17 +269,14 @@ function runParallel(names) {
   };
 
   for (const name of names) {
-    // 서비스 하나에 프로세스가 여럿이면 순서대로 띄우고, after가 있으면 앞 프로세스 출력에 그 글이 나온 뒤에 띄운다
+    // 서비스 하나에 프로세스가 여럿이면 순서대로 띄운다. afterSuccessfulBuild면 앞 Gradle(-t)이
+    // 빌드에 성공하고 변경을 기다리기 시작한 뒤에 띄운다(빌드가 실패하면 다음 성공을 기다림)
     let previous = null;
-    SERVICES[name].dev.forEach(([command, args, { after } = {}], index) => {
+    SERVICES[name].dev.forEach(([command, args, { afterSuccessfulBuild } = {}], index) => {
       const key = `${name}#${index}`;
-      if (after && previous) {
-        let started = false;
-        previous.stdout.on('data', (chunk) => {
-          if (!started && !stopping && after.test(String(chunk))) {
-            started = true;
-            launch(name, key, command, args);
-          }
+      if (afterSuccessfulBuild && previous) {
+        whenBuildReady(previous.stdout, () => {
+          if (!stopping) launch(name, key, command, args);
         });
       } else {
         previous = launch(name, key, command, args);
