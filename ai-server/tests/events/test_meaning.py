@@ -138,6 +138,8 @@ def test_ratio_given_by_code_passes() -> None:
 def test_evidence_outside_the_event_blocks_fails() -> None:
     assert "evidenceIds" in problems_of(item(evidenceIds=[f"{CURRENT_RCEPT}#B9999"]))
     assert "evidenceIds" in problems_of(item(evidenceIds=[]))
+    assert "evidenceIds" in problems_of(item(evidenceIds=[[CURRENT_ID]]))
+    assert "evidenceIds" in problems_of(item(evidenceIds=CURRENT_ID))
 
 
 def test_absent_sentence_needs_topics_and_fact_sentence_has_none() -> None:
