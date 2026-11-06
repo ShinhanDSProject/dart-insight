@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { MemoryRouter, useLocation } from 'react-router'
+import { useRef, useState } from 'react'
+import { MemoryRouter, useLocation, useSearchParams } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Analysis, CompanyAnalysisItem } from '@/shared/api/analyses'
 import type { Post, PostList, PostQuote, QuoteRequest } from '@/shared/api/community'
@@ -8,7 +9,9 @@ import type { FinancialChangeDetail, FinancialChangeItem, FinancialChangeList } 
 import type { TextChangeDetail, TextChangeItem, TextChangeList } from '@/shared/api/textChanges'
 import { AuthContext, type AuthContextValue } from '@/shared/auth/authContext'
 import { axeViolations } from '@/test/axe'
-import { CommunityTab } from './CommunityTab'
+import { communityDraftParamChanges, communityQuoteParamChanges } from '@/shared/lib/communityQuoteLink'
+import { applyParamChanges, type ParamChanges } from '@/shared/lib/searchParams'
+import { CommunityTab, type CommunityDraft } from './CommunityTab'
 
 const api = vi.hoisted(() => ({
   getPosts: vi.fn(),
@@ -416,5 +419,155 @@ describe('글에 붙인 변경점(#464)', () => {
     await waitFor(() => expect(screen.getByTestId('search').textContent).toBe('?view=community'))
     expect(screen.getByRole('button', { name: '변경점 붙이기' })).toBeTruthy()
     expect(api.getTextChange).not.toHaveBeenCalled()
+  })
+})
+
+const QUOTE_A = communityQuoteParamChanges({ analysisId: 42, kind: 'TEXT_CHANGE', changeId: 3001 })
+const QUOTE_C = communityQuoteParamChanges({ analysisId: 42, kind: 'FINANCIAL_CHANGE', changeId: 501, sjDiv: 'IS' })
+
+/** 분석 결과 화면처럼 채팅의 글 초안을 열고(본문은 상태, 인용은 주소), 탭을 나갔다 올 수 있게 한 틀 */
+function DraftHarness() {
+  const [, setSearchParams] = useSearchParams()
+  const [draft, setDraft] = useState<CommunityDraft | null>(null)
+  const [shown, setShown] = useState(true)
+  const seq = useRef(0)
+  const open = (body: string, quote: ParamChanges | null) => {
+    seq.current += 1
+    setDraft({ body, key: seq.current })
+    setShown(true)
+    setSearchParams((prev) => applyParamChanges(prev, communityDraftParamChanges(quote)))
+  }
+  return (
+    <>
+      <button type="button" onClick={() => open('초안 A', QUOTE_A)}>초안 A 열기</button>
+      <button type="button" onClick={() => open('초안 B', null)}>초안 B 열기</button>
+      <button type="button" onClick={() => open('초안 C', QUOTE_C)}>초안 C 열기</button>
+      <button type="button" onClick={() => setShown((v) => !v)}>탭 오가기</button>
+      {shown && <CommunityTab corpCode="00126380" draft={draft} onDraftApplied={() => setDraft(null)} />}
+    </>
+  )
+}
+
+function renderDraftHarness() {
+  return render(
+    <AuthContext.Provider value={auth()}>
+      <MemoryRouter initialEntries={['/analyses/42?tab=community']}>
+        <DraftHarness />
+        <LocationSearch />
+      </MemoryRouter>
+    </AuthContext.Provider>,
+  )
+}
+
+describe('채팅에서 연 글 초안(#584)', () => {
+  beforeEach(() => {
+    api.getAnalysis.mockResolvedValue({
+      analysisId: 42,
+      corpCode: '00126380',
+      corpName: '삼성전자',
+      status: 'COMPLETED',
+      previous: analysis.previous,
+      current: analysis.current,
+    } as unknown as Analysis)
+    api.getTextChange.mockResolvedValue({ change: textItem(3001), previous: null, current: null } satisfies TextChangeDetail)
+    api.getFinancialChange.mockResolvedValue({
+      ...financialItem(),
+      accountKey: 'ifrs-full_Revenue',
+      fsDiv: 'CFS',
+      formula: null,
+      rateFormula: null,
+      previous: null,
+      current: null,
+      scale: { ...financialItem().scale, baseChangeId: null, formula: null, baseSource: null },
+      relatedTextChanges: [],
+    } satisfies FinancialChangeDetail)
+  })
+
+  const body = () => (screen.getByRole('textbox', { name: '글쓰기' }) as HTMLTextAreaElement).value
+
+  it('인용 A가 있는 초안 뒤에 인용 없는 초안 B를 열면 인용 A를 떼고 인용 없이 올린다', async () => {
+    api.createPost.mockResolvedValue(post(2))
+    renderDraftHarness()
+    await screen.findByText('HBM 이야기 1')
+
+    fireEvent.click(screen.getByRole('button', { name: '초안 A 열기' }))
+    expect(await screen.findByText('문장 변경 · 추가')).toBeTruthy()
+    expect(body()).toBe('초안 A')
+
+    fireEvent.click(screen.getByRole('button', { name: '초안 B 열기' }))
+    await waitFor(() => expect(body()).toBe('초안 B'))
+    expect(screen.queryByText('문장 변경 · 추가')).toBeNull()
+    expect(screen.getByRole('button', { name: '변경점 붙이기' })).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: '올리기' }))
+    await waitFor(() => expect(api.createPost).toHaveBeenCalledWith('00126380', '초안 B', null))
+  })
+
+  it('인용 A가 있는 초안 뒤에 인용 C가 있는 초안을 열면 인용 C만 붙인다', async () => {
+    renderDraftHarness()
+    await screen.findByText('HBM 이야기 1')
+
+    fireEvent.click(screen.getByRole('button', { name: '초안 A 열기' }))
+    expect(await screen.findByText('문장 변경 · 추가')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: '초안 C 열기' }))
+    expect(await screen.findByText('손익계산서 · 매출액')).toBeTruthy()
+    expect(screen.queryByText('문장 변경 · 추가')).toBeNull()
+    expect(body()).toBe('초안 C')
+    await waitFor(() => expect(screen.getByTestId('search').textContent).toBe('?tab=community'))
+  })
+
+  it('인용 A를 불러오는 중에 인용 없는 초안 B를 열면 A의 인용이 늦게 붙지 않는다', async () => {
+    let resolveText: (value: TextChangeDetail) => void = () => {}
+    api.getTextChange.mockImplementation(() => new Promise<TextChangeDetail>((resolve) => (resolveText = resolve)))
+    renderDraftHarness()
+    await screen.findByText('HBM 이야기 1')
+
+    fireEvent.click(screen.getByRole('button', { name: '초안 A 열기' }))
+    await waitFor(() => expect(api.getTextChange).toHaveBeenCalled())
+    fireEvent.click(screen.getByRole('button', { name: '초안 B 열기' }))
+    resolveText({ change: textItem(3001), previous: null, current: null })
+
+    await waitFor(() => expect(body()).toBe('초안 B'))
+    await waitFor(() => expect(screen.getByTestId('search').textContent).toBe('?tab=community'))
+    expect(screen.queryByText('문장 변경 · 추가')).toBeNull()
+  })
+
+  it('초안은 한 번만 채우고, 탭을 나갔다 오거나 게시한 뒤 다시 와도 앞 초안을 다시 채우지 않는다', async () => {
+    api.createPost.mockResolvedValue(post(2))
+    renderDraftHarness()
+    await screen.findByText('HBM 이야기 1')
+
+    fireEvent.click(screen.getByRole('button', { name: '초안 B 열기' }))
+    await waitFor(() => expect(body()).toBe('초안 B'))
+
+    // 탭 이동 뒤 재방문
+    fireEvent.click(screen.getByRole('button', { name: '탭 오가기' }))
+    fireEvent.click(screen.getByRole('button', { name: '탭 오가기' }))
+    await screen.findByText('HBM 이야기 1')
+    expect(body()).toBe('')
+
+    // 다시 열어 게시한 뒤 재방문
+    fireEvent.click(screen.getByRole('button', { name: '초안 B 열기' }))
+    await waitFor(() => expect(body()).toBe('초안 B'))
+    fireEvent.click(screen.getByRole('button', { name: '올리기' }))
+    await waitFor(() => expect(api.createPost).toHaveBeenCalledWith('00126380', '초안 B', null))
+    await waitFor(() => expect(body()).toBe(''))
+    fireEvent.click(screen.getByRole('button', { name: '탭 오가기' }))
+    fireEvent.click(screen.getByRole('button', { name: '탭 오가기' }))
+    await screen.findByText('HBM 이야기 1')
+    expect(body()).toBe('')
+  })
+
+  it('초안이 없는 동안에는 사용자가 쓴 글을 덮어쓰지 않는다', async () => {
+    renderDraftHarness()
+    await screen.findByText('HBM 이야기 1')
+
+    fireEvent.click(screen.getByRole('button', { name: '초안 B 열기' }))
+    await waitFor(() => expect(body()).toBe('초안 B'))
+    fireEvent.change(screen.getByRole('textbox', { name: '글쓰기' }), { target: { value: '내가 고친 글' } })
+    // 다른 인용 쿼리 처리나 다시 그리기가 있어도 칸은 그대로다
+    await waitFor(() => expect(screen.getByTestId('search').textContent).toBe('?tab=community'))
+    expect(body()).toBe('내가 고친 글')
   })
 })

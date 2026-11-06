@@ -52,6 +52,14 @@ export function communityQuoteParamChanges(target: Omit<CommunityQuoteTarget, 'c
   }
 }
 
+/**
+ * 새 글 초안을 열 때의 인용 쿼리. 앞 초안의 인용 쿼리를 먼저 지우고 새 인용만 남긴다(인용 없는 초안은 인용 쿼리 없음).
+ * 아직 불러오는 중인 앞 인용도 쿼리가 바뀌어 취소된다
+ */
+export function communityDraftParamChanges(quote: ParamChanges | null): ParamChanges {
+  return { ...clearCommunityQuoteParams, ...(quote ?? {}) }
+}
+
 /** 주소에 인용 관련 쿼리가 하나라도 있는지(잘못된 값도 정리할 수 있게 확인) */
 export function hasCommunityQuoteParams(params: URLSearchParams): boolean {
   return (

@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from 'react'
+import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { match, P } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
@@ -10,6 +10,7 @@ import type { TextSectionCount } from '@/shared/api/textChanges'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
 import { useRecordRecentAnalysis } from '@/shared/hooks/useRecentAnalyses'
 import { useRecordCurrentCompany } from '@/shared/hooks/useCurrentCompany'
+import { communityDraftParamChanges } from '@/shared/lib/communityQuoteLink'
 import { basisLabel } from '@/shared/lib/comparisonBasis'
 import { companyOverviewLink } from '@/shared/lib/currentCompany'
 import { CommunityTab, type CommunityDraft } from '@/shared/community/components/CommunityTab'
@@ -187,12 +188,16 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
     openChat()
   }
   // 채팅의 글 초안 열기(#584): 커뮤니티 탭 글쓰기 칸을 초안으로 채운다. 본문은 주소에 넣지 않고(최대 2,000자) 화면 상태로 넘기며,
-  // 인용은 기존 인용 쿼리로 붙인다. 같은 초안을 다시 눌러도 칸을 다시 채우도록 번호를 올린다
+  // 인용은 기존 인용 쿼리로 붙인다(앞 초안의 인용 쿼리는 지움). 초안은 커뮤니티 탭이 한 번 적용하면 비워서
+  // 탭을 나갔다 오거나 게시한 뒤에 다시 채우지 않는다. 같은 초안을 다시 눌러도 칸을 다시 채우도록 번호는 계속 올린다
   const [postDraft, setPostDraft] = useState<CommunityDraft | null>(null)
+  const draftSeq = useRef(0)
   const openPostDraft = (draft: PostDraft) => {
-    setPostDraft((prev) => ({ body: draft.body, key: (prev?.key ?? 0) + 1 }))
-    update({ tab: 'community', ...(draft.quote ?? {}) })
+    draftSeq.current += 1
+    setPostDraft({ body: draft.body, key: draftSeq.current })
+    update({ tab: 'community', ...communityDraftParamChanges(draft.quote) })
   }
+  const clearPostDraft = useCallback(() => setPostDraft(null), [])
   return (
     <>
       {analysis.outdated && <OutdatedNotice analysis={analysis} />}
@@ -212,6 +217,7 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
         suggestions={examples}
         sectionCounts={sectionCounts}
         postDraft={postDraft}
+        onPostDraftApplied={clearPostDraft}
       />
 
       {chatOpen && !evidenceOpen ? (
@@ -245,6 +251,8 @@ interface ResultTabPanelProps extends AnalysisResultProps {
   sectionCounts: TextSectionCount[]
   /** 채팅에서 연 글 초안(커뮤니티 탭 글쓰기 칸). 없으면 null */
   postDraft: CommunityDraft | null
+  /** 커뮤니티 탭이 초안을 글쓰기 칸에 채웠을 때(초안은 한 번만 적용) */
+  onPostDraftApplied: () => void
 }
 
 function ResultTabPanel({
@@ -256,6 +264,7 @@ function ResultTabPanel({
   suggestions,
   sectionCounts,
   postDraft,
+  onPostDraftApplied,
 }: ResultTabPanelProps) {
   const openSource = (target: SourceTarget) => update(openSourceChanges(target))
   const openText = (changeId: number) => update(openTextChanges(changeId))
@@ -329,7 +338,7 @@ function ResultTabPanel({
         asking={asking}
       />
     ))
-    .with('community', () => <CommunityTab corpCode={analysis.corpCode} draft={postDraft} />)
+    .with('community', () => <CommunityTab corpCode={analysis.corpCode} draft={postDraft} onDraftApplied={onPostDraftApplied} />)
     .with('news', () => <NewsTab corpCode={analysis.corpCode} />)
     // 보고서 선택(#659): 기업 화면의 보고서 비교를 탭 줄 아래에 그린다. 고른 값을 넣기 전에는 그리지 않아 가장 최근 보고서가 잠깐 골라지지 않는다
     .with('reports', () => (seed === null ? renderReports?.(analysis.corpCode) : null))
