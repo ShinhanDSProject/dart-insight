@@ -1185,14 +1185,14 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | --- | --- | --- | --- | --- |
 | `id` | BIGINT | PK | 아니오 | 자동 증가 |
 | `analysis_id` | BIGINT | FK, UK | 아니오 | `analysis.id` |
-| `event_version` | VARCHAR(20) | UK | 아니오 | 사건 버전(`TextEvents.EVENT_VERSION`, `event-3`. 신호·문장을 넣는 3.40에서 `event-4`) |
+| `event_version` | VARCHAR(20) | UK | 아니오 | 사건 버전(`TextEvents.EVENT_VERSION`, 신호·문장을 넣은 3.40부터 `event-4`) |
 | `attempt_no` | INT | UK | 아니오 | 같은 분석·버전의 몇 번째 실행인지. 동시 시작을 막음 |
 | `status` | VARCHAR(20) | | 아니오 | `PENDING`, `RUNNING`, `COMPLETED`, `FAILED`, `NOT_CREATED` |
 | `not_created_reason` | VARCHAR(30) | | 예 | `FAKE_MODEL`, `NO_CANDIDATES`. `NOT_CREATED`일 때만 |
 | `error_code` | VARCHAR(50) | | 예 | `FAILED`일 때 사유 코드 |
 | `dropped_event_count` | INT | | 아니오 | 검증에 실패해 뺀 사건 수. 기본 0 |
 | `trace_id` | VARCHAR(64) | | 예 | 시작 요청의 추적 ID |
-| `signal_table_version` | VARCHAR(30) | | 예 | 신호를 붙인 기준표 버전(`signal-table-1`, [ADR-0060](adr/0060-event-signal-and-sentences.md)). `COMPLETED`일 때만. `event-3`까지의 행은 null |
+| `signal_table_version` | VARCHAR(30) | | 예 | 신호를 붙인 기준표 버전(`signal-table-2`, [ADR-0060](adr/0060-event-signal-and-sentences.md)). `COMPLETED`일 때만. `event-3`까지의 행은 null |
 | `created_at` | DATETIME(6) | | 아니오 | 만든 시각(한국 시간) |
 | `started_at`, `finished_at` | DATETIME(6) | | 예 | 시작·끝난 시각(한국 시간) |
 
@@ -1268,7 +1268,9 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 
 ### text_event_sentence
 
-사건의 AI 문장 칸 하나입니다([ADR-0060](adr/0060-event-signal-and-sentences.md), R14·AC24). 칸을 만들지 않았으면(신호 이유인데 보류 사유가 `NO_CRITERIA`·`EVIDENCE_NOT_CONFIRMED`) 행이 없습니다. 사건과 같은 트랜잭션에서 저장하고 고치지 않습니다. 마이그레이션은 3.40에서 씁니다(번호는 병합 전에 다시 확인, 지금 main의 마지막은 V51).
+사건의 AI 문장 칸 하나입니다([ADR-0060](adr/0060-event-signal-and-sentences.md), R14·AC24). 칸을 만들지 않았으면(신호 이유인데 보류 사유가 `NO_CRITERIA`·`EVIDENCE_NOT_CONFIRMED`) 행이 없습니다. 사건과 같은 트랜잭션에서 저장하고 고치지 않습니다.
+
+> 마이그레이션: `V52__add_text_event_signal_and_sentence.sql`(이 테이블과 `text_event`의 신호·용어·사실 칸, `text_event_run.signal_table_version`, #736). `signal`은 MariaDB 예약어라 SQL에서 `` `signal` ``로 감쌉니다.
 
 | 컬럼 | 타입 | 키 | null | 설명 |
 | --- | --- | --- | --- | --- |
@@ -1640,6 +1642,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `text_event_change` | `uk_text_event_change` | `event_id, change_no` | 유니크 | 같은 사건·변경 연결 중복 방지 |
 | `text_event_quote` | `uk_text_event_quote` | `event_id, quote_no` | 유니크 | 사건 안 인용 순서 하나 |
 | `text_event_unbound_change` | `uk_text_event_unbound_change` | `run_id, change_no` | 유니크 | 같은 변경을 두 번 저장하지 않음 |
+| `text_event_sentence` | `uk_text_event_sentence` | `event_id, part` | 유니크 | 사건마다 칸 하나 |
 
 외래 키: `local_credential.user_id`, `refresh_token.user_id`, `password_reset_token.user_id`(6.8) → `app_user.id` / `judgment_note_item.user_id` → `app_user.id`, `judgment_note_item.corp_code` → `company.corp_code` / `refresh_token.replaced_by_id` → `refresh_token.id` / `report.corp_code`, `company_overview.corp_code`, `financial_statement_fetch.corp_code`, `analysis.corp_code`, `company_disclosure_fetch.corp_code`, `company_disclosure.corp_code` → `company.corp_code` / `analysis.current_rcept_no`, `analysis.previous_rcept_no`, `report_key_account_fetch.rcept_no`, `report_key_account.rcept_no` → `report.rcept_no` / `financial_account.fetch_id` → `financial_statement_fetch.id` / `financial_change.analysis_id` → `analysis.id` / `report_document.rcept_no`, `report_key_fact.rcept_no`, `company_briefing.rcept_no`, `company_question.rcept_no` → `report.rcept_no` / `llm_call.company_briefing_id` → `company_briefing.id` / `llm_call.company_question_id` → `company_question.id` / `document_section.document_id`, `document_block.document_id` → `report_document.id` / `text_change.analysis_id`, `summary_item.analysis_id`, `llm_call.analysis_id`, `analysis_question.analysis_id`, `text_change_explanation.analysis_id` → `analysis.id` / `summary_item.financial_change_id` → `financial_change.id` / (3.6) `disclosure_window_fetch.corp_code` → `company.corp_code` / `disclosure_window_item.fetch_id`, `related_disclosure_run.window_fetch_id` → `disclosure_window_fetch.id` / `related_disclosure_run.analysis_id` → `analysis.id` / `related_disclosure.run_id` → `related_disclosure_run.id` / `related_disclosure.item_id` → `disclosure_window_item.id` / (6.6) `community_post.corp_code` → `company.corp_code` / `community_post.user_id`, `community_comment.user_id`, `community_like.user_id`, `community_report_entry.reporter_id`, `community_moderation.admin_id`, `community_repost_request.user_id` → `app_user.id` / `community_quote.post_id`, `community_comment.post_id`, `community_report.post_id` → `community_post.id` / `community_comment.parent_id` → `community_comment.id` / `community_report_entry.report_id`, `community_moderation.report_id` → `community_report.id` / `community_repost_request.moderation_id` → `community_moderation.id`
 
@@ -1648,6 +1651,8 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 외래 키(1.10, #467): `plan_followup.previous_rcept_no`, `plan_followup.current_rcept_no` → `report.rcept_no` / `llm_call.plan_followup_id` → `plan_followup.id`
 
 외래 키(2.13, #642): `text_event_run.analysis_id` → `analysis.id` / `text_event.run_id`, `text_event_unbound_change.run_id` → `text_event_run.id` / `text_event_change.event_id`, `text_event_quote.event_id` → `text_event.id`
+
+외래 키(3.40, #736): `text_event_sentence.event_id` → `text_event.id`
 
 ## 5. 작성 규칙
 
