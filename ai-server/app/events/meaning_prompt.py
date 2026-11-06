@@ -149,14 +149,14 @@ def _event_tag(event: TextEvent) -> str:
     return f'<event title="{title}" kind="{kind}" change="{attr(change)}" />'
 
 
-def _values_tag(values: dict[str, str]) -> str:
+def values_tag(values: dict[str, str]) -> str:
     return "<codeValues" + "".join(f' {k}="{attr(v)}"' for k, v in values.items()) + " />"
 
 
 def build_request(
     event: TextEvent, blocks: list[Block], values: dict[str, str] | None = None
 ) -> LlmRequest:
-    lines = [_event_tag(event), _values_tag(values or {}), ""]
+    lines = [_event_tag(event), values_tag(values or {}), ""]
     lines += [
         disclosure(b.evidence_id, b.text, extra={"side": b.side, "section": b.section})
         for b in blocks
