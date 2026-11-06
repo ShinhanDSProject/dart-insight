@@ -102,6 +102,7 @@ def build_graph(llm: LlmClient) -> Any:
         running = workflow.active(step)
         if running is not None:
             calls = workflow.next_calls(step, running)
+            logger.info("Workflow %s 다음 Tool: %s", running, [c.name for c in calls])
             if calls:
                 return {"kind": TOOL_CALLS, "tool_calls": calls, "next": _RESPOND}
             return {"next": _DRAFT}
@@ -136,6 +137,7 @@ def build_graph(llm: LlmClient) -> Any:
         chosen, draft, picked = result.value
         started = workflow.start_calls(step, picked) if picked is not None else []
         if started:
+            logger.info("Workflow %s 시작: %s", picked.workflow, [c.name for c in started])
             # Workflow를 고르면 Tool 순서는 코드가 정한다(고른 Tool·초안은 쓰지 않음)
             return {
                 "calls": calls,
