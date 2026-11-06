@@ -416,6 +416,16 @@ code {
   font-size: var(--font-size-sm);
 }
 
+/* 숨은 페이지 안내(#753): 캐릭터, 한 줄 설명, 새 탭으로 여는 버튼을 가운데에 쌓는다 */
+.easter-egg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  text-align: center;
+  font-size: var(--font-size-sm);
+}
+
 /* 단축키 도움말(FS-17) */
 .shortcut-help__group {
   display: flex;
