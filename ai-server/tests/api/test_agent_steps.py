@@ -152,3 +152,49 @@ def test_invalid_tool_parameters_schema_is_invalid_input() -> None:
         client.post("/internal/agent-steps", json={**BODY, "tools": [not_object]}).status_code
         == 400
     )
+
+
+def test_cross_check_uses_facts_and_is_returned_in_final() -> None:
+    financial_tool = {**TOOL, "name": "get_financial_changes", "description": "재무 계정 변화"}
+    rcept = "20260814003699"
+    body = {
+        **BODY,
+        "message": "회사 설명과 재무 수치가 일치해?",
+        "tools": [financial_tool, TOOL],
+        "toolResults": [
+            {
+                "callId": "cross-1",
+                "name": "get_financial_changes",
+                "arguments": {},
+                "ok": True,
+                "items": [
+                    {
+                        "evidenceId": "F4221",
+                        "text": "[IS, changeId 4221] 영업이익이 줄었어요.",
+                        "facts": {"changeId": 4221, "direction": "DOWN", "calcStatus": "OK"},
+                    }
+                ],
+            },
+            {
+                "callId": "cross-2",
+                "name": "get_summary",
+                "arguments": {},
+                "ok": True,
+                "items": [
+                    {
+                        "evidenceId": f"{rcept}#B5",
+                        "text": "[요약 인용, 등급 STATED] 영업이익은 수요 부진으로 감소했습니다.",
+                        "grade": "STATED",
+                        "facts": {"changeId": 4221},
+                    }
+                ],
+            },
+        ],
+    }
+
+    data = app_with(fake_provider()).post("/internal/agent-steps", json=body).json()
+
+    assert data["type"] == "FINAL"
+    cross = data["final"]["crossCheck"]
+    assert cross["result"] == "CONSISTENT"
+    assert cross["reason"]

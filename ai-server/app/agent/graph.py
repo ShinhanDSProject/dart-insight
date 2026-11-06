@@ -1,9 +1,11 @@
 """에이전트 한 단계 그래프(ADR-0045, ADR-0049).
 
 route_intent ─┬─ OUT_OF_SCOPE ─────────────────────────→ build_response
+             ├─ 진행 중인 Workflow → 다음 TOOL_CALLS(코드) 또는 draft_answer(#581)
              ├─ 빠른 명령 → TOOL_CALLS ───────────────→ build_response
              ├─ 정해진 요청 → FINAL 또는 목차 TOOL_CALLS(LLM 없음, rules) → build_response
              └─ plan_next_tool ─┬─ TOOL_CALLS ────────→ build_response
+                                ├─ Workflow 고름 → 첫 TOOL_CALLS(코드) → build_response
                                 ├─ ANSWER + 초안 → review_answer(첫 생성으로 셈)
                                 └─ ANSWER(초안 없음) → draft_answer ↔ review_answer
                                        └─ 통과·예산 끝 → build_response
@@ -20,10 +22,12 @@ route_intent ─┬─ OUT_OF_SCOPE ──────────────�
 from __future__ import annotations
 
 import logging
+from dataclasses import replace
 from typing import Any, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
+from app.agent import workflow
 from app.agent.model import (
     FINAL,
     OUT_OF_SCOPE,
@@ -95,6 +99,12 @@ def build_graph(llm: LlmClient) -> Any:
         step = state["step"]
         if scan_question(step.message):
             return {"kind": OUT_OF_SCOPE, "next": _RESPOND}
+        running = workflow.active(step)
+        if running is not None:
+            calls = workflow.next_calls(step, running)
+            if calls:
+                return {"kind": TOOL_CALLS, "tool_calls": calls, "next": _RESPOND}
+            return {"next": _DRAFT}
         quick = _quick_call(step)
         if quick is not None:
             return {"kind": TOOL_CALLS, "tool_calls": [quick], "next": _RESPOND}
@@ -112,7 +122,10 @@ def build_graph(llm: LlmClient) -> Any:
         calls = list(state.get("calls", []))
         try:
             result = _generate(
-                llm, calls, build_plan_request(step), lambda d: (parse_plan(d, step), plan_draft(d))
+                llm,
+                calls,
+                build_plan_request(step),
+                lambda d: (parse_plan(d, step), plan_draft(d), workflow.choice(d, step)),
             )
         except LlmOutputInvalid as e:
             # 다음 Tool을 고르지 못하면 지금까지의 결과로 답한다
@@ -120,7 +133,18 @@ def build_graph(llm: LlmClient) -> Any:
             calls += e.calls
             return {"calls": calls, "next": _DRAFT}
         calls += result.calls
-        chosen, draft = result.value
+        chosen, draft, picked = result.value
+        started = workflow.start_calls(step, picked) if picked is not None else []
+        if started:
+            # Workflow를 고르면 Tool 순서는 코드가 정한다(고른 Tool·초안은 쓰지 않음)
+            return {
+                "calls": calls,
+                "kind": TOOL_CALLS,
+                "tool_calls": started,
+                "model": result.model,
+                "generated_at": result.generated_at,
+                "next": _RESPOND,
+            }
         fresh = [c for c in chosen if not _already_called(step, c)]
         if not fresh and draft is not None:
             # 자료가 충분하다며 답 초안까지 썼다(ADR-0049). 첫 생성으로 세고 검토를 거친다
@@ -193,6 +217,15 @@ def build_graph(llm: LlmClient) -> Any:
         return {"rejections": rejections, "problems": reviewed.problems, "next": _DRAFT}
 
     def build_response(state: StepState) -> StepState:
+        step = state["step"]
+        final = state.get("final")
+        if (
+            state.get("kind") == FINAL
+            and final is not None
+            and workflow.active(step) == workflow.CROSS_CHECK
+        ):
+            # 교차 검증 결과는 답이 검토 필요로 끝나도 코드가 정한 값 그대로 붙인다
+            return {"final": replace(final, cross_check=workflow.cross_check(step))}
         return {}
 
     graph = StateGraph(StepState)

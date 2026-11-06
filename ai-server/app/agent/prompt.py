@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from app.agent import workflow
 from app.agent.answer_format import FORMAT_INSTRUCTIONS, answer_format
 from app.agent.model import LLM_STATUSES, MAX_TOOL_CALLS, StepInput, ToolResult
 from app.agent.validate import DECISIONS
@@ -18,7 +19,7 @@ from app.llm.prompting import SOURCE_RULE, attr, disclosure, escape
 from app.llm.providers import LlmRequest
 
 # 결과가 달라지게 바꾸면 이 버전을 올린다(검사 규칙 app/agent/validate.py 포함)
-PROMPT_VERSION = "agent-5"
+PROMPT_VERSION = "agent-6"
 TASK_PLAN = "agent_plan"
 TASK_ANSWER = "agent_answer"
 MAX_MESSAGE_CHARS = 500
@@ -80,13 +81,23 @@ PLAN_SYSTEM = "\n".join(
         "'원문 근거와 함께' 같은 근거 요청 말은 뺍니다"
         "(예: '소송 관련 변경을 원문 근거와 함께 설명해줘' → '소송 관련해서 무엇이 바뀌었나요?', "
         "'종속기업 소송은 원문에 어떻게 나와?' → '종속기업 소송은 어떻게 나와 있나요?').",
+        "6. workflow는 처음 고를 때(아직 Tool 결과가 없을 때)만 고르고, 아니면 null로 둡니다. "
+        "재무 수치가 바뀐 원인·이유를 묻는 요청(예: '영업이익 감소와 관련된 변경 문장', "
+        "'매출이 왜 늘었어?')은 CAUSE_TRACE, 회사 설명과 재무 수치가 맞는지 묻는 요청"
+        "(예: '회사 설명과 재무 수치가 일치해?')은 CROSS_CHECK입니다. account에는 사용자가 말한 "
+        "계정 이름(예: '영업이익')을, 말하지 않았으면 null을 적습니다. workflow를 고르면 "
+        "decision은 CALL_TOOLS, toolCalls는 빈 배열로 둡니다(부를 Tool은 서비스가 정함). "
+        "workflow 선택지가 주어지지 않았으면 늘 null입니다.",
         "답 규칙(draft):",
         *ANSWER_RULES,
         DATA_RULE,
         "답은 JSON 객체 하나만: "
         '{"decision": "CALL_TOOLS", "toolCalls": [{"name": "...", "arguments": {...}}], '
-        '"draft": null} 또는 {"decision": "ANSWER", "toolCalls": [], "draft": '
-        '{"status": "ANSWERED", "answer": "...", "evidenceIds": ["..."], "actions": []}}',
+        '"draft": null, "workflow": null} 또는 {"decision": "CALL_TOOLS", "toolCalls": [], '
+        '"draft": null, "workflow": {"type": "CROSS_CHECK", "account": null}} 또는 '
+        '{"decision": "ANSWER", "toolCalls": [], "draft": '
+        '{"status": "ANSWERED", "answer": "...", "evidenceIds": ["..."], "actions": []}, '
+        '"workflow": null}',
     ]
 )
 
@@ -119,14 +130,36 @@ def plan_schema(step: StepInput) -> dict[str, Any]:
     ]
     return {
         "type": "object",
-        "required": ["decision", "toolCalls", "draft"],
+        "required": ["decision", "toolCalls", "draft", "workflow"],
         "additionalProperties": False,
         "properties": {
             "decision": {"enum": list(DECISIONS)},
             "toolCalls": {"type": "array", "maxItems": MAX_TOOL_CALLS, "items": {"anyOf": calls}},
             # 자료가 충분하면(ANSWER) 답 초안, 아니면 null(ADR-0049)
             "draft": {"anyOf": [{"type": "null"}, answer_schema(step)]},
+            "workflow": _workflow_schema(step),
         },
+    }
+
+
+def _workflow_schema(step: StepInput) -> dict[str, Any]:
+    """쓸 수 있는 Workflow가 있고 아직 시작 전일 때만 고를 수 있게 한다(#581)."""
+    choices = workflow.available(step) if workflow.can_start(step) else []
+    if not choices:
+        return {"type": "null"}
+    return {
+        "anyOf": [
+            {"type": "null"},
+            {
+                "type": "object",
+                "required": ["type", "account"],
+                "additionalProperties": False,
+                "properties": {
+                    "type": {"enum": choices},
+                    "account": {"type": ["string", "null"]},
+                },
+            },
+        ]
     }
 
 
@@ -193,6 +226,7 @@ def _actions(step: StepInput) -> list[str]:
 def build_answer_request(step: StepInput, problems: list[str]) -> LlmRequest:
     actions = _actions(step)
     lines = _common(step)
+    lines += _workflow_lines(step)
     if actions:
         lines += ["", "[액션] 답에 붙일 수 있는 화면 동작과 형식입니다.", *actions]
     if problems:
@@ -208,6 +242,27 @@ def build_answer_request(step: StepInput, problems: list[str]) -> LlmRequest:
         context=step,
         max_output_tokens=1000,
     )
+
+
+def _workflow_lines(step: StepInput) -> list[str]:
+    """Workflow로 모은 결과로 답할 때의 안내. 교차 검증 결과는 코드가 정한 값을 알린다."""
+    active = workflow.active(step)
+    if active == workflow.CAUSE_TRACE:
+        return [
+            "",
+            "[원인 추적] grade가 있는 결과만 회사 설명으로 쓰고, grade가 없는 문장 변경은 "
+            "'관련 문장'으로만 소개합니다. 관련 문장을 원인처럼 쓰지 않습니다.",
+        ]
+    if active == workflow.CROSS_CHECK:
+        check = workflow.cross_check(step)
+        return [
+            "",
+            f"[교차 검증] 서비스가 정한 결과: {check.result} — {check.reason}",
+            "이 결과를 바꾸거나 반대로 말하지 않습니다. 대조에 쓴 재무 수치와 회사 설명 인용을 "
+            "근거 표시와 함께 설명하고, 허위·오류로 단정하지 않습니다. 작년 계획 대조는 이행 "
+            "여부를 평가하지 않고 관련 언급만 소개합니다.",
+        ]
+    return []
 
 
 def _common(step: StepInput) -> list[str]:
