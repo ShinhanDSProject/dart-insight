@@ -56,6 +56,13 @@ TOPIC_PNL_IMPACT = "PNL_IMPACT"
 TOPIC_FOLLOW_UP = "FOLLOW_UP"
 TOPIC_BURDEN = "BURDEN"
 ABSENT_TOPICS = (TOPIC_AMOUNT, TOPIC_SCHEDULE, TOPIC_PNL_IMPACT, TOPIC_FOLLOW_UP, TOPIC_BURDEN)
+# 신호 이유 문장의 종류. 주의·긍정은 REASON(인용의 쓰임 REASON과 같은 값), 좋은 면·나쁜 면이
+# 함께 있는 보류는 GOOD·BAD, 섞인 소송은 WHY_HOLD, 대체 표시의 일반 문구는 GENERAL이다
+GOOD = "GOOD"
+BAD = "BAD"
+WHY_HOLD = "WHY_HOLD"
+GENERAL = "GENERAL"
+REASON_TYPES = (REASON, GOOD, BAD, WHY_HOLD)
 # 사건 문장의 상태와 실패 사유
 GENERATED = "GENERATED"
 FALLBACK = "FALLBACK"
@@ -234,4 +241,6 @@ class TextEvent:
     pick: SignalPick = SignalPick()
     signal: EventSignal | None = None
     meaning: EventSentence | None = None
+    # 신호 이유. 주의·긍정이거나 MIXED_SIDES·MIXED_LITIGATION 보류일 때만 있다
+    signal_reason: EventSentence | None = None
     glossary: tuple[GlossaryTerm, ...] = ()
