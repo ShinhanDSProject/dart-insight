@@ -75,7 +75,7 @@ def test_request_gives_candidates_in_source_tags_without_asking_for_numbers() ->
     request = build_request(EVENT, CANDIDATES)
 
     assert request.task == TASK == "event_amount_pick"
-    assert request.prompt_version == PROMPT_VERSION == "event-amount-pick-2"
+    assert request.prompt_version == PROMPT_VERSION == "event-amount-pick-3"
     assert SOURCE_RULE in request.system
     assert '<disclosure id="1"' in request.user
     assert '<disclosure id="2"' in request.user
@@ -97,6 +97,13 @@ def test_system_tells_the_model_to_answer_null_unless_the_amount_is_confirmed() 
     assert "확인" in system
     assert "null" in system
     assert "각각" in system
+
+
+def test_system_tells_the_model_not_to_pick_one_case_of_a_grouped_event() -> None:
+    system = build_request(EVENT, CANDIDATES).system
+
+    assert "여러 건을 묶은 사건" in system
+    assert "그중 한 건의 금액" in system
 
 
 def test_title_cannot_close_its_attribute() -> None:
