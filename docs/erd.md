@@ -71,6 +71,7 @@
 | `text_event_change` | 사건과 문장 변경의 연결(한 변경이 여러 사건에 들어갈 수 있음) | 2.13 (#642) | 미정 |
 | `text_event_quote` | 사건의 인용과 근거 위치 | 2.13 (#642) | 미정 |
 | `text_event_unbound_change` | 후보였지만 사건에 묶이지 않은 변경 | 2.13 (#642) | 미정 |
+| `text_event_sentence` | 사건의 AI 문장(공시의 의미, 신호 이유)과 문장별 근거·상태·호출 정보 | 2.20 (#731) | 미정 |
 
 ## 2. 관계도
 
@@ -206,6 +207,7 @@ erDiagram
     text_event ||--o{ text_event_change : "event_id"
     text_event ||--o{ text_event_quote : "event_id"
     text_event_run ||--o{ text_event_unbound_change : "run_id"
+    text_event ||--o{ text_event_sentence : "event_id (2.20)"
 
     company {
         bigint id PK
@@ -372,8 +374,17 @@ erDiagram
         bigint run_id FK "UK(run_id, sort_order)"
         int sort_order
         varchar title
+        varchar signal "CAUTION POSITIVE HOLD"
+        varchar hold_reason
         varchar model
         varchar prompt_version
+    }
+    text_event_sentence {
+        bigint id PK
+        bigint event_id FK "UK(event_id, part)"
+        varchar part "MEANING SIGNAL_REASON"
+        varchar status "GENERATED FALLBACK FAILED"
+        mediumtext items "문장·근거 JSON"
     }
     text_event_change {
         bigint id PK
@@ -1174,13 +1185,14 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | --- | --- | --- | --- | --- |
 | `id` | BIGINT | PK | 아니오 | 자동 증가 |
 | `analysis_id` | BIGINT | FK, UK | 아니오 | `analysis.id` |
-| `event_version` | VARCHAR(20) | UK | 아니오 | 사건 버전(`TextEvents.EVENT_VERSION`, `event-3`) |
+| `event_version` | VARCHAR(20) | UK | 아니오 | 사건 버전(`TextEvents.EVENT_VERSION`, `event-3`. 신호·문장을 넣는 3.40에서 `event-4`) |
 | `attempt_no` | INT | UK | 아니오 | 같은 분석·버전의 몇 번째 실행인지. 동시 시작을 막음 |
 | `status` | VARCHAR(20) | | 아니오 | `PENDING`, `RUNNING`, `COMPLETED`, `FAILED`, `NOT_CREATED` |
 | `not_created_reason` | VARCHAR(30) | | 예 | `FAKE_MODEL`, `NO_CANDIDATES`. `NOT_CREATED`일 때만 |
 | `error_code` | VARCHAR(50) | | 예 | `FAILED`일 때 사유 코드 |
 | `dropped_event_count` | INT | | 아니오 | 검증에 실패해 뺀 사건 수. 기본 0 |
 | `trace_id` | VARCHAR(64) | | 예 | 시작 요청의 추적 ID |
+| `signal_table_version` | VARCHAR(30) | | 예 | 신호를 붙인 기준표 버전(`signal-table-1`, [ADR-0060](adr/0060-event-signal-and-sentences.md)). `COMPLETED`일 때만. `event-3`까지의 행은 null |
 | `created_at` | DATETIME(6) | | 아니오 | 만든 시각(한국 시간) |
 | `started_at`, `finished_at` | DATETIME(6) | | 예 | 시작·끝난 시각(한국 시간) |
 
@@ -1194,7 +1206,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `run_id` | BIGINT | FK, UK | 아니오 | `text_event_run.id` |
 | `sort_order` | INT | UK | 아니오 | 코드가 정한 순서(1부터) |
 | `title` | VARCHAR(200) | | 아니오 | AI가 쓴 제목 |
-| `kind` | VARCHAR(30) | | 아니오 | AI가 붙인 사건 종류 이름 |
+| `kind` | VARCHAR(30) | | 아니오 | 사건 종류 이름. `event-3`까지는 AI가 쓴 이름, `event-4`부터는 `kind_code`의 기준표 이름 |
 | `scale_amount` | BIGINT | | 예 | 코드가 공시에서 읽은 금액(원래 통화). 모르면 null. 사건끼리 더하지 않음 |
 | `scale_amount_text` | VARCHAR(100) | | 예 | 금액의 원문 표기 |
 | `currency` | VARCHAR(3) | | 예 | `scale_amount`의 통화 |
@@ -1206,6 +1218,14 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `fx_source` | VARCHAR(20) | | 예 | 외화일 때 `disclosed_rate`, `reference_table`, `none` |
 | `fx_rate_date` | DATE | | 예 | 환율표의 기준일 |
 | `sort_basis` | VARCHAR(20) | | 아니오 | `FRONT_KIND`, `AMOUNT`, `UNIT_COUNT` |
+| `kind_code` | VARCHAR(40) | | 예 | AI가 고른 기준표 종류 코드(목록 밖이면 `OTHER`). 아래 신호 칸은 `event-4`부터 채우고 `event-3`까지의 행은 null |
+| `change_code`, `change_name` | VARCHAR(40), VARCHAR(50) | | 예 | AI가 고른 변화 코드와 기준표의 변화 이름 |
+| `signal` | VARCHAR(10) | | 예 | `CAUTION`, `POSITIVE`, `HOLD`. 코드가 기준표로 붙임 |
+| `hold_reason` | VARCHAR(30) | | 예 | `HOLD`일 때만 `NO_CRITERIA`, `EVIDENCE_NOT_CONFIRMED`, `MIXED_SIDES`, `MIXED_LITIGATION` |
+| `signal_evidence_id` | VARCHAR(40) | | 예 | 종류·변화의 근거 ID(그 사건 인용의 `{rcept_no}#B{block_no}`) |
+| `rows_changed`, `rows_added`, `rows_missing` | INT | | 예 | 묶인 표 변경의 행 비교를 더한 값. 행을 비교한 표가 없으면 null |
+| `glossary` | MEDIUMTEXT | | 예 | 용어 풀이 JSON `[{"term", "meaning", "source"}]`. 없으면 `[]` |
+| `fact_accounts` | VARCHAR(1000) | | 예 | 사실 칸 계정 이름 JSON `[{"accountType", "accountName"}]`. 값은 조회할 때 같은 분석의 `financial_change`에서 찾음. 없으면 `[]` |
 | `model`, `prompt_version` | VARCHAR(100), VARCHAR(30) | | 아니오 | 만든 모델과 프롬프트 버전 |
 | `generated_at` | DATETIME(6) | | 아니오 | 호출 시각(한국 시간) |
 
@@ -1245,6 +1265,21 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `id` | BIGINT | PK | 아니오 | 자동 증가 |
 | `run_id` | BIGINT | FK, UK | 아니오 | `text_event_run.id` |
 | `change_no` | INT | UK | 아니오 | `text_change.change_no`(같은 분석) |
+
+### text_event_sentence
+
+사건의 AI 문장 칸 하나입니다([ADR-0060](adr/0060-event-signal-and-sentences.md), R14·AC24). 칸을 만들지 않았으면(신호 이유인데 보류 사유가 `NO_CRITERIA`·`EVIDENCE_NOT_CONFIRMED`) 행이 없습니다. 사건과 같은 트랜잭션에서 저장하고 고치지 않습니다. 마이그레이션은 3.40에서 씁니다(번호는 병합 전에 다시 확인, 지금 main의 마지막은 V51).
+
+| 컬럼 | 타입 | 키 | null | 설명 |
+| --- | --- | --- | --- | --- |
+| `id` | BIGINT | PK | 아니오 | 자동 증가 |
+| `event_id` | BIGINT | FK, UK | 아니오 | `text_event.id` |
+| `part` | VARCHAR(20) | UK | 아니오 | `MEANING` 공시의 의미, `SIGNAL_REASON` 신호 이유 |
+| `status` | VARCHAR(20) | | 아니오 | `GENERATED` 성공, `FALLBACK` 대체 표시(신호 이유만, 기준표의 일반 문구), `FAILED` 실패(공시의 의미만, 문장 없음) |
+| `fail_reason` | VARCHAR(30) | | 예 | `INVALID_OUTPUT`, `LLM_UNAVAILABLE`, `BUDGET_EXCEEDED`. `GENERATED`면 null |
+| `items` | MEDIUMTEXT | | 아니오 | 문장과 문장별 근거 JSON `[{"type", "absentTopics", "text", "evidenceIds"}]`. `type`과 `absentTopics` 값은 API 명세의 `GET .../events`. `evidenceIds`는 그 사건에 묶인 변경의 `{rcept_no}#B{block_no}`이고 `GENERAL`만 `[]`. `FAILED`면 `[]` |
+| `model`, `prompt_version` | VARCHAR(100), VARCHAR(40) | | 예 | 마지막으로 부른 모델과 프롬프트 버전(`event-meaning-1`, `event-signal-reason-1`). 부르지 않았으면 null |
+| `generated_at` | DATETIME(6) | | 예 | 마지막 호출 시각(한국 시간). 부르지 않았으면 null |
 
 ### app_user / local_credential — 일반 회원가입 (#136)
 
