@@ -3776,12 +3776,13 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 - `TOOL_CALLS`: 한 번에 1~3개. 읽기 Tool만 부릅니다. 쓰기는 Tool로 부르지 않고 `FINAL`의 확인 액션(`CONFIRM_*`)으로 돌려줍니다. `remainingSteps`가 0이면 `TOOL_CALLS`를 돌려주지 않고 받은 결과로 `FINAL`을 만듭니다.
 - Workflow(ADR-0045 `workflow_step`): 변경 원인 추적과 교차 검증은 LLM이 Tool을 고르지 않고 코드가 정한 순서로 부릅니다. 받은 `tools`에 필요한 Tool이 없으면 Workflow를 쓰지 않고 일반 경로로 갑니다.
   - 원인 추적: `get_financial_changes` → `get_summary` → (설명 인용이 없거나 더 필요하면) `search_text_changes`. 저장된 설명 등급·인용을 그대로 쓰고, 새로 찾은 문장은 등급 없이 '관련 문장'입니다.
-  - 교차 검증: `get_financial_changes` → `get_summary` → `get_plan_followups` → (관련 수시공시가 있으면) `get_disclosure_key_items`. `crossCheck.result`는 코드가 정합니다(공개 API `crossCheck`).
+  - 교차 검증: `get_financial_changes`·`get_summary`·(있으면) `get_plan_followups`를 한 번에 부릅니다. `crossCheck.result`는 코드가 정합니다(공개 API `crossCheck`). 수시공시 주요정보(`get_disclosure_key_items`)는 수시공시 접수번호가 있어야 해 Workflow에서 부르지 않습니다.
+  - Workflow는 첫 Tool 고르기에서 LLM이 고르고(출력 `workflow`: `{ "type": "CAUSE_TRACE" | "CROSS_CHECK", "account": 계정 이름 또는 null }`), Workflow로 부른 Tool은 `callId` 머리(`cause-`·`cross-`)로 알아봅니다. backend는 `callId`를 받은 그대로 `toolResults`에 돌려줍니다.
   - 교차 검증 판정: `get_financial_changes` 결과의 계정마다(`facts.changeId`) 같은 `changeId`의 요약 인용(`get_summary`, 등급 `STATED`·`RELATED`) 원문에서 방향 낱말을 찾아 수치 방향과 대조합니다.
     - 대조하는 계정: `calcStatus`가 `OK`·`PREVIOUS_ZERO`·`TURNED_PROFIT`·`TURNED_LOSS`이고 `direction`이 `UP`·`DOWN`. 기준이 다른 계정: `PERIOD_MISMATCH`·`AMBIGUOUS_MATCH`·`ONLY_CURRENT`·`ONLY_PREVIOUS`·`PREVIOUS_MISSING`·`CURRENT_MISSING`. 손실 계정(`LOSS_NARROWED`·`LOSS_WIDENED`·`PREVIOUS_NEGATIVE`·`SIGN_CHANGED`)과 `SAME`은 말과 금액의 방향이 거꾸로 읽힐 수 있어 대조하지 않습니다.
     - 방향 낱말: 늘어남 '증가·늘·확대·상승·성장', 줄어듦 '감소·줄·축소·하락·감축'. 한 인용에 양쪽이 다 있거나 하나도 없으면 방향 없음. '개선'·'악화' 같은 가치판단 낱말은 쓰지 않습니다.
-    - 결과(이 순서로): 대조하는 계정이 없고 기준이 다른 계정만 있으면 `NOT_COMPARABLE` → 방향이 반대인 계정이 있으면 `POTENTIAL_MISMATCH` → 방향이 같은 계정이 있으면 `CONSISTENT` → 그 밖은 `INSUFFICIENT_EVIDENCE`. `reason`은 코드가 정해진 문구로 만듭니다(예: "대조한 계정 3개 중 1개(영업이익)의 설명 방향이 수치와 반대예요.").
-    - 계획 대조(`get_plan_followups`)와 수시공시 주요정보(`get_disclosure_key_items`)는 답의 근거로만 쓰고 판정에 넣지 않습니다. 계획 대조는 이행 여부를 평가하지 않기 때문입니다(ADR-0041). 설명 속 숫자와 증감액의 크기는 대조하지 않습니다.
+    - 결과(이 순서로): 대조하는 계정이 없고 기준이 다른 계정만 있으면 `NOT_COMPARABLE` → 방향이 반대인 계정이 있으면 `POTENTIAL_MISMATCH` → 방향이 같은 계정이 있으면 `CONSISTENT` → 그 밖은 `INSUFFICIENT_EVIDENCE`. `reason`은 코드가 정해진 문구로 만듭니다(예: "대조한 계정 3개 중 1개의 회사 설명 방향이 수치 방향과 반대예요. 검토할 신호이고 오류로 확정한 것은 아니에요.").
+    - 계획 대조(`get_plan_followups`)는 답의 근거로만 쓰고 판정에 넣지 않습니다. 계획 대조는 이행 여부를 평가하지 않기 때문입니다(ADR-0041). 설명 속 숫자와 증감액의 크기는 대조하지 않습니다.
 - `FINAL` 확인(검토 노드): `evidenceIds`가 받은 Tool 결과의 근거 ID에 있음, 답의 숫자·크기 표현이 Tool 결과에 있음, 원인 표현은 인용한 원문에도 원인 표현이 있을 때만, Tool 결과의 재무 설명 등급을 바꾸지 않음, 표현 검사(5.5) 통과. 반려되면 사유를 붙여 다시 만들고, 처음 생성 1회와 다시 생성 2회(형식 실패 포함)를 넘으면 `REVIEW_NEEDED`입니다.
 
 **요청**
