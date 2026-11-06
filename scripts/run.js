@@ -22,7 +22,12 @@ const SERVICES = {
   backend: {
     color: 34,
     setup: [],
-    dev: [[GRADLEW, ['bootRun']]],
+    // 코드를 저장하면 반영: 컴파일을 계속 지켜보는 Gradle(-t)이 첫 빌드를 끝내면 bootRun을 띄우고,
+    // 이후 클래스가 바뀌면 DevTools가 서버를 다시 띄운다. 두 Gradle이 같은 빌드를 동시에 하지 않게 순서를 둔다.
+    dev: [
+      [GRADLEW, ['-t', 'classes', '--console=plain']],
+      [GRADLEW, ['bootRun', '--console=plain'], { after: /Waiting for changes to input files/ }],
+    ],
     test: [[GRADLEW, ['test']]],
     lint: [[GRADLEW, ['checkstyleMain', 'checkstyleTest']]],
     build: [[GRADLEW, ['build']]],
@@ -210,28 +215,47 @@ function runParallel(names) {
     children.forEach(stopChild);
   };
 
-  for (const name of names) {
-    const [[command, args]] = SERVICES[name].dev;
+  const launch = (name, key, command, args) => {
     const child = spawn(command, args, spawnOptions(name, { stdio: ['ignore', 'pipe', 'pipe'], detached: !IS_WINDOWS }));
-    children.set(name, child);
+    children.set(key, child);
     prefixLines(name, child.stdout, process.stdout);
     prefixLines(name, child.stderr, process.stderr);
     child.on('error', (error) => {
       console.error(`${label(name)} 실행하지 못했습니다: ${error.message}`);
       stopAll(1);
-      children.delete(name);
+      children.delete(key);
       if (children.size === 0) {
         process.exit(exitCode);
       }
     });
     child.on('exit', (code, signal) => {
-      children.delete(name);
+      children.delete(key);
       if (!stopping) {
         console.error(`${label(name)} 종료됨(${signal ?? code}). 나머지 서비스도 끕니다.`);
         stopAll(code === 0 ? 0 : 1);
       }
       if (children.size === 0) {
         process.exit(exitCode);
+      }
+    });
+    return child;
+  };
+
+  for (const name of names) {
+    // 서비스 하나에 프로세스가 여럿이면 순서대로 띄우고, after가 있으면 앞 프로세스 출력에 그 글이 나온 뒤에 띄운다
+    let previous = null;
+    SERVICES[name].dev.forEach(([command, args, { after } = {}], index) => {
+      const key = `${name}#${index}`;
+      if (after && previous) {
+        let started = false;
+        previous.stdout.on('data', (chunk) => {
+          if (!started && !stopping && after.test(String(chunk))) {
+            started = true;
+            launch(name, key, command, args);
+          }
+        });
+      } else {
+        previous = launch(name, key, command, args);
       }
     });
   }
