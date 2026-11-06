@@ -13,9 +13,11 @@ import { NotificationMenu } from '@/features/notifications/components/Notificati
 import { NotificationSignInLink } from '@/features/notifications/components/NotificationSignInLink'
 import type { ShortcutPage } from '@/shared/lib/shortcuts'
 import { HEADER_SEARCH_ID, HeaderSearch } from './HeaderSearch'
+import { EasterEggDialog } from './EasterEggDialog'
 import { ServiceNoticeDialog } from './ServiceNoticeDialog'
 import { ShortcutHelp } from './ShortcutHelp'
 import { ThemeMenu } from './ThemeMenu'
+import { useEasterEgg } from './useEasterEgg'
 import { useShortcuts } from './useShortcuts'
 import { useLoginHref } from '@/shared/hooks/useLoginHref'
 
@@ -62,6 +64,7 @@ export function Layout() {
   const active = activeSection(pathname)
   const shortcutPage = shortcutPageOf(pathname, onResult)
   const shortcuts = useShortcuts(shortcutPage)
+  const easterEgg = useEasterEgg()
 
   const items: NavItem[] = [
     {
@@ -186,6 +189,7 @@ export function Layout() {
       </div>
       {shortcuts.helpOpen && <ShortcutHelp page={shortcutPage} onClose={shortcuts.closeHelp} />}
       {noticeOpen && <ServiceNoticeDialog onClose={() => setNoticeOpen(false)} />}
+      {easterEgg.found && <EasterEggDialog onClose={easterEgg.close} />}
     </div>
   )
 }

@@ -119,3 +119,22 @@ describe('Layout 상단 바·하단 바(#548)', () => {
     expect(menuButton.getAttribute('aria-expanded')).toBe('false')
   })
 })
+
+describe('숨은 페이지(#753)', () => {
+  const konami = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']
+
+  it('코나미 코드를 누르면 3주의 기록을 새 탭으로 여는 안내가 뜨고 Esc로 닫힌다', () => {
+    renderLayout('/notes')
+    expect(screen.queryByRole('dialog', { name: '숨은 페이지를 찾았어요' })).toBeNull()
+
+    konami.forEach((key) => fireEvent.keyDown(document.body, { key }))
+
+    const dialog = screen.getByRole('dialog', { name: '숨은 페이지를 찾았어요' })
+    const link = within(dialog).getByRole('link', { name: '3주의 기록 보기' })
+    expect(link.getAttribute('href')).toBe('/easter/three-weeks.html')
+    expect(link.getAttribute('target')).toBe('_blank')
+
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: '숨은 페이지를 찾았어요' })).toBeNull()
+  })
+})
