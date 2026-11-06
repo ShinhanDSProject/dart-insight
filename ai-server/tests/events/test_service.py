@@ -57,7 +57,7 @@ def test_events_with_model_version_time_and_unbound_changes_are_returned() -> No
     assert output.created is True
     assert output.not_created_reason is None
     assert output.model == "scripted-model"
-    assert output.prompt_version == "text-event-1"
+    assert output.prompt_version == "text-event-2"
     assert output.generated_at is not None
     assert output.dropped_event_count == 0
     assert [e.change_nos for e in output.events] == [[1]]
