@@ -37,6 +37,6 @@ public record AgentStepAiResponse(String promptVersion, String expressionRulesVe
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Call(String task, String provider, String model, String promptVersion, String calledAt,
             String traceId, Integer inputTokens, Integer outputTokens, Integer latencyMs, Integer attempt,
-            String outcome, String error) {
+            String outcome, String error, Integer cachedInputTokens, Integer reasoningTokens) {
     }
 }

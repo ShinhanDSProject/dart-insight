@@ -386,6 +386,25 @@ class AgentChatApiTest {
     }
 
     @Test
+    @DisplayName("호출 기록의 캐시된 입력 토큰·추론 토큰을 llm_call에 저장하고, 없으면 null로 둔다(#633)")
+    void storesCachedInputAndReasoningTokens() throws Exception {
+        String withDetails = CALL.formatted("agent_answer")
+                .replace("\"outputTokens\":20,", "\"outputTokens\":20,\"cachedInputTokens\":64,\"reasoningTokens\":8,");
+        AI.on(STEPS, Reply.ok(finalAnswer("ANSWERED", "소송이 있어요[T999].", "\"T999\"", "")
+                .replace(CALL.formatted("agent_answer"), withDetails + "," + CALL.formatted("agent_plan"))));
+
+        chat("소송 있어?");
+
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList("SELECT task, cached_input_tokens, reasoning_tokens "
+                + "FROM llm_call WHERE analysis_id = ? ORDER BY id", analysisId);
+        assertThat(rows).hasSize(2);
+        assertThat(rows.get(0)).containsEntry("task", "agent_answer").containsEntry("cached_input_tokens", 64)
+                .containsEntry("reasoning_tokens", 8);
+        assertThat(rows.get(1).get("cached_input_tokens")).isNull();
+        assertThat(rows.get(1).get("reasoning_tokens")).isNull();
+    }
+
+    @Test
     @DisplayName("답이 검토 필요로 끝나도 코드가 정한 교차 검증 결과는 그대로 내보낸다(#581)")
     void reviewNeededKeepsCrossCheck() throws Exception {
         AI.on(STEPS, Reply.ok(finalAnswer("REVIEW_NEEDED", null, "", "").replace("\"crossCheck\":null",

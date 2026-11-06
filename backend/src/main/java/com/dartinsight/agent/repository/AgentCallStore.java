@@ -25,12 +25,14 @@ public class AgentCallStore {
             rows.add(new Object[] {analysisId, limit(call.task(), 30), limit(call.provider(), 30),
                     limit(call.model(), 100), limit(call.promptVersion(), 30), timestamp(call.calledAt()),
                     limit(call.traceId(), 64), call.inputTokens(), call.outputTokens(), call.latencyMs(),
-                    call.attempt(), limit(call.outcome(), 20), limit(call.error(), 500)});
+                    call.attempt(), limit(call.outcome(), 20), limit(call.error(), 500), call.cachedInputTokens(),
+                    call.reasoningTokens()});
         }
         if (!rows.isEmpty()) {
             jdbcTemplate.batchUpdate("INSERT INTO llm_call (analysis_id, task, provider, model, prompt_version, "
-                    + "called_at, trace_id, input_tokens, output_tokens, latency_ms, attempt, outcome, error) "
-                    + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", rows);
+                    + "called_at, trace_id, input_tokens, output_tokens, latency_ms, attempt, outcome, error, "
+                    + "cached_input_tokens, reasoning_tokens) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    rows);
         }
     }
 

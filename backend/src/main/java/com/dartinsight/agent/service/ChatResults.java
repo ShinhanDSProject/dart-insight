@@ -143,7 +143,8 @@ final class ChatResults {
         return response.calls().stream().map(c -> new LlmCallRow(c.task() == null ? TASK : c.task(), c.provider(),
                 c.model(), c.promptVersion(), time(c.calledAt()), c.traceId() == null ? traceId : c.traceId(),
                 c.inputTokens(), c.outputTokens(), c.latencyMs() == null ? 0 : c.latencyMs(),
-                c.attempt() == null ? 1 : c.attempt(), c.outcome(), c.error())).toList();
+                c.attempt() == null ? 1 : c.attempt(), c.outcome(), c.error(), c.cachedInputTokens(),
+                c.reasoningTokens())).toList();
     }
 
     private static Citation citation(int no, Evidence e, Map<String, String> reportNames) {
