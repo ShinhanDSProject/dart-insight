@@ -134,6 +134,7 @@
 | GET | `/api/analyses/{analysisId}/event-runs/current` | 주요 사건 작업 상태 | #642 (2.13), #646 (3.36) | W-03 ③ | 초안 |
 | GET | `/api/analyses/{analysisId}/events` | 주요 사건 목록, 칸별 사건 수, 묶이지 않은 후보 | #642 (2.13), #646 (3.36) | W-03 ③ | 초안 |
 | GET | `/api/analyses/{analysisId}/events/{eventId}` | 주요 사건 하나 | #642 (2.13), #646 (3.36) | W-03 ③ | 초안 |
+| GET | `/api/signal-tables/current` | 사건 신호 기준표('기준 보기') | #731 (2.20), #736 (3.40) | W-03 ③ | 초안 |
 | GET | `/api/analyses/{analysisId}/summary` | 근거 기반 요약·설명 | #20 (3.2) | W-03 ① | 초안 |
 | POST | `/api/analyses/{analysisId}/questions` | 근거로 답하는 질문(AI) | #219 (3.10) | W-03 ⑤ | 초안 |
 | GET | `/api/analyses/{analysisId}/questions` | 이 분석에서 한 질문·답 기록 | #219 (3.10) | W-03 ⑤ | 초안 |
@@ -2784,7 +2785,7 @@
 {
   "analysisId": 42,
   "status": "FAILED",
-  "eventVersion": "event-3",
+  "eventVersion": "event-4",
   "notCreatedReason": null,
   "errorCode": "AI_LLM_UNAVAILABLE",
   "canRetry": true,
@@ -2819,22 +2820,83 @@
 - `fieldCounts`는 칸마다 관련 사건을 한 번만 셉니다. 묶인 변경이 속한 모든 칸에서 세므로 칸을 더한 값은 사건 수와 다를 수 있습니다.
 - `unboundChanges`는 후보였지만 어느 사건에도 들어가지 않은 변경입니다. 검증에 실패해 뺀 사건의 변경도 여기로 옵니다. `droppedEventCount`는 뺀 사건 수이고 0보다 크면 화면이 일부를 보여 주지 못했다고 알립니다.
 - 사건은 모두 AI가 묶은 것이고 `aiGenerated`는 코드가 항상 true로 넣습니다. 인용은 원문과 글자가 같아야 합니다.
+- 신호와 사건 문장(공시의 의미, 신호 이유)은 [ADR-0060](adr/0060-event-signal-and-sentences.md)입니다(사건 버전 `event-4`부터). 신호는 AI가 고른 종류·변화로 코드가 기준표에서 붙이고, 규모는 신호를 바꾸지 않습니다. 신호를 보여 주는 화면에는 기준표의 `signalNotice`를 함께 둡니다.
+
+**요청**
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| query | `signal` | string | 아니오 | `CAUTION`, `POSITIVE`, `HOLD` 중 하나면 그 신호의 사건만(#738). 그 밖의 값이면 400 `COMMON_INVALID_INPUT` |
+
+- 거르면 `items`만 줄고 `sortOrder`는 그대로입니다. `fieldCounts`, `signalCounts`, `unboundChanges`, `droppedEventCount`는 거르기와 상관없이 전체 사건으로 셉니다.
 
 **응답 200**
 
 ```json
 {
   "analysisId": 42,
-  "eventVersion": "event-3",
+  "eventVersion": "event-4",
+  "signalTableVersion": "signal-table-1",
   "generatedAt": "2026-11-05T10:13:02",
   "droppedEventCount": 0,
   "fieldCounts": [{ "field": "LITIGATION", "eventCount": 2 }],
+  "signalCounts": [
+    { "signal": "CAUTION", "eventCount": 3 },
+    { "signal": "POSITIVE", "eventCount": 2 },
+    { "signal": "HOLD", "eventCount": 9 }
+  ],
   "items": [
     {
       "eventId": 7,
       "sortOrder": 1,
       "title": "사건 제목",
-      "kind": "소송",
+      "kind": "제재",
+      "kindCode": "SANCTION",
+      "changeCode": "OCCURRED",
+      "changeName": "새로 발생",
+      "signal": "CAUTION",
+      "holdReason": null,
+      "signalEvidenceId": "20260814003958#B1576",
+      "rowCounts": null,
+      "meaning": {
+        "status": "GENERATED",
+        "failReason": null,
+        "aiGenerated": true,
+        "items": [
+          {
+            "type": "FACT",
+            "absentTopics": [],
+            "text": "지난 보고서에 없던 과징금 부과가 새로 적혔어요.",
+            "evidence": [{ "evidenceId": "20260814003958#B1576", "sectionPath": "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항" }]
+          },
+          {
+            "type": "ABSENT",
+            "absentTopics": ["PNL_IMPACT"],
+            "text": "손익에 미치는 영향은 이 문단에 적혀 있지 않아요.",
+            "evidence": [{ "evidenceId": "20260814003958#B1576", "sectionPath": "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항" }]
+          }
+        ],
+        "model": "모델 이름",
+        "promptVersion": "event-meaning-1",
+        "generatedAt": "2026-11-05T10:13:40"
+      },
+      "signalReason": {
+        "status": "GENERATED",
+        "failReason": null,
+        "aiGenerated": true,
+        "items": [
+          {
+            "type": "REASON",
+            "text": "당국이 회계처리를 위반으로 판단했고 회사가 재무제표를 수정했어요.",
+            "evidence": [{ "evidenceId": "20260814003958#B1576", "sectionPath": "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항" }]
+          }
+        ],
+        "model": "모델 이름",
+        "promptVersion": "event-signal-reason-1",
+        "generatedAt": "2026-11-05T10:13:52"
+      },
+      "glossary": [],
+      "facts": [],
       "fields": ["LITIGATION"],
       "changeIds": [2585, 2586],
       "quotes": [
@@ -2860,7 +2922,7 @@
       "sortBasis": "UNIT_COUNT",
       "aiGenerated": true,
       "model": "모델 이름",
-      "promptVersion": "text-event-2",
+      "promptVersion": "text-event-3",
       "generatedAt": "2026-11-05T10:13:02"
     }
   ],
@@ -2888,10 +2950,44 @@
   - `scaleEvidenceId`: 글에서 읽었으면 `{rcept_no}#B{block_no}`, 구조화 값이면 `{rcept_no}#{OpenDART 필드}`
   - `amountSource`: `structured` OpenDART 구조화 값, `ai_choice` AI가 그 사건의 금액으로 확인해 번호로 고름, `none` 금액 없음(후보 없음, AI가 이 사건의 금액이 아니라고 답함), `unavailable` 확인하지 못해 금액 없음(AI 호출 실패, 읽을 수 없는 답, 시간 예산 초과)
   - `fxSource`: 외화일 때만. `disclosed_rate` 그 공시 글의 환율, `reference_table` 저장소 환율표, `none` 환율 없음. `fxRateDate`: 환율표의 기준일(`YYYY-MM-DD`), 그 밖에는 null
-- `kind`: AI가 붙인 사건 종류 이름입니다. 맨 앞에 둘지는 코드가 판정합니다
+- `kind`: 사건 종류 이름. `event-4`부터는 AI가 고른 `kindCode`의 기준표 이름이고, 기준표에 없는 코드면 '그 밖의 사건'입니다. 맨 앞에 둘지는 코드가 기준표로 판정합니다(`front`인 종류의 `OCCURRED`이고 신호 근거를 확인했을 때)
+- 신호 칸([ADR-0060](adr/0060-event-signal-and-sentences.md)). `event-3`까지의 사건은 조회되지 않습니다(현재 버전만 조회)
+  - `kindCode`·`changeCode`: AI가 기준표 목록에서 고른 종류·변화 코드. 목록 밖이면 `OTHER`·`OTHER`. `changeName`: 기준표의 변화 이름. 판정 줄은 화면이 `kind` · `changeName` · 규모 칸으로 만듭니다
+  - `signal`: `CAUTION` 주의, `POSITIVE` 긍정, `HOLD` 보류. 코드가 기준표로 붙이고 AI가 정하지 않습니다
+  - `holdReason`: `HOLD`일 때만, 그 밖에는 null. 화면은 코드마다 아래 문구를 보입니다
+
+    | `holdReason` | 언제 | 화면 문구 |
+    | --- | --- | --- |
+    | `NO_CRITERIA` | 기준표에 없는 종류·변화이거나 그 변화의 신호가 없음 | 판단 기준이 아직 없는 사건이에요. |
+    | `EVIDENCE_NOT_CONFIRMED` | 신호 근거가 그 사건의 검증된 인용이 아님. 해소·철회·취소·종료(`explicitOnly`)인데 근거가 이번 보고서 쪽 인용이 아님 | 근거를 확인하지 못했어요. |
+    | `MIXED_SIDES` | 기준표가 좋은 면·나쁜 면이 함께 있다고 정한 변화(`MIXED`) | 좋은 면과 나쁜 면이 함께 있어요. |
+    | `MIXED_LITIGATION` | 소송이고 묶인 표의 바뀐·새·이번엔 없는 행이 합쳐 2행 이상 | 여러 소송의 진행 상황이 섞여 있어요. |
+
+  - `signalEvidenceId`: 종류·변화의 근거(그 사건 인용의 `evidenceId`). `NO_CRITERIA`로 근거가 없으면 null
+  - `rowCounts`: 묶인 표 변경의 행 비교를 더한 값 `{ "changed", "added", "missing" }`. 행을 비교한 표가 없으면 null. 섞인 소송의 신호 이유가 대체 표시일 때 화면이 이 값을 보입니다(AC20)
+- 사건 문장 `meaning`(공시의 의미)·`signalReason`(신호 이유). 만들지 않은 칸은 null입니다(신호 이유는 `NO_CRITERIA`·`EVIDENCE_NOT_CONFIRMED`면 만들지 않음)
+  - `status`: `GENERATED` AI 문장, `FALLBACK` 대체 표시(신호 이유만. 기준표의 일반 문구이고 화면은 '일반적인 설명이에요.'를 붙임. `MIXED_LITIGATION`이면 `items`가 비고 화면은 판정 줄과 `rowCounts`만 보임), `FAILED` 문장 없음(공시의 의미만. 화면은 `glossary`가 있으면 그것만 보임)
+  - `failReason`: `GENERATED`면 null. `INVALID_OUTPUT` 다시 만들어도 검증·표현 검사를 통과하지 못함, `LLM_UNAVAILABLE` LLM을 쓸 수 없거나 호출이 끝내 실패함, `BUDGET_EXCEEDED` 문장 단계 시간 예산을 넘겨 부르지 못함
+  - `aiGenerated`: `GENERATED`면 true. `FALLBACK`·`FAILED`는 false(코드 문구)
+  - `items[].type`: 공시의 의미는 `FACT` 공시에 적힌 사실과 뜻, `ABSENT` 공시에 없는 것('없음' 문장. `evidence`는 확인한 범위). 신호 이유는 `REASON` 주의·긍정의 근거(2~3개), `GOOD`·`BAD` 좋은 면·나쁜 면(`MIXED_SIDES`), `WHY_HOLD` 한쪽으로 판단하지 않은 이유(`MIXED_LITIGATION`), `GENERAL` 대체 표시의 일반 문구(근거 없음, `evidence`는 `[]`)
+  - `items[].absentTopics`: `ABSENT`일 때 없다고 쓴 항목 `AMOUNT` 금액, `SCHEDULE` 일정, `PNL_IMPACT` 손익 영향, `FOLLOW_UP` 후속 조치, `BURDEN` 회사 부담. 그 밖에는 `[]`
+  - `items[].evidence[]`: 그 사건에 묶인 변경의 블록 `{rcept_no}#B{block_no}`와 섹션 경로. `GENERAL`이 아니면 하나 이상
+  - `model`·`promptVersion`·`generatedAt`: 마지막으로 부른 호출. 부르지 않았으면(`BUDGET_EXCEEDED`, LLM 미설정) null
+- `glossary[]`: `{ "term", "meaning", "source" }`. 기준표 용어 중 출처를 확인했고 그 사건 인용에 나오는 것만 코드가 붙입니다. 지금은 출처를 확인한 용어가 없어 `[]`입니다
+- `facts[]`(사실 칸, #739): 기준표가 그 종류에 정한 계정 이름과 같은 같은 분석의 재무상태표 계정입니다. 값은 `GET .../financial-changes`의 같은 항목과 같고 다시 계산하지 않습니다. 화면은 원인이라는 뜻이 아니라고 함께 적습니다. 없으면 `[]`이고 칸이 없습니다
+
+  ```json
+  { "accountType": "시설 투자", "changeId": 905, "sjDiv": "BS", "accountName": "건설중인자산",
+    "previousAmount": 1000, "currentAmount": 1500, "changeAmount": 500, "changeRate": 0.5,
+    "calcStatus": "OK", "currency": "KRW" }
+  ```
+
+  `accountType`: 기준표가 투자 유형별로 계정을 나눈 종류(대규모 투자)만 유형 이름, 그 밖에는 null
+- `signalTableVersion`: 사건을 만들 때 쓴 기준표 버전. `signalCounts`: 신호마다 사건 수(0인 신호도 넣음)
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | `signal`이 정해진 값이 아님 |
 | 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 |
 | 409 | `ANALYSIS_NOT_READY` | 분석이 끝나지 않음 |
 | 409 | `ANALYSIS_EVENTS_NOT_READY` | 사건을 시작하지 않았거나 만드는 중 |
@@ -2903,6 +2999,44 @@
 - 이슈: #642 (2.13), #646 (3.36) · 화면: 사건 펼치기
 - `items[]` 하나와 같고, 묶인 변경 목록 `changes`가 더 있습니다. `changes[]`의 모양은 `text-changes` 목록 항목과 같습니다. 원문 비교는 기존 `text-changes/{changeId}`로 엽니다.
 - 에러는 목록과 같고, 이 분석의 현재 버전 사건이 아니면 404 `ANALYSIS_EVENT_NOT_FOUND`입니다.
+
+### GET /api/signal-tables/current — 사건 신호 기준표
+
+- 이슈: #731 (2.20), #736 (3.40) · 화면: 신호 이유의 '기준 보기' · [ADR-0060](adr/0060-event-signal-and-sentences.md)
+- 지금 사건 버전이 쓰는 기준표입니다. 파일은 ai-server에만 있고, backend는 `GET /internal/signal-tables/current`로 받아 버전별로 메모리에 둡니다. 로그인 없이 볼 수 있습니다.
+- 용어 풀이는 출처를 확인한 것(`source`가 있음)만 넣습니다. 확인하지 못한 후보(`sourceCandidate`)는 내보내지 않습니다.
+
+**응답 200**
+
+```json
+{
+  "version": "signal-table-1",
+  "signalNotice": "공시상 신호이며 투자 판단이 아니에요.",
+  "kinds": [
+    {
+      "code": "SANCTION",
+      "name": "제재",
+      "front": false,
+      "changes": [
+        { "code": "OCCURRED", "name": "새로 발생", "signal": "CAUTION", "explicitOnly": false },
+        { "code": "CANCELLED", "name": "취소", "signal": "POSITIVE", "explicitOnly": true }
+      ],
+      "accounts": [],
+      "accountsByType": null,
+      "generalSides": null
+    }
+  ],
+  "glossary": []
+}
+```
+
+- `changes[].signal`: `CAUTION`, `POSITIVE`, `MIXED`(좋은 면·나쁜 면이 함께 있어 보류), null(기준 없음, 보류). 사건 응답의 `signal`은 `MIXED`와 null을 `HOLD`로 바꾼 값입니다
+- `generalSides`: `MIXED` 변화가 있는 종류의 `{ "good", "bad" }` 일반 문구. 그 밖에는 null
+- 기준표에 없는 필드(`note`, `sourceCandidate`, `sourceStatus`)는 내보내지 않습니다
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 503 | `AI_SERVER_UNAVAILABLE` | ai-server에서 기준표를 받지 못했고 메모리에도 없음 |
 
 ### GET /api/analyses/{analysisId}/summary — 근거 기반 요약·설명
 
@@ -3381,7 +3515,8 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 | POST | `/internal/outlooks` | 회사가 밝힌 전망·계획 뽑기(LLM) | #465 (1.9) | 초안 |
 | POST | `/internal/plan-followups` | 작년 계획과 올해 보고서 문단 대조(LLM) | #467 (1.10) | 초안 |
 | POST | `/internal/agent-steps` | 에이전트 한 단계: 다음에 부를 Tool 또는 최종 답(LLM, ADR-0044·0045) | 에이전트 채팅(FS 전) | 초안 |
-| POST | `/internal/text-events` | 문장 변경을 주요 사건으로 묶기(LLM, ADR-0050·0051) | #642 (2.13) | 초안 |
+| POST | `/internal/text-events` | 문장 변경을 주요 사건으로 묶고 신호·사건 문장 붙이기(LLM, ADR-0050·0051·0060) | #642 (2.13), #731 (2.20) | 초안 |
+| GET | `/internal/signal-tables/current` | 사건 신호 기준표(ADR-0060) | #731 (2.20) | 초안 |
 
 | code | 상태 | 뜻 |
 | --- | --- | --- |
@@ -3913,14 +4048,17 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 
 ### POST /internal/text-events — 문장 변경을 주요 사건으로 묶기
 
-> 상태: 초안([ADR-0050](adr/0050-text-events-after-analysis.md), [ADR-0051](adr/0051-text-event-candidate-rules.md)). 입력 크기와 제한시간은 2.12 전이라 가정입니다.
+> 상태: 초안([ADR-0050](adr/0050-text-events-after-analysis.md), [ADR-0051](adr/0051-text-event-candidate-rules.md), [ADR-0057](adr/0057-text-event-llm-limits.md), [ADR-0060](adr/0060-event-signal-and-sentences.md)). 신호·사건 문장(2.20)은 구현 전입니다(#733~#736).
 
-- 이슈: #642 (2.13), #643 (2.14), #644 (2.15), #645 (2.16), #716 (2.19)
+- 이슈: #642 (2.13), #643 (2.14), #644 (2.15), #645 (2.16), #716 (2.19), #731 (2.20)
 - backend가 `list_group`이 `MAIN`·`UNPAIRED`·`HEADING`인 변경을 보냅니다. ai-server는 후보를 고르고(규칙은 ADR-0051, LLM·우선순위 점수를 쓰지 않음), LLM으로 묶고, 인용·근거와 표현을 검사하고, 코드로 정렬합니다. DB는 쓰지 않습니다.
-- 묶는 규칙(프롬프트 `text-event-2`, #716): 같은 거래·계획의 여러 단계와 과태료·시정조치 같은 가벼운 제재는 한 사건으로 묶고, 사망·부상, 작업·영업 정지, 형사 벌금, 금융당국 과징금은 따로 둡니다. 제품 출시·개발, 연구개발 실적, 정례 자문·용역 계약은 사건으로 만들지 않고, 그 변경은 `unboundChangeNos`로 보냅니다.
+- 묶는 규칙(프롬프트 `text-event-2`, #716. `text-event-3`도 그대로): 같은 거래·계획의 여러 단계와 과태료·시정조치 같은 가벼운 제재는 한 사건으로 묶고, 사망·부상, 작업·영업 정지, 형사 벌금, 금융당국 과징금은 따로 둡니다. 제품 출시·개발, 연구개발 실적, 정례 자문·용역 계약은 사건으로 만들지 않고, 그 변경은 `unboundChangeNos`로 보냅니다.
 - 검증에 실패하면 최대 2회 다시 만듭니다. 그래도 잘못된 사건은 빼고 `droppedEventCount`에 세고, 그 변경은 `unboundChangeNos`로 보냅니다.
 - 모델이 검증을 통과한 응답으로 사건이 없다고 답하면 실패가 아닙니다. `created: true`, `events: []`이고 후보는 모두 `unboundChangeNos`로 보냅니다.
 - 규모는 사건마다 정합니다. 후보가 1개 이상이면 task `event_amount_pick`으로 그 사건의 금액인지 확인해 번호만 고릅니다(호출 기록은 `calls`). AI가 아니라고 답하면 `amountSource`는 `none`, 호출 실패나 시간 예산 초과면 `unavailable`이고, 둘 다 금액은 null이며 실행은 실패하지 않습니다.
+- 신호(ADR-0060, #733): 묶기 프롬프트 `text-event-3`이 사건마다 기준표의 종류·변화 코드와 근거 ID를 고르고, 코드가 `app/events/signals.py`로 기준표에서 신호와 보류 사유를 붙입니다. 판정 순서와 사유는 공개 API `GET .../events`의 신호 칸과 같습니다. 맨 앞 종류도 기준표로 정합니다.
+- 사건 문장(ADR-0060, #734·#735): 금액 확인 뒤 사건마다 task `event_meaning`(`event-meaning-1`)과 `event_signal_reason`(`event-signal-reason-1`)을 따로 부릅니다. 문장 단계는 예산 300초 안에서 최대 4개를 동시에 부르고, 다시 만들어도 통과하지 못하거나 예산을 넘긴 칸은 대체 표시·실패로 남기며 실행은 실패하지 않습니다. 호출 기록은 모두 `calls`에 있습니다.
+- 용어 풀이와 사실 칸의 계정 이름은 기준표에서 코드가 붙입니다. 사실 칸의 값은 backend가 채웁니다.
 - 제공자가 fake면 LLM을 부르지 않고 `created: false`, `notCreatedReason: FAKE_MODEL`로 답합니다. 후보가 없으면 제공자와 상관없이 `NO_CANDIDATES`입니다. 만들지 않았을 때 `model`·`generatedAt`은 null이고 `events`·`unboundChangeNos`·`calls`는 빈 배열입니다.
 
 **요청**
@@ -3949,7 +4087,8 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
       "previousText": "변경 전 글",
       "currentText": "변경 후 글",
       "precedingBlockText": "(단위 : 천원)",
-      "changedUnitCount": 1
+      "changedUnitCount": 1,
+      "rowCounts": null
     }
   ]
 }
@@ -3961,6 +4100,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 - `structuredAmounts`: 비교 기간의 주요사항보고서(DS005) 금액. 결정 하나에 한 행이고 `kind`는 `keyItemsKind`와 같습니다. 유상증자처럼 항목이 여럿이면 backend가 그 결정 안에서 더해 `field`를 `fdpp`로 보냅니다. 없으면 생략합니다
 - `precedingBlockText`: 표 변경일 때 표 바로 앞 블록의 글(이번 글이 있으면 이번 쪽). 단위를 읽습니다. 그 밖에는 null이거나 생략합니다
 - `changedUnitCount`: 표는 `rowDiff.counts.changed`, 행을 비교하지 못한 표와 표가 아닌 변경은 1
+- `rowCounts`: 행을 비교한 표는 `rowDiff.counts`의 `{ "changed", "added", "missing" }`, 그 밖에는 null이거나 생략합니다. 섞인 소송 판정과 신호 이유 대체 표시에 씁니다(ADR-0060)
 
 **응답 200**
 
@@ -3969,14 +4109,34 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
   "created": true,
   "notCreatedReason": null,
   "model": "모델 이름",
-  "promptVersion": "text-event-2",
+  "promptVersion": "text-event-3",
+  "signalTableVersion": "signal-table-1",
   "generatedAt": "2026-11-05T10:13:02",
   "droppedEventCount": 0,
   "events": [
     {
       "sortOrder": 1,
       "title": "사건 제목",
-      "kind": "소송",
+      "kind": "제재",
+      "kindCode": "SANCTION",
+      "changeCode": "OCCURRED",
+      "changeName": "새로 발생",
+      "signal": "CAUTION",
+      "holdReason": null,
+      "signalEvidenceId": "20260814003699#B1576",
+      "rowCounts": null,
+      "meaning": {
+        "status": "GENERATED", "failReason": null,
+        "items": [{ "type": "FACT", "absentTopics": [], "text": "…", "evidenceIds": ["20260814003699#B1576"] }],
+        "model": "모델 이름", "promptVersion": "event-meaning-1", "generatedAt": "2026-11-05T10:13:40"
+      },
+      "signalReason": {
+        "status": "GENERATED", "failReason": null,
+        "items": [{ "type": "REASON", "text": "…", "evidenceIds": ["20260814003699#B1576"] }],
+        "model": "모델 이름", "promptVersion": "event-signal-reason-1", "generatedAt": "2026-11-05T10:13:52"
+      },
+      "glossary": [],
+      "factAccounts": [],
       "changeNos": [12],
       "quotes": [
         { "changeNo": 12, "purpose": "CHANGE", "side": "CURRENT", "text": "원문 글", "evidenceId": "20260814003699#B1576" }
@@ -3995,19 +4155,30 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
     }
   ],
   "unboundChangeNos": [13],
-  "calls": [{ "task": "text_event", "provider": "openai", "model": "모델 이름", "promptVersion": "text-event-2",
+  "calls": [{ "task": "text_event", "provider": "openai", "model": "모델 이름", "promptVersion": "text-event-3",
     "calledAt": "2026-11-05T10:13:01", "traceId": "…", "inputTokens": 28000, "outputTokens": 3000,
     "latencyMs": 42000, "attempt": 1, "outcome": "OK", "error": null }]
 }
 ```
 
-backend는 저장하기 전에 `changeNos`가 이 분석의 변경인지, `evidenceId`가 그 변경의 접수번호·블록 번호와 같은지 다시 확인합니다. 하나라도 어긋나면 실행을 `FAILED`로 끝냅니다.
+- 신호·문장 필드의 값과 뜻은 공개 API `GET .../events`와 같습니다. 다른 점: 문장의 근거는 `evidenceIds`(근거 ID 배열)이고 섹션 경로는 backend가 붙입니다. `factAccounts[]`는 `{ "accountType", "accountName" }`(기준표의 계정 이름)이고 값은 backend가 조회할 때 채웁니다. `glossary[]`는 공개 API와 같은 모양입니다.
+- `meaning`·`signalReason`을 만들지 않은 칸은 null입니다. `calls`에는 `event_meaning`·`event_signal_reason` 호출도 사건 순서대로 들어 있습니다.
+
+backend는 저장하기 전에 `changeNos`가 이 분석의 변경인지, `evidenceId`가 그 변경의 접수번호·블록 번호와 같은지 다시 확인합니다. 하나라도 어긋나면 실행을 `FAILED`로 끝냅니다. 신호와 문장은 따로 봅니다: `signalEvidenceId`가 그 사건 인용의 근거 ID가 아니면 그 사건을 `HOLD`·`EVIDENCE_NOT_CONFIRMED`로, 문장의 `evidenceIds`가 그 사건에 묶인 변경의 블록이 아니면 그 칸을 `FAILED`(신호 이유는 `FALLBACK`)·`INVALID_OUTPUT`으로 저장하고 실행은 실패시키지 않습니다. 기준표에 없는 `signal`·`holdReason` 값이 오면 실행을 `FAILED`로 끝냅니다.
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
 | 400 | `COMMON_INVALID_INPUT` | 필드 누락, `changeNo` 겹침 |
 | 502 | `AI_EVENTS_INVALID_OUTPUT` | 다시 만들어도 쓸 수 있는 사건이 하나도 없음. 호출 기록은 헤더 `X-Llm-Calls` |
 | 503 | `AI_LLM_UNAVAILABLE` | LLM을 쓸 수 없음. 호출 기록은 헤더 `X-Llm-Calls` |
+
+### GET /internal/signal-tables/current — 사건 신호 기준표
+
+> 상태: 초안([ADR-0060](adr/0060-event-signal-and-sentences.md)). 구현 전입니다(#733).
+
+- 이슈: #731 (2.20), #733 (2.21)
+- `ai-server/app/events/signal_table.json`을 읽어 돌려줍니다. LLM과 DB를 쓰지 않습니다. 모양은 공개 API `GET /api/signal-tables/current`와 같고, 출처를 확인하지 못한 용어 풀이와 `note`·`sourceCandidate`·`sourceStatus`는 넣지 않습니다.
+- 에러 없음(파일을 읽지 못하면 ai-server가 뜨지 않음).
 
 ## 4. 에러 코드
 
