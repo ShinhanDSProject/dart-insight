@@ -130,7 +130,11 @@ def _item(entry: Any, by_id: dict[str, Block], values: str, event: TextEvent) ->
     if not text or len(text) > MAX_SENTENCE_CHARS:
         return f"text는 1자 이상 {MAX_SENTENCE_CHARS}자 이하여야 합니다."
     ids = entry.get("evidenceIds")
-    if not isinstance(ids, list) or not ids or not all(i in by_id for i in ids):
+    if (
+        not isinstance(ids, list)
+        or not ids
+        or not all(isinstance(i, str) and i in by_id for i in ids)
+    ):
         return "evidenceIds에는 <disclosure>의 id만 하나 이상 적어야 합니다."
     evidence_ids = tuple(dict.fromkeys(ids))
     topics = _topics(entry.get("absentTopics"), kind)
