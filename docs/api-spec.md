@@ -3259,12 +3259,12 @@
 - `aiGenerated`: LLM이 `answer`를 만들었으면 true. LLM 없이 정해진 문구로 답했거나 `answer`가 null이면 false
 - `ai`: LLM이 답을 만들었을 때만(모델·프롬프트 버전·생성 시각). 그 밖에는 null
 - `format`: `CHAT` 대화 답(해요체 3문장·400자 이내), `BRIEF` 사용자가 정리 형식("3줄 요약", "IR용 정리", "확인할 점")을 요청한 답(1,500자 이내, 한 줄에 한 가지 내용을 `- `로 시작해 쓰고 줄마다 근거 표시, 줄은 줄바꿈 문자로 나눔). 형식은 LLM이 아니라 ai-server가 사용자 메시지로 정합니다(3절 '정리 형식'). 검사는 같고, `BRIEF`는 근거 표시가 없는 줄이 있으면 반려합니다. 비교 브리프 파일은 LLM 없이 `DOWNLOAD_BRIEF`로 받습니다.
-- `crossCheck`: 교차 검증 요청("회사 설명과 재무 수치가 일치해?")일 때만, 아니면 null. `{ "result": "POTENTIAL_MISMATCH", "reason": "…" }`
+- `crossCheck`: 교차 검증 요청("회사 설명과 재무 수치가 일치해?")일 때만, 아니면 null. `{ "result": "POTENTIAL_MISMATCH", "reason": "…" }`. 코드가 정한 값이라 `status`가 `NOT_FOUND`·`REVIEW_NEEDED`로 끝나 `answer`가 null이어도 그대로 줍니다
   - `CONSISTENT`: 같은 기준의 수치 방향과 회사 설명 인용의 방향이 맞는 계정이 있고, 반대인 계정은 없음
   - `POTENTIAL_MISMATCH`: 수치 방향과 회사 설명 인용의 방향이 반대인 계정이 있음. 검토할 신호이고 허위·오류로 확정하지 않습니다
   - `INSUFFICIENT_EVIDENCE`: 대조할 근거가 부족함(설명 인용이 없거나, 인용에 방향을 나타내는 낱말이 없거나, 손실 계정처럼 방향을 대조하지 않는 계정만 있음)
   - `NOT_COMPARABLE`: 기업·기간·연결/별도·계정 기준이 달라 대조하지 않음
-  - 기준 일치와 방향 대조는 코드가 정하고(판정 규칙은 3절 내부 API `POST /internal/agent-steps`의 '교차 검증 판정'), LLM은 그 결과를 바꾸지 못합니다. 계획 대조는 판정에 넣지 않습니다. 수시공시는 본문을 비교하지 않고 주요정보(DS005) 값만 씁니다.
+  - 기준 일치와 방향 대조는 코드가 정하고(판정 규칙은 3절 내부 API `POST /internal/agent-steps`의 '교차 검증 판정'), LLM은 그 결과를 바꾸지 못합니다. 계획 대조와 수시공시는 판정에 넣지 않습니다.
 
 **에러**
 
