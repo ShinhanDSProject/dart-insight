@@ -157,12 +157,17 @@ def next_calls(step: StepInput, workflow: str) -> list[ToolCall]:
 
 def cross_check(step: StepInput) -> CrossCheck:
     """교차 검증 결과. 계정마다 수치 방향과 같은 계정의 회사 설명 인용 방향을 대조한다."""
-    changes = [
-        item
-        for result in _ok(step, FINANCIAL_CHANGES)
-        for item in result.items
-        if item.facts is not None and item.facts.change_id is not None and item.facts.calc_status
-    ]
+    # 화면에서 고른 변경(ctx-financial)과 Workflow 결과에 같은 계정이 있으면 한 번만 센다
+    changes = list(
+        {
+            item.facts.change_id: item
+            for result in _ok(step, FINANCIAL_CHANGES)
+            for item in result.items
+            if item.facts is not None
+            and item.facts.change_id is not None
+            and item.facts.calc_status
+        }.values()
+    )
     quotes = _explanation_quotes(step)
     compared = [c for c in changes if c.facts and c.facts.calc_status in COMPARED_STATUSES]
     other_basis = [c for c in changes if c.facts and c.facts.calc_status in NOT_COMPARABLE_STATUSES]
