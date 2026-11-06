@@ -5,7 +5,7 @@ from typing import Any
 from fastapi.testclient import TestClient
 
 from app.core.config import LlmSettings
-from app.llm import FakeProvider, LlmClient, ProviderError
+from app.llm import FakeProvider, LlmClient, LlmRequest, ProviderError
 from app.main import create_app
 
 PREVIOUS_RCEPT = "20250814003156"
@@ -49,8 +49,22 @@ class ScriptedProvider(FakeProvider):
     name = "scripted"
 
 
+def meaning(request: LlmRequest) -> dict[str, Any]:
+    """공시의 의미 호출의 통과하는 답. 정해 둔 응답(script)을 다 쓴 뒤에 쓰인다."""
+    evidence = request.context[0].evidence_id
+    item = {
+        "type": "FACT",
+        "absentTopics": [],
+        "text": "소송에서 졌어요.",
+        "evidenceIds": [evidence],
+    }
+    return {"items": [item]}
+
+
 def app_with(*script: Any) -> TestClient:
-    provider = ScriptedProvider(script=script, model="scripted-model")
+    provider = ScriptedProvider(
+        script=script, responders={"event_meaning": meaning}, model="scripted-model"
+    )
     settings = LlmSettings(provider="scripted", max_retries=0, max_output_retries=2)
     return TestClient(create_app(llm_client=LlmClient(provider, settings, sleep=lambda _: None)))
 
@@ -164,14 +178,33 @@ def test_events_are_returned_in_spec_shape() -> None:
             "signalEvidenceId": f"{CURRENT_RCEPT}#B1576",
             "rowCounts": None,
             "factAccounts": [],
+            "meaning": {
+                "status": "GENERATED",
+                "failReason": None,
+                "items": [
+                    {
+                        "type": "FACT",
+                        "absentTopics": [],
+                        "text": "소송에서 졌어요.",
+                        "evidenceIds": [f"{PREVIOUS_RCEPT}#B2028"],
+                    }
+                ],
+                "model": "scripted-model",
+                "promptVersion": "event-meaning-1",
+                "generatedAt": data["events"][0]["meaning"]["generatedAt"],
+            },
+            "glossary": [],
         }
     ]
+    assert data["events"][0]["meaning"]["generatedAt"] is not None
     assert data["unboundChangeNos"] == [13]
-    (call,) = data["calls"]
-    assert call["task"] == "text_event"
-    assert call["promptVersion"] == "text-event-3"
-    assert call["traceId"] == "evt-1"
-    assert call["outcome"] == "OK"
+    grouping, meaning_call = data["calls"]
+    assert grouping["task"] == "text_event"
+    assert grouping["promptVersion"] == "text-event-3"
+    assert grouping["traceId"] == "evt-1"
+    assert grouping["outcome"] == "OK"
+    assert meaning_call["task"] == "event_meaning"
+    assert meaning_call["traceId"] == "evt-1"
 
 
 def test_fake_provider_is_reported_as_not_created() -> None:
@@ -205,7 +238,7 @@ def test_dropped_event_is_counted() -> None:
     data = response.json()
     assert data["droppedEventCount"] == 1
     assert len(data["events"]) == 1
-    assert [c["outcome"] for c in data["calls"]] == ["INVALID_OUTPUT"] * 3
+    assert [c["outcome"] for c in data["calls"]] == ["INVALID_OUTPUT"] * 3 + ["OK"]
 
 
 def test_no_usable_event_is_502_with_call_records_in_header() -> None:
@@ -290,3 +323,16 @@ def test_signal_table_is_returned_without_unconfirmed_terms() -> None:
     assert "투자 판단이 아니" in data["signalNotice"]
     assert len(data["kinds"]) == 30
     assert data["glossary"] == []
+
+
+def test_meaning_that_keeps_failing_is_returned_as_failed_without_sentences() -> None:
+    bad = {"items": [{"type": "FACT", "absentTopics": [], "text": "목표주가가 올라요."}]}
+
+    response = post(app_with({"events": [EVENT]}, bad, bad, bad))
+
+    assert response.status_code == 200
+    (event,) = response.json()["events"]
+    assert event["meaning"]["status"] == "FAILED"
+    assert event["meaning"]["failReason"] == "INVALID_OUTPUT"
+    assert event["meaning"]["items"] == []
+    assert event["meaning"]["promptVersion"] == "event-meaning-1"
