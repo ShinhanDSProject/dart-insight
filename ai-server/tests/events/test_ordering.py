@@ -1,4 +1,4 @@
-import pytest
+from dataclasses import replace
 
 from app.compare.listing import LITIGATION, MAIN
 from app.compare.text_diff import MODIFIED
@@ -6,13 +6,16 @@ from app.documents.parser import PARAGRAPH
 from app.events.candidates import CandidateChange
 from app.events.model import (
     AMOUNT,
+    CAUTION,
     FRONT_KIND,
+    POSITIVE,
     UNIT_COUNT,
     EventChange,
     EventScale,
+    EventSignal,
     TextEvent,
 )
-from app.events.ordering import is_front_kind, rank
+from app.events.ordering import rank
 
 
 def change(
@@ -109,11 +112,15 @@ def test_foreign_amount_without_won_value_is_on_unit_count_line() -> None:
     assert ranked[1].basis == UNIT_COUNT
 
 
-def test_new_front_kind_comes_first_even_without_amount() -> None:
-    by_no = changes(change(1, current="회생절차 개시를 신청했습니다"), change(2))
-    front = event(1, title="회생절차 개시신청", kind="회생")
+def front(no: int, krw: int | None = None, is_front: bool = True) -> TextEvent:
+    signal = EventSignal("REHABILITATION", "OCCURRED", "새로 발생", CAUTION, front=is_front)
+    return replace(event(no, krw), signal=signal)
 
-    ranked = rank([event(2, 10**15), front], by_no)
+
+def test_new_front_kind_comes_first_even_without_amount() -> None:
+    by_no = changes(change(1), change(2))
+
+    ranked = rank([event(2, 10**15), front(1)], by_no)
 
     assert [e.change_nos[0] for e in ranked] == [1, 2]
     assert ranked[0].basis == FRONT_KIND
@@ -121,50 +128,40 @@ def test_new_front_kind_comes_first_even_without_amount() -> None:
 
 
 def test_front_kinds_are_ordered_by_amount_among_themselves() -> None:
-    by_no = changes(change(1, current="회생절차 개시"), change(2, current="영업정지 처분"))
-    small = event(1, 5, title="회생절차 개시")
-    large = event(2, 50, title="영업정지 처분")
+    by_no = changes(change(1), change(2))
 
-    assert order([small, large], by_no) == [2, 1]
+    assert order([front(1, 5), front(2, 50)], by_no) == [2, 1]
 
 
-@pytest.mark.parametrize(
-    ("title", "text"),
-    [
-        ("감사의견 비적정", "감사의견은 부적정입니다"),
-        ("감사의견 의견거절", "감사인이 의견거절을 표명"),
-        ("계속기업 불확실성 기재", "계속기업으로서의 존속능력에 중요한 불확실성이 있습니다"),
-        ("회생절차 개시신청", "회생절차 개시를 신청"),
-        ("영업정지 처분", "영업정지 처분을 받았습니다"),
-        ("대표이사 횡령 혐의", "횡령 혐의로 기소"),
-        ("임원 배임 혐의", "배임 혐의로 기소"),
-        ("부도 발생", "어음 부도 발생"),
-        ("해산사유 발생", "해산사유가 발생"),
-        ("채권은행 관리절차 개시", "채권은행 등의 관리절차가 개시"),
-    ],
-)
-def test_front_kind_words_are_recognized(title: str, text: str) -> None:
-    assert is_front_kind(event(1, title=title), changes(change(1, current=text)))
+def test_signal_that_is_not_front_does_not_go_first() -> None:
+    by_no = changes(change(1), change(2))
+
+    ranked = rank([front(1, is_front=False), event(2, 5)], by_no)
+
+    assert [e.change_nos[0] for e in ranked] == [2, 1]
+    assert ranked[1].basis == UNIT_COUNT
 
 
-def test_word_only_in_source_is_not_front_kind() -> None:
-    by_no = changes(change(1, current="내부 규정에 횡령 금지를 적었습니다"))
+def test_front_words_in_title_alone_do_not_make_front_kind() -> None:
+    """맨 앞 종류는 낱말이 아니라 기준표 신호로 정한다(ADR-0060)."""
+    by_no = changes(change(1, current="회생절차 개시를 신청했습니다"))
 
-    assert not is_front_kind(event(1, title="내부 규정 개정"), by_no)
+    (ranked,) = rank([event(1, title="회생절차 개시신청", kind="회생절차")], by_no)
 
-
-def test_word_only_in_title_is_not_front_kind() -> None:
-    assert not is_front_kind(event(1, title="횡령 혐의"), changes(change(1, current="내용")))
-
-
-def test_word_already_in_previous_text_is_not_new() -> None:
-    by_no = changes(change(1, current="횡령 혐의 재판 중", previous="횡령 혐의로 기소"))
-
-    assert not is_front_kind(event(1, title="횡령 혐의"), by_no)
+    assert ranked.basis == UNIT_COUNT
 
 
-def test_word_in_kind_counts() -> None:
-    assert is_front_kind(event(1, kind="횡령"), changes(change(1, current="횡령 혐의로 기소")))
+def test_signal_does_not_change_order_among_amounts() -> None:
+    by_no = changes(change(1), change(2))
+    caution_signal = EventSignal("SANCTION", "OCCURRED", "새로 발생", CAUTION)
+    positive_signal = EventSignal("MAJOR_CONTRACT", "NEW", "신규 계약", POSITIVE)
+    caution = replace(event(1, 10), signal=caution_signal)
+    positive = replace(event(2, 300), signal=positive_signal)
+
+    ranked = rank([caution, positive], by_no)
+
+    assert [e.change_nos[0] for e in ranked] == [2, 1]
+    assert [e.signal.signal for e in ranked if e.signal] == [POSITIVE, CAUTION]
 
 
 def test_larger_amount_goes_first_even_with_fewer_changed_units() -> None:
