@@ -6,6 +6,7 @@
   쓸 수 있는 사건이 하나도 없으면 LlmOutputInvalid를 그대로 던진다(부른 쪽이 502로 바꿈).
 - LLM을 부를 수 없으면(LlmUnavailable) 그대로 던진다(부른 쪽이 503으로 바꿈).
 - 규모와 순서는 코드가 정한다(scales.py, ordering.py, ADR-0053).
+- 신호는 AI가 고른 종류·변화와 근거로 코드가 기준표에서 붙인다(signals.py, ADR-0060).
 """
 
 from __future__ import annotations
@@ -17,6 +18,7 @@ from app.events.model import FAKE_MODEL, NO_CANDIDATES, EventInput, TextEvent
 from app.events.ordering import rank
 from app.events.prompt import PROMPT_VERSION, build_request
 from app.events.scales import scale_events
+from app.events.signals import attach_signals
 from app.events.validate import check
 from app.llm import CallRecord, LlmClient, LlmOutputInvalid, OutputProblem
 from app.llm.client import OUTCOME_INVALID_OUTPUT
@@ -76,8 +78,8 @@ def group_events(llm: LlmClient, event_input: EventInput) -> EventOutput:
             generated.calls,
         )
 
-    scaled, pick_calls = scale_events(llm, event_input, events)
     changes = {c.change_no: c for c in event_input.changes}
+    scaled, pick_calls = scale_events(llm, event_input, attach_signals(events, changes))
     bound = {no for event in events for no in event.change_nos}
     return EventOutput(
         True,

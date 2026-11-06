@@ -46,7 +46,15 @@ def event_input(*changes: EventChange) -> EventInput:
 
 def event(no: int = 1, **overrides: Any) -> dict[str, Any]:
     quote = {"changeNo": no, "purpose": "CHANGE", "side": "CURRENT", "text": "소송에서 패소하여"}
-    return {"title": "소송 패소", "kind": "소송", "changeNos": [no], "quotes": [quote]} | overrides
+    return {
+        "title": "소송 패소",
+        "changeNos": [no],
+        "quotes": [quote],
+        "signalKind": "LITIGATION",
+        "signalChange": "LOST",
+        "signalChangeNo": no,
+        "signalSide": "CURRENT",
+    } | overrides
 
 
 def test_events_with_model_version_time_and_unbound_changes_are_returned() -> None:
@@ -57,12 +65,27 @@ def test_events_with_model_version_time_and_unbound_changes_are_returned() -> No
     assert output.created is True
     assert output.not_created_reason is None
     assert output.model == "scripted-model"
-    assert output.prompt_version == "text-event-2"
+    assert output.prompt_version == "text-event-3"
     assert output.generated_at is not None
     assert output.dropped_event_count == 0
     assert [e.change_nos for e in output.events] == [[1]]
     assert output.unbound_change_nos == [2]
     assert [c.outcome for c in output.calls] == [OUTCOME_OK, OUTCOME_OK]
+
+
+def test_signal_is_attached_by_code_from_the_picked_kind_and_change() -> None:
+    client, _ = llm({"events": [event(1)]}, {"choice": 1})
+
+    output = group_events(client, event_input(change(1)))
+
+    (signal,) = [e.signal for e in output.events]
+    assert signal is not None
+    assert (signal.kind_code, signal.change_code, signal.signal) == (
+        "LITIGATION",
+        "LOST",
+        "CAUTION",
+    )
+    assert output.events[0].kind == "소송"
 
 
 def test_only_candidates_are_sent_and_counted_as_unbound() -> None:

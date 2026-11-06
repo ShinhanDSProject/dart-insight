@@ -11,6 +11,7 @@ from app.api.llm_calls import events_invalid_output, llm_unavailable
 from app.core.errors import ApiError, ErrorCode
 from app.events.schema import TextEventRequest, output_json
 from app.events.service import group_events
+from app.events.signals import table_json
 from app.llm import LlmClient, LlmOutputInvalid, LlmUnavailable
 
 router = APIRouter(prefix=paths.INTERNAL_PREFIX, tags=["internal"])
@@ -45,4 +46,10 @@ def text_events(
         output.model,
         output.prompt_version,
     )
-    return output_json(output)
+    return output_json(output, event_input)
+
+
+@router.get(paths.SIGNAL_TABLES)
+def signal_table() -> dict[str, Any]:
+    """지금 쓰는 사건 신호 기준표. 출처를 확인하지 못한 용어는 빼고 준다(ADR-0060)."""
+    return table_json()

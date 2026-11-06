@@ -33,12 +33,15 @@ BODY = {
 }
 EVENT = {
     "title": "소송 패소",
-    "kind": "소송",
     "changeNos": [12],
     "quotes": [
         {"changeNo": 12, "purpose": "CHANGE", "side": "PREVIOUS", "text": "소송을 진행하고"},
         {"changeNo": 12, "purpose": "CHANGE", "side": "CURRENT", "text": "소송에서 패소했습니다"},
     ],
+    "signalKind": "LITIGATION",
+    "signalChange": "LOST",
+    "signalChangeNo": 12,
+    "signalSide": "CURRENT",
 }
 
 
@@ -72,7 +75,6 @@ def test_event_scale_and_order_are_filled_by_code_in_the_response() -> None:
     }
     second = {
         "title": "공장 매각",
-        "kind": "자산 매각",
         "changeNos": [13],
         "quotes": [{"changeNo": 13, "purpose": "CHANGE", "side": "CURRENT", "text": "공장을 매각"}],
     }
@@ -117,8 +119,9 @@ def test_events_are_returned_in_spec_shape() -> None:
     assert data["created"] is True
     assert data["notCreatedReason"] is None
     assert data["model"] == "scripted-model"
-    assert data["promptVersion"] == "text-event-2"
+    assert data["promptVersion"] == "text-event-3"
     assert data["generatedAt"] is not None
+    assert data["signalTableVersion"] == "signal-table-1"
     assert data["droppedEventCount"] == 0
     assert data["events"] == [
         {
@@ -153,12 +156,20 @@ def test_events_are_returned_in_spec_shape() -> None:
             "fxSource": None,
             "fxRateDate": None,
             "sortBasis": "UNIT_COUNT",
+            "kindCode": "LITIGATION",
+            "changeCode": "LOST",
+            "changeName": "패소",
+            "signal": "CAUTION",
+            "holdReason": None,
+            "signalEvidenceId": f"{CURRENT_RCEPT}#B1576",
+            "rowCounts": None,
+            "factAccounts": [],
         }
     ]
     assert data["unboundChangeNos"] == [13]
     (call,) = data["calls"]
     assert call["task"] == "text_event"
-    assert call["promptVersion"] == "text-event-2"
+    assert call["promptVersion"] == "text-event-3"
     assert call["traceId"] == "evt-1"
     assert call["outcome"] == "OK"
 
@@ -173,7 +184,7 @@ def test_fake_provider_is_reported_as_not_created() -> None:
     assert data["created"] is False
     assert data["notCreatedReason"] == "FAKE_MODEL"
     assert data["model"] is None
-    assert data["promptVersion"] == "text-event-2"
+    assert data["promptVersion"] == "text-event-3"
     assert data["events"] == []
     assert data["calls"] == []
 
@@ -238,3 +249,44 @@ def test_null_equity_total_is_accepted() -> None:
     response = post(app_with({"events": []}), BODY | {"equityTotal": None, "currency": None})
 
     assert response.status_code == 200
+
+
+def test_litigation_table_with_several_changed_rows_is_held_and_rows_are_returned() -> None:
+    table = CHANGE | {"blockType": "TABLE", "rowCounts": {"changed": 1, "added": 2, "missing": 0}}
+
+    response = post(app_with({"events": [EVENT]}), BODY | {"changes": [table]})
+
+    assert response.status_code == 200
+    (event,) = response.json()["events"]
+    assert (event["signal"], event["holdReason"]) == ("HOLD", "MIXED_LITIGATION")
+    assert event["rowCounts"] == {"changed": 1, "added": 2, "missing": 0}
+
+
+def test_negative_row_count_is_400() -> None:
+    table = CHANGE | {"rowCounts": {"changed": -1, "added": 0, "missing": 0}}
+
+    response = post(app_with(), BODY | {"changes": [table]})
+
+    assert response.status_code == 400
+    assert response.json()["code"] == "COMMON_INVALID_INPUT"
+
+
+def test_fact_accounts_of_the_picked_kind_are_returned() -> None:
+    treasury = EVENT | {"signalKind": "TREASURY_STOCK", "signalChange": "RETIRED"}
+
+    response = post(app_with({"events": [treasury]}))
+
+    (event,) = response.json()["events"]
+    assert event["kind"] == "자기주식"
+    assert event["factAccounts"] == [{"accountType": None, "accountName": "자기주식"}]
+
+
+def test_signal_table_is_returned_without_unconfirmed_terms() -> None:
+    response = TestClient(create_app()).get("/internal/signal-tables/current")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["version"] == "signal-table-1"
+    assert "투자 판단이 아니" in data["signalNotice"]
+    assert len(data["kinds"]) == 30
+    assert data["glossary"] == []

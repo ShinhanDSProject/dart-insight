@@ -6,12 +6,19 @@ from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 from app.events.candidates import CandidateChange
-from app.events.model import EventChange, EventInput, StructuredAmount, TextEvent
+from app.events.model import EventChange, EventInput, RowCounts, StructuredAmount, TextEvent
 from app.events.service import EventOutput
+from app.events.signals import load_table
 
 
 class _Model(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+
+class RowCountsModel(_Model):
+    changed: int = Field(ge=0)
+    added: int = Field(ge=0)
+    missing: int = Field(ge=0)
 
 
 class ChangeModel(_Model):
@@ -28,6 +35,8 @@ class ChangeModel(_Model):
     current_text: str | None
     changed_unit_count: int = Field(ge=0)
     preceding_block_text: str | None = None
+    # 표 변경의 바뀐·새·이번엔 없는 행 수. 소송이 섞였는지 본다(ADR-0060)
+    row_counts: RowCountsModel | None = None
 
 
 class StructuredAmountModel(_Model):
@@ -72,6 +81,11 @@ class TextEventRequest(_Model):
                     c.current_text,
                     c.changed_unit_count,
                     c.preceding_block_text,
+                    (
+                        RowCounts(c.row_counts.changed, c.row_counts.added, c.row_counts.missing)
+                        if c.row_counts
+                        else None
+                    ),
                 )
                 for c in self.changes
             ],
@@ -85,7 +99,25 @@ class TextEventRequest(_Model):
         )
 
 
-def _event_json(sort_order: int, event: TextEvent) -> dict[str, Any]:
+def _row_counts(event: TextEvent, changes: dict[int, EventChange]) -> dict[str, int] | None:
+    """사건에 묶인 표의 행 수 합. 행 수가 있는 변경이 없으면 null."""
+    counts = [
+        changes[no].row_counts for no in event.change_nos if changes[no].row_counts is not None
+    ]
+    if not counts:
+        return None
+    return {
+        "changed": sum(c.changed for c in counts),
+        "added": sum(c.added for c in counts),
+        "missing": sum(c.missing for c in counts),
+    }
+
+
+def _event_json(
+    sort_order: int, event: TextEvent, changes: dict[int, EventChange]
+) -> dict[str, Any]:
+    signal = event.signal
+    assert signal is not None
     return {
         "sortOrder": sort_order,
         "title": event.title,
@@ -112,18 +144,31 @@ def _event_json(sort_order: int, event: TextEvent) -> dict[str, Any]:
         "fxSource": event.scale.fx_source,
         "fxRateDate": event.scale.fx_rate_date,
         "sortBasis": event.basis,
+        "kindCode": signal.kind_code,
+        "changeCode": signal.change_code,
+        "changeName": signal.change_name,
+        "signal": signal.signal,
+        "holdReason": signal.hold_reason,
+        "signalEvidenceId": signal.evidence_id,
+        "rowCounts": _row_counts(event, changes),
+        "factAccounts": [
+            {"accountType": a.account_type, "accountName": a.account_name}
+            for a in signal.fact_accounts
+        ],
     }
 
 
-def output_json(output: EventOutput) -> dict[str, Any]:
+def output_json(output: EventOutput, event_input: EventInput) -> dict[str, Any]:
+    changes = {c.change_no: c for c in event_input.changes}
     return {
         "created": output.created,
         "notCreatedReason": output.not_created_reason,
         "model": output.model,
         "promptVersion": output.prompt_version,
         "generatedAt": output.generated_at,
+        "signalTableVersion": load_table().version,
         "droppedEventCount": output.dropped_event_count,
-        "events": [_event_json(no, e) for no, e in enumerate(output.events, start=1)],
+        "events": [_event_json(no, e, changes) for no, e in enumerate(output.events, start=1)],
         "unboundChangeNos": output.unbound_change_nos,
         "calls": [c.to_dict() for c in output.calls],
     }
