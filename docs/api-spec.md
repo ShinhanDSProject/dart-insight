@@ -3565,12 +3565,13 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
   "calls": [
     { "task": "summary", "provider": "fake", "model": "fake-model", "promptVersion": "summary-2",
       "calledAt": "2026-10-21T14:07:11", "traceId": "…", "inputTokens": 1830, "outputTokens": 210,
+      "cachedInputTokens": 1024, "reasoningTokens": 64,
       "latencyMs": 1420, "attempt": 1, "outcome": "OK", "error": null }
   ]
 }
 ```
 
-- `status`: `OK` 또는 `REVIEW_NEEDED`(`reviewReason`에 사유). 투자 권유성 표현 검사(5.5)에 걸려 내보내지 않은 항목은 `blockedRules`에 규칙 ID가 있고, 문장(`sentence`·`explanation`)은 null입니다. `expressionRulesVersion`(응답 맨 위, 예: `expr-1`)은 검사 규칙 버전입니다. `gradeRulesVersion`(예: `grade-2`)은 등급을 낮추는 규칙과 원인 표현 목록의 버전입니다. `calls`는 이 요청에서 LLM을 부른 기록(다시 만든 것 포함)이고 backend가 `llm_call`에 저장합니다.
+- `status`: `OK` 또는 `REVIEW_NEEDED`(`reviewReason`에 사유). 투자 권유성 표현 검사(5.5)에 걸려 내보내지 않은 항목은 `blockedRules`에 규칙 ID가 있고, 문장(`sentence`·`explanation`)은 null입니다. `expressionRulesVersion`(응답 맨 위, 예: `expr-1`)은 검사 규칙 버전입니다. `gradeRulesVersion`(예: `grade-2`)은 등급을 낮추는 규칙과 원인 표현 목록의 버전입니다. `calls`는 이 요청에서 LLM을 부른 기록(다시 만든 것 포함)이고 backend가 `llm_call`에 저장합니다. 모든 내부 API의 `calls` 객체가 같은 모양입니다. `cachedInputTokens`는 `inputTokens` 중 프롬프트 캐시에서 읽은 토큰, `reasoningTokens`는 `outputTokens` 중 추론(생각) 토큰이고(둘 다 이미 합계에 들어 있음), 제공자가 알려 주지 않으면 null입니다(#633). 예전 응답처럼 두 필드가 없으면 backend는 null로 저장합니다.
 - `grade`·`quote`·`quoteEvidenceId`: 문장 변화 항목은 null입니다. `REVIEW_NEEDED`인 재무 항목은 `grade`가 null이고, 마지막 응답의 인용이 인용 실재 검사(`quoteEvidenceId`가 그 항목의 후보 위치이고 `quote`가 공백을 모두 뺀 뒤 그 문단에 그대로 있음)를 통과했으면 `quote`·`quoteEvidenceId`를 남깁니다(아니면 null). backend는 이 인용으로 템플릿 요약을 만듭니다(#149). `reviewReason`이 있는 `OK` 재무 항목은 코드가 등급을 낮춘 경우입니다(화면에서 후보가 없던 `NONE`과 다른 사유 문구, #143).
 - 시각은 한국 시간 `YYYY-MM-DDTHH:mm:ss`입니다.
 
