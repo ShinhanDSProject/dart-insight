@@ -57,16 +57,24 @@ def _structured_by_event(
 ) -> dict[int, StructuredAmount]:
     """그 종류의 결정과 사건이 각각 딱 1개일 때만 잇는다.
 
-    한 사건이 두 종류에 걸리면(예: 자기주식 취득·처분을 묶은 사건) 어느 결정의 금액인지
-    정할 수 없어 잇지 않는다.
+    한 사건이 두 종류에 걸리면(예: 자기주식 취득·처분을 묶은 사건) 한 결정의 금액이
+    사건 전체의 금액이 아니므로, 결정이 있는지와 상관없이 잇지 않는다.
     """
-    matched: dict[int, list[StructuredAmount]] = {}
-    for kind, pattern in _STRUCTURED_KINDS.items():
+    kinds_of = [
+        {
+            kind
+            for kind, pattern in _STRUCTURED_KINDS.items()
+            if pattern.search(f"{e.title} {e.kind}")
+        }
+        for e in events
+    ]
+    matched: dict[int, StructuredAmount] = {}
+    for kind in _STRUCTURED_KINDS:
         decisions = [s for s in structured if s.kind == kind]
-        matches = [i for i, e in enumerate(events) if pattern.search(f"{e.title} {e.kind}")]
-        if len(decisions) == 1 and len(matches) == 1:
-            matched.setdefault(matches[0], []).append(decisions[0])
-    return {index: items[0] for index, items in matched.items() if len(items) == 1}
+        matches = [i for i, kinds in enumerate(kinds_of) if kind in kinds]
+        if len(decisions) == 1 and len(matches) == 1 and len(kinds_of[matches[0]]) == 1:
+            matched[matches[0]] = decisions[0]
+    return matched
 
 
 def _sources(
