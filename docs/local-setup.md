@@ -126,11 +126,12 @@ backend를 다시 실행하면 Flyway가 테이블을 다시 만들고, 기업 �
 | 명령 | 하는 일 |
 | --- | --- |
 | `npm run setup` | 서비스마다 `.env`가 없으면 `.env.example`에서 만들고(이미 있으면 그대로 둠), frontend `npm ci`, ai-server·mcp-server `.venv` 생성과 `requirements*.txt` 설치 |
-| `npm run dev` | backend·ai-server·frontend를 함께 실행합니다(mcp-server는 에이전트가 직접 띄우므로 뺍니다). 출력 줄 앞에 `[backend]`·`[ai-server]`·`[frontend]`가 붙고, Ctrl+C를 누르거나 하나가 꺼지면 나머지도 함께 끕니다 |
+| `npm run dev` | backend·ai-server·frontend를 함께 실행합니다(mcp-server는 에이전트가 직접 띄우므로 뺍니다). 출력 줄 앞에 `[backend]`·`[ai-server]`·`[frontend]`가 붙고, Ctrl+C를 누르거나 하나가 꺼지면 나머지도 함께 끕니다. **코드를 저장하면 자동으로 반영됩니다**: frontend는 바로(Vite), ai-server는 몇 초 뒤 다시 시작(uvicorn `--reload`), backend는 Gradle이 다시 컴파일하면 DevTools가 서버를 다시 띄웁니다(10초 안팎) |
 | `npm run dev:backend` · `dev:ai` · `dev:frontend` | 서비스 하나만 실행 |
 | `npm test` · `npm run lint` · `npm run build` | 모든 서비스에 실행(`test:backend`처럼 서비스 하나만도 가능). 하나가 실패해도 나머지를 마저 돌리고, 실패한 서비스를 끝에 모아 보여 줍니다 |
 | `npm run check` | CI와 같은 검사: backend `./gradlew build`, ai-server·mcp-server `ruff check .`·`pytest`, frontend `lint`·`test`·`build` |
 
+- backend 자동 반영은 `./gradlew -t classes`(컴파일 감시)가 첫 빌드를 끝낸 뒤 `./gradlew bootRun`을 띄우는 방식입니다. `build.gradle`·`.env`를 바꿨을 때는 Ctrl+C로 끄고 다시 실행합니다. DevTools는 `developmentOnly`라 배포용 jar와 테스트에는 들어가지 않습니다.
 - 서비스 이름을 뒤에 붙여 고를 수도 있습니다: `npm run dev -- backend frontend`, `npm run setup -- ai`(`ai`는 `ai-server`, `mcp`는 `mcp-server`의 줄임).
 - ai-server 가상환경은 `python3`(Windows는 `python`)로 만듭니다. 그 명령이 3.12가 아니면 경로를 주세요: `PYTHON=python3.12 npm run setup -- ai`.
 - `setup`이 만든 `.env`에는 가짜 키 값이 들어 있습니다. 3장대로 공용 키를 채웁니다.
