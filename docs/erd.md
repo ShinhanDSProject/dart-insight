@@ -402,6 +402,7 @@ erDiagram
         varchar model
         varchar prompt_version
         int input_tokens
+        int cached_input_tokens "V51"
         varchar outcome
     }
     report_key_fact {
@@ -965,10 +966,14 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `called_at` | DATETIME(6) | | 예 | 호출 시각(한국 시간) |
 | `trace_id` | VARCHAR(64) | | 예 | 요청 추적 ID |
 | `input_tokens`, `output_tokens` | INT | | 예 | 토큰 수(제공자가 알려 주지 않으면 null) |
+| `cached_input_tokens` | INT | | 예 | `input_tokens` 중 제공자가 프롬프트 캐시에서 읽은 토큰(OpenAI `usage.input_tokens_details.cached_tokens`, 캐시 가격으로 청구). 알려 주지 않으면 null(`V51`, #633). 지금은 에이전트 채팅(`agent_plan`·`agent_answer`)만 저장하고 다른 작업은 null |
+| `reasoning_tokens` | INT | | 예 | `output_tokens` 중 추론(생각) 토큰(OpenAI `usage.output_tokens_details.reasoning_tokens`). 따로 더하지 않고 `output_tokens`에 이미 들어 있음. 알려 주지 않으면 null(`V51`, #633). 저장 범위는 위와 같음 |
 | `latency_ms` | INT | | 아니오 | 걸린 시간 |
 | `attempt` | INT | | 아니오 | 같은 요청의 몇 번째 시도인지 |
 | `outcome` | VARCHAR(20) | | 아니오 | `OK`, `INVALID_OUTPUT`(검증 실패로 다시 만듦), `TRANSIENT_ERROR`, `ERROR` |
 | `error` | VARCHAR(500) | | 예 | 실패 사유(짧게) |
+
+> 마이그레이션: `V51__add_llm_call_cached_reasoning_tokens.sql`(`cached_input_tokens`·`reasoning_tokens`, #633).
 
 ### analysis_question
 
