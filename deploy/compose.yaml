@@ -1,0 +1,59 @@
+name: dart-insight
+
+services:
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: dart_insight
+      MARIADB_USER: dart
+      MARIADB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD is required}
+      MARIADB_ROOT_HOST: localhost
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  backend:
+    build:
+      context: ../backend
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:mariadb://db:3306/dart_insight
+      DB_USERNAME: dart
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      OPENDART_API_KEY: ${OPENDART_API_KEY:?OPENDART_API_KEY is required}
+      AI_SERVER_URL: http://192.168.0.215:8000
+      CORS_ALLOWED_ORIGINS: https://dart-insight.shinhanacademy.co.kr
+      DOCUMENT_CACHE_DIR: /app/data/documents
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=60.0
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      AUTH_SECURE_COOKIE: "true"
+      SOCIAL_LOGIN_REDIRECT_URL: https://dart-insight.shinhanacademy.co.kr/login
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+    volumes:
+      - document_cache:/app/data/documents
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ../frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  db_data:
+  document_cache:

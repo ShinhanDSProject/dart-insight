@@ -1,0 +1,163 @@
+pipeline {
+    agent { label 'dart-builder' }
+
+    options {
+        skipDefaultCheckout()
+        disableConcurrentBuilds()
+        timestamps()
+        timeout(time: 15, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+    }
+
+    parameters {
+        string(
+            name: 'WEB_IMAGE_TAG',
+            defaultValue: '83c6b552fdcc0912ade66aac740ec59fb29da4eb',
+            description: '배포할 웹 이미지의 전체 커밋 번호'
+        )
+    }
+
+    stages {
+        stage('웹 이미지 전달 및 배포') {
+            steps {
+                script {
+                    env.WEB_IMAGE_TAG = params.WEB_IMAGE_TAG ?:
+                        '83c6b552fdcc0912ade66aac740ec59fb29da4eb'
+                }
+
+                sh '''#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ ! "$WEB_IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]]; then
+    echo "이미지 태그에는 전체 커밋 번호 40자리를 입력하세요."
+    exit 1
+fi
+
+docker image inspect "dart-insight-web:$WEB_IMAGE_TAG" >/dev/null
+
+ssh_options=(
+  -i /home/jenkins/agent/.ssh/id_ed25519_vm1
+  -o UserKnownHostsFile=/home/jenkins/agent/.ssh/known_hosts
+  -o IdentitiesOnly=yes
+  -o BatchMode=yes
+  -o StrictHostKeyChecking=yes
+  -o ConnectTimeout=10
+)
+
+echo "웹 이미지를 VM1으로 전달합니다."
+
+docker image save "dart-insight-web:$WEB_IMAGE_TAG" |
+  ssh "${ssh_options[@]}" student@192.168.0.214 "docker image load"
+
+ssh "${ssh_options[@]}" student@192.168.0.214 \
+  "bash -s -- $WEB_IMAGE_TAG" <<'REMOTE'
+set -euo pipefail
+umask 077
+
+cd ~/projects/dart-insight
+
+tag=$1
+stamp=$(date +%Y%m%d-%H%M%S)
+backup_dir="$HOME/dart-deploy-backups/web-$stamp"
+mkdir -p "$backup_dir"
+
+compose=(
+  docker compose
+  --env-file deploy/.env
+  -f deploy/compose.yaml
+  -f deploy/compose.release.yaml
+)
+
+container=$("${compose[@]}" ps -q web)
+test -n "$container"
+
+previous_image=$(docker inspect --format '{{.Image}}' "$container")
+rollback_tag="dart-insight-web:rollback-web-$stamp"
+docker image tag "$previous_image" "$rollback_tag"
+
+python3 - "$tag" "$rollback_tag" "$backup_dir" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+tag, rollback_tag, backup_dir = sys.argv[1:]
+path = Path("deploy/compose.release.yaml")
+original = path.read_text(encoding="utf-8")
+pattern = r"(image:[ \\t]*)dart-insight-web:[^\\s#]+"
+
+updated, count = re.subn(
+    pattern,
+    lambda match: match.group(1) + "dart-insight-web:" + tag,
+    original,
+)
+
+if count != 1:
+    raise SystemExit("웹 이미지 설정 위치가 정확히 한 곳이어야 합니다.")
+
+restored = re.sub(
+    pattern,
+    lambda match: match.group(1) + rollback_tag,
+    original,
+)
+
+backup = Path(backup_dir)
+
+(backup / "compose.release.before.yaml").write_text(
+    original, encoding="utf-8"
+)
+(backup / "compose.release.restore.yaml").write_text(
+    restored, encoding="utf-8"
+)
+
+pending = path.with_name(path.name + ".pending")
+pending.write_text(updated, encoding="utf-8")
+pending.replace(path)
+PY
+
+rollback_web() {
+    result=$?
+    trap - ERR
+    set +e
+
+    echo "배포 확인 실패. 이전 웹 이미지로 복구를 시도합니다."
+
+    cp "$backup_dir/compose.release.restore.yaml" \
+      deploy/compose.release.yaml
+
+    if "${compose[@]}" up -d --no-deps --no-build web </dev/null; then
+        echo "이전 웹 컨테이너 기동 명령 완료"
+    else
+        echo "자동 복구 실패. 컨테이너 로그를 확인하세요."
+    fi
+
+    exit "$result"
+}
+
+trap rollback_web ERR
+
+"${compose[@]}" config --quiet </dev/null
+"${compose[@]}" up -d --no-deps --no-build web </dev/null
+"${compose[@]}" exec -T web nginx -t </dev/null
+
+"${compose[@]}" exec -T web sh -c \
+  'nginx -T 2>&1 | grep -F "chunked_transfer_encoding off;"' </dev/null
+
+curl -fsS --retry 5 --retry-connrefused --retry-delay 2 \
+  --max-time 5 -o /dev/null \
+  -w '웹 응답 HTTP %{http_code}\\n' \
+  http://localhost
+
+"${compose[@]}" exec -T web wget -q -T 10 -O - \
+  http://backend:8080/actuator/health </dev/null |
+  python3 -c 'import json, sys; data = json.load(sys.stdin); print("백엔드 상태 =", data.get("status")); sys.exit(0 if data.get("status") == "UP" else 1)'
+
+trap - ERR
+
+printf '웹 자동 배포와 기본 상태 확인 완료\\n'
+printf '배포 이미지: dart-insight-web:%s\\n' "$tag"
+REMOTE
+'''
+            }
+        }
+    }
+}

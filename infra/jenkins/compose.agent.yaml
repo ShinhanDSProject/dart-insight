@@ -1,0 +1,25 @@
+services:
+  agent:
+    build:
+      context: ./agent
+    image: dart-jenkins-agent:docker-v1
+    init: true
+    restart: unless-stopped
+    env_file:
+      - agent.env
+    environment:
+      JENKINS_URL: http://jenkins:8080/
+      JENKINS_AGENT_NAME: vm2-builder
+      JENKINS_AGENT_WORKDIR: /home/jenkins/agent
+      JENKINS_WEB_SOCKET: "true"
+      JENKINS_JAVA_OPTS: "-Xms128m -Xmx512m"
+    mem_limit: 1g
+    cpus: 1.0
+    group_add:
+      - "999"
+    volumes:
+      - agent_work:/home/jenkins/agent
+      - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  agent_work:

@@ -55,3 +55,18 @@ target/
 .vscode/
 *.iml
 .DS_Store
+
+# 서버 전용 인프라 비밀 파일
+/deploy/.env
+/deploy/ai.env
+/infra/jenkins/.env
+/infra/jenkins/agent.env
+/infra/jenkins/**/.ssh/
+/infra/jenkins/**/id_ed25519*
+/infra/jenkins/**/*.pem
+/infra/jenkins/**/*.key
+
+# 인프라 환경변수 예제는 저장소에 포함
+!/deploy/.env.example
+!/deploy/ai.env.example
+!/infra/jenkins/agent.env.example
