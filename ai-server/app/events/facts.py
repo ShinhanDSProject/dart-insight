@@ -51,6 +51,11 @@ def fact_problem(text: str, source: str) -> str | None:
     )
 
 
+def has_date(text: str) -> bool:
+    """연도가 있든 없든 날짜가 적혀 있는지. '일정이 없다'는 문장을 확인할 때 쓴다."""
+    return bool(_full_dates(text) or _month_days(text))
+
+
 def _full_dates(text: str) -> set[tuple[int, int, int | None]]:
     found: set[tuple[int, int, int | None]] = set()
     for pattern in (_KOREAN_DATE, _DOTTED_DATE):
