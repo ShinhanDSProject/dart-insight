@@ -15,12 +15,20 @@ from app.events.model import (
     EventChange,
     EventScale,
     FactAccount,
+    GlossaryTerm,
     Quote,
     RowCounts,
     SignalPick,
     TextEvent,
 )
-from app.events.signals import attach_signals, kind_name, load_table, table_json
+from app.events.signals import (
+    SignalTable,
+    attach_glossary,
+    attach_signals,
+    kind_name,
+    load_table,
+    table_json,
+)
 
 CURRENT_ID = "20260814003699#B100"
 PREVIOUS_ID = "20250814003156#B200"
@@ -256,3 +264,20 @@ def test_table_json_has_the_public_shape_and_leaves_out_unconfirmed_terms() -> N
     )
     # 출처를 확인한 용어가 아직 없다(7.8)
     assert shown["glossary"] == []
+
+
+def test_glossary_has_only_sourced_terms_that_appear_in_the_quotes() -> None:
+    sourced = GlossaryTerm("글", "풀이", "출처")
+    unsourced = GlossaryTerm("글", "풀이", None)
+    absent_term = GlossaryTerm("과징금", "풀이", "출처")
+    table = SignalTable("t", "안내", load_table().kinds, (sourced, unsourced, absent_term))
+
+    (result,) = attach_glossary([event("SANCTION", "OCCURRED")], table)
+
+    assert result.glossary == (sourced,)
+
+
+def test_glossary_of_the_current_table_is_empty() -> None:
+    (result,) = attach_glossary([event("SANCTION", "OCCURRED")])
+
+    assert result.glossary == ()

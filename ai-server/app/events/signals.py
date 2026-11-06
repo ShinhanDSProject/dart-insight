@@ -36,6 +36,7 @@ from app.events.model import (
     EventChange,
     EventSignal,
     FactAccount,
+    GlossaryTerm,
     TextEvent,
 )
 
@@ -70,13 +71,6 @@ class TableKind:
 
     def change(self, code: str | None) -> TableChange | None:
         return next((c for c in self.changes if c.code == code), None)
-
-
-@dataclass(frozen=True)
-class GlossaryTerm:
-    term: str
-    meaning: str
-    source: str | None
 
 
 @dataclass(frozen=True)
@@ -131,6 +125,16 @@ def attach_signals(
 ) -> list[TextEvent]:
     table = table or load_table()
     return [replace(e, signal=_judge(e, changes, table)) for e in events]
+
+
+def attach_glossary(events: list[TextEvent], table: SignalTable | None = None) -> list[TextEvent]:
+    """출처를 확인했고 그 사건 인용에 나오는 용어만 붙인다(ADR-0060). AI를 부르지 않는다."""
+    table = table or load_table()
+    sourced = [g for g in table.glossary if g.source]
+    return [
+        replace(e, glossary=tuple(g for g in sourced if any(g.term in q.text for q in e.quotes)))
+        for e in events
+    ]
 
 
 def _judge(event: TextEvent, changes: dict[int, EventChange], table: SignalTable) -> EventSignal:
