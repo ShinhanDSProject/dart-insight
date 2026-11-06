@@ -7,6 +7,8 @@
 - LLM을 부를 수 없으면(LlmUnavailable) 그대로 던진다(부른 쪽이 503으로 바꿈).
 - 규모와 순서는 코드가 정한다(scales.py, ordering.py, ADR-0053).
 - 신호는 AI가 고른 종류·변화와 근거로 코드가 기준표에서 붙인다(signals.py, ADR-0060).
+- 그 뒤 사건마다 공시의 의미를 따로 부르고(sentences.py), 용어 풀이는 코드가 붙인다.
+  문장이 실패해도 사건은 그대로 내보낸다.
 """
 
 from __future__ import annotations
@@ -18,7 +20,8 @@ from app.events.model import FAKE_MODEL, NO_CANDIDATES, EventInput, TextEvent
 from app.events.ordering import rank
 from app.events.prompt import PROMPT_VERSION, build_request
 from app.events.scales import scale_events
-from app.events.signals import attach_signals
+from app.events.sentences import write_sentences
+from app.events.signals import attach_glossary, attach_signals
 from app.events.validate import check
 from app.llm import CallRecord, LlmClient, LlmOutputInvalid, OutputProblem
 from app.llm.client import OUTCOME_INVALID_OUTPUT
@@ -80,13 +83,14 @@ def group_events(llm: LlmClient, event_input: EventInput) -> EventOutput:
 
     changes = {c.change_no: c for c in event_input.changes}
     scaled, pick_calls = scale_events(llm, event_input, attach_signals(events, changes))
+    written, sentence_calls = write_sentences(llm, event_input, rank(scaled, changes))
     bound = {no for event in events for no in event.change_nos}
     return EventOutput(
         True,
         model=model,
         generated_at=generated_at,
         dropped_event_count=dropped,
-        events=rank(scaled, changes),
+        events=attach_glossary(written),
         unbound_change_nos=[c.change_no for c in candidates if c.change_no not in bound],
-        calls=[*calls, *pick_calls],
+        calls=[*calls, *pick_calls, *sentence_calls],
     )

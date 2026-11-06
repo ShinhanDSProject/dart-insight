@@ -6,7 +6,14 @@ from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 from app.events.candidates import CandidateChange
-from app.events.model import EventChange, EventInput, RowCounts, StructuredAmount, TextEvent
+from app.events.model import (
+    EventChange,
+    EventInput,
+    EventSentence,
+    RowCounts,
+    StructuredAmount,
+    TextEvent,
+)
 from app.events.service import EventOutput
 from app.events.signals import load_table
 
@@ -113,6 +120,28 @@ def _row_counts(event: TextEvent, changes: dict[int, EventChange]) -> dict[str, 
     }
 
 
+def _sentence_json(sentence: EventSentence | None) -> dict[str, Any] | None:
+    """사건 문장 칸. 만들지 않은 칸은 null이다."""
+    if sentence is None:
+        return None
+    return {
+        "status": sentence.status,
+        "failReason": sentence.fail_reason,
+        "items": [
+            {
+                "type": i.type,
+                "absentTopics": list(i.absent_topics),
+                "text": i.text,
+                "evidenceIds": list(i.evidence_ids),
+            }
+            for i in sentence.items
+        ],
+        "model": sentence.model,
+        "promptVersion": sentence.prompt_version,
+        "generatedAt": sentence.generated_at,
+    }
+
+
 def _event_json(
     sort_order: int, event: TextEvent, changes: dict[int, EventChange]
 ) -> dict[str, Any]:
@@ -154,6 +183,10 @@ def _event_json(
         "factAccounts": [
             {"accountType": a.account_type, "accountName": a.account_name}
             for a in signal.fact_accounts
+        ],
+        "meaning": _sentence_json(event.meaning),
+        "glossary": [
+            {"term": g.term, "meaning": g.meaning, "source": g.source} for g in event.glossary
         ],
     }
 
