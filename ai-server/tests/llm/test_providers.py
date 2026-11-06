@@ -1,3 +1,4 @@
+from dataclasses import replace
 from types import SimpleNamespace
 from typing import Any
 
@@ -105,6 +106,16 @@ def test_complete_sends_responses_request_with_strict_schema_and_timeout() -> No
     assert fmt["schema"]["additionalProperties"] is False
     assert fmt["schema"]["required"] == ["answer", "note"]
     assert fake.timeouts == [30.0]
+
+
+def test_complete_uses_request_model_over_provider_model() -> None:
+    p, fake = provider(response(text_part("{}")))
+
+    result = p.complete(replace(REQUEST, model="gpt-6-luna"), 30.0)
+
+    # 작업별 모델(ADR-0059): 요청의 모델이 있으면 그 모델로 부른다
+    assert fake.responses.calls[0]["model"] == "gpt-6-luna"
+    assert result.model
 
 
 def test_complete_omits_text_format_without_schema() -> None:

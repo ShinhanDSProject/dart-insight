@@ -278,3 +278,52 @@ def test_failure_while_regenerating_reports_the_invalid_output() -> None:
 
     assert e.value.last_output == {"wrong": 1}
     assert [c.outcome for c in e.value.calls] == ["INVALID_OUTPUT", "TRANSIENT_ERROR"]
+
+
+def test_task_model_is_sent_on_request_and_recorded() -> None:
+    provider = FakeProvider(script=[{"answer": "됨"}])
+    settings = replace(SETTINGS, task_models={"test": "small-model"})
+    llm = LlmClient(provider, settings, sleep=lambda _: None)
+
+    result = llm.generate(REQUEST, need_answer)
+
+    # 작업별 모델(ADR-0059)은 요청에 실려 제공자로 가고, 다른 작업은 그대로다
+    assert provider.requests[0].model == "small-model"
+    assert result.calls[0].task == "test"
+
+
+def test_task_without_task_model_keeps_provider_model() -> None:
+    provider = FakeProvider(script=[{"answer": "됨"}])
+    llm = LlmClient(
+        provider, replace(SETTINGS, task_models={"agent_plan": "small-model"}), sleep=lambda _: None
+    )
+
+    llm.generate(REQUEST, need_answer)
+
+    assert provider.requests[0].model is None
+
+
+def test_task_models_come_from_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LLM_PROVIDER", "openai")
+    monkeypatch.delenv("LLM_TASK_MODELS", raising=False)
+    assert load_llm_settings().task_models == {"agent_plan": "gpt-6-luna"}
+
+    monkeypatch.setenv("LLM_TASK_MODELS", " agent_plan = m-small , summary=m-2 ")
+    assert load_llm_settings().task_models == {"agent_plan": "m-small", "summary": "m-2"}
+
+    # 빈 값이면 작업별 모델을 쓰지 않는다
+    monkeypatch.setenv("LLM_TASK_MODELS", "")
+    assert load_llm_settings().task_models == {}
+
+    # 가짜 제공자는 작업별 모델을 쓰지 않는다
+    monkeypatch.setenv("LLM_PROVIDER", "fake")
+    monkeypatch.setenv("LLM_TASK_MODELS", "agent_plan=m-small")
+    assert load_llm_settings().task_models == {}
+
+
+def test_malformed_task_models_fail_at_startup(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LLM_PROVIDER", "openai")
+    monkeypatch.setenv("LLM_TASK_MODELS", "agent_plan")
+
+    with pytest.raises(ValueError):
+        load_llm_settings()
