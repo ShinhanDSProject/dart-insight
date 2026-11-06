@@ -3,7 +3,7 @@ import { EASTER_EGG_PATH } from '@/shared/lib/easterEgg'
 
 const TITLE_ID = 'easter-egg-title'
 
-/** 코나미 코드로 여는 숨은 페이지 안내(#753). 페이지는 새 탭에서 연다 */
+/** Shift를 두 번 눌러 여는 숨은 페이지 안내(#753, #755). 페이지는 새 탭에서 연다 */
 export function EasterEggDialog({ onClose }: { onClose: () => void }) {
   return (
     <Dialog titleId={TITLE_ID} title="숨은 페이지를 찾았어요" onClose={onClose}>
