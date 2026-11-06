@@ -19,7 +19,7 @@ from app.llm.prompting import SOURCE_RULE, attr, disclosure, escape
 from app.llm.providers import LlmRequest
 
 # 결과가 달라지게 바꾸면 이 버전을 올린다(검사 규칙 app/agent/validate.py 포함)
-PROMPT_VERSION = "agent-6"
+PROMPT_VERSION = "agent-7"
 TASK_PLAN = "agent_plan"
 TASK_ANSWER = "agent_answer"
 MAX_MESSAGE_CHARS = 500
@@ -198,10 +198,13 @@ def build_plan_request(step: StepInput) -> LlmRequest:
         f"{escape(json.dumps(t.parameters, ensure_ascii=False))}</tool>"
         for t in step.tools
     ]
-    lines = [*_common(step), "", "[Tool] 부를 수 있는 기능과 인자 형식입니다.", *tools]
+    # 프롬프트 캐시(#633): 요청마다 같은 Tool·액션 목록을 앞에, 바뀌는 화면·질문·결과를 뒤에 둔다.
+    # 앞부분이 이전 요청과 똑같아야 제공자가 캐시해 싸게 받는다
+    lines = ["[Tool] 부를 수 있는 기능과 인자 형식입니다.", *tools]
     actions = _actions(step)
     if actions:
         lines += ["", "[액션] 답(draft)에 붙일 수 있는 화면 동작과 형식입니다.", *actions]
+    lines += ["", *_common(step)]
     return LlmRequest(
         task=TASK_PLAN,
         prompt_version=PROMPT_VERSION,
@@ -225,10 +228,10 @@ def _actions(step: StepInput) -> list[str]:
 
 def build_answer_request(step: StepInput, problems: list[str]) -> LlmRequest:
     actions = _actions(step)
-    lines = _common(step)
+    # 프롬프트 캐시(#633): 바뀌지 않는 액션 목록을 앞에 둔다
+    lines = ["[액션] 답에 붙일 수 있는 화면 동작과 형식입니다.", *actions, ""] if actions else []
+    lines += _common(step)
     lines += _workflow_lines(step)
-    if actions:
-        lines += ["", "[액션] 답에 붙일 수 있는 화면 동작과 형식입니다.", *actions]
     if problems:
         # 검토 노드가 반려한 사유. 형식 실패의 재생성 안내는 LlmClient가 따로 붙인다
         lines += ["", "앞서 쓴 답이 아래 이유로 반려됐습니다. 고쳐서 다시 답하세요."]
