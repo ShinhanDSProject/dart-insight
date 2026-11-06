@@ -43,8 +43,11 @@ _STRUCTURED_KINDS = {
     "CONVERTIBLE_BOND": re.compile(r"전환사채"),
     "BOND_WITH_WARRANT": re.compile(r"신주인수권부사채"),
     "EXCHANGEABLE_BOND": re.compile(r"교환사채"),
-    "TREASURY_STOCK_ACQUISITION": re.compile(r"자기주식\s*취득|자사주\s*취득"),
-    "TREASURY_STOCK_DISPOSAL": re.compile(r"자기주식\s*처분|자사주\s*처분"),
+    # '자기주식 취득·처분'처럼 두 단계를 묶은 사건은 두 종류에 모두 걸려 잇지 않는다
+    "TREASURY_STOCK_ACQUISITION": re.compile(
+        r"(?:자기주식|자사주)\s*(?:처분\s*(?:[·,]|및)\s*)?취득"
+    ),
+    "TREASURY_STOCK_DISPOSAL": re.compile(r"(?:자기주식|자사주)\s*(?:취득\s*(?:[·,]|및)\s*)?처분"),
     "STOCK_ACQUISITION": re.compile(r"타법인\s*주식|출자증권"),
 }
 
@@ -52,14 +55,18 @@ _STRUCTURED_KINDS = {
 def _structured_by_event(
     events: list[TextEvent], structured: list[StructuredAmount]
 ) -> dict[int, StructuredAmount]:
-    """그 종류의 결정과 사건이 각각 딱 1개일 때만 잇는다."""
-    matched: dict[int, StructuredAmount] = {}
+    """그 종류의 결정과 사건이 각각 딱 1개일 때만 잇는다.
+
+    한 사건이 두 종류에 걸리면(예: 자기주식 취득·처분을 묶은 사건) 어느 결정의 금액인지
+    정할 수 없어 잇지 않는다.
+    """
+    matched: dict[int, list[StructuredAmount]] = {}
     for kind, pattern in _STRUCTURED_KINDS.items():
         decisions = [s for s in structured if s.kind == kind]
         matches = [i for i, e in enumerate(events) if pattern.search(f"{e.title} {e.kind}")]
         if len(decisions) == 1 and len(matches) == 1:
-            matched[matches[0]] = decisions[0]
-    return matched
+            matched.setdefault(matches[0], []).append(decisions[0])
+    return {index: items[0] for index, items in matched.items() if len(items) == 1}
 
 
 def _sources(

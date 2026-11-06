@@ -382,3 +382,30 @@ def test_structured_amount_is_not_used_when_two_events_match_the_kind() -> None:
     scaled, _ = scale_events(llm()[0], data, events, {})
 
     assert [e.scale.source for e in scaled] == [AMOUNT_NONE, AMOUNT_NONE]
+
+
+def test_structured_amount_is_not_used_when_one_event_matches_two_kinds() -> None:
+    client, _ = llm({"choice": None}, {"choice": None}, {"choice": None})
+    structured = [
+        StructuredAmount(
+            "20260107000715", "TREASURY_STOCK_ACQUISITION", "aqpln_prc_ostk", 1, "KRW"
+        ),
+        StructuredAmount("20260123000412", "TREASURY_STOCK_DISPOSAL", "dppln_prc_ostk", 2, "KRW"),
+    ]
+    data = event_input(change(current="취득 금액 10조원"), structured=structured)
+
+    for title in ("자기주식 취득·처분", "자기주식 취득 및 처분", "자사주 처분 및 취득"):
+        scale, _ = one(client, data, text_event(1, title=title, kind="자기주식"))
+
+        assert scale.source != STRUCTURED, title
+
+
+def test_structured_amount_of_one_stage_is_still_used_for_that_stage() -> None:
+    structured = [
+        StructuredAmount("20260123000412", "TREASURY_STOCK_DISPOSAL", "dppln_prc_ostk", 2, "KRW"),
+    ]
+    data = event_input(change(), structured=structured)
+
+    scale, _ = one(llm()[0], data, text_event(1, title="자기주식 처분 결정", kind="자기주식"))
+
+    assert scale.source == STRUCTURED
