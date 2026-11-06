@@ -335,6 +335,11 @@ class AgentChatApiTest {
         String second = AI.requests(STEPS).get(1).bodyText();
         String text = JsonPath.read(second, "$.toolResults[0].items[0].text");
         assertThat(text).startsWith("[IS, changeId " + changeId + "] ").contains("영업이익");
+        // 교차 검증 판정용 구조화 값(글을 다시 읽지 않게)
+        assertThat(JsonPath.<Integer>read(second, "$.toolResults[0].items[0].facts.changeId").longValue())
+                .isEqualTo(changeId);
+        assertThat(JsonPath.<String>read(second, "$.toolResults[0].items[0].facts.direction")).isIn("UP", "DOWN");
+        assertThat(JsonPath.<String>read(second, "$.toolResults[0].items[0].facts.calcStatus")).isNotBlank();
     }
 
     @Test
@@ -887,6 +892,10 @@ class AgentChatApiTest {
                 .containsExactly("F" + changeId, CUR + "#B5");
         assertThat(JsonPath.<List<String>>read(second, "$.toolResults[0].items[*].grade"))
                 .containsExactly("RELATED", "RELATED");
+        // 교차 검증이 인용을 계정과 짝짓도록 요약 줄·인용 줄 모두 changeId를 facts로 보낸다
+        assertThat(JsonPath.<List<Integer>>read(second, "$.toolResults[0].items[*].facts.changeId"))
+                .containsExactly((int) changeId, (int) changeId);
+        assertThat(JsonPath.<List<Object>>read(second, "$.toolResults[0].items[*].facts.direction")).isEmpty();
     }
 
     @Test

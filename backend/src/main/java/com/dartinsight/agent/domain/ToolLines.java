@@ -32,7 +32,7 @@ public final class ToolLines {
                 text = text.substring(0, left) + ELLIPSIS;
                 truncated = true;
             }
-            kept.add(new ToolLine(line.evidence(), text));
+            kept.add(line.withText(text));
             used += text.length();
         }
         return new Limited(List.copyOf(kept), truncated);
