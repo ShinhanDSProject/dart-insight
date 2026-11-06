@@ -306,7 +306,7 @@ public class AgentTools {
                 String grade = row.explanationGrade();
                 String text = "[요약 재무, changeId " + entry.changeId() + ", 등급 " + (grade == null ? "없음" : grade)
                         + "] " + row.factSentence() + (row.aiText() == null ? "" : " / 설명: " + row.aiText());
-                lines.add(new ToolLine(Evidence.financialChange(entry.changeId(), entry.sjDiv(), null,
+                lines.add(new ToolLine(Evidence.financialChange(entry.changeId(), entry.sjDiv(), entry.accountName(),
                         stored.analysis().getCurrentRceptNo(), row.factSentence()).withGrade(grade), text,
                         ToolLine.Facts.change(entry.changeId())));
                 // 인용 위치가 원문 블록 ID({접수번호}#B{번호})가 아니면 인용을 넘기지 않는다

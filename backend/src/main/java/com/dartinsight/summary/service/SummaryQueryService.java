@@ -51,14 +51,15 @@ public class SummaryQueryService {
             Optional<FinancialChange> change = resultService.financialChange(stored.financialChangeId());
             return new SummaryEntry(stored.itemNo(), stored.row(), SummaryEntry.FINANCIAL, stored.financialChangeId(),
                     change.map(FinancialChange::getSjDiv).orElse(null), null,
-                    change.map(SummaryLens::of).orElse(SummaryLens.OTHER));
+                    change.map(SummaryLens::of).orElse(SummaryLens.OTHER),
+                    change.map(FinancialChange::getAccountName).orElse(null));
         }
         Integer changeNo = stored.row().textChangeNo();
         Optional<TextChange> change = changeNo == null ? Optional.empty()
                 : resultService.textChange(analysisId, changeNo);
         return new SummaryEntry(stored.itemNo(), stored.row(), SummaryEntry.TEXT,
                 change.map(TextChange::id).orElse(null), null, change.map(c -> c.row().changeType()).orElse(null),
-                change.map(SummaryLens::of).orElse(SummaryLens.OTHER));
+                change.map(SummaryLens::of).orElse(SummaryLens.OTHER), null);
     }
 
     public record StoredSummary(Analysis analysis, List<SummaryEntry> entries) {
@@ -73,9 +74,10 @@ public class SummaryQueryService {
      * @param sjDiv      재무 수치면 재무제표 구분. 문장 변경이거나 찾지 못했으면 null
      * @param changeType 문장 변경이면 그 변경 유형(ADDED·DELETED 등, FS-70). 재무 수치이거나 찾지 못했으면 null
      * @param lens       투자자 관점(FS-64). 가리키는 변경을 찾지 못했으면 OTHER
+     * @param accountName 재무 항목의 계정 이름(채팅 근거 칩, #743). 문장 변경이거나 찾지 못했으면 null
      */
     public record SummaryEntry(int itemNo, SummaryItemRow row, String targetType, Long changeId, String sjDiv,
-            String changeType, SummaryLens lens) {
+            String changeType, SummaryLens lens, String accountName) {
 
         static final String FINANCIAL = "FINANCIAL";
         static final String TEXT = "TEXT";
