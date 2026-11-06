@@ -61,10 +61,17 @@ def meaning(request: LlmRequest) -> dict[str, Any]:
     return {"items": [item]}
 
 
-def app_with(*script: Any) -> TestClient:
-    provider = ScriptedProvider(
-        script=script, responders={"event_meaning": meaning}, model="scripted-model"
-    )
+def reasons(request: LlmRequest) -> dict[str, Any]:
+    """신호 이유 호출의 통과하는 답(근거 2개)."""
+    evidence = request.context[0].evidence_id
+    item = {"type": "REASON", "text": "회사가 소송에서 졌어요.", "evidenceIds": [evidence]}
+    return {"items": [item, item]}
+
+
+def app_with(*script: Any, **responders: Any) -> TestClient:
+    """문장 호출은 동시에 돌아 script의 차례가 섞이므로, 문장 응답은 task별 responders로 준다."""
+    tasks = {"event_meaning": meaning, "event_signal_reason": reasons} | responders
+    provider = ScriptedProvider(script=script, responders=tasks, model="scripted-model")
     settings = LlmSettings(provider="scripted", max_retries=0, max_output_retries=2)
     return TestClient(create_app(llm_client=LlmClient(provider, settings, sleep=lambda _: None)))
 
@@ -133,9 +140,9 @@ def test_events_are_returned_in_spec_shape() -> None:
     assert data["created"] is True
     assert data["notCreatedReason"] is None
     assert data["model"] == "scripted-model"
-    assert data["promptVersion"] == "text-event-3"
+    assert data["promptVersion"] == "text-event-4"
     assert data["generatedAt"] is not None
-    assert data["signalTableVersion"] == "signal-table-1"
+    assert data["signalTableVersion"] == "signal-table-2"
     assert data["droppedEventCount"] == 0
     assert data["events"] == [
         {
@@ -193,18 +200,34 @@ def test_events_are_returned_in_spec_shape() -> None:
                 "promptVersion": "event-meaning-1",
                 "generatedAt": data["events"][0]["meaning"]["generatedAt"],
             },
+            "signalReason": {
+                "status": "GENERATED",
+                "failReason": None,
+                "items": [
+                    {
+                        "type": "REASON",
+                        "text": "회사가 소송에서 졌어요.",
+                        "evidenceIds": [f"{PREVIOUS_RCEPT}#B2028"],
+                    }
+                ]
+                * 2,
+                "model": "scripted-model",
+                "promptVersion": "event-signal-reason-1",
+                "generatedAt": data["events"][0]["signalReason"]["generatedAt"],
+            },
             "glossary": [],
         }
     ]
     assert data["events"][0]["meaning"]["generatedAt"] is not None
     assert data["unboundChangeNos"] == [13]
-    grouping, meaning_call = data["calls"]
+    grouping, meaning_call, reason_call = data["calls"]
     assert grouping["task"] == "text_event"
-    assert grouping["promptVersion"] == "text-event-3"
+    assert grouping["promptVersion"] == "text-event-4"
     assert grouping["traceId"] == "evt-1"
     assert grouping["outcome"] == "OK"
     assert meaning_call["task"] == "event_meaning"
     assert meaning_call["traceId"] == "evt-1"
+    assert reason_call["task"] == "event_signal_reason"
 
 
 def test_fake_provider_is_reported_as_not_created() -> None:
@@ -217,7 +240,7 @@ def test_fake_provider_is_reported_as_not_created() -> None:
     assert data["created"] is False
     assert data["notCreatedReason"] == "FAKE_MODEL"
     assert data["model"] is None
-    assert data["promptVersion"] == "text-event-3"
+    assert data["promptVersion"] == "text-event-4"
     assert data["events"] == []
     assert data["calls"] == []
 
@@ -238,7 +261,7 @@ def test_dropped_event_is_counted() -> None:
     data = response.json()
     assert data["droppedEventCount"] == 1
     assert len(data["events"]) == 1
-    assert [c["outcome"] for c in data["calls"]] == ["INVALID_OUTPUT"] * 3 + ["OK"]
+    assert [c["outcome"] for c in data["calls"]] == ["INVALID_OUTPUT"] * 3 + ["OK", "OK"]
 
 
 def test_no_usable_event_is_502_with_call_records_in_header() -> None:
@@ -319,7 +342,7 @@ def test_signal_table_is_returned_without_unconfirmed_terms() -> None:
 
     assert response.status_code == 200
     data = response.json()
-    assert data["version"] == "signal-table-1"
+    assert data["version"] == "signal-table-2"
     assert "투자 판단이 아니" in data["signalNotice"]
     assert len(data["kinds"]) == 30
     assert data["glossary"] == []
@@ -328,7 +351,7 @@ def test_signal_table_is_returned_without_unconfirmed_terms() -> None:
 def test_meaning_that_keeps_failing_is_returned_as_failed_without_sentences() -> None:
     bad = {"items": [{"type": "FACT", "absentTopics": [], "text": "목표주가가 올라요."}]}
 
-    response = post(app_with({"events": [EVENT]}, bad, bad, bad))
+    response = post(app_with({"events": [EVENT]}, event_meaning=lambda _: bad))
 
     assert response.status_code == 200
     (event,) = response.json()["events"]
@@ -336,3 +359,32 @@ def test_meaning_that_keeps_failing_is_returned_as_failed_without_sentences() ->
     assert event["meaning"]["failReason"] == "INVALID_OUTPUT"
     assert event["meaning"]["items"] == []
     assert event["meaning"]["promptVersion"] == "event-meaning-1"
+
+
+def test_signal_reason_that_keeps_failing_falls_back_to_the_general_phrase() -> None:
+    bad = {"items": [{"type": "REASON", "text": "지금 매도하세요.", "evidenceIds": []}]}
+
+    response = post(app_with({"events": [EVENT]}, event_signal_reason=lambda _: bad))
+
+    assert response.status_code == 200
+    (event,) = response.json()["events"]
+    reason = event["signalReason"]
+    assert (reason["status"], reason["failReason"]) == ("FALLBACK", "INVALID_OUTPUT")
+    assert reason["items"] == [
+        {
+            "type": "GENERAL",
+            "text": "판결이 확정되면 회사가 배상금이나 비용을 내야 할 수 있어요.",
+            "evidenceIds": [],
+        }
+    ]
+
+
+def test_hold_without_criteria_has_no_signal_reason() -> None:
+    other = EVENT | {"signalKind": "NOT_A_KIND"}
+
+    response = post(app_with({"events": [other]}))
+
+    (event,) = response.json()["events"]
+    assert (event["signal"], event["holdReason"]) == ("HOLD", "NO_CRITERIA")
+    assert event["signalReason"] is None
+    assert [c["task"] for c in response.json()["calls"]] == ["text_event", "event_meaning"]

@@ -120,20 +120,22 @@ def _row_counts(event: TextEvent, changes: dict[int, EventChange]) -> dict[str, 
     }
 
 
-def _sentence_json(sentence: EventSentence | None) -> dict[str, Any] | None:
-    """사건 문장 칸. 만들지 않은 칸은 null이다."""
+def _sentence_json(
+    sentence: EventSentence | None, with_topics: bool = False
+) -> dict[str, Any] | None:
+    """사건 문장 칸. 만들지 않은 칸은 null이다. absentTopics는 공시의 의미에만 있다."""
     if sentence is None:
         return None
     return {
         "status": sentence.status,
         "failReason": sentence.fail_reason,
         "items": [
-            {
-                "type": i.type,
-                "absentTopics": list(i.absent_topics),
-                "text": i.text,
-                "evidenceIds": list(i.evidence_ids),
-            }
+            (
+                {"type": i.type, "absentTopics": list(i.absent_topics)}
+                if with_topics
+                else {"type": i.type}
+            )
+            | {"text": i.text, "evidenceIds": list(i.evidence_ids)}
             for i in sentence.items
         ],
         "model": sentence.model,
@@ -184,7 +186,8 @@ def _event_json(
             {"accountType": a.account_type, "accountName": a.account_name}
             for a in signal.fact_accounts
         ],
-        "meaning": _sentence_json(event.meaning),
+        "meaning": _sentence_json(event.meaning, with_topics=True),
+        "signalReason": _sentence_json(event.signal_reason),
         "glossary": [
             {"term": g.term, "meaning": g.meaning, "source": g.source} for g in event.glossary
         ],

@@ -19,6 +19,7 @@ from app.events.model import (
     EventInput,
 )
 from app.events.service import group_events
+from app.events.signal_reason_prompt import TASK as REASON_TASK
 from app.llm import (
     FakeProvider,
     LlmClient,
@@ -50,10 +51,18 @@ def meaning(request: LlmRequest) -> dict[str, Any]:
     return {"items": [item]}
 
 
+def reasons(request: LlmRequest) -> dict[str, Any]:
+    """신호 이유 호출의 통과하는 답(근거 2개)."""
+    evidence = request.context[0].evidence_id
+    item = {"type": "REASON", "text": "회사가 소송에서 졌어요.", "evidenceIds": [evidence]}
+    return {"items": [item, item]}
+
+
+RESPONDERS = {MEANING_TASK: meaning, REASON_TASK: reasons}
+
+
 def llm(*script: object) -> tuple[LlmClient, ScriptedProvider]:
-    provider = ScriptedProvider(
-        script=script, responders={MEANING_TASK: meaning}, model="scripted-model"
-    )
+    provider = ScriptedProvider(script=script, responders=RESPONDERS, model="scripted-model")
     settings = LlmSettings(provider="scripted", max_retries=0, max_output_retries=2)
     return LlmClient(provider, settings, sleep=lambda _: None), provider
 
@@ -94,13 +103,18 @@ def test_events_with_model_version_time_and_unbound_changes_are_returned() -> No
     assert output.created is True
     assert output.not_created_reason is None
     assert output.model == "scripted-model"
-    assert output.prompt_version == "text-event-3"
+    assert output.prompt_version == "text-event-4"
     assert output.generated_at is not None
     assert output.dropped_event_count == 0
     assert [e.change_nos for e in output.events] == [[1]]
     assert output.unbound_change_nos == [2]
-    assert [c.outcome for c in output.calls] == [OUTCOME_OK] * 3
-    assert [c.task for c in output.calls] == ["text_event", "event_amount_pick", MEANING_TASK]
+    assert [c.outcome for c in output.calls] == [OUTCOME_OK] * 4
+    assert [c.task for c in output.calls] == [
+        "text_event",
+        "event_amount_pick",
+        MEANING_TASK,
+        REASON_TASK,
+    ]
 
 
 def test_signal_is_attached_by_code_from_the_picked_kind_and_change() -> None:
@@ -186,7 +200,7 @@ def test_regenerated_output_replaces_the_broken_one() -> None:
 
     assert output.dropped_event_count == 0
     assert output.events[0].title == "소송 패소"
-    assert [c.outcome for c in output.calls] == [OUTCOME_INVALID_OUTPUT] + [OUTCOME_OK] * 3
+    assert [c.outcome for c in output.calls] == [OUTCOME_INVALID_OUTPUT] + [OUTCOME_OK] * 4
     assert "1번 사건" in provider.requests[1].user
 
 
@@ -196,14 +210,14 @@ def test_event_still_broken_after_two_retries_is_dropped_and_its_changes_are_unb
 
     output = group_events(client, event_input(change(1), change(2)))
 
-    assert len(provider.requests) == 5
+    assert len(provider.requests) == 6
     assert output.created is True
     assert output.dropped_event_count == 1
     assert [e.change_nos for e in output.events] == [[1]]
     assert output.unbound_change_nos == [2]
     assert output.model == "scripted-model"
     assert output.generated_at is not None
-    assert [c.outcome for c in output.calls] == [OUTCOME_INVALID_OUTPUT] * 3 + [OUTCOME_OK] * 2
+    assert [c.outcome for c in output.calls] == [OUTCOME_INVALID_OUTPUT] * 3 + [OUTCOME_OK] * 3
 
 
 def test_generated_at_is_from_the_call_that_produced_kept_events_when_retry_call_fails() -> None:
@@ -213,6 +227,7 @@ def test_generated_at_is_from_the_call_that_produced_kept_events_when_retry_call
             datetime(2026, 11, 5, 10, 5, 0),
             datetime(2026, 11, 5, 10, 6, 0),
             datetime(2026, 11, 5, 10, 7, 0),
+            datetime(2026, 11, 5, 10, 8, 0),
         ]
     )
     provider = ScriptedProvider(
@@ -221,7 +236,7 @@ def test_generated_at_is_from_the_call_that_produced_kept_events_when_retry_call
             ProviderError("인증 실패"),
             {"choice": 1},
         ],
-        responders={MEANING_TASK: meaning},
+        responders=RESPONDERS,
         model="scripted-model",
     )
     settings = LlmSettings(provider="scripted", max_retries=0, max_output_retries=2)
@@ -232,6 +247,7 @@ def test_generated_at_is_from_the_call_that_produced_kept_events_when_retry_call
     assert [c.outcome for c in output.calls] == [
         OUTCOME_INVALID_OUTPUT,
         OUTCOME_ERROR,
+        OUTCOME_OK,
         OUTCOME_OK,
         OUTCOME_OK,
     ]
@@ -299,7 +315,7 @@ def test_amount_pick_call_is_recorded_with_the_grouping_call() -> None:
 
     output = group_events(client, event_input(replace(change(1), current_text=text)))
 
-    assert [c.outcome for c in output.calls] == [OUTCOME_OK] * 3
+    assert [c.outcome for c in output.calls] == [OUTCOME_OK] * 4
     assert output.events[0].scale.amount == 30000000000
     assert output.events[0].scale.source == AI_CHOICE
 
@@ -313,15 +329,25 @@ def test_meaning_is_written_for_each_event_after_the_amount_check() -> None:
     assert meaning_of is not None
     assert meaning_of.status == GENERATED
     assert meaning_of.items[0].evidence_ids == ("20260814003699#B10",)
-    assert provider.requests[-1].task == MEANING_TASK
+    assert [r.task for r in provider.requests][-2:] == [MEANING_TASK, REASON_TASK]
+    reason_of = output.events[0].signal_reason
+    assert reason_of is not None
+    assert reason_of.status == GENERATED
     assert output.events[0].glossary == ()
 
 
 def test_meaning_that_fails_does_not_fail_the_events() -> None:
+    """문장 호출은 동시에 돌아 정해 둔 응답(script)의 차례가 섞이므로 task별 응답으로 준다."""
     bad = {
         "items": [{"type": "FACT", "absentTopics": [], "text": "매수하세요.", "evidenceIds": []}]
     }
-    client, _ = llm({"events": [event(1)]}, {"choice": 1}, bad, bad, bad)
+    provider = ScriptedProvider(
+        script=[{"events": [event(1)]}, {"choice": 1}],
+        responders={MEANING_TASK: lambda _: bad, REASON_TASK: reasons},
+        model="scripted-model",
+    )
+    settings = LlmSettings(provider="scripted", max_retries=0, max_output_retries=2)
+    client = LlmClient(provider, settings, sleep=lambda _: None)
 
     output = group_events(client, event_input(change(1)))
 
@@ -329,4 +355,8 @@ def test_meaning_that_fails_does_not_fail_the_events() -> None:
     meaning_of = output.events[0].meaning
     assert meaning_of is not None
     assert (meaning_of.status, meaning_of.fail_reason) == ("FAILED", "INVALID_OUTPUT")
-    assert [c.outcome for c in output.calls][-3:] == [OUTCOME_INVALID_OUTPUT] * 3
+    meaning_calls = [c.outcome for c in output.calls if c.task == MEANING_TASK]
+    assert meaning_calls == [OUTCOME_INVALID_OUTPUT] * 3
+    reason_of = output.events[0].signal_reason
+    assert reason_of is not None
+    assert reason_of.status == GENERATED
