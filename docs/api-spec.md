@@ -116,6 +116,7 @@
 | GET | `/api/companies/{corpCode}/briefing` | AI 기업 브리핑(저장된 것 또는 새로 만듦) | #333 (1.2) | 기업 화면 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/outlook` | 회사가 밝힌 전망·계획(최신 사업보고서, 저장된 것 또는 새로 만듦) | #465 (1.9, FS-59) | 기업 화면 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/plan-followups` | 약속과 실제 대조(작년 사업보고서 계획 → 올해 사업보고서 관련 문단, 저장된 것 또는 새로 만듦) | #467 (1.10, FS-60) | 기업 화면 개요 탭 | 초안 |
+| GET | `/api/glossary-terms` | 공시 용어 카드 목록(출처·검토를 마친 것만, ADR-0061) | (기획 중: 채팅 초보자용 용어 풀이) | 결과 화면 용어 풀이(FS-36), 채팅 | 제안 |
 | GET | `/api/companies/{corpCode}/checkpoints` | 재무 체크 포인트(최근·전년 사업보고서로 정해 둔 일곱 항목을 규칙으로 계산, 상태·수치·계산식·근거) | #479 (1.11, FS-62) | 기업 화면 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/news` | 회사 이름으로 검색한 최신 뉴스(NAVER API HUB, 30분 캐시) | #592 (3.1) | 분석 결과 '뉴스' 탭 | 초안 |
 | POST | `/api/companies/{corpCode}/questions` | 최신 사업보고서에 근거해 묻기(AI) | #365 (1.2) | 기업 화면 개요 탭 | 초안 |
@@ -1737,6 +1738,36 @@
 | 502 | `DART_REQUEST_FAILED` | 보고서 목록이나 원문을 OpenDART에서 받지 못함(저장된 목록이 있으면 그 목록을 씀) |
 | 503 | `DART_RATE_LIMITED`, `DART_KEY_MISSING` | OpenDART 호출 한도 초과, 키 없음 |
 | 503 | `AI_SERVER_UNAVAILABLE` | AI 서버 또는 LLM을 쓸 수 없음(작년 전망·계획 뽑기 포함. 저장하지 않음. 다시 요청하면 다시 만듦) |
+
+### GET /api/glossary-terms — 공시 용어 카드 목록
+
+- 결정: [ADR-0061](adr/0061-glossary-term-cards.md) · 상태: 제안(기능 기획서 확정 전)
+- `backend/src/main/resources/glossary/terms.json`의 카드 중 출처(`sources`)와 검토일(`reviewedAt`)이 있는 것만 돌려줍니다. 로그인 없이 부를 수 있고 LLM을 쓰지 않습니다.
+- 카드 내용은 사람이 쓰고 PR 리뷰로 검토합니다. 정의를 AI가 만들지 않습니다.
+
+**응답 200**
+
+```json
+{
+  "items": [
+    {
+      "key": "debtRatio",
+      "term": "부채비율",
+      "aliases": ["부채 비율"],
+      "definition": "회사가 가진 돈(자본)에 비해 빌린 돈(부채)이 얼마나 되는지 보는 비율이에요.",
+      "example": "자본이 100원이고 부채가 30원이면 부채비율은 30%예요.",
+      "whereToCheck": "재무상태표의 부채총계와 자본총계, 기업 화면 체크포인트",
+      "noJudgment": "업종마다 보통 수준이 달라 이 숫자 하나로 좋고 나쁨을 정하지 않아요.",
+      "related": ["capitalImpairment"],
+      "sources": [{ "title": "(확인한 공식 자료 이름)", "url": "https://…" }],
+      "reviewedAt": "2026-11-10"
+    }
+  ]
+}
+```
+
+- `example`·`whereToCheck`·`noJudgment`·`related`는 없으면 null 또는 빈 배열입니다. 예시는 카드 내용이며 어느 회사의 실제 값이 아닙니다.
+- 에러 없음(카드가 없으면 `items`가 빈 배열).
 
 ### GET /api/companies/{corpCode}/checkpoints — 재무 체크 포인트
 
@@ -3370,6 +3401,7 @@
   | `FINANCIAL_CHANGE` | `F{changeId}` | `changeId`, `sjDiv`, `accountName`, `rceptNo`(현재 보고서), `sentence`(코드가 저장된 계산 결과로 만든 사실 문장) |
   | `DISCLOSURE` | `D{rceptNo}` | `rceptNo`, `reportName`, `rceptDt`, `dartUrl`(수시공시·공시 목록, 보조 근거) |
   | `REPORT_VALUE` | `{rceptNo}#V{n}` | `rceptNo`, `reportName`, `source`(`FINANCIAL_TREND`·`KEY_FACT`·`CHECKPOINT`·`DISCLOSURE_KEY_ITEM`), `label`(항목 이름), `value`·`unit`·`currency`(그 API가 준 값 그대로), `dartUrl`. `n`은 한 요청 안에서 backend가 붙인 번호이고, `rceptNo`는 값의 근거 접수번호(`sourceRceptNo`가 있으면 그것) |
+  | `GLOSSARY` | `G{key}` | `termKey`, `term`, `definition`, `sources`(카드 출처). 용어 카드 근거(ADR-0061, 제안). 화면은 누르면 카드 전체를 엶 |
   | `COMPANY` | `C{corpCode}` | `corpCode`, `corpName`, `label`, `value`. 기업 개황(`get_company_overview`)이면 `label`은 `기업 개황`이고 `value`는 없음. 기업 검색(`search_companies`) 결과면 `label`은 `기업 검색`, `value`는 종목코드(비상장이면 없음) |
 
 - 재무 계정 변화·원문 문단 근거가 저장된 요약의 설명 인용이면 `grade`(`STATED`·`RELATED`)가 함께 옵니다. `grade`가 없는 근거는 이번 요청에서 Tool로 새로 찾은 문장이고, 화면은 원인 설명처럼 보이지 않게 '관련 문장'으로 표시합니다. 에이전트는 새 설명 등급을 만들지 않습니다(ADR-0015, 변경 원인 추적).
@@ -3382,7 +3414,7 @@
   | `OPEN_TEXT_CHANGE` | `changeId` | 문장 변화 탭에서 그 변경을 펼침 |
   | `OPEN_FINANCIAL_CHANGE` | `changeId` | 재무 수치 탭에서 그 계정의 근거 상세를 엶 |
   | `OPEN_DOCUMENT` | `side`, `sectionNo`, `blockNo`(선택) | 원문 뷰어에서 그 항목(문단)을 엶 |
-  | `OPEN_GLOSSARY` | `term` | 용어 사전(`shared/lib/glossary.ts`)을 그 용어로 엶. 사전에 없으면 '등록된 용어가 없어요'(뜻을 지어내지 않음) |
+  | `OPEN_GLOSSARY` | `term` | 용어 카드(`GET /api/glossary-terms`, ADR-0061 제안. 지금은 `shared/lib/glossary.ts`)를 그 용어로 엶. 카드에 없으면 '등록된 용어가 없어요'(뜻을 지어내지 않음) |
   | `DOWNLOAD_BRIEF` | — | 비교 브리프 Markdown 내려받기(#515, LLM 없음) |
   | `CONFIRM_SAVE_NOTE` | `note`(`POST /api/notes` 본문과 같음: `kind`·`analysisId`·`changeId`·`questionId`·`citationNo`·`memo`) | 확인 버튼. 누르면 `POST /api/notes`. 로그인하지 않았으면 버튼 대신 로그인 안내 |
   | `CONFIRM_FAVORITE` | `corpCode`(이 분석의 기업. LLM이 정하지 않고 backend가 채움) | 확인 버튼. 누르면 `PUT /api/favorite-companies/{corpCode}`. 로그인 안내는 위와 같음 |
@@ -3915,6 +3947,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 - `TOOL_CALLS`: 한 번에 1~3개. 읽기 Tool만 부릅니다. 쓰기는 Tool로 부르지 않고 `FINAL`의 확인 액션(`CONFIRM_*`)으로 돌려줍니다. `remainingSteps`가 0이면 `TOOL_CALLS`를 돌려주지 않고 받은 결과로 `FINAL`을 만듭니다.
 - Workflow(ADR-0045 `workflow_step`): 변경 원인 추적과 교차 검증은 LLM이 Tool을 고르지 않고 코드가 정한 순서로 부릅니다. 받은 `tools`에 필요한 Tool이 없으면 Workflow를 쓰지 않고 일반 경로로 갑니다.
   - 원인 추적: `get_financial_changes` → `get_summary` → (설명 인용이 없거나 더 필요하면) `search_text_changes`. 저장된 설명 등급·인용을 그대로 쓰고, 새로 찾은 문장은 등급 없이 '관련 문장'입니다.
+  - 용어 풀이(`TERM`, ADR-0061 제안): `lookup_terms` → 카드에 이 회사 값을 찾을 곳이 있으면 `get_checkpoints`나 `get_financial_changes` → `search_text_changes`(q=용어). 답은 한 줄 뜻 → 쉬운 예시 → 이 회사에서는 → 확인할 곳 순서이고, 이 회사 근거가 없으면 '이 보고서에서는 찾지 못했어요'라고 씁니다. 카드가 없으면 정의를 만들지 않고 '등록된 용어가 없어요'입니다.
   - 교차 검증: `get_financial_changes`·`get_summary`·(있으면) `get_plan_followups`를 한 번에 부릅니다. `crossCheck.result`는 코드가 정합니다(공개 API `crossCheck`). 수시공시 주요정보(`get_disclosure_key_items`)는 수시공시 접수번호가 있어야 해 Workflow에서 부르지 않습니다.
   - Workflow는 첫 Tool 고르기에서 LLM이 고르고(출력 `workflow`: `{ "type": "CAUSE_TRACE" | "CROSS_CHECK", "account": 계정 이름 또는 null }`), Workflow로 부른 Tool은 `callId` 머리(`cause-`·`cross-`)로 알아봅니다. backend는 `callId`를 받은 그대로 `toolResults`에 돌려줍니다.
   - 교차 검증 판정: `get_financial_changes` 결과의 계정마다(`facts.changeId`) 같은 `changeId`의 요약 인용(`get_summary`, 등급 `STATED`·`RELATED`) 원문에서 방향 낱말을 찾아 수치 방향과 대조합니다.
@@ -4031,6 +4064,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | `get_financial_trends` | `corpCode` | `GET /api/companies/{corpCode}/financial-trends` | `{rceptNo}#V{n}` |
 | `get_key_facts` | `corpCode` | `GET /api/companies/{corpCode}/key-facts`(최대주주·임원·배당) | `{rceptNo}#V{n}` |
 | `get_checkpoints` | `corpCode` | `GET /api/companies/{corpCode}/checkpoints` | `{rceptNo}#V{n}` |
+| `lookup_terms` | `terms`(용어·별칭 1~3개) | 용어 카드(`GET /api/glossary-terms`와 같은 카드, ADR-0061 제안). 없으면 근거 없는 줄로 '등록된 용어가 없어요'와 비슷한 카드 키 | `G{key}` |
 | `get_disclosures` | `corpCode`, `group` | `GET /api/companies/{corpCode}/disclosures` | `D{rceptNo}` |
 | `get_disclosure_signals` | `corpCode` | `GET /api/companies/{corpCode}/disclosure-signals` | `D{rceptNo}` |
 | `get_disclosure_key_items` | `corpCode`, `rceptNo` | `GET .../disclosures/{rceptNo}/key-items`(DS005 주요정보) | `{rceptNo}#V{n}` |
