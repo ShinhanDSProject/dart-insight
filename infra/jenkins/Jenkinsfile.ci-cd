@@ -10,6 +10,8 @@ pipeline {
         skipStagesAfterUnstable()
     }
 
+    triggers { pollSCM('H/5 * * * *') }
+
     stages {
         stage('검사와 실행 이미지 생성') {
             agent { label 'dart-builder' }
@@ -17,8 +19,26 @@ pipeline {
             stages {
                 stage('GitHub 소스 가져오기') {
                     steps {
-                        git branch: 'chore/jenkins-runtime-images',
-                            url: 'https://github.com/ShinhanDSProject/dart-insight.git'
+                        checkout(
+                            changelog: true,
+                            poll: true,
+                            scm: [
+                                $class: 'GitSCM',
+                                branches: [[name: '*/chore/jenkins-runtime-images']],
+                                userRemoteConfigs: [[
+                                    name: 'origin',
+                                    url: 'https://github.com/ShinhanDSProject/dart-insight.git',
+                                    refspec: '+refs/heads/chore/jenkins-runtime-images:refs/remotes/origin/chore/jenkins-runtime-images'
+                                ]],
+                                extensions: [[
+                                    $class: 'CloneOption',
+                                    shallow: false,
+                                    noTags: true,
+                                    honorRefspec: true,
+                                    timeout: 10
+                                ]]
+                            ]
+                        )
 
                         script {
                             env.RELEASE_SHA = sh(
