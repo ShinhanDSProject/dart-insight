@@ -1,0 +1,212 @@
+pipeline {
+    agent none
+
+    options {
+        skipDefaultCheckout()
+        disableConcurrentBuilds()
+        timestamps()
+        timeout(time: 60, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+        skipStagesAfterUnstable()
+    }
+
+    stages {
+        stage('검사와 실행 이미지 생성') {
+            agent { label 'dart-builder' }
+
+            stages {
+                stage('GitHub 소스 가져오기') {
+                    steps {
+                        git branch: 'chore/jenkins-runtime-images',
+                            url: 'https://github.com/ShinhanDSProject/dart-insight.git'
+
+                        script {
+                            env.RELEASE_SHA = sh(
+                                script: 'git rev-parse HEAD',
+                                returnStdout: true
+                            ).trim()
+                        }
+
+                        sh 'git log -1 --oneline'
+                    }
+                }
+
+                stage('백엔드 빌드와 테스트') {
+                    steps {
+                        sh '''#!/usr/bin/env bash
+set -euo pipefail
+
+docker build --progress=plain \
+  -t "dart-ci-backend:${BUILD_NUMBER}" \
+  -f - ./backend <<'DOCKERFILE'
+FROM eclipse-temurin:21-jdk
+WORKDIR /app
+COPY . .
+DOCKERFILE
+
+docker run --rm \
+  --memory 3g \
+  --cpus 1.0 \
+  -v dart_ci_gradle_cache:/root/.gradle \
+  "dart-ci-backend:${BUILD_NUMBER}" \
+  bash ./gradlew \
+    --no-daemon \
+    --max-workers=1 \
+    --rerun-tasks \
+    -Dorg.gradle.jvmargs=-Xmx1536m \
+    build
+'''
+                    }
+                }
+
+                stage('프론트엔드 검사와 빌드') {
+                    steps {
+                        sh '''#!/usr/bin/env bash
+set -euo pipefail
+
+docker build --progress=plain \
+  -t "dart-ci-frontend:${BUILD_NUMBER}" \
+  -f - ./frontend <<'DOCKERFILE'
+FROM node:22-bookworm-slim
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+ENV VITE_API_BASE_URL=""
+DOCKERFILE
+
+docker run --rm \
+  --memory 2g \
+  --cpus 1.0 \
+  "dart-ci-frontend:${BUILD_NUMBER}" \
+  sh -c '
+    set -eu
+    npm run lint
+    npm test -- --maxWorkers=1
+    npm run build
+  '
+'''
+                    }
+                }
+
+                stage('AI 서버 검사와 테스트') {
+                    steps {
+                        sh '''#!/usr/bin/env bash
+set -euo pipefail
+
+docker build --progress=plain \
+  -t "dart-ci-ai:${BUILD_NUMBER}" \
+  -f - ./ai-server <<'DOCKERFILE'
+FROM python:3.12-slim
+WORKDIR /app
+COPY requirements.txt requirements-dev.txt ./
+RUN python -m pip install --no-cache-dir \
+    -r requirements.txt -r requirements-dev.txt
+COPY . .
+DOCKERFILE
+
+docker run --rm \
+  --memory 2g \
+  --cpus 1.0 \
+  "dart-ci-ai:${BUILD_NUMBER}" \
+  sh -c '
+    set -eu
+    ruff check .
+    pytest
+  '
+'''
+                    }
+                }
+
+                stage('커밋 버전 실행 이미지 생성') {
+                    steps {
+                        sh '''#!/usr/bin/env bash
+set -euo pipefail
+
+[[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+
+test -f backend/Dockerfile
+test -f frontend/Dockerfile
+
+# Git에 기록된 파일만 별도 폴더에 추출한다.
+build_root=$(mktemp -d)
+trap 'rm -rf -- "$build_root"' EXIT
+
+git archive "$RELEASE_SHA" |
+  tar -x -C "$build_root"
+
+docker build --progress=plain \
+  --label "org.opencontainers.image.revision=$RELEASE_SHA" \
+  -t "dart-insight-backend:$RELEASE_SHA" \
+  "$build_root/backend"
+
+docker build --progress=plain \
+  --label "org.opencontainers.image.revision=$RELEASE_SHA" \
+  -t "dart-insight-web:$RELEASE_SHA" \
+  "$build_root/frontend"
+
+docker build --progress=plain \
+  --label "org.opencontainers.image.revision=$RELEASE_SHA" \
+  -t "dart-insight-ai:$RELEASE_SHA" \
+  -f - "$build_root/ai-server" <<'DOCKERFILE'
+FROM python:3.12-slim
+WORKDIR /app
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+EXPOSE 8000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+DOCKERFILE
+
+echo "실행 이미지 생성 완료: $RELEASE_SHA"
+'''
+                    }
+                }
+            }
+
+            post {
+                always {
+                    sh '''#!/usr/bin/env bash
+docker image rm \
+  "dart-ci-backend:${BUILD_NUMBER}" \
+  "dart-ci-frontend:${BUILD_NUMBER}" \
+  "dart-ci-ai:${BUILD_NUMBER}" || true
+'''
+                }
+            }
+        }
+
+        stage('AI와 백엔드 배포') {
+            steps {
+                build job: 'dart-services-deploy',
+                    wait: true,
+                    propagate: true,
+                    parameters: [
+                        string(
+                            name: 'AI_IMAGE_TAG',
+                            value: env.RELEASE_SHA
+                        ),
+                        string(
+                            name: 'BACKEND_IMAGE_TAG',
+                            value: env.RELEASE_SHA
+                        )
+                    ]
+            }
+        }
+
+        stage('웹 배포') {
+            steps {
+                build job: 'dart-web-deploy',
+                    wait: true,
+                    propagate: true,
+                    parameters: [
+                        string(
+                            name: 'WEB_IMAGE_TAG',
+                            value: env.RELEASE_SHA
+                        )
+                    ]
+            }
+        }
+    }
+}

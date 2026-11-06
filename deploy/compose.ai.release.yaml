@@ -1,0 +1,3 @@
+services:
+  ai:
+    image: dart-insight-ai:719423812c20b0377a3332e442c4721100425dd7

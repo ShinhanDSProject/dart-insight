@@ -1,0 +1,65 @@
+pipeline {
+    agent none
+
+    options {
+        disableConcurrentBuilds()
+        timestamps()
+        timeout(time: 20, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+    }
+
+    parameters {
+        string(
+            name: 'AI_IMAGE_TAG',
+            defaultValue: 'eb913562aa918a5d5367b763803eb2583fd3ccd7',
+            description: 'AI 이미지의 전체 커밋 번호'
+        )
+        string(
+            name: 'BACKEND_IMAGE_TAG',
+            defaultValue: 'eb913562aa918a5d5367b763803eb2583fd3ccd7',
+            description: '백엔드 이미지의 전체 커밋 번호'
+        )
+        string(
+            name: 'WEB_IMAGE_TAG',
+            defaultValue: '83c6b552fdcc0912ade66aac740ec59fb29da4eb',
+            description: '웹 이미지의 전체 커밋 번호'
+        )
+    }
+
+    stages {
+        stage('AI와 백엔드 배포') {
+            steps {
+                build job: 'dart-services-deploy',
+                    wait: true,
+                    propagate: true,
+                    parameters: [
+                        string(
+                            name: 'AI_IMAGE_TAG',
+                            value: params.AI_IMAGE_TAG ?:
+                                'eb913562aa918a5d5367b763803eb2583fd3ccd7'
+                        ),
+                        string(
+                            name: 'BACKEND_IMAGE_TAG',
+                            value: params.BACKEND_IMAGE_TAG ?:
+                                'eb913562aa918a5d5367b763803eb2583fd3ccd7'
+                        )
+                    ]
+            }
+        }
+
+        stage('웹 배포') {
+            steps {
+                build job: 'dart-web-deploy',
+                    wait: true,
+                    propagate: true,
+                    parameters: [
+                        string(
+                            name: 'WEB_IMAGE_TAG',
+                            value: params.WEB_IMAGE_TAG ?:
+                                '83c6b552fdcc0912ade66aac740ec59fb29da4eb'
+                        )
+                    ]
+            }
+        }
+    }
+}
