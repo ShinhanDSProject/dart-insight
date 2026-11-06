@@ -4,7 +4,7 @@ from app.compare.listing import HEADING, LITIGATION, MAIN, UNPAIRED
 from app.compare.text_diff import ADDED, MODIFIED
 from app.documents.parser import PARAGRAPH
 from app.events.candidates import CandidateChange
-from app.events.model import TEXT_LIMIT, EventChange, EventInput, Quote
+from app.events.model import TEXT_LIMIT, EventChange, EventInput, Quote, SignalPick
 from app.events.validate import check
 
 PREVIOUS_RCEPT = "20250814003156"
@@ -47,9 +47,12 @@ def quote(
 def event(**overrides: Any) -> dict[str, Any]:
     return {
         "title": "소송 패소",
-        "kind": "소송",
         "changeNos": [12],
         "quotes": [quote()],
+        "signalKind": "LITIGATION",
+        "signalChange": "LOST",
+        "signalChangeNo": 12,
+        "signalSide": "CURRENT",
     } | overrides
 
 
@@ -205,9 +208,51 @@ def test_blank_or_too_long_title_is_a_problem() -> None:
     assert problems_of(event(title="가" * 201))
 
 
-def test_blank_or_too_long_kind_is_a_problem() -> None:
-    assert problems_of(event(kind=""))
-    assert problems_of(event(kind="가" * 31))
+def test_kind_is_the_table_name_of_the_picked_kind_code() -> None:
+    (result,) = check({"events": [event(kind="AI가 쓴 이름")]}, event_input()).events
+
+    assert result.kind == "소송"
+
+
+def test_picked_kind_change_and_evidence_are_kept_for_the_signal() -> None:
+    (result,) = check({"events": [event()]}, event_input()).events
+
+    assert result.pick == SignalPick("LITIGATION", "LOST", "CURRENT", f"{CURRENT_RCEPT}#B1576")
+
+
+def test_pick_outside_the_table_is_not_a_problem_and_kind_is_other() -> None:
+    checked = check({"events": [event(signalKind="??", signalChange=None)]}, event_input())
+
+    assert checked.problems == []
+    (result,) = checked.events
+    assert result.kind == "그 밖의 사건"
+    assert result.pick.kind_code == "??"
+    assert result.pick.change_code is None
+
+
+def test_missing_pick_is_not_a_problem() -> None:
+    entry = {k: v for k, v in event().items() if not k.startswith("signal")}
+
+    (result,) = check({"events": [entry]}, event_input()).events
+
+    assert result.pick == SignalPick()
+
+
+def test_evidence_of_a_change_outside_the_event_is_left_empty() -> None:
+    other = change(no=13)
+
+    (result,) = check({"events": [event(signalChangeNo=13)]}, event_input(change(), other)).events
+
+    assert result.pick.evidence_id is None
+
+
+def test_evidence_of_a_side_without_a_block_is_left_empty() -> None:
+    no_previous = change(previous_block=None)
+
+    (result,) = check({"events": [event(signalSide="PREVIOUS")]}, event_input(no_previous)).events
+
+    assert result.pick.side == "PREVIOUS"
+    assert result.pick.evidence_id is None
 
 
 def test_amount_in_title_is_compared_with_change_text() -> None:
@@ -228,10 +273,6 @@ def test_title_fact_is_found_in_a_linked_change_only() -> None:
     )
 
 
-def test_fact_in_kind_is_compared_too() -> None:
-    assert problems_of(event(kind="1,300억원 소송"))
-
-
 def test_causal_claim_needs_cause_in_quote() -> None:
     assert problems_of(event(title="패소로 인한 지급"))
     text = "소송 패소로 인해 지급했습니다."
@@ -244,10 +285,6 @@ def test_investment_advice_in_title_is_a_problem() -> None:
     (problem,) = problems_of(event(title="패소, 지금 매수 추천"))
 
     assert "투자 권유" in problem
-
-
-def test_investment_advice_in_kind_is_a_problem() -> None:
-    assert problems_of(event(kind="매수 추천"))
 
 
 def test_investment_words_in_quote_are_source_and_not_scanned() -> None:
@@ -268,4 +305,4 @@ def test_heading_change_can_be_quoted_with_short_text() -> None:
         "합병",
     )
 
-    assert problems_of(event(title="합병", kind="합병", quotes=[quote(text="합병")]), heading) == []
+    assert problems_of(event(title="합병", quotes=[quote(text="합병")]), heading) == []

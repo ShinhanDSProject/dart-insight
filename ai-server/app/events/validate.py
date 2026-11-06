@@ -1,16 +1,19 @@
 """주요 사건 검증(2.15, ADR-0050).
 
 코드가 사건마다 확인한다.
-- 제목과 사건 종류가 있고 칸 길이를 넘지 않는다.
+- 제목이 있고 칸 길이를 넘지 않는다.
 - changeNos가 하나 이상이고 모두 후보 변경이다.
 - 무엇이 바뀌었는지 보여 주는 인용(CHANGE)이 하나 이상 있다.
 - 인용은 그 사건의 변경이고, 블록 번호가 있는 쪽의 글(모델에 넣은 글)의 부분 문자열이다
   (이어진 공백은 한 칸으로 맞춰 비교). 근거 ID는 모델이 아니라 코드가 만든다.
-- 제목과 사건 종류의 사실이 그 사건의 변경 글에 있다(facts.py).
+- 제목의 사실이 그 사건의 변경 글에 있다(facts.py).
 - 원인 표현(ADR-0015)은 인용에도 원인 표현이 있을 때만 쓴다.
-- 제목과 사건 종류가 투자 권유성 표현 검사(app.compliance)를 통과한다.
+- 제목이 투자 권유성 표현 검사(app.compliance)를 통과한다.
   인용은 회사가 쓴 원문이라 검사하지 않는다.
 돌려주는 인용은 이어진 공백을 한 칸으로 맞춘 글이다.
+
+사건 종류는 AI가 고른 기준표 종류 코드의 이름이다(ADR-0060). 고른 종류·변화와 근거는 문제로
+삼지 않고 그대로 담는다. 목록 밖이거나 근거가 맞지 않으면 signals.py가 보류로 붙인다.
 """
 
 from __future__ import annotations
@@ -23,15 +26,16 @@ from app.compliance import scan
 from app.events.facts import fact_problem
 from app.events.model import (
     CHANGE,
-    MAX_KIND_CHARS,
     MAX_TITLE_CHARS,
     PURPOSES,
     SIDES,
     EventChange,
     EventInput,
     Quote,
+    SignalPick,
     TextEvent,
 )
+from app.events.signals import kind_name
 from app.summary.causal import find as find_causal
 
 _SPACES = re.compile(r"\s+")
@@ -72,23 +76,49 @@ def check(data: Any, event_input: EventInput) -> Checked:
 
 def _event(entry: Any, changes: dict[int, EventChange], event_input: EventInput) -> TextEvent | str:
     if not isinstance(entry, dict):
-        return "title·kind·changeNos·quotes가 있는 객체여야 합니다."
+        return "title·changeNos·quotes가 있는 객체여야 합니다."
     title = _text(entry.get("title"))
     if not title or len(title) > MAX_TITLE_CHARS:
         return f"title은 1자 이상 {MAX_TITLE_CHARS}자 이하여야 합니다."
-    kind = _text(entry.get("kind"))
-    if not kind or len(kind) > MAX_KIND_CHARS:
-        return f"kind는 1자 이상 {MAX_KIND_CHARS}자 이하여야 합니다."
     change_nos = _change_nos(entry.get("changeNos"), changes)
     if isinstance(change_nos, str):
         return change_nos
     quotes = _quotes(entry.get("quotes"), change_nos, changes, event_input)
     if isinstance(quotes, str):
         return quotes
-    written = f"{title} {kind}"
     source = _source(change_nos, changes)
-    problem = fact_problem(written, source) or _causal_problem(written, quotes)
-    return problem or _advice_problem(written) or TextEvent(title, kind, change_nos, quotes)
+    problem = (
+        fact_problem(title, source) or _causal_problem(title, quotes) or _advice_problem(title)
+    )
+    if problem:
+        return problem
+    pick = _pick(entry, change_nos, changes, event_input)
+    return TextEvent(title, kind_name(pick.kind_code), change_nos, quotes, pick=pick)
+
+
+def _pick(
+    entry: dict[str, Any],
+    change_nos: list[int],
+    changes: dict[int, EventChange],
+    event_input: EventInput,
+) -> SignalPick:
+    """AI가 고른 종류·변화와 근거. 근거 ID는 가리킨 변경·쪽으로 코드가 만든다."""
+    kind = entry.get("signalKind")
+    change = entry.get("signalChange")
+    change_no = entry.get("signalChangeNo")
+    side = entry.get("signalSide")
+    side = side if side in SIDES else None
+    evidence_id = None
+    if side and type(change_no) is int and change_no in change_nos:
+        block_no = changes[change_no].block_no(side)
+        if block_no is not None:
+            evidence_id = f"{event_input.rcept_no(side)}#B{block_no}"
+    return SignalPick(
+        kind if isinstance(kind, str) else None,
+        change if isinstance(change, str) else None,
+        side,
+        evidence_id,
+    )
 
 
 def _text(value: Any) -> str:
