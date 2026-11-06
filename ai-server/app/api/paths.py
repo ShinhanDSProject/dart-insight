@@ -15,6 +15,7 @@ PLAN_FOLLOWUPS = "/plan-followups"
 TEXT_CHANGES = "/text-changes"
 TEXT_EVENTS = "/text-events"
 AGENT_STEPS = "/agent-steps"
+SIGNAL_TABLES = "/signal-tables/current"
 
 DOCUMENTS_PREFIX = f"{INTERNAL_PREFIX}/documents"
 DOCUMENT_PARSER = "/parser"
