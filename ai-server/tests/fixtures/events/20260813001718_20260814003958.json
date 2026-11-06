@@ -7,6 +7,9 @@
       "name": "Crucible JV 대상 제3자배정 유상증자(2,209,716주)",
       "kind": "증자",
       "core": true,
+      "signalKind": "RIGHTS_OFFERING",
+      "signalChange": "DECIDED",
+      "signalEvidence": "유상증자(제3자배정) | 보통주 | 2,209,716",
       "changes": [
         {
           "previousBlock": null,
@@ -30,6 +33,9 @@
       "name": "미국 통합 비철금속 제련소 투자와 Crucible JV 사업 제휴",
       "kind": "신규 사업·투자",
       "core": true,
+      "signalKind": "LARGE_INVESTMENT",
+      "signalChange": "DECIDED",
+      "signalEvidence": "미국 통합 비철금속 제련소 투자(이하 \"본 프로젝트\")를 결정하였습니다",
       "changes": [
         {
           "previousBlock": null,
@@ -53,6 +59,9 @@
       "name": "신주발행무효의 소 1심 패소와 항소",
       "kind": "소송",
       "core": true,
+      "signalKind": "LITIGATION",
+      "signalChange": "LOST",
+      "signalEvidence": "신주발행무효의 소 1심에서 패소하였으며",
       "changes": [
         {
           "previousBlock": null,
@@ -72,6 +81,9 @@
       "name": "㈜영풍 등의 주주총회결의취소 소송과 경영권 분쟁 관련 소송·결정",
       "kind": "소송",
       "core": true,
+      "signalKind": "LITIGATION",
+      "signalChange": "PROGRESSED",
+      "signalEvidence": "주주총회결의취소 청구의 소(서울중앙지방법원 2025가합9085)",
       "changes": [
         {
           "previousBlock": null,
@@ -91,6 +103,9 @@
       "name": "증선위·금융위 과징금과 감사인 지정, 재무제표 수정",
       "kind": "제재",
       "core": true,
+      "signalKind": "SANCTION",
+      "signalChange": "OCCURRED",
+      "signalEvidence": "금융위원회는 2026년 7월 15일 당사에 과징금 8,428.1백만원",
       "changes": [
         {
           "previousBlock": null,
@@ -106,6 +121,9 @@
       "name": "보고기간 후 사건: Richmond Valley 출자·사채 발행·분기배당 결의",
       "kind": "보고기간 후 사건",
       "core": false,
+      "signalKind": "OTHER",
+      "signalChange": "OTHER",
+      "signalEvidence": "제3자배정 유상증자를 결정하였으며",
       "changes": [
         {
           "previousBlock": null,
@@ -121,6 +139,9 @@
       "name": "분기배당 실시와 배당 정책 변경",
       "kind": "배당",
       "core": false,
+      "signalKind": "DIVIDEND",
+      "signalChange": "INTRODUCED",
+      "signalEvidence": "제53기 1분기 101,966백만원(주당 5,000원)",
       "changes": [
         {
           "previousBlock": 1692,
@@ -136,6 +157,9 @@
       "name": "회계감사인 삼일→삼정 변경",
       "kind": "감사인 변경",
       "core": false,
+      "signalKind": "AUDITOR_CHANGE",
+      "signalChange": "CHANGED",
+      "signalEvidence": "삼정회계법인을 2026년부터 2028년까지 3개 사업연도의 외부감사인으로 선임하였습니다",
       "changes": [
         {
           "previousBlock": 1819,
@@ -155,6 +179,9 @@
       "name": "산업안전보건법 벌금",
       "kind": "제재",
       "core": false,
+      "signalKind": "SANCTION",
+      "signalChange": "OCCURRED",
+      "signalEvidence": "벌금형 2백만원의 약식명령을 발령하였고",
       "changes": [
         {
           "previousBlock": 2037,
@@ -170,6 +197,9 @@
       "name": "중대재해 내역 신규 기재(케이지그린텍 사망 1명)",
       "kind": "안전사고",
       "core": false,
+      "signalKind": "SAFETY_ACCIDENT",
+      "signalChange": "OCCURRED",
+      "signalEvidence": "냉각탑 작업상 이동 중 추락 사고 | 1",
       "changes": [
         {
           "previousBlock": null,
@@ -181,6 +211,9 @@
       "name": "자기주식 소각·보상 활용 계획",
       "kind": "자기주식",
       "core": false,
+      "signalKind": "TREASURY_STOCK",
+      "signalChange": "RETIRED",
+      "signalEvidence": "2027년 2월 말까지 소각할 예정이며",
       "changes": [
         {
           "previousBlock": null,
@@ -196,6 +229,9 @@
       "name": "종속회사 가동률 하락(켐코 93%→10%)",
       "kind": "생산",
       "core": false,
+      "signalKind": "PRODUCTION",
+      "signalChange": "CHANGED",
+      "signalEvidence": "당반기말 현재 10%입니다",
       "changes": [
         {
           "previousBlock": 335,
