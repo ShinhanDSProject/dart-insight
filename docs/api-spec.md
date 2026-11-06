@@ -2922,7 +2922,7 @@
       "sortBasis": "UNIT_COUNT",
       "aiGenerated": true,
       "model": "모델 이름",
-      "promptVersion": "text-event-3",
+      "promptVersion": "text-event-4",
       "generatedAt": "2026-11-05T10:13:02"
     }
   ],
@@ -4055,11 +4055,11 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 
 - 이슈: #642 (2.13), #643 (2.14), #644 (2.15), #645 (2.16), #716 (2.19), #731 (2.20)
 - backend가 `list_group`이 `MAIN`·`UNPAIRED`·`HEADING`인 변경을 보냅니다. ai-server는 후보를 고르고(규칙은 ADR-0051, LLM·우선순위 점수를 쓰지 않음), LLM으로 묶고, 인용·근거와 표현을 검사하고, 코드로 정렬합니다. DB는 쓰지 않습니다.
-- 묶는 규칙(프롬프트 `text-event-2`, #716. `text-event-3`도 그대로): 같은 거래·계획의 여러 단계와 과태료·시정조치 같은 가벼운 제재는 한 사건으로 묶고, 사망·부상, 작업·영업 정지, 형사 벌금, 금융당국 과징금은 따로 둡니다. 제품 출시·개발, 연구개발 실적, 정례 자문·용역 계약은 사건으로 만들지 않고, 그 변경은 `unboundChangeNos`로 보냅니다.
+- 묶는 규칙(프롬프트 `text-event-2`, #716. `text-event-3`·`text-event-4`도 그대로): 같은 거래·계획의 여러 단계와 과태료·시정조치 같은 가벼운 제재는 한 사건으로 묶고, 사망·부상, 작업·영업 정지, 형사 벌금, 금융당국 과징금은 따로 둡니다. 제품 출시·개발, 연구개발 실적, 정례 자문·용역 계약은 사건으로 만들지 않고, 그 변경은 `unboundChangeNos`로 보냅니다.
 - 검증에 실패하면 최대 2회 다시 만듭니다. 그래도 잘못된 사건은 빼고 `droppedEventCount`에 세고, 그 변경은 `unboundChangeNos`로 보냅니다.
 - 모델이 검증을 통과한 응답으로 사건이 없다고 답하면 실패가 아닙니다. `created: true`, `events: []`이고 후보는 모두 `unboundChangeNos`로 보냅니다.
 - 규모는 사건마다 정합니다. 후보가 1개 이상이면 task `event_amount_pick`으로 그 사건의 금액인지 확인해 번호만 고릅니다(호출 기록은 `calls`). AI가 아니라고 답하면 `amountSource`는 `none`, 호출 실패나 시간 예산 초과면 `unavailable`이고, 둘 다 금액은 null이며 실행은 실패하지 않습니다.
-- 신호(ADR-0060, #733): 묶기 프롬프트 `text-event-3`이 사건마다 기준표의 종류·변화 코드와 근거 ID를 고르고, 코드가 `app/events/signals.py`로 기준표에서 신호와 보류 사유를 붙입니다. 판정 순서와 사유는 공개 API `GET .../events`의 신호 칸과 같습니다. 맨 앞 종류도 기준표로 정합니다.
+- 신호(ADR-0060, #733): 묶기 프롬프트(`text-event-3`부터)가 사건마다 기준표의 종류·변화 코드와 근거 ID를 고르고, 코드가 `app/events/signals.py`로 기준표에서 신호와 보류 사유를 붙입니다. 판정 순서와 사유는 공개 API `GET .../events`의 신호 칸과 같습니다. 맨 앞 종류도 기준표로 정합니다.
 - 사건 문장(ADR-0060, #734·#735): 금액 확인 뒤 사건마다 task `event_meaning`(`event-meaning-1`)과 `event_signal_reason`(`event-signal-reason-1`)을 따로 부릅니다. 문장 단계는 예산 300초 안에서 최대 4개를 동시에 부르고, 다시 만들어도 통과하지 못하거나 예산을 넘긴 칸은 대체 표시·실패로 남기며 실행은 실패하지 않습니다. 호출 기록은 모두 `calls`에 있습니다.
 - 용어 풀이와 사실 칸의 계정 이름은 기준표에서 코드가 붙입니다. 사실 칸의 값은 backend가 채웁니다.
 - 제공자가 fake면 LLM을 부르지 않고 `created: false`, `notCreatedReason: FAKE_MODEL`로 답합니다. 후보가 없으면 제공자와 상관없이 `NO_CANDIDATES`입니다. 만들지 않았을 때 `model`·`generatedAt`은 null이고 `events`·`unboundChangeNos`·`calls`는 빈 배열입니다.
@@ -4112,7 +4112,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
   "created": true,
   "notCreatedReason": null,
   "model": "모델 이름",
-  "promptVersion": "text-event-3",
+  "promptVersion": "text-event-4",
   "signalTableVersion": "signal-table-2",
   "generatedAt": "2026-11-05T10:13:02",
   "droppedEventCount": 0,
@@ -4158,7 +4158,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
     }
   ],
   "unboundChangeNos": [13],
-  "calls": [{ "task": "text_event", "provider": "openai", "model": "모델 이름", "promptVersion": "text-event-3",
+  "calls": [{ "task": "text_event", "provider": "openai", "model": "모델 이름", "promptVersion": "text-event-4",
     "calledAt": "2026-11-05T10:13:01", "traceId": "…", "inputTokens": 28000, "outputTokens": 3000,
     "latencyMs": 42000, "attempt": 1, "outcome": "OK", "error": null }]
 }
