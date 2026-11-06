@@ -31,7 +31,7 @@ def test_request_has_task_version_and_source_rule() -> None:
     request = build_request([change()])
 
     assert request.task == TASK == "text_event"
-    assert request.prompt_version == PROMPT_VERSION == "text-event-3"
+    assert request.prompt_version == PROMPT_VERSION == "text-event-4"
     assert SOURCE_RULE in request.system
     assert request.output_schema["required"] == ["events"]
 

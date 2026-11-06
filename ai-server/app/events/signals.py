@@ -57,6 +57,8 @@ class TableChange:
     name: str
     signal: str | None
     explicit_only: bool
+    # 주의·긍정 변화의 일반 문구. 신호 이유를 쓰지 못했을 때 보인다
+    general: str | None = None
 
 
 @dataclass(frozen=True)
@@ -103,7 +105,9 @@ def _kind(data: dict[str, Any]) -> TableKind:
         data["name"],
         data["front"],
         tuple(
-            TableChange(c["code"], c["name"], c["signal"], c.get("explicitOnly", False))
+            TableChange(
+                c["code"], c["name"], c["signal"], c.get("explicitOnly", False), c.get("general")
+            )
             for c in data["changes"]
         ),
         tuple(data["accounts"]),
@@ -195,6 +199,7 @@ def table_json(table: SignalTable | None = None) -> dict[str, Any]:
                         "name": c.name,
                         "signal": c.signal,
                         "explicitOnly": c.explicit_only,
+                        "general": c.general,
                     }
                     for c in k.changes
                 ],
