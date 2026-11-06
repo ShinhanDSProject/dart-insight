@@ -138,7 +138,8 @@ public class AgentTools {
                         "size", integer("고를 수", 1, MAX_SIZE)), List.of()), 0, (a, args) -> Output.of(searchTextChanges(a, args))),
                 new Tool(GET_TEXT_CHANGE, "문장 변경 하나의 이전·현재 원문 문단", object(properties(
                         "changeId", integer("문장 변경 ID")), List.of("changeId")), 0, (a, args) -> Output.of(textChange(a, args))),
-                new Tool(GET_FINANCIAL_CHANGES, "이 분석의 재무 계정 변화(코드가 계산한 이전·현재 값과 증감)", object(
+                new Tool(GET_FINANCIAL_CHANGES, "이 분석의 재무 계정 변화(코드가 계산한 이전·현재 값과 증감). 계정 금액만 있고 "
+                        + "부채비율 같은 재무 비율은 get_checkpoints에 있다", object(
                         properties(
                                 "sjDiv", oneOf("재무제표. BS 재무상태표, IS 손익계산서, CIS 포괄손익계산서, CF 현금흐름표, "
                                         + "SCE 자본변동표", STATEMENTS),

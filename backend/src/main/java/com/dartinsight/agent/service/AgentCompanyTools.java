@@ -132,7 +132,8 @@ class AgentCompanyTools {
                         (a, args) -> Output.of(trends(a, args))),
                 new Tool(GET_KEY_FACTS, "최근 두 정기보고서의 최대주주·임원·배당과 그 변화", corpOnly, VALUE_ITEMS,
                         (a, args) -> Output.of(keyFacts(a, args))),
-                new Tool(GET_CHECKPOINTS, "체크 포인트(재무 위험 신호와 계속기업 관련 사항)의 상태와 값", corpOnly, VALUE_ITEMS,
+                new Tool(GET_CHECKPOINTS, "체크 포인트 7가지(부채비율, 이익과 현금흐름, 매출채권·재고자산·단기 차입금 증가, "
+                        + "주식 관련 자금 조달 공시, 감사의견)의 상태와 올해·작년 값. 부채비율을 물으면 이 Tool", corpOnly, VALUE_ITEMS,
                         (a, args) -> Output.of(checkpoints(a, args))),
                 new Tool(GET_DISCLOSURES, "최근 " + DISCLOSURE_DAYS + "일 공시 목록(제목·접수일)", object(properties(CORP, corpSchema(),
                         "group", oneOf("공시 묶음. PERIODIC 정기보고서, OWNERSHIP 지분 변동, FUNDING 자금 조달, "
