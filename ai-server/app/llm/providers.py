@@ -51,6 +51,10 @@ class ProviderResponse:
     model: str
     input_tokens: int | None = None
     output_tokens: int | None = None
+    # input_tokens 중 프롬프트 캐시에서 읽은 토큰, output_tokens 중 추론 토큰
+    # (둘 다 합계에 이미 들어 있음, #633)
+    cached_input_tokens: int | None = None
+    reasoning_tokens: int | None = None
 
 
 class ProviderError(Exception):
@@ -224,7 +228,15 @@ def _openai_response(response: Any, fallback_model: str) -> ProviderResponse:
         model=response.model or fallback_model,
         input_tokens=usage.input_tokens if usage is not None else None,
         output_tokens=usage.output_tokens if usage is not None else None,
+        cached_input_tokens=_detail(usage, "input_tokens_details", "cached_tokens"),
+        reasoning_tokens=_detail(usage, "output_tokens_details", "reasoning_tokens"),
     )
+
+
+def _detail(usage: Any, details: str, field: str) -> int | None:
+    """usage의 세부 토큰 수. 제공자가 알려 주지 않으면 None(0과 구분한다)."""
+    value = getattr(getattr(usage, details, None), field, None) if usage is not None else None
+    return value if isinstance(value, int) else None
 
 
 def strict_schema(schema: dict[str, Any]) -> dict[str, Any]:

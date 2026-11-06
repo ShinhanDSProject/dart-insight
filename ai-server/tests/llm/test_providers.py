@@ -139,6 +139,32 @@ def test_complete_keeps_tokens_none_without_usage() -> None:
     result = p.complete(REQUEST, 10.0)
 
     assert (result.input_tokens, result.output_tokens) == (None, None)
+    assert (result.cached_input_tokens, result.reasoning_tokens) == (None, None)
+
+
+def test_complete_reads_cached_input_and_reasoning_tokens() -> None:
+    usage = SimpleNamespace(
+        input_tokens=10000,
+        output_tokens=300,
+        input_tokens_details=SimpleNamespace(cached_tokens=8960),
+        output_tokens_details=SimpleNamespace(reasoning_tokens=256),
+    )
+    p, _ = provider(response(text_part("{}"), usage=usage))
+
+    result = p.complete(REQUEST, 10.0)
+
+    # 세부 토큰은 합계에 이미 들어 있어 따로 더하지 않는다(#633)
+    assert (result.input_tokens, result.output_tokens) == (10000, 300)
+    assert (result.cached_input_tokens, result.reasoning_tokens) == (8960, 256)
+
+
+def test_complete_keeps_detail_tokens_none_when_provider_omits_them() -> None:
+    p, _ = provider(response(text_part("{}")))
+
+    result = p.complete(REQUEST, 10.0)
+
+    # 세부 값을 알려 주지 않으면 0이 아니라 None이다
+    assert (result.cached_input_tokens, result.reasoning_tokens) == (None, None)
 
 
 def test_complete_raises_provider_error_on_refusal() -> None:
