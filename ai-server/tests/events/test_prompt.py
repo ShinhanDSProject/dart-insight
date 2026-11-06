@@ -4,6 +4,7 @@ from app.documents.parser import PARAGRAPH
 from app.events.candidates import CandidateChange
 from app.events.model import TEXT_LIMIT, EventChange
 from app.events.prompt import PROMPT_VERSION, SYSTEM, TASK, build_request
+from app.events.signals import load_table
 from app.llm.prompting import SOURCE_RULE
 
 
@@ -30,7 +31,7 @@ def test_request_has_task_version_and_source_rule() -> None:
     request = build_request([change()])
 
     assert request.task == TASK == "text_event"
-    assert request.prompt_version == PROMPT_VERSION == "text-event-2"
+    assert request.prompt_version == PROMPT_VERSION == "text-event-3"
     assert SOURCE_RULE in request.system
     assert request.output_schema["required"] == ["events"]
 
@@ -106,3 +107,41 @@ def test_system_prompt_keeps_serious_sanctions_apart_by_kind_not_amount() -> Non
 def test_system_prompt_leaves_out_routine_items() -> None:
     for word in ("제품 출시", "연구개발", "용역"):
         assert word in SYSTEM
+
+
+def test_each_event_picks_kind_change_and_evidence_from_the_table() -> None:
+    schema = build_request([change()]).output_schema["properties"]["events"]["items"]
+    table = load_table()
+
+    assert set(schema["required"]) == {
+        "title",
+        "changeNos",
+        "quotes",
+        "signalKind",
+        "signalChange",
+        "signalChangeNo",
+        "signalSide",
+    }
+    assert schema["properties"]["signalKind"]["enum"] == [k.code for k in table.kinds]
+    assert set(schema["properties"]["signalChange"]["enum"]) == {
+        c.code for k in table.kinds for c in k.changes
+    }
+    assert "kind" not in schema["properties"]
+
+
+def test_system_prompt_lists_kinds_and_changes_of_the_table() -> None:
+    for kind in load_table().kinds:
+        assert f"{kind.code}({kind.name})" in SYSTEM
+        for change_ in kind.changes:
+            assert f"{change_.code} {change_.name}" in SYSTEM
+
+
+def test_system_prompt_does_not_show_signals_to_the_model() -> None:
+    """신호는 코드가 붙인다. 모델은 종류·변화만 고른다(ADR-0060)."""
+    for signal in ("CAUTION", "POSITIVE", "MIXED", "주의", "긍정"):
+        assert signal not in SYSTEM
+
+
+def test_system_prompt_needs_a_stated_sentence_for_resolution() -> None:
+    assert "삭제" in SYSTEM
+    assert "OTHER" in SYSTEM

@@ -5,18 +5,31 @@
 
 from __future__ import annotations
 
-from app.events.model import CURRENT, MAX_KIND_CHARS, PREVIOUS, PURPOSES, SIDES, EventChange
+from app.events.model import CURRENT, PREVIOUS, PURPOSES, SIDES, EventChange
+from app.events.signals import OTHER, SignalTable, load_table
 from app.llm.prompting import SOURCE_RULE, disclosure
 from app.llm.providers import LlmRequest
 
-# 결과가 달라지게 바꾸면(프롬프트, 검증 validate.py·facts.py) 이 버전과
+# 결과가 달라지게 바꾸면(프롬프트, 검증 validate.py·facts.py, 기준표의 종류·변화) 이 버전과
 # backend TextEvents.EVENT_VERSION을 함께 올린다
-PROMPT_VERSION = "text-event-2"
+PROMPT_VERSION = "text-event-3"
 TASK = "text_event"
 # 2.12에서 잰 값의 약 1.6~1.7배다(출력 최대 18,610, 호출 최대 148초, ADR-0057)
 MAX_OUTPUT_TOKENS = 32000
 TIMEOUT_SECONDS = 240.0
 TOTAL_TIMEOUT_SECONDS = 480.0
+
+
+def _kind_list(table: SignalTable) -> list[str]:
+    """기준표의 종류·변화 목록. 신호는 보여 주지 않는다(ADR-0060). *는 명시한 문장이 필요한 변화."""
+    return [
+        f"- {k.code}({k.name}): "
+        + ", ".join(f"{c.code} {c.name}{'*' if c.explicit_only else ''}" for c in k.changes)
+        for k in table.kinds
+    ]
+
+
+TABLE = load_table()
 
 SYSTEM = "\n".join(
     [
@@ -38,7 +51,12 @@ SYSTEM = "\n".join(
         "6. title은 무슨 일이 일어났는지 60자 이내로 적습니다. 공시에 없는 내용을 더하지 않습니다. "
         "금액, 날짜, 사건번호, 회사 이름은 원문 표기 그대로 쓰고, "
         "금액을 계산하거나 건수·비율을 세어 쓰지 않습니다.",
-        f"7. kind는 사건 종류의 짧은 이름입니다({MAX_KIND_CHARS}자 이내. 예: 소송, 제재, 인수).",
+        "7. signalKind와 signalChange는 맨 아래 목록에서 사건마다 하나씩 고릅니다. signalChange는 "
+        f"고른 signalKind 줄에 있는 값입니다. 맞는 것이 없으면 {OTHER}, {OTHER}입니다. "
+        "signalChangeNo와 signalSide는 그 종류·변화를 보여 주는 인용의 changeNo와 side이고, "
+        "그 사건의 quotes에 있는 인용이어야 합니다. "
+        "*가 붙은 변화(해소·철회·취소·종료 등)는 그렇다고 적힌 이번 보고서(CURRENT) 문장을 "
+        "인용할 때만 고릅니다. 이전 글이 삭제된 것만으로는 고르지 않습니다.",
         "8. quotes의 text는 해당 변경의 원문을 한 글자도 바꾸지 않고 그대로 옮깁니다. "
         "quotes의 changeNo는 그 사건의 changeNos에 있어야 합니다. "
         'quotable="false"인 글은 인용하지 않습니다.',
@@ -51,6 +69,8 @@ SYSTEM = "\n".join(
         "12. 매수·매도 추천, 목표주가, 주가 예측, 좋고 나쁨의 판단을 쓰지 않습니다.",
         '13. 사건이 없으면 {"events": []}로 답합니다. JSON 객체 하나만 답합니다.',
         SOURCE_RULE,
+        "사건 종류(signalKind)와 변화(signalChange) 목록:",
+        *_kind_list(TABLE),
     ]
 )
 
@@ -62,10 +82,17 @@ OUTPUT_SCHEMA = {
             "type": "array",
             "items": {
                 "type": "object",
-                "required": ["title", "kind", "changeNos", "quotes"],
+                "required": [
+                    "title",
+                    "changeNos",
+                    "quotes",
+                    "signalKind",
+                    "signalChange",
+                    "signalChangeNo",
+                    "signalSide",
+                ],
                 "properties": {
                     "title": {"type": "string"},
-                    "kind": {"type": "string"},
                     "changeNos": {"type": "array", "items": {"type": "integer"}},
                     "quotes": {
                         "type": "array",
@@ -80,6 +107,13 @@ OUTPUT_SCHEMA = {
                             },
                         },
                     },
+                    "signalKind": {"type": "string", "enum": [k.code for k in TABLE.kinds]},
+                    "signalChange": {
+                        "type": "string",
+                        "enum": list(dict.fromkeys(c.code for k in TABLE.kinds for c in k.changes)),
+                    },
+                    "signalChangeNo": {"type": "integer"},
+                    "signalSide": {"type": "string", "enum": list(SIDES)},
                 },
             },
         }
