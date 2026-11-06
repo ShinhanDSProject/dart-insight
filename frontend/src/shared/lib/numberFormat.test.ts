@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDuration, formatInteger, formatRate, formatUsd } from './numberFormat'
+import { formatDecimal, formatDuration, formatInteger, formatRate, formatUsd } from './numberFormat'
 
 describe('formatInteger', () => {
   it('세 자리마다 쉼표를 넣는다', () => {
@@ -19,6 +19,12 @@ describe('관리자 콘솔 숫자 표시(FS-72)', () => {
     expect(formatDuration(120)).toBe('2분')
     expect(formatDuration(3780)).toBe('1시간 3분')
     expect(formatDuration(null)).toBe('—')
+  })
+
+  it('API 값은 정수면 쉼표만 넣고 소수는 둘째 자리까지 쓴다', () => {
+    expect(formatDecimal(305400000)).toBe('305,400,000')
+    expect(formatDecimal(12.345)).toBe('12.35')
+    expect(formatDecimal(-0.5)).toBe('-0.5')
   })
 
   it('비율과 비용은 분모가 0이라 null이면 0이 아니라 —로 쓴다', () => {

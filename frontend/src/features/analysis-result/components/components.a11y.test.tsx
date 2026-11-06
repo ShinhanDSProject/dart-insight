@@ -93,6 +93,7 @@ function chatPanel(state: ChatState, briefState: AsyncState<void> = { status: 'i
         suggestions={['매출 변화의 이유는 무엇인가요?']}
         onNavigate={noop}
         onDownloadBrief={noop}
+        onPostDraft={noop}
         onClose={noop}
       />
     </MemoryRouter>

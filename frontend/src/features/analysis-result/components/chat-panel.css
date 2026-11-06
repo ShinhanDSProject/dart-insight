@@ -60,6 +60,29 @@
   white-space: pre-wrap;
 }
 
+.chat-panel__brief-list {
+  margin: 0;
+  padding-left: var(--space-5);
+  line-height: var(--line-height-body);
+}
+
+.chat-panel__brief-list li + li {
+  margin-top: var(--space-1);
+}
+
+.chat-panel__cross-check-note {
+  color: var(--color-text-muted);
+}
+
+a.chat-panel__citation {
+  color: inherit;
+  text-decoration: none;
+}
+
+a.chat-panel__citation:hover {
+  border-color: var(--color-border-accent);
+}
+
 .chat-panel__citation {
   display: inline;
   margin: 0 var(--space-1);

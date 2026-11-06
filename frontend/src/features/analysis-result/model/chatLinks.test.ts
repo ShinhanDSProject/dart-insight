@@ -1,6 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import type { ChatCitation } from '@/shared/api/agentChat'
-import { chatActionTarget, chatContextOf, citationChanges, citationNote, glossaryEntryOf, parseChatAnswer } from './chatLinks'
+import {
+  briefLines,
+  chatActionTarget,
+  chatContextOf,
+  citationChanges,
+  citationLabel,
+  citationLink,
+  citationNote,
+  citationTitle,
+  crossCheckView,
+  glossaryEntryOf,
+  parseChatAnswer,
+} from './chatLinks'
 import { parseResultParams } from './resultParams'
 
 const params = (query: string) => parseResultParams(new URLSearchParams(query))
@@ -152,5 +164,90 @@ describe('parseChatAnswer', () => {
       { kind: 'citation', citation: financial },
       { kind: 'text', text: '. 다른 것[9].' },
     ])
+  })
+})
+
+describe('채팅 추가 액션(#584)', () => {
+  const act = (action: Record<string, unknown>) => chatActionTarget({ label: null, ...action } as never, [financial])
+
+  it('다른 분석 열기와 기업 나란히 보기는 그 화면 링크가 된다(AC27)', () => {
+    expect(act({ type: 'OPEN_ANALYSIS', analysisId: 21 })).toEqual({ kind: 'link', to: '/analyses/21' })
+    expect(act({ type: 'OPEN_COMPANY_COMPARE', corpCodes: ['00126380', '00164779', '00126380'] })).toEqual({
+      kind: 'link',
+      to: '/compare/companies?corps=00126380,00164779',
+    })
+    expect(act({ type: 'OPEN_COMPANY_COMPARE', corpCodes: ['00126380'] })).toEqual({ kind: 'ignore' })
+    expect(act({ type: 'OPEN_ANALYSIS', analysisId: '21' })).toEqual({ kind: 'ignore' })
+  })
+
+  it('변경 고정은 변경 번호가 있을 때만 버튼이 된다(AC25)', () => {
+    expect(act({ type: 'PIN_CHANGE', changeId: 5012 })).toEqual({ kind: 'pin', changeId: 5012 })
+    expect(act({ type: 'PIN_CHANGE' })).toEqual({ kind: 'ignore' })
+  })
+
+  it('분석 요청 확인은 네 값이 모두 맞을 때만 버튼이 된다(AC18)', () => {
+    const request = { corpCode: '00126380', previousRceptNo: '20250814001234', currentRceptNo: '20260814003699', basis: 'YOY' }
+    expect(act({ type: 'CONFIRM_REQUEST_ANALYSIS', ...request })).toEqual({ kind: 'request-analysis', request })
+    expect(act({ type: 'CONFIRM_REQUEST_ANALYSIS', ...request, basis: 'NEXT' })).toEqual({ kind: 'ignore' })
+    expect(act({ type: 'CONFIRM_REQUEST_ANALYSIS', ...request, previousRceptNo: '2025' })).toEqual({ kind: 'ignore' })
+  })
+
+  it('글 초안은 본문과 인용 쿼리를 넘기고 재무 인용은 근거 칩의 재무제표를 붙인다(AC26)', () => {
+    expect(
+      act({ type: 'OPEN_POST_DRAFT', corpCode: '00126380', body: ' 영업이익이 줄었어요. ', quote: { kind: 'FINANCIAL_CHANGE', analysisId: 14, changeId: 31 } }),
+    ).toEqual({
+      kind: 'post-draft',
+      body: '영업이익이 줄었어요.',
+      quote: { quoteAnalysis: '14', quoteKind: 'FINANCIAL_CHANGE', quoteChange: '31', quoteSj: 'IS' },
+    })
+    expect(act({ type: 'OPEN_POST_DRAFT', body: '초안', quote: { kind: 'OTHER', analysisId: 14, changeId: 31 } })).toEqual({
+      kind: 'post-draft',
+      body: '초안',
+      quote: null,
+    })
+    expect(act({ type: 'OPEN_POST_DRAFT', body: '  ' })).toEqual({ kind: 'ignore' })
+  })
+})
+
+describe('보고서 값·기업 근거 칩(#584)', () => {
+  const value: ChatCitation = {
+    no: 1,
+    kind: 'REPORT_VALUE',
+    evidenceId: '20260814003699#V1',
+    reportName: '반기보고서 (2026.06)',
+    label: '매출액',
+    value: 305400000,
+    unit: '백만원',
+    dartUrl: 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260814003699',
+  }
+  const company: ChatCitation = { no: 2, kind: 'COMPANY', evidenceId: 'C00126380', corpCode: '00126380', corpName: '삼성전자', label: '기업 검색', value: '005930' }
+
+  it('이름은 항목·기업 이름이고 값은 API가 준 값과 단위를 그대로 보인다', () => {
+    expect(citationLabel(value)).toBe('매출액')
+    expect(citationTitle(value)).toBe('반기보고서 (2026.06): 305,400,000 백만원')
+    expect(citationLabel(company)).toBe('삼성전자')
+    expect(citationTitle(company)).toBe('기업 검색: 005930')
+  })
+
+  it('보고서 값은 DART 원문, 기업은 기업 화면으로 열고 DART가 아닌 주소는 열지 않는다', () => {
+    expect(citationLink(value)).toEqual({ kind: 'external', href: value.dartUrl })
+    expect(citationLink(company)).toEqual({ kind: 'route', to: '/companies/00126380' })
+    expect(citationLink({ ...value, dartUrl: 'https://example.com/x' })).toBeNull()
+    expect(citationLink(financial)).toBeNull()
+  })
+})
+
+describe('crossCheckView', () => {
+  it('어긋남은 오류가 아니라 검토해 볼 신호로만 보인다(AC19)', () => {
+    expect(crossCheckView({ result: 'POTENTIAL_MISMATCH', reason: '' })).toEqual({ title: '검토해 볼 신호', tone: 'attention' })
+    expect(crossCheckView({ result: 'CONSISTENT', reason: '' }).tone).toBe('info')
+    expect(crossCheckView({ result: 'INSUFFICIENT_EVIDENCE', reason: '' }).title).toBe('대조할 근거가 부족해요')
+    expect(crossCheckView({ result: 'NOT_COMPARABLE', reason: '' }).title).toBe('기준이 달라 대조하지 않았어요')
+  })
+})
+
+describe('briefLines', () => {
+  it('정리 형식 답을 줄로 나누고 빈 줄과 줄 앞의 - 를 뗀다(AC24)', () => {
+    expect(briefLines('- 매출이 늘었어요[1]\n\n- 영업이익이 줄었어요[2]\n')).toEqual(['매출이 늘었어요[1]', '영업이익이 줄었어요[2]'])
   })
 })

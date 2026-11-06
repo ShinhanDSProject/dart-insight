@@ -18,12 +18,18 @@ import { QuotePickerDialog } from './QuotePickerDialog'
 import '../community.css'
 import { useLoginHref } from '@/shared/hooks/useLoginHref'
 
+/** 글쓰기 칸에 미리 채울 초안(분석 결과의 AI 에이전트 채팅 '글 초안 열기', #584). key가 바뀌면 칸을 다시 채운다 */
+export interface CommunityDraft {
+  body: string
+  key: number
+}
+
 /**
  * 기업 화면과 분석 결과(#575)의 커뮤니티 탭(FS-58, W-01 ②). 위에서부터 고정 문구, 글쓰기(변경점 붙이기 #464), 정렬과 욕설 가리기(#468), 글 카드.
  * 읽기는 로그인 없이 되고, 쓰기·좋아요·신고를 누르면 로그인 안내가 뜬다. 닉네임이 없으면 처음 쓸 때 닉네임 정하기가 먼저 뜬다.
  * 글을 불러오지 못해도 이 탭 안에서만 안내하므로 다른 탭은 그대로 쓴다.
  */
-export function CommunityTab({ corpCode }: { corpCode: string }) {
+export function CommunityTab({ corpCode, draft = null }: { corpCode: string; draft?: CommunityDraft | null }) {
   const gate = useCommunityGate()
   const [sort, setSort] = useState<PostSort>('latest')
   const posts = useCommunityPosts(corpCode, sort)
@@ -47,6 +53,9 @@ export function CommunityTab({ corpCode }: { corpCode: string }) {
           </Notice>
 
           <CommunityBodyForm
+            // 초안은 칸에 채우기만 하고 저장은 '올리기'를 누를 때만 한다(AC26)
+            key={draft?.key ?? 0}
+            initial={draft?.body.slice(0, POST_BODY_MAX) ?? ''}
             label="글쓰기"
             labelHidden
             placeholder="이 기업 어떻게 보세요?"

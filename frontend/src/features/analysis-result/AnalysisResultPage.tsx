@@ -12,9 +12,9 @@ import { useRecordRecentAnalysis } from '@/shared/hooks/useRecentAnalyses'
 import { useRecordCurrentCompany } from '@/shared/hooks/useCurrentCompany'
 import { basisLabel } from '@/shared/lib/comparisonBasis'
 import { companyOverviewLink } from '@/shared/lib/currentCompany'
-import { CommunityTab } from '@/shared/community/components/CommunityTab'
+import { CommunityTab, type CommunityDraft } from '@/shared/community/components/CommunityTab'
 import { ChatEntry } from './components/ChatEntry'
-import { ChatPanel } from './components/ChatPanel'
+import { ChatPanel, type PostDraft } from './components/ChatPanel'
 import { ExportBriefButton } from './components/ExportBriefButton'
 import { FinancialTab } from './components/FinancialTab'
 import { ComparisonContextCard } from './components/ComparisonContextCard'
@@ -186,6 +186,13 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
     chat.send(message, chatContextOf(params))
     openChat()
   }
+  // 채팅의 글 초안 열기(#584): 커뮤니티 탭 글쓰기 칸을 초안으로 채운다. 본문은 주소에 넣지 않고(최대 2,000자) 화면 상태로 넘기며,
+  // 인용은 기존 인용 쿼리로 붙인다. 같은 초안을 다시 눌러도 칸을 다시 채우도록 번호를 올린다
+  const [postDraft, setPostDraft] = useState<CommunityDraft | null>(null)
+  const openPostDraft = (draft: PostDraft) => {
+    setPostDraft((prev) => ({ body: draft.body, key: (prev?.key ?? 0) + 1 }))
+    update({ tab: 'community', ...(draft.quote ?? {}) })
+  }
   return (
     <>
       {analysis.outdated && <OutdatedNotice analysis={analysis} />}
@@ -204,6 +211,7 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
         onAskChat={askChat}
         suggestions={examples}
         sectionCounts={sectionCounts}
+        postDraft={postDraft}
       />
 
       {chatOpen && !evidenceOpen ? (
@@ -215,6 +223,7 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
           onNavigate={update}
           onDownloadBrief={brief.exportBrief}
           briefState={brief.state}
+          onPostDraft={openPostDraft}
           onClose={() => setChatOpen(false)}
         />
       ) : (
@@ -234,9 +243,20 @@ interface ResultTabPanelProps extends AnalysisResultProps {
   suggestions: string[]
   /** 원문 확인 목차의 '변경 N' 배지에 쓰는 최상위 섹션별 문장 변경 건수(#313). 예시 질문과 같은 문장 변화 응답에서 온다 */
   sectionCounts: TextSectionCount[]
+  /** 채팅에서 연 글 초안(커뮤니티 탭 글쓰기 칸). 없으면 null */
+  postDraft: CommunityDraft | null
 }
 
-function ResultTabPanel({ analysis, params, update, chat, onAskChat, suggestions, sectionCounts }: ResultTabPanelProps) {
+function ResultTabPanel({
+  analysis,
+  params,
+  update,
+  chat,
+  onAskChat,
+  suggestions,
+  sectionCounts,
+  postDraft,
+}: ResultTabPanelProps) {
   const openSource = (target: SourceTarget) => update(openSourceChanges(target))
   const openText = (changeId: number) => update(openTextChanges(changeId))
   const openFinancial = (sj: SjDiv, change: number) => update(openFinancialChanges(sj, change))
@@ -309,7 +329,7 @@ function ResultTabPanel({ analysis, params, update, chat, onAskChat, suggestions
         asking={asking}
       />
     ))
-    .with('community', () => <CommunityTab corpCode={analysis.corpCode} />)
+    .with('community', () => <CommunityTab corpCode={analysis.corpCode} draft={postDraft} />)
     .with('news', () => <NewsTab corpCode={analysis.corpCode} />)
     // 보고서 선택(#659): 기업 화면의 보고서 비교를 탭 줄 아래에 그린다. 고른 값을 넣기 전에는 그리지 않아 가장 최근 보고서가 잠깐 골라지지 않는다
     .with('reports', () => (seed === null ? renderReports?.(analysis.corpCode) : null))
