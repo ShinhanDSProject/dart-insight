@@ -4,7 +4,11 @@
 """
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+# 작업별 모델의 기본값(ADR-0059). LLM_TASK_MODELS가 없으면 이 값을 쓰고,
+# 빈 값이면 작업별 모델을 쓰지 않는다
+DEFAULT_TASK_MODELS = "agent_plan=gpt-6-luna"
 
 
 @dataclass(frozen=True)
@@ -22,6 +26,7 @@ class LlmSettings:
     max_output_retries: 결과 형식·검증에 실패했을 때 다시 생성하는 횟수(AGENTS.md: 최대 2회).
     total_timeout_seconds: 요청 하나(재시도·다시 생성 포함)에 쓰는 전체 시간.
         backend의 AI 서버 응답 대기 시간(180초)보다 짧아야 호출 기록이 backend에 돌아간다.
+    task_models: 작업(task) → 모델 ID. 여기 있는 작업은 model 대신 이 모델로 부른다(ADR-0059).
     """
 
     provider: str = ""
@@ -32,6 +37,21 @@ class LlmSettings:
     max_retries: int = 2
     max_output_retries: int = 2
     total_timeout_seconds: float = 120.0
+    task_models: dict[str, str] = field(default_factory=dict)
+
+
+def parse_task_models(raw: str) -> dict[str, str]:
+    """`task=모델`을 쉼표로 이은 글자를 읽는다. 형식이 틀리면 서버를 띄울 때 ValueError."""
+    models: dict[str, str] = {}
+    for part in raw.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        task, sep, model = part.partition("=")
+        if not sep or not task.strip() or not model.strip():
+            raise ValueError(f"LLM_TASK_MODELS 형식이 틀렸습니다(task=모델): {part!r}")
+        models[task.strip()] = model.strip()
+    return models
 
 
 def _int(name: str, default: int) -> int:
@@ -45,8 +65,15 @@ def _float(name: str, default: float) -> float:
 
 
 def load_llm_settings() -> LlmSettings:
+    provider = os.environ.get("LLM_PROVIDER", "").strip().lower()
+    # 가짜 제공자는 모델을 가리지 않으므로 작업별 모델을 쓰지 않는다
+    task_models = (
+        parse_task_models(os.environ.get("LLM_TASK_MODELS", DEFAULT_TASK_MODELS))
+        if provider and provider != "fake"
+        else {}
+    )
     return LlmSettings(
-        provider=os.environ.get("LLM_PROVIDER", "").strip().lower(),
+        provider=provider,
         model=os.environ.get("LLM_MODEL", "").strip(),
         api_key=os.environ.get("LLM_API_KEY", "").strip() or None,
         reasoning_effort=os.environ.get("LLM_REASONING_EFFORT", "").strip().lower() or None,
@@ -54,4 +81,5 @@ def load_llm_settings() -> LlmSettings:
         max_retries=_int("LLM_MAX_RETRIES", 2),
         max_output_retries=min(_int("LLM_MAX_OUTPUT_RETRIES", 2), 2),
         total_timeout_seconds=_float("LLM_TOTAL_TIMEOUT_SECONDS", 120.0),
+        task_models=task_models,
     )

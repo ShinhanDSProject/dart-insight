@@ -166,6 +166,10 @@ class LlmClient:
         """
         if self.provider is None:
             raise LlmUnavailable("LLM 제공자가 설정되지 않았어요(LLM_PROVIDER).")
+        task_model = self.settings.task_models.get(request.task)
+        if task_model and request.model is None:
+            # 작업별 모델(ADR-0059). 호출 기록에는 실제로 부른 모델이 남는다
+            request = replace(request, model=task_model)
         retries = self.settings.max_output_retries
         if max_output_retries is not None:
             retries = min(max(max_output_retries, 0), retries)
@@ -279,7 +283,7 @@ class LlmClient:
         return CallRecord(
             task=request.task,
             provider=self.provider.name,
-            model=model or self.provider.model,
+            model=model or request.model or self.provider.model,
             prompt_version=request.prompt_version,
             called_at=called_at,
             trace_id=current_trace_id(),

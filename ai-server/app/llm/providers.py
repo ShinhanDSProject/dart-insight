@@ -32,6 +32,8 @@ class LlmRequest:
         가짜 응답이 그럴듯한 결과를 만들 때만 쓴다.
     timeout_seconds / total_timeout_seconds: 이 요청에만 쓰는 호출당·전체 제한시간.
         비우면 설정값이다(ADR-0057).
+    model: 이 요청에만 쓰는 모델(작업별 모델, ADR-0059). LlmClient가 채우고,
+        비우면 제공자의 모델이다.
     """
 
     task: str
@@ -43,6 +45,7 @@ class LlmRequest:
     max_output_tokens: int = 2000
     timeout_seconds: float | None = None
     total_timeout_seconds: float | None = None
+    model: str | None = None
 
 
 @dataclass(frozen=True)
@@ -168,8 +171,9 @@ class OpenAIProvider:
         return self._client
 
     def complete(self, request: LlmRequest, timeout_seconds: float) -> ProviderResponse:
+        model = request.model or self.model
         params: dict[str, Any] = {
-            "model": self.model,
+            "model": model,
             "instructions": request.system,
             "input": [{"role": "user", "content": request.user}],
             "max_output_tokens": request.max_output_tokens,
@@ -198,7 +202,7 @@ class OpenAIProvider:
             raise ProviderError(message) from e
         except openai.OpenAIError as e:
             raise ProviderError(f"OpenAI 호출 실패: {type(e).__name__}") from e
-        return _openai_response(response, self.model)
+        return _openai_response(response, model)
 
 
 def _openai_response(response: Any, fallback_model: str) -> ProviderResponse:
