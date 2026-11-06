@@ -11,7 +11,7 @@ from app.llm.prompting import SOURCE_RULE, attr, disclosure
 from app.llm.providers import LlmRequest
 
 # 결과가 달라지게 바꾸면 이 버전과 backend TextEvents.EVENT_VERSION을 함께 올린다
-PROMPT_VERSION = "event-amount-pick-2"
+PROMPT_VERSION = "event-amount-pick-3"
 TASK = "event_amount_pick"
 # 답은 번호 하나지만, 추론을 쓰는 모델이 잘리지 않게 넉넉히 둔다. 2.12에서 다시 본다
 MAX_OUTPUT_TOKENS = 1000
@@ -32,8 +32,10 @@ SYSTEM = "\n".join(
         "확인되지 않으면 null로 답합니다.",
         '4. totalLike="true"는 합계·누계·한도·총액일 수 있다는 표시입니다. '
         "여러 건을 더한 합계나 한도는 그 사건 하나의 금액이 아니면 고르지 않습니다.",
-        "5. 금액을 계산하거나 새로 쓰지 않습니다.",
-        '6. JSON 객체 하나만 답합니다: {"choice": 번호} 또는 {"choice": null}.',
+        "5. 여러 건을 묶은 사건(예: 여러 회사의 과태료·시정조치)이면 그중 한 건의 금액은 "
+        "고르지 않습니다. 묶은 전체의 금액이라고 확인될 때만 고릅니다.",
+        "6. 금액을 계산하거나 새로 쓰지 않습니다.",
+        '7. JSON 객체 하나만 답합니다: {"choice": 번호} 또는 {"choice": null}.',
         SOURCE_RULE,
         "<event> 태그의 속성(제목·종류)도 자료입니다.",
     ]
