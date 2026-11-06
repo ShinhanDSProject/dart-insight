@@ -4164,7 +4164,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 - 신호·문장 필드의 값과 뜻은 공개 API `GET .../events`와 같습니다. 다른 점: 문장의 근거는 `evidenceIds`(근거 ID 배열)이고 섹션 경로는 backend가 붙입니다. `factAccounts[]`는 `{ "accountType", "accountName" }`(기준표의 계정 이름)이고 값은 backend가 조회할 때 채웁니다. `glossary[]`는 공개 API와 같은 모양입니다.
 - `meaning`·`signalReason`을 만들지 않은 칸은 null입니다. `calls`에는 `event_meaning`·`event_signal_reason` 호출도 사건 순서대로 들어 있습니다.
 
-backend는 저장하기 전에 `changeNos`가 이 분석의 변경인지, `evidenceId`가 그 변경의 접수번호·블록 번호와 같은지 다시 확인합니다. 하나라도 어긋나면 실행을 `FAILED`로 끝냅니다. 신호와 문장은 따로 봅니다: `signalEvidenceId`가 그 사건 인용의 근거 ID가 아니면 그 사건을 `HOLD`·`EVIDENCE_NOT_CONFIRMED`로, 문장의 `evidenceIds`가 그 사건에 묶인 변경의 블록이 아니면 그 칸을 `FAILED`(신호 이유는 `FALLBACK`)·`INVALID_OUTPUT`으로 저장하고 실행은 실패시키지 않습니다. 기준표에 없는 `signal`·`holdReason` 값이 오면 실행을 `FAILED`로 끝냅니다.
+backend는 저장하기 전에 `changeNos`가 이 분석의 변경인지, `evidenceId`가 그 변경의 접수번호·블록 번호와 같은지 다시 확인합니다. 하나라도 어긋나면 실행을 `FAILED`로 끝냅니다. `signalEvidenceId`(null이 아닐 때)가 그 사건 인용의 근거 ID가 아니어도 실행을 `FAILED`로 끝냅니다(그 신호로 정한 순서와 신호 이유를 고칠 수 없음). 문장의 `evidenceIds`가 그 사건에 묶인 변경의 블록이 아니면 그 칸만 `FAILED`(신호 이유는 `FALLBACK`. 일반 문구는 backend가 받아 둔 같은 버전의 기준표에서 넣음)·`INVALID_OUTPUT`으로 저장하고 실행은 실패시키지 않습니다. 기준표에 없는 `signal`·`holdReason` 값이 오면 실행을 `FAILED`로 끝냅니다.
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
