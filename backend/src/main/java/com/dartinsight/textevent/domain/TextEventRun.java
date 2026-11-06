@@ -52,6 +52,10 @@ public class TextEventRun {
     @Column(name = "trace_id", length = 64)
     private String traceId;
 
+    /** 신호를 붙인 기준표 버전(ADR-0060). COMPLETED일 때만, event-3까지의 행은 null */
+    @Column(name = "signal_table_version", length = 30)
+    private String signalTableVersion;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -79,9 +83,10 @@ public class TextEventRun {
     }
 
     /** 결과를 저장하는 트랜잭션 안에서만 부른다 */
-    public void complete(int droppedEventCount, LocalDateTime now) {
+    public void complete(int droppedEventCount, String signalTableVersion, LocalDateTime now) {
         moveTo(TextEventRunStatus.COMPLETED);
         this.droppedEventCount = droppedEventCount;
+        this.signalTableVersion = signalTableVersion;
         finishedAt = now;
     }
 

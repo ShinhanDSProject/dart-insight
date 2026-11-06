@@ -5,8 +5,11 @@ import java.time.Duration;
 /** 주요 사건의 정해 둔 값(ADR-0050, docs/api-spec.md). */
 public final class TextEvents {
 
-    /** 사건 묶기 규칙·프롬프트·규모·순서 중 하나라도 바뀌면 올린다. 올리면 다음 시작 때 새 실행을 만든다 */
-    public static final String EVENT_VERSION = "event-3";
+    /**
+     * 사건 묶기 규칙·프롬프트·규모·순서·신호 기준표·사건 문장 중 하나라도 바뀌면 올린다. 올리면 다음 시작 때 새 실행을 만든다.
+     * event-4: 신호와 사건 문장(ADR-0060)
+     */
+    public static final String EVENT_VERSION = "event-4";
     /** 이 기간에 이만큼 실패하면 더 시작하지 않는다 */
     public static final int MAX_FAILURES = 3;
     public static final Duration FAILURE_WINDOW = Duration.ofHours(24);

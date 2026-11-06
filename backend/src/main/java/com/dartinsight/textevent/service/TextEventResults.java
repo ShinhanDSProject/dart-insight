@@ -4,18 +4,26 @@ import com.dartinsight.analysis.domain.TextChange;
 import com.dartinsight.analysis.domain.TextChangeRow.Side;
 import com.dartinsight.document.domain.DocumentBlock;
 import com.dartinsight.summary.domain.LlmCallRow;
+import com.dartinsight.textevent.domain.GlossaryTerm;
 import com.dartinsight.textevent.domain.NotCreatedReason;
+import com.dartinsight.textevent.domain.SignalTable;
 import com.dartinsight.textevent.domain.StructuredAmount;
 import com.dartinsight.textevent.domain.TextEventRow;
+import com.dartinsight.textevent.domain.TextEventRow.FactAccount;
+import com.dartinsight.textevent.domain.TextEventSentence;
+import com.dartinsight.textevent.domain.TextEventSignal;
+import com.dartinsight.textevent.domain.TextEventSignal.RowCounts;
 import com.dartinsight.textevent.dto.TextEventAiResponse;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -46,6 +54,9 @@ final class TextEventResults {
     static String problem(TextEventAiResponse response, TextEventRequestService.Input input) {
         if (response.model() == null || response.promptVersion() == null || time(response.generatedAt()) == null) {
             return "모델 이름·프롬프트 버전·호출 시각이 없습니다.";
+        }
+        if (response.signalTableVersion() == null) {
+            return "기준표 버전이 없습니다.";
         }
         if (response.events() == null || response.events().isEmpty()) {
             return "사건이 없습니다.";
@@ -88,6 +99,25 @@ final class TextEventResults {
         if (scale != null && !structured.contains(scale) && !inLinkedBlock(scale, event, sent)) {
             return "규모의 근거 " + scale + "이 묶인 변경이나 공시 금액이 아닙니다.";
         }
+        return signalProblem(event);
+    }
+
+    /** 신호 근거가 어긋나면 그 신호로 정한 순서와 신호 이유를 고칠 수 없어 실행을 실패시킨다(ADR-0060) */
+    private static String signalProblem(TextEventAiResponse.Event event) {
+        if (!signal(event).valid()) {
+            return "신호 " + event.signal() + "·보류 사유 " + event.holdReason() + "이 정해진 값이 아닙니다.";
+        }
+        String evidence = event.signalEvidenceId();
+        if (evidence != null && quotes(event).stream().noneMatch(quote -> evidence.equals(quote.evidenceId()))) {
+            return "신호의 근거 " + evidence + "이 그 사건의 인용이 아닙니다.";
+        }
+        if (event.meaning() == null || !sentence(event.meaning()).validFor(TextEventSentence.MEANING)) {
+            return "공시의 의미가 없거나 상태가 정해진 값이 아닙니다.";
+        }
+        if (event.signalReason() != null
+                && !sentence(event.signalReason()).validFor(TextEventSentence.SIGNAL_REASON)) {
+            return "신호 이유의 상태가 정해진 값이 아닙니다.";
+        }
         return null;
     }
 
@@ -109,15 +139,65 @@ final class TextEventResults {
         return CURRENT.equals(side) ? change.row().current() : null;
     }
 
-    /** {@link #problem}이 null인 응답만 넘긴다 */
-    static List<TextEventRow> rows(TextEventAiResponse response, Map<Integer, TextChange> sent) {
-        return response.events().stream().map(event -> new TextEventRow(event.sortOrder(), event.title(),
-                event.kind(), event.scaleAmount(), event.scaleAmountText(), event.currency(), event.scaleAmountKrw(),
-                event.scaleRatio(), event.scaleNotComputedReason(), event.scaleEvidenceId(), event.amountSource(),
-                event.fxSource(), event.fxRateDate() == null ? null : LocalDate.parse(event.fxRateDate()),
-                event.sortBasis(), response.model(), response.promptVersion(), time(response.generatedAt()),
-                event.changeNos().stream().sorted().toList(),
-                quotes(event).stream().map(quote -> quote(quote, sent)).toList())).toList();
+    /**
+     * {@link #problem}이 null인 응답만 넘긴다. 문장의 근거가 묶인 변경의 블록이 아니면 그 칸만 실패(신호 이유는 기준표의 일반
+     * 문구)로 바꾼다(ADR-0060).
+     *
+     * @param table 같은 버전의 기준표. 신호 이유를 일반 문구로 바꿀 때만 부른다
+     */
+    static List<TextEventRow> rows(TextEventAiResponse response, Map<Integer, TextChange> sent,
+            Supplier<SignalTable> table) {
+        return response.events().stream().map(event -> {
+            Set<String> blocks = linkedBlocks(event, sent);
+            TextEventSignal signal = signal(event);
+            TextEventSentence meaning = sentence(event.meaning());
+            TextEventSentence reason = event.signalReason() == null ? null : sentence(event.signalReason());
+            return new TextEventRow(event.sortOrder(), event.title(), event.kind(), event.scaleAmount(),
+                    event.scaleAmountText(), event.currency(), event.scaleAmountKrw(), event.scaleRatio(),
+                    event.scaleNotComputedReason(), event.scaleEvidenceId(), event.amountSource(), event.fxSource(),
+                    event.fxRateDate() == null ? null : LocalDate.parse(event.fxRateDate()), event.sortBasis(),
+                    response.model(), response.promptVersion(), time(response.generatedAt()), signal,
+                    list(event.glossary()).stream().map(t -> new GlossaryTerm(t.term(), t.meaning(), t.source()))
+                            .toList(),
+                    list(event.factAccounts()).stream()
+                            .map(a -> new FactAccount(a.accountType(), a.accountName())).toList(),
+                    event.changeNos().stream().sorted().toList(),
+                    quotes(event).stream().map(quote -> quote(quote, sent)).toList(),
+                    meaning.citesOnly(blocks) ? meaning : meaning.failed(),
+                    reason == null || reason.citesOnly(blocks) ? reason
+                            : reason.fallback(table.get().generalTexts(signal)));
+        }).toList();
+    }
+
+    /** 사건에 묶인 변경의 블록 근거 ID(이전·이번 쪽) */
+    private static Set<String> linkedBlocks(TextEventAiResponse.Event event, Map<Integer, TextChange> sent) {
+        Set<String> blocks = new HashSet<>();
+        event.changeNos().stream().map(sent::get).forEach(change -> {
+            for (Side side : new Side[] {change.row().previous(), change.row().current()}) {
+                if (side != null && side.blockNo() != null) {
+                    blocks.add(DocumentBlock.evidenceId(side.rceptNo(), side.blockNo()));
+                }
+            }
+        });
+        return blocks;
+    }
+
+    private static TextEventSignal signal(TextEventAiResponse.Event event) {
+        TextEventAiResponse.RowCounts counts = event.rowCounts();
+        return new TextEventSignal(event.kindCode(), event.changeCode(), event.changeName(), event.signal(),
+                event.holdReason(), event.signalEvidenceId(),
+                counts == null ? null : new RowCounts(counts.changed(), counts.added(), counts.missing()));
+    }
+
+    private static TextEventSentence sentence(TextEventAiResponse.Sentence sentence) {
+        return new TextEventSentence(sentence.status(), sentence.failReason(),
+                list(sentence.items()).stream().map(item -> new TextEventSentence.Item(item.type(),
+                        list(item.absentTopics()), item.text(), list(item.evidenceIds()))).toList(),
+                sentence.model(), sentence.promptVersion(), time(sentence.generatedAt()));
+    }
+
+    private static <T> List<T> list(List<T> values) {
+        return values == null ? List.of() : values;
     }
 
     private static TextEventRow.Quote quote(TextEventAiResponse.Quote quote, Map<Integer, TextChange> sent) {

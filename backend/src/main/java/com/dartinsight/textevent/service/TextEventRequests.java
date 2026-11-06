@@ -9,6 +9,7 @@ import com.dartinsight.document.domain.DocumentBlock;
 import com.dartinsight.textevent.domain.StructuredAmount;
 import com.dartinsight.textevent.dto.TextEventAiRequest;
 import com.dartinsight.textevent.dto.TextEventAiRequest.ChangeItem;
+import com.dartinsight.textevent.dto.TextEventAiRequest.RowCounts;
 import com.dartinsight.textevent.dto.TextEventAiRequest.StructuredAmountItem;
 import java.util.List;
 import java.util.Map;
@@ -63,13 +64,23 @@ final class TextEventRequests {
                 listing.raisedFromNote(), row.sectionPath() == null ? "" : row.sectionPath(),
                 previous == null ? null : previous.blockNo(), current == null ? null : current.blockNo(),
                 previous == null ? null : previous.text(), current == null ? null : current.text(),
-                precedingText(change, blocks), changedUnitCount(listing.rowDiff()));
+                precedingText(change, blocks), changedUnitCount(listing.rowDiff()), rowCounts(listing.rowDiff()));
     }
 
     /** 표는 바뀐 행 수, 행을 비교하지 못한 표와 표 아닌 변경은 1 */
     private static int changedUnitCount(RowDiff rowDiff) {
-        return rowDiff != null && COMPARED.equals(rowDiff.status()) && rowDiff.counts() != null
-                ? rowDiff.counts().changed() : 1;
+        return compared(rowDiff) ? rowDiff.counts().changed() : 1;
+    }
+
+    /** 행을 비교한 표만. 같은 행 수는 보내지 않는다 */
+    private static RowCounts rowCounts(RowDiff rowDiff) {
+        return compared(rowDiff)
+                ? new RowCounts(rowDiff.counts().changed(), rowDiff.counts().added(), rowDiff.counts().missing())
+                : null;
+    }
+
+    private static boolean compared(RowDiff rowDiff) {
+        return rowDiff != null && COMPARED.equals(rowDiff.status()) && rowDiff.counts() != null;
     }
 
     private static String precedingText(TextChange change, Map<String, Map<Integer, DocumentBlock>> blocks) {

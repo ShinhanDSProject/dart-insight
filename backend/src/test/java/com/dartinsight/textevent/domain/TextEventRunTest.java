@@ -21,17 +21,18 @@ class TextEventRunTest {
         TextEventRun run = pending();
 
         run.start(NOW);
-        run.complete(2, NOW.plusMinutes(1));
+        run.complete(2, "signal-table-2", NOW.plusMinutes(1));
 
         assertThat(run.getStatus()).isEqualTo(TextEventRunStatus.COMPLETED);
         assertThat(run.getDroppedEventCount()).isEqualTo(2);
+        assertThat(run.getSignalTableVersion()).isEqualTo("signal-table-2");
         assertThat(run.getFinishedAt()).isEqualTo(NOW.plusMinutes(1));
     }
 
     @Test
     @DisplayName("RUNNING을 거치지 않고 COMPLETED로 바꾸면 거부한다")
     void completingWithoutRunningIsRejected() {
-        assertThatThrownBy(() -> pending().complete(0, NOW)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> pending().complete(0, null, NOW)).isInstanceOf(IllegalStateException.class);
     }
 
     @Test

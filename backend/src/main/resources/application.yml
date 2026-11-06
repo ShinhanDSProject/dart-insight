@@ -100,8 +100,9 @@ app:
     read-timeout: 180s
     # 연결 상태 확인은 짧게 기다린다
     health-timeout: 3s
-    # 주요 사건은 ai-server 최악 840초(묶기 480 + 금액 240 + 마지막 금액 호출 120)보다 길게 기다린다(ADR-0057)
-    text-events-read-timeout: 900s
+    # 주요 사건은 ai-server 최악 1,140초(묶기 480 + 금액 240 + 문장 예산 300 + 예산 끝에 시작한 문장 호출 120)보다
+    # 길게 기다린다(ADR-0060, ADR-0057의 900초를 대체)
+    text-events-read-timeout: 1200s
   agent:
     # 채팅 한 번의 ai-server 왕복 상한과 전체 시간(ADR-0044). 이미 시작한 왕복은 끊지 않아 조금 넘을 수 있다
     max-steps: 5

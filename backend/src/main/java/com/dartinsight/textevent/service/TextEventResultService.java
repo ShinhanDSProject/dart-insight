@@ -23,11 +23,11 @@ public class TextEventResultService {
 
     @Transactional
     public void saveAndComplete(Long runId, List<TextEventRow> events, List<Integer> unboundChangeNos,
-            int droppedEventCount, List<LlmCallRow> calls, LocalDateTime now) {
+            int droppedEventCount, String signalTableVersion, List<LlmCallRow> calls, LocalDateTime now) {
         TextEventRun run = runRepository.findById(runId)
                 .orElseThrow(() -> new IllegalStateException("사건 실행이 없습니다: " + runId));
         store.saveAll(runId, events, unboundChangeNos);
         analysisResultService.saveCalls(run.getAnalysisId(), calls);
-        run.complete(droppedEventCount, now);
+        run.complete(droppedEventCount, signalTableVersion, now);
     }
 }
