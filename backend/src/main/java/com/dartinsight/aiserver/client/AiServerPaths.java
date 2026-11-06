@@ -17,6 +17,8 @@ public final class AiServerPaths {
     public static final String AGENT_STEPS = "/internal/agent-steps";
     /** 주요 사건 만들기(ADR-0050) */
     public static final String TEXT_EVENTS = "/internal/text-events";
+    /** 사건 신호 기준표(ADR-0060). 파일은 ai-server에만 있다 */
+    public static final String SIGNAL_TABLES = "/internal/signal-tables/current";
     public static final String DOCUMENT_PARSER = "/internal/documents/parser";
 
     private AiServerPaths() {
