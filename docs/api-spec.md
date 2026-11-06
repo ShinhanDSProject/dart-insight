@@ -2836,7 +2836,7 @@
 {
   "analysisId": 42,
   "eventVersion": "event-4",
-  "signalTableVersion": "signal-table-1",
+  "signalTableVersion": "signal-table-2",
   "generatedAt": "2026-11-05T10:13:02",
   "droppedEventCount": 0,
   "fieldCounts": [{ "field": "LITIGATION", "eventCount": 2 }],
@@ -2969,7 +2969,7 @@
   - `status`: `GENERATED` AI 문장, `FALLBACK` 대체 표시(신호 이유만. 기준표의 일반 문구이고 화면은 '일반적인 설명이에요.'를 붙임. `MIXED_LITIGATION`이면 `items`가 비고 화면은 판정 줄과 `rowCounts`만 보임), `FAILED` 문장 없음(공시의 의미만. 화면은 `glossary`가 있으면 그것만 보임)
   - `failReason`: `GENERATED`면 null. `INVALID_OUTPUT` 다시 만들어도 검증·표현 검사를 통과하지 못함, `LLM_UNAVAILABLE` LLM을 쓸 수 없거나 호출이 끝내 실패함, `BUDGET_EXCEEDED` 문장 단계 시간 예산을 넘겨 부르지 못함
   - `aiGenerated`: `GENERATED`면 true. `FALLBACK`·`FAILED`는 false(코드 문구)
-  - `items[].type`: 공시의 의미는 `FACT` 공시에 적힌 사실과 뜻, `ABSENT` 공시에 없는 것('없음' 문장. `evidence`는 확인한 범위). 신호 이유는 `REASON` 주의·긍정의 근거(2~3개), `GOOD`·`BAD` 좋은 면·나쁜 면(`MIXED_SIDES`), `WHY_HOLD` 한쪽으로 판단하지 않은 이유(`MIXED_LITIGATION`), `GENERAL` 대체 표시의 일반 문구(근거 없음, `evidence`는 `[]`)
+  - `items[].type`: 공시의 의미는 `FACT` 공시에 적힌 사실과 뜻, `ABSENT` 공시에 없는 것('없음' 문장. `evidence`는 확인한 범위). 신호 이유는 `REASON` 주의·긍정의 근거(2~3개), `GOOD`·`BAD` 좋은 면·나쁜 면(`MIXED_SIDES`), `WHY_HOLD` 한쪽으로 판단하지 않은 이유(`MIXED_LITIGATION`), `GENERAL` 대체 표시의 일반 문구(근거 없음, `evidence`는 `[]`). 주의·긍정은 그 변화의 `general` 하나, `MIXED_SIDES`는 `generalSides`의 좋은 면, 나쁜 면 순서로 두 개입니다
   - `items[].absentTopics`: `ABSENT`일 때 없다고 쓴 항목 `AMOUNT` 금액, `SCHEDULE` 일정, `PNL_IMPACT` 손익 영향, `FOLLOW_UP` 후속 조치, `BURDEN` 회사 부담. 그 밖에는 `[]`
   - `items[].evidence[]`: 그 사건에 묶인 변경의 블록 `{rcept_no}#B{block_no}`와 섹션 경로. `GENERAL`이 아니면 하나 이상
   - `model`·`promptVersion`·`generatedAt`: 마지막으로 부른 호출. 부르지 않았으면(`BUDGET_EXCEEDED`, LLM 미설정) null
@@ -3010,7 +3010,7 @@
 
 ```json
 {
-  "version": "signal-table-1",
+  "version": "signal-table-2",
   "signalNotice": "공시상 신호이며 투자 판단이 아니에요.",
   "kinds": [
     {
@@ -3018,8 +3018,10 @@
       "name": "제재",
       "front": false,
       "changes": [
-        { "code": "OCCURRED", "name": "새로 발생", "signal": "CAUTION", "explicitOnly": false },
-        { "code": "CANCELLED", "name": "취소", "signal": "POSITIVE", "explicitOnly": true }
+        { "code": "OCCURRED", "name": "새로 발생", "signal": "CAUTION", "explicitOnly": false,
+          "general": "당국이나 기관의 제재를 받은 것이라, 과징금·과태료나 영업 제한 같은 부담이 생길 수 있어요." },
+        { "code": "CANCELLED", "name": "취소", "signal": "POSITIVE", "explicitOnly": true,
+          "general": "제재가 취소됐다고 적힌 것이라, 그 제재로 생길 부담이 없어질 수 있어요." }
       ],
       "accounts": [],
       "accountsByType": null,
@@ -3031,6 +3033,7 @@
 ```
 
 - `changes[].signal`: `CAUTION`, `POSITIVE`, `MIXED`(좋은 면·나쁜 면이 함께 있어 보류), null(기준 없음, 보류). 사건 응답의 `signal`은 `MIXED`와 null을 `HOLD`로 바꾼 값입니다
+- `changes[].general`: `CAUTION`·`POSITIVE` 변화의 일반 문구(#735). 신호 이유가 대체 표시(`FALLBACK`)일 때 씁니다. 그 밖의 변화는 null
 - `generalSides`: `MIXED` 변화가 있는 종류의 `{ "good", "bad" }` 일반 문구. 그 밖에는 null
 - 기준표에 없는 필드(`note`, `sourceCandidate`, `sourceStatus`)는 내보내지 않습니다
 
@@ -4110,7 +4113,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
   "notCreatedReason": null,
   "model": "모델 이름",
   "promptVersion": "text-event-3",
-  "signalTableVersion": "signal-table-1",
+  "signalTableVersion": "signal-table-2",
   "generatedAt": "2026-11-05T10:13:02",
   "droppedEventCount": 0,
   "events": [
