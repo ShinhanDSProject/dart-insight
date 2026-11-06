@@ -29,11 +29,14 @@ from app.llm.providers import (
     LlmRequest,
     Provider,
     ProviderError,
+    ProviderQuotaError,
     ProviderTransientError,
     create_provider,
 )
 
 logger = logging.getLogger("app.llm")
+# 사용 한도(결제·지출 한도)를 다 썼을 때. 기다려도 풀리지 않아 다시 시도하지 않는다
+QUOTA_MESSAGE = "AI 사용 한도에 도달해 지금은 AI를 쓸 수 없어요. 운영자가 한도를 올려야 해요."
 KST = timezone(timedelta(hours=9))
 
 # 호출 결과(CallRecord.outcome)
@@ -249,6 +252,8 @@ class LlmClient:
                 )
                 calls.append(record)
                 _log(record)
+                if isinstance(e, ProviderQuotaError):
+                    raise LlmUnavailable(QUOTA_MESSAGE, calls) from e
                 raise LlmUnavailable("LLM을 부르지 못했어요(설정·인증 확인 필요).", calls) from e
             record = self._record(
                 request,

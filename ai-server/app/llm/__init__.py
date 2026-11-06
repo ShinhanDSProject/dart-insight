@@ -9,7 +9,13 @@ from app.llm.client import (
     LlmUnavailable,
     OutputProblem,
 )
-from app.llm.providers import FakeProvider, LlmRequest, ProviderError, ProviderTransientError
+from app.llm.providers import (
+    FakeProvider,
+    LlmRequest,
+    ProviderError,
+    ProviderQuotaError,
+    ProviderTransientError,
+)
 
 __all__ = [
     "CallRecord",
@@ -22,5 +28,6 @@ __all__ = [
     "LlmUnavailable",
     "OutputProblem",
     "ProviderError",
+    "ProviderQuotaError",
     "ProviderTransientError",
 ]
