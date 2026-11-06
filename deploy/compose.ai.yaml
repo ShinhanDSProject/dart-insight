@@ -1,0 +1,14 @@
+name: dart-insight-ai
+
+services:
+  ai:
+    env_file:
+      - ./ai.env
+    build:
+      context: ../ai-server
+    restart: unless-stopped
+    environment:
+      LLM_PROVIDER: openai
+      LLM_MODEL: gpt-6.1-sol
+    ports:
+      - "192.168.0.215:8000:8000"

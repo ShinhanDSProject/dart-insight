@@ -1,0 +1,6 @@
+services:
+  backend:
+    image: dart-insight-backend:719423812c20b0377a3332e442c4721100425dd7
+
+  web:
+    image: dart-insight-web:719423812c20b0377a3332e442c4721100425dd7
