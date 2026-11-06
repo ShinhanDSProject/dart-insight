@@ -296,6 +296,14 @@ describe('TextEventsSection 신호와 사건 문장', () => {
     expect(within(screen.getByRole('article', { name: '보류 사건' })).getByText('보류')).toBeTruthy()
   })
 
+  it('사건 종류가 기준표 목록에 없으면 종류 배지 없이 보류로 보인다(AC9)', () => {
+    show([event({ kind: '그 밖의 사건', kindCode: 'OTHER', changeCode: 'OTHER', changeName: null, signal: 'HOLD', holdReason: 'NO_CRITERIA' })])
+
+    const card = within(screen.getByRole('article', { name: '과징금을 새로 부과받았어요' }))
+    expect(card.getByText('보류')).toBeTruthy()
+    expect(card.queryByText('그 밖의 사건')).toBeNull()
+  })
+
   it('기준표를 받으면 기준표의 안내가 사건 절에 보인다', () => {
     show([event()])
 

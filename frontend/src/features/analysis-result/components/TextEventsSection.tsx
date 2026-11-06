@@ -7,7 +7,7 @@ import { Badge, Button, Card, Notice, Skeleton } from '@/shared/ui'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { displaySectionPath } from '@/shared/lib/sectionTitle'
 import { useSignalTable, useTextEventDetail } from '../hooks/useTextEvents'
-import { signalBadge } from '../model/eventSignal'
+import { kindBadge, signalBadge } from '../model/eventSignal'
 import {
   CHANGE_QUOTES_TITLE,
   EVENT_CHANGES_PAGE_SIZE,
@@ -183,6 +183,7 @@ function TextEventCard({ analysis, item, onOpenEvidence, onOpenCriteria, renderC
   const quotes = eventQuotes(item)
   const scale = eventScaleView(item)
   const signal = signalBadge(item.signal)
+  const kind = kindBadge(item)
   const quoteList = (entries: TextEventQuote[]) =>
     entries.map((quote, index) => <QuoteBlock key={`${quote.evidenceId}-${index}`} quote={quote} onOpenEvidence={onOpenEvidence} />)
   return (
@@ -191,7 +192,7 @@ function TextEventCard({ analysis, item, onOpenEvidence, onOpenCriteria, renderC
         <h4 className="text-event__title">{item.title}</h4>
         <Badge tone={signal.tone}>{signal.label}</Badge>
         <Badge tone="accent">AI 생성</Badge>
-        <Badge>{item.kind}</Badge>
+        {kind !== null && <Badge>{kind}</Badge>}
       </div>
       {scale !== null && (
         <dl className="text-event__scale">

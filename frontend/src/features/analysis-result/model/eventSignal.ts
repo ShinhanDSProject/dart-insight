@@ -41,6 +41,14 @@ export function signalBadge(signal: TextEventSignal): { label: string; tone: Sig
     .exhaustive()
 }
 
+/** AI가 기준표 목록 밖의 종류를 골랐을 때의 코드(docs/api-spec.md) */
+const OTHER_KIND = 'OTHER'
+
+/** 사건 종류 배지. 기준표 목록에 있는 종류만 보이고, 목록 밖이면 배지 없이 둔다(AC9) */
+export function kindBadge(item: Pick<TextEventItem, 'kind' | 'kindCode'>): string | null {
+  return item.kindCode === OTHER_KIND ? null : item.kind
+}
+
 /** 보류 사유의 코드 문구(docs/api-spec.md) */
 export function holdReasonText(reason: TextEventHoldReason): string {
   return match(reason)

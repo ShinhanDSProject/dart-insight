@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { SignalTable, TextEventItem, TextEventSentence, TextEventSentenceItem } from '@/shared/api/textEvents'
-import { criteriaRows, holdReasonText, judgmentLine, meaningView, rowCountsLabel, signalBadge, signalReasonView } from './eventSignal'
+import { criteriaRows, holdReasonText, judgmentLine, kindBadge, meaningView, rowCountsLabel, signalBadge, signalReasonView } from './eventSignal'
 
 const PATH = 'XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 3. 제재 등'
 
@@ -42,6 +42,13 @@ describe('signalBadge', () => {
     expect(signalBadge('CAUTION')).toEqual({ label: '주의 신호', tone: 'attention' })
     expect(signalBadge('POSITIVE')).toEqual({ label: '긍정 신호', tone: 'positive' })
     expect(signalBadge('HOLD')).toEqual({ label: '보류', tone: 'neutral' })
+  })
+})
+
+describe('kindBadge', () => {
+  it('기준표 목록의 종류만 배지로 보인다', () => {
+    expect(kindBadge(event({ kindCode: 'SANCTION' }))).toBe('제재')
+    expect(kindBadge(event({ kind: '그 밖의 사건', kindCode: 'OTHER' }))).toBeNull()
   })
 })
 
