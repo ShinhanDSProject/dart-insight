@@ -201,6 +201,19 @@ def test_cross_check_uses_comparable_accounts_beside_other_basis_ones() -> None:
     assert workflow.cross_check(step(results=results)).result == workflow.CONSISTENT
 
 
+def test_cross_check_counts_account_once_when_selected_on_screen() -> None:
+    # 화면에서 고른 변경(ctx-financial)과 Workflow 결과에 같은 계정이 있어도 한 번만 센다
+    selected = ToolResult(
+        "ctx-financial", "get_financial_changes", {"changeId": 1}, True, items=[change(1, "DOWN")]
+    )
+    results = [selected, *bundle([change(1, "DOWN")], [quote(1, "영업이익이 증가했습니다.")])]
+
+    check = workflow.cross_check(step(results=results))
+
+    assert check.result == workflow.POTENTIAL_MISMATCH
+    assert "1개 중 1개" in check.reason
+
+
 def test_cross_check_does_not_use_plan_followups() -> None:
     # 계획 대조는 이행 여부를 평가하지 않으므로(ADR-0041) '찾지 못함'이 있어도 결과를 바꾸지 않는다
     results = [

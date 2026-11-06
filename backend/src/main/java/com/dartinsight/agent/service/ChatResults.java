@@ -75,7 +75,7 @@ final class ChatResults {
         }
         if (ChatStatus.NOT_FOUND.name().equals(result.status())) {
             return new ChatMessageResponse(ChatStatus.NOT_FOUND.name(), null, NOT_FOUND, List.of(), actions, format,
-                    null, null, false, null);
+                    result.crossCheck(), null, false, null);
         }
         if (ChatStatus.ANSWERED.name().equals(result.status()) && fixedAnswer(response)) {
             // 정해진 요청(이동·저장 확인, #631): ai-server가 LLM 없이 정해진 안내로 답함. 근거 표시가 없다.
@@ -89,7 +89,7 @@ final class ChatResults {
         }
         if (!ChatStatus.ANSWERED.name().equals(result.status())) {
             String reason = result.reviewReason() == null ? NOT_VERIFIED : result.reviewReason();
-            return status(ChatStatus.REVIEW_NEEDED, reason);
+            return reviewNeeded(reason, result.crossCheck());
         }
         AnswerMarkers.Converted converted = AnswerMarkers.convert(result.answer(), evidence.keySet(), Set.of());
         // 글자 수는 ai-server(파이썬 len)와 같게 코드 포인트로 센다(이모지 등 보조 문자를 1자로)
@@ -97,7 +97,7 @@ final class ChatResults {
                 || converted.answer().codePointCount(0, converted.answer().length()) > MAX_ANSWER_CHARS) {
             // ai-server가 이미 Tool 결과와 대조했으므로 여기서 걸리면 오류다(ADR-0044)
             log.error("에이전트 답의 근거 ID가 이 채팅의 Tool 결과에 없어 검토 필요로 끝냅니다");
-            return status(ChatStatus.REVIEW_NEEDED, NOT_VERIFIED);
+            return reviewNeeded(NOT_VERIFIED, result.crossCheck());
         }
         List<Citation> citations = new ArrayList<>();
         for (String id : converted.evidenceIds()) {
@@ -108,6 +108,12 @@ final class ChatResults {
         return new ChatMessageResponse(ChatStatus.ANSWERED.name(), converted.answer(), null, citations,
                 AgentActions.withPostBody(checked, postBody(converted.answer())), format, result.crossCheck(),
                 AskedQuestion.ratedBy(asked, converted.evidenceIds()), true, ai);
+    }
+
+    /** 검토 필요. 답은 내보내지 않지만 교차 검증 결과는 코드가 정한 값이라 그대로 둔다(#581) */
+    private static ChatMessageResponse reviewNeeded(String reason, Object crossCheck) {
+        return new ChatMessageResponse(ChatStatus.REVIEW_NEEDED.name(), null, reason, List.of(), List.of(),
+                AgentStep.FORMAT_CHAT, crossCheck, null, false, null);
     }
 
     /** 게시판 글 초안 본문: 검토를 통과한 답에서 근거 표시([1])를 빼고 글 본문 길이까지 */

@@ -386,6 +386,19 @@ class AgentChatApiTest {
     }
 
     @Test
+    @DisplayName("답이 검토 필요로 끝나도 코드가 정한 교차 검증 결과는 그대로 내보낸다(#581)")
+    void reviewNeededKeepsCrossCheck() throws Exception {
+        AI.on(STEPS, Reply.ok(finalAnswer("REVIEW_NEEDED", null, "", "").replace("\"crossCheck\":null",
+                "\"crossCheck\":{\"result\":\"INSUFFICIENT_EVIDENCE\",\"reason\":\"인용이 없어요.\"}")));
+
+        chat("회사 설명과 재무 수치가 일치해?")
+                .andExpect(jsonPath("$.status").value("REVIEW_NEEDED"))
+                .andExpect(jsonPath("$.answer").doesNotExist())
+                .andExpect(jsonPath("$.crossCheck.result").value("INSUFFICIENT_EVIDENCE"))
+                .andExpect(jsonPath("$.crossCheck.reason").value("인용이 없어요."));
+    }
+
+    @Test
     @DisplayName("투자 판단 요청은 OUT_OF_SCOPE 안내로 끝난다")
     void outOfScopeEndsWithMessage() throws Exception {
         AI.on(STEPS, Reply.ok("""
