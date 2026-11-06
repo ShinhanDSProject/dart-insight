@@ -7,6 +7,9 @@
       "name": "ADR 나스닥 상장과 제3자배정 유상증자(USD 26,507,100,000)",
       "kind": "증자",
       "core": true,
+      "signalKind": "RIGHTS_OFFERING",
+      "signalChange": "DECIDED",
+      "signalEvidence": "제3자 배정방식으로 신규 발행하였으며",
       "changes": [
         {
           "previousBlock": null,
@@ -34,6 +37,9 @@
       "name": "M15·M15X 불소가스 화재, 청주 작업중지와 가동중지 명령",
       "kind": "안전사고",
       "core": true,
+      "signalKind": "SAFETY_ACCIDENT",
+      "signalChange": "OCCURRED",
+      "signalEvidence": "반응(추정)에 의한 화재 발생",
       "changes": [
         {
           "previousBlock": null,
@@ -57,6 +63,9 @@
       "name": "중대재해 내역 신규 기재(업무상 질병 사망)",
       "kind": "안전사고",
       "core": true,
+      "signalKind": "SAFETY_ACCIDENT",
+      "signalChange": "OCCURRED",
+      "signalEvidence": "2026.06.25 | 2026.06.26 | 사외 | 업무상 질병 | 1",
       "changes": [
         {
           "previousBlock": null,
@@ -68,6 +77,9 @@
       "name": "중국 반독점법 조사 문구 삭제와 소송 부채 인식액 없음 추가",
       "kind": "소송",
       "core": false,
+      "signalKind": "LITIGATION",
+      "signalChange": "PROGRESSED",
+      "signalEvidence": "당반기말 현재 관련하여 부채로 인식하고 있는 금액은 없습니다.",
       "changes": [
         {
           "previousBlock": 633,
@@ -91,6 +103,9 @@
       "name": "회사채 미상환 잔액 감소(15.3조원→11.9조원)",
       "kind": "자금 조달",
       "core": false,
+      "signalKind": "BORROWING",
+      "signalChange": "DECREASED",
+      "signalEvidence": "미상환 잔액",
       "changes": [
         {
           "previousBlock": 1086,
@@ -102,6 +117,9 @@
       "name": "화학물질관리법 등 과태료 추가",
       "kind": "제재",
       "core": false,
+      "signalKind": "SANCTION",
+      "signalChange": "OCCURRED",
+      "signalEvidence": "과태료 728만원을 납부하였습니다",
       "changes": [
         {
           "previousBlock": null,
