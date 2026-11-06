@@ -2845,7 +2845,7 @@
 
 ### GET /api/analyses/{analysisId}/events — 주요 사건 목록
 
-- 이슈: #642 (2.13), #646 (3.36) · 화면: 문장 변화 탭 주요 사건 카드, 분야별 표의 사건 수
+- 이슈: #642 (2.13), #646 (3.36), #736 (3.40) · 화면: 문장 변화 탭 주요 사건 카드, 분야별 표의 사건 수
 - 현재 사건 버전의 `COMPLETED` 실행만 돌려줍니다. 순서는 코드가 정한 `sortOrder`입니다(2.16).
 - 한 변경이 여러 사건에 묶일 수 있습니다. 규모(`scaleAmount`)는 사건마다 보여 주고 **더하지 않습니다.** 코드가 공시에서 읽은 금액만 쓰고, 없으면 null입니다.
 - `fieldCounts`는 칸마다 관련 사건을 한 번만 셉니다. 묶인 변경이 속한 모든 칸에서 세므로 칸을 더한 값은 사건 수와 다를 수 있습니다.
@@ -2857,7 +2857,7 @@
 
 | 위치 | 이름 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- | --- |
-| query | `signal` | string | 아니오 | `CAUTION`, `POSITIVE`, `HOLD` 중 하나면 그 신호의 사건만(#738). 그 밖의 값이면 400 `COMMON_INVALID_INPUT` |
+| query | `signal` | string | 아니오 | `CAUTION`, `POSITIVE`, `HOLD` 중 하나면 그 신호의 사건만(#736, 화면은 #738). 그 밖의 값이면 400 `COMMON_INVALID_INPUT` |
 
 - 거르면 `items`만 줄고 `sortOrder`는 그대로입니다. `fieldCounts`, `signalCounts`, `unboundChanges`, `droppedEventCount`는 거르기와 상관없이 전체 사건으로 셉니다.
 
@@ -3536,7 +3536,7 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 
 외부에 열지 않습니다. 요청 헤더에 항상 `X-Trace-Id`를 넣습니다. 에러 형식은 외부 API와 같습니다. AI 서버만 쓰는 에러 코드는 `AI_`로 시작합니다(아래 표).
 
-**실패한 요청의 LLM 호출 기록(`X-Llm-Calls`, #137, [ADR-0042](adr/0042-failed-llm-calls-in-response-header.md))**: LLM을 부르다 끝내 쓸 수 없게 된 요청(503 `AI_LLM_UNAVAILABLE`)도 그때까지 부른 기록이 있으면 응답 헤더 `X-Llm-Calls`에 담습니다. 값은 호출 기록 배열(200 응답의 `calls`와 같은 객체 모양)을 UTF-8 JSON으로 만든 뒤 base64url(패딩 있음)로 바꾼 글자입니다. 기록이 없으면(제공자 미설정 등) 헤더를 넣지 않습니다. 에러 본문은 공통 형식 그대로입니다. 지금은 `POST /internal/summaries`만 넣고, backend는 분석 실패 때 이 기록을 `llm_call`에 저장합니다. `POST /internal/text-events`(구현 전, ADR-0050·0051)도 503과 502 `AI_EVENTS_INVALID_OUTPUT`에 같은 헤더를 넣습니다.
+**실패한 요청의 LLM 호출 기록(`X-Llm-Calls`, #137, [ADR-0042](adr/0042-failed-llm-calls-in-response-header.md))**: LLM을 부르다 끝내 쓸 수 없게 된 요청(503 `AI_LLM_UNAVAILABLE`)도 그때까지 부른 기록이 있으면 응답 헤더 `X-Llm-Calls`에 담습니다. 값은 호출 기록 배열(200 응답의 `calls`와 같은 객체 모양)을 UTF-8 JSON으로 만든 뒤 base64url(패딩 있음)로 바꾼 글자입니다. 기록이 없으면(제공자 미설정 등) 헤더를 넣지 않습니다. 에러 본문은 공통 형식 그대로입니다. 지금은 `POST /internal/summaries`만 넣고, backend는 분석 실패 때 이 기록을 `llm_call`에 저장합니다. `POST /internal/text-events`(ADR-0050·0051)도 503과 502 `AI_EVENTS_INVALID_OUTPUT`에 같은 헤더를 넣습니다.
 
 | 메서드 | 경로 | 설명 | 이슈 | 상태 |
 | --- | --- | --- | --- | --- |
@@ -4086,7 +4086,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 
 ### POST /internal/text-events — 문장 변경을 주요 사건으로 묶기
 
-> 상태: 초안([ADR-0050](adr/0050-text-events-after-analysis.md), [ADR-0051](adr/0051-text-event-candidate-rules.md), [ADR-0057](adr/0057-text-event-llm-limits.md), [ADR-0060](adr/0060-event-signal-and-sentences.md)). 신호·사건 문장(2.20)은 구현 전입니다(#733~#736).
+> 상태: 초안([ADR-0050](adr/0050-text-events-after-analysis.md), [ADR-0051](adr/0051-text-event-candidate-rules.md), [ADR-0057](adr/0057-text-event-llm-limits.md), [ADR-0060](adr/0060-event-signal-and-sentences.md)). 신호·사건 문장(2.20)은 ai-server #733~#735, backend 저장·조회 #736에서 구현했습니다.
 
 - 이슈: #642 (2.13), #643 (2.14), #644 (2.15), #645 (2.16), #716 (2.19), #731 (2.20)
 - backend가 `list_group`이 `MAIN`·`UNPAIRED`·`HEADING`인 변경을 보냅니다. ai-server는 후보를 고르고(규칙은 ADR-0051, LLM·우선순위 점수를 쓰지 않음), LLM으로 묶고, 인용·근거와 표현을 검사하고, 코드로 정렬합니다. DB는 쓰지 않습니다.
@@ -4202,7 +4202,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 - 신호·문장 필드의 값과 뜻은 공개 API `GET .../events`와 같습니다. 다른 점: 문장의 근거는 `evidenceIds`(근거 ID 배열)이고 섹션 경로는 backend가 붙입니다. `factAccounts[]`는 `{ "accountType", "accountName" }`(기준표의 계정 이름)이고 값은 backend가 조회할 때 채웁니다. `glossary[]`는 공개 API와 같은 모양입니다.
 - `meaning`·`signalReason`을 만들지 않은 칸은 null입니다. `calls`에는 `event_meaning`·`event_signal_reason` 호출도 사건 순서대로 들어 있습니다.
 
-backend는 저장하기 전에 `changeNos`가 이 분석의 변경인지, `evidenceId`가 그 변경의 접수번호·블록 번호와 같은지 다시 확인합니다. 하나라도 어긋나면 실행을 `FAILED`로 끝냅니다. `signalEvidenceId`(null이 아닐 때)가 그 사건 인용의 근거 ID가 아니어도 실행을 `FAILED`로 끝냅니다(그 신호로 정한 순서와 신호 이유를 고칠 수 없음). 문장의 `evidenceIds`가 그 사건에 묶인 변경의 블록이 아니면 그 칸만 `FAILED`(신호 이유는 `FALLBACK`. 일반 문구는 backend가 받아 둔 같은 버전의 기준표에서 넣음)·`INVALID_OUTPUT`으로 저장하고 실행은 실패시키지 않습니다. 기준표에 없는 `signal`·`holdReason` 값이 오면 실행을 `FAILED`로 끝냅니다.
+backend는 저장하기 전에 `changeNos`가 이 분석의 변경인지, `evidenceId`가 그 변경의 접수번호·블록 번호와 같은지 다시 확인합니다. 하나라도 어긋나면 실행을 `FAILED`로 끝냅니다. `signalEvidenceId`(null이 아닐 때)가 그 사건 인용의 근거 ID가 아니어도 실행을 `FAILED`로 끝냅니다(그 신호로 정한 순서와 신호 이유를 고칠 수 없음). 문장의 `evidenceIds`가 그 사건에 묶인 변경의 블록이 아니면 그 칸만 `FAILED`(신호 이유는 `FALLBACK`. 일반 문구는 backend가 받아 둔 같은 버전의 기준표에서 넣음)·`INVALID_OUTPUT`으로 저장하고 실행은 실패시키지 않습니다. 같은 버전의 기준표를 받지 못하면 일반 문구를 넣을 수 없어 실행을 `FAILED`(`ANALYSIS_EVENTS_SAVE_FAILED`)로 끝냅니다. 기준표에 없는 `signal`·`holdReason` 값이 오면 실행을 `FAILED`로 끝냅니다.
 
 | 상태 | code | 언제 |
 | --- | --- | --- |
@@ -4212,7 +4212,7 @@ backend는 저장하기 전에 `changeNos`가 이 분석의 변경인지, `evide
 
 ### GET /internal/signal-tables/current — 사건 신호 기준표
 
-> 상태: 초안([ADR-0060](adr/0060-event-signal-and-sentences.md)). 구현 전입니다(#733).
+> 상태: 구현됨([ADR-0060](adr/0060-event-signal-and-sentences.md), #733. backend 공개 API는 #736).
 
 - 이슈: #731 (2.20), #733 (2.21)
 - `ai-server/app/events/signal_table.json`을 읽어 돌려줍니다. LLM과 DB를 쓰지 않습니다. 모양은 공개 API `GET /api/signal-tables/current`와 같고, 출처를 확인하지 못한 용어 풀이와 `note`·`sourceCandidate`·`sourceStatus`는 넣지 않습니다.
