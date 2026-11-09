@@ -747,3 +747,40 @@ def test_first_plan_calling_only_lookup_terms_continues_as_term_workflow() -> No
 
     # workflow 칸을 빠뜨려도 용어 찾기 하나만 부르면 용어 풀이로 이어 간다(callId 머리 term-)
     assert [(c.call_id, c.name) for c in output.tool_calls] == [("term-1", "lookup_terms")]
+
+
+def test_brief_line_citing_only_card_and_naming_company_is_rejected() -> None:
+    results = [
+        lookup(card_line("debtRatio", "부채비율")),
+        ToolResult("term-2", "search_text_changes", {"q": "부채비율"}, True),
+    ]
+    bad = "- 부채비율은 부채비율의 뜻이에요 [GdebtRatio]\n- 이 회사는 예시처럼 30%예요 [GdebtRatio]"
+    good = "- 부채비율은 부채비율의 뜻이에요 [GdebtRatio]\n- 예를 들어 30%예요 [GdebtRatio]"
+    client, _ = llm(
+        {"status": "ANSWERED", "answer": bad, "evidenceIds": ["GdebtRatio"], "actions": []},
+        {"status": "ANSWERED", "answer": good, "evidenceIds": ["GdebtRatio"], "actions": []},
+    )
+
+    # 정리 형식(BRIEF)도 줄마다 카드만 인용한 줄의 회사 지칭을 반려한다
+    output = run_step(client, term_step("부채비율 2줄로 정리해줘", results))
+
+    assert output.rejections[0].rules == ["GLOSSARY_COMPANY_REFERENCE"]
+    assert output.final is not None
+    assert output.final.answer == good
+
+
+def test_quote_only_fallback_is_dropped_when_quote_has_blocked_expression() -> None:
+    quote = "리스부채는 목표주가를 넘었습니다."
+    invented = {
+        "status": "ANSWERED",
+        "answer": f"{workflow.REPORT_QUOTE} 쉽게 말하면 빌린 돈이에요[{BLOCK_ID}].",
+        "evidenceIds": [BLOCK_ID],
+        "actions": [],
+    }
+    client, _ = llm(invented, invented, invented)
+
+    output = run_step(client, term_step("리스부채가 뭐야?", report_results(quote)))
+
+    # 원문 문장도 표현 검사를 거쳐, 걸리면 원문 인용 대신 검토 필요로 끝낸다
+    assert output.final is not None
+    assert output.final.status == "REVIEW_NEEDED"
