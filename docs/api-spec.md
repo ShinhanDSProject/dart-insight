@@ -3407,7 +3407,7 @@
   | `FINANCIAL_CHANGE` | `F{changeId}` | `changeId`, `sjDiv`, `accountName`, `rceptNo`(현재 보고서), `sentence`(코드가 저장된 계산 결과로 만든 사실 문장) |
   | `DISCLOSURE` | `D{rceptNo}` | `rceptNo`, `reportName`, `rceptDt`, `dartUrl`(수시공시·공시 목록, 보조 근거) |
   | `REPORT_VALUE` | `{rceptNo}#V{n}` | `rceptNo`, `reportName`, `source`(`FINANCIAL_TREND`·`KEY_FACT`·`CHECKPOINT`·`DISCLOSURE_KEY_ITEM`), `label`(항목 이름), `value`·`unit`·`currency`(그 API가 준 값 그대로), `dartUrl`. `n`은 한 요청 안에서 backend가 붙인 번호이고, `rceptNo`는 값의 근거 접수번호(`sourceRceptNo`가 있으면 그것) |
-  | `GLOSSARY` | `G{key}` | `termKey`, `term`, `definition`, `sources`(카드 출처). 용어 카드 근거(ADR-0061, 제안). 화면은 누르면 카드 전체를 엶 |
+  | `GLOSSARY` | `G{key}` | `termKey`, `term`, `definition`, `sources`(카드 출처). 용어 카드 근거(ADR-0061, #769). 출처·검토를 마친 카드만 근거가 됨. 위치 필드(`rceptNo` 등)는 없음. 화면은 누르면 카드 전체를 엶 |
   | `COMPANY` | `C{corpCode}` | `corpCode`, `corpName`, `label`, `value`. 기업 개황(`get_company_overview`)이면 `label`은 `기업 개황`이고 `value`는 없음. 기업 검색(`search_companies`) 결과면 `label`은 `기업 검색`, `value`는 종목코드(비상장이면 없음) |
 
 - 재무 계정 변화·원문 문단 근거가 저장된 요약의 설명 인용이면 `grade`(`STATED`·`RELATED`)가 함께 옵니다. `grade`가 없는 근거는 이번 요청에서 Tool로 새로 찾은 문장이고, 화면은 원인 설명처럼 보이지 않게 '관련 문장'으로 표시합니다. 에이전트는 새 설명 등급을 만들지 않습니다(ADR-0015, 변경 원인 추적).
@@ -3420,7 +3420,7 @@
   | `OPEN_TEXT_CHANGE` | `changeId` | 문장 변화 탭에서 그 변경을 펼침 |
   | `OPEN_FINANCIAL_CHANGE` | `changeId` | 재무 수치 탭에서 그 계정의 근거 상세를 엶 |
   | `OPEN_DOCUMENT` | `side`, `sectionNo`, `blockNo`(선택) | 원문 뷰어에서 그 항목(문단)을 엶 |
-  | `OPEN_GLOSSARY` | `term` | 용어 카드(`GET /api/glossary-terms`, ADR-0061 제안. 지금은 `shared/lib/glossary.ts`)를 그 용어로 엶. 카드에 없으면 '등록된 용어가 없어요'(뜻을 지어내지 않음) |
+  | `OPEN_GLOSSARY` | `term` | 용어 카드(`GET /api/glossary-terms`, ADR-0061. 지금은 `shared/lib/glossary.ts`, #771에서 API로)를 그 용어로 엶. backend는 `term`이 카드 파일(검토 전 카드 포함)의 용어·별칭(공백·영문 대소문자 무시)일 때만 남기고 카드의 대표 용어로 바꿔 보냄(#769, 버튼에는 용어 이름만 담아 검토 전 카드의 내용은 나가지 않음). 화면이 그 카드를 받지 못하면 '등록된 용어가 없어요'(뜻을 지어내지 않음) |
   | `DOWNLOAD_BRIEF` | — | 비교 브리프 Markdown 내려받기(#515, LLM 없음) |
   | `CONFIRM_SAVE_NOTE` | `note`(`POST /api/notes` 본문과 같음: `kind`·`analysisId`·`changeId`·`questionId`·`citationNo`·`memo`) | 확인 버튼. 누르면 `POST /api/notes`. 로그인하지 않았으면 버튼 대신 로그인 안내 |
   | `CONFIRM_FAVORITE` | `corpCode`(이 분석의 기업. LLM이 정하지 않고 backend가 채움) | 확인 버튼. 누르면 `PUT /api/favorite-companies/{corpCode}`. 로그인 안내는 위와 같음 |
@@ -3953,7 +3953,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 - `TOOL_CALLS`: 한 번에 1~3개. 읽기 Tool만 부릅니다. 쓰기는 Tool로 부르지 않고 `FINAL`의 확인 액션(`CONFIRM_*`)으로 돌려줍니다. `remainingSteps`가 0이면 `TOOL_CALLS`를 돌려주지 않고 받은 결과로 `FINAL`을 만듭니다.
 - Workflow(ADR-0045 `workflow_step`): 변경 원인 추적과 교차 검증은 LLM이 Tool을 고르지 않고 코드가 정한 순서로 부릅니다. 받은 `tools`에 필요한 Tool이 없으면 Workflow를 쓰지 않고 일반 경로로 갑니다.
   - 원인 추적: `get_financial_changes` → `get_summary` → (설명 인용이 없거나 더 필요하면) `search_text_changes`. 저장된 설명 등급·인용을 그대로 쓰고, 새로 찾은 문장은 등급 없이 '관련 문장'입니다.
-  - 용어 풀이(`TERM`, ADR-0061 제안): `lookup_terms` → 카드에 이 회사 값을 찾을 곳이 있으면 그 값(이 분석 기간은 `get_financial_changes`, 체크포인트는 최근 사업보고서 기준이라 쓸 때 그 보고서를 밝힘) → 이 분석의 문장 변경에서 용어가 나온 문장(`search_text_changes`, q=용어. 바뀌지 않은 원문은 찾지 않음). 답은 한 줄 뜻 → 쉬운 예시 → 이 회사에서는 → 확인할 곳 순서이고, 기초 카드(`level` `BASIC`)는 한 줄 뜻과 이 회사 값만 짧게 씁니다. 카드(`G`)만 인용한 문장은 회사를 가리키지 않고 숫자는 카드 예시의 것만 쓰며, 회사에 관한 문장은 회사 근거를 인용합니다(검토 노드 반려 규칙).
+  - 용어 풀이(`TERM`, ADR-0061, #770): `lookup_terms` → 카드에 이 회사 값을 찾을 곳이 있으면 그 값(이 분석 기간은 `get_financial_changes`, 체크포인트는 최근 사업보고서 기준이라 쓸 때 그 보고서를 밝힘) → 이 분석의 문장 변경에서 용어가 나온 문장(`search_text_changes`, q=용어. 바뀌지 않은 원문은 찾지 않음). 답은 한 줄 뜻 → 쉬운 예시 → 이 회사에서는 → 확인할 곳 순서이고, 기초 카드(`level` `BASIC`)는 한 줄 뜻과 이 회사 값만 짧게 씁니다. 카드(`G`)만 인용한 문장은 회사를 가리키지 않고 숫자는 카드 예시의 것만 쓰며, 회사에 관한 문장은 회사 근거를 인용합니다(검토 노드 반려 규칙).
     - 카드가 없으면 `answer_with_evidence`(질문: 용어만, 예: "리스부채")로 이 보고서 원문(주로 주석의 회계정책 문단)의 설명을 찾습니다. 결과에 원문 문단(`#B`) 인용이 있고 그 인용 글에 용어가 들어 있을 때만 보고서 설명으로 봅니다(재무 계정 사실 `F`만 있으면 찾지 못한 것). 답은 용어가 든 문장을 원문 그대로 인용해 '이 회사 보고서에 적힌 설명'이라고 밝히고 쉬운 말 풀이는 한 문장까지 붙입니다(등급 없음). 풀이 문장의 내용 낱말이 인용 문단에 없으면 반려하고, 재생성 2회 뒤에도 실패하면 풀이 없이 원문 인용만 보입니다.
     - 보고서에서도 못 찾으면 LLM 없이 `FINAL`(`ANSWERED`, 이 단계의 `model`·`calls` 없음)로 "'{용어}'는 등록된 용어가 없고, 이 보고서에서도 설명을 찾지 못했어요."를 돌려주고, 비슷한 카드마다 `OPEN_GLOSSARY` 액션(최대 3개, 비슷한 카드가 없으면 기초 카드 자산·매출·주식)을 붙입니다. backend는 정해진 안내(#631)로 보고 `aiGenerated: false`로 내보내며, 이 채팅에서 `lookup_terms`가 실행돼 그 용어의 카드가 없었으면 버튼이 값 확인에서 모두 빠져도 안내를 `NOT_FOUND`로 바꾸지 않습니다.
   - 교차 검증: `get_financial_changes`·`get_summary`·(있으면) `get_plan_followups`를 한 번에 부릅니다. `crossCheck.result`는 코드가 정합니다(공개 API `crossCheck`). 수시공시 주요정보(`get_disclosure_key_items`)는 수시공시 접수번호가 있어야 해 Workflow에서 부르지 않습니다.
@@ -4041,7 +4041,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
   - 탭 이름이 목차 제목보다 먼저입니다("원문 보여줘"는 원문 탭).
   - 목차 열기는 먼저 LLM 없이 `get_document_outline`(`side` `current`)을 부르고(`TOOL_CALLS`), 결과가 오면 최상위·하위 항목 제목(앞의 번호 'II.'·'1.'과 공백은 무시) 중 **하나와만** 같을 때 `FINAL`을 돌려줍니다. 맞는 항목이 없거나 둘 이상이거나, 목차 결과가 잘렸으면(`truncated`, 같은 제목이 하나만 보일 수 있음) 받은 목차 결과로 LLM이 이어 갑니다. 목차 결과 줄의 꼴(`[항목 {번호}] {제목} — 하위: [항목 {번호}] {제목} …`)은 backend `ToolTexts.outline`과 같습니다.
 - `context`: 공개 API의 `tab`·`side`·`sectionNo`와, 화면에서 고른 변경이 있으면 `textChangeId`·`financialChangeId`를 담습니다(정해진 요청의 노트 담기에 씀). 고른 변경의 내용은 Tool 결과로 따로 보냅니다.
-- backend는 `model`이 null이고 `calls`가 빈 `FINAL`이 `ANSWERED`이면서 근거 표시와 `evidenceIds`가 없으면 정해진 안내로 보고 그대로 내보냅니다(공개 응답 `aiGenerated: false`, `ai: null`, `citations` 빈 배열). 안내가 가리키는 버튼이 액션 값 확인에서 빠지면(이 분석에 없는 변경 등) 안내를 내보내지 않고 `NOT_FOUND`로 끝냅니다. 예외로 용어 안내('등록된 용어가 없고 보고서에서도 찾지 못함', ADR-0061 제안)는 버튼 없이도 뜻이 통하므로, 이 채팅에서 `lookup_terms`가 실행돼 그 용어의 카드가 없었으면 버튼이 모두 빠져도 그대로 내보냅니다. LLM이 만든 답(`model`이 있음)은 지금처럼 근거 표시가 하나 이상 있어야 합니다.
+- backend는 `model`이 null이고 `calls`가 빈 `FINAL`이 `ANSWERED`이면서 근거 표시와 `evidenceIds`가 없으면 정해진 안내로 보고 그대로 내보냅니다(공개 응답 `aiGenerated: false`, `ai: null`, `citations` 빈 배열). 안내가 가리키는 버튼이 액션 값 확인에서 빠지면(이 분석에 없는 변경 등) 안내를 내보내지 않고 `NOT_FOUND`로 끝냅니다. 예외로 용어 안내('등록된 용어가 없고 보고서에서도 찾지 못함', ADR-0061, #770)는 버튼 없이도 뜻이 통하므로, 이 채팅에서 `lookup_terms`가 실행돼 그 용어의 카드가 없었으면 버튼이 모두 빠져도 그대로 내보냅니다. LLM이 만든 답(`model`이 있음)은 지금처럼 근거 표시가 하나 이상 있어야 합니다.
 - `parameters`는 OpenAI 엄격 구조화 출력(ADR-0026)에 그대로 들어가므로 그 제약 안에서 씁니다: `type: object`이고 `properties`를 둠(빈 객체도 `properties: {}`), 지원 키워드는 문자열 `pattern`·`format`, 숫자 `minimum`·`maximum`·`exclusiveMinimum`·`exclusiveMaximum`·`multipleOf`, 배열 `minItems`·`maxItems`, `enum`, `anyOf`(최상위 제외). `allOf`·`not`·`if/then/else`는 쓰지 않습니다. 문자열 `minLength`·`maxLength`는 엄격 모드가 보장하지 않으므로 ai-server 코드 검사로만 걸립니다. 전체 10단계·속성 5,000개·enum 값 1,000개 이내(OpenAI Structured Outputs 'Supported schemas', 2026-11-03 확인). 필수가 아닌 필드는 ai-server가 null 허용으로 바꿔 보냅니다(`strict_schema`). 실제 OpenAI 호출로는 아직 확인하지 않았습니다(#577에서 Tool 목록이 생긴 뒤 확인). 제공자가 Anthropic Claude(ADR-0062)이면 Claude 구조화 출력이 받지 않는 제약(`pattern`, 숫자 `minimum`·`maximum`·`exclusiveMinimum`·`exclusiveMaximum`·`multipleOf`, 문자열 `minLength`·`maxLength`, 배열 `maxItems`와 0·1이 아닌 `minItems`)은 빼고 그 내용을 `description`에 적어 보냅니다(`claude_schema`). 이 제약은 ai-server가 받은 인자를 이 스키마로 검사할 때(jsonschema) 걸립니다. Claude는 필수가 아닌 필드를 null 허용으로 바꾸지 않고 그대로 선택으로 보내므로 빠진 채로 올 수 있습니다. 또 고르기 스키마가 Claude 구조화 출력 한도(선택 속성 24개, 여러 타입 필드 16개)를 넘으면 구조화 출력 없이 보내고 같은 검사에만 맡깁니다.
 - 인자·액션 값의 형식 검사는 받은 `parameters`(JSON Schema)대로 합니다. 엄격 구조화 출력이 필수가 아닌 필드를 null로 채우므로 필수가 아닌 필드의 null은 없는 것으로 보고, 필수 필드의 null은 형식 오류입니다. 액션 값이 이 분석에 실제로 있는지는 ai-server가 보지 않고 backend가 확인합니다(없으면 그 액션을 빼고 로그).
 - `calls`: 이 단계에서 부른 LLM 기록(task `agent_plan` 다음 Tool 고르기, `agent_answer` 답 만들기). 고르기가 자료가 충분하다고 판단하면 같은 호출에서 답 초안까지 쓰고(검토는 그대로 거침), 그때는 `agent_answer` 호출이 없거나 반려된 뒤에만 있습니다([ADR-0049](adr/0049-agent-plan-writes-answer.md)). LLM을 부르지 않았으면 빈 배열이고 `model`·`generatedAt`은 null입니다.
@@ -4072,7 +4072,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | `get_financial_trends` | `corpCode` | `GET /api/companies/{corpCode}/financial-trends` | `{rceptNo}#V{n}` |
 | `get_key_facts` | `corpCode` | `GET /api/companies/{corpCode}/key-facts`(최대주주·임원·배당) | `{rceptNo}#V{n}` |
 | `get_checkpoints` | `corpCode` | `GET /api/companies/{corpCode}/checkpoints` | `{rceptNo}#V{n}` |
-| `lookup_terms` | `terms`(용어·별칭 1~3개) | 용어 카드(`GET /api/glossary-terms`와 같은 카드, ADR-0061 제안). 없으면 근거 없는 줄로 '등록된 용어가 없어요'와 비슷한 카드 키 | `G{key}` |
+| `lookup_terms` | `terms`(용어·별칭 1~3개) | 용어 카드(`GET /api/glossary-terms`와 같은, 출처·검토를 마친 카드만, ADR-0061 #769). 용어·별칭이 같은 카드(공백·영문 대소문자 무시)를 찾고, 줄 글에 카드 칸(한 줄 뜻·쉬운 예시·확인할 곳·판단하지 않음·별칭·관련 용어·이 회사 값을 찾을 곳·출처)을 모두 넣음. 같은 카드는 한 줄. 없으면 근거 없는 줄로 "'{용어}'는 등록된 용어가 없어요."와 비슷한 카드(용어와 키, 최대 3개). 비슷함은 코드가 정함: 한쪽 이름이 다른 쪽을 품으면 가장 비슷하고, 아니면 글자 두 개 조각의 겹침(다이스 계수 0.4 이상) 순 | `G{key}` |
 | `get_disclosures` | `corpCode`, `group` | `GET /api/companies/{corpCode}/disclosures` | `D{rceptNo}` |
 | `get_disclosure_signals` | `corpCode` | `GET /api/companies/{corpCode}/disclosure-signals` | `D{rceptNo}` |
 | `get_disclosure_key_items` | `corpCode`, `rceptNo` | `GET .../disclosures/{rceptNo}/key-items`(DS005 주요정보) | `{rceptNo}#V{n}` |
