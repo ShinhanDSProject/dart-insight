@@ -37,6 +37,42 @@ class TermLinesTest {
         assertThat(line.text()).doesNotContain("draft");
     }
 
+    private static GlossaryTerm longCard(String key, int definitionChars) {
+        return new GlossaryTerm(key, GlossaryLevel.CORE, key + "용어", List.of(), "가".repeat(definitionChars), null,
+                null, null, List.of(), null, List.of(new GlossarySource("공식 자료", "https://example.test")), "검토자",
+                LocalDate.of(2026, 11, 10));
+    }
+
+    private static List<ToolLine> longCards(int definitionChars) {
+        return List.of(TermLines.card(longCard("first", definitionChars), Map.of()),
+                TermLines.card(longCard("second", definitionChars), Map.of()),
+                TermLines.card(longCard("third", definitionChars), Map.of()));
+    }
+
+    @Test
+    @DisplayName("긴 카드 3개가 결과 4,000자를 넘으면 truncated이고, 순서와 근거 ID는 그대로 두고 마지막 줄 글만 자른다")
+    void longCardsAreCutAtResultLimitKeepingOrderAndEvidence() {
+        ToolLines.Limited limited = ToolLines.limit(longCards(1500), 10, 4000);
+
+        assertThat(limited.truncated()).isTrue();
+        assertThat(limited.lines()).extracting(l -> l.evidence().evidenceId())
+                .containsExactly("Gfirst", "Gsecond", "Gthird");
+        assertThat(limited.lines().get(0).text()).isEqualTo(longCards(1500).get(0).text());
+        assertThat(limited.lines().get(2).text()).endsWith("…");
+        int total = limited.lines().stream().mapToInt(l -> l.text().length()).sum();
+        assertThat(total).isEqualTo(4000 + 1);
+    }
+
+    @Test
+    @DisplayName("카드가 더 길어 4,000자를 앞의 카드가 다 쓰면 남은 카드 줄은 빠지고 truncated로만 알린다(공통 제한 그대로)")
+    void cardsBeyondResultLimitAreDroppedAndMarkedTruncated() {
+        ToolLines.Limited limited = ToolLines.limit(longCards(2500), 10, 4000);
+
+        assertThat(limited.truncated()).isTrue();
+        assertThat(limited.lines()).extracting(l -> l.evidence().evidenceId()).containsExactly("Gfirst", "Gsecond");
+        assertThat(limited.lines().get(1).text()).endsWith("…");
+    }
+
     @Test
     @DisplayName("카드가 없으면 근거 없는 줄로 '등록되지 않았어요'와 비슷한 카드만 알린다")
     void notFoundLineHasNoEvidenceAndListsSimilarCards() {
