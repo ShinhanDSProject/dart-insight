@@ -8,7 +8,9 @@
   1. 기수가 기수 차이만큼 바뀐 것.
   2. 연도만 연도 차이만큼 바뀐 날짜 중 기간을 가리키는 것: 연도만 쓴 날짜(2025년), 사업연도 시작·끝
      달의 연월(2025년 6월), 사업연도 시작·끝 날짜나 그 앞 사업연도 끝 날짜와 월·일이 같은 날짜
-     (2025년 6월 30일, 2024.12.31). 설립일처럼 다른 날짜는 연도만 바뀌어도 해당하지 않는다.
+     (2025년 6월 30일, 2024.12.31). 연월·날짜는 바로 앞뒤에 기간을 말하는 낱말(기준, 현재, 기말,
+     반기, 분기, 부터, 까지 등)이 있어야 한다. 설립일·만기일처럼 다른 날짜는 사업연도 끝과 월·일이
+     같아도 해당하지 않는다.
   3. 두 표지의 같은 자리에 있는 날짜(사업연도, 제출일)가 바뀐 것.
 - 그 밖의 숫자·글자가 하나라도 다르거나, 사건을 말하는 낱말이 있으면 해당하지 않는다.
   예: '제55기 정기주주총회(2024년 3월 20일)'가 '제57기 …(2026년 3월 18일)'로 바뀐 정관 이력.
@@ -19,7 +21,7 @@ LLM을 쓰지 않고, 좋고 나쁨을 판단하지 않는다.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, timedelta
 
 from app.compare.text_diff import DocumentIn
@@ -38,6 +40,9 @@ _FISCAL_PERIOD = re.compile(r"사업연도(.*?)까지", re.DOTALL)
 _EVENT_WORDS = re.compile(
     "주주총회|총회|이사회|결의|선임|해임|취임|사임|정관|계약|소송|판결|제재|합병|인수|취득|처분"
 )
+# 연월·날짜가 기간을 가리킨다는 낱말과, 날짜 앞뒤로 찾아볼 글자 수
+_PERIOD_CONTEXT = re.compile("기준|현재|기말|반기|분기|사업연도|부터|까지|당기|전기")
+_CONTEXT_CHARS = 15
 _SPACE = re.compile(r"\s+")
 
 TERM = "TERM"
@@ -49,6 +54,8 @@ class _Token:
     kind: str
     # 기수면 (번호,), 날짜면 (연, 월, 일). 쓰지 않은 월·일은 0
     value: tuple[int, ...]
+    # 앞뒤에 기간을 말하는 낱말이 있는지(같은 표시인지 비교할 때는 보지 않는다)
+    in_period_context: bool = field(default=False, compare=False)
 
 
 @dataclass(frozen=True)
@@ -118,6 +125,8 @@ def _is_shifted(a: _Token, b: _Token, shift: PeriodShift) -> bool:
         return False
     if month == 0:
         return True
+    if not a.in_period_context:
+        return False
     if day == 0:
         return month in {m for m, _ in shift.month_days}
     return (month, day) in shift.month_days
@@ -148,7 +157,10 @@ def _tokens(text: str) -> list[_Token]:
             continue
         month = m.group("month") or m.group("month2")
         day = m.group("day") or m.group("day2")
-        tokens.append(_Token(DATE, (int(m.group("year")), int(month or 0), int(day or 0))))
+        around = text[max(0, m.start() - _CONTEXT_CHARS) : m.end() + _CONTEXT_CHARS]
+        context = bool(_PERIOD_CONTEXT.search(around))
+        value = (int(m.group("year")), int(month or 0), int(day or 0))
+        tokens.append(_Token(DATE, value, context))
     return tokens
 
 
