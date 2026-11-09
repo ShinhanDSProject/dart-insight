@@ -1334,6 +1334,54 @@ describe('TextTab 목록·상세 보기(3.54)', () => {
     expect(second.detail.queryByRole('group', { name: '수정된 글 보기' })).toBeNull()
   })
 
+  it('넓은 화면에서 줄을 눌러도 초점은 그 줄에 남는다', async () => {
+    renderBrowser()
+    const row = listRows()[1]
+    row.focus()
+    fireEvent.click(row)
+    await new Promise((resolve) => requestAnimationFrame(resolve))
+    expect(document.activeElement).toBe(row)
+  })
+
+  it('다른 변경을 고르면 앞 변경에서 연 AI 한 줄 풀이가 따라오지 않는다', () => {
+    function Picking() {
+      const [detail, setDetail] = useState<number | null>(null)
+      return (
+        <MemoryRouter>
+          <main>
+            <TextTab
+              analysis={analysis}
+              type={null}
+              sort="document"
+              section={null}
+              q={null}
+              risk={false}
+              field={null}
+              pinned={false}
+              selectedChangeId={null}
+              detailId={detail}
+              onChange={(change) => {
+                if ('detail' in change) setDetail(change.detail ?? null)
+              }}
+              onOpenSource={() => {}}
+              onAsk={() => {}}
+              asking={false}
+            />
+          </main>
+        </MemoryRouter>
+      )
+    }
+    list.items = [item(1, '1. 사업의 개요'), item(2, '2. 주요 제품')]
+    render(<Picking />)
+    const card = () => screen.getByRole('article')
+    fireEvent.click(within(card()).getByRole('button', { name: /^메뉴:/ }))
+    fireEvent.click(within(card()).getByRole('button', { name: 'AI 한 줄 풀이' }))
+    expect(card().querySelector('#text-explain-1')).not.toBeNull()
+
+    fireEvent.click(listRows()[1])
+    expect(card().querySelector('[id^="text-explain-"]')).toBeNull()
+  })
+
   it('접근성 위반이 없다', async () => {
     const { container } = renderBrowser()
     expect(await axeViolations(container)).toBe('')

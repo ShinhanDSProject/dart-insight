@@ -219,6 +219,8 @@ export function TextTab({
     )
   const changeCard = (item: TextChangeItem, showTypeNote: boolean, idScope: string, inDetail: boolean) => (
     <ChangeCard
+      // 상세 칸은 같은 자리에서 변경만 바뀌므로, 풀이·노트를 연 상태가 다음 변경으로 넘어가지 않게 변경마다 새로 그린다
+      key={item.changeId}
       item={item}
       analysis={analysis}
       showTypeNote={showTypeNote}

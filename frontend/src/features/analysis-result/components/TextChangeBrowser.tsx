@@ -28,6 +28,13 @@ interface TextChangeBrowserProps {
 
 type Pane = 'list' | 'detail'
 
+/** 목록과 상세가 한 칸씩 보이는 좁은 화면인지. analysis-result.css의 .change-browser 기준 폭과 같다 */
+const NARROW_QUERY = '(max-width: 900px)'
+
+function isNarrow(): boolean {
+  return typeof window.matchMedia === 'function' && window.matchMedia(NARROW_QUERY).matches
+}
+
 /**
  * 전체 변경의 목록·상세 보기(3.54). 넓은 화면은 왼쪽 목록과 오른쪽 상세를 함께 보이고,
  * 좁은 화면은 목록만 보이다가 줄을 고르면 상세로 넘어가고 '목록으로'로 돌아온다(CSS가 칸을 숨김).
@@ -63,7 +70,8 @@ export function TextChangeBrowser({
     onSelect(changeId)
     if (openDetail) {
       setPane('detail')
-      requestAnimationFrame(() => detailRef.current?.focus({ preventScroll: false }))
+      // 좁은 화면에서만 상세로 초점을 옮긴다. 넓은 화면은 줄에 남아 j·k로 이어 옮길 수 있다
+      if (isNarrow()) requestAnimationFrame(() => detailRef.current?.focus())
     }
   }
   const step = (by: number) => {
