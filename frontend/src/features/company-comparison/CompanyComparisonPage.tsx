@@ -11,6 +11,7 @@ import { reportTypeLabel } from '@/shared/lib/reportLabels'
 import { Badge, Notice, Page, PageHeader, Panel, PanelTitle, SegmentedControl, type SegmentOption } from '@/shared/ui'
 import { CompanyPicker } from './components/CompanyPicker'
 import { ComparisonTable } from './components/ComparisonTable'
+import { RadarChart } from './components/RadarChart'
 import { useCompanyComparison } from './hooks/useCompanyComparison'
 import { useComparisonQuery } from './hooks/useComparisonQuery'
 import {
@@ -25,6 +26,7 @@ import {
   unavailableCount,
   removeCompany,
 } from './model/companyComparison'
+import { radarSeries } from './model/radarChart'
 import './company-comparison.css'
 
 const typeOptions: readonly SegmentOption<ReportType>[] = (['ANNUAL', 'HALF', 'Q1', 'Q3'] as const).map((value) => ({
@@ -62,6 +64,7 @@ export function CompanyComparisonPage() {
   const [message, setMessage] = useState<string | null>(null)
 
   const columns = buildColumns(corps, loads, fsDiv, type, names)
+  const series = radarSeries(columns)
   const nameOf = (corpCode: string) => columns.find((c) => c.corpCode === corpCode)?.name ?? corpCode
 
   function add(company: Company) {
@@ -139,6 +142,7 @@ export function CompanyComparisonPage() {
         >
           {statusMessage(corps.length, unavailableCount(columns), periodsDiffer(columns))}
         </p>
+        {series.length >= MIN_COMPANIES && <RadarChart series={series} />}
         <ComparisonTable columns={columns} type={type} onRetry={retry} />
       </Panel>
 
