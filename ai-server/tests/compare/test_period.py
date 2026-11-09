@@ -6,8 +6,19 @@ from app.compare.text_diff import BlockIn, DocumentIn, SectionIn
 # 삼성전자 반기보고서 표지(20250814003156 → 20260814003699)
 PREVIOUS_COVER = ["(제 57 기)", "사업연도 | 2025년 01월 01일 | 부터\n2025년 06월 30일 | 까지"]
 CURRENT_COVER = ["(제 58 기)", "사업연도 | 2026년 01월 01일 | 부터\n2026년 06월 30일 | 까지"]
+PREVIOUS_COVER.append("한국거래소 귀중 | 2025년 8월 14일")
+CURRENT_COVER.append("한국거래소 귀중 | 2026년 8월 14일")
 YEARLY = PeriodShift(
-    1, 1, frozenset({((2025, 1, 1), (2026, 1, 1)), ((2025, 6, 30), (2026, 6, 30))})
+    1,
+    1,
+    frozenset(
+        {
+            ((2025, 1, 1), (2026, 1, 1)),
+            ((2025, 6, 30), (2026, 6, 30)),
+            ((2025, 8, 14), (2026, 8, 14)),
+        }
+    ),
+    frozenset({(1, 1), (6, 30), (12, 31)}),
 )
 
 
@@ -113,3 +124,24 @@ def test_extra_period_mark_is_not_period_only() -> None:
 
 def test_changed_period_kind_is_not_period_only() -> None:
     assert not period_only("(제 10기 반기)", "(제 11기)", YEARLY)
+
+
+def test_a_non_period_date_shifted_by_a_year_is_not_period_only() -> None:
+    assert not period_only("설립일 2024년 3월 20일", "설립일 2025년 3월 20일", YEARLY)
+    assert not period_only("만기 2025.09.15", "만기 2026.09.15", YEARLY)
+
+
+def test_a_month_outside_the_fiscal_period_is_not_period_only() -> None:
+    assert not period_only("2025년 3월 출시", "2026년 3월 출시", YEARLY)
+    assert period_only("2025년 6월 말 기준", "2026년 6월 말 기준", YEARLY)
+
+
+def test_dates_at_the_same_place_on_both_covers_are_period_marks() -> None:
+    shift = period_shift(
+        document("20250814003156", PREVIOUS_COVER), document("20260814003699", CURRENT_COVER)
+    )
+    assert shift is not None
+    assert period_only(
+        "한국거래소 귀중 | 2025년 8월 14일", "한국거래소 귀중 | 2026년 08월 14일", shift
+    )
+    assert period_only("제 56 기말 2024.12.31 현재", "제 57 기말 2025.12.31 현재", shift)

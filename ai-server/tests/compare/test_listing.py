@@ -123,7 +123,9 @@ def test_numeric_update_stays_in_main() -> None:
     assert (entry.group, entry.field) == (MAIN, BUSINESS)
 
 
-YEARLY = PeriodShift(1, 1, frozenset({((2025, 6, 30), (2026, 6, 30))}))
+YEARLY = PeriodShift(
+    1, 1, frozenset({((2025, 6, 30), (2026, 6, 30))}), frozenset({(1, 1), (6, 30), (12, 31)})
+)
 
 
 @pytest.mark.parametrize("kind", [NUMERIC_UPDATE, MODIFIED])
