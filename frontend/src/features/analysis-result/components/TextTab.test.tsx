@@ -433,6 +433,7 @@ describe('TextTab 주요 사건(3.37)', () => {
           meaning: null,
           signalReason: null,
           glossary: [],
+          facts: [],
           fields: ['LITIGATION'],
           changeIds: [changeId],
           quotes: [{ changeId, purpose: 'CHANGE', side: 'CURRENT', text: '이번 글', evidenceId: '20250314000100#B1', sectionPath: 'XI. 그 밖에' }],

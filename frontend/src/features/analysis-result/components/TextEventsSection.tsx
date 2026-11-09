@@ -38,6 +38,7 @@ import { textFieldLabel } from '../model/textFields'
 import { resultCountLabel } from '../model/textFilter'
 import { changeTypeLabel, missingSideLabel } from '../model/textLabels'
 import { SidePreview } from './SidePreview'
+import { FactsPart } from './TextEventFactsPart'
 import { MeaningPart, SignalCriteriaDialog, SignalReasonPart } from './TextEventSignalParts'
 import { TextListFooter } from './TextListFooter'
 
@@ -257,6 +258,7 @@ function TextEventCard({ analysis, item, onOpenEvidence, onOpenCriteria, renderC
               </div>
             </div>
           </div>
+          <FactsPart analysis={analysis} item={item} />
           <div className="text-event__part">
             <h5 className="text-event__part-title">{REASON_QUOTES_TITLE}</h5>
             {quotes.reasons.length > 0 ? (
