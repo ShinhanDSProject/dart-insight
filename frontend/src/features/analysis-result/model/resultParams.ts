@@ -79,7 +79,7 @@ export function parseResultParams(params: URLSearchParams): ResultParams {
     accountQuery: accountQueryOf(params.get('fq') ?? ''),
     financialOrder: parseFinancialOrder(params.get('fsort')),
     textType: textTypeFilters.includes(ttype as TextTypeFilter) ? (ttype as TextTypeFilter) : null,
-    textSort: params.get('tsort') === 'document' ? 'document' : 'priority',
+    textSort: params.get('tsort') === 'priority' ? 'priority' : 'document',
     textSection: params.get('tsec')?.trim() || null,
     textQuery: searchQueryOf(params.get('tq') ?? ''),
     textRisk: params.get('trisk') === '1',
@@ -163,7 +163,7 @@ export function financialParamChanges(c: FinancialViewChange): ParamChanges {
 export function textParamChanges(c: TextViewChange): ParamChanges {
   return {
     ...(c.type !== undefined ? { ttype: c.type, tpin: null, tc: null } : {}),
-    ...(c.sort !== undefined ? { tsort: c.sort === 'priority' ? null : c.sort, tc: null } : {}),
+    ...(c.sort !== undefined ? { tsort: c.sort === 'document' ? null : c.sort, tc: null } : {}),
     ...(c.section !== undefined ? { tsec: c.section, tpin: null, tc: null } : {}),
     ...(c.q !== undefined ? { tq: c.q, tpin: null, tc: null } : {}),
     ...(c.risk !== undefined ? { trisk: c.risk ? '1' : null, tpin: null, tc: null } : {}),

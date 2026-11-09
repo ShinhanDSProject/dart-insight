@@ -210,7 +210,7 @@ export function glossaryEntryOf(term: string): GlossaryEntry | null {
 function textFilters(filters: Record<string, unknown>): ParamChanges {
   return textParamChanges({
     type: typeFilterOf(filters.type),
-    sort: filters.sort === 'document' ? 'document' : 'priority',
+    sort: filters.sort === 'priority' ? 'priority' : 'document',
     section: typeof filters.section === 'string' && filters.section.trim() !== '' ? filters.section.trim() : null,
     q: typeof filters.q === 'string' && filters.q.trim().length >= 2 ? filters.q.trim() : null,
     risk: filters.risk === true,

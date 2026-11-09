@@ -32,7 +32,7 @@ describe('parseResultParams', () => {
       accountQuery: null,
       financialOrder: 'amount',
       textType: null,
-      textSort: 'priority',
+      textSort: 'document',
       textSection: null,
       textQuery: null,
       textRisk: false,
@@ -160,7 +160,8 @@ describe('고르기를 주소 값으로 바꾸기', () => {
 
   it('문장 변화의 거르기·정렬을 바꾸면 보던 근거를 닫고 기본 정렬은 주소에서 지운다', () => {
     expect(textParamChanges({ type: 'DELETED' })).toEqual({ ttype: 'DELETED', tpin: null, tc: null })
-    expect(textParamChanges({ sort: 'priority' })).toEqual({ tsort: null, tc: null })
+    expect(textParamChanges({ sort: 'document' })).toEqual({ tsort: null, tc: null })
+    expect(textParamChanges({ sort: 'priority' })).toEqual({ tsort: 'priority', tc: null })
     expect(textParamChanges({ change: null })).toEqual({ tc: null })
   })
 

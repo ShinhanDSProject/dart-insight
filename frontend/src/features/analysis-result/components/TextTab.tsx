@@ -62,8 +62,8 @@ import { DEFAULT_LIST_EMPTY, DEFAULT_LIST_EMPTY_NOTE, defaultListNote, foldedTot
 import { displaySectionPath } from '@/shared/lib/sectionTitle'
 
 const sortOptions: { value: TextSort; label: string }[] = [
-  { value: 'priority', label: '우선순위 순' },
   { value: 'document', label: '문서 순서' },
+  { value: 'priority', label: '우선순위 순' },
 ]
 
 interface TextTabProps {
@@ -92,7 +92,7 @@ interface TextTabProps {
 }
 
 /**
- * W-03 ③ 문장·내용 변화(3.9). 유형(추가·삭제·수정을 함께 보는 '내용 변경' 포함, #304)으로 거르고, 기본은 우선순위 순서(2.6)로 보여 준다.
+ * W-03 ③ 문장·내용 변화(3.9). 유형(추가·삭제·수정을 함께 보는 '내용 변경' 포함, #304)으로 거르고, 기본은 문서 순서로 보여 준다(3.53, 우선순위 순서(2.6)는 고를 수 있음).
  * 최상위 섹션과 검색어로도 함께 거른다(3.7). 고른 값은 주소에 남아 공유된다.
  * 맨 위 '위험 요인 변화' 카드에 위험 관련 목차의 건수를 보이고 '위험 관련만'으로 거른다(3.9, FS-61).
  * 문장을 비교하지 못했으면 '변경 없음'이 아니라 사유를 보여 준다. 짝짓지 못한 항목은 숨기지 않고 '검토 필요'로 둔다.
