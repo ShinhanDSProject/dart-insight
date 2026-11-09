@@ -67,8 +67,8 @@ public final class GlossaryTerms {
     }
 
     /**
-     * 이름이 비슷한 내보낼 수 있는 카드(비슷한 순서, 같으면 파일 순서). 한쪽 이름이 다른 쪽을 품으면 가장 비슷하고,
-     * 아니면 글자 두 개씩 묶은 조각이 얼마나 겹치는지로 본다(정의를 지어내지 않고 카드를 가리키기만 함).
+     * 이름이 비슷한 내보낼 수 있는 카드(비슷한 순서, 같으면 파일 순서). 비슷함은 {@link #similarity}로 본다
+     * (정의를 지어내지 않고 카드를 가리키기만 함).
      */
     public List<GlossaryTerm> similarPublished(String name, int limit) {
         String query = normalizeName(name);
@@ -105,14 +105,25 @@ public final class GlossaryTerms {
                 .findFirst();
     }
 
-    /** 0~1. 한쪽이 다른 쪽을 품으면 1, 아니면 글자 두 개 조각의 다이스 계수 */
+    /**
+     * 0~1. 글자 두 개 조각의 다이스 계수. 두 글자 이상인 한쪽이 다른 쪽에 그대로 들어 있으면 길이 비율(짧은 쪽 ÷ 긴 쪽)과
+     * 다이스 계수 중 큰 값이다. 짧은 글이 들어 있기만 하면 1이 되지 않게 길이 비율로 둔다('자' 한 글자는 겹침으로 보지 않음).
+     */
     static double similarity(String a, String b) {
         if (a.isEmpty() || b.isEmpty()) {
             return 0;
         }
-        if (a.contains(b) || b.contains(a)) {
-            return 1;
+        double dice = dice(a, b);
+        String shorter = a.length() <= b.length() ? a : b;
+        String longer = shorter == a ? b : a;
+        int shortLength = shorter.codePointCount(0, shorter.length());
+        if (shortLength >= 2 && longer.contains(shorter)) {
+            return Math.max(dice, (double) shortLength / longer.codePointCount(0, longer.length()));
         }
+        return dice;
+    }
+
+    private static double dice(String a, String b) {
         List<String> left = bigrams(a);
         List<String> right = new ArrayList<>(bigrams(b));
         if (left.isEmpty() || right.isEmpty()) {

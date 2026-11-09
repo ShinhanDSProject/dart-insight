@@ -135,4 +135,23 @@ class GlossaryTermsTest {
         assertThat(terms.similarPublished("배당", 3)).isEmpty();
         assertThat(GlossaryTerms.similarity("부채율", "부채비율")).isEqualTo(0.4);
     }
+
+    @Test
+    @DisplayName("짧은 글이 긴 이름에 들어 있기만 하면 1이 되지 않고 길이 비율로 본다(한 글자는 겹침으로 보지 않음)")
+    void containmentScoresByLengthRatio() {
+        GlossaryTerms terms = GlossaryTerms.of(List.of(
+                reviewed("debtRatio", "부채비율"),
+                reviewed("asset", "자산"),
+                reviewed("totalAssets", "자산총계"),
+                reviewed("assetImpairment", "유형자산손상차손")));
+
+        assertThat(GlossaryTerms.similarity("자산", "자산")).isEqualTo(1.0);
+        assertThat(GlossaryTerms.similarity("자산", "자산총계")).isEqualTo(0.5);
+        assertThat(GlossaryTerms.similarity("자산", "유형자산손상차손")).isEqualTo(0.25);
+        assertThat(GlossaryTerms.similarity("채", "부채비율")).isZero();
+        // 짧은 글로 찾아도 들어 있기만 한 긴 카드는 고르지 않고, 길이가 비슷한 카드를 먼저 고른다
+        assertThat(terms.similarPublished("자산들", 3)).extracting(GlossaryTerm::key)
+                .containsExactly("asset", "totalAssets");
+        assertThat(terms.similarPublished("채", 3)).isEmpty();
+    }
 }
