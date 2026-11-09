@@ -1,11 +1,10 @@
 import type { Summary, SummaryKind, SummaryTarget } from '@/shared/api/summary'
+import { glossary, type GlossaryEntry } from '@/shared/lib/glossary'
 
 /** 요약 탭 맨 위 '핵심 3줄'(FS-21). 요약 응답에서 고르기만 하고 새 문장을 만들지 않는다. */
 
 export const HEADLINE_FINANCIAL_LIMIT = 2
 export const HEADLINE_TEXT_LIMIT = 1
-
-export const HEADLINE_NOTE = '수치는 계산값, AI 생성 문장은 원문 근거를 확인해 주세요.'
 
 export interface HeadlineLine {
   itemNo: number
@@ -35,4 +34,20 @@ export function headlineItems(summary: Pick<Summary, 'items'>): HeadlineLine[] {
 
 function hasText(value: string | null): value is string {
   return value !== null && value.trim() !== ''
+}
+
+/** 핵심 카드 제목. 고른 줄 수를 그대로 쓴다 */
+export function headlineTitle(count: number): string {
+  return `이번 비교에서 크게 바뀐 것 ${count}가지`
+}
+
+const compact = (name: string) => name.replace(/\s+/g, '')
+
+/**
+ * 계정 이름과 이름이 같은 용어 카드(공백 무시). 카드가 없으면 null이고, 화면은 풀이를 지어내지 않는다.
+ * shortcut: 카드가 9개뿐이라 대부분 null이다. 계정 용어 카드가 늘면(#771 API 전환) 그 목록으로 찾는다.
+ */
+export function glossaryForAccount(accountName: string): GlossaryEntry | null {
+  const name = compact(accountName)
+  return Object.values(glossary).find((entry) => compact(entry.term) === name) ?? null
 }

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -7,6 +7,7 @@ import type { Analysis } from '@/shared/api/analyses'
 import { ApiError } from '@/shared/api/client'
 import type { ChatMessageResponse } from '@/shared/api/agentChat'
 import type { TextExplanation } from '@/shared/api/textChanges'
+import type { FinancialChangeItem } from '@/shared/api/results'
 import type { AuthState } from '@/shared/auth/authContext'
 import type { AsyncState, LoadState } from '@/shared/hooks/asyncState'
 import { axeViolations } from '@/test/axe'
@@ -265,24 +266,55 @@ describe('핵심 3줄 접근성(axe)', () => {
     { itemNo: 3, kind: 'TEXT', text: '새 공장 투자 계획이 추가됐어요.', aiGenerated: true, target: { type: 'TEXT', changeId: 5, sjDiv: null, changeType: null } },
   ]
   const opener = (target: HeadlineLine['target']) => (target.changeId === null ? null : noop)
+  const sales = {
+    changeId: 31,
+    accountName: '매출액',
+    previousAmount: 100_000_000_000,
+    currentAmount: 110_000_000_000,
+    changeRate: 0.1,
+    direction: 'UP',
+    currency: 'KRW',
+  } as FinancialChangeItem
+  const headline = (props: Partial<Parameters<typeof SummaryHeadline>[0]> = {}) => (
+    <SummaryHeadline lines={lines} opener={opener} amounts={null} onOpenWhy={noop} onOpenAsk={noop} {...props} />
+  )
 
-  it('누를 수 있는 줄과 열 수 없는 줄이 섞여도 위반이 없다', async () => {
-    const container = await expectNoViolations(<SummaryHeadline lines={lines} opener={opener} />)
-    expect(screen.getByRole('heading', { name: '이번 비교의 핵심' })).toBeTruthy()
+  it('누를 수 있는 줄과 열 수 없는 줄이 섞여도 위반이 없고, 보는 순서 3단계를 둔다', async () => {
+    const container = await expectNoViolations(headline())
+    expect(screen.getByRole('heading', { name: '이번 비교에서 크게 바뀐 것 3가지' })).toBeTruthy()
     expect(container.querySelectorAll('.headline__line')).toHaveLength(3)
-    expect(screen.getAllByRole('button')).toHaveLength(2)
+    expect(within(screen.getByRole('list', { name: '보는 순서' })).getAllByRole('listitem')).toHaveLength(3)
+    expect(screen.getAllByRole('button')).toHaveLength(4)
     expect(screen.getAllByText('AI 생성')).toHaveLength(1)
+  })
+
+  it('금액이 있으면 재무 줄을 계정 이름·▲▼ 증감률·이전·현재 막대로 보이고, 문장은 화면 읽기용으로 남긴다', async () => {
+    const container = await expectNoViolations(headline({ amounts: new Map([[31, sales]]) }))
+    expect(container.querySelector('.headline__account')?.textContent).toBe('매출액▲ +10.0%')
+    expect(container.querySelectorAll('.headline-bar')).toHaveLength(2)
+    expect(container.querySelector('.headline-bar--current .headline-bar__label')?.textContent).toBe('현재1100억 원')
+    expect(screen.getByRole('button', { name: /매출액이 1,000억원에서 1,100억원으로/ })).toBeTruthy()
+  })
+
+  it('2·3단계를 누르면 문장 변화와 AI 질문 칸으로 옮긴다', () => {
+    const onOpenWhy = vi.fn()
+    const onOpenAsk = vi.fn()
+    render(headline({ onOpenWhy, onOpenAsk }))
+    fireEvent.click(screen.getByRole('button', { name: /왜 바뀌었는지 보기/ }))
+    fireEvent.click(screen.getByRole('button', { name: /궁금한 것 AI에게 묻기/ }))
+    expect(onOpenWhy).toHaveBeenCalledTimes(1)
+    expect(onOpenAsk).toHaveBeenCalledTimes(1)
   })
 
   it('줄을 누르면 그 항목의 근거를 연다', () => {
     const open = vi.fn()
-    render(<SummaryHeadline lines={lines.slice(2)} opener={() => open} />)
+    render(headline({ lines: lines.slice(2), opener: () => open }))
     fireEvent.click(screen.getByRole('button', { name: /새 공장 투자 계획/ }))
     expect(open).toHaveBeenCalledTimes(1)
   })
 
   it('고를 줄이 없으면 그리지 않는다', () => {
-    const { container } = render(<SummaryHeadline lines={[]} opener={opener} />)
+    const { container } = render(headline({ lines: [] }))
     expect(container.innerHTML).toBe('')
   })
 })

@@ -2088,12 +2088,142 @@
   color: var(--color-accent);
 }
 
+/* 핵심 카드의 보는 순서 3단계(#821): 1은 지금 보는 단계, 2·3은 누르면 옮긴다 */
+.headline-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.headline-steps > li {
+  display: flex;
+  flex: 1 1 160px;
+}
+
+.headline .headline-steps__step {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  text-decoration: none;
+}
+
+.headline .headline-steps__step.link-button:hover {
+  border-color: var(--color-border-accent);
+  background: var(--color-accent-subtle);
+}
+
+.headline .headline-steps__step--current {
+  border-color: transparent;
+  background: var(--color-bg-subtle);
+  font-weight: var(--font-weight-medium);
+}
+
+.headline-steps__no {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-bg-subtle);
+  color: var(--color-text);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+.headline-steps__step--current .headline-steps__no {
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+}
+
+/* 재무 줄(#821): 계정 이름·증감률 | 이전·현재 막대. 증감은 중립색 막대와 ▲▼로만 보인다(UI-5) */
+.headline__figure {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.headline__account {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  overflow-wrap: anywhere;
+}
+
+.headline__term {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.headline__bars {
+  display: flex;
+  flex: 0 0 180px;
+  flex-direction: column;
+  gap: var(--space-1);
+  align-self: center;
+}
+
+.headline-bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.headline-bar--current {
+  color: var(--color-text);
+}
+
+.headline-bar__label {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.headline-bar__track {
+  display: block;
+  height: 8px;
+}
+
+.headline-bar__fill {
+  display: block;
+  width: calc(var(--bar-ratio) * 100%);
+  height: 100%;
+  border-radius: var(--radius-sm);
+  background: var(--color-border-strong);
+  transform-origin: left;
+  animation: grow-x var(--motion-slow) var(--ease-out);
+}
+
+.headline-bar--current .headline-bar__fill {
+  background: var(--color-primary);
+}
+
 @media (max-width: 900px) {
   .headline .headline__line {
     flex-wrap: wrap;
   }
 
-  .headline__hint {
+  .headline__hint,
+  .headline__bars {
     flex-basis: 100%;
     padding-left: calc(var(--space-5) + var(--space-3));
   }

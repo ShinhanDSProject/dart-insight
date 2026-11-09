@@ -15,7 +15,9 @@ const lines: HeadlineLine[] = [
 
 describe('SummaryHeadline 삭제 줄 안내(FS-70)', () => {
   it('삭제 줄에만 끝났다는 뜻이 아니라는 안내를 줄 안에 붙인다', async () => {
-    const { container } = render(<SummaryHeadline lines={lines} opener={() => () => {}} />)
+    const { container } = render(
+      <SummaryHeadline lines={lines} opener={() => () => {}} amounts={null} onOpenWhy={() => {}} onOpenAsk={() => {}} />,
+    )
     const notes = screen.getAllByText(DELETED_NOTE)
     expect(notes).toHaveLength(1)
     expect(notes[0].closest('button')?.textContent).toContain('과징금 처분 내용이 문서에서 빠졌어요.')

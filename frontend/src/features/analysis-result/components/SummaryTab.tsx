@@ -6,7 +6,6 @@ import type { Summary, SummaryItem, SummaryLens, SummaryTarget } from '@/shared/
 import type { ChangeType } from '@/shared/api/textChanges'
 import type { LoadState } from '@/shared/hooks/asyncState'
 import type { AsyncResult } from '@/shared/hooks/useAsync'
-import { formatCompactAmount } from '@/shared/lib/chartScale'
 import { Badge, Button, ButtonLink, Chip, Notice, Panel, PanelTitle, SegmentedControl, Skeleton } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState } from '@/shared/ui/StateView'
@@ -14,7 +13,7 @@ import { useChangeOverview } from '../hooks/useChangeOverview'
 import { useSummary } from '../hooks/useSummary'
 import { formatRate } from '../model/format'
 import { useSummaryAmounts } from '../hooks/useSummaryAmounts'
-import { summarySjDivs } from '../model/summaryAmounts'
+import { compactAmount, DIRECTION_ARROWS, summarySjDivs } from '../model/summaryAmounts'
 import { headlineItems } from '../model/summaryHeadline'
 import { AddToNote } from './AddToNote'
 import { ChangeOverview } from './ChangeOverview'
@@ -108,6 +107,12 @@ export function SummaryTab({
   const summary = useSummary(analysis.analysisId)
   // 개요 한 줄과 오른쪽 섹션 막대가 같은 응답을 쓴다(한 번만 불러온다)
   const overview = useChangeOverview(analysis.analysisId)
+  // 핵심 카드 막대와 요약 카드의 '더 보기' 금액이 같은 응답을 쓴다(한 번만 불러온다). 못 불러오면 막대만 빠진다
+  const amountsState = useSummaryAmounts(
+    analysis.analysisId,
+    summary.state.status === 'success' ? summarySjDivs(summary.state.data.items) : [],
+  ).state
+  const amounts = amountsState.status === 'success' ? amountsState.data : null
   // 열 수 없는 항목(결과에서 찾지 못함)은 버튼을 그리지 않는다
   const opener = (target: SummaryTarget): (() => void) | null => {
     const link = summaryLink(target)
@@ -121,6 +126,9 @@ export function SummaryTab({
       <SummaryHeadline
         lines={summary.state.status === 'success' ? headlineItems(summary.state.data) : []}
         opener={opener}
+        amounts={amounts}
+        onOpenWhy={onOpenPriorityList}
+        onOpenAsk={focusAskInput}
         footer={
           <ChangeOverview
             financial={overview.financial}
@@ -135,6 +143,7 @@ export function SummaryTab({
       <SummaryContent
         summary={summary}
         analysis={analysis}
+        amounts={amounts}
         opener={opener}
         onOpenSource={onOpenSource}
         onAsk={onAsk}
@@ -159,6 +168,7 @@ export function SummaryTab({
 interface SummaryContentProps extends LensControls {
   summary: AsyncResult<LoadState<Summary>>
   analysis: Analysis
+  amounts: Map<number, FinancialChangeItem> | null
   opener: (target: SummaryTarget) => (() => void) | null
   onOpenSource: (target: SourceTarget) => void
   onAsk: (question: string) => void
@@ -187,6 +197,7 @@ function SummaryContent({ summary, ...rest }: SummaryContentProps) {
 function SummaryBody({
   data,
   analysis,
+  amounts,
   opener,
   onOpenSource,
   onAsk,
@@ -202,9 +213,6 @@ function SummaryBody({
   const items = filterByLens(data.items, lens)
   const reviewNeeded = filterByLens(data.reviewNeeded, lens)
   const financial = items.filter((i) => i.kind === 'FINANCIAL')
-  const amountsState = useSummaryAmounts(analysis.analysisId, summarySjDivs(data.items)).state
-  // 금액을 못 불러오면 비교 막대만 빠진다(사실 문장은 그대로)
-  const amounts = amountsState.status === 'success' ? amountsState.data : null
   const text = items.filter((i) => i.kind === 'TEXT')
   const card = (item: SummaryItem) => (
     <SummaryCard
@@ -442,11 +450,9 @@ function SummaryCard({ item, analysis, amount, onOpen, onOpenSource, onAsk, aski
  * 재무 항목의 이전 → 현재 큰 숫자와 증감 배지(#550). 증감은 중립색 배지에 ▲▼·부호로 보이고(좋고 나쁨 색 없음),
  * 증감률을 계산하지 않았으면 배지를 두지 않는다. 숫자는 서버가 준 금액 그대로다.
  */
-const ARROWS: Record<'UP' | 'DOWN' | 'SAME', string | null> = { UP: '▲', DOWN: '▼', SAME: null }
-
 function SummaryAmounts({ amount }: { amount: FinancialChangeItem }) {
   const rate = formatRate(amount.changeRate)
-  const arrow = amount.direction === null ? null : ARROWS[amount.direction]
+  const arrow = amount.direction === null ? null : DIRECTION_ARROWS[amount.direction]
   return (
     <p className="summary-item__amounts">
       <span className="visually-hidden">이전 </span>
@@ -467,8 +473,9 @@ function SummaryAmounts({ amount }: { amount: FinancialChangeItem }) {
   )
 }
 
-/** 비교 막대 옆 짧은 금액(예: 153.7조 원). 없으면 '없음' */
-function compactAmount(value: number | null, currency: string | null): string {
-  if (value === null) return '없음'
-  return currency === null || currency === 'KRW' ? `${formatCompactAmount(value, 'KRW')} 원` : formatCompactAmount(value, currency)
+/** 3단계 'AI에게 묻기': 요약 탭의 질문 칸(ChatEntry의 ask-input)으로 옮겨 바로 쓸 수 있게 한다 */
+function focusAskInput() {
+  const input = document.getElementById('ask-input')
+  input?.scrollIntoView({ block: 'center' })
+  input?.focus({ preventScroll: true })
 }
