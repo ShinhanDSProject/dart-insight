@@ -2,7 +2,9 @@ from dataclasses import replace
 from types import SimpleNamespace
 from typing import Any
 
+import anthropic
 import httpx
+import httpx2
 import openai
 import pytest
 
@@ -10,7 +12,9 @@ from app.answer.prompt import OUTPUT_SCHEMA as ANSWER_SCHEMA
 from app.core.config import LlmSettings, load_llm_settings
 from app.llm import LlmRequest, ProviderError, ProviderQuotaError, ProviderTransientError
 from app.llm.providers import (
+    ANTHROPIC_DEFAULT_MODEL,
     OPENAI_DEFAULT_MODEL,
+    AnthropicProvider,
     OpenAIProvider,
     create_provider,
     strict_schema,
@@ -331,3 +335,326 @@ def test_strict_schema_keeps_required_enum_without_null() -> None:
         "factRefs",
         "reasonNotStated",
     ]
+
+
+# ── Anthropic Claude(ADR-0062) ─────────────────────────────
+
+CLAUDE_USAGE = SimpleNamespace(
+    input_tokens=120,
+    output_tokens=45,
+    cache_read_input_tokens=None,
+    cache_creation_input_tokens=None,
+)
+
+
+def claude_response(
+    *texts: str,
+    stop_reason: str = "end_turn",
+    usage: Any = CLAUDE_USAGE,
+    model: str = ANTHROPIC_DEFAULT_MODEL,
+) -> SimpleNamespace:
+    return SimpleNamespace(
+        content=[
+            SimpleNamespace(type="thinking", thinking=""),
+            *(SimpleNamespace(type="text", text=t) for t in texts),
+        ],
+        stop_reason=stop_reason,
+        model=model,
+        usage=usage,
+    )
+
+
+class FakeClaudeMessages:
+    def __init__(self, result: Any) -> None:
+        self.result = result
+        self.calls: list[dict[str, Any]] = []
+
+    def create(self, **params: Any) -> Any:
+        self.calls.append(params)
+        if isinstance(self.result, Exception):
+            raise self.result
+        return self.result
+
+
+class FakeAnthropic:
+    def __init__(self, result: Any) -> None:
+        self.messages = FakeClaudeMessages(result)
+        self.beta = SimpleNamespace(messages=self.messages)
+        self.timeouts: list[float] = []
+
+    def with_options(self, timeout: float) -> "FakeAnthropic":
+        self.timeouts.append(timeout)
+        return self
+
+
+def claude(
+    result: Any, reasoning_effort: str | None = None
+) -> tuple[AnthropicProvider, FakeAnthropic]:
+    fake = FakeAnthropic(result)
+    return AnthropicProvider(FAKE_KEY, reasoning_effort=reasoning_effort, client=fake), fake
+
+
+def claude_status_error(code: int, body: Any = None, cls: Any = None) -> anthropic.APIStatusError:
+    request = httpx2.Request("POST", "https://api.anthropic.com/v1/messages")
+    error_cls = cls or anthropic.APIStatusError
+    return error_cls("오류", response=httpx2.Response(code, request=request), body=body)
+
+
+def test_claude_sends_messages_request_with_schema_cache_fallback_and_timeout() -> None:
+    p, fake = claude(claude_response('{"answer": "네"}'))
+
+    p.complete(REQUEST, 30.0)
+
+    params = fake.messages.calls[0]
+    assert params["model"] == ANTHROPIC_DEFAULT_MODEL
+    assert params["system"] == "시스템"
+    assert params["messages"] == [{"role": "user", "content": "사용자"}]
+    assert params["max_tokens"] == 800
+    assert params["cache_control"] == {"type": "ephemeral"}
+    assert "thinking" not in params  # 생각은 모델 기본(adaptive)
+    fmt = params["output_config"]["format"]
+    assert fmt["type"] == "json_schema"
+    assert fmt["schema"]["additionalProperties"] is False
+    assert fmt["schema"]["required"] == ["answer", "note"]
+    assert "effort" not in params["output_config"]
+    # Sonnet 5.5는 거절했을 때 서버가 다른 모델로 이어 처리한다
+    assert params["fallbacks"] == "default"
+    assert params["betas"] == ["server-side-fallback-2026-07-01"]
+    assert fake.timeouts == [30.0]
+
+
+def test_claude_omits_fallback_for_models_without_it() -> None:
+    p, fake = claude(claude_response("{}"))
+
+    p.complete(replace(REQUEST, model="claude-haiku-5-5"), 10.0)
+
+    params = fake.messages.calls[0]
+    assert params["model"] == "claude-haiku-5-5"
+    assert "fallbacks" not in params
+    assert "betas" not in params
+
+
+def test_claude_omits_output_config_without_schema_or_effort() -> None:
+    p, fake = claude(claude_response("{}"))
+
+    p.complete(LlmRequest(task="t", prompt_version="v", system="s", user="u"), 10.0)
+
+    assert "output_config" not in fake.messages.calls[0]
+
+
+def test_claude_sends_reasoning_effort_as_output_config_effort() -> None:
+    p, fake = claude(claude_response("{}"), reasoning_effort="low")
+
+    p.complete(REQUEST, 10.0)
+
+    assert fake.messages.calls[0]["output_config"]["effort"] == "low"
+
+
+def test_claude_moves_unsupported_array_limits_out_of_schema() -> None:
+    schema = {
+        "type": "object",
+        "required": ["calls"],
+        "properties": {"calls": {"type": "array", "maxItems": 3, "items": {"type": "string"}}},
+    }
+    p, fake = claude(claude_response("{}"))
+
+    p.complete(replace(REQUEST, output_schema=schema), 10.0)
+
+    sent = fake.messages.calls[0]["output_config"]["format"]["schema"]
+    calls = sent["properties"]["calls"]
+    # Claude 구조화 출력은 maxItems를 받지 않는다. 개수는 기능 모듈의 검증 함수가 검사한다
+    assert "maxItems" not in calls
+    assert calls["description"] == "{maxItems: 3}"
+    assert calls["items"] == {"type": "string"}
+    assert "maxItems" in schema["properties"]["calls"]  # 부른 쪽 스키마는 그대로
+
+
+def test_claude_returns_text_without_thinking_blocks_and_served_model() -> None:
+    p, _ = claude(claude_response('{"answer": ', '"네"}', model="claude-opus-4-8"))
+
+    result = p.complete(REQUEST, 10.0)
+
+    assert result.text == '{"answer": "네"}'
+    # 거절 대체로 다른 모델이 답했으면 그 모델이 기록에 남는다
+    assert result.model == "claude-opus-4-8"
+    assert (result.input_tokens, result.output_tokens) == (120, 45)
+
+
+def test_claude_adds_cache_tokens_to_input_total() -> None:
+    usage = SimpleNamespace(
+        input_tokens=40,
+        output_tokens=300,
+        cache_read_input_tokens=8960,
+        cache_creation_input_tokens=1000,
+    )
+    p, _ = claude(claude_response("{}", usage=usage))
+
+    result = p.complete(REQUEST, 10.0)
+
+    # Claude의 input_tokens는 캐시 토큰을 빼고 세므로 합계로 맞춘다(#633 기록 방식)
+    assert result.input_tokens == 10000
+    assert result.cached_input_tokens == 8960
+    # 추론 토큰 수는 알려 주지 않아 0이 아니라 None이다
+    assert result.reasoning_tokens is None
+
+
+def test_claude_keeps_tokens_none_without_usage() -> None:
+    p, _ = claude(claude_response("{}", usage=None))
+
+    result = p.complete(REQUEST, 10.0)
+
+    assert result.input_tokens is None
+    assert result.output_tokens is None
+    assert result.cached_input_tokens is None
+
+
+@pytest.mark.parametrize(
+    ("stop_reason", "message"), [("refusal", "거절"), ("max_tokens", "토큰 한도")]
+)
+def test_claude_raises_provider_error_on_refusal_or_truncation(
+    stop_reason: str, message: str
+) -> None:
+    p, _ = claude(claude_response('{"ans', stop_reason=stop_reason))
+
+    with pytest.raises(ProviderError, match=message) as caught:
+        p.complete(REQUEST, 10.0)
+    assert not isinstance(caught.value, ProviderTransientError)
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        anthropic.APITimeoutError(request=httpx2.Request("POST", "https://api.anthropic.com")),
+        anthropic.APIConnectionError(request=httpx2.Request("POST", "https://api.anthropic.com")),
+        claude_status_error(429, cls=anthropic.RateLimitError),
+        claude_status_error(500, cls=anthropic.InternalServerError),
+        claude_status_error(529, cls=anthropic.OverloadedError),
+        claude_status_error(409, cls=anthropic.ConflictError),
+    ],
+)
+def test_claude_maps_temporary_errors_to_transient(error: Exception) -> None:
+    p, _ = claude(error)
+
+    with pytest.raises(ProviderTransientError):
+        p.complete(REQUEST, 10.0)
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        claude_status_error(402, body={"type": "error", "error": {"type": "billing_error"}}),
+        claude_status_error(
+            429,
+            body={
+                "type": "error",
+                "error": {
+                    "type": "rate_limit_error",
+                    "details": {"error_code": "enforced_spend_limit_reached"},
+                },
+            },
+            cls=anthropic.EnforcedSpendLimitReachedError,
+        ),
+    ],
+)
+def test_claude_maps_billing_and_spend_limit_to_quota_error(error: Exception) -> None:
+    p, _ = claude(error)
+
+    # 결제·지출 한도는 기다려도 풀리지 않아 다시 시도하지 않는다
+    with pytest.raises(ProviderQuotaError) as caught:
+        p.complete(REQUEST, 10.0)
+    assert not isinstance(caught.value, ProviderTransientError)
+
+
+@pytest.mark.parametrize(
+    ("code", "cls"),
+    [
+        (401, anthropic.AuthenticationError),
+        (403, anthropic.PermissionDeniedError),
+        (400, anthropic.BadRequestError),
+        (404, anthropic.NotFoundError),
+    ],
+)
+def test_claude_maps_permanent_errors_to_provider_error(code: int, cls: Any) -> None:
+    p, _ = claude(claude_status_error(code, cls=cls))
+
+    with pytest.raises(ProviderError) as caught:
+        p.complete(REQUEST, 10.0)
+    assert not isinstance(caught.value, ProviderTransientError | ProviderQuotaError)
+
+
+def test_claude_fails_at_call_time_without_api_key() -> None:
+    p = create_provider(LlmSettings(provider="anthropic"))
+
+    assert isinstance(p, AnthropicProvider)
+    with pytest.raises(ProviderError, match="LLM_API_KEY") as caught:
+        p.complete(REQUEST, 10.0)
+    assert not isinstance(caught.value, ProviderTransientError)
+
+
+def test_create_provider_builds_claude_client_without_sdk_retries() -> None:
+    settings = LlmSettings(provider="anthropic", api_key=FAKE_KEY, model="claude-haiku-5-5")
+
+    p = create_provider(settings)
+
+    assert isinstance(p, AnthropicProvider)
+    assert p.name == "anthropic"
+    assert p.model == "claude-haiku-5-5"
+    client = p._anthropic()
+    assert isinstance(client, anthropic.Anthropic)
+    assert client.max_retries == 0
+
+
+def test_create_provider_uses_claude_default_model() -> None:
+    p = create_provider(LlmSettings(provider="anthropic", api_key=FAKE_KEY))
+
+    assert isinstance(p, AnthropicProvider)
+    assert p.model == ANTHROPIC_DEFAULT_MODEL
+
+
+def _walk(node: Any) -> list[dict[str, Any]]:
+    if isinstance(node, list):
+        return [d for v in node for d in _walk(v)]
+    if not isinstance(node, dict):
+        return []
+    return [node, *(d for v in node.values() for d in _walk(v))]
+
+
+def test_claude_schema_accepts_every_feature_schema() -> None:
+    from app.agent.model import ActionSpec, StepInput, ToolSpec, Turn
+    from app.agent.prompt import answer_schema, plan_schema
+    from app.briefing.prompt import OUTPUT_SCHEMA as BRIEFING
+    from app.events.amount_pick_prompt import OUTPUT_SCHEMA as AMOUNT
+    from app.events.meaning_prompt import OUTPUT_SCHEMA as MEANING
+    from app.events.prompt import OUTPUT_SCHEMA as EVENTS
+    from app.events.signal_reason_prompt import OUTPUT_SCHEMA as SIGNAL
+    from app.followup.prompt import OUTPUT_SCHEMA as FOLLOWUP
+    from app.llm.providers import CLAUDE_UNSUPPORTED_KEYWORDS, claude_schema
+    from app.outlook.prompt import OUTPUT_SCHEMA as OUTLOOK
+
+    args = {"type": "object", "properties": {}, "required": [], "additionalProperties": False}
+    tools = [ToolSpec("get_summary", "요약", args)]
+
+    def step(actions: list[ActionSpec]) -> StepInput:
+        history = [Turn("user", "질문")]
+        return StepInput("회사", None, "보고서", "질문", history, {}, tools, actions, [], 4)
+
+    schemas = [
+        SUMMARY_SCHEMA,
+        ANSWER_SCHEMA,
+        BRIEFING,
+        AMOUNT,
+        MEANING,
+        EVENTS,
+        SIGNAL,
+        FOLLOWUP,
+        OUTLOOK,
+        plan_schema(step([])),
+        plan_schema(step([ActionSpec("OPEN_TAB", args)])),
+        answer_schema(step([])),
+    ]
+    for schema in schemas:
+        nodes = _walk(claude_schema(schema))
+        for node in nodes:
+            assert not set(CLAUDE_UNSUPPORTED_KEYWORDS) & set(node)
+            if node.get("type") == "object" and "properties" in node:
+                assert node["additionalProperties"] is False

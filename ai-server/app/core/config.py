@@ -6,20 +6,25 @@
 import os
 from dataclasses import dataclass, field
 
-# 작업별 모델의 기본값(ADR-0059). LLM_TASK_MODELS가 없으면 이 값을 쓰고,
-# 빈 값이면 작업별 모델을 쓰지 않는다
-DEFAULT_TASK_MODELS = "agent_plan=gpt-6-luna"
+# 제공자별 작업별 모델의 기본값(ADR-0059·ADR-0062). LLM_TASK_MODELS가 없으면 이 값을 쓰고,
+# 빈 값이면 작업별 모델을 쓰지 않는다. 여기 없는 제공자는 작업별 모델을 쓰지 않는다
+DEFAULT_TASK_MODELS = {
+    "anthropic": "agent_plan=claude-haiku-5-5",
+    "openai": "agent_plan=gpt-6-luna",
+}
 
 
 @dataclass(frozen=True)
 class LlmSettings:
     """LLM 호출 설정(0.7).
 
-    provider: 제공자 이름. `openai`(ADR-0026) 또는 `fake`(테스트·개발용 가짜 응답).
+    provider: 제공자 이름. `anthropic`(ADR-0062), `openai`(ADR-0026),
+        `fake`(테스트·개발용 가짜 응답).
         비어 있으면 LLM을 쓰지 않는다(호출하면 실패).
     model: 모델 이름. 호출 기록에 남는다. 비우면 제공자의 기본 모델.
     api_key: 제공자 인증키. 로그·응답에 남기지 않는다.
-    reasoning_effort: 추론 모델의 추론 강도(`reasoning.effort`, 예: low·medium·high).
+    reasoning_effort: 추론 강도(예: low·medium·high). OpenAI는 `reasoning.effort`,
+        Anthropic은 `output_config.effort`로 보낸다.
         비우면 보내지 않고 모델 기본값을 쓴다. 모델마다 지원하는 값이 다르다.
     timeout_seconds: 한 번 호출의 응답 대기 시간.
     max_retries: 네트워크 오류·시간 초과·제공자 일시 오류일 때 다시 시도하는 횟수.
@@ -68,7 +73,7 @@ def load_llm_settings() -> LlmSettings:
     provider = os.environ.get("LLM_PROVIDER", "").strip().lower()
     # 가짜 제공자는 모델을 가리지 않으므로 작업별 모델을 쓰지 않는다
     task_models = (
-        parse_task_models(os.environ.get("LLM_TASK_MODELS", DEFAULT_TASK_MODELS))
+        parse_task_models(os.environ.get("LLM_TASK_MODELS", DEFAULT_TASK_MODELS.get(provider, "")))
         if provider and provider != "fake"
         else {}
     )
