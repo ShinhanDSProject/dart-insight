@@ -116,7 +116,7 @@
 | GET | `/api/companies/{corpCode}/briefing` | AI 기업 브리핑(저장된 것 또는 새로 만듦) | #333 (1.2) | 기업 화면 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/outlook` | 회사가 밝힌 전망·계획(최신 사업보고서, 저장된 것 또는 새로 만듦) | #465 (1.9, FS-59) | 기업 화면 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/plan-followups` | 약속과 실제 대조(작년 사업보고서 계획 → 올해 사업보고서 관련 문단, 저장된 것 또는 새로 만듦) | #467 (1.10, FS-60) | 기업 화면 개요 탭 | 초안 |
-| GET | `/api/glossary-terms` | 공시 용어 카드 목록(출처·검토를 마친 것만, ADR-0061) | (기획 중: 채팅 초보자용 용어 풀이) | 결과 화면 용어 풀이(FS-36), 채팅 | 제안 |
+| GET | `/api/glossary-terms` | 공시 용어 카드 목록(출처·검토를 마친 것만, ADR-0061) | #768 (3.48) | 결과 화면 용어 풀이(FS-36), 채팅 | 구현 |
 | GET | `/api/companies/{corpCode}/checkpoints` | 재무 체크 포인트(최근·전년 사업보고서로 정해 둔 일곱 항목을 규칙으로 계산, 상태·수치·계산식·근거) | #479 (1.11, FS-62) | 기업 화면 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/news` | 회사 이름으로 검색한 최신 뉴스(NAVER API HUB, 30분 캐시) | #592 (3.1) | 분석 결과 '뉴스' 탭 | 초안 |
 | POST | `/api/companies/{corpCode}/questions` | 최신 사업보고서에 근거해 묻기(AI) | #365 (1.2) | 기업 화면 개요 탭 | 초안 |
@@ -1741,7 +1741,7 @@
 
 ### GET /api/glossary-terms — 공시 용어 카드 목록
 
-- 결정: [ADR-0061](adr/0061-glossary-term-cards.md) · 상태: 제안(기능 기획서 확정 전)
+- 이슈: #768 (3.48) · 결정: [ADR-0061](adr/0061-glossary-term-cards.md) · 기획서: 노션 초안(FS 번호 전)
 - `backend/src/main/resources/glossary/terms.json`의 카드 중 출처(`sources`)와 검토일(`reviewedAt`)이 있는 것만 돌려줍니다. 로그인 없이 부를 수 있고 LLM을 쓰지 않습니다.
 - 카드 내용은 사람이 쓰고 PR 리뷰로 검토합니다. 정의를 AI가 만들지 않습니다.
 
@@ -1769,6 +1769,10 @@
 
 - `level`: `BASIC` 기초 카드(자산·매출 같은 아주 쉬운 용어, 채팅은 '한 줄 뜻 + 이 회사 값'만 짧게 답함), `CORE` 핵심 카드.
 - `example`·`whereToCheck`·`noJudgment`·`related`는 없으면 null 또는 빈 배열입니다. 예시는 카드 내용이며 어느 회사의 실제 값이 아닙니다.
+- `aliases`는 없으면 빈 배열입니다. `related`에는 이 목록에 나오는(출처·검토를 마친) 카드의 키만 둡니다.
+- 출처(`sources`)는 이름(`title`)과 주소(`url`)가 모두 있어야 출처로 봅니다. 카드 파일에만 있는 검토자와 '이 회사 값을 찾을 곳'(채팅 Tool `lookup_terms`가 씀)은 내보내지 않습니다.
+- 카드 파일의 키나 서로 다른 카드의 이름(용어·별칭, 공백을 빼고 비교)이 겹치거나, 관련 용어가 없는 키를 가리키거나, 모르는 칸이 있으면 서버가 뜨지 않습니다.
+- 지금 카드 파일에는 화면 용어 풀이(FS-36)의 9개만 검토 전 상태로 있어 `items`는 빈 배열입니다(카드 승인·반영은 #772).
 - 에러 없음(카드가 없으면 `items`가 빈 배열).
 
 ### GET /api/companies/{corpCode}/checkpoints — 재무 체크 포인트

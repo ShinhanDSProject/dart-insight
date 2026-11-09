@@ -92,7 +92,7 @@ M0~M2에서 이미 내린 결정은 2026-10-22에 소급해 기록했습니다(0
 | [0045](0045-langgraph-agent-step-graph.md) | ai-server의 에이전트 한 단계는 LangGraph 그래프로 만들고, 답은 작성 → 검토 → 반려 시 다시 작성하는 루프로 만든다 | 채택 | 2026-10-30 |
 | [0046](0046-company-news-from-naver-api-hub.md) | 기업 뉴스는 NAVER API HUB 뉴스 검색으로 받아 backend가 기업별 30분 메모리 캐시로 두고, 화면에만 보이며 AI에는 넣지 않는다 | 채택 | 2026-11-03 |
 | [0047](0047-text-change-list-classification.md) | 문장 변경의 목록 분류와 표 행 비교는 ai-server가 비교할 때 정하고, backend가 변경과 함께 저장한다 | 제안 | 2026-11-03 |
-| [0048](0048-agent-evidence-kinds-and-recheck.md) | 에이전트 채팅의 근거는 7가지 종류로 두고, backend는 근거 ID가 이 채팅에서 저장된 자료로 만든 근거 표에 있는지 다시 확인한다 | 채택 | 2026-11-04 |
+| [0048](0048-agent-evidence-kinds-and-recheck.md) | 에이전트 채팅의 근거는 7가지 종류로 두고, backend는 근거 ID가 이 채팅에서 저장된 자료로 만든 근거 표에 있는지 다시 확인한다 | 채택(근거 종류 GLOSSARY는 ADR-0061이 보탬) | 2026-11-04 |
 | [0049](0049-agent-plan-writes-answer.md) | 에이전트의 Tool 고르기가 자료가 충분하다고 판단하면 같은 호출에서 답 초안까지 쓰고, 검토는 그대로 거친다 | 채택 | 2026-11-04 |
 | [0050](0050-text-events-after-analysis.md) | 주요 사건은 분석이 끝난 뒤 처음 열 때 별도 작업으로 만들고, backend가 실행·저장을 ai-server가 묶기·검증을 맡는다 | 채택(입력 범위와 입력 크기 가정은 ADR-0051이, 규모를 코드만 정한다는 부분은 ADR-0053이 대체) | 2026-11-04 |
 | [0051](0051-text-event-candidate-rules.md) | 주요 사건의 입력에 제목 줄을 더하고, 후보는 분야·섹션과 새 문단 규칙으로 고른다 | 채택 | 2026-11-04 |
@@ -105,5 +105,5 @@ M0~M2에서 이미 내린 결정은 2026-10-22에 소급해 기록했습니다(0
 | [0058](0058-event-amount-confirmation.md) | 사건 금액은 후보가 하나여도 AI가 그 사건의 금액인지 확인하고, 확인하지 못하면 금액을 두지 않는다 | 채택 | 2026-11-05 |
 | [0059](0059-task-model-agent-plan-luna.md) | LLM 모델을 작업마다 덮어쓸 수 있게 하고, 에이전트의 Tool 고르기(agent_plan)는 gpt-6-luna로 부른다 | 채택 | 2026-11-06 |
 | [0060](0060-event-signal-and-sentences.md) | 사건 신호는 AI가 묶을 때 고른 종류·변화로 ai-server 코드가 기준표에서 붙이고, 공시의 의미와 신호 이유는 묶기 뒤 사건마다 따로 부른다 | 채택 | 2026-11-06 |
-| [0061](0061-glossary-term-cards.md) | 공시 용어 카드는 backend 저장소 파일 한 곳에 두고, 화면과 채팅이 함께 읽으며, 채팅은 용어 카드를 근거(G{키})로 쓰고 카드가 없으면 보고서의 설명을 찾는다 | 제안 | 2026-11-06 |
+| [0061](0061-glossary-term-cards.md) | 공시 용어 카드는 backend 저장소 파일 한 곳에 두고, 화면과 채팅이 함께 읽으며, 채팅은 용어 카드를 근거(G{키})로 쓰고 카드가 없으면 보고서의 설명을 찾는다 | 채택 | 2026-11-06 |
 | [0062](0062-anthropic-llm-provider.md) | 실제 LLM 제공자로 Anthropic Claude Messages API를 더해 기본으로 쓰고, 기본 모델은 claude-sonnet-5-5, Tool 고르기는 claude-haiku-5-5로 둔다 | 채택 | 2026-11-09 |
