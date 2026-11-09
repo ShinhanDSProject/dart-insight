@@ -106,3 +106,4 @@ M0~M2에서 이미 내린 결정은 2026-10-22에 소급해 기록했습니다(0
 | [0059](0059-task-model-agent-plan-luna.md) | LLM 모델을 작업마다 덮어쓸 수 있게 하고, 에이전트의 Tool 고르기(agent_plan)는 gpt-6-luna로 부른다 | 채택 | 2026-11-06 |
 | [0060](0060-event-signal-and-sentences.md) | 사건 신호는 AI가 묶을 때 고른 종류·변화로 ai-server 코드가 기준표에서 붙이고, 공시의 의미와 신호 이유는 묶기 뒤 사건마다 따로 부른다 | 채택 | 2026-11-06 |
 | [0061](0061-glossary-term-cards.md) | 공시 용어 카드는 backend 저장소 파일 한 곳에 두고, 화면과 채팅이 함께 읽으며, 채팅은 용어 카드를 근거(G{키})로 쓰고 카드가 없으면 보고서의 설명을 찾는다 | 제안 | 2026-11-06 |
+| [0062](0062-anthropic-llm-provider.md) | 실제 LLM 제공자로 Anthropic Claude Messages API를 더해 기본으로 쓰고, 기본 모델은 claude-sonnet-5-5, Tool 고르기는 claude-haiku-5-5로 둔다 | 제안 | 2026-11-09 |
