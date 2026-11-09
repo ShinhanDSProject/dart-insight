@@ -1,6 +1,6 @@
 import { match } from 'ts-pattern'
 import type { TextField, TextListing } from '@/shared/api/textChanges'
-import { resultCountLabel } from './textFilter'
+import { formatCount } from './textFilter'
 
 /** 문장 변화 탭의 분야별 표(3.28). 이름과 순서는 docs/api-spec.md text-changes의 분야 표와 같다. */
 const FIELD_LABELS: Record<TextField, string> = {
@@ -17,6 +17,9 @@ const FIELD_LABELS: Record<TextField, string> = {
 const TEXT_FIELDS = Object.keys(FIELD_LABELS) as TextField[]
 
 export const FIELD_TABLE_TITLE = '분야별 변경'
+/** 칩 줄 맨 앞의 '전체'(3.58). 누르면 분야 거르기를 푼다 */
+export const ALL_FIELDS_CHIP = '전체'
+export const FIELD_TABLE_HINT = '칸을 누르면 아래 목록이 그 분야로 걸러져요'
 export const ALL_FIELDS_LABEL = '전체 분야 보기'
 export const FIELD_TABLE_NOTE =
   '제목 줄, 띄어쓰기·기호만 다른 수정, 자리만 옮긴 글, 재무제표 주석(소송·담보 등은 포함)을 뺀 건수예요. 목차 제목으로 나눈 것이라 실제 내용과 다를 수 있어요.'
@@ -50,10 +53,10 @@ function cellState(count: number, missing: boolean): FieldCellState {
   return missing ? 'no-section' : 'no-change'
 }
 
-/** 칸에 보이는 값 */
+/** 칩에 보이는 값. 건수는 숫자만 쓴다(3.58) */
 export function fieldCellValue(cell: FieldCell): string {
   return match(cell.state)
-    .with('changed', () => resultCountLabel(cell.count))
+    .with('changed', () => formatCount(cell.count))
     .with('no-change', () => '확인된 변화 없음')
     .with('no-section', () => '보고서에 해당 내용 없음')
     .exhaustive()

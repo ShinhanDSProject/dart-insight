@@ -79,7 +79,7 @@ describe('textFieldLabel', () => {
 
 describe('fieldCellValue', () => {
   it('상태마다 칸에 보일 글을 돌려준다(AC2)', () => {
-    expect(fieldCellValue(cellOf('LITIGATION'))).toBe('38건')
+    expect(fieldCellValue(cellOf('LITIGATION'))).toBe('38')
     expect(fieldCellValue(cellOf('DIVIDEND'))).toBe('확인된 변화 없음')
     expect(fieldCellValue(cellOf('SHAREHOLDER'))).toBe('보고서에 해당 내용 없음')
   })

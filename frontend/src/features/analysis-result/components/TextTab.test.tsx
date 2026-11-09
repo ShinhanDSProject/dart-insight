@@ -620,8 +620,8 @@ describe('TextTab 주요 사건(3.37)', () => {
     events.list = textEvents(1)
     render(<Harness />)
 
-    expect(table().getByRole('button', { name: /소송·제재.*관련 주요 사건 1건/ })).toBeTruthy()
-    expect(table().getByRole('button', { name: /사업 내용.*관련 주요 사건 없음/ })).toBeTruthy()
+    expect(table().getByRole('button', { name: /소송·제재.*· 사건 1/ })).toBeTruthy()
+    expect(table().getByRole('button', { name: /^사업 내용/ }).textContent).not.toContain('사건')
     const heading = screen.getByRole('heading', { name: '주요 사건 1건' })
     const fieldTable = screen.getByRole('group', { name: '분야별 변경' })
     expect(fieldTable.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
@@ -850,12 +850,16 @@ describe('TextTab 분야별 표(3.28)', () => {
 
   const table = () => within(screen.getByRole('group', { name: '분야별 변경' }))
 
-  it('9칸과 합계를 보이고 0건과 섹션 없음을 구분한다(AC1, AC2)', () => {
+  it("칩 한 줄에 '전체', 9칸, '위험 관련'을 두고 0건과 섹션 없음을 구분한다(AC1, AC2, 3.58 AC16)", () => {
     list.listing = listing
     renderFields(null)
-    expect(table().getAllByRole('button')).toHaveLength(9)
-    expect(screen.getByText('합계 582건')).toBeTruthy()
-    expect(table().getByRole('button', { name: /소송·제재.*38건/ })).toBeTruthy()
+    const chips = table().getAllByRole('button')
+    expect(chips).toHaveLength(11)
+    expect(chips[0].textContent).toBe('전체 582')
+    expect(chips[0].getAttribute('aria-pressed')).toBe('true')
+    expect(chips[10].textContent).toMatch(/^위험 관련/)
+    expect(screen.getByText(/582건 · 칸을 누르면 아래 목록이 그 분야로 걸러져요/)).toBeTruthy()
+    expect(table().getByRole('button', { name: /소송·제재 38/ })).toBeTruthy()
     expect(table().getByRole('button', { name: /배당.*확인된 변화 없음/ })).toBeTruthy()
     expect(table().getByRole('button', { name: /주주.*보고서에 해당 내용 없음/ })).toBeTruthy()
   })
@@ -867,15 +871,16 @@ describe('TextTab 분야별 표(3.28)', () => {
     expect(onChange).toHaveBeenCalledWith({ field: 'AUDIT' })
   })
 
-  it('고른 칸을 다시 누르거나 전체 분야 보기를 누르면 풀린다', () => {
+  it("고른 칸을 다시 누르거나 '전체' 칩을 누르면 풀린다(3.58 AC17)", () => {
     list.listing = listing
     const onChange = renderFields('AUDIT')
     const cell = table().getByRole('button', { name: /감사/ })
     expect(cell.getAttribute('aria-pressed')).toBe('true')
     fireEvent.click(cell)
     expect(onChange).toHaveBeenLastCalledWith({ field: null })
+    expect(table().getByRole('button', { name: /^전체/ }).getAttribute('aria-pressed')).toBe('false')
     onChange.mockClear()
-    fireEvent.click(screen.getByRole('button', { name: '전체 분야 보기' }))
+    fireEvent.click(table().getByRole('button', { name: /^전체/ }))
     expect(onChange).toHaveBeenLastCalledWith({ field: null })
   })
 

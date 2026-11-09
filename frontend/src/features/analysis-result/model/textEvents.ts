@@ -6,7 +6,8 @@ import type { AsyncState } from '@/shared/hooks/asyncState'
 import type { PollingOptions, PollingState } from '@/shared/hooks/pollingState'
 import { formatApproxWon } from './format'
 import type { FieldCell } from './textFields'
-import { resultCountLabel } from './textFilter'
+import { kindBadge } from './eventSignal'
+import { formatCount, resultCountLabel } from './textFilter'
 
 /** 문장 변화 탭의 주요 사건(3.37, 3.38) 화면 문구 */
 export const EVENTS_TITLE = '주요 사건'
@@ -144,11 +145,25 @@ export function eventFieldCounts(list: TextEventList | null): EventFieldCounts |
   return list === null ? null : new Map(list.fieldCounts.map(({ field, eventCount }) => [field, eventCount]))
 }
 
-/** 칸의 '관련 주요 사건' 줄. 바뀐 내용이 없는 칸에는 두지 않는다 */
+/** 분야 칩 뒤에 붙는 '사건 n'(3.58). 사건이 있는 칸에만 붙인다 */
 export function fieldEventLabel(cell: FieldCell, counts: EventFieldCounts | null): string | null {
   if (counts === null || cell.state !== 'changed') return null
   const count = counts.get(cell.field) ?? 0
-  return count > 0 ? `관련 주요 사건 ${resultCountLabel(count)}` : '관련 주요 사건 없음'
+  return count > 0 ? `사건 ${formatCount(count)}` : null
+}
+
+/** 처음에 보이는 사건 수(3.58). 나머지는 '사건 n건 더 보기'로 연다 */
+export const EVENTS_INITIAL = 3
+
+export function eventsMoreLabel(hidden: number): string {
+  return `사건 ${resultCountLabel(hidden)} 더 보기`
+}
+
+/** 사건 한 줄의 덧붙임: 종류 · 규모 · AI 생성(3.58). 목록 밖 종류와 규모가 없으면 뺀다 */
+export function eventRowMeta(item: TextEventItem): string {
+  const kind = kindBadge(item)
+  const scale = eventScaleView(item)
+  return [kind, scale?.amount ?? null, 'AI 생성'].filter((part): part is string => part !== null).join(' · ')
 }
 
 export interface EventScope {

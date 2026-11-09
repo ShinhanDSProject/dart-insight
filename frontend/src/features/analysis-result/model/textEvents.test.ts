@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ApiError } from '@/shared/api/client'
 import type { TextEventItem, TextEventList, TextEventQuote, TextEventRun, TextEventUnboundChange } from '@/shared/api/textEvents'
-import { eventFieldCounts, eventListOf, eventQuotes, eventRunPolling, eventScaleView, fieldEventLabel, needsEventStart, textEventsView, visibleEvents, visibleUnbound } from './textEvents'
+import { eventFieldCounts, eventListOf, eventQuotes, eventRowMeta, eventRunPolling, eventScaleView, eventsMoreLabel, fieldEventLabel, needsEventStart, textEventsView, visibleEvents, visibleUnbound } from './textEvents'
 import type { FieldCell } from './textFields'
 
 const run = (status: TextEventRun['status'], notCreatedReason: TextEventRun['notCreatedReason'] = null) => ({ status, notCreatedReason }) as TextEventRun
@@ -126,12 +126,12 @@ describe('eventQuotes', () => {
 describe('fieldEventLabel', () => {
   const counts = eventFieldCounts({ fieldCounts: [{ field: 'LITIGATION', eventCount: 2 }] } as TextEventList)
 
-  it('칸의 관련 사건 수를 보인다', () => {
-    expect(fieldEventLabel(cell('changed'), counts)).toBe('관련 주요 사건 2건')
+  it('칸의 관련 사건 수를 칩 뒤에 붙일 말로 보인다(3.58)', () => {
+    expect(fieldEventLabel(cell('changed'), counts)).toBe('사건 2')
   })
 
-  it('응답에 없는 칸은 관련 사건 없음이다', () => {
-    expect(fieldEventLabel({ ...cell('changed'), field: 'DIVIDEND' }, counts)).toBe('관련 주요 사건 없음')
+  it('사건이 없는 칸에는 붙이지 않는다(3.58 AC16)', () => {
+    expect(fieldEventLabel({ ...cell('changed'), field: 'DIVIDEND' }, counts)).toBeNull()
   })
 
   it('사건을 받지 못했으면 그 줄이 빠진다', () => {
@@ -249,5 +249,22 @@ describe('visibleUnbound', () => {
     expect(visibleUnbound(changes, { ...noFilter, searched: true })).toEqual([])
     expect(visibleUnbound(changes, { ...noFilter, riskOnly: true })).toEqual([])
     expect(visibleUnbound(changes, { ...noFilter, type: 'ADDED' })).toEqual([])
+  })
+})
+
+describe('eventRowMeta', () => {
+  it('사건 한 줄에 종류 · 규모 · AI 생성을 붙인다(3.58)', () => {
+    expect(eventRowMeta({ ...scale({}), kind: '제재', kindCode: 'SANCTION' })).toBe('제재 · USD 11,800,000 · AI 생성')
+  })
+
+  it('목록 밖 종류와 모르는 규모는 빼고 AI 생성은 늘 붙인다', () => {
+    const none = scale({ scaleAmount: null, scaleAmountText: null, currency: null, scaleAmountKrw: null, scaleEvidenceId: null, fxSource: null, fxRateDate: null })
+    expect(eventRowMeta({ ...none, kind: '그 밖의 사건', kindCode: 'OTHER' })).toBe('AI 생성')
+  })
+})
+
+describe('eventsMoreLabel', () => {
+  it('숨긴 사건 수로 더 보기 이름을 만든다', () => {
+    expect(eventsMoreLabel(2)).toBe('사건 2건 더 보기')
   })
 })

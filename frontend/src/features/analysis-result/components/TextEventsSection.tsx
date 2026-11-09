@@ -7,20 +7,23 @@ import { Badge, Button, Card, Chip, Notice, Skeleton } from '@/shared/ui'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { displaySectionPath } from '@/shared/lib/sectionTitle'
 import { useSignalTable, useTextEventDetail } from '../hooks/useTextEvents'
-import { eventsBySignal, kindBadge, SIGNAL_FILTER_LABEL, SIGNAL_FILTERS, signalBadge, signalEmptyText, signalFilterCount } from '../model/eventSignal'
+import { eventsBySignal, SIGNAL_FILTER_LABEL, SIGNAL_FILTERS, signalBadge, signalEmptyText, signalFilterCount } from '../model/eventSignal'
 import {
   CHANGE_QUOTES_TITLE,
   EVENT_CHANGES_PAGE_SIZE,
   EVENTS_BUILDING,
   EVENTS_DROPPED_NOTE,
   EVENTS_EMPTY,
+  EVENTS_INITIAL,
   EVENTS_LOADING,
   EVENTS_NOTE,
   EVENTS_RETRY_LIMITED,
   EVENTS_TITLE,
   EVENTS_UNAVAILABLE,
   eventQuotes,
+  eventRowMeta,
   eventScaleView,
+  eventsMoreLabel,
   eventsNarrowed,
   NO_QUOTE,
   NO_REASON,
@@ -101,18 +104,24 @@ export function TextEventsSection({ analysis, list, items, onOpenEvidence, rende
   const { state: table, reload } = useSignalTable()
   const [criteriaFor, setCriteriaFor] = useState<TextEventItem | null>(null)
   const [signal, setSignal] = useState<TextEventSignal | null>(null)
+  const [showAll, setShowAll] = useState(false)
   if (items.length === 0) return null
-  const shown = eventsBySignal(items, signal)
+  const filtered = eventsBySignal(items, signal)
+  // 처음에는 몇 건만 보이고 나머지는 더 보기로 연다(3.58)
+  const shown = showAll ? filtered : filtered.slice(0, EVENTS_INITIAL)
+  const hidden = filtered.length - shown.length
   return (
     <section className="text-events" aria-labelledby="text-events-title">
-      <h3 id="text-events-title" className="text-events__title">
-        {EVENTS_TITLE} {resultCountLabel(shown.length)}
-      </h3>
-      {/* 안내 두 줄을 한 줄로(3.55) */}
-      <p className="panel__note">
-        {EVENTS_NOTE}
-        {table.status === 'success' && ` ${table.data.signalNotice}`}
-      </p>
+      {/* 제목과 안내를 한 줄에(3.55 → 3.58) */}
+      <div className="text-events__head">
+        <h3 id="text-events-title" className="text-events__title">
+          {EVENTS_TITLE} {resultCountLabel(filtered.length)}
+        </h3>
+        <p className="panel__note">
+          {EVENTS_NOTE}
+          {table.status === 'success' && ` ${table.data.signalNotice}`}
+        </p>
+      </div>
       {list.droppedEventCount > 0 && (
         <Notice as="p" tone="attention">
           {EVENTS_DROPPED_NOTE}
@@ -124,13 +133,18 @@ export function TextEventsSection({ analysis, list, items, onOpenEvidence, rende
           {signalEmptyText(signal)}
         </Notice>
       )}
-      <ol className="text-events__list">
+      <ol className="text-events__list text-events__list--rows">
         {shown.map((item) => (
           <li key={item.eventId}>
             <TextEventCard analysis={analysis} item={item} onOpenEvidence={onOpenEvidence} onOpenCriteria={() => setCriteriaFor(item)} renderChanges={renderChanges} />
           </li>
         ))}
       </ol>
+      {hidden > 0 && (
+        <Button variant="link" className="text-events__more" onClick={() => setShowAll(true)}>
+          {eventsMoreLabel(hidden)}
+        </Button>
+      )}
       {criteriaFor !== null && <SignalCriteriaDialog item={criteriaFor} table={table} onRetry={reload} onClose={() => setCriteriaFor(null)} />}
     </section>
   )
@@ -214,40 +228,39 @@ function TextEventCard({ analysis, item, onOpenEvidence, onOpenCriteria, renderC
   const quotes = eventQuotes(item)
   const scale = eventScaleView(item)
   const signal = signalBadge(item.signal)
-  const kind = kindBadge(item)
   const quoteList = (entries: TextEventQuote[]) =>
     entries.map((quote, index) => <QuoteBlock key={`${quote.evidenceId}-${index}`} quote={quote} onOpenEvidence={onOpenEvidence} />)
+  // 사건 한 줄(3.58): 신호 · 제목 · 종류·규모·AI 생성 · 펼치기. 펼친 안쪽은 3.37~3.43의 내용 그대로이고 규모 금액의 근거 ID도 안쪽에 둔다
   return (
-    <Card as="article" className="text-event" aria-label={item.title}>
+    <article className="text-event text-event--row" aria-label={item.title}>
       <div className="text-event__head">
-        <h4 className="text-event__title">{item.title}</h4>
         <Badge tone={signal.tone}>{signal.label}</Badge>
-        <Badge tone="accent">AI 생성</Badge>
-        {kind !== null && <Badge>{kind}</Badge>}
+        <h4 className="text-event__title">{item.title}</h4>
+        <span className="text-event__meta">{eventRowMeta(item)}</span>
+        <Button variant="secondary" aria-expanded={open} aria-controls={open ? bodyId : undefined} onClick={() => setOpen(!open)}>
+          {open ? '접기' : '펼치기'}
+        </Button>
       </div>
-      {scale !== null && (
-        <dl className="text-event__scale">
-          <div>
-            <dt>{SCALE_AMOUNT_LABEL}</dt>
-            <dd className="text-event__amount">{scale.amount}</dd>
-          </div>
-          {scale.converted !== null && (
-            <div>
-              <dt>{SCALE_CONVERTED_LABEL}</dt>
-              <dd>{scale.converted}</dd>
-            </div>
-          )}
-          <div>
-            <dt>근거 ID</dt>
-            <dd>{scale.evidenceId === null ? <Badge tone="attention">검토 필요</Badge> : <code>{scale.evidenceId}</code>}</dd>
-          </div>
-        </dl>
-      )}
-      <Button variant="secondary" className="text-event__actions" aria-expanded={open} aria-controls={open ? bodyId : undefined} onClick={() => setOpen(!open)}>
-        {open ? '접기' : '펼치기'}
-      </Button>
       {open && (
         <div id={bodyId} className="text-event__body">
+          {scale !== null && (
+            <dl className="text-event__scale">
+              <div>
+                <dt>{SCALE_AMOUNT_LABEL}</dt>
+                <dd className="text-event__amount">{scale.amount}</dd>
+              </div>
+              {scale.converted !== null && (
+                <div>
+                  <dt>{SCALE_CONVERTED_LABEL}</dt>
+                  <dd>{scale.converted}</dd>
+                </div>
+              )}
+              <div>
+                <dt>근거 ID</dt>
+                <dd>{scale.evidenceId === null ? <Badge tone="attention">검토 필요</Badge> : <code>{scale.evidenceId}</code>}</dd>
+              </div>
+            </dl>
+          )}
           <div className="text-event__part">
             <h5 className="text-event__part-title">{CHANGE_QUOTES_TITLE}</h5>
             <div className="change-card__sides">
@@ -288,7 +301,7 @@ function TextEventCard({ analysis, item, onOpenEvidence, onOpenCriteria, renderC
           )}
         </div>
       )}
-    </Card>
+    </article>
   )
 }
 
