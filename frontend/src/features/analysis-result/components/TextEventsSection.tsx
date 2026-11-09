@@ -105,6 +105,11 @@ export function TextEventsSection({ analysis, list, items, onOpenEvidence, rende
   const [criteriaFor, setCriteriaFor] = useState<TextEventItem | null>(null)
   const [signal, setSignal] = useState<TextEventSignal | null>(null)
   const [showAll, setShowAll] = useState(false)
+  // 신호를 바꾸면 거른 사건도 처음 몇 건부터 다시 보인다
+  const chooseSignal = (next: TextEventSignal | null) => {
+    setSignal(next)
+    setShowAll(false)
+  }
   if (items.length === 0) return null
   const filtered = eventsBySignal(items, signal)
   // 처음에는 몇 건만 보이고 나머지는 더 보기로 연다(3.58)
@@ -127,7 +132,7 @@ export function TextEventsSection({ analysis, list, items, onOpenEvidence, rende
           {EVENTS_DROPPED_NOTE}
         </Notice>
       )}
-      {(items.length > 1 || signal !== null) && <SignalFilter items={items} signal={signal} onChange={setSignal} />}
+      {(items.length > 1 || signal !== null) && <SignalFilter items={items} signal={signal} onChange={chooseSignal} />}
       {signal !== null && shown.length === 0 && (
         <Notice as="p" role="status">
           {signalEmptyText(signal)}
@@ -237,7 +242,8 @@ function TextEventCard({ analysis, item, onOpenEvidence, onOpenCriteria, renderC
         <Badge tone={signal.tone}>{signal.label}</Badge>
         <h4 className="text-event__title">{item.title}</h4>
         <span className="text-event__meta">{eventRowMeta(item)}</span>
-        <Button variant="secondary" aria-expanded={open} aria-controls={open ? bodyId : undefined} onClick={() => setOpen(!open)}>
+        {/* 줄마다 같은 '펼치기'로 읽히지 않도록 이름에 사건 제목을 넣는다 */}
+        <Button variant="secondary" aria-label={`${item.title} ${open ? '접기' : '펼치기'}`} aria-expanded={open} aria-controls={open ? bodyId : undefined} onClick={() => setOpen(!open)}>
           {open ? '접기' : '펼치기'}
         </Button>
       </div>

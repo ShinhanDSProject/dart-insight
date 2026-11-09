@@ -720,7 +720,7 @@ describe('TextTab 주요 사건(3.37)', () => {
   it('목록에 없는 변경도 인용에서 원문 비교를 열고, 닫으면 그 버튼으로 초점이 돌아온다', async () => {
     events.list = textEvents(99)
     render(<Harness />)
-    fireEvent.click(screen.getByRole('button', { name: '펼치기' }))
+    fireEvent.click(screen.getByRole('button', { name: /펼치기$/ }))
     const opener = within(screen.getByRole('article', { name: '과징금을 새로 부과받았어요' })).getByRole('button', { name: '원문 비교' })
     opener.focus()
 
@@ -736,7 +736,7 @@ describe('TextTab 주요 사건(3.37)', () => {
     events.list = textEvents(1)
     detail.state = { status: 'success', data: { changes: [item(1, '1. 사업의 개요')] } }
     render(<Harness />)
-    fireEvent.click(screen.getByRole('button', { name: '펼치기' }))
+    fireEvent.click(screen.getByRole('button', { name: /펼치기$/ }))
     fireEvent.click(screen.getByRole('button', { name: '변경 보기 1건' }))
     const opener = document.getElementById('text-evidence-button-event-7-1') as HTMLElement
     opener.focus()
@@ -802,7 +802,7 @@ describe('TextTab 주요 사건(3.37)', () => {
     events.list = textEvents(1)
     list.groups = {}
     render(<Harness />)
-    fireEvent.click(screen.getByRole('button', { name: '펼치기' }))
+    fireEvent.click(screen.getByRole('button', { name: /펼치기$/ }))
     detail.state = { status: 'success', data: { changes: [item(1, '1. 사업의 개요')] } }
 
     fireEvent.click(screen.getByRole('button', { name: '변경 보기 1건' }))

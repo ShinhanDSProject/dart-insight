@@ -126,7 +126,7 @@ function show(items: TextEventItem[], droppedEventCount = 0) {
   return { ...view, onOpenEvidence, renderChanges }
 }
 
-const open = () => fireEvent.click(screen.getByRole('button', { name: '펼치기' }))
+const open = () => fireEvent.click(screen.getByRole('button', { name: /펼치기$/ }))
 
 beforeEach(() => {
   detail.state = { status: 'loading' }
@@ -146,7 +146,7 @@ describe('TextEventsSection', () => {
     const card = within(screen.getByRole('article', { name: '과징금을 새로 부과받았어요' }))
     expect(card.getByText('제재 · USD 11,800,000 · AI 생성')).toBeTruthy()
     expect(card.queryByText('20260814003958#B1576')).toBeNull()
-    fireEvent.click(card.getByRole('button', { name: '펼치기' }))
+    fireEvent.click(card.getByRole('button', { name: /펼치기$/ }))
     expect(card.getByText('USD 11,800,000')).toBeTruthy()
     expect(card.getByText('약 163억원 (기준: 한국은행 매매기준율 2025-12-31)')).toBeTruthy()
     expect(card.getByText('20260814003958#B1576')).toBeTruthy()
@@ -161,7 +161,7 @@ describe('TextEventsSection', () => {
 
   it('금액의 근거 위치가 없으면 검토 필요로 보인다', () => {
     show([event({ ...foreign, scaleEvidenceId: null })])
-    fireEvent.click(screen.getByRole('button', { name: '펼치기' }))
+    fireEvent.click(screen.getByRole('button', { name: /펼치기$/ }))
 
     expect(screen.getByText('검토 필요').className).toContain('attention')
   })
@@ -192,6 +192,24 @@ describe('TextEventsSection', () => {
     fireEvent.click(screen.getByRole('button', { name: '사건 2건 더 보기' }))
     expect(screen.getAllByRole('article')).toHaveLength(5)
     expect(screen.queryByRole('button', { name: /더 보기/ })).toBeNull()
+  })
+
+  it("펼치기 버튼의 이름에 사건 제목이 들어간다", () => {
+    show([event()])
+
+    const button = screen.getByRole('button', { name: '과징금을 새로 부과받았어요 펼치기' })
+    fireEvent.click(button)
+    expect(button.getAttribute('aria-label')).toBe('과징금을 새로 부과받았어요 접기')
+  })
+
+  it('더 보기를 연 뒤 신호를 바꾸면 거른 사건도 처음 3건부터 보인다', () => {
+    show([1, 2, 3, 4, 5].map((n) => event({ eventId: n, title: `사건 ${n}`, signal: 'HOLD' })))
+    fireEvent.click(screen.getByRole('button', { name: '사건 2건 더 보기' }))
+    expect(screen.getAllByRole('article')).toHaveLength(5)
+
+    fireEvent.click(screen.getByRole('button', { name: /^보류/ }))
+    expect(screen.getAllByRole('article')).toHaveLength(3)
+    expect(screen.getByRole('button', { name: '사건 2건 더 보기' })).toBeTruthy()
   })
 
   it('사건이 3건 이하면 더 보기가 없다', () => {
@@ -413,7 +431,7 @@ describe('TextEventsSection 신호와 사건 문장', () => {
 
   it('기준이 없거나 근거를 확인하지 못한 보류는 사유 문구가 보인다(AC14)', () => {
     show([event({ title: '기준 없음', signal: 'HOLD', holdReason: 'NO_CRITERIA' }), event({ eventId: 8, title: '근거 없음', signal: 'HOLD', holdReason: 'EVIDENCE_NOT_CONFIRMED' })])
-    screen.getAllByRole('button', { name: '펼치기' }).forEach((button) => fireEvent.click(button))
+    screen.getAllByRole('button', { name: /펼치기$/ }).forEach((button) => fireEvent.click(button))
 
     expect(within(screen.getByRole('article', { name: '기준 없음' })).getByText('판단 기준이 아직 없는 사건이에요.')).toBeTruthy()
     expect(within(screen.getByRole('article', { name: '근거 없음' })).getByText('근거를 확인하지 못했어요.')).toBeTruthy()
