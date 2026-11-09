@@ -19,6 +19,8 @@ interface TextFoldedGroupsProps {
 /** 기본 목록에서 접은 변경의 묶음(3.29). 건수는 분석 전체를 세고, 묶음의 변경은 처음 펼칠 때 불러온다 */
 export function TextFoldedGroups({ analysisId, counts, sort, renderList }: TextFoldedGroupsProps) {
   const [opened, setOpened] = useState<ReadonlySet<TextListGroup>>(new Set())
+  // 처음에는 묶음 줄도 접어 한 줄 버튼만 보인다(3.55)
+  const [shown, setShown] = useState(false)
   const groups = foldedGroups(counts)
   if (groups.length === 0) return null
   const toggle = (group: TextListGroup) => {
@@ -29,20 +31,32 @@ export function TextFoldedGroups({ analysisId, counts, sort, renderList }: TextF
   return (
     <section className="text-folded" aria-labelledby="text-folded-title">
       <h3 id="text-folded-title" className="text-folded__title">
-        {FOLDED_TITLE} {resultCountLabel(foldedTotal(counts))}
+        <button
+          type="button"
+          className="text-folded__toggle"
+          aria-expanded={shown}
+          aria-controls={shown ? 'text-folded-groups' : undefined}
+          onClick={() => setShown((v) => !v)}
+        >
+          {FOLDED_TITLE} {resultCountLabel(foldedTotal(counts))} {shown ? '접기 ▴' : '보기 ▾'}
+        </button>
       </h3>
-      <p className="panel__note">{FOLDED_NOTE}</p>
-      {groups.map((entry) => (
-        <FoldedGroupRow
-          key={entry.group}
-          entry={entry}
-          open={opened.has(entry.group)}
-          onToggle={() => toggle(entry.group)}
-          analysisId={analysisId}
-          sort={sort}
-          renderList={renderList}
-        />
-      ))}
+      {shown && (
+        <div id="text-folded-groups" className="text-folded__groups">
+          <p className="panel__note">{FOLDED_NOTE}</p>
+          {groups.map((entry) => (
+            <FoldedGroupRow
+              key={entry.group}
+              entry={entry}
+              open={opened.has(entry.group)}
+              onToggle={() => toggle(entry.group)}
+              analysisId={analysisId}
+              sort={sort}
+              renderList={renderList}
+            />
+          ))}
+        </div>
+      )}
     </section>
   )
 }

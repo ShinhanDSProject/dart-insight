@@ -437,15 +437,6 @@
   font-size: var(--font-size-sm);
 }
 
-/* 문장·내용 변화(W-03 ③) */
-.text-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2) var(--space-4);
-}
-
 /* 표 변경 카드의 행 비교(3.30). 증감이 아니므로 색으로 나누지 않는다 */
 .row-diff {
   display: flex;
@@ -530,6 +521,27 @@
 .text-folded__title {
   margin: 0;
   font-size: var(--font-size-md);
+}
+
+/* 접어 둔 변경을 여는 한 줄 버튼(3.55) */
+.text-folded__toggle {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-link);
+  font: inherit;
+  cursor: pointer;
+}
+
+.text-folded__toggle:hover {
+  color: var(--color-link-hover);
+}
+
+.text-folded__groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
 .text-folded__group {
@@ -837,76 +849,28 @@
   margin-left: var(--space-2);
 }
 
-/* 위험 요인 변화 카드(3.9, FS-61). 건수는 중립색 큰 숫자(StatNumber) */
-.risk-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.risk-card__head {
+/* 문장 변화 거르기 줄(3.7, 3.55): 섹션·검색·유형·고정·정렬·유형 설명을 한 줄에 두고 좁으면 줄을 바꾼다 */
+.text-filterbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2) var(--space-4);
-}
-
-.risk-card__title {
-  margin: 0;
-  font-size: var(--font-size-md);
-}
-
-.risk-card__stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: var(--space-4) var(--space-5);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.risk-card__stat + .risk-card__stat {
-  padding-left: var(--space-5);
-  border-left: 1px solid var(--color-border);
-}
-
-.risk-card__empty {
-  margin: 0;
-  color: var(--color-text-muted);
-}
-
-.risk-card__note {
-  margin: 0;
-}
-
-@media screen and (max-width: 900px) {
-  .risk-card__stats {
-    grid-template-columns: 1fr;
-  }
-
-  .risk-card__stat + .risk-card__stat {
-    padding-top: var(--space-3);
-    padding-left: 0;
-    border-top: 1px solid var(--color-border);
-    border-left: 0;
-  }
-}
-
-/* 문장 변화 섹션 거르기·검색(3.7) */
-.text-search {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: var(--space-3) var(--space-4);
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
 }
 
 .text-search__field {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
   min-width: 0;
   max-width: 100%;
+}
+
+.text-search__field .field-hint {
+  flex-basis: 100%;
 }
 
 .text-search__field--grow {
@@ -917,8 +881,17 @@
   max-width: 100%;
 }
 
-.text-search__ask {
-  align-self: flex-start;
+.text-filterbar__sort {
+  width: auto;
+}
+
+/* 분야 줄의 위험 관련 칩(3.55). 옛 분석은 표 없이 칩 한 줄 */
+.text-risk {
+  display: inline-flex;
+}
+
+.text-risk-row {
+  display: flex;
 }
 
 .text-search__input {
@@ -1138,22 +1111,14 @@
   vertical-align: 1px;
 }
 
-.text-controls__note {
-  flex-basis: 100%;
-}
-
-/* 문장 변경 유형 설명(3.3). 칩 줄 아래 한 줄을 차지하고, 좁은 화면에서는 이름 아래에 뜻을 둔다 */
+/* 문장 변경 유형 설명(3.3, 3.55). 거르기 줄 끝의 ⓘ 버튼이고, 펼치면 뜻이 줄 아래 한 줄을 차지한다 */
 .change-type-help {
-  display: flex;
-  flex-basis: 100%;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-2);
-  min-width: 0;
+  display: contents;
 }
 
 .change-type-help__list {
   display: grid;
+  flex-basis: 100%;
   gap: var(--space-2);
   width: 100%;
   margin: 0;
