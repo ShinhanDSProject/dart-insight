@@ -8,6 +8,8 @@
   - 원인 표현은 그 문장이 인용한 결과에도 원인 표현이 있고, 등급이 있으면 STATED일 때만(ADR-0015)
   - '회사가 밝혔다' 같은 직접 설명 꼴은 그 문장이 인용한 결과의 등급이 STATED일 때만
     (등급을 바꾸지 않음). 원인·등급은 문장마다 그 문장 끝의 근거 표시로 본다
+  - 용어 카드(G)만 인용한 문장은 회사 이름·'이 회사' 같은 회사 지칭을 쓰지 않음(ADR-0061).
+    용어 풀이 Workflow의 보고서 설명 풀이 검사는 workflow.term_answer_problem이 extra로 더한다
   - 투자 권유성 표현 검사(app.compliance) 통과. 걸리면 규칙 ID를 blocked_rules에 남긴다
   - 액션은 받은 목록의 종류와 형식(JSON Schema)만. 값이 이 분석에 실제로 있는지는 backend가
     확인하고 없으면 그 액션을 뺀다(ADR-0044, docs/api-spec.md `final.actions`)
@@ -17,6 +19,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -67,6 +70,13 @@ GRADE_CHANGED = "GRADE_CHANGED"
 BLOCKED_EXPRESSION = "BLOCKED_EXPRESSION"
 ACTION_INVALID = "ACTION_INVALID"
 NOT_FOUND_AFTER_TOOL_FAILURE = "NOT_FOUND_AFTER_TOOL_FAILURE"
+# 용어 카드(ADR-0061): 카드(G)만 인용한 문장이 회사를 가리킴 / 보고서 설명 풀이가 인용 밖 내용을 씀
+GLOSSARY_COMPANY_REFERENCE = "GLOSSARY_COMPANY_REFERENCE"
+REPORT_EXPLANATION_UNSUPPORTED = "REPORT_EXPLANATION_UNSUPPORTED"
+# 용어 카드 근거 ID(G{카드 키}, 키는 영문 소문자로 시작하는 카멜 표기)
+_GLOSSARY_ID = re.compile(r"^G[a-z][A-Za-z0-9]*$")
+# 회사를 가리키는 말. '회사채'처럼 용어 안의 '회사'는 회사를 가리키지 않으므로 넣지 않는다
+_COMPANY_WORDS = re.compile(r"이\s*회사|이\s*기업|당사|해당\s*회사|해당\s*기업")
 
 _MARKER = re.compile(r"\[([^\[\]\n]+)\]")
 # 회사가 직접 밝힌 설명(STATED)의 꼴. 등급이 RELATED·NONE인 결과를 이렇게 쓰면 등급을 바꾼 것이다
@@ -166,7 +176,12 @@ def parse_draft(data: Any) -> Draft:
     return Draft(status, answer, evidence, actions)
 
 
-def review(draft: Draft, step: StepInput) -> Reviewed:
+def review(
+    draft: Draft,
+    step: StepInput,
+    extra: Callable[[str, StepInput], tuple[str, str] | None] | None = None,
+) -> Reviewed:
+    """extra는 Workflow가 더하는 내용 검사(규칙 ID, 사유). 공통 검사를 통과한 답에만 부른다."""
     action_problem = _actions_problem(draft.actions, step)
     if action_problem:
         return Reviewed(None, [action_problem], [ACTION_INVALID])
@@ -183,6 +198,9 @@ def review(draft: Draft, step: StepInput) -> Reviewed:
     if problem:
         return Reviewed(None, [problem], [rule])
     assert draft.answer is not None
+    extra_problem = extra(draft.answer, step) if extra is not None else None
+    if extra_problem is not None:
+        return Reviewed(None, [extra_problem[1]], [extra_problem[0]])
     findings = scan(without_markers(draft.answer))
     if findings:
         labels = ", ".join(dict.fromkeys(f.label for f in findings))
@@ -307,7 +325,36 @@ def _answer_problem(draft: Draft, step: StepInput) -> tuple[str, str | None]:
         rule, problem = _sentence_problem(sentence, evidence)
         if problem:
             return rule, problem
+        rule, problem = _glossary_problem(sentence, evidence, step.company_name)
+        if problem:
+            return rule, problem
     return "", None
+
+
+def _glossary_problem(
+    sentence: str, evidence: dict[str, ResultItem], company_name: str
+) -> tuple[str, str | None]:
+    """용어 카드(G)만 인용한 문장은 회사를 가리키지 않는다(ADR-0061).
+
+    카드는 용어의 뜻과 가정한 예시의 근거일 뿐 회사 사실의 근거가 아니다. 숫자는 인용한 줄에 있는
+    것만 쓰는 검사(number_problem)로 이미 카드 예시의 숫자만 쓸 수 있다.
+    """
+    markers = [m for m in dict.fromkeys(_MARKER.findall(sentence)) if m in evidence]
+    if not markers or not all(_GLOSSARY_ID.match(m) for m in markers):
+        return "", None
+    body = without_markers(sentence)
+    named = company_name and re.sub(r"\s+", "", company_name) in re.sub(r"\s+", "", body)
+    if named or _COMPANY_WORDS.search(body):
+        return GLOSSARY_COMPANY_REFERENCE, (
+            "용어 카드만 인용한 문장에는 회사 이름이나 '이 회사' 같은 회사 지칭을 쓰지 않습니다. "
+            "회사의 값·문장은 회사 근거(F·T·#B·#V 등)를 인용한 문장으로 따로 쓰세요."
+        )
+    return "", None
+
+
+def split_sentences(answer: str) -> list[str]:
+    """답을 문장으로 나눈다(근거 표시는 앞 문장에 붙음). 검토 규칙이 문장마다 볼 때 쓴다."""
+    return _sentences(answer)
 
 
 def _brief_problem(

@@ -19,7 +19,7 @@ from app.llm.prompting import SOURCE_RULE, attr, disclosure, escape
 from app.llm.providers import LlmRequest
 
 # 결과가 달라지게 바꾸면 이 버전을 올린다(검사 규칙 app/agent/validate.py 포함)
-PROMPT_VERSION = "agent-7"
+PROMPT_VERSION = "agent-8"
 TASK_PLAN = "agent_plan"
 TASK_ANSWER = "agent_answer"
 MAX_MESSAGE_CHARS = 500
@@ -84,8 +84,12 @@ PLAN_SYSTEM = "\n".join(
         "6. workflow는 처음 고를 때(아직 Tool 결과가 없을 때)만 고르고, 아니면 null로 둡니다. "
         "재무 수치가 바뀐 원인·이유를 묻는 요청(예: '영업이익 감소와 관련된 변경 문장', "
         "'매출이 왜 늘었어?')은 CAUSE_TRACE, 회사 설명과 재무 수치가 맞는지 묻는 요청"
-        "(예: '회사 설명과 재무 수치가 일치해?')은 CROSS_CHECK입니다. account에는 사용자가 말한 "
-        "계정 이름(예: '영업이익')을, 말하지 않았으면 null을 적습니다. workflow를 고르면 "
+        "(예: '회사 설명과 재무 수치가 일치해?')은 CROSS_CHECK, 공시·재무 용어의 뜻을 묻는 요청"
+        "(예: '부채비율이 뭐야?', 'CB가 뭐야?', '자산이 뭐야?', '부채비율과 유동비율 차이는?', "
+        "앞 대화의 용어를 '더 쉽게 설명해줘')은 TERM입니다. account에는 사용자가 말한 "
+        "계정 이름(예: '영업이익')을, 말하지 않았으면 null을 적습니다. term에는 TERM일 때 "
+        "사용자가 말한 용어(여럿이면 쉼표로, 3개까지, '더 쉽게'면 앞 대화의 용어)를, 아니면 "
+        "null을 적습니다. workflow를 고르면 "
         "decision은 CALL_TOOLS, toolCalls는 빈 배열로 둡니다(부를 Tool은 서비스가 정함). "
         "workflow 선택지가 주어지지 않았으면 늘 null입니다.",
         "답 규칙(draft):",
@@ -94,7 +98,7 @@ PLAN_SYSTEM = "\n".join(
         "답은 JSON 객체 하나만: "
         '{"decision": "CALL_TOOLS", "toolCalls": [{"name": "...", "arguments": {...}}], '
         '"draft": null, "workflow": null} 또는 {"decision": "CALL_TOOLS", "toolCalls": [], '
-        '"draft": null, "workflow": {"type": "CROSS_CHECK", "account": null}} 또는 '
+        '"draft": null, "workflow": {"type": "CROSS_CHECK", "account": null, "term": null}} 또는 '
         '{"decision": "ANSWER", "toolCalls": [], "draft": '
         '{"status": "ANSWERED", "answer": "...", "evidenceIds": ["..."], "actions": []}, '
         '"workflow": null}',
@@ -152,11 +156,13 @@ def _workflow_schema(step: StepInput) -> dict[str, Any]:
             {"type": "null"},
             {
                 "type": "object",
-                "required": ["type", "account"],
+                "required": ["type", "account", "term"],
                 "additionalProperties": False,
                 "properties": {
                     "type": {"enum": choices},
                     "account": {"type": ["string", "null"]},
+                    # 용어 풀이(TERM)의 용어. 여럿이면 쉼표로(ADR-0061)
+                    "term": {"type": ["string", "null"]},
                 },
             },
         ]
@@ -269,7 +275,60 @@ def _workflow_lines(step: StepInput) -> list[str]:
             "근거 표시와 함께 설명하고, 허위·오류로 단정하지 않습니다. 작년 계획 대조는 이행 "
             "여부를 평가하지 않고 관련 언급만 소개합니다.",
         ]
+    if active == workflow.TERM:
+        return _term_lines(step)
     return []
+
+
+def _term_lines(step: StepInput) -> list[str]:
+    """용어 풀이 답 안내(ADR-0061).
+
+    정의는 카드에서만 가져오고 AI는 카드와 회사 자료를 엮기만 한다.
+    """
+    cards = workflow.term_cards(step)
+    report = workflow.report_explanation(step)
+    if not cards and report is not None:
+        evidence_id, _ = report
+        return [
+            "",
+            "[용어 풀이: 보고서 설명] 이 용어는 용어 카드가 없어 이 회사 보고서 원문에서 찾은 "
+            "설명으로 답합니다. 첫 문장은 정확히 "
+            f"'{workflow.REPORT_QUOTE}'로 쓰고, 다음 문장에 용어가 든 원문 문장을 따옴표 안에 "
+            f"그대로 옮겨 [{evidence_id}]를 붙입니다. 쉬운 말 풀이는 그 뒤에 한 문장까지만, "
+            f"인용 문단에 있는 낱말로만 쓰고 [{evidence_id}]를 붙입니다. 인용 밖의 내용(정의·예시·"
+            "평가)을 더하지 않고 근거 등급을 말하지 않습니다.",
+        ]
+    lines = [
+        "",
+        '[용어 풀이] 뜻은 용어 카드(<disclosure id="G…">)에서만 가져옵니다. 카드에 없는 뜻을 '
+        "만들지 않습니다.",
+        "순서는 1) 한 줄 뜻 2) 쉬운 예시 3) 이 회사에서는 4) 확인할 곳입니다. 칸마다 한두 문장이고 "
+        "문장마다 근거 표시를 붙입니다.",
+        "- 카드만 인용한 문장([G…]만 붙은 문장)에는 회사 이름이나 '이 회사'·'당사'를 "
+        "쓰지 않습니다. 예시는 '예를 들어'로 시작해 가정한 예임을 밝히고, 숫자는 카드에 적힌 "
+        "것만 씁니다.",
+        "- '이 회사에서는' 칸은 회사 근거(F·T·#V·#B)를 인용한 문장으로만 씁니다. "
+        "재무 계정 변화(F)를 먼저 쓰고, 체크 포인트 값(#V)을 쓰면 그 값의 보고서 이름을 "
+        "문장에 밝히고 이 분석 보고서의 값처럼 쓰지 않습니다.",
+        "- search_text_changes 결과에 그 용어가 나온 문장이 없으면 '이번에 바뀐 문장에서는 찾지 "
+        "못했어요'라고 쓰고, 원문 전체에 없다고 말하지 않습니다. 회사 근거가 하나도 없으면 "
+        "'이 회사에서는' 칸 대신 이 회사 자료에서 찾지 못했다고 알립니다.",
+        "- 카드가 없다고 온 용어는 뜻을 쓰지 않고 등록된 카드가 없다고만 알립니다.",
+    ]
+    if any(card.basic for card in cards):
+        lines.append(
+            "- 기초 카드(카드 줄에 '기초 카드')는 한 줄 뜻과 이 회사 값만 두세 문장으로 짧게 "
+            "답합니다. 예시·확인할 곳은 쓰지 않습니다(화면의 카드를 펼쳐 봄)."
+        )
+    if len(cards) > 1:
+        lines.append(
+            "- 용어가 여럿이면 카드마다 한 줄 뜻을 쓰고, 차이는 카드에 적힌 내용으로만 설명합니다."
+        )
+    lines.append(
+        "- 사용자가 '더 쉽게'를 요청하면 같은 카드로 더 짧고 쉬운 말로 다시 씁니다. 뜻을 바꾸지 "
+        "않습니다."
+    )
+    return lines
 
 
 def _common(step: StepInput) -> list[str]:
