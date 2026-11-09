@@ -400,7 +400,7 @@ def claude_status_error(code: int, body: Any = None, cls: Any = None) -> anthrop
     return error_cls("오류", response=httpx2.Response(code, request=request), body=body)
 
 
-def test_claude_sends_messages_request_with_schema_cache_fallback_and_timeout() -> None:
+def test_claude_sends_messages_request_with_schema_fallback_and_timeout() -> None:
     p, fake = claude(claude_response('{"answer": "네"}'))
 
     p.complete(REQUEST, 30.0)
@@ -415,7 +415,7 @@ def test_claude_sends_messages_request_with_schema_cache_fallback_and_timeout() 
     fmt = params["output_config"]["format"]
     assert fmt["type"] == "json_schema"
     assert fmt["schema"]["additionalProperties"] is False
-    assert fmt["schema"]["required"] == ["answer", "note"]
+    assert fmt["schema"]["required"] == ["answer"]  # 선택 속성은 그대로(claude_schema)
     assert "effort" not in params["output_config"]
     # Sonnet 5.5는 거절했을 때 서버가 다른 모델로 이어 처리한다
     assert params["fallbacks"] == "default"
@@ -628,17 +628,34 @@ def test_claude_schema_accepts_every_feature_schema() -> None:
     from app.events.prompt import OUTPUT_SCHEMA as EVENTS
     from app.events.signal_reason_prompt import OUTPUT_SCHEMA as SIGNAL
     from app.followup.prompt import OUTPUT_SCHEMA as FOLLOWUP
-    from app.llm.providers import CLAUDE_UNSUPPORTED_KEYWORDS, claude_schema
+    from app.llm.providers import (
+        CLAUDE_MAX_UNION_FIELDS,
+        CLAUDE_UNSUPPORTED_KEYWORDS,
+        claude_schema,
+        claude_schema_fits,
+    )
     from app.outlook.prompt import OUTPUT_SCHEMA as OUTLOOK
 
     args = {"type": "object", "properties": {}, "required": [], "additionalProperties": False}
-    tools = [ToolSpec("get_summary", "요약", args)]
+    # 실제 채팅처럼 선택 인자가 있는 Tool이 많아도 '여러 타입' 필드 한도를 넘지 않아야 한다(#777)
+    optional_args = {
+        "type": "object",
+        "required": ["section"],
+        "properties": {
+            "section": {"type": "string"},
+            "query": {"type": "string"},
+            "priority": {"enum": ["priority", "all"]},
+            "limit": {"type": "integer", "minimum": 1, "maximum": 20},
+        },
+    }
+    tools = [ToolSpec(f"tool_{i}", "도구", optional_args) for i in range(30)]
 
     def step(actions: list[ActionSpec]) -> StepInput:
         history = [Turn("user", "질문")]
         return StepInput("회사", None, "보고서", "질문", history, {}, tools, actions, [], 4)
 
-    schemas = [
+    # 에이전트 Tool 고르기 밖의 작업은 구조화 출력 한도 안이어야 한다(ADR-0062)
+    fitting = [
         SUMMARY_SCHEMA,
         ANSWER_SCHEMA,
         BRIEFING,
@@ -648,13 +665,61 @@ def test_claude_schema_accepts_every_feature_schema() -> None:
         SIGNAL,
         FOLLOWUP,
         OUTLOOK,
+        answer_schema(step([ActionSpec("OPEN_TAB", args)])),
+    ]
+    for schema in fitting:
+        assert claude_schema_fits(claude_schema(schema))
+    schemas = [
+        *fitting,
         plan_schema(step([])),
         plan_schema(step([ActionSpec("OPEN_TAB", args)])),
-        answer_schema(step([])),
     ]
     for schema in schemas:
         nodes = _walk(claude_schema(schema))
+        unions = [n for n in nodes if isinstance(n.get("type"), list) or "anyOf" in n]
+        assert len(unions) <= CLAUDE_MAX_UNION_FIELDS
         for node in nodes:
             assert not set(CLAUDE_UNSUPPORTED_KEYWORDS) & set(node)
-            if node.get("type") == "object" and "properties" in node:
+            # 타입 목록과 enum을 함께 두면 Claude가 400을 낸다
+            assert not (isinstance(node.get("type"), list) and "enum" in node)
+            if "properties" in node:
                 assert node["additionalProperties"] is False
+
+
+def test_claude_schema_keeps_optional_properties_optional() -> None:
+    from app.llm.providers import claude_schema
+
+    result = claude_schema(SCHEMA)
+
+    # OpenAI 엄격 모드와 달리 선택 속성을 필수·null 허용으로 바꾸지 않는다
+    assert result["required"] == ["answer"]
+    assert result["properties"]["note"] == {"type": "string"}
+    assert result["additionalProperties"] is False
+    assert "additionalProperties" not in SCHEMA  # 부른 쪽 스키마는 그대로
+
+
+def test_claude_schema_splits_enum_with_type_list_into_any_of() -> None:
+    from app.llm.providers import claude_schema
+
+    schema = {
+        "type": "object",
+        "properties": {"grade": {"type": ["string", "null"], "enum": ["STATED", None]}},
+    }
+
+    grade = claude_schema(schema)["properties"]["grade"]
+
+    assert grade == {"anyOf": [{"type": "string", "enum": ["STATED"]}, {"type": "null"}]}
+
+
+def test_claude_sends_schema_too_large_for_structured_output_without_format() -> None:
+    optional = {f"field_{i}": {"type": "string"} for i in range(25)}
+    schema = {"type": "object", "required": ["answer"], "properties": {"answer": {}, **optional}}
+    p, fake = claude(claude_response('{"answer": "네"}'), reasoning_effort="low")
+
+    result = p.complete(replace(REQUEST, output_schema=schema), 10.0)
+
+    # 선택 속성이 24개를 넘으면 400이 나므로 구조화 출력 없이 보내고 검증 함수에 맡긴다
+    output_config = fake.messages.calls[0]["output_config"]
+    assert "format" not in output_config
+    assert output_config["effort"] == "low"
+    assert result.text == '{"answer": "네"}'
