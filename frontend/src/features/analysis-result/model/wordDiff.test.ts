@@ -21,6 +21,13 @@ describe('wordDiff', () => {
     expect(changed(diff!.current)).toEqual([])
   })
 
+  it('합친 조각은 같은 글, 빠진 글, 새 글 순서를 지킨다', () => {
+    const diff = wordDiff('당사는 메모리를 만듭니다.', '당사는 메모리와 파운드리를 만듭니다.')
+
+    expect(diff!.merged.filter((p) => p.kind !== 'added').map((p) => p.text).join('')).toBe('당사는 메모리를 만듭니다.')
+    expect(diff!.merged.filter((p) => p.kind !== 'removed').map((p) => p.text).join('')).toBe('당사는 메모리와 파운드리를 만듭니다.')
+  })
+
   it('너무 긴 글은 계산하지 않는다', () => {
     const long = Array.from({ length: 1000 }, (_, i) => `낱말${i}`).join(' ')
 

@@ -1076,6 +1076,32 @@
   color: var(--color-text-muted);
 }
 
+/* 합쳐 보기(3.53): 빠진 글은 줄 긋기, 새 글은 추가 색 바탕(design-system 5-7). 카드에서는 4줄까지 */
+.change-merged__body {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+}
+
+.change-merged__removed {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.change-merged__added {
+  border-radius: 3px;
+  background: var(--color-added-subtle);
+  color: var(--color-added);
+  text-decoration: none;
+}
+
+.change-merged__removed + .change-merged__added {
+  margin-left: 2px;
+}
+
 /* 카드에는 문단을 3줄까지만 보인다(#390). 전체는 '원문 비교' 창에서 본다(#507) */
 .change-card__sides--clamped .change-side__body {
   display: -webkit-box;
