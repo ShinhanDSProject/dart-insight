@@ -65,7 +65,7 @@ cd ~/projects/dart-insight
 case "$service" in
     ai)
         release_file=deploy/compose.ai.release.yaml
-        compose=(docker compose -f deploy/compose.ai.yaml -f "$release_file")
+        compose=(docker compose --env-file deploy/ai.env -f deploy/compose.ai.yaml -f "$release_file")
         ;;
     backend)
         release_file=deploy/compose.release.yaml
