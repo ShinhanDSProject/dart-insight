@@ -3,15 +3,15 @@ import { EASTER_EGG_PATH } from '@/shared/lib/easterEgg'
 
 const TITLE_ID = 'easter-egg-title'
 
-/** Shift를 두 번 눌러 여는 숨은 페이지 안내(#753, #755). 페이지는 새 탭에서 연다 */
+/** Shift를 두 번 눌러 여는 시스템 가이드 안내(#753, #755, #810). 페이지는 새 탭에서 연다 */
 export function EasterEggDialog({ onClose }: { onClose: () => void }) {
   return (
     <Dialog titleId={TITLE_ID} title="숨은 페이지를 찾았어요" onClose={onClose}>
       <div className="easter-egg">
         <Mascot mood="joy" size="md" />
-        <p>DART Insight 팀이 3주 동안 만든 기록이에요. 주차별로 병합한 PR 360개와 구조, 기술을 고른 이유를 담았어요.</p>
+        <p>DART Insight의 기획, 기술 스택, 아키텍처, 인프라와 개발 발자취를 한눈에 살펴볼 수 있는 시스템 가이드예요.</p>
         <ButtonAnchor variant="primary" href={EASTER_EGG_PATH} target="_blank" rel="noopener">
-          3주의 기록 보기
+          시스템 가이드 보기
         </ButtonAnchor>
       </div>
     </Dialog>
