@@ -1,0 +1,64 @@
+{
+  "terms": [
+    {
+      "key": "debtRatio",
+      "level": "CORE",
+      "term": "부채비율",
+      "aliases": ["부채 비율"],
+      "definition": "부채총계를 자본총계로 나눈 비율이에요.",
+      "example": "자본총계가 100원이고 부채총계가 30원이면 부채비율은 30%예요.",
+      "whereToCheck": "재무상태표의 부채총계와 자본총계",
+      "noJudgment": "이 숫자 하나로 좋고 나쁨을 정하지 않아요.",
+      "related": ["asset", "capitalImpairment"],
+      "companyValue": { "checkpoint": "DEBT_RATIO", "accounts": ["부채총계", "자본총계"] },
+      "sources": [{ "title": "테스트 공식 자료", "url": "https://example.test/debt-ratio" }],
+      "reviewer": "테스트 검토자",
+      "reviewedAt": "2026-11-10"
+    },
+    {
+      "key": "asset",
+      "level": "BASIC",
+      "term": "자산",
+      "aliases": [],
+      "definition": "회사가 가진 돈과 물건, 받을 권리예요.",
+      "example": null,
+      "whereToCheck": null,
+      "noJudgment": null,
+      "related": [],
+      "companyValue": null,
+      "sources": [{ "title": "테스트 공식 자료", "url": "https://example.test/asset" }],
+      "reviewer": "테스트 검토자",
+      "reviewedAt": "2026-11-10"
+    },
+    {
+      "key": "capitalImpairment",
+      "level": "CORE",
+      "term": "자본잠식",
+      "aliases": [],
+      "definition": "검토 전 카드예요.",
+      "example": null,
+      "whereToCheck": null,
+      "noJudgment": null,
+      "related": ["debtRatio"],
+      "companyValue": null,
+      "sources": [{ "title": "테스트 공식 자료", "url": "https://example.test/impairment" }],
+      "reviewer": null,
+      "reviewedAt": null
+    },
+    {
+      "key": "dividend",
+      "level": "CORE",
+      "term": "배당",
+      "aliases": [],
+      "definition": "출처 주소가 없는 카드예요.",
+      "example": null,
+      "whereToCheck": null,
+      "noJudgment": null,
+      "related": [],
+      "companyValue": null,
+      "sources": [{ "title": "주소 없는 자료", "url": null }],
+      "reviewer": "테스트 검토자",
+      "reviewedAt": "2026-11-10"
+    }
+  ]
+}
