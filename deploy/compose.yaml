@@ -27,11 +27,26 @@ services:
       context: ../backend
     restart: unless-stopped
     environment:
+      GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:?required}"
+      GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET:?required}"
+      KAKAO_CLIENT_ID: "${KAKAO_CLIENT_ID:?required}"
+      KAKAO_CLIENT_SECRET: "${KAKAO_CLIENT_SECRET:?required}"
+      NAVER_CLIENT_ID: "${NAVER_CLIENT_ID:?required}"
+      NAVER_CLIENT_SECRET: "${NAVER_CLIENT_SECRET:?required}"
+      NAVER_SEARCH_CLIENT_ID: "${NAVER_SEARCH_CLIENT_ID:?required}"
+      NAVER_SEARCH_CLIENT_SECRET: "${NAVER_SEARCH_CLIENT_SECRET:?required}"
+      MAIL_HOST: "${MAIL_HOST:?required}"
+      MAIL_PORT: "${MAIL_PORT:?required}"
+      MAIL_USERNAME: "${MAIL_USERNAME:?required}"
+      MAIL_PASSWORD: "${MAIL_PASSWORD:?required}"
+      MAIL_FROM: "${MAIL_FROM:?required}"
+      PASSWORD_RESET_PAGE_URL: "${PASSWORD_RESET_PAGE_URL:?required}"
+      PASSWORD_RESET_LOG_LINK: "${PASSWORD_RESET_LOG_LINK:?required}"
       DB_URL: jdbc:mariadb://db:3306/dart_insight
       DB_USERNAME: dart
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       OPENDART_API_KEY: ${OPENDART_API_KEY:?OPENDART_API_KEY is required}
-      AI_SERVER_URL: http://192.168.0.215:8000
+      AI_SERVER_URL: "${AI_SERVER_URL:?AI_SERVER_URL is required}"
       CORS_ALLOWED_ORIGINS: https://dart-insight.shinhanacademy.co.kr
       DOCUMENT_CACHE_DIR: /app/data/documents
       JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=60.0

@@ -70,3 +70,8 @@ target/
 !/deploy/.env.example
 !/deploy/ai.env.example
 !/infra/jenkins/agent.env.example
+
+# 서버 설정 수정 전 백업과 임시 Nginx 파일
+/deploy/*.bak-*
+/deploy/*.before-*
+/deploy/nginx.chunk-test.conf
