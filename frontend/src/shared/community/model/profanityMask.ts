@@ -1,6 +1,6 @@
 /**
- * 커뮤니티 욕설 가리기(#468, FS-58 COM-07). 보는 사람이 켜면 글·댓글 본문의 욕설 단어를 화면에서만 '**'로 바꾼다.
- * 서버에 보내는 글과 저장된 본문은 그대로다. 켬·끔은 이 브라우저(localStorage)에만 남긴다.
+ * 커뮤니티 욕설 순화(#468, FS-58 COM-07). 글·댓글 본문의 욕설 단어를 늘 화면에서만 순화한 말로 바꾼다.
+ * 두 글자 이하는 '좋아', 세 글자 이상은 '사랑해'. 서버에 보내는 글과 저장된 본문은 그대로다.
  *
  * 단어 목록은 팀이 직접 고른 짧은 목록이다(외부 목록·라이브러리를 쓰지 않음). 흔한 욕설과 초성 줄임말만 두고,
  * 뜻이 여럿인 말(새끼, 개같이 등)은 넣지 않는다. 멀쩡한 낱말과 겹치는 것은 뒤에 오는 글자로 뺀다(시발점, 5개년 등).
@@ -57,8 +57,9 @@ const MASK_WORDS: readonly MaskWord[] = [
   { word: 'bitch' },
 ]
 
-/** 가린 자리에 보이는 글자 */
-export const PROFANITY_MASK = '**'
+/** 욕설 자리에 보이는 말. 욕설의 글자 수(끼워 넣은 점·숫자·기호는 빼고)로 고른다 */
+export const SHORT_SOFTENED = '좋아'
+export const LONG_SOFTENED = '사랑해'
 
 /** 글자 사이에 끼워 피하는 것(점·숫자·기호, 예: 씨.발, 시1발). 띄어쓰기는 '회의 시 발언'처럼 멀쩡한 글과 겹쳐 넣지 않는다 */
 const BETWEEN = '[^\\p{L}\\s]*'
@@ -77,41 +78,9 @@ const MASK_PATTERN = new RegExp(
   'giu',
 )
 
-/** 욕설 단어를 '**'로 바꾼다. 원문은 바꾸지 않고 새 글을 돌려준다 */
-export function maskProfanity(text: string): string {
-  return text.replace(MASK_PATTERN, PROFANITY_MASK)
-}
-
-/** 화면에 보일 본문. 가리기를 켰을 때만 바꾼다 */
-export function shownBody(body: string, mask: boolean): string {
-  return mask ? maskProfanity(body) : body
-}
-
-export const PROFANITY_MASK_KEY = 'dart-insight:community-profanity-mask'
-
-/** 저장할 수 있는 곳. 테스트에서는 가짜를 넘긴다 */
-export type ProfanityMaskStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
-
-/** 저장된 값이 '1'이면 켠 것이다. 저장소가 없거나 읽다가 예외가 나면 꺼짐(기본값) */
-export function readProfanityMask(storage: ProfanityMaskStorage | null): boolean {
-  if (storage === null) return false
-  try {
-    return storage.getItem(PROFANITY_MASK_KEY) === '1'
-  } catch {
-    return false
-  }
-}
-
-/** 켜면 '1'을 남기고, 끄면 지운다. 저장소가 없거나 실패하면 이번 화면에서만 기억한다 */
-export function saveProfanityMask(storage: ProfanityMaskStorage | null, mask: boolean): void {
-  if (storage === null) return
-  try {
-    if (mask) {
-      storage.setItem(PROFANITY_MASK_KEY, '1')
-    } else {
-      storage.removeItem(PROFANITY_MASK_KEY)
-    }
-  } catch {
-    // 저장하지 못해도 화면의 켬·끔은 그대로 쓴다
-  }
+/** 욕설 단어를 순화한 말로 바꾼다. 원문은 바꾸지 않고 새 글을 돌려준다 */
+export function softenProfanity(text: string): string {
+  return text.replace(MASK_PATTERN, (found) =>
+    found.replace(/[^\p{L}]/gu, '').length <= 2 ? SHORT_SOFTENED : LONG_SOFTENED,
+  )
 }
