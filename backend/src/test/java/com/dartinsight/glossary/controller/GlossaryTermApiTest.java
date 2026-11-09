@@ -26,8 +26,8 @@ class GlossaryTermApiTest {
     void listsOnlyReviewedCardsInSpecShape() throws Exception {
         mockMvc.perform(get("/api/glossary-terms"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items", hasSize(2)))
-                .andExpect(jsonPath("$.items[*].key", contains("debtRatio", "asset")))
+                .andExpect(jsonPath("$.items", hasSize(3)))
+                .andExpect(jsonPath("$.items[*].key", contains("debtRatio", "asset", "convertibleBond")))
                 .andExpect(jsonPath("$.items[0].level").value("CORE"))
                 .andExpect(jsonPath("$.items[0].term").value("부채비율"))
                 .andExpect(jsonPath("$.items[0].aliases", contains("부채 비율")))

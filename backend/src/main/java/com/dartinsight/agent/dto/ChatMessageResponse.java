@@ -19,13 +19,17 @@ public record ChatMessageResponse(String status, String answer, String message, 
         List<Map<String, Object>> actions, String format, Object crossCheck, Long questionId, boolean aiGenerated,
         Ai ai) {
 
-    /** 답이 인용한 근거 하나. 종류(kind)마다 채우는 필드가 다르다 */
+    /** 답이 인용한 근거 하나. 종류(kind)마다 채우는 필드가 다르다(용어 카드 GLOSSARY는 termKey·term·definition·sources) */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Citation(int no, String kind, String evidenceId, Long changeId, String changeType, String side,
             String rceptNo, String reportName, String rceptDt, String dartUrl, Integer sectionNo, Integer blockNo,
             String sectionPath, String quote, String sjDiv, String accountName, String sentence, String grade,
             String source, String label, Object value, String unit, String currency, String corpCode,
-            String corpName) {
+            String corpName, String termKey, String term, String definition, List<Source> sources) {
+    }
+
+    /** 용어 카드 근거의 카드 출처(ADR-0061) */
+    public record Source(String title, String url) {
     }
 
     public record Ai(String model, String promptVersion, LocalDateTime generatedAt) {

@@ -15,6 +15,22 @@ class ToolArgsTest {
     private static final Set<String> NAMES = Set.of("q", "size", "risk", "changeId", "sort");
 
     @Test
+    @DisplayName("글 목록은 공백·빈 글·같은 글을 정리하고 개수가 범위를 벗어나거나 글이 아니면 실패한다")
+    void readsStringListsWithinCount() {
+        ToolArgs args = ToolArgs.of(Map.of("q", List.of(" CB ", "", "CB", "부채비율")), NAMES);
+
+        assertThat(args.strings("q", 1, 3)).containsExactly("CB", "부채비율");
+        assertThatThrownBy(() -> ToolArgs.of(Map.of("q", List.of()), NAMES).strings("q", 1, 3))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> ToolArgs.of(Map.of("q", List.of("a", "b", "c", "d")), NAMES).strings("q", 1, 3))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> ToolArgs.of(Map.of("q", "CB"), NAMES).strings("q", 1, 3))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> ToolArgs.of(Map.of("q", List.of(1)), NAMES).strings("q", 1, 3))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     @DisplayName("모르는 인자는 실패한다")
     void rejectsUnknownArguments() {
         assertThatThrownBy(() -> ToolArgs.of(Map.of("page", 2), NAMES)).isInstanceOf(IllegalArgumentException.class);

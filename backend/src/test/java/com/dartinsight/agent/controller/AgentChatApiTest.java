@@ -67,8 +67,11 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
-/** AI 에이전트 채팅(ADR-0044): POST /api/analyses/{analysisId}/chat-messages, 가짜 AI 서버(/internal/agent-steps) */
-@SpringBootTest
+/**
+ * AI 에이전트 채팅(ADR-0044): POST /api/analyses/{analysisId}/chat-messages, 가짜 AI 서버(/internal/agent-steps).
+ * 용어 카드는 테스트 카드 파일을 쓴다(ADR-0061).
+ */
+@SpringBootTest(properties = "app.glossary.location=classpath:glossary/test-terms.json")
 @AutoConfigureMockMvc
 class AgentChatApiTest {
 
@@ -303,7 +306,7 @@ class AgentChatApiTest {
                 "get_text_change", "get_financial_changes", "get_document_outline", "get_document_section",
                 "answer_with_evidence", "get_summary", "explain_text_change", "find_related_disclosures",
                 "search_companies", "get_company_overview", "get_financial_trends", "get_key_facts", "get_checkpoints",
-                "get_disclosures", "get_disclosure_signals", "get_disclosure_key_items", "get_company_briefing",
+                "lookup_terms", "get_disclosures", "get_disclosure_signals", "get_disclosure_key_items", "get_company_briefing",
                 "get_outlook", "get_plan_followups", "find_analyses", "get_report_pairs", "check_comparability");
         assertThat(JsonPath.<List<String>>read(first, "$.actions[*].type")).containsExactly("OPEN_TAB",
                 "OPEN_TEXT_CHANGE", "OPEN_FINANCIAL_CHANGE", "OPEN_DOCUMENT", "OPEN_GLOSSARY", "DOWNLOAD_BRIEF",
@@ -492,6 +495,63 @@ class AgentChatApiTest {
                 request -> finalAnswer("ANSWERED", answer, "\"" + block + "\"", "")));
 
         chat("소송 알려줘").andExpect(jsonPath("$.status").value("ANSWERED"));
+    }
+
+    @Test
+    @DisplayName("용어 찾기는 별칭(대소문자 무시)으로 카드를 G{키} 근거로 주고, 카드가 없거나 검토 전이면 비슷한 카드만 알린다(AC4·AC5)")
+    void lookupTermsSendsCardsAndSimilarCards() throws Exception {
+        AI.on(STEPS, twoSteps("{\"callId\":\"c1\",\"name\":\"lookup_terms\",\"arguments\":"
+                + "{\"terms\":[\"cb\",\"부채율\",\"자본잠식\"]}}",
+                request -> finalAnswer("ANSWERED", "전환사채는 주식으로 바꿀 수 있는 회사채예요[GconvertibleBond].",
+                        "\"GconvertibleBond\"", "")));
+
+        chat("CB가 뭐야?")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ANSWERED"))
+                .andExpect(jsonPath("$.answer").value("전환사채는 주식으로 바꿀 수 있는 회사채예요[1]."))
+                .andExpect(jsonPath("$.citations", hasSize(1)))
+                .andExpect(jsonPath("$.citations[0].kind").value("GLOSSARY"))
+                .andExpect(jsonPath("$.citations[0].evidenceId").value("GconvertibleBond"))
+                .andExpect(jsonPath("$.citations[0].termKey").value("convertibleBond"))
+                .andExpect(jsonPath("$.citations[0].term").value("전환사채"))
+                .andExpect(jsonPath("$.citations[0].definition").value("나중에 정해진 값으로 주식으로 바꿀 수 있는 회사채예요."))
+                .andExpect(jsonPath("$.citations[0].sources[0].title").value("테스트 공식 자료"))
+                .andExpect(jsonPath("$.citations[0].sources[0].url").value("https://example.test/cb"))
+                .andExpect(jsonPath("$.citations[0].rceptNo").doesNotExist());
+
+        String second = AI.requests(STEPS).get(1).bodyText();
+        List<Map<String, Object>> items = JsonPath.read(second, "$.toolResults[0].items");
+        assertThat(items).hasSize(3);
+        assertThat(items.get(0).get("evidenceId")).isEqualTo("GconvertibleBond");
+        // 줄 글에 카드 칸을 모두 넣어 검토 노드가 예시 속 숫자도 확인할 수 있게 한다
+        assertThat((String) items.get(0).get("text")).contains("한 줄 뜻: 나중에 정해진 값으로", "쉬운 예시(가정한 예",
+                "1만 원", "확인할 곳: 주요사항보고서", "판단하지 않음: ", "별칭: CB", "출처: 테스트 공식 자료");
+        // 카드가 없으면 근거 없는 줄로 비슷한 카드만, 검토 전 카드(자본잠식)는 없는 것으로 본다
+        assertThat(items.get(1).get("evidenceId")).isNull();
+        assertThat((String) items.get(1).get("text")).contains("'부채율'는 등록된 용어가 없어요.", "부채비율(debtRatio)");
+        assertThat(items.get(2).get("evidenceId")).isNull();
+        assertThat((String) items.get(2).get("text")).contains("'자본잠식'는 등록된 용어가 없어요.")
+                .doesNotContain("검토 전 카드예요");
+    }
+
+    @Test
+    @DisplayName("용어 사전 열기 버튼은 카드 파일의 용어·별칭일 때만 대표 용어로 바꿔 남기고, 없는 용어는 뺀다")
+    void openGlossaryKeepsOnlyCardTermsAsCanonicalTerm() throws Exception {
+        String evidence = "T" + lawsuitChangeId;
+        AI.on(STEPS, twoSteps("{\"callId\":\"c1\",\"name\":\"search_text_changes\",\"arguments\":{\"q\":\"소송\"}}",
+                request -> finalAnswer("ANSWERED", "소송 관련 변경이 있어요[" + evidence + "].", "\"" + evidence + "\"",
+                        "{\"type\":\"OPEN_GLOSSARY\",\"term\":\"부채 비율\"},"
+                                + "{\"type\":\"OPEN_GLOSSARY\",\"term\":\"자본잠식\"},"
+                                + "{\"type\":\"OPEN_GLOSSARY\",\"term\":\"지어낸 용어\"}")));
+
+        chat("소송 관련 변경 보여줘")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.actions", hasSize(2)))
+                .andExpect(jsonPath("$.actions[0].type").value("OPEN_GLOSSARY"))
+                .andExpect(jsonPath("$.actions[0].term").value("부채비율"))
+                .andExpect(jsonPath("$.actions[0].label").value("용어 사전 열기"))
+                // 검토 전 카드도 버튼은 남긴다(용어 이름만 담고 내용은 내보내지 않음)
+                .andExpect(jsonPath("$.actions[1].term").value("자본잠식"));
     }
 
     @Test

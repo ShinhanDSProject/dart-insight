@@ -5,6 +5,7 @@ import com.dartinsight.agent.domain.AskedQuestion;
 import com.dartinsight.agent.domain.ComparabilityCheck;
 import com.dartinsight.analysis.service.AnalysisResultService;
 import com.dartinsight.company.service.CompanyService;
+import com.dartinsight.glossary.service.GlossaryTermService;
 import com.dartinsight.analysis.service.FinancialChangeQueryService;
 import com.dartinsight.analysis.service.SourceDocumentService;
 import com.dartinsight.analysis.service.SourceDocumentService.SourceSection;
@@ -34,6 +35,7 @@ class AgentActionCheck {
     private final SourceDocumentService sourceDocumentService;
     private final AnalysisResultService analysisResultService;
     private final CompanyService companyService;
+    private final GlossaryTermService glossaryTermService;
 
     /**
      * 확인을 통과한 액션(받은 순서), 버튼 문구를 붙임.
@@ -81,7 +83,26 @@ class AgentActionCheck {
         if (AgentActions.CONFIRM_FAVORITE.equals(type)) {
             return favorite(corpCode, action);
         }
+        if (AgentActions.OPEN_GLOSSARY.equals(type)) {
+            return glossary(action);
+        }
         return exists(analysisId, action) ? action : null;
+    }
+
+    /**
+     * 용어 사전 열기: 카드 파일(검토 전 포함)의 용어·별칭이면 카드의 대표 용어로 바꿔 남기고, 없으면 뺀다(ADR-0061).
+     * 버튼에는 용어 이름만 담으므로 검토 전 카드의 내용은 나가지 않는다. 화면이 카드를 받지 못하면 '등록된 용어가 없어요'.
+     */
+    private Map<String, Object> glossary(Map<String, Object> action) {
+        if (!(action.get("term") instanceof String term)) {
+            return null;
+        }
+        return glossaryTermService.findAny(term).map(card -> {
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("type", AgentActions.OPEN_GLOSSARY);
+            out.put("term", card.term());
+            return out;
+        }).orElse(null);
     }
 
     /** 관심 기업 추가: 이 분석의 기업으로 채운다. 다른 기업을 가리키면 뺀다 */
@@ -167,7 +188,6 @@ class AgentActionCheck {
                         && financialChangeQueryService.changes(analysisId).changes().stream()
                         .anyMatch(c -> c.getId().equals(id(action.get("changeId"))));
                 case AgentActions.OPEN_DOCUMENT -> documentExists(analysisId, action);
-                case AgentActions.OPEN_GLOSSARY -> action.get("term") instanceof String term && !term.isBlank();
                 case AgentActions.PIN_CHANGE -> textExists(analysisId, id(action.get("changeId")));
                 case AgentActions.OPEN_ANALYSIS -> id(action.get("analysisId")) != null
                         && analysisResultService.completed(id(action.get("analysisId"))) != null;

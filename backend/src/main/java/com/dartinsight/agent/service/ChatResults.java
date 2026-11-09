@@ -37,9 +37,12 @@ final class ChatResults {
     static final String TASK = "agent_answer";
 
     private static final Logger log = LoggerFactory.getLogger(ChatResults.class);
-    /** 근거 ID 모양으로 시작하는 근거 표시(ADR-0048): [T1]·[F1]·[D{접수번호}]·[C{고유번호}]·[{접수번호}#B·S·V{번호}] */
+    /**
+     * 근거 ID 모양으로 시작하는 근거 표시(ADR-0048·0061): [T1]·[F1]·[D{접수번호}]·[C{고유번호}]·[{접수번호}#B·S·V{번호}]·
+     * [G{카드 키}](키는 영문 소문자로 시작하는 카멜 표기)
+     */
     private static final Pattern EVIDENCE_MARKER = Pattern.compile(
-            "\\[\\s*(?:[TF]\\d+|D\\d{14}|C\\d{8}|\\d{14}#[BSV]\\d+)");
+            "\\[\\s*(?:[TF]\\d+|D\\d{14}|C\\d{8}|\\d{14}#[BSV]\\d+|G[a-z][A-Za-z0-9]*)");
     /** 바꾼 답의 근거 번호 표시([1]·[2])와 그 앞의 가로 공백. 게시판 글 초안 본문에서 뺀다(줄바꿈은 둠) */
     private static final Pattern MARKER_NUMBER = Pattern.compile("[ \\t]*\\[\\d+\\]");
     /** 두 칸 이상 이어진 가로 공백(줄바꿈은 문단 나눔이라 건드리지 않음) */
@@ -151,10 +154,16 @@ final class ChatResults {
         String reportName = e.reportName() != null ? e.reportName()
                 : e.rceptNo() == null ? null : reportNames.get(e.rceptNo());
         Evidence.Value v = e.value() == null ? new Evidence.Value(null, null, null, null, null, null, null) : e.value();
+        Evidence.Term t = e.term();
         return new Citation(no, e.kind().name(), e.evidenceId(), e.changeId(), e.changeType(), e.side(), e.rceptNo(),
                 reportName, e.rceptDt(), e.dartUrl(), e.sectionNo(), e.blockNo(), e.sectionPath(), e.quote(), e.sjDiv(),
                 e.accountName(), e.sentence(), gradeOf(e), v.source(), v.label(), v.value(), v.unit(), v.currency(),
-                v.corpCode(), v.corpName());
+                v.corpCode(), v.corpName(), t == null ? null : t.key(), t == null ? null : t.term(),
+                t == null ? null : t.definition(), t == null ? null : sources(t));
+    }
+
+    private static List<ChatMessageResponse.Source> sources(Evidence.Term term) {
+        return term.sources().stream().map(s -> new ChatMessageResponse.Source(s.title(), s.url())).toList();
     }
 
     /** 응답의 등급은 설명이 있는 것(STATED·RELATED)만. NONE은 '확인된 설명 없음'이라 등급을 붙이지 않는다 */
