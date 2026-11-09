@@ -48,7 +48,7 @@ class TextChangeListingApiTest {
     private static final String BUSINESS = "II. 사업의 내용 > 1. 사업의 개요";
     private static final String LAWSUIT = "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항";
     private static final String NOTES = "III. 재무에 관한 사항 > 3. 연결재무제표 주석";
-    private static final String VERSION = "text-list-1";
+    private static final String VERSION = "text-list-2";
 
     @Autowired
     private MockMvc mockMvc;
@@ -149,6 +149,7 @@ class TextChangeListingApiTest {
                 .andExpect(jsonPath("$.groupCounts.MAIN").value(3))
                 .andExpect(jsonPath("$.groupCounts.HEADING").value(1))
                 .andExpect(jsonPath("$.groupCounts.FORMATTING").value(0))
+                .andExpect(jsonPath("$.groupCounts.PERIOD").value(0))
                 .andExpect(jsonPath("$.groupCounts.MOVED").value(0))
                 .andExpect(jsonPath("$.groupCounts.NOTE").value(3))
                 .andExpect(jsonPath("$.groupCounts.PAIRED_TABLE").value(0))
@@ -182,6 +183,22 @@ class TextChangeListingApiTest {
         mockMvc.perform(get("/api/analyses/{id}/text-changes", id))
                 .andExpect(jsonPath("$.listVersion").value(VERSION))
                 .andExpect(jsonPath("$.missingFields", hasSize(0)));
+    }
+
+    @Test
+    @DisplayName("기간 표시만 바뀐 변경(PERIOD)을 세고 그 묶음만 불러올 수 있다")
+    void countsAndFiltersPeriodGroup() throws Exception {
+        Long id = complete(new TextComparison(TextStatus.COMPLETED, null,
+                List.of(row(BUSINESS, "글", "MAIN", "BUSINESS", false, null, null),
+                        row(BUSINESS, "(제 58 기)", "PERIOD", null, false, null, null)), List.of()));
+
+        mockMvc.perform(get("/api/analyses/{id}/text-changes", id).param("group", "PERIOD"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalItems").value(1))
+                .andExpect(jsonPath("$.items[0].listGroup").value("PERIOD"))
+                .andExpect(jsonPath("$.items[0].field").value(nullValue()))
+                .andExpect(jsonPath("$.groupCounts.PERIOD").value(1))
+                .andExpect(jsonPath("$.groupCounts.MAIN").value(1));
     }
 
     @Test
