@@ -613,10 +613,10 @@ describe('TextEventsArea', () => {
     list: { droppedEventCount: 0, items, unboundChanges } as unknown as TextEventList,
   })
 
-  function area(view: TextEventsView, field: TextField | null = null) {
+  function area(view: TextEventsView, field: TextField | null = null, listNarrowed = false) {
     const onOpenEvidence = vi.fn()
     const onRetry = vi.fn()
-    const result = render(<TextEventsArea analysis={analysis} view={view} field={field} onRetry={onRetry} onOpenEvidence={onOpenEvidence} renderChanges={() => null} />)
+    const result = render(<TextEventsArea analysis={analysis} view={view} field={field} listNarrowed={listNarrowed} onRetry={onRetry} onOpenEvidence={onOpenEvidence} renderChanges={() => null} />)
     return { ...result, onOpenEvidence, onRetry }
   }
 
@@ -696,6 +696,12 @@ describe('TextEventsArea', () => {
 
     expect(screen.queryByText(/사건에 들지 않은 후보/)).toBeNull()
     expect(screen.getByText('근거를 확인하지 못한 사건은 보여 주지 않았어요.')).toBeTruthy()
+  })
+
+  it('전체 변경을 거르는 중이면 거르기를 풀면 볼 수 있다고 안내한다(3.61)', () => {
+    area(ready([event()], [unbound(11)]), null, true)
+
+    expect(screen.getByText('사건에 들지 않은 후보 1건은 전체 변경의 거르기를 풀면 볼 수 있어요.')).toBeTruthy()
   })
 
   it('들지 않은 후보 안내에 접근성 위반이 없다', async () => {

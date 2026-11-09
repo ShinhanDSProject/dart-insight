@@ -158,8 +158,10 @@ export function eventsMoreLabel(hidden: number): string {
 }
 
 /** 사건에 들지 않은 후보 안내(3.60, R19). 같은 변경이 전체 변경에 있어 카드 대신 건수 한 줄만 둔다 */
-export function unboundNote(count: number): string {
-  return `사건에 들지 않은 후보 ${resultCountLabel(count)}은 아래 전체 변경에서 볼 수 있어요.`
+export function unboundNote(count: number, listNarrowed: boolean): string {
+  // 유형·검색·위험 관련·고정으로 거르는 중이면 아래 목록에 없을 수 있다(3.61)
+  const where = listNarrowed ? '전체 변경의 거르기를 풀면' : '아래 전체 변경에서'
+  return `사건에 들지 않은 후보 ${resultCountLabel(count)}은 ${where} 볼 수 있어요.`
 }
 
 /** 사건 한 줄의 덧붙임: 종류 · 규모 · AI 생성(3.58). 목록 밖 종류와 규모가 없으면 뺀다 */
