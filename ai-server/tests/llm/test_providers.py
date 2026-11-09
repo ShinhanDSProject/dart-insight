@@ -407,10 +407,9 @@ def test_claude_sends_messages_request_with_schema_fallback_and_timeout() -> Non
 
     params = fake.messages.calls[0]
     assert params["model"] == ANTHROPIC_DEFAULT_MODEL
-    assert params["system"] == "시스템"
-    assert params["messages"] == [{"role": "user", "content": "사용자"}]
+    assert params["system"][0]["text"] == "시스템"
+    assert params["messages"][0]["role"] == "user"
     assert params["max_tokens"] == 800
-    assert params["cache_control"] == {"type": "ephemeral"}
     assert "thinking" not in params  # 생각은 모델 기본(adaptive)
     fmt = params["output_config"]["format"]
     assert fmt["type"] == "json_schema"
@@ -723,3 +722,28 @@ def test_claude_sends_schema_too_large_for_structured_output_without_format() ->
     assert "format" not in output_config
     assert output_config["effort"] == "low"
     assert result.text == '{"answer": "네"}'
+
+
+def test_claude_marks_system_and_shared_user_prefix_for_caching() -> None:
+    p, fake = claude(claude_response("{}"))
+
+    p.complete(replace(REQUEST, user="고정된 목록\n바뀌는 질문", user_cache_prefix=6), 10.0)
+
+    params = fake.messages.calls[0]
+    # 요청 끝에 두는 자동 캐시는 매번 바뀌는 질문까지 저장하므로 쓰지 않는다
+    assert "cache_control" not in params
+    assert params["system"] == [
+        {"type": "text", "text": "시스템", "cache_control": {"type": "ephemeral"}}
+    ]
+    assert params["messages"][0]["content"] == [
+        {"type": "text", "text": "고정된 목록", "cache_control": {"type": "ephemeral"}},
+        {"type": "text", "text": "\n바뀌는 질문"},
+    ]
+
+
+def test_claude_sends_whole_user_as_one_block_without_shared_prefix() -> None:
+    p, fake = claude(claude_response("{}"))
+
+    p.complete(REQUEST, 10.0)
+
+    assert fake.messages.calls[0]["messages"][0]["content"] == [{"type": "text", "text": "사용자"}]
