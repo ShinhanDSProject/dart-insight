@@ -10,7 +10,7 @@ import java.util.Map;
 /**
  * 채팅 Tool lookup_terms의 결과 줄(ADR-0061). 카드는 근거 G{키}로 보내고, 줄 글에는 카드 칸을 모두 넣어
  * ai-server 검토 노드의 숫자 검사가 예시 속 숫자도 확인할 수 있게 한다. 카드가 없으면 근거 없는 줄로
- * '등록된 용어가 없어요'와 비슷한 카드만 알린다(정의를 만들지 않음).
+ * '용어 카드는 등록되지 않았어요'와 비슷한 카드만 알린다(정의를 만들지 않음).
  */
 public final class TermLines {
 
@@ -57,7 +57,7 @@ public final class TermLines {
      * 카드가 없는 용어 한 줄(근거 없음). 비슷한 카드가 있으면 그 용어와 키를 붙인다.
      */
     public static ToolLine notFound(String query, List<GlossaryTerm> similar) {
-        String text = "[용어 카드 없음] '" + query + "'는 등록된 용어가 없어요.";
+        String text = "[용어 카드 없음] '" + query + "'에 해당하는 용어 카드는 등록되지 않았어요.";
         if (!similar.isEmpty()) {
             text += " 비슷한 카드: " + String.join(", ", similar.stream()
                     .map(t -> t.term() + "(" + t.key() + ")").toList());
