@@ -686,22 +686,15 @@ describe('TextTab 주요 사건(3.37)', () => {
     expect(screen.getByRole('article', { name: /1\. 사업의 개요/ })).toBeTruthy()
   })
 
-  it('묶이지 않은 변경의 원문 비교를 열었다가 닫으면 그 버튼으로 초점이 돌아온다', async () => {
+  it('사건에 들지 않은 후보는 사건 아래 한 줄로만 알린다(3.60)', () => {
     events.list = {
       ...textEvents(1),
       unboundChanges: [{ changeId: 99, changeType: 'MODIFIED', field: 'CONTRACT', sectionPath: 'II. 사업의 내용', previousPreview: '이전 글', currentPreview: '현재 글' }],
     }
     render(<Harness />)
-    const section = within(screen.getByRole('heading', { name: /사건으로 묶이지 않은/ }).closest('section') as HTMLElement)
-    const opener = section.getByRole('button', { name: '원문 비교' })
-    opener.focus()
 
-    fireEvent.click(opener)
-    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
-
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
-    await new Promise((resolve) => requestAnimationFrame(resolve))
-    await waitFor(() => expect(document.activeElement).toBe(opener))
+    expect(screen.getByText('사건에 들지 않은 후보 1건은 아래 전체 변경에서 볼 수 있어요.')).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: /사건으로 묶이지 않은/ })).toBeNull()
   })
 
   it('분야를 고르면 그 칸의 사건만 보이고 유형으로 거르면 사건 절이 빠진다', () => {

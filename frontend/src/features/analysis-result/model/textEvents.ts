@@ -22,8 +22,6 @@ export const EVENTS_LOADING = '주요 사건을 불러오는 중이에요…'
 export const EVENTS_UNAVAILABLE = '주요 사건을 만들지 못했어요. 분야별 표와 전체 변경은 그대로 볼 수 있어요.'
 export const EVENTS_RETRY_LIMITED = '여러 번 실패해 지금은 다시 시도할 수 없어요. 나중에 다시 확인해 주세요.'
 export const EVENTS_EMPTY = '이번 비교에는 주요 사건으로 묶은 변경이 없어요. 분야별 표와 전체 변경은 그대로 볼 수 있어요.'
-export const UNBOUND_TITLE = '사건으로 묶이지 않은 주요 변경'
-export const UNBOUND_NOTE = '주요 변경 후보로 꼽혔지만 어느 사건에도 들어가지 않은 변경이에요. 공시 글을 그대로 보여 드려요.'
 export const SCALE_AMOUNT_LABEL = '금액'
 export const SCALE_CONVERTED_LABEL = '원화 환산 참고'
 
@@ -157,6 +155,11 @@ export const EVENTS_INITIAL = 3
 
 export function eventsMoreLabel(hidden: number): string {
   return `사건 ${resultCountLabel(hidden)} 더 보기`
+}
+
+/** 사건에 들지 않은 후보 안내(3.60, R19). 같은 변경이 전체 변경에 있어 카드 대신 건수 한 줄만 둔다 */
+export function unboundNote(count: number): string {
+  return `사건에 들지 않은 후보 ${resultCountLabel(count)}은 아래 전체 변경에서 볼 수 있어요.`
 }
 
 /** 사건 한 줄의 덧붙임: 종류 · 규모 · AI 생성(3.58). 목록 밖 종류와 규모가 없으면 뺀다 */

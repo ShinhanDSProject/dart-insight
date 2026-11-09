@@ -2,8 +2,8 @@ import { useState, type ReactNode } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { TextChangeItem } from '@/shared/api/textChanges'
-import type { TextEventItem, TextEventList, TextEventQuote, TextEventSignal, TextEventUnboundChange } from '@/shared/api/textEvents'
-import { Badge, Button, Card, Chip, Notice, Skeleton } from '@/shared/ui'
+import type { TextEventItem, TextEventList, TextEventQuote, TextEventSignal } from '@/shared/api/textEvents'
+import { Badge, Button, Chip, Notice, Skeleton } from '@/shared/ui'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { displaySectionPath } from '@/shared/lib/sectionTitle'
 import { useSignalTable, useTextEventDetail } from '../hooks/useTextEvents'
@@ -30,17 +30,13 @@ import {
   REASON_QUOTES_TITLE,
   SCALE_AMOUNT_LABEL,
   SCALE_CONVERTED_LABEL,
-  UNBOUND_NOTE,
-  UNBOUND_TITLE,
+  unboundNote,
   visibleEvents,
   visibleUnbound,
   type EventScope,
   type TextEventsView,
 } from '../model/textEvents'
-import { textFieldLabel } from '../model/textFields'
 import { resultCountLabel } from '../model/textFilter'
-import { changeTypeLabel, missingSideLabel } from '../model/textLabels'
-import { SidePreview } from './SidePreview'
 import { FactsPart } from './TextEventFactsPart'
 import { MeaningPart, SignalCriteriaDialog, SignalReasonPart } from './TextEventSignalParts'
 import { TextListFooter } from './TextListFooter'
@@ -90,7 +86,7 @@ export function TextEventsArea({ analysis, view, scope, onRetry, onOpenEvidence,
     .with({ status: 'ready' }, ({ list }) => (
       <>
         <TextEventsSection analysis={analysis} list={list} items={visibleEvents(list.items, scope)} onOpenEvidence={onOpenEvidence} renderChanges={renderChanges} />
-        <UnboundChanges analysis={analysis} changes={visibleUnbound(list.unboundChanges, scope)} onOpenEvidence={onOpenEvidence} />
+        <UnboundNote count={visibleUnbound(list.unboundChanges, scope).length} />
       </>
     ))
     .exhaustive()
@@ -174,53 +170,10 @@ function SignalFilter({ items, signal, onChange }: SignalFilterProps) {
   )
 }
 
-interface UnboundChangesProps {
-  analysis: Analysis
-  changes: TextEventUnboundChange[]
-  onOpenEvidence: (changeId: number) => void
-}
-
-/** 후보였지만 어느 사건에도 들어가지 않은 변경(AC22). AI가 쓴 글이 없어 AI 표시를 두지 않는다. 응답에 전부 오므로 화면에서만 나눠 보인다 */
-function UnboundChanges({ analysis, changes, onOpenEvidence }: UnboundChangesProps) {
-  const [shown, setShown] = useState(EVENT_CHANGES_PAGE_SIZE)
-  if (changes.length === 0) return null
-  const items = changes.slice(0, shown)
-  return (
-    <section className="text-events" aria-labelledby="text-events-unbound-title">
-      <h3 id="text-events-unbound-title" className="text-events__title">
-        {UNBOUND_TITLE} {resultCountLabel(changes.length)}
-      </h3>
-      <p className="panel__note">{UNBOUND_NOTE}</p>
-      <ol className="text-events__list">
-        {items.map((change) => (
-          <li key={change.changeId}>
-            <UnboundCard analysis={analysis} change={change} onOpenEvidence={onOpenEvidence} />
-          </li>
-        ))}
-      </ol>
-      <TextListFooter loaded={items.length} total={changes.length} more={{ status: 'idle' }} onMore={() => setShown(shown + EVENT_CHANGES_PAGE_SIZE)} />
-    </section>
-  )
-}
-
-function UnboundCard({ analysis, change, onOpenEvidence }: { analysis: Analysis; change: TextEventUnboundChange; onOpenEvidence: (changeId: number) => void }) {
-  const section = displaySectionPath(change.sectionPath)
-  return (
-    <Card as="article" className="text-event" aria-label={section}>
-      <div className="text-event__head">
-        <h4 className="text-event__title">{section}</h4>
-        <Badge tone="accent">{changeTypeLabel(change.changeType)}</Badge>
-        {change.field !== null && <Badge>{textFieldLabel(change.field)}</Badge>}
-      </div>
-      <div className="change-card__sides change-card__sides--clamped">
-        <SidePreview role={`이전 · ${analysis.previous.reportName}`} text={change.previousPreview} missing={missingSideLabel(change.changeType, 'previous')} />
-        <SidePreview role={`이번 · ${analysis.current.reportName}`} text={change.currentPreview} missing={missingSideLabel(change.changeType, 'current')} />
-      </div>
-      <Button variant="secondary" className="text-event__actions" aria-haspopup="dialog" onClick={() => onOpenEvidence(change.changeId)}>
-        원문 비교
-      </Button>
-    </Card>
-  )
+/** 후보였지만 어느 사건에도 들지 않은 변경의 건수(3.60, AC24·AC25). 변경 자체는 전체 변경에서 본다 */
+function UnboundNote({ count }: { count: number }) {
+  if (count === 0) return null
+  return <p className="panel__note text-events__unbound">{unboundNote(count)}</p>
 }
 
 type TextEventCardProps = Omit<TextEventsSectionProps, 'list' | 'items'> & { item: TextEventItem; onOpenCriteria: () => void }

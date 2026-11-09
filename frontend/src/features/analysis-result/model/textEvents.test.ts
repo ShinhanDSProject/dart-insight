@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ApiError } from '@/shared/api/client'
 import type { TextEventItem, TextEventList, TextEventQuote, TextEventRun, TextEventUnboundChange } from '@/shared/api/textEvents'
-import { eventFieldCounts, eventListOf, eventQuotes, eventRowMeta, eventRunPolling, eventScaleView, eventsMoreLabel, fieldEventLabel, needsEventStart, textEventsView, visibleEvents, visibleUnbound } from './textEvents'
+import { eventFieldCounts, eventListOf, eventQuotes, eventRowMeta, eventRunPolling, eventScaleView, eventsMoreLabel, fieldEventLabel, needsEventStart, textEventsView, unboundNote, visibleEvents, visibleUnbound } from './textEvents'
 import type { FieldCell } from './textFields'
 
 const run = (status: TextEventRun['status'], notCreatedReason: TextEventRun['notCreatedReason'] = null) => ({ status, notCreatedReason }) as TextEventRun
@@ -230,6 +230,13 @@ describe('eventListOf', () => {
     const list = { items: [] } as unknown as TextEventList
     expect(eventListOf({ status: 'ready', list })).toBe(list)
     expect(eventListOf({ status: 'unavailable', retry: 'none' })).toBeNull()
+  })
+})
+
+describe('unboundNote', () => {
+  it('들지 않은 후보 건수를 전체 변경으로 안내한다', () => {
+    expect(unboundNote(3)).toBe('사건에 들지 않은 후보 3건은 아래 전체 변경에서 볼 수 있어요.')
+    expect(unboundNote(1200)).toBe('사건에 들지 않은 후보 1,200건은 아래 전체 변경에서 볼 수 있어요.')
   })
 })
 
