@@ -19,7 +19,7 @@ export function mergedPreview(previous: string | null, current: string | null): 
   if (!truncated) return parts
   const isWord = (part: MergedPart) => part.kind === 'same' && part.text.trim() !== ''
   let lastSame = parts.length - 1
-  while (!isWord(parts[lastSame])) lastSame--
+  while (lastSame > 0 && !isWord(parts[lastSame])) lastSame--
   if (!parts.slice(0, lastSame).some((part) => part.kind !== 'same')) return parts
   const kept = parts.slice(0, lastSame + 1).map((part) => ({ ...part }))
   const last = kept[kept.length - 1]
