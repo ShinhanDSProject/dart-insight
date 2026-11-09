@@ -39,6 +39,9 @@ class LlmRequest:
         비우면 설정값이다(ADR-0057).
     model: 이 요청에만 쓰는 모델(작업별 모델, ADR-0059). LlmClient가 채우고,
         비우면 제공자의 모델이다.
+    user_cache_prefix: `user` 앞에서 이 글자 수까지는 요청마다 똑같은 부분이다(예: Tool 목록).
+        블록 단위로 캐시하는 제공자(Anthropic)가 여기에 캐시 지점을 둔다. 0이면 시스템 프롬프트만
+        캐시한다. 앞부분 그대로를 자동으로 캐시하는 제공자(OpenAI)는 쓰지 않는다(#633).
     """
 
     task: str
@@ -51,6 +54,7 @@ class LlmRequest:
     timeout_seconds: float | None = None
     total_timeout_seconds: float | None = None
     model: str | None = None
+    user_cache_prefix: int = 0
 
 
 @dataclass(frozen=True)
@@ -293,7 +297,9 @@ class AnthropicProvider:
       프롬프트의 JSON 지시와 검증 함수에 맡긴다(지금은 에이전트 Tool 고르기).
     - 생각(adaptive thinking)은 모델 기본으로 둔다.
       추론 강도가 있으면 `output_config.effort`로 보낸다.
-    - 고정된 앞부분(시스템 프롬프트)을 프롬프트 캐시에 둔다(`cache_control`, #633 순서 그대로).
+    - 프롬프트 캐시는 블록 단위라, 요청마다 같은 부분의 끝에 캐시 지점(`cache_control`)을 둔다.
+      시스템 프롬프트 끝, 그리고 `user_cache_prefix`가 있으면 user의 그 앞부분 끝이다(#633 순서).
+      요청 끝에 두는 자동 캐시는 매번 바뀌는 질문까지 저장해 저장 비용만 내므로 쓰지 않는다.
     - 키가 없으면 만들 때가 아니라 부를 때 `ProviderError`로 실패한다.
     """
 
@@ -322,10 +328,9 @@ class AnthropicProvider:
         model = request.model or self.model
         params: dict[str, Any] = {
             "model": model,
-            "system": request.system,
-            "messages": [{"role": "user", "content": request.user}],
+            "system": [_text_block(request.system, cached=True)],
+            "messages": [{"role": "user", "content": _user_blocks(request)}],
             "max_tokens": request.max_output_tokens,
-            "cache_control": {"type": "ephemeral"},
         }
         output_config: dict[str, Any] = {}
         if request.output_schema:
@@ -363,6 +368,27 @@ class AnthropicProvider:
         except anthropic.AnthropicError as e:
             raise ProviderError(f"Anthropic 호출 실패: {type(e).__name__}") from e
         return _anthropic_response(response, model)
+
+
+CACHE_EPHEMERAL = {"type": "ephemeral"}
+
+
+def _text_block(text: str, cached: bool = False) -> dict[str, Any]:
+    block: dict[str, Any] = {"type": "text", "text": text}
+    if cached:
+        block["cache_control"] = CACHE_EPHEMERAL
+    return block
+
+
+def _user_blocks(request: LlmRequest) -> list[dict[str, Any]]:
+    """user 메시지 블록. 요청마다 같은 앞부분이 있으면 그 끝에 캐시 지점을 둔다."""
+    cut = request.user_cache_prefix
+    if 0 < cut < len(request.user):
+        return [
+            _text_block(request.user[:cut], cached=True),
+            _text_block(request.user[cut:]),
+        ]
+    return [_text_block(request.user)]
 
 
 def _is_anthropic_quota(error: Any) -> bool:

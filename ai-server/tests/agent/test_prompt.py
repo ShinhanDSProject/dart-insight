@@ -63,3 +63,17 @@ def test_answer_prompt_keeps_action_list_before_changing_parts() -> None:
     assert shared.startswith("[액션]")
     assert '<action type="OPEN_TAB">' in shared
     assert "예시전자" not in shared
+
+
+def test_plan_and_answer_mark_shared_prefix_for_block_caching() -> None:
+    plan = build_plan_request(step("영업이익 어디 있어?", "예시전자"))
+    answer = build_answer_request(step("영업이익 어디 있어?", "예시전자"), [])
+
+    # 블록 단위로 캐시하는 제공자(Anthropic)가 Tool·액션 목록 끝에 캐시 지점을 둔다(ADR-0062)
+    for request in (plan, answer):
+        shared = request.user[: request.user_cache_prefix]
+        assert request.user_cache_prefix > 0
+        assert '<action type="OPEN_TAB">' in shared
+        assert "예시전자" not in shared
+        assert "영업이익" not in shared
+    assert '<tool name="get_financial_changes"' in plan.user[: plan.user_cache_prefix]

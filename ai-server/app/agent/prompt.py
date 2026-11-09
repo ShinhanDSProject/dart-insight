@@ -204,12 +204,14 @@ def build_plan_request(step: StepInput) -> LlmRequest:
     actions = _actions(step)
     if actions:
         lines += ["", "[액션] 답(draft)에 붙일 수 있는 화면 동작과 형식입니다.", *actions]
-    lines += ["", *_common(step)]
+    shared = "\n".join(lines) + "\n"
+    user = shared + "\n".join(["", *_common(step)])
     return LlmRequest(
         task=TASK_PLAN,
         prompt_version=PROMPT_VERSION,
         system=PLAN_SYSTEM,
-        user="\n".join(lines),
+        user=user,
+        user_cache_prefix=len(shared),
         output_schema=plan_schema(step),
         context=step,
         # 추론 모델은 생각 토큰도 이 한도에 들어간다. Tool이 20개로 늘어 600에서 잘린 적이
@@ -229,18 +231,20 @@ def _actions(step: StepInput) -> list[str]:
 def build_answer_request(step: StepInput, problems: list[str]) -> LlmRequest:
     actions = _actions(step)
     # 프롬프트 캐시(#633): 바뀌지 않는 액션 목록을 앞에 둔다
-    lines = ["[액션] 답에 붙일 수 있는 화면 동작과 형식입니다.", *actions, ""] if actions else []
-    lines += _common(step)
+    head = ["[액션] 답에 붙일 수 있는 화면 동작과 형식입니다.", *actions, ""] if actions else []
+    lines = _common(step)
     lines += _workflow_lines(step)
     if problems:
         # 검토 노드가 반려한 사유. 형식 실패의 재생성 안내는 LlmClient가 따로 붙인다
         lines += ["", "앞서 쓴 답이 아래 이유로 반려됐습니다. 고쳐서 다시 답하세요."]
         lines += [f"- {p}" for p in problems[:20]]
+    shared = "\n".join(head) + "\n" if head else ""
     return LlmRequest(
         task=TASK_ANSWER,
         prompt_version=PROMPT_VERSION,
         system=ANSWER_SYSTEM,
-        user="\n".join(lines),
+        user=shared + "\n".join(lines),
+        user_cache_prefix=len(shared),
         output_schema=answer_schema(step),
         context=step,
         max_output_tokens=1000,
