@@ -67,6 +67,18 @@ class GlossaryTermsTest {
     }
 
     @Test
+    @DisplayName("탭·줄 없는 공백(NBSP)이 섞여도 같은 이름으로 보고 다른 카드와 겹치면 만들지 않는다")
+    void rejectsDuplicateNamesWithTabsAndNoBreakSpaces() {
+        GlossaryTerm debt = card("debtRatio", "부채비율", List.of(), List.of(), SOURCE, REVIEWED);
+        GlossaryTerm tab = card("tab", "다른 용어", List.of("부채\t비율"), List.of(), SOURCE, REVIEWED);
+        GlossaryTerm noBreak = card("noBreak", "또 다른 용어", List.of("부채\u00A0비율"), List.of(), SOURCE, REVIEWED);
+
+        assertThat(GlossaryTerms.normalizeName("부채\t\u00A0\u3000비율")).isEqualTo("부채비율");
+        assertThatThrownBy(() -> GlossaryTerms.of(List.of(debt, tab))).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> GlossaryTerms.of(List.of(debt, noBreak))).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
     @DisplayName("같은 카드 안에서 띄어쓰기만 다른 별칭은 허용한다")
     void allowsSpacingAliasWithinSameCard() {
         GlossaryTerm debt = card("debtRatio", "부채비율", List.of("부채 비율"), List.of(), SOURCE, REVIEWED);

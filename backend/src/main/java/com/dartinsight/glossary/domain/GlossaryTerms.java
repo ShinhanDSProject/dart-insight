@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * 용어 카드 묶음과 그 규칙(ADR-0061). 파일을 읽을 때 한 번 만든다.
@@ -13,6 +14,8 @@ import java.util.Set;
  * 이름은 공백을 빼고 비교한다('부채 비율'과 '부채비율'은 같은 이름).
  */
 public final class GlossaryTerms {
+
+    private static final Pattern WHITE_SPACE = Pattern.compile("\\p{IsWhite_Space}+");
 
     private final List<GlossaryTerm> all;
 
@@ -47,9 +50,12 @@ public final class GlossaryTerms {
                 .toList();
     }
 
-    /** 공백을 뺀 이름. 이름 겹침을 볼 때와 용어를 찾을 때 같은 기준을 쓴다. */
+    /**
+     * 공백을 뺀 이름. 이름 겹침을 볼 때와 용어를 찾을 때 같은 기준을 쓴다.
+     * 스페이스뿐 아니라 탭·줄 없는 공백(NBSP) 같은 유니코드 공백도 모두 뺀다.
+     */
     public static String normalizeName(String name) {
-        return name.replaceAll("\s+", "");
+        return WHITE_SPACE.matcher(name).replaceAll("");
     }
 
     private static void requireFields(GlossaryTerm term) {
