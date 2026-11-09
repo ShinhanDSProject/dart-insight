@@ -18,6 +18,7 @@ from app.compare.listing import (
     NOTE,
     OTHER,
     PAIRED_TABLE,
+    PERIOD,
     SEPARATE,
     SHAREHOLDER,
     UNKNOWN,
@@ -31,6 +32,7 @@ from app.compare.listing import (
     list_entries,
     missing_fields,
 )
+from app.compare.period import PeriodShift
 from app.compare.text_diff import (
     ADDED,
     DELETED,
@@ -119,6 +121,55 @@ def test_changed_numbering_with_a_hyphen_is_formatting() -> None:
 def test_numeric_update_stays_in_main() -> None:
     entry = classify(change(NUMERIC_UPDATE), "매출 100억원", "매출 120억원")
     assert (entry.group, entry.field) == (MAIN, BUSINESS)
+
+
+YEARLY = PeriodShift(1, 1, frozenset({((2025, 6, 30), (2026, 6, 30))}))
+
+
+@pytest.mark.parametrize("kind", [NUMERIC_UPDATE, MODIFIED])
+def test_text_with_only_a_shifted_period_is_period(kind: str) -> None:
+    entry = classify(
+        change(kind), "2025년(제57기) 반기 실적입니다.", "2026년(제58기) 반기 실적입니다.", YEARLY
+    )
+    assert (entry.group, entry.field) == (PERIOD, None)
+
+
+def test_period_is_not_folded_without_a_period_shift() -> None:
+    entry = classify(change(NUMERIC_UPDATE), "(제 57 기)", "(제 58 기)")
+    assert entry.group == MAIN
+
+
+def test_period_with_another_changed_number_stays_in_main() -> None:
+    entry = classify(
+        change(NUMERIC_UPDATE), "2025년 반기 생산 100대", "2026년 반기 생산 120대", YEARLY
+    )
+    assert entry.group == MAIN
+
+
+def test_period_only_note_stays_in_the_note_group() -> None:
+    entry = classify(
+        change(MODIFIED, NOTE_PATH),
+        "2025년 6월 30일 현재 담보",
+        "2026년 6월 30일 현재 담보",
+        YEARLY,
+    )
+    assert (entry.group, entry.raised_from_note) == (NOTE, False)
+
+
+def test_list_entries_pass_the_period_shift_to_each_change() -> None:
+    changes = [
+        Change(
+            NUMERIC_UPDATE,
+            "PARAGRAPH",
+            "MATCHED",
+            "개요",
+            BUSINESS_PATH,
+            Position(1, 1),
+            Position(1, 1),
+        ),
+    ]
+    entries = list_entries(changes, {1: "(제 57 기)"}, {1: "(제 58 기)"}, YEARLY)
+    assert [e.group for e in entries] == [PERIOD]
 
 
 @pytest.mark.parametrize("kind", [ADDED, DELETED])

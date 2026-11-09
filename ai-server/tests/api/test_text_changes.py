@@ -53,7 +53,7 @@ def test_changes_come_back_with_list_classification() -> None:
     )
 
     data = response.json()
-    assert data["listVersion"] == "text-list-1"
+    assert data["listVersion"] == "text-list-2"
     assert "BUSINESS" not in data["missingFields"]
     assert "LITIGATION" in data["missingFields"]
     (change,) = data["changes"]
