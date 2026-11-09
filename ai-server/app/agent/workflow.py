@@ -6,9 +6,15 @@
 - 교차 검증(CROSS_CHECK): get_financial_changes·get_summary·(있으면) get_plan_followups.
   crossCheck.result는 cross_check()가 정하고 LLM은 바꾸지 못한다
   (docs/api-spec.md 3절 '교차 검증 판정').
+- 용어 풀이(TERM, ADR-0061): lookup_terms → 카드가 있으면 카드의 '이 회사 값을 찾을 곳'
+  (재무 계정이면 get_financial_changes, 아니면 체크포인트 get_checkpoints)과 문장 변경
+  search_text_changes(q=용어), 카드가 없으면 answer_with_evidence(질문=용어). 카드도 보고서
+  설명도 없으면 LLM 없이 정해진 안내(term_fixed_final)로 끝낸다. 카드는 사람이 검토한 것이라
+  정의를 LLM이 만들지 않는다.
 
 어느 Workflow를 쓸지는 첫 Tool 고르기에서 LLM이 고르고, 그 뒤 Tool 순서는 이 모듈이 정한다.
-한 단계는 상태를 들고 있지 않으므로 Workflow로 부른 Tool은 callId 머리(cause-·cross-)로 알아본다.
+한 단계는 상태를 들고 있지 않으므로 Workflow로 부른 Tool은 callId 머리(cause-·cross-·term-)로
+알아본다.
 받은 tools에 필요한 Tool이 없으면 Workflow를 쓰지 않고 일반 경로로 간다.
 """
 
@@ -18,24 +24,110 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from app.agent.model import CrossCheck, ResultItem, StepInput, ToolCall, ToolResult
-from app.agent.validate import schema_problem
+from app.agent.model import (
+    ANSWERED,
+    MAX_TOOL_CALLS,
+    CrossCheck,
+    FinalAnswer,
+    ResultItem,
+    StepInput,
+    ToolCall,
+    ToolResult,
+)
+from app.agent.validate import (
+    REPORT_EXPLANATION_UNSUPPORTED,
+    schema_problem,
+    split_sentences,
+    without_markers,
+)
 
 CAUSE_TRACE = "CAUSE_TRACE"
 CROSS_CHECK = "CROSS_CHECK"
-WORKFLOWS = (CAUSE_TRACE, CROSS_CHECK)
+TERM = "TERM"
+WORKFLOWS = (CAUSE_TRACE, CROSS_CHECK, TERM)
 
 FINANCIAL_CHANGES = "get_financial_changes"
 SUMMARY = "get_summary"
 SEARCH_TEXT_CHANGES = "search_text_changes"
 PLAN_FOLLOWUPS = "get_plan_followups"
+LOOKUP_TERMS = "lookup_terms"
+CHECKPOINTS = "get_checkpoints"
+ANSWER_WITH_EVIDENCE = "answer_with_evidence"
+OPEN_GLOSSARY = "OPEN_GLOSSARY"
 
 # 없으면 그 Workflow를 쓰지 않는 Tool
 REQUIRED_TOOLS = {
     CAUSE_TRACE: (FINANCIAL_CHANGES, SUMMARY),
     CROSS_CHECK: (FINANCIAL_CHANGES, SUMMARY),
+    TERM: (LOOKUP_TERMS,),
 }
-_CALL_PREFIX = {CAUSE_TRACE: "cause-", CROSS_CHECK: "cross-"}
+_CALL_PREFIX = {CAUSE_TRACE: "cause-", CROSS_CHECK: "cross-", TERM: "term-"}
+
+# 용어 풀이(ADR-0061). lookup_terms 줄 글의 모양은 backend agent/domain/TermLines와의 약속이다
+# (docs/api-spec.md 3절 Tool 목록). 바꾸면 양쪽을 함께 고친다
+MAX_TERMS = 3
+_TERM_SPLIT = re.compile(r"\s*[,·/]\s*")
+_CARD_HEAD = re.compile(
+    r"^\[용어 카드 (?P<term>.+?), (?P<level>기초|핵심) 카드, 키 (?P<key>[A-Za-z0-9]+)\]"
+)
+_CARD_ACCOUNTS = re.compile(r"재무 계정 (?P<accounts>[^(]+)\(get_financial_changes")
+_CARD_CHECKPOINT = re.compile(r"체크 포인트 [A-Z_]+\(get_checkpoints")
+_MISSING_HEAD = re.compile(
+    r"^\[용어 카드 없음\] '(?P<query>.+?)'에 해당하는 용어 카드는 등록되지 않았어요\."
+)
+_SIMILAR = re.compile(r"비슷한 카드: (?P<cards>.+)$")
+_SIMILAR_CARD = re.compile(r"(?P<term>.+?)\((?P<key>[A-Za-z0-9]+)\)$")
+# 비슷한 카드가 없을 때 다음에 물을 것으로 보여 주는 기초 카드
+BASIC_TERMS = ("자산", "매출", "주식")
+# 보고서 설명 인용으로 보는 근거(원문 문단)
+_BLOCK = "#B"
+_QUOTE_BODY = re.compile(r"^\[[^\[\]\n]*\]\s*(?:[^:\n]*?:\s)?")
+# 인용 글의 문장(인용이 문단 앞 160자라 마지막 문장은 마침표 없이 끝날 수 있다)
+_QUOTE_SENTENCE = re.compile(r"[^.!?\n]+(?:[.!?]|$)")
+
+TERM_NOT_FOUND = "{terms}에 해당하는 용어 카드가 없고, 이 보고서에서도 설명을 찾지 못했어요."
+REPORT_QUOTE = "이 회사 보고서에 적힌 설명이에요."
+# 보고서 설명 풀이 문장의 내용 낱말(두 글자 이상)과, 내용으로 보지 않는 틀 낱말
+_CONTENT_WORD = re.compile(r"[가-힣A-Za-z0-9]{2,}")
+_FRAME_WORDS = frozenset(
+    {
+        "쉽게",
+        "말하면",
+        "말해",
+        "회사",
+        "회사가",
+        "회사는",
+        "회사의",
+        "보고서",
+        "보고서에",
+        "보고서는",
+        "설명",
+        "설명이에요",
+        "설명해요",
+        "적힌",
+        "적혀",
+        "의미",
+        "의미예요",
+        "의미해요",
+        "이에요",
+        "예요",
+        "이는",
+        "이것은",
+        "이란",
+        "이라는",
+        "라는",
+        "즉",
+        "다시",
+        "정리하면",
+        "있어요",
+        "있다는",
+        "거예요",
+        "것이에요",
+        "뜻이에요",
+        "뜻해요",
+        "말이에요",
+    }
+)
 # 화면에서 고른 변경을 첫 왕복 전에 넣은 결과(backend). Workflow 시작을 막지 않는다
 _CONTEXT_PREFIX = "ctx-"
 
@@ -76,10 +168,14 @@ INSUFFICIENT_REASON = "재무 수치와 방향을 대조할 수 있는 회사 �
 
 @dataclass(frozen=True)
 class Choice:
-    """첫 Tool 고르기가 고른 Workflow. account는 사용자가 말한 계정 이름(없으면 None)."""
+    """첫 Tool 고르기가 고른 Workflow.
+
+    account는 사용자가 말한 계정 이름, terms는 TERM에서 풀 용어(최대 3개)다. 없으면 None·빈 값.
+    """
 
     workflow: str
     account: str | None = None
+    terms: tuple[str, ...] = ()
 
 
 def available(step: StepInput) -> list[str]:
@@ -101,7 +197,36 @@ def choice(data: Any, step: StepInput) -> Choice | None:
         return None
     account = data["workflow"].get("account")
     account = account.strip() if isinstance(account, str) and account.strip() else None
-    return Choice(workflow, account)
+    terms = _terms(data["workflow"].get("term"))
+    if workflow == TERM and not terms:
+        # 풀 용어를 모르면 용어 풀이를 시작하지 않는다
+        return None
+    return Choice(workflow, account, terms)
+
+
+def implied_choice(calls: list[ToolCall], step: StepInput) -> Choice | None:
+    """첫 고르기가 workflow를 적지 않고 lookup_terms 하나만 불렀으면 용어 풀이로 본다(ADR-0061).
+
+    Tool 고르기는 스키마가 커서 구조화 출력 없이 부를 수 있어(ADR-0062) workflow 칸이 빠지기도 한다.
+    용어 카드를 찾는 요청의 다음 순서는 늘 같으므로 코드가 Workflow로 이어 간다.
+    """
+    if len(calls) != 1 or calls[0].name != LOOKUP_TERMS:
+        return None
+    if TERM not in available(step) or not can_start(step):
+        return None
+    raw = calls[0].arguments.get("terms")
+    terms = (
+        tuple(t for t in raw if isinstance(t, str) and t.strip()) if isinstance(raw, list) else ()
+    )
+    return Choice(TERM, None, terms[:MAX_TERMS]) if terms else None
+
+
+def _terms(value: Any) -> tuple[str, ...]:
+    """'부채비율, 유동비율'처럼 쉼표·가운뎃점으로 이은 용어(같은 것은 한 번, 최대 MAX_TERMS개)."""
+    if not isinstance(value, str):
+        return ()
+    terms = [t.strip() for t in _TERM_SPLIT.split(value) if t.strip()]
+    return tuple(dict.fromkeys(terms))[:MAX_TERMS]
 
 
 def active(step: StepInput) -> str | None:
@@ -117,6 +242,8 @@ def start_calls(step: StepInput, chosen: Choice) -> list[ToolCall]:
     """Workflow의 첫 왕복. 서로 기대지 않는 Tool을 한 번에 부른다."""
     if step.remaining_steps <= 0:
         return []
+    if chosen.workflow == TERM:
+        return _calls(step, TERM, [(LOOKUP_TERMS, {"terms": list(chosen.terms)})])
     financial: dict[str, Any] = {"q": chosen.account} if chosen.account else {}
     if _argument_problem(step, FINANCIAL_CHANGES, financial):
         financial = {}
@@ -128,7 +255,11 @@ def start_calls(step: StepInput, chosen: Choice) -> list[ToolCall]:
 
 def next_calls(step: StepInput, workflow: str) -> list[ToolCall]:
     """Workflow의 다음 왕복. 더 부를 Tool이 없으면 빈 목록이고, 그때는 받은 결과로 답한다."""
-    if step.remaining_steps <= 0 or workflow != CAUSE_TRACE:
+    if step.remaining_steps <= 0:
+        return []
+    if workflow == TERM:
+        return _term_next_calls(step)
+    if workflow != CAUSE_TRACE:
         return []
     if any(r.name == SEARCH_TEXT_CHANGES for r in step.tool_results):
         return []
@@ -153,6 +284,201 @@ def next_calls(step: StepInput, workflow: str) -> list[ToolCall]:
     if not account:
         return []
     return _calls(step, workflow, [(SEARCH_TEXT_CHANGES, {"q": account})])
+
+
+@dataclass(frozen=True)
+class TermCard:
+    """lookup_terms가 찾은 카드 한 장(줄 글에서 읽음).
+
+    accounts는 '이 회사 값을 찾을 곳'의 재무 계정, checkpoint는 체크포인트가 있는지다.
+    """
+
+    evidence_id: str
+    key: str
+    term: str
+    basic: bool
+    accounts: tuple[str, ...]
+    checkpoint: bool
+
+
+@dataclass(frozen=True)
+class MissingTerm:
+    """카드가 없는 용어와, backend가 고른 비슷한 카드의 용어."""
+
+    query: str
+    similar: tuple[str, ...]
+
+
+def term_cards(step: StepInput) -> list[TermCard]:
+    """이 채팅에서 찾은 용어 카드(찾은 순서, 같은 카드는 한 번)."""
+    found: dict[str, TermCard] = {}
+    for result in _ok(step, LOOKUP_TERMS):
+        for item in result.items:
+            head = _CARD_HEAD.match(item.text)
+            if not item.evidence_id or head is None:
+                continue
+            accounts = _CARD_ACCOUNTS.search(item.text)
+            found.setdefault(
+                item.evidence_id,
+                TermCard(
+                    item.evidence_id,
+                    head.group("key"),
+                    head.group("term"),
+                    head.group("level") == "기초",
+                    tuple(a.strip() for a in accounts.group("accounts").split("·") if a.strip())
+                    if accounts
+                    else (),
+                    bool(_CARD_CHECKPOINT.search(item.text)),
+                ),
+            )
+    return list(found.values())
+
+
+def missing_terms(step: StepInput) -> list[MissingTerm]:
+    """카드가 없다고 돌아온 용어(검토 전 카드도 없는 것으로 온다)."""
+    missing: list[MissingTerm] = []
+    for result in _ok(step, LOOKUP_TERMS):
+        for item in result.items:
+            head = _MISSING_HEAD.match(item.text)
+            if item.evidence_id or head is None:
+                continue
+            similar = _SIMILAR.search(item.text)
+            terms = (
+                tuple(
+                    m.group("term")
+                    for part in similar.group("cards").split(", ")
+                    if (m := _SIMILAR_CARD.match(part.strip()))
+                )
+                if similar
+                else ()
+            )
+            missing.append(MissingTerm(head.group("query"), terms))
+    return missing
+
+
+def _term_next_calls(step: StepInput) -> list[ToolCall]:
+    """lookup_terms 다음 한 번만: 카드가 있으면 이 회사 값·문장 변경, 없으면 보고서 설명 찾기."""
+    if any(
+        r.call_id.startswith(_CALL_PREFIX[TERM]) and r.name != LOOKUP_TERMS
+        for r in step.tool_results
+    ):
+        return []
+    cards = term_cards(step)
+    wanted: list[tuple[str, dict[str, Any]]] = []
+    for card in cards:
+        # 이 분석 기간의 값(재무 계정 변화)을 먼저 쓰고, 없을 때만 체크포인트(최근 사업보고서 기준)
+        if card.accounts:
+            wanted += [(FINANCIAL_CHANGES, {"q": account}) for account in card.accounts]
+        elif card.checkpoint:
+            wanted.append((CHECKPOINTS, {}))
+        wanted.append((SEARCH_TEXT_CHANGES, {"q": card.term}))
+    if not cards:
+        missing = missing_terms(step)
+        if missing:
+            wanted.append((ANSWER_WITH_EVIDENCE, {"question": missing[0].query}))
+    return _calls(step, TERM, wanted)[:MAX_TOOL_CALLS]
+
+
+def report_explanation(step: StepInput) -> tuple[str, str] | None:
+    """카드가 없을 때 보고서 설명으로 인정하는 인용(근거 ID, 인용 글).
+
+    근거 질문 결과의 원문 문단(#B) 인용이고, 그 인용 글에 용어가 그대로(공백 무시) 있을 때만이다.
+    재무 사실(F)만 있거나 인용에 용어가 없으면 None(ADR-0061).
+    """
+    missing = missing_terms(step)
+    if not missing or term_cards(step):
+        return None
+    term = _compact_term(missing[0].query)
+    for result in _ok(step, ANSWER_WITH_EVIDENCE):
+        for item in result.items:
+            if not item.evidence_id or _BLOCK not in item.evidence_id:
+                continue
+            quote = _QUOTE_BODY.sub("", item.text, count=1)
+            if term and term in _compact_term(quote):
+                return item.evidence_id, quote
+    return None
+
+
+def term_fixed_final(step: StepInput) -> FinalAnswer | None:
+    """카드도 보고서 설명도 없을 때의 정해진 안내(LLM 없음). 그 밖은 None(LLM이 답함).
+
+    보고서 설명을 찾아본 뒤(근거 질문이 성공했거나 그 Tool이 없을 때)에만 '찾지 못했다'고 한다.
+    비슷한 카드마다 용어 사전 열기 버튼(최대 3개), 비슷한 카드가 없으면 기초 카드 버튼을 붙인다.
+    """
+    missing = missing_terms(step)
+    if not missing or term_cards(step) or report_explanation(step) is not None:
+        return None
+    searched = any(r.ok and r.name == ANSWER_WITH_EVIDENCE for r in step.tool_results)
+    if not searched and step.tool(ANSWER_WITH_EVIDENCE) is not None:
+        return None
+    similar = list(dict.fromkeys(t for m in missing for t in m.similar))[:MAX_TERMS]
+    actions = (
+        [{"type": OPEN_GLOSSARY, "term": t} for t in (similar or BASIC_TERMS)]
+        if step.action(OPEN_GLOSSARY) is not None
+        else []
+    )
+    terms = ", ".join(f"'{m.query}'" for m in missing)
+    return FinalAnswer(ANSWERED, TERM_NOT_FOUND.format(terms=terms), [], actions)
+
+
+def report_quote_final(step: StepInput) -> FinalAnswer | None:
+    """보고서 설명 풀이가 끝내 검토를 통과하지 못했을 때: 풀이를 빼고 원문 인용만(ADR-0061).
+
+    인용 글에서 용어가 든 문장을 그대로 쓰므로 정의를 지어내지 않는다. 보고서 설명이 없으면 None.
+    """
+    found = report_explanation(step)
+    if found is None:
+        return None
+    evidence_id, quote = found
+    term = _compact_term(missing_terms(step)[0].query)
+    sentence = next(
+        (s.strip() for s in _QUOTE_SENTENCE.findall(quote) if term in _compact_term(s)),
+        quote.strip(),
+    )
+    return FinalAnswer(ANSWERED, f'{REPORT_QUOTE} "{sentence}"[{evidence_id}]', [evidence_id], [])
+
+
+def term_answer_problem(answer: str, step: StepInput) -> tuple[str, str] | None:
+    """보고서 설명으로 답할 때의 풀이 문장 검사(ADR-0061). 통과하면 None.
+
+    정해 둔 첫 문장('이 회사 보고서에 적힌 설명이에요.') 밖의 문장은 모두 그 인용을 근거로 표시하고,
+    내용 낱말(두 글자 이상, 틀 낱말 제외)이 모두 인용 글에 있어야 한다. 낱말은 앞 두 글자 이상이
+    인용에 있으면 있다고 본다('부채는' → '부채'). 낱말 대조라 뜻이 맞는지까지는 보지 못한다.
+    """
+    found = report_explanation(step)
+    if found is None:
+        return None
+    evidence_id, quote = found
+    source = _compact_term(quote)
+    for sentence in split_sentences(answer):
+        body = without_markers(sentence).strip()
+        if body == REPORT_QUOTE:
+            continue
+        if f"[{evidence_id}]" not in sentence:
+            return REPORT_EXPLANATION_UNSUPPORTED, (
+                f"보고서 설명으로 답할 때는 첫 문장('{REPORT_QUOTE}') 밖의 문장에 "
+                f"인용한 원문 근거 [{evidence_id}]를 붙입니다."
+            )
+        unsupported = [
+            w
+            for w in _CONTENT_WORD.findall(body)
+            if w not in _FRAME_WORDS and not _in_source(w.lower(), source)
+        ]
+        if unsupported:
+            return REPORT_EXPLANATION_UNSUPPORTED, (
+                f"풀이 문장의 낱말 {unsupported[:3]}가 인용한 원문에 없습니다. "
+                "원문 문장을 그대로 인용하고, 쉬운 말 풀이는 인용 문단에 있는 낱말로 "
+                "한 문장까지만 씁니다."
+            )
+    return None
+
+
+def _in_source(word: str, source: str) -> bool:
+    return any(word[:n] in source for n in range(len(word), 1, -1))
+
+
+def _compact_term(text: str) -> str:
+    return re.sub(r"\s+", "", text).lower()
 
 
 def cross_check(step: StepInput) -> CrossCheck:

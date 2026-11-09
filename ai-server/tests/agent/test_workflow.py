@@ -7,6 +7,7 @@ from app.agent import fake, workflow
 from app.agent.model import (
     FINAL,
     TOOL_CALLS,
+    ActionSpec,
     Facts,
     ResultItem,
     StepInput,
@@ -375,3 +376,374 @@ def test_cause_trace_stops_when_no_steps_remain() -> None:
     ]
 
     assert workflow.next_calls(step(results=results, remaining=0), workflow.CAUSE_TRACE) == []
+
+
+# --- 용어 풀이(TERM, ADR-0061, #770) ---
+
+LOOKUP_TOOL = ToolSpec(
+    "lookup_terms",
+    "용어 카드",
+    {
+        "type": "object",
+        "properties": {"terms": {"type": "array", "items": {"type": "string"}}},
+        "required": ["terms"],
+        "additionalProperties": False,
+    },
+)
+CHECKPOINT_TOOL = ToolSpec("get_checkpoints", "체크 포인트", NO_ARGS)
+QUESTION_TOOL = ToolSpec(
+    "answer_with_evidence",
+    "근거 질문",
+    {
+        "type": "object",
+        "properties": {"question": {"type": "string"}},
+        "required": ["question"],
+        "additionalProperties": False,
+    },
+)
+TERM_TOOLS = [LOOKUP_TOOL, FINANCIAL_TOOL, SEARCH_TOOL, CHECKPOINT_TOOL, QUESTION_TOOL]
+GLOSSARY_ACTION = ActionSpec(
+    "OPEN_GLOSSARY",
+    {
+        "type": "object",
+        "properties": {"term": {"type": "string"}},
+        "required": ["term"],
+        "additionalProperties": False,
+    },
+)
+
+
+def term_step(
+    message: str,
+    results: list[ToolResult] | None = None,
+    tools: list[ToolSpec] | None = None,
+    actions: list[ActionSpec] | None = None,
+) -> StepInput:
+    return StepInput(
+        "예시전자",
+        "반기보고서 (2025.06)",
+        "반기보고서 (2026.06)",
+        message,
+        [],
+        {"tab": "summary"},
+        TERM_TOOLS if tools is None else tools,
+        [GLOSSARY_ACTION] if actions is None else actions,
+        results or [],
+        4,
+    )
+
+
+def pick_term(term: str | None) -> dict:
+    return {
+        "decision": "CALL_TOOLS",
+        "toolCalls": [],
+        "draft": None,
+        "workflow": {"type": workflow.TERM, "account": None, "term": term},
+    }
+
+
+def card_line(
+    key: str,
+    term: str,
+    level: str = "핵심",
+    example: str | None = "자본총계가 100원이고 부채총계가 30원이면 부채비율은 30%예요.",
+    company_value: str | None = None,
+) -> ResultItem:
+    """backend TermLines.card와 같은 모양의 줄."""
+    parts = [f"[용어 카드 {term}, {level} 카드, 키 {key}] 한 줄 뜻: {term}의 뜻이에요."]
+    if example:
+        parts.append(f"쉬운 예시(가정한 예, 이 회사의 값이 아님): {example}")
+    parts.append("확인할 곳: 재무상태표")
+    if company_value:
+        parts.append(f"이 회사 값을 찾을 곳: {company_value}")
+    parts.append("출처: 공식 자료")
+    return ResultItem(f"G{key}", " / ".join(parts))
+
+
+def missing_line(query: str, similar: str | None = None) -> ResultItem:
+    """backend TermLines.notFound와 같은 모양의 줄."""
+    text = f"[용어 카드 없음] '{query}'에 해당하는 용어 카드는 등록되지 않았어요."
+    if similar:
+        text += f" 비슷한 카드: {similar}"
+    return ResultItem(None, text)
+
+
+def lookup(*items: ResultItem, terms: list[str] | None = None) -> ToolResult:
+    arguments = {"terms": terms or ["부채비율"]}
+    return ToolResult("term-1", "lookup_terms", arguments, True, items=list(items))
+
+
+DEBT_VALUE = (
+    "체크 포인트 DEBT_RATIO(get_checkpoints, 최근 사업보고서 기준), "
+    "재무 계정 부채총계·자본총계(get_financial_changes, 이 분석의 두 보고서)"
+)
+BLOCK_ID = f"{CUR}#B12"
+
+
+def test_first_plan_choosing_term_looks_up_the_term_first() -> None:
+    client, _ = llm(pick_term("부채비율, 유동비율"))
+
+    output = run_step(client, term_step("부채비율과 유동비율 차이는?"))
+
+    assert output.kind == TOOL_CALLS
+    assert [(c.call_id, c.name, c.arguments) for c in output.tool_calls] == [
+        ("term-1", "lookup_terms", {"terms": ["부채비율", "유동비율"]}),
+    ]
+
+
+def test_term_without_term_is_not_started() -> None:
+    assert workflow.choice(pick_term(None), term_step("뭐야?")) is None
+    assert workflow.choice(pick_term(" "), term_step("뭐야?")) is None
+
+
+def test_card_with_accounts_asks_this_analysis_values_and_text_changes() -> None:
+    results = [lookup(card_line("debtRatio", "부채비율", company_value=DEBT_VALUE))]
+
+    calls = workflow.next_calls(term_step("부채비율이 뭐야?", results), workflow.TERM)
+
+    # 이 분석 기간의 재무 계정 변화를 체크포인트보다 먼저 쓴다
+    assert [(c.name, c.arguments) for c in calls] == [
+        ("get_financial_changes", {"q": "부채총계"}),
+        ("get_financial_changes", {"q": "자본총계"}),
+        ("search_text_changes", {"q": "부채비율"}),
+    ]
+    assert all(c.call_id.startswith("term-") for c in calls)
+
+
+def test_card_with_only_checkpoint_asks_checkpoints_and_text_changes() -> None:
+    value = "체크 포인트 AUDIT_OPINION(get_checkpoints, 최근 사업보고서 기준)"
+    results = [lookup(card_line("auditOpinion", "감사의견", company_value=value))]
+
+    calls = workflow.next_calls(term_step("감사의견이 뭐야?", results), workflow.TERM)
+
+    assert [c.name for c in calls] == ["get_checkpoints", "search_text_changes"]
+
+
+def test_missing_card_searches_report_explanation_with_term_only() -> None:
+    results = [lookup(missing_line("리스부채"), terms=["리스부채"])]
+
+    calls = workflow.next_calls(term_step("리스부채가 뭐야?", results), workflow.TERM)
+
+    assert [(c.name, c.arguments) for c in calls] == [
+        ("answer_with_evidence", {"question": "리스부채"}),
+    ]
+
+
+def test_term_asks_once_and_then_answers_with_card_order_guide() -> None:
+    results = [
+        lookup(card_line("debtRatio", "부채비율", company_value=DEBT_VALUE)),
+        ToolResult("term-2", "search_text_changes", {"q": "부채비율"}, True),
+    ]
+    answer_text = "부채비율은 부채비율의 뜻이에요[GdebtRatio]."
+    client, provider = llm(
+        {"status": "ANSWERED", "answer": answer_text, "evidenceIds": ["GdebtRatio"], "actions": []}
+    )
+
+    output = run_step(client, term_step("부채비율이 뭐야?", results))
+
+    assert output.final is not None
+    assert output.final.status == "ANSWERED"
+    assert [r.task for r in provider.requests] == [TASK_ANSWER]
+    guide = provider.requests[0].user
+    assert "[용어 풀이]" in guide
+    assert "1) 한 줄 뜻 2) 쉬운 예시 3) 이 회사에서는 4) 확인할 곳" in guide
+    assert "이번에 바뀐 문장에서는 찾지" in guide
+    assert "한 줄 뜻과 이 회사 값만" not in guide
+
+
+def test_basic_card_guide_asks_for_short_answer() -> None:
+    results = [
+        lookup(card_line("asset", "자산", level="기초", example=None), terms=["자산"]),
+        ToolResult("term-2", "search_text_changes", {"q": "자산"}, True),
+    ]
+    client, provider = llm(
+        {
+            "status": "ANSWERED",
+            "answer": "자산은 자산의 뜻이에요[Gasset].",
+            "evidenceIds": ["Gasset"],
+            "actions": [],
+        }
+    )
+
+    run_step(client, term_step("자산이 뭐야?", results))
+
+    assert "한 줄 뜻과 이 회사 값만 두세 문장으로" in provider.requests[0].user
+
+
+def test_card_only_sentence_naming_the_company_is_rejected_then_fixed() -> None:
+    results = [
+        lookup(card_line("debtRatio", "부채비율")),
+        ToolResult("term-2", "search_text_changes", {"q": "부채비율"}, True),
+    ]
+    bad = "예시전자의 부채비율은 30%예요[GdebtRatio]."
+    good = "예를 들어 부채총계가 30원이면 부채비율은 30%예요[GdebtRatio]."
+    client, _ = llm(
+        {"status": "ANSWERED", "answer": bad, "evidenceIds": ["GdebtRatio"], "actions": []},
+        {"status": "ANSWERED", "answer": good, "evidenceIds": ["GdebtRatio"], "actions": []},
+    )
+
+    output = run_step(client, term_step("부채비율이 뭐야?", results))
+
+    assert output.rejections[0].rules == ["GLOSSARY_COMPANY_REFERENCE"]
+    assert output.final is not None
+    assert output.final.answer == good
+
+
+def test_card_example_number_in_company_sentence_ends_review_needed() -> None:
+    results = [
+        lookup(card_line("debtRatio", "부채비율")),
+        ToolResult(
+            "term-2",
+            "get_financial_changes",
+            {"q": "부채총계"},
+            True,
+            items=[
+                ResultItem("F7", "[BS, changeId 7] 부채총계가 1,200억 원에서 1,500억 원이 됐어요.")
+            ],
+        ),
+    ]
+    # 카드 예시의 30%를 회사 근거(F7) 문장에 쓰면 숫자 검사로 반려된다(AC6)
+    wrong = {
+        "status": "ANSWERED",
+        "answer": "이 회사의 부채비율은 30%예요[F7].",
+        "evidenceIds": ["F7"],
+        "actions": [],
+    }
+    client, _ = llm(wrong, wrong, wrong)
+
+    output = run_step(client, term_step("부채비율이 뭐야?", results))
+
+    assert output.final is not None
+    assert output.final.status == "REVIEW_NEEDED"
+    assert {r for rej in output.rejections for r in rej.rules} == {"NUMBER_NOT_IN_TOOL_RESULT"}
+
+
+def test_no_card_and_no_report_explanation_is_fixed_answer_with_similar_buttons() -> None:
+    results = [
+        lookup(missing_line("부채율", "부채비율(debtRatio), 부채(debt)"), terms=["부채율"]),
+        ToolResult(
+            "term-2",
+            "answer_with_evidence",
+            {"question": "부채율"},
+            True,
+            items=[ResultItem(None, "[질문 ID 3, NOT_FOUND] 찾지 못했어요.")],
+        ),
+    ]
+    client, provider = llm()
+
+    output = run_step(client, term_step("부채율이 뭐야?", results))
+
+    assert output.kind == FINAL
+    assert output.final is not None
+    assert output.final.status == "ANSWERED"
+    assert output.final.answer == (
+        "'부채율'에 해당하는 용어 카드가 없고, 이 보고서에서도 설명을 찾지 못했어요."
+    )
+    assert output.final.evidence_ids == []
+    assert output.final.actions == [
+        {"type": "OPEN_GLOSSARY", "term": "부채비율"},
+        {"type": "OPEN_GLOSSARY", "term": "부채"},
+    ]
+    # LLM 없이 끝낸다(정해진 안내)
+    assert provider.requests == []
+    assert output.model is None
+
+
+def test_fixed_answer_without_similar_cards_offers_basic_cards() -> None:
+    results = [
+        lookup(missing_line("파생상품"), terms=["파생상품"]),
+        ToolResult("term-2", "answer_with_evidence", {"question": "파생상품"}, True),
+    ]
+    client, _ = llm()
+
+    output = run_step(client, term_step("파생상품이 뭐야?", results))
+
+    assert output.final is not None
+    assert [a["term"] for a in output.final.actions] == ["자산", "매출", "주식"]
+
+
+def test_fixed_answer_waits_for_report_search_when_tool_exists() -> None:
+    results = [lookup(missing_line("리스부채"), terms=["리스부채"])]
+
+    assert workflow.term_fixed_final(term_step("리스부채가 뭐야?", results)) is None
+
+
+QUOTE = "리스부채는 리스료의 현재가치로 측정합니다. 이후 이자비용을 인식합니다."
+
+
+def report_results(quote_text: str) -> list[ToolResult]:
+    return [
+        lookup(missing_line("리스부채"), terms=["리스부채"]),
+        ToolResult(
+            "term-2",
+            "answer_with_evidence",
+            {"question": "리스부채"},
+            True,
+            items=[
+                ResultItem(None, "[질문 ID 4, ANSWERED] 리스부채는 측정 방법이 적혀 있어요."),
+                ResultItem(BLOCK_ID, f"[인용 1, 질문 ID 4] 주석 > 2. 회계정책: {quote_text}"),
+            ],
+        ),
+    ]
+
+
+def test_report_explanation_requires_term_in_block_quote() -> None:
+    found = workflow.report_explanation(term_step("리스부채가 뭐야?", report_results(QUOTE)))
+    other = report_results("사용권자산은 원가로 측정합니다.")
+
+    assert found == (BLOCK_ID, QUOTE)
+    assert workflow.report_explanation(term_step("리스부채가 뭐야?", other)) is None
+
+
+def test_report_explanation_answer_must_stay_within_quote_words() -> None:
+    step_ = term_step("리스부채가 뭐야?", report_results(QUOTE))
+    intro = workflow.REPORT_QUOTE
+    quoted = f'"리스부채는 리스료의 현재가치로 측정합니다."[{BLOCK_ID}]'
+    good = f"{intro} {quoted} 리스료의 현재가치로 측정해요[{BLOCK_ID}]."
+    invented = f"{intro} {quoted} 쉽게 말하면 빌린 돈이에요[{BLOCK_ID}]."
+    unmarked = f"{intro} 리스부채는 갚을 돈이에요."
+
+    assert workflow.term_answer_problem(good, step_) is None
+    invented_problem = workflow.term_answer_problem(invented, step_)
+    unmarked_problem = workflow.term_answer_problem(unmarked, step_)
+    assert invented_problem is not None
+    assert invented_problem[0] == "REPORT_EXPLANATION_UNSUPPORTED"
+    assert unmarked_problem is not None
+    assert unmarked_problem[0] == "REPORT_EXPLANATION_UNSUPPORTED"
+
+
+def test_report_explanation_falls_back_to_quote_only_after_retries() -> None:
+    invented = {
+        "status": "ANSWERED",
+        "answer": f"{workflow.REPORT_QUOTE} 쉽게 말하면 빌린 돈이에요[{BLOCK_ID}].",
+        "evidenceIds": [BLOCK_ID],
+        "actions": [],
+    }
+    client, provider = llm(invented, invented, invented)
+
+    output = run_step(client, term_step("리스부채가 뭐야?", report_results(QUOTE)))
+
+    assert len(provider.requests) == 3
+    assert "[용어 풀이: 보고서 설명]" in provider.requests[0].user
+    assert output.final is not None
+    assert output.final.status == "ANSWERED"
+    # 풀이를 빼고 용어가 든 원문 문장만 인용한다(정의를 지어내지 않음)
+    assert output.final.answer == (
+        f'{workflow.REPORT_QUOTE} "리스부채는 리스료의 현재가치로 측정합니다."[{BLOCK_ID}]'
+    )
+    assert output.final.evidence_ids == [BLOCK_ID]
+
+
+def test_first_plan_calling_only_lookup_terms_continues_as_term_workflow() -> None:
+    plan = {
+        "decision": "CALL_TOOLS",
+        "toolCalls": [{"name": "lookup_terms", "arguments": {"terms": ["부채비율"]}}],
+        "draft": None,
+        "workflow": None,
+    }
+    client, _ = llm(plan)
+
+    output = run_step(client, term_step("부채비율이 뭐야?"))
+
+    # workflow 칸을 빠뜨려도 용어 찾기 하나만 부르면 용어 풀이로 이어 간다(callId 머리 term-)
+    assert [(c.call_id, c.name) for c in output.tool_calls] == [("term-1", "lookup_terms")]

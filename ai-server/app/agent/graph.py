@@ -105,6 +105,10 @@ def build_graph(llm: LlmClient) -> Any:
             logger.info("Workflow %s 다음 Tool: %s", running, [c.name for c in calls])
             if calls:
                 return {"kind": TOOL_CALLS, "tool_calls": calls, "next": _RESPOND}
+            fixed = workflow.term_fixed_final(step) if running == workflow.TERM else None
+            if fixed is not None:
+                # 카드도 보고서 설명도 없음: LLM 없이 정해진 안내(ADR-0061)
+                return {"kind": FINAL, "final": fixed, "next": _RESPOND}
             return {"next": _DRAFT}
         quick = _quick_call(step)
         if quick is not None:
@@ -135,6 +139,8 @@ def build_graph(llm: LlmClient) -> Any:
             return {"calls": calls, "next": _DRAFT}
         calls += result.calls
         chosen, draft, picked = result.value
+        if picked is None:
+            picked = workflow.implied_choice(chosen, step)
         started = workflow.start_calls(step, picked) if picked is not None else []
         if started:
             logger.info("Workflow %s 시작: %s", picked.workflow, [c.name for c in started])
@@ -203,11 +209,20 @@ def build_graph(llm: LlmClient) -> Any:
         draft = state["draft"]
         assert draft is not None
         generations = state.get("generations", 0)
-        reviewed = review(draft, step)
+        term = workflow.active(step) == workflow.TERM
+        reviewed = review(draft, step, workflow.term_answer_problem if term else None)
         if reviewed.final is not None:
             return {"final": reviewed.final, "kind": FINAL, "next": _RESPOND}
         rejections = [*state.get("rejections", []), Rejection(generations, reviewed.rules)]
         logger.info("답 반려(%d/%d): %s", generations, max_generations, reviewed.rules)
+        quote_only = (
+            workflow.report_quote_final(step)
+            if term and generations >= max_generations and not reviewed.blocked_rules
+            else None
+        )
+        if quote_only is not None and not reviewed.terminal:
+            # 보고서 설명 풀이가 끝내 통과하지 못하면 풀이를 빼고 원문 인용만(ADR-0061)
+            return {"rejections": rejections, "final": quote_only, "kind": FINAL, "next": _RESPOND}
         if reviewed.terminal or generations >= max_generations:
             reason = TOOLS_FAILED if reviewed.terminal else NOT_VERIFIED
             if reviewed.blocked_rules:
