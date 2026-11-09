@@ -20,8 +20,8 @@ public record TextChangeListing(String group, String field, boolean raisedFromNo
     public static final String NOTE = "NOTE";
 
     /** 모든 목록 묶음(건수 순서) */
-    public static final List<String> GROUPS = List.of(MAIN, "HEADING", "FORMATTING", "MOVED", NOTE, "PAIRED_TABLE",
-            "UNPAIRED");
+    public static final List<String> GROUPS = List.of(MAIN, "HEADING", "FORMATTING", "PERIOD", "MOVED", NOTE,
+            "PAIRED_TABLE", "UNPAIRED");
 
     /** 모든 분야(건수 순서) */
     public static final List<String> FIELDS = List.of("LITIGATION", "CONTRACT", "BUSINESS", "DIVIDEND", "FUNDING",
