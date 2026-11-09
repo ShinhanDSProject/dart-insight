@@ -11,7 +11,8 @@
 3. 추가된 표와 짝지어 행 비교가 된 삭제된 표(PAIRED_TABLE). 결과는 추가된 표 쪽에 둔다.
 4. 재무제표 주석: 소송·우발부채·담보·채무보증·보고기간 후 사건이 글이나 섹션 경로에 있으면
    기본 목록으로 올리고, 그 밖은 접는다(NOTE). 숫자만 바뀐 변경과 잡음은 올리지 않는다.
-5. 잡음: 띄어쓰기·문장부호만 다른 수정(FORMATTING), 글자가 적은 추가·삭제(HEADING).
+5. 잡음: 보고서 기간 표시(기수·연도·기준일)만 바뀐 수정(PERIOD, period.py), 띄어쓰기·문장부호만
+   다른 수정(FORMATTING), 글자가 적은 추가·삭제(HEADING).
    값이 있는 행이 둘 이상인 표는 글자가 적어도 제목 줄로 보지 않는다.
 6. 그 밖은 기본 목록(MAIN).
 """
@@ -22,6 +23,7 @@ import re
 from collections import defaultdict
 from dataclasses import dataclass, replace
 
+from app.compare.period import PeriodShift, period_only
 from app.compare.text_diff import (
     ADDED,
     DELETED,
@@ -37,11 +39,12 @@ from app.compare.text_diff import (
 from app.documents.parser import TABLE
 
 # 결과가 달라지게 바꾸면 이 버전과 backend Analysis.CURRENT_VERSION을 함께 올린다
-LIST_VERSION = "text-list-1"
+LIST_VERSION = "text-list-2"
 
 MAIN = "MAIN"
 HEADING = "HEADING"
 FORMATTING = "FORMATTING"
+PERIOD = "PERIOD"
 GROUP_MOVED = "MOVED"
 PAIRED_TABLE = "PAIRED_TABLE"
 NOTE = "NOTE"
@@ -158,9 +161,15 @@ class _ParsedTable:
 
 
 def list_entries(
-    changes: list[Change], previous_texts: dict[int, str], current_texts: dict[int, str]
+    changes: list[Change],
+    previous_texts: dict[int, str],
+    current_texts: dict[int, str],
+    shift: PeriodShift | None = None,
 ) -> list[ListEntry]:
-    """변경마다의 묶음·분야와 표 행 비교(changes와 같은 순서)."""
+    """변경마다의 묶음·분야와 표 행 비교(changes와 같은 순서).
+
+    shift(두 보고서의 기간 차이)가 없으면 PERIOD로 접지 않는다.
+    """
     texts = [_change_texts(c, previous_texts, current_texts) for c in changes]
     deleted_of_added = _pair_tables(changes, texts)
     paired_deleted = set(deleted_of_added.values())
@@ -169,7 +178,7 @@ def list_entries(
         if i in paired_deleted:
             entries.append(ListEntry(PAIRED_TABLE, note_scope=_note_scope(change.section_path)))
             continue
-        entry = classify(change, previous, current)
+        entry = classify(change, previous, current, shift)
         if i in deleted_of_added:
             partner = deleted_of_added[i]
             diff = compare_table_rows(texts[partner][0], current, changes[partner].previous)
@@ -222,7 +231,12 @@ def compare_table_rows(
     return RowDiff(COMPARED, names[key], counts, paired_previous, changed, added, missing)
 
 
-def classify(change: Change, previous_text: str | None, current_text: str | None) -> ListEntry:
+def classify(
+    change: Change,
+    previous_text: str | None,
+    current_text: str | None,
+    shift: PeriodShift | None = None,
+) -> ListEntry:
     path = change.section_path
     scope = _note_scope(path)
     if change.change_type == REVIEW_NEEDED:
@@ -231,7 +245,7 @@ def classify(change: Change, previous_text: str | None, current_text: str | None
         return ListEntry(GROUP_MOVED, note_scope=scope)
 
     previous, current = previous_text or "", current_text or ""
-    noise = _noise_group(change, previous, current)
+    noise = _noise_group(change, previous, current, shift)
     if scope is not None:
         field = None
         if noise is None and change.change_type != NUMERIC_UPDATE:
@@ -377,9 +391,17 @@ def _compact(value: str) -> str:
     return "".join(value.split())
 
 
-def _noise_group(change: Change, previous: str, current: str) -> str | None:
+def _noise_group(
+    change: Change, previous: str, current: str, shift: PeriodShift | None
+) -> str | None:
     if change.change_type == MODIFIED and _same_apart_from_formatting(previous, current):
         return FORMATTING
+    if (
+        shift is not None
+        and change.change_type in (MODIFIED, NUMERIC_UPDATE)
+        and period_only(previous, current, shift)
+    ):
+        return PERIOD
     if change.change_type in (ADDED, DELETED):
         text = previous or current
         short = len(_NOT_LETTER.sub("", text)) < HEADING_MIN_LETTERS

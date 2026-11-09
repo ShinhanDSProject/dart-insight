@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from app.compare.listing import ListEntry, list_entries, missing_fields
+from app.compare.period import period_shift
 from app.compare.priority import Priority, prioritize
 from app.compare.text_diff import DiffResult, DocumentIn, diff_documents
 
@@ -28,5 +29,6 @@ def compare_documents(previous: DocumentIn, current: DocumentIn) -> TextChanges:
         previous_text = previous_texts.get(change.previous.block_no) if change.previous else None
         current_text = current_texts.get(change.current.block_no) if change.current else None
         priorities.append(prioritize(change, previous_text, current_text))
-    entries = list_entries(result.changes, previous_texts, current_texts)
+    shift = period_shift(previous, current)
+    entries = list_entries(result.changes, previous_texts, current_texts, shift)
     return TextChanges(result, priorities, entries, missing_fields(previous, current))
