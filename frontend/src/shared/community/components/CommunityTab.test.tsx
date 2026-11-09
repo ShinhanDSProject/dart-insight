@@ -6,7 +6,6 @@ import { ApiError } from '@/shared/api/client'
 import type { Comment, Post, PostDetail, PostList } from '@/shared/api/community'
 import { AuthContext, type AuthContextValue, type AuthState } from '@/shared/auth/authContext'
 import { axeViolations } from '@/test/axe'
-import { PROFANITY_MASK_KEY } from '../model/profanityMask'
 import { CommunityTab } from './CommunityTab'
 
 const getPosts = vi.fn<(corpCode: string, sort: string, page: number) => Promise<PostList>>()
@@ -89,7 +88,6 @@ beforeEach(() => {
   setNickname.mockReset()
   reportContent.mockReset()
   requestRepost.mockReset()
-  window.localStorage.clear()
 })
 afterEach(cleanup)
 
@@ -289,44 +287,24 @@ describe('커뮤니티 탭', () => {
     expect(await axeViolations(container)).toBe('')
   })
 
-  it('욕설 가리기를 켜면 글·댓글의 욕설이 **로, 끄면 원문으로 보이고 켬은 브라우저에 남는다', async () => {
+  it('글·댓글의 욕설은 토글 없이 늘 순화된 말로 보인다', async () => {
     const rude = post(1, { body: '씨발 실적 왜 이래', commentCount: 1 })
     getPosts.mockResolvedValue(list([rude]))
-    getPostDetail.mockResolvedValue({ post: rude, comments: [comment(10, { body: '병신 같은 공시' })] })
+    getPostDetail.mockResolvedValue({ post: rude, comments: [comment(10, { body: '개새끼 같은 공시' })] })
     const { container } = renderTab()
-    fireEvent.click(await screen.findByRole('button', { name: '댓글 1' }))
-    await screen.findByText('병신 같은 공시')
 
-    const toggle = screen.getByRole('checkbox', { name: '욕설 가리기' }) as HTMLInputElement
-    expect(toggle.checked).toBe(false)
-    expect(screen.getByText('씨발 실적 왜 이래')).toBeTruthy()
-
-    fireEvent.click(toggle)
-    expect(screen.getByText('** 실적 왜 이래')).toBeTruthy()
-    expect(screen.getByText('** 같은 공시')).toBeTruthy()
-    expect(window.localStorage.getItem(PROFANITY_MASK_KEY)).toBe('1')
+    expect(await screen.findByText('좋아 실적 왜 이래')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '댓글 1' }))
+    expect(await screen.findByText('사랑해 같은 공시')).toBeTruthy()
+    expect(screen.queryByRole('checkbox', { name: '욕설 가리기' })).toBeNull()
     expect(await axeViolations(container)).toBe('')
-
-    fireEvent.click(toggle)
-    expect(screen.getByText('씨발 실적 왜 이래')).toBeTruthy()
-    expect(window.localStorage.getItem(PROFANITY_MASK_KEY)).toBeNull()
   })
 
-  it('브라우저에 켬이 남아 있으면 처음부터 가려 보인다', async () => {
-    window.localStorage.setItem(PROFANITY_MASK_KEY, '1')
-    getPosts.mockResolvedValue(list([post(1, { body: '지랄하네' })]))
-    renderTab()
-
-    expect(await screen.findByText('**하네')).toBeTruthy()
-    expect((screen.getByRole('checkbox', { name: '욕설 가리기' }) as HTMLInputElement).checked).toBe(true)
-  })
-
-  it('가리기를 켜도 서버에 보내는 글과 고치기 칸에는 원문이 들어간다', async () => {
-    window.localStorage.setItem(PROFANITY_MASK_KEY, '1')
+  it('서버에 보내는 글과 고치기 칸에는 원문이 들어간다', async () => {
     getPosts.mockResolvedValue(list([post(1, { author: me, body: '씨발 내 글' })]))
     createPost.mockResolvedValue(post(2, { author: me, body: '시발 새 글' }))
     renderTab()
-    await screen.findByText('** 내 글')
+    await screen.findByText('좋아 내 글')
 
     fireEvent.click(screen.getByRole('button', { name: '나님의 글 메뉴' }))
     fireEvent.click(screen.getByRole('button', { name: '수정' }))
@@ -336,6 +314,6 @@ describe('커뮤니티 탭', () => {
     fireEvent.click(screen.getByRole('button', { name: '올리기' }))
 
     await waitFor(() => expect(createPost).toHaveBeenCalledWith('00126380', '시발 새 글', null))
-    expect(await screen.findByText('** 새 글')).toBeTruthy()
+    expect(await screen.findByText('좋아 새 글')).toBeTruthy()
   })
 })
