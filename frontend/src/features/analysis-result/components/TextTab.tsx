@@ -43,7 +43,7 @@ import {
   missingSideLabel,
   MOVED_NOTE,
   movedPaths,
-  PRIORITY_NOTE,
+  TEXT_FOOTER_NOTE,
   priorityLabel,
   showsNumbersOnlyMark,
   textStatusNotice,
@@ -61,7 +61,7 @@ import {
 } from '../model/textFilter'
 import { ALL_FIELDS_LABEL, fieldTableView, resolveTextField, textFieldLabel } from '../model/textFields'
 import { eventFieldCounts, eventListOf } from '../model/textEvents'
-import { DEFAULT_LIST_EMPTY, DEFAULT_LIST_EMPTY_NOTE, defaultListNote, foldedTotal, isDefaultList, noteScopeLabel } from '../model/textGroups'
+import { DEFAULT_LIST_EMPTY, DEFAULT_LIST_EMPTY_NOTE, foldedTotal, isDefaultList, LIST_TITLE, listHeadNote, noteScopeLabel } from '../model/textGroups'
 import { displaySectionPath } from '@/shared/lib/sectionTitle'
 
 /** 거르기 줄에 늘 보이는 유형(3.55). 나머지는 '더 보기' 메뉴에 둔다 */
@@ -291,6 +291,14 @@ export function TextTab({
       </span>
     </span>
   )
+  const headNote = listHeadNote({
+    pinned,
+    defaultList,
+    narrowed: searched || riskOnly || field !== null,
+    groupCounts,
+    total: state.status === 'success' && state.items.length > 0 ? state.data.totalItems : null,
+    grouped: sort === 'document',
+  })
   const notice = textStatusNotice(analysis.textStatus, analysis.textMessage)
   const failed = analysis.textStatus === 'FAILED' || analysis.textStatus === null
 
@@ -323,6 +331,17 @@ export function TextTab({
           onOpenEvidence={toggleEvidence}
           renderChanges={(items, eventId) => changeList(items, `event-${eventId}-`)}
         />
+      )}
+      {/* 전체 변경 제목과 건수 한 줄(3.59). 거르면 결과 건수로 바뀐다 */}
+      {!failed && (
+        <div className="text-list-head">
+          <h3 className="text-list-head__title">{LIST_TITLE}</h3>
+          {headNote !== null && (
+            <span className="panel__note" role="status">
+              {headNote}
+            </span>
+          )}
+        </div>
       )}
       {!failed && (
         <div className="text-filterbar">
@@ -470,16 +489,6 @@ export function TextTab({
           .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} />)
           .with({ status: 'success' }, ({ data, items, more }) => (
             <>
-              {(searched || riskOnly || field !== null) && items.length > 0 && (
-                <p className="panel__note" role="status">
-                  조건에 맞는 변경 {resultCountLabel(data.totalItems)}
-                </p>
-              )}
-              {defaultList && groupCounts !== null && (
-                <p className="panel__note" role="status">
-                  {defaultListNote(groupCounts)}
-                </p>
-              )}
               {items.length === 0 &&
                 match({ searched, riskOnly, field, type, folded })
                   .with({ searched: true }, () => (
@@ -538,18 +547,17 @@ export function TextTab({
       {!failed && defaultList && groupCounts !== null && (
         <TextFoldedGroups analysisId={analysis.analysisId} counts={groupCounts} sort={sort} renderList={(items) => changeList(items)} />
       )}
+      {/* 맨 아래 안내는 구분선 아래 한 줄(3.59). 페이지의 footer 영역과 겹치지 않게 div로 둔다 */}
       {!failed && (
-        <>
+        <div className="text-tab__footer">
           <DartSourceLine
             reports={[
               { role: '비교', report: analysis.previous },
               { role: '현재', report: analysis.current },
             ]}
           />
-          <p className="panel__note">
-            원문에서 문단·표 단위로 비교했고, 숫자만 바뀐 표는 '재무 수치' 탭과 겹쳐 뒤로 미뤘어요. {PRIORITY_NOTE}
-          </p>
-        </>
+          <p>{TEXT_FOOTER_NOTE}</p>
+        </div>
       )}
     </Panel>
   )

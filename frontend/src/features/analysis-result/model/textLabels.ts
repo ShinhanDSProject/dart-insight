@@ -127,7 +127,9 @@ export function missingSideLabel(type: ChangeType, side: 'previous' | 'current')
 
 /** 삭제(DELETED) 안내. 문장 근거 패널과 요약의 삭제 줄(FS-70)이 같은 말을 쓴다. 빠진 이유는 추정하지 않는다 */
 export const DELETED_NOTE = '빠졌다고 끝났다는 뜻은 아니에요. 빠진 이유는 원문에서 확인해 주세요.'
-export const PRIORITY_NOTE = '우선순위는 먼저 확인할 순서를 정한 잠정 규칙이며, 투자 판단이 아니에요.'
+/** 문장 변화 탭 맨 아래 한 줄(3.59) */
+export const TEXT_FOOTER_NOTE =
+  "원문에서 문단·표 단위로 비교했고, 숫자만 바뀐 표는 '재무 수치' 탭과 겹쳐 뒤로 미뤘어요 · 우선순위는 먼저 확인할 순서를 정한 잠정 규칙이에요 · 우선순위와 신호는 투자 판단이 아니에요 · AI 문장에는 'AI 생성'이 붙어요"
 
 /** 문장 비교 상태 안내. 문제가 없으면 null */
 export function textStatusNotice(status: TextStatus | null, message: string | null): string | null {

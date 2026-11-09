@@ -997,7 +997,9 @@ describe('TextTab 기본 목록과 접힌 묶음(3.29)', () => {
 
   it('기본 목록 건수와 짝을 정하지 못한 항목 건수를 알린다(AC9)', () => {
     renderDefault()
-    expect(screen.getByText(/기본 목록 2건 · 짝을 정하지 못한 항목 1건/)).toBeTruthy()
+    // 3.59: '전체 변경' 제목 옆에 'N건 중 먼저 볼 M건'(N은 모든 묶음 합)
+    expect(screen.getByRole('heading', { name: '전체 변경' })).toBeTruthy()
+    expect(screen.getByText(/^13건 중 먼저 볼 2건 · 짝을 정하지 못한 항목 1건/)).toBeTruthy()
   })
 
   it('접어 둔 변경은 처음에 한 줄 버튼만 보이고, 누르면 묶음 줄이 펼쳐진다(3.55)', () => {
@@ -1009,6 +1011,28 @@ describe('TextTab 기본 목록과 접힌 묶음(3.29)', () => {
     expect(toggle.getAttribute('aria-expanded')).toBe('true')
     expect(toggle.textContent).toContain('접기')
     expect(screen.getByRole('button', { name: /재무제표 주석 4건/ })).toBeTruthy()
+  })
+
+  it('접어 둔 변경 줄 옆에 0건이 아닌 묶음 이름을 나열하고, 펼치면 이름 줄은 사라진다(3.59 AC21)', () => {
+    renderDefault()
+    const names = '재무제표 주석, 제목 줄처럼 짧은 글, 기수·기준일만 바뀐 글, 자리만 옮긴 글'
+    expect(screen.getByText(names)).toBeTruthy()
+    showFolded()
+    expect(screen.queryByText(names)).toBeNull()
+  })
+
+  it('검색으로 거르면 제목 옆 건수가 결과 건수로 바뀐다(3.59 AC20)', () => {
+    renderDefault({ q: '사업' })
+    expect(screen.getByRole('heading', { name: '전체 변경' })).toBeTruthy()
+    expect(screen.getByText('조건에 맞는 변경 1건')).toBeTruthy()
+  })
+
+  it('맨 아래 안내는 구분선 아래 한 줄로 출처와 함께 둔다(3.59)', () => {
+    renderDefault()
+    const footer = screen.getByText(/우선순위는 먼저 확인할 순서를 정한 잠정 규칙이에요/).parentElement as HTMLElement
+    expect(footer.textContent).toContain('출처: DART')
+    expect(footer.textContent).toContain('우선순위와 신호는 투자 판단이 아니에요')
+    expect(footer.textContent).toContain("AI 문장에는 'AI 생성'이 붙어요")
   })
 
   it('접힌 묶음을 건수와 함께 보이고 0건인 묶음은 뺀다(AC4)', () => {
@@ -1073,13 +1097,13 @@ describe('TextTab 기본 목록과 접힌 묶음(3.29)', () => {
     list.type = 'type' in over ? over.type : null
     renderDefault(over)
     expect(screen.queryByRole('region', { name: /접어 둔 변경/ })).toBeNull()
-    expect(screen.queryByText(/기본 목록 2건/)).toBeNull()
+    expect(screen.queryByText(/먼저 볼 2건/)).toBeNull()
   })
 
   it('옛 분석에는 접힌 묶음과 기본 목록 안내가 없고 목록은 그대로다(AC13)', () => {
     renderDefault({}, [item(1, '1. 사업의 개요')], { listVersion: null, fieldCounts: null, missingFields: null, groupCounts: null })
     expect(screen.queryByRole('region', { name: /접어 둔 변경/ })).toBeNull()
-    expect(screen.queryByText(/기본 목록/)).toBeNull()
+    expect(screen.queryByText(/먼저 볼/)).toBeNull()
     expect(screen.getByRole('article')).toBeTruthy()
   })
 
