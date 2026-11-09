@@ -38,13 +38,13 @@ class TermLinesTest {
     }
 
     @Test
-    @DisplayName("카드가 없으면 근거 없는 줄로 '등록된 용어가 없어요'와 비슷한 카드만 알린다")
+    @DisplayName("카드가 없으면 근거 없는 줄로 '등록되지 않았어요'와 비슷한 카드만 알린다")
     void notFoundLineHasNoEvidenceAndListsSimilarCards() {
         ToolLine none = TermLines.notFound("배당", List.of());
         ToolLine similar = TermLines.notFound("부채율", List.of(DEBT_RATIO));
 
         assertThat(none.evidence()).isNull();
-        assertThat(none.text()).isEqualTo("[용어 카드 없음] '배당'는 등록된 용어가 없어요.");
+        assertThat(none.text()).isEqualTo("[용어 카드 없음] '배당'에 해당하는 용어 카드는 등록되지 않았어요.");
         assertThat(similar.text()).endsWith("비슷한 카드: 부채비율(debtRatio)");
     }
 }

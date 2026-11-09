@@ -528,9 +528,9 @@ class AgentChatApiTest {
                 "1만 원", "확인할 곳: 주요사항보고서", "판단하지 않음: ", "별칭: CB", "출처: 테스트 공식 자료");
         // 카드가 없으면 근거 없는 줄로 비슷한 카드만, 검토 전 카드(자본잠식)는 없는 것으로 본다
         assertThat(items.get(1).get("evidenceId")).isNull();
-        assertThat((String) items.get(1).get("text")).contains("'부채율'는 등록된 용어가 없어요.", "부채비율(debtRatio)");
+        assertThat((String) items.get(1).get("text")).contains("'부채율'에 해당하는 용어 카드는 등록되지 않았어요.", "부채비율(debtRatio)");
         assertThat(items.get(2).get("evidenceId")).isNull();
-        assertThat((String) items.get(2).get("text")).contains("'자본잠식'는 등록된 용어가 없어요.")
+        assertThat((String) items.get(2).get("text")).contains("'자본잠식'에 해당하는 용어 카드는 등록되지 않았어요.")
                 .doesNotContain("검토 전 카드예요");
     }
 
