@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
-import type { TextChangeItem } from '@/shared/api/textChanges'
+import type { TextChangeItem, TextField } from '@/shared/api/textChanges'
 import type { TextEventItem, TextEventList, TextEventQuote, TextEventSignal } from '@/shared/api/textEvents'
 import { Badge, Button, Chip, Notice, Skeleton } from '@/shared/ui'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
@@ -24,7 +24,6 @@ import {
   eventRowMeta,
   eventScaleView,
   eventsMoreLabel,
-  eventsNarrowed,
   NO_QUOTE,
   NO_REASON,
   REASON_QUOTES_TITLE,
@@ -33,7 +32,6 @@ import {
   unboundNote,
   visibleEvents,
   visibleUnbound,
-  type EventScope,
   type TextEventsView,
 } from '../model/textEvents'
 import { resultCountLabel } from '../model/textFilter'
@@ -54,13 +52,13 @@ interface TextEventsSectionProps {
 
 type TextEventsAreaProps = Omit<TextEventsSectionProps, 'list' | 'items'> & {
   view: TextEventsView
-  scope: EventScope
+  /** 고른 분야. 유형·검색 등 다른 거르기는 사건에 걸지 않는다(3.61) */
+  field: TextField | null
   onRetry: () => void
 }
 
 /** 분야별 표 아래의 사건 자리(3.38). 사건을 만드는 중이거나 만들지 못해도 탭의 나머지는 그대로 쓴다 */
-export function TextEventsArea({ analysis, view, scope, onRetry, onOpenEvidence, renderChanges }: TextEventsAreaProps) {
-  if (eventsNarrowed(scope)) return null
+export function TextEventsArea({ analysis, view, field, onRetry, onOpenEvidence, renderChanges }: TextEventsAreaProps) {
   return match(view)
     .with({ status: 'hidden' }, () => null)
     .with({ status: 'building' }, () => <LoadingState message={EVENTS_BUILDING} />)
@@ -85,8 +83,8 @@ export function TextEventsArea({ analysis, view, scope, onRetry, onOpenEvidence,
     ))
     .with({ status: 'ready' }, ({ list }) => (
       <>
-        <TextEventsSection analysis={analysis} list={list} items={visibleEvents(list.items, scope)} onOpenEvidence={onOpenEvidence} renderChanges={renderChanges} />
-        <UnboundNote count={visibleUnbound(list.unboundChanges, scope).length} />
+        <TextEventsSection analysis={analysis} list={list} items={visibleEvents(list.items, field)} onOpenEvidence={onOpenEvidence} renderChanges={renderChanges} />
+        <UnboundNote count={visibleUnbound(list.unboundChanges, field).length} />
       </>
     ))
     .exhaustive()

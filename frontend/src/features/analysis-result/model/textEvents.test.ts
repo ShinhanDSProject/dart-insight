@@ -15,7 +15,6 @@ const quote = (purpose: TextEventQuote['purpose'], side: TextEventQuote['side'],
 })
 const event = (eventId: number, fields: TextEventItem['fields']) => ({ eventId, fields }) as TextEventItem
 const cell = (state: FieldCell['state']): FieldCell => ({ field: 'LITIGATION', label: '소송·제재', count: state === 'changed' ? 3 : 0, state })
-const noFilter = { pinned: false, searched: false, riskOnly: false, type: null, field: null }
 
 const scale = (overrides: Partial<TextEventItem>) =>
   ({
@@ -149,18 +148,11 @@ describe('visibleEvents', () => {
   const items = [event(1, ['LITIGATION']), event(2, ['FUNDING', 'BUSINESS'])]
 
   it('거르지 않으면 받은 순서대로 모두 보인다', () => {
-    expect(visibleEvents(items, noFilter).map((i) => i.eventId)).toEqual([1, 2])
+    expect(visibleEvents(items, null).map((i) => i.eventId)).toEqual([1, 2])
   })
 
   it('분야를 고르면 그 칸에 세어진 사건만 보인다', () => {
-    expect(visibleEvents(items, { ...noFilter, field: 'BUSINESS' }).map((i) => i.eventId)).toEqual([2])
-  })
-
-  it('고정·검색·유형·위험으로 거르면 사건 절을 뺀다', () => {
-    expect(visibleEvents(items, { ...noFilter, pinned: true })).toEqual([])
-    expect(visibleEvents(items, { ...noFilter, searched: true })).toEqual([])
-    expect(visibleEvents(items, { ...noFilter, riskOnly: true })).toEqual([])
-    expect(visibleEvents(items, { ...noFilter, type: 'ADDED' })).toEqual([])
+    expect(visibleEvents(items, 'BUSINESS').map((i) => i.eventId)).toEqual([2])
   })
 })
 
@@ -244,18 +236,11 @@ describe('visibleUnbound', () => {
   const changes = [{ changeId: 1, field: 'LITIGATION' }, { changeId: 2, field: 'CONTRACT' }, { changeId: 3, field: null }] as TextEventUnboundChange[]
 
   it('거르지 않으면 모두 보인다', () => {
-    expect(visibleUnbound(changes, noFilter)).toEqual(changes)
+    expect(visibleUnbound(changes, null)).toEqual(changes)
   })
 
   it('분야를 고르면 그 칸의 변경만 보인다', () => {
-    expect(visibleUnbound(changes, { ...noFilter, field: 'CONTRACT' }).map((c) => c.changeId)).toEqual([2])
-  })
-
-  it('고정·검색·위험·유형으로 거르면 사건 절처럼 빠진다', () => {
-    expect(visibleUnbound(changes, { ...noFilter, pinned: true })).toEqual([])
-    expect(visibleUnbound(changes, { ...noFilter, searched: true })).toEqual([])
-    expect(visibleUnbound(changes, { ...noFilter, riskOnly: true })).toEqual([])
-    expect(visibleUnbound(changes, { ...noFilter, type: 'ADDED' })).toEqual([])
+    expect(visibleUnbound(changes, 'CONTRACT').map((c) => c.changeId)).toEqual([2])
   })
 })
 

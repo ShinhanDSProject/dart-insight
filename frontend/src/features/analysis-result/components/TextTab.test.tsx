@@ -646,6 +646,19 @@ describe('TextTab 주요 사건(3.37)', () => {
     expect(screen.queryByText(/관련 주요 사건/)).toBeNull()
   })
 
+  it('만드는 중이거나 못 만든 분석에서 유형으로 걸러도 진행 표시와 안내가 그대로다(3.61 AC27)', () => {
+    list.type = 'ADDED'
+    events.view = { status: 'building' }
+    const { unmount } = render(<Harness />)
+    expect(screen.getByText(/주요 사건을 만드는 중이에요/)).toBeTruthy()
+    unmount()
+
+    events.view = { status: 'unavailable', retry: 'available' }
+    render(<Harness />)
+    expect(screen.getByText(/주요 사건을 만들지 못했어요/)).toBeTruthy()
+    expect(screen.getByRole('button', { name: '다시 시도' })).toBeTruthy()
+  })
+
   it('만들지 못했으면 안내와 표, 목록이 보이고 칸의 사건 수는 없다(AC21)', () => {
     events.view = { status: 'unavailable', retry: 'available' }
     render(<Harness />)
@@ -697,7 +710,7 @@ describe('TextTab 주요 사건(3.37)', () => {
     expect(screen.queryByRole('heading', { name: /사건으로 묶이지 않은/ })).toBeNull()
   })
 
-  it('분야를 고르면 그 칸의 사건만 보이고 유형으로 거르면 사건 절이 빠진다', () => {
+  it('분야를 고르면 그 칸의 사건만 보이고 유형으로 걸러도 사건 절은 그대로다(3.61 AC26)', () => {
     events.list = textEvents(1)
     const { rerender } = render(<Harness field="LITIGATION" />)
     expect(screen.getByRole('heading', { name: '주요 사건 1건' })).toBeTruthy()
@@ -707,7 +720,7 @@ describe('TextTab 주요 사건(3.37)', () => {
 
     list.type = 'ADDED'
     rerender(<Harness />)
-    expect(screen.queryByRole('heading', { name: /주요 사건/ })).toBeNull()
+    expect(screen.getByRole('heading', { name: '주요 사건 1건' })).toBeTruthy()
   })
 
   it('목록에 없는 변경도 인용에서 원문 비교를 열고, 닫으면 그 버튼으로 초점이 돌아온다', async () => {
