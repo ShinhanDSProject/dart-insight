@@ -200,8 +200,9 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
   const clearPostDraft = useCallback(() => setPostDraft(null), [])
   return (
     <>
-      {analysis.outdated && <OutdatedNotice analysis={analysis} />}
       <ComparisonContextCard analysis={analysis} tab={params.tab} />
+      {/* 기업·보고서 제목을 먼저 보이고 안내는 그 아래에 둔다(#821) */}
+      {analysis.outdated && <OutdatedNotice analysis={analysis} />}
 
       {/* 스크롤해도 탭을 위에 붙여 두어 긴 결과를 내려 본 뒤에도 바로 다른 탭으로 옮긴다(#390) */}
       <div className="result-tabs">

@@ -94,13 +94,13 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('이전 방식 분석 안내', () => {
-  it('이전 방식으로 만든 결과면 비교 맥락 위에 안내를 보인다', async () => {
+  it('이전 방식으로 만든 결과면 비교 맥락 아래에 안내를 보인다', async () => {
     getAnalysis.mockResolvedValue(analysis(true))
     renderPage()
     const button = await reanalyze()
     expect(screen.getByText(/이 결과는 이전 분석 방식으로 만들었어요/)).toBeTruthy()
     const context = screen.getByRole('region', { name: '비교 맥락' })
-    expect(button.compareDocumentPosition(context) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(button.compareDocumentPosition(context) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
   })
 
   it('지금 방식으로 만든 결과면 안내를 보이지 않고 상단 경로 회사명이 기업 개요로 연결된다', async () => {
