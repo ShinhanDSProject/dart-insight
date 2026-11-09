@@ -1,6 +1,6 @@
 # ADR-0026: 실제 LLM 제공자로 OpenAI Responses API를 연결하고, 기본 모델은 gpt-6.1-sol로 둔다
 
-- 상태: 채택
+- 상태: 대체됨(ADR-0062)
 - 결정한 날: 2026-10-26
 - 관련: [이슈 #50](https://github.com/ShinhanDSProject/dart-insight/issues/50)(0.7), 노션 결정 로그 [LLM 제공자·모델 선택](https://app.notion.com/p/400b6afffc6f8192bbd7e98fb597c38b), [ADR-0008](0008-single-llm-module.md), [ADR-0015](0015-explanation-grade-and-quote-check.md), [ADR-0023](0023-grounded-question-answering.md)
 
