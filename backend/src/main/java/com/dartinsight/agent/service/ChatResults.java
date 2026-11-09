@@ -61,10 +61,12 @@ final class ChatResults {
      * @param actions  값 확인을 통과한 화면 액션
      * @param asked    이 채팅에서 근거 질문 Tool이 만든 질문. 최종 답이 인용한 질문만 questionId로 내보낸다
      * @param lookedUp LLM이 고른 Tool을 실행했는지. 조회했는데 못 찾았으면 확인 버튼이 있어도 NOT_FOUND로 둔다
+     * @param termMissing 이 채팅에서 용어 찾기가 카드가 없는 용어를 돌려줬는지(ADR-0061). 그 용어 안내는 버튼이
+     *                    값 확인에서 모두 빠져도 뜻이 통하므로 NOT_FOUND로 바꾸지 않는다
      */
     static ChatMessageResponse finalAnswer(AgentStepAiResponse response, Map<String, Evidence> evidence,
             Map<String, String> reportNames, List<Map<String, Object>> checked, List<AskedQuestion> asked,
-            boolean lookedUp) {
+            boolean lookedUp, boolean termMissing) {
         AgentStepAiResponse.Final result = response.finalAnswer();
         // 게시판 글 초안은 검토를 통과한 LLM 답으로 본문을 채우므로, 그런 답이 아니면 뺀다
         List<Map<String, Object>> actions = checked.stream()
@@ -82,8 +84,9 @@ final class ChatResults {
         }
         if (ChatStatus.ANSWERED.name().equals(result.status()) && fixedAnswer(response)) {
             // 정해진 요청(이동·저장 확인, #631): ai-server가 LLM 없이 정해진 안내로 답함. 근거 표시가 없다.
-            // 안내는 버튼을 가리키므로, 값 확인에서 버튼이 빠졌으면(이 분석에 없는 변경 등) 안내를 내보내지 않는다
-            if (actions.isEmpty()) {
+            // 안내는 버튼을 가리키므로, 값 확인에서 버튼이 빠졌으면(이 분석에 없는 변경 등) 안내를 내보내지 않는다.
+            // 예외로 카드가 없는 용어의 안내('등록된 카드가 없고 보고서에서도 찾지 못함')는 버튼 없이도 뜻이 통한다
+            if (actions.isEmpty() && !termMissing) {
                 return new ChatMessageResponse(ChatStatus.NOT_FOUND.name(), null, NOT_FOUND, List.of(), List.of(),
                         format, null, null, false, null);
             }

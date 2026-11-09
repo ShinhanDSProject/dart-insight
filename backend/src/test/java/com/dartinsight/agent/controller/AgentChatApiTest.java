@@ -535,6 +535,28 @@ class AgentChatApiTest {
     }
 
     @Test
+    @DisplayName("카드가 없는 용어의 정해진 안내는 버튼이 값 확인에서 모두 빠져도 NOT_FOUND로 바꾸지 않는다(ADR-0061)")
+    void termNotFoundGuideIsKeptWithoutButtons() throws Exception {
+        String guide = "'지어낸말'에 해당하는 용어 카드가 없고, 이 보고서에서도 설명을 찾지 못했어요.";
+        AI.on(STEPS, twoSteps("{\"callId\":\"term-1\",\"name\":\"lookup_terms\",\"arguments\":"
+                + "{\"terms\":[\"지어낸말\"]}}", request -> """
+                {"promptVersion":"agent-8","model":null,"generatedAt":null,"type":"FINAL","toolCalls":[],
+                 "final":{"status":"ANSWERED","answer":"%s","evidenceIds":[],
+                  "actions":[{"type":"OPEN_GLOSSARY","term":"매출"}],
+                  "reviewReason":null,"blockedRules":[],"format":"CHAT","crossCheck":null},
+                 "rejections":[],"calls":[]}
+                """.formatted(guide)));
+
+        chat("지어낸말이 뭐야?")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ANSWERED"))
+                .andExpect(jsonPath("$.answer").value(guide))
+                // '매출'은 카드 파일에 없어 버튼이 빠진다
+                .andExpect(jsonPath("$.actions", hasSize(0)))
+                .andExpect(jsonPath("$.aiGenerated").value(false));
+    }
+
+    @Test
     @DisplayName("용어 사전 열기 버튼은 카드 파일의 용어·별칭일 때만 대표 용어로 바꿔 남기고, 없는 용어는 뺀다")
     void openGlossaryKeepsOnlyCardTermsAsCanonicalTerm() throws Exception {
         String evidence = "T" + lawsuitChangeId;

@@ -7,6 +7,7 @@ import com.dartinsight.agent.domain.AskedQuestion;
 import com.dartinsight.agent.domain.ComparabilityCheck;
 import com.dartinsight.agent.domain.ChatStatus;
 import com.dartinsight.agent.domain.Evidence;
+import com.dartinsight.agent.domain.TermLines;
 import com.dartinsight.agent.domain.ToolLine;
 import com.dartinsight.agent.domain.ToolLines;
 import com.dartinsight.agent.dto.AgentStepAiRequest;
@@ -104,6 +105,8 @@ public class AgentChatService {
         private final List<ComparabilityCheck> comparabilityChecks = new ArrayList<>();
         /** LLM이 고른 Tool을 하나라도 실행했는지(화면 맥락으로 먼저 넣은 결과는 빼고). 조회 요청이었는지 가린다 */
         private boolean lookedUp;
+        /** 용어 찾기(lookup_terms)가 카드가 없는 용어를 돌려줬는지. 용어 안내는 버튼 없이도 뜻이 통한다(ADR-0061) */
+        private boolean termMissing;
         private final String traceId = TraceContext.currentTraceId();
 
         private Chat(Long analysisId, Checked input, ReportDetail current, ReportDetail previous) {
@@ -130,7 +133,8 @@ public class AgentChatService {
                 if (AgentStep.FINAL.equals(type) && response.finalAnswer() != null) {
                     return ChatResults.finalAnswer(response, evidence, reportNames(),
                             actionCheck.valid(analysisId, current.company().getCorpCode(), questions, comparabilityChecks,
-                                    response.finalAnswer().actions()), List.copyOf(questions.values()), lookedUp);
+                                    response.finalAnswer().actions()), List.copyOf(questions.values()), lookedUp,
+                            termMissing);
                 }
                 if (!AgentStep.TOOL_CALLS.equals(type) || response.toolCalls() == null
                         || response.toolCalls().isEmpty()) {
@@ -178,6 +182,9 @@ public class AgentChatService {
             }
             if (run.comparability() != null) {
                 comparabilityChecks.add(run.comparability());
+            }
+            if (AgentCompanyTools.LOOKUP_TERMS.equals(name) && run.lines().lines().stream().anyMatch(TermLines::isNotFound)) {
+                termMissing = true;
             }
             List<AgentStepAiRequest.Item> items = new ArrayList<>();
             for (ToolLine raw : run.lines().lines()) {

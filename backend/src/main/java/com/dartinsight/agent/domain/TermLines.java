@@ -14,7 +14,18 @@ import java.util.Map;
  */
 public final class TermLines {
 
+    /**
+     * 카드가 없는 용어 줄의 머리. 이 줄의 모양("'{용어}'에 해당하는 … 비슷한 카드: {용어}({키}), …")은
+     * ai-server app/agent/workflow.py가 읽는 약속이라 바꾸면 양쪽을 함께 고친다(docs/api-spec.md 3절).
+     */
+    static final String NOT_FOUND_HEAD = "[용어 카드 없음]";
+
     private TermLines() {
+    }
+
+    /** 카드가 없는 용어 줄인지(근거 없음) */
+    public static boolean isNotFound(ToolLine line) {
+        return line.evidence() == null && line.text() != null && line.text().startsWith(NOT_FOUND_HEAD);
     }
 
     /**
@@ -57,7 +68,7 @@ public final class TermLines {
      * 카드가 없는 용어 한 줄(근거 없음). 비슷한 카드가 있으면 그 용어와 키를 붙인다.
      */
     public static ToolLine notFound(String query, List<GlossaryTerm> similar) {
-        String text = "[용어 카드 없음] '" + query + "'에 해당하는 용어 카드는 등록되지 않았어요.";
+        String text = NOT_FOUND_HEAD + " '" + query + "'에 해당하는 용어 카드는 등록되지 않았어요.";
         if (!similar.isEmpty()) {
             text += " 비슷한 카드: " + String.join(", ", similar.stream()
                     .map(t -> t.term() + "(" + t.key() + ")").toList());
