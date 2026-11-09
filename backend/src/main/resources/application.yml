@@ -202,6 +202,11 @@ app:
       "[anthropic:claude-sonnet-5-5]":
         input-per-million-usd: 2
         output-per-million-usd: 10
+      # Anthropic claude-sonnet-5: 입력 2달러, 출력 10달러(2026-11-09 확인, 출시 때의 안내가 표준 가격으로 확정).
+      # claude-sonnet-5-5가 cyber·frontier_llm 분류로 거절하면 서버가 이 모델로 다시 돌린다(ADR-0062 거절 대체)
+      "[anthropic:claude-sonnet-5]":
+        input-per-million-usd: 2
+        output-per-million-usd: 10
       # Anthropic claude-haiku-5-5: 입력 0.1달러, 출력 0.5달러(프롬프트 10만 토큰 이하, 2026-11-09 확인,
       # ADR-0062 에이전트 Tool 고르기). 출처는 위와 같다
       "[anthropic:claude-haiku-5-5]":
