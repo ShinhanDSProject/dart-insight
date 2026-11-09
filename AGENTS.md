@@ -12,7 +12,7 @@ AI 코딩 도구(Claude Code, Codex, Cursor, Copilot 등)가 이 저장소에서
 | --- | --- | --- |
 | `frontend/` | 화면 | React + TypeScript |
 | `backend/` | 서비스 API, OpenDART 조회·캐시, 분석 작업 관리 | Spring Boot |
-| `ai-server/` | 원문 파싱·구조화, 문장 변경 탐지, 근거 문단 검색, 요약·설명, 에이전트 채팅 한 단계 | FastAPI (Python), LLM은 `openai` SDK, 에이전트 단계는 LangGraph |
+| `ai-server/` | 원문 파싱·구조화, 문장 변경 탐지, 근거 문단 검색, 요약·설명, 에이전트 채팅 한 단계 | FastAPI (Python), LLM은 `anthropic` SDK(되돌릴 때 `openai`, [ADR-0062](docs/adr/0062-anthropic-llm-provider.md)), 에이전트 단계는 LangGraph |
 | `mcp-server/` | 외부 AI 에이전트용 MCP 서버(읽기 전용 시제품, [ADR-0052](docs/adr/0052-mcp-server-read-only.md)) | Python, `mcp` SDK |
 | `docs/` | 프로젝트 개요, API 명세·ERD, 협업 가이드 | — |
 

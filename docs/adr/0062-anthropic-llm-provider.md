@@ -10,7 +10,7 @@
 - 2026-11-06 오후부터 OpenAI 프로젝트 지출 한도 초과(429 `insufficient_quota`)로 실제 모델 호출이 모두 막혔습니다. 팀은 제공자를 Anthropic Claude로 바꾸려 합니다.
 - 제공자 SDK는 `providers.py`에서만 가져오고, 다른 코드는 `LlmClient`만 부릅니다(ADR-0008). 그래서 제공자 연결 하나만 더하면 기능 모듈은 고치지 않아도 됩니다.
 - 2026-11-09에 Anthropic 공식 자료(Claude API 문서·`anthropic` Python SDK 안내)로 확인한 사실:
-  - 모델과 가격(100만 토큰당 입력/출력): `claude-sonnet-5-5` 2/10달러(캐시 읽기 0.2달러), `claude-haiku-5-5` 0.1/0.5달러(프롬프트 10만 토큰 이하), `claude-opus-5-5` 4/20달러. `gpt-6.1-sol`(2/10)·`gpt-6-luna`(0.1/0.5)와 가격대가 같습니다.
+  - 모델과 가격(100만 토큰당 입력/출력, [가격 페이지](https://platform.claude.com/docs/en/about-claude/pricing)): `claude-sonnet-5-5` 2/10달러(캐시 읽기 0.1달러), `claude-haiku-5-5` 0.1/0.5달러(프롬프트 10만 토큰 이하), `claude-opus-5-5` 4/20달러. `gpt-6.1-sol`(2/10)·`gpt-6-luna`(0.1/0.5)와 가격대가 같습니다.
   - 호출은 Messages API(`messages.create`)입니다. 시스템 프롬프트는 `system`, 출력 상한은 `max_tokens`입니다.
   - 구조화 출력은 `output_config.format`(`type: "json_schema"`)으로 받습니다. 세 모델 모두 지원합니다. 모든 객체에 `additionalProperties: false`가 있어야 하고, 숫자·글자 길이 제약(`minimum`·`maxLength` 등)과 재귀 스키마는 지원하지 않습니다.
   - 추론 강도는 `output_config.effort`(`low`~`max`)입니다. 기본값은 Sonnet 5.5가 `high`, Haiku 5.5가 `medium`입니다. 두 모델은 생각(adaptive thinking)이 기본으로 켜져 있고, 생각 토큰도 `max_tokens` 안에 듭니다(OpenAI 추론 토큰이 `max_output_tokens` 안에 드는 것과 같습니다). `temperature` 같은 샘플링 값은 받지 않습니다.
