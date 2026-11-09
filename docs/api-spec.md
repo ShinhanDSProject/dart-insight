@@ -2352,9 +2352,11 @@
   | `MAIN` + `raisedFromNote` | 재무제표 주석 중 소송, 우발부채, 담보(`무담보` 제외), 채무보증, 보고기간 후 사건이 글이나 섹션 경로에 있는 변경. `NUMERIC_UPDATE`와 아래 두 잡음은 올리지 않음 | 보임 |
   | `NOTE` | 그 밖의 재무제표 주석(섹션 경로에 `주석`) | 접음 |
   | `FORMATTING` | `MODIFIED`인데 숫자·글자가 같고 띄어쓰기·문장부호만 다름. 뜻이 달라지는 기호(`△▲▼+-%$₩○×`)와 표 칸 구분(`\|`)이 다르면 해당하지 않음. 줄 앞 글머리표 `-`는 기호로 보지 않음 | 접음 |
+  | `PERIOD` | `MODIFIED`·`NUMERIC_UPDATE`인데 다른 곳이 모두 보고서 기간 표시뿐(아래 기간 표시, 3.56) | 접음 |
   | `HEADING` | `ADDED`·`DELETED`인데 글자가 20자 미만. 값이 있는 행이 둘 이상인 표는 해당하지 않음 | 접음 |
   | `MAIN` | 그 밖 전부(`NUMERIC_UPDATE` 포함) | 보임 |
 
+- 기간 표시(`PERIOD`, 3.56): 두 원문의 표지 섹션에서 기수(`제 N 기`)와 사업연도(`사업연도 … 부터 … 까지`의 두 날짜)를 읽어 두 보고서의 기수 차이와 연도 차이(끝 날짜의 연도)를 정합니다. 기간 표시는 (1) 기수 차이만큼 바뀐 기수, (2) 월·일은 그대로이고 연도만 연도 차이만큼 바뀐 날짜(`2025년`, `2025년 6월`, `2025년 6월 30일`, `2025.06.30`), (3) 이전 보고서 사업연도의 시작·끝 날짜가 현재 보고서의 시작·끝 날짜로 바뀐 것뿐입니다. 기간 표시를 가린 글(띄어쓰기 제외)이 같고 바뀐 기간 표시가 하나 이상이면 해당합니다. 사건을 말하는 낱말(`주주총회`, `총회`, `이사회`, `결의`, `선임`, `해임`, `취임`, `사임`, `정관`, `계약`, `소송`, `판결`, `제재`, `합병`, `인수`, `취득`, `처분`)이 앞뒤 글 어디에든 있으면 해당하지 않습니다(예: `제55기 정기주주총회(2024년 3월 20일)`가 `제57기 …(2026년 3월 18일)`로 바뀐 정관 이력). 표지에서 기수나 사업연도를 찾지 못하면 이 묶음으로 접지 않습니다. 잠정 규칙입니다.
 - 분야(`field`)는 아래 순서로 처음 맞는 것입니다. 주석에서 올린 변경은 소송·우발부채면 `LITIGATION`, 담보·채무보증이면 `FUNDING`, 보고기간 후 사건이면 `OTHER`입니다. 목차 제목으로 나눈 것이라 실제 내용과 다를 수 있습니다.
 
   | `field` | 화면 이름 | 섹션 경로 |
@@ -2377,7 +2379,7 @@
 
 | 위치 | 이름 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- | --- |
-| query | `group` | string | 아니오 | `MAIN`, `HEADING`, `FORMATTING`, `MOVED`, `NOTE`, `PAIRED_TABLE`, `UNPAIRED` 중 하나 이상을 쉼표로 이어서. 없으면 전체 |
+| query | `group` | string | 아니오 | `MAIN`, `HEADING`, `FORMATTING`, `PERIOD`, `MOVED`, `NOTE`, `PAIRED_TABLE`, `UNPAIRED` 중 하나 이상을 쉼표로 이어서. 없으면 전체 |
 | query | `field` | string | 아니오 | `LITIGATION`, `CONTRACT`, `BUSINESS`, `DIVIDEND`, `FUNDING`, `BOARD`, `SHAREHOLDER`, `AUDIT`, `OTHER` 중 하나. 없으면 전체 |
 | query | `type` | string | 아니오 | `ADDED`, `DELETED`, `MODIFIED`, `NUMERIC_UPDATE`, `MOVED`, `REVIEW_NEEDED` 중 하나 이상을 쉼표로 이어서(예: `ADDED,DELETED,MODIFIED`, 그중 하나에 맞는 것). 값마다 앞뒤 공백은 지우고, 같은 값을 두 번 써도 됩니다. 없거나 빈 값이면 전체 |
 | query | `sort` | string | 아니오 | `priority`(기본) 확인 우선순위, `document` 문서 순서 |
@@ -2406,13 +2408,13 @@
   "riskCounts": { "all": 6, "added": 2, "deleted": 1, "modified": 2, "numericUpdate": 1, "moved": 0, "reviewNeeded": 0 },
   "group": null,
   "field": null,
-  "listVersion": "text-list-1",
+  "listVersion": "text-list-2",
   "fieldCounts": {
     "LITIGATION": 2, "CONTRACT": 1, "BUSINESS": 10, "DIVIDEND": 0, "FUNDING": 3,
     "BOARD": 4, "SHAREHOLDER": 2, "AUDIT": 1, "OTHER": 2
   },
   "missingFields": ["DIVIDEND"],
-  "groupCounts": { "MAIN": 25, "HEADING": 5, "FORMATTING": 2, "MOVED": 3, "NOTE": 18, "PAIRED_TABLE": 2, "UNPAIRED": 2 },
+  "groupCounts": { "MAIN": 25, "HEADING": 5, "FORMATTING": 2, "PERIOD": 4, "MOVED": 3, "NOTE": 18, "PAIRED_TABLE": 2, "UNPAIRED": 2 },
   "sections": [
     { "title": "I. 회사의 개요", "count": 6 },
     { "title": "II. 사업의 내용", "count": 31 },
@@ -3651,7 +3653,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 ```json
 {
   "diffVersion": "text-diff-2",
-  "listVersion": "text-list-1",
+  "listVersion": "text-list-2",
   "missingFields": ["DIVIDEND"],
   "sectionCounts": { "matched": 118, "renamed": 1, "added": 2, "deleted": 1, "ambiguous": 0 },
   "changes": [

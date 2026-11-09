@@ -316,7 +316,7 @@ erDiagram
         varchar priority "HIGH MEDIUM LOW UNRANKED"
         int previous_block_no
         int current_block_no
-        varchar list_group "MAIN HEADING FORMATTING MOVED NOTE PAIRED_TABLE UNPAIRED (2.9)"
+        varchar list_group "MAIN HEADING FORMATTING PERIOD MOVED NOTE PAIRED_TABLE UNPAIRED (2.9)"
         varchar list_field "분야, MAIN만 (2.9)"
     }
     summary_item {
@@ -918,12 +918,12 @@ OpenDART 정기보고서 주요정보 API를 보고서(접수번호)·종류마�
 | `priority_score` | INT | | 예 | 적용한 규칙 점수의 합. `UNRANKED`면 null |
 | `priority_reasons` | VARCHAR(1000) | | 예 | 적용한 규칙(한 줄에 하나, 예: `사업의 내용 섹션 +30`) |
 | `priority_version` | VARCHAR(20) | | 예 | 우선순위 규칙 버전(잠정 규칙 `priority-3`) |
-| `list_group` | VARCHAR(20) | | 예 | 목록 묶음(2.9, [ADR-0047](adr/0047-text-change-list-classification.md)): `MAIN`, `HEADING`, `FORMATTING`, `MOVED`, `NOTE`, `PAIRED_TABLE`, `UNPAIRED`. 분류 전에 만든 분석이면 null |
+| `list_group` | VARCHAR(20) | | 예 | 목록 묶음(2.9, [ADR-0047](adr/0047-text-change-list-classification.md)): `MAIN`, `HEADING`, `FORMATTING`, `PERIOD`(기간 표시만 바뀜, 3.56), `MOVED`, `NOTE`, `PAIRED_TABLE`, `UNPAIRED`. 분류 전에 만든 분석이면 null |
 | `list_field` | VARCHAR(20) | | 예 | 분야: `LITIGATION`, `CONTRACT`, `BUSINESS`, `DIVIDEND`, `FUNDING`, `BOARD`, `SHAREHOLDER`, `AUDIT`, `OTHER`. `MAIN`일 때만 있음 |
 | `raised_from_note` | BOOLEAN | | 예 | 재무제표 주석에서 기본 목록으로 올린 변경인지. 분류 전에 만든 분석이면 null |
 | `note_scope` | VARCHAR(20) | | 예 | 주석이면 `CONSOLIDATED`, `SEPARATE`, `UNKNOWN`. 주석이 아니면 null |
 | `row_diff` | MEDIUMTEXT | | 예 | 표 행 비교 결과(JSON, 모양은 API 명세의 `rowDiff`). 비교하지 않았으면 null |
-| `list_version` | VARCHAR(20) | | 예 | 분류 규칙 버전(잠정 규칙 `text-list-1`). 분류 전에 만든 분석이면 null |
+| `list_version` | VARCHAR(20) | | 예 | 분류 규칙 버전(잠정 규칙. `text-list-1`, 3.56부터 `text-list-2`). 분류 전에 만든 분석이면 null |
 
 ### summary_item
 
