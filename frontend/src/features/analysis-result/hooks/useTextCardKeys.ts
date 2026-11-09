@@ -5,9 +5,14 @@ import { movedCardIndex, textCardKeyFor, type TextCardFocus } from '@/shared/lib
 /** 키보드로 옮겨 다니는 문장 변화 카드에 붙이는 속성. 값은 변경 번호(changeId) */
 export const TEXT_CARD_ATTRIBUTE = 'data-text-card'
 
+/** 상세 칸의 카드(3.54)에 함께 붙인다. 근거·고정 단축키는 받지만 j·k 이동은 목록 줄만 오간다 */
+export const TEXT_DETAIL_ATTRIBUTE = 'data-text-detail'
+
 export interface TextCardKeyHandlers {
   onToggleEvidence: (changeId: number) => void
   onTogglePin: (changeId: number) => void
+  /** 키로 다른 줄·카드로 옮긴 뒤(3.54 목록 줄이면 상세도 그 변경으로) */
+  onMoved?: (changeId: number) => void
 }
 
 /**
@@ -44,11 +49,14 @@ export function useTextCardKeys(handlers: TextCardKeyHandlers) {
       event.preventDefault()
       match(action)
         .with({ kind: 'move' }, ({ step }) => {
-          const cards = Array.from(document.querySelectorAll<HTMLElement>(`[${TEXT_CARD_ATTRIBUTE}]`))
-          const index = movedCardIndex(card === null ? null : cards.indexOf(card), step, cards.length)
+          const cards = Array.from(document.querySelectorAll<HTMLElement>(`[${TEXT_CARD_ATTRIBUTE}]`)).filter(
+            (el) => !el.hasAttribute(TEXT_DETAIL_ATTRIBUTE),
+          )
+          const index = movedCardIndex(fromIndex(cards, card), step, cards.length)
           if (index === null) return
           cards[index].focus({ preventScroll: true })
           cards[index].scrollIntoView({ block: 'nearest' })
+          latest.current.onMoved?.(changeIdOf(cards[index]))
         })
         .with({ kind: 'toggle-evidence' }, () => {
           if (card !== null) latest.current.onToggleEvidence(changeIdOf(card))
@@ -61,6 +69,13 @@ export function useTextCardKeys(handlers: TextCardKeyHandlers) {
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [])
+}
+
+/** 지금 카드의 자리. 상세 칸의 카드면 그 변경의 목록 줄 자리로 본다 */
+function fromIndex(cards: HTMLElement[], card: HTMLElement | null): number | null {
+  if (card === null) return null
+  const index = card.hasAttribute(TEXT_DETAIL_ATTRIBUTE) ? cards.findIndex((el) => changeIdOf(el) === changeIdOf(card)) : cards.indexOf(card)
+  return index < 0 ? null : index
 }
 
 /** 초점이 카드 밖인지, 카드 자체인지, 카드 안의 버튼 등인지 */

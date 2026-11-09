@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { match, P } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
@@ -15,6 +15,7 @@ import { RiskChangesCard } from './RiskChangesCard'
 import { RowDiffBlock } from './RowDiffBlock'
 import { MergedPreview } from './MergedPreview'
 import { SidePreview } from './SidePreview'
+import { TextChangeBrowser } from './TextChangeBrowser'
 import { TextEventsArea } from './TextEventsSection'
 import { TextEvidencePanel } from './TextEvidencePanel'
 import { TextExplanationBox } from './TextExplanationBox'
@@ -26,17 +27,17 @@ import { useTextChanges } from '../hooks/useTextChanges'
 import { useTextEvents } from '../hooks/useTextEvents'
 import { useTextExplanations, type TextExplanations } from '../hooks/useTextExplanations'
 import { useTextSearch } from '../hooks/useTextSearch'
-import { TEXT_CARD_ATTRIBUTE, useTextCardKeys } from '../hooks/useTextCardKeys'
+import { TEXT_CARD_ATTRIBUTE, TEXT_DETAIL_ATTRIBUTE, useTextCardKeys } from '../hooks/useTextCardKeys'
 import { sectionAskQuestion } from '../model/askQuestion'
 import { mergedPreview } from '../model/mergedPreview'
 import { numberChanges } from '../model/numberChanges'
+import { canMergeChange, textDetailOf } from '../model/textBrowse'
 import { pinnedChangesText } from '../model/copyText'
 import { RISK_BADGE, RISK_EMPTY } from '../model/riskChanges'
 import { cardTypeLabel, comparedRowsOf, isNotCompared, isPairedPreviousTable, NOT_COMPARED_LABEL, NOT_COMPARED_NOTE, PAIRED_TABLE_CURRENT } from '../model/rowDiff'
 import { PINNED_EMPTY, PINNED_LABEL, PINNED_NOTE } from '../model/pinnedList'
 import type { SourceTarget, TextViewChange } from '../model/resultParams'
 import {
-  comparesWords,
   countFor,
   DELETED_NOTE,
   firstNotedIds,
@@ -94,6 +95,8 @@ interface TextTabProps {
   pinned: boolean
   /** 근거를 보고 있는 변경(3.4) */
   selectedChangeId: number | null
+  /** 목록에서 골라 상세 칸에 보이는 변경(3.54). null이면 첫 변경 */
+  detailId?: number | null
   onChange: (changes: TextViewChange) => void
   onOpenSource: (target: SourceTarget) => void
   /** 고른 섹션의 변화를 AI에게 묻는다(질문을 보내고 AI 질문 탭으로 옮김) */
@@ -116,6 +119,8 @@ interface TextTabProps {
  * 표 변경 카드는 행을 비교했으면 양쪽 글 대신 행 건수와 바뀐 행을 보이고, 비교하지 않았으면 그렇게 표시한다(3.30).
  * 고정 보기에서는 고정한 변경을 원문·출처와 함께 한 번에 복사할 수 있다(FS-31).
  * 키보드로 카드를 옮겨 다니며(j·k·↑·↓) 근거를 열고(Enter) 고정할(p) 수 있다(#311).
+ * 전체 변경과 고정 목록은 왼쪽 한 줄 목록과 오른쪽 상세로 보인다(3.54). 문서 순서면 목차 머리줄로 묶고, 고른 변경은 주소(tsel)에 남는다.
+ * 키보드 이동은 목록 줄을 오가며 상세도 따라간다. 사건 안·접힌 묶음은 지금처럼 카드로 둔다.
  */
 export function TextTab({
   analysis,
@@ -127,6 +132,7 @@ export function TextTab({
   field: requestedField,
   pinned,
   selectedChangeId,
+  detailId = null,
   onChange,
   onOpenSource,
   onAsk,
@@ -156,7 +162,16 @@ export function TextTab({
     evidenceOpener.current = { changeId, element: document.activeElement }
     onChange({ change: changeId === selectedChangeId ? null : changeId })
   }
-  useTextCardKeys({ onToggleEvidence: toggleEvidence, onTogglePin: pins.toggle })
+  // 지금 목록·상세에 보이는 변경(고정 보기면 고정 목록). 키보드로 줄을 옮기면 상세도 따라간다
+  const browsedItems = browsedItemsOf(pinned, pinnedList.view, state)
+  const selectDetail = (changeId: number) => onChange({ detail: changeId })
+  useTextCardKeys({
+    onToggleEvidence: toggleEvidence,
+    onTogglePin: pins.toggle,
+    onMoved: (changeId) => {
+      if (browsedItems.some((i) => i.changeId === changeId)) selectDetail(changeId)
+    },
+  })
   const searched = hasSearchFilter({ section, q })
   // 위험 관련만 보는 중이면(고정 보기가 아닐 때) 섹션·검색어처럼 거른 결과로 본다
   const riskOnly = risk && !pinned
@@ -180,7 +195,8 @@ export function TextTab({
     onChange({ pinned: true })
   }
   const closeEvidence = (changeId: number) => {
-    onChange({ change: null })
+    // 목록에 있는 변경이면 상세 칸에 그 변경을 남긴다(주소로 바로 연 경우에도 닫은 뒤 그 변경이 보이게)
+    onChange(browsedItems.some((i) => i.changeId === changeId) ? { change: null, detail: changeId } : { change: null })
     // 닫으면 그 항목의 '원문 비교' 버튼으로 초점을 돌려준다
     const opener = evidenceOpener.current?.changeId === changeId ? evidenceOpener.current.element : null
     requestAnimationFrame(() => {
@@ -188,10 +204,9 @@ export function TextTab({
       target?.focus()
     })
   }
-  // 고른 항목이 지금 목록(거르기·쪽·고정)에 없어도 근거는 연다(요약·주소에서 바로 온 경우, 펼친 묶음의 변경)
-  const outsideEvidence = (items: TextChangeItem[]) =>
-    selectedChangeId !== null &&
-    !items.some((i) => i.changeId === selectedChangeId) && (
+  // 원문 비교 창은 카드 밖에서 하나만 연다. 고른 항목이 지금 목록(거르기·쪽·고정)에 없어도 연다(요약·주소에서 바로 온 경우, 펼친 묶음의 변경)
+  const evidencePanel =
+    selectedChangeId !== null && (
       <TextEvidencePanel
         key={selectedChangeId}
         analysis={analysis}
@@ -202,29 +217,53 @@ export function TextTab({
         asking={asking}
       />
     )
-  const changeList = (items: TextChangeItem[], inlineEvidence = true, idScope = '') => {
+  const changeCard = (item: TextChangeItem, showTypeNote: boolean, idScope: string, inDetail: boolean) => (
+    <ChangeCard
+      item={item}
+      analysis={analysis}
+      showTypeNote={showTypeNote}
+      selected={item.changeId === selectedChangeId}
+      inDetail={inDetail}
+      idScope={idScope}
+      pinned={pins.isPinned(item.changeId)}
+      merged={modifiedView === 'merged'}
+      explanations={explanations}
+      onOpenSource={onOpenSource}
+      onTogglePin={() => pins.toggle(item.changeId)}
+      onToggle={() => toggleEvidence(item.changeId)}
+    />
+  )
+  // 전체 변경과 고정 목록은 목록·상세로 보인다(3.54). 사건 안·접힌 묶음은 카드로 둔다
+  const browser = (items: TextChangeItem[], total: number, grouped: boolean, footer?: ReactNode) => {
+    const detail = textDetailOf(items, detailId, selectedChangeId)
+    const noted = firstNotedIds(items)
+    return (
+      <TextChangeBrowser
+        items={items}
+        total={total}
+        grouped={grouped}
+        detail={detail}
+        onSelect={selectDetail}
+        onOpenOutside={toggleEvidence}
+        detailTools={
+          detail.kind === 'item' &&
+          canMergeChange(detail.item) && (
+            <SegmentedControl aria-label="수정된 글 보기" options={modifiedViewOptions} value={modifiedView} onChange={setModifiedView} />
+          )
+        }
+        // 상세 칸의 카드는 목록을 대신하므로 요소 id 앞말을 붙이지 않는다(같은 변경이 접힌 묶음에 함께 있지 않음)
+        renderDetail={(item) => changeCard(item, noted.has(item.changeId), '', true)}
+        footer={footer}
+      />
+    )
+  }
+  const changeList = (items: TextChangeItem[], idScope = '') => {
     const noted = firstNotedIds(items)
     return (
       <ol className="change-list">
         {items.map((item) => (
           <li key={item.changeId}>
-            <ChangeCard
-              item={item}
-              analysis={analysis}
-              showTypeNote={noted.has(item.changeId)}
-              selected={item.changeId === selectedChangeId}
-              inlineEvidence={inlineEvidence}
-              idScope={idScope}
-              pinned={pins.isPinned(item.changeId)}
-              merged={modifiedView === 'merged'}
-              explanations={explanations}
-              onOpenSource={onOpenSource}
-              onAsk={onAsk}
-              asking={asking}
-              onTogglePin={() => pins.toggle(item.changeId)}
-              onToggle={() => toggleEvidence(item.changeId)}
-              onClose={() => closeEvidence(item.changeId)}
-            />
+            {changeCard(item, noted.has(item.changeId), idScope, false)}
           </li>
         ))}
       </ol>
@@ -235,6 +274,7 @@ export function TextTab({
 
   return (
     <Panel aria-label="문장 변화">
+      {!failed && evidencePanel}
       {notice && (
         <Notice tone="attention" role="status">
           {notice}
@@ -251,7 +291,7 @@ export function TextTab({
           scope={{ pinned, searched, riskOnly, type, field }}
           onRetry={retryEvents}
           onOpenEvidence={toggleEvidence}
-          renderChanges={(items, eventId) => changeList(items, false, `event-${eventId}-`)}
+          renderChanges={(items, eventId) => changeList(items, `event-${eventId}-`)}
         />
       )}
       {!failed && (
@@ -344,7 +384,6 @@ export function TextTab({
               }}
             />
           )}
-          <SegmentedControl aria-label="수정된 글 보기" options={modifiedViewOptions} value={modifiedView} onChange={setModifiedView} />
           <p className="panel__note text-controls__note">{pinned ? PINNED_NOTE : PRIORITY_NOTE}</p>
           <ChangeTypeHelp />
         </div>
@@ -358,21 +397,18 @@ export function TextTab({
           .with({ status: 'success' }, ({ items }) => (
             <>
               {items.length === 0 && <EmptyState title={PINNED_EMPTY} />}
-              {outsideEvidence(items)}
-              {items.length > 0 && (
-                <>
-                  {changeList(items)}
+              {items.length > 0 &&
+                browser(
+                  items,
+                  items.length,
+                  false,
                   <div className="change-list__more">
                     <span className="panel__note" role="status">
                       고정 {resultCountLabel(items.length)}
                     </span>
-                    <CopyWithSourcesButton
-                      text={() => pinnedChangesText(analysis, items)}
-                      label="고정한 변경 출처 포함 복사"
-                    />
-                  </div>
-                </>
-              )}
+                    <CopyWithSourcesButton text={() => pinnedChangesText(analysis, items)} label="고정한 변경 출처 포함 복사" />
+                  </div>,
+                )}
             </>
           ))
           .exhaustive()}
@@ -437,19 +473,19 @@ export function TextTab({
                     </EmptyState>
                   ))
                   .exhaustive()}
-              {outsideEvidence(items)}
-              {items.length > 0 && (
-                <>
-                  {changeList(items)}
-                  <TextListFooter loaded={items.length} total={data.totalItems} more={more} onMore={loadMore} />
-                </>
-              )}
+              {items.length > 0 &&
+                browser(
+                  items,
+                  data.totalItems,
+                  sort === 'document',
+                  <TextListFooter loaded={items.length} total={data.totalItems} more={more} onMore={loadMore} />,
+                )}
             </>
           ))
           .exhaustive()}
       {/* 정렬을 바꿔 목록을 다시 불러와도 펼친 묶음이 접히지 않도록 목록 상태 밖에 둔다 */}
       {!failed && defaultList && groupCounts !== null && (
-        <TextFoldedGroups analysisId={analysis.analysisId} counts={groupCounts} sort={sort} renderList={(items) => changeList(items, false)} />
+        <TextFoldedGroups analysisId={analysis.analysisId} counts={groupCounts} sort={sort} renderList={(items) => changeList(items)} />
       )}
       {!failed && (
         <>
@@ -478,8 +514,8 @@ interface ChangeCardProps {
   /** 종류 안내 문장(삭제·위치 이동)을 붙일지. 목록에서 그 종류의 첫 카드에만 붙인다(#393) */
   showTypeNote: boolean
   selected: boolean
-  /** 고르면 카드가 원문 비교 창을 여는지. 펼친 묶음의 카드는 탭이 대신 연다 */
-  inlineEvidence: boolean
+  /** 상세 칸의 카드인지(3.54). j·k 이동은 목록 줄이 대신하고, 근거·고정 단축키는 받는다 */
+  inDetail: boolean
   /** 같은 변경이 화면에 두 번 보일 때(사건 안) 요소 id가 겹치지 않게 붙이는 앞말 */
   idScope: string
   /** 고정했는지(3.3) */
@@ -489,10 +525,7 @@ interface ChangeCardProps {
   explanations: TextExplanations
   onTogglePin: () => void
   onToggle: () => void
-  onClose: () => void
   onOpenSource: (target: SourceTarget) => void
-  onAsk: (question: string) => void
-  asking: boolean
 }
 
 function ChangeCard({
@@ -500,17 +533,14 @@ function ChangeCard({
   analysis,
   showTypeNote,
   selected,
-  inlineEvidence,
+  inDetail,
   idScope,
   pinned,
   merged,
   explanations,
   onTogglePin,
   onToggle,
-  onClose,
   onOpenSource,
-  onAsk,
-  asking,
 }: ChangeCardProps) {
   const section = displaySectionPath(item.sectionPath)
   const review = item.changeType === 'REVIEW_NEEDED'
@@ -519,10 +549,7 @@ function ChangeCard({
   const pairedPrevious = isPairedPreviousTable(item)
   const typeLabel = cardTypeLabel(item)
   // 합쳐 보기는 글 문단의 수정에만 쓴다. 표는 행 비교나 양쪽 글로 본다
-  const mergedParts =
-    merged && !review && comparedRows === null && item.blockType !== 'TABLE' && comparesWords(item.changeType)
-      ? mergedPreview(item.previousPreview, item.currentPreview)
-      : null
+  const mergedParts = merged && canMergeChange(item) ? mergedPreview(item.previousPreview, item.currentPreview) : null
   // '숫자만 바뀜' 카드에만 바뀐 숫자 쌍을 보인다(짝이 확실하지 않으면 null이라 숨김). 행을 비교했으면 바뀐 행이 대신한다
   const numbers = item.changeType === 'NUMERIC_UPDATE' && comparedRows === null ? numberChanges(item.previousPreview, item.currentPreview) : null
   // 풀이 상자를 펼쳤는지는 카드 안 상태(주소에 남기지 않음). 처음 펼칠 때만 부른다
@@ -542,7 +569,7 @@ function ChangeCard({
       className="change-card"
       // 키보드로 옮겨 오는 카드(#311). Tab 순서에는 넣지 않는다
       tabIndex={-1}
-      {...{ [TEXT_CARD_ATTRIBUTE]: item.changeId }}
+      {...{ [TEXT_CARD_ATTRIBUTE]: item.changeId, ...(inDetail ? { [TEXT_DETAIL_ATTRIBUTE]: '' } : {}) }}
       aria-label={`${section} ${typeLabel}`}
     >
       <div className="change-card__head">
@@ -663,17 +690,6 @@ function ChangeCard({
           onOpenSource={onOpenSource}
         />
       )}
-      {selected && inlineEvidence && (
-        <TextEvidencePanel
-          key={item.changeId}
-          analysis={analysis}
-          changeId={item.changeId}
-          onClose={onClose}
-          onOpenSource={onOpenSource}
-          onAsk={onAsk}
-          asking={asking}
-        />
-      )}
     </Card>
   )
 }
@@ -690,4 +706,14 @@ function MovedPaths({ item, withNote }: { item: TextChangeItem; withNote: boolea
       {withNote && ` ${MOVED_NOTE}`}
     </p>
   )
+}
+
+/** 목록·상세에 보이는 변경. 고정 보기면 고정 목록, 아니면 불러온 전체 변경 목록. 불러오는 중이면 없음 */
+function browsedItemsOf(
+  pinned: boolean,
+  pinnedView: { status: string; items?: TextChangeItem[] },
+  listState: { status: string; items?: TextChangeItem[] },
+): TextChangeItem[] {
+  const view = pinned ? pinnedView : listState
+  return view.status === 'success' ? (view.items ?? []) : []
 }
