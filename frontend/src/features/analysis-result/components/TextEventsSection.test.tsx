@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Analysis } from '@/shared/api/analyses'
-import type { TextChangeItem } from '@/shared/api/textChanges'
+import type { TextChangeItem, TextField } from '@/shared/api/textChanges'
 import type {
   SignalTable,
   TextEventDetail,
@@ -599,7 +599,6 @@ describe('TextEventsSection 신호 필터', () => {
 })
 
 describe('TextEventsArea', () => {
-  const noFilter = { pinned: false, searched: false, riskOnly: false, type: null, field: null }
   const unbound = (changeId: number, overrides: Partial<TextEventUnboundChange> = {}): TextEventUnboundChange => ({
     changeId,
     changeType: 'MODIFIED',
@@ -614,10 +613,10 @@ describe('TextEventsArea', () => {
     list: { droppedEventCount: 0, items, unboundChanges } as unknown as TextEventList,
   })
 
-  function area(view: TextEventsView, scope = noFilter as Parameters<typeof TextEventsArea>[0]['scope']) {
+  function area(view: TextEventsView, field: TextField | null = null) {
     const onOpenEvidence = vi.fn()
     const onRetry = vi.fn()
-    const result = render(<TextEventsArea analysis={analysis} view={view} scope={scope} onRetry={onRetry} onOpenEvidence={onOpenEvidence} renderChanges={() => null} />)
+    const result = render(<TextEventsArea analysis={analysis} view={view} field={field} onRetry={onRetry} onOpenEvidence={onOpenEvidence} renderChanges={() => null} />)
     return { ...result, onOpenEvidence, onRetry }
   }
 
@@ -669,11 +668,6 @@ describe('TextEventsArea', () => {
     expect(container.textContent).toBe('')
   })
 
-  it('고정·검색 등으로 거르면 진행 표시와 안내도 빠진다', () => {
-    const { container } = area({ status: 'building' }, { ...noFilter, searched: true })
-
-    expect(container.textContent).toBe('')
-  })
 
   it('사건에 들지 않은 후보는 카드 없이 건수 한 줄로 알린다(3.60 AC24)', () => {
     area(ready([event()], [unbound(11), unbound(12)]))
@@ -692,7 +686,7 @@ describe('TextEventsArea', () => {
   })
 
   it('분야를 고르면 그 칸의 건수만 센다(AC24)', () => {
-    area(ready([], [unbound(11), unbound(12, { field: 'LITIGATION' })]), { ...noFilter, field: 'LITIGATION' })
+    area(ready([], [unbound(11), unbound(12, { field: 'LITIGATION' })]), 'LITIGATION')
 
     expect(screen.getByText('사건에 들지 않은 후보 1건은 아래 전체 변경에서 볼 수 있어요.')).toBeTruthy()
   })

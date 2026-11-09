@@ -169,28 +169,15 @@ export function eventRowMeta(item: TextEventItem): string {
   return [kind, scale?.amount ?? null, 'AI 생성'].filter((part): part is string => part !== null).join(' · ')
 }
 
-export interface EventScope {
-  pinned: boolean
-  searched: boolean
-  riskOnly: boolean
-  type: unknown
-  field: TextField | null
-}
-
-/** 고정·검색·유형·위험으로 거르는 중인지. 이때는 찾는 변경이 앞에 오도록 사건 자리를 통째로 뺀다 */
-export function eventsNarrowed({ pinned, searched, riskOnly, type }: EventScope): boolean {
-  return pinned || searched || riskOnly || type !== null
-}
-
-/** 지금 보여 줄 사건. 분야를 고르면 그 칸에 세어진 사건만 보인다 */
-export function visibleEvents(items: TextEventItem[], scope: EventScope): TextEventItem[] {
-  const { field } = scope
-  if (eventsNarrowed(scope)) return []
+/**
+ * 지금 보여 줄 사건. 분야를 고르면 그 칸에 세어진 사건만 보인다.
+ * 유형·검색·위험 관련·고정은 전체 변경 목록에만 걸리고 사건은 그대로 둔다(3.61, R20)
+ */
+export function visibleEvents(items: TextEventItem[], field: TextField | null): TextEventItem[] {
   return field === null ? items : items.filter((item) => item.fields.includes(field))
 }
 
 /** 지금 보여 줄 묶이지 않은 변경. 분야를 고르면 그 칸의 변경만 보인다 */
-export function visibleUnbound(changes: TextEventUnboundChange[], scope: EventScope): TextEventUnboundChange[] {
-  if (eventsNarrowed(scope)) return []
-  return scope.field === null ? changes : changes.filter((change) => change.field === scope.field)
+export function visibleUnbound(changes: TextEventUnboundChange[], field: TextField | null): TextEventUnboundChange[] {
+  return field === null ? changes : changes.filter((change) => change.field === field)
 }
