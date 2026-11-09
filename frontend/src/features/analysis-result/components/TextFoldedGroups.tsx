@@ -30,17 +30,21 @@ export function TextFoldedGroups({ analysisId, counts, sort, renderList }: TextF
   }
   return (
     <section className="text-folded" aria-labelledby="text-folded-title">
-      <h3 id="text-folded-title" className="text-folded__title">
-        <button
-          type="button"
-          className="text-folded__toggle"
-          aria-expanded={shown}
-          aria-controls={shown ? 'text-folded-groups' : undefined}
-          onClick={() => setShown((v) => !v)}
-        >
-          {FOLDED_TITLE} {resultCountLabel(foldedTotal(counts))} {shown ? '접기 ▴' : '보기 ▾'}
-        </button>
-      </h3>
+      {/* 전체 변경 맨 아래 한 줄: 여는 버튼과 묶음 이름(3.59) */}
+      <div className="text-folded__line">
+        <h3 id="text-folded-title" className="text-folded__title">
+          <button
+            type="button"
+            className="text-folded__toggle"
+            aria-expanded={shown}
+            aria-controls={shown ? 'text-folded-groups' : undefined}
+            onClick={() => setShown((v) => !v)}
+          >
+            {FOLDED_TITLE} {resultCountLabel(foldedTotal(counts))} {shown ? '접기 ▴' : '보기 ▾'}
+          </button>
+        </h3>
+        {!shown && <span className="panel__note">{groups.map((entry) => entry.label).join(', ')}</span>}
+      </div>
       {shown && (
         <div id="text-folded-groups" className="text-folded__groups">
           <p className="panel__note">{FOLDED_NOTE}</p>

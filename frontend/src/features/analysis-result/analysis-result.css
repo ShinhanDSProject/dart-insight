@@ -516,6 +516,15 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.text-folded__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
 }
 
 .text-folded__title {
@@ -561,6 +570,35 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+}
+
+/* 전체 변경 제목과 건수 한 줄(3.59) */
+.text-list-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+}
+
+.text-list-head__title {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+/* 문장 변화 탭 맨 아래 한 줄(3.59). 출처 줄과 안내를 구분선 아래에 이어 둔다 */
+.text-tab__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.text-tab__footer p {
+  margin: 0;
 }
 
 /* 분야별 변경(3.28 → 3.58). 칩 한 줄이고 좁으면 줄바꿈한다. 칩은 공통 Chip을 쓰고 모서리만 각지게 한다(시안) */
@@ -3418,8 +3456,37 @@
   font-size: var(--font-size-xs);
 }
 
+/* 유형 색 점과 유형 글자(3.59). 색만으로 나누지 않도록 유형 글자를 늘 함께 둔다 */
+.change-row__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-text-muted);
+}
+
 .change-row[data-change-type='ADDED'] .change-row__type {
   color: var(--color-added);
+}
+
+.change-row[data-change-type='ADDED'] .change-row__dot {
+  background: var(--color-added);
+}
+
+.change-row[data-change-type='DELETED'] .change-row__type {
+  color: var(--color-decrease);
+}
+
+.change-row[data-change-type='DELETED'] .change-row__dot {
+  background: var(--color-decrease);
+}
+
+.change-row:is([data-change-type='MODIFIED'], [data-change-type='NUMERIC_UPDATE']) .change-row__type {
+  color: var(--color-accent);
+}
+
+.change-row:is([data-change-type='MODIFIED'], [data-change-type='NUMERIC_UPDATE']) .change-row__dot {
+  background: var(--color-accent);
 }
 
 .change-row__text {

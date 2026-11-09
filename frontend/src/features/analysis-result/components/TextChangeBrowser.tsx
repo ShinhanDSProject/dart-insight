@@ -184,6 +184,7 @@ function ChangeRow({ item, withSection, selected, onChoose }: { item: TextChange
       {...{ [TEXT_CARD_ATTRIBUTE]: item.changeId }}
       onClick={onChoose}
     >
+      <span className="change-row__dot" aria-hidden="true" />
       <span className="change-row__type">{typeLabel}</span>
       <span className="change-row__text">
         {withSection && <span className="change-row__section">{displaySectionPath(item.sectionPath)} · </span>}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { TextListGroup } from '@/shared/api/textChanges'
-import { defaultListNote, foldedGroups, foldedTotal, listGroupsOf, noteScopeLabel } from './textGroups'
+import { allChangesTotal, defaultListNote, foldedGroups, foldedTotal, listGroupsOf, listHeadNote, noteScopeLabel } from './textGroups'
 
 const none = { type: null, section: null, q: null, risk: false, field: null }
 const groupCounts: Record<TextListGroup, number> = { MAIN: 606, HEADING: 94, FORMATTING: 23, PERIOD: 90, MOVED: 7, NOTE: 428, PAIRED_TABLE: 5, UNPAIRED: 2 }
@@ -50,11 +50,15 @@ describe('foldedGroups', () => {
 
 describe('defaultListNote', () => {
   it('짝을 정하지 못한 항목이 있으면 기본 목록 건수와 따로 알린다(AC9)', () => {
-    expect(defaultListNote(groupCounts)).toBe('기본 목록 606건 · 짝을 정하지 못한 항목 2건(분야와 기본 목록 건수에는 세지 않아요)')
+    expect(defaultListNote(groupCounts, true)).toBe('1,255건 중 먼저 볼 606건 · 목차 순서로 묶었어요 · 짝을 정하지 못한 항목 2건(분야와 기본 목록 건수에는 세지 않아요)')
   })
 
   it('없으면 기본 목록 건수만 알린다', () => {
-    expect(defaultListNote({ ...groupCounts, UNPAIRED: 0 })).toBe('기본 목록 606건')
+    expect(defaultListNote({ ...groupCounts, UNPAIRED: 0 }, true)).toBe('1,253건 중 먼저 볼 606건 · 목차 순서로 묶었어요')
+  })
+
+  it('우선순위 순이면 목차로 묶었다고 말하지 않는다', () => {
+    expect(defaultListNote({ ...groupCounts, UNPAIRED: 0 }, false)).toBe('1,253건 중 먼저 볼 606건')
   })
 })
 
@@ -64,5 +68,30 @@ describe('noteScopeLabel', () => {
     expect(noteScopeLabel('SEPARATE')).toBe('별도 주석')
     expect(noteScopeLabel('UNKNOWN')).toBeNull()
     expect(noteScopeLabel(null)).toBeNull()
+  })
+})
+
+describe('allChangesTotal', () => {
+  it('모든 묶음의 건수를 더한다', () => {
+    expect(allChangesTotal(groupCounts)).toBe(1255)
+  })
+})
+
+describe('listHeadNote(3.59)', () => {
+  const base = { pinned: false, defaultList: true, narrowed: false, groupCounts, total: 608, grouped: true }
+
+  it('기본 목록이면 묶음 건수로 알린다(AC20)', () => {
+    expect(listHeadNote(base)).toMatch(/^1,255건 중 먼저 볼 606건/)
+  })
+
+  it('검색·위험 관련·분야로 거르면 결과 건수로 바뀐다(AC20)', () => {
+    expect(listHeadNote({ ...base, defaultList: false, narrowed: true, total: 12 })).toBe('조건에 맞는 변경 12건')
+  })
+
+  it('고정만 보거나, 유형만 걸렀거나, 결과가 없거나, 묶음이 없는 옛 분석이면 없다', () => {
+    expect(listHeadNote({ ...base, pinned: true })).toBeNull()
+    expect(listHeadNote({ ...base, defaultList: false })).toBeNull()
+    expect(listHeadNote({ ...base, defaultList: false, narrowed: true, total: null })).toBeNull()
+    expect(listHeadNote({ ...base, groupCounts: null })).toBeNull()
   })
 })

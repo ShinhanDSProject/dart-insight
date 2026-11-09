@@ -1,4 +1,4 @@
-import { match } from 'ts-pattern'
+import { match, P } from 'ts-pattern'
 import type { NoteScope, TextField, TextListGroup } from '@/shared/api/textChanges'
 import { resultCountLabel } from './textFilter'
 import type { TextTypeFilter } from './textFilter'
@@ -7,6 +7,7 @@ import type { TextTypeFilter } from './textFilter'
 const DEFAULT_LIST_GROUPS: TextListGroup[] = ['MAIN', 'UNPAIRED']
 
 export const FOLDED_TITLE = '접어 둔 변경'
+export const LIST_TITLE = '전체 변경'
 export const FOLDED_NOTE = '기본 목록에서 접었을 뿐 지우지 않았어요. 검색하거나 유형·섹션으로 거르면 함께 찾아요.'
 export const DEFAULT_LIST_EMPTY = '기본 목록에 보일 변경이 없어요.'
 export const DEFAULT_LIST_EMPTY_NOTE = '아래 접어 둔 변경을 펼치면 볼 수 있어요.'
@@ -63,11 +64,42 @@ export function foldedTotal(counts: GroupCounts): number {
   return foldedGroups(counts).reduce((sum, entry) => sum + entry.count, 0)
 }
 
-/** 목록 위 건수 안내. 짝을 정하지 못한 항목은 목록에 함께 보이지만 건수는 따로 알린다(AC9) */
-export function defaultListNote(counts: GroupCounts): string {
-  const main = `기본 목록 ${resultCountLabel(counts.MAIN)}`
+/** 분석의 모든 변경 수. 묶음이 모든 변경을 나누므로 묶음 건수를 더한다 */
+export function allChangesTotal(counts: GroupCounts): number {
+  return Object.values(counts).reduce((sum, count) => sum + (count ?? 0), 0)
+}
+
+/**
+ * '전체 변경' 제목 옆의 건수 안내(3.59). 'N건 중 먼저 볼 M건'에서 N은 모든 변경, M은 기본 목록이다.
+ * 짝을 정하지 못한 항목은 목록에 함께 보이지만 건수는 따로 알린다(AC9)
+ */
+export function defaultListNote(counts: GroupCounts, grouped: boolean): string {
+  const main = `${resultCountLabel(allChangesTotal(counts))} 중 먼저 볼 ${resultCountLabel(counts.MAIN)}${grouped ? ' · 목차 순서로 묶었어요' : ''}`
   if (counts.UNPAIRED === 0) return main
   return `${main} · 짝을 정하지 못한 항목 ${resultCountLabel(counts.UNPAIRED)}(분야와 기본 목록 건수에는 세지 않아요)`
+}
+
+export interface ListHeadState {
+  /** 고정한 변경만 보는지 */
+  pinned: boolean
+  /** 아무것도 거르지 않은 기본 보기인지 */
+  defaultList: boolean
+  /** 검색·위험 관련·분야로 걸렀는지(유형은 칩에 건수가 있어 따로 알리지 않는다) */
+  narrowed: boolean
+  groupCounts: GroupCounts | null
+  /** 받은 목록의 전체 건수. 아직 모르거나 0건이면 null */
+  total: number | null
+  /** 목차 머리줄로 묶어 보이는지(문서 순서) */
+  grouped: boolean
+}
+
+/** '전체 변경' 제목 옆 한 줄(3.59). 기본 목록이면 묶음 건수, 거르면 결과 건수, 그 밖에는 없다 */
+export function listHeadNote({ pinned, defaultList, narrowed, groupCounts, total, grouped }: ListHeadState): string | null {
+  return match({ pinned, defaultList, narrowed, groupCounts, total })
+    .with({ pinned: true }, () => null)
+    .with({ defaultList: true, groupCounts: P.nonNullable }, ({ groupCounts: counts }) => defaultListNote(counts, grouped))
+    .with({ narrowed: true, total: P.number }, ({ total: count }) => `조건에 맞는 변경 ${resultCountLabel(count)}`)
+    .otherwise(() => null)
 }
 
 /** 주석 카드에 붙이는 이름. 구분할 수 없거나 주석이 아니면 null */
