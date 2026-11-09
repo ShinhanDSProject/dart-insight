@@ -44,6 +44,30 @@ export function signalBadge(signal: TextEventSignal): { label: string; tone: Sig
 /** AI가 기준표 목록 밖의 종류를 골랐을 때의 코드(docs/api-spec.md) */
 const OTHER_KIND = 'OTHER'
 
+/** 신호 필터(3.42, AC29)의 순서와 이름. null은 거르지 않음(전체) */
+export const SIGNAL_FILTERS: readonly { signal: TextEventSignal | null; label: string }[] = [
+  { signal: null, label: '전체' },
+  { signal: 'CAUTION', label: '주의' },
+  { signal: 'POSITIVE', label: '긍정' },
+  { signal: 'HOLD', label: '보류' },
+]
+export const SIGNAL_FILTER_LABEL = '신호로 거르기'
+
+/** 고른 신호의 사건만 서버가 정한 순서 그대로 남긴다. null이면 그대로 */
+export function eventsBySignal<T extends Pick<TextEventItem, 'signal'>>(items: T[], signal: TextEventSignal | null): T[] {
+  return signal === null ? items : items.filter((item) => item.signal === signal)
+}
+
+/** 필터 칩의 건수. 분야를 골랐으면 그 칸의 사건으로 세도록 지금 보이는 사건으로 센다(응답의 signalCounts는 전체 사건 기준) */
+export function signalFilterCount(items: Pick<TextEventItem, 'signal'>[], signal: TextEventSignal | null): number {
+  return eventsBySignal(items, signal).length
+}
+
+/** 고른 신호의 사건이 없을 때의 안내 */
+export function signalEmptyText(signal: TextEventSignal): string {
+  return `${signalBadge(signal).label}가 붙은 사건이 없어요.`
+}
+
 /** 사건 종류 배지. 기준표 목록에 있는 종류만 보이고, 목록 밖이면 배지 없이 둔다(AC9) */
 export function kindBadge(item: Pick<TextEventItem, 'kind' | 'kindCode'>): string | null {
   return item.kindCode === OTHER_KIND ? null : item.kind

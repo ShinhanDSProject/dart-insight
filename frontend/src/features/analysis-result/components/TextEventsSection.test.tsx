@@ -449,6 +449,67 @@ describe('TextEventsSection 신호와 사건 문장', () => {
   })
 })
 
+describe('TextEventsSection 신호 필터', () => {
+  const items = () => [
+    event({ eventId: 1, title: '첫째 보류', signal: 'HOLD', holdReason: 'NO_CRITERIA' }),
+    event({ eventId: 2, title: '둘째 주의' }),
+    event({ eventId: 3, title: '셋째 보류', signal: 'HOLD', holdReason: 'NO_CRITERIA' }),
+  ]
+  const titles = () => screen.getAllByRole('article').map((card) => card.getAttribute('aria-label'))
+  const chip = (name: RegExp) => within(screen.getByRole('group', { name: '신호로 거르기' })).getByRole('button', { name })
+
+  it('신호마다 건수가 보이고 처음에는 전체가 눌려 있다', () => {
+    show(items())
+
+    expect(chip(/^전체/).getAttribute('aria-pressed')).toBe('true')
+    expect(chip(/^주의/).textContent).toBe('주의 1')
+    expect(chip(/^긍정/).textContent).toBe('긍정 0')
+    expect(chip(/^보류/).textContent).toBe('보류 2')
+  })
+
+  it('신호를 누르면 그 신호의 사건만 보인다(AC29)', () => {
+    show(items())
+
+    fireEvent.click(chip(/^보류/))
+
+    expect(titles()).toEqual(['첫째 보류', '셋째 보류'])
+    expect(chip(/^보류/).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByRole('heading', { name: '주요 사건 2건' })).toBeTruthy()
+  })
+
+  it('그 신호의 사건이 없으면 안내가 보인다', () => {
+    show(items())
+
+    fireEvent.click(chip(/^긍정/))
+
+    expect(screen.queryAllByRole('article')).toEqual([])
+    expect(screen.getByRole('status').textContent).toBe('긍정 신호가 붙은 사건이 없어요.')
+  })
+
+  it('전체를 누르면 원래 순서로 돌아간다', () => {
+    show(items())
+
+    fireEvent.click(chip(/^주의/))
+    fireEvent.click(chip(/^전체/))
+
+    expect(titles()).toEqual(['첫째 보류', '둘째 주의', '셋째 보류'])
+  })
+
+  it('사건이 하나면 필터를 두지 않는다', () => {
+    show([event()])
+
+    expect(screen.queryByRole('group', { name: '신호로 거르기' })).toBeNull()
+  })
+
+  it('필터에 접근성 위반이 없다', async () => {
+    const { container } = show(items())
+
+    fireEvent.click(chip(/^긍정/))
+
+    expect(await axeViolations(container)).toBe('')
+  })
+})
+
 describe('TextEventsArea', () => {
   const noFilter = { pinned: false, searched: false, riskOnly: false, type: null, field: null }
   const unbound = (changeId: number, overrides: Partial<TextEventUnboundChange> = {}): TextEventUnboundChange => ({
