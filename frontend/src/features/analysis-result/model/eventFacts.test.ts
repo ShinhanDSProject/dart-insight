@@ -46,6 +46,10 @@ describe('factsView', () => {
     expect(factsView([fact({ currency: 'USD' })])?.unit).toBe('백만 USD')
   })
 
+  it('통화가 없으면 원화 단위로 적는다', () => {
+    expect(factsView([fact({ currency: null })])?.unit).toBe('백만원')
+  })
+
   it('계정이 없거나 두 값이 모두 없으면 칸이 없다', () => {
     expect(factsView([])).toBeNull()
     expect(factsView([fact({ previousAmount: null, currentAmount: null, changeAmount: null, changeRate: null, calcStatus: 'PREVIOUS_MISSING' })])).toBeNull()

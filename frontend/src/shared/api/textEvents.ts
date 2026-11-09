@@ -100,7 +100,8 @@ export interface TextEventFact {
   changeAmount: number | null
   changeRate: number | null
   calcStatus: CalcStatus
-  currency: string
+  /** 재무 수치 항목과 같이 없으면 null */
+  currency: string | null
 }
 
 /** docs/api-spec.md GET /api/analyses/{id}/events의 items[]. 규모(scale*)는 사건 순서를 정한 값이다 */
