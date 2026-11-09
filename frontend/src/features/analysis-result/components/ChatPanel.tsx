@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 
 import { Link } from 'react-router'
 import { match } from 'ts-pattern'
 import type { ChatAction, ChatCitation, ChatContext, ChatCrossCheck, ChatMessageResponse } from '@/shared/api/agentChat'
+import { useGlossaryTerms } from '@/shared/glossary/hooks/useGlossaryTerms'
+import { findCardByKey, termEntryByName } from '@/shared/glossary/model/glossaryCards'
 import type { AsyncState } from '@/shared/hooks/asyncState'
 import type { ParamChanges } from '@/shared/lib/searchParams'
 import { Badge, Button, ButtonLink, Icon, Mascot, Notice, PanelTitle, SidePanel, TextArea } from '@/shared/ui'
@@ -10,6 +12,7 @@ import type { AgentChatController } from '../hooks/useAgentChat'
 import { ChatConfirmAction } from './ChatConfirmAction'
 import { ChatFeedback } from './ChatFeedback'
 import { ChatPinAction, ChatRequestAnalysisAction } from './ChatNavigateActions'
+import { GlossaryCard } from './GlossaryCard'
 import {
   briefLines,
   chatActionTarget,
@@ -113,6 +116,7 @@ export function ChatPanel({
             onDownloadBrief={onDownloadBrief}
             briefState={briefState}
             onPostDraft={onPostDraft}
+            onAsk={send}
           />
         ))}
         {match(request)
@@ -180,6 +184,8 @@ interface ExchangeProps {
   onDownloadBrief: () => void
   briefState: AsyncState<void>
   onPostDraft: (draft: PostDraft) => void
+  /** 용어 카드의 이어서 묻기: 채팅에 요청을 보낸다 */
+  onAsk: (message: string) => void
 }
 
 function Exchange({
@@ -191,6 +197,7 @@ function Exchange({
   onDownloadBrief,
   briefState,
   onPostDraft,
+  onAsk,
 }: ExchangeProps) {
   const { response } = exchange
   return (
@@ -198,7 +205,7 @@ function Exchange({
       <UserLine message={exchange.message} />
       <div className="chat-panel__answer">
         {match(response.status)
-          .with('ANSWERED', () => <AnswerBody response={response} onNavigate={onNavigate} />)
+          .with('ANSWERED', () => <AnswerBody response={response} onNavigate={onNavigate} onAsk={onAsk} />)
           .with('NOT_FOUND', () => (
             <div className="mascot-row">
               <Mascot mood="none" />
@@ -238,6 +245,7 @@ function Exchange({
           onDownloadBrief={onDownloadBrief}
           briefState={briefState}
           onPostDraft={onPostDraft}
+          onAsk={onAsk}
         />
         {response.status === 'ANSWERED' && response.questionId !== null && (
           <ChatFeedback analysisId={analysisId} questionId={response.questionId} />
@@ -247,8 +255,17 @@ function Exchange({
   )
 }
 
-function AnswerBody({ response, onNavigate }: { response: ChatMessageResponse; onNavigate: (c: ParamChanges) => void }) {
+interface AnswerBodyProps {
+  response: ChatMessageResponse
+  onNavigate: (c: ParamChanges) => void
+  onAsk: (message: string) => void
+}
+
+function AnswerBody({ response, onNavigate, onAsk }: AnswerBodyProps) {
   const answer = response.answer ?? ''
+  const [openTerm, setOpenTerm] = useState<string | null>(null)
+  const toggleTerm = (evidenceId: string) => setOpenTerm((open) => (open === evidenceId ? null : evidenceId))
+  const termCitation = response.citations.find((c) => c.kind === 'GLOSSARY' && c.evidenceId === openTerm) ?? null
   return (
     <>
       {/* 근거 인용이 있는 답에만 붙인다(화면 이동·목록 같은 답은 원문을 찾은 것이 아니다) */}
@@ -264,17 +281,30 @@ function AnswerBody({ response, onNavigate }: { response: ChatMessageResponse; o
           <ul className="chat-panel__brief-list">
             {briefLines(answer).map((line, i) => (
               <li key={i}>
-                <AnswerText text={line} citations={response.citations} onNavigate={onNavigate} />
+                <AnswerText
+                  text={line}
+                  citations={response.citations}
+                  onNavigate={onNavigate}
+                  openTerm={openTerm}
+                  onToggleTerm={toggleTerm}
+                />
               </li>
             ))}
           </ul>
         ))
         .with('CHAT', () => (
           <p className="chat-panel__text">
-            <AnswerText text={answer} citations={response.citations} onNavigate={onNavigate} />
+            <AnswerText
+              text={answer}
+              citations={response.citations}
+              onNavigate={onNavigate}
+              openTerm={openTerm}
+              onToggleTerm={toggleTerm}
+            />
           </p>
         ))
         .exhaustive()}
+      {termCitation !== null && <CitationGlossaryCard citation={termCitation} onAsk={onAsk} />}
       {response.aiGenerated && (
         <p className="chat-panel__meta">
           <Badge tone="accent">AI 생성</Badge> <span>{aiInfoLabel(response.ai)}</span>
@@ -288,16 +318,34 @@ interface AnswerTextProps {
   text: string
   citations: ChatCitation[]
   onNavigate: (c: ParamChanges) => void
+  /** 펼친 용어 카드 근거(evidenceId). 없으면 null */
+  openTerm: string | null
+  onToggleTerm: (evidenceId: string) => void
 }
 
 /** 답 글과 그 안의 근거 칩 */
-function AnswerText({ text, citations, onNavigate }: AnswerTextProps) {
+function AnswerText({ text, citations, onNavigate, openTerm, onToggleTerm }: AnswerTextProps) {
   return (
     <>
       {parseChatAnswer(text, citations).map((s, i) =>
         match(s)
           .with({ kind: 'text' }, ({ text }) => <span key={i}>{text}</span>)
-          .with({ kind: 'citation' }, ({ citation }) => <CitationChip key={i} citation={citation} onNavigate={onNavigate} />)
+          .with({ kind: 'citation' }, ({ citation }) =>
+            citation.kind === 'GLOSSARY' ? (
+              <button
+                key={i}
+                type="button"
+                className="chat-panel__citation"
+                title={citationTitle(citation)}
+                aria-expanded={openTerm === citation.evidenceId}
+                onClick={() => onToggleTerm(citation.evidenceId)}
+              >
+                [{citation.no}] {citationLabel(citation)} · 용어 카드
+              </button>
+            ) : (
+              <CitationChip key={i} citation={citation} onNavigate={onNavigate} />
+            ),
+          )
           .exhaustive(),
       )}
     </>
@@ -362,6 +410,7 @@ function Actions({
   onDownloadBrief,
   briefState,
   onPostDraft,
+  onAsk,
 }: ActionsProps) {
   // 키는 응답 actions 안의 순서로 정한다(무시한 액션을 빼도 바뀌지 않게)
   const targets = response.actions
@@ -382,6 +431,7 @@ function Actions({
           onDownloadBrief={onDownloadBrief}
           briefState={briefState}
           onPostDraft={onPostDraft}
+          onAsk={onAsk}
         />
       ))}
     </div>
@@ -399,6 +449,7 @@ interface ActionButtonProps {
   onDownloadBrief: () => void
   briefState: AsyncState<void>
   onPostDraft: (draft: PostDraft) => void
+  onAsk: (message: string) => void
 }
 
 function ActionButton({
@@ -411,8 +462,8 @@ function ActionButton({
   onDownloadBrief,
   briefState,
   onPostDraft,
+  onAsk,
 }: ActionButtonProps) {
-  const [showTerm, setShowTerm] = useState(false)
   const label = action.label ?? '열기'
   return match(target)
     .with({ kind: 'open' }, ({ changes }) => (
@@ -424,18 +475,7 @@ function ActionButton({
     .with({ kind: 'save-note' }, { kind: 'favorite' }, (confirm) => (
       <ChatConfirmAction target={confirm} label={label} done={done} onDone={onDone} />
     ))
-    .with({ kind: 'glossary' }, ({ term, entry }) => (
-      <div className="chat-panel__term">
-        <Button variant="secondary" aria-expanded={showTerm} onClick={() => setShowTerm((v) => !v)}>
-          {label}: {term}
-        </Button>
-        {showTerm && (
-          <p className="chat-panel__term-body">
-            {entry ? `${entry.term}: ${entry.definition}` : '등록된 용어가 없어요.'}
-          </p>
-        )}
-      </div>
-    ))
+    .with({ kind: 'glossary' }, ({ term }) => <GlossaryAction label={label} term={term} onAsk={onAsk} />)
     .with({ kind: 'link' }, ({ to }) => (
       <ButtonLink variant="secondary" to={to}>
         {label}
@@ -450,6 +490,43 @@ function ActionButton({
     ))
     .with({ kind: 'ignore' }, () => null)
     .exhaustive()
+}
+
+/** 근거 칩(GLOSSARY)으로 펼친 용어 카드. 카드 API의 카드를 키로 찾고, 못 받았으면 근거의 한 줄 뜻·출처만 보인다 */
+function CitationGlossaryCard({ citation, onAsk }: { citation: ChatCitation; onAsk: (message: string) => void }) {
+  const { state } = useGlossaryTerms()
+  const card = state.status === 'success' && citation.termKey ? findCardByKey(state.data, citation.termKey) : null
+  const basics = { term: citation.term ?? '용어', definition: citation.definition ?? '', sources: citation.sources ?? [] }
+  return <GlossaryCard card={card} basics={basics} cards={state} onAsk={onAsk} />
+}
+
+/**
+ * 용어 사전 열기 버튼(OPEN_GLOSSARY). 카드가 있으면 용어 카드를, #772 전까지는 glossary.ts 정의를 펼치고,
+ * 둘 다 없으면 '등록된 용어가 없어요'(뜻을 지어내지 않음)
+ */
+function GlossaryAction({ label, term, onAsk }: { label: string; term: string; onAsk: (message: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const { state } = useGlossaryTerms()
+  const entry = termEntryByName(state.status === 'success' ? state.data : null, term)
+  return (
+    <div className="chat-panel__term">
+      <Button variant="secondary" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+        {label}: {term}
+      </Button>
+      {open &&
+        match(entry)
+          .with({ source: 'card' }, ({ card }) => (
+            <GlossaryCard card={card} basics={{ term: card.term, definition: card.definition, sources: card.sources }} cards={state} onAsk={onAsk} />
+          ))
+          .with({ source: 'fallback' }, ({ term: name, definition }) => (
+            <p className="chat-panel__term-body">
+              {name}: {definition}
+            </p>
+          ))
+          .with(null, () => <p className="chat-panel__term-body">등록된 용어가 없어요.</p>)
+          .exhaustive()}
+    </div>
+  )
 }
 
 /** 비교 브리프 내려받기. 받는 중이면 끄고, 실패하면 다시 누를 수 있게 알린다('내보내기' 메뉴와 같은 안내) */
