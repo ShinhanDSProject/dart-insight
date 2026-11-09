@@ -71,7 +71,7 @@ M0~M2에서 이미 내린 결정은 2026-10-22에 소급해 기록했습니다(0
 | [0023](0023-grounded-question-answering.md) | 질문 답변은 동기 호출로 하고, 후보는 backend가 낱말로 찾으며, 답은 인용을 검증한 뒤 저장한다 | 채택 | 2026-10-24 |
 | [0024](0024-company-info-cache.md) | 기업 정보는 보고서에 딸린 자료는 접수번호로 한 번만, 바뀌는 자료는 받은 시각과 유효 시간으로 받아 저장한다 | 채택 | 2026-10-26 |
 | [0025](0025-company-briefing.md) | AI 기업 브리핑은 최신 사업보고서의 정해진 항목에서 근거를 골라 동기로 만들고, 보고서·프롬프트 버전마다 한 번만 저장한다 | 채택 | 2026-10-26 |
-| [0026](0026-openai-llm-provider.md) | 실제 LLM 제공자로 OpenAI Responses API를 연결하고, 기본 모델은 gpt-6.1-sol로 둔다 | 채택 | 2026-10-26 |
+| [0026](0026-openai-llm-provider.md) | 실제 LLM 제공자로 OpenAI Responses API를 연결하고, 기본 모델은 gpt-6.1-sol로 둔다 | 대체됨(ADR-0062) | 2026-10-26 |
 | [0027](0027-favorite-report-polling.md) | 즐겨찾기 기업의 정기보고서 목록은 정해진 주기로 다시 받고, 새 보고서는 서버 안의 이벤트로 알린다 | 채택 | 2026-10-26 |
 | [0028](0028-text-change-history-from-completed-analyses.md) | 문장 변경 이력은 완료된 분석을 이어 붙이고 같은 글로 따라가 만든다 | 채택 | 2026-10-26 |
 | [0029](0029-company-question-answering.md) | 기업 단위 질문은 브리핑과 같은 보고서에 묻고, 분석 질문의 후보 찾기·답 API를 그대로 쓰며, 따로 저장한다 | 채택 | 2026-10-26 |
@@ -106,4 +106,4 @@ M0~M2에서 이미 내린 결정은 2026-10-22에 소급해 기록했습니다(0
 | [0059](0059-task-model-agent-plan-luna.md) | LLM 모델을 작업마다 덮어쓸 수 있게 하고, 에이전트의 Tool 고르기(agent_plan)는 gpt-6-luna로 부른다 | 채택 | 2026-11-06 |
 | [0060](0060-event-signal-and-sentences.md) | 사건 신호는 AI가 묶을 때 고른 종류·변화로 ai-server 코드가 기준표에서 붙이고, 공시의 의미와 신호 이유는 묶기 뒤 사건마다 따로 부른다 | 채택 | 2026-11-06 |
 | [0061](0061-glossary-term-cards.md) | 공시 용어 카드는 backend 저장소 파일 한 곳에 두고, 화면과 채팅이 함께 읽으며, 채팅은 용어 카드를 근거(G{키})로 쓰고 카드가 없으면 보고서의 설명을 찾는다 | 제안 | 2026-11-06 |
-| [0062](0062-anthropic-llm-provider.md) | 실제 LLM 제공자로 Anthropic Claude Messages API를 더해 기본으로 쓰고, 기본 모델은 claude-sonnet-5-5, Tool 고르기는 claude-haiku-5-5로 둔다 | 제안 | 2026-11-09 |
+| [0062](0062-anthropic-llm-provider.md) | 실제 LLM 제공자로 Anthropic Claude Messages API를 더해 기본으로 쓰고, 기본 모델은 claude-sonnet-5-5, Tool 고르기는 claude-haiku-5-5로 둔다 | 채택 | 2026-11-09 |

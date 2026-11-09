@@ -1,8 +1,8 @@
 # ADR-0062: 실제 LLM 제공자로 Anthropic Claude Messages API를 더해 기본으로 쓰고, 기본 모델은 claude-sonnet-5-5, Tool 고르기는 claude-haiku-5-5로 둔다
 
-- 상태: 제안
+- 상태: 채택
 - 결정한 날: 2026-11-09
-- 관련: [이슈 #777](https://github.com/ShinhanDSProject/dart-insight/issues/777)(0.7), [ADR-0026](0026-openai-llm-provider.md)(대체), [ADR-0059](0059-task-model-agent-plan-luna.md)(작업별 모델 구조는 그대로, 기본값만 대체), [ADR-0008](0008-single-llm-module.md), [ADR-0049](0049-agent-plan-writes-answer.md), 노션 결정 로그 'LLM 제공자·모델 선택'(제공자 변경 항목 추가 필요)
+- 관련: [이슈 #777](https://github.com/ShinhanDSProject/dart-insight/issues/777)(0.7), [ADR-0026](0026-openai-llm-provider.md)(대체), [ADR-0059](0059-task-model-agent-plan-luna.md)(그대로 유효. 작업별 모델 구조와 OpenAI 쪽 기본값은 그대로이고, Claude 쪽 기본값만 더함), [ADR-0008](0008-single-llm-module.md), [ADR-0049](0049-agent-plan-writes-answer.md), 노션 결정 로그 'LLM 제공자·모델 선택'(제공자 변경 항목 추가 필요)
 
 ## 맥락
 
@@ -18,7 +18,7 @@
   - 프롬프트 캐시는 OpenAI처럼 자동으로 걸리지 않습니다. 블록에 `cache_control`을 넣어야 하고, 캐시 지점은 블록 경계에만 둘 수 있습니다. 요청 끝에 자동으로 두는 방식(최상위 `cache_control`)은 요청마다 바뀌는 끝부분까지 저장해, 끝이 매번 다르면 저장 비용(입력의 1.25배)만 냅니다. 이 모델들의 최소 캐시 길이는 512토큰입니다.
   - 토큰 사용량에서 `input_tokens`는 캐시에서 읽거나 캐시에 쓴 토큰을 뺀 수이고, 캐시 토큰은 `cache_read_input_tokens`·`cache_creation_input_tokens`로 따로 옵니다. 추론 토큰 수는 따로 주지 않습니다.
   - 오류: 429 `rate_limit_error`, 529 `overloaded_error`, 5xx는 다시 시도할 수 있습니다. 402 `billing_error`는 결제 문제라 다시 시도해도 나아지지 않습니다.
-  - Sonnet 5.5는 거절했을 때 서버가 같은 요청을 다른 모델로 이어 처리하는 대체(`fallbacks: "default"`, 베타 `server-side-fallback-2026-07-01`)를 Claude API에서 지원합니다. Haiku 5.5는 지원하지 않습니다.
+  - Sonnet 5.5는 거절했을 때 서버가 같은 요청을 다른 모델로 이어 처리하는 대체(`fallbacks: "default"`, 베타 `server-side-fallback-2026-07-01`)를 Claude API에서 지원합니다. `cyber`·`frontier_llm` 분류의 거절만 `claude-sonnet-5`(입력 2달러, 출력 10달러)로 다시 돌립니다. Haiku 5.5는 지원하지 않습니다.
 
 ## 결정
 
@@ -34,10 +34,11 @@
   - 캐시 지점(`cache_control` ephemeral)은 요청마다 같은 부분의 끝에 둡니다. 시스템 프롬프트 블록 끝, 그리고 `LlmRequest.user_cache_prefix`가 있으면 user의 그 앞부분 끝입니다. 에이전트 고르기·답 쓰기는 #633에서 앞에 모은 Tool·액션 목록까지를 앞부분으로 넘깁니다(`app/agent/prompt.py`). 요청 끝에 두는 자동 캐시는 쓰지 않습니다. 2026-11-09 실제 고르기 요청 3개를 차례로 보냈을 때 두 번째부터 입력 8,335토큰 중 8,215토큰을 캐시에서 읽었습니다.
   - 모델이 `claude-sonnet-5-5`이면 거절 대체 `fallbacks: "default"`를 켭니다. 대체 모델이 답하면 응답의 `model`이 그 모델이므로 호출 기록에 실제 모델이 남습니다.
 - 재시도는 `LlmClient`가 맡습니다. SDK 재시도는 끄고(`max_retries=0`), 호출당 시간 제한은 `with_options(timeout=...)`로 줍니다.
-- 오류 나누기: 연결 실패·시간 초과·408·409·429·5xx(529 포함)는 `ProviderTransientError`, 402 `billing_error`는 `ProviderQuotaError`, 그 밖의 4xx는 `ProviderError`입니다. `stop_reason`이 `refusal`이거나 `max_tokens`이면 `ProviderError`로 끝냅니다.
+- 오류 나누기: 연결 실패·시간 초과·408·409·429·5xx(529 포함)는 `ProviderTransientError`, 402 `billing_error`와 429 `enforced_spend_limit_reached`(조직 지출 한도)는 `ProviderQuotaError`, 그 밖의 4xx는 `ProviderError`입니다. `stop_reason`이 `refusal`이거나 `max_tokens`이면 `ProviderError`로 끝냅니다.
 - 토큰 기록(`ProviderResponse`): `input_tokens`는 `input_tokens + cache_read_input_tokens + cache_creation_input_tokens`(지금처럼 합계), `cached_input_tokens`는 `cache_read_input_tokens`, `reasoning_tokens`는 알 수 없으므로 null입니다(0과 구분).
 - 프롬프트는 바꾸지 않으므로 `PROMPT_VERSION`은 올리지 않습니다. 모델과 제공자는 호출 기록으로 구분합니다.
-- 기본값은 실제 원문으로 품질을 측정한 뒤 확정합니다. 측정에서 `gpt-6.1-sol`보다 눈에 띄게 나쁘면 이 ADR을 고치지 않고 새 ADR을 씁니다.
+- AI 사용 현황 가격표(`backend/src/main/resources/application.yml`)에 `claude-sonnet-5-5`·`claude-haiku-5-5`와 거절 대체 모델 `claude-sonnet-5`의 가격을 둡니다.
+- 품질 측정은 이 결정의 선행 조건이 아니라 병합 뒤 이어서 할 일입니다. 2026-11-09에 채팅·요약을 한 번씩 실제로 확인했고, 다른 작업(브리핑·전망·계획 대조·주요 사건)과 반려·'검토 필요' 비율은 호출 기록으로 이어서 봅니다. `gpt-6.1-sol`보다 눈에 띄게 나쁘면 이 ADR을 고치지 않고 새 ADR을 씁니다.
 
 ## 검토한 다른 방법
 
@@ -52,7 +53,7 @@
 ## 결과
 
 - 좋아지는 점: OpenAI 지출 한도와 상관없이 실제 모델로 요약·채팅을 돌릴 수 있습니다. 비용은 지금과 같은 가격대입니다. 환경 변수만 바꾸면 OpenAI로 되돌릴 수 있습니다.
-- 감수하는 점: 프롬프트는 OpenAI 모델에 맞춰 다듬어졌으므로 반려·'검토 필요' 비율이 달라질 수 있습니다. 측정 전까지 기본값은 잠정입니다. 추론 토큰 수는 기록되지 않습니다. 거절 대체는 베타 기능입니다.
+- 감수하는 점: 프롬프트는 OpenAI 모델에 맞춰 다듬어졌으므로 반려·'검토 필요' 비율이 달라질 수 있습니다. 추론 토큰 수는 기록되지 않습니다. 거절 대체는 베타 기능입니다.
 - 지켜야 할 것
   - 모델 ID·파라미터는 짐작하지 않고 Anthropic 공식 문서로 확인한 뒤 바꿉니다.
   - 키는 팀 공용 키 규칙대로 노션 '공용 키 모음'에 두고 각자 `.env`에만 넣습니다.
