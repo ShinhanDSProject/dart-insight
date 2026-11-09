@@ -268,7 +268,7 @@ W-03 ④ 원문 확인
 | `Tabs` | `label`, `items`, `value`, `onChange` | 결과 탭(주소가 바뀌므로 `nav` + `aria-current="page"`) |
 | `MenuButton` / `MenuItem` | `label`, `trigger`: `button`(보조 버튼)·`chip`·`icon`(아이콘만, `aria-label` 필수), `selected`(chip), `align`: `start`·`end`, `children`(함수면 닫는 함수를 받음) / 버튼 속성, 고른 값은 `aria-pressed` | 자주 쓰지 않는 동작을 묶는 펼침 상자(4-29): 결과 머리 '내보내기', 재무제표 '그 밖의 표', 이 기업의 다른 분석, 문장 변화 카드의 ⋯ 메뉴 |
 | `SegmentedControl` | `options`(`icon`은 선택), `value`, `onChange`, `disabled`, `variant`: `text`(기본)·`icon`, `aria-label`·`aria-labelledby` | 비교 기준, 전체·변경 항목, 정렬, 비교·현재 보고서. `icon`은 아이콘만 있는 작은 알약 모양(각 `label`이 접근 가능한 이름·툴팁). 상단 바 화면 테마는 `ThemeMenu`가 아이콘 버튼 아래 펼침 상자에 글자 칸으로 둔다(#548) |
-| `Chip` | `pressed`, `tone`: `neutral`·`attention`, `count` | 변경 유형 거르기, 주요 사건 신호 거르기(전체·주의·긍정·보류, #738) |
+| `Chip` | `pressed`, `tone`: `neutral`·`attention`, `count` | 변경 유형 거르기, 위험 관련 거르기(3.55), 주요 사건 신호 거르기(전체·주의·긍정·보류, #738) |
 | `Panel` / `PanelTitle` | `as`: `section`·`div` / `as`: `h2`·`h3`·`h4` | 화면의 큰 묶음 상자와 제목 |
 | `Card` | `as`, `tone`: `default`·`attention`·`subtle`, `selected`, `interactive` | 보고서·요약·변경 카드. `interactive`는 카드 전체를 눌러 고르는 카드(안에 링크·버튼)에만 붙여 hover·초점에 옅게 들린다 |
 | `StatNumber` | `label`, `value`(null이면 '-'·'자료 없음'), `format`, `unit`, `previousText`, `change`(`direction`·`amount`·`rate`), `changeNote`, `changeLabel`(빈 문자열이면 앞말 없음), `source` | 큰 숫자 지표(4-21) |
@@ -594,6 +594,9 @@ W-03 ④ 원문 확인
 - 목록 한 줄: 유형 글자, 첫 문장(한 줄 말줄임), '높음'(강조색)·'위험 관련'(주의색) 글자. 고른 줄은 왼쪽 강조색 막대와 강조 바탕, `aria-current`
 - 문서 순서일 때 같은 목차가 이어지면 머리줄(목차 경로·건수, 안쪽 상자 바탕)로 묶고 머리줄로 접는다. 우선순위 순이면 묶지 않고 줄 앞에 목차를 붙인다
 - 상세 머리줄: 순번(n / 전체), 이전(k)·다음(j), 합칠 수 있는 수정이면 '합쳐 보기 / 나란히 보기'. 주요 사건 안과 접어 둔 묶음은 카드 그대로
+- 탭 위쪽(3.55): 분야별 표 머리에 '위험 관련 n' 칩(`Chip tone="attention"`, 0건이면 누를 수 없음. 무엇을 위험 관련으로 보는지는 칩 설명으로 읽히고, 켜면 표 아래 안내 한 줄). 따로 된 위험 요인 변화 상자는 두지 않고, 분야별 표가 없는 옛 분석은 칩만 한 줄에 둔다. 분야별 표는 바깥 카드 테두리 없이 제목과 여백으로 나눈다
+- 거르기 한 줄(옅은 바탕 상자, 좁으면 줄바꿈): 섹션 드롭다운 · 문장 검색(평소 설명은 화면 낭독기에만, 너무 짧을 때만 보임) · 유형 칩(전체·내용·추가·삭제·수정, 그 밖은 '더 보기 ▾' 메뉴. 메뉴에서 고른 유형은 눌린 칩으로 줄에 보인다) · 고정 칩 · 정렬 드롭다운 · 유형 설명 ⓘ 버튼(누르면 아래에 펼침)
+- 주요 사건의 안내와 신호 안내는 한 줄로 합친다. 접어 둔 변경은 처음에 '접어 둔 변경 n건 보기 ▾' 한 줄 버튼만 두고, 누르면 묶음 줄이 펼쳐진다. 고정·우선순위 안내 같은 덧붙임 글은 목록 맨 아래 한 줄에 둔다
 
 ## 5-8. 근거 패널
 
