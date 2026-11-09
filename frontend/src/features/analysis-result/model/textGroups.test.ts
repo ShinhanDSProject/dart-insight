@@ -3,7 +3,7 @@ import type { TextListGroup } from '@/shared/api/textChanges'
 import { defaultListNote, foldedGroups, foldedTotal, listGroupsOf, noteScopeLabel } from './textGroups'
 
 const none = { type: null, section: null, q: null, risk: false, field: null }
-const groupCounts: Record<TextListGroup, number> = { MAIN: 606, HEADING: 94, FORMATTING: 23, MOVED: 7, NOTE: 428, PAIRED_TABLE: 5, UNPAIRED: 2 }
+const groupCounts: Record<TextListGroup, number> = { MAIN: 606, HEADING: 94, FORMATTING: 23, PERIOD: 90, MOVED: 7, NOTE: 428, PAIRED_TABLE: 5, UNPAIRED: 2 }
 
 describe('listGroupsOf', () => {
   it('거르기가 없으면 기본 목록(MAIN, UNPAIRED)을 부른다', () => {
@@ -28,6 +28,7 @@ describe('foldedGroups', () => {
       ['NOTE', 428],
       ['HEADING', 94],
       ['FORMATTING', 23],
+      ['PERIOD', 90],
       ['MOVED', 7],
       ['PAIRED_TABLE', 5],
     ])
@@ -35,10 +36,15 @@ describe('foldedGroups', () => {
 
   it('0건인 묶음은 보이지 않는다', () => {
     expect(foldedGroups({ ...groupCounts, MOVED: 0 }).map((g) => g.group)).not.toContain('MOVED')
+    expect(foldedGroups({ ...groupCounts, PERIOD: 0 }).map((g) => g.group)).not.toContain('PERIOD')
+  })
+
+  it("기간 표시만 바뀐 글은 '기수·기준일만 바뀐 글'로 접는다(3.57)", () => {
+    expect(foldedGroups(groupCounts).find((g) => g.group === 'PERIOD')?.label).toBe('기수·기준일만 바뀐 글')
   })
 
   it('접은 변경의 합을 낸다', () => {
-    expect(foldedTotal(groupCounts)).toBe(557)
+    expect(foldedTotal(groupCounts)).toBe(647)
   })
 })
 

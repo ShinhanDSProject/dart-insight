@@ -36,6 +36,11 @@ const FOLDED_GROUPS: { group: TextListGroup; label: string; description: string 
   { group: 'NOTE', label: '재무제표 주석', description: '소송·담보 등으로 올린 것을 뺀 나머지 주석이에요. 연결 주석을 먼저, 별도 주석을 뒤에 보여 줘요.' },
   { group: 'HEADING', label: '제목 줄처럼 짧은 글', description: '20자 미만으로 추가되거나 삭제된 글이에요.' },
   { group: 'FORMATTING', label: '띄어쓰기·기호만 다른 수정', description: '글자는 같고 띄어쓰기나 문장부호만 달라요.' },
+  {
+    group: 'PERIOD',
+    label: '기수·기준일만 바뀐 글',
+    description: '기수나 연도·기준일이 보고서 기간만큼만 바뀌고 나머지 글은 같아요.',
+  },
   { group: 'MOVED', label: '자리만 옮긴 글', description: '내용은 같고 위치만 바뀌었어요.' },
   { group: 'PAIRED_TABLE', label: '표 구성이 바뀌어 짝지은 이전 표', description: '새로 생긴 표와 짝지어 행끼리 비교한 이전 표예요.' },
 ]
