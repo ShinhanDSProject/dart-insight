@@ -47,8 +47,9 @@ from app.agent.validate import (
     plan_draft,
     review,
     schema_problem,
+    without_markers,
 )
-from app.compliance import scan_question
+from app.compliance import scan, scan_question
 from app.llm import CallRecord, LlmClient, LlmOutputInvalid, LlmUnavailable
 from app.llm.client import OUTCOME_INVALID_OUTPUT, OUTCOME_OK
 
@@ -220,6 +221,9 @@ def build_graph(llm: LlmClient) -> Any:
             if term and generations >= max_generations and not reviewed.blocked_rules
             else None
         )
+        if quote_only is not None and scan(without_markers(quote_only.answer or "")):
+            # 원문 문장도 화면에 내보내기 전에 표현 검사를 거친다. 걸리면 원문 인용 대신 검토 필요
+            quote_only = None
         if quote_only is not None and not reviewed.terminal:
             # 보고서 설명 풀이가 끝내 통과하지 못하면 풀이를 빼고 원문 인용만(ADR-0061)
             return {"rejections": rejections, "final": quote_only, "kind": FINAL, "next": _RESPOND}
