@@ -13,7 +13,7 @@ import { parseTextField } from './textFields'
 
 /**
  * W-03 결과 화면의 주소 상태(ST-6).
- * ?tab=overview 기업 개요(#589), ?slens=&sview= 요약(관점 거르기·보기), ?tab=&sj=&changed=&unit=&fq=&fsort=&change= 재무 수치, ?tab=community 커뮤니티(#575), ?tab=news 뉴스(#592), ?ttype=&tsort=&tsec=&tq=&trisk=&tfield=&tpin=&tc= 문장 변화, ?doc=&section=&block= 원문 확인
+ * ?tab=overview 기업 개요(#589), ?slens=&sview= 요약(관점 거르기·보기), ?tab=&sj=&changed=&unit=&fq=&fsort=&change= 재무 수치, ?tab=community 커뮤니티(#575), ?tab=news 뉴스(#592), ?ttype=&tsort=&tsec=&tq=&trisk=&tfield=&tpin=&tsel=&tc= 문장 변화, ?doc=&section=&block= 원문 확인
  */
 export type ResultTab = 'overview' | 'summary' | 'financial' | 'text' | 'community' | 'news' | 'source' | 'reports'
 
@@ -58,6 +58,8 @@ export interface ResultParams {
   textPinned: boolean
   /** 근거를 보고 있는 문장 변경(3.4) */
   selectedTextChangeId: number | null
+  /** 목록에서 골라 상세 칸에 보이는 문장 변경(3.54, tsel). null이면 목록의 첫 변경 */
+  textDetailId: number | null
   sourceSide: DocumentSide
   sourceSection: number | null
   sourceBlock: number | null
@@ -86,6 +88,7 @@ export function parseResultParams(params: URLSearchParams): ResultParams {
     textField: parseTextField(params.get('tfield')),
     textPinned: params.get('tpin') === '1',
     selectedTextChangeId: positiveInt(params.get('tc')),
+    textDetailId: positiveInt(params.get('tsel')),
     sourceSide: params.get('doc') === 'previous' ? 'previous' : 'current',
     sourceSection: positiveInt(params.get('section')),
     sourceBlock: positiveInt(params.get('block')),
@@ -134,6 +137,8 @@ export interface TextViewChange {
   /** 고정한 변경만 보기(3.3). 켜면 유형·섹션·검색어·위험 관련·분야를 지운다 */
   pinned?: boolean
   change?: number | null
+  /** 상세 칸에 보일 변경(3.54) */
+  detail?: number | null
 }
 
 export interface SourceViewChange {
@@ -157,32 +162,33 @@ export function financialParamChanges(c: FinancialViewChange): ParamChanges {
 }
 
 /**
- * 문장 변화 탭의 고르기를 주소 값으로. 거르기·정렬·섹션·검색어·위험 관련을 바꾸면 보던 근거를 닫는다.
+ * 문장 변화 탭의 고르기를 주소 값으로. 거르기·정렬·섹션·검색어·위험 관련을 바꾸면 보던 근거를 닫고 상세 칸의 고른 변경도 지운다(3.54).
  * '고정' 보기는 유형·섹션·검색어·위험 관련과 함께 쓰지 않는다. 켜면 그것들을 지우고, 그것들을 고르면 '고정' 보기를 끈다.
  */
 export function textParamChanges(c: TextViewChange): ParamChanges {
   return {
-    ...(c.type !== undefined ? { ttype: c.type, tpin: null, tc: null } : {}),
-    ...(c.sort !== undefined ? { tsort: c.sort === 'document' ? null : c.sort, tc: null } : {}),
-    ...(c.section !== undefined ? { tsec: c.section, tpin: null, tc: null } : {}),
-    ...(c.q !== undefined ? { tq: c.q, tpin: null, tc: null } : {}),
-    ...(c.risk !== undefined ? { trisk: c.risk ? '1' : null, tpin: null, tc: null } : {}),
+    ...(c.type !== undefined ? { ttype: c.type, tpin: null, tc: null, tsel: null } : {}),
+    ...(c.sort !== undefined ? { tsort: c.sort === 'document' ? null : c.sort, tc: null, tsel: null } : {}),
+    ...(c.section !== undefined ? { tsec: c.section, tpin: null, tc: null, tsel: null } : {}),
+    ...(c.q !== undefined ? { tq: c.q, tpin: null, tc: null, tsel: null } : {}),
+    ...(c.risk !== undefined ? { trisk: c.risk ? '1' : null, tpin: null, tc: null, tsel: null } : {}),
     ...(c.field !== undefined ? fieldParamChanges(c.field) : {}),
     ...(c.pinned !== undefined ? pinnedParamChanges(c.pinned) : {}),
     ...(c.change !== undefined ? { tc: idParam(c.change) } : {}),
+    ...(c.detail !== undefined ? { tsel: idParam(c.detail) } : {}),
   }
 }
 
 /** 칸을 고르면 목록이 칸의 건수와 맞도록 다른 거르기를 지우고, 풀면 분야만 지운다. 어느 쪽이든 보던 근거를 닫는다 */
 function fieldParamChanges(field: TextField | null): ParamChanges {
-  if (field === null) return { tfield: null, tc: null }
-  return { tfield: field, ttype: null, tsec: null, tq: null, trisk: null, tpin: null, tc: null }
+  if (field === null) return { tfield: null, tc: null, tsel: null }
+  return { tfield: field, ttype: null, tsec: null, tq: null, trisk: null, tpin: null, tc: null, tsel: null }
 }
 
 /** '고정' 보기를 켜면 유형·섹션·검색어·위험 관련·분야를 지우고, 끄면 '고정'만 지운다. 어느 쪽이든 보던 근거를 닫는다 */
 function pinnedParamChanges(pinned: boolean): ParamChanges {
-  if (pinned) return { tpin: '1', ttype: null, tsec: null, tq: null, trisk: null, tfield: null, tc: null }
-  return { tpin: null, tc: null }
+  if (pinned) return { tpin: '1', ttype: null, tsec: null, tq: null, trisk: null, tfield: null, tc: null, tsel: null }
+  return { tpin: null, tc: null, tsel: null }
 }
 
 export function sourceParamChanges(c: SourceViewChange): ParamChanges {

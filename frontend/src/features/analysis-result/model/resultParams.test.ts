@@ -39,6 +39,7 @@ describe('parseResultParams', () => {
       textField: null,
       textPinned: false,
       selectedTextChangeId: null,
+      textDetailId: null,
       sourceSide: 'current',
       sourceSection: null,
       sourceBlock: null,
@@ -53,7 +54,7 @@ describe('parseResultParams', () => {
   it('주소의 ttype=CONTENT를 내용 변경으로 읽고 주소에 그대로 쓴다', () => {
     expect(parseResultParams(new URLSearchParams('tab=text&ttype=CONTENT')).textType).toBe('CONTENT')
     expect(parseResultParams(new URLSearchParams('tab=text&ttype=content')).textType).toBeNull()
-    expect(textParamChanges({ type: 'CONTENT' })).toEqual({ ttype: 'CONTENT', tpin: null, tc: null })
+    expect(textParamChanges({ type: 'CONTENT' })).toEqual({ ttype: 'CONTENT', tpin: null, tc: null, tsel: null })
   })
 
   it('주소에 남긴 고르기를 읽는다', () => {
@@ -66,6 +67,7 @@ describe('parseResultParams', () => {
       textType: 'ADDED',
       textSort: 'document',
       selectedTextChangeId: 3,
+      textDetailId: null,
       sourceSide: 'previous',
       sourceSection: 2,
       sourceBlock: 5,
@@ -91,6 +93,7 @@ describe('parseResultParams', () => {
       textType: null,
       selectedChangeId: null,
       selectedTextChangeId: null,
+      textDetailId: null,
       sourceSection: null,
     })
   })
@@ -104,11 +107,11 @@ describe('문장 변화의 분야 거르기(3.28)', () => {
   })
 
   it('칸을 고르면 칸의 건수와 맞도록 다른 거르기와 보던 근거를 지운다', () => {
-    expect(textParamChanges({ field: 'AUDIT' })).toEqual({ tfield: 'AUDIT', ttype: null, tsec: null, tq: null, trisk: null, tpin: null, tc: null })
+    expect(textParamChanges({ field: 'AUDIT' })).toEqual({ tfield: 'AUDIT', ttype: null, tsec: null, tq: null, trisk: null, tpin: null, tc: null, tsel: null })
   })
 
   it('칸을 풀면 분야와 보던 근거만 지운다', () => {
-    expect(textParamChanges({ field: null })).toEqual({ tfield: null, tc: null })
+    expect(textParamChanges({ field: null })).toEqual({ tfield: null, tc: null, tsel: null })
   })
 
   it('고정만 보기를 켜면 분야도 지운다', () => {
@@ -159,26 +162,27 @@ describe('고르기를 주소 값으로 바꾸기', () => {
   })
 
   it('문장 변화의 거르기·정렬을 바꾸면 보던 근거를 닫고 기본 정렬은 주소에서 지운다', () => {
-    expect(textParamChanges({ type: 'DELETED' })).toEqual({ ttype: 'DELETED', tpin: null, tc: null })
-    expect(textParamChanges({ sort: 'document' })).toEqual({ tsort: null, tc: null })
-    expect(textParamChanges({ sort: 'priority' })).toEqual({ tsort: 'priority', tc: null })
+    expect(textParamChanges({ type: 'DELETED' })).toEqual({ ttype: 'DELETED', tpin: null, tc: null, tsel: null })
+    expect(textParamChanges({ sort: 'document' })).toEqual({ tsort: null, tc: null, tsel: null })
+    expect(textParamChanges({ sort: 'priority' })).toEqual({ tsort: 'priority', tc: null, tsel: null })
     expect(textParamChanges({ change: null })).toEqual({ tc: null })
+    expect(textParamChanges({ detail: 7 })).toEqual({ tsel: '7' })
   })
 
   it('섹션·검색어를 바꾸면 보던 근거를 닫고 지우면 주소에서 뺀다', () => {
-    expect(textParamChanges({ section: 'II. 사업의 내용' })).toEqual({ tsec: 'II. 사업의 내용', tpin: null, tc: null })
-    expect(textParamChanges({ q: '소송' })).toEqual({ tq: '소송', tpin: null, tc: null })
-    expect(textParamChanges({ type: null, section: null, q: null })).toEqual({ ttype: null, tsec: null, tq: null, tpin: null, tc: null })
+    expect(textParamChanges({ section: 'II. 사업의 내용' })).toEqual({ tsec: 'II. 사업의 내용', tpin: null, tc: null, tsel: null })
+    expect(textParamChanges({ q: '소송' })).toEqual({ tq: '소송', tpin: null, tc: null, tsel: null })
+    expect(textParamChanges({ type: null, section: null, q: null })).toEqual({ ttype: null, tsec: null, tq: null, tpin: null, tc: null, tsel: null })
   })
 
   it('고정만 보기를 켜면 유형·섹션·검색어와 보던 근거를 지우고, 끄면 주소에서 뺀다', () => {
-    expect(textParamChanges({ pinned: true })).toEqual({ tpin: '1', ttype: null, tsec: null, tq: null, trisk: null, tfield: null, tc: null })
-    expect(textParamChanges({ pinned: false })).toEqual({ tpin: null, tc: null })
+    expect(textParamChanges({ pinned: true })).toEqual({ tpin: '1', ttype: null, tsec: null, tq: null, trisk: null, tfield: null, tc: null, tsel: null })
+    expect(textParamChanges({ pinned: false })).toEqual({ tpin: null, tc: null, tsel: null })
   })
 
   it('위험 관련만 보기를 켜면 trisk=1을 남기고 고정 보기·보던 근거를 닫으며, 끄면 주소에서 뺀다(3.9)', () => {
-    expect(textParamChanges({ risk: true })).toEqual({ trisk: '1', tpin: null, tc: null })
-    expect(textParamChanges({ risk: false })).toEqual({ trisk: null, tpin: null, tc: null })
+    expect(textParamChanges({ risk: true })).toEqual({ trisk: '1', tpin: null, tc: null, tsel: null })
+    expect(textParamChanges({ risk: false })).toEqual({ trisk: null, tpin: null, tc: null, tsel: null })
     expect(parseResultParams(new URLSearchParams('tab=text&trisk=1')).textRisk).toBe(true)
     expect(parseResultParams(new URLSearchParams('tab=text&trisk=true')).textRisk).toBe(false)
   })
