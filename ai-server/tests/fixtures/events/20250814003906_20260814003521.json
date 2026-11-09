@@ -1,0 +1,235 @@
+{
+  "corpName": "현대자동차",
+  "previousRceptNo": "20250814003906",
+  "currentRceptNo": "20260814003521",
+  "events": [
+    {
+      "name": "대표이사 변경: 이동석 대표이사 중도사임, 최영일 대표이사 선임",
+      "kind": "대표이사 변경",
+      "core": true,
+      "signalKind": "CEO_CHANGE",
+      "signalChange": "CHANGED",
+      "signalEvidence": "대표이사 최영일",
+      "changes": [
+        {
+          "previousBlock": 25,
+          "currentBlock": 25
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 27
+        }
+      ]
+    },
+    {
+      "name": "사업목적에 자동차 대여사업 추가(제58기 정기주주총회)",
+      "kind": "사업 목적 변경",
+      "core": false,
+      "signalKind": "BUSINESS_PURPOSE_CHANGE",
+      "signalChange": "CHANGED",
+      "signalEvidence": "\"자동차 대여사업\"을 추가하였습니다",
+      "changes": [
+        {
+          "previousBlock": null,
+          "currentBlock": 103
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 104
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 107
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 108
+        }
+      ]
+    },
+    {
+      "name": "현대로템 대상 한국철도공사 손해배상 청구 소송(소송가액 93,534백만원) 기재",
+      "kind": "소송",
+      "core": false,
+      "signalKind": "LITIGATION",
+      "signalChange": "PROGRESSED",
+      "signalEvidence": "한국철도공사가 현대로템 및 다원시스를 대상으로 제기한 손해 배상 청구 소송",
+      "changes": [
+        {
+          "previousBlock": null,
+          "currentBlock": 1716
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1717
+        }
+      ]
+    },
+    {
+      "name": "현대로템, STX 관리인을 상대로 회생채권 조사확정재판 신청",
+      "kind": "소송",
+      "core": true,
+      "signalKind": "LITIGATION",
+      "signalChange": "NEW_AS_PLAINTIFF",
+      "signalEvidence": "회생채권 조사확정재판 신청",
+      "changes": [
+        {
+          "previousBlock": null,
+          "currentBlock": 1718
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1719
+        }
+      ]
+    },
+    {
+      "name": "에이치엠지퓨처콤플렉스에 2030년까지 3,349,350백만원 출자 약정",
+      "kind": "투자",
+      "core": true,
+      "signalKind": "LARGE_INVESTMENT",
+      "signalChange": "DECIDED",
+      "signalEvidence": "2030년까지 3,349,350백만원을 출자하는 약정을 체결하고 있습니다",
+      "changes": [
+        {
+          "previousBlock": 1625,
+          "currentBlock": null
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1722
+        }
+      ]
+    },
+    {
+      "name": "울산공장 산업안전보건법 위반으로 울산지방검찰청 벌금 부과",
+      "kind": "제재",
+      "core": false,
+      "signalKind": "SANCTION",
+      "signalChange": "OCCURRED",
+      "signalEvidence": "울산지방검찰청",
+      "changes": [
+        {
+          "previousBlock": 1628,
+          "currentBlock": null
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1725
+        }
+      ]
+    },
+    {
+      "name": "중대재해 발생사실 기재: 울산 환경챔버 질식(사망 3명), 현대로템 추락(사망 1명)",
+      "kind": "안전사고",
+      "core": true,
+      "signalKind": "SAFETY_ACCIDENT",
+      "signalChange": "OCCURRED",
+      "signalEvidence": "환경챔버 내 차량평가 중 질식 추정",
+      "changes": [
+        {
+          "previousBlock": 1632,
+          "currentBlock": 1729
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 1731
+        }
+      ]
+    },
+    {
+      "name": "현대카드, 금융정보분석원 과태료 22,800만원",
+      "kind": "제재",
+      "core": false,
+      "signalKind": "SANCTION",
+      "signalChange": "OCCURRED",
+      "signalEvidence": "22,800만원",
+      "changes": [
+        {
+          "previousBlock": 1638,
+          "currentBlock": 1740
+        }
+      ]
+    },
+    {
+      "name": "현대캐피탈, 방송통신위원회 과태료 300만원",
+      "kind": "제재",
+      "core": false,
+      "signalKind": "SANCTION",
+      "signalChange": "OCCURRED",
+      "signalEvidence": "방송통신위원회",
+      "changes": [
+        {
+          "previousBlock": null,
+          "currentBlock": 1737
+        }
+      ]
+    },
+    {
+      "name": "현대로템 입찰참가자격 제한(3개월) 처분 수용",
+      "kind": "제재",
+      "core": false,
+      "signalKind": "SANCTION",
+      "signalChange": "OCCURRED",
+      "signalEvidence": "행정처분을 수용하여",
+      "changes": [
+        {
+          "previousBlock": 1646,
+          "currentBlock": 1747
+        },
+        {
+          "previousBlock": 1647,
+          "currentBlock": 1748
+        }
+      ]
+    },
+    {
+      "name": "자기주식 보유·처분 계획과 우선주 취득·소각 계획",
+      "kind": "자기주식",
+      "core": true,
+      "signalKind": "TREASURY_STOCK",
+      "signalChange": "RETIRED",
+      "signalEvidence": "취득·소각 : 우선주 48,141주",
+      "changes": [
+        {
+          "previousBlock": null,
+          "currentBlock": 54
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 62
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 66
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 68
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 69
+        },
+        {
+          "previousBlock": null,
+          "currentBlock": 76
+        }
+      ]
+    },
+    {
+      "name": "Robotics and AI Institute 지분 장부가액 210,145백만원 감액",
+      "kind": "그 밖의 사건",
+      "core": false,
+      "signalKind": "OTHER",
+      "signalChange": "OTHER",
+      "signalEvidence": "210,145백만원 감액함",
+      "changes": [
+        {
+          "previousBlock": null,
+          "currentBlock": 1824
+        }
+      ]
+    }
+  ]
+}
