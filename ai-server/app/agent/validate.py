@@ -402,6 +402,9 @@ def _brief_problem(
         rule, problem = _sentence_problem(line, evidence)
         if problem:
             return rule, problem
+        rule, problem = _glossary_problem(line, evidence, step.company_name)
+        if problem:
+            return rule, problem
     return "", None
 
 
