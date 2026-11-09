@@ -3379,10 +3379,9 @@
   align-items: start;
 }
 
+/* 결과 탭 줄이 화면 위에 붙어 있어 목록은 붙이지 않고, 높이를 정해 따로 스크롤한다 */
 .change-browser__list {
-  position: sticky;
-  top: var(--space-4);
-  max-height: calc(100vh - 2 * var(--space-6));
+  max-height: 75vh;
   overflow: auto;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -3513,7 +3512,6 @@
   }
 
   .change-browser__list {
-    position: static;
     max-height: none;
   }
 
