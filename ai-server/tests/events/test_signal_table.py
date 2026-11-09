@@ -95,14 +95,14 @@ def test_glossary_terms_are_unique_and_have_meanings():
 
 
 def test_every_answer_event_has_a_kind_and_change_from_the_table():
-    """7.6 정답 사건의 종류·변화(7.8)는 기준표에 있는 값이고 근거 원문이 있다."""
+    """7.6 정답 사건과 7.9 새 기업 정답 사건의 종류·변화는 기준표에 있는 값이고 근거 원문이 있다."""
     changes = {k["code"]: {c["code"] for c in k["changes"]} for k in TABLE["kinds"]}
     events = [
         e
         for path in sorted((Path(__file__).parents[1] / "fixtures" / "events").glob("2*.json"))
         for e in json.loads(path.read_text(encoding="utf-8"))["events"]
     ]
-    assert len(events) == 28
+    assert len(events) == 28 + 12  # 7.6의 3개 기업 + 7.9의 현대자동차
     for e in events:
         assert e["signalChange"] in changes[e["signalKind"]], e["name"]
         assert e["signalEvidence"], e["name"]
