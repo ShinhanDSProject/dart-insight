@@ -675,56 +675,36 @@ describe('TextEventsArea', () => {
     expect(container.textContent).toBe('')
   })
 
-  it('묶이지 않은 변경이 AI 생성 표시 없이 원문 그대로 보인다(AC22)', () => {
-    area(ready([event()], [unbound(11)]))
+  it('사건에 들지 않은 후보는 카드 없이 건수 한 줄로 알린다(3.60 AC24)', () => {
+    area(ready([event()], [unbound(11), unbound(12)]))
 
-    const heading = screen.getByRole('heading', { name: '사건으로 묶이지 않은 주요 변경 1건' })
-    const section = within(heading.closest('section') as HTMLElement)
-    const card = within(section.getByRole('article'))
-    expect(card.getByText('이전 글 11')).toBeTruthy()
-    expect(card.getByText('현재 글 11')).toBeTruthy()
-    expect(card.getByText('주요 계약')).toBeTruthy()
-    expect(section.queryByText('AI 생성')).toBeNull()
+    expect(screen.getByText('사건에 들지 않은 후보 2건은 아래 전체 변경에서 볼 수 있어요.')).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: /사건으로 묶이지 않은/ })).toBeNull()
+    expect(screen.queryByText('현재 글 11')).toBeNull()
+    expect(screen.queryByRole('button', { name: '원문 비교' })).toBeNull()
   })
 
-  it('사건이 하나도 없어도 묶이지 않은 변경은 보이고 주요 사건 제목은 없다', () => {
+  it('사건이 하나도 없어도 들지 않은 후보 한 줄은 보이고 주요 사건 제목은 없다', () => {
     area(ready([], [unbound(11)]))
 
-    expect(screen.getByRole('heading', { name: '사건으로 묶이지 않은 주요 변경 1건' })).toBeTruthy()
+    expect(screen.getByText('사건에 들지 않은 후보 1건은 아래 전체 변경에서 볼 수 있어요.')).toBeTruthy()
     expect(screen.queryByRole('heading', { name: /^주요 사건/ })).toBeNull()
   })
 
-  it('없는 쪽의 글은 지어내지 않고 없다고 적는다', () => {
-    area(ready([], [unbound(11, { changeType: 'ADDED', previousPreview: null })]))
-
-    expect(screen.getByText('이전 보고서에 없던 내용')).toBeTruthy()
-  })
-
-  it('원문 비교를 누르면 그 변경의 번호로 연다', () => {
-    const { onOpenEvidence } = area(ready([], [unbound(11)]))
-
-    fireEvent.click(screen.getByRole('button', { name: '원문 비교' }))
-
-    expect(onOpenEvidence).toHaveBeenCalledWith(11)
-  })
-
-  it('많으면 10건씩 나눠 보여 주고 더 보기로 이어 본다', () => {
-    area(ready([], Array.from({ length: 12 }, (_, i) => unbound(i + 1))))
-
-    expect(screen.getAllByRole('article')).toHaveLength(10)
-    fireEvent.click(screen.getByRole('button', { name: /더 보기/ }))
-    expect(screen.getAllByRole('article')).toHaveLength(12)
-  })
-
-  it('분야를 고르면 그 칸의 묶이지 않은 변경만 보인다', () => {
+  it('분야를 고르면 그 칸의 건수만 센다(AC24)', () => {
     area(ready([], [unbound(11), unbound(12, { field: 'LITIGATION' })]), { ...noFilter, field: 'LITIGATION' })
 
-    expect(screen.getByRole('heading', { name: '사건으로 묶이지 않은 주요 변경 1건' })).toBeTruthy()
-    expect(screen.getByText('현재 글 12')).toBeTruthy()
-    expect(screen.queryByText('현재 글 11')).toBeNull()
+    expect(screen.getByText('사건에 들지 않은 후보 1건은 아래 전체 변경에서 볼 수 있어요.')).toBeTruthy()
   })
 
-  it('묶이지 않은 변경에 접근성 위반이 없다', async () => {
+  it('들지 않은 후보가 0건이면 그 줄이 없고 뺀 사건 안내는 그대로다(AC25)', () => {
+    area({ status: 'ready', list: { droppedEventCount: 1, items: [event()], unboundChanges: [] } as unknown as TextEventList })
+
+    expect(screen.queryByText(/사건에 들지 않은 후보/)).toBeNull()
+    expect(screen.getByText('근거를 확인하지 못한 사건은 보여 주지 않았어요.')).toBeTruthy()
+  })
+
+  it('들지 않은 후보 안내에 접근성 위반이 없다', async () => {
     const { container } = area(ready([event()], [unbound(11)]))
 
     expect(await axeViolations(container)).toBe('')
