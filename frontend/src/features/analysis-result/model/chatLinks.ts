@@ -8,7 +8,6 @@ import { NOTE_MEMO_MAX, type NoteCreate } from '@/shared/api/notes'
 import type { ChangeType } from '@/shared/api/textChanges'
 import { communityQuoteParamChanges } from '@/shared/lib/communityQuoteLink'
 import { companyComparisonPath } from '@/shared/lib/companyComparisonLink'
-import { glossary, type GlossaryEntry } from '@/shared/lib/glossary'
 import { formatDecimal } from '@/shared/lib/numberFormat'
 import type { ParamChanges } from '@/shared/lib/searchParams'
 import {
@@ -56,7 +55,7 @@ export function citationChanges(c: ChatCitation): ParamChanges | null {
     .with('FINANCIAL_CHANGE', () =>
       c.changeId !== undefined && c.sjDiv ? openFinancialChanges(c.sjDiv, c.changeId) : null,
     )
-    .with('DISCLOSURE', 'REPORT_VALUE', 'COMPANY', () => null)
+    .with('DISCLOSURE', 'REPORT_VALUE', 'GLOSSARY', 'COMPANY', () => null)
     .exhaustive()
 }
 
@@ -71,7 +70,7 @@ export function citationLink(c: ChatCitation): CitationLink | null {
     .with('DISCLOSURE', 'REPORT_VALUE', () =>
       c.dartUrl && DART_URL.test(c.dartUrl) ? { kind: 'external' as const, href: c.dartUrl } : null,
     )
-    .with('BLOCK', 'SECTION', 'TEXT_CHANGE', 'FINANCIAL_CHANGE', () => null)
+    .with('BLOCK', 'SECTION', 'TEXT_CHANGE', 'FINANCIAL_CHANGE', 'GLOSSARY', () => null)
     .exhaustive()
 }
 
@@ -86,6 +85,7 @@ export function citationLabel(c: ChatCitation): string {
     .with('REPORT_VALUE', () => c.label ?? c.reportName ?? '보고서 값')
     .with('COMPANY', () => c.corpName ?? '기업')
     .with('DISCLOSURE', () => c.reportName ?? '공시')
+    .with('GLOSSARY', () => c.term ?? '용어 카드')
     .exhaustive()
 }
 
@@ -99,6 +99,7 @@ export function citationTitle(c: ChatCitation): string | undefined {
     })
     .with('DISCLOSURE', () => [c.reportName, c.rceptDt].filter(Boolean).join(' · ') || undefined)
     .with('BLOCK', 'SECTION', 'TEXT_CHANGE', 'FINANCIAL_CHANGE', () => c.quote ?? c.sentence ?? c.sectionPath)
+    .with('GLOSSARY', () => c.definition)
     .exhaustive()
 }
 
@@ -122,7 +123,8 @@ function lastTitle(path: string | undefined): string | null {
 
 export type ChatActionTarget =
   | { kind: 'open'; changes: ParamChanges }
-  | { kind: 'glossary'; term: string; entry: GlossaryEntry | null }
+  /** 용어 사전 열기: 카드는 화면이 카드 API에서 이름으로 찾는다(ADR-0061) */
+  | { kind: 'glossary'; term: string }
   | { kind: 'brief' }
   /** 확인 버튼: 누르면 POST /api/notes(본문은 backend가 확인해 채운 값 그대로) */
   | { kind: 'save-note'; note: NoteCreate }
@@ -165,7 +167,7 @@ export function chatActionTarget(action: ChatAction, citations: ChatCitation[]):
     }
     case 'OPEN_GLOSSARY':
       return typeof action.term === 'string' && action.term.trim() !== ''
-        ? { kind: 'glossary', term: action.term.trim(), entry: glossaryEntryOf(action.term) }
+        ? { kind: 'glossary', term: action.term.trim() }
         : { kind: 'ignore' }
     case 'DOWNLOAD_BRIEF':
       return { kind: 'brief' }
@@ -198,12 +200,6 @@ export function chatActionTarget(action: ChatAction, citations: ChatCitation[]):
     default:
       return { kind: 'ignore' }
   }
-}
-
-/** 용어 사전(shared/lib/glossary)에서 이름이 같은 용어(공백 무시). 없으면 null이고 뜻을 지어내지 않는다 */
-export function glossaryEntryOf(term: string): GlossaryEntry | null {
-  const key = squeeze(term)
-  return Object.values(glossary).find((entry) => squeeze(entry.term) === key) ?? null
 }
 
 /** 문장 변화 탭 거르기. 액션의 type은 쉼표로 이은 유형이라 화면의 거르기 하나(한 유형 또는 '내용 변경')로 바꾼다 */
@@ -300,10 +296,6 @@ function isId(value: unknown): value is number {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function squeeze(text: string): string {
-  return text.replace(/\s+/g, '')
 }
 
 export type ChatAnswerSegment = { kind: 'text'; text: string } | { kind: 'citation'; citation: ChatCitation }

@@ -10,7 +10,6 @@ import {
   citationNote,
   citationTitle,
   crossCheckView,
-  glossaryEntryOf,
   parseChatAnswer,
 } from './chatLinks'
 import { parseResultParams } from './resultParams'
@@ -142,18 +141,10 @@ describe('chatActionTarget', () => {
     expect(chatActionTarget({ type: 'OPEN_GLOSSARY', label: null, term: '충당부채' }, [])).toEqual({
       kind: 'glossary',
       term: '충당부채',
-      entry: null,
     })
     expect(chatActionTarget({ type: 'DELETE_POST', label: null }, [])).toEqual({ kind: 'ignore' })
     expect(chatActionTarget({ type: 'OPEN_TAB', label: null, tab: 'ask' }, [])).toEqual({ kind: 'ignore' })
     expect(chatActionTarget({ type: 'OPEN_TEXT_CHANGE', label: null, changeId: '5' }, [])).toEqual({ kind: 'ignore' })
-  })
-})
-
-describe('glossaryEntryOf', () => {
-  it('공백을 무시하고 용어 이름이 같은 항목을 찾는다', () => {
-    expect(glossaryEntryOf('정정 공시')?.term).toBe('정정공시')
-    expect(glossaryEntryOf('없는 용어')).toBeNull()
   })
 })
 
@@ -234,6 +225,25 @@ describe('보고서 값·기업 근거 칩(#584)', () => {
     expect(citationLink(company)).toEqual({ kind: 'route', to: '/companies/00126380' })
     expect(citationLink({ ...value, dartUrl: 'https://example.com/x' })).toBeNull()
     expect(citationLink(financial)).toBeNull()
+  })
+})
+
+describe('용어 카드 근거 칩(GLOSSARY, ADR-0061)', () => {
+  const card: ChatCitation = {
+    no: 1,
+    kind: 'GLOSSARY',
+    evidenceId: 'GconvertibleBond',
+    termKey: 'convertibleBond',
+    term: '전환사채',
+    definition: '나중에 주식으로 바꿀 수 있는 회사채예요.',
+    sources: [{ title: '공식 자료', url: 'https://example.test' }],
+  }
+
+  it('이름은 용어, 마우스를 올리면 한 줄 뜻이고 결과 화면 이동·바깥 링크 없이 카드를 펼친다', () => {
+    expect(citationLabel(card)).toBe('전환사채')
+    expect(citationTitle(card)).toBe('나중에 주식으로 바꿀 수 있는 회사채예요.')
+    expect(citationChanges(card)).toBeNull()
+    expect(citationLink(card)).toBeNull()
   })
 })
 

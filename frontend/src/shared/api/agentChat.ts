@@ -1,3 +1,4 @@
+import type { GlossarySource } from './glossaryTerms'
 import { apiPost } from './client'
 import { endpoints } from './endpoints'
 import type { DocumentSide } from './documents'
@@ -29,7 +30,15 @@ export interface ChatMessageRequest {
   context: ChatContext
 }
 
-export type ChatCitationKind = 'BLOCK' | 'SECTION' | 'TEXT_CHANGE' | 'FINANCIAL_CHANGE' | 'DISCLOSURE' | 'REPORT_VALUE' | 'COMPANY'
+export type ChatCitationKind =
+  | 'BLOCK'
+  | 'SECTION'
+  | 'TEXT_CHANGE'
+  | 'FINANCIAL_CHANGE'
+  | 'DISCLOSURE'
+  | 'REPORT_VALUE'
+  | 'GLOSSARY'
+  | 'COMPANY'
 
 /** 답이 인용한 근거 하나. 답 안의 `[no]`가 가리킨다. 종류마다 채워지는 필드가 다르다(없는 필드는 응답에 없음) */
 export interface ChatCitation {
@@ -67,6 +76,11 @@ export interface ChatCitation {
   /** 기업 근거(COMPANY) */
   corpCode?: string
   corpName?: string
+  /** 용어 카드 근거(GLOSSARY, ADR-0061): 카드 키·용어·한 줄 뜻·출처 */
+  termKey?: string
+  term?: string
+  definition?: string
+  sources?: GlossarySource[]
 }
 
 /** 교차 검증 결과(코드가 정함, #581). 허위·오류 판정이 아니라 방향 대조 결과다 */

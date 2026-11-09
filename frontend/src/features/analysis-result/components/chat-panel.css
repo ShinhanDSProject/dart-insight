@@ -119,6 +119,47 @@ span.chat-panel__citation {
   font-size: var(--font-size-sm);
 }
 
+/* 용어 카드(ADR-0061): 근거 칩·용어 사전 열기 버튼을 누르면 답 아래에 펼친다 */
+.glossary-card {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding: var(--space-3);
+  font-size: var(--font-size-sm);
+}
+
+.glossary-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.glossary-card__fields {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.glossary-card__fields dt {
+  color: var(--color-text-muted);
+}
+
+.glossary-card__fields dd {
+  margin: 0 0 var(--space-1);
+}
+
+.glossary-card__note {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.glossary-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
 .chat-panel__form {
   display: flex;
   align-items: flex-end;
