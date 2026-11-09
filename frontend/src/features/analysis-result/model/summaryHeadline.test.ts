@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { SummaryItem } from '@/shared/api/summary'
-import { headlineItems } from './summaryHeadline'
+import { glossaryForAccount, headlineItems, headlineTitle } from './summaryHeadline'
 
 function financial(itemNo: number, factSentence: string | null, aiText: string | null = null): SummaryItem {
   return {
@@ -88,5 +88,16 @@ describe('headlineItems', () => {
 
   it('요약 항목이 없으면(검토 필요만 있어도) 빈 목록이다', () => {
     expect(headlineItems({ items: [] })).toEqual([])
+  })
+})
+
+describe('핵심 카드 제목과 용어 풀이', () => {
+  it('제목에 고른 줄 수를 쓴다', () => {
+    expect(headlineTitle(3)).toBe('이번 비교에서 크게 바뀐 것 3가지')
+  })
+
+  it('이름이 같은 용어 카드만 찾고(공백 무시), 없으면 지어내지 않고 null', () => {
+    expect(glossaryForAccount('영업 이익률')?.term).toBe('영업이익률')
+    expect(glossaryForAccount('당기손익-공정가치 측정 금융자산관련순손익')).toBeNull()
   })
 })
