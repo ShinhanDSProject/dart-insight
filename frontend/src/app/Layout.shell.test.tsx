@@ -122,8 +122,8 @@ describe('Layout 상단 바·하단 바(#548)', () => {
   })
 })
 
-describe('숨은 페이지(#753, #755)', () => {
-  it('Shift를 빠르게 두 번 누르면 3주의 기록을 새 탭으로 여는 안내가 뜨고 Esc로 닫힌다', () => {
+describe('숨은 페이지(#753, #755, #810)', () => {
+  it('Shift를 빠르게 두 번 누르면 시스템 가이드를 새 탭으로 여는 안내가 뜨고 Esc로 닫힌다', () => {
     renderLayout('/notes')
     expect(screen.queryByRole('dialog', { name: '숨은 페이지를 찾았어요' })).toBeNull()
 
@@ -131,7 +131,7 @@ describe('숨은 페이지(#753, #755)', () => {
     fireEvent.keyDown(document.body, { key: 'Shift' })
 
     const dialog = screen.getByRole('dialog', { name: '숨은 페이지를 찾았어요' })
-    const link = within(dialog).getByRole('link', { name: '3주의 기록 보기' })
+    const link = within(dialog).getByRole('link', { name: '시스템 가이드 보기' })
     expect(link.getAttribute('href')).toBe('/easter/three-weeks.html')
     expect(link.getAttribute('target')).toBe('_blank')
 
