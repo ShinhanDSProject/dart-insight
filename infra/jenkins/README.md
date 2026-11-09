@@ -103,3 +103,8 @@
 - 앱 이미지 복구는 DB를 되돌리지 않는다. V52는 추가 변경이지만, 실제 DB 복원은 별도 검토·절차가 필요하다.
 - tests/test_migration_preflight.py는 실제 DB 없이 동일 버전, 승인 변경, 내용 변경, 미승인 변경, 이전 이미지, 실패 기록 등을 시험한다.
 - 운영 기록은 Jenkins 실행 원인, 체크아웃 커밋, 하위 배포 결과, 실제 이미지 태그, DB 버전과 상태 확인 결과로 남긴다.
+
+## AI Compose 실행 시 환경 파일
+- AI의 env_file은 컨테이너에 값을 전달한다. ports의 AI_BIND_ADDRESS 치환에는 Compose 자체의 --env-file 입력도 필요하다.
+- AI 실행·조회에는 docker compose --env-file deploy/ai.env -f deploy/compose.ai.yaml -f deploy/compose.ai.release.yaml 명령을 사용한다.
+- 서비스 배포 스크립트도 같은 환경 파일을 지정한다. 기존 서버의 실제 키와 주소는 변경하지 않는다.
