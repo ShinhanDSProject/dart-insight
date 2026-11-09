@@ -327,6 +327,7 @@ export function TextTab({
           analysis={analysis}
           view={textEvents}
           field={pinned ? null : field}
+          listNarrowed={pinned || searched || riskOnly || type !== null}
           onRetry={retryEvents}
           onOpenEvidence={toggleEvidence}
           renderChanges={(items, eventId) => changeList(items, `event-${eventId}-`)}

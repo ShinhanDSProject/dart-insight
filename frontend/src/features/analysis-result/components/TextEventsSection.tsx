@@ -54,11 +54,13 @@ type TextEventsAreaProps = Omit<TextEventsSectionProps, 'list' | 'items'> & {
   view: TextEventsView
   /** 고른 분야. 유형·검색 등 다른 거르기는 사건에 걸지 않는다(3.61) */
   field: TextField | null
+  /** 전체 변경을 유형·검색·위험 관련·고정으로 거르는 중인지. 들지 않은 후보 안내의 문구만 바뀐다 */
+  listNarrowed: boolean
   onRetry: () => void
 }
 
 /** 분야별 표 아래의 사건 자리(3.38). 사건을 만드는 중이거나 만들지 못해도 탭의 나머지는 그대로 쓴다 */
-export function TextEventsArea({ analysis, view, field, onRetry, onOpenEvidence, renderChanges }: TextEventsAreaProps) {
+export function TextEventsArea({ analysis, view, field, listNarrowed, onRetry, onOpenEvidence, renderChanges }: TextEventsAreaProps) {
   return match(view)
     .with({ status: 'hidden' }, () => null)
     .with({ status: 'building' }, () => <LoadingState message={EVENTS_BUILDING} />)
@@ -84,7 +86,7 @@ export function TextEventsArea({ analysis, view, field, onRetry, onOpenEvidence,
     .with({ status: 'ready' }, ({ list }) => (
       <>
         <TextEventsSection analysis={analysis} list={list} items={visibleEvents(list.items, field)} onOpenEvidence={onOpenEvidence} renderChanges={renderChanges} />
-        <UnboundNote count={visibleUnbound(list.unboundChanges, field).length} />
+        <UnboundNote count={visibleUnbound(list.unboundChanges, field).length} listNarrowed={listNarrowed} />
       </>
     ))
     .exhaustive()
@@ -169,9 +171,9 @@ function SignalFilter({ items, signal, onChange }: SignalFilterProps) {
 }
 
 /** 후보였지만 어느 사건에도 들지 않은 변경의 건수(3.60, AC24·AC25). 변경 자체는 전체 변경에서 본다 */
-function UnboundNote({ count }: { count: number }) {
+function UnboundNote({ count, listNarrowed }: { count: number; listNarrowed: boolean }) {
   if (count === 0) return null
-  return <p className="panel__note text-events__unbound">{unboundNote(count)}</p>
+  return <p className="panel__note text-events__unbound">{unboundNote(count, listNarrowed)}</p>
 }
 
 type TextEventCardProps = Omit<TextEventsSectionProps, 'list' | 'items'> & { item: TextEventItem; onOpenCriteria: () => void }

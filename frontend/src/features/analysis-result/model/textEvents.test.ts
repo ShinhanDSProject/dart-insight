@@ -227,8 +227,12 @@ describe('eventListOf', () => {
 
 describe('unboundNote', () => {
   it('들지 않은 후보 건수를 전체 변경으로 안내한다', () => {
-    expect(unboundNote(3)).toBe('사건에 들지 않은 후보 3건은 아래 전체 변경에서 볼 수 있어요.')
-    expect(unboundNote(1200)).toBe('사건에 들지 않은 후보 1,200건은 아래 전체 변경에서 볼 수 있어요.')
+    expect(unboundNote(3, false)).toBe('사건에 들지 않은 후보 3건은 아래 전체 변경에서 볼 수 있어요.')
+    expect(unboundNote(1200, false)).toBe('사건에 들지 않은 후보 1,200건은 아래 전체 변경에서 볼 수 있어요.')
+  })
+
+  it('전체 변경을 거르는 중이면 거르기를 풀어야 보인다고 안내한다', () => {
+    expect(unboundNote(3, true)).toBe('사건에 들지 않은 후보 3건은 전체 변경의 거르기를 풀면 볼 수 있어요.')
   })
 })
 
