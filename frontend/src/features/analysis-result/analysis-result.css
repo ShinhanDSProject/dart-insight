@@ -563,7 +563,7 @@
   gap: var(--space-3);
 }
 
-/* 분야별 표(3.28). 칸은 눌러서 거르는 버튼이고, 고른 칸은 주색 바탕으로 뒤집는다 */
+/* 분야별 변경(3.28 → 3.58). 칩 한 줄이고 좁으면 줄바꿈한다. 칩은 공통 Chip을 쓰고 모서리만 각지게 한다(시안) */
 .field-table {
   display: flex;
   flex-direction: column;
@@ -573,8 +573,8 @@
 .field-table__head {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2) var(--space-4);
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
 }
 
 .field-table__title {
@@ -583,83 +583,35 @@
 }
 
 .field-table__total {
-  flex: 1;
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }
 
 .field-table__cells {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-2);
 }
 
-.field-table__note {
-  margin: 0;
-}
-
-.field-cell {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  padding: var(--space-3);
-  border: 1px solid var(--color-border);
+.field-chip {
+  min-height: 44px;
+  border-color: var(--color-border);
   border-radius: var(--radius-md);
-  background: var(--color-bg);
-  color: var(--color-text);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
 }
 
-.field-cell:hover:not(:disabled) {
+.field-chip:disabled {
   background: var(--color-bg-subtle);
-}
-
-.field-cell:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: 1px;
-}
-
-.field-cell:disabled {
-  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
   cursor: default;
 }
 
-.field-cell[aria-pressed='true'],
-.field-cell[aria-pressed='true']:hover:not(:disabled) {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
-  color: var(--color-primary-text);
-}
-
-.field-cell__label {
-  font-size: var(--font-size-sm);
-}
-
-.field-cell__value {
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-bold);
-}
-
-.field-cell:disabled .field-cell__value {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-regular);
-}
-
-.field-cell__events {
+.field-chip__events {
   font-size: var(--font-size-xs);
 }
 
-.field-cell:not([aria-pressed='true']) .field-cell__events {
+.field-chip:not([aria-pressed='true']) .field-chip__events {
   color: var(--color-text-muted);
-}
-
-@media screen and (max-width: 600px) {
-  .field-table__cells {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 /* 주요 사건(3.37). 카드는 제목만 보이고, 펼치면 인용과 묶인 변경이 나온다. 인용 칸은 변경 카드의 양쪽 칸(change-side)을 함께 쓴다 */
@@ -689,6 +641,49 @@
 .text-event__part-title {
   margin: 0;
   font-size: var(--font-size-md);
+}
+
+/* 제목과 안내를 한 줄에(3.58) */
+.text-events__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+}
+
+.text-events__head p {
+  margin: 0;
+}
+
+.text-events__more {
+  align-self: flex-start;
+}
+
+/* 사건 한 줄 목록(3.58). 카드 테두리 없이 줄 사이 구분선만 둔다 */
+.text-events__list--rows {
+  gap: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.text-events__list--rows > li {
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.text-event--row .text-event__head {
+  gap: var(--space-2) var(--space-3);
+}
+
+.text-event--row .text-event__title {
+  flex: 1 1 20rem;
+  min-width: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.text-event__meta {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
 }
 
 .text-events__filter {

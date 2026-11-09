@@ -140,10 +140,13 @@ afterEach(cleanup)
 describe('TextEventsSection', () => {
   const foreign = { scaleAmount: 11_800_000, scaleAmountText: 'USD 11,800,000', currency: 'USD', scaleAmountKrw: 16_300_000_000, scaleEvidenceId: '20260814003958#B1576', fxSource: 'reference_table', fxRateDate: '2025-12-31' } as const
 
-  it('펼치지 않아도 원래 금액, 환산 참고값과 기준, 근거 ID가 따로 보인다', () => {
+  it('사건 한 줄에는 금액을 보이고, 펼치면 원래 금액, 환산 참고값과 기준, 근거 ID가 따로 보인다(3.58)', () => {
     show([event(foreign)])
 
     const card = within(screen.getByRole('article', { name: '과징금을 새로 부과받았어요' }))
+    expect(card.getByText('제재 · USD 11,800,000 · AI 생성')).toBeTruthy()
+    expect(card.queryByText('20260814003958#B1576')).toBeNull()
+    fireEvent.click(card.getByRole('button', { name: '펼치기' }))
     expect(card.getByText('USD 11,800,000')).toBeTruthy()
     expect(card.getByText('약 163억원 (기준: 한국은행 매매기준율 2025-12-31)')).toBeTruthy()
     expect(card.getByText('20260814003958#B1576')).toBeTruthy()
@@ -158,6 +161,7 @@ describe('TextEventsSection', () => {
 
   it('금액의 근거 위치가 없으면 검토 필요로 보인다', () => {
     show([event({ ...foreign, scaleEvidenceId: null })])
+    fireEvent.click(screen.getByRole('button', { name: '펼치기' }))
 
     expect(screen.getByText('검토 필요').className).toContain('attention')
   })
@@ -165,19 +169,36 @@ describe('TextEventsSection', () => {
   it('사건마다 자기 금액만 보이고 더한 값을 보이지 않는다', () => {
     show([event(foreign), event({ ...foreign, eventId: 8, title: '다른 사건', scaleAmount: 2_000_000, scaleAmountText: 'USD 2,000,000' })])
 
-    expect(screen.getByText('USD 11,800,000')).toBeTruthy()
-    expect(screen.getByText('USD 2,000,000')).toBeTruthy()
+    expect(screen.getByText(/USD 11,800,000/)).toBeTruthy()
+    expect(screen.getByText(/USD 2,000,000/)).toBeTruthy()
     expect(screen.queryByText(/13,800,000/)).toBeNull()
   })
 
-  it('카드마다 제목, AI 생성, 사건 종류가 보이고 투자 판단이 아니라는 안내가 있다', () => {
+  it('사건 한 줄에 신호, 제목, 사건 종류와 AI 생성이 보이고 투자 판단이 아니라는 안내가 있다(3.58)', () => {
     show([event()])
 
     const card = within(screen.getByRole('article', { name: '과징금을 새로 부과받았어요' }))
-    expect(card.getByText('AI 생성')).toBeTruthy()
-    expect(card.getByText('제재')).toBeTruthy()
+    expect(card.getByText('제재 · AI 생성')).toBeTruthy()
+    expect(card.getByRole('heading', { name: '과징금을 새로 부과받았어요' })).toBeTruthy()
     expect(screen.getByText(/투자 판단이나 추천이 아니에요/)).toBeTruthy()
     expect(screen.getByRole('heading', { name: '주요 사건 1건' })).toBeTruthy()
+  })
+
+  it('사건은 처음 3건만 보이고 더 보기로 나머지를 연다(3.58 AC18)', () => {
+    show([1, 2, 3, 4, 5].map((n) => event({ eventId: n, title: `사건 ${n}` })))
+
+    expect(screen.getAllByRole('article')).toHaveLength(3)
+    expect(screen.getByRole('heading', { name: '주요 사건 5건' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '사건 2건 더 보기' }))
+    expect(screen.getAllByRole('article')).toHaveLength(5)
+    expect(screen.queryByRole('button', { name: /더 보기/ })).toBeNull()
+  })
+
+  it('사건이 3건 이하면 더 보기가 없다', () => {
+    show([1, 2, 3].map((n) => event({ eventId: n, title: `사건 ${n}` })))
+
+    expect(screen.getAllByRole('article')).toHaveLength(3)
+    expect(screen.queryByRole('button', { name: /더 보기/ })).toBeNull()
   })
 
   it('보여 줄 사건이 없으면 절이 없다', () => {
