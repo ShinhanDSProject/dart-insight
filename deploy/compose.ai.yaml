@@ -9,6 +9,6 @@ services:
     restart: unless-stopped
     environment:
       LLM_PROVIDER: openai
-      LLM_MODEL: gpt-6.1-sol
+      LLM_MODEL: gpt-4o-mini
     ports:
-      - "192.168.0.215:8000:8000"
+      - "${AI_BIND_ADDRESS:?AI_BIND_ADDRESS is required}:8000:8000"
