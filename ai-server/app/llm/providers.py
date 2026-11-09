@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import copy
 import json
+import logging
 from collections import deque
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
@@ -20,6 +21,8 @@ import anthropic
 import openai
 
 from app.core.config import LlmSettings
+
+logger = logging.getLogger("app.llm")
 
 
 @dataclass(frozen=True)
@@ -284,8 +287,10 @@ class AnthropicProvider:
 
     - 재시도는 `LlmClient`가 맡으므로 SDK 재시도는 끈다(`max_retries=0`).
     - `output_schema`가 있으면 구조화 출력(`output_config.format` json_schema)으로 받는다.
-      스키마 사본은 `claude_schema`로 맞춘다(`strict_schema` + 지원하지 않는 제약을 설명 글로).
+      스키마 사본은 `claude_schema`로 맞춘다(선택 속성은 그대로, 지원하지 않는 제약은 설명 글로).
       그런 제약(`maxItems` 등)은 기능 모듈의 검증 함수가 검사한다.
+      스키마가 Claude 한도(선택 속성 24개, 여러 타입 필드 16개)를 넘으면 구조화 출력 없이 보내고
+      프롬프트의 JSON 지시와 검증 함수에 맡긴다(지금은 에이전트 Tool 고르기).
     - 생각(adaptive thinking)은 모델 기본으로 둔다.
       추론 강도가 있으면 `output_config.effort`로 보낸다.
     - 고정된 앞부분(시스템 프롬프트)을 프롬프트 캐시에 둔다(`cache_control`, #633 순서 그대로).
@@ -324,10 +329,18 @@ class AnthropicProvider:
         }
         output_config: dict[str, Any] = {}
         if request.output_schema:
-            output_config["format"] = {
-                "type": "json_schema",
-                "schema": claude_schema(request.output_schema),
-            }
+            schema = claude_schema(request.output_schema)
+            if claude_schema_fits(schema):
+                output_config["format"] = {"type": "json_schema", "schema": schema}
+            else:
+                # 한도를 넘는 스키마는 400이 나므로 구조화 출력 없이 보낸다(ADR-0062).
+                # JSON 형식·내용은 LlmClient가 검증 함수로 확인하고 틀리면 다시 생성한다
+                logger.info(
+                    "Claude 구조화 출력 한도 초과로 스키마 없이 보냄 task=%s optional=%d union=%d",
+                    request.task,
+                    _optional_fields(schema),
+                    _union_fields(schema),
+                )
         if self._reasoning_effort:
             output_config["effort"] = self._reasoning_effort
         if output_config:
@@ -413,16 +426,56 @@ CLAUDE_UNSUPPORTED_KEYWORDS = (
 )
 # minItems는 0·1만 받는다
 CLAUDE_SUPPORTED_MIN_ITEMS = (0, 1)
+# 한 스키마에 '여러 타입' 필드(타입 목록·anyOf)와 선택 속성은 이 수까지만 받는다(넘으면 400,
+# 2026-11-09 실제 API 오류 메시지로 확인)
+CLAUDE_MAX_UNION_FIELDS = 16
+CLAUDE_MAX_OPTIONAL_FIELDS = 24
+
+
+def claude_schema_fits(schema: dict[str, Any]) -> bool:
+    """`claude_schema`로 맞춘 스키마가 Claude 구조화 출력의 크기 한도 안인지."""
+    return (
+        _union_fields(schema) <= CLAUDE_MAX_UNION_FIELDS
+        and _optional_fields(schema) <= CLAUDE_MAX_OPTIONAL_FIELDS
+    )
+
+
+def _schema_nodes(node: Any) -> Iterable[dict[str, Any]]:
+    if isinstance(node, list):
+        for value in node:
+            yield from _schema_nodes(value)
+    elif isinstance(node, dict):
+        yield node
+        for value in node.values():
+            yield from _schema_nodes(value)
+
+
+def _union_fields(schema: dict[str, Any]) -> int:
+    return sum(1 for n in _schema_nodes(schema) if isinstance(n.get("type"), list) or "anyOf" in n)
+
+
+def _optional_fields(schema: dict[str, Any]) -> int:
+    total = 0
+    for node in _schema_nodes(schema):
+        properties = node.get("properties")
+        if isinstance(properties, dict):
+            total += len(set(properties) - set(node.get("required") or []))
+    return total
 
 
 def claude_schema(schema: dict[str, Any]) -> dict[str, Any]:
     """JSON Schema를 Claude 구조화 출력의 제약에 맞춘 사본(ADR-0062).
 
-    `strict_schema`로 맞춘 뒤, 받지 않는 제약은 빼고 그 내용을 `description`에 적어
-    모델이 알 수 있게 한다(SDK `transform_schema`와 같은 방식. SDK 함수는 `["string", "null"]` 같은
-    타입 목록을 받지 못해 직접 한다). 뺀 제약은 기능 모듈의 검증 함수가 검사해야 한다.
+    - 속성이 있는 객체에 `additionalProperties: false`를 둔다. `required`는 부른 쪽 그대로 두고
+      선택 속성에 null을 더하지 않는다(`strict_schema`처럼 하면 '여러 타입' 필드가 한도를 넘는다).
+      그래서 선택 속성은 빠진 채로 올 수 있고, 검증 함수는 빠진 키를 '없음'으로 읽는다.
+    - `type` 없이 `enum`만 있으면 값에서 type을 정한다.
+    - 받지 않는 제약(`maxItems` 등)은 빼고 그 내용을 `description`에 적는다(SDK `transform_schema`와
+      같은 방식. SDK 함수는 `["string", "null"]` 같은 타입 목록을 받지 못해 직접 한다).
+      뺀 제약은 기능 모듈의 검증 함수가 검사해야 한다.
+    - 타입 목록과 `enum`이 함께 있으면 타입마다 나눈 `anyOf`로 바꾼다.
     """
-    return _claude(strict_schema(schema))
+    return _claude(copy.deepcopy(schema))
 
 
 def _claude(node: Any) -> Any:
@@ -430,6 +483,10 @@ def _claude(node: Any) -> Any:
         return [_claude(v) for v in node]
     if not isinstance(node, dict):
         return node
+    if "enum" in node and "type" not in node:
+        node["type"] = _enum_types(node["enum"])
+    if isinstance(node.get("properties"), dict):
+        node["additionalProperties"] = False
     moved: dict[str, Any] = {}
     for key in CLAUDE_UNSUPPORTED_KEYWORDS:
         if key in node:
@@ -445,6 +502,27 @@ def _claude(node: Any) -> Any:
         note = "{" + ", ".join(f"{k}: {json.dumps(v)}" for k, v in moved.items()) + "}"
         description = node.get("description")
         node["description"] = f"{description}\n\n{note}" if description else note
+    if isinstance(node.get("type"), list) and "enum" in node:
+        return _split_enum_types(node)
+    return node
+
+
+def _split_enum_types(node: dict[str, Any]) -> dict[str, Any]:
+    """타입 목록과 enum이 함께 있는 노드를 타입마다 나눈 anyOf로 바꾼다.
+
+    Claude는 `{"type": ["string", "null"], "enum": ["A", null]}`을 받지 않는다
+    (enum 값이 선언한 타입과 맞지 않는다고 400). 타입마다 그 타입의 enum 값만 둔다.
+    """
+    kinds: list[str] = node.pop("type")
+    values: list[Any] = node.pop("enum")
+    variants: list[dict[str, Any]] = []
+    for kind in kinds:
+        own = [v for v in values if _json_type(v) == kind]
+        if kind == "null":
+            variants.append({"type": "null"})
+        elif own:
+            variants.append({"type": kind, "enum": own})
+    node["anyOf"] = variants
     return node
 
 
@@ -483,19 +561,22 @@ def _strict(node: Any, nullable: bool) -> Any:
     return node
 
 
+def _json_type(value: Any) -> str:
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "boolean"
+    if isinstance(value, int):
+        return "integer"
+    if isinstance(value, float):
+        return "number"
+    return "string"
+
+
 def _enum_types(values: list[Any]) -> list[str] | str:
     names: list[str] = []
     for value in values:
-        if value is None:
-            name = "null"
-        elif isinstance(value, bool):
-            name = "boolean"
-        elif isinstance(value, int):
-            name = "integer"
-        elif isinstance(value, float):
-            name = "number"
-        else:
-            name = "string"
+        name = _json_type(value)
         if name not in names:
             names.append(name)
     return names[0] if len(names) == 1 else names
