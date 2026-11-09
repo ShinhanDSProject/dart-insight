@@ -187,8 +187,8 @@
       "name": "자기주식 보유·처분 계획과 우선주 취득·소각 계획",
       "kind": "자기주식",
       "core": true,
-      "signalKind": "TREASURY_STOCK",
-      "signalChange": "RETIRED",
+      "signalKind": "OTHER",
+      "signalChange": "OTHER",
       "signalEvidence": "취득·소각 : 우선주 48,141주",
       "changes": [
         {
