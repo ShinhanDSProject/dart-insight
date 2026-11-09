@@ -951,7 +951,7 @@ describe('TextTab 분야별 표(3.28)', () => {
 })
 
 describe('TextTab 기본 목록과 접힌 묶음(3.29)', () => {
-  const groupCounts = { MAIN: 2, HEADING: 3, FORMATTING: 0, MOVED: 1, NOTE: 4, PAIRED_TABLE: 0, UNPAIRED: 1 }
+  const groupCounts = { MAIN: 2, HEADING: 3, FORMATTING: 0, PERIOD: 2, MOVED: 1, NOTE: 4, PAIRED_TABLE: 0, UNPAIRED: 1 }
   const fieldCounts = { LITIGATION: 0, CONTRACT: 0, BUSINESS: 2, DIVIDEND: 0, FUNDING: 0, BOARD: 0, SHAREHOLDER: 0, AUDIT: 0, OTHER: 0 }
   const listing: TextListing = { listVersion: 'text-list-1', fieldCounts, missingFields: [], groupCounts }
 
@@ -988,7 +988,7 @@ describe('TextTab 기본 목록과 접힌 묶음(3.29)', () => {
 
   const folded = () => within(screen.getByRole('region', { name: /접어 둔 변경/ }))
   /** 처음에는 한 줄 버튼만 보여 묶음 줄을 펼친다(3.55) */
-  const showFolded = () => fireEvent.click(screen.getByRole('button', { name: /접어 둔 변경 8건 보기/ }))
+  const showFolded = () => fireEvent.click(screen.getByRole('button', { name: /접어 둔 변경 10건 보기/ }))
 
   it('기본 목록 건수와 짝을 정하지 못한 항목 건수를 알린다(AC9)', () => {
     renderDefault()
@@ -997,7 +997,7 @@ describe('TextTab 기본 목록과 접힌 묶음(3.29)', () => {
 
   it('접어 둔 변경은 처음에 한 줄 버튼만 보이고, 누르면 묶음 줄이 펼쳐진다(3.55)', () => {
     renderDefault()
-    const toggle = screen.getByRole('button', { name: /접어 둔 변경 8건 보기/ })
+    const toggle = screen.getByRole('button', { name: /접어 둔 변경 10건 보기/ })
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
     expect(screen.queryByRole('button', { name: /재무제표 주석 4건/ })).toBeNull()
     fireEvent.click(toggle)
@@ -1008,11 +1008,12 @@ describe('TextTab 기본 목록과 접힌 묶음(3.29)', () => {
 
   it('접힌 묶음을 건수와 함께 보이고 0건인 묶음은 뺀다(AC4)', () => {
     renderDefault()
-    expect(screen.getByRole('heading', { name: /접어 둔 변경 8건/ })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: /접어 둔 변경 10건/ })).toBeTruthy()
     showFolded()
     expect(folded().getByRole('button', { name: /재무제표 주석 4건/ }).getAttribute('aria-expanded')).toBe('false')
     expect(folded().getByRole('button', { name: /제목 줄처럼 짧은 글 3건/ })).toBeTruthy()
     expect(folded().getByRole('button', { name: /자리만 옮긴 글 1건/ })).toBeTruthy()
+    expect(folded().getByRole('button', { name: /기수·기준일만 바뀐 글 2건/ })).toBeTruthy()
     expect(folded().queryByRole('button', { name: /띄어쓰기/ })).toBeNull()
   })
 
@@ -1027,6 +1028,15 @@ describe('TextTab 기본 목록과 접힌 묶음(3.29)', () => {
     expect(folded().getByText('1 / 4건')).toBeTruthy()
     fireEvent.click(toggle)
     expect(folded().queryByText('별도 주석')).toBeNull()
+  })
+
+  it('기수·기준일만 바뀐 글 묶음을 펼치면 그 카드가 보인다(3.57 AC1)', () => {
+    list.groups = { PERIOD: success([{ ...item(7, 'I. 회사의 개요'), listGroup: 'PERIOD' }], 2) }
+    renderDefault()
+    showFolded()
+    fireEvent.click(folded().getByRole('button', { name: /기수·기준일만 바뀐 글 2건/ }))
+    expect(folded().getByRole('article')).toBeTruthy()
+    expect(folded().getByText('1 / 2건')).toBeTruthy()
   })
 
   it('묶음을 불러오지 못하면 다시 시도할 수 있다', () => {

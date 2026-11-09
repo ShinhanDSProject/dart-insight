@@ -14,7 +14,7 @@ export type TextSort = 'priority' | 'document'
 /** 변경의 분야(2.9). 목차 제목으로 나눈 것이라 실제 내용과 다를 수 있다 */
 export type TextField = 'LITIGATION' | 'CONTRACT' | 'BUSINESS' | 'DIVIDEND' | 'FUNDING' | 'BOARD' | 'SHAREHOLDER' | 'AUDIT' | 'OTHER'
 /** 변경의 묶음(2.9). MAIN·UNPAIRED가 화면의 기본 목록이고 나머지는 접는다 */
-export type TextListGroup = 'MAIN' | 'HEADING' | 'FORMATTING' | 'MOVED' | 'NOTE' | 'PAIRED_TABLE' | 'UNPAIRED'
+export type TextListGroup = 'MAIN' | 'HEADING' | 'FORMATTING' | 'PERIOD' | 'MOVED' | 'NOTE' | 'PAIRED_TABLE' | 'UNPAIRED'
 /** 주석의 연결·별도 구분. UNKNOWN은 구분할 수 없음 */
 export type NoteScope = 'CONSOLIDATED' | 'SEPARATE' | 'UNKNOWN'
 
