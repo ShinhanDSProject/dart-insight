@@ -105,4 +105,34 @@ class GlossaryTermsTest {
         assertThatThrownBy(() -> GlossaryTerms.of(List.of(noDefinition)))
                 .isInstanceOf(IllegalStateException.class);
     }
+
+    @Test
+    @DisplayName("용어·별칭으로 내보낼 수 있는 카드를 찾는다(공백·영문 대소문자 무시). 검토 전 카드는 findAny로만 찾는다")
+    void findsCardsByNameIgnoringSpacesAndCase() {
+        GlossaryTerm cb = card("convertibleBond", "전환사채", List.of("CB"), List.of(), SOURCE, REVIEWED);
+        GlossaryTerm draft = card("draft", "자본잠식", List.of(), List.of(), SOURCE, null);
+        GlossaryTerms terms = GlossaryTerms.of(List.of(cb, draft));
+
+        assertThat(terms.findPublished("cb")).map(GlossaryTerm::key).hasValue("convertibleBond");
+        assertThat(terms.findPublished(" 전환 사채 ")).map(GlossaryTerm::key).hasValue("convertibleBond");
+        assertThat(terms.findPublished("자본잠식")).isEmpty();
+        assertThat(terms.findAny("자본잠식")).map(GlossaryTerm::key).hasValue("draft");
+        assertThat(terms.findPublished(" ")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("비슷한 카드는 이름을 품는 카드를 먼저, 그다음 글자 조각이 많이 겹치는 순서로 최대 limit개, 검토 전 카드는 빼고 고른다")
+    void picksSimilarPublishedCards() {
+        GlossaryTerms terms = GlossaryTerms.of(List.of(
+                reviewed("debtRatio", "부채비율"),
+                reviewed("debt", "부채"),
+                reviewed("asset", "자산"),
+                card("draft", "부채상환", List.of(), List.of(), SOURCE, null)));
+
+        assertThat(terms.similarPublished("부채율", 3)).extracting(GlossaryTerm::key)
+                .containsExactly("debt", "debtRatio");
+        assertThat(terms.similarPublished("부채율", 1)).extracting(GlossaryTerm::key).containsExactly("debt");
+        assertThat(terms.similarPublished("배당", 3)).isEmpty();
+        assertThat(GlossaryTerms.similarity("부채율", "부채비율")).isEqualTo(0.4);
+    }
 }

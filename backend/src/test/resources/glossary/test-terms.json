@@ -31,6 +31,21 @@
       "reviewedAt": "2026-11-10"
     },
     {
+      "key": "convertibleBond",
+      "level": "CORE",
+      "term": "전환사채",
+      "aliases": ["CB"],
+      "definition": "나중에 정해진 값으로 주식으로 바꿀 수 있는 회사채예요.",
+      "example": "1만 원에 주식으로 바꿀 수 있는 사채 100만 원어치를 바꾸면 주식 100주가 돼요.",
+      "whereToCheck": "주요사항보고서(전환사채권발행결정)",
+      "noJudgment": "발행 사실만으로 좋고 나쁨을 정하지 않아요.",
+      "related": [],
+      "companyValue": null,
+      "sources": [{ "title": "테스트 공식 자료", "url": "https://example.test/cb" }],
+      "reviewer": "테스트 검토자",
+      "reviewedAt": "2026-11-10"
+    },
+    {
       "key": "capitalImpairment",
       "level": "CORE",
       "term": "자본잠식",

@@ -340,7 +340,7 @@ public class AgentTools {
                         TextEvidenceService.paths(documentService.sections(document)).get(block.sectionNo()),
                         row.quote())))
                 .orElseGet(() -> new Evidence(row.quoteEvidenceId(), Evidence.Kind.BLOCK, side, ref.rceptNo(), null,
-                        null, null, null, null, null, row.quote(), null, null, null, null, null, null, null))
+                        null, null, null, null, null, row.quote(), null, null, null, null, null, null, null, null))
                 .withGrade(grade);
         return new ToolLine(evidence, "[요약 인용, 등급 " + grade + "] " + row.quote(), ToolLine.Facts.change(changeId));
     }

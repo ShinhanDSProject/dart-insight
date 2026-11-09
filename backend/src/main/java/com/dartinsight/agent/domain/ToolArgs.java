@@ -1,6 +1,8 @@
 package com.dartinsight.agent.domain;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -26,6 +28,30 @@ public final class ToolArgs {
             }
         }
         return new ToolArgs(args);
+    }
+
+    /**
+     * 글 목록(앞뒤 공백을 빼고 빈 글은 버림, 같은 글은 한 번만). 개수가 min~max가 아니면 실패.
+     */
+    public List<String> strings(String name, int min, int max) {
+        Object value = values.get(name);
+        if (value != null && !(value instanceof List<?>)) {
+            throw new IllegalArgumentException(name + "는 글 목록이어야 합니다.");
+        }
+        List<String> texts = new ArrayList<>();
+        for (Object item : value == null ? List.of() : (List<?>) value) {
+            if (!(item instanceof String text)) {
+                throw new IllegalArgumentException(name + "는 글 목록이어야 합니다.");
+            }
+            String stripped = text.strip();
+            if (!stripped.isEmpty() && !texts.contains(stripped)) {
+                texts.add(stripped);
+            }
+        }
+        if (texts.size() < min || texts.size() > max) {
+            throw new IllegalArgumentException(name + "는 " + min + "~" + max + "개여야 합니다.");
+        }
+        return texts;
     }
 
     public String string(String name) {

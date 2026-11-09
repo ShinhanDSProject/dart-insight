@@ -1,11 +1,13 @@
 package com.dartinsight.agent.service;
 
+import static com.dartinsight.agent.domain.Schemas.array;
 import static com.dartinsight.agent.domain.Schemas.object;
 import static com.dartinsight.agent.domain.Schemas.oneOf;
 import static com.dartinsight.agent.domain.Schemas.properties;
 import static com.dartinsight.agent.domain.Schemas.string;
 
 import com.dartinsight.agent.domain.Evidence;
+import com.dartinsight.agent.domain.TermLines;
 import com.dartinsight.agent.domain.ToolArgs;
 import com.dartinsight.agent.domain.ToolLine;
 import com.dartinsight.agent.service.AgentTools.Output;
@@ -37,6 +39,8 @@ import com.dartinsight.financial.dto.FinancialTrendResponse;
 import com.dartinsight.financial.service.FinancialTrendService;
 import com.dartinsight.followup.dto.CompanyPlanFollowupResponse;
 import com.dartinsight.followup.service.PlanFollowupService;
+import com.dartinsight.glossary.domain.GlossaryTerm;
+import com.dartinsight.glossary.service.GlossaryTermService;
 import com.dartinsight.keyfact.domain.KeyFactChange;
 import com.dartinsight.keyfact.domain.KeyFactSection;
 import com.dartinsight.keyfact.domain.MajorShareholder;
@@ -54,6 +58,7 @@ import com.dartinsight.summary.domain.FinancialFacts;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -74,6 +79,7 @@ class AgentCompanyTools {
     static final String GET_FINANCIAL_TRENDS = "get_financial_trends";
     static final String GET_KEY_FACTS = "get_key_facts";
     static final String GET_CHECKPOINTS = "get_checkpoints";
+    static final String LOOKUP_TERMS = "lookup_terms";
     static final String GET_DISCLOSURES = "get_disclosures";
     static final String GET_DISCLOSURE_SIGNALS = "get_disclosure_signals";
     static final String GET_DISCLOSURE_KEY_ITEMS = "get_disclosure_key_items";
@@ -93,6 +99,10 @@ class AgentCompanyTools {
     static final String CHECKPOINT = "CHECKPOINT";
     static final String DISCLOSURE_KEY_ITEM = "DISCLOSURE_KEY_ITEM";
 
+    /** 용어 찾기 한 번에 받는 용어 수(ADR-0061) */
+    static final int MAX_TERMS = 3;
+    /** 카드가 없을 때 알리는 비슷한 카드 수(AC5) */
+    static final int SIMILAR_TERMS = 3;
     /** 기업 검색 후보 수(같은 이름이 여럿이면 고르게 묻는 데 충분한 만큼) */
     static final int SEARCH_LIMIT = 10;
     /** 공시 목록 기간(기업 화면 기본값과 같음) */
@@ -119,6 +129,7 @@ class AgentCompanyTools {
     private final CompanyAnalysisService companyAnalysisService;
     private final ReportPairService reportPairService;
     private final ComparabilityService comparabilityService;
+    private final GlossaryTermService glossaryTermService;
 
     List<Tool> all() {
         Map<String, Object> corpOnly = object(properties(CORP, corpSchema()), List.of());
@@ -135,6 +146,10 @@ class AgentCompanyTools {
                 new Tool(GET_CHECKPOINTS, "체크 포인트 7가지(부채비율, 이익과 현금흐름, 매출채권·재고자산·단기 차입금 증가, "
                         + "주식 관련 자금 조달 공시, 감사의견)의 상태와 올해·작년 값. 부채비율을 물으면 이 Tool", corpOnly, VALUE_ITEMS,
                         (a, args) -> Output.of(checkpoints(a, args))),
+                new Tool(LOOKUP_TERMS, "공시·재무 용어(별칭·약어 포함)의 용어 카드: 한 줄 뜻, 쉬운 예시, 확인할 곳, 판단하지 않는 "
+                        + "점, 이 회사 값을 찾을 곳. 용어의 뜻을 물으면 이 Tool. 카드가 없으면 비슷한 카드만 알려 준다",
+                        object(properties("terms", array("찾을 용어나 별칭 1~" + MAX_TERMS + "개(예: 전환사채, CB)",
+                                string("용어"))), List.of("terms")), 0, (a, args) -> Output.of(lookupTerms(args))),
                 new Tool(GET_DISCLOSURES, "최근 " + DISCLOSURE_DAYS + "일 공시 목록(제목·접수일)", object(properties(CORP, corpSchema(),
                         "group", oneOf("공시 묶음. PERIODIC 정기보고서, OWNERSHIP 지분 변동, FUNDING 자금 조달, "
                                 + "GOVERNANCE 지배구조, BUSINESS 실적·영업, OTHER 기타", GROUPS)), List.of()), 0,
@@ -306,6 +321,24 @@ class AgentCompanyTools {
             }
         }
         return lines;
+    }
+
+    /** 용어마다 카드 한 줄(출처·검토를 마친 카드만). 같은 카드를 두 번 찾으면 한 줄만 둔다 */
+    private List<ToolLine> lookupTerms(ToolArgs args) {
+        List<String> queries = args.strings("terms", 1, MAX_TERMS);
+        Map<String, String> names = new LinkedHashMap<>();
+        glossaryTermService.published().forEach(t -> names.put(t.key(), t.term()));
+        Map<String, ToolLine> lines = new LinkedHashMap<>();
+        for (String query : queries) {
+            GlossaryTerm found = glossaryTermService.findPublished(query).orElse(null);
+            if (found != null) {
+                lines.putIfAbsent(found.key(), TermLines.card(found, names));
+            } else {
+                lines.put("?" + query, TermLines.notFound(query,
+                        glossaryTermService.similarPublished(query, SIMILAR_TERMS)));
+            }
+        }
+        return List.copyOf(lines.values());
     }
 
     private List<ToolLine> disclosures(Long analysisId, ToolArgs args) {
