@@ -75,3 +75,6 @@ target/
 /deploy/*.bak-*
 /deploy/*.before-*
 /deploy/nginx.chunk-test.conf
+
+# Agent 전용 배포 주소
+deploy-targets.env

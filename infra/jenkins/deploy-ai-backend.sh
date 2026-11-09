@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# 실제 대상 주소는 Agent 전용 파일에서 읽고 Git에 저장하지 않는다.
+source /home/jenkins/agent/ops/deploy-targets.env
+: "${VM1_HOST:?VM1_HOST 설정이 필요합니다.}"
+: "${VM2_HOST:?VM2_HOST 설정이 필요합니다.}"
+for host in "$VM1_HOST" "$VM2_HOST"; do
+    [[ "$host" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]] || {
+        echo "배포 대상 주소 형식이 올바르지 않습니다."
+        exit 1
+    }
+done
+
 ai_tag=${1:?AI 이미지 태그가 필요합니다.}
 backend_tag=${2:?백엔드 이미지 태그가 필요합니다.}
 release_id="$(date +%Y%m%d-%H%M%S)-${BUILD_NUMBER:-manual}"
@@ -40,7 +51,7 @@ remote_operation() {
     local mode=$3
     local tag=$4
     ssh "${ssh_options[@]}" "student@$host" \
-      "bash -s -- $service $mode $tag $release_id" <<'REMOTE'
+      "bash -s -- $service $mode $tag $release_id $VM2_HOST" <<'REMOTE'
 set -euo pipefail
 umask 077
 
@@ -48,6 +59,7 @@ service=$1
 mode=$2
 tag=$3
 release_id=$4
+ai_host=$5
 cd ~/projects/dart-insight
 
 case "$service" in
@@ -69,7 +81,7 @@ backup_dir="$HOME/dart-deploy-backups/$service-$release_id"
 
 health() {
     if [ "$service" = ai ]; then
-        curl -fsS --max-time 3 http://192.168.0.215:8000/health </dev/null
+        curl -fsS --max-time 3 "http://$ai_host:8000/health" </dev/null
     else
         "${compose[@]}" exec -T web wget -q -T 3 -O - \
           http://backend:8080/actuator/health </dev/null
@@ -103,8 +115,8 @@ container=$("${compose[@]}" ps -q "$service")
 test -n "$container"
 docker image inspect "dart-insight-$service:$tag" >/dev/null
 
-# 백엔드는 DB 변경 파일 목록이 현재 DB 적용 목록과 같은 경우에만 진행한다.
-# 새 마이그레이션이 있으면 서비스 교체 전에 중단한다.
+# 백엔드는 적용 목록과 같거나, 내용 해시까지 검토한 추가 변경만 허용한다.
+# 검토하지 않은 변경과 이전 DB 버전의 이미지는 서비스 교체 전에 중단한다.
 if [ "$service" = backend ]; then
     check_dir=$(mktemp -d)
     probe=""
@@ -129,33 +141,51 @@ if [ "$service" = backend ]; then
     docker cp "$probe:/app/app.jar" "$check_dir/app.jar"
 
     python3 - "$check_dir" <<'PY'
+import hashlib
 import re
 import sys
 from pathlib import Path
 from zipfile import ZipFile
+
+# V52만 검토한 SQL 내용과 정확히 일치할 때 허용한다.
+# 새 버전은 자동 허용하지 않고, SQL 검토 후 이 목록을 별도 변경한다.
+REVIEWED_MIGRATIONS = {
+    "52": "d1dc0381ea93b872ae5e9c90bf964efe420aa20d42ae75f33937cea47682e9df",
+}
 
 root = Path(sys.argv[1])
 if root.joinpath("failed.txt").read_text().strip() != "0":
     raise SystemExit("DB에 실패한 마이그레이션 기록이 있습니다. 배포를 중단합니다.")
 
 applied = set(root.joinpath("applied.txt").read_text().split())
+desired = {}
 with ZipFile(root / "app.jar") as jar:
     scripts = [
         name for name in jar.namelist()
         if name.startswith("BOOT-INF/classes/db/migration/") and name.endswith(".sql")
     ]
+    for name in scripts:
+        match = re.search(r"/V([^/]+?)__[^/]+[.]sql$", name)
+        if not match:
+            raise SystemExit("추가 확인이 필요한 DB 스크립트가 있습니다. 수동 검토가 필요합니다.")
+        version = match.group(1).replace("_", ".")
+        if version in desired:
+            raise SystemExit("같은 DB 변경 버전이 중복돼 있습니다. 배포를 중단합니다.")
+        desired[version] = hashlib.sha256(jar.read(name)).hexdigest()
 
-desired = set()
-for name in scripts:
-    match = re.search(r"/V([^/]+?)__[^/]+[.]sql$", name)
-    if not match:
-        raise SystemExit("추가 확인이 필요한 DB 스크립트가 있습니다. 수동 검토가 필요합니다.")
-    desired.add(match.group(1).replace("_", "."))
+if not applied or not desired or applied - desired.keys():
+    raise SystemExit("현재 DB보다 이전인 이미지이거나 DB 변경 목록이 비어 있습니다. 배포를 중단합니다.")
 
-if not desired or desired != applied:
-    raise SystemExit("이미지의 DB 변경 목록과 현재 DB가 다릅니다. 마이그레이션을 먼저 검토하세요.")
+pending = desired.keys() - applied
+for version in sorted(pending):
+    if desired[version] != REVIEWED_MIGRATIONS.get(version):
+        raise SystemExit("검토하지 않은 DB 변경이 있습니다. 마이그레이션을 먼저 검토하세요: " + version)
 
-print("DB 변경 버전 목록 일치 확인", len(desired), "개")
+if pending:
+    print("검토한 DB 변경만 허용:", ", ".join(sorted(pending)))
+    print("서비스 교체 전 DB 백업 후 새 백엔드의 Flyway가 적용합니다. DB 자동 역변경은 하지 않습니다.")
+else:
+    print("DB 변경 버전 목록 일치 확인", len(desired), "개")
 PY
     cleanup_probe
     trap - EXIT
@@ -248,24 +278,24 @@ check_image backend "$backend_tag"
 
 echo "백엔드 이미지를 VM1에 전달합니다."
 docker image save "dart-insight-backend:$backend_tag" |
-  ssh "${ssh_options[@]}" student@192.168.0.214 "docker image load"
+  ssh "${ssh_options[@]}" "student@$VM1_HOST" "docker image load"
 
 # 두 대상의 사전 확인을 끝낸 뒤 서비스 교체를 시작한다.
-remote_operation 192.168.0.215 ai preflight "$ai_tag"
-remote_operation 192.168.0.214 backend preflight "$backend_tag"
+remote_operation "$VM2_HOST" ai preflight "$ai_tag"
+remote_operation "$VM1_HOST" backend preflight "$backend_tag"
 
-remote_operation 192.168.0.215 ai deploy "$ai_tag"
+remote_operation "$VM2_HOST" ai deploy "$ai_tag"
 
 # if 조건 안에서 remote_operation을 호출하면 Bash의 errexit 동작이 달라질 수
 # 있으므로 별도 프로세스로 성공/실패를 수집한다. 원격 Bash는 자체 set -e를 사용한다.
 set +e
-(set -e; remote_operation 192.168.0.214 backend deploy "$backend_tag")
+(set -e; remote_operation "$VM1_HOST" backend deploy "$backend_tag")
 backend_result=$?
 set -e
 
 if [ "$backend_result" -ne 0 ]; then
     echo "백엔드 배포가 실패해 AI도 이전 버전으로 복구를 시도합니다."
-    if ! remote_operation 192.168.0.215 ai restore "$ai_tag"; then
+    if ! remote_operation "$VM2_HOST" ai restore "$ai_tag"; then
         echo "AI 복구 확인 실패. 운영자 확인이 필요합니다."
     fi
     exit "$backend_result"

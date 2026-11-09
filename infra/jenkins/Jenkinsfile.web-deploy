@@ -28,6 +28,10 @@ pipeline {
                 sh '''#!/usr/bin/env bash
 set -euo pipefail
 
+source /home/jenkins/agent/ops/deploy-targets.env
+: "${VM1_HOST:?VM1_HOST 설정이 필요합니다.}"
+[[ "$VM1_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]]
+
 if [[ ! "$WEB_IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]]; then
     echo "이미지 태그에는 전체 커밋 번호 40자리를 입력하세요."
     exit 1
@@ -47,9 +51,9 @@ ssh_options=(
 echo "웹 이미지를 VM1으로 전달합니다."
 
 docker image save "dart-insight-web:$WEB_IMAGE_TAG" |
-  ssh "${ssh_options[@]}" student@192.168.0.214 "docker image load"
+  ssh "${ssh_options[@]}" "student@$VM1_HOST" "docker image load"
 
-ssh "${ssh_options[@]}" student@192.168.0.214 \
+ssh "${ssh_options[@]}" "student@$VM1_HOST" \
   "bash -s -- $WEB_IMAGE_TAG" <<'REMOTE'
 set -euo pipefail
 umask 077

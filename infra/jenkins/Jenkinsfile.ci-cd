@@ -24,11 +24,11 @@ pipeline {
                             poll: true,
                             scm: [
                                 $class: 'GitSCM',
-                                branches: [[name: '*/chore/jenkins-runtime-images']],
+                                branches: [[name: '*/main']],
                                 userRemoteConfigs: [[
                                     name: 'origin',
                                     url: 'https://github.com/ShinhanDSProject/dart-insight.git',
-                                    refspec: '+refs/heads/chore/jenkins-runtime-images:refs/remotes/origin/chore/jenkins-runtime-images'
+                                    refspec: '+refs/heads/main:refs/remotes/origin/main'
                                 ]],
                                 extensions: [[
                                     $class: 'CloneOption',
@@ -48,6 +48,21 @@ pipeline {
                         }
 
                         sh 'git log -1 --oneline'
+                    }
+                }
+
+                stage('배포 사전 검사 검증') {
+                    steps {
+                        sh '''#!/usr/bin/env bash
+set -euo pipefail
+docker build --progress=plain -f - ./infra/jenkins <<'DOCKERFILE'
+FROM python:3.12-slim
+WORKDIR /checks
+COPY deploy-ai-backend.sh ./
+COPY tests/test_migration_preflight.py ./tests/
+RUN python tests/test_migration_preflight.py
+DOCKERFILE
+'''
                     }
                 }
 
@@ -178,6 +193,11 @@ COPY . .
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 DOCKERFILE
+
+bash -n infra/jenkins/deploy-ai-backend.sh
+install -d -m 700 /home/jenkins/agent/ops
+install -m 700 infra/jenkins/deploy-ai-backend.sh \
+  /home/jenkins/agent/ops/deploy-ai-backend.sh
 
 echo "실행 이미지 생성 완료: $RELEASE_SHA"
 '''
