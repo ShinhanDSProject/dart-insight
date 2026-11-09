@@ -92,6 +92,7 @@ function event(overrides: Partial<TextEventItem> = {}): TextEventItem {
     meaning: null,
     signalReason: null,
     glossary: [],
+    facts: [],
     scaleRatio: null,
     fields: ['LITIGATION'],
     changeIds: [101, 102],
@@ -446,6 +447,53 @@ describe('TextEventsSection 신호와 사건 문장', () => {
     fireEvent.click(screen.getByRole('button', { name: '기준 보기' }))
 
     expect(await axeViolations(document.body)).toBe('')
+  })
+})
+
+describe('TextEventsSection 사실 칸', () => {
+  const treasury = {
+    accountType: null,
+    changeId: 905,
+    sjDiv: 'BS',
+    accountName: '자기주식',
+    previousAmount: 1_200_000_000,
+    currentAmount: 3_450_000_000,
+    changeAmount: 2_250_000_000,
+    changeRate: 1.875,
+    calcStatus: 'OK',
+    currency: 'KRW',
+  } as const
+  const facts = () => within(screen.getByRole('heading', { name: '관련 재무 숫자' }).closest('section') as HTMLElement)
+
+  it('계정이 있는 종류는 펼친 카드에 재무 수치 탭과 같은 값과 원인이 아니라는 안내가 보인다(AC28)', () => {
+    show([event({ kind: '자기주식 취득·처분', kindCode: 'TREASURY_STOCK', facts: [treasury] })])
+    open()
+
+    const row = facts().getByRole('row', { name: /자기주식/ })
+    expect(within(row).getAllByRole('cell').map((cell) => cell.textContent)).toEqual(['1,200', '3,450', '▲ 2,250', '+187.5%'])
+    expect(facts().getByText('재무 수치 탭과 같은 값이에요. 이 사건이 숫자를 바꾼 원인이라는 뜻은 아니에요.')).toBeTruthy()
+    expect(facts().getByText('단위: 백만원')).toBeTruthy()
+  })
+
+  it('계정이 없는 종류는 칸이 없다(AC28)', () => {
+    show([event()])
+    open()
+
+    expect(screen.queryByRole('heading', { name: '관련 재무 숫자' })).toBeNull()
+  })
+
+  it('두 값이 모두 없으면 칸이 없다(AC28)', () => {
+    show([event({ facts: [{ ...treasury, previousAmount: null, currentAmount: null, changeAmount: null, changeRate: null, calcStatus: 'PREVIOUS_MISSING' }] })])
+    open()
+
+    expect(screen.queryByRole('heading', { name: '관련 재무 숫자' })).toBeNull()
+  })
+
+  it('사실 칸에 접근성 위반이 없다', async () => {
+    const { container } = show([event({ facts: [treasury] })])
+    open()
+
+    expect(await axeViolations(container)).toBe('')
   })
 })
 

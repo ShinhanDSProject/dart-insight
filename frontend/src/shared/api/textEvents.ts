@@ -1,4 +1,5 @@
 import { apiGet, apiPost } from './client'
+import type { CalcStatus } from './results'
 import { endpoints } from './endpoints'
 import type { ChangeType, TextChangeItem, TextField } from './textChanges'
 
@@ -87,6 +88,21 @@ export interface TextEventGlossaryTerm {
   source: string
 }
 
+/** 사실 칸 하나. 값은 GET .../financial-changes의 같은 항목과 같고 다시 계산하지 않는다(docs/api-spec.md) */
+export interface TextEventFact {
+  /** 기준표가 투자 유형별로 계정을 나눈 종류만 유형 이름, 그 밖에는 null */
+  accountType: string | null
+  changeId: number
+  sjDiv: string
+  accountName: string
+  previousAmount: number | null
+  currentAmount: number | null
+  changeAmount: number | null
+  changeRate: number | null
+  calcStatus: CalcStatus
+  currency: string
+}
+
 /** docs/api-spec.md GET /api/analyses/{id}/events의 items[]. 규모(scale*)는 사건 순서를 정한 값이다 */
 export interface TextEventItem {
   eventId: number
@@ -109,6 +125,8 @@ export interface TextEventItem {
   /** NO_CRITERIA·EVIDENCE_NOT_CONFIRMED면 만들지 않아 null */
   signalReason: TextEventSentence | null
   glossary: TextEventGlossaryTerm[]
+  /** 사실 칸(#739). 기준표가 계정을 정한 종류만 있고, 없으면 [] */
+  facts: TextEventFact[]
   /** 묶인 변경이 속한 분야 */
   fields: TextField[]
   changeIds: number[]
