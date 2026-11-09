@@ -153,7 +153,12 @@ function renderTab(onChange = vi.fn()) {
     </MemoryRouter>,
   )
   const cards = screen.getAllByRole('article')
-  return { ...view, cards, onChange }
+  return { ...view, cards, rows: listRows(), onChange }
+}
+
+/** 전체 변경 목록의 줄(3.54). 키보드 이동(j·k)은 이 줄을 오간다 */
+function listRows(): HTMLElement[] {
+  return within(screen.getByRole('navigation', { name: '변경 목록' })).getAllByRole('button').filter((el) => el.classList.contains('change-row'))
 }
 
 /** 지금 초점이 있는 곳에서 키를 누른다(문서까지 올라가 단축키가 받는다) */
@@ -162,25 +167,34 @@ function press(key: string) {
 }
 
 describe('TextTab 카드 키보드 검토', () => {
-  it('카드에 초점이 없으면 j로 첫 카드에 가고, j·k로 다음·이전 카드로 옮긴다', () => {
-    const { cards } = renderTab()
+  it('목록 줄에 초점이 없으면 j로 첫 줄에 가고, j·k로 다음·이전 줄로 옮기며 상세도 따라간다(3.54)', () => {
+    const { rows, onChange } = renderTab()
     press('j')
-    expect(document.activeElement).toBe(cards[0])
+    expect(document.activeElement).toBe(rows[0])
     press('j')
     press('ㅓ')
-    expect(document.activeElement).toBe(cards[2])
+    expect(document.activeElement).toBe(rows[2])
+    expect(onChange).toHaveBeenLastCalledWith({ detail: 3 })
     press('k')
-    expect(document.activeElement).toBe(cards[1])
+    expect(document.activeElement).toBe(rows[1])
+    expect(onChange).toHaveBeenLastCalledWith({ detail: 2 })
     expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' })
   })
 
-  it('카드에 초점이 있으면 ↓·↑로도 옮긴다', () => {
-    const { cards } = renderTab()
+  it('줄에 초점이 있으면 ↓·↑로도 옮긴다', () => {
+    const { rows } = renderTab()
     press('j')
     press('ArrowDown')
-    expect(document.activeElement).toBe(cards[1])
+    expect(document.activeElement).toBe(rows[1])
     press('ArrowUp')
-    expect(document.activeElement).toBe(cards[0])
+    expect(document.activeElement).toBe(rows[0])
+  })
+
+  it('상세 칸의 카드에서 j를 누르면 그 변경의 다음 줄로 간다', () => {
+    const { cards, rows } = renderTab()
+    ;(cards[0].querySelector('button') as HTMLButtonElement).focus()
+    press('j')
+    expect(document.activeElement).toBe(rows[1])
   })
 
   it('카드에서 Enter를 누르면 그 카드의 근거를 연다', () => {
@@ -199,14 +213,14 @@ describe('TextTab 카드 키보드 검토', () => {
     expect(onChange).not.toHaveBeenCalled()
   })
 
-  it('p를 누르면 초점이 있는 카드를 고정하고, 카드 안 버튼에 있어도 그 카드를 고정한다', () => {
-    const { cards } = renderTab()
-    press('j')
+  it('p를 누르면 초점이 있는 줄을 고정하고, 상세 카드 안 버튼에 있어도 그 카드를 고정한다', () => {
+    const { cards, rows } = renderTab()
+    rows[2].focus()
     press('p')
-    expect(pins.toggle).toHaveBeenLastCalledWith(1)
-    ;(cards[2].querySelector('button') as HTMLButtonElement).focus()
-    press('ㅔ')
     expect(pins.toggle).toHaveBeenLastCalledWith(3)
+    ;(cards[0].querySelector('button') as HTMLButtonElement).focus()
+    press('ㅔ')
+    expect(pins.toggle).toHaveBeenLastCalledWith(1)
   })
 
   it('문장 검색 입력창에서 j·p를 치면 카드를 옮기거나 고정하지 않는다', () => {
@@ -230,6 +244,7 @@ describe('TextTab 원문 비교(#507)', () => {
   // 주소의 tc처럼 고른 항목을 실제로 바꾸는 화면
   function Harness({ initial }: { initial: number | null }) {
     const [selected, setSelected] = useState<number | null>(initial)
+    const [detail, setDetail] = useState<number | null>(null)
     return (
       <MemoryRouter>
         <main>
@@ -243,8 +258,10 @@ describe('TextTab 원문 비교(#507)', () => {
             field={null}
             pinned={false}
             selectedChangeId={selected}
+            detailId={detail}
             onChange={(change) => {
               if ('change' in change) setSelected(change.change ?? null)
+              if ('detail' in change) setDetail(change.detail ?? null)
             }}
             onOpenSource={() => {}}
             onAsk={() => {}}
@@ -258,7 +275,8 @@ describe('TextTab 원문 비교(#507)', () => {
   it('카드에서 열면 창이 뜨고, Esc로 닫으면 창이 사라지고 그 카드의 원문 비교로 초점이 돌아온다', async () => {
     list.items = [item(1, '1. 사업의 개요'), item(2, '2. 주요 제품')]
     render(<Harness initial={null} />)
-    const button = within(screen.getAllByRole('article')[1]).getByRole('button', { name: '원문 비교' })
+    fireEvent.click(listRows()[1])
+    const button = within(screen.getByRole('region', { name: '고른 변경' })).getByRole('button', { name: '원문 비교' })
     button.focus()
     fireEvent.click(button)
 
@@ -317,9 +335,31 @@ describe('TextTab 종류 안내(#393)', () => {
         </main>
       </MemoryRouter>,
     )
-    const cards = screen.getAllByRole('article')
-    expect(cards[0].textContent).toContain('빠졌다고 끝났다는 뜻은 아니에요')
-    expect(cards[1].textContent).not.toContain('빠졌다고 끝났다는 뜻은 아니에요')
+    expect(screen.getByRole('article').textContent).toContain('빠졌다고 끝났다는 뜻은 아니에요')
+    cleanup()
+    render(
+      <MemoryRouter>
+        <main>
+          <TextTab
+            analysis={analysis}
+            type={null}
+            sort="priority"
+            section={null}
+            q={null}
+            risk={false}
+            field={null}
+            pinned={false}
+            selectedChangeId={null}
+            detailId={2}
+            onChange={vi.fn()}
+            onOpenSource={() => {}}
+            onAsk={() => {}}
+            asking={false}
+          />
+        </main>
+      </MemoryRouter>,
+    )
+    expect(screen.getByRole('article').textContent).not.toContain('빠졌다고 끝났다는 뜻은 아니에요')
   })
 })
 
@@ -397,9 +437,10 @@ describe('TextTab 위험 요인 변화(3.9, FS-61)', () => {
     list.items = [{ ...item(1, '5. 위험관리 및 파생거래'), riskRelated: true }, item(2, '1. 사업의 개요')]
     list.riskCounts = { ...zero, all: 1, modified: 1 }
     renderRisk(false)
-    const cards = screen.getAllByRole('article')
-    expect(cards[0].textContent).toContain('위험 관련')
-    expect(cards[1].textContent).not.toContain('위험 관련')
+    const rows = listRows()
+    expect(rows[0].textContent).toContain('위험 관련')
+    expect(rows[1].textContent).not.toContain('위험 관련')
+    expect(screen.getByRole('article').textContent).toContain('위험 관련')
   })
 
   it('카드에 접근성 위반이 없다', async () => {
@@ -616,6 +657,7 @@ describe('TextTab 주요 사건(3.37)', () => {
     list.items = [item(1, '1. 사업의 개요'), item(2, '2. 주요 제품')]
     function FromCitation() {
       const [selected, setSelected] = useState<number | null>(null)
+      const [detail, setDetail] = useState<number | null>(null)
       return (
         <MemoryRouter>
           <main>
@@ -633,8 +675,10 @@ describe('TextTab 주요 사건(3.37)', () => {
               field={null}
               pinned={false}
               selectedChangeId={selected}
+              detailId={detail}
               onChange={(change) => {
                 if ('change' in change) setSelected(change.change ?? null)
+                if ('detail' in change) setDetail(change.detail ?? null)
               }}
               onOpenSource={() => {}}
               onAsk={() => {}}
@@ -923,10 +967,15 @@ describe('TextTab 기본 목록과 접힌 묶음(3.29)', () => {
       { ...item(1, '주석 20. 우발부채'), raisedFromNote: true },
       { ...item(2, '1. 사업의 개요'), changeType: 'NUMERIC_UPDATE', numbersOnly: true },
     ])
-    const cards = screen.getAllByRole('article')
-    expect(within(cards[0]).getByText('주석에서 올림')).toBeTruthy()
-    expect(within(cards[1]).getByText('숫자만 바뀜')).toBeTruthy()
-    expect(within(cards[1]).queryByText('주석에서 올림')).toBeNull()
+    expect(within(screen.getByRole('article')).getByText('주석에서 올림')).toBeTruthy()
+    cleanup()
+    renderDefault({ detailId: 2 }, [
+      { ...item(1, '주석 20. 우발부채'), raisedFromNote: true },
+      { ...item(2, '1. 사업의 개요'), changeType: 'NUMERIC_UPDATE', numbersOnly: true },
+    ])
+    const card = screen.getByRole('article')
+    expect(within(card).getByText('숫자만 바뀜')).toBeTruthy()
+    expect(within(card).queryByText('주석에서 올림')).toBeNull()
   })
 
   it('접근성 위반이 없다', async () => {
@@ -1168,14 +1217,14 @@ describe('TextTab 카드 메뉴(3.31)', () => {
 
   it('메뉴를 연 채 p를 눌러도 고정되고 j로 다른 카드로 옮기면 메뉴가 닫힌다', () => {
     renderCard([item(1, '1. 사업의 개요'), item(2, '2. 주요 제품')])
-    const [first, second] = screen.getAllByRole('article')
+    const first = screen.getByRole('article')
     const menu = menuOf(first)
     menu.focus()
     fireEvent.click(menu)
     press('p')
     expect(pins.toggle).toHaveBeenLastCalledWith(1)
     press('j')
-    expect(document.activeElement).toBe(second)
+    expect(document.activeElement).toBe(listRows()[1])
     expect(menu.getAttribute('aria-expanded')).toBe('false')
   })
 
@@ -1183,5 +1232,110 @@ describe('TextTab 카드 메뉴(3.31)', () => {
     const card = renderCard()
     fireEvent.click(menuOf(card))
     expect(await axeViolations(document.body)).toBe('')
+  })
+})
+
+describe('TextTab 목록·상세 보기(3.54)', () => {
+  function renderBrowser(over: Partial<Parameters<typeof TextTab>[0]> = {}, items: TextChangeItem[] = [item(1, '1. 사업의 개요'), item(2, '1. 사업의 개요'), item(3, '2. 주요 제품')]) {
+    list.items = items
+    const onChange = vi.fn()
+    const view = render(
+      <MemoryRouter>
+        <main>
+          <TextTab
+            analysis={analysis}
+            type={null}
+            sort="document"
+            section={null}
+            q={null}
+            risk={false}
+            field={null}
+            pinned={false}
+            selectedChangeId={null}
+            onChange={onChange}
+            onOpenSource={() => {}}
+            onAsk={() => {}}
+            asking={false}
+            {...over}
+          />
+        </main>
+      </MemoryRouter>,
+    )
+    return { ...view, onChange, nav: within(screen.getByRole('navigation', { name: '변경 목록' })), detail: within(screen.getByRole('region', { name: '고른 변경' })) }
+  }
+
+  it('문서 순서면 목차 머리줄 아래로 묶고 첫 변경의 상세를 보인다(AC1)', () => {
+    const { nav, detail } = renderBrowser()
+    const heads = nav.getAllByRole('button', { expanded: true })
+    expect(heads).toHaveLength(2)
+    expect(heads[0].textContent).toContain('1. 사업의 개요')
+    expect(heads[0].textContent).toContain('2건')
+    expect(heads[1].textContent).toContain('2. 주요 제품')
+    expect(heads[1].textContent).toContain('1건')
+    expect(listRows()).toHaveLength(3)
+    expect(listRows()[0].getAttribute('aria-current')).toBe('true')
+    expect(detail.getByRole('article')).toBeTruthy()
+  })
+
+  it('머리줄을 누르면 그 목차의 줄이 접히고 건수는 남는다(AC7)', () => {
+    const { nav } = renderBrowser()
+    const head = nav.getAllByRole('button', { expanded: true })[0]
+    fireEvent.click(head)
+    expect(head.getAttribute('aria-expanded')).toBe('false')
+    expect(head.textContent).toContain('2건')
+    expect(listRows()).toHaveLength(1)
+  })
+
+  it('우선순위 순이면 묶지 않고 줄마다 목차를 붙인다', () => {
+    const { nav } = renderBrowser({ sort: 'priority' })
+    expect(nav.queryAllByRole('button', { expanded: true })).toHaveLength(0)
+    expect(listRows()[2].textContent).toContain('2. 주요 제품')
+  })
+
+  it('줄을 누르면 그 변경을 고르고, 고른 줄은 현재 항목으로 알린다(AC2, AC15)', () => {
+    const { onChange } = renderBrowser({ detailId: 3 })
+    expect(listRows()[2].getAttribute('aria-current')).toBe('true')
+    expect(listRows()[0].getAttribute('aria-current')).toBeNull()
+    fireEvent.click(listRows()[1])
+    expect(onChange).toHaveBeenLastCalledWith({ detail: 2 })
+  })
+
+  it('이전·다음으로 옮기고 첫 변경에서는 이전이 꺼진다(AC3)', () => {
+    const { detail, onChange } = renderBrowser()
+    expect(detail.getByText('1 / 3')).toBeTruthy()
+    expect((detail.getByRole('button', { name: /이전/ }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(detail.getByRole('button', { name: /다음/ }))
+    expect(onChange).toHaveBeenLastCalledWith({ detail: 2 })
+  })
+
+  it('마지막 변경에서는 다음이 꺼진다', () => {
+    const { detail } = renderBrowser({ detailId: 3 })
+    expect((detail.getByRole('button', { name: /다음/ }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('좁은 화면에서 돌아갈 목록으로 버튼이 상세 칸에 있다(AC8)', () => {
+    const { detail } = renderBrowser()
+    expect(detail.getByRole('button', { name: '← 목록으로' })).toBeTruthy()
+  })
+
+  it('주소로 고른 변경이 목록에 없으면 안내하고 원문 비교로 열 수 있다(AC12)', () => {
+    const { detail, onChange } = renderBrowser({ detailId: 99 })
+    expect(detail.getByText('고른 변경이 지금 목록에 없어요')).toBeTruthy()
+    fireEvent.click(detail.getByRole('button', { name: '원문 비교 열기' }))
+    expect(onChange).toHaveBeenLastCalledWith({ change: 99 })
+  })
+
+  it('합쳐 보기 전환은 합칠 수 있는 수정 변경을 골랐을 때만 상세에 보인다', () => {
+    const items = [item(1, '1. 사업의 개요'), { ...item(2, '2. 주요 제품'), changeType: 'ADDED' as const, previousPreview: null }]
+    const { detail } = renderBrowser({}, items)
+    expect(detail.getByRole('group', { name: '수정된 글 보기' })).toBeTruthy()
+    cleanup()
+    const second = renderBrowser({ detailId: 2 }, items)
+    expect(second.detail.queryByRole('group', { name: '수정된 글 보기' })).toBeNull()
+  })
+
+  it('접근성 위반이 없다', async () => {
+    const { container } = renderBrowser()
+    expect(await axeViolations(container)).toBe('')
   })
 })

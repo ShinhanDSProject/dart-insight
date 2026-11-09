@@ -332,6 +332,7 @@ function ResultTabPanel({
         field={params.textField}
         pinned={params.textPinned}
         selectedChangeId={params.selectedTextChangeId}
+        detailId={params.textDetailId}
         onChange={(c) => update(textParamChanges(c))}
         onOpenSource={openSource}
         onAsk={askAndOpen}
