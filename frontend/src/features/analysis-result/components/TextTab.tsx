@@ -11,7 +11,6 @@ import { AddToNote } from './AddToNote'
 import { ChangeTypeHelp } from './ChangeTypeHelp'
 import { CopyWithSourcesButton } from './CopyWithSourcesButton'
 import { NumberChangesLine } from './NumberChangesLine'
-import { RiskChangesCard } from './RiskChangesCard'
 import { RowDiffBlock } from './RowDiffBlock'
 import { MergedPreview } from './MergedPreview'
 import { SidePreview } from './SidePreview'
@@ -33,7 +32,7 @@ import { mergedPreview } from '../model/mergedPreview'
 import { numberChanges } from '../model/numberChanges'
 import { canMergeChange, textDetailOf } from '../model/textBrowse'
 import { pinnedChangesText } from '../model/copyText'
-import { RISK_BADGE, RISK_EMPTY } from '../model/riskChanges'
+import { RISK_BADGE, RISK_EMPTY, RISK_FILTERED_SCOPE, RISK_NOTE, RISK_SCOPE } from '../model/riskChanges'
 import { cardTypeLabel, comparedRowsOf, isNotCompared, isPairedPreviousTable, NOT_COMPARED_LABEL, NOT_COMPARED_NOTE, PAIRED_TABLE_CURRENT } from '../model/rowDiff'
 import { PINNED_EMPTY, PINNED_LABEL, PINNED_NOTE } from '../model/pinnedList'
 import type { SourceTarget, TextViewChange } from '../model/resultParams'
@@ -60,10 +59,13 @@ import {
   sectionOptions,
   type TextTypeFilter,
 } from '../model/textFilter'
-import { ALL_FIELDS_LABEL, resolveTextField, textFieldLabel } from '../model/textFields'
+import { ALL_FIELDS_LABEL, fieldTableView, resolveTextField, textFieldLabel } from '../model/textFields'
 import { eventFieldCounts, eventListOf } from '../model/textEvents'
 import { DEFAULT_LIST_EMPTY, DEFAULT_LIST_EMPTY_NOTE, defaultListNote, foldedTotal, isDefaultList, noteScopeLabel } from '../model/textGroups'
 import { displaySectionPath } from '@/shared/lib/sectionTitle'
+
+/** 거르기 줄에 늘 보이는 유형(3.55). 나머지는 '더 보기' 메뉴에 둔다 */
+const MAIN_TYPE_FILTERS: (TextTypeFilter | null)[] = [null, 'CONTENT', 'ADDED', 'DELETED', 'MODIFIED']
 
 const sortOptions: { value: TextSort; label: string }[] = [
   { value: 'document', label: '문서 순서' },
@@ -271,6 +273,24 @@ export function TextTab({
       </ol>
     )
   }
+  // 위험 요인 변화 상자 대신 분야 줄에 두는 칩(3.55). 무엇을 위험 관련으로 보는지는 화면 낭독기에 함께 읽힌다
+  const riskChip = (
+    <span className="text-risk">
+      <Chip
+        tone="attention"
+        pressed={riskOnly}
+        count={riskCounts?.all ?? null}
+        disabled={!riskOnly && riskCounts?.all === 0}
+        aria-describedby="text-risk-scope"
+        onClick={() => onChange({ risk: !riskOnly })}
+      >
+        {RISK_BADGE}
+      </Chip>
+      <span id="text-risk-scope" className="visually-hidden">
+        {RISK_SCOPE} {RISK_NOTE}
+      </span>
+    </span>
+  )
   const notice = textStatusNotice(analysis.textStatus, analysis.textMessage)
   const failed = analysis.textStatus === 'FAILED' || analysis.textStatus === null
 
@@ -284,8 +304,16 @@ export function TextTab({
       )}
       {/* 첫 조회가 실패하면 아래 목록 자리의 오류 안내만 보인다 */}
       {!failed && !(state.status === 'error' && listing === null) && (
-        <TextFieldTable listing={listing} field={pinned ? null : field} eventCounts={eventFieldCounts(eventListOf(textEvents))} onChoose={chooseField} />
+        <TextFieldTable
+          listing={listing}
+          field={pinned ? null : field}
+          eventCounts={eventFieldCounts(eventListOf(textEvents))}
+          onChoose={chooseField}
+          extra={riskChip}
+        />
       )}
+      {/* 옛 분석은 분야별 표가 없어 위험 관련 칩만 따로 둔다 */}
+      {!failed && fieldTableView(listing).kind === 'hidden' && <div className="text-risk-row">{riskChip}</div>}
       {!failed && !noChanges && (
         <TextEventsArea
           analysis={analysis}
@@ -297,10 +325,7 @@ export function TextTab({
         />
       )}
       {!failed && (
-        <RiskChangesCard counts={riskCounts} risk={riskOnly} searched={searched} onToggle={(next) => onChange({ risk: next })} />
-      )}
-      {!failed && (
-        <div className="text-search">
+        <div className="text-filterbar">
           <div className="text-search__field">
             <FieldLabel htmlFor="text-section">섹션</FieldLabel>
             <Select
@@ -340,32 +365,44 @@ export function TextTab({
               aria-describedby="text-query-hint"
               onChange={(e) => searchBox.setInput(e.target.value)}
             />
-            <FieldHint id="text-query-hint" aria-live="polite">
-              {match(searchBox.search)
-                .with({ kind: 'too-short' }, () => SEARCH_TOO_SHORT)
-                .with({ kind: P.union('empty', 'ready') }, () => '바뀌기 전·후 글과 섹션 이름에서 찾아요.')
-                .exhaustive()}
-            </FieldHint>
+            {/* 평소 설명은 화면 낭독기에만 읽히고, 너무 짧을 때만 보인다 */}
+            {match(searchBox.search)
+              .with({ kind: 'too-short' }, () => (
+                <FieldHint id="text-query-hint" aria-live="polite">
+                  {SEARCH_TOO_SHORT}
+                </FieldHint>
+              ))
+              .with({ kind: P.union('empty', 'ready') }, () => (
+                <span id="text-query-hint" className="visually-hidden" aria-live="polite">
+                  바뀌기 전·후 글과 섹션 이름에서 찾아요.
+                </span>
+              ))
+              .exhaustive()}
           </div>
-        </div>
-      )}
-      {!failed && (
-        <div className="text-controls">
           <div className="text-filters" role="group" aria-label="변경 유형">
-            {typeFilterOptions(contentAvailable).map((option) => (
-              <Chip
-                key={option.label}
-                tone={option.value === 'REVIEW_NEEDED' ? 'attention' : 'neutral'}
-                pressed={!pinned && type === option.value}
-                // 응답의 유형 건수는 분야를 보지 않아, 분야를 고르면 목록과 맞지 않으므로 숨긴다
-                count={field === null && counts ? countFor(counts, option.value) : null}
-                onClick={() => {
-                  if (pinned || requestedType !== option.value) onChange({ type: option.value })
-                }}
-              >
-                {option.label}
-              </Chip>
-            ))}
+            {typeFilterOptions(contentAvailable)
+              .filter((option) => MAIN_TYPE_FILTERS.includes(option.value) || (!pinned && type === option.value))
+              .map((option) => (
+                <Chip
+                  key={option.label}
+                  tone={option.value === 'REVIEW_NEEDED' ? 'attention' : 'neutral'}
+                  pressed={!pinned && type === option.value}
+                  // 응답의 유형 건수는 분야를 보지 않아, 분야를 고르면 목록과 맞지 않으므로 숨긴다
+                  count={field === null && counts ? countFor(counts, option.value) : null}
+                  onClick={() => {
+                    if (pinned || requestedType !== option.value) onChange({ type: option.value })
+                  }}
+                >
+                  {option.label}
+                </Chip>
+              ))}
+            <MoreTypeFilters
+              options={typeFilterOptions(contentAvailable).filter((option) => !MAIN_TYPE_FILTERS.includes(option.value))}
+              countOf={(value) => (field === null && counts ? countFor(counts, value) : null)}
+              onChoose={(value) => {
+                if (pinned || requestedType !== value) onChange({ type: value })
+              }}
+            />
             <Chip
               pressed={pinned}
               count={pins.ids.length}
@@ -377,18 +414,30 @@ export function TextTab({
             </Chip>
           </div>
           {!pinned && (
-            <SegmentedControl
+            <Select
               aria-label="정렬"
-              options={sortOptions}
+              className="text-filterbar__sort"
               value={sort}
-              onChange={(next) => {
+              onChange={(e) => {
+                const next = e.target.value as TextSort
                 if (next !== sort) onChange({ sort: next })
               }}
-            />
+            >
+              {sortOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
           )}
-          <p className="panel__note text-controls__note">{pinned ? PINNED_NOTE : PRIORITY_NOTE}</p>
           <ChangeTypeHelp />
         </div>
+      )}
+      {!failed && riskOnly && (
+        <p className="panel__note" role="status">
+          {RISK_SCOPE} {searched && `${RISK_FILTERED_SCOPE} `}
+          {RISK_NOTE}
+        </p>
       )}
 
       {!failed &&
@@ -406,7 +455,7 @@ export function TextTab({
                   false,
                   <div className="change-list__more">
                     <span className="panel__note" role="status">
-                      고정 {resultCountLabel(items.length)}
+                      고정 {resultCountLabel(items.length)} · {PINNED_NOTE}
                     </span>
                     <CopyWithSourcesButton text={() => pinnedChangesText(analysis, items)} label="고정한 변경 출처 포함 복사" />
                   </div>,
@@ -498,7 +547,7 @@ export function TextTab({
             ]}
           />
           <p className="panel__note">
-            원문에서 문단·표 단위로 비교했고, 숫자만 바뀐 표는 '재무 수치' 탭과 겹쳐 뒤로 미뤘어요.
+            원문에서 문단·표 단위로 비교했고, 숫자만 바뀐 표는 '재무 수치' 탭과 겹쳐 뒤로 미뤘어요. {PRIORITY_NOTE}
           </p>
         </>
       )}
@@ -718,4 +767,38 @@ function browsedItemsOf(
 ): TextChangeItem[] {
   const view = pinned ? pinnedView : listState
   return view.status === 'success' ? (view.items ?? []) : []
+}
+
+/** 거르기 줄의 '더 보기'(3.55): 자주 쓰지 않는 유형을 메뉴로 고른다. 고른 유형은 칩 줄에 함께 보인다 */
+function MoreTypeFilters({
+  options,
+  countOf,
+  onChoose,
+}: {
+  options: { value: TextTypeFilter | null; label: string }[]
+  countOf: (value: TextTypeFilter | null) => number | null
+  onChoose: (value: TextTypeFilter | null) => void
+}) {
+  if (options.length === 0) return null
+  return (
+    <MenuButton label="더 보기" trigger="chip" align="start" aria-label="다른 유형으로 거르기">
+      {(close) =>
+        options.map((option) => {
+          const count = countOf(option.value)
+          return (
+            <MenuItem
+              key={option.label}
+              onClick={() => {
+                onChoose(option.value)
+                close()
+              }}
+            >
+              {option.label}
+              {count !== null && ` ${count}`}
+            </MenuItem>
+          )
+        })
+      }
+    </MenuButton>
+  )
 }

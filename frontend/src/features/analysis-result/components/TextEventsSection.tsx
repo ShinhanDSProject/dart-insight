@@ -108,8 +108,11 @@ export function TextEventsSection({ analysis, list, items, onOpenEvidence, rende
       <h3 id="text-events-title" className="text-events__title">
         {EVENTS_TITLE} {resultCountLabel(shown.length)}
       </h3>
-      <p className="panel__note">{EVENTS_NOTE}</p>
-      {table.status === 'success' && <p className="panel__note">{table.data.signalNotice}</p>}
+      {/* 안내 두 줄을 한 줄로(3.55) */}
+      <p className="panel__note">
+        {EVENTS_NOTE}
+        {table.status === 'success' && ` ${table.data.signalNotice}`}
+      </p>
       {list.droppedEventCount > 0 && (
         <Notice as="p" tone="attention">
           {EVENTS_DROPPED_NOTE}

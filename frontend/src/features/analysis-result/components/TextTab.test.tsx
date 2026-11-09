@@ -363,10 +363,14 @@ describe('TextTab 종류 안내(#393)', () => {
   })
 })
 
-describe('TextTab 위험 요인 변화(3.9, FS-61)', () => {
+describe('TextTab 위험 관련 칩(3.9, FS-61 → 3.55)', () => {
   const zero: TextChangeCounts = { all: 0, added: 0, deleted: 0, modified: 0, numericUpdate: 0, moved: 0, reviewNeeded: 0 }
 
-  function renderRisk(risk: boolean, onChange = vi.fn()) {
+  // 옛 분석처럼 분야별 표가 없으면 칩은 따로 한 줄에 선다. 분야별 표가 있으면 표 머리에 선다(마지막 테스트)
+  const oldListing: TextListing = { listVersion: null, fieldCounts: null, missingFields: null, groupCounts: null }
+
+  function renderRisk(risk: boolean, onChange = vi.fn(), q: string | null = null) {
+    list.listing ??= oldListing
     render(
       <MemoryRouter>
         <main>
@@ -375,11 +379,12 @@ describe('TextTab 위험 요인 변화(3.9, FS-61)', () => {
             type={null}
             sort="priority"
             section={null}
-            q={null}
+            q={q}
             risk={risk}
             field={null}
             pinned={false}
             selectedChangeId={null}
+            detailId={null}
             onChange={onChange}
             onOpenSource={() => {}}
             onAsk={() => {}}
@@ -388,52 +393,65 @@ describe('TextTab 위험 요인 변화(3.9, FS-61)', () => {
         </main>
       </MemoryRouter>,
     )
-    return { onChange, card: screen.getByRole('region', { name: '위험 요인 변화' }) }
+    return { onChange, chip: screen.getByRole('button', { name: /^위험 관련/ }) }
   }
 
-  it('카드에 새로 생긴·사라진·바뀐 건수와 목차로 나눴다는 안내를 보인다(AC1)', () => {
+  it("위험 요인 변화 상자 대신 건수를 단 '위험 관련' 칩 하나를 둔다(AC13)", () => {
     list.items = [item(1, '5. 위험관리 및 파생거래')]
     list.riskCounts = { ...zero, all: 6, added: 2, deleted: 1, modified: 3 }
-    const { card } = renderRisk(false)
-    expect(card.textContent).toContain('새로 생긴 문장')
-    expect(card.textContent).toContain('사라진 문장')
-    expect(card.textContent).toContain('바뀐 문장')
-    expect(card.textContent).toContain('목차 제목으로 나눈 것이라 실제 내용과 다를 수 있어요.')
-    expect(card.querySelectorAll('.stat-number')).toHaveLength(3)
+    const { chip } = renderRisk(false)
+    expect(screen.queryByRole('region', { name: '위험 요인 변화' })).toBeNull()
+    expect(chip.textContent).toBe('위험 관련 6')
+    expect(chip.getAttribute('aria-pressed')).toBe('false')
+    // 무엇을 위험 관련으로 보는지는 칩 설명으로 읽힌다
+    const scope = document.getElementById(chip.getAttribute('aria-describedby') ?? '')
+    expect(scope?.textContent).toContain('목차 제목으로 나눈 것이라 실제 내용과 다를 수 있어요.')
   })
 
-  it('위험 관련 변경이 없으면 카드에 없다고 안내한다(AC3)', () => {
+  it('위험 관련 변경이 없으면 칩을 누를 수 없다(AC3)', () => {
     list.items = [item(1, '1. 사업의 개요')]
     list.riskCounts = zero
-    const { card } = renderRisk(false)
-    expect(card.textContent).toContain('위험 관련 목차에서 바뀐 문장이 없어요.')
-    expect(card.querySelectorAll('.stat-number')).toHaveLength(0)
+    const { chip } = renderRisk(false)
+    expect(chip.textContent).toBe('위험 관련 0')
+    expect((chip as HTMLButtonElement).disabled).toBe(true)
   })
 
-  it("'위험 관련만'을 누르면 주소에 남기도록 risk를 바꾸고, 켜져 있으면 끈다(AC2)", () => {
+  it("칩을 누르면 주소에 남기도록 risk를 바꾸고, 켜져 있으면 끈다(AC2)", () => {
     list.items = []
     list.riskCounts = { ...zero, all: 1, added: 1 }
     const off = renderRisk(false)
-    fireEvent.click(screen.getByRole('button', { name: /위험 관련만/ }))
+    fireEvent.click(off.chip)
     expect(off.onChange).toHaveBeenCalledWith({ risk: true })
     cleanup()
     const on = renderRisk(true)
-    const chip = screen.getByRole('button', { name: /위험 관련만/ })
-    expect(chip.getAttribute('aria-pressed')).toBe('true')
-    fireEvent.click(chip)
+    expect(on.chip.getAttribute('aria-pressed')).toBe('true')
+    fireEvent.click(on.chip)
     expect(on.onChange).toHaveBeenCalledWith({ risk: false })
+  })
+
+  it('켜져 있으면 무엇을 센 것인지 안내 한 줄을 보이고, 검색 중이면 고른 범위 안에서 셌다고 덧붙인다', () => {
+    list.items = [{ ...item(1, '5. 위험관리 및 파생거래'), riskRelated: true }]
+    list.riskCounts = { ...zero, all: 1, modified: 1 }
+    // 칩 설명(화면 낭독기용)과 별개로 화면에 보이는 안내 줄
+    const note = () => screen.getAllByRole('status').find((el) => el.textContent?.includes('위험관리·파생거래'))
+    renderRisk(true)
+    expect(note()?.textContent).toContain('목차 제목으로 나눈 것이라')
+    expect(note()?.textContent).not.toContain('고른 섹션·검색어 안에서 센 건수예요')
+    cleanup()
+    renderRisk(true, vi.fn(), '파생')
+    expect(note()?.textContent).toContain('고른 섹션·검색어 안에서 센 건수예요')
   })
 
   it('위험 관련만 보는데 항목이 없으면 빈 안내와 전체 보기 버튼을 둔다', () => {
     list.items = []
     list.riskCounts = zero
     const { onChange } = renderRisk(true)
-    expect(screen.getAllByText('위험 관련 목차에서 바뀐 문장이 없어요.')).toHaveLength(2)
+    expect(screen.getByText('위험 관련 목차에서 바뀐 문장이 없어요.')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '전체 변경 보기' }))
     expect(onChange).toHaveBeenCalledWith({ risk: false })
   })
 
-  it("위험 관련 항목 카드에만 '위험 관련' 배지를 단다", () => {
+  it("위험 관련 항목 줄과 카드에만 '위험 관련' 배지를 단다", () => {
     list.items = [{ ...item(1, '5. 위험관리 및 파생거래'), riskRelated: true }, item(2, '1. 사업의 개요')]
     list.riskCounts = { ...zero, all: 1, modified: 1 }
     renderRisk(false)
@@ -443,10 +461,88 @@ describe('TextTab 위험 요인 변화(3.9, FS-61)', () => {
     expect(screen.getByRole('article').textContent).toContain('위험 관련')
   })
 
-  it('카드에 접근성 위반이 없다', async () => {
+  it('접근성 위반이 없다', async () => {
     list.items = [item(1, '5. 위험관리 및 파생거래')]
     list.riskCounts = { ...zero, all: 2, added: 1, modified: 1 }
-    renderRisk(false)
+    renderRisk(true)
+    expect(await axeViolations(document.body)).toBe('')
+  })
+
+  it('분야별 표가 있으면 칩은 표 머리에 하나만 선다', () => {
+    const fieldCounts = { LITIGATION: 0, CONTRACT: 0, BUSINESS: 1, DIVIDEND: 0, FUNDING: 0, BOARD: 0, SHAREHOLDER: 0, AUDIT: 0, OTHER: 0 }
+    list.listing = { listVersion: 'text-list-1', fieldCounts, missingFields: [], groupCounts: null }
+    list.items = [item(1, '1. 사업의 개요')]
+    list.riskCounts = { ...zero, all: 1, added: 1 }
+    const { chip } = renderRisk(false)
+    expect(screen.getAllByRole('button', { name: /^위험 관련/ })).toHaveLength(1)
+    expect(chip.closest('.field-table')).not.toBeNull()
+  })
+})
+
+describe('TextTab 거르기 줄(3.55)', () => {
+  function renderBar(over: Partial<Parameters<typeof TextTab>[0]> = {}) {
+    const onChange = vi.fn()
+    list.items = [item(1, '1. 사업의 개요')]
+    render(
+      <MemoryRouter>
+        <main>
+          <TextTab
+            analysis={analysis}
+            type={null}
+            sort="document"
+            section={null}
+            q={null}
+            risk={false}
+            field={null}
+            pinned={false}
+            selectedChangeId={null}
+            detailId={null}
+            onChange={onChange}
+            onOpenSource={() => {}}
+            onAsk={() => {}}
+            asking={false}
+            {...over}
+          />
+        </main>
+      </MemoryRouter>,
+    )
+    return { onChange, types: within(screen.getByRole('group', { name: '변경 유형' })) }
+  }
+
+  it('유형은 주요 칩만 보이고 나머지는 더 보기 메뉴에서 고른다', () => {
+    const { onChange, types } = renderBar()
+    expect(types.queryByRole('button', { name: /^검토 필요/ })).toBeNull()
+    fireEvent.click(types.getByRole('button', { name: '다른 유형으로 거르기' }))
+    fireEvent.click(types.getByRole('button', { name: /^검토 필요/ }))
+    expect(onChange).toHaveBeenCalledWith({ type: 'REVIEW_NEEDED' })
+  })
+
+  it('더 보기에서 고른 유형은 눌린 칩으로 줄에 보인다', () => {
+    list.type = 'MOVED'
+    const { types } = renderBar({ type: 'MOVED' })
+    expect(types.getByRole('button', { name: /^위치 이동/ }).getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('정렬은 드롭다운으로 바꾼다', () => {
+    const { onChange } = renderBar()
+    const sort = screen.getByRole('combobox', { name: '정렬' }) as HTMLSelectElement
+    expect(sort.value).toBe('document')
+    fireEvent.change(sort, { target: { value: 'priority' } })
+    expect(onChange).toHaveBeenCalledWith({ sort: 'priority' })
+  })
+
+  it('유형 설명은 ⓘ 버튼을 눌러야 펼쳐진다(AC14)', () => {
+    renderBar()
+    const help = screen.getByRole('button', { name: '유형 설명' })
+    expect(help.getAttribute('aria-expanded')).toBe('false')
+    fireEvent.click(help)
+    expect(help.getAttribute('aria-expanded')).toBe('true')
+    expect(screen.getAllByRole('term').length).toBeGreaterThan(0)
+  })
+
+  it('접근성 위반이 없다', async () => {
+    renderBar()
+    fireEvent.click(screen.getByRole('button', { name: '다른 유형으로 거르기' }))
     expect(await axeViolations(document.body)).toBe('')
   })
 })
@@ -891,15 +987,29 @@ describe('TextTab 기본 목록과 접힌 묶음(3.29)', () => {
   }
 
   const folded = () => within(screen.getByRole('region', { name: /접어 둔 변경/ }))
+  /** 처음에는 한 줄 버튼만 보여 묶음 줄을 펼친다(3.55) */
+  const showFolded = () => fireEvent.click(screen.getByRole('button', { name: /접어 둔 변경 8건 보기/ }))
 
   it('기본 목록 건수와 짝을 정하지 못한 항목 건수를 알린다(AC9)', () => {
     renderDefault()
     expect(screen.getByText(/기본 목록 2건 · 짝을 정하지 못한 항목 1건/)).toBeTruthy()
   })
 
+  it('접어 둔 변경은 처음에 한 줄 버튼만 보이고, 누르면 묶음 줄이 펼쳐진다(3.55)', () => {
+    renderDefault()
+    const toggle = screen.getByRole('button', { name: /접어 둔 변경 8건 보기/ })
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByRole('button', { name: /재무제표 주석 4건/ })).toBeNull()
+    fireEvent.click(toggle)
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    expect(toggle.textContent).toContain('접기')
+    expect(screen.getByRole('button', { name: /재무제표 주석 4건/ })).toBeTruthy()
+  })
+
   it('접힌 묶음을 건수와 함께 보이고 0건인 묶음은 뺀다(AC4)', () => {
     renderDefault()
     expect(screen.getByRole('heading', { name: /접어 둔 변경 8건/ })).toBeTruthy()
+    showFolded()
     expect(folded().getByRole('button', { name: /재무제표 주석 4건/ }).getAttribute('aria-expanded')).toBe('false')
     expect(folded().getByRole('button', { name: /제목 줄처럼 짧은 글 3건/ })).toBeTruthy()
     expect(folded().getByRole('button', { name: /자리만 옮긴 글 1건/ })).toBeTruthy()
@@ -909,6 +1019,7 @@ describe('TextTab 기본 목록과 접힌 묶음(3.29)', () => {
   it('묶음을 펼치면 그 묶음의 변경이 보이고 다시 누르면 접힌다', () => {
     list.groups = { NOTE: success([{ ...item(9, '주석 3. 금융상품'), listGroup: 'NOTE', noteScope: 'SEPARATE' }], 4) }
     renderDefault()
+    showFolded()
     const toggle = folded().getByRole('button', { name: /재무제표 주석 4건/ })
     fireEvent.click(toggle)
     expect(toggle.getAttribute('aria-expanded')).toBe('true')
@@ -921,6 +1032,7 @@ describe('TextTab 기본 목록과 접힌 묶음(3.29)', () => {
   it('묶음을 불러오지 못하면 다시 시도할 수 있다', () => {
     list.groups = { NOTE: { status: 'error', error: new Error('실패') } }
     renderDefault()
+    showFolded()
     fireEvent.click(folded().getByRole('button', { name: /재무제표 주석 4건/ }))
     fireEvent.click(folded().getByRole('button', { name: /다시 시도/ }))
     expect(list.reload).toHaveBeenCalled()
@@ -929,6 +1041,7 @@ describe('TextTab 기본 목록과 접힌 묶음(3.29)', () => {
   it('펼친 묶음의 변경을 고르면 원문 비교 창이 하나만 열린다', () => {
     list.groups = { NOTE: success([{ ...item(9, '주석 3. 금융상품'), listGroup: 'NOTE' }]) }
     renderDefault({ selectedChangeId: 9 })
+    showFolded()
     fireEvent.click(folded().getByRole('button', { name: /재무제표 주석 4건/ }))
     expect(screen.getAllByRole('dialog')).toHaveLength(1)
   })
@@ -981,6 +1094,7 @@ describe('TextTab 기본 목록과 접힌 묶음(3.29)', () => {
   it('접근성 위반이 없다', async () => {
     list.groups = { NOTE: success([{ ...item(9, '주석 3. 금융상품'), listGroup: 'NOTE', noteScope: 'CONSOLIDATED' }]) }
     renderDefault()
+    showFolded()
     fireEvent.click(folded().getByRole('button', { name: /재무제표 주석 4건/ }))
     expect(await axeViolations(document.body)).toBe('')
   })

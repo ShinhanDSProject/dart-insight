@@ -308,7 +308,8 @@ describe('TextEventsSection 신호와 사건 문장', () => {
   it('기준표를 받으면 기준표의 안내가 사건 절에 보인다', () => {
     show([event()])
 
-    expect(screen.getByText('공시상 신호이며 투자 판단이 아니에요.')).toBeTruthy()
+    // 3.55: 사건 안내와 신호 안내를 한 줄로 합쳤다
+    expect(screen.getByText(/공시상 신호이며 투자 판단이 아니에요\./)).toBeTruthy()
   })
 
   it('기준표를 받지 못해도 투자 판단이나 추천이 아니라는 안내는 남는다(R15)', () => {

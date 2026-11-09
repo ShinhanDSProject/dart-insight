@@ -24,7 +24,7 @@ describe('문장 변경 유형 설명', () => {
     expect(document.activeElement).toBe(button)
     fireEvent.click(button)
     expect(button.getAttribute('aria-expanded')).toBe('true')
-    expect(button.textContent).toBe('유형 설명 접기')
+    expect(button.getAttribute('aria-label')).toBe('유형 설명 접기')
     expect(list?.hidden).toBe(false)
     expect(screen.getAllByRole('term').map((t) => t.textContent)).toEqual([
       '추가',
