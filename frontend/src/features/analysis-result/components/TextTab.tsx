@@ -13,6 +13,7 @@ import { CopyWithSourcesButton } from './CopyWithSourcesButton'
 import { NumberChangesLine } from './NumberChangesLine'
 import { RiskChangesCard } from './RiskChangesCard'
 import { RowDiffBlock } from './RowDiffBlock'
+import { MergedPreview } from './MergedPreview'
 import { SidePreview } from './SidePreview'
 import { TextEventsArea } from './TextEventsSection'
 import { TextEvidencePanel } from './TextEvidencePanel'
@@ -27,6 +28,7 @@ import { useTextExplanations, type TextExplanations } from '../hooks/useTextExpl
 import { useTextSearch } from '../hooks/useTextSearch'
 import { TEXT_CARD_ATTRIBUTE, useTextCardKeys } from '../hooks/useTextCardKeys'
 import { sectionAskQuestion } from '../model/askQuestion'
+import { mergedPreview } from '../model/mergedPreview'
 import { numberChanges } from '../model/numberChanges'
 import { pinnedChangesText } from '../model/copyText'
 import { RISK_BADGE, RISK_EMPTY } from '../model/riskChanges'
@@ -34,6 +36,7 @@ import { cardTypeLabel, comparedRowsOf, isNotCompared, isPairedPreviousTable, NO
 import { PINNED_EMPTY, PINNED_LABEL, PINNED_NOTE } from '../model/pinnedList'
 import type { SourceTarget, TextViewChange } from '../model/resultParams'
 import {
+  comparesWords,
   countFor,
   DELETED_NOTE,
   firstNotedIds,
@@ -66,6 +69,14 @@ const sortOptions: { value: TextSort; label: string }[] = [
   { value: 'priority', label: '우선순위 순' },
 ]
 
+/** 수정 카드를 한 글로 합쳐 볼지, 이전·현재를 나란히 볼지(3.53). 이 탭이 떠 있는 동안만 남는다 */
+type ModifiedView = 'merged' | 'side'
+
+const modifiedViewOptions: { value: ModifiedView; label: string }[] = [
+  { value: 'merged', label: '합쳐 보기' },
+  { value: 'side', label: '나란히 보기' },
+]
+
 interface TextTabProps {
   analysis: Analysis
   /** 주소의 유형 거르기. CONTENT는 '내용 변경'(추가·삭제·수정, #304) */
@@ -93,6 +104,7 @@ interface TextTabProps {
 
 /**
  * W-03 ③ 문장·내용 변화(3.9). 유형(추가·삭제·수정을 함께 보는 '내용 변경' 포함, #304)으로 거르고, 기본은 문서 순서로 보여 준다(3.53, 우선순위 순서(2.6)는 고를 수 있음).
+ * 수정된 문단은 이전·현재 글을 한 글로 합쳐 빠진 글과 새 글을 표시하고, '나란히 보기'로 바꿀 수 있다(3.53).
  * 최상위 섹션과 검색어로도 함께 거른다(3.7). 고른 값은 주소에 남아 공유된다.
  * 맨 위 '위험 요인 변화' 카드에 위험 관련 목차의 건수를 보이고 '위험 관련만'으로 거른다(3.9, FS-61).
  * 문장을 비교하지 못했으면 '변경 없음'이 아니라 사유를 보여 준다. 짝짓지 못한 항목은 숨기지 않고 '검토 필요'로 둔다.
@@ -135,6 +147,7 @@ export function TextTab({
   // 받은 풀이는 거르기·정렬을 바꿔도 이 탭이 떠 있는 동안 남는다(3.11)
   const explanations = useTextExplanations(analysis.analysisId)
   const pins = usePinnedChanges(analysis.analysisId)
+  const [modifiedView, setModifiedView] = useState<ModifiedView>('merged')
   const pinnedList = usePinnedTextChanges(analysis.analysisId, pins.ids, pinned, pins.remove)
   const { view: textEvents, retry: retryEvents } = useTextEvents(analysis.analysisId)
   // 같은 변경의 '원문 비교' 버튼이 목록과 사건 안에 함께 있을 수 있어, 창을 연 버튼을 기억해 닫을 때 그리로 돌아간다
@@ -203,6 +216,7 @@ export function TextTab({
               inlineEvidence={inlineEvidence}
               idScope={idScope}
               pinned={pins.isPinned(item.changeId)}
+              merged={modifiedView === 'merged'}
               explanations={explanations}
               onOpenSource={onOpenSource}
               onAsk={onAsk}
@@ -330,6 +344,7 @@ export function TextTab({
               }}
             />
           )}
+          <SegmentedControl aria-label="수정된 글 보기" options={modifiedViewOptions} value={modifiedView} onChange={setModifiedView} />
           <p className="panel__note text-controls__note">{pinned ? PINNED_NOTE : PRIORITY_NOTE}</p>
           <ChangeTypeHelp />
         </div>
@@ -469,6 +484,8 @@ interface ChangeCardProps {
   idScope: string
   /** 고정했는지(3.3) */
   pinned: boolean
+  /** 수정된 글을 한 글로 합쳐 보이는지(3.53). 합칠 수 없으면 나란히 보인다 */
+  merged: boolean
   explanations: TextExplanations
   onTogglePin: () => void
   onToggle: () => void
@@ -486,6 +503,7 @@ function ChangeCard({
   inlineEvidence,
   idScope,
   pinned,
+  merged,
   explanations,
   onTogglePin,
   onToggle,
@@ -500,6 +518,11 @@ function ChangeCard({
   const comparedRows = comparedRowsOf(item.rowDiff)
   const pairedPrevious = isPairedPreviousTable(item)
   const typeLabel = cardTypeLabel(item)
+  // 합쳐 보기는 글 문단의 수정에만 쓴다. 표는 행 비교나 양쪽 글로 본다
+  const mergedParts =
+    merged && !review && comparedRows === null && item.blockType !== 'TABLE' && comparesWords(item.changeType)
+      ? mergedPreview(item.previousPreview, item.currentPreview)
+      : null
   // '숫자만 바뀜' 카드에만 바뀐 숫자 쌍을 보인다(짝이 확실하지 않으면 null이라 숨김). 행을 비교했으면 바뀐 행이 대신한다
   const numbers = item.changeType === 'NUMERIC_UPDATE' && comparedRows === null ? numberChanges(item.previousPreview, item.currentPreview) : null
   // 풀이 상자를 펼쳤는지는 카드 안 상태(주소에 남기지 않음). 처음 펼칠 때만 부른다
@@ -540,7 +563,8 @@ function ChangeCard({
         </Notice>
       )}
       {comparedRows !== null && <RowDiffBlock diff={comparedRows} />}
-      {!review && comparedRows === null && (
+      {mergedParts !== null && <MergedPreview parts={mergedParts} />}
+      {!review && comparedRows === null && mergedParts === null && (
         // 카드에는 이전·현재 문단을 3줄씩만 보이고, 전체는 '원문 비교' 창에서 본다(#507)
         <div className="change-card__sides change-card__sides--clamped">
           <SidePreview

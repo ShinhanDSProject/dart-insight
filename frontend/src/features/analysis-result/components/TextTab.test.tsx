@@ -278,7 +278,7 @@ describe('TextTab 원문 비교(#507)', () => {
   it('카드에는 문단 펼치기가 없고, 원문 비교와 커뮤니티에 인용을 제공한다', () => {
     const { cards, onChange } = renderTab()
     expect(cards[0].textContent).not.toContain('문단 펼치기')
-    expect(cards[0].querySelector('.change-card__sides--clamped')).not.toBeNull()
+    expect(cards[0].querySelector('.change-merged')).not.toBeNull()
     fireEvent.click(within(cards[0]).getByRole('button', { name: /^메뉴:/ }))
     expect(within(cards[0]).getByRole('link', { name: '커뮤니티에 인용' }).getAttribute('href')).toBe(
       '/companies/00126380?view=community&quoteAnalysis=16&quoteKind=TEXT_CHANGE&quoteChange=1',
@@ -1045,7 +1045,29 @@ describe('TextTab 표 행 비교(3.30)', () => {
     const [card] = renderCards([item(1, '1. 사업의 개요')])
     expect(within(card).queryByText('행 비교 안 함')).toBeNull()
     expect(within(card).queryByText('바뀜')).toBeNull()
-    expect(within(card).getByText('이전 문장이에요.')).toBeTruthy()
+    expect(card.textContent).toContain('문장이에요.')
+  })
+
+  it('수정된 문단은 한 글로 합쳐 빠진 글과 새 글을 표시하고, 나란히 보기로 바꿀 수 있다(3.53)', () => {
+    const [card] = renderCards([item(1, '1. 사업의 개요')])
+    const removed = [...card.querySelectorAll('.change-merged__body del')].map((el) => el.textContent)
+    const added = [...card.querySelectorAll('.change-merged__body ins')].map((el) => el.textContent)
+    expect(removed).toEqual(['빠진 글: 이전'])
+    expect(added).toEqual(['새 글: 바뀐'])
+    expect(card.querySelector('.change-card__sides')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: '나란히 보기' }))
+    const [sideCard] = screen.getAllByRole('article')
+    expect(sideCard.querySelector('.change-merged')).toBeNull()
+    expect(within(sideCard).getByText('이전 문장이에요.')).toBeTruthy()
+  })
+
+  it('추가·삭제와 표는 합치지 않고 한쪽 글이나 양쪽 글을 그대로 보인다(3.53)', () => {
+    const cards = renderCards([
+      { ...item(1, '1. 사업의 개요'), changeType: 'ADDED', previousPreview: null },
+      { ...item(2, '2. 주요 제품'), blockType: 'TABLE' },
+    ])
+    for (const card of cards) expect(card.querySelector('.change-merged')).toBeNull()
   })
 
   it('접근성 위반이 없다', async () => {

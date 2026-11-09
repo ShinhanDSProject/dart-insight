@@ -7,15 +7,32 @@ export interface DiffPart {
   changed: boolean
 }
 
+/** 두 글을 한 글로 합친 조각(3.53 합쳐 보기). same은 양쪽에 같고, removed는 이전에만, added는 현재에만 있다 */
+export interface MergedPart {
+  text: string
+  kind: 'same' | 'removed' | 'added'
+}
+
 export interface WordDiff {
   previous: DiffPart[]
   current: DiffPart[]
+  merged: MergedPart[]
 }
 
 const MAX_CELLS = 400_000
 
 function tokens(text: string): string[] {
   return text.match(/\s+|[^\s]+/g) ?? []
+}
+
+function mergeKinds(parts: MergedPart[]): MergedPart[] {
+  const merged: MergedPart[] = []
+  for (const part of parts) {
+    const last = merged[merged.length - 1]
+    if (last && last.kind === part.kind) last.text += part.text
+    else merged.push({ ...part })
+  }
+  return merged
 }
 
 function merge(parts: DiffPart[]): DiffPart[] {
@@ -42,23 +59,33 @@ export function wordDiff(previous: string, current: string): WordDiff | null {
   }
   const left: DiffPart[] = []
   const right: DiffPart[] = []
+  const both: MergedPart[] = []
   let i = 0
   let j = 0
   while (i < a.length && j < b.length) {
     if (a[i] === b[j]) {
       left.push({ text: a[i], changed: false })
       right.push({ text: b[j], changed: false })
+      both.push({ text: a[i], kind: 'same' })
       i++
       j++
     } else if (lcs[(i + 1) * width + j] >= lcs[i * width + j + 1]) {
       left.push({ text: a[i], changed: true })
+      both.push({ text: a[i], kind: 'removed' })
       i++
     } else {
       right.push({ text: b[j], changed: true })
+      both.push({ text: b[j], kind: 'added' })
       j++
     }
   }
-  for (; i < a.length; i++) left.push({ text: a[i], changed: true })
-  for (; j < b.length; j++) right.push({ text: b[j], changed: true })
-  return { previous: merge(left), current: merge(right) }
+  for (; i < a.length; i++) {
+    left.push({ text: a[i], changed: true })
+    both.push({ text: a[i], kind: 'removed' })
+  }
+  for (; j < b.length; j++) {
+    right.push({ text: b[j], changed: true })
+    both.push({ text: b[j], kind: 'added' })
+  }
+  return { previous: merge(left), current: merge(right), merged: mergeKinds(both) }
 }
