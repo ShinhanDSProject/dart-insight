@@ -4072,7 +4072,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | `get_financial_trends` | `corpCode` | `GET /api/companies/{corpCode}/financial-trends` | `{rceptNo}#V{n}` |
 | `get_key_facts` | `corpCode` | `GET /api/companies/{corpCode}/key-facts`(최대주주·임원·배당) | `{rceptNo}#V{n}` |
 | `get_checkpoints` | `corpCode` | `GET /api/companies/{corpCode}/checkpoints` | `{rceptNo}#V{n}` |
-| `lookup_terms` | `terms`(용어·별칭 1~3개) | 용어 카드(`GET /api/glossary-terms`와 같은, 출처·검토를 마친 카드만, ADR-0061 #769). 용어·별칭이 같은 카드(공백·영문 대소문자 무시)를 찾고, 줄 글에 카드 칸(한 줄 뜻·쉬운 예시·확인할 곳·판단하지 않음·별칭·관련 용어·이 회사 값을 찾을 곳·출처)을 모두 넣음. 같은 카드는 한 줄. 없으면 근거 없는 줄로 "'{용어}'는 등록된 용어가 없어요."와 비슷한 카드(용어와 키, 최대 3개). 비슷함은 코드가 정함: 한쪽 이름이 다른 쪽을 품으면 가장 비슷하고, 아니면 글자 두 개 조각의 겹침(다이스 계수 0.4 이상) 순 | `G{key}` |
+| `lookup_terms` | `terms`(용어·별칭 1~3개) | 용어 카드(`GET /api/glossary-terms`와 같은, 출처·검토를 마친 카드만, ADR-0061 #769). 용어·별칭이 같은 카드(공백·영문 대소문자 무시)를 찾고, 줄 글에 카드 칸(한 줄 뜻·쉬운 예시·확인할 곳·판단하지 않음·별칭·관련 용어·이 회사 값을 찾을 곳·출처)을 모두 넣음. 같은 카드는 한 줄. 없으면 근거 없는 줄로 "'{용어}'에 해당하는 용어 카드는 등록되지 않았어요."와 비슷한 카드(용어와 키, 최대 3개). 비슷함은 코드가 정함: 글자 두 개 조각의 겹침(다이스 계수)이고, 두 글자 이상인 한쪽이 다른 쪽에 그대로 들어 있으면 길이 비율(짧은 쪽 ÷ 긴 쪽)과 둘 중 큰 값. 0.4 이상만, 큰 순 | `G{key}` |
 | `get_disclosures` | `corpCode`, `group` | `GET /api/companies/{corpCode}/disclosures` | `D{rceptNo}` |
 | `get_disclosure_signals` | `corpCode` | `GET /api/companies/{corpCode}/disclosure-signals` | `D{rceptNo}` |
 | `get_disclosure_key_items` | `corpCode`, `rceptNo` | `GET .../disclosures/{rceptNo}/key-items`(DS005 주요정보) | `{rceptNo}#V{n}` |
