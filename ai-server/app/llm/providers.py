@@ -3,7 +3,8 @@
 제공자를 바꿀 때는 이 파일에 연결 하나를 더하고 `create_provider`에 이름을 등록한다.
 
 제공자 SDK는 이 파일에서만 가져온다. 다른 코드는 `app.llm.client.LlmClient`만 부른다(AGENTS.md).
-실제 제공자는 OpenAI(`openai`)다(ADR-0026). 테스트·키 없는 개발은 `fake`로 한다.
+실제 제공자는 Anthropic Claude(`anthropic`, ADR-0062)와 OpenAI(`openai`, ADR-0026)다.
+테스트·키 없는 개발은 `fake`로 한다.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
+import anthropic
 import openai
 
 from app.core.config import LlmSettings
@@ -263,6 +265,189 @@ def _detail(usage: Any, details: str, field: str) -> int | None:
     return value if isinstance(value, int) else None
 
 
+ANTHROPIC_DEFAULT_MODEL = "claude-sonnet-5-5"
+# 거절했을 때 서버가 다른 모델로 이어 처리하는 대체(ADR-0062). Claude API에서 이 모델들만 지원한다
+ANTHROPIC_FALLBACK_MODELS = frozenset({"claude-sonnet-5-5"})
+ANTHROPIC_FALLBACK_BETA = "server-side-fallback-2026-07-01"
+ANTHROPIC_FALLBACK_DEFAULT = "default"
+# Messages API 응답의 끝난 이유·내용 유형
+STOP_MAX_TOKENS = "max_tokens"
+STOP_REFUSAL = "refusal"
+BLOCK_TEXT = "text"
+# 결제·사용 한도를 다 쓴 오류(다시 시도하지 않는다)
+ANTHROPIC_BILLING_STATUS = 402
+ANTHROPIC_BILLING_TYPE = "billing_error"
+
+
+class AnthropicProvider:
+    """Anthropic Claude Messages API 연결(ADR-0062).
+
+    - 재시도는 `LlmClient`가 맡으므로 SDK 재시도는 끈다(`max_retries=0`).
+    - `output_schema`가 있으면 구조화 출력(`output_config.format` json_schema)으로 받는다.
+      스키마 사본은 `claude_schema`로 맞춘다(`strict_schema` + 지원하지 않는 제약을 설명 글로).
+      그런 제약(`maxItems` 등)은 기능 모듈의 검증 함수가 검사한다.
+    - 생각(adaptive thinking)은 모델 기본으로 둔다.
+      추론 강도가 있으면 `output_config.effort`로 보낸다.
+    - 고정된 앞부분(시스템 프롬프트)을 프롬프트 캐시에 둔다(`cache_control`, #633 순서 그대로).
+    - 키가 없으면 만들 때가 아니라 부를 때 `ProviderError`로 실패한다.
+    """
+
+    name = "anthropic"
+
+    def __init__(
+        self,
+        api_key: str | None,
+        model: str = ANTHROPIC_DEFAULT_MODEL,
+        reasoning_effort: str | None = None,
+        client: Any = None,
+    ) -> None:
+        self.model = model
+        self._api_key = api_key
+        self._reasoning_effort = reasoning_effort
+        self._client = client
+
+    def _anthropic(self) -> Any:
+        if self._client is None:
+            if not self._api_key:
+                raise ProviderError("Anthropic 인증키가 없습니다(LLM_API_KEY).")
+            self._client = anthropic.Anthropic(api_key=self._api_key, max_retries=0)
+        return self._client
+
+    def complete(self, request: LlmRequest, timeout_seconds: float) -> ProviderResponse:
+        model = request.model or self.model
+        params: dict[str, Any] = {
+            "model": model,
+            "system": request.system,
+            "messages": [{"role": "user", "content": request.user}],
+            "max_tokens": request.max_output_tokens,
+            "cache_control": {"type": "ephemeral"},
+        }
+        output_config: dict[str, Any] = {}
+        if request.output_schema:
+            output_config["format"] = {
+                "type": "json_schema",
+                "schema": claude_schema(request.output_schema),
+            }
+        if self._reasoning_effort:
+            output_config["effort"] = self._reasoning_effort
+        if output_config:
+            params["output_config"] = output_config
+        if model in ANTHROPIC_FALLBACK_MODELS:
+            params["betas"] = [ANTHROPIC_FALLBACK_BETA]
+            params["fallbacks"] = ANTHROPIC_FALLBACK_DEFAULT
+        client = self._anthropic()
+        try:
+            response = client.with_options(timeout=timeout_seconds).beta.messages.create(**params)
+        except anthropic.APIConnectionError as e:  # 시간 초과(APITimeoutError) 포함
+            raise ProviderTransientError(f"Anthropic 연결 실패: {type(e).__name__}") from e
+        except anthropic.APIStatusError as e:
+            message = f"Anthropic 오류 {e.status_code}: {type(e).__name__}"
+            if _is_anthropic_quota(e):
+                raise ProviderQuotaError(f"{message} (사용 한도 초과)") from e
+            if e.status_code >= 500 or e.status_code in TRANSIENT_STATUS_CODES:
+                raise ProviderTransientError(message) from e
+            raise ProviderError(message) from e
+        except anthropic.AnthropicError as e:
+            raise ProviderError(f"Anthropic 호출 실패: {type(e).__name__}") from e
+        return _anthropic_response(response, model)
+
+
+def _is_anthropic_quota(error: Any) -> bool:
+    """결제 문제(402)나 조직 지출 한도 초과(429 enforced_spend_limit_reached)인지."""
+    return (
+        isinstance(error, anthropic.EnforcedSpendLimitReachedError)
+        or error.status_code == ANTHROPIC_BILLING_STATUS
+        or getattr(error, "type", None) == ANTHROPIC_BILLING_TYPE
+    )
+
+
+def _anthropic_response(response: Any, fallback_model: str) -> ProviderResponse:
+    if response.stop_reason == STOP_REFUSAL:
+        raise ProviderError("Anthropic 모델이 답을 거절했습니다(refusal).")
+    if response.stop_reason == STOP_MAX_TOKENS:
+        raise ProviderError("Anthropic 응답이 출력 토큰 한도(max_tokens)에서 잘렸습니다.")
+    # 생각(thinking)·대체(fallback) 블록은 건너뛰고 답 글만 모은다.
+    # 글이 없으면 빈 문자열을 돌려주고, LlmClient가 JSON 검증 실패로 다시 생성한다
+    texts = [
+        block.text
+        for block in response.content or []
+        if getattr(block, "type", None) == BLOCK_TEXT and block.text is not None
+    ]
+    usage = response.usage
+    cache_read = _int_or_none(getattr(usage, "cache_read_input_tokens", None))
+    cache_write = _int_or_none(getattr(usage, "cache_creation_input_tokens", None))
+    base_input = _int_or_none(getattr(usage, "input_tokens", None))
+    # Claude의 input_tokens는 캐시 토큰을 뺀 수라, 지금 기록 방식(캐시 포함 합계)에 맞춰 더한다
+    input_tokens = (
+        base_input + (cache_read or 0) + (cache_write or 0) if base_input is not None else None
+    )
+    return ProviderResponse(
+        text="".join(texts),
+        model=response.model or fallback_model,
+        input_tokens=input_tokens,
+        output_tokens=_int_or_none(getattr(usage, "output_tokens", None)),
+        cached_input_tokens=cache_read,
+        # 추론 토큰 수는 따로 알려 주지 않는다(0과 구분해 None)
+        reasoning_tokens=None,
+    )
+
+
+def _int_or_none(value: Any) -> int | None:
+    return value if isinstance(value, int) else None
+
+
+# Claude 구조화 출력이 받지 않는 JSON Schema 제약(숫자·글자 길이·배열 개수 등)
+CLAUDE_UNSUPPORTED_KEYWORDS = (
+    "minimum",
+    "maximum",
+    "exclusiveMinimum",
+    "exclusiveMaximum",
+    "multipleOf",
+    "minLength",
+    "maxLength",
+    "pattern",
+    "maxItems",
+    "uniqueItems",
+    "minProperties",
+    "maxProperties",
+)
+# minItems는 0·1만 받는다
+CLAUDE_SUPPORTED_MIN_ITEMS = (0, 1)
+
+
+def claude_schema(schema: dict[str, Any]) -> dict[str, Any]:
+    """JSON Schema를 Claude 구조화 출력의 제약에 맞춘 사본(ADR-0062).
+
+    `strict_schema`로 맞춘 뒤, 받지 않는 제약은 빼고 그 내용을 `description`에 적어
+    모델이 알 수 있게 한다(SDK `transform_schema`와 같은 방식. SDK 함수는 `["string", "null"]` 같은
+    타입 목록을 받지 못해 직접 한다). 뺀 제약은 기능 모듈의 검증 함수가 검사해야 한다.
+    """
+    return _claude(strict_schema(schema))
+
+
+def _claude(node: Any) -> Any:
+    if isinstance(node, list):
+        return [_claude(v) for v in node]
+    if not isinstance(node, dict):
+        return node
+    moved: dict[str, Any] = {}
+    for key in CLAUDE_UNSUPPORTED_KEYWORDS:
+        if key in node:
+            moved[key] = node.pop(key)
+    if "minItems" in node and node["minItems"] not in CLAUDE_SUPPORTED_MIN_ITEMS:
+        moved["minItems"] = node.pop("minItems")
+    for key, value in list(node.items()):
+        if key in ("properties", "$defs", "definitions") and isinstance(value, dict):
+            node[key] = {k: _claude(v) for k, v in value.items()}
+        elif key in ("items", "anyOf", "allOf"):
+            node[key] = _claude(value)
+    if moved:
+        note = "{" + ", ".join(f"{k}: {json.dumps(v)}" for k, v in moved.items()) + "}"
+        description = node.get("description")
+        node["description"] = f"{description}\n\n{note}" if description else note
+    return node
+
+
 def strict_schema(schema: dict[str, Any]) -> dict[str, Any]:
     """JSON Schema를 OpenAI 엄격 구조화 출력의 제약에 맞춘 사본.
 
@@ -345,6 +530,12 @@ def create_provider(settings: LlmSettings) -> Provider | None:
         return None
     if settings.provider == FakeProvider.name:
         return FakeProvider(responders=FAKE_RESPONDERS, model=settings.model or FAKE_DEFAULT_MODEL)
+    if settings.provider == AnthropicProvider.name:
+        return AnthropicProvider(
+            api_key=settings.api_key,
+            model=settings.model or ANTHROPIC_DEFAULT_MODEL,
+            reasoning_effort=settings.reasoning_effort,
+        )
     if settings.provider == OpenAIProvider.name:
         return OpenAIProvider(
             api_key=settings.api_key,
@@ -353,5 +544,5 @@ def create_provider(settings: LlmSettings) -> Provider | None:
         )
     raise ValueError(
         f"지원하지 않는 LLM_PROVIDER입니다: {settings.provider}. "
-        "지원: fake, openai(app/llm/providers.py)."
+        "지원: fake, anthropic, openai(app/llm/providers.py)."
     )

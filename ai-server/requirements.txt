@@ -1,5 +1,6 @@
 fastapi==0.115.12
 uvicorn[standard]==0.34.2
+anthropic==2.6.0
 openai==3.29.0
 langgraph==1.2.16
 jsonschema==4.26.0
