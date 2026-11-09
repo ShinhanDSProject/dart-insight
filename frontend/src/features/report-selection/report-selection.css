@@ -357,13 +357,22 @@
   overflow-x: auto;
   list-style: none;
   scrollbar-width: none;
+  /* 넘칠 때만 양 끝에 옅은 그림자(#807): 바탕색 덮개는 내용과 함께 움직이고(local), 그림자는 제자리에 있어(scroll)
+     끝까지 밀면 덮개가 그림자를 가린다 */
+  background:
+    linear-gradient(to right, var(--color-bg) 30%, transparent) left / 40px 100% no-repeat local,
+    linear-gradient(to left, var(--color-bg) 30%, transparent) right / 40px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, color-mix(in srgb, var(--color-border-strong) 45%, transparent), transparent) left / 12px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, color-mix(in srgb, var(--color-border-strong) 45%, transparent), transparent) right / 12px 100% no-repeat scroll;
+  background-color: var(--color-bg);
 }
 
 .overview-nav__link {
   display: inline-flex;
   align-items: center;
   min-height: var(--touch-target-min);
-  padding: 0 var(--space-3);
+  /* 넓은 화면에서 11개가 한 줄에 다 들어가게 양옆 여백을 줄인다(#807). 글자 크기는 그대로 */
+  padding: 0 var(--space-2);
   border-radius: var(--radius-pill);
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
