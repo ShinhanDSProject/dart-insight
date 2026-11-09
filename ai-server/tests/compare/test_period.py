@@ -145,3 +145,32 @@ def test_dates_at_the_same_place_on_both_covers_are_period_marks() -> None:
         "한국거래소 귀중 | 2025년 8월 14일", "한국거래소 귀중 | 2026년 08월 14일", shift
     )
     assert period_only("제 56 기말 2024.12.31 현재", "제 57 기말 2025.12.31 현재", shift)
+
+
+@pytest.mark.parametrize(
+    ("previous", "current"),
+    [
+        ("설립일 2024년 6월 30일", "설립일 2025년 6월 30일"),
+        ("만기일 2025.12.31", "만기일 2026.12.31"),
+        ("설립일 2024년 6월", "설립일 2025년 6월"),
+    ],
+)
+def test_a_date_on_a_fiscal_boundary_without_period_words_is_not_period_only(
+    previous: str, current: str
+) -> None:
+    assert not period_only(previous, current, YEARLY)
+
+
+@pytest.mark.parametrize(
+    ("previous", "current"),
+    [
+        ("(기준일 : | 2025년 06월 30일 | )", "(기준일 : | 2026년 06월 30일 | )"),
+        ("반기말 2025.06.30 현재", "반기말 2026.06.30 현재"),
+        (
+            "※ 재무현황은 2025년 6월 30일, 연결재무제표 기준입니다.",
+            "※ 재무현황은 2026년 6월 30일, 연결재무제표 기준입니다.",
+        ),
+    ],
+)
+def test_a_boundary_date_next_to_period_words_is_period_only(previous: str, current: str) -> None:
+    assert period_only(previous, current, YEARLY)
