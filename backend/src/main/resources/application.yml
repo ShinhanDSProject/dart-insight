@@ -139,6 +139,9 @@ app:
     cache-ttl: 30m
     # 하루에 네이버를 부르는 최대 횟수(로그인 없는 API라 공용 키 한도 25,000회를 지키려고 낮게 둠)
     daily-budget: 20000
+  glossary:
+    # 공시 용어 카드 파일(ADR-0061). 카드는 이 파일 한 곳에 두고, 출처·검토일이 있는 카드만 내보낸다
+    location: classpath:glossary/terms.json
   featured:
     # 첫 화면 대표 기업(1.5): 시작할 때와 하루마다 오래됐으면 받음(on-stale), 받지 않음(never)
     sync: ${FEATURED_COMPANY_SYNC:on-stale}
