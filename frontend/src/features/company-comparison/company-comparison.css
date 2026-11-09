@@ -258,3 +258,96 @@
 .company-compare__notes p + p {
   margin-top: var(--space-1);
 }
+
+/* 방사형 그래프(#778). 색은 고른 순서의 범주 색이고 좋고 나쁨을 뜻하지 않는다 */
+.radar-chart {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-5);
+}
+
+.radar-chart__svg {
+  width: 100%;
+  max-width: 440px;
+  height: auto;
+  overflow: visible;
+}
+
+.radar-chart__ring,
+.radar-chart__axis {
+  fill: none;
+  stroke: var(--color-chart-grid);
+}
+
+.radar-chart__label {
+  fill: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.radar-chart__series--1 { color: var(--color-chart-series-1); }
+.radar-chart__series--2 { color: var(--color-chart-series-2); }
+.radar-chart__series--3 { color: var(--color-chart-series-3); }
+.radar-chart__series--4 { color: var(--color-chart-series-4); }
+
+.radar-chart__area {
+  fill: currentColor;
+  fill-opacity: 0.12;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.radar-chart__edge {
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.radar-chart__dot {
+  fill: currentColor;
+}
+
+.radar-chart__caption {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+  text-align: center;
+}
+
+.radar-chart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-sm);
+}
+
+.radar-chart__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.radar-chart__swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-sm);
+}
+
+.radar-chart__swatch--1 { background: var(--color-chart-series-1); }
+.radar-chart__swatch--2 { background: var(--color-chart-series-2); }
+.radar-chart__swatch--3 { background: var(--color-chart-series-3); }
+.radar-chart__swatch--4 { background: var(--color-chart-series-4); }
+
+.radar-chart__missing,
+.radar-chart__note {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.radar-chart__note {
+  max-width: 560px;
+  margin: 0;
+}

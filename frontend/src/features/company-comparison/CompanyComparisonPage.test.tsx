@@ -192,6 +192,25 @@ describe('여러 기업 나란히 보기', () => {
     expect(await axeViolations(container)).toBe('')
   })
 
+  it('수치가 준비된 기업이 2곳 이상이면 표 위에 겹쳐 그린 방사형 그래프와 범례·계산 불가 축을 보여 준다(#778)', async () => {
+    const { container } = renderAt('?corps=00164779,00126380')
+    const chart = await screen.findByRole('img', { name: /SK하이닉스, 삼성전자의 .*방사형 그래프/ })
+    const figure = chart.closest('figure') as HTMLElement
+    expect(within(figure).getByText('SK하이닉스')).toBeTruthy()
+    expect(within(figure).getAllByText(/계산 불가 · .*순이익률/)).toHaveLength(2)
+    // 계산 불가 축이 있으면 면을 닫지 않는다
+    expect(figure.querySelector('.radar-chart__area')).toBeNull()
+    expect(within(figure).getByText(/좋고 나쁨이나 순위가 아니에요/)).toBeTruthy()
+    expect(figure.textContent).not.toMatch(/1위|최고|최저|우수|저평가/)
+    expect(await axeViolations(container)).toBe('')
+  })
+
+  it('수치가 준비된 기업이 1곳이면 방사형 그래프를 두지 않는다', async () => {
+    renderAt('?corps=00126380')
+    await screen.findByRole('button', { name: '삼성전자 빼기' })
+    expect(screen.queryByRole('img', { name: /방사형 그래프/ })).toBeNull()
+  })
+
   it('정렬 버튼이나 순위·최고·최저 표시를 두지 않는다', async () => {
     renderAt('?corps=00164779,00126380')
     const table = await screen.findByRole('table')
