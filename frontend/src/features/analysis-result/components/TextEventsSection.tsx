@@ -2,12 +2,12 @@ import { useState, type ReactNode } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { TextChangeItem } from '@/shared/api/textChanges'
-import type { TextEventItem, TextEventList, TextEventQuote, TextEventUnboundChange } from '@/shared/api/textEvents'
-import { Badge, Button, Card, Notice, Skeleton } from '@/shared/ui'
+import type { TextEventItem, TextEventList, TextEventQuote, TextEventSignal, TextEventUnboundChange } from '@/shared/api/textEvents'
+import { Badge, Button, Card, Chip, Notice, Skeleton } from '@/shared/ui'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { displaySectionPath } from '@/shared/lib/sectionTitle'
 import { useSignalTable, useTextEventDetail } from '../hooks/useTextEvents'
-import { kindBadge, signalBadge } from '../model/eventSignal'
+import { eventsBySignal, kindBadge, SIGNAL_FILTER_LABEL, SIGNAL_FILTERS, signalBadge, signalEmptyText, signalFilterCount } from '../model/eventSignal'
 import {
   CHANGE_QUOTES_TITLE,
   EVENT_CHANGES_PAGE_SIZE,
@@ -99,11 +99,13 @@ export function TextEventsArea({ analysis, view, scope, onRetry, onOpenEvidence,
 export function TextEventsSection({ analysis, list, items, onOpenEvidence, renderChanges }: TextEventsSectionProps) {
   const { state: table, reload } = useSignalTable()
   const [criteriaFor, setCriteriaFor] = useState<TextEventItem | null>(null)
+  const [signal, setSignal] = useState<TextEventSignal | null>(null)
   if (items.length === 0) return null
+  const shown = eventsBySignal(items, signal)
   return (
     <section className="text-events" aria-labelledby="text-events-title">
       <h3 id="text-events-title" className="text-events__title">
-        {EVENTS_TITLE} {resultCountLabel(items.length)}
+        {EVENTS_TITLE} {resultCountLabel(shown.length)}
       </h3>
       <p className="panel__note">{EVENTS_NOTE}</p>
       {table.status === 'success' && <p className="panel__note">{table.data.signalNotice}</p>}
@@ -112,8 +114,14 @@ export function TextEventsSection({ analysis, list, items, onOpenEvidence, rende
           {EVENTS_DROPPED_NOTE}
         </Notice>
       )}
+      {(items.length > 1 || signal !== null) && <SignalFilter items={items} signal={signal} onChange={setSignal} />}
+      {signal !== null && shown.length === 0 && (
+        <Notice as="p" role="status">
+          {signalEmptyText(signal)}
+        </Notice>
+      )}
       <ol className="text-events__list">
-        {items.map((item) => (
+        {shown.map((item) => (
           <li key={item.eventId}>
             <TextEventCard analysis={analysis} item={item} onOpenEvidence={onOpenEvidence} onOpenCriteria={() => setCriteriaFor(item)} renderChanges={renderChanges} />
           </li>
@@ -121,6 +129,25 @@ export function TextEventsSection({ analysis, list, items, onOpenEvidence, rende
       </ol>
       {criteriaFor !== null && <SignalCriteriaDialog item={criteriaFor} table={table} onRetry={reload} onClose={() => setCriteriaFor(null)} />}
     </section>
+  )
+}
+
+interface SignalFilterProps {
+  items: TextEventItem[]
+  signal: TextEventSignal | null
+  onChange: (signal: TextEventSignal | null) => void
+}
+
+/** 신호 필터(3.42, AC29). 화면에서만 거르므로 풀면 서버가 정한 순서로 돌아간다. 건수가 0인 신호도 눌러 없다는 안내를 볼 수 있다 */
+function SignalFilter({ items, signal, onChange }: SignalFilterProps) {
+  return (
+    <div className="text-events__filter" role="group" aria-label={SIGNAL_FILTER_LABEL}>
+      {SIGNAL_FILTERS.map((option) => (
+        <Chip key={option.label} pressed={signal === option.signal} count={signalFilterCount(items, option.signal)} onClick={() => onChange(option.signal)}>
+          {option.label}
+        </Chip>
+      ))}
+    </div>
   )
 }
 

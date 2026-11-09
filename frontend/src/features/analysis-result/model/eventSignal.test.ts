@@ -1,6 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import type { SignalTable, TextEventItem, TextEventSentence, TextEventSentenceItem } from '@/shared/api/textEvents'
-import { criteriaRows, holdReasonText, judgmentLine, kindBadge, meaningView, rowCountsLabel, signalBadge, signalReasonView } from './eventSignal'
+import {
+  criteriaRows,
+  eventsBySignal,
+  holdReasonText,
+  judgmentLine,
+  kindBadge,
+  meaningView,
+  rowCountsLabel,
+  signalBadge,
+  signalEmptyText,
+  signalFilterCount,
+  signalReasonView,
+} from './eventSignal'
 
 const PATH = 'XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 3. 제재 등'
 
@@ -216,5 +228,33 @@ describe('criteriaRows', () => {
       { key: 'RIGHTS_OFFERING/DECIDED', kind: '유상증자', change: '결정', signal: '보류 (좋은 면·나쁜 면)', current: false },
       { key: 'RIGHTS_OFFERING/WITHDRAWN', kind: '유상증자', change: '철회', signal: '보류 (기준 없음)', current: false },
     ])
+  })
+})
+
+describe('신호 필터', () => {
+  const list: (Pick<TextEventItem, 'signal'> & { id: number })[] = [
+    { id: 1, signal: 'HOLD' },
+    { id: 2, signal: 'CAUTION' },
+    { id: 3, signal: 'HOLD' },
+    { id: 4, signal: 'POSITIVE' },
+  ]
+
+  it('신호를 고르면 그 신호의 사건만 원래 순서대로 남는다', () => {
+    expect(eventsBySignal(list, 'HOLD').map((item) => item.id)).toEqual([1, 3])
+  })
+
+  it('거르지 않으면 받은 목록 그대로다', () => {
+    expect(eventsBySignal(list, null)).toBe(list)
+  })
+
+  it('건수는 신호마다 세고 전체는 모두 센다', () => {
+    expect(signalFilterCount(list, null)).toBe(4)
+    expect(signalFilterCount(list, 'CAUTION')).toBe(1)
+    expect(signalFilterCount([], 'POSITIVE')).toBe(0)
+  })
+
+  it('없을 때의 안내에 신호 이름이 들어간다', () => {
+    expect(signalEmptyText('POSITIVE')).toBe('긍정 신호가 붙은 사건이 없어요.')
+    expect(signalEmptyText('HOLD')).toBe('보류가 붙은 사건이 없어요.')
   })
 })
