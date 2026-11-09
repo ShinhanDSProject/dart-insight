@@ -267,7 +267,7 @@ W-03 ④ 원문 확인
 | `Tabs` | `label`, `items`, `value`, `onChange` | 결과 탭(주소가 바뀌므로 `nav` + `aria-current="page"`) |
 | `MenuButton` / `MenuItem` | `label`, `trigger`: `button`(보조 버튼)·`chip`·`icon`(아이콘만, `aria-label` 필수), `selected`(chip), `align`: `start`·`end`, `children`(함수면 닫는 함수를 받음) / 버튼 속성, 고른 값은 `aria-pressed` | 자주 쓰지 않는 동작을 묶는 펼침 상자(4-29): 결과 머리 '내보내기', 재무제표 '그 밖의 표', 이 기업의 다른 분석, 문장 변화 카드의 ⋯ 메뉴 |
 | `SegmentedControl` | `options`(`icon`은 선택), `value`, `onChange`, `disabled`, `variant`: `text`(기본)·`icon`, `aria-label`·`aria-labelledby` | 비교 기준, 전체·변경 항목, 정렬, 비교·현재 보고서. `icon`은 아이콘만 있는 작은 알약 모양(각 `label`이 접근 가능한 이름·툴팁). 상단 바 화면 테마는 `ThemeMenu`가 아이콘 버튼 아래 펼침 상자에 글자 칸으로 둔다(#548) |
-| `Chip` | `pressed`, `tone`: `neutral`·`attention`, `count` | 변경 유형 거르기 |
+| `Chip` | `pressed`, `tone`: `neutral`·`attention`, `count` | 변경 유형 거르기, 주요 사건 신호 거르기(전체·주의·긍정·보류, #738) |
 | `Panel` / `PanelTitle` | `as`: `section`·`div` / `as`: `h2`·`h3`·`h4` | 화면의 큰 묶음 상자와 제목 |
 | `Card` | `as`, `tone`: `default`·`attention`·`subtle`, `selected`, `interactive` | 보고서·요약·변경 카드. `interactive`는 카드 전체를 눌러 고르는 카드(안에 링크·버튼)에만 붙여 hover·초점에 옅게 들린다 |
 | `StatNumber` | `label`, `value`(null이면 '-'·'자료 없음'), `format`, `unit`, `previousText`, `change`(`direction`·`amount`·`rate`), `changeNote`, `changeLabel`(빈 문자열이면 앞말 없음), `source` | 큰 숫자 지표(4-21) |
