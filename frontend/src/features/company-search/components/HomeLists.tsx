@@ -8,28 +8,27 @@ import { Button } from '@/shared/ui'
 import { AlertState, LoadingState } from '@/shared/ui/StateView'
 import { useFeaturedCompanies } from '../hooks/useFeaturedCompanies'
 import { useSeasonChanges } from '../hooks/useSeasonChanges'
-import { featuredRankList, seasonRankList, type HomeRankList } from '../model/homeLists'
+import { featuredRankList, HOME_LIST_FIRST, seasonRankList, type HomeRankList } from '../model/homeLists'
 import { FavoriteDisclosureFeed } from './FavoriteDisclosureFeed'
 
 /**
- * 첫 화면 검색창 바로 아래 좌우로 나란한 접는 목록(#686): 대표 기업, 이번 시즌 변화가 큰 기업 Top 10,
- * 관심 기업이 있는 회원이면 관심 기업 새 공시(FS-52).
- * 처음엔 접혀 있어 첫 화면은 로고와 검색창만 눈에 들어오고(FS-67), 펼칠 때 목록을 불러온다.
- * 대표 기업·시즌 변화는 같은 모양(안내 한 줄·순위 줄 10개)으로 그린다.
+ * 첫 화면 사용 순서 아래 두 칸 짧은 목록(#686 → #848): 왼쪽 대표 기업, 오른쪽 이번 시즌 변화가 큰 기업 Top 10.
+ * 접지 않고 처음부터 5개씩 보여 바로 누를 수 있게 하고, '더 보기'로 10개까지 연다. 기준·출처 안내는 목록 아래 작게.
+ * 관심 기업이 있는 회원이면 관심 기업 새 공시(FS-52)를 그 아래 한 줄 전체로 둔다.
  */
 export function HomeLists({ favoritesStatus, favorites }: { favoritesStatus: FavoriteCompaniesStatus; favorites: FavoriteCompany[] }) {
   return (
     <div className="home-lists">
-      <HomeToggle label="대표 기업">
+      <HomePanel id="home-featured" title="대표 기업" tag="시가총액 순">
         <Featured />
-      </HomeToggle>
-      <HomeToggle label="이번 시즌 변화가 큰 기업 Top 10">
+      </HomePanel>
+      <HomePanel id="home-season" title="이번 시즌 변화가 큰 기업" tag="Top 10">
         <Season />
-      </HomeToggle>
+      </HomePanel>
       {favoritesStatus === 'ready' && favorites.length > 0 && (
-        <HomeToggle label="관심 기업 새 공시">
-          <FavoriteDisclosureFeed companies={favorites} />
-        </HomeToggle>
+        <HomePanel id="home-favorites" title="관심 기업 새 공시" wide>
+          <FavoritesOnDemand companies={favorites} />
+        </HomePanel>
       )}
     </div>
   )
@@ -53,6 +52,7 @@ interface RankBodyProps<T> {
 }
 
 function RankBody<T>({ state, toList, onRetry, label }: RankBodyProps<T>) {
+  const [expanded, setExpanded] = useState(false)
   return match(state)
     .with({ status: 'loading' }, () => <LoadingState message="불러오는 중이에요…" />)
     .with({ status: 'error' }, () => (
@@ -64,12 +64,13 @@ function RankBody<T>({ state, toList, onRetry, label }: RankBodyProps<T>) {
     ))
     .with({ status: 'success' }, ({ data }) => {
       const list = toList(data)
+      const rows = expanded ? list.rows : list.rows.slice(0, HOME_LIST_FIRST)
+      const hidden = list.rows.length - HOME_LIST_FIRST
       return (
         <>
-          <p className="home-rank__caption">{list.caption}</p>
           {list.rows.length > 0 && (
             <ol className="home-rank" aria-label={label}>
-              {list.rows.map((row) => (
+              {rows.map((row) => (
                 <li key={row.to + row.rank} className="home-rank__item">
                   <Link to={row.to} className="home-rank__link">
                     <span className="home-rank__rank" aria-hidden="true">
@@ -83,24 +84,38 @@ function RankBody<T>({ state, toList, onRetry, label }: RankBodyProps<T>) {
               ))}
             </ol>
           )}
+          {hidden > 0 && (
+            <Button variant="link" className="home-rank__more" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
+              {expanded ? '접기' : `더 보기 (${hidden}개)`}
+            </Button>
+          )}
+          <p className="home-rank__caption">{list.caption}</p>
         </>
       )
     })
     .exhaustive()
 }
 
-function HomeToggle({ label, children }: { label: string; children: ReactNode }) {
+/** 관심 기업 새 공시는 기업마다 공시를 불러와 무거우므로 누를 때만 불러온다(#686의 접는 동작을 이 칸에만 남김) */
+function FavoritesOnDemand({ companies }: { companies: FavoriteCompany[] }) {
   const [open, setOpen] = useState(false)
+  if (open) return <FavoriteDisclosureFeed companies={companies} />
   return (
-    <details className="home-toggle" onToggle={(event) => setOpen(event.currentTarget.open)}>
-      <summary className="home-toggle__summary">
-        <span>{label}</span>
-        <span className="home-toggle__caret" aria-hidden="true">
-          ▼
-        </span>
-      </summary>
-      {/* 접힌 동안에는 그리지 않아 API를 부르지 않는다 */}
-      {open && <div className="home-toggle__body">{children}</div>}
-    </details>
+    <Button variant="link" className="home-rank__more" onClick={() => setOpen(true)}>
+      관심 기업 {companies.length}곳의 최근 공시 보기
+    </Button>
+  )
+}
+
+/** 첫 화면 목록 한 칸: 제목과 작은 기준 꼬리표, 그 아래 내용. 접지 않는다(#848) */
+function HomePanel({ id, title, tag, wide = false, children }: { id: string; title: string; tag?: string; wide?: boolean; children: ReactNode }) {
+  return (
+    <section className={wide ? 'home-panel home-panel--wide' : 'home-panel'} aria-labelledby={`${id}-title`}>
+      <h2 className="home-panel__title" id={`${id}-title`}>
+        {title}
+        {tag && <span className="home-panel__tag">{tag}</span>}
+      </h2>
+      {children}
+    </section>
   )
 }
