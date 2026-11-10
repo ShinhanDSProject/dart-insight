@@ -195,7 +195,7 @@ describe('결과 머리(#550)', () => {
     expect(new URLSearchParams(screen.getByTestId('where-search').textContent ?? '').get('previous')).toBe('20250814000987')
   })
 
-  it('탭은 기업 개요(#589)·요약·재무 수치·문장 변화·커뮤니티·뉴스(#592)·원문·보고서 선택(#659) 여덟 개다', async () => {
+  it('탭은 기업 개요(#589)·요약·재무 수치·문장 변화(ADR-0067)·전체 변경·커뮤니티·뉴스(#592)·원문·보고서 선택(#659) 아홉 개다', async () => {
     getAnalysis.mockResolvedValue(analysis(false))
     renderPage()
     const tabs = await screen.findByRole('navigation', { name: '결과 보기' })
@@ -204,6 +204,7 @@ describe('결과 머리(#550)', () => {
       '요약',
       '재무 수치',
       '문장 변화',
+      '전체 변경',
       '커뮤니티',
       '뉴스',
       '원문',
@@ -226,7 +227,7 @@ describe('결과 머리(#550)', () => {
     const panel = screen.getByRole('dialog', { name: 'AI 에이전트' })
     expect(within(panel).getByText(/개인정보는 쓰지 마세요/)).toBeTruthy()
     const tabs = screen.getByRole('navigation', { name: '결과 보기' })
-    fireEvent.click(within(tabs).getByText('문장 변화'))
+    fireEvent.click(within(tabs).getByText('전체 변경'))
     expect(screen.getByTestId('where-search').textContent).toContain('tab=text')
     expect(screen.getByRole('dialog', { name: 'AI 에이전트' })).toBeTruthy()
     fireEvent.click(within(panel).getByRole('button', { name: '닫기' }))

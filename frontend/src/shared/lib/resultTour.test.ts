@@ -52,6 +52,6 @@ describe('결과 화면 둘러보기 기억', () => {
   })
 
   it('요약 → 문장 변화 → AI 에이전트 순서다', () => {
-    expect(RESULT_TOUR_STEPS.map((step) => step.tab)).toEqual(['summary', 'text', null])
+    expect(RESULT_TOUR_STEPS.map((step) => step.tab)).toEqual(['summary', 'activity', null])
   })
 })

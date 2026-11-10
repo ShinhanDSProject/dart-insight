@@ -39,18 +39,19 @@ describe('shortcutFor 키 대응', () => {
     expect(shortcutFor(key('?'), other)).toEqual({ kind: 'toggle-help' })
   })
 
-  it('결과 화면에서 1~7은 탭 순서대로 간다', () => {
+  it('결과 화면에서 1~8은 탭 순서대로 간다', () => {
     expect(shortcutFor(key('1'), result)).toEqual({ kind: 'open-tab', tab: 'summary' })
     expect(shortcutFor(key('2'), result)).toEqual({ kind: 'open-tab', tab: 'financial' })
-    expect(shortcutFor(key('3'), result)).toEqual({ kind: 'open-tab', tab: 'text' })
-    expect(shortcutFor(key('4'), result)).toEqual({ kind: 'open-tab', tab: 'community' })
-    expect(shortcutFor(key('5'), result)).toEqual({ kind: 'open-tab', tab: 'news' })
-    expect(shortcutFor(key('6'), result)).toEqual({ kind: 'open-tab', tab: 'source' })
-    expect(shortcutFor(key('7'), result)).toEqual({ kind: 'open-tab', tab: 'reports' })
+    expect(shortcutFor(key('3'), result)).toEqual({ kind: 'open-tab', tab: 'activity' })
+    expect(shortcutFor(key('4'), result)).toEqual({ kind: 'open-tab', tab: 'text' })
+    expect(shortcutFor(key('5'), result)).toEqual({ kind: 'open-tab', tab: 'community' })
+    expect(shortcutFor(key('6'), result)).toEqual({ kind: 'open-tab', tab: 'news' })
+    expect(shortcutFor(key('7'), result)).toEqual({ kind: 'open-tab', tab: 'source' })
+    expect(shortcutFor(key('8'), result)).toEqual({ kind: 'open-tab', tab: 'reports' })
   })
 
-  it('결과 화면에서 8·0은 단축키가 아니다', () => {
-    expect(shortcutFor(key('8'), result)).toBeNull()
+  it('결과 화면에서 9·0은 단축키가 아니다', () => {
+    expect(shortcutFor(key('9'), result)).toBeNull()
     expect(shortcutFor(key('0'), result)).toBeNull()
   })
 
@@ -148,9 +149,9 @@ describe('shortcutGroups 도움말 목록', () => {
     expect(groups.find((g) => g.id === 'text')?.available).toBe(false)
   })
 
-  it('결과 화면 묶음은 탭 다섯 개와 AI 질문 입력창을 보여 준다', () => {
+  it('결과 화면 묶음은 탭 여덟 개와 AI 질문 입력창을 보여 준다', () => {
     const resultGroup = shortcutGroups('result').find((g) => g.id === 'result')
-    expect(resultGroup?.items.map((i) => i.keys[0])).toEqual(['1', '2', '3', '4', '5', '6', '7', 'A'])
+    expect(resultGroup?.items.map((i) => i.keys[0])).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', 'A'])
   })
 
   it('검색 화면에서는 /의 설명이 검색창으로 가기다', () => {
@@ -159,12 +160,12 @@ describe('shortcutGroups 도움말 목록', () => {
   })
 })
 
-describe('shortcutGroups 문장 변화 묶음', () => {
-  it('j·k·Enter·p를 보이고 문장 변화 탭에서 쓴다고 늘 안내한다', () => {
+describe('shortcutGroups 전체 변경 묶음', () => {
+  it('j·k·Enter·p를 보이고 전체 변경 탭에서 쓴다고 늘 안내한다', () => {
     const text = shortcutGroups('result').find((g) => g.id === 'text')
-    expect(text?.title).toBe('문장 변화')
+    expect(text?.title).toBe('전체 변경')
     expect(text?.items.map((i) => i.keys)).toEqual([['J', '↓'], ['K', '↑'], ['Enter'], ['P']])
-    expect(text?.note).toContain('문장 변화 탭')
+    expect(text?.note).toContain('전체 변경 탭')
   })
 
   it('결과 화면에서는 결과 화면 묶음에 안내를 달지 않고, 다른 화면에서는 단다', () => {

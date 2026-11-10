@@ -64,6 +64,8 @@ export const endpoints = {
   eventRuns: (analysisId: number) => `${analysis(analysisId)}/event-runs`,
   currentEventRun: (analysisId: number) => `${analysis(analysisId)}/event-runs/current`,
   textEvents: (analysisId: number) => `${analysis(analysisId)}/events`,
+  /** 두 보고서 사이에 회사가 한 일과 앞으로의 영향(ADR-0067) */
+  analysisActivities: (analysisId: number) => `${analysis(analysisId)}/activities`,
   textEvent: (analysisId: number, eventId: number) => `${analysis(analysisId)}/events/${seg(eventId)}`,
   currentSignalTable: () => '/api/signal-tables/current',
   document: (analysisId: number, side: string) => `${analysis(analysisId)}/documents/${seg(side)}`,

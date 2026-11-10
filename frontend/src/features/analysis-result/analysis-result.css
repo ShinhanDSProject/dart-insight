@@ -3953,3 +3953,174 @@
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-regular);
 }
+
+/* 문장 변화 탭(ADR-0067): 제목 → 한 줄 요약 → 숫자로 본 이 기간 → 쓰임 고르기 → 활동 카드 */
+.activity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.activity__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.activity__title {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+}
+
+.activity__overview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--card-padding);
+}
+
+.activity__overview-text {
+  margin: 0;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-body);
+}
+
+.activity__numbers .key-numbers {
+  margin-bottom: 0;
+}
+
+.activity__list-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.activity__list-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+}
+
+.activity__subtitle {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+.activity__audiences {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.activity__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activity-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--card-padding);
+}
+
+.activity-card__meta,
+.activity-impact__tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.activity-card__audiences,
+.activity-card__signal,
+.activity-card__source,
+.activity-card__none {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.activity-card__title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+.activity-card__summary,
+.activity-card__signal,
+.activity-card__none,
+.activity-impact__text {
+  margin: 0;
+  line-height: var(--line-height-body);
+}
+
+.activity-card__part {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.activity-card__part-title {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.activity-card__quotes,
+.activity-card__impacts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activity-card__quote {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--color-border-strong);
+  background: var(--color-bg-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.activity-card__quote blockquote {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.activity-card__source {
+  overflow-wrap: anywhere;
+}
+
+.activity-impact {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.activity-impact--outlook {
+  padding: var(--space-2) var(--space-3);
+  border: 1px dashed var(--color-border-accent);
+  border-radius: var(--radius-sm);
+}
+
+.activity-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}

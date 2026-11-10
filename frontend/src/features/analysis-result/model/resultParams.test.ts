@@ -261,7 +261,7 @@ describe('AI 질문·커뮤니티 탭 주소', () => {
 })
 
 describe('단축키 탭 순서', () => {
-  it('1~6 단축키의 탭 순서가 결과 화면의 탭 순서와 같다(키가 없는 맨 앞 기업 개요 탭(#589)은 빼고)', () => {
+  it('1~8 단축키의 탭 순서가 결과 화면의 탭 순서와 같다(키가 없는 맨 앞 기업 개요 탭(#589)은 빼고)', () => {
     expect([...shortcutResultTabs]).toEqual(resultTabs.filter((tab) => tab !== 'overview'))
   })
 })
