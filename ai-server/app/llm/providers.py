@@ -14,7 +14,7 @@ import json
 import logging
 from collections import deque
 from collections.abc import Callable, Iterable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Protocol
 
 import anthropic
@@ -75,6 +75,17 @@ class ProviderError(Exception):
 
 class ProviderTransientError(ProviderError):
     """잠시 뒤 다시 시도하면 나아질 수 있는 오류(시간 초과, 네트워크, 호출 한도, 5xx)."""
+
+
+class ProviderTruncatedError(ProviderError):
+    """응답이 출력 토큰 한도에서 잘린 오류. 같은 요청을 다시 생성하면 나아질 수 있다(#838).
+
+    잘린 응답의 토큰 수를 호출 기록에 남기려고 `response`(글은 버림)를 함께 담는다.
+    """
+
+    def __init__(self, message: str, response: ProviderResponse) -> None:
+        super().__init__(message)
+        self.response = response
 
 
 class ProviderQuotaError(ProviderError):
@@ -239,7 +250,10 @@ def _openai_response(response: Any, fallback_model: str) -> ProviderResponse:
         details = response.incomplete_details
         reason = details.reason if details is not None else None
         if reason == INCOMPLETE_MAX_OUTPUT_TOKENS:
-            raise ProviderError("OpenAI 응답이 출력 토큰 한도(max_output_tokens)에서 잘렸습니다.")
+            raise ProviderTruncatedError(
+                "OpenAI 응답이 출력 토큰 한도(max_output_tokens)에서 잘렸습니다.",
+                replace(_openai_usage(response, fallback_model), text=""),
+            )
         if reason == INCOMPLETE_CONTENT_FILTER:
             raise ProviderError("OpenAI 응답이 콘텐츠 필터로 중단됐습니다.")
         raise ProviderError(f"OpenAI 응답이 끝나지 않았습니다(사유: {reason}).")
@@ -255,9 +269,14 @@ def _openai_response(response: Any, fallback_model: str) -> ProviderResponse:
             if part.type == PART_OUTPUT_TEXT and part.text is not None:
                 texts.append(part.text)
     # 출력 문장이 없으면 빈 문자열을 돌려주고, LlmClient가 JSON 검증 실패로 다시 생성한다
+    return replace(_openai_usage(response, fallback_model), text="".join(texts))
+
+
+def _openai_usage(response: Any, fallback_model: str) -> ProviderResponse:
+    """OpenAI 응답의 모델·토큰 수(글은 빈 문자열)."""
     usage = response.usage
     return ProviderResponse(
-        text="".join(texts),
+        text="",
         model=response.model or fallback_model,
         input_tokens=usage.input_tokens if usage is not None else None,
         output_tokens=usage.output_tokens if usage is not None else None,
@@ -404,7 +423,10 @@ def _anthropic_response(response: Any, fallback_model: str) -> ProviderResponse:
     if response.stop_reason == STOP_REFUSAL:
         raise ProviderError("Anthropic 모델이 답을 거절했습니다(refusal).")
     if response.stop_reason == STOP_MAX_TOKENS:
-        raise ProviderError("Anthropic 응답이 출력 토큰 한도(max_tokens)에서 잘렸습니다.")
+        raise ProviderTruncatedError(
+            "Anthropic 응답이 출력 토큰 한도(max_tokens)에서 잘렸습니다.",
+            _anthropic_usage(response, fallback_model),
+        )
     # 생각(thinking)·대체(fallback) 블록은 건너뛰고 답 글만 모은다.
     # 글이 없으면 빈 문자열을 돌려주고, LlmClient가 JSON 검증 실패로 다시 생성한다
     texts = [
@@ -412,6 +434,11 @@ def _anthropic_response(response: Any, fallback_model: str) -> ProviderResponse:
         for block in response.content or []
         if getattr(block, "type", None) == BLOCK_TEXT and block.text is not None
     ]
+    return replace(_anthropic_usage(response, fallback_model), text="".join(texts))
+
+
+def _anthropic_usage(response: Any, fallback_model: str) -> ProviderResponse:
+    """Anthropic 응답의 모델·토큰 수(글은 빈 문자열)."""
     usage = response.usage
     cache_read = _int_or_none(getattr(usage, "cache_read_input_tokens", None))
     cache_write = _int_or_none(getattr(usage, "cache_creation_input_tokens", None))
@@ -421,7 +448,7 @@ def _anthropic_response(response: Any, fallback_model: str) -> ProviderResponse:
         base_input + (cache_read or 0) + (cache_write or 0) if base_input is not None else None
     )
     return ProviderResponse(
-        text="".join(texts),
+        text="",
         model=response.model or fallback_model,
         input_tokens=input_tokens,
         output_tokens=_int_or_none(getattr(usage, "output_tokens", None)),

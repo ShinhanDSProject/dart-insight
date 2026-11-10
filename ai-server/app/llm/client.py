@@ -3,8 +3,8 @@
 - 호출마다 제공자·모델·프롬프트 버전·호출 시각·토큰 수·추적 ID·걸린 시간·결과를 기록한다
   (로그와 `CallRecord`).
 - 네트워크 오류·시간 초과처럼 일시적인 오류는 `max_retries`번까지 다시 시도한다.
-- 결과는 JSON으로 받고, 형식·검증에 실패하면 문제를 알려 주며
-  `max_output_retries`번까지 다시 생성한다.
+- 결과는 JSON으로 받고, 형식·검증에 실패하거나 출력 토큰 한도에서 잘리면 문제를 알려 주며
+  `max_output_retries`번까지 다시 생성한다(잘림은 #838).
   그래도 실패하면 `LlmOutputInvalid`로 끝낸다. 실패를 성공으로 처리하지 않는다.
 - 제공자가 없거나(키 없음 포함) 호출이 끝내 실패하면 `LlmUnavailable`.
   부른 쪽이 분석을 실패로 끝낸다.
@@ -31,6 +31,7 @@ from app.llm.providers import (
     ProviderError,
     ProviderQuotaError,
     ProviderTransientError,
+    ProviderTruncatedError,
     create_provider,
 )
 
@@ -38,6 +39,10 @@ logger = logging.getLogger("app.llm")
 # 사용 한도(결제·지출 한도)를 다 썼을 때. 기다려도 풀리지 않아 다시 시도하지 않는다
 QUOTA_MESSAGE = "AI 사용 한도에 도달해 지금은 AI를 쓸 수 없어요. 운영자가 한도를 올려야 해요."
 KST = timezone(timedelta(hours=9))
+# 응답이 출력 토큰 한도에서 잘렸을 때 다시 생성하며 알리는 문제(#838)
+TRUNCATED_PROBLEM = (
+    "응답이 출력 토큰 한도에서 잘렸습니다. 생각은 짧게 하고 JSON만 간결하게 답하세요."
+)
 
 # 호출 결과(CallRecord.outcome)
 OUTCOME_OK = "OK"
@@ -189,6 +194,11 @@ class LlmClient:
                 current = replace(request, user=request.user + _feedback(problems))
             try:
                 text, record = self._call_with_retry(current, calls, deadline)
+            except _Truncated:
+                # 잘린 글은 JSON으로 읽을 수 없어 검증 실패처럼 다시 생성한다(#838)
+                problems = [TRUNCATED_PROBLEM]
+                logger.info("LLM 응답이 출력 토큰 한도에서 잘림(%d/%d)", round_no + 1, retries + 1)
+                continue
             except LlmUnavailable:
                 if not problems:
                     raise
@@ -246,6 +256,24 @@ class LlmClient:
                     ) from e
                 self._sleep(wait)
                 continue
+            except ProviderTruncatedError as e:
+                partial = e.response
+                record = self._record(
+                    request,
+                    called_at,
+                    started,
+                    attempt,
+                    OUTCOME_INVALID_OUTPUT,
+                    model=partial.model,
+                    input_tokens=partial.input_tokens,
+                    output_tokens=partial.output_tokens,
+                    error=_short(e),
+                    cached_input_tokens=partial.cached_input_tokens,
+                    reasoning_tokens=partial.reasoning_tokens,
+                )
+                calls.append(record)
+                _log(record)
+                raise _Truncated from e
             except ProviderError as e:
                 record = self._record(
                     request, called_at, started, attempt, OUTCOME_ERROR, error=_short(e)
@@ -315,6 +343,10 @@ def _parse_json(text: str) -> Any:
     except json.JSONDecodeError as e:
         problem = f"JSON으로 읽을 수 없습니다({e.msg}). JSON 객체 하나만 답하세요."
         raise OutputProblem([problem]) from e
+
+
+class _Truncated(Exception):
+    """_call_with_retry가 잘린 응답을 기록한 뒤 generate에 다시 생성하라고 알리는 신호."""
 
 
 def _feedback(problems: list[str]) -> str:
