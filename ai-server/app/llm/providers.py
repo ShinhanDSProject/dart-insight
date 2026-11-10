@@ -272,7 +272,7 @@ def _detail(usage: Any, details: str, field: str) -> int | None:
     return value if isinstance(value, int) else None
 
 
-ANTHROPIC_DEFAULT_MODEL = "claude-sonnet-5-5"
+ANTHROPIC_DEFAULT_MODEL = "claude-haiku-5-5"
 # 거절했을 때 서버가 다른 모델로 이어 처리하는 대체(ADR-0062). Claude API에서 이 모델들만 지원한다
 ANTHROPIC_FALLBACK_MODELS = frozenset({"claude-sonnet-5-5"})
 ANTHROPIC_FALLBACK_BETA = "server-side-fallback-2026-07-01"
