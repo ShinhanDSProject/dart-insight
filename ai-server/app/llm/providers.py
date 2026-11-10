@@ -50,7 +50,10 @@ class LlmRequest:
     user: str
     output_schema: dict[str, Any] = field(default_factory=dict)
     context: Any = None
-    max_output_tokens: int = 4000
+    # Claude는 생각 토큰도 이 한도에 든다. 요약(항목 10~11개)은 Haiku에서 4,000을 넘겨 잘렸다(#838).
+    # 한도는 상한일 뿐이라 실제로 만든 토큰만 비용이 든다. 스트리밍 없이 부르므로 호출당 제한시간
+    # (기본 60초) 안에 끝날 만큼으로 둔다
+    max_output_tokens: int = 12000
     timeout_seconds: float | None = None
     total_timeout_seconds: float | None = None
     model: str | None = None
