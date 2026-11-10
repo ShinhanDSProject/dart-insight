@@ -34,6 +34,9 @@ import { CheckTable } from '@/shared/comparability/components/CheckTable'
 import { useComparabilityCheck } from '@/shared/comparability/hooks/useComparabilityCheck'
 import './analysis-progress.css'
 
+/** 기다리는 동안의 안내(#841). 분석은 서버의 비동기 작업이라 창을 닫아도 멈추지 않는다 */
+const KEEPS_RUNNING_NOTE = '창을 닫아도 분석은 계속돼요.'
+
 /**
  * W-02 분석 진행(2.3). 1초마다 상태를 묻고, 완료되면 결과 화면(W-03)으로 간다.
  * 실패하면 사유와 '분석 실행'(다시 요청)을 보여 준다. 결과가 저장되기 전에는 완료로 보이지 않는다(서버가 보장).
@@ -137,12 +140,15 @@ function Progress({ analysis }: { analysis: Analysis }) {
         <ReportCard side="current" report={analysis.current} />
       </ReportCardPair>
       <Panel aria-labelledby="progress-steps-title">
-        {match(analysis.status)
-          .with('PENDING', 'RUNNING', () => <Mascot mood="search" size="lg" className="progress__mascot" />)
-          .with('FAILED', () => <Mascot mood="none" size="md" className="progress__mascot" />)
-          .with('COMPLETED', () => null)
-          .exhaustive()}
-        <PanelTitle id="progress-steps-title">원문에서 근거까지, 순서대로 확인해요</PanelTitle>
+        {/* 공팡이는 제목 옆에 작게 둔다(#841). 진행 중이면 찾는 중, 실패면 설명 없음 표정 */}
+        <div className="progress__head">
+          {match(analysis.status)
+            .with('PENDING', 'RUNNING', () => <Mascot mood="search" size="sm" className="progress__mascot" />)
+            .with('FAILED', () => <Mascot mood="none" size="sm" className="progress__mascot" />)
+            .with('COMPLETED', () => null)
+            .exhaustive()}
+          <PanelTitle id="progress-steps-title">원문에서 근거까지, 순서대로 확인해요</PanelTitle>
+        </div>
         <ol className="steps">
           {analysis.steps.map((step) => (
             <li key={step.step} className={`steps__item steps__item--${step.state.toLowerCase()}`}>
@@ -157,7 +163,10 @@ function Progress({ analysis }: { analysis: Analysis }) {
           ))}
         </ol>
         <ProgressBar value={stepProgress(analysis.steps)} label="분석 진행률" />
-        <p className="panel__note">{stepSummary(analysis.steps)}</p>
+        <p className="panel__note">
+          {stepSummary(analysis.steps)}
+          {(analysis.status === 'PENDING' || analysis.status === 'RUNNING') && ` ${KEEPS_RUNNING_NOTE}`}
+        </p>
       </Panel>
     </>
   )
