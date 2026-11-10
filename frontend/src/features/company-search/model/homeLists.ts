@@ -7,6 +7,14 @@ import { seasonCaption } from './seasonChanges'
 export const HOME_LIST_LIMIT = 10
 /** 처음 보이는 줄 수(#848). 나머지는 '더 보기'로 연다 */
 export const HOME_LIST_FIRST = 5
+/** 넓은 화면(#852)에서 처음 보이는 줄 수. company-search.css의 넓은 화면 구간과 같은 기준을 쓴다 */
+export const HOME_LIST_FIRST_WIDE = 7
+export const WIDE_SCREEN_QUERY = '(min-width: 1600px)'
+
+/** 화면 폭에 따라 처음 보이는 줄 수 */
+export function homeListFirst(wide: boolean): number {
+  return wide ? HOME_LIST_FIRST_WIDE : HOME_LIST_FIRST
+}
 
 /** 대표 기업과 시즌 변화를 같은 모양으로 그리기 위한 한 줄 */
 export interface HomeRankRow {

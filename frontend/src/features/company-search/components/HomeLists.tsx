@@ -8,7 +8,8 @@ import { Button } from '@/shared/ui'
 import { AlertState, LoadingState } from '@/shared/ui/StateView'
 import { useFeaturedCompanies } from '../hooks/useFeaturedCompanies'
 import { useSeasonChanges } from '../hooks/useSeasonChanges'
-import { featuredRankList, HOME_LIST_FIRST, seasonRankList, type HomeRankList } from '../model/homeLists'
+import { useWideScreen } from '../hooks/useWideScreen'
+import { featuredRankList, homeListFirst, seasonRankList, type HomeRankList } from '../model/homeLists'
 import { FavoriteDisclosureFeed } from './FavoriteDisclosureFeed'
 
 /**
@@ -53,6 +54,8 @@ interface RankBodyProps<T> {
 
 function RankBody<T>({ state, toList, onRetry, label }: RankBodyProps<T>) {
   const [expanded, setExpanded] = useState(false)
+  // 넓은 화면은 7줄, 그 밖에는 5줄을 먼저 보인다(#852)
+  const first = homeListFirst(useWideScreen())
   return match(state)
     .with({ status: 'loading' }, () => <LoadingState message="불러오는 중이에요…" />)
     .with({ status: 'error' }, () => (
@@ -64,8 +67,8 @@ function RankBody<T>({ state, toList, onRetry, label }: RankBodyProps<T>) {
     ))
     .with({ status: 'success' }, ({ data }) => {
       const list = toList(data)
-      const rows = expanded ? list.rows : list.rows.slice(0, HOME_LIST_FIRST)
-      const hidden = list.rows.length - HOME_LIST_FIRST
+      const rows = expanded ? list.rows : list.rows.slice(0, first)
+      const hidden = list.rows.length - first
       return (
         <>
           {list.rows.length > 0 && (
