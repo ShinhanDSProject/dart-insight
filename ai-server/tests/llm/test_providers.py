@@ -403,10 +403,11 @@ def claude_status_error(code: int, body: Any = None, cls: Any = None) -> anthrop
 def test_claude_sends_messages_request_with_schema_fallback_and_timeout() -> None:
     p, fake = claude(claude_response('{"answer": "네"}'))
 
-    p.complete(REQUEST, 30.0)
+    # 거절 대체는 claude-sonnet-5-5만 지원한다(기본 모델 claude-haiku-5-5에는 붙지 않음, ADR-0063)
+    p.complete(replace(REQUEST, model="claude-sonnet-5-5"), 30.0)
 
     params = fake.messages.calls[0]
-    assert params["model"] == ANTHROPIC_DEFAULT_MODEL
+    assert params["model"] == "claude-sonnet-5-5"
     assert params["system"][0]["text"] == "시스템"
     assert params["messages"][0]["role"] == "user"
     assert params["max_tokens"] == 800
