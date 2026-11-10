@@ -6,10 +6,17 @@
 import os
 from dataclasses import dataclass, field
 
-# 제공자별 작업별 모델의 기본값(ADR-0059·ADR-0062). LLM_TASK_MODELS가 없으면 이 값을 쓰고,
-# 빈 값이면 작업별 모델을 쓰지 않는다. 여기 없는 제공자는 작업별 모델을 쓰지 않는다
+# 제공자별 작업별 모델의 기본값(ADR-0059·ADR-0062·ADR-0063). LLM_TASK_MODELS가 없으면 이 값을 쓰고,
+# 빈 값이면 작업별 모델을 쓰지 않는다. 여기 없는 제공자는 작업별 모델을 쓰지 않는다.
+# Claude는 에이전트 Tool 고르기와 주요 사건 작업 4개(묶기·금액 확인·공시의 의미·신호 이유)가 Haiku다
 DEFAULT_TASK_MODELS = {
-    "anthropic": "agent_plan=claude-haiku-5-5",
+    "anthropic": (
+        "agent_plan=claude-haiku-5-5,"
+        "text_event=claude-haiku-5-5,"
+        "event_amount_pick=claude-haiku-5-5,"
+        "event_meaning=claude-haiku-5-5,"
+        "event_signal_reason=claude-haiku-5-5"
+    ),
     "openai": "agent_plan=gpt-6-luna",
 }
 
