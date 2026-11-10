@@ -253,7 +253,10 @@ def build_answer_request(step: StepInput, problems: list[str]) -> LlmRequest:
         user_cache_prefix=len(shared),
         output_schema=answer_schema(step),
         context=step,
-        max_output_tokens=1000,
+        # Claude는 생각 토큰도 이 한도에 든다. claude-haiku-5-5는 1,000에서 잘려
+        # Tool 고르기와 같게 둔다(ADR-0063, 2026-11-10 실제 호출).
+        # 답 글 길이는 답 형식의 글자 수 상한이 따로 막는다
+        max_output_tokens=3000,
     )
 
 
