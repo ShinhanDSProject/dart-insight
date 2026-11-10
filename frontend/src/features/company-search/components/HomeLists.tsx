@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { match } from 'ts-pattern'
 import type { FavoriteCompany } from '@/shared/api/favoriteCompanies'
@@ -73,8 +73,13 @@ function RankBody<T>({ state, toList, onRetry, label }: RankBodyProps<T>) {
         <>
           {list.rows.length > 0 && (
             <ol className="home-rank" aria-label={label}>
-              {rows.map((row) => (
-                <li key={row.to + row.rank} className="home-rank__item">
+              {rows.map((row, index) => (
+                <li
+                  key={row.to + row.rank}
+                  className="home-rank__item"
+                  // 처음 줄은 위에서부터, '더 보기'로 연 줄은 연 줄부터 차례로 나타난다(#858)
+                  style={{ '--row': index < first ? index : index - first } as CSSProperties}
+                >
                   <Link to={row.to} className="home-rank__link">
                     <span className="home-rank__rank" aria-hidden="true">
                       {row.rank}

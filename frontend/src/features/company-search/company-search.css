@@ -21,6 +21,28 @@
   margin-bottom: var(--space-6);
 }
 
+/* 첫 화면은 로고 → 소개 → 검색창 → 사용 순서 → 목록 순으로 차례로 떠오른다(#858) */
+.search-hero--home > * {
+  /* backwards: 끝난 뒤 transform을 남기지 않아 검색 드롭다운이 아래 목록에 가리지 않는다 */
+  animation: rise-in var(--motion-enter) var(--ease-out) backwards;
+}
+
+.search-hero--home > :nth-child(2) {
+  animation-delay: var(--motion-stagger);
+}
+
+.search-hero--home > :nth-child(3) {
+  animation-delay: calc(var(--motion-stagger) * 2);
+}
+
+.search-hero--home > :nth-child(4) {
+  animation-delay: calc(var(--motion-stagger) * 3);
+}
+
+.search-hero--home > :nth-child(5) {
+  animation-delay: calc(var(--motion-stagger) * 4);
+}
+
 /* 첫 화면 두 칸 짧은 목록(#686 → #848): 왼쪽 대표 기업, 오른쪽 시즌 변화. 접지 않고 테두리 없이 위 검색창·사용 순서와 이어 둔다 */
 .home-lists {
   display: grid;
@@ -80,7 +102,12 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  animation: rise-in var(--motion-base) var(--ease-out);
+}
+
+/* 줄이 한 줄씩 나타난다. '더 보기'로 연 줄은 연 순간부터 다시 센다(--row, #858) */
+.home-rank__item {
+  animation: rise-in var(--motion-enter) var(--ease-out) backwards;
+  animation-delay: calc(var(--row, 0) * var(--motion-stagger));
 }
 
 .home-rank__item + .home-rank__item {
@@ -96,6 +123,13 @@
   color: inherit;
   font-size: var(--font-size-sm);
   text-decoration: none;
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+/* 누를 수 있는 줄이라는 것을 살짝 밀려서 알린다(#858) */
+.home-rank__link:hover,
+.home-rank__link:focus-visible {
+  transform: translateX(var(--motion-nudge));
 }
 
 .home-rank__link:hover .home-rank__name {
