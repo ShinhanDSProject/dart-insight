@@ -678,7 +678,7 @@ code {
 @keyframes rise-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(var(--motion-rise));
   }
 }
 
@@ -686,6 +686,14 @@ code {
 @keyframes grow-x {
   from {
     transform: scaleX(0);
+  }
+}
+
+/* 진행 중인 점이 숨 쉬듯 커졌다 작아진다(분석 진행 단계) */
+@keyframes pulse {
+  50% {
+    opacity: 0.5;
+    transform: scale(1.4);
   }
 }
 

@@ -2391,7 +2391,7 @@
   border-radius: var(--radius-sm);
   background: var(--color-border-strong);
   transform-origin: left;
-  animation: grow-x var(--motion-slow) var(--ease-out);
+  animation: grow-x var(--motion-grow) var(--ease-out);
 }
 
 .headline-bar--current .headline-bar__fill {
@@ -2619,7 +2619,7 @@
   border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
   background: var(--color-chart-current);
   transform-origin: left center;
-  animation: grow-x var(--motion-slow) var(--ease-out) both;
+  animation: grow-x var(--motion-grow) var(--ease-out) both;
   animation-delay: calc(var(--row, 0) * var(--motion-stagger));
 }
 

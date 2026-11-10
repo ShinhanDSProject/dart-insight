@@ -137,12 +137,21 @@
   --motion-fast: 120ms;
   --motion-base: 200ms;
   --motion-slow: 360ms;
-  --motion-stagger: 30ms;
+  /* 화면에 처음 들어올 때 차례로 떠오르는 시간·거리(#858) */
+  --motion-enter: 480ms;
+  --motion-rise: 10px;
+  /* 막대가 0에서 자라는 시간(#858) */
+  --motion-grow: 700ms;
+  --motion-stagger: 70ms;
   --ease-out: cubic-bezier(0.2, 0, 0, 1);
   /* 큰 숫자가 0에서 최종 값까지 올라가는 시간(useCountUp이 읽음, FS-58). 곡선은 코드의 ease-out(3차)과 같다 */
-  --motion-count: 600ms;
+  --motion-count: 800ms;
   /* 카드 hover 들림 거리 */
   --motion-lift: -2px;
+  /* 목록 줄 hover 밀림 거리(#858) */
+  --motion-nudge: 4px;
+  /* 진행 중 단계의 점이 한 번 숨 쉬는 시간(#858) */
+  --motion-pulse: 1400ms;
   /* 불러오는 자리(Skeleton)가 한 번 반짝이는 시간 */
   --motion-shimmer: 1400ms;
 

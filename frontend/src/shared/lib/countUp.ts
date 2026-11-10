@@ -1,7 +1,7 @@
 /** 큰 숫자 count-up(FS-58)의 순수 계산. 화면 값은 응답 값을 그대로 쓰고, 여기서는 움직이는 동안의 중간 값만 정한다. */
 
 /** 기본 시간(ms). 토큰 --motion-count를 읽지 못할 때 쓴다 */
-export const DEFAULT_COUNT_UP_MS = 600
+export const DEFAULT_COUNT_UP_MS = 800
 
 /** 3차 ease-out. 0 → 0, 1 → 1, 처음에 빠르고 끝에서 느려진다. 범위 밖은 0·1로 자른다 */
 export function easeOutCubic(t: number): number {
