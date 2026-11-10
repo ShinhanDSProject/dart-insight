@@ -551,6 +551,63 @@ def test_term_asks_once_and_then_answers_with_card_order_guide() -> None:
     assert "한 줄 뜻과 이 회사 값만" not in guide
 
 
+def test_easier_request_replaces_card_order_with_short_guide() -> None:
+    results = [
+        lookup(card_line("debtRatio", "부채비율", company_value=DEBT_VALUE)),
+        ToolResult("term-2", "search_text_changes", {"q": "부채비율"}, True),
+    ]
+    answer_text = "부채비율은 빚이 내 돈의 몇 배인지 보는 숫자예요[GdebtRatio]."
+    client, provider = llm(
+        {"status": "ANSWERED", "answer": answer_text, "evidenceIds": ["GdebtRatio"], "actions": []}
+    )
+
+    output = run_step(client, term_step("부채비율 더 쉽게 설명해줘", results))
+
+    assert output.final is not None
+    assert output.final.status == "ANSWERED"
+    guide = provider.requests[0].user
+    assert "[더 쉽게]" in guide
+    assert f"{workflow.MAX_EASIER_SENTENCES}문장 이내" in guide
+    assert "4) 확인할 곳" not in guide
+
+
+def test_easier_answer_longer_than_limit_is_rewritten() -> None:
+    results = [
+        lookup(card_line("debtRatio", "부채비율")),
+        ToolResult("term-2", "search_text_changes", {"q": "부채비율"}, True),
+    ]
+    long_answer = " ".join(
+        f"부채비율 설명 {n} 문장이에요[GdebtRatio]." for n in ["첫째", "둘째", "셋째", "넷째"]
+    )
+    short_answer = "부채비율은 빚이 내 돈의 몇 배인지 보는 숫자예요[GdebtRatio]."
+    client, provider = llm(
+        {"status": "ANSWERED", "answer": long_answer, "evidenceIds": ["GdebtRatio"], "actions": []},
+        {
+            "status": "ANSWERED",
+            "answer": short_answer,
+            "evidenceIds": ["GdebtRatio"],
+            "actions": [],
+        },
+    )
+
+    output = run_step(client, term_step("부채비율 더 쉽게 설명해줘", results))
+
+    assert output.final is not None
+    assert output.final.answer == short_answer
+    assert len(provider.requests) == 2
+    assert "'더 쉽게' 요청이므로 3문장 이내로 다시 씁니다" in provider.requests[1].user
+
+
+def test_ordinary_term_answer_has_no_sentence_limit() -> None:
+    step_ = term_step("부채비율이 뭐야?", [lookup(card_line("debtRatio", "부채비율"))])
+    long_answer = " ".join(f"부채비율 설명 {n}번째 문장이에요[GdebtRatio]." for n in range(1, 6))
+
+    assert workflow.term_answer_problem(long_answer, step_) is None
+    assert workflow.easier_request(term_step("부채비율 더 쉽게 설명해줘")) is True
+    assert workflow.easier_request(term_step("부채비율 쉬운 말로 알려줘")) is True
+    assert workflow.easier_request(term_step("부채비율이 뭐야?")) is False
+
+
 def test_basic_card_guide_asks_for_short_answer() -> None:
     results = [
         lookup(card_line("asset", "자산", level="기초", example=None), terms=["자산"]),

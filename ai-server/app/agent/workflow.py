@@ -35,6 +35,7 @@ from app.agent.model import (
     ToolResult,
 )
 from app.agent.validate import (
+    EASIER_ANSWER_TOO_LONG,
     REPORT_EXPLANATION_UNSUPPORTED,
     schema_problem,
     split_sentences,
@@ -89,6 +90,15 @@ TERM_NOT_FOUND = "{terms}에 해당하는 용어 카드가 없고, 이 보고서
 REPORT_QUOTE = "이 회사 보고서에 적힌 설명이에요."
 # 보고서 설명 풀이 문장의 내용 낱말(두 글자 이상)과, 내용으로 보지 않는 틀 낱말
 _CONTENT_WORD = re.compile(r"[가-힣A-Za-z0-9]{2,}")
+# '더 쉽게' 요청(#823). 화면 버튼은 '{용어} 더 쉽게 설명해줘'를 보낸다. 공백을 빼고 찾는다
+_EASIER_REQUEST = re.compile(r"더쉽게|쉽게설명|쉽게풀어|쉬운말로")
+# '더 쉽게' 답의 문장 수 상한(쉬운 뜻 한 문장 + 예시 한 문장 + 이 회사 값 한 문장)
+MAX_EASIER_SENTENCES = 3
+
+
+def easier_request(step: StepInput) -> bool:
+    """사용자가 앞 용어 풀이를 더 쉽게 다시 해 달라고 했는지."""
+    return _EASIER_REQUEST.search(re.sub(r"\s+", "", step.message)) is not None
 _FRAME_WORDS = frozenset(
     {
         "쉽게",
@@ -439,7 +449,10 @@ def report_quote_final(step: StepInput) -> FinalAnswer | None:
 
 
 def term_answer_problem(answer: str, step: StepInput) -> tuple[str, str] | None:
-    """보고서 설명으로 답할 때의 풀이 문장 검사(ADR-0061). 통과하면 None.
+    """용어 풀이 답 검사(ADR-0061). 통과하면 None.
+
+    카드로 답할 때는 '더 쉽게' 요청이면 문장 수만 본다(#823, MAX_EASIER_SENTENCES 이하).
+    보고서 설명으로 답할 때는 아래 풀이 문장 검사를 한다(이미 인용 + 한 문장이라 짧다).
 
     정해 둔 첫 문장('이 회사 보고서에 적힌 설명이에요.') 밖의 문장은 모두 그 인용을 근거로 표시하고,
     내용 낱말(두 글자 이상, 틀 낱말 제외)이 모두 인용 글에 있어야 한다. 낱말은 앞 두 글자 이상이
@@ -447,6 +460,11 @@ def term_answer_problem(answer: str, step: StepInput) -> tuple[str, str] | None:
     """
     found = report_explanation(step)
     if found is None:
+        if easier_request(step) and len(split_sentences(answer)) > MAX_EASIER_SENTENCES:
+            return EASIER_ANSWER_TOO_LONG, (
+                f"'더 쉽게' 요청이므로 {MAX_EASIER_SENTENCES}문장 이내로 다시 씁니다. "
+                "확인할 곳 칸은 빼고, 쉬운 뜻 한 문장·예시 한 문장·이 회사 값 한 문장만 씁니다."
+            )
         return None
     evidence_id, quote = found
     source = _compact_term(quote)

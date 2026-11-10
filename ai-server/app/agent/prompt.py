@@ -19,7 +19,7 @@ from app.llm.prompting import SOURCE_RULE, attr, disclosure, escape
 from app.llm.providers import LlmRequest
 
 # 결과가 달라지게 바꾸면 이 버전을 올린다(검사 규칙 app/agent/validate.py 포함)
-PROMPT_VERSION = "agent-8"
+PROMPT_VERSION = "agent-9"
 TASK_PLAN = "agent_plan"
 TASK_ANSWER = "agent_answer"
 MAX_MESSAGE_CHARS = 500
@@ -298,12 +298,25 @@ def _term_lines(step: StepInput) -> list[str]:
             f"인용 문단에 있는 낱말로만 쓰고 [{evidence_id}]를 붙입니다. 인용 밖의 내용(정의·예시·"
             "평가)을 더하지 않고 근거 등급을 말하지 않습니다.",
         ]
+    if workflow.easier_request(step):
+        # '더 쉽게' 요청(#823): 네 칸 순서 대신 짧은 형식만 알린다(둘을 함께 주면 네 칸을 따름)
+        order = (
+            "[더 쉽게] 사용자가 앞 풀이를 더 쉽게 다시 해 달라고 했습니다. 앞 답을 되풀이하지 "
+            f"말고 전체 {workflow.MAX_EASIER_SENTENCES}문장 이내로 씁니다: 1) 전문 용어 없이 "
+            "중학생도 알 쉬운 말로 뜻 한 문장 2) 카드의 예시로 '예를 들어' 한 문장 3) 이 회사 "
+            "값이 있으면 한 문장. 확인할 곳 칸은 쓰지 않습니다. 뜻은 카드와 같게 두고 바꾸지 "
+            "않으며, 문장마다 근거 표시를 붙입니다."
+        )
+    else:
+        order = (
+            "순서는 1) 한 줄 뜻 2) 쉬운 예시 3) 이 회사에서는 4) 확인할 곳입니다. 칸마다 한두 "
+            "문장이고 문장마다 근거 표시를 붙입니다."
+        )
     lines = [
         "",
         '[용어 풀이] 뜻은 용어 카드(<disclosure id="G…">)에서만 가져옵니다. 카드에 없는 뜻을 '
         "만들지 않습니다.",
-        "순서는 1) 한 줄 뜻 2) 쉬운 예시 3) 이 회사에서는 4) 확인할 곳입니다. 칸마다 한두 문장이고 "
-        "문장마다 근거 표시를 붙입니다.",
+        order,
         "- 카드만 인용한 문장([G…]만 붙은 문장)에는 회사 이름이나 '이 회사'·'당사'를 "
         "쓰지 않습니다. 예시는 '예를 들어'로 시작해 가정한 예임을 밝히고, 숫자는 카드에 적힌 "
         "것만 씁니다.",
@@ -324,10 +337,6 @@ def _term_lines(step: StepInput) -> list[str]:
         lines.append(
             "- 용어가 여럿이면 카드마다 한 줄 뜻을 쓰고, 차이는 카드에 적힌 내용으로만 설명합니다."
         )
-    lines.append(
-        "- 사용자가 '더 쉽게'를 요청하면 같은 카드로 더 짧고 쉬운 말로 다시 씁니다. 뜻을 바꾸지 "
-        "않습니다."
-    )
     return lines
 
 
