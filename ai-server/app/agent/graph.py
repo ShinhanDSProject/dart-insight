@@ -38,7 +38,11 @@ from app.agent.model import (
     StepInput,
     ToolCall,
 )
-from app.agent.prompt import build_answer_request, build_plan_request
+from app.agent.prompt import (
+    build_answer_request,
+    build_plan_request,
+    build_term_general_request,
+)
 from app.agent.rules import match_rule
 from app.agent.validate import (
     Draft,
@@ -72,6 +76,7 @@ _PLAN = "plan_next_tool"
 _DRAFT = "draft_answer"
 _REVIEW = "review_answer"
 _RESPOND = "build_response"
+_GENERAL = "explain_term"
 
 
 class StepState(TypedDict, total=False):
@@ -91,6 +96,7 @@ class StepState(TypedDict, total=False):
     calls: list[CallRecord]
     model: str | None
     generated_at: str | None
+    fixed: FinalAnswer | None
 
 
 def build_graph(llm: LlmClient) -> Any:
@@ -108,7 +114,10 @@ def build_graph(llm: LlmClient) -> Any:
                 return {"kind": TOOL_CALLS, "tool_calls": calls, "next": _RESPOND}
             fixed = workflow.term_fixed_final(step) if running == workflow.TERM else None
             if fixed is not None:
-                # 카드도 보고서 설명도 없음: LLM 없이 정해진 안내(ADR-0061)
+                # 카드도 보고서 설명도 없음: 일반 설명을 한 번 시도하고(ADR-0064),
+                # 안 되면 정해진 안내(ADR-0061)
+                if workflow.general_term(step) is not None:
+                    return {"fixed": fixed, "next": _GENERAL}
                 return {"kind": FINAL, "final": fixed, "next": _RESPOND}
             return {"next": _DRAFT}
         quick = _quick_call(step)
@@ -237,6 +246,39 @@ def build_graph(llm: LlmClient) -> Any:
             return {"rejections": rejections, "final": final, "kind": FINAL, "next": _RESPOND}
         return {"rejections": rejections, "problems": reviewed.problems, "next": _DRAFT}
 
+    def explain_term(state: StepState) -> StepState:
+        """카드도 보고서 설명도 없는 용어의 일반 설명(ADR-0064). 용어 이름만 보낸다.
+
+        범위 밖이거나 검사를 끝내 통과하지 못하거나 LLM을 쓸 수 없으면 정해진 안내로 끝낸다
+        (모델은 남기지 않아 backend가 정해진 안내로 본다. 호출 기록은 남긴다).
+        """
+        step = state["step"]
+        fixed = state["fixed"]
+        term = workflow.general_term(step)
+        calls = list(state.get("calls", []))
+        if term is None or fixed is None:
+            return {"kind": FINAL, "final": fixed, "next": _RESPOND}
+        try:
+            result = llm.generate(
+                build_term_general_request(term),
+                lambda d: workflow.parse_term_general(d, term, step),
+            )
+        except (LlmOutputInvalid, LlmUnavailable) as e:
+            logger.warning("용어 일반 설명 실패, 정해진 안내로 끝냄: %s", type(e).__name__)
+            return {"calls": [*calls, *e.calls], "kind": FINAL, "final": fixed, "next": _RESPOND}
+        calls += result.calls
+        if result.value is None:
+            logger.info("용어 일반 설명 범위 밖, 정해진 안내로 끝냄")
+            return {"calls": calls, "kind": FINAL, "final": fixed, "next": _RESPOND}
+        return {
+            "calls": calls,
+            "kind": FINAL,
+            "final": workflow.term_general_final(step, term, result.value),
+            "model": result.model,
+            "generated_at": result.generated_at,
+            "next": _RESPOND,
+        }
+
     def build_response(state: StepState) -> StepState:
         step = state["step"]
         final = state.get("final")
@@ -254,9 +296,10 @@ def build_graph(llm: LlmClient) -> Any:
     graph.add_node(_PLAN, plan_next_tool)
     graph.add_node(_DRAFT, draft_answer)
     graph.add_node(_REVIEW, review_answer)
+    graph.add_node(_GENERAL, explain_term)
     graph.add_node(_RESPOND, build_response)
     graph.add_edge(START, "route_intent")
-    for node in ("route_intent", _PLAN, _DRAFT, _REVIEW):
+    for node in ("route_intent", _PLAN, _DRAFT, _REVIEW, _GENERAL):
         graph.add_conditional_edges(node, _next)
     graph.add_edge(_RESPOND, END)
     return graph.compile()

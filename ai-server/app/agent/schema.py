@@ -161,6 +161,7 @@ def output_json(output: StepOutput) -> dict[str, Any]:
                     if final.cross_check is not None
                     else None
                 ),
+                "generalExplanation": final.general_explanation,
             }
             if output.kind == FINAL and final is not None
             else None
