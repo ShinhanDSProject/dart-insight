@@ -416,6 +416,40 @@ code {
   font-size: var(--font-size-sm);
 }
 
+/* 이용 안내의 화면 표시 뜻(#842): 표시 | 뜻 두 칸 */
+.service-notice-dialog__subtitle {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: var(--font-size-md);
+}
+
+.service-notice-dialog__marks {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  font-size: var(--font-size-sm);
+}
+
+.service-notice-dialog__marks > div {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: baseline;
+}
+
+.service-notice-dialog__marks dt {
+  font-weight: var(--font-weight-medium);
+}
+
+.service-notice-dialog__marks dd {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.service-notice-dialog__link {
+  color: var(--color-link);
+  font-size: var(--font-size-xs);
+}
+
 /* 숨은 페이지 안내(#753): 캐릭터, 한 줄 설명, 새 탭으로 여는 버튼을 가운데에 쌓는다 */
 .easter-egg {
   display: flex;
