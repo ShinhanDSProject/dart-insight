@@ -226,7 +226,7 @@ public class AgentTools {
         TextChangePage page = textChangeQueryService.page(analysisId,
                 new TextChangeFilter(types, args.string("section"), q, args.flag("risk")), byPriority, 0,
                 args.integer("size", 1, MAX_SIZE, MAX_SIZE));
-        return page.changes().stream().map(ToolTexts::textChange).toList();
+        return page.changes().stream().map(change -> ToolTexts.textChange(change, q)).toList();
     }
 
     private List<ToolLine> textChange(Long analysisId, ToolArgs args) {

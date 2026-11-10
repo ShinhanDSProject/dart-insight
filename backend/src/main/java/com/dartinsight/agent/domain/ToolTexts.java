@@ -41,6 +41,11 @@ public final class ToolTexts {
     }
 
     public static ToolLine textChange(TextChange change) {
+        return textChange(change, null);
+    }
+
+    /** 검색어(focus)로 찾은 문장 변경. 근거 인용에 검색어가 보이게 한다(#850) */
+    public static ToolLine textChange(TextChange change, String focus) {
         TextChangeRow row = change.row();
         TextChangeRow.Side shown = row.current() != null ? row.current() : row.previous();
         String rceptNo = shown == null ? null : shown.rceptNo();
@@ -48,7 +53,7 @@ public final class ToolTexts {
         String body = row.previous() != null && row.current() != null
                 ? "이전: " + clip(row.previous().text()) + " / 현재: " + clip(row.current().text())
                 : clip(text);
-        return new ToolLine(Evidence.textChange(change.id(), row.changeType(), rceptNo, row.sectionPath(), text),
+        return new ToolLine(Evidence.textChange(change.id(), row.changeType(), rceptNo, row.sectionPath(), text, focus),
                 "[" + row.changeType() + ", changeId " + change.id() + "] " + row.sectionPath() + ": " + body);
     }
 

@@ -1,6 +1,7 @@
 package com.dartinsight.agent.domain;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Tool을 실행하며 backend가 저장된 자료로 만든 근거 위치 하나. 채팅 한 번 안에서 근거 ID → 위치 표로 들고 있다가,
@@ -22,6 +23,12 @@ public record Evidence(String evidenceId, Kind kind, String side, String rceptNo
 
     /** 화면 미리보기 길이(근거 질문의 quote와 같음) */
     public static final int QUOTE_CHARS = 160;
+    /** 검색어로 인용을 고를 때 검색어 앞에 남기는 글자 수(#850) */
+    static final int QUOTE_LEAD = 40;
+    /** 문단 앞부분 인용에 검색어가 있어도 뒤에 이만큼 이어지지 않으면 검색어 쪽으로 옮긴다(#850) */
+    static final int QUOTE_TAIL = 60;
+    /** 문단 중간을 인용할 때 잘린 쪽에 붙이는 표시 */
+    static final String CUT = "…";
     /** 용어 카드 근거 ID의 앞 글자(G{카드 키}, ADR-0061) */
     public static final String GLOSSARY_PREFIX = "G";
 
@@ -82,8 +89,14 @@ public record Evidence(String evidenceId, Kind kind, String side, String rceptNo
     /** 문장 변경. rceptNo는 현재 쪽(삭제면 이전 쪽) */
     public static Evidence textChange(long changeId, String changeType, String rceptNo, String sectionPath,
             String text) {
+        return textChange(changeId, changeType, rceptNo, sectionPath, text, null);
+    }
+
+    /** 검색어(search_text_changes의 q)로 찾은 문장 변경. 인용에 검색어가 보이게 고른다(#850) */
+    public static Evidence textChange(long changeId, String changeType, String rceptNo, String sectionPath,
+            String text, String focus) {
         return new Evidence(textChangeId(changeId), Kind.TEXT_CHANGE, null, rceptNo, null, null, null, null, null,
-                sectionPath, quote(text), changeId, changeType, null, null, null, null, null, null);
+                sectionPath, quote(text, focus), changeId, changeType, null, null, null, null, null, null);
     }
 
     /** 재무 계정 변화. rceptNo는 현재 보고서 */
@@ -181,9 +194,28 @@ public record Evidence(String evidenceId, Kind kind, String side, String rceptNo
     }
 
     private static String quote(String text) {
+        return quote(text, null);
+    }
+
+    /**
+     * 화면 미리보기 인용. 보통은 문단 앞 {@link #QUOTE_CHARS}자다. 검색어가 앞부분에 없거나 뒤가
+     * {@link #QUOTE_TAIL}자 안 되게 끝에 걸리면, 검색어 {@link #QUOTE_LEAD}자 앞부터 자르고 잘린 앞·뒤에
+     * {@link #CUT}을 붙인다(#850). 검색어는 대소문자를 가리지 않는다(문장 변경 검색과 같음).
+     */
+    static String quote(String text, String focus) {
         if (text == null) {
             return null;
         }
-        return text.length() <= QUOTE_CHARS ? text : text.substring(0, QUOTE_CHARS);
+        if (text.length() <= QUOTE_CHARS) {
+            return text;
+        }
+        int at = focus == null || focus.isBlank() ? -1
+                : text.toLowerCase(Locale.ROOT).indexOf(focus.toLowerCase(Locale.ROOT));
+        if (at < 0 || at + focus.length() + QUOTE_TAIL <= QUOTE_CHARS) {
+            return text.substring(0, QUOTE_CHARS);
+        }
+        int end = Math.min(text.length(), at - QUOTE_LEAD + QUOTE_CHARS);
+        int start = Math.max(0, end - QUOTE_CHARS);
+        return (start > 0 ? CUT : "") + text.substring(start, end) + (end < text.length() ? CUT : "");
     }
 }
