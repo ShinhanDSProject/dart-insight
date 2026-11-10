@@ -4,6 +4,7 @@ import {
   THEME_KEY,
   applyThemeChoice,
   readThemeChoice,
+  resolveThemeChoice,
   saveThemeChoice,
   type ThemeChoice,
 } from '@/shared/lib/theme'
@@ -14,16 +15,19 @@ export interface ThemeController {
   setChoice: (choice: ThemeChoice) => void
 }
 
-// 저장소를 쓸 수 없는 브라우저에서는 이번 방문 동안만 기억한다
-let sessionChoice: ThemeChoice = 'system'
+// 이번 방문에 고른 값(null이면 아직 안 고름). 저장하지 못해도 이 값으로 적용한다
+let sessionChoice: ThemeChoice | null = null
 
 function getChoice(): ThemeChoice {
-  return readThemeChoice(browserStorage()) ?? sessionChoice
+  return resolveThemeChoice(sessionChoice, readThemeChoice(browserStorage()))
 }
 
 function subscribe(onChange: () => void): () => void {
   const onStorage = (event: StorageEvent) => {
-    if (event.key === null || event.key === THEME_KEY) onChange()
+    if (event.key !== null && event.key !== THEME_KEY) return
+    // 다른 탭에서 바꾼 값을 따르도록 이 탭에서 정한 값을 잊는다(저장된 값이 다시 기준이 된다)
+    sessionChoice = null
+    onChange()
   }
   window.addEventListener(THEME_CHANGE_EVENT, onChange)
   window.addEventListener('storage', onStorage)

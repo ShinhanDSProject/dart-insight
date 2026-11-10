@@ -92,10 +92,12 @@ describe('Layout 상단 바·하단 바(#548)', () => {
 
   it('화면 테마 버튼으로 어둡게를 고르면 html에 적용하고 상자를 닫는다', () => {
     renderLayout('/notes')
-    const button = screen.getByRole('button', { name: '화면 테마: 시스템' })
+    // 처음은 밝게이고, 고를 수 있는 것은 밝게·어둡게 둘뿐이다(#856)
+    const button = screen.getByRole('button', { name: '화면 테마: 밝게' })
     expect(button.getAttribute('aria-expanded')).toBe('false')
     fireEvent.click(button)
     expect(button.getAttribute('aria-expanded')).toBe('true')
+    expect(within(screen.getByRole('group', { name: '화면 테마' })).getAllByRole('button').map((b) => b.textContent)).toEqual(['밝게', '어둡게'])
     fireEvent.click(within(screen.getByRole('group', { name: '화면 테마' })).getByRole('button', { name: '어둡게' }))
     expect(document.documentElement.dataset.theme).toBe('dark')
     expect(screen.queryByRole('group', { name: '화면 테마' })).toBeNull()
