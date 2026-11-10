@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { FeaturedCompany } from '@/shared/api/featuredCompanies'
 import type { SeasonChangeList } from '@/shared/api/seasonChanges'
-import { featuredRankList, HOME_LIST_LIMIT, seasonRankList } from './homeLists'
+import { featuredRankList, HOME_LIST_LIMIT, seasonRankList, homeListFirst } from './homeLists'
 
 const season: SeasonChangeList = {
   season: { reportType: 'HALF', fiscalYear: 2026, previousFiscalYear: 2025 },
@@ -44,5 +44,12 @@ describe('첫 화면 접는 목록의 줄(#686)', () => {
 
   it('계산한 시즌이 없으면 줄 없이 준비 안내만 둔다', () => {
     expect(seasonRankList({ ...season, season: null, items: [] }).rows).toEqual([])
+  })
+})
+
+describe('첫 화면 목록 줄 수(#852)', () => {
+  it('넓은 화면은 7줄, 그 밖에는 5줄을 먼저 보인다', () => {
+    expect(homeListFirst(true)).toBe(7)
+    expect(homeListFirst(false)).toBe(5)
   })
 })

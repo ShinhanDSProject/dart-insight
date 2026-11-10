@@ -859,3 +859,66 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* 큰 화면(#852): 첫 화면 가운데 폭과 글자·높이를 한 단계 키운다. 기준은 model/homeLists.ts의 WIDE_SCREEN_QUERY와 같다 */
+@media (min-width: 1600px) {
+  /* 바깥 페이지 칸(page--narrow 940px)도 연다. 검색 결과는 안쪽 칸이 720px 그대로라 넓어지지 않는다 */
+  .page--narrow.search-page,
+  .search-page__shell--home {
+    max-width: 1040px;
+  }
+
+  .search-hero--home {
+    padding-top: 5vh;
+  }
+
+  .search-hero--home .brand-logo--lg {
+    --brand-mark: calc(var(--space-7) * 1.25);
+  }
+
+  .search-hero--home .brand-logo--lg .brand-logo__name {
+    font-size: calc(var(--font-size-xl) * 1.3);
+  }
+
+  .search-hero--home .search-hero__lead {
+    font-size: calc(var(--font-size-lg) * 1.33);
+  }
+
+  .search-hero--home .search-hero__source {
+    font-size: var(--font-size-md);
+  }
+
+  .search-hero--home .search-bar {
+    min-height: calc(var(--space-7) + var(--space-4));
+  }
+
+  .search-hero--home .search-bar .search-bar__input {
+    font-size: var(--font-size-lg);
+  }
+
+  .search-hero--home .home-steps__list {
+    font-size: var(--font-size-md);
+  }
+
+  .search-hero--home .home-lists {
+    gap: var(--space-5) calc(var(--space-7) + var(--space-2));
+    margin-top: var(--space-6);
+  }
+
+  .search-hero--home .home-panel__title {
+    font-size: var(--font-size-lg);
+  }
+
+  .search-hero--home .home-panel__tag,
+  .search-hero--home .home-rank__meta,
+  .search-hero--home .home-rank__caption,
+  .search-hero--home .home-panel .home-rank__more {
+    font-size: var(--font-size-sm);
+  }
+
+  .search-hero--home .home-rank__link {
+    min-height: calc(var(--space-7) - var(--space-1));
+    font-size: var(--font-size-md);
+  }
+}
+

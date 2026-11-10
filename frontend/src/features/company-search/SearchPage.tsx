@@ -102,7 +102,7 @@ export function SearchPage() {
 
   return (
     <Page className="search-page">
-      <div className="search-page__shell">
+      <div className={cx('search-page__shell', isHome && 'search-page__shell--home')}>
         <div className={cx('search-hero', isHome && 'search-hero--home')}>
           {/* 로고가 화면 제목이다. 화면 읽기 도구에는 '기업 검색'을 함께 읽는다 */}
           <h1 className="search-hero__title">
