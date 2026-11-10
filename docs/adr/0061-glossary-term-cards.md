@@ -1,6 +1,6 @@
 # ADR-0061: 공시 용어 카드는 backend 저장소 파일 한 곳에 두고, 화면과 채팅이 함께 읽으며, 채팅은 용어 카드를 근거(G{키})로 쓰고 카드가 없으면 보고서의 설명을 찾는다
 
-- 상태: 채택
+- 상태: 채택(카드도 보고서 설명도 없을 때의 정해진 안내는 ADR-0064가 대체)
 - 결정한 날: 2026-11-06
 - 관련: 기능 기획서 초안 '채팅에서 초보자용 공시 용어 풀이(용어 카드)'(노션, FS 번호 전. 2026-11-09 사용자 결정으로 초안 기준 진행), [이슈 #768](https://github.com/ShinhanDSProject/dart-insight/issues/768)~#772, FS-36(결과 화면 용어 풀이), [ADR-0044](0044-agent-tools-run-in-backend.md)(Tool은 backend가 실행), [ADR-0048](0048-agent-evidence-kinds-and-recheck.md)(근거 종류, 이 ADR이 한 종류를 더함), [ADR-0060](0060-event-signal-and-sentences.md)(용어 풀이는 출처를 확인한 것만), #581 Workflow(`app/agent/workflow.py`)
 
