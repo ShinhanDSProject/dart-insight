@@ -2,7 +2,7 @@ import { match, P } from 'ts-pattern'
 import type { ComparisonBasis, ReportItem } from '@/shared/api/reports'
 import { Button, FieldHint, FieldLabel, ReportCard, ReportCardPair, SegmentedControl, Select } from '@/shared/ui'
 import { ErrorState } from '@/shared/ui/StateView'
-import { basisHint, basisOptions } from '@/shared/lib/comparisonBasis'
+import { basisOptions } from '@/shared/lib/comparisonBasis'
 import { customCandidates, reportOptionLabel, type PairLookup } from '../model/pairSelection'
 import { ReportDetail } from './ReportDetail'
 
@@ -32,8 +32,8 @@ export function PairSelector(props: PairSelectorProps) {
         <FieldLabel as="span" id="basis-label">
           비교 기준
         </FieldLabel>
+        {/* 비교 기준 설명은 위의 두 보고서 카드(PairSummary)에 한 번만 둔다(#840) */}
         <SegmentedControl aria-labelledby="basis-label" options={basisOptions} value={basis} onChange={onBasisChange} />
-        <FieldHint>{basisHint(basis)}</FieldHint>
       </div>
 
       <ReportCardPair>

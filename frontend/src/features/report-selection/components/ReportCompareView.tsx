@@ -1,8 +1,9 @@
 import { Link } from 'react-router'
 import { match } from 'ts-pattern'
-import type { ReportList } from '@/shared/api/reports'
+import type { ComparisonBasis, ReportItem, ReportList } from '@/shared/api/reports'
 import { Badge, Button, ButtonLink, FieldHint, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
+import { basisHint } from '@/shared/lib/comparisonBasis'
 import { openHeaderSearch } from '@/shared/lib/headerSearch'
 import { formatDate } from '@/shared/lib/reportLabels'
 import { useCompanyReports } from '../hooks/useCompanyReports'
@@ -29,7 +30,8 @@ const refreshErrorMessages: Record<string, string> = {
  * - ?basis=YOY|PREV|CUSTOM: 비교 기준. 없으면 전년 동기(잠정안)
  * - ?previous=접수번호: 직접 선택(CUSTOM)에서 고른 비교 보고서
  * 두 보고서를 고르면 비교 검증(W-01 ③, /companies/:corpCode/compare)으로 간다.
- * 배치(#549): 제목·'기업 변경' → 비교 기준 → 이전·현재 보고서 카드 → '정기보고서 목록' 표 → 주의 안내 → 오른쪽 아래 주 버튼.
+ * 배치(#549 → #840): 제목·'기업 변경' → 지금 고른 두 보고서와 '이대로 비교하기'(화면을 내리지 않아도 보임) → 지난 분석 →
+ * 비교 기준과 이전·현재 보고서 카드(바꾸기) → 접어 둔 '정기보고서 목록' 표 → 주의 안내.
  */
 export function ReportCompareView({ corpCode }: { corpCode: string }) {
   const { state, reload } = useCompanyReports(corpCode)
@@ -75,6 +77,8 @@ function ReportSelection({ corpCode, reports, selection }: ReportSelectionProps)
         </Notice>
       )}
 
+      {current && <PairSummary corpCode={corpCode} basis={basis} current={current} previous={previous} />}
+
       <PastAnalyses corpCode={corpCode} />
 
       {current && (
@@ -91,14 +95,17 @@ function ReportSelection({ corpCode, reports, selection }: ReportSelectionProps)
         />
       )}
 
+      {/* 위 카드의 고르기 칸으로 대부분 고를 수 있어 표는 접어 둔다(#840). 보고서가 없으면 안내가 보이게 펼친다 */}
       <Panel aria-labelledby="report-list-title">
-        <div className="pick__list-head">
+        <details className="pick__list" open={reportItems.length === 0}>
+        <summary className="pick__list-head">
           <PanelTitle id="report-list-title">정기보고서 목록</PanelTitle>
           <Badge>
             {reportItems.length}
             <span className="visually-hidden">개</span>
           </Badge>
-        </div>
+          <span className="pick__list-toggle" aria-hidden="true" />
+        </summary>
         {reportItems.length === 0 ? (
           <EmptyState title="이 기업의 정기보고서가 없어요.">
             <p>
@@ -115,29 +122,56 @@ function ReportSelection({ corpCode, reports, selection }: ReportSelectionProps)
             onSelectCurrent={(report) => selectCurrent(report.rceptNo)}
           />
         )}
+        </details>
       </Panel>
 
       <Notice tone="attention" title="12월 결산 회사의 사업·반기·분기보고서만 비교할 수 있어요" className="pick__notice">
         대상 기간과 제출일은 따로 보여 줘요. 정정 여부를 확인하지 못하면 추정하지 않고 '확인 안 됨'으로 표시해요.
       </Notice>
+    </section>
+  )
+}
 
-      {current && (
-        <div className="pick__actions">
-          {previous ? (
-            <ButtonLink
-              to={`/companies/${encodeURIComponent(corpCode)}/compare?${new URLSearchParams({
-                current: current.rceptNo,
-                previous: previous.rceptNo,
-                basis,
-              }).toString()}`}
-              variant="primary"
-            >
-              선택한 보고서 비교 확인 →
-            </ButtonLink>
-          ) : (
-            <FieldHint>이전 보고서를 고르면 비교 조건을 확인할 수 있어요.</FieldHint>
-          )}
+interface PairSummaryProps {
+  corpCode: string
+  basis: ComparisonBasis
+  current: ReportItem
+  previous: ReportItem | null
+}
+
+/**
+ * 지금 고른 두 보고서와 '이대로 비교하기'(#840). 처음 온 사람이 기본값 그대로 바로 비교를 시작하게 맨 위에 둔다.
+ * 비교 기준이 자동이면 '추천', 직접 골랐으면 고른 짝을 보인다. 이전 보고서가 아직 없으면 버튼 대신 고르라는 안내.
+ */
+function PairSummary({ corpCode, basis, current, previous }: PairSummaryProps) {
+  const compareTo = `/companies/${encodeURIComponent(corpCode)}/compare?${new URLSearchParams({
+    current: current.rceptNo,
+    previous: previous?.rceptNo ?? '',
+    basis,
+  }).toString()}`
+  return (
+    <section className="pick-summary" aria-labelledby="pick-summary-title">
+      <h3 className="pick-summary__title" id="pick-summary-title">
+        {basis === 'CUSTOM' ? '이 두 보고서를 비교해요' : '이렇게 비교하는 걸 추천해요'}
+      </h3>
+      <p className="pick-summary__pair">
+        {previous ? previous.reportName : '이전 보고서 고르기 전'}
+        <span className="pick-summary__arrow" aria-hidden="true">
+          →
+        </span>
+        <span className="visually-hidden">에서</span>
+        {current.reportName}
+      </p>
+      <p className="pick-summary__hint">{basisHint(basis)}</p>
+      {previous ? (
+        <div className="pick-summary__actions">
+          <ButtonLink to={compareTo} variant="primary">
+            이대로 비교하기 →
+          </ButtonLink>
+          <span className="pick-summary__more">아래에서 비교 기준이나 보고서를 바꿀 수 있어요.</span>
         </div>
+      ) : (
+        <FieldHint>아래에서 이전 보고서를 고르면 비교할 수 있어요.</FieldHint>
       )}
     </section>
   )

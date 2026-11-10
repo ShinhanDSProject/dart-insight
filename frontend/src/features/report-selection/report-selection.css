@@ -243,14 +243,84 @@
 .pick__list-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-3);
 }
 
-.pick__actions {
+.pick__list-head .pick__list-toggle {
+  margin-left: auto;
+}
+
+/* 지금 고른 두 보고서와 '이대로 비교하기'(#840). 화면을 내리지 않아도 보이게 맨 위에 둔다 */
+.pick-summary {
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-raised);
+}
+
+.pick-summary__title {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+.pick-summary__pair {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.pick-summary__arrow {
+  color: var(--color-text-muted);
+}
+
+.pick-summary__hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.pick-summary__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin-top: var(--space-1);
+}
+
+.pick-summary__more {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+/* 정기보고서 목록은 접어 둔다(#840). 제목 줄을 눌러 펼친다 */
+.pick__list > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.pick__list > summary::-webkit-details-marker {
+  display: none;
+}
+
+.pick__list-toggle::before {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  content: '펼치기 ▾';
+}
+
+.pick__list[open] .pick__list-toggle::before {
+  content: '접기 ▴';
+}
+
+.pick__list[open] > summary {
+  margin-bottom: var(--space-3);
 }
 
 /* 이전·현재 카드 묶음의 아래 여백은 .pick의 간격이 맡는다 */
