@@ -557,6 +557,50 @@ class AgentChatApiTest {
     }
 
     @Test
+    @DisplayName("카드 없는 용어의 AI 일반 설명은 근거 표시 없이 generalExplanation과 AI 생성 표시로 내보낸다(ADR-0064)")
+    void generalExplanationIsPassedWithoutCitations() throws Exception {
+        String answer = "'지어낸말'는 등록된 용어 카드가 없고 이 보고서에서도 설명을 찾지 못해, 일반적인 뜻을 AI가 풀었어요. "
+                + "지어낸말은 일반적인 뜻이에요. 공시 근거가 아닌 일반 설명이라 틀릴 수 있어요.";
+        AI.on(STEPS, twoSteps("{\"callId\":\"term-1\",\"name\":\"lookup_terms\",\"arguments\":"
+                + "{\"terms\":[\"지어낸말\"]}}", request -> """
+                {"promptVersion":"agent-10","model":"claude-haiku-5-5","generatedAt":"2026-11-10T12:00:00",
+                 "type":"FINAL","toolCalls":[],
+                 "final":{"status":"ANSWERED","answer":"%s","evidenceIds":[],"actions":[],
+                  "reviewReason":null,"blockedRules":[],"format":"CHAT","crossCheck":null,
+                  "generalExplanation":true},
+                 "rejections":[],"calls":[]}
+                """.formatted(answer)));
+
+        chat("지어낸말이 뭐야?")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ANSWERED"))
+                .andExpect(jsonPath("$.answer").value(answer))
+                .andExpect(jsonPath("$.citations", hasSize(0)))
+                .andExpect(jsonPath("$.generalExplanation").value(true))
+                .andExpect(jsonPath("$.aiGenerated").value(true))
+                .andExpect(jsonPath("$.ai.model").value("claude-haiku-5-5"));
+    }
+
+    @Test
+    @DisplayName("용어 찾기 없이 온 일반 설명은 받아들이지 않고 검토 필요로 끝낸다(ADR-0064)")
+    void generalExplanationWithoutTermLookupIsRejected() throws Exception {
+        AI.on(STEPS, request -> Reply.ok("""
+                {"promptVersion":"agent-10","model":"claude-haiku-5-5","generatedAt":"2026-11-10T12:00:00",
+                 "type":"FINAL","toolCalls":[],
+                 "final":{"status":"ANSWERED","answer":"근거 없는 설명이에요.","evidenceIds":[],"actions":[],
+                  "reviewReason":null,"blockedRules":[],"format":"CHAT","crossCheck":null,
+                  "generalExplanation":true},
+                 "rejections":[],"calls":[]}
+                """));
+
+        chat("아무거나 알려줘")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("REVIEW_NEEDED"))
+                .andExpect(jsonPath("$.answer").doesNotExist())
+                .andExpect(jsonPath("$.generalExplanation").value(false));
+    }
+
+    @Test
     @DisplayName("용어 사전 열기 버튼은 카드 파일의 용어·별칭일 때만 대표 용어로 바꿔 남기고, 없는 용어는 뺀다")
     void openGlossaryKeepsOnlyCardTermsAsCanonicalTerm() throws Exception {
         String evidence = "T" + lawsuitChangeId;

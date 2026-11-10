@@ -27,7 +27,8 @@ public record AgentStepAiResponse(String promptVersion, String expressionRulesVe
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Final(String status, String answer, List<String> evidenceIds, List<Map<String, Object>> actions,
-            String reviewReason, List<String> blockedRules, String format, Object crossCheck) {
+            String reviewReason, List<String> blockedRules, String format, Object crossCheck,
+            Boolean generalExplanation) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

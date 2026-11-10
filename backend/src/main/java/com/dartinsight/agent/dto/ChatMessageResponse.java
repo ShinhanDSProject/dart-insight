@@ -14,10 +14,11 @@ import java.util.Map;
  * @param actions    화면 액션. type·label과 그 액션의 필드
  * @param crossCheck 교차 검증 결과(#581). 아니면 null
  * @param questionId 근거 질문 Tool로 저장한 질문 ID(#578). 아니면 null
+ * @param generalExplanation 카드도 보고서 설명도 없는 용어를 AI가 근거 없이 푼 일반 설명인지(ADR-0064)
  */
 public record ChatMessageResponse(String status, String answer, String message, List<Citation> citations,
         List<Map<String, Object>> actions, String format, Object crossCheck, Long questionId, boolean aiGenerated,
-        Ai ai) {
+        Ai ai, boolean generalExplanation) {
 
     /** 답이 인용한 근거 하나. 종류(kind)마다 채우는 필드가 다르다(용어 카드 GLOSSARY는 termKey·term·definition·sources) */
     @JsonInclude(JsonInclude.Include.NON_NULL)
