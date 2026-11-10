@@ -275,6 +275,12 @@ function AnswerBody({ response, onNavigate, onAsk }: AnswerBodyProps) {
           원문에서 근거를 찾았어요
         </p>
       )}
+      {response.generalExplanation && (
+        // 근거 없는 일반 설명은 답 위에 표시한다(ADR-0064)
+        <p className="chat-panel__meta">
+          <Badge tone="attention">AI 일반 설명 · 공시 근거 아님</Badge>
+        </p>
+      )}
       {match(response.format)
         .with('BRIEF', () => (
           // 정리 형식: 한 줄에 한 가지 내용, 줄 끝마다 근거 칩(AC24)
