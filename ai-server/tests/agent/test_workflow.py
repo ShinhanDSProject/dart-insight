@@ -14,10 +14,11 @@ from app.agent.model import (
     ToolResult,
     ToolSpec,
 )
-from app.agent.prompt import TASK_ANSWER, TASK_PLAN, plan_schema
+from app.agent.prompt import TASK_ANSWER, TASK_PLAN, TASK_TERM_GENERAL, plan_schema
 from app.agent.service import run_step
 from app.core.config import LlmSettings
 from app.llm import FakeProvider, LlmClient
+from app.llm.client import OutputProblem
 
 SETTINGS = LlmSettings(provider="fake", model="fake-model", max_retries=0, max_output_retries=2)
 NO_ARGS = {"type": "object", "properties": {}, "required": [], "additionalProperties": False}
@@ -686,7 +687,8 @@ def test_no_card_and_no_report_explanation_is_fixed_answer_with_similar_buttons(
             items=[ResultItem(None, "[질문 ID 3, NOT_FOUND] 찾지 못했어요.")],
         ),
     ]
-    client, provider = llm()
+    # 일반 설명(ADR-0064)을 시도했지만 범위 밖이라고 답하면 정해진 안내
+    client, provider = llm({"inScope": False, "sentences": []})
 
     output = run_step(client, term_step("부채율이 뭐야?", results))
 
@@ -697,13 +699,111 @@ def test_no_card_and_no_report_explanation_is_fixed_answer_with_similar_buttons(
         "'부채율'에 해당하는 용어 카드가 없고, 이 보고서에서도 설명을 찾지 못했어요."
     )
     assert output.final.evidence_ids == []
+    assert output.final.general_explanation is False
     assert output.final.actions == [
         {"type": "OPEN_GLOSSARY", "term": "부채비율"},
         {"type": "OPEN_GLOSSARY", "term": "부채"},
     ]
-    # LLM 없이 끝낸다(정해진 안내)
-    assert provider.requests == []
+    # 일반 설명 호출 기록은 남기고, 모델은 남기지 않아 backend가 정해진 안내로 본다
+    assert [r.task for r in provider.requests] == [TASK_TERM_GENERAL]
+    assert provider.requests[0].user == "<term>부채율</term>"
+    assert len(output.calls) == 1
     assert output.model is None
+
+
+def general_results(term: str = "공매도") -> list[ToolResult]:
+    return [
+        lookup(missing_line(term), terms=[term]),
+        ToolResult(
+            "term-2",
+            "answer_with_evidence",
+            {"question": term},
+            True,
+            items=[ResultItem(None, "[질문 ID 3, NOT_FOUND] 찾지 못했어요.")],
+        ),
+    ]
+
+
+def test_missing_term_gets_general_explanation_with_code_lead_and_tail() -> None:
+    sentences = [
+        "공매도는 가지고 있지 않은 주식을 빌려서 먼저 파는 거래예요.",
+        "예를 들어 1만 원에 빌려 판 주식을 8천 원에 다시 사서 갚으면 2천 원이 남아요.",
+    ]
+    client, provider = llm({"inScope": True, "sentences": sentences})
+
+    output = run_step(client, term_step("공매도가 뭐야?", general_results()))
+
+    assert output.final is not None
+    assert output.final.status == "ANSWERED"
+    assert output.final.general_explanation is True
+    assert output.final.evidence_ids == []
+    assert output.final.answer == " ".join(
+        [workflow.general_lead("공매도"), *sentences, workflow.GENERAL_TAIL]
+    )
+    assert len(output.final.answer) <= 400
+    # 기초 카드 버튼(비슷한 카드 없음)
+    assert [a["term"] for a in output.final.actions] == list(workflow.BASIC_TERMS)
+    assert output.model is not None
+    # 용어 이름만 보낸다(회사·보고서·Tool 결과 없음)
+    assert provider.requests[0].user == "<term>공매도</term>"
+    assert "예시전자" not in provider.requests[0].system
+
+
+def test_general_explanation_that_keeps_failing_ends_with_fixed_answer() -> None:
+    bad = {"inScope": True, "sentences": ["이 회사는 공매도가 많아요."]}
+    client, provider = llm(bad, bad, bad)
+
+    output = run_step(client, term_step("공매도가 뭐야?", general_results()))
+
+    assert output.final is not None
+    assert output.final.general_explanation is False
+    assert output.final.answer == workflow.TERM_NOT_FOUND.format(terms="'공매도'")
+    assert len(provider.requests) == 3
+    assert output.model is None
+
+
+def test_two_missing_terms_skip_general_explanation() -> None:
+    results = [
+        lookup(missing_line("공매도"), missing_line("배당락"), terms=["공매도", "배당락"]),
+        ToolResult("term-2", "answer_with_evidence", {"question": "공매도"}, True),
+    ]
+    client, provider = llm()
+
+    output = run_step(client, term_step("공매도랑 배당락이 뭐야?", results))
+
+    assert output.final is not None
+    assert output.final.general_explanation is False
+    assert provider.requests == []
+
+
+def test_general_lead_picks_topic_particle_by_final_consonant() -> None:
+    assert workflow.general_lead("공매도").startswith("'공매도'는 ")
+    assert workflow.general_lead("시가총액").startswith("'시가총액'은 ")
+    assert workflow.general_lead("PER").startswith("'PER'은(는) ")
+
+
+def test_general_explanation_checks_sentences() -> None:
+    step_ = term_step("공매도가 뭐야?", general_results())
+    ok = "공매도는 빌린 주식을 먼저 파는 거래예요."
+
+    assert workflow.parse_term_general({"inScope": False, "sentences": []}, "공매도", step_) is None
+    parsed = workflow.parse_term_general({"inScope": True, "sentences": [ok]}, "공매도", step_)
+    assert parsed == [ok]
+    for bad in (
+        [],
+        ["주식을 빌려 먼저 파는 거래예요."],  # 첫 문장에 용어 없음
+        [ok, "예시전자도 공매도 대상이에요."],  # 회사 이름
+        [ok, "보통 3일 안에 갚아요."],  # '예를 들어' 밖의 숫자
+        [ok + "[1]"],  # 근거 표시
+        [ok, "지금이 공매도하기 좋은 때라 매수 추천해요."],  # 투자 권유
+        [ok, "가" * (workflow.MAX_GENERAL_CHARS + 1)],
+        [ok, ok, ok, ok],
+    ):
+        try:
+            workflow.parse_term_general({"inScope": True, "sentences": bad}, "공매도", step_)
+        except OutputProblem:
+            continue
+        raise AssertionError(bad)
 
 
 def test_fixed_answer_without_similar_cards_offers_basic_cards() -> None:

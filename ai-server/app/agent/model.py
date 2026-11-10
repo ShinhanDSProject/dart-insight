@@ -153,6 +153,8 @@ class FinalAnswer:
     blocked_rules: list[str] = field(default_factory=list)
     format: str = FORMAT_CHAT
     cross_check: CrossCheck | None = None
+    # 카드도 보고서 설명도 없는 용어를 AI가 근거 없이 푼 일반 설명(ADR-0064)
+    general_explanation: bool = False
 
 
 @dataclass(frozen=True)

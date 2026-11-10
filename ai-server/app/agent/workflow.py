@@ -41,6 +41,8 @@ from app.agent.validate import (
     split_sentences,
     without_markers,
 )
+from app.compliance import scan
+from app.llm.client import OutputProblem
 
 CAUSE_TRACE = "CAUSE_TRACE"
 CROSS_CHECK = "CROSS_CHECK"
@@ -87,6 +89,18 @@ _QUOTE_BODY = re.compile(r"^\[[^\[\]\n]*\]\s*(?:[^:\n]*?:\s)?")
 _QUOTE_SENTENCE = re.compile(r"[^.!?\n]+(?:[.!?]|$)")
 
 TERM_NOT_FOUND = "{terms}에 해당하는 용어 카드가 없고, 이 보고서에서도 설명을 찾지 못했어요."
+# 일반 설명(ADR-0064): 코드가 붙이는 첫·끝 문장과 검사 상한.
+# 첫 문장 + 3문장 + 끝 문장이 대화 답 400자 안에 들게
+GENERAL_LEAD = (
+    "'{term}'{topic} 등록된 용어 카드가 없고 이 보고서에서도 설명을 찾지 못해, "
+    "일반적인 뜻을 AI가 풀었어요."
+)
+GENERAL_TAIL = "공시 근거가 아닌 일반 설명이라 틀릴 수 있어요."
+MAX_GENERAL_SENTENCES = 3
+MAX_GENERAL_CHARS = 100
+EXAMPLE_LEAD = "예를 들어"
+_DIGIT = re.compile(r"\d")
+_COMPANY_REFERENCE = re.compile(r"이\s*회사|이\s*기업|당사|해당\s*회사|해당\s*기업")
 REPORT_QUOTE = "이 회사 보고서에 적힌 설명이에요."
 # 보고서 설명 풀이 문장의 내용 낱말(두 글자 이상)과, 내용으로 보지 않는 틀 낱말
 _CONTENT_WORD = re.compile(r"[가-힣A-Za-z0-9]{2,}")
@@ -421,14 +435,78 @@ def term_fixed_final(step: StepInput) -> FinalAnswer | None:
     searched = any(r.ok and r.name == ANSWER_WITH_EVIDENCE for r in step.tool_results)
     if not searched and step.tool(ANSWER_WITH_EVIDENCE) is not None:
         return None
-    similar = list(dict.fromkeys(t for m in missing for t in m.similar))[:MAX_TERMS]
-    actions = (
-        [{"type": OPEN_GLOSSARY, "term": t} for t in (similar or BASIC_TERMS)]
-        if step.action(OPEN_GLOSSARY) is not None
-        else []
-    )
     terms = ", ".join(f"'{m.query}'" for m in missing)
-    return FinalAnswer(ANSWERED, TERM_NOT_FOUND.format(terms=terms), [], actions)
+    return FinalAnswer(ANSWERED, TERM_NOT_FOUND.format(terms=terms), [], _glossary_actions(step))
+
+
+def _glossary_actions(step: StepInput) -> list[dict[str, Any]]:
+    """비슷한 카드마다 용어 사전 열기 버튼(최대 3개), 비슷한 카드가 없으면 기초 카드 버튼."""
+    if step.action(OPEN_GLOSSARY) is None:
+        return []
+    similar = list(dict.fromkeys(t for m in missing_terms(step) for t in m.similar))[:MAX_TERMS]
+    return [{"type": OPEN_GLOSSARY, "term": t} for t in (similar or BASIC_TERMS)]
+
+
+def general_term(step: StepInput) -> str | None:
+    """정해진 안내 대신 일반 설명(ADR-0064)을 시도할 용어.
+
+    정해진 안내를 낼 자리이고 카드 없는 용어가 하나일 때만(여럿이면 정해진 안내).
+    """
+    if term_fixed_final(step) is None:
+        return None
+    missing = missing_terms(step)
+    return missing[0].query if len(missing) == 1 else None
+
+
+def parse_term_general(data: Any, term: str, step: StepInput) -> list[str] | None:
+    """일반 설명 출력 검사. 범위 밖(inScope false)이면 None, 고칠 문제가 있으면 OutputProblem.
+
+    1~3문장, 문장마다 MAX_GENERAL_CHARS 이하, 첫 문장에 용어, 회사를 가리키는 말·회사 이름 없음,
+    숫자는 '예를 들어' 문장에만, 근거 표시 없음, 투자 권유성 표현 검사 통과.
+    """
+    if not isinstance(data, dict) or not isinstance(data.get("inScope"), bool):
+        raise OutputProblem(["inScope(true/false)와 sentences(문장 목록)로 답합니다."])
+    if not data["inScope"]:
+        return None
+    raw = data.get("sentences")
+    items = raw if isinstance(raw, list) else []
+    sentences = [x.strip() for x in items if isinstance(x, str) and x.strip()]
+    problems: list[str] = []
+    if not 1 <= len(sentences) <= MAX_GENERAL_SENTENCES:
+        problems.append(f"문장은 1~{MAX_GENERAL_SENTENCES}개입니다.")
+    if sentences and _compact_term(term) not in _compact_term(sentences[0]):
+        problems.append(f"첫 문장에 용어 '{term}'를 그대로 씁니다.")
+    company = _compact_term(step.company_name) if step.company_name else ""
+    for sentence in sentences:
+        if len(sentence) > MAX_GENERAL_CHARS:
+            problems.append(f"문장마다 {MAX_GENERAL_CHARS}자 이하로 씁니다: {sentence[:20]}…")
+        if _COMPANY_REFERENCE.search(sentence) or (company and company in _compact_term(sentence)):
+            problems.append("특정 회사를 가리키지 않습니다('이 회사'·'당사'·회사 이름).")
+        if _DIGIT.search(sentence) and not sentence.startswith(EXAMPLE_LEAD):
+            problems.append("숫자는 '예를 들어'로 시작하는 문장에서만 씁니다.")
+        if "[" in sentence:
+            problems.append("근거 표시([…])를 붙이지 않습니다.")
+        if scan(sentence):
+            problems.append("투자 판단·가치판단 표현을 쓰지 않습니다.")
+    if problems:
+        raise OutputProblem(list(dict.fromkeys(problems)))
+    return sentences
+
+
+def general_lead(term: str) -> str:
+    """일반 설명의 첫 문장. 용어 끝 글자의 받침으로 은/는을 고른다(한글이 아니면 '은(는)')."""
+    last = term.strip()[-1:] if term.strip() else ""
+    if "가" <= last <= "힣":
+        topic = "은" if (ord(last) - ord("가")) % 28 else "는"
+    else:
+        topic = "은(는)"
+    return GENERAL_LEAD.format(term=term, topic=topic)
+
+
+def term_general_final(step: StepInput, term: str, sentences: list[str]) -> FinalAnswer:
+    """일반 설명 답. 첫·끝 안내 문장은 코드가 붙이고 근거 표시는 없다(ADR-0064)."""
+    answer = " ".join([general_lead(term), *sentences, GENERAL_TAIL])
+    return FinalAnswer(ANSWERED, answer, [], _glossary_actions(step), general_explanation=True)
 
 
 def report_quote_final(step: StepInput) -> FinalAnswer | None:
