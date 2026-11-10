@@ -17,12 +17,16 @@
       "companyValue": null,
       "sources": [
         {
-          "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)",
-          "url": null
+          "title": "금융감독원 전자공시시스템 DART",
+          "url": "https://dart.fss.or.kr/"
+        },
+        {
+          "title": "OpenDART 개발가이드",
+          "url": "https://opendart.fss.or.kr/guide/main.do"
         }
       ],
-      "reviewer": null,
-      "reviewedAt": null
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-10"
     },
     {
       "key": "rceptNo",
@@ -39,12 +43,12 @@
       "companyValue": null,
       "sources": [
         {
-          "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)",
-          "url": null
+          "title": "OpenDART 개발가이드",
+          "url": "https://opendart.fss.or.kr/guide/main.do"
         }
       ],
-      "reviewer": null,
-      "reviewedAt": null
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-10"
     },
     {
       "key": "corpCode",
@@ -61,12 +65,12 @@
       "companyValue": null,
       "sources": [
         {
-          "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)",
-          "url": null
+          "title": "OpenDART 개발가이드",
+          "url": "https://opendart.fss.or.kr/guide/main.do"
         }
       ],
-      "reviewer": null,
-      "reviewedAt": null
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-10"
     },
     {
       "key": "fsDiv",
@@ -80,16 +84,18 @@
       "example": null,
       "whereToCheck": null,
       "noJudgment": null,
-      "related": [],
+      "related": [
+        "subsidiary"
+      ],
       "companyValue": null,
       "sources": [
         {
-          "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)",
-          "url": null
+          "title": "OpenDART 개발가이드",
+          "url": "https://opendart.fss.or.kr/guide/main.do"
         }
       ],
-      "reviewer": null,
-      "reviewedAt": null
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-10"
     },
     {
       "key": "period",
@@ -110,12 +116,12 @@
       "companyValue": null,
       "sources": [
         {
-          "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)",
-          "url": null
+          "title": "OpenDART 개발가이드",
+          "url": "https://opendart.fss.or.kr/guide/main.do"
         }
       ],
-      "reviewer": null,
-      "reviewedAt": null
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-10"
     },
     {
       "key": "amountBasis",
@@ -135,12 +141,12 @@
       "companyValue": null,
       "sources": [
         {
-          "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)",
-          "url": null
+          "title": "OpenDART 개발가이드",
+          "url": "https://opendart.fss.or.kr/guide/main.do"
         }
       ],
-      "reviewer": null,
-      "reviewedAt": null
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-10"
     },
     {
       "key": "account",
@@ -153,16 +159,18 @@
       "example": null,
       "whereToCheck": null,
       "noJudgment": null,
-      "related": [],
+      "related": [
+        "balanceSheet"
+      ],
       "companyValue": null,
       "sources": [
         {
-          "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)",
-          "url": null
+          "title": "OpenDART 개발가이드",
+          "url": "https://opendart.fss.or.kr/guide/main.do"
         }
       ],
-      "reviewer": null,
-      "reviewedAt": null
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-10"
     },
     {
       "key": "restatement",
@@ -179,12 +187,12 @@
       "companyValue": null,
       "sources": [
         {
-          "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)",
-          "url": null
+          "title": "IFRS 재단 기준서 목록(IAS 8)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
         }
       ],
-      "reviewer": null,
-      "reviewedAt": null
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-10"
     },
     {
       "key": "operatingMargin",
@@ -195,16 +203,18 @@
       "example": null,
       "whereToCheck": null,
       "noJudgment": null,
-      "related": [],
+      "related": [
+        "operatingProfit"
+      ],
       "companyValue": null,
       "sources": [
         {
-          "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)",
-          "url": null
+          "title": "DART Insight API 명세 '재무 수치 변화'(서비스 계산 규칙)",
+          "url": "https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/api-spec.md"
         }
       ],
-      "reviewer": null,
-      "reviewedAt": null
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-10"
     },
     {
       "key": "cashEquivalents",
