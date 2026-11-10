@@ -284,6 +284,22 @@ describe('첫 화면 검색창과 펼침 상자(#560, FS-67)', () => {
     expect(screen.queryByRole('navigation', { name: '검색 예시' })).toBeNull()
   })
 
+  it('첫 화면에 서비스 소개 한 줄과 사용 순서를 두고, 검색 결과 화면에는 두지 않는다(#839)', async () => {
+    const { container } = renderAt('')
+    expect(screen.getByText('보고서 두 개를 비교해서, 바뀐 숫자와 문장을 찾아 드려요')).toBeTruthy()
+    const steps = screen.getByRole('list', { name: '사용 순서' })
+    expect(within(steps).getAllByRole('listitem').map((li) => li.textContent)).toEqual(['1기업 찾기', '2두 보고서 고르기', '3변화 확인'])
+    fireEvent.click(screen.getByRole('button', { name: '처음이라면 사용법 보기 ›' }))
+    expect(screen.getByRole('dialog', { name: '처음이신가요? 이렇게 써 보세요' })).toBeTruthy()
+    expect(await axeViolations(container)).toBe('')
+    cleanup()
+
+    renderAt('삼성')
+    await screen.findByRole('list', { name: '검색 결과 3곳' })
+    expect(screen.queryByText('보고서 두 개를 비교해서, 바뀐 숫자와 문장을 찾아 드려요')).toBeNull()
+    expect(screen.queryByRole('list', { name: '사용 순서' })).toBeNull()
+  })
+
   it('사용법 보기를 누르면 대화상자로 열고 Esc로 닫는다', async () => {
     const { container } = renderAt('')
     fireEvent.click(screen.getByRole('button', { name: '처음이신가요? 사용법 보기' }))
