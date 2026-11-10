@@ -12,6 +12,7 @@ public final class AiServerPaths {
     public static final String ANSWERS = "/internal/answers";
     public static final String BRIEFINGS = "/internal/briefings";
     public static final String OUTLOOKS = "/internal/outlooks";
+    public static final String PERIOD_ACTIVITIES = "/internal/period-activities";
     public static final String PLAN_FOLLOWUPS = "/internal/plan-followups";
     /** 에이전트 한 단계(ADR-0044·0045): 다음에 부를 Tool 또는 최종 답 */
     public static final String AGENT_STEPS = "/internal/agent-steps";

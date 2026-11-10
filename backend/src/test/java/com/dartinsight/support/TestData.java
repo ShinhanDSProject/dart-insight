@@ -33,6 +33,7 @@ public final class TestData {
             "text_event_unbound_change",
             "text_event",
             "text_event_run",
+            "period_activity",
             "analysis_question",
             "text_change_explanation",
             "summary_item",

@@ -100,6 +100,11 @@ public class AiServerClient {
         return postJson(textEventsClient, AiServerPaths.TEXT_EVENTS, body, responseType);
     }
 
+    /** 두 보고서 사이 활동 만들기(ADR-0067). LLM 한 번이 길어 주요 사건과 같은 대기 시간을 쓴다. 실패하면 {@link AiServerException}. */
+    public <T> T postPeriodActivities(Object body, Class<T> responseType) {
+        return postJson(textEventsClient, AiServerPaths.PERIOD_ACTIVITIES, body, responseType);
+    }
+
     private static <T> T postJson(RestClient client, String path, Object body, Class<T> responseType) {
         try {
             return client.post().uri(path).contentType(MediaType.APPLICATION_JSON).body(body).retrieve()

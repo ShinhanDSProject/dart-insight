@@ -94,6 +94,8 @@ public final class ApiPaths {
     public static final String ANALYSIS_CURRENT_EVENT_RUN = ANALYSIS_EVENT_RUNS + CURRENT;
     public static final String ANALYSIS_EVENTS = BY_ANALYSIS_ID + "/events";
     public static final String ANALYSIS_EVENT = ANALYSIS_EVENTS + "/{eventId}";
+    /** ANALYSES 아래. 두 보고서 사이 활동과 앞으로의 영향(ADR-0067) */
+    public static final String ANALYSIS_ACTIVITIES = BY_ANALYSIS_ID + "/activities";
     /** 사건 신호 기준표(ADR-0060). 로그인 없이 본다 */
     public static final String SIGNAL_TABLES = BASE + "/signal-tables";
     public static final String BY_CHANGE_ID = "/{changeId}";
