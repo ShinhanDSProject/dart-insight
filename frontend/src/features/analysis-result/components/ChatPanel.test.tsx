@@ -20,6 +20,7 @@ const answered: ChatMessageResponse = {
   questionId: null,
   aiGenerated: false,
   ai: null,
+  generalExplanation: false,
 }
 
 function renderWith(response: ChatMessageResponse) {
@@ -54,6 +55,16 @@ describe('채팅 답의 상태 안내 캐릭터(#706)', () => {
     const { container } = renderWith(answered)
     expect(screen.queryByText('원문에서 근거를 찾았어요')).toBeNull()
     expect(container.querySelector('.mascot--joy')).toBeNull()
+  })
+
+  it('카드에 없는 용어의 일반 설명에는 공시 근거가 아니라는 표시를 붙인다(ADR-0064)', () => {
+    renderWith({ ...answered, answer: '공매도는 빌린 주식을 먼저 파는 거래예요.', generalExplanation: true })
+    expect(screen.getByText('AI 일반 설명 · 공시 근거 아님')).toBeTruthy()
+  })
+
+  it('일반 설명이 아닌 답에는 공시 근거가 아니라는 표시가 없다', () => {
+    renderWith(answered)
+    expect(screen.queryByText('AI 일반 설명 · 공시 근거 아님')).toBeNull()
   })
 
   it('근거 인용이 있는 답에만 근거를 찾았다는 줄과 캐릭터를 붙인다', () => {

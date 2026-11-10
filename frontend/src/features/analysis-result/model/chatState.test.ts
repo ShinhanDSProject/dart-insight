@@ -13,6 +13,7 @@ const response = (answer: string | null, message: string | null = null): ChatMes
   questionId: null,
   aiGenerated: answer !== null,
   ai: null,
+  generalExplanation: false,
 })
 
 describe('chatReducer', () => {

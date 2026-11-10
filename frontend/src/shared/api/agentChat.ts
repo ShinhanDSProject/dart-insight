@@ -111,6 +111,8 @@ export interface ChatMessageResponse {
   questionId: number | null
   aiGenerated: boolean
   ai: AiInfo | null
+  /** 카드도 보고서 설명도 없는 용어를 AI가 근거 없이 푼 일반 설명(ADR-0064). true면 citations는 빈 배열 */
+  generalExplanation: boolean
 }
 
 /** 채팅 한 번. 동기 호출이고 Tool을 여러 번 부르면 수십 초 걸릴 수 있다 */

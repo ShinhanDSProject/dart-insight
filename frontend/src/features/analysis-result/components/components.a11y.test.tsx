@@ -77,6 +77,7 @@ const chatAnswer: ChatMessageResponse = {
   questionId: null,
   aiGenerated: true,
   ai,
+  generalExplanation: false,
 }
 
 function chatController(state: ChatState): AgentChatController {
