@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Company, CompanyOverview } from '@/shared/api/companies'
-import type { ReportList } from '@/shared/api/reports'
+import type { ReportItem, ReportList } from '@/shared/api/reports'
 import { AuthContext, type AuthContextValue } from '@/shared/auth/authContext'
 import { axeViolations } from '@/test/axe'
 import { samsungOverview } from '@/test/fixtures/companyOverview'
@@ -20,8 +20,9 @@ vi.mock('@/shared/api/companies', () => ({
 
 vi.mock('@/shared/api/reports', () => ({
   listReports: (corpCode: string) => listReports(corpCode),
-  getReport: vi.fn(),
-  getReportPair: vi.fn(),
+  // 보고서 자세히(ReportDetail)는 펼칠 때까지 기다리는 상태로 둔다
+  getReport: () => new Promise(() => {}),
+  getReportPair: () => new Promise(() => {}),
 }))
 
 vi.mock('@/shared/api/analyses', () => ({
@@ -104,5 +105,43 @@ describe('기업 화면 탭', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '기업 개요' }))
     expect(await screen.findByText('전영현, 노태문')).toBeTruthy()
+  })
+})
+
+describe('보고서 고르기 맨 위 두 보고서(#840)', () => {
+  const report = (rceptNo: string, reportName: string, fiscalYear: number, periodEnd: string): ReportItem => ({
+    rceptNo,
+    reportName,
+    reportType: 'HALF',
+    disclosureType: 'A002',
+    fiscalYear,
+    periodEnd,
+    receivedAt: periodEnd,
+    correction: 'ORIGINAL',
+    financialDataStatus: 'UNKNOWN',
+    dartUrl: `https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${rceptNo}`,
+  })
+  const items = [report('20260814000001', '반기보고서 (2026.06)', 2026, '2026-06-30'), report('20250814000002', '반기보고서 (2025.06)', 2025, '2025-06-30')]
+
+  it('고른 두 보고서와 이대로 비교하기를 맨 위에 두고, 정기보고서 목록은 접어 둔다', async () => {
+    listReports.mockResolvedValue({ corpCode: '00126380', fetchedAt: null, refreshError: null, items })
+    const { container } = renderPage('?basis=CUSTOM&previous=20250814000002')
+
+    const summary = within(await screen.findByRole('region', { name: '이 두 보고서를 비교해요' }))
+    expect(summary.getByText(/반기보고서 \(2025\.06\)/).textContent).toContain('반기보고서 (2026.06)')
+    expect(summary.getByRole('link', { name: '이대로 비교하기 →' }).getAttribute('href')).toBe(
+      '/companies/00126380/compare?current=20260814000001&previous=20250814000002&basis=CUSTOM',
+    )
+    expect(screen.getByText('정기보고서 목록').closest('details')?.open).toBe(false)
+    expect(await axeViolations(container)).toBe('')
+  })
+
+  it('이전 보고서를 아직 고르지 않았으면 버튼 대신 고르라고 안내한다', async () => {
+    listReports.mockResolvedValue({ corpCode: '00126380', fetchedAt: null, refreshError: null, items })
+    renderPage('?basis=CUSTOM')
+
+    const summary = within(await screen.findByRole('region', { name: '이 두 보고서를 비교해요' }))
+    expect(summary.queryByRole('link', { name: '이대로 비교하기 →' })).toBeNull()
+    expect(summary.getByText('아래에서 이전 보고서를 고르면 비교할 수 있어요.')).toBeTruthy()
   })
 })
