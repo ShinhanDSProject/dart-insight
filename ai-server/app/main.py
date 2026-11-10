@@ -10,6 +10,7 @@ from app.api import (
     internal,
     outlooks,
     paths,
+    period_activities,
     plan_followups,
     summaries,
     text_changes,
@@ -56,6 +57,7 @@ def create_app(llm_client: LlmClient | None = None) -> FastAPI:
     app.include_router(answers.router)
     app.include_router(briefings.router)
     app.include_router(outlooks.router)
+    app.include_router(period_activities.router)
     app.include_router(plan_followups.router)
     app.include_router(agent_steps.router)
     return app
