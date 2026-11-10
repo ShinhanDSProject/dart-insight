@@ -135,6 +135,7 @@
 | POST | `/api/analyses/{analysisId}/event-runs` | 주요 사건 만들기 시작 | #642 (2.13), #646 (3.36) | W-03 ③ | 초안 |
 | GET | `/api/analyses/{analysisId}/event-runs/current` | 주요 사건 작업 상태 | #642 (2.13), #646 (3.36) | W-03 ③ | 초안 |
 | GET | `/api/analyses/{analysisId}/events` | 주요 사건 목록, 칸별 사건 수, 묶이지 않은 후보 | #642 (2.13), #646 (3.36) | W-03 ③ | 초안 |
+| GET | `/api/analyses/{analysisId}/activities` | 두 보고서 사이에 회사가 한 일과 앞으로의 영향(저장된 것 또는 새로 만듦, ADR-0067) | — | W-03 ③ 문장 변화 | 초안 |
 | GET | `/api/analyses/{analysisId}/events/{eventId}` | 주요 사건 하나 | #642 (2.13), #646 (3.36) | W-03 ③ | 초안 |
 | GET | `/api/signal-tables/current` | 사건 신호 기준표('기준 보기') | #731 (2.20), #736 (3.40) | W-03 ③ | 초안 |
 | GET | `/api/analyses/{analysisId}/summary` | 근거 기반 요약·설명 | #20 (3.2) | W-03 ① | 초안 |
@@ -3101,6 +3102,87 @@
 | --- | --- | --- |
 | 503 | `AI_SERVER_UNAVAILABLE` | ai-server에서 기준표를 받지 못했고 메모리에도 없음 |
 
+### GET /api/analyses/{analysisId}/activities — 두 보고서 사이에 회사가 한 일과 앞으로의 영향
+
+- 화면: W-03 ③ '문장 변화' 탭(`?tab=activity`) · [ADR-0067](adr/0067-period-activity-impact-view.md)
+- 이 분석·현재 프롬프트 버전으로 저장된 결과가 있으면 그대로 돌려줍니다. 없으면 이 요청 안에서 만들어 저장한 뒤 돌려줍니다(동기 호출, 처음엔 수 초~수십 초). 같은 분석을 동시에 요청하면 한 번만 만듭니다.
+- 입력은 이 분석의 분류된 문장 변경 중 `MAIN`·`UNPAIRED`·`HEADING` 묶음입니다. AI 서버가 주요 사건과 같은 후보 규칙(ADR-0051)으로 줄이고, AI가 그중 투자·취업·협업에 유의미한 활동을 최대 12개 고릅니다. 사이 기간 수시공시는 아직 넣지 않습니다(ADR-0066).
+- 신호(`signal`)는 AI가 고른 사건 종류·변화를 코드가 신호 기준표(ADR-0060)로 판정한 값입니다. AI가 정하지 않습니다. 투자 판단이나 추천이 아닙니다.
+- 서비스는 매수·매도 추천, 목표주가, 주가 예측을 하지 않습니다. 사용자 정보는 쓰지 않습니다.
+
+**요청**
+
+| 위치 | 이름 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- | --- |
+| path | `analysisId` | number | 예 | 분석 ID |
+
+**응답 200**
+
+```json
+{
+  "analysisId": 18,
+  "status": "GENERATED",
+  "reason": null,
+  "message": null,
+  "overview": {
+    "text": "Tesla와 16,544백만 달러 규모의 파운드리 공급계약을 맺었어요.",
+    "evidence": [{ "evidenceId": "20260814003699#B174", "rceptNo": "20260814003699", "blockNo": 174,
+          "side": "CURRENT", "sectionPath": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동", "changeId": 9012 }]
+  },
+  "items": [
+    {
+      "no": 1,
+      "area": "BUSINESS",
+      "audiences": ["INVESTOR", "CAREER", "PARTNER"],
+      "title": "Tesla와 파운드리 공급계약",
+      "summary": "Tesla와 16,544백만 달러 규모의 파운드리 공급계약을 맺었어요.",
+      "facts": [{ "quote": "당사는 Tesla와 16,544백만 달러 규모의 파운드리 공급계약을 체결하였습니다.",
+        "evidence": { "evidenceId": "20260814003699#B174", "rceptNo": "20260814003699", "blockNo": 174,
+          "side": "CURRENT", "sectionPath": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동", "changeId": 9012 } }],
+      "signal": "POSITIVE",
+      "holdReason": null,
+      "signalKind": "MAJOR_CONTRACT",
+      "signalKindName": "주요 계약",
+      "signalChange": "NEW_SUPPLY",
+      "signalChangeName": "신규 공급 계약",
+      "impacts": [
+        { "kind": "OUTLOOK", "tone": "GOOD",
+          "text": "발주가 계약대로 이어지면 파운드리 매출을 받치는 쪽으로 작용할 수 있어요.",
+          "premises": [{ "quote": "당사는 Tesla와 16,544백만 달러 규모의 파운드리 공급계약을 체결하였습니다.", "evidence": { "evidenceId": "20260814003699#B174", "rceptNo": "20260814003699", "blockNo": 174,
+          "side": "CURRENT", "sectionPath": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동", "changeId": 9012 } }] },
+        { "kind": "CHECK", "tone": null, "text": "이후 보고서의 계약 이행 금액을 확인해 보세요.", "premises": [] }
+      ],
+      "changeIds": [9012]
+    }
+  ],
+  "droppedCount": 0,
+  "candidateCount": 214,
+  "aiGenerated": true,
+  "ai": { "model": "fake-model", "promptVersion": "period-activity-1", "generatedAt": "2026-11-10T10:12:03" }
+}
+```
+
+- `status`
+  - `GENERATED`: `items`에 카드(1~12개). 화면에 'AI 생성'으로 표시합니다.
+  - `EMPTY`: 고를 활동이 없음(`items` 빈 배열, `message`에 안내). 후보가 없어 AI를 부르지 않았으면 저장하지 않고 `aiGenerated` false·`ai` null입니다. AI가 0개로 답했으면 저장합니다.
+  - `REVIEW_NEEDED`: 만들었지만 인용·근거·숫자·표현 검사를 2회 다시 만든 뒤에도 통과한 카드가 없음. `items`는 빈 배열, `message`에 사유. 저장합니다.
+  - `NOT_AVAILABLE`: 만들 자료가 없음(`reason`에 사유). 저장하지 않습니다.
+- `reason`(`NOT_AVAILABLE`일 때만): `TEXT_NOT_COMPARED` 이 분석에서 문장을 비교하지 못함
+- `overview`: 이 기간 요약 2~4문장(AI). `evidence`는 요약이 기댄 원문 위치. 카드가 없거나 요약이 검사를 통과하지 못하면 null입니다.
+- `items[]`: AI가 낸 순서. `area`는 `BUSINESS`(사업·제품), `INVESTMENT`(투자·설비·인수), `FINANCE`(자금·재무), `SHAREHOLDER`(주주·배당), `GOVERNANCE`(지배구조·경영진), `PEOPLE`(인력·조직), `RISK`(소송·제재·위험), `OTHER`(기타). `audiences`는 쓸모 있는 쪽 하나 이상: `INVESTOR`(투자, 사모펀드·재무적 투자 포함), `CAREER`(취업·면접), `PARTNER`(협업·거래).
+- `facts[]`: 원문 인용(글 그대로, 이어진 공백은 한 칸)과 위치. `evidence.side`는 `PREVIOUS`(이전 보고서)·`CURRENT`(이번 보고서), `changeId`는 그 인용이 든 문장 변경(전체 변경 탭의 `tc`)입니다.
+- `signal`: `POSITIVE`(긍정 신호)·`CAUTION`(주의 신호)·`HOLD`(보류). `holdReason`(보류일 때만): `NO_CRITERIA` 기준표에 없는 종류·변화, `MIXED_SIDES` 좋은 면·나쁜 면이 함께 있는 변화, `EVIDENCE_NOT_CONFIRMED` 판단 근거가 그 카드의 인용이 아니거나 해소·철회를 이전 보고서 글로만 댐.
+- `impacts[]`: 앞으로의 영향. `kind`는 `DISCLOSED`(회사가 밝힌 계획·전망, 근거는 `premises`), `OUTLOOK`(AI 전망: 조건형 문장, 전제는 `premises`, 화면은 'AI 전망 · 공시 사실 아님'으로 표시), `CHECK`(다음에 확인할 점, 숫자 없음, `premises` 빈 배열). `tone`은 `OUTLOOK`만: `GOOD`(좋은 면)·`BAD`(나쁜 면)·null.
+- `changeIds`: 카드가 기댄 문장 변경 ID(중복 없음, 처음 나온 순서).
+- `droppedCount`: 검사를 통과하지 못해 뺀 카드 수. `candidateCount`: 후보 규칙으로 고른 변경 수.
+- `aiGenerated`·`ai`: AI가 만든 결과면 true와 모델·프롬프트 버전·생성 시각, 아니면 false와 null입니다.
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 ID |
+| 409 | `ANALYSIS_NOT_READY` | 분석이 끝나지 않음 |
+| 503 | `AI_SERVER_UNAVAILABLE` | AI 서버 또는 LLM을 쓸 수 없음(저장하지 않음. 다시 요청하면 다시 만듦) |
+
 ### GET /api/analyses/{analysisId}/summary — 근거 기반 요약·설명
 
 - 이슈: #20 (3.2), #143 (설명 등급·인용), #149 (템플릿 요약), #481 (3.10 투자자 관점, FS-64) · 화면: W-03 ① · [ADR-0015](adr/0015-explanation-grade-and-quote-check.md)
@@ -3578,6 +3660,7 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 | POST | `/internal/summaries` | 근거 기반 요약·설명(LLM) | #20 (3.2) | 초안 |
 | POST | `/internal/briefings` | AI 기업 브리핑(LLM) | #333 (1.2) | 초안 |
 | POST | `/internal/outlooks` | 회사가 밝힌 전망·계획 뽑기(LLM) | #465 (1.9) | 초안 |
+| POST | `/internal/period-activities` | 두 보고서 사이 활동과 앞으로의 영향 뽑기(LLM, ADR-0067) | — | 초안 |
 | POST | `/internal/plan-followups` | 작년 계획과 올해 보고서 문단 대조(LLM) | #467 (1.10) | 초안 |
 | POST | `/internal/agent-steps` | 에이전트 한 단계: 다음에 부를 Tool 또는 최종 답(LLM, ADR-0044·0045) | 에이전트 채팅(FS 전) | 초안 |
 | POST | `/internal/text-events` | 문장 변경을 주요 사건으로 묶고 신호·사건 문장 붙이기(LLM, ADR-0050·0051·0060) | #642 (2.13), #731 (2.20) | 초안 |
@@ -4116,6 +4199,62 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 | --- | --- | --- |
 | 400 | `COMMON_INVALID_INPUT` | 필드 누락, `tools`가 비었음, Tool 이름·`callId` 겹침, `toolResults`의 `name`이 `tools`에 없음, `remainingSteps`가 0보다 작음, `history`가 6개 초과, Tool·액션의 `parameters`가 `type: object`인 올바른 JSON Schema(Draft 2020-12)가 아님 |
 | 503 | `AI_LLM_UNAVAILABLE` | LLM을 쓸 수 없음. 그때까지 부른 기록은 응답 헤더 `X-Llm-Calls`(3절 첫머리) |
+
+### POST /internal/period-activities — 두 보고서 사이 활동과 앞으로의 영향 뽑기
+
+- [ADR-0067](adr/0067-period-activity-impact-view.md). task `period_activity`, 프롬프트 `period-activity-1`(backend `PeriodActivityService.PROMPT_VERSION`과 같아야 함, 다르면 400).
+- backend가 분석의 분류된 문장 변경 중 `MAIN`·`UNPAIRED`·`HEADING` 묶음을 보냅니다(최대 5,000건). AI 서버가 주요 사건 후보 규칙(ADR-0051 `is_candidate`)으로 고르고, 주요 분야·주석에서 올린 변경 → 새 문단 → 나머지 순으로 이전·이번 글을 근거 원문(쪽마다 500자, 최대 160개)으로 만듭니다. 한 블록이 여러 변경에 걸리면 처음 것만 씁니다.
+- 원문이 없으면 LLM을 부르지 않고 `EMPTY`(`calls` 빈 배열)입니다.
+- 검증은 공개 API 설명과 같습니다. 어긋나면 2회까지 다시 만들고, 그래도 어긋난 카드는 빼고 `droppedCount`에 남깁니다. 통과한 카드가 없으면 `REVIEW_NEEDED`(`reviewReason`, 표현 검사에 걸렸으면 `blockedRules`)입니다. 요약만 어긋나면 `overview`만 null입니다.
+
+**요청**
+
+```json
+{
+  "promptVersion": "period-activity-1",
+  "companyName": "예시전자",
+  "previousReportName": "반기보고서 (2025.06)",
+  "currentReportName": "반기보고서 (2026.06)",
+  "changes": [
+    { "changeNo": 7, "changeType": "ADDED", "blockType": "PARAGRAPH", "listGroup": "MAIN", "field": "CONTRACT",
+      "raisedFromNote": false, "sectionPath": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+      "previousEvidenceId": null, "currentEvidenceId": "20260814003699#B174",
+      "previousText": null, "currentText": "당사는 Tesla와 …를 체결하였습니다." }
+  ]
+}
+```
+
+**응답 200**
+
+```json
+{
+  "promptVersion": "period-activity-1",
+  "expressionRulesVersion": "expr-1",
+  "signalTableVersion": "signal-table-2",
+  "model": "fake-model",
+  "generatedAt": "2026-11-10T10:12:03+09:00",
+  "status": "GENERATED",
+  "overview": { "text": "…", "evidenceIds": ["20260814003699#B174"] },
+  "items": [
+    { "area": "BUSINESS", "audiences": ["INVESTOR"], "title": "…", "summary": "…",
+      "facts": [{ "quote": "…", "evidenceId": "20260814003699#B174" }],
+      "signal": "POSITIVE", "holdReason": null, "signalKind": "MAJOR_CONTRACT", "signalKindName": "주요 계약",
+      "signalChange": "NEW_SUPPLY", "signalChangeName": "신규 공급 계약", "signalEvidenceId": "20260814003699#B174",
+      "impacts": [{ "kind": "CHECK", "tone": null, "text": "…", "premises": [] }],
+      "changeNos": [7] }
+  ],
+  "droppedCount": 0,
+  "candidateCount": 1,
+  "reviewReason": null,
+  "blockedRules": [],
+  "calls": []
+}
+```
+
+| 상태 | code | 언제 |
+| --- | --- | --- |
+| 400 | `COMMON_INVALID_INPUT` | 프롬프트 버전이 다르거나 `changeNo`가 겹침 |
+| 503 | `AI_LLM_UNAVAILABLE` | LLM을 부를 수 없음 |
 
 ### POST /internal/text-events — 문장 변경을 주요 사건으로 묶기
 
