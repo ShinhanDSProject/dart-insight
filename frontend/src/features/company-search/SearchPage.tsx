@@ -22,7 +22,7 @@ import { BrandLogo, Button, ButtonLink, Card, Dialog, FieldHint, Icon, Input, No
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { CompanyList, RESULT_LINK_SELECTOR } from './components/CompanyList'
 import { HomeLists } from './components/HomeLists'
-import { OnboardingStepsList } from './components/OnboardingGuide'
+import { HOME_INTRO, HOME_SOURCE, HomeSteps, OnboardingStepsList } from './components/OnboardingGuide'
 import { RecentAnalyses } from './components/RecentAnalyses'
 import { useAutoSearch } from './hooks/useAutoSearch'
 import { useCompanySearch, type SearchResult as SearchData } from './hooks/useCompanySearch'
@@ -37,7 +37,7 @@ const errorMessages: Record<string, string> = {
 
 /**
  * W-01 ① 기업 검색(#538, #560, FS-67).
- * 검색 전 첫 화면은 로고와 검색창만 둔다. 빈 검색창에 초점을 주면 아래로 펼침 상자(최근 본 분석·자주 찾는 기업·
+ * 검색 전 첫 화면은 로고, 서비스 소개 한 줄, 검색창, 사용 순서 한 줄을 둔다(#839). 빈 검색창에 초점을 주면 아래로 펼침 상자(최근 본 분석·자주 찾는 기업·
  * 예시 검색어·사용법)가 열린다. 검색창 아래에는 처음엔 접힌 대표 기업·시즌 변화 Top 10·관심 기업 새 공시 목록을 둔다(#686).
  * 검색어는 주소(?q=)에 남겨 뒤로 가기를 해도 결과가 유지되며, 입력을 멈추면 Enter 없이도 찾는다.
  */
@@ -109,6 +109,13 @@ export function SearchPage() {
             <BrandLogo size="lg" />
             <span className="visually-hidden"> 기업 검색</span>
           </h1>
+          {/* 처음 온 사람에게 무엇을 하는 곳인지 알린다(#839). 검색 결과를 볼 때는 결과에 자리를 내준다 */}
+          {isHome && (
+            <div className="search-hero__intro">
+              <p className="search-hero__lead">{HOME_INTRO}</p>
+              <p className="search-hero__source">{HOME_SOURCE}</p>
+            </div>
+          )}
 
           <form className="search-form" onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} noValidate>
             {/* 보이는 제목 대신 입력창 안내 글을 쓰고, 화면 읽기 프로그램에는 이름을 그대로 준다(#486) */}
@@ -162,6 +169,7 @@ export function SearchPage() {
               </p>
             )}
           </form>
+          {isHome && <HomeSteps onOpenGuide={() => setModal('guide')} />}
           {isHome && <HomeLists favoritesStatus={favorites.status} favorites={favorites.items} />}
         </div>
 

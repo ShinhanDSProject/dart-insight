@@ -142,6 +142,114 @@
   margin-bottom: 0;
 }
 
+/* 첫 화면 소개 한 줄(#839). 로고 아래, 검색창 위 */
+.search-hero__intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: calc(var(--space-2) * -1) 0 var(--space-5);
+}
+
+.search-hero__lead {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.search-hero__source {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* 검색창 아래 사용 순서 한 줄(#839). 자세한 설명은 '사용법 보기' 대화상자 */
+.home-steps {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 var(--space-4);
+}
+
+.home-steps__list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.home-steps__step {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.home-steps__step + .home-steps__step::before {
+  margin-right: var(--space-2);
+  color: var(--color-text-muted);
+  content: '›';
+}
+
+.home-steps__step:first-child {
+  color: var(--color-text);
+  font-weight: var(--font-weight-medium);
+}
+
+.home-steps__number {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-5);
+  height: var(--space-5);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-subtle);
+  color: var(--color-text);
+  font-family: var(--font-num);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+.home-steps__step:first-child .home-steps__number {
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+}
+
+.home-steps .home-steps__guide {
+  margin: 0;
+  color: var(--color-link);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+  text-decoration: none;
+}
+
+.home-steps .home-steps__guide:hover {
+  text-decoration: underline;
+}
+
+/* 좁은 화면에서도 세 단계를 한 줄에 둔다(줄이 넘어가면 줄 앞에 › 가 남는다) */
+@media (max-width: 480px) {
+  .home-steps__list {
+    flex-wrap: nowrap;
+    gap: var(--space-1);
+    font-size: var(--font-size-xs);
+    white-space: nowrap;
+  }
+
+  .home-steps__step {
+    gap: var(--space-1);
+  }
+
+  .home-steps__step + .home-steps__step::before {
+    margin-right: var(--space-1);
+  }
+}
+
 .search-form {
   position: relative;
   margin-bottom: var(--space-4);
