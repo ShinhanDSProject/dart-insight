@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { Fragment, useState, type ReactNode } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { TextChangeItem, TextField } from '@/shared/api/textChanges'
@@ -122,21 +122,18 @@ function EventsGlance({ list, onOpenEvidence, onAsk }: { list: TextEventList; on
                 {GLANCE_EVIDENCE}
               </Button>
             )}
-            {line.changeId !== null && line.term !== null && (
-              <span className="event-glance__dot" aria-hidden="true">
-                ·
-              </span>
-            )}
-            {line.term !== null && (
-              <Button
-                variant="link"
-                className="event-glance__link"
-                aria-label={`${termLinkLabel(line.term)} AI 에이전트에게 묻기`}
-                onClick={() => onAsk(termQuestion(line.term as string))}
-              >
-                {termLinkLabel(line.term)}
-              </Button>
-            )}
+            {line.terms.map((term, index) => (
+              <Fragment key={term}>
+                {(index > 0 || line.changeId !== null) && (
+                  <span className="event-glance__dot" aria-hidden="true">
+                    ·
+                  </span>
+                )}
+                <Button variant="link" className="event-glance__link" aria-label={`${termLinkLabel(term)} AI 에이전트에게 묻기`} onClick={() => onAsk(termQuestion(term))}>
+                  {termLinkLabel(term)}
+                </Button>
+              </Fragment>
+            ))}
           </li>
         ))}
       </ol>

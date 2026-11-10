@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { TextEventItem, TextEventList, TextEventSentence } from '@/shared/api/textEvents'
-import { eventGlance, termLinkLabel, termQuestion } from './eventGlance'
+import { eventGlance, glanceTerms, termLinkLabel, termQuestion } from './eventGlance'
 
 function meaning(text: string, evidenceId = 'E1', status: TextEventSentence['status'] = 'GENERATED'): TextEventSentence {
   return {
@@ -55,15 +55,28 @@ describe('한눈에 보기', () => {
     expect(line([])?.changeId).toBeNull()
   })
 
-  it('목록 용어가 여럿이면 목록에서 앞선 것 하나만, 없으면 null', () => {
-    const term = (text: string) => eventGlance({ items: [event(1, meaning(text))], signalCounts: counts })?.lines[0].term
-    expect(term('지배기업이 신탁계약으로 취득한 자기주식을 소각했어요.')).toBe('자기주식')
-    expect(term('판교사옥을 매도했어요.')).toBeNull()
+  it('문장에 나오는 어려운 용어마다 문장 순서로 붙이고, 띄어 쓴 용어는 낱말이 떨어져 있어도 찾는다', () => {
+    expect(glanceTerms('SK플래닛이 판교사옥 토지 및 건물의 지분(40.2%)을 1,450억 원에 매도했어요.')).toEqual(['지분 매도'])
+    expect(glanceTerms('지배기업이 신탁계약으로 취득한 자기주식 중 34,388주를 소각했어요.')).toEqual(['지배기업', '신탁계약', '자기주식 소각'])
+    expect(glanceTerms('2026년 4월 30일 처음으로 중간배당을 시행했어요.')).toEqual(['중간배당'])
+  })
+
+  it('두 말 용어 안의 한 말 용어는 따로 붙이지 않고, 용어가 없으면 [], 많으면 3개까지', () => {
+    expect(glanceTerms('자기주식을 소각했어요.')).toEqual(['자기주식 소각'])
+    expect(glanceTerms('자기주식을 보유하고 있어요.')).toEqual(['자기주식'])
+    expect(glanceTerms('판교사옥을 팔았어요.')).toEqual([])
+    expect(glanceTerms('지배기업과 종속기업이 유상증자와 전환사채를 썼어요.')).toEqual(['지배기업', '종속기업', '유상증자'])
+  })
+
+  it('한눈에 보기 줄에 문장의 용어를 담는다', () => {
+    const line = eventGlance({ items: [event(1, meaning('중간배당을 시행했어요.'))], signalCounts: counts })?.lines[0]
+    expect(line?.terms).toEqual(['중간배당'])
   })
 
   it('받침에 따라 이란·란, 이·가를 고른다', () => {
     expect(termLinkLabel('중간배당')).toBe('중간배당이란?')
     expect(termLinkLabel('감자')).toBe('감자란?')
+    expect(termLinkLabel('지분 매도')).toBe('지분 매도란?')
     expect(termQuestion('자기주식')).toBe('자기주식이 뭐예요?')
     expect(termQuestion('감자')).toBe('감자가 뭐예요?')
   })
