@@ -73,6 +73,8 @@ NOT_FOUND_AFTER_TOOL_FAILURE = "NOT_FOUND_AFTER_TOOL_FAILURE"
 # 용어 카드(ADR-0061): 카드(G)만 인용한 문장이 회사를 가리킴 / 보고서 설명 풀이가 인용 밖 내용을 씀
 GLOSSARY_COMPANY_REFERENCE = "GLOSSARY_COMPANY_REFERENCE"
 REPORT_EXPLANATION_UNSUPPORTED = "REPORT_EXPLANATION_UNSUPPORTED"
+# '더 쉽게' 요청의 카드 풀이가 정한 문장 수보다 길다(#823)
+EASIER_ANSWER_TOO_LONG = "EASIER_ANSWER_TOO_LONG"
 # 용어 카드 근거 ID(G{카드 키}, 키는 영문 소문자로 시작하는 카멜 표기)
 _GLOSSARY_ID = re.compile(r"^G[a-z][A-Za-z0-9]*$")
 # 회사를 가리키는 말. '회사채'처럼 용어 안의 '회사'는 회사를 가리키지 않으므로 넣지 않는다
