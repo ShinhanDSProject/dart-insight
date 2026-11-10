@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.dartinsight.glossary.domain.GlossaryTerm;
 import com.dartinsight.glossary.domain.GlossaryTerms;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ByteArrayResource;
@@ -21,13 +22,16 @@ class GlossaryTermFileTest {
     }
 
     @Test
-    @DisplayName("저장소의 카드 파일은 규칙을 지키고, 기존 용어 9개는 검토 전이라 내보내지 않는다")
+    @DisplayName("저장소의 카드 파일은 규칙을 지키고, 새 카드 54개를 내보내고 기존 용어 9개는 출처 주소가 없어 숨긴다")
     void repositoryCardFileIsValidAndUnreviewedCardsStayHidden() {
         GlossaryTerms terms = GlossaryTermFile.read(new ClassPathResource("glossary/terms.json"), JSON);
+        List<String> existing = List.of("correction", "rceptNo", "corpCode", "fsDiv", "period", "amountBasis",
+                "account", "restatement", "operatingMargin");
 
-        assertThat(terms.all()).extracting(GlossaryTerm::key).containsExactly("correction", "rceptNo", "corpCode",
-                "fsDiv", "period", "amountBasis", "account", "restatement", "operatingMargin");
-        assertThat(terms.published()).isEmpty();
+        assertThat(terms.all()).hasSize(63);
+        assertThat(terms.all()).extracting(GlossaryTerm::key).startsWith(existing.toArray(String[]::new));
+        assertThat(terms.published()).hasSize(54);
+        assertThat(terms.published()).extracting(GlossaryTerm::key).doesNotContainAnyElementsOf(existing);
     }
 
     @Test
