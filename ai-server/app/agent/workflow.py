@@ -100,6 +100,8 @@ MAX_GENERAL_SENTENCES = 3
 MAX_GENERAL_CHARS = 100
 EXAMPLE_LEAD = "예를 들어"
 _DIGIT = re.compile(r"\d")
+# 회사 이름 뒤에 붙을 수 있는 조사
+_PARTICLES = "은|는|이|가|을|를|의|에|에서|도|와|과|로|으로|만"
 _COMPANY_REFERENCE = re.compile(r"이\s*회사|이\s*기업|당사|해당\s*회사|해당\s*기업")
 REPORT_QUOTE = "이 회사 보고서에 적힌 설명이에요."
 # 보고서 설명 풀이 문장의 내용 낱말(두 글자 이상)과, 내용으로 보지 않는 틀 낱말
@@ -476,11 +478,11 @@ def parse_term_general(data: Any, term: str, step: StepInput) -> list[str] | Non
         problems.append(f"문장은 1~{MAX_GENERAL_SENTENCES}개입니다.")
     if sentences and _compact_term(term) not in _compact_term(sentences[0]):
         problems.append(f"첫 문장에 용어 '{term}'를 그대로 씁니다.")
-    company = _compact_term(step.company_name) if step.company_name else ""
+    company = _company_name_pattern(step.company_name)
     for sentence in sentences:
         if len(sentence) > MAX_GENERAL_CHARS:
             problems.append(f"문장마다 {MAX_GENERAL_CHARS}자 이하로 씁니다: {sentence[:20]}…")
-        if _COMPANY_REFERENCE.search(sentence) or (company and company in _compact_term(sentence)):
+        if _COMPANY_REFERENCE.search(sentence) or (company and company.search(sentence)):
             problems.append("특정 회사를 가리키지 않습니다('이 회사'·'당사'·회사 이름).")
         if _DIGIT.search(sentence) and not sentence.startswith(EXAMPLE_LEAD):
             problems.append("숫자는 '예를 들어'로 시작하는 문장에서만 씁니다.")
@@ -491,6 +493,19 @@ def parse_term_general(data: Any, term: str, step: StepInput) -> list[str] | Non
     if problems:
         raise OutputProblem(list(dict.fromkeys(problems)))
     return sentences
+
+
+def _company_name_pattern(name: str | None) -> re.Pattern[str] | None:
+    """회사 이름이 낱말로 쓰인 곳(앞이 낱말 글자가 아니고, 뒤가 낱말 끝이거나 조사)만 찾는 패턴.
+
+    '공매도' 안의 '매도'처럼 다른 낱말의 일부는 회사를 가리키지 않으므로 걸지 않는다.
+    이름 안의 띄어쓰기는 있든 없든 같게 본다.
+    """
+    words = name.split() if name else []
+    if not words:
+        return None
+    body = r"\s*".join(re.escape(w) for w in words)
+    return re.compile(rf"(?<![가-힣A-Za-z0-9]){body}(?:{_PARTICLES})?(?![가-힣A-Za-z0-9])")
 
 
 def general_lead(term: str) -> str:

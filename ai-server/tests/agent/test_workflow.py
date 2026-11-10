@@ -3,6 +3,8 @@
 교차 검증 결과는 Tool 결과 묶음을 고정해 코드가 정한 값을 확인한다(AC19).
 """
 
+from dataclasses import replace
+
 from app.agent import fake, workflow
 from app.agent.model import (
     FINAL,
@@ -780,6 +782,19 @@ def test_general_lead_picks_topic_particle_by_final_consonant() -> None:
     assert workflow.general_lead("공매도").startswith("'공매도'는 ")
     assert workflow.general_lead("시가총액").startswith("'시가총액'은 ")
     assert workflow.general_lead("PER").startswith("'PER'은(는) ")
+
+
+def test_company_name_inside_another_word_is_not_a_company_reference() -> None:
+    step_ = replace(term_step("공매도가 뭐야?", general_results()), company_name="매도")
+    ok = ["공매도는 빌린 주식을 먼저 파는 거래예요."]
+
+    assert workflow.parse_term_general({"inScope": True, "sentences": ok}, "공매도", step_) == ok
+    for bad in ("공매도는 매도가 자주 하는 거래예요.", "공매도는 매도 같은 회사도 쓰는 거래예요."):
+        try:
+            workflow.parse_term_general({"inScope": True, "sentences": [bad]}, "공매도", step_)
+        except OutputProblem:
+            continue
+        raise AssertionError(bad)
 
 
 def test_general_explanation_checks_sentences() -> None:
