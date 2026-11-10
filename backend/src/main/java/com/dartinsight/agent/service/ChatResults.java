@@ -53,7 +53,7 @@ final class ChatResults {
 
     static ChatMessageResponse status(ChatStatus status, String message) {
         return new ChatMessageResponse(status.name(), null, message, List.of(), List.of(), AgentStep.FORMAT_CHAT,
-                null, null, false, null);
+                null, null, false, null, false);
     }
 
     /**
@@ -76,11 +76,14 @@ final class ChatResults {
             // 저장 확인만 하는 요청(조회 Tool을 부르지 않음): 버튼을 누르면 되므로 '찾지 못함'으로 보이지 않게 한다.
             // 조회·저장을 함께 요청해 조회가 실패했으면 그 실패를 감추지 않는다
             return new ChatMessageResponse(ChatStatus.ANSWERED.name(), CONFIRM_ONLY, null, List.of(), actions, format,
-                    null, null, false, null);
+                    null, null, false, null, false);
         }
         if (ChatStatus.NOT_FOUND.name().equals(result.status())) {
             return new ChatMessageResponse(ChatStatus.NOT_FOUND.name(), null, NOT_FOUND, List.of(), actions, format,
-                    result.crossCheck(), null, false, null);
+                    result.crossCheck(), null, false, null, false);
+        }
+        if (ChatStatus.ANSWERED.name().equals(result.status()) && Boolean.TRUE.equals(result.generalExplanation())) {
+            return generalExplanation(response, actions, format, termMissing);
         }
         if (ChatStatus.ANSWERED.name().equals(result.status()) && fixedAnswer(response)) {
             // 정해진 요청(이동·저장 확인, #631): ai-server가 LLM 없이 정해진 안내로 답함. 근거 표시가 없다.
@@ -88,10 +91,10 @@ final class ChatResults {
             // 예외로 카드가 없는 용어의 안내('등록된 카드가 없고 보고서에서도 찾지 못함')는 버튼 없이도 뜻이 통한다
             if (actions.isEmpty() && !termMissing) {
                 return new ChatMessageResponse(ChatStatus.NOT_FOUND.name(), null, NOT_FOUND, List.of(), List.of(),
-                        format, null, null, false, null);
+                        format, null, null, false, null, false);
             }
             return new ChatMessageResponse(ChatStatus.ANSWERED.name(), result.answer(), null, List.of(), actions,
-                    format, null, null, false, null);
+                    format, null, null, false, null, false);
         }
         if (!ChatStatus.ANSWERED.name().equals(result.status())) {
             String reason = result.reviewReason() == null ? NOT_VERIFIED : result.reviewReason();
@@ -113,13 +116,32 @@ final class ChatResults {
                 time(response.generatedAt()));
         return new ChatMessageResponse(ChatStatus.ANSWERED.name(), converted.answer(), null, citations,
                 AgentActions.withPostBody(checked, postBody(converted.answer())), format, result.crossCheck(),
-                AskedQuestion.ratedBy(asked, converted.evidenceIds()), true, ai);
+                AskedQuestion.ratedBy(asked, converted.evidenceIds()), true, ai, false);
+    }
+
+    /**
+     * 카드도 보고서 설명도 없는 용어의 AI 일반 설명(ADR-0064). 근거 표시가 없는 것이 정상이라 근거 재확인을 하지 않는다.
+     * 이 채팅에서 용어 찾기가 카드 없는 용어를 돌려줬을 때만 받아들이고, 근거 표시가 섞였거나 그 밖이면 검토 필요로 끝낸다.
+     */
+    private static ChatMessageResponse generalExplanation(AgentStepAiResponse response,
+            List<Map<String, Object>> actions, String format, boolean termMissing) {
+        AgentStepAiResponse.Final result = response.finalAnswer();
+        boolean marked = result.answer() == null || EVIDENCE_MARKER.matcher(result.answer()).find()
+                || (result.evidenceIds() != null && !result.evidenceIds().isEmpty());
+        if (!termMissing || marked || response.model() == null) {
+            log.error("용어 일반 설명이 받아들일 조건(카드 없는 용어 찾기, 근거 표시 없음, 모델 기록)에 맞지 않아 검토 필요로 끝냅니다");
+            return reviewNeeded(NOT_VERIFIED, null);
+        }
+        ChatMessageResponse.Ai ai = new ChatMessageResponse.Ai(response.model(), response.promptVersion(),
+                time(response.generatedAt()));
+        return new ChatMessageResponse(ChatStatus.ANSWERED.name(), result.answer(), null, List.of(), actions, format,
+                null, null, true, ai, true);
     }
 
     /** 검토 필요. 답은 내보내지 않지만 교차 검증 결과는 코드가 정한 값이라 그대로 둔다(#581) */
     private static ChatMessageResponse reviewNeeded(String reason, Object crossCheck) {
         return new ChatMessageResponse(ChatStatus.REVIEW_NEEDED.name(), null, reason, List.of(), List.of(),
-                AgentStep.FORMAT_CHAT, crossCheck, null, false, null);
+                AgentStep.FORMAT_CHAT, crossCheck, null, false, null, false);
     }
 
     /** 게시판 글 초안 본문: 검토를 통과한 답에서 근거 표시([1])를 빼고 글 본문 길이까지 */
@@ -130,13 +152,14 @@ final class ChatResults {
     }
 
     /**
-     * ai-server가 LLM 없이 만든 정해진 안내인지: 모델·호출 기록이 없고 근거 ID·근거 표시가 없음.
+     * ai-server가 LLM 없이 만든 정해진 안내인지: 모델이 없고 근거 ID·근거 표시가 없음.
+     * 호출 기록은 있을 수 있다(용어 일반 설명을 시도했다가 실패해 정해진 안내로 끝난 경우, ADR-0064).
      * 근거 표시는 근거 ID 모양만 본다(목차 제목의 '[첨부]' 같은 대괄호는 근거 표시가 아님).
      * LLM이 만든 답(model 있음)은 근거 표시가 하나 이상 있어야 한다(ADR-0044).
      */
     private static boolean fixedAnswer(AgentStepAiResponse response) {
         AgentStepAiResponse.Final result = response.finalAnswer();
-        return response.model() == null && (response.calls() == null || response.calls().isEmpty())
+        return response.model() == null
                 && (result.evidenceIds() == null || result.evidenceIds().isEmpty())
                 && result.answer() != null && !result.answer().isBlank()
                 && !EVIDENCE_MARKER.matcher(result.answer()).find();
