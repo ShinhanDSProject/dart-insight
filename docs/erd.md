@@ -981,7 +981,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `reasoning_tokens` | INT | | 예 | `output_tokens` 중 추론(생각) 토큰(OpenAI `usage.output_tokens_details.reasoning_tokens`). 따로 더하지 않고 `output_tokens`에 이미 들어 있음. 알려 주지 않으면 null(`V51`, #633). 저장 범위는 위와 같음 |
 | `latency_ms` | INT | | 아니오 | 걸린 시간 |
 | `attempt` | INT | | 아니오 | 같은 요청의 몇 번째 시도인지 |
-| `outcome` | VARCHAR(20) | | 아니오 | `OK`, `INVALID_OUTPUT`(검증 실패로 다시 만듦), `TRANSIENT_ERROR`, `ERROR` |
+| `outcome` | VARCHAR(20) | | 아니오 | `OK`, `INVALID_OUTPUT`(검증 실패나 출력 토큰 한도 잘림으로 다시 만듦, #838), `TRANSIENT_ERROR`, `ERROR` |
 | `error` | VARCHAR(500) | | 예 | 실패 사유(짧게) |
 
 > 마이그레이션: `V51__add_llm_call_cached_reasoning_tokens.sql`(`cached_input_tokens`·`reasoning_tokens`, #633).

@@ -10,7 +10,13 @@ import pytest
 
 from app.answer.prompt import OUTPUT_SCHEMA as ANSWER_SCHEMA
 from app.core.config import LlmSettings, load_llm_settings
-from app.llm import LlmRequest, ProviderError, ProviderQuotaError, ProviderTransientError
+from app.llm import (
+    LlmRequest,
+    ProviderError,
+    ProviderQuotaError,
+    ProviderTransientError,
+    ProviderTruncatedError,
+)
 from app.llm.providers import (
     ANTHROPIC_DEFAULT_MODEL,
     OPENAI_DEFAULT_MODEL,
@@ -200,6 +206,16 @@ def test_complete_raises_provider_error_on_incomplete(reason: str | None, messag
     with pytest.raises(ProviderError, match=message) as caught:
         p.complete(REQUEST, 10.0)
     assert not isinstance(caught.value, ProviderTransientError)
+
+
+def test_openai_truncation_keeps_token_counts() -> None:
+    p, _ = provider(response(text_part('{"ans'), status="incomplete", reason="max_output_tokens"))
+
+    with pytest.raises(ProviderTruncatedError) as caught:
+        p.complete(REQUEST, 10.0)
+    assert caught.value.response.input_tokens == 120
+    assert caught.value.response.output_tokens == 45
+    assert caught.value.response.text == ""
 
 
 def test_complete_raises_provider_error_on_failed_status() -> None:
@@ -519,6 +535,17 @@ def test_claude_raises_provider_error_on_refusal_or_truncation(
     with pytest.raises(ProviderError, match=message) as caught:
         p.complete(REQUEST, 10.0)
     assert not isinstance(caught.value, ProviderTransientError)
+
+
+def test_claude_truncation_keeps_token_counts() -> None:
+    # 잘린 응답도 토큰 비용이 들어서, 호출 기록에 남길 수 있게 토큰 수를 함께 준다(#838)
+    p, _ = claude(claude_response('{"ans', stop_reason="max_tokens"))
+
+    with pytest.raises(ProviderTruncatedError) as caught:
+        p.complete(REQUEST, 10.0)
+    assert caught.value.response.input_tokens == 120
+    assert caught.value.response.output_tokens == 45
+    assert caught.value.response.text == ""
 
 
 @pytest.mark.parametrize(

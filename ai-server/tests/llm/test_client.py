@@ -15,9 +15,10 @@ from app.llm import (
     ProviderError,
     ProviderQuotaError,
     ProviderTransientError,
+    ProviderTruncatedError,
 )
 from app.llm.prompting import disclosure
-from app.llm.providers import create_provider
+from app.llm.providers import ProviderResponse, create_provider
 
 SETTINGS = LlmSettings(provider="fake", model="fake-model", max_retries=2, max_output_retries=2)
 REQUEST = LlmRequest(task="test", prompt_version="test-v1", system="시스템", user="사용자")
@@ -219,6 +220,36 @@ def test_provider_error_is_not_retried() -> None:
 
     assert [c.outcome for c in error.value.calls] == ["ERROR"]
     assert len(provider.requests) == 1
+
+
+def truncated() -> ProviderTruncatedError:
+    partial = ProviderResponse(text="", model="fake-model", input_tokens=4300, output_tokens=4000)
+    return ProviderTruncatedError("응답이 출력 토큰 한도(max_tokens)에서 잘렸습니다.", partial)
+
+
+def test_truncated_output_is_generated_again() -> None:
+    # 잘림은 설정·인증 문제가 아니라 출력 문제라 다시 생성한다(#838)
+    llm, provider = client(truncated(), {"answer": "다시"})
+
+    result = llm.generate(REQUEST, need_answer)
+
+    assert result.value == "다시"
+    assert [c.outcome for c in result.calls] == ["INVALID_OUTPUT", "OK"]
+    assert result.calls[0].output_tokens == 4000
+    assert "잘렸" in (result.calls[0].error or "")
+    assert "토큰 한도에서 잘렸" in provider.requests[1].user
+
+
+def test_output_truncated_every_time_is_invalid_not_unavailable() -> None:
+    llm, provider = client(truncated(), truncated(), truncated(), {"answer": "안 옴"})
+
+    with pytest.raises(LlmOutputInvalid) as error:
+        llm.generate(REQUEST, need_answer)
+
+    assert error.value.last_output is None
+    assert [c.outcome for c in error.value.calls] == ["INVALID_OUTPUT"] * 3
+    assert [c.input_tokens for c in error.value.calls] == [4300] * 3
+    assert len(provider.requests) == 3
 
 
 def test_spent_quota_is_not_retried_and_says_limit() -> None:
