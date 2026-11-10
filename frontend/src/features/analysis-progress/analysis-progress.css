@@ -44,6 +44,22 @@
   font-weight: var(--font-weight-bold);
 }
 
+/* 진행 중인 단계는 점이 숨 쉬듯 움직여 멈추지 않았다는 것을 보인다(#858). 동작 줄이기면 global.css가 멈춘다 */
+.steps__item--active .steps__state {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.steps__item--active .steps__state::before {
+  content: '';
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: currentcolor;
+  animation: pulse var(--motion-pulse) var(--ease-out) infinite;
+}
+
 .steps__item--failed {
   background: var(--color-danger-subtle);
 }

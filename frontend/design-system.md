@@ -220,15 +220,20 @@ W-03 ④ 원문 확인
 
 ## 3-4-1. 움직임 (#198, FS-58)
 
-움직임은 상태가 바뀐 곳을 눈으로 따라가게 하는 데만 쓴다. 시간·곡선은 아래 토큰만 쓰고, 운영체제 '동작 줄이기'(`prefers-reduced-motion: reduce`)면 `global.css`가 애니메이션·전환을 끄고 count-up은 바로 최종 값을 보인다.
+움직임은 상태가 바뀐 곳을 눈으로 따라가게 하는 데만 쓴다. 화면에 들어올 때는 한 번만, 1초 안에 끝낸다(#858). 배경 움직임·스크롤 효과·화면 전환 효과는 쓰지 않는다. 시간·곡선은 아래 토큰만 쓰고, 운영체제 '동작 줄이기'(`prefers-reduced-motion: reduce`)면 `global.css`가 애니메이션·전환을 끄고 count-up은 바로 최종 값을 보인다.
 
 | 토큰 | 값 | 쓰는 곳 |
 | --- | --- | --- |
-| `--motion-fast` / `--motion-base` / `--motion-slow` | 120 / 200 / 360ms | 글자색 hover / 나타남·카드 들림·탭 줄 접힘 / 탭 밑줄 옮김 |
-| `--motion-stagger` | 30ms | 막대가 차례로 자랄 때의 간격 |
-| `--motion-count` | 600ms | 큰 숫자 count-up(`useCountUp`이 읽음). 곡선은 코드의 3차 ease-out(`shared/lib/countUp.ts`) |
+| `--motion-fast` / `--motion-base` / `--motion-slow` | 120 / 200 / 360ms | 글자색 hover·목록 줄 밀림 / 나타남·카드 들림·탭 줄 접힘 / 탭 밑줄 옮김 |
+| `--motion-enter` | 480ms | 첫 화면 로고·검색창·목록 줄이 차례로 떠오를 때(#858) |
+| `--motion-rise` | 10px | 나타날 때 아래에서 올라오는 거리(`rise-in`) |
+| `--motion-grow` | 700ms | 막대가 0에서 자라는 시간(`grow-x`) |
+| `--motion-stagger` | 70ms | 막대·줄·카드가 차례로 나타날 때의 간격 |
+| `--motion-count` | 800ms | 큰 숫자 count-up(`useCountUp`이 읽음). 곡선은 코드의 3차 ease-out(`shared/lib/countUp.ts`) |
 | `--motion-shimmer` | 1400ms | 스켈레톤이 한 번 반짝이는 시간 |
+| `--motion-pulse` | 1400ms | 분석 진행 중 단계의 점이 한 번 숨 쉬는 시간. 반복하는 움직임은 이것 하나다 |
 | `--motion-lift` | −2px | 고를 수 있는 카드 hover 들림 거리 |
+| `--motion-nudge` | 4px | 첫 화면 목록 줄 hover·초점 때 오른쪽으로 밀리는 거리 |
 | `--ease-out` | `cubic-bezier(0.2, 0, 0, 1)` | 모든 전환의 곡선 |
 
 이슈의 `--motion-duration-*`·`--motion-ease-*` 이름 대신, 이미 쓰던 `--motion-*`·`--ease-*` 이름에 맞춰 더했다(같은 뜻의 토큰을 두 벌 두지 않기 위해).
