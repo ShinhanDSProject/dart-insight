@@ -971,7 +971,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `company_question_id` | BIGINT | FK | 예 | `company_question.id`. 기업 질문 호출일 때만(`V27`, task `answer`) |
 | `company_outlook_id` | BIGINT | FK | 예 | `company_outlook.id`. 전망·계획 호출일 때만(`V39`, task `outlook`) |
 | `plan_followup_id` | BIGINT | FK | 예 | `plan_followup.id`. 약속과 실제 대조 호출일 때만(`V40`, task `plan_followup`) |
-| `task` | VARCHAR(30) | | 아니오 | 작업(`summary`, `answer`, `briefing`, `outlook`, `plan_followup`, 주요 사건 `text_event`(`analysis_id`만 채움, ADR-0050), 에이전트 채팅의 `agent_plan` 다음 Tool 고르기·`agent_answer` 답 만들기). 에이전트 채팅 호출은 `analysis_id`만 채움(대화를 저장하지 않음). 채팅 안의 근거 질문은 지금처럼 task `answer` |
+| `task` | VARCHAR(30) | | 아니오 | 작업(`summary`, `answer`, `briefing`, `outlook`, `plan_followup`, 주요 사건 `text_event`(`analysis_id`만 채움, ADR-0050), 에이전트 채팅의 `agent_plan` 다음 Tool 고르기·`agent_answer` 답 만들기·`term_general` 카드 없는 용어의 일반 설명 ADR-0064). 에이전트 채팅 호출은 `analysis_id`만 채움(대화를 저장하지 않음). 채팅 안의 근거 질문은 지금처럼 task `answer` |
 | `provider`, `model` | VARCHAR(30), VARCHAR(100) | | 아니오 | 제공자(`fake` 등)와 모델 |
 | `prompt_version` | VARCHAR(30) | | 아니오 | 프롬프트 버전 |
 | `called_at` | DATETIME(6) | | 예 | 호출 시각(한국 시간) |
