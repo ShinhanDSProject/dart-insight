@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import type { ReactNode } from 'react'
+import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Analysis } from '@/shared/api/analyses'
 import type { TextChangeItem, TextField } from '@/shared/api/textChanges'
@@ -625,7 +626,11 @@ describe('TextEventsArea', () => {
     const onOpenEvidence = vi.fn()
     const onRetry = vi.fn()
     const onAsk = vi.fn()
-    const result = render(<TextEventsArea analysis={analysis} view={view} field={field} listNarrowed={listNarrowed} onRetry={onRetry} onAsk={onAsk} onOpenEvidence={onOpenEvidence} renderChanges={() => null} />)
+    const result = render(
+      <MemoryRouter>
+        <TextEventsArea analysis={analysis} view={view} field={field} listNarrowed={listNarrowed} onRetry={onRetry} onAsk={onAsk} onOpenEvidence={onOpenEvidence} renderChanges={() => null} />
+      </MemoryRouter>,
+    )
     return { ...result, onOpenEvidence, onRetry, onAsk }
   }
 
@@ -668,7 +673,15 @@ describe('TextEventsArea', () => {
 
     expect(screen.getByRole('status').textContent).toContain('주요 사건을 만들지 못했어요')
     expect(screen.queryByRole('article')).toBeNull()
-    expect(screen.queryByRole('button')).toBeNull()
+    expect(screen.queryByRole('button', { name: '다시 시도' })).toBeNull()
+  })
+
+  it('만들지 못했으면 전체 변경과 요약 탭으로 가는 다음 길을 함께 알린다(#841)', () => {
+    area({ status: 'unavailable', retry: 'limited' })
+
+    const notice = within(screen.getByRole('status'))
+    expect(notice.getByRole('button', { name: '전체 변경 보기 ›' })).toBeTruthy()
+    expect(notice.getByRole('link', { name: '요약 탭으로 가기 ›' }).getAttribute('href')).toBe('/analyses/16?tab=summary')
   })
 
   it('다시 시도할 수 있으면 버튼이 있고 누르면 다시 시도한다', () => {
@@ -683,7 +696,7 @@ describe('TextEventsArea', () => {
     area({ status: 'unavailable', retry: 'limited' })
 
     expect(screen.getByRole('status').textContent).toContain('나중에 다시 확인해 주세요')
-    expect(screen.queryByRole('button')).toBeNull()
+    expect(screen.queryByRole('button', { name: '다시 시도' })).toBeNull()
   })
 
   it('다시 시도 버튼이 있는 안내에 접근성 위반이 없다', async () => {
