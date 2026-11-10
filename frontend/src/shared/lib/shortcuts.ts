@@ -3,8 +3,8 @@
  * 입력창에 글을 쓰는 중·한글 조합 중·Ctrl/Cmd/Alt 조합·다른 대화상자가 열렸을 때는 아무것도 하지 않는다(AC4).
  */
 
-/** 분석 결과 화면의 탭 주소 값(?tab=). 1~7 키의 순서이고 결과 화면의 탭 순서와 같다(맨 앞 기업 개요 탭(#589)은 키가 없다) */
-export const shortcutResultTabs = ['summary', 'financial', 'text', 'community', 'news', 'source', 'reports'] as const
+/** 분석 결과 화면의 탭 주소 값(?tab=). 1~8 키의 순서이고 결과 화면의 탭 순서와 같다(맨 앞 기업 개요 탭(#589)은 키가 없다) */
+export const shortcutResultTabs = ['summary', 'financial', 'activity', 'text', 'community', 'news', 'source', 'reports'] as const
 export type ShortcutResultTab = (typeof shortcutResultTabs)[number]
 
 /** 단축키 판단에 쓰는 화면. search: 기업 검색(/), result: 분석 결과, other: 그 밖 */
@@ -73,7 +73,7 @@ export function shortcutFor(event: ShortcutKeyEvent, context: ShortcutContext): 
   if (event.key === '/') return { kind: 'focus-search' }
   if (context.page !== 'result') return null
 
-  const index = ['1', '2', '3', '4', '5', '6', '7'].indexOf(event.key)
+  const index = ['1', '2', '3', '4', '5', '6', '7', '8'].indexOf(event.key)
   if (index >= 0) return { kind: 'open-tab', tab: shortcutResultTabs[index] }
   if (askKeys.has(event.key)) return { kind: 'focus-ask' }
   return null
@@ -161,19 +161,20 @@ export function shortcutGroups(page: ShortcutPage): ShortcutGroup[] {
       { keys: ['1'], label: '요약 탭' },
       { keys: ['2'], label: '재무 수치 탭' },
       { keys: ['3'], label: '문장 변화 탭' },
-      { keys: ['4'], label: '커뮤니티 탭' },
-      { keys: ['5'], label: '뉴스 탭' },
-      { keys: ['6'], label: '원문 탭' },
-      { keys: ['7'], label: '보고서 선택 탭' },
+      { keys: ['4'], label: '전체 변경 탭' },
+      { keys: ['5'], label: '커뮤니티 탭' },
+      { keys: ['6'], label: '뉴스 탭' },
+      { keys: ['7'], label: '원문 탭' },
+      { keys: ['8'], label: '보고서 선택 탭' },
       { keys: ['A'], label: 'AI 질문 입력창으로 가기' },
     ],
   }
   const text: ShortcutGroup = {
     id: 'text',
-    title: '문장 변화',
+    title: '전체 변경',
     available: page === 'result',
-    // 결과 화면에서도 문장 변화 탭에서만 동작하므로 늘 안내한다
-    note: '분석 결과의 문장 변화 탭에서 쓸 수 있어요.',
+    // 결과 화면에서도 전체 변경 탭(문장 변경 목록)에서만 동작하므로 늘 안내한다
+    note: '분석 결과의 전체 변경 탭에서 쓸 수 있어요.',
     items: [
       { keys: ['J', '↓'], label: '다음 카드로 가기(↓는 카드에 초점이 있을 때)' },
       { keys: ['K', '↑'], label: '이전 카드로 가기(↑는 카드에 초점이 있을 때)' },

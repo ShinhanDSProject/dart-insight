@@ -26,6 +26,7 @@ import { ResultTour } from './components/ResultTour'
 import { SourceTab } from './components/SourceTab'
 import { SummaryTab } from './components/SummaryTab'
 import { TextTab } from './components/TextTab'
+import { ActivityTab } from './components/ActivityTab'
 import { ResultOverviewContext, ResultReportsContext } from './overviewSlot'
 import { useAnalysis } from './hooks/useAnalysis'
 import { useAgentChat, type AgentChatController } from './hooks/useAgentChat'
@@ -324,6 +325,16 @@ function ResultTabPanel({
         lens={params.summaryLens}
         view={params.summaryView}
         onChangeLens={(change) => update(summaryParamChanges(change))}
+      />
+    ))
+    // 문장 변화(ADR-0067): 두 보고서 사이 활동과 앞으로의 영향. 바뀐 문장 전체 목록은 아래 전체 변경(text) 탭에 따로 둔다
+    .with('activity', () => (
+      <ActivityTab
+        key={analysis.analysisId}
+        analysis={analysis}
+        onOpenText={openText}
+        onOpenFinancial={(item) => openFinancial(item.sjDiv, item.changeId)}
+        onOpenAll={() => update(openPriorityList())}
       />
     ))
     .with('text', () => (

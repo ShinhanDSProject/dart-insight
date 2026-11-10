@@ -22,8 +22,8 @@ describe('결과 화면 둘러보기(#842)', () => {
     expect(await axeViolations(container)).toBe('')
 
     fireEvent.click(screen.getByRole('button', { name: '다음' }))
-    expect(screen.getByRole('heading', { name: '2 / 3 문장 변화에서 사건을 보세요' })).toBeTruthy()
-    expect(onGoTab).toHaveBeenLastCalledWith('text')
+    expect(screen.getByRole('heading', { name: '2 / 3 문장 변화에서 그사이 한 일을 보세요' })).toBeTruthy()
+    expect(onGoTab).toHaveBeenLastCalledWith('activity')
 
     fireEvent.click(screen.getByRole('button', { name: '이전' }))
     expect(onGoTab).toHaveBeenLastCalledWith('summary')
