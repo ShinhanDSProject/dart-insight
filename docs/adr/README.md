@@ -109,3 +109,4 @@ M0~M2에서 이미 내린 결정은 2026-10-22에 소급해 기록했습니다(0
 | [0062](0062-anthropic-llm-provider.md) | 실제 LLM 제공자로 Anthropic Claude Messages API를 더해 기본으로 쓰고, 기본 모델은 claude-sonnet-5-5, Tool 고르기는 claude-haiku-5-5로 둔다 | 채택(기본 모델과 Tool 고르기 모델은 ADR-0063이 대체) | 2026-11-09 |
 | [0063](0063-claude-haiku-default-model.md) | Claude를 쓸 때 기본 모델은 모든 작업에 claude-haiku-5-5로 둔다 | 채택 | 2026-11-10 |
 | [0064](0064-term-general-explanation.md) | 용어 카드도 보고서 설명도 없는 금융·공시 용어는 AI가 근거 없는 일반 설명을 쓰고, 코드가 'AI 일반 설명 · 공시 근거 아님'을 붙인다 | 채택 | 2026-11-10 |
+| [0065](0065-event-future-impact-path-table.md) | 주요 사건의 '앞으로의 영향'은 검토된 경로 기준표에 코드가 공시 숫자를 끼워 만들고, 기준표에 경로가 없는 칸만 AI가 전제마다 근거를 단 조건형 전망으로 채운다 | 제안 | 2026-11-10 |
