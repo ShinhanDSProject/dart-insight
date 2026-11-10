@@ -18,6 +18,7 @@
 - Sonnet으로 되돌리려면 환경 변수만 바꿉니다. 전부 되돌리면 `LLM_MODEL=claude-sonnet-5-5`, 작업 하나만이면 `LLM_TASK_MODELS=summary=claude-sonnet-5-5`처럼 적습니다.
 - 거절 대체(`fallbacks: "default"`)는 Claude API에서 `claude-sonnet-5-5`만 지원하므로(ADR-0062) 기본 모델에서는 켜지지 않습니다. `ANTHROPIC_FALLBACK_MODELS`는 그대로 두어 Sonnet으로 되돌리면 다시 켜집니다.
 - 프롬프트·검증 규칙은 바꾸지 않으므로 `*_VERSION`과 backend 분석 버전은 올리지 않습니다(ADR-0059와 같은 이유). 이미 만든 결과는 다시 만들지 않습니다. 어떤 모델로 만들었는지는 호출 기록(`llm_call.model`)으로 구분합니다.
+- Claude는 생각 토큰도 출력 한도(`max_tokens`)에 듭니다. 2026-11-10 실제 호출에서 Haiku가 에이전트 답 쓰기(`agent_answer`)의 한도 1,000토큰에서 잘려 채팅이 실패했으므로, 그 한도를 Tool 고르기와 같은 3,000으로 올립니다(`app/agent/prompt.py`). 답 글 길이는 답 형식의 글자 수 상한이 따로 막습니다.
 - ADR-0062에서 바뀌는 것은 기본 모델과 `agent_plan` 기본값뿐입니다. 제공자 구조·구조화 출력·캐시·오류 처리는 그대로입니다.
 
 ## 검토한 다른 방법
