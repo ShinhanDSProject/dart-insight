@@ -1162,7 +1162,7 @@ th[aria-sort='none'] .data-table__sort-mark {
   min-width: 2px;
   border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
   transform-origin: left center;
-  animation: grow-x var(--motion-slow) var(--ease-out) both;
+  animation: grow-x var(--motion-grow) var(--ease-out) both;
 }
 
 .compare-bars__bar--negative {
@@ -1204,7 +1204,7 @@ th[aria-sort='none'] .data-table__sort-mark {
 .share-bar__part {
   min-width: 2px;
   transform-origin: left center;
-  animation: grow-x var(--motion-slow) var(--ease-out) both;
+  animation: grow-x var(--motion-grow) var(--ease-out) both;
 }
 
 .share-bar__part--added {
