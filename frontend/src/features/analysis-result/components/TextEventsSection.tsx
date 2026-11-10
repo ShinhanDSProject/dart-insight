@@ -1,9 +1,10 @@
 import { Fragment, useState, type ReactNode } from 'react'
+import { Link } from 'react-router'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { TextChangeItem, TextField } from '@/shared/api/textChanges'
 import type { TextEventItem, TextEventList, TextEventQuote, TextEventSignal } from '@/shared/api/textEvents'
-import { Badge, Button, Chip, Notice, Skeleton } from '@/shared/ui'
+import { Badge, Button, Chip, Mascot, Notice, Skeleton } from '@/shared/ui'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { displaySectionPath } from '@/shared/lib/sectionTitle'
 import { useSignalTable, useTextEventDetail } from '../hooks/useTextEvents'
@@ -71,10 +72,22 @@ export function TextEventsArea({ analysis, view, field, listNarrowed, onRetry, o
     .with({ status: 'loading' }, () => <Skeleton label={EVENTS_LOADING} shape="card" count={1} />)
     .with({ status: 'unavailable' }, ({ retry }) => (
       <Notice tone="attention" role="status" className="text-events__notice">
-        <p>
-          {EVENTS_UNAVAILABLE}
-          {retry === 'limited' && ` ${EVENTS_RETRY_LIMITED}`}
-        </p>
+        {/* 실패해도 다음에 갈 곳을 함께 알린다(#841) */}
+        <div className="text-events__notice-body">
+          <Mascot mood="none" size="sm" />
+          <div>
+            <p>
+              {EVENTS_UNAVAILABLE}
+              {retry === 'limited' && ` ${EVENTS_RETRY_LIMITED}`}
+            </p>
+            <p className="text-events__next">
+              <Button variant="link" onClick={scrollToChangeList}>
+                전체 변경 보기 ›
+              </Button>
+              <Link to={`/analyses/${analysis.analysisId}?tab=summary`}>요약 탭으로 가기 ›</Link>
+            </p>
+          </div>
+        </div>
         {retry === 'available' && (
           <Button variant="secondary" onClick={onRetry}>
             다시 시도

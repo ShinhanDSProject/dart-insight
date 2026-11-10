@@ -675,6 +675,40 @@
   margin: 0;
 }
 
+/* 사건 실패 안내의 공팡이와 다음에 갈 곳(#841) */
+.text-events__notice-body {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.text-events__notice-body .mascot {
+  flex: none;
+}
+
+.text-events__notice .text-events__next {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin-top: var(--space-1);
+  font-size: var(--font-size-sm);
+}
+
+/* 버튼(전체 변경 보기)과 링크(요약 탭으로 가기)를 같은 글자 링크로 보인다 */
+.text-events__next .link-button,
+.text-events__next a {
+  margin: 0;
+  color: var(--color-link);
+  font-size: inherit;
+  font-weight: var(--font-weight-regular);
+  text-decoration: none;
+}
+
+.text-events__next .link-button:hover,
+.text-events__next a:hover {
+  text-decoration: underline;
+}
+
 .text-events__title,
 .text-event__part-title {
   margin: 0;
