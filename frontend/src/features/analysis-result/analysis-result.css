@@ -724,6 +724,153 @@
   font-size: var(--font-size-xs);
 }
 
+/* 한눈에 보기(#826): 건수 한 줄과 사건 첫 문장. 문장 끝 '근거 ›'·'○○이란?'은 본문보다 작은 글자 링크 */
+.event-glance {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.event-glance__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.event-glance__title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.event-glance__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding-left: var(--space-5);
+  line-height: var(--line-height-body);
+}
+
+.event-glance .event-glance__link {
+  margin: 0;
+  color: var(--color-link);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.event-glance .event-glance__link:hover {
+  text-decoration: underline;
+}
+
+.event-glance__dot {
+  margin: 0 var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.text-events__order {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-regular);
+}
+
+/* 먼저 볼 변화 한 줄(#826): 번호 · 제목과 신호·종류·규모 · ›. 줄 전체를 누르면 그 사건을 자세히 본다 */
+.text-events__list--rows > li:has(.text-event-row) {
+  padding: 0;
+}
+
+.text-event-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-2);
+}
+
+.text-event-row:hover {
+  background: var(--color-bg-subtle);
+}
+
+.text-event-row .text-event-row__open {
+  margin: 0;
+  color: var(--color-text);
+  font-weight: inherit;
+  text-decoration: none;
+}
+
+/* 제목 버튼이 줄 전체를 덮는다 */
+.text-event-row__open::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+}
+
+.text-event-row__rank {
+  flex: none;
+  min-width: var(--space-5);
+  color: var(--color-text-muted);
+  font-family: var(--font-num);
+  font-weight: var(--font-weight-bold);
+  text-align: center;
+}
+
+.text-event-row__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.text-event-row__title {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.text-event-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+}
+
+.text-event-row__chevron {
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.text-events__crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.text-events__crumbs [aria-current='page'] {
+  color: var(--color-text);
+  font-weight: var(--font-weight-medium);
+}
+
+.text-events .text-events__unbound {
+  align-self: flex-start;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-regular);
+}
+
 .text-events__filter {
   display: flex;
   flex-wrap: wrap;

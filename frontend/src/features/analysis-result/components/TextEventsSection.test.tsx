@@ -126,7 +126,7 @@ function show(items: TextEventItem[], droppedEventCount = 0) {
   return { ...view, onOpenEvidence, renderChanges }
 }
 
-const open = () => fireEvent.click(screen.getByRole('button', { name: /펼치기$/ }))
+const open = () => fireEvent.click(screen.getByRole('button', { name: /자세히 보기$/ }))
 
 beforeEach(() => {
   detail.state = { status: 'loading' }
@@ -143,10 +143,11 @@ describe('TextEventsSection', () => {
   it('사건 한 줄에는 금액을 보이고, 펼치면 원래 금액, 환산 참고값과 기준, 근거 ID가 따로 보인다(3.58)', () => {
     show([event(foreign)])
 
+    const row = within(screen.getByRole('article', { name: '과징금을 새로 부과받았어요' }))
+    expect(row.getByText('제재 · USD 11,800,000 · AI 생성')).toBeTruthy()
+    expect(row.queryByText('20260814003958#B1576')).toBeNull()
+    fireEvent.click(row.getByRole('button', { name: /자세히 보기$/ }))
     const card = within(screen.getByRole('article', { name: '과징금을 새로 부과받았어요' }))
-    expect(card.getByText('제재 · USD 11,800,000 · AI 생성')).toBeTruthy()
-    expect(card.queryByText('20260814003958#B1576')).toBeNull()
-    fireEvent.click(card.getByRole('button', { name: /펼치기$/ }))
     expect(card.getByText('USD 11,800,000')).toBeTruthy()
     expect(card.getByText('약 163억원 (기준: 한국은행 매매기준율 2025-12-31)')).toBeTruthy()
     expect(card.getByText('20260814003958#B1576')).toBeTruthy()
@@ -161,7 +162,7 @@ describe('TextEventsSection', () => {
 
   it('금액의 근거 위치가 없으면 검토 필요로 보인다', () => {
     show([event({ ...foreign, scaleEvidenceId: null })])
-    fireEvent.click(screen.getByRole('button', { name: /펼치기$/ }))
+    fireEvent.click(screen.getByRole('button', { name: /자세히 보기$/ }))
 
     expect(screen.getByText('검토 필요').className).toContain('attention')
   })
@@ -179,27 +180,32 @@ describe('TextEventsSection', () => {
 
     const card = within(screen.getByRole('article', { name: '과징금을 새로 부과받았어요' }))
     expect(card.getByText('제재 · AI 생성')).toBeTruthy()
-    expect(card.getByRole('heading', { name: '과징금을 새로 부과받았어요' })).toBeTruthy()
+    expect(card.getByRole('button', { name: '과징금을 새로 부과받았어요 자세히 보기' })).toBeTruthy()
     expect(screen.getByText(/투자 판단이나 추천이 아니에요/)).toBeTruthy()
-    expect(screen.getByRole('heading', { name: '주요 사건 1건' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: '먼저 볼 변화 1건 · 규모가 큰 순' })).toBeTruthy()
   })
 
   it('사건은 처음 3건만 보이고 더 보기로 나머지를 연다(3.58 AC18)', () => {
     show([1, 2, 3, 4, 5].map((n) => event({ eventId: n, title: `사건 ${n}` })))
 
     expect(screen.getAllByRole('article')).toHaveLength(3)
-    expect(screen.getByRole('heading', { name: '주요 사건 5건' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: '먼저 볼 변화 5건 · 규모가 큰 순' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '사건 2건 더 보기' }))
     expect(screen.getAllByRole('article')).toHaveLength(5)
     expect(screen.queryByRole('button', { name: /더 보기/ })).toBeNull()
   })
 
-  it("펼치기 버튼의 이름에 사건 제목이 들어간다", () => {
-    show([event()])
+  it('줄에 서버 순서 번호가 붙고, 누르면 그 사건만 자세히 보이며 경로로 목록에 돌아온다(#826)', () => {
+    show([event(), event({ eventId: 8, title: '다른 사건' })])
+    expect(screen.getAllByRole('article').map((row) => row.textContent?.slice(0, 1))).toEqual(['1', '2'])
 
-    const button = screen.getByRole('button', { name: '과징금을 새로 부과받았어요 펼치기' })
-    fireEvent.click(button)
-    expect(button.getAttribute('aria-label')).toBe('과징금을 새로 부과받았어요 접기')
+    fireEvent.click(screen.getByRole('button', { name: '다른 사건 자세히 보기' }))
+    expect(screen.getAllByRole('article')).toHaveLength(1)
+    expect(screen.getByRole('heading', { name: '다른 사건' })).toBeTruthy()
+    expect(screen.queryByText('과징금을 새로 부과받았어요')).toBeNull()
+
+    fireEvent.click(within(screen.getByRole('navigation', { name: '사건 위치' })).getByRole('button', { name: '먼저 볼 변화' }))
+    expect(screen.getAllByRole('article')).toHaveLength(2)
   })
 
   it('더 보기를 연 뒤 신호를 바꾸면 거른 사건도 처음 3건부터 보인다', () => {
@@ -431,9 +437,11 @@ describe('TextEventsSection 신호와 사건 문장', () => {
 
   it('기준이 없거나 근거를 확인하지 못한 보류는 사유 문구가 보인다(AC14)', () => {
     show([event({ title: '기준 없음', signal: 'HOLD', holdReason: 'NO_CRITERIA' }), event({ eventId: 8, title: '근거 없음', signal: 'HOLD', holdReason: 'EVIDENCE_NOT_CONFIRMED' })])
-    screen.getAllByRole('button', { name: /펼치기$/ }).forEach((button) => fireEvent.click(button))
-
+    fireEvent.click(screen.getByRole('button', { name: '기준 없음 자세히 보기' }))
     expect(within(screen.getByRole('article', { name: '기준 없음' })).getByText('판단 기준이 아직 없는 사건이에요.')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: '먼저 볼 변화' }))
+    fireEvent.click(screen.getByRole('button', { name: '근거 없음 자세히 보기' }))
     expect(within(screen.getByRole('article', { name: '근거 없음' })).getByText('근거를 확인하지 못했어요.')).toBeTruthy()
   })
 
@@ -562,7 +570,7 @@ describe('TextEventsSection 신호 필터', () => {
 
     expect(titles()).toEqual(['첫째 보류', '셋째 보류'])
     expect(chip(/^보류/).getAttribute('aria-pressed')).toBe('true')
-    expect(screen.getByRole('heading', { name: '주요 사건 2건' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: '먼저 볼 변화 2건 · 규모가 큰 순' })).toBeTruthy()
   })
 
   it('그 신호의 사건이 없으면 안내가 보인다', () => {
@@ -610,15 +618,43 @@ describe('TextEventsArea', () => {
   })
   const ready = (items: TextEventItem[], unboundChanges: TextEventUnboundChange[]): TextEventsView => ({
     status: 'ready',
-    list: { droppedEventCount: 0, items, unboundChanges } as unknown as TextEventList,
+    list: { droppedEventCount: 0, items, unboundChanges, signalCounts: [] } as unknown as TextEventList,
   })
 
   function area(view: TextEventsView, field: TextField | null = null, listNarrowed = false) {
     const onOpenEvidence = vi.fn()
     const onRetry = vi.fn()
-    const result = render(<TextEventsArea analysis={analysis} view={view} field={field} listNarrowed={listNarrowed} onRetry={onRetry} onOpenEvidence={onOpenEvidence} renderChanges={() => null} />)
-    return { ...result, onOpenEvidence, onRetry }
+    const onAsk = vi.fn()
+    const result = render(<TextEventsArea analysis={analysis} view={view} field={field} listNarrowed={listNarrowed} onRetry={onRetry} onAsk={onAsk} onOpenEvidence={onOpenEvidence} renderChanges={() => null} />)
+    return { ...result, onOpenEvidence, onRetry, onAsk }
   }
+
+  it('한눈에 보기에 코드가 센 건수와 AI 생성 문장이 있고, 근거는 원문 비교를, 용어는 AI 에이전트 질문을 연다(#826)', async () => {
+    const meaning = {
+      status: 'GENERATED',
+      failReason: null,
+      aiGenerated: true,
+      items: [{ type: 'FACT', text: '2026년 4월 30일 처음으로 중간배당을 시행했어요.', evidence: [{ evidenceId: '20260814003958#B9', sectionPath: '배당' }] }],
+      model: 'm',
+      promptVersion: 'p',
+      generatedAt: '2026-11-10T00:00:00',
+    } as TextEventItem['meaning']
+    const item = event({ meaning, quotes: [{ ...quote(102, 'CHANGE', 'CURRENT', '이번 보고서의 글'), evidenceId: '20260814003958#B9' }] })
+    const view: TextEventsView = {
+      status: 'ready',
+      list: { droppedEventCount: 0, items: [item], unboundChanges: [], signalCounts: [{ signal: 'POSITIVE', eventCount: 1 }] } as unknown as TextEventList,
+    }
+    const { container, onOpenEvidence, onAsk } = area(view)
+
+    const glance = within(screen.getByRole('region', { name: '한눈에 보기' }))
+    expect(glance.getByText('주요 사건 1건을 찾았어요. 긍정 1건, 주의 0건, 보류 0건이에요.')).toBeTruthy()
+    expect(glance.getByText('AI 생성')).toBeTruthy()
+    fireEvent.click(glance.getByRole('button', { name: '근거 ›' }))
+    expect(onOpenEvidence).toHaveBeenCalledWith(102)
+    fireEvent.click(glance.getByRole('button', { name: '중간배당이란? AI 에이전트에게 묻기' }))
+    expect(onAsk).toHaveBeenCalledWith('중간배당이 뭐예요?')
+    expect(await axeViolations(container)).toBe('')
+  })
 
   it('만드는 중이면 사건 자리에 진행 표시가 있고 카드는 없다(AC33)', () => {
     area({ status: 'building' })
@@ -692,7 +728,7 @@ describe('TextEventsArea', () => {
   })
 
   it('들지 않은 후보가 0건이면 그 줄이 없고 뺀 사건 안내는 그대로다(AC25)', () => {
-    area({ status: 'ready', list: { droppedEventCount: 1, items: [event()], unboundChanges: [] } as unknown as TextEventList })
+    area({ status: 'ready', list: { droppedEventCount: 1, items: [event()], unboundChanges: [], signalCounts: [] } as unknown as TextEventList })
 
     expect(screen.queryByText(/사건에 들지 않은 후보/)).toBeNull()
     expect(screen.getByText('근거를 확인하지 못한 사건은 보여 주지 않았어요.')).toBeTruthy()

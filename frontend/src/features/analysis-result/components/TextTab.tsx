@@ -114,7 +114,7 @@ interface TextTabProps {
  * 맨 위 '위험 요인 변화' 카드에 위험 관련 목차의 건수를 보이고 '위험 관련만'으로 거른다(3.9, FS-61).
  * 문장을 비교하지 못했으면 '변경 없음'이 아니라 사유를 보여 준다. 짝짓지 못한 항목은 숨기지 않고 '검토 필요'로 둔다.
  * 맨 위 분야별 표에서 분야마다 몇 건이 바뀌었는지 보이고, 칸을 눌러 그 분야로 거른다(3.28). 옛 분석에는 표가 없고 주소의 분야도 쓰지 않는다.
- * 표 아래에 AI가 묶은 주요 사건을 카드로 보인다(3.37). 만드는 중이거나 만들지 못하면 그 자리에 진행 표시나 안내를 두고 나머지는 그대로이며, 어느 사건에도 들어가지 않은 후보는 원문 그대로 보인다(3.38).
+ * 맨 위에 한눈에 보기와 AI가 묶은 사건을 규모가 큰 순으로 보이고, 줄을 누르면 그 사건을 자세히 본다(3.37, #826). 만드는 중이거나 만들지 못하면 그 자리에 진행 표시나 안내를 두고 나머지는 그대로이며, 어느 사건에도 들어가지 않은 후보는 원문 그대로 보인다(3.38).
  * 거르지 않으면 기본 목록만 보이고 나머지는 아래 접힌 묶음에 둔다. 거르면 접힌 변경도 찾는다(3.29). 옛 분석에는 묶음이 없고 모든 변경이 목록에 있다.
  * 카드에는 '원문 비교'와 ⋯ 메뉴(고정, AI 한 줄 풀이, 노트, 커뮤니티 인용)를 둔다(3.31). 이력과 관련 수시공시는 원문 비교 창 안에 있다.
  * 카드마다 고정할 수 있고, '고정' 거르기를 고르면 이 분석에서 고정한 변경만 보여 준다(3.3, 이 브라우저에만 남음).
@@ -310,6 +310,19 @@ export function TextTab({
           {notice}
         </Notice>
       )}
+      {/* 한눈에 보기와 먼저 볼 변화를 탭 맨 위에 둔다(#826) */}
+      {!failed && !noChanges && (
+        <TextEventsArea
+          analysis={analysis}
+          view={textEvents}
+          field={pinned ? null : field}
+          listNarrowed={pinned || searched || riskOnly || type !== null}
+          onRetry={retryEvents}
+          onAsk={onAsk}
+          onOpenEvidence={toggleEvidence}
+          renderChanges={(items, eventId) => changeList(items, `event-${eventId}-`)}
+        />
+      )}
       {/* 첫 조회가 실패하면 아래 목록 자리의 오류 안내만 보인다 */}
       {!failed && !(state.status === 'error' && listing === null) && (
         <TextFieldTable
@@ -322,21 +335,12 @@ export function TextTab({
       )}
       {/* 옛 분석은 분야별 표가 없어 위험 관련 칩만 따로 둔다 */}
       {!failed && fieldTableView(listing).kind === 'hidden' && <div className="text-risk-row">{riskChip}</div>}
-      {!failed && !noChanges && (
-        <TextEventsArea
-          analysis={analysis}
-          view={textEvents}
-          field={pinned ? null : field}
-          listNarrowed={pinned || searched || riskOnly || type !== null}
-          onRetry={retryEvents}
-          onOpenEvidence={toggleEvidence}
-          renderChanges={(items, eventId) => changeList(items, `event-${eventId}-`)}
-        />
-      )}
       {/* 전체 변경 제목과 건수 한 줄(3.59). 거르면 결과 건수로 바뀐다 */}
       {!failed && (
         <div className="text-list-head">
-          <h3 className="text-list-head__title">{LIST_TITLE}</h3>
+          <h3 id="text-list-title" className="text-list-head__title" tabIndex={-1}>
+            {LIST_TITLE}
+          </h3>
           {headNote !== null && (
             <span className="panel__note" role="status">
               {headNote}

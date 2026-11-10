@@ -10,7 +10,9 @@ import { kindBadge } from './eventSignal'
 import { formatCount, resultCountLabel } from './textFilter'
 
 /** 문장 변화 탭의 주요 사건(3.37, 3.38) 화면 문구 */
-export const EVENTS_TITLE = '주요 사건'
+export const EVENTS_TITLE = '먼저 볼 변화'
+/** 먼저 볼 변화의 순서(서버가 맨 앞 종류 → 금액 → 바뀐 단위 수로 정함, #826) */
+export const EVENTS_ORDER_NOTE = '규모가 큰 순'
 export const EVENTS_NOTE = 'AI가 변경을 사건으로 묶고 제목을 붙였어요. 인용은 원문 그대로예요. 투자 판단이나 추천이 아니에요.'
 export const EVENTS_DROPPED_NOTE = '근거를 확인하지 못한 사건은 보여 주지 않았어요.'
 export const CHANGE_QUOTES_TITLE = '바뀐 내용'
