@@ -1,6 +1,6 @@
 # ADR-0065: 주요 사건의 '앞으로의 영향'은 검토된 경로 기준표에 코드가 공시 숫자를 끼워 만들고, 기준표에 경로가 없는 칸만 AI가 전제마다 근거를 단 조건형 전망으로 채운다
 
-- 상태: 제안
+- 상태: 채택
 - 결정한 날: 2026-11-10
 - 관련: [ADR-0060](0060-event-signal-and-sentences.md)(신호 기준표와 사건 문장), [ADR-0053](0053-event-scale-amount-candidates.md)·[ADR-0058](0058-event-amount-confirmation.md)(금액 후보와 확인), [ADR-0051](0051-text-event-candidate-rules.md)(사건 입력 범위), [ADR-0064](0064-term-general-explanation.md)(근거 없는 일반 설명의 첫 예외), AGENTS.md 'AI 기능 규칙', 노션 결정 로그 '주요 사건에 앞으로의 영향 넣기'(분석 2 아래 초안, 팀 DB 등록 후 링크)
 
