@@ -20,7 +20,10 @@ function getSeen(): boolean {
 
 function subscribe(onChange: () => void): () => void {
   const onStorage = (event: StorageEvent) => {
-    if (event.key === null || event.key === RESULT_TOUR_SEEN_KEY) onChange()
+    if (event.key !== null && event.key !== RESULT_TOUR_SEEN_KEY) return
+    // 다른 탭에서 바꾼 값을 따르도록 이 탭에서 정한 값을 잊는다(저장된 값이 다시 기준이 된다)
+    sessionSeen = null
+    onChange()
   }
   window.addEventListener(RESULT_TOUR_CHANGE_EVENT, onChange)
   window.addEventListener('storage', onStorage)
