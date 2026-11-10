@@ -99,7 +99,13 @@
 }
 
 /* 상태 안내 캐릭터(#706): 진행 중이면 찾는 중, 실패면 설명 없음 */
+/* 단계 제목과 그 옆의 작은 공팡이(#841) */
+.progress__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .progress__mascot {
-  display: block;
-  margin: 0 auto var(--space-3);
+  flex: none;
 }

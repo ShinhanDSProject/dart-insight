@@ -98,6 +98,9 @@ describe('분석 진행 화면(#549)', () => {
     expect(items[1].className).toContain('steps__item--active')
     const bar = within(steps).getByRole('progressbar', { name: '분석 진행률' })
     expect(bar.getAttribute('aria-valuenow')).toBe('38')
+    // 기다리는 동안 창을 닫아도 된다고 알리고, 공팡이는 제목 옆에 작게 둔다(#841)
+    expect(within(steps).getByText(/창을 닫아도 분석은 계속돼요/)).toBeTruthy()
+    expect(steps.querySelector('.progress__head .mascot--sm')).toBeTruthy()
     expect(await axeViolations(container)).toBe('')
   })
 
