@@ -323,16 +323,10 @@ def test_task_models_come_from_environment(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setenv("LLM_TASK_MODELS", " agent_plan = m-small , summary=m-2 ")
     assert load_llm_settings().task_models == {"agent_plan": "m-small", "summary": "m-2"}
 
-    # Claude는 제공자별 기본값을 쓴다: Tool 고르기(ADR-0062)와 주요 사건 작업 4개(ADR-0063)
+    # Claude는 제공자별 기본값을 쓴다(ADR-0062)
     monkeypatch.delenv("LLM_TASK_MODELS", raising=False)
     monkeypatch.setenv("LLM_PROVIDER", "anthropic")
-    assert load_llm_settings().task_models == {
-        "agent_plan": "claude-haiku-5-5",
-        "text_event": "claude-haiku-5-5",
-        "event_amount_pick": "claude-haiku-5-5",
-        "event_meaning": "claude-haiku-5-5",
-        "event_signal_reason": "claude-haiku-5-5",
-    }
+    assert load_llm_settings().task_models == {"agent_plan": "claude-haiku-5-5"}
 
     # 빈 값이면 작업별 모델을 쓰지 않는다
     monkeypatch.setenv("LLM_TASK_MODELS", "")

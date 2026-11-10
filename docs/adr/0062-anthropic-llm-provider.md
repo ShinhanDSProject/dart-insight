@@ -1,6 +1,6 @@
 # ADR-0062: 실제 LLM 제공자로 Anthropic Claude Messages API를 더해 기본으로 쓰고, 기본 모델은 claude-sonnet-5-5, Tool 고르기는 claude-haiku-5-5로 둔다
 
-- 상태: 채택
+- 상태: 채택(기본 모델과 Tool 고르기 모델은 ADR-0063이 대체)
 - 결정한 날: 2026-11-09
 - 관련: [이슈 #777](https://github.com/ShinhanDSProject/dart-insight/issues/777)(0.7), [ADR-0026](0026-openai-llm-provider.md)(대체), [ADR-0059](0059-task-model-agent-plan-luna.md)(그대로 유효. 작업별 모델 구조와 OpenAI 쪽 기본값은 그대로이고, Claude 쪽 기본값만 더함), [ADR-0008](0008-single-llm-module.md), [ADR-0049](0049-agent-plan-writes-answer.md), 노션 결정 로그 'LLM 제공자·모델 선택'(제공자 변경 항목 추가 필요)
 
