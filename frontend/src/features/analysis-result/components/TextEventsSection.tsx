@@ -7,6 +7,7 @@ import { Badge, Button, Chip, Notice, Skeleton } from '@/shared/ui'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { displaySectionPath } from '@/shared/lib/sectionTitle'
 import { useSignalTable, useTextEventDetail } from '../hooks/useTextEvents'
+import { eventGlance, GLANCE_EVIDENCE, GLANCE_TITLE, termLinkLabel, termQuestion } from '../model/eventGlance'
 import { eventsBySignal, SIGNAL_FILTER_LABEL, SIGNAL_FILTERS, signalBadge, signalEmptyText, signalFilterCount } from '../model/eventSignal'
 import {
   CHANGE_QUOTES_TITLE,
@@ -17,6 +18,7 @@ import {
   EVENTS_INITIAL,
   EVENTS_LOADING,
   EVENTS_NOTE,
+  EVENTS_ORDER_NOTE,
   EVENTS_RETRY_LIMITED,
   EVENTS_TITLE,
   EVENTS_UNAVAILABLE,
@@ -52,6 +54,8 @@ interface TextEventsSectionProps {
 
 type TextEventsAreaProps = Omit<TextEventsSectionProps, 'list' | 'items'> & {
   view: TextEventsView
+  /** 한눈에 보기의 '○○이란?': AI 에이전트에게 그 용어를 묻는다 */
+  onAsk: (question: string) => void
   /** 고른 분야. 유형·검색 등 다른 거르기는 사건에 걸지 않는다(3.61) */
   field: TextField | null
   /** 전체 변경을 유형·검색·위험 관련·고정으로 거르는 중인지. 들지 않은 후보 안내의 문구만 바뀐다 */
@@ -59,8 +63,8 @@ type TextEventsAreaProps = Omit<TextEventsSectionProps, 'list' | 'items'> & {
   onRetry: () => void
 }
 
-/** 분야별 표 아래의 사건 자리(3.38). 사건을 만드는 중이거나 만들지 못해도 탭의 나머지는 그대로 쓴다 */
-export function TextEventsArea({ analysis, view, field, listNarrowed, onRetry, onOpenEvidence, renderChanges }: TextEventsAreaProps) {
+/** 탭 맨 위의 사건 자리(3.38, #826). 사건을 만드는 중이거나 만들지 못해도 탭의 나머지는 그대로 쓴다 */
+export function TextEventsArea({ analysis, view, field, listNarrowed, onRetry, onAsk, onOpenEvidence, renderChanges }: TextEventsAreaProps) {
   return match(view)
     .with({ status: 'hidden' }, () => null)
     .with({ status: 'building' }, () => <LoadingState message={EVENTS_BUILDING} />)
@@ -85,6 +89,7 @@ export function TextEventsArea({ analysis, view, field, listNarrowed, onRetry, o
     ))
     .with({ status: 'ready' }, ({ list }) => (
       <>
+        <EventsGlance list={list} onOpenEvidence={onOpenEvidence} onAsk={onAsk} />
         <TextEventsSection analysis={analysis} list={list} items={visibleEvents(list.items, field)} onOpenEvidence={onOpenEvidence} renderChanges={renderChanges} />
         <UnboundNote count={visibleUnbound(list.unboundChanges, field).length} listNarrowed={listNarrowed} />
       </>
@@ -93,7 +98,55 @@ export function TextEventsArea({ analysis, view, field, listNarrowed, onRetry, o
 }
 
 /**
- * 분야별 표 아래의 주요 사건(3.37). 순서는 서버가 정한 그대로이고, 카드를 펼치면 인용, 사건 문장, 묶인 변경을 본다.
+ * 한눈에 보기(#826). 코드가 센 사건·신호 건수 한 줄과, 서버 순서 앞 사건의 '공시의 의미' 첫 문장(AI 생성).
+ * 문장 끝의 작은 '근거 ›'는 그 사건의 원문 비교를, '○○이란?'은 AI 에이전트에게 그 용어를 묻는다. 사건이 없으면 그리지 않는다
+ */
+function EventsGlance({ list, onOpenEvidence, onAsk }: { list: TextEventList; onOpenEvidence: (changeId: number) => void; onAsk: (question: string) => void }) {
+  const glance = eventGlance(list)
+  if (glance === null) return null
+  return (
+    <section className="event-glance" aria-labelledby="event-glance-title">
+      <div className="event-glance__head">
+        <h3 id="event-glance-title" className="event-glance__title">
+          {GLANCE_TITLE}
+        </h3>
+        {glance.lines.length > 0 && <Badge tone="accent">AI 생성</Badge>}
+      </div>
+      <ol className="event-glance__list">
+        <li>{glance.countLine}</li>
+        {glance.lines.map((line) => (
+          <li key={line.eventId}>
+            {line.text}{' '}
+            {line.changeId !== null && (
+              <Button variant="link" className="event-glance__link" aria-haspopup="dialog" onClick={() => onOpenEvidence(line.changeId as number)}>
+                {GLANCE_EVIDENCE}
+              </Button>
+            )}
+            {line.changeId !== null && line.term !== null && (
+              <span className="event-glance__dot" aria-hidden="true">
+                ·
+              </span>
+            )}
+            {line.term !== null && (
+              <Button
+                variant="link"
+                className="event-glance__link"
+                aria-label={`${termLinkLabel(line.term)} AI 에이전트에게 묻기`}
+                onClick={() => onAsk(termQuestion(line.term as string))}
+              >
+                {termLinkLabel(line.term)}
+              </Button>
+            )}
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
+
+/**
+ * 먼저 볼 변화(3.37 → #826). 순서는 서버가 정한 그대로(맨 앞 종류 → 금액 → 바뀐 단위 수)이고 그 순서에 번호를 붙인다.
+ * 줄을 누르면 목록 대신 그 사건 하나를 자세히 보이고(공시의 의미 → 신호 이유 → 인용·사실·묶인 변경), 위 경로로 목록에 돌아온다.
  * 신호를 보여 주므로 기준표의 안내를 함께 둔다(ADR-0060). 기준표를 받지 못해도 '투자 판단이나 추천이 아니에요'는 남는다
  */
 export function TextEventsSection({ analysis, list, items, onOpenEvidence, renderChanges }: TextEventsSectionProps) {
@@ -101,12 +154,33 @@ export function TextEventsSection({ analysis, list, items, onOpenEvidence, rende
   const [criteriaFor, setCriteriaFor] = useState<TextEventItem | null>(null)
   const [signal, setSignal] = useState<TextEventSignal | null>(null)
   const [showAll, setShowAll] = useState(false)
+  const [openId, setOpenId] = useState<number | null>(null)
   // 신호를 바꾸면 거른 사건도 처음 몇 건부터 다시 보인다
   const chooseSignal = (next: TextEventSignal | null) => {
     setSignal(next)
     setShowAll(false)
   }
   if (items.length === 0) return null
+  const opened = items.find((item) => item.eventId === openId) ?? null
+  if (opened !== null) {
+    return (
+      <section className="text-events" aria-label={`${EVENTS_TITLE}: ${opened.title}`}>
+        <nav className="text-events__crumbs" aria-label="사건 위치">
+          <Button variant="link" onClick={() => setOpenId(null)}>
+            {EVENTS_TITLE}
+          </Button>
+          <span aria-hidden="true">›</span>
+          <span aria-current="page">{opened.title}</span>
+        </nav>
+        <TextEventDetail analysis={analysis} item={opened} onOpenEvidence={onOpenEvidence} onOpenCriteria={() => setCriteriaFor(opened)} renderChanges={renderChanges} />
+        <p className="panel__note">
+          {EVENTS_NOTE}
+          {table.status === 'success' && ` ${table.data.signalNotice}`}
+        </p>
+        {criteriaFor !== null && <SignalCriteriaDialog item={criteriaFor} table={table} onRetry={reload} onClose={() => setCriteriaFor(null)} />}
+      </section>
+    )
+  }
   const filtered = eventsBySignal(items, signal)
   // 처음에는 몇 건만 보이고 나머지는 더 보기로 연다(3.58)
   const shown = showAll ? filtered : filtered.slice(0, EVENTS_INITIAL)
@@ -116,7 +190,7 @@ export function TextEventsSection({ analysis, list, items, onOpenEvidence, rende
       {/* 제목과 안내를 한 줄에(3.55 → 3.58) */}
       <div className="text-events__head">
         <h3 id="text-events-title" className="text-events__title">
-          {EVENTS_TITLE} {resultCountLabel(filtered.length)}
+          {EVENTS_TITLE} {resultCountLabel(filtered.length)} <span className="text-events__order">· {EVENTS_ORDER_NOTE}</span>
         </h3>
         <p className="panel__note">
           {EVENTS_NOTE}
@@ -137,7 +211,7 @@ export function TextEventsSection({ analysis, list, items, onOpenEvidence, rende
       <ol className="text-events__list text-events__list--rows">
         {shown.map((item) => (
           <li key={item.eventId}>
-            <TextEventCard analysis={analysis} item={item} onOpenEvidence={onOpenEvidence} onOpenCriteria={() => setCriteriaFor(item)} renderChanges={renderChanges} />
+            <TextEventRow rank={items.indexOf(item) + 1} item={item} onOpen={() => setOpenId(item.eventId)} />
           </li>
         ))}
       </ol>
@@ -170,96 +244,126 @@ function SignalFilter({ items, signal, onChange }: SignalFilterProps) {
   )
 }
 
-/** 후보였지만 어느 사건에도 들지 않은 변경의 건수(3.60, AC24·AC25). 변경 자체는 전체 변경에서 본다 */
+/** 후보였지만 어느 사건에도 들지 않은 변경의 건수(3.60, AC24·AC25). 누르면 그 변경이 있는 전체 변경 목록으로 옮긴다 */
 function UnboundNote({ count, listNarrowed }: { count: number; listNarrowed: boolean }) {
   if (count === 0) return null
-  return <p className="panel__note text-events__unbound">{unboundNote(count, listNarrowed)}</p>
+  return (
+    <Button variant="link" className="text-events__unbound" onClick={scrollToChangeList}>
+      <span>{unboundNote(count, listNarrowed)}</span>
+      <span aria-hidden="true"> ›</span>
+    </Button>
+  )
 }
 
-type TextEventCardProps = Omit<TextEventsSectionProps, 'list' | 'items'> & { item: TextEventItem; onOpenCriteria: () => void }
+/** 전체 변경 제목(TextTab의 text-list-title)으로 옮기고 초점을 준다 */
+function scrollToChangeList() {
+  const title = document.getElementById('text-list-title')
+  title?.scrollIntoView({ block: 'start' })
+  title?.focus({ preventScroll: true })
+}
 
-function TextEventCard({ analysis, item, onOpenEvidence, onOpenCriteria, renderChanges }: TextEventCardProps) {
-  const [open, setOpen] = useState(false)
+/** 먼저 볼 변화 한 줄: 번호 · 제목 · 신호와 종류·규모·AI 생성 · ›. 제목 버튼이 줄 전체를 덮어 어디를 눌러도 그 사건을 자세히 본다 */
+function TextEventRow({ rank, item, onOpen }: { rank: number; item: TextEventItem; onOpen: () => void }) {
+  const signal = signalBadge(item.signal)
+  return (
+    <article className="text-event-row" aria-label={item.title}>
+      <span className="text-event-row__rank" aria-hidden="true">
+        {rank}
+      </span>
+      <div className="text-event-row__body">
+        <h4 className="text-event-row__title">
+          <Button variant="link" className="text-event-row__open" aria-label={`${item.title} 자세히 보기`} onClick={onOpen}>
+            {item.title}
+          </Button>
+        </h4>
+        <div className="text-event-row__meta">
+          <Badge tone={signal.tone}>{signal.label}</Badge>
+          <span>{eventRowMeta(item)}</span>
+        </div>
+      </div>
+      <span className="text-event-row__chevron" aria-hidden="true">
+        ›
+      </span>
+    </article>
+  )
+}
+
+type TextEventDetailProps = Omit<TextEventsSectionProps, 'list' | 'items'> & { item: TextEventItem; onOpenCriteria: () => void }
+
+/** 사건 하나 자세히(#826). 무슨 일인지(공시의 의미)와 왜 이 신호인지를 먼저 두고, 그 아래에 규모·인용·사실·공시에 적힌 이유·묶인 변경 */
+function TextEventDetail({ analysis, item, onOpenEvidence, onOpenCriteria, renderChanges }: TextEventDetailProps) {
   const [showChanges, setShowChanges] = useState(false)
-  const bodyId = `text-event-${item.eventId}`
   const changesId = `text-event-changes-${item.eventId}`
   const quotes = eventQuotes(item)
   const scale = eventScaleView(item)
   const signal = signalBadge(item.signal)
   const quoteList = (entries: TextEventQuote[]) =>
     entries.map((quote, index) => <QuoteBlock key={`${quote.evidenceId}-${index}`} quote={quote} onOpenEvidence={onOpenEvidence} />)
-  // 사건 한 줄(3.58): 신호 · 제목 · 종류·규모·AI 생성 · 펼치기. 펼친 안쪽은 3.37~3.43의 내용 그대로이고 규모 금액의 근거 ID도 안쪽에 둔다
   return (
-    <article className="text-event text-event--row" aria-label={item.title}>
+    <article className="text-event text-event--detail" aria-label={item.title}>
       <div className="text-event__head">
         <Badge tone={signal.tone}>{signal.label}</Badge>
         <h4 className="text-event__title">{item.title}</h4>
         <span className="text-event__meta">{eventRowMeta(item)}</span>
-        {/* 줄마다 같은 '펼치기'로 읽히지 않도록 이름에 사건 제목을 넣는다 */}
-        <Button variant="secondary" aria-label={`${item.title} ${open ? '접기' : '펼치기'}`} aria-expanded={open} aria-controls={open ? bodyId : undefined} onClick={() => setOpen(!open)}>
-          {open ? '접기' : '펼치기'}
-        </Button>
       </div>
-      {open && (
-        <div id={bodyId} className="text-event__body">
-          {scale !== null && (
-            <dl className="text-event__scale">
-              <div>
-                <dt>{SCALE_AMOUNT_LABEL}</dt>
-                <dd className="text-event__amount">{scale.amount}</dd>
-              </div>
-              {scale.converted !== null && (
-                <div>
-                  <dt>{SCALE_CONVERTED_LABEL}</dt>
-                  <dd>{scale.converted}</dd>
-                </div>
-              )}
-              <div>
-                <dt>근거 ID</dt>
-                <dd>{scale.evidenceId === null ? <Badge tone="attention">검토 필요</Badge> : <code>{scale.evidenceId}</code>}</dd>
-              </div>
-            </dl>
-          )}
-          <div className="text-event__part">
-            <h5 className="text-event__part-title">{CHANGE_QUOTES_TITLE}</h5>
-            <div className="change-card__sides">
-              <div className="change-side text-event__quotes">
-                <span className="change-side__role">이전 · {analysis.previous.reportName}</span>
-                {quotes.previous.length > 0 ? quoteList(quotes.previous) : <p className="change-side__missing">{NO_QUOTE}</p>}
-              </div>
-              <div className="change-side text-event__quotes">
-                <span className="change-side__role">이번 · {analysis.current.reportName}</span>
-                {quotes.current.length > 0 ? quoteList(quotes.current) : <p className="change-side__missing">{NO_QUOTE}</p>}
-              </div>
+      <div className="text-event__body">
+        <MeaningPart item={item} onOpenEvidence={onOpenEvidence} />
+        <SignalReasonPart item={item} onOpenEvidence={onOpenEvidence} onOpenCriteria={onOpenCriteria} />
+        {scale !== null && (
+          <dl className="text-event__scale">
+            <div>
+              <dt>{SCALE_AMOUNT_LABEL}</dt>
+              <dd className="text-event__amount">{scale.amount}</dd>
             </div>
-          </div>
-          <FactsPart analysis={analysis} item={item} />
-          <div className="text-event__part">
-            <h5 className="text-event__part-title">{REASON_QUOTES_TITLE}</h5>
-            {quotes.reasons.length > 0 ? (
-              <div className="change-side text-event__quotes">{quoteList(quotes.reasons)}</div>
-            ) : (
-              <p className="panel__note">{NO_REASON}</p>
+            {scale.converted !== null && (
+              <div>
+                <dt>{SCALE_CONVERTED_LABEL}</dt>
+                <dd>{scale.converted}</dd>
+              </div>
             )}
-          </div>
-          <MeaningPart item={item} onOpenEvidence={onOpenEvidence} />
-          <SignalReasonPart item={item} onOpenEvidence={onOpenEvidence} onOpenCriteria={onOpenCriteria} />
-          <Button
-            variant="secondary"
-            className="text-event__actions"
-            aria-expanded={showChanges}
-            aria-controls={showChanges ? changesId : undefined}
-            onClick={() => setShowChanges(!showChanges)}
-          >
-            {showChanges ? '변경 접기' : `변경 보기 ${resultCountLabel(item.changeIds.length)}`}
-          </Button>
-          {showChanges && (
-            <div id={changesId} className="text-event__part">
-              <EventChanges analysisId={analysis.analysisId} eventId={item.eventId} renderChanges={renderChanges} />
+            <div>
+              <dt>근거 ID</dt>
+              <dd>{scale.evidenceId === null ? <Badge tone="attention">검토 필요</Badge> : <code>{scale.evidenceId}</code>}</dd>
             </div>
+          </dl>
+        )}
+        <div className="text-event__part">
+          <h5 className="text-event__part-title">{CHANGE_QUOTES_TITLE}</h5>
+          <div className="change-card__sides">
+            <div className="change-side text-event__quotes">
+              <span className="change-side__role">이전 · {analysis.previous.reportName}</span>
+              {quotes.previous.length > 0 ? quoteList(quotes.previous) : <p className="change-side__missing">{NO_QUOTE}</p>}
+            </div>
+            <div className="change-side text-event__quotes">
+              <span className="change-side__role">이번 · {analysis.current.reportName}</span>
+              {quotes.current.length > 0 ? quoteList(quotes.current) : <p className="change-side__missing">{NO_QUOTE}</p>}
+            </div>
+          </div>
+        </div>
+        <FactsPart analysis={analysis} item={item} />
+        <div className="text-event__part">
+          <h5 className="text-event__part-title">{REASON_QUOTES_TITLE}</h5>
+          {quotes.reasons.length > 0 ? (
+            <div className="change-side text-event__quotes">{quoteList(quotes.reasons)}</div>
+          ) : (
+            <p className="panel__note">{NO_REASON}</p>
           )}
         </div>
-      )}
+        <Button
+          variant="secondary"
+          className="text-event__actions"
+          aria-expanded={showChanges}
+          aria-controls={showChanges ? changesId : undefined}
+          onClick={() => setShowChanges(!showChanges)}
+        >
+          {showChanges ? '변경 접기' : `변경 보기 ${resultCountLabel(item.changeIds.length)}`}
+        </Button>
+        {showChanges && (
+          <div id={changesId} className="text-event__part">
+            <EventChanges analysisId={analysis.analysisId} eventId={item.eventId} renderChanges={renderChanges} />
+          </div>
+        )}
+      </div>
     </article>
   )
 }

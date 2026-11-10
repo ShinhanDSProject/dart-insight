@@ -580,6 +580,7 @@ describe('TextTab 주요 사건(3.37)', () => {
         },
       ],
       unboundChanges: [],
+      signalCounts: [],
     }) as unknown as TextEventList
 
   function Harness({ field = null }: { field?: TextField | null }) {
@@ -616,32 +617,32 @@ describe('TextTab 주요 사건(3.37)', () => {
     list.items = [item(1, '1. 사업의 개요')]
   })
 
-  it('사건을 받으면 표의 칸에 관련 사건 수가 보이고 표 아래에 사건 절이 있다(AC1)', () => {
+  it('사건을 받으면 표의 칸에 관련 사건 수가 보이고 표 위에 사건 절이 있다(AC1, #826)', () => {
     events.list = textEvents(1)
     render(<Harness />)
 
     expect(table().getByRole('button', { name: /소송·제재.*· 사건 1/ })).toBeTruthy()
     expect(table().getByRole('button', { name: /^사업 내용/ }).textContent).not.toContain('사건')
-    const heading = screen.getByRole('heading', { name: '주요 사건 1건' })
+    const heading = screen.getByRole('heading', { name: '먼저 볼 변화 1건 · 규모가 큰 순' })
     const fieldTable = screen.getByRole('group', { name: '분야별 변경' })
-    expect(fieldTable.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(fieldTable.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
   })
 
   it('사건이 없으면 사건 절과 칸의 사건 수만 빠지고 목록은 그대로다(AC21)', () => {
     render(<Harness />)
 
-    expect(screen.queryByRole('heading', { name: /주요 사건/ })).toBeNull()
+    expect(screen.queryByRole('heading', { name: /먼저 볼 변화/ })).toBeNull()
     expect(screen.queryByText(/관련 주요 사건/)).toBeNull()
     expect(screen.getByRole('article', { name: /1\. 사업의 개요/ })).toBeTruthy()
   })
 
-  it('만드는 중이면 표 다음에 진행 표시가 있고 목록은 그대로 보인다(AC33)', () => {
+  it('만드는 중이면 표 위에 진행 표시가 있고 목록은 그대로 보인다(AC33, #826)', () => {
     events.view = { status: 'building' }
     render(<Harness />)
 
     const progress = screen.getByText(/주요 사건을 만드는 중이에요/)
     const fieldTable = screen.getByRole('group', { name: '분야별 변경' })
-    expect(fieldTable.compareDocumentPosition(progress) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(fieldTable.compareDocumentPosition(progress) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
     expect(screen.getByRole('article', { name: /1\. 사업의 개요/ })).toBeTruthy()
     expect(screen.queryByText(/관련 주요 사건/)).toBeNull()
   })
@@ -713,20 +714,20 @@ describe('TextTab 주요 사건(3.37)', () => {
   it('분야를 고르면 그 칸의 사건만 보이고 유형으로 걸러도 사건 절은 그대로다(3.61 AC26)', () => {
     events.list = textEvents(1)
     const { rerender } = render(<Harness field="LITIGATION" />)
-    expect(screen.getByRole('heading', { name: '주요 사건 1건' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: '먼저 볼 변화 1건 · 규모가 큰 순' })).toBeTruthy()
 
     rerender(<Harness field="BUSINESS" />)
-    expect(screen.queryByRole('heading', { name: /주요 사건/ })).toBeNull()
+    expect(screen.queryByRole('heading', { name: /먼저 볼 변화/ })).toBeNull()
 
     list.type = 'ADDED'
     rerender(<Harness />)
-    expect(screen.getByRole('heading', { name: '주요 사건 1건' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: '먼저 볼 변화 1건 · 규모가 큰 순' })).toBeTruthy()
   })
 
   it('목록에 없는 변경도 인용에서 원문 비교를 열고, 닫으면 그 버튼으로 초점이 돌아온다', async () => {
     events.list = textEvents(99)
     render(<Harness />)
-    fireEvent.click(screen.getByRole('button', { name: /펼치기$/ }))
+    fireEvent.click(screen.getByRole('button', { name: /자세히 보기$/ }))
     const opener = within(screen.getByRole('article', { name: '과징금을 새로 부과받았어요' })).getByRole('button', { name: '원문 비교' })
     opener.focus()
 
@@ -742,7 +743,7 @@ describe('TextTab 주요 사건(3.37)', () => {
     events.list = textEvents(1)
     detail.state = { status: 'success', data: { changes: [item(1, '1. 사업의 개요')] } }
     render(<Harness />)
-    fireEvent.click(screen.getByRole('button', { name: /펼치기$/ }))
+    fireEvent.click(screen.getByRole('button', { name: /자세히 보기$/ }))
     fireEvent.click(screen.getByRole('button', { name: '변경 보기 1건' }))
     const opener = document.getElementById('text-evidence-button-event-7-1') as HTMLElement
     opener.focus()
@@ -808,7 +809,7 @@ describe('TextTab 주요 사건(3.37)', () => {
     events.list = textEvents(1)
     list.groups = {}
     render(<Harness />)
-    fireEvent.click(screen.getByRole('button', { name: /펼치기$/ }))
+    fireEvent.click(screen.getByRole('button', { name: /자세히 보기$/ }))
     detail.state = { status: 'success', data: { changes: [item(1, '1. 사업의 개요')] } }
 
     fireEvent.click(screen.getByRole('button', { name: '변경 보기 1건' }))
