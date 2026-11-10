@@ -4,14 +4,23 @@
       "key": "correction",
       "level": "CORE",
       "term": "정정공시",
-      "aliases": ["기재정정"],
+      "aliases": [
+        "기재정정"
+      ],
       "definition": "이미 낸 보고서를 고쳐 다시 낸 것이에요. 보고서명 앞에 [기재정정] 등이 붙어요.",
       "example": null,
       "whereToCheck": null,
       "noJudgment": null,
-      "related": ["rceptNo"],
+      "related": [
+        "rceptNo"
+      ],
       "companyValue": null,
-      "sources": [{ "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)", "url": null }],
+      "sources": [
+        {
+          "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)",
+          "url": null
+        }
+      ],
       "reviewer": null,
       "reviewedAt": null
     },
@@ -24,9 +33,16 @@
       "example": null,
       "whereToCheck": null,
       "noJudgment": null,
-      "related": ["corpCode"],
+      "related": [
+        "corpCode"
+      ],
       "companyValue": null,
-      "sources": [{ "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)", "url": null }],
+      "sources": [
+        {
+          "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)",
+          "url": null
+        }
+      ],
       "reviewer": null,
       "reviewedAt": null
     },
@@ -39,9 +55,16 @@
       "example": null,
       "whereToCheck": null,
       "noJudgment": null,
-      "related": ["rceptNo"],
+      "related": [
+        "rceptNo"
+      ],
       "companyValue": null,
-      "sources": [{ "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)", "url": null }],
+      "sources": [
+        {
+          "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)",
+          "url": null
+        }
+      ],
       "reviewer": null,
       "reviewedAt": null
     },
@@ -49,14 +72,22 @@
       "key": "fsDiv",
       "level": "CORE",
       "term": "연결 / 별도",
-      "aliases": ["연결", "별도"],
+      "aliases": [
+        "연결",
+        "별도"
+      ],
       "definition": "연결은 모회사와 자회사를 합친 숫자, 별도는 모회사만의 숫자예요. 기준이 다르면 같은 회사라도 수치가 달라질 수 있어요.",
       "example": null,
       "whereToCheck": null,
       "noJudgment": null,
       "related": [],
       "companyValue": null,
-      "sources": [{ "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)", "url": null }],
+      "sources": [
+        {
+          "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)",
+          "url": null
+        }
+      ],
       "reviewer": null,
       "reviewedAt": null
     },
@@ -64,14 +95,25 @@
       "key": "period",
       "level": "CORE",
       "term": "당기 / 전기 / 전기말",
-      "aliases": ["당기", "전기", "전기말"],
+      "aliases": [
+        "당기",
+        "전기",
+        "전기말"
+      ],
       "definition": "당기는 이번 보고 기간, 전기는 직전 사업연도의 같은 기간, 전기말은 직전 사업연도의 마지막 날이에요.",
       "example": null,
       "whereToCheck": null,
       "noJudgment": null,
-      "related": ["amountBasis"],
+      "related": [
+        "amountBasis"
+      ],
       "companyValue": null,
-      "sources": [{ "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)", "url": null }],
+      "sources": [
+        {
+          "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)",
+          "url": null
+        }
+      ],
       "reviewer": null,
       "reviewedAt": null
     },
@@ -79,14 +121,24 @@
       "key": "amountBasis",
       "level": "CORE",
       "term": "3개월 / 누적",
-      "aliases": ["3개월", "누적"],
+      "aliases": [
+        "3개월",
+        "누적"
+      ],
       "definition": "분기 하나만의 값과 연초부터 쌓인 값이에요.",
       "example": null,
       "whereToCheck": null,
       "noJudgment": null,
-      "related": ["period"],
+      "related": [
+        "period"
+      ],
       "companyValue": null,
-      "sources": [{ "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)", "url": null }],
+      "sources": [
+        {
+          "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)",
+          "url": null
+        }
+      ],
       "reviewer": null,
       "reviewedAt": null
     },
@@ -94,14 +146,21 @@
       "key": "account",
       "level": "CORE",
       "term": "계정과목",
-      "aliases": ["계정"],
+      "aliases": [
+        "계정"
+      ],
       "definition": "재무제표 각 줄의 이름이에요 (예: 현금및현금성자산).",
       "example": null,
       "whereToCheck": null,
       "noJudgment": null,
       "related": [],
       "companyValue": null,
-      "sources": [{ "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)", "url": null }],
+      "sources": [
+        {
+          "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)",
+          "url": null
+        }
+      ],
       "reviewer": null,
       "reviewedAt": null
     },
@@ -114,9 +173,16 @@
       "example": null,
       "whereToCheck": null,
       "noJudgment": null,
-      "related": ["correction"],
+      "related": [
+        "correction"
+      ],
       "companyValue": null,
-      "sources": [{ "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)", "url": null }],
+      "sources": [
+        {
+          "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)",
+          "url": null
+        }
+      ],
       "reviewer": null,
       "reviewedAt": null
     },
@@ -131,9 +197,1558 @@
       "noJudgment": null,
       "related": [],
       "companyValue": null,
-      "sources": [{ "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)", "url": null }],
+      "sources": [
+        {
+          "title": "노션 '공시·재무 도메인 가이드' 6장(용어표)",
+          "url": null
+        }
+      ],
       "reviewer": null,
       "reviewedAt": null
+    },
+    {
+      "key": "cashEquivalents",
+      "level": "CORE",
+      "term": "현금및현금성자산",
+      "aliases": [
+        "현금성자산",
+        "현금 및 현금성자산"
+      ],
+      "definition": "현금과, 정해진 현금으로 쉽게 바꿀 수 있고 값이 거의 변하지 않는 짧은 투자를 합친 것이에요.",
+      "example": "지갑 속 현금과 바로 찾을 수 있는 예금이에요.",
+      "whereToCheck": "재무상태표, 현금흐름표 마지막 줄",
+      "noJudgment": "많고 적음만으로 판단하지 않아요.",
+      "related": [
+        "operatingCashFlow"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "현금및현금성자산"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 IAS 7 기준서 소개(ifrs.org)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "inventories",
+      "level": "CORE",
+      "term": "재고자산",
+      "aliases": [
+        "재고"
+      ],
+      "definition": "팔려고 가진 상품·제품과 만드는 중인 물건, 원재료예요. 사 온 값과 지금 팔면 받을 값(드는 비용을 뺌) 중 낮은 금액으로 적어요.",
+      "example": "빵집 진열대의 빵과 창고의 밀가루예요.",
+      "whereToCheck": "재무상태표, 체크포인트 '재고자산'",
+      "noJudgment": "주문을 미리 대비해 늘리기도 해서 늘었다는 것만으로 판단하지 않아요.",
+      "related": [],
+      "companyValue": {
+        "checkpoint": "INVENTORIES",
+        "accounts": [
+          "재고자산"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 IAS 2 기준서 소개(ifrs.org)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "ppe",
+      "level": "CORE",
+      "term": "유형자산",
+      "aliases": [],
+      "definition": "공장·건물·기계·토지처럼 형체가 있고 한 해보다 오래 쓰려고 가진 자산이에요. 처음에는 산 값(원가)으로 적어요.",
+      "example": "10년 동안 쓸 기계예요.",
+      "whereToCheck": "재무상태표, 현금흐름표 '유형자산의 취득'",
+      "noJudgment": "취득이 늘었다는 것만으로 판단하지 않아요.",
+      "related": [
+        "intangibleAssets",
+        "impairmentLoss"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "유형자산",
+          "유형자산의 취득"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 IAS 16 기준서 소개(ifrs.org)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "intangibleAssets",
+      "level": "CORE",
+      "term": "무형자산",
+      "aliases": [],
+      "definition": "특허권·소프트웨어·개발비처럼 형체는 없지만 따로 구별할 수 있는 자산이에요. 쓸 수 있는 기간이 정해진 것은 그 기간에 나눠 줄여 가요(상각).",
+      "example": "5년 쓰는 소프트웨어 사용권이에요.",
+      "whereToCheck": "재무상태표, 주석",
+      "noJudgment": null,
+      "related": [
+        "goodwill",
+        "ppe"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "무형자산",
+          "무형자산의 취득"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 IAS 38 기준서 소개(ifrs.org)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "lease",
+      "level": "CORE",
+      "term": "사용권자산 / 리스부채",
+      "aliases": [
+        "사용권자산",
+        "리스부채",
+        "리스"
+      ],
+      "definition": "빌려 쓰는 건물·장비(리스)를 쓸 권리를 자산(사용권자산)으로, 앞으로 낼 리스료를 부채(리스부채)로 적어요.",
+      "example": "사무실을 5년 빌리면 5년 쓸 권리와 5년치 임대료 의무가 함께 생겨요.",
+      "whereToCheck": "재무상태표, 현금흐름표 '리스부채의 상환'",
+      "noJudgment": null,
+      "related": [],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "사용권자산",
+          "리스부채"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 IFRS 16 기준서 소개(ifrs.org)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "provisions",
+      "level": "CORE",
+      "term": "충당부채",
+      "aliases": [],
+      "definition": "갚을 시기나 금액이 확실하지 않지만 의무가 있다고 보고 미리 적어 둔 부채예요.",
+      "example": "판매한 제품의 무상 수리에 쓸 돈을 미리 잡아 두는 것이에요.",
+      "whereToCheck": "재무상태표, 주석",
+      "noJudgment": null,
+      "related": [
+        "contingentLiabilities"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "충당부채",
+          "비유동충당부채"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 IAS 37 기준서 소개(ifrs.org)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "contingentLiabilities",
+      "level": "CORE",
+      "term": "우발부채",
+      "aliases": [],
+      "definition": "소송이나 보증처럼 앞으로 일어날지 모르는 일에 따라 있는지 없는지가 정해질 의무예요.",
+      "example": "친구 대출에 보증을 서서, 친구가 못 갚으면 대신 갚아야 하는 것과 비슷해요.",
+      "whereToCheck": "사업보고서 '우발부채 등에 관한 사항', 주석",
+      "noJudgment": "실제로 갚게 될지는 정해지지 않아 적혀 있다는 것만으로 판단하지 않아요.",
+      "related": [
+        "provisions"
+      ],
+      "companyValue": null,
+      "sources": [
+        {
+          "title": "IFRS 재단 IAS 37 기준서 소개(ifrs.org)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "oci",
+      "level": "CORE",
+      "term": "기타포괄손익 / 총포괄손익",
+      "aliases": [
+        "기타포괄손익",
+        "총포괄손익"
+      ],
+      "definition": "당기순이익에 넣지 않는 수익·비용을 기타포괄손익이라고 하고, 당기순이익과 합친 것을 총포괄손익이라고 해요. 예를 들어 해외 자회사 환산차이나 일부 금융자산 평가손익이 여기에 들어가요.",
+      "example": "지금 팔지 않은 주식의 값이 올랐을 때 그 차이를 순이익과 따로 적는 것과 비슷해요.",
+      "whereToCheck": "포괄손익계산서, 자본 '기타포괄손익누계액'",
+      "noJudgment": null,
+      "related": [
+        "fairValue"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "기타포괄손익",
+          "총포괄손익"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 IAS 1 기준서 소개(ifrs.org)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "subsidiary",
+      "level": "CORE",
+      "term": "종속기업 / 지배",
+      "aliases": [
+        "종속기업",
+        "자회사"
+      ],
+      "definition": "회사가 지배하는 다른 회사를 종속기업이라고 해요. 지배하는 회사(지배기업)는 종속기업과 합친 연결재무제표를 만들어요.",
+      "example": "모회사가 자회사 경영을 좌우할 수 있으면 자회사 숫자를 합쳐 보여 줘요.",
+      "whereToCheck": "연결재무제표, 사업보고서 '회사의 개요'",
+      "noJudgment": null,
+      "related": [
+        "associates",
+        "fsDiv"
+      ],
+      "companyValue": null,
+      "sources": [
+        {
+          "title": "IFRS 재단 IFRS 10 기준서 소개(ifrs.org)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "associates",
+      "level": "CORE",
+      "term": "관계기업·공동기업 투자 / 지분법",
+      "aliases": [
+        "관계기업",
+        "지분법",
+        "공동기업",
+        "지분법이익"
+      ],
+      "definition": "경영에 의미 있는 영향력을 미치지만 지배하지는 않는 회사(관계기업)에 투자한 것이에요. 지분법은 처음에 산 값으로 적고, 그 회사의 이익·손실 중 내 몫만큼 투자 금액을 늘리거나 줄이는 방법이에요.",
+      "example": "30% 가진 회사가 100원을 벌면 내 투자 금액이 30원 늘어요(지분법이익).",
+      "whereToCheck": "재무상태표, 손익계산서 '지분법이익'",
+      "noJudgment": null,
+      "related": [
+        "subsidiary"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "관계기업및공동기업투자",
+          "지분법이익"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 IAS 28 기준서 소개(ifrs.org)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "deferredTax",
+      "level": "CORE",
+      "term": "이연법인세자산 / 이연법인세부채",
+      "aliases": [
+        "이연법인세",
+        "이연법인세자산",
+        "이연법인세부채"
+      ],
+      "definition": "회계 장부와 세법의 기준 차이 때문에 앞으로 세금을 더 내야 하는 몫(부채)이나 덜 내게 되는 몫(자산)이에요. 쓰지 못한 세무상 결손금도 자산이 될 수 있어요.",
+      "example": "올해 장부에는 비용이지만 세법상 내년에 비용으로 인정되면, 내년 세금이 줄어드는 몫이 자산이 돼요.",
+      "whereToCheck": "재무상태표, 주석(법인세)",
+      "noJudgment": null,
+      "related": [],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "이연법인세자산",
+          "이연법인세부채"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 IAS 12 기준서 소개(ifrs.org)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "revenueRecognition",
+      "level": "CORE",
+      "term": "매출(수익 인식)",
+      "aliases": [
+        "수익 인식",
+        "수익인식"
+      ],
+      "definition": "약속한 물건이나 서비스를 고객에게 넘겨 고객이 그것을 갖게 됐을 때 매출로 적어요.",
+      "example": "돈을 미리 받아도 물건을 넘기기 전에는 매출이 아니에요(선수금).",
+      "whereToCheck": "손익계산서, 주석(수익)",
+      "noJudgment": null,
+      "related": [],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "매출액"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 IFRS 15 기준서 소개(ifrs.org)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "eps",
+      "level": "CORE",
+      "term": "주당이익(기본·희석)",
+      "aliases": [
+        "주당이익",
+        "주당순이익",
+        "EPS",
+        "희석주당이익",
+        "기본주당이익"
+      ],
+      "definition": "보통주 한 주가 이번 기간에 번 이익(또는 손실)이에요. 희석주당이익은 전환사채·주식선택권처럼 앞으로 주식이 될 수 있는 것까지 넣어 다시 계산한 값이에요.",
+      "example": "이익 1,000원을 주식 100주로 나누면 주당 10원이에요.",
+      "whereToCheck": "손익계산서 아래쪽",
+      "noJudgment": null,
+      "related": [],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "기본주당이익",
+          "희석주당이익"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 IAS 33 기준서 소개(ifrs.org)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "operatingCashFlow",
+      "level": "CORE",
+      "term": "영업활동현금흐름",
+      "aliases": [
+        "영업현금흐름"
+      ],
+      "definition": "본업을 하면서 실제로 들어오고 나간 현금의 합이에요. 외상으로 판 돈은 들어오기 전까지 안 잡혀요.",
+      "example": "100원어치 팔았어도 아직 돈을 못 받았으면 현금은 들어오지 않아요.",
+      "whereToCheck": "현금흐름표, 체크포인트 '이익과 현금흐름'",
+      "noJudgment": "일시적인 이유로 달라질 수 있어 한 기간만 보고 판단하지 않아요.",
+      "related": [
+        "investingFinancingCashFlow",
+        "cashEquivalents"
+      ],
+      "companyValue": {
+        "checkpoint": "EARNINGS_QUALITY",
+        "accounts": [
+          "영업활동현금흐름"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 IAS 7 기준서 소개(ifrs.org)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "investingFinancingCashFlow",
+      "level": "CORE",
+      "term": "투자활동·재무활동현금흐름",
+      "aliases": [
+        "투자활동현금흐름",
+        "재무활동현금흐름"
+      ],
+      "definition": "투자활동은 공장·설비처럼 오래 쓸 자산과 투자를 사고판 현금, 재무활동은 돈을 빌리고 갚거나 주식을 발행하는 등 자금 조달과 관련된 현금이에요.",
+      "example": "기계를 사면 투자활동, 은행에서 빌리면 재무활동이에요.",
+      "whereToCheck": "현금흐름표",
+      "noJudgment": null,
+      "related": [
+        "operatingCashFlow"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "투자활동현금흐름",
+          "재무활동현금흐름"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 IAS 7 기준서 소개(ifrs.org)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "fairValue",
+      "level": "CORE",
+      "term": "공정가치",
+      "aliases": [],
+      "definition": "측정하는 날 시장 참여자끼리 정상적으로 거래한다면 자산을 팔 때 받거나 부채를 넘길 때 줄 가격이에요.",
+      "example": "오늘 시장에 내놓으면 받을 수 있는 값이에요.",
+      "whereToCheck": "주석(공정가치)",
+      "noJudgment": null,
+      "related": [
+        "oci"
+      ],
+      "companyValue": null,
+      "sources": [
+        {
+          "title": "IFRS 재단 IFRS 13 기준서 소개(ifrs.org)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "impairmentLoss",
+      "level": "CORE",
+      "term": "손상차손",
+      "aliases": [
+        "손상"
+      ],
+      "definition": "자산의 장부 금액이 돌려받을 수 있는 금액보다 커지면, 그 차이만큼 장부 금액을 줄이고 바로 손실로 반영해요.",
+      "example": "100원에 산 기계가 고장 나 70원짜리가 되면 30원을 손실로 적는 것과 비슷해요.",
+      "whereToCheck": "손익계산서, 주석",
+      "noJudgment": "한 번에 크게 잡히기도 해서 그 기간 이익만 보고 판단하지 않아요.",
+      "related": [
+        "goodwill",
+        "ppe"
+      ],
+      "companyValue": null,
+      "sources": [
+        {
+          "title": "IFRS 재단 IAS 36 기준서 소개(ifrs.org)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "goodwill",
+      "level": "CORE",
+      "term": "영업권",
+      "aliases": [],
+      "definition": "다른 회사를 살 때 낸 값에서, 사 온 자산과 부채를 하나씩 따져 매긴 값을 빼고 남은 금액이에요.",
+      "example": "순자산 70원짜리 회사를 100원에 사면 차이 30원이 영업권이에요.",
+      "whereToCheck": "재무상태표(무형자산), 주석(사업결합)",
+      "noJudgment": null,
+      "related": [
+        "intangibleAssets",
+        "impairmentLoss"
+      ],
+      "companyValue": null,
+      "sources": [
+        {
+          "title": "IFRS 재단 IFRS 3 기준서 소개(ifrs.org)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "changeRate",
+      "level": "BASIC",
+      "term": "증감률(전년 대비)",
+      "aliases": [
+        "증감률",
+        "증감율"
+      ],
+      "definition": "이전 값에 비해 얼마나 늘거나 줄었는지를 %로 나타낸 거예요. 이 서비스는 이전 값이 0이거나 음수면 증감률을 계산하지 않아요.",
+      "example": "100원에서 110원이 되면 +10%예요.",
+      "whereToCheck": "재무 탭 증감률",
+      "noJudgment": "늘었다는 것만으로 좋고 나쁨을 정하지 않아요.",
+      "related": [],
+      "companyValue": null,
+      "sources": [
+        {
+          "title": "DART Insight API 명세 '재무 수치 변화'(서비스 계산 규칙)",
+          "url": "https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/api-spec.md"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "currentNoncurrent",
+      "level": "CORE",
+      "term": "유동 / 비유동",
+      "aliases": [
+        "유동",
+        "비유동"
+      ],
+      "definition": "보통 1년 안에 현금으로 바뀌거나 갚아야 하는 것은 유동, 그보다 오래 가는 것은 비유동으로 나눠요.",
+      "example": "다음 달 받을 외상값은 유동자산, 10년 쓸 공장은 비유동자산이에요.",
+      "whereToCheck": "재무상태표 묶음 제목",
+      "noJudgment": null,
+      "related": [
+        "balanceSheet"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "유동자산",
+          "유동부채",
+          "비유동자산",
+          "비유동부채"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 기준서 목록(IAS 1)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "receivables",
+      "level": "CORE",
+      "term": "매출채권",
+      "aliases": [
+        "외상매출금"
+      ],
+      "definition": "물건이나 서비스를 팔고 아직 받지 못한 돈이에요.",
+      "example": "친구에게 물건을 팔고 다음 달에 받기로 한 돈이에요.",
+      "whereToCheck": "재무상태표, 체크포인트 '매출채권'",
+      "noJudgment": "매출이 늘면 함께 늘 수 있어 늘었다는 것만으로 판단하지 않아요.",
+      "related": [
+        "revenueRecognition"
+      ],
+      "companyValue": {
+        "checkpoint": "RECEIVABLES",
+        "accounts": [
+          "매출채권"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 기준서 목록",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "depreciation",
+      "level": "CORE",
+      "term": "감가상각 / 상각",
+      "aliases": [
+        "감가상각",
+        "상각",
+        "감가상각비"
+      ],
+      "definition": "오래 쓰는 자산의 값을 쓰는 기간에 걸쳐 나눠 비용으로 반영하는 거예요. 형체 있는 자산은 감가상각, 무형자산은 상각이라고 해요. 이미 산 자산을 나눠 반영하는 것이라 그해 현금이 나가는 비용은 아니에요.",
+      "example": "1,000원짜리 기계를 10년 쓰면 해마다 100원씩 비용으로 잡는 식이에요(정액법 예).",
+      "whereToCheck": "현금흐름표 조정 항목, 주석",
+      "noJudgment": null,
+      "related": [
+        "ppe",
+        "intangibleAssets"
+      ],
+      "companyValue": null,
+      "sources": [
+        {
+          "title": "IFRS 재단 기준서 목록(IAS 16·IAS 38)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "payables",
+      "level": "CORE",
+      "term": "매입채무 / 미지급금",
+      "aliases": [
+        "매입채무",
+        "미지급금"
+      ],
+      "definition": "매입채무는 원재료·상품을 사고 아직 치르지 않은 돈, 미지급금은 그 밖의 거래로 아직 치르지 않은 돈이에요.",
+      "example": "거래처에서 밀가루를 외상으로 사면 매입채무예요.",
+      "whereToCheck": "재무상태표",
+      "noJudgment": null,
+      "related": [
+        "receivables"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "매입채무",
+          "미지급금"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 기준서 목록",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "borrowings",
+      "level": "CORE",
+      "term": "차입금",
+      "aliases": [
+        "단기차입금",
+        "장기차입금",
+        "유동성장기부채"
+      ],
+      "definition": "은행 등에서 빌린 돈이에요. 1년 안에 갚을 단기차입금, 그보다 긴 장기차입금, 장기차입금 중 1년 안에 만기가 돌아오는 유동성장기부채로 나눠요.",
+      "example": "다음 달 카드 결제는 단기, 10년 주택담보대출은 장기예요.",
+      "whereToCheck": "재무상태표, 체크포인트 '단기 차입금'",
+      "noJudgment": "사업 규모에 따라 달라 늘었다는 것만으로 판단하지 않아요.",
+      "related": [
+        "bonds",
+        "debtRatio"
+      ],
+      "companyValue": {
+        "checkpoint": "SHORT_TERM_BORROWINGS",
+        "accounts": [
+          "단기차입금",
+          "장기차입금",
+          "유동성장기부채"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 기준서 목록",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "bonds",
+      "level": "CORE",
+      "term": "사채",
+      "aliases": [
+        "회사채"
+      ],
+      "definition": "회사가 투자자에게 돈을 빌리며 발행하는 채권(회사채)이에요. 정해진 이자를 주고 만기에 원금을 갚아요.",
+      "example": "많은 사람에게 조금씩 돈을 빌리며 나눠 주는 차용증이에요.",
+      "whereToCheck": "재무상태표, 현금흐름표 '사채의 발행'",
+      "noJudgment": null,
+      "related": [
+        "convertibleBond",
+        "borrowings"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "사채"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 기준서 목록",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "retainedEarnings",
+      "level": "CORE",
+      "term": "이익잉여금",
+      "aliases": [],
+      "definition": "회사가 그동안 번 이익 중 배당 등으로 나눠 주지 않고 쌓아 둔 금액이에요.",
+      "example": "가게가 해마다 번 돈 중 쓰지 않고 모아 둔 돈이에요. 꼭 현금으로 쌓여 있는 것은 아니에요.",
+      "whereToCheck": "재무상태표 자본, 자본변동표",
+      "noJudgment": null,
+      "related": [
+        "dividend",
+        "equity"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "이익잉여금"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 기준서 목록",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "nonControlling",
+      "level": "CORE",
+      "term": "지배기업 소유주지분 / 비지배지분",
+      "aliases": [
+        "비지배지분",
+        "지배기업소유주지분",
+        "지배기업 소유주지분"
+      ],
+      "definition": "연결 숫자 중 모회사 주주의 몫이 지배기업 소유주지분이고, 자회사의 다른 주주 몫이 비지배지분이에요.",
+      "example": "자회사를 70% 가졌다면 자회사 이익 100원 중 30원은 다른 주주 몫(비지배지분)이에요.",
+      "whereToCheck": "연결 손익계산서·재무상태표 아래쪽",
+      "noJudgment": null,
+      "related": [
+        "subsidiary"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "비지배지분",
+          "지배기업소유주지분"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 기준서 목록(IFRS 10)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "grossProfit",
+      "level": "CORE",
+      "term": "매출원가 / 매출총이익",
+      "aliases": [
+        "매출원가",
+        "매출총이익"
+      ],
+      "definition": "매출원가는 판 물건을 만들거나 사 오는 데 든 돈, 매출총이익은 매출에서 매출원가를 뺀 금액이에요.",
+      "example": "1,000원에 판 빵을 만드는 데 600원이 들었다면 매출총이익은 400원이에요.",
+      "whereToCheck": "손익계산서",
+      "noJudgment": null,
+      "related": [
+        "operatingProfit",
+        "sga"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "매출원가",
+          "매출총이익"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 기준서 목록",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "sga",
+      "level": "CORE",
+      "term": "판매비와관리비",
+      "aliases": [
+        "판관비"
+      ],
+      "definition": "물건을 팔고 회사를 운영하는 데 든 비용이에요(인건비·광고비·임차료 등).",
+      "example": "빵집 직원 월급과 가게 월세예요.",
+      "whereToCheck": "손익계산서, 주석",
+      "noJudgment": null,
+      "related": [
+        "operatingProfit"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "판매비와관리비"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 기준서 목록",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "netIncome",
+      "level": "CORE",
+      "term": "당기순이익",
+      "aliases": [
+        "순이익"
+      ],
+      "definition": "이번 기간에 벌어들인 모든 수익에서 모든 비용과 법인세를 빼고 남은 이익이에요.",
+      "example": "월급에서 생활비와 세금을 모두 빼고 남은 돈이라고 생각하면 돼요.",
+      "whereToCheck": "손익계산서 맨 아래쪽",
+      "noJudgment": "한 번만 생긴 수익·손실이 섞일 수 있어 이 숫자 하나로 판단하지 않아요.",
+      "related": [
+        "operatingProfit",
+        "eps"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "당기순이익"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 기준서 목록",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "treasuryStock",
+      "level": "CORE",
+      "term": "자기주식",
+      "aliases": [
+        "자사주",
+        "자기주식 소각"
+      ],
+      "definition": "회사가 자기 회사 주식을 사들여 가지고 있는 것이에요. 사들인 뒤 없애는 것을 소각이라고 해요.",
+      "example": "내가 판 피자 조각을 다시 사오는 것과 비슷해요.",
+      "whereToCheck": "현금흐름표 '자기주식의 취득', 주요사항보고서",
+      "noJudgment": "목적에 따라 뜻이 달라 취득 사실만으로 판단하지 않아요.",
+      "related": [
+        "shares"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "자기주식의취득",
+          "자기주식소각"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 기준서 목록(IAS 32)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "goingConcern",
+      "level": "CORE",
+      "term": "계속기업 불확실성",
+      "aliases": [
+        "계속기업"
+      ],
+      "definition": "회사가 앞으로도 정상적으로 사업을 계속할 수 있을지에 중요한 의문이 있다는 표시예요. 감사보고서나 주석에 적혀요.",
+      "example": "가게가 내년에도 문을 열 수 있을지 확실하지 않다는 메모가 붙은 것과 비슷해요.",
+      "whereToCheck": "감사보고서, 주석, 체크포인트 '감사의견'",
+      "noJudgment": "표시가 있다는 사실만 알려 드리고 앞으로의 결과를 예측하지 않아요.",
+      "related": [
+        "auditOpinion"
+      ],
+      "companyValue": {
+        "checkpoint": "AUDIT_OPINION",
+        "accounts": []
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 기준서 목록(IAS 1)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "shareCapital",
+      "level": "CORE",
+      "term": "자본금 / 자본잉여금",
+      "aliases": [
+        "자본금",
+        "자본잉여금",
+        "주식발행초과금"
+      ],
+      "definition": "자본금은 발행한 주식의 액면금액 합계예요. 주식을 액면보다 비싸게 발행해 더 받은 돈은 주식발행초과금이고, 이런 자본 거래에서 생긴 잉여금을 자본잉여금이라고 해요.",
+      "example": "액면 100원 주식을 500원에 팔면 100원은 자본금, 400원은 주식발행초과금이에요.",
+      "whereToCheck": "재무상태표 자본, 자본변동표",
+      "noJudgment": null,
+      "related": [
+        "equity",
+        "rightsOffering"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "자본금",
+          "주식발행초과금",
+          "자본잉여금"
+        ]
+      },
+      "sources": [
+        {
+          "title": "상법(국가법령정보센터)",
+          "url": "https://www.law.go.kr/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "operatingProfit",
+      "level": "CORE",
+      "term": "영업이익",
+      "aliases": [],
+      "definition": "매출에서 매출원가와 판매비와관리비를 뺀, 본업으로 번 이익이에요.",
+      "example": "빵집이 빵을 팔아 남긴 돈에서 월세·월급까지 뺀 돈이에요.",
+      "whereToCheck": "손익계산서",
+      "noJudgment": "한 번만 생긴 일로 달라질 수 있어 한 기간만 보고 판단하지 않아요.",
+      "related": [
+        "operatingMargin",
+        "netIncome",
+        "grossProfit"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "영업이익"
+        ]
+      },
+      "sources": [
+        {
+          "title": "한국채택국제회계기준(K-IFRS) 추가 규정",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "rightsOffering",
+      "level": "CORE",
+      "term": "유상증자",
+      "aliases": [
+        "유증"
+      ],
+      "definition": "회사가 새 주식을 발행해 돈을 받고 파는 것이에요. 회사는 자금을 마련하고 주식 수는 늘어요.",
+      "example": "피자를 더 잘게 잘라 새 사람에게 판다고 생각하면, 기존 조각의 비중은 작아질 수 있어요.",
+      "whereToCheck": "주요사항보고서, 체크포인트 '주식 관련 자금 조달 공시'",
+      "noJudgment": "목적에 따라 뜻이 달라 하나로 판단하지 않아요.",
+      "related": [
+        "convertibleBond",
+        "majorReport"
+      ],
+      "companyValue": {
+        "checkpoint": "FUNDING_DISCLOSURES",
+        "accounts": []
+      },
+      "sources": [
+        {
+          "title": "상법·자본시장과 금융투자업에 관한 법률(국가법령정보센터)",
+          "url": "https://www.law.go.kr/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "convertibleBond",
+      "level": "CORE",
+      "term": "전환사채",
+      "aliases": [
+        "CB"
+      ],
+      "definition": "돈을 빌리며 발행하는 회사채인데, 정해진 조건에 주식으로 바꿀 수 있는 권리가 붙어 있어요.",
+      "example": "빌려준 돈을 돌려받거나, 원하면 그 회사 주식으로 바꿀 수 있는 차용증이에요.",
+      "whereToCheck": "주요사항보고서(전환사채권발행결정: 전환가액·전환청구기간), 체크포인트",
+      "noJudgment": "발행 조건과 목적에 따라 달라 발행 사실만으로 판단하지 않아요.",
+      "related": [
+        "bonds",
+        "rightsOffering"
+      ],
+      "companyValue": {
+        "checkpoint": "FUNDING_DISCLOSURES",
+        "accounts": []
+      },
+      "sources": [
+        {
+          "title": "상법·자본시장과 금융투자업에 관한 법률(국가법령정보센터)",
+          "url": "https://www.law.go.kr/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "dividend",
+      "level": "CORE",
+      "term": "배당",
+      "aliases": [
+        "현금배당",
+        "주식배당"
+      ],
+      "definition": "회사가 번 돈의 일부를 주주에게 나눠 주는 것이에요. 현금으로 주면 현금배당, 주식으로 주면 주식배당이에요.",
+      "example": "가게에서 남은 이익 일부를 함께 돈을 낸 친구들에게 나눠 주는 것과 같아요.",
+      "whereToCheck": "주요 사실 '배당', 현금흐름표 '배당금의 지급'",
+      "noJudgment": "배당을 늘리거나 줄인 사실만으로 판단하지 않아요.",
+      "related": [
+        "retainedEarnings",
+        "shares"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "배당금의지급"
+        ]
+      },
+      "sources": [
+        {
+          "title": "상법(국가법령정보센터)",
+          "url": "https://www.law.go.kr/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "largestShareholder",
+      "level": "CORE",
+      "term": "최대주주 / 특수관계인",
+      "aliases": [
+        "최대주주",
+        "특수관계인"
+      ],
+      "definition": "최대주주는 주식을 가장 많이 가진 주주이고, 특수관계인은 그와 가족·계열사처럼 가까운 관계에 있는 주주예요.",
+      "example": "반에서 가장 많은 표를 가진 사람과 그 가족·친구의 표를 함께 보는 것과 비슷해요.",
+      "whereToCheck": "주요 사실 '최대주주', 사업보고서 '주주에 관한 사항'",
+      "noJudgment": "지분이 바뀐 사실만으로 판단하지 않아요.",
+      "related": [
+        "shares"
+      ],
+      "companyValue": null,
+      "sources": [
+        {
+          "title": "자본시장과 금융투자업에 관한 법률(국가법령정보센터)",
+          "url": "https://www.law.go.kr/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "debtRatio",
+      "level": "CORE",
+      "term": "부채비율",
+      "aliases": [
+        "부채 비율"
+      ],
+      "definition": "부채총계를 자본총계로 나눈 비율이에요. 부채에는 빌린 돈뿐 아니라 갚아야 할 의무가 모두 들어가요.",
+      "example": "자본총계가 100원이고 부채총계가 30원이면 부채비율은 30%예요.",
+      "whereToCheck": "재무상태표, 체크포인트",
+      "noJudgment": "업종마다 보통 수준이 달라 이 숫자 하나로 좋고 나쁨을 정하지 않아요.",
+      "related": [
+        "liabilities",
+        "equity",
+        "borrowings"
+      ],
+      "companyValue": {
+        "checkpoint": "DEBT_RATIO",
+        "accounts": [
+          "부채총계",
+          "자본총계"
+        ]
+      },
+      "sources": [
+        {
+          "title": "한국은행 경제용어사전",
+          "url": "https://www.bok.or.kr/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "auditOpinion",
+      "level": "CORE",
+      "term": "감사의견",
+      "aliases": [
+        "적정의견",
+        "한정의견",
+        "부적정의견",
+        "의견거절"
+      ],
+      "definition": "외부 감사인이 재무제표가 회계기준에 맞게 작성됐는지 낸 의견이에요. 적정·한정·부적정·의견거절이 있어요.",
+      "example": "바깥 선생님이 성적표가 규칙대로 매겨졌는지 확인하고 남기는 확인 도장과 비슷해요.",
+      "whereToCheck": "감사보고서, 체크포인트 '감사의견'",
+      "noJudgment": "감사의견은 회계 처리에 대한 의견이지 회사의 좋고 나쁨에 대한 평가가 아니에요.",
+      "related": [
+        "goingConcern"
+      ],
+      "companyValue": {
+        "checkpoint": "AUDIT_OPINION",
+        "accounts": []
+      },
+      "sources": [
+        {
+          "title": "주식회사 등의 외부감사에 관한 법률(국가법령정보센터)",
+          "url": "https://www.law.go.kr/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "majorReport",
+      "level": "CORE",
+      "term": "주요사항보고서",
+      "aliases": [],
+      "definition": "유상증자·합병·영업 양수도처럼 회사에 중요한 일이 생기면 정기보고서와 따로 내는 보고서예요.",
+      "example": "성적표와 별개로 바로 보내는 알림과 비슷해요.",
+      "whereToCheck": "기업 화면 최근 공시",
+      "noJudgment": "보고서를 냈다는 사실만으로 판단하지 않아요.",
+      "related": [
+        "periodicReport",
+        "disclosure"
+      ],
+      "companyValue": null,
+      "sources": [
+        {
+          "title": "자본시장과 금융투자업에 관한 법률(국가법령정보센터)",
+          "url": "https://www.law.go.kr/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "periodicReport",
+      "level": "CORE",
+      "term": "사업보고서 / 반기보고서 / 분기보고서",
+      "aliases": [
+        "사업보고서",
+        "반기보고서",
+        "분기보고서",
+        "정기보고서"
+      ],
+      "definition": "회사가 정해진 때마다 내는 보고서예요. 사업보고서는 1년, 반기보고서는 6개월, 분기보고서는 3개월을 담아요.",
+      "example": "학기말·학년말 성적표가 따로 나오는 것과 비슷해요.",
+      "whereToCheck": "보고서명, 보고서 선택",
+      "noJudgment": null,
+      "related": [
+        "majorReport",
+        "disclosure"
+      ],
+      "companyValue": null,
+      "sources": [
+        {
+          "title": "자본시장과 금융투자업에 관한 법률(국가법령정보센터)",
+          "url": "https://www.law.go.kr/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "asset",
+      "level": "BASIC",
+      "term": "자산",
+      "aliases": [],
+      "definition": "회사가 가진 돈·물건·받을 권리처럼 앞으로 회사에 이익을 가져다줄 것들이에요.",
+      "example": "현금, 공장, 아직 못 받은 외상값이 모두 자산이에요.",
+      "whereToCheck": "재무상태표 자산총계",
+      "noJudgment": "많다는 것만으로 좋고 나쁨을 정하지 않아요.",
+      "related": [
+        "liabilities",
+        "equity"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "자산총계"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 기준서 목록(재무보고를 위한 개념체계)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "liabilities",
+      "level": "BASIC",
+      "term": "부채",
+      "aliases": [],
+      "definition": "회사가 앞으로 갚거나 치러야 할 의무예요. 빌린 돈뿐 아니라 아직 치르지 않은 대금도 들어가요.",
+      "example": "은행 대출과 외상으로 산 물건값이 부채예요.",
+      "whereToCheck": "재무상태표 부채총계",
+      "noJudgment": "많다는 것만으로 좋고 나쁨을 정하지 않아요.",
+      "related": [
+        "asset",
+        "equity",
+        "debtRatio"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "부채총계"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 기준서 목록(재무보고를 위한 개념체계)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "equity",
+      "level": "BASIC",
+      "term": "자본",
+      "aliases": [],
+      "definition": "자산에서 부채를 뺀 나머지로, 주주의 몫이에요.",
+      "example": "5억 원짜리 집에 대출이 3억 원이면 내 몫은 2억 원인 것과 비슷해요.",
+      "whereToCheck": "재무상태표 자본총계",
+      "noJudgment": null,
+      "related": [
+        "asset",
+        "liabilities"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "자본총계"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 기준서 목록(재무보고를 위한 개념체계)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "balanceSheet",
+      "level": "BASIC",
+      "term": "재무상태표",
+      "aliases": [],
+      "definition": "보고 기간 마지막 날 기준으로 회사의 자산·부채·자본을 보여 주는 표예요. 자산은 부채와 자본을 더한 것과 같아요.",
+      "example": "연말에 통장 잔액과 대출 잔액을 한 장에 정리한 것과 비슷해요.",
+      "whereToCheck": "재무 탭 '재무상태표'",
+      "noJudgment": null,
+      "related": [
+        "asset",
+        "liabilities",
+        "equity"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "자산총계",
+          "부채총계",
+          "자본총계"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 기준서 목록",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "incomeStatement",
+      "level": "BASIC",
+      "term": "손익계산서",
+      "aliases": [
+        "포괄손익계산서"
+      ],
+      "definition": "일정 기간 동안 얼마를 벌고(매출), 얼마를 쓰고(비용), 얼마가 남았는지(이익) 보여 주는 표예요.",
+      "example": "한 달 가계부의 수입·지출·남은 돈과 비슷해요.",
+      "whereToCheck": "재무 탭 '손익계산서'",
+      "noJudgment": null,
+      "related": [
+        "revenueExpense",
+        "profit"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "매출액",
+          "영업이익",
+          "당기순이익"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 기준서 목록",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "cashFlowStatement",
+      "level": "BASIC",
+      "term": "현금흐름표",
+      "aliases": [],
+      "definition": "일정 기간 동안 현금이 어디서 들어오고 어디로 나갔는지 영업·투자·재무 활동으로 나눠 보여 주는 표예요.",
+      "example": "통장 입출금 내역을 용도별로 묶어 정리한 것과 비슷해요.",
+      "whereToCheck": "재무 탭 '현금흐름표'",
+      "noJudgment": null,
+      "related": [
+        "operatingCashFlow",
+        "investingFinancingCashFlow"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "영업활동현금흐름",
+          "투자활동현금흐름",
+          "재무활동현금흐름"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 기준서 목록(IAS 7)",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "equityStatement",
+      "level": "BASIC",
+      "term": "자본변동표",
+      "aliases": [],
+      "definition": "일정 기간 동안 자본이 왜 늘거나 줄었는지(이익, 배당, 증자, 자기주식 등) 보여 주는 표예요.",
+      "example": "내 몫이 월급·용돈·지출로 어떻게 바뀌었는지 정리한 표와 비슷해요.",
+      "whereToCheck": "재무 탭 '자본변동표'",
+      "noJudgment": null,
+      "related": [
+        "equity"
+      ],
+      "companyValue": null,
+      "sources": [
+        {
+          "title": "IFRS 재단 기준서 목록",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "revenueExpense",
+      "level": "BASIC",
+      "term": "매출 / 비용",
+      "aliases": [
+        "비용"
+      ],
+      "definition": "매출은 회사가 본업으로 물건·서비스를 팔아 번 돈이고, 비용은 그 과정에서 쓴 돈이에요.",
+      "example": "빵을 팔아 번 돈이 매출, 밀가루값과 직원 월급이 비용이에요.",
+      "whereToCheck": "손익계산서",
+      "noJudgment": "매출이 늘었다는 것만으로 좋고 나쁨을 정하지 않아요.",
+      "related": [
+        "revenueRecognition",
+        "profit"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "매출액"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 기준서 목록",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "profit",
+      "level": "BASIC",
+      "term": "이익",
+      "aliases": [],
+      "definition": "번 돈에서 쓴 돈을 뺀 나머지예요. 본업만 따지면 영업이익, 모든 수익·비용과 세금까지 빼면 당기순이익이에요.",
+      "example": "빵을 팔아 1,000원 벌고 700원을 쓰면 이익은 300원이에요.",
+      "whereToCheck": "손익계산서",
+      "noJudgment": "한 기간 숫자만으로 판단하지 않아요.",
+      "related": [
+        "operatingProfit",
+        "netIncome"
+      ],
+      "companyValue": {
+        "checkpoint": null,
+        "accounts": [
+          "영업이익",
+          "당기순이익"
+        ]
+      },
+      "sources": [
+        {
+          "title": "IFRS 재단 기준서 목록",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "shares",
+      "level": "BASIC",
+      "term": "주식 / 주주",
+      "aliases": [
+        "주식",
+        "주주"
+      ],
+      "definition": "주식은 회사의 주인 몫을 잘게 나눈 증서이고, 주식을 가진 사람이 주주예요.",
+      "example": "피자 한 판을 여러 조각으로 나눠 조각을 가진 만큼 피자의 주인이 되는 것과 비슷해요.",
+      "whereToCheck": "사업보고서 '주식의 총수 등'",
+      "noJudgment": null,
+      "related": [
+        "largestShareholder",
+        "listing"
+      ],
+      "companyValue": null,
+      "sources": [
+        {
+          "title": "상법(국가법령정보센터)",
+          "url": "https://www.law.go.kr/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "listing",
+      "level": "BASIC",
+      "term": "상장",
+      "aliases": [],
+      "definition": "회사 주식을 증권거래소(코스피·코스닥 등)에서 누구나 사고팔 수 있게 올린 것이에요. 상장회사에는 종목코드가 붙어요.",
+      "example": "시장 매대에 물건을 올려 누구나 살 수 있게 한 것과 비슷해요.",
+      "whereToCheck": "기업 화면 종목코드",
+      "noJudgment": "상장 여부만으로 좋고 나쁨을 정하지 않아요.",
+      "related": [
+        "shares"
+      ],
+      "companyValue": null,
+      "sources": [
+        {
+          "title": "한국거래소 상장 규정",
+          "url": "https://www.krx.co.kr/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "key": "disclosure",
+      "level": "BASIC",
+      "term": "공시 / DART",
+      "aliases": [
+        "공시",
+        "DART",
+        "전자공시"
+      ],
+      "definition": "공시는 회사가 투자자에게 알려야 할 정보를 공개하는 것이고, DART는 금융감독원의 전자공시시스템이에요.",
+      "example": "학교가 알림을 공지 게시판에 올리는 것과 비슷해요.",
+      "whereToCheck": "DART 원문 링크",
+      "noJudgment": null,
+      "related": [
+        "periodicReport",
+        "majorReport"
+      ],
+      "companyValue": null,
+      "sources": [
+        {
+          "title": "금융감독원 전자공시시스템 DART",
+          "url": "https://dart.fss.or.kr/"
+        }
+      ],
+      "reviewer": "AI 검토",
+      "reviewedAt": "2026-11-06"
     }
   ]
 }
