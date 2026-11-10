@@ -50,7 +50,7 @@ class LlmRequest:
     user: str
     output_schema: dict[str, Any] = field(default_factory=dict)
     context: Any = None
-    max_output_tokens: int = 2000
+    max_output_tokens: int = 4000
     timeout_seconds: float | None = None
     total_timeout_seconds: float | None = None
     model: str | None = None

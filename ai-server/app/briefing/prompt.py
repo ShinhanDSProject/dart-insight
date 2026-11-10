@@ -85,5 +85,5 @@ def build_request(briefing: BriefingInput) -> LlmRequest:
         user="\n".join(lines),
         output_schema=OUTPUT_SCHEMA,
         context=briefing,
-        max_output_tokens=1200,
+        max_output_tokens=4000,
     )
