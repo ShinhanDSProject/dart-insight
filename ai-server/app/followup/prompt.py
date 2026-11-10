@@ -100,5 +100,5 @@ def build_request(followup: FollowupInput) -> LlmRequest:
         user="\n".join(lines),
         output_schema=OUTPUT_SCHEMA,
         context=followup,
-        max_output_tokens=2500,
+        max_output_tokens=4000,
     )

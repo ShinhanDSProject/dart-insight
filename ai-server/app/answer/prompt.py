@@ -99,5 +99,5 @@ def build_request(question: AnswerInput) -> LlmRequest:
         user="\n".join(lines),
         output_schema=OUTPUT_SCHEMA,
         context=question,
-        max_output_tokens=1000,
+        max_output_tokens=4000,
     )

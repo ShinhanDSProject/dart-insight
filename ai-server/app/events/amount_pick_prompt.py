@@ -14,7 +14,7 @@ from app.llm.providers import LlmRequest
 PROMPT_VERSION = "event-amount-pick-3"
 TASK = "event_amount_pick"
 # 답은 번호 하나지만, 추론을 쓰는 모델이 잘리지 않게 넉넉히 둔다. 2.12에서 다시 본다
-MAX_OUTPUT_TOKENS = 1000
+MAX_OUTPUT_TOKENS = 4000
 
 SYSTEM = "\n".join(
     [

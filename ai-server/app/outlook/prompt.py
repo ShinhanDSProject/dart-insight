@@ -91,5 +91,5 @@ def build_request(outlook: OutlookInput) -> LlmRequest:
         user="\n".join(lines),
         output_schema=OUTPUT_SCHEMA,
         context=outlook,
-        max_output_tokens=2000,
+        max_output_tokens=4000,
     )
