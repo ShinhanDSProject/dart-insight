@@ -3,7 +3,8 @@ from dataclasses import replace
 import pytest
 
 from app.core.config import LlmSettings
-from app.llm import FakeProvider, LlmClient, LlmUnavailable
+from app.llm import FakeProvider, LlmClient, LlmUnavailable, ProviderTruncatedError
+from app.llm.providers import ProviderResponse
 from app.summary import fake
 from app.summary.model import (
     FINANCIAL,
@@ -127,6 +128,21 @@ def test_unknown_evidence_is_generated_again() -> None:
     assert all(i.status == OK for i in output.items)
     assert [c.outcome for c in output.calls] == ["INVALID_OUTPUT", "OK"]
     assert "주어진 원문 id가 아닙니다" in provider.requests[1].user
+
+
+def test_truncated_every_time_says_so_instead_of_a_check_failure() -> None:
+    # 잘림은 근거·숫자 확인 실패가 아니라서 사유를 사실대로 쓴다(#838)
+    partial = ProviderResponse(text="", model="fake-model", input_tokens=9000, output_tokens=12000)
+    cut = ProviderTruncatedError("응답이 출력 토큰 한도(max_tokens)에서 잘렸습니다.", partial)
+    llm, _ = client(cut, cut, cut)
+
+    output = summarize(llm, SUMMARY)
+
+    by_ref = {i.ref: i for i in output.items}
+    for ref in ("T1", "F1"):
+        assert by_ref[ref].status == REVIEW_NEEDED
+        assert "잘려" in (by_ref[ref].review_reason or "")
+    assert [c.outcome for c in output.calls] == ["INVALID_OUTPUT"] * 3
 
 
 def test_numbers_not_in_the_cited_source_are_never_shown() -> None:

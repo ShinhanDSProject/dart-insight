@@ -15,7 +15,7 @@ from dataclasses import dataclass, field, replace
 from datetime import datetime
 
 from app.llm import CallRecord, LlmClient, LlmOutputInvalid, OutputProblem
-from app.llm.client import KST
+from app.llm.client import KST, TRUNCATED_PROBLEM
 from app.llm.providers import FAKE_RESPONDERS
 from app.summary import fake
 from app.summary.model import FINANCIAL, NONE, OK, REVIEW_NEEDED, TEXT, ItemResult, SummaryInput
@@ -84,7 +84,12 @@ def summarize(llm: LlmClient, summary: SummaryInput) -> SummaryOutput:
         model = e.calls[-1].model if e.calls else None
         generated_at = e.calls[-1].called_at if e.calls else now
         calls = e.calls
-        reason = "다시 생성해도 근거·숫자 확인을 통과하지 못했어요."
+        # 마지막 응답이 출력 토큰 한도에서 잘렸으면 검증 실패가 아니라 잘림을 사유로 쓴다(#838)
+        reason = (
+            "응답이 출력 토큰 한도에서 잘려 요약을 끝내지 못했어요."
+            if e.problems == [TRUNCATED_PROBLEM]
+            else "다시 생성해도 근거·숫자 확인을 통과하지 못했어요."
+        )
         for ref, kind in [(i.ref, TEXT) for i in summary.text_items] + [
             (i.ref, FINANCIAL) for i in summary.financial_items if i.candidates
         ]:
