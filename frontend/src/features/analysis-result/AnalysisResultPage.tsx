@@ -1,3 +1,4 @@
+import { useResultTour } from '@/shared/hooks/useResultTour'
 import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { match, P } from 'ts-pattern'
@@ -21,6 +22,7 @@ import { FinancialTab } from './components/FinancialTab'
 import { ComparisonContextCard } from './components/ComparisonContextCard'
 import { NewsTab } from './components/NewsTab'
 import { OutdatedNotice } from './components/OutdatedNotice'
+import { ResultTour } from './components/ResultTour'
 import { SourceTab } from './components/SourceTab'
 import { SummaryTab } from './components/SummaryTab'
 import { TextTab } from './components/TextTab'
@@ -171,6 +173,7 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
     if (isLegacyAskTab(search)) update({ tab: 'summary' })
   }, [search, update])
   const brief = useExportBrief(analysis)
+  const tour = useResultTour()
   const { questions: suggestions, sectionCounts } = useAskSuggestions(analysis.analysisId)
   const examples = match(suggestions)
     .with({ status: 'success' }, ({ data }) => data)
@@ -208,6 +211,8 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
       <div className="result-tabs">
         <Tabs label="결과 보기" items={tabs} value={params.tab} onChange={(t) => update({ tab: t })} />
       </div>
+      {/* 처음 열었을 때만 보는 순서를 짧게 안내한다(#842). 이용 안내에서 다시 볼 수 있다 */}
+      {tour.visible && <ResultTour onGoTab={(tab) => update({ tab })} onOpenChat={openChat} onFinish={tour.finish} />}
 
       <ResultTabPanel
         analysis={analysis}

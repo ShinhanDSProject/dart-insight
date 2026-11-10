@@ -3862,3 +3862,62 @@
     display: inline-flex;
   }
 }
+
+/* 결과 화면 첫 방문 둘러보기(#842). 탭 바로 아래 작은 카드, 화면을 가리지 않는다 */
+.result-tour {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border-accent);
+  border-radius: var(--radius-lg);
+  background: var(--color-accent-subtle);
+}
+
+.result-tour__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.result-tour .result-tour__mascot {
+  flex: none;
+  width: 24px;
+}
+
+.result-tour__title {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+.result-tour__count {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-regular);
+}
+
+.result-tour__text {
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.result-tour__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.result-tour__nav {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.result-tour .result-tour__skip {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-regular);
+}
