@@ -3,8 +3,10 @@ import type { SeasonChangeList } from '@/shared/api/seasonChanges'
 import { formatDate } from '@/shared/lib/reportLabels'
 import { seasonCaption } from './seasonChanges'
 
-/** 첫 화면 접는 목록(#686)에 보이는 줄 수. 나머지는 둘러보기에서 본다 */
+/** 첫 화면 목록(#686)에 담는 줄 수. 나머지는 둘러보기에서 본다 */
 export const HOME_LIST_LIMIT = 10
+/** 처음 보이는 줄 수(#848). 나머지는 '더 보기'로 연다 */
+export const HOME_LIST_FIRST = 5
 
 /** 대표 기업과 시즌 변화를 같은 모양으로 그리기 위한 한 줄 */
 export interface HomeRankRow {

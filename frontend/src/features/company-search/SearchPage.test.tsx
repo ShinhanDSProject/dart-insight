@@ -263,17 +263,17 @@ describe('첫 화면 검색창과 펼침 상자(#560, FS-67)', () => {
     expect(await axeViolations(container)).toBe('')
   })
 
-  it('첫 화면 검색창 아래에 접는 목록 두 개를 두고, 검색 결과 화면에는 두지 않는다(#686)', async () => {
+  it('첫 화면 아래에 대표 기업·시즌 변화 두 칸을 두고, 검색 결과 화면에는 두지 않는다(#686, #848)', async () => {
     renderAt('')
-    expect(screen.getByText('대표 기업').closest('details')?.open).toBe(false)
-    expect(screen.getByText('이번 시즌 변화가 큰 기업 Top 10').closest('details')?.open).toBe(false)
-    // 로그인 전에는 관심 기업 새 공시 토글이 없다
+    expect(screen.getByRole('heading', { name: /^대표 기업/ })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: /^이번 시즌 변화가 큰 기업/ })).toBeTruthy()
+    // 로그인 전에는 관심 기업 새 공시 칸이 없다
     expect(screen.queryByText('관심 기업 새 공시')).toBeNull()
     cleanup()
 
     renderAt('삼성')
     await screen.findByRole('list', { name: '검색 결과 3곳' })
-    expect(screen.queryByText('대표 기업')).toBeNull()
+    expect(screen.queryByRole('heading', { name: /^대표 기업/ })).toBeNull()
   })
 
   it('검색어를 넣으면 펼침 상자를 그리지 않는다(#560)', () => {
@@ -329,7 +329,8 @@ describe('첫 화면 검색창과 펼침 상자(#560, FS-67)', () => {
     expect(screen.getByRole('region', { name: '최근 본 분석' })).toBeTruthy()
     const favorites = await screen.findByRole('region', { name: '자주 찾는 기업' })
     expect(within(favorites).getByRole('link', { name: /삼성전기/ }).getAttribute('href')).toBe('/companies/00126371')
-    expect(screen.getByText('관심 기업 새 공시').closest('details')?.open).toBe(false)
+    // 관심 기업 새 공시는 무거워서 누를 때만 불러온다(#848)
+    expect(screen.getByRole('button', { name: /최근 공시 보기/ })).toBeTruthy()
     expect(screen.queryByText('관심 기업의 새 공시는 로그인하면 여기에 모여요')).toBeNull()
 
     const input = screen.getByRole('textbox', { name: '회사명 또는 종목코드' }) as HTMLInputElement

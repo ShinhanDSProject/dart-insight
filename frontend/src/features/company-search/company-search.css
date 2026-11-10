@@ -21,66 +21,57 @@
   margin-bottom: var(--space-6);
 }
 
-/* 첫 화면 검색창 바로 아래 좌우로 나란한 작은 접는 목록(#686). 관심 기업 새 공시가 있으면 세 칸 */
+/* 첫 화면 두 칸 짧은 목록(#686 → #848): 왼쪽 대표 기업, 오른쪽 시즌 변화. 접지 않고 테두리 없이 위 검색창·사용 순서와 이어 둔다 */
 .home-lists {
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: start;
-  gap: var(--space-2);
+  gap: var(--space-4) var(--space-6);
   width: 100%;
-  margin-top: var(--space-3);
+  margin-top: var(--space-5);
   text-align: left;
 }
 
-.home-toggle {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg);
+.home-panel--wide {
+  grid-column: 1 / -1;
 }
 
-.home-toggle__summary {
-  min-height: var(--touch-target-min);
+.home-panel__title {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   gap: var(--space-2);
-  padding: 0 var(--space-3);
-  color: var(--color-text-muted);
+  margin: 0 0 var(--space-1);
   font-size: var(--font-size-sm);
-  cursor: pointer;
-  list-style: none;
+  font-weight: var(--font-weight-semibold);
 }
 
-.home-toggle__summary::-webkit-details-marker {
-  display: none;
-}
-
-.home-toggle__caret {
+.home-panel__tag {
+  color: var(--color-text-muted);
   font-size: var(--font-size-xs);
-  transition: transform var(--motion-base) var(--ease-out);
+  font-weight: var(--font-weight-regular);
 }
 
-.home-toggle[open] .home-toggle__caret {
-  transform: rotate(180deg);
-}
-
-.home-toggle__body {
-  padding: 0 var(--space-3) var(--space-3);
-}
-
-.home-toggle[open] .home-toggle__summary {
-  color: var(--color-text);
-}
-
-/* 관심 기업 새 공시의 제목은 접는 줄과 같아 숨긴다 */
-.home-toggle__body .home-list__head {
+/* 관심 기업 새 공시의 제목은 칸 제목과 같아 숨긴다 */
+.home-panel .home-list__head {
   display: none;
+}
+
+.home-panel .home-rank__more {
+  margin: var(--space-1) 0 0;
+  color: var(--color-link);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+  text-decoration: none;
+}
+
+.home-panel .home-rank__more:hover {
+  text-decoration: underline;
 }
 
 /* 두 목록이 함께 쓰는 순위 줄: 순위 · 기업명 · 오른쪽 작은 보조 정보 */
 .home-rank__caption {
-  margin: 0 0 var(--space-2);
+  margin: var(--space-2) 0 0;
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
 }
@@ -848,7 +839,7 @@
   }
 
   .home-lists {
-    grid-auto-flow: row;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .search-bar {
