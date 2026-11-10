@@ -5,14 +5,14 @@ import { SegmentedControl, type SegmentOption } from '@/shared/ui/SegmentedContr
 import { useTheme } from '@/shared/hooks/useTheme'
 import { THEME_OPTIONS, type ThemeChoice } from '@/shared/lib/theme'
 
-const THEME_ICONS: Record<ThemeChoice, IconName> = { system: 'monitor', light: 'sun', dark: 'moon' }
+const THEME_ICONS: Record<ThemeChoice, IconName> = { light: 'sun', dark: 'moon' }
 const THEME_SEGMENTS: SegmentOption<ThemeChoice>[] = THEME_OPTIONS.map((option) => ({
   ...option,
   icon: THEME_ICONS[option.value],
 }))
 
 /**
- * 상단 바의 화면 테마(FS-16, #548). 아이콘 버튼 하나로 두고, 누르면 시스템·밝게·어둡게를 고르는 작은 상자를 연다.
+ * 상단 바의 화면 테마(FS-16, #548). 아이콘 버튼 하나로 두고, 누르면 밝게·어둡게를 고르는 작은 상자를 연다.
  * 고르면 상자를 닫고 버튼으로 초점을 돌린다. Esc·바깥 누르기로도 닫힌다.
  */
 export function ThemeMenu() {
