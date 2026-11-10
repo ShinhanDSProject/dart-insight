@@ -3405,7 +3405,7 @@
   | --- | --- | --- |
   | `BLOCK` | `{rceptNo}#B{blockNo}` | `side`, `rceptNo`, `reportName`, `sectionNo`, `blockNo`, `sectionPath`, `quote`(문단 앞 160자). 근거 질문 `citations`와 같음 |
   | `SECTION` | `{rceptNo}#S{sectionNo}` | `side`, `rceptNo`, `reportName`, `sectionNo`, `sectionPath` |
-  | `TEXT_CHANGE` | `T{changeId}` | `changeId`, `changeType`, `rceptNo`(현재 쪽, `DELETED`면 이전 쪽), `reportName`, `sectionPath`, `quote` |
+  | `TEXT_CHANGE` | `T{changeId}` | `changeId`, `changeType`, `rceptNo`(현재 쪽, `DELETED`면 이전 쪽), `reportName`, `sectionPath`, `quote`(그 쪽 글의 앞 160자. `search_text_changes`의 검색어 `q`로 찾은 변경인데 검색어가 앞 160자 밖에 있거나 뒤에 이어지는 글이 60자 안 되면, 검색어 40자 앞부터 160자를 인용하고 잘린 앞·뒤에 `…`을 붙임. 검색어는 대소문자를 가리지 않음, #850) |
   | `FINANCIAL_CHANGE` | `F{changeId}` | `changeId`, `sjDiv`, `accountName`, `rceptNo`(현재 보고서), `sentence`(코드가 저장된 계산 결과로 만든 사실 문장) |
   | `DISCLOSURE` | `D{rceptNo}` | `rceptNo`, `reportName`, `rceptDt`, `dartUrl`(수시공시·공시 목록, 보조 근거) |
   | `REPORT_VALUE` | `{rceptNo}#V{n}` | `rceptNo`, `reportName`, `source`(`FINANCIAL_TREND`·`KEY_FACT`·`CHECKPOINT`·`DISCLOSURE_KEY_ITEM`), `label`(항목 이름), `value`·`unit`·`currency`(그 API가 준 값 그대로), `dartUrl`. `n`은 한 요청 안에서 backend가 붙인 번호이고, `rceptNo`는 값의 근거 접수번호(`sourceRceptNo`가 있으면 그것) |
