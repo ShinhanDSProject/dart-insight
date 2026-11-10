@@ -107,3 +107,4 @@ M0~M2에서 이미 내린 결정은 2026-10-22에 소급해 기록했습니다(0
 | [0060](0060-event-signal-and-sentences.md) | 사건 신호는 AI가 묶을 때 고른 종류·변화로 ai-server 코드가 기준표에서 붙이고, 공시의 의미와 신호 이유는 묶기 뒤 사건마다 따로 부른다 | 채택 | 2026-11-06 |
 | [0061](0061-glossary-term-cards.md) | 공시 용어 카드는 backend 저장소 파일 한 곳에 두고, 화면과 채팅이 함께 읽으며, 채팅은 용어 카드를 근거(G{키})로 쓰고 카드가 없으면 보고서의 설명을 찾는다 | 채택 | 2026-11-06 |
 | [0062](0062-anthropic-llm-provider.md) | 실제 LLM 제공자로 Anthropic Claude Messages API를 더해 기본으로 쓰고, 기본 모델은 claude-sonnet-5-5, Tool 고르기는 claude-haiku-5-5로 둔다 | 채택 | 2026-11-09 |
+| [0063](0063-event-tasks-claude-haiku.md) | Claude를 쓸 때 주요 사건 작업 4개(묶기·금액 확인·공시의 의미·신호 이유)는 claude-haiku-5-5로 부른다 | 채택 | 2026-11-10 |
