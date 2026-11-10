@@ -108,3 +108,4 @@ M0~M2에서 이미 내린 결정은 2026-10-22에 소급해 기록했습니다(0
 | [0061](0061-glossary-term-cards.md) | 공시 용어 카드는 backend 저장소 파일 한 곳에 두고, 화면과 채팅이 함께 읽으며, 채팅은 용어 카드를 근거(G{키})로 쓰고 카드가 없으면 보고서의 설명을 찾는다 | 채택 | 2026-11-06 |
 | [0062](0062-anthropic-llm-provider.md) | 실제 LLM 제공자로 Anthropic Claude Messages API를 더해 기본으로 쓰고, 기본 모델은 claude-sonnet-5-5, Tool 고르기는 claude-haiku-5-5로 둔다 | 채택(기본 모델과 Tool 고르기 모델은 ADR-0063이 대체) | 2026-11-09 |
 | [0063](0063-claude-haiku-default-model.md) | Claude를 쓸 때 기본 모델은 모든 작업에 claude-haiku-5-5로 둔다 | 채택 | 2026-11-10 |
+| [0064](0064-term-general-explanation.md) | 용어 카드도 보고서 설명도 없는 금융·공시 용어는 AI가 근거 없는 일반 설명을 쓰고, 코드가 'AI 일반 설명 · 공시 근거 아님'을 붙인다 | 제안 | 2026-11-10 |
