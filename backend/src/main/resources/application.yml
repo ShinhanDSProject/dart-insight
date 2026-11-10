@@ -200,7 +200,7 @@ app:
       "[openai:gpt-6-luna]":
         input-per-million-usd: 0.1
         output-per-million-usd: 0.5
-      # Anthropic claude-sonnet-5-5: 입력 2달러, 출력 10달러(2026-11-09 확인, ADR-0062 기본 모델)
+      # Anthropic claude-sonnet-5-5: 입력 2달러, 출력 10달러(2026-11-09 확인, ADR-0062. 기본 모델은 ADR-0063부터 haiku)
       # 출처: Anthropic 가격 페이지(https://platform.claude.com/docs/en/about-claude/pricing). 바뀌면 다시 확인한다
       "[anthropic:claude-sonnet-5-5]":
         input-per-million-usd: 2
@@ -211,7 +211,7 @@ app:
         input-per-million-usd: 2
         output-per-million-usd: 10
       # Anthropic claude-haiku-5-5: 입력 0.1달러, 출력 0.5달러(프롬프트 10만 토큰 이하, 2026-11-09 확인,
-      # ADR-0062 에이전트 Tool 고르기). 출처는 위와 같다
+      # ADR-0063 기본 모델). 출처는 위와 같다
       "[anthropic:claude-haiku-5-5]":
         input-per-million-usd: 0.1
         output-per-million-usd: 0.5

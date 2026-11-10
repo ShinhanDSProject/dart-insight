@@ -6,10 +6,10 @@
 import os
 from dataclasses import dataclass, field
 
-# 제공자별 작업별 모델의 기본값(ADR-0059·ADR-0062). LLM_TASK_MODELS가 없으면 이 값을 쓰고,
-# 빈 값이면 작업별 모델을 쓰지 않는다. 여기 없는 제공자는 작업별 모델을 쓰지 않는다
+# 제공자별 작업별 모델의 기본값(ADR-0059). LLM_TASK_MODELS가 없으면 이 값을 쓰고,
+# 빈 값이면 작업별 모델을 쓰지 않는다. 여기 없는 제공자는 작업별 모델을 쓰지 않는다.
+# Claude는 기본 모델이 모든 작업에 claude-haiku-5-5라 작업별 기본값이 없다(ADR-0063)
 DEFAULT_TASK_MODELS = {
-    "anthropic": "agent_plan=claude-haiku-5-5",
     "openai": "agent_plan=gpt-6-luna",
 }
 
