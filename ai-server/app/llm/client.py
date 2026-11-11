@@ -30,6 +30,7 @@ from app.llm.providers import (
     Provider,
     ProviderError,
     ProviderQuotaError,
+    ProviderRefusalError,
     ProviderTransientError,
     ProviderTruncatedError,
     create_provider,
@@ -38,6 +39,9 @@ from app.llm.providers import (
 logger = logging.getLogger("app.llm")
 # 사용 한도(결제·지출 한도)를 다 썼을 때. 기다려도 풀리지 않아 다시 시도하지 않는다
 QUOTA_MESSAGE = "AI 사용 한도에 도달해 지금은 AI를 쓸 수 없어요. 운영자가 한도를 올려야 해요."
+# 다시 쓸 수 있는 시각을 알 때 덧붙이는 문장(한국 시간)
+QUOTA_RESETS_AT = " {at}(한국 시간)부터 다시 쓸 수 있어요."
+REFUSAL_MESSAGE = "AI가 이 요청에 답하지 않았어요. 질문을 바꿔 다시 시도해 주세요."
 KST = timezone(timedelta(hours=9))
 # 응답이 출력 토큰 한도에서 잘렸을 때 다시 생성하며 알리는 문제(#838)
 TRUNCATED_PROBLEM = (
@@ -281,7 +285,9 @@ class LlmClient:
                 calls.append(record)
                 _log(record)
                 if isinstance(e, ProviderQuotaError):
-                    raise LlmUnavailable(QUOTA_MESSAGE, calls) from e
+                    raise LlmUnavailable(_quota_message(e), calls) from e
+                if isinstance(e, ProviderRefusalError):
+                    raise LlmUnavailable(REFUSAL_MESSAGE, calls) from e
                 raise LlmUnavailable("LLM을 부르지 못했어요(설정·인증 확인 필요).", calls) from e
             record = self._record(
                 request,
@@ -373,3 +379,10 @@ def _log(record: CallRecord) -> None:
         record.outcome,
         f" ({record.error})" if record.error else "",
     )
+
+
+def _quota_message(error: ProviderQuotaError) -> str:
+    if error.resets_at is None:
+        return QUOTA_MESSAGE
+    at = error.resets_at.astimezone(KST).strftime("%Y-%m-%d %H:%M")
+    return QUOTA_MESSAGE + QUOTA_RESETS_AT.format(at=at)

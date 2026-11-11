@@ -1,5 +1,6 @@
 import re
 from dataclasses import replace
+from datetime import UTC, datetime
 
 import pytest
 
@@ -14,6 +15,7 @@ from app.llm import (
     OutputProblem,
     ProviderError,
     ProviderQuotaError,
+    ProviderRefusalError,
     ProviderTransientError,
     ProviderTruncatedError,
 )
@@ -260,6 +262,27 @@ def test_spent_quota_is_not_retried_and_says_limit() -> None:
         llm.generate(REQUEST, need_answer)
 
     assert [c.outcome for c in error.value.calls] == ["ERROR"]
+    assert len(provider.requests) == 1
+
+
+def test_spent_quota_says_when_access_returns_in_korea_time() -> None:
+    quota = ProviderQuotaError("Anthropic 오류 400", datetime(2026, 12, 1, tzinfo=UTC))
+    llm, _ = client(quota)
+
+    with pytest.raises(LlmUnavailable) as error:
+        llm.generate(REQUEST, need_answer)
+
+    assert "사용 한도" in error.value.message
+    assert "2026-12-01 09:00(한국 시간)부터" in error.value.message
+
+
+def test_refusal_is_not_reported_as_settings_problem() -> None:
+    llm, provider = client(ProviderRefusalError("Anthropic 모델이 답을 거절했습니다(refusal)."))
+
+    with pytest.raises(LlmUnavailable, match="답하지 않았어요") as error:
+        llm.generate(REQUEST, need_answer)
+
+    assert "설정" not in error.value.message
     assert len(provider.requests) == 1
 
 

@@ -14,6 +14,7 @@ from app.llm.providers import (
     LlmRequest,
     ProviderError,
     ProviderQuotaError,
+    ProviderRefusalError,
     ProviderTransientError,
     ProviderTruncatedError,
 )
@@ -30,6 +31,7 @@ __all__ = [
     "OutputProblem",
     "ProviderError",
     "ProviderQuotaError",
+    "ProviderRefusalError",
     "ProviderTransientError",
     "ProviderTruncatedError",
 ]
