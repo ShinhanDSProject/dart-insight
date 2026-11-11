@@ -9,7 +9,7 @@ export const resultTabLabels: Record<ResultTab, string> = {
   summary: '요약',
   financial: '재무 수치',
   activity: '공시 분석',
-  text: '전체 변경',
+  text: '원문 · 바뀐 곳',
   community: '커뮤니티',
   news: '뉴스',
   source: '원문',

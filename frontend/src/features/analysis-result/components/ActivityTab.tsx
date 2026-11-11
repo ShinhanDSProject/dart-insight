@@ -29,18 +29,18 @@ import { KeyNumbers } from './KeyNumbers'
 
 interface ActivityTabProps {
   analysis: Analysis
-  /** 카드의 '전체 변경에서 보기': 전체 변경 탭에서 그 문장 변경과 근거를 연다 */
+  /** 카드의 '바뀐 곳에서 원문 비교 보기': 원문 탭의 바뀐 곳에서 그 문장 변경과 근거를 연다 */
   onOpenText: (changeId: number) => void
   /** 핵심 숫자의 '근거 보기': 재무 수치 탭의 그 계정으로 간다 */
   onOpenFinancial: (item: FinancialChangeItem) => void
-  /** 전체 변경 탭으로 간다(문장 변경 전체 목록) */
+  /** 원문 탭의 바뀐 곳으로 간다(문장 변경 전체 목록) */
   onOpenAll: () => void
 }
 
 /**
  * 공시 분석 탭(ADR-0067). 두 보고서 사이에 회사가 한 일과 앞으로의 영향을
  * 한 줄 요약 → 숫자로 본 이 기간 → 관점 고르기 → 활동 카드(사실·신호·앞으로의 영향) 순서로 보인다.
- * 바뀐 문장 전체는 전체 변경 탭에 따로 있다.
+ * 바뀐 문장 전체는 원문 탭의 바뀐 곳에 따로 있다.
  */
 export function ActivityTab({ analysis, onOpenText, onOpenFinancial, onOpenAll }: ActivityTabProps) {
   const { state, reload } = usePeriodActivities(analysis.analysisId)
@@ -48,9 +48,9 @@ export function ActivityTab({ analysis, onOpenText, onOpenFinancial, onOpenAll }
     <section className="activity" aria-label="공시 분석">
       <header className="activity__head">
         <p className="panel__note">
-          {analysis.previous.reportName} → {analysis.current.reportName} · 두 보고서 사이에 회사가 한 일과 앞으로의 영향 중 눈여겨볼 것만 골랐어요. 바뀐 문장 전체는{' '}
+          {analysis.previous.reportName} → {analysis.current.reportName} · 두 보고서 사이에 회사가 한 일과 앞으로의 영향 중 눈여겨볼 것만 골랐어요. 바뀐 문장 전체는 원문 탭의{' '}
           <Button variant="link" onClick={onOpenAll}>
-            전체 변경
+            바뀐 곳
           </Button>
           에 있어요.
         </p>
@@ -89,7 +89,7 @@ function ActivityBody({ data, analysisId, onOpenText, onOpenFinancial, onOpenAll
         <EmptyState title="두 보고서 사이에 따로 짚을 만한 활동을 찾지 못했어요">
           <p>바뀐 문장은 있지만 눈여겨볼 활동으로 볼 것이 없었어요.</p>
           <Button variant="secondary" onClick={onOpenAll}>
-            전체 변경 보기
+            바뀐 곳 보기
           </Button>
         </EmptyState>
       </>
@@ -97,7 +97,7 @@ function ActivityBody({ data, analysisId, onOpenText, onOpenFinancial, onOpenAll
     .with('REVIEW_NEEDED', () => (
       <>
         <Notice tone="attention" title="검토 필요">
-          {data.message ?? 'AI가 만든 내용을 원문 근거로 확인하지 못해 보여 주지 않았어요.'} 바뀐 문장은 전체 변경에서 볼 수 있어요.
+          {data.message ?? 'AI가 만든 내용을 원문 근거로 확인하지 못해 보여 주지 않았어요.'} 바뀐 문장은 원문 탭의 바뀐 곳에서 볼 수 있어요.
         </Notice>
         {numbers}
       </>
@@ -227,7 +227,7 @@ function ActivityCard({ item, onOpenText }: { item: ActivityItem; onOpenText: (c
       {firstChange !== null && (
         <div className="activity-card__actions">
           <Button variant="secondary" onClick={() => onOpenText(firstChange)}>
-            전체 변경에서 원문 비교 보기
+            바뀐 곳에서 원문 비교 보기
           </Button>
         </div>
       )}

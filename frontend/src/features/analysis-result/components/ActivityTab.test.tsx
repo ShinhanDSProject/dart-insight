@@ -125,12 +125,12 @@ describe('공시 분석 탭(ADR-0067)', () => {
     expect(card.getByText(/판단 기준표에 없는 사건/)).toBeTruthy()
   })
 
-  it('원문 비교 버튼은 전체 변경 탭에서 그 문장 변경을 연다', () => {
+  it('원문 비교 버튼은 원문 탭의 바뀐 곳에서 그 문장 변경을 연다', () => {
     const { onOpenText, onOpenAll } = renderTab({ status: 'success', data: generated([contract]) })
 
-    fireEvent.click(screen.getByRole('button', { name: '전체 변경에서 원문 비교 보기' }))
+    fireEvent.click(screen.getByRole('button', { name: '바뀐 곳에서 원문 비교 보기' }))
     expect(onOpenText).toHaveBeenCalledWith(41)
-    fireEvent.click(screen.getByRole('button', { name: '전체 변경' }))
+    fireEvent.click(screen.getByRole('button', { name: '바뀐 곳' }))
     expect(onOpenAll).toHaveBeenCalled()
   })
 

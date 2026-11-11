@@ -3720,9 +3720,12 @@
   align-items: start;
 }
 
-/* 결과 탭 줄이 화면 위에 붙어 있어 목록은 붙이지 않고, 높이를 정해 따로 스크롤한다 */
+/* 원문 목차(.source-toc)처럼 위에 붙은 결과 탭 줄 아래에 붙여 두고, 목록이 길면 목록 안에서 스크롤한다.
+   화면 높이에 맞춰 두어 페이지를 내려도 목록이 함께 사라지지 않고, 상세를 읽으며 다른 변경으로 옮긴다 */
 .change-browser__list {
-  max-height: 75vh;
+  position: sticky;
+  top: calc(var(--sticky-top, 0px) + var(--control-height) + var(--space-5));
+  max-height: calc(100vh - var(--sticky-top, 0px) - var(--control-height) - var(--space-7));
   overflow: auto;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -3882,6 +3885,7 @@
   }
 
   .change-browser__list {
+    position: static;
     max-height: none;
   }
 
@@ -4116,4 +4120,10 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+}
+
+/* 원문 탭 맨 위의 보기 전환(원문 읽기·바뀐 곳) */
+.source-view-switch {
+  display: flex;
+  margin-bottom: var(--space-4);
 }
