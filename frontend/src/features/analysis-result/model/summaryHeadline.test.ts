@@ -1,6 +1,23 @@
 import { describe, expect, it } from 'vitest'
 import type { SummaryItem } from '@/shared/api/summary'
+import type { GlossaryTerm } from '@/shared/api/glossaryTerms'
 import { glossaryForAccount, headlineItems, headlineTitle } from './summaryHeadline'
+
+const CARDS: GlossaryTerm[] = [
+  {
+    key: 'operatingMargin',
+    level: 'CORE',
+    term: '영업이익률',
+    aliases: [],
+    definition: '매출 중 본업으로 남긴 돈의 비율이에요.',
+    example: null,
+    whereToCheck: null,
+    noJudgment: null,
+    related: [],
+    sources: [{ title: '공식 자료', url: 'https://example.test' }],
+    reviewedAt: '2026-11-10',
+  },
+]
 
 function financial(itemNo: number, factSentence: string | null, aiText: string | null = null): SummaryItem {
   return {
@@ -96,8 +113,9 @@ describe('핵심 카드 제목과 용어 풀이', () => {
     expect(headlineTitle(3)).toBe('이번 비교에서 크게 바뀐 것 3가지')
   })
 
-  it('이름이 같은 용어 카드만 찾고(공백 무시), 없으면 지어내지 않고 null', () => {
-    expect(glossaryForAccount('영업 이익률')?.term).toBe('영업이익률')
-    expect(glossaryForAccount('당기손익-공정가치 측정 금융자산관련순손익')).toBeNull()
+  it('이름·별칭이 같은 용어 카드만 찾고(공백 무시), 없거나 카드를 못 받았으면 지어내지 않고 null', () => {
+    expect(glossaryForAccount(CARDS, '영업 이익률')?.term).toBe('영업이익률')
+    expect(glossaryForAccount(CARDS, '당기손익-공정가치 측정 금융자산관련순손익')).toBeNull()
+    expect(glossaryForAccount(null, '영업이익률')).toBeNull()
   })
 })

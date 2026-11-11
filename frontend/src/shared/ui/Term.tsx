@@ -1,13 +1,13 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type FocusEvent, type KeyboardEvent, type ReactNode } from 'react'
 import { useGlossaryTerms } from '@/shared/glossary/hooks/useGlossaryTerms'
-import { termEntryByKey } from '@/shared/glossary/model/glossaryCards'
+import { termCardByKey } from '@/shared/glossary/model/glossaryCards'
 import type { GlossaryKey } from '@/shared/lib/glossary'
 
 /** 설명 상자와 화면 가장자리 사이에 남길 여백(px). CSS의 max-width 계산과 같은 값 */
 const VIEWPORT_GAP = 16
 
 interface TermProps {
-  /** 용어 사전(shared/lib/glossary)의 항목 */
+  /** 용어 카드의 키(shared/lib/glossary) */
   name: GlossaryKey
   /** 화면에 보이는 원래 문구. 바꾸지 않고 그대로 감싼다 */
   children: ReactNode
@@ -16,12 +16,17 @@ interface TermProps {
 /**
  * 공시 용어 풀이(FS-36). 문구를 점선 밑줄·ⓘ가 붙은 버튼으로 감싸고, 누르면(Enter·Space 포함) 아래에 작은 설명 상자를 연다.
  * Esc를 누르면 닫고 버튼으로 초점을 돌려주며, 바깥을 누르거나 초점이 밖으로 나가도 닫힌다. 좁은 화면에서는 상자를 화면 안으로 당긴다.
- * 뜻은 채팅과 같은 용어 카드(GET /api/glossary-terms, ADR-0061)의 한 줄 뜻이다. 카드가 없거나 아직 못 받았으면
- * #772 전까지 glossary.ts 정의를 보인다.
+ * 뜻은 채팅과 같은 용어 카드(GET /api/glossary-terms, ADR-0061)의 한 줄 뜻이다. 카드를 받는 중이거나 못 받았거나
+ * 그 키의 카드가 없으면 풀이 버튼 없이 원래 문구만 보인다(뜻을 지어내지 않음).
  */
 export function Term({ name, children }: TermProps) {
   const { state } = useGlossaryTerms()
-  const entry = termEntryByKey(state.status === 'success' ? state.data : null, name)
+  const card = termCardByKey(state.status === 'success' ? state.data : null, name)
+  if (card === null) return <>{children}</>
+  return <TermPopover term={card.term} definition={card.definition}>{children}</TermPopover>
+}
+
+function TermPopover({ term, definition, children }: { term: string; definition: string; children: ReactNode }) {
   const [open, setOpen] = useState(false)
   const popoverId = useId()
   const rootRef = useRef<HTMLSpanElement>(null)
@@ -78,8 +83,8 @@ export function Term({ name, children }: TermProps) {
         </span>
       </button>
       <span ref={popoverRef} id={popoverId} role="tooltip" className="term__popover" hidden={!open}>
-        <span className="term__label">용어 풀이 · {entry.term}</span>
-        <span className="term__definition">{entry.definition}</span>
+        <span className="term__label">용어 풀이 · {term}</span>
+        <span className="term__definition">{definition}</span>
       </span>
     </span>
   )

@@ -1,13 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { GlossaryTerm } from '@/shared/api/glossaryTerms'
-import { glossary } from '@/shared/lib/glossary'
 import {
   easierQuestion,
   findCardByName,
   normalizeTermName,
   relatedTerms,
-  termEntryByKey,
-  termEntryByName,
+  termCardByKey,
   termQuestion,
 } from './glossaryCards'
 
@@ -44,25 +42,14 @@ describe('normalizeTermName·findCardByName', () => {
   })
 })
 
-describe('termEntryByKey', () => {
-  it('카드가 있으면 카드의 한 줄 뜻을 쓴다(결과 화면과 채팅 카드의 뜻이 같다, AC10)', () => {
-    const entry = termEntryByKey(CARDS, 'rceptNo')
-
-    expect(entry.source).toBe('card')
-    expect(entry.definition).toBe('카드의 접수번호 뜻이에요.')
+describe('termCardByKey', () => {
+  it('카드가 있으면 그 카드를 쓴다(결과 화면과 채팅 카드의 뜻이 같다, AC10)', () => {
+    expect(termCardByKey(CARDS, 'rceptNo')?.definition).toBe('카드의 접수번호 뜻이에요.')
   })
 
-  it('카드가 없거나 아직 못 받았으면 #772 전까지 glossary.ts 정의로 대신한다', () => {
-    expect(termEntryByKey(CARDS, 'fsDiv')).toEqual({ source: 'fallback', ...glossary.fsDiv })
-    expect(termEntryByKey(null, 'rceptNo')).toEqual({ source: 'fallback', ...glossary.rceptNo })
-  })
-})
-
-describe('termEntryByName', () => {
-  it('용어 사전 열기는 카드를 먼저, 없으면 glossary.ts에서 이름이 같은 용어를, 둘 다 없으면 null이다', () => {
-    expect(termEntryByName(CARDS, 'CB')?.source).toBe('card')
-    expect(termEntryByName(CARDS, '정정 공시')).toEqual({ source: 'fallback', ...glossary.correction })
-    expect(termEntryByName(null, '충당부채')).toBeNull()
+  it('카드를 아직 못 받았거나 그 키의 카드가 없으면 뜻을 지어내지 않고 null이다', () => {
+    expect(termCardByKey(CARDS, 'fsDiv')).toBeNull()
+    expect(termCardByKey(null, 'rceptNo')).toBeNull()
   })
 })
 

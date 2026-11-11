@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { match } from 'ts-pattern'
 import type { ChatAction, ChatCitation, ChatContext, ChatCrossCheck, ChatMessageResponse } from '@/shared/api/agentChat'
 import { useGlossaryTerms } from '@/shared/glossary/hooks/useGlossaryTerms'
-import { findCardByKey, termEntryByName } from '@/shared/glossary/model/glossaryCards'
+import { findCardByKey, findCardByName } from '@/shared/glossary/model/glossaryCards'
 import type { AsyncState } from '@/shared/hooks/asyncState'
 import type { ParamChanges } from '@/shared/lib/searchParams'
 import { Badge, Button, ButtonLink, Icon, Mascot, Notice, PanelTitle, SidePanel, TextArea } from '@/shared/ui'
@@ -506,31 +506,22 @@ function CitationGlossaryCard({ citation, onAsk }: { citation: ChatCitation; onA
   return <GlossaryCard card={card} basics={basics} cards={state} onAsk={onAsk} />
 }
 
-/**
- * 용어 사전 열기 버튼(OPEN_GLOSSARY). 카드가 있으면 용어 카드를, #772 전까지는 glossary.ts 정의를 펼치고,
- * 둘 다 없으면 '등록된 용어가 없어요'(뜻을 지어내지 않음)
- */
+/** 용어 사전 열기 버튼(OPEN_GLOSSARY). 카드가 있으면 용어 카드를, 없으면 '등록된 용어가 없어요'(뜻을 지어내지 않음) */
 function GlossaryAction({ label, term, onAsk }: { label: string; term: string; onAsk: (message: string) => void }) {
   const [open, setOpen] = useState(false)
   const { state } = useGlossaryTerms()
-  const entry = termEntryByName(state.status === 'success' ? state.data : null, term)
+  const card = state.status === 'success' ? findCardByName(state.data, term) : null
   return (
     <div className="chat-panel__term">
       <Button variant="secondary" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
         {label}: {term}
       </Button>
       {open &&
-        match(entry)
-          .with({ source: 'card' }, ({ card }) => (
-            <GlossaryCard card={card} basics={{ term: card.term, definition: card.definition, sources: card.sources }} cards={state} onAsk={onAsk} />
-          ))
-          .with({ source: 'fallback' }, ({ term: name, definition }) => (
-            <p className="chat-panel__term-body">
-              {name}: {definition}
-            </p>
-          ))
+        match(card)
           .with(null, () => <p className="chat-panel__term-body">등록된 용어가 없어요.</p>)
-          .exhaustive()}
+          .otherwise((found) => (
+            <GlossaryCard card={found} basics={{ term: found.term, definition: found.definition, sources: found.sources }} cards={state} onAsk={onAsk} />
+          ))}
     </div>
   )
 }

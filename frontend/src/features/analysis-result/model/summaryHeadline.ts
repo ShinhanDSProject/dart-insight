@@ -1,5 +1,6 @@
 import type { Summary, SummaryKind, SummaryTarget } from '@/shared/api/summary'
-import { glossary, type GlossaryEntry } from '@/shared/lib/glossary'
+import type { GlossaryTerm } from '@/shared/api/glossaryTerms'
+import { findCardByName } from '@/shared/glossary/model/glossaryCards'
 
 /** 요약 탭 맨 위 '핵심 3줄'(FS-21). 요약 응답에서 고르기만 하고 새 문장을 만들지 않는다. */
 
@@ -41,13 +42,10 @@ export function headlineTitle(count: number): string {
   return `이번 비교에서 크게 바뀐 것 ${count}가지`
 }
 
-const compact = (name: string) => name.replace(/\s+/g, '')
-
 /**
- * 계정 이름과 이름이 같은 용어 카드(공백 무시). 카드가 없으면 null이고, 화면은 풀이를 지어내지 않는다.
- * shortcut: 카드가 9개뿐이라 대부분 null이다. 계정 용어 카드가 늘면(#771 API 전환) 그 목록으로 찾는다.
+ * 계정 이름과 이름·별칭이 같은 용어 카드(공백·대소문자 무시). 카드를 못 받았거나 없으면 null이고,
+ * 화면은 풀이를 지어내지 않는다.
  */
-export function glossaryForAccount(accountName: string): GlossaryEntry | null {
-  const name = compact(accountName)
-  return Object.values(glossary).find((entry) => compact(entry.term) === name) ?? null
+export function glossaryForAccount(cards: GlossaryTerm[] | null, accountName: string): GlossaryTerm | null {
+  return cards === null ? null : findCardByName(cards, accountName)
 }
