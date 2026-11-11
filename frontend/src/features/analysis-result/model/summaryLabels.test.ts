@@ -5,6 +5,7 @@ import {
   explanationNote,
   gradeLabel,
   gradeNote,
+  interimExplanationNote,
   kindLabel,
   summaryItemQuestion,
   summaryLink,
@@ -14,6 +15,7 @@ import {
   summaryStatusNotice,
   textCoverageNote,
 } from './summaryLabels'
+import type { SummaryItem } from '@/shared/api/summary'
 import { DELETED_NOTE } from './textLabels'
 
 describe('summaryLabels', () => {
@@ -132,6 +134,17 @@ describe('summaryLabels', () => {
         aiText: '변경 ID 없는 문장',
       }),
     ).toBeNull()
+  })
+})
+
+describe('interimExplanationNote', () => {
+  const financial = (explanationStatus: SummaryItem['explanationStatus']) => ({ kind: 'FINANCIAL', explanationStatus }) as SummaryItem
+
+  it('반기·분기보고서에서 설명을 찾지 못한 재무 수치가 있을 때만 이유를 알린다', () => {
+    expect(interimExplanationNote('HALF', [financial('FOUND'), financial('NOT_FOUND')])).toContain('반기·분기보고서')
+    expect(interimExplanationNote('Q1', [financial('NOT_FOUND')])).toContain('사업보고서끼리')
+    expect(interimExplanationNote('HALF', [financial('FOUND')])).toBeNull()
+    expect(interimExplanationNote('ANNUAL', [financial('NOT_FOUND')])).toBeNull()
   })
 })
 

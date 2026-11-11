@@ -34,6 +34,7 @@ import {
 import {
   deletedNote,
   explanationNote,
+  interimExplanationNote,
   kindLabel,
   SUMMARY_NOTE,
   summaryItemQuestion,
@@ -207,6 +208,7 @@ function SummaryBody({
 }: Omit<SummaryContentProps, 'summary'> & { data: Summary }) {
   const notice = summaryStatusNotice(data.summaryStatus, data.summaryMessage)
   const coverage = data.summaryStatus === null ? null : textCoverageNote(data.textStatus)
+  const interim = interimExplanationNote(analysis.current.reportType, data.items)
   // 주소에 남은 관점이 이 요약에 없으면 전체로 본다
   const lens = effectiveLens(requestedLens, data.lensCounts)
   const items = filterByLens(data.items, lens)
@@ -238,6 +240,7 @@ function SummaryBody({
         </Notice>
       )}
       {coverage && <p className="panel__note">{coverage}</p>}
+      {interim && <p className="panel__note">{interim}</p>}
 
       {data.items.length === 0 && data.reviewNeededCount === 0 && data.summaryStatus !== null && data.summaryStatus !== 'EMPTY' && (
         <EmptyState title="요약할 변화가 없어요.">
