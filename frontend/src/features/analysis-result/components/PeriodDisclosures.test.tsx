@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Analysis } from '@/shared/api/analyses'
@@ -119,5 +119,33 @@ describe('요약 탭 이 기간 수시공시(시안)', () => {
       </MemoryRouter>,
     )
     expect(await screen.findByRole('button', { name: '다시 시도' })).toBeTruthy()
+  })
+
+  it('기본으로 펼쳐져 있고, 제목 줄(summary)을 클릭해 접고 펼 수 있다', async () => {
+    disclosuresApi.listDisclosures.mockResolvedValue({
+      corpCode: '00126380',
+      days: 365,
+      from: '2025-11-01',
+      to: '2026-11-01',
+      fetchedAt: null,
+      refreshError: null,
+      groups: [],
+      items: [disclosure('연결재무제표기준영업(잠정)실적(공정공시)', '2026-07-07', 'BUSINESS', '20260707000001')],
+    })
+    const { container } = render(
+      <MemoryRouter>
+        <PeriodDisclosures analysis={analysis} />
+      </MemoryRouter>,
+    )
+    const details = container.querySelector<HTMLDetailsElement>('details.period-disclosures__details')!
+    expect(details).toBeTruthy()
+    expect(details.open).toBe(true)
+
+    const summary = container.querySelector<HTMLElement>('summary.period-disclosures__summary')!
+    fireEvent.click(summary)
+    expect(details.open).toBe(false)
+
+    fireEvent.click(summary)
+    expect(details.open).toBe(true)
   })
 })

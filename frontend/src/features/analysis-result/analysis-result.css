@@ -2542,11 +2542,61 @@
   content: ')';
 }
 
-/* 요약 탭 오른쪽 '이 기간 수시공시'(시안). 변경이 많은 섹션과 같은 상자 모양 */
+/* 요약 탭 오른쪽 '이 기간 수시공시'(시안). 변경이 많은 섹션과 같은 상자 모양이며 접고 펼 수 있다 */
+.period-disclosures__details {
+  width: 100%;
+}
+
+.period-disclosures__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.period-disclosures__summary::-webkit-details-marker {
+  display: none;
+}
+
+.period-disclosures__summary:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
 .period-disclosures__head {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.period-disclosures__toggle::before {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  content: '펼치기 ▾';
+}
+
+.period-disclosures__details[open] .period-disclosures__toggle::before {
+  content: '접기 ▴';
+}
+
+.period-disclosures__summary:hover .period-disclosures__toggle::before {
+  color: var(--color-text);
+}
+
+.period-disclosures__details[open] .period-disclosures__summary {
+  margin-bottom: var(--space-3);
+}
+
+.period-disclosures__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
 .period-disclosures__list {
