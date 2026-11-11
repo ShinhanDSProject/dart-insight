@@ -1027,7 +1027,7 @@ def s14_arch_mcp(prs):
         slide,
         "14 · Architecture 02",
         "외부 AI 생태계 연결: 읽기 전용 MCP (Model Context Protocol) 탑재",
-        "Claude Desktop 등 외부 AI 클라이언트가 DART Insight의 공시 분석을 안전하게 조회합니다.",
+        "외부 AI 에이전트 및 LLM 클라이언트가 DART Insight의 공시 분석을 안전하게 조회합니다.",
         ACCENT_PURPLE, TINT_PURPLE
     )
 
@@ -1038,7 +1038,7 @@ def s14_arch_mcp(prs):
     top_y = Inches(2.05)
 
     mcp_features = [
-        ("01", "Anthropic 표준 MCP 규격", "차세대 AI 에이전트 표준인 Model Context Protocol Python SDK를 활용하여 외부 클라이언트가 직접 도구로 호출할 수 있는 독립 서버 구축", ACCENT_PURPLE),
+        ("01", "표준 MCP 오픈 프로토콜", "차세대 AI 에이전트 표준인 Model Context Protocol Python SDK를 활용하여 외부 클라이언트가 직접 도구로 호출할 수 있는 독립 서버 구축", ACCENT_PURPLE),
         ("02", "읽기 전용(Read-Only) 안전 격리", "외부 AI에게는 데이터 수정·삭제 권한이 일절 없는 순수 조회 도구(기업 검색, 보고서 비교 결과, 수치 근거 조회)만 선별 제공 (ADR-0052)", ACCENT_PURPLE),
         ("03", "단방향 보안 게이트 준수", "MCP 서버는 내부 AI 서버나 DB에 직접 접근하지 않고, Spring Boot 공개 API만을 경유하여 권한과 일일 한도를 일관 통제", ACCENT_PURPLE),
     ]
@@ -1076,7 +1076,7 @@ def s14_arch_mcp(prs):
 
     add_footer(slide, 14)
     set_speaker_notes(slide, """[발표 시간: 25초 | 누적: 06:10]
-"나아가 외부 AI 클라이언트와의 확장을 위해 읽기 전용 MCP 서버를 독립 구축했습니다. Claude Desktop 같은 외부 에이전트가 DART Insight의 공시 분석 데이터를 안전하게 호출할 수 있습니다."
+"나아가 외부 AI 클라이언트와의 확장을 위해 읽기 전용 MCP 서버를 독립 구축했습니다. 외부 LLM 에이전트가 DART Insight의 공시 분석 데이터를 안전하게 호출할 수 있습니다."
 """)
 
 def s15_perf_cache(prs):
@@ -1446,7 +1446,7 @@ def s20_ax_overview(prs):
     r2_w = Inches(3.7)
 
     steps_r2 = [
-        ("05", "자율 페어 코딩 (Core)", "Claude Code 🤝 Antigravity", "AGENTS.md 규칙 헌장 엄수 · What/How 분리(SLAP) 준수 · 421개 PR Rebase 선형 병합", ACCENT_BLUE, TINT_BLUE),
+        ("05", "자율 페어 코딩 (Core)", "자율 AI 에이전트 협업", "AGENTS.md 규칙 헌장 엄수 · What/How 분리(SLAP) 준수 · 421개 PR Rebase 선형 병합", ACCENT_BLUE, TINT_BLUE),
         ("06", "자동화 품질 게이트", "2,626개 테스트 · 웹 접근성", "GitHub Actions CI 전수 통과 · axe-core 접근성 0개 위반 · gitleaks 보안 차단", ACCENT_GREEN, TINT_GREEN),
         ("07", "수용기준 검증 (Done)", "AC 100% 실측 증빙 대조", "모든 기능 기획서 완료 판정 · 자동 테스트 및 PR 번호 대조 후 노션 승인", ACCENT_AMBER, TINT_AMBER),
     ]
@@ -1514,7 +1514,7 @@ def s21_ax_phase1(prs):
 
     phase1_items = [
         ("01", "성공 기준 (SC) 수립", "수작업 4시간 소요 및 LLM 환각 해결을 위한 4대 핵심 지표 수립. 어느 성공 기준에도 기여하지 않는 기능은 기획 단계에서 원천 차단했습니다.", ACCENT_CYAN),
-        ("02", "AI 스펙 엔지니어링", "AI 기획 스킬(.claude/skills/feature-spec)을 통해 '상황-행동-결과' 형식의 기계적 검증이 가능한 수용 기준(AC)을 정상·예외 흐름까지 빈틈없이 도출했습니다.", ACCENT_CYAN),
+        ("02", "AI 스펙 엔지니어링", "AI 기획 스킬 규약을 통해 '상황-행동-결과' 형식의 기계적 검증이 가능한 수용 기준(AC)을 정상·예외 흐름까지 빈틈없이 도출했습니다.", ACCENT_CYAN),
         ("03", "66개 ADR 선행 설계", "코드 한 줄 작성하기 전 API 명세, DB ERD, 66개 아키텍처 결정 기록(ADR)을 먼저 확정하여 팀 내 설계 불일치를 사전에 제로화했습니다.", ACCENT_CYAN),
     ]
 
@@ -1555,14 +1555,14 @@ def s21_ax_phase1(prs):
 """)
 
 def s22_ax_phase2(prs):
-    """22 · AX Phase 2: Claude Code 🤝 Antigravity 자율 페어 프로그래밍"""
+    """22 · AX Phase 2: 자율 AI 에이전트 페어 프로그래밍"""
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     set_slide_background(slide)
     add_header(
         slide,
         "22 · AX Phase 02",
         "AGENTS.md 규칙 헌장 기반의 사람과 AI, AI와 AI의 실시간 자율 협업",
-        "Claude Code(구현)와 Antigravity(설계·리뷰)가 실시간 파일·터미널 동기화로 협업했습니다.",
+        "자율 AI 에이전트(구현·리뷰)와 사람 개발자가 실시간 동기화로 협업했습니다.",
         ACCENT_BLUE, TINT_BLUE
     )
 
@@ -1574,7 +1574,7 @@ def s22_ax_phase2(prs):
 
     phase2_items = [
         ("01", "AGENTS.md 규칙 헌장", "'추측 코딩 절대 금지, 가치판단 배제, 로컬 DB 실측 검증 우선'이라는 명문화된 규칙 헌장을 사람과 AI 도구가 동일하게 준수했습니다.", ACCENT_BLUE),
-        ("02", "에이전틱 자율 페어 코딩", "Claude Code가 기능을 구현하면 Antigravity가 66개 ADR 및 SLAP(What/How 분리) 원칙을 상호 교차 검토하는 페어 프로그래밍을 가동했습니다.", ACCENT_BLUE),
+        ("02", "에이전틱 자율 페어 코딩", "AI 에이전트가 기능을 구현하고 66개 ADR 및 SLAP(What/How 분리) 원칙을 상호 교차 검토하는 페어 프로그래밍을 가동했습니다.", ACCENT_BLUE),
         ("03", "421개 PR 선형 완주", "feature 브랜치 단위 1이슈 1PR 원칙과 충돌 없는 Rebase Merge 전략을 고수하여, 421개 PR을 완벽한 단일 선형 역사로 완성했습니다.", ACCENT_BLUE),
     ]
 
@@ -1611,7 +1611,7 @@ def s22_ax_phase2(prs):
 
     add_footer(slide, 22)
     set_speaker_notes(slide, """[발표 시간: 25초 | 누적: 09:35]
-"2단계는 자율 페어 코딩입니다. AGENTS.md 헌장 아래 Claude Code와 Antigravity가 사람 개발자와 실시간 협업하며, 421개 PR을 단 하나의 충돌 없이 Rebase Merge 선형 히스토리로 완주했습니다."
+"2단계는 자율 페어 코딩입니다. AGENTS.md 헌장 아래 자율 AI 에이전트가 사람 개발자와 실시간 협업하며, 421개 PR을 단 하나의 충돌 없이 Rebase Merge 선형 히스토리로 완주했습니다."
 """)
 
 def s23_ax_phase3(prs):
