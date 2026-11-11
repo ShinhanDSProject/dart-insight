@@ -1,4 +1,5 @@
 /** 디자인 시스템 컴포넌트(conventions.yaml UI-1). 화면은 같은 모양을 새로 만들지 않고 여기서 가져다 쓴다. */
+export { AppBackdrop } from './AppBackdrop'
 export { Badge, type BadgeTone } from './Badge'
 export { BrandLogo } from './BrandLogo'
 export { Button, ButtonAnchor, ButtonLink, type ButtonSize, type ButtonVariant } from './Button'
