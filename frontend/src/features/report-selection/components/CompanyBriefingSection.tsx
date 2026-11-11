@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { match } from 'ts-pattern'
 import type { BriefingReport, BriefingSentence, CompanyBriefing } from '@/shared/api/briefing'
-import { Badge, Button, Notice, Panel, PanelTitle } from '@/shared/ui'
+import { Badge, Button, DocScanScene, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { useCompanyBriefing } from '../hooks/useCompanyBriefing'
@@ -25,7 +25,13 @@ export function CompanyBriefingSection({ corpCode }: { corpCode: string }) {
       </div>
       {match(state)
         .with({ status: 'loading' }, () => (
-          <LoadingState message="보고서 원문을 읽고 브리핑을 만드는 중이에요. 처음 여는 기업은 수십 초 걸릴 수 있어요." />
+          <div className="briefing-loading">
+            <DocScanScene
+              label="보고서 원문 AI 브리핑 생성 중"
+              chips={['핵심 실적', '사업 구조', '재무 건전성']}
+            />
+            <LoadingState message="보고서 원문을 읽고 브리핑을 만드는 중이에요. 처음 여는 기업은 수십 초 걸릴 수 있어요." />
+          </div>
         ))
         .with({ status: 'error' }, ({ error }) => (
           <ErrorState error={error} onRetry={reload} messages={BRIEFING_ERROR_MESSAGES} />

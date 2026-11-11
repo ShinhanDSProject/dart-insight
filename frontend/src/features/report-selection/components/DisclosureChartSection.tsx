@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { match } from 'ts-pattern'
 import type { DisclosureList } from '@/shared/api/disclosures'
 import { formatDate } from '@/shared/lib/reportLabels'
-import { Button, DataTable, DotTimeline, Notice, Panel, PanelTitle, SegmentedControl, type SegmentOption } from '@/shared/ui'
+import { Button, DataTable, DocScanScene, DotTimeline, Notice, Panel, PanelTitle, SegmentedControl, type SegmentOption } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
@@ -45,7 +45,15 @@ export function DisclosureChartSection({ corpCode }: { corpCode: string }) {
     <Panel className="disclosure-chart" aria-labelledby={titleId}>
       <PanelTitle id={titleId}>공시 타임라인</PanelTitle>
       {match(state)
-        .with({ status: 'loading' }, () => <LoadingState message="최근 1년 공시를 불러오는 중이에요…" />)
+        .with({ status: 'loading' }, () => (
+          <div className="disclosure-chart-loading">
+            <DocScanScene
+              label="최근 1년 공시 타임라인 구성 중"
+              chips={['실적·영업', '자금 조달', '지배구조']}
+            />
+            <LoadingState message="최근 1년 공시를 불러오는 중이에요…" />
+          </div>
+        ))
         .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} messages={errorMessages} />)
         .with({ status: 'success' }, ({ data }) => <DisclosureChart corpCode={corpCode} list={data} />)
         .exhaustive()}

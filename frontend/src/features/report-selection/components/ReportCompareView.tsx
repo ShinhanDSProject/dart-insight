@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
 import { match } from 'ts-pattern'
 import type { ComparisonBasis, ReportItem, ReportList } from '@/shared/api/reports'
-import { Badge, Button, ButtonLink, FieldHint, Notice, Panel, PanelTitle } from '@/shared/ui'
+import { Badge, Button, ButtonLink, FieldHint, Notice, Panel, PanelTitle, ReportStackScene } from '@/shared/ui'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { basisHint } from '@/shared/lib/comparisonBasis'
 import { openHeaderSearch } from '@/shared/lib/headerSearch'
@@ -39,7 +39,10 @@ export function ReportCompareView({ corpCode }: { corpCode: string }) {
 
   return match(state)
     .with({ status: 'loading' }, () => (
-      <LoadingState message="정기보고서 목록을 불러오는 중입니다… 처음 여는 기업은 OpenDART에서 받아 오느라 조금 걸려요." />
+      <div className="report-compare-loading">
+        <ReportStackScene label="OpenDART 정기보고서 수집 중" />
+        <LoadingState message="정기보고서 목록을 불러오는 중입니다… 처음 여는 기업은 OpenDART에서 받아 오느라 조금 걸려요." />
+      </div>
     ))
     .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} messages={errorMessages} />)
     .with({ status: 'success' }, ({ data }) => <ReportSelection corpCode={corpCode} reports={data} selection={selection} />)
