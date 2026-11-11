@@ -3,7 +3,6 @@ package com.dartinsight.document.service;
 import com.dartinsight.aiserver.client.AiServerClient;
 import com.dartinsight.aiserver.client.AiServerException;
 import com.dartinsight.aiserver.client.AiServerPaths;
-import com.dartinsight.common.error.ApiException;
 import com.dartinsight.dart.client.OpenDartClient;
 import com.dartinsight.dart.client.OpenDartClient.DocumentFile;
 import com.dartinsight.document.domain.DocumentBlock;
@@ -117,16 +116,14 @@ public class DocumentService {
 
     /**
      * 공시 원문의 글(ADR-0068). 정기보고서가 아니어서 구조는 저장하지 않고 ZIP만 접수번호로 캐시한다.
-     * 원문이 없거나 받기·구조화에 실패하면 빈 값이고 부르는 쪽은 제목만 쓴다.
+     * 원문이 없거나(013·014) 구조화 결과에 글이 없으면 빈 값이고 부르는 쪽은 제목만 쓴다.
+     *
+     * @throws com.dartinsight.common.error.ApiException 받기·구조화 실패(호출 한도, 네트워크, AI 서버 오류). 부르는 쪽은 결과를 저장하지 않는다
      */
     public Optional<String> disclosureText(String rceptNo, int limit) {
-        try {
-            Optional<byte[]> zip = disclosureZip(rceptNo);
-            return zip.map(bytes -> structure(rceptNo, bytes).plainText(limit)).filter(text -> !text.isBlank());
-        } catch (ApiException e) {
-            log.warn("공시 원문을 읽지 못해 제목만 씁니다 {}: {}", rceptNo, e.getClass().getSimpleName());
-            return Optional.empty();
-        }
+        return disclosureZip(rceptNo)
+                .map(bytes -> structure(rceptNo, bytes).plainText(limit))
+                .filter(text -> !text.isBlank());
     }
 
     private Optional<byte[]> disclosureZip(String rceptNo) {

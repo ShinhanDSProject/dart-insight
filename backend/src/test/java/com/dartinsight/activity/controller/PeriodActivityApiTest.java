@@ -267,6 +267,28 @@ class PeriodActivityApiTest {
     }
 
     @Test
+    @DisplayName("공시 원문을 받다가 호출 한도에 걸리면 저장하지 않고, 다음 요청에서 다시 받아 만든다")
+    void transientDocumentFailureIsNotStored() throws Exception {
+        String rceptNo = "20260319000789";
+        DART.on(LIST, Response.json(page(1, 1, item(rceptNo, "타법인주식및출자증권취득결정", "20260319", "유"))),
+                Response.json(DisclosureListJson.NO_DATA), Response.json(DisclosureListJson.NO_DATA),
+                Response.json(DisclosureListJson.NO_DATA), Response.json(DisclosureListJson.NO_DATA));
+        DART.on(DOCUMENT, Response.json(DisclosureListJson.RATE_LIMITED));
+        AI.on(AiServerPaths.PERIOD_ACTIVITIES, Reply.ok(generated(ITEM, "\"" + CUR + "#B11\"")));
+
+        mockMvc.perform(get(path()))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("DART_RATE_LIMITED"));
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM period_activity", Integer.class)).isZero();
+        assertThat(AI.requests(AiServerPaths.PERIOD_ACTIVITIES)).isEmpty();
+
+        DART.on(DOCUMENT, Response.json(NO_FILE));
+        mockMvc.perform(get(path())).andExpect(status().isOk());
+
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM period_activity", Integer.class)).isEqualTo(1);
+    }
+
+    @Test
     @DisplayName("공시 목록은 기업·기간마다 한 번만 받는다")
     void fetchesDisclosureListOncePerPeriod() throws Exception {
         AI.on(AiServerPaths.PERIOD_ACTIVITIES, Reply.ok(generated(ITEM, "\"" + CUR + "#B11\"")));

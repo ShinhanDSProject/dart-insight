@@ -19,7 +19,7 @@
 
 - 재무 수치: `SummarySelector.financial`이 고른 계정을 backend `FinancialFactText`가 '이전·이번·증감액·증감률' 문장으로 만든다. 표시 단위(조원·억원)와 증감률은 코드가 계산한다. 근거 ID는 `F{financial_change.id}`다.
 - 사이 기간 공시: 기간은 이전 보고서 제출 다음 날부터 현재 보고서 제출일까지다(ADR-0066과 같음). 공시유형 B·C·E·I·J를 `last_reprt_at=Y`로 받는다. 최종본만 받으므로 정정 묶기는 하지 않는다. 최대 80건이고 넘으면 최근 것을 남긴다. 근거 ID는 `D{rceptNo}`다.
-- 공시 원문: `document.xml`을 `DocumentFileCache`에 접수번호로 캐시하고 기존 구조화 API로 글을 뽑아 1,500자까지 넣는다. 구조화 결과는 저장하지 않는다. 원문이 없거나 실패하면 제목만 넣는다.
+- 공시 원문: `document.xml`을 `DocumentFileCache`에 접수번호로 캐시하고 기존 구조화 API로 글을 뽑아 1,500자까지 넣는다. 구조화 결과는 저장하지 않는다. 원문이 없으면(OpenDART 013·014) 제목만 넣는다. 받기·구조화가 실패하면(호출 한도, 네트워크, AI 서버 오류) 결과를 저장하지 않고 요청을 실패시킨다. 제목만 넣은 결과가 저장돼 굳지 않게 하려는 것이고, 받은 ZIP은 캐시에 남아 다음 요청은 남은 원문만 받는다.
 - 보고서 문단: 카드가 인용한 문단과 날짜 표현이 있는 문단만 넣는다.
 
 **공시 목록 저장.** ADR-0030의 `disclosure_window_fetch`에 `scope`(`RELATED`, `EVENT`)를 더해 유니크 키에 넣는다(`V54`). `EVENT` 행의 `detail_type`에는 공시유형 코드를 둔다. 받기·저장은 `activity` 패키지의 `PeriodDisclosureLoader`·`PeriodDisclosureStore`가 맡는다.

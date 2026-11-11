@@ -3187,6 +3187,8 @@
 | --- | --- | --- |
 | 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 ID |
 | 409 | `ANALYSIS_NOT_READY` | 분석이 끝나지 않음 |
+| 502 | `DART_REQUEST_FAILED` | 사이 기간 공시 목록이나 공시 원문을 받지 못함(저장하지 않음. 다시 요청하면 다시 만듦, ADR-0068) |
+| 503 | `DART_RATE_LIMITED` | 사이 기간 공시 목록이나 공시 원문을 받다가 OpenDART 호출 한도 초과(020)(저장하지 않음) |
 | 503 | `AI_SERVER_UNAVAILABLE` | AI 서버 또는 LLM을 쓸 수 없음(저장하지 않음. 다시 요청하면 다시 만듦) |
 
 ### GET /api/analyses/{analysisId}/summary — 근거 기반 요약·설명
