@@ -407,7 +407,7 @@ table.t { width: 100%; border-collapse: collapse; font-size: 14px }
 </section>
 
 <section id="architecture">
-  <div class="sechead"><p class="kicker">아키텍처 · 연동</p><h2>호출은 한 방향으로 흐르고, 외부 연동과 검증은 전담 계층이 맡습니다</h2><p>각 구조도의 상자를 누르면 담당 역할, 핵심 클래스·경로, 관련 ADR이 오른쪽에 표시됩니다. 전체 경계 아래에 OpenDART와 AI 서버 상세 흐름, 데이터 도메인 구성을 함께 담았습니다.</p></div>
+  <div class="sechead"><p class="kicker">아키텍처 · 연동</p><h2>호출은 한 방향으로 흐르고, 외부 연동과 검증은 전담 계층이 맡습니다</h2><p>각 구조도의 상자를 누르면 담당 역할, 핵심 클래스·경로, 관련 ADR이 오른쪽에 표시됩니다. 전체 경계 아래에 OpenDART와 AI 서버의 상세 연동 흐름을 함께 담았습니다.</p></div>
   <div class="arch">
     <div class="archsvg">
       <svg viewBox="0 0 760 360" id="archsvg" role="group" aria-label="전체 호출 구조도">
@@ -505,25 +505,6 @@ table.t { width: 100%; border-collapse: collapse; font-size: 14px }
       </svg>
     </div>
     <div class="card archinfo" id="aiinfo" aria-live="polite"></div>
-  </div>
-
-  <div class="subhead">
-    <h3>데이터 아키텍처 · 7대 도메인 57개 테이블 구성</h3>
-    <span class="adr">docs/erd.md · Flyway V1~V52 · ADR-0017</span>
-  </div>
-  <div class="card" style="padding:0;overflow-x:auto">
-    <table class="t">
-      <thead><tr><th>도메인 묶음</th><th>핵심 테이블 예시</th><th>보관하는 데이터와 역할</th></tr></thead>
-      <tbody>
-        <tr><td><b>기업 · 보고서 · 원문</b></td><td class="mono">company, report, financial_statement, document_block</td><td>초성 검색 색인, 정기보고서·재무제표 원본 캐시, 목차·문단·표 블록(<span class="mono">#B{n}</span>)</td></tr>
-        <tr><td><b>비교 분석 · 변화</b></td><td class="mono">analysis, financial_change, text_change, summary</td><td>비동기 분석 상태·버전, 계정별 증감 결과, 문장·표 행 변경과 분야 분류, 관점별 요약</td></tr>
-        <tr><td><b>주요 사건 · 수시공시</b></td><td class="mono">text_event, company_disclosure, disclosure_key_item</td><td>주요 사건 묶음·규모·신호·이유 문장, 수시공시 핵심 수치와 감사의견 강조사항</td></tr>
-        <tr><td><b>기업 개요 · 전망 대조</b></td><td class="mono">company_overview, company_briefing, company_outlook, plan_followup</td><td>다기간 재무 추이·체크포인트, AI 기업 브리핑, 전년도 전망 대비 당기 이행 결과</td></tr>
-        <tr><td><b>질문 · AI 호출 · 지표</b></td><td class="mono">analysis_question, llm_call, news_call_usage, plan_interest</td><td>근거 질의응답·피드백, 모델별 입력·캐시·추론 토큰 기록, 요금제 가설 관심 집계</td></tr>
-        <tr><td><b>회원 · 인증 · 개인화</b></td><td class="mono">app_user, refresh_token, favorite_company, judgment_note</td><td>일반·소셜 계정, 회전 Refresh Token, 비밀번호 재설정, 관심 기업 알림과 내 판단 노트</td></tr>
-        <tr><td><b>기업 커뮤니티 · 신고</b></td><td class="mono">community_post, community_post_quote, community_report</td><td>기업별 의견 공유, 분석 수치·문장 변경 인용 카드 첨부, 댓글·좋아요 및 신고 관리</td></tr>
-      </tbody>
-    </table>
   </div>
 </section>
 
