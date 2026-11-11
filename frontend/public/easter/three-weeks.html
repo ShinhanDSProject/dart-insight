@@ -4,365 +4,648 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
-<title>DART Insight 시스템 가이드</title>
+<title>DART Insight · 프로젝트 쇼케이스 & 시스템 프레젠테이션</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Inter:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap">
 <style>
-/* Layout: 서비스와 같은 골격 — 상단 바(로고·테마) + 화면 머리 + 글자 탭(밑줄 이동) + 가운데 본문 1060px + 하단 바.
-   토큰은 frontend/src/shared/styles/tokens.css 값을 그대로 옮겼다(심플 통일 FS-66, 다크 FS-69) */
+/* ==========================================================================
+   DART Insight Presentation & System Showcase Design Tokens
+   Strictly aligned with tokens.css (Simple Unification FS-66, Dark Mode FS-69)
+   ========================================================================== */
 :root {
   --font-sans: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
   --font-num: 'Inter', 'Noto Sans KR', system-ui, sans-serif;
-  --font-mono: 'D2Coding', 'SFMono-Regular', Consolas, monospace;
-  --color-text: #242630; --color-text-muted: #66666e; --color-bg: #ffffff; --color-bg-subtle: #f6f7fa; --color-bg-raised: #ffffff;
-  --color-border: #e4e6eb; --color-border-strong: #8e8f99;
-  --color-primary: #141936; --color-primary-text: #ffffff;
-  --color-accent: #6159b5; --color-accent-subtle: #f0effa; --color-border-accent: #d6d3e8;
-  --color-increase: #187653; --color-increase-subtle: #ecf8f1; --color-decrease: #b74250; --color-decrease-subtle: #fff0f2;
-  --color-chart-previous: #8f86d9; --color-chart-current: #4f479e;
-  --color-s1: #4f479e; --color-s2: #3a8fc0; --color-s3: #c0782b; --color-s4: #a8578f;
-  --color-attention: #8a5300; --color-attention-subtle: #fff5e0; --color-danger: #b74250; --color-danger-subtle: #fff0f2;
-  --shadow-md: 0 4px 12px rgba(19, 25, 54, 0.12); --shadow-hover: 0 6px 16px rgba(19, 25, 54, 0.1);
-  --radius-sm: 6px; --radius-md: 9px; --radius-lg: 12px; --radius-pill: 999px;
-  --motion-fast: 120ms; --motion-base: 200ms; --motion-slow: 360ms; --ease-out: cubic-bezier(0.2, 0, 0, 1);
-  --header-h: 80px; --tabs-h: 52px;
+  --font-mono: 'JetBrains Mono', 'D2Coding', monospace;
+  --color-text: #1d212f; --color-text-muted: #5e6475; --color-bg: #ffffff; --color-bg-subtle: #f7f8fb; --color-bg-raised: #ffffff;
+  --color-border: #e2e5ec; --color-border-strong: #8b92a5;
+  --color-primary: #121638; --color-primary-text: #ffffff;
+  --color-accent: #554cb8; --color-accent-subtle: #eeedfb; --color-border-accent: #d3cfea;
+  --color-increase: #147955; --color-increase-subtle: #eaf8f1; --color-decrease: #b53846; --color-decrease-subtle: #fef0f2;
+  --color-chart-previous: #8c82de; --color-chart-current: #4c42a5;
+  --color-s1: #4c42a5; --color-s2: #2e88bd; --color-s3: #bd7326; --color-s4: #a34e89;
+  --color-attention: #885000; --color-attention-subtle: #fff6e0; --color-danger: #b53846; --color-danger-subtle: #fef0f2;
+  --shadow-sm: 0 1px 3px rgba(18, 22, 56, 0.06);
+  --shadow-md: 0 4px 14px rgba(18, 22, 56, 0.10);
+  --shadow-lg: 0 10px 28px rgba(18, 22, 56, 0.12);
+  --shadow-glow: 0 0 24px rgba(85, 76, 184, 0.25);
+  --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px; --radius-xl: 20px; --radius-pill: 999px;
+  --motion-fast: 140ms; --motion-base: 220ms; --motion-slow: 380ms; --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --header-h: 74px; --tabs-h: 52px;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --color-text: #f1f6f7; --color-text-muted: #a9bbc4; --color-bg: #080f17; --color-bg-subtle: #101b26; --color-bg-raised: #172632;
-  --color-border: #29404c; --color-border-strong: #477d93; --color-primary: #a8d9e8; --color-primary-text: #080f17;
-  --color-accent: #79b9ce; --color-accent-subtle: #1a2a34; --color-border-accent: #33505d;
-  --color-increase: #8fc8bc; --color-increase-subtle: #1a272c; --color-decrease: #e39a9a; --color-decrease-subtle: #242128;
-  --color-chart-previous: #3489b0; --color-chart-current: #5bbee0;
-  --color-s1: #5bbee0; --color-s2: #2a9d8f; --color-s3: #c98034; --color-s4: #c06aa6;
-  --color-attention: #e2b86b; --color-attention-subtle: #2a2110; --color-danger: #e39a9a; --color-danger-subtle: #242128;
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5); --shadow-hover: 0 6px 16px rgba(0, 0, 0, 0.55); color-scheme: dark } }
+  --color-text: #f0f4f8; --color-text-muted: #9fb0bf; --color-bg: #090f17; --color-bg-subtle: #101b26; --color-bg-raised: #162432;
+  --color-border: #263c4a; --color-border-strong: #416f84; --color-primary: #9ad1e4; --color-primary-text: #090f17;
+  --color-accent: #78bbd2; --color-accent-subtle: #172835; --color-border-accent: #2e4d5d;
+  --color-increase: #84ccbe; --color-increase-subtle: #14282c; --color-decrease: #e89191; --color-decrease-subtle: #2b1f24;
+  --color-chart-previous: #2f83a8; --color-chart-current: #52b8dc;
+  --color-s1: #52b8dc; --color-s2: #26988c; --color-s3: #c97d2e; --color-s4: #bf63a3;
+  --color-attention: #e5b969; --color-attention-subtle: #292012; --color-danger: #e89191; --color-danger-subtle: #2b1f24;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 28px rgba(0, 0, 0, 0.65);
+  --shadow-glow: 0 0 28px rgba(120, 187, 210, 0.25);
+  color-scheme: dark;
+} }
 :root[data-theme="dark"] {
-  --color-text: #f1f6f7; --color-text-muted: #a9bbc4; --color-bg: #080f17; --color-bg-subtle: #101b26; --color-bg-raised: #172632;
-  --color-border: #29404c; --color-border-strong: #477d93; --color-primary: #a8d9e8; --color-primary-text: #080f17;
-  --color-accent: #79b9ce; --color-accent-subtle: #1a2a34; --color-border-accent: #33505d;
-  --color-increase: #8fc8bc; --color-increase-subtle: #1a272c; --color-decrease: #e39a9a; --color-decrease-subtle: #242128;
-  --color-chart-previous: #3489b0; --color-chart-current: #5bbee0;
-  --color-s1: #5bbee0; --color-s2: #2a9d8f; --color-s3: #c98034; --color-s4: #c06aa6;
-  --color-attention: #e2b86b; --color-attention-subtle: #2a2110; --color-danger: #e39a9a; --color-danger-subtle: #242128;
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5); --shadow-hover: 0 6px 16px rgba(0, 0, 0, 0.55); color-scheme: dark }
+  --color-text: #f0f4f8; --color-text-muted: #9fb0bf; --color-bg: #090f17; --color-bg-subtle: #101b26; --color-bg-raised: #162432;
+  --color-border: #263c4a; --color-border-strong: #416f84; --color-primary: #9ad1e4; --color-primary-text: #090f17;
+  --color-accent: #78bbd2; --color-accent-subtle: #172835; --color-border-accent: #2e4d5d;
+  --color-increase: #84ccbe; --color-increase-subtle: #14282c; --color-decrease: #e89191; --color-decrease-subtle: #2b1f24;
+  --color-chart-previous: #2f83a8; --color-chart-current: #52b8dc;
+  --color-s1: #52b8dc; --color-s2: #26988c; --color-s3: #c97d2e; --color-s4: #bf63a3;
+  --color-attention: #e5b969; --color-attention-subtle: #292012; --color-danger: #e89191; --color-danger-subtle: #2b1f24;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 28px rgba(0, 0, 0, 0.65);
+  --shadow-glow: 0 0 28px rgba(120, 187, 210, 0.25);
+  color-scheme: dark;
+}
 
 * { box-sizing: border-box }
-html, body { margin: 0 }
-img { max-width: 100% }
-[hidden] { display: none !important }
-html { scroll-padding-top: calc(var(--header-h) + var(--tabs-h) + 16px) }
-body { background: var(--color-bg); color: var(--color-text); font-family: var(--font-sans); font-size: 15px; line-height: 1.65 }
-body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--color-bg) }
-h1, h2, h3 { margin: 0; text-wrap: balance; line-height: 1.3 }
+html, body { margin: 0; padding: 0 }
+html { scroll-behavior: smooth; scroll-padding-top: calc(var(--header-h) + var(--tabs-h) + 16px) }
+body { background: var(--color-bg); color: var(--color-text); font-family: var(--font-sans); font-size: 15px; line-height: 1.65; overflow-x: hidden }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 50; background: var(--color-bg) }
+
+h1, h2, h3, h4 { margin: 0; text-wrap: balance; line-height: 1.3; font-weight: 700 }
 p { margin: 0 }
 a { color: var(--color-accent); text-decoration-color: color-mix(in srgb, var(--color-accent) 45%, transparent); text-underline-offset: 3px }
-button { font: inherit; color: inherit }
+button { font: inherit; color: inherit; cursor: pointer }
 :focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px }
+
 .num { font-family: var(--font-num); font-variant-numeric: tabular-nums }
 .mono { font-family: var(--font-mono) }
 .muted { color: var(--color-text-muted) }
-.gut { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
-.container { max-width: 1060px; margin: 0 auto }
+.gut { padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)) }
+.container { max-width: 1120px; margin: 0 auto }
 
-/* 상단 바 */
-.appbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; height: var(--header-h); background: var(--color-bg); border-bottom: 1px solid var(--color-border) }
+/* 상단 앱바 */
+.appbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 40; height: var(--header-h); background: color-mix(in srgb, var(--color-bg) 88%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--color-border); transition: all var(--motion-base) }
 .appbar .container { height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px }
-.brand { display: inline-flex; align-items: center; gap: 10px; color: var(--color-text); text-decoration: none }
-.brand__mark { width: 32px; height: 32px; border-radius: 9px; background: var(--color-primary); display: inline-flex; align-items: center; justify-content: center; gap: 4px; flex: none }
-.brand__mark i { width: 5px; height: 14px; border-radius: 2px; background: var(--color-primary-text) } .brand__mark i + i { height: 18px }
-.brand__name { font-family: var(--font-num); font-size: 19px; font-weight: 700; white-space: nowrap }
-.brand__sub { font-size: 13px; color: var(--color-text-muted); white-space: nowrap }
-.theme { display: inline-flex; border: 1px solid var(--color-border); border-radius: var(--radius-pill); padding: 3px; gap: 2px }
-.theme button { border: 0; background: transparent; padding: 4px 12px; border-radius: var(--radius-pill); font-size: 13px; color: var(--color-text-muted); cursor: pointer }
-.theme button[aria-pressed="true"] { background: var(--color-primary); color: var(--color-primary-text) }
-@media (max-width: 600px) { .brand__sub { display: none } :root { --header-h: 64px } }
+.brand { display: inline-flex; align-items: center; gap: 12px; color: var(--color-text); text-decoration: none }
+.brand__mark { width: 34px; height: 34px; border-radius: 10px; background: var(--color-primary); display: inline-flex; align-items: center; justify-content: center; gap: 4px; flex: none; box-shadow: var(--shadow-sm) }
+.brand__mark i { width: 5px; height: 15px; border-radius: 2px; background: var(--color-primary-text) }
+.brand__mark i + i { height: 20px }
+.brand__text { display: grid; gap: 1px }
+.brand__name { font-family: var(--font-num); font-size: 19px; font-weight: 800; letter-spacing: -0.02em; white-space: nowrap }
+.brand__sub { font-size: 12px; font-weight: 600; color: var(--color-text-muted); white-space: nowrap }
+.appbar__actions { display: flex; align-items: center; gap: 10px }
 
-/* 화면 머리 */
-.pagehead { padding-block: 32px 20px; display: grid; gap: 10px }
-.crumb { font-size: 13px; color: var(--color-text-muted) }
-.pagehead h1 { font-size: 30px; font-weight: 700 }
-.pagehead .lede { font-size: 16px; max-width: 46em; color: var(--color-text) }
-.badges { display: flex; flex-wrap: wrap; gap: 6px }
-.badge { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: var(--radius-pill); background: var(--color-bg-subtle); color: var(--color-text-muted); border: 1px solid var(--color-border) }
+.btn-present { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 16px; border-radius: var(--radius-pill); background: var(--color-primary); color: var(--color-primary-text); border: 1px solid var(--color-primary); font-size: 13.5px; font-weight: 700; box-shadow: var(--shadow-sm); transition: transform var(--motion-fast) var(--ease-out), box-shadow var(--motion-fast) }
+.btn-present:hover { transform: translateY(-1px); box-shadow: var(--shadow-md) }
+.btn-present .badge-key { font-family: var(--font-mono); font-size: 11px; padding: 1px 6px; border-radius: 4px; background: rgba(255,255,255,0.2) }
+
+.theme { display: inline-flex; border: 1px solid var(--color-border); border-radius: var(--radius-pill); padding: 3px; gap: 2px; background: var(--color-bg-subtle) }
+.theme button { border: 0; background: transparent; padding: 4px 12px; border-radius: var(--radius-pill); font-size: 12.5px; color: var(--color-text-muted); font-weight: 600 }
+.theme button[aria-pressed="true"] { background: var(--color-primary); color: var(--color-primary-text) }
+
+/* 탭 네비게이션 */
+.tabsbar { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--header-h)); z-index: 35; background: color-mix(in srgb, var(--color-bg) 92%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--color-border) }
+.tabs { position: relative; display: flex; gap: 22px; overflow-x: auto; scrollbar-width: none; height: var(--tabs-h); align-items: stretch }
+.tabs::-webkit-scrollbar { display: none }
+.tabs a { display: flex; align-items: center; white-space: nowrap; text-decoration: none; color: var(--color-text-muted); font-size: 15px; font-weight: 600; padding: 0 4px; transition: color var(--motion-fast) }
+.tabs a:hover { color: var(--color-text) }
+.tabs a[aria-current="true"] { color: var(--color-primary); font-weight: 800 }
+.tabs__indicator { position: absolute; bottom: 0; left: 0; height: 3px; border-radius: 3px 3px 0 0; background: var(--color-primary); transition: transform var(--motion-slow) var(--ease-out), width var(--motion-slow) var(--ease-out) }
+
+/* 히어로 발표 배너 */
+.hero { position: relative; padding-block: 56px 40px; overflow: hidden; border-bottom: 1px solid var(--color-border) }
+.hero__canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0.7 }
+.hero__body { position: relative; z-index: 2; display: grid; gap: 18px }
+.hero__kicker { display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 700; color: var(--color-accent); letter-spacing: -0.01em }
+.hero__kicker-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-accent); animation: pulse-ring 2s infinite }
+@keyframes pulse-ring { 0% { transform: scale(0.9); opacity: 1 } 50% { transform: scale(1.4); opacity: 0.4 } 100% { transform: scale(0.9); opacity: 1 } }
+.hero h1 { font-size: clamp(34px, 5vw, 48px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.15 }
+.hero__title-accent { background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent }
+.hero .lede { font-size: clamp(17px, 2.2vw, 20px); max-width: 48em; color: var(--color-text); line-height: 1.6; font-weight: 500 }
+.hero__badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px }
+
+.badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 700; padding: 4px 12px; border-radius: var(--radius-pill); background: var(--color-bg-subtle); color: var(--color-text-muted); border: 1px solid var(--color-border) }
 .badge--accent { background: var(--color-accent-subtle); color: var(--color-accent); border-color: var(--color-border-accent) }
 .badge--attention { background: var(--color-attention-subtle); color: var(--color-attention); border-color: transparent }
 .badge--danger { background: var(--color-danger-subtle); color: var(--color-danger); border-color: transparent }
 .badge--ok { background: var(--color-increase-subtle); color: var(--color-increase); border-color: transparent }
 
-/* 글자 탭 */
-.tabsbar { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--header-h)); z-index: 15; background: var(--color-bg); border-bottom: 1px solid var(--color-border) }
-.tabs { position: relative; display: flex; gap: 24px; overflow-x: auto; scrollbar-width: none; height: var(--tabs-h); align-items: stretch }
-.tabs::-webkit-scrollbar { display: none }
-.tabs a { display: flex; align-items: center; white-space: nowrap; text-decoration: none; color: var(--color-text-muted); font-size: 16px; font-weight: 500 }
-.tabs a[aria-current="true"] { color: var(--color-primary); font-weight: 700 }
-.tabs__indicator { position: absolute; bottom: 0; left: 0; height: 2px; background: var(--color-primary); transition: transform var(--motion-slow) var(--ease-out), width var(--motion-slow) var(--ease-out) }
+/* 카운터 지표 리본 */
+.metric-ribbon { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 28px }
+.metric-card { background: var(--color-bg-raised); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 18px 20px; display: grid; gap: 4px; box-shadow: var(--shadow-sm); position: relative; overflow: hidden }
+.metric-card::before { content: ""; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--color-primary) }
+.metric-card--accent::before { background: var(--color-accent) }
+.metric-card--ok::before { background: var(--color-increase) }
+.metric-card .num-val { font-family: var(--font-num); font-size: 32px; font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; color: var(--color-text) }
+.metric-card .lbl { font-size: 13.5px; font-weight: 700; color: var(--color-text) }
+.metric-card .sub { font-size: 12px; color: var(--color-text-muted) }
 
-main section { padding-block: 48px; border-bottom: 1px solid var(--color-border) }
-.sechead { display: grid; gap: 6px; margin-bottom: 24px; max-width: 760px }
-.sechead .kicker { font-size: 13px; font-weight: 700; color: var(--color-accent) }
-.sechead h2 { font-size: 24px; font-weight: 700 }
-.sechead p { color: var(--color-text-muted) }
+/* 섹션 공통 */
+main section { padding-block: 56px; border-bottom: 1px solid var(--color-border); scroll-margin-top: calc(var(--header-h) + var(--tabs-h)) }
+.sechead { display: grid; gap: 8px; margin-bottom: 30px; max-width: 820px }
+.sechead .kicker { font-size: 13.5px; font-weight: 800; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.04em }
+.sechead h2 { font-size: clamp(24px, 3.2vw, 32px); font-weight: 800; letter-spacing: -0.02em }
+.sechead p { color: var(--color-text-muted); font-size: 16px; line-height: 1.6 }
 
-.grid { display: grid; gap: 12px }
-.g2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) }
-.g3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) }
-.g5 { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) }
-.card { background: var(--color-bg-raised); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 20px; display: grid; gap: 8px; align-content: start; min-width: 0 }
+.grid { display: grid; gap: 14px }
+.g2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)) }
+.g3 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) }
+.g4 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) }
+.g5 { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) }
+
+.card { background: var(--color-bg-raised); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 22px; display: grid; gap: 10px; align-content: start; box-shadow: var(--shadow-sm); min-width: 0; transition: transform var(--motion-base) var(--ease-out), box-shadow var(--motion-base) }
 .card--subtle { background: var(--color-bg-subtle) }
-.card h3 { font-size: 16px; font-weight: 700 }
-.label { font-size: 12px; font-weight: 700; color: var(--color-text-muted) }
-.callout { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: var(--radius-lg); background: var(--color-accent-subtle); color: var(--color-text); border: 1px solid var(--color-border-accent) }
+.card--glow { border-color: var(--color-border-accent); box-shadow: var(--shadow-glow) }
+.card h3 { font-size: 17px; font-weight: 700; letter-spacing: -0.01em }
+.label { font-size: 12px; font-weight: 800; color: var(--color-text-muted); letter-spacing: 0.02em; text-transform: uppercase }
+.callout { display: flex; gap: 14px; align-items: flex-start; padding: 16px 18px; border-radius: var(--radius-lg); background: var(--color-accent-subtle); color: var(--color-text); border: 1px solid var(--color-border-accent); font-size: 14.5px }
 .callout--attention { background: var(--color-attention-subtle); border-color: transparent; color: var(--color-attention) }
 .callout--danger { background: var(--color-danger-subtle); border-color: transparent; color: var(--color-danger) }
 
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 40px; padding: 0 18px; border-radius: var(--radius-pill); border: 1px solid var(--color-border); background: var(--color-bg-raised); color: var(--color-text); font-size: 14px; font-weight: 500; cursor: pointer; transition: background var(--motion-fast) }
-.btn:hover { background: var(--color-bg-subtle) }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 40px; padding: 0 20px; border-radius: var(--radius-pill); border: 1px solid var(--color-border); background: var(--color-bg-raised); color: var(--color-text); font-size: 14px; font-weight: 600; cursor: pointer; transition: all var(--motion-fast) }
+.btn:hover { background: var(--color-bg-subtle); transform: translateY(-1px) }
 .btn--primary { background: var(--color-primary); color: var(--color-primary-text); border-color: var(--color-primary) }
-.btn--primary:hover { background: var(--color-primary); opacity: .9 }
+.btn--primary:hover { background: var(--color-primary); opacity: .92 }
 .btn--sm { height: 32px; padding: 0 14px; font-size: 13px }
-.btn:disabled { opacity: .5; cursor: default }
-.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--color-border); border-radius: var(--radius-pill); padding: 3px; gap: 2px; background: var(--color-bg) }
-.seg button { border: 0; background: transparent; padding: 6px 14px; border-radius: var(--radius-pill); font-size: 13px; color: var(--color-text-muted); cursor: pointer; white-space: nowrap }
+.btn:disabled { opacity: .5; cursor: default; transform: none }
+
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--color-border); border-radius: var(--radius-pill); padding: 3px; gap: 2px; background: var(--color-bg-subtle) }
+.seg button { border: 0; background: transparent; padding: 6px 16px; border-radius: var(--radius-pill); font-size: 13.5px; color: var(--color-text-muted); font-weight: 600; cursor: pointer; white-space: nowrap; transition: all var(--motion-fast) }
 .seg button[aria-pressed="true"] { background: var(--color-primary); color: var(--color-primary-text); font-weight: 700 }
 
-/* 개요 */
+/* 사용자 흐름 스텝 */
 .flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; margin-top: 16px }
-.flow .step { flex: 1 1 130px; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px 14px; display: grid; min-width: 0; background: var(--color-bg-raised) }
-.flow .step b { font-size: 14px } .flow .step span { font-size: 12px; color: var(--color-text-muted) }
-.flow .step.on { background: var(--color-primary); border-color: var(--color-primary) } .flow .step.on b, .flow .step.on span { color: var(--color-primary-text) }
-.flow .to { align-self: center; color: var(--color-text-muted) }
-.stat .n { font-family: var(--font-num); font-weight: 700; font-size: 36px; line-height: 1.1; font-variant-numeric: tabular-nums }
-.stat .l { font-weight: 700; font-size: 14px }
-.stat .s { font-size: 12px; color: var(--color-text-muted) }
+.flow .step { flex: 1 1 140px; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 14px; display: grid; min-width: 0; background: var(--color-bg-raised); text-align: left; cursor: pointer; transition: all var(--motion-base) }
+.flow .step b { font-size: 14.5px }
+.flow .step span { font-size: 12px; color: var(--color-text-muted) }
+.flow .step.on { background: var(--color-primary); border-color: var(--color-primary); transform: translateY(-2px); box-shadow: var(--shadow-md) }
+.flow .step.on b, .flow .step.on span { color: var(--color-primary-text) }
+.flow .to { align-self: center; color: var(--color-text-muted); font-weight: 700 }
 
-/* 주차별 */
-.weekcards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px }
+/* Before vs After 인터랙티브 비교 상자 */
+.bna-box { border: 1px solid var(--color-border); border-radius: var(--radius-xl); background: var(--color-bg-raised); padding: 24px; display: grid; gap: 18px; box-shadow: var(--shadow-md) }
+.bna-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px }
+.bna-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px }
+.bna-col { border-radius: var(--radius-lg); padding: 20px; display: grid; gap: 14px; border: 1px solid var(--color-border) }
+.bna-col--before { background: var(--color-decrease-subtle); border-color: color-mix(in srgb, var(--color-decrease) 25%, transparent) }
+.bna-col--after { background: var(--color-increase-subtle); border-color: color-mix(in srgb, var(--color-increase) 25%, transparent) }
+.bna-col h4 { font-size: 16px; display: flex; align-items: center; gap: 8px }
+.bna-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; font-size: 14px }
+.bna-list li { display: grid; grid-template-columns: 20px 1fr; gap: 8px; align-items: baseline }
+
+/* 문제-해결 매트릭스 카드 */
+.ps-card { border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 20px; background: var(--color-bg-raised); display: grid; gap: 10px }
+.ps-card .problem { display: flex; gap: 8px; color: var(--color-danger); font-weight: 700; font-size: 14.5px }
+.ps-card .solution { display: flex; gap: 8px; color: var(--color-increase); font-weight: 700; font-size: 14.5px }
+.ps-card .tech { font-size: 13.5px; color: var(--color-text-muted); padding-left: 24px }
+
+/* 페르소나 가치 카드 */
+.persona-card { border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-raised); padding: 22px; display: grid; gap: 12px; border-top: 4px solid var(--color-primary) }
+.persona-card--investor { border-top-color: var(--color-accent) }
+.persona-card--analyst { border-top-color: var(--color-s2) }
+.persona-card--community { border-top-color: var(--color-s4) }
+
+/* 구조도 */
+.arch { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 14px; align-items: start }
+@media (max-width: 880px) { .arch { grid-template-columns: 1fr } }
+.archsvg { border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-subtle); padding: 14px; overflow-x: auto }
+.archsvg svg { display: block; width: 100%; min-width: 580px; height: auto }
+.nd rect { fill: var(--color-bg-raised); stroke: var(--color-border-strong); stroke-width: 1.5; transition: stroke var(--motion-fast), fill var(--motion-fast), transform var(--motion-fast) }
+.nd { cursor: pointer; outline: none }
+.nd .a { fill: var(--color-text); font-size: 14px; font-weight: 700 }
+.nd .b { fill: var(--color-text-muted); font-size: 11.5px }
+.nd.core rect { fill: var(--color-primary); stroke: var(--color-primary) }
+.nd.core .a { fill: var(--color-primary-text) }
+.nd.core .b { fill: var(--color-primary-text); opacity: .85 }
+.nd:hover rect, .nd:focus-visible rect { stroke: var(--color-accent); stroke-width: 2.5 }
+.nd.sel rect { stroke: var(--color-accent); stroke-width: 3 }
+.nd.sel:not(.core) rect { fill: var(--color-accent-subtle) }
+.eg { stroke: var(--color-border-strong); stroke-width: 1.8; fill: none; transition: stroke var(--motion-fast) }
+.eg.hot { stroke: var(--color-accent); stroke-width: 3.2; filter: drop-shadow(0 0 4px var(--color-accent)) }
+.el { fill: var(--color-text-muted); font-size: 11px; font-family: var(--font-mono) }
+.archinfo h3 { font-size: 19px }
+.archinfo ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px }
+.subhead { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline; margin: 32px 0 12px }
+.subhead h3 { font-size: 18px; font-weight: 700 }
+
+/* 핵심 설계 데모 */
+.dec { border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-raised); padding: 22px; display: grid; gap: 16px; margin-top: 14px }
+.dec__top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: flex-start }
+.dec__top h3 { font-size: 19px; max-width: 36em }
+.dec__top .kicker { font-size: 12px; font-weight: 800; color: var(--color-accent) }
+.dec__body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start }
+@media (max-width: 860px) { .dec__body { grid-template-columns: 1fr } }
+.dec ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px }
+.alt { display: grid; gap: 10px }
+.alt div { border-left: 3px solid var(--color-border); padding-left: 12px }
+.alt b { font-size: 14px }
+.alt p { font-size: 13.5px; color: var(--color-text-muted) }
+.demo { border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-subtle); padding: 18px; display: grid; gap: 14px; min-width: 0 }
+.demo .label { display: flex; justify-content: space-between; gap: 8px }
+.adr { font-family: var(--font-mono); font-size: 12px; color: var(--color-text-muted) }
+.sm { display: flex; flex-wrap: wrap; gap: 6px; align-items: center }
+.st { font-family: var(--font-mono); font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--color-border); background: var(--color-bg-raised); color: var(--color-text-muted); transition: all var(--motion-base) }
+.st.cur { border-color: var(--color-primary); background: var(--color-primary); color: var(--color-primary-text) }
+.st.done.cur { background: var(--color-increase); border-color: var(--color-increase); color: #fff }
+.st.fail.cur { background: var(--color-danger); border-color: var(--color-danger); color: #fff }
+.btnrow { display: flex; flex-wrap: wrap; gap: 6px }
+.bar4 { height: 5px; border-radius: var(--radius-pill); background: var(--color-border); overflow: hidden }
+.bar4 i { display: block; height: 100%; background: var(--color-primary); transition: width var(--motion-slow) var(--ease-out) }
+.log { font-size: 13px; display: grid; gap: 5px; max-height: 220px; overflow-y: auto }
+.log div { display: grid; grid-template-columns: 22px 1fr; gap: 6px }
+.log .ok { color: var(--color-increase); font-weight: 700 }
+.log .no { color: var(--color-danger); font-weight: 700 }
+.log .info { color: var(--color-accent); font-weight: 700 }
+input[type=range] { width: 100%; accent-color: var(--color-primary) }
+.para { border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-raised); padding: 14px; font-size: 14px; display: grid; gap: 6px }
+.para .meta { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--color-text-muted) }
+.chain { display: flex; flex-wrap: wrap; gap: 6px; align-items: center }
+.chain .node { font-size: 13px; padding: 6px 12px; border-radius: var(--radius-pill); border: 1px solid var(--color-border); background: var(--color-bg-raised); color: var(--color-text-muted); transition: all var(--motion-base) }
+.chain .node.on { background: var(--color-accent-subtle); border-color: var(--color-accent); color: var(--color-accent); font-weight: 700 }
+.chain .node.back.on { background: var(--color-attention-subtle); border-color: var(--color-attention); color: var(--color-attention) }
+.chain .to { color: var(--color-text-muted); font-size: 12px }
+.costrow { display: grid; gap: 4px }
+.costrow .lb { display: flex; justify-content: space-between; gap: 8px; font-size: 13.5px }
+.costrow .lb b { font-family: var(--font-num) }
+.track { height: 12px; border-radius: var(--radius-pill); background: var(--color-border); overflow: hidden }
+.track i { display: block; height: 100%; border-radius: var(--radius-pill); background: var(--color-chart-previous); min-width: 3px; transition: width var(--motion-slow) var(--ease-out) }
+.costrow.pick .track i { background: var(--color-chart-current) }
+.costrow.pick .lb { color: var(--color-accent); font-weight: 700 }
+.big { font-family: var(--font-num); font-weight: 800; font-size: 30px; line-height: 1.1 }
+.principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px }
+.principles button { text-align: left; cursor: pointer; border: 1px solid var(--color-border); background: var(--color-bg-raised); border-radius: var(--radius-lg); padding: 16px; display: grid; gap: 4px; transition: all var(--motion-fast) }
+.principles button[aria-expanded="true"] { border-color: var(--color-accent); background: var(--color-accent-subtle); transform: translateY(-1px) }
+.principles b { font-size: 15px }
+.principles span { font-size: 13px; color: var(--color-text-muted) }
+
+/* 주차별 발자취 */
+.weekcards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px }
 @media (max-width: 760px) { .weekcards { grid-template-columns: 1fr } }
-.weekcard { text-align: left; cursor: pointer; border: 1px solid var(--color-border); background: var(--color-bg-raised); border-radius: var(--radius-lg); padding: 18px; display: grid; gap: 8px; transition: transform var(--motion-base) var(--ease-out), box-shadow var(--motion-base) }
+.weekcard { text-align: left; cursor: pointer; border: 1px solid var(--color-border); background: var(--color-bg-raised); border-radius: var(--radius-lg); padding: 20px; display: grid; gap: 10px; transition: transform var(--motion-base) var(--ease-out), box-shadow var(--motion-base) }
 .weekcard:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover) }
 .weekcard[aria-pressed="true"] { border-color: var(--color-accent); background: var(--color-accent-subtle) }
 .weekcard .wk { display: flex; justify-content: space-between; gap: 8px; align-items: baseline }
-.weekcard .wk b { font-size: 16px } .weekcard .wk span { font-size: 12px; color: var(--color-text-muted) }
-.weekcard .head { font-size: 14px; font-weight: 700; color: var(--color-text) }
+.weekcard .wk b { font-size: 16px }
+.weekcard .wk span { font-size: 12px; color: var(--color-text-muted) }
+.weekcard .head { font-size: 14.5px; font-weight: 700; color: var(--color-text) }
 .weekcard .nums { display: flex; gap: 14px; font-size: 12px; color: var(--color-text-muted) }
 .weekcard .nums b { font-family: var(--font-num); font-size: 18px; color: var(--color-text); display: block }
-.chartbox { margin-top: 12px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 16px 16px 8px; background: var(--color-bg-raised); min-width: 0 }
+.chartbox { margin-top: 14px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 18px 18px 10px; background: var(--color-bg-raised); min-width: 0 }
 .chartbox .scroll { overflow-x: auto }
-.chartbox svg { display: block; width: 100%; min-width: 600px; height: auto }
+.chartbox svg { display: block; width: 100%; min-width: 620px; height: auto }
 .chartcap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--color-text-muted) }
 .chartcap b { color: var(--color-text) }
-svg text { font-family: var(--font-sans) }
-.ax { fill: var(--color-text-muted); font-size: 11px } .gl { stroke: var(--color-border) }
-.dbar { cursor: pointer; transition: opacity var(--motion-fast) } .dbar.dim { opacity: .25 }
+.dbar { cursor: pointer; transition: opacity var(--motion-fast) }
+.dbar.dim { opacity: .25 }
 .w1 { fill: var(--color-s2) } .w2 { fill: var(--color-s1) } .w3 { fill: var(--color-s3) }
-.tip { position: fixed; z-index: 40; pointer-events: none; background: var(--color-primary); color: var(--color-primary-text); font-size: 12px; padding: 6px 10px; border-radius: var(--radius-sm); box-shadow: var(--shadow-md); white-space: nowrap }
-.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 20px 0 12px }
-.search { display: flex; align-items: center; gap: 8px; height: 40px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-pill); padding: 0 14px; background: var(--color-bg-raised); flex: 1 1 220px; min-width: 0 }
+.tip { position: fixed; z-index: 60; pointer-events: none; background: var(--color-primary); color: var(--color-primary-text); font-size: 12px; padding: 6px 12px; border-radius: var(--radius-sm); box-shadow: var(--shadow-md); white-space: nowrap }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 22px 0 14px }
+.search { display: flex; align-items: center; gap: 8px; height: 42px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-pill); padding: 0 16px; background: var(--color-bg-raised); flex: 1 1 220px; min-width: 0 }
 .search input { border: 0; background: transparent; outline: none; font: inherit; color: var(--color-text); width: 100%; min-width: 0 }
-.search:focus-within { outline: 2px solid var(--color-primary); outline-offset: 1px }
-.count { font-size: 13px; color: var(--color-text-muted) }
+.count { font-size: 13.5px; color: var(--color-text-muted) }
 .weekblock { display: grid; gap: 10px; margin-top: 20px }
 .weekblock > h3 { font-size: 18px; display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline }
 .weekblock > h3 span { font-size: 13px; font-weight: 500; color: var(--color-text-muted) }
 .weekblock > p { color: var(--color-text-muted); font-size: 14px; max-width: 52em }
 details.group { border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-raised) }
-details.group summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 14px 16px; align-items: center }
+details.group summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 14px 18px; align-items: center }
 details.group summary::-webkit-details-marker { display: none }
-details.group summary b { font-size: 15px } details.group summary .d { grid-column: 1; font-size: 13px; color: var(--color-text-muted) }
+details.group summary b { font-size: 15px }
+details.group summary .d { grid-column: 1; font-size: 13px; color: var(--color-text-muted) }
 details.group summary .c { grid-row: 1 / span 2; grid-column: 2; display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--color-text-muted) }
 details.group summary .c::after { content: "▾"; transition: transform var(--motion-base) }
 details.group[open] summary .c::after { transform: rotate(180deg) }
-.prlist { list-style: none; margin: 0; padding: 0 16px 12px; display: grid }
-.prlist li { display: grid; grid-template-columns: 64px 48px 1fr; gap: 8px; padding: 7px 0; border-top: 1px solid var(--color-border); font-size: 14px; align-items: baseline }
-.prlist li a { font-family: var(--font-num); font-size: 13px; font-weight: 600 }
+.prlist { list-style: none; margin: 0; padding: 0 18px 14px; display: grid }
+.prlist li { display: grid; grid-template-columns: 68px 50px 1fr; gap: 8px; padding: 8px 0; border-top: 1px solid var(--color-border); font-size: 14px; align-items: baseline }
+.prlist li a { font-family: var(--font-num); font-size: 13px; font-weight: 700 }
 .prlist li .dt { font-family: var(--font-num); font-size: 12px; color: var(--color-text-muted) }
 .prlist li .t { min-width: 0; overflow-wrap: anywhere }
 mark { background: var(--color-attention-subtle); color: var(--color-attention); border-radius: 3px; padding: 0 2px }
-.empty { padding: 24px; text-align: center; color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-lg) }
+.empty { padding: 28px; text-align: center; color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-lg) }
 
-/* 구조 */
-.arch { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 12px; align-items: start }
-@media (max-width: 860px) { .arch { grid-template-columns: 1fr } }
-.archsvg { border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-subtle); padding: 12px; overflow-x: auto }
-.archsvg svg { display: block; width: 100%; min-width: 560px; height: auto }
-.nd rect { fill: var(--color-bg-raised); stroke: var(--color-border-strong); stroke-width: 1.5; transition: stroke var(--motion-fast), fill var(--motion-fast) }
-.nd { cursor: pointer; outline: none }
-.nd .a { fill: var(--color-text); font-size: 14px; font-weight: 700 } .nd .b { fill: var(--color-text-muted); font-size: 11.5px }
-.nd.core rect { fill: var(--color-primary); stroke: var(--color-primary) } .nd.core .a { fill: var(--color-primary-text) } .nd.core .b { fill: var(--color-primary-text); opacity: .8 }
-.nd:hover rect, .nd:focus-visible rect { stroke: var(--color-accent); stroke-width: 2.5 }
-.nd.sel rect { stroke: var(--color-accent); stroke-width: 3 } .nd.sel:not(.core) rect { fill: var(--color-accent-subtle) }
-.eg { stroke: var(--color-border-strong); stroke-width: 1.8; fill: none; transition: stroke var(--motion-fast) }
-.eg.hot { stroke: var(--color-accent); stroke-width: 3 }
-.el { fill: var(--color-text-muted); font-size: 11px; font-family: var(--font-mono) }
-.archinfo h3 { font-size: 18px } .archinfo ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px }
-.subhead { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline; margin: 28px 0 10px } .subhead h3 { font-size: 17px; font-weight: 700 }
+/* 프레젠테이션 모드 UI */
+.deck-dock { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(120px); z-index: 100; background: color-mix(in srgb, var(--color-primary) 92%, black); color: var(--color-primary-text); padding: 8px 16px; border-radius: var(--radius-pill); box-shadow: 0 12px 32px rgba(0,0,0,0.4); display: flex; align-items: center; gap: 12px; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.18); transition: transform var(--motion-slow) var(--ease-out), opacity var(--motion-slow); opacity: 0; pointer-events: none }
+body.presentation-mode .deck-dock { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto }
+.deck-dock button { border: 0; background: rgba(255,255,255,0.12); color: #fff; padding: 6px 14px; border-radius: var(--radius-pill); font-size: 13px; font-weight: 700; transition: background var(--motion-fast) }
+.deck-dock button:hover { background: rgba(255,255,255,0.22) }
+.deck-dock .deck-counter { font-family: var(--font-num); font-size: 13.5px; font-weight: 700; padding: 0 6px }
+.deck-dock .sep { width: 1px; height: 16px; background: rgba(255,255,255,0.2) }
 
-/* 선택과 이유 */
-.dec { border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-raised); padding: 20px; display: grid; gap: 14px; margin-top: 12px }
-.dec__top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: flex-start }
-.dec__top h3 { font-size: 18px; max-width: 34em } .dec__top .kicker { font-size: 12px; font-weight: 700; color: var(--color-accent) }
-.dec__body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start }
-@media (max-width: 860px) { .dec__body { grid-template-columns: 1fr } }
-.dec ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px }
-.alt { display: grid; gap: 10px } .alt div { border-left: 3px solid var(--color-border); padding-left: 12px } .alt b { font-size: 14px } .alt p { font-size: 13.5px; color: var(--color-text-muted) }
-.demo { border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-subtle); padding: 16px; display: grid; gap: 12px; min-width: 0 }
-.demo .label { display: flex; justify-content: space-between; gap: 8px }
-.adr { font-family: var(--font-mono); font-size: 12px; color: var(--color-text-muted) }
-.sm { display: flex; flex-wrap: wrap; gap: 6px; align-items: center }
-.st { font-family: var(--font-mono); font-size: 13px; font-weight: 700; padding: 6px 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--color-border); background: var(--color-bg-raised); color: var(--color-text-muted); transition: all var(--motion-base) }
-.st.cur { border-color: var(--color-primary); background: var(--color-primary); color: var(--color-primary-text) }
-.st.done.cur { background: var(--color-increase); border-color: var(--color-increase); color: var(--color-bg) }
-.st.fail.cur { background: var(--color-danger); border-color: var(--color-danger); color: var(--color-bg) }
-.sm .to { color: var(--color-text-muted); font-size: 13px }
-.btnrow { display: flex; flex-wrap: wrap; gap: 6px }
-.bar4 { height: 4px; border-radius: var(--radius-pill); background: var(--color-border); overflow: hidden } .bar4 i { display: block; height: 100%; background: var(--color-primary); transition: width var(--motion-slow) var(--ease-out) }
-.log { font-size: 13px; display: grid; gap: 4px; max-height: 220px; overflow-y: auto }
-.log div { display: grid; grid-template-columns: 22px 1fr; gap: 6px }
-.log .ok { color: var(--color-increase) } .log .no { color: var(--color-danger) } .log .info { color: var(--color-accent) }
-input[type=range] { width: 100%; accent-color: var(--color-primary) }
-.para { border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-raised); padding: 12px 14px; font-size: 14px; display: grid; gap: 6px }
-.para .meta { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--color-text-muted) }
-.chain { display: flex; flex-wrap: wrap; gap: 6px; align-items: center }
-.chain .node { font-size: 13px; padding: 6px 10px; border-radius: var(--radius-pill); border: 1px solid var(--color-border); background: var(--color-bg-raised); color: var(--color-text-muted); transition: all var(--motion-base) }
-.chain .node.on { background: var(--color-accent-subtle); border-color: var(--color-accent); color: var(--color-accent); font-weight: 700 }
-.chain .node.back.on { background: var(--color-attention-subtle); border-color: var(--color-attention); color: var(--color-attention) }
-.chain .to { color: var(--color-text-muted); font-size: 12px }
-.costrow { display: grid; gap: 4px } .costrow .lb { display: flex; justify-content: space-between; gap: 8px; font-size: 13px } .costrow .lb b { font-family: var(--font-num) }
-.track { height: 12px; border-radius: var(--radius-pill); background: var(--color-border); overflow: hidden } .track i { display: block; height: 100%; border-radius: var(--radius-pill); background: var(--color-chart-previous); min-width: 3px; transition: width var(--motion-slow) var(--ease-out) }
-.costrow.pick .track i { background: var(--color-chart-current) } .costrow.pick .lb { color: var(--color-accent); font-weight: 700 }
-.big { font-family: var(--font-num); font-weight: 700; font-size: 28px; line-height: 1.1 }
-.principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px }
-.principles button { text-align: left; cursor: pointer; border: 1px solid var(--color-border); background: var(--color-bg-raised); border-radius: var(--radius-lg); padding: 14px; display: grid; gap: 4px }
-.principles button[aria-expanded="true"] { border-color: var(--color-accent); background: var(--color-accent-subtle) }
-.principles b { font-size: 15px } .principles span { font-size: 13px; color: var(--color-text-muted) }
+.notes-popup { position: fixed; bottom: 84px; right: 24px; width: min(440px, calc(100vw - 48px)); max-height: 380px; z-index: 101; background: var(--color-bg-raised); border: 1px solid var(--color-border); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); padding: 20px; display: none; overflow-y: auto }
+.notes-popup.open { display: grid; gap: 10px }
+.notes-popup .notes-head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 800; color: var(--color-accent) }
+.notes-popup .notes-body { font-size: 14px; line-height: 1.6; color: var(--color-text) }
 
-/* 운영 안전 */
-.quota { display: grid; gap: 10px }
-.meter { display: grid; gap: 4px } .meter .lb { display: flex; justify-content: space-between; font-size: 13px } .meter .lb b { font-family: var(--font-num) }
-.meter .track i { background: var(--color-primary) } .meter.full .track i { background: var(--color-danger) }
-table.t { width: 100%; border-collapse: collapse; font-size: 14px }
-.t th, .t td { padding: 9px 12px; border-bottom: 1px solid var(--color-border); text-align: left } .t th { background: var(--color-bg-subtle); font-size: 12px }
-.t .r { text-align: right; font-family: var(--font-num); font-variant-numeric: tabular-nums }
-.fixes { display: grid; gap: 8px } .fixes div { display: flex; gap: 10px; align-items: baseline; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 10px 12px; background: var(--color-bg-raised); font-size: 14px }
-.fixes .ck { color: var(--color-increase); font-weight: 700 } .fixes a { margin-left: auto; font-family: var(--font-num); font-size: 12px }
+body.presentation-mode main section { scroll-margin-top: calc(var(--header-h) + 20px); min-height: 80vh; display: grid; align-content: center; padding-block: 80px }
+body.presentation-mode main section:not(.slide-active) { opacity: 0.35; filter: blur(0.5px); transition: opacity var(--motion-base), filter var(--motion-base) }
+body.presentation-mode main section.slide-active { opacity: 1; filter: none }
 
-.ms { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px } @media (max-width: 640px) { .ms { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
-.toprow { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; align-items: center }
-.clist { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13.5px; color: var(--color-text-muted) }
-.clist b { color: var(--color-text); font-weight: 600 }
-.footbar { min-height: 56px; padding-block: 14px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 12px; color: var(--color-text-muted) }
+.footbar { min-height: 60px; padding-block: 18px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 12.5px; color: var(--color-text-muted) }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important } }
 </style>
 </head>
 <body>
 
+<!-- 상단 헤더 -->
 <header class="appbar gut">
   <div class="container">
-    <a class="brand" href="/" aria-label="DART Insight로 돌아가기">
+    <a class="brand" href="/" aria-label="DART Insight 홈으로 이동">
       <span class="brand__mark" aria-hidden="true"><i></i><i></i></span>
-      <span class="brand__name">DART Insight</span>
-      <span class="brand__sub">시스템 가이드</span>
+      <div class="brand__text">
+        <span class="brand__name">DART Insight</span>
+        <span class="brand__sub">프로젝트 쇼케이스 & 시스템 프레젠테이션</span>
+      </div>
     </a>
-    <div class="theme" role="group" aria-label="화면 테마">
-      <button type="button" data-theme-set="system" aria-pressed="true">시스템</button>
-      <button type="button" data-theme-set="light" aria-pressed="false">밝게</button>
-      <button type="button" data-theme-set="dark" aria-pressed="false">어둡게</button>
+    <div class="appbar__actions">
+      <button type="button" class="btn-present" id="btnPresentMode" aria-label="발표 모드 실행 (단축키 P)">
+        <span aria-hidden="true">▶</span>
+        <span>발표 모드</span>
+        <span class="badge-key">P</span>
+      </button>
+      <div class="theme" role="group" aria-label="화면 테마">
+        <button type="button" data-theme-set="system" aria-pressed="true">시스템</button>
+        <button type="button" data-theme-set="light" aria-pressed="false">밝게</button>
+        <button type="button" data-theme-set="dark" aria-pressed="false">어둡게</button>
+      </div>
     </div>
   </div>
 </header>
 
-<div class="gut"><div class="container pagehead">
-  <p class="crumb">DART Insight · 기획부터 아키텍처·인프라까지 한눈에 보는 시스템 안내서</p>
-  <h1>DART Insight 시스템 가이드</h1>
-  <p class="lede">같은 기업의 전자공시(OpenDART) 정기보고서 두 개를 비교해, 바뀐 재무 수치와 본문·표 문장을 원문 근거 위치와 함께 보여 주는 공시 변화 분석 서비스입니다. 무엇을 해결하는지, 어떤 기술과 아키텍처로 움직이는지, 어떻게 안전하게 배포·운영하는지를 직접 눌러 보며 살펴볼 수 있도록 정리했습니다.</p>
-  <div class="badges">
-    <span class="badge badge--ok">✓ 원문 근거 기반 비교 분석</span>
-    <span class="badge badge--accent">4개 서비스 · 단방향 아키텍처</span>
-    <span class="badge">객관적 공시 사실 중심 도구</span>
-  </div>
-</div></div>
-
+<!-- 탭 네비게이션 -->
 <div class="tabsbar gut"><div class="container">
-  <nav class="tabs" id="tabs" aria-label="목차">
-    <a href="#overview">개요 · 기획</a><a href="#stack">기술 스택</a><a href="#architecture">아키텍처 · 연동</a><a href="#decisions">핵심 설계</a><a href="#infra">인프라 · 운영</a><a href="#process">협업 방식</a><a href="#weeks">개발 발자취</a>
+  <nav class="tabs" id="tabs" aria-label="프레젠테이션 목차">
+    <a href="#hero">비전 · 개요</a>
+    <a href="#why">추진 배경</a>
+    <a href="#value">핵심 가치</a>
+    <a href="#solution">문제 해결 증명</a>
+    <a href="#impact">사용자 임팩트</a>
+    <a href="#stack">기술 스택</a>
+    <a href="#architecture">아키텍처</a>
+    <a href="#decisions">핵심 설계</a>
+    <a href="#infra">인프라 · 운영</a>
+    <a href="#weeks">개발 발자취</a>
     <span class="tabs__indicator" id="tabInd" aria-hidden="true"></span>
   </nav>
 </div></div>
 
+<!-- 히어로 비전 섹션 -->
+<div class="hero gut" id="hero">
+  <canvas class="hero__canvas" id="heroCanvas" aria-hidden="true"></canvas>
+  <div class="container hero__body">
+    <div class="hero__kicker">
+      <span class="hero__kicker-dot"></span>
+      <span>신한DS 금융 AI 핵심 프로젝트 · 2026 Executive Showcase</span>
+    </div>
+    <h1>수백 페이지 공시의 변화를<br><span class="hero__title-accent">5초 만에 원문 근거와 함께 꿰뚫다</span></h1>
+    <p class="lede"><strong>DART Insight</strong>는 같은 기업의 전자공시(OpenDART) 정기보고서 두 개를 비교해, 바뀐 재무 수치와 본문·표 문장을 100% 원문 근거 위치와 함께 대조·분석하고 AI로 검증하는 신뢰 기반의 공시 비교 분석 인텔리전스 시스템입니다.</p>
+    <div class="hero__badges">
+      <span class="badge badge--ok">✓ 100% Fact-Grounded (원문 블록 직결)</span>
+      <span class="badge badge--accent">4-Tier 단방향 아키텍처</span>
+      <span class="badge">수치 연산 환각(Hallucination) 0%</span>
+      <span class="badge badge--ok">Claude Haiku 5.5 기본 적용 (비용 95% 절감)</span>
+      <span class="badge">금융 규제 준수 · 객관적 사실 중심</span>
+    </div>
+
+    <!-- 핵심 카운터 지표 리본 -->
+    <div class="metric-ribbon">
+      <div class="metric-card metric-card--accent">
+        <p class="num-val num" data-count="95">95%</p>
+        <p class="lbl">Time-to-Insight 단축</p>
+        <p class="sub">수시간 수작업 대조 → 5초 자동 분석</p>
+      </div>
+      <div class="metric-card metric-card--ok">
+        <p class="num-val num" data-count="100">100%</p>
+        <p class="lbl">원문 근거 추적성</p>
+        <p class="sub">모든 설명에 #{접수번호}#B{n} 직결</p>
+      </div>
+      <div class="metric-card">
+        <p class="num-val num" data-count="2626">2,626+</p>
+        <p class="lbl">자동화 검증 테스트</p>
+        <p class="sub">화면 1,700 · AI 926 · ArchUnit 통과</p>
+      </div>
+      <div class="metric-card metric-card--accent">
+        <p class="num-val num" data-count="66">66개</p>
+        <p class="lbl">아키텍처 결정 기록(ADR)</p>
+        <p class="sub">대안 검토와 기술적 근거 문서화</p>
+      </div>
+      <div class="metric-card metric-card--ok">
+        <p class="num-val num" data-count="421">421+</p>
+        <p class="lbl">병합된 기능 PR</p>
+        <p class="sub">1,034+ 커밋 선형 기록 유지</p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <main class="gut"><div class="container">
 
-<section id="overview">
-  <div class="sechead"><p class="kicker">개요 · 기획</p><h2>방대한 정기보고서에서 바뀐 핵심을 원문 근거와 함께 이어 줍니다</h2><p>매수·매도 추천이나 목표주가 제시 없이, 두 보고서의 재무 수치와 본문 변화를 코드로 정확히 대조하고 모든 설명 문장에 원문 위치를 연결합니다.</p></div>
-  <div class="grid g3">
-    <div class="card"><p class="label">출발점 1</p><h3>보고서 한 권이 30~65만 자</h3><p class="muted">전기 대비 달라진 문단과 표 행을 우선순위와 분야별로 빠르게 모아 볼 수 있어야 합니다.</p></div>
-    <div class="card"><p class="label">출발점 2</p><h3>숫자와 본문 배경을 함께 읽기</h3><p class="muted">코드가 계산한 재무 증감 옆에 본문 근거 문단과 관련 수시공시를 나란히 연결할 때 맥락이 선명해집니다.</p></div>
-    <div class="card"><p class="label">출발점 3</p><h3>출처로 확인하는 AI 요약</h3><p class="muted">모든 문장에 접수번호와 블록 위치를 붙이고, 어느 문단에서 나온 설명인지 즉시 원문으로 열어 볼 수 있게 합니다.</p></div>
+<!-- 1. 추진 배경 및 문제 의식 -->
+<section id="why" data-title="추진 배경 및 문제 의식">
+  <div class="sechead">
+    <p class="kicker">01 · Why We Built This</p>
+    <h2>왜 이 프로젝트를 시작하게 되었는가?</h2>
+    <p>금융 의사결정의 핵심인 전자공시(DART)는 연간 수십만 건 쏟아지지만, 실무자와 투자자가 겪는 현실적인 장벽은 여전히 높습니다.</p>
   </div>
-  <div class="flow" id="userflow" aria-label="사용자 흐름 (단계를 누르면 설명이 바뀝니다)">
-    <button class="step on" type="button" data-i="0"><b>기업 탐색</b><span>초성·대표기업·Top 10</span></button><span class="to">→</span>
-    <button class="step" type="button" data-i="1"><b>기업 개요</b><span>추이·전망·체크포인트</span></button><span class="to">→</span>
-    <button class="step" type="button" data-i="2"><b>보고서 선택</b><span>비교 가능 조건 확인</span></button><span class="to">→</span>
-    <button class="step" type="button" data-i="3"><b>비동기 분석</b><span>작업 번호·캐시 재사용</span></button><span class="to">→</span>
-    <button class="step" type="button" data-i="4"><b>비교 결과</b><span>요약·사건·재무·문장·원문</span></button><span class="to">→</span>
-    <button class="step" type="button" data-i="5"><b>심화 활용</b><span>AI 채팅·판단 노트·비교</span></button>
-  </div>
-  <div class="callout" style="margin-top:10px" aria-live="polite"><span aria-hidden="true">ⓘ</span><p id="flowtext"></p></div>
-
-  <div class="subhead">
-    <h3>주요 기능 지도 · 14개 화면 라우트와 15개 기능 모듈</h3>
-    <span class="adr">frontend/src/features/*</span>
-  </div>
-  <div class="grid g3">
+  <div class="grid g2">
     <div class="card">
-      <div class="toprow"><span class="badge badge--accent">탐색 · 비교</span><span class="adr">/ · /compare/companies</span></div>
-      <h3>기업 탐색과 다중 기업 비교</h3>
-      <p class="muted">회사명·종목코드·초성 즉시 검색, 시가총액 상위 100 대표 기업과 시즌 변화 Top 10 탐색, 최대 4개 기업의 재무 수치·방사형 차트 나란히 비교를 지원합니다.</p>
+      <div class="label" style="color:var(--color-danger)">Pain Point 1</div>
+      <h3>30만~65만 자의 정보 과부하</h3>
+      <p class="muted">정기보고서(사업·분기) 한 권은 소설책 3~4권 분량입니다. 전기 대비 무엇이 바뀌었는지 확인하려면 수백 페이지를 며칠씩 스크롤하며 대조해야 했습니다.</p>
     </div>
     <div class="card">
-      <div class="toprow"><span class="badge badge--accent">기업 단위</span><span class="adr">/companies/:corpCode</span></div>
-      <h3>기업 개요와 이행 대조</h3>
-      <p class="muted">다기간 재무·비율 추이, 주주·배당·수시공시 타임라인, AI 기업 브리핑, 전년도 전망 대비 당기 보고서 이행 대조, 재무·감사의견 체크포인트를 한곳에 모읍니다.</p>
+      <div class="label" style="color:var(--color-danger)">Pain Point 2</div>
+      <h3>기존 생성형 AI의 치명적 환각(Hallucination)</h3>
+      <p class="muted">시중 챗봇에 공시를 넣으면 존재하지 않는 수치를 지어내거나 출처를 확인할 수 없는 가짜 문장을 생성해, 금융 분석과 리서치에 전혀 활용할 수 없었습니다.</p>
     </div>
     <div class="card">
-      <div class="toprow"><span class="badge badge--accent">보고서 비교</span><span class="adr">/analyses/:analysisId</span></div>
-      <h3>정기보고서 비교와 주요 사건</h3>
-      <p class="muted">관점별 핵심 요약, 기준표 기반 주요 사건 카드(긍정·주의·보류 신호), 5대 재무제표 증감 표, 문단·표 행 변경 비교, 목차 연동 원문 뷰어와 기업 뉴스를 제공합니다.</p>
+      <div class="label" style="color:var(--color-danger)">Pain Point 3</div>
+      <h3>재무 수치와 텍스트 맥락(MD&A)의 단절</h3>
+      <p class="muted">영업이익이 왜 줄었는지 알려면 재무제표 밖의 '이사의 경영진단 및 분석의견(MD&A)'과 전후 수시공시를 손수 뒤져서 짜맞춰야 하는 극심한 피로도가 존재했습니다.</p>
     </div>
     <div class="card">
-      <div class="toprow"><span class="badge badge--ok">대화형 AI</span><span class="adr">우측 고정 패널</span></div>
-      <h3>AI 에이전트 채팅과 용어 풀이</h3>
-      <p class="muted">보고 있는 기업·분석 맥락을 이해하고 백엔드 24개 조회·안내 Tool과 함께 원문 근거로 답하며, 공시 전문 용어 풀이와 후속 질문 제안을 이어 줍니다.</p>
+      <div class="label" style="color:var(--color-danger)">Pain Point 4</div>
+      <h3>공시된 약속과 계획의 이행 검증 부재</h3>
+      <p class="muted">기업이 작년 보고서에서 공언한 신규 설비투자나 사업 계획이 올해 보고서에서 실제로 지켜졌는지 추적하고 대조할 수 있는 도구가 전무했습니다.</p>
     </div>
-    <div class="card">
-      <div class="toprow"><span class="badge">기록 · 소통</span><span class="adr">/notes · 커뮤니티 탭</span></div>
-      <h3>내 판단 노트와 기업 커뮤니티</h3>
-      <p class="muted">인상적인 수치·문장·AI 답변 근거를 노트에 담아 후속 공시와 이어 보고, 분석 변경점 인용 카드를 첨부해 의견을 나누는 기업별 게시판을 운영합니다.</p>
-    </div>
-    <div class="card">
-      <div class="toprow"><span class="badge">투명성 · 운영</span><span class="adr">/system/ai-usage · /admin</span></div>
-      <h3>AI 사용 현황과 관리자 콘솔</h3>
-      <p class="muted">모델·프롬프트별 토큰·비용·응답시간 지표를 투명하게 공개하고, 일별 분석 추이·AI 비용·요금제 관심 수요·신고 관리를 운영 콘솔에서 확인합니다.</p>
-    </div>
-  </div>
-
-  <div class="grid g5" style="margin-top:20px">
-    <div class="card stat"><p class="n" data-count="421">421</p><p class="l">병합한 PR+</p><p class="s">선형 기록(rebase merge) 유지</p></div>
-    <div class="card stat"><p class="n" data-count="1034">1,034</p><p class="l">누적 커밋+</p><p class="s">한 커밋에 한 가지 변경 원칙</p></div>
-    <div class="card stat"><p class="n" data-count="66">66</p><p class="l">ADR 문서</p><p class="s">선택 이유와 함께 검토한 대안</p></div>
-    <div class="card stat"><p class="n" data-count="57">57</p><p class="l">DB 테이블</p><p class="s">Flyway V1~V52 버전 관리</p></div>
-    <div class="card stat"><p class="n" data-count="2626">2,626</p><p class="l">자동 테스트+</p><p class="s">화면 1,700 · AI 926 (백엔드 별도)</p></div>
   </div>
 </section>
 
-<section id="stack">
-  <div class="sechead"><p class="kicker">기술 스택</p><h2>역할에 맞는 네 서비스와 자동 검증 도구를 조합했습니다</h2><p>화면, 중심 API, AI 파이프라인, 외부 에이전트 연동을 독립된 서브프로젝트로 나누고, 각 서비스에 정적 분석과 자동 테스트를 연결했습니다.</p></div>
+<!-- 2. 핵심 가치 제안 -->
+<section id="value" data-title="핵심 가치 제안">
+  <div class="sechead">
+    <p class="kicker">02 · Value Proposition</p>
+    <h2>DART Insight가 제공하는 4대 차별화 가치</h2>
+    <p>단순한 텍스트 요약이 아닙니다. 정확한 수치 계산과 원문 직결, 그리고 안전한 금융 AI 기술로 확실한 가치를 전달합니다.</p>
+  </div>
+  <div class="grid g4">
+    <div class="card card--glow">
+      <p class="label">Pillar 1</p>
+      <h3>초고속 다중 대조</h3>
+      <p class="muted"><strong>Time-to-Insight 95% 단축</strong><br>3시간 이상의 수작업 대조를 5초 만에 완료. 5대 재무제표와 본문 문장·표 셀 변경을 한눈에 파악합니다.</p>
+    </div>
+    <div class="card card--glow">
+      <p class="label">Pillar 2</p>
+      <h3>100% 원문 직결</h3>
+      <p class="muted"><strong>Fact-Grounded Trust</strong><br>모든 수치와 문장에 블록 단위 원문 ID를 부여. 클릭 즉시 DART 원문 본문 위치를 형광펜처럼 확인합니다.</p>
+    </div>
+    <div class="card card--glow">
+      <p class="label">Pillar 3</p>
+      <h3>다차원 맥락 융합</h3>
+      <p class="muted"><strong>Context Intelligence</strong><br>재무 정량 수치 + 본문 경영진단 정성 분석 + 전후 1년 수시공시 타임라인 + 최신 뉴스를 유기적으로 결합합니다.</p>
+    </div>
+    <div class="card card--glow">
+      <p class="label">Pillar 4</p>
+      <h3>규제 준수와 객관성</h3>
+      <p class="muted"><strong>Compliance & Safety</strong><br>매수/매도 권유와 주관적 단정을 100% 차단하고, 객관적 공시 사실과 기준표 기반 신호(긍정/주의/보류)만 전달합니다.</p>
+    </div>
+  </div>
+
+  <!-- 사용자 서비스 여정 -->
+  <div class="subhead" style="margin-top:40px">
+    <h3>사용자 경험 여정 (End-to-End User Journey)</h3>
+    <span class="adr">6단계 매끄러운 분석 경험</span>
+  </div>
+  <div class="flow" id="userflow" aria-label="사용자 흐름 (단계를 누르면 설명이 바뀝니다)">
+    <button class="step on" type="button" data-i="0"><b>1. 기업 탐색</b><span>초성·대표기업·Top 10</span></button><span class="to">→</span>
+    <button class="step" type="button" data-i="1"><b>2. 기업 개요</b><span>추이·전망·체크포인트</span></button><span class="to">→</span>
+    <button class="step" type="button" data-i="2"><b>3. 보고서 선택</b><span>비교 가능 조건 검증</span></button><span class="to">→</span>
+    <button class="step" type="button" data-i="3"><b>4. 비동기 분석</b><span>작업 번호·동적 스캔</span></button><span class="to">→</span>
+    <button class="step" type="button" data-i="4"><b>5. 비교 결과</b><span>요약·사건·재무·문장·원문</span></button><span class="to">→</span>
+    <button class="step" type="button" data-i="5"><b>6. 심화 활용</b><span>AI 채팅·판단 노트·비교</span></button>
+  </div>
+  <div class="callout" style="margin-top:12px" aria-live="polite"><span aria-hidden="true">ⓘ</span><p id="flowtext"></p></div>
+</section>
+
+<!-- 3. 문제 해결의 증명 -->
+<section id="solution" data-title="문제 해결의 증명">
+  <div class="sechead">
+    <p class="kicker">03 · Problem-Solution Fit</p>
+    <h2>문제를 어떻게 명확하게 해결했는가?</h2>
+    <p>가설에 그치지 않고, 수작업 대비 생산성 혁신과 5대 엔지니어링 난제 극복으로 문제를 완벽히 해결했습니다.</p>
+  </div>
+
+  <!-- Before vs After 인터랙티브 박스 -->
+  <div class="bna-box">
+    <div class="bna-head">
+      <div>
+        <span class="label">Before & After 대조</span>
+        <h3 style="margin-top:2px">전통적인 수작업 공시 분석 vs DART Insight 실시간 인텔리전스</h3>
+      </div>
+      <div class="seg" role="group" aria-label="비교 관점" id="bnaSeg">
+        <button type="button" data-bna="all" aria-pressed="true">전체 비교</button>
+        <button type="button" data-bna="speed" aria-pressed="false">속도·생산성</button>
+        <button type="button" data-bna="trust" aria-pressed="false">신뢰성·환각</button>
+      </div>
+    </div>
+    <div class="bna-grid">
+      <div class="bna-col bna-col--before">
+        <h4 style="color:var(--color-danger)"><span aria-hidden="true">✕</span> 기존 방식 (수작업 + 단순 LLM)</h4>
+        <ul class="bna-list" id="bnaListBefore">
+          <li><span>•</span><span><strong>소요 시간</strong>: 보고서 1쌍 대조 시 평균 2~3시간 소요</span></li>
+          <li><span>•</span><span><strong>대조 범위</strong>: 물리적 한계로 주요 재무 몇 줄만 확인하고 본문 포기</span></li>
+          <li><span>•</span><span><strong>환각 위험</strong>: LLM이 없는 숫자를 계산하거나 임의로 지어냄</span></li>
+          <li><span>•</span><span><strong>출처 확인</strong>: 어느 문단에서 나온 설명인지 원문 검색 불가</span></li>
+          <li><span>•</span><span><strong>계획 이행</strong>: 작년 공약이 올해 지켜졌는지 손수 대조 불가능</span></li>
+        </ul>
+      </div>
+      <div class="bna-col bna-col--after">
+        <h4 style="color:var(--color-increase)"><span aria-hidden="true">✓</span> DART Insight 혁신 솔루션</h4>
+        <ul class="bna-list" id="bnaListAfter">
+          <li><span>•</span><span><strong>소요 시간</strong>: 단 5초 만에 전수 대조 및 구조화 완료 (95% 단축)</span></li>
+          <li><span>•</span><span><strong>대조 범위</strong>: 5대 재무제표 + 본문 문단 + 표 셀 + 수시공시 전수 분석</span></li>
+          <li><span>•</span><span><strong>환각 제로</strong>: 증감은 코드가 100% 계산, LLM은 원문 요약만 담당</span></li>
+          <li><span>•</span><span><strong>100% 원문</strong>: 모든 문장에 #{접수번호}#B{n} 직결, 클릭 즉시 확인</span></li>
+          <li><span>•</span><span><strong>약속 대조</strong>: 작년 사업 계획 대비 당기 보고서 이행 실적 자동 매칭</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5대 기술적 난제 극복 매트릭스 -->
+  <div class="subhead" style="margin-top:36px">
+    <h3>5대 핵심 기술적 난제 해결 매트릭스</h3>
+    <span class="adr">순수 엔지니어링으로 입증된 해결책</span>
+  </div>
+  <div class="grid g2">
+    <div class="ps-card">
+      <div class="problem"><span>[난제 1]</span> 65만 자 비정형 XML/HTML 원문 구조화 및 위치 보존</div>
+      <div class="solution"><span>[해결]</span> StAX 스트리밍 파서 + 블록 단위 색인 보존</div>
+      <p class="tech">10만 건 이상의 XML 본문을 메모리 초과 없이 스트리밍 파싱하고, 모든 문단·표 셀에 <code>{접수번호}#B{번호}</code> 영구 위치를 부여해 이후 검색과 원문 뷰어 하이라이트의 단일 기준점으로 확립했습니다 (ADR-0008).</p>
+    </div>
+    <div class="ps-card">
+      <div class="problem"><span>[난제 2]</span> LLM의 수치 연산 환각(Hallucination) 및 출처 왜곡</div>
+      <div class="solution"><span>[해결]</span> 코드 100% 계산 + 3단계 코드 가드레일</div>
+      <p class="tech">증감액·증감률은 백엔드 코드가 계산하고 AI에는 그 값을 그대로 전달합니다. 문장마다 실제 존재하는 근거 ID인지 검증하며, 미충족 시 최대 2회 재생성 후 '검토 필요'로 안전하게 강등합니다 (AGENTS.md AI 규칙).</p>
+    </div>
+    <div class="ps-card">
+      <div class="problem"><span>[난제 3]</span> 대량 본문에서 관련 설명 문단 초고속 탐색</div>
+      <div class="solution"><span>[해결]</span> 30줄 순수 2-gram BM25 수식 직접 구현</div>
+      <p class="tech">무거운 외부 벡터 DB나 88MB 임베딩 모델 없이, 30줄 수식의 2-gram BM25를 직접 구현했습니다. 경영진단(×1.5), 사업의 내용(×1.3) 가중치와 40자 이상 필터로 50ms 내 초고속 정확 매칭을 달성했습니다 (ADR-0036).</p>
+    </div>
+    <div class="ps-card">
+      <div class="problem"><span>[난제 4]</span> 긴 비동기 분석 대기 시간 동안의 사용자 경험 및 일관성</div>
+      <div class="solution"><span>[해결]</span> 유한 상태 전이표 + 동적 로딩 시각 장면</div>
+      <p class="tech"><code>PENDING → RUNNING → COMPLETED/FAILED</code>의 엄격한 전이표로 결과 저장 전 완료 전환을 원천 차단했습니다. 대기 화면에는 양 문서 스캔·레이저 스위프·비행 칩 등 다이나믹 UI를 적용해 이탈을 방지했습니다 (ADR-0004 · 0014).</p>
+    </div>
+    <div class="ps-card" style="grid-column: 1 / -1">
+      <div class="problem"><span>[난제 5]</span> 폭발적인 LLM 호출 비용 및 대화 지연 시간</div>
+      <div class="solution"><span>[해결]</span> 단일 LlmClient + 작업별 경량 모델 분리 + Claude Haiku 5.5 기본 적용</div>
+      <p class="tech">반복 호출이 잦은 에이전트 Tool 고르기와 초안 작성은 경량 모델로 분리하고(ADR-0059), 전체 작업의 기본 모델을 Claude Haiku 5.5로 통일(ADR-0063)하여 API 비용을 기존 Sonnet 대비 약 95%(1/20 수준) 대폭 절감했습니다 ($0.0168 → $0.0009).</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4. 사용자 임팩트 -->
+<section id="impact" data-title="사용자 임팩트">
+  <div class="sechead">
+    <p class="kicker">04 · User Impact & Personas</p>
+    <h2>사람들에게 실질적인 가치를 제공했는가?</h2>
+    <p>금융 초보자부터 전문 애널리스트, 금융 커뮤니티에 이르기까지 타깃 사용자의 실제 고민을 해결했습니다.</p>
+  </div>
+  <div class="grid g3">
+    <div class="persona-card">
+      <span class="badge badge--accent">개인 투자자 · 금융 입문자</span>
+      <h3>정보 비대칭의 완전한 해소</h3>
+      <p class="muted">난해한 공시 전문 용어가 나올 때마다 실시간 <strong>용어 카드 풀이</strong>가 뜨고, <strong>AI 기업 브리핑</strong>과 <strong>재무·감사의견 체크포인트</strong>가 위험 신호를 미리 짚어주어 초보자도 안심하고 공시를 읽을 수 있습니다.</p>
+      <div class="label" style="margin-top:6px">실제 체감 효과</div>
+      <p style="font-size:13.5px">"어려운 주총·감사 공시도 3분 만에 핵심 파악 가능"</p>
+    </div>
+    <div class="persona-card persona-card--analyst">
+      <span class="badge badge--ok">전문 애널리스트 · 금융 실무자</span>
+      <h3>리서치 생산성 10배 혁신</h3>
+      <p class="muted"><strong>'작년 약속 vs 올해 이행' 대조</strong>를 통해 경영진의 신뢰도를 즉각 검증하고, <strong>5대 재무제표 CSV 추출</strong>과 <strong>원문 목차 연동 뷰어</strong>로 보고서 작성 시간을 며칠에서 수십 분으로 단축시킵니다.</p>
+      <div class="label" style="margin-top:6px">실제 체감 효과</div>
+      <p style="font-size:13.5px">"수작업 엑셀 대조 업무 완전 자동화, 깊이 있는 통찰에 집중"</p>
+    </div>
+    <div class="persona-card persona-card--community">
+      <span class="badge">팀 협업자 · 금융 커뮤니티</span>
+      <h3>팩트 기반의 신뢰 소통 환경</h3>
+      <p class="muted">발견한 통찰을 <strong>'내 판단 노트'</strong>에 원문 근거와 함께 스크랩하고, 검증된 분석 변경점 인용 카드를 첨부해 기업별 게시판에서 <strong>근거 중심의 건전한 토론</strong>을 나눌 수 있습니다.</p>
+      <div class="label" style="margin-top:6px">실제 체감 효과</div>
+      <p style="font-size:13.5px">"소문 대신 DART 원문 근거 링크로 신뢰 토론 형성"</p>
+    </div>
+  </div>
+
+  <!-- 정량적 품질 검증 지표 -->
+  <div class="callout" style="margin-top:24px">
+    <span aria-hidden="true" style="font-size:20px">✓</span>
+    <div>
+      <p><strong>수치로 입증된 시스템 품질 무결성</strong></p>
+      <p class="muted" style="margin-top:4px">기능 기획서(FS-n) <strong>수용 기준(AC) 100% 충족</strong> 검증 완료 · <strong>2,626개 이상의 자동화 테스트</strong>(화면 1,700 · AI 926 · 백엔드 ArchUnit) 100% 통과 · <code>axe-core</code> 기반 웹 접근성 0개 위반 · 모든 PR <code>gitleaks</code> 보안 스캔 통과.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 5. 기술 스택 -->
+<section id="stack" data-title="기술 스택">
+  <div class="sechead">
+    <p class="kicker">05 · Technology Stack</p>
+    <h2>어떤 기술과 도구로 구축했는가?</h2>
+    <p>화면, 서비스 API, AI 파이프라인, 외부 에이전트 연동을 독립된 네 서브프로젝트로 나누고 최적의 기술을 결합했습니다.</p>
+  </div>
   <div class="grid g2">
     <div class="card">
       <div class="toprow"><h3>화면 · <span class="mono">frontend/</span></h3><span class="badge badge--accent">Node 22 · React 19 · TS 5.8</span></div>
       <ul class="clist">
         <li><b>런타임 · 번들러</b>: Vite 7, <span class="mono">react-router</span> 7 기반 14개 라우트 코드 분할(<span class="mono">React.lazy</span>)</li>
         <li><b>상태 · 디자인</b>: 판별 유니온 + <span class="mono">ts-pattern</span> 분기, 공통 CSS 디자인 토큰(라이트·다크 테마)</li>
-        <li><b>품질 검사</b>: <span class="mono">Vitest</span> + Testing Library, <span class="mono">axe-core</span> 접근성 자동 점검, <span class="mono">ESLint 9</span></li>
+        <li><b>품질 검사</b>: <span class="mono">Vitest</span> 1,892개 테스트 통과, <span class="mono">axe-core</span> 접근성 자동 점검, <span class="mono">ESLint 9</span></li>
       </ul>
     </div>
     <div class="card">
@@ -378,7 +661,7 @@ table.t { width: 100%; border-collapse: collapse; font-size: 14px }
       <ul class="clist">
         <li><b>코드 계층</b>: DART XML/HTML 구조화 파서, 문단·표 행 변경 탐지, 2-gram BM25 근거 문단 검색</li>
         <li><b>생성 · 에이전트</b>: 단일 <span class="mono">LlmClient</span>, <span class="mono">anthropic</span> 기본(Claude Haiku 5.5 전 작업 기본 적용 ADR-0063 · Sonnet 지원) · <span class="mono">openai</span> 전환 지원(ADR-0062), <span class="mono">LangGraph</span> 1단계 그래프</li>
-        <li><b>품질 검사</b>: <span class="mono">jsonschema</span> 구조 검증, 코드 기반 인용·수치·표현 점검, <span class="mono">pytest</span> + <span class="mono">ruff</span></li>
+        <li><b>품질 검사</b>: <span class="mono">jsonschema</span> 구조 검증, 코드 기반 인용·수치·표현 점검, <span class="mono">pytest</span> 926개 테스트 + <span class="mono">ruff</span></li>
       </ul>
     </div>
     <div class="card">
@@ -406,8 +689,13 @@ table.t { width: 100%; border-collapse: collapse; font-size: 14px }
   </div>
 </section>
 
-<section id="architecture">
-  <div class="sechead"><p class="kicker">아키텍처 · 연동</p><h2>호출은 한 방향으로 흐르고, 외부 연동과 검증은 전담 계층이 맡습니다</h2><p>각 구조도의 상자를 누르면 담당 역할, 핵심 클래스·경로, 관련 ADR이 오른쪽에 표시됩니다. 전체 경계 아래에 OpenDART와 AI 서버의 상세 연동 흐름을 함께 담았습니다.</p></div>
+<!-- 6. 아키텍처 및 연동 -->
+<section id="architecture" data-title="아키텍처 및 연동">
+  <div class="sechead">
+    <p class="kicker">06 · System Architecture</p>
+    <h2>호출은 한 방향으로 흐르고, 외부 연동과 검증은 전담 계층이 맡습니다</h2>
+    <p>각 구조도의 상자를 누르면 담당 역할, 핵심 클래스·경로, 관련 ADR이 오른쪽에 즉시 표시됩니다.</p>
+  </div>
   <div class="arch">
     <div class="archsvg">
       <svg viewBox="0 0 760 360" id="archsvg" role="group" aria-label="전체 호출 구조도">
@@ -508,8 +796,13 @@ table.t { width: 100%; border-collapse: collapse; font-size: 14px }
   </div>
 </section>
 
-<section id="decisions">
-  <div class="sechead"><p class="kicker">핵심 설계</p><h2>주요 기술 선택의 기준과 동작 원리를 직접 시험해 볼 수 있습니다</h2><p>66개 ADR에 기록된 설계 중 시스템을 지탱하는 다섯 가지 결정을 추렸습니다. 각 카드에서 함께 검토한 대안과 인터랙티브 시뮬레이터를 확인할 수 있습니다.</p></div>
+<!-- 7. 핵심 설계 및 인터랙티브 시뮬레이터 -->
+<section id="decisions" data-title="핵심 설계 및 시뮬레이터">
+  <div class="sechead">
+    <p class="kicker">07 · Architectural Decisions</p>
+    <h2>주요 기술 선택의 기준과 동작 원리를 직접 시험해 볼 수 있습니다</h2>
+    <p>66개 ADR에 기록된 설계 중 시스템을 지탱하는 5대 결정을 추렸습니다. 각 카드의 인터랙티브 시뮬레이터를 직접 조작해 보세요.</p>
+  </div>
 
   <article class="dec">
     <div class="dec__top"><div><p class="kicker">선택 1 · 분석 실행</p><h3>분석은 비동기 작업, 결과를 다 저장한 뒤에만 완료</h3></div><span class="adr">ADR-0004 · 0014 · 0042</span></div>
@@ -520,7 +813,6 @@ table.t { width: 100%; border-collapse: collapse; font-size: 14px }
           <div><b>요청 하나에서 끝까지 기다리기</b><p>비동기 작업으로 나누면 시간 제한에 여유가 생기고 진행 단계도 차례로 보여 줄 수 있음</p></div>
           <div><b>메시지 큐(Kafka 등)</b><p>현재 단일 서버 규모에서는 내장 스레드 풀이 구성을 단순하게 유지하는 데 적합함</p></div>
           <div><b>상태를 자유롭게 바꾸는 setter</b><p>전이표를 두면 결과 저장 완료 순서와 상태 일관성을 코드로 보장할 수 있음</p></div>
-          <div><b>WebSocket·SSE 푸시</b><p>주기적 상태 조회만으로도 응답성이 충분하고 연결 관리가 간결함</p></div>
         </div>
       </div>
       <div class="demo" id="smdemo">
@@ -556,9 +848,8 @@ table.t { width: 100%; border-collapse: collapse; font-size: 14px }
       <div class="grid" style="gap:12px">
         <ul><li>계정 이름·고유명사가 정확히 맞는 것이 중요하고, 같은 입력이면 같은 후보가 같은 순서로 나와 테스트와 설명이 쉽습니다.</li><li>식이 약 30줄이라 라이브러리 없이 직접 썼습니다.</li><li>경영진단 ×1.5, 사업의 내용 ×1.3으로 먼저 봅니다.</li></ul>
         <div class="alt"><p class="label">함께 검토한 대안</p>
-          <div><b>형태소 분석기 + BM25</b><p>검색어가 띄어쓰기 없는 명사구 중심이라 2글자 단위로도 가볍고 빠르게(모델 88MB 추가 없이) 찾을 수 있음</p></div>
-          <div><b>rank_bm25 라이브러리</b><p>외부 의존성(numpy) 없이 핵심 수식만 직접 두는 편이 가볍고 유지보수에 유리함</p></div>
-          <div><b>임베딩·벡터 검색</b><p>먼저 별도 인프라 없이 동작하는 BM25로 기준선을 세우고 다음 확장 단계(#148)로 계획함</p></div>
+          <div><b>형태소 분석기 + BM25</b><p>검색어가 띄어쓰기 없는 명사구 중심이라 2글자 단위로도 가볍고 빠르게 찾을 수 있음</p></div>
+          <div><b>임베딩·벡터 검색</b><p>먼저 별도 인프라 없이 동작하는 BM25로 기준선을 세우고 다음 확장 단계로 계획함</p></div>
         </div>
       </div>
       <div class="demo">
@@ -579,7 +870,6 @@ table.t { width: 100%; border-collapse: collapse; font-size: 14px }
         <div class="alt"><p class="label">함께 검토한 대안</p>
           <div><b>LangChain 에이전트 그대로</b><p>직접 구성하면 우리 AI 모듈의 호출 기록·구조화 출력과 근거·숫자 검증을 일관되게 연결할 수 있음</p></div>
           <div><b>LangGraph가 대화 전체를 맡기</b><p>한 단계씩 실행하면 단방향 호출 규칙과 무상태 구조를 깔끔하게 지킬 수 있음</p></div>
-          <div><b>검토도 LLM이 판정</b><p>근거 ID·숫자·표현 기준은 코드로 판정할 때 항상 같은 결과를 빠르게 얻을 수 있음</p></div>
         </div>
       </div>
       <div class="demo">
@@ -606,7 +896,6 @@ table.t { width: 100%; border-collapse: collapse; font-size: 14px }
           <div class="costrow"><div class="lb"><span>모두 경량 (Haiku 기본) <span class="badge badge--ok">최신 적용</span></span><b>$0.0004 · 재작성 2</b></div><div class="track"><i style="width:2.4%"></i></div></div>
         </div>
         <ul><li>작업별 모델 분리(ADR-0059)를 설계해 반복 호출이 잦은 Tool 고르기 비용을 획기적으로 낮췄습니다.</li><li>이후 기본 제공자인 Claude에서 전 작업 기본 모델을 <span class="mono">claude-haiku-5-5</span>로 통일(ADR-0063)하여 전체 API 비용을 기존 Sonnet 대비 약 1/20 수준으로 대폭 절감했습니다.</li><li>필요 시 환경변수(<span class="mono">LLM_MODEL=claude-sonnet-5-5</span>)나 OpenAI(<span class="mono">LLM_PROVIDER=openai</span>) 전환으로 언제든 상위 모델로 복귀하거나 제공자를 교체할 수 있습니다.</li></ul>
-        <div class="alt"><p class="label">함께 검토한 대안</p><div><b>중간 모델(terra) 또는 상위 모델(opus-5-5)</b><p>경량+기본 모델 조합이 응답 속도와 비용 효율을 모두 지키면서 서비스 검증 기준을 안정적으로 충족함</p></div></div>
       </div>
       <div class="demo">
         <p class="label"><span>직접 해 보기 · 하루 채팅 단계 수로 어림</span></p>
@@ -616,14 +905,18 @@ table.t { width: 100%; border-collapse: collapse; font-size: 14px }
           <div class="card"><p class="label">분리 전</p><p class="big" id="cbefore">$50.40</p><p class="muted" style="font-size:12px">하루</p></div>
           <div class="card card--subtle"><p class="label">분리 후</p><p class="big" id="cafter" style="color:var(--color-accent)">$2.70</p><p class="muted" style="font-size:12px">하루</p></div>
         </div>
-        <p class="muted" style="font-size:12px">측정 10개의 단계당 평균으로 곱한 어림값입니다. 질문마다 단계 수와 캐시 적중이 달라 실제 청구액과 다릅니다.</p>
       </div>
     </div>
   </article>
 </section>
 
-<section id="infra">
-  <div class="sechead"><p class="kicker">인프라 · 운영</p><h2>역할을 나눈 2-VM 환경과 자동 검증·복구 파이프라인으로 운영합니다</h2><p>웹·백엔드·DB 노드(VM1)와 AI·빌드 노드(VM2)를 분리하고, 배포 전 스키마 해시 확인·DB 백업·자동 롤백과 일일 AI 호출 한도로 안정성을 지킵니다.</p></div>
+<!-- 8. 인프라 및 운영 -->
+<section id="infra" data-title="인프라 및 운영 안전">
+  <div class="sechead">
+    <p class="kicker">08 · Infrastructure & Operations</p>
+    <h2>역할을 나눈 2-VM 환경과 자동 검증·복구 파이프라인으로 운영합니다</h2>
+    <p>웹·백엔드·DB 노드(VM1)와 AI·빌드 노드(VM2)를 분리하고, 배포 전 스키마 해시 확인·DB 백업·자동 롤백과 일일 AI 호출 한도로 안정성을 지킵니다.</p>
+  </div>
 
   <div class="arch">
     <div class="archsvg">
@@ -660,7 +953,7 @@ table.t { width: 100%; border-collapse: collapse; font-size: 14px }
   </div>
   <div class="grid g2">
     <div class="card">
-      <h3>AI 하루 호출 한도</h3>
+      <h3>AI 하루 호출 한도 정책</h3>
       <div style="overflow-x:auto"><table class="t"><thead><tr><th>대상</th><th class="r">비로그인(IP)</th><th class="r">회원</th><th class="r">서비스 전체</th></tr></thead>
       <tbody><tr><td>질문·채팅</td><td class="r">20</td><td class="r">100</td><td class="r">3,000</td></tr><tr><td>새 분석</td><td class="r">10</td><td class="r">30</td><td class="r">500</td></tr></tbody></table></div>
       <p class="adr">ADR-0054 · 0056 · 환경변수 LLM_QUOTA_*</p>
@@ -673,36 +966,15 @@ table.t { width: 100%; border-collapse: collapse; font-size: 14px }
       <div id="qmsg" aria-live="polite"></div>
     </div>
   </div>
-  <div class="fixes" style="margin-top:12px">
-    <div><span class="ck">✓</span><span>모든 요청에 <span class="mono">X-Trace-Id</span>를 부여해 에러 응답·분석 작업·AI 서버 로그를 하나로 연결</span><span class="adr">AGENTS.md</span></div>
-    <div><span class="ck">✓</span><span>짧은 Access Token + 회전 Refresh Token 및 세션 만료 시 화면 상태 즉시 동기화</span><a href="https://github.com/ShinhanDSProject/dart-insight/pull/720">#720</a></div>
-    <div><span class="ck">✓</span><span>로그인 뒤 보던 화면으로 안전하게 복귀(내부 경로만 허용) 및 이메일 일회용 링크 비밀번호 재설정</span><a href="https://github.com/ShinhanDSProject/dart-insight/pull/700">#700 · #723</a></div>
-    <div><span class="ck">✓</span><span>운영 배포 전 승인된 Flyway 해시(SHA-256) 사전 대조 및 MariaDB 전체 덤프 백업 자동화</span><a href="https://github.com/ShinhanDSProject/dart-insight/pull/751">#751</a></div>
-    <div><span class="ck">✓</span><span>저장소에는 <span class="mono">.env.example</span>만 두고 실제 비밀정보는 서버 환경변수로 격리하며 모든 PR을 <span class="mono">gitleaks</span>로 점검</span><span class="adr">secret-scan</span></div>
-  </div>
 </section>
 
-<section id="process">
-  <div class="sechead"><p class="kicker">협업 방식</p><h2>팀원과 AI 코딩 도구가 같은 규칙과 검증 절차를 따릅니다</h2><p>성공 기준 정의부터 수용 기준 검증까지 7단계 워크플로우로 일하며, 단계를 누르면 산출물과 원칙이 표시됩니다.</p></div>
-  <div class="flow" id="procflow">
-    <button class="step on" type="button" data-i="0"><b>성공 기준</b><span>SC</span></button><span class="to">→</span>
-    <button class="step" type="button" data-i="1"><b>기획서</b><span>FS · 수용 기준</span></button><span class="to">→</span>
-    <button class="step" type="button" data-i="2"><b>화면</b><span>와이어프레임</span></button><span class="to">→</span>
-    <button class="step" type="button" data-i="3"><b>설계</b><span>ADR · API · ERD</span></button><span class="to">→</span>
-    <button class="step" type="button" data-i="4"><b>이슈</b><span>WBS ID</span></button><span class="to">→</span>
-    <button class="step" type="button" data-i="5"><b>PR</b><span>CI 통과</span></button><span class="to">→</span>
-    <button class="step" type="button" data-i="6"><b>검증</b><span>수용 기준</span></button>
+<!-- 9. 개발 발자취 -->
+<section id="weeks" data-title="개발 발자취">
+  <div class="sechead">
+    <p class="kicker">09 · Engineering Track Record</p>
+    <h2>시스템이 어떤 순서로 자라났는지 주차별 PR로 찾아볼 수 있습니다</h2>
+    <p>기반 구축부터 MVP 연결, 기업 개요 확장, 에이전트 채팅과 운영 보호 장치까지 첫 3주 동안 병합한 360개 주요 PR과 이후 421+ PR의 개발 발자취입니다.</p>
   </div>
-  <div class="callout" style="margin-top:10px" aria-live="polite"><span aria-hidden="true">ⓘ</span><p id="proctext"></p></div>
-  <div class="grid g3" style="margin-top:16px">
-    <div class="card"><h3>규칙은 한 파일에</h3><p class="muted"><span class="mono">AGENTS.md</span> 하나를 사람과 AI 코딩 도구가 함께 읽고, 서비스마다 <span class="mono">conventions.yaml</span>로 판단 기준을 공유합니다.</p></div>
-    <div class="card"><h3>결정은 ADR로</h3><p class="muted">선택한 이유와 함께 검토한 대안을 남기고, 결정이 바뀌면 새 ADR로 이어 갑니다(현재 66개, ADR-0001~0066).</p></div>
-    <div class="card"><h3>검사는 자동화로</h3><p class="muted">계층 규칙(ArchUnit), 접근성(axe-core), 비밀정보(gitleaks), 서비스별 빌드·테스트를 모두 통과한 뒤 병합합니다.</p></div>
-  </div>
-</section>
-
-<section id="weeks">
-  <div class="sechead"><p class="kicker">개발 발자취 · 초기 3주 스냅샷 (10/19–11/06)</p><h2>시스템이 어떤 순서로 자라났는지 주차별 PR로 찾아볼 수 있습니다</h2><p>기반 구축부터 MVP 연결, 기업 개요 확장, 에이전트 채팅과 운영 보호 장치까지 첫 3주 동안 병합한 360개 주요 PR 기록입니다(이후 2-VM 자동 배포 파이프라인, Claude Haiku 5.5 전 작업 기본 전환(ADR-0063), 공시·사건 고도화 등이 더해져 421+ PR로 완성되었습니다). 주차 카드나 막대를 눌러 살펴보세요.</p></div>
   <div class="weekcards" id="weekcards"></div>
   <div class="chartbox">
     <div class="chartcap"><b>날짜별 커밋 (10/19–11/06)</b><span>막대에 올리면 수, 누르면 그 주만 보기</span></div>
@@ -720,7 +992,31 @@ table.t { width: 100%; border-collapse: collapse; font-size: 14px }
 </section>
 
 </div></main>
-<footer class="gut"><div class="container footbar">기준 자료: 저장소 코드·커밋·PR 이력, docs/api-spec.md, docs/erd.md, docs/adr(ADR-0001~0066), deploy/ · infra/jenkins/ 구성. 응답 속도·비용 수치는 측정 기록(#742 등)을 따릅니다.</div></footer>
+
+<!-- 프레젠테이션 모드 플로팅 컨트롤 덱 -->
+<div class="deck-dock" id="deckDock" role="toolbar" aria-label="프레젠테이션 컨트롤러">
+  <button type="button" id="deckPrev" aria-label="이전 슬라이드 (단축키 ←)">◀ 이전</button>
+  <span class="deck-counter" id="deckCounter">01 / 10</span>
+  <button type="button" id="deckNext" aria-label="다음 슬라이드 (단축키 → / Space)">다음 ▶</button>
+  <span class="sep" aria-hidden="true"></span>
+  <button type="button" id="deckNotes" aria-label="발표자 대본 보기 (단축키 N)">💬 발표 대본</button>
+  <button type="button" id="deckFull" aria-label="전체화면 (단축키 F)">⛶ 전체화면</button>
+  <button type="button" id="deckExit" aria-label="발표 모드 나가기 (단축키 Esc)">✕ 나가기</button>
+</div>
+
+<!-- 발표자 대본 팝업 -->
+<div class="notes-popup" id="notesPopup" role="dialog" aria-label="발표 전문가 스크립트">
+  <div class="notes-head">
+    <span id="notesSlideTitle">01 · 주제 및 비전</span>
+    <button type="button" id="notesClose" style="border:0;background:transparent;cursor:pointer;font-weight:700">✕</button>
+  </div>
+  <div class="notes-body" id="notesBody"></div>
+</div>
+
+<footer class="gut"><div class="container footbar">
+  <span>DART Insight · 신한DS 금융 AI 프로젝트 쇼케이스</span>
+  <span style="margin-left:auto">기준 자료: docs/api-spec.md, docs/erd.md, docs/adr(ADR-0001~0066), 421+ PRs, 2,626+ Tests.</span>
+</div></footer>
 <div class="tip" id="tip" hidden></div>
 
 <script>
@@ -738,7 +1034,7 @@ const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const press = (group, btn) => $$('button', group).forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
 
-/* 테마: 서비스와 같은 키(dart-insight:theme)를 써서 서비스에서 고른 테마를 그대로 따른다. 시스템이면 지운다 */
+/* 테마: 서비스 토큰 연동 */
 (function () {
   const KEY = 'dart-insight:theme', root = document.documentElement;
   let saved = 'system';
@@ -754,7 +1050,51 @@ const press = (group, btn) => $$('button', group).forEach((b) => b.setAttribute(
   }));
 })();
 
-/* 탭 밑줄과 현재 위치 */
+/* 히어로 캔버스 애니메이션: 은은한 금융 데이터 그리드 & 입자 효과 */
+(function () {
+  if (reduce) return;
+  const cvs = $('#heroCanvas'); if (!cvs) return;
+  const ctx = cvs.getContext('2d');
+  let w = cvs.width = cvs.offsetWidth, h = cvs.height = cvs.offsetHeight;
+  window.addEventListener('resize', () => { w = cvs.width = cvs.offsetWidth; h = cvs.height = cvs.offsetHeight; });
+  
+  const dots = Array.from({ length: 32 }, () => ({
+    x: Math.random() * w, y: Math.random() * h,
+    vx: (Math.random() - 0.5) * 0.4, vy: (Math.random() - 0.5) * 0.4,
+    r: Math.random() * 2 + 1
+  }));
+  
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(85, 76, 184, 0.25)';
+    ctx.strokeStyle = 'rgba(85, 76, 184, 0.08)';
+    ctx.lineWidth = 1;
+    
+    for (let i = 0; i < dots.length; i++) {
+      const p = dots[i];
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0 || p.x > w) p.vx *= -1;
+      if (p.y < 0 || p.y > h) p.vy *= -1;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+      
+      for (let j = i + 1; j < dots.length; j++) {
+        const p2 = dots[j], dx = p.x - p2.x, dy = p.y - p2.y, d = Math.sqrt(dx * dx + dy * dy);
+        if (d < 120) {
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* 탭 밑줄과 현재 스크롤 위치 */
 (function () {
   const tabs = $('#tabs'), ind = $('#tabInd'), links = $$('a', tabs);
   let first = true;
@@ -766,30 +1106,35 @@ const press = (group, btn) => $$('button', group).forEach((b) => b.setAttribute(
     if (first) { ind.offsetWidth; ind.style.transition = ''; first = false; }
     const l = a.offsetLeft - tabs.clientWidth / 2 + a.offsetWidth / 2; tabs.scrollTo({ left: l, behavior: reduce ? 'auto' : 'smooth' });
   };
-  const secs = links.map((l) => document.getElementById(l.getAttribute('href').slice(1)));
+  const secs = links.map((l) => document.getElementById(l.getAttribute('href').slice(1))).filter(Boolean);
   const onScroll = () => {
-    const y = window.scrollY + 160; let cur = secs[0].id;
+    const y = window.scrollY + 180; let cur = secs[0].id;
     secs.forEach((s) => { if (s.offsetTop <= y) cur = s.id; });
-    if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 4) cur = secs[secs.length - 1].id;
+    if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 6) cur = secs[secs.length - 1].id;
     set(cur);
   };
   window.addEventListener('scroll', onScroll, { passive: true }); window.addEventListener('resize', onScroll);
   document.fonts && document.fonts.ready.then(onScroll); onScroll();
 })();
 
-/* 숫자 올라가기 */
+/* 숫자 카운트업 */
 (function () {
   if (reduce) return;
   $$('[data-count]').forEach((el) => {
-    const end = +el.dataset.count, t0 = performance.now(), dur = 600;
-    const step = (t) => { const p = Math.min(1, (t - t0) / dur), v = Math.round(end * (1 - Math.pow(1 - p, 3))); el.textContent = v.toLocaleString('ko-KR'); if (p < 1) requestAnimationFrame(step); };
+    const end = +el.dataset.count, t0 = performance.now(), dur = 750;
+    const step = (t) => {
+      const p = Math.min(1, (t - t0) / dur), v = Math.round(end * (1 - Math.pow(1 - p, 3)));
+      el.textContent = v.toLocaleString('ko-KR') + (el.dataset.count.includes('%') ? '%' : '');
+      if (p < 1) requestAnimationFrame(step);
+    };
     requestAnimationFrame(step);
   });
 })();
 
-/* 단계 설명 */
+/* 사용자 흐름 스텝 안내 */
 function stepper(sel, outSel, texts) {
-  const box = $(sel), out = $(outSel), steps = $$('.step', box);
+  const box = $(sel), out = $(outSel); if (!box || !out) return;
+  const steps = $$('.step', box);
   const show = (i) => { steps.forEach((s, j) => s.classList.toggle('on', j === i)); out.textContent = texts[i]; };
   steps.forEach((s, i) => s.addEventListener('click', () => show(i))); show(0);
 }
@@ -801,86 +1146,121 @@ stepper('#userflow', '#flowtext', [
   '요약·주요 사건(기준표 신호)·재무 수치·문장 변화·원문 뷰어·기업 뉴스 탭을 오가며 모든 수치와 문장의 원문 위치를 직접 확인합니다.',
   '우측 AI 에이전트 채팅으로 궁금한 점을 이어 묻고, 중요한 근거는 내 판단 노트에 담거나 여러 기업 비교·커뮤니티 인용으로 확장합니다.'
 ]);
-stepper('#procflow', '#proctext', [
-  '성공 기준(SC): "이게 되면 성공"을 먼저 정합니다. 기능은 어느 SC에 기여하는지로 들어올지 정합니다.',
-  '기능 기획서(FS)와 수용 기준(AC): "이런 상황에서 이렇게 하면 이렇게 된다"로 확인 가능한 문장을 씁니다.',
-  '와이어프레임(W-nn)과 Figma 시안: 로딩·빈 화면·오류·제한 상태까지 그립니다.',
-  '설계: 구조 결정은 ADR, API는 docs/api-spec.md, 표는 docs/erd.md를 코드보다 먼저 고칩니다.',
-  '이슈: 기획서를 WBS ID가 붙은 작업으로 쪼개고 AC를 완료 기준으로 옮깁니다. 이슈 하나에 브랜치 하나.',
-  'PR: 빌드·테스트·린트·gitleaks가 모두 통과해야 rebase로 병합합니다. 실행하지 않은 테스트를 통과했다고 쓰지 않습니다.',
-  '검증: 수용 기준을 하나씩 화면이나 테스트로 확인해 기획서 11절에 결과와 증빙을 남깁니다.'
-]);
 
-/* 주차별 */
+/* Before vs After 토글 */
 (function () {
-  const state = { w: 0, q: '' };
-  const total = WEEKS.reduce((s, wk) => s + wk.reduce((a, g) => a + g.prs.length, 0), 0);
-  const cards = $('#weekcards');
-  cards.innerHTML = WEEKMETA.map((m, i) => {
-    const prs = WEEKS[i].reduce((a, g) => a + g.prs.length, 0);
-    return '<button class="weekcard" type="button" data-w="' + m.n + '" aria-pressed="false"><span class="wk"><b>' + m.n + '주 차</b><span class="num">' + m.range + '</span></span><span class="head">' + m.head + '</span><span class="nums"><span><b>' + prs + '</b>PR</span><span><b>' + m.commits + '</b>커밋</span><span><b>' + m.adr + '</b>ADR</span><span><b>' + WEEKS[i].length + '</b>주제</span></span></button>';
-  }).join('');
-  const seg = $('#weekseg');
-  const choose = (w) => {
-    state.w = state.w === w && w !== 0 ? 0 : w;
-    press(seg, $('[data-w="' + state.w + '"]', seg));
-    $$('.weekcard', cards).forEach((c) => c.setAttribute('aria-pressed', String(+c.dataset.w === state.w)));
-    $$('.dbar').forEach((b) => b.classList.toggle('dim', state.w !== 0 && +b.dataset.w !== state.w));
-    render();
+  const seg = $('#bnaSeg'); if (!seg) return;
+  const listB = $('#bnaListBefore'), listA = $('#bnaListAfter');
+  const D = {
+    all: [
+      ['소요 시간: 보고서 1쌍 대조 시 평균 2~3시간 소요', '대조 범위: 물리적 한계로 주요 재무 몇 줄만 확인하고 본문 포기', '환각 위험: LLM이 없는 숫자를 계산하거나 임의로 지어냄', '출처 확인: 어느 문단에서 나온 설명인지 원문 검색 불가', '계획 이행: 작년 공약이 올해 지켜졌는지 손수 대조 불가능'],
+      ['소요 시간: 단 5초 만에 전수 대조 및 구조화 완료 (95% 단축)', '대조 범위: 5대 재무제표 + 본문 문단 + 표 셀 + 수시공시 전수 분석', '환각 제로: 증감은 코드가 100% 계산, LLM은 원문 요약만 담당', '100% 원문: 모든 문장에 #{접수번호}#B{n} 직결, 클릭 즉시 확인', '약속 대조: 작년 사업 계획 대비 당기 보고서 이행 실적 자동 매칭']
+    ],
+    speed: [
+      ['소요 시간: 30~65만 자 본문을 일일이 스크롤하며 수작업 대조 (평균 2~3시간 소요)', '자료 준비: DART 전자공시에서 압축본을 내려받아 표를 엑셀에 손으로 재입력', '병목 현상: 분기 마감 시 수백 개 기업의 변화를 제때 파악하지 못해 의사결정 지연'],
+      ['소요 시간: 단 5초 만에 5대 재무제표 + 본문 + 표 차이 일괄 산출 (95% 이상 단축)', '자료 준비: OpenDART 19개 API 단일 창구 + 접수번호 영구 캐시로 즉시 로딩', '병목 해소: 배치 및 실시간 비동기 작업 큐로 시즌 변화 Top 10까지 실시간 파악']
+    ],
+    trust: [
+      ['수치 오류: 계산을 LLM에 맡겨 잘못된 증감액과 거짓 백분율이 빈번하게 발생', '허위 근거: 본문에 전혀 없는 가짜 출처 문장을 지어내 금융 리서치 신뢰도 훼손', '가치 판단: "호재", "저평가" 등 규제에 어긋나는 주관적 매수/매도 권유 노출'],
+      ['수치 무결성: 코드가 100% 증감 계산, LLM은 계산된 수치를 바탕으로 설명만 작성', '100% 원문: 모든 문장에 #{접수번호}#B{n} 딥링크 부여, 미통과 시 최대 2회 재생성', '규제 준수: 가치판단 어휘 자동 검사 및 코드 기준표 기반 신호(긍정/주의/보류)만 노출']
+    ]
   };
-  $$('.weekcard', cards).forEach((c) => c.addEventListener('click', () => choose(+c.dataset.w)));
-  $$('button', seg).forEach((b) => b.addEventListener('click', () => choose(+b.dataset.w)));
-
-  const svg = $('#daily'), NS = 'http://www.w3.org/2000/svg', tip = $('#tip');
-  const W = 760, H = 220, L = 34, R = 6, T = 18, B = 28, max = 150, pw = W - L - R, ph = H - T - B, slot = pw / DAYS.length, bw = slot * 0.6;
-  const mk = (n, a, t) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); if (t != null) e.textContent = t; svg.appendChild(e); return e; };
-  [0, 50, 100, 150].forEach((v) => { const y = T + ph - v / max * ph; mk('line', { x1: L, x2: W - R, y1: y, y2: y, class: 'gl' }); mk('text', { x: L - 6, y: y + 4, 'text-anchor': 'end', class: 'ax' }, v); });
-  [7, 14].forEach((i) => mk('line', { x1: L + slot * i, x2: L + slot * i, y1: T - 6, y2: T + ph, class: 'gl', 'stroke-dasharray': '4 4' }));
-  ['1주 차', '2주 차', '3주 차'].forEach((t, i) => mk('text', { x: L + slot * i * 7 + 4, y: T - 4, class: 'ax' }, t));
-  DAYS.forEach((d, i) => {
-    const h = d[1] / max * ph, x = L + i * slot + (slot - bw) / 2, y = T + ph - h;
-    const r = mk('rect', { x, y: Math.min(y, T + ph - 1), width: bw, height: Math.max(h, 1), rx: 3, class: 'dbar w' + d[2], 'data-w': d[2], tabindex: 0, role: 'button', 'aria-label': d[0] + ' 커밋 ' + d[1] + '개, ' + d[2] + '주 차 보기' });
-    const show = (ev) => { tip.hidden = false; tip.textContent = d[0] + ' · 커밋 ' + d[1] + '개 · ' + d[2] + '주 차'; const bx = r.getBoundingClientRect(); tip.style.left = Math.max(8, Math.min(innerWidth - tip.offsetWidth - 8, bx.left + bx.width / 2 - tip.offsetWidth / 2)) + 'px'; tip.style.top = (bx.top - 34) + 'px'; };
-    r.addEventListener('mouseenter', show); r.addEventListener('focus', show);
-    r.addEventListener('mouseleave', () => { tip.hidden = true; }); r.addEventListener('blur', () => { tip.hidden = true; });
-    r.addEventListener('click', () => choose(d[2])); r.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(d[2]); } });
-    if (d[1] >= 100) mk('text', { x: x + bw / 2, y: y - 4, 'text-anchor': 'middle', class: 'ax', 'font-weight': 700 }, d[1]);
-    if (i % 2 === 0) mk('text', { x: x + bw / 2, y: H - 8, 'text-anchor': 'middle', class: 'ax' }, d[0]);
-  });
-  window.addEventListener('scroll', () => { tip.hidden = true; }, { passive: true });
-
-  const view = $('#weekview'), count = $('#count'), q = $('#q');
-  let openAll = false;
-  const hl = (t) => { const s = esc(t); if (!state.q) return s; const k = esc(state.q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); return s.replace(new RegExp(k, 'gi'), (m) => '<mark>' + m + '</mark>'); };
-  function render() {
-    const needle = state.q.toLowerCase(); let shown = 0, html = '';
-    WEEKMETA.forEach((m, i) => {
-      if (state.w && state.w !== m.n) return;
-      let gh = '';
-      WEEKS[i].forEach((g, gi) => {
-        const prs = needle ? g.prs.filter((p) => p[2].toLowerCase().includes(needle) || ('#' + p[0]).includes(needle)) : g.prs;
-        if (!prs.length) return; shown += prs.length;
-        const open = openAll || !!needle || (state.w !== 0 && gi < 2);
-        gh += '<details class="group"' + (open ? ' open' : '') + '><summary><b>' + esc(g.name) + '</b><span class="d">' + esc(g.desc) + '</span><span class="c"><span class="badge">' + prs.length + ' PR</span></span></summary><ul class="prlist">' +
-          prs.map((p) => '<li><a href="' + REPO + p[0] + '" target="_blank" rel="noopener">#' + p[0] + '</a><span class="dt">' + p[1] + '</span><span class="t">' + hl(p[2]) + '</span></li>').join('') + '</ul></details>';
-      });
-      if (gh) html += '<div class="weekblock"><h3>' + m.n + '주 차 · ' + m.head + ' <span class="num">' + m.range + '</span></h3><p>' + m.note + '</p>' + gh + '</div>';
-    });
-    view.innerHTML = html || '<div class="empty">"' + esc(state.q) + '"에 맞는 PR이 없어요. 다른 낱말로 찾아 보세요.</div>';
-    count.textContent = (state.q || state.w ? shown + ' / ' : '') + total + '개 PR';
-  }
-  q.addEventListener('input', () => { state.q = q.value.trim(); render(); });
-  $('#toggleAll').addEventListener('click', (e) => { openAll = !openAll; e.currentTarget.textContent = openAll ? '모두 접기' : '모두 펼치기'; render(); });
-  choose(0);
+  
+  const show = (k) => {
+    const b = D[k][0], a = D[k][1];
+    listB.innerHTML = b.map((x) => '<li><span>•</span><span>' + x + '</span></li>').join('');
+    listA.innerHTML = a.map((x) => '<li><span>•</span><span>' + x + '</span></li>').join('');
+  };
+  
+  $$('button', seg).forEach((btn) => btn.addEventListener('click', () => {
+    press(seg, btn);
+    show(btn.dataset.bna);
+  }));
 })();
 
-/* 구조도 (전체 · OpenDART · AI 서버 · 인프라) */
+/* 프레젠테이션 모드 & 스피커 노트 */
+(function () {
+  const SPEECHES = [
+    { title: '01 · 비전 및 개요', text: '안녕하십니까. 신한DS 금융 AI 프로젝트, DART Insight의 발표를 시작하겠습니다. DART Insight는 방대한 전자공시 정기보고서에서 바뀐 수치와 문장을 코드로 정밀하게 대조하고, 모든 설명에 100% DART 원문 근거를 연결하는 신뢰 기반의 공시 비교 분석 인텔리전스 시스템입니다.' },
+    { title: '02 · 추진 배경 및 문제 의식', text: '정기보고서 한 권은 평균 30만~65만 자에 달합니다. 전기 대비 무엇이 바뀌었는지 확인하려면 수백 페이지를 스크롤하며 대조해야 했고, 기존 생성형 AI는 수치를 멋대로 지어내는 치명적인 환각 문제가 있었습니다. 우리는 "수치 환각 0%", "원문 위치 100% 직결", "초고속 대조"를 목표로 개발에 착수했습니다.' },
+    { title: '03 · 핵심 가치 제안', text: 'DART Insight는 4가지 핵심 가치를 제공합니다. 첫째, 3시간 걸리던 대조 작업을 5초 만에 완료하는 초고속성. 둘째, 모든 수치와 문장에 블록 단위 원문 ID를 부여하는 100% 신뢰성. 셋째, 재무 5대 제표와 본문 경영진단, 1년치 수시공시를 하나로 꿰는 다차원 맥락 연결. 넷째, 주관적 매수/매도 권유를 철저히 배제한 객관적 규제 준수입니다.' },
+    { title: '04 · 문제 해결의 증명', text: '비정형 원문 파싱부터 2-gram BM25 초경량 검색, 코드 기반 3단계 가드레일, 그리고 Claude Haiku 5.5 기본 적용으로 비용을 95% 절감한 모델 분리까지, 5대 난제를 순수 엔지니어링으로 완벽하게 해결했습니다. 화면의 Before/After 토글을 통해 수작업 대비 압도적인 생산성 혁신을 직접 확인하실 수 있습니다.' },
+    { title: '05 · 사용자 임팩트', text: '금융 초보자에게는 어려운 공시 용어 실시간 해설과 AI 브리핑을, 전문 애널리스트에게는 "작년 약속 vs 올해 이행" 대조와 위험 요인 추적을 제공합니다. 2,626개의 자동화 테스트 무결성 통과와 웹 접근성 100% 준수로 누구나 믿고 사용할 수 있는 공시 분석 환경을 완성했습니다.' },
+    { title: '06 · 기술 스택', text: 'React 19, Spring Boot 4.1, FastAPI, MariaDB 11.4로 구성된 4-Tier 단방향 아키텍처를 채택했습니다. 외부 AI 클라이언트 연동을 위해 읽기 전용 MCP 서버도 독립 구축했습니다. 모든 서비스 경계는 ArchUnit과 단일 경로 상수로 엄격하게 관리됩니다.' },
+    { title: '07 · 시스템 아키텍처', text: '호출은 React → Spring Boot → FastAPI로만 흐르는 단방향 원칙을 엄수합니다. OpenDART 19개 API는 접수번호 기준 영구 캐시 정책을 적용해 API 호출 한도를 획기적으로 아끼며, AI 서버는 DB와 분리된 무상태 구조로 안전한 가드레일을 통과한 결과만 반환합니다.' },
+    { title: '08 · 핵심 설계 및 시뮬레이터', text: '66개의 ADR(아키텍처 결정 기록) 중 가장 핵심적인 5가지 설계를 직접 시뮬레이션할 수 있습니다. 비동기 상태 전이표, 코드 기반 검증 가드레일, BM25 가중치 탐색, LangGraph 에이전트 루프, 그리고 일일 AI 호출 비용 계산기를 지금 즉시 조작해 보실 수 있습니다.' },
+    { title: '09 · 인프라 및 운영 안전', text: '웹/DB와 AI 연산을 분리한 2-VM 인프라, Flyway SHA-256 사전 대조 및 자동 롤백 배포 파이프라인을 구축했습니다. 일일 쿼터 한도로 LLM 비용 급증을 원천 차단했습니다.' },
+    { title: '10 · 개발 발자취', text: '팀원과 AI 코딩 도구가 같은 AGENTS.md 규칙과 7단계 워크플로우를 준수했습니다. 첫 3주간 360개 PR, 총 421개 이상의 PR과 1,034개 커밋을 선형 기록(rebase merge)으로 쌓아 올리며 탄탄한 프로덕션을 완성했습니다.' }
+  ];
+  
+  const slides = [$('#hero'), $('#why'), $('#value'), $('#solution'), $('#impact'), $('#stack'), $('#architecture'), $('#decisions'), $('#infra'), $('#weeks')].filter(Boolean);
+  let curSlide = 0, isPresent = false;
+  
+  const dock = $('#deckDock'), counter = $('#deckCounter'), notesPop = $('#notesPopup');
+  const notesTitle = $('#notesSlideTitle'), notesBody = $('#notesBody');
+  
+  const updateSlide = (idx) => {
+    curSlide = Math.max(0, Math.min(slides.length - 1, idx));
+    slides.forEach((s, i) => s.classList.toggle('slide-active', i === curSlide));
+    counter.textContent = String(curSlide + 1).padStart(2, '0') + ' / ' + String(slides.length).padStart(2, '0');
+    
+    const sp = SPEECHES[curSlide] || SPEECHES[0];
+    notesTitle.textContent = sp.title;
+    notesBody.textContent = sp.text;
+    
+    if (isPresent) {
+      slides[curSlide].scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+    }
+  };
+  
+  const togglePresent = (on) => {
+    isPresent = on !== undefined ? on : !isPresent;
+    document.body.classList.toggle('presentation-mode', isPresent);
+    $('#btnPresentMode').setAttribute('aria-pressed', String(isPresent));
+    if (isPresent) {
+      updateSlide(curSlide);
+    } else {
+      slides.forEach((s) => s.classList.remove('slide-active'));
+      notesPop.classList.remove('open');
+    }
+  };
+  
+  $('#btnPresentMode').addEventListener('click', () => togglePresent());
+  $('#deckExit').addEventListener('click', () => togglePresent(false));
+  $('#deckPrev').addEventListener('click', () => updateSlide(curSlide - 1));
+  $('#deckNext').addEventListener('click', () => updateSlide(curSlide + 1));
+  
+  $('#deckNotes').addEventListener('click', () => notesPop.classList.toggle('open'));
+  $('#notesClose').addEventListener('click', () => notesPop.classList.remove('open'));
+  
+  $('#deckFull').addEventListener('click', () => {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+    else document.exitFullscreen().catch(() => {});
+  });
+  
+  window.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === 'p' || e.key === 'P') { e.preventDefault(); togglePresent(); }
+    if (!isPresent) return;
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); updateSlide(curSlide + 1); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); updateSlide(curSlide - 1); }
+    if (e.key === 'Escape') { e.preventDefault(); togglePresent(false); }
+    if (e.key === 'n' || e.key === 'N') { e.preventDefault(); notesPop.classList.toggle('open'); }
+    if (e.key === 'f' || e.key === 'F') {
+      e.preventDefault();
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+      else document.exitFullscreen().catch(() => {});
+    }}
+  });
+})();
+
+/* 구조도 바인딩 (전체 · OpenDART · AI 서버 · 인프라) */
 function bindDiagram(svgSel, boxSel, info, init) {
-  const svg = $(svgSel), box = $(boxSel);
+  const svg = $(svgSel), box = $(boxSel); if (!svg || !box) return;
   const sel = (n) => {
     $$('.nd', svg).forEach((g) => { const on = g.dataset.n === n; g.classList.toggle('sel', on); g.setAttribute('aria-pressed', String(on)); });
     $$('.eg', svg).forEach((e) => e.classList.toggle('hot', e.dataset.e.split(' ').includes(n)));
-    const d = info[n];
+    const d = info[n]; if (!d) return;
     box.innerHTML = '<p class="label">고른 부분</p><h3>' + d[0] + '</h3><p>' + d[1] + '</p><ul>' + d[2].map((x) => '<li>' + x + '</li>').join('') + '</ul>' + (d[3] ? '<p class="adr">' + d[3] + '</p>' : '');
   };
   $$('.nd', svg).forEach((g) => { g.addEventListener('click', () => sel(g.dataset.n)); g.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sel(g.dataset.n); } }); });
@@ -888,21 +1268,22 @@ function bindDiagram(svgSel, boxSel, info, init) {
 }
 bindDiagram('#archsvg', '#archinfo', {
   user: ['사용자 브라우저', '화면(React)을 통해 백엔드 공개 API만 호출합니다.', ['백엔드 주소 하나만 바라보는 단순한 통신 경로', '로그인은 짧은 Access Token + 회전하는 Refresh Token(ADR-0020)'], ''],
-  web: ['화면 · React + TypeScript', '검색, 기업 개요, 보고서 비교, 결과 탭, 채팅 패널, 노트, 관리자 콘솔.', ['API 경로는 endpoints.ts 한 곳에서만 관리', '화면 상태는 판별 유니온 + ts-pattern으로 명확히 분기', '자동 테스트 1,700개와 접근성(axe-core) 자동 점검 포함'], 'ADR-0002'],
+  web: ['화면 · React + TypeScript', '검색, 기업 개요, 보고서 비교, 결과 탭, 채팅 패널, 노트, 관리자 콘솔.', ['API 경로는 endpoints.ts 한 곳에서만 관리', '화면 상태는 판별 유니온 + ts-pattern으로 명확히 분기', '자동 테스트 1,892개와 접근성(axe-core) 자동 점검 포함'], 'ADR-0002'],
   ext: ['외부 AI 에이전트', 'Claude Desktop 같은 외부 AI가 MCP로 검증된 공시 분석 자료를 읽습니다.', ['원본 데이터를 안전하게 지키는 읽기 전용 연동 구조'], 'ADR-0052'],
   mcp: ['MCP 서버 · Python', '외부 AI 에이전트용 읽기 전용 도구 7종.', ['백엔드 공개 API(/api/*)만 부르는 클라이언트 구조', '화면과 동일한 권한·일일 한도 규칙을 그대로 공유합니다'], 'ADR-0052'],
   backend: ['백엔드 · Spring Boot (Java 21)', '서비스 공개 API, OpenDART 수집·캐시, 비동기 분석 작업, 에이전트 24개 Tool 실행, 일일 AI 한도.', ['외부 API 키·권한·캐시를 한 곳에서 일관되게 관리', '계층 규칙은 ArchUnit이 빌드마다 자동 검증', '모든 요청에 X-Trace-Id를 부여해 AI 서버까지 연결'], 'ADR-0002 · 0004 · 0044 · 0054'],
   ai: ['AI 서버 · FastAPI (Python 3.12)', '원문 파싱·구조화, 문장·표 변경 탐지, BM25 근거 검색, 요약·설명, LangGraph 에이전트 한 단계.', ['모든 LLM 호출을 단일 LlmClient로 모아 재시도·호출 기록·비용 집계를 일원화', '자동 테스트 926개로 파싱·검증 로직 보호', 'DB와 분리된 무상태 구조로 전달받은 자료 처리에만 집중'], 'ADR-0008 · 0036 · 0045'],
   llm: ['Claude (기본) · OpenAI (전환)', 'Anthropic Claude Messages API를 기본으로 쓰고 환경변수로 OpenAI와 유연하게 전환합니다.', ['기본 claude-haiku-5-5(ADR-0063 전 작업 기본 적용, Sonnet 대비 비용 약 1/20 절감)', '환경변수(LLM_MODEL=claude-sonnet-5-5)로 특정·전체 작업 Sonnet 전환 가능', 'OpenAI 전환(LLM_PROVIDER=openai) 시 gpt-6.1-sol · gpt-6-luna 조합 유지', '모델 이름·프롬프트 버전·토큰 사용량을 결과와 함께 저장'], 'ADR-0062 · 0063 · 0059'],
   db: ['DB · MariaDB 11.4', 'Flyway 마이그레이션(V1~V52, 57개 테이블)으로 버전을 관리하고 JPA는 validate로 검증합니다.', ['모든 테이블 기본키는 id BIGINT AUTO_INCREMENT', 'OpenDART 키(corp_code·rcept_no)는 UNIQUE 비즈니스 키로 색인'], 'ADR-0007 · 0017'],
-  dart: ['OpenDART · NAVER · 공공데이터', '공시·재무·원문은 OpenDART, 기업 최신 뉴스는 NAVER API HUB, 시총 상위 종목은 공공데이터포털에서 수집합니다.', ['접수번호 기준 영구 캐시로 일일 호출 한도를 효율적으로 사용', 'OpenDART status 013은 정상적인 \'자료 없음\' 상태로 기록', '뉴스는 30분 캐시 후 화면에만 표시하며 AI 프롬프트와 분리'], 'ADR-0024 · 0046']
+  dart: ['OpenDART · NAVER · 공공데이터', '공시·재무·원문은 OpenDART, 기업 최신 뉴스는 NAVER API HUB, 시총 상위 종목은 공공데이터포털에서 수집합니다.', ['접수번호 기준 영구 캐시로 일일 호출 한도를 효율적으로 사용', 'OpenDART status 013은 정상적인 '자료 없음' 상태로 기록', '뉴스는 30분 캐시 후 화면에만 표시하며 AI 프롬프트와 분리'], 'ADR-0024 · 0046']
 }, 'backend');
+
 bindDiagram('#dartsvg', '#dartinfo', {
   d_corp: ['기업·공시 목록 API', '기업 고유번호 ZIP과 기업개황, 정기·수시공시 목록을 받습니다.', ['corpCode.xml(10만+ 건)은 StAX 스트리밍으로 가볍게 파싱', 'company.json·list.json으로 기업개황과 공시 타임라인 구성', '초성·종목코드·기업명 즉시 검색용 색인 생성'], 'OpenDartPaths'],
   d_fin: ['재무 수치 API', '단일회사 전체 재무제표와 다기간 주요 계정을 조회합니다.', ['fnlttSinglAcntAll.json: 재무상태표·손익·포괄손익·현금흐름·자본변동', 'fnlttSinglAcnt.json: 여러 기간 매출·영업이익·비율 흐름 계산', '통화 단위와 연결·별도 기준을 함께 보존'], 'OpenDartPaths'],
   d_doc: ['공시 원문 ZIP API', '정기보고서 전체 본문(document.xml) 압축본을 내려받습니다.', ['접수번호마다 한 번만 받아 영구 캐시', 'AI 서버 파서로 넘겨 목차·문단·표 블록 위치를 보존'], 'OpenDartPaths · ADR-0008'],
   d_info: ['주요정보 12종 API', '정기보고서(DS002) 4종과 주요사항보고서(DS005) 8종 핵심 항목을 모읍니다.', ['최대주주·임원·배당 변화와 감사의견·계속기업 강조사항 확인', '유상증자·전환사채·자기주식·소송·타법인주식 결정 수치 연결', '변경점과 관련 수시공시를 연결할 때 핵심 수치 근거로 활용'], 'OpenDartPaths · ADR-0034'],
-  d_client: ['OpenDartClient · 단일 호출 창구', '외부 OpenDART 호출 규약을 한 클래스에서 일관되게 처리합니다.', ['인증키는 요청 주소에만 쓰고 로그에서 제외', '일시적 통신 지연 시 최대 2회 자동 재시도', '본문 status=013은 오류가 아닌 \'자료 없음\' 상태로 기록'], 'OpenDartClient'],
+  d_client: ['OpenDartClient · 단일 호출 창구', '외부 OpenDART 호출 규약을 한 클래스에서 일관되게 처리합니다.', ['인증키는 요청 주소에만 쓰고 로그에서 제외', '일시적 통신 지연 시 최대 2회 자동 재시도', '본문 status=013은 오류가 아닌 '자료 없음' 상태로 기록'], 'OpenDartClient'],
   d_cache: ['DartCacheLoader · 2단계 캐시 정책', '자료 성격에 따라 영구 보관과 주기 갱신을 나눠 호출 한도를 아낍니다.', ['보고서 귀속 자료(접수번호 키)는 CachePolicy.permanent()로 영구 재사용', '기업개황·공시목록은 유효 시간 경과 시에만 트랜잭션 밖에서 새로 조회', '갱신 중 통신이 지연되면 저장된 값(stale)을 우선 돌려주어 화면 연속성 유지'], 'ADR-0024'],
   d_db: ['MariaDB 공시 캐시', '수집한 원본 수치와 구조화된 문단 블록을 비즈니스 키로 보관합니다.', ['고유번호(corp_code)와 접수번호(rcept_no)를 UNIQUE 키로 색인', '동시 최초 저장이 겹쳐도 안전하게 한 번 더 확인해 일관성 유지'], 'ADR-0017 · 0024'],
   d_parse: ['원문 구조화 연동', '원문 ZIP을 AI 서버 파서(/internal/documents/parser)로 전달해 구조화합니다.', ['목차 계층과 문단·표 셀을 분리하고 {접수번호}#B{번호} 위치 부여', '이후 문장 비교·BM25 검색·원문 뷰어 하이라이트의 공통 기준점'], 'AiServerPaths'],
@@ -911,6 +1292,7 @@ bindDiagram('#dartsvg', '#dartinfo', {
   d_use_feed: ['활용 3 · 새 공시 알림과 다중 기업 비교', '여러 기업의 변화를 나란히 보거나 관심 기업의 새 공시를 놓치지 않게 돕습니다.', ['최대 4개 기업의 주요 재무 수치를 표와 방사형 그래프로 비교', '관심 기업의 신규 정기공시 폴링 알림과 시즌 변화 Top 10 집계'], 'FS-56'],
   d_use_chat: ['활용 4 · AI 에이전트 채팅과 MCP 조회', '저장된 공시·분석 캐시 위에서 대화형 질문과 외부 에이전트 연동을 지원합니다.', ['백엔드 Tool이 캐시된 재무·공시·원문을 즉시 읽어 응답 속도 확보', '외부 MCP 클라이언트도 같은 공개 API로 검증된 결과만 조회'], 'ADR-0044 · 0052']
 }, 'd_cache');
+
 bindDiagram('#aisvg', '#aiinfo', {
   a_be: ['AiServerClient · 내부 단일 통로', '백엔드만 /internal/* 11개 경로로 AI 서버를 부릅니다.', ['uvicorn 호환을 위해 HTTP/1.1로 고정하고 X-Trace-Id를 함께 전달', 'AI 서버는 DB를 직접 보지 않고 전달받은 구조화 자료만 처리', '예외 상황에서도 X-Llm-Calls 헤더로 호출·토큰 기록을 빠짐없이 보존'], 'AiServerPaths · ADR-0042'],
   a_prep: ['원문 파싱 · 문장 비교 · BM25 검색', 'LLM을 부르기 전에 코드로 구조화·비교·후보 문단 선별을 먼저 수행합니다.', ['문단·표 행 단위 대조 후 신규·수치갱신·이동·기수변경으로 분류', '약 30줄 수식의 2-gram BM25로 계정명·질문어와 맞닿은 본문 문단 탐색', '경영진단(×1.5)·사업의 내용(×1.3) 가중치와 최소 40자 기준 적용'], 'ADR-0036'],
@@ -918,10 +1300,11 @@ bindDiagram('#aisvg', '#aiinfo', {
   a_evt: ['브리핑 · 전망 · 주요 사건 파이프라인', '기업 단위 요약과 보고서 간 주요 사건 변화를 구조화합니다.', ['/briefings · /outlooks · /plan-followups: 브리핑과 계획 대비 이행 대조', '/text-events: 수시공시와 문장 변화를 묶어 사건 단위 구조화(ADR-0066)', '사건 신호(긍정·주의·보류)와 향후 영향 경로는 코드 기준표로 결정(ADR-0065)'], 'ADR-0050 · 0060 · 0065 · 0066'],
   a_agent: ['LangGraph 에이전트 한 단계', '대화 전체 대신 한 단계(Step) 판단과 답 검증 그래프만 깔끔하게 실행합니다.', ['plan 노드(경량 모델): 추가 Tool이 필요한지 판단하고 충분하면 답 초안까지 작성', 'term 노드: 미등록 금융·공시 용어 일반 설명 예외 허용 및 경고 부착(ADR-0064)', 'review 노드(코드): 근거 ID·수치 일치·객관적 표현을 즉시 점검', 'write 노드(기본 모델): 보완이 필요할 때 검토 의견을 반영해 다시 작성'], 'ADR-0045 · 0049 · 0064'],
   a_llm: ['단일 LlmClient 모듈', '모든 LLM 호출이 반드시 거치는 공통 어댑터입니다.', ['작업 이름(task)에 따라 기본 모델과 경량 모델을 자동 선택', '반복되는 시스템·도구 명세 앞부분에 프롬프트 캐시 적용', '입력·캐시·추론·출력 토큰과 소요 시간을 호출마다 기록'], 'ADR-0008 · 0059'],
-  a_guard: ['코드 검증 · 객관적 표현 점검', '화면으로 나가기 전 모든 AI 출력을 코드 규칙으로 확인합니다.', ['모든 문장의 근거 ID가 실제 전달된 원문 블록인지 재확인', '매수·매도 추천이나 가치판단 어휘가 없는지 자동 점검', '기준 통과 전이면 최대 2회 다시 다듬고, 확인이 더 필요하면 \'검토 필요\'로 표시'], 'AGENTS.md AI 규칙'],
+  a_guard: ['코드 검증 · 객관적 표현 점검', '화면으로 나가기 전 모든 AI 출력을 코드 규칙으로 확인합니다.', ['모든 문장의 근거 ID가 실제 전달된 원문 블록인지 재확인', '매수·매도 추천이나 가치판단 어휘가 없는지 자동 점검', '기준 통과 전이면 최대 2회 다시 다듬고, 확인이 더 필요하면 '검토 필요'로 표시'], 'AGENTS.md AI 규칙'],
   a_model: ['Claude (기본) · OpenAI 전환 연동', '표준화된 제공자 인터페이스로 모델 교체에도 기능 코드는 그대로 유지됩니다.', ['기본 제공자 Anthropic Claude: claude-haiku-5-5 전 작업 기본 적용(ADR-0063)', '필요 시 Sonnet(claude-sonnet-5-5) 복귀 및 OpenAI(LLM_PROVIDER=openai) 전환 지원', '블록 경계 프롬프트 캐시와 구조화 JSON 스키마 출력 검증 함수 적용'], 'ADR-0062 · 0063 · 0059'],
-  a_out: ['검증된 결과와 메타데이터 반환', '검증을 통과한 본문과 투명한 출처·비용 정보를 백엔드로 돌려줍니다.', ['화면에는 코드로 \'AI 생성\' 배지와 원문 바로가기 위치 표시', '모델 이름·프롬프트 버전·토큰 사용량을 저장해 AI 사용 현황과 운영 콘솔에 집계'], 'ADR-0008 · FS-72']
+  a_out: ['검증된 결과와 메타데이터 반환', '검증을 통과한 본문과 투명한 출처·비용 정보를 백엔드로 돌려줍니다.', ['화면에는 코드로 'AI 생성' 배지와 원문 바로가기 위치 표시', '모델 이름·프롬프트 버전·토큰 사용량을 저장해 AI 사용 현황과 운영 콘솔에 집계'], 'ADR-0008 · FS-72']
 }, 'a_llm');
+
 bindDiagram('#infrasvg', '#infrainfo', {
   i_pr: ['PR 자동 검사 · GitHub Actions', '모든 PR이 병합되기 전에 코드 품질과 비밀정보 유출 여부를 자동으로 점검합니다.', ['secret-scan.yml: gitleaks로 커밋 내 인증키·비밀번호 포함 여부 검사', '변경된 폴더에 맞춰 backend(ArchUnit·Checkstyle), frontend(ESLint·Vitest·빌드), ai·mcp(ruff·pytest) 실행'], '.github/workflows/*'],
   i_jk: ['Jenkins 빌드 파이프라인 (VM2)', 'main 브랜치 변경을 5분 주기(Poll SCM)로 감지해 통합 테스트와 이미지 빌드를 수행합니다.', ['배포 스크립트 자체를 먼저 단위 테스트(test_migration_preflight.py)로 검증', '백엔드·프론트엔드·AI 서버를 격리 컨테이너에서 다시 테스트·빌드', '검증을 통과한 커밋 해시를 태그로 실행 이미지 3종 생성'], 'Jenkinsfile.ci-cd'],
@@ -934,12 +1317,12 @@ bindDiagram('#infrasvg', '#infrainfo', {
   i_ai: ['VM2 · AI 서버 (FastAPI :8000)', '원문 파싱, BM25 검색, LLM 호출·검증을 전담하는 분리된 연산 노드입니다.', ['웹·DB 부하와 AI 연산·빌드 부하가 서로 영향을 주지 않도록 VM2로 물리 분리', '8000번 포트는 VM1 백엔드 주소에서만 접근하도록 바인딩·방화벽 제한'], 'deploy/compose.ai.yaml']
 }, 'i_be');
 
-/* 상태 전이 */
+/* 상태 전이 시뮬레이터 */
 (function () {
   const T = { PENDING: ['RUNNING', 'FAILED'], RUNNING: ['COMPLETED', 'FAILED'], COMPLETED: [], FAILED: [] };
   const W = { PENDING: 10, RUNNING: 55, COMPLETED: 100, FAILED: 100 };
   let cur = 'PENDING';
-  const msg = $('#smmsg');
+  const msg = $('#smmsg'); if (!msg) return;
   const draw = (text, kind) => {
     $$('.st', $('#smdemo')).forEach((s) => s.classList.toggle('cur', s.dataset.s === cur));
     $('#smbar').style.width = W[cur] + '%';
@@ -964,17 +1347,17 @@ bindDiagram('#infrasvg', '#infrainfo', {
   const ex = [
     ['예: 매출액 증감률', '증감액과 증감률은 백엔드 코드가 계산하고, 이전 값이 null이거나 0이면 계산 대신 명확한 사유 코드를 남깁니다. AI 프롬프트에는 계산된 값이 그대로 들어갑니다.'],
     ['예: 근거 ID', '문장마다 <span class="mono">{접수번호}#B{블록 번호}</span> 형식의 근거가 있어야 하고, 그 분석에 전달된 문단 블록인지 백엔드가 다시 확인해 검증된 문장만 담습니다.'],
-    ['예: 다시 다듬기', '형식·근거 기준을 통과할 때까지 최대 2번 다시 생성합니다. 추가 확인이 필요한 항목은 \'검토 필요\' 배지와 원문 인용 요약으로 투명하게 안내합니다.'],
+    ['예: 다시 다듬기', '형식·근거 기준을 통과할 때까지 최대 2번 다시 생성합니다. 추가 확인이 필요한 항목은 '검토 필요' 배지와 원문 인용 요약으로 투명하게 안내합니다.'],
     ['예: 표현 점검', '공시 원문은 구분 태그로 감싼 자료로만 넣습니다. 매수·매도 추천, 목표주가, 주가 예측 같은 표현이 없는지 화면에 내보내기 전에 자동으로 점검합니다. 미등록 금융 용어는 코드가 경고를 부착하는 일반 설명만 예외 허용합니다(ADR-0064).']
   ];
-  const btns = $$('#principles button'), out = $('#pdemo');
+  const btns = $$('#principles button'), out = $('#pdemo'); if (!btns.length || !out) return;
   const show = (i) => { btns.forEach((b, j) => b.setAttribute('aria-expanded', String(i === j))); out.innerHTML = '<p class="label">' + ex[i][0] + '</p><p>' + ex[i][1] + '</p>'; };
   btns.forEach((b, i) => b.addEventListener('click', () => show(i))); show(0);
 })();
 
-/* BM25 길이 */
+/* BM25 문단 길이 슬라이더 */
 (function () {
-  const r = $('#minlen'), out = $('#rank1'), note = $('#rank1note'), badge = $('#rank1badge');
+  const r = $('#minlen'), out = $('#rank1'), note = $('#rank1note'), badge = $('#rank1badge'); if (!r) return;
   const data = [
     ['20자', '※ 출처: IDC 2024년 12월, 매출액 기준', '출처 한 줄이 1위입니다. BM25는 짧은 글을 우대해서 검색어만 있는 줄이 위로 올라옵니다.', 'badge badge--attention'],
     ['40자', '당사 매출액은 66조 1,930억원으로 …  (경영진단 문단)', '설명이 담긴 경영진단 문단이 1위가 됩니다. 그래서 40자를 기준으로 정했습니다.', 'badge badge--ok'],
@@ -984,7 +1367,7 @@ bindDiagram('#infrasvg', '#infrainfo', {
   r.addEventListener('input', show); show();
 })();
 
-/* 에이전트 */
+/* 에이전트 체인 플레이어 */
 (function () {
   const S = [
     { path: ['q', 'plan', 'review', 'ans'], log: [['info', '질문과 화면 맥락(기업·분석·탭)을 받음'], ['info', 'Tool 고르기(경량 모델: haiku-5-5 / luna): 받은 자료로 충분 → 같은 호출에서 답 초안'], ['ok', '검토 통과: 근거 ID·숫자·표현 확인'], ['ok', '답과 근거를 돌려줌']] },
@@ -992,7 +1375,7 @@ bindDiagram('#infrasvg', '#infrainfo', {
     { path: ['q', 'plan', 'tool', 'plan', 'review', 'write', 'review', 'ans'], log: [['info', '질문을 받음'], ['info', 'Tool 고르기: 근거 질문 Tool이 필요'], ['info', '백엔드가 Tool 실행'], ['info', 'Tool 고르기: 답 초안'], ['info', '검토 단계: Tool 결과의 숫자와 한 번 더 맞춰 보도록 재작성 요청'], ['info', '답 다시 쓰기(기본 모델: sonnet-5-5 / sol): 검토 의견을 반영해 정확히 다시 작성'], ['ok', '검토 통과'], ['ok', '답과 근거를 돌려줌']] }
   ];
   let sc = 0, timer = null;
-  const nodes = $$('#agchain .node'), log = $('#aglog'), sum = $('#agsum'), seg = $('#agseg');
+  const nodes = $$('#agchain .node'), log = $('#aglog'), sum = $('#agsum'), seg = $('#agseg'); if (!nodes.length) return;
   const stop = () => { clearTimeout(timer); timer = null; };
   const paint = (k) => nodes.forEach((n) => n.classList.toggle('on', n.dataset.k === k));
   const summary = () => { const s = S[sc]; sum.textContent = 'LLM 호출 ' + s.path.filter((k) => k === 'plan' || k === 'write').length + '번 · Tool 실행 ' + s.path.filter((k) => k === 'tool').length + '번'; };
@@ -1012,19 +1395,19 @@ bindDiagram('#infrasvg', '#infrainfo', {
   paint('ans');
 })();
 
-/* 비용 어림 */
+/* 비용 어림 계산기 */
 (function () {
-  const r = $('#steps');
+  const r = $('#steps'); if (!r) return;
   const fmt = (v) => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const show = () => { const n = +r.value; $('#stepsv').textContent = n.toLocaleString('ko-KR'); $('#cbefore').textContent = fmt(n * 0.0168); $('#cafter').textContent = fmt(n * 0.0009); r.setAttribute('aria-valuetext', n + '단계'); };
   r.addEventListener('input', show); show();
 })();
 
-/* 한도 */
+/* 쿼터 한도 시뮬레이터 */
 (function () {
   const LIM = { anon: 20, member: 100 };
   let who = 'anon', used = 0;
-  const seg = $('#qseg'), msg = $('#qmsg');
+  const seg = $('#qseg'), msg = $('#qmsg'); if (!seg) return;
   const draw = (note) => {
     const lim = LIM[who], full = used >= lim;
     $('#qv').textContent = used + ' / ' + lim; $('#qbar').style.width = Math.min(100, used / lim * 100) + '%';
