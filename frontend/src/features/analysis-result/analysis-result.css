@@ -3967,13 +3967,6 @@
   gap: var(--space-1);
 }
 
-.activity__title {
-  margin: 0;
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-  line-height: var(--line-height-tight);
-}
-
 .activity__overview {
   display: flex;
   flex-direction: column;

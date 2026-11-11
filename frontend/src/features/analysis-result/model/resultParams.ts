@@ -13,7 +13,7 @@ import { parseTextField } from './textFields'
 
 /**
  * W-03 결과 화면의 주소 상태(ST-6).
- * ?tab=overview 기업 개요(#589), ?slens=&sview= 요약(관점 거르기·보기), ?tab=&sj=&changed=&unit=&fq=&fsort=&change= 재무 수치, ?tab=activity 문장 변화(두 보고서 사이 활동과 앞으로의 영향, ADR-0067), ?tab=community 커뮤니티(#575), ?tab=news 뉴스(#592), ?ttype=&tsort=&tsec=&tq=&trisk=&tfield=&tpin=&tsel=&tc= 전체 변경(문장 변경 전체 목록), ?doc=&section=&block= 원문 확인
+ * ?tab=overview 기업 개요(#589), ?slens=&sview= 요약(관점 거르기·보기), ?tab=&sj=&changed=&unit=&fq=&fsort=&change= 재무 수치, ?tab=activity 공시 분석(두 보고서 사이 활동과 앞으로의 영향, ADR-0067), ?tab=community 커뮤니티(#575), ?tab=news 뉴스(#592), ?ttype=&tsort=&tsec=&tq=&trisk=&tfield=&tpin=&tsel=&tc= 전체 변경(문장 변경 전체 목록), ?doc=&section=&block= 원문 확인
  */
 export type ResultTab = 'overview' | 'summary' | 'financial' | 'activity' | 'text' | 'community' | 'news' | 'source' | 'reports'
 

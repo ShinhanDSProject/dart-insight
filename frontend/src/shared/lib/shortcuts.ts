@@ -160,7 +160,7 @@ export function shortcutGroups(page: ShortcutPage): ShortcutGroup[] {
     items: [
       { keys: ['1'], label: '요약 탭' },
       { keys: ['2'], label: '재무 수치 탭' },
-      { keys: ['3'], label: '문장 변화 탭' },
+      { keys: ['3'], label: '공시 분석 탭' },
       { keys: ['4'], label: '전체 변경 탭' },
       { keys: ['5'], label: '커뮤니티 탭' },
       { keys: ['6'], label: '뉴스 탭' },

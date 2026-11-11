@@ -15,14 +15,14 @@ function show() {
 }
 
 describe('결과 화면 둘러보기(#842)', () => {
-  it('요약부터 시작하고, 다음을 누르면 문장 변화 탭으로 옮기며 이전으로 돌아온다', async () => {
+  it('요약부터 시작하고, 다음을 누르면 공시 분석 탭으로 옮기며 이전으로 돌아온다', async () => {
     const { container, onGoTab } = show()
     expect(screen.getByRole('heading', { name: '1 / 3 요약부터 보세요' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: '이전' })).toBeNull()
     expect(await axeViolations(container)).toBe('')
 
     fireEvent.click(screen.getByRole('button', { name: '다음' }))
-    expect(screen.getByRole('heading', { name: '2 / 3 문장 변화에서 그사이 한 일을 보세요' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: '2 / 3 공시 분석에서 그사이 한 일을 보세요' })).toBeTruthy()
     expect(onGoTab).toHaveBeenLastCalledWith('activity')
 
     fireEvent.click(screen.getByRole('button', { name: '이전' }))

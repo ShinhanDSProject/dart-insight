@@ -195,7 +195,7 @@ describe('결과 머리(#550)', () => {
     expect(new URLSearchParams(screen.getByTestId('where-search').textContent ?? '').get('previous')).toBe('20250814000987')
   })
 
-  it('탭은 기업 개요(#589)·요약·재무 수치·문장 변화(ADR-0067)·전체 변경·커뮤니티·뉴스(#592)·원문·보고서 선택(#659) 아홉 개다', async () => {
+  it('탭은 기업 개요(#589)·요약·재무 수치·공시 분석(ADR-0067)·전체 변경·커뮤니티·뉴스(#592)·원문·보고서 선택(#659) 아홉 개다', async () => {
     getAnalysis.mockResolvedValue(analysis(false))
     renderPage()
     const tabs = await screen.findByRole('navigation', { name: '결과 보기' })
@@ -203,7 +203,7 @@ describe('결과 머리(#550)', () => {
       '기업 개요',
       '요약',
       '재무 수치',
-      '문장 변화',
+      '공시 분석',
       '전체 변경',
       '커뮤니티',
       '뉴스',

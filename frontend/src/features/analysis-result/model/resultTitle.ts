@@ -8,7 +8,7 @@ export const resultTabLabels: Record<ResultTab, string> = {
   overview: '기업 개요',
   summary: '요약',
   financial: '재무 수치',
-  activity: '문장 변화',
+  activity: '공시 분석',
   text: '전체 변경',
   community: '커뮤니티',
   news: '뉴스',

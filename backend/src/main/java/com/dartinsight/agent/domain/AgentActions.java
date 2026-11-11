@@ -50,7 +50,7 @@ public final class AgentActions {
     public static final List<String> SORTS = List.of("priority", "document");
 
     private static final Map<String, String> TAB_LABELS = Map.of("summary", "요약에서 보기", "financial",
-            "재무 수치에서 보기", "text", "문장 변화에서 보기", "source", "원문에서 보기");
+            "재무 수치에서 보기", "text", "전체 변경에서 보기", "source", "원문에서 보기");
     private static final Map<String, String> LABELS = Map.ofEntries(Map.entry(OPEN_TEXT_CHANGE, "이 변경 보기"),
             Map.entry(OPEN_FINANCIAL_CHANGE, "수치 근거 보기"), Map.entry(OPEN_DOCUMENT, "원문 열기"),
             Map.entry(OPEN_GLOSSARY, "용어 사전 열기"), Map.entry(DOWNLOAD_BRIEF, "비교 브리프 내려받기"),

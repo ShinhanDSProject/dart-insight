@@ -90,11 +90,11 @@ function renderTab(state: LoadState<PeriodActivities>) {
   return { onOpenText, onOpenAll, ...view }
 }
 
-describe('문장 변화 탭(ADR-0067)', () => {
-  it('제목, AI 생성 한 줄 요약, 숫자, 활동 카드와 투자 판단이 아니라는 안내를 보인다', async () => {
+describe('공시 분석 탭(ADR-0067)', () => {
+  it('AI 생성 한 줄 요약, 숫자, 활동 카드와 투자 판단이 아니라는 안내를 보인다', async () => {
     const { container } = renderTab({ status: 'success', data: generated([contract, lawsuit]) })
 
-    expect(screen.getByRole('heading', { name: '두 보고서 사이에는 무엇을 했고, 그게 앞으로 어떤 영향을 줄 수 있나' })).toBeTruthy()
+    expect(screen.getByRole('region', { name: '공시 분석' })).toBeTruthy()
     expect(screen.getByText('AI 생성')).toBeTruthy()
     expect(screen.getByText('핵심 숫자 자리')).toBeTruthy()
     expect(screen.getAllByRole('article')).toHaveLength(2)
@@ -115,10 +115,10 @@ describe('문장 변화 탭(ADR-0067)', () => {
     expect(card.getByText('좋은 면')).toBeTruthy()
   })
 
-  it('쓰임 칩으로 카드를 거르고, 영향이 없는 카드는 확인된 영향 없음으로 보인다', () => {
+  it('관점 칩으로 카드를 거르고, 영향이 없는 카드는 확인된 영향 없음으로 보인다', () => {
     renderTab({ status: 'success', data: generated([contract, lawsuit]) })
 
-    fireEvent.click(screen.getByRole('button', { name: /취업·면접/ }))
+    fireEvent.click(screen.getByRole('button', { name: /사업 방향/ }))
     const card = within(screen.getByRole('article'))
     expect(card.getByText('특허 소송 피소')).toBeTruthy()
     expect(card.getByText('확인된 영향 없음')).toBeTruthy()

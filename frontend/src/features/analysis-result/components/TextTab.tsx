@@ -303,7 +303,7 @@ export function TextTab({
   const failed = analysis.textStatus === 'FAILED' || analysis.textStatus === null
 
   return (
-    <Panel aria-label="문장 변화">
+    <Panel aria-label="전체 변경">
       {!failed && evidencePanel}
       {notice && (
         <Notice tone="attention" role="status">

@@ -38,20 +38,17 @@ interface ActivityTabProps {
 }
 
 /**
- * 문장 변화 탭(ADR-0067). '두 보고서 사이에는 무엇을 했고, 그게 앞으로 어떤 영향을 줄 수 있나'를
- * 한 줄 요약 → 숫자로 본 이 기간 → 쓰임 고르기 → 활동 카드(사실·신호·앞으로의 영향) 순서로 보인다.
+ * 공시 분석 탭(ADR-0067). 두 보고서 사이에 회사가 한 일과 앞으로의 영향을
+ * 한 줄 요약 → 숫자로 본 이 기간 → 관점 고르기 → 활동 카드(사실·신호·앞으로의 영향) 순서로 보인다.
  * 바뀐 문장 전체는 전체 변경 탭에 따로 있다.
  */
 export function ActivityTab({ analysis, onOpenText, onOpenFinancial, onOpenAll }: ActivityTabProps) {
   const { state, reload } = usePeriodActivities(analysis.analysisId)
   return (
-    <section className="activity" aria-labelledby="activity-title">
+    <section className="activity" aria-label="공시 분석">
       <header className="activity__head">
-        <h2 id="activity-title" className="activity__title">
-          두 보고서 사이에는 무엇을 했고, 그게 앞으로 어떤 영향을 줄 수 있나
-        </h2>
         <p className="panel__note">
-          {analysis.previous.reportName} → {analysis.current.reportName} · 투자·취업·협업에 쓸 만한 활동만 골랐어요. 바뀐 문장 전체는{' '}
+          {analysis.previous.reportName} → {analysis.current.reportName} · 두 보고서 사이에 회사가 한 일과 앞으로의 영향 중 눈여겨볼 것만 골랐어요. 바뀐 문장 전체는{' '}
           <Button variant="link" onClick={onOpenAll}>
             전체 변경
           </Button>
@@ -90,7 +87,7 @@ function ActivityBody({ data, analysisId, onOpenText, onOpenFinancial, onOpenAll
       <>
         {numbers}
         <EmptyState title="두 보고서 사이에 따로 짚을 만한 활동을 찾지 못했어요">
-          <p>바뀐 문장은 있지만 투자·취업·협업에 쓸 만한 활동으로 볼 것이 없었어요.</p>
+          <p>바뀐 문장은 있지만 눈여겨볼 활동으로 볼 것이 없었어요.</p>
           <Button variant="secondary" onClick={onOpenAll}>
             전체 변경 보기
           </Button>
@@ -147,7 +144,7 @@ function ActivityList({ data, onOpenText }: { data: PeriodActivities; onOpenText
           긍정 {counts.POSITIVE} · 주의 {counts.CAUTION} · 보류 {counts.HOLD}
         </p>
       </div>
-      <div className="activity__audiences" role="group" aria-label="어디에 쓸지 고르기">
+      <div className="activity__audiences" role="group" aria-label="관점 고르기">
         {AUDIENCE_OPTIONS.map((option) => (
           <Chip
             key={option.label}
@@ -164,7 +161,7 @@ function ActivityList({ data, onOpenText }: { data: PeriodActivities; onOpenText
         {SIGNAL_NOTICE} {OUTLOOK_NOTICE}
       </Notice>
       {shown.length === 0 ? (
-        <EmptyState title="이 쓰임에 맞는 활동이 없어요" />
+        <EmptyState title="이 관점에 맞는 활동이 없어요" />
       ) : (
         <ol className="activity__list">
           {shown.map((item) => (

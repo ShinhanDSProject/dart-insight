@@ -327,7 +327,7 @@ function ResultTabPanel({
         onChangeLens={(change) => update(summaryParamChanges(change))}
       />
     ))
-    // 문장 변화(ADR-0067): 두 보고서 사이 활동과 앞으로의 영향. 바뀐 문장 전체 목록은 아래 전체 변경(text) 탭에 따로 둔다
+    // 공시 분석(ADR-0067): 두 보고서 사이 활동과 앞으로의 영향. 바뀐 문장 전체 목록은 아래 전체 변경(text) 탭에 따로 둔다
     .with('activity', () => (
       <ActivityTab
         key={analysis.analysisId}

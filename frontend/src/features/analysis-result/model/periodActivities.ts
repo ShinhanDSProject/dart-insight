@@ -10,14 +10,14 @@ import type {
 } from '@/shared/api/activities'
 import type { BadgeTone } from '@/shared/ui'
 
-/** 문장 변화 탭의 쓰임 고르기. null이면 전체 */
+/** 공시 분석 탭의 관점 고르기. null이면 전체 */
 export type AudienceFilter = ActivityAudience | null
 
 export const AUDIENCE_OPTIONS: { value: AudienceFilter; label: string; hint: string }[] = [
   { value: null, label: '전체', hint: '모든 활동' },
-  { value: 'INVESTOR', label: '투자', hint: '주식·사모펀드·재무적 투자' },
-  { value: 'CAREER', label: '취업·면접', hint: '무슨 사업에 힘을 싣는지' },
-  { value: 'PARTNER', label: '협업·거래', hint: '믿고 거래할 만한 상황인지' },
+  { value: 'INVESTOR', label: '자금·실적', hint: '투자(주식·사모펀드·재무적 투자)를 검토할 때 볼 내용' },
+  { value: 'CAREER', label: '사업 방향', hint: '무슨 사업에 힘을 싣는지. 취업·면접을 준비할 때 볼 내용' },
+  { value: 'PARTNER', label: '거래·리스크', hint: '믿고 거래할 만한 상황인지. 협업·거래를 검토할 때 볼 내용' },
 ]
 
 export const AREA_LABELS: Record<ActivityArea, string> = {
@@ -32,9 +32,9 @@ export const AREA_LABELS: Record<ActivityArea, string> = {
 }
 
 export const AUDIENCE_LABELS: Record<ActivityAudience, string> = {
-  INVESTOR: '투자',
-  CAREER: '취업·면접',
-  PARTNER: '협업·거래',
+  INVESTOR: '자금·실적',
+  CAREER: '사업 방향',
+  PARTNER: '거래·리스크',
 }
 
 export const SIGNAL_NOTICE = '신호는 공시에 적힌 사건의 종류와 변화로 정한 것이고, 투자 판단이나 추천이 아니에요.'
