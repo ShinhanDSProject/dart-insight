@@ -43,7 +43,7 @@ class MigrationPreflightTest(unittest.TestCase):
 
     def test_unreviewed_new_version_is_blocked(self):
         with self.assertRaises(SystemExit):
-            self.run_guard(["51"], {"V51__existing.sql": b"SELECT 1;", "V53__unknown.sql": FIXTURE_SQL})
+            self.run_guard(["51"], {"V51__existing.sql": b"SELECT 1;", "V54__unknown.sql": FIXTURE_SQL})
 
     def test_older_image_is_blocked(self):
         with self.assertRaises(SystemExit):
