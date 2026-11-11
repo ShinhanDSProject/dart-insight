@@ -13,11 +13,25 @@ import { parseTextField } from './textFields'
 
 /**
  * W-03 결과 화면의 주소 상태(ST-6).
- * ?tab=overview 기업 개요(#589), ?slens=&sview= 요약(관점 거르기·보기), ?tab=&sj=&changed=&unit=&fq=&fsort=&change= 재무 수치, ?tab=activity 공시 분석(두 보고서 사이 활동과 앞으로의 영향, ADR-0067), ?tab=community 커뮤니티(#575), ?tab=news 뉴스(#592), ?ttype=&tsort=&tsec=&tq=&trisk=&tfield=&tpin=&tsel=&tc= 전체 변경(문장 변경 전체 목록), ?doc=&section=&block= 원문 확인
+ * ?tab=overview 기업 개요(#589), ?slens=&sview= 요약(관점 거르기·보기), ?tab=&sj=&changed=&unit=&fq=&fsort=&change= 재무 수치, ?tab=activity 공시 분석(두 보고서 사이 활동과 앞으로의 영향, ADR-0067), ?tab=community 커뮤니티(#575), ?tab=news 뉴스(#592), ?tab=text&ttype=&tsort=&tsec=&tq=&trisk=&tfield=&tpin=&tsel=&tc= 원문 탭의 바뀐 곳(문장 변경 전체 목록), ?doc=&section=&block= 원문 확인
  */
 export type ResultTab = 'overview' | 'summary' | 'financial' | 'activity' | 'text' | 'community' | 'news' | 'source' | 'reports'
 
 export const resultTabs: ResultTab[] = ['overview', 'summary', 'financial', 'activity', 'text', 'community', 'news', 'source', 'reports']
+
+/**
+ * 탭 줄에 보이는 탭. 바뀐 곳(text)은 원문 탭 안의 보기라 탭 줄에 따로 두지 않는다(사용자 결정 2026-11-11).
+ * 주소는 ?tab=text·?tab=source를 그대로 써서 요약·채팅·공시 분석의 '원문 비교' 링크가 바뀌지 않는다.
+ */
+export const resultTabBar: ResultTab[] = resultTabs.filter((tab) => tab !== 'text')
+
+/** 탭 줄에서 고른 것으로 보일 탭. 바뀐 곳(text)은 원문(source) 탭 안이다 */
+export function tabBarValue(tab: ResultTab): ResultTab {
+  return tab === 'text' ? 'source' : tab
+}
+
+/** 원문 탭 안의 보기. source: 원문 읽기(원문 탭을 누르면 처음 보이는 것), text: 바뀐 곳(문장 변경 전체 목록) */
+export type SourceView = Extract<ResultTab, 'source' | 'text'>
 const sjDivs: SjDiv[] = ['BS', 'IS', 'CIS', 'CF', 'SCE']
 const textTypeFilters: TextTypeFilter[] = ['ADDED', 'DELETED', 'MODIFIED', 'NUMERIC_UPDATE', 'MOVED', 'REVIEW_NEEDED', CONTENT_FILTER]
 

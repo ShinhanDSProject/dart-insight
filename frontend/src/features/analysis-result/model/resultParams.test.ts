@@ -12,7 +12,9 @@ import {
   openTextSearch,
   openTextSection,
   parseResultParams,
+  resultTabBar,
   resultTabs,
+  tabBarValue,
   sourceParamChanges,
   summaryParamChanges,
   textParamChanges,
@@ -261,8 +263,18 @@ describe('AI 질문·커뮤니티 탭 주소', () => {
 })
 
 describe('단축키 탭 순서', () => {
-  it('1~8 단축키의 탭 순서가 결과 화면의 탭 순서와 같다(키가 없는 맨 앞 기업 개요 탭(#589)은 빼고)', () => {
-    expect([...shortcutResultTabs]).toEqual(resultTabs.filter((tab) => tab !== 'overview'))
+  it('1~7 단축키의 탭 순서가 결과 화면 탭 줄의 순서와 같다(키가 없는 맨 앞 기업 개요 탭(#589)은 빼고)', () => {
+    expect([...shortcutResultTabs]).toEqual(resultTabBar.filter((tab) => tab !== 'overview'))
+  })
+})
+
+describe('원문 탭의 바뀐 곳', () => {
+  it('바뀐 곳(text)은 탭 줄에 따로 없고, 탭 줄에서는 원문을 고른 것으로 보인다. 주소 값은 그대로 읽는다', () => {
+    expect(resultTabBar).not.toContain('text')
+    expect(resultTabs).toContain('text')
+    expect(tabBarValue('text')).toBe('source')
+    expect(tabBarValue('source')).toBe('source')
+    expect(tabBarValue('summary')).toBe('summary')
   })
 })
 

@@ -24,6 +24,7 @@ import { NewsTab } from './components/NewsTab'
 import { OutdatedNotice } from './components/OutdatedNotice'
 import { ResultTour } from './components/ResultTour'
 import { SourceTab } from './components/SourceTab'
+import { SourceViewSwitch } from './components/SourceViewSwitch'
 import { SummaryTab } from './components/SummaryTab'
 import { TextTab } from './components/TextTab'
 import { ActivityTab } from './components/ActivityTab'
@@ -46,7 +47,9 @@ import {
   openTextList,
   openTextSection,
   reportSelectionSeed,
-  resultTabs,
+  resultTabBar,
+  tabBarValue,
+  type SourceView,
   sourceParamChanges,
   summaryParamChanges,
   textParamChanges,
@@ -56,7 +59,7 @@ import {
 } from './model/resultParams'
 import './analysis-result.css'
 
-const tabs: TabItem<ResultTab>[] = resultTabs.map((value) => ({ value, label: resultTabLabels[value] }))
+const tabs: TabItem<ResultTab>[] = resultTabBar.map((value) => ({ value, label: resultTabLabels[value] }))
 
 /**
  * W-03 분석 결과(3.1). 화면 전체가 분석 ID 하나의 결과만 보여 주므로, 비교 기준을 바꾸면 새 분석으로 옮겨 가고
@@ -210,7 +213,7 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
 
       {/* 스크롤해도 탭을 위에 붙여 두어 긴 결과를 내려 본 뒤에도 바로 다른 탭으로 옮긴다(#390) */}
       <div className="result-tabs">
-        <Tabs label="결과 보기" items={tabs} value={params.tab} onChange={(t) => update({ tab: t })} />
+        <Tabs label="결과 보기" items={tabs} value={tabBarValue(params.tab)} onChange={(t) => update({ tab: t })} />
       </div>
       {/* 처음 열었을 때만 보는 순서를 짧게 안내한다(#842). 이용 안내에서 다시 볼 수 있다 */}
       {tour.visible && <ResultTour onGoTab={(tab) => update({ tab })} onOpenChat={openChat} onFinish={tour.finish} />}
@@ -327,7 +330,7 @@ function ResultTabPanel({
         onChangeLens={(change) => update(summaryParamChanges(change))}
       />
     ))
-    // 공시 분석(ADR-0067): 두 보고서 사이 활동과 앞으로의 영향. 바뀐 문장 전체 목록은 아래 전체 변경(text) 탭에 따로 둔다
+    // 공시 분석(ADR-0067): 두 보고서 사이 활동과 앞으로의 영향. 바뀐 문장 전체 목록은 원문 탭의 바뀐 곳(text)에 있다
     .with('activity', () => (
       <ActivityTab
         key={analysis.analysisId}
@@ -337,8 +340,11 @@ function ResultTabPanel({
         onOpenAll={() => update(openPriorityList())}
       />
     ))
+    // 원문 탭: 맨 위 전환으로 원문 읽기(source)와 바뀐 곳(text)을 오간다(사용자 결정 2026-11-11)
     .with('text', () => (
-      <TextTab
+      <>
+        <SourceViewSwitch value="text" onChange={(tab) => update({ tab })} />
+        <TextTab
         key={analysis.analysisId}
         analysis={analysis}
         type={params.textType}
@@ -355,13 +361,16 @@ function ResultTabPanel({
         onAsk={askAndOpen}
         asking={asking}
       />
+      </>
     ))
     .with('community', () => <CommunityTab corpCode={analysis.corpCode} draft={postDraft} onDraftApplied={onPostDraftApplied} />)
     .with('news', () => <NewsTab corpCode={analysis.corpCode} />)
     // 보고서 선택(#659): 기업 화면의 보고서 비교를 탭 줄 아래에 그린다. 고른 값을 넣기 전에는 그리지 않아 가장 최근 보고서가 잠깐 골라지지 않는다
     .with('reports', () => (seed === null ? renderReports?.(analysis.corpCode) : null))
     .with('source', () => (
-      <SourceTab
+      <>
+        <SourceViewSwitch value="source" onChange={(tab) => update({ tab })} />
+        <SourceTab
         key={analysis.analysisId}
         analysis={analysis}
         side={params.sourceSide}
@@ -372,17 +381,18 @@ function ResultTabPanel({
         onOpenTextSection={(section) => update(openTextSection(section))}
         onBack={() => update({ tab: returnTab })}
       />
+      </>
     ))
     .exhaustive()
 }
 
 /**
- * 원문 탭의 '← 분석 결과로 돌아가기'(#550)가 갈 탭: 원문을 열기 전에 마지막으로 본 탭. 처음부터 원문 탭이면 요약.
+ * 원문 탭의 '← 분석 결과로 돌아가기'(#550)가 갈 탭: 원문 탭(원문 읽기·바뀐 곳)을 열기 전에 마지막으로 본 탭. 처음부터 원문 탭이면 요약.
  * 주소에 새 값을 두지 않고 화면 안에서만 기억한다. 근거 계정(change)·문장(tc)은 주소에 남아 있어 돌아가면 근거도 다시 열린다.
  */
-function useReturnTab(tab: ResultTab): Exclude<ResultTab, 'source'> {
-  const [last, setLast] = useState<Exclude<ResultTab, 'source'>>('summary')
-  if (tab !== 'source' && tab !== last) setLast(tab)
+function useReturnTab(tab: ResultTab): Exclude<ResultTab, SourceView> {
+  const [last, setLast] = useState<Exclude<ResultTab, SourceView>>('summary')
+  if (tab !== 'source' && tab !== 'text' && tab !== last) setLast(tab)
   return last
 }
 

@@ -29,6 +29,8 @@ vi.mock('./components/ComparisonContextCard', () => ({
   ComparisonContextCard: () => <section aria-label="비교 맥락">비교 맥락</section>,
 }))
 vi.mock('./components/SummaryTab', () => ({ SummaryTab: () => <p>요약</p> }))
+// 원문 읽기는 원문 탭 테스트(SourceTab.test)가 따로 본다. 여기서는 원문 탭 안 보기 전환만 확인한다
+vi.mock('./components/SourceTab', () => ({ SourceTab: () => <p>원문 읽기 화면</p> }))
 
 function analysis(outdated: boolean): Analysis {
   return {
@@ -195,7 +197,7 @@ describe('결과 머리(#550)', () => {
     expect(new URLSearchParams(screen.getByTestId('where-search').textContent ?? '').get('previous')).toBe('20250814000987')
   })
 
-  it('탭은 기업 개요(#589)·요약·재무 수치·공시 분석(ADR-0067)·전체 변경·커뮤니티·뉴스(#592)·원문·보고서 선택(#659) 아홉 개다', async () => {
+  it('탭은 기업 개요(#589)·요약·재무 수치·공시 분석(ADR-0067)·커뮤니티·뉴스(#592)·원문·보고서 선택(#659) 여덟 개다(바뀐 곳은 원문 탭 안)', async () => {
     getAnalysis.mockResolvedValue(analysis(false))
     renderPage()
     const tabs = await screen.findByRole('navigation', { name: '결과 보기' })
@@ -204,7 +206,6 @@ describe('결과 머리(#550)', () => {
       '요약',
       '재무 수치',
       '공시 분석',
-      '전체 변경',
       '커뮤니티',
       '뉴스',
       '원문',
@@ -227,11 +228,25 @@ describe('결과 머리(#550)', () => {
     const panel = screen.getByRole('dialog', { name: 'AI 에이전트' })
     expect(within(panel).getByText(/개인정보는 쓰지 마세요/)).toBeTruthy()
     const tabs = screen.getByRole('navigation', { name: '결과 보기' })
-    fireEvent.click(within(tabs).getByText('전체 변경'))
-    expect(screen.getByTestId('where-search').textContent).toContain('tab=text')
+    fireEvent.click(within(tabs).getByText('원문'))
+    expect(screen.getByTestId('where-search').textContent).toContain('tab=source')
     expect(screen.getByRole('dialog', { name: 'AI 에이전트' })).toBeTruthy()
     fireEvent.click(within(panel).getByRole('button', { name: '닫기' }))
     expect(screen.queryByRole('dialog', { name: 'AI 에이전트' })).toBeNull()
+  })
+
+  it('원문 탭은 원문 읽기로 열리고, 바뀐 곳으로 바꿔도 탭 줄은 원문을 고른 채로 둔다', async () => {
+    getAnalysis.mockResolvedValue(analysis(false))
+    renderPage()
+    const tabs = await screen.findByRole('navigation', { name: '결과 보기' })
+    fireEvent.click(within(tabs).getByText('원문'))
+    const views = screen.getByRole('group', { name: '원문 보기' })
+    expect(within(views).getByRole('button', { name: '원문 읽기' }).getAttribute('aria-pressed')).toBe('true')
+
+    fireEvent.click(within(views).getByRole('button', { name: '바뀐 곳' }))
+    expect(screen.getByTestId('where-search').textContent).toContain('tab=text')
+    expect(within(tabs).getByText('원문').getAttribute('aria-current')).toBe('page')
+    expect(within(screen.getByRole('group', { name: '원문 보기' })).getByRole('button', { name: '바뀐 곳' }).getAttribute('aria-pressed')).toBe('true')
   })
 
   it('기업 개요 탭은 화면을 옮기지 않고 탭 줄 아래에 그 기업의 개요를 그린다(#589)', async () => {
