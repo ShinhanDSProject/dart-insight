@@ -128,6 +128,7 @@ public class PeriodActivityService {
         }
     }
 
+    /** 원문이 없으면 제목만. 받기·구조화 실패는 그대로 던져 결과를 저장하지 않는다(다음 요청에서 다시) */
     private ActivityAiRequest.Disclosure withText(PeriodDisclosure disclosure) {
         String text = documentService.disclosureText(disclosure.rceptNo(), DISCLOSURE_TEXT_LIMIT).orElse("");
         return new ActivityAiRequest.Disclosure(disclosure.evidenceId(), disclosure.rceptDt().toString(),
