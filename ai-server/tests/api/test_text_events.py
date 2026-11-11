@@ -2,11 +2,10 @@ import base64
 import json
 from typing import Any
 
-from fastapi.testclient import TestClient
-
 from app.core.config import LlmSettings
 from app.llm import FakeProvider, LlmClient, LlmRequest, ProviderError
 from app.main import create_app
+from tests.http import TestClient
 
 PREVIOUS_RCEPT = "20250814003156"
 CURRENT_RCEPT = "20260814003699"

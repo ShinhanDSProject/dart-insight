@@ -162,6 +162,7 @@ set -euo pipefail
 
 test -f backend/Dockerfile
 test -f frontend/Dockerfile
+test -f ai-server/Dockerfile
 
 # Git에 기록된 파일만 별도 폴더에 추출한다.
 build_root=$(mktemp -d)
@@ -183,16 +184,8 @@ docker build --progress=plain \
 docker build --progress=plain \
   --label "org.opencontainers.image.revision=$RELEASE_SHA" \
   -t "dart-insight-ai:$RELEASE_SHA" \
-  -f - "$build_root/ai-server" <<'DOCKERFILE'
-FROM python:3.12-slim
-WORKDIR /app
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
-COPY . .
-EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-DOCKERFILE
+  -f "$build_root/ai-server/Dockerfile" \
+  "$build_root/ai-server"
 
 bash -n infra/jenkins/deploy-ai-backend.sh
 install -d -m 700 /home/jenkins/agent/ops

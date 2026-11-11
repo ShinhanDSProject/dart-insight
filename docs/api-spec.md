@@ -3564,6 +3564,8 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 
 ## 3. 내부 API (Spring Boot → FastAPI)
 
+**내부 인증([ADR-0067](adr/0067-internal-api-bearer-token.md))**: backend는 모든 `/internal/**` 요청에 `Authorization: Bearer <AI_INTERNAL_TOKEN>`을 넣습니다. ai-server는 헤더가 없거나 형식·토큰이 맞지 않으면 기능 코드를 실행하지 않고 401 `AI_INTERNAL_UNAUTHORIZED`로 답합니다. 토큰 값은 서버 환경변수에만 두고 로그·응답에 남기지 않습니다. 배포 상태 확인용 `GET /health`는 이 인증 대상이 아닙니다. IP 접근 제한도 함께 유지합니다.
+
 외부에 열지 않습니다. 요청 헤더에 항상 `X-Trace-Id`를 넣습니다. 에러 형식은 외부 API와 같습니다. AI 서버만 쓰는 에러 코드는 `AI_`로 시작합니다(아래 표).
 
 **실패한 요청의 LLM 호출 기록(`X-Llm-Calls`, #137, [ADR-0042](adr/0042-failed-llm-calls-in-response-header.md))**: LLM을 부르다 끝내 쓸 수 없게 된 요청(503 `AI_LLM_UNAVAILABLE`)도 그때까지 부른 기록이 있으면 응답 헤더 `X-Llm-Calls`에 담습니다. 값은 호출 기록 배열(200 응답의 `calls`와 같은 객체 모양)을 UTF-8 JSON으로 만든 뒤 base64url(패딩 있음)로 바꾼 글자입니다. 기록이 없으면(제공자 미설정 등) 헤더를 넣지 않습니다. 에러 본문은 공통 형식 그대로입니다. 지금은 `POST /internal/summaries`만 넣고, backend는 분석 실패 때 이 기록을 `llm_call`에 저장합니다. `POST /internal/text-events`(ADR-0050·0051)도 503과 502 `AI_EVENTS_INVALID_OUTPUT`에 같은 헤더를 넣습니다.
@@ -3587,6 +3589,7 @@ AI 서버가 응답하지 않으면 `aiServer`가 `DOWN`입니다(200 그대로)
 | --- | --- | --- |
 | `AI_DOCUMENT_TOO_LARGE` | 413 | 원문 ZIP이 80MB를 넘음 |
 | `AI_LLM_UNAVAILABLE` | 503 | LLM 제공자가 설정되지 않았거나 다시 시도해도 응답하지 않음(0.7). 제공자의 사용 한도를 다 쓴 경우(OpenAI 429 `insufficient_quota`, Anthropic 402 `billing_error`·429 `enforced_spend_limit_reached`, ADR-0062)는 기다려도 풀리지 않아 다시 시도하지 않고 바로 이 코드로 끝냄(#759). backend는 분석을 `ANALYSIS_SUMMARY_FAILED`로 끝내고, 헤더 `X-Llm-Calls`의 호출 기록은 `llm_call`에 저장함(#137) |
+| `AI_INTERNAL_UNAUTHORIZED` | 401 | `/internal/**` 요청의 Bearer 토큰이 없거나 형식·값이 맞지 않음. 응답과 로그에는 토큰 값을 넣지 않음(ADR-0067) |
 | `AI_EVENTS_INVALID_OUTPUT` | 502 | 다시 만들어도 쓸 수 있는 사건이 하나도 없음. backend는 사건 실행만 `FAILED`로 끝내고 분석에는 영향을 주지 않음 |
 
 ### GET /internal/documents/parser — 원문 파서 버전

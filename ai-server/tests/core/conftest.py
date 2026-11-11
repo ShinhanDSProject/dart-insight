@@ -4,10 +4,10 @@ from typing import Annotated
 
 import pytest
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.testclient import TestClient
 
 from app.core.errors import ApiError, ErrorCode
 from app.main import create_app
+from tests.http import TestClient
 
 
 @pytest.fixture

@@ -26,8 +26,10 @@ import org.springframework.http.MediaType;
 /** 가짜 AI 서버(JDK HttpServer)를 띄워 내부 호출을 확인한다. */
 class AiServerClientTest {
 
+    private static final String INTERNAL_TOKEN = "test-internal-token-that-is-at-least-32-chars";
     private HttpServer server;
     private final AtomicReference<String> receivedTraceId = new AtomicReference<>();
+    private final AtomicReference<String> receivedAuthorization = new AtomicReference<>();
     private volatile int status = 200;
     private volatile String body = "{\"status\":\"UP\"}";
     private volatile long delayMillis = 0;
@@ -37,6 +39,7 @@ class AiServerClientTest {
         server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/internal/health", exchange -> {
             receivedTraceId.set(exchange.getRequestHeaders().getFirst(TraceContext.HEADER));
+            receivedAuthorization.set(exchange.getRequestHeaders().getFirst("Authorization"));
             try {
                 Thread.sleep(delayMillis);
             } catch (InterruptedException e) {
@@ -60,7 +63,8 @@ class AiServerClientTest {
 
     private AiServerClient client(Duration readTimeout) {
         String baseUrl = "http://127.0.0.1:" + server.getAddress().getPort();
-        return new AiServerClient(new AiServerProperties(baseUrl, Duration.ofSeconds(1), readTimeout, readTimeout,
+        return new AiServerClient(new AiServerProperties(baseUrl, INTERNAL_TOKEN, Duration.ofSeconds(1), readTimeout,
+                readTimeout,
                 readTimeout));
     }
 
@@ -72,6 +76,7 @@ class AiServerClientTest {
 
         assertThat(result).isEqualTo(AiServerStatus.UP);
         assertThat(receivedTraceId.get()).isEqualTo("trace-from-request");
+        assertThat(receivedAuthorization.get()).isEqualTo("Bearer " + INTERNAL_TOKEN);
     }
 
     @Test
@@ -79,14 +84,17 @@ class AiServerClientTest {
     void bodyArrivesOnTheFirstRequestOfAConnection() {
         try (FakeAiServer fake = new FakeAiServer()) {
             fake.on("/internal/echo", FakeAiServer.Reply.ok("{}"));
-            AiServerClient client = new AiServerClient(new AiServerProperties(fake.baseUrl(), Duration.ofSeconds(1),
-                    Duration.ofSeconds(2), Duration.ofSeconds(2), Duration.ofSeconds(2)));
+            AiServerClient client = new AiServerClient(new AiServerProperties(fake.baseUrl(), INTERNAL_TOKEN,
+                    Duration.ofSeconds(1), Duration.ofSeconds(2), Duration.ofSeconds(2), Duration.ofSeconds(2)));
             byte[] zip = {0x50, 0x4b, 0x03, 0x04, 1, 2, 3};
 
             client.postBytes("/internal/echo", zip, MediaType.valueOf("application/zip"), Map.class);
 
             assertThat(fake.requests("/internal/echo")).singleElement()
-                    .satisfies(r -> assertThat(r.body()).containsExactly(zip));
+                    .satisfies(r -> {
+                        assertThat(r.body()).containsExactly(zip);
+                        assertThat(r.authorization()).isEqualTo("Bearer " + INTERNAL_TOKEN);
+                    });
         }
     }
 
@@ -134,7 +142,7 @@ class AiServerClientTest {
     void slowHealthIsDownWithinHealthTimeout() {
         delayMillis = 3000;
         String baseUrl = "http://127.0.0.1:" + server.getAddress().getPort();
-        AiServerClient client = new AiServerClient(new AiServerProperties(baseUrl, Duration.ofSeconds(1),
+        AiServerClient client = new AiServerClient(new AiServerProperties(baseUrl, INTERNAL_TOKEN, Duration.ofSeconds(1),
                 Duration.ofSeconds(30), Duration.ofMillis(300), Duration.ofSeconds(30)));
         long started = System.nanoTime();
 
@@ -147,8 +155,8 @@ class AiServerClientTest {
         int port = server.getAddress().getPort();
         server.stop(0);
         AiServerClient client = new AiServerClient(new AiServerProperties(
-                "http://127.0.0.1:" + port, Duration.ofMillis(500), Duration.ofMillis(500), Duration.ofMillis(500),
-                Duration.ofMillis(500)));
+                "http://127.0.0.1:" + port, INTERNAL_TOKEN, Duration.ofMillis(500), Duration.ofMillis(500),
+                Duration.ofMillis(500), Duration.ofMillis(500)));
 
         assertThat(client.health()).isEqualTo(AiServerStatus.DOWN);
     }

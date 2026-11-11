@@ -1,14 +1,13 @@
 import base64
 import json
 
-from fastapi.testclient import TestClient
-
 from app.core.config import LlmSettings
 from app.llm import FakeProvider, LlmClient
 from app.llm.providers import ProviderError, ProviderTransientError
 from app.main import create_app
 from app.summary import fake
 from app.summary.schema import SummaryRequest
+from tests.http import TestClient
 
 CUR = "20260814000001"
 BODY = {

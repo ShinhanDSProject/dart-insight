@@ -29,6 +29,7 @@ class SignalTableServiceTest {
     void setUp() {
         ai = new FakeAiServer();
         service = new SignalTableService(new AiServerClient(new AiServerProperties(ai.baseUrl(),
+                "test-internal-token-that-is-at-least-32-chars",
                 Duration.ofSeconds(2), Duration.ofSeconds(5), Duration.ofSeconds(1), Duration.ofSeconds(5))));
     }
 
