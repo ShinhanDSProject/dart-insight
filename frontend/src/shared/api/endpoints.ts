@@ -21,6 +21,7 @@ export const endpoints = {
   notificationRead: (notificationId: number) => `/api/notifications/${seg(notificationId)}/read`,
   featuredCompanies: () => '/api/featured-companies',
   seasonChanges: () => '/api/season-changes',
+  stats: () => '/api/stats',
   glossaryTerms: () => '/api/glossary-terms',
   notes: () => '/api/notes',
   note: (itemId: number) => `/api/notes/${seg(itemId)}`,

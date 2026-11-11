@@ -154,6 +154,12 @@
   --motion-pulse: 1400ms;
   /* 불러오는 자리(Skeleton)가 한 번 반짝이는 시간 */
   --motion-shimmer: 1400ms;
+  /* 첫 화면·분석 진행의 바탕 움직임(동적 화면 시안). 느리게 돌아 눈을 끌지 않는다 */
+  --motion-drift: 16s;
+  --motion-draw: 3200ms;
+  --motion-ticker: 40s;
+  --motion-rotate: 9s;
+  --motion-scan: 3200ms;
 
   /* 포커스 표시 */
   --focus-ring: 2px solid var(--color-primary);

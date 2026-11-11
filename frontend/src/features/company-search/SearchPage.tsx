@@ -21,8 +21,8 @@ import type { FavoriteCompany } from '@/shared/api/favoriteCompanies'
 import { BrandLogo, Button, ButtonLink, Card, Dialog, FieldHint, Icon, Input, Notice, Page } from '@/shared/ui'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { CompanyList, RESULT_LINK_SELECTOR } from './components/CompanyList'
-import { HomeLists } from './components/HomeLists'
-import { HOME_INTRO, HOME_SOURCE, HomeSteps, OnboardingStepsList } from './components/OnboardingGuide'
+import { HomeHero, RotatingExamples } from './components/HomeHero'
+import { OnboardingStepsList } from './components/OnboardingGuide'
 import { RecentAnalyses } from './components/RecentAnalyses'
 import { useAutoSearch } from './hooks/useAutoSearch'
 import { useCompanySearch, type SearchResult as SearchData } from './hooks/useCompanySearch'
@@ -37,8 +37,8 @@ const errorMessages: Record<string, string> = {
 
 /**
  * W-01 ① 기업 검색(#538, #560, FS-67).
- * 검색 전 첫 화면은 로고, 서비스 소개 한 줄, 검색창, 사용 순서 한 줄을 둔다(#839). 빈 검색창에 초점을 주면 아래로 펼침 상자(최근 본 분석·자주 찾는 기업·
- * 예시 검색어·사용법)가 열린다. 검색창 아래에는 처음엔 접힌 대표 기업·시즌 변화 Top 10·관심 기업 새 공시 목록을 둔다(#686).
+ * 검색 전 첫 화면은 HomeHero(시즌 배지·큰 제목·검색창·흐름 띠·세 칸)이고, 검색 결과 화면은 로고와 검색창만 둔다.
+ * 빈 검색창에 초점을 주면 아래로 펼침 상자(최근 본 분석·자주 찾는 기업·예시 검색어·사용법)가 열린다.
  * 검색어는 주소(?q=)에 남겨 뒤로 가기를 해도 결과가 유지되며, 입력을 멈추면 Enter 없이도 찾는다.
  */
 export function SearchPage() {
@@ -100,78 +100,86 @@ export function SearchPage() {
     focusInput()
   }
 
-  return (
-    <Page className="search-page">
-      <div className={cx('search-page__shell', isHome && 'search-page__shell--home')}>
-        <div className={cx('search-hero', isHome && 'search-hero--home')}>
-          {/* 로고가 화면 제목이다. 화면 읽기 도구에는 '기업 검색'을 함께 읽는다 */}
-          <h1 className="search-hero__title">
-            <BrandLogo size="lg" />
-            <span className="visually-hidden"> 기업 검색</span>
-          </h1>
-          {/* 처음 온 사람에게 무엇을 하는 곳인지 알린다(#839). 검색 결과를 볼 때는 결과에 자리를 내준다 */}
-          {isHome && (
-            <div className="search-hero__intro">
-              <p className="search-hero__lead">{HOME_INTRO}</p>
-              <p className="search-hero__source">{HOME_SOURCE}</p>
-            </div>
-          )}
+  const showExamples = isHome && input === ''
+  const searchForm = (
+    <form className="search-form" onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} noValidate>
+      {/* 보이는 제목 대신 입력창 안내 글을 쓰고, 화면 읽기 프로그램에는 이름을 그대로 준다(#486) */}
+      <label htmlFor="company-query" className="visually-hidden">
+        회사명 또는 종목코드
+      </label>
+      <div className={cx('search-bar', inputError !== null && 'search-bar--invalid', showExamples && 'search-bar--examples')}>
+        <span className="search-bar__icon" aria-hidden="true">
+          <Icon name="search" size={18} />
+        </span>
+        <span className="search-bar__field">
+          <Input
+            id="company-query"
+            ref={inputRef}
+            className="search-bar__input"
+            invalid={inputError !== null}
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value)
+              setDrop('auto')
+            }}
+            onKeyDown={handleInputKeyDown}
+            onFocus={handleInputFocus}
+            onClick={() => setDrop('auto')}
+            placeholder="회사명·종목코드·초성 (예: 삼성전자, 005930, ㅅㅅㅈㅈ)"
+            autoComplete="off"
+            aria-describedby={inputError ? 'company-query-hint company-query-error' : 'company-query-hint'}
+          />
+          {/* 첫 화면 빈 검색창에서는 예시가 차례로 바뀐다. 동작 줄이기면 CSS가 숨기고 placeholder를 보인다 */}
+          {showExamples && <RotatingExamples />}
+        </span>
+        {input !== '' && (
+          <Button variant="icon" className="search-bar__clear" aria-label="검색어 지우기" onClick={handleClear}>
+            <Icon name="x" size={16} />
+          </Button>
+        )}
+        <Button type="submit" variant="primary" className="search-bar__submit">
+          검색
+        </Button>
+      </div>
+      {isHome && input === '' && drop === 'auto' && (
+        <SearchDrop
+          recent={recent}
+          favoritesStatus={favorites.status}
+          favorites={favorites.items}
+          onOpenGuide={() => setModal('guide')}
+        />
+      )}
+      <FieldHint id="company-query-hint" className="visually-hidden">
+        초성으로도 찾을 수 있어요. 결과는 ↓ 키로 고르고 Enter로 열어요.
+      </FieldHint>
+      {inputError && (
+        <p id="company-query-error" className="field-error">
+          {inputError}
+        </p>
+      )}
+    </form>
+  )
 
-          <form className="search-form" onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} noValidate>
-            {/* 보이는 제목 대신 입력창 안내 글을 쓰고, 화면 읽기 프로그램에는 이름을 그대로 준다(#486) */}
-            <label htmlFor="company-query" className="visually-hidden">
-              회사명 또는 종목코드
-            </label>
-            <div className={cx('search-bar', inputError !== null && 'search-bar--invalid')}>
-              <span className="search-bar__icon" aria-hidden="true">
-                <Icon name="search" size={18} />
-              </span>
-              <Input
-                id="company-query"
-                ref={inputRef}
-                className="search-bar__input"
-                invalid={inputError !== null}
-                value={input}
-                onChange={(e) => {
-                  setInput(e.target.value)
-                  setDrop('auto')
-                }}
-                onKeyDown={handleInputKeyDown}
-                onFocus={handleInputFocus}
-                onClick={() => setDrop('auto')}
-                placeholder="회사명·종목코드·초성 (예: 삼성전자, 005930, ㅅㅅㅈㅈ)"
-                autoComplete="off"
-                aria-describedby={inputError ? 'company-query-hint company-query-error' : 'company-query-hint'}
-              />
-              {input !== '' && (
-                <Button variant="icon" className="search-bar__clear" aria-label="검색어 지우기" onClick={handleClear}>
-                  <Icon name="x" size={16} />
-                </Button>
-              )}
-              <Button type="submit" variant="primary" className="search-bar__submit">
-                검색
-              </Button>
-            </div>
-            {isHome && input === '' && drop === 'auto' && (
-              <SearchDrop
-                recent={recent}
-                favoritesStatus={favorites.status}
-                favorites={favorites.items}
-                onOpenGuide={() => setModal('guide')}
-              />
-            )}
-            <FieldHint id="company-query-hint" className="visually-hidden">
-              초성으로도 찾을 수 있어요. 결과는 ↓ 키로 고르고 Enter로 열어요.
-            </FieldHint>
-            {inputError && (
-              <p id="company-query-error" className="field-error">
-                {inputError}
-              </p>
-            )}
-          </form>
-          {isHome && <HomeSteps onOpenGuide={() => setModal('guide')} />}
-          {isHome && <HomeLists favoritesStatus={favorites.status} favorites={favorites.items} />}
-        </div>
+  return (
+    <Page className="search-page" width={isHome ? 'wide' : 'narrow'}>
+      <div className={cx('search-page__shell', isHome && 'search-page__shell--home')}>
+        {isHome ? (
+          <HomeHero
+            searchForm={searchForm}
+            favoritesStatus={favorites.status}
+            favorites={favorites.items}
+            onOpenGuide={() => setModal('guide')}
+          />
+        ) : (
+          <div className="search-hero">
+            {/* 로고가 화면 제목이다. 화면 읽기 도구에는 '기업 검색'을 함께 읽는다 */}
+            <h1 className="search-hero__title">
+              <BrandLogo size="lg" />
+              <span className="visually-hidden"> 기업 검색</span>
+            </h1>
+            {searchForm}
+          </div>
+        )}
 
         <SearchResult state={state} onRetry={reload} listRef={listRef} onBackToInput={focusInput} />
       </div>
