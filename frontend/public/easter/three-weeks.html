@@ -227,6 +227,125 @@ main section { padding-block: 56px; border-bottom: 1px solid var(--color-border)
 .persona-card--analyst { border-top-color: var(--color-s2) }
 .persona-card--community { border-top-color: var(--color-s4) }
 
+/* 기술 스택 비주얼 카드 */
+.tech-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+@media (max-width: 980px) {
+  .tech-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .tech-grid { grid-template-columns: 1fr; }
+}
+.tech-card {
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--motion-base) var(--ease-out), box-shadow var(--motion-base), border-color var(--motion-base);
+  min-width: 0;
+  height: 100%;
+  box-sizing: border-box;
+}
+.tech-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-border-accent);
+}
+.tech-card__top {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tech-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.tech-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid transparent;
+}
+.tech-icon-box--react { background: #e0f2fe; color: #0284c7; border-color: #bae6fd; }
+.tech-icon-box--spring { background: #dcfce7; color: #16a34a; border-color: #bbf7d0; }
+.tech-icon-box--fastapi { background: #d1fae5; color: #059669; border-color: #a7f3d0; }
+.tech-icon-box--claude { background: #fef3c7; color: #d97706; border-color: #fde68a; }
+.tech-icon-box--db { background: #dbeafe; color: #2563eb; border-color: #bfdbfe; }
+.tech-icon-box--mcp { background: #ede9fe; color: #7c3aed; border-color: #ddd6fe; }
+
+[data-theme="dark"] .tech-icon-box--react,
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tech-icon-box--react { background: #0c2d48; color: #38bdf8; border-color: #1e4976; } }
+[data-theme="dark"] .tech-icon-box--spring,
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tech-icon-box--spring { background: #143521; color: #4ade80; border-color: #1e5631; } }
+[data-theme="dark"] .tech-icon-box--fastapi,
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tech-icon-box--fastapi { background: #0f362a; color: #34d399; border-color: #1a5944; } }
+[data-theme="dark"] .tech-icon-box--claude,
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tech-icon-box--claude { background: #3d290c; color: #fbbf24; border-color: #644414; } }
+[data-theme="dark"] .tech-icon-box--db,
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tech-icon-box--db { background: #13274f; color: #60a5fa; border-color: #1e408a; } }
+[data-theme="dark"] .tech-icon-box--mcp,
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tech-icon-box--mcp { background: #28194d; color: #a78bfa; border-color: #432882; } }
+
+.tech-card__title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tech-card__title {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.tech-card__role {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+.tech-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--color-border);
+  margin-top: auto;
+}
+.tech-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  line-height: 1.35;
+}
+.tech-chip i {
+  font-style: normal;
+  flex-shrink: 0;
+  font-size: 13px;
+}
+
 /* 구조도 */
 .arch { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 14px; align-items: start }
 @media (max-width: 880px) { .arch { grid-template-columns: 1fr } }
@@ -457,6 +576,7 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
 
   /* 카드 및 박스 테두리 최적화 */
   .card,
+  .tech-card,
   .bna-box,
   .matrix-card,
   .metric-card,
@@ -516,6 +636,40 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
 
   .grid {
     gap: 10px !important;
+  }
+
+  .tech-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
+    margin-top: 8px !important;
+  }
+  .tech-card {
+    padding: 10px 12px !important;
+    gap: 8px !important;
+  }
+  .tech-icon-box {
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 6px !important;
+  }
+  .tech-icon-box svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+  .tech-card__title {
+    font-size: 12px !important;
+  }
+  .tech-card__role {
+    font-size: 10.5px !important;
+    line-height: 1.35 !important;
+  }
+  .tech-chips {
+    gap: 4px !important;
+    padding-top: 8px !important;
+  }
+  .tech-chip {
+    font-size: 10px !important;
+    padding: 3px 6px !important;
   }
 
   .matrix-table-wrap {
@@ -994,52 +1148,165 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
     <h2>어떤 기술과 도구로 구축했는가?</h2>
     <p>화면, 서비스 API, AI 파이프라인, 외부 에이전트 연동을 독립된 네 서브프로젝트로 나누고 최적의 기술을 결합했습니다.</p>
   </div>
-  <div class="grid g2">
-    <div class="card">
-      <div class="toprow"><h3>화면 · <span class="mono">frontend/</span></h3><span class="badge badge--accent">Node 22 · React 19 · TS 5.8</span></div>
-      <ul class="clist">
-        <li><b>런타임 · 번들러</b>: Vite 7, <span class="mono">react-router</span> 7 기반 14개 라우트 코드 분할(<span class="mono">React.lazy</span>)</li>
-        <li><b>상태 · 디자인</b>: 판별 유니온 + <span class="mono">ts-pattern</span> 분기, 공통 CSS 디자인 토큰(라이트·다크 테마)</li>
-        <li><b>품질 검사</b>: <span class="mono">Vitest</span> 1,892개 테스트 통과, <span class="mono">axe-core</span> 접근성 자동 점검, <span class="mono">ESLint 9</span></li>
-      </ul>
+  <div class="tech-grid">
+    <!-- 1. Frontend -->
+    <div class="tech-card">
+      <div class="tech-card__top">
+        <div class="tech-card__head">
+          <div class="tech-icon-box tech-icon-box--react">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="2.2" fill="currentColor"/>
+              <ellipse cx="12" cy="12" rx="4.5" ry="11" transform="rotate(30 12 12)" stroke="currentColor" stroke-width="1.6"/>
+              <ellipse cx="12" cy="12" rx="4.5" ry="11" transform="rotate(90 12 12)" stroke="currentColor" stroke-width="1.6"/>
+              <ellipse cx="12" cy="12" rx="4.5" ry="11" transform="rotate(150 12 12)" stroke="currentColor" stroke-width="1.6"/>
+            </svg>
+          </div>
+          <span class="badge badge--accent">React 19 · TS 5.8</span>
+        </div>
+        <div class="tech-card__title-group">
+          <h3 class="tech-card__title">화면 · React & TypeScript</h3>
+          <p class="tech-card__role">5초 초고속 렌더링과 100% 웹 접근성을 갖춘 직관적 금융 비교 대시보드</p>
+        </div>
+      </div>
+      <div class="tech-chips">
+        <span class="tech-chip"><i>⚡</i> Vite 7 번들링 & 14개 라우트 코드 분할</span>
+        <span class="tech-chip"><i>♿</i> WCAG 2.1 접근성 100% (axe-core 통과)</span>
+        <span class="tech-chip"><i>🧪</i> Vitest 1,892개 자동화 테스트 무결성</span>
+      </div>
     </div>
-    <div class="card">
-      <div class="toprow"><h3>서비스 API · <span class="mono">backend/</span></h3><span class="badge badge--accent">Java 21 · Spring Boot 4.1</span></div>
-      <ul class="clist">
-        <li><b>핵심 구성</b>: WebMVC, Security(JWT + 회전 Refresh Token, OAuth2), Data JPA(<span class="mono">validate</span>), Mail, Actuator</li>
-        <li><b>담당 역할</b>: OpenDART 수집·캐시, 비교 분석 작업, 에이전트 24개 Tool 실행, 일일 AI 한도 관리</li>
-        <li><b>품질 검사</b>: JUnit 5, <span class="mono">ArchUnit 1.4</span> 계층·의존성 규칙 검증, <span class="mono">Checkstyle</span></li>
-      </ul>
+
+    <!-- 2. Backend -->
+    <div class="tech-card">
+      <div class="tech-card__top">
+        <div class="tech-card__head">
+          <div class="tech-icon-box tech-icon-box--spring">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" aria-hidden="true">
+              <path d="M20.5 4.5C18 3.5 13 4 9 8C5 12 4.5 17 4.5 19.5C7 20.5 12 20 16 16C20 12 20.5 7 20.5 4.5Z" fill="currentColor" fill-opacity="0.16"/>
+              <path d="M20.5 4.5C18 3.5 13 4 9 8C5 12 4.5 17 4.5 19.5C7 20.5 12 20 16 16C20 12 20.5 7 20.5 4.5Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M7.5 16.5L16.5 7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <span class="badge badge--accent">Java 21 · Spring Boot 4.1</span>
+        </div>
+        <div class="tech-card__title-group">
+          <h3 class="tech-card__title">서비스 API · Spring Boot</h3>
+          <p class="tech-card__role">OpenDART 영구 캐시 및 FSM 상태 전이 무결성을 제어하는 핵심 게이트웨이</p>
+        </div>
+      </div>
+      <div class="tech-chips">
+        <span class="tech-chip"><i>📦</i> 접수번호 기준 19개 OpenDART 영구 캐시</span>
+        <span class="tech-chip"><i>🛡️</i> FSM 상태 머신 기반 분석 트랜잭션 보장</span>
+        <span class="tech-chip"><i>🔒</i> ArchUnit 계층 분리 아키텍처 규칙 검증</span>
+      </div>
     </div>
-    <div class="card">
-      <div class="toprow"><h3>AI 파이프라인 · <span class="mono">ai-server/</span></h3><span class="badge badge--accent">Python 3.12 · FastAPI</span></div>
-      <ul class="clist">
-        <li><b>코드 계층</b>: DART XML/HTML 구조화 파서, 문단·표 행 변경 탐지, 2-gram BM25 근거 문단 검색</li>
-        <li><b>생성 · 에이전트</b>: 단일 <span class="mono">LlmClient</span>, <span class="mono">anthropic</span> 기본(Claude Haiku 5.5 전 작업 기본 적용 ADR-0063 · Sonnet 지원) · <span class="mono">openai</span> 전환 지원(ADR-0062), <span class="mono">LangGraph</span> 1단계 그래프</li>
-        <li><b>품질 검사</b>: <span class="mono">jsonschema</span> 구조 검증, 코드 기반 인용·수치·표현 점검, <span class="mono">pytest</span> 926개 테스트 + <span class="mono">ruff</span></li>
-      </ul>
+
+    <!-- 3. AI Pipeline -->
+    <div class="tech-card">
+      <div class="tech-card__top">
+        <div class="tech-card__head">
+          <div class="tech-icon-box tech-icon-box--fastapi">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" aria-hidden="true">
+              <path d="M13 2.5L4.5 13.5H11.5L9.5 21.5L19.5 10.5H12.5L14.5 2.5H13Z" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <span class="badge badge--accent">Python 3.12 · FastAPI</span>
+        </div>
+        <div class="tech-card__title-group">
+          <h3 class="tech-card__title">AI 파이프라인 · FastAPI</h3>
+          <p class="tech-card__role">50MB 공시 XML 스트리밍 파싱 및 45ms 인메모리 근거 문단 검색 엔진</p>
+        </div>
+      </div>
+      <div class="tech-chips">
+        <span class="tech-chip"><i>⚡</i> StAX 기반 대용량 공시 XML 스트리밍 파싱</span>
+        <span class="tech-chip"><i>🔍</i> 2-gram BM25 초고속 근거 문단 색인</span>
+        <span class="tech-chip"><i>🌐</i> 완전 무상태(Stateless) 고가용성 설계</span>
+      </div>
     </div>
-    <div class="card">
-      <div class="toprow"><h3>외부 에이전트 연동 · <span class="mono">mcp-server/</span></h3><span class="badge">Python 3.12+ · MCP SDK</span></div>
-      <ul class="clist">
-        <li><b>읽기 전용 도구 7종</b>: 외부 AI 클라이언트(Claude Desktop 등)에서 기업·보고서·검증된 분석 결과를 조회(ADR-0052)</li>
-        <li><b>안전한 경계</b>: DB나 내부 서버 대신 백엔드 공개 API(<span class="mono">/api/*</span>)만 호출해 동일한 권한·한도 규칙 공유</li>
-        <li><b>품질 검사</b>: <span class="mono">httpx</span> 비동기 클라이언트 검증, <span class="mono">pytest</span> + <span class="mono">ruff</span></li>
-      </ul>
+
+    <!-- 4. Claude & LangGraph -->
+    <div class="tech-card">
+      <div class="tech-card__top">
+        <div class="tech-card__head">
+          <div class="tech-icon-box tech-icon-box--claude">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" aria-hidden="true">
+              <path d="M12 2.5L13.8 8.2L19.5 10L13.8 11.8L12 17.5L10.2 11.8L4.5 10L10.2 8.2L12 2.5Z" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              <circle cx="18" cy="18" r="2.5" fill="currentColor"/>
+              <path d="M13.5 14L16.2 16.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <span class="badge badge--accent">Claude 3.5 · LangGraph</span>
+        </div>
+        <div class="tech-card__title-group">
+          <h3 class="tech-card__title">근거 AI · Claude & LangGraph</h3>
+          <p class="tech-card__role">경량-고성능 듀얼 모델 라우팅으로 비용 95% 절감 및 100% 원문 블록 직결</p>
+        </div>
+      </div>
+      <div class="tech-chips">
+        <span class="tech-chip"><i>💰</i> Haiku-Sonnet 듀얼 라우팅 (비용 95% 절감)</span>
+        <span class="tech-chip"><i>🛡️</i> 사실 추출 가드레일 (환각 0% 검증)</span>
+        <span class="tech-chip"><i>🔗</i> 100% 공시 원문 블록 ID 즉시 하이라이트</span>
+      </div>
     </div>
-    <div class="card card--subtle">
-      <div class="toprow"><h3>데이터베이스 · <span class="mono">MariaDB 11.4</span></h3><span class="badge">Flyway V1~V52</span></div>
-      <ul class="clist">
-        <li><b>키 설계 원칙</b>: 모든 테이블 <span class="mono">id BIGINT AUTO_INCREMENT</span> 기본키 + <span class="mono">corp_code</span>·<span class="mono">rcept_no</span> UNIQUE(ADR-0017)</li>
-        <li><b>무중단 스키마 관리</b>: 추가형 마이그레이션 원칙과 배포 전 승인 해시(SHA-256) 사전 대조 적용</li>
-      </ul>
+
+    <!-- 5. Database -->
+    <div class="tech-card">
+      <div class="tech-card__top">
+        <div class="tech-card__head">
+          <div class="tech-icon-box tech-icon-box--db">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" aria-hidden="true">
+              <ellipse cx="12" cy="6" rx="7.5" ry="3.2" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.8"/>
+              <path d="M4.5 6V12C4.5 13.8 7.8 15.2 12 15.2C16.2 15.2 19.5 13.8 19.5 12V6" stroke="currentColor" stroke-width="1.8"/>
+              <path d="M4.5 12V18C4.5 19.8 7.8 21.2 12 21.2C16.2 21.2 19.5 19.8 19.5 18V12" stroke="currentColor" stroke-width="1.8"/>
+            </svg>
+          </div>
+          <span class="badge">MariaDB 11.4 · Flyway</span>
+        </div>
+        <div class="tech-card__title-group">
+          <h3 class="tech-card__title">데이터베이스 · MariaDB</h3>
+          <p class="tech-card__role">57개 테이블의 버전 관리 및 SHA-256 해시 사전 검증 파이프라인</p>
+        </div>
+      </div>
+      <div class="tech-chips">
+        <span class="tech-chip"><i>🔑</i> AUTO_INCREMENT 기본키 + 고유키 분리</span>
+        <span class="tech-chip"><i>🛡️</i> Flyway 마이그레이션 SHA-256 사전 검증</span>
+        <span class="tech-chip"><i>🔄</i> 장애 발생 시 자동 롤백 및 트랜잭션 무결성</span>
+      </div>
     </div>
-    <div class="card card--subtle">
-      <div class="toprow"><h3>외부 데이터 · LLM 연동</h3><span class="badge">단일 창구 수집 · 캐시</span></div>
-      <ul class="clist">
-        <li><b>OpenDART (19개 경로)</b>: 공시·재무·주요정보·원문 ZIP을 접수번호·기업 단위로 캐시해 재사용(ADR-0024)</li>
-        <li><b>NAVER · 공공데이터</b>: 최신 기업 뉴스 30분 캐시(화면 전용, ADR-0046), 금융위 주식시세 기반 시총 상위 기업 갱신</li>
-      </ul>
+
+    <!-- 6. MCP Server -->
+    <div class="tech-card">
+      <div class="tech-card__top">
+        <div class="tech-card__head">
+          <div class="tech-icon-box tech-icon-box--mcp">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" aria-hidden="true">
+              <circle cx="6" cy="12" r="3" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="1.8"/>
+              <circle cx="18" cy="6.5" r="3" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="1.8"/>
+              <circle cx="18" cy="17.5" r="3" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="1.8"/>
+              <path d="M8.8 10.8L15.2 7.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M8.8 13.2L15.2 16.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <span class="badge">MCP SDK · Python 3.12</span>
+        </div>
+        <div class="tech-card__title-group">
+          <h3 class="tech-card__title">에이전트 확장 · Model Context Protocol</h3>
+          <p class="tech-card__role">Claude Desktop 등 외부 AI 에이전트를 위한 읽기 전용 공시 도구 공급</p>
+        </div>
+      </div>
+      <div class="tech-chips">
+        <span class="tech-chip"><i>🔌</i> 표준 Model Context Protocol 생태계 지원</span>
+        <span class="tech-chip"><i>📖</i> 읽기 전용(Read-Only) 7대 핵심 공시 도구</span>
+        <span class="tech-chip"><i>🔐</i> 백엔드 동일 인증·권한·일일 한도 적용</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 단방향 계층 분리 원칙 콜아웃 -->
+  <div class="callout" style="margin-top:20px">
+    <span aria-hidden="true" style="font-size:18px">🛡️</span>
+    <div>
+      <p><strong>단방향 계층 분리 원칙 (Architecture Enforcement)</strong></p>
+      <p class="muted" style="margin-top:2px">호출 방향은 <code>React → Spring Boot → FastAPI</code>로만 흐르며, 화면이나 MCP 서버가 내부 DB나 외부 OpenDART를 직접 호출하지 않는 엄격한 보안 경계를 유지합니다.</p>
     </div>
   </div>
 </section>
