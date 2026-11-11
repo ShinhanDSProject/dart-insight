@@ -1,4 +1,5 @@
 import type { NoteTarget } from '@/shared/api/notes'
+import type { ReportType } from '@/shared/api/reports'
 import type { FinancialChangeItem, SjDiv } from '@/shared/api/results'
 import type { AiInfo, ExplanationGrade, ExplanationStatus, SummaryItem, SummaryKind, SummaryStatus, SummaryTarget } from '@/shared/api/summary'
 import type { TextStatus } from '@/shared/api/textChanges'
@@ -31,6 +32,18 @@ export function textCoverageNote(textStatus: TextStatus | null): string | null {
   if (textStatus === null || textStatus === 'FAILED') return '문장을 비교하지 못해 재무 수치 변화만 요약했어요.'
   if (textStatus === 'PARTIAL') return '원문 일부를 읽지 못해 문장 변화 요약이 빠졌을 수 있어요.'
   return null
+}
+
+/**
+ * 현재 보고서가 반기·분기보고서이고 설명을 찾지 못한 재무 수치가 있으면 그 이유를 한 번 알리는 문구. 아니면 null.
+ * 분·반기보고서의 'IV. 이사의 경영진단 및 분석의견'은 '기업공시서식 작성기준에 따라 분ㆍ반기보고서에 기재하지 않습니다'뿐이라
+ * 수치가 바뀐 이유를 적은 문단이 적다(삼성전자 반기보고서 20260814003699에서 확인)
+ */
+export function interimExplanationNote(reportType: ReportType, items: readonly SummaryItem[]): string | null {
+  if (reportType === 'ANNUAL') return null
+  const missing = items.some((item) => item.kind === 'FINANCIAL' && item.explanationStatus === 'NOT_FOUND')
+  if (!missing) return null
+  return '반기·분기보고서에는 경영진의 원인 설명(이사의 경영진단 및 분석의견)이 실리지 않아 수치가 바뀐 이유를 찾지 못한 줄이 많을 수 있어요. 사업보고서끼리 비교하면 더 많이 볼 수 있어요.'
 }
 
 /**
