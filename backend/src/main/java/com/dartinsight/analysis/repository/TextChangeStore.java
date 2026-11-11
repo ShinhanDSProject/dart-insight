@@ -127,6 +127,13 @@ public class TextChangeStore {
         return count == null ? 0 : count;
     }
 
+    /** 완료된 분석에 저장된 변경 수(#866) */
+    public long countInCompleted() {
+        Long count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM text_change t JOIN analysis a"
+                + " ON a.id = t.analysis_id WHERE a.status = 'COMPLETED'", Long.class);
+        return count == null ? 0 : count;
+    }
+
     /** 분류 규칙 버전. 분류 전에 만든 분석이거나 변경이 없으면 null */
     public String listVersion(long analysisId) {
         return jdbcTemplate.queryForObject("SELECT MAX(list_version) FROM text_change WHERE analysis_id = ?",

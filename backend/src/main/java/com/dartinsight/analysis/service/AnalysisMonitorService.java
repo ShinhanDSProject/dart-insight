@@ -5,6 +5,7 @@ import com.dartinsight.analysis.domain.Analysis;
 import com.dartinsight.analysis.domain.AnalysisListing;
 import com.dartinsight.analysis.domain.AnalysisPage;
 import com.dartinsight.analysis.domain.AnalysisStats;
+import com.dartinsight.analysis.domain.AnalysisStatus;
 import com.dartinsight.analysis.repository.AnalysisRepository;
 import com.dartinsight.company.domain.Company;
 import com.dartinsight.company.service.CompanyService;
@@ -46,6 +47,11 @@ public class AnalysisMonitorService {
     public AnalysisStats stats(LocalDateTime from, LocalDateTime to, List<LocalDate> dates, int top) {
         return AnalysisStats.of(analysisRepository.findByCreatedAtGreaterThanEqualAndCreatedAtLessThan(from, to),
                 dates, top);
+    }
+
+    /** 완료된 분석 수(#866) */
+    public long countCompleted() {
+        return analysisRepository.countByStatus(AnalysisStatus.COMPLETED);
     }
 
     /** 고유번호 → 기업명(기업 표에 없는 고유번호는 빠짐) */

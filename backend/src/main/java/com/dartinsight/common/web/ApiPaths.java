@@ -45,6 +45,8 @@ public final class ApiPaths {
     public static final String NOTIFICATION_READ = "/{notificationId}/read";
     public static final String FEATURED_COMPANIES = BASE + "/featured-companies";
     public static final String SEASON_CHANGES = BASE + "/season-changes";
+    /** 첫 화면 숫자 줄(#866) */
+    public static final String STATS = BASE + "/stats";
     public static final String GLOSSARY_TERMS = BASE + "/glossary-terms";
     /** 내 판단 노트(6.5, FS-57) */
     public static final String NOTES = BASE + "/notes";
