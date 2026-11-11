@@ -4,3 +4,10 @@
 node_modules
 dist
 coverage
+.git
+.idea
+.vscode
+.DS_Store
+Dockerfile
+*.md
+

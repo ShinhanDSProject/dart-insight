@@ -7,3 +7,11 @@ __pycache__
 .pytest_cache
 .ruff_cache
 .cache
+.git
+.idea
+.vscode
+.DS_Store
+Dockerfile
+*.md
+conventions.yaml
+
