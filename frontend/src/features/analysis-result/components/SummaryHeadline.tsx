@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 import type { FinancialChangeItem } from '@/shared/api/results'
 import type { SummaryTarget } from '@/shared/api/summary'
+import { useGlossaryTerms } from '@/shared/glossary/hooks/useGlossaryTerms'
 import { Badge, Button, Card, Mascot, PanelTitle } from '@/shared/ui'
 import { amountBars } from '../model/summaryAmounts'
 import { glossaryForAccount, headlineTitle, type HeadlineLine } from '../model/summaryHeadline'
@@ -104,7 +105,8 @@ function TextLine({ line }: { line: HeadlineLine }) {
 /** 재무 줄: 계정 이름과 증감률을 크게, 아래에 용어 풀이(카드가 있을 때만), 오른쪽에 이전·현재 막대. 사실 문장은 화면 읽기용 */
 function FigureLine({ text, amount }: { text: string; amount: FinancialChangeItem }) {
   const bars = amountBars(amount)
-  const term = glossaryForAccount(amount.accountName)
+  const { state } = useGlossaryTerms()
+  const term = glossaryForAccount(state.status === 'success' ? state.data : null, amount.accountName)
   return (
     <>
       <span className="headline__figure">

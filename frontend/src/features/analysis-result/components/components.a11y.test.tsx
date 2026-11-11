@@ -45,6 +45,28 @@ vi.mock('@/shared/api/questions', async (importOriginal) => ({
   sendAnswerFeedback: feedbackApi.sendAnswerFeedback,
 }))
 
+// 용어 사전 열기는 카드 API의 카드를 펼친다(ADR-0061). 카드 하나만 받은 것으로 한다
+vi.mock('@/shared/api/glossaryTerms', () => ({
+  getGlossaryTerms: () =>
+    Promise.resolve({
+      items: [
+        {
+          key: 'correction',
+          level: 'BASIC',
+          term: '정정공시',
+          aliases: ['정정 공시'],
+          definition: '이미 낸 보고서를 고쳐 다시 낸 것이에요.',
+          example: null,
+          whereToCheck: null,
+          noJudgment: null,
+          related: [],
+          sources: [{ title: '공식 자료', url: 'https://example.test' }],
+          reviewedAt: '2026-11-10',
+        },
+      ],
+    }),
+}))
+
 const noop = () => {}
 const ai = { model: 'test-model', promptVersion: 'ask-v1', generatedAt: '2025-10-20T10:00:00+09:00' }
 const apiError = new ApiError(503, { code: 'AI_SERVER_UNAVAILABLE', message: 'AI 서버를 쓸 수 없어요.', traceId: 'trace-1', errors: [] })
@@ -145,7 +167,7 @@ describe('AI 에이전트 채팅 패널 접근성(axe)', () => {
     ]
     const container = await expectNoViolations(chatPanel({ ...initialChatState, exchanges }))
     fireEvent.click(screen.getByRole('button', { name: '용어 사전 열기: 정정공시' }))
-    expect(screen.getByText(/이미 낸 보고서를 고쳐 다시 낸 것이에요/)).toBeTruthy()
+    expect(await screen.findByText(/이미 낸 보고서를 고쳐 다시 낸 것이에요/)).toBeTruthy()
     expect(await axeViolations(container)).toBe('')
   })
 
