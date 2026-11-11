@@ -5,6 +5,7 @@ import com.dartinsight.analysis.domain.FinancialChangeRow;
 import com.dartinsight.analysis.domain.TextChangeRow;
 import com.dartinsight.document.domain.DocumentBlock;
 import com.dartinsight.document.domain.DocumentSection;
+import com.dartinsight.financial.domain.AccountAliases;
 import com.dartinsight.summary.dto.SummaryAiRequest;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -16,9 +17,10 @@ import java.util.Set;
 /**
  * 요약할 변화 고르기(3.2). 고르는 일은 코드가 한다(LLM에 맡기지 않음).
  * <ul>
- *   <li>재무 수치: 계산한 계정 중 손익계산서에서 증감액이 큰 3개(손익계산서 없이 포괄손익계산서 하나로 낸 회사는
- *   포괄손익계산서에서), 재무상태표에서 2개, 현금흐름표에서 1개. 같은 재무제표에서 이미 고른 계정과 이전·현재 금액이 모두 같은
- *   계정(예: 자산총계와 부채와자본총계)은 건너뛰고 다음 계정으로 채운다</li>
+ *   <li>재무 수치: 계산한 계정 중 손익계산서에서 3개(손익계산서 없이 포괄손익계산서 하나로 낸 회사는
+ *   포괄손익계산서에서), 재무상태표에서 2개, 현금흐름표에서 1개. 회사가 문단에서 설명하는 대표 계정(매출액·영업이익·당기순이익·
+ *   자산총계·부채총계·영업활동현금흐름, {@link AccountAliases#isNarrated})을 먼저, 그다음 증감액이 큰 순으로 고른다.
+ *   같은 재무제표에서 이미 고른 계정과 이전·현재 금액이 모두 같은 계정(예: 자산총계와 부채와자본총계)은 건너뛰고 다음 계정으로 채운다</li>
  *   <li>문장 변화: 우선순위(2.6) 높음·중간 중 점수가 높은 5개(숫자만 바뀜·위치 이동·검토 필요는 뺌)</li>
  *   <li>설명 후보를 찾을 문단: 현재 보고서의 문단 블록 전부. 후보는 AI 서버가 검색어로 고른다(ADR-0036)</li>
  * </ul>
@@ -57,7 +59,9 @@ public final class SummarySelector {
                 indexes.add(i);
             }
         }
-        indexes.sort(Comparator.comparingLong((Integer i) -> -Math.abs(rows.get(i).changeAmount()))
+        // 설명 문단이 있을 만한 대표 계정을 먼저 고른다(표에만 이름이 나오는 계정은 '확인된 설명 없음'이 되기 쉬움)
+        indexes.sort(Comparator.comparing((Integer i) -> !narrated(rows.get(i)))
+                .thenComparingLong(i -> -Math.abs(rows.get(i).changeAmount()))
                 .thenComparing(i -> i));
         List<Integer> picked = new ArrayList<>();
         for (int i : indexes) {
@@ -73,6 +77,11 @@ public final class SummarySelector {
             }
         }
         return picked;
+    }
+
+    private static boolean narrated(FinancialChangeRow row) {
+        FinancialChangeRow.Evidence side = row.current() != null ? row.current() : row.previous();
+        return side != null && AccountAliases.isNarrated(side.accountId());
     }
 
     /** 고른 문장 변화의 목록 안 순서 */

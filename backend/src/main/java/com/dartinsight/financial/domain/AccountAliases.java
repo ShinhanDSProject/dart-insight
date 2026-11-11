@@ -37,6 +37,15 @@ public final class AccountAliases {
     private AccountAliases() {
     }
 
+    /**
+     * 회사가 사업의 내용·경영진단 문단에서 이름을 들어 설명하는 대표 계정인지(검색어 사전에 있는 계정).
+     * 요약할 계정을 고를 때 먼저 고른다. 매출총이익·법인세비용차감전순이익·현금흐름 세부 줄처럼 이름이 표에만 나오는
+     * 계정은 설명 후보 문단을 찾지 못하는 일이 많다(분석 17·19·22·23·24에서 '설명 없음' 16줄 중 14줄이 후보 0개)
+     */
+    public static boolean isNarrated(String accountId) {
+        return accountId != null && BY_ACCOUNT_ID.containsKey(accountId);
+    }
+
     /** 계정의 검색어. 계정명에서 나온 것이 먼저, 사전에서 나온 것이 뒤. 겹치면 한 번만 */
     public static List<String> of(String accountId, String accountName) {
         Set<String> terms = new LinkedHashSet<>();
