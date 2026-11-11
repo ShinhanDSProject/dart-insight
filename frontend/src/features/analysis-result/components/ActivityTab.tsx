@@ -98,8 +98,10 @@ function ActivityBody({ data, analysisId, onOpenText, onOpenFinancial, onOpenAll
   return match(data.status)
     .with('GENERATED', () => (
       <>
-        {data.overview && (
+        {data.overview ? (
           <ActivityOverview text={data.overview.text} evidence={data.overview.evidence} onOpenText={onOpenText} />
+        ) : (
+          <OverviewMissing />
         )}
         {numbers}
         {data.timeline.length > 0 && <ActivityTimeline entries={data.timeline} onOpenText={onOpenText} />}
@@ -166,6 +168,20 @@ function ActivityOverview({ text, evidence, onOpenText }: ActivityOverviewProps)
         </p>
       )}
     </Card>
+  )
+}
+
+/** 요약이 근거 검사를 통과하지 못하면 자리를 비우지 않고 검토 필요로 보인다(ADR-0068) */
+function OverviewMissing() {
+  return (
+    <section className="activity__overview-missing" aria-labelledby="activity-overview-title">
+      <h3 id="activity-overview-title" className="activity__subtitle">
+        한 문단 요약
+      </h3>
+      <Notice tone="attention" title="검토 필요">
+        AI가 만든 요약을 원문 근거로 확인하지 못해 보여 주지 않았어요. 아래 숫자와 타임라인, 활동은 근거를 확인한 것만 보여요.
+      </Notice>
+    </section>
   )
 }
 

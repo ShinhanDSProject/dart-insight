@@ -4075,6 +4075,12 @@
   line-height: var(--line-height-body);
 }
 
+.activity__overview-missing {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
 .activity__overview-head {
   display: flex;
   flex-wrap: wrap;
