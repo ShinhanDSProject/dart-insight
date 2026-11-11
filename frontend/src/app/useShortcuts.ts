@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { applyParamChanges } from '@/shared/lib/searchParams'
-import { shortcutFor, type ShortcutAction, type ShortcutPage, type ShortcutResultTab } from '@/shared/lib/shortcuts'
+import { OPEN_CHAT_INPUT_EVENT, shortcutFor, type ShortcutAction, type ShortcutPage, type ShortcutResultTab } from '@/shared/lib/shortcuts'
 
-/** 단축키로 초점을 옮길 곳. 기업 검색창(SearchPage)과 요약 탭 AI 에이전트 입구(ChatEntry) 입력창의 id */
+/** 단축키로 초점을 옮길 곳. 기업 검색창(SearchPage) 입력창의 id */
 const SEARCH_INPUT_ID = 'company-query'
-const ASK_INPUT_ID = 'ask-input'
 /** 도움말 대화상자 제목 id. 다른 대화상자가 열렸는지 볼 때 도움말은 뺀다 */
 export const SHORTCUT_HELP_TITLE_ID = 'shortcut-help-title'
 
@@ -63,9 +62,8 @@ export function useShortcuts(page: ShortcutPage): ShortcutsController {
           goToTab(action.tab)
           return
         case 'focus-ask':
-          // AI 질문은 요약 탭에 있다(#575)
-          if (goToTab('summary')) pendingFocus.current = ASK_INPUT_ID
-          else focusById(ASK_INPUT_ID)
+          // AI 에이전트는 결과 화면 오른쪽 패널이다. 결과 화면이 패널을 열고 입력창에 초점을 둔다
+          window.dispatchEvent(new Event(OPEN_CHAT_INPUT_EVENT))
           return
       }
     }

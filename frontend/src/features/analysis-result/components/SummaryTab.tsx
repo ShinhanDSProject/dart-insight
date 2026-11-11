@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react'
+import type { CSSProperties } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { FinancialChangeItem, SjDiv } from '@/shared/api/results'
@@ -63,8 +63,8 @@ interface LensControls {
 }
 
 interface AskEntry {
-  /** AI 질문(AskTab). 탭 대신 요약 안에 둔다(#575) */
-  askPanel: ReactNode
+  /** 핵심 카드 3단계 'AI에게 묻기': 오른쪽 AI 에이전트 패널을 열고 입력창에 초점을 둔다 */
+  onOpenChat: () => void
   /** 요약 카드의 'AI에게 묻기': 질문을 보낸다 */
   onAsk: (question: string) => void
   /** 다른 질문을 보내는 중 */
@@ -96,7 +96,7 @@ export function SummaryTab({
   onOpenTextList,
   onOpenPriorityList,
   onOpenTextSection,
-  askPanel,
+  onOpenChat,
   onAsk,
   asking,
   lens,
@@ -128,7 +128,7 @@ export function SummaryTab({
         opener={opener}
         amounts={amounts}
         onOpenWhy={onOpenPriorityList}
-        onOpenAsk={focusAskInput}
+        onOpenAsk={onOpenChat}
         footer={
           <ChangeOverview
             financial={overview.financial}
@@ -139,7 +139,6 @@ export function SummaryTab({
           />
         }
       />
-      {askPanel}
       <SummaryContent
         summary={summary}
         analysis={analysis}
@@ -473,9 +472,3 @@ function SummaryAmounts({ amount }: { amount: FinancialChangeItem }) {
   )
 }
 
-/** 3단계 'AI에게 묻기': 요약 탭의 질문 칸(ChatEntry의 ask-input)으로 옮겨 바로 쓸 수 있게 한다 */
-function focusAskInput() {
-  const input = document.getElementById('ask-input')
-  input?.scrollIntoView({ block: 'center' })
-  input?.focus({ preventScroll: true })
-}

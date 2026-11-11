@@ -180,28 +180,6 @@ span.chat-panel__citation {
   box-shadow: var(--shadow-md);
 }
 
-/* 요약 탭의 입구(ChatEntry) */
-.chat-entry {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.chat-entry__title {
-  margin: 0;
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-semibold);
-}
-
-.chat-entry__form {
-  display: flex;
-  gap: var(--space-2);
-}
-
-.chat-entry__form input {
-  flex: 1;
-}
-
 /* 예시 질문 버튼은 길면 줄을 바꿔 패널 폭 안에 둔다(가로 스크롤이 생기지 않게) */
 .chat-panel__chips > button {
   max-width: 100%;
