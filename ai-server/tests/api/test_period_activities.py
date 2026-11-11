@@ -33,12 +33,17 @@ NOT_CANDIDATE = {
     "currentText": "본점 소재지는 경기도 수원시입니다.",
 }
 BODY = {
-    "promptVersion": "period-activity-1",
+    "promptVersion": "period-activity-2",
     "companyName": "예시전자",
     "previousReportName": "반기보고서 (2025.06)",
     "currentReportName": "반기보고서 (2026.06)",
+    "periodFrom": "2025-06-30",
+    "periodTo": "2026-08-14",
     "changes": [CHANGE, NOT_CANDIDATE],
 }
+
+
+RESPONDERS = {"period_activity": fake.respond, "period_overview": fake.respond_overview}
 
 
 def app_with(provider: FakeProvider | None) -> TestClient:
@@ -47,13 +52,13 @@ def app_with(provider: FakeProvider | None) -> TestClient:
 
 
 def test_activities_are_returned_from_candidate_changes_only() -> None:
-    client = app_with(FakeProvider(responders={"period_activity": fake.respond}))
+    client = app_with(FakeProvider(responders=RESPONDERS))
 
     response = client.post("/internal/period-activities", json=BODY)
 
     assert response.status_code == 200
     data = response.json()
-    assert data["promptVersion"] == "period-activity-1"
+    assert data["promptVersion"] == "period-activity-2"
     assert data["expressionRulesVersion"] == "expr-1"
     assert data["signalTableVersion"].startswith("signal-table-")
     assert data["status"] == "GENERATED"
@@ -69,7 +74,7 @@ def test_activities_are_returned_from_candidate_changes_only() -> None:
 
 
 def test_no_candidates_is_empty_without_llm_call() -> None:
-    client = app_with(FakeProvider(responders={"period_activity": fake.respond}))
+    client = app_with(FakeProvider(responders=RESPONDERS))
 
     response = client.post("/internal/period-activities", json={**BODY, "changes": [NOT_CANDIDATE]})
 
@@ -79,7 +84,7 @@ def test_no_candidates_is_empty_without_llm_call() -> None:
 
 
 def test_wrong_prompt_version_is_400() -> None:
-    client = app_with(FakeProvider(responders={"period_activity": fake.respond}))
+    client = app_with(FakeProvider(responders=RESPONDERS))
 
     response = client.post("/internal/period-activities", json={**BODY, "promptVersion": "x"})
 

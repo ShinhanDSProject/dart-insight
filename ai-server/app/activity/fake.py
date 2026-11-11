@@ -22,6 +22,7 @@ from app.activity.model import (
     RISK,
     SHAREHOLDER,
     ActivityInput,
+    OverviewContext,
 )
 from app.activity.validate import MIN_QUOTE, normalize
 from app.llm.providers import LlmRequest
@@ -32,6 +33,7 @@ CHECK_TEXT = "다음 보고서에서 이 내용이 어떻게 이어지는지 확
 OVERVIEW = (
     "이전 보고서와 비교해 바뀐 내용 중 눈여겨볼 활동을 골랐어요. 실제 모델이 아닌 가짜 응답이에요."
 )
+TIMELINE_SUFFIX = " 공시를 냈어요."
 # 문장 변화 분야(app.compare.listing) → 카드 분야
 FIELD_AREAS = {
     "LITIGATION": RISK,
@@ -50,7 +52,7 @@ _NUMBERING = re.compile(r"[\dⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩIVX]+[.)]\s*|\d")
 def respond(request: LlmRequest) -> dict[str, Any]:
     activity = request.context
     if not isinstance(activity, ActivityInput):
-        return {"overview": None, "items": []}
+        return {"items": []}
     items: list[dict[str, Any]] = []
     seen_sections: set[str] = set()
     for source in activity.sources:
@@ -76,10 +78,26 @@ def respond(request: LlmRequest) -> dict[str, Any]:
         )
         if len(items) == MAX_FAKE_ITEMS:
             break
-    if not items:
-        return {"overview": None, "items": []}
-    first = items[0]["facts"][0]["evidenceId"]
-    return {"overview": {"text": OVERVIEW, "evidenceIds": [first]}, "items": items}
+    return {"items": items}
+
+
+def respond_overview(request: LlmRequest) -> dict[str, Any]:
+    """요약은 정해진 글, 타임라인은 공시마다 접수일로 한 줄(숫자 검사를 늘 통과하게 숫자를 뺌)."""
+    context = request.context
+    if not isinstance(context, OverviewContext):
+        return {"overview": None, "timeline": []}
+    activity = context.activity
+    ids = [s.evidence_id for s in context.sources] or [d.evidence_id for d in activity.disclosures]
+    timeline = [
+        {
+            "date": d.rcept_dt,
+            "text": " ".join(_NUMBERING.sub(" ", d.report_name).split()) + TIMELINE_SUFFIX,
+            "evidenceIds": [d.evidence_id],
+        }
+        for d in activity.disclosures[:MAX_FAKE_ITEMS]
+    ]
+    overview = {"text": OVERVIEW, "evidenceIds": ids[:1]} if ids else None
+    return {"overview": overview, "timeline": timeline}
 
 
 def first_sentence(text: str) -> str:

@@ -3,7 +3,8 @@
 - 원문이 없으면 LLM을 부르지 않고 EMPTY다.
 - 결과를 검증(validate.check)하고, 실패하면 문제를 알려 주며 최대 2회 다시 만든다.
   그래도 어긋난 카드는 빼고 뺀 수를 남긴다. 쓸 수 있는 카드가 없으면 REVIEW_NEEDED다.
-  요약(overview)이 어긋났으면 요약만 비운다. 실패를 성공으로 내보내지 않는다.
+  실패를 성공으로 내보내지 않는다.
+- 카드가 있으면 요약·타임라인을 한 번 더 만든다(overview.py, ADR-0068).
 - LLM을 부를 수 없으면(LlmUnavailable) 그대로 던진다(부른 쪽이 503으로 바꿈).
 - 신호는 코드가 기준표로 붙인다(validate._signal).
 """
@@ -11,17 +12,18 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
-from app.activity import fake
+from app.activity import fake, overview
 from app.activity.model import EMPTY, GENERATED, REVIEW_NEEDED, ActivityInput, ActivityResult
-from app.activity.prompt import PROMPT_VERSION, TASK, build_request
+from app.activity.prompt import OVERVIEW_TASK, PROMPT_VERSION, TASK, build_request
 from app.activity.validate import check
 from app.llm import CallRecord, LlmClient, LlmOutputInvalid, OutputProblem
 from app.llm.providers import FAKE_RESPONDERS
 
 logger = logging.getLogger("app.activity")
 FAKE_RESPONDERS[TASK] = fake.respond
+FAKE_RESPONDERS[OVERVIEW_TASK] = fake.respond_overview
 
 NOT_VERIFIED = "다시 생성해도 인용·근거·숫자·표현 확인을 통과한 활동이 없어요."
 BLOCKED = "투자 권유로 읽힐 수 있는 표현이 있어 활동·영향을 내보내지 않았어요."
@@ -38,6 +40,15 @@ class ActivityOutput:
 
 
 def summarize(llm: LlmClient, activity: ActivityInput) -> ActivityOutput:
+    cards = _cards(llm, activity)
+    if cards.result.status != GENERATED:
+        return cards
+    extra = overview.generate(llm, activity, cards.result.items)
+    result = replace(cards.result, overview=extra.result.overview, timeline=extra.result.timeline)
+    return replace(cards, result=result, calls=[*cards.calls, *extra.calls])
+
+
+def _cards(llm: LlmClient, activity: ActivityInput) -> ActivityOutput:
     if not activity.sources:
         return ActivityOutput(
             ActivityResult(EMPTY),
@@ -72,7 +83,7 @@ def summarize(llm: LlmClient, activity: ActivityInput) -> ActivityOutput:
         logger.warning("검증에 실패한 활동 %d건을 뺌 prompt=%s", dropped, PROMPT_VERSION)
         result = ActivityResult(
             GENERATED,
-            checked.overview,
+            None,
             checked.valid_items,
             dropped_count=max(dropped, 0),
             blocked_rules=checked.blocked_rules,
