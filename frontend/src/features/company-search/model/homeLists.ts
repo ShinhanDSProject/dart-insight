@@ -22,6 +22,8 @@ export interface HomeRankRow {
   name: string
   /** 오른쪽 작은 글자(종목코드·문장 변경 수). 없으면 null */
   meta: string | null
+  /** 목록에서 가장 큰 값 대비 비율(0~1, 막대 길이). 막대가 없는 목록이거나 값이 없으면 null */
+  share: number | null
   to: string
 }
 
@@ -43,6 +45,7 @@ export function featuredRankList(data: FeaturedCompanyListResponse): HomeRankLis
       rank: item.rank,
       name: item.corpName,
       meta: item.stockCode,
+      share: null,
       to: companyPath(item.corpCode),
     })),
   }
@@ -53,13 +56,16 @@ export function seasonRankList(data: SeasonChangeList): HomeRankList {
   if (season === null) {
     return { caption: '이번 시즌 순위를 준비하고 있어요. 정기보고서 제출 기한이 지나면 대표 기업의 변화를 재어 보여 드려요.', rows: [] }
   }
+  const items = data.items.slice(0, HOME_LIST_LIMIT)
+  const max = Math.max(0, ...items.map((item) => item.changeCount ?? 0))
   const caption = `${seasonCaption(season.reportType, season.fiscalYear, season.previousFiscalYear, data.candidateCount)} · 바뀐 양이지 좋고 나쁨이 아니에요.`
   return {
     caption: data.items.length === 0 ? `${caption} 이 시즌에 순위를 매긴 기업이 없어요.` : caption,
-    rows: data.items.slice(0, HOME_LIST_LIMIT).map((item) => ({
+    rows: items.map((item) => ({
       rank: item.rank,
       name: item.corpName ?? item.corpCode,
       meta: item.changeCount === null ? null : `문장 변경 ${item.changeCount}`,
+      share: item.changeCount === null || max === 0 ? null : item.changeCount / max,
       // 분석을 요청하지 못했으면 기업 화면으로 보낸다(SeasonChanges와 같음)
       to: item.analysisId === null ? companyPath(item.corpCode) : `/analyses/${item.analysisId}`,
     })),

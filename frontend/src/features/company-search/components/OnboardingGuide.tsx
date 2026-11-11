@@ -26,30 +26,9 @@ export function OnboardingStepsList() {
   )
 }
 
-/** 첫 화면 소개 한 줄(#839). 무엇을 하는 서비스인지 검색창 위에서 바로 알린다 */
-export const HOME_INTRO = '보고서 두 개를 비교해서, 바뀐 숫자와 문장을 찾아 드려요'
-export const HOME_SOURCE = '금융감독원 DART 공시 원문을 근거로 보여 줘요'
-
-/** 첫 화면 검색창 아래 사용 순서 한 줄(#839). 단계 이름은 사용법 안내와 같고, 자세한 설명은 '사용법 보기'로 연다 */
-export function HomeSteps({ onOpenGuide }: { onOpenGuide: () => void }) {
-  return (
-    <div className="home-steps">
-      <ol className="home-steps__list" aria-label="사용 순서">
-        {ONBOARDING_STEPS.map((step, index) => (
-          <li key={step.title} className="home-steps__step">
-            <span className="home-steps__number" aria-hidden="true">
-              {index + 1}
-            </span>
-            {step.title}
-          </li>
-        ))}
-      </ol>
-      <Button variant="link" className="home-steps__guide" onClick={onOpenGuide}>
-        처음이라면 사용법 보기 ›
-      </Button>
-    </div>
-  )
-}
+/** 첫 화면 큰 제목과 소개 한 줄(#839 → 동적 화면 시안). 무엇을 하는 서비스인지 검색창 위에서 바로 알린다 */
+export const HOME_INTRO = '두 보고서 사이, 무엇이 바뀌었는지 바로 보여 드려요'
+export const HOME_SOURCE = '같은 기업의 정기보고서 두 건을 비교해, 바뀐 숫자와 문장을 DART 원문 근거와 함께 보여 줘요'
 
 /**
  * W-01 ① 처음 쓰는 사용자 안내(FS-10). 3단계와 예시 기업으로 바로 시작하는 버튼을 보인다.

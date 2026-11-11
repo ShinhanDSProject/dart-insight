@@ -27,7 +27,7 @@ describe('첫 화면 접는 목록의 줄(#686)', () => {
     }))
     const list = featuredRankList({ baseDate: '2026-10-24', source: '공공데이터포털', items })
     expect(list.rows).toHaveLength(HOME_LIST_LIMIT)
-    expect(list.rows[0]).toEqual({ rank: 1, name: '기업1', meta: '005930', to: '/companies/00000000' })
+    expect(list.rows[0]).toEqual({ rank: 1, name: '기업1', meta: '005930', share: null, to: '/companies/00000000' })
     expect(list.caption).toContain('출처: 공공데이터포털')
   })
 
@@ -37,9 +37,14 @@ describe('첫 화면 접는 목록의 줄(#686)', () => {
 
   it('시즌 변화는 분석이 있으면 분석 결과로, 없으면 기업 화면으로 보내고 이름이 없으면 고유번호를 쓴다', () => {
     const list = seasonRankList(season)
-    expect(list.rows[0]).toEqual({ rank: 1, name: '삼성전자', meta: '문장 변경 147', to: '/analyses/42' })
-    expect(list.rows[1]).toEqual({ rank: 2, name: '00164779', meta: null, to: '/companies/00164779' })
+    expect(list.rows[0]).toEqual({ rank: 1, name: '삼성전자', meta: '문장 변경 147', share: 1, to: '/analyses/42' })
+    expect(list.rows[1]).toEqual({ rank: 2, name: '00164779', meta: null, share: null, to: '/companies/00164779' })
     expect(list.caption).toContain('2026 반기 vs 2025 반기')
+  })
+
+  it('시즌 변화 막대는 가장 많이 바뀐 기업을 1로 두고 나머지를 그 비율로 둔다', () => {
+    const items = [147, 49].map((changeCount, i) => ({ ...season.items[0], rank: i + 1, changeCount }))
+    expect(seasonRankList({ ...season, items }).rows.map((row) => row.share)).toEqual([1, 49 / 147])
   })
 
   it('계산한 시즌이 없으면 줄 없이 준비 안내만 둔다', () => {
