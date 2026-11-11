@@ -345,10 +345,58 @@ code {
 }
 
 .app-workspace {
+  position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   flex: 1;
   min-width: 0;
+}
+
+/* 앱 공통 바탕 꾸밈: 천천히 흐르는 점 격자와 한 번 그려지는 두 선(동적 화면 시안) */
+.app-backdrop {
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 auto 0;
+  height: 560px;
+  overflow: hidden;
+  background-image: radial-gradient(var(--color-border-accent) 1.2px, transparent 1.2px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse at 50% 25%, #000 30%, transparent 75%);
+  animation: backdrop-drift var(--motion-drift) linear infinite;
+  pointer-events: none;
+}
+
+.app-backdrop__lines {
+  position: absolute;
+  inset: 40px 0 0;
+  width: 100%;
+  height: 440px;
+}
+
+.app-backdrop__lines path {
+  fill: none;
+  stroke: var(--color-chart-previous);
+  stroke-width: 2;
+  stroke-dasharray: 1400;
+  stroke-dashoffset: 1400;
+  opacity: 0.4;
+  vector-effect: non-scaling-stroke;
+  animation: line-draw var(--motion-draw) var(--ease-out) var(--motion-slow) forwards;
+}
+
+.app-backdrop__lines path + path {
+  opacity: 0.2;
+  animation-delay: calc(var(--motion-slow) * 2);
+}
+
+@media (max-width: 900px) {
+  .app-backdrop {
+    height: 420px;
+  }
+  .app-backdrop__lines {
+    height: 340px;
+  }
 }
 
 .app-main {
@@ -701,6 +749,19 @@ code {
   from {
     opacity: 0;
     transform: scale(0.4);
+  }
+}
+
+/* 바탕 점 격자가 천천히 흐르고, 곡선이 부드럽게 그려진다(동적 화면 시안) */
+@keyframes backdrop-drift {
+  to {
+    background-position: 56px 56px;
+  }
+}
+
+@keyframes line-draw {
+  to {
+    stroke-dashoffset: 0;
   }
 }
 

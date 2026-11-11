@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { Link, Outlet, useLocation, useParams } from 'react-router'
 import { match } from 'ts-pattern'
+import { AppBackdrop } from '@/shared/ui/AppBackdrop'
 import { BrandLogo } from '@/shared/ui/BrandLogo'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { Icon, type IconName } from '@/shared/ui/Icon'
@@ -152,6 +153,7 @@ export function Layout() {
       </header>
 
       <div className="app-workspace">
+        <AppBackdrop />
         {recent.length > 0 && (
           <CompanyNav companies={recent} />
         )}
