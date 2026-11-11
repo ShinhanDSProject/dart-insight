@@ -1,6 +1,7 @@
 import { match } from 'ts-pattern'
 import type {
   ActivityArea,
+  ActivityEvidenceSide,
   ActivityAudience,
   ActivityHoldReason,
   ActivityImpact,
@@ -101,6 +102,16 @@ export function signalCounts(items: ActivityItem[]): Record<ActivitySignal, numb
 }
 
 /** 원문 쪽 표시 */
-export function sideLabel(side: 'PREVIOUS' | 'CURRENT'): string {
-  return side === 'CURRENT' ? '이번 보고서' : '이전 보고서'
+export function sideLabel(side: ActivityEvidenceSide): string {
+  return match(side)
+    .with('CURRENT', () => '이번 보고서')
+    .with('PREVIOUS', () => '이전 보고서')
+    .with('FINANCIAL', () => '재무 수치')
+    .with('DISCLOSURE', () => '공시')
+    .exhaustive()
+}
+
+/** 타임라인 날짜. YYYY-MM-DD → YYYY.MM.DD */
+export function timelineDate(date: string): string {
+  return date.replaceAll('-', '.')
 }

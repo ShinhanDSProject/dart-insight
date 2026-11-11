@@ -1,8 +1,16 @@
 import { useState } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
-import type { ActivityImpact, ActivityItem, ActivityQuote, PeriodActivities } from '@/shared/api/activities'
+import type {
+  ActivityEvidence,
+  ActivityImpact,
+  ActivityItem,
+  ActivityQuote,
+  ActivityTimelineEntry,
+  PeriodActivities,
+} from '@/shared/api/activities'
 import type { FinancialChangeItem } from '@/shared/api/results'
+import { dartViewerUrl } from '@/shared/lib/dart'
 import { Badge, Button, Card, Chip, CompareScene, Notice } from '@/shared/ui'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { usePeriodActivities } from '../hooks/usePeriodActivities'
@@ -23,6 +31,7 @@ import {
   sideLabel,
   signalBadge,
   signalCounts,
+  timelineDate,
   type AudienceFilter,
 } from '../model/periodActivities'
 import { KeyNumbers } from './KeyNumbers'
@@ -39,7 +48,7 @@ interface ActivityTabProps {
 
 /**
  * 공시 분석 탭(ADR-0067). 두 보고서 사이에 회사가 한 일과 앞으로의 영향을
- * 한 줄 요약 → 숫자로 본 이 기간 → 관점 고르기 → 활동 카드(사실·신호·앞으로의 영향) 순서로 보인다.
+ * 한 문단 요약 → 숫자로 본 이 기간 → 이 기간 타임라인(ADR-0068) → 관점 고르기 → 활동 카드(사실·신호·앞으로의 영향) 순서로 보인다.
  * 바뀐 문장 전체는 원문 탭의 바뀐 곳에 따로 있다.
  */
 export function ActivityTab({ analysis, onOpenText, onOpenFinancial, onOpenAll }: ActivityTabProps) {
@@ -89,8 +98,11 @@ function ActivityBody({ data, analysisId, onOpenText, onOpenFinancial, onOpenAll
   return match(data.status)
     .with('GENERATED', () => (
       <>
-        {data.overview && <ActivityOverview text={data.overview.text} />}
+        {data.overview && (
+          <ActivityOverview text={data.overview.text} evidence={data.overview.evidence} onOpenText={onOpenText} />
+        )}
         {numbers}
+        {data.timeline.length > 0 && <ActivityTimeline entries={data.timeline} onOpenText={onOpenText} />}
         <ActivityList data={data} onOpenText={onOpenText} />
       </>
     ))
@@ -132,13 +144,107 @@ function KeyNumbersBlock({ analysisId, onOpen }: { analysisId: number; onOpen: (
   )
 }
 
-function ActivityOverview({ text }: { text: string }) {
+interface ActivityOverviewProps {
+  text: string
+  evidence: ActivityEvidence[]
+  onOpenText: (changeId: number) => void
+}
+
+function ActivityOverview({ text, evidence, onOpenText }: ActivityOverviewProps) {
   return (
-    <Card as="section" tone="subtle" className="activity__overview" aria-label="한 줄 요약">
-      <Badge tone="accent">AI 생성</Badge>
+    <Card as="section" tone="subtle" className="activity__overview" aria-labelledby="activity-overview-title">
+      <div className="activity__overview-head">
+        <h3 id="activity-overview-title" className="activity__subtitle">
+          한 문단 요약
+        </h3>
+        <Badge tone="accent">AI 생성</Badge>
+      </div>
       <p className="activity__overview-text">{text}</p>
+      {evidence.length > 0 && (
+        <p className="activity__sources">
+          근거: <EvidenceLinks evidence={evidence} onOpenText={onOpenText} />
+        </p>
+      )}
     </Card>
   )
+}
+
+function ActivityTimeline({
+  entries,
+  onOpenText,
+}: {
+  entries: ActivityTimelineEntry[]
+  onOpenText: (changeId: number) => void
+}) {
+  return (
+    <section className="activity__timeline-wrap" aria-labelledby="activity-timeline-title">
+      <div className="activity__overview-head">
+        <h3 id="activity-timeline-title" className="activity__subtitle">
+          이 기간 타임라인
+        </h3>
+        <Badge tone="accent">AI 생성</Badge>
+      </div>
+      <ol className="activity__timeline">
+        {entries.map((entry) => (
+          <li key={entry.date + entry.text} className="activity__timeline-row">
+            <time className="activity__timeline-date" dateTime={entry.date}>
+              {timelineDate(entry.date)}
+            </time>
+            <span className="activity__timeline-text">{entry.text}</span>
+            <span className="activity__sources">
+              <EvidenceLinks evidence={entry.evidence} onOpenText={onOpenText} />
+            </span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
+
+function EvidenceLinks({
+  evidence,
+  onOpenText,
+}: {
+  evidence: ActivityEvidence[]
+  onOpenText: (changeId: number) => void
+}) {
+  return (
+    <>
+      {evidence.map((item, index) => (
+        <span key={item.evidenceId}>
+          {index > 0 && ' · '}
+          <EvidenceLink evidence={item} onOpenText={onOpenText} />
+        </span>
+      ))}
+    </>
+  )
+}
+
+/** 공시는 DART 원문으로, 보고서 문장은 원문 탭의 바뀐 곳으로 간다. 재무 수치는 이름만 보인다(숫자 칸에 근거 보기가 있음) */
+function EvidenceLink({
+  evidence,
+  onOpenText,
+}: {
+  evidence: ActivityEvidence
+  onOpenText: (changeId: number) => void
+}) {
+  const url = evidence.side === 'DISCLOSURE' ? dartViewerUrl(evidence.rceptNo) : null
+  if (url) {
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer">
+        {evidence.sectionPath}
+      </a>
+    )
+  }
+  const { changeId } = evidence
+  if (changeId !== null) {
+    return (
+      <Button variant="link" onClick={() => onOpenText(changeId)}>
+        {sideLabel(evidence.side)} · {evidence.sectionPath}
+      </Button>
+    )
+  }
+  return <>{evidence.sectionPath}</>
 }
 
 function ActivityList({ data, onOpenText }: { data: PeriodActivities; onOpenText: (changeId: number) => void }) {

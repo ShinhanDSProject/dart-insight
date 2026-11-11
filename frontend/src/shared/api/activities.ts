@@ -22,13 +22,17 @@ export type ActivityImpactKind = 'DISCLOSED' | 'OUTLOOK' | 'CHECK'
 
 export type ActivityImpactTone = 'GOOD' | 'BAD'
 
+export type ActivityEvidenceSide = 'PREVIOUS' | 'CURRENT' | 'FINANCIAL' | 'DISCLOSURE'
+
 export interface ActivityEvidence {
   evidenceId: string
   rceptNo: string
   blockNo: number | null
-  side: 'PREVIOUS' | 'CURRENT'
+  /** FINANCIAL 재무 수치, DISCLOSURE 사이 기간 공시(ADR-0068) */
+  side: ActivityEvidenceSide
+  /** 보고서 목차 경로. 재무 수치는 재무제표와 계정, 공시는 보고서명 */
   sectionPath: string
-  /** 그 인용이 든 문장 변경(전체 변경 탭의 tc) */
+  /** 그 인용이 든 문장 변경(전체 변경 탭의 tc). 재무 수치·공시는 null */
   changeId: number | null
 }
 
@@ -67,6 +71,14 @@ export interface ActivityOverview {
   evidence: ActivityEvidence[]
 }
 
+/** 이 기간에 있었던 일 한 줄(ADR-0068) */
+export interface ActivityTimelineEntry {
+  /** YYYY-MM-DD */
+  date: string
+  text: string
+  evidence: ActivityEvidence[]
+}
+
 export interface ActivityAi {
   model: string | null
   promptVersion: string
@@ -80,6 +92,8 @@ export interface PeriodActivities {
   message: string | null
   overview: ActivityOverview | null
   items: ActivityItem[]
+  /** 날짜순. 없으면 빈 배열 */
+  timeline: ActivityTimelineEntry[]
   droppedCount: number
   candidateCount: number
   aiGenerated: boolean
