@@ -11,6 +11,8 @@
 | Node.js | 22 | `node -v` |
 | Python | 3.12 | `python --version` |
 
+Node.js는 22를 씁니다(저장소 루트 `.nvmrc`, CI와 같음). 24 같은 다른 주 버전에서는 frontend 테스트 중 화면을 옮기는 테스트가 CI와 다르게 실패합니다(react-router가 jsdom의 `AbortSignal`로 Node의 `Request`를 만들어 Node 24가 거부함). 여러 버전을 쓰면 nvm·fnm(macOS·Linux)이나 nvm-windows로 22를 고릅니다(`nvm use 22`). `npm run` 명령은 버전이 다르면 경고를 냅니다.
+
 ## 2. DB 준비
 
 처음 한 번만 합니다. PC에 MariaDB(또는 MySQL)가 이미 있으면 새로 설치하지 말고 2.2부터 합니다.

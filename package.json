@@ -4,7 +4,7 @@
   "type": "module",
   "description": "저장소 루트에서 서비스(backend, ai-server, frontend, mcp-server)를 준비·실행·검사하는 명령 모음. 설치할 의존성은 없습니다.",
   "engines": {
-    "node": ">=22"
+    "node": "22.x"
   },
   "scripts": {
     "setup": "node scripts/run.js setup",

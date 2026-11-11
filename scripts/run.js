@@ -289,6 +289,17 @@ function runParallel(names) {
   }
 }
 
+// CI·docs/local-setup.md와 같은 Node.js 주 버전(.nvmrc). 다르면 멈추지 않고 알리기만 합니다.
+// 예: Node 24에서는 frontend 테스트의 화면 이동(react-router가 jsdom AbortSignal로 Request를 만듦)이 실패합니다.
+const EXPECTED_NODE_MAJOR = 22;
+const nodeMajor = Number(process.versions.node.split('.')[0]);
+if (nodeMajor !== EXPECTED_NODE_MAJOR) {
+  console.warn(
+    `[run] Node.js ${process.versions.node}을 쓰고 있습니다. 이 저장소는 ${EXPECTED_NODE_MAJOR}를 씁니다(.nvmrc). ` +
+      '다른 버전에서는 frontend 테스트 일부가 CI와 다르게 실패할 수 있습니다.',
+  );
+}
+
 const { task, names } = parseArgs(process.argv.slice(2));
 if (task === 'dev') {
   // mcp-server처럼 따로 띄우지 않는 서비스는 dev에서 뺍니다.
