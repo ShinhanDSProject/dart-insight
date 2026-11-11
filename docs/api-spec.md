@@ -102,6 +102,7 @@
 | GET | `/api/companies` | 기업 검색 | #8 (1.1) | W-01 ① | 초안 |
 | GET | `/api/featured-companies` | 첫 화면 대표 기업(유가증권시장 시가총액 상위 100) | #399 (1.5) | W-01 ① | 초안 |
 | GET | `/api/season-changes` | 첫 화면 이번 시즌 변화가 큰 기업 Top 10 | #420 (1.7) | W-01 ① | 초안 |
+| GET | `/api/stats` | 첫 화면 숫자 줄(상장 기업·끝난 분석·찾아낸 문장 변화 수) | #866 | W-01 ① 히어로 | 구현 |
 | GET | `/api/companies/{corpCode}` | 기업 정보 | #8 (1.1) | W-01 ② | 초안 |
 | GET | `/api/companies/{corpCode}/overview` | 기업 개황(대표자·법인 구분·업종·설립일·결산월 등) | #329 (1.2) | 기업 화면 개요 탭 | 초안 |
 | GET | `/api/companies/{corpCode}/reports` | 기업별 정기보고서 목록 | #9 (1.2), #10 (1.3) | W-01 ② | 초안 |
@@ -935,6 +936,26 @@
 | --- | --- | --- |
 | 400 | `COMMON_INVALID_INPUT` | `reportType`·`fiscalYear` 중 하나만 있거나 값이 맞지 않음(`errors[].field`) |
 | 404 | `COMMON_NOT_FOUND` | 계산하지 않은 시즌 |
+
+### GET /api/stats — 첫 화면 숫자 줄
+
+- 이슈: #866 · 화면: W-01 ① 히어로 숫자 줄(#863)
+- 로그인 없이 씁니다. backend가 우리 DB의 행 수를 셉니다(외부 호출 없음). 센 값을 10분 동안 기억해 그동안은 다시 세지 않습니다.
+- `listedCompanies`: `company`에서 종목코드가 있는 기업 수(상장사). `completedAnalyses`: `analysis`에서 `COMPLETED`인 분석 수. `textChanges`: 완료된 분석에 저장된 `text_change` 행 수(같은 보고서 쌍을 여러 번 분석했으면 그만큼 셉니다).
+- 숫자는 규모를 보이는 데만 씁니다. 좋고 나쁨을 뜻하지 않습니다.
+
+**응답 200**
+
+```json
+{
+  "listedCompanies": 2814,
+  "completedAnalyses": 12,
+  "textChanges": 12950,
+  "countedAt": "2026-11-10T17:30:00"
+}
+```
+
+- 아직 아무것도 없으면 0입니다(에러가 아님).
 
 ### GET /api/companies/{corpCode} — 기업 정보
 
