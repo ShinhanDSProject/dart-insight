@@ -17,13 +17,29 @@
 
 .ai-usage__stats > li {
   display: flex;
+  animation: rise-in var(--motion-enter) var(--ease-out) backwards;
 }
+
+.ai-usage__stats > li:nth-child(1) { animation-delay: 0ms; }
+.ai-usage__stats > li:nth-child(2) { animation-delay: var(--motion-stagger); }
+.ai-usage__stats > li:nth-child(3) { animation-delay: calc(var(--motion-stagger) * 2); }
+.ai-usage__stats > li:nth-child(4) { animation-delay: calc(var(--motion-stagger) * 3); }
 
 .ai-usage__stat {
   display: flex;
   flex: 1;
   flex-direction: column;
   gap: var(--space-1);
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-base) var(--ease-out),
+    border-color var(--motion-base) var(--ease-out);
+}
+
+.ai-usage__stat:hover {
+  transform: translateY(var(--motion-lift));
+  box-shadow: var(--shadow-hover);
+  border-color: var(--color-border-accent);
 }
 
 .ai-usage__stat-label {

@@ -20,6 +20,11 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1) var(--space-3);
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.statement-list li:hover {
+  transform: translateX(var(--motion-nudge));
 }
 
 .statement-list__name {

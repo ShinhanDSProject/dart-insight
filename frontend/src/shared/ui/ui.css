@@ -619,6 +619,20 @@ th[aria-sort='none'] .data-table__sort-mark {
   font: inherit;
   font-size: var(--font-size-sm);
   cursor: pointer;
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+
+.chip:hover {
+  transform: translateY(var(--motion-lift));
+  box-shadow: var(--shadow-sm);
+}
+
+.chip:active {
+  transform: translateY(0);
 }
 
 .chip[aria-pressed='true'] {
@@ -1860,12 +1874,31 @@ th[aria-sort='none'] .data-table__sort-mark {
   margin-bottom: var(--space-4);
 }
 
+.report-card-pair > :first-child {
+  animation: rise-in var(--motion-enter) var(--ease-out) backwards;
+}
+
+.report-card-pair > :last-child {
+  animation: rise-in var(--motion-enter) var(--ease-out) backwards;
+  animation-delay: var(--motion-stagger);
+}
+
 .report-card {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-2);
   min-width: 0;
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-base) var(--ease-out),
+    border-color var(--motion-base) var(--ease-out);
+}
+
+.report-card:hover {
+  transform: translateY(var(--motion-lift));
+  box-shadow: var(--shadow-hover);
+  border-color: var(--color-border-accent);
 }
 
 .report-card__badge {

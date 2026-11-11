@@ -227,7 +227,7 @@ W-03 ④ 원문 확인
 | 토큰 | 값 | 쓰는 곳 |
 | --- | --- | --- |
 | `--motion-fast` / `--motion-base` / `--motion-slow` | 120 / 200 / 360ms | 글자색 hover·목록 줄 밀림 / 나타남·카드 들림·탭 줄 접힘 / 탭 밑줄 옮김 |
-| `--motion-enter` | 480ms | 첫 화면 로고·검색창·목록 줄이 차례로 떠오를 때(#858) |
+| `--motion-enter` | 480ms | 첫 화면, 기업 개요·비교·결과·요금제 카드가 차례로 떠오를 때(#858) |
 | `--motion-rise` | 10px | 나타날 때 아래에서 올라오는 거리(`rise-in`) |
 | `--motion-grow` | 700ms | 막대가 0에서 자라는 시간(`grow-x`) |
 | `--motion-stagger` | 70ms | 막대·줄·카드가 차례로 나타날 때의 간격 |
@@ -238,8 +238,8 @@ W-03 ④ 원문 확인
 | `--motion-ticker` | 40s | 첫 화면 시즌 변화 흐름 띠가 한 바퀴 도는 시간 |
 | `--motion-rotate` | 9s | 첫 화면 검색창 예시 세 개가 한 바퀴 바뀌는 시간(분석 진행 안내는 1.5배) |
 | `--motion-scan` | 3200ms | 분석 진행 비교 장면에서 훑는 선이 한 번 내려가는 시간 |
-| `--motion-lift` | −2px | 고를 수 있는 카드 hover 들림 거리 |
-| `--motion-nudge` | 4px | 첫 화면 목록 줄 hover·초점 때 오른쪽으로 밀리는 거리 |
+| `--motion-lift` | −2px | 고를 수 있는 카드·보고서 카드·칩·핵심 지표 hover 들림 거리 |
+| `--motion-nudge` | 4px | 목록 줄·타임라인·요약 항목 hover·초점 때 오른쪽으로 밀리는 거리 |
 | `--ease-out` | `cubic-bezier(0.2, 0, 0, 1)` | 모든 전환의 곡선 |
 
 이슈의 `--motion-duration-*`·`--motion-ease-*` 이름 대신, 이미 쓰던 `--motion-*`·`--ease-*` 이름에 맞춰 더했다(같은 뜻의 토큰을 두 벌 두지 않기 위해).

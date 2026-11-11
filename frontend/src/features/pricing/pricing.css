@@ -14,6 +14,15 @@
   list-style: none;
 }
 
+.pricing__plans > li {
+  animation: rise-in var(--motion-enter) var(--ease-out) backwards;
+}
+
+.pricing__plans > li:nth-child(1) { animation-delay: 0ms; }
+.pricing__plans > li:nth-child(2) { animation-delay: var(--motion-stagger); }
+.pricing__plans > li:nth-child(3) { animation-delay: calc(var(--motion-stagger) * 2); }
+.pricing__plans > li:nth-child(4) { animation-delay: calc(var(--motion-stagger) * 3); }
+
 .plan {
   display: flex;
   flex-direction: column;
@@ -22,10 +31,25 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-bg);
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-base) var(--ease-out),
+    border-color var(--motion-base) var(--ease-out);
+}
+
+.plan:hover {
+  transform: translateY(calc(var(--motion-lift) * 2));
+  box-shadow: var(--shadow-hover);
+  border-color: var(--color-border-accent);
 }
 
 .plan--primary {
   border: 2px solid var(--color-accent);
+}
+
+.plan--primary:hover {
+  border-color: var(--color-accent);
+  box-shadow: 0 8px 24px rgba(78, 89, 104, 0.16);
 }
 
 .plan__head {
