@@ -1,11 +1,12 @@
-import { useState } from 'react'
-import { match } from 'ts-pattern'
+import { useState, useEffect } from 'react'
+import { match, P } from 'ts-pattern'
 import type { CompanyQuestionAnswer } from '@/shared/api/companyQuestions'
 import { cx } from '@/shared/lib/cx'
 import { askedAtLabel, draftMessage, parseQuestion, questionCountLabel, quoteLabel } from '@/shared/lib/questionText'
 import { Badge, Button, DocScanScene, FieldHint, FieldLabel, Input, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
+import { useMinimumLoading } from '@/shared/hooks/useMinimumLoading'
 import { useCompanyAsk } from '../hooks/useCompanyAsk'
 import { briefingAiLabel, toggleOpen } from '../model/companyBriefing'
 import {
@@ -32,7 +33,15 @@ export function CompanyAskSection({ corpCode }: { corpCode: string }) {
   // 가장 최근 답 하나만 펼쳐 두고 이전 질문은 접어 둔다(#385)
   const [olderOpen, setOlderOpen] = useState(false)
   const { state, history } = ask
-  const sending = state.request.status === 'sending'
+  const isSending = useMinimumLoading(state.request.status === 'sending', 1000)
+  const [activeQuestion, setActiveQuestion] = useState('')
+  useEffect(() => {
+    if (state.request.status === 'sending') {
+      setActiveQuestion(state.request.question)
+    }
+  }, [state.request])
+
+  const sending = isSending || state.request.status === 'sending'
   const lastAnswered = state.items.find((i) => i.questionId === state.lastAnsweredId)
   const report = history.state.status === 'success' ? history.state.data.report : null
 
@@ -66,27 +75,28 @@ export function CompanyAskSection({ corpCode }: { corpCode: string }) {
       </p>
 
       <ol className="company-ask__answers" id={ANSWERS_ID} aria-label="질문과 답">
-        {match(state.request)
-          .with({ status: 'idle' }, () => null)
-          .with({ status: 'sending' }, ({ question }) => (
-            <li className="company-ask__answer" aria-busy="true">
-              <p className="company-ask__question">{question}</p>
-              <div className="ask-loading">
-                <DocScanScene
-                  label="사업보고서 원문 근거 검색 중"
-                  chips={['원문 탐색', '근거 검증', '답변 구성']}
-                />
-                <LoadingState message="사업보고서 원문에서 찾는 중이에요. 처음 묻는 기업은 수십 초 걸릴 수 있어요." />
-              </div>
-            </li>
-          ))
-          .with({ status: 'error' }, ({ question, error }) => (
-            <li className="company-ask__answer">
-              <p className="company-ask__question">{question}</p>
-              <ErrorState error={error} onRetry={ask.retry} messages={COMPANY_ASK_ERROR_MESSAGES} />
-            </li>
-          ))
-          .exhaustive()}
+        {sending ? (
+          <li className="company-ask__answer" aria-busy="true">
+            <p className="company-ask__question">{state.request.status === 'sending' ? state.request.question : activeQuestion}</p>
+            <div className="ask-loading">
+              <DocScanScene
+                label="사업보고서 원문 근거 검색 중"
+                chips={['원문 탐색', '근거 검증', '답변 구성']}
+              />
+              <LoadingState message="사업보고서 원문에서 찾는 중이에요. 처음 묻는 기업은 수십 초 걸릴 수 있어요." />
+            </div>
+          </li>
+        ) : (
+          match(state.request)
+            .with({ status: 'error' }, ({ question, error }) => (
+              <li className="company-ask__answer">
+                <p className="company-ask__question">{question}</p>
+                <ErrorState error={error} onRetry={ask.retry} messages={COMPANY_ASK_ERROR_MESSAGES} />
+              </li>
+            ))
+            .with({ status: P.union('idle', 'sending') }, () => null)
+            .exhaustive()
+        )}
         {(olderOpen ? state.items : state.items.slice(0, 1)).map((item) => (
           <li key={item.questionId} className="company-ask__answer">
             <AnswerCard item={item} />

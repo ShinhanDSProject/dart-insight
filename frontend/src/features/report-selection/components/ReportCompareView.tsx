@@ -6,6 +6,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { basisHint } from '@/shared/lib/comparisonBasis'
 import { openHeaderSearch } from '@/shared/lib/headerSearch'
 import { formatDate } from '@/shared/lib/reportLabels'
+import { useMinimumLoadingState } from '@/shared/hooks/useMinimumLoading'
 import { useCompanyReports } from '../hooks/useCompanyReports'
 import { useReportSelection } from '../hooks/useReportSelection'
 import { PairSelector } from './PairSelector'
@@ -35,9 +36,10 @@ const refreshErrorMessages: Record<string, string> = {
  */
 export function ReportCompareView({ corpCode }: { corpCode: string }) {
   const { state, reload } = useCompanyReports(corpCode)
-  const selection = useReportSelection(corpCode, state.status === 'success' ? state.data.items : null)
+  const visibleState = useMinimumLoadingState(state, 900)
+  const selection = useReportSelection(corpCode, visibleState.status === 'success' ? visibleState.data.items : null)
 
-  return match(state)
+  return match(visibleState)
     .with({ status: 'loading' }, () => (
       <div className="report-compare-loading">
         <ReportStackScene label="OpenDART 정기보고서 수집 중" />

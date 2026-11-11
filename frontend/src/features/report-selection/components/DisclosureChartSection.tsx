@@ -7,6 +7,7 @@ import { Button, DataTable, DocScanScene, DotTimeline, Notice, Panel, PanelTitle
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
+import { useMinimumLoadingState } from '@/shared/hooks/useMinimumLoading'
 import { useCompanyDisclosures } from '../hooks/useCompanyDisclosures'
 import {
   CHART_DAYS,
@@ -39,12 +40,13 @@ const viewOptions: readonly SegmentOption<ChartView>[] = [
  */
 export function DisclosureChartSection({ corpCode }: { corpCode: string }) {
   const { state, reload } = useCompanyDisclosures(corpCode, CHART_DAYS)
+  const visibleState = useMinimumLoadingState(state, 900)
   const titleId = useId()
 
   return (
     <Panel className="disclosure-chart" aria-labelledby={titleId}>
       <PanelTitle id={titleId}>공시 타임라인</PanelTitle>
-      {match(state)
+      {match(visibleState)
         .with({ status: 'loading' }, () => (
           <div className="disclosure-chart-loading">
             <DocScanScene

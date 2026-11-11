@@ -5,6 +5,7 @@ import type { Company } from '@/shared/api/companies'
 import type { ComparabilityResult } from '@/shared/api/comparability'
 import { useAsyncAction } from '@/shared/hooks/useAsyncAction'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
+import { useMinimumLoadingState } from '@/shared/hooks/useMinimumLoading'
 import { companyPageTitle } from '@/shared/lib/pageTitle'
 import {
   Badge,
@@ -51,11 +52,12 @@ export function ComparabilityPage() {
   const company = useCompanyInfo(corpCode)
   useDocumentTitle(companyPageTitle(company?.corpName ?? null, '비교 확인'))
   const { state, reload } = useComparabilityCheck({ corpCode, currentRceptNo: currentNo, previousRceptNo: previousNo, basis })
+  const visibleState = useMinimumLoadingState(state, 1000)
   const submit = useAsyncAction<void>()
   // 요청이 끝나 다음 화면으로 넘어가는 동안에도 버튼을 다시 누르지 못하게 한다
   const submitting = submit.state.status === 'loading' || submit.state.status === 'success'
   const backTo = `/companies/${encodeURIComponent(corpCode)}?${searchParams.toString()}`
-  const result = state.status === 'success' ? state.data : null
+  const result = visibleState.status === 'success' ? visibleState.data : null
   const header = checkHeader(result)
 
   function runAnalysis() {
@@ -78,7 +80,7 @@ export function ComparabilityPage() {
         aside={header.badge ? <Badge tone={header.badge.tone}>{header.badge.label}</Badge> : undefined}
       />
 
-      {match(state)
+      {match(visibleState)
         // 두 보고서가 정해지지 않으면 확인하지 않는다(idle)
         .with({ status: 'idle' }, () => (
           <AlertState title="비교할 두 보고서가 정해지지 않았어요.">
@@ -116,7 +118,7 @@ export function ComparabilityPage() {
         <ButtonLink to={backTo} variant="secondary">
           보고서 다시 선택
         </ButtonLink>
-        {match(state)
+        {match(visibleState)
           .with({ status: 'success', data: { comparable: true } }, () => (
             <Button variant="primary" onClick={runAnalysis} disabled={submitting}>
               {submitting ? '분석을 요청하는 중…' : '분석 실행'}
