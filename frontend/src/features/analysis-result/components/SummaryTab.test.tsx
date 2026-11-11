@@ -96,7 +96,7 @@ function draw(lens: SummaryLens | null, view: SummaryView, options?: { asking?: 
             onOpenTextList={noop}
             onOpenPriorityList={noop}
             onOpenTextSection={noop}
-            askPanel={null}
+            onOpenChat={() => {}}
             onAsk={onAsk}
             asking={options?.asking ?? false}
             lens={lens}

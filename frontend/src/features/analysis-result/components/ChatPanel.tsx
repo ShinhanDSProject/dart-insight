@@ -28,6 +28,7 @@ import {
 } from '../model/chatLinks'
 import { CHAT_EXAMPLES, chatMessageOf, confirmKey, MAX_MESSAGE, type ChatExchange } from '../model/chatState'
 import { aiInfoLabel } from '../model/summaryLabels'
+import { CHAT_INPUT_ID, focusChatInput } from '../model/chatInput'
 import './chat-panel.css'
 
 const errorMessages: Record<string, string> = {
@@ -53,6 +54,8 @@ interface ChatPanelProps {
   /** 글 초안 열기 액션: 커뮤니티 탭 글쓰기 칸을 초안·인용으로 채운다(저장은 사용자가 올릴 때만, AC26) */
   onPostDraft: (draft: PostDraft) => void
   onClose: () => void
+  /** 열 때 초점을 둘 곳. heading: 패널 제목(기본), input: 입력창('A' 단축키·요약의 'AI에게 묻기') */
+  initialFocus?: 'heading' | 'input'
 }
 
 export type PostDraft = Extract<ChatActionTarget, { kind: 'post-draft' }>
@@ -71,13 +74,17 @@ export function ChatPanel({
   briefState,
   onPostDraft,
   onClose,
+  initialFocus = 'heading',
 }: ChatPanelProps) {
   const headingRef = useRef<HTMLHeadingElement>(null)
   const endRef = useRef<HTMLDivElement>(null)
   const { exchanges, request, draft } = chat.state
 
+  // 처음 열 때만 초점을 옮긴다
+  const firstFocus = useRef(initialFocus)
   useEffect(() => {
-    headingRef.current?.focus({ preventScroll: true })
+    if (firstFocus.current === 'input') focusChatInput()
+    else headingRef.current?.focus({ preventScroll: true })
   }, [])
 
   // 새 답·보내는 중 표시가 생기면 대화 끝을 보인다
@@ -572,7 +579,7 @@ function ChatForm({ draft, onDraft, onSend, disabled }: ChatFormProps) {
         AI 에이전트에게 요청
       </label>
       <TextArea
-        id="chat-input"
+        id={CHAT_INPUT_ID}
         value={draft}
         maxLength={MAX_MESSAGE}
         rows={2}

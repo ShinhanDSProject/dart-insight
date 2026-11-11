@@ -55,7 +55,7 @@ describe('shortcutFor 키 대응', () => {
     expect(shortcutFor(key('0'), result)).toBeNull()
   })
 
-  it('결과 화면에서 a는 AI 질문 입력창으로 가고, 한글 자판의 ㅁ도 같다', () => {
+  it('결과 화면에서 a는 AI 에이전트 입력창으로 가고, 한글 자판의 ㅁ도 같다', () => {
     expect(shortcutFor(key('a'), result)).toEqual({ kind: 'focus-ask' })
     expect(shortcutFor(key('ㅁ'), result)).toEqual({ kind: 'focus-ask' })
   })
@@ -149,7 +149,7 @@ describe('shortcutGroups 도움말 목록', () => {
     expect(groups.find((g) => g.id === 'text')?.available).toBe(false)
   })
 
-  it('결과 화면 묶음은 탭 일곱 개와 AI 질문 입력창을 보여 준다', () => {
+  it('결과 화면 묶음은 탭 일곱 개와 AI 에이전트 입력창을 보여 준다', () => {
     const resultGroup = shortcutGroups('result').find((g) => g.id === 'result')
     expect(resultGroup?.items.map((i) => i.keys[0])).toEqual(['1', '2', '3', '4', '5', '6', '7', 'A'])
   })

@@ -6,6 +6,7 @@ import type { Analysis } from '@/shared/api/analyses'
 import type { ParamChanges } from '@/shared/lib/searchParams'
 import { Button, Icon, MenuButton, MenuItem, Notice, Page, PageHeader, Skeleton, Tabs, type TabItem } from '@/shared/ui'
 import { ErrorState } from '@/shared/ui/StateView'
+import { OPEN_CHAT_INPUT_EVENT } from '@/shared/lib/shortcuts'
 import type { SjDiv } from '@/shared/api/results'
 import type { TextSectionCount } from '@/shared/api/textChanges'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
@@ -15,8 +16,8 @@ import { communityDraftParamChanges } from '@/shared/lib/communityQuoteLink'
 import { basisLabel } from '@/shared/lib/comparisonBasis'
 import { companyOverviewLink } from '@/shared/lib/currentCompany'
 import { CommunityTab, type CommunityDraft } from '@/shared/community/components/CommunityTab'
-import { ChatEntry } from './components/ChatEntry'
 import { ChatPanel, type PostDraft } from './components/ChatPanel'
+import { focusChatInput } from './model/chatInput'
 import { ExportBriefButton } from './components/ExportBriefButton'
 import { FinancialTab } from './components/FinancialTab'
 import { ComparisonContextCard } from './components/ComparisonContextCard'
@@ -190,6 +191,25 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
     setChatOpen(true)
     if (evidenceOpen) update({ change: null, tc: null })
   }
+  // 'A' 단축키·요약의 'AI에게 묻기': 패널을 열고 입력창에 초점을 둔다. 이미 열려 있으면 초점만 옮긴다
+  const [chatFocus, setChatFocus] = useState<'heading' | 'input'>('heading')
+  const openChatInput = () => {
+    if (chatOpen && !evidenceOpen) {
+      focusChatInput()
+      return
+    }
+    setChatFocus('input')
+    openChat()
+  }
+  const openChatInputRef = useRef(openChatInput)
+  useEffect(() => {
+    openChatInputRef.current = openChatInput
+  })
+  useEffect(() => {
+    const onOpen = () => openChatInputRef.current()
+    window.addEventListener(OPEN_CHAT_INPUT_EVENT, onOpen)
+    return () => window.removeEventListener(OPEN_CHAT_INPUT_EVENT, onOpen)
+  }, [])
   const askChat = (message: string) => {
     chat.send(message, chatContextOf(params))
     openChat()
@@ -224,7 +244,7 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
         update={update}
         chat={chat}
         onAskChat={askChat}
-        suggestions={examples}
+        onOpenChat={openChatInput}
         sectionCounts={sectionCounts}
         postDraft={postDraft}
         onPostDraftApplied={clearPostDraft}
@@ -240,7 +260,11 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
           onDownloadBrief={brief.exportBrief}
           briefState={brief.state}
           onPostDraft={openPostDraft}
-          onClose={() => setChatOpen(false)}
+          initialFocus={chatFocus}
+          onClose={() => {
+            setChatOpen(false)
+            setChatFocus('heading')
+          }}
         />
       ) : (
         <Button variant="primary" className="chat-launcher" onClick={openChat}>
@@ -255,8 +279,8 @@ interface ResultTabPanelProps extends AnalysisResultProps {
   chat: AgentChatController
   /** 요청을 지금 화면 맥락과 함께 채팅으로 보내고 패널을 연다 */
   onAskChat: (message: string) => void
-  /** 이 분석에서 답할 수 있는 예시 질문 */
-  suggestions: string[]
+  /** AI 에이전트 패널을 열고 입력창에 초점을 둔다(요약 핵심 카드의 'AI에게 묻기') */
+  onOpenChat: () => void
   /** 원문 확인 목차의 '변경 N' 배지에 쓰는 최상위 섹션별 문장 변경 건수(#313). 예시 질문과 같은 문장 변화 응답에서 온다 */
   sectionCounts: TextSectionCount[]
   /** 채팅에서 연 글 초안(커뮤니티 탭 글쓰기 칸). 없으면 null */
@@ -271,7 +295,7 @@ function ResultTabPanel({
   update,
   chat,
   onAskChat,
-  suggestions,
+  onOpenChat,
   sectionCounts,
   postDraft,
   onPostDraftApplied,
@@ -322,7 +346,7 @@ function ResultTabPanel({
         onOpenTextList={(type) => update(openTextList(type))}
         onOpenPriorityList={() => update(openPriorityList())}
         onOpenTextSection={(section) => update(openTextSection(section))}
-        askPanel={<ChatEntry suggestions={suggestions} onAsk={onAskChat} disabled={asking} />}
+        onOpenChat={onOpenChat}
         onAsk={askAndOpen}
         asking={asking}
         lens={params.summaryLens}
