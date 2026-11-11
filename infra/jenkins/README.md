@@ -98,7 +98,9 @@
 ## 검토한 DB 변경
 - V52__add_text_event_signal_and_sentence.sql: 사건 분석용 nullable 열과 text_event_sentence 테이블을 추가한다. 기존 행을 삭제하거나 다시 쓰지 않는다.
 - 검토한 SQL의 SHA-256: d1dc0381ea93b872ae5e9c90bf964efe420aa20d42ae75f33937cea47682e9df.
-- V51에서 V52로 진행할 때 이 내용과 정확히 일치하는 파일만 허용한다. 다른 새 버전·수정된 V52·실패 기록·이전 버전 이미지는 배포 전에 차단한다.
+- V53__create_period_activity.sql: 기간 활동 및 영향 분석 저장용 테이블(period_activity)을 추가한다. 기존 테이블을 변경하거나 삭제하지 않는다.
+- 검토한 SQL의 SHA-256: 4e386466d3b7993627894a440d2ab921a3d0f053fa8aab9327bacbaed679b127.
+- V52에서 V53으로 진행할 때 이 내용과 정확히 일치하는 파일만 허용한다. 다른 새 버전·수정된 V53·실패 기록·이전 버전 이미지는 배포 전에 차단한다.
 - 서비스 교체 전 DB 전체 덤프를 만들고 새 백엔드의 Flyway가 적용한다. 백업은 서버에만 저장한다.
 - 앱 이미지 복구는 DB를 되돌리지 않는다. V52는 추가 변경이지만, 실제 DB 복원은 별도 검토·절차가 필요하다.
 - tests/test_migration_preflight.py는 실제 DB 없이 동일 버전, 승인 변경, 내용 변경, 미승인 변경, 이전 이미지, 실패 기록 등을 시험한다.

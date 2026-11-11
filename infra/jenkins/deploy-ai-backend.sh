@@ -147,10 +147,11 @@ import sys
 from pathlib import Path
 from zipfile import ZipFile
 
-# V52만 검토한 SQL 내용과 정확히 일치할 때 허용한다.
+# V52, V53만 검토한 SQL 내용과 정확히 일치할 때 허용한다.
 # 새 버전은 자동 허용하지 않고, SQL 검토 후 이 목록을 별도 변경한다.
 REVIEWED_MIGRATIONS = {
     "52": "d1dc0381ea93b872ae5e9c90bf964efe420aa20d42ae75f33937cea47682e9df",
+    "53": "4e386466d3b7993627894a440d2ab921a3d0f053fa8aab9327bacbaed679b127",
 }
 
 root = Path(sys.argv[1])
