@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 
 from app.api import (
     agent_steps,
@@ -17,6 +17,11 @@ from app.api import (
 )
 from app.core.config import load_llm_settings
 from app.core.errors import register_error_handlers
+from app.core.internal_auth import (
+    internal_auth_dependency,
+    load_internal_token,
+    validate_internal_token,
+)
 from app.core.trace import TraceIdMiddleware, install_log_record_factory
 from app.llm import LlmClient
 
@@ -33,7 +38,7 @@ def setup_logging() -> None:
     app_logger.setLevel(logging.INFO)
 
 
-def create_app(llm_client: LlmClient | None = None) -> FastAPI:
+def create_app(llm_client: LlmClient | None = None, internal_token: str | None = None) -> FastAPI:
     """llm_client를 넘기지 않으면 환경변수(LLM_PROVIDER 등)로 만든다.
 
     테스트는 가짜 응답을 넘긴다.
@@ -48,16 +53,22 @@ def create_app(llm_client: LlmClient | None = None) -> FastAPI:
     def health() -> dict[str, str]:
         return {"status": "UP"}
 
-    app.include_router(internal.router)
-    app.include_router(documents.router)
-    app.include_router(text_changes.router)
-    app.include_router(text_events.router)
-    app.include_router(summaries.router)
-    app.include_router(answers.router)
-    app.include_router(briefings.router)
-    app.include_router(outlooks.router)
-    app.include_router(plan_followups.router)
-    app.include_router(agent_steps.router)
+    expected_token = (
+        validate_internal_token(internal_token)
+        if internal_token is not None
+        else load_internal_token()
+    )
+    internal_dependencies = [Depends(internal_auth_dependency(expected_token))]
+    app.include_router(internal.router, dependencies=internal_dependencies)
+    app.include_router(documents.router, dependencies=internal_dependencies)
+    app.include_router(text_changes.router, dependencies=internal_dependencies)
+    app.include_router(text_events.router, dependencies=internal_dependencies)
+    app.include_router(summaries.router, dependencies=internal_dependencies)
+    app.include_router(answers.router, dependencies=internal_dependencies)
+    app.include_router(briefings.router, dependencies=internal_dependencies)
+    app.include_router(outlooks.router, dependencies=internal_dependencies)
+    app.include_router(plan_followups.router, dependencies=internal_dependencies)
+    app.include_router(agent_steps.router, dependencies=internal_dependencies)
     return app
 
 

@@ -19,7 +19,7 @@ import java.util.function.Function;
 /** 테스트용 가짜 AI 서버. 경로별 응답을 정하고, 받은 요청(경로·본문·추적 ID)을 기록한다. */
 public class FakeAiServer implements AutoCloseable {
 
-    public record Request(String method, String path, byte[] body, String traceId) {
+    public record Request(String method, String path, byte[] body, String traceId, String authorization) {
 
         public String bodyText() {
             return new String(body, StandardCharsets.UTF_8);
@@ -101,7 +101,8 @@ public class FakeAiServer implements AutoCloseable {
             body = new byte[0];
         }
         Request request = new Request(exchange.getRequestMethod(), path, body,
-                exchange.getRequestHeaders().getFirst(TraceContext.HEADER));
+                exchange.getRequestHeaders().getFirst(TraceContext.HEADER),
+                exchange.getRequestHeaders().getFirst("Authorization"));
         requests.add(request);
         Function<Request, Reply> handler = handlers.get(path);
         Reply reply = handler == null ? Reply.error(404, "COMMON_NOT_FOUND", "없음") : handler.apply(request);

@@ -47,6 +47,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       OPENDART_API_KEY: ${OPENDART_API_KEY:?OPENDART_API_KEY is required}
       AI_SERVER_URL: "${AI_SERVER_URL:?AI_SERVER_URL is required}"
+      AI_INTERNAL_TOKEN: "${AI_INTERNAL_TOKEN:?AI_INTERNAL_TOKEN is required}"
       CORS_ALLOWED_ORIGINS: https://dart-insight.shinhanacademy.co.kr
       DOCUMENT_CACHE_DIR: /app/data/documents
       JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=60.0

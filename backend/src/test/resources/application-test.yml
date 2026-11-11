@@ -22,6 +22,7 @@ app:
   ai-server:
     # 테스트는 AI 서버를 실제로 부르지 않는다(가짜 서버를 띄우거나, 연결이 바로 거절되는 주소)
     base-url: http://127.0.0.1:1
+    internal-token: test-internal-token-that-is-at-least-32-chars
   data-go-kr:
     # 테스트는 공공데이터포털을 실제로 부르지 않는다(가짜 서버를 띄움)
     api-key: test-key-not-real

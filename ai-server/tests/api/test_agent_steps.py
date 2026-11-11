@@ -1,13 +1,12 @@
 import base64
 import json
 
-from fastapi.testclient import TestClient
-
 from app.agent import fake
 from app.agent.prompt import PROMPT_VERSION
 from app.core.config import LlmSettings
 from app.llm import FakeProvider, LlmClient, ProviderError
 from app.main import create_app
+from tests.http import TestClient
 
 TOOL = {
     "name": "get_summary",

@@ -95,6 +95,7 @@ app:
     log-link-without-mail: ${PASSWORD_RESET_LOG_LINK:false}
   ai-server:
     base-url: ${AI_SERVER_URL:http://localhost:8000}
+    internal-token: ${AI_INTERNAL_TOKEN}
     connect-timeout: 2s
     # 원문 구조화·문장 비교·요약은 오래 걸릴 수 있어 넉넉히 기다린다
     read-timeout: 180s

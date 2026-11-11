@@ -1,9 +1,8 @@
-from fastapi.testclient import TestClient
-
 from app.briefing import fake
 from app.core.config import LlmSettings
 from app.llm import FakeProvider, LlmClient
 from app.main import create_app
+from tests.http import TestClient
 
 RCEPT = "20260310000123"
 SOURCE = {

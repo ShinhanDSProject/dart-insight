@@ -1,9 +1,8 @@
-from fastapi.testclient import TestClient
-
 from app.core.config import LlmSettings
 from app.followup import fake
 from app.llm import FakeProvider, LlmClient
 from app.main import create_app
+from tests.http import TestClient
 
 CUR = "20260310000123"
 CANDIDATE = {

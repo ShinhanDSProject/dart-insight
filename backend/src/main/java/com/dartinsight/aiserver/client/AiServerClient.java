@@ -57,6 +57,7 @@ public class AiServerClient {
                 .baseUrl(properties.baseUrl())
                 .requestFactory(requestFactory)
                 .requestInterceptor((request, body, execution) -> {
+                    request.getHeaders().setBearerAuth(properties.internalToken());
                     String traceId = TraceContext.currentTraceId();
                     if (traceId != null) {
                         request.getHeaders().set(TraceContext.HEADER, traceId);

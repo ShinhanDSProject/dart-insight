@@ -1,8 +1,9 @@
-from fastapi.testclient import TestClient
+import pytest
 
 from app.core.config import LlmSettings
 from app.llm import FakeProvider, LlmClient
 from app.main import create_app
+from tests.http import TestClient
 
 
 def test_app_without_llm_setting_has_no_provider(monkeypatch) -> None:
@@ -28,3 +29,8 @@ def test_health_returns_up() -> None:
 
     assert response.status_code == 200
     assert response.json() == {"status": "UP"}
+
+
+def test_app_rejects_short_internal_token() -> None:
+    with pytest.raises(ValueError, match="32자 이상"):
+        create_app(internal_token="too-short")
