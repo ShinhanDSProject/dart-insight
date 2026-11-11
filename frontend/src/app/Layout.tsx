@@ -153,11 +153,11 @@ export function Layout() {
       </header>
 
       <div className="app-workspace">
-        <AppBackdrop />
+        <AppBackdrop key={pathname} />
         {recent.length > 0 && (
           <CompanyNav companies={recent} />
         )}
-        <main className="app-main" id="main" tabIndex={-1}>
+        <main className="app-main" id="main" tabIndex={-1} key={pathname}>
           <Outlet />
         </main>
 
