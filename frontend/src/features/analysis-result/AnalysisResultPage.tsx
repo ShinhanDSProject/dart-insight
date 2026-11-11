@@ -315,99 +315,103 @@ function ResultTabPanel({
   useEffect(() => {
     if (seed !== null) update(seed)
   }, [seed, update])
-  return match(params.tab)
-    // 기업 개요(#589): 기업 화면의 개요를 이 탭 줄 아래에 그대로 그린다. 바로 가기 바는 위에 붙은 탭 줄 밑에 붙는다
-    .with('overview', () => <div className="result-overview">{renderOverview?.(analysis.corpCode)}</div>)
-    .with('financial', () => (
-      <FinancialTab
-        key={analysis.analysisId}
-        analysis={analysis}
-        sjDiv={params.sjDiv}
-        changedOnly={params.changedOnly}
-        unit={params.unit}
-        accountQuery={params.accountQuery}
-        order={params.financialOrder}
-        selectedChangeId={params.selectedChangeId}
-        onChange={(c) => update(financialParamChanges(c))}
-        onAsk={askAndOpen}
-        asking={asking}
-        onOpenSource={openSource}
-        onOpenText={openText}
-      />
-    ))
-    .with('summary', () => (
-      <SummaryTab
-        key={analysis.analysisId}
-        analysis={analysis}
-        onOpenFinancial={openFinancial}
-        onOpenText={openText}
-        onOpenSource={openSource}
-        onOpenChangedAccounts={(sj) => update(openChangedAccounts(sj))}
-        onOpenTextList={(type) => update(openTextList(type))}
-        onOpenPriorityList={() => update(openPriorityList())}
-        onOpenTextSection={(section) => update(openTextSection(section))}
-        onOpenChat={onOpenChat}
-        onAsk={askAndOpen}
-        asking={asking}
-        lens={params.summaryLens}
-        view={params.summaryView}
-        onChangeLens={(change) => update(summaryParamChanges(change))}
-      />
-    ))
-    // 공시 분석(ADR-0067): 두 보고서 사이 활동과 앞으로의 영향. 바뀐 문장 전체 목록은 원문 탭의 바뀐 곳(text)에 있다
-    .with('activity', () => (
-      <ActivityTab
-        key={analysis.analysisId}
-        analysis={analysis}
-        onOpenText={openText}
-        onOpenFinancial={(item) => openFinancial(item.sjDiv, item.changeId)}
-        onOpenAll={() => update(openPriorityList())}
-      />
-    ))
-    // 원문 탭: 맨 위 전환으로 원문 읽기(source)와 바뀐 곳(text)을 오간다(사용자 결정 2026-11-11)
-    .with('text', () => (
-      <>
-        <SourceViewSwitch value="text" onChange={(tab) => update({ tab })} />
-        <TextTab
-        key={analysis.analysisId}
-        analysis={analysis}
-        type={params.textType}
-        sort={params.textSort}
-        section={params.textSection}
-        q={params.textQuery}
-        risk={params.textRisk}
-        field={params.textField}
-        pinned={params.textPinned}
-        selectedChangeId={params.selectedTextChangeId}
-        detailId={params.textDetailId}
-        onChange={(c) => update(textParamChanges(c))}
-        onOpenSource={openSource}
-        onAsk={askAndOpen}
-        asking={asking}
-      />
-      </>
-    ))
-    .with('community', () => <CommunityTab corpCode={analysis.corpCode} draft={postDraft} onDraftApplied={onPostDraftApplied} />)
-    .with('news', () => <NewsTab corpCode={analysis.corpCode} />)
-    // 보고서 선택(#659): 기업 화면의 보고서 비교를 탭 줄 아래에 그린다. 고른 값을 넣기 전에는 그리지 않아 가장 최근 보고서가 잠깐 골라지지 않는다
-    .with('reports', () => (seed === null ? renderReports?.(analysis.corpCode) : null))
-    .with('source', () => (
-      <>
-        <SourceViewSwitch value="source" onChange={(tab) => update({ tab })} />
-        <SourceTab
-        key={analysis.analysisId}
-        analysis={analysis}
-        side={params.sourceSide}
-        sectionNo={params.sourceSection}
-        blockNo={params.sourceBlock}
-        onChange={(c) => update(sourceParamChanges(c))}
-        sectionCounts={sectionCounts}
-        onOpenTextSection={(section) => update(openTextSection(section))}
-        onBack={() => update({ tab: returnTab })}
-      />
-      </>
-    ))
-    .exhaustive()
+  return (
+    <div key={params.tab} className="tab-transition">
+      {match(params.tab)
+        // 기업 개요(#589): 기업 화면의 개요를 이 탭 줄 아래에 그대로 그린다. 바로 가기 바는 위에 붙은 탭 줄 밑에 붙는다
+        .with('overview', () => <div className="result-overview">{renderOverview?.(analysis.corpCode)}</div>)
+        .with('financial', () => (
+          <FinancialTab
+            key={analysis.analysisId}
+            analysis={analysis}
+            sjDiv={params.sjDiv}
+            changedOnly={params.changedOnly}
+            unit={params.unit}
+            accountQuery={params.accountQuery}
+            order={params.financialOrder}
+            selectedChangeId={params.selectedChangeId}
+            onChange={(c) => update(financialParamChanges(c))}
+            onAsk={askAndOpen}
+            asking={asking}
+            onOpenSource={openSource}
+            onOpenText={openText}
+          />
+        ))
+        .with('summary', () => (
+          <SummaryTab
+            key={analysis.analysisId}
+            analysis={analysis}
+            onOpenFinancial={openFinancial}
+            onOpenText={openText}
+            onOpenSource={openSource}
+            onOpenChangedAccounts={(sj) => update(openChangedAccounts(sj))}
+            onOpenTextList={(type) => update(openTextList(type))}
+            onOpenPriorityList={() => update(openPriorityList())}
+            onOpenTextSection={(section) => update(openTextSection(section))}
+            onOpenChat={onOpenChat}
+            onAsk={askAndOpen}
+            asking={asking}
+            lens={params.summaryLens}
+            view={params.summaryView}
+            onChangeLens={(change) => update(summaryParamChanges(change))}
+          />
+        ))
+        // 공시 분석(ADR-0067): 두 보고서 사이 활동과 앞으로의 영향. 바뀐 문장 전체 목록은 원문 탭의 바뀐 곳(text)에 있다
+        .with('activity', () => (
+          <ActivityTab
+            key={analysis.analysisId}
+            analysis={analysis}
+            onOpenText={openText}
+            onOpenFinancial={(item) => openFinancial(item.sjDiv, item.changeId)}
+            onOpenAll={() => update(openPriorityList())}
+          />
+        ))
+        // 원문 탭: 맨 위 전환으로 원문 읽기(source)와 바뀐 곳(text)을 오간다(사용자 결정 2026-11-11)
+        .with('text', () => (
+          <>
+            <SourceViewSwitch value="text" onChange={(tab) => update({ tab })} />
+            <TextTab
+            key={analysis.analysisId}
+            analysis={analysis}
+            type={params.textType}
+            sort={params.textSort}
+            section={params.textSection}
+            q={params.textQuery}
+            risk={params.textRisk}
+            field={params.textField}
+            pinned={params.textPinned}
+            selectedChangeId={params.selectedTextChangeId}
+            detailId={params.textDetailId}
+            onChange={(c) => update(textParamChanges(c))}
+            onOpenSource={openSource}
+            onAsk={askAndOpen}
+            asking={asking}
+          />
+          </>
+        ))
+        .with('community', () => <CommunityTab corpCode={analysis.corpCode} draft={postDraft} onDraftApplied={onPostDraftApplied} />)
+        .with('news', () => <NewsTab corpCode={analysis.corpCode} />)
+        // 보고서 선택(#659): 기업 화면의 보고서 비교를 탭 줄 아래에 그린다. 고른 값을 넣기 전에는 그리지 않아 가장 최근 보고서가 잠깐 골라지지 않는다
+        .with('reports', () => (seed === null ? renderReports?.(analysis.corpCode) : null))
+        .with('source', () => (
+          <>
+            <SourceViewSwitch value="source" onChange={(tab) => update({ tab })} />
+            <SourceTab
+            key={analysis.analysisId}
+            analysis={analysis}
+            side={params.sourceSide}
+            sectionNo={params.sourceSection}
+            blockNo={params.sourceBlock}
+            onChange={(c) => update(sourceParamChanges(c))}
+            sectionCounts={sectionCounts}
+            onOpenTextSection={(section) => update(openTextSection(section))}
+            onBack={() => update({ tab: returnTab })}
+          />
+          </>
+        ))
+        .exhaustive()}
+    </div>
+  )
 }
 
 /**

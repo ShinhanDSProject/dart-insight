@@ -765,9 +765,14 @@ code {
   }
 }
 
-/* 화면에 들어올 때와 펼친 내용이 나타날 때 */
-.page {
+/* 화면에 들어올 때와 펼친 내용·탭 전환이 나타날 때 */
+.page,
+.tab-transition {
   animation: rise-in var(--motion-base) var(--ease-out);
+}
+
+.tab-transition {
+  width: 100%;
 }
 
 details[open] > :not(summary) {

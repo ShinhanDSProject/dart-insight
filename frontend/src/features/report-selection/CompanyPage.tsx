@@ -68,11 +68,13 @@ export function CompanyPage() {
         ))
         .with({ status: 'success' }, ({ data }) => (
           <CompanyFrame company={data} view={view} onSelectView={selectView}>
-            {match(view)
-              .with('overview', () => <CompanyOverviewTab corpCode={corpCode} company={data} />)
-              .with('compare', () => <ReportCompareView corpCode={corpCode} />)
-              .with('community', () => <CommunityTab corpCode={corpCode} />)
-              .exhaustive()}
+            <div key={view} className="tab-transition">
+              {match(view)
+                .with('overview', () => <CompanyOverviewTab corpCode={corpCode} company={data} />)
+                .with('compare', () => <ReportCompareView corpCode={corpCode} />)
+                .with('community', () => <CommunityTab corpCode={corpCode} />)
+                .exhaustive()}
+            </div>
           </CompanyFrame>
         ))
         .exhaustive()}
