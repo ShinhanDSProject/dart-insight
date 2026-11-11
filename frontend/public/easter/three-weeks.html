@@ -583,8 +583,10 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
   #tip,
   .footbar,
   #btnPresentMode,
+  #btnExportPptx,
   #btnExportPdf,
   #btnDeckExportPdf,
+  #btnDeckExportPptx,
   .theme,
   .toolbar,
   #toggleAll,
@@ -826,6 +828,10 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
       </div>
     </a>
     <div class="appbar__actions">
+      <a href="/easter/DART_Insight_Presentation.pptx" download="DART_Insight_Presentation.pptx" class="btn-pdf" id="btnExportPptx" aria-label="발표 슬라이드 PPTX 다운로드" title="PowerPoint 파일 다운로드">
+        <span aria-hidden="true">📊</span>
+        <span>PPTX 다운로드</span>
+      </a>
       <button type="button" class="btn-pdf" id="btnExportPdf" aria-label="발표 슬라이드 PDF 내보내기" title="슬라이드 인쇄 및 PDF 저장">
         <span aria-hidden="true">📄</span>
         <span>PDF 내보내기</span>
@@ -1813,6 +1819,7 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
   <button type="button" id="deckNext" aria-label="다음 슬라이드 (단축키 → / Space)">다음 ▶</button>
   <span class="sep" aria-hidden="true"></span>
   <button type="button" id="deckNotes" aria-label="발표자 대본 보기 (단축키 N)">💬 발표 대본</button>
+  <a href="/easter/DART_Insight_Presentation.pptx" download="DART_Insight_Presentation.pptx" id="btnDeckExportPptx" style="color:inherit;text-decoration:none;display:inline-flex;align-items:center;padding:7px 12px;border-radius:var(--radius-pill);font-size:12.5px;font-weight:600;background:var(--color-bg-subtle);border:1px solid var(--color-border);cursor:pointer" title="PPTX 슬라이드 다운로드">📊 PPTX 다운로드</a>
   <button type="button" id="btnDeckExportPdf" aria-label="슬라이드 PDF 저장 (단축키 Ctrl/Cmd+P)">📄 PDF 저장</button>
   <button type="button" id="deckFull" aria-label="전체화면 (단축키 F)">⛶ 전체화면</button>
   <button type="button" id="deckExit" aria-label="발표 모드 나가기 (단축키 Esc)">✕ 나가기</button>
@@ -2030,7 +2037,7 @@ stepper('#userflow', '#flowtext', [
     },
     {
       title: '10 · AX 일하는 방식의 혁신 & 피날레 (AI Transformation Way)',
-      text: 'DART Insight 프로젝트의 진짜 차별점은 "AI를 활용해 일하는 방식을 근본적으로 혁신(AX)"했다는 점입니다. 기획 단계의 스펙 엔지니어링, AGENTS.md 기반 자율 페어 프로그래밍, 2,626개 테스트의 기계적 품질 게이트를 구축했습니다. 그 결과 3주 만에 421개 PR을 충돌 없이 완주하며 생산성 400% 향상과 결함 재작업률 0%를 달성했습니다. "AI는 최고의 비서지, 대표가 아닙니다." 이것이 DART Insight 팀의 확신입니다. 경청해 주셔서 감사합니다.'
+      text: 'DART Insight 프로젝트의 진짜 차별점은 "AI를 활용해 일하는 방식을 근본적으로 혁신(AX)"했다는 점입니다. 1단계 성공기준(SC)부터 2단계 AI 기획(FS&AC), 3단계 ADR 선행설계, 4단계 WBS 분해, 5단계 Claude Code와 Antigravity의 자율 페어 코딩, 6단계 2,626개 테스트 품질 게이트, 7단계 수용기준 100% 검증까지 7단계 라이프사이클을 완성했습니다. 3주 만에 421개 PR을 충돌 없이 완주하며 생산성 400% 향상과 결함 재작업률 0%를 달성했습니다. "AI는 최고의 비서지, 대표가 아닙니다." 이것이 DART Insight 팀의 확신입니다. 경청해 주셔서 감사합니다.'
     }
   ];
   
