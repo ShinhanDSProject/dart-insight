@@ -517,48 +517,8 @@ input[type=range] { width: 100%; accent-color: var(--color-primary) }
 .principles b { font-size: 15px }
 .principles span { font-size: 13px; color: var(--color-text-muted) }
 
-/* 주차별 발자취 */
-.weekcards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px }
-@media (max-width: 760px) { .weekcards { grid-template-columns: 1fr } }
-.weekcard { text-align: left; cursor: pointer; border: 1px solid var(--color-border); background: var(--color-bg-raised); border-radius: var(--radius-lg); padding: 20px; display: grid; gap: 10px; transition: transform var(--motion-base) var(--ease-out), box-shadow var(--motion-base) }
-.weekcard:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover) }
-.weekcard[aria-pressed="true"] { border-color: var(--color-accent); background: var(--color-accent-subtle) }
-.weekcard .wk { display: flex; justify-content: space-between; gap: 8px; align-items: baseline }
-.weekcard .wk b { font-size: 16px }
-.weekcard .wk span { font-size: 12px; color: var(--color-text-muted) }
-.weekcard .head { font-size: 14.5px; font-weight: 700; color: var(--color-text) }
-.weekcard .nums { display: flex; gap: 14px; font-size: 12px; color: var(--color-text-muted) }
-.weekcard .nums b { font-family: var(--font-num); font-size: 18px; color: var(--color-text); display: block }
-.chartbox { margin-top: 14px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 18px 18px 10px; background: var(--color-bg-raised); min-width: 0 }
-.chartbox .scroll { overflow-x: auto }
-.chartbox svg { display: block; width: 100%; min-width: 620px; height: auto }
-.chartcap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--color-text-muted) }
-.chartcap b { color: var(--color-text) }
-.dbar { cursor: pointer; transition: opacity var(--motion-fast) }
-.dbar.dim { opacity: .25 }
-.w1 { fill: var(--color-s2) } .w2 { fill: var(--color-s1) } .w3 { fill: var(--color-s3) }
+/* 주차별 발자취 (제거됨 - 7단계 인터랙티브 파이프라인으로 대체) */
 .tip { position: fixed; z-index: 60; pointer-events: none; background: var(--color-primary); color: var(--color-primary-text); font-size: 12px; padding: 6px 12px; border-radius: var(--radius-sm); box-shadow: var(--shadow-md); white-space: nowrap }
-.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 22px 0 14px }
-.search { display: flex; align-items: center; gap: 8px; height: 42px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-pill); padding: 0 16px; background: var(--color-bg-raised); flex: 1 1 220px; min-width: 0 }
-.search input { border: 0; background: transparent; outline: none; font: inherit; color: var(--color-text); width: 100%; min-width: 0 }
-.count { font-size: 13.5px; color: var(--color-text-muted) }
-.weekblock { display: grid; gap: 10px; margin-top: 20px }
-.weekblock > h3 { font-size: 18px; display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline }
-.weekblock > h3 span { font-size: 13px; font-weight: 500; color: var(--color-text-muted) }
-.weekblock > p { color: var(--color-text-muted); font-size: 14px; max-width: 52em }
-details.group { border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-raised) }
-details.group summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 14px 18px; align-items: center }
-details.group summary::-webkit-details-marker { display: none }
-details.group summary b { font-size: 15px }
-details.group summary .d { grid-column: 1; font-size: 13px; color: var(--color-text-muted) }
-details.group summary .c { grid-row: 1 / span 2; grid-column: 2; display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--color-text-muted) }
-details.group summary .c::after { content: "▾"; transition: transform var(--motion-base) }
-details.group[open] summary .c::after { transform: rotate(180deg) }
-.prlist { list-style: none; margin: 0; padding: 0 18px 14px; display: grid }
-.prlist li { display: grid; grid-template-columns: 68px 50px 1fr; gap: 8px; padding: 8px 0; border-top: 1px solid var(--color-border); font-size: 14px; align-items: baseline }
-.prlist li a { font-family: var(--font-num); font-size: 13px; font-weight: 700 }
-.prlist li .dt { font-family: var(--font-num); font-size: 12px; color: var(--color-text-muted) }
-.prlist li .t { min-width: 0; overflow-wrap: anywhere }
 mark { background: var(--color-attention-subtle); color: var(--color-attention); border-radius: 3px; padding: 0 2px }
 .empty { padding: 28px; text-align: center; color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-lg) }
 
@@ -1718,74 +1678,93 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
   <div class="sechead">
     <p class="kicker">09 · AX Way of Working</p>
     <h2>AI와 사람이 어떻게 협업하여 3주 만에 엔터프라이즈 시스템을 완성했는가?</h2>
-    <p>단순한 코드 생성을 넘어 기획·설계·검증·협업 전 과정에 AI 에이전트를 내재화한 DART Insight 팀의 AX(AI 전환) 일하는 방식입니다.</p>
+    <p>노션 개발 워크플로우와 AGENTS.md 헌장을 바탕으로, 기획·설계·구현·품질 게이트·수용 기준 검증까지 AI 에이전트를 내재화한 AX 파이프라인입니다. 각 상자를 누르면 담당 역할과 도구, 핵심 산출물이 오른쪽에 즉시 표시됩니다.</p>
   </div>
 
-  <!-- AX 3대 핵심 협업 파이프라인 -->
-  <div class="ax-grid">
-    <!-- Pillar 1 -->
-    <div class="ax-card ax-card--1">
-      <div class="ax-card__top">
-        <div class="ax-card__head">
-          <span class="ax-card__step">Pillar 01 · 기획 & 명세</span>
-          <span class="badge">AI Spec Engineering</span>
-        </div>
-        <h3>성공 기준(SC) 기반 정밀 기획서 자동화</h3>
-        <p>"모호한 요구사항은 환각과 재작업의 주원인입니다." 비즈니스 성공 기준(SC)을 입력하면 AI 스킬이 기획서(FS-n)와 측정 가능한 수용 기준(AC)을 도출하고 WBS 단위 이슈로 원자 분해합니다.</p>
-        <div class="ax-card__tools">
-          <span class="ax-card__tool-chip">.claude/skills/feature-spec</span>
-          <span class="ax-card__tool-chip">spec-to-issues</span>
-        </div>
-      </div>
-      <div class="ax-card__metric">
-        <span>✓</span> 74개 기능 기획서(FS) & 수용 기준(AC) 100% 충족
-      </div>
-    </div>
+  <!-- AX 인터랙티브 파이프라인 다이어그램 -->
+  <div class="arch">
+    <div class="archsvg">
+      <svg viewBox="0 0 760 360" id="axsvg" role="group" aria-label="DART Insight AX 협업 라이프사이클 다이어그램">
+        <defs>
+          <marker id="ax_ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/>
+          </marker>
+        </defs>
 
-    <!-- Pillar 2 -->
-    <div class="ax-card ax-card--2">
-      <div class="ax-card__top">
-        <div class="ax-card__head">
-          <span class="ax-card__step">Pillar 02 · 개발 & 협업</span>
-          <span class="badge badge--accent">Agentic Pair-Programming</span>
-        </div>
-        <h3>AGENTS.md 헌장 기반 자율 페어 프로그래밍</h3>
-        <p>"AI와 사람 모두가 동일한 개발 기준을 지킵니다." 추측 코딩을 엄격히 금지하고, Claude Code(구현)와 Antigravity(설계·리뷰)가 실시간 파일/터미널 동기화로 66개 ADR을 상호 교차 검증합니다.</p>
-        <div class="ax-card__tools">
-          <span class="ax-card__tool-chip">AGENTS.md 규칙 헌장</span>
-          <span class="ax-card__tool-chip">66개 ADR 아키텍처 기록</span>
-          <span class="ax-card__tool-chip">Rebase Merge</span>
-        </div>
-      </div>
-      <div class="ax-card__metric">
-        <span>✓</span> 421개 PR 전수 선형 병합 (아키텍처 부채 0건)
-      </div>
-    </div>
+        <!-- Edges: Row 1 -->
+        <path class="eg" data-e="ax_sc ax_spec" d="M195 75 H235" marker-end="url(#ax_ar)"/>
+        <path class="eg" data-e="ax_spec ax_arch" d="M425 75 H465" marker-end="url(#ax_ar)"/>
+        <path class="eg" data-e="ax_arch ax_issue" d="M655 75 H690 V140 H670" marker-end="url(#ax_ar)"/>
 
-    <!-- Pillar 3 -->
-    <div class="ax-card ax-card--3">
-      <div class="ax-card__top">
-        <div class="ax-card__head">
-          <span class="ax-card__step">Pillar 03 · 품질 & 검증</span>
-          <span class="badge badge--ok">AI Quality Gate</span>
-        </div>
-        <h3>기계적 자동화 품질 게이트 & 전수 테스트</h3>
-        <p>"AI가 만든 코드는 사람이 짠 코드보다 2배 더 엄격히 검증합니다." PR마다 2,626개 테스트, ArchUnit 아키텍처 규칙, axe-core 웹 접근성, gitleaks 시크릿 유출을 CI 파이프라인에서 자동 차단합니다.</p>
-        <div class="ax-card__tools">
-          <span class="ax-card__tool-chip">Vitest (1,892)</span>
-          <span class="ax-card__tool-chip">pytest (926)</span>
-          <span class="ax-card__tool-chip">ArchUnit</span>
-          <span class="ax-card__tool-chip">axe-core</span>
-        </div>
-      </div>
-      <div class="ax-card__metric">
-        <span>✓</span> 2,626개 테스트 100% 통과 · 보안 사고 0건
-      </div>
+        <!-- Edges: Connecting Row 1 to Row 2 -->
+        <path class="eg" data-e="ax_issue ax_code" d="M475 171 H130 V245" marker-end="url(#ax_ar)"/>
+
+        <!-- Edges: Row 2 -->
+        <path class="eg" data-e="ax_code ax_gate" d="M235 281 H265" marker-end="url(#ax_ar)"/>
+        <path class="eg" data-e="ax_gate ax_done" d="M485 281 H515" marker-end="url(#ax_ar)"/>
+
+        <!-- Section Labels -->
+        <text class="el" x="25" y="24">PHASE 1 · 정밀 기획 &amp; 아키텍처 정의 (Spec First)</text>
+        <text class="el" x="25" y="232">PHASE 2 · 에이전틱 자율 구현 &amp; 기계적 품질 게이트 (Execution &amp; Gate)</text>
+
+        <!-- Node 1: 성공 기준 (SC) -->
+        <g class="nd" data-n="ax_sc" tabindex="0" role="button" aria-label="1단계: 비즈니스 성공 기준 수립">
+          <rect x="25" y="42" width="170" height="66" rx="10"/>
+          <text class="a" x="110" y="68" text-anchor="middle">01. 성공 기준 (SC)</text>
+          <text class="b" x="110" y="88" text-anchor="middle">비즈니스 목표 · 사람 주도</text>
+        </g>
+
+        <!-- Node 2: AI 스펙 엔지니어링 (FS & AC) -->
+        <g class="nd" data-n="ax_spec" tabindex="0" role="button" aria-label="2단계: AI 스펙 엔지니어링">
+          <rect x="235" y="42" width="190" height="66" rx="10"/>
+          <text class="a" x="330" y="68" text-anchor="middle">02. AI 기획 (FS &amp; AC)</text>
+          <text class="b" x="330" y="88" text-anchor="middle">수용기준 명세 · 사람 🤝 AI</text>
+        </g>
+
+        <!-- Node 3: 아키텍처 설계 & 선행 문서화 -->
+        <g class="nd" data-n="ax_arch" tabindex="0" role="button" aria-label="3단계: 아키텍처 설계 및 ADR">
+          <rect x="465" y="42" width="190" height="66" rx="10"/>
+          <text class="a" x="560" y="68" text-anchor="middle">03. 아키텍처 (ADR)</text>
+          <text class="b" x="560" y="88" text-anchor="middle">66개 ADR · API/DB 선행</text>
+        </g>
+
+        <!-- Node 4: WBS 작업 분해 -->
+        <g class="nd" data-n="ax_issue" tabindex="0" role="button" aria-label="4단계: WBS 작업 분해">
+          <rect x="475" y="140" width="195" height="62" rx="10"/>
+          <text class="a" x="572" y="166" text-anchor="middle">04. WBS 작업 분해</text>
+          <text class="b" x="572" y="186" text-anchor="middle">AC 1:1 이슈 분해 · AI 스킬</text>
+        </g>
+
+        <!-- Node 5: 에이전틱 자율 페어 코딩 (Core Highlight Node) -->
+        <g class="nd core" data-n="ax_code" tabindex="0" role="button" aria-label="5단계: 에이전틱 자율 페어 프로그래밍">
+          <rect x="25" y="245" width="210" height="72" rx="12"/>
+          <text class="a" x="130" y="274" text-anchor="middle">05. 자율 페어 코딩</text>
+          <text class="b" x="130" y="294" text-anchor="middle">Claude Code 🤝 Antigravity</text>
+          <text class="b" x="130" y="308" text-anchor="middle">AGENTS.md 헌장 엄수</text>
+        </g>
+
+        <!-- Node 6: 자동화 품질 게이트 -->
+        <g class="nd" data-n="ax_gate" tabindex="0" role="button" aria-label="6단계: 자동화 품질 게이트">
+          <rect x="265" y="245" width="220" height="72" rx="10"/>
+          <text class="a" x="375" y="274" text-anchor="middle">06. 자동화 품질 게이트</text>
+          <text class="b" x="375" y="294" text-anchor="middle">2,626개 테스트 · 접근성</text>
+          <text class="b" x="375" y="308" text-anchor="middle">gitleaks 보안 전수 검증</text>
+        </g>
+
+        <!-- Node 7: 수용 기준 검증 & 완료 -->
+        <g class="nd" data-n="ax_done" tabindex="0" role="button" aria-label="7단계: 수용 기준 검증 및 완료">
+          <rect x="515" y="245" width="210" height="72" rx="10"/>
+          <text class="a" x="620" y="274" text-anchor="middle">07. 수용기준 검증 (Done)</text>
+          <text class="b" x="620" y="294" text-anchor="middle">AC 100% 증빙 대조</text>
+          <text class="b" x="620" y="308" text-anchor="middle">기능 완료 판정</text>
+        </g>
+      </svg>
     </div>
+    <div class="card archinfo" id="axinfo" aria-live="polite"></div>
   </div>
 
   <!-- Before vs After AX 임팩트 비교 -->
-  <div class="bna-box" style="margin-bottom:28px">
+  <div class="bna-box" style="margin-top:24px">
     <div class="bna-head">
       <div>
         <span class="label">AX Transformation Impact</span>
@@ -1815,27 +1794,14 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
     </div>
   </div>
 
-  <!-- AX 실증 기록 서브헤드 -->
-  <div class="subhead" style="margin-top:32px">
+  <!-- 정량적 품질 검증 지표 -->
+  <div class="callout" style="margin-top:20px">
+    <span aria-hidden="true" style="font-size:20px">✓</span>
     <div>
-      <h3 style="font-size:18px;font-weight:700">AX 협업의 실증 기록 (421+ PRs & Daily Commits)</h3>
-      <p class="muted" style="font-size:13px;margin-top:2px">AI 에이전트와 사람이 나눈 모든 기획, 설계, 검증의 역사가 GitHub PR과 일별 커밋으로 고스란히 남아있습니다.</p>
+      <p><strong>수치로 입증된 AX 협업 무결성</strong></p>
+      <p class="muted" style="margin-top:4px">기능 기획서(FS-n) <strong>수용 기준(AC) 100% 충족</strong> 검증 완료 · <strong>2,626개 이상의 자동화 테스트</strong>(화면 1,700 · AI 926 · 백엔드 ArchUnit) 100% 통과 · <code>axe-core</code> 기반 웹 접근성 0개 위반 · 모든 PR <code>gitleaks</code> 보안 스캔 통과.</p>
     </div>
   </div>
-  <div class="weekcards" id="weekcards"></div>
-  <div class="chartbox">
-    <div class="chartcap"><b>날짜별 커밋 (10/19–11/06)</b><span>막대에 올리면 수, 누르면 그 주만 보기</span></div>
-    <div class="scroll"><svg id="daily" viewBox="0 0 760 220" role="img" aria-label="10월 19일부터 11월 6일까지 날짜별 커밋 수"></svg></div>
-  </div>
-  <div class="toolbar">
-    <div class="seg" role="group" aria-label="주차 고르기" id="weekseg">
-      <button type="button" data-w="0" aria-pressed="true">전체</button><button type="button" data-w="1" aria-pressed="false">1주 차</button><button type="button" data-w="2" aria-pressed="false">2주 차</button><button type="button" data-w="3" aria-pressed="false">3주 차</button>
-    </div>
-    <label class="search"><span aria-hidden="true" class="muted">⌕</span><input id="q" type="search" placeholder="PR 제목 찾기 (예: 채팅, 다크, 노트)" aria-label="PR 제목 찾기"></label>
-    <button class="btn btn--sm" type="button" id="toggleAll">모두 펼치기</button>
-    <span class="count" id="count" aria-live="polite"></span>
-  </div>
-  <div id="weekview"></div>
 </section>
 
 </div></main>
@@ -1868,15 +1834,6 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
 <div class="tip" id="tip" hidden></div>
 
 <script>
-
-const WEEKS = [[{"name": "기반과 협업 규칙", "desc": "모노레포·AI 도구 규칙·ERD·API 명세·ADR 도입부터 정했습니다", "prs": [[1, "10/19", "모노레포 팀 협업 가이드 추가"], [3, "10/19", "사업계획서와 심화 조사 보고서 추가"], [7, "10/21", "노션 기획 문서에 맞춰 README·템플릿 정리"], [43, "10/21", "AI 도구 규칙·개발환경 설정·자동 검사 추가"], [70, "10/21", "세 서비스 프로젝트 생성·로컬 실행"], [71, "10/21", "로컬 DB·벡터 DB 실행 환경"], [72, "10/21", "ERD 초안"], [73, "10/21", "API 명세 초안"], [74, "10/21", "Spring Boot–FastAPI 내부 호출과 공통 에러 형식"], [92, "10/22", "병합 방식을 Rebase and merge로 통일"], [111, "10/22", "개발용 OpenDART 키 안내를 팀 공용 키 기준으로 고치기"], [113, "10/22", "아키텍처 결정 기록(ADR) 도입"], [115, "10/22", "로컬 개발 환경에서 Docker 제거, MariaDB 직접 설치로 변경"], [116, "10/22", "공용 OpenDART 키 예외와 이용약관 주의를 규칙 문서에 추가"], [117, "10/22", "소급 ADR을 코드 대조 검토 결과에 맞춰 고치기"], [133, "10/22", "API 경로를 서비스별 한 곳에서 관리"], [135, "10/22", "컨트롤러·OpenDART·AI 서버 라우터 경로 상수 일원화"], [139, "10/23", "개발 워크플로우와 AI 작업 스킬을 저장소 규칙에 반영"], [155, "10/23", "서비스별 코드 컨벤션을 conventions.yaml로 정리"], [168, "10/23", "Checkstyle 최소 규칙을 빌드에 추가"], [169, "10/23", "컨트롤러의 Repository 직접 사용을 Service로 옮기기"], [170, "10/23", "ArchUnit으로 계층 규칙 검사"], [171, "10/23", "컨트롤러 안 DTO record를 파일로 분리"], [176, "10/23", "빈의 생성자 주입을 @RequiredArgsConstructor로 바꾸기"], [178, "10/23", "ai-server 테스트 폴더를 app 구조에 맞추고 서비스별 폴더 안내 정리"], [179, "10/23", "도메인 안을 계층별 하위 패키지로 나누기"], [190, "10/23", "모든 테이블의 기본키를 자동 증가 id로 맞추기"], [93, "10/22", "로컬 DB 포트 충돌 시 다른 DB에 접속되는 문제"], [173, "10/23", "ai-server 호출 본문이 비어 도착하는 문제(HTTP/2 업그레이드)"]]}, {"name": "공시 수집과 비교의 뼈대", "desc": "기업 검색부터 분석 작업까지 MVP 흐름을 한 번에 세웠습니다", "prs": [[76, "10/21", "기업 고유번호 목록 수집·저장"], [77, "10/21", "기업 검색"], [78, "10/21", "OpenDART 정기공시 목록 조회"], [79, "10/21", "기업별 정기보고서 목록"], [80, "10/21", "보고서 메타데이터 표시"], [81, "10/21", "DART 원문 열람"], [82, "10/21", "비교 보고서 쌍 선택"], [83, "10/21", "재무제표 API 조회·저장"], [84, "10/21", "비교 가능성 검증"], [85, "10/21", "재무제표 계정 비교"], [86, "10/21", "분석 결과 저장·조회"], [87, "10/21", "분석 작업 생성·상태 관리"], [95, "10/22", "서버 시작 중 접수된 분석이 중단 처리되는 문제"], [97, "10/22", "직접 선택한 보고서 쌍이 전년 동기여도 CUSTOM으로 저장되는 문제"], [184, "10/23", "계정 ID가 바뀐 같은 이름 계정이 두 행으로 갈리는 문제"], [201, "10/23", "보고서 목록을 최근 3년만 먼저 보이고 내부 코드 숨기기"], [186, "10/23", "보고서 선택 화면의 다음 단계 버튼을 스크롤 없이 보이게"]]}, {"name": "원문 비교와 근거 있는 AI", "desc": "원문 구조화, 문장·표 변경 탐지, 근거 요약과 표현 검사", "prs": [[100, "10/22", "LLM 호출 모듈"], [101, "10/22", "원문 수집·구조화·위치 보존"], [102, "10/22", "본문·표 변경 탐지"], [103, "10/22", "변경 항목 우선순위 산정"], [107, "10/22", "근거 기반 요약·설명"], [108, "10/22", "투자 권유성 표현 자동 검사"], [109, "10/22", "AI 생성·출처 표시와 이용 안내"], [159, "10/23", "재무 설명 등급·인용 확인 ADR-0015 제안"], [162, "10/23", "계정명 정리 규칙과 동의어 사전을 설명 후보 검색에 적용"], [197, "10/23", "재무 설명의 등급(STATED·RELATED·NONE)·인용 판정과 코드 강등 검증"], [202, "10/23", "같은 금액 계정이 요약에 두 번 나오지 않게"], [292, "10/25", "문장 변경에 NUMERIC_UPDATE·MOVED 분류 추가"], [301, "10/25", "이전 방식 분석 안내와 새 방식으로 다시 분석"]]}, {"name": "결과 화면과 근거 보기", "desc": "비교 결과, 근거 상세, 원문 이동, 차트와 내보내기", "prs": [[88, "10/21", "비교 결과 화면"], [89, "10/21", "수치 근거 상세"], [99, "10/22", "근거 패널 증감률이 두 번 반올림되는 문제"], [104, "10/22", "결과 화면 문장 변경 탭·우선순위 정렬"], [105, "10/22", "문장·표 근거 상세"], [106, "10/22", "근거에서 DART 원문 위치로 이동"], [188, "10/23", "재무 근거 패널을 표 옆에 열기"], [191, "10/23", "재무 탭에 증감 차트 추가"], [203, "10/23", "결과 화면 위쪽을 비교 맥락 카드 하나로 줄이기"], [204, "10/23", "재무 표 정렬·머리글 고정·행에서 근거 열기"], [205, "10/23", "요약 탭 맨 위에 변화 개요 숫자 두기"], [206, "10/23", "섹션 필터"], [207, "10/23", "요약·근거·건수의 수치 비교를 작은 시각화로 보이기"], [215, "10/24", "삭제된 문장을 취소선 대신 읽기 쉬운 표시로"], [216, "10/24", "원문 목차·섹션 이름을 읽기 쉽게 보이기"], [234, "10/25", "재무 변화 CSV 내보내기와 인쇄용 화면"], [248, "10/25", "재무 표 계정 찾기"], [260, "10/25", "요약 탭 핵심 3줄"], [278, "10/25", "문장 변경 고정과 고정만 보기"], [281, "10/25", "고정한 문장 변경 출처 포함 복사"], [289, "10/25", "기업 화면에 이미 분석한 비교 보여 주기"], [291, "10/25", "결과 화면에서 같은 기업의 다른 분석으로 바로 가기"], [296, "10/25", "요약 탭 섹션별 문장 변경 막대"], [299, "10/25", "문장 변경 비율 막대에 숫자만 바뀜·위치 이동 넣기"], [302, "10/25", "문장 변경 유형 도움말"], [305, "10/25", "숫자만 바뀐 문장 카드에 바뀐 숫자 요약"]]}, {"name": "근거로 답하는 AI 질문", "desc": "질문·답·인용 검증, 문장 한 줄 풀이, 답 평가와 후속 질문", "prs": [[221, "10/24", "근거로 답하는 AI 질문 설계(API·ERD·ADR-0019)"], [222, "10/24", "질문 답변 생성과 인용 검증(ai-server)"], [223, "10/24", "질문 답변 API와 후보 검색·저장"], [224, "10/24", "AI 질문 탭과 요약 진입 카드"], [229, "10/25", "문장 변경 AI 한 줄 풀이 설계(API·ERD)"], [232, "10/25", "문장 변경 AI 한 줄 풀이 API"], [235, "10/25", "문장 카드 AI 한 줄 풀이"], [240, "10/25", "AI 답 평가 저장과 답 카드 평가 버튼"], [246, "10/25", "AI 답·풀이 출처와 함께 복사"], [247, "10/25", "답 뒤 이어서 물어볼 질문 제안"], [261, "10/25", "섹션 질문은 그 섹션의 바뀐 문단으로 답하기"], [264, "10/25", "문장 변경 탭에서 섹션 변화 AI에게 묻기"], [269, "10/25", "질문 입력 중 섹션 질문 제안"], [272, "10/25", "재무 근거 패널에서 계정 변화 AI에게 묻기"], [276, "10/25", "질문 탭 지난 답 접기와 질문 찾기"], [285, "10/25", "답을 못 찾았을 때 다음 행동 제안"], [287, "10/25", "보고서 표지 제목으로 섹션 질문 만들지 않기"]]}, {"name": "회원과 개인화", "desc": "회원가입, 로그인·토큰 갱신, 소셜 로그인, 관심 기업", "prs": [[140, "10/24", "이메일·비밀번호 기반 일반 회원가입 구현"], [213, "10/24", "일반 로그인과 토큰 갱신 구현"], [226, "10/24", "소셜 계정 로그인"], [307, "10/25", "소셜 로그인 backend 반영"], [256, "10/25", "관심 기업 즐겨찾기"], [233, "10/25", "최근 본 분석 바로가기"]]}, {"name": "사용성·접근성", "desc": "디자인 토큰, 다크 모드, 단축키, 접근성 테스트, 모바일", "prs": [[75, "10/21", "화면 골격·공통 컴포넌트"], [130, "10/22", "Figma 시안의 디자인 토큰과 화면 골격 적용"], [131, "10/22", "디자인 시스템 문서를 MVP 흐름과 Figma 시안에 맞춰 추가"], [157, "10/23", "폴더 구조를 app·shared·features로 정리"], [160, "10/23", "디자인 시스템 컴포넌트를 shared/ui로 만들고 화면에 적용"], [163, "10/23", "화면 상태를 useReducer·커스텀 훅·ts-pattern으로 바꾸기"], [185, "10/23", "화면에서 개발용 문구 지우기"], [200, "10/23", "상태 변화에 절제된 애니메이션 넣기"], [214, "10/24", "넓은 화면에서 본문을 가운데 정렬"], [217, "10/24", "기업 검색 즉시 결과와 같은 이름 회사 구분"], [238, "10/25", "처음 쓰는 사용자 3단계 안내"], [243, "10/25", "모바일 결과 탭·터치 영역·사용법 다시 보기"], [249, "10/25", "AI 사용 현황 페이지(품질·비용)"], [252, "10/25", "키보드 단축키와 도움말"], [253, "10/25", "다크 모드"], [257, "10/25", "접근성 자동 점검(axe) 테스트"], [265, "10/25", "화면별 코드 나누기로 첫 로딩 줄이기"], [268, "10/25", "분석 완료 탭 제목·브라우저 알림"], [275, "10/25", "화면별 브라우저 탭 제목"], [280, "10/25", "기업 검색 초성·띄어쓰기 허용"], [283, "10/25", "검색 결과 키보드 이동과 일치 부분 강조"], [294, "10/25", "결과 화면 공시 용어 풀이"]]}], [{"name": "실제 AI 연결과 운영 기반", "desc": "OpenAI 연결, AI 사용 현황, 공용 키 정리, 루트 실행 명령", "prs": [[334, "10/26", "ai-server에 OpenAI LLM 제공자 연결"], [352, "10/26", "AI 사용 현황 제공자·모델별 보기"], [318, "10/26", "팀 공용 키를 노션 '공용 키 모음' 한 곳에서 가져가기"], [321, "10/26", "저장소 루트 package.json으로 세 서비스 실행·검사 명령 모으기"], [322, "10/26", "frontend/.env가 있으면 npm test 3건 실패(VITE_API_BASE_URL을 테스트가 읽음)"], [324, "10/26", "루트 실행 도구 scripts/run.mjs를 run.js로 이름 바꾸기"], [326, "10/26", "backend 빈 생성자를 @RequiredArgsConstructor로 바꾸고 DI-1 문구 분명히 하기"], [328, "10/26", "ADR 번호 0019 겹침 정리"], [346, "10/26", "테스트 DB 연결 풀 줄이기(CI 연결 수 초과)"], [415, "10/27", "겹친 V32 마이그레이션을 V33으로 옮기기"], [478, "10/29", "실패한 분석의 LLM 호출 기록 저장과 AI 사용 현황 단위 평균 확장"], [317, "10/26", "카카오 소셜 로그인 이메일 권한 요청 제외"]]}, {"name": "기업 개요", "desc": "브리핑·재무 흐름·주주·공시 타임라인·전망·약속 대조·체크 포인트", "prs": [[335, "10/26", "기업 개황 카드와 기업 화면 개요 탭"], [338, "10/26", "여러 기간 주요 재무 흐름"], [342, "10/26", "최대주주·임원·배당 변화"], [347, "10/26", "최근 수시공시 타임라인"], [348, "10/26", "근거와 함께 보는 AI 기업 브리핑"], [353, "10/26", "정정본 접수번호로 온 최대주주·임원·배당 자료 받기"], [360, "10/26", "기업 정보 캐시를 DartCacheLoader 공통 순서로 합치기"], [367, "10/26", "주요사항보고서 핵심 수치 카드"], [372, "10/26", "기업 개요에서 최신 사업보고서에 근거해 묻기 (FS-53)"], [386, "10/27", "기업 개요 탭 길이 줄이기와 영역 바로 가기"], [389, "10/27", "기업 개요 '주요 재무 흐름' 차트를 한 줄로 놓기"], [414, "10/27", "재무 비율 여러 기간 흐름 (FS-54)"], [421, "10/27", "확인해 볼 공시 모음 (FS-55)"], [423, "10/27", "핵심 수치 출처 줄 띄어쓰기 고치기"], [435, "10/27", "기업 개요 바로 가기의 지금 위치 표시 고치기"], [452, "10/27", "기업 개요 공시 타임라인 차트 (FS-58)"], [453, "10/27", "큰 숫자·count-up·스켈레톤·탭 움직임 공통 표현과 기업 개요 지표 줄 (FS-58)"], [469, "10/27", "공시 타임라인 붙은 점을 건수 모음 점으로 묶기"], [471, "10/27", "회사가 밝힌 전망·계획 모아 보기 (FS-59)"], [474, "10/28", "약속과 실제 대조 — 작년 계획 → 올해 보고서 (FS-60)"], [485, "10/29", "재무 체크 포인트 (FS-62)"], [547, "10/30", "감사의견 체크 포인트에 계속기업 관련 강조사항 반영 (FS-62 후속)"], [518, "10/29", "기업 개요 재무 체크 포인트·약속 대조에서 보고서 비교 분석 바로 연결"], [531, "10/29", "기업 개요 주요 재무 흐름에서 고른 보고서 종류의 최근 2기 비교 분석 연결"]]}, {"name": "발견과 여러 기업 비교", "desc": "대표 기업, 시즌 변화 Top 10, 나란히 보기, 관심 기업 새 공시·알림", "prs": [[336, "10/26", "기업 즐겨찾기 등록·해제"], [362, "10/26", "즐겨찾기 기업 신규 정기공시 폴링"], [366, "10/26", "관심 기업 공시 피드"], [369, "10/26", "관심 기업 피드 테스트 자료에 keyItemsKind 넣기"], [375, "10/26", "첫 화면 '관심 기업 새 공시'·'최근 본 분석' 길이 줄이기와 글자 링크 기본 모양"], [377, "10/26", "첫 화면 '최근 본 분석'과 '관심 기업 새 공시'를 두 열로 놓기"], [379, "10/26", "첫 화면 두 열의 폭·높이와 행 줄 맞추기"], [380, "10/26", "분석 완료 웹 알림"], [382, "10/26", "첫 화면 두 열 행을 키워 공시 이름이 잘리지 않게 하기"], [408, "10/27", "기업 검색 결과 행을 한 줄로 줄이고 10곳씩 보이기"], [409, "10/27", "첫 화면 대표 기업 목록(시가총액 상위 100)"], [422, "10/27", "여러 기업 나란히 보기 (FS-56)"], [425, "10/27", "기업 나란히 보기에서 누를 때 표 위치·열 폭이 바뀌지 않게 하기"], [427, "10/27", "첫 화면 '이번 시즌 변화가 큰 기업' Top 10"], [428, "10/27", "기업 나란히 보기 검색 결과를 키보드로 고르기"], [433, "10/27", "대표 기업: 공공데이터포털 주식시세를 V2 주소로 부르기"], [491, "10/29", "첫 화면 검색을 가운데로 올리고 대표 기업·Top 10을 나란히 배치"], [501, "10/29", "로그인 전에도 헤더 알림 버튼을 보이고 누르면 로그인으로 보내기"], [517, "10/29", "기업 나란히 보기에 전년 동기 대비 증감 표시와 개별 비교 진입 링크 추가"], [537, "10/30", "기업 나란히 보기 전년 동기 완료 분석 직결·접수번호 보정 및 관심 기업 일괄 비교 연결"]]}, {"name": "분석 깊이", "desc": "관련 수시공시 연결(M8 측정), BM25 설명 검색, 위험 요인, 관점별 요약", "prs": [[361, "10/26", "수시공시 보조 근거 사전 조사 결과"], [368, "10/26", "문장 변경 이력 조회"], [371, "10/26", "관련 수시공시 API 명세·ERD·ADR 초안"], [384, "10/26", "수시공시 목록 수집·저장"], [387, "10/27", "변경점과 수시공시 제목 규칙 연결"], [392, "10/27", "설명 등급·인용 저장과 화면 표시"], [395, "10/27", "주요사항보고서 주요정보로 연결 강도 판정"], [400, "10/27", "원문 파싱: 표 안의 표가 한 셀로 뭉치고 빈 표가 블록으로 남음"], [402, "10/27", "흑자·적자 전환 상태와 계산식 비교 기간 표기"], [403, "10/27", "자본변동표 계정을 구성요소(계정 상세)로 구분해 보이기와 재무 표 높이"], [404, "10/27", "문장 우선순위 위험 어휘에 '계속기업' 추가"], [419, "10/27", "관련 수시공시 조회 API"], [429, "10/27", "변경 카드에 관련 수시공시(보조) 칸"], [430, "10/27", "설명 후보 검색을 ai-server로 옮기고 BM25 적용"], [431, "10/27", "보조 근거 정확도(M8) 측정과 규칙 조정"], [440, "10/27", "M8 측정 결과로 관련 수시공시 연결 규칙 고치기"], [470, "10/27", "위험 요인 변화 추적 (FS-61)"], [473, "10/28", "재생성 후에도 실패한 재무 항목에 템플릿 요약"], [476, "10/29", "이전·현재 값이 모두 없는 계정을 재무 비교 결과에서 빼기"], [482, "10/29", "요약을 투자자 관점별로 묶어 보기 (FS-64)"], [483, "10/29", "재무 변화의 크기 맥락 — 매출·자산 대비 (FS-63)"], [506, "10/29", "요약할 재무 수치에 현금흐름표 상위 1개와 영업활동현금흐름 검색어 더하기"], [520, "10/29", "분석 결과 근거 포함 비교 브리프 Markdown 내보내기"], [522, "10/29", "재무 수치 근거 패널에 요약 설명·관련 변경 문단·원문 표 위치 연결"], [528, "10/29", "원문 확인 보고서 전환 시 같은 목차 자동 매칭과 항목 내 검색 추가"], [529, "10/29", "문장 원문 비교 모달에 표 셀 변경 강조와 노트 담기·AI 질문 연결"], [510, "10/29", "문장 근거 상세를 '원문 비교' 모달로 합치고 문단 펼치기 없애기"], [309, "10/26", "근거 패널에도 바뀐 숫자 요약"], [310, "10/26", "문장 변경 '내용 변경만' 보기"], [314, "10/26", "원문 확인 목차에 섹션별 변경 건수"], [316, "10/26", "문장 변경 카드 키보드 검토(j·k·Enter·p)"]]}, {"name": "노트와 커뮤니티", "desc": "내 판단 노트, 커뮤니티 글·댓글·신고·블라인드, 인용 글쓰기", "prs": [[418, "10/27", "내 판단 노트 (FS-57)"], [437, "10/27", "AI 답의 인용 문단을 판단 노트에 담기"], [509, "10/29", "내 판단 노트에 담은 근거 이후의 후속 공시·분석 연결"], [543, "10/30", "내 판단 노트 검색·유형 거르기와 커뮤니티 인용 글쓰기 연결"], [544, "10/30", "요약 카드와 AI 답변 수치 근거에 노트 담기·커뮤니티 인용·후속 질문 동선 연결"], [472, "10/27", "커뮤니티 API·ERD 명세와 사용"], [475, "10/29", "닉네임 정하기와 관리자 역할 확인"], [484, "10/29", "커뮤니티 글·댓글·좋아요 API"], [505, "10/29", "커뮤니티 신고·블라인드·재게시 API"], [511, "10/29", "기업 화면 커뮤니티 탭"], [516, "10/29", "관리자 신고 목록 화면"], [519, "10/29", "커뮤니티 글에 변경점 인용 카드"], [521, "10/29", "커뮤니티 욕설 가리기 설정"], [530, "10/29", "분석 결과와 기업 개요·커뮤니티 인용 글쓰기 양방향 동선 연결"]]}, {"name": "코드 품질 정리", "desc": "What·How 분리(SLAP), 서비스별 컨벤션 리팩터링", "prs": [[438, "10/27", "backend 컨벤션에 What·How 분리(SLAP) 규칙 더하기"], [439, "10/27", "backend analysis·comparison·document What·How 분리(SLAP)"], [441, "10/27", "backend summary·financial·company·report What·How 분리(SLAP)"], [442, "10/27", "backend question·briefing·explanation·keyfact What·How 분리(SLAP)"], [443, "10/27", "backend disclosure·relateddisclosure·note·featured What·How 분리(SLAP)"], [447, "10/27", "ai-server 코드를 conventions.yaml에 맞게 리팩터링"], [449, "10/27", "frontend 코드를 conventions.yaml에 맞게 리팩터링"], [451, "10/27", "backend 코드를 conventions.yaml에 맞게 리팩터링"], [454, "10/27", "근거 ID 풀기(EvidenceRef)를 document 도메인 하나로 합치기"], [455, "10/27", "조회만 하는 서비스에 읽기 전용 트랜잭션 달기 (TX-1)"], [458, "10/27", "엔티티에 Lombok @Getter·@NoArgsConstructor 허용"], [359, "10/26", "잘못된 enum 입력의 errors[]와 비교 불가 사유 테스트"]]}, {"name": "디자인 '심플 통일'", "desc": "Figma 시안 하나로 모든 화면을 같은 모양으로", "prs": [[551, "10/30", "심플 통일: 상단 바 레이아웃과 공통 디자인 토큰 (FS-66)"], [552, "10/30", "심플 통일: 첫 화면·검색·보고서 선택·비교 확인 화면"], [554, "10/30", "심플 통일: 시안에 없는 화면(노트·나란히 보기·AI 사용 현황·로그인 등) 정돈"], [555, "10/30", "심플 통일: 분석 결과·근거 상세·원문 뷰어"], [557, "10/30", "'노트에 담기' 버튼을 다른 행동 버튼과 같은 줄에 배치"], [559, "10/30", "다크 테마에서 공통 입력칸 바탕이 브라우저 기본 회색으로 보임"], [562, "10/31", "시안 맞춤: 첫 화면 검색 집중·요약 탭·재무 수치 탭 (FS-66 후속)"], [563, "10/31", "첫 화면 검색창만 남기기: 펼침 상자 보강·둘러보기 화면"], [565, "10/31", "첫 화면 펼침 상자 Esc 닫기·좁은 화면 위치"], [542, "10/30", "첫 화면 구글형 중앙 집중 레이아웃 및 탐색 탭 정돈"], [503, "10/29", "왼쪽 메뉴를 공통 메뉴와 '지금 보는 기업' 묶음으로 나누기"], [567, "11/01", "요약 탭 '이 기간 수시공시' 상자 (#560 시안 후속)"], [391, "10/27", "분석 결과 화면 탭별 길이 줄이기와 탭 고정"], [394, "10/27", "문장 변경 카드의 종류 안내 문장을 첫 카드에만 보이기"], [398, "10/27", "원문 확인 탭의 긴 항목을 소제목별로 보이기와 목차 고정"], [407, "10/27", "보고서 비교 탭의 보고서 표·이미 분석한 비교·보고서 정보 줄이기"], [315, "10/26", "헤더 화면 테마 선택을 아이콘 스위치로 단순하게"], [527, "10/29", "이용 안내 펼침 상자에 '접기' 표시 추가"]]}, {"name": "검증·발표 준비", "desc": "정상·예외 흐름 검증, AI 표시 점검, 시연 시나리오", "prs": [[351, "10/26", "정상 흐름 통합 검증"], [354, "10/26", "예외·실패 흐름 검증 결과"], [370, "10/26", "AI 생성·출처 표시와 이용 안내 점검"], [373, "10/26", "AI 생성·출처 표시와 이용 안내"], [383, "10/26", "원문 수집·구조화·위치 보존: 실제 원문 검증 기록"], [477, "10/29", "비교 불가 쌍의 statements를 비교 안 함으로 돌려주기와 예외 흐름 재검증"], [508, "10/29", "최종 발표·시연 시나리오와 고정 데이터·장애 대비 가이드 작성"]]}], [{"name": "에이전트 채팅", "desc": "ADR·명세 → LangGraph 한 단계 → Tool·확인 액션 → 비용 최적화", "prs": [[545, "11/03", "에이전트 채팅 Tool 실행 주체(ADR-0044)와 LangGraph 단계 그래프(ADR-0045) 제안"], [574, "11/03", "에이전트 채팅 API 명세(chat-messages, agent-steps) 추가"], [585, "11/03", "에이전트 채팅 명세에 v1.2 기능 전부 반영"], [586, "11/03", "에이전트 채팅 ADR-0044·0045 채택"], [587, "11/03", "에이전트 한 단계 그래프와 /internal/agent-steps"], [591, "11/03", "에이전트 채팅 API·왕복 루프와 탐색 Tool"], [598, "11/03", "탭 밖 채팅 패널과 이동 액션, AI 질문 탭 삭제"], [599, "11/03", "에이전트 답 검사에서 목차 번호 마침표로 문장을 끊지 않기"], [607, "11/03", "근거 질문·요약·풀이·수시공시 Tool과 확인 액션"], [624, "11/04", "채팅 쓰기 확인 버튼과 답 평가"], [628, "11/04", "확인 버튼만 있는 채팅 답이 NOT_FOUND 경고로 보이고 '확인된 설명 없음'이 두 번 나옴"], [630, "11/04", "채팅 기업·기간 조회 Tool(개황·추이·주요정보·공시·브리핑·전망)"], [635, "11/04", "간단한 채팅 요청을 LLM 없이 처리(이동·저장 확인)"], [637, "11/04", "'충분' 판단과 답 쓰기를 한 LLM 호출로 합치기"], [651, "11/04", "채팅 분석 찾기·분석 요청 확인과 고정·글 초안·기업 비교 액션"], [656, "11/04", "채팅 정리 형식(BRIEF) 답 — 3줄 요약·IR용 정리·확인할 점"], [725, "11/06", "에이전트 채팅 원인 추적·교차 검증 Workflow"], [727, "11/06", "채팅 추가 액션과 교차 검증·정리 형식·관련 문장 표시"], [732, "11/06", "에이전트 프롬프트 캐시 순서와 캐시·추론 토큰 기록"], [744, "11/06", "채팅에서 요약 Tool로 인용한 재무 근거에 계정 이름이 빠져 '재무 수치'로 보임"], [746, "11/06", "에이전트 Tool 고르기를 gpt-6-luna로: 작업별 모델 설정"], [748, "11/06", "AI 사용 현황에 gpt-6-luna 가격 넣기"], [626, "11/04", "채팅이 근거 질문을 회사·보고서 이름을 붙인 긴 질문으로 넘겨 늘 NOT_FOUND가 됨"]]}, {"name": "주요 사건 찾기", "desc": "정답 사건 목록 → 후보·묶기·규모 → 카드 → 측정과 신호 기준표", "prs": [[650, "11/04", "주요 사건을 켜는 기준과 사건 목록 형식 적기"], [654, "11/04", "세 기업의 주요 사건 목록 추가"], [658, "11/04", "주요 사건 ADR과 API·ERD 명세"], [664, "11/04", "사건 후보 고르기"], [685, "11/05", "변경을 사건으로 묶기와 근거 검증"], [688, "11/05", "사건 규모 재기와 순서 정하기"], [691, "11/05", "사건 만들기 작업, 저장, 조회 API"], [698, "11/05", "주요 사건 카드와 펼치기"], [710, "11/05", "사건을 만들지 못했을 때와 만드는 중의 화면"], [713, "11/05", "주요 사건 카드에 규모 금액 표시"], [717, "11/05", "사건 묶기의 제한시간과 출력 한도 맞추기"], [718, "11/05", "사건에 잘못 붙는 금액 막기"], [724, "11/06", "주요 사건 수 줄이기"], [726, "11/06", "사람이 꼽은 주요 사건 목록과 켜는 기준값 정하기"], [728, "11/06", "세 기업으로 주요 사건 측정과 켤지 판단"], [741, "11/06", "사건 신호를 허용하도록 AI 규칙과 표현 검사 기준 고치기"], [745, "11/06", "신호 기준표 확정과 정답 사건에 종류·변화 붙이기"], [750, "11/06", "신호·사건 문장 ADR과 API·ERD 명세"]]}, {"name": "문장 변화 정리", "desc": "목록 묶음·분야 분류, 표 행 비교, 카드 메뉴", "prs": [[618, "11/03", "문장 변화 분류 저장 ADR과 API·ERD 명세"], [619, "11/03", "문장 변경에 목록 묶음과 분야 분류 추가"], [620, "11/03", "요약의 '빠졌어요'를 해결로 읽지 않게 안내 붙이기 (FS-70)"], [621, "11/04", "표 변경을 행끼리 비교"], [625, "11/04", "분류 저장, 묶음·분야 거르기와 건수, 분석 버전 올리기"], [627, "11/04", "문장 변화 탭 분야별 표"], [629, "11/04", "기본 목록과 접힌 묶음"], [634, "11/04", "표 변경 카드에 행 비교 결과 표시"], [636, "11/04", "변경 카드 버튼을 ⋯ 메뉴로 옮기기"]]}, {"name": "새 기능", "desc": "기업 뉴스, 외부 AI용 MCP 서버, 관리자 운영 콘솔·요금제", "prs": [[593, "11/03", "분석 결과에 그 기업의 최신 뉴스 탭 더하기(NAVER API HUB 뉴스 검색)"], [668, "11/04", "AI 에이전트용 읽기 전용 MCP 서버 시제품 (FS-74)"], [669, "11/04", "관리자 개요·분석 작업·회원 API와 요금제 관심 기록 (FS-72·73)"], [670, "11/04", "관리자 운영 콘솔과 요금제 화면 (FS-72·73)"], [673, "11/04", "관리자 콘솔·요금제·MCP 리뷰 반영"]]}, {"name": "운영 안전과 인증", "desc": "AI 하루 한도, 비밀번호 재설정, 세션 만료, 로그인 복귀", "prs": [[690, "11/05", "로그인·회원가입 비밀번호 보기 토글(눈 아이콘)"], [692, "11/05", "에이전트 전망 Tool 테스트가 날짜가 지나면 깨지던 것 고치기"], [694, "11/05", "질문·에이전트 채팅의 하루 AI 호출 한도(비용 상한)"], [700, "11/05", "비밀번호 찾기: 가입 이메일로 재설정 링크 보내기"], [702, "11/05", "한도에 걸리면 다시 시도 대신 로그인 안내"], [704, "11/05", "작업 이름을 모두 한국어로"], [708, "11/05", "사용자가 요청한 새 분석도 하루 한도로 세기"], [720, "11/06", "로그인이 끊기면 화면도 비로그인으로"], [723, "11/06", "로그인 뒤 보던 화면으로 돌아가기"], [671, "11/04", "브라우저가 연결을 끊은 요청이 '처리하지 못한 오류' ERROR 로그를 남김"]]}, {"name": "화면 다듬기", "desc": "다크 팔레트, 보조 패널, 최근 본 기업, 상단 검색, 상태 캐릭터", "prs": [[573, "11/03", "'지금 보는 기업' 이름을 누르면 마지막으로 본 분석 결과로 가기"], [588, "11/03", "분석 결과의 'AI 질문' 탭 자리에 기업 커뮤니티 탭 넣기"], [590, "11/03", "'지금 보는 기업' 줄의 메뉴를 빼고 기업 개요를 분석 결과 탭 맨 앞에 두기"], [597, "11/03", "시안 남은 항목: 재무 표 정렬·먼저 볼 것·수시공시 범위·비교 불가 사유 (FS-68)"], [606, "11/03", "시안 기준 다크 팔레트·상단 바·분석 실패 조건 표 (FS-69)"], [639, "11/04", "오른쪽 보조 패널을 상단 바 아래 고정 열로 (FS-71)"], [653, "11/04", "'지금 보는 기업' 줄을 최근 본 기업 3개로 늘리기"], [657, "11/04", "상단 검색창에서 홈을 거치지 않고 기업 바꾸기"], [663, "11/04", "분석 결과에서 화면을 옮기지 않고 '보고서 선택' 탭으로 보고서 바꾸기"], [687, "11/05", "첫 화면 검색창 아래 대표 기업·시즌 변화 Top 10 접는 목록"], [709, "11/05", "상태 안내 캐릭터 배치: 분석 진행·요약 핵심·채팅 답·설명 없음 (FS-66 후속)"], [712, "11/05", "화면 테마 상자의 시스템·밝게·어둡게를 가로 한 줄로"]]}, {"name": "품질 수정과 문서", "desc": "질문 후보 놓침, 브리프 누락, 기술 스택·시연 문서", "prs": [[569, "11/02", "낡은 프로젝트 개요 초안을 노션 프로젝트 가이드로 대체"], [571, "11/02", "기술 스택 문서를 실제 코드에 맞춤"], [595, "11/03", "기술 스택 문서에 LangGraph 에이전트 단계와 NAVER 뉴스 반영"], [602, "11/03", "질문 후보 검색이 '매출액'·'매출'처럼 표현이 다른 정답 문단을 놓침"], [603, "11/03", "'왜' 질문에 원문이 이유를 밝히지 않으면 찾은 수치까지 버리고 NOT_FOUND로 끝남"], [605, "11/03", "요약 LLM 실패로 분석이 FAILED가 되는 경우 직접 확인 결과 추가"], [675, "11/04", "포괄손익계산서 브리프 누락·설명 없음 사유·개요 거르기·핵심 숫자 근거 고치기"], [677, "11/04", "수치 근거 패널의 검증 실패 설명, 브리프 외화 표기 고치기"], [679, "11/04", "비교 기준 안내를 고른 기준에 맞게 보이기"], [681, "11/04", "기업 개요 링크, 비교 안내, 같은 날 새 공시 표시 고치기"], [683, "11/04", "체크 포인트 분석 링크가 계정 찾기를 걸도록 고치기"], [684, "11/04", "README 루트 명령·api-spec 관심 집계 설명 맞추기"], [721, "11/06", "시연 문서를 현재 코드에 맞추기"], [695, "11/05", "ADR-0034 상태를 채택으로"], [697, "11/05", "가입 완료 뒤 로그인으로 바로 가기"]]}]];
-const WEEKMETA = [
-  { n: 1, range: '10/19–10/25', head: 'MVP 흐름을 한 번에 세움', note: '규칙·명세를 먼저 정하고, 기업 검색부터 비교 결과·근거·AI 질문·로그인까지 첫 흐름을 완성했습니다.', commits: 287, adr: 22 },
-  { n: 2, range: '10/26–11/01', head: '기업 단위로 넓히고 실제 AI 연결', note: 'OpenAI를 연결하고 기업 개요·여러 기업 비교·노트·커뮤니티로 넓힌 뒤, 디자인을 시안 하나로 통일했습니다.', commits: 339, adr: 22 },
-  { n: 3, range: '11/02–11/06', head: 'AI 에이전트와 운영 안전', note: '에이전트 채팅·주요 사건·MCP 서버를 만들고, AI 하루 한도·비밀번호 재설정·세션 처리로 공개 준비를 했습니다.', commits: 261, adr: 15 }
-];
-const DAYS = [['10/19',8,1],['10/20',0,1],['10/21',28,1],['10/22',69,1],['10/23',94,1],['10/24',15,1],['10/25',73,1],['10/26',100,2],['10/27',129,2],['10/28',9,2],['10/29',71,2],['10/30',25,2],['10/31',4,2],['11/01',1,2],['11/02',2,3],['11/03',63,3],['11/04',103,3],['11/05',57,3],['11/06',36,3]];
-const REPO = 'https://github.com/ShinhanDSProject/dart-insight/pull/';
 const reduce = typeof window !== 'undefined' && typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-reduced-motion: reduce)').matches : false;
 const $ = (s, r = document) => (r && r.querySelector ? r.querySelector(s) : null);
 const $$ = (s, r = document) => (r && r.querySelectorAll ? Array.from(r.querySelectorAll(s)) : []);
@@ -2159,81 +2116,7 @@ stepper('#userflow', '#flowtext', [
   });
 })();
 
-
-stepper('#procflow', '#proctext', [
-  '성공 기준(SC): "이게 되면 성공"을 먼저 정합니다. 기능은 어느 SC에 기여하는지로 들어올지 정합니다.',
-  '기능 기획서(FS)와 수용 기준(AC): "이런 상황에서 이렇게 하면 이렇게 된다"로 확인 가능한 문장을 씁니다.',
-  '와이어프레임(W-nn)과 Figma 시안: 로딩·빈 화면·오류·제한 상태까지 그립니다.',
-  '설계: 구조 결정은 ADR, API는 docs/api-spec.md, 표는 docs/erd.md를 코드보다 먼저 고칩니다.',
-  '이슈: 기획서를 WBS ID가 붙은 작업으로 쪼개고 AC를 완료 기준으로 옮깁니다. 이슈 하나에 브랜치 하나.',
-  'PR: 빌드·테스트·린트·gitleaks가 모두 통과해야 rebase로 병합합니다. 실행하지 않은 테스트를 통과했다고 쓰지 않습니다.',
-  '검증: 수용 기준을 하나씩 화면이나 테스트로 확인해 기획서 11절에 결과와 증빙을 남깁니다.'
-]);
-
-/* 주차별 */
-(function () {
-  const state = { w: 0, q: '' };
-  const total = WEEKS.reduce((s, wk) => s + wk.reduce((a, g) => a + g.prs.length, 0), 0);
-  const cards = $('#weekcards');
-  cards.innerHTML = WEEKMETA.map((m, i) => {
-    const prs = WEEKS[i].reduce((a, g) => a + g.prs.length, 0);
-    return '<button class="weekcard" type="button" data-w="' + m.n + '" aria-pressed="false"><span class="wk"><b>' + m.n + '주 차</b><span class="num">' + m.range + '</span></span><span class="head">' + m.head + '</span><span class="nums"><span><b>' + prs + '</b>PR</span><span><b>' + m.commits + '</b>커밋</span><span><b>' + m.adr + '</b>ADR</span><span><b>' + WEEKS[i].length + '</b>주제</span></span></button>';
-  }).join('');
-  const seg = $('#weekseg');
-  const choose = (w) => {
-    state.w = state.w === w && w !== 0 ? 0 : w;
-    press(seg, $('[data-w="' + state.w + '"]', seg));
-    $$('.weekcard', cards).forEach((c) => c.setAttribute('aria-pressed', String(+c.dataset.w === state.w)));
-    $$('.dbar').forEach((b) => b.classList.toggle('dim', state.w !== 0 && +b.dataset.w !== state.w));
-    render();
-  };
-  $$('.weekcard', cards).forEach((c) => c.addEventListener('click', () => choose(+c.dataset.w)));
-  $$('button', seg).forEach((b) => b.addEventListener('click', () => choose(+b.dataset.w)));
-
-  const svg = $('#daily'), NS = 'http://www.w3.org/2000/svg', tip = $('#tip');
-  const W = 760, H = 220, L = 34, R = 6, T = 18, B = 28, max = 150, pw = W - L - R, ph = H - T - B, slot = pw / DAYS.length, bw = slot * 0.6;
-  const mk = (n, a, t) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); if (t != null) e.textContent = t; svg.appendChild(e); return e; };
-  [0, 50, 100, 150].forEach((v) => { const y = T + ph - v / max * ph; mk('line', { x1: L, x2: W - R, y1: y, y2: y, class: 'gl' }); mk('text', { x: L - 6, y: y + 4, 'text-anchor': 'end', class: 'ax' }, v); });
-  [7, 14].forEach((i) => mk('line', { x1: L + slot * i, x2: L + slot * i, y1: T - 6, y2: T + ph, class: 'gl', 'stroke-dasharray': '4 4' }));
-  ['1주 차', '2주 차', '3주 차'].forEach((t, i) => mk('text', { x: L + slot * i * 7 + 4, y: T - 4, class: 'ax' }, t));
-  DAYS.forEach((d, i) => {
-    const h = d[1] / max * ph, x = L + i * slot + (slot - bw) / 2, y = T + ph - h;
-    const r = mk('rect', { x, y: Math.min(y, T + ph - 1), width: bw, height: Math.max(h, 1), rx: 3, class: 'dbar w' + d[2], 'data-w': d[2], tabindex: 0, role: 'button', 'aria-label': d[0] + ' 커밋 ' + d[1] + '개, ' + d[2] + '주 차 보기' });
-    const show = (ev) => { tip.hidden = false; tip.textContent = d[0] + ' · 커밋 ' + d[1] + '개 · ' + d[2] + '주 차'; const bx = r.getBoundingClientRect(); tip.style.left = Math.max(8, Math.min(innerWidth - tip.offsetWidth - 8, bx.left + bx.width / 2 - tip.offsetWidth / 2)) + 'px'; tip.style.top = (bx.top - 34) + 'px'; };
-    r.addEventListener('mouseenter', show); r.addEventListener('focus', show);
-    r.addEventListener('mouseleave', () => { tip.hidden = true; }); r.addEventListener('blur', () => { tip.hidden = true; });
-    r.addEventListener('click', () => choose(d[2])); r.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(d[2]); } });
-    if (d[1] >= 100) mk('text', { x: x + bw / 2, y: y - 4, 'text-anchor': 'middle', class: 'ax', 'font-weight': 700 }, d[1]);
-    if (i % 2 === 0) mk('text', { x: x + bw / 2, y: H - 8, 'text-anchor': 'middle', class: 'ax' }, d[0]);
-  });
-  window.addEventListener('scroll', () => { tip.hidden = true; }, { passive: true });
-
-  const view = $('#weekview'), count = $('#count'), q = $('#q');
-  let openAll = false;
-  const hl = (t) => { const s = esc(t); if (!state.q) return s; const k = esc(state.q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); return s.replace(new RegExp(k, 'gi'), (m) => '<mark>' + m + '</mark>'); };
-  function render() {
-    const needle = state.q.toLowerCase(); let shown = 0, html = '';
-    WEEKMETA.forEach((m, i) => {
-      if (state.w && state.w !== m.n) return;
-      let gh = '';
-      WEEKS[i].forEach((g, gi) => {
-        const prs = needle ? g.prs.filter((p) => p[2].toLowerCase().includes(needle) || ('#' + p[0]).includes(needle)) : g.prs;
-        if (!prs.length) return; shown += prs.length;
-        const open = openAll || !!needle || (state.w !== 0 && gi < 2);
-        gh += '<details class="group"' + (open ? ' open' : '') + '><summary><b>' + esc(g.name) + '</b><span class="d">' + esc(g.desc) + '</span><span class="c"><span class="badge">' + prs.length + ' PR</span></span></summary><ul class="prlist">' +
-          prs.map((p) => '<li><a href="' + REPO + p[0] + '" target="_blank" rel="noopener">#' + p[0] + '</a><span class="dt">' + p[1] + '</span><span class="t">' + hl(p[2]) + '</span></li>').join('') + '</ul></details>';
-      });
-      if (gh) html += '<div class="weekblock"><h3>' + m.n + '주 차 · ' + m.head + ' <span class="num">' + m.range + '</span></h3><p>' + m.note + '</p>' + gh + '</div>';
-    });
-    view.innerHTML = html || '<div class="empty">"' + esc(state.q) + '"에 맞는 PR이 없어요. 다른 낱말로 찾아 보세요.</div>';
-    count.textContent = (state.q || state.w ? shown + ' / ' : '') + total + '개 PR';
-  }
-  q.addEventListener('input', () => { state.q = q.value.trim(); render(); });
-  $('#toggleAll').addEventListener('click', (e) => { openAll = !openAll; e.currentTarget.textContent = openAll ? '모두 접기' : '모두 펼치기'; render(); });
-  choose(0);
-})();
-
-/* 구조도 (전체 · OpenDART · AI 서버 · 인프라) */
+/* 구조도 (전체 · OpenDART · AI 서버 · 인프라 · AX 라이프사이클) */
 function bindDiagram(svgSel, boxSel, info, init) {
   const svg = $(svgSel), box = $(boxSel);
   const sel = (n) => {
@@ -2292,6 +2175,16 @@ bindDiagram('#infrasvg', '#infrainfo', {
   i_db: ['VM1 · 운영 DB (MariaDB 11.4)', '57개 테이블의 공시 캐시, 분석 결과, 회원·노트 데이터를 영속 볼륨에 보관합니다.', ['utf8mb4 문자셋 고정 및 주기적 컨테이너 헬스체크 적용', '외부 포트 노출 없이 VM1 내부 도커 네트워크에서만 백엔드와 통신'], 'deploy/compose.yaml'],
   i_ai: ['VM2 · AI 서버 (FastAPI :8000)', '원문 파싱, BM25 검색, LLM 호출·검증을 전담하는 분리된 연산 노드입니다.', ['웹·DB 부하와 AI 연산·빌드 부하가 서로 영향을 주지 않도록 VM2로 물리 분리', '8000번 포트는 VM1 백엔드 주소에서만 접근하도록 바인딩·방화벽 제한'], 'deploy/compose.ai.yaml']
 }, 'i_be');
+
+bindDiagram('#axsvg', '#axinfo', {
+  ax_sc: ['01. 비즈니스 성공 기준 수립 (SC: Success Criteria)', '비즈니스 목표와 사용자의 실제 페인포인트를 측정 가능한 성공 기준으로 정의합니다.', ['주체: 사람 (프로덕트 기획자 / 도메인 전문가)', '수작업 4시간 소요 및 LLM 환각 해결을 위한 4대 핵심 성공 지표(SC-1~4) 수립', '어느 성공 기준에도 기여하지 않는 불필요한 기능(범위 외)은 사전에 원천 차단', '노션 성공 기준(SC) 및 결정 로그에 전사 투명하게 기록하여 방향성 통일'], '노션 개발 워크플로우 1단계 · 성공 기준(SC) DB'],
+  ax_spec: ['02. AI 스펙 엔지니어링 (FS-n & AC: Acceptance Criteria)', '성공 기준을 바탕으로 기능 기획서와 기계적으로 검증 가능한 수용 기준(AC)을 작성합니다.', ['주체: 사람 🤝 AI 에이전트 공동 명세', '도구: .claude/skills/feature-spec 및 template.md 규약 기반 작성', '"상황(Given) - 행동(When) - 결과(Then)" 형식의 명확한 수용 기준(AC) 전수 도출', '정상 흐름뿐 아니라 예외 흐름(데이터 부재, 비교 불가, 일일 한도)까지 빈틈없이 명세'], '.claude/skills/feature-spec · 기능 기획서(FS-1~74)'],
+  ax_arch: ['03. 아키텍처 설계 & 선행 문서화 (ADR / API / ERD)', '코드 한 줄 작성하기 전에 단방향 계층 분리 규칙과 API 명세, DB ERD를 먼저 확정합니다.', ['주체: 사람 🤝 AI 에이전트', 'API 명세(docs/api-spec.md)와 DB ERD(docs/erd.md) 사전 변경 필수 원칙', '구조적 결정 발생 시 아키텍처 결정 기록(ADR) 필수 작성 (총 66개 채택)', '채택된 ADR과 다르게 구현해야 할 경우 코드가 아니라 새 ADR을 먼저 작성 후 합의'], 'docs/adr/ (ADR-0001~0066) · docs/api-spec.md · docs/erd.md'],
+  ax_issue: ['04. WBS 작업 원자 분해 (Spec to Issues)', '기획서의 수용 기준(AC)을 완료 기준으로 삼아 1~3일 단위의 원자 작업 이슈로 자동 분해합니다.', ['주체: AI 에이전트 자동화 스킬', '도구: .claude/skills/spec-to-issues', '모든 수용 기준(AC)이 적어도 하나의 GitHub 작업 이슈 완료 기준에 1:1 매핑', '선행 이슈 의존성, 레이블(feature/backend/frontend/ai), WBS ID 체계적 자동 부여'], '.claude/skills/spec-to-issues · GitHub Issues'],
+  ax_code: ['05. 에이전틱 자율 페어 프로그래밍 (Agentic Pair-Programming)', 'AGENTS.md 규칙 헌장을 기반으로 사람과 AI, AI와 AI가 실시간 자율 협업합니다.', ['주체: Claude Code (구현) 🤝 Antigravity (설계·교차 리뷰) 🤝 사람 개발자', 'AGENTS.md 헌장: "추측 코딩 절대 금지, 가치판단 배제, 로컬 DB 실측 검증 우선"', '호출 방향(React → Spring Boot → FastAPI) 엄수 및 What/How 분리(SLAP) 준수', '브랜치 규칙(feature/{WBS ID}-{name})과 충돌 없는 Rebase Merge 선형 히스토리'], 'AGENTS.md · conventions.yaml · 421+ PRs'],
+  ax_gate: ['06. 기계적 자동화 품질 게이트 (Automated Quality Gate)', 'PR이 생성될 때마다 GitHub Actions CI에서 품질과 보안을 기계적으로 전수 검사합니다.', ['주체: GitHub Actions CI 파이프라인 (완전 자동화)', '총 2,626개 테스트 100% 통과 (Vitest 1,892개 + pytest 926개 + ArchUnit 아키텍처 검사)', 'axe-core 기반 웹 접근성 0개 위반 기계적 검증 (WCAG 2.1 AA 100% 충족)', 'gitleaks 시크릿 유출 자동 차단 및 Checkstyle/Ruff 코드 컨벤션 전수 검사'], '.github/workflows/ · Vitest · pytest · ArchUnit · axe-core'],
+  ax_done: ['07. 수용 기준 전수 검증 & 기능 완료 (Verify & Done)', '기획서에 적힌 모든 수용 기준(AC)에 대해 테스트 증빙을 대조하고 최종 승인합니다.', ['주체: 사람 (최종 판정) 🤝 AI 에이전트 (증빙 수집 및 검증서 작성)', '도구: .claude/skills/verify-spec', '모든 AC에 대해 자동 테스트 파일명, PR 번호, 실측 화면 캡처 증빙 매핑', '100% 검증 통과 확인 시에만 기능 완료(Done) 판정 및 노션 상태 변경'], '.claude/skills/verify-spec · 74개 기능 기획서 수용 기준(AC) 100% 충족']
+}, 'ax_code');
 
 /* 상태 전이 */
 (function () {
