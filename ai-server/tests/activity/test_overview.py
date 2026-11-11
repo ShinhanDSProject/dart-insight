@@ -96,6 +96,27 @@ def test_date_must_be_in_cited_text_or_receipt_date() -> None:
     assert "접수일도 아닙니다" in checked.problems[0]
 
 
+def test_unknown_evidence_is_dropped_and_known_kept() -> None:
+    data = copy.deepcopy(GOOD)
+    data["overview"]["evidenceIds"] = ["F999", FIN, DISC]
+
+    checked = check_overview(data, CONTEXT)
+
+    assert checked.problems == []
+    assert checked.result.overview is not None
+    assert checked.result.overview.evidence_ids == (FIN, DISC)
+
+
+def test_overview_without_known_evidence_is_rejected() -> None:
+    data = copy.deepcopy(GOOD)
+    data["overview"]["evidenceIds"] = ["F999"]
+
+    checked = check_overview(data, CONTEXT)
+
+    assert checked.result.overview is None
+    assert any("하나도 없습니다" in p for p in checked.problems)
+
+
 def test_unknown_evidence_and_bad_date_are_rejected() -> None:
     assert check_overview(with_timeline(evidenceIds=["D999"]), CONTEXT).problems
     assert check_overview(with_timeline(date="2026.03.19"), CONTEXT).problems

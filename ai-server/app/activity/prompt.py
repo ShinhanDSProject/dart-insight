@@ -280,7 +280,7 @@ def build_overview_request(context: OverviewContext) -> LlmRequest:
         user="\n".join(lines),
         output_schema=OVERVIEW_OUTPUT_SCHEMA,
         context=context,
-        max_output_tokens=8000,
+        max_output_tokens=16000,
         timeout_seconds=240,
         total_timeout_seconds=480,
     )

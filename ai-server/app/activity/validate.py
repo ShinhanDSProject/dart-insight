@@ -332,9 +332,12 @@ def _texts(context: OverviewContext) -> dict[str, str]:
 
 
 def _cited(value: Any, texts: dict[str, str]) -> list[str]:
-    if not isinstance(value, list) or not value or any(i not in texts for i in value):
-        raise Problem("evidenceIds에 주어진 자료 id를 하나 이상 적어야 합니다.")
-    return list(dict.fromkeys(value))
+    """주어진 자료 id만 남긴다. 남은 것이 없으면 근거가 없는 것이다(ADR-0068)."""
+    ids = value if isinstance(value, list) else []
+    known = [i for i in ids if isinstance(i, str) and i in texts]
+    if not known:
+        raise Problem("evidenceIds에 주어진 자료 id가 하나도 없습니다. 자료 id를 그대로 적으세요.")
+    return list(dict.fromkeys(known))
 
 
 def _overview(value: Any, texts: dict[str, str]) -> Overview:
