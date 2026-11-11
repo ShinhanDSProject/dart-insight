@@ -75,10 +75,11 @@ function generated(items: ActivityItem[]): PeriodActivities {
     message: null,
     overview: { text: '이 기간에 새 공급 계약과 소송이 있었어요.', evidence: [evidence(11)] },
     items,
+    timeline: [],
     droppedCount: 1,
     candidateCount: 20,
     aiGenerated: true,
-    ai: { model: 'fake', promptVersion: 'period-activity-1', generatedAt: '2026-11-10T09:00:00+09:00' },
+    ai: { model: 'fake', promptVersion: 'period-activity-2', generatedAt: '2026-11-10T09:00:00+09:00' },
   }
 }
 
@@ -90,8 +91,65 @@ function renderTab(state: LoadState<PeriodActivities>) {
   return { onOpenText, onOpenAll, ...view }
 }
 
+const disclosure = {
+  evidenceId: 'D20260319801333',
+  rceptNo: '20260319801333',
+  blockNo: null,
+  side: 'DISCLOSURE' as const,
+  sectionPath: '기업가치제고계획(자율공시)',
+  changeId: null,
+}
+
+const financial = {
+  evidenceId: 'F9',
+  rceptNo: '20260310000001',
+  blockNo: null,
+  side: 'FINANCIAL' as const,
+  sectionPath: '연결 손익계산서 > 매출액',
+  changeId: null,
+}
+
+describe('한 문단 요약과 이 기간 타임라인(ADR-0068)', () => {
+  const withTimeline: PeriodActivities = {
+    ...generated([contract]),
+    overview: { text: '이 기간에 매출이 늘었어요.', evidence: [financial, evidence(11)] },
+    timeline: [
+      { date: '2025-09-23', text: '자회사를 인수했어요.', evidence: [evidence(11)] },
+      { date: '2026-03-19', text: '기업가치 제고 계획을 공시했어요.', evidence: [disclosure] },
+    ],
+  }
+
+  it('제목과 근거가 있는 요약, 날짜순 타임라인을 보인다', async () => {
+    const { container } = renderTab({ status: 'success', data: withTimeline })
+
+    const overview = within(screen.getByRole('region', { name: '한 문단 요약' }))
+    expect(overview.getByText('이 기간에 매출이 늘었어요.')).toBeTruthy()
+    expect(overview.getByText(/연결 손익계산서 > 매출액/)).toBeTruthy()
+    const rows = within(screen.getByRole('region', { name: '이 기간 타임라인' })).getAllByRole('listitem')
+    expect(rows.map((row) => row.querySelector('time')?.textContent)).toEqual(['2025.09.23', '2026.03.19'])
+    expect(await axeViolations(container)).toBe('')
+  })
+
+  it('공시 근거는 DART 원문을 새 창으로 열고 보고서 근거는 원문 탭의 바뀐 곳으로 간다', () => {
+    const { onOpenText } = renderTab({ status: 'success', data: withTimeline })
+    const timeline = within(screen.getByRole('region', { name: '이 기간 타임라인' }))
+
+    const link = timeline.getByRole('link', { name: '기업가치제고계획(자율공시)' })
+    expect(link.getAttribute('href')).toContain('rcpNo=20260319801333')
+    expect(link.getAttribute('target')).toBe('_blank')
+    fireEvent.click(timeline.getByRole('button', { name: /II\. 사업의 내용/ }))
+    expect(onOpenText).toHaveBeenCalledWith(41)
+  })
+
+  it('타임라인이 비면 제목도 보이지 않는다', () => {
+    renderTab({ status: 'success', data: generated([contract]) })
+
+    expect(screen.queryByRole('region', { name: '이 기간 타임라인' })).toBeNull()
+  })
+})
+
 describe('공시 분석 탭(ADR-0067)', () => {
-  it('AI 생성 한 줄 요약, 숫자, 활동 카드와 투자 판단이 아니라는 안내를 보인다', async () => {
+  it('AI 생성 요약, 숫자, 활동 카드와 투자 판단이 아니라는 안내를 보인다', async () => {
     const { container } = renderTab({ status: 'success', data: generated([contract, lawsuit]) })
 
     expect(screen.getByRole('region', { name: '공시 분석' })).toBeTruthy()
