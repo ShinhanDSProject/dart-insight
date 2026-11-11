@@ -21,6 +21,11 @@
     "lint:ai": "node scripts/run.js lint ai-server",
     "lint:frontend": "node scripts/run.js lint frontend",
     "build": "node scripts/run.js build",
-    "check": "node scripts/run.js check"
+    "check": "node scripts/run.js check",
+    "demo:check": "bash scripts/seed-demo-data.sh check",
+    "demo:prewarm": "bash scripts/seed-demo-data.sh prewarm",
+    "demo:export": "bash scripts/seed-demo-data.sh export",
+    "demo:import": "bash scripts/seed-demo-data.sh import",
+    "demo:admin": "bash scripts/seed-demo-data.sh admin"
   }
 }
