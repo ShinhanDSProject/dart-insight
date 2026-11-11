@@ -3,8 +3,8 @@ import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { ActivityImpact, ActivityItem, ActivityQuote, PeriodActivities } from '@/shared/api/activities'
 import type { FinancialChangeItem } from '@/shared/api/results'
-import { Badge, Button, Card, Chip, Notice, Skeleton } from '@/shared/ui'
-import { EmptyState, ErrorState } from '@/shared/ui/StateView'
+import { Badge, Button, Card, Chip, CompareScene, Notice } from '@/shared/ui'
+import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { usePeriodActivities } from '../hooks/usePeriodActivities'
 import {
   AREA_LABELS,
@@ -57,7 +57,18 @@ export function ActivityTab({ analysis, onOpenText, onOpenFinancial, onOpenAll }
       </header>
       {match(state)
         .with({ status: 'loading' }, () => (
-          <Skeleton label="두 보고서 사이의 활동을 정리하는 중이에요. 처음 열면 수십 초 걸릴 수 있어요…" shape="card" count={3} />
+          <div className="activity-loading">
+            <CompareScene
+              previousLabel="이전 보고서"
+              currentLabel="현재 보고서"
+              chips={[
+                { text: '▲ 공급계약', tone: 'modified' },
+                { text: '+ 주요활동', tone: 'added' },
+                { text: '● 공시신호', tone: 'deleted' },
+              ]}
+            />
+            <LoadingState message="두 보고서 사이의 활동을 정리하는 중이에요. 처음 열면 수십 초 걸릴 수 있어요…" />
+          </div>
         ))
         .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} />)
         .with({ status: 'success' }, ({ data }) => (

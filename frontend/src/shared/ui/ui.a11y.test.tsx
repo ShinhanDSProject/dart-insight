@@ -10,14 +10,17 @@ import { Button, ButtonAnchor, ButtonLink } from './Button'
 import { Card } from './Card'
 import { Chip } from './Chip'
 import { CompareBars } from './CompareBars'
+import { CompareScene } from './CompareScene'
 import { DartLinkActions, DartLinkInline } from './DartLink'
 import { DataTable, DataTableRow, SortableHeader } from './DataTable'
 import { Dialog, Kbd } from './Dialog'
+import { DocScanScene } from './DocScanScene'
 import { FieldHint, FieldLabel, Input, Select } from './Field'
 import { Icon } from './Icon'
 import { Mascot } from './Mascot'
 import { Notice } from './Notice'
 import { Panel, PanelTitle } from './Panel'
+import { ReportStackScene } from './ReportStackScene'
 import { SegmentedControl } from './SegmentedControl'
 import { ServiceNotice } from './ServiceNotice'
 import { ShareBar } from './ShareBar'
@@ -303,5 +306,28 @@ describe('상태 안내 캐릭터(#706)', () => {
     expect(container.querySelector('.mascot')).toBeNull()
     rerender(<EmptyState mascot title="맞는 기업이 없어요" />)
     expect(container.querySelector('.mascot--none')).not.toBeNull()
+  })
+})
+
+describe('동적 로딩 시각 장면 (CompareScene, DocScanScene, ReportStackScene)', () => {
+  it('동적 장면들은 장식용으로 숨겨져(aria-hidden) 보조기기에 안전하고 접근성 위반이 없다', async () => {
+    const { container } = render(
+      <main>
+        <CompareScene
+          previousLabel="이전 보고서"
+          currentLabel="현재 보고서"
+          chips={[
+            { text: '재무상태표', tone: 'modified' },
+            { text: '손익계산서', tone: 'added' },
+          ]}
+        />
+        <DocScanScene label="보고서 원문 분석 중" chips={['원문 탐색', '핵심 추출']} />
+        <ReportStackScene label="정기보고서 수집 중" />
+      </main>,
+    )
+    const scenes = container.querySelectorAll('.compare-scene, .doc-scan-scene, .report-stack-scene')
+    expect(scenes).toHaveLength(3)
+    scenes.forEach((scene) => expect(scene.getAttribute('aria-hidden')).toBe('true'))
+    expect(await axeViolations(container)).toBe('')
   })
 })
