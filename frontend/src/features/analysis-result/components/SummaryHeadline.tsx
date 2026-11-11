@@ -96,7 +96,7 @@ function TextLine({ line }: { line: HeadlineLine }) {
   const deleted = deletedNote(line.target)
   return (
     <span className="headline__text">
-      {line.aiGenerated && <Badge tone="accent">AI 생성</Badge>} {line.text}
+      {line.aiGenerated && <Badge tone="accent">AI 생성</Badge>} <span className="headline__ink">{line.text}</span>
       {deleted && <span className="deleted-note">{deleted}</span>}
     </span>
   )
@@ -111,7 +111,7 @@ function FigureLine({ text, amount }: { text: string; amount: FinancialChangeIte
     <>
       <span className="headline__figure">
         <span className="headline__account" aria-hidden="true">
-          {amount.accountName}
+          <span className="headline__ink">{amount.accountName}</span>
           {bars.rate !== null && <Badge>{bars.rate}</Badge>}
         </span>
         <span className="visually-hidden">{text}</span>
