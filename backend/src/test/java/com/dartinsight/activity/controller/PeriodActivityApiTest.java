@@ -1,5 +1,7 @@
 package com.dartinsight.activity.controller;
 
+import static com.dartinsight.dart.client.DisclosureListJson.item;
+import static com.dartinsight.dart.client.DisclosureListJson.page;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
@@ -12,6 +14,8 @@ import com.dartinsight.aiserver.client.AiServerPaths;
 import com.dartinsight.aiserver.client.FakeAiServer;
 import com.dartinsight.aiserver.client.FakeAiServer.Reply;
 import com.dartinsight.analysis.domain.Analysis;
+import com.dartinsight.analysis.domain.CalcStatus;
+import com.dartinsight.analysis.domain.FinancialChangeRow;
 import com.dartinsight.analysis.domain.TextChangeListing;
 import com.dartinsight.analysis.domain.TextChangeRow;
 import com.dartinsight.analysis.domain.TextChangeRow.Side;
@@ -20,7 +24,12 @@ import com.dartinsight.analysis.domain.TextStatus;
 import com.dartinsight.analysis.repository.AnalysisRepository;
 import com.dartinsight.analysis.service.AnalysisResultService;
 import com.dartinsight.company.service.CompanyImportService;
+import com.dartinsight.comparison.domain.AmountBasis;
 import com.dartinsight.comparison.domain.ComparisonBasis;
+import com.dartinsight.dart.client.DisclosureListJson;
+import com.dartinsight.dart.client.FakeOpenDartServer;
+import com.dartinsight.dart.client.FakeOpenDartServer.Response;
+import com.dartinsight.document.repository.DocumentFileCache;
 import com.dartinsight.dart.domain.CorpCodeEntry;
 import com.dartinsight.financial.domain.FsDiv;
 import com.dartinsight.report.domain.Correction;
@@ -29,6 +38,10 @@ import com.dartinsight.report.domain.ReportNameParser.ParsedReportName;
 import com.dartinsight.report.domain.ReportType;
 import com.dartinsight.report.repository.ReportRepository;
 import com.dartinsight.support.TestData;
+import com.dartinsight.support.TestDocuments;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -49,12 +62,16 @@ import org.springframework.test.web.servlet.MockMvc;
 class PeriodActivityApiTest {
 
     static final FakeAiServer AI = new FakeAiServer();
+    private static final FakeOpenDartServer DART = startDart();
+    private static final String LIST = "/api/list.json";
+    private static final String DOCUMENT = "/api/document.xml";
+    private static final String NO_FILE = "{\"status\":\"014\",\"message\":\"파일이 존재하지 않습니다.\"}";
     private static final String CUR = "20260814000001";
     private static final String PREV = "20250814000001";
     private static final String CONTRACT_PATH = "II. 사업의 내용 > 6. 주요계약 및 연구개발활동";
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 11, 10, 9, 0);
     private static final String CALL = """
-            {"task":"period_activity","provider":"fake","model":"fake-model","promptVersion":"period-activity-1",
+            {"task":"period_activity","provider":"fake","model":"fake-model","promptVersion":"period-activity-2",
              "calledAt":"2026-11-10T10:12:03+09:00","traceId":"t","inputTokens":100,"outputTokens":50,
              "cachedInputTokens":null,"reasoningTokens":null,"latencyMs":10,"attempt":1,"outcome":"OK","error":null}""";
     private static final String QUOTE = "{\"quote\":\"이번 글 11\",\"evidenceId\":\"" + CUR + "#B11\"}";
@@ -71,6 +88,17 @@ class PeriodActivityApiTest {
     @DynamicPropertySource
     static void servers(DynamicPropertyRegistry registry) {
         registry.add("app.ai-server.base-url", AI::baseUrl);
+        registry.add("app.opendart.base-url", DART::baseUrl);
+        registry.add("app.opendart.read-timeout", () -> "2s");
+        registry.add("app.opendart.max-retries", () -> "0");
+    }
+
+    private static FakeOpenDartServer startDart() {
+        try {
+            return new FakeOpenDartServer();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Autowired
@@ -91,12 +119,17 @@ class PeriodActivityApiTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private DocumentFileCache documentCache;
+
     private Long analysisId;
 
     @BeforeEach
     void setUp() {
         TestData.clearAll(jdbcTemplate);
         AI.clear();
+        DART.on(LIST, Response.json(DisclosureListJson.NO_DATA));
+        DART.on(DOCUMENT, Response.json(NO_FILE));
         companyImportService.save(List.of(
                 new CorpCodeEntry("00000001", "예시전자", null, "900001", LocalDate.of(2026, 1, 1))));
         for (int year : new int[] {2025, 2026}) {
@@ -109,11 +142,16 @@ class PeriodActivityApiTest {
     }
 
     private Long completedAnalysis(TextStatus textStatus, List<TextChangeRow> rows) {
+        return completedAnalysis(textStatus, List.of(), rows);
+    }
+
+    private Long completedAnalysis(TextStatus textStatus, List<FinancialChangeRow> financials,
+            List<TextChangeRow> rows) {
         Analysis analysis = Analysis.request("00000001", CUR, PREV, ComparisonBasis.YOY, null, NOW);
         analysis.start(NOW);
         analysis.recordFsDiv(FsDiv.CFS);
         Long id = analysisRepository.save(analysis).getId();
-        resultService.saveAndComplete(id, List.of(), new TextComparison(textStatus, null, rows));
+        resultService.saveAndComplete(id, financials, new TextComparison(textStatus, null, rows));
         return id;
     }
 
@@ -125,7 +163,7 @@ class PeriodActivityApiTest {
 
     private static String generated(String items, String overviewIds) {
         return """
-                {"promptVersion":"period-activity-1","expressionRulesVersion":"expr-1",
+                {"promptVersion":"period-activity-2","expressionRulesVersion":"expr-1",
                  "signalTableVersion":"signal-table-2","model":"fake-model","generatedAt":"2026-11-10T10:12:03+09:00",
                  "status":"GENERATED","overview":{"text":"공급계약을 맺었어요.","evidenceIds":[%s]},
                  "items":[%s],"droppedCount":0,"candidateCount":1,"reviewReason":null,"blockedRules":[],
@@ -164,7 +202,7 @@ class PeriodActivityApiTest {
                 .andExpect(jsonPath("$.items[0].changeIds", contains(changeId(11).intValue())))
                 .andExpect(jsonPath("$.candidateCount").value(1))
                 .andExpect(jsonPath("$.aiGenerated").value(true))
-                .andExpect(jsonPath("$.ai.promptVersion").value("period-activity-1"));
+                .andExpect(jsonPath("$.ai.promptVersion").value("period-activity-2"));
 
         String body = AI.requests(AiServerPaths.PERIOD_ACTIVITIES).getFirst().bodyText();
         assertThat(body).contains("\"currentEvidenceId\":\"" + CUR + "#B11\"").doesNotContain("#B12\"");
@@ -173,6 +211,94 @@ class PeriodActivityApiTest {
                 "SELECT COUNT(*) FROM llm_call WHERE analysis_id = ? AND task = 'period_activity'", Integer.class,
                 analysisId);
         assertThat(calls).isEqualTo(1);
+    }
+
+    private static String withTimeline(String disclosureId) {
+        String timeline = """
+                "timeline":[{"date":"2026-03-19","text":"투자 계획을 공시했어요.","evidenceIds":["%s"]},
+                            {"date":"2026-03-20","text":"모르는 근거","evidenceIds":["D99999999999999"]}],""".formatted(
+                disclosureId);
+        return generated(ITEM, "\"" + disclosureId + "\"").replace("\"items\":", timeline + "\"items\":");
+    }
+
+    @Test
+    @DisplayName("사이 기간 공시와 코드가 계산한 재무 수치를 보내고 근거를 확인한 타임라인을 돌려준다")
+    void sendsDisclosuresAndFinancialsAndReturnsTimeline() throws Exception {
+        String rceptNo = "20260319000123";
+        DART.on(LIST, Response.json(page(1, 1, item(rceptNo, "기업가치제고계획(자율공시)", "20260319", "유"))),
+                Response.json(DisclosureListJson.NO_DATA));
+        AI.on(AiServerPaths.PERIOD_ACTIVITIES, Reply.ok(withTimeline("D" + rceptNo)));
+        analysisId = completedAnalysis(TextStatus.COMPLETED, List.of(revenue()), List.of(change("CONTRACT", "MAIN", 11)));
+
+        mockMvc.perform(get(path()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.overview.evidence[0].side").value("DISCLOSURE"))
+                .andExpect(jsonPath("$.timeline", hasSize(1)))
+                .andExpect(jsonPath("$.timeline[0].date").value("2026-03-19"))
+                .andExpect(jsonPath("$.timeline[0].evidence[0].evidenceId").value("D" + rceptNo))
+                .andExpect(jsonPath("$.timeline[0].evidence[0].sectionPath").value("기업가치제고계획(자율공시)"));
+
+        String body = AI.requests(AiServerPaths.PERIOD_ACTIVITIES).getFirst().bodyText();
+        assertThat(body).contains("\"periodFrom\":\"2025-06-30\"", "\"periodTo\":\"2026-08-14\"",
+                "\"evidenceId\":\"D" + rceptNo + "\"", "\"text\":\"\"",
+                "연결 손익계산서 매출액: 이전 153.7조원, 이번 305.4조원, 증감액 +151.7조원, 증감률 +98.7%");
+    }
+
+    @Test
+    @DisplayName("공시 원문을 받으면 글을 보내고 ZIP은 접수번호로 캐시한다")
+    void sendsDisclosureTextAndCachesZip() throws Exception {
+        String rceptNo = "20260319000456";
+        DART.on(LIST, Response.json(page(1, 1, item(rceptNo, "타법인주식및출자증권취득결정", "20260319", "유"))),
+                Response.json(DisclosureListJson.NO_DATA));
+        DART.on(DOCUMENT, Response.zip(TestDocuments.zip(rceptNo)));
+        AI.on(AiServerPaths.documentStructure(rceptNo), Reply.ok("""
+                {"rceptNo":"%s","parserVersion":"dart-xml-1","status":"STRUCTURED","sections":[
+                 {"sectionNo":1,"level":1,"title":"결정","blocks":[
+                  {"blockNo":1,"type":"PARAGRAPH","text":"발행회사의 주식을 취득합니다."},
+                  {"blockNo":2,"type":"TABLE","rows":[[{"text":"취득금액"},{"text":"1,000억원"}]]}]}]}
+                """.formatted(rceptNo)));
+        AI.on(AiServerPaths.PERIOD_ACTIVITIES, Reply.ok(generated(ITEM, "\"" + CUR + "#B11\"")));
+
+        mockMvc.perform(get(path())).andExpect(status().isOk());
+
+        assertThat(AI.requests(AiServerPaths.PERIOD_ACTIVITIES).getFirst().bodyText())
+                .contains("발행회사의 주식을 취득합니다.\\n취득금액 | 1,000억원");
+        assertThat(documentCache.read(rceptNo)).isPresent();
+    }
+
+    @Test
+    @DisplayName("공시 목록은 기업·기간마다 한 번만 받는다")
+    void fetchesDisclosureListOncePerPeriod() throws Exception {
+        AI.on(AiServerPaths.PERIOD_ACTIVITIES, Reply.ok(generated(ITEM, "\"" + CUR + "#B11\"")));
+        int before = listRequests();
+        mockMvc.perform(get(path())).andExpect(status().isOk());
+        assertThat(listRequests() - before).isEqualTo(5);
+
+        jdbcTemplate.update("DELETE FROM period_activity");
+        mockMvc.perform(get(path())).andExpect(status().isOk());
+
+        assertThat(listRequests() - before).isEqualTo(5);
+    }
+
+    @Test
+    @DisplayName("공시 목록을 받지 못하면 저장하지 않고 실패한다")
+    void disclosureListFailureIsNotStored() throws Exception {
+        DART.on(LIST, Response.json(DisclosureListJson.RATE_LIMITED));
+
+        mockMvc.perform(get(path())).andExpect(status().is5xxServerError());
+
+        Integer rows = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM period_activity", Integer.class);
+        assertThat(rows).isZero();
+    }
+
+    private int listRequests() {
+        return (int) DART.requests().stream().filter(r -> r.startsWith(LIST)).count();
+    }
+
+    private static FinancialChangeRow revenue() {
+        return new FinancialChangeRow("IS", FsDiv.CFS, "ifrs-full_Revenue", "매출액", 1, AmountBasis.CUMULATIVE,
+                153_700_000_000_000L, 305_400_000_000_000L, 151_700_000_000_000L, new BigDecimal("0.987000"),
+                CalcStatus.OK, "KRW", null, null);
     }
 
     @Test
@@ -221,7 +347,7 @@ class PeriodActivityApiTest {
     @DisplayName("AI 서버가 후보가 없어 부르지 않았으면 저장하지 않고 EMPTY다")
     void emptyWithoutCallIsNotStored() throws Exception {
         AI.on(AiServerPaths.PERIOD_ACTIVITIES, Reply.ok("""
-                {"promptVersion":"period-activity-1","status":"EMPTY","overview":null,"items":[],
+                {"promptVersion":"period-activity-2","status":"EMPTY","overview":null,"items":[],
                  "droppedCount":0,"candidateCount":0,"calls":[]}"""));
 
         mockMvc.perform(get(path()))

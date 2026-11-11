@@ -113,6 +113,15 @@ public class OpenDartClient {
         return listDisclosures(corpCode, begin, end, null, pblntfDetailTy, "N", true);
     }
 
+    /**
+     * 공시유형 하나의 최종보고서(last_reprt_at=Y) 목록(공시 분석 타임라인, ADR-0068). 페이지를 끝까지 받는다. 자료가 없으면(013)
+     * 빈 목록이다. 받은 목록을 다시 받지 않고 저장하므로, 페이지가 너무 많아 다 받지 못하면 DART_REQUEST_FAILED로 실패한다.
+     */
+    public List<DisclosureListResponse.Item> listLatestByType(String corpCode, LocalDate begin, LocalDate end,
+            String pblntfTy) {
+        return listDisclosures(corpCode, begin, end, pblntfTy, null, "Y", true);
+    }
+
     /** @param pblntfTy 공시유형(A 정기공시 등). null이면 모든 유형 */
     private List<DisclosureListResponse.Item> listLatestDisclosures(String corpCode, LocalDate begin, LocalDate end,
             String pblntfTy) {

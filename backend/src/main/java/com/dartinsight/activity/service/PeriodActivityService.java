@@ -2,6 +2,7 @@ package com.dartinsight.activity.service;
 
 import com.dartinsight.activity.domain.ActivityPayload.Evidence;
 import com.dartinsight.activity.domain.ActivityRecord;
+import com.dartinsight.activity.domain.PeriodDisclosure;
 import com.dartinsight.activity.dto.ActivityAiRequest;
 import com.dartinsight.activity.dto.ActivityAiResponse;
 import com.dartinsight.activity.dto.PeriodActivityResponse;
@@ -9,10 +10,13 @@ import com.dartinsight.activity.repository.ActivityStore;
 import com.dartinsight.aiserver.client.AiServerClient;
 import com.dartinsight.aiserver.client.AiServerException;
 import com.dartinsight.analysis.domain.Analysis;
+import com.dartinsight.analysis.domain.FinancialChange;
 import com.dartinsight.analysis.domain.TextChange;
+import com.dartinsight.analysis.service.FinancialChangeQueryService;
 import com.dartinsight.analysis.service.TextChangeQueryService;
 import com.dartinsight.analysis.service.TextChangeQueryService.CompletedTextChanges;
 import com.dartinsight.common.trace.TraceContext;
+import com.dartinsight.document.service.DocumentService;
 import com.dartinsight.report.domain.Report;
 import com.dartinsight.report.service.ReportService;
 import com.dartinsight.summary.domain.LlmCallRow;
@@ -34,7 +38,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * <ol>
  *   <li>완료된 분석과 그 문장 변경을 읽는다(없으면 404, 끝나지 않았으면 409). 문장 비교 결과가 없으면 NOT_AVAILABLE</li>
  *   <li>그 분석·{@link #PROMPT_VERSION}으로 저장한 결과가 있으면 그대로 돌려준다(다시 만들지 않음)</li>
- *   <li>없으면 후보가 될 수 있는 변경을 AI 서버에 보내고, 근거 위치를 다시 확인해 결과와 LLM 호출 기록을 한 트랜잭션으로 저장한다</li>
+ *   <li>없으면 후보가 될 수 있는 변경과 재무 수치·사이 기간 공시(ADR-0068)를 AI 서버에 보내고, 근거 위치를 다시 확인해 결과와
+ *   LLM 호출 기록을 한 트랜잭션으로 저장한다</li>
  * </ol>
  * 후보가 없어 AI를 부르지 않은 EMPTY는 저장하지 않는다. 외부 호출은 트랜잭션 밖에서 한다(LY-2).
  */
@@ -43,8 +48,10 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class PeriodActivityService {
 
     /** ai-server app/activity/prompt.py PROMPT_VERSION과 같아야 한다. 보내는 변경의 규칙을 바꿔도 올린다 */
-    public static final String PROMPT_VERSION = "period-activity-1";
+    public static final String PROMPT_VERSION = "period-activity-2";
 
+    /** ai-server app/activity/model.py DISCLOSURE_TEXT_LIMIT와 같다 */
+    private static final int DISCLOSURE_TEXT_LIMIT = 1500;
     private static final Logger log = LoggerFactory.getLogger(PeriodActivityService.class);
     private static final Object[] LOCKS = new Object[64];
 
@@ -55,7 +62,10 @@ public class PeriodActivityService {
     }
 
     private final TextChangeQueryService textChangeQueryService;
+    private final FinancialChangeQueryService financialChangeQueryService;
     private final ReportService reportService;
+    private final PeriodDisclosureLoader disclosureLoader;
+    private final DocumentService documentService;
     private final AiServerClient aiServerClient;
     private final ActivityStore store;
     private final TransactionTemplate transactionTemplate;
@@ -88,8 +98,12 @@ public class PeriodActivityService {
         Report previous = reportService.report(analysis.getPreviousRceptNo());
         Report current = reportService.report(analysis.getCurrentRceptNo());
         String companyName = current.getFilerName() == null ? analysis.getCorpCode() : current.getFilerName();
-        ActivityAiRequest request = ActivityRequests.of(PROMPT_VERSION, companyName, previous.getReportName(),
-                current.getReportName(), sent);
+        List<FinancialChange> financials = ActivityRequests.financials(
+                financialChangeQueryService.changes(analysis.getId()).changes());
+        List<PeriodDisclosure> disclosures = disclosureLoader.load(analysis.getCorpCode(),
+                previous.getRceptDt().plusDays(1), current.getRceptDt());
+        ActivityAiRequest request = ActivityRequests.of(PROMPT_VERSION, companyName, previous, current, sent,
+                financials, disclosures.stream().map(this::withText).toList());
         String traceId = TraceContext.currentTraceId();
         ActivityAiResponse response = ActivityResults.requireStatus(
                 aiServerClient.postPeriodActivities(request, ActivityAiResponse.class));
@@ -99,7 +113,7 @@ public class PeriodActivityService {
         if (ActivityResults.notCalled(response)) {
             return PeriodActivityResponse.noCandidates(analysis.getId());
         }
-        Map<String, Evidence> evidence = ActivityRequests.evidence(sent);
+        Map<String, Evidence> evidence = ActivityRequests.evidence(sent, financials, disclosures);
         ActivityRecord row = ActivityResults.interpret(analysis.getId(), PROMPT_VERSION, response, evidence,
                 traceId, now());
         List<LlmCallRow> calls = ActivityResults.calls(response, traceId);
@@ -112,6 +126,12 @@ public class PeriodActivityService {
             // 같은 분석을 동시에 만든 경우에만 저장된 것을 쓴다
             return PeriodActivityResponse.of(store.find(analysis.getId(), PROMPT_VERSION).orElseThrow(() -> e));
         }
+    }
+
+    private ActivityAiRequest.Disclosure withText(PeriodDisclosure disclosure) {
+        String text = documentService.disclosureText(disclosure.rceptNo(), DISCLOSURE_TEXT_LIMIT).orElse("");
+        return new ActivityAiRequest.Disclosure(disclosure.evidenceId(), disclosure.rceptDt().toString(),
+                disclosure.reportName(), text);
     }
 
     private LocalDateTime now() {

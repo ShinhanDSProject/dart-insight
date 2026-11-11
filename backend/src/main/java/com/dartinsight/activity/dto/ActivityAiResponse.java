@@ -11,7 +11,12 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ActivityAiResponse(String promptVersion, String expressionRulesVersion, String signalTableVersion,
         String model, String generatedAt, String status, Overview overview, List<Item> items, Integer droppedCount,
-        Integer candidateCount, String reviewReason, List<String> blockedRules, List<Call> calls) {
+        Integer candidateCount, String reviewReason, List<String> blockedRules, List<Call> calls,
+        List<TimelineEntry> timeline) {
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record TimelineEntry(String date, String text, List<String> evidenceIds) {
+    }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Overview(String text, List<String> evidenceIds) {

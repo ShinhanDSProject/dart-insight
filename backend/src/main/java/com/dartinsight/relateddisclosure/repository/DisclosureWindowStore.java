@@ -31,7 +31,8 @@ public class DisclosureWindowStore {
 
     public Optional<WindowFetch> findFetch(String corpCode, LocalDate beginDate, LocalDate endDate) {
         return jdbcTemplate.query("SELECT id, corp_code, begin_date, end_date, status, fetched_at"
-                + " FROM disclosure_window_fetch WHERE corp_code = ? AND begin_date = ? AND end_date = ?",
+                + " FROM disclosure_window_fetch WHERE corp_code = ? AND begin_date = ? AND end_date = ?"
+                + " AND scope = 'RELATED'",
                 (rs, rowNum) -> new WindowFetch(
                         rs.getLong("id"),
                         rs.getString("corp_code"),
