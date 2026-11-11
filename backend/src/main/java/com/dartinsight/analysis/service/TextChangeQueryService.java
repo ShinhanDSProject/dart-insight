@@ -91,6 +91,11 @@ public class TextChangeQueryService {
         return store.page(analysisId, new TextChangeFilter(List.of(), section, null), true, 0, limit);
     }
 
+    /** 완료된 분석에 저장된 변경 수(#866) */
+    public long countCompleted() {
+        return store.countInCompleted();
+    }
+
     public record CompletedTextChange(Analysis analysis, TextChange change) {
     }
 

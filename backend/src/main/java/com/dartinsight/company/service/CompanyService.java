@@ -68,4 +68,9 @@ public class CompanyService {
     public List<Company> findByStockCodes(Collection<String> stockCodes) {
         return stockCodes.isEmpty() ? List.of() : companyRepository.findByStockCodeIn(stockCodes);
     }
+
+    /** 상장사(종목코드가 있는 기업) 수(#866) */
+    public long countListed() {
+        return companyRepository.countByStockCodeIsNotNull();
+    }
 }
