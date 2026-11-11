@@ -1,4 +1,5 @@
 import type { ChatMessageResponse, ChatTurn } from '@/shared/api/agentChat'
+import { RISK_QUESTION } from './askQuestion'
 
 /**
  * AI 에이전트 채팅(ADR-0044)의 대화 상태(ST-2). 대화는 서버에 저장하지 않으므로 화면이 들고 있다가
@@ -45,7 +46,28 @@ export const MAX_HISTORY = 6
 export const MAX_TURN = 1500
 
 /** 대화가 없을 때 보이는 예시 요청. 이 분석에서 만든 예시 질문 뒤에 붙인다 */
-export const CHAT_EXAMPLES = ['소송 관련 변경 보여줘', '영업이익 어디 있어?', '사업의 내용 열어줘']
+/**
+ * 에이전트가 잘하는 일을 보여 주는 고정 예시(사용자 결정 2026-11-11). 설명과 수치 대조(CROSS_CHECK), 용어 풀이(TERM, 공개 카드가 있는 용어),
+ * 정리 형식(BRIEF, '3줄로 정리'), 변경 찾아 보여 주기 순이다
+ */
+export const CHAT_EXAMPLES = [
+  '회사 설명과 재무 수치가 맞는지 확인해줘',
+  '부채비율이 뭐예요?',
+  '이번 변화를 3줄로 정리해줘',
+  '소송 관련 변경 보여줘',
+]
+/** 채팅 패널에 보이는 예시 질문 수 */
+export const CHAT_EXAMPLE_COUNT = 6
+
+/**
+ * 채팅 패널의 예시 질문. 이 분석의 첫 계정 원인 질문(CAUSE_TRACE, 예: '매출액은 왜 늘었나요?')을 맨 앞에 두고,
+ * 고정 예시와 새 위험 요인 질문을 잇는다. 섹션 질문처럼 긴 분석별 질문은 넣지 않는다. 같은 질문은 한 번만 둔다
+ */
+export function chatExamples(suggestions: readonly string[]): string[] {
+  const accountQuestion = suggestions.find((q) => q !== RISK_QUESTION && !q.startsWith("'"))
+  const ordered = [accountQuestion, ...CHAT_EXAMPLES, RISK_QUESTION]
+  return [...new Set(ordered.filter((q): q is string => q !== undefined))].slice(0, CHAT_EXAMPLE_COUNT)
+}
 
 export function chatReducer(state: ChatState, action: ChatAction): ChatState {
   switch (action.type) {

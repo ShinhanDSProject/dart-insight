@@ -26,7 +26,7 @@ import {
   parseChatAnswer,
   type ChatActionTarget,
 } from '../model/chatLinks'
-import { CHAT_EXAMPLES, chatMessageOf, confirmKey, MAX_MESSAGE, type ChatExchange } from '../model/chatState'
+import { chatExamples, chatMessageOf, confirmKey, MAX_MESSAGE, type ChatExchange } from '../model/chatState'
 import { aiInfoLabel } from '../model/summaryLabels'
 import './chat-panel.css'
 
@@ -103,7 +103,7 @@ export function ChatPanel({
 
       <div className="chat-panel__log" aria-live="polite">
         {exchanges.length === 0 && request.status === 'idle' && (
-          <Examples questions={[...suggestions, ...CHAT_EXAMPLES].slice(0, 6)} onAsk={send} />
+          <Examples questions={chatExamples(suggestions)} onAsk={send} />
         )}
         {exchanges.map((exchange) => (
           <Exchange
