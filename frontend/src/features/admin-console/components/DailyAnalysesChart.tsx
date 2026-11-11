@@ -30,6 +30,11 @@ export function DailyAnalysesChart({ days }: { days: DailyAnalyses[] }) {
         </li>
       </ul>
       <div className="daily__plot" aria-hidden="true">
+        <div className="daily__grid-guide" aria-hidden="true">
+          <span className="daily__guide-line" />
+          <span className="daily__guide-line" />
+          <span className="daily__guide-line" />
+        </div>
         {days.map((d, i) => {
           const other = Math.max(0, d.requested - d.completed - d.failed)
           return (

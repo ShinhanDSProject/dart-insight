@@ -35,6 +35,7 @@ export function KpiTile({
 }) {
   const body = (
     <>
+      <span className="kpi__bar" aria-hidden="true" />
       <span className="kpi__label">{label}</span>
       <span className="kpi__value">{value}</span>
       <span className="kpi__detail">{detail}</span>
@@ -89,8 +90,9 @@ export function RankList({ rows, label, tone = 'current' }: { rows: RankRow[]; l
   const max = Math.max(0, ...rows.map((r) => r.value))
   return (
     <ul className="rank" aria-label={label}>
-      {rows.map((row) => (
+      {rows.map((row, i) => (
         <li key={row.key} className="rank__row">
+          <span className="rank__idx" aria-hidden="true">{i + 1}</span>
           {row.to ? (
             <Link to={row.to} className="rank__name">
               {row.label}
