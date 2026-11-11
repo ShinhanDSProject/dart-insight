@@ -2235,11 +2235,43 @@
   border-radius: var(--radius-md);
   color: var(--color-text);
   text-decoration: none;
-  transition: background-color var(--motion-fast) var(--ease-out);
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
 }
 
 .headline .headline__line.link-button:hover {
   background: var(--color-accent-subtle);
+  transform: translateY(var(--motion-lift));
+}
+
+/* 핵심 줄이 차례로 떠오르고, 다 떠오른 뒤 글자 아래에 형광펜이 왼쪽부터 칠해진다(동적 화면 시안 ③) */
+.headline__list > li {
+  animation: rise-in var(--motion-enter) var(--ease-out) backwards;
+}
+
+.headline__list > li:nth-child(2) {
+  animation-delay: var(--motion-stagger);
+}
+
+.headline__list > li:nth-child(n + 3) {
+  animation-delay: calc(var(--motion-stagger) * 2);
+}
+
+.headline__ink {
+  box-decoration-break: clone;
+  background-image: linear-gradient(var(--color-accent-subtle), var(--color-accent-subtle));
+  background-position: 0 88%;
+  background-repeat: no-repeat;
+  background-size: 100% 40%;
+  animation: ink-in var(--motion-grow) var(--ease-out) backwards;
+  animation-delay: calc(var(--motion-enter) + var(--motion-stagger) * 3);
+}
+
+@keyframes ink-in {
+  from {
+    background-size: 0 40%;
+  }
 }
 
 .headline__no {
