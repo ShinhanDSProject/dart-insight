@@ -3104,7 +3104,7 @@
 
 ### GET /api/analyses/{analysisId}/activities — 두 보고서 사이에 회사가 한 일과 앞으로의 영향
 
-- 화면: W-03 ③ '문장 변화' 탭(`?tab=activity`) · [ADR-0067](adr/0067-period-activity-impact-view.md)
+- 화면: W-03 ③ '공시 분석' 탭(`?tab=activity`) · [ADR-0067](adr/0067-period-activity-impact-view.md) · [ADR-0068](adr/0068-activity-overview-timeline-inputs.md)
 - 이 분석·현재 프롬프트 버전으로 저장된 결과가 있으면 그대로 돌려줍니다. 없으면 이 요청 안에서 만들어 저장한 뒤 돌려줍니다(동기 호출, 처음엔 수 초~수십 초). 같은 분석을 동시에 요청하면 한 번만 만듭니다.
 - 입력은 이 분석의 분류된 문장 변경 중 `MAIN`·`UNPAIRED`·`HEADING` 묶음입니다. AI 서버가 주요 사건과 같은 후보 규칙(ADR-0051)으로 줄이고, AI가 그중 투자·취업·협업에 유의미한 활동을 최대 12개 고릅니다. 사이 기간 수시공시는 아직 넣지 않습니다(ADR-0066).
 - 신호(`signal`)는 AI가 고른 사건 종류·변화를 코드가 신호 기준표(ADR-0060)로 판정한 값입니다. AI가 정하지 않습니다. 투자 판단이나 추천이 아닙니다.
@@ -3155,10 +3155,15 @@
       "changeIds": [9012]
     }
   ],
+  "timeline": [
+    { "date": "2026-03-19", "text": "기업가치 제고 계획을 공시했어요.",
+      "evidence": [{ "evidenceId": "D20260319801333", "rceptNo": "20260319801333", "blockNo": null,
+        "side": "DISCLOSURE", "sectionPath": "기업가치제고계획(자율공시)", "changeId": null }] }
+  ],
   "droppedCount": 0,
   "candidateCount": 214,
   "aiGenerated": true,
-  "ai": { "model": "fake-model", "promptVersion": "period-activity-1", "generatedAt": "2026-11-10T10:12:03" }
+  "ai": { "model": "fake-model", "promptVersion": "period-activity-2", "generatedAt": "2026-11-10T10:12:03" }
 }
 ```
 
@@ -3168,7 +3173,8 @@
   - `REVIEW_NEEDED`: 만들었지만 인용·근거·숫자·표현 검사를 2회 다시 만든 뒤에도 통과한 카드가 없음. `items`는 빈 배열, `message`에 사유. 저장합니다.
   - `NOT_AVAILABLE`: 만들 자료가 없음(`reason`에 사유). 저장하지 않습니다.
 - `reason`(`NOT_AVAILABLE`일 때만): `TEXT_NOT_COMPARED` 이 분석에서 문장을 비교하지 못함
-- `overview`: 이 기간 요약 2~4문장(AI). `evidence`는 요약이 기댄 원문 위치. 카드가 없거나 요약이 검사를 통과하지 못하면 null입니다.
+- `overview`: 이 기간 한 문단 요약 6~10문장(AI). 입력은 코드가 계산한 재무 수치, 사이 기간 공시 원문, 보고서 문단입니다. `evidence`는 요약이 기댄 위치입니다. `side`는 `CURRENT`·`PREVIOUS`(보고서 문단), `FINANCIAL`(재무 수치, `evidenceId`는 `F{financial_change.id}`, `sectionPath`는 재무제표와 계정), `DISCLOSURE`(공시, `evidenceId`는 `D{rceptNo}`, `sectionPath`는 보고서명)입니다. 카드가 없거나 요약이 검사를 통과하지 못하면 null입니다.
+- `timeline[]`: 이 기간의 일을 날짜순으로(최대 25줄, AI가 쓰고 코드가 검증·정렬). `date`는 `YYYY-MM-DD`이고 비교 기간(이전 보고서 기간 말일 ~ 현재 보고서 제출일) 안이며, 인용한 글에 있거나 인용한 공시의 접수일입니다. 검사를 통과한 줄이 없으면 빈 배열입니다.
 - `items[]`: AI가 낸 순서. `area`는 `BUSINESS`(사업·제품), `INVESTMENT`(투자·설비·인수), `FINANCE`(자금·재무), `SHAREHOLDER`(주주·배당), `GOVERNANCE`(지배구조·경영진), `PEOPLE`(인력·조직), `RISK`(소송·제재·위험), `OTHER`(기타). `audiences`는 쓸모 있는 쪽 하나 이상: `INVESTOR`(투자, 사모펀드·재무적 투자 포함), `CAREER`(취업·면접), `PARTNER`(협업·거래).
 - `facts[]`: 원문 인용(글 그대로, 이어진 공백은 한 칸)과 위치. `evidence.side`는 `PREVIOUS`(이전 보고서)·`CURRENT`(이번 보고서), `changeId`는 그 인용이 든 문장 변경(전체 변경 탭의 `tc`)입니다.
 - `signal`: `POSITIVE`(긍정 신호)·`CAUTION`(주의 신호)·`HOLD`(보류). `holdReason`(보류일 때만): `NO_CRITERIA` 기준표에 없는 종류·변화, `MIXED_SIDES` 좋은 면·나쁜 면이 함께 있는 변화, `EVIDENCE_NOT_CONFIRMED` 판단 근거가 그 카드의 인용이 아니거나 해소·철회를 이전 보고서 글로만 댐.
@@ -4202,7 +4208,7 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 
 ### POST /internal/period-activities — 두 보고서 사이 활동과 앞으로의 영향 뽑기
 
-- [ADR-0067](adr/0067-period-activity-impact-view.md). task `period_activity`, 프롬프트 `period-activity-1`(backend `PeriodActivityService.PROMPT_VERSION`과 같아야 함, 다르면 400).
+- [ADR-0067](adr/0067-period-activity-impact-view.md)·[ADR-0068](adr/0068-activity-overview-timeline-inputs.md). task `period_activity`(카드)·`period_overview`(요약·타임라인), 프롬프트 `period-activity-2`(backend `PeriodActivityService.PROMPT_VERSION`과 같아야 함, 다르면 400).
 - backend가 분석의 분류된 문장 변경 중 `MAIN`·`UNPAIRED`·`HEADING` 묶음을 보냅니다(최대 5,000건). AI 서버가 주요 사건 후보 규칙(ADR-0051 `is_candidate`)으로 고르고, 주요 분야·주석에서 올린 변경 → 새 문단 → 나머지 순으로 이전·이번 글을 근거 원문(쪽마다 500자, 최대 160개)으로 만듭니다. 한 블록이 여러 변경에 걸리면 처음 것만 씁니다.
 - 원문이 없으면 LLM을 부르지 않고 `EMPTY`(`calls` 빈 배열)입니다.
 - 검증은 공개 API 설명과 같습니다. 어긋나면 2회까지 다시 만들고, 그래도 어긋난 카드는 빼고 `droppedCount`에 남깁니다. 통과한 카드가 없으면 `REVIEW_NEEDED`(`reviewReason`, 표현 검사에 걸렸으면 `blockedRules`)입니다. 요약만 어긋나면 `overview`만 null입니다.
@@ -4211,10 +4217,14 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 
 ```json
 {
-  "promptVersion": "period-activity-1",
+  "promptVersion": "period-activity-2",
   "companyName": "예시전자",
   "previousReportName": "반기보고서 (2025.06)",
   "currentReportName": "반기보고서 (2026.06)",
+  "periodFrom": "2025-06-30",
+  "periodTo": "2026-08-14",
+  "financials": [{ "evidenceId": "F123", "text": "연결 손익계산서 매출액: 이전 153.7조원, 이번 305.4조원, 증감액 +151.7조원, 증감률 +98.7%" }],
+  "disclosures": [{ "evidenceId": "D20260319801333", "rceptDt": "2026-03-19", "reportName": "기업가치제고계획(자율공시)", "text": "…" }],
   "changes": [
     { "changeNo": 7, "changeType": "ADDED", "blockType": "PARAGRAPH", "listGroup": "MAIN", "field": "CONTRACT",
       "raisedFromNote": false, "sectionPath": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
@@ -4228,13 +4238,14 @@ backend는 저장된 구조화 결과의 파서 버전이 이 값과 다르면 �
 
 ```json
 {
-  "promptVersion": "period-activity-1",
+  "promptVersion": "period-activity-2",
   "expressionRulesVersion": "expr-1",
   "signalTableVersion": "signal-table-2",
   "model": "fake-model",
   "generatedAt": "2026-11-10T10:12:03+09:00",
   "status": "GENERATED",
-  "overview": { "text": "…", "evidenceIds": ["20260814003699#B174"] },
+  "overview": { "text": "…", "evidenceIds": ["20260814003699#B174", "F123"] },
+  "timeline": [{ "date": "2026-03-19", "text": "…", "evidenceIds": ["D20260319801333"] }],
   "items": [
     { "area": "BUSINESS", "audiences": ["INVESTOR"], "title": "…", "summary": "…",
       "facts": [{ "quote": "…", "evidenceId": "20260814003699#B174" }],

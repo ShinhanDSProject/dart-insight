@@ -980,7 +980,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `company_question_id` | BIGINT | FK | 예 | `company_question.id`. 기업 질문 호출일 때만(`V27`, task `answer`) |
 | `company_outlook_id` | BIGINT | FK | 예 | `company_outlook.id`. 전망·계획 호출일 때만(`V39`, task `outlook`) |
 | `plan_followup_id` | BIGINT | FK | 예 | `plan_followup.id`. 약속과 실제 대조 호출일 때만(`V40`, task `plan_followup`) |
-| `task` | VARCHAR(30) | | 아니오 | 작업(`summary`, `answer`, `briefing`, `outlook`, `plan_followup`, 주요 사건 `text_event`(`analysis_id`만 채움, ADR-0050), 두 보고서 사이 활동 `period_activity`(`analysis_id`만 채움, ADR-0067), 에이전트 채팅의 `agent_plan` 다음 Tool 고르기·`agent_answer` 답 만들기·`term_general` 카드 없는 용어의 일반 설명 ADR-0064). 에이전트 채팅 호출은 `analysis_id`만 채움(대화를 저장하지 않음). 채팅 안의 근거 질문은 지금처럼 task `answer` |
+| `task` | VARCHAR(30) | | 아니오 | 작업(`summary`, `answer`, `briefing`, `outlook`, `plan_followup`, 주요 사건 `text_event`(`analysis_id`만 채움, ADR-0050), 두 보고서 사이 활동 `period_activity`·요약과 타임라인 `period_overview`(`analysis_id`만 채움, ADR-0067·0068), 에이전트 채팅의 `agent_plan` 다음 Tool 고르기·`agent_answer` 답 만들기·`term_general` 카드 없는 용어의 일반 설명 ADR-0064). 에이전트 채팅 호출은 `analysis_id`만 채움(대화를 저장하지 않음). 채팅 안의 근거 질문은 지금처럼 task `answer` |
 | `provider`, `model` | VARCHAR(30), VARCHAR(100) | | 아니오 | 제공자(`fake` 등)와 모델 |
 | `prompt_version` | VARCHAR(30) | | 아니오 | 프롬프트 버전 |
 | `called_at` | DATETIME(6) | | 예 | 호출 시각(한국 시간) |
@@ -1158,6 +1158,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `corp_code` | VARCHAR(8) | UK, FK | 아니오 | `company.corp_code` |
 | `begin_date` | DATE | UK | 아니오 | 조회 시작(`bgn_de`, 이전 보고서 기간 말일) |
 | `end_date` | DATE | UK | 아니오 | 조회 끝(`end_de`, 현재 보고서 제출일) |
+| `scope` | VARCHAR(10) | UK | 아니오 | 받는 범위. `RELATED` 관련 수시공시(ADR-0030), `EVENT` 공시 분석 타임라인(공시유형 B·C·E·I·J, 최종본, ADR-0068). 마이그레이션 `V54` |
 | `status` | VARCHAR(10) | | 아니오 | `OK` 자료 있음, `NO_DATA` 자료 없음(013) |
 | `fetched_at` | DATETIME(6) | | 아니오 | 받은 시각 |
 
@@ -1170,7 +1171,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `id` | BIGINT | PK | 아니오 | 자동 증가 |
 | `fetch_id` | BIGINT | FK, UK | 아니오 | `disclosure_window_fetch.id` |
 | `rcept_no` | VARCHAR(14) | UK | 아니오 | 접수번호. `report`에 없는 공시라 외래 키를 걸지 않음 |
-| `detail_type` | VARCHAR(4) | | 아니오 | 요청한 공시상세유형(`B001`, `I001`, `I002`) |
+| `detail_type` | VARCHAR(4) | | 아니오 | 요청한 공시상세유형(`B001`, `I001`, `I002`). `EVENT` 범위는 공시유형(`B`, `C`, `E`, `I`, `J`) |
 | `report_name` | VARCHAR(500) | | 아니오 | 보고서명 원문(`report_nm`, 앞뒤 공백만 뺌) |
 | `filer_name` | VARCHAR(200) | | 예 | 제출인(`flr_nm`) |
 | `rcept_dt` | DATE | | 아니오 | 접수일 |
@@ -1664,7 +1665,7 @@ LLM 호출 기록입니다(0.7). 다시 만든 호출도 한 줄씩 남겨 모�
 | `llm_call` | `idx_llm_call_outlook` | `company_outlook_id` | 인덱스 | 전망·계획별 호출 기록 |
 | `plan_followup` | `uk_plan_followup` | `previous_rcept_no, current_rcept_no, prompt_version` | 유니크 | 두 보고서·프롬프트 버전마다 대조 하나 |
 | `llm_call` | `idx_llm_call_plan_followup` | `plan_followup_id` | 인덱스 | 약속과 실제 대조별 호출 기록 |
-| `disclosure_window_fetch` | `uk_disclosure_window_fetch` | `corp_code, begin_date, end_date` | 유니크 | 같은 기업·기간을 한 번만 받음 |
+| `disclosure_window_fetch` | `uk_disclosure_window_fetch_scope` | `corp_code, begin_date, end_date, scope` | 유니크 | 같은 기업·기간·범위를 한 번만 받음 |
 | `disclosure_window_item` | `uk_disclosure_window_item` | `fetch_id, rcept_no` | 유니크 | 같은 공시를 두 번 저장하지 않음 |
 | `related_disclosure_run` | `uk_related_disclosure_run` | `analysis_id, rule_version` | 유니크 | 분석·규칙 버전마다 한 번만 계산 |
 | `related_disclosure` | `uk_related_disclosure` | `run_id, change_no, item_id` | 유니크 | 같은 변경·공시 연결 중복 방지. 변경별 조회에도 씀 |
