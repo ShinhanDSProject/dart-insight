@@ -6,6 +6,7 @@ import com.dartinsight.activity.domain.ActivityPayload.Impact;
 import com.dartinsight.activity.domain.ActivityPayload.Item;
 import com.dartinsight.activity.domain.ActivityPayload.Overview;
 import com.dartinsight.activity.domain.ActivityPayload.Quote;
+import com.dartinsight.activity.domain.ActivityPayload.TimelineEntry;
 import com.dartinsight.activity.domain.ActivityRecord;
 import com.dartinsight.activity.domain.ActivityStatus;
 import com.dartinsight.activity.dto.ActivityAiResponse;
@@ -69,8 +70,10 @@ final class ActivityResults {
         }
         Overview overview = status == ActivityStatus.GENERATED ? overview(response.overview(), evidence) : null;
         List<Item> kept = status == ActivityStatus.GENERATED ? items : List.of();
+        List<TimelineEntry> timeline = status == ActivityStatus.GENERATED
+                ? timeline(response.timeline(), evidence) : List.of();
         return new ActivityRecord(null, analysisId, promptVersion, status,
-                new ActivityPayload(overview, kept, dropped, candidates), reviewReason,
+                new ActivityPayload(overview, kept, dropped, candidates, timeline), reviewReason,
                 response.blockedRules() == null ? List.of() : response.blockedRules(),
                 response.signalTableVersion(), response.model(), time(response.generatedAt()), traceId, now);
     }
@@ -142,6 +145,26 @@ final class ActivityResults {
         }
         List<Evidence> where = raw.evidenceIds().stream().distinct().map(evidence::get).toList();
         return where.stream().anyMatch(Objects::isNull) ? null : new Overview(raw.text().strip(), where);
+    }
+
+    /** 근거를 모두 확인한 줄만 남긴다 */
+    private static List<TimelineEntry> timeline(List<ActivityAiResponse.TimelineEntry> raw,
+            Map<String, Evidence> evidence) {
+        if (raw == null) {
+            return List.of();
+        }
+        List<TimelineEntry> entries = new ArrayList<>();
+        for (ActivityAiResponse.TimelineEntry entry : raw) {
+            if (entry == null || blank(entry.date()) || blank(entry.text()) || entry.evidenceIds() == null
+                    || entry.evidenceIds().isEmpty()) {
+                continue;
+            }
+            List<Evidence> where = entry.evidenceIds().stream().distinct().map(evidence::get).toList();
+            if (where.stream().noneMatch(Objects::isNull)) {
+                entries.add(new TimelineEntry(entry.date(), entry.text().strip(), where));
+            }
+        }
+        return entries;
     }
 
     private static void addOnce(List<Long> ids, Long id) {

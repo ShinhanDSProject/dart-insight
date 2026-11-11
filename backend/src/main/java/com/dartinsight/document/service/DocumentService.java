@@ -3,6 +3,7 @@ package com.dartinsight.document.service;
 import com.dartinsight.aiserver.client.AiServerClient;
 import com.dartinsight.aiserver.client.AiServerException;
 import com.dartinsight.aiserver.client.AiServerPaths;
+import com.dartinsight.common.error.ApiException;
 import com.dartinsight.dart.client.OpenDartClient;
 import com.dartinsight.dart.client.OpenDartClient.DocumentFile;
 import com.dartinsight.document.domain.DocumentBlock;
@@ -112,6 +113,33 @@ public class DocumentService {
                     result.getBlockCount(), result.getCellCount(), result.getSourceCellCount());
             return result;
         }
+    }
+
+    /**
+     * 공시 원문의 글(ADR-0068). 정기보고서가 아니어서 구조는 저장하지 않고 ZIP만 접수번호로 캐시한다.
+     * 원문이 없거나 받기·구조화에 실패하면 빈 값이고 부르는 쪽은 제목만 쓴다.
+     */
+    public Optional<String> disclosureText(String rceptNo, int limit) {
+        try {
+            Optional<byte[]> zip = disclosureZip(rceptNo);
+            return zip.map(bytes -> structure(rceptNo, bytes).plainText(limit)).filter(text -> !text.isBlank());
+        } catch (ApiException e) {
+            log.warn("공시 원문을 읽지 못해 제목만 씁니다 {}: {}", rceptNo, e.getClass().getSimpleName());
+            return Optional.empty();
+        }
+    }
+
+    private Optional<byte[]> disclosureZip(String rceptNo) {
+        Optional<byte[]> cached = fileCache.read(rceptNo);
+        if (cached.isPresent()) {
+            return cached;
+        }
+        DocumentFile file = openDartClient.downloadDocument(rceptNo);
+        if (!file.available()) {
+            return Optional.empty();
+        }
+        fileCache.write(rceptNo, file.zip());
+        return Optional.of(file.zip());
     }
 
     public Optional<ReportDocument> find(String rceptNo) {
