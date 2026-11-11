@@ -141,6 +141,15 @@ describe('한 문단 요약과 이 기간 타임라인(ADR-0068)', () => {
     expect(onOpenText).toHaveBeenCalledWith(41)
   })
 
+  it('요약이 없으면 자리를 비우지 않고 검토 필요를 보인다', async () => {
+    const { container } = renderTab({ status: 'success', data: { ...withTimeline, overview: null } })
+
+    const missing = within(screen.getByRole('region', { name: '한 문단 요약' }))
+    expect(missing.getByText('검토 필요')).toBeTruthy()
+    expect(screen.queryByText('이 기간에 매출이 늘었어요.')).toBeNull()
+    expect(await axeViolations(container)).toBe('')
+  })
+
   it('타임라인이 비면 제목도 보이지 않는다', () => {
     renderTab({ status: 'success', data: generated([contract]) })
 
