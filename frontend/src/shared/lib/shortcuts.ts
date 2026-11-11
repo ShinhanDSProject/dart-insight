@@ -38,6 +38,12 @@ export interface ShortcutKeyEvent {
   target: ShortcutTarget | null
 }
 
+/**
+ * 'A' 단축키가 결과 화면에 보내는 알림(window 이벤트). 결과 화면이 AI 에이전트 패널을 열고 입력창에 초점을 둔다.
+ * 패널을 여닫는 상태가 결과 화면 안에 있어 단축키 훅(Layout)이 직접 열지 못한다
+ */
+export const OPEN_CHAT_INPUT_EVENT = 'dart-insight:open-chat-input'
+
 export type ShortcutAction =
   | { kind: 'focus-search' }
   | { kind: 'open-tab'; tab: ShortcutResultTab }
@@ -168,7 +174,7 @@ export function shortcutGroups(page: ShortcutPage): ShortcutGroup[] {
       { keys: ['5'], label: '뉴스 탭' },
       { keys: ['6'], label: '원문 탭' },
       { keys: ['7'], label: '보고서 선택 탭' },
-      { keys: ['A'], label: 'AI 질문 입력창으로 가기' },
+      { keys: ['A'], label: 'AI 에이전트 입력창으로 가기' },
     ],
   }
   const text: ShortcutGroup = {

@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Analysis, AnalysisCreated } from '@/shared/api/analyses'
 import type { ComparabilityRequest } from '@/shared/api/comparability'
 import { ApiError } from '@/shared/api/client'
 import type { ReportItem } from '@/shared/api/reports'
+import { OPEN_CHAT_INPUT_EVENT } from '@/shared/lib/shortcuts'
 import { axeViolations } from '@/test/axe'
 import { ResultOverviewContext, ResultReportsContext } from './overviewSlot'
 import { AnalysisResultPage } from './AnalysisResultPage'
@@ -233,6 +234,19 @@ describe('결과 머리(#550)', () => {
     expect(screen.getByRole('dialog', { name: 'AI 에이전트' })).toBeTruthy()
     fireEvent.click(within(panel).getByRole('button', { name: '닫기' }))
     expect(screen.queryByRole('dialog', { name: 'AI 에이전트' })).toBeNull()
+  })
+
+  it('요약 탭에 AI 에이전트 요청 칸이 없고, A 단축키 알림을 받으면 패널을 열어 입력창에 초점을 둔다', async () => {
+    getAnalysis.mockResolvedValue(analysis(false))
+    renderPage()
+    await screen.findByRole('navigation', { name: '결과 보기' })
+    expect(screen.queryByRole('heading', { name: 'AI 에이전트에게 요청하기' })).toBeNull()
+
+    act(() => {
+      window.dispatchEvent(new Event(OPEN_CHAT_INPUT_EVENT))
+    })
+    expect(screen.getByRole('dialog', { name: 'AI 에이전트' })).toBeTruthy()
+    expect(document.activeElement?.id).toBe('chat-input')
   })
 
   it('원문 탭은 원문 읽기로 열리고, 바뀐 곳으로 바꿔도 탭 줄은 원문을 고른 채로 둔다', async () => {
