@@ -125,3 +125,223 @@
 .progress__mascot {
   flex: none;
 }
+
+/* ── 동적 화면 시안 ②: 기다리는 동안 두 보고서를 맞춰 보는 장면(꾸밈) ── */
+.compare-scene {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px minmax(0, 1fr);
+  margin-bottom: var(--space-5);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-subtle);
+  animation: rise-in var(--motion-enter) var(--ease-out) backwards;
+}
+
+.compare-scene__doc {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.compare-scene__label {
+  margin-bottom: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.compare-scene__line {
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-border);
+}
+
+/* 바뀐 줄은 훑는 선이 지나갈 때 색이 칠해진다. 색은 문장 변경 구성(추가·수정·삭제)과 같다 */
+.compare-scene__line--added {
+  --line-tone: var(--color-added-subtle);
+}
+
+.compare-scene__line--modified {
+  --line-tone: var(--color-accent-subtle);
+}
+
+.compare-scene__line--deleted {
+  --line-tone: var(--color-danger-subtle);
+}
+
+.compare-scene__line[class*='--'] {
+  animation: line-mark var(--motion-scan) var(--ease-out) infinite alternate;
+  animation-delay: calc(var(--i) * var(--motion-stagger));
+}
+
+.compare-scene__scan {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: var(--color-accent);
+  box-shadow: 0 0 18px 4px var(--color-accent-subtle);
+  animation: doc-scan var(--motion-scan) ease-in-out infinite alternate;
+}
+
+.compare-scene__doc + .compare-scene__middle + .compare-scene__doc .compare-scene__scan {
+  animation-delay: calc(var(--motion-scan) / 6);
+}
+
+.compare-scene__middle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.compare-scene__arrow path {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 2;
+}
+
+.compare-scene__chip {
+  position: absolute;
+  top: calc(40% + var(--i) * 18px);
+  left: var(--space-2);
+  padding: 2px var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  opacity: 0;
+  animation: chip-fly var(--motion-scan) var(--ease-out) infinite;
+  animation-delay: calc(var(--i) * var(--motion-scan) / 3);
+}
+
+.compare-scene__chip--added {
+  color: var(--color-added);
+}
+
+.compare-scene__chip--modified {
+  color: var(--color-accent);
+}
+
+.compare-scene__chip--deleted {
+  color: var(--color-danger);
+}
+
+@keyframes doc-scan {
+  to {
+    top: calc(100% - 3px);
+  }
+}
+
+@keyframes line-mark {
+  0%,
+  30% {
+    background: var(--color-border);
+  }
+
+  45%,
+  100% {
+    background: var(--line-tone);
+  }
+}
+
+@keyframes chip-fly {
+  0% {
+    opacity: 0;
+    transform: translateX(0) scale(0.7);
+  }
+
+  20% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(72px) scale(1);
+  }
+}
+
+/* 동작 줄이기면 칠한 줄만 남은 멈춘 그림이다 */
+@media (prefers-reduced-motion: reduce) {
+  .compare-scene__line[class*='--'] {
+    background: var(--line-tone);
+  }
+
+  .compare-scene__scan,
+  .compare-scene__chip {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .compare-scene {
+    grid-template-columns: minmax(0, 1fr) 48px minmax(0, 1fr);
+    padding: var(--space-3);
+  }
+
+  .compare-scene__doc {
+    padding: var(--space-3);
+  }
+
+  .compare-scene__chip {
+    display: none;
+  }
+}
+
+/* 기다리는 동안 안내: 한 줄씩 차례로 바뀐다. 동작 줄이기면 세 줄 목록 그대로 */
+.wait-tips {
+  margin-top: var(--space-5);
+  background: var(--color-accent-subtle);
+}
+
+.wait-tips__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  line-height: 1.6;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .wait-tips__list {
+    position: relative;
+    min-height: calc(1.6em * 2);
+  }
+
+  .wait-tips__list > li {
+    position: absolute;
+    inset: 0 0 auto;
+    opacity: 0;
+    animation: tip-cycle calc(var(--motion-rotate) * 1.5) var(--ease-out) infinite;
+    animation-delay: calc(var(--motion-rotate) * 1.5 / 3 * var(--i));
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) and (max-width: 640px) {
+  .wait-tips__list {
+    min-height: calc(1.6em * 4);
+  }
+}
+
+@keyframes tip-cycle {
+  0% {
+    opacity: 0;
+    transform: translateY(var(--motion-rise));
+  }
+
+  6%,
+  30% {
+    opacity: 1;
+    transform: none;
+  }
+
+  36%,
+  100% {
+    opacity: 0;
+  }
+}
