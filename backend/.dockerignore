@@ -4,3 +4,11 @@
 .gradle
 build
 data
+.git
+.idea
+*.iml
+.vscode
+.DS_Store
+Dockerfile
+README.md
+
