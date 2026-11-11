@@ -6,6 +6,7 @@ import type { AnalysisStatus } from '@/shared/api/analyses'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
 import { useQueryParams } from '@/shared/hooks/useQueryParams'
 import { formatDuration, formatInteger } from '@/shared/lib/numberFormat'
+import { cx } from '@/shared/lib/cx'
 import { pageTitle } from '@/shared/lib/pageTitle'
 import { Badge, Button, DataTable, Icon, Input, SegmentedControl } from '@/shared/ui'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
@@ -166,24 +167,29 @@ function AnalysisRow({ item }: { item: AdminAnalysisItem }) {
   return (
     <>
       <tr className={item.status === 'FAILED' ? 'jobs__row jobs__row--failed' : 'jobs__row'}>
-        <td className="jobs__num">{item.analysisId}</td>
+        <td className="jobs__num">
+          <span className="jobs__id-tag">#{item.analysisId}</span>
+        </td>
         <th scope="row" className="jobs__corp">
-          {item.corpName ?? item.corpCode}
+          <span className="jobs__corp-title">{item.corpName ?? item.corpCode}</span>
           <span className="jobs__sub">{item.corpCode}</span>
         </th>
-        <td>
+        <td className="jobs__compare-cell">
           {item.previous.reportName ?? item.previous.rceptNo} → {item.current.reportName ?? item.current.rceptNo}
         </td>
         <td>
-          <Badge tone={statusTone(item.status)}>{statusLabel(item.status)}</Badge>
+          <div className="jobs__status-wrap">
+            <span className={cx('jobs__status-dot', `jobs__status-dot--${item.status.toLowerCase()}`)} aria-hidden="true" />
+            <Badge tone={statusTone(item.status)}>{statusLabel(item.status)}</Badge>
+          </div>
           {item.status !== 'COMPLETED' && <span className="jobs__sub">{stepLabel(item.step)} 단계</span>}
         </td>
         <td className="jobs__num">{formatDuration(item.durationSeconds)}</td>
         <td>
-          {item.analysisVersion}
+          <span className="jobs__ver">{item.analysisVersion}</span>
           {item.outdated && <Badge tone="attention">옛 버전</Badge>}
         </td>
-        <td className="jobs__num">{shortDateTime(item.createdAt)}</td>
+        <td className="jobs__num jobs__num--date">{shortDateTime(item.createdAt)}</td>
         <td>
           <Link to={target} className="jobs__open" aria-label={`분석 ${item.analysisId} ${item.status === 'COMPLETED' ? '결과' : '진행'} 화면`}>
             {item.status === 'COMPLETED' ? '결과' : '진행'} ›
@@ -193,10 +199,12 @@ function AnalysisRow({ item }: { item: AdminAnalysisItem }) {
       {(item.errorCode !== null || item.traceId !== null) && item.status === 'FAILED' && (
         <tr className="jobs__detail">
           <td colSpan={8}>
-            <span className="jobs__error">
-              {item.errorCode && <code>{item.errorCode}</code>} {item.errorMessage}
-            </span>
-            {item.traceId && <TraceId value={item.traceId} />}
+            <div className="jobs__error-card">
+              <span className="jobs__error">
+                {item.errorCode && <code>{item.errorCode}</code>} {item.errorMessage}
+              </span>
+              {item.traceId && <TraceId value={item.traceId} />}
+            </div>
           </td>
         </tr>
       )}

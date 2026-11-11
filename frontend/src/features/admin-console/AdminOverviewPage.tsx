@@ -75,6 +75,31 @@ function OverviewBody({ data, days }: { data: AdminOverview; days: AdminDays }) 
 
   return (
     <>
+      <section className="console-status-bar" aria-label="시스템 실시간 상태">
+        <div className="console-status-bar__item">
+          <span className="console-status-bar__dot console-status-bar__dot--live" aria-hidden="true" />
+          <span className="console-status-bar__label">OpenDART API</span>
+          <span className="console-status-bar__val">19개 전원 연동</span>
+        </div>
+        <div className="console-status-bar__divider" aria-hidden="true" />
+        <div className="console-status-bar__item">
+          <span className="console-status-bar__dot console-status-bar__dot--live" aria-hidden="true" />
+          <span className="console-status-bar__label">비동기 파이프라인</span>
+          <span className="console-status-bar__val">상태 전이 무결성</span>
+        </div>
+        <div className="console-status-bar__divider" aria-hidden="true" />
+        <div className="console-status-bar__item">
+          <span className="console-status-bar__dot console-status-bar__dot--live" aria-hidden="true" />
+          <span className="console-status-bar__label">AI 가드레일</span>
+          <span className="console-status-bar__val">3단계 환각 차단</span>
+        </div>
+        <div className="console-status-bar__divider" aria-hidden="true" />
+        <div className="console-status-bar__item">
+          <span className="console-status-bar__label">DB 스키마</span>
+          <span className="console-status-bar__val console-status-bar__val--mono">Flyway V52</span>
+        </div>
+      </section>
+
       <div className="kpi-grid">
         <KpiTile label="분석 요청" value={formatInteger(analyses.requested)} detail={`진행 중·대기 ${formatInteger(analyses.inProgress)}`} />
         <KpiTile

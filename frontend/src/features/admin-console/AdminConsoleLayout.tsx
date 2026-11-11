@@ -50,8 +50,19 @@ export function AdminConsoleLayout() {
       </a>
       <aside className="console__side" aria-label="운영 콘솔 메뉴">
         <Link to="/admin" className="console__brand" aria-label="운영 콘솔 개요">
-          <BrandLogo />
-          <span className="console__brand-sub">운영 콘솔</span>
+          <div className="console__brand-row">
+            <BrandLogo />
+            <span className="console__badge-pill" aria-hidden="true">
+              Enterprise
+            </span>
+          </div>
+          <div className="console__brand-sub-row">
+            <span className="console__brand-sub">운영 콘솔</span>
+            <span className="console__status-live" aria-hidden="true">
+              <span className="console__pulse-dot" />
+              정상
+            </span>
+          </div>
         </Link>
         <nav className="console__nav" aria-label="운영 콘솔">
           {NAV_GROUPS.map((group) => (
@@ -75,10 +86,22 @@ export function AdminConsoleLayout() {
             </div>
           ))}
         </nav>
-        <Link to="/" className="console__back">
-          <Icon name="arrow-left" size={16} />
-          서비스로 돌아가기
-        </Link>
+        <div className="console__side-footer">
+          <div className="console__meta-card" aria-hidden="true">
+            <div className="console__meta-row">
+              <span className="console__meta-title">DART Insight Core</span>
+              <span className="console__meta-ver">v1.4.2</span>
+            </div>
+            <div className="console__meta-status">
+              <span className="console__pulse-dot console__pulse-dot--green" />
+              <span>보안 세션 활성 (ADMIN)</span>
+            </div>
+          </div>
+          <Link to="/" className="console__back">
+            <Icon name="arrow-left" size={16} />
+            서비스로 돌아가기
+          </Link>
+        </div>
       </aside>
       <main className="console__main" id="console-main" tabIndex={-1}>
         {match(access)
