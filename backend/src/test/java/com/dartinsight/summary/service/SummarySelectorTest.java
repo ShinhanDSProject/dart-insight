@@ -79,6 +79,30 @@ class SummarySelectorTest {
         assertThat(SummarySelector.financial(rows)).containsExactly(0, 2, 3, 4, 7);
     }
 
+    private static FinancialChangeRow fin(String sjDiv, String name, String accountId, long previous, long current) {
+        FinancialChangeRow.Evidence side = new FinancialChangeRow.Evidence("20260814000001", sjDiv, accountId, name, "당기");
+        return new FinancialChangeRow(sjDiv, FsDiv.CFS, name, name, 0, AmountBasis.POINT, previous, current,
+                current - previous, null, CalcStatus.OK, "KRW", side, side);
+    }
+
+    @Test
+    @DisplayName("회사가 문단에서 설명하는 대표 계정을 증감액이 더 큰 합계·세부 계정보다 먼저 고른다")
+    void narratedAccountsArePickedBeforeLargerTableOnlyAccounts() {
+        List<FinancialChangeRow> rows = List.of(
+                fin("IS", "매출총이익", "ifrs-full_GrossProfit", 536L, 2012L),
+                fin("IS", "법인세비용차감전순이익", "ifrs-full_ProfitLossBeforeTax", 149L, 1533L),
+                fin("IS", "매출액", "ifrs-full_Revenue", 1537L, 3054L),
+                fin("IS", "영업이익", "dart_OperatingIncomeLoss", 114L, 1467L),
+                fin("BS", "자본총계", "ifrs-full_Equity", 3996L, 5793L),
+                fin("BS", "자산총계", "ifrs-full_Assets", 5049L, 7595L),
+                fin("BS", "유동자산", "ifrs-full_CurrentAssets", 2122L, 3797L),
+                fin("CF", "영업에서 창출된 현금흐름", "ifrs-full_CashFlowsFromUsedInOperations", 400L, 1700L),
+                fin("CF", "영업활동현금흐름", "ifrs-full_CashFlowsFromUsedInOperatingActivities", 339L, 1454L));
+
+        // 손익: 매출액·영업이익(대표) 다음에 증감액이 큰 매출총이익. 재무상태표: 자산총계(대표) 다음 자본총계. 현금흐름: 영업활동현금흐름
+        assertThat(SummarySelector.financial(rows)).containsExactly(2, 3, 0, 5, 4, 8);
+    }
+
     @Test
     void singleIncomeStatementFilersUseComprehensiveIncome() {
         List<FinancialChangeRow> rows = List.of(

@@ -21,6 +21,16 @@ import org.junit.jupiter.api.Test;
 class AccountAliasesTest {
 
     @Test
+    @DisplayName("검색어 사전에 있는 대표 계정만 문단에서 설명하는 계정으로 본다")
+    void onlyDictionaryAccountsAreNarrated() {
+        assertThat(AccountAliases.isNarrated("ifrs-full_Revenue")).isTrue();
+        assertThat(AccountAliases.isNarrated("ifrs-full_CashFlowsFromUsedInOperatingActivities")).isTrue();
+        assertThat(AccountAliases.isNarrated("ifrs-full_GrossProfit")).isFalse();
+        assertThat(AccountAliases.isNarrated(FinancialAccount.NON_STANDARD_ACCOUNT_ID)).isFalse();
+        assertThat(AccountAliases.isNarrated(null)).isFalse();
+    }
+
+    @Test
     @DisplayName("괄호가 붙은 계정명은 괄호 밖 글을 검색어로 쓰고 2글자 이하인 괄호 안 글은 버린다")
     void splitsParenthesesAndDropsShortTerms() {
         assertThat(AccountAliases.fromName("영업이익 (손실)")).containsExactly("영업이익", "손실");

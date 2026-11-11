@@ -51,8 +51,9 @@ public class Analysis {
      * m2-17: 요약할 재무 수치에 현금흐름표(CF) 1개와 영업활동현금흐름 검색어 추가(#481).
      * m2-18: 문장 변경의 목록 분류와 표 행 비교를 저장(text-list-1, ADR-0047, #612).
      * m2-19: 보고서 기간 표시(기수·연도·기준일)만 바뀐 문장 변경을 PERIOD 묶음으로 접음(text-list-2, #797).
+     * m2-20: 요약할 재무 수치를 고를 때 회사가 문단에서 설명하는 대표 계정을 먼저 고름(AccountAliases.isNarrated).
      */
-    public static final String CURRENT_VERSION = "m2-19";
+    public static final String CURRENT_VERSION = "m2-20";
 
     /** text_missing_fields에서 분야를 잇는 글 */
     private static final String FIELD_SEPARATOR = ",";
