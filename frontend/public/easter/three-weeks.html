@@ -346,6 +346,104 @@ main section { padding-block: 56px; border-bottom: 1px solid var(--color-border)
   font-size: 13px;
 }
 
+/* AX 일하는 방식 비주얼 카드 */
+.ax-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+  margin-bottom: 24px;
+}
+@media (max-width: 980px) {
+  .ax-grid { grid-template-columns: 1fr; }
+}
+.ax-card {
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+  border-top: 4px solid var(--color-accent);
+  transition: transform var(--motion-base) var(--ease-out), box-shadow var(--motion-base);
+}
+.ax-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.ax-card--1 { border-top-color: #0284c7; }
+.ax-card--2 { border-top-color: #554cb8; }
+.ax-card--3 { border-top-color: #16a34a; }
+.ax-card__top {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ax-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.ax-card__step {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--color-accent);
+  background: var(--color-accent-subtle);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+.ax-card h3 {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--color-text);
+  margin: 0;
+}
+.ax-card p {
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+.ax-card__tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.ax-card__tool-chip {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+.ax-card__metric {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  margin-top: auto;
+}
+.ax-card__metric span {
+  color: var(--color-increase);
+}
+
 /* 구조도 */
 .arch { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 14px; align-items: start }
 @media (max-width: 880px) { .arch { grid-template-columns: 1fr } }
@@ -577,6 +675,7 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
   /* 카드 및 박스 테두리 최적화 */
   .card,
   .tech-card,
+  .ax-card,
   .bna-box,
   .matrix-card,
   .metric-card,
@@ -670,6 +769,30 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
   .tech-chip {
     font-size: 10px !important;
     padding: 3px 6px !important;
+  }
+
+  .ax-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
+    margin-top: 10px !important;
+    margin-bottom: 12px !important;
+  }
+  .ax-card {
+    padding: 12px !important;
+    gap: 8px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+  .ax-card h3 {
+    font-size: 12px !important;
+  }
+  .ax-card p {
+    font-size: 10px !important;
+    line-height: 1.35 !important;
+  }
+  .ax-card__metric {
+    font-size: 10px !important;
+    padding: 6px 8px !important;
   }
 
   .matrix-table-wrap {
@@ -773,7 +896,7 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
     <a href="#architecture">아키텍처</a>
     <a href="#decisions">핵심 설계</a>
     <a href="#infra">인프라 · 운영</a>
-    <a href="#weeks">개발 발자취</a>
+    <a href="#weeks">AX 일하는 방식</a>
     <span class="tabs__indicator" id="tabInd" aria-hidden="true"></span>
   </nav>
 </div></div>
@@ -1590,12 +1713,114 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
   </div>
 </section>
 
-<!-- 9. 개발 발자취 -->
-<section id="weeks" data-title="개발 발자취">
+<!-- 9. AX 일하는 방식 -->
+<section id="weeks" data-title="AX 일하는 방식">
   <div class="sechead">
-    <p class="kicker">09 · Engineering Track Record</p>
-    <h2>시스템이 어떤 순서로 자라났는지 주차별 PR로 찾아볼 수 있습니다</h2>
-    <p>기반 구축부터 MVP 연결, 기업 개요 확장, 에이전트 채팅과 운영 보호 장치까지 첫 3주 동안 병합한 360개 주요 PR과 이후 421+ PR의 개발 발자취입니다.</p>
+    <p class="kicker">09 · AX Way of Working</p>
+    <h2>AI와 사람이 어떻게 협업하여 3주 만에 엔터프라이즈 시스템을 완성했는가?</h2>
+    <p>단순한 코드 생성을 넘어 기획·설계·검증·협업 전 과정에 AI 에이전트를 내재화한 DART Insight 팀의 AX(AI 전환) 일하는 방식입니다.</p>
+  </div>
+
+  <!-- AX 3대 핵심 협업 파이프라인 -->
+  <div class="ax-grid">
+    <!-- Pillar 1 -->
+    <div class="ax-card ax-card--1">
+      <div class="ax-card__top">
+        <div class="ax-card__head">
+          <span class="ax-card__step">Pillar 01 · 기획 & 명세</span>
+          <span class="badge">AI Spec Engineering</span>
+        </div>
+        <h3>성공 기준(SC) 기반 정밀 기획서 자동화</h3>
+        <p>"모호한 요구사항은 환각과 재작업의 주원인입니다." 비즈니스 성공 기준(SC)을 입력하면 AI 스킬이 기획서(FS-n)와 측정 가능한 수용 기준(AC)을 도출하고 WBS 단위 이슈로 원자 분해합니다.</p>
+        <div class="ax-card__tools">
+          <span class="ax-card__tool-chip">.claude/skills/feature-spec</span>
+          <span class="ax-card__tool-chip">spec-to-issues</span>
+        </div>
+      </div>
+      <div class="ax-card__metric">
+        <span>✓</span> 74개 기능 기획서(FS) & 수용 기준(AC) 100% 충족
+      </div>
+    </div>
+
+    <!-- Pillar 2 -->
+    <div class="ax-card ax-card--2">
+      <div class="ax-card__top">
+        <div class="ax-card__head">
+          <span class="ax-card__step">Pillar 02 · 개발 & 협업</span>
+          <span class="badge badge--accent">Agentic Pair-Programming</span>
+        </div>
+        <h3>AGENTS.md 헌장 기반 자율 페어 프로그래밍</h3>
+        <p>"AI와 사람 모두가 동일한 개발 기준을 지킵니다." 추측 코딩을 엄격히 금지하고, Claude Code(구현)와 Antigravity(설계·리뷰)가 실시간 파일/터미널 동기화로 66개 ADR을 상호 교차 검증합니다.</p>
+        <div class="ax-card__tools">
+          <span class="ax-card__tool-chip">AGENTS.md 규칙 헌장</span>
+          <span class="ax-card__tool-chip">66개 ADR 아키텍처 기록</span>
+          <span class="ax-card__tool-chip">Rebase Merge</span>
+        </div>
+      </div>
+      <div class="ax-card__metric">
+        <span>✓</span> 421개 PR 전수 선형 병합 (아키텍처 부채 0건)
+      </div>
+    </div>
+
+    <!-- Pillar 3 -->
+    <div class="ax-card ax-card--3">
+      <div class="ax-card__top">
+        <div class="ax-card__head">
+          <span class="ax-card__step">Pillar 03 · 품질 & 검증</span>
+          <span class="badge badge--ok">AI Quality Gate</span>
+        </div>
+        <h3>기계적 자동화 품질 게이트 & 전수 테스트</h3>
+        <p>"AI가 만든 코드는 사람이 짠 코드보다 2배 더 엄격히 검증합니다." PR마다 2,626개 테스트, ArchUnit 아키텍처 규칙, axe-core 웹 접근성, gitleaks 시크릿 유출을 CI 파이프라인에서 자동 차단합니다.</p>
+        <div class="ax-card__tools">
+          <span class="ax-card__tool-chip">Vitest (1,892)</span>
+          <span class="ax-card__tool-chip">pytest (926)</span>
+          <span class="ax-card__tool-chip">ArchUnit</span>
+          <span class="ax-card__tool-chip">axe-core</span>
+        </div>
+      </div>
+      <div class="ax-card__metric">
+        <span>✓</span> 2,626개 테스트 100% 통과 · 보안 사고 0건
+      </div>
+    </div>
+  </div>
+
+  <!-- Before vs After AX 임팩트 비교 -->
+  <div class="bna-box" style="margin-bottom:28px">
+    <div class="bna-head">
+      <div>
+        <span class="label">AX Transformation Impact</span>
+        <h3 style="font-size:18px;margin-top:4px">전통적 개발 방식 vs DART Insight의 AX 페어 프로그래밍</h3>
+      </div>
+      <span class="badge badge--ok">생산성 400% 향상 · 결함 재작업률 0% 달성</span>
+    </div>
+    <div class="bna-grid">
+      <div class="bna-col bna-col--before">
+        <h4>❌ 기존 전통적 개발 방식</h4>
+        <ul class="bna-list">
+          <li><span class="bna-tag">기획 병목</span>기획서 작성 및 WBS 작업 분해에만 수일 소요</li>
+          <li><span class="bna-tag">AI 환각</span>단순 코드 생성 시 아키텍처 규칙과 타입 시스템 파괴</li>
+          <li><span class="bna-tag">품질 부채</span>단위 테스트 없는 빠른 코딩으로 배포 후 대규모 결함</li>
+          <li><span class="bna-tag">설계 휘발</span>구두 논의로 결정된 아키텍처가 코드에 반영되지 않음</li>
+        </ul>
+      </div>
+      <div class="bna-col bna-col--after">
+        <h4>✨ DART Insight AX 일하는 방식</h4>
+        <ul class="bna-list">
+          <li><span class="bna-tag">스킬 자동화</span>성공 기준(SC)에서 수용 기준(AC)·WBS 이슈 30분 만에 도출</li>
+          <li><span class="bna-tag">규칙 헌장</span>AGENTS.md로 AI와 사람 모두 단방향 계층 분리 엄수</li>
+          <li><span class="bna-tag">품질 게이트</span>PR마다 2,626개 테스트 + 접근성 + 보안 기계적 전수 검증</li>
+          <li><span class="bna-tag">66개 ADR</span>모든 구조적 의사결정을 ADR로 남겨 코드와 100% 동기화</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- AX 실증 기록 서브헤드 -->
+  <div class="subhead" style="margin-top:32px">
+    <div>
+      <h3 style="font-size:18px;font-weight:700">AX 협업의 실증 기록 (421+ PRs & Daily Commits)</h3>
+      <p class="muted" style="font-size:13px;margin-top:2px">AI 에이전트와 사람이 나눈 모든 기획, 설계, 검증의 역사가 GitHub PR과 일별 커밋으로 고스란히 남아있습니다.</p>
+    </div>
   </div>
   <div class="weekcards" id="weekcards"></div>
   <div class="chartbox">
@@ -1847,8 +2072,8 @@ stepper('#userflow', '#flowtext', [
       text: '운영 안정성을 위해 웹/DB VM과 고부하 AI 연산 VM을 물리적으로 분리했습니다. DB 마이그레이션은 Flyway SHA-256 사전 해시 대조와 자동 롤백 파이프라인을 구축했고, 일일 쿼터 한도(100달러) 하드 캡을 걸어 LLM 비용 폭증 위험을 원천 차단했습니다.'
     },
     {
-      title: '10 · 개발 발자취 & 피날레 클로징 (엔지니어링의 정수)',
-      text: '사람 개발자와 AI 코딩 도구가 단일한 AGENTS.md 규약과 7단계 워크플로우를 한 치의 오차도 없이 지켰습니다. 3주간 360개 PR, 총 421개 이상의 PR과 1,034개 커밋을 단 하나의 충돌 없는 선형 역사로 완성했습니다. "AI는 결정을 내리지 않습니다. 오직 결정을 내릴 수 있는 최고의 팩트를 제공합니다." 이것이 DART Insight의 약속입니다. 경청해 주셔서 감사합니다.'
+      title: '10 · AX 일하는 방식의 혁신 & 피날레 (AI Transformation Way)',
+      text: 'DART Insight 프로젝트의 진짜 차별점은 "AI를 활용해 일하는 방식을 근본적으로 혁신(AX)"했다는 점입니다. 기획 단계의 스펙 엔지니어링, AGENTS.md 기반 자율 페어 프로그래밍, 2,626개 테스트의 기계적 품질 게이트를 구축했습니다. 그 결과 3주 만에 421개 PR을 충돌 없이 완주하며 생산성 400% 향상과 결함 재작업률 0%를 달성했습니다. "AI는 최고의 비서지, 대표가 아닙니다." 이것이 DART Insight 팀의 확신입니다. 경청해 주셔서 감사합니다.'
     }
   ];
   
