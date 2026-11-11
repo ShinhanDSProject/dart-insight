@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import type { ChatMessageResponse } from '@/shared/api/agentChat'
-import { chatMessageOf, chatReducer, confirmKey, historyOf, initialChatState, type ChatExchange } from './chatState'
+import { RISK_QUESTION } from './askQuestion'
+import {
+  CHAT_EXAMPLES,
+  chatExamples,
+  chatMessageOf,
+  chatReducer,
+  confirmKey,
+  historyOf,
+  initialChatState,
+  type ChatExchange,
+} from './chatState'
 
 const response = (answer: string | null, message: string | null = null): ChatMessageResponse => ({
   status: answer === null ? 'NOT_FOUND' : 'ANSWERED',
@@ -42,6 +52,19 @@ describe('chatReducer', () => {
     const sending = chatReducer(initialChatState, { type: 'send', message: '영업이익' })
     const failed = chatReducer(sending, { type: 'fail', error: 'boom' })
     expect(failed.request).toEqual({ status: 'error', message: '영업이익', error: 'boom' })
+  })
+})
+
+describe('chatExamples', () => {
+  it('이 분석의 계정 원인 질문을 맨 앞에 두고 고정 예시·위험 요인 질문을 잇는다. 긴 섹션 질문은 넣지 않는다', () => {
+    const suggestions = ['매출액은 왜 늘었나요?', "'XI. 그 밖에 투자자 보호를 위하여 필요한 사항'에서 무엇이 바뀌었나요?", RISK_QUESTION, '매출총이익은 왜 늘었나요?']
+
+    expect(chatExamples(suggestions)).toEqual(['매출액은 왜 늘었나요?', ...CHAT_EXAMPLES, RISK_QUESTION])
+  })
+
+  it('분석별 질문이 없으면 고정 예시와 위험 요인 질문만 보인다', () => {
+    expect(chatExamples([])).toEqual([...CHAT_EXAMPLES, RISK_QUESTION])
+    expect(chatExamples([RISK_QUESTION])).toEqual([...CHAT_EXAMPLES, RISK_QUESTION])
   })
 })
 
