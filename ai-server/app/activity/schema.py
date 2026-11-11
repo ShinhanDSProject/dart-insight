@@ -5,7 +5,19 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-from app.activity.model import CURRENT, MAX_SOURCES, PREVIOUS, TEXT_LIMIT, ActivityInput, Source
+from app.activity.model import (
+    CURRENT,
+    DISCLOSURE_TEXT_LIMIT,
+    MAX_DISCLOSURES,
+    MAX_FINANCIALS,
+    MAX_SOURCES,
+    PREVIOUS,
+    TEXT_LIMIT,
+    ActivityInput,
+    DisclosureFact,
+    FinancialFact,
+    Source,
+)
 from app.activity.prompt import PROMPT_VERSION
 from app.activity.service import ActivityOutput
 from app.compare.text_diff import ADDED
@@ -36,11 +48,27 @@ class ChangeModel(_Model):
     current_text: str | None = None
 
 
+class FinancialModel(_Model):
+    evidence_id: str
+    text: str
+
+
+class DisclosureModel(_Model):
+    evidence_id: str
+    rcept_dt: str
+    report_name: str
+    text: str = ""
+
+
 class ActivityRequest(_Model):
     prompt_version: str
     company_name: str
     previous_report_name: str
     current_report_name: str
+    period_from: str
+    period_to: str
+    financials: list[FinancialModel] = Field(default_factory=list, max_length=MAX_FINANCIALS)
+    disclosures: list[DisclosureModel] = Field(default_factory=list, max_length=MAX_DISCLOSURES)
     changes: list[ChangeModel] = Field(max_length=MAX_CHANGES)
 
     def to_input(self) -> ActivityInput:
@@ -83,6 +111,15 @@ class ActivityRequest(_Model):
             self.current_report_name,
             sources[:MAX_SOURCES],
             len(candidates),
+            self.period_from,
+            self.period_to,
+            [FinancialFact(f.evidence_id, f.text) for f in self.financials],
+            [
+                DisclosureFact(
+                    d.evidence_id, d.rcept_dt, d.report_name, d.text[:DISCLOSURE_TEXT_LIMIT]
+                )
+                for d in self.disclosures
+            ],
         )
 
 
@@ -119,6 +156,10 @@ def output_json(output: ActivityOutput) -> dict[str, Any]:
             if overview
             else None
         ),
+        "timeline": [
+            {"date": t.date, "text": t.text, "evidenceIds": list(t.evidence_ids)}
+            for t in result.timeline
+        ],
         "items": [
             {
                 "area": a.area,

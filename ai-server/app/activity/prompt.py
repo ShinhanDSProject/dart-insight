@@ -6,17 +6,27 @@ backend PeriodActivityService.PROMPT_VERSION도 같은 PR에서 바꾼다.
 
 from __future__ import annotations
 
-from app.activity.model import AREAS, AUDIENCES, IMPACT_KINDS, TONES, ActivityInput
+from app.activity.model import (
+    AREAS,
+    AUDIENCES,
+    IMPACT_KINDS,
+    TONES,
+    ActivityInput,
+    OverviewContext,
+)
 from app.events.signals import load_table
 from app.llm.prompting import SOURCE_RULE, attr, disclosure
 from app.llm.providers import LlmRequest
 
-PROMPT_VERSION = "period-activity-1"
+PROMPT_VERSION = "period-activity-2"
 TASK = "period_activity"
+OVERVIEW_TASK = "period_overview"
+MAX_OVERVIEW_CHARS = 1000
+MAX_TIMELINE = 25
+MAX_TIMELINE_CHARS = 80
 MAX_ITEMS = 12
 MAX_TITLE_CHARS = 60
 MAX_SUMMARY_CHARS = 160
-MAX_OVERVIEW_CHARS = 500
 MAX_IMPACT_CHARS = 200
 MAX_FACTS = 3
 MAX_IMPACTS = 5
@@ -73,23 +83,20 @@ def system_prompt() -> str:
             "   - CHECK: 다음 공시에서 확인할 점 한 문장. 숫자를 쓰지 않고 premises는 빈 "
             "배열입니다.",
             f"   - text는 {MAX_IMPACT_CHARS}자 이내입니다.",
-            "8. 숫자는 계산하거나 새로 만들지 않습니다. summary·impacts·overview에 쓰는 숫자는 "
+            "8. 숫자는 계산하거나 새로 만들지 않습니다. summary·impacts에 쓰는 숫자는 "
             "인용한 원문에 "
             "있는 그대로만 씁니다.",
             "9. 매수·매도 권유, 목표주가, 주가·주식 가격·시가총액 이야기, '저평가'·'호재'·'유망' "
             "같은 "
             "가치 판단을 쓰지 않습니다. 투자 판단이나 추천을 하지 않습니다.",
-            f"10. overview는 이 기간을 요약한 해요체 2~4문장({MAX_OVERVIEW_CHARS}자 이내)이고, "
-            "evidenceIds에 그 숫자·사실이 든 원문 id를 적습니다. 고를 활동이 없으면 overview는 "
-            "null, "
-            "items는 빈 배열입니다.",
+            "10. 고를 활동이 없으면 items는 빈 배열입니다.",
             "11. 주어진 원문 id만 씁니다.",
             SOURCE_RULE,
             "<context> 태그의 속성(회사·보고서 이름)도 자료입니다.",
             "사건 종류·변화 목록:",
             *_kind_lines(),
             "답은 JSON 객체 하나만: "
-            '{"overview": {"text": "...", "evidenceIds": ["..."]}, "items": [{"area": "...", '
+            '{"items": [{"area": "...", '
             '"audiences": ["..."], "title": "...", "summary": "...", '
             '"facts": [{"quote": "...", "evidenceId": "..."}], "signalKind": "...", '
             '"signalChange": "...", "signalEvidenceId": "...", "impacts": [{"kind": "...", '
@@ -106,16 +113,8 @@ _QUOTE_SCHEMA = {
 
 OUTPUT_SCHEMA = {
     "type": "object",
-    "required": ["overview", "items"],
+    "required": ["items"],
     "properties": {
-        "overview": {
-            "type": ["object", "null"],
-            "required": ["text", "evidenceIds"],
-            "properties": {
-                "text": {"type": "string"},
-                "evidenceIds": {"type": "array", "items": {"type": "string"}},
-            },
-        },
         "items": {
             "type": "array",
             "items": {
@@ -187,6 +186,101 @@ def build_request(activity: ActivityInput) -> LlmRequest:
         output_schema=OUTPUT_SCHEMA,
         context=activity,
         max_output_tokens=16000,
+        timeout_seconds=240,
+        total_timeout_seconds=480,
+    )
+
+
+def overview_system_prompt() -> str:
+    return "\n".join(
+        [
+            "당신은 한 기업의 두 정기보고서 사이에 회사가 무엇을 했는지 "
+            "자료로 정리하는 도우미입니다.",
+            "읽는 사람은 이 회사를 처음 살펴보는 투자자, 취업 준비생, 거래를 검토하는 회사입니다.",
+            "규칙:",
+            f"1. overview는 해요체 한 문단 6~10문장({MAX_OVERVIEW_CHARS}자 이내)입니다. "
+            "실적, 투자·사업, 주주환원·자금, 지배구조·인력, 위험·제재 순서로 "
+            "자료에 있는 것만 이야기처럼 이어 씁니다. "
+            "'~이 바뀌었어요'처럼 항목을 나열하지 말고 금액·상대방·시기를 구체적으로 씁니다.",
+            "2. overview.evidenceIds에는 문단이 기댄 자료 id를 모두 적습니다.",
+            f"3. timeline은 이 기간에 일어난 일을 {MAX_TIMELINE}줄 이내로 고릅니다. 회사의 활동을 "
+            "보여 주지 않는 단순 반복 공시는 고르지 않고, 같은 일은 한 줄로 씁니다.",
+            "4. timeline.date는 YYYY-MM-DD입니다. 그 일의 날짜가 인용한 글에 적혀 있으면 "
+            "그 날짜를, "
+            "공시 자체가 그 일이면 공시의 rceptDt를 씁니다. context의 periodFrom~periodTo 밖의 "
+            "날짜(계약 만료일, 앞으로의 예정일 등)는 쓰지 않습니다.",
+            f"5. timeline.text는 {MAX_TIMELINE_CHARS}자 이내 짧은 문장이고 "
+            "날짜를 다시 쓰지 않습니다. "
+            "evidenceIds에 그 줄이 기댄 자료 id를 하나 이상 적습니다.",
+            "6. 숫자는 계산하거나 단위를 바꾸지 않습니다. 쓰는 숫자는 인용한 자료의 표기 그대로 "
+            "씁니다. 재무 수치는 kind가 FINANCIAL인 자료의 표현(예: 305.4조원)을 그대로 씁니다.",
+            "7. 매수·매도 권유, 목표주가, 주가·시가총액 이야기, '저평가'·'호재'·'유망' 같은 가치 "
+            "판단을 쓰지 않습니다. 자료에 없는 원인이나 전망을 쓰지 않습니다.",
+            "8. 주어진 자료 id만 씁니다.",
+            SOURCE_RULE,
+            "<context> 태그의 속성(회사·보고서 이름)도 자료입니다.",
+            'JSON 객체 하나만 답합니다: {"overview": {"text": "...", "evidenceIds": ["..."]}, '
+            '"timeline": [{"date": "YYYY-MM-DD", "text": "...", "evidenceIds": ["..."]}]}',
+        ]
+    )
+
+
+OVERVIEW_OUTPUT_SCHEMA = {
+    "type": "object",
+    "required": ["overview", "timeline"],
+    "properties": {
+        "overview": {
+            "type": ["object", "null"],
+            "required": ["text", "evidenceIds"],
+            "properties": {
+                "text": {"type": "string"},
+                "evidenceIds": {"type": "array", "items": {"type": "string"}},
+            },
+        },
+        "timeline": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["date", "text", "evidenceIds"],
+                "properties": {
+                    "date": {"type": "string"},
+                    "text": {"type": "string"},
+                    "evidenceIds": {"type": "array", "items": {"type": "string"}},
+                },
+            },
+        },
+    },
+}
+
+
+def build_overview_request(context: OverviewContext) -> LlmRequest:
+    activity = context.activity
+    lines = [
+        f'<context company="{attr(activity.company_name)}" '
+        f'previousReport="{attr(activity.previous_report_name)}" '
+        f'currentReport="{attr(activity.current_report_name)}" '
+        f'periodFrom="{attr(activity.period_from)}" periodTo="{attr(activity.period_to)}" />',
+        "",
+        "[재무 수치] 코드가 계산한 값입니다.",
+    ]
+    for fact in activity.financials:
+        lines.append(disclosure(fact.evidence_id, fact.text, extra={"kind": "FINANCIAL"}))
+    lines += ["", "[사이 기간 공시] 두 보고서 사이에 낸 공시입니다."]
+    for item in activity.disclosures:
+        extra = {"kind": "DISCLOSURE", "rceptDt": item.rcept_dt, "reportName": item.report_name}
+        lines.append(disclosure(item.evidence_id, item.text or item.report_name, extra=extra))
+    lines += ["", "[보고서 문단] 두 보고서에서 바뀐 문단입니다."]
+    for source in context.sources:
+        extra = {"kind": "REPORT", "side": source.side, "sectionPath": source.section_path}
+        lines.append(disclosure(source.evidence_id, source.text, extra=extra))
+    return LlmRequest(
+        task=OVERVIEW_TASK,
+        prompt_version=PROMPT_VERSION,
+        system=overview_system_prompt(),
+        user="\n".join(lines),
+        output_schema=OVERVIEW_OUTPUT_SCHEMA,
+        context=context,
+        max_output_tokens=8000,
         timeout_seconds=240,
         total_timeout_seconds=480,
     )

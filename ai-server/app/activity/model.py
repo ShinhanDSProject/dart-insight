@@ -52,6 +52,10 @@ MIXED_SIDES = "MIXED_SIDES"
 TEXT_LIMIT = 500
 # 모델에 넣는 원문 수(변경 쪽 기준). 넘으면 앞에서 자른다
 MAX_SOURCES = 160
+# 요약·타임라인 입력(ADR-0068)
+MAX_FINANCIALS = 20
+MAX_DISCLOSURES = 80
+DISCLOSURE_TEXT_LIMIT = 1500
 
 
 @dataclass(frozen=True)
@@ -68,6 +72,24 @@ class Source:
 
 
 @dataclass(frozen=True)
+class FinancialFact:
+    """코드가 계산한 재무 수치 문장. evidence_id는 `F{financial_change.id}`다."""
+
+    evidence_id: str
+    text: str
+
+
+@dataclass(frozen=True)
+class DisclosureFact:
+    """사이 기간 공시. evidence_id는 `D{접수번호}`다. 원문이 없으면 text는 빈 글이다."""
+
+    evidence_id: str
+    rcept_dt: str
+    report_name: str
+    text: str
+
+
+@dataclass(frozen=True)
 class ActivityInput:
     company_name: str
     previous_report_name: str
@@ -75,6 +97,19 @@ class ActivityInput:
     sources: list[Source]
     # 후보 규칙으로 고른 변경 수(입력에 든 변경 수와 다를 수 있음, 원문 수 제한)
     candidate_count: int = 0
+    # 비교 기간(YYYY-MM-DD). 타임라인 날짜가 이 안에 있어야 한다
+    period_from: str = ""
+    period_to: str = ""
+    financials: list[FinancialFact] = field(default_factory=list)
+    disclosures: list[DisclosureFact] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class OverviewContext:
+    """요약·타임라인 호출의 입력. sources는 그 호출에 넣을 보고서 문단이다."""
+
+    activity: ActivityInput
+    sources: list[Source]
 
 
 @dataclass(frozen=True)
@@ -121,6 +156,19 @@ class Overview:
 
 
 @dataclass(frozen=True)
+class TimelineEntry:
+    date: str
+    text: str
+    evidence_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class OverviewResult:
+    overview: Overview | None = None
+    timeline: list[TimelineEntry] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
 class ActivityResult:
     status: str
     overview: Overview | None = None
@@ -128,3 +176,4 @@ class ActivityResult:
     dropped_count: int = 0
     review_reason: str | None = None
     blocked_rules: list[str] = field(default_factory=list)
+    timeline: list[TimelineEntry] = field(default_factory=list)

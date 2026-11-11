@@ -51,10 +51,6 @@ ACTIVITY = ActivityInput("예시전자", "반기보고서 (2025.06)", "반기보
 QUOTE = "당사는 Tesla와 16,544백만 달러 규모의 파운드리 공급계약을 체결하였습니다."
 OUTLOOK_TEXT = "발주가 계약대로 이어지면 파운드리 매출을 받치는 쪽으로 작용할 수 있어요."
 GOOD = {
-    "overview": {
-        "text": "Tesla와 16,544백만 달러 규모의 공급계약을 맺었어요.",
-        "evidenceIds": [f"{CUR}#B174"],
-    },
     "items": [
         {
             "area": "BUSINESS",
@@ -106,15 +102,13 @@ def test_valid_output_becomes_generated_cards_with_code_signal() -> None:
     assert item.signal.signal == POSITIVE
     assert item.signal.evidence_id == f"{CUR}#B174"
     assert item.change_nos == (7,)
-    assert checked.result.overview is not None
 
 
 def test_empty_items_is_empty_not_failure() -> None:
-    checked = check({"overview": None, "items": []}, ACTIVITY)
+    checked = check({"items": []}, ACTIVITY)
 
     assert checked.result is not None
     assert checked.result.status == EMPTY
-    assert checked.result.overview is None
 
 
 def test_quote_not_in_source_is_rejected() -> None:

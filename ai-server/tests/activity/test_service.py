@@ -2,7 +2,7 @@ import copy
 
 from app.activity import fake
 from app.activity.model import EMPTY, GENERATED, HOLD, REVIEW_NEEDED, ActivityInput
-from app.activity.prompt import PROMPT_VERSION, TASK, build_request
+from app.activity.prompt import OVERVIEW_TASK, PROMPT_VERSION, TASK, build_request
 from app.activity.service import NOT_VERIFIED, summarize
 from app.core.config import LlmSettings
 from app.llm import FakeProvider, LlmClient
@@ -12,7 +12,8 @@ SETTINGS = LlmSettings(provider="fake", max_retries=0, max_output_retries=2)
 
 
 def client(*script: object) -> tuple[LlmClient, FakeProvider]:
-    provider = FakeProvider(script=script, responders={TASK: fake.respond})
+    responders = {TASK: fake.respond, OVERVIEW_TASK: fake.respond_overview}
+    provider = FakeProvider(script=script, responders=responders)
     return LlmClient(provider, SETTINGS, sleep=lambda _: None), provider
 
 
@@ -45,7 +46,7 @@ def test_invalid_output_is_retried_then_used() -> None:
     output = summarize(llm, ACTIVITY)
 
     assert output.result.status == GENERATED
-    assert len(output.calls) == 2
+    assert len(output.calls) == 3  # 카드 2번(다시 만듦) + 요약·타임라인 1번
 
 
 def test_failing_items_are_dropped_after_retries() -> None:
@@ -61,7 +62,7 @@ def test_failing_items_are_dropped_after_retries() -> None:
 
 
 def test_review_needed_when_nothing_passes() -> None:
-    bad = {"overview": None, "items": [{"area": "NOPE"}]}
+    bad = {"items": [{"area": "NOPE"}]}
     llm, _ = client(bad, bad, bad)
 
     output = summarize(llm, ACTIVITY)
