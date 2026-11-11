@@ -49,11 +49,11 @@ export interface ResultTourStep {
   tab: ResultTourTab | null
 }
 
-/** 보는 순서: 요약 → 문장 변화 → AI 에이전트 */
+/** 보는 순서: 요약 → 공시 분석 → AI 에이전트 */
 export const RESULT_TOUR_STEPS: readonly ResultTourStep[] = [
   { title: '요약부터 보세요', text: '크게 바뀐 숫자와 문장을 먼저 보여 줘요. 줄을 누르면 근거가 열려요.', tab: 'summary' },
   {
-    title: '문장 변화에서 그사이 한 일을 보세요',
+    title: '공시 분석에서 그사이 한 일을 보세요',
     text: '두 보고서 사이에 회사가 한 일과 앞으로의 영향을 근거 문장과 함께 보여 줘요. 바뀐 문장 전체는 전체 변경 탭에 있어요.',
     tab: 'activity',
   },

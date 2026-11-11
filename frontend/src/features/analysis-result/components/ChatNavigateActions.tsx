@@ -16,7 +16,7 @@ export function ChatPinAction({ analysisId, changeId, label }: { analysisId: num
   if (pinned.isPinned(changeId)) {
     return (
       <p className="chat-panel__done" role="status">
-        문장 변화 탭에 고정했어요.
+        전체 변경 탭에 고정했어요.
       </p>
     )
   }

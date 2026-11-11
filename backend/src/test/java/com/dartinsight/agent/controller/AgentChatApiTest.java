@@ -287,7 +287,7 @@ class AgentChatApiTest {
                 .andExpect(jsonPath("$.citations[0].reportName").value("반기보고서 (2026.06)"))
                 .andExpect(jsonPath("$.citations[0].quote").value("당사는 특허 침해 소송을 제기받았습니다."))
                 .andExpect(jsonPath("$.actions", hasSize(2)))
-                .andExpect(jsonPath("$.actions[0].label").value("문장 변화에서 보기"))
+                .andExpect(jsonPath("$.actions[0].label").value("전체 변경에서 보기"))
                 .andExpect(jsonPath("$.actions[0].filters.q").value("소송"))
                 .andExpect(jsonPath("$.actions[0].filters.risk").doesNotExist())
                 .andExpect(jsonPath("$.actions[1].type").value("OPEN_TEXT_CHANGE"))

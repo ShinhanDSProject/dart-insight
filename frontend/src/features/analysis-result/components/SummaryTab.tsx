@@ -242,7 +242,7 @@ function SummaryBody({
 
       {data.items.length === 0 && data.reviewNeededCount === 0 && data.summaryStatus !== null && data.summaryStatus !== 'EMPTY' && (
         <EmptyState title="요약할 변화가 없어요.">
-          <p>'재무 수치'와 '문장 변화' 탭에서 전체 결과를 볼 수 있어요.</p>
+          <p>'재무 수치'와 '전체 변경' 탭에서 전체 결과를 볼 수 있어요.</p>
         </EmptyState>
       )}
 
