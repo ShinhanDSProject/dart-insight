@@ -83,6 +83,6 @@ export function listCompanyAnalyses(
 }
 
 /** 분석 화면 주소. 완료됐으면 결과(W-03), 아니면 진행(W-02) */
-export function analysisPath(analysisId: number, status: AnalysisStatus): string {
+export function analysisPath(analysisId: number, status?: AnalysisStatus): string {
   return status === 'COMPLETED' ? `/analyses/${analysisId}` : `/analyses/${analysisId}/progress`
 }

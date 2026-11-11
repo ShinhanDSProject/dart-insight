@@ -142,16 +142,20 @@ function Progress({ analysis }: { analysis: Analysis }) {
         <ReportCard side="previous" report={analysis.previous} />
         <ReportCard side="current" report={analysis.current} />
       </ReportCardPair>
-      {running && <CompareScene />}
+      {(running || analysis.status === 'COMPLETED') && <CompareScene />}
       <Panel aria-labelledby="progress-steps-title">
-        {/* 공팡이는 제목 옆에 작게 둔다(#841). 진행 중이면 찾는 중, 실패면 설명 없음 표정 */}
+        {/* 공팡이는 제목 옆에 작게 둔다(#841). 진행 중이면 찾는 중, 실패면 설명 없음 표정, 완료면 축하 표정 */}
         <div className="progress__head">
           {match(analysis.status)
             .with('PENDING', 'RUNNING', () => <Mascot mood="search" size="sm" className="progress__mascot" />)
             .with('FAILED', () => <Mascot mood="none" size="sm" className="progress__mascot" />)
-            .with('COMPLETED', () => null)
+            .with('COMPLETED', () => <Mascot mood="joy" size="sm" className="progress__mascot" />)
             .exhaustive()}
-          <PanelTitle id="progress-steps-title">원문에서 근거까지, 순서대로 확인해요</PanelTitle>
+          <PanelTitle id="progress-steps-title">
+            {analysis.status === 'COMPLETED'
+              ? '보고서 비교를 마쳤어요! 곧 결과로 이동해요'
+              : '원문에서 근거까지, 순서대로 확인해요'}
+          </PanelTitle>
         </div>
         <ol className="steps">
           {analysis.steps.map((step) => (

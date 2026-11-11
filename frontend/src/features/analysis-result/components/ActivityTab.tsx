@@ -13,6 +13,7 @@ import type { FinancialChangeItem } from '@/shared/api/results'
 import { dartViewerUrl } from '@/shared/lib/dart'
 import { Badge, Button, Card, Chip, CompareScene, Notice } from '@/shared/ui'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
+import { useMinimumLoadingState } from '@/shared/hooks/useMinimumLoading'
 import { usePeriodActivities } from '../hooks/usePeriodActivities'
 import {
   AREA_LABELS,
@@ -53,6 +54,7 @@ interface ActivityTabProps {
  */
 export function ActivityTab({ analysis, onOpenText, onOpenFinancial, onOpenAll }: ActivityTabProps) {
   const { state, reload } = usePeriodActivities(analysis.analysisId)
+  const visibleState = useMinimumLoadingState(state, 1000)
   return (
     <section className="activity" aria-label="공시 분석">
       <header className="activity__head">
@@ -64,7 +66,7 @@ export function ActivityTab({ analysis, onOpenText, onOpenFinancial, onOpenAll }
           에 있어요.
         </p>
       </header>
-      {match(state)
+      {match(visibleState)
         .with({ status: 'loading' }, () => (
           <div className="activity-loading">
             <CompareScene

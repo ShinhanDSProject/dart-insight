@@ -4,6 +4,7 @@ import type { BriefingReport, BriefingSentence, CompanyBriefing } from '@/shared
 import { Badge, Button, DocScanScene, Notice, Panel, PanelTitle } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
+import { useMinimumLoadingState } from '@/shared/hooks/useMinimumLoading'
 import { useCompanyBriefing } from '../hooks/useCompanyBriefing'
 import { BRIEFING_ERROR_MESSAGES, briefingAiLabel, evidenceLocation, quoteLines, toggleOpen } from '../model/companyBriefing'
 import '../report-selection.css'
@@ -16,14 +17,15 @@ const TITLE_ID = 'company-briefing-title'
  */
 export function CompanyBriefingSection({ corpCode }: { corpCode: string }) {
   const { state, reload } = useCompanyBriefing(corpCode)
-  const briefing = state.status === 'success' ? state.data : null
+  const visibleState = useMinimumLoadingState(state, 1000)
+  const briefing = visibleState.status === 'success' ? visibleState.data : null
   return (
-    <Panel className="company-briefing" aria-labelledby={TITLE_ID} aria-busy={state.status === 'loading'}>
+    <Panel className="company-briefing" aria-labelledby={TITLE_ID} aria-busy={visibleState.status === 'loading'}>
       <div className="company-briefing__head">
         <PanelTitle id={TITLE_ID}>AI 기업 브리핑</PanelTitle>
         {briefing?.aiGenerated && <Badge tone="accent">AI 생성</Badge>}
       </div>
-      {match(state)
+      {match(visibleState)
         .with({ status: 'loading' }, () => (
           <div className="briefing-loading">
             <DocScanScene

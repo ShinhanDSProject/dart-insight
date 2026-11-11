@@ -2177,6 +2177,7 @@ th[aria-sort='none'] .data-table__sort-mark {
   border-radius: var(--radius-xl);
   background: var(--color-bg-subtle);
   overflow: hidden;
+  animation: fade-in var(--motion-base) var(--ease-out);
 }
 
 .compare-scene__doc {
@@ -2290,6 +2291,7 @@ th[aria-sort='none'] .data-table__sort-mark {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   background: var(--color-bg-subtle);
+  animation: fade-in var(--motion-base) var(--ease-out);
 }
 
 .doc-scan-scene__doc {
@@ -2386,6 +2388,7 @@ th[aria-sort='none'] .data-table__sort-mark {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   background: var(--color-bg-subtle);
+  animation: fade-in var(--motion-base) var(--ease-out);
 }
 
 .report-stack-scene__cards {
