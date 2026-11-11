@@ -112,7 +112,18 @@
 
 .overview-metrics__item {
   min-height: var(--overview-metric-height);
+  animation: rise-in var(--motion-enter) var(--ease-out) backwards;
+  transition: transform var(--motion-fast) var(--ease-out);
 }
+
+.overview-metrics__item:hover {
+  transform: translateY(var(--motion-lift));
+}
+
+.overview-metrics__item:nth-child(1) { animation-delay: 0ms; }
+.overview-metrics__item:nth-child(2) { animation-delay: var(--motion-stagger); }
+.overview-metrics__item:nth-child(3) { animation-delay: calc(var(--motion-stagger) * 2); }
+.overview-metrics__item:nth-child(4) { animation-delay: calc(var(--motion-stagger) * 3); }
 
 .overview-metrics__item + .overview-metrics__item {
   padding-left: var(--space-5);
@@ -259,6 +270,17 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-bg-raised);
+  animation: rise-in var(--motion-enter) var(--ease-out) backwards;
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-base) var(--ease-out),
+    border-color var(--motion-base) var(--ease-out);
+}
+
+.pick-summary:hover {
+  transform: translateY(var(--motion-lift));
+  box-shadow: var(--shadow-hover);
+  border-color: var(--color-border-accent);
 }
 
 .pick-summary__title {
@@ -355,9 +377,24 @@
   list-style: none;
 }
 
+.past-analyses__list > li {
+  animation: rise-in var(--motion-enter) var(--ease-out) backwards;
+}
+
+.past-analyses__list > li:nth-child(1) { animation-delay: 0ms; }
+.past-analyses__list > li:nth-child(2) { animation-delay: var(--motion-stagger); }
+.past-analyses__list > li:nth-child(3) { animation-delay: calc(var(--motion-stagger) * 2); }
+.past-analyses__list > li:nth-child(n + 4) { animation-delay: calc(var(--motion-stagger) * 3); }
+
 .past-analyses__list a {
+  display: inline-block;
   font-size: var(--font-size-sm);
   overflow-wrap: anywhere;
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.past-analyses__list a:hover {
+  transform: translateX(var(--motion-nudge));
 }
 
 /* 기업 개요 탭(FS-45, #385). 영역은 위에서부터 쌓이고, 넓은 화면에서는 AI 브리핑(main)과 기업 개황(side)을 한 줄에 둔다.
@@ -531,6 +568,16 @@
   padding: var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-base) var(--ease-out),
+    border-color var(--motion-base) var(--ease-out);
+}
+
+.fin-trend__card:hover {
+  transform: translateY(var(--motion-lift));
+  box-shadow: var(--shadow-sm);
+  border-color: var(--color-border-accent);
 }
 
 .fin-trend__card-head {
@@ -837,6 +884,11 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: var(--space-1) var(--space-3);
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.disclosure-timeline__item:hover {
+  transform: translateX(var(--motion-nudge));
 }
 
 .disclosure-timeline__main {
@@ -1231,13 +1283,29 @@
 
 .checkpoints__list > li {
   display: grid;
+  animation: rise-in var(--motion-enter) var(--ease-out) backwards;
 }
+
+.checkpoints__list > li:nth-child(1) { animation-delay: 0ms; }
+.checkpoints__list > li:nth-child(2) { animation-delay: var(--motion-stagger); }
+.checkpoints__list > li:nth-child(3) { animation-delay: calc(var(--motion-stagger) * 2); }
+.checkpoints__list > li:nth-child(n + 4) { animation-delay: calc(var(--motion-stagger) * 3); }
 
 .checkpoints__card {
   display: grid;
   align-content: start;
   gap: var(--space-2);
   min-width: 0;
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-base) var(--ease-out),
+    border-color var(--motion-base) var(--ease-out);
+}
+
+.checkpoints__card:hover {
+  transform: translateY(var(--motion-lift));
+  box-shadow: var(--shadow-sm);
+  border-color: var(--color-border-accent);
 }
 
 .checkpoints__head {

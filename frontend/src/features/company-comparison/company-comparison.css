@@ -29,6 +29,16 @@
   border-radius: var(--radius-pill);
   background: var(--color-bg-raised);
   font-size: var(--font-size-sm);
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out);
+}
+
+.company-picker__item:hover {
+  transform: translateY(var(--motion-lift));
+  box-shadow: var(--shadow-sm);
+  border-color: var(--color-border-accent);
 }
 
 .company-picker__search {
@@ -137,6 +147,16 @@
   width: 100%;
 }
 
+.company-compare__table tbody tr {
+  animation: rise-in var(--motion-enter) var(--ease-out) backwards;
+}
+
+.company-compare__table tbody tr:nth-child(1) { animation-delay: 0ms; }
+.company-compare__table tbody tr:nth-child(2) { animation-delay: var(--motion-stagger); }
+.company-compare__table tbody tr:nth-child(3) { animation-delay: calc(var(--motion-stagger) * 2); }
+.company-compare__table tbody tr:nth-child(4) { animation-delay: calc(var(--motion-stagger) * 3); }
+.company-compare__table tbody tr:nth-child(n + 5) { animation-delay: calc(var(--motion-stagger) * 4); }
+
 .company-compare__col-label {
   width: 20%;
 }
@@ -166,10 +186,14 @@
   text-decoration: underline;
   text-decoration-color: var(--color-link-underline);
   word-break: keep-all;
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
 }
 
 .company-compare__link:hover {
   color: var(--color-link-hover);
+  transform: translateX(2px);
 }
 
 .company-compare__amount,
@@ -265,6 +289,7 @@
   justify-items: center;
   gap: var(--space-3);
   margin: 0 0 var(--space-5);
+  animation: rise-in var(--motion-enter) var(--ease-out) backwards;
 }
 
 .radar-chart__svg {
@@ -304,6 +329,7 @@
 
 .radar-chart__dot {
   fill: currentColor;
+  animation: pop-in var(--motion-base) var(--ease-out) backwards;
 }
 
 .radar-chart__caption {

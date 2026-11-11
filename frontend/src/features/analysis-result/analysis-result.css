@@ -137,9 +137,29 @@
   list-style: none;
 }
 
-.key-numbers__list > li,
+.key-numbers__list > li {
+  height: 100%;
+  animation: rise-in var(--motion-enter) var(--ease-out) backwards;
+}
+
+.key-numbers__list > li:nth-child(1) { animation-delay: 0ms; }
+.key-numbers__list > li:nth-child(2) { animation-delay: var(--motion-stagger); }
+.key-numbers__list > li:nth-child(3) { animation-delay: calc(var(--motion-stagger) * 2); }
+.key-numbers__list > li:nth-child(4) { animation-delay: calc(var(--motion-stagger) * 3); }
+.key-numbers__list > li:nth-child(n + 5) { animation-delay: calc(var(--motion-stagger) * 4); }
+
 .key-number {
   height: 100%;
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-base) var(--ease-out),
+    border-color var(--motion-base) var(--ease-out);
+}
+
+.key-number:hover {
+  transform: translateY(var(--motion-lift));
+  box-shadow: var(--shadow-hover);
+  border-color: var(--color-border-accent);
 }
 
 /* 재무 표 묶음: 재무제표 칩 줄 → 표 설정 → 계정 찾기 → 차트·표 */
@@ -2025,13 +2045,32 @@
   list-style: none;
 }
 
+.summary-list > li {
+  animation: rise-in var(--motion-enter) var(--ease-out) backwards;
+}
+
+.summary-list > li:nth-child(1) { animation-delay: 0ms; }
+.summary-list > li:nth-child(2) { animation-delay: var(--motion-stagger); }
+.summary-list > li:nth-child(3) { animation-delay: calc(var(--motion-stagger) * 2); }
+.summary-list > li:nth-child(4) { animation-delay: calc(var(--motion-stagger) * 3); }
+.summary-list > li:nth-child(n + 5) { animation-delay: calc(var(--motion-stagger) * 4); }
+
 /* 요약 항목 한 줄(#560 시안): 사실 문장 | 설명 상태 · 근거. 금액·인용·행동 버튼은 '더 보기' 안 */
 .summary-item {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  padding-block: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
   border-bottom: 1px solid var(--color-border);
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    background-color var(--motion-fast) var(--ease-out);
+}
+
+.summary-item:hover {
+  transform: translateX(var(--motion-nudge));
+  background-color: var(--color-bg-subtle);
 }
 
 .summary-item__status {
@@ -3973,6 +4012,7 @@
   align-items: flex-start;
   gap: var(--space-2);
   padding: var(--card-padding);
+  animation: rise-in var(--motion-enter) var(--ease-out) backwards;
 }
 
 .activity__overview-text {
@@ -4019,11 +4059,31 @@
   list-style: none;
 }
 
+.activity__list > li {
+  animation: rise-in var(--motion-enter) var(--ease-out) backwards;
+}
+
+.activity__list > li:nth-child(1) { animation-delay: 0ms; }
+.activity__list > li:nth-child(2) { animation-delay: var(--motion-stagger); }
+.activity__list > li:nth-child(3) { animation-delay: calc(var(--motion-stagger) * 2); }
+.activity__list > li:nth-child(4) { animation-delay: calc(var(--motion-stagger) * 3); }
+.activity__list > li:nth-child(n + 5) { animation-delay: calc(var(--motion-stagger) * 4); }
+
 .activity-card {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   padding: var(--card-padding);
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-base) var(--ease-out),
+    border-color var(--motion-base) var(--ease-out);
+}
+
+.activity-card:hover {
+  transform: translateY(var(--motion-lift));
+  box-shadow: var(--shadow-hover);
+  border-color: var(--color-border-accent);
 }
 
 .activity-card__meta,
