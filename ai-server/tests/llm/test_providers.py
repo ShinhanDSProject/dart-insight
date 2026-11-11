@@ -1,4 +1,5 @@
 from dataclasses import replace
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import Any
 
@@ -14,6 +15,7 @@ from app.llm import (
     LlmRequest,
     ProviderError,
     ProviderQuotaError,
+    ProviderRefusalError,
     ProviderTransientError,
     ProviderTruncatedError,
 )
@@ -191,7 +193,7 @@ def test_complete_keeps_detail_tokens_none_when_provider_omits_them() -> None:
 def test_complete_raises_provider_error_on_refusal() -> None:
     p, _ = provider(response(SimpleNamespace(type="refusal", refusal="도울 수 없어요")))
 
-    with pytest.raises(ProviderError, match="거절") as caught:
+    with pytest.raises(ProviderRefusalError, match="거절") as caught:
         p.complete(REQUEST, 10.0)
     assert not isinstance(caught.value, ProviderTransientError)
 
@@ -590,6 +592,40 @@ def test_claude_maps_billing_and_spend_limit_to_quota_error(error: Exception) ->
     with pytest.raises(ProviderQuotaError) as caught:
         p.complete(REQUEST, 10.0)
     assert not isinstance(caught.value, ProviderTransientError)
+
+
+WORKSPACE_LIMIT_MESSAGE = (
+    "You have reached your specified workspace API usage limits. "
+    "You will regain access on 2026-12-01 at 00:00 UTC."
+)
+
+
+def test_claude_maps_workspace_usage_limit_400_to_quota_error_with_reset_time() -> None:
+    # 워크스페이스 한도 초과는 400 invalid_request_error로 와서 메시지로만 구분된다
+    p, _ = claude(
+        claude_status_error(
+            400,
+            body={
+                "type": "error",
+                "error": {"type": "invalid_request_error", "message": WORKSPACE_LIMIT_MESSAGE},
+            },
+            cls=anthropic.BadRequestError,
+        )
+    )
+
+    with pytest.raises(ProviderQuotaError) as caught:
+        p.complete(REQUEST, 10.0)
+    assert caught.value.resets_at == datetime(2026, 12, 1, tzinfo=UTC)
+
+
+def test_claude_quota_error_without_reset_time_has_none() -> None:
+    p, _ = claude(
+        claude_status_error(402, body={"type": "error", "error": {"type": "billing_error"}})
+    )
+
+    with pytest.raises(ProviderQuotaError) as caught:
+        p.complete(REQUEST, 10.0)
+    assert caught.value.resets_at is None
 
 
 @pytest.mark.parametrize(

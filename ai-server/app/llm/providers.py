@@ -12,9 +12,11 @@ from __future__ import annotations
 import copy
 import json
 import logging
+import re
 from collections import deque
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field, replace
+from datetime import UTC, datetime
 from typing import Any, Protocol
 
 import anthropic
@@ -94,8 +96,17 @@ class ProviderTruncatedError(ProviderError):
 class ProviderQuotaError(ProviderError):
     """사용 한도(결제·지출 한도)를 다 써서 다시 시도해도 나아지지 않는 오류.
 
-    운영자가 제공자 쪽 한도를 올려야 풀린다.
+    운영자가 제공자 쪽 한도를 올려야 풀린다. 제공자가 다시 쓸 수 있는 시각을
+    알려 주면 `resets_at`(UTC)에 담는다.
     """
+
+    def __init__(self, message: str, resets_at: datetime | None = None) -> None:
+        super().__init__(message)
+        self.resets_at = resets_at
+
+
+class ProviderRefusalError(ProviderError):
+    """모델이 요청에 답하기를 거절함. 설정·인증 문제가 아니다."""
 
 
 class Provider(Protocol):
@@ -268,7 +279,7 @@ def _openai_response(response: Any, fallback_model: str) -> ProviderResponse:
             continue
         for part in item.content or []:
             if part.type == PART_REFUSAL:
-                raise ProviderError("OpenAI 모델이 답을 거절했습니다(refusal).")
+                raise ProviderRefusalError("OpenAI 모델이 답을 거절했습니다(refusal).")
             if part.type == PART_OUTPUT_TEXT and part.text is not None:
                 texts.append(part.text)
     # 출력 문장이 없으면 빈 문자열을 돌려주고, LlmClient가 JSON 검증 실패로 다시 생성한다
@@ -306,6 +317,13 @@ BLOCK_TEXT = "text"
 # 결제·사용 한도를 다 쓴 오류(다시 시도하지 않는다)
 ANTHROPIC_BILLING_STATUS = 402
 ANTHROPIC_BILLING_TYPE = "billing_error"
+# 워크스페이스 사용 한도 초과는 400 invalid_request_error로 오고 메시지로만 구분된다.
+# 예: "You have reached your specified workspace API usage limits.
+#      You will regain access on 2026-12-01 at 00:00 UTC."
+ANTHROPIC_USAGE_LIMIT_TEXT = "api usage limits"
+ANTHROPIC_REGAIN_ACCESS = re.compile(
+    r"regain access on (\d{4}-\d{2}-\d{2}) at (\d{2}:\d{2}) UTC", re.IGNORECASE
+)
 
 
 class AnthropicProvider:
@@ -383,7 +401,9 @@ class AnthropicProvider:
         except anthropic.APIStatusError as e:
             message = f"Anthropic 오류 {e.status_code}: {type(e).__name__}"
             if _is_anthropic_quota(e):
-                raise ProviderQuotaError(f"{message} (사용 한도 초과)") from e
+                raise ProviderQuotaError(
+                    f"{message} (사용 한도 초과)", _anthropic_regain_access(e)
+                ) from e
             if e.status_code >= 500 or e.status_code in TRANSIENT_STATUS_CODES:
                 raise ProviderTransientError(message) from e
             raise ProviderError(message) from e
@@ -414,17 +434,39 @@ def _user_blocks(request: LlmRequest) -> list[dict[str, Any]]:
 
 
 def _is_anthropic_quota(error: Any) -> bool:
-    """결제 문제(402)나 조직 지출 한도 초과(429 enforced_spend_limit_reached)인지."""
+    """결제 문제(402), 조직 지출 한도 초과(429 enforced_spend_limit_reached),
+    워크스페이스 사용 한도 초과(400, 메시지로 구분)인지."""
     return (
         isinstance(error, anthropic.EnforcedSpendLimitReachedError)
         or error.status_code == ANTHROPIC_BILLING_STATUS
         or getattr(error, "type", None) == ANTHROPIC_BILLING_TYPE
+        or ANTHROPIC_USAGE_LIMIT_TEXT in _anthropic_error_message(error).lower()
     )
+
+
+def _anthropic_error_message(error: Any) -> str:
+    body = getattr(error, "body", None)
+    if isinstance(body, dict):
+        detail = body.get("error")
+        if isinstance(detail, dict) and isinstance(detail.get("message"), str):
+            return detail["message"]
+    return ""
+
+
+def _anthropic_regain_access(error: Any) -> datetime | None:
+    """한도 초과 메시지에 적힌 다시 쓸 수 있는 시각(UTC). 없거나 못 읽으면 None."""
+    found = ANTHROPIC_REGAIN_ACCESS.search(_anthropic_error_message(error))
+    if found is None:
+        return None
+    try:
+        return datetime.fromisoformat(f"{found[1]}T{found[2]}").replace(tzinfo=UTC)
+    except ValueError:
+        return None
 
 
 def _anthropic_response(response: Any, fallback_model: str) -> ProviderResponse:
     if response.stop_reason == STOP_REFUSAL:
-        raise ProviderError("Anthropic 모델이 답을 거절했습니다(refusal).")
+        raise ProviderRefusalError("Anthropic 모델이 답을 거절했습니다(refusal).")
     if response.stop_reason == STOP_MAX_TOKENS:
         raise ProviderTruncatedError(
             "Anthropic 응답이 출력 토큰 한도(max_tokens)에서 잘렸습니다.",
