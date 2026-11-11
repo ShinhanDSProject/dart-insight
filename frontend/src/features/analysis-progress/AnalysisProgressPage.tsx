@@ -17,7 +17,9 @@ import {
   ReportCardPair,
 } from '@/shared/ui'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
+import { CompareScene } from './components/CompareScene'
 import { NotifyControl } from './components/NotifyControl'
+import { WaitTips } from './components/WaitTips'
 import { useAnalysisProgress } from './hooks/useAnalysisProgress'
 import { useCompletionNotification } from './hooks/useCompletionNotification'
 import { useProgressTitle } from './hooks/useProgressTitle'
@@ -133,12 +135,14 @@ function ProgressHeading({ analysis }: { analysis: Analysis }) {
 function Progress({ analysis }: { analysis: Analysis }) {
   // 상단 바 아래 '최근 본 기업' 맨 앞에 이 기업을 둔다. 아직 결과가 없어 분석은 넘기지 않는다(#502)
   useRecordCurrentCompany({ corpCode: analysis.corpCode, corpName: analysis.corpName })
+  const running = analysis.status === 'PENDING' || analysis.status === 'RUNNING'
   return (
     <>
       <ReportCardPair>
         <ReportCard side="previous" report={analysis.previous} />
         <ReportCard side="current" report={analysis.current} />
       </ReportCardPair>
+      {running && <CompareScene />}
       <Panel aria-labelledby="progress-steps-title">
         {/* 공팡이는 제목 옆에 작게 둔다(#841). 진행 중이면 찾는 중, 실패면 설명 없음 표정 */}
         <div className="progress__head">
@@ -165,9 +169,10 @@ function Progress({ analysis }: { analysis: Analysis }) {
         <ProgressBar value={stepProgress(analysis.steps)} label="분석 진행률" />
         <p className="panel__note">
           {stepSummary(analysis.steps)}
-          {(analysis.status === 'PENDING' || analysis.status === 'RUNNING') && ` ${KEEPS_RUNNING_NOTE}`}
+          {running && ` ${KEEPS_RUNNING_NOTE}`}
         </p>
       </Panel>
+      {running && <WaitTips />}
     </>
   )
 }
