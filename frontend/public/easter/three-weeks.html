@@ -1749,6 +1749,71 @@ body {
     }
   }
 
+
+  /* === 인플레이션 시대 재테크 스토리보드 === */
+  .wealth-tech-banner {
+    margin-top: 16px;
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    box-shadow: 0 4px 16px rgba(18,22,56,0.04);
+  }
+  .wealth-steps-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 10px;
+  }
+  .w-step {
+    background: var(--color-bg-subtle);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .w-step--danger {
+    background: var(--color-decrease-subtle);
+    border-color: rgba(181, 56, 70, 0.25);
+  }
+  .w-step--solution {
+    background: var(--color-increase-subtle);
+    border: 2px solid var(--color-increase);
+  }
+  .w-step__head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .w-step__icon {
+    font-size: 20px;
+  }
+  .w-step__title {
+    font-size: 13.5px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--color-primary);
+  }
+  .w-step__sub {
+    font-size: 11px;
+    color: var(--color-muted);
+    display: block;
+  }
+  .w-step__desc {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--color-text);
+    margin: 0;
+  }
+  @media (max-width: 768px) {
+    .wealth-steps-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
 </style>
 </head>
 <body>
@@ -1967,10 +2032,62 @@ body {
       <p>금융 의사결정의 핵심인 전자공시(DART)는 연간 수십만 건 쏟아지지만, 실무자와 투자자가 겪는 현실적인 장벽은 여전히 높습니다.</p>
     </div>
     <div class="zone-b-badge">
-      <span class="zone-b-term">🔍 할루시네이션 & MD&A</span>
-      <span class="zone-b-def">AI의 그럴듯한 거짓말 & 경영진이 직접 쓴 성적표 해설서</span>
+      <span class="zone-b-term">🔍 인플레이션 & 경제적 해자</span>
+      <span class="zone-b-def">자산 가치 하락 방어 & 우량 기업 팩트 분석 기반 재테크</span>
     </div>
   </div>
+
+  <!-- [허성범 AI학개론 모티브] 인플레이션 시대의 현명한 재테크 & 기업 분석 스토리보드 -->
+  <div class="wealth-tech-banner">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <span class="label" style="color:var(--color-accent); font-weight:800; font-size:12px;">📈 인플레이션 방어 & 복리의 마법을 위한 투자 필수 방정식</span>
+      <span class="badge badge--ok" style="font-size:11px;">현명한 재테크의 출발점</span>
+    </div>
+    <div class="wealth-steps-grid">
+      <!-- Step 1: 왜 재테크인가? -->
+      <div class="w-step">
+        <div class="w-step__head">
+          <span class="w-step__icon">💸</span>
+          <div>
+            <h4 class="w-step__title">1. 인플레이션 시대 생존</h4>
+            <span class="w-step__sub">가만히 있으면 돈의 가치는 하락</span>
+          </div>
+        </div>
+        <p class="w-step__desc">
+          월급만으로는 자산을 지킬 수 없는 고물가 시대. <strong>복리의 마법</strong>을 누리고 실질 자산을 지키려면 <strong>우량 기업에 대한 현명한 투자</strong>가 선택이 아닌 필수입니다.
+        </p>
+      </div>
+
+      <!-- Step 2: 왜 기존 투자는 실패하는가? -->
+      <div class="w-step w-step--danger">
+        <div class="w-step__head">
+          <span class="w-step__icon">⚠️</span>
+          <div>
+            <h4 class="w-step__title" style="color:var(--color-critical)">2. 찌라시 투자 & AI 환각</h4>
+            <span class="w-step__sub">소문 의존과 가짜 숫자의 덫</span>
+          </div>
+        </div>
+        <p class="w-step__desc">
+          워런 버핏의 조언처럼 기업의 실적을 봐야 하지만, <strong>300쪽 공시는 너무 길고</strong> 시중 AI는 <strong>없는 숫자를 지어내는 환각</strong>으로 치명적 투자 손실을 부릅니다.
+        </p>
+      </div>
+
+      <!-- Step 3: 왜 DART Insight인가? -->
+      <div class="w-step w-step--solution">
+        <div class="w-step__head">
+          <span class="w-step__icon">🛡️</span>
+          <div>
+            <h4 class="w-step__title" style="color:var(--color-increase)">3. DART Insight 팩트 비서</h4>
+            <span class="w-step__sub">5초 팩트 대조 & 무환각 분석</span>
+          </div>
+        </div>
+        <p class="w-step__desc">
+          <strong>100% 국가 공인 전자공시 원문 직결</strong>과 <strong>Java 100% 수치 연산</strong>으로, 누구나 5초 만에 신뢰할 수 있는 공시 분석 리포트를 얻고 안전하게 재테크할 수 있습니다.
+        </p>
+      </div>
+    </div>
+  </div>
+
   <!-- 1:1 Split Visual Comparison Diagram (Type 1 Archetype) -->
   <div class="bna-cols" style="margin-top:20px;">
     <!-- 좌측: 수작업 4시간과 환각의 고통 -->
@@ -3754,18 +3871,18 @@ stepper('#userflow', '#flowtext', [
 (function () {
   const SPEECHES = [
     {
-      title: '01 · 비전 & 개요 (300페이지 공시 대조를 5초 만에 원문 직결)',
+      title: '01 · 비전 & 개요 (인플레이션 시대의 현명한 재테크 AI 비서)',
       text: `[도발적 질문 Hook]
-"여러분, 공시 분석하느라 300페이지짜리 사업보고서 두 개를 나란히 모니터에 띄우고 새벽까지 주석 하나하나 대조해 보신 적 있으십니까?"
+"여러분, 가만히 숨만 쉬어도 통장 잔고의 실질 가치가 깎여나가는 고물가·인플레이션 시대, 여러분은 내 자산을 지키기 위해 어떤 재테크를 하고 계십니까?"
 
 [1초 용어 통역]
-"슬라이드 우측 상단 돋보기를 보시죠. '공시(DART)'란 금융감독원에 제출하는 기업의 공식 생활기록부입니다."
+"슬라이드 우측 상단 돋보기를 보시죠. '공시(DART)'란 금융감독원에 제출하는 기업의 공식 생활기록부입니다. 복리의 마법을 현실로 만들기 위해선 소문이 아닌 이 공시 속 진짜 실적을 읽어야 합니다."
 
 [시각 요소 지시어]
-"화면 중앙의 4대 핵심 지표 카드를 보십시오. DART Insight는 수작업에 4시간 걸리던 정기보고서 대조를 단 5초 만에, 100% 원문 근거와 환각 0%로 완벽히 끝냅니다."
+"화면 중앙의 4대 핵심 지표 카드를 보십시오. DART Insight는 소설책 4권 분량의 300페이지 공시 대조를 단 5초 만에, 100% 원문 근거와 환각 0%로 완벽히 끝내주는 스마트 재테크 AI 비서입니다."
 
 [숫자 타격감 마무리]
-"30만 자를 5초 만에 압축하고 환각 0.00%를 달성한 신뢰 기반 금융 인텔리전스입니다!"`
+"수작업 4시간을 단 5초로 단축하고 환각 0.00%를 달성한, 성공적인 재테크를 위한 나의 가장 확실한 공시 분석 파트너입니다!"`
     },
     {
       title: '00 · 전자공시란? (기업의 공식 종합 생활기록부)',
@@ -3782,18 +3899,18 @@ stepper('#userflow', '#flowtext', [
 "DART Insight는 이 공인 팩트 원문과 1초 만에 직결되어, 수치 환각 0.00%의 절대적 신뢰성을 달성했습니다!"`
     },
     {
-      title: '03 · 추진 배경 (65만 자 공시 무한 스크롤과 LLM 환각)',
+      title: '03 · 추진 배경 (인플레이션 시대 재테크와 300쪽 공시의 벽)',
       text: `[도발적 질문 Hook]
-"정기보고서 한 권이 소설책 4권 분량인 65만 자에 달하고, 시중 챗봇에 넣으면 수치를 날조한다는 사실 알고 계셨습니까?"
+"성공적인 재테크를 위해 기업을 제대로 분석하고 투자하려는데, 300페이지짜리 공시 문서를 직접 다 읽을 수 있는 사람이 몇 명이나 되겠습니까?"
 
 [1초 용어 통역]
-"우측 상단 돋보기를 보시죠. 'MD&A'는 경영진 성적표 해설서이고, '할루시네이션'은 AI가 숫자를 지어내는 거짓말입니다."
+"우측 상단 돋보기를 보시죠. 'MD&A'는 경영진이 쓴 성적표 해설서이고, '할루시네이션'은 시중 AI가 숫자를 지어내는 거짓말입니다."
 
 [시각 요소 지시어]
-"화면의 문제점 카드를 보십시오. 300페이지를 오르내리는 4시간의 단순 대조 노동과 시중 LLM의 치명적 수치 왜곡을 해결해야 했습니다."
+"화면 상단의 재테크 3단계 방정식과 하단의 1:1 대비를 보십시오. 공시를 못 읽어 인터넷 찌라시나 뉴스에 기대어 묻지마 투자를 하거나, 챗GPT의 가짜 숫자를 믿다가 피 같은 투자금을 날리는 비극을 해결해야 했습니다."
 
 [숫자 타격감 마무리]
-"금융에서 1원의 오차는 치명적입니다. 4시간 소모와 수치 환각을 원천 차단했습니다!"`
+"내 소중한 자산이 걸린 투자입니다. 수치 환각 0.00%와 5초 팩트 대조로 투자 리스크를 원천 차단했습니다!"`
     },
     {
       title: '03 · 핵심 가치 제안 (초고속성 · 100% 원문 직결 점프)',
