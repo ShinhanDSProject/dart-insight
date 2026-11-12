@@ -33,3 +33,20 @@ export function pickActiveSection(
 
 /** 이 정도 차이면 같은 줄(나란히 놓인 영역)로 본다 */
 const SAME_ROW_PX = 2
+
+/** 이 정도 아래까지는 영역이 바로 가기로 옮겨 온 자리에 닿은 것으로 본다(소수점 반올림·부드러운 스크롤 끝 오차) */
+const LANDING_SLACK_PX = 8
+
+/**
+ * 기준선(px): 바로 가기로 영역을 옮겼을 때 그 영역 위 끝이 멈추는 자리(문서의 scroll-padding-top + 영역의 scroll-margin-top)에
+ * 여유를 더한 값. 값은 getComputedStyle 문자열('68px', 'auto')을 그대로 받는다.
+ * 고정 값을 쓰면 위에 붙는 줄 높이가 다른 화면(분석 결과 화면은 결과 탭 여백이 더해짐)에서 누른 영역보다 앞 영역이 표시됐다.
+ */
+export function landingLine(scrollPaddingTop: string, scrollMarginTop: string): number {
+  return px(scrollPaddingTop) + px(scrollMarginTop) + LANDING_SLACK_PX
+}
+
+function px(value: string): number {
+  const n = Number.parseFloat(value)
+  return Number.isFinite(n) ? n : 0
+}
