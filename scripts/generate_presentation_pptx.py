@@ -415,48 +415,89 @@ def build_presentation():
 [숫자 타격감 마무리]
 "현금 실질 가치 -72% 폭락의 위기를 수치 환각 0.00%의 100% DART 공인 팩트 직결로 해결했습니다!"
 """)
-
+    # =========================================================================
     # PART 1-B. 도메인 통역: 클라이언트를 위한 1초 공시 용어 사전
     # =========================================================================
-    # SLIDE 03: 전자공시란 무엇인가? 금융감독원 공인 팩트 단일 쇼케이스
+    # SLIDE 03: 전자공시란 무엇인가? 엔비디아 젠슨 황 사임 공시 & DART 팩트 쇼케이스
     s02 = prs.slides.add_slide(blank_layout)
     set_slide_background(s02, is_dark=False)
     add_zone_a_header(s02, "00 · 도메인 통역 가이드", "전자공시(DART)란? 기업의 공식 종합 생활기록부")
     add_zone_b_glossary(s02, "전자공시(DART)", "기업이 법에 따라 실적과 사건을 금융감독원에 투명하게 공개하는 공식 생활기록부")
 
-    # Zone C: 좌측 DART 공식 커버 이미지 & 우측 국가 공인 100% 팩트 데이터
+    # Zone C: 2열 대칭 쇼케이스 (좌: 엔비디아 젠슨 황 사임 SEC Form 8-K vs 우: 대한민국 DART 100% 팩트)
+    jensen_avatar_path = os.path.join(project_root, "frontend", "public", "easter", "jensen-huang-avatar.png")
+    nvidia_logo_path = os.path.join(project_root, "frontend", "public", "easter", "nvidia-logo.png")
     dart_img_path = os.path.join(project_root, "frontend", "public", "easter", "dart-cover.png")
-    # 좌측: DART 공식 커버 이미지
-    draw_card(s02, Inches(0.8), Inches(1.65), Inches(5.65), Inches(3.6), LIGHT_CARD, LIGHT_BORDER, 1.5)
-    if os.path.exists(dart_img_path):
-        with PILImage.open(dart_img_path) as dimg:
-            dw, dh = dimg.size
-            aspect_d = dw / dh
-        avail_dw = 5.25
-        avail_dh = 3.2
-        if avail_dw / avail_dh > aspect_d:
-            target_dh = avail_dh
-            target_dw = target_dh * aspect_d
-        else:
-            target_dw = avail_dw
-            target_dh = target_dw / aspect_d
-        dimg_left = Inches(0.8) + Inches((5.65 - target_dw) / 2)
-        dimg_top = Inches(1.65) + Inches((3.6 - target_dh) / 2)
-        s02.shapes.add_picture(dart_img_path, dimg_left, dimg_top, Inches(target_dw), Inches(target_dh))
 
-    # 우측: 사용자 지정 팩트 데이터
+    # [좌측 카드]: 글로벌 실전 공시 사례 (엔비디아 젠슨 황 사임 Form 8-K)
+    draw_card(s02, Inches(0.8), Inches(1.65), Inches(5.65), Inches(3.6), LIGHT_CARD, LIGHT_BORDER, 1.5)
+    
+    # 상단 뱃지
+    tb_badge = s02.shapes.add_textbox(Inches(1.0), Inches(1.72), Inches(5.25), Inches(0.35))
+    tf_badge = tb_badge.text_frame; tf_badge.word_wrap = True
+    tf_badge.margin_left = tf_badge.margin_top = tf_badge.margin_right = tf_badge.margin_bottom = 0
+    p_b = tf_badge.paragraphs[0]; p_b.text = "🔥 글로벌 실전 사례 · 2026.11.12 공식 접수 (SEC Form 8-K)"
+    p_b.font.name = FONT_HEADING; p_b.font.size = Pt(10.5); p_b.font.bold = True; p_b.font.color.rgb = RGBColor(21, 128, 61)
+
+    # 젠슨 황 아바타 & 엔비디아 로고 헤더
+    if os.path.exists(jensen_avatar_path):
+        s02.shapes.add_picture(jensen_avatar_path, Inches(1.0), Inches(2.08), Inches(0.8), Inches(0.8))
+    if os.path.exists(nvidia_logo_path):
+        s02.shapes.add_picture(nvidia_logo_path, Inches(1.95), Inches(2.1), Inches(1.3), Inches(0.25))
+
+    tb_nv_title = s02.shapes.add_textbox(Inches(1.95), Inches(2.38), Inches(4.3), Inches(0.55))
+    tf_nv = tb_nv_title.text_frame; tf_nv.word_wrap = True
+    tf_nv.margin_left = tf_nv.margin_top = tf_nv.margin_right = tf_nv.margin_bottom = 0
+    p_nv1 = tf_nv.paragraphs[0]; p_nv1.text = "젠슨 황 CEO 사임 수시공시 (Item 5.02)"
+    p_nv1.font.name = FONT_HEADING; p_nv1.font.size = Pt(13); p_nv1.font.bold = True; p_nv1.font.color.rgb = LIGHT_TEXT_PRIMARY
+
+    # 공시 원문 발췌 다크 박스
+    draw_card(s02, Inches(1.0), Inches(2.95), Inches(5.25), Inches(1.15), RGBColor(15, 23, 42), RGBColor(118, 185, 0), 1.0)
+    tb_sec = s02.shapes.add_textbox(Inches(1.15), Inches(3.02), Inches(4.95), Inches(1.0))
+    tf_sec = tb_sec.text_frame; tf_sec.word_wrap = True
+    tf_sec.margin_left = tf_sec.margin_top = tf_sec.margin_right = tf_sec.margin_bottom = 0
+    p_s1 = tf_sec.paragraphs[0]; p_s1.text = "[SEC Form 8-K | Item 5.02 Departure of CEO / NVIDIA CORP]"
+    p_s1.font.name = FONT_BODY; p_s1.font.size = Pt(9.5); p_s1.font.bold = True; p_s1.font.color.rgb = RGBColor(118, 185, 0)
+    p_s1.space_after = Pt(2)
+    p_s2 = tf_sec.add_paragraph()
+    p_s2.text = '"The Board accepted the resignation of Jen-Hsun (Jensen) Huang as President, CEO, and Director, effective immediately." (CFO Colette Kress interim CEO)'
+    p_s2.font.name = FONT_BODY; p_s2.font.size = Pt(9); p_s2.font.color.rgb = RGBColor(241, 245, 249)
+
+    # 하단 팩트 포인트
+    tb_sec_pt = s02.shapes.add_textbox(Inches(1.0), Inches(4.18), Inches(5.25), Inches(0.95))
+    tf_sec_pt = tb_sec_pt.text_frame; tf_sec_pt.word_wrap = True
+    tf_sec_pt.margin_left = tf_sec_pt.margin_top = tf_sec_pt.margin_right = tf_sec_pt.margin_bottom = 0
+    p_pt1 = tf_sec_pt.paragraphs[0]
+    p_pt1.text = "• 풍문 종결: 수많은 찌라시 속에서 SEC Form 8-K로 전 세계 시장 최종 확정"
+    p_pt1.font.name = FONT_BODY; p_pt1.font.size = Pt(9); p_pt1.font.color.rgb = LIGHT_TEXT_BODY
+    p_pt1.space_after = Pt(2)
+    p_pt2 = tf_sec_pt.add_paragraph()
+    p_pt2.text = "• 시장 반영: 공시 접수 즉시 시간외 주가 -10% 급변 (법적 효력 증명)"
+    p_pt2.font.name = FONT_BODY; p_pt2.font.size = Pt(9); p_pt2.font.color.rgb = LIGHT_TEXT_BODY
+    p_pt2.space_after = Pt(4)
+    p_pt3 = tf_sec_pt.add_paragraph()
+    p_pt3.text = "✓ 법적 구속력을 지닌 공식 공시 단 1장이 전 세계 시장을 결정"
+    p_pt3.font.name = FONT_BODY; p_pt3.font.size = Pt(9); p_pt3.font.bold = True; p_pt3.font.color.rgb = RGBColor(21, 128, 61)
+
+    # [우측 카드]: 대한민국 전자공시 DART (금융감독원 100% 공인 팩트)
     draw_card(s02, Inches(6.8), Inches(1.65), Inches(5.65), Inches(3.6), LIGHT_POSITIVE_TINT, LIGHT_POSITIVE, 2.0)
-    tb_r = s02.shapes.add_textbox(Inches(7.1), Inches(1.85), Inches(5.1), Inches(3.2))
-    tf_r = tb_r.text_frame
-    tf_r.word_wrap = True
+    
+    # DART 공식 커버 이미지
+    if os.path.exists(dart_img_path):
+        draw_card(s02, Inches(7.05), Inches(1.78), Inches(5.15), Inches(1.05), LIGHT_CARD, LIGHT_BORDER, 1.0)
+        s02.shapes.add_picture(dart_img_path, Inches(7.15), Inches(1.83), Inches(4.95), Inches(0.95))
+
+    tb_r = s02.shapes.add_textbox(Inches(7.05), Inches(2.95), Inches(5.15), Inches(2.2))
+    tf_r = tb_r.text_frame; tf_r.word_wrap = True
+    tf_r.margin_left = tf_r.margin_top = tf_r.margin_right = tf_r.margin_bottom = 0
     p = tf_r.paragraphs[0]
     p.text = "🏛️ 전자공시 DART (금융감독원)"
-    p.font.name = FONT_HEADING; p.font.size = Pt(16); p.font.bold = True; p.font.color.rgb = LIGHT_POSITIVE
+    p.font.name = FONT_HEADING; p.font.size = Pt(14); p.font.bold = True; p.font.color.rgb = LIGHT_POSITIVE
     p.space_after = Pt(2)
     p_sub = tf_r.add_paragraph()
     p_sub.text = "국가 공인 법적 100% 팩트 데이터"
-    p_sub.font.name = FONT_BODY; p_sub.font.size = Pt(12); p_sub.font.bold = True; p_sub.font.color.rgb = LIGHT_TEXT_PRIMARY
-    p_sub.space_after = Pt(10)
+    p_sub.font.name = FONT_BODY; p_sub.font.size = Pt(11); p_sub.font.bold = True; p_sub.font.color.rgb = LIGHT_TEXT_PRIMARY
+    p_sub.space_after = Pt(8)
 
     items_r = [
         ("100% 공인 팩트", "자본시장법에 따라 허위 기재 시 형사 처벌을 받는 공식 문서"),
@@ -466,14 +507,16 @@ def build_presentation():
     for title, desc in items_r:
         p_t = tf_r.add_paragraph()
         p_t.text = f"• {title}: {desc}"
-        p_t.font.name = FONT_BODY; p_t.font.size = Pt(11); p_t.font.color.rgb = LIGHT_TEXT_BODY
-        p_t.space_after = Pt(6)
+        p_t.font.name = FONT_BODY; p_t.font.size = Pt(9.5); p_t.font.color.rgb = LIGHT_TEXT_BODY
+        p_t.space_after = Pt(4)
+    p_r_tag = tf_r.add_paragraph()
+    p_r_tag.text = "✓ 국가 공인 법적 100% 팩트 · 대한민국 상장사 무결성 보장"
+    p_r_tag.font.name = FONT_BODY; p_r_tag.font.size = Pt(9.5); p_r_tag.font.bold = True; p_r_tag.font.color.rgb = LIGHT_POSITIVE
 
     # 하단 3대 시스템 원칙 배지 바
     draw_card(s02, Inches(0.8), Inches(5.4), Inches(11.65), Inches(1.15), LIGHT_CARD, LIGHT_PURPLE, 1.2)
     tb_b = s02.shapes.add_textbox(Inches(1.0), Inches(5.5), Inches(11.25), Inches(0.95))
-    tf_b = tb_b.text_frame
-    tf_b.word_wrap = True
+    tf_b = tb_b.text_frame; tf_b.word_wrap = True
     pb = tf_b.paragraphs[0]
     pb.text = "🛡️ DART Insight가 공시를 다루는 3대 철칙"
     pb.font.name = FONT_HEADING; pb.font.size = Pt(11); pb.font.bold = True; pb.font.color.rgb = LIGHT_PURPLE
@@ -482,18 +525,19 @@ def build_presentation():
     pb2.text = "1️⃣ 공식 OpenDART API 실시간 직결    2️⃣ 요약마다 100% 원문 블록(#접수번호#B블록번호) 직결    3️⃣ 수치 계산은 Java 코드 100% 수행 (AI 환각 원천 차단)"
     pb2.font.name = FONT_BODY; pb2.font.size = Pt(10.5); pb2.font.bold = True; pb2.font.color.rgb = LIGHT_TEXT_PRIMARY
 
-    add_zone_d_proof_bar(s02, 2, TOTAL_SLIDES, metrics_list=["금융감독원 공인 팩트 100%", "OpenDART API 실시간 직결", "수치 환각 발생률 0.00%"])
+    add_zone_d_proof_bar(s02, 2, TOTAL_SLIDES, metrics_list=["글로벌 SEC Form 8-K 실전 확정", "금융감독원 공인 팩트 100%", "OpenDART API 실시간 직결"])
     set_speaker_notes(s02, """[도발적 질문 Hook]
-"‘전자공시’라는 단어, 자주 듣기는 하지만 도대체 어떤 데이터이기에 법적 구속력을 가질까요?"
+"여러분, 어제 전 세계를 충격에 빠뜨린 엔비디아 젠슨 황 CEO의 사임 소식처럼, 기업의 명운을 가르는 사건이 터졌을 때 우리는 무엇을 보고 믿어야 할까요?"
 
 [1초 용어 통역]
-"우측 상단 돋보기를 보시죠. 전자공시란 '기업이 국가기관인 금감원에 제출하는 공식 종합 생활기록부'입니다. 사소한 숫자 하나라도 거짓말을 치면 법적 형사 처벌을 받는 100% 공인 팩트 데이터입니다."
+"우측 상단 돋보기를 보시죠. 전자공시란 '기업이 법에 따라 실적과 사건을 금융당국에 투명하게 공개하는 공식 종합 생활기록부'입니다."
 
 [시각 요소 지시어]
-"화면 좌측의 금융감독원 공식 DART 커버와 우측 3대 팩트 정의를 보십시오. 자본시장법에 따라 허위 기재 시 엄중한 형사 처벌을 받는 100% 공인 팩트이자, 5대 재무제표와 MD&A 등 기업의 모든 진실이 담겨 있습니다. DART Insight는 OpenDART 공식 API로 1초 만에 원문을 수집합니다."
+"화면 좌측의 엔비디아 실제 SEC Form 8-K 수시공시를 보십시오. 무수한 풍문과 찌라시가 돌았지만, 전 세계 시장이 팩트로 확정한 단 하나의 근거는 자본시장법 형사 처벌을 받는 바로 이 공시 원문 1장이었습니다.
+우측의 금융감독원 DART도 마찬가지입니다. DART Insight는 국내 상장사의 5대 재무제표와 MD&A 등 100% 공인 팩트를 공식 API로 1초 만에 원문 직결합니다."
 
 [숫자 타격감 마무리]
-"DART Insight는 이 공인 팩트 원문과 1초 만에 직결되어, 수치 환각 0.00%의 절대적 신뢰성을 달성했습니다!"
+"대표이사 사임부터 재무 수치까지, 수치 환각 0.00%의 법적 공인 팩트로 금융의 신뢰를 완성합니다!"
 """)
 
     # =========================================================================
