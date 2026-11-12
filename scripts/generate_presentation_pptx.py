@@ -276,8 +276,8 @@ def glossary(s):
     box(s, 0.6, 1.75, 5.7, 4.35)
     picture(s, "jensen-huang-avatar.png", 0.85, 1.95, 0.85, 0.85)
     picture(s, "nvidia-logo.png", 1.85, 2.15, 1.9, 0.45)
-    box(s, 4.1, 2.18, 2.0, 0.4, ACCENT_TINT, None, radius=0.5)
-    text(s, 4.1, 2.18, 2.0, 0.4, [("🇺🇸 SEC 8-K · 2026-11-11", 10, ACCENT, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    box(s, 3.85, 2.18, 2.3, 0.4, ACCENT_TINT, None, radius=0.5)
+    text(s, 3.85, 2.18, 2.3, 0.4, [("🇺🇸 SEC 8-K · 2026-11-12 제출", 10, ACCENT, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
     text(s, 0.85, 3.0, 5.25, 3.0, [
         ("“The Board accepted the resignation of Jen-Hsun (Jensen) Huang as President, CEO, and Director, effective immediately.”", 14, MUTED, False),
         ("", 8, MUTED, False),
