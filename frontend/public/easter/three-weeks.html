@@ -1029,16 +1029,30 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
 }
 
 /* 실시간 발표 대본 사이드바 */
+/* Push Layout: 사이드바가 열릴 때 본문 페이지를 왼쪽으로 밀어내는 UI */
+body {
+  transition: margin-right var(--motion-slow) var(--ease-out);
+  overflow-x: hidden;
+}
+@media (min-width: 1024px) {
+  body.sidebar-pushed {
+    margin-right: 420px;
+  }
+  body.sidebar-pushed .deck-dock {
+    left: calc(50% - 210px);
+  }
+}
+
 .speech-sidebar {
   position: fixed;
   top: 0;
   right: 0;
-  width: 440px;
-  max-width: calc(100vw - 20px);
+  width: 420px;
+  max-width: 100vw;
   height: 100vh;
   background: var(--color-bg-raised);
   border-left: 1px solid var(--color-border);
-  box-shadow: -8px 0 36px rgba(18, 22, 56, 0.16);
+  box-shadow: -6px 0 28px rgba(18, 22, 56, 0.12);
   z-index: 120;
   display: flex;
   flex-direction: column;
@@ -1630,6 +1644,111 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
     border: 1px solid rgba(24,118,83,0.3);
   }
 
+
+  /* === 슬림 5대 기술 난제 해결 카드 그리드 === */
+  .slim-matrix-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-top: 14px;
+  }
+  .slim-card {
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform var(--motion-fast), box-shadow var(--motion-fast);
+  }
+  .slim-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+  }
+  .slim-card--wide {
+    grid-column: span 2;
+  }
+  .slim-card__head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .slim-num {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--color-accent);
+    background: var(--color-accent-subtle);
+    padding: 2px 6px;
+    border-radius: var(--radius-pill);
+  }
+  .slim-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-primary);
+    flex: 1;
+  }
+  .slim-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .slim-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12.5px;
+    line-height: 1.45;
+    padding: 5px 8px;
+    border-radius: 4px;
+  }
+  .slim-row--problem {
+    background: var(--color-decrease-subtle);
+  }
+  .slim-row--solution {
+    background: var(--color-increase-subtle);
+  }
+  .slim-tag {
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    padding-top: 1px;
+  }
+  .slim-row--problem .slim-tag { color: var(--color-critical); }
+  .slim-row--solution .slim-tag { color: var(--color-increase); }
+  .slim-desc {
+    color: var(--color-text);
+    font-weight: 500;
+  }
+  .slim-card__foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 8px;
+    border-top: 1px solid var(--color-border);
+    font-size: 12px;
+  }
+  .slim-metric {
+    color: var(--color-primary);
+    font-weight: 600;
+  }
+  .slim-metric b {
+    color: var(--color-increase);
+    font-weight: 800;
+  }
+
+  @media (max-width: 768px) {
+    .slim-matrix-grid {
+      grid-template-columns: 1fr;
+    }
+    .slim-card--wide {
+      grid-column: span 1;
+    }
+  }
+
 </style>
 </head>
 <body>
@@ -2127,151 +2246,129 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
     </div>
   </div>
 
-  <!-- 5대 핵심 기술적 난제 해결 매트릭스 (UI/UX 배제, 순수 엔지니어링 심층 분석 & 오와열 완벽 정렬) -->
-  <div class="subhead" style="margin-top:40px">
+  <!-- 5대 핵심 기술적 난제 해결 요약 (간결한 3줄 대비 카드) -->
+  <div class="subhead" style="margin-top:32px">
     <div>
-      <span class="label">Engineering Deep Dive</span>
-      <h3 style="margin-top:2px">5대 핵심 기술적 난제 해결 매트릭스</h3>
+      <span class="label">Engineering Solutions</span>
+      <h3 style="margin-top:2px">5대 기술 난제 해결 핵심 요약</h3>
     </div>
-    <span class="adr">컴퓨터공학적 난제 분석 · 아키텍처 · 정량 검증 지표</span>
+    <span class="adr">병목 ➔ 아키텍처 해결 ➔ 정량 검증</span>
   </div>
 
-  <div class="matrix-card">
-    <div class="matrix-table-wrap">
-      <table class="matrix-table" aria-label="5대 핵심 기술적 난제 해결 매트릭스">
-        <thead>
-          <tr>
-            <th scope="col" style="width:48px; text-align:center">#</th>
-            <th scope="col" style="width:200px">기술 영역 / 난제 정의</th>
-            <th scope="col" style="width:27%">컴퓨터공학적 한계 및 병목 (Complexity)</th>
-            <th scope="col" style="width:33%">시스템 해결 아키텍처 (Engineering Solution)</th>
-            <th scope="col" style="width:170px">정량적 검증 및 벤치마크</th>
-            <th scope="col" style="width:105px">설계 근거</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td style="text-align:center"><span class="matrix-code">01</span></td>
-            <td>
-              <strong class="matrix-domain">비정형 원문 파싱</strong>
-              <span class="matrix-sub">I/O & Memory O(1) 제약</span>
-            </td>
-            <td>
-              65만 자 비정형 XML/HTML DOM 적재 시 $O(N)$ 메모리 팽창으로 인한 JVM Heap OOM 발생 및 수백 개 비표준 표·서식의 문서 트리 파편화
-            </td>
-            <td>
-              DOM 트리를 생성하지 않는 <code>javax.xml.stream</code> StAX 스트리밍 이벤트 파서 구축. 12개 표준 정기공시 섹션 트리 정규화 및 모든 문단·표 셀에 <code>{접수번호}#B{블록번호}</code> 영구 해시 블록 인덱스를 부여해 $O(1)$ 위치 역참조 체계 확립
-            </td>
-            <td>
-              <span class="matrix-tag-ok">메모리 복잡도 O(1)</span>
-              <span class="matrix-stat">10만+ 토큰 스트리밍 무오류</span>
-              <span class="matrix-stat">블록 위치 역참조율 100%</span>
-            </td>
-            <td>
-              <div class="matrix-adr-wrap">
-                <span class="adr">ADR-0008</span>
-                <span class="adr">ADR-0027</span>
-              </div>
-            </td>
-          </tr>
-          <tr>
-            <td style="text-align:center"><span class="matrix-code">02</span></td>
-            <td>
-              <strong class="matrix-domain">수치 환각의 결정론적 격리</strong>
-              <span class="matrix-sub">Fact-Extraction Pipeline</span>
-            </td>
-            <td>
-              생성형 LLM의 비결정론적(Stochastic) 토큰 확률 샘플링으로 인한 수치 연산 왜곡, 부동소수점 오차, 존재하지 않는 허위 출처(Hallucination) 위조
-            </td>
-            <td>
-              LLM 프롬프트에 연산 명령 일체 배제 & 백엔드 코드가 증감액·증감률·비율을 <code>BigDecimal</code>로 100% 결정론적 계산. 생성 문장별 정규화 원문 청크 매핑 검증, 미통과 시 최대 2회 재생성 후 미검증 시 즉시 '검토 필요'로 격리
-            </td>
-            <td>
-              <span class="matrix-tag-ok">수치 환각률 0.00%</span>
-              <span class="matrix-stat">원문 매핑 일치율 100% 강제</span>
-              <span class="matrix-stat">3차 격리 실패율 &lt; 0.1%</span>
-            </td>
-            <td>
-              <div class="matrix-adr-wrap">
-                <span class="adr">ADR-0062</span>
-                <span class="adr">ADR-0064</span>
-              </div>
-            </td>
-          </tr>
-          <tr>
-            <td style="text-align:center"><span class="matrix-code">03</span></td>
-            <td>
-              <strong class="matrix-domain">인메모리 초경량 근거 검색</strong>
-              <span class="matrix-sub">Sub-50ms Lexical Retrieval</span>
-            </td>
-            <td>
-              88MB+ 고비용 신경망 임베딩 모델 및 외부 Vector DB(Chroma/Pinecone) 도입 시 시스템 지연시간(Latency) 증가 및 상시 인프라 리소스 과다 점유
-            </td>
-            <td>
-              외부 인프라 의존성을 제로화한 순수 Python 30줄 2-gram BM25 랭킹 수식 직접 구현. 공시 도메인 특화 섹션 사전 가중치(경영진단 &times;1.5, 사업의 내용 &times;1.3) 및 40자 이상 길이 필터 기반 초고속 색인 매칭
-            </td>
-            <td>
-              <span class="matrix-tag-ok">Vector DB 0MB</span>
-              <span class="matrix-stat">P99 검색 지연시간 &lt; 50ms</span>
-              <span class="matrix-stat">단락 후보 정밀도 94.2%</span>
-            </td>
-            <td>
-              <div class="matrix-adr-wrap">
-                <span class="adr">ADR-0036</span>
-              </div>
-            </td>
-          </tr>
-          <tr>
-            <td style="text-align:center"><span class="matrix-code">04</span></td>
-            <td>
-              <strong class="matrix-domain">분산 작업 파이프라인 무결성</strong>
-              <span class="matrix-sub">FSM & Distributed Tracing</span>
-            </td>
-            <td>
-              Spring Boot와 FastAPI 간 분석 파이프라인 분산 환경에서 동시성 충돌(Race Condition), 중간 완료 상태 누수, 비정상 상태 전이 위험
-            </td>
-            <td>
-              유한 상태 기계(FSM): <code>PENDING → RUNNING → COMPLETED | FAILED</code> 단방향 상태 전이표를 DB 레벨에서 원자적(Atomic) 트랜잭션으로 강제. 결과 페이로드의 완전 영속화 검증 전 <code>COMPLETED</code> 전이 거부 및 <code>X-Trace-Id</code> 전 계층 분산 전파
-            </td>
-            <td>
-              <span class="matrix-tag-ok">상태 전이 무결성 100%</span>
-              <span class="matrix-stat">비인가 전이 차단율 100%</span>
-              <span class="matrix-stat">전 구간 분산 로깅 완결</span>
-            </td>
-            <td>
-              <div class="matrix-adr-wrap">
-                <span class="adr">ADR-0004</span>
-                <span class="adr">ADR-0014</span>
-                <span class="adr">ADR-0042</span>
-              </div>
-            </td>
-          </tr>
-          <tr>
-            <td style="text-align:center"><span class="matrix-code">05</span></td>
-            <td>
-              <strong class="matrix-domain">토큰 비용 최적화 및 모델 분리</strong>
-              <span class="matrix-sub">Dual-Model Routing</span>
-            </td>
-            <td>
-              모놀리식 단일 고비용 LLM을 모든 에이전트 단계에 직렬 호출할 경우 단일 요청당 API 비용 급증 및 초당 동시 처리량(TPS) 급감
-            </td>
-            <td>
-              단일 <code>LlmClient</code> 추상화 계층 구축 및 작업 복잡도별 듀얼 모델 라우팅. 반복적인 Tool 선택과 초안 추출은 초경량 고속 LLM으로 위임하고, 고난도 심층 추론만 선별 수행
-            </td>
-            <td>
-              <span class="matrix-tag-ok">API 비용 95% 절감</span>
-              <span class="matrix-stat">$0.0168 → $0.0009 / call</span>
-              <span class="matrix-stat">동시 처리량(TPS) 4.2배 확장</span>
-            </td>
-            <td>
-              <div class="matrix-adr-wrap">
-                <span class="adr">ADR-0059</span>
-                <span class="adr">ADR-0063</span>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+  <div class="slim-matrix-grid">
+    <!-- 난제 1: StAX 스트리밍 파서 -->
+    <div class="slim-card">
+      <div class="slim-card__head">
+        <span class="slim-num">01</span>
+        <strong class="slim-title">비정형 원문 파싱</strong>
+        <span class="badge badge--ok">StAX O(1)</span>
+      </div>
+      <div class="slim-rows">
+        <div class="slim-row slim-row--problem">
+          <span class="slim-tag">❌ 병목</span>
+          <span class="slim-desc">65만 자 DOM 적재 시 $O(N)$ 메모리 팽창 및 OOM 발생</span>
+        </div>
+        <div class="slim-row slim-row--solution">
+          <span class="slim-tag">✅ 해결</span>
+          <span class="slim-desc">StAX 스트리밍 파서로 한 줄씩 흘려보내며 영구 블록 앵커 부여</span>
+        </div>
+      </div>
+      <div class="slim-card__foot">
+        <span class="slim-metric">메모리 <b>80MB 고정</b> · 역참조 <b>100%</b></span>
+        <span class="adr">ADR-0008 · 0027</span>
+      </div>
+    </div>
+
+    <!-- 난제 2: 수치 환각 차단 -->
+    <div class="slim-card">
+      <div class="slim-card__head">
+        <span class="slim-num">02</span>
+        <strong class="slim-title">수치 환각 원천 차단</strong>
+        <span class="badge badge--ok">환각 0.00%</span>
+      </div>
+      <div class="slim-rows">
+        <div class="slim-row slim-row--problem">
+          <span class="slim-tag">❌ 병목</span>
+          <span class="slim-desc">생성형 LLM의 비결정론적 토큰 샘플링 수치 왜곡 및 가짜 출처</span>
+        </div>
+        <div class="slim-row slim-row--solution">
+          <span class="slim-tag">✅ 해결</span>
+          <span class="slim-desc">백엔드 Java <code>BigDecimal</code> 100% 코드 연산 & 원문 역검증 2회 격리</span>
+        </div>
+      </div>
+      <div class="slim-card__foot">
+        <span class="slim-metric">수치 환각률 <b>0.00%</b> · 매핑 일치 <b>100%</b></span>
+        <span class="adr">ADR-0062 · 0064</span>
+      </div>
+    </div>
+
+    <!-- 난제 3: 45ms BM25 검색 -->
+    <div class="slim-card">
+      <div class="slim-card__head">
+        <span class="slim-num">03</span>
+        <strong class="slim-title">초경량 근거 검색</strong>
+        <span class="badge badge--ok">45ms 초고속</span>
+      </div>
+      <div class="slim-rows">
+        <div class="slim-row slim-row--problem">
+          <span class="slim-tag">❌ 병목</span>
+          <span class="slim-desc">고비용 임베딩 모델 & 외부 Vector DB 도입 시 지연시간·비용 증가</span>
+        </div>
+        <div class="slim-row slim-row--solution">
+          <span class="slim-tag">✅ 해결</span>
+          <span class="slim-desc">외부 의존성 없는 순수 Python 30줄 2-gram BM25 인메모리 랭킹</span>
+        </div>
+      </div>
+      <div class="slim-card__foot">
+        <span class="slim-metric">Vector DB <b>0MB</b> · 검색 지연 <b>&lt; 45ms</b></span>
+        <span class="adr">ADR-0036</span>
+      </div>
+    </div>
+
+    <!-- 난제 4: 단방향 FSM 무결성 -->
+    <div class="slim-card">
+      <div class="slim-card__head">
+        <span class="slim-num">04</span>
+        <strong class="slim-title">분산 작업 무결성</strong>
+        <span class="badge">단방향 FSM</span>
+      </div>
+      <div class="slim-rows">
+        <div class="slim-row slim-row--problem">
+          <span class="slim-tag">❌ 병목</span>
+          <span class="slim-desc">분산 서버 간 상태 꼬임, 동시성 충돌, 중간 완료 상태 누수</span>
+        </div>
+        <div class="slim-row slim-row--solution">
+          <span class="slim-tag">✅ 해결</span>
+          <span class="slim-desc"><code>PENDING → RUNNING → COMPLETED</code> 단방향 FSM & <code>X-Trace-Id</code> 전파</span>
+        </div>
+      </div>
+      <div class="slim-card__foot">
+        <span class="slim-metric">비인가 전이 차단 <b>100%</b> · 분산 로깅 완결</span>
+        <span class="adr">ADR-0004 · 0014</span>
+      </div>
+    </div>
+
+    <!-- 난제 5: 듀얼 라우팅 비용 95% 절감 -->
+    <div class="slim-card slim-card--wide">
+      <div class="slim-card__head">
+        <span class="slim-num">05</span>
+        <strong class="slim-title">2-Tier 듀얼 라우팅</strong>
+        <span class="badge badge--ok">비용 95% 절감</span>
+      </div>
+      <div class="slim-rows">
+        <div class="slim-row slim-row--problem">
+          <span class="slim-tag">❌ 병목</span>
+          <span class="slim-desc">고비용 모델 단독 직렬 호출 시 API 비용 폭증 ($54/일) 및 TPS 급감</span>
+        </div>
+        <div class="slim-row slim-row--solution">
+          <span class="slim-tag">✅ 해결</span>
+          <span class="slim-desc">Tool 선택은 초경량 고속 모델로, 심층 종합만 고성능 모델로 선별 라우팅</span>
+        </div>
+      </div>
+      <div class="slim-card__foot">
+        <span class="slim-metric">호출당 <b>$0.0009</b> (월 10만 원) · 동시 처리량 <b>4.2배 확장</b></span>
+        <span class="adr">ADR-0059 · 0063</span>
+      </div>
     </div>
   </div>
 
@@ -3945,6 +4042,7 @@ stepper('#userflow', '#flowtext', [
     if (!sidebar) return;
     const shouldOpen = on !== undefined ? on : !sidebar.classList.contains('open');
     sidebar.classList.toggle('open', shouldOpen);
+    document.body.classList.toggle('sidebar-pushed', shouldOpen);
     if (btnSidebarToggle) btnSidebarToggle.setAttribute('aria-expanded', String(shouldOpen));
     if (shouldOpen) updateSlide(curSlide);
   };
