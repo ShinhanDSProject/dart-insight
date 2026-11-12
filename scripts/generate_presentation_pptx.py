@@ -468,57 +468,77 @@ def build_presentation():
     # SLIDE 03: 추진 배경: 65만 자 공시의 압박과 LLM 환각
     s03 = prs.slides.add_slide(blank_layout)
     set_slide_background(s03, is_dark=False)
-    add_zone_a_header(s03, "02 · 추진 배경 및 문제의식", "최대 65만 자, 그리고 믿기 어려운 AI 요약")
+    add_zone_a_header(s03, "02 · 추진 배경 및 문제의식", "최대 65만 자의 압박, 그리고 믿기 어려운 AI 요약")
     add_zone_b_glossary(s03, "MD&A", "경영진이 숫자의 원인을 해설해 놓은 공식 성적표 해설서")
-    # Zone C: 1:1 Split (수작업의 고통 vs 시중 LLM의 한계)
+
+    pinocchio_img_path = os.path.join(project_root, "frontend", "public", "easter", "pinocchio-hallucination.jpg")
+
+    # Zone C: 1:1 Split (좌: 65만 자 수작업 대조 vs 우: AI 환각 피노키오)
+    # [좌측 카드]: 한계 1 - 65만 자 수작업 대조
     draw_card(s03, Inches(0.8), Inches(1.65), Inches(5.65), Inches(4.85), LIGHT_DANGER_TINT, LIGHT_DANGER, 1.5)
-    tb_l = s03.shapes.add_textbox(Inches(1.2), Inches(1.9), Inches(4.85), Inches(4.3))
+    tb_l = s03.shapes.add_textbox(Inches(1.1), Inches(1.85), Inches(5.05), Inches(4.4))
     tf_l = tb_l.text_frame
     tf_l.word_wrap = True
-    p = tf_l.paragraphs[0]
-    p.text = "❌ 문제 1. 300페이지 수작업 대조의 고통"
-    p.font.size = Pt(17); p.font.bold = True; p.font.color.rgb = LIGHT_DANGER
-    p.space_after = Pt(14)
-    items_l = [
-        ("📜 30~65만 자 분량", "정기보고서 한 권이 소설책 4권 분량에 달함"),
-        ("📚 두 권을 나란히", "작년·올해 보고서를 띄우고 Ctrl+F 반복"),
-        ("👁️ 인적 오류 유발", "집중력 저하로 주석 속 핵심 수치 변경 누락"),
-        ("📉 리서치 적시성 상실", "분기 마감 시 수백 개 기업의 변화 파악 지연")
-    ]
-    for h, d in items_l:
-        p1 = tf_l.add_paragraph(); p1.text = h; p1.font.bold = True; p1.font.size = Pt(13); p1.font.color.rgb = LIGHT_TEXT_PRIMARY
-        p2 = tf_l.add_paragraph(); p2.text = d; p2.font.size = Pt(11); p2.font.color.rgb = LIGHT_TEXT_MUTED; p2.space_after = Pt(8)
 
+    p_l0 = tf_l.paragraphs[0]
+    p_l0.text = "❌ 한계 ① 너무 길다 (수작업의 고통)"
+    p_l0.font.name = FONT_HEADING; p_l0.font.size = Pt(15); p_l0.font.bold = True; p_l0.font.color.rgb = LIGHT_DANGER
+    p_l0.space_after = Pt(20)
+
+    p_l1 = tf_l.add_paragraph(); p_l1.alignment = PP_ALIGN.CENTER
+    p_l1.text = "📕 📗 📘 📙"
+    p_l1.font.size = Pt(28); p_l1.space_after = Pt(6)
+
+    p_l2 = tf_l.add_paragraph(); p_l2.alignment = PP_ALIGN.CENTER
+    p_l2.text = "650,000자"
+    p_l2.font.name = FONT_HEADING; p_l2.font.size = Pt(40); p_l2.font.bold = True; p_l2.font.color.rgb = LIGHT_DANGER
+    p_l2.space_after = Pt(4)
+
+    p_l3 = tf_l.add_paragraph(); p_l3.alignment = PP_ALIGN.CENTER
+    p_l3.text = "보고서 한 권 분량 (소설책 4권)"
+    p_l3.font.name = FONT_BODY; p_l3.font.size = Pt(13); p_l3.font.bold = True; p_l3.font.color.rgb = LIGHT_TEXT_PRIMARY
+    p_l3.space_after = Pt(18)
+
+    p_l4 = tf_l.add_paragraph(); p_l4.alignment = PP_ALIGN.CENTER
+    p_l4.text = "작년과 올해 두 권을 나란히 띄우고 사람이 일일이 비교\n집중력 저하로 주석 속 핵심 수치 변경 누락 위험"
+    p_l4.font.name = FONT_BODY; p_l4.font.size = Pt(11.5); p_l4.font.color.rgb = LIGHT_TEXT_MUTED
+
+    # [우측 카드]: 한계 2 - AI 환각 (피노키오)
     draw_card(s03, Inches(6.88), Inches(1.65), Inches(5.65), Inches(4.85), LIGHT_ATTENTION_TINT, LIGHT_ATTENTION, 1.5)
-    tb_r = s03.shapes.add_textbox(Inches(7.28), Inches(1.9), Inches(4.85), Inches(4.3))
-    tf_r = tb_r.text_frame
-    tf_r.word_wrap = True
-    p = tf_r.paragraphs[0]
-    p.text = "⚠️ 문제 2. 시중 생성형 AI의 치명적 환각"
-    p.font.size = Pt(17); p.font.bold = True; p.font.color.rgb = LIGHT_ATTENTION
-    p.space_after = Pt(14)
-    items_r = [
-        ("🤥 없는 숫자 날조", "영업이익 증감액이나 백분율을 멋대로 계산·왜곡"),
-        ("❓ 출처 확인 불능", "어느 페이지, 어느 문단에서 나온 수치인지 알 수 없음"),
-        ("⚖️ 자본시장법 위반", "'호재', '저평가' 등 주관적 매수/매도 권유 노출"),
-        ("💸 금전적 손실 위험", "잘못된 데이터로 투자 및 여신 의사결정 파실 유발")
-    ]
-    for h, d in items_r:
-        p1 = tf_r.add_paragraph(); p1.text = h; p1.font.bold = True; p1.font.size = Pt(13); p1.font.color.rgb = LIGHT_TEXT_PRIMARY
-        p2 = tf_r.add_paragraph(); p2.text = d; p2.font.size = Pt(11); p2.font.color.rgb = LIGHT_TEXT_MUTED; p2.space_after = Pt(8)
-    add_zone_d_proof_bar(s03, 3, TOTAL_SLIDES, ["ADR-0008", "ADR-0015"], ["보고서 한 권 30~65만 자", "두 권을 사람이 비교", "숫자는 코드가 계산"])
+    tb_r = s03.shapes.add_textbox(Inches(7.18), Inches(1.85), Inches(5.05), Inches(0.45))
+    tf_r = tb_r.text_frame; tf_r.word_wrap = True
+    p_r0 = tf_r.paragraphs[0]
+    p_r0.text = "⚠️ 한계 ② 믿기 어렵다 (AI 환각의 위험)"
+    p_r0.font.name = FONT_HEADING; p_r0.font.size = Pt(15); p_r0.font.bold = True; p_r0.font.color.rgb = LIGHT_ATTENTION
+
+    # 피노키오 이미지 삽입 (카드 중앙 정렬)
+    if os.path.exists(pinocchio_img_path):
+        s03.shapes.add_picture(pinocchio_img_path, Inches(8.3), Inches(2.4), Inches(2.8), Inches(2.19))
+
+    tb_r_desc = s03.shapes.add_textbox(Inches(7.18), Inches(4.75), Inches(5.05), Inches(1.5))
+    tf_r_desc = tb_r_desc.text_frame; tf_r_desc.word_wrap = True
+
+    p_r1 = tf_r_desc.paragraphs[0]; p_r1.alignment = PP_ALIGN.CENTER
+    p_r1.text = "AI 환각 (Hallucination)"
+    p_r1.font.name = FONT_HEADING; p_r1.font.size = Pt(15); p_r1.font.bold = True; p_r1.font.color.rgb = LIGHT_ATTENTION
+    p_r1.space_after = Pt(4)
+
+    p_r2 = tf_r_desc.add_paragraph(); p_r2.alignment = PP_ALIGN.CENTER
+    p_r2.text = "피노키오의 긴 코처럼 그럴듯하지만 출처가 없는 거짓말\n영업이익 증감 날조 및 근거 없는 가치판단 위험"
+    p_r2.font.name = FONT_BODY; p_r2.font.size = Pt(11.5); p_r2.font.color.rgb = LIGHT_TEXT_MUTED
+
+    add_zone_d_proof_bar(s03, 3, TOTAL_SLIDES, ["ADR 67개", "신뢰 기반 AI", "100% 원문 위치"], ["보고서 한 권 최대 65만 자", "두 권을 사람이 비교", "숫자는 코드가 계산"])
     set_speaker_notes(s03, """[여는 질문]
 "사업보고서 한 권은 몇 글자일까요? 최대 65만 자, 소설책 네 권입니다."
 
 [쉬운 설명]
-"작년 것과 올해 것을 비교하려면 사람이 두 권을 넘겨 가며 찾아야 합니다. AI에게 맡기면 빠르지만, 그 숫자가 어디서 나왔는지 확인할 수 없습니다."
+"작년 것과 올해 것을 비교하려면 사람이 두 권을 넘겨 가며 찾아야 합니다. 오른쪽의 피노키오를 보십시오. AI에게 요약을 맡기면 3초 만에 그럴듯한 답변을 내놓지만, 코가 길어지는 피노키오처럼 없는 숫자를 날조하고 출처를 밝히지 못합니다. 금융에서 거짓말은 치명적입니다."
 
 [화면 가리키기]
-"왼쪽 카드(분량)와 오른쪽 카드(AI 요약의 출처 문제)를 차례로 가리킵니다."
+"왼쪽의 65만 자 수작업 대조의 한계와 오른쪽의 피노키오 AI 환각을 차례로 가리킵니다."
 
 [마무리 한마디]
-"그래서 세 가지를 지켰습니다. 자동 비교, 숫자는 코드가 계산, 문장마다 원문 위치."
-""")
+"그래서 DART Insight는 두 가지 철칙을 세웠습니다. 숫자는 100% 코드가 계산하고, 문장은 반드시 공시 원문 위치를 직결합니다!\"""")
 
     # Userflow Stepper 6 Steps (Slides 04 ~ 09)
     stepper_names = ["01 탐색", "02 개요", "03 선택", "04 분석", "05 결과", "06 확장"]
