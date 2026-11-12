@@ -1979,11 +1979,14 @@ body {
 <div class="tabsbar gut"><div class="container">
   <nav class="tabs" id="tabs" aria-label="프레젠테이션 목차">
     <a href="#hero">비전 · 개요</a>
-    <a href="#glossary">공시 용어 사전</a>
+    <a href="#wealth">왜 재테크인가?</a>
+    <a href="#glossary">전자공시란?</a>
     <a href="#why">추진 배경</a>
     <a href="#value">핵심 가치</a>
-    <a href="#solution">문제 해결 증명</a>
-    <a href="#activity">공시 분석</a>
+    <a href="#solution-perf">성능·비용 최적화</a>
+    <a href="#solution-matrix">5대 난제 해결</a>
+    <a href="#activity-financial">실적 대조</a>
+    <a href="#activity-flow">공시분석·원문점프</a>
     <a href="#methods">분석 기준</a>
     <a href="#impact">사용자 임팩트</a>
     <a href="#stack">기술 스택</a>
@@ -2239,64 +2242,13 @@ body {
 <section id="why" data-title="추진 배경 및 문제 의식">
   <div class="sechead-4zone">
     <div class="zone-a">
-      <p class="kicker">01 · Why We Built This</p>
-      <h2>왜 이 프로젝트를 시작하게 되었는가?</h2>
+      <p class="kicker">01 · Background & Pain Points</p>
+      <h2>소설책 4권 분량의 공시를 둘러싼 두 가지 한계</h2>
       <p>금융 의사결정의 핵심인 전자공시(DART)는 연간 수십만 건 쏟아지지만, 실무자와 투자자가 겪는 현실적인 장벽은 여전히 높습니다.</p>
     </div>
     <div class="zone-b-badge">
       <span class="zone-b-term">🔍 인플레이션 & 경제적 해자</span>
       <span class="zone-b-def">자산 가치 하락 방어 & 우량 기업 팩트 분석 기반 재테크</span>
-    </div>
-  </div>
-
-  <!-- [허성범 AI학개론 모티브] 인플레이션 시대의 현명한 재테크 & 기업 분석 스토리보드 -->
-  <div class="wealth-tech-banner">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-      <span class="label" style="color:var(--color-accent); font-weight:800; font-size:12px;">📈 인플레이션 방어 & 복리의 마법을 위한 투자 필수 방정식</span>
-      <span class="badge badge--ok" style="font-size:11px;">현명한 재테크의 출발점</span>
-    </div>
-    <div class="wealth-steps-grid">
-      <!-- Step 1: 왜 재테크인가? -->
-      <div class="w-step">
-        <div class="w-step__head">
-          <span class="w-step__icon">💸</span>
-          <div>
-            <h4 class="w-step__title">1. 인플레이션 시대 생존</h4>
-            <span class="w-step__sub">가만히 있으면 돈의 가치는 하락</span>
-          </div>
-        </div>
-        <p class="w-step__desc">
-          월급만으로는 자산을 지킬 수 없는 고물가 시대. <strong>복리의 마법</strong>을 누리고 실질 자산을 지키려면 <strong>우량 기업에 대한 현명한 투자</strong>가 선택이 아닌 필수입니다.
-        </p>
-      </div>
-
-      <!-- Step 2: 왜 기존 투자는 실패하는가? -->
-      <div class="w-step w-step--danger">
-        <div class="w-step__head">
-          <span class="w-step__icon">⚠️</span>
-          <div>
-            <h4 class="w-step__title" style="color:var(--color-critical)">2. 찌라시 투자 & AI 환각</h4>
-            <span class="w-step__sub">소문 의존과 가짜 숫자의 덫</span>
-          </div>
-        </div>
-        <p class="w-step__desc">
-          워런 버핏의 조언처럼 기업의 실적을 봐야 하지만, <strong>300쪽 공시는 너무 길고</strong> 시중 AI는 <strong>없는 숫자를 지어내는 환각</strong>으로 치명적 투자 손실을 부릅니다.
-        </p>
-      </div>
-
-      <!-- Step 3: 왜 DART Insight인가? -->
-      <div class="w-step w-step--solution">
-        <div class="w-step__head">
-          <span class="w-step__icon">🛡️</span>
-          <div>
-            <h4 class="w-step__title" style="color:var(--color-increase)">3. DART Insight 팩트 비서</h4>
-            <span class="w-step__sub">5초 팩트 대조 & 무환각 분석</span>
-          </div>
-        </div>
-        <p class="w-step__desc">
-          <strong>100% 국가 공인 전자공시 원문 직결</strong>과 <strong>Java 100% 수치 연산</strong>으로, 누구나 5초 만에 신뢰할 수 있는 공시 분석 리포트를 얻고 안전하게 재테크할 수 있습니다.
-        </p>
-      </div>
     </div>
   </div>
 
@@ -2461,9 +2413,19 @@ body {
 </section>
 
 <!-- 3. 문제 해결의 증명 -->
-<section id="solution" data-title="문제 해결의 증명">
+<section id="solution-perf" data-title="성능·비용 최적화">
   <div class="sechead-4zone">
     <div class="zone-a">
+      <p class="kicker">03-A · Performance & Cost</p>
+      <h2>80MB 고정 StAX 스트리밍 & API 비용 95% 절감</h2>
+      <p>50MB 대용량 공시의 O(N) 메모리 폭발을 방어하고, 2-Tier 듀얼 라우팅으로 엔터프라이즈 운영 효율을 달성했습니다.</p>
+    </div>
+    <div class="zone-b-badge">
+      <span class="zone-b-term">🔍 StAX 파서 & 2-Tier 라우팅</span>
+      <span class="zone-b-def">문서를 흘려보내는 수도관 & 비용 95% 절감 듀얼 모델</span>
+    </div>
+  </div>
+<div class="zone-a">
       <p class="kicker">03 · Problem-Solution Fit</p>
       <h2>문제를 어떻게 명확하게 해결했는가?</h2>
       <p>가설에 그치지 않고, 수작업 대비 생산성 혁신과 5대 엔지니어링 난제 극복으로 문제를 완벽히 해결했습니다.</p>
@@ -2575,7 +2537,36 @@ body {
     </div>
   </div>
 
-  <!-- 5대 핵심 기술적 난제 해결 요약 (간결한 3줄 대비 카드) -->
+  <!-- Zone D: Bottom Proof Bar -->
+  <div class="zone-d-proof">
+    <span class="zone-d-chip">파싱 메모리 <b>80MB 고정(O(1))</b></span>
+    <span class="zone-d-chip">API 비용 절감 <b>95%</b></span>
+    <span class="zone-d-chip">동시 처리량 <b>4.2배 확장</b></span>
+  </div>
+
+  <div class="demo-journey-box">
+    <p class="demo-desc">
+      <span>⚙️</span>
+      <span><strong>50MB 대용량 공시 문서를 80MB 고정 메모리로 파싱하는 엔진</strong>을 직접 확인하세요.</span>
+    </p>
+    <a href="/compare" class="demo-journey-btn" target="_blank">⚙️ 고성능 분석 엔진 실행 ➔</a>
+  </div>
+</section>
+
+<section id="solution-matrix" data-title="5대 난제 해결">
+  <div class="sechead-4zone">
+    <div class="zone-a">
+      <p class="kicker">03-B · Engineering Solutions</p>
+      <h2>5대 핵심 기술적 난제 해결 요약</h2>
+      <p>컴퓨터공학적 병목을 아키텍처 혁신으로 극복하고, 정량 검증 지표로 무결성을 입증했습니다.</p>
+    </div>
+    <div class="zone-b-badge">
+      <span class="zone-b-term">🔍 단방향 FSM & 2-gram BM25</span>
+      <span class="zone-b-def">역주행 불가능 일방통행길 & 45ms 근거 탐지기</span>
+    </div>
+  </div>
+
+<!-- 5대 핵심 기술적 난제 해결 요약 (간결한 3줄 대비 카드) -->
   <div class="subhead" style="margin-top:32px">
     <div>
       <span class="label">Engineering Solutions</span>
@@ -2703,81 +2694,31 @@ body {
 
   <!-- Zone D: Bottom Proof Bar -->
   <div class="zone-d-proof">
-    <span class="zone-d-chip">파싱 메모리 <b>80MB 고정(O(1))</b></span>
-    <span class="zone-d-chip">BM25 검색 지연 <b>45ms</b></span>
-    <span class="zone-d-chip">API 비용 절감 <b>95%</b></span>
+    <span class="zone-d-chip">설계 판결문 <b>67개 ADR 채택</b></span>
+    <span class="zone-d-chip">단방향 FSM 무결성 <b>100%</b></span>
+    <span class="zone-d-chip">인메모리 검색 지연 <b>&lt; 45ms</b></span>
   </div>
 
   <div class="demo-journey-box">
     <p class="demo-desc">
-      <span>⚙️</span>
-      <span><strong>50MB 대용량 공시 문서를 80MB 고정 메모리로 파싱하는 엔진</strong>을 직접 확인하세요.</span>
+      <span>🛡️</span>
+      <span><strong>FSM 단방향 상태 전이와 분산 추적 무결성</strong>을 실제 시스템에서 확인하세요.</span>
     </p>
-    <a href="/compare" class="demo-journey-btn" target="_blank">⚙️ 고성능 분석 엔진 실행 ➔</a>
+    <a href="/compare" class="demo-journey-btn" target="_blank">🛡️ 상태 무결성 엔진 체험 ➔</a>
   </div>
 </section>
 
 <!-- 4. 공시 분석: 두 보고서 사이에 한 일과 앞으로의 영향 -->
-<section id="activity" data-title="공시 분석">
+<section id="activity-financial" data-title="실제 실적 대조">
   <div class="sechead-4zone">
     <div class="zone-a">
-      <p class="kicker">04 · Between the Reports</p>
-      <h2>두 보고서 사이에 이 회사는 무엇을 했고, 앞으로 어떤 영향이 있는가?</h2>
-      <p>바뀐 문장을 모두 늘어놓지 않습니다. 두 정기보고서와 그 사이의 수시공시에서 의미 있는 활동만 골라, 원문 근거와 함께 '앞으로의 영향'까지 한 화면에 보여 줍니다.</p>
+      <p class="kicker">04-A · Financial Evidence</p>
+      <h2>삼성전자 2개년 주요 실적 비교 (2023 vs 2024)</h2>
+      <p>코드가 계산한 재무 증감 수치와 100% 원문 블록 ID를 직결해 실적 변화를 시각화합니다.</p>
     </div>
     <div class="zone-b-badge">
-      <span class="zone-b-term">🔍 이벤트 신호 & 영향 경로</span>
-      <span class="zone-b-def">코드 기준표 기반 팩트 신호 & 3대 관점 미래 영향</span>
-    </div>
-  </div>
-  <div class="grid g4">
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <span class="label">Step 1 · 자동 수집</span>
-        <span class="badge badge--ok">StAX O(1)</span>
-      </div>
-      <h3 style="margin-top:6px">두 보고서 + 수시공시</h3>
-      <div class="flow-pill-list" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
-        <span class="flow-pill">📊 <strong>정기보고서 2건</strong> 재무 증감 산출</span>
-        <span class="flow-pill">⚡ <strong>수시공시 80건</strong> (주요사항·소송) 병합</span>
-        <span class="flow-pill" style="color:var(--color-accent); font-weight:700">🔗 100% 원문 블록 ID 즉시 직결</span>
-      </div>
-    </div>
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <span class="label">Step 2 · 팩트 대조</span>
-        <span class="badge">45ms BM25</span>
-      </div>
-      <h3 style="margin-top:6px">1문단 요약 & 타임라인</h3>
-      <div class="flow-pill-list" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
-        <span class="flow-pill">📝 <strong>실적·투자·주주·위험</strong> 1문단 요약</span>
-        <span class="flow-pill">⏱️ <strong>날짜순 사건 타임라인</strong> 자동 생성</span>
-        <span class="flow-pill" style="color:var(--color-primary); font-weight:700">🔍 문장마다 공시 클릭 앵커 탑재</span>
-      </div>
-    </div>
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <span class="label">Step 3 · 맞춤 필터</span>
-        <span class="badge">3대 관점</span>
-      </div>
-      <h3 style="margin-top:6px">목적별 골라보기</h3>
-      <div class="flow-pill-list" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
-        <span class="flow-pill">💰 <strong>자금·실적 관점</strong> (투자자용)</span>
-        <span class="flow-pill">🚀 <strong>사업 방향 관점</strong> (취준생·리서치)</span>
-        <span class="flow-pill" style="color:var(--color-increase); font-weight:700">🛡️ <strong>거래·리스크 관점</strong> (기업 제휴)</span>
-      </div>
-    </div>
-    <div class="card card--glow">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <span class="label">Step 4 · 미래 예측</span>
-        <span class="badge badge--ok">코드 판정</span>
-      </div>
-      <h3 style="margin-top:6px">사실 vs 전망 분리</h3>
-      <div class="flow-pill-list" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
-        <span class="flow-pill">🏢 <strong>회사 공시 사실</strong> 100% 팩트 고정</span>
-        <span class="flow-pill">🤖 <strong>조건부 AI 전망</strong> (출처 필수 워터마크)</span>
-        <span class="flow-pill" style="color:var(--color-accent); font-weight:800">🚦 <strong>긍정·주의 신호</strong> 코드 기준표 판정</span>
-      </div>
+      <span class="zone-b-term">🔍 연결재무제표 & 증감률</span>
+      <span class="zone-b-def">자회사 합산 종합 성적표 & 13가지 사유 코드화</span>
     </div>
   </div>
 
@@ -2863,8 +2804,87 @@ body {
     </div>
   </div>
 
-  <div class="subhead">
-    <h3>실제 결과 · 삼성전자 반기보고서 2025.06 → 2026.06</h3>
+  <!-- Zone D: Bottom Proof Bar -->
+  <div class="zone-d-proof">
+    <span class="zone-d-chip">매출액 <b>▲ +16.2%</b> (+42.0조)</span>
+    <span class="zone-d-chip">영업이익 <b>▲ +403.8% 폭증</b></span>
+    <span class="zone-d-chip">원문 블록 직결 <b>100%</b></span>
+  </div>
+
+  <div class="demo-journey-box">
+    <p class="demo-desc">
+      <span>📊</span>
+      <span><strong>삼성전자 2개년 실적과 MD&A 원문 앵커 점프</strong>를 실제 분석 결과 화면에서 체험하세요.</span>
+    </p>
+    <a href="/analysis/demo" class="demo-journey-btn" target="_blank">📊 삼성전자 실적 분석 체험 ➔</a>
+  </div>
+</section>
+
+<section id="activity-flow" data-title="공시분석·원문점프">
+  <div class="sechead-4zone">
+    <div class="zone-a">
+      <p class="kicker">04-B · Userflow & Fact Grounding</p>
+      <h2>W-01 탐색부터 W-03 원문 직결 뷰어 점프까지</h2>
+      <p>두 정기보고서와 그 사이의 수시공시 80건에서 의미 있는 활동만 골라 원문과 직결합니다.</p>
+    </div>
+    <div class="zone-b-badge">
+      <span class="zone-b-term">🔍 원문 앵커(Fact Grounding)</span>
+      <span class="zone-b-def">문장마다 #접수번호#B블록번호로 1클릭 원문 형광펜 점프</span>
+    </div>
+  </div>
+
+  <!-- 4단계 분석 흐름 카드 -->
+  <div class="grid g4">
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="label">Step 1 · 자동 수집</span>
+        <span class="badge badge--ok">StAX O(1)</span>
+      </div>
+      <h3 style="margin-top:6px">두 보고서 + 수시공시</h3>
+      <div class="flow-pill-list" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
+        <span class="flow-pill">📊 <strong>정기보고서 2건</strong> 재무 증감 산출</span>
+        <span class="flow-pill">⚡ <strong>수시공시 80건</strong> (주요사항·소송) 병합</span>
+        <span class="flow-pill" style="color:var(--color-accent); font-weight:700">🔗 100% 원문 블록 ID 즉시 직결</span>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="label">Step 2 · 팩트 대조</span>
+        <span class="badge">45ms BM25</span>
+      </div>
+      <h3 style="margin-top:6px">1문단 요약 & 타임라인</h3>
+      <div class="flow-pill-list" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
+        <span class="flow-pill">📝 <strong>실적·투자·주주·위험</strong> 1문단 요약</span>
+        <span class="flow-pill">⏱️ <strong>날짜순 사건 타임라인</strong> 자동 생성</span>
+        <span class="flow-pill" style="color:var(--color-primary); font-weight:700">🔍 문장마다 공시 클릭 앵커 탑재</span>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="label">Step 3 · 맞춤 필터</span>
+        <span class="badge">3대 관점</span>
+      </div>
+      <h3 style="margin-top:6px">목적별 골라보기</h3>
+      <div class="flow-pill-list" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
+        <span class="flow-pill">💰 <strong>자금·실적 관점</strong> (투자자용)</span>
+        <span class="flow-pill">🚀 <strong>사업 방향 관점</strong> (취준생·리서치)</span>
+        <span class="flow-pill" style="color:var(--color-increase); font-weight:700">🛡️ <strong>거래·리스크 관점</strong> (기업 제휴)</span>
+      </div>
+    </div>
+    <div class="card card--glow">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="label">Step 4 · 미래 예측</span>
+        <span class="badge badge--ok">코드 판정</span>
+      </div>
+      <h3 style="margin-top:6px">사실 vs 전망 분리</h3>
+      <div class="flow-pill-list" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
+        <span class="flow-pill">🏢 <strong>회사 공시 사실</strong> 100% 팩트 고정</span>
+        <span class="flow-pill">🤖 <strong>조건부 AI 전망</strong> (출처 필수 워터마크)</span>
+        <span class="flow-pill" style="color:var(--color-accent); font-weight:800">🚦 <strong>긍정·주의 신호</strong> 코드 기준표 판정</span>
+      </div>
+
+  <!-- UI 흐름 스크린샷 & 원문 점프 다이어그램 -->
+  <div class="subhead"><h3>실제 결과 · 삼성전자 반기보고서 2025.06 → 2026.06</h3>
     <span class="adr">ADR-0065 · 0067 · 0068</span>
   </div>
   <div class="grid shots">
@@ -2888,17 +2908,17 @@ body {
 
   <!-- Zone D: Bottom Proof Bar -->
   <div class="zone-d-proof">
-    <span class="zone-d-chip">최근 수시공시 <b>80건 매칭</b></span>
-    <span class="zone-d-chip">신호 판정 <b>100% 코드 기준표</b></span>
+    <span class="zone-d-chip">수시공시 연계 <b>최근 80건 병합</b></span>
+    <span class="zone-d-chip">원문 점프 뷰어 <b>지연 0.1초 미만</b></span>
     <span class="zone-d-chip">사실 / 전망 <b>완전 분리</b></span>
   </div>
 
   <div class="demo-journey-box">
     <p class="demo-desc">
-      <span>📊</span>
-      <span><strong>삼성전자 최근 24건 수시공시 타임라인과 코드 기준표 신호(긍정/주의/보류)</strong>를 화면에서 직접 확인하세요.</span>
+      <span>📑</span>
+      <span><strong>W-03 요약 화면에서 전자공시 원문 뷰어로 즉시 점프하는 앵커 링크</strong>를 직접 클릭해 보세요.</span>
     </p>
-    <a href="/companies/00126380" class="demo-journey-btn" target="_blank">📊 삼성전자 공시 타임라인 뷰어 ➔</a>
+    <a href="/analysis/demo" class="demo-journey-btn" target="_blank">📑 W-03 원문 점프 뷰어 체험 ➔</a>
   </div>
 </section>
 
@@ -4088,7 +4108,7 @@ stepper('#userflow', '#flowtext', [
 "여러분, 가만히 숨만 쉬어도 통장 잔고의 실질 가치가 깎여나가는 고물가·인플레이션 시대, 여러분은 내 자산을 지키기 위해 어떤 재테크를 하고 계십니까?"
 
 [1초 용어 통역]
-"슬라이드 우측 상단 돋보기를 보시죠. '공시(DART)'란 금융감독원에 제출하는 기업의 공식 생활기록부입니다. 복리의 마법을 현실로 만들기 위해선 소문이 아닌 이 공시 속 진짜 실적을 읽어야 합니다."
+"슬라이드 우측 상단 돋보기를 보시죠. '공시(DART)'란 금융감독원에 제출하는 기업의 공식 생활기록부입니다. 복리의 마법을 누리기 위해선 소문이 아닌 이 공시 속 진짜 기업 실적과 해자를 읽어야 합니다."
 
 [시각 요소 지시어]
 "화면 중앙의 4대 핵심 지표 카드를 보십시오. DART Insight는 소설책 4권 분량의 300페이지 공시 대조를 단 5초 만에, 100% 원문 근거와 환각 0%로 완벽히 끝내주는 스마트 재테크 AI 비서입니다."
@@ -4099,87 +4119,114 @@ stepper('#userflow', '#flowtext', [
     {
       title: '00-A · 왜 재테크인가? (인플레이션 방어 & 복리의 마법)',
       text: `[도발적 질문 Hook]
-"여러분, 가만히 숨만 쉬어도 통장 잔고의 실질 가치가 깎여나가는 인플레이션 시대, 여러분은 내 자산을 지키기 위해 어떤 재테크를 하고 계십니까?"
+"월급은 그대로인데 물가는 치솟는 인플레이션 시대, 왜 워런 버핏은 강력한 경제적 해자를 가진 기업에 투자해야만 자산을 지킬 수 있다고 했을까요?"
 
 [1초 용어 통역]
-"우측 상단 돋보기를 보시죠. '인플레이션과 복리의 마법'이란, 화폐 가치 하락을 방어하고 우량 기업 투자를 통해 장기적으로 자산을 불려가는 생존 필수 공식입니다."
+"우측 상단 돋보기를 보시죠. '인플레이션과 복리의 마법'이란 화폐 가치 하락을 방어하고 우량 기업 투자를 통해 장기적으로 자산을 불려가는 생존 공식입니다."
 
 [시각 요소 지시어]
-"화면의 스마트 재테크 3단계 로드맵을 보십시오. 300페이지 공시를 못 읽어 소문이나 찌라시에 기대다 손실을 보거나, 챗GPT의 수치 환각에 속는 비극을 막고 오직 공인 팩트로 안전하게 투자해야 합니다."
+"화면의 스마트 재테크 3단계 로드맵을 보십시오. 300쪽 공시를 못 읽어 소문에 기대다 손실을 보거나 챗GPT의 가짜 숫자에 속는 비극을 막고, 100% 공인 팩트로 안전하게 투자해야 합니다."
 
 [숫자 타격감 마무리]
 "국가 공인 팩트 데이터 100% 직결과 수치 환각 0.00%로 내 소중한 자산을 안전하게 지켜주는 최적의 투자 비서입니다!"`
     },
-
     {
-      title: '00 · 전자공시란? (기업의 공식 종합 생활기록부)',
+      title: '00-B · 전자공시란? (기업의 공식 종합 생활기록부)',
       text: `[도발적 질문 Hook]
-"\'전자공시\'라는 단어, 자주 듣기는 하지만 정확히 무슨 뜻이고 일반 뉴스와 무엇이 다를까요?"
+"'전자공시'라는 단어, 자주 듣기는 하지만 정확히 무슨 뜻이고 일반 뉴스와 무엇이 다를까요?"
 
 [1초 용어 통역]
-"우측 상단 돋보기를 보시죠. \'전자공시(DART)\'란 기업이 법에 따라 실적과 사건을 금융감독원에 투명하게 공개하는 공식 종합 생활기록부입니다."
+"우측 상단 돋보기를 보시죠. 전자공시란 기업이 법에 따라 실적과 사건을 금융감독원에 투명하게 공개하는 공식 종합 생활기록부입니다."
 
 [시각 요소 지시어]
-"화면 좌우의 1:1 대비를 보십시오. 인터넷 뉴스와 풍문은 주관적 해석과 왜곡에 취약하지만, 전자공시는 허위 기재 시 형사 처벌을 받는 국가 공인 100% 팩트 데이터입니다."
+"화면 좌우의 1:1 대비를 보십시오. 인터넷 뉴스와 풍문은 주관적 왜곡에 취약하지만, 전자공시는 허위 기재 시 형사 처벌을 받는 국가 공인 100% 팩트 데이터입니다."
 
 [숫자 타격감 마무리]
 "DART Insight는 이 공인 팩트 원문과 1초 만에 직결되어, 수치 환각 0.00%의 절대적 신뢰성을 달성했습니다!"`
     },
     {
-      title: '03 · 추진 배경 (인플레이션 시대 재테크와 300쪽 공시의 벽)',
+      title: '01 · 추진 배경 (소설책 4권 공시 난독 & 일반 AI 환각)',
       text: `[도발적 질문 Hook]
-"성공적인 재테크를 위해 기업을 제대로 분석하고 투자하려는데, 300페이지짜리 공시 문서를 직접 다 읽을 수 있는 사람이 몇 명이나 되겠습니까?"
+"성공적인 재테크를 위해 기업을 제대로 분석하려는데, 소설책 4권 분량인 300~600페이지를 직접 다 읽을 수 있는 분이 계십니까?"
 
 [1초 용어 통역]
 "우측 상단 돋보기를 보시죠. 'MD&A'는 경영진이 쓴 성적표 해설서이고, '할루시네이션'은 시중 AI가 숫자를 지어내는 거짓말입니다."
 
 [시각 요소 지시어]
-"화면 상단의 재테크 3단계 방정식과 하단의 1:1 대비를 보십시오. 공시를 못 읽어 인터넷 찌라시나 뉴스에 기대어 묻지마 투자를 하거나, 챗GPT의 가짜 숫자를 믿다가 피 같은 투자금을 날리는 비극을 해결해야 했습니다."
+"화면 좌우의 1:1 대비 카드를 보십시오. 4시간 동안 Ctrl+F를 반복하는 극심한 피로감과, 챗GPT에 물어봤을 때 가짜 재무 숫자를 지어내는 위험이라는 두 가지 벽에 부딪혀 있었습니다."
 
 [숫자 타격감 마무리]
-"내 소중한 자산이 걸린 투자입니다. 수치 환각 0.00%와 5초 팩트 대조로 투자 리스크를 원천 차단했습니다!"`
+"금융에서 1원의 오차는 수억 원의 손실입니다. 4시간 소모와 수치 환각을 기술적으로 영구 해결했습니다!"`
     },
     {
-      title: '03 · 핵심 가치 제안 (초고속성 · 100% 원문 직결 점프)',
+      title: '02 · 핵심 가치 제안 (초고속성 · 100% 원문 직결 점프)',
       text: `[도발적 질문 Hook]
 "AI가 요약한 문장을 보면서 '이게 진짜 보고서 어디에 적혀 있지?' 의심해 보신 적 없으십니까?"
 
 [1초 용어 통역]
-"우측 상단 돋보기를 보시죠. '연결재무제표'는 자회사 실적까지 합친 성적표이고, '컴플라이언스'는 투자 권유를 막는 안전 차단막입니다."
+"우측 상단 돋보기를 보시죠. '연결재무제표'는 자회사 실적까지 합친 성적표이고, '컴플라이언스'는 매수/매도 권유를 막는 안전 차단막입니다."
 
 [시각 요소 지시어]
-"화면 가운데 눈에 띄는 화살표와 W-03 원문 점프 카드를 보십시오! 좌측 요약문의 '#접수번호#B042'를 클릭하면, 화살표를 따라 우측 DART 원문 뷰어로 1초 만에 형광펜 점프합니다."
+"화면 중앙의 3대 가치 카드를 보십시오. 4시간을 5초로 줄이는 초고속성, 모든 문장에 원문 블록 번호를 박아 넣는 100% 직결성, 그리고 투명한 가치중립성입니다."
 
 [숫자 타격감 마무리]
-"4시간 대조를 5초로 단축하고 화면 모든 문장의 원문 직결 근거율 100%를 달성했습니다!"`
+"단 5초 만에 확인된 설명만 보여주고 원문으로 즉시 점프하는 가장 투명한 금융 분석 경험입니다!"`
     },
     {
-      title: '04 · 문제 해결의 증명 (5대 엔지니어링 난제 극복)',
+      title: '03-A · 성능 & 비용 최적화 (StAX O(1) & 비용 95% 절감)',
       text: `[도발적 질문 Hook]
-"50MB짜리 거대한 비정형 XML 보고서 수십 개를 서버에 올릴 때 왜 메모리 폭발이 일어나지 않을까요?"
+"50MB짜리 거대한 공시 문서를 웹 서버에 올리면 왜 서버가 다운될까요?"
 
 [1초 용어 통역]
-"우측 상단 돋보기를 보시죠. 'StAX 파서'는 문서를 한 줄씩 흘려보내는 수도관이고, '2-gram BM25'는 45ms 만에 근거를 찾는 탐지기입니다."
+"우측 상단 돋보기를 보시죠. 'StAX 파서'는 문서를 한 줄씩 흘려보내는 수도관이고, '2-Tier 라우팅'은 가벼운 일과 무거운 일을 나눠 맡기는 분업 시스템입니다."
 
 [시각 요소 지시어]
-"화면의 5대 난제 해결 카드를 보십시오. DOM 방식 대신 StAX 스트리밍으로 메모리를 80MB 상수로 묶었고, 증감 계산은 코드가 100% 전담합니다."
+"화면 상단의 메모리 복잡도 라인 차트와 하단의 비용 비교 바 차트를 보십시오. DOM 파서의 O(N) 메모리 폭발을 80MB 고정으로 막아내고, 단일 고비용 모델 호출 대비 비용을 95% 절감했습니다."
 
 [숫자 타격감 마무리]
-"메모리 80MB 고정, 근거 검색 지연 45ms, 코드 계산 정확도 100%로 환각을 박멸했습니다!"`
+"호출당 비용 단 0.0009달러, 월 10만 원대로 엔터프라이즈급 안정 운영을 완벽히 입증했습니다!"`
     },
     {
-      title: '05 · 공시 분석 (두 보고서 사이 활동과 전후 사실·영향)',
+      title: '03-B · 5대 핵심 기술 난제 해결 요약 (엔지니어링 딥다이브)',
       text: `[도발적 질문 Hook]
-"두 정기보고서 사이에 이 회사가 도대체 무슨 일을 벌였는지 1분 만에 파악할 수 있을까요?"
+"AI 서비스가 단순히 프로토타입에 그치지 않고 실제 운영 단계로 가려면 어떤 컴퓨터공학적 난제를 풀어야 할까요?"
 
 [1초 용어 통역]
-"우측 상단 돋보기를 보시죠. '공시 분석'이란 두 보고서 사이의 수시공시까지 함께 엮어 기업의 진짜 활동을 꿰뚫는 과정입니다."
+"우측 상단 돋보기를 보시죠. '단방향 FSM'은 역주행이 불가능한 일방통행 기차길이고, '2-gram BM25'는 45ms 만에 근거를 찾는 탐지기입니다."
 
 [시각 요소 지시어]
-"화면의 삼성전자 공시 타임라인과 활동 카드를 보십시오. 24건의 주요 공시에서 추출한 사실과 앞으로의 영향이 원문 근거와 함께 정리되어 있습니다."
+"화면의 5대 기술 난제 해결 카드를 보십시오. 비정형 파싱부터 수치 환각 차단, 초경량 검색, 분산 무결성, 듀얼 모델 라우팅까지 컴퓨터공학적 병목을 아키텍처로 정면 돌파했습니다."
 
 [숫자 타격감 마무리]
-"24건의 타임라인을 1개 문단으로 압축하고, 긍정·주의 신호는 AI가 아닌 코드 기준표가 100% 판정합니다!"`
+"67개의 채택된 ADR과 4,405개의 자동화 테스트로 증명된 아키텍처 무결성입니다!"`
+    },
+    {
+      title: '04-A · 실제 실적 대조 (삼성전자 2개년 주요 실적 비교)',
+      text: `[도발적 질문 Hook]
+"삼성전자가 작년에 얼마를 벌었고, 올해 얼마나 늘었는지 1초 만에 확인하실 수 있습니까?"
+
+[1초 용어 통역]
+"우측 상단 돋보기를 보시죠. '증감률'은 코드가 13가지 사유에 맞춰 계산한 100% 팩트 지표입니다."
+
+[시각 요소 지시어]
+"화면 중앙의 인터랙티브 실적 바 차트를 보십시오. 2023년 대비 2024년 매출액은 16.2% 증가한 300조 원, 영업이익은 무려 403.8% 폭증한 33.1조 원을 기록했습니다."
+
+[숫자 타격감 마무리]
+"차트 아래 블록 링크를 누르면 손익계산서와 MD&A 해설 원문으로 0.1초 만에 즉시 점프합니다!"`
+    },
+    {
+      title: '04-B · 공시 분석 & 원문 점프 뷰어 (W-01 ~ W-03)',
+      text: `[도발적 질문 Hook]
+"두 보고서 사이에 이 회사는 도대체 무슨 활동을 했고, 앞으로 어떤 영향이 있을까요?"
+
+[1초 용어 통역]
+"우측 상단 돋보기를 보시죠. '원문 앵커(Fact Grounding)'란 문장마다 접수번호와 블록 ID를 달아두는 100% 공인 영수증입니다."
+
+[시각 요소 지시어]
+"화면의 W-01 탐색부터 W-03 원문 점프 뷰어 흐름을 보십시오. 정기보고서 2건 사이에 발생한 수시공시 80건을 병합해 타임라인을 만들고, 요약 클릭 1초 만에 원문 형광펜 하이라이트로 이동합니다."
+
+[숫자 타격감 마무리]
+"사실과 AI 전망을 엄격히 분리하고, 원문 위치 응답 지연 0.1초 미만을 달성한 완벽한 팩트 뷰어입니다!"`
     },
     {
       title: '05 · 코드 기반 4단계 팩트 검증 기준',
@@ -4196,92 +4243,92 @@ stepper('#userflow', '#flowtext', [
 "증감 계산 100% 백엔드 코드 연산, 6대 컴플라이언스 규칙 검사, 원문 근거 없는 문장은 100% 기각하는 무결점 시스템입니다!"`
     },
     {
-      title: '07 · 사용자 임팩트 & 접근성 (초보부터 전문가까지)',
+      title: '06 · 사용자 임팩트 & 접근성 (초보부터 전문가까지)',
       text: `[도발적 질문 Hook]
-"주식 초보자와 전문 애널리스트가 과연 같은 공시 화면에서 만족할 수 있을까요?"
+"주식 초보자와 전문 분석가가 같은 화면에서 모두 만족할 수 있을까요?"
 
 [1초 용어 통역]
-"우측 상단 돋보기를 보시죠. '수용 기준(AC)'은 기능 합격 채점표이고, 'WCAG'는 약자도 차별 없이 쓰는 웹 접근성 안전벨트입니다."
+"우측 상단 돋보기를 보시죠. 'WCAG'는 장애인과 약자도 차별 없이 쓰는 웹 표준 안전벨트입니다."
 
 [시각 요소 지시어]
-"화면의 페르소나별 임팩트 카드를 보십시오. 초보자에게는 50개 용어 툴팁을, 전문 분석가에게는 '작년 약속 vs 올해 이행' 대조 매트릭스를 제공합니다."
+"화면의 5대 페르소나 Before/After 카드를 보십시오. 초보자에게는 50개 용어 툴팁을, 전문가에게는 5초 엑셀 대조를, 취준생과 기업에는 맞춤형 팩트 필터를 제공합니다."
 
 [숫자 타격감 마무리]
-"용어 카드 50종, 애널리스트 리서치 시간 90% 단축, axe-core 웹 접근성 위반 0건을 달성했습니다!"`
+"리서치 시간 90% 단축과 axe-core 접근성 결함 0건으로 정보의 격차를 완벽히 해소했습니다!"`
     },
     {
-      title: '08 · 기술 스택 & 4-Tier 아키텍처 (엄격한 단방향 경계)',
+      title: '07 · 기술 스택 & 4-Tier 아키텍처 (엄격한 단방향 경계)',
       text: `[도발적 질문 Hook]
-"수많은 개발자가 협업하는 대규모 프로젝트에서 어떻게 스파게티 코드를 원천 차단했을까요?"
+"화면과 서비스, AI 엔진, 외부 에이전트가 뒤엉키지 않고 완벽하게 협업하려면 어떤 구조가 필요할까요?"
 
 [1초 용어 통역]
-"우측 상단 돋보기를 보시죠. '단방향 FSM'은 기차길처럼 역주행과 꼬임이 불가능한 일방통행 제어입니다."
+"우측 상단 돋보기를 보시죠. 'MCP 서버'는 외부 AI가 우리 공시 데이터를 안전하게 읽어가는 전용 플러그인입니다."
 
 [시각 요소 지시어]
-"화면의 4-Tier 기술 스택도를 보십시오. React는 오직 Spring Boot만 바라보며, FastAPI와 MariaDB는 내부망에 안전하게 격리되어 있습니다."
+"화면의 6대 핵심 기술 카드를 보십시오. React 19부터 Spring Boot 4.1, FastAPI, MariaDB, 그리고 독립 MCP 서버까지 단방향 계층 분리 원칙을 철저히 지킵니다."
 
 [숫자 타격감 마무리]
-"ArchUnit 100% 아키텍처 경계 강제, 레이어 침범 0건, X-Trace-Id 전 계층 분산 추적을 완료했습니다!"`
+"ArchUnit 아키텍처 규칙 검증 통과율 100%, 계층 침범 0건의 완벽한 단방향 모듈화입니다!"`
     },
     {
-      title: '09 · 데이터 파이프라인 & 캐시 전략 (일일 한도 방어)',
+      title: '08 · 시스템 아키텍처 다이어그램 & 데이터 파이프라인',
       text: `[도발적 질문 Hook]
-"OpenDART의 일일 호출 한도가 2만 회인데, 수만 명이 동시 접속하면 서비스가 멈출까요?"
+"사용자의 클릭 한 번이 백엔드와 AI 서버, 공시 데이터베이스를 거쳐 화면에 뿌려지기까지 어떤 일이 벌어질까요?"
 
 [1초 용어 통역]
-"우측 상단 돋보기를 보시죠. '공시'란 한번 제출되면 내용이 절대 바뀌지 않는 영구 공증 기록입니다."
+"우측 상단 돋보기를 보시죠. '영구 캐시'란 하루 2만 건의 OpenDART 호출 한도를 방어하는 영구 저장고입니다."
 
 [시각 요소 지시어]
-"화면의 데이터 흐름도를 보십시오. 고유 접수번호를 키로 삼아 영구 캐시하므로 한 번 파싱된 문서는 외부 API를 다시 부르지 않습니다."
+"화면 중앙의 시스템 아키텍처 다이어그램을 보십시오. React에서 Spring Boot를 거쳐 FastAPI로 흐르는 단방향 파이프라인과 X-Trace-Id 분산 추적 체계가 한눈에 보입니다."
 
 [숫자 타격감 마무리]
-"캐시 적중률 99%, 외부 재호출 0건, 캐시 히트 시 응답 지연 0.1초로 완벽히 방어합니다!"`
+"한 번 분석된 보고서는 100% 로컬 캐시되어 지연시간 0.1초 미만으로 응답합니다!"`
     },
     {
-      title: '10 · 핵심 설계 시뮬레이터 (67개 ADR 라이브 검증)',
+      title: '09 · 핵심 설계 시뮬레이터 (67개 ADR 라이브 검증)',
       text: `[도발적 질문 Hook]
-"우리가 내린 수많은 기술적 의사결정이 진짜 올바른 선택이었음을 어떻게 증명할 수 있을까요?"
+"말뿐인 설계가 아니라, 실제로 코드가 그렇게 돌아가는지 눈으로 확인해 보고 싶지 않으십니까?"
 
 [1초 용어 통역]
-"우측 상단 돋보기를 보시죠. 'ADR'은 코드를 짜기 전 '왜 이 기술을 골랐는지' 남긴 67개의 설계 판결문입니다."
+"우측 상단 돋보기를 보시죠. 'ADR'은 코드를 짜기 전 남긴 67개의 설계 판결문입니다."
 
 [시각 요소 지시어]
-"화면의 5대 대화형 시뮬레이터를 직접 눌러보십시오! FSM 상태 차단기, BM25 가중치 슬라이더, 2-Tier LLM 라우팅이 브라우저에서 실시간으로 동작합니다."
+"화면의 인터랙티브 시뮬레이터를 보십시오. 버튼을 눌러 상태 역주행을 시도하면 시스템이 이를 즉시 차단하고, LLM 연산 위임을 원천 배제하는 과정을 실시간 확인할 수 있습니다."
 
 [숫자 타격감 마무리]
-"67개 ADR 전수 준수, 듀얼 라우팅으로 API 비용 95% 절감, 말뿐이 아닌 코드로 증명된 설계입니다!"`
+"67개의 ADR이 코드와 테스트로 100% 살아 숨 쉬는 검증된 소프트웨어 엔지니어링입니다!"`
     },
     {
-      title: '11 · 인프라 & 운영 안전 (2-VM 격리 및 10초 자동 롤백)',
+      title: '10 · 인프라 & 운영 안전 (2-VM 격리 및 10초 자동 롤백)',
       text: `[도발적 질문 Hook]
-"새벽 배포 중 DB 마이그레이션이 실패했을 때 시스템을 복구하는 데 얼마나 걸릴까요?"
+"AI 서버가 고부하로 다운되면, 백엔드 서비스와 데이터베이스까지 함께 멈춰야 할까요?"
 
 [1초 용어 통역]
-"우측 상단 돋보기를 보시죠. '2-VM & 자동 롤백'은 배포 사고 시 1초 만에 과거로 되돌리는 비상 탈출 장치입니다."
+"우측 상단 돋보기를 보시죠. '2-VM 격리'란 AI 엔진과 서비스 백엔드를 물리적으로 분리해 장애 전파를 차단하는 방화벽입니다."
 
 [시각 요소 지시어]
-"화면의 2-VM 배포 구조도를 보십시오. 사용자 웹/DB 서버와 고부하 AI 서버를 물리 격리하고, V52 SHA-256 해시 검증 및 실패 시 즉시 자동 롤백합니다."
+"화면의 인프라 토폴로지를 보십시오. 서비스 VM과 AI VM을 물리적으로 분리하고, Flyway 마이그레이션과 10초 자동 롤백 스크립트로 무중단 운영을 실현했습니다."
 
 [숫자 타격감 마무리]
-"장애 감지 시 롤백 10초 이내, 일일 LLM 쿼터 100달러 하드캡으로 24/7 무중단 운영을 실현했습니다!"`
+"장애 발생 시 10초 자동 복구와 2단계 일일 쿼터 방어로 365일 24시간 안전한 금융 서비스를 제공합니다!"`
     },
     {
-      title: '12 · AX 일하는 방식의 혁신 (7단계 라이프사이클과 실증)',
+      title: '11 · AX 일하는 방식의 혁신 (421개 PR 무충돌 완주)',
       text: `[도발적 질문 Hook]
-"단 3주 만에 451개 PR과 4,405개 테스트를 갖춘 엔터프라이즈 시스템을 완성한 비결은 무엇일까요?"
+"단 3주 만에 이 방대한 시스템을 결함 없이 구축할 수 있었던 진짜 비결은 무엇일까요?"
 
 [1초 용어 통역]
-"우측 상단 돋보기를 보시죠. 'AX 협업 파이프라인'이란 기획부터 검증까지 AI가 컨베이어 벨트처럼 돕는 일하는 방식의 혁신입니다."
+"우측 상단 돋보기를 보시죠. 'AX 협업 파이프라인'이란 기획부터 검증까지 AI 도구와 사람이 규율을 지키며 달리는 컨베이어 벨트입니다."
 
 [시각 요소 지시어]
-"화면의 7단계 AX 라이프사이클 다이어그램을 보십시오. 성공 기준(SC)에서 AI 기획, ADR 설계, 자율 페어 코딩, CI 품질 게이트, 수용 검증(AC)까지 기계적으로 맞물려 돌아갑니다."
+"화면의 3주 스프린트 타임라인과 AX 생산성 지표를 보십시오. 기능 기획서(FS)부터 수용 기준(AC) 자동 검증까지 421개 PR을 단 하나의 충돌 없이 rebase merge로 완주했습니다."
 
 [숫자 타격감 마무리]
-"3주간 451개 PR 무충돌 병합, 4,405개 테스트 100% 통과, 생산성 400% 향상과 결함 재작업률 0%! 'AI는 최고의 비서지, 대표가 아닙니다.' 경청해 주셔서 감사합니다!"`
+"개발 생산성 400% 향상, 결함 재작업률 0%, 4,405개 테스트 무결성으로 입증된 미래형 AI 엔지니어링의 표준입니다!"`
     }
   ];
 
-  const slides = [$('#hero'), $('#wealth'), $('#glossary'), $('#why'), $('#value'), $('#solution'), $('#activity'), $('#methods'), $('#impact'), $('#stack'), $('#architecture'), $('#decisions'), $('#infra'), $('#weeks')].filter(Boolean);
+  const slides = [$('#hero'), $('#wealth'), $('#glossary'), $('#why'), $('#value'), $('#solution-perf'), $('#solution-matrix'), $('#activity-financial'), $('#activity-flow'), $('#methods'), $('#impact'), $('#stack'), $('#architecture'), $('#decisions'), $('#infra'), $('#weeks')].filter(Boolean);
   let curSlide = 0, isPresent = false;
 
   const dock = $('#deckDock'), counter = $('#deckCounter');
@@ -4298,18 +4345,20 @@ stepper('#userflow', '#flowtext', [
   const SECTION_LIVE_LINKS = [
     { url: '/search', label: '01 메인 검색 & 시즌 Top 10 바로가기' },
     { url: '/search', label: '00-A 인플레이션 방어 우량기업 분석 체험' },
-    { url: '/search?q=삼성전자', label: '00-B 공시 팩트 원문 툴팁 체험' },
-    { url: '/compare', label: '02 300p 보고서 5초 대조 실행' },
-    { url: '/analysis/demo', label: '03 W-03 원문 점프 뷰어 체험' },
-    { url: '/compare', label: '04 80MB 고정 StAX 스트리밍 체험' },
-    { url: '/companies/00126380', label: '05 삼성전자 24건 타임라인 체험' },
-    { url: '/analysis/demo', label: '06 13대 증감 사유 리포트 체험' },
-    { url: '/search', label: '07 페르소나별 맞춤 공시 탐색' },
-    { url: '/search', label: '08 4-Tier 아키텍처 실시간 검색' },
-    { url: '/api/v1/mcp', label: '09 MCP 읽기 도구 7종 사양 보기' },
-    { url: '/compare', label: '10 라이브 분석 엔진 직접 돌려보기' },
-    { url: '/pricing', label: '11 일일 질문 쿼터 방어 시스템 안내' },
-    { url: '/', label: '12 DART Insight 메인 서비스 시작하기' }
+    { url: '/search?q=삼성전자', label: '00-B 전자공시 팩트 원문 직결 체험' },
+    { url: '/compare', label: '01 소설책 4권 분량 5초 대조 실행' },
+    { url: '/analysis/demo', label: '02 핵심 가치 100% 원문 앵커 체험' },
+    { url: '/compare', label: '03-A 80MB 고정 StAX 스트리밍 체험' },
+    { url: '/compare', label: '03-B 5대 엔지니어링 난제 해결 검증' },
+    { url: '/companies/00126380', label: '04-A 삼성전자 2개년 실적 차트 보기' },
+    { url: '/analysis/demo', label: '04-B W-03 원문 점프 뷰어 직접 체험' },
+    { url: '/analysis/demo', label: '05 13가지 증감 사유 리포트 체험' },
+    { url: '/search', label: '06 페르소나별 맞춤 공시 탐색' },
+    { url: '/api/v1/mcp', label: '07 4-Tier 아키텍처 및 MCP 규격 보기' },
+    { url: '/api/v1/mcp', label: '08 단방향 시스템 아키텍처 다이어그램' },
+    { url: '/compare', label: '09 67개 ADR 설계 시뮬레이터 실행' },
+    { url: '/pricing', label: '10 무중단 롤백 및 일일 쿼터 방어 안내' },
+    { url: '/', label: '11 DART Insight 메인 서비스 시작하기' }
   ];
 
   const ZONE_B_TERMS = [
@@ -4318,15 +4367,17 @@ stepper('#userflow', '#flowtext', [
     { term: '🔍 전자공시(DART)', def: '국가기관 금감원에 제출하는 100% 공인 팩트 데이터' },
     { term: '🔍 할루시네이션 & MD&A', def: 'AI의 그럴듯한 거짓말 & 경영진 공식 성적표 해설서' },
     { term: '🔍 연결재무제표 & 컴플라이언스', def: '자회사 합산 성적표 & 투자권유 차단 안전막' },
-    { term: '🔍 StAX 파서 & BM25', def: '문서를 흘려보내는 수도관 & 45ms 근거 탐지기' },
-    { term: '🔍 이벤트 신호 & 영향 경로', def: '코드 기준표 기반 팩트 신호 & 3대 관점 미래 영향' },
-    { term: '🔍 4대 규칙 & 가이드라인', def: '13가지 증감 사유 코드화 & 6대 금지어 검사' },
+    { term: '🔍 StAX 파서 & 2-Tier 라우팅', def: '문서를 흘려보내는 수도관 & 비용 95% 절감 듀얼 모델' },
+    { term: '🔍 단방향 FSM & 2-gram BM25', def: '역주행 불가능 일방통행길 & 45ms 근거 탐지기' },
+    { term: '🔍 재무 증감액 & 증감률', def: '13가지 사유 코드화 & 100% Java 백엔드 결정론적 연산' },
+    { term: '🔍 원문 앵커(Fact Grounding)', def: '문장마다 #접수번호#B블록번호로 1클릭 원문 형광펜 점프' },
+    { term: '🔍 4대 판정 규칙 & 가이드라인', def: '조건 검증·수치 연산·문장 대조·코드 기준표 4단계' },
     { term: '🔍 WCAG & axe-core', def: '장애인·약자도 차별 없이 쓰는 웹 안전벨트' },
     { term: '🔍 단방향 FSM & ArchUnit', def: '역주행 불가능 일방통행 & 계층 침범 0건' },
     { term: '🔍 영구 캐시 & MCP 서버', def: '일일 2만 회 한도 방어 & 외부 AI 읽기 전용 플러그인' },
     { term: '🔍 ADR (Architecture Decision Record)', def: '코드를 짜기 전 남긴 67개의 설계 판결문' },
     { term: '🔍 Flyway & 2-VM', def: '10초 자동 롤백 & 고부하 AI 서버 물리 격리' },
-    { term: '🔍 AX 협업 파이프라인', def: '3주간 451개 PR 무충돌 완주 & 생산성 400% 향상' }
+    { term: '🔍 AX 협업 파이프라인', def: '3주간 421개 PR 무충돌 완주 & 생산성 400% 향상' }
   ];
 
   const parseSpeechToCards = (text) => {
