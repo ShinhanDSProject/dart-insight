@@ -71,7 +71,7 @@ FONT_HEADING = "Pretendard"
 FONT_BODY = "Pretendard"
 FONT_NUM = "Pretendard"
 
-TOTAL_SLIDES = 39
+TOTAL_SLIDES = 40
 
 # -----------------------------------------------------------------------------
 # Base 4-Zone Helpers
@@ -265,7 +265,7 @@ def build_presentation():
     prs.slide_height = Inches(7.5)
     blank_layout = prs.slide_layouts[6]
 
-    print("Generating 39 High-Impact 4-Zone Presentation Slides...")
+    print("Generating 40 High-Impact 4-Zone Presentation Slides...")
 
     # =========================================================================
     # PART 1. 타이틀 & 비전 (Hero)
@@ -326,16 +326,88 @@ def build_presentation():
 "30만 자를 5초 만에 압축하고 환각 0.00%를 달성한 신뢰 기반 금융 인텔리전스입니다!\"""")
 
     # =========================================================================
-    # PART 2. 추진 배경 & 사용자 여정 6단계 (Why & Userflow Stepper)
+    # PART 1-B. 도메인 통역: 클라이언트를 위한 1초 공시 용어 사전
     # =========================================================================
-    # SLIDE 02: 추진 배경: 65만 자 공시의 압박과 LLM 환각
+    # SLIDE 02: 전자공시란 무엇인가? 6대 핵심 도메인 개념
     s02 = prs.slides.add_slide(blank_layout)
     set_slide_background(s02, is_dark=False)
-    add_zone_a_header(s02, "02 · 추진 배경 및 문제의식", "65만 자 공시 무한 스크롤, 숙련자도 4시간 소모")
-    add_zone_b_glossary(s02, "MD&A", "경영진이 숫자의 원인을 해설해 놓은 공식 성적표 해설서")
+    add_zone_a_header(s02, "00 · 도메인 통역 가이드", "전자공시(DART)란? 클라이언트를 위한 1초 핵심 용어 통역")
+    add_zone_b_glossary(s02, "전자공시(DART)", "기업이 법에 따라 실적과 사건을 투명하게 알리는 '공식 종합 생활기록부'")
+
+    # Zone C: 2x3 Grid of 6 Domain Concept Cards
+    concepts = [
+        ("📋 전자공시 (DART)", "기업의 공식 종합 생활기록부", "금감원이 운영하는 100% 공인 데이터. 뉴스/소문과 달리 거짓 기재 시 강력한 법적 처벌을 받습니다."),
+        ("🏥 정기보고서 vs 수시공시", "종합 건강검진표 vs 응급 속보", "정기(사업·분기) 300~600p 종합검진 vs 수시(합병·투자) 주가 직결 긴급 속보를 상호 연결합니다."),
+        ("👨‍👩‍👧‍👦 연결재무제표", "자회사 실적까지 합친 가족 가계부", "종속회사 실적을 모두 통합한 현대 분석 표준이며, DART Insight는 연결 기준 대조를 원칙으로 합니다."),
+        ("📑 MD&A (경영진단의견)", "성적표 뒤에 직접 쓴 성적 해설서", "재무제표 숫자의 진짜 원인(원자재 폭등, 전방 수요 둔화)을 경영진이 줄글로 해설해 둔 핵심 보고입니다."),
+        ("🧾 원문 근거 (Fact Grounding)", "AI 날조 거짓말을 막는 공식 영수증", "모든 문장에 #접수번호#B042를 각인하여 클릭 1초 만에 300페이지 원문 문단으로 형광펜 점프합니다."),
+        ("🛡️ 컴플라이언스 (규제 준수)", "투자 권유를 막는 법적 안전 차단막", "매수/매도 권유와 주가 예측을 코드로 원천 배제하고, 객관적 공시 사실과 코드 기준표 신호만 전달합니다.")
+    ]
+
+    card_w = Inches(3.7)
+    card_h = Inches(2.25)
+    xs = [Inches(0.8), Inches(4.8), Inches(8.8)]
+    ys = [Inches(1.85), Inches(4.35)]
+
+    for idx, (ctitle, csub, cdesc) in enumerate(concepts):
+        cx = xs[idx % 3]
+        cy = ys[idx // 3]
+        is_highlight = idx in (0, 4)
+        bg_col = LIGHT_PURPLE_TINT if is_highlight else LIGHT_CARD
+        border_col = LIGHT_PURPLE if is_highlight else LIGHT_BORDER
+
+        draw_card(s02, cx, cy, card_w, card_h, bg_col, border_col, 1.5)
+        tb = s02.shapes.add_textbox(cx + Inches(0.25), cy + Inches(0.2), card_w - Inches(0.5), card_h - Inches(0.4))
+        tf = tb.text_frame
+        tf.word_wrap = True
+
+        p0 = tf.paragraphs[0]
+        p0.text = ctitle
+        p0.font.name = FONT_HEADING
+        p0.font.size = Pt(14)
+        p0.font.bold = True
+        p0.font.color.rgb = LIGHT_PURPLE if is_highlight else LIGHT_TEXT_PRIMARY
+        p0.space_after = Pt(3)
+
+        p1 = tf.add_paragraph()
+        p1.text = f"💡 {csub}"
+        p1.font.name = FONT_BODY
+        p1.font.size = Pt(11)
+        p1.font.bold = True
+        p1.font.color.rgb = LIGHT_PURPLE if is_highlight else LIGHT_TEXT_PRIMARY
+        p1.space_after = Pt(6)
+
+        p2 = tf.add_paragraph()
+        p2.text = cdesc
+        p2.font.name = FONT_BODY
+        p2.font.size = Pt(10)
+        p2.font.color.rgb = LIGHT_TEXT_MUTED
+
+    add_zone_d_proof_bar(s02, 2, TOTAL_SLIDES, metrics_list=["공시 도메인 용어 카드 50종 내장", "원문 근거 역참조 100% 보장", "금융 컴플라이언스 6대 표현 자동 검사"])
+    set_speaker_notes(s02, """[도발적 질문 Hook]
+"‘공시’나 ‘DART’라는 말을 들었을 때, 금융 전문가가 아니면 정확히 무엇을 뜻하는지 와닿지 않을 수 있습니다. 도대체 기업들은 왜 이런 문서를 올릴까요?"
+
+[1초 용어 통역]
+"우측 상단 돋보기를 보시죠. 전자공시란 '기업이 국가기관인 금감원에 제출하는 공식 종합 생활기록부'입니다. 사소한 숫자 하나라도 거짓말을 치면 법적 처벌을 받는 100% 공인 팩트 데이터입니다."
+
+[시각 요소 지시어]
+"화면의 6개 카드를 보십시오. 분기별 정기 건강검진표인 정기보고서와 응급 속보인 수시공시, 자회사까지 합친 연결재무제표, 그리고 숫자의 진짜 원인을 경영진이 직접 해설한 MD&A까지 DART Insight가 다루는 핵심 도메인 개념입니다."
+
+[숫자 타격감 마무리]
+"DART Insight는 이 방대한 공식 데이터에 AI 날조를 막는 100% 영수증을 붙여, 법적 규제를 완벽히 준수하는 가장 안전한 금융 비서로 탄생했습니다!"
+""")
+
+    # =========================================================================
+    # PART 2. 추진 배경 & 사용자 여정 6단계 (Why & Userflow Stepper)
+    # =========================================================================
+    # SLIDE 03: 추진 배경: 65만 자 공시의 압박과 LLM 환각
+    s03 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s03, is_dark=False)
+    add_zone_a_header(s03, "02 · 추진 배경 및 문제의식", "65만 자 공시 무한 스크롤, 숙련자도 4시간 소모")
+    add_zone_b_glossary(s03, "MD&A", "경영진이 숫자의 원인을 해설해 놓은 공식 성적표 해설서")
     # Zone C: 1:1 Split (수작업의 고통 vs 시중 LLM의 한계)
-    draw_card(s02, Inches(0.8), Inches(1.65), Inches(5.65), Inches(4.85), LIGHT_DANGER_TINT, LIGHT_DANGER, 1.5)
-    tb_l = s02.shapes.add_textbox(Inches(1.2), Inches(1.9), Inches(4.85), Inches(4.3))
+    draw_card(s03, Inches(0.8), Inches(1.65), Inches(5.65), Inches(4.85), LIGHT_DANGER_TINT, LIGHT_DANGER, 1.5)
+    tb_l = s03.shapes.add_textbox(Inches(1.2), Inches(1.9), Inches(4.85), Inches(4.3))
     tf_l = tb_l.text_frame
     tf_l.word_wrap = True
     p = tf_l.paragraphs[0]
@@ -352,8 +424,8 @@ def build_presentation():
         p1 = tf_l.add_paragraph(); p1.text = h; p1.font.bold = True; p1.font.size = Pt(13); p1.font.color.rgb = LIGHT_TEXT_PRIMARY
         p2 = tf_l.add_paragraph(); p2.text = d; p2.font.size = Pt(11); p2.font.color.rgb = LIGHT_TEXT_MUTED; p2.space_after = Pt(8)
 
-    draw_card(s02, Inches(6.88), Inches(1.65), Inches(5.65), Inches(4.85), LIGHT_ATTENTION_TINT, LIGHT_ATTENTION, 1.5)
-    tb_r = s02.shapes.add_textbox(Inches(7.28), Inches(1.9), Inches(4.85), Inches(4.3))
+    draw_card(s03, Inches(6.88), Inches(1.65), Inches(5.65), Inches(4.85), LIGHT_ATTENTION_TINT, LIGHT_ATTENTION, 1.5)
+    tb_r = s03.shapes.add_textbox(Inches(7.28), Inches(1.9), Inches(4.85), Inches(4.3))
     tf_r = tb_r.text_frame
     tf_r.word_wrap = True
     p = tf_r.paragraphs[0]
@@ -369,8 +441,8 @@ def build_presentation():
     for h, d in items_r:
         p1 = tf_r.add_paragraph(); p1.text = h; p1.font.bold = True; p1.font.size = Pt(13); p1.font.color.rgb = LIGHT_TEXT_PRIMARY
         p2 = tf_r.add_paragraph(); p2.text = d; p2.font.size = Pt(11); p2.font.color.rgb = LIGHT_TEXT_MUTED; p2.space_after = Pt(8)
-    add_zone_d_proof_bar(s02, 2, TOTAL_SLIDES, ["ADR-0008", "ADR-0015"], ["공시 분량 30~65만 자", "수작업 4시간 소모", "수치 환각 차단 필수"])
-    set_speaker_notes(s02, """[도발적 질문 Hook]
+    add_zone_d_proof_bar(s03, 3, TOTAL_SLIDES, ["ADR-0008", "ADR-0015"], ["공시 분량 30~65만 자", "수작업 4시간 소모", "수치 환각 차단 필수"])
+    set_speaker_notes(s03, """[도발적 질문 Hook]
 "정기보고서 한 권이 소설책 4권 분량인 65만 자에 달한다는 사실, 알고 계셨습니까?"
 
 [1초 용어 통역]
@@ -380,9 +452,10 @@ def build_presentation():
 "화면 좌우 카드를 보십시오. 300페이지를 일일이 스크롤하는 4시간의 고통과 시중 챗봇의 치명적인 숫자 날조라는 두 가지 벽에 부딪혀 있었습니다."
 
 [숫자 타격감 마무리]
-"금융에서 1원의 오차는 수억 원의 손실입니다. 이 두 문제를 코드로 영구 해결했습니다!\"""")
+"금융에서 1원의 오차는 수억 원의 손실입니다. 이 두 문제를 코드로 영구 해결했습니다!"
+""")
 
-    # Userflow Stepper 6 Steps (Slides 03 ~ 08)
+    # Userflow Stepper 6 Steps (Slides 04 ~ 09)
     stepper_names = ["01 탐색", "02 개요", "03 선택", "04 분석", "05 결과", "06 확장"]
     stepper_details = [
         ("회사 검색 및 시즌 Top 10 목록 진입",
@@ -430,7 +503,7 @@ def build_presentation():
     ]
 
     for step_idx, (headline, card_title, card_items, adr_str) in enumerate(stepper_details):
-        slide_no = 3 + step_idx
+        slide_no = 4 + step_idx
         sn = prs.slides.add_slide(blank_layout)
         set_slide_background(sn, is_dark=False)
         add_zone_a_header(sn, f"02 · 사용자 여정 {step_idx+1}/6", headline)
@@ -520,7 +593,7 @@ def build_presentation():
     ]
 
     for bna_idx, (bna_label, bna_headline, before_items, after_items) in enumerate(bna_views):
-        slide_no = 9 + bna_idx
+        slide_no = 10 + bna_idx
         sb = prs.slides.add_slide(blank_layout)
         set_slide_background(sb, is_dark=False)
         add_zone_a_header(sb, f"03 · 핵심 가치 제안 [{bna_label}]", bna_headline)
@@ -659,7 +732,7 @@ def build_presentation():
     p2 = tf2.add_paragraph(); p2.text = "• 긍정 신호 (코드 기준표 판정): 주주환원 정책 확대 (자사주 10조 소각 추진)"; p2.font.bold = True; p2.font.size = Pt(12); p2.font.color.rgb = LIGHT_POSITIVE; p2.space_after = Pt(8)
     p3 = tf2.add_paragraph(); p3.text = "• 주의 신호 (코드 기준표 판정): 반도체 설비 투자에 따른 일시적 현금흐름 둔화"; p3.font.bold = True; p3.font.size = Pt(12); p3.font.color.rgb = LIGHT_ATTENTION; p3.space_after = Pt(8)
     p4 = tf2.add_paragraph(); p4.text = "⚠️ 안내: 'AI 전망'은 공시 사실이 아니며, 신호는 LLM이 아닌 사전 승인된 코드 기준표로만 부여됩니다."; p4.font.size = Pt(11); p4.font.color.rgb = LIGHT_TEXT_MUTED
-    add_zone_d_proof_bar(s17, 17, TOTAL_SLIDES, ["ADR-0050", "ADR-0065", "ADR-0066"], ["24건 수시공시 매칭", "코드 기준표 신호", "원문 근거 100%"])
+    add_zone_d_proof_bar(s17, 18, TOTAL_SLIDES, ["ADR-0050", "ADR-0065", "ADR-0066"], ["24건 수시공시 매칭", "코드 기준표 신호", "원문 근거 100%"])
     set_speaker_notes(s17, """[도발적 질문 Hook]
 "두 정기보고서 사이에 이 회사가 도대체 무슨 일을 벌였는지 1분 만에 파악할 수 있을까요?"
 
@@ -692,7 +765,7 @@ def build_presentation():
         p = tf_r.paragraphs[0]; p.text = rtitle; p.font.size = Pt(15); p.font.bold = True; p.font.color.rgb = rcol; p.space_after = Pt(10)
         p1 = tf_r.add_paragraph(); p1.text = rdesc; p1.font.size = Pt(11.5); p1.font.color.rgb = LIGHT_TEXT_PRIMARY; p1.space_after = Pt(10)
         p2 = tf_r.add_paragraph(); p2.text = "✓ 코드 강제 원칙\n✓ 무결성 보증"; p2.font.size = Pt(10.5); p2.font.color.rgb = LIGHT_TEXT_MUTED
-    add_zone_d_proof_bar(s18, 18, TOTAL_SLIDES, ["ADR-0004", "ADR-0036", "AGENTS.md"], ["13가지 사유 코드", "5대 문장 분류", "표현 검사 100% 통과"])
+    add_zone_d_proof_bar(s18, 19, TOTAL_SLIDES, ["ADR-0004", "ADR-0036", "AGENTS.md"], ["13가지 사유 코드", "5대 문장 분류", "표현 검사 100% 통과"])
     set_speaker_notes(s18, """[도발적 질문 Hook]
 "AI에게 분석을 맡기는 것과, 코드 규칙이 분석을 지배하는 것의 차이는 무엇일까요?"
 
@@ -730,7 +803,7 @@ def build_presentation():
         p = tf_p.paragraphs[0]; p.text = pname; p.font.size = Pt(17); p.font.bold = True; p.font.color.rgb = pcol; p.space_after = Pt(4)
         p0 = tf_p.add_paragraph(); p0.text = psub; p0.font.size = Pt(12); p0.font.bold = True; p0.font.color.rgb = LIGHT_TEXT_PRIMARY; p0.space_after = Pt(12)
         p1 = tf_p.add_paragraph(); p1.text = pbody; p1.font.size = Pt(11.5); p1.font.color.rgb = LIGHT_TEXT_BODY
-    add_zone_d_proof_bar(s19, 19, TOTAL_SLIDES, ["FS-53", "FS-60", "FS-69"], ["용어 툴팁 50종", "리서치 90% 단축", "axe-core 위반 0건"])
+    add_zone_d_proof_bar(s19, 20, TOTAL_SLIDES, ["FS-53", "FS-60", "FS-69"], ["용어 툴팁 50종", "리서치 90% 단축", "axe-core 위반 0건"])
     set_speaker_notes(s19, """[도발적 질문 Hook]
 "주식 초보자와 전문 분석가가 같은 화면에서 모두 만족할 수 있을까요?"
 
@@ -767,7 +840,7 @@ def build_presentation():
         p1 = tf_t.add_paragraph(); p1.text = tdesc; p1.font.size = Pt(11); p1.font.color.rgb = DARK_TEXT_PRIMARY; p1.space_after = Pt(12)
         if i < 3:
             p2 = tf_t.add_paragraph(); p2.text = "➔ 단방향 호출"; p2.font.bold = True; p2.font.size = Pt(11); p2.font.color.rgb = DARK_PURPLE
-    add_zone_d_proof_bar(s20, 20, TOTAL_SLIDES, ["ADR-0002", "ADR-0004", "ADR-0052"], ["ArchUnit 검증 100%", "계층 침범 0건", "X-Trace-Id 분산추적"], is_dark=True)
+    add_zone_d_proof_bar(s20, 21, TOTAL_SLIDES, ["ADR-0002", "ADR-0004", "ADR-0052"], ["ArchUnit 검증 100%", "계층 침범 0건", "X-Trace-Id 분산추적"], is_dark=True)
     set_speaker_notes(s20, """[도발적 질문 Hook]
 "수많은 개발자가 협업하는 대규모 금융 프로젝트에서 어떻게 스파게티 코드를 원천 차단했을까요?"
 
@@ -799,7 +872,7 @@ def build_presentation():
     p = tf_c2.paragraphs[0]; p.text = "🔌 독립 MCP 서버 연동 (ADR-0052)"; p.font.size = Pt(16); p.font.bold = True; p.font.color.rgb = RGBColor(100, 200, 255); p.space_after = Pt(10)
     p1 = tf_c2.add_paragraph(); p1.text = "• 외부 AI 에이전트를 위한 읽기 전용 7대 도구 제공\n• Spring Boot 공개 API만 경유하여 원본 DB 직접 접근 원천 차단\n• 내부 서비스와 동일한 권한 및 일일 쿼터 규칙 적용"; p1.font.size = Pt(12); p1.font.color.rgb = DARK_TEXT_PRIMARY; p1.space_after = Pt(12)
     p2 = tf_c2.add_paragraph(); p2.text = "🛡️ 외부 AI 침입 위험 0%의 안전한 확장성"; p2.font.bold = True; p2.font.size = Pt(13); p2.font.color.rgb = RGBColor(120, 230, 160)
-    add_zone_d_proof_bar(s21, 21, TOTAL_SLIDES, ["ADR-0024", "ADR-0046", "ADR-0052"], ["외부 재호출 0건", "캐시 응답 0.1s", "읽기 도구 7종"], is_dark=True)
+    add_zone_d_proof_bar(s21, 22, TOTAL_SLIDES, ["ADR-0024", "ADR-0046", "ADR-0052"], ["외부 재호출 0건", "캐시 응답 0.1s", "읽기 도구 7종"], is_dark=True)
     set_speaker_notes(s21, """[도발적 질문 Hook]
 "OpenDART의 하루 호출 한도가 2만 회인데, 수만 명이 동시 접속하면 서비스가 멈출까요?"
 
@@ -908,7 +981,7 @@ def build_presentation():
     p_btn_labels = ["1. 숫자는 코드가 계산", "2. 근거 확인 문장만 노출", "3. 검증 상태는 투명하게", "4. 객관적인 사실만 전달"]
 
     for p_idx, (p_name, p_headline, ex_title, ex_body, p_col) in enumerate(principles_data):
-        slide_no = 25 + p_idx
+        slide_no = 26 + p_idx
         sp = prs.slides.add_slide(blank_layout)
         set_slide_background(sp, is_dark=False)
         add_zone_a_header(sp, f"10 · 설계 시뮬레이터 2 · AI 신뢰 원칙", p_headline)
@@ -965,7 +1038,7 @@ def build_presentation():
     p = tf_b2.paragraphs[0]; p.text = "✨ [40자 기준 설정 시 결과 - 채택]"; p.font.size = Pt(15); p.font.bold = True; p.font.color.rgb = LIGHT_POSITIVE; p.space_after = Pt(8)
     p1 = tf_b2.add_paragraph(); p1.text = "1위 후보: '당사 매출액은 66조 1,930억원으로, HBM 메모리 공급 확대에 따라 …'"; p1.font.bold = True; p1.font.size = Pt(12); p1.font.color.rgb = LIGHT_TEXT_PRIMARY; p1.space_after = Pt(8)
     p2 = tf_b2.add_paragraph(); p2.text = "• 개선 성과: 단순 주석이 걸러지고 원인 설명이 담긴 경영진단(MD&A) 문단이 정확히 1위로 추출됨\n• 검색 지연: 단 45ms 내 완료"; p2.font.size = Pt(11); p2.font.color.rgb = LIGHT_TEXT_MUTED
-    add_zone_d_proof_bar(s29, 29, TOTAL_SLIDES, ["ADR-0036"], ["최소 길이 40자 채택", "검색 지연 45ms", "정확도 100%"])
+    add_zone_d_proof_bar(s29, 30, TOTAL_SLIDES, ["ADR-0036"], ["최소 길이 40자 채택", "검색 지연 45ms", "정확도 100%"])
     set_speaker_notes(s29, """[도발적 질문 Hook]
 "검색 엔진에서 검색어만 딱 적힌 짧은 한 줄이 1등으로 올라오는 황당한 경험, 다들 겪어보셨죠?"
 
@@ -993,7 +1066,7 @@ def build_presentation():
     ag_btn_labels = ["1. 자료가 충분", "2. Tool 필요", "3. 검토 후 다듬기"]
 
     for a_idx, (a_name, a_headline, active_btn_idx, path_nodes, log_txt, a_col) in enumerate(ag_scenarios):
-        slide_no = 30 + a_idx
+        slide_no = 31 + a_idx
         sa = prs.slides.add_slide(blank_layout)
         set_slide_background(sa, is_dark=False)
         add_zone_a_header(sa, f"10 · 설계 시뮬레이터 4 · 에이전트 경로", a_headline)
@@ -1068,7 +1141,7 @@ def build_presentation():
     p1 = tf_ca.add_paragraph(); p1.text = "호출당 비용: $0.0009 (95% 절감)"; p1.font.bold = True; p1.font.size = Pt(14); p1.font.color.rgb = LIGHT_TEXT_PRIMARY; p1.space_after = Pt(6)
     p2 = tf_ca.add_paragraph(); p2.text = "하루 3,000단계 기준:"; p2.font.size = Pt(12); p2.font.color.rgb = LIGHT_TEXT_MUTED
     p3 = tf_ca.add_paragraph(); p3.text = "$2.70 / 일  (월 약 10만 원)"; p3.font.bold = True; p3.font.size = Pt(20); p3.font.color.rgb = LIGHT_POSITIVE
-    add_zone_d_proof_bar(s33, 33, TOTAL_SLIDES, ["ADR-0059", "ADR-0063", "#742 측정표"], ["비용 95% 절감", "호출당 $0.0009", "TPS 4.2배 확장"])
+    add_zone_d_proof_bar(s33, 34, TOTAL_SLIDES, ["ADR-0059", "ADR-0063", "#742 측정표"], ["비용 95% 절감", "호출당 $0.0009", "TPS 4.2배 확장"])
     set_speaker_notes(s33, """[도발적 질문 Hook]
 "고성능 LLM만 쓰면 하루 API 비용이 눈덩이처럼 불어나는데, 엔터프라이즈 운영이 가능할까요?"
 
@@ -1103,7 +1176,7 @@ def build_presentation():
     p = tf_vm2.paragraphs[0]; p.text = "⚡ VM2 · AI 연산 노드 & 배포 파이프라인"; p.font.size = Pt(16); p.font.bold = True; p.font.color.rgb = LIGHT_PURPLE; p.space_after = Pt(10)
     p1 = tf_vm2.add_paragraph(); p1.text = "• FastAPI AI 서버 (:8000, 내부망 전용)\n• Jenkins CI/CD 빌드 파이프라인 (Poll SCM 5분)\n• V52 SHA-256 스키마 사전 대조 검증\n• 이상 감지 시 직전 정상 태그로 10초 내 자동 롤백"; p1.font.size = Pt(12); p1.font.color.rgb = LIGHT_TEXT_PRIMARY; p1.space_after = Pt(12)
     p2 = tf_vm2.add_paragraph(); p2.text = "🔄 배포 장애 시 10초 이내 무중단 자동 복구"; p2.font.bold = True; p2.font.size = Pt(12.5); p2.font.color.rgb = LIGHT_POSITIVE
-    add_zone_d_proof_bar(s34, 34, TOTAL_SLIDES, ["ADR-0007", "ADR-0017", "ADR-0020"], ["2-VM 물리 분리", "57개 테이블 해시 검증", "10초 자동 롤백"])
+    add_zone_d_proof_bar(s34, 35, TOTAL_SLIDES, ["ADR-0007", "ADR-0017", "ADR-0020"], ["2-VM 물리 분리", "57개 테이블 해시 검증", "10초 자동 롤백"])
     set_speaker_notes(s34, """[도발적 질문 Hook]
 "새벽 배포 중 DB 마이그레이션이 실패하면 시스템을 이전 상태로 되돌리는 데 얼마나 걸릴까요?"
 
@@ -1138,7 +1211,7 @@ def build_presentation():
     tf_u = tb_u.text_frame; tf_u.word_wrap = True
     p = tf_u.paragraphs[0]; p.text = "👉 [회원 로그인 시 즉시 100회로 확장]"; p.font.size = Pt(15); p.font.bold = True; p.font.color.rgb = LIGHT_PURPLE; p.space_after = Pt(6)
     p1 = tf_u.add_paragraph(); p1.text = "• 소셜 로그인(구글/카카오) 시 회원별 100회 쿼터가 즉시 새로 적용됩니다.\n• 이미 생성된 분석 결과를 다시 열람하는 것은 질문 쿼터를 소모하지 않습니다."; p1.font.size = Pt(12); p1.font.color.rgb = LIGHT_TEXT_PRIMARY
-    add_zone_d_proof_bar(s35, 35, TOTAL_SLIDES, ["ADR-0054", "ADR-0056"], ["비로그인 20회", "회원 100회", "전체 3,000회 상한"])
+    add_zone_d_proof_bar(s35, 36, TOTAL_SLIDES, ["ADR-0054", "ADR-0056"], ["비로그인 20회", "회원 100회", "전체 3,000회 상한"])
     set_speaker_notes(s35, """[도발적 질문 Hook]
 "무료 사용자가 질문을 무한정 보내서 AI 서버를 다운시키려고 하면 어떻게 될까요?"
 
@@ -1175,7 +1248,7 @@ def build_presentation():
         p1 = tf_a.add_paragraph(); p1.text = adesc; p1.font.size = Pt(12); p1.font.color.rgb = LIGHT_TEXT_PRIMARY; p1.space_after = Pt(12)
         if i < 3:
             p2 = tf_a.add_paragraph(); p2.text = "➔ 다음 단계 전진"; p2.font.bold = True; p2.font.size = Pt(11); p2.font.color.rgb = acol
-    add_zone_d_proof_bar(s36, 36, TOTAL_SLIDES, ["SC-1~4", "FS-1~74", "67 ADRs"], ["기획 병목 제로", "AC 1:1 매핑", "선행 설계 100%"])
+    add_zone_d_proof_bar(s36, 37, TOTAL_SLIDES, ["SC-1~4", "FS-1~74", "67 ADRs"], ["기획 병목 제로", "AC 1:1 매핑", "선행 설계 100%"])
     set_speaker_notes(s36, """[도발적 질문 Hook]
 "코딩을 시작하기 전, 기획과 설계 단계에서 AI와 사람은 어떻게 손발을 맞췄을까요?"
 
@@ -1207,7 +1280,7 @@ def build_presentation():
         p = tf_a.paragraphs[0]; p.text = aname; p.font.size = Pt(16); p.font.bold = True; p.font.color.rgb = acol; p.space_after = Pt(10)
         p1 = tf_a.add_paragraph(); p1.text = adesc; p1.font.size = Pt(12.5); p1.font.color.rgb = LIGHT_TEXT_PRIMARY; p1.space_after = Pt(12)
         p2 = tf_a.add_paragraph(); p2.text = "✓ 기계적 품질 보증 통과"; p2.font.bold = True; p2.font.size = Pt(11.5); p2.font.color.rgb = acol
-    add_zone_d_proof_bar(s37, 37, TOTAL_SLIDES, ["AGENTS.md", "4,405 Tests", "451 PRs"], ["테스트 100% 통과", "접근성 위반 0건", "시크릿 유출 0건"])
+    add_zone_d_proof_bar(s37, 38, TOTAL_SLIDES, ["AGENTS.md", "4,405 Tests", "451 PRs"], ["테스트 100% 통과", "접근성 위반 0건", "시크릿 유출 0건"])
     set_speaker_notes(s37, """[도발적 질문 Hook]
 "단 3주 만에 4,405개 테스트를 갖춘 엔터프라이즈 시스템을 완성한 품질 게이트의 비밀은 무엇일까요?"
 
@@ -1252,7 +1325,7 @@ def build_presentation():
     for tag, txt in items_ta:
         p1 = tf_a.add_paragraph(); p1.text = f"[{tag}]  {txt}"; p1.font.size = Pt(11.5); p1.font.bold = True; p1.font.color.rgb = LIGHT_TEXT_PRIMARY; p1.space_after = Pt(8)
     p_sum = tf_a.add_paragraph(); p_sum.text = "🚀 개발 생산성 400% 향상  •  결함 재작업률 0% 달성"; p_sum.font.bold = True; p_sum.font.size = Pt(13); p_sum.font.color.rgb = LIGHT_POSITIVE
-    add_zone_d_proof_bar(s38, 38, TOTAL_SLIDES, ["SC-1~4", "451 PRs", "1,082 Commits"], ["생산성 400% 향상", "재작업률 0%", "충돌 머지 0건"])
+    add_zone_d_proof_bar(s38, 39, TOTAL_SLIDES, ["SC-1~4", "451 PRs", "1,082 Commits"], ["생산성 400% 향상", "재작업률 0%", "충돌 머지 0건"])
     set_speaker_notes(s38, """[도발적 질문 Hook]
 "단순히 AI 코딩 도구를 쓰는 것과, 일하는 방식 자체를 AI 중심으로 혁신(AX)하는 것의 결정적 차이는 무엇일까요?"
 
@@ -1285,7 +1358,7 @@ def build_presentation():
     p_qa.text = "경청해 주셔서 대단히 감사합니다.\n질문을 받겠습니다."
     p_qa.font.name = FONT_HEADING; p_qa.font.size = Pt(20); p_qa.font.bold = True; p_qa.font.color.rgb = LIGHT_POSITIVE
 
-    add_zone_d_proof_bar(s39, 39, TOTAL_SLIDES, ["ADR-0001~0068", "FS-1~74", "451 PRs"], ["신뢰 기반 금융 AI", "100% 원문 직결", "Q&A 세션 오픈"])
+    add_zone_d_proof_bar(s39, 40, TOTAL_SLIDES, ["ADR-0001~0068", "FS-1~74", "451 PRs"], ["신뢰 기반 금융 AI", "100% 원문 직결", "Q&A 세션 오픈"])
     set_speaker_notes(s39, """[도발적 질문 Hook]
 "우리는 금융 AI에서 가장 중요한 질문을 던졌습니다. 'AI를 믿을 수 있는가?'"
 
