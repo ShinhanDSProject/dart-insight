@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type {
@@ -33,6 +33,7 @@ import {
   signalBadge,
   signalCounts,
   timelineDate,
+  timelineSpan,
   type AudienceFilter,
 } from '../model/periodActivities'
 import { KeyNumbers } from './KeyNumbers'
@@ -187,6 +188,9 @@ function OverviewMissing() {
   )
 }
 
+/** 펼칠 때 줄이 차례로 내려앉는 순번의 끝. 그 뒤 줄은 함께 나와 긴 타임라인도 금방 다 보인다(#907) */
+const ROW_STAGGER_MAX = 10
+
 function ActivityTimeline({
   entries,
   onOpenText,
@@ -194,27 +198,38 @@ function ActivityTimeline({
   entries: ActivityTimelineEntry[]
   onOpenText: (changeId: number) => void
 }) {
+  // 길어서 처음엔 접고 통째로 펴거나 접는다. 앞 몇 줄만 보이면 기간 앞부분만 읽고 끝난 것처럼 보여서다(#907)
   return (
     <section className="activity__timeline-wrap" aria-labelledby="activity-timeline-title">
-      <div className="activity__overview-head">
-        <h3 id="activity-timeline-title" className="activity__subtitle">
-          이 기간 타임라인
-        </h3>
-        <Badge tone="accent">AI 생성</Badge>
-      </div>
-      <ol className="activity__timeline">
-        {entries.map((entry) => (
-          <li key={entry.date + entry.text} className="activity__timeline-row">
-            <time className="activity__timeline-date" dateTime={entry.date}>
-              {timelineDate(entry.date)}
-            </time>
-            <span className="activity__timeline-text">{entry.text}</span>
-            <span className="activity__sources">
-              <EvidenceLinks evidence={entry.evidence} onOpenText={onOpenText} />
-            </span>
-          </li>
-        ))}
-      </ol>
+      <details className="activity__timeline-details">
+        <summary className="activity__timeline-summary">
+          <div className="activity__overview-head">
+            <h3 id="activity-timeline-title" className="activity__subtitle">
+              이 기간 타임라인
+            </h3>
+            <span className="activity__timeline-span">{timelineSpan(entries.map((entry) => entry.date))}</span>
+            <Badge tone="accent">AI 생성</Badge>
+          </div>
+          <span className="activity__timeline-toggle" aria-hidden="true" />
+        </summary>
+        <ol className="activity__timeline">
+          {entries.map((entry, index) => (
+            <li
+              key={entry.date + entry.text}
+              className="activity__timeline-row"
+              style={{ '--row': Math.min(index, ROW_STAGGER_MAX) } as CSSProperties}
+            >
+              <time className="activity__timeline-date" dateTime={entry.date}>
+                {timelineDate(entry.date)}
+              </time>
+              <span className="activity__timeline-text">{entry.text}</span>
+              <span className="activity__sources">
+                <EvidenceLinks evidence={entry.evidence} onOpenText={onOpenText} />
+              </span>
+            </li>
+          ))}
+        </ol>
+      </details>
     </section>
   )
 }

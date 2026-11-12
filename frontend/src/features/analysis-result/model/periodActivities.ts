@@ -10,6 +10,7 @@ import type {
   ActivitySignal,
 } from '@/shared/api/activities'
 import type { BadgeTone } from '@/shared/ui'
+import { formatCount } from './overview'
 
 /** 공시 분석 탭의 관점 고르기. null이면 전체 */
 export type AudienceFilter = ActivityAudience | null
@@ -114,4 +115,14 @@ export function sideLabel(side: ActivityEvidenceSide): string {
 /** 타임라인 날짜. YYYY-MM-DD → YYYY.MM.DD */
 export function timelineDate(date: string): string {
   return date.replaceAll('-', '.')
+}
+
+/** 접힌 타임라인 제목 줄의 건수·기간(#907). 예: '24건 · 2025.09.23 ~ 2026.03.19', 날짜가 하나면 그 날짜만 */
+export function timelineSpan(dates: string[]): string {
+  const sorted = [...dates].sort()
+  const first = sorted[0]
+  const last = sorted[sorted.length - 1]
+  if (first === undefined || last === undefined) return '0건'
+  const range = first === last ? timelineDate(first) : `${timelineDate(first)} ~ ${timelineDate(last)}`
+  return `${formatCount(dates.length)}건 · ${range}`
 }
