@@ -1439,7 +1439,7 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
 .cost-col--after { border-color: color-mix(in srgb, var(--color-increase) 30%, transparent); background: var(--color-increase-subtle); }
 .cost-col__label { font-size: 13px; font-weight: 800; color: var(--color-text); }
 .cost-col__bar-wrap { width: 100%; height: 36px; background: var(--color-bg); border-radius: var(--radius-sm); border: 1px solid var(--color-border); overflow: hidden; display: flex; align-items: center; }
-.cost-col__bar { height: 100%; display: flex; align-items: center; padding: 0 12px; color: #fff; font-weight: 800; font-family: var(--font-num); font-size: 13px; }
+.cost-col__bar { height: 100%; display: flex; align-items: center; padding: 0 12px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-weight: 800; font-family: var(--font-num); font-size: 13px; }
 .cost-col__sub { font-size: 11.5px; color: var(--color-text-muted); }
 
 
@@ -1480,10 +1480,10 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
   }
   .g-text {
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 700;
     margin: 0;
     line-height: 1.4;
-    color: var(--color-primary-text);
+    color: var(--color-primary);
   }
   .g-role {
     display: flex;
@@ -1497,7 +1497,7 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
   }
   .g-role-tag {
     font-weight: 700;
-    color: var(--color-primary-text);
+    color: var(--color-text);
     white-space: nowrap;
   }
 
@@ -1509,7 +1509,7 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
     border-radius: var(--radius-sm);
     font-size: 12.5px;
     line-height: 1.4;
-    color: var(--color-primary-text);
+    color: var(--color-text);
   }
 
   .persona-v2-compare {
@@ -1542,9 +1542,9 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
   .pv2-text {
     margin: 0;
     font-size: 12.5px;
-    font-weight: 500;
+    font-weight: 600;
     line-height: 1.4;
-    color: var(--color-primary-text);
+    color: var(--color-text);
   }
   .persona-tags {
     display: flex;
@@ -1606,7 +1606,7 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
     padding: 0;
     font-size: 13px;
     line-height: 1.6;
-    color: var(--color-primary-text);
+    color: var(--color-text);
   }
   .dart-vs-list li {
     margin-bottom: 6px;
@@ -1767,7 +1767,7 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
         <span class="badge badge--ok" style="font-size:12px; font-weight:800">🏛️ 대한민국 금융감독원 공식 시스템</span>
         <span class="badge badge--accent" style="font-size:12px">법적 구속력 100% 팩트</span>
       </div>
-      <h3 style="font-size:22px; margin:12px 0 6px; color:var(--color-primary-text)">
+      <h3 style="font-size:22px; margin:12px 0 6px; color:var(--color-primary)">
         📋 전자공시 (DART / OpenDART)란?
       </h3>
       <p style="font-size:15px; font-weight:700; color:var(--color-accent); margin:0 0 16px;">
@@ -2477,119 +2477,99 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
 </section>
 
 <!-- 5. 분석 방법과 기준 -->
-<section id="methods" data-title="분석 방법과 기준">
+<section id="methods" data-title="4대 분석 기준">
   <div class="sechead-4zone">
     <div class="zone-a">
-      <p class="kicker">05 · Analysis Methods & Criteria</p>
-      <h2>무엇을, 어떤 기준으로 비교하고 판단하는가?</h2>
-      <p>분석의 대부분은 LLM이 아니라 코드의 규칙과 상수로 이뤄집니다. 아래 숫자는 모두 지금 저장소의 코드에 적힌 값이고, 규칙을 바꾸면 버전을 올려 이전 결과와 섞이지 않게 합니다.</p>
+      <p class="kicker">05 · Verification Criteria</p>
+      <h2>코드 기반 4단계 팩트 검증 기준</h2>
+      <p>LLM의 자의적 해석을 배제하고, 100% 코드 규칙과 상수로만 검증합니다.</p>
     </div>
     <div class="zone-b-badge">
-      <span class="zone-b-term">🔍 연결재무제표 & 가이드라인</span>
-      <span class="zone-b-def">자회사 실적 합산 성적표 & 8대 분석 엄격 기준표</span>
-    </div>
-  </div>
-  <div class="grid g2">
-    <div class="card crit-card">
-      <p class="label">Stage 1 · 비교 가능 조건</p>
-      <h3>두 보고서를 비교해도 되는가</h3>
-      <ul class="crit">
-        <li><b>같은 기업</b>의 <b>서로 다른</b> 보고서이고, 비교 보고서가 <b>앞선 기간</b>이어야 합니다. 정정 공시로 대체된 보고서는 쓰지 않습니다.</li>
-        <li>재무제표는 <b>연결을 먼저</b>, 두 보고서 모두에 없으면 별도를 씁니다. 같은 기준이 없거나 <b>통화가 다르면</b> 비교하지 않습니다.</li>
-        <li>재무상태표는 늘 비교하고, 손익은 같은 종류면 <b>누적</b>·둘 다 분·반기면 <b>3개월</b> 금액을 비교합니다. 현금흐름·자본변동은 같은 종류끼리만 비교합니다.</li>
-        <li>비교할 수 없으면 다른 보고서로 바꾸거나 숫자를 만들지 않고 <b>사유와 다음 행동</b>을 알려 줍니다.</li>
-      </ul>
-      <span class="adr">ComparabilityService · StatementRules</span>
-    </div>
-    <div class="card crit-card">
-      <p class="label">Stage 2 · 재무 수치</p>
-      <h3>증감은 코드가 계산</h3>
-      <ul class="crit">
-        <li>계정은 <b>표준계정코드</b>로 짝짓고, 없으면 정리한 계정명으로 맞춥니다. 해마다 코드가 바뀐 계정은 이름으로 한 번 더 찾습니다.</li>
-        <li><b>증감액 = 현재 − 이전</b>, <b>증감률 = 증감액 ÷ 이전</b>(이전 값이 양수이고 현재 값이 음수가 아닐 때만, 소수 6자리).</li>
-        <li>증감률을 내지 않는 경우는 <b>13가지 사유</b>로 남깁니다: 이전 값 0·음수, 흑자전환·적자전환, 적자폭 축소·확대, 부호 바뀜, 이전·현재 값 없음, 한쪽에만 있는 계정, 짝 확정 불가, 기간 기준 다름.</li>
-        <li>없는 값은 <b>null</b>로 두고 0과 구분합니다. LLM은 계산에 쓰지 않습니다.</li>
-      </ul>
-      <span class="adr">FinancialComparator · CalcStatus · ADR-0006</span>
-    </div>
-    <div class="card crit-card">
-      <p class="label">Stage 3 · 문장·표 변경</p>
-      <h3>LLM 없이 규칙으로 찾기</h3>
-      <ul class="crit">
-        <li>섹션은 번호를 뺀 <b>목차 경로</b>로 짝짓고, 경로가 없으면 같은 상위 섹션에서 제목이 <b>0.8 이상</b> 비슷한 것끼리 짝짓습니다.</li>
-        <li>문단·표는 <b>숫자를 가린 글</b>로 맞춘 뒤 <b>0.5 이상</b> 비슷하면 수정, 숫자만 다르면 <b>숫자만 바뀜</b>, 한쪽에만 있으면 추가·삭제입니다.</li>
-        <li>숫자를 가린 글이 <b>0.95 이상</b> 비슷하고 20자 이상인 블록이 다른 자리에 있으면 <b>위치 이동</b>입니다. 띄어쓰기·문장부호 말고 한 글자라도 다르면 내용 변경으로 봅니다.</li>
-        <li>기수·연도·기준일만 바뀐 글, 띄어쓰기만 다른 글, 짧은 제목 줄은 <b>잡음으로 접고</b>, 재무제표 주석은 소송·우발부채·담보·채무보증·보고기간 후 사건만 올립니다.</li>
-      </ul>
-      <span class="adr">text_diff.py · period.py · listing.py · ADR-0021</span>
-    </div>
-    <div class="card crit-card">
-      <p class="label">Stage 4 · 확인 우선순위</p>
-      <h3>무엇부터 볼지 점수로</h3>
-      <ul class="crit">
-        <li>섹션 점수: <b>사업의 내용 30</b>, 경영진단·투자자 보호·우발부채·소송 25, 대주주·특수관계자 20, 재무에 관한 사항 10, 그 밖 5.</li>
-        <li>추가·삭제 <b>+20</b>, 수정 +10(비슷한 정도 0.7 미만이면 +10 더), 문단 +10, 숫자만 바뀜·위치 이동 <b>−20</b>.</li>
-        <li>계속기업·소송·제재·합병 등 <b>핵심어 26개</b> 중 2개까지 각 +15. <b>60점 이상 높음</b>, 30점 이상 중간입니다.</li>
-        <li>두 보고서의 항목을 짝짓지 못한 변경은 순위를 매기지 않습니다(<b>판단 유보</b>). 점수는 확인 순서일 뿐 좋고 나쁨이 아닙니다.</li>
-      </ul>
-      <span class="adr">priority.py · ADR-0021</span>
-    </div>
-    <div class="card crit-card">
-      <p class="label">Stage 5 · 근거 문단과 설명 등급</p>
-      <h3>설명은 회사가 쓴 문단에서만</h3>
-      <ul class="crit">
-        <li>현재 보고서 문단 중 <b>40자 이상</b>이고 계정 검색어가 들어 있는 것을 <b>글자 2개 단위 BM25</b>(k1 1.5, b 0.75)로 순위를 매겨 <b>상위 5개</b>를 고릅니다.</li>
-        <li>경영진단 문단은 <b>×1.5</b>, 사업의 내용은 <b>×1.3</b> 가중치를 줍니다. 같은 입력이면 늘 같은 후보가 같은 순서로 나옵니다.</li>
-        <li>설명 등급은 <b>회사가 원인을 밝힘 · 관련 내용 · 확인된 설명 없음</b> 세 가지입니다. 인용이 원문에 그대로 없으면 코드가 등급을 낮춥니다.</li>
-        <li>'때문·덕분·으로 인해·에 기인' 같은 <b>원인 표현</b>은 회사가 원인을 직접 밝힌 경우에만 씁니다.</li>
-      </ul>
-      <span class="adr">search.py · causal.py · ADR-0015 · 0036</span>
-    </div>
-    <div class="card crit-card">
-      <p class="label">Stage 6 · 요약할 변화 고르기</p>
-      <h3>고르는 일도 코드가</h3>
-      <ul class="crit">
-        <li>재무 수치는 <b>손익 3 · 재무상태 2 · 현금흐름 1</b>개를 고릅니다. 회사가 문단에서 설명하는 <b>대표 계정</b>(매출액·영업이익·당기순이익·자산총계·부채총계·영업활동현금흐름)을 먼저, 그다음 증감액이 큰 순입니다.</li>
-        <li>문장 변화는 우선순위 <b>높음·중간 중 상위 5개</b>이고, 숫자만 바뀜·위치 이동·검토 필요는 뺍니다.</li>
-        <li>요약 줄은 수익성·성장·재무 안정성·현금흐름·주주 환원·위험 <b>6가지 관점</b>으로 묶습니다. 주제로 묶을 뿐 좋고 나쁨은 판단하지 않습니다.</li>
-      </ul>
-      <span class="adr">SummarySelector · SummaryLens · AccountAliases</span>
-    </div>
-    <div class="card crit-card card--glow">
-      <p class="label">Stage 7 · 사건 신호</p>
-      <h3>신호는 AI가 아니라 기준표가</h3>
-      <ul class="crit">
-        <li>AI는 사건의 <b>종류와 변화</b>만 근거와 함께 고르고, 신호는 <b>30종류 · 62가지 변화</b>의 기준표로 코드가 붙입니다. 긍정 13 · 주의 20 · 양면 13 · 기준 없음 16입니다.</li>
-        <li>기준표에 없거나, 근거를 원문에서 확인하지 못했거나, 좋은 면·나쁜 면이 함께 있으면 <b>보류</b>입니다. 해소·철회는 그렇게 적힌 문장이 있어야 하고, 문장이 사라진 것만으로는 인정하지 않습니다.</li>
-        <li>금액 <b>규모는 신호를 바꾸지 않습니다</b>. 공시 분석 탭의 활동 카드도 같은 기준표를 씁니다.</li>
-      </ul>
-      <span class="adr">signals.py · signal_table.json · ADR-0060</span>
-    </div>
-    <div class="card crit-card">
-      <p class="label">Stage 8 · 관련 수시공시와 체크포인트</p>
-      <h3>함께 볼 공시와 재무 경고</h3>
-      <ul class="crit">
-        <li>관련 수시공시는 <b>이전 보고서 기간 말 ~ 현재 보고서 제출일</b>에서 찾고, 소송·공급계약·자본 조달·빚 조달·투자·사업 구조 변경·존속 위험·실적 <b>8가지 규칙</b>에 변경과 공시가 함께 걸릴 때만 잇습니다. 주요정보 값까지 맞으면 <b>내용 일치</b>입니다.</li>
-        <li>기업 체크포인트 7항목: 매출채권·재고자산 증가율이 매출보다 <b>10%p</b> 넘게 빠름, 부채비율 <b>+20%p</b> 또는 자본잠식, 단기 차입금 증가율이 매출보다 <b>20%p</b> 빠름, 이익은 나는데 영업현금흐름 마이너스, 주식 관련 자금 조달 공시, 비적정 감사의견·계속기업 강조사항.</li>
-        <li>값이 없으면 <b>자료 없음</b>으로 두고, 관련 공시에는 '변경의 원인을 뜻하지 않습니다'를 늘 함께 보입니다.</li>
-      </ul>
-      <span class="adr">RelatedDisclosureRules · CheckpointRules · ADR-0030 · 0038</span>
+      <span class="zone-b-term">🔍 4대 판정 규칙</span>
+      <span class="zone-b-def">13가지 수치 사유 코드화 & 컴플라이언스 6대 금지어 자동 필터</span>
     </div>
   </div>
 
-  <div class="callout" style="margin-top:24px">
-    <span aria-hidden="true" style="font-size:20px">✓</span>
-    <div>
-      <p><strong>공시를 근거로 쓴 AI 문장은 모두 같은 관문을 지납니다</strong></p>
-      <p class="muted" style="margin-top:4px">근거 ID가 보낸 원문 위치인지, 문장의 숫자가 인용한 원문에 있는지 코드가 확인하고, 어긋나면 <strong>2번까지</strong> 다시 만든 뒤 그래도 안 되면 '검토 필요'로 남깁니다. 화면에 내보내기 전에는 <strong>매수·매도 권유 · 투자 권유 · 목표주가 · 주가 예측 · 가치 판단 · 수익 보장</strong> 6가지 표현 규칙을 검사합니다. 예외는 용어 카드도 보고서 설명도 없는 금융 용어 풀이 하나로, 근거 없이 쓰는 대신 <strong>'AI 일반 설명 · 공시 근거 아님'</strong> 표시를 붙이고 회사 정보를 넣지 않으며 표현 검사는 똑같이 거칩니다(ADR-0064). 규칙 버전: 분석 <code>m2-20</code> · 문장 비교 <code>text-diff-2</code> · 우선순위 <code>priority-3</code> · 설명 등급 <code>grade-2</code> · 표현 <code>expr-1</code> · 신호 <code>signal-table-2</code> · 공시 연결 <code>related-3</code>.</p>
+  <!-- 4단계 검증 파이프라인 그리드 -->
+  <div class="grid g2" style="gap:16px;">
+    <!-- Step 1: 비교 가능 조건 검증 -->
+    <div class="card" style="border-left: 4px solid var(--color-primary);">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="label" style="color:var(--color-primary)">Step 1 · 사전 검증</span>
+        <span class="badge badge--ok">FSM 검증기</span>
+      </div>
+      <h3 style="margin:6px 0 10px; font-size:16px;">동일 기업 & 이전 분기 일치성</h3>
+      <div class="flow-pill-list" style="display:flex; flex-direction:column; gap:6px;">
+        <span class="flow-pill">🏢 <strong>같은 기업 & 이전 기간 필수:</strong> 정정 공시로 대체된 보고서 자동 배제</span>
+        <span class="flow-pill">📊 <strong>연결재무제표 우선 매칭:</strong> 두 보고서 모두 연결 기준 / 통화 일치 검증</span>
+        <span class="flow-pill" style="color:var(--color-critical); font-weight:700">🚫 <strong>비교 불가 시 사유 명시:</strong> 임의 생성 없이 다음 행동 안내</span>
+      </div>
+    </div>
+
+    <!-- Step 2: 재무 수치 증감 연산 -->
+    <div class="card" style="border-left: 4px solid var(--color-increase);">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="label" style="color:var(--color-increase)">Step 2 · 100% 코드 연산</span>
+        <span class="badge badge--ok">Java 백엔드</span>
+      </div>
+      <h3 style="margin:6px 0 10px; font-size:16px;">증감액·증감률 100% 코드 연산</h3>
+      <div class="flow-pill-list" style="display:flex; flex-direction:column; gap:6px;">
+        <span class="flow-pill">🔢 <strong>증감액 = 현재 − 이전:</strong> LLM에 계산 위임 절대 금지 (정확도 100%)</span>
+        <span class="flow-pill">📐 <strong>13가지 증감률 사유 코드화:</strong> 흑자전환·적자전환·0 나누기 에러 원천 방어</span>
+        <span class="flow-pill" style="color:var(--color-increase); font-weight:700">🔒 <strong>null ≠ 0 엄격 분리:</strong> 없는 값을 0으로 왜곡하는 환각 차단</span>
+      </div>
+    </div>
+
+    <!-- Step 3: 문장 및 표 변경 탐지 -->
+    <div class="card" style="border-left: 4px solid var(--color-accent);">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="label" style="color:var(--color-accent)">Step 3 · 알고리즘 대조</span>
+        <span class="badge">잡음 필터</span>
+      </div>
+      <h3 style="margin:6px 0 10px; font-size:16px;">목차 경로 & 블록 유사도 판정</h3>
+      <div class="flow-pill-list" style="display:flex; flex-direction:column; gap:6px;">
+        <span class="flow-pill">📑 <strong>목차 경로 1:1 매칭:</strong> 상위 섹션 제목 유사도 0.8 이상 정밀 짝짓기</span>
+        <span class="flow-pill">🔍 <strong>숫자 마스킹 유사도 0.5↑:</strong> 내용 수정 / 숫자만 바뀜 / 20자 위치이동(0.95↑) 분리</span>
+        <span class="flow-pill" style="color:var(--color-accent); font-weight:700">🧹 <strong>단순 기수·날짜 잡음 필터링:</strong> 띄어쓰기 변경 등 무의미한 잡음 자동 제거</span>
+      </div>
+    </div>
+
+    <!-- Step 4: 사건 신호 및 근거 직결 -->
+    <div class="card card--glow" style="border-left: 4px solid var(--color-primary);">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="label" style="color:var(--color-primary)">Step 4 · 신호 & 근거</span>
+        <span class="badge badge--ok">45ms BM25</span>
+      </div>
+      <h3 style="margin:6px 0 10px; font-size:16px;">30종류·62변화 팩트 신호 판정</h3>
+      <div class="flow-pill-list" style="display:flex; flex-direction:column; gap:6px;">
+        <span class="flow-pill">🚦 <strong>긍정·주의·보류 코드 판정:</strong> AI 주관 배제, 코드 기준표로 신호 부착</span>
+        <span class="flow-pill">🎯 <strong>2-gram BM25 근거 탐색:</strong> 45ms 만에 재무 증감 사유 원문 문단 적출</span>
+        <span class="flow-pill" style="color:var(--color-primary); font-weight:700">🔗 <strong>#접수번호#B블록번호 앵커:</strong> 모든 요약 문장에 1초 원문 점프 연결</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 금융 컴플라이언스 6대 절대 금지 표현 필터 바 -->
+  <div class="compliance-guard-bar" style="margin-top:20px; padding:16px 20px; background:var(--color-bg-subtle); border-radius:var(--radius-sm); border:1px solid var(--color-border);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <span class="label" style="color:var(--color-decrease); font-weight:800; font-size:12px;">🛡️ 금융 컴플라이언스 6대 절대 금지 표현 필터 (자본시장법 준수)</span>
+      <span class="badge badge--danger" style="font-size:11px;">위반 시 자동 기각</span>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+      <span class="c-chip" style="padding:4px 10px; background:#FFF0F2; color:var(--color-decrease); border:1px solid rgba(181,56,70,0.25); border-radius:var(--radius-pill); font-size:12px; font-weight:700">❌ 매수·매도 권유 차단</span>
+      <span class="c-chip" style="padding:4px 10px; background:#FFF0F2; color:var(--color-decrease); border:1px solid rgba(181,56,70,0.25); border-radius:var(--radius-pill); font-size:12px; font-weight:700">❌ 목표주가 산정 차단</span>
+      <span class="c-chip" style="padding:4px 10px; background:#FFF0F2; color:var(--color-decrease); border:1px solid rgba(181,56,70,0.25); border-radius:var(--radius-pill); font-size:12px; font-weight:700">❌ 주가 등락 예측 차단</span>
+      <span class="c-chip" style="padding:4px 10px; background:#FFF0F2; color:var(--color-decrease); border:1px solid rgba(181,56,70,0.25); border-radius:var(--radius-pill); font-size:12px; font-weight:700">❌ 주관적 가치판단 차단</span>
+      <span class="c-chip" style="padding:4px 10px; background:#FFF0F2; color:var(--color-decrease); border:1px solid rgba(181,56,70,0.25); border-radius:var(--radius-pill); font-size:12px; font-weight:700">❌ 수익률 보장 약속 차단</span>
+      <span class="c-chip" style="padding:4px 10px; background:#EAF8F1; color:var(--color-increase); border:1px solid rgba(20,121,85,0.25); border-radius:var(--radius-pill); font-size:12px; font-weight:800">✅ 공시 원문 근거 100% 필수</span>
     </div>
   </div>
 
   <!-- Zone D: Bottom Proof Bar -->
   <div class="zone-d-proof">
     <span class="zone-d-chip">증감 계산 <b>100% 백엔드 코드</b></span>
-    <span class="zone-d-chip">표현 자동 검사 <b>6대 규칙 강제</b></span>
-    <span class="zone-d-chip">원문 근거 없는 설명 <b>기각</b></span>
+    <span class="zone-d-chip">컴플라이언스 <b>6대 표현 자동 차단</b></span>
+    <span class="zone-d-chip">원문 근거 없는 설명 <b>100% 기각</b></span>
   </div>
 
   <div class="demo-journey-box">
@@ -3761,18 +3741,18 @@ stepper('#userflow', '#flowtext', [
 "24건의 타임라인을 1개 문단으로 압축하고, 긍정·주의 신호는 AI가 아닌 코드 기준표가 100% 판정합니다!"`
     },
     {
-      title: '06 · 분석 방법과 기준 (코드에 적힌 규칙과 표현 가드레일)',
+      title: '05 · 코드 기반 4단계 팩트 검증 기준',
       text: `[도발적 질문 Hook]
-"AI가 '이 주식 대박 호재입니다'라고 말하는 순간 어떤 법적 리스크가 발생할까요?"
+"LLM에게 '이 회사 실적 어때?'라고 물어보면 그럴듯한 답변이 나오지만, 수치 계산을 맡기면 왜 치명적일까요?"
 
 [1초 용어 통역]
-"우측 상단 돋보기를 보시죠. '표현 가드레일'은 매수/매도 권유와 주관적 평가를 기계적으로 차단하는 컴플라이언스 규칙입니다."
+"우측 상단 돋보기를 보시죠. '4대 판정 규칙'이란 13가지 증감 사유 코드화와 컴플라이언스 6대 금지어를 자동으로 검사하는 안전벨트입니다."
 
 [시각 요소 지시어]
-"화면의 4대 분석 규칙과 검증 절차를 보십시오. 증감액 계산, 문장 변경 탐지, BM25 근거 탐색, 6가지 표현 자동 검사를 모두 코드가 강제합니다."
+"화면의 4단계 검증 파이프라인을 보십시오. 비교 조건 검증부터 100% Java 백엔드 계산, 목차 유사도 판정, 코드 기준표 신호까지 오직 결정론적 코드로만 통제합니다."
 
 [숫자 타격감 마무리]
-"13가지 증감 사유 코드화, 금지 표현 0건, 기준 미달 시 최대 2회 재생성으로 자본시장법을 100% 준수합니다!"`
+"증감 계산 100% 백엔드 코드 연산, 6대 컴플라이언스 규칙 검사, 원문 근거 없는 문장은 100% 기각하는 무결점 시스템입니다!"`
     },
     {
       title: '07 · 사용자 임팩트 & 접근성 (초보부터 전문가까지)',

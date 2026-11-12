@@ -752,11 +752,11 @@ def build_presentation():
 [숫자 타격감 마무리]
 "파편화된 1년 치 공시를 단 하나의 스토리라인으로 완벽히 꿰뚫어 줍니다!\"""")
 
-    # SLIDE 18: 분석 방법과 기준
+    # SLIDE 18: 분석 방법과 기준 -> 4단계 팩트 검증 기준
     s18 = prs.slides.add_slide(blank_layout)
     set_slide_background(s18, is_dark=False)
-    add_zone_a_header(s18, "06 · 분석 방법과 기준", "코드에 적힌 규칙으로 재무 수치와 문장 변화를 판단")
-    add_zone_b_glossary(s18, "수용 기준(AC)", "기능 합격 여부를 판정하는 기계적 채점표")
+    add_zone_a_header(s18, "05 · 4단계 검증 기준", "코드 기반 4단계 팩트 검증 파이프라인")
+    add_zone_b_glossary(s18, "4대 판정 규칙", "13가지 수치 사유 코드화 & 컴플라이언스 6대 금지어 필터")
     # Zone C: 4 Rule Cards
     rules = [
         ("01. 비교 조건 검증", "동일 기업(corp_code), 기간 선후, 연결/별도 기준, 통화(KRW) 일치 확인 후 비교 진행", LIGHT_PURPLE),
