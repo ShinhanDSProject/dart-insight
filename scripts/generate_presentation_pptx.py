@@ -486,12 +486,19 @@ def build_presentation():
     # [우측 카드]: 대한민국 전자공시 DART (금융감독원 100% 공인 팩트)
     draw_card(s02, Inches(6.8), Inches(1.65), Inches(5.65), Inches(3.6), LIGHT_POSITIVE_TINT, LIGHT_POSITIVE, 2.0)
     
+    # 상단 뱃지
+    tb_r_badge = s02.shapes.add_textbox(Inches(7.05), Inches(1.72), Inches(5.15), Inches(0.35))
+    tf_r_badge = tb_r_badge.text_frame; tf_r_badge.word_wrap = True
+    tf_r_badge.margin_left = tf_r_badge.margin_top = tf_r_badge.margin_right = tf_r_badge.margin_bottom = 0
+    p_rb = tf_r_badge.paragraphs[0]; p_rb.text = "🏛️ 대한민국 국가 공인 시스템 · DART 주요사항보고서"
+    p_rb.font.name = FONT_HEADING; p_rb.font.size = Pt(10.5); p_rb.font.bold = True; p_rb.font.color.rgb = LIGHT_POSITIVE
+
     # DART 공식 커버 이미지
     if os.path.exists(dart_img_path):
-        draw_card(s02, Inches(7.05), Inches(1.78), Inches(5.15), Inches(1.05), LIGHT_CARD, LIGHT_BORDER, 1.0)
-        s02.shapes.add_picture(dart_img_path, Inches(7.15), Inches(1.83), Inches(4.95), Inches(0.95))
+        draw_card(s02, Inches(7.05), Inches(2.1), Inches(5.15), Inches(1.85), LIGHT_CARD, LIGHT_BORDER, 1.0)
+        s02.shapes.add_picture(dart_img_path, Inches(7.15), Inches(2.15), Inches(4.95), Inches(1.75))
 
-    tb_r = s02.shapes.add_textbox(Inches(7.05), Inches(2.95), Inches(5.15), Inches(2.2))
+    tb_r = s02.shapes.add_textbox(Inches(7.05), Inches(4.05), Inches(5.15), Inches(1.1))
     tf_r = tb_r.text_frame; tf_r.word_wrap = True
     tf_r.margin_left = tf_r.margin_top = tf_r.margin_right = tf_r.margin_bottom = 0
     p = tf_r.paragraphs[0]
@@ -501,18 +508,8 @@ def build_presentation():
     p_sub = tf_r.add_paragraph()
     p_sub.text = "국가 공인 법적 100% 팩트 데이터"
     p_sub.font.name = FONT_BODY; p_sub.font.size = Pt(11); p_sub.font.bold = True; p_sub.font.color.rgb = LIGHT_TEXT_PRIMARY
-    p_sub.space_after = Pt(8)
+    p_sub.space_after = Pt(4)
 
-    items_r = [
-        ("100% 공인 팩트", "자본시장법에 따라 허위 기재 시 형사 처벌을 받는 공식 문서"),
-        ("기업의 모든 진실", "5대 재무제표, 경영진 해설(MD&A), 소송·지배구조 원문 수록"),
-        ("DART Insight 연동", "OpenDART 공식 API로 1초 만에 원문 수집 및 위변조 방어")
-    ]
-    for title, desc in items_r:
-        p_t = tf_r.add_paragraph()
-        p_t.text = f"• {title}: {desc}"
-        p_t.font.name = FONT_BODY; p_t.font.size = Pt(9.5); p_t.font.color.rgb = LIGHT_TEXT_BODY
-        p_t.space_after = Pt(4)
     p_r_tag = tf_r.add_paragraph()
     p_r_tag.text = "✓ 국가 공인 법적 100% 팩트 · 대한민국 상장사 무결성 보장"
     p_r_tag.font.name = FONT_BODY; p_r_tag.font.size = Pt(9.5); p_r_tag.font.bold = True; p_r_tag.font.color.rgb = LIGHT_POSITIVE
