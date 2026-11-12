@@ -327,96 +327,147 @@ def build_presentation():
 
     # =========================================================================
     # =========================================================================
-    # PART 1-A. 왜 지금 재테크와 기업 분석인가? (인플레이션 방어 & 복리의 마법)
+    # PART 1-A. 왜 지금 재테크와 기업 분석인가? (인플레이션 방어 & 3대 비주얼 로드맵)
     # =========================================================================
-    # SLIDE 02: 인플레이션 시대 재테크와 3단계 팩트 로드맵
+    # SLIDE 02: 인플레이션 시대 재테크와 3대 비주얼 로드맵
     s02_wealth = prs.slides.add_slide(blank_layout)
     set_slide_background(s02_wealth, is_dark=False)
     add_zone_a_header(s02_wealth, "00-A · 왜 재테크인가?", "숨만 쉬어도 돈 가치가 떨어지는 시대, 왜 기업 분석과 재테크인가?")
     add_zone_b_glossary(s02_wealth, "인플레이션 & 복리의 마법", "화폐 가치 하락 방어 & 우량 기업 팩트 분석 기반 자산 증식")
 
-    # Zone C: 3단계 인포그래픽 카드 그리드 (위기 인식 -> 기존의 함정 -> DART Insight 해답)
-    w_cards = [
-        ("💸 1. 인플레이션 시대 생존", "가만히 있으면 실질 자산 하락",
-         "• 월급 인상률 < 물가 상승률: 예적금만으로는 자산 가치 마이너스\\n• 워런 버핏의 조언: 강력한 경제적 해자를 가진 기업에 투자 필수\\n• 인플레이션을 이기고 복리의 마법을 누리기 위한 우량 기업 분석", LIGHT_DANGER, LIGHT_DANGER_TINT),
-        ("📉 2. 찌라시 투자 & AI 환각", "소문 의존과 가짜 숫자의 덫",
-         "• 300쪽 소설책 4권 분량에 압도되어 공시 직접 읽기를 포기\\n• 유튜브 찌라시·게시판 소문만 믿고 묻지마 투자하다 원금 손실\\n• 챗GPT 등 시중 AI는 없는 숫자를 지어내는 치명적 환각 발생", LIGHT_ATTENTION, LIGHT_ATTENTION_TINT),
-        ("🛡️ 3. DART Insight 팩트 비서", "5초 팩트 대조 & 무환각 분석",
-         "• 법적 구속력을 지닌 금감원 100% 공인 팩트 데이터 직결\\n• Java 백엔드 100% 수치 연산으로 AI 환각 발생률 0.00% 격리\\n• 4시간 걸리던 대조를 5초 만에 완료하는 안전한 재테크 AI 비서", LIGHT_POSITIVE, LIGHT_POSITIVE_TINT)
-    ]
-    for i, (wtitle, wsub, wbody, wcol, wtint) in enumerate(w_cards):
-        wx = Inches(0.8) + Inches(3.98) * i
-        draw_card(s02_wealth, wx, Inches(1.65), Inches(3.8), Inches(4.85), wtint, wcol, 1.5)
-        tb_w = s02_wealth.shapes.add_textbox(wx + Inches(0.25), Inches(1.85), Inches(3.3), Inches(4.3))
-        tf_w = tb_w.text_frame; tf_w.word_wrap = True
-        p = tf_w.paragraphs[0]; p.text = wtitle; p.font.size = Pt(16); p.font.bold = True; p.font.color.rgb = wcol; p.space_after = Pt(4)
-        p0 = tf_w.add_paragraph(); p0.text = wsub; p0.font.size = Pt(12); p0.font.bold = True; p0.font.color.rgb = LIGHT_TEXT_PRIMARY; p0.space_after = Pt(12)
-        p1 = tf_w.add_paragraph(); p1.text = wbody; p1.font.size = Pt(11); p1.font.color.rgb = LIGHT_TEXT_BODY
+    # Zone C: 3대 비주얼 카드 (인플레이션 차트 -> 피노키오 AI 환각 -> DART Insight 팩트 비서)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.abspath(os.path.join(script_dir, ".."))
+    chart_img_path = os.path.join(project_root, "frontend", "public", "easter", "inflation-chart.png")
+    pinocchio_img_path = os.path.join(project_root, "frontend", "public", "easter", "pinocchio-hallucination.jpg")
+    logo_img_path = os.path.join(project_root, "frontend", "public", "easter", "dart-insight-logo.png")
 
-    add_zone_d_proof_bar(s02_wealth, 2, TOTAL_SLIDES, ["인플레이션 방어", "수치 환각 0.00%", "공인 팩트 100%"], ["실질 자산 방어", "환각 위험 제로", "5초 팩트 대조"])
+    from PIL import Image as PILImage
+
+    w_visual_cards = [
+        ("💸 Stage 01 · 위기 인식", "인플레이션 시대의 생존", "시간이 흐를수록 급락하는 현금 가치",
+         chart_img_path, "📉 현금 실질 가치 -72% 폭락 (가만히 있으면 손실)", LIGHT_DANGER, LIGHT_DANGER_TINT),
+        ("🤥 Stage 02 · 기존의 함정", "찌라시 투자 & AI 환각의 덫", "거짓말하면 코가 늘어나는 피노키오와 시중 AI",
+         pinocchio_img_path, "🤥 챗GPT의 수치 왜곡 · 피 같은 투자금 손실 위험", LIGHT_ATTENTION, LIGHT_ATTENTION_TINT),
+        ("🛡️ Stage 03 · 시스템 해답", "DART Insight 팩트 비서", "100% 원문 직결 & 환각 없는 5초 대조",
+         logo_img_path, "✓ 100% 원문 직결 & 환각 없는 5초 대조", LIGHT_POSITIVE, LIGHT_POSITIVE_TINT)
+    ]
+
+    for i, (wstage, wtitle, wsub, img_path, wtag, wcol, wtint) in enumerate(w_visual_cards):
+        wx = Inches(0.8) + Inches(3.98) * i
+        # 카드 배경
+        draw_card(s02_wealth, wx, Inches(1.65), Inches(3.8), Inches(4.85), wtint, wcol, 1.5)
+        # 텍스트 헤더
+        tb_w = s02_wealth.shapes.add_textbox(wx + Inches(0.2), Inches(1.78), Inches(3.4), Inches(0.8))
+        tf_w = tb_w.text_frame; tf_w.word_wrap = True
+        tf_w.margin_left = tf_w.margin_top = tf_w.margin_right = tf_w.margin_bottom = 0
+        p = tf_w.paragraphs[0]; p.text = wstage; p.font.name = FONT_HEADING; p.font.size = Pt(12); p.font.bold = True; p.font.color.rgb = wcol; p.space_after = Pt(2)
+        p0 = tf_w.add_paragraph(); p0.text = wtitle; p0.font.name = FONT_HEADING; p0.font.size = Pt(14); p0.font.bold = True; p0.font.color.rgb = LIGHT_TEXT_PRIMARY; p0.space_after = Pt(2)
+        p1 = tf_w.add_paragraph(); p1.text = wsub; p1.font.name = FONT_BODY; p1.font.size = Pt(9.5); p1.font.color.rgb = LIGHT_TEXT_MUTED
+
+        # 미디어 이미지
+        if os.path.exists(img_path):
+            img_box_y = Inches(2.7)
+            img_box_h = Inches(2.8)
+            img_box_w = Inches(3.4)
+            img_box_x = wx + Inches(0.2)
+            draw_card(s02_wealth, img_box_x, img_box_y, img_box_w, img_box_h, LIGHT_CARD, LIGHT_BORDER, 1.0)
+            
+            with PILImage.open(img_path) as pimg:
+                pw, ph = pimg.size
+                aspect = pw / ph
+            
+            avail_w = 3.2
+            avail_h = 2.6
+            if avail_w / avail_h > aspect:
+                target_h = avail_h
+                target_w = target_h * aspect
+            else:
+                target_w = avail_w
+                target_h = target_w / aspect
+            
+            img_left = img_box_x + Inches((3.4 - target_w) / 2)
+            img_top = img_box_y + Inches((2.8 - target_h) / 2)
+            s02_wealth.shapes.add_picture(img_path, img_left, img_top, Inches(target_w), Inches(target_h))
+
+        # 하단 단일 타격감 뱃지
+        badge_y = Inches(5.68)
+        draw_card(s02_wealth, wx + Inches(0.2), badge_y, Inches(3.4), Inches(0.62), LIGHT_CARD, wcol, 1.2)
+        tb_tag = s02_wealth.shapes.add_textbox(wx + Inches(0.25), badge_y + Inches(0.06), Inches(3.3), Inches(0.5))
+        tf_tag = tb_tag.text_frame; tf_tag.word_wrap = True
+        tf_tag.margin_left = tf_tag.margin_top = tf_tag.margin_right = tf_tag.margin_bottom = 0
+        p_tag = tf_tag.paragraphs[0]; p_tag.text = wtag; p_tag.font.name = FONT_BODY; p_tag.font.size = Pt(9.5); p_tag.font.bold = True; p_tag.font.color.rgb = wcol
+        p_tag.alignment = PP_ALIGN.CENTER
+
+    add_zone_d_proof_bar(s02_wealth, 2, TOTAL_SLIDES, ["인플레이션 방어", "수치 환각 0.00%", "공인 팩트 100%"], ["현금 실질가치 -72% 방어", "AI 환각 위험 0.00%", "100% 원문 직결"])
     set_speaker_notes(s02_wealth, """[도발적 질문 Hook]
-"여러분, 가만히 숨만 쉬어도 통장 잔고의 실질 가치가 깎여나가는 인플레이션 시대, 여러분은 내 자산을 지키기 위해 어떤 재테크를 하고 계십니까?"
+"월급 빼고 다 오르는 고물가 시대, 가만히 숨만 쉬고 있어도 내 통장의 실질 구매력은 어떻게 변할까요?"
 
 [1초 용어 통역]
-"우측 상단 돋보기를 보시죠. '인플레이션과 복리의 마법'이란, 화폐 가치 하락을 방어하고 우량 기업 투자를 통해 장기적으로 자산을 불려가는 생존 필수 공식입니다."
+"우측 상단 돋보기를 보시죠. '인플레이션'이란 시간이 흐를수록 돈의 가치가 녹아내리는 현상이고, '복리의 마법'은 우량 기업의 성장에 편승해 내 자산을 지키는 생존 공식입니다."
 
 [시각 요소 지시어]
-"화면의 스마트 재테크 3단계 로드맵을 보십시오. 300페이지 공시를 못 읽어 소문이나 찌라시에 기대다 손실을 보거나, 챗GPT의 수치 환각에 속는 비극을 막고 오직 공인 팩트로 안전하게 투자해야 합니다."
+"화면의 3대 시각 로드맵을 보십시오.
+첫째, 좌측 붉은색 '화폐 가치 하락 그래프'입니다. 10년 전 100이던 현금 가치가 현재 54, 10년 뒤 28로 무려 -72% 폭락합니다. 가만히 있으면 실질 자산은 증발합니다.
+둘째, 가운데 거짓말하면 코가 늘어나는 '피노키오'를 보십시오. 300쪽 공시가 어렵다고 유튜브 찌라시나 시중 생성 AI에 물어보면, 피노키오처럼 가짜 숫자를 지어내는 환각 때문에 소중한 원금을 날리게 됩니다.
+셋째, 우측 'DART Insight 팩트 비서'를 보십시오. 저희는 소문이나 생성 AI의 거짓말이 아니라, 100% 공인 원문 직결과 수치 환각 0.00%로 안전하게 자산을 지키는 스마트 재테크 AI 비서입니다."
 
 [숫자 타격감 마무리]
-"국가 공인 팩트 데이터 100% 직결과 수치 환각 0.00%로 내 소중한 자산을 안전하게 지켜주는 최적의 투자 비서입니다!"
+"현금 실질 가치 -72% 폭락의 위기를 수치 환각 0.00%의 100% DART 공인 팩트 직결로 해결했습니다!"
 """)
 
     # PART 1-B. 도메인 통역: 클라이언트를 위한 1초 공시 용어 사전
     # =========================================================================
-    # SLIDE 02: 전자공시란 무엇인가? 단일 집중 1:1 대비 (인터넷 뉴스 vs 전자공시 DART)
+    # SLIDE 03: 전자공시란 무엇인가? 금융감독원 공인 팩트 단일 쇼케이스
     s02 = prs.slides.add_slide(blank_layout)
     set_slide_background(s02, is_dark=False)
     add_zone_a_header(s02, "00 · 도메인 통역 가이드", "전자공시(DART)란? 기업의 공식 종합 생활기록부")
     add_zone_b_glossary(s02, "전자공시(DART)", "기업이 법에 따라 실적과 사건을 금융감독원에 투명하게 공개하는 공식 생활기록부")
 
-    # Zone C: 1:1 Split Comparison (뉴스/풍문 vs 전자공시 팩트) + 하단 3대 시스템 원칙
-    # 좌측: 비공식 정보 (일반 뉴스 / 풍문 / 찌라시)
-    draw_card(s02, Inches(0.8), Inches(1.65), Inches(5.65), Inches(3.6), LIGHT_DANGER_TINT, LIGHT_DANGER, 1.5)
-    tb_l = s02.shapes.add_textbox(Inches(1.1), Inches(1.85), Inches(5.1), Inches(3.2))
-    tf_l = tb_l.text_frame
-    tf_l.word_wrap = True
-    p = tf_l.paragraphs[0]
-    p.text = "📰 인터넷 뉴스 · 풍문 · 찌라시 (비공식)"
-    p.font.name = FONT_HEADING; p.font.size = Pt(15); p.font.bold = True; p.font.color.rgb = LIGHT_DANGER
-    p.space_after = Pt(10)
-    items_l = [
-        ("❌ 주관적 가치판단", "기자의 시각이나 자극적 제목으로 본질 왜곡 위험"),
-        ("❌ 법적 책임 부재", "오보나 과장 보도가 나와도 정정 기사 1줄로 종결"),
-        ("❌ AI 수치 환각 취약", "생성형 AI에 입력 시 없는 수치를 지어내는 거짓말 발생")
-    ]
-    for title, desc in items_l:
-        p_t = tf_l.add_paragraph()
-        p_t.text = title; p_t.font.name = FONT_BODY; p_t.font.size = Pt(12); p_t.font.bold = True; p_t.font.color.rgb = LIGHT_TEXT_PRIMARY
-        p_d = tf_l.add_paragraph()
-        p_d.text = desc; p_d.font.name = FONT_BODY; p_d.font.size = Pt(10.5); p_d.font.color.rgb = LIGHT_TEXT_MUTED
-        p_d.space_after = Pt(6)
+    # Zone C: 좌측 DART 공식 커버 이미지 & 우측 국가 공인 100% 팩트 데이터
+    dart_img_path = os.path.join(project_root, "frontend", "public", "easter", "dart-cover.png")
+    # 좌측: DART 공식 커버 이미지
+    draw_card(s02, Inches(0.8), Inches(1.65), Inches(5.65), Inches(3.6), LIGHT_CARD, LIGHT_BORDER, 1.5)
+    if os.path.exists(dart_img_path):
+        with PILImage.open(dart_img_path) as dimg:
+            dw, dh = dimg.size
+            aspect_d = dw / dh
+        avail_dw = 5.25
+        avail_dh = 3.2
+        if avail_dw / avail_dh > aspect_d:
+            target_dh = avail_dh
+            target_dw = target_dh * aspect_d
+        else:
+            target_dw = avail_dw
+            target_dh = target_dw / aspect_d
+        dimg_left = Inches(0.8) + Inches((5.65 - target_dw) / 2)
+        dimg_top = Inches(1.65) + Inches((3.6 - target_dh) / 2)
+        s02.shapes.add_picture(dart_img_path, dimg_left, dimg_top, Inches(target_dw), Inches(target_dh))
 
-    # 우측: 공식 팩트 (전자공시 DART / 금융감독원)
+    # 우측: 사용자 지정 팩트 데이터
     draw_card(s02, Inches(6.8), Inches(1.65), Inches(5.65), Inches(3.6), LIGHT_POSITIVE_TINT, LIGHT_POSITIVE, 2.0)
     tb_r = s02.shapes.add_textbox(Inches(7.1), Inches(1.85), Inches(5.1), Inches(3.2))
     tf_r = tb_r.text_frame
     tf_r.word_wrap = True
     p = tf_r.paragraphs[0]
-    p.text = "🏛️ 전자공시 DART (국가 공인 100% 팩트)"
-    p.font.name = FONT_HEADING; p.font.size = Pt(15); p.font.bold = True; p.font.color.rgb = LIGHT_POSITIVE
-    p.space_after = Pt(10)
+    p.text = "🏛️ 전자공시 DART (금융감독원)"
+    p.font.name = FONT_HEADING; p.font.size = Pt(16); p.font.bold = True; p.font.color.rgb = LIGHT_POSITIVE
+    p.space_after = Pt(2)
+    p_sub = tf_r.add_paragraph()
+    p_sub.text = "국가 공인 법적 100% 팩트 데이터"
+    p_sub.font.name = FONT_BODY; p_sub.font.size = Pt(12); p_sub.font.bold = True; p_sub.font.color.rgb = LIGHT_TEXT_PRIMARY
+    p_sub.space_after = Pt(10)
+
     items_r = [
-        ("✅ 100% 공인 팩트", "자본시장법에 따라 허위 기재 시 형사 처벌을 받는 공식 문서"),
-        ("✅ 기업의 모든 진실", "5대 재무제표, 경영진 해설(MD&A), 소송·지배구조 원문 수록"),
-        ("✅ DART Insight 직결", "OpenDART 공식 API 연동으로 1초 만에 위변조 없는 원문 수집")
+        ("100% 공인 팩트", "자본시장법에 따라 허위 기재 시 형사 처벌을 받는 공식 문서"),
+        ("기업의 모든 진실", "5대 재무제표, 경영진 해설(MD&A), 소송·지배구조 원문 수록"),
+        ("DART Insight 연동", "OpenDART 공식 API로 1초 만에 원문 수집 및 위변조 방어")
     ]
     for title, desc in items_r:
         p_t = tf_r.add_paragraph()
-        p_t.text = title; p_t.font.name = FONT_BODY; p_t.font.size = Pt(12); p_t.font.bold = True; p_t.font.color.rgb = LIGHT_POSITIVE
-        p_d = tf_r.add_paragraph()
-        p_d.text = desc; p_d.font.name = FONT_BODY; p_d.font.size = Pt(10.5); p_d.font.color.rgb = LIGHT_TEXT_MUTED
-        p_d.space_after = Pt(6)
+        p_t.text = f"• {title}: {desc}"
+        p_t.font.name = FONT_BODY; p_t.font.size = Pt(11); p_t.font.color.rgb = LIGHT_TEXT_BODY
+        p_t.space_after = Pt(6)
 
     # 하단 3대 시스템 원칙 배지 바
     draw_card(s02, Inches(0.8), Inches(5.4), Inches(11.65), Inches(1.15), LIGHT_CARD, LIGHT_PURPLE, 1.2)
@@ -433,13 +484,13 @@ def build_presentation():
 
     add_zone_d_proof_bar(s02, 2, TOTAL_SLIDES, metrics_list=["금융감독원 공인 팩트 100%", "OpenDART API 실시간 직결", "수치 환각 발생률 0.00%"])
     set_speaker_notes(s02, """[도발적 질문 Hook]
-"‘전자공시’라는 단어, 자주 듣기는 하지만 정확히 무슨 뜻이고 일반 뉴스와 무엇이 다를까요?"
+"‘전자공시’라는 단어, 자주 듣기는 하지만 도대체 어떤 데이터이기에 법적 구속력을 가질까요?"
 
 [1초 용어 통역]
 "우측 상단 돋보기를 보시죠. 전자공시란 '기업이 국가기관인 금감원에 제출하는 공식 종합 생활기록부'입니다. 사소한 숫자 하나라도 거짓말을 치면 법적 형사 처벌을 받는 100% 공인 팩트 데이터입니다."
 
 [시각 요소 지시어]
-"화면 좌우의 1:1 대비를 보십시오. 인터넷 뉴스와 풍문은 주관적 해석과 왜곡에 취약하지만, 전자공시는 국가 공인 팩트입니다. 하단의 3대 철칙처럼 DART Insight는 OpenDART 원문만을 직결해 환각을 원천 차단합니다."
+"화면 좌측의 금융감독원 공식 DART 커버와 우측 3대 팩트 정의를 보십시오. 자본시장법에 따라 허위 기재 시 엄중한 형사 처벌을 받는 100% 공인 팩트이자, 5대 재무제표와 MD&A 등 기업의 모든 진실이 담겨 있습니다. DART Insight는 OpenDART 공식 API로 1초 만에 원문을 수집합니다."
 
 [숫자 타격감 마무리]
 "DART Insight는 이 공인 팩트 원문과 1초 만에 직결되어, 수치 환각 0.00%의 절대적 신뢰성을 달성했습니다!"
