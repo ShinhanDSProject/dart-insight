@@ -90,6 +90,8 @@
   --color-chart-previous: #8f86d9;
   --color-chart-current: #4f479e;
   --color-chart-grid: var(--color-border);
+  /* 점 타임라인의 정기보고서(마름모·세로 기준선, #905). 주황 범주 색을 빌려 다크 테마도 따라간다 */
+  --color-chart-emphasis: var(--color-chart-series-3);
   /* 문장 변경 구성(추가·수정·삭제, 이 순서로 붙여 그림). 색 검사 통과(색맹 구분 ΔE 18.4 이상) */
   --color-chart-added: #2e9a63;
   --color-chart-modified: #4f479e;
