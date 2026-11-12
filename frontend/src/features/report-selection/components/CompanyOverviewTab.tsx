@@ -51,10 +51,19 @@ const sections: readonly OverviewSection[] = [
 ]
 
 const slotId = (key: string) => `overview-${key}`
-const SLOT_IDS = sections.map((section) => slotId(section.key))
+/** 분석 결과에 넣을 때(#909): 질문은 AI 에이전트 패널 하나로만 받으므로 'AI에게 묻기' 칸을 뺀다 */
+const WITHOUT_ASK = sections.filter((section) => section.key !== 'ask')
+const ALL_SLOT_IDS = sections.map((section) => slotId(section.key))
+const WITHOUT_ASK_SLOT_IDS = WITHOUT_ASK.map((section) => slotId(section.key))
 
-export function CompanyOverviewTab(props: OverviewSectionProps) {
-  const { active, prefer } = useActiveSection(SLOT_IDS)
+interface CompanyOverviewTabProps extends OverviewSectionProps {
+  /** false면 'AI에게 묻기' 칸과 바로 가기를 뺀다(분석 결과 화면, #909). 기본은 보인다(기업 화면) */
+  showAsk?: boolean
+}
+
+export function CompanyOverviewTab({ showAsk = true, ...props }: CompanyOverviewTabProps) {
+  const shown = showAsk ? sections : WITHOUT_ASK
+  const { active, prefer } = useActiveSection(showAsk ? ALL_SLOT_IDS : WITHOUT_ASK_SLOT_IDS)
 
   function jump(event: MouseEvent<HTMLAnchorElement>, id: string) {
     const target = document.getElementById(id)
@@ -72,7 +81,7 @@ export function CompanyOverviewTab(props: OverviewSectionProps) {
       <OverviewMetricsRow corpCode={props.corpCode} />
       <nav className="overview-nav" aria-label="기업 개요 바로 가기">
         <ul className="overview-nav__list">
-          {sections.map(({ key, label }) => (
+          {shown.map(({ key, label }) => (
             <li key={key}>
               <a
                 className="overview-nav__link"
@@ -92,7 +101,7 @@ export function CompanyOverviewTab(props: OverviewSectionProps) {
         </ButtonLink>
       </p>
       <div className="company-overview">
-        {sections.map(({ key, Component, place }) => (
+        {shown.map(({ key, Component, place }) => (
           <div
             key={key}
             id={slotId(key)}

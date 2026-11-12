@@ -114,6 +114,24 @@ describe('기업 개요 탭의 영역 순서', () => {
   })
 })
 
+describe('분석 결과에 넣은 기업 개요(#909)', () => {
+  it('showAsk가 false면 AI에게 묻기 칸과 바로 가기를 빼고 나머지 순서는 그대로 둔다', async () => {
+    getCompanyOverview.mockResolvedValue(samsungOverview)
+    const { container } = render(
+      <MemoryRouter>
+        <CompanyOverviewTab corpCode="00126380" company={company} showAsk={false} />
+      </MemoryRouter>,
+    )
+
+    await screen.findByRole('region', { name: '기업 개황' })
+    expect(screen.queryByRole('region', { name: 'AI에게 묻기' })).toBeNull()
+    expect(container.querySelector('#overview-ask')).toBeNull()
+    const nav = screen.getByRole('navigation', { name: '기업 개요 바로 가기' })
+    const labels = within(nav).getAllByRole('link').map((link) => link.textContent)
+    expect(labels).toEqual(['AI 브리핑', '기업 개황', '전망·계획', '작년 계획, 올해는', '재무 흐름', '재무 체크 포인트', '주주·임원·배당', '확인해 볼 공시', '공시 타임라인', '최근 공시'])
+  })
+})
+
 describe('기업 개요 바로 가기(#385)', () => {
   it('영역마다 바로 가기 링크를 같은 순서로 두고 처음엔 첫 영역을 지금 위치로 표시한다', async () => {
     getCompanyOverview.mockResolvedValue(samsungOverview)
