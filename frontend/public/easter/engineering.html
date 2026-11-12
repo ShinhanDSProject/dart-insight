@@ -1,0 +1,847 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>DART Insight · 기술 해설 (개발자용)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<style>
+/* 토큰은 발표 페이지(three-weeks.html)와 같은 값을 쓴다 */
+:root {
+  --font-sans: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+  --font-num: 'Inter', 'Noto Sans KR', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'D2Coding', monospace;
+  --color-text: #1d212f; --color-text-muted: #5e6475; --color-bg: #ffffff; --color-bg-subtle: #f7f8fb; --color-bg-raised: #ffffff;
+  --color-border: #e2e5ec; --color-border-strong: #8b92a5;
+  --color-primary: #121638; --color-primary-text: #ffffff;
+  --color-accent: #554cb8; --color-accent-subtle: #eeedfb; --color-border-accent: #d3cfea;
+  --color-increase: #147955; --color-increase-subtle: #eaf8f1; --color-decrease: #b53846; --color-decrease-subtle: #fef0f2;
+  --color-chart-previous: #8c82de; --color-chart-current: #4c42a5;
+  --color-s1: #4c42a5; --color-s2: #2e88bd; --color-s3: #bd7326; --color-s4: #a34e89;
+  --color-attention: #885000; --color-attention-subtle: #fff6e0; --color-danger: #b53846; --color-danger-subtle: #fef0f2;
+  --shadow-sm: 0 1px 3px rgba(18, 22, 56, 0.06);
+  --shadow-md: 0 4px 14px rgba(18, 22, 56, 0.10);
+  --shadow-lg: 0 10px 28px rgba(18, 22, 56, 0.12);
+  --shadow-glow: 0 0 24px rgba(85, 76, 184, 0.25);
+  --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px; --radius-xl: 20px; --radius-pill: 999px;
+  --motion-fast: 140ms; --motion-base: 220ms; --motion-slow: 380ms; --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --header-h: 74px; --tabs-h: 52px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --color-text: #f0f4f8; --color-text-muted: #9fb0bf; --color-bg: #090f17; --color-bg-subtle: #101b26; --color-bg-raised: #162432;
+  --color-border: #263c4a; --color-border-strong: #416f84; --color-primary: #9ad1e4; --color-primary-text: #090f17;
+  --color-accent: #78bbd2; --color-accent-subtle: #172835; --color-border-accent: #2e4d5d;
+  --color-increase: #84ccbe; --color-increase-subtle: #14282c; --color-decrease: #e89191; --color-decrease-subtle: #2b1f24;
+  --color-chart-previous: #2f83a8; --color-chart-current: #52b8dc;
+  --color-s1: #52b8dc; --color-s2: #26988c; --color-s3: #c97d2e; --color-s4: #bf63a3;
+  --color-attention: #e5b969; --color-attention-subtle: #292012; --color-danger: #e89191; --color-danger-subtle: #2b1f24;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 28px rgba(0, 0, 0, 0.65);
+  --shadow-glow: 0 0 28px rgba(120, 187, 210, 0.25);
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --color-text: #f0f4f8; --color-text-muted: #9fb0bf; --color-bg: #090f17; --color-bg-subtle: #101b26; --color-bg-raised: #162432;
+  --color-border: #263c4a; --color-border-strong: #416f84; --color-primary: #9ad1e4; --color-primary-text: #090f17;
+  --color-accent: #78bbd2; --color-accent-subtle: #172835; --color-border-accent: #2e4d5d;
+  --color-increase: #84ccbe; --color-increase-subtle: #14282c; --color-decrease: #e89191; --color-decrease-subtle: #2b1f24;
+  --color-chart-previous: #2f83a8; --color-chart-current: #52b8dc;
+  --color-s1: #52b8dc; --color-s2: #26988c; --color-s3: #c97d2e; --color-s4: #bf63a3;
+  --color-attention: #e5b969; --color-attention-subtle: #292012; --color-danger: #e89191; --color-danger-subtle: #2b1f24;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 28px rgba(0, 0, 0, 0.65);
+  --shadow-glow: 0 0 28px rgba(120, 187, 210, 0.25);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box }
+html, body { margin: 0; padding: 0 }
+html { scroll-behavior: smooth; scroll-padding-top: 84px }
+body { background: var(--color-bg); color: var(--color-text); font-family: var(--font-sans); font-size: 15px; line-height: 1.7 }
+h1, h2, h3, h4 { margin: 0; line-height: 1.3; font-weight: 700; text-wrap: balance }
+p { margin: 0 }
+a { color: var(--color-accent); text-underline-offset: 3px }
+button { font: inherit; color: inherit; cursor: pointer }
+:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px }
+code, .mono { font-family: var(--font-mono); font-size: .9em }
+code { background: var(--color-bg-subtle); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 1px 6px; white-space: nowrap }
+.muted { color: var(--color-text-muted) }
+.num { font-family: var(--font-num); font-variant-numeric: tabular-nums }
+
+/* 상단 바 */
+.appbar { position: sticky; top: 0; z-index: 30; height: 64px; background: color-mix(in srgb, var(--color-bg) 88%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--color-border) }
+.appbar .in { max-width: 1240px; height: 100%; margin: 0 auto; padding: 0 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px }
+.brand { display: inline-flex; align-items: center; gap: 10px; color: var(--color-text); text-decoration: none }
+.brand__mark { width: 30px; height: 30px; border-radius: 9px; background: var(--color-primary); display: inline-flex; align-items: center; justify-content: center; gap: 4px }
+.brand__mark i { width: 4px; height: 13px; border-radius: 2px; background: var(--color-primary-text) }
+.brand__mark i + i { height: 18px }
+.brand b { font-family: var(--font-num); font-size: 17px; letter-spacing: -0.02em }
+.brand span { font-size: 12.5px; color: var(--color-text-muted); font-weight: 600 }
+.actions { display: flex; gap: 8px; align-items: center }
+.pill { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: var(--radius-pill); border: 1px solid var(--color-border); background: var(--color-bg-raised); color: var(--color-text); font-size: 13px; font-weight: 600; text-decoration: none }
+.pill:hover { background: var(--color-bg-subtle) }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--color-border); border-radius: var(--radius-pill); padding: 3px; gap: 2px; background: var(--color-bg-subtle) }
+.seg button { border: 0; background: transparent; padding: 5px 12px; border-radius: var(--radius-pill); font-size: 12.5px; color: var(--color-text-muted); font-weight: 600; white-space: nowrap }
+.seg button[aria-pressed="true"] { background: var(--color-primary); color: var(--color-primary-text) }
+
+/* 본문 배치: 왼쪽 목차 + 문서 */
+.layout { max-width: 1240px; margin: 0 auto; padding: 0 20px; display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 48px }
+.toc { position: sticky; top: 84px; align-self: start; max-height: calc(100vh - 100px); overflow-y: auto; padding: 28px 0; font-size: 13.5px }
+.toc p { font-size: 11.5px; font-weight: 800; color: var(--color-text-muted); letter-spacing: .04em; margin-bottom: 8px }
+.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px }
+.toc a { display: block; padding: 5px 10px; border-left: 2px solid var(--color-border); color: var(--color-text-muted); text-decoration: none }
+.toc a:hover { color: var(--color-text) }
+.toc a[aria-current="true"] { border-left-color: var(--color-accent); color: var(--color-accent); font-weight: 700 }
+.toc .sub a { padding-left: 22px; font-size: 12.5px }
+@media (max-width: 960px) { .layout { grid-template-columns: 1fr; gap: 0 } .toc { display: none } }
+
+main { min-width: 0; padding-bottom: 80px }
+.intro { padding: 44px 0 28px; border-bottom: 1px solid var(--color-border); display: grid; gap: 12px }
+.intro .kicker, section .kicker { font-size: 12.5px; font-weight: 800; color: var(--color-accent); letter-spacing: .04em; text-transform: uppercase }
+.intro h1 { font-size: clamp(26px, 3.4vw, 36px); font-weight: 800; letter-spacing: -0.02em }
+.intro p { color: var(--color-text-muted); font-size: 16px; max-width: 46em }
+main > section { padding: 44px 0; border-bottom: 1px solid var(--color-border); display: grid; gap: 18px }
+main > section > header { display: grid; gap: 6px; max-width: 50em }
+main > section > header h2 { font-size: clamp(22px, 2.6vw, 28px); font-weight: 800; letter-spacing: -0.02em }
+main > section > header p { color: var(--color-text-muted) }
+h3 { font-size: 18px }
+ul.plain, ol.plain { margin: 0; padding-left: 20px; display: grid; gap: 6px }
+
+.callout { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: var(--radius-lg); background: var(--color-accent-subtle); border: 1px solid var(--color-border-accent); font-size: 14.5px }
+.callout--attention { background: var(--color-attention-subtle); border-color: transparent; color: var(--color-attention) }
+.callout--danger { background: var(--color-danger-subtle); border-color: transparent; color: var(--color-danger) }
+.badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: var(--radius-pill); background: var(--color-bg-subtle); color: var(--color-text-muted); border: 1px solid var(--color-border) }
+.badge--accent { background: var(--color-accent-subtle); color: var(--color-accent); border-color: var(--color-border-accent) }
+.badge--attention { background: var(--color-attention-subtle); color: var(--color-attention); border-color: transparent }
+.badge--ok { background: var(--color-increase-subtle); color: var(--color-increase); border-color: transparent }
+.label { font-size: 12px; font-weight: 800; color: var(--color-text-muted); letter-spacing: .02em; text-transform: uppercase }
+.card { background: var(--color-bg-raised); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 18px; display: grid; gap: 8px; align-content: start; box-shadow: var(--shadow-sm); min-width: 0 }
+.card--subtle { background: var(--color-bg-subtle) }
+.grid { display: grid; gap: 14px }
+.g2 { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+.g4 { grid-template-columns: repeat(4, minmax(0, 1fr)) }
+@media (max-width: 1000px) { .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
+@media (max-width: 700px) { .g2, .g4 { grid-template-columns: 1fr } }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 14px; border-radius: var(--radius-pill); border: 1px solid var(--color-border); background: var(--color-bg-raised); color: var(--color-text); font-size: 13px; font-weight: 600 }
+.btn:hover { background: var(--color-bg-subtle) }
+.btn--primary { background: var(--color-primary); color: var(--color-primary-text); border-color: var(--color-primary) }
+.btn--sm { height: 32px; padding: 0 14px; font-size: 13px }
+
+/* 표 */
+.tbl { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--color-bg-raised); border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden }
+.tblwrap { overflow-x: auto; border-radius: var(--radius-lg) }
+.tbl th, .tbl td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--color-border); vertical-align: top }
+.tbl th { background: var(--color-bg-subtle); font-size: 12.5px; color: var(--color-text-muted); font-weight: 800; white-space: nowrap }
+.tbl tr:last-child td { border-bottom: 0 }
+.tbl td.num { text-align: right; white-space: nowrap }
+
+/* 호출 구조 */
+.flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; align-items: stretch }
+.flow .node { position: relative; border: 1.5px solid var(--color-border-strong); border-radius: var(--radius-lg); background: var(--color-bg-raised); padding: 14px; display: grid; gap: 4px; align-content: start; margin-right: 26px }
+.flow .node:last-child { margin-right: 0 }
+.flow .node:not(:last-child)::after { content: "→"; position: absolute; right: -22px; top: 50%; transform: translateY(-50%); color: var(--color-text-muted); font-weight: 800 }
+.flow .node.core { background: var(--color-primary); border-color: var(--color-primary); color: var(--color-primary-text) }
+.flow .node.core .muted { color: var(--color-primary-text); opacity: .8 }
+.flow .node b { font-size: 15px }
+.flow .node span { font-size: 12.5px }
+.side { display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px }
+@media (max-width: 860px) { .flow { grid-template-columns: 1fr; gap: 22px } .flow .node { margin-right: 0 } .flow .node:not(:last-child)::after { content: "↓"; right: 50%; top: auto; bottom: -22px; transform: none } }
+.steps { counter-reset: s; list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px }
+.steps li { counter-increment: s; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px 14px; background: var(--color-bg-subtle); font-size: 13.5px; display: grid; gap: 2px }
+.steps li::before { content: counter(s, decimal-leading-zero); font-family: var(--font-num); font-weight: 800; color: var(--color-accent); font-size: 12px }
+
+/* 기술 과제 */
+.topic { border: 1px solid var(--color-border); border-radius: var(--radius-xl); background: var(--color-bg-raised); overflow: hidden; scroll-margin-top: 84px }
+.topic__head { padding: 20px 22px; display: flex; flex-wrap: wrap; gap: 10px 16px; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--color-border); background: var(--color-bg-subtle) }
+.topic__head h3 { font-size: 20px; max-width: 34em }
+.topic__head .kicker { font-size: 12px }
+.topic__body { padding: 20px 22px; display: grid; gap: 18px }
+.pd { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px }
+@media (max-width: 760px) { .pd { grid-template-columns: 1fr } }
+.pd > div { border-radius: var(--radius-md); padding: 14px 16px; display: grid; gap: 6px; font-size: 14px; align-content: start }
+.pd .p { background: var(--color-danger-subtle) }
+.pd .p .label { color: var(--color-danger) }
+.pd .d { background: var(--color-increase-subtle) }
+.pd .d .label { color: var(--color-increase) }
+.facts { display: flex; flex-wrap: wrap; gap: 8px }
+.fact { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 8px 12px; display: grid; gap: 0; min-width: 120px }
+.fact b { font-family: var(--font-num); font-size: 18px; font-weight: 800 }
+.fact span { font-size: 12px; color: var(--color-text-muted) }
+.code { display: grid; gap: 0; border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden }
+.code div { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 12px; padding: 8px 12px; border-bottom: 1px solid var(--color-border); font-size: 13px }
+.code div:last-child { border-bottom: 0 }
+.code a { font-family: var(--font-mono); font-size: 12.5px; word-break: break-all; text-decoration: none }
+.code a:hover { text-decoration: underline }
+@media (max-width: 640px) { .code div { grid-template-columns: 1fr; gap: 2px } }
+pre { margin: 0; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.6; background: var(--color-bg-subtle); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px 14px; overflow-x: auto }
+details.more { border-top: 1px dashed var(--color-border); padding-top: 12px }
+details.more summary { cursor: pointer; font-weight: 700; font-size: 14px; color: var(--color-accent) }
+details.more[open] summary { margin-bottom: 10px }
+
+/* 옮겨 온 설계 시뮬레이터(발표 페이지에서 이동) */
+.dec { border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-raised); padding: 22px; display: grid; gap: 16px; margin-top: 14px }
+.dec__top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: flex-start }
+.dec__top h3 { font-size: 19px; max-width: 36em }
+.dec__top .kicker { font-size: 12px; font-weight: 800; color: var(--color-accent) }
+.dec__body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start }
+@media (max-width: 860px) { .dec__body { grid-template-columns: 1fr } }
+.dec ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px }
+.alt { display: grid; gap: 10px }
+.alt div { border-left: 3px solid var(--color-border); padding-left: 12px }
+.alt b { font-size: 14px }
+.alt p { font-size: 13.5px; color: var(--color-text-muted) }
+.demo { border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-subtle); padding: 18px; display: grid; gap: 14px; min-width: 0 }
+.demo .label { display: flex; justify-content: space-between; gap: 8px }
+.adr { font-family: var(--font-mono); font-size: 12px; color: var(--color-text-muted) }
+.sm { display: flex; flex-wrap: wrap; gap: 6px; align-items: center }
+.st { font-family: var(--font-mono); font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--color-border); background: var(--color-bg-raised); color: var(--color-text-muted); transition: all var(--motion-base) }
+.st.cur { border-color: var(--color-primary); background: var(--color-primary); color: var(--color-primary-text) }
+.st.done.cur { background: var(--color-increase); border-color: var(--color-increase); color: #fff }
+.st.fail.cur { background: var(--color-danger); border-color: var(--color-danger); color: #fff }
+.btnrow { display: flex; flex-wrap: wrap; gap: 6px }
+.bar4 { height: 5px; border-radius: var(--radius-pill); background: var(--color-border); overflow: hidden }
+.bar4 i { display: block; height: 100%; background: var(--color-primary); transition: width var(--motion-slow) var(--ease-out) }
+.log { font-size: 13px; display: grid; gap: 5px; max-height: 220px; overflow-y: auto }
+.log div { display: grid; grid-template-columns: 22px 1fr; gap: 6px }
+.log .ok { color: var(--color-increase); font-weight: 700 }
+.log .no { color: var(--color-danger); font-weight: 700 }
+.log .info { color: var(--color-accent); font-weight: 700 }
+input[type=range] { width: 100%; accent-color: var(--color-primary) }
+.para { border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-raised); padding: 14px; font-size: 14px; display: grid; gap: 6px }
+.para .meta { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--color-text-muted) }
+.chain { display: flex; flex-wrap: wrap; gap: 6px; align-items: center }
+.chain .node { font-size: 13px; padding: 6px 12px; border-radius: var(--radius-pill); border: 1px solid var(--color-border); background: var(--color-bg-raised); color: var(--color-text-muted); transition: all var(--motion-base) }
+.chain .node.on { background: var(--color-accent-subtle); border-color: var(--color-accent); color: var(--color-accent); font-weight: 700 }
+.chain .node.back.on { background: var(--color-attention-subtle); border-color: var(--color-attention); color: var(--color-attention) }
+.chain .to { color: var(--color-text-muted); font-size: 12px }
+.costrow { display: grid; gap: 4px }
+.costrow .lb { display: flex; justify-content: space-between; gap: 8px; font-size: 13.5px }
+.costrow .lb b { font-family: var(--font-num) }
+.track { height: 12px; border-radius: var(--radius-pill); background: var(--color-border); overflow: hidden }
+.track i { display: block; height: 100%; border-radius: var(--radius-pill); background: var(--color-chart-previous); min-width: 3px; transition: width var(--motion-slow) var(--ease-out) }
+.costrow.pick .track i { background: var(--color-chart-current) }
+.costrow.pick .lb { color: var(--color-accent); font-weight: 700 }
+.big { font-family: var(--font-num); font-weight: 800; font-size: 30px; line-height: 1.1 }
+.principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px }
+.principles button { text-align: left; cursor: pointer; border: 1px solid var(--color-border); background: var(--color-bg-raised); border-radius: var(--radius-lg); padding: 16px; display: grid; gap: 4px; transition: all var(--motion-fast) }
+.principles button[aria-expanded="true"] { border-color: var(--color-accent); background: var(--color-accent-subtle); transform: translateY(-1px) }
+.principles b { font-size: 15px }
+.principles span { font-size: 13px; color: var(--color-text-muted) }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important } }
+</style>
+</head>
+<body>
+
+<header class="appbar">
+  <div class="in">
+    <a class="brand" href="/easter/three-weeks.html" aria-label="발표 페이지로 돌아가기">
+      <span class="brand__mark" aria-hidden="true"><i></i><i></i></span>
+      <span><b>DART Insight</b><br><span>기술 해설 · 개발자용</span></span>
+    </a>
+    <div class="actions">
+      <div class="seg" role="group" aria-label="화면 테마">
+        <button type="button" data-theme-set="system" aria-pressed="true">시스템</button><button type="button" data-theme-set="light" aria-pressed="false">라이트</button><button type="button" data-theme-set="dark" aria-pressed="false">다크</button>
+      </div>
+      <a class="pill" href="/easter/three-weeks.html">← 발표 페이지</a>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="toc" aria-label="목차">
+    <p>목차</p>
+    <ol id="toc">
+      <li><a href="#overview">1. 전체 구조</a></li>
+      <li><a href="#challenges">2. 기술 과제 다섯 가지</a></li>
+      <li class="sub"><a href="#t-parse">원문 파싱과 근거 ID</a></li>
+      <li class="sub"><a href="#t-numbers">숫자는 코드가 계산</a></li>
+      <li class="sub"><a href="#t-search">근거 문단 검색(BM25)</a></li>
+      <li class="sub"><a href="#t-job">분석 작업 상태</a></li>
+      <li class="sub"><a href="#t-agent">에이전트 채팅과 모델</a></li>
+      <li><a href="#decisions">3. 직접 해 보기</a></li>
+      <li><a href="#guard">4. 계층 규칙과 배포</a></li>
+      <li><a href="#checks">5. 발표 수치 점검표</a></li>
+      <li><a href="#refs">6. 더 읽을 곳</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <div class="intro">
+      <p class="kicker">Engineering Notes</p>
+      <h1>DART Insight는 어떻게 만들어졌나</h1>
+      <p>발표에서는 서비스가 무엇을 하는지만 다룹니다. 이 페이지는 그 뒤에 있는 구조와 기술 과제를, 코드 위치와 결정 기록(ADR)을 따라 개발자가 바로 찾아 읽을 수 있게 정리했습니다.</p>
+      <div class="callout"><span aria-hidden="true">ⓘ</span><p>숫자와 설정값은 <b>2026-11-13 main 기준</b> 코드와 <code>docs/adr/</code>에서 확인한 값입니다. 경로를 누르면 GitHub에서 파일이 열립니다(저장소 권한 필요).</p></div>
+    </div>
+
+    <!-- 1. 전체 구조 -->
+    <section id="overview">
+      <header>
+        <p class="kicker">1 · Architecture</p>
+        <h2>호출은 한 방향, 일은 서비스마다 하나씩</h2>
+        <p>화면은 백엔드만, 백엔드는 AI 서버만 부릅니다. 반대 방향 호출은 없습니다(<a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/adr/0002-monorepo-and-call-direction.md">ADR-0002</a>).</p>
+      </header>
+
+      <div class="flow" aria-label="호출 방향">
+        <div class="node"><b>frontend</b><span class="muted">React 19 · TypeScript</span><span>공개 API <code>/api/**</code>만 부름</span></div>
+        <div class="node core"><b>backend</b><span class="muted">Spring Boot · Java 21</span><span>OpenDART 조회·캐시, 분석 작업, 숫자 계산, 에이전트 Tool 실행, 한도</span></div>
+        <div class="node"><b>ai-server</b><span class="muted">FastAPI · Python 3.12</span><span>원문 파싱, 문장 변화, 근거 검색, LLM 호출. DB 없음(무상태)</span></div>
+        <div class="node"><b>LLM</b><span class="muted">anthropic SDK</span><span>ai-server의 <code>LlmClient</code> 한 곳에서만 부름(<a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/adr/0008-single-llm-module.md">ADR-0008</a>)</span></div>
+      </div>
+      <div class="side">
+        <span class="badge">MariaDB · Flyway</span>
+        <span class="badge">OpenDART · backend만 호출</span>
+        <span class="badge">mcp-server · backend 공개 API만 호출, 읽기 전용(<a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/adr/0052-mcp-server-read-only.md">ADR-0052</a>)</span>
+        <span class="badge">NAVER 뉴스 · 화면에만, AI에는 넣지 않음</span>
+      </div>
+
+      <div class="tblwrap"><table class="tbl">
+        <thead><tr><th>서비스</th><th>맡는 일</th><th>맡지 않는 일</th></tr></thead>
+        <tbody>
+          <tr><td><code>frontend/</code></td><td>화면, 분석 상태 폴링, 원문 뷰어 점프</td><td>FastAPI·OpenDART 직접 호출</td></tr>
+          <tr><td><code>backend/</code></td><td>OpenDART 호출과 접수번호 기준 캐시, 분석 작업 상태, 증감 계산, 근거 재확인, 에이전트 Tool 실행, LLM 일일 한도</td><td>원문 파싱, LLM 호출</td></tr>
+          <tr><td><code>ai-server/</code></td><td>원문 ZIP 파싱·구조화, 문장 변화 탐지, BM25 근거 검색, 요약·설명 생성과 검증, 에이전트 한 단계(LangGraph)</td><td>DB 저장, OpenDART 호출, Tool 실행</td></tr>
+          <tr><td><code>mcp-server/</code></td><td>외부 AI 에이전트용 읽기 도구</td><td>쓰기, 내부 API 호출</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>분석 하나가 지나가는 길</h3>
+      <ol class="steps">
+        <li><b>요청</b><span class="muted">보고서 두 개의 접수번호로 <code>POST /api/analyses</code>. 같은 조건의 결과가 있으면 재사용(<a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/adr/0014-analysis-reuse-and-version.md">ADR-0014</a>)</span></li>
+        <li><b>작업 번호 발급</b><span class="muted">PENDING으로 저장하고 바로 응답. 실행은 스레드 풀(<code>AnalysisRunner</code>)</span></li>
+        <li><b>자료 준비</b><span class="muted">backend가 OpenDART 원문·재무를 받아 캐시. 원문 구조화는 ai-server에 맡김</span></li>
+        <li><b>비교·계산</b><span class="muted">재무 증감은 backend 코드가, 문장 변화는 ai-server가 찾음</span></li>
+        <li><b>요약·검증</b><span class="muted">ai-server가 LLM으로 설명을 쓰고 근거 ID·숫자·표현을 검사</span></li>
+        <li><b>저장 후 완료</b><span class="muted">결과 저장과 COMPLETED를 한 트랜잭션으로. 화면은 상태를 폴링하다 결과를 조회</span></li>
+      </ol>
+      <p class="muted" style="font-size:14px">모든 요청은 <code>X-Trace-Id</code> 하나로 묶입니다. backend <code>TraceIdFilter</code>가 정하고(요청 헤더에 있으면 그 값), 로그 MDC와 ai-server 호출 헤더에 넣습니다. ai-server는 <code>TraceIdMiddleware</code>로 이어받습니다(<a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/adr/0005-error-format-and-trace-id.md">ADR-0005</a>).</p>
+    </section>
+
+    <!-- 2. 기술 과제 -->
+    <section id="challenges">
+      <header>
+        <p class="kicker">2 · Engineering Challenges</p>
+        <h2>기술 과제 다섯 가지</h2>
+        <p>과제마다 무엇이 문제였는지, 무엇을 정했는지, 코드에서 어디를 보면 되는지 정리했습니다.</p>
+      </header>
+
+      <!-- 과제 1 -->
+      <article class="topic" id="t-parse">
+        <div class="topic__head">
+          <div><p class="kicker">과제 1 · 원문 파싱</p><h3>깨진 공시 XML을 빠짐없이 읽고, 문단마다 안정된 근거 ID 붙이기</h3></div>
+          <a class="badge badge--accent" href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/adr/0009-document-structure-and-evidence-id.md">ADR-0009</a>
+        </div>
+        <div class="topic__body">
+          <div class="pd">
+            <div class="p"><p class="label">문제</p><p>OpenDART 원문은 XML이라고 하지만 닫히지 않은 태그와 이스케이프 안 된 <code>&amp;</code>가 흔합니다. 엄격한 XML 파서(lxml 등)는 이런 곳에서 내용을 <b>조용히 버립니다.</b> 버린 문단은 근거로 쓸 수 없습니다.</p></div>
+            <div class="d"><p class="label">결정</p><p>Python 표준 <code>html.parser</code>로 관대하게 읽고, 원문의 표 셀·문단 태그 수와 읽은 수를 대조해 빠진 게 있으면 <code>PARTIAL</code>로 남깁니다. 블록마다 <code>{접수번호}#B{블록 번호}</code> 근거 ID를 붙입니다.</p></div>
+          </div>
+          <div>
+            <p class="label" style="margin-bottom:6px">동작</p>
+            <ol class="plain">
+              <li>ZIP에서 본문 <code>{접수번호}.xml</code>만 고릅니다. 압축 해제 크기가 300MB를 넘으면 <code>FILE_TOO_LARGE</code>로 끝냅니다.</li>
+              <li>인코딩을 XML 선언 → UTF-8 → CP949 순서로 시도합니다.</li>
+              <li>이스케이프 안 된 <code>&amp;</code>만 고친 뒤 <code>_DartReader(HTMLParser)</code>에 넣습니다. DOM 트리는 만들지 않고 태그 이벤트로 블록을 바로 만듭니다.</li>
+              <li>목차는 <code>SECTION-n</code>과 첫 <code>TITLE</code>로, 블록은 <code>P</code>(문단)·<code>TABLE</code>(표)로 나누고 문서 순서대로 1부터 번호를 매깁니다.</li>
+              <li>태그 수가 맞지 않으면 <code>PARTIAL</code>, 읽지 못하면 <code>FAILED</code>와 사유 코드(<code>INVALID_ZIP</code> 등)를 돌려줍니다.</li>
+            </ol>
+          </div>
+          <pre>근거 ID 예:  20260814003699#B812
+             └ 접수번호 ┘ └ 블록 번호(문서 순서)</pre>
+          <div class="callout callout--attention"><span aria-hidden="true">!</span><p>블록 번호는 파서 규칙에 묶여 있습니다. 파서를 고치면 같은 원문의 번호가 바뀔 수 있어서, <code>PARSER_VERSION</code>(지금 <code>dart-xml-2</code>)과 분석 버전을 함께 올립니다.</p></div>
+          <div class="code" aria-label="코드 위치">
+            <div><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/ai-server/app/documents/parser.py">ai-server/app/documents/parser.py</a><span><code>structure_zip</code> · <code>decode</code> · <code>structure_xml</code> · <code>_DartReader</code></span></div>
+            <div><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/backend/src/main/java/com/dartinsight/document/domain/EvidenceRef.java">backend/…/document/domain/EvidenceRef.java</a><span>근거 ID 만들기·풀기(<code>#B</code>)</span></div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 과제 2 -->
+      <article class="topic" id="t-numbers">
+        <div class="topic__head">
+          <div><p class="kicker">과제 2 · 숫자와 문장의 신뢰</p><h3>LLM은 계산하지 않고, 근거를 확인한 문장만 내보내기</h3></div>
+          <span class="facts" style="gap:6px"><a class="badge badge--accent" href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/adr/0006-keys-amounts-and-null.md">ADR-0006</a><a class="badge badge--accent" href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/adr/0015-explanation-grade-and-quote-check.md">ADR-0015</a><a class="badge badge--accent" href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/adr/0013-expression-check-gate.md">ADR-0013</a></span>
+        </div>
+        <div class="topic__body">
+          <div class="pd">
+            <div class="p"><p class="label">문제</p><p>LLM은 증감률을 틀리게 계산하거나, 원문에 없는 숫자·출처를 그럴듯하게 만들어 냅니다. '저평가', '매수' 같은 가치판단도 섞입니다. 금융 정보에서는 한 번만 틀려도 서비스 전체를 믿을 수 없게 됩니다.</p></div>
+            <div class="d"><p class="label">결정</p><p>숫자는 backend 코드가 계산해 LLM에 그대로 넣습니다. LLM이 쓴 문장은 ① 근거 ID ② 숫자 ③ 금지 표현을 코드로 검사하고, 실패하면 최대 2번 다시 쓰게 한 뒤 그래도 안 되면 '검토 필요'로 끝냅니다.</p></div>
+          </div>
+          <div class="grid g2">
+            <div class="card card--subtle">
+              <p class="label">숫자: backend</p>
+              <ul class="plain" style="font-size:14px">
+                <li>증감액은 <code>long</code>으로 <code>Math.subtractExact</code>, 증감률은 <code>BigDecimal</code>로 나눕니다(<code>HALF_UP</code>).</li>
+                <li>계산할 수 없으면 0이 아니라 null과 사유 코드를 남깁니다. 사유 코드는 <b>13가지</b>입니다(예: <code>PREVIOUS_ZERO</code>, <code>TURNED_PROFIT</code>, <code>PERIOD_MISMATCH</code>).</li>
+                <li>재무 사실 문장도 코드(<code>FinancialFacts</code>)가 씁니다. LLM은 문장 변화 설명과 회사 설명만 씁니다.</li>
+                <li>저장 전에 <code>EvidenceVerifier</code>가 증감액이 두 값의 차와 같은지, 근거 접수번호가 맞는지 다시 봅니다.</li>
+              </ul>
+            </div>
+            <div class="card card--subtle">
+              <p class="label">문장: ai-server</p>
+              <ul class="plain" style="font-size:14px">
+                <li>근거 ID가 없거나 넘겨준 후보에 없는 ID면 반려합니다(<code>summary/validate.py</code>).</li>
+                <li>인용한 원문에 없는 숫자, '두 배·절반' 같은 크기 표현을 막습니다(<code>llm/grounding.py</code>).</li>
+                <li>정규식 규칙 6개로 표현을 검사합니다: 매매 추천, 투자 조언, 목표주가, 주가 예측, 가치판단, 수익 보장(<code>compliance/expressions.py</code>).</li>
+                <li>공시 원문은 프롬프트에서 구분 태그로 감싸 지시가 아닌 자료로 넣습니다.</li>
+              </ul>
+            </div>
+          </div>
+          <pre>LlmClient.generate()
+  for round in 0..max_output_retries(=2):     # 환경 변수로도 2를 넘지 못함
+      out = provider.call(prompt)
+      problems = validate(out)                 # 근거 ID · 숫자 · 표현
+      if not problems: return out
+      prompt += problems                       # 무엇이 틀렸는지 알려 주고 다시
+  → REVIEW_NEEDED + blocked_rules              # 실패를 성공으로 처리하지 않음</pre>
+          <div class="code" aria-label="코드 위치">
+            <div><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/backend/src/main/java/com/dartinsight/analysis/domain/FinancialComparator.java">backend/…/analysis/domain/FinancialComparator.java</a><span>증감액·증감률 계산 <code>compare()</code></span></div>
+            <div><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/backend/src/main/java/com/dartinsight/analysis/domain/CalcStatus.java">backend/…/analysis/domain/CalcStatus.java</a><span>계산 사유 코드 13가지</span></div>
+            <div><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/backend/src/main/java/com/dartinsight/analysis/domain/EvidenceVerifier.java">backend/…/analysis/domain/EvidenceVerifier.java</a><span>저장 전 근거 재확인</span></div>
+            <div><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/ai-server/app/llm/client.py">ai-server/app/llm/client.py</a><span>재생성 루프 <code>LlmClient.generate</code></span></div>
+            <div><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/ai-server/app/summary/validate.py">ai-server/app/summary/validate.py</a><span>근거 ID 검사</span></div>
+            <div><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/ai-server/app/llm/grounding.py">ai-server/app/llm/grounding.py</a><span>숫자·크기 표현 검사</span></div>
+            <div><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/ai-server/app/compliance/expressions.py">ai-server/app/compliance/expressions.py</a><span>표현 검사 규칙 6개 <code>scan()</code></span></div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 과제 3 -->
+      <article class="topic" id="t-search">
+        <div class="topic__head">
+          <div><p class="kicker">과제 3 · 근거 문단 찾기</p><h3>임베딩 없이, 글자 2개 단위 BM25로 설명 후보 문단 찾기</h3></div>
+          <a class="badge badge--accent" href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/adr/0036-bm25-explanation-candidate-search.md">ADR-0036</a>
+        </div>
+        <div class="topic__body">
+          <div class="pd">
+            <div class="p"><p class="label">문제</p><p>'매출액이 왜 늘었나'를 설명하려면 보고서 문단 수백 개(실측 490~760개) 중에서 해당 계정을 다루는 문단을 골라 LLM에 넘겨야 합니다. 형태소 분석기는 모델만 약 88MB라 CI·시연 서버 부담이 컸고, 벡터 DB는 별도 인프라가 필요했습니다.</p></div>
+            <div class="d"><p class="label">결정</p><p>검색어가 '매출액'처럼 띄어쓰기 없는 명사구라는 점을 이용해, 공백을 뺀 글을 글자 2개 단위로 나눈 Okapi BM25를 라이브러리 없이 약 30줄로 구현합니다. 색인은 요청마다 만들고 저장하지 않으며, 같은 입력이면 같은 순서가 나옵니다.</p></div>
+          </div>
+          <div class="facts">
+            <div class="fact"><b>k1 1.5 · b 0.75</b><span>BM25 파라미터</span></div>
+            <div class="fact"><b>40자</b><span>후보 최소 길이(공백 제외)</span></div>
+            <div class="fact"><b>×1.5 / ×1.3</b><span>경영진단 / 사업의 내용 가중치(잠정)</span></div>
+            <div class="fact"><b>상위 5개</b><span>등급 판정으로 넘기는 후보</span></div>
+            <div class="fact"><b>19ms · 1.9ms</b><span>색인 · 계정 4개 검색(SK하이닉스 문단 601개)</span></div>
+          </div>
+          <pre>score(문단) = Σ  IDF(g) · tf(g)·(k1+1) / (tf(g) + k1·(1 − b + b·len/avg_len))   × 섹션 가중치
+           g∈bigrams(검색어)
+IDF(g)     = log(1 + (n − df + 0.5) / (df + 0.5))
+후보 조건   = 공백 뺀 길이 ≥ 40  AND  검색어가 앞 1,500자 안에 그대로 있음
+동점        = 문서 순서(블록 번호)가 앞선 것</pre>
+          <p style="font-size:14px">40자 기준은 실측으로 정했습니다. 20자에서는 SK하이닉스 매출액 1위가 출처 한 줄(<i>※ 출처: IDC 2024년 12월, 매출액 기준</i>)이었습니다. BM25가 짧은 글을 우대하기 때문입니다. 40자로 올리자 경영진단의 설명 문단이 1위가 됐고, 60자도 결과가 같았습니다. 아래 <a href="#decisions">직접 해 보기</a>에서 바꿔 볼 수 있습니다.</p>
+          <div class="code" aria-label="코드 위치">
+            <div><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/ai-server/app/summary/search.py">ai-server/app/summary/search.py</a><span><code>bigrams</code> · <code>section_weight</code> · <code>Index</code> · <code>candidates</code></span></div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 과제 4 -->
+      <article class="topic" id="t-job">
+        <div class="topic__head">
+          <div><p class="kicker">과제 4 · 분석 작업</p><h3>수십 초 걸리는 분석을 비동기 작업으로, 결과를 다 저장한 뒤에만 '완료'</h3></div>
+          <span class="facts" style="gap:6px"><a class="badge badge--accent" href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/adr/0004-async-analysis-job.md">ADR-0004</a><a class="badge badge--accent" href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/adr/0014-analysis-reuse-and-version.md">ADR-0014</a></span>
+        </div>
+        <div class="topic__body">
+          <div class="pd">
+            <div class="p"><p class="label">문제</p><p>공시 받기·파싱·LLM 요약까지 한 요청에서 기다리면 시간 제한에 걸립니다. 상태를 아무 데서나 바꿀 수 있으면 결과 일부만 저장된 채 '완료'로 보이거나, 끝난 작업이 다시 '진행 중'이 될 수 있습니다.</p></div>
+            <div class="d"><p class="label">결정</p><p>요청 → 작업 번호 → 상태 조회 → 결과 조회로 나누고, 상태는 코드의 허용 전이표로만 바꿉니다. 결과 저장과 COMPLETED는 <code>AnalysisResultService</code> 한 곳에서 한 트랜잭션으로 처리합니다.</p></div>
+          </div>
+          <div class="tblwrap"><table class="tbl" style="max-width:520px">
+            <thead><tr><th>현재 상태</th><th>갈 수 있는 상태</th></tr></thead>
+            <tbody>
+              <tr><td><code>PENDING</code></td><td><code>RUNNING</code>, <code>FAILED</code></td></tr>
+              <tr><td><code>RUNNING</code></td><td><code>COMPLETED</code>, <code>FAILED</code></td></tr>
+              <tr><td><code>COMPLETED</code></td><td>없음(끝 상태)</td></tr>
+              <tr><td><code>FAILED</code></td><td>없음(끝 상태)</td></tr>
+            </tbody>
+          </table></div>
+          <ul class="plain" style="font-size:14px">
+            <li>표에 없는 전이는 <code>IllegalStateException</code>으로 거부합니다.</li>
+            <li>서버가 다시 뜨면 끝나지 않은 분석을 실패로 바꾸고, 30분 넘게 멈춘 분석도 실패로 처리합니다.</li>
+            <li>같은 보고서 쌍·같은 분석 버전(지금 <code>m2-20</code>)이면 저장된 결과를 다시 씁니다. 분석 방식이 바뀌면 버전을 올립니다.</li>
+            <li>'COMPLETED는 <code>AnalysisResultService</code>만 만든다'는 규칙을 ArchUnit 테스트(<code>onlyResultServiceCompletesAnalysis</code>)가 지킵니다.</li>
+          </ul>
+          <div class="code" aria-label="코드 위치">
+            <div><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/backend/src/main/java/com/dartinsight/analysis/domain/AnalysisStatus.java">backend/…/analysis/domain/AnalysisStatus.java</a><span>허용 전이표 <code>ALLOWED</code> · <code>canMoveTo</code></span></div>
+            <div><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/backend/src/main/java/com/dartinsight/analysis/domain/Analysis.java">backend/…/analysis/domain/Analysis.java</a><span><code>start</code> · <code>complete</code> · <code>fail</code> · 분석 버전</span></div>
+            <div><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/backend/src/main/java/com/dartinsight/analysis/service/AnalysisRunner.java">backend/…/analysis/service/AnalysisRunner.java</a><span>대기열 있는 스레드 풀에서 실행</span></div>
+            <div><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/backend/src/main/java/com/dartinsight/analysis/service/AnalysisResultService.java">backend/…/analysis/service/AnalysisResultService.java</a><span>결과 저장 + 완료 처리</span></div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 과제 5 -->
+      <article class="topic" id="t-agent">
+        <div class="topic__head">
+          <div><p class="kicker">과제 5 · 에이전트 채팅</p><h3>AI는 다음 할 일만 고르고, Tool 실행과 근거 확인은 backend가</h3></div>
+          <span class="facts" style="gap:6px"><a class="badge badge--accent" href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/adr/0044-agent-tools-run-in-backend.md">ADR-0044</a><a class="badge badge--accent" href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/adr/0045-langgraph-agent-step-graph.md">ADR-0045</a><a class="badge badge--accent" href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/adr/0059-task-model-agent-plan-luna.md">ADR-0059</a><a class="badge badge--accent" href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/adr/0063-claude-haiku-default-model.md">ADR-0063</a></span>
+        </div>
+        <div class="topic__body">
+          <div class="pd">
+            <div class="p"><p class="label">문제</p><p>채팅이 회사 재무·문장 변화·용어를 조회하려면 Tool이 필요합니다. AI 서버가 Tool을 직접 실행하면 DB 접근·권한 확인·캐시를 AI 서버에 다시 만들어야 하고, 단방향 호출 규칙도 깨집니다. 채팅은 LLM 호출이 잦아 비용도 문제였습니다.</p></div>
+            <div class="d"><p class="label">결정</p><p>대화 상태와 Tool 실행은 backend가 갖고, ai-server는 LangGraph로 '한 단계'만 계산해 <code>TOOL_CALLS</code> · <code>FINAL</code> · <code>OUT_OF_SCOPE</code> 중 하나를 돌려줍니다. 쓰기 Tool(노트 담기 등)은 실행하지 않고 사용자 확인 버튼으로 돌려줍니다.</p></div>
+          </div>
+          <pre>backend  AgentChatService.Chat.run()            ai-server  /internal 에이전트 단계 (LangGraph, 무상태)
+───────────────────────────────────────         ─────────────────────────────────────────────────
+loop (최대 5왕복, 60초)                          START → route_intent ─┬→ OUT_OF_SCOPE (투자 판단 질문, LLM 없이)
+  허용 Tool·최근 대화·화면 맥락·Tool 결과 ──────▶                       ├→ 정해진 요청 (LLM 없이)
+                                                                      └→ plan_next_tool ─┬→ TOOL_CALLS
+  TOOL_CALLS ◀──────────────────────────────────                                         └→ 답 초안
+  → 기존 서비스 메서드로 Tool 실행(권한·캐시)                             review_answer (코드 규칙)
+  FINAL ◀───────────────────────────────────────                          ↳ 반려 시 draft_answer (생성 합계 3회)
+  → ChatResults.finalAnswer: 근거 재확인                                → build_response
+     확인 못 하면 REVIEW_NEEDED</pre>
+          <div class="grid g2">
+            <div class="card card--subtle">
+              <p class="label">지켜지는 것</p>
+              <ul class="plain" style="font-size:14px">
+                <li>체크포인터·메모리·LangChain 도구 노드·interrupt를 쓰지 않아 ai-server가 무상태로 남습니다.</li>
+                <li>한 채팅의 모든 왕복이 같은 <code>X-Trace-Id</code>를 씁니다.</li>
+                <li>근거는 7가지 종류로 두고, 그 채팅에서 실제로 조회된 자료인지 backend가 다시 확인합니다(<a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/adr/0048-agent-evidence-kinds-and-recheck.md">ADR-0048</a>).</li>
+                <li>Tool 고르기 호출이 자료가 충분하면 답 초안까지 써서 호출 수를 줄입니다(<a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/adr/0049-agent-plan-writes-answer.md">ADR-0049</a>).</li>
+              </ul>
+            </div>
+            <div class="card card--subtle">
+              <p class="label">모델 선택의 변화</p>
+              <ul class="plain" style="font-size:14px">
+                <li><b>ADR-0059</b>(OpenAI 시절): Tool 고르기만 경량 모델 <code>gpt-6-luna</code>, 답은 <code>gpt-6.1-sol</code>. #742 측정에서 단계당 0.0168 → 0.0009달러.</li>
+                <li><b>ADR-0062</b>: Claude 제공자 추가(기본 Sonnet, 고르기 Haiku).</li>
+                <li><b>ADR-0063</b>(지금): Claude를 쓸 때 <b>모든 작업이 <code>claude-haiku-5-5</code></b>. 모든 LLM 호출 비용이 약 1/20로 줄었습니다. Sonnet은 <code>LLM_MODEL</code>·<code>LLM_TASK_MODELS</code> 환경 변수로만 되돌립니다.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="tblwrap"><table class="tbl" style="max-width:640px">
+            <thead><tr><th>LLM 일일 한도</th><th>비로그인(IP)</th><th>회원</th><th>서비스 전체</th></tr></thead>
+            <tbody>
+              <tr><td>질문·채팅(<a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/adr/0054-llm-daily-quota.md">ADR-0054</a>)</td><td class="num">20</td><td class="num">100</td><td class="num">3,000</td></tr>
+              <tr><td>분석 생성(<a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/adr/0056-analysis-daily-quota.md">ADR-0056</a>)</td><td class="num">10</td><td class="num">30</td><td class="num">500</td></tr>
+            </tbody>
+          </table></div>
+          <div class="code" aria-label="코드 위치">
+            <div><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/ai-server/app/agent/graph.py">ai-server/app/agent/graph.py</a><span><code>build_graph</code>와 노드 6개</span></div>
+            <div><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/ai-server/app/agent/validate.py">ai-server/app/agent/validate.py</a><span>검토 규칙 <code>review</code></span></div>
+            <div><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/backend/src/main/java/com/dartinsight/agent/service/AgentChatService.java">backend/…/agent/service/AgentChatService.java</a><span>왕복 루프와 Tool 실행</span></div>
+            <div><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/backend/src/main/java/com/dartinsight/agent/service/AgentTools.java">backend/…/agent/service/AgentTools.java</a><span>Tool 정의(<code>AgentCompanyTools</code>와 합쳐 24개)</span></div>
+            <div><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/backend/src/main/java/com/dartinsight/agent/service/ChatResults.java">backend/…/agent/service/ChatResults.java</a><span>최종 답 근거 재확인</span></div>
+            <div><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/ai-server/app/llm/providers.py">ai-server/app/llm/providers.py</a><span>제공자와 기본 모델</span></div>
+            <div><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/backend/src/main/java/com/dartinsight/llmquota/config/LlmQuotaProperties.java">backend/…/llmquota/config/LlmQuotaProperties.java</a><span>일일 한도 기본값</span></div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- 3. 직접 해 보기 -->
+    <section id="decisions">
+      <header>
+        <p class="kicker">3 · Try It</p>
+        <h2>설계를 직접 움직여 보기</h2>
+        <p>위 과제 중 다섯 가지 결정을 작은 시뮬레이터로 옮겼습니다. 실제 코드의 규칙과 측정값을 그대로 썼습니다.</p>
+      </header>
+        <article class="dec">
+          <div class="dec__top"><div><p class="kicker">선택 1 · 분석 실행</p><h3>분석은 비동기 작업, 결과를 다 저장한 뒤에만 완료</h3></div><span class="adr">ADR-0004 · 0014 · 0042</span></div>
+          <div class="dec__body">
+            <div class="grid" style="gap:12px">
+              <ul><li>공시 받기와 AI 요약에 수십 초가 걸립니다. 작업 번호를 먼저 주고 화면이 몇 초마다 묻습니다.</li><li>허용된 전이만 코드의 표로 관리해, 모든 결과가 저장된 뒤에만 '완료'로 보입니다.</li><li>같은 두 보고서는 저장된 결과를 다시 쓰고, 방식이 바뀌면 버전을 올립니다.</li></ul>
+              <div class="alt"><p class="label">함께 검토한 대안</p>
+                <div><b>요청 하나에서 끝까지 기다리기</b><p>비동기 작업으로 나누면 시간 제한에 여유가 생기고 진행 단계도 차례로 보여 줄 수 있음</p></div>
+                <div><b>메시지 큐(Kafka 등)</b><p>현재 단일 서버 규모에서는 내장 스레드 풀이 구성을 단순하게 유지하는 데 적합함</p></div>
+                <div><b>상태를 자유롭게 바꾸는 setter</b><p>전이표를 두면 결과 저장 완료 순서와 상태 일관성을 코드로 보장할 수 있음</p></div>
+              </div>
+            </div>
+            <div class="demo" id="smdemo">
+              <p class="label"><span>직접 해 보기 · 상태 전이표</span><span class="mono">AnalysisStatus</span></p>
+              <div class="sm"><span class="st" data-s="PENDING">PENDING</span><span class="to">→</span><span class="st" data-s="RUNNING">RUNNING</span><span class="to">→</span><span class="st done" data-s="COMPLETED">COMPLETED</span><span class="to">/</span><span class="st fail" data-s="FAILED">FAILED</span></div>
+              <div class="bar4" aria-hidden="true"><i id="smbar" style="width:10%"></i></div>
+              <div class="btnrow">
+                <button class="btn btn--sm btn--primary" type="button" data-to="RUNNING">작업 시작</button>
+                <button class="btn btn--sm" type="button" data-to="COMPLETED">결과 저장 후 완료</button>
+                <button class="btn btn--sm" type="button" data-to="FAILED">종료 상태 확인</button>
+                <button class="btn btn--sm" type="button" data-to="RUNNING" data-force="1">역방향 전이 시험</button>
+                <button class="btn btn--sm" type="button" id="smreset">처음으로</button>
+              </div>
+              <div id="smmsg" class="callout" aria-live="polite"></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="dec">
+          <div class="dec__top"><div><p class="kicker">선택 2 · AI 신뢰</p><h3>금융 정보에서 가장 중요한 것은 확인 가능한 근거</h3></div><span class="adr">AGENTS.md 'AI 기능 규칙' · ADR-0006 · 0013 · 0015</span></div>
+          <div class="principles" id="principles">
+            <button type="button" aria-expanded="false"><b>숫자는 코드가 계산</b><span>증감액·증감률은 코드가 만들고 AI에는 그 값을 그대로 넣습니다.</span></button>
+            <button type="button" aria-expanded="false"><b>근거가 확인된 문장만 노출</b><span>문장마다 근거 ID가 있어야 하고, 저장된 원문 위치인지 다시 확인합니다.</span></button>
+            <button type="button" aria-expanded="false"><b>검증 상태는 투명하게</b><span>기준을 통과할 때까지 2번까지 다시 다듬고, 추가 확인이 필요하면 '검토 필요'로 안내합니다.</span></button>
+            <button type="button" aria-expanded="false"><b>객관적인 사실만 전달</b><span>공시 원문은 구분 태그로 감싸 자료로만 다루고, 표현 기준을 자동 검사합니다.</span></button>
+          </div>
+          <div class="demo" id="pdemo" aria-live="polite"></div>
+        </article>
+
+        <article class="dec">
+          <div class="dec__top"><div><p class="kicker">선택 3 · 근거 문단 찾기</p><h3>임베딩 대신 글자 2개 단위 BM25를 직접 구현</h3></div><span class="adr">ADR-0036</span></div>
+          <div class="dec__body">
+            <div class="grid" style="gap:12px">
+              <ul><li>계정 이름·고유명사가 정확히 맞는 것이 중요하고, 같은 입력이면 같은 후보가 같은 순서로 나와 테스트와 설명이 쉽습니다.</li><li>식이 약 30줄이라 라이브러리 없이 직접 썼습니다.</li><li>경영진단 ×1.5, 사업의 내용 ×1.3으로 먼저 봅니다.</li></ul>
+              <div class="alt"><p class="label">함께 검토한 대안</p>
+                <div><b>형태소 분석기 + BM25</b><p>검색어가 띄어쓰기 없는 명사구 중심이라 2글자 단위로도 가볍고 빠르게 찾을 수 있음</p></div>
+                <div><b>임베딩·벡터 검색</b><p>먼저 별도 인프라 없이 동작하는 BM25로 기준선을 세우고 다음 확장 단계로 계획함</p></div>
+              </div>
+            </div>
+            <div class="demo">
+              <p class="label"><span>직접 해 보기 · 후보 문단 최소 길이</span><span class="mono">SK하이닉스 · '매출액'</span></p>
+              <input type="range" id="minlen" min="0" max="2" step="1" value="0" aria-label="최소 길이" aria-valuetext="20자">
+              <div class="chartcap"><span>20자</span><span>40자</span><span>60자</span></div>
+              <div class="para"><div class="meta"><span class="badge" id="rank1badge">1위 후보</span><span class="mono">20250319000665</span></div><p id="rank1"></p></div>
+              <p class="muted" id="rank1note" style="font-size:13px"></p>
+            </div>
+          </div>
+        </article>
+
+        <article class="dec">
+          <div class="dec__top"><div><p class="kicker">선택 4 · 에이전트 채팅</p><h3>AI는 다음 할 일만 고르고, 실행은 백엔드가</h3></div><span class="adr">ADR-0044 · 0045 · 0048 · 0049</span></div>
+          <div class="dec__body">
+            <div class="grid" style="gap:12px">
+              <ul><li>Tool은 백엔드가 실행해 권한 확인·캐시·기존 서비스를 그대로 씁니다. AI 서버는 DB와 분리되어 있습니다.</li><li>노트 담기·관심 기업 같은 쓰기는 확인 버튼을 사용자가 직접 눌렀을 때만 실행됩니다.</li><li>근거는 7가지 종류로 두고, 그 채팅에서 조회된 자료인지 백엔드가 다시 확인합니다.</li></ul>
+              <div class="alt"><p class="label">함께 검토한 대안</p>
+                <div><b>LangChain 에이전트 그대로</b><p>직접 구성하면 우리 AI 모듈의 호출 기록·구조화 출력과 근거·숫자 검증을 일관되게 연결할 수 있음</p></div>
+                <div><b>LangGraph가 대화 전체를 맡기</b><p>한 단계씩 실행하면 단방향 호출 규칙과 무상태 구조를 깔끔하게 지킬 수 있음</p></div>
+              </div>
+            </div>
+            <div class="demo">
+              <p class="label"><span>직접 해 보기 · 질문 하나가 지나가는 길</span></p>
+              <div class="seg" role="group" aria-label="질문 종류" id="agseg">
+                <button type="button" data-s="0" aria-pressed="true">자료가 충분</button><button type="button" data-s="1" aria-pressed="false">Tool 필요</button><button type="button" data-s="2" aria-pressed="false">검토 후 다듬기</button>
+              </div>
+              <div class="chain" id="agchain">
+                <span class="node" data-k="q">질문</span><span class="to">→</span><span class="node" data-k="plan">Tool 고르기·초안</span><span class="to">→</span><span class="node" data-k="tool">백엔드 Tool 실행</span><span class="to">→</span><span class="node" data-k="review">검토</span><span class="to">→</span><span class="node back" data-k="write">답 다시 쓰기</span><span class="to">→</span><span class="node" data-k="ans">답 + 근거</span>
+              </div>
+              <div class="btnrow"><button class="btn btn--sm btn--primary" type="button" id="agplay">▶ 재생</button><span class="muted" style="font-size:13px;align-self:center" id="agsum"></span></div>
+              <div class="log" id="aglog" aria-live="polite"></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="dec">
+          <div class="dec__top"><div><p class="kicker">선택 5 · 작업별 모델</p><h3>Tool 고르기를 경량 모델로 나눠 보고, 지금은 모든 작업을 경량 모델로</h3></div><span class="adr">ADR-0059 · 0063 · #742 측정표</span></div>
+          <div class="dec__body">
+            <div class="grid" style="gap:12px">
+              <div class="grid" style="gap:10px" aria-label="채팅 2단계 10개 측정(OpenAI 모델), 단계당 비용">
+                <div class="costrow"><div class="lb"><span>고르기 sol · 답 sol (전)</span><b>$0.0168 · 재작성 1</b></div><div class="track"><i style="width:100%"></i></div></div>
+                <div class="costrow pick"><div class="lb"><span>고르기 luna · 답 sol <span class="badge badge--accent">ADR-0059</span></span><b>$0.0009 · 재작성 0</b></div><div class="track"><i style="width:5.4%"></i></div></div>
+                <div class="costrow"><div class="lb"><span>모두 luna</span><b>$0.0004 · 재작성 2</b></div><div class="track"><i style="width:2.4%"></i></div></div>
+              </div>
+              <ul><li>#742에서 Tool 결과를 받은 2단계 10개를 OpenAI 모델로 쟀습니다. 고르기만 경량 모델(<span class="mono">gpt-6-luna</span>)로 나누자 단계당 비용이 약 1/19로 줄고 반려도 없었습니다. 모두 luna로 하면 '숫자가 Tool 결과에 없음' 반려가 2번 나왔습니다.</li><li>Claude로 옮긴 뒤에는 모든 작업이 <span class="mono">claude-haiku-5-5</span>입니다(ADR-0063). 모든 LLM 호출 비용이 약 1/20로 줄었습니다.</li><li>상위 모델로는 환경변수(<span class="mono">LLM_MODEL</span>, <span class="mono">LLM_TASK_MODELS</span>)로 작업별로 되돌릴 수 있습니다.</li></ul>
+            </div>
+            <div class="demo">
+              <p class="label"><span>직접 해 보기 · 하루 채팅 단계 수로 어림</span><span class="mono">#742 단가</span></p>
+              <input type="range" id="steps" min="100" max="6000" step="100" value="3000" aria-label="하루 채팅 단계 수">
+              <p style="font-size:13px" class="muted">하루 <b class="num" id="stepsv" style="color:var(--color-text)">3,000</b>단계 (채팅 하루 한도 전체 3,000회 기준에서 시작)</p>
+              <div class="grid g2" style="gap:8px">
+                <div class="card"><p class="label">sol · sol</p><p class="big" id="cbefore">$50.40</p><p class="muted" style="font-size:12px">하루</p></div>
+                <div class="card card--subtle"><p class="label">luna · sol</p><p class="big" id="cafter" style="color:var(--color-accent)">$2.70</p><p class="muted" style="font-size:12px">하루</p></div>
+              </div>
+            </div>
+          </div>
+        </article>
+    </section>
+
+    <!-- 4. 계층 규칙과 배포 -->
+    <section id="guard">
+      <header>
+        <p class="kicker">4 · Guardrails &amp; Delivery</p>
+        <h2>규칙은 테스트가 지키고, 배포는 되돌릴 수 있게</h2>
+      </header>
+      <div class="grid g2">
+        <div class="card">
+          <h3>backend 계층 규칙 · ArchUnit</h3>
+          <p class="muted" style="font-size:14px"><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/backend/src/test/java/com/dartinsight/architecture/ArchitectureTest.java">ArchitectureTest.java</a> · <a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/adr/0016-layered-packages-and-completion-guard.md">ADR-0016</a></p>
+          <ul class="plain" style="font-size:14px">
+            <li>Controller → Service → Repository·Domain 계층 방향</li>
+            <li>Controller는 Repository를 직접 쓰지 않음</li>
+            <li>Repository는 Service·Controller에 기대지 않음</li>
+            <li>다른 도메인의 Repository를 직접 쓰지 않음</li>
+            <li>분석 완료는 <code>AnalysisResultService</code>만</li>
+            <li>도메인 패키지 사이 순환 없음</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>2-VM 배포와 자동 복구</h3>
+          <p class="muted" style="font-size:14px"><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/infra/jenkins/README.md">infra/jenkins/README.md</a> · <a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/infra/jenkins/deploy-ai-backend.sh">deploy-ai-backend.sh</a></p>
+          <ul class="plain" style="font-size:14px">
+            <li>VM1: backend·웹·DB, VM2: ai-server와 Jenkins 빌드 에이전트</li>
+            <li>검사 → 같은 커밋으로 이미지 3개 → AI·backend 배포 → 웹 배포</li>
+            <li>DB 마이그레이션은 <code>REVIEWED_MIGRATIONS</code>에 등록된 SHA-256과 맞을 때만 진행. 두 VM 모두 사전 검증을 통과해야 교체 시작</li>
+            <li>교체 전 이전 이미지를 <code>rollback-{release_id}</code>로 보관, 기동 확인(2초×30회) 실패 시 이전 이미지로 복구. backend가 실패하면 AI도 함께 되돌림</li>
+            <li>교체 전 DB 덤프를 만들지만 역마이그레이션은 자동으로 하지 않음</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. 발표 수치 점검 -->
+    <section id="checks">
+      <header>
+        <p class="kicker">5 · Fact Check</p>
+        <h2>발표 자료에 나왔던 기술 수치 점검표</h2>
+        <p>이전 발표 자료의 '5대 기술 난제' 슬라이드 수치를 코드·ADR과 대조했습니다. 질문을 받거나 자료를 다시 쓸 때 오른쪽 값을 씁니다.</p>
+      </header>
+      <div class="tblwrap"><table class="tbl">
+        <thead><tr><th>발표 자료</th><th>판정</th><th>확인한 사실</th></tr></thead>
+        <tbody>
+          <tr><td>StAX 스트리밍 파서, 메모리 80MB 고정</td><td><span class="badge badge--attention">다름</span></td><td>Python 표준 <code>html.parser</code>로 본문 전체를 읽음. 크기 제한은 압축 해제 300MB뿐이고 80MB 근거 없음(ADR-0009)</td></tr>
+          <tr><td>원문 앵커 <code>#접수번호#B{n}</code>, 영구</td><td><span class="badge badge--attention">다름</span></td><td>형식은 <code>{접수번호}#B{n}</code>. 파서 버전에 묶여 있어 파서가 바뀌면 번호도 바뀔 수 있음</td></tr>
+          <tr><td>BigDecimal로 100% 계산</td><td><span class="badge">일부 맞음</span></td><td>증감액은 <code>long</code>, 증감률만 <code>BigDecimal</code></td></tr>
+          <tr><td>근거 ID 없으면 기각, 최대 2회 재생성, 금지어 검사</td><td><span class="badge badge--ok">맞음</span></td><td>근거 ADR은 0006·0013·0015(발표 자료의 0062·0064는 다른 결정)</td></tr>
+          <tr><td>BM25 검색 45ms</td><td><span class="badge badge--attention">근거 없음</span></td><td>실측은 색인 17~19ms, 계정 4개 검색 1.8~1.9ms(ADR-0036)</td></tr>
+          <tr><td>BM25 최소 40자, 경영진단 ×1.5</td><td><span class="badge badge--ok">맞음</span></td><td>사업의 내용 ×1.3도 있음. 가중치는 잠정값</td></tr>
+          <tr><td>PENDING→RUNNING→COMPLETED 단방향, X-Trace-Id</td><td><span class="badge badge--ok">맞음</span></td><td>PENDING→FAILED도 허용. 추적 ID 근거는 ADR-0005(0014 아님)</td></tr>
+          <tr><td>Tool 고르기 Haiku, 답 Sonnet(2-Tier)</td><td><span class="badge badge--attention">다름</span></td><td>ADR-0063 이후 모든 작업이 <code>claude-haiku-5-5</code>. 2-Tier는 OpenAI 설정에만 남음</td></tr>
+          <tr><td>호출당 $0.0009, 비용 95% 절감</td><td><span class="badge">조건부</span></td><td>OpenAI 모델(#742) 단계당 0.0168→0.0009달러(약 94.6%). Claude 기준 아님</td></tr>
+          <tr><td>동시 처리량 4.2배, 하루 $50.40→$2.70</td><td><span class="badge badge--attention">근거 없음</span></td><td>코드·ADR·문서 어디에도 측정 없음(하루 금액은 단가×3,000단계 어림)</td></tr>
+          <tr><td>채택 ADR 67개</td><td><span class="badge">조건부</span></td><td>파일 67개(0043 없음). 채택 60 · 대체됨 4 · 제안 3</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <!-- 6. 참고 -->
+    <section id="refs">
+      <header>
+        <p class="kicker">6 · References</p>
+        <h2>더 읽을 곳</h2>
+      </header>
+      <ul class="plain">
+        <li><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/AGENTS.md">AGENTS.md</a> — 구조·AI 기능·API 규칙 원문</li>
+        <li><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/adr/README.md">docs/adr/</a> — 결정 기록 전체와 '무엇을 ADR로 남기나'</li>
+        <li><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/api-spec.md">docs/api-spec.md</a> · <a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/erd.md">docs/erd.md</a> — API 명세와 ERD</li>
+        <li><a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/local-setup.md">docs/local-setup.md</a> — 로컬 실행과 서비스별 명령</li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+<script>
+const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const press = (group, btn) => { $$('button', group).forEach((b) => b.setAttribute('aria-pressed', String(b === btn))); };
+
+/* 테마: 서비스와 같은 키(dart-insight:theme)를 써서 서비스에서 고른 테마를 그대로 따른다. 시스템이면 지운다 */
+(function () {
+  const KEY = 'dart-insight:theme', root = document.documentElement;
+  let saved = 'system';
+  try { const v = localStorage.getItem(KEY); saved = v === 'light' || v === 'dark' ? v : 'system'; } catch (e) {}
+  const apply = (v) => {
+    if (v === 'system') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', v);
+    $$('[data-theme-set]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.themeSet === v)));
+  };
+  apply(saved);
+  $$('[data-theme-set]').forEach((b) => b.addEventListener('click', () => {
+    const v = b.dataset.themeSet; apply(v);
+    try { if (v === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, v); } catch (e) {}
+  }));
+})();
+
+/* 목차: 지금 읽는 위치 표시 */
+(function () {
+  const links = $$('#toc a'), byId = new Map(links.map((a) => [a.getAttribute('href').slice(1), a]));
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (!e.isIntersecting) return;
+      links.forEach((a) => a.removeAttribute('aria-current'));
+      const a = byId.get(e.target.id); if (a) a.setAttribute('aria-current', 'true');
+    });
+  }, { rootMargin: '-90px 0px -65% 0px' });
+  byId.forEach((_, id) => { const el = document.getElementById(id); if (el) io.observe(el); });
+})();
+
+/* 상태 전이 */
+(function () {
+  const T = { PENDING: ['RUNNING', 'FAILED'], RUNNING: ['COMPLETED', 'FAILED'], COMPLETED: [], FAILED: [] };
+  const W = { PENDING: 10, RUNNING: 55, COMPLETED: 100, FAILED: 100 };
+  let cur = 'PENDING';
+  const msg = $('#smmsg');
+  const draw = (text, kind) => {
+    $$('.st', $('#smdemo')).forEach((s) => s.classList.toggle('cur', s.dataset.s === cur));
+    $('#smbar').style.width = W[cur] + '%';
+    msg.className = 'callout' + (kind ? ' callout--' + kind : '');
+    msg.innerHTML = text;
+  };
+  $$('[data-to]', $('#smdemo')).forEach((b) => b.addEventListener('click', () => {
+    const to = b.dataset.to;
+    if (T[cur].includes(to)) {
+      cur = to;
+      draw({ RUNNING: '진행 중: 공시를 받고 비교한 뒤 AI 요약을 만듭니다.', COMPLETED: '결과를 모두 저장했으므로 <b>COMPLETED</b>로 바꿨습니다. 화면이 결과를 불러옵니다.', FAILED: '<b>FAILED</b>. 사유 코드와 그때까지의 호출 기록을 함께 남기고 안전하게 마무리합니다(ADR-0042).' }[to], to === 'FAILED' ? 'attention' : '');
+    } else {
+      draw('<b>' + cur + ' → ' + to + '</b>은 전이표에 없는 경로여서 현재 상태를 지킵니다. ' + (T[cur].length ? '이동 가능한 다음 상태: ' + T[cur].join(', ') : cur + '는 최종 상태라 그대로 유지됩니다.'), 'attention');
+    }
+  }));
+  $('#smreset').addEventListener('click', () => { cur = 'PENDING'; draw('요청을 접수하고 작업 번호를 줬습니다. 이동 가능한 다음 상태: RUNNING, FAILED'); });
+  draw('요청을 접수하고 작업 번호를 줬습니다. 이동 가능한 다음 상태: RUNNING, FAILED');
+})();
+
+/* 신뢰 원칙 */
+(function () {
+  const ex = [
+    ['예: 매출액 증감률', '증감액과 증감률은 백엔드 코드가 계산하고, 이전 값이 null이거나 0이면 계산 대신 명확한 사유 코드를 남깁니다. AI 프롬프트에는 계산된 값이 그대로 들어갑니다.'],
+    ['예: 근거 ID', '문장마다 <span class="mono">{접수번호}#B{블록 번호}</span> 형식의 근거가 있어야 하고, 그 분석에 전달된 문단 블록인지 백엔드가 다시 확인해 검증된 문장만 담습니다.'],
+    ['예: 다시 다듬기', '형식·근거 기준을 통과할 때까지 최대 2번 다시 생성합니다. 추가 확인이 필요한 항목은 \'검토 필요\' 배지와 원문 인용 요약으로 투명하게 안내합니다.'],
+    ['예: 표현 점검', '공시 원문은 구분 태그로 감싼 자료로만 넣습니다. 매수·매도 추천, 목표주가, 주가 예측 같은 표현이 없는지 화면에 내보내기 전에 자동으로 점검합니다. 미등록 금융 용어는 코드가 경고를 부착하는 일반 설명만 예외 허용합니다(ADR-0064).']
+  ];
+  const btns = $$('#principles button'), out = $('#pdemo');
+  const show = (i) => { btns.forEach((b, j) => b.setAttribute('aria-expanded', String(i === j))); out.innerHTML = '<p class="label">' + ex[i][0] + '</p><p>' + ex[i][1] + '</p>'; };
+  btns.forEach((b, i) => b.addEventListener('click', () => show(i))); show(0);
+})();
+
+/* BM25 길이 */
+(function () {
+  const r = $('#minlen'), out = $('#rank1'), note = $('#rank1note'), badge = $('#rank1badge');
+  const data = [
+    ['20자', '※ 출처: IDC 2024년 12월, 매출액 기준', '출처 한 줄이 1위입니다. BM25는 짧은 글을 우대해서 검색어만 있는 줄이 위로 올라옵니다.', 'badge badge--attention'],
+    ['40자', '당사 매출액은 66조 1,930억원으로 …  (경영진단 문단)', '설명이 담긴 경영진단 문단이 1위가 됩니다. 그래서 40자를 기준으로 정했습니다.', 'badge badge--ok'],
+    ['60자', '당사 매출액은 66조 1,930억원으로 …  (경영진단 문단)', '60자도 결과가 같았습니다. 짧은 설명 문단까지 폭넓게 담기 위해 40자로 둡니다.', 'badge badge--ok']
+  ];
+  const show = () => { const d = data[+r.value]; out.textContent = d[1]; note.textContent = d[2]; badge.className = d[3]; badge.textContent = '1위 후보 · 최소 ' + d[0]; r.setAttribute('aria-valuetext', d[0]); };
+  r.addEventListener('input', show); show();
+})();
+
+/* 에이전트 */
+(function () {
+  const S = [
+    { path: ['q', 'plan', 'review', 'ans'], log: [['info', '질문과 화면 맥락(기업·분석·탭)을 받음'], ['info', 'Tool 고르기(plan_next_tool): 받은 자료로 충분 → 같은 호출에서 답 초안(ADR-0049)'], ['ok', '검토 통과: 근거 ID·숫자·표현 확인'], ['ok', '답과 근거를 돌려줌']] },
+    { path: ['q', 'plan', 'tool', 'plan', 'review', 'ans'], log: [['info', '질문을 받음'], ['info', 'Tool 고르기: 재무 추이 Tool이 필요'], ['info', '백엔드가 Tool 실행(권한 확인·캐시 사용) → 결과를 붙여 다시 부름'], ['info', 'Tool 고르기: 이제 충분 → 답 초안'], ['ok', '검토 통과'], ['ok', '답과 근거를 돌려줌']] },
+    { path: ['q', 'plan', 'tool', 'plan', 'review', 'write', 'review', 'ans'], log: [['info', '질문을 받음'], ['info', 'Tool 고르기: 근거 질문 Tool이 필요'], ['info', '백엔드가 Tool 실행'], ['info', 'Tool 고르기: 답 초안'], ['info', '검토 단계: Tool 결과의 숫자와 한 번 더 맞춰 보도록 재작성 요청'], ['info', '답 다시 쓰기(draft_answer): 검토 의견을 반영해 다시 작성. 생성은 합계 3번까지'], ['ok', '검토 통과'], ['ok', '답과 근거를 돌려줌']] }
+  ];
+  let sc = 0, timer = null;
+  const nodes = $$('#agchain .node'), log = $('#aglog'), sum = $('#agsum'), seg = $('#agseg');
+  const stop = () => { clearTimeout(timer); timer = null; };
+  const paint = (k) => nodes.forEach((n) => n.classList.toggle('on', n.dataset.k === k));
+  const summary = () => { const s = S[sc]; sum.textContent = 'LLM 호출 ' + s.path.filter((k) => k === 'plan' || k === 'write').length + '번 · Tool 실행 ' + s.path.filter((k) => k === 'tool').length + '번'; };
+  const play = () => {
+    stop(); log.innerHTML = ''; const s = S[sc]; let i = 0;
+    const tick = () => {
+      paint(s.path[i]);
+      const l = s.log[i]; if (l) { const d = document.createElement('div'); d.innerHTML = '<span class="' + l[0] + '">' + (l[0] === 'ok' ? '✓' : l[0] === 'no' ? '✕' : '•') + '</span><span>' + l[1] + '</span>'; log.appendChild(d); log.scrollTop = log.scrollHeight; }
+      i++; if (i < s.path.length) timer = setTimeout(tick, reduce ? 0 : 750);
+    };
+    tick();
+  };
+  $$('button', seg).forEach((b) => b.addEventListener('click', () => { sc = +b.dataset.s; press(seg, b); summary(); play(); }));
+  $('#agplay').addEventListener('click', play);
+  summary();
+  log.innerHTML = S[0].log.map((l) => '<div><span class="' + l[0] + '">' + (l[0] === 'ok' ? '✓' : '•') + '</span><span>' + l[1] + '</span></div>').join('');
+  paint('ans');
+})();
+
+/* 비용 어림 */
+(function () {
+  const r = $('#steps');
+  const fmt = (v) => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const show = () => { const n = +r.value; $('#stepsv').textContent = n.toLocaleString('ko-KR'); $('#cbefore').textContent = fmt(n * 0.0168); $('#cafter').textContent = fmt(n * 0.0009); r.setAttribute('aria-valuetext', n + '단계'); };
+  r.addEventListener('input', show); show();
+})();
+</script>
+</body>
+</html>
