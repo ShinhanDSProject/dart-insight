@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { DisclosureItem } from '@/shared/api/disclosures'
-import { chartPoints, chartRows, defaultChartView } from './disclosureChart'
+import { chartPoints, chartRows, defaultChartView, periodicMarker } from './disclosureChart'
 
 function item(overrides: Partial<DisclosureItem>): DisclosureItem {
   return {
@@ -40,6 +40,7 @@ describe('공시 타임라인 차트 자료', () => {
       title: '반기보고서 (2026.06)',
       href: 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260814002000',
       emphasis: true,
+      marker: '반기',
       action: { label: '이 보고서로 비교하기', to: '/companies/00126380?current=20260814002000' },
     })
   })
@@ -57,6 +58,17 @@ describe('공시 타임라인 차트 자료', () => {
     expect(point.href).toBeNull()
     expect(point.emphasis).toBe(false)
     expect(point.action).toBeUndefined()
+    expect(point.marker).toBeUndefined()
+  })
+
+  it('정기보고서 이름에서 기준선 이름표를 만든다', () => {
+    expect(periodicMarker('사업보고서 (2025.12)')).toBe('사업')
+    expect(periodicMarker('[기재정정]사업보고서 (2025.12)')).toBe('사업')
+    expect(periodicMarker('반기보고서 (2026.06)')).toBe('반기')
+    expect(periodicMarker('분기보고서 (2026.03)')).toBe('1분기')
+    expect(periodicMarker('분기보고서 (2025.09)')).toBe('3분기')
+    expect(periodicMarker('분기보고서 (2025.06)')).toBe('분기')
+    expect(periodicMarker('주요사항보고서(유상증자결정)')).toBeUndefined()
   })
 
   it('좁은 화면은 표로 시작한다', () => {

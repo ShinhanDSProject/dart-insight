@@ -47,6 +47,8 @@ export interface DotTimelinePoint {
   href: string | null
   /** 마름모로 그려 다른 점과 모양으로 구분한다. 모음 점에 넣지 않고 늘 하나씩 그린다 */
   emphasis?: boolean
+  /** emphasis 점의 세로 기준선 위 이름표(예: '반기'). 없으면 기준선만 그린다 */
+  marker?: string
   /** 툴팁 안에 두는 앱 안 동작(예: 이 보고서로 비교하기) */
   action?: { label: string; to: string }
 }
@@ -73,7 +75,7 @@ const KEYS: readonly string[] = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDow
 
 /**
  * 점 타임라인(FS-58, design-system.md 4-20). 가로는 시간축(월 눈금) 하나, 세로는 이름 붙은 줄이고 하나가 점 하나다.
- * 색은 한 가지이고 줄 위치·이름으로 묶음을 나눈다. emphasis 점은 마름모로 모양을 바꾼다.
+ * 색은 한 가지이고 줄 위치·이름으로 묶음을 나눈다. emphasis 점은 주황 마름모이고, 날짜마다 모든 줄을 가로지르는 세로 점선과 이름표를 둔다.
  * 같은 줄에서 화면상 붙은 점이 비키기 자리 수(3)보다 많으면 건수를 쓴 모음 점 하나로 그린다(차트 폭이 바뀌면 다시 묶는다).
  * hover·키보드 초점에서 툴팁을 보이고, 점을 누르면(Enter) 원문을 새 창으로 연다.
  * 모음 점을 누르면(Enter·클릭) 툴팁(공시 제목 5개까지, 각각 원문 링크)을 고정해 열고 Esc·바깥 누르기로 닫는다.
@@ -152,6 +154,10 @@ export function DotTimeline({
   }
 
   const hasCluster = layout.items.some((item) => item.kind === 'cluster')
+  // shortcut: 며칠 사이로 붙은 정기보고서(정정 등)는 이름표가 겹친다. 실제로 겹쳐 보이면 가까운 이름표를 빼는 규칙을 둔다
+  const guides = layout.items.filter(
+    (item): item is PlacedPoint<DotTimelinePoint> => item.kind === 'point' && Boolean(item.point.emphasis),
+  )
 
   return (
     <div className="dot-timeline">
@@ -179,7 +185,7 @@ export function DotTimeline({
       )}
       <div
         ref={plotRef}
-        className="dot-timeline__plot"
+        className={cx('dot-timeline__plot', guides.length > 0 && 'dot-timeline__plot--guides')}
         role="group"
         aria-label={`${label}. 화살표 키로 점을 옮기고 Enter로 열어요.`}
         onKeyDown={onKeyDown}
@@ -199,6 +205,11 @@ export function DotTimeline({
         <div ref={areaRef} className="dot-timeline__area">
           {layout.ticks.map((tick) => (
             <span key={tick.date} className="dot-timeline__grid" style={{ left: `${tick.x}%` }} aria-hidden="true" />
+          ))}
+          {guides.map(({ id, x, point }) => (
+            <span key={`guide-${id}`} className="dot-timeline__guide" style={{ left: `${x}%` }} aria-hidden="true">
+              {point.marker && <span className="dot-timeline__guide-label">{point.marker}</span>}
+            </span>
           ))}
           {rows.map((row, index) => (
             <div key={row.key} className="dot-timeline__track">

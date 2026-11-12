@@ -25,7 +25,7 @@ export function chartRows(groups: readonly DisclosureGroupCount[]): DotTimelineR
 
 /**
  * 공시 하나 = 점 하나. 원문 주소가 이 접수번호를 가리킬 때만 링크를 걸고,
- * 정기보고서(periodic)는 마름모로 그리고 툴팁에 '이 보고서로 비교하기'를 둔다(최근 공시 목록과 같은 주소).
+ * 정기보고서(periodic)는 마름모와 세로 기준선(이름표)으로 그리고 툴팁에 '이 보고서로 비교하기'를 둔다(최근 공시 목록과 같은 주소).
  */
 export function chartPoints(corpCode: string, items: readonly DisclosureItem[]): DotTimelinePoint[] {
   return items.map((item) => ({
@@ -35,6 +35,21 @@ export function chartPoints(corpCode: string, items: readonly DisclosureItem[]):
     title: item.reportName,
     href: verifiedDartUrl(item.rceptNo, item.dartUrl),
     emphasis: item.periodic,
+    marker: item.periodic ? periodicMarker(item.reportName) : undefined,
     action: item.periodic ? { label: '이 보고서로 비교하기', to: compareWithReportPath(corpCode, item.rceptNo) } : undefined,
   }))
+}
+
+const QUARTER_BY_MONTH: Record<string, string> = { '03': '1분기', '09': '3분기' }
+
+/**
+ * 정기보고서 이름에서 세로 기준선 이름표를 만든다. 예: '분기보고서 (2026.03)' → '1분기', '[기재정정]사업보고서 (2025.12)' → '사업'.
+ * 12월 결산이 아니라 분기를 달로 알 수 없으면 '분기', 형식을 모르면 undefined(기준선만 그린다)
+ */
+export function periodicMarker(reportName: string): string | undefined {
+  const found = /(사업|반기|분기)보고서\s*\(\d{4}\.(\d{2})\)/.exec(reportName)
+  if (!found) return undefined
+  const [, kind, month] = found
+  if (kind !== '분기') return kind
+  return QUARTER_BY_MONTH[month] ?? '분기'
 }

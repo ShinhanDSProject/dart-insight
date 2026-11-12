@@ -1408,11 +1408,42 @@ th[aria-sort='none'] .data-table__sort-mark {
   transform: scale(1.4);
 }
 
-/* 강조 점(정기보고서): 마름모 */
+/* 강조 점(정기보고서): 주황 마름모(#905) */
 .dot-timeline__point--emphasis .dot-timeline__dot,
 .dot-timeline__mark--emphasis {
   border-radius: var(--radius-xs);
+  background: var(--color-chart-emphasis);
   transform: rotate(45deg);
+}
+
+/* 정기보고서 날짜마다 모든 줄을 가로지르는 세로 점선과, 그 위 이름표 자리(--guides일 때만 위를 띄운다) */
+.dot-timeline__plot--guides {
+  padding-top: var(--space-5);
+}
+
+.dot-timeline__guide {
+  position: absolute;
+  top: calc(var(--space-1) * -1);
+  bottom: 0;
+  border-left: 1px dashed var(--color-chart-emphasis);
+  pointer-events: none;
+}
+
+/* 글자는 본문색(주황 위 흰 글자는 대비가 모자라서), 테두리만 주황 */
+.dot-timeline__guide-label {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-chart-emphasis);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.6;
+  white-space: nowrap;
+  transform: translateX(-50%);
 }
 
 .dot-timeline__point--emphasis:hover .dot-timeline__dot,
