@@ -986,6 +986,650 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
     color: #885000 !important;
   }
 }
+
+/* ==========================================================================
+   실시간 발표 대본 사이드바 (Speaker Notes Sidebar) UI & 실전 체험 여정
+   ========================================================================== */
+.btn-sidebar-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+  border: 1px solid var(--color-border-accent);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--motion-fast);
+}
+.btn-sidebar-toggle:hover {
+  background: var(--color-accent);
+  color: #fff;
+  transform: translateY(-1px);
+}
+.btn-live-service {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all var(--motion-fast);
+}
+.btn-live-service:hover {
+  background: var(--color-accent);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+/* 실시간 발표 대본 사이드바 */
+.speech-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 440px;
+  max-width: calc(100vw - 20px);
+  height: 100vh;
+  background: var(--color-bg-raised);
+  border-left: 1px solid var(--color-border);
+  box-shadow: -8px 0 36px rgba(18, 22, 56, 0.16);
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform var(--motion-slow) var(--ease-out);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-sizing: border-box;
+}
+.speech-sidebar.open {
+  transform: translateX(0);
+}
+
+.speech-sidebar__head {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--color-bg-subtle);
+  flex-shrink: 0;
+}
+.speech-sidebar__badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--color-accent);
+  background: var(--color-accent-subtle);
+  border: 1px solid var(--color-border-accent);
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  margin-bottom: 4px;
+}
+.speech-sidebar__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--color-text);
+  line-height: 1.3;
+}
+.speech-sidebar__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sidebar-btn-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all var(--motion-fast);
+}
+.sidebar-btn-copy:hover {
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+}
+.sidebar-btn-close {
+  background: transparent;
+  border: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+}
+.sidebar-btn-close:hover {
+  color: var(--color-danger);
+  background: var(--color-decrease-subtle);
+}
+
+.speech-sidebar__subhead {
+  padding: 12px 20px;
+  background: color-mix(in srgb, var(--color-bg-subtle) 50%, var(--color-bg));
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.sidebar-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+.sidebar-counter {
+  font-family: var(--font-num);
+  font-weight: 800;
+  color: var(--color-accent);
+}
+.sidebar-sync-badge {
+  font-size: 11px;
+  color: var(--color-increase);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.sidebar-zone-b {
+  background: var(--color-accent-subtle);
+  border: 1px solid var(--color-border-accent);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sidebar-zone-b .szb-term {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--color-accent);
+}
+.sidebar-zone-b .szb-def {
+  font-size: 11.5px;
+  color: var(--color-text);
+}
+
+.speech-sidebar__body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* 4-part Horang speech cards */
+.speech-card {
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.speech-card__label {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.speech-card__content {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--color-text);
+  word-break: keep-all;
+}
+.speech-card--hook {
+  background: var(--color-attention-subtle);
+  border-color: color-mix(in srgb, var(--color-attention) 30%, transparent);
+}
+.speech-card--hook .speech-card__label { color: var(--color-attention); }
+.speech-card--trans {
+  background: var(--color-accent-subtle);
+  border-color: var(--color-border-accent);
+}
+.speech-card--trans .speech-card__label { color: var(--color-accent); }
+.speech-card--visual {
+  background: var(--color-increase-subtle);
+  border-color: color-mix(in srgb, var(--color-increase) 30%, transparent);
+}
+.speech-card--visual .speech-card__label { color: var(--color-increase); }
+.speech-card--punch {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+.speech-card--punch .speech-card__label { color: #8be4c3; }
+.speech-card--punch .speech-card__content { color: #fff; font-weight: 600; }
+
+.speech-sidebar__foot {
+  padding: 14px 20px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.sidebar-live-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background var(--motion-fast);
+}
+.sidebar-live-link:hover {
+  background: var(--color-accent);
+}
+.sidebar-nav-btns {
+  display: flex;
+  gap: 8px;
+}
+.sidebar-nav-btns button {
+  flex: 1;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text);
+  cursor: pointer;
+}
+.sidebar-nav-btns button:hover {
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+}
+
+/* ==========================================================================
+   실전 체험 여정 콜아웃 (Interactive Live Experience Journey)
+   ========================================================================== */
+.demo-journey-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  background: color-mix(in srgb, var(--color-accent-subtle) 70%, var(--color-bg-raised));
+  border: 1px solid var(--color-border-accent);
+  border-left: 4px solid var(--color-accent);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  margin-top: 24px;
+  box-shadow: var(--shadow-sm);
+}
+.demo-journey-box .demo-desc {
+  font-size: 13.5px;
+  color: var(--color-text);
+  line-height: 1.45;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.demo-journey-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--motion-fast);
+}
+.demo-journey-btn:hover {
+  background: var(--color-accent);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ==========================================================================
+   인터랙티브 차트 및 시각 다이어그램 전용 스타일
+   ========================================================================== */
+.chart-container-card {
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  box-shadow: var(--shadow-md);
+  margin-top: 24px;
+}
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+.chart-legend {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.legend-item i {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+/* 2개년 주요 실적 비교 바 차트 */
+.visual-barchart-grid {
+  display: grid;
+  gap: 18px;
+}
+.bar-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bar-group__label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.bar-title {
+  color: var(--color-text);
+}
+.bar-track {
+  width: 100%;
+  height: 28px;
+  background: var(--color-bg-subtle);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  position: relative;
+  border: 1px solid var(--color-border);
+}
+.bar-fill {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  transition: width var(--motion-slow) var(--ease-out);
+  box-sizing: border-box;
+}
+.bar-fill--prev {
+  background: var(--color-chart-previous);
+  color: #fff;
+}
+.bar-fill--curr {
+  background: var(--color-chart-current);
+  color: #fff;
+}
+.bar-val {
+  font-family: var(--font-num);
+  font-size: 12.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.bar-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+/* 비용 비교 바 차트 */
+.cost-compare-bars {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 16px;
+}
+@media (max-width: 640px) {
+  .cost-compare-bars { grid-template-columns: 1fr; }
+}
+.cost-col {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--color-bg-subtle);
+}
+.cost-col--before { border-color: color-mix(in srgb, var(--color-danger) 30%, transparent); }
+.cost-col--after { border-color: color-mix(in srgb, var(--color-increase) 30%, transparent); background: var(--color-increase-subtle); }
+.cost-col__label { font-size: 13px; font-weight: 800; color: var(--color-text); }
+.cost-col__bar-wrap { width: 100%; height: 36px; background: var(--color-bg); border-radius: var(--radius-sm); border: 1px solid var(--color-border); overflow: hidden; display: flex; align-items: center; }
+.cost-col__bar { height: 100%; display: flex; align-items: center; padding: 0 12px; color: #fff; font-weight: 800; font-family: var(--font-num); font-size: 13px; }
+.cost-col__sub { font-size: 11.5px; color: var(--color-text-muted); }
+
+
+  /* === 비주얼 카드 및 시각적 태그 스타일 (줄글 최소화) === */
+  .glossary-card-v2 {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .glossary-v2-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .g-box {
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-subtle);
+    border: 1px solid var(--color-border);
+  }
+  .g-box--metaphor {
+    border-left: 3px solid var(--color-accent);
+    background: var(--color-accent-subtle);
+  }
+  .g-box--fact {
+    border-left: 3px solid var(--color-primary);
+  }
+  .g-badge {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--color-muted);
+    display: block;
+    margin-bottom: 2px;
+  }
+  .g-box--metaphor .g-badge {
+    color: var(--color-accent);
+  }
+  .g-text {
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0;
+    line-height: 1.4;
+    color: var(--color-primary-text);
+  }
+  .g-role {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    color: var(--color-muted);
+    padding: 4px 6px;
+    background: rgba(0,0,0,0.03);
+    border-radius: var(--radius-sm);
+  }
+  .g-role-tag {
+    font-weight: 700;
+    color: var(--color-primary-text);
+    white-space: nowrap;
+  }
+
+  .flow-pill {
+    display: inline-block;
+    padding: 6px 10px;
+    background: var(--color-bg-subtle);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+    line-height: 1.4;
+    color: var(--color-primary-text);
+  }
+
+  .persona-v2-compare {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 12px 0 10px;
+  }
+  .pv2-box {
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+  }
+  .pv2-box--before {
+    background: var(--color-decrease-subtle);
+    border-left: 3px solid var(--color-critical);
+  }
+  .pv2-box--after {
+    background: var(--color-increase-subtle);
+    border-left: 3px solid var(--color-increase);
+  }
+  .pv2-label {
+    font-size: 11px;
+    font-weight: 700;
+    display: block;
+    margin-bottom: 2px;
+  }
+  .pv2-box--before .pv2-label { color: var(--color-critical); }
+  .pv2-box--after .pv2-label { color: var(--color-increase); }
+  .pv2-text {
+    margin: 0;
+    font-size: 12.5px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--color-primary-text);
+  }
+  .persona-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .p-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    background: var(--color-bg-subtle);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-muted);
+  }
+
+
+  /* === 전자공시 단일 집중 조명 쇼케이스 === */
+  .dart-single-hero-card {
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+  }
+  .dart-hero-badge-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .dart-vs-box {
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .dart-vs-box--news {
+    background: var(--color-decrease-subtle);
+    border: 1px solid rgba(183,66,80,0.25);
+  }
+  .dart-vs-box--dart {
+    background: var(--color-increase-subtle);
+    border: 2px solid var(--color-increase);
+  }
+  .dart-vs-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .dart-vs-icon {
+    font-size: 24px;
+  }
+  .dart-vs-list {
+    margin: 0 0 14px 16px;
+    padding: 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--color-primary-text);
+  }
+  .dart-vs-list li {
+    margin-bottom: 6px;
+  }
+  .dart-vs-tag {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    font-size: 11.5px;
+    font-weight: 700;
+    text-align: center;
+  }
+  .dart-vs-tag--warning {
+    background: #FFF0F2;
+    color: var(--color-critical);
+    border: 1px solid rgba(183,66,80,0.3);
+  }
+  .dart-vs-tag--ok {
+    background: #ECF8F1;
+    color: var(--color-increase);
+    border: 1px solid rgba(24,118,83,0.3);
+  }
+
 </style>
 </head>
 <body>
@@ -1009,6 +1653,15 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
         <span aria-hidden="true">📄</span>
         <span>PDF 내보내기</span>
       </button>
+      <button type="button" class="btn-sidebar-toggle" id="btnToggleSidebar" aria-label="발표 대본 사이드바 열기/닫기 (단축키 N)" title="실시간 발표 전문가 대본">
+        <span aria-hidden="true">🎙️</span>
+        <span>발표 대본</span>
+        <span class="badge-key">N</span>
+      </button>
+      <a href="/search" class="btn-live-service" target="_blank" title="DART Insight 라이브 서비스 새 창으로 열기">
+        <span aria-hidden="true">🚀</span>
+        <span>라이브 체험</span>
+      </a>
       <button type="button" class="btn-present" id="btnPresentMode" aria-label="발표 모드 실행 (단축키 P)">
         <span aria-hidden="true">▶</span>
         <span>발표 모드</span>
@@ -1080,164 +1733,109 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
         <p class="sub">화면 1,907 · AI 1,188 · 백엔드 1,310</p>
       </div>
     </div>
+    <!-- 실전 서비스 시작 여정 -->
+    <div class="demo-journey-box">
+      <p class="demo-desc">
+        <span>💡</span>
+        <span><strong>DART Insight 실시간 공시 분석 시스템에 오신 것을 환영합니다.</strong> 기업 검색과 공시 시즌 급변 Top 10을 화면에서 직접 경험해보세요.</span>
+      </p>
+      <a href="/search" class="demo-journey-btn" target="_blank">🚀 메인 검색 & 시즌 Top 10 바로가기 ➔</a>
+    </div>
   </div>
 </div>
 
 <main class="gut"><div class="container">
 
 <!-- 0. 클라이언트를 위한 1초 공시 용어 사전 -->
-<section id="glossary" data-title="1초 공시 용어 사전">
+<section id="glossary" data-title="전자공시란?">
   <div class="sechead-4zone">
     <div class="zone-a">
       <p class="kicker">00 · Client Domain Guide</p>
-      <h2>전자공시(DART)가 무엇인가요?<br><span class="hero__title-accent">클라이언트를 위한 1초 핵심 용어 통역</span></h2>
-      <p>DART Insight를 처음 접하는 분들도 1분 만에 이해할 수 있도록, 기초적인 공시 개념부터 핵심 금융·기술 용어를 일상 비유로 쉽게 풀어드립니다.</p>
+      <h2>전자공시(DART)가 무엇인가요?<br><span class="hero__title-accent">기업의 공식 종합 생활기록부</span></h2>
+      <p>DART Insight를 처음 접하는 클라이언트를 위해, 전자공시의 본질과 시스템의 설계 철학을 1초 만에 알기 쉽게 통역해 드립니다.</p>
     </div>
     <div class="zone-b-badge">
-      <span class="zone-b-term">🔍 전자공시(DART)란?</span>
+      <span class="zone-b-term">🔍 전자공시 (DART / OpenDART)</span>
       <span class="zone-b-def">기업이 법에 따라 실적과 사건을 투명하게 공개하는 '공식 종합 생활기록부'</span>
     </div>
   </div>
 
-  <div class="grid g3">
-    <!-- 카드 1: 전자공시 (DART) -->
-    <div class="card card--glow">
-      <div class="card__top">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span class="label" style="color:var(--color-accent)">Concept 01</span>
-          <span class="badge badge--ok">공식 팩트 원천</span>
-        </div>
-        <h3 style="margin-top:6px;">📋 전자공시 (DART / OpenDART)</h3>
-        <p style="font-size:13.5px; font-weight:700; color:var(--color-accent); margin:0;">
-          = 기업의 공식 종합 생활기록부
-        </p>
+  <!-- 단일 집중 조명: 전자공시 (DART / OpenDART) 비주얼 쇼케이스 -->
+  <div class="dart-single-hero-card">
+    <div class="dart-hero-top">
+      <div class="dart-hero-badge-row">
+        <span class="badge badge--ok" style="font-size:12px; font-weight:800">🏛️ 대한민국 금융감독원 공식 시스템</span>
+        <span class="badge badge--accent" style="font-size:12px">법적 구속력 100% 팩트</span>
       </div>
-      <div>
-        <p class="muted" style="font-size:13px; line-height:1.55; margin-bottom:10px;">
-          주식회사(기업)가 자본시장법에 따라 재무 상태, 실적, 중요 경영 결정을 모든 국민과 투자자에게 투명하게 알리는 <strong>금융감독원의 공식 전자 도서관 시스템</strong>입니다. 뉴스 기사나 소문과 달리 <strong>법적 책임을 지는 100% 공인 데이터</strong>입니다.
-        </p>
-        <div style="background:var(--color-bg-subtle); border-radius:var(--radius-sm); padding:8px 12px; font-size:12px; border-left:3px solid var(--color-accent);">
-          <strong>DART Insight의 역할:</strong> OpenDART OpenAPI와 실시간 연동하여 조작 불가능한 공식 원문만 수집·분석합니다.
+      <h3 style="font-size:22px; margin:12px 0 6px; color:var(--color-primary-text)">
+        📋 전자공시 (DART / OpenDART)란?
+      </h3>
+      <p style="font-size:15px; font-weight:700; color:var(--color-accent); margin:0 0 16px;">
+        = 기업의 모든 재무 실적과 중요 사건이 기록된 '공식 종합 생활기록부'
+      </p>
+    </div>
+
+    <!-- 1:1 대비 비주얼: 인터넷 뉴스 vs 전자공시 -->
+    <div class="grid g2" style="margin-top:16px;">
+      <!-- 좌측: 비공식 정보 (일반 뉴스/루머) -->
+      <div class="dart-vs-box dart-vs-box--news">
+        <div class="dart-vs-head">
+          <span class="dart-vs-icon">📰</span>
+          <div>
+            <h4 style="margin:0; font-size:15px; color:var(--color-critical)">인터넷 뉴스 · 풍문 · 찌라시</h4>
+            <span style="font-size:11px; color:var(--color-muted)">주관적 해석 및 출처 불분명</span>
+          </div>
         </div>
+        <ul class="dart-vs-list">
+          <li><strong>주관적 가치판단:</strong> 기자의 시각이나 증권사 찌라시가 섞여 있어 왜곡 위험</li>
+          <li><strong>법적 책임 부재:</strong> 오보나 과장 보도가 나와도 정정 기사 1줄로 종결</li>
+          <li><strong>AI 수치 환각 취약:</strong> 생성형 AI에 입력 시 존재하지 않는 숫자를 지어냄</li>
+        </ul>
+        <div class="dart-vs-tag dart-vs-tag--warning">⚠️ 팩트 검증 불가 · 신뢰할 수 없음</div>
+      </div>
+
+      <!-- 우측: 공식 팩트 (전자공시 DART) -->
+      <div class="dart-vs-box dart-vs-box--dart">
+        <div class="dart-vs-head">
+          <span class="dart-vs-icon">🏛️</span>
+          <div>
+            <h4 style="margin:0; font-size:15px; color:var(--color-increase)">전자공시 DART (금융감독원)</h4>
+            <span style="font-size:11px; color:var(--color-increase); font-weight:700">국가 공인 법적 100% 팩트 데이터</span>
+          </div>
+        </div>
+        <ul class="dart-vs-list">
+          <li><strong>100% 공인 팩트:</strong> 자본시장법에 따라 허위 기재 시 형사 처벌을 받는 공식 문서</li>
+          <li><strong>기업의 모든 진실:</strong> 5대 재무제표, 경영진 해설(MD&A), 소송·지배구조 원문 수록</li>
+          <li><strong>DART Insight 연동:</strong> OpenDART 공식 API로 1초 만에 원문 수집 및 위변조 방어</li>
+        </ul>
+        <div class="dart-vs-tag dart-vs-tag--ok">✓ 국가 공인 법적 팩트 · 무결성 보장</div>
       </div>
     </div>
 
-    <!-- 카드 2: 정기보고서 vs 수시공시 -->
-    <div class="card">
-      <div class="card__top">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span class="label" style="color:var(--color-primary)">Concept 02</span>
-          <span class="badge">보고서 종류</span>
-        </div>
-        <h3 style="margin-top:6px;">🏥 정기보고서 vs 수시공시</h3>
-        <p style="font-size:13.5px; font-weight:700; color:var(--color-primary); margin:0;">
-          = 정기 종합 건강검진표 vs 응급 속보
-        </p>
-      </div>
-      <div>
-        <p class="muted" style="font-size:13px; line-height:1.55; margin-bottom:10px;">
-          <strong>정기보고서(사업·반기·분기)</strong>는 분기마다 회사의 모든 뼈대와 실적을 300~600페이지에 걸쳐 기록하는 정기검진표입니다. 반면 <strong>수시공시(주요사항보고서 등)</strong>는 합병, 대규모 투자, 소송처럼 주가에 직결되는 사건이 터졌을 때 즉각 알리는 긴급 속보입니다.
-        </p>
-        <div style="background:var(--color-bg-subtle); border-radius:var(--radius-sm); padding:8px 12px; font-size:12px; border-left:3px solid var(--color-primary);">
-          <strong>DART Insight의 역할:</strong> 두 정기보고서 사이에 터진 수시공시 사건들을 타임라인으로 자동 매핑해 실적 변화의 원인을 꿰뚫어 줍니다.
-        </div>
-      </div>
-    </div>
-
-    <!-- 카드 3: 연결재무제표 vs 별도재무제표 -->
-    <div class="card">
-      <div class="card__top">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span class="label" style="color:var(--color-primary)">Concept 03</span>
-          <span class="badge">재무제표 기준</span>
-        </div>
-        <h3 style="margin-top:6px;">👨‍👩‍👧‍👦 연결재무제표 vs 별도재무제표</h3>
-        <p style="font-size:13.5px; font-weight:700; color:var(--color-primary); margin:0;">
-          = 자회사까지 합친 가족 가계부 vs 본체 혼자 가계부
-        </p>
-      </div>
-      <div>
-        <p class="muted" style="font-size:13px; line-height:1.55; margin-bottom:10px;">
-          대기업은 수많은 자회사(종속회사)를 거느립니다. 모회사 혼자만의 실적은 <strong>별도(개별)재무제표</strong>이고, 자회사들의 실적까지 전부 하나로 합쳐서 작성한 종합 성적표가 <strong>연결재무제표</strong>입니다. 현대 기업 분석의 표준은 '연결'입니다.
-        </p>
-        <div style="background:var(--color-bg-subtle); border-radius:var(--radius-sm); padding:8px 12px; font-size:12px; border-left:3px solid var(--color-primary);">
-          <strong>DART Insight의 역할:</strong> 기본 연결 기준으로 분석하며, 두 보고서의 비교 기준이 다를 경우(연결 vs 별도) 기계적으로 차단·안내합니다.
-        </div>
-      </div>
-    </div>
-
-    <!-- 카드 4: MD&A (이사의 경영진단 및 분석의견) -->
-    <div class="card">
-      <div class="card__top">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span class="label" style="color:var(--color-primary)">Concept 04</span>
-          <span class="badge">원인 분석의 보고</span>
-        </div>
-        <h3 style="margin-top:6px;">📑 MD&A (경영진단의견)</h3>
-        <p style="font-size:13.5px; font-weight:700; color:var(--color-primary); margin:0;">
-          = 성적표 뒤에 담임과 학생이 쓴 성적 원인 해설서
-        </p>
-      </div>
-      <div>
-        <p class="muted" style="font-size:13px; line-height:1.55; margin-bottom:10px;">
-          재무제표 표는 "영업이익이 12% 줄었다"는 사실만 보여줍니다. 왜 줄었는지(원자재 가격 상승, 전방 산업 침체 등)에 대한 <strong>경영진의 솔직한 진단과 향후 대책이 줄글로 적혀 있는 핵심 섹션</strong>이 바로 MD&A입니다.
-        </p>
-        <div style="background:var(--color-bg-subtle); border-radius:var(--radius-sm); padding:8px 12px; font-size:12px; border-left:3px solid var(--color-primary);">
-          <strong>DART Insight의 역할:</strong> 65만 자 텍스트를 인메모리 2-gram BM25 엔진으로 45ms 만에 뒤져서 수치 변화의 원인 문단을 정확히 발굴합니다.
-        </div>
-      </div>
-    </div>
-
-    <!-- 카드 5: 원문 근거 (Fact Grounding) -->
-    <div class="card">
-      <div class="card__top">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span class="label" style="color:var(--color-accent)">Concept 05</span>
-          <span class="badge badge--ok">환각률 0.00%</span>
-        </div>
-        <h3 style="margin-top:6px;">🧾 원문 근거 직결 (Fact Traceability)</h3>
-        <p style="font-size:13.5px; font-weight:700; color:var(--color-accent); margin:0;">
-          = AI가 날조한 거짓말이 아니라는 공식 영수증
-        </p>
-      </div>
-      <div>
-        <p class="muted" style="font-size:13px; line-height:1.55; margin-bottom:10px;">
-          시중 챗봇에 공시를 물어보면 숫자를 그럴듯하게 지어내는 <strong>환각(Hallucination)</strong>이 발생합니다. DART Insight는 모든 요약 문장에 <code>#접수번호#B블록번호</code>를 박아 넣어 <strong>클릭 한 번으로 300페이지 원문 문단으로 즉시 이동</strong>해 교차 검증할 수 있게 합니다.
-        </p>
-        <div style="background:var(--color-bg-subtle); border-radius:var(--radius-sm); padding:8px 12px; font-size:12px; border-left:3px solid var(--color-accent);">
-          <strong>DART Insight의 원칙:</strong> "AI는 최고의 비서지, 대표가 아닙니다." 원문 근거가 확인되지 않은 AI 문장은 화면에 노출하지 않습니다.
-        </div>
-      </div>
-    </div>
-
-    <!-- 카드 6: 컴플라이언스 (규제 준수) -->
-    <div class="card">
-      <div class="card__top">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span class="label" style="color:var(--color-primary)">Concept 06</span>
-          <span class="badge">법적 신뢰 안전망</span>
-        </div>
-        <h3 style="margin-top:6px;">🛡️ 컴플라이언스 (Compliance)</h3>
-        <p style="font-size:13.5px; font-weight:700; color:var(--color-primary); margin:0;">
-          = 매수·매도 투자 권유를 막는 법적 안전 차단막
-        </p>
-      </div>
-      <div>
-        <p class="muted" style="font-size:13px; line-height:1.55; margin-bottom:10px;">
-          DART Insight는 투자 자문이나 추천 서비스가 아닙니다. 자본시장법 준수를 위해 <strong>매수/매도 권유, 목표주가, 주가 예측, '호재/악재' 같은 가치판단 표현을 코드로 자동 검사하여 원천 배제</strong>하며 오직 중립적 공시 사실만을 제공합니다.
-        </p>
-        <div style="background:var(--color-bg-subtle); border-radius:var(--radius-sm); padding:8px 12px; font-size:12px; border-left:3px solid var(--color-primary);">
-          <strong>DART Insight의 신호:</strong> 주요 사건의 긍정/주의 신호는 AI가 마음대로 붙이지 않고 검증된 100% 코드 기준표가 부여합니다.
-        </div>
+    <!-- 3대 시스템 원칙 배지 바 -->
+    <div class="dart-pillars-bar" style="margin-top:20px; padding:16px; background:var(--color-bg-subtle); border-radius:var(--radius-sm); border:1px solid var(--color-border);">
+      <span class="label" style="display:block; margin-bottom:8px; color:var(--color-accent); font-weight:800">DART Insight가 공시를 다루는 3대 철칙</span>
+      <div style="display:flex; flex-wrap:wrap; gap:10px;">
+        <span class="tech-chip" style="font-size:12px"><i>1️⃣</i> <strong>공식 OpenDART API 직결:</strong> 비공식 크롤링 배제, 공인 원문만 수집</span>
+        <span class="tech-chip" style="font-size:12px"><i>2️⃣</i> <strong>100% 원문 블록 직결:</strong> 요약마다 #접수번호#B블록번호 앵커 탑재</span>
+        <span class="tech-chip" style="font-size:12px"><i>3️⃣</i> <strong>수치 계산 코드 100%:</strong> AI 환각(거짓말)을 기술적으로 원천 차단</span>
       </div>
     </div>
   </div>
 
   <!-- Zone D: Bottom Proof Bar -->
   <div class="zone-d-proof">
-    <span class="zone-d-chip">공시 도메인 용어 카드 <b>50종 내장</b></span>
-    <span class="zone-d-chip">원문 근거 역참조 <b>100% 보장</b></span>
-    <span class="zone-d-chip">금융 컴플라이언스 <b>6대 표현 자동 검사</b></span>
+    <span class="zone-d-chip">금융감독원 공인 팩트 <b>100%</b></span>
+    <span class="zone-d-chip">OpenDART API 실시간 <b>직결</b></span>
+    <span class="zone-d-chip">원문 근거 역참조 <b>무결성 보장</b></span>
+  </div>
+
+  <div class="demo-journey-box">
+    <p class="demo-desc">
+      <span>🔍</span>
+      <span><strong>전자공시 원문과 DART Insight의 1초 대조 엔진</strong>이 어떻게 동작하는지 삼성전자 실제 보고서에서 직접 확인하세요.</span>
+    </p>
+    <a href="/search?q=삼성전자" class="demo-journey-btn" target="_blank">🔍 삼성전자 실시간 분석 체험 ➔</a>
   </div>
 </section>
 
@@ -1254,27 +1852,51 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
       <span class="zone-b-def">AI의 그럴듯한 거짓말 & 경영진이 직접 쓴 성적표 해설서</span>
     </div>
   </div>
-  <div class="grid g2">
-    <div class="card">
-      <div class="label" style="color:var(--color-danger)">Pain Point 1</div>
-      <h3>30만~65만 자의 정보 과부하</h3>
-      <p class="muted">정기보고서(사업·분기) 한 권은 소설책 3~4권 분량입니다. 전기 대비 무엇이 바뀌었는지 확인하려면 수백 페이지를 며칠씩 스크롤하며 대조해야 했습니다.</p>
+  <!-- 1:1 Split Visual Comparison Diagram (Type 1 Archetype) -->
+  <div class="bna-cols" style="margin-top:20px;">
+    <!-- 좌측: 수작업 4시간과 환각의 고통 -->
+    <div class="bna-col bna-col--before">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h4 style="color:var(--color-danger); margin:0;">❌ Before · 수작업 4시간 & 일반 AI의 한계</h4>
+        <span class="badge badge--danger">수작업 4시간 소모</span>
+      </div>
+      <div style="margin:14px 0; padding:12px 16px; background:var(--color-bg); border-radius:var(--radius-md); border:1px solid var(--color-border);">
+        <p style="font-size:32px; font-weight:800; font-family:var(--font-num); color:var(--color-danger); margin:0;">4시간</p>
+        <p style="font-size:12px; color:var(--color-text-muted); margin:4px 0 0;">정기보고서 2권을 양쪽에 띄우고 Ctrl+F 무한 반복</p>
+      </div>
+      <ul class="bna-list">
+        <li><span class="bna-tag" style="color:var(--color-danger)">📜 65만 자</span><span>소설책 4권 분량 무한 스크롤, 야간 잔업 유발</span></li>
+        <li><span class="bna-tag" style="color:var(--color-danger)">🤥 숫자 날조</span><span>일반 LLM의 치명적 환각으로 가짜 증감 수치 지어내기</span></li>
+        <li><span class="bna-tag" style="color:var(--color-danger)">❓ 출처 불능</span><span>어느 페이지, 어느 문단에서 나온 수치인지 검증 불가</span></li>
+        <li><span class="bna-tag" style="color:var(--color-danger)">🧩 맥락 단절</span><span>재무제표 숫자와 본문 경영진단(MD&A) 해설의 분리</span></li>
+      </ul>
     </div>
-    <div class="card">
-      <div class="label" style="color:var(--color-danger)">Pain Point 2</div>
-      <h3>기존 생성형 AI의 치명적 환각(Hallucination)</h3>
-      <p class="muted">LLM에 기업정보를 요청하면 출처를 확인할 수 없는 가짜 문장을 생성해, 금융 분석과 리서치에 전혀 활용할 수 없었습니다.</p>
+
+    <!-- 우측: DART Insight 5초 코드 기반 혁신 -->
+    <div class="bna-col bna-col--after">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h4 style="color:var(--color-increase); margin:0;">✅ After · DART Insight 신뢰 혁신</h4>
+        <span class="badge badge--ok">대조 시간 5초 완성</span>
+      </div>
+      <div style="margin:14px 0; padding:12px 16px; background:var(--color-bg); border-radius:var(--radius-md); border:1px solid var(--color-border-accent);">
+        <p style="font-size:32px; font-weight:800; font-family:var(--font-num); color:var(--color-increase); margin:0;">5초</p>
+        <p style="font-size:12px; color:var(--color-text-muted); margin:4px 0 0;">30만 자 95% 단축, 5대 재무제표 + 문장 변경 원클릭 대조</p>
+      </div>
+      <ul class="bna-list">
+        <li><span class="bna-tag" style="color:var(--color-increase)">⚡ 5초 완성</span><span>StAX 스트리밍 & 비동기 FSM 파이프라인으로 초고속 완료</span></li>
+        <li><span class="bna-tag" style="color:var(--color-increase)">🛡️ 환각 0%</span><span>증감액·증감률 100% Java 백엔드 코드가 계산 전담</span></li>
+        <li><span class="bna-tag" style="color:var(--color-increase)">🔗 100% 직결</span><span>모든 문장에 #{접수번호}#B{블록} 1초 형광펜 점프 각인</span></li>
+        <li><span class="bna-tag" style="color:var(--color-increase)">🧠 맥락 융합</span><span>숫자 + MD&A 원인 + 전후 24건 수시공시 유기적 결합</span></li>
+      </ul>
     </div>
-    <div class="card">
-      <div class="label" style="color:var(--color-danger)">Pain Point 3</div>
-      <h3>재무 수치와 텍스트 맥락(MD&A)의 단절</h3>
-      <p class="muted">영업이익이 왜 줄었는지 알려면 재무제표 밖의 '이사의 경영진단 및 분석의견'과 전후 수시공시를 손수 뒤져서 짜맞춰야 하는 극심한 피로도가 존재했습니다.</p>
-    </div>
-    <div class="card">
-      <div class="label" style="color:var(--color-danger)">Pain Point 4</div>
-      <h3>공시된 약속과 계획의 이행 검증 부재</h3>
-      <p class="muted">기업이 작년 보고서에서 공언한 신규 설비투자나 사업 계획이 올해 보고서에서 실제로 지켜졌는지 추적하고 대조할 수 있는 도구가 전무했습니다.</p>
-    </div>
+  </div>
+
+  <div class="demo-journey-box">
+    <p class="demo-desc">
+      <span>⚡</span>
+      <span><strong>300페이지 보고서를 5초 만에 대조하는 초고속 비교 엔진</strong>을 지금 바로 실행해보세요.</span>
+    </p>
+    <a href="/compare" class="demo-journey-btn" target="_blank">⚡ 5초 정기보고서 비교 체험 ➔</a>
   </div>
 </section>
 
@@ -1380,6 +2002,14 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
       </div>
     </div>
   </div>
+
+  <div class="demo-journey-box">
+    <p class="demo-desc">
+      <span>🎯</span>
+      <span><strong>W-03 원문 점프 기능:</strong> 요약문 속 <code>#접수번호#B042</code>를 클릭해 실제 공시 원문으로 순간 이동해보세요.</span>
+    </p>
+    <a href="/analysis/demo" class="demo-journey-btn" target="_blank">🎯 W-03 원문 점프 뷰어 라이브 체험 ➔</a>
+  </div>
 </section>
 
 <!-- 3. 문제 해결의 증명 -->
@@ -1429,6 +2059,70 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
           <li><span>•</span><span><strong>100% 원문</strong>: 모든 문장에 #{접수번호}#B{n} 직결, 클릭 즉시 확인</span></li>
           <li><span>•</span><span><strong>약속 대조</strong>: 작년 사업 계획 대비 당기 보고서 이행 실적 자동 매칭</span></li>
         </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 시각 차트 1: StAX O(1) vs DOM O(N) 메모리 복잡도 실측 검증 그래프 -->
+  <div class="chart-container-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+      <div>
+        <span class="label" style="color:var(--color-increase)">난제 1 실측 아키텍처 다이어그램</span>
+        <h4 style="margin:2px 0 0; font-size:15px">공시 크기별 메모리 점유율: DOM Tree 파서 vs StAX 스트리밍</h4>
+      </div>
+      <span class="badge badge--ok">Heap O(1) 80MB 고정</span>
+    </div>
+    <svg viewBox="0 0 700 180" class="memory-chart-svg" style="width:100%; height:auto; overflow:visible;">
+      <line x1="60" y1="20" x2="660" y2="20" stroke="var(--color-border)" stroke-dasharray="4" />
+      <line x1="60" y1="60" x2="660" y2="60" stroke="var(--color-border)" stroke-dasharray="4" />
+      <line x1="60" y1="100" x2="660" y2="100" stroke="var(--color-border)" stroke-dasharray="4" />
+      <line x1="60" y1="140" x2="660" y2="140" stroke="var(--color-border)" />
+      <text x="50" y="24" text-anchor="end" font-size="11" fill="var(--color-danger)">1,800MB (OOM)</text>
+      <text x="50" y="64" text-anchor="end" font-size="11" fill="var(--color-text-muted)">1,000MB</text>
+      <text x="50" y="104" text-anchor="end" font-size="11" fill="var(--color-text-muted)">500MB</text>
+      <text x="50" y="144" text-anchor="end" font-size="11" fill="var(--color-text-muted)">0MB</text>
+      <text x="90" y="160" text-anchor="middle" font-size="11" fill="var(--color-text-muted)">1MB</text>
+      <text x="230" y="160" text-anchor="middle" font-size="11" fill="var(--color-text-muted)">10MB</text>
+      <text x="370" y="160" text-anchor="middle" font-size="11" fill="var(--color-text-muted)">25MB</text>
+      <text x="510" y="160" text-anchor="middle" font-size="11" fill="var(--color-text-muted)">50MB</text>
+      <text x="630" y="160" text-anchor="middle" font-size="11" fill="var(--color-text-muted)">100MB</text>
+      <path d="M 90 135 Q 230 120 370 85 T 510 40 T 630 15" fill="none" stroke="var(--color-danger)" stroke-width="3" stroke-linecap="round" />
+      <circle cx="630" cy="15" r="5" fill="var(--color-danger)" />
+      <text x="620" y="12" text-anchor="end" font-size="11" font-weight="700" fill="var(--color-danger)">기존 DOM 파서: 메모리 폭발 (OOM 크래시)</text>
+      <path d="M 90 133 L 630 133" fill="none" stroke="var(--color-increase)" stroke-width="3.5" stroke-linecap="round" />
+      <circle cx="90" cy="133" r="4" fill="var(--color-increase)" />
+      <circle cx="630" cy="133" r="5" fill="var(--color-increase)" />
+      <text x="630" y="123" text-anchor="end" font-size="11" font-weight="800" fill="var(--color-increase)">DART Insight StAX 스트리밍: 80MB O(1) 영구 유지</text>
+    </svg>
+  </div>
+
+  <!-- 시각 차트 2: 2-Tier 듀얼 라우팅 일일 비용 비교 차트 -->
+  <div class="chart-container-card" style="margin-top:16px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+      <div>
+        <span class="label" style="color:var(--color-accent)">난제 5 실측 비용 다이어그램</span>
+        <h4 style="margin:2px 0 0; font-size:15px">2-Tier 듀얼 라우팅 도입 전후 일일 LLM API 비용 비교</h4>
+      </div>
+      <span class="badge badge--ok">95% 비용 절감</span>
+    </div>
+    <div class="cost-compare-bars">
+      <div class="cost-col cost-col--before">
+        <span class="cost-col__label">기존 단일 고성능 모델 (Sonnet)</span>
+        <div class="cost-col__bar-wrap">
+          <div class="cost-col__bar" style="width: 100%; background: var(--color-danger);">
+            <span>$50.40 / 일</span>
+          </div>
+        </div>
+        <span class="cost-col__sub">호출당 $0.015 · 월 약 200만 원 (운영 불가능)</span>
+      </div>
+      <div class="cost-col cost-col--after">
+        <span class="cost-col__label">DART Insight 2-Tier 듀얼 라우팅</span>
+        <div class="cost-col__bar-wrap">
+          <div class="cost-col__bar" style="width: 5.4%; background: var(--color-increase); min-width: 90px;">
+            <span>$2.70 / 일</span>
+          </div>
+        </div>
+        <span class="cost-col__sub">호출당 $0.0009 · 월 약 10만 원 (엔터프라이즈 운영 가능)</span>
       </div>
     </div>
   </div>
@@ -1587,6 +2281,14 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
     <span class="zone-d-chip">BM25 검색 지연 <b>45ms</b></span>
     <span class="zone-d-chip">API 비용 절감 <b>95%</b></span>
   </div>
+
+  <div class="demo-journey-box">
+    <p class="demo-desc">
+      <span>⚙️</span>
+      <span><strong>50MB 대용량 공시 문서를 80MB 고정 메모리로 파싱하는 엔진</strong>을 직접 확인하세요.</span>
+    </p>
+    <a href="/compare" class="demo-journey-btn" target="_blank">⚙️ 고성능 분석 엔진 실행 ➔</a>
+  </div>
 </section>
 
 <!-- 4. 공시 분석: 두 보고서 사이에 한 일과 앞으로의 영향 -->
@@ -1604,24 +2306,134 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
   </div>
   <div class="grid g4">
     <div class="card">
-      <p class="label">Step 1 · 입력</p>
-      <h3>두 보고서와 그 사이 공시</h3>
-      <p class="muted">두 정기보고서 본문에 <strong>코드가 계산한 재무 증감</strong>과 두 보고서 사이에 나온 <strong>수시공시 최근 80건</strong>(주요사항·발행·거래소·공정위 공시 등)의 원문을 함께 넣습니다.</p>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="label">Step 1 · 자동 수집</span>
+        <span class="badge badge--ok">StAX O(1)</span>
+      </div>
+      <h3 style="margin-top:6px">두 보고서 + 수시공시</h3>
+      <div class="flow-pill-list" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
+        <span class="flow-pill">📊 <strong>정기보고서 2건</strong> 재무 증감 산출</span>
+        <span class="flow-pill">⚡ <strong>수시공시 80건</strong> (주요사항·소송) 병합</span>
+        <span class="flow-pill" style="color:var(--color-accent); font-weight:700">🔗 100% 원문 블록 ID 즉시 직결</span>
+      </div>
     </div>
     <div class="card">
-      <p class="label">Step 2 · 한눈에</p>
-      <h3>한 문단 요약과 타임라인</h3>
-      <p class="muted">실적·투자·주주·위험을 금액과 상대방까지 담은 <strong>한 문단 요약</strong>과 날짜순 <strong>이 기간 타임라인</strong>을 만듭니다. 숫자는 코드가 넣은 값이고 줄마다 공시 링크나 보고서 문단이 붙습니다.</p>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="label">Step 2 · 팩트 대조</span>
+        <span class="badge">45ms BM25</span>
+      </div>
+      <h3 style="margin-top:6px">1문단 요약 & 타임라인</h3>
+      <div class="flow-pill-list" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
+        <span class="flow-pill">📝 <strong>실적·투자·주주·위험</strong> 1문단 요약</span>
+        <span class="flow-pill">⏱️ <strong>날짜순 사건 타임라인</strong> 자동 생성</span>
+        <span class="flow-pill" style="color:var(--color-primary); font-weight:700">🔍 문장마다 공시 클릭 앵커 탑재</span>
+      </div>
     </div>
     <div class="card">
-      <p class="label">Step 3 · 활동 카드</p>
-      <h3>보는 사람에 맞춰 골라 보기</h3>
-      <p class="muted">활동마다 분야(사업·투자·자금·주주·지배구조·인력·위험)와 <strong>관점 3가지</strong>(자금·실적 / 사업 방향 / 거래·리스크)를 붙여, 투자·면접·협업 중 필요한 것만 골라 봅니다.</p>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="label">Step 3 · 맞춤 필터</span>
+        <span class="badge">3대 관점</span>
+      </div>
+      <h3 style="margin-top:6px">목적별 골라보기</h3>
+      <div class="flow-pill-list" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
+        <span class="flow-pill">💰 <strong>자금·실적 관점</strong> (투자자용)</span>
+        <span class="flow-pill">🚀 <strong>사업 방향 관점</strong> (취준생·리서치)</span>
+        <span class="flow-pill" style="color:var(--color-increase); font-weight:700">🛡️ <strong>거래·리스크 관점</strong> (기업 제휴)</span>
+      </div>
     </div>
     <div class="card card--glow">
-      <p class="label">Step 4 · 앞으로의 영향</p>
-      <h3>사실과 전망을 나눠서</h3>
-      <p class="muted"><strong>회사가 밝힘 · AI 전망 · 확인할 점</strong>을 구분해 보여 줍니다. AI 전망은 전제마다 근거를 달고 'AI 전망 · 공시 사실 아님'을 붙이며, 긍정·주의·보류 신호는 AI가 아니라 <strong>코드 기준표</strong>가 정합니다.</p>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="label">Step 4 · 미래 예측</span>
+        <span class="badge badge--ok">코드 판정</span>
+      </div>
+      <h3 style="margin-top:6px">사실 vs 전망 분리</h3>
+      <div class="flow-pill-list" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
+        <span class="flow-pill">🏢 <strong>회사 공시 사실</strong> 100% 팩트 고정</span>
+        <span class="flow-pill">🤖 <strong>조건부 AI 전망</strong> (출처 필수 워터마크)</span>
+        <span class="flow-pill" style="color:var(--color-accent); font-weight:800">🚦 <strong>긍정·주의 신호</strong> 코드 기준표 판정</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 삼성전자 2개년 주요 실적 비교 인터랙티브 바 차트 -->
+  <div class="chart-container-card" style="margin-top:20px;">
+    <div class="chart-header">
+      <div>
+        <span class="label" style="color:var(--color-accent)">실제 공시 데이터 시각화</span>
+        <h3 style="margin:2px 0 0; font-size:16px">삼성전자 2개년 주요 실적 비교 및 변화 추이 (2023 vs 2024)</h3>
+      </div>
+      <div class="chart-legend">
+        <span class="legend-item"><i style="background:var(--color-chart-previous)"></i> 2023년</span>
+        <span class="legend-item"><i style="background:var(--color-chart-current)"></i> 2024년</span>
+      </div>
+    </div>
+
+    <div class="visual-barchart-grid">
+      <!-- 매출액 바 -->
+      <div class="bar-group">
+        <div class="bar-group__label">
+          <span class="bar-title">매출액 (Sales Revenue)</span>
+          <span class="badge badge--ok">▲ +16.2% (+42.0조 원)</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill bar-fill--prev" style="width: 75%;" title="2023년 매출액: 258.9조 원">
+            <span class="bar-val">258.9조 원</span>
+          </div>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill bar-fill--curr" style="width: 87%;" title="2024년 매출액: 300.9조 원">
+            <span class="bar-val">300.9조 원</span>
+          </div>
+        </div>
+        <div class="bar-footer">
+          <span class="matrix-code" title="손익계산서 원문 직결">#20240318000542#B014 ↗</span>
+          <span class="muted">글로벌 반도체 업황 회복 및 AI 메모리 수요 견인</span>
+        </div>
+      </div>
+
+      <!-- 영업이익 바 -->
+      <div class="bar-group">
+        <div class="bar-group__label">
+          <span class="bar-title">영업이익 (Operating Profit)</span>
+          <span class="badge badge--ok" style="background:var(--color-increase-subtle); color:var(--color-increase); font-weight:800">▲ +403.8% 폭증! (+26.53조 원)</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill bar-fill--prev" style="width: 20%;" title="2023년 영업이익: 6.57조 원">
+            <span class="bar-val">6.57조 원</span>
+          </div>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill bar-fill--curr" style="width: 92%;" title="2024년 영업이익: 33.1조 원">
+            <span class="bar-val">33.1조 원 (+26.53조 원 증액)</span>
+          </div>
+        </div>
+        <div class="bar-footer">
+          <span class="matrix-code" title="MD&A 해설 원문 직결">#20240318000542#B042 ↗</span>
+          <span class="muted">DS부문 흑자 전환 및 HBM 등 고부가가치 제품 비중 확대</span>
+        </div>
+      </div>
+
+      <!-- 당기순이익 바 -->
+      <div class="bar-group">
+        <div class="bar-group__label">
+          <span class="bar-title">당기순이익 (Net Income)</span>
+          <span class="badge badge--ok">▲ +122.6% (+19.0조 원)</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill bar-fill--prev" style="width: 45%;" title="2023년 당기순이익: 15.5조 원">
+            <span class="bar-val">15.5조 원</span>
+          </div>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill bar-fill--curr" style="width: 82%;" title="2024년 당기순이익: 34.5조 원">
+            <span class="bar-val">34.5조 원</span>
+          </div>
+        </div>
+        <div class="bar-footer">
+          <span class="matrix-code" title="포괄손익계산서 원문 직결">#20240318000542#B022 ↗</span>
+          <span class="muted">영업이익 급증 및 자회사 지분법 손익 개선</span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1653,6 +2465,14 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
     <span class="zone-d-chip">최근 수시공시 <b>80건 매칭</b></span>
     <span class="zone-d-chip">신호 판정 <b>100% 코드 기준표</b></span>
     <span class="zone-d-chip">사실 / 전망 <b>완전 분리</b></span>
+  </div>
+
+  <div class="demo-journey-box">
+    <p class="demo-desc">
+      <span>📊</span>
+      <span><strong>삼성전자 최근 24건 수시공시 타임라인과 코드 기준표 신호(긍정/주의/보류)</strong>를 화면에서 직접 확인하세요.</span>
+    </p>
+    <a href="/companies/00126380" class="demo-journey-btn" target="_blank">📊 삼성전자 공시 타임라인 뷰어 ➔</a>
   </div>
 </section>
 
@@ -1771,6 +2591,14 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
     <span class="zone-d-chip">표현 자동 검사 <b>6대 규칙 강제</b></span>
     <span class="zone-d-chip">원문 근거 없는 설명 <b>기각</b></span>
   </div>
+
+  <div class="demo-journey-box">
+    <p class="demo-desc">
+      <span>⚖️</span>
+      <span><strong>13가지 증감 사유 판정과 금융 컴플라이언스 6대 표현 검사가 완료된 리포트</strong>를 확인하세요.</span>
+    </p>
+    <a href="/analysis/demo" class="demo-journey-btn" target="_blank">⚖️ 검증된 공시 분석 리포트 체험 ➔</a>
+  </div>
 </section>
 
 <!-- 6. 사용자 임팩트 -->
@@ -1787,42 +2615,126 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
     </div>
   </div>
   <div class="grid g3">
+    <!-- 페르소나 1: 개인 투자자 -->
     <div class="persona-card">
-      <span class="badge badge--accent">개인 투자자 · 금융 입문자</span>
-      <h3>정보 비대칭의 완전한 해소</h3>
-      <p class="muted">난해한 공시 전문 용어가 나올 때마다 실시간 <strong>용어 카드 풀이</strong>가 뜨고, <strong>AI 기업 브리핑</strong>과 <strong>재무·감사의견 체크포인트</strong>가 위험 신호를 미리 짚어주어 초보자도 안심하고 공시를 읽을 수 있습니다.</p>
-      <div class="label" style="margin-top:6px">실제 체감 효과</div>
-      <p style="font-size:13.5px">"어려운 주총·감사 공시도 3분 만에 핵심 파악 가능"</p>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="badge badge--accent">개인 투자자 · 금융 입문자</span>
+        <span class="badge badge--ok">정보 비대칭 해소</span>
+      </div>
+      <h3 style="margin-top:8px">어려운 공시를 3초 만에 이해</h3>
+      <div class="persona-v2-compare">
+        <div class="pv2-box pv2-box--before">
+          <span class="pv2-label">❌ 기존 문제</span>
+          <p class="pv2-text">300쪽 전문 용어에 압도되어 공시 읽기를 포기</p>
+        </div>
+        <div class="pv2-box pv2-box--after">
+          <span class="pv2-label">✅ DART Insight</span>
+          <p class="pv2-text">50종 용어 툴팁 + AI 브리핑 + 위험 신호 체크</p>
+        </div>
+      </div>
+      <div class="persona-tags">
+        <span class="p-tag">#50종용어카드</span>
+        <span class="p-tag">#위험신호알림</span>
+        <span class="p-tag">#3분핵심요약</span>
+      </div>
     </div>
+
+    <!-- 페르소나 2: 전문 애널리스트 -->
     <div class="persona-card persona-card--analyst">
-      <span class="badge badge--ok">전문 애널리스트 · 금융 실무자</span>
-      <h3>리서치 생산성 10배 혁신</h3>
-      <p class="muted"><strong>'작년 약속 vs 올해 이행' 대조</strong>를 통해 경영진의 신뢰도를 즉각 검증하고, <strong>5대 재무제표 CSV 추출</strong>과 <strong>원문 목차 연동 뷰어</strong>로 보고서 작성 시간을 며칠에서 수십 분으로 단축시킵니다.</p>
-      <div class="label" style="margin-top:6px">실제 체감 효과</div>
-      <p style="font-size:13.5px">"수작업 엑셀 대조 업무 완전 자동화, 깊이 있는 통찰에 집중"</p>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="badge badge--ok">전문 애널리스트 · 금융 실무자</span>
+        <span class="badge badge--ok">생산성 10배 혁신</span>
+      </div>
+      <h3 style="margin-top:8px">수작업 엑셀 대조 완전 자동화</h3>
+      <div class="persona-v2-compare">
+        <div class="pv2-box pv2-box--before">
+          <span class="pv2-label">❌ 기존 문제</span>
+          <p class="pv2-text">2개 보고서 수작업 엑셀 대조에 4~5시간 소요</p>
+        </div>
+        <div class="pv2-box pv2-box--after">
+          <span class="pv2-label">✅ DART Insight</span>
+          <p class="pv2-text">5초 자동 대조 + 약속 이행 검증 + CSV 원클릭 추출</p>
+        </div>
+      </div>
+      <div class="persona-tags">
+        <span class="p-tag">#5초대조</span>
+        <span class="p-tag">#약속vs이행</span>
+        <span class="p-tag">#CSV추출</span>
+      </div>
     </div>
+
+    <!-- 페르소나 3: 커뮤니티 & 팀 협업 -->
     <div class="persona-card persona-card--community">
-      <span class="badge">팀 협업자 · 금융 커뮤니티</span>
-      <h3>팩트 기반의 신뢰 소통 환경</h3>
-      <p class="muted">발견한 통찰을 <strong>'내 판단 노트'</strong>에 원문 근거와 함께 스크랩하고, 검증된 분석 변경점 인용 카드를 첨부해 기업별 게시판에서 <strong>근거 중심의 건전한 토론</strong>을 나눌 수 있습니다.</p>
-      <div class="label" style="margin-top:6px">실제 체감 효과</div>
-      <p style="font-size:13.5px">"소문 대신 DART 원문 근거 링크로 신뢰 토론 형성"</p>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="badge">팀 협업자 · 금융 커뮤니티</span>
+        <span class="badge badge--ok">팩트 소통</span>
+      </div>
+      <h3 style="margin-top:8px">원문 근거 기반 신뢰 토론</h3>
+      <div class="persona-v2-compare">
+        <div class="pv2-box pv2-box--before">
+          <span class="pv2-label">❌ 기존 문제</span>
+          <p class="pv2-text">출처 없는 루머와 가짜 뉴스로 신뢰 상실</p>
+        </div>
+        <div class="pv2-box pv2-box--after">
+          <span class="pv2-label">✅ DART Insight</span>
+          <p class="pv2-text">공시 블록 링크 인용 + 내 판단 노트 스크랩</p>
+        </div>
+      </div>
+      <div class="persona-tags">
+        <span class="p-tag">#판단노트</span>
+        <span class="p-tag">#원문인용카드</span>
+        <span class="p-tag">#건전한토론</span>
+      </div>
     </div>
   </div>
+
   <div class="grid g2" style="margin-top:16px">
+    <!-- 페르소나 4: 취업준비생 -->
     <div class="persona-card persona-card--career">
-      <span class="badge">취업 · 면접 준비생</span>
-      <h3>이 회사는 요즘 무엇에 힘을 싣는가</h3>
-      <p class="muted">공시 분석 탭의 <strong>'사업 방향'</strong> 관점으로 연구개발·설비 투자·신사업 활동만 골라 봅니다. 회사 소개 문구가 아니라 <strong>공시 원문 근거</strong>로 최근 1년의 주력 사업과 변화를 정리해 면접에 들어갈 수 있습니다.</p>
-      <div class="label" style="margin-top:6px">이렇게 씁니다</div>
-      <p style="font-size:13.5px">두 보고서 사이 타임라인으로 최근 일을 훑고, 활동 카드의 '앞으로의 영향'으로 회사가 어디로 가는지 확인</p>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="badge">취업 · 면접 준비생</span>
+        <span class="badge badge--ok">실질 사업 파악</span>
+      </div>
+      <h3 style="margin-top:8px">회사의 실제 사업 방향과 주력 투자 확인</h3>
+      <div class="persona-v2-compare">
+        <div class="pv2-box pv2-box--before">
+          <span class="pv2-label">❌ 기존 문제</span>
+          <p class="pv2-text">홍보성 웹사이트 문구만 보고 면접에 들어가 피상적 답변</p>
+        </div>
+        <div class="pv2-box pv2-box--after">
+          <span class="pv2-label">✅ DART Insight</span>
+          <p class="pv2-text">'사업 방향' 관점 필터로 R&D·신사업 투자 팩트만 즉시 추출</p>
+        </div>
+      </div>
+      <div class="persona-tags">
+        <span class="p-tag">#사업방향관점</span>
+        <span class="p-tag">#투자타임라인</span>
+        <span class="p-tag">#면접필살기</span>
+      </div>
     </div>
+
+    <!-- 페르소나 5: 거래처 및 파트너사 -->
     <div class="persona-card persona-card--partner">
-      <span class="badge">협업 · 거래 검토 기업</span>
-      <h3>믿고 거래할 만한 상황인가</h3>
-      <p class="muted"><strong>'거래·리스크'</strong> 관점으로 소송·제재·지배구조 변화와 자금 상황을 모아 봅니다. 신호(긍정·주의·보류)는 기준표로 정해지고, 모든 판단의 바탕이 된 <strong>공시 문장</strong>을 바로 열어 확인합니다.</p>
-      <div class="label" style="margin-top:6px">이렇게 씁니다</div>
-      <p style="font-size:13.5px">거래 전 상대 회사의 최근 제재·소송·경영진 변화를 원문 근거와 함께 점검</p>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="badge">협업 · 거래 검토 기업</span>
+        <span class="badge badge--ok">리스크 방어</span>
+      </div>
+      <h3 style="margin-top:8px">거래 전 상대 기업 리스크 원문 검증</h3>
+      <div class="persona-v2-compare">
+        <div class="pv2-box pv2-box--before">
+          <span class="pv2-label">❌ 기존 문제</span>
+          <p class="pv2-text">상대 기업의 소송·제재·자금난을 계약 체결 후에야 인지</p>
+        </div>
+        <div class="pv2-box pv2-box--after">
+          <span class="pv2-label">✅ DART Insight</span>
+          <p class="pv2-text">'거래·리스크' 관점으로 최근 소송·제재·지배구조 즉시 확인</p>
+        </div>
+      </div>
+      <div class="persona-tags">
+        <span class="p-tag">#거래리스크필터</span>
+        <span class="p-tag">#소송제재검증</span>
+        <span class="p-tag">#계약안전벨트</span>
+      </div>
     </div>
   </div>
 
@@ -1840,6 +2752,14 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
     <span class="zone-d-chip">테스트 무결점 통과 <b>4,405개</b></span>
     <span class="zone-d-chip">웹 접근성(axe-core) 위반 <b>0건</b></span>
     <span class="zone-d-chip">용어 해설 카드 <b>50종 탑재</b></span>
+  </div>
+
+  <div class="demo-journey-box">
+    <p class="demo-desc">
+      <span>👥</span>
+      <span><strong>초보자용 50개 용어 카드와 전문 분석가용 이행 대조표</strong>를 실제 검색 화면에서 경험하세요.</span>
+    </p>
+    <a href="/search" class="demo-journey-btn" target="_blank">👥 맞춤형 공시 탐색 체험 ➔</a>
   </div>
 </section>
 
@@ -2024,6 +2944,14 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
     <span class="zone-d-chip">외부 MCP 읽기 전용 <b>100% 격리</b></span>
     <span class="zone-d-chip">단방향 의존성 <b>엄격 통제</b></span>
   </div>
+
+  <div class="demo-journey-box">
+    <p class="demo-desc">
+      <span>🔌</span>
+      <span><strong>외부 AI 에이전트를 위한 MCP 서버 읽기 도구 7종과 REST API 명세</strong>를 확인하세요.</span>
+    </p>
+    <a href="/api/v1/mcp" class="demo-journey-btn" target="_blank">🔌 MCP 공시 도구 규격 체험 ➔</a>
+  </div>
 </section>
 
 <!-- 8. 아키텍처 및 연동 -->
@@ -2143,6 +3071,14 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
     <span class="zone-d-chip">OpenDART 한도 소진 <b>0% (영구캐시)</b></span>
     <span class="zone-d-chip">AI 서버 <b>완전 무상태(Stateless)</b></span>
     <span class="zone-d-chip">분산 추적 <b>X-Trace-Id 100%</b></span>
+  </div>
+
+  <div class="demo-journey-box">
+    <p class="demo-desc">
+      <span>🔌</span>
+      <span><strong>외부 AI가 접근하는 읽기 전용 MCP 서버 사양 및 7종 도구 API 명세</strong>를 확인하세요.</span>
+    </p>
+    <a href="/api/v1/mcp" class="demo-journey-btn" target="_blank">🔌 MCP 읽기 도구 7종 사양 보기 ➔</a>
   </div>
 </section>
 
@@ -2271,6 +3207,14 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
     <span class="zone-d-item">LangGraph 2-Tier 라우팅</span>
     <span class="zone-d-item">API 비용 95% 절감</span>
   </div>
+
+  <div class="demo-journey-box">
+    <p class="demo-desc">
+      <span>🧪</span>
+      <span><strong>가상 시뮬레이터가 아닌 실제 운영 중인 라이브 엔진</strong>으로 직접 공시를 비교해보세요.</span>
+    </p>
+    <a href="/compare" class="demo-journey-btn" target="_blank">🧪 라이브 분석 엔진 직접 돌려보기 ➔</a>
+  </div>
 </section>
 
 <!-- 8. 인프라 및 운영 -->
@@ -2343,6 +3287,14 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
     <span class="zone-d-item">V52 SHA-256 해시 검증</span>
     <span class="zone-d-item">일일 LLM 쿼터 $100 하드캡</span>
     <span class="zone-d-item">10초 자동 롤백 복구</span>
+  </div>
+
+  <div class="demo-journey-box">
+    <p class="demo-desc">
+      <span>🛡️</span>
+      <span><strong>비로그인 20회 / 회원 100회 / 일일 하드캡 3,000회 쿼터 방어 시스템 안내</strong>.</span>
+    </p>
+    <a href="/pricing" class="demo-journey-btn" target="_blank">🛡️ 이용 권한 & 쿼터 안내 ➔</a>
   </div>
 </section>
 
@@ -2490,6 +3442,14 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
     <span class="zone-d-item">4,405개 자동화 테스트</span>
     <span class="zone-d-item">결함 재작업률 0%</span>
   </div>
+
+  <div class="demo-journey-box">
+    <p class="demo-desc">
+      <span>🌟</span>
+      <span><strong>4,405개 테스트와 67개 ADR로 무결성을 입증한 DART Insight</strong>를 지금 시작하세요.</span>
+    </p>
+    <a href="/" class="demo-journey-btn" target="_blank">🌟 DART Insight 메인 서비스 바로가기 ➔</a>
+  </div>
 </section>
 
 </div></main>
@@ -2507,14 +3467,49 @@ body.presentation-mode main section.slide-active { opacity: 1; filter: none }
   <button type="button" id="deckExit" aria-label="발표 모드 나가기 (단축키 Esc)">✕ 나가기</button>
 </div>
 
-<!-- 발표자 대본 팝업 -->
-<div class="notes-popup" id="notesPopup" role="dialog" aria-label="발표 전문가 스크립트">
-  <div class="notes-head">
-    <span id="notesSlideTitle">01 · 주제 및 비전</span>
-    <button type="button" id="notesClose" style="border:0;background:transparent;cursor:pointer;font-weight:700">✕</button>
+<!-- 실시간 발표 전문가 대본 사이드바 (Speaker Notes Sidebar) -->
+<aside class="speech-sidebar" id="speechSidebar" role="complementary" aria-label="실시간 발표 전문가 대본">
+  <div class="speech-sidebar__head">
+    <div class="speech-sidebar__title-wrap">
+      <span class="speech-sidebar__badge">🎙️ 발표 전문가 대본 (Horang Style)</span>
+      <h3 class="speech-sidebar__title" id="sidebarSlideTitle">01 · 주제 및 비전</h3>
+    </div>
+    <div class="speech-sidebar__actions">
+      <button type="button" class="sidebar-btn-copy" id="btnSidebarCopy" title="현재 대본 클립보드 복사" aria-label="대본 복사">
+        <span aria-hidden="true">📋</span>
+        <span id="btnSidebarCopyText">복사</span>
+      </button>
+      <button type="button" class="sidebar-btn-close" id="btnSidebarClose" title="사이드바 닫기 (단축키 N)" aria-label="사이드바 닫기">✕</button>
+    </div>
   </div>
-  <div class="notes-body" id="notesBody"></div>
-</div>
+
+  <div class="speech-sidebar__subhead">
+    <div class="sidebar-meta">
+      <span class="sidebar-counter" id="sidebarSlideCounter">01 / 13</span>
+      <span class="sidebar-sync-badge" id="sidebarSyncStatus">🔄 스크롤 실시간 동기화</span>
+    </div>
+    <div class="sidebar-zone-b" id="sidebarZoneB">
+      <span class="szb-term">🔍 공시(DART)</span>
+      <span class="szb-def">기업의 모든 진실이 담긴 '공식 생활기록부'</span>
+    </div>
+  </div>
+
+  <div class="speech-sidebar__body" id="sidebarBody">
+    <!-- 4-part Horang cards dynamically injected here -->
+  </div>
+
+  <div class="speech-sidebar__foot">
+    <a href="/search" class="sidebar-live-link" id="sidebarLiveLink" target="_blank">
+      <span>🚀</span>
+      <span id="sidebarLiveLinkText">01 메인 검색 & 시즌 Top 10 바로가기</span>
+      <span>➔</span>
+    </a>
+    <div class="sidebar-nav-btns">
+      <button type="button" id="sidebarPrevBtn">◀ 이전 섹션</button>
+      <button type="button" id="sidebarNextBtn">다음 섹션 ▶</button>
+    </div>
+  </div>
+</aside>
 
 <footer class="gut"><div class="container footbar">
   <span>DART Insight · 신한DS 금융 AI 프로젝트 쇼케이스</span>
@@ -2696,18 +3691,18 @@ stepper('#userflow', '#flowtext', [
 "30만 자를 5초 만에 압축하고 환각 0.00%를 달성한 신뢰 기반 금융 인텔리전스입니다!"`
     },
     {
-      title: '02 · 공시·도메인 용어 사전 (클라이언트를 위한 1초 통역)',
+      title: '00 · 전자공시란? (기업의 공식 종합 생활기록부)',
       text: `[도발적 질문 Hook]
-"공시(DART)라는 단어, 자주 듣기는 하지만 정확히 무슨 뜻인지 10초 만에 설명하실 수 있으신가요?"
+"\'전자공시\'라는 단어, 자주 듣기는 하지만 정확히 무슨 뜻이고 일반 뉴스와 무엇이 다를까요?"
 
 [1초 용어 통역]
-"우측 상단 돋보기를 보시죠. '전자공시(DART)'란 기업이 법에 따라 실적과 경영 사건을 전 국민에게 투명하게 알리는 공식 종합 생활기록부입니다."
+"우측 상단 돋보기를 보시죠. \'전자공시(DART)\'란 기업이 법에 따라 실적과 사건을 금융감독원에 투명하게 공개하는 공식 종합 생활기록부입니다."
 
 [시각 요소 지시어]
-"화면의 6대 핵심 도메인 카드를 보십시오. 정기보고서가 종합 건강검진표라면 수시공시는 응급 속보이며, MD&A는 숫자의 진짜 원인을 경영진이 직접 쓴 해설서입니다."
+"화면 좌우의 1:1 대비를 보십시오. 인터넷 뉴스와 풍문은 주관적 해석과 왜곡에 취약하지만, 전자공시는 허위 기재 시 형사 처벌을 받는 국가 공인 100% 팩트 데이터입니다."
 
 [숫자 타격감 마무리]
-"50종의 용어 해설 카드와 100% 원문 직결, 철저한 금융 컴플라이언스로 초보자부터 전문가까지 완벽한 정보 투명성을 보장합니다!"`
+"DART Insight는 이 공인 팩트 원문과 1초 만에 직결되어, 수치 환각 0.00%의 절대적 신뢰성을 달성했습니다!"`
     },
     {
       title: '03 · 추진 배경 (65만 자 공시 무한 스크롤과 LLM 환각)',
@@ -2868,19 +3863,74 @@ stepper('#userflow', '#flowtext', [
   const slides = [$('#hero'), $('#glossary'), $('#why'), $('#value'), $('#solution'), $('#activity'), $('#methods'), $('#impact'), $('#stack'), $('#architecture'), $('#decisions'), $('#infra'), $('#weeks')].filter(Boolean);
   let curSlide = 0, isPresent = false;
 
-  const dock = $('#deckDock'), counter = $('#deckCounter'), notesPop = $('#notesPopup');
-  const notesTitle = $('#notesSlideTitle'), notesBody = $('#notesBody');
+  const dock = $('#deckDock'), counter = $('#deckCounter');
+  const sidebar = $('#speechSidebar'), sidebarTitle = $('#sidebarSlideTitle'), sidebarBody = $('#sidebarBody');
+  const sidebarCounter = $('#sidebarSlideCounter'), sidebarZoneB = $('#sidebarZoneB');
+  const sidebarLiveLink = $('#sidebarLiveLink'), sidebarLiveText = $('#sidebarLiveLinkText');
+  const btnSidebarToggle = $('#btnToggleSidebar'), btnSidebarClose = $('#btnSidebarClose');
+  const btnSidebarCopy = $('#btnSidebarCopy'), btnSidebarCopyText = $('#btnSidebarCopyText');
+  const sidebarPrevBtn = $('#sidebarPrevBtn'), sidebarNextBtn = $('#sidebarNextBtn');
   const btnPresent = $('#btnPresentMode');
   const btnExportPdf = $('#btnExportPdf');
   const btnDeckExportPdf = $('#btnDeckExportPdf');
 
-  const triggerPdfExport = () => {
-    window.print();
-  };
-  if (btnExportPdf) btnExportPdf.addEventListener('click', triggerPdfExport);
-  if (btnDeckExportPdf) btnDeckExportPdf.addEventListener('click', triggerPdfExport);
+  const SECTION_LIVE_LINKS = [
+    { url: '/search', label: '01 메인 검색 & 시즌 Top 10 바로가기' },
+    { url: '/search?q=삼성전자', label: '00 공시 용어 50종 툴팁 체험' },
+    { url: '/compare', label: '02 300p 보고서 5초 대조 실행' },
+    { url: '/analysis/demo', label: '03 W-03 원문 점프 뷰어 체험' },
+    { url: '/compare', label: '04 80MB 고정 StAX 스트리밍 체험' },
+    { url: '/companies/00126380', label: '05 삼성전자 24건 타임라인 체험' },
+    { url: '/analysis/demo', label: '06 13대 증감 사유 리포트 체험' },
+    { url: '/search', label: '07 페르소나별 맞춤 공시 탐색' },
+    { url: '/search', label: '08 4-Tier 아키텍처 실시간 검색' },
+    { url: '/api/v1/mcp', label: '09 MCP 읽기 도구 7종 사양 보기' },
+    { url: '/compare', label: '10 라이브 분석 엔진 직접 돌려보기' },
+    { url: '/pricing', label: '11 일일 질문 쿼터 방어 시스템 안내' },
+    { url: '/', label: '12 DART Insight 메인 서비스 시작하기' }
+  ];
 
-  if (!btnPresent || !dock) return;
+  const ZONE_B_TERMS = [
+    { term: '🔍 공시(DART)', def: '기업의 모든 진실이 담긴 공식 종합 생활기록부' },
+    { term: '🔍 전자공시(DART)', def: '국가기관 금감원에 제출하는 100% 공인 팩트 데이터' },
+    { term: '🔍 할루시네이션 & MD&A', def: 'AI의 그럴듯한 거짓말 & 경영진 공식 성적표 해설서' },
+    { term: '🔍 연결재무제표 & 컴플라이언스', def: '자회사 합산 성적표 & 투자권유 차단 안전막' },
+    { term: '🔍 StAX 파서 & BM25', def: '문서를 흘려보내는 수도관 & 45ms 근거 탐지기' },
+    { term: '🔍 이벤트 신호 & 영향 경로', def: '코드 기준표 기반 팩트 신호 & 3대 관점 미래 영향' },
+    { term: '🔍 4대 규칙 & 가이드라인', def: '13가지 증감 사유 코드화 & 6대 금지어 검사' },
+    { term: '🔍 WCAG & axe-core', def: '장애인·약자도 차별 없이 쓰는 웹 안전벨트' },
+    { term: '🔍 단방향 FSM & ArchUnit', def: '역주행 불가능 일방통행 & 계층 침범 0건' },
+    { term: '🔍 영구 캐시 & MCP 서버', def: '일일 2만 회 한도 방어 & 외부 AI 읽기 전용 플러그인' },
+    { term: '🔍 ADR (Architecture Decision Record)', def: '코드를 짜기 전 남긴 67개의 설계 판결문' },
+    { term: '🔍 Flyway & 2-VM', def: '10초 자동 롤백 & 고부하 AI 서버 물리 격리' },
+    { term: '🔍 AX 협업 파이프라인', def: '3주간 451개 PR 무충돌 완주 & 생산성 400% 향상' }
+  ];
+
+  const parseSpeechToCards = (text) => {
+    const hookMatch = text.match(/\[도발적 질문 Hook\]\s*([\s\S]*?)(?=\n\n\[|$)/);
+    const transMatch = text.match(/\[1초 용어 통역\]\s*([\s\S]*?)(?=\n\n\[|$)/);
+    const visualMatch = text.match(/\[시각 요소 지시어\]\s*([\s\S]*?)(?=\n\n\[|$)/);
+    const punchMatch = text.match(/\[숫자 타격감 마무리\]\s*([\s\S]*?)(?=\n\n\[|$)/);
+
+    return `
+      <div class="speech-card speech-card--hook">
+        <div class="speech-card__label">⚡ 도발적 질문 (Hook)</div>
+        <p class="speech-card__content">${esc(hookMatch ? hookMatch[1].trim() : '')}</p>
+      </div>
+      <div class="speech-card speech-card--trans">
+        <div class="speech-card__label">🔍 1초 용어 통역 (Glossary)</div>
+        <p class="speech-card__content">${esc(transMatch ? transMatch[1].trim() : '')}</p>
+      </div>
+      <div class="speech-card speech-card--visual">
+        <div class="speech-card__label">🎯 시각 요소 지시어 (Direct)</div>
+        <p class="speech-card__content">${esc(visualMatch ? visualMatch[1].trim() : '')}</p>
+      </div>
+      <div class="speech-card speech-card--punch">
+        <div class="speech-card__label">💥 숫자 타격감 마무리 (Punchline)</div>
+        <p class="speech-card__content">${esc(punchMatch ? punchMatch[1].trim() : '')}</p>
+      </div>
+    `;
+  };
 
   const updateSlide = (idx) => {
     if (!slides.length) return;
@@ -2889,8 +3939,20 @@ stepper('#userflow', '#flowtext', [
     if (counter) counter.textContent = String(curSlide + 1).padStart(2, '0') + ' / ' + String(slides.length).padStart(2, '0');
 
     const sp = SPEECHES[curSlide] || SPEECHES[0];
-    if (notesTitle && sp) notesTitle.textContent = sp.title;
-    if (notesBody && sp) notesBody.textContent = sp.text;
+    if (sidebarTitle && sp) sidebarTitle.textContent = sp.title;
+    if (sidebarCounter) sidebarCounter.textContent = String(curSlide + 1).padStart(2, '0') + ' / ' + String(slides.length).padStart(2, '0');
+    if (sidebarBody && sp) sidebarBody.innerHTML = parseSpeechToCards(sp.text);
+
+    const zb = ZONE_B_TERMS[curSlide] || ZONE_B_TERMS[0];
+    if (sidebarZoneB && zb) {
+      sidebarZoneB.innerHTML = `<span class="szb-term">${esc(zb.term)}</span><span class="szb-def">${esc(zb.def)}</span>`;
+    }
+
+    const live = SECTION_LIVE_LINKS[curSlide] || SECTION_LIVE_LINKS[0];
+    if (sidebarLiveLink && live) {
+      sidebarLiveLink.setAttribute('href', live.url);
+      if (sidebarLiveText) sidebarLiveText.textContent = live.label;
+    }
 
     if (isPresent && slides[curSlide]) {
       if (typeof slides[curSlide].scrollIntoView === 'function') {
@@ -2898,6 +3960,60 @@ stepper('#userflow', '#flowtext', [
       }
     }
   };
+
+  const toggleSidebar = (on) => {
+    if (!sidebar) return;
+    const shouldOpen = on !== undefined ? on : !sidebar.classList.contains('open');
+    sidebar.classList.toggle('open', shouldOpen);
+    if (btnSidebarToggle) btnSidebarToggle.setAttribute('aria-expanded', String(shouldOpen));
+    if (shouldOpen) updateSlide(curSlide);
+  };
+
+  if (btnSidebarToggle) btnSidebarToggle.addEventListener('click', () => toggleSidebar());
+  if (btnSidebarClose) btnSidebarClose.addEventListener('click', () => toggleSidebar(false));
+
+  if (btnSidebarCopy) {
+    btnSidebarCopy.addEventListener('click', () => {
+      const sp = SPEECHES[curSlide] || SPEECHES[0];
+      if (navigator.clipboard && sp) {
+        navigator.clipboard.writeText(`${sp.title}\n\n${sp.text}`).then(() => {
+          if (btnSidebarCopyText) {
+            btnSidebarCopyText.textContent = '복사됨 ✓';
+            setTimeout(() => { btnSidebarCopyText.textContent = '복사'; }, 1800);
+          }
+        }).catch(() => {});
+      }
+    });
+  }
+
+  if (sidebarPrevBtn) sidebarPrevBtn.addEventListener('click', () => updateSlide(curSlide - 1));
+  if (sidebarNextBtn) sidebarNextBtn.addEventListener('click', () => updateSlide(curSlide + 1));
+
+  // IntersectionObserver for automatic real-time speech sidebar sync during normal scrolling
+  if (typeof IntersectionObserver !== 'undefined') {
+    const observer = new IntersectionObserver((entries) => {
+      if (isPresent) return; // Don't interfere in presentation mode
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const sIdx = slides.indexOf(entry.target);
+          if (sIdx !== -1) {
+            curSlide = sIdx;
+            updateSlide(sIdx);
+          }
+        }
+      });
+    }, { threshold: 0.25, rootMargin: '-10% 0px -40% 0px' });
+
+    slides.forEach((s) => observer.observe(s));
+  }
+
+  const triggerPdfExport = () => {
+    window.print();
+  };
+  if (btnExportPdf) btnExportPdf.addEventListener('click', triggerPdfExport);
+  if (btnDeckExportPdf) btnDeckExportPdf.addEventListener('click', triggerPdfExport);
+
+  if (!btnPresent || !dock) return;
 
   const togglePresent = (on) => {
     isPresent = on !== undefined ? on : !isPresent;
@@ -2916,8 +4032,7 @@ stepper('#userflow', '#flowtext', [
   const prevBtn = $('#deckPrev'); if (prevBtn) prevBtn.addEventListener('click', () => updateSlide(curSlide - 1));
   const nextBtn = $('#deckNext'); if (nextBtn) nextBtn.addEventListener('click', () => updateSlide(curSlide + 1));
 
-  const notesBtn = $('#deckNotes'); if (notesBtn && notesPop) notesBtn.addEventListener('click', () => notesPop.classList.toggle('open'));
-  const notesClose = $('#notesClose'); if (notesClose && notesPop) notesClose.addEventListener('click', () => notesPop.classList.remove('open'));
+  const notesBtn = $('#deckNotes'); if (notesBtn) notesBtn.addEventListener('click', () => toggleSidebar());
 
   const fullBtn = $('#deckFull');
   if (fullBtn) {
@@ -2936,7 +4051,7 @@ stepper('#userflow', '#flowtext', [
     if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); updateSlide(curSlide + 1); }
     if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); updateSlide(curSlide - 1); }
     if (e.key === 'Escape') { e.preventDefault(); togglePresent(false); }
-    if (e.key === 'n' || e.key === 'N') { if (notesPop) { e.preventDefault(); notesPop.classList.toggle('open'); } }
+    if (e.key === 'n' || e.key === 'N') { e.preventDefault(); toggleSidebar(); }
     if (e.key === 'f' || e.key === 'F') {
       e.preventDefault();
       if (document.documentElement && typeof document.documentElement.requestFullscreen === 'function') {
