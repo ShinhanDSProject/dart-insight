@@ -71,7 +71,7 @@ FONT_HEADING = "Pretendard"
 FONT_BODY = "Pretendard"
 FONT_NUM = "Pretendard"
 
-TOTAL_SLIDES = 40
+TOTAL_SLIDES = 41
 
 # -----------------------------------------------------------------------------
 # Base 4-Zone Helpers
@@ -326,6 +326,47 @@ def build_presentation():
 "수작업 4시간을 단 5초로 단축하고 환각 0.00%를 달성한, 성공적인 재테크를 위한 나의 가장 확실한 공시 분석 파트너입니다!\"""")
 
     # =========================================================================
+    # =========================================================================
+    # PART 1-A. 왜 지금 재테크와 기업 분석인가? (인플레이션 방어 & 복리의 마법)
+    # =========================================================================
+    # SLIDE 02: 인플레이션 시대 재테크와 3단계 팩트 로드맵
+    s02_wealth = prs.slides.add_slide(blank_layout)
+    set_slide_background(s02_wealth, is_dark=False)
+    add_zone_a_header(s02_wealth, "00-A · 왜 재테크인가?", "숨만 쉬어도 돈 가치가 떨어지는 시대, 왜 기업 분석과 재테크인가?")
+    add_zone_b_glossary(s02_wealth, "인플레이션 & 복리의 마법", "화폐 가치 하락 방어 & 우량 기업 팩트 분석 기반 자산 증식")
+
+    # Zone C: 3단계 인포그래픽 카드 그리드 (위기 인식 -> 기존의 함정 -> DART Insight 해답)
+    w_cards = [
+        ("💸 1. 인플레이션 시대 생존", "가만히 있으면 실질 자산 하락",
+         "• 월급 인상률 < 물가 상승률: 예적금만으로는 자산 가치 마이너스\\n• 워런 버핏의 조언: 강력한 경제적 해자를 가진 기업에 투자 필수\\n• 인플레이션을 이기고 복리의 마법을 누리기 위한 우량 기업 분석", LIGHT_DANGER, LIGHT_DANGER_TINT),
+        ("📉 2. 찌라시 투자 & AI 환각", "소문 의존과 가짜 숫자의 덫",
+         "• 300쪽 소설책 4권 분량에 압도되어 공시 직접 읽기를 포기\\n• 유튜브 찌라시·게시판 소문만 믿고 묻지마 투자하다 원금 손실\\n• 챗GPT 등 시중 AI는 없는 숫자를 지어내는 치명적 환각 발생", LIGHT_ATTENTION, LIGHT_ATTENTION_TINT),
+        ("🛡️ 3. DART Insight 팩트 비서", "5초 팩트 대조 & 무환각 분석",
+         "• 법적 구속력을 지닌 금감원 100% 공인 팩트 데이터 직결\\n• Java 백엔드 100% 수치 연산으로 AI 환각 발생률 0.00% 격리\\n• 4시간 걸리던 대조를 5초 만에 완료하는 안전한 재테크 AI 비서", LIGHT_POSITIVE, LIGHT_POSITIVE_TINT)
+    ]
+    for i, (wtitle, wsub, wbody, wcol, wtint) in enumerate(w_cards):
+        wx = Inches(0.8) + Inches(3.98) * i
+        draw_card(s02_wealth, wx, Inches(1.65), Inches(3.8), Inches(4.85), wtint, wcol, 1.5)
+        tb_w = s02_wealth.shapes.add_textbox(wx + Inches(0.25), Inches(1.85), Inches(3.3), Inches(4.3))
+        tf_w = tb_w.text_frame; tf_w.word_wrap = True
+        p = tf_w.paragraphs[0]; p.text = wtitle; p.font.size = Pt(16); p.font.bold = True; p.font.color.rgb = wcol; p.space_after = Pt(4)
+        p0 = tf_w.add_paragraph(); p0.text = wsub; p0.font.size = Pt(12); p0.font.bold = True; p0.font.color.rgb = LIGHT_TEXT_PRIMARY; p0.space_after = Pt(12)
+        p1 = tf_w.add_paragraph(); p1.text = wbody; p1.font.size = Pt(11); p1.font.color.rgb = LIGHT_TEXT_BODY
+
+    add_zone_d_proof_bar(s02_wealth, 2, TOTAL_SLIDES, ["인플레이션 방어", "수치 환각 0.00%", "공인 팩트 100%"], ["실질 자산 방어", "환각 위험 제로", "5초 팩트 대조"])
+    set_speaker_notes(s02_wealth, """[도발적 질문 Hook]
+"여러분, 가만히 숨만 쉬어도 통장 잔고의 실질 가치가 깎여나가는 인플레이션 시대, 여러분은 내 자산을 지키기 위해 어떤 재테크를 하고 계십니까?"
+
+[1초 용어 통역]
+"우측 상단 돋보기를 보시죠. '인플레이션과 복리의 마법'이란, 화폐 가치 하락을 방어하고 우량 기업 투자를 통해 장기적으로 자산을 불려가는 생존 필수 공식입니다."
+
+[시각 요소 지시어]
+"화면의 스마트 재테크 3단계 로드맵을 보십시오. 300페이지 공시를 못 읽어 소문이나 찌라시에 기대다 손실을 보거나, 챗GPT의 수치 환각에 속는 비극을 막고 오직 공인 팩트로 안전하게 투자해야 합니다."
+
+[숫자 타격감 마무리]
+"국가 공인 팩트 데이터 100% 직결과 수치 환각 0.00%로 내 소중한 자산을 안전하게 지켜주는 최적의 투자 비서입니다!"
+""")
+
     # PART 1-B. 도메인 통역: 클라이언트를 위한 1초 공시 용어 사전
     # =========================================================================
     # SLIDE 02: 전자공시란 무엇인가? 단일 집중 1:1 대비 (인터넷 뉴스 vs 전자공시 DART)
