@@ -1,1139 +1,540 @@
 #!/usr/bin/env python3
 """
-DART Insight High-Impact 4-Zone Presentation PPTX Generator (Slide Walkthrough)
-===================================================================================
-Generates docs/DART_Insight_Presentation.pptx directly expressing
-frontend/public/easter/three-weeks.html with sequential slides for every button click!
+DART Insight 발표 PPTX·대본 문서 생성기
+=======================================
+웹 발표 페이지(frontend/public/easter/three-weeks.html)의 12장을 그대로 PPTX로 옮깁니다.
 
-Features:
-1. High-Fidelity 16:9 Widescreen Slides (13.333" x 7.5").
-2. 4-Zone Visual Layout:
-   - Zone A: Top Kicker Pill + One-Liner Headline (<25자).
-   - Zone B: 1-Second Term Translator Callout (🔍 용어 = 1줄 비유).
-   - Zone C: Visual Diagram Canvas mirroring three-weeks.html widgets.
-             Interactive buttons are drawn in a segmented bar with the active button
-             visibly highlighted and its resulting UI state / callout displayed!
-   - Zone D: Bottom Proof Bar (ADR Badges + Key Metrics + Slide Counter NN / total, renumbered before save).
-3. Design System Tokens (tokens.css / design-system.md):
-   - Light: Canvas #F6F7FA, Card #FFFFFF, Primary #141936, Purple #6159B5,
-            Positive #187653, Attention #8A5300, Danger #B74250, Neutral #E4E6EB
-   - Dark: Canvas #0C0F1D, Card #151A2E, Raised #1D2340, Purple #C4BFFF, Text #ECEEFB
-4. Horang (허성범) Style 4-Step Speaker Notes for all slides.
+- 장 순서, 머리말(구분·제목), 용어 카드, 발표 대본은 페이지에서 읽습니다.
+  페이지를 고치고 이 스크립트를 다시 돌리면 PPTX와 대본 문서가 함께 맞춰집니다.
+- 그림(아이콘 타일, 흐름, 구조도, 실제 화면)은 페이지와 같은 내용으로 여기서 그립니다.
+  페이지의 그림을 바꾸면 아래 SLIDE_BUILDERS의 같은 장도 고칩니다.
+
+만드는 파일:
+  docs/DART_Insight_Presentation.pptx (frontend/public/easter/에도 복사)
+  docs/presentation-script-heo-style.md (발표자 노트와 같은 대본 문서)
+
+실행: python3 scripts/generate_presentation_pptx.py  (python-pptx 필요)
 """
 
+import html
+import json
 import os
 import re
 import shutil
+import subprocess
+import tempfile
+
 from pptx import Presentation
-from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
-from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.enum.shapes import MSO_SHAPE
+from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
+from pptx.util import Inches, Pt
 
-# -----------------------------------------------------------------------------
-# Design System Color Tokens (Strict tokens.css Alignment)
-# -----------------------------------------------------------------------------
-LIGHT_CANVAS = RGBColor(246, 247, 250)     # #F6F7FA --color-bg-subtle
-LIGHT_CARD = RGBColor(255, 255, 255)       # #FFFFFF --color-bg
-LIGHT_BORDER = RGBColor(228, 230, 235)     # #E4E6EB --color-border
-LIGHT_BORDER_STR = RGBColor(142, 143, 153) # #8E8F99 --color-border-strong
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PAGE = os.path.join(ROOT, "frontend", "public", "easter", "three-weeks.html")
+ASSETS = os.path.dirname(PAGE)
+OUT_PPTX = os.path.join(ROOT, "docs", "DART_Insight_Presentation.pptx")
+OUT_PPTX_COPY = os.path.join(ASSETS, "DART_Insight_Presentation.pptx")
+OUT_SCRIPT = os.path.join(ROOT, "docs", "presentation-script-heo-style.md")
 
-LIGHT_TEXT_PRIMARY = RGBColor(20, 25, 54)  # #141936 --color-primary
-LIGHT_TEXT_BODY = RGBColor(36, 38, 48)     # #242630 --color-text
-LIGHT_TEXT_MUTED = RGBColor(102, 102, 110) # #66666E --color-text-muted
+# 디자인 토큰(frontend/src/shared/styles/tokens.css와 같은 값)
+CANVAS = RGBColor(0xF6, 0xF7, 0xFA)
+CARD = RGBColor(0xFF, 0xFF, 0xFF)
+BORDER = RGBColor(0xE4, 0xE6, 0xEB)
+PRIMARY = RGBColor(0x14, 0x19, 0x36)
+TEXT = RGBColor(0x24, 0x26, 0x30)
+MUTED = RGBColor(0x66, 0x66, 0x6E)
+ACCENT = RGBColor(0x61, 0x59, 0xB5)
+ACCENT_TINT = RGBColor(0xF0, 0xEF, 0xFA)
+ACCENT_BORDER = RGBColor(0xD6, 0xD3, 0xE8)
+POSITIVE = RGBColor(0x18, 0x76, 0x53)
+POSITIVE_TINT = RGBColor(0xEC, 0xF8, 0xF1)
+ATTENTION = RGBColor(0x8A, 0x53, 0x00)
+ATTENTION_TINT = RGBColor(0xFF, 0xF5, 0xE0)
+DANGER = RGBColor(0xB7, 0x42, 0x50)
+DANGER_TINT = RGBColor(0xFF, 0xF0, 0xF2)
+FONT = "Pretendard"
 
-LIGHT_PURPLE = RGBColor(97, 89, 181)       # #6159B5 --color-accent
-LIGHT_PURPLE_TINT = RGBColor(240, 239, 250)# #F0EFFA --color-accent-subtle
-LIGHT_PURPLE_BORDER = RGBColor(214, 211, 232) # #D6D3E8 --color-border-accent
+SLIDE_W, SLIDE_H = 13.333, 7.5
 
-LIGHT_POSITIVE = RGBColor(24, 118, 83)     # #187653 --color-increase / --color-positive
-LIGHT_POSITIVE_TINT = RGBColor(236, 248, 241) # #ECF8F1 --color-increase-subtle
+# 발표에 쓰는 숫자. 페이지 표지·일하는 방식 장과 같은 값입니다.
+FACTS = [
+    ("기간", "2026-10-19 시작, 약 4주"),
+    ("병합한 PR / 닫은 이슈 / 커밋", "461 / 429 / 1,101"),
+    ("설계 기록(ADR)", "67"),
+    ("공개 API", "약 90개"),
+    ("자동 테스트", "약 4,400개(화면 1,910 · AI 1,188 · 백엔드 약 1,300)"),
+    ("AI 모델", "Claude Haiku 5.5 기본(ADR-0063), 토큰 단가는 Sonnet의 1/20"),
+    ("요약 시간", "요약 한 번 평균 11.6초(로컬 측정)"),
+    ("보고서 길이", "한 권 30~65만 자"),
+    ("삼성전자 2025 사업보고서(20260310002820)", "매출 +10.9%, 영업이익 +33.2%, 순이익 +31.2%"),
+]
+AVOID = "'5초 대조', '환각 0%', '100% 원문', '95% 단축', '생산성 400%', '재테크' 등 근거가 없거나 투자 권유로 읽히는 말."
 
-LIGHT_ATTENTION = RGBColor(138, 83, 0)     # #8A5300 --color-attention
-LIGHT_ATTENTION_TINT = RGBColor(255, 245, 224) # #FFF5E0 --color-attention-subtle
+NOTE_MARKERS = {
+    "[도발적 질문 Hook]": "[여는 질문]",
+    "[1초 용어 통역]": "[쉬운 설명]",
+    "[시각 요소 지시어]": "[화면 가리키기]",
+    "[숫자 타격감 마무리]": "[마무리 한마디]",
+}
 
-LIGHT_DANGER = RGBColor(183, 66, 80)       # #B74250 --color-decrease / --color-danger
-LIGHT_DANGER_TINT = RGBColor(255, 240, 242)# #FFF0F2 --color-decrease-subtle
 
-# Dark Palette (Architecture & AX Highlight Slides)
-DARK_CANVAS = RGBColor(12, 15, 29)         # #0C0F1D Dark Backdrop
-DARK_CARD = RGBColor(21, 26, 46)           # #151A2E Dark Surface 1
-DARK_CARD_RAISED = RGBColor(29, 35, 64)    # #1D2340 Dark Surface 2
-DARK_BORDER = RGBColor(42, 50, 80)         # Subtle Dark Border
+# ---------------------------------------------------------------------------
+# 페이지 읽기
+# ---------------------------------------------------------------------------
+def _strip(fragment):
+    text = re.sub(r"<br\s*/?>", " ", fragment)
+    text = html.unescape(re.sub(r"<[^>]+>", "", text))
+    return re.sub(r"\s+", " ", text).strip()
 
-DARK_TEXT_PRIMARY = RGBColor(236, 238, 251)# #ECEEFB Dark High Contrast
-DARK_TEXT_BODY = RGBColor(200, 205, 230)   # Readable Body
-DARK_TEXT_MUTED = RGBColor(140, 145, 170)  # Muted Dark
 
-DARK_PURPLE = RGBColor(196, 191, 255)      # #C4BFFF Dark Accent Primary
-DARK_PURPLE_TINT = RGBColor(38, 43, 78)    # Deep Violet Container
+def _js_object(source, name, first, second):
+    start = source.index(f"const {name} = {{")
+    body = source[start:source.index("\n  };", start)]
+    pattern = r'^\s+"([\w-]+)": \{ ' + first + r': (".*?"), ' + second + r': (".*") \},?$'
+    return {key: (json.loads(a), json.loads(b)) for key, a, b in re.findall(pattern, body, re.M)}
 
-FONT_HEADING = "Pretendard"
-FONT_BODY = "Pretendard"
-FONT_NUM = "Pretendard"
 
-TOTAL_SLIDES = 40
+def read_page():
+    source = open(PAGE, encoding="utf-8").read()
+    speeches = _js_object(source, "SPEECHES_BY_ID", "title", "text")
+    terms = _js_object(source, "TERMS_BY_ID", "term", "def")
+    slides = []
+    for sid in speeches:
+        kicker, heading = "", ""
+        start = source.find(f'<section id="{sid}"')
+        if start >= 0:
+            section = source[start:source.index("</section>", start)]
+            k = re.search(r'<p class="kicker">(.*?)</p>', section, re.S)
+            h = re.search(r"<h2[^>]*>(.*?)</h2>", section, re.S)
+            kicker, heading = (_strip(k.group(1)) if k else ""), (_strip(h.group(1)) if h else "")
+        title, text = speeches[sid]
+        for old, new in NOTE_MARKERS.items():
+            text = text.replace(old, new)
+        term, definition = terms.get(sid, ("", ""))
+        slides.append({
+            "id": sid, "title": title, "kicker": kicker, "heading": heading or title,
+            "term": term.replace("🔍", "").strip(), "def": definition, "notes": text.strip(),
+        })
+    return slides
 
-# -----------------------------------------------------------------------------
-# Base 4-Zone Helpers
-# -----------------------------------------------------------------------------
-def set_slide_background(slide, is_dark=False):
-    """Sets slide canvas background color."""
-    bg = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), Inches(13.333), Inches(7.5))
-    bg.fill.solid()
-    bg.fill.fore_color.rgb = DARK_CANVAS if is_dark else LIGHT_CANVAS
-    bg.line.fill.background()
-    return bg
 
-def add_zone_a_header(slide, kicker_text, oneliner_title, is_dark=False, kicker_color=None, kicker_tint=None):
-    """Zone A: Top Kicker Pill + One-Liner Headline (<25자)."""
-    k_col = kicker_color or (DARK_PURPLE if is_dark else LIGHT_PURPLE)
-    k_tint = kicker_tint or (DARK_PURPLE_TINT if is_dark else LIGHT_PURPLE_TINT)
-    t_col = DARK_TEXT_PRIMARY if is_dark else LIGHT_TEXT_PRIMARY
+def image_path(name):
+    """python-pptx가 webp를 못 읽어 png로 바꿔 씁니다(Pillow, 없으면 macOS sips)."""
+    path = os.path.join(ASSETS, name)
+    if not name.endswith(".webp"):
+        return path
+    out = os.path.join(tempfile.gettempdir(), name.replace(".webp", ".png"))
+    try:
+        from PIL import Image
+        Image.open(path).save(out)
+    except ImportError:
+        subprocess.run(["sips", "-s", "format", "png", path, "--out", out], check=True, capture_output=True)
+    return out
 
-    # Kicker Pill Badge
-    pill = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(0.4), Inches(3.2), Inches(0.32))
-    pill.fill.solid()
-    pill.fill.fore_color.rgb = k_tint
-    pill.line.color.rgb = k_col
-    pill.line.width = Pt(1)
 
-    tb_k = slide.shapes.add_textbox(Inches(0.8), Inches(0.42), Inches(3.2), Inches(0.28))
-    tf_k = tb_k.text_frame
-    tf_k.margin_left = tf_k.margin_top = tf_k.margin_right = tf_k.margin_bottom = 0
-    p_k = tf_k.paragraphs[0]
-    p_k.alignment = PP_ALIGN.CENTER
-    p_k.text = kicker_text.upper()
-    p_k.font.name = FONT_HEADING
-    p_k.font.size = Pt(10.5)
-    p_k.font.bold = True
-    p_k.font.color.rgb = k_col
+# ---------------------------------------------------------------------------
+# 그리기 도구
+# ---------------------------------------------------------------------------
+def box(slide, x, y, w, h, fill=CARD, line=BORDER, shape=MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.08):
+    shp = slide.shapes.add_shape(shape, Inches(x), Inches(y), Inches(w), Inches(h))
+    shp.fill.solid()
+    shp.fill.fore_color.rgb = fill
+    if line is None:
+        shp.line.fill.background()
+    else:
+        shp.line.color.rgb = line
+        shp.line.width = Pt(1)
+    shp.shadow.inherit = False
+    if shape == MSO_SHAPE.ROUNDED_RECTANGLE:
+        shp.adjustments[0] = radius
+    return shp
 
-    # One-Liner Headline
-    tb_t = slide.shapes.add_textbox(Inches(0.8), Inches(0.78), Inches(7.6), Inches(0.62))
-    tf_t = tb_t.text_frame
-    tf_t.word_wrap = True
-    tf_t.margin_left = tf_t.margin_top = tf_t.margin_right = tf_t.margin_bottom = 0
-    p_t = tf_t.paragraphs[0]
-    p_t.text = oneliner_title
-    p_t.font.name = FONT_HEADING
-    p_t.font.size = Pt(20)
-    p_t.font.bold = True
-    p_t.font.color.rgb = t_col
 
-def add_zone_b_glossary(slide, term, metaphor, is_dark=False):
-    """Zone B: 1-Second Term Translator Callout Box (우측 상단 고정)."""
-    card_bg = DARK_CARD_RAISED if is_dark else LIGHT_PURPLE_TINT
-    border_col = DARK_PURPLE if is_dark else LIGHT_PURPLE_BORDER
-    title_col = DARK_PURPLE if is_dark else LIGHT_PURPLE
-    body_col = DARK_TEXT_PRIMARY if is_dark else LIGHT_TEXT_BODY
-
-    box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(8.55), Inches(0.4), Inches(3.98), Inches(0.96))
-    box.fill.solid()
-    box.fill.fore_color.rgb = card_bg
-    box.line.color.rgb = border_col
-    box.line.width = Pt(1.2)
-
-    tb = slide.shapes.add_textbox(Inches(8.75), Inches(0.48), Inches(3.6), Inches(0.8))
+def text(slide, x, y, w, h, lines, align=PP_ALIGN.LEFT, anchor=MSO_ANCHOR.TOP):
+    """lines: [(글, 크기, 색, 굵게)] 한 줄씩."""
+    tb = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(w), Inches(h))
     tf = tb.text_frame
     tf.word_wrap = True
-    tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = 0
+    tf.vertical_anchor = anchor
+    tf.margin_left = tf.margin_right = Inches(0.04)
+    tf.margin_top = tf.margin_bottom = Inches(0.02)
+    for i, (content, size, color, bold) in enumerate(lines):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        p.alignment = align
+        run = p.add_run()
+        run.text = content
+        run.font.name = FONT
+        run.font.size = Pt(size)
+        run.font.bold = bold
+        run.font.color.rgb = color
+    return tb
 
-    p1 = tf.paragraphs[0]
-    p1.text = f"🔍 용어 · {term}"
-    p1.font.name = FONT_HEADING
-    p1.font.size = Pt(11)
-    p1.font.bold = True
-    p1.font.color.rgb = title_col
-    p1.space_after = Pt(4)
 
-    p2 = tf.add_paragraph()
-    p2.text = metaphor
-    p2.font.name = FONT_BODY
-    p2.font.size = Pt(11.5)
-    p2.font.bold = True
-    p2.font.color.rgb = body_col
+def tile(slide, x, y, w, h, icon, title, caption, fill=CARD, line=BORDER, icon_size=34):
+    box(slide, x, y, w, h, fill, line)
+    text(slide, x + 0.1, y + 0.12, w - 0.2, h - 0.24,
+         [(icon, icon_size, TEXT, False), (title, 16, PRIMARY, True), (caption, 11.5, MUTED, False)],
+         align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
 
-def add_zone_d_proof_bar(slide, current_slide, total_slides, adr_list=None, metrics_list=None, is_dark=False):
-    """Zone D: Bottom Proof Bar with Key Metrics and Slide Counter (ADR tags removed per UX refinement)."""
-    line_col = DARK_BORDER if is_dark else LIGHT_BORDER
-    txt_muted = DARK_TEXT_MUTED if is_dark else LIGHT_TEXT_MUTED
 
-    # Divider Line
-    line = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.8), Inches(6.8), Inches(11.733), Inches(0.02))
-    line.fill.solid()
-    line.fill.fore_color.rgb = line_col
-    line.line.fill.background()
+def tiles(slide, y, h, items, x0=0.6, x1=SLIDE_W - 0.6, gap=0.22, **kw):
+    w = (x1 - x0 - gap * (len(items) - 1)) / len(items)
+    for i, (icon, title, caption) in enumerate(items):
+        tile(slide, x0 + i * (w + gap), y, w, h, icon, title, caption, **kw)
 
-    # Left: Quantitative Metrics (Full width across bottom bar)
-    if metrics_list:
-        metrics_str = "    •    ".join(metrics_list)
-        tb_m = slide.shapes.add_textbox(Inches(0.8), Inches(6.92), Inches(9.5), Inches(0.26))
-        tf_m = tb_m.text_frame
-        tf_m.margin_left = tf_m.margin_top = tf_m.margin_right = tf_m.margin_bottom = 0
-        p_m = tf_m.paragraphs[0]
-        p_m.alignment = PP_ALIGN.LEFT
-        p_m.text = f"실측 핵심 지표: {metrics_str}"
-        p_m.font.name = FONT_BODY
-        p_m.font.size = Pt(10.5)
-        p_m.font.bold = True
-        p_m.font.color.rgb = txt_muted
 
-    # Right: Slide Counter
-    tb_c = slide.shapes.add_textbox(Inches(10.5), Inches(6.92), Inches(2.033), Inches(0.26))
-    tf_c = tb_c.text_frame
-    tf_c.margin_left = tf_c.margin_top = tf_c.margin_right = tf_c.margin_bottom = 0
-    p_c = tf_c.paragraphs[0]
-    p_c.alignment = PP_ALIGN.RIGHT
-    p_c.text = f"{current_slide:02d} / {total_slides:02d}"
-    p_c.font.name = FONT_NUM
-    p_c.font.size = Pt(10.5)
-    p_c.font.bold = True
-    p_c.font.color.rgb = txt_muted
-
-def renumber_slide_counters(prs):
-    """Rewrites every 'NN / NN' counter from the real slide order, so removed slides never leave gaps."""
-    total = len(prs.slides)
-    for idx, slide in enumerate(prs.slides, start=1):
-        for shape in slide.shapes:
-            if shape.has_text_frame and re.fullmatch(r"\d{2} / \d{2}", shape.text_frame.text.strip()):
-                shape.text_frame.paragraphs[0].runs[0].text = f"{idx:02d} / {total:02d}"
-
-def set_speaker_notes(slide, notes_text):
-    """Sets slide speaker notes."""
-    notes_slide = slide.notes_slide
-    notes_slide.notes_text_frame.text = notes_text.strip()
-
-# -----------------------------------------------------------------------------
-# Common UI Widget Renderers (Segmented Buttons, Arrows, Cards)
-# -----------------------------------------------------------------------------
-def draw_segmented_bar(slide, x, y, total_w, h, items, active_index, is_dark=False):
-    """Draws a segmented button bar mirroring three-weeks.html .seg buttons."""
+def flow(slide, y, h, items, x0=0.6, x1=SLIDE_W - 0.6, arrow=0.45, **kw):
     n = len(items)
-    btn_w = (total_w - Inches(0.08) * (n - 1)) / n
-    for i, label in enumerate(items):
-        is_active = (i == active_index)
-        bx = x + (btn_w + Inches(0.08)) * i
-        btn = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, bx, y, btn_w, h)
-        btn.fill.solid()
-        if is_active:
-            btn.fill.fore_color.rgb = DARK_PURPLE if is_dark else LIGHT_PURPLE
-            btn.line.color.rgb = DARK_PURPLE if is_dark else LIGHT_PURPLE
-        else:
-            btn.fill.fore_color.rgb = DARK_CARD if is_dark else LIGHT_CARD
-            btn.line.color.rgb = DARK_BORDER if is_dark else LIGHT_BORDER
-        btn.line.width = Pt(1.5 if is_active else 1)
+    w = (x1 - x0 - arrow * (n - 1)) / n
+    for i, (icon, title, caption) in enumerate(items):
+        x = x0 + i * (w + arrow)
+        tile(slide, x, y, w, h, icon, title, caption, icon_size=28, **kw)
+        if i < n - 1:
+            text(slide, x + w, y, arrow, h, [("→", 20, MUTED, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
 
-        tb = slide.shapes.add_textbox(bx, y + Inches(0.05), btn_w, h - Inches(0.1))
-        tf = tb.text_frame
-        tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = 0
-        p = tf.paragraphs[0]
-        p.alignment = PP_ALIGN.CENTER
-        prefix = "👉 " if is_active else ""
-        p.text = f"{prefix}{label}"
-        p.font.name = FONT_HEADING
-        p.font.size = Pt(11 if n <= 4 else 10)
-        p.font.bold = True
-        p.font.color.rgb = RGBColor(255, 255, 255) if is_active else (DARK_TEXT_MUTED if is_dark else LIGHT_TEXT_BODY)
 
-def draw_card(slide, x, y, w, h, bg_col=LIGHT_CARD, border_col=LIGHT_BORDER, line_w=1):
-    """Draws a rounded rectangular card."""
-    card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, x, y, w, h)
-    card.fill.solid()
-    card.fill.fore_color.rgb = bg_col
-    card.line.color.rgb = border_col
-    card.line.width = Pt(line_w)
-    return card
+def chips(slide, y, items, tone="neutral", size=12):
+    fill, color = {
+        "neutral": (CARD, TEXT), "danger": (DANGER_TINT, DANGER),
+        "accent": (ACCENT_TINT, ACCENT), "ok": (POSITIVE_TINT, POSITIVE),
+    }[tone]
+    widths = [0.42 + 0.155 * len(item) * size / 12 for item in items]
+    gap = 0.18
+    x = (SLIDE_W - sum(widths) - gap * (len(items) - 1)) / 2
+    for item, w in zip(items, widths):
+        box(slide, x, y, w, 0.42, fill, BORDER if tone == "neutral" else None, radius=0.5)
+        text(slide, x, y, w, 0.42, [(item, size, color, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+        x += w + gap
 
-def draw_horizontal_arrow(slide, x, y, w, h, text="", fill_color=LIGHT_PURPLE):
-    """Draws a prominent right arrow shape."""
-    arrow = slide.shapes.add_shape(MSO_SHAPE.RIGHT_ARROW, x, y, w, h)
-    arrow.fill.solid()
-    arrow.fill.fore_color.rgb = fill_color
-    arrow.line.fill.background()
-    if text:
-        tf = arrow.text_frame
-        tf.word_wrap = True
-        tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = 0
-        p = tf.paragraphs[0]
-        p.alignment = PP_ALIGN.CENTER
-        p.text = text
-        p.font.name = FONT_HEADING
-        p.font.size = Pt(11)
-        p.font.bold = True
-        p.font.color.rgb = RGBColor(255, 255, 255)
-    return arrow
 
-# -----------------------------------------------------------------------------
-# Slide Generation Routines
-# -----------------------------------------------------------------------------
+def picture(slide, name, x, y, w, h):
+    """상자 안에 비율을 지켜 가운데 놓습니다."""
+    pic = slide.shapes.add_picture(image_path(name), Inches(x), Inches(y))
+    ratio = min(Inches(w) / pic.width, Inches(h) / pic.height)
+    pic.width, pic.height = int(pic.width * ratio), int(pic.height * ratio)
+    pic.left = int(Inches(x) + (Inches(w) - pic.width) / 2)
+    pic.top = int(Inches(y) + (Inches(h) - pic.height) / 2)
+    return pic
 
-def build_presentation():
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.abspath(os.path.join(script_dir, ".."))
+
+def arrow_line(slide, x1, y1, x2, y2, label=""):
+    conn = slide.shapes.add_connector(1, Inches(x1), Inches(y1), Inches(x2), Inches(y2))
+    conn.line.color.rgb = ACCENT
+    conn.line.width = Pt(1.75)
+    conn.line._get_or_add_ln().append(
+        conn.line._get_or_add_ln().makeelement(
+            "{http://schemas.openxmlformats.org/drawingml/2006/main}tailEnd", {"type": "triangle"}))
+    if label:
+        mid = (x1 + x2) / 2
+        text(slide, mid - 0.6, min(y1, y2) - 0.3, 1.2, 0.28, [(label, 10, MUTED, False)], align=PP_ALIGN.CENTER)
+
+
+def frame(prs, info, number, total):
+    """배경, 머리말(구분·제목), 용어 카드, 아래 쪽번호, 발표자 노트."""
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    slide.background.fill.solid()
+    slide.background.fill.fore_color.rgb = CANVAS
+    if info["kicker"]:
+        text(slide, 0.6, 0.38, 7.6, 0.32, [(info["kicker"], 12, ACCENT, True)])
+        size = 28 if len(info["heading"]) <= 20 else 22
+        text(slide, 0.6, 0.68, 7.95, 0.75, [(info["heading"], size, PRIMARY, True)], anchor=MSO_ANCHOR.MIDDLE)
+    if info["term"]:
+        box(slide, 8.75, 0.4, 3.98, 1.0, ACCENT_TINT, ACCENT_BORDER)
+        text(slide, 8.9, 0.45, 3.7, 0.9,
+             [("🔍 " + info["term"], 14, ACCENT, True), (info["def"], 11, TEXT, False)], anchor=MSO_ANCHOR.MIDDLE)
+    text(slide, 0.6, 7.05, 6, 0.3, [("DART Insight · 신한DS Academy 2차 프로젝트", 10, MUTED, False)])
+    text(slide, SLIDE_W - 2.6, 7.05, 2.0, 0.3, [(f"{number:02d} / {total:02d}", 10, MUTED, True)], align=PP_ALIGN.RIGHT)
+    slide.notes_slide.notes_text_frame.text = info["notes"]
+    return slide
+
+
+# ---------------------------------------------------------------------------
+# 장별 그림(페이지의 같은 장과 같은 내용)
+# ---------------------------------------------------------------------------
+def hero(s):
+    picture(s, "dart-insight-logo.png", 0.6, 0.5, 0.7, 0.7)
+    text(s, 1.4, 0.55, 8, 0.6, [("신한DS 금융 AI 프로젝트 · 2026", 13, ACCENT, True)], anchor=MSO_ANCHOR.MIDDLE)
+    text(s, 0.6, 1.6, 12.1, 1.9,
+         [("두 보고서 사이, 바뀐 것만.", 46, PRIMARY, True), ("원문 근거와 함께.", 46, ACCENT, True)],
+         align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    text(s, 1.5, 3.55, 10.3, 0.5,
+         [("같은 회사의 정기보고서 두 개를 비교해, 바뀐 숫자와 문장을 원문 위치와 함께 보여 줍니다.", 16, MUTED, False)],
+         align=PP_ALIGN.CENTER)
+    stats = [("461", "병합한 PR"), ("1,101", "커밋"), ("67", "설계 기록(ADR)"), ("약 90", "공개 API"), ("약 4,400", "자동 테스트")]
+    x0, gap = 0.9, 0.2
+    w = (SLIDE_W - 2 * x0 - gap * 4) / 5
+    for i, (num, label) in enumerate(stats):
+        x = x0 + i * (w + gap)
+        box(s, x, 4.45, w, 1.45)
+        text(s, x, 4.5, w, 1.35, [(num, 32, ACCENT, True), (label, 13, MUTED, False)],
+             align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    text(s, 0.6, 6.1, 12.1, 0.35, [("2026-10-19 시작 · 2026-11-13 기준", 12, MUTED, False)], align=PP_ALIGN.CENTER)
+
+
+def glossary(s):
+    box(s, 0.6, 1.75, 5.7, 4.35)
+    picture(s, "jensen-huang-avatar.png", 0.85, 1.95, 0.85, 0.85)
+    picture(s, "nvidia-logo.png", 1.85, 2.15, 1.9, 0.45)
+    box(s, 4.1, 2.18, 2.0, 0.4, ACCENT_TINT, None, radius=0.5)
+    text(s, 4.1, 2.18, 2.0, 0.4, [("🇺🇸 SEC 8-K · 2026-11-11", 10, ACCENT, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    text(s, 0.85, 3.0, 5.25, 3.0, [
+        ("“The Board accepted the resignation of Jen-Hsun (Jensen) Huang as President, CEO, and Director, effective immediately.”", 14, MUTED, False),
+        ("", 8, MUTED, False),
+        ("“이사회는 젠슨 황의 사장·CEO·이사직 사임을 즉시 수락한다.”", 16, PRIMARY, True),
+    ], anchor=MSO_ANCHOR.MIDDLE)
+    text(s, 6.3, 1.75, 0.73, 4.35, [("=", 40, MUTED, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    box(s, 7.03, 1.75, 5.7, 4.35)
+    picture(s, "dart-cover.png", 7.3, 1.95, 5.15, 2.95)
+    text(s, 7.2, 5.0, 5.35, 1.0, [("🇰🇷 금융감독원 DART", 13, ACCENT, True),
+                                    ("우리나라 상장사의 공식 공시가 모두 올라오는 곳", 15, PRIMARY, True)],
+         align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    text(s, 0.6, 6.3, 12.1, 0.5, [("📰 뉴스보다 먼저, 📜 법에 따라 공식으로", 18, PRIMARY, True)], align=PP_ALIGN.CENTER)
+
+
+def why(s):
+    box(s, 0.6, 1.7, 5.95, 2.75, DANGER_TINT, None)
+    text(s, 0.8, 1.8, 5.55, 2.55, [("한계 ① 너무 길다", 14, DANGER, True), ("📕📗📘📙", 32, TEXT, False),
+                                    ("65만 자", 40, DANGER, True), ("보고서 한 권(최대) · 두 권을 사람이 나란히 비교", 12, MUTED, False)],
+         align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    box(s, 6.78, 1.7, 5.95, 2.75, DANGER_TINT, None)
+    text(s, 6.95, 1.8, 2.6, 0.4, [("한계 ② 믿기 어렵다", 14, DANGER, True)])
+    picture(s, "pinocchio-hallucination.jpg", 6.95, 2.2, 2.7, 2.1)
+    text(s, 9.75, 2.2, 2.85, 2.1, [("AI 환각", 26, DANGER, True), ("그럴듯한 거짓말", 15, PRIMARY, True),
+                                    ("출처 없는 숫자, 확인할 수 없는 요약", 12, MUTED, False)], anchor=MSO_ANCHOR.MIDDLE)
+    text(s, 0.6, 4.45, 12.1, 0.45, [("⬇", 22, MUTED, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    box(s, 0.6, 4.9, 12.13, 1.95, ACCENT_TINT, ACCENT_BORDER)
+    text(s, 0.6, 4.95, 12.13, 0.3, [("DART Insight", 13, ACCENT, True)], align=PP_ALIGN.CENTER)
+    tiles(s, 5.3, 1.4, [("⚖️", "두 보고서 자동 비교", "바뀐 숫자·문장만 골라냄"),
+                        ("🧮", "숫자는 코드가 계산", "AI는 계산하지 않음"),
+                        ("📍", "문장마다 원문 위치", "누르면 공시 원문으로 이동")], x0=0.85, x1=12.48, icon_size=24)
+
+
+def value(s):
+    tiles(s, 1.75, 2.15, [("⚖️", "자동 비교", "두 보고서, 바뀐 것만"), ("📍", "원문 위치", "문장마다 출처"),
+                          ("🧩", "한 화면 맥락", "숫자 + 설명 + 수시공시"), ("🛡️", "추천하지 않음", "사실과 기준표 신호만")], icon_size=40)
+    flow(s, 4.1, 1.45, [("🔎", "검색", ""), ("🏢", "기업 개요", ""), ("📑", "보고서 두 개", ""),
+                       ("⏳", "분석", ""), ("📊", "결과", ""), ("💬", "채팅·노트", "")], x0=1.2, x1=12.13, arrow=0.35)
+    box(s, 2.0, 5.8, 4.4, 0.9, ACCENT_TINT, ACCENT_BORDER)
+    text(s, 2.0, 5.8, 4.4, 0.9, [("결과 화면 · 요약 문장", 11, MUTED, False), ("영업이익 ▲ +33.2%  📍 원문", 16, PRIMARY, True)],
+         align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    text(s, 6.4, 5.8, 0.9, 0.9, [("➜", 26, ACCENT, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    box(s, 7.3, 5.8, 4.0, 0.9)
+    text(s, 7.3, 5.8, 4.0, 0.9, [("📄 DART 공시 원문의 그 문단", 16, PRIMARY, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+
+
+def activity_financial(s):
+    text(s, 0.6, 1.65, 12.1, 0.4, [("실제 공시 값 · 연결 손익계산서 · 2024 → 2025", 13, MUTED, True)], align=PP_ALIGN.CENTER)
+    rows = [("매출액", "300.9조", "333.6조", "▲ +10.9%", "+32.7조 원"),
+            ("영업이익", "32.7조", "43.6조", "▲ +33.2%", "+10.9조 원"),
+            ("당기순이익", "34.5조", "45.2조", "▲ +31.2%", "+10.8조 원")]
+    w, gap = 3.85, 0.29
+    for i, (name, before, after, rate, diff) in enumerate(rows):
+        x = 0.6 + i * (w + gap)
+        box(s, x, 2.15, w, 3.55)
+        text(s, x, 2.3, w, 0.45, [(name, 18, PRIMARY, True)], align=PP_ALIGN.CENTER)
+        text(s, x, 2.85, w, 1.2, [("2024년  " + before, 15, MUTED, False), ("↓", 16, MUTED, True), ("2025년  " + after, 22, PRIMARY, True)],
+             align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+        box(s, x + 0.45, 4.35, w - 0.9, 1.1, POSITIVE_TINT, None)
+        text(s, x + 0.45, 4.35, w - 0.9, 1.1, [(rate, 26, POSITIVE, True), (diff, 12, POSITIVE, False)],
+             align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    chips(s, 6.05, ["🧮 증감은 코드가 계산", "📍 출처 사업보고서(2025.12) · 접수번호 20260310002820"], tone="accent")
+
+
+TIMELINE = [
+    ("2025.11.26", "⚠️", "위험", "종속회사 Harman, 미국 법무부 벌금"),
+    ("2025.12.23", "⚠️", "위험", "아산 캠퍼스 사고로 부분작업중지"),
+    ("2026.01.29", "💰", "자금", "임직원 보상용 자사주 2,200만 주 취득 결정"),
+    ("2026.02.20", "⚠️", "위험", "부분작업중지 해제"),
+    ("2026.03.18", "🏛️", "지배구조", "정기주총 · 자사주 추가 취득 결정"),
+    ("2026.04.30", "🧭", "투자", "국가 AI컴퓨팅센터 컨소시엄 출자 의결"),
+]
+
+
+def activity_flow(s):
+    text(s, 0.6, 1.62, 12.1, 0.4, [("📥 모으기  →  📝 요약·타임라인  →  🎯 관점별 보기  →  🚦 사실과 전망 분리", 15, PRIMARY, True)],
+         align=PP_ALIGN.CENTER)
+    box(s, 0.6, 2.15, 4.9, 4.55)
+    text(s, 0.8, 2.25, 4.5, 0.4, [("🗓️ 1년 타임라인 · 24건 중 6건", 14, PRIMARY, True)])
+    for i, (date, icon, cat, label) in enumerate(TIMELINE):
+        y = 2.72 + i * 0.6
+        text(s, 0.8, y, 1.05, 0.5, [(date, 10.5, MUTED, False)], anchor=MSO_ANCHOR.MIDDLE)
+        text(s, 1.85, y, 3.55, 0.5, [(f"{icon} {cat} · {label}", 11.5, TEXT, False)], anchor=MSO_ANCHOR.MIDDLE)
+    text(s, 0.8, 6.33, 4.5, 0.3, [("사건마다 공시 원문 근거가 붙어 있어요.", 10, MUTED, False)])
+    box(s, 5.72, 2.15, 7.01, 4.55)
+    picture(s, "samsung-fact-vs-forecast.webp", 5.85, 2.25, 6.75, 2.6)
+    for i, (label, desc, fill, color) in enumerate([("① 공시에 적힌 사실", "원문 문장 그대로 + 근거 위치", ACCENT_TINT, ACCENT),
+                                                    ("② 앞으로의 영향", "'AI 전망 · 공시 사실 아님' 표시를 따로", ATTENTION_TINT, ATTENTION)]):
+        y = 5.15 + i * 0.6
+        box(s, 5.95, y, 2.2, 0.45, fill, None, radius=0.5)
+        text(s, 5.95, y, 2.2, 0.45, [(label, 12, color, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+        text(s, 8.25, y, 4.3, 0.45, [(desc, 13, TEXT, False)], anchor=MSO_ANCHOR.MIDDLE)
+    text(s, 0.6, 6.72, 12.1, 0.3, [("실제 결과 · 삼성전자 반기보고서 2025.06 → 2026.06", 10.5, MUTED, False)], align=PP_ALIGN.CENTER)
+
+
+def methods(s):
+    flow(s, 1.75, 1.75, [("✅", "비교해도 되나", "같은 회사·맞는 기간"), ("🧮", "코드가 계산", "증감액·증감률"),
+                         ("🔍", "바뀐 문장 찾기", "목차·문단 맞추기"), ("📍", "근거 없으면 버림", "원문 위치 필수")])
+    box(s, 2.4, 3.95, 8.53, 0.9, CARD, BORDER)
+    text(s, 2.4, 3.95, 8.53, 0.9, [("검사 실패   →   🔁 최대 2번 다시 만들기   →   ⚠️ 검토 필요", 17, PRIMARY, True)],
+         align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    text(s, 0.6, 5.2, 12.1, 0.35, [("화면에 나가기 전에 자동으로 막는 표현", 12, MUTED, True)], align=PP_ALIGN.CENTER)
+    chips(s, 5.65, ["🚫 매수·매도 추천", "🚫 목표주가", "🚫 주가 예측", "🚫 '저평가' 같은 가치판단"], tone="danger", size=13)
+
+
+def impact(s):
+    tiles(s, 1.85, 2.9, [("🙋", "개인 투자자", "어려운 용어 → 용어 카드"), ("💼", "금융 실무자", "엑셀 대조 → 자동 비교"),
+                         ("💬", "커뮤니티", "출처 없는 말 → 원문 인용"), ("🎓", "취업 준비생", "홍보 문구 → 실제 사업 방향"),
+                         ("🤝", "거래 검토 기업", "소송·제재 미리 확인")], icon_size=40)
+    chips(s, 5.35, ["🧪 자동 테스트 약 4,400개", "♿ 접근성 자동 검사(axe-core)", "🔐 PR마다 비밀정보 검사"], size=13)
+
+
+STACK = [
+    (["react", "typescript"], "화면", "React · TypeScript"),
+    (["springboot", "openjdk"], "서비스 API", "Spring Boot · Java 21"),
+    (["fastapi", "python", "langgraph"], "AI 처리", "FastAPI · LangGraph"),
+    (["claude"], "AI 모델", "Claude (Haiku 기본)"),
+    (["mariadb", "flyway"], "데이터", "MariaDB · Flyway"),
+    (["modelcontextprotocol"], "외부 AI 연결", "MCP 서버 · 읽기 전용"),
+]
+
+
+def stack(s):
+    x0, gap = 0.6, 0.18
+    w = (SLIDE_W - 2 * x0 - gap * 5) / 6
+    for i, (logos, name, caption) in enumerate(STACK):
+        x = x0 + i * (w + gap)
+        box(s, x, 1.85, w, 2.7)
+        size, lgap = 0.55, 0.12
+        lx = x + (w - (size * len(logos) + lgap * (len(logos) - 1))) / 2
+        for k, logo in enumerate(logos):
+            picture(s, os.path.join("stack", logo + ".png"), lx + k * (size + lgap), 2.25, size, size)
+        text(s, x, 3.05, w, 1.3, [(name, 16, PRIMARY, True), (caption, 11, MUTED, False)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    box(s, 2.6, 5.05, 8.13, 0.85, ACCENT_TINT, ACCENT_BORDER)
+    text(s, 2.6, 5.05, 8.13, 0.85, [("🖥️ 화면  →  ☕ 백엔드  →  🐍 AI 서버, 한 방향으로만", 18, PRIMARY, True)],
+         align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+
+
+def _node(s, x, y, w, h, title, caption, strong=False):
+    box(s, x, y, w, h, ACCENT_TINT if strong else CARD, ACCENT if strong else BORDER)
+    text(s, x, y, w, h, [(title, 15, PRIMARY, True), (caption, 10.5, MUTED, False)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+
+
+def architecture(s):
+    h = 0.95
+    _node(s, 0.6, 2.35, 1.9, h, "👤 사용자", "브라우저")
+    _node(s, 3.0, 2.35, 2.1, h, "🖥️ 화면", "React · TS")
+    _node(s, 5.6, 2.2, 2.5, 1.25, "☕ 백엔드", "Spring Boot\n작업·캐시·권한·한도", strong=True)
+    _node(s, 8.6, 2.35, 2.2, h, "🐍 AI 서버", "FastAPI · LangGraph")
+    _node(s, 11.1, 2.35, 1.63, h, "🤖 LLM", "Claude")
+    _node(s, 3.0, 4.15, 2.1, h, "🔌 MCP 서버", "외부 AI 에이전트 · 읽기 전용")
+    _node(s, 5.35, 4.15, 1.45, h, "🗄️ DB", "MariaDB")
+    _node(s, 6.95, 4.15, 1.45, h, "📄 OpenDART", "공시 원문")
+    _node(s, 8.6, 4.15, 2.2, h, "📰 NAVER", "뉴스 · 시세")
+    arrow_line(s, 2.5, 2.83, 3.0, 2.83)
+    arrow_line(s, 5.1, 2.83, 5.6, 2.83, "/api")
+    arrow_line(s, 8.1, 2.83, 8.6, 2.83, "/internal")
+    arrow_line(s, 10.8, 2.83, 11.1, 2.83)
+    arrow_line(s, 5.1, 4.45, 5.75, 3.45)
+    for x2 in (6.08, 7.6, 9.3):
+        arrow_line(s, 6.85 if x2 < 8 else 7.85, 3.45, x2, 4.15)
+    tiles(s, 5.45, 1.35, [("🔑", "열쇠는 한 곳에", "키·권한·한도는 백엔드만"), ("📦", "공시는 한 번만", "접수번호로 저장, 다시 받지 않음"),
+                          ("🤖", "AI는 한 문으로", "AI 호출은 AI 서버 한 모듈만")], icon_size=22)
+
+
+WEEK_STEPS = [("🎯", "성공 기준", "👤 사람"), ("📝", "기획서·수용 기준", "🤖 초안 → 👤 확인"),
+              ("🏛️", "설계 기록(ADR)", "🤖 초안 → 👤 확인"), ("🧩", "이슈 쪼개기", "🤖 초안 → 👤 확인"),
+              ("💻", "구현", "👤 + 🤖"), ("🧪", "자동 검사", "⚙️ 자동"), ("✅", "수용 검증", "🤖 초안 → 👤 확인")]
+ROLES = [
+    ("👤 사람이 정한다", CARD, BORDER, ["🎯 무엇을 왜 만들지(성공 기준·범위)", "✔️ 기획서·설계 기록 최종 확인",
+                                       "🔀 커밋·PR·병합 결정", "📚 공시 용어·숫자의 사실 확인"]),
+    ("🤖 AI가 만든다", ACCENT_TINT, ACCENT_BORDER, ["📝 기획서·이슈·설계 기록 초안(스킬)", "💻 코드와 테스트 작성",
+                                                  "🧾 수용 기준마다 증빙 모으기", "🔁 다른 AI와 교차 검토"]),
+    ("⚙️ 기계가 막는다", CANVAS, BORDER, ["🧪 자동 테스트 약 4,400개", "♿ 접근성 검사(axe-core)",
+                                          "🔐 비밀정보 검사(gitleaks)", "🧭 호출 방향 검사(ArchUnit)"]),
+]
+AI_STOPS = ["기획서가 없으면 구현을 시작하지 않음", "공시 용어를 추측하지 않음", "설계 기록과 다르면 먼저 물음", "키가 보이면 즉시 멈춤"]
+
+
+def weeks(s):
+    x0, gap = 0.6, 0.12
+    w = (SLIDE_W - 2 * x0 - gap * 6) / 7
+    for i, (icon, name, owner) in enumerate(WEEK_STEPS):
+        x = x0 + i * (w + gap)
+        box(s, x, 1.65, w, 1.55)
+        text(s, x, 1.7, w, 1.45, [(f"{i + 1:02d}", 9, MUTED, True), (icon, 20, TEXT, False), (name, 11.5, PRIMARY, True), (owner, 9.5, ACCENT, True)],
+             align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    w, gap = (SLIDE_W - 2 * x0 - 0.22 * 2) / 3, 0.22
+    for i, (title, fill, line, items) in enumerate(ROLES):
+        x = x0 + i * (w + gap)
+        box(s, x, 3.4, w, 2.45, fill, line)
+        text(s, x + 0.2, 3.5, w - 0.4, 2.3, [(title, 16, PRIMARY, True)] + [(item, 12.5, TEXT, False) for item in items])
+    box(s, x0, 6.0, SLIDE_W - 2 * x0, 0.85, ATTENTION_TINT, None)
+    text(s, x0, 6.0, SLIDE_W - 2 * x0, 0.85, [("🛑 AI가 멈추고 사람에게 묻는 때", 12.5, ATTENTION, True),
+                                             ("  ·  ".join(AI_STOPS), 12, TEXT, False)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+
+
+SLIDE_BUILDERS = {
+    "hero": hero, "glossary": glossary, "why": why, "value": value,
+    "activity-financial": activity_financial, "activity-flow": activity_flow, "methods": methods,
+    "impact": impact, "stack": stack, "architecture": architecture, "weeks": weeks,
+}
+
+
+# ---------------------------------------------------------------------------
+# 만들기
+# ---------------------------------------------------------------------------
+def build_pptx(slides):
     prs = Presentation()
-    prs.slide_width = Inches(13.333)
-    prs.slide_height = Inches(7.5)
-    blank_layout = prs.slide_layouts[6]
+    prs.slide_width, prs.slide_height = Inches(SLIDE_W), Inches(SLIDE_H)
+    for number, info in enumerate(slides, 1):
+        slide = frame(prs, info, number, len(slides))
+        builder = SLIDE_BUILDERS.get(info["id"])
+        if builder is None:
+            raise SystemExit(f"그림이 없는 장입니다: {info['id']} (SLIDE_BUILDERS에 추가하세요)")
+        builder(slide)
+    prs.save(OUT_PPTX)
+    shutil.copyfile(OUT_PPTX, OUT_PPTX_COPY)
 
-    print("Generating High-Impact 4-Zone Presentation Slides...")
 
-    # =========================================================================
-    # PART 1. 타이틀 & 비전 (Hero)
-    # =========================================================================
-    # SLIDE 01: 히어로 비전 & 4대 메트릭
-    s01 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s01, is_dark=False)
-    add_zone_a_header(s01, "01 · 프로젝트 비전 & 핵심 성과", "두 보고서 사이, 바뀐 것만. 원문 근거와 함께.")
-    add_zone_b_glossary(s01, "공시(DART)", "회사가 법에 따라 공식으로 알리는 문서. 회사의 생활기록부")
-    
-    # Zone C: Hero 4-Bento Grid
-    bento_data = [
-        ("461", "병합한 PR", "약 4주 동안(2026-10-19~)\n닫은 이슈 429개 · 커밋 1,101개", LIGHT_PURPLE, LIGHT_PURPLE_TINT),
-        ("67", "설계 기록(ADR)", "구조 결정마다\n이유와 검토한 대안을 기록", LIGHT_POSITIVE, LIGHT_POSITIVE_TINT),
-        ("약 90", "공개 API", "화면과 MCP 서버가\n함께 쓰는 백엔드 API", LIGHT_ATTENTION, LIGHT_ATTENTION_TINT),
-        ("약 4,400", "자동 테스트", "화면 1,910 · AI 1,188 · 백엔드 약 1,300\nPR마다 모두 통과해야 병합", LIGHT_PURPLE, LIGHT_PURPLE_TINT),
+def build_script(slides):
+    out = [
+        "# DART Insight 발표 대본",
+        "",
+        "> 같은 회사의 정기보고서 두 개를 비교해, 바뀐 숫자와 문장을 원문 위치와 함께 보여 주는 서비스입니다. 투자 조언이 아닙니다.",
+        "",
+        f"- 웹 발표 페이지(`frontend/public/easter/three-weeks.html`)와 PPTX(`docs/DART_Insight_Presentation.pptx`)는 같은 {len(slides)}장입니다.",
+        "- **이 문서와 PPTX는 `python3 scripts/generate_presentation_pptx.py`가 페이지의 대본에서 만듭니다.** 대본은 페이지에서 고치고 스크립트를 다시 돌립니다.",
+        "- 대본 형식: ① 여는 질문 → ② 쉬운 설명 → ③ 화면 가리키기 → ④ 마무리 한마디. 장마다 30~45초.",
+        "",
+        "## 발표에 쓰는 숫자 (2026-11-13 기준, 저장소·GitHub·로컬 DB에서 직접 센 값)",
+        "",
+        "| 항목 | 값 |",
+        "| --- | --- |",
+        *[f"| {k} | {v} |" for k, v in FACTS],
+        "",
+        f"**쓰지 않는 표현**: {AVOID}",
+        "",
+        "## 장 목록",
+        "",
+        "| 장 | 제목 | 화면 머리말 | 용어 |",
+        "| --- | --- | --- | --- |",
     ]
-    coords = [
-        (Inches(0.8), Inches(1.65)),
-        (Inches(6.88), Inches(1.65)),
-        (Inches(0.8), Inches(4.15)),
-        (Inches(6.88), Inches(4.15)),
-    ]
-    for (num, title, desc, col, tint), (x, y) in zip(bento_data, coords):
-        draw_card(s01, x, y, Inches(5.65), Inches(2.35), tint, col, 1.5)
-        tb = s01.shapes.add_textbox(x + Inches(0.4), y + Inches(0.2), Inches(4.85), Inches(1.95))
-        tf = tb.text_frame
-        p0 = tf.paragraphs[0]
-        p0.text = num
-        p0.font.name = FONT_NUM
-        p0.font.size = Pt(36)
-        p0.font.bold = True
-        p0.font.color.rgb = col
-        p0.space_after = Pt(2)
-        p1 = tf.add_paragraph()
-        p1.text = title
-        p1.font.name = FONT_HEADING
-        p1.font.size = Pt(16)
-        p1.font.bold = True
-        p1.font.color.rgb = LIGHT_TEXT_PRIMARY
-        p1.space_after = Pt(4)
-        p2 = tf.add_paragraph()
-        p2.text = desc
-        p2.font.name = FONT_BODY
-        p2.font.size = Pt(11)
-        p2.font.color.rgb = LIGHT_TEXT_MUTED
-    add_zone_d_proof_bar(s01, 1, TOTAL_SLIDES, ["ADR-0004", "ADR-0008"], ["PR 461", "ADR 67", "테스트 약 4,400"])
-    set_speaker_notes(s01, """[여는 질문]
-"보고서 두 권을 놓고 '무엇이 바뀌었는지' 찾는 데 얼마나 걸릴까요?"
+    for n, s in enumerate(slides, 1):
+        out.append(f"| {n:02d} | {s['title']} | {s['heading']} | {s['term']} = {s['def']} |")
+    out += ["", "## 장별 대본", ""]
+    for n, s in enumerate(slides, 1):
+        out += [f"### {n:02d} · {s['title']}", f"**{s['heading']}**", "", s["notes"], ""]
+    with open(OUT_SCRIPT, "w", encoding="utf-8") as f:
+        f.write("\n".join(out).rstrip() + "\n")
+
+
+def main():
+    slides = read_page()
+    build_pptx(slides)
+    build_script(slides)
+    print(f"{len(slides)}장: {os.path.relpath(OUT_PPTX, ROOT)}, {os.path.relpath(OUT_SCRIPT, ROOT)}")
 
-[쉬운 설명]
-"DART Insight는 같은 회사의 정기보고서 두 개를 비교해, 바뀐 숫자와 문장을 원문 위치와 함께 보여 주는 서비스입니다. 투자를 추천하지 않고, 확인을 돕습니다."
-
-[화면 가리키기]
-"네 숫자를 가리킵니다. 약 4주 동안 PR 461개, 설계 기록(ADR) 67개, 공개 API 약 90개, 자동 테스트 약 4,400개."
-
-[마무리 한마디]
-"왜 만들었는지, 무엇이 다른지, 어떻게 만들었는지 순서로 보여 드리겠습니다."
-""")
-
-    # =========================================================================
-    # PART 1-B. 도메인 통역: 클라이언트를 위한 1초 공시 용어 사전
-    # =========================================================================
-    # SLIDE 03: 전자공시란 무엇인가? 엔비디아 젠슨 황 사임 공시 & DART 팩트 쇼케이스
-    s02 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s02, is_dark=False)
-    add_zone_a_header(s02, "00 · 도메인 통역 가이드", "전자공시(DART)란? 기업의 공식 종합 생활기록부")
-    add_zone_b_glossary(s02, "전자공시(DART)", "기업이 법에 따라 실적과 사건을 금융감독원에 투명하게 공개하는 공식 생활기록부")
-
-    # Zone C: 2열 대칭 쇼케이스 (좌: 엔비디아 젠슨 황 사임 SEC Form 8-K vs 우: 대한민국 DART 100% 팩트)
-    jensen_avatar_path = os.path.join(project_root, "frontend", "public", "easter", "jensen-huang-avatar.png")
-    nvidia_logo_path = os.path.join(project_root, "frontend", "public", "easter", "nvidia-logo.png")
-    dart_img_path = os.path.join(project_root, "frontend", "public", "easter", "dart-cover.png")
-
-    # [좌측 카드]: 글로벌 실전 공시 사례 (엔비디아 젠슨 황 사임 Form 8-K)
-    draw_card(s02, Inches(0.8), Inches(1.65), Inches(5.65), Inches(3.6), LIGHT_CARD, LIGHT_BORDER, 1.5)
-    
-    # 상단 뱃지
-    tb_badge = s02.shapes.add_textbox(Inches(1.0), Inches(1.72), Inches(5.25), Inches(0.35))
-    tf_badge = tb_badge.text_frame; tf_badge.word_wrap = True
-    tf_badge.margin_left = tf_badge.margin_top = tf_badge.margin_right = tf_badge.margin_bottom = 0
-    p_b = tf_badge.paragraphs[0]; p_b.text = "🔥 글로벌 실전 사례 · 2026.11.12 공식 접수 (SEC Form 8-K)"
-    p_b.font.name = FONT_HEADING; p_b.font.size = Pt(10.5); p_b.font.bold = True; p_b.font.color.rgb = RGBColor(21, 128, 61)
-
-    # 젠슨 황 아바타 & 엔비디아 로고 헤더
-    if os.path.exists(jensen_avatar_path):
-        s02.shapes.add_picture(jensen_avatar_path, Inches(1.0), Inches(2.08), Inches(0.8), Inches(0.8))
-    if os.path.exists(nvidia_logo_path):
-        s02.shapes.add_picture(nvidia_logo_path, Inches(1.95), Inches(2.1), Inches(1.3), Inches(0.25))
-
-    tb_nv_title = s02.shapes.add_textbox(Inches(1.95), Inches(2.38), Inches(4.3), Inches(0.55))
-    tf_nv = tb_nv_title.text_frame; tf_nv.word_wrap = True
-    tf_nv.margin_left = tf_nv.margin_top = tf_nv.margin_right = tf_nv.margin_bottom = 0
-    p_nv1 = tf_nv.paragraphs[0]; p_nv1.text = "젠슨 황 CEO 사임 수시공시 (Item 5.02)"
-    p_nv1.font.name = FONT_HEADING; p_nv1.font.size = Pt(13); p_nv1.font.bold = True; p_nv1.font.color.rgb = LIGHT_TEXT_PRIMARY
-
-    # 공시 원문 발췌 다크 박스
-    draw_card(s02, Inches(1.0), Inches(2.95), Inches(5.25), Inches(1.15), RGBColor(15, 23, 42), RGBColor(118, 185, 0), 1.0)
-    tb_sec = s02.shapes.add_textbox(Inches(1.15), Inches(3.02), Inches(4.95), Inches(1.0))
-    tf_sec = tb_sec.text_frame; tf_sec.word_wrap = True
-    tf_sec.margin_left = tf_sec.margin_top = tf_sec.margin_right = tf_sec.margin_bottom = 0
-    p_s1 = tf_sec.paragraphs[0]; p_s1.text = "[SEC Form 8-K | Item 5.02 Departure of CEO / NVIDIA CORP]"
-    p_s1.font.name = FONT_BODY; p_s1.font.size = Pt(9.5); p_s1.font.bold = True; p_s1.font.color.rgb = RGBColor(118, 185, 0)
-    p_s1.space_after = Pt(2)
-    p_s2 = tf_sec.add_paragraph()
-    p_s2.text = '"The Board accepted the resignation of Jen-Hsun (Jensen) Huang as President, CEO, and Director, effective immediately." (CFO Colette Kress interim CEO)'
-    p_s2.font.name = FONT_BODY; p_s2.font.size = Pt(9); p_s2.font.color.rgb = RGBColor(241, 245, 249)
-
-    # 하단 공시 원문 한글 번역 박스
-    tb_sec_pt = s02.shapes.add_textbox(Inches(1.0), Inches(4.18), Inches(5.25), Inches(0.95))
-    tf_sec_pt = tb_sec_pt.text_frame; tf_sec_pt.word_wrap = True
-    tf_sec_pt.margin_left = tf_sec_pt.margin_top = tf_sec_pt.margin_right = tf_sec_pt.margin_bottom = 0
-    p_pt0 = tf_sec_pt.paragraphs[0]
-    p_pt0.text = "🇰🇷 공시 원문 한글 번역:"
-    p_pt0.font.name = FONT_HEADING; p_pt0.font.size = Pt(9.5); p_pt0.font.bold = True; p_pt0.font.color.rgb = LIGHT_TEXT_PRIMARY
-    p_pt0.space_after = Pt(2)
-    p_pt1 = tf_sec_pt.add_paragraph()
-    p_pt1.text = "• 사임 수락: \"이사회는 젠슨 황의 사장, CEO 및 이사직 사임을 즉시 수락함\""
-    p_pt1.font.name = FONT_BODY; p_pt1.font.size = Pt(9); p_pt1.font.color.rgb = LIGHT_TEXT_BODY
-    p_pt1.space_after = Pt(2)
-    p_pt2 = tf_sec_pt.add_paragraph()
-    p_pt2.text = "• 임시 CEO: \"콜레트 크레스 CFO를 임시 최고경영자(Interim CEO)로 임명함\""
-    p_pt2.font.name = FONT_BODY; p_pt2.font.size = Pt(9); p_pt2.font.color.rgb = LIGHT_TEXT_BODY
-    p_pt2.space_after = Pt(2)
-    p_pt3 = tf_sec_pt.add_paragraph()
-    p_pt3.text = "✓ 법적 구속력을 지닌 공식 공시 단 1장이 전 세계 시장을 결정"
-    p_pt3.font.name = FONT_BODY; p_pt3.font.size = Pt(9); p_pt3.font.bold = True; p_pt3.font.color.rgb = RGBColor(21, 128, 61)
-
-    # [우측 카드]: 대한민국 전자공시 DART (금융감독원 100% 공인 팩트)
-    draw_card(s02, Inches(6.8), Inches(1.65), Inches(5.65), Inches(3.6), LIGHT_POSITIVE_TINT, LIGHT_POSITIVE, 2.0)
-    
-    # 상단 뱃지
-    tb_r_badge = s02.shapes.add_textbox(Inches(7.05), Inches(1.72), Inches(5.15), Inches(0.35))
-    tf_r_badge = tb_r_badge.text_frame; tf_r_badge.word_wrap = True
-    tf_r_badge.margin_left = tf_r_badge.margin_top = tf_r_badge.margin_right = tf_r_badge.margin_bottom = 0
-    p_rb = tf_r_badge.paragraphs[0]; p_rb.text = "🏛️ 대한민국 국가 공인 시스템 · DART 주요사항보고서"
-    p_rb.font.name = FONT_HEADING; p_rb.font.size = Pt(10.5); p_rb.font.bold = True; p_rb.font.color.rgb = LIGHT_POSITIVE
-
-    # DART 공식 커버 이미지
-    if os.path.exists(dart_img_path):
-        draw_card(s02, Inches(7.05), Inches(2.1), Inches(5.15), Inches(1.85), LIGHT_CARD, LIGHT_BORDER, 1.0)
-        s02.shapes.add_picture(dart_img_path, Inches(7.15), Inches(2.15), Inches(4.95), Inches(1.75))
-
-    tb_r = s02.shapes.add_textbox(Inches(7.05), Inches(4.05), Inches(5.15), Inches(1.1))
-    tf_r = tb_r.text_frame; tf_r.word_wrap = True
-    tf_r.margin_left = tf_r.margin_top = tf_r.margin_right = tf_r.margin_bottom = 0
-    p = tf_r.paragraphs[0]
-    p.text = "🏛️ 전자공시 DART (금융감독원)"
-    p.font.name = FONT_HEADING; p.font.size = Pt(14); p.font.bold = True; p.font.color.rgb = LIGHT_POSITIVE
-    p.space_after = Pt(2)
-    p_sub = tf_r.add_paragraph()
-    p_sub.text = "금융감독원이 운영하는 공식 공시 시스템"
-    p_sub.font.name = FONT_BODY; p_sub.font.size = Pt(11); p_sub.font.bold = True; p_sub.font.color.rgb = LIGHT_TEXT_PRIMARY
-    p_sub.space_after = Pt(4)
-
-    p_r_tag = tf_r.add_paragraph()
-    p_r_tag.text = "✓ 우리나라 상장사의 공식 공시가 모두 올라오는 곳"
-    p_r_tag.font.name = FONT_BODY; p_r_tag.font.size = Pt(9.5); p_r_tag.font.bold = True; p_r_tag.font.color.rgb = LIGHT_POSITIVE
-
-    # 하단 3대 시스템 원칙 배지 바
-    draw_card(s02, Inches(0.8), Inches(5.4), Inches(11.65), Inches(1.15), LIGHT_CARD, LIGHT_PURPLE, 1.2)
-    tb_b = s02.shapes.add_textbox(Inches(1.0), Inches(5.5), Inches(11.25), Inches(0.95))
-    tf_b = tb_b.text_frame; tf_b.word_wrap = True
-    pb = tf_b.paragraphs[0]
-    pb.text = "🛡️ DART Insight가 공시를 다루는 3대 철칙"
-    pb.font.name = FONT_HEADING; pb.font.size = Pt(11); pb.font.bold = True; pb.font.color.rgb = LIGHT_PURPLE
-    pb.space_after = Pt(3)
-    pb2 = tf_b.add_paragraph()
-    pb2.text = "1️⃣ OpenDART 공식 API로 수집    2️⃣ 요약 문장마다 원문 위치(접수번호·문단) 연결    3️⃣ 증감 수치는 코드가 계산"
-    pb2.font.name = FONT_BODY; pb2.font.size = Pt(10.5); pb2.font.bold = True; pb2.font.color.rgb = LIGHT_TEXT_PRIMARY
-
-    add_zone_d_proof_bar(s02, 2, TOTAL_SLIDES, metrics_list=["글로벌 SEC Form 8-K 실전 확정", "금융감독원 DART", "OpenDART API 실시간 직결"])
-    set_speaker_notes(s02, """[여는 질문]
-"11월 11일, 엔비디아 젠슨 황이 CEO에서 물러났습니다. 이 사실이 처음 '공식'으로 확정된 곳은 어디였을까요?"
-
-[쉬운 설명]
-"바로 공시입니다. 회사가 법에 따라 공식적으로 알리는 문서이고, 우리나라에서는 금융감독원 DART에 올라옵니다. 회사의 생활기록부라고 생각하시면 됩니다."
-
-[화면 가리키기]
-"왼쪽의 8-K 원문 한 문장과 한글 번역, 오른쪽의 DART를 차례로 가리킵니다."
-
-[마무리 한마디]
-"뉴스가 아니라 원문. 그래서 저희는 공시 원문을 출발점으로 삼았습니다."
-""")
-
-    # =========================================================================
-    # PART 2. 추진 배경 & 사용자 여정 6단계 (Why & Userflow Stepper)
-    # =========================================================================
-    # SLIDE 03: 추진 배경: 65만 자 공시의 압박과 LLM 환각
-    s03 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s03, is_dark=False)
-    add_zone_a_header(s03, "02 · 추진 배경 및 문제의식", "최대 65만 자의 압박, 그리고 믿기 어려운 AI 요약")
-    add_zone_b_glossary(s03, "MD&A", "경영진이 숫자의 원인을 해설해 놓은 공식 성적표 해설서")
-
-    pinocchio_img_path = os.path.join(project_root, "frontend", "public", "easter", "pinocchio-hallucination.jpg")
-
-    # Zone C: 1:1 Split (좌: 65만 자 수작업 대조 vs 우: AI 환각 피노키오)
-    # [좌측 카드]: 한계 1 - 65만 자 수작업 대조
-    draw_card(s03, Inches(0.8), Inches(1.65), Inches(5.65), Inches(4.85), LIGHT_DANGER_TINT, LIGHT_DANGER, 1.5)
-    tb_l = s03.shapes.add_textbox(Inches(1.1), Inches(1.85), Inches(5.05), Inches(4.4))
-    tf_l = tb_l.text_frame
-    tf_l.word_wrap = True
-
-    p_l0 = tf_l.paragraphs[0]
-    p_l0.text = "❌ 한계 ① 너무 길다 (수작업의 고통)"
-    p_l0.font.name = FONT_HEADING; p_l0.font.size = Pt(15); p_l0.font.bold = True; p_l0.font.color.rgb = LIGHT_DANGER
-    p_l0.space_after = Pt(20)
-
-    p_l1 = tf_l.add_paragraph(); p_l1.alignment = PP_ALIGN.CENTER
-    p_l1.text = "📕 📗 📘 📙"
-    p_l1.font.size = Pt(28); p_l1.space_after = Pt(6)
-
-    p_l2 = tf_l.add_paragraph(); p_l2.alignment = PP_ALIGN.CENTER
-    p_l2.text = "650,000자"
-    p_l2.font.name = FONT_HEADING; p_l2.font.size = Pt(40); p_l2.font.bold = True; p_l2.font.color.rgb = LIGHT_DANGER
-    p_l2.space_after = Pt(4)
-
-    p_l3 = tf_l.add_paragraph(); p_l3.alignment = PP_ALIGN.CENTER
-    p_l3.text = "보고서 한 권 분량 (소설책 4권)"
-    p_l3.font.name = FONT_BODY; p_l3.font.size = Pt(13); p_l3.font.bold = True; p_l3.font.color.rgb = LIGHT_TEXT_PRIMARY
-    p_l3.space_after = Pt(18)
-
-    p_l4 = tf_l.add_paragraph(); p_l4.alignment = PP_ALIGN.CENTER
-    p_l4.text = "작년과 올해 두 권을 나란히 띄우고 사람이 일일이 비교\n집중력 저하로 주석 속 핵심 수치 변경 누락 위험"
-    p_l4.font.name = FONT_BODY; p_l4.font.size = Pt(11.5); p_l4.font.color.rgb = LIGHT_TEXT_MUTED
-
-    # [우측 카드]: 한계 2 - AI 환각 (피노키오)
-    draw_card(s03, Inches(6.88), Inches(1.65), Inches(5.65), Inches(4.85), LIGHT_ATTENTION_TINT, LIGHT_ATTENTION, 1.5)
-    tb_r = s03.shapes.add_textbox(Inches(7.18), Inches(1.85), Inches(5.05), Inches(0.45))
-    tf_r = tb_r.text_frame; tf_r.word_wrap = True
-    p_r0 = tf_r.paragraphs[0]
-    p_r0.text = "⚠️ 한계 ② 믿기 어렵다 (AI 환각의 위험)"
-    p_r0.font.name = FONT_HEADING; p_r0.font.size = Pt(15); p_r0.font.bold = True; p_r0.font.color.rgb = LIGHT_ATTENTION
-
-    # 피노키오 이미지 삽입 (카드 중앙 정렬)
-    if os.path.exists(pinocchio_img_path):
-        s03.shapes.add_picture(pinocchio_img_path, Inches(8.3), Inches(2.4), Inches(2.8), Inches(2.19))
-
-    tb_r_desc = s03.shapes.add_textbox(Inches(7.18), Inches(4.75), Inches(5.05), Inches(1.5))
-    tf_r_desc = tb_r_desc.text_frame; tf_r_desc.word_wrap = True
-
-    p_r1 = tf_r_desc.paragraphs[0]; p_r1.alignment = PP_ALIGN.CENTER
-    p_r1.text = "AI 환각 (Hallucination)"
-    p_r1.font.name = FONT_HEADING; p_r1.font.size = Pt(15); p_r1.font.bold = True; p_r1.font.color.rgb = LIGHT_ATTENTION
-    p_r1.space_after = Pt(4)
-
-    p_r2 = tf_r_desc.add_paragraph(); p_r2.alignment = PP_ALIGN.CENTER
-    p_r2.text = "피노키오의 긴 코처럼 그럴듯하지만 출처가 없는 거짓말\n영업이익 증감 날조 및 근거 없는 가치판단 위험"
-    p_r2.font.name = FONT_BODY; p_r2.font.size = Pt(11.5); p_r2.font.color.rgb = LIGHT_TEXT_MUTED
-
-    add_zone_d_proof_bar(s03, 3, TOTAL_SLIDES, ["ADR 67개", "신뢰 기반 AI", "100% 원문 위치"], ["보고서 한 권 최대 65만 자", "두 권을 사람이 비교", "숫자는 코드가 계산"])
-    set_speaker_notes(s03, """[여는 질문]
-"사업보고서 한 권은 몇 글자일까요? 최대 65만 자, 소설책 네 권입니다."
-
-[쉬운 설명]
-"작년 것과 올해 것을 비교하려면 사람이 두 권을 넘겨 가며 찾아야 합니다. 오른쪽의 피노키오를 보십시오. AI에게 요약을 맡기면 3초 만에 그럴듯한 답변을 내놓지만, 코가 길어지는 피노키오처럼 없는 숫자를 날조하고 출처를 밝히지 못합니다. 금융에서 거짓말은 치명적입니다."
-
-[화면 가리키기]
-"왼쪽의 65만 자 수작업 대조의 한계와 오른쪽의 피노키오 AI 환각을 차례로 가리킵니다."
-
-[마무리 한마디]
-"그래서 DART Insight는 두 가지 철칙을 세웠습니다. 숫자는 100% 코드가 계산하고, 문장은 반드시 공시 원문 위치를 직결합니다!\"""")
-
-    # Userflow Stepper 6 Steps (Slides 04 ~ 09)
-    stepper_names = ["01 탐색", "02 개요", "03 선택", "04 분석", "05 결과", "06 확장"]
-    stepper_details = [
-        ("회사 검색 및 시즌 Top 10 목록 진입",
-         "🔍 [01 탐색] 기능 동작 상세",
-         [("초성·종목코드 즉시 검색", "삼성전자, 005930, 'ㅅㅅㅇㅈ' 입력 시 인메모리 트라이 색인으로 즉시 자동완성"),
-          ("시총 상위 100 대표 기업", "공공데이터포털 연동으로 KOSPI/KOSDAQ 주요 기업 원클릭 진입 지원"),
-          ("시즌 변화 Top 10 랭킹", "정기공시 시즌마다 전년 대비 매출액·영업이익이 급변한 상위 10개사 실시간 집계"),
-          ("접수번호 캐시 연동", "한 번 받은 기업 정보는 DB에 저장해 다시 받지 않음")],
-         "ADR-0024 · 0046"),
-        ("기업 개요와 다기간 재무·수시공시 타임라인",
-         "📊 [02 개요] 기능 동작 상세",
-         [("다기간 재무 & 비율 추이", "최근 5개년 매출·영업이익·부채비율 차트 및 체크포인트 실시간 계산"),
-          ("수시공시 타임라인 1년", "소송, 유상증자, 전환사채(CB), 최대주주 변경 등 주요 사건을 날짜순 시각화"),
-          ("AI 기업 3줄 브리핑", "공시 사실에 기반한 3문장 객관적 요약 (매수/매도 권유 원천 배제)"),
-          ("전년도 전망 대비 이행 대조", "작년 사업보고서 공약과 금년도 실제 집행 실적을 1:1 대조 준비")],
-         "FS-53 · 54 · ADR-0050"),
-        ("비교할 보고서 두 개와 비교 가능 조건 검증",
-         "⚖️ [03 선택] 비교 가능 조건 검증 표",
-         [("보고서 2권 선택 (당기 vs 전기)", "예: 삼성전자 2024년 3분기보고서 vs 2023년 3분기보고서 선택"),
-          ("기업 고유번호 일치 확인 (✓)", "동일 기업의 보고서인지 corp_code 기준 기계적 전수 검증"),
-          ("기간 순서 유효성 확인 (✓)", "당기 보고서가 전기 보고서보다 앞선 기간인지 선후 관계 검증"),
-          ("회계 기준 & 통화 일치 (✓)", "연결/별도 재무제표 기준 및 원화(KRW) 통화 단위 일치 확인")],
-         "ADR-0004 · FS-55"),
-        ("비동기 분석 작업 번호 발급 및 캐시 재사용",
-         "⚙️ [04 분석] 비동기 작업 큐 & 캐시 정책",
-         [("작업 번호(Job ID) 발급", "요청 즉시 UUID 발급 후 화면은 폴링 상태로 전환하여 타임아웃 방지"),
-          ("단방향 FSM 상태 제어", "PENDING → RUNNING → COMPLETED/FAILED 전이표 엄격 준수"),
-          ("동일 보고서 쌍 영구 캐시", "이미 분석한 보고서 쌍은 저장된 결과를 바로 재사용"),
-          ("새 분석은 작업으로 처리", "원문 구조화 + 근거 문단 검색 + 코드 증감 계산 (요약만 평균 11.6초)")],
-         "ADR-0004 · 0024 · 0042"),
-        ("요약·재무·문장 변화와 W-03 원문 뷰어 점프",
-         "🎯 [05 결과] 원문 위치로 바로 이동",
-         [("재무제표 증감 계산", "증감액·증감률 및 흑자전환 상태를 코드가 오차 없이 산출"),
-          ("문장 변화 5대 분류", "추가, 삭제, 수정, 숫자만 변경, 위치 이동을 색상과 태그로 구분"),
-          ("#접수번호#B042 원문 딥링크", "모든 문장에 고유 블록 ID 부여, 클릭 시 원문 해당 위치 형광펜 점프"),
-          ("AI 요약 설명 등급화", "STATED(직접원인) · RELATED(관련언급) · NONE 3등급 투명 노출")],
-         "ADR-0008 · 0015 · 0036"),
-        ("우측 AI 에이전트 채팅과 내 판단 노트 담기",
-         "💬 [06 확장] 에이전트 채팅 & 멀티 비교",
-         [("LangGraph 기반 에이전트 채팅", "보고서 맥락을 유지한 상태에서 심층 질의응답 (24개 백엔드 Tool 실행)"),
-          ("내 판단 노트 담기", "검증된 원문 근거와 수치를 원클릭으로 개인 리서치 노트에 보관"),
-          ("최대 4개사 멀티 비교", "여러 경쟁 기업의 재무 수치를 방사형 그래프와 표로 한눈에 대조"),
-          ("외부 AI MCP 연동", "검증된 공시 분석 데이터를 Claude 등 외부 AI 클라이언트에 안전하게 제공")],
-         "ADR-0044 · 0045 · 0052")
-    ]
-
-    for step_idx, (headline, card_title, card_items, adr_str) in enumerate(stepper_details):
-        slide_no = 4 + step_idx
-        sn = prs.slides.add_slide(blank_layout)
-        set_slide_background(sn, is_dark=False)
-        add_zone_a_header(sn, f"02 · 사용자 여정 {step_idx+1}/6", headline)
-        add_zone_b_glossary(sn, "연결재무제표" if step_idx < 3 else ("원문 구조화" if step_idx == 4 else "단방향 FSM"),
-                           "자회사 실적까지 합친 성적표" if step_idx < 3 else ("공시 원문을 목차·문단·표로 나눠 위치를 매기는 일" if step_idx == 4 else "역주행 불가능 일방통행"))
-        
-        # Zone C: Stepper Bar + Result Card
-        draw_segmented_bar(sn, Inches(0.8), Inches(1.6), Inches(11.733), Inches(0.42), stepper_names, step_idx, is_dark=False)
-        
-        # Result Card Container
-        draw_card(sn, Inches(0.8), Inches(2.18), Inches(11.733), Inches(4.35), LIGHT_CARD, LIGHT_BORDER, 1.5)
-        
-        # If Step 5 (Index 4), Draw Special W-03 Jump Arrow!
-        if step_idx == 4:
-            # Left Sub-card: Summary
-            draw_card(sn, Inches(1.1), Inches(2.35), Inches(4.6), Inches(4.0), LIGHT_PURPLE_TINT, LIGHT_PURPLE, 1.2)
-            tb_s = sn.shapes.add_textbox(Inches(1.3), Inches(2.5), Inches(4.2), Inches(3.7))
-            tf_s = tb_s.text_frame; tf_s.word_wrap = True
-            p = tf_s.paragraphs[0]; p.text = "📋 W-03 AI 검증 요약문"; p.font.size = Pt(16); p.font.bold = True; p.font.color.rgb = LIGHT_PURPLE; p.space_after = Pt(8)
-            p1 = tf_s.add_paragraph(); p1.text = "매출액은 66조 1,930억 원으로 전년 대비 12.4% 증가하였으며, 이는 HBM 메모리 공급 확대에 기인합니다."
-            p1.font.size = Pt(12); p1.font.color.rgb = LIGHT_TEXT_PRIMARY; p1.space_after = Pt(14)
-            p2 = tf_s.add_paragraph(); p2.text = "🏷️ 클릭 근거: [#20250319000665#B042]"
-            p2.font.size = Pt(13); p2.font.bold = True; p2.font.color.rgb = LIGHT_PURPLE
-            
-            # Center Prominent Purple Arrow
-            draw_horizontal_arrow(sn, Inches(5.95), Inches(3.8), Inches(1.4), Inches(0.7), "#접수번호\n점프 ➔", LIGHT_PURPLE)
-            
-            # Right Sub-card: DART Original Viewer
-            draw_card(sn, Inches(7.6), Inches(2.35), Inches(4.6), Inches(4.0), LIGHT_CARD, LIGHT_BORDER_STR, 1.2)
-            tb_v = sn.shapes.add_textbox(Inches(7.8), Inches(2.5), Inches(4.2), Inches(3.7))
-            tf_v = tb_v.text_frame; tf_v.word_wrap = True
-            p = tf_v.paragraphs[0]; p.text = "🔍 DART 공시 원문 뷰어"; p.font.size = Pt(16); p.font.bold = True; p.font.color.rgb = LIGHT_TEXT_PRIMARY; p.space_after = Pt(8)
-            p1 = tf_v.add_paragraph(); p1.text = "II. 사업의 내용 > 2. 주요 제품 및 서비스"
-            p1.font.size = Pt(11); p1.font.color.rgb = LIGHT_TEXT_MUTED; p1.space_after = Pt(10)
-            p2 = tf_v.add_paragraph(); p2.text = "당사 매출액은 66조 1,930억원으로, 글로벌 AI 수요 급증에 따른 고성능 메모리 공급이 주요하게 작용하였습니다."
-            p2.font.size = Pt(12); p2.font.bold = True; p2.font.color.rgb = LIGHT_POSITIVE
-            p3 = tf_v.add_paragraph(); p3.text = "✨ [원문 뷰어 형광펜 하이라이트 위치로 즉시 스크롤 완료]"
-            p3.font.size = Pt(11.5); p3.font.bold = True; p3.font.color.rgb = LIGHT_PURPLE
-        else:
-            tb_main = sn.shapes.add_textbox(Inches(1.2), Inches(2.35), Inches(10.9), Inches(4.0))
-            tf_m = tb_main.text_frame; tf_m.word_wrap = True
-            p = tf_m.paragraphs[0]; p.text = card_title; p.font.size = Pt(17); p.font.bold = True; p.font.color.rgb = LIGHT_PURPLE; p.space_after = Pt(12)
-            for h, d in card_items:
-                p1 = tf_m.add_paragraph(); p1.text = f"• {h}"; p1.font.size = Pt(13); p1.font.bold = True; p1.font.color.rgb = LIGHT_TEXT_PRIMARY
-                p2 = tf_m.add_paragraph(); p2.text = f"   {d}"; p2.font.size = Pt(11.5); p2.font.color.rgb = LIGHT_TEXT_MUTED; p2.space_after = Pt(8)
-
-        add_zone_d_proof_bar(sn, slide_no, TOTAL_SLIDES, adr_str.split(" · "), ["단계별 자동화", "작업 번호로 진행 확인", "사용자 동선 6단계"])
-        set_speaker_notes(sn, f"""[여는 질문]
-"사용자 여정 {step_idx+1}단계 '{stepper_names[step_idx]}' 버튼을 누르면 화면에 무엇이 나타날까요?"
-
-[쉬운 설명]
-"우측 상단 돋보기를 보시죠. 이 단계는 사용자가 복잡한 공시 정보를 직관적으로 제어할 수 있도록 돕는 핵심 관문입니다."
-
-[화면 가리키기]
-"상단 세그먼트 버튼의 활성화 표시와 중앙 결과 카드를 보십시오. {headline}이 실시간으로 구동됩니다."
-
-[마무리 한마디]
-"추측할 필요 없이 클릭 한 번으로 모든 상태를 투명하게 확인하는 엔터프라이즈 UX입니다!\"""")
-
-    # =========================================================================
-    # PART 3. 핵심 가치 제안 & Before vs After 세그먼트 (Value)
-    # =========================================================================
-    bna_views = [
-        ("전체 보기", "사람이 넘겨 보던 대조를 자동 비교와 원문 위치로",
-         [("소요 시간", "보고서 두 권을 사람이 직접 대조"),
-          ("대조 범위", "물리적 한계로 주요 재무 몇 줄만 확인하고 본문 포기"),
-          ("환각 위험", "시중 LLM이 없는 숫자를 계산하거나 임의로 지어냄"),
-          ("출처 확인", "어느 문단에서 나온 설명인지 원문 검색 불가")],
-         [("소요 시간", "두 보고서를 자동으로 대조·구조화 (요약만 평균 11.6초)"),
-          ("대조 범위", "5대 재무제표 + 본문 문단 + 표 셀 + 수시공시 전수 분석"),
-          ("숫자는 코드", "증감은 코드가 계산하고, AI는 근거 있는 설명만 씀"),
-          ("원문 위치", "모든 문장에 접수번호·문단 위치, 누르면 원문으로")]),
-        ("속도 중심", "사람의 수작업 대조를 자동 비교로",
-         [("수작업 대조", "30~65만 자 본문을 일일이 스크롤하며 수작업 대조"),
-          ("자료 준비", "DART 전자공시에서 압축본을 내려받아 표를 엑셀에 손으로 재입력"),
-          ("병목 현상", "분기 마감 시 수백 개 기업의 변화를 제때 파악하지 못해 의사결정 지연")],
-         [("자동 산출", "재무제표 + 본문 + 표 차이를 한 번에 산출"),
-          ("단일 창구", "OpenDART 공식 API + 접수번호로 저장해 다시 받지 않음"),
-          ("실시간 큐", "비동기 작업 큐로 시즌 변화 Top 10까지 실시간 파악")]),
-        ("신뢰 중심", "숫자는 코드가, 문장은 원문 위치와 함께",
-         [("수치 오류", "계산을 LLM에 맡겨 잘못된 증감액과 거짓 백분율이 빈번하게 발생"),
-          ("허위 근거", "본문에 전혀 없는 가짜 출처 문장을 지어내 금융 리서치 신뢰도 훼손"),
-          ("가치 판단", "'호재', '저평가' 등 규제에 어긋나는 주관적 매수/매도 권유 노출")],
-         [("수치는 코드", "코드가 증감을 계산하고, AI는 계산된 수치로 설명만 작성"),
-          ("원문 위치", "모든 문장에 원문 위치, 검증 실패 시 최대 2회 다시 생성"),
-          ("규제 준수", "가치판단 어휘 자동 검사 및 코드 기준표 기반 신호(긍정/주의/보류)만 노출")])
-    ]
-
-    for bna_idx, (bna_label, bna_headline, before_items, after_items) in enumerate(bna_views):
-        slide_no = 10 + bna_idx
-        sb = prs.slides.add_slide(blank_layout)
-        set_slide_background(sb, is_dark=False)
-        add_zone_a_header(sb, f"03 · 핵심 가치 제안 [{bna_label}]", bna_headline)
-        add_zone_b_glossary(sb, "할루시네이션", "AI가 그럴듯하게 숫자를 지어내는 거짓말")
-        
-        # Segment Bar
-        draw_segmented_bar(sb, Inches(0.8), Inches(1.6), Inches(11.733), Inches(0.42), ["전체 보기", "속도 중심", "신뢰 중심"], bna_idx, is_dark=False)
-        
-        # Left (Before)
-        draw_card(sb, Inches(0.8), Inches(2.18), Inches(5.65), Inches(4.35), LIGHT_DANGER_TINT, LIGHT_DANGER, 1.5)
-        tb_b = sb.shapes.add_textbox(Inches(1.1), Inches(2.35), Inches(5.05), Inches(4.0))
-        tf_b = tb_b.text_frame; tf_b.word_wrap = True
-        p = tf_b.paragraphs[0]; p.text = "❌ 기존 수작업 & 일반 LLM 방식"; p.font.size = Pt(16); p.font.bold = True; p.font.color.rgb = LIGHT_DANGER; p.space_after = Pt(10)
-        for tag, txt in before_items:
-            p1 = tf_b.add_paragraph(); p1.text = f"[{tag}]"; p1.font.bold = True; p1.font.size = Pt(12.5); p1.font.color.rgb = LIGHT_DANGER
-            p2 = tf_b.add_paragraph(); p2.text = txt; p2.font.size = Pt(11); p2.font.color.rgb = LIGHT_TEXT_PRIMARY; p2.space_after = Pt(6)
-
-        # Right (After)
-        draw_card(sb, Inches(6.88), Inches(2.18), Inches(5.65), Inches(4.35), LIGHT_POSITIVE_TINT, LIGHT_POSITIVE, 1.5)
-        tb_a = sb.shapes.add_textbox(Inches(7.18), Inches(2.35), Inches(5.05), Inches(4.0))
-        tf_a = tb_a.text_frame; tf_a.word_wrap = True
-        p = tf_a.paragraphs[0]; p.text = "✨ DART Insight 엔터프라이즈 솔루션"; p.font.size = Pt(16); p.font.bold = True; p.font.color.rgb = LIGHT_POSITIVE; p.space_after = Pt(10)
-        for tag, txt in after_items:
-            p1 = tf_a.add_paragraph(); p1.text = f"[{tag}]"; p1.font.bold = True; p1.font.size = Pt(12.5); p1.font.color.rgb = LIGHT_POSITIVE
-            p2 = tf_a.add_paragraph(); p2.text = txt; p2.font.size = Pt(11); p2.font.color.rgb = LIGHT_TEXT_PRIMARY; p2.space_after = Pt(6)
-
-        add_zone_d_proof_bar(sb, slide_no, TOTAL_SLIDES, ["ADR-0004", "ADR-0008", "ADR-0015"], ["자동 비교", "숫자는 코드가 계산", "문장마다 원문 위치"])
-        set_speaker_notes(sb, f"""[여는 질문]
-"핵심 가치 탭에서 '{bna_label}' 버튼을 눌렀을 때, 업무 효율은 얼마나 급상승할까요?"
-
-[쉬운 설명]
-"우측 상단 돋보기를 보시죠. '할루시네이션'이란 금융에서 절대로 허용될 수 없는 AI의 거짓말입니다."
-
-[화면 가리키기]
-"화면 좌측의 붉은색 Before 카드와 우측 녹색 After 카드를 직접 비교해 보십시오. {bna_headline}의 변화가 확연합니다."
-
-[마무리 한마디]
-"사람이 넘겨 보던 대조를 자동 비교로 바꾸고, 문장마다 원문 위치를 붙였습니다!\"""")
-
-    # =========================================================================
-    # PART 4. 공시 분석 & 분석 방법과 기준 (Activity & Methods)
-    # =========================================================================
-    # SLIDE 17: 공시 분석 (삼성전자 실례)
-    s17 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s17, is_dark=False)
-    add_zone_a_header(s17, "04 · 공시 분석 실전", "두 정기보고서 사이 활동을 타임라인과 영향으로 요약")
-    add_zone_b_glossary(s17, "정기 vs 수시", "분기별 정기 건강검진표 vs 갑자기 터진 응급 속보")
-    # Zone C: Timeline + Event Card
-    draw_card(s17, Inches(0.8), Inches(1.65), Inches(4.5), Inches(4.85), LIGHT_CARD, LIGHT_BORDER, 1.5)
-    tb = s17.shapes.add_textbox(Inches(1.0), Inches(1.85), Inches(4.1), Inches(4.3))
-    tf = tb.text_frame; tf.word_wrap = True
-    p = tf.paragraphs[0]; p.text = "📅 삼성전자 수시공시 타임라인 (24건)"; p.font.size = Pt(15); p.font.bold = True; p.font.color.rgb = LIGHT_PURPLE; p.space_after = Pt(10)
-    events = [
-        ("2024.11.15", "자기주식 취득 결정 (10조 원)"),
-        ("2024.10.31", "3분기 연결 실적 공시"),
-        ("2024.07.11", "신규 시설투자 결정 (기흥 R&D)"),
-        ("2024.04.30", "1분기 배당금 지급 결정"),
-        ("2024.03.20", "정기주주총회 결과 보고")
-    ]
-    for d, title in events:
-        p1 = tf.add_paragraph(); p1.text = f"{d}  •  {title}"; p1.font.size = Pt(11); p1.font.color.rgb = LIGHT_TEXT_PRIMARY; p1.space_after = Pt(4)
-
-    draw_card(s17, Inches(5.6), Inches(1.65), Inches(6.933), Inches(4.85), LIGHT_PURPLE_TINT, LIGHT_PURPLE, 1.5)
-    tb2 = s17.shapes.add_textbox(Inches(5.9), Inches(1.85), Inches(6.3), Inches(4.3))
-    tf2 = tb2.text_frame; tf2.word_wrap = True
-    p = tf2.paragraphs[0]; p.text = "💡 공시에 적힌 사실과 앞으로의 영향"; p.font.size = Pt(16); p.font.bold = True; p.font.color.rgb = LIGHT_PURPLE; p.space_after = Pt(10)
-    p1 = tf2.add_paragraph(); p1.text = "• 한 문단 브리핑: 두 분기 동안 자사주 매입과 R&D 시설 투자를 병행하며 주주가치 제고 및 차세대 반도체 경쟁력 강화 집중"; p1.font.size = Pt(12); p1.font.color.rgb = LIGHT_TEXT_PRIMARY; p1.space_after = Pt(10)
-    p2 = tf2.add_paragraph(); p2.text = "• 긍정 신호 (코드 기준표 판정): 주주환원 정책 확대 (자사주 10조 소각 추진)"; p2.font.bold = True; p2.font.size = Pt(12); p2.font.color.rgb = LIGHT_POSITIVE; p2.space_after = Pt(8)
-    p3 = tf2.add_paragraph(); p3.text = "• 주의 신호 (코드 기준표 판정): 반도체 설비 투자에 따른 일시적 현금흐름 둔화"; p3.font.bold = True; p3.font.size = Pt(12); p3.font.color.rgb = LIGHT_ATTENTION; p3.space_after = Pt(8)
-    p4 = tf2.add_paragraph(); p4.text = "⚠️ 안내: 'AI 전망'은 공시 사실이 아니며, 신호는 LLM이 아닌 사전 승인된 코드 기준표로만 부여됩니다."; p4.font.size = Pt(11); p4.font.color.rgb = LIGHT_TEXT_MUTED
-    add_zone_d_proof_bar(s17, 18, TOTAL_SLIDES, ["ADR-0050", "ADR-0065", "ADR-0066"], ["기간 안 수시공시 연결", "코드 기준표 신호", "문장마다 원문 위치"])
-    set_speaker_notes(s17, """[여는 질문]
-"두 정기보고서 사이에 이 회사가 도대체 무슨 일을 벌였는지 1분 만에 파악할 수 있을까요?"
-
-[쉬운 설명]
-"우측 상단 돋보기를 보시죠. 정기공시가 정기 건강검진표라면, 수시공시는 그 사이 터진 응급 속보입니다."
-
-[화면 가리키기]
-"화면 좌측의 24건 타임라인과 우측의 사실·영향 카드를 보십시오. 긍정·주의 신호는 AI가 아닌 코드 기준표가 붙입니다."
-
-[마무리 한마디]
-"파편화된 1년 치 공시를 단 하나의 스토리라인으로 완벽히 꿰뚫어 줍니다!\"""")
-
-    # SLIDE 18: 분석 방법과 기준 -> 4단계 팩트 검증 기준
-    s18 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s18, is_dark=False)
-    add_zone_a_header(s18, "04 · 4단계 검증 기준", "코드 기반 4단계 팩트 검증 파이프라인")
-    add_zone_b_glossary(s18, "4대 판정 규칙", "계산 못 하는 경우는 사유 코드로 & 금지 표현 자동 검사")
-    # Zone C: 4 Rule Cards
-    rules = [
-        ("01. 비교 조건 검증", "동일 기업(corp_code), 기간 선후, 연결/별도 기준, 통화(KRW) 일치 확인 후 비교 진행", LIGHT_PURPLE),
-        ("02. 재무 수치 증감", "코드가 증감액·증감률 계산, 흑자전환·이전값 0 등은 사유 코드로 기록", LIGHT_POSITIVE),
-        ("03. 문장 변화 5대 분류", "숫자를 가린 글을 맞춰 추가, 삭제, 수정, 숫자만 바뀜, 위치 이동으로 정밀 분류", LIGHT_ATTENTION),
-        ("04. 근거 가드레일 & 표현", "모든 문장에 원문 블록 ID 필수, 최대 2회 재생성, 매수·매도 추천 같은 금지 표현 자동 차단", LIGHT_DANGER)
-    ]
-    for i, (rtitle, rdesc, rcol) in enumerate(rules):
-        rx = Inches(0.8) + Inches(2.98) * i
-        draw_card(s18, rx, Inches(1.65), Inches(2.8), Inches(4.85), LIGHT_CARD, LIGHT_BORDER, 1.5)
-        tb_r = s18.shapes.add_textbox(rx + Inches(0.2), Inches(1.85), Inches(2.4), Inches(4.3))
-        tf_r = tb_r.text_frame; tf_r.word_wrap = True
-        p = tf_r.paragraphs[0]; p.text = rtitle; p.font.size = Pt(15); p.font.bold = True; p.font.color.rgb = rcol; p.space_after = Pt(10)
-        p1 = tf_r.add_paragraph(); p1.text = rdesc; p1.font.size = Pt(11.5); p1.font.color.rgb = LIGHT_TEXT_PRIMARY; p1.space_after = Pt(10)
-        p2 = tf_r.add_paragraph(); p2.text = "✓ 코드 강제 원칙\n✓ 무결성 보증"; p2.font.size = Pt(10.5); p2.font.color.rgb = LIGHT_TEXT_MUTED
-    add_zone_d_proof_bar(s18, 19, TOTAL_SLIDES, ["ADR-0004", "ADR-0036", "AGENTS.md"], ["계산 못 하면 사유 코드", "문장 변화 분류", "금지 표현 자동 검사"])
-    set_speaker_notes(s18, """[여는 질문]
-"AI에게 분석을 맡기는 것과, 코드 규칙이 분석을 지배하는 것의 차이는 무엇일까요?"
-
-[쉬운 설명]
-"우측 상단 돋보기를 보시죠. '수용 기준(AC)'은 기능이 합격했는지 기계적으로 판정하는 채점표입니다."
-
-[화면 가리키기]
-"화면의 4개 규칙 카드를 보십시오. 조건 검증부터 수치 증감, 문장 변화, 표현 가드레일까지 분석의 전 과정이 코드의 규칙으로 묶여 있습니다."
-
-[마무리 한마디]
-"증감은 코드가 계산하고, 추천·예측 같은 표현은 자동으로 걸러냅니다!\"""")
-
-    # =========================================================================
-    # PART 5. 사용자 임팩트 (Impact)
-    # =========================================================================
-    # SLIDE 19: 사용자 임팩트
-    s19 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s19, is_dark=False)
-    add_zone_a_header(s19, "05 · 사용자 임팩트 & 접근성", "초보 투자자부터 전문 분석가까지 정보 장벽 해소")
-    add_zone_b_glossary(s19, "WCAG", "장애인과 약자도 차별 없이 쓰는 웹 표준 안전벨트")
-    # Zone C: 3 Persona Bento
-    personas = [
-        ("주식 초보 투자자", "난해한 공시 용어 장벽 완전 해소",
-         "• 어려운 금융 용어 카드\n• 사실 기반 AI 브리핑(근거 포함)\n• 위험 신호 체크 포인트", LIGHT_PURPLE, LIGHT_PURPLE_TINT),
-        ("전문 애널리스트", "기업 신뢰도 및 공약 이행 검증",
-         "• '작년 사업 공약 vs 금년도 실제 이행' 1:1 대조 매트릭스\n• 5대 재무제표 전체 엑셀/CSV 추출 지원\n• 관점별(실적·사업·위험) 골라 보기", LIGHT_POSITIVE, LIGHT_POSITIVE_TINT),
-        ("품질 & 웹 표준", "누구나 차별 없이 쓰는 접근성",
-         "• 자동 테스트 약 4,400개, PR마다 통과해야 병합\n• axe-core 접근성 자동 검사\n• 다크모드 완비 및 키보드 완전 탐색 지원", LIGHT_ATTENTION, LIGHT_ATTENTION_TINT)
-    ]
-    for i, (pname, psub, pbody, pcol, ptint) in enumerate(personas):
-        px = Inches(0.8) + Inches(3.98) * i
-        draw_card(s19, px, Inches(1.65), Inches(3.8), Inches(4.85), ptint, pcol, 1.5)
-        tb_p = s19.shapes.add_textbox(px + Inches(0.25), Inches(1.85), Inches(3.3), Inches(4.3))
-        tf_p = tb_p.text_frame; tf_p.word_wrap = True
-        p = tf_p.paragraphs[0]; p.text = pname; p.font.size = Pt(17); p.font.bold = True; p.font.color.rgb = pcol; p.space_after = Pt(4)
-        p0 = tf_p.add_paragraph(); p0.text = psub; p0.font.size = Pt(12); p0.font.bold = True; p0.font.color.rgb = LIGHT_TEXT_PRIMARY; p0.space_after = Pt(12)
-        p1 = tf_p.add_paragraph(); p1.text = pbody; p1.font.size = Pt(11.5); p1.font.color.rgb = LIGHT_TEXT_BODY
-    add_zone_d_proof_bar(s19, 20, TOTAL_SLIDES, ["FS-53", "FS-60", "FS-69"], ["용어 카드", "약속·이행 대조", "접근성 자동 검사"])
-    set_speaker_notes(s19, """[여는 질문]
-"주식 초보자와 전문 분석가가 같은 화면에서 모두 만족할 수 있을까요?"
-
-[쉬운 설명]
-"우측 상단 돋보기를 보시죠. 'WCAG'는 장애인과 약자도 차별 없이 쓰는 웹 표준 안전벨트입니다."
-
-[화면 가리키기]
-"화면의 3대 사용자 임팩트 카드를 보십시오. 초보자에게는 용어 카드를, 전문가에게는 약속-이행 대조표를, 시스템 전체에는 약 4,400개 자동 테스트를 제공합니다."
-
-[마무리 한마디]
-"초보자부터 실무자까지, 각자 필요한 방식으로 공시를 읽게 했습니다!\"""")
-
-    # =========================================================================
-    # PART 6. 아키텍처 & 데이터 파이프라인 (Stack & Architecture)
-    # =========================================================================
-    # SLIDE 20: 4-Tier 아키텍처 (Dark Theme)
-    s20 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s20, is_dark=True)
-    add_zone_a_header(s20, "06 · 시스템 아키텍처", "React → Spring Boot → FastAPI 단방향 계층 분리", is_dark=True)
-    add_zone_b_glossary(s20, "단방향 FSM", "역주행과 상태 꼬임이 불가능한 일방통행 기차길", is_dark=True)
-    # Zone C: 4-Tier Conveyor Box
-    tiers = [
-        ("화면 (React 19)", "TypeScript · SPA\n공개 API만 호출\n1,910개 자동 테스트", DARK_PURPLE, DARK_PURPLE_TINT),
-        ("백엔드 (Spring Boot 4.1)", "Java 21 · 중심 허브\nOpenDART 캐시 관리\n에이전트 24개 Tool 실행", RGBColor(100, 200, 255), RGBColor(20, 40, 70)),
-        ("AI 서버 (FastAPI)", "Python 3.12 · 무상태\n원문 구조화 · BM25 검색\nLangGraph 1단계 실행", RGBColor(120, 230, 160), RGBColor(20, 60, 40)),
-        ("운영 DB (MariaDB 11.4)", "표 약 58개\nFlyway 마이그레이션 54개\n고유번호/접수번호 색인", RGBColor(255, 180, 100), RGBColor(60, 40, 20))
-    ]
-    for i, (tname, tdesc, tcol, ttint) in enumerate(tiers):
-        tx = Inches(0.8) + Inches(2.98) * i
-        draw_card(s20, tx, Inches(1.85), Inches(2.6), Inches(4.3), ttint, tcol, 1.5)
-        tb_t = s20.shapes.add_textbox(tx + Inches(0.15), Inches(2.1), Inches(2.3), Inches(3.8))
-        tf_t = tb_t.text_frame; tf_t.word_wrap = True
-        p = tf_t.paragraphs[0]; p.text = tname; p.font.size = Pt(14); p.font.bold = True; p.font.color.rgb = tcol; p.space_after = Pt(8)
-        p1 = tf_t.add_paragraph(); p1.text = tdesc; p1.font.size = Pt(11); p1.font.color.rgb = DARK_TEXT_PRIMARY; p1.space_after = Pt(12)
-        if i < 3:
-            p2 = tf_t.add_paragraph(); p2.text = "➔ 단방향 호출"; p2.font.bold = True; p2.font.size = Pt(11); p2.font.color.rgb = DARK_PURPLE
-    add_zone_d_proof_bar(s20, 21, TOTAL_SLIDES, ["ADR-0002", "ADR-0004", "ADR-0052"], ["ArchUnit 계층 검사", "단방향 호출", "X-Trace-Id 추적"], is_dark=True)
-    set_speaker_notes(s20, """[여는 질문]
-"수많은 개발자가 협업하는 대규모 금융 프로젝트에서 어떻게 스파게티 코드를 원천 차단했을까요?"
-
-[쉬운 설명]
-"우측 상단 돋보기를 보시죠. 시스템 호출 역시 단 한 방향으로만 흘러야 상태가 꼬이지 않습니다."
-
-[화면 가리키기]
-"화면의 4-Tier 아키텍처를 보십시오. React는 오직 Spring Boot만 바라보며, FastAPI와 MariaDB는 내부망에 안전하게 격리되어 있습니다."
-
-[마무리 한마디]
-"ArchUnit 테스트가 계층 규칙을 빌드마다 검사합니다!\"""")
-
-    # SLIDE 21: 데이터 파이프라인 & 캐시 전략 (Dark Theme)
-    s21 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s21, is_dark=True)
-    add_zone_a_header(s21, "07 · 데이터 파이프라인", "받은 공시는 접수번호로 저장해 다시 받지 않습니다", is_dark=True)
-    add_zone_b_glossary(s21, "MCP 서버", "외부 AI가 우리 공시 데이터를 안전하게 읽는 전용 플러그인", is_dark=True)
-    # Zone C: Cache Strategy Diagram
-    draw_card(s21, Inches(0.8), Inches(1.65), Inches(5.65), Inches(4.85), DARK_CARD, DARK_BORDER, 1.5)
-    tb_c1 = s21.shapes.add_textbox(Inches(1.1), Inches(1.9), Inches(5.05), Inches(4.3))
-    tf_c1 = tb_c1.text_frame; tf_c1.word_wrap = True
-    p = tf_c1.paragraphs[0]; p.text = "📦 OpenDART 2단계 캐시 정책"; p.font.size = Pt(16); p.font.bold = True; p.font.color.rgb = DARK_PURPLE; p.space_after = Pt(10)
-    p1 = tf_c1.add_paragraph(); p1.text = "• 보고서 귀속 자료 (접수번호 키): 접수번호로 저장해 다시 받지 않음\n• 기업개황 및 공시목록: 정해진 주기로 다시 받음\n• OpenDART 하루 호출 한도(2만 회)를 아껴 씀"; p1.font.size = Pt(12); p1.font.color.rgb = DARK_TEXT_PRIMARY; p1.space_after = Pt(12)
-    p2 = tf_c1.add_paragraph(); p2.text = "⚡ 저장된 자료는 바로 응답"; p2.font.bold = True; p2.font.size = Pt(13); p2.font.color.rgb = RGBColor(120, 230, 160)
-
-    draw_card(s21, Inches(6.88), Inches(1.65), Inches(5.65), Inches(4.85), DARK_CARD_RAISED, DARK_BORDER, 1.5)
-    tb_c2 = s21.shapes.add_textbox(Inches(7.18), Inches(1.9), Inches(5.05), Inches(4.3))
-    tf_c2 = tb_c2.text_frame; tf_c2.word_wrap = True
-    p = tf_c2.paragraphs[0]; p.text = "🔌 독립 MCP 서버 연동 (ADR-0052)"; p.font.size = Pt(16); p.font.bold = True; p.font.color.rgb = RGBColor(100, 200, 255); p.space_after = Pt(10)
-    p1 = tf_c2.add_paragraph(); p1.text = "• 외부 AI 에이전트를 위한 읽기 전용 7대 도구 제공\n• Spring Boot 공개 API만 경유하여 원본 DB 직접 접근 원천 차단\n• 내부 서비스와 동일한 권한 및 일일 쿼터 규칙 적용"; p1.font.size = Pt(12); p1.font.color.rgb = DARK_TEXT_PRIMARY; p1.space_after = Pt(12)
-    p2 = tf_c2.add_paragraph(); p2.text = "🛡️ 외부 AI는 읽기 전용, 백엔드와 같은 권한·한도"; p2.font.bold = True; p2.font.size = Pt(13); p2.font.color.rgb = RGBColor(120, 230, 160)
-    add_zone_d_proof_bar(s21, 22, TOTAL_SLIDES, ["ADR-0024", "ADR-0046", "ADR-0052"], ["같은 자료 다시 안 받음", "외부 AI 읽기 전용", "MCP 도구 7종"], is_dark=True)
-    set_speaker_notes(s21, """[여는 질문]
-"OpenDART의 하루 호출 한도가 2만 회인데, 수만 명이 동시 접속하면 서비스가 멈출까요?"
-
-[쉬운 설명]
-"우측 상단 돋보기를 보시죠. 'MCP 서버'란 외부 AI가 안전하게 데이터를 가져갈 수 있도록 만든 전용 플러그인입니다."
-
-[화면 가리키기]
-"화면 좌우 카드를 보십시오. 접수번호 영구 캐시로 일일 한도를 완벽히 방어하고, 외부 AI 연동까지 읽기 전용으로 안전하게 구축했습니다."
-
-[마무리 한마디]
-"같은 자료는 다시 받지 않아, OpenDART 하루 한도와 응답 시간을 함께 아낍니다!\"""")
-
-    # =========================================================================
-    # PART 7. 인프라 & 운영 안전 (Infra & Quota Simulator)
-    # =========================================================================
-    # SLIDE 34: 2-VM 인프라 물리 격리 & 배포 파이프라인
-    s34 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s34, is_dark=False)
-    add_zone_a_header(s34, "08 · 인프라 & 운영 안전", "서버 두 대, 실패하면 자동으로 되돌립니다")
-    add_zone_b_glossary(s34, "Flyway", "DB 스키마 변경 이력을 코드처럼 커밋하는 버전 관리기")
-    # Zone C: 2-VM Layout
-    draw_card(s34, Inches(0.8), Inches(1.65), Inches(5.65), Inches(4.85), LIGHT_CARD, LIGHT_BORDER, 1.5)
-    tb_vm1 = s34.shapes.add_textbox(Inches(1.1), Inches(1.85), Inches(5.05), Inches(4.3))
-    tf_vm1 = tb_vm1.text_frame; tf_vm1.word_wrap = True
-    p = tf_vm1.paragraphs[0]; p.text = "🖥️ VM1 · 사용자 웹 & 백엔드 & DB"; p.font.size = Pt(16); p.font.bold = True; p.font.color.rgb = LIGHT_PURPLE; p.space_after = Pt(10)
-    p1 = tf_vm1.add_paragraph(); p1.text = "• Nginx 웹 프록시 (:80, :443 HTTPS)\n• Spring Boot 4.1 백엔드 (:8080)\n• MariaDB 11.4 운영 데이터베이스\n• 외부 사용자의 정적 자산 및 API 요청을 전담 처리"; p1.font.size = Pt(12); p1.font.color.rgb = LIGHT_TEXT_PRIMARY; p1.space_after = Pt(12)
-    p2 = tf_vm1.add_paragraph(); p2.text = "🛡️ AI 서버를 따로 두어 웹·DB 서버와 부하를 나눔"; p2.font.bold = True; p2.font.size = Pt(12.5); p2.font.color.rgb = LIGHT_POSITIVE
-
-    draw_card(s34, Inches(6.88), Inches(1.65), Inches(5.65), Inches(4.85), LIGHT_PURPLE_TINT, LIGHT_PURPLE, 1.5)
-    tb_vm2 = s34.shapes.add_textbox(Inches(7.18), Inches(1.85), Inches(5.05), Inches(4.3))
-    tf_vm2 = tb_vm2.text_frame; tf_vm2.word_wrap = True
-    p = tf_vm2.paragraphs[0]; p.text = "⚡ VM2 · AI 연산 노드 & 배포 파이프라인"; p.font.size = Pt(16); p.font.bold = True; p.font.color.rgb = LIGHT_PURPLE; p.space_after = Pt(10)
-    p1 = tf_vm2.add_paragraph(); p1.text = "• FastAPI AI 서버 (:8000, 내부망 전용)\n• Jenkins CI/CD 빌드 파이프라인 (Poll SCM 5분)\n• 새 DB 변경은 검토된 해시와 같을 때만 반영\n• 이상 감지 시 이전 이미지로 자동 복구"; p1.font.size = Pt(12); p1.font.color.rgb = LIGHT_TEXT_PRIMARY; p1.space_after = Pt(12)
-    p2 = tf_vm2.add_paragraph(); p2.text = "🔄 배포 실패 시 이전 버전으로 자동 복구 (11/9 실제 동작)"; p2.font.bold = True; p2.font.size = Pt(12.5); p2.font.color.rgb = LIGHT_POSITIVE
-    add_zone_d_proof_bar(s34, 35, TOTAL_SLIDES, ["ADR-0007", "ADR-0017", "ADR-0020"], ["서버 2대 분리", "새 DB 변경 해시 검토", "실패 시 자동 복구"])
-    set_speaker_notes(s34, """[여는 질문]
-"새벽 배포 중 DB 마이그레이션이 실패하면 시스템을 이전 상태로 되돌리는 데 얼마나 걸릴까요?"
-
-[쉬운 설명]
-"우측 상단 돋보기를 보시죠. 'Flyway'는 DB의 모든 변경 이력을 코드처럼 통제합니다."
-
-[화면 가리키기]
-"화면 좌우의 2-VM 분리도를 보십시오. AI 서버를 따로 두고, 배포 전 DB를 백업하며, 이상하면 이전 버전으로 자동 복구합니다."
-
-[마무리 한마디]
-"배포가 실패해도 이전 버전으로 스스로 돌아옵니다. 11월 9일 실제로 동작했습니다!\"""")
-
-    # SLIDE 35: 일일 질문 한도 시뮬레이터 (비로그인 vs 회원)
-    s35 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s35, is_dark=False)
-    add_zone_a_header(s35, "08 · 일일 질문 한도 시뮬레이터", "비로그인 20회 vs 회원 100회 초과 시 429 안전 제어")
-    add_zone_b_glossary(s35, "컴플라이언스", "매수/매도 투자 권유를 막는 법적 안전 차단막")
-    # Zone C: Quota Simulator
-    draw_card(s35, Inches(0.8), Inches(1.65), Inches(11.733), Inches(4.85), LIGHT_CARD, LIGHT_BORDER, 1.5)
-    draw_segmented_bar(s35, Inches(1.2), Inches(1.9), Inches(10.933), Inches(0.42), ["비로그인 사용자 (하루 20회)", "회원 로그인 (하루 100회)", "서비스 전체 상한 (하루 3,000회)"], 0, is_dark=False)
-
-    # Meter Box (20 / 20 Limit Reached)
-    draw_card(s35, Inches(1.2), Inches(2.6), Inches(10.933), Inches(1.6), LIGHT_DANGER_TINT, LIGHT_DANGER, 1.2)
-    tb_m = s35.shapes.add_textbox(Inches(1.5), Inches(2.75), Inches(10.3), Inches(1.3))
-    tf_m = tb_m.text_frame; tf_m.word_wrap = True
-    p = tf_m.paragraphs[0]; p.text = "오늘 사용한 질문: 20 / 20 회 (일일 한도 도달)"; p.font.size = Pt(16); p.font.bold = True; p.font.color.rgb = LIGHT_DANGER; p.space_after = Pt(8)
-    p1 = tf_m.add_paragraph(); p1.text = "⚠️ HTTP 429 Too Many Requests: 오늘 질문 한도를 모두 소진하였습니다. 내일 자정(KST)에 다시 초기화됩니다."; p1.font.size = Pt(12); p1.font.bold = True; p1.font.color.rgb = LIGHT_TEXT_PRIMARY
-
-    # Action / Upsell Callout
-    draw_card(s35, Inches(1.2), Inches(4.45), Inches(10.933), Inches(1.75), LIGHT_PURPLE_TINT, LIGHT_PURPLE, 1.2)
-    tb_u = s35.shapes.add_textbox(Inches(1.5), Inches(4.6), Inches(10.3), Inches(1.4))
-    tf_u = tb_u.text_frame; tf_u.word_wrap = True
-    p = tf_u.paragraphs[0]; p.text = "👉 [회원 로그인 시 즉시 100회로 확장]"; p.font.size = Pt(15); p.font.bold = True; p.font.color.rgb = LIGHT_PURPLE; p.space_after = Pt(6)
-    p1 = tf_u.add_paragraph(); p1.text = "• 소셜 로그인(구글/카카오) 시 회원별 100회 쿼터가 즉시 새로 적용됩니다.\n• 이미 생성된 분석 결과를 다시 열람하는 것은 질문 쿼터를 소모하지 않습니다."; p1.font.size = Pt(12); p1.font.color.rgb = LIGHT_TEXT_PRIMARY
-    add_zone_d_proof_bar(s35, 36, TOTAL_SLIDES, ["ADR-0054", "ADR-0056"], ["비로그인 20회", "회원 100회", "전체 3,000회 상한"])
-    set_speaker_notes(s35, """[여는 질문]
-"무료 사용자가 질문을 무한정 보내서 AI 서버를 다운시키려고 하면 어떻게 될까요?"
-
-[쉬운 설명]
-"우측 상단 돋보기를 보시죠. 악의적 트래픽이나 과다 호출을 차단하는 쿼터 방어막입니다."
-
-[화면 가리키기]
-"화면의 게이지와 429 안내 박스를 보십시오. 비로그인 20회 한도 도달 시 즉시 차단되며, 로그인 유도와 함께 안전하게 방어됩니다."
-
-[마무리 한마디]
-"비로그인 20회, 회원 100회, 서비스 전체 하루 3,000회로 AI 비용을 막습니다!\"""")
-
-    # =========================================================================
-    # PART 8. AX 일하는 방식 & 피날레 (Weeks)
-    # =========================================================================
-    # SLIDE 36: AX 7단계 라이프사이클 - Phase 1 정밀 기획 & 선행 설계
-    s36 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s36, is_dark=False)
-    add_zone_a_header(s36, "09 · AX 라이프사이클 (Phase 1)", "성공기준 수립부터 ADR 선행 설계 및 WBS 분해")
-    add_zone_b_glossary(s36, "수용 기준(AC)", "기능 합격 여부를 판정하는 기계적 채점표")
-    # Zone C: Phase 1 4 Nodes
-    ax_p1_nodes = [
-        ("01. 성공 기준 (SC)", "비즈니스 성공 지표\n사람 주도 수립\nSC-1~4 정의", LIGHT_PURPLE),
-        ("02. AI 기획 (FS & AC)", "기능 기획서 작성\n수용기준(AC) 명세\n사람 🤝 AI 공동", LIGHT_POSITIVE),
-        ("03. 아키텍처 (ADR)", "67개 ADR 선행\nAPI/DB 스펙 선행\n단방향 호출 규칙", LIGHT_ATTENTION),
-        ("04. WBS 작업 분해", "AC 1:1 이슈 분해\n선행 의존성 매핑\nAI 스킬 자동화", LIGHT_PURPLE)
-    ]
-    for i, (aname, adesc, acol) in enumerate(ax_p1_nodes):
-        ax = Inches(0.8) + Inches(2.98) * i
-        draw_card(s36, ax, Inches(1.65), Inches(2.8), Inches(4.85), LIGHT_CARD, LIGHT_BORDER, 1.5)
-        tb_a = s36.shapes.add_textbox(ax + Inches(0.2), Inches(1.85), Inches(2.4), Inches(4.3))
-        tf_a = tb_a.text_frame; tf_a.word_wrap = True
-        p = tf_a.paragraphs[0]; p.text = aname; p.font.size = Pt(15); p.font.bold = True; p.font.color.rgb = acol; p.space_after = Pt(10)
-        p1 = tf_a.add_paragraph(); p1.text = adesc; p1.font.size = Pt(12); p1.font.color.rgb = LIGHT_TEXT_PRIMARY; p1.space_after = Pt(12)
-        if i < 3:
-            p2 = tf_a.add_paragraph(); p2.text = "➔ 다음 단계 전진"; p2.font.bold = True; p2.font.size = Pt(11); p2.font.color.rgb = acol
-    add_zone_d_proof_bar(s36, 37, TOTAL_SLIDES, ["SC-1~4", "FS-1~74", "67 ADRs"], ["기획서·수용 기준 먼저", "AC를 이슈로", "설계 기록 67개"])
-    set_speaker_notes(s36, """[여는 질문]
-"코딩을 시작하기 전, 기획과 설계 단계에서 AI와 사람은 어떻게 손발을 맞췄을까요?"
-
-[쉬운 설명]
-"우측 상단 돋보기를 보시죠. '수용 기준(AC)'은 기능이 통과했는지 채점하는 명확한 기준표입니다."
-
-[화면 가리키기]
-"화면의 4단계 컨베이어 벨트를 보십시오. 성공 기준 수립부터 AI 스펙 명세, 67개 ADR 선행 설계, WBS 분해까지 한 치의 오차 없이 연결됩니다."
-
-[마무리 한마디]
-"설계 없이 코딩하지 않도록, 기획과 설계를 먼저 남겼습니다!\"""")
-
-    # SLIDE 37: AX 7단계 라이프사이클 - Phase 2 에이전틱 자율 구현 & 품질 게이트
-    s37 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s37, is_dark=False)
-    add_zone_a_header(s37, "09 · AX 라이프사이클 (Phase 2)", "AI와 함께 구현하고, 자동 검사를 통과해야 병합")
-    add_zone_b_glossary(s37, "WCAG & axe-core", "장애인과 약자도 차별 없이 쓰는 웹 표준 안전벨트")
-    # Zone C: Phase 2 3 Nodes
-    ax_p2_nodes = [
-        ("05. 에이전틱 페어 코딩", "AI 에이전트 자율 협업\nAGENTS.md 규칙 헌장 엄수\n브랜치 격리 & Rebase Merge", LIGHT_PURPLE, LIGHT_PURPLE_TINT),
-        ("06. 자동화 품질 게이트", "자동 테스트 약 4,400개\naxe-core 접근성 검사\ngitleaks 비밀정보 검사", LIGHT_POSITIVE, LIGHT_POSITIVE_TINT),
-        ("07. 수용기준 검증 (Done)", "AC마다 증빙 대조\nPR 번호 & 테스트 대조\n기능 완료 최종 판정", LIGHT_ATTENTION, LIGHT_ATTENTION_TINT)
-    ]
-    for i, (aname, adesc, acol, atint) in enumerate(ax_p2_nodes):
-        ax = Inches(0.8) + Inches(3.98) * i
-        draw_card(s37, ax, Inches(1.65), Inches(3.8), Inches(4.85), atint, acol, 1.5)
-        tb_a = s37.shapes.add_textbox(ax + Inches(0.25), Inches(1.85), Inches(3.3), Inches(4.3))
-        tf_a = tb_a.text_frame; tf_a.word_wrap = True
-        p = tf_a.paragraphs[0]; p.text = aname; p.font.size = Pt(16); p.font.bold = True; p.font.color.rgb = acol; p.space_after = Pt(10)
-        p1 = tf_a.add_paragraph(); p1.text = adesc; p1.font.size = Pt(12.5); p1.font.color.rgb = LIGHT_TEXT_PRIMARY; p1.space_after = Pt(12)
-        p2 = tf_a.add_paragraph(); p2.text = "✓ 기계적 품질 보증 통과"; p2.font.bold = True; p2.font.size = Pt(11.5); p2.font.color.rgb = acol
-    add_zone_d_proof_bar(s37, 38, TOTAL_SLIDES, ["AGENTS.md", "테스트 약 4,400", "PR 461"], ["PR마다 테스트", "접근성 검사", "비밀정보 검사"])
-    set_speaker_notes(s37, """[여는 질문]
-"약 4주 만에 테스트 약 4,400개를 갖춘 서비스, 품질은 어떻게 지켰을까요?"
-
-[쉬운 설명]
-"우측 상단 돋보기를 보시죠. 'axe-core'는 단 하나의 접근성 오류도 용납하지 않는 품질 채점기입니다."
-
-[화면 가리키기]
-"화면의 3대 실행 카드를 보십시오. AGENTS.md 헌장 아래 자율 페어 코딩을 거쳐 PR마다 약 4,400개 테스트와 보안 검사를 통과해야만 병합됩니다."
-
-[마무리 한마디]
-"수용 기준을 하나씩 확인하고 나서야 '완료'로 표시합니다!\"""")
-
-    # SLIDE 38: AX Before vs After 비교
-    s38 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s38, is_dark=False)
-    add_zone_a_header(s38, "09 · AX 임팩트 비교", "전통적 개발 방식 vs DART Insight AX 협업 혁신")
-    add_zone_b_glossary(s38, "수용 기준(AC)", "기능 합격 여부를 판정하는 기계적 채점표")
-    # Zone C: 1:1 Split
-    draw_card(s38, Inches(0.8), Inches(1.65), Inches(5.65), Inches(4.85), LIGHT_DANGER_TINT, LIGHT_DANGER, 1.5)
-    tb_b = s38.shapes.add_textbox(Inches(1.1), Inches(1.85), Inches(5.05), Inches(4.3))
-    tf_b = tb_b.text_frame; tf_b.word_wrap = True
-    p = tf_b.paragraphs[0]; p.text = "❌ 기존 전통적 개발 방식"; p.font.size = Pt(16); p.font.bold = True; p.font.color.rgb = LIGHT_DANGER; p.space_after = Pt(10)
-    items_tb = [
-        ("기획 병목", "기획서 작성 및 WBS 작업 분해에만 수일 소요"),
-        ("AI 환각", "단순 코드 생성 시 아키텍처 규칙과 타입 시스템 파괴"),
-        ("품질 부채", "단위 테스트 없는 빠른 코딩으로 배포 후 대규모 결함 발생"),
-        ("설계 휘발", "구두 논의로 결정된 아키텍처가 코드에 반영되지 않고 유실")
-    ]
-    for tag, txt in items_tb:
-        p1 = tf_b.add_paragraph(); p1.text = f"[{tag}]  {txt}"; p1.font.size = Pt(11.5); p1.font.color.rgb = LIGHT_TEXT_PRIMARY; p1.space_after = Pt(8)
-
-    draw_card(s38, Inches(6.88), Inches(1.65), Inches(5.65), Inches(4.85), LIGHT_POSITIVE_TINT, LIGHT_POSITIVE, 1.5)
-    tb_a = s38.shapes.add_textbox(Inches(7.18), Inches(1.85), Inches(5.05), Inches(4.3))
-    tf_a = tb_a.text_frame; tf_a.word_wrap = True
-    p = tf_a.paragraphs[0]; p.text = "✨ DART Insight AX 일하는 방식"; p.font.size = Pt(16); p.font.bold = True; p.font.color.rgb = LIGHT_POSITIVE; p.space_after = Pt(10)
-    items_ta = [
-        ("스킬 자동화", "성공 기준(SC)에서 수용 기준(AC)·WBS 이슈 30분 만에 도출"),
-        ("규칙 헌장", "AGENTS.md로 AI와 사람 모두 단방향 계층 분리 엄수"),
-        ("품질 게이트", "PR마다 테스트 약 4,400개 + 접근성 + 비밀정보 검사"),
-        ("67개 ADR", "구조 결정을 ADR로 남겨 이유와 대안을 기록")
-    ]
-    for tag, txt in items_ta:
-        p1 = tf_a.add_paragraph(); p1.text = f"[{tag}]  {txt}"; p1.font.size = Pt(11.5); p1.font.bold = True; p1.font.color.rgb = LIGHT_TEXT_PRIMARY; p1.space_after = Pt(8)
-    p_sum = tf_a.add_paragraph(); p_sum.text = "📈 약 4주 · PR 461 · 이슈 429 · ADR 67"; p_sum.font.bold = True; p_sum.font.size = Pt(13); p_sum.font.color.rgb = LIGHT_POSITIVE
-    add_zone_d_proof_bar(s38, 39, TOTAL_SLIDES, ["SC-1~4", "PR 461", "커밋 1,101"], ["규칙 한 파일", "자동 검사", "결정 기록"])
-    set_speaker_notes(s38, """[여는 질문]
-"단순히 AI 코딩 도구를 쓰는 것과, 일하는 방식 자체를 AI 중심으로 혁신(AX)하는 것의 결정적 차이는 무엇일까요?"
-
-[쉬운 설명]
-"우측 상단 돋보기를 보시죠. '수용 기준(AC)'은 기능이 합격했는지 판정하는 객관적 채점표입니다."
-
-[화면 가리키기]
-"화면 좌우 비교를 보십시오. 기획 병목과 환각을 낳던 전통 방식에서, 스킬 자동화와 약 4,400개 테스트 게이트로 품질을 지켰습니다."
-
-[마무리 한마디]
-"PR 461개, ADR 67개, 테스트 약 4,400개. 이것이 저희 팀의 기록입니다!\"""")
-
-    # SLIDE 39: 그랜드 피날레 & 4대 정량 성과 (Q&A)
-    s39 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s39, is_dark=False)
-    add_zone_a_header(s39, "09 · 피날레 & 질의응답 (Q&A)", "금융의 미래를 여는 DART Insight, 질문을 받겠습니다")
-    add_zone_b_glossary(s39, "DART Insight", "두 보고서 사이 바뀐 것을 원문 근거와 함께 보여 주는 서비스")
-    # Zone C: Grand Finale Bento
-    draw_card(s39, Inches(0.8), Inches(1.65), Inches(11.733), Inches(4.85), LIGHT_CARD, LIGHT_BORDER, 1.5)
-    tb_fin = s39.shapes.add_textbox(Inches(1.2), Inches(1.9), Inches(10.933), Inches(4.3))
-    tf_fin = tb_fin.text_frame; tf_fin.word_wrap = True
-    p = tf_fin.paragraphs[0]; p.alignment = PP_ALIGN.CENTER; p.text = '"AI는 최고의 비서지, 대표가 아닙니다."'; p.font.size = Pt(28); p.font.bold = True; p.font.color.rgb = LIGHT_PURPLE; p.space_after = Pt(16)
-    
-    # 4 Pillars recap
-    p_recap = tf_fin.add_paragraph(); p_recap.alignment = PP_ALIGN.CENTER
-    p_recap.text = "📜 ADR 67개    |    🔀 PR 461개    |    🧪 테스트 약 4,400개    |    🧮 숫자는 코드가 계산"
-    p_recap.font.name = FONT_HEADING; p_recap.font.size = Pt(15); p_recap.font.bold = True; p_recap.font.color.rgb = LIGHT_TEXT_PRIMARY; p_recap.space_after = Pt(24)
-
-    p_qa = tf_fin.add_paragraph(); p_qa.alignment = PP_ALIGN.CENTER
-    p_qa.text = "경청해 주셔서 대단히 감사합니다.\n질문을 받겠습니다."
-    p_qa.font.name = FONT_HEADING; p_qa.font.size = Pt(20); p_qa.font.bold = True; p_qa.font.color.rgb = LIGHT_POSITIVE
-
-    add_zone_d_proof_bar(s39, 40, TOTAL_SLIDES, ["ADR 67개", "FS-1~74", "PR 461"], ["원문 근거", "숫자는 코드가 계산", "Q&A"])
-    set_speaker_notes(s39, """[여는 질문]
-"우리는 금융 AI에서 가장 중요한 질문을 던졌습니다. 'AI를 믿을 수 있는가?'"
-
-[쉬운 설명]
-"우측 상단 돋보기를 보시죠. 'DART Insight'는 거짓말하지 않는 원문 직결 금융 인텔리전스입니다."
-
-[화면 가리키기]
-"화면 중앙의 비전 선언문을 보십시오. 'AI는 최고의 비서지, 대표가 아닙니다.' 코드가 숫자를 철저히 계산하고, AI는 정제된 원문 근거만 꿰뚫습니다."
-
-[마무리 한마디]
-"PR 461개, ADR 67개, 테스트 약 4,400개로 만든 DART Insight였습니다. 발표를 마치겠습니다. 경청해 주셔서 대단히 감사합니다. 질문을 받겠습니다!\"""")
-
-    # -------------------------------------------------------------------------
-    # Save PPTX to docs/ and copy to frontend/public/easter/
-    # -------------------------------------------------------------------------
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.abspath(os.path.join(script_dir, ".."))
-    docs_output = os.path.join(project_root, "docs", "DART_Insight_Presentation.pptx")
-    web_output = os.path.join(project_root, "frontend", "public", "easter", "DART_Insight_Presentation.pptx")
-
-    renumber_slide_counters(prs)
-    prs.save(docs_output)
-    print(f"✓ Saved {len(prs.slides)}-slide PowerPoint presentation to: {docs_output}")
-
-    os.makedirs(os.path.dirname(web_output), exist_ok=True)
-    shutil.copyfile(docs_output, web_output)
-    print(f"✓ Copied to web easter directory: {web_output}")
 
 if __name__ == "__main__":
-    build_presentation()
+    main()
