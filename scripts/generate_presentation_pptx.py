@@ -463,18 +463,22 @@ def build_presentation():
     p_s2.text = '"The Board accepted the resignation of Jen-Hsun (Jensen) Huang as President, CEO, and Director, effective immediately." (CFO Colette Kress interim CEO)'
     p_s2.font.name = FONT_BODY; p_s2.font.size = Pt(9); p_s2.font.color.rgb = RGBColor(241, 245, 249)
 
-    # 하단 팩트 포인트
+    # 하단 공시 원문 한글 번역 박스
     tb_sec_pt = s02.shapes.add_textbox(Inches(1.0), Inches(4.18), Inches(5.25), Inches(0.95))
     tf_sec_pt = tb_sec_pt.text_frame; tf_sec_pt.word_wrap = True
     tf_sec_pt.margin_left = tf_sec_pt.margin_top = tf_sec_pt.margin_right = tf_sec_pt.margin_bottom = 0
-    p_pt1 = tf_sec_pt.paragraphs[0]
-    p_pt1.text = "• 풍문 종결: 수많은 찌라시 속에서 SEC Form 8-K로 전 세계 시장 최종 확정"
+    p_pt0 = tf_sec_pt.paragraphs[0]
+    p_pt0.text = "🇰🇷 공시 원문 한글 번역:"
+    p_pt0.font.name = FONT_HEADING; p_pt0.font.size = Pt(9.5); p_pt0.font.bold = True; p_pt0.font.color.rgb = LIGHT_TEXT_PRIMARY
+    p_pt0.space_after = Pt(2)
+    p_pt1 = tf_sec_pt.add_paragraph()
+    p_pt1.text = "• 사임 수락: \"이사회는 젠슨 황의 사장, CEO 및 이사직 사임을 즉시 수락함\""
     p_pt1.font.name = FONT_BODY; p_pt1.font.size = Pt(9); p_pt1.font.color.rgb = LIGHT_TEXT_BODY
     p_pt1.space_after = Pt(2)
     p_pt2 = tf_sec_pt.add_paragraph()
-    p_pt2.text = "• 시장 반영: 공시 접수 즉시 시간외 주가 -10% 급변 (법적 효력 증명)"
+    p_pt2.text = "• 임시 CEO: \"콜레트 크레스 CFO를 임시 최고경영자(Interim CEO)로 임명함\""
     p_pt2.font.name = FONT_BODY; p_pt2.font.size = Pt(9); p_pt2.font.color.rgb = LIGHT_TEXT_BODY
-    p_pt2.space_after = Pt(4)
+    p_pt2.space_after = Pt(2)
     p_pt3 = tf_sec_pt.add_paragraph()
     p_pt3.text = "✓ 법적 구속력을 지닌 공식 공시 단 1장이 전 세계 시장을 결정"
     p_pt3.font.name = FONT_BODY; p_pt3.font.size = Pt(9); p_pt3.font.bold = True; p_pt3.font.color.rgb = RGBColor(21, 128, 61)
