@@ -91,7 +91,7 @@ DB는 MariaDB이고, 외부 데이터는 OpenDART(공시·재무·원문)와 기
 - 모든 테이블은 기본키로 `id BIGINT AUTO_INCREMENT`를 둡니다. OpenDART에서 받은 키도 기본키로 쓰지 않고 UNIQUE로 둡니다([ADR-0017](docs/adr/0017-auto-increment-id-primary-key.md)).
 - 회사는 고유번호(`corp_code`), 보고서는 접수번호(`rcept_no`)로 가리킵니다(API, 외래 키, 캐시 기준). 종목코드는 상장사에만 있어 키로 쓰지 않습니다.
 - OpenDART 응답은 본문의 `status`를 확인한 뒤 씁니다. `013`은 실패가 아니라 '자료 없음'입니다.
-- DB 스키마는 Flyway 마이그레이션 파일(`V{번호}__{설명}.sql`)로만 바꿉니다. main에 병합된 마이그레이션 파일은 고치지 않고 새 파일을 추가합니다. JPA `ddl-auto`는 `validate`로 둡니다.
+- DB 스키마는 Flyway 마이그레이션 파일(`V{번호}__{설명}.sql`)로만 바꿉니다. main에 병합된 마이그레이션 파일은 고치지 않고 새 파일을 추가합니다. 새 마이그레이션을 추가할 때는 배포 사전 검증을 통과하도록 `infra/jenkins/deploy-ai-backend.sh`의 `REVIEWED_MIGRATIONS`에 버전과 파일 SHA-256 해시를 등록하고, `infra/jenkins/tests/test_migration_preflight.py` 및 `infra/jenkins/README.md`도 같은 PR에서 함께 갱신합니다. JPA `ddl-auto`는 `validate`로 둡니다.
 
 ## 비밀정보
 
@@ -115,6 +115,7 @@ DB는 MariaDB이고, 외부 데이터는 OpenDART(공시·재무·원문)와 기
 - [ ] 이슈의 완료 기준을 하나씩 확인했다
 - [ ] 비밀정보, 디버그 출력, 쓰지 않는 코드가 남아 있지 않다
 - [ ] API·DB를 바꿨다면 `docs/api-spec.md`·`docs/erd.md`도 같은 PR에서 고쳤다
+- [ ] DB 마이그레이션을 추가했다면 `infra/jenkins/deploy-ai-backend.sh`에 승인 해시를 등록하고 `test_migration_preflight.py`를 통과했다
 - [ ] 구조 결정을 하거나 바꿨다면 `docs/adr/`에 ADR을 추가했다
 - [ ] 와이어프레임의 '예외·상태 처리'에 해당하는 경우도 확인했다
 

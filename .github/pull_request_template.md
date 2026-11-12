@@ -36,5 +36,6 @@ closes #<!-- 이슈 번호. 병합되면 이슈가 자동으로 닫힙니다. �
 - [ ] 비밀정보(`.env`, API 키)가 들어 있지 않다
 - [ ] 이슈의 완료 기준 체크리스트를 모두 확인했다
 - [ ] API나 DB 구조를 바꿨다면 `docs/api-spec.md`·`docs/erd.md`도 고쳤다
+- [ ] DB 마이그레이션(Vxx)을 추가했다면 `infra/jenkins/deploy-ai-backend.sh`에 파일 SHA-256 승인 해시를 등록했다
 - [ ] 구조 결정을 하거나 바꿨다면 `docs/adr/`에 ADR을 추가했다
 - [ ] 자동 검사(비밀정보 검사, 바뀐 서비스의 CI)가 통과했다
