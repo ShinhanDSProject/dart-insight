@@ -482,55 +482,11 @@ main section { padding-block: 56px; border-bottom: 1px solid var(--color-border)
 .subhead { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline; margin: 32px 0 12px }
 .subhead h3 { font-size: 18px; font-weight: 700 }
 
-/* 핵심 설계 데모 */
-.dec { border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-raised); padding: 22px; display: grid; gap: 16px; margin-top: 14px }
-.dec__top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: flex-start }
-.dec__top h3 { font-size: 19px; max-width: 36em }
-.dec__top .kicker { font-size: 12px; font-weight: 800; color: var(--color-accent) }
-.dec__body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start }
-@media (max-width: 860px) { .dec__body { grid-template-columns: 1fr } }
-.dec ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px }
-.alt { display: grid; gap: 10px }
-.alt div { border-left: 3px solid var(--color-border); padding-left: 12px }
-.alt b { font-size: 14px }
-.alt p { font-size: 13.5px; color: var(--color-text-muted) }
-.demo { border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-subtle); padding: 18px; display: grid; gap: 14px; min-width: 0 }
-.demo .label { display: flex; justify-content: space-between; gap: 8px }
+/* ADR 표기·질문 한도 막대 */
 .adr { font-family: var(--font-mono); font-size: 12px; color: var(--color-text-muted) }
-.sm { display: flex; flex-wrap: wrap; gap: 6px; align-items: center }
-.st { font-family: var(--font-mono); font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--color-border); background: var(--color-bg-raised); color: var(--color-text-muted); transition: all var(--motion-base) }
-.st.cur { border-color: var(--color-primary); background: var(--color-primary); color: var(--color-primary-text) }
-.st.done.cur { background: var(--color-increase); border-color: var(--color-increase); color: #fff }
-.st.fail.cur { background: var(--color-danger); border-color: var(--color-danger); color: #fff }
 .btnrow { display: flex; flex-wrap: wrap; gap: 6px }
-.bar4 { height: 5px; border-radius: var(--radius-pill); background: var(--color-border); overflow: hidden }
-.bar4 i { display: block; height: 100%; background: var(--color-primary); transition: width var(--motion-slow) var(--ease-out) }
-.log { font-size: 13px; display: grid; gap: 5px; max-height: 220px; overflow-y: auto }
-.log div { display: grid; grid-template-columns: 22px 1fr; gap: 6px }
-.log .ok { color: var(--color-increase); font-weight: 700 }
-.log .no { color: var(--color-danger); font-weight: 700 }
-.log .info { color: var(--color-accent); font-weight: 700 }
-input[type=range] { width: 100%; accent-color: var(--color-primary) }
-.para { border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-raised); padding: 14px; font-size: 14px; display: grid; gap: 6px }
-.para .meta { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--color-text-muted) }
-.chain { display: flex; flex-wrap: wrap; gap: 6px; align-items: center }
-.chain .node { font-size: 13px; padding: 6px 12px; border-radius: var(--radius-pill); border: 1px solid var(--color-border); background: var(--color-bg-raised); color: var(--color-text-muted); transition: all var(--motion-base) }
-.chain .node.on { background: var(--color-accent-subtle); border-color: var(--color-accent); color: var(--color-accent); font-weight: 700 }
-.chain .node.back.on { background: var(--color-attention-subtle); border-color: var(--color-attention); color: var(--color-attention) }
-.chain .to { color: var(--color-text-muted); font-size: 12px }
-.costrow { display: grid; gap: 4px }
-.costrow .lb { display: flex; justify-content: space-between; gap: 8px; font-size: 13.5px }
-.costrow .lb b { font-family: var(--font-num) }
 .track { height: 12px; border-radius: var(--radius-pill); background: var(--color-border); overflow: hidden }
 .track i { display: block; height: 100%; border-radius: var(--radius-pill); background: var(--color-chart-previous); min-width: 3px; transition: width var(--motion-slow) var(--ease-out) }
-.costrow.pick .track i { background: var(--color-chart-current) }
-.costrow.pick .lb { color: var(--color-accent); font-weight: 700 }
-.big { font-family: var(--font-num); font-weight: 800; font-size: 30px; line-height: 1.1 }
-.principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px }
-.principles button { text-align: left; cursor: pointer; border: 1px solid var(--color-border); background: var(--color-bg-raised); border-radius: var(--radius-lg); padding: 16px; display: grid; gap: 4px; transition: all var(--motion-fast) }
-.principles button[aria-expanded="true"] { border-color: var(--color-accent); background: var(--color-accent-subtle); transform: translateY(-1px) }
-.principles b { font-size: 15px }
-.principles span { font-size: 13px; color: var(--color-text-muted) }
 
 /* 주차별 발자취 (제거됨 - 7단계 인터랙티브 파이프라인으로 대체) */
 .tip { position: fixed; z-index: 60; pointer-events: none; background: var(--color-primary); color: var(--color-primary-text); font-size: 12px; padding: 6px 12px; border-radius: var(--radius-sm); box-shadow: var(--shadow-md); white-space: nowrap }
@@ -1645,111 +1601,6 @@ body {
   }
 
 
-  /* === 슬림 5대 기술 난제 해결 카드 그리드 === */
-  .slim-matrix-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 14px;
-    margin-top: 14px;
-  }
-  .slim-card {
-    background: var(--color-card);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    padding: 14px 16px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    transition: transform var(--motion-fast), box-shadow var(--motion-fast);
-  }
-  .slim-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 14px rgba(0,0,0,0.06);
-  }
-  .slim-card--wide {
-    grid-column: span 2;
-  }
-  .slim-card__head {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
-  }
-  .slim-num {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    font-weight: 800;
-    color: var(--color-accent);
-    background: var(--color-accent-subtle);
-    padding: 2px 6px;
-    border-radius: var(--radius-pill);
-  }
-  .slim-title {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--color-primary);
-    flex: 1;
-  }
-  .slim-rows {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-bottom: 10px;
-  }
-  .slim-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    font-size: 12.5px;
-    line-height: 1.45;
-    padding: 5px 8px;
-    border-radius: 4px;
-  }
-  .slim-row--problem {
-    background: var(--color-decrease-subtle);
-  }
-  .slim-row--solution {
-    background: var(--color-increase-subtle);
-  }
-  .slim-tag {
-    font-size: 11px;
-    font-weight: 700;
-    white-space: nowrap;
-    padding-top: 1px;
-  }
-  .slim-row--problem .slim-tag { color: var(--color-critical); }
-  .slim-row--solution .slim-tag { color: var(--color-increase); }
-  .slim-desc {
-    color: var(--color-text);
-    font-weight: 500;
-  }
-  .slim-card__foot {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 8px;
-    border-top: 1px solid var(--color-border);
-    font-size: 12px;
-  }
-  .slim-metric {
-    color: var(--color-primary);
-    font-weight: 600;
-  }
-  .slim-metric b {
-    color: var(--color-increase);
-    font-weight: 800;
-  }
-
-  @media (max-width: 768px) {
-    .slim-matrix-grid {
-      grid-template-columns: 1fr;
-    }
-    .slim-card--wide {
-      grid-column: span 1;
-    }
-  }
-
-
   /* === 인플레이션 시대 재테크 스토리보드 === */
   .wealth-tech-banner {
     margin-top: 16px;
@@ -1984,7 +1835,7 @@ body {
         <span>발표 대본</span>
         <span class="badge-key">N</span>
       </button>
-      <a href="/search" class="btn-live-service" target="_blank" title="DART Insight 라이브 서비스 새 창으로 열기">
+      <a href="/" class="btn-live-service" target="_blank" title="DART Insight 라이브 서비스 새 창으로 열기">
         <span aria-hidden="true">🚀</span>
         <span>라이브 체험</span>
       </a>
@@ -2006,18 +1857,15 @@ body {
 <div class="tabsbar gut"><div class="container">
   <nav class="tabs" id="tabs" aria-label="프레젠테이션 목차">
     <a href="#hero">비전 · 개요</a>
-    <a href="#wealth">왜 재테크인가?</a>
     <a href="#glossary">전자공시란?</a>
     <a href="#why">추진 배경</a>
     <a href="#value">핵심 가치</a>
-    <a href="#solution-matrix">5대 난제 해결</a>
     <a href="#activity-financial">실적 대조</a>
     <a href="#activity-flow">공시분석·원문점프</a>
     <a href="#methods">분석 기준</a>
     <a href="#impact">사용자 임팩트</a>
     <a href="#stack">기술 스택</a>
     <a href="#architecture">아키텍처</a>
-    <a href="#decisions">핵심 설계</a>
     <a href="#infra">인프라 · 운영</a>
     <a href="#weeks">AX 일하는 방식</a>
     <span class="tabs__indicator" id="tabInd" aria-hidden="true"></span>
@@ -2034,22 +1882,32 @@ body {
           <span class="hero__kicker-dot"></span>
           <span>신한DS 금융 AI 핵심 프로젝트 · 2026 Executive Showcase</span>
         </div>
-        <h1>수백 페이지 공시의 변화를<br><span class="hero__title-accent">5초 만에 원문 근거와 함께 꿰뚫다</span></h1>
+        <h1>두 보고서 사이, 바뀐 것만.<br><span class="hero__title-accent">원문 근거와 함께.</span></h1>
       </div>
       <div class="zone-b-badge">
         <span class="zone-b-term">🔍 공시(DART)</span>
-        <span class="zone-b-def">기업의 모든 진실이 담긴 '공식 생활기록부' (전자 공시 도서관)</span>
+        <span class="zone-b-def">회사가 법에 따라 공식으로 알리는 문서. 회사의 생활기록부</span>
       </div>
     </div>
-    <p class="lede"><strong>DART Insight</strong>는 특정 기업의 전자공시(OpenDART) 정기보고서를 비교해, 바뀐 재무 수치와 본문·표 문장을 100% 원문 근거 위치와 함께 대조·분석하고 AI로 검증하는 공시 비교 분석 시스템</p>
+    <p class="lede"><strong>DART Insight</strong>는 같은 회사의 정기보고서 두 개를 비교해, 바뀐 숫자와 문장을 <strong>원문 위치</strong>와 함께 보여 줍니다.</p>
+
+    <!-- 숫자로 보는 프로젝트(2026-11-13 기준, GitHub·저장소에서 센 값) -->
+    <div class="hero-stats" role="list" aria-label="숫자로 보는 프로젝트" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:10px; margin:18px 0 6px;">
+      <div role="listitem" style="text-align:center; padding:14px 8px; border-radius:var(--radius-lg); background:rgba(255,255,255,0.06); border:1px solid var(--color-border);"><p style="margin:0; font-family:var(--font-num); font-size:30px; font-weight:800;">461</p><p style="margin:2px 0 0; font-size:13px; color:var(--color-text-muted);">병합한 PR</p></div>
+      <div role="listitem" style="text-align:center; padding:14px 8px; border-radius:var(--radius-lg); background:rgba(255,255,255,0.06); border:1px solid var(--color-border);"><p style="margin:0; font-family:var(--font-num); font-size:30px; font-weight:800;">1,101</p><p style="margin:2px 0 0; font-size:13px; color:var(--color-text-muted);">커밋</p></div>
+      <div role="listitem" style="text-align:center; padding:14px 8px; border-radius:var(--radius-lg); background:rgba(255,255,255,0.06); border:1px solid var(--color-border);"><p style="margin:0; font-family:var(--font-num); font-size:30px; font-weight:800;">67</p><p style="margin:2px 0 0; font-size:13px; color:var(--color-text-muted);">설계 기록(ADR)</p></div>
+      <div role="listitem" style="text-align:center; padding:14px 8px; border-radius:var(--radius-lg); background:rgba(255,255,255,0.06); border:1px solid var(--color-border);"><p style="margin:0; font-family:var(--font-num); font-size:30px; font-weight:800;">약 90</p><p style="margin:2px 0 0; font-size:13px; color:var(--color-text-muted);">공개 API</p></div>
+      <div role="listitem" style="text-align:center; padding:14px 8px; border-radius:var(--radius-lg); background:rgba(255,255,255,0.06); border:1px solid var(--color-border);"><p style="margin:0; font-family:var(--font-num); font-size:30px; font-weight:800;">약 4,400</p><p style="margin:2px 0 0; font-size:13px; color:var(--color-text-muted);">자동 테스트</p></div>
+    </div>
+    <p style="margin:0 0 4px; font-size:12px; color:var(--color-text-muted);">2026-10-19 시작 · 2026-11-13 기준</p>
 
     <!-- 실전 서비스 시작 여정 -->
     <div class="demo-journey-box">
       <p class="demo-desc">
         <span>💡</span>
-        <span><strong>DART Insight 실시간 공시 분석 시스템에 오신 것을 환영합니다.</strong> 기업 검색과 공시 시즌 급변 Top 10을 화면에서 직접 경험해보세요.</span>
+        <span><strong>기업을 검색해 보세요.</strong> 대표 기업과 이번 시즌 변화가 큰 기업도 첫 화면에 있어요.</span>
       </p>
-      <a href="/search" class="demo-journey-btn" target="_blank">🚀 메인 검색 & 시즌 Top 10 바로가기 ➔</a>
+      <a href="/" class="demo-journey-btn" target="_blank">첫 화면으로 ➔</a>
     </div>
   </div>
 </div>
@@ -2058,109 +1916,12 @@ body {
 
 <!-- 0. 클라이언트를 위한 1초 공시 용어 사전 -->
 <!-- 00-A. 왜 재테크인가? (인플레이션 방어 & 우량 기업 팩트 분석) -->
-<section id="wealth" data-title="왜 재테크인가?">
-  <div class="sechead-4zone">
-    <div class="zone-a">
-      <p class="kicker">00-A · Why Wealth Management</p>
-      <h2>숨만 쉬어도 돈의 가치가 떨어지는 시대<br><span class="hero__title-accent">왜 지금 기업 분석과 재테크인가?</span></h2>
-      <p>인플레이션 방어와 복리의 마법을 현실로 만들기 위한 3단계 팩트 투자 로드맵을 제시합니다.</p>
-    </div>
-    <div class="zone-b-badge">
-      <span class="zone-b-term">🔍 인플레이션 & 복리의 마법</span>
-      <span class="zone-b-def">화폐 가치 하락 방어 & 우량 기업 팩트 분석 기반 자산 증식</span>
-    </div>
-  </div>
-
-  <!-- 3단계 인포그래픽 대시보드 캔버스 -->
-  <div class="wealth-section-card">
-    <div class="wealth-flow-header">
-      <span class="badge badge--ok" style="font-size:12px; font-weight:800">📈 스마트 재테크 3단계 로드맵</span>
-    </div>
-
-    <div class="wealth-steps-grid-v2">
-      <!-- Step 1: 왜 재테크인가? (인플레이션 화폐가치 하락 실측 차트) -->
-      <div class="w-card-v2">
-        <div>
-          <div class="w-card-v2__badge" style="background:#FFF0F2; color:var(--color-critical)">Stage 01 · 위기 인식</div>
-          <h3 class="w-card-v2__title">인플레이션 시대의 생존</h3>
-          <p class="w-card-v2__lead">시간이 흐를수록 급락하는 현금의 실질 가치</p>
-        </div>
-        <div class="w-card-v2__media" style="background:var(--color-bg-raised);">
-          <svg viewBox="0 0 280 180" class="w-inflation-chart" style="padding:10px 8px 6px;">
-            <defs>
-              <linearGradient id="infGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="var(--color-danger)" stop-opacity="0.32"/>
-                <stop offset="100%" stop-color="var(--color-danger)" stop-opacity="0.02"/>
-              </linearGradient>
-            </defs>
-            <line x1="48" y1="35" x2="260" y2="35" stroke="var(--color-border)" stroke-dasharray="3" />
-            <line x1="48" y1="85" x2="260" y2="85" stroke="var(--color-border)" stroke-dasharray="3" />
-            <line x1="48" y1="135" x2="260" y2="135" stroke="var(--color-border)" stroke-dasharray="3" />
-            <line x1="48" y1="155" x2="260" y2="155" stroke="var(--color-border)" />
-            <text x="42" y="38" text-anchor="end" font-size="10" fill="var(--color-text-muted)">100%</text>
-            <text x="42" y="88" text-anchor="end" font-size="10" fill="var(--color-text-muted)">50%</text>
-            <text x="42" y="138" text-anchor="end" font-size="10" fill="var(--color-danger)">28%</text>
-            <path d="M 65 35 Q 140 75 160 88 T 245 135 L 245 155 L 65 155 Z" fill="url(#infGrad)" />
-            <path d="M 65 35 Q 140 75 160 88 T 245 135" fill="none" stroke="var(--color-danger)" stroke-width="3" stroke-linecap="round" />
-            <circle cx="65" cy="35" r="4" fill="var(--color-danger)" />
-            <circle cx="160" cy="88" r="4" fill="var(--color-danger)" />
-            <circle cx="245" cy="135" r="5" fill="var(--color-danger)" />
-            <text x="65" y="24" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--color-text)">100</text>
-            <text x="160" y="78" text-anchor="middle" font-size="10" font-weight="700" fill="var(--color-text)">54 (-46%)</text>
-            <text x="240" y="125" text-anchor="end" font-size="11" font-weight="800" fill="var(--color-danger)">28 (-72%)</text>
-            <text x="65" y="170" text-anchor="middle" font-size="10" fill="var(--color-text-muted)">10년 전</text>
-            <text x="160" y="170" text-anchor="middle" font-size="10.5" font-weight="800" fill="var(--color-primary)">현재</text>
-            <text x="245" y="170" text-anchor="middle" font-size="10" font-weight="700" fill="var(--color-danger)">10년 후</text>
-          </svg>
-        </div>
-      </div>
-
-      <!-- Step 2: 왜 기존 투자는 실패하는가? (피노키오 AI 환각 이미지) -->
-      <div class="w-card-v2 w-card-v2--danger">
-        <div>
-          <div class="w-card-v2__badge" style="background:#FFF0F2; color:var(--color-critical)">Stage 02 · 기존의 함정</div>
-          <h3 class="w-card-v2__title">AI 할루시네이션</h3>
-        </div>
-        <div class="w-card-v2__media">
-          <img src="pinocchio-hallucination.jpg" class="w-card-v2__img" alt="거짓말하면 코가 늘어나는 피노키오 인형 - 생성형 AI 수치 환각 상징">
-        </div>
-      </div>
-
-      <!-- Step 3: 왜 DART Insight인가? (프로젝트 아이콘과 타이틀) -->
-      <div class="w-card-v2 w-card-v2--solution">
-        <div>
-          <div class="w-card-v2__badge" style="background:#ECF8F1; color:var(--color-increase)">Stage 03 · 시스템 해답</div>
-          <h3 class="w-card-v2__title">DART Insight 팩트 비서</h3>
-          <p class="w-card-v2__lead">100% 원문 직결 &amp; 환각 없는 5초 대조</p>
-        </div>
-        <div class="w-card-v2__media" style="background: linear-gradient(135deg, #141936 0%, #1e2652 100%); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; border:none;">
-          <div style="width:58px; height:58px; border-radius:16px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; box-shadow:0 6px 20px rgba(0,0,0,0.3);">
-            <img src="dart-insight-logo.png" style="width:42px; height:42px; display:block;" alt="DART Insight 공식 로고 아이콘">
-          </div>
-          <div style="text-align:center;">
-            <div style="color:#fff; font-size:18px; font-weight:800; letter-spacing:-0.4px;">DART Insight</div>
-            <div style="color:rgba(255,255,255,0.72); font-size:11px; font-weight:600; margin-top:2px;">전자공시 팩트 대조 AI 비서</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="demo-journey-box">
-    <p class="demo-desc">
-      <span>📈</span>
-      <span><strong>인플레이션을 이기는 우량 기업의 실질 실적 변화</strong>를 DART Insight에서 직접 5초 만에 검증하세요.</span>
-    </p>
-    <a href="/search" class="demo-journey-btn" target="_blank">📈 우량 기업 팩트 분석 시작하기 ➔</a>
-  </div>
-</section>
-
 <section id="glossary" data-title="전자공시란?">
   <div class="sechead-4zone">
     <div class="zone-a">
       <p class="kicker">00 · Client Domain Guide</p>
       <h2>전자공시(DART)가 무엇인가요?<br><span class="hero__title-accent">기업의 공식 종합 생활기록부</span></h2>
-      <p>DART Insight를 처음 접하는 클라이언트를 위해, 전자공시의 본질과 시스템의 설계 철학을 1초 만에 알기 쉽게 통역해 드립니다.</p>
+      <p>DART Insight를 처음 접하는 클라이언트를 위해, 공시가 무엇인지 쉽게 풀어 드립니다.</p>
     </div>
     <div class="zone-b-badge">
       <span class="zone-b-term">🔍 전자공시 (DART / OpenDART)</span>
@@ -2173,7 +1934,7 @@ body {
     <div class="dart-hero-top">
       <div class="dart-hero-badge-row">
         <span class="badge badge--ok" style="font-size:12px; font-weight:800">🏛️ 대한민국 금융감독원 공식 시스템</span>
-        <span class="badge badge--accent" style="font-size:12px">법적 구속력 100% 팩트</span>
+        <span class="badge badge--accent" style="font-size:12px">법에 따라 공식으로 내는 문서</span>
       </div>
       <h3 style="font-size:22px; margin:12px 0 6px; color:var(--color-primary)">
         📋 전자공시 (DART / OpenDART)란?
@@ -2237,12 +1998,12 @@ body {
             <span class="dart-vs-icon">🏛️</span>
             <div>
               <h4 style="margin:0; font-size:16px; color:var(--color-increase)">전자공시 DART (금융감독원)</h4>
-              <span style="font-size:12px; color:var(--color-increase); font-weight:800">국가 공인 법적 100% 팩트 데이터</span>
+              <span style="font-size:12px; color:var(--color-increase); font-weight:800">금융감독원이 운영하는 공식 공시 시스템</span>
             </div>
           </div>
         </div>
         <div class="dart-vs-tag dart-vs-tag--ok" style="margin-top:14px; text-align:center;">
-          ✓ 국가 공인 법적 100% 팩트 · 대한민국 상장사 무결성 보장
+          ✓ 우리나라 상장사의 공식 공시가 모두 올라오는 곳
         </div>
       </div>
     </div>
@@ -2252,9 +2013,9 @@ body {
   <div class="demo-journey-box">
     <p class="demo-desc">
       <span>🔍</span>
-      <span><strong>전자공시 원문과 DART Insight의 1초 대조 엔진</strong>이 어떻게 동작하는지 삼성전자 실제 보고서에서 직접 확인하세요.</span>
+      <span><strong>전자공시 원문과 DART Insight의 비교</strong>이 어떻게 동작하는지 삼성전자 실제 보고서에서 직접 확인하세요.</span>
     </p>
-    <a href="/search?q=삼성전자" class="demo-journey-btn" target="_blank">🔍 삼성전자 실시간 분석 체험 ➔</a>
+    <a href="/?q=삼성전자" class="demo-journey-btn" target="_blank">🔍 삼성전자 실시간 분석 체험 ➔</a>
   </div>
 </section>
 
@@ -2321,11 +2082,11 @@ body {
     <div class="card card--glow">
       <p class="label">Pillar 1</p>
       <h3>LLM 기반 다중 대조</h3>
-      <p class="muted"><strong>Time-to-Insight 95% 단축</strong><br>3시간 이상의 수작업 대조를 5초 만에 완료. 5대 재무제표와 본문 문장·표 셀 변경을 한눈에 파악합니다.</p>
+      <p class="muted"><strong>두 보고서 자동 비교</strong><br>사람이 넘겨 보던 대조를 자동으로. 재무제표와 본문 문장·표 변경을 한눈에 봅니다.</p>
     </div>
     <div class="card card--glow">
       <p class="label">Pillar 2</p>
-      <h3>100% 원문 직결</h3>
+      <h3>원문 위치 연결</h3>
       <p class="muted"><strong>Fact-Grounded Trust</strong><br>모든 수치와 문장에 블록 단위 원문 ID를 부여. 클릭 즉시 DART 원문 본문 위치를 형광펜처럼 확인합니다.</p>
     </div>
     <div class="card card--glow">
@@ -2336,7 +2097,7 @@ body {
     <div class="card card--glow">
       <p class="label">Pillar 4</p>
       <h3>규제 준수와 객관성</h3>
-      <p class="muted"><strong>Compliance & Safety</strong><br>매수/매도 권유와 주관적 단정을 100% 차단하고, 객관적 공시 사실과 기준표 기반 신호(긍정/주의/보류)만 전달합니다.</p>
+      <p class="muted"><strong>Compliance & Safety</strong><br>매수·매도 권유와 주관적 단정을 자동 검사로 막고, 객관적 공시 사실과 기준표 기반 신호(긍정/주의/보류)만 전달합니다.</p>
     </div>
   </div>
 
@@ -2362,7 +2123,7 @@ body {
         <span class="label" style="color:var(--color-accent)">W-03 핵심 기능 실증</span>
         <h4 style="margin:0; font-size:16px;">요약·문장 변화에서 DART 전자공시 뷰어로 즉시 점프</h4>
       </div>
-      <span class="badge badge--ok">100% 원문 위치 역참조 (DOM O(1))</span>
+      <span class="badge badge--ok">문장마다 원문 위치로 바로 이동</span>
     </div>
 
     <div class="jump-arrow-grid">
@@ -2390,7 +2151,7 @@ body {
           <span>#접수번호#B042</span>
           <span style="font-size:16px;" aria-hidden="true">➔</span>
         </div>
-        <span style="font-size:11.5px; font-family:var(--font-mono); color:var(--color-text-muted); font-weight:600;">O(1) 해시 역참조</span>
+        <span style="font-size:11.5px; font-family:var(--font-mono); color:var(--color-text-muted); font-weight:600;">원문 위치로 이동</span>
       </div>
 
       <!-- 우측: DART 원문 뷰어 목업 -->
@@ -2412,162 +2173,7 @@ body {
       <span>🎯</span>
       <span><strong>W-03 원문 점프 기능:</strong> 요약문 속 <code>#접수번호#B042</code>를 클릭해 실제 공시 원문으로 순간 이동해보세요.</span>
     </p>
-    <a href="/analysis/demo" class="demo-journey-btn" target="_blank">🎯 W-03 원문 점프 뷰어 라이브 체험 ➔</a>
-  </div>
-</section>
-
-<section id="solution-matrix" data-title="5대 난제 해결">
-  <div class="sechead-4zone">
-    <div class="zone-a">
-      <p class="kicker">03 · Engineering Solutions</p>
-      <h2>5대 핵심 기술적 난제 해결 요약</h2>
-      <p>컴퓨터공학적 병목을 아키텍처 혁신으로 극복하고, 정량 검증 지표로 무결성을 입증했습니다.</p>
-    </div>
-    <div class="zone-b-badge">
-      <span class="zone-b-term">🔍 단방향 FSM & 2-gram BM25</span>
-      <span class="zone-b-def">역주행 불가능 일방통행길 & 45ms 근거 탐지기</span>
-    </div>
-  </div>
-
-<!-- 5대 핵심 기술적 난제 해결 요약 (간결한 3줄 대비 카드) -->
-  <div class="subhead" style="margin-top:32px">
-    <div>
-      <span class="label">Engineering Solutions</span>
-      <h3 style="margin-top:2px">5대 기술 난제 해결 핵심 요약</h3>
-    </div>
-    <span class="adr">병목 ➔ 아키텍처 해결 ➔ 정량 검증</span>
-  </div>
-
-  <div class="slim-matrix-grid">
-    <!-- 난제 1: StAX 스트리밍 파서 -->
-    <div class="slim-card">
-      <div class="slim-card__head">
-        <span class="slim-num">01</span>
-        <strong class="slim-title">비정형 원문 파싱</strong>
-        <span class="badge badge--ok">StAX O(1)</span>
-      </div>
-      <div class="slim-rows">
-        <div class="slim-row slim-row--problem">
-          <span class="slim-tag">❌ 병목</span>
-          <span class="slim-desc">65만 자 DOM 적재 시 $O(N)$ 메모리 팽창 및 OOM 발생</span>
-        </div>
-        <div class="slim-row slim-row--solution">
-          <span class="slim-tag">✅ 해결</span>
-          <span class="slim-desc">StAX 스트리밍 파서로 한 줄씩 흘려보내며 영구 블록 앵커 부여</span>
-        </div>
-      </div>
-      <div class="slim-card__foot">
-        <span class="slim-metric">메모리 <b>80MB 고정</b> · 역참조 <b>100%</b></span>
-        <span class="adr">ADR-0008 · 0027</span>
-      </div>
-    </div>
-
-    <!-- 난제 2: 수치 환각 차단 -->
-    <div class="slim-card">
-      <div class="slim-card__head">
-        <span class="slim-num">02</span>
-        <strong class="slim-title">수치 환각 원천 차단</strong>
-        <span class="badge badge--ok">환각 0.00%</span>
-      </div>
-      <div class="slim-rows">
-        <div class="slim-row slim-row--problem">
-          <span class="slim-tag">❌ 병목</span>
-          <span class="slim-desc">생성형 LLM의 비결정론적 토큰 샘플링 수치 왜곡 및 가짜 출처</span>
-        </div>
-        <div class="slim-row slim-row--solution">
-          <span class="slim-tag">✅ 해결</span>
-          <span class="slim-desc">백엔드 Java <code>BigDecimal</code> 100% 코드 연산 & 원문 역검증 2회 격리</span>
-        </div>
-      </div>
-      <div class="slim-card__foot">
-        <span class="slim-metric">수치 환각률 <b>0.00%</b> · 매핑 일치 <b>100%</b></span>
-        <span class="adr">ADR-0062 · 0064</span>
-      </div>
-    </div>
-
-    <!-- 난제 3: 45ms BM25 검색 -->
-    <div class="slim-card">
-      <div class="slim-card__head">
-        <span class="slim-num">03</span>
-        <strong class="slim-title">초경량 근거 검색</strong>
-        <span class="badge badge--ok">45ms 초고속</span>
-      </div>
-      <div class="slim-rows">
-        <div class="slim-row slim-row--problem">
-          <span class="slim-tag">❌ 병목</span>
-          <span class="slim-desc">고비용 임베딩 모델 & 외부 Vector DB 도입 시 지연시간·비용 증가</span>
-        </div>
-        <div class="slim-row slim-row--solution">
-          <span class="slim-tag">✅ 해결</span>
-          <span class="slim-desc">외부 의존성 없는 순수 Python 30줄 2-gram BM25 인메모리 랭킹</span>
-        </div>
-      </div>
-      <div class="slim-card__foot">
-        <span class="slim-metric">Vector DB <b>0MB</b> · 검색 지연 <b>&lt; 45ms</b></span>
-        <span class="adr">ADR-0036</span>
-      </div>
-    </div>
-
-    <!-- 난제 4: 단방향 FSM 무결성 -->
-    <div class="slim-card">
-      <div class="slim-card__head">
-        <span class="slim-num">04</span>
-        <strong class="slim-title">분산 작업 무결성</strong>
-        <span class="badge">단방향 FSM</span>
-      </div>
-      <div class="slim-rows">
-        <div class="slim-row slim-row--problem">
-          <span class="slim-tag">❌ 병목</span>
-          <span class="slim-desc">분산 서버 간 상태 꼬임, 동시성 충돌, 중간 완료 상태 누수</span>
-        </div>
-        <div class="slim-row slim-row--solution">
-          <span class="slim-tag">✅ 해결</span>
-          <span class="slim-desc"><code>PENDING → RUNNING → COMPLETED</code> 단방향 FSM & <code>X-Trace-Id</code> 전파</span>
-        </div>
-      </div>
-      <div class="slim-card__foot">
-        <span class="slim-metric">비인가 전이 차단 <b>100%</b> · 분산 로깅 완결</span>
-        <span class="adr">ADR-0004 · 0014</span>
-      </div>
-    </div>
-
-    <!-- 난제 5: 듀얼 라우팅 비용 95% 절감 -->
-    <div class="slim-card slim-card--wide">
-      <div class="slim-card__head">
-        <span class="slim-num">05</span>
-        <strong class="slim-title">2-Tier 듀얼 라우팅</strong>
-        <span class="badge badge--ok">비용 95% 절감</span>
-      </div>
-      <div class="slim-rows">
-        <div class="slim-row slim-row--problem">
-          <span class="slim-tag">❌ 병목</span>
-          <span class="slim-desc">고비용 모델 단독 직렬 호출 시 API 비용 폭증 ($54/일) 및 TPS 급감</span>
-        </div>
-        <div class="slim-row slim-row--solution">
-          <span class="slim-tag">✅ 해결</span>
-          <span class="slim-desc">Tool 선택은 초경량 고속 모델로, 심층 종합만 고성능 모델로 선별 라우팅</span>
-        </div>
-      </div>
-      <div class="slim-card__foot">
-        <span class="slim-metric">호출당 <b>$0.0009</b> (월 10만 원) · 동시 처리량 <b>4.2배 확장</b></span>
-        <span class="adr">ADR-0059 · 0063</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Zone D: Bottom Proof Bar -->
-  <div class="zone-d-proof">
-    <span class="zone-d-chip">설계 판결문 <b>67개 ADR 채택</b></span>
-    <span class="zone-d-chip">단방향 FSM 무결성 <b>100%</b></span>
-    <span class="zone-d-chip">인메모리 검색 지연 <b>&lt; 45ms</b></span>
-  </div>
-
-  <div class="demo-journey-box">
-    <p class="demo-desc">
-      <span>🛡️</span>
-      <span><strong>FSM 단방향 상태 전이와 분산 추적 무결성</strong>을 실제 시스템에서 확인하세요.</span>
-    </p>
-    <a href="/compare" class="demo-journey-btn" target="_blank">🛡️ 상태 무결성 엔진 체험 ➔</a>
+    <a href="/companies/00126380" class="demo-journey-btn" target="_blank">🎯 W-03 원문 점프 뷰어 라이브 체험 ➔</a>
   </div>
 </section>
 
@@ -2575,120 +2181,74 @@ body {
 <section id="activity-financial" data-title="실제 실적 대조">
   <div class="sechead-4zone">
     <div class="zone-a">
-      <p class="kicker">04-A · Financial Evidence</p>
-      <h2>삼성전자 2개년 주요 실적 비교 (2023 vs 2024)</h2>
-      <p>코드가 계산한 재무 증감 수치와 100% 원문 블록 ID를 직결해 실적 변화를 시각화합니다.</p>
+      <p class="kicker">Financial Evidence</p>
+      <h2>삼성전자 2025년, 숫자로 보면</h2>
     </div>
     <div class="zone-b-badge">
-      <span class="zone-b-term">🔍 연결재무제표 & 증감률</span>
-      <span class="zone-b-def">자회사 합산 종합 성적표 & 13가지 사유 코드화</span>
+      <span class="zone-b-term">🔍 증감률</span>
+      <span class="zone-b-def">(올해 − 작년) ÷ 작년. AI가 아니라 코드가 계산</span>
     </div>
   </div>
 
-  <!-- 삼성전자 2개년 주요 실적 비교 인터랙티브 바 차트 -->
   <div class="chart-container-card" style="margin-top:20px;">
     <div class="chart-header">
       <div>
-        <span class="label" style="color:var(--color-accent)">실제 공시 데이터 시각화</span>
-        <h3 style="margin:2px 0 0; font-size:16px">삼성전자 2개년 주요 실적 비교 및 변화 추이 (2023 vs 2024)</h3>
+        <span class="label" style="color:var(--color-accent)">실제 공시 값 · 연결 손익계산서</span>
+        <h3 style="margin:2px 0 0; font-size:16px">2024 → 2025</h3>
       </div>
       <div class="chart-legend">
-        <span class="legend-item"><i style="background:var(--color-chart-previous)"></i> 2023년</span>
-        <span class="legend-item"><i style="background:var(--color-chart-current)"></i> 2024년</span>
+        <span class="legend-item"><i style="background:var(--color-chart-previous)"></i> 2024년</span>
+        <span class="legend-item"><i style="background:var(--color-chart-current)"></i> 2025년</span>
       </div>
     </div>
-
     <div class="visual-barchart-grid">
-      <!-- 매출액 바 -->
       <div class="bar-group">
         <div class="bar-group__label">
-          <span class="bar-title">매출액 (Sales Revenue)</span>
-          <span class="badge badge--ok">▲ +16.2% (+42.0조 원)</span>
+          <span class="bar-title">매출액</span>
+          <span class="badge badge--ok">▲ +10.9% (+32.7조 원)</span>
         </div>
-        <div class="bar-track">
-          <div class="bar-fill bar-fill--prev" style="width: 75%;" title="2023년 매출액: 258.9조 원">
-            <span class="bar-val">258.9조 원</span>
-          </div>
-        </div>
-        <div class="bar-track">
-          <div class="bar-fill bar-fill--curr" style="width: 87%;" title="2024년 매출액: 300.9조 원">
-            <span class="bar-val">300.9조 원</span>
-          </div>
-        </div>
-        <div class="bar-footer">
-          <span class="matrix-code" title="손익계산서 원문 직결">#20240318000542#B014 ↗</span>
-          <span class="muted">글로벌 반도체 업황 회복 및 AI 메모리 수요 견인</span>
-        </div>
+        <div class="bar-track"><div class="bar-fill bar-fill--prev" style="width:90%;" title="2024년 매출액: 300.9조 원"><span class="bar-val">300.9조</span></div></div>
+        <div class="bar-track"><div class="bar-fill bar-fill--curr" style="width:100%;" title="2025년 매출액: 333.6조 원"><span class="bar-val">333.6조</span></div></div>
       </div>
-
-      <!-- 영업이익 바 -->
       <div class="bar-group">
         <div class="bar-group__label">
-          <span class="bar-title">영업이익 (Operating Profit)</span>
-          <span class="badge badge--ok" style="background:var(--color-increase-subtle); color:var(--color-increase); font-weight:800">▲ +403.8% 폭증! (+26.53조 원)</span>
+          <span class="bar-title">영업이익</span>
+          <span class="badge badge--ok">▲ +33.2% (+10.9조 원)</span>
         </div>
-        <div class="bar-track">
-          <div class="bar-fill bar-fill--prev" style="width: 20%;" title="2023년 영업이익: 6.57조 원">
-            <span class="bar-val">6.57조 원</span>
-          </div>
-        </div>
-        <div class="bar-track">
-          <div class="bar-fill bar-fill--curr" style="width: 92%;" title="2024년 영업이익: 33.1조 원">
-            <span class="bar-val">33.1조 원 (+26.53조 원 증액)</span>
-          </div>
-        </div>
-        <div class="bar-footer">
-          <span class="matrix-code" title="MD&A 해설 원문 직결">#20240318000542#B042 ↗</span>
-          <span class="muted">DS부문 흑자 전환 및 HBM 등 고부가가치 제품 비중 확대</span>
-        </div>
+        <div class="bar-track"><div class="bar-fill bar-fill--prev" style="width:75%;" title="2024년 영업이익: 32.7조 원"><span class="bar-val">32.7조</span></div></div>
+        <div class="bar-track"><div class="bar-fill bar-fill--curr" style="width:100%;" title="2025년 영업이익: 43.6조 원"><span class="bar-val">43.6조</span></div></div>
       </div>
-
-      <!-- 당기순이익 바 -->
       <div class="bar-group">
         <div class="bar-group__label">
-          <span class="bar-title">당기순이익 (Net Income)</span>
-          <span class="badge badge--ok">▲ +122.6% (+19.0조 원)</span>
+          <span class="bar-title">당기순이익</span>
+          <span class="badge badge--ok">▲ +31.2% (+10.8조 원)</span>
         </div>
-        <div class="bar-track">
-          <div class="bar-fill bar-fill--prev" style="width: 45%;" title="2023년 당기순이익: 15.5조 원">
-            <span class="bar-val">15.5조 원</span>
-          </div>
-        </div>
-        <div class="bar-track">
-          <div class="bar-fill bar-fill--curr" style="width: 82%;" title="2024년 당기순이익: 34.5조 원">
-            <span class="bar-val">34.5조 원</span>
-          </div>
-        </div>
-        <div class="bar-footer">
-          <span class="matrix-code" title="포괄손익계산서 원문 직결">#20240318000542#B022 ↗</span>
-          <span class="muted">영업이익 급증 및 자회사 지분법 손익 개선</span>
-        </div>
+        <div class="bar-track"><div class="bar-fill bar-fill--prev" style="width:76%;" title="2024년 당기순이익: 34.5조 원"><span class="bar-val">34.5조</span></div></div>
+        <div class="bar-track"><div class="bar-fill bar-fill--curr" style="width:100%;" title="2025년 당기순이익: 45.2조 원"><span class="bar-val">45.2조</span></div></div>
       </div>
     </div>
   </div>
 
-  <!-- Zone D: Bottom Proof Bar -->
   <div class="zone-d-proof">
-    <span class="zone-d-chip">매출액 <b>▲ +16.2%</b> (+42.0조)</span>
-    <span class="zone-d-chip">영업이익 <b>▲ +403.8% 폭증</b></span>
-    <span class="zone-d-chip">원문 블록 직결 <b>100%</b></span>
+    <span class="zone-d-chip">🧮 증감은 <b>코드</b>가 계산</span>
+    <span class="zone-d-chip">📍 출처 <b>사업보고서(2025.12)</b> · 접수번호 20260310002820</span>
   </div>
 
   <div class="demo-journey-box">
     <p class="demo-desc">
       <span>📊</span>
-      <span><strong>삼성전자 2개년 실적과 MD&A 원문 앵커 점프</strong>를 실제 분석 결과 화면에서 체험하세요.</span>
+      <span><strong>삼성전자 기업 개요</strong>에서 여러 해의 재무 흐름을 직접 볼 수 있어요.</span>
     </p>
-    <a href="/analysis/demo" class="demo-journey-btn" target="_blank">📊 삼성전자 실적 분석 체험 ➔</a>
+    <a href="/companies/00126380?view=overview" class="demo-journey-btn" target="_blank">📊 삼성전자 재무 흐름 보기 ➔</a>
   </div>
 </section>
 
 <section id="activity-flow" data-title="공시분석·원문점프">
   <div class="sechead-4zone">
     <div class="zone-a">
-      <p class="kicker">04-B · Userflow & Fact Grounding</p>
+      <p class="kicker">03-B · Userflow & Fact Grounding</p>
       <h2>W-01 탐색부터 W-03 원문 직결 뷰어 점프까지</h2>
-      <p>두 정기보고서와 그 사이의 수시공시 80건에서 의미 있는 활동만 골라 원문과 직결합니다.</p>
+      <p>두 정기보고서와 그 사이의 수시공시에서 의미 있는 활동만 골라 원문과 직결합니다.</p>
     </div>
     <div class="zone-b-badge">
       <span class="zone-b-term">🔍 원문 앵커(Fact Grounding)</span>
@@ -2701,19 +2261,19 @@ body {
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <span class="label">Step 1 · 자동 수집</span>
-        <span class="badge badge--ok">StAX O(1)</span>
+        <span class="badge badge--ok">자동 수집</span>
       </div>
       <h3 style="margin-top:6px">두 보고서 + 수시공시</h3>
       <div class="flow-pill-list" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
         <span class="flow-pill">📊 <strong>정기보고서 2건</strong> 재무 증감 산출</span>
-        <span class="flow-pill">⚡ <strong>수시공시 80건</strong> (주요사항·소송) 병합</span>
-        <span class="flow-pill" style="color:var(--color-accent); font-weight:700">🔗 100% 원문 블록 ID 즉시 직결</span>
+        <span class="flow-pill">⚡ <strong>그 사이 수시공시</strong> (주요사항·소송) 병합</span>
+        <span class="flow-pill" style="color:var(--color-accent); font-weight:700">🔗 문장마다 원문 위치 연결</span>
       </div>
     </div>
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <span class="label">Step 2 · 팩트 대조</span>
-        <span class="badge">45ms BM25</span>
+        <span class="badge">근거 문단 찾기</span>
       </div>
       <h3 style="margin-top:6px">1문단 요약 & 타임라인</h3>
       <div class="flow-pill-list" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
@@ -2741,7 +2301,7 @@ body {
       </div>
       <h3 style="margin-top:6px">사실 vs 전망 분리</h3>
       <div class="flow-pill-list" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
-        <span class="flow-pill">🏢 <strong>회사 공시 사실</strong> 100% 팩트 고정</span>
+        <span class="flow-pill">🏢 <strong>회사 공시 사실</strong> 사실만 고정</span>
         <span class="flow-pill">🤖 <strong>조건부 AI 전망</strong> (출처 필수 워터마크)</span>
         <span class="flow-pill" style="color:var(--color-accent); font-weight:800">🚦 <strong>긍정·주의 신호</strong> 코드 기준표 판정</span>
       </div>
@@ -2773,8 +2333,8 @@ body {
 
   <!-- Zone D: Bottom Proof Bar -->
   <div class="zone-d-proof">
-    <span class="zone-d-chip">수시공시 연계 <b>최근 80건 병합</b></span>
-    <span class="zone-d-chip">원문 점프 뷰어 <b>지연 0.1초 미만</b></span>
+    <span class="zone-d-chip">수시공시 연계 <b>기간 안 공시 모아 보기</b></span>
+    <span class="zone-d-chip">원문 점프 뷰어 <b>클릭 한 번</b></span>
     <span class="zone-d-chip">사실 / 전망 <b>완전 분리</b></span>
   </div>
 
@@ -2783,7 +2343,7 @@ body {
       <span>📑</span>
       <span><strong>W-03 요약 화면에서 전자공시 원문 뷰어로 즉시 점프하는 앵커 링크</strong>를 직접 클릭해 보세요.</span>
     </p>
-    <a href="/analysis/demo" class="demo-journey-btn" target="_blank">📑 W-03 원문 점프 뷰어 체험 ➔</a>
+    <a href="/companies/00126380" class="demo-journey-btn" target="_blank">📑 W-03 원문 점프 뷰어 체험 ➔</a>
   </div>
 </section>
 
@@ -2791,13 +2351,13 @@ body {
 <section id="methods" data-title="4대 분석 기준">
   <div class="sechead-4zone">
     <div class="zone-a">
-      <p class="kicker">05 · Verification Criteria</p>
+      <p class="kicker">04 · Verification Criteria</p>
       <h2>코드 기반 4단계 팩트 검증 기준</h2>
-      <p>LLM의 자의적 해석을 배제하고, 100% 코드 규칙과 상수로만 검증합니다.</p>
+      <p>AI의 해석에 기대지 않고, 코드 규칙으로 검증합니다.</p>
     </div>
     <div class="zone-b-badge">
       <span class="zone-b-term">🔍 4대 판정 규칙</span>
-      <span class="zone-b-def">13가지 수치 사유 코드화 & 컴플라이언스 6대 금지어 자동 필터</span>
+      <span class="zone-b-def">계산 못 하는 경우는 사유 코드로 & 금지 표현 자동 필터</span>
     </div>
   </div>
 
@@ -2820,13 +2380,13 @@ body {
     <!-- Step 2: 재무 수치 증감 연산 -->
     <div class="card" style="border-left: 4px solid var(--color-increase);">
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <span class="label" style="color:var(--color-increase)">Step 2 · 100% 코드 연산</span>
+        <span class="label" style="color:var(--color-increase)">Step 2 · 코드 연산</span>
         <span class="badge badge--ok">Java 백엔드</span>
       </div>
-      <h3 style="margin:6px 0 10px; font-size:16px;">증감액·증감률 100% 코드 연산</h3>
+      <h3 style="margin:6px 0 10px; font-size:16px;">증감액·증감률은 코드가 계산</h3>
       <div class="flow-pill-list" style="display:flex; flex-direction:column; gap:6px;">
-        <span class="flow-pill">🔢 <strong>증감액 = 현재 − 이전:</strong> LLM에 계산 위임 절대 금지 (정확도 100%)</span>
-        <span class="flow-pill">📐 <strong>13가지 증감률 사유 코드화:</strong> 흑자전환·적자전환·0 나누기 에러 원천 방어</span>
+        <span class="flow-pill">🔢 <strong>증감액 = 현재 − 이전:</strong> AI에 계산을 맡기지 않음</span>
+        <span class="flow-pill">📐 <strong>계산 못 하는 사유를 코드로:</strong> 흑자전환·적자전환·0 나누기 에러 원천 방어</span>
         <span class="flow-pill" style="color:var(--color-increase); font-weight:700">🔒 <strong>null ≠ 0 엄격 분리:</strong> 없는 값을 0으로 왜곡하는 환각 차단</span>
       </div>
     </div>
@@ -2849,13 +2409,13 @@ body {
     <div class="card card--glow" style="border-left: 4px solid var(--color-primary);">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <span class="label" style="color:var(--color-primary)">Step 4 · 신호 & 근거</span>
-        <span class="badge badge--ok">45ms BM25</span>
+        <span class="badge badge--ok">근거 문단 찾기</span>
       </div>
-      <h3 style="margin:6px 0 10px; font-size:16px;">30종류·62변화 팩트 신호 판정</h3>
+      <h3 style="margin:6px 0 10px; font-size:16px;">코드 기준표로 신호 판정</h3>
       <div class="flow-pill-list" style="display:flex; flex-direction:column; gap:6px;">
         <span class="flow-pill">🚦 <strong>긍정·주의·보류 코드 판정:</strong> AI 주관 배제, 코드 기준표로 신호 부착</span>
-        <span class="flow-pill">🎯 <strong>2-gram BM25 근거 탐색:</strong> 45ms 만에 재무 증감 사유 원문 문단 적출</span>
-        <span class="flow-pill" style="color:var(--color-primary); font-weight:700">🔗 <strong>#접수번호#B블록번호 앵커:</strong> 모든 요약 문장에 1초 원문 점프 연결</span>
+        <span class="flow-pill">🎯 <strong>2-gram BM25 근거 탐색:</strong> 재무 증감 설명이 될 원문 문단 찾기</span>
+        <span class="flow-pill" style="color:var(--color-primary); font-weight:700">🔗 <strong>#접수번호#B블록번호 앵커:</strong> 모든 요약 문장에 원문 위치 연결</span>
       </div>
     </div>
   </div>
@@ -2863,7 +2423,7 @@ body {
   <!-- 금융 컴플라이언스 6대 절대 금지 표현 필터 바 -->
   <div class="compliance-guard-bar" style="margin-top:20px; padding:16px 20px; background:var(--color-bg-subtle); border-radius:var(--radius-sm); border:1px solid var(--color-border);">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-      <span class="label" style="color:var(--color-decrease); font-weight:800; font-size:12px;">🛡️ 금융 컴플라이언스 6대 절대 금지 표현 필터 (자본시장법 준수)</span>
+      <span class="label" style="color:var(--color-decrease); font-weight:800; font-size:12px;">🛡️ 금지 표현 자동 검사</span>
       <span class="badge badge--danger" style="font-size:11px;">위반 시 자동 기각</span>
     </div>
     <div style="display:flex; flex-wrap:wrap; gap:8px;">
@@ -2872,23 +2432,23 @@ body {
       <span class="c-chip" style="padding:4px 10px; background:#FFF0F2; color:var(--color-decrease); border:1px solid rgba(181,56,70,0.25); border-radius:var(--radius-pill); font-size:12px; font-weight:700">❌ 주가 등락 예측 차단</span>
       <span class="c-chip" style="padding:4px 10px; background:#FFF0F2; color:var(--color-decrease); border:1px solid rgba(181,56,70,0.25); border-radius:var(--radius-pill); font-size:12px; font-weight:700">❌ 주관적 가치판단 차단</span>
       <span class="c-chip" style="padding:4px 10px; background:#FFF0F2; color:var(--color-decrease); border:1px solid rgba(181,56,70,0.25); border-radius:var(--radius-pill); font-size:12px; font-weight:700">❌ 수익률 보장 약속 차단</span>
-      <span class="c-chip" style="padding:4px 10px; background:#EAF8F1; color:var(--color-increase); border:1px solid rgba(20,121,85,0.25); border-radius:var(--radius-pill); font-size:12px; font-weight:800">✅ 공시 원문 근거 100% 필수</span>
+      <span class="c-chip" style="padding:4px 10px; background:#EAF8F1; color:var(--color-increase); border:1px solid rgba(20,121,85,0.25); border-radius:var(--radius-pill); font-size:12px; font-weight:800">✅ 공시 원문 근거 필수</span>
     </div>
   </div>
 
   <!-- Zone D: Bottom Proof Bar -->
   <div class="zone-d-proof">
-    <span class="zone-d-chip">증감 계산 <b>100% 백엔드 코드</b></span>
-    <span class="zone-d-chip">컴플라이언스 <b>6대 표현 자동 차단</b></span>
-    <span class="zone-d-chip">원문 근거 없는 설명 <b>100% 기각</b></span>
+    <span class="zone-d-chip">증감 계산 <b>백엔드 코드</b></span>
+    <span class="zone-d-chip">컴플라이언스 <b>금지 표현 자동 차단</b></span>
+    <span class="zone-d-chip">원문 근거 없는 설명 <b>쓰지 않음</b></span>
   </div>
 
   <div class="demo-journey-box">
     <p class="demo-desc">
       <span>⚖️</span>
-      <span><strong>13가지 증감 사유 판정과 금융 컴플라이언스 6대 표현 검사가 완료된 리포트</strong>를 확인하세요.</span>
+      <span><strong>증감 사유 판정과 금지 표현 검사를 거친 결과</strong>를 확인하세요.</span>
     </p>
-    <a href="/analysis/demo" class="demo-journey-btn" target="_blank">⚖️ 검증된 공시 분석 리포트 체험 ➔</a>
+    <a href="/companies/00126380" class="demo-journey-btn" target="_blank">⚖️ 검증된 공시 분석 리포트 체험 ➔</a>
   </div>
 </section>
 
@@ -2896,7 +2456,7 @@ body {
 <section id="impact" data-title="사용자 임팩트">
   <div class="sechead-4zone">
     <div class="zone-a">
-      <p class="kicker">06 · User Impact & Personas</p>
+      <p class="kicker">05 · User Impact & Personas</p>
       <h2>사람들에게 실질적인 가치를 제공했는가?</h2>
       <p>금융 초보자와 전문 애널리스트, 금융 커뮤니티에 더해 회사를 알아보는 취업 준비생과 거래 상대를 살피는 기업까지, 공시가 필요한 사람들의 실제 고민을 해결합니다.</p>
     </div>
@@ -2912,7 +2472,7 @@ body {
         <span class="badge badge--accent">개인 투자자 · 금융 입문자</span>
         <span class="badge badge--ok">정보 비대칭 해소</span>
       </div>
-      <h3 style="margin-top:8px">어려운 공시를 3초 만에 이해</h3>
+      <h3 style="margin-top:8px">어려운 공시를 쉽게</h3>
       <div class="persona-v2-compare">
         <div class="pv2-box pv2-box--before">
           <span class="pv2-label">❌ 기존 문제</span>
@@ -2920,11 +2480,11 @@ body {
         </div>
         <div class="pv2-box pv2-box--after">
           <span class="pv2-label">✅ DART Insight</span>
-          <p class="pv2-text">50종 용어 툴팁 + AI 브리핑 + 위험 신호 체크</p>
+          <p class="pv2-text">용어 카드 + AI 브리핑 + 위험 신호 체크</p>
         </div>
       </div>
       <div class="persona-tags">
-        <span class="p-tag">#50종용어카드</span>
+        <span class="p-tag">#용어카드</span>
         <span class="p-tag">#위험신호알림</span>
         <span class="p-tag">#3분핵심요약</span>
       </div>
@@ -2934,21 +2494,21 @@ body {
     <div class="persona-card persona-card--analyst">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <span class="badge badge--ok">전문 애널리스트 · 금융 실무자</span>
-        <span class="badge badge--ok">생산성 10배 혁신</span>
+        <span class="badge badge--ok">비교 작업 자동화</span>
       </div>
       <h3 style="margin-top:8px">수작업 엑셀 대조 완전 자동화</h3>
       <div class="persona-v2-compare">
         <div class="pv2-box pv2-box--before">
           <span class="pv2-label">❌ 기존 문제</span>
-          <p class="pv2-text">2개 보고서 수작업 엑셀 대조에 4~5시간 소요</p>
+          <p class="pv2-text">두 보고서를 엑셀로 손수 대조</p>
         </div>
         <div class="pv2-box pv2-box--after">
           <span class="pv2-label">✅ DART Insight</span>
-          <p class="pv2-text">5초 자동 대조 + 약속 이행 검증 + CSV 원클릭 추출</p>
+          <p class="pv2-text">자동 대조 + 약속 이행 대조 + CSV 내보내기</p>
         </div>
       </div>
       <div class="persona-tags">
-        <span class="p-tag">#5초대조</span>
+        <span class="p-tag">#자동대조</span>
         <span class="p-tag">#약속vs이행</span>
         <span class="p-tag">#CSV추출</span>
       </div>
@@ -3034,15 +2594,15 @@ body {
     <span aria-hidden="true" style="font-size:20px">✓</span>
     <div>
       <p><strong>수치로 입증된 시스템 품질 무결성</strong></p>
-      <p class="muted" style="margin-top:4px">기능 기획서(FS-n) <strong>수용 기준(AC) 100% 충족</strong> 검증 완료 · <strong>4,405개 이상의 자동화 테스트</strong>(화면 1,907 · AI 1,188 · 백엔드 1,310, ArchUnit 포함) 100% 통과 · <code>axe-core</code> 기반 웹 접근성 0개 위반 · 모든 PR <code>gitleaks</code> 보안 스캔 통과.</p>
+      <p class="muted" style="margin-top:4px">기능 기획서(FS-n) <strong>수용 기준(AC)으로</strong> 검증 완료 · <strong>약 4,400개 자동 테스트</strong>(화면 1,910 · AI 1,188 · 백엔드 약 1,300, ArchUnit 포함) 통과 · <code>axe-core</code> 기반 웹 접근성 0개 위반 · 모든 PR <code>gitleaks</code> 보안 스캔 통과.</p>
     </div>
   </div>
 
   <!-- Zone D: Bottom Proof Bar -->
   <div class="zone-d-proof">
-    <span class="zone-d-chip">테스트 무결점 통과 <b>4,405개</b></span>
+    <span class="zone-d-chip">테스트 무결점 통과 <b>약 4,400개</b></span>
     <span class="zone-d-chip">웹 접근성(axe-core) 위반 <b>0건</b></span>
-    <span class="zone-d-chip">용어 해설 카드 <b>50종 탑재</b></span>
+    <span class="zone-d-chip">용어 해설 카드 <b>제공</b></span>
   </div>
 
   <div class="demo-journey-box">
@@ -3050,7 +2610,7 @@ body {
       <span>👥</span>
       <span><strong>초보자용 50개 용어 카드와 전문 분석가용 이행 대조표</strong>를 실제 검색 화면에서 경험하세요.</span>
     </p>
-    <a href="/search" class="demo-journey-btn" target="_blank">👥 맞춤형 공시 탐색 체험 ➔</a>
+    <a href="/" class="demo-journey-btn" target="_blank">👥 맞춤형 공시 탐색 체험 ➔</a>
   </div>
 </section>
 
@@ -3058,7 +2618,7 @@ body {
 <section id="stack" data-title="기술 스택">
   <div class="sechead-4zone">
     <div class="zone-a">
-      <p class="kicker">07 · Technology Stack</p>
+      <p class="kicker">06 · Technology Stack</p>
       <h2>어떤 기술과 도구로 구축했는가?</h2>
       <p>화면, 서비스 API, AI 파이프라인, 외부 에이전트 연동을 독립된 네 서브프로젝트로 나누고 최적의 기술을 결합했습니다.</p>
     </div>
@@ -3084,13 +2644,13 @@ body {
         </div>
         <div class="tech-card__title-group">
           <h3 class="tech-card__title">화면 · React & TypeScript</h3>
-          <p class="tech-card__role">5초 초고속 렌더링과 100% 웹 접근성을 갖춘 직관적 금융 비교 대시보드</p>
+          <p class="tech-card__role">접근성 검사를 거친 비교 화면</p>
         </div>
       </div>
       <div class="tech-chips">
-        <span class="tech-chip"><i>⚡</i> Vite 7 번들링 & 14개 라우트 코드 분할</span>
-        <span class="tech-chip"><i>♿</i> WCAG 2.1 접근성 100% (axe-core 통과)</span>
-        <span class="tech-chip"><i>🧪</i> Vitest 1,907개 자동화 테스트 무결성</span>
+        <span class="tech-chip"><i>⚡</i> Vite 번들링 & 화면별 코드 분할(17개 경로)</span>
+        <span class="tech-chip"><i>♿</i> axe-core 접근성 자동 검사</span>
+        <span class="tech-chip"><i>🧪</i> Vitest 자동 테스트 1,910개</span>
       </div>
     </div>
 
@@ -3113,7 +2673,7 @@ body {
         </div>
       </div>
       <div class="tech-chips">
-        <span class="tech-chip"><i>📦</i> 접수번호 기준 19개 OpenDART 영구 캐시</span>
+        <span class="tech-chip"><i>📦</i> 접수번호 기준 OpenDART 자료 저장</span>
         <span class="tech-chip"><i>🛡️</i> FSM 상태 머신 기반 분석 트랜잭션 보장</span>
         <span class="tech-chip"><i>🔒</i> ArchUnit 계층 분리 아키텍처 규칙 검증</span>
       </div>
@@ -3132,11 +2692,11 @@ body {
         </div>
         <div class="tech-card__title-group">
           <h3 class="tech-card__title">AI 파이프라인 · FastAPI</h3>
-          <p class="tech-card__role">50MB 공시 XML 스트리밍 파싱 및 45ms 인메모리 근거 문단 검색 엔진</p>
+          <p class="tech-card__role">공시 원문 구조화와 근거 문단 검색</p>
         </div>
       </div>
       <div class="tech-chips">
-        <span class="tech-chip"><i>⚡</i> StAX 기반 대용량 공시 XML 스트리밍 파싱</span>
+        <span class="tech-chip"><i>⚡</i> 공시 원문을 목차·문단·표로 구조화</span>
         <span class="tech-chip"><i>🔍</i> 2-gram BM25 초고속 근거 문단 색인</span>
         <span class="tech-chip"><i>🌐</i> 완전 무상태(Stateless) 고가용성 설계</span>
       </div>
@@ -3157,13 +2717,13 @@ body {
         </div>
         <div class="tech-card__title-group">
           <h3 class="tech-card__title">근거 AI · LLM & LangGraph</h3>
-          <p class="tech-card__role">경량-고성능 듀얼 모델 라우팅으로 비용 95% 절감 및 100% 원문 블록 직결</p>
+          <p class="tech-card__role">Claude Haiku 기본, 토큰 단가는 Sonnet의 1/20</p>
         </div>
       </div>
       <div class="tech-chips">
-        <span class="tech-chip"><i>💰</i> 2-Tier 듀얼 라우팅 (비용 95% 절감)</span>
-        <span class="tech-chip"><i>🛡️</i> 사실 추출 가드레일 (환각 0% 검증)</span>
-        <span class="tech-chip"><i>🔗</i> 100% 공시 원문 블록 ID 즉시 하이라이트</span>
+        <span class="tech-chip"><i>💰</i> 작업별 모델 설정(ADR-0059·0063)</span>
+        <span class="tech-chip"><i>🛡️</i> 근거 ID·숫자 검사, 실패 시 '검토 필요'</span>
+        <span class="tech-chip"><i>🔗</i> 문장마다 원문 위치</span>
       </div>
     </div>
 
@@ -3182,7 +2742,7 @@ body {
         </div>
         <div class="tech-card__title-group">
           <h3 class="tech-card__title">데이터베이스 · MariaDB</h3>
-          <p class="tech-card__role">57개 테이블의 버전 관리 및 SHA-256 해시 사전 검증 파이프라인</p>
+          <p class="tech-card__role">Flyway로 표 약 58개를 버전 관리</p>
         </div>
       </div>
       <div class="tech-chips">
@@ -3232,7 +2792,7 @@ body {
   <!-- Zone D: Bottom Proof Bar -->
   <div class="zone-d-proof">
     <span class="zone-d-chip">계층 침범 위반 <b>0건 (ArchUnit)</b></span>
-    <span class="zone-d-chip">외부 MCP 읽기 전용 <b>100% 격리</b></span>
+    <span class="zone-d-chip">외부 MCP 읽기 전용 <b>읽기 전용</b></span>
     <span class="zone-d-chip">단방향 의존성 <b>엄격 통제</b></span>
   </div>
 
@@ -3241,7 +2801,7 @@ body {
       <span>🔌</span>
       <span><strong>외부 AI 에이전트를 위한 MCP 서버 읽기 도구 7종과 REST API 명세</strong>를 확인하세요.</span>
     </p>
-    <a href="/api/v1/mcp" class="demo-journey-btn" target="_blank">🔌 MCP 공시 도구 규격 체험 ➔</a>
+    <a href="https://github.com/ShinhanDSProject/dart-insight/tree/main/mcp-server" class="demo-journey-btn" target="_blank">🔌 MCP 공시 도구 규격 체험 ➔</a>
   </div>
 </section>
 
@@ -3249,13 +2809,13 @@ body {
 <section id="architecture" data-title="아키텍처 및 연동">
   <div class="sechead-4zone">
     <div class="zone-a">
-      <p class="kicker">08 · System Architecture</p>
-      <h2>호출은 한 방향으로 흐르고, 외부 연동과 검증은 전담 계층이 맡습니다</h2>
-      <p>각 구조도의 상자를 누르면 담당 역할, 핵심 클래스·경로, 관련 ADR이 오른쪽에 즉시 표시됩니다.</p>
+      <p class="kicker">07 · System Architecture</p>
+      <h2>요청은 한 방향으로만 흐릅니다</h2>
+      <p>화면 → 백엔드 → AI 서버. 상자를 누르면 역할이 나옵니다.</p>
     </div>
     <div class="zone-b-badge">
-      <span class="zone-b-term">🔍 단방향 FSM</span>
-      <span class="zone-b-def">역주행과 상태 꼬임이 절대 불가능한 일방통행 기차길</span>
+      <span class="zone-b-term">🔍 단방향 호출</span>
+      <span class="zone-b-def">화면은 백엔드만, 백엔드만 AI 서버와 공시를 부르는 규칙</span>
     </div>
   </div>
   <div class="arch">
@@ -3285,83 +2845,11 @@ body {
     <div class="card archinfo" id="archinfo" aria-live="polite"></div>
   </div>
 
-  <div class="subhead">
-    <h3>연동 상세 1 · OpenDART API 수집·캐시·활용 흐름</h3>
-    <span class="adr">OpenDartPaths 19개 경로 · ADR-0024</span>
-  </div>
-  <div class="arch">
-    <div class="archsvg">
-      <svg viewBox="0 0 760 350" id="dartsvg" role="group" aria-label="OpenDART API 연동과 활용 구조도">
-        <defs><marker id="ar-dart" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
-        <path class="eg" data-e="d_corp d_client" d="M172 51 H194 V76 H216" marker-end="url(#ar-dart)"/>
-        <path class="eg" data-e="d_fin d_client" d="M172 129 H194 V96 H216" marker-end="url(#ar-dart)"/>
-        <path class="eg" data-e="d_doc d_client" d="M172 207 H200 V110 H216" marker-end="url(#ar-dart)"/>
-        <path class="eg" data-e="d_info d_client" d="M172 290 H206 V122 H216" marker-end="url(#ar-dart)"/>
-        <path class="eg" data-e="d_client d_cache" d="M291 132 V166" marker-end="url(#ar-dart)"/>
-        <path class="eg" data-e="d_cache d_db" d="M366 200 H388 V140 H408" marker-end="url(#ar-dart)"/>
-        <path class="eg" data-e="d_cache d_parse" d="M366 236 H388 V252 H408" marker-end="url(#ar-dart)"/>
-        <path class="eg" data-e="d_parse d_db" d="M478 212 V180" marker-end="url(#ar-dart)"/>
-        <path class="eg" data-e="d_db d_use_ov" d="M548 124 H570 V53 H590" marker-end="url(#ar-dart)"/>
-        <path class="eg" data-e="d_db d_use_cmp" d="M548 136 H590" marker-end="url(#ar-dart)"/>
-        <path class="eg" data-e="d_db d_use_feed" d="M548 148 H570 V217 H590" marker-end="url(#ar-dart)"/>
-        <path class="eg" data-e="d_db d_use_chat" d="M548 160 H564 V299 H590" marker-end="url(#ar-dart)"/>
-        <text class="el" x="180" y="42">HTTPS</text><text class="el" x="372" y="132">저장·재사용</text><text class="el" x="554" y="116">조회</text>
-        <g class="nd" data-n="d_corp" tabindex="0" role="button" aria-label="기업 고유번호와 공시 목록 API"><rect x="12" y="20" width="160" height="62" rx="9"/><text class="a" x="92" y="46" text-anchor="middle">기업·공시 목록</text><text class="b" x="92" y="65" text-anchor="middle">corpCode · company · list</text></g>
-        <g class="nd" data-n="d_fin" tabindex="0" role="button" aria-label="재무제표와 주요계정 API"><rect x="12" y="98" width="160" height="62" rx="9"/><text class="a" x="92" y="124" text-anchor="middle">재무 수치</text><text class="b" x="92" y="143" text-anchor="middle">전체 재무제표 · 주요계정</text></g>
-        <g class="nd" data-n="d_doc" tabindex="0" role="button" aria-label="공시 원문 ZIP API"><rect x="12" y="176" width="160" height="62" rx="9"/><text class="a" x="92" y="202" text-anchor="middle">공시 원문 ZIP</text><text class="b" x="92" y="221" text-anchor="middle">document.xml</text></g>
-        <g class="nd" data-n="d_info" tabindex="0" role="button" aria-label="정기보고서 및 주요사항보고서 주요정보 12종 API"><rect x="12" y="254" width="160" height="72" rx="9"/><text class="a" x="92" y="283" text-anchor="middle">주요정보 12종</text><text class="b" x="92" y="303" text-anchor="middle">주주·배당·감사의견·주요사항</text></g>
-        <g class="nd" data-n="d_client" tabindex="0" role="button" aria-label="OpenDartClient 단일 호출"><rect x="216" y="48" width="150" height="84" rx="9"/><text class="a" x="291" y="83" text-anchor="middle">OpenDartClient</text><text class="b" x="291" y="103" text-anchor="middle">키 보호·재시도·013 판별</text></g>
-        <g class="nd core" data-n="d_cache" tabindex="0" role="button" aria-label="DartCacheLoader 캐시 정책"><rect x="216" y="166" width="150" height="104" rx="12"/><text class="a" x="291" y="204" text-anchor="middle">DartCacheLoader</text><text class="b" x="291" y="224" text-anchor="middle">접수번호 영구 보관</text><text class="b" x="291" y="242" text-anchor="middle">주기 갱신 · 이전 값 활용</text></g>
-        <g class="nd" data-n="d_db" tabindex="0" role="button" aria-label="MariaDB 공시 캐시 저장소"><rect x="408" y="100" width="140" height="80" rx="9"/><text class="a" x="478" y="134" text-anchor="middle">MariaDB 캐시</text><text class="b" x="478" y="154" text-anchor="middle">rcept_no · corp_code</text></g>
-        <g class="nd" data-n="d_parse" tabindex="0" role="button" aria-label="AI 서버 원문 구조화 연동"><rect x="408" y="212" width="140" height="80" rx="9"/><text class="a" x="478" y="246" text-anchor="middle">원문 구조화</text><text class="b" x="478" y="266" text-anchor="middle">목차 · 문단 · 표 #B{n}</text></g>
-        <g class="nd" data-n="d_use_ov" tabindex="0" role="button" aria-label="기업 검색과 기업 개요 활용"><rect x="590" y="20" width="158" height="66" rx="9"/><text class="a" x="669" y="47" text-anchor="middle">기업 검색 · 개요</text><text class="b" x="669" y="67" text-anchor="middle">재무 추이 · 체크포인트</text></g>
-        <g class="nd" data-n="d_use_cmp" tabindex="0" role="button" aria-label="정기보고서 비교 분석 활용"><rect x="590" y="102" width="158" height="66" rx="9"/><text class="a" x="669" y="129" text-anchor="middle">정기보고서 비교</text><text class="b" x="669" y="149" text-anchor="middle">증감 계산 · 수시공시 연결</text></g>
-        <g class="nd" data-n="d_use_feed" tabindex="0" role="button" aria-label="새 공시 알림과 여러 기업 비교 활용"><rect x="590" y="184" width="158" height="66" rx="9"/><text class="a" x="669" y="211" text-anchor="middle">새 공시 · 다중 비교</text><text class="b" x="669" y="231" text-anchor="middle">관심 기업 알림 · Top 10</text></g>
-        <g class="nd" data-n="d_use_chat" tabindex="0" role="button" aria-label="에이전트 채팅과 MCP 조회 활용"><rect x="590" y="266" width="158" height="66" rx="9"/><text class="a" x="669" y="293" text-anchor="middle">AI 채팅 · MCP 조회</text><text class="b" x="669" y="313" text-anchor="middle">캐시 기반 즉시 응답</text></g>
-      </svg>
-    </div>
-    <div class="card archinfo" id="dartinfo" aria-live="polite"></div>
-  </div>
-
-  <div class="subhead">
-    <h3>연동 상세 2 · AI 서버(/internal) 파이프라인과 검증 흐름</h3>
-    <span class="adr">AiServerPaths 11개 경로 · ADR-0008 · 0036 · 0045 · 0062</span>
-  </div>
-  <div class="arch">
-    <div class="archsvg">
-      <svg viewBox="0 0 760 350" id="aisvg" role="group" aria-label="AI 서버 연동과 활용 구조도">
-        <defs><marker id="ar-ai" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
-        <path class="eg" data-e="a_be a_prep" d="M166 130 H188 V55 H210" marker-end="url(#ar-ai)"/>
-        <path class="eg" data-e="a_be a_sum" d="M166 156 H188 V143 H210" marker-end="url(#ar-ai)"/>
-        <path class="eg" data-e="a_be a_evt" d="M166 184 H188 V231 H210" marker-end="url(#ar-ai)"/>
-        <path class="eg" data-e="a_be a_agent" d="M166 212 H188 V312 H210" marker-end="url(#ar-ai)"/>
-        <path class="eg" data-e="a_prep a_sum" d="M292 92 V106" marker-end="url(#ar-ai)"/>
-        <path class="eg" data-e="a_sum a_llm" d="M374 143 H394 V110 H414" marker-end="url(#ar-ai)"/>
-        <path class="eg" data-e="a_evt a_llm" d="M374 231 H394 V132 H414" marker-end="url(#ar-ai)"/>
-        <path class="eg" data-e="a_agent a_llm" d="M374 312 H400 V154 H414" marker-end="url(#ar-ai)"/>
-        <path class="eg" data-e="a_llm a_model" d="M574 121 H610" marker-end="url(#ar-ai)"/>
-        <path class="eg" data-e="a_llm a_guard" d="M494 176 V204" marker-end="url(#ar-ai)"/>
-        <path class="eg" data-e="a_guard a_out" d="M574 254 H610" marker-end="url(#ar-ai)"/>
-        <text class="el" x="172" y="45">/internal</text><text class="el" x="580" y="113">SDK</text><text class="el" x="578" y="246">응답</text>
-        <g class="nd" data-n="a_be" tabindex="0" role="button" aria-label="백엔드 AiServerClient"><rect x="12" y="96" width="154" height="148" rx="9"/><text class="a" x="89" y="148" text-anchor="middle">AiServerClient</text><text class="b" x="89" y="170" text-anchor="middle">HTTP/1.1 · X-Trace-Id</text><text class="b" x="89" y="190" text-anchor="middle">/internal/* 11개 경로</text><text class="b" x="89" y="210" text-anchor="middle">DB 분리 · 자료만 전달</text></g>
-        <g class="nd" data-n="a_prep" tabindex="0" role="button" aria-label="원문 파싱과 BM25 후보 검색"><rect x="210" y="18" width="164" height="74" rx="9"/><text class="a" x="292" y="48" text-anchor="middle">원문 파싱 · 문장 비교</text><text class="b" x="292" y="68" text-anchor="middle">표 행 대조 · 2-gram BM25</text></g>
-        <g class="nd" data-n="a_sum" tabindex="0" role="button" aria-label="근거 기반 요약과 질의응답"><rect x="210" y="106" width="164" height="74" rx="9"/><text class="a" x="292" y="136" text-anchor="middle">근거 요약 · 질의응답</text><text class="b" x="292" y="156" text-anchor="middle">/summaries · /answers</text></g>
-        <g class="nd" data-n="a_evt" tabindex="0" role="button" aria-label="기업 브리핑·전망·주요 사건"><rect x="210" y="194" width="164" height="74" rx="9"/><text class="a" x="292" y="224" text-anchor="middle">브리핑 · 전망 · 사건</text><text class="b" x="292" y="244" text-anchor="middle">계획 대조 · 신호 기준표</text></g>
-        <g class="nd" data-n="a_agent" tabindex="0" role="button" aria-label="LangGraph 에이전트 한 단계"><rect x="210" y="282" width="164" height="60" rx="9"/><text class="a" x="292" y="307" text-anchor="middle">LangGraph 한 단계</text><text class="b" x="292" y="327" text-anchor="middle">plan → review → write</text></g>
-        <g class="nd core" data-n="a_llm" tabindex="0" role="button" aria-label="단일 LlmClient 모듈"><rect x="414" y="66" width="160" height="110" rx="12"/><text class="a" x="494" y="105" text-anchor="middle">단일 LlmClient</text><text class="b" x="494" y="125" text-anchor="middle">작업별 모델 · 프롬프트 캐시</text><text class="b" x="494" y="145" text-anchor="middle">토큰·비용 기록 (X-Llm-Calls)</text></g>
-        <g class="nd" data-n="a_guard" tabindex="0" role="button" aria-label="코드 기반 인용·수치·표현 검증"><rect x="414" y="204" width="160" height="100" rx="9"/><text class="a" x="494" y="238" text-anchor="middle">코드 검증 · 표현 점검</text><text class="b" x="494" y="258" text-anchor="middle">근거 ID · 수치 일치 확인</text><text class="b" x="494" y="276" text-anchor="middle">최대 2회 재생성 · 객관성 유지</text></g>
-        <g class="nd" data-n="a_model" tabindex="0" role="button" aria-label="LLM 모델 제공자"><rect x="610" y="76" width="138" height="90" rx="9"/><text class="a" x="679" y="113" text-anchor="middle">LLM 엔진</text><text class="b" x="679" y="133" text-anchor="middle">다중 모델 전환 지원</text></g>
-        <g class="nd" data-n="a_out" tabindex="0" role="button" aria-label="검증된 응답과 메타데이터 반환"><rect x="610" y="208" width="138" height="92" rx="9"/><text class="a" x="679" y="242" text-anchor="middle">검증 결과 반환</text><text class="b" x="679" y="262" text-anchor="middle">'AI 생성' · 출처 위치</text><text class="b" x="679" y="280" text-anchor="middle">운영 콘솔 비용 집계</text></g>
-      </svg>
-    </div>
-    <div class="card archinfo" id="aiinfo" aria-live="polite"></div>
-  </div>
-
   <!-- Zone D: Bottom Proof Bar -->
   <div class="zone-d-proof">
-    <span class="zone-d-chip">OpenDART 한도 소진 <b>0% (영구캐시)</b></span>
-    <span class="zone-d-chip">AI 서버 <b>완전 무상태(Stateless)</b></span>
-    <span class="zone-d-chip">분산 추적 <b>X-Trace-Id 100%</b></span>
+    <span class="zone-d-chip">🔑 키·권한·캐시는 <b>백엔드 한 곳</b></span>
+    <span class="zone-d-chip">📦 받은 공시는 <b>접수번호로 저장</b>, 다시 받지 않음</span>
+    <span class="zone-d-chip">🤖 AI 호출은 <b>AI 서버 한 모듈</b>로만</span>
   </div>
 
   <div class="demo-journey-box">
@@ -3369,142 +2857,7 @@ body {
       <span>🔌</span>
       <span><strong>외부 AI가 접근하는 읽기 전용 MCP 서버 사양 및 7종 도구 API 명세</strong>를 확인하세요.</span>
     </p>
-    <a href="/api/v1/mcp" class="demo-journey-btn" target="_blank">🔌 MCP 읽기 도구 7종 사양 보기 ➔</a>
-  </div>
-</section>
-
-<!-- 9. 핵심 설계 및 인터랙티브 시뮬레이터 -->
-<section id="decisions" data-title="핵심 설계 및 시뮬레이터">
-  <div class="sechead-4zone">
-    <div class="zone-a">
-      <p class="kicker">09 · Architectural Decisions</p>
-      <h2>주요 기술 선택의 기준과 동작 원리를 직접 시험해 볼 수 있습니다</h2>
-      <p>67개 ADR에 기록된 설계 중 시스템을 지탱하는 5대 결정을 추렸습니다. 각 카드의 인터랙티브 시뮬레이터를 직접 조작해 보세요.</p>
-    </div>
-    <div class="zone-b-badge">
-      <span class="zone-b-term">🔍 ADR (설계 판결문)</span>
-      <span class="zone-b-def">코드를 짜기 전 '왜 이 기술을 골랐는지' 남긴 67개의 아키텍처 결정 기록</span>
-    </div>
-  </div>
-
-  <article class="dec">
-    <div class="dec__top"><div><p class="kicker">선택 1 · 분석 실행</p><h3>분석은 비동기 작업, 결과를 다 저장한 뒤에만 완료</h3></div><span class="adr">ADR-0004 · 0014 · 0042</span></div>
-    <div class="dec__body">
-      <div class="grid" style="gap:12px">
-        <ul><li>공시 받기와 AI 요약에 수십 초가 걸립니다(요약만 평균 11.6초, 로컬 측정). 작업 번호를 먼저 주고 화면이 몇 초마다 묻습니다.</li><li>허용된 전이만 코드의 표로 관리해, 모든 결과가 저장된 뒤에만 '완료'로 보입니다.</li><li>같은 두 보고서는 저장된 결과를 다시 쓰고, 방식이 바뀌면 버전을 올립니다.</li></ul>
-        <div class="alt"><p class="label">함께 검토한 대안</p>
-          <div><b>요청 하나에서 끝까지 기다리기</b><p>비동기 작업으로 나누면 시간 제한에 여유가 생기고 진행 단계도 차례로 보여 줄 수 있음</p></div>
-          <div><b>메시지 큐(Kafka 등)</b><p>현재 단일 서버 규모에서는 내장 스레드 풀이 구성을 단순하게 유지하는 데 적합함</p></div>
-          <div><b>상태를 자유롭게 바꾸는 setter</b><p>전이표를 두면 결과 저장 완료 순서와 상태 일관성을 코드로 보장할 수 있음</p></div>
-        </div>
-      </div>
-      <div class="demo" id="smdemo">
-        <p class="label"><span>직접 해 보기 · 상태 전이표</span><span class="mono">AnalysisStatus</span></p>
-        <div class="sm"><span class="st" data-s="PENDING">PENDING</span><span class="to">→</span><span class="st" data-s="RUNNING">RUNNING</span><span class="to">→</span><span class="st done" data-s="COMPLETED">COMPLETED</span><span class="to">/</span><span class="st fail" data-s="FAILED">FAILED</span></div>
-        <div class="bar4" aria-hidden="true"><i id="smbar" style="width:10%"></i></div>
-        <div class="btnrow">
-          <button class="btn btn--sm btn--primary" type="button" data-to="RUNNING">작업 시작</button>
-          <button class="btn btn--sm" type="button" data-to="COMPLETED">결과 저장 후 완료</button>
-          <button class="btn btn--sm" type="button" data-to="FAILED">종료 상태 확인</button>
-          <button class="btn btn--sm" type="button" data-to="RUNNING" data-force="1">역방향 전이 시험</button>
-          <button class="btn btn--sm" type="button" id="smreset">처음으로</button>
-        </div>
-        <div id="smmsg" class="callout" aria-live="polite"></div>
-      </div>
-    </div>
-  </article>
-
-  <article class="dec">
-    <div class="dec__top"><div><p class="kicker">선택 2 · AI 신뢰</p><h3>금융 정보에서 가장 중요한 것은 확인 가능한 근거</h3></div><span class="adr">AGENTS.md 'AI 기능 규칙' · ADR-0060 · 0064</span></div>
-    <div class="principles" id="principles">
-      <button type="button" aria-expanded="false"><b>숫자는 코드가 계산</b><span>증감액·증감률은 코드가 만들고 AI에는 그 값을 그대로 넣습니다.</span></button>
-      <button type="button" aria-expanded="false"><b>근거가 확인된 문장만 노출</b><span>문장마다 근거 ID가 있어야 하고, 저장된 원문 위치인지 다시 확인합니다.</span></button>
-      <button type="button" aria-expanded="false"><b>검증 상태는 투명하게</b><span>기준을 통과할 때까지 2번까지 다시 다듬고, 추가 확인이 필요하면 '검토 필요'로 안내합니다.</span></button>
-      <button type="button" aria-expanded="false"><b>객관적인 사실만 전달</b><span>공시 원문은 구분 태그로 감싸 자료로만 다루고, 표현 기준을 자동 검사합니다.</span></button>
-    </div>
-    <div class="demo" id="pdemo" aria-live="polite"></div>
-  </article>
-
-  <article class="dec">
-    <div class="dec__top"><div><p class="kicker">선택 3 · 근거 문단 찾기</p><h3>임베딩 대신 글자 2개 단위 BM25를 직접 구현</h3></div><span class="adr">ADR-0036</span></div>
-    <div class="dec__body">
-      <div class="grid" style="gap:12px">
-        <ul><li>계정 이름·고유명사가 정확히 맞는 것이 중요하고, 같은 입력이면 같은 후보가 같은 순서로 나와 테스트와 설명이 쉽습니다.</li><li>식이 약 30줄이라 라이브러리 없이 직접 썼습니다.</li><li>경영진단 ×1.5, 사업의 내용 ×1.3으로 먼저 봅니다.</li></ul>
-        <div class="alt"><p class="label">함께 검토한 대안</p>
-          <div><b>형태소 분석기 + BM25</b><p>검색어가 띄어쓰기 없는 명사구 중심이라 2글자 단위로도 가볍고 빠르게 찾을 수 있음</p></div>
-          <div><b>임베딩·벡터 검색</b><p>먼저 별도 인프라 없이 동작하는 BM25로 기준선을 세우고 다음 확장 단계로 계획함</p></div>
-        </div>
-      </div>
-      <div class="demo">
-        <p class="label"><span>직접 해 보기 · 후보 문단 최소 길이</span><span class="mono">SK하이닉스 · '매출액'</span></p>
-        <input type="range" id="minlen" min="0" max="2" step="1" value="0" aria-label="최소 길이" aria-valuetext="20자">
-        <div class="chartcap"><span>20자</span><span>40자</span><span>60자</span></div>
-        <div class="para"><div class="meta"><span class="badge" id="rank1badge">1위 후보</span><span class="mono">20250319000665</span></div><p id="rank1"></p></div>
-        <p class="muted" id="rank1note" style="font-size:13px"></p>
-      </div>
-    </div>
-  </article>
-
-  <article class="dec">
-    <div class="dec__top"><div><p class="kicker">선택 4 · 에이전트 채팅</p><h3>AI는 다음 할 일만 고르고, 실행은 백엔드가</h3></div><span class="adr">ADR-0044 · 0045 · 0048 · 0049</span></div>
-    <div class="dec__body">
-      <div class="grid" style="gap:12px">
-        <ul><li>Tool은 백엔드가 실행해 권한 확인·캐시·기존 서비스를 그대로 씁니다. AI 서버는 DB와 분리되어 있습니다.</li><li>노트 담기·관심 기업 같은 쓰기는 확인 버튼을 사용자가 직접 눌렀을 때만 실행됩니다.</li><li>근거는 7가지 종류로 두고, 그 채팅에서 조회된 자료인지 백엔드가 다시 확인합니다.</li></ul>
-        <div class="alt"><p class="label">함께 검토한 대안</p>
-          <div><b>LangChain 에이전트 그대로</b><p>직접 구성하면 우리 AI 모듈의 호출 기록·구조화 출력과 근거·숫자 검증을 일관되게 연결할 수 있음</p></div>
-          <div><b>LangGraph가 대화 전체를 맡기</b><p>한 단계씩 실행하면 단방향 호출 규칙과 무상태 구조를 깔끔하게 지킬 수 있음</p></div>
-        </div>
-      </div>
-      <div class="demo">
-        <p class="label"><span>직접 해 보기 · 질문 하나가 지나가는 길</span></p>
-        <div class="seg" role="group" aria-label="질문 종류" id="agseg">
-          <button type="button" data-s="0" aria-pressed="true">자료가 충분</button><button type="button" data-s="1" aria-pressed="false">Tool 필요</button><button type="button" data-s="2" aria-pressed="false">검토 후 다듬기</button>
-        </div>
-        <div class="chain" id="agchain">
-          <span class="node" data-k="q">질문</span><span class="to">→</span><span class="node" data-k="plan">Tool 고르기·초안</span><span class="to">→</span><span class="node" data-k="tool">백엔드 Tool 실행</span><span class="to">→</span><span class="node" data-k="review">검토</span><span class="to">→</span><span class="node back" data-k="write">답 다시 쓰기</span><span class="to">→</span><span class="node" data-k="ans">답 + 근거</span>
-        </div>
-        <div class="btnrow"><button class="btn btn--sm btn--primary" type="button" id="agplay">▶ 재생</button><span class="muted" style="font-size:13px;align-self:center" id="agsum"></span></div>
-        <div class="log" id="aglog" aria-live="polite"></div>
-      </div>
-    </div>
-  </article>
-
-  <article class="dec">
-    <div class="dec__top"><div><p class="kicker">선택 5 · 작업별 경량 모델 분리와 기본 LLM 최적화</p><h3>Tool 고르기·답 초안은 경량 모델로 분리하고, 기본 LLM을 최적화해 비용 절감</h3></div><span class="adr">ADR-0059 · 0062 · 0063 · #742 측정표</span></div>
-    <div class="dec__body">
-      <div class="grid" style="gap:12px">
-        <div class="grid" style="gap:10px" aria-label="채팅 2단계 10개 측정, 단계당 비용">
-          <div class="costrow"><div class="lb"><span>고르기 기본 · 답 기본 (전)</span><b>$0.0168 · 재작성 1</b></div><div class="track"><i style="width:100%"></i></div></div>
-          <div class="costrow pick"><div class="lb"><span>고르기 경량 · 답 기본 <span class="badge badge--accent">분리</span></span><b>$0.0009 · 재작성 0</b></div><div class="track"><i style="width:5.4%"></i></div></div>
-          <div class="costrow"><div class="lb"><span>모두 경량 (경량 LLM 기본) <span class="badge badge--ok">최신 적용</span></span><b>$0.0004 · 재작성 2</b></div><div class="track"><i style="width:2.4%"></i></div></div>
-        </div>
-        <ul><li>작업별 모델 분리(ADR-0059)를 설계해 반복 호출이 잦은 Tool 고르기 비용을 획기적으로 낮췄습니다.</li><li>이후 전 작업 기본 모델을 경량 고속 LLM으로 최적화(ADR-0063)하여 전체 API 비용을 기존 대비 약 1/20 수준(95% 절감)으로 대폭 절감했습니다.</li><li>필요 시 환경변수(<span class="mono">LLM_MODEL</span>)나 다른 LLM 제공자(<span class="mono">LLM_PROVIDER</span>) 전환으로 언제든 상위 모델로 복귀하거나 제공자를 교체할 수 있습니다.</li></ul>
-      </div>
-      <div class="demo">
-        <p class="label"><span>직접 해 보기 · 하루 채팅 단계 수로 어림</span></p>
-        <input type="range" id="steps" min="100" max="6000" step="100" value="3000" aria-label="하루 채팅 단계 수">
-        <p style="font-size:13px" class="muted">하루 <b class="num" id="stepsv" style="color:var(--color-text)">3,000</b>단계 (채팅 하루 한도 전체 3,000회 기준에서 시작)</p>
-        <div class="grid g2" style="gap:8px">
-          <div class="card"><p class="label">분리 전</p><p class="big" id="cbefore">$50.40</p><p class="muted" style="font-size:12px">하루</p></div>
-          <div class="card card--subtle"><p class="label">분리 후</p><p class="big" id="cafter" style="color:var(--color-accent)">$2.70</p><p class="muted" style="font-size:12px">하루</p></div>
-        </div>
-      </div>
-    </div>
-  </article>
-
-  <div class="zone-d-proof">
-    <span class="zone-d-item">단방향 FSM 상태 제어</span>
-    <span class="zone-d-item">2-gram BM25 엔진</span>
-    <span class="zone-d-item">LangGraph 2-Tier 라우팅</span>
-    <span class="zone-d-item">API 비용 95% 절감</span>
-  </div>
-
-  <div class="demo-journey-box">
-    <p class="demo-desc">
-      <span>🧪</span>
-      <span><strong>가상 시뮬레이터가 아닌 실제 운영 중인 라이브 엔진</strong>으로 직접 공시를 비교해보세요.</span>
-    </p>
-    <a href="/compare" class="demo-journey-btn" target="_blank">🧪 라이브 분석 엔진 직접 돌려보기 ➔</a>
+    <a href="https://github.com/ShinhanDSProject/dart-insight/tree/main/mcp-server" class="demo-journey-btn" target="_blank">🔌 MCP 읽기 도구 7종 사양 보기 ➔</a>
   </div>
 </section>
 
@@ -3512,14 +2865,14 @@ body {
 <section id="infra" data-title="인프라 및 운영 안전">
   <div class="sechead-4zone">
     <div class="zone-a">
-      <p class="kicker">10 · Infrastructure &amp; Operations</p>
-      <h2>2-VM 물리 분리 및 스키마 검증·자동 롤백</h2>
+      <p class="kicker">08 · Infrastructure &amp; Operations</p>
+      <h2>서버 두 대, 실패하면 자동으로 되돌립니다</h2>
     </div>
     <div class="zone-b-badge">
       <span class="zone-b-icon">🔍</span>
       <div>
-        <div class="zone-b-term">2-VM &amp; 자동 롤백 = 배포 사고 시 1초 만에 과거로 되돌리는 비상 탈출 장치</div>
-        <div class="zone-b-desc">고부하 AI 서버와 웹/DB 서버를 물리 격리하고, DB 스키마 V52 해시 검증 및 자동 롤백 파이프라인으로 24/7 무중단 가동</div>
+        <div class="zone-b-term">자동 복구 = 새 버전이 비정상이면 이전 버전으로 되돌리기</div>
+        <div class="zone-b-desc">웹·백엔드·DB 서버와 AI 서버를 나누고, 배포 전 DB 백업과 상태 확인을 거칩니다</div>
       </div>
     </div>
   </div>
@@ -3574,18 +2927,18 @@ body {
   </div>
 
   <div class="zone-d-proof">
-    <span class="zone-d-item">2-VM 물리 격리</span>
-    <span class="zone-d-item">V52 SHA-256 해시 검증</span>
-    <span class="zone-d-item">일일 LLM 쿼터 $100 하드캡</span>
-    <span class="zone-d-item">10초 자동 롤백 복구</span>
+    <span class="zone-d-item">🖥️ 서버 2대로 역할 분리</span>
+    <span class="zone-d-item">⏱️ Jenkins가 5분마다 새 커밋 감지</span>
+    <span class="zone-d-item">💾 배포 전 DB 백업</span>
+    <span class="zone-d-item">↩️ 실패 시 이전 버전 자동 복구(11/9 실제 동작)</span>
   </div>
 
   <div class="demo-journey-box">
     <p class="demo-desc">
       <span>🛡️</span>
-      <span><strong>비로그인 20회 / 회원 100회 / 일일 하드캡 3,000회 쿼터 방어 시스템 안내</strong>.</span>
+      <span><strong>AI 비용은 하루 한도로 막습니다.</strong> 비로그인 20회, 회원 100회, 서비스 전체 3,000회.</span>
     </p>
-    <a href="/pricing" class="demo-journey-btn" target="_blank">🛡️ 이용 권한 & 쿼터 안내 ➔</a>
+    <a href="/pricing" class="demo-journey-btn" target="_blank">🛡️ 이용 한도 안내 ➔</a>
   </div>
 </section>
 
@@ -3593,14 +2946,14 @@ body {
 <section id="weeks" data-title="AX 일하는 방식">
   <div class="sechead-4zone">
     <div class="zone-a">
-      <p class="kicker">11 · AX Way of Working</p>
-      <h2>기획부터 검증까지 7단계 AX 라이프사이클 컨베이어 벨트</h2>
+      <p class="kicker">09 · AX Way of Working</p>
+      <h2>사람과 AI가 같은 규칙으로, 일곱 단계</h2>
     </div>
     <div class="zone-b-badge">
       <span class="zone-b-icon">🔍</span>
       <div>
-        <div class="zone-b-term">AX 협업 파이프라인 = 기획부터 검증까지 AI가 컨베이어 벨트처럼 돕는 일하는 방식의 혁신</div>
-        <div class="zone-b-desc">성공기준(SC) → 기획(FS/AC) → 설계(ADR) → 이슈 분해 → 에이전트 자율 페어 코딩 → 품질 게이트 → 수용검증</div>
+        <div class="zone-b-term">AGENTS.md = 사람과 AI 코딩 도구가 함께 읽는 작업 규칙 한 파일</div>
+        <div class="zone-b-desc">성공 기준 → 기획서·수용 기준 → 설계 기록(ADR) → 이슈 → 구현 → 자동 검사 → 수용 기준 검증</div>
       </div>
     </div>
   </div>
@@ -3671,7 +3024,7 @@ body {
         <g class="nd" data-n="ax_gate" tabindex="0" role="button" aria-label="6단계: 자동화 품질 게이트">
           <rect x="265" y="245" width="220" height="72" rx="10"/>
           <text class="a" x="375" y="274" text-anchor="middle">06. 자동화 품질 게이트</text>
-          <text class="b" x="375" y="294" text-anchor="middle">4,405개 테스트 · 접근성</text>
+          <text class="b" x="375" y="294" text-anchor="middle">약 4,400개 테스트 · 접근성</text>
           <text class="b" x="375" y="308" text-anchor="middle">gitleaks 보안 전수 검증</text>
         </g>
 
@@ -3679,7 +3032,7 @@ body {
         <g class="nd" data-n="ax_done" tabindex="0" role="button" aria-label="7단계: 수용 기준 검증 및 완료">
           <rect x="515" y="245" width="210" height="72" rx="10"/>
           <text class="a" x="620" y="274" text-anchor="middle">07. 수용기준 검증 (Done)</text>
-          <text class="b" x="620" y="294" text-anchor="middle">AC 100% 증빙 대조</text>
+          <text class="b" x="620" y="294" text-anchor="middle">AC마다 증빙 대조</text>
           <text class="b" x="620" y="308" text-anchor="middle">기능 완료 판정</text>
         </g>
       </svg>
@@ -3687,59 +3040,20 @@ body {
     <div class="card archinfo" id="axinfo" aria-live="polite"></div>
   </div>
 
-  <!-- Before vs After AX 임팩트 비교 -->
-  <div class="bna-box" style="margin-top:24px">
-    <div class="bna-head">
-      <div>
-        <span class="label">AX Transformation Impact</span>
-        <h3 style="font-size:18px;margin-top:4px">전통적 개발 방식 vs DART Insight의 AX 페어 프로그래밍</h3>
-      </div>
-      <span class="badge badge--ok">생산성 400% 향상 · 결함 재작업률 0% 달성</span>
-    </div>
-    <div class="bna-grid">
-      <div class="bna-col bna-col--before">
-        <h4>❌ 기존 전통적 개발 방식</h4>
-        <ul class="bna-list">
-          <li><span class="bna-tag">기획 병목</span>기획서 작성 및 WBS 작업 분해에만 수일 소요</li>
-          <li><span class="bna-tag">AI 환각</span>단순 코드 생성 시 아키텍처 규칙과 타입 시스템 파괴</li>
-          <li><span class="bna-tag">품질 부채</span>단위 테스트 없는 빠른 코딩으로 배포 후 대규모 결함</li>
-          <li><span class="bna-tag">설계 휘발</span>구두 논의로 결정된 아키텍처가 코드에 반영되지 않음</li>
-        </ul>
-      </div>
-      <div class="bna-col bna-col--after">
-        <h4>✨ DART Insight AX 일하는 방식</h4>
-        <ul class="bna-list">
-          <li><span class="bna-tag">스킬 자동화</span>성공 기준(SC)에서 수용 기준(AC)·WBS 이슈 30분 만에 도출</li>
-          <li><span class="bna-tag">규칙 헌장</span>AGENTS.md로 AI와 사람 모두 단방향 계층 분리 엄수</li>
-          <li><span class="bna-tag">품질 게이트</span>PR마다 4,405개 테스트 + 접근성 + 보안 기계적 전수 검증</li>
-          <li><span class="bna-tag">67개 ADR</span>모든 구조적 의사결정을 ADR로 남겨 코드와 100% 동기화</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <!-- 정량적 품질 검증 지표 -->
-  <div class="callout" style="margin-top:20px">
-    <span aria-hidden="true" style="font-size:20px">✓</span>
-    <div>
-      <p><strong>수치로 입증된 AX 협업 무결성</strong></p>
-      <p class="muted" style="margin-top:4px">기능 기획서(FS-n) <strong>수용 기준(AC) 100% 충족</strong> 검증 완료 · <strong>4,405개 이상의 자동화 테스트</strong>(화면 1,907 · AI 1,188 · 백엔드 1,310, ArchUnit 포함) 100% 통과 · <code>axe-core</code> 기반 웹 접근성 0개 위반 · 모든 PR <code>gitleaks</code> 보안 스캔 통과.</p>
-    </div>
-  </div>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin-top:20px;" aria-label="약 4주 동안 남은 것"><div style="text-align:center; padding:18px 8px; border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-raised);"><p style="margin:0; font-family:var(--font-num); font-size:36px; font-weight:800; color:var(--color-accent);">461</p><p style="margin:4px 0 0; font-size:14px; color:var(--color-text-muted);">병합한 PR</p></div><div style="text-align:center; padding:18px 8px; border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-raised);"><p style="margin:0; font-family:var(--font-num); font-size:36px; font-weight:800; color:var(--color-accent);">429</p><p style="margin:4px 0 0; font-size:14px; color:var(--color-text-muted);">닫은 이슈</p></div><div style="text-align:center; padding:18px 8px; border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-raised);"><p style="margin:0; font-family:var(--font-num); font-size:36px; font-weight:800; color:var(--color-accent);">67</p><p style="margin:4px 0 0; font-size:14px; color:var(--color-text-muted);">설계 기록(ADR)</p></div><div style="text-align:center; padding:18px 8px; border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-raised);"><p style="margin:0; font-family:var(--font-num); font-size:36px; font-weight:800; color:var(--color-accent);">약 4,400</p><p style="margin:4px 0 0; font-size:14px; color:var(--color-text-muted);">자동 테스트</p></div></div>
 
   <div class="zone-d-proof">
-    <span class="zone-d-item">451개 PR 무충돌 완주</span>
-    <span class="zone-d-item">생산성 400% 향상</span>
-    <span class="zone-d-item">4,405개 자동화 테스트</span>
-    <span class="zone-d-item">결함 재작업률 0%</span>
+    <span class="zone-d-item">📜 규칙은 AGENTS.md 한 파일</span>
+    <span class="zone-d-item">🧪 PR마다 테스트·접근성·비밀정보 검사</span>
+    <span class="zone-d-item">📝 결정마다 이유와 대안을 ADR로</span>
   </div>
 
   <div class="demo-journey-box">
     <p class="demo-desc">
       <span>🌟</span>
-      <span><strong>4,405개 테스트와 67개 ADR로 무결성을 입증한 DART Insight</strong>를 지금 시작하세요.</span>
+      <span><strong>DART Insight</strong>를 직접 써 보세요.</span>
     </p>
-    <a href="/" class="demo-journey-btn" target="_blank">🌟 DART Insight 메인 서비스 바로가기 ➔</a>
+    <a href="/" class="demo-journey-btn" target="_blank">🌟 첫 화면으로 ➔</a>
   </div>
 </section>
 
@@ -3790,7 +3104,7 @@ body {
   </div>
 
   <div class="speech-sidebar__foot">
-    <a href="/search" class="sidebar-live-link" id="sidebarLiveLink" target="_blank">
+    <a href="/" class="sidebar-live-link" id="sidebarLiveLink" target="_blank">
       <span>🚀</span>
       <span id="sidebarLiveLinkText">01 메인 검색 & 시즌 Top 10 바로가기</span>
       <span>➔</span>
@@ -3804,7 +3118,7 @@ body {
 
 <footer class="gut"><div class="container footbar">
   <span>DART Insight · 신한DS 금융 AI 프로젝트 쇼케이스</span>
-  <span style="margin-left:auto">기준 자료: docs/api-spec.md, docs/erd.md, docs/adr(ADR-0001~0068), 451+ PRs, 4,405+ Tests.</span>
+  <span style="margin-left:auto">기준 자료: docs/api-spec.md, docs/erd.md, docs/adr(ADR 67개), 병합 PR 461개, 자동 테스트 약 4,400개 · 2026-11-13 기준</span>
 </div></footer>
 <div class="tip" id="tip" hidden></div>
 
@@ -3966,224 +3280,24 @@ stepper('#userflow', '#flowtext', [
 
 /* 프레젠테이션 모드 & 스피커 노트 */
 (function () {
-  const SPEECHES = [
-    {
-      title: '01 · 비전 & 개요 (인플레이션 시대의 현명한 재테크 AI 비서)',
-      text: `[도발적 질문 Hook]
-"여러분, 가만히 숨만 쉬어도 통장 잔고의 실질 가치가 깎여나가는 고물가·인플레이션 시대, 여러분은 내 자산을 지키기 위해 어떤 재테크를 하고 계십니까?"
+  // 발표 대본: 섹션 id로 찾는다(섹션을 더하거나 빼도 어긋나지 않게)
+  const SPEECHES_BY_ID = {
+    "hero": { title: "표지 · DART Insight", text: "[도발적 질문 Hook]\n보고서 두 권을 놓고 '무엇이 바뀌었는지' 찾는 데 얼마나 걸릴까요?\n\n[1초 용어 통역]\nDART Insight는 같은 회사의 정기보고서 두 개를 비교해, 바뀐 숫자와 문장을 원문 위치와 함께 보여 주는 서비스입니다. 투자를 추천하지 않고, 확인을 돕습니다.\n\n[시각 요소 지시어]\n아래 숫자 띠를 가리킵니다. 약 4주 동안 PR 461개, 설계 기록(ADR) 67개, 자동 테스트 약 4,400개.\n\n[숫자 타격감 마무리]\n왜 만들었는지, 무엇이 다른지, 어떻게 만들었는지 순서로 보여 드리겠습니다." },
+    "glossary": { title: "공시란 무엇인가", text: "[도발적 질문 Hook]\n11월 11일, 엔비디아 젠슨 황이 CEO에서 물러났습니다. 이 사실이 처음 '공식'으로 확정된 곳은 어디였을까요?\n\n[1초 용어 통역]\n바로 공시입니다. 회사가 법에 따라 공식적으로 알리는 문서이고, 우리나라에서는 금융감독원 DART에 올라옵니다. 회사의 생활기록부라고 생각하시면 됩니다.\n\n[시각 요소 지시어]\n왼쪽의 8-K 원문 한 문장과 한글 번역, 오른쪽의 DART를 차례로 가리킵니다.\n\n[숫자 타격감 마무리]\n뉴스가 아니라 원문. 그래서 저희는 공시 원문을 출발점으로 삼았습니다." },
+    "why": { title: "두 가지 한계", text: "[도발적 질문 Hook]\n사업보고서 한 권은 몇 글자일까요? 최대 65만 자, 소설책 네 권입니다.\n\n[1초 용어 통역]\n작년 것과 올해 것을 비교하려면 사람이 두 권을 넘겨 가며 찾아야 합니다. AI에게 맡기면 빠르지만, 그 숫자가 어디서 나왔는지 확인할 수 없습니다.\n\n[시각 요소 지시어]\n책 네 권 → 로봇이 내놓은 '매출 +23%?' → 아래 파란 상자 순서로 가리킵니다.\n\n[숫자 타격감 마무리]\n그래서 세 가지를 지켰습니다. 자동 비교, 숫자는 코드가 계산, 문장마다 원문 위치." },
+    "value": { title: "무엇이 다른가", text: "[도발적 질문 Hook]\n요약해 주는 서비스는 많습니다. 우리는 무엇이 다를까요?\n\n[1초 용어 통역]\n두 보고서를 자동으로 비교하고, 모든 문장에 원문 위치를 붙이고, 재무 숫자와 본문 설명·수시공시를 함께 보여 주고, 매수·매도 같은 추천은 하지 않습니다.\n\n[시각 요소 지시어]\n네 기둥을 하나씩 짚고, 아래 사용 흐름(검색 → 개요 → 보고서 선택 → 분석 → 결과 → 채팅·노트)을 따라갑니다.\n\n[숫자 타격감 마무리]\n검색부터 판단 노트까지, 한 흐름으로 이어집니다." },
+    "activity-financial": { title: "삼성전자 실적 대조", text: "[도발적 질문 Hook]\n삼성전자의 2025년, 숫자로 보면 얼마나 달라졌을까요?\n\n[1초 용어 통역]\n2025년 사업보고서 기준 매출은 300.9조에서 333.6조로 10.9%, 영업이익은 32.7조에서 43.6조로 33.2% 늘었습니다. 이 증감은 AI가 아니라 코드가 계산합니다.\n\n[시각 요소 지시어]\n막대와 옆의 접수번호를 가리킵니다. 누르면 공시 원문의 그 위치로 갑니다.\n\n[숫자 타격감 마무리]\n숫자 하나하나에 출처가 붙어 있다는 것, 그것이 핵심입니다." },
+    "activity-flow": { title: "1년의 흐름 정리", text: "[도발적 질문 Hook]\n두 보고서 사이 1년 동안 회사에는 무슨 일이 있었을까요?\n\n[1초 용어 통역]\n정기보고서 두 개와 그 사이 수시공시를 모아, 실적·투자·주주·위험 관점의 한 문단 요약과 날짜순 타임라인을 만듭니다. 회사가 밝힌 사실과 AI 전망은 나눠서 보여 줍니다.\n\n[시각 요소 지시어]\n왼쪽부터 네 단계를 차례로 짚습니다.\n\n[숫자 타격감 마무리]\n근거를 원문에서 확인하지 못한 신호는 붙이지 않고 '보류'로 남깁니다." },
+    "methods": { title: "믿을 수 있게 하는 검사", text: "[도발적 질문 Hook]\nAI가 쓴 문장, 어떻게 믿을 수 있을까요?\n\n[1초 용어 통역]\n네 단계로 검사합니다. 비교해도 되는 보고서인지 먼저 보고, 증감은 코드가 계산하고, 문장 변화는 목차와 문단을 맞춰 찾고, AI 문장은 근거 위치가 있어야 통과합니다. 통과하지 못하면 두 번까지 다시 만들고, 그래도 안 되면 '검토 필요'로 표시합니다.\n\n[시각 요소 지시어]\n네 단계와 아래 금지 표현 줄을 가리킵니다.\n\n[숫자 타격감 마무리]\n매수·매도 추천, 목표주가, 주가 예측은 화면에 나가기 전에 자동으로 걸러집니다." },
+    "impact": { title: "누가 쓰는가", text: "[도발적 질문 Hook]\n이 서비스, 누가 쓰게 될까요?\n\n[1초 용어 통역]\n공시가 어려운 개인 투자자, 비교 작업이 많은 실무자, 근거로 이야기하고 싶은 커뮤니티, 회사를 알아보는 취업 준비생, 거래 상대를 확인하는 기업입니다.\n\n[시각 요소 지시어]\n다섯 사람 카드를 왼쪽부터 짚습니다.\n\n[숫자 타격감 마무리]\n품질은 숫자로 확인했습니다. 모든 PR에서 자동 테스트 약 4,400개와 접근성 검사를 돌립니다." },
+    "stack": { title: "무엇으로 만들었나", text: "[도발적 질문 Hook]\n이 서비스는 무엇으로 만들었을까요?\n\n[1초 용어 통역]\n화면은 React, 서비스 API는 Spring Boot, AI 처리는 FastAPI, AI 모델은 Claude, 데이터는 MariaDB, 외부 AI 연결은 MCP 서버입니다.\n\n[시각 요소 지시어]\n여섯 블록을 위에서 아래로 짚습니다.\n\n[숫자 타격감 마무리]\n역할을 나눠서, 한 곳을 바꿔도 다른 곳이 흔들리지 않게 했습니다." },
+    "architecture": { title: "큰 그림 구조", text: "[도발적 질문 Hook]\n요청 하나는 어떤 길로 흐를까요?\n\n[1초 용어 통역]\n화면은 백엔드만 부르고, 백엔드가 공시 자료와 AI 서버를 부릅니다. 길이 한 방향이라 열쇠와 기록을 한 곳에서 관리합니다.\n\n[시각 요소 지시어]\n구조도의 상자를 하나 눌러 설명이 바뀌는 것을 보여 줍니다.\n\n[숫자 타격감 마무리]\n받은 공시는 접수번호로 저장해 같은 자료를 두 번 받지 않습니다." },
+    "infra": { title: "운영과 배포", text: "[도발적 질문 Hook]\n이 서비스는 어디서, 어떻게 돌아갈까요?\n\n[1초 용어 통역]\n서버 두 대로 나눴습니다. 웹·백엔드·DB가 한 대, AI 서버가 한 대입니다. 코드를 합치면 Jenkins가 5분 안에 감지해 검사, 이미지 생성, 배포까지 이어 갑니다.\n\n[시각 요소 지시어]\n배포 흐름을 따라가고, 아래 하루 한도 표를 가리킵니다.\n\n[숫자 타격감 마무리]\n배포가 실패하면 이전 버전으로 자동 복구합니다. 11월 9일 실제로 동작했습니다." },
+    "weeks": { title: "일하는 방식", text: "[도발적 질문 Hook]\n약 4주 만에 이만큼을 어떻게 만들었을까요?\n\n[1초 용어 통역]\n성공 기준 → 기획서·수용 기준 → 설계 기록(ADR) → 이슈 → AI와 함께 구현 → 자동 검사 → 수용 기준 검증, 일곱 단계를 매번 지켰습니다. 규칙은 AGENTS.md 한 파일에 두고 사람과 AI가 같이 따랐습니다.\n\n[시각 요소 지시어]\n일곱 단계 고리를 따라가고 아래 숫자를 가리킵니다.\n\n[숫자 타격감 마무리]\n그 결과 PR 461개, ADR 67개, 자동 테스트 약 4,400개가 남았습니다. 감사합니다." }
+  };
+  const SPEECHES = [SPEECHES_BY_ID.hero];
 
-[1초 용어 통역]
-"슬라이드 우측 상단 돋보기를 보시죠. '공시(DART)'란 금융감독원에 제출하는 기업의 공식 생활기록부입니다. 복리의 마법을 누리기 위해선 소문이 아닌 이 공시 속 진짜 기업 실적과 해자를 읽어야 합니다."
-
-[시각 요소 지시어]
-"화면 중앙의 4대 핵심 지표 카드를 보십시오. DART Insight는 소설책 4권 분량의 300페이지 공시 대조를 단 5초 만에, 100% 원문 근거와 환각 0%로 완벽히 끝내주는 스마트 재테크 AI 비서입니다."
-
-[숫자 타격감 마무리]
-"수작업 4시간을 단 5초로 단축하고 환각 0.00%를 달성한, 성공적인 재테크를 위한 나의 가장 확실한 공시 분석 파트너입니다!"`
-    },
-    {
-      title: '00-A · 왜 재테크인가? (인플레이션 방어 & 3대 비주얼 로드맵)',
-      text: `[도발적 질문 Hook]
-"월급 빼고 다 오르는 고물가 시대, 가만히 숨만 쉬고 있어도 내 통장의 실질 구매력은 어떻게 변할까요?"
-
-[1초 용어 통역]
-"우측 상단 돋보기를 보시죠. '인플레이션'이란 시간이 흐를수록 돈의 가치가 녹아내리는 현상이고, '복리의 마법'은 우량 기업의 성장에 편승해 내 자산을 지키는 생존 공식입니다."
-
-[시각 요소 지시어]
-"화면의 3대 시각 로드맵을 보십시오.
-첫째, 좌측 붉은색 '화폐 가치 하락 그래프'입니다. 10년 전 100이던 현금 가치가 현재 54, 10년 뒤 28로 무려 -72% 폭락합니다. 가만히 있으면 실질 자산은 증발합니다.
-둘째, 가운데 거짓말하면 코가 늘어나는 '피노키오'를 보십시오. 300쪽 공시가 어렵다고 유튜브 찌라시나 시중 생성 AI에 물어보면, 피노키오처럼 가짜 숫자를 지어내는 환각 때문에 소중한 원금을 날리게 됩니다.
-셋째, 우측 'DART Insight 팩트 비서'를 보십시오. 저희는 소문이나 생성 AI의 거짓말이 아니라, 100% 공인 원문 직결과 수치 환각 0.00%로 안전하게 자산을 지키는 스마트 재테크 AI 비서입니다."
-
-[숫자 타격감 마무리]
-"현금 실질 가치 -72% 폭락의 위기를 수치 환각 0.00%의 100% DART 공인 팩트 직결로 해결했습니다!"`
-    },
-    {
-      title: '00-B · 전자공시란? (엔비디아 젠슨 황 사임 공시 & DART 팩트)',
-      text: `[도발적 질문 Hook]
-"여러분, 어제 전 세계를 충격에 빠뜨린 엔비디아 젠슨 황 CEO의 사임 소식처럼, 기업의 명운을 가르는 사건이 터졌을 때 우리는 무엇을 보고 믿어야 할까요?"
-
-[1초 용어 통역]
-"우측 상단 돋보기를 보시죠. 전자공시란 '기업이 법에 따라 실적과 사건을 금융당국에 투명하게 공개하는 공식 종합 생활기록부'입니다."
-
-[시각 요소 지시어]
-"화면 좌측의 엔비디아 실제 SEC Form 8-K 수시공시를 보십시오. 무수한 풍문과 찌라시가 돌았지만, 전 세계 시장이 팩트로 확정한 단 하나의 근거는 자본시장법 형사 처벌을 받는 바로 이 공시 원문 1장이었습니다.
-우측의 금융감독원 DART도 마찬가지입니다. DART Insight는 국내 상장사의 5대 재무제표와 MD&A 등 100% 공인 팩트를 공식 API로 1초 만에 원문 직결합니다."
-
-[숫자 타격감 마무리]
-"대표이사 사임부터 재무 수치까지, 수치 환각 0.00%의 법적 공인 팩트로 금융의 신뢰를 완성합니다!"`
-    },
-    {
-      title: '01 · 추진 배경 (소설책 4권 공시 난독 & 일반 AI 환각)',
-      text: `[도발적 질문 Hook]
-"성공적인 재테크를 위해 기업을 제대로 분석하려는데, 소설책 4권 분량인 300~600페이지를 직접 다 읽을 수 있는 분이 계십니까?"
-
-[1초 용어 통역]
-"우측 상단 돋보기를 보시죠. 'MD&A'는 경영진이 쓴 성적표 해설서이고, '할루시네이션'은 시중 AI가 숫자를 지어내는 거짓말입니다."
-
-[시각 요소 지시어]
-"화면 좌우의 1:1 대비 카드를 보십시오. 4시간 동안 Ctrl+F를 반복하는 극심한 피로감과, 챗GPT에 물어봤을 때 가짜 재무 숫자를 지어내는 위험이라는 두 가지 벽에 부딪혀 있었습니다."
-
-[숫자 타격감 마무리]
-"금융에서 1원의 오차는 수억 원의 손실입니다. 4시간 소모와 수치 환각을 기술적으로 영구 해결했습니다!"`
-    },
-    {
-      title: '02 · 핵심 가치 제안 (초고속성 · 100% 원문 직결 점프)',
-      text: `[도발적 질문 Hook]
-"AI가 요약한 문장을 보면서 '이게 진짜 보고서 어디에 적혀 있지?' 의심해 보신 적 없으십니까?"
-
-[1초 용어 통역]
-"우측 상단 돋보기를 보시죠. '연결재무제표'는 자회사 실적까지 합친 성적표이고, '컴플라이언스'는 매수/매도 권유를 막는 안전 차단막입니다."
-
-[시각 요소 지시어]
-"화면 중앙의 3대 가치 카드를 보십시오. 4시간을 5초로 줄이는 초고속성, 모든 문장에 원문 블록 번호를 박아 넣는 100% 직결성, 그리고 투명한 가치중립성입니다."
-
-[숫자 타격감 마무리]
-"단 5초 만에 확인된 설명만 보여주고 원문으로 즉시 점프하는 가장 투명한 금융 분석 경험입니다!"`
-    },
-    {
-      title: '03 · 5대 핵심 기술 난제 해결 요약 (엔지니어링 딥다이브)',
-      text: `[도발적 질문 Hook]
-"AI 서비스가 단순히 프로토타입에 그치지 않고 실제 운영 단계로 가려면 어떤 컴퓨터공학적 난제를 풀어야 할까요?"
-
-[1초 용어 통역]
-"우측 상단 돋보기를 보시죠. '단방향 FSM'은 역주행이 불가능한 일방통행 기차길이고, '2-gram BM25'는 45ms 만에 근거를 찾는 탐지기입니다."
-
-[시각 요소 지시어]
-"화면의 5대 기술 난제 해결 카드를 보십시오. 비정형 파싱부터 수치 환각 차단, 초경량 검색, 분산 무결성, 듀얼 모델 라우팅까지 컴퓨터공학적 병목을 아키텍처로 정면 돌파했습니다."
-
-[숫자 타격감 마무리]
-"67개의 채택된 ADR과 4,405개의 자동화 테스트로 증명된 아키텍처 무결성입니다!"`
-    },
-    {
-      title: '04-A · 실제 실적 대조 (삼성전자 2개년 주요 실적 비교)',
-      text: `[도발적 질문 Hook]
-"삼성전자가 작년에 얼마를 벌었고, 올해 얼마나 늘었는지 1초 만에 확인하실 수 있습니까?"
-
-[1초 용어 통역]
-"우측 상단 돋보기를 보시죠. '증감률'은 코드가 13가지 사유에 맞춰 계산한 100% 팩트 지표입니다."
-
-[시각 요소 지시어]
-"화면 중앙의 인터랙티브 실적 바 차트를 보십시오. 2023년 대비 2024년 매출액은 16.2% 증가한 300조 원, 영업이익은 무려 403.8% 폭증한 33.1조 원을 기록했습니다."
-
-[숫자 타격감 마무리]
-"차트 아래 블록 링크를 누르면 손익계산서와 MD&A 해설 원문으로 0.1초 만에 즉시 점프합니다!"`
-    },
-    {
-      title: '04-B · 공시 분석 & 원문 점프 뷰어 (W-01 ~ W-03)',
-      text: `[도발적 질문 Hook]
-"두 보고서 사이에 이 회사는 도대체 무슨 활동을 했고, 앞으로 어떤 영향이 있을까요?"
-
-[1초 용어 통역]
-"우측 상단 돋보기를 보시죠. '원문 앵커(Fact Grounding)'란 문장마다 접수번호와 블록 ID를 달아두는 100% 공인 영수증입니다."
-
-[시각 요소 지시어]
-"화면의 W-01 탐색부터 W-03 원문 점프 뷰어 흐름을 보십시오. 정기보고서 2건 사이에 발생한 수시공시 80건을 병합해 타임라인을 만들고, 요약 클릭 1초 만에 원문 형광펜 하이라이트로 이동합니다."
-
-[숫자 타격감 마무리]
-"사실과 AI 전망을 엄격히 분리하고, 원문 위치 응답 지연 0.1초 미만을 달성한 완벽한 팩트 뷰어입니다!"`
-    },
-    {
-      title: '05 · 코드 기반 4단계 팩트 검증 기준',
-      text: `[도발적 질문 Hook]
-"LLM에게 '이 회사 실적 어때?'라고 물어보면 그럴듯한 답변이 나오지만, 수치 계산을 맡기면 왜 치명적일까요?"
-
-[1초 용어 통역]
-"우측 상단 돋보기를 보시죠. '4대 판정 규칙'이란 13가지 증감 사유 코드화와 컴플라이언스 6대 금지어를 자동으로 검사하는 안전벨트입니다."
-
-[시각 요소 지시어]
-"화면의 4단계 검증 파이프라인을 보십시오. 비교 조건 검증부터 100% Java 백엔드 계산, 목차 유사도 판정, 코드 기준표 신호까지 오직 결정론적 코드로만 통제합니다."
-
-[숫자 타격감 마무리]
-"증감 계산 100% 백엔드 코드 연산, 6대 컴플라이언스 규칙 검사, 원문 근거 없는 문장은 100% 기각하는 무결점 시스템입니다!"`
-    },
-    {
-      title: '06 · 사용자 임팩트 & 접근성 (초보부터 전문가까지)',
-      text: `[도발적 질문 Hook]
-"주식 초보자와 전문 분석가가 같은 화면에서 모두 만족할 수 있을까요?"
-
-[1초 용어 통역]
-"우측 상단 돋보기를 보시죠. 'WCAG'는 장애인과 약자도 차별 없이 쓰는 웹 표준 안전벨트입니다."
-
-[시각 요소 지시어]
-"화면의 5대 페르소나 Before/After 카드를 보십시오. 초보자에게는 50개 용어 툴팁을, 전문가에게는 5초 엑셀 대조를, 취준생과 기업에는 맞춤형 팩트 필터를 제공합니다."
-
-[숫자 타격감 마무리]
-"리서치 시간 90% 단축과 axe-core 접근성 결함 0건으로 정보의 격차를 완벽히 해소했습니다!"`
-    },
-    {
-      title: '07 · 기술 스택 & 4-Tier 아키텍처 (엄격한 단방향 경계)',
-      text: `[도발적 질문 Hook]
-"화면과 서비스, AI 엔진, 외부 에이전트가 뒤엉키지 않고 완벽하게 협업하려면 어떤 구조가 필요할까요?"
-
-[1초 용어 통역]
-"우측 상단 돋보기를 보시죠. 'MCP 서버'는 외부 AI가 우리 공시 데이터를 안전하게 읽어가는 전용 플러그인입니다."
-
-[시각 요소 지시어]
-"화면의 6대 핵심 기술 카드를 보십시오. React 19부터 Spring Boot 4.1, FastAPI, MariaDB, 그리고 독립 MCP 서버까지 단방향 계층 분리 원칙을 철저히 지킵니다."
-
-[숫자 타격감 마무리]
-"ArchUnit 아키텍처 규칙 검증 통과율 100%, 계층 침범 0건의 완벽한 단방향 모듈화입니다!"`
-    },
-    {
-      title: '08 · 시스템 아키텍처 다이어그램 & 데이터 파이프라인',
-      text: `[도발적 질문 Hook]
-"사용자의 클릭 한 번이 백엔드와 AI 서버, 공시 데이터베이스를 거쳐 화면에 뿌려지기까지 어떤 일이 벌어질까요?"
-
-[1초 용어 통역]
-"우측 상단 돋보기를 보시죠. '영구 캐시'란 하루 2만 건의 OpenDART 호출 한도를 방어하는 영구 저장고입니다."
-
-[시각 요소 지시어]
-"화면 중앙의 시스템 아키텍처 다이어그램을 보십시오. React에서 Spring Boot를 거쳐 FastAPI로 흐르는 단방향 파이프라인과 X-Trace-Id 분산 추적 체계가 한눈에 보입니다."
-
-[숫자 타격감 마무리]
-"한 번 분석된 보고서는 100% 로컬 캐시되어 지연시간 0.1초 미만으로 응답합니다!"`
-    },
-    {
-      title: '09 · 핵심 설계 시뮬레이터 (67개 ADR 라이브 검증)',
-      text: `[도발적 질문 Hook]
-"말뿐인 설계가 아니라, 실제로 코드가 그렇게 돌아가는지 눈으로 확인해 보고 싶지 않으십니까?"
-
-[1초 용어 통역]
-"우측 상단 돋보기를 보시죠. 'ADR'은 코드를 짜기 전 남긴 67개의 설계 판결문입니다."
-
-[시각 요소 지시어]
-"화면의 인터랙티브 시뮬레이터를 보십시오. 버튼을 눌러 상태 역주행을 시도하면 시스템이 이를 즉시 차단하고, LLM 연산 위임을 원천 배제하는 과정을 실시간 확인할 수 있습니다."
-
-[숫자 타격감 마무리]
-"67개의 ADR이 코드와 테스트로 100% 살아 숨 쉬는 검증된 소프트웨어 엔지니어링입니다!"`
-    },
-    {
-      title: '10 · 인프라 & 운영 안전 (2-VM 격리 및 10초 자동 롤백)',
-      text: `[도발적 질문 Hook]
-"AI 서버가 고부하로 다운되면, 백엔드 서비스와 데이터베이스까지 함께 멈춰야 할까요?"
-
-[1초 용어 통역]
-"우측 상단 돋보기를 보시죠. '2-VM 격리'란 AI 엔진과 서비스 백엔드를 물리적으로 분리해 장애 전파를 차단하는 방화벽입니다."
-
-[시각 요소 지시어]
-"화면의 인프라 토폴로지를 보십시오. 서비스 VM과 AI VM을 물리적으로 분리하고, Flyway 마이그레이션과 10초 자동 롤백 스크립트로 무중단 운영을 실현했습니다."
-
-[숫자 타격감 마무리]
-"장애 발생 시 10초 자동 복구와 2단계 일일 쿼터 방어로 365일 24시간 안전한 금융 서비스를 제공합니다!"`
-    },
-    {
-      title: '11 · AX 일하는 방식의 혁신 (421개 PR 무충돌 완주)',
-      text: `[도발적 질문 Hook]
-"단 3주 만에 이 방대한 시스템을 결함 없이 구축할 수 있었던 진짜 비결은 무엇일까요?"
-
-[1초 용어 통역]
-"우측 상단 돋보기를 보시죠. 'AX 협업 파이프라인'이란 기획부터 검증까지 AI 도구와 사람이 규율을 지키며 달리는 컨베이어 벨트입니다."
-
-[시각 요소 지시어]
-"화면의 3주 스프린트 타임라인과 AX 생산성 지표를 보십시오. 기능 기획서(FS)부터 수용 기준(AC) 자동 검증까지 421개 PR을 단 하나의 충돌 없이 rebase merge로 완주했습니다."
-
-[숫자 타격감 마무리]
-"개발 생산성 400% 향상, 결함 재작업률 0%, 4,405개 테스트 무결성으로 입증된 미래형 AI 엔지니어링의 표준입니다!"`
-    }
-  ];
-
-  const slides = [$('#hero'), $('#wealth'), $('#glossary'), $('#why'), $('#value'), $('#solution-matrix'), $('#activity-financial'), $('#activity-flow'), $('#methods'), $('#impact'), $('#stack'), $('#architecture'), $('#decisions'), $('#infra'), $('#weeks')].filter(Boolean);
+  const slides = [$('#hero'), ...$$('main section[id], section[id]')].filter((el, i, a) => el && a.indexOf(el) === i);
   let curSlide = 0, isPresent = false;
 
   const dock = $('#deckDock'), counter = $('#deckCounter');
@@ -4197,41 +3311,35 @@ stepper('#userflow', '#flowtext', [
   const btnExportPdf = $('#btnExportPdf');
   const btnDeckExportPdf = $('#btnDeckExportPdf');
 
-  const SECTION_LIVE_LINKS = [
-    { url: '/search', label: '01 메인 검색 & 시즌 Top 10 바로가기' },
-    { url: '/search', label: '00-A 인플레이션 방어 우량기업 분석 체험' },
-    { url: '/search?q=삼성전자', label: '00-B 전자공시 팩트 원문 직결 체험' },
-    { url: '/compare', label: '01 소설책 4권 분량 5초 대조 실행' },
-    { url: '/analysis/demo', label: '02 핵심 가치 100% 원문 앵커 체험' },
-    { url: '/compare', label: '03 5대 엔지니어링 난제 해결 검증' },
-    { url: '/companies/00126380', label: '04-A 삼성전자 2개년 실적 차트 보기' },
-    { url: '/analysis/demo', label: '04-B W-03 원문 점프 뷰어 직접 체험' },
-    { url: '/analysis/demo', label: '05 13가지 증감 사유 리포트 체험' },
-    { url: '/search', label: '06 페르소나별 맞춤 공시 탐색' },
-    { url: '/api/v1/mcp', label: '07 4-Tier 아키텍처 및 MCP 규격 보기' },
-    { url: '/api/v1/mcp', label: '08 단방향 시스템 아키텍처 다이어그램' },
-    { url: '/compare', label: '09 67개 ADR 설계 시뮬레이터 실행' },
-    { url: '/pricing', label: '10 무중단 롤백 및 일일 쿼터 방어 안내' },
-    { url: '/', label: '11 DART Insight 메인 서비스 시작하기' }
-  ];
+  const LIVE_BY_ID = {
+    "hero": { url: "/", label: "DART Insight 첫 화면" },
+    "glossary": { url: "/companies/00126380?view=overview", label: "삼성전자 기업 개요" },
+    "why": { url: "/", label: "기업 검색에서 비교 시작" },
+    "value": { url: "/companies/00126380", label: "삼성전자 보고서 비교" },
+    "activity-financial": { url: "/companies/00126380?view=overview", label: "삼성전자 재무 흐름" },
+    "activity-flow": { url: "/companies/00126380", label: "삼성전자 분석 결과" },
+    "methods": { url: "/system/ai-usage", label: "AI 사용 현황(검증 기록)" },
+    "impact": { url: "/notes", label: "내 판단 노트" },
+    "stack": { url: "/", label: "DART Insight 첫 화면" },
+    "architecture": { url: "/", label: "DART Insight 첫 화면" },
+    "infra": { url: "/pricing", label: "이용 한도·요금제 안내" },
+    "weeks": { url: "/", label: "DART Insight 첫 화면" }
+  };
 
-  const ZONE_B_TERMS = [
-    { term: '🔍 공시(DART)', def: '기업의 모든 진실이 담긴 공식 종합 생활기록부' },
-    { term: '🔍 인플레이션 & 복리의 마법', def: '화폐 가치 하락 방어 & 우량 기업 팩트 분석 기반 자산 증식' },
-    { term: '🔍 전자공시(DART)', def: '국가기관 금감원에 제출하는 100% 공인 팩트 데이터' },
-    { term: '🔍 할루시네이션 & MD&A', def: 'AI의 그럴듯한 거짓말 & 경영진 공식 성적표 해설서' },
-    { term: '🔍 연결재무제표 & 컴플라이언스', def: '자회사 합산 성적표 & 투자권유 차단 안전막' },
-    { term: '🔍 단방향 FSM & 2-gram BM25', def: '역주행 불가능 일방통행길 & 45ms 근거 탐지기' },
-    { term: '🔍 재무 증감액 & 증감률', def: '13가지 사유 코드화 & 100% Java 백엔드 결정론적 연산' },
-    { term: '🔍 원문 앵커(Fact Grounding)', def: '문장마다 #접수번호#B블록번호로 1클릭 원문 형광펜 점프' },
-    { term: '🔍 4대 판정 규칙 & 가이드라인', def: '조건 검증·수치 연산·문장 대조·코드 기준표 4단계' },
-    { term: '🔍 WCAG & axe-core', def: '장애인·약자도 차별 없이 쓰는 웹 안전벨트' },
-    { term: '🔍 단방향 FSM & ArchUnit', def: '역주행 불가능 일방통행 & 계층 침범 0건' },
-    { term: '🔍 영구 캐시 & MCP 서버', def: '일일 2만 회 한도 방어 & 외부 AI 읽기 전용 플러그인' },
-    { term: '🔍 ADR (Architecture Decision Record)', def: '코드를 짜기 전 남긴 67개의 설계 판결문' },
-    { term: '🔍 Flyway & 2-VM', def: '10초 자동 롤백 & 고부하 AI 서버 물리 격리' },
-    { term: '🔍 AX 협업 파이프라인', def: '3주간 421개 PR 무충돌 완주 & 생산성 400% 향상' }
-  ];
+  const TERMS_BY_ID = {
+    "hero": { term: "🔍 DART Insight", def: "정기보고서 두 개를 비교해 바뀐 것을 원문 근거와 함께 보여 주는 서비스" },
+    "glossary": { term: "🔍 공시 (DART)", def: "회사가 법에 따라 공식으로 알리는 문서. 회사의 생활기록부" },
+    "why": { term: "🔍 AI 환각", def: "AI가 그럴듯하지만 사실과 다른 내용을 지어내는 것" },
+    "value": { term: "🔍 원문 위치", def: "문장마다 붙은 접수번호·문단 번호. 누르면 원문으로 이동" },
+    "activity-financial": { term: "🔍 증감률", def: "(올해 − 작년) ÷ 작년. AI가 아니라 코드가 계산" },
+    "activity-flow": { term: "🔍 수시공시", def: "정기보고서 사이에 생긴 일을 그때그때 알리는 공시" },
+    "methods": { term: "🔍 검토 필요", def: "근거를 확인하지 못한 결과를 숨기지 않고 표시하는 상태" },
+    "impact": { term: "🔍 접근성", def: "누구나(보조기기 사용자 포함) 쓸 수 있게 만드는 웹 기준" },
+    "stack": { term: "🔍 MCP", def: "외부 AI가 우리 데이터를 읽기 전용으로 쓰게 하는 연결 규격" },
+    "architecture": { term: "🔍 단방향 호출", def: "화면 → 백엔드 → AI 서버, 한 방향으로만 부르는 규칙" },
+    "infra": { term: "🔍 자동 복구", def: "새 버전이 비정상이면 이전 버전으로 되돌리는 것" },
+    "weeks": { term: "🔍 ADR", def: "왜 이렇게 설계했는지 남긴 결정 기록. 67개" }
+  };
 
   const parseSpeechToCards = (text) => {
     const hookMatch = text.match(/\[도발적 질문 Hook\]\s*([\s\S]*?)(?=\n\n\[|$)/);
@@ -4241,19 +3349,19 @@ stepper('#userflow', '#flowtext', [
 
     return `
       <div class="speech-card speech-card--hook">
-        <div class="speech-card__label">⚡ 도발적 질문 (Hook)</div>
+        <div class="speech-card__label">① 여는 질문</div>
         <p class="speech-card__content">${esc(hookMatch ? hookMatch[1].trim() : '')}</p>
       </div>
       <div class="speech-card speech-card--trans">
-        <div class="speech-card__label">🔍 1초 용어 통역 (Glossary)</div>
+        <div class="speech-card__label">② 쉬운 설명</div>
         <p class="speech-card__content">${esc(transMatch ? transMatch[1].trim() : '')}</p>
       </div>
       <div class="speech-card speech-card--visual">
-        <div class="speech-card__label">🎯 시각 요소 지시어 (Direct)</div>
+        <div class="speech-card__label">③ 화면 가리키기</div>
         <p class="speech-card__content">${esc(visualMatch ? visualMatch[1].trim() : '')}</p>
       </div>
       <div class="speech-card speech-card--punch">
-        <div class="speech-card__label">💥 숫자 타격감 마무리 (Punchline)</div>
+        <div class="speech-card__label">④ 마무리 한마디</div>
         <p class="speech-card__content">${esc(punchMatch ? punchMatch[1].trim() : '')}</p>
       </div>
     `;
@@ -4265,17 +3373,17 @@ stepper('#userflow', '#flowtext', [
     slides.forEach((s, i) => s.classList.toggle('slide-active', i === curSlide));
     if (counter) counter.textContent = String(curSlide + 1).padStart(2, '0') + ' / ' + String(slides.length).padStart(2, '0');
 
-    const sp = SPEECHES[curSlide] || SPEECHES[0];
+    const sp = SPEECHES_BY_ID[slides[curSlide] && slides[curSlide].id] || SPEECHES_BY_ID.hero;
     if (sidebarTitle && sp) sidebarTitle.textContent = sp.title;
     if (sidebarCounter) sidebarCounter.textContent = String(curSlide + 1).padStart(2, '0') + ' / ' + String(slides.length).padStart(2, '0');
     if (sidebarBody && sp) sidebarBody.innerHTML = parseSpeechToCards(sp.text);
 
-    const zb = ZONE_B_TERMS[curSlide] || ZONE_B_TERMS[0];
+    const zb = TERMS_BY_ID[slides[curSlide] && slides[curSlide].id] || TERMS_BY_ID.hero;
     if (sidebarZoneB && zb) {
       sidebarZoneB.innerHTML = `<span class="szb-term">${esc(zb.term)}</span><span class="szb-def">${esc(zb.def)}</span>`;
     }
 
-    const live = SECTION_LIVE_LINKS[curSlide] || SECTION_LIVE_LINKS[0];
+    const live = LIVE_BY_ID[slides[curSlide] && slides[curSlide].id] || LIVE_BY_ID.hero;
     if (sidebarLiveLink && live) {
       sidebarLiveLink.setAttribute('href', live.url);
       if (sidebarLiveText) sidebarLiveText.textContent = live.label;
@@ -4302,7 +3410,7 @@ stepper('#userflow', '#flowtext', [
 
   if (btnSidebarCopy) {
     btnSidebarCopy.addEventListener('click', () => {
-      const sp = SPEECHES[curSlide] || SPEECHES[0];
+      const sp = SPEECHES_BY_ID[slides[curSlide] && slides[curSlide].id] || SPEECHES_BY_ID.hero;
       if (navigator.clipboard && sp) {
         navigator.clipboard.writeText(`${sp.title}\n\n${sp.text}`).then(() => {
           if (btnSidebarCopyText) {
@@ -4393,6 +3501,7 @@ stepper('#userflow', '#flowtext', [
 /* 구조도 (전체 · OpenDART · AI 서버 · 인프라 · AX 라이프사이클) */
 function bindDiagram(svgSel, boxSel, info, init) {
   const svg = $(svgSel), box = $(boxSel);
+  if (!svg || !box) return; // 구조도를 뺀 장에서도 스크립트가 멈추지 않게
   const sel = (n) => {
     $$('.nd', svg).forEach((g) => { const on = g.dataset.n === n; g.classList.toggle('sel', on); g.setAttribute('aria-pressed', String(on)); });
     $$('.eg', svg).forEach((e) => e.classList.toggle('hot', e.dataset.e.split(' ').includes(n)));
@@ -4409,8 +3518,8 @@ bindDiagram('#archsvg', '#archinfo', {
   mcp: ['MCP 서버 · Python', '외부 AI 에이전트용 읽기 전용 도구 7종.', ['백엔드 공개 API(/api/*)만 부르는 클라이언트 구조', '화면과 동일한 권한·일일 한도 규칙을 그대로 공유합니다'], 'ADR-0052'],
   backend: ['백엔드 · Spring Boot (Java 21)', '서비스 공개 API, OpenDART 수집·캐시, 비교 분석 작업 관리, 에이전트 24개 Tool 실행, 일일 AI 한도.', ['외부 API 키·권한·캐시를 한 곳에서 일관되게 관리', '계층 규칙은 ArchUnit이 빌드마다 자동 검증', '모든 요청에 X-Trace-Id를 부여해 AI 서버까지 연결'], 'ADR-0002 · 0004 · 0044 · 0054'],
   ai: ['AI 서버 · FastAPI (Python 3.12)', '원문 파싱·구조화, 문장·표 변경 탐지, BM25 근거 검색, 요약·설명, LangGraph 에이전트 한 단계.', ['모든 LLM 호출을 단일 LlmClient로 모아 재시도·호출 기록·비용 집계를 일원화', '자동 테스트 1,188개로 파싱·검증 로직 보호', 'DB와 분리된 무상태 구조로 전달받은 자료 처리에만 집중'], 'ADR-0008 · 0036 · 0045'],
-  llm: ['범용 LLM 엔진 (다중 제공자 지원)', '표준화된 LLM 인터페이스를 기반으로 환경변수를 통해 다양한 모델을 유연하게 전환합니다.', ['경량 고속 LLM(ADR-0063 전 작업 기본 적용, 비용 약 95% 절감)', '환경변수(LLM_MODEL)로 특정·전체 작업 고성능 모델 전환 가능', '다중 LLM 제공자(LLM_PROVIDER) 간 유연한 스위칭 아키텍처', '모델 이름·프롬프트 버전·토큰 사용량을 결과와 함께 저장'], 'ADR-0062 · 0063 · 0059'],
-  db: ['DB · MariaDB 11.4', 'Flyway 마이그레이션(V1~V52, 57개 테이블)으로 버전을 관리하고 JPA는 validate로 검증합니다.', ['모든 테이블 기본키는 id BIGINT AUTO_INCREMENT', 'OpenDART 키(corp_code·rcept_no)는 UNIQUE 비즈니스 키로 색인'], 'ADR-0007 · 0017'],
+  llm: ['범용 LLM 엔진 (다중 제공자 지원)', '표준화된 LLM 인터페이스를 기반으로 환경변수를 통해 다양한 모델을 유연하게 전환합니다.', ['기본 모델 Claude Haiku 5.5(ADR-0063), 토큰 단가는 Sonnet의 1/20', '환경변수(LLM_MODEL)로 특정·전체 작업 고성능 모델 전환 가능', '다중 LLM 제공자(LLM_PROVIDER) 간 유연한 스위칭 아키텍처', '모델 이름·프롬프트 버전·토큰 사용량을 결과와 함께 저장'], 'ADR-0062 · 0063 · 0059'],
+  db: ['DB · MariaDB 11.4', 'Flyway 마이그레이션(54개 파일, 표 약 58개)으로 버전을 관리하고 JPA는 validate로 검증합니다.', ['모든 테이블 기본키는 id BIGINT AUTO_INCREMENT', 'OpenDART 키(corp_code·rcept_no)는 UNIQUE 비즈니스 키로 색인'], 'ADR-0007 · 0017'],
   dart: ['OpenDART · NAVER · 공공데이터', '공시·재무·원문은 OpenDART, 기업 최신 뉴스는 NAVER API HUB, 시총 상위 종목은 공공데이터포털에서 수집합니다.', ['접수번호 기준 영구 캐시로 일일 호출 한도를 효율적으로 사용', 'OpenDART status 013은 정상적인 \'자료 없음\' 상태로 기록', '뉴스는 30분 캐시 후 화면에만 표시하며 AI 프롬프트와 분리'], 'ADR-0024 · 0046']
 }, 'backend');
 bindDiagram('#dartsvg', '#dartinfo', {
@@ -4435,7 +3544,7 @@ bindDiagram('#aisvg', '#aiinfo', {
   a_agent: ['LangGraph 에이전트 한 단계', '대화 전체 대신 한 단계(Step) 판단과 답 검증 그래프만 깔끔하게 실행합니다.', ['plan 노드(경량 모델): 추가 Tool이 필요한지 판단하고 충분하면 답 초안까지 작성', 'term 노드: 미등록 금융·공시 용어 일반 설명 예외 허용 및 경고 부착(ADR-0064)', 'review 노드(코드): 근거 ID·수치 일치·객관적 표현을 즉시 점검', 'write 노드(기본 모델): 보완이 필요할 때 검토 의견을 반영해 다시 작성'], 'ADR-0045 · 0049 · 0064'],
   a_llm: ['단일 LlmClient 모듈', '모든 LLM 호출이 반드시 거치는 공통 어댑터입니다.', ['작업 이름(task)에 따라 기본 모델과 경량 모델을 자동 선택', '반복되는 시스템·도구 명세 앞부분에 프롬프트 캐시 적용', '입력·캐시·추론·출력 토큰과 소요 시간을 호출마다 기록'], 'ADR-0008 · 0059'],
   a_guard: ['코드 검증 · 객관적 표현 점검', '화면으로 나가기 전 모든 AI 출력을 코드 규칙으로 확인합니다.', ['모든 문장의 근거 ID가 실제 전달된 원문 블록인지 재확인', '매수·매도 추천이나 가치판단 어휘가 없는지 자동 점검', '기준 통과 전이면 최대 2회 다시 다듬고, 확인이 더 필요하면 \'검토 필요\'로 표시'], 'AGENTS.md AI 규칙'],
-  a_model: ['LLM 엔진 · 다중 모델 전환 연동', '표준화된 제공자 인터페이스로 모델 교체에도 비즈니스 기능 코드는 그대로 유지됩니다.', ['경량 고속 LLM: 전 작업 기본 적용으로 비용 95% 절감(ADR-0063)', '필요 시 고성능 모델 복귀 및 다양한 LLM 제공자(LLM_PROVIDER) 전환 지원', '블록 경계 프롬프트 캐시와 구조화 JSON 스키마 출력 검증 함수 적용'], 'ADR-0062 · 0063 · 0059'],
+  a_model: ['LLM 엔진 · 다중 모델 전환 연동', '표준화된 제공자 인터페이스로 모델 교체에도 비즈니스 기능 코드는 그대로 유지됩니다.', ['기본 모델 Claude Haiku 5.5(ADR-0063), 토큰 단가는 Sonnet의 1/20', '필요 시 고성능 모델 복귀 및 다양한 LLM 제공자(LLM_PROVIDER) 전환 지원', '블록 경계 프롬프트 캐시와 구조화 JSON 스키마 출력 검증 함수 적용'], 'ADR-0062 · 0063 · 0059'],
   a_out: ['검증된 결과와 메타데이터 반환', '검증을 통과한 본문과 투명한 출처·비용 정보를 백엔드로 돌려줍니다.', ['화면에는 코드로 \'AI 생성\' 배지와 원문 바로가기 위치 표시', '모델 이름·프롬프트 버전·토큰 사용량을 저장해 AI 사용 현황과 운영 콘솔에 집계'], 'ADR-0008 · FS-72']
 }, 'a_llm');
 bindDiagram('#infrasvg', '#infrainfo', {
@@ -4456,95 +3565,9 @@ bindDiagram('#axsvg', '#axinfo', {
   ax_arch: ['03. 아키텍처 설계 & 선행 문서화 (ADR / API / ERD)', '코드 한 줄 작성하기 전에 단방향 계층 분리 규칙과 API 명세, DB ERD를 먼저 확정합니다.', ['주체: 사람 🤝 AI 에이전트', 'API 명세(docs/api-spec.md)와 DB ERD(docs/erd.md) 사전 변경 필수 원칙', '구조적 결정 발생 시 아키텍처 결정 기록(ADR) 필수 작성 (총 67개)', '채택된 ADR과 다르게 구현해야 할 경우 코드가 아니라 새 ADR을 먼저 작성 후 합의'], 'docs/adr/ (ADR-0001~0068) · docs/api-spec.md · docs/erd.md'],
   ax_issue: ['04. WBS 작업 원자 분해 (Spec to Issues)', '기획서의 수용 기준(AC)을 완료 기준으로 삼아 1~3일 단위의 원자 작업 이슈로 자동 분해합니다.', ['주체: AI 에이전트 자동화 스킬', '도구: 스펙 기반 WBS 이슈 자동 분해 엔진', '모든 수용 기준(AC)이 적어도 하나의 GitHub 작업 이슈 완료 기준에 1:1 매핑', '선행 이슈 의존성, 레이블(feature/backend/frontend/ai), WBS ID 체계적 자동 부여'], 'WBS 태스크 분해 · GitHub Issues'],
   ax_code: ['05. 에이전틱 자율 페어 프로그래밍 (Agentic Pair-Programming)', 'AGENTS.md 규칙 헌장을 기반으로 사람과 AI, AI와 AI가 실시간 자율 협업합니다.', ['주체: 자율 AI 에이전트 (구현 & 교차 리뷰) 🤝 사람 개발자', 'AGENTS.md 헌장: "추측 코딩 절대 금지, 가치판단 배제, 로컬 DB 실측 검증 우선"', '호출 방향(React → Spring Boot → FastAPI) 엄수 및 What/How 분리(SLAP) 준수', '브랜치 규칙(feature/{WBS ID}-{name})과 충돌 없는 Rebase Merge 선형 히스토리'], 'AGENTS.md · conventions.yaml · 451+ PRs'],
-  ax_gate: ['06. 기계적 자동화 품질 게이트 (Automated Quality Gate)', 'PR이 생성될 때마다 GitHub Actions CI에서 품질과 보안을 기계적으로 전수 검사합니다.', ['주체: GitHub Actions CI 파이프라인 (완전 자동화)', '총 4,405개 테스트 100% 통과 (Vitest 1,907개 + pytest 1,188개 + JUnit 1,310개, ArchUnit 아키텍처 검사 포함)', 'axe-core 기반 웹 접근성 0개 위반 기계적 검증 (WCAG 2.1 AA 100% 충족)', 'gitleaks 시크릿 유출 자동 차단 및 Checkstyle/Ruff 코드 컨벤션 전수 검사'], '.github/workflows/ · Vitest · pytest · ArchUnit · axe-core'],
+  ax_gate: ['06. 기계적 자동화 품질 게이트 (Automated Quality Gate)', 'PR이 생성될 때마다 GitHub Actions CI에서 품질과 보안을 기계적으로 전수 검사합니다.', ['주체: GitHub Actions CI 파이프라인 (완전 자동화)', '자동 테스트 약 4,400개(화면 1,910 · AI 1,188 · 백엔드 약 1,300, ArchUnit 포함)가 통과해야 병합', 'axe-core로 화면 접근성 자동 검사', 'gitleaks 시크릿 유출 자동 차단 및 Checkstyle/Ruff 코드 컨벤션 전수 검사'], '.github/workflows/ · Vitest · pytest · ArchUnit · axe-core'],
   ax_done: ['07. 수용 기준 전수 검증 & 기능 완료 (Verify & Done)', '기획서에 적힌 모든 수용 기준(AC)에 대해 테스트 증빙을 대조하고 최종 승인합니다.', ['주체: 사람 (최종 판정) 🤝 AI 에이전트 (증빙 수집 및 검증서 작성)', '도구: 수용 기준 자동 검증 스킬', '모든 AC에 대해 자동 테스트 파일명, PR 번호, 실측 화면 캡처 증빙 매핑', '100% 검증 통과 확인 시에만 기능 완료(Done) 판정 및 노션 상태 변경'], '수용 기준(AC) 100% 검증 실측 증빙']
 }, 'ax_code');
-
-/* 상태 전이 */
-(function () {
-  const T = { PENDING: ['RUNNING', 'FAILED'], RUNNING: ['COMPLETED', 'FAILED'], COMPLETED: [], FAILED: [] };
-  const W = { PENDING: 10, RUNNING: 55, COMPLETED: 100, FAILED: 100 };
-  let cur = 'PENDING';
-  const msg = $('#smmsg');
-  const draw = (text, kind) => {
-    $$('.st', $('#smdemo')).forEach((s) => s.classList.toggle('cur', s.dataset.s === cur));
-    $('#smbar').style.width = W[cur] + '%';
-    msg.className = 'callout' + (kind ? ' callout--' + kind : '');
-    msg.innerHTML = text;
-  };
-  $$('[data-to]', $('#smdemo')).forEach((b) => b.addEventListener('click', () => {
-    const to = b.dataset.to;
-    if (T[cur].includes(to)) {
-      cur = to;
-      draw({ RUNNING: '진행 중: 공시를 받고 비교한 뒤 AI 요약을 만듭니다.', COMPLETED: '결과를 모두 저장했으므로 <b>COMPLETED</b>로 바꿨습니다. 화면이 결과를 불러옵니다.', FAILED: '<b>FAILED</b>. 사유 코드와 그때까지의 호출 기록을 함께 남기고 안전하게 마무리합니다(ADR-0042).' }[to], to === 'FAILED' ? 'attention' : '');
-    } else {
-      draw('<b>' + cur + ' → ' + to + '</b>은 전이표에 없는 경로여서 현재 상태를 지킵니다. ' + (T[cur].length ? '이동 가능한 다음 상태: ' + T[cur].join(', ') : cur + '는 최종 상태라 그대로 유지됩니다.'), 'attention');
-    }
-  }));
-  $('#smreset').addEventListener('click', () => { cur = 'PENDING'; draw('요청을 접수하고 작업 번호를 줬습니다. 이동 가능한 다음 상태: RUNNING, FAILED'); });
-  draw('요청을 접수하고 작업 번호를 줬습니다. 이동 가능한 다음 상태: RUNNING, FAILED');
-})();
-
-/* 신뢰 원칙 */
-(function () {
-  const ex = [
-    ['예: 매출액 증감률', '증감액과 증감률은 백엔드 코드가 계산하고, 이전 값이 null이거나 0이면 계산 대신 명확한 사유 코드를 남깁니다. AI 프롬프트에는 계산된 값이 그대로 들어갑니다.'],
-    ['예: 근거 ID', '문장마다 <span class="mono">{접수번호}#B{블록 번호}</span> 형식의 근거가 있어야 하고, 그 분석에 전달된 문단 블록인지 백엔드가 다시 확인해 검증된 문장만 담습니다.'],
-    ['예: 다시 다듬기', '형식·근거 기준을 통과할 때까지 최대 2번 다시 생성합니다. 추가 확인이 필요한 항목은 \'검토 필요\' 배지와 원문 인용 요약으로 투명하게 안내합니다.'],
-    ['예: 표현 점검', '공시 원문은 구분 태그로 감싼 자료로만 넣습니다. 매수·매도 추천, 목표주가, 주가 예측 같은 표현이 없는지 화면에 내보내기 전에 자동으로 점검합니다. 미등록 금융 용어는 코드가 경고를 부착하는 일반 설명만 예외 허용합니다(ADR-0064).']
-  ];
-  const btns = $$('#principles button'), out = $('#pdemo');
-  const show = (i) => { btns.forEach((b, j) => b.setAttribute('aria-expanded', String(i === j))); out.innerHTML = '<p class="label">' + ex[i][0] + '</p><p>' + ex[i][1] + '</p>'; };
-  btns.forEach((b, i) => b.addEventListener('click', () => show(i))); show(0);
-})();
-
-/* BM25 길이 */
-(function () {
-  const r = $('#minlen'), out = $('#rank1'), note = $('#rank1note'), badge = $('#rank1badge');
-  const data = [
-    ['20자', '※ 출처: IDC 2024년 12월, 매출액 기준', '출처 한 줄이 1위입니다. BM25는 짧은 글을 우대해서 검색어만 있는 줄이 위로 올라옵니다.', 'badge badge--attention'],
-    ['40자', '당사 매출액은 66조 1,930억원으로 …  (경영진단 문단)', '설명이 담긴 경영진단 문단이 1위가 됩니다. 그래서 40자를 기준으로 정했습니다.', 'badge badge--ok'],
-    ['60자', '당사 매출액은 66조 1,930억원으로 …  (경영진단 문단)', '60자도 결과가 같았습니다. 짧은 설명 문단까지 폭넓게 담기 위해 40자로 둡니다.', 'badge badge--ok']
-  ];
-  const show = () => { const d = data[+r.value]; out.textContent = d[1]; note.textContent = d[2]; badge.className = d[3]; badge.textContent = '1위 후보 · 최소 ' + d[0]; r.setAttribute('aria-valuetext', d[0]); };
-  r.addEventListener('input', show); show();
-})();
-
-/* 에이전트 */
-(function () {
-  const S = [
-    { path: ['q', 'plan', 'review', 'ans'], log: [['info', '질문과 화면 맥락(기업·분석·탭)을 받음'], ['info', 'Tool 고르기(경량 모델: haiku-5-5 / luna): 받은 자료로 충분 → 같은 호출에서 답 초안'], ['ok', '검토 통과: 근거 ID·숫자·표현 확인'], ['ok', '답과 근거를 돌려줌']] },
-    { path: ['q', 'plan', 'tool', 'plan', 'review', 'ans'], log: [['info', '질문을 받음'], ['info', 'Tool 고르기: 재무 추이 Tool이 필요'], ['info', '백엔드가 Tool 실행(권한 확인·캐시 사용) → 결과를 붙여 다시 부름'], ['info', 'Tool 고르기: 이제 충분 → 답 초안'], ['ok', '검토 통과'], ['ok', '답과 근거를 돌려줌']] },
-    { path: ['q', 'plan', 'tool', 'plan', 'review', 'write', 'review', 'ans'], log: [['info', '질문을 받음'], ['info', 'Tool 고르기: 근거 질문 Tool이 필요'], ['info', '백엔드가 Tool 실행'], ['info', 'Tool 고르기: 답 초안'], ['info', '검토 단계: Tool 결과의 숫자와 한 번 더 맞춰 보도록 재작성 요청'], ['info', '답 다시 쓰기(기본 모델: sonnet-5-5 / sol): 검토 의견을 반영해 정확히 다시 작성'], ['ok', '검토 통과'], ['ok', '답과 근거를 돌려줌']] }
-  ];
-  let sc = 0, timer = null;
-  const nodes = $$('#agchain .node'), log = $('#aglog'), sum = $('#agsum'), seg = $('#agseg');
-  const stop = () => { clearTimeout(timer); timer = null; };
-  const paint = (k) => nodes.forEach((n) => n.classList.toggle('on', n.dataset.k === k));
-  const summary = () => { const s = S[sc]; sum.textContent = 'LLM 호출 ' + s.path.filter((k) => k === 'plan' || k === 'write').length + '번 · Tool 실행 ' + s.path.filter((k) => k === 'tool').length + '번'; };
-  const play = () => {
-    stop(); log.innerHTML = ''; const s = S[sc]; let i = 0;
-    const tick = () => {
-      paint(s.path[i]);
-      const l = s.log[i]; if (l) { const d = document.createElement('div'); d.innerHTML = '<span class="' + l[0] + '">' + (l[0] === 'ok' ? '✓' : l[0] === 'no' ? '✕' : '•') + '</span><span>' + l[1] + '</span>'; log.appendChild(d); log.scrollTop = log.scrollHeight; }
-      i++; if (i < s.path.length) timer = setTimeout(tick, reduce ? 0 : 750);
-    };
-    tick();
-  };
-  $$('button', seg).forEach((b) => b.addEventListener('click', () => { sc = +b.dataset.s; press(seg, b); summary(); play(); }));
-  $('#agplay').addEventListener('click', play);
-  summary();
-  log.innerHTML = S[0].log.map((l) => '<div><span class="' + l[0] + '">' + (l[0] === 'ok' ? '✓' : '•') + '</span><span>' + l[1] + '</span></div>').join('');
-  paint('ans');
-})();
-
-/* 비용 어림 */
-(function () {
-  const r = $('#steps');
-  const fmt = (v) => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const show = () => { const n = +r.value; $('#stepsv').textContent = n.toLocaleString('ko-KR'); $('#cbefore').textContent = fmt(n * 0.0168); $('#cafter').textContent = fmt(n * 0.0009); r.setAttribute('aria-valuetext', n + '단계'); };
-  r.addEventListener('input', show); show();
-})();
 
 /* 한도 */
 (function () {
