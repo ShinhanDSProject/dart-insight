@@ -9,6 +9,7 @@ import {
   orderedImpacts,
   signalBadge,
   signalCounts,
+  timelineSpan,
 } from './periodActivities'
 
 const evidence = {
@@ -81,6 +82,12 @@ describe('periodActivities', () => {
     expect(impactToneLabel(impact('OUTLOOK', 'x'))).toBeNull()
     expect(impactToneLabel(impact('DISCLOSED', 'x', 'GOOD'))).toBeNull()
     expect(impactKindLabel('CHECK')).toBe('확인할 점')
+  })
+
+  it('타임라인 건수와 첫 날짜~마지막 날짜를 쓴다', () => {
+    expect(timelineSpan(['2026-03-19', '2025-09-23', '2025-12-01'])).toBe('3건 · 2025.09.23 ~ 2026.03.19')
+    expect(timelineSpan(['2025-09-23', '2025-09-23'])).toBe('2건 · 2025.09.23')
+    expect(timelineSpan([])).toBe('0건')
   })
 
   it('신호마다 카드 수를 센다', () => {

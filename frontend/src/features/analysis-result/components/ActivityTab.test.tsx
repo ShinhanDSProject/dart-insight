@@ -109,6 +109,11 @@ const financial = {
   changeId: null,
 }
 
+/** 접혀 있는 타임라인을 편다(#907) */
+function openTimeline(container: HTMLElement) {
+  fireEvent.click(container.querySelector<HTMLElement>('summary.activity__timeline-summary')!)
+}
+
 describe('한 문단 요약과 이 기간 타임라인(ADR-0068)', () => {
   const withTimeline: PeriodActivities = {
     ...generated([contract]),
@@ -125,13 +130,33 @@ describe('한 문단 요약과 이 기간 타임라인(ADR-0068)', () => {
     const overview = within(screen.getByRole('region', { name: '한 문단 요약' }))
     expect(overview.getByText('이 기간에 매출이 늘었어요.')).toBeTruthy()
     expect(overview.getByText(/연결 손익계산서 > 매출액/)).toBeTruthy()
+    openTimeline(container)
     const rows = within(screen.getByRole('region', { name: '이 기간 타임라인' })).getAllByRole('listitem')
     expect(rows.map((row) => row.querySelector('time')?.textContent)).toEqual(['2025.09.23', '2026.03.19'])
     expect(await axeViolations(container)).toBe('')
   })
 
+  it('타임라인은 처음엔 접혀 있고 제목 줄에 건수와 기간을 보이며, 누르면 통째로 펴고 다시 누르면 접는다', async () => {
+    const { container } = renderTab({ status: 'success', data: withTimeline })
+    const details = container.querySelector<HTMLDetailsElement>('details.activity__timeline-details')!
+    const summary = details.querySelector<HTMLElement>('summary')!
+
+    expect(details.open).toBe(false)
+    expect(summary.textContent).toContain('이 기간 타임라인')
+    expect(summary.textContent).toContain('2건 · 2025.09.23 ~ 2026.03.19')
+    expect(await axeViolations(container)).toBe('')
+
+    fireEvent.click(summary)
+    expect(details.open).toBe(true)
+    expect(details.querySelectorAll('li.activity__timeline-row')).toHaveLength(2)
+
+    fireEvent.click(summary)
+    expect(details.open).toBe(false)
+  })
+
   it('공시 근거는 DART 원문을 새 창으로 열고 보고서 근거는 원문 탭의 바뀐 곳으로 간다', () => {
-    const { onOpenText } = renderTab({ status: 'success', data: withTimeline })
+    const { container, onOpenText } = renderTab({ status: 'success', data: withTimeline })
+    openTimeline(container)
     const timeline = within(screen.getByRole('region', { name: '이 기간 타임라인' }))
 
     const link = timeline.getByRole('link', { name: '기업가치제고계획(자율공시)' })

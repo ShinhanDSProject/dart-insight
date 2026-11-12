@@ -4101,9 +4101,99 @@
   gap: var(--space-3);
 }
 
+.activity__timeline-details {
+  width: 100%;
+  /* 펼치고 접을 때 높이를 auto까지 부드럽게 바꾼다(#907). 지원하지 않는 브라우저는 global.css의 fade-in만 보인다 */
+  interpolate-size: allow-keywords;
+}
+
+.activity__timeline-details::details-content {
+  block-size: 0;
+  overflow: clip;
+  transition:
+    block-size var(--motion-slow) var(--ease-out),
+    content-visibility var(--motion-slow) allow-discrete;
+}
+
+.activity__timeline-details[open]::details-content {
+  block-size: auto;
+}
+
+.activity__timeline-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: var(--touch-target-min);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.activity__timeline-summary::-webkit-details-marker {
+  display: none;
+}
+
+.activity__timeline-summary:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.activity__timeline-span {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.activity__timeline-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  transition: color var(--motion-fast) var(--ease-out);
+}
+
+.activity__timeline-toggle::before {
+  content: '펼치기';
+}
+
+.activity__timeline-toggle::after {
+  content: '▾';
+  display: inline-block;
+  transition: transform var(--motion-base) var(--ease-out);
+}
+
+.activity__timeline-details[open] .activity__timeline-toggle::before {
+  content: '접기';
+}
+
+.activity__timeline-details[open] .activity__timeline-toggle::after {
+  transform: rotate(180deg);
+}
+
+.activity__timeline-summary:hover .activity__timeline-toggle {
+  color: var(--color-text);
+}
+
+/* 펼칠 때 줄이 위에서 차례로 내려앉는다. 순번(--row)은 ActivityTab이 10까지만 준다(#907) */
+.activity__timeline-details[open] .activity__timeline-row {
+  animation: timeline-row-in var(--motion-base) var(--ease-out) both;
+  animation-delay: calc(var(--row, 0) * 30ms);
+}
+
+@keyframes timeline-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-rise) * -1));
+  }
+}
+
 .activity__timeline {
   margin: 0;
-  padding: 0;
+  padding: var(--space-3) 0 0;
   list-style: none;
 }
 
