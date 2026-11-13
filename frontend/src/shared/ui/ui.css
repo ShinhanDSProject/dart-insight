@@ -2564,3 +2564,29 @@ th[aria-sort='none'] .data-table__sort-mark {
   inset: 0 0 auto;
   animation: fade-in var(--motion-base) var(--ease-out) var(--motion-slow) backwards;
 }
+
+/* 화면 코드를 받는 동안의 화면 모양(app/PageSuspense, #963). 움직이는 바탕 위에 조금 늦게 옅게 떠오른다 */
+.page.page-loading,
+.skeleton.page-loading {
+  animation: rise-in var(--motion-enter) var(--ease-out) var(--motion-slow) backwards;
+}
+
+.page-loading__head .skeleton__line {
+  width: 20%;
+}
+
+.page-loading__head .skeleton__line:nth-of-type(3) {
+  width: 45%;
+  height: var(--space-6);
+}
+
+.page-loading__head .skeleton__line:last-of-type {
+  width: 60%;
+}
+
+.page-loading__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  margin-top: var(--space-6);
+}
