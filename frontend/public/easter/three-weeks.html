@@ -647,6 +647,20 @@ body.capture-mode .doc-loading *, body.capture-mode .doc-jump { animation: none 
 .lt__word { font-size: 40px; font-weight: 800; letter-spacing: -0.02em; color: rgba(255,255,255,.94); text-shadow: 0 1px 0 rgba(0,0,0,.35), 0 0 22px rgba(255,255,255,.18) }
 .slide-fit.play .preview__stage { animation: slideReveal 700ms cubic-bezier(.2,.7,.2,1) 150ms both }
 body.demo-warping .preview__stage { visibility: hidden }
+/* Q&A 장(#970): Preview와 같은 닫힌 노트북, 뚜껑에 Q&A. 시연을 마치고 돌아오면(#from-demo) Preview 전환을 거꾸로
+   어두운 화면 → 노트북 화면에서 빠져나옴(camDive 거꾸로) → 제자리로 물러나며 뚜껑이 닫힘(camMove·lidOpen·baseTilt 거꾸로) → 글이 나타남 */
+.slide-fit.play .qa .chapter__num { animation: slideReveal 600ms cubic-bezier(.2,.7,.2,1) both }
+.slide-fit.play .qa .chapter__lede { animation: slideReveal 600ms cubic-bezier(.2,.7,.2,1) 450ms both }
+body.demo-returning #qa .preview__stage, body.demo-returning #qa .chapter__num, body.demo-returning #qa .chapter__lede { visibility: hidden }
+/* 돌아온 뒤에는 노트북이 그 자리에 그대로: 장 통째 등장(data-reveal)과 노트북 등장을 끄고 글(THANK YOU·안내)만 떠오름 */
+#qa.returned .chapter, #qa.returned .preview__stage { animation: none }
+.demo-warp.back { display: block }
+.demo-warp.back .demo-warp__site, .demo-warp.back .demo-warp__line, .demo-warp.back .demo-warp__burst { display: none }
+.demo-warp.back .demo-warp__dark { animation: fromBlack 500ms ease-out both }
+/* 두 움직임이 transform을 나눠 쓴다: 앞 300ms~1.3초는 camDive(뒤에 적어 우선), 그 뒤는 camMove */
+.demo-warp.back .demo-warp__cam { animation: camMove 1200ms cubic-bezier(.45,0,.2,1) 1300ms reverse both, camDive 900ms cubic-bezier(.7,0,.3,1) 400ms reverse backwards }
+.demo-warp.back .lt__lid { animation: lidOpen 1150ms cubic-bezier(.3,0,.2,1) 1350ms reverse both }
+.demo-warp.back .lt__base { animation: baseTilt 1200ms cubic-bezier(.45,0,.2,1) 1300ms reverse both }
 
 /* Space: 장의 노트북에서 카메라가 내려오며 뚜껑이 열리고 → 화면 속으로 들어가 까매지고 → 빛 한 줄을 따라가다 → 같은 선 위로 실제 첫 화면이 열림
    선은 첫 화면 .app-backdrop__lines와 같은 곡선·위치(위 120px, 높이 440px)라 넘어간 뒤에도 그대로 이어짐 */
@@ -2049,6 +2063,11 @@ body {
   }
 
 </style>
+<script>
+  // 시연을 마치고 돌아올 때(#from-demo, #970): 첫 그림에서 스크롤 화면이 비치지 않게 검게 가려 두고, 발표 모드·거꾸로 등장이 붙은 뒤 푼다
+  if (location.hash === '#from-demo') document.documentElement.classList.add('from-demo');
+</script>
+<style>html.from-demo, html.from-demo body { background: #000 } html.from-demo body > * { visibility: hidden }</style>
 </head>
 <body>
 
@@ -2561,6 +2580,13 @@ body {
     <p class="chapter__lede">두 보고서 사이, 바뀐 것만. 원문 근거와 함께.</p>
   </div>
 </section>
+<section id="qa" class="chapter-end" data-title="Q&amp;A">
+  <div class="chapter preview qa">
+    <p class="chapter__num">THANK YOU</p>
+    <div class="preview__stage" role="img" aria-label="뚜껑에 DART Insight 마크와 Q&amp;A가 적힌 닫힌 맥북"><div class="lt"><div class="lt__base"><span class="lt__keys"></span></div><div class="lt__lid"><div class="lt__screen"></div><div class="lt__cover"><span class="brand__mark lt__logo" aria-hidden="true"><i></i><i></i></span><span class="lt__word">Q&amp;A</span></div></div></div></div>
+    <p class="chapter__lede">감사합니다. 궁금한 점을 편하게 물어봐 주세요.</p>
+  </div>
+</section>
 <div class="demo-warp" id="portalWarp" aria-hidden="true">
   <div class="demo-warp__cam"><div class="lt"><div class="lt__base"><span class="lt__keys"></span></div><div class="lt__lid"><div class="lt__screen"></div><div class="lt__cover"><span class="brand__mark lt__logo" aria-hidden="true"><i></i><i></i></span><span class="lt__word">Preview</span></div></div></div></div>
   <div class="demo-warp__dark"></div>
@@ -2826,7 +2852,8 @@ stepper('#userflow', '#flowtext', [
     "architecture": { title: "시스템 아키텍처", text: "[도발적 질문 Hook]\n이 구조에서 가장 중요하게 지킨 규칙은 무엇일까요?\n\n[1초 용어 통역]\n요청은 한 방향입니다. 사용자는 웹 화면만 쓰고, 화면은 API 서버(Spring Boot)만 부릅니다. API 서버는 인증과 하루 한도, 비동기 분석 작업, OpenDART 수집과 접수번호 캐시를 맡고, 요청마다 Trace ID를 정해 AI 서버까지 넘깁니다. AI 서버(FastAPI)는 원문 구조화, 변경 탐지와 BM25 근거 검색, LangGraph 에이전트 한 단계를 맡고, LLM은 게이트웨이 모듈 하나로만 Claude API를 부릅니다. 그래서 키·캐시·AI 비용을 한곳에서 통제합니다. 이 원칙들은 ADR로 남겼고(호출 방향 0002, 비동기 작업 0004, 캐시 0003, 근거 ID 0009·0036, LLM 단일 모듈 0008, 추적 ID 0005), 백엔드 안의 계층 규칙은 빌드마다 ArchUnit 테스트가 검사합니다.\n\n[시각 요소 지시어]\n사용자 → 웹 화면 → API 서버 → AI 서버 → Claude API 줄을 따라간 뒤, API 서버에서 아래 DB와 오른쪽 OpenDART·NAVER로 가는 선을 가리킵니다.\n\n[숫자 타격감 마무리]\n요청은 한 방향, 책임은 한 곳에. 그래서 키도, 캐시도, AI 비용도 한곳에서 통제합니다." },
     "weeks": { title: "사람과 AI의 역할", text: "[도발적 질문 Hook]\nAI로 개발하면, 사람은 무엇을 할까요?\n\n[1초 용어 통역]\n저희는 AI를 많이 썼지만, 먼저 '누가 무엇을 하는지'부터 정했습니다. 사람은 무엇을 왜 만들지 정하고, 기획서와 설계 기록을 최종 확인하고, 커밋·PR·병합을 결정합니다. 공시 용어나 숫자가 맞는지도 사람이 확인합니다. AI는 기획서·이슈·설계 기록 초안을 단계별 스킬로 만들고, 코드와 테스트를 쓰고, 수용 기준마다 증빙을 모읍니다. 그리고 테스트·접근성·비밀정보·호출 방향은 사람이 눈으로 보는 대신 기계가 PR마다 자동으로 막습니다. 이 역할은 AGENTS.md 한 파일에 적어 두어, 어떤 AI 도구를 쓰든 같은 규칙을 따릅니다. 특히 AI가 멈추고 사람에게 물어야 하는 때를 정했습니다. 기획서가 없으면 구현을 시작하지 않고, 공시 용어는 추측하지 않으며, 설계 기록과 다르게 해야 하면 먼저 묻고, 키가 노출된 것 같으면 즉시 멈춥니다.\n\n[시각 요소 지시어]\n일곱 단계의 담당 배지(사람·AI·자동)를 짚고, 아래 세 칸 '사람 → AI → 자동화'를 차례로 가리킵니다.\n\n[숫자 타격감 마무리]\n그렇게 약 4주 동안 PR 461개, 설계 기록 67개, 자동 테스트 약 4,400개를 남겼습니다. AI가 만들고, 결정은 사람이 했습니다. 감사합니다." },
     "cover": { title: "표지", text: "[도발적 질문 Hook]\n안녕하십니까. DART Insight 팀의 발표를 맡은 남윤재입니다.\n\n[1초 용어 통역]\n같은 회사의 정기보고서 두 개를 비교해, 바뀐 숫자와 문장을 원문 근거와 함께 보여 주는 서비스를 소개하겠습니다.\n\n[시각 요소 지시어]\n가운데 DART Insight를 가리킵니다.\n\n[숫자 타격감 마무리]\n시작하겠습니다." },
-    "qna": { title: "Preview", text: "[도발적 질문 Hook]\n말로는 여기까지입니다. 이제 직접 보여 드리겠습니다.\n\n[1초 용어 통역]\nSpace를 누르면 카메라가 내려오며 노트북이 열리고, 화면 속 빛 한 줄을 따라가다 실제 서비스 dart-insight.shinhanacademy.co.kr 첫 화면이 열린 뒤 그 주소로 넘어가 시연합니다(약 4.7초).\n\n[시각 요소 지시어]\n가운데 닫힌 노트북의 Preview를 가리킨 뒤 Space를 누릅니다.\n\n[숫자 타격감 마무리]\n시연이 끝나면: 지금까지 DART Insight였습니다. 감사합니다. 질문 받겠습니다." }
+    "qna": { title: "Preview", text: "[도발적 질문 Hook]\n말로는 여기까지입니다. 이제 직접 보여 드리겠습니다.\n\n[1초 용어 통역]\nSpace를 누르면 카메라가 내려오며 노트북이 열리고, 화면 속 빛 한 줄을 따라가다 실제 서비스 dart-insight.shinhanacademy.co.kr 첫 화면이 열린 뒤 그 주소로 넘어가 시연합니다(약 4.7초).\n\n[시각 요소 지시어]\n가운데 닫힌 노트북의 Preview를 가리킨 뒤 Space를 누릅니다.\n\n[숫자 타격감 마무리]\n시연은 Space로 한 단계씩 진행하고, 끝나면 Space로 Q&A 장으로 돌아옵니다." },
+    "qa": { title: "Q&A", text: "[도발적 질문 Hook]\n시연은 여기까지입니다.\n\n[1초 용어 통역]\n시연을 마치고 Space를 누르면 앱 화면이 빛 한 점으로 닫히고, 노트북 화면에서 빠져나오며 뚜껑이 닫힌 뒤 이 장이 열립니다.\n\n[시각 요소 지시어]\n닫힌 노트북의 Q&A를 가리킵니다.\n\n[숫자 타격감 마무리]\n지금까지 DART Insight였습니다. 감사합니다. 질문 받겠습니다." }
   };
   const SPEECHES = [SPEECHES_BY_ID.hero];
 
@@ -3202,7 +3229,7 @@ stepper('#userflow', '#flowtext', [
   let warping = false;
   const preloadDemo = () => { const f = $('.demo-warp__site'); if (f && !f.getAttribute('src')) f.setAttribute('src', DEMO_URL); };
   const goNext = () => {
-    const last = slides[curSlide] && slides[curSlide].id === 'qna' && curSlide === slides.length - 1;
+    const last = slides[curSlide] && slides[curSlide].id === 'qna'; // Preview 장에서는 다음 장(Q&A) 대신 시연으로 넘어감. Q&A는 시연을 마치고 돌아오는 장
     if (!last || document.body.classList.contains('capture-mode')) { updateSlide(curSlide + 1); return; }
     if (warping) return;
     warping = true;
@@ -3230,6 +3257,31 @@ stepper('#userflow', '#flowtext', [
       } catch (_) { /* 다른 주소에서 열었으면 그냥 이동 */ }
       location.assign(DEMO_URL);
     }, 4750);
+  };
+  // 시연을 마치고 돌아오면(앱 시연 모드가 ?slide=qa#from-demo로 보냄, #970): Preview 전환을 거꾸로 보여 준 뒤 Q&A 글이 나타남.
+  // 노트북 자리·크기는 장에 그려진 Q&A 노트북에 맞추고, 같은 #portalWarp 장면을 뚜껑 글만 바꿔 거꾸로 돌린다
+  const returnFromDemo = () => {
+    const warp = $('#portalWarp'), qa = $('#qa'), word = $('#portalWarp .lt__word');
+    if (reduce || !warp || !qa || !word) return;
+    document.body.classList.add('demo-returning');
+    word.textContent = 'Q&A';
+    // 검게 시작하는 장면을 첫 그림부터 붙인다. 처음 1.3초는 화면 가운데·확대 값만 쓴다
+    warp.style.setProperty('--zoom', String(Math.max(innerWidth / 468, innerHeight / 288) * 1.12));
+    warp.classList.add('back');
+    // 노트북이 제자리로 물러나기(camMove) 직전에 장의 노트북 자리를 잰다. 그때는 장의 등장 움직임(slideReveal)이 끝나 최종 자리다
+    setTimeout(() => {
+      const r = $('.lt', qa).getBoundingClientRect();
+      warp.style.setProperty('--x0', (r.left + r.width / 2) + 'px');
+      warp.style.setProperty('--y0', r.top + 'px');
+      warp.style.setProperty('--s0', String(r.width / 520));
+    }, 1250);
+    setTimeout(() => {
+      warp.classList.remove('back');
+      word.textContent = 'Preview';
+      qa.classList.add('returned'); // 글만 등장하고 노트북은 그 자리에 그대로(아래 #qa.returned)
+      document.body.classList.remove('demo-returning');
+      playSlide();
+    }, 2550);
   };
   // 시연 사이트에서 뒤로 돌아오면(뒤로-앞으로 캐시) 포털이 화면을 덮은 채 남지 않게 되돌립니다.
   window.addEventListener('pageshow', () => {
@@ -3268,6 +3320,11 @@ stepper('#userflow', '#flowtext', [
     const byId = slides.findIndex((el) => el.id === want);
     togglePresent(true);
     updateSlide(byId >= 0 ? byId : (parseInt(want, 10) || 1) - 1);
+    if (location.hash === '#from-demo') {
+      history.replaceState(null, '', location.pathname + location.search);
+      if (want === 'qa') returnFromDemo();
+      document.documentElement.classList.remove('from-demo'); // 거꾸로 등장의 검은 첫 장면이 붙은 같은 순간에 푼다
+    }
   }
 
   window.addEventListener('keydown', (e) => {
