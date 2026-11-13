@@ -90,7 +90,9 @@ def read_page():
     """페이지의 장 순서(표지 + 섹션)대로 머리말·용어·대본을 읽습니다."""
     source = open(PAGE, encoding="utf-8").read()
     speeches = _js_object(source, "SPEECHES_BY_ID", "title", "text")
-    order = ["hero"] + re.findall(r'<section id="([\w-]+)"', source)
+    sections = re.findall(r'<section id="([\w-]+)"', source)
+    # 페이지와 같은 순서: 표지(cover)가 있으면 맨 앞, 그다음 머리말(hero)
+    order = (["cover"] if "cover" in sections else []) + ["hero"] + [sid for sid in sections if sid != "cover"]
     missing = [sid for sid in order if sid not in speeches]
     if missing:
         raise SystemExit(f"대본이 없는 장이 있습니다: {', '.join(missing)} (SPEECHES_BY_ID에 추가하세요)")
