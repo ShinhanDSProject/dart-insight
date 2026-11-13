@@ -517,7 +517,12 @@ body.presentation-mode .deck-dock { transform: translateX(-50%) translateY(0); o
   body.presentation-mode main section, body.presentation-mode #hero { display: none }
   body.presentation-mode main section.slide-active, body.presentation-mode #hero.slide-active {
     display: flex; position: fixed; inset: 0; z-index: 90; margin: 0; padding: 0 0 72px; border: 0; min-height: 0;
-    align-items: center; justify-content: center; overflow: hidden; background: var(--color-bg-subtle)
+    align-items: center; justify-content: center; overflow: hidden; background: var(--color-bg-subtle);
+    animation: slideFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1)
+  }
+  @keyframes slideFadeIn {
+    from { opacity: 0 }
+    to { opacity: 1 }
   }
   .slide-fit {
     flex: 0 0 auto; width: 1280px; height: 720px; box-sizing: border-box; padding: 44px 64px;
@@ -527,6 +532,10 @@ body.presentation-mode .deck-dock { transform: translateX(-50%) translateY(0); o
   .slide-body { width: 100% }
   body.presentation-mode #hero.slide-active .slide-fit { background: transparent; box-shadow: none }
   body.presentation-mode .demo-journey-box { display: none } /* 발표할 때는 '직접 써 보기' 링크를 숨김 */
+  /* 촬영 모드(?slide=…&capture): PPTX용으로 발표 화면 한 장만 창 전체에 꽉 채움 */
+  body.capture-mode .deck-dock, body.capture-mode .speech-sidebar { display: none }
+  body.capture-mode main section.slide-active, body.capture-mode #hero.slide-active { padding: 0; background: var(--color-bg) }
+  body.capture-mode .slide-fit { border-radius: 0; box-shadow: none }
 }
 @media screen and (min-width: 1024px) {
   body.presentation-mode.sidebar-pushed main section.slide-active, body.presentation-mode.sidebar-pushed #hero.slide-active { right: 420px }
@@ -2608,7 +2617,10 @@ stepper('#userflow', '#flowtext', [
     body.style.zoom = Math.min(1, innerW / body.scrollWidth, innerH / body.scrollHeight);
     fit.style.transform = 'none';
     const box = slide.getBoundingClientRect();
-    const scale = Math.min((box.width - 48) / fit.offsetWidth, (box.height - 72 - 24) / fit.offsetHeight);
+    const capture = document.body.classList.contains('capture-mode');
+    const scale = capture
+      ? Math.min(box.width / fit.offsetWidth, box.height / fit.offsetHeight)
+      : Math.min((box.width - 48) / fit.offsetWidth, (box.height - 72 - 24) / fit.offsetHeight);
     fit.style.transform = `scale(${scale})`;
   };
   const wrapSlides = (on) => slides.forEach((slide) => {
@@ -2713,6 +2725,16 @@ stepper('#userflow', '#flowtext', [
         else document.exitFullscreen().catch(() => {});
       }
     });
+  }
+
+  // ?slide=<장 id 또는 번호>로 열면 그 장을 발표 모드로 엽니다. &capture를 붙이면 PPTX 촬영용으로 발표 막대 없이 꽉 채웁니다.
+  const params = new URLSearchParams(location.search);
+  if (params.has('slide')) {
+    if (params.has('capture')) document.body.classList.add('capture-mode');
+    const want = params.get('slide');
+    const byId = slides.findIndex((el) => el.id === want);
+    togglePresent(true);
+    updateSlide(byId >= 0 ? byId : (parseInt(want, 10) || 1) - 1);
   }
 
   window.addEventListener('keydown', (e) => {
