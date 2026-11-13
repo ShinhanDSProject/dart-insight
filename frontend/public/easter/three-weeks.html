@@ -591,16 +591,21 @@ body.capture-mode .doc-loading *, body.capture-mode .doc-jump { animation: none 
 .preview__stage { width: 520px; height: 330px; margin: 22px 0 14px }
 .preview__hint { margin: 10px 0 0; font-family: var(--font-num); font-size: 14px; font-weight: 700; color: var(--color-text-muted) }
 .lt { position: relative; width: 520px; height: 330px; perspective: 1600px; perspective-origin: 50% 0 }
-.lt__base { position: absolute; inset: 0; border-radius: 6px 6px 22px 22px; background: linear-gradient(180deg, #e4e7ee, #b9bfcc); box-shadow: 0 24px 50px rgba(10,12,30,.28), inset 0 -3px 0 rgba(0,0,0,.08); transform-origin: 50% 0 }
-.lt__keys { position: absolute; left: 34px; right: 34px; top: 26px; height: 170px; border-radius: 10px; background: repeating-linear-gradient(90deg, #a9afbd 0 30px, transparent 30px 34px), repeating-linear-gradient(0deg, transparent 0 30px, #c9ceda 30px 34px); opacity: .55 }
-.lt__keys::after { content: ""; position: absolute; left: 32%; right: 32%; top: 196px; height: 80px; border-radius: 10px; background: #c3c8d4 }
+/* 맥북처럼: 스페이스 그레이 알루미늄 본체·뚜껑, 검은 키보드와 양옆 스피커, 넓은 유리 트랙패드, 앞쪽 손가락 홈, 노치가 있는 얇은 베젤 */
+.lt__base { position: absolute; inset: 0; border-radius: 8px 8px 24px 24px; background: radial-gradient(120% 70% at 50% 0%, rgba(255,255,255,.10), transparent 60%), linear-gradient(180deg, #4a4d55 0%, #3a3c43 55%, #2c2e33 100%); box-shadow: 0 26px 54px rgba(6,8,20,.38), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -3px 0 rgba(0,0,0,.35); transform-origin: 50% 0 }
+.lt__base::before, .lt__base::after { content: ""; position: absolute; top: 24px; width: 46px; height: 152px; border-radius: 6px; background: radial-gradient(circle, rgba(0,0,0,.55) 0 1.1px, transparent 1.4px) 0 0 / 5px 5px }
+.lt__base::before { left: 14px } .lt__base::after { right: 14px }
+.lt__keys { position: absolute; left: 70px; right: 70px; top: 22px; height: 156px; border-radius: 8px; background-color: #0b0c0e; background-image: repeating-linear-gradient(0deg, transparent 0 25px, #0b0c0e 25px 29px), repeating-linear-gradient(90deg, #202125 0 23px, #0b0c0e 23px 27px); background-position: 3px 4px, 3px 4px; box-shadow: inset 0 0 0 3px #0b0c0e, inset 0 2px 6px rgba(0,0,0,.6) }
+.lt__keys::after { content: ""; position: absolute; left: 14%; right: 14%; top: 170px; height: 112px; border-radius: 10px; background: linear-gradient(180deg, #45484f, #3a3c42); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), inset 0 1px 0 rgba(255,255,255,.12) }
+.lt__keys::before { content: ""; position: absolute; left: 50%; bottom: -152px; width: 96px; height: 8px; margin-left: -48px; border-radius: 0 0 10px 10px; background: rgba(0,0,0,.35) }
 .lt__lid { position: absolute; left: 14px; right: 14px; top: -312px; height: 312px; transform-origin: 50% 100%; transform-style: preserve-3d; transform: rotateX(180deg) }
-.lt__screen, .lt__cover { position: absolute; inset: 0; border-radius: 18px 18px 6px 6px; backface-visibility: hidden; -webkit-backface-visibility: hidden }
-.lt__screen { border: 12px solid #151a2b; background: radial-gradient(circle at 50% 40%, #1b1f3a, #000 75%) }
-.lt__cover { transform: rotateX(180deg); display: grid; place-content: center; justify-items: center; gap: 14px; background: linear-gradient(150deg, #2f3650 0%, #1a1f33 55%, #111527 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.12) }
-.lt__mark { width: 44px; height: 44px; border-radius: 12px; gap: 5px; background: rgba(255,255,255,.12); box-shadow: none }
-.lt__mark i { width: 6px; height: 16px; background: #fff } .lt__mark i + i { height: 22px }
-.lt__word { font-size: 64px; font-weight: 800; letter-spacing: -0.02em; color: #fff; text-shadow: 0 0 22px rgba(155,149,255,.55) }
+.lt__screen, .lt__cover { position: absolute; inset: 0; border-radius: 16px 16px 8px 8px; backface-visibility: hidden; -webkit-backface-visibility: hidden }
+.lt__screen { border: 10px solid #08090b; border-top-width: 12px; background: radial-gradient(circle at 50% 40%, #1b1f3a, #000 75%); box-shadow: 0 0 0 2px #4a4d55 }
+.lt__screen::before { content: ""; position: absolute; left: 50%; top: -12px; width: 64px; height: 14px; margin-left: -32px; border-radius: 0 0 8px 8px; background: #08090b }
+.lt__cover { transform: rotateX(180deg); display: grid; place-content: center; justify-items: center; gap: 14px; background: radial-gradient(90% 70% at 25% 10%, rgba(255,255,255,.16), transparent 55%), linear-gradient(160deg, #50535b 0%, #3b3e45 48%, #2a2c31 100%); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.10), inset 0 -2px 0 rgba(0,0,0,.35) }
+.lt__mark { width: 46px; height: 46px; border-radius: 13px; gap: 5px; background: linear-gradient(160deg, rgba(255,255,255,.22), rgba(255,255,255,.06)); box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 1px 2px rgba(0,0,0,.35) }
+.lt__mark i { width: 6px; height: 16px; background: #dfe1e6 } .lt__mark i + i { height: 22px }
+.lt__word { font-size: 60px; font-weight: 800; letter-spacing: -0.02em; color: #eceef2; text-shadow: 0 1px 0 rgba(0,0,0,.35), 0 0 18px rgba(155,149,255,.35) }
 .slide-fit.play .preview__stage { animation: slideReveal 700ms cubic-bezier(.2,.7,.2,1) 150ms both }
 body.demo-warping .preview__stage { visibility: hidden }
 
