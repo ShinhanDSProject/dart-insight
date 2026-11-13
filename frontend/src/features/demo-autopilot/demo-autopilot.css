@@ -1,0 +1,105 @@
+/* 시연 자동 진행(#967). 시간·색은 tokens.css만 쓴다 */
+.demo-autopilot {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+/* 지금 보여 주는 곳: 둘레만 남기고 바깥을 옅게 덮는다 */
+.demo-spotlight {
+  position: fixed;
+  left: calc(var(--spot-x) - var(--space-2));
+  top: calc(var(--spot-y) - var(--space-2));
+  width: calc(var(--spot-w) + var(--space-4));
+  height: calc(var(--spot-h) + var(--space-4));
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 0 0 2px var(--color-primary),
+    0 0 0 100vmax var(--color-overlay);
+  transition:
+    left var(--motion-slow) var(--ease-out),
+    top var(--motion-slow) var(--ease-out),
+    width var(--motion-slow) var(--ease-out),
+    height var(--motion-slow) var(--ease-out);
+  animation: fade-in var(--motion-slow) var(--ease-out);
+}
+
+/* 가짜 커서: 시스템 화살표 모양. 이동 시간은 useDemoStepRunner의 CURSOR_MOVE_MS와 같다 */
+.demo-cursor {
+  position: fixed;
+  left: 0;
+  top: 0;
+  transform: translate(var(--cursor-x), var(--cursor-y));
+  transition: transform 700ms var(--ease-out);
+  filter: drop-shadow(0 2px 4px rgba(19, 25, 54, 0.3));
+}
+
+.demo-cursor svg {
+  display: block;
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.demo-cursor path {
+  fill: var(--color-text);
+  stroke: var(--color-bg);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+/* 누르는 순간 살짝 줄고 둘레에 물결이 퍼진다 */
+.demo-cursor--pressing svg {
+  transform: scale(0.85);
+}
+
+.demo-cursor--pressing::before {
+  content: '';
+  position: absolute;
+  left: -14px;
+  top: -14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--color-primary);
+  animation: pop-in var(--motion-slow) var(--ease-out);
+}
+
+/* 화면 아래 자막 */
+.demo-caption {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-5);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  max-width: min(960px, calc(100vw - var(--space-6)));
+  padding: var(--space-3) var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-md);
+  transform: translateX(-50%);
+  animation: rise-in var(--motion-base) var(--ease-out);
+}
+
+.demo-caption__step {
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.demo-caption__title {
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+
+.demo-caption__text {
+  color: var(--color-text);
+}
+
+.demo-caption__keys {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+}
