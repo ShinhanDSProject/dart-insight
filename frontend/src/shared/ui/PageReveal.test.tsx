@@ -2,7 +2,7 @@
 import { act, cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useRevealReady } from '@/shared/hooks/useRevealReady'
-import { REVEAL_MAX_WAIT_MS } from '@/shared/lib/pageReveal'
+import { REVEAL_ENTER_MS, REVEAL_MAX_WAIT_MS } from '@/shared/lib/pageReveal'
 import { PageReveal } from './PageReveal'
 
 function Section({ settled }: { settled: boolean }) {
@@ -26,6 +26,10 @@ function revealRoot(container: HTMLElement) {
   return container.querySelector('.page-reveal')
 }
 
+function isWaiting(container: HTMLElement) {
+  return revealRoot(container)?.classList.contains('page-reveal--waiting') ?? false
+}
+
 describe('PageReveal', () => {
   beforeEach(() => vi.useFakeTimers())
   afterEach(() => {
@@ -36,13 +40,13 @@ describe('PageReveal', () => {
 
   it('모든 칸이 이미 응답했으면 화면 모양 없이 바로 보인다', () => {
     const { container } = renderPage([true, true])
-    expect(revealRoot(container)?.classList.contains('page-reveal--shown')).toBe(true)
+    expect(isWaiting(container)).toBe(false)
     expect(screen.queryByText('화면 모양')).toBeNull()
   })
 
   it('응답을 기다리는 칸이 있으면 내용을 가리고 화면 모양을 보인다', () => {
     const { container } = renderPage([true, false])
-    expect(revealRoot(container)?.classList.contains('page-reveal--waiting')).toBe(true)
+    expect(isWaiting(container)).toBe(true)
     expect(revealRoot(container)?.getAttribute('aria-busy')).toBe('true')
     expect(screen.queryByText('화면 모양')).not.toBeNull()
   })
@@ -50,26 +54,33 @@ describe('PageReveal', () => {
   it('마지막 칸이 응답하면 한 번에 보인다', () => {
     const { container, update } = renderPage([true, false])
     update([true, true])
-    expect(revealRoot(container)?.classList.contains('page-reveal--shown')).toBe(true)
+    expect(isWaiting(container)).toBe(false)
     expect(screen.queryByText('화면 모양')).toBeNull()
   })
 
   it('최대 대기 시간이 지나면 아직 불러오는 칸이 있어도 보인다', () => {
     const { container } = renderPage([false])
     act(() => vi.advanceTimersByTime(REVEAL_MAX_WAIT_MS))
-    expect(revealRoot(container)?.classList.contains('page-reveal--shown')).toBe(true)
+    expect(isWaiting(container)).toBe(false)
     expect(screen.queryByText('불러오는 중')).not.toBeNull()
   })
 
   it('한 번 보인 뒤 다시 불러오는 칸이 생겨도 가리지 않는다', () => {
     const { container, update } = renderPage([true])
     update([false])
+    expect(isWaiting(container)).toBe(false)
+  })
+
+  it('보인 뒤 잠깐 차례로 떠오르는 단계를 거쳐 다 보인 상태가 된다', () => {
+    const { container } = renderPage([true])
+    expect(revealRoot(container)?.classList.contains('page-reveal--entering')).toBe(true)
+    act(() => vi.advanceTimersByTime(REVEAL_ENTER_MS))
     expect(revealRoot(container)?.classList.contains('page-reveal--shown')).toBe(true)
   })
 
   it('발표에서 넘어온 첫 화면이면 기다리지 않고 보인다', () => {
     document.documentElement.dataset.intro = 'skip'
     const { container } = renderPage([false])
-    expect(revealRoot(container)?.classList.contains('page-reveal--shown')).toBe(true)
+    expect(isWaiting(container)).toBe(false)
   })
 })

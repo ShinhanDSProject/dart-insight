@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState, type ReactNode } from 'react'
 import { PageRevealContext } from '@/shared/hooks/useRevealReady'
 import { cx } from '@/shared/lib/cx'
-import { nextRevealPhase, REVEAL_MAX_WAIT_MS, shouldSkipReveal, type RevealPhase } from '@/shared/lib/pageReveal'
+import {
+  nextRevealPhase,
+  REVEAL_ENTER_MS,
+  REVEAL_MAX_WAIT_MS,
+  shouldSkipReveal,
+  type RevealPhase,
+} from '@/shared/lib/pageReveal'
 
 interface PageRevealProps {
   /** 기다리는 동안 보일 화면 모양(Skeleton). 짧게 끝나면 보이지 않도록 CSS가 조금 늦게 띄운다 */
@@ -12,7 +18,8 @@ interface PageRevealProps {
 /**
  * 화면의 주요 데이터가 응답할 때까지 내용을 가렸다가 한 번에 보인다(#960). 칸들은 useRevealReady로 준비 여부를 알린다.
  * 내용은 가리는 동안에도 그려 두어(데이터 훅이 돌고 자리를 차지함) 보일 때 자리가 밀리지 않고,
- * 안의 등장 움직임은 멈춰 있다가 보이는 순간 차례로 시작한다(global.css). 최대 REVEAL_MAX_WAIT_MS만 기다린다.
+ * 안의 등장 움직임은 멈춰 있다가 보이는 순간 시작한다(ui.css). 최대 REVEAL_MAX_WAIT_MS만 기다린다.
+ * 보인 뒤 REVEAL_ENTER_MS 동안은 page-reveal--entering이라 화면 CSS가 구역마다 차례 지연을 걸 수 있다.
  */
 export function PageReveal({ fallback, children }: PageRevealProps) {
   const pending = useRef(new Set<string>())
@@ -42,7 +49,10 @@ export function PageReveal({ fallback, children }: PageRevealProps) {
 
   useEffect(() => {
     if (phase === 'shown') return
-    const timer = setTimeout(() => setTimedOut(true), REVEAL_MAX_WAIT_MS)
+    const timer =
+      phase === 'waiting'
+        ? setTimeout(() => setTimedOut(true), REVEAL_MAX_WAIT_MS)
+        : setTimeout(() => setPhase('shown'), REVEAL_ENTER_MS)
     return () => clearTimeout(timer)
   }, [phase])
 
