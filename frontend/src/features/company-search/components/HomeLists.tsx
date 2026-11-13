@@ -6,6 +6,7 @@ import type { SeasonChangeList } from '@/shared/api/seasonChanges'
 import type { LoadState } from '@/shared/hooks/asyncState'
 import type { AsyncResult } from '@/shared/hooks/useAsync'
 import type { FavoriteCompaniesStatus } from '@/shared/hooks/useFavoriteCompanies'
+import { useRevealReady } from '@/shared/hooks/useRevealReady'
 import { cx } from '@/shared/lib/cx'
 import { formatInteger } from '@/shared/lib/numberFormat'
 import { ONBOARDING_EXAMPLE_CORP_CODE } from '@/shared/lib/onboarding'
@@ -56,6 +57,7 @@ export function HomeLists({ season, favoritesStatus, favorites, onOpenGuide }: H
 /** 숫자를 못 불러오면 숫자 칸만 숨기고 원문 위치 안내와 예시 버튼은 남긴다 */
 function ServiceStatsBody() {
   const { state } = useServiceStats()
+  useRevealReady(state.status !== 'loading')
   return (
     <>
       {match(state)
@@ -79,6 +81,7 @@ function ServiceStatsBody() {
 
 function Featured({ onOpenGuide }: { onOpenGuide: () => void }) {
   const { state, reload } = useFeaturedCompanies()
+  useRevealReady(state.status !== 'loading')
   return (
     <>
       {match(state)

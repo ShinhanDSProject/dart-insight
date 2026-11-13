@@ -2,6 +2,8 @@ import type { CSSProperties, ReactNode } from 'react'
 import { Link } from 'react-router'
 import type { FavoriteCompany } from '@/shared/api/favoriteCompanies'
 import type { FavoriteCompaniesStatus } from '@/shared/hooks/useFavoriteCompanies'
+import { useRevealReady } from '@/shared/hooks/useRevealReady'
+import { Skeleton } from '@/shared/ui'
 import { useSeasonChanges } from '../hooks/useSeasonChanges'
 import { seasonRankList, type HomeRankRow } from '../model/homeLists'
 import { seasonName } from '../model/seasonChanges'
@@ -24,6 +26,9 @@ interface HomeHeroProps {
  */
 export function HomeHero({ searchForm, favoritesStatus, favorites, onOpenGuide }: HomeHeroProps) {
   const season = useSeasonChanges(null)
+  // 배지·흐름 띠·관심 기업 칸은 응답이 와야 생기므로 보이기 전에 기다린다(#960)
+  useRevealReady(season.state.status !== 'loading')
+  useRevealReady(favoritesStatus !== 'loading')
   const data = season.state.status === 'success' ? season.state.data : null
   const rows = data === null ? [] : seasonRankList(data).rows
   return (
@@ -39,6 +44,19 @@ export function HomeHero({ searchForm, favoritesStatus, favorites, onOpenGuide }
       {searchForm}
       {rows.length > 0 && <SeasonTicker rows={rows} />}
       <HomeLists season={season} favoritesStatus={favoritesStatus} favorites={favorites} onOpenGuide={onOpenGuide} />
+    </div>
+  )
+}
+
+/** 첫 화면을 보이기 전 잠깐 보이는 모양(#960): 제목·검색창 자리와 세 칸 */
+export function HomeHeroSkeleton() {
+  return (
+    <div className="home-skeleton">
+      <Skeleton label="첫 화면을 불러오는 중이에요…" className="home-skeleton__head" />
+      <Skeleton label="" shape="block" height="var(--space-7)" className="home-skeleton__search" />
+      <div aria-hidden="true">
+        <Skeleton label="" shape="card" count={3} height="calc(var(--space-7) * 5)" />
+      </div>
     </div>
   )
 }

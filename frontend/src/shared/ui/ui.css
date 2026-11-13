@@ -2542,3 +2542,25 @@ th[aria-sort='none'] .data-table__sort-mark {
     transform: none !important;
   }
 }
+
+/* 주요 데이터가 응답할 때까지 가렸다가 한 번에 보이는 화면(PageReveal, #960).
+   가리는 동안 내용은 자리를 차지한 채 보이지 않고, 안의 등장 움직임은 멈춰 있다가 보이는 순간 차례로 시작한다 */
+.page-reveal {
+  position: relative;
+  width: 100%;
+}
+
+.page-reveal--waiting > .page-reveal__content {
+  visibility: hidden;
+}
+
+.page-reveal--waiting > .page-reveal__content * {
+  animation-play-state: paused;
+}
+
+/* 금방 응답하면 화면 모양이 깜빡이지 않도록 조금 늦게 옅게 띄운다 */
+.page-reveal__fallback {
+  position: absolute;
+  inset: 0 0 auto;
+  animation: fade-in var(--motion-base) var(--ease-out) var(--motion-slow) backwards;
+}
