@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { Suspense, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { Link, Outlet, useLocation, useParams } from 'react-router'
 import { match } from 'ts-pattern'
 import { AppBackdrop } from '@/shared/ui/AppBackdrop'
@@ -21,8 +21,13 @@ import { ThemeMenu } from './ThemeMenu'
 import { useEasterEgg } from './useEasterEgg'
 import { useShortcuts } from './useShortcuts'
 import { useLoginHref } from '@/shared/hooks/useLoginHref'
+import { useDemoMode } from '@/features/demo-autopilot/hooks/useDemoMode'
+import { lazyPage } from './lazyPage'
 
 type Section = 'search' | 'notes' | 'companies'
+
+/** 발표 시연 자동 진행(#967). 시연 모드일 때만 코드를 받는다 */
+const DemoAutopilot = lazyPage(() => import('@/features/demo-autopilot/components/DemoAutopilot').then((m) => m.DemoAutopilot))
 
 interface NavItem {
   section: Section
@@ -66,6 +71,7 @@ export function Layout() {
   const shortcutPage = shortcutPageOf(pathname, onResult)
   const shortcuts = useShortcuts(shortcutPage)
   const easterEgg = useEasterEgg()
+  const demo = useDemoMode()
 
   const items: NavItem[] = [
     {
@@ -192,6 +198,11 @@ export function Layout() {
       {shortcuts.helpOpen && <ShortcutHelp page={shortcutPage} onClose={shortcuts.closeHelp} />}
       {noticeOpen && <ServiceNoticeDialog onClose={() => setNoticeOpen(false)} />}
       {easterEgg.found && <EasterEggDialog onClose={easterEgg.close} />}
+      {demo.active && (
+        <Suspense fallback={null}>
+          <DemoAutopilot key={demo.startStep} startStep={demo.startStep} onExit={demo.exit} />
+        </Suspense>
+      )}
     </div>
   )
 }
