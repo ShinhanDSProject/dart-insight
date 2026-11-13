@@ -148,7 +148,7 @@ def capture_slides(slides, out_dir):
                 path = os.path.join(out_dir, f"{n:02d}-{slide['id']}.png")
                 url = f"http://127.0.0.1:{port}/easter/three-weeks.html?slide={slide['id']}&capture"
                 subprocess.run([
-                    chrome, "--headless=new", "--disable-gpu", "--hide-scrollbars", f"--user-data-dir={profile}",
+                    chrome, "--headless=new", "--blink-settings=preferredColorScheme=1", "--disable-gpu", "--hide-scrollbars", f"--user-data-dir={profile}",
                     f"--window-size={SHOT_W},{SHOT_H}", "--force-device-scale-factor=1",
                     "--virtual-time-budget=5000", f"--screenshot={path}", url,
                 ], check=True, capture_output=True, timeout=120)
