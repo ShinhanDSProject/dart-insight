@@ -14,10 +14,16 @@ try {
   const handoff = parseIntroHandoff(sessionStorage.getItem(INTRO_HANDOFF_KEY), Date.now())
   sessionStorage.removeItem(INTRO_HANDOFF_KEY)
   if (handoff) {
-    const root = document.documentElement
-    root.style.setProperty('--intro-drift', `${handoff.driftMs}ms`)
-    root.classList.add('intro-handoff')
-    window.setTimeout(() => root.classList.remove('intro-handoff'), 6000)
+    document.documentElement.style.setProperty('--intro-drift', `${handoff.driftMs}ms`)
+    // 넘어온 직후 2초 동안 생기는 한 번짜리 등장 움직임(페이지·배경 선 등)은 바로 끝낸다. 예시 문구 회전 같은 반복 움직임은 그대로 둔다
+    const until = performance.now() + 2000
+    const finishEntrance = () => {
+      for (const animation of document.getAnimations()) {
+        if (animation.effect?.getTiming().iterations !== Infinity) animation.finish()
+      }
+      if (performance.now() < until) requestAnimationFrame(finishEntrance)
+    }
+    requestAnimationFrame(finishEntrance)
   }
 } catch {
   // 저장소를 쓸 수 없으면 평소처럼 등장 움직임을 보여 준다
