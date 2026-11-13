@@ -437,22 +437,40 @@ def _node(s, x, y, w, h, title, caption, strong=False):
     text(s, x, y, w, h, [(title, 15, PRIMARY, True), (caption, 10.5, MUTED, False)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
 
 
+def _elbow(slide, points):
+    """꺾인 화살표: 점들을 선으로 잇고 마지막 선에만 화살촉을 붙입니다."""
+    for k in range(len(points) - 1):
+        (x1, y1), (x2, y2) = points[k], points[k + 1]
+        if k == len(points) - 2:
+            arrow_line(slide, x1, y1, x2, y2)
+        else:
+            line = slide.shapes.add_connector(1, Inches(x1), Inches(y1), Inches(x2), Inches(y2))
+            line.line.color.rgb = ACCENT
+            line.line.width = Pt(1.75)
+
+
 def architecture(s):
-    h = 0.95
-    _node(s, 0.6, 3.15, 1.9, h, "👤 사용자", "브라우저")
-    _node(s, 3.0, 3.15, 2.1, h, "🖥️ 화면", "React · TS")
-    _node(s, 5.6, 3.0, 2.5, 1.25, "☕ 백엔드", "Spring Boot\n작업·캐시·권한·한도", strong=True)
-    _node(s, 8.6, 3.15, 2.2, h, "🐍 AI 서버", "FastAPI · LangGraph")
-    _node(s, 11.1, 3.15, 1.63, h, "🤖 LLM", "Claude")
-    _node(s, 5.35, 4.95, 1.45, h, "🗄️ DB", "MariaDB")
-    _node(s, 6.95, 4.95, 1.45, h, "📄 OpenDART", "공시 원문")
-    _node(s, 8.6, 4.95, 2.2, h, "📰 NAVER", "뉴스 · 시세")
-    arrow_line(s, 2.5, 3.63, 3.0, 3.63)
-    arrow_line(s, 5.1, 3.63, 5.6, 3.63, "/api")
-    arrow_line(s, 8.1, 3.63, 8.6, 3.63, "/internal")
-    arrow_line(s, 10.8, 3.63, 11.1, 3.63)
-    for x2 in (6.08, 7.6, 9.3):
-        arrow_line(s, 6.85 if x2 < 8 else 7.85, 4.25, x2, 4.95)
+    box(s, 0.6, 1.7, 12.13, 5.1, CANVAS, BORDER)
+    w, h = 2.45, 1.0
+    gap = 0.7
+    x0 = (SLIDE_W - (w * 4 + gap * 3)) / 2
+    xs = [x0 + k * (w + gap) for k in range(4)]
+    ya, yb = 2.2, 5.05
+    top = [("🖥️ 화면", "React · TypeScript"), ("☕ 백엔드", "Spring Boot · 키·캐시·한도"), ("🐍 AI 서버", "FastAPI · LangGraph"), ("🤖 LLM", "Claude")]
+    bottom = [None, ("🗄️ DB", "MariaDB · Flyway"), ("📄 OpenDART", "공시 원문 · 재무"), ("📰 NAVER", "기업 뉴스")]
+    for k, (title, sub) in enumerate(top):
+        _node(s, xs[k], ya, w, h, title, sub, strong=(k == 1))
+    for k, item in enumerate(bottom):
+        if item:
+            _node(s, xs[k], yb, w, h, *item)
+    mid = ya + h / 2
+    arrow_line(s, xs[0] + w, mid, xs[1], mid, "/api")
+    arrow_line(s, xs[1] + w, mid, xs[2], mid, "/internal")
+    arrow_line(s, xs[2] + w, mid, xs[3], mid)
+    bus = ya + h + 0.75
+    arrow_line(s, xs[1] + w / 2, ya + h, xs[1] + w / 2, yb)
+    _elbow(s, [(xs[1] + w - 0.45, ya + h), (xs[1] + w - 0.45, bus), (xs[2] + w / 2, bus), (xs[2] + w / 2, yb)])
+    _elbow(s, [(xs[2] + w / 2, bus), (xs[3] + w / 2, bus), (xs[3] + w / 2, yb)])
 
 
 WEEK_STEPS = [("🎯", "성공 기준", "👤 사람"), ("📝", "기획서·수용 기준", "🤖 초안 → 👤 확인"),

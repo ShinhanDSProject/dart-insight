@@ -305,7 +305,6 @@ main section { padding-block: 56px; border-bottom: 1px solid var(--color-border)
 .tech-icon-box--fastapi { background: #d1fae5; color: #059669; border-color: #a7f3d0; }
 .tech-icon-box--llm { background: #fef3c7; color: #d97706; border-color: #fde68a; }
 .tech-icon-box--db { background: #dbeafe; color: #2563eb; border-color: #bfdbfe; }
-.tech-icon-box--mcp { background: #ede9fe; color: #7c3aed; border-color: #ddd6fe; }
 
 [data-theme="dark"] .tech-icon-box--react,
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tech-icon-box--react { background: #0c2d48; color: #38bdf8; border-color: #1e4976; } }
@@ -317,8 +316,6 @@ main section { padding-block: 56px; border-bottom: 1px solid var(--color-border)
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tech-icon-box--llm { background: #3d290c; color: #fbbf24; border-color: #644414; } }
 [data-theme="dark"] .tech-icon-box--db,
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tech-icon-box--db { background: #13274f; color: #60a5fa; border-color: #1e408a; } }
-[data-theme="dark"] .tech-icon-box--mcp,
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tech-icon-box--mcp { background: #28194d; color: #a78bfa; border-color: #432882; } }
 
 .tech-card__title-group {
   display: flex;
@@ -2197,24 +2194,23 @@ body {
       <span class="zone-b-def">화면은 백엔드만, 백엔드만 AI 서버와 공시를 부르는 규칙</span>
     </div>
   </div>
-  <div class="archsvg" style="display:flex; justify-content:center;">
-      <svg viewBox="0 0 760 360" id="archsvg" style="width:100%; max-width:900px; height:auto;" role="group" aria-label="전체 호출 구조도">
-        <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
-        <path class="eg" data-e="user web" d="M120 60 H160" marker-end="url(#ar)"/>
-        <path class="eg" data-e="web backend" d="M280 60 H320 V140 H340" marker-end="url(#ar)"/>
-        <path class="eg" data-e="backend ai" d="M500 150 H530 V60 H560" marker-end="url(#ar)"/>
-        <path class="eg" data-e="ai llm" d="M655 85 V114" marker-end="url(#ar)"/>
-        <path class="eg" data-e="backend db" d="M500 180 H560" marker-end="url(#ar)"/>
-        <path class="eg" data-e="backend dart" d="M500 210 H530 V290 H560" marker-end="url(#ar)"/>
-        <text class="el" x="286" y="52">/api</text><text class="el" x="508" y="104">/internal</text>
-        <g class="nd" data-n="user" tabindex="0" role="button" aria-label="사용자 브라우저"><rect x="10" y="30" width="110" height="60" rx="9"/><text class="a" x="65" y="58" text-anchor="middle">사용자</text><text class="b" x="65" y="76" text-anchor="middle">브라우저</text></g>
-        <g class="nd" data-n="web" tabindex="0" role="button" aria-label="화면 React"><rect x="160" y="30" width="120" height="60" rx="9"/><text class="a" x="220" y="58" text-anchor="middle">화면</text><text class="b" x="220" y="76" text-anchor="middle">React · TS</text></g>
-        <g class="nd core" data-n="backend" tabindex="0" role="button" aria-label="백엔드 Spring Boot"><rect x="340" y="120" width="160" height="120" rx="12"/><text class="a" x="420" y="168" text-anchor="middle">백엔드</text><text class="b" x="420" y="188" text-anchor="middle">Spring Boot</text><text class="b" x="420" y="206" text-anchor="middle">작업·캐시·권한·한도</text></g>
-        <g class="nd" data-n="ai" tabindex="0" role="button" aria-label="AI 서버 FastAPI"><rect x="560" y="30" width="190" height="55" rx="9"/><text class="a" x="655" y="55" text-anchor="middle">AI 서버</text><text class="b" x="655" y="73" text-anchor="middle">FastAPI · LangGraph</text></g>
-        <g class="nd" data-n="llm" tabindex="0" role="button" aria-label="LLM 제공자"><rect x="575" y="114" width="160" height="40" rx="9"/><text class="b" x="655" y="139" text-anchor="middle">LLM 엔진 (다중 제공자)</text></g>
-        <g class="nd" data-n="db" tabindex="0" role="button" aria-label="DB MariaDB"><rect x="560" y="166" width="190" height="55" rx="9"/><text class="a" x="655" y="190" text-anchor="middle">DB</text><text class="b" x="655" y="208" text-anchor="middle">MariaDB · Flyway</text></g>
-        <g class="nd" data-n="dart" tabindex="0" role="button" aria-label="OpenDART와 외부 데이터 API"><rect x="560" y="262" width="190" height="60" rx="9"/><text class="a" x="655" y="288" text-anchor="middle">OpenDART</text><text class="b" x="655" y="306" text-anchor="middle">NAVER 뉴스 · 시세 API</text></g>
-      </svg>
+  <div style="margin-top:20px; padding:24px; border-radius:var(--radius-lg); background:var(--color-bg-subtle);">
+      <svg viewBox="0 0 1000 360" id="archsvg" style="width:100%; max-width:1000px; height:auto;" role="img" aria-label="호출 구조: 화면에서 백엔드, 백엔드에서 AI 서버와 LLM으로 한 방향. 백엔드가 DB·OpenDART·NAVER를 부른다">
+<defs><marker id="arch_ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--color-accent);"/></marker></defs>
+<path d="M200,82.0 H276" style="fill:none; stroke:var(--color-accent); stroke-width:1.8;" marker-end="url(#arch_ar)"/><text x="240.0" y="74.0" text-anchor="middle" style="font-family:var(--font-mono); font-size:12px; fill:var(--color-text-muted);">/api</text>
+<path d="M460,82.0 H536" style="fill:none; stroke:var(--color-accent); stroke-width:1.8;" marker-end="url(#arch_ar)"/><text x="500.0" y="74.0" text-anchor="middle" style="font-family:var(--font-mono); font-size:12px; fill:var(--color-text-muted);">/internal</text>
+<path d="M720,82.0 H796" style="fill:none; stroke:var(--color-accent); stroke-width:1.8;" marker-end="url(#arch_ar)"/>
+<path d="M370.0,124 V246" style="fill:none; stroke:var(--color-accent); stroke-width:1.8;" marker-end="url(#arch_ar)"/>
+<path d="M440,124 V184 H630.0 V246" style="fill:none; stroke:var(--color-accent); stroke-width:1.8;" marker-end="url(#arch_ar)"/>
+<path d="M630.0,184 H890.0 V246" style="fill:none; stroke:var(--color-accent); stroke-width:1.8;" marker-end="url(#arch_ar)"/>
+<g><rect x="20" y="40" width="180" height="84" rx="12" style="fill:var(--color-bg-raised); stroke:var(--color-border-strong); stroke-width:1.2;"/><text x="110.0" y="76" text-anchor="middle" style="font-size:17px; font-weight:800; fill:var(--color-text);">🖥️ 화면</text><text x="110.0" y="100" text-anchor="middle" style="font-size:12.5px; fill:var(--color-text-muted);">React · TypeScript</text></g>
+<g><rect x="280" y="40" width="180" height="84" rx="12" style="fill:var(--color-accent-subtle); stroke:var(--color-accent); stroke-width:2;"/><text x="370.0" y="76" text-anchor="middle" style="font-size:17px; font-weight:800; fill:var(--color-text);">☕ 백엔드</text><text x="370.0" y="100" text-anchor="middle" style="font-size:12.5px; fill:var(--color-text-muted);">Spring Boot · 키·캐시·한도</text></g>
+<g><rect x="540" y="40" width="180" height="84" rx="12" style="fill:var(--color-bg-raised); stroke:var(--color-border-strong); stroke-width:1.2;"/><text x="630.0" y="76" text-anchor="middle" style="font-size:17px; font-weight:800; fill:var(--color-text);">🐍 AI 서버</text><text x="630.0" y="100" text-anchor="middle" style="font-size:12.5px; fill:var(--color-text-muted);">FastAPI · LangGraph</text></g>
+<g><rect x="800" y="40" width="180" height="84" rx="12" style="fill:var(--color-bg-raised); stroke:var(--color-border-strong); stroke-width:1.2;"/><text x="890.0" y="76" text-anchor="middle" style="font-size:17px; font-weight:800; fill:var(--color-text);">🤖 LLM</text><text x="890.0" y="100" text-anchor="middle" style="font-size:12.5px; fill:var(--color-text-muted);">Claude</text></g>
+<g><rect x="280" y="250" width="180" height="84" rx="12" style="fill:var(--color-bg-raised); stroke:var(--color-border-strong); stroke-width:1.2;"/><text x="370.0" y="286" text-anchor="middle" style="font-size:17px; font-weight:800; fill:var(--color-text);">🗄️ DB</text><text x="370.0" y="310" text-anchor="middle" style="font-size:12.5px; fill:var(--color-text-muted);">MariaDB · Flyway</text></g>
+<g><rect x="540" y="250" width="180" height="84" rx="12" style="fill:var(--color-bg-raised); stroke:var(--color-border-strong); stroke-width:1.2;"/><text x="630.0" y="286" text-anchor="middle" style="font-size:17px; font-weight:800; fill:var(--color-text);">📄 OpenDART</text><text x="630.0" y="310" text-anchor="middle" style="font-size:12.5px; fill:var(--color-text-muted);">공시 원문 · 재무</text></g>
+<g><rect x="800" y="250" width="180" height="84" rx="12" style="fill:var(--color-bg-raised); stroke:var(--color-border-strong); stroke-width:1.2;"/><text x="890.0" y="286" text-anchor="middle" style="font-size:17px; font-weight:800; fill:var(--color-text);">📰 NAVER</text><text x="890.0" y="310" text-anchor="middle" style="font-size:12.5px; fill:var(--color-text-muted);">기업 뉴스</text></g>
+</svg>
   </div>
 
 </section>
