@@ -532,10 +532,11 @@ body.presentation-mode .deck-dock { transform: translateX(-50%) translateY(0); o
 /* 표지: 발표 모드에서만 첫 장으로 보임(스크롤 화면에는 위의 큰 머리말이 표지 역할) */
 body:not(.presentation-mode) #cover { display: none }
 .cover { position: relative; min-height: 100% }
-.cover__title { font-size: clamp(56px, 9vw, 120px); letter-spacing: -0.02em }
-.cover__presenter { position: absolute; right: 0; bottom: 0; margin: 0; font-size: 20px; font-weight: 600; color: var(--color-text-muted) }
+.cover__mark { width: 112px; height: 112px; border-radius: 30px; gap: 12px; margin-bottom: 18px }
+.cover__mark i { width: 16px; height: 42px; border-radius: 5px }
+.cover__mark i + i { height: 58px }
 /* 표지 이념: 과거 → 현재 → 미래로 이어지는 한 줄. 첫 화면 배경 선과 같은 결의 곡선 */
-.cover__motto { margin: 2px 0 0; font-size: clamp(22px, 2.6vw, 32px); font-weight: 800; letter-spacing: -0.02em; color: var(--color-text) }
+.cover__motto { margin: 2px 0 0; font-size: clamp(30px, 3.6vw, 46px); font-weight: 800; letter-spacing: -0.02em; color: var(--color-text) }
 .cover__motto-b { background: linear-gradient(90deg, var(--color-accent), #f2a25c); -webkit-background-clip: text; background-clip: text; color: transparent }
 .cover__time { position: relative; width: min(760px, 100%); height: 120px; margin: 6px 0 2px }
 .cover__time svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible }
@@ -551,13 +552,10 @@ body:not(.presentation-mode) #cover { display: none }
 .cover__dot--future b { top: -26px; color: #d9822b }
 .cover__lede { font-size: 17px }
 /* 표지 움직임: 로고 → 제목이 왼쪽부터 드러남 → 과거 선 → 현재 점(한 번 맥박) → 미래로 밝은 선이 뻗음 → 이념 문구 */
-@keyframes coverWipe { from { clip-path: inset(0 100% 0 0) } to { clip-path: inset(0 0 0 0) } }
 @keyframes coverDraw { from { stroke-dasharray: 1; stroke-dashoffset: 1 } to { stroke-dasharray: 1; stroke-dashoffset: 0 } }
 @keyframes coverDot { from { transform: scale(0); opacity: 0 } 60% { transform: scale(1.35); opacity: 1 } to { transform: scale(1) } }
 @keyframes coverPulse { 0% { transform: scale(.6); opacity: .9 } 100% { transform: scale(2.4); opacity: 0 } }
 @keyframes coverGlow { 50% { box-shadow: 0 0 26px 10px color-mix(in srgb, #f2a25c 70%, transparent) } }
-.slide-fit.play .cover .chapter__num { animation: slideReveal 500ms cubic-bezier(.2,.7,.2,1) 250ms both }
-.slide-fit.play .cover__title { animation: coverWipe 900ms cubic-bezier(.6,0,.2,1) 400ms both }
 .slide-fit.play .cover__past { animation: coverDraw 800ms cubic-bezier(.4,0,.2,1) 1100ms both }
 .slide-fit.play .cover__dot--past { animation: coverDot 400ms ease-out 1050ms both }
 .slide-fit.play .cover__dot--now { animation: coverDot 450ms ease-out 1850ms both }
@@ -566,7 +564,7 @@ body:not(.presentation-mode) #cover { display: none }
 .slide-fit.play .cover__dot--future { animation: coverDot 450ms ease-out 3150ms both, coverGlow 2400ms ease-in-out 3600ms infinite }
 .slide-fit.play .cover__motto-a { animation: slideReveal 600ms cubic-bezier(.2,.7,.2,1) 1500ms both; display: inline-block }
 .slide-fit.play .cover__motto-b { animation: slideReveal 600ms cubic-bezier(.2,.7,.2,1) 2900ms both; display: inline-block }
-.slide-fit.play .cover__lede, .slide-fit.play .cover__presenter { animation: slideReveal 600ms cubic-bezier(.2,.7,.2,1) 3400ms both }
+.slide-fit.play .cover__lede { animation: slideReveal 600ms cubic-bezier(.2,.7,.2,1) 3400ms both }
 .chapter__thanks { margin: 22px 0 0; font-size: 15px; font-weight: 700; color: var(--color-text-muted) }
 
 /* 핵심 가치 장의 'DART 공시 원문' 상자: 원문을 찾아가는 중인 느낌(뼈대 줄이 반짝, 형광펜 줄이 깜빡, 화살표가 움찔) */
@@ -597,6 +595,7 @@ body.capture-mode .doc-loading *, body.capture-mode .doc-jump { animation: none 
 .slide-brand .brand__mark i { width: 3.5px; height: 10px }
 .slide-brand .brand__mark i + i { height: 14px }
 .slide-num { right: 32px; font-family: var(--font-num) }
+.slide-org { position: absolute; top: 18px; left: 28px; font-size: 13px; font-weight: 800; letter-spacing: .12em; color: var(--color-accent) }
 
 /* 발표 모드 움직임: 장이 바뀔 때(.play) 머리말·카드가 차례로 떠오르고, 막대는 자라고, 구조도 선은 그어짐 */
 @keyframes slideReveal { from { opacity: 0; transform: translateY(18px) } to { opacity: 1; transform: none } }
@@ -622,7 +621,6 @@ body.capture-mode .doc-loading *, body.capture-mode .doc-jump { animation: none 
 /* 마지막 장(Preview): 뚜껑에 Preview가 적힌 닫힌 노트북. 화면 높이 기준으로 위에서 내려다본 모습
    .lt 상자 = 본체(키보드 판). 뚜껑은 본체 위쪽 모서리(경첩)에 붙어 있고, 닫히면 180도 접혀 본체를 덮음 */
 .preview__stage { width: 520px; height: 330px; margin: 22px 0 14px }
-.preview__hint { margin: 10px 0 0; font-family: var(--font-num); font-size: 14px; font-weight: 700; color: var(--color-text-muted) }
 .lt { position: relative; width: 520px; height: 330px; perspective: 1600px; perspective-origin: 50% 0 }
 /* 맥북 느낌(애플 로고는 상표라 넣지 않고 그 자리에 Preview): 스페이스 그레이 알루미늄, 얇은 검은 베젤과 카메라 노치,
    검은 키보드·큰 트랙패드·양옆 스피커 구멍, 본체 앞 가운데 손가락 홈 */
@@ -2136,9 +2134,7 @@ body {
 <!-- 00-A. 왜 재테크인가? (인플레이션 방어 & 우량 기업 팩트 분석) -->
 <section id="cover" class="chapter-cover" data-title="표지">
   <div class="chapter cover">
-    <span class="brand__mark chapter__mark" aria-hidden="true"><i></i><i></i></span>
-    <p class="chapter__num">신한DS 금융 AI 프로젝트</p>
-    <h2 class="chapter__title cover__title">DART Insight</h2>
+    <span class="brand__mark chapter__mark cover__mark" role="img" aria-label="DART Insight"><i></i><i></i></span>
     <p class="cover__motto"><span class="cover__motto-a">과거와 현재를 이어,</span> <span class="cover__motto-b">미래를 개척한다</span></p>
     <div class="cover__time" aria-hidden="true">
       <svg viewBox="0 0 1200 200" preserveAspectRatio="none">
@@ -2151,7 +2147,6 @@ body {
       <span class="cover__dot cover__dot--future" style="left:99%;top:7%"><b>미래</b></span>
     </div>
     <p class="chapter__lede cover__lede">두 보고서 사이, 바뀐 것만. 원문 근거와 함께.</p>
-    <p class="cover__presenter">발표자 : 남윤재</p>
   </div>
 </section>
 
@@ -2549,7 +2544,6 @@ body {
     <p class="chapter__num">LIVE DEMO</p>
     <div class="preview__stage" role="img" aria-label="뚜껑에 Preview라고 적힌 닫힌 노트북"><div class="lt"><div class="lt__base"><span class="lt__keys"></span></div><div class="lt__lid"><div class="lt__screen"></div><div class="lt__cover"><span class="brand__mark lt__mark" aria-hidden="true"><i></i><i></i></span><span class="lt__word">Preview</span></div></div></div></div>
     <p class="chapter__lede">두 보고서 사이, 바뀐 것만. 원문 근거와 함께.</p>
-    <p class="preview__hint">Space ▶ dart-insight.shinhanacademy.co.kr</p>
   </div>
 </section>
 <div class="demo-warp" id="portalWarp" aria-hidden="true">
@@ -2924,7 +2918,7 @@ stepper('#userflow', '#flowtext', [
     if (isPresent) { requestAnimationFrame(fitSlide); playSlide(); }
     const demoFrame = $('.demo-warp__site'), demoWarp = $('#portalWarp'); // 마지막 장에 오면 장면 끝에 열 첫 화면을 미리 불러 그려 둠
     const onDemoSlide = isPresent && slides[curSlide] && slides[curSlide].id === 'qna' && !document.body.classList.contains('capture-mode');
-    if (onDemoSlide && demoFrame && !demoFrame.getAttribute('src')) demoFrame.setAttribute('src', 'https://dart-insight.shinhanacademy.co.kr/');
+    if (onDemoSlide && demoFrame && !demoFrame.getAttribute('src')) demoFrame.setAttribute('src', 'https://dart-insight.shinhanacademy.co.kr/#from-deck');
     if (demoWarp) demoWarp.classList.toggle('warm', !!onDemoSlide);
   };
 
@@ -2991,6 +2985,7 @@ stepper('#userflow', '#flowtext', [
       body.className = 'slide-body';
       [...slide.childNodes].forEach((n) => { if (n.nodeName !== 'CANVAS') body.appendChild(n); });
       stage.appendChild(body);
+      stage.insertAdjacentHTML('beforeend', '<span class="slide-org" aria-hidden="true">신한DS 금융 AI 프로젝트</span>'); // 모든 장 왼쪽 위
       if (slide.id !== 'hero') {
         stage.insertAdjacentHTML('beforeend', '<span class="slide-brand" aria-hidden="true"><span class="brand__mark"><i></i><i></i></span>DART Insight</span>'
           + `<span class="slide-num" aria-hidden="true">${String(slides.indexOf(slide) + 1).padStart(2, '0')} / ${String(slides.length).padStart(2, '0')}</span>`);
@@ -3081,7 +3076,7 @@ stepper('#userflow', '#flowtext', [
   const exitBtn = $('#deckExit'); if (exitBtn) exitBtn.addEventListener('click', () => togglePresent(false));
   const prevBtn = $('#deckPrev'); if (prevBtn) prevBtn.addEventListener('click', () => updateSlide(curSlide - 1));
   // 마지막 장(Preview)에서 '다음'을 누르면 포털이 화면 가득 열리고 시연 사이트로 넘어갑니다.
-  const DEMO_URL = 'https://dart-insight.shinhanacademy.co.kr/';
+  const DEMO_URL = 'https://dart-insight.shinhanacademy.co.kr/#from-deck'; // #from-deck: 첫 화면이 등장 움직임 없이 바로 완성된 모습(frontend/index.html)
   let warping = false;
   const preloadDemo = () => { const f = $('.demo-warp__site'); if (f && !f.getAttribute('src')) f.setAttribute('src', DEMO_URL); };
   const goNext = () => {
