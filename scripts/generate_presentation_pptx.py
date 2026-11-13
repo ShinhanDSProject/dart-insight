@@ -2,63 +2,53 @@
 """
 DART Insight 발표 PPTX·대본 문서 생성기
 =======================================
-웹 발표 페이지(frontend/public/easter/three-weeks.html)의 12장을 그대로 PPTX로 옮깁니다.
+웹 발표 페이지(frontend/public/easter/three-weeks.html)의 발표 모드 화면을 그대로 PPTX로 옮깁니다.
 
-- 장 순서, 머리말(구분·제목), 용어 카드, 발표 대본은 페이지에서 읽습니다.
+- 장 순서, 머리말, 발표 대본은 페이지에서 읽습니다.
+- 장마다 페이지를 촬영 모드(?slide=<장 id>&capture)로 열어 헤드리스 Chrome으로 16:9 화면을 찍고,
+  그 이미지를 슬라이드에 꽉 채워 넣습니다. 발표자 노트에는 그 장의 대본을 넣습니다.
   페이지를 고치고 이 스크립트를 다시 돌리면 PPTX와 대본 문서가 함께 맞춰집니다.
-- 그림(아이콘 타일, 흐름, 구조도, 실제 화면)은 페이지와 같은 내용으로 여기서 그립니다.
-  페이지의 그림을 바꾸면 아래 SLIDE_BUILDERS의 같은 장도 고칩니다.
 
 만드는 파일:
   docs/DART_Insight_Presentation.pptx (frontend/public/easter/에도 복사)
   docs/presentation-script-heo-style.md (발표자 노트와 같은 대본 문서)
 
-실행: python3 scripts/generate_presentation_pptx.py  (python-pptx 필요)
+실행: python3 scripts/generate_presentation_pptx.py
+필요한 것: python-pptx, Chrome 또는 Chromium(다른 위치면 CHROME 환경변수로 경로 지정)
 """
 
+import functools
 import html
+import http.server
 import json
 import os
 import re
 import shutil
+import socketserver
 import subprocess
 import tempfile
+import threading
 
 from pptx import Presentation
-from pptx.dml.color import RGBColor
-from pptx.enum.shapes import MSO_SHAPE
-from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.oxml.ns import qn
-from pptx.util import Inches, Pt
+from pptx.util import Inches
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PAGE = os.path.join(ROOT, "frontend", "public", "easter", "three-weeks.html")
-ASSETS = os.path.dirname(PAGE)
+PUBLIC = os.path.join(ROOT, "frontend", "public")
+PAGE = os.path.join(PUBLIC, "easter", "three-weeks.html")
 OUT_PPTX = os.path.join(ROOT, "docs", "DART_Insight_Presentation.pptx")
-OUT_PPTX_COPY = os.path.join(ASSETS, "DART_Insight_Presentation.pptx")
+OUT_PPTX_COPY = os.path.join(PUBLIC, "easter", "DART_Insight_Presentation.pptx")
 OUT_SCRIPT = os.path.join(ROOT, "docs", "presentation-script-heo-style.md")
 
-# 디자인 토큰(frontend/src/shared/styles/tokens.css와 같은 값)
-CANVAS = RGBColor(0xF6, 0xF7, 0xFA)
-CARD = RGBColor(0xFF, 0xFF, 0xFF)
-BORDER = RGBColor(0xE4, 0xE6, 0xEB)
-PRIMARY = RGBColor(0x14, 0x19, 0x36)
-TEXT = RGBColor(0x24, 0x26, 0x30)
-MUTED = RGBColor(0x66, 0x66, 0x6E)
-ACCENT = RGBColor(0x61, 0x59, 0xB5)
-ACCENT_TINT = RGBColor(0xF0, 0xEF, 0xFA)
-ACCENT_BORDER = RGBColor(0xD6, 0xD3, 0xE8)
-POSITIVE = RGBColor(0x18, 0x76, 0x53)
-POSITIVE_TINT = RGBColor(0xEC, 0xF8, 0xF1)
-ATTENTION = RGBColor(0x8A, 0x53, 0x00)
-ATTENTION_TINT = RGBColor(0xFF, 0xF5, 0xE0)
-DANGER = RGBColor(0xB7, 0x42, 0x50)
-DANGER_TINT = RGBColor(0xFF, 0xF0, 0xF2)
-FONT = "Pretendard"
-
 SLIDE_W, SLIDE_H = 13.333, 7.5
+SHOT_W, SHOT_H = 1920, 1080
+CHROME_CANDIDATES = [
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "/Applications/Chromium.app/Contents/MacOS/Chromium",
+    "google-chrome", "google-chrome-stable", "chromium", "chromium-browser",
+]
 
-# 발표에 쓰는 숫자. 페이지 표지·일하는 방식 장과 같은 값입니다.
+# 발표에 쓰는 숫자. 대본 문서 머리에 함께 적습니다.
 FACTS = [
     ("기간", "2026-10-19 시작, 약 4주"),
     ("병합한 PR / 닫은 이슈 / 커밋", "461 / 429 / 1,101"),
@@ -97,431 +87,81 @@ def _js_object(source, name, first, second):
 
 
 def read_page():
+    """페이지의 장 순서(표지 + 섹션)대로 머리말·용어·대본을 읽습니다."""
     source = open(PAGE, encoding="utf-8").read()
     speeches = _js_object(source, "SPEECHES_BY_ID", "title", "text")
+    order = ["hero"] + re.findall(r'<section id="([\w-]+)"', source)
+    missing = [sid for sid in order if sid not in speeches]
+    if missing:
+        raise SystemExit(f"대본이 없는 장이 있습니다: {', '.join(missing)} (SPEECHES_BY_ID에 추가하세요)")
     slides = []
-    for sid in speeches:
-        kicker, heading, term, definition = "", "", "", ""
+    for sid in order:
+        heading, term, definition = "", "", ""
         start = source.find(f'<section id="{sid}"')
         if start >= 0:
             section = source[start:source.index("</section>", start)]
-            k = re.search(r'<p class="kicker">(.*?)</p>', section, re.S)
             h = re.search(r"<h2[^>]*>(.*?)</h2>", section, re.S)
-            kicker, heading = (_strip(k.group(1)) if k else ""), (_strip(h.group(1)) if h else "")
-            # 용어 카드는 화면 머리말에 있을 때만 PPTX에도 그립니다.
             t = re.search(r'<span class="zone-b-term">(.*?)</span>', section, re.S)
             d = re.search(r'<span class="zone-b-def">(.*?)</span>', section, re.S)
+            heading = _strip(h.group(1)) if h else ""
             term, definition = (_strip(t.group(1)) if t else ""), (_strip(d.group(1)) if d else "")
         title, text = speeches[sid]
         for old, new in NOTE_MARKERS.items():
             text = text.replace(old, new)
         slides.append({
-            "id": sid, "title": title, "kicker": kicker, "heading": heading or title,
+            "id": sid, "title": title, "heading": heading or title,
             "term": term.replace("🔍", "").strip(), "def": definition, "notes": text.strip(),
         })
     return slides
 
 
-def image_path(name):
-    """python-pptx가 webp를 못 읽어 png로 바꿔 씁니다(Pillow, 없으면 macOS sips)."""
-    path = os.path.join(ASSETS, name)
-    if not name.endswith(".webp"):
-        return path
-    out = os.path.join(tempfile.gettempdir(), name.replace(".webp", ".png"))
-    try:
-        from PIL import Image
-        Image.open(path).save(out)
-    except ImportError:
-        subprocess.run(["sips", "-s", "format", "png", path, "--out", out], check=True, capture_output=True)
-    return out
-
-
 # ---------------------------------------------------------------------------
-# 그리기 도구
+# 발표 화면 촬영
 # ---------------------------------------------------------------------------
-def box(slide, x, y, w, h, fill=CARD, line=BORDER, shape=MSO_SHAPE.ROUNDED_RECTANGLE, radius=0.08):
-    shp = slide.shapes.add_shape(shape, Inches(x), Inches(y), Inches(w), Inches(h))
-    shp.fill.solid()
-    shp.fill.fore_color.rgb = fill
-    if line is None:
-        shp.line.fill.background()
-    else:
-        shp.line.color.rgb = line
-        shp.line.width = Pt(1)
-    shp.shadow.inherit = False
-    if shape == MSO_SHAPE.ROUNDED_RECTANGLE:
-        shp.adjustments[0] = radius
-    return shp
+def find_chrome():
+    for candidate in [os.environ.get("CHROME")] + CHROME_CANDIDATES:
+        if candidate and os.path.isfile(candidate):
+            return candidate
+        if candidate and shutil.which(candidate):
+            return shutil.which(candidate)
+    raise SystemExit("Chrome을 찾지 못했습니다. CHROME 환경변수에 Chrome·Chromium 실행 파일 경로를 넣어 주세요.")
 
 
-def text(slide, x, y, w, h, lines, align=PP_ALIGN.LEFT, anchor=MSO_ANCHOR.TOP):
-    """lines: [(글, 크기, 색, 굵게)] 한 줄씩."""
-    tb = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(w), Inches(h))
-    tf = tb.text_frame
-    tf.word_wrap = True
-    tf.vertical_anchor = anchor
-    tf.margin_left = tf.margin_right = Inches(0.04)
-    tf.margin_top = tf.margin_bottom = Inches(0.02)
-    for i, (content, size, color, bold) in enumerate(lines):
-        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
-        p.alignment = align
-        run = p.add_run()
-        run.text = content
-        run.font.name = FONT
-        run.font.size = Pt(size)
-        run.font.bold = bold
-        run.font.color.rgb = color
-    return tb
+class _QuietHandler(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, *args):
+        pass
 
 
-def tile(slide, x, y, w, h, icon, title, caption, fill=CARD, line=BORDER, icon_size=34):
-    box(slide, x, y, w, h, fill, line)
-    text(slide, x + 0.1, y + 0.12, w - 0.2, h - 0.24,
-         [(icon, icon_size, TEXT, False), (title, 16, PRIMARY, True), (caption, 11.5, MUTED, False)],
-         align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-
-
-def tiles(slide, y, h, items, x0=0.6, x1=SLIDE_W - 0.6, gap=0.22, **kw):
-    w = (x1 - x0 - gap * (len(items) - 1)) / len(items)
-    for i, (icon, title, caption) in enumerate(items):
-        tile(slide, x0 + i * (w + gap), y, w, h, icon, title, caption, **kw)
-
-
-def flow(slide, y, h, items, x0=0.6, x1=SLIDE_W - 0.6, arrow=0.45, **kw):
-    n = len(items)
-    w = (x1 - x0 - arrow * (n - 1)) / n
-    for i, (icon, title, caption) in enumerate(items):
-        x = x0 + i * (w + arrow)
-        tile(slide, x, y, w, h, icon, title, caption, icon_size=28, **kw)
-        if i < n - 1:
-            text(slide, x + w, y, arrow, h, [("→", 20, MUTED, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-
-
-def chips(slide, y, items, tone="neutral", size=12):
-    fill, color = {
-        "neutral": (CARD, TEXT), "danger": (DANGER_TINT, DANGER),
-        "accent": (ACCENT_TINT, ACCENT), "ok": (POSITIVE_TINT, POSITIVE),
-    }[tone]
-    widths = [0.42 + 0.155 * len(item) * size / 12 for item in items]
-    gap = 0.18
-    x = (SLIDE_W - sum(widths) - gap * (len(items) - 1)) / 2
-    for item, w in zip(items, widths):
-        box(slide, x, y, w, 0.42, fill, BORDER if tone == "neutral" else None, radius=0.5)
-        text(slide, x, y, w, 0.42, [(item, size, color, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-        x += w + gap
-
-
-def picture(slide, name, x, y, w, h):
-    """상자 안에 비율을 지켜 가운데 놓습니다."""
-    pic = slide.shapes.add_picture(image_path(name), Inches(x), Inches(y))
-    ratio = min(Inches(w) / pic.width, Inches(h) / pic.height)
-    pic.width, pic.height = int(pic.width * ratio), int(pic.height * ratio)
-    pic.left = int(Inches(x) + (Inches(w) - pic.width) / 2)
-    pic.top = int(Inches(y) + (Inches(h) - pic.height) / 2)
-    return pic
-
-
-def arrow_line(slide, x1, y1, x2, y2, label=""):
-    conn = slide.shapes.add_connector(1, Inches(x1), Inches(y1), Inches(x2), Inches(y2))
-    conn.line.color.rgb = ACCENT
-    conn.line.width = Pt(1.75)
-    conn.line._get_or_add_ln().append(
-        conn.line._get_or_add_ln().makeelement(
-            "{http://schemas.openxmlformats.org/drawingml/2006/main}tailEnd", {"type": "triangle"}))
-    if label:
-        mid = (x1 + x2) / 2
-        text(slide, mid - 0.6, min(y1, y2) - 0.3, 1.2, 0.28, [(label, 10, MUTED, False)], align=PP_ALIGN.CENTER)
-
-
-def frame(prs, info, number, total):
-    """배경, 머리말(구분·제목), 용어 카드, 아래 쪽번호, 발표자 노트."""
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    slide.background.fill.solid()
-    slide.background.fill.fore_color.rgb = CANVAS
-    if info["kicker"]:
-        text(slide, 0.6, 0.38, 7.6, 0.32, [(info["kicker"], 12, ACCENT, True)])
-        size = 28 if len(info["heading"]) <= 20 else 22
-        text(slide, 0.6, 0.68, 7.95, 0.75, [(info["heading"], size, PRIMARY, True)], anchor=MSO_ANCHOR.MIDDLE)
-    if info["term"]:
-        box(slide, 8.75, 0.4, 3.98, 1.0, ACCENT_TINT, ACCENT_BORDER)
-        text(slide, 8.9, 0.45, 3.7, 0.9,
-             [("🔍 " + info["term"], 14, ACCENT, True), (info["def"], 11, TEXT, False)], anchor=MSO_ANCHOR.MIDDLE)
-    text(slide, 0.6, 7.05, 6, 0.3, [("DART Insight · 신한DS Academy 2차 프로젝트", 10, MUTED, False)])
-    text(slide, SLIDE_W - 2.6, 7.05, 2.0, 0.3, [(f"{number:02d} / {total:02d}", 10, MUTED, True)], align=PP_ALIGN.RIGHT)
-    slide.notes_slide.notes_text_frame.text = info["notes"]
-    return slide
-
-
-# ---------------------------------------------------------------------------
-# 장별 그림(페이지의 같은 장과 같은 내용)
-# ---------------------------------------------------------------------------
-def hero(s):
-    picture(s, "dart-insight-logo.png", 0.6, 0.5, 0.7, 0.7)
-    text(s, 1.4, 0.55, 8, 0.6, [("신한DS 금융 AI 프로젝트 · 2026", 13, ACCENT, True)], anchor=MSO_ANCHOR.MIDDLE)
-    text(s, 0.6, 2.2, 12.1, 2.2,
-         [("두 보고서 사이, 바뀐 것만.", 50, PRIMARY, True), ("원문 근거와 함께.", 50, ACCENT, True)],
-         align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-    text(s, 1.5, 4.6, 10.3, 0.6,
-         [("같은 회사의 정기보고서 두 개를 비교해, 바뀐 숫자와 문장을 원문 위치와 함께 보여 줍니다.", 18, MUTED, False)],
-         align=PP_ALIGN.CENTER)
-
-
-def glossary(s):
-    box(s, 0.6, 1.75, 5.7, 4.35)
-    picture(s, "jensen-huang-avatar.png", 0.85, 1.95, 0.85, 0.85)
-    picture(s, "nvidia-logo.png", 1.85, 2.15, 1.9, 0.45)
-    box(s, 3.85, 2.18, 2.3, 0.4, ACCENT_TINT, None, radius=0.5)
-    text(s, 3.85, 2.18, 2.3, 0.4, [("🇺🇸 SEC 8-K · 2026-11-12 제출", 10, ACCENT, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-    text(s, 0.85, 3.0, 5.25, 3.0, [
-        ("“The Board accepted the resignation of Jen-Hsun (Jensen) Huang as President, CEO, and Director, effective immediately.”", 14, MUTED, False),
-        ("", 8, MUTED, False),
-        ("“이사회는 젠슨 황의 사장·CEO·이사직 사임을 즉시 수락한다.”", 16, PRIMARY, True),
-    ], anchor=MSO_ANCHOR.MIDDLE)
-    text(s, 6.3, 1.75, 0.73, 4.35, [("=", 40, MUTED, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-    box(s, 7.03, 1.75, 5.7, 4.35)
-    picture(s, "dart-cover.png", 7.3, 1.95, 5.15, 2.95)
-    text(s, 7.2, 5.0, 5.35, 1.0, [("🇰🇷 금융감독원 DART", 13, ACCENT, True),
-                                    ("우리나라 상장사의 공식 공시가 모두 올라오는 곳", 15, PRIMARY, True)],
-         align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-
-
-def why(s):
-    for x in (0.6, 6.78):
-        box(s, x, 1.7, 5.95, 2.75)
-    box(s, 2.98, 1.85, 1.2, 0.34, DANGER_TINT, None, radius=0.5)
-    text(s, 2.98, 1.85, 1.2, 0.34, [("전자 공시", 11, DANGER, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-    text(s, 0.8, 2.25, 5.55, 2.1, [("📕📗📘📙", 32, TEXT, False), ("65만 자", 40, DANGER, True),
-                                   ("작년 것과 올해 것, 두 권을 나란히 놓고 사람이 비교", 12, MUTED, False)],
-         align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-    box(s, 9.35, 1.85, 0.8, 0.34, DANGER_TINT, None, radius=0.5)
-    text(s, 9.35, 1.85, 0.8, 0.34, [("AI", 11, DANGER, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-    picture(s, "pinocchio-hallucination.jpg", 8.25, 2.3, 3.0, 1.6)
-    text(s, 6.95, 3.95, 5.6, 0.4, [("AI Hallucination: 출처 없는 날조와 신뢰할 수 없는 AI 요약", 12, MUTED, False)], align=PP_ALIGN.CENTER)
-    text(s, 0.6, 4.45, 12.1, 0.45, [("⬇", 22, MUTED, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-    box(s, 0.6, 4.9, 12.13, 1.95, ACCENT_TINT, ACCENT)
-    text(s, 0.6, 5.0, 12.13, 0.35, [("DART Insight", 15, ACCENT, True)], align=PP_ALIGN.CENTER)
-    picture(s, "dart-insight-logo.png", 6.33, 5.45, 0.65, 0.65)
-    text(s, 0.6, 6.15, 12.13, 0.4, [("두 보고서 자동 비교", 16, PRIMARY, True)], align=PP_ALIGN.CENTER)
-
-
-def value(s):
-    box(s, 0.6, 1.75, 12.13, 2.1, CANVAS, None)
-    flow(s, 2.0, 1.6, [("🔎", "검색", ""), ("🏢", "기업 개요", ""), ("📑", "보고서 두 개", ""),
-                      ("⏳", "분석", ""), ("📊", "결과", ""), ("💬", "채팅·노트", "")], x0=1.0, x1=12.33, arrow=0.35)
-    box(s, 0.6, 4.35, 5.5, 2.2, ACCENT_TINT, ACCENT_BORDER)
-    text(s, 0.6, 4.35, 5.5, 2.2, [("결과 화면 · 요약 문장", 12, ACCENT, True), ("영업이익 ▲ +33.2%  📍 원문", 20, PRIMARY, True)],
-         align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-    text(s, 6.1, 4.35, 1.13, 2.2, [("➜", 30, ACCENT, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-    box(s, 7.23, 4.35, 5.5, 2.2)
-    text(s, 7.45, 4.5, 5.0, 0.35, [("DART 공시 원문", 12, MUTED, True)])
-    for k, (y, w, hl) in enumerate([(4.95, 4.6, False), (5.15, 3.9, False), (5.4, 5.05, True), (5.75, 4.6, False), (5.95, 3.9, False)]):
-        box(s, 7.45, y, w, 0.24 if hl else 0.1, ATTENTION_TINT if hl else BORDER, ATTENTION if hl else None, shape=MSO_SHAPE.RECTANGLE)
-
-
-def activity_financial(s):
-    text(s, 0.6, 1.65, 12.1, 0.4, [("실제 공시 값 · 연결 손익계산서 · 2024 → 2025", 13, MUTED, True)], align=PP_ALIGN.CENTER)
-    rows = [("매출액", "300.9조", "333.6조", "▲ +10.9%", "+32.7조 원"),
-            ("영업이익", "32.7조", "43.6조", "▲ +33.2%", "+10.9조 원"),
-            ("당기순이익", "34.5조", "45.2조", "▲ +31.2%", "+10.8조 원")]
-    w, gap = 3.85, 0.29
-    for i, (name, before, after, rate, diff) in enumerate(rows):
-        x = 0.6 + i * (w + gap)
-        box(s, x, 2.15, w, 3.55)
-        text(s, x, 2.3, w, 0.45, [(name, 18, PRIMARY, True)], align=PP_ALIGN.CENTER)
-        text(s, x, 2.85, w, 1.2, [("2024년  " + before, 15, MUTED, False), ("↓", 16, MUTED, True), ("2025년  " + after, 22, PRIMARY, True)],
-             align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-        box(s, x + 0.45, 4.35, w - 0.9, 1.1, POSITIVE_TINT, None)
-        text(s, x + 0.45, 4.35, w - 0.9, 1.1, [(rate, 26, POSITIVE, True), (diff, 12, POSITIVE, False)],
-             align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-    chips(s, 6.05, ["🧮 증감은 코드가 계산", "📍 출처 사업보고서(2025.12) · 접수번호 20260310002820"], tone="accent")
-
-
-TIMELINE = [
-    ("2025.11.26", "⚠️", "위험", "종속회사 Harman, 미국 법무부 벌금"),
-    ("2025.12.23", "⚠️", "위험", "아산 캠퍼스 사고로 부분작업중지"),
-    ("2026.01.29", "💰", "자금", "임직원 보상용 자사주 2,200만 주 취득 결정"),
-    ("2026.02.20", "⚠️", "위험", "부분작업중지 해제"),
-    ("2026.03.18", "🏛️", "지배구조", "정기주총 · 자사주 추가 취득 결정"),
-    ("2026.04.30", "🧭", "투자", "국가 AI컴퓨팅센터 컨소시엄 출자 의결"),
-]
-
-
-def activity_flow(s):
-    flow(s, 1.6, 1.05, [("📥", "모으기", ""), ("📝", "요약·타임라인", ""), ("🎯", "관점별 보기", ""), ("🚦", "사실과 전망 분리", "")],
-         x0=2.2, x1=11.13, arrow=0.35)
-    box(s, 0.6, 2.85, 4.9, 3.85)
-    text(s, 0.8, 2.93, 4.5, 0.4, [("🗓️ 1년 타임라인 · 24건 중 6건", 14, PRIMARY, True)])
-    for i, (date, icon, cat, label) in enumerate(TIMELINE):
-        y = 3.35 + i * 0.5
-        text(s, 0.8, y, 1.05, 0.45, [(date, 10.5, MUTED, False)], anchor=MSO_ANCHOR.MIDDLE)
-        text(s, 1.85, y, 3.55, 0.45, [(f"{icon} {cat} · {label}", 11.5, TEXT, False)], anchor=MSO_ANCHOR.MIDDLE)
-    text(s, 0.8, 6.35, 4.5, 0.3, [("사건마다 공시 원문 근거가 붙어 있어요.", 10, MUTED, False)])
-    box(s, 5.72, 2.85, 7.01, 3.85)
-    picture(s, "samsung-fact-vs-forecast.webp", 5.85, 2.95, 6.75, 2.3)
-    for i, (label, desc, fill, color) in enumerate([("① 공시에 적힌 사실", "원문 문장 그대로 + 근거 위치", ACCENT_TINT, ACCENT),
-                                                    ("② 앞으로의 영향", "'AI 전망 · 공시 사실 아님' 표시를 따로", ATTENTION_TINT, ATTENTION)]):
-        y = 5.4 + i * 0.6
-        box(s, 5.95, y, 2.2, 0.45, fill, None, radius=0.5)
-        text(s, 5.95, y, 2.2, 0.45, [(label, 12, color, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-        text(s, 8.25, y, 4.3, 0.45, [(desc, 13, TEXT, False)], anchor=MSO_ANCHOR.MIDDLE)
-    text(s, 0.6, 6.72, 12.1, 0.3, [("실제 결과 · 삼성전자 반기보고서 2025.06 → 2026.06", 10.5, MUTED, False)], align=PP_ALIGN.CENTER)
-
-
-METHOD_STEPS = [("01", "비교 가능성", "같은 회사 · 같은 기준 기간"), ("02", "수치 계산", "증감액·증감률은 코드로"),
-                ("03", "변경 탐지", "목차·문단 단위 대조"), ("04", "근거 검증", "원문 위치 없는 문장 제외")]
-METHOD_RULES = [("실패 처리", "검증에 실패하면 최대 2회 다시 생성하고, 그래도 실패하면 '검토 필요'로 표시"),
-                ("표현 검사", "매수·매도 추천 · 목표주가 · 주가 예측 · 가치판단 표현은 화면에 나가기 전 차단")]
-
-
-def methods(s):
-    box(s, 0.6, 1.75, 12.13, 2.0, CANVAS, BORDER)
-    w, arrow = 2.4, 0.55
-    x0 = (SLIDE_W - (w * 4 + arrow * 3)) / 2
-    for i, (num, name, caption) in enumerate(METHOD_STEPS):
-        x = x0 + i * (w + arrow)
-        text(s, x, 1.9, w, 1.7, [(num, 28, ACCENT, True), (name, 17, PRIMARY, True), (caption, 11.5, MUTED, False)],
-             align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-        if i < 3:
-            text(s, x + w, 1.9, arrow, 1.7, [("→", 20, MUTED, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-    box(s, 0.6, 4.1, 12.13, 1.9)
-    for i, (label, value) in enumerate(METHOD_RULES):
-        y = 4.1 + i * 0.95
-        if i:
-            box(s, 0.6, y, 12.13, 0.01, BORDER, None, shape=MSO_SHAPE.RECTANGLE)
-        text(s, 0.9, y, 1.8, 0.95, [(label, 13, MUTED, True)], anchor=MSO_ANCHOR.MIDDLE)
-        text(s, 2.8, y, 9.7, 0.95, [(value, 15, TEXT, False)], anchor=MSO_ANCHOR.MIDDLE)
-
-
-PEOPLE = [("🙋", "개인 투자자", "용어 카드 · AI 브리핑"), ("💼", "금융 실무자", "자동 비교 · CSV 내보내기"),
-          ("💬", "커뮤니티", "공시 원문 인용"), ("🎓", "취업 준비생", "'사업 방향' 관점"), ("🤝", "거래 검토 기업", "'거래·위험' 관점")]
-
-
-def impact(s):
-    x0, gap = 0.6, 0.2
-    w = (SLIDE_W - 2 * x0 - gap * 4) / 5
-    for i, (icon, name, feature) in enumerate(PEOPLE):
-        x = x0 + i * (w + gap)
-        box(s, x, 2.1, w, 3.4)
-        text(s, x, 2.4, w, 1.9, [(icon, 44, TEXT, False), (name, 18, PRIMARY, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-        box(s, x + 0.2, 4.5, w - 0.4, 0.5, ACCENT_TINT, None, radius=0.5)
-        text(s, x + 0.2, 4.5, w - 0.4, 0.5, [(feature, 11.5, ACCENT, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-
-
-STACK = [
-    (["react", "typescript"], "화면", "React · TypeScript"),
-    (["springboot", "openjdk"], "서비스 API", "Spring Boot · Java 21"),
-    (["fastapi", "python", "langgraph"], "AI 처리", "FastAPI · LangGraph"),
-    (["claude"], "AI 모델", "Claude (Haiku 기본)"),
-    (["mariadb", "flyway"], "데이터", "MariaDB · Flyway"),
-]
-
-
-def stack(s):
-    x0, gap = 0.6, 0.18
-    w = (SLIDE_W - 2 * x0 - gap * (len(STACK) - 1)) / len(STACK)
-    for i, (logos, name, caption) in enumerate(STACK):
-        x = x0 + i * (w + gap)
-        box(s, x, 1.85, w, 2.7)
-        size, lgap = 0.55, 0.12
-        lx = x + (w - (size * len(logos) + lgap * (len(logos) - 1))) / 2
-        for k, logo in enumerate(logos):
-            picture(s, os.path.join("stack", logo + ".png"), lx + k * (size + lgap), 2.25, size, size)
-        text(s, x, 3.05, w, 1.3, [(name, 16, PRIMARY, True), (caption, 11, MUTED, False)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-    box(s, 2.6, 5.05, 8.13, 0.85, ACCENT_TINT, ACCENT_BORDER)
-    text(s, 2.6, 5.05, 8.13, 0.85, [("🖥️ 화면  →  ☕ 백엔드  →  🐍 AI 서버, 한 방향으로만", 18, PRIMARY, True)],
-         align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-
-
-def _node(s, x, y, w, h, title, caption, strong=False):
-    box(s, x, y, w, h, ACCENT_TINT if strong else CARD, ACCENT if strong else BORDER)
-    text(s, x, y, w, h, [(title, 15, PRIMARY, True), (caption, 10.5, MUTED, False)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-
-
-def _elbow(slide, points):
-    """꺾인 화살표: 점들을 선으로 잇고 마지막 선에만 화살촉을 붙입니다."""
-    for k in range(len(points) - 1):
-        (x1, y1), (x2, y2) = points[k], points[k + 1]
-        if k == len(points) - 2:
-            arrow_line(slide, x1, y1, x2, y2)
-        else:
-            line = slide.shapes.add_connector(1, Inches(x1), Inches(y1), Inches(x2), Inches(y2))
-            line.line.color.rgb = ACCENT
-            line.line.width = Pt(1.75)
-
-
-def architecture(s):
-    box(s, 0.6, 1.7, 12.13, 5.1, CANVAS, BORDER)
-    w, h = 2.45, 1.0
-    gap = 0.7
-    x0 = (SLIDE_W - (w * 4 + gap * 3)) / 2
-    xs = [x0 + k * (w + gap) for k in range(4)]
-    ya, yb = 2.2, 5.05
-    top = [("🖥️ 화면", "React · TypeScript"), ("☕ 백엔드", "Spring Boot · 키·캐시·한도"), ("🐍 AI 서버", "FastAPI · LangGraph"), ("🤖 LLM", "Claude")]
-    bottom = [None, ("🗄️ DB", "MariaDB · Flyway"), ("📄 OpenDART", "공시 원문 · 재무"), ("📰 NAVER", "기업 뉴스")]
-    for k, (title, sub) in enumerate(top):
-        _node(s, xs[k], ya, w, h, title, sub, strong=(k == 1))
-    for k, item in enumerate(bottom):
-        if item:
-            _node(s, xs[k], yb, w, h, *item)
-    mid = ya + h / 2
-    arrow_line(s, xs[0] + w, mid, xs[1], mid, "/api")
-    arrow_line(s, xs[1] + w, mid, xs[2], mid, "/internal")
-    arrow_line(s, xs[2] + w, mid, xs[3], mid)
-    bus = ya + h + 0.75
-    arrow_line(s, xs[1] + w / 2, ya + h, xs[1] + w / 2, yb)
-    _elbow(s, [(xs[1] + w - 0.45, ya + h), (xs[1] + w - 0.45, bus), (xs[2] + w / 2, bus), (xs[2] + w / 2, yb)])
-    _elbow(s, [(xs[2] + w / 2, bus), (xs[3] + w / 2, bus), (xs[3] + w / 2, yb)])
-
-
-WEEK_STEPS = [("🎯", "성공 기준", "👤 사람"), ("📝", "기획서·수용 기준", "🤖 초안 → 👤 확인"),
-              ("🏛️", "설계 기록(ADR)", "🤖 초안 → 👤 확인"), ("🧩", "이슈 쪼개기", "🤖 초안 → 👤 확인"),
-              ("💻", "구현", "👤 + 🤖"), ("🧪", "자동 검사", "⚙️ 자동"), ("✅", "수용 검증", "🤖 초안 → 👤 확인")]
-ROLES = [
-    ("👤 사람", CARD, BORDER, ["🎯 무엇을 왜 만들지(성공 기준·범위)", "✔️ 기획서·설계 기록 최종 확인", "🔀 커밋·PR·병합 결정"]),
-    ("🤖 AI", ACCENT_TINT, ACCENT_BORDER, ["📝 기획서·이슈·설계 기록 초안(스킬)", "💻 코드와 테스트 작성", "🔁 다른 AI와 교차 검토"]),
-    ("⚙️ 자동화", CANVAS, BORDER, ["🧪 자동 테스트 약 4,400개", "♿ 접근성 검사(axe-core)", "🧭 호출 방향 검사(ArchUnit)"]),
-]
-
-
-def weeks(s):
-    x0, gap = 0.6, 0.12
-    w = (SLIDE_W - 2 * x0 - gap * 6) / 7
-    for i, (icon, name, owner) in enumerate(WEEK_STEPS):
-        x = x0 + i * (w + gap)
-        box(s, x, 1.65, w, 1.55)
-        text(s, x, 1.7, w, 1.45, [(f"{i + 1:02d}", 9, MUTED, True), (icon, 20, TEXT, False), (name, 11.5, PRIMARY, True), (owner, 9.5, ACCENT, True)],
-             align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-    w, gap = (SLIDE_W - 2 * x0 - 0.22 * 2) / 3, 0.22
-    for i, (title, fill, line, items) in enumerate(ROLES):
-        x = x0 + i * (w + gap)
-        box(s, x, 3.75, w, 2.3, fill, line)
-        text(s, x + 0.25, 3.75, w - 0.5, 2.3, [(title, 20, PRIMARY, True)] + [(item, 15.5, TEXT, False) for item in items], anchor=MSO_ANCHOR.MIDDLE)
-
-
-SLIDE_BUILDERS = {
-    "hero": hero, "glossary": glossary, "why": why, "value": value,
-    "activity-financial": activity_financial, "activity-flow": activity_flow, "methods": methods,
-    "impact": impact, "stack": stack, "architecture": architecture, "weeks": weeks,
-}
+def capture_slides(slides, out_dir):
+    """frontend/public을 잠시 띄우고, 장마다 촬영 모드로 열어 PNG로 찍습니다."""
+    chrome = find_chrome()
+    handler = functools.partial(_QuietHandler, directory=PUBLIC)
+    with socketserver.TCPServer(("127.0.0.1", 0), handler) as server:
+        port = server.server_address[1]
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        profile = tempfile.mkdtemp(prefix="dart-insight-chrome-")
+        try:
+            paths = []
+            for n, slide in enumerate(slides, 1):
+                path = os.path.join(out_dir, f"{n:02d}-{slide['id']}.png")
+                url = f"http://127.0.0.1:{port}/easter/three-weeks.html?slide={slide['id']}&capture"
+                subprocess.run([
+                    chrome, "--headless=new", "--disable-gpu", "--hide-scrollbars", f"--user-data-dir={profile}",
+                    f"--window-size={SHOT_W},{SHOT_H}", "--force-device-scale-factor=1",
+                    "--virtual-time-budget=5000", f"--screenshot={path}", url,
+                ], check=True, capture_output=True, timeout=120)
+                if not os.path.isfile(path):
+                    raise SystemExit(f"{slide['id']} 장을 찍지 못했습니다.")
+                paths.append(path)
+            return paths
+        finally:
+            server.shutdown()
+            shutil.rmtree(profile, ignore_errors=True)
 
 
 # ---------------------------------------------------------------------------
 # 만들기
 # ---------------------------------------------------------------------------
-def build_pptx(slides):
-    prs = Presentation()
-    prs.slide_width, prs.slide_height = Inches(SLIDE_W), Inches(SLIDE_H)
-    for number, info in enumerate(slides, 1):
-        slide = frame(prs, info, number, len(slides))
-        builder = SLIDE_BUILDERS.get(info["id"])
-        if builder is None:
-            raise SystemExit(f"그림이 없는 장입니다: {info['id']} (SLIDE_BUILDERS에 추가하세요)")
-        builder(slide)
-    add_notes_master_list(prs)
-    prs.save(OUT_PPTX)
-    shutil.copyfile(OUT_PPTX, OUT_PPTX_COPY)
-
-
 def add_notes_master_list(prs):
     """python-pptx는 노트 마스터를 만들 때 presentation.xml에 notesMasterIdLst를 적지 않습니다.
     PowerPoint는 그대로 열지만 Keynote는 열지 못하므로 목록을 채워 넣습니다."""
@@ -537,14 +177,26 @@ def add_notes_master_list(prs):
     pres.find(qn("p:sldMasterIdLst")).addnext(lst)
 
 
+def build_pptx(slides, images):
+    prs = Presentation()
+    prs.slide_width, prs.slide_height = Inches(SLIDE_W), Inches(SLIDE_H)
+    for info, image in zip(slides, images):
+        slide = prs.slides.add_slide(prs.slide_layouts[6])
+        slide.shapes.add_picture(image, 0, 0, prs.slide_width, prs.slide_height)
+        slide.notes_slide.notes_text_frame.text = info["notes"]
+    add_notes_master_list(prs)
+    prs.save(OUT_PPTX)
+    shutil.copyfile(OUT_PPTX, OUT_PPTX_COPY)
+
+
 def build_script(slides):
     out = [
         "# DART Insight 발표 대본",
         "",
         "> 같은 회사의 정기보고서 두 개를 비교해, 바뀐 숫자와 문장을 원문 위치와 함께 보여 주는 서비스입니다. 투자 조언이 아닙니다.",
         "",
-        f"- 웹 발표 페이지(`frontend/public/easter/three-weeks.html`)와 PPTX(`docs/DART_Insight_Presentation.pptx`)는 같은 {len(slides)}장입니다.",
-        "- **이 문서와 PPTX는 `python3 scripts/generate_presentation_pptx.py`가 페이지의 대본에서 만듭니다.** 대본은 페이지에서 고치고 스크립트를 다시 돌립니다.",
+        f"- 웹 발표 페이지(`frontend/public/easter/three-weeks.html`)의 발표 모드와 PPTX(`docs/DART_Insight_Presentation.pptx`)는 같은 {len(slides)}장입니다.",
+        "- **이 문서와 PPTX는 `python3 scripts/generate_presentation_pptx.py`가 페이지에서 만듭니다.** 화면·대본은 페이지에서 고치고 스크립트를 다시 돌립니다.",
         "- 대본 형식: ① 여는 질문 → ② 쉬운 설명 → ③ 화면 가리키기 → ④ 마무리 한마디. 장마다 30~45초.",
         "",
         "## 발표에 쓰는 숫자 (2026-11-13 기준, 저장소·GitHub·로컬 DB에서 직접 센 값)",
@@ -572,7 +224,9 @@ def build_script(slides):
 
 def main():
     slides = read_page()
-    build_pptx(slides)
+    with tempfile.TemporaryDirectory(prefix="dart-insight-slides-") as shots:
+        images = capture_slides(slides, shots)
+        build_pptx(slides, images)
     build_script(slides)
     print(f"{len(slides)}장: {os.path.relpath(OUT_PPTX, ROOT)}, {os.path.relpath(OUT_SCRIPT, ROOT)}")
 

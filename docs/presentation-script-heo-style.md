@@ -2,8 +2,8 @@
 
 > 같은 회사의 정기보고서 두 개를 비교해, 바뀐 숫자와 문장을 원문 위치와 함께 보여 주는 서비스입니다. 투자 조언이 아닙니다.
 
-- 웹 발표 페이지(`frontend/public/easter/three-weeks.html`)와 PPTX(`docs/DART_Insight_Presentation.pptx`)는 같은 11장입니다.
-- **이 문서와 PPTX는 `python3 scripts/generate_presentation_pptx.py`가 페이지의 대본에서 만듭니다.** 대본은 페이지에서 고치고 스크립트를 다시 돌립니다.
+- 웹 발표 페이지(`frontend/public/easter/three-weeks.html`)의 발표 모드와 PPTX(`docs/DART_Insight_Presentation.pptx`)는 같은 11장입니다.
+- **이 문서와 PPTX는 `python3 scripts/generate_presentation_pptx.py`가 페이지에서 만듭니다.** 화면·대본은 페이지에서 고치고 스크립트를 다시 돌립니다.
 - 대본 형식: ① 여는 질문 → ② 쉬운 설명 → ③ 화면 가리키기 → ④ 마무리 한마디. 장마다 30~45초.
 
 ## 발표에 쓰는 숫자 (2026-11-13 기준, 저장소·GitHub·로컬 DB에서 직접 센 값)
