@@ -501,6 +501,9 @@ body.presentation-mode .deck-dock { transform: translateX(-50%) translateY(0); o
 .deck-dock button:hover { background: rgba(255,255,255,0.22) }
 .deck-dock a { color: #fff; text-decoration: none; background: rgba(255,255,255,0.12); padding: 6px 14px; border-radius: var(--radius-pill); font-size: 13px; font-weight: 700; transition: background var(--motion-fast) }
 .deck-dock a:hover { background: rgba(255,255,255,0.22) }
+/* 발표 도구(대본·저장·전체화면·나가기)는 '⋯'를 눌렀을 때만 펼침 */
+.deck-dock .deck-more { display: flex; align-items: center; gap: 12px }
+.deck-dock .deck-more[hidden] { display: none }
 .deck-dock .deck-counter { font-family: var(--font-num); font-size: 13.5px; font-weight: 700; padding: 0 6px }
 .deck-dock .sep { width: 1px; height: 16px; background: rgba(255,255,255,0.2) }
 
@@ -2281,11 +2284,14 @@ body {
   <span class="deck-counter" id="deckCounter">01 / 12</span>
   <button type="button" id="deckNext" aria-label="다음 슬라이드 (단축키 → / Space)">다음 ▶</button>
   <span class="sep" aria-hidden="true"></span>
+  <button type="button" id="deckMoreToggle" aria-expanded="false" aria-controls="deckMore" aria-label="발표 도구 더 보기">⋯</button>
+  <span class="deck-more" id="deckMore" hidden>
   <button type="button" id="deckNotes" aria-label="발표자 대본 보기 (단축키 N)">💬 발표 대본</button>
   <a href="/easter/DART_Insight_Presentation.pptx" download="DART_Insight_Presentation.pptx" id="btnDeckExportPptx" title="PPTX 슬라이드 다운로드">📊 PPTX 다운로드</a>
   <button type="button" id="btnDeckExportPdf" aria-label="슬라이드 PDF 저장 (단축키 Ctrl/Cmd+P)">📄 PDF 저장</button>
   <button type="button" id="deckFull" aria-label="전체화면 (단축키 F)">⛶ 전체화면</button>
   <button type="button" id="deckExit" aria-label="발표 모드 나가기 (단축키 Esc)">✕ 나가기</button>
+  </span>
 </div>
 
 <!-- 실시간 발표 전문가 대본 사이드바 (Speaker Notes Sidebar) -->
@@ -2706,6 +2712,7 @@ stepper('#userflow', '#flowtext', [
       setTimeout(fitSlide, 300); // 이미지가 늦게 그려져도 다시 맞춤
     } else {
       wrapSlides(false);
+      showMore(false);
       slides.forEach((s) => s.classList.remove('slide-active'));
       if (slides[curSlide]) slides[curSlide].scrollIntoView({ block: 'start' }); // 보던 장으로 돌아감
     }
@@ -2717,6 +2724,14 @@ stepper('#userflow', '#flowtext', [
   const nextBtn = $('#deckNext'); if (nextBtn) nextBtn.addEventListener('click', () => updateSlide(curSlide + 1));
 
   const notesBtn = $('#deckNotes'); if (notesBtn) notesBtn.addEventListener('click', () => toggleSidebar());
+
+  const moreBtn = $('#deckMoreToggle'), more = $('#deckMore');
+  const showMore = (on) => {
+    if (!moreBtn || !more) return;
+    more.hidden = !on;
+    moreBtn.setAttribute('aria-expanded', String(on));
+  };
+  if (moreBtn) moreBtn.addEventListener('click', () => showMore(more.hidden));
 
   const fullBtn = $('#deckFull');
   if (fullBtn) {
