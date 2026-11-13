@@ -2618,9 +2618,10 @@ stepper('#userflow', '#flowtext', [
     fit.style.transform = 'none';
     const box = slide.getBoundingClientRect();
     const capture = document.body.classList.contains('capture-mode');
-    const scale = capture
+    const rawScale = capture
       ? Math.min(box.width / fit.offsetWidth, box.height / fit.offsetHeight)
       : Math.min((box.width - 48) / fit.offsetWidth, (box.height - 72 - 24) / fit.offsetHeight);
+    const scale = Math.max(0.2, Number.isFinite(rawScale) ? rawScale : 1);
     fit.style.transform = `scale(${scale})`;
   };
   const wrapSlides = (on) => slides.forEach((slide) => {
@@ -2743,6 +2744,8 @@ stepper('#userflow', '#flowtext', [
     if (!isPresent) return;
     if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); updateSlide(curSlide + 1); }
     if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); updateSlide(curSlide - 1); }
+    if (e.key === 'Home') { e.preventDefault(); updateSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); updateSlide(slides.length - 1); }
     if (e.key === 'Escape') { e.preventDefault(); togglePresent(false); }
     if (e.key === 'n' || e.key === 'N') { e.preventDefault(); toggleSidebar(); }
     if (e.key === 'f' || e.key === 'F') {
