@@ -26,10 +26,7 @@ export function PageReveal({ fallback, children }: PageRevealProps) {
   const [checks, recheck] = useReducer((n: number) => n + 1, 0)
   const [timedOut, setTimedOut] = useState(false)
   const [phase, setPhase] = useState<RevealPhase>(() =>
-    shouldSkipReveal({
-      intro: document.documentElement.dataset.intro,
-      reducedMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
-    })
+    shouldSkipReveal({ reducedMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false })
       ? 'shown'
       : 'waiting',
   )
@@ -46,6 +43,11 @@ export function PageReveal({ fallback, children }: PageRevealProps) {
   useLayoutEffect(() => {
     setPhase((current) => nextRevealPhase(current, { pending: pending.current.size, timedOut }))
   }, [checks, timedOut])
+
+  // 발표에서 넘어온 첫 화면(#from-deck)은 준비될 때까지 화면 전체를 가려 둔다(index.html). 준비되면 알린다
+  useLayoutEffect(() => {
+    if (phase !== 'waiting') document.documentElement.dataset.introReady = ''
+  }, [phase])
 
   useEffect(() => {
     if (phase === 'shown') return
