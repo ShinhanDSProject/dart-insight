@@ -18,6 +18,11 @@ export function countUpValue(from: number, to: number, elapsed: number, duration
   return from + (to - from) * easeOutCubic(elapsed / duration)
 }
 
+/** 처음 그릴 때의 값. 움직이지 않으면(시간 0: 동작 줄이기·발표에서 넘어옴) 첫 프레임부터 목표 값이라 0이 잠깐 보이지 않는다 */
+export function countUpStart(target: number | null, duration: number): number | null {
+  return target === null || duration <= 0 ? target : 0
+}
+
 /** CSS 시간 값(예: '600ms', '0.6s')을 ms로. 읽을 수 없으면 null */
 export function parseDurationMs(value: string): number | null {
   const found = /^\s*(-?[\d.]+)\s*(ms|s)\s*$/.exec(value)

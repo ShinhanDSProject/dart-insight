@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { countUpValue, easeOutCubic, parseDurationMs } from './countUp'
+import { countUpStart, countUpValue, easeOutCubic, parseDurationMs } from './countUp'
 
 describe('easeOutCubic', () => {
   it('처음은 0, 끝은 1이고 가운데는 직선보다 앞서 간다', () => {
@@ -40,5 +40,19 @@ describe('parseDurationMs', () => {
     expect(parseDurationMs('')).toBeNull()
     expect(parseDurationMs('fast')).toBeNull()
     expect(parseDurationMs('-1ms')).toBeNull()
+  })
+})
+
+describe('countUpStart', () => {
+  it('움직이면 0에서 시작한다', () => {
+    expect(countUpStart(4004, 800)).toBe(0)
+  })
+
+  it('시간이 0이면(동작 줄이기·발표에서 넘어옴) 처음부터 목표 값이다', () => {
+    expect(countUpStart(4004, 0)).toBe(4004)
+  })
+
+  it('값이 없으면 null이다', () => {
+    expect(countUpStart(null, 800)).toBeNull()
   })
 })
