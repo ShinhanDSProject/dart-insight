@@ -3,7 +3,7 @@ import { match } from 'ts-pattern'
 import { RESULT_TOUR_CHANGE_EVENT, RESULT_TOUR_SEEN_KEY } from '@/shared/lib/resultTour'
 import { writeDemoStorage } from '../hooks/useDemoMode'
 import { useDemoStepRunner, type DemoCursor } from '../hooks/useDemoStepRunner'
-import { DEMO_LEAVE_MS, DEMO_NEXT_STEP_KEY, DEMO_RETURN_PATH, DEMO_STORAGE_KEY } from '../model/demoActivation'
+import { DEMO_DONE_MESSAGE, DEMO_LEAVE_MS, DEMO_NEXT_STEP_KEY, DEMO_RETURN_PATH, DEMO_STORAGE_KEY } from '../model/demoActivation'
 import { createDemoReducer, demoProgress, initialDemoState } from '../model/demoState'
 import { DEMO_SCENARIO } from '../model/scenario'
 import '../demo-autopilot.css'
@@ -37,7 +37,8 @@ export function DemoAutopilot({ startStep, onExit }: { startStep: number; onExit
     writeDemoStorage(DEMO_NEXT_STEP_KEY, next === null ? null : String(next))
   }, [state])
 
-  // 마친 뒤 Space: 시연을 끄고 앱 화면을 빛 한 점으로 닫은 뒤 발표 페이지의 Q&A 장으로 간다(#970). 동작 줄이기면 바로 간다
+  // 마친 뒤 Space: 시연을 끄고 앱 화면을 빛 한 점으로 닫은 뒤 발표 페이지의 Q&A 장으로 간다(#970). 동작 줄이기면 바로 간다.
+  // 발표 페이지 안(iframe)이면 주소를 옮기지 않고 발표 페이지에 알린다(전체화면 유지, #972)
   const leaving = state.status === 'leaving'
   useEffect(() => {
     if (!leaving) return
@@ -47,7 +48,10 @@ export function DemoAutopilot({ startStep, onExit }: { startStep: number; onExit
     // 닫히는 점은 지금 보이는 화면의 오른쪽 위(발표 페이지가 열린 점)다. #root가 길어 스크롤 위치를 더해 잡는다
     document.documentElement.style.setProperty('--demo-leave-y', `${window.scrollY + window.innerHeight * 0.21}px`)
     document.documentElement.dataset.demoLeaving = ''
-    const timer = setTimeout(() => location.assign(DEMO_RETURN_PATH), reduceMotion ? 0 : DEMO_LEAVE_MS)
+    const timer = setTimeout(() => {
+      if (window.parent !== window) window.parent.postMessage({ type: DEMO_DONE_MESSAGE }, location.origin)
+      else location.assign(DEMO_RETURN_PATH)
+    }, reduceMotion ? 0 : DEMO_LEAVE_MS)
     // 넘어가기 전에 꺼지면(화면 이동 등) 닫힌 화면이 남지 않게 되돌린다
     return () => {
       clearTimeout(timer)
