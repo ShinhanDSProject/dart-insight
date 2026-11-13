@@ -93,7 +93,9 @@ function runAction(action: DemoAction, tools: DemoTools): Promise<void> {
       if (element === undefined) return
       await moveTo(element, tools)
       await press(tools)
-      element.click()
+      // 커서가 옮겨 가는 동안 화면이 다시 그려져 요소가 바뀌었으면 다시 찾아 누른다
+      const current = element.isConnected ? element : await findTarget(target, tools.signal)
+      current.click()
       await sleep(400, tools.signal)
     })
     .with({ kind: 'type' }, async ({ target, text }) => {
@@ -110,8 +112,9 @@ function runAction(action: DemoAction, tools: DemoTools): Promise<void> {
         await sleep(TYPE_INTERVAL_MS, tools.signal)
       }
     })
-    .with({ kind: 'spotlight' }, async ({ target }) => {
-      const element = await findTarget(target, tools.signal)
+    .with({ kind: 'spotlight' }, async ({ target, optional = false }) => {
+      const element = optional ? queryVisible(target) : await findTarget(target, tools.signal)
+      if (element === undefined) return
       await scrollIntoView(element, tools.signal)
       tools.setSpotlight(element)
       await sleep(500, tools.signal)
@@ -154,13 +157,20 @@ async function press(tools: DemoTools) {
   tools.setCursor((cursor) => (cursor === null ? null : { ...cursor, pressing: false }))
 }
 
-/** 화면 밖이면 가운데로 부드럽게 옮기고 멈출 때까지 기다린다 */
+/** 화면 밖이면 가운데로 부드럽게 옮기고, 위치가 멈출 때까지(최대 1.5초) 기다린다 */
 async function scrollIntoView(element: HTMLElement, signal: AbortSignal) {
   const rect = element.getBoundingClientRect()
   const visible = rect.top >= 80 && rect.bottom <= window.innerHeight - 120
   if (visible) return
   element.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  await sleep(600, signal)
+  const until = Date.now() + 1500
+  let last = Number.NaN
+  for (;;) {
+    await sleep(120, signal)
+    const top = element.getBoundingClientRect().top
+    if (top === last || Date.now() > until) return
+    last = top
+  }
 }
 
 /** React가 값 바뀜을 알아채도록 기본 setter로 값을 넣고 input 이벤트를 보낸다 */

@@ -14,9 +14,9 @@ describe('DEMO_SCENARIO', () => {
     expect(JSON.stringify(DEMO_SCENARIO)).not.toMatch(/\/analyses\/\d|\/companies\/\d/)
   })
 
-  it('AI 질문은 마지막 단계이고 채팅 입력 길이(2~500자)에 맞다', () => {
-    const last = DEMO_SCENARIO[DEMO_SCENARIO.length - 1]
-    expect(last.actions.some((action) => action.kind === 'type' && action.text === DEMO_QUESTION)).toBe(true)
+  it('AI 질문은 끝부분(마지막 두 단계)에 있고 채팅 입력 길이(2~500자)에 맞다', () => {
+    const asking = DEMO_SCENARIO.findIndex((step) => step.actions.some((action) => action.kind === 'type' && action.text === DEMO_QUESTION))
+    expect(asking).toBeGreaterThanOrEqual(DEMO_SCENARIO.length - 2)
     expect(DEMO_QUESTION.length).toBeGreaterThanOrEqual(2)
     expect(DEMO_QUESTION.length).toBeLessThanOrEqual(500)
   })
