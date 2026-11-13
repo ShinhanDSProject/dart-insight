@@ -528,6 +528,21 @@ body.presentation-mode .deck-dock { transform: translateX(-50%) translateY(0); o
 .chapter-end .chapter__title { font-size: clamp(40px, 5.6vw, 64px) }
 .chapter__thanks { margin: 22px 0 0; font-size: 15px; font-weight: 700; color: var(--color-text-muted) }
 
+/* 핵심 가치 장의 'DART 공시 원문' 상자: 원문을 찾아가는 중인 느낌(뼈대 줄이 반짝, 형광펜 줄이 깜빡, 화살표가 움찔) */
+@keyframes skelShimmer { from { background-position: 200% 0 } to { background-position: -200% 0 } }
+@keyframes hitPulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-attention) 0%, transparent) } 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-attention) 22%, transparent) } }
+@keyframes jumpNudge { 0%, 100% { transform: translateX(0) } 50% { transform: translateX(6px) } }
+@keyframes dotBlink { 0%, 80%, 100% { opacity: .25 } 40% { opacity: 1 } }
+.doc-loading .skel { background: linear-gradient(90deg, var(--color-border) 25%, var(--color-bg-subtle) 50%, var(--color-border) 75%) !important; background-size: 200% 100% !important; animation: skelShimmer 1.6s linear infinite }
+.doc-loading .skel-hit { animation: hitPulse 1.6s ease-in-out infinite }
+.doc-jump { display: inline-block; animation: jumpNudge 1.2s ease-in-out infinite }
+.doc-loading__dots { display: inline-flex; gap: 3px; margin-left: 4px; vertical-align: middle }
+.doc-loading__dots i { width: 4px; height: 4px; border-radius: 50%; background: var(--color-accent); animation: dotBlink 1.2s infinite }
+.doc-loading__dots i:nth-child(2) { animation-delay: .2s }
+.doc-loading__dots i:nth-child(3) { animation-delay: .4s }
+@media (prefers-reduced-motion: reduce) { .doc-loading *, .doc-jump { animation: none !important } }
+body.capture-mode .doc-loading *, body.capture-mode .doc-jump { animation: none !important }
+
 /* 표지 브랜드 마크 */
 .hero__mark { width: 64px; height: 64px; border-radius: 18px; gap: 7px; margin-bottom: 18px; box-shadow: var(--shadow-md) }
 .hero__mark i { width: 9px; height: 26px; border-radius: 3px }
@@ -2129,12 +2144,12 @@ body {
       <span style="font-size:13px; font-weight:700; color:var(--color-accent);">결과 화면 · 요약 문장</span>
       <span style="font-size:16px;">영업이익 <b>▲ +33.2%</b> <span style="font-family:var(--font-mono); font-size:12px; padding:2px 8px; border-radius:var(--radius-pill); background:var(--color-bg-raised); border:1px solid var(--color-border-accent); color:var(--color-accent);">📍 원문</span></span>
     </div>
-    <span aria-hidden="true" style="align-self:center; font-size:28px; color:var(--color-accent);">➜</span>
-    <div style="padding:18px; border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-raised); display:grid; gap:8px;">
-      <span style="font-size:13px; font-weight:700; color:var(--color-text-muted);">DART 공시 원문</span>
-      <div style="height:8px; border-radius:4px; background:var(--color-border); width:92%;"></div><div style="height:8px; border-radius:4px; background:var(--color-border); width:78%;"></div>
-      <div style="height:22px; border-radius:4px; background:var(--color-attention-subtle); border-left:4px solid var(--color-attention);"></div>
-      <div style="height:8px; border-radius:4px; background:var(--color-border); width:92%;"></div><div style="height:8px; border-radius:4px; background:var(--color-border); width:78%;"></div>
+    <span class="doc-jump" aria-hidden="true" style="align-self:center; font-size:28px; color:var(--color-accent);">➜</span>
+    <div class="doc-loading" style="padding:18px; border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-raised); display:grid; gap:8px;">
+      <span style="font-size:13px; font-weight:700; color:var(--color-text-muted);">DART 공시 원문 <span class="doc-loading__dots" aria-hidden="true"><i></i><i></i><i></i></span></span>
+      <div class="skel" style="height:8px; border-radius:4px; background:var(--color-border); width:92%;"></div><div class="skel" style="height:8px; border-radius:4px; background:var(--color-border); width:78%;"></div>
+      <div class="skel-hit" style="height:22px; border-radius:4px; background:var(--color-attention-subtle); border-left:4px solid var(--color-attention);"></div>
+      <div class="skel" style="height:8px; border-radius:4px; background:var(--color-border); width:92%;"></div><div class="skel" style="height:8px; border-radius:4px; background:var(--color-border); width:78%;"></div>
     </div>
   </div>
 
