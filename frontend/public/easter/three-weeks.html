@@ -3241,7 +3241,7 @@ stepper('#userflow', '#flowtext', [
     if (!warp) { location.assign(DEMO_URL); return; }
     preloadDemo();
     document.body.classList.add('demo-warping');
-    if (reduce) { goLiveDemo(warp); return; }
+    if (reduce) { syncMusic(); goLiveDemo(warp); return; } // 같은 문서에 남으므로 음악을 먼저 끈다(demo-warping이면 꺼짐)
     const from = $('#qna .lt');
     if (from) { // 장에 그려진 노트북과 같은 자리·크기에서 출발(경첩 = 노트북 위쪽 가운데)
       const r = from.getBoundingClientRect();
@@ -3259,6 +3259,7 @@ stepper('#userflow', '#flowtext', [
   const goLiveDemo = (warp) => {
     warp.classList.remove('warm');
     warp.classList.add('live');
+    warp.removeAttribute('aria-hidden'); // 시연 화면은 조작하는 내용이라 화면 읽기 도구에도 보인다(꾸밈 요소는 live에서 display: none)
     const frame = $('.demo-warp__site');
     if (frame && frame.contentWindow) { frame.focus(); frame.contentWindow.focus(); }
   };
@@ -3269,6 +3270,7 @@ stepper('#userflow', '#flowtext', [
     const warp = $('#portalWarp'), frame = $('.demo-warp__site'), qa = slides.findIndex((el) => el.id === 'qa');
     if (!warp || qa < 0) return;
     warp.classList.remove('on', 'live', 'warm');
+    warp.setAttribute('aria-hidden', 'true'); // 다시 꾸밈 장면
     if (frame) { frame.src = 'about:blank'; frame.removeAttribute('src'); }
     document.body.classList.remove('demo-warping');
     warping = false;
