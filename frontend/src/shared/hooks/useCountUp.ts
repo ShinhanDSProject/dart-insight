@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { countUpValue, DEFAULT_COUNT_UP_MS, parseDurationMs } from '@/shared/lib/countUp'
+import { countUpStart, countUpValue, DEFAULT_COUNT_UP_MS, parseDurationMs } from '@/shared/lib/countUp'
 
 function prefersReducedMotion(): boolean {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
@@ -17,7 +17,7 @@ function countUpDuration(): number {
  * 운영체제 '동작 줄이기'면 움직이지 않고 바로 최종 값이다. 화면 읽기 도구에는 최종 값을 따로 읽어 준다(StatNumber).
  */
 export function useCountUp(target: number | null): number | null {
-  const [shown, setShown] = useState<number | null>(() => (target === null || prefersReducedMotion() ? target : 0))
+  const [shown, setShown] = useState<number | null>(() => countUpStart(target, prefersReducedMotion() ? 0 : countUpDuration()))
   const current = useRef(0)
 
   useEffect(() => {

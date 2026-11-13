@@ -170,6 +170,18 @@
   color-scheme: light;
 }
 
+/* 발표에서 넘어온 첫 화면(index.html의 #from-deck, 사용자가 처음 조작할 때까지): 등장 움직임과 숫자 올라가기를 바로 끝난 모습으로.
+   배경 흐름·예시 바꾸기·뉴스 띠처럼 계속 도는 움직임은 다른 토큰이라 그대로다. */
+:root[data-intro='skip'] {
+  --motion-base: 0ms;
+  --motion-slow: 0ms;
+  --motion-enter: 0ms;
+  --motion-grow: 0ms;
+  --motion-stagger: 0ms;
+  --motion-count: 0ms;
+  --motion-draw: 0ms;
+}
+
 /*
  * 다크 테마(FS-16, #856). 색 토큰만 바꾸고 화면 CSS는 그대로 둔다.
  * - 헤더에서 '어둡게'를 고르면 <html data-theme="dark">, '밝게'면 data-theme="light". 처음은 운영체제 설정과 상관없이 밝게다.

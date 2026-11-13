@@ -53,6 +53,34 @@
         // 저장소를 쓸 수 없으면 밝게
       }
       document.documentElement.dataset.theme = theme
+      // 발표 페이지(easter/three-weeks.html) 마지막 장에서 넘어올 때(#from-deck): 발표 장면이 이미 완성된 첫 화면을 보여 줬으므로
+      // 등장 움직임을 건너뛰어 다시 불러오는 것처럼 깜빡이지 않게 한다. 주소의 #from-deck은 지운다.
+      // 시간이 아니라 사용자가 처음 조작할 때 원래대로 돌린다(느리게 불러와도 늦게 뜬 카드가 다시 움직이지 않게).
+      // 돌릴 때 이미 끝난 움직임은 끝난 상태로 두어, 시간 토큰이 돌아오면서 다시 재생되지 않게 한다.
+      if (location.hash === '#from-deck') {
+        var root = document.documentElement
+        var events = ['pointerdown', 'keydown', 'wheel', 'touchstart']
+        var restore = function () {
+          events.forEach(function (name) {
+            window.removeEventListener(name, restore, true)
+          })
+          delete root.dataset.intro
+          if (typeof document.getAnimations !== 'function') return
+          void root.offsetWidth // 시간 토큰이 돌아온 스타일을 먼저 반영한 뒤 끝냄(아니면 짧은 시간 기준으로 끝나 다시 재생됨)
+          document.getAnimations().forEach(function (animation) {
+            try {
+              if (animation.effect && animation.effect.getTiming().iterations !== Infinity) animation.finish()
+            } catch (e) {
+              // 끝낼 수 없는 움직임은 그대로 둔다
+            }
+          })
+        }
+        root.dataset.intro = 'skip'
+        history.replaceState(null, '', location.pathname + location.search)
+        events.forEach(function (name) {
+          window.addEventListener(name, restore, true)
+        })
+      }
     </script>
   </head>
   <body>
