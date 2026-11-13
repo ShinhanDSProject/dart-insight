@@ -369,13 +369,6 @@ code {
   pointer-events: none;
 }
 
-/* 발표 시연 전환에서 막 넘어온 직후: 장면 속 첫 화면이 이미 다 그려져 있으므로 등장 움직임을 끝난 상태로 둔다 */
-.intro-handoff *:not(.app-backdrop),
-.intro-handoff *::before,
-.intro-handoff *::after {
-  animation-delay: -60s !important;
-}
-
 .app-backdrop__lines {
   position: absolute;
   inset: 40px 0 0;
