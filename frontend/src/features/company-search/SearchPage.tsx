@@ -18,10 +18,10 @@ import { cx } from '@/shared/lib/cx'
 import { ONBOARDING_EXAMPLE_CORP_CODE } from '@/shared/lib/onboarding'
 import { pageTitle } from '@/shared/lib/pageTitle'
 import type { FavoriteCompany } from '@/shared/api/favoriteCompanies'
-import { BrandLogo, Button, ButtonLink, Card, Dialog, FieldHint, Icon, Input, Notice, Page } from '@/shared/ui'
+import { BrandLogo, Button, ButtonLink, Card, Dialog, FieldHint, Icon, Input, Notice, Page, PageReveal } from '@/shared/ui'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { CompanyList, RESULT_LINK_SELECTOR } from './components/CompanyList'
-import { HomeHero, RotatingExamples } from './components/HomeHero'
+import { HomeHero, HomeHeroSkeleton, RotatingExamples } from './components/HomeHero'
 import { OnboardingStepsList } from './components/OnboardingGuide'
 import { RecentAnalyses } from './components/RecentAnalyses'
 import { useAutoSearch } from './hooks/useAutoSearch'
@@ -164,12 +164,15 @@ export function SearchPage() {
     <Page className="search-page" width={isHome ? 'wide' : 'narrow'}>
       <div className={cx('search-page__shell', isHome && 'search-page__shell--home')}>
         {isHome ? (
-          <HomeHero
-            searchForm={searchForm}
-            favoritesStatus={favorites.status}
-            favorites={favorites.items}
-            onOpenGuide={() => setModal('guide')}
-          />
+          // 첫 화면은 시즌 변화·숫자·대표 기업이 응답한 뒤 한 번에 떠오른다(#960)
+          <PageReveal fallback={<HomeHeroSkeleton />}>
+            <HomeHero
+              searchForm={searchForm}
+              favoritesStatus={favorites.status}
+              favorites={favorites.items}
+              onOpenGuide={() => setModal('guide')}
+            />
+          </PageReveal>
         ) : (
           <div className="search-hero">
             {/* 로고가 화면 제목이다. 화면 읽기 도구에는 '기업 검색'을 함께 읽는다 */}

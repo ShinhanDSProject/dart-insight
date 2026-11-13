@@ -1217,3 +1217,35 @@
     inset-inline: 0;
   }
 }
+
+/* 첫 화면을 보이기 전 잠깐 보이는 모양(#960). 제목·검색창 자리는 가운데, 세 칸은 아래 칸과 같은 자리에 둔다 */
+.home-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding-top: var(--space-6);
+}
+
+.home-skeleton__head {
+  align-items: center;
+}
+
+/* 가운데 맞춤이라 줄마다 너비를 준다: 배지 · 제목 · 소개 */
+.home-skeleton__head .skeleton__line {
+  width: 25%;
+}
+
+.home-skeleton__head .skeleton__line:nth-of-type(3) {
+  width: 60%;
+  height: var(--space-6);
+}
+
+.home-skeleton__head .skeleton__line:last-of-type {
+  width: 45%;
+}
+
+.home-skeleton__search {
+  width: 100%;
+  max-width: 720px;
+  margin-inline: auto;
+}
