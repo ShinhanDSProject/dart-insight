@@ -621,16 +621,27 @@ body.capture-mode .doc-loading *, body.capture-mode .doc-jump { animation: none 
 .preview__stage { width: 520px; height: 330px; margin: 22px 0 14px }
 .preview__hint { margin: 10px 0 0; font-family: var(--font-num); font-size: 14px; font-weight: 700; color: var(--color-text-muted) }
 .lt { position: relative; width: 520px; height: 330px; perspective: 1600px; perspective-origin: 50% 0 }
-.lt__base { position: absolute; inset: 0; border-radius: 6px 6px 22px 22px; background: linear-gradient(180deg, #e4e7ee, #b9bfcc); box-shadow: 0 24px 50px rgba(10,12,30,.28), inset 0 -3px 0 rgba(0,0,0,.08); transform-origin: 50% 0 }
-.lt__keys { position: absolute; left: 34px; right: 34px; top: 26px; height: 170px; border-radius: 10px; background: repeating-linear-gradient(90deg, #a9afbd 0 30px, transparent 30px 34px), repeating-linear-gradient(0deg, transparent 0 30px, #c9ceda 30px 34px); opacity: .55 }
-.lt__keys::after { content: ""; position: absolute; left: 32%; right: 32%; top: 196px; height: 80px; border-radius: 10px; background: #c3c8d4 }
+/* 맥북 느낌(애플 로고는 상표라 넣지 않고 그 자리에 Preview): 스페이스 그레이 알루미늄, 얇은 검은 베젤과 카메라 노치,
+   검은 키보드·큰 트랙패드·양옆 스피커 구멍, 본체 앞 가운데 손가락 홈 */
+.lt__base { position: absolute; inset: 0; border-radius: 8px 8px 26px 26px; background: linear-gradient(180deg, #62656d 0%, #4a4d54 45%, #393b41 100%); box-shadow: 0 24px 50px rgba(10,12,30,.30), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -2px 0 rgba(0,0,0,.25); transform-origin: 50% 0 }
+.lt__base::before { content: ""; position: absolute; left: 70px; right: 70px; top: 0; height: 9px; border-radius: 0 0 6px 6px; background: linear-gradient(#1b1c20, #2c2e33) }
+.lt__base::after { content: ""; position: absolute; left: 50%; bottom: 0; width: 90px; height: 7px; margin-left: -45px; border-radius: 8px 8px 0 0; background: linear-gradient(#2a2c31, #44474e) }
+.lt__keys { position: absolute; left: 62px; right: 62px; top: 28px; height: 150px; border-radius: 8px; background-color: #101114;
+  background-image: repeating-linear-gradient(90deg, transparent 0 27px, #3a3c42 27px 30px), repeating-linear-gradient(0deg, transparent 0 22px, #3a3c42 22px 25px); box-shadow: inset 0 0 0 3px #3a3c42 }
+.lt__keys::before { content: ""; position: absolute; top: 0; bottom: 0; left: -44px; right: -44px; background: radial-gradient(circle, rgba(0,0,0,.55) 1.1px, transparent 1.6px) 0 0 / 6px 6px;
+  -webkit-mask: linear-gradient(90deg, #000 0 26px, transparent 26px calc(100% - 26px), #000 calc(100% - 26px)); mask: linear-gradient(90deg, #000 0 26px, transparent 26px calc(100% - 26px), #000 calc(100% - 26px)) }
+.lt__keys::after { content: ""; position: absolute; left: 24%; right: 24%; top: 164px; height: 118px; border-radius: 12px; background: linear-gradient(180deg, #55585f, #4b4e55); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08) }
 .lt__lid { position: absolute; left: 14px; right: 14px; top: -312px; height: 312px; transform-origin: 50% 100%; transform-style: preserve-3d; transform: rotateX(180deg) }
 .lt__screen, .lt__cover { position: absolute; inset: 0; border-radius: 18px 18px 6px 6px; backface-visibility: hidden; -webkit-backface-visibility: hidden }
-.lt__screen { border: 12px solid #151a2b; background: radial-gradient(circle at 50% 40%, #1b1f3a, #000 75%) }
-.lt__cover { transform: rotateX(180deg); display: grid; place-content: center; justify-items: center; gap: 14px; background: linear-gradient(150deg, #2f3650 0%, #1a1f33 55%, #111527 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.12) }
-.lt__mark { width: 44px; height: 44px; border-radius: 12px; gap: 5px; background: rgba(255,255,255,.12); box-shadow: none }
-.lt__mark i { width: 6px; height: 16px; background: #fff } .lt__mark i + i { height: 22px }
-.lt__word { font-size: 64px; font-weight: 800; letter-spacing: -0.02em; color: #fff; text-shadow: 0 0 22px rgba(155,149,255,.55) }
+.lt__screen { border: 11px solid #0a0a0c; background: radial-gradient(circle at 50% 40%, #1b1f3a, #000 75%); box-shadow: 0 0 0 2px #6b6e76 }
+.lt__screen::before { content: ""; position: absolute; left: 50%; top: -1px; width: 70px; height: 13px; margin-left: -35px; border-radius: 0 0 9px 9px; background: #0a0a0c }
+.lt__screen::after { content: ""; position: absolute; left: 50%; top: 3px; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: #1e2a3a }
+.lt__cover { transform: rotateX(180deg); display: grid; place-content: center; justify-items: center; gap: 14px;
+  background: radial-gradient(120% 90% at 30% 15%, rgba(255,255,255,.14), transparent 55%), linear-gradient(160deg, #62656d 0%, #4a4d54 50%, #3a3c42 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), inset 0 0 0 1px rgba(0,0,0,.25) }
+.lt__mark { width: 44px; height: 44px; border-radius: 12px; gap: 5px; background: rgba(255,255,255,.14); box-shadow: none }
+.lt__mark i { width: 6px; height: 16px; background: #f4f5f7 } .lt__mark i + i { height: 22px }
+.lt__word { font-size: 64px; font-weight: 800; letter-spacing: -0.02em; color: rgba(255,255,255,.94); text-shadow: 0 1px 0 rgba(0,0,0,.35), 0 0 22px rgba(255,255,255,.18) }
 .slide-fit.play .preview__stage { animation: slideReveal 700ms cubic-bezier(.2,.7,.2,1) 150ms both }
 body.demo-warping .preview__stage { visibility: hidden }
 
