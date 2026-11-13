@@ -364,8 +364,6 @@ code {
   background-size: 28px 28px;
   mask-image: radial-gradient(ellipse at 50% 25%, #000 30%, transparent 75%);
   animation: backdrop-drift var(--motion-drift) linear infinite;
-  /* 발표 시연 전환에서 넘어오면 장면 속 첫 화면과 같은 위치에서 이어 흐른다(main.tsx가 --intro-drift를 정함) */
-  animation-delay: calc(-1 * var(--intro-drift, 0ms));
   pointer-events: none;
 }
 

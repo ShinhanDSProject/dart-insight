@@ -657,6 +657,10 @@ body.demo-returning #qa .preview__stage, body.demo-returning #qa .chapter__num, 
 .demo-warp.back { display: block }
 .demo-warp.back .demo-warp__site, .demo-warp.back .demo-warp__line, .demo-warp.back .demo-warp__burst { display: none }
 .demo-warp.back .demo-warp__dark { animation: fromBlack 500ms ease-out both }
+/* 시연 중(#972): 전환 장면 끝에 열린 첫 화면(iframe)만 남겨 그대로 조작한다 */
+.demo-warp.live { display: block; pointer-events: auto }
+.demo-warp.live .demo-warp__cam, .demo-warp.live .demo-warp__dark, .demo-warp.live .demo-warp__line, .demo-warp.live .demo-warp__burst { display: none }
+.demo-warp.live .demo-warp__site { clip-path: none; animation: none }
 /* 두 움직임이 transform을 나눠 쓴다: 앞 300ms~1.3초는 camDive(뒤에 적어 우선), 그 뒤는 camMove */
 .demo-warp.back .demo-warp__cam { animation: camMove 1200ms cubic-bezier(.45,0,.2,1) 1300ms reverse both, camDive 900ms cubic-bezier(.7,0,.3,1) 400ms reverse backwards }
 .demo-warp.back .lt__lid { animation: lidOpen 1150ms cubic-bezier(.3,0,.2,1) 1350ms reverse both }
@@ -2666,7 +2670,7 @@ body {
 <div class="tip" id="tip" hidden></div>
 
 <script>
-// 마지막 장에서 넘어갈 첫 화면. 이 발표를 연 곳과 같은 주소(로컬이면 localhost, 배포면 배포 주소)라야 미리 그린 화면·바탕 위치를 그대로 이어 받는다.
+// 마지막 장에서 넘어갈 첫 화면. 전환 장면 끝에 이 iframe에서 그대로 시연한다(#972). 이 발표를 연 곳과 같은 주소(로컬이면 localhost, 배포면 배포 주소)라야 시연을 마친 메시지를 받는다.
 // #from-deck: 첫 화면이 등장 움직임 없이 바로 완성된 모습(frontend/index.html). ?demo: 넘어간 뒤 Space로 시연 시나리오를 진행(#967)
 const DEMO_URL = new URL('/?demo#from-deck', location.href).href;
 const reduce = typeof window !== 'undefined' && typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-reduced-motion: reduce)').matches : false;
@@ -3234,7 +3238,10 @@ stepper('#userflow', '#flowtext', [
     if (warping) return;
     warping = true;
     const warp = $('#portalWarp');
-    if (reduce || !warp) { location.assign(DEMO_URL); return; }
+    if (!warp) { location.assign(DEMO_URL); return; }
+    preloadDemo();
+    document.body.classList.add('demo-warping');
+    if (reduce) { goLiveDemo(warp); return; }
     const from = $('#qna .lt');
     if (from) { // 장에 그려진 노트북과 같은 자리·크기에서 출발(경첩 = 노트북 위쪽 가운데)
       const r = from.getBoundingClientRect();
@@ -3243,21 +3250,32 @@ stepper('#userflow', '#flowtext', [
       warp.style.setProperty('--s0', String(r.width / 520));
     }
     warp.style.setProperty('--zoom', String(Math.max(innerWidth / 468, innerHeight / 288) * 1.12));
-    preloadDemo();
-    document.body.classList.add('demo-warping');
-    syncMusic(4); // 이동 전에 다 줄어들게(이동하면 소리가 뚝 끊김)
+    syncMusic(4); // 시연이 시작되기 전에 다 줄어들게
     warp.classList.add('on');
-    setTimeout(() => { // 미리 그려 둔 첫 화면이 원으로 다 열린 뒤 그 주소로 이동
-      // 같은 주소에서는 첫 화면이 등장 움직임을 다시 하지 않고 바탕 점 격자를 같은 위치에서 잇도록 알려 줌(frontend shared/lib/introHandoff.ts)
-      try {
-        const frame = $('.demo-warp__site'), doc = frame && frame.contentDocument;
-        const drift = doc && doc.querySelector('.app-backdrop');
-        const anim = drift && drift.getAnimations ? drift.getAnimations()[0] : null;
-        sessionStorage.setItem('dart-insight:intro-handoff', JSON.stringify({ at: Date.now(), driftMs: anim && anim.currentTime ? Number(anim.currentTime) : 0 }));
-      } catch (_) { /* 다른 주소에서 열었으면 그냥 이동 */ }
-      location.assign(DEMO_URL);
-    }, 4750);
+    setTimeout(() => goLiveDemo(warp), 4750); // 미리 그려 둔 첫 화면이 원으로 다 열린 뒤
   };
+  // 시연은 주소를 옮기지 않고 전환 장면 끝에 열린 첫 화면(iframe)에서 그대로 이어 간다(#972). 발표 페이지의 전체화면(F)은
+  // 문서가 바뀌면 풀리기 때문이다. 키 입력이 시연으로 가도록 iframe에 초점을 준다. 앱은 시연을 마치면 메시지로 알린다
+  const goLiveDemo = (warp) => {
+    warp.classList.remove('warm');
+    warp.classList.add('live');
+    const frame = $('.demo-warp__site');
+    if (frame && frame.contentWindow) { frame.focus(); frame.contentWindow.focus(); }
+  };
+  // 시연을 마쳤다는 앱의 메시지(frontend demo-autopilot DEMO_DONE_MESSAGE): 같은 문서에서 Q&A 장을 거꾸로 등장시킨다.
+  // 다음에 Preview로 다시 오면 시연을 처음부터 새로 불러오도록 iframe을 비운다
+  window.addEventListener('message', (event) => {
+    if (event.origin !== location.origin || !event.data || event.data.type !== 'dart-insight:demo-done') return;
+    const warp = $('#portalWarp'), frame = $('.demo-warp__site'), qa = slides.findIndex((el) => el.id === 'qa');
+    if (!warp || qa < 0) return;
+    warp.classList.remove('on', 'live', 'warm');
+    if (frame) { frame.src = 'about:blank'; frame.removeAttribute('src'); }
+    document.body.classList.remove('demo-warping');
+    warping = false;
+    window.focus();
+    updateSlide(qa);
+    returnFromDemo();
+  });
   // 시연을 마치고 돌아오면(앱 시연 모드가 ?slide=qa#from-demo로 보냄, #970): Preview 전환을 거꾸로 보여 준 뒤 Q&A 글이 나타남.
   // 노트북 자리·크기는 장에 그려진 Q&A 노트북에 맞추고, 같은 #portalWarp 장면을 뚜껑 글만 바꿔 거꾸로 돌린다
   const returnFromDemo = () => {
