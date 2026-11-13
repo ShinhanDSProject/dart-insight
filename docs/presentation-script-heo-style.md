@@ -2,7 +2,7 @@
 
 > 같은 회사의 정기보고서 두 개를 비교해, 바뀐 숫자와 문장을 원문 위치와 함께 보여 주는 서비스입니다. 투자 조언이 아닙니다.
 
-- 웹 발표 페이지(`frontend/public/easter/three-weeks.html`)의 발표 모드와 PPTX(`docs/DART_Insight_Presentation.pptx`)는 같은 18장입니다.
+- 웹 발표 페이지(`frontend/public/easter/three-weeks.html`)의 발표 모드와 PPTX(`docs/DART_Insight_Presentation.pptx`)는 같은 19장입니다.
 - **이 문서와 PPTX는 `python3 scripts/generate_presentation_pptx.py`가 페이지에서 만듭니다.** 화면·대본은 페이지에서 고치고 스크립트를 다시 돌립니다.
 - 대본 형식: ① 여는 질문 → ② 쉬운 설명 → ③ 화면 가리키기 → ④ 마무리 한마디. 장마다 30~45초.
 
@@ -44,6 +44,7 @@
 | 16 | PART 4 · 어떻게 일했나 | 🤝 어떻게 일했나 | — |
 | 17 | 사람과 AI의 역할 | 사람, AI, 자동화 영역을 나눴습니다 | — |
 | 18 | Preview | Preview | — |
+| 19 | Q&A | Q&A | — |
 
 ## 장별 대본
 
@@ -315,4 +316,19 @@ Space를 누르면 카메라가 내려오며 노트북이 열리고, 화면 속 
 가운데 닫힌 노트북의 Preview를 가리킨 뒤 Space를 누릅니다.
 
 [마무리 한마디]
-시연이 끝나면: 지금까지 DART Insight였습니다. 감사합니다. 질문 받겠습니다.
+시연은 Space로 한 단계씩 진행하고, 끝나면 Space로 Q&A 장으로 돌아옵니다.
+
+### 19 · Q&A
+**Q&A**
+
+[여는 질문]
+시연은 여기까지입니다.
+
+[쉬운 설명]
+시연을 마치고 Space를 누르면 앱 화면이 빛 한 점으로 닫히고, 노트북 화면에서 빠져나오며 뚜껑이 닫힌 뒤 이 장이 열립니다.
+
+[화면 가리키기]
+닫힌 노트북의 Q&A를 가리킵니다.
+
+[마무리 한마디]
+지금까지 DART Insight였습니다. 감사합니다. 질문 받겠습니다.
