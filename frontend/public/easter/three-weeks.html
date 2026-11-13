@@ -3097,7 +3097,16 @@ stepper('#userflow', '#flowtext', [
     preloadDemo();
     document.body.classList.add('demo-warping');
     warp.classList.add('on');
-    setTimeout(() => location.assign(DEMO_URL), 4750); // 미리 그려 둔 첫 화면이 원으로 다 열린 뒤 배포 주소로 이동
+    setTimeout(() => { // 미리 그려 둔 첫 화면이 원으로 다 열린 뒤 배포 주소로 이동
+      // 같은 주소(배포)에서는 첫 화면이 등장 움직임을 다시 하지 않고 바탕 점 격자를 같은 위치에서 잇도록 알려 줌(frontend shared/lib/introHandoff.ts)
+      try {
+        const frame = $('.demo-warp__site'), doc = frame && frame.contentDocument;
+        const drift = doc && doc.querySelector('.app-backdrop');
+        const anim = drift && drift.getAnimations ? drift.getAnimations()[0] : null;
+        sessionStorage.setItem('dart-insight:intro-handoff', JSON.stringify({ at: Date.now(), driftMs: anim && anim.currentTime ? Number(anim.currentTime) : 0 }));
+      } catch (_) { /* 다른 주소에서 열었으면 그냥 이동 */ }
+      location.assign(DEMO_URL);
+    }, 4750);
   };
   // 시연 사이트에서 뒤로 돌아오면(뒤로-앞으로 캐시) 포털이 화면을 덮은 채 남지 않게 되돌립니다.
   window.addEventListener('pageshow', () => {
