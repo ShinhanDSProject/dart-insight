@@ -747,6 +747,8 @@ body.capture-mode .appbar, body.capture-mode .tabsbar { display: none }
     background: var(--color-bg-subtle); opacity: 0.7; transition: opacity var(--motion-slow) var(--ease-out)
   }
   body.presentation-mode.deck-bg-dim:not(.capture-mode) .deck-canvas { opacity: 0.35 }
+  /* 시연 중(#972)에는 앱 화면이 덮으므로 입자 배경을 그리지 않는다(그리는 쪽이 너비 0이면 건너뜀) */
+  body:has(.demo-warp.live) .deck-canvas { display: none }
   body.presentation-mode:not(.capture-mode) .hero__canvas { display: none }
   body.presentation-mode:not(.capture-mode) main section.slide-active, body.presentation-mode:not(.capture-mode) #hero.slide-active { background: transparent }
   body.presentation-mode:not(.capture-mode) .slide-fit { background: color-mix(in srgb, var(--color-bg) 78%, transparent) }
