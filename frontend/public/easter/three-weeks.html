@@ -504,6 +504,40 @@ body.presentation-mode .deck-dock { transform: translateX(-50%) translateY(0); o
 /* 발표 도구(대본·저장·전체화면·나가기)는 '⋯'를 눌렀을 때만 펼침 */
 .deck-dock .deck-more { display: flex; align-items: center; gap: 12px }
 .deck-dock .deck-more[hidden] { display: none }
+
+/* 표지 브랜드 마크 */
+.hero__mark { width: 64px; height: 64px; border-radius: 18px; gap: 7px; margin-bottom: 18px; box-shadow: var(--shadow-md) }
+.hero__mark i { width: 9px; height: 26px; border-radius: 3px }
+.hero__mark i + i { height: 36px }
+
+/* 발표 모드: 장마다 아래쪽에 로고와 쪽 번호 */
+.slide-fit { position: relative }
+.slide-brand, .slide-num { position: absolute; bottom: 18px; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--color-text-muted) }
+.slide-brand { left: 28px; color: var(--color-text) }
+.slide-brand .brand__mark { width: 24px; height: 24px; border-radius: 7px; gap: 3px; box-shadow: none }
+.slide-brand .brand__mark i { width: 3.5px; height: 10px }
+.slide-brand .brand__mark i + i { height: 14px }
+.slide-num { right: 32px; font-family: var(--font-num) }
+
+/* 발표 모드 움직임: 장이 바뀔 때(.play) 머리말·카드가 차례로 떠오르고, 막대는 자라고, 구조도 선은 그어짐 */
+@keyframes slideReveal { from { opacity: 0; transform: translateY(18px) } to { opacity: 1; transform: none } }
+@keyframes barGrow { from { width: 0 } }
+@keyframes markPop { 0% { transform: scale(.6); opacity: 0 } 60% { transform: scale(1.08); opacity: 1 } 100% { transform: scale(1) } }
+@keyframes markBar { from { transform: scaleY(.2) } }
+@keyframes lineDraw { to { stroke-dashoffset: 0 } }
+.slide-fit.play [data-reveal] { animation: slideReveal 560ms cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(var(--reveal-i, 0) * 90ms) }
+.slide-fit.play .bar-fill { animation: barGrow 1100ms cubic-bezier(.2,.7,.2,1) 450ms both }
+.slide-fit.play .hero__mark { animation: markPop 700ms cubic-bezier(.2,.7,.2,1) both }
+.slide-fit.play .hero__mark i { animation: markBar 700ms cubic-bezier(.2,.7,.2,1) 250ms both; transform-origin: bottom }
+.slide-fit.play #archsvg path[pathLength] { stroke-dasharray: 1; stroke-dashoffset: 1; animation: lineDraw 700ms ease-out both; animation-delay: calc(500ms + var(--draw-i, 0) * 140ms) }
+@media (prefers-reduced-motion: reduce) {
+  .slide-fit.play *, .slide-fit.play { animation: none !important }
+  .slide-fit.play #archsvg path[pathLength] { stroke-dasharray: none; stroke-dashoffset: 0 }
+}
+/* 촬영 모드: 움직임 없이 완성된 모습만, 상단 바·탭은 아예 빼기(헤드리스 촬영에서 비쳐 보임) */
+body.capture-mode .slide-fit.play * { animation: none !important }
+body.capture-mode .slide-fit.play #archsvg path[pathLength] { stroke-dasharray: none; stroke-dashoffset: 0 }
+body.capture-mode .appbar, body.capture-mode .tabsbar { display: none }
 .deck-dock .deck-counter { font-family: var(--font-num); font-size: 13.5px; font-weight: 700; padding: 0 6px }
 .deck-dock .sep { width: 1px; height: 16px; background: rgba(255,255,255,0.2) }
 
@@ -1922,6 +1956,7 @@ body {
   <div class="container hero__body">
     <div class="sechead-4zone">
       <div class="zone-a">
+        <span class="brand__mark hero__mark" aria-hidden="true"><i></i><i></i></span>
         <div class="hero__kicker">
           <span class="hero__kicker-dot"></span>
           <span>신한DS 금융 AI 핵심 프로젝트 · 2026 Executive Showcase</span>
@@ -1991,7 +2026,7 @@ body {
     <div style="border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-raised); padding:28px 24px; display:grid; justify-items:center; gap:10px; text-align:center;">
       <span class="badge badge--danger">전자 공시</span>
       <div aria-hidden="true" style="font-size:52px; line-height:1; letter-spacing:4px;">📕📗📘📙</div>
-      <p style="font-family:var(--font-num); font-size:44px; font-weight:800; line-height:1.1; margin:0; color:var(--color-danger);">65만 자</p>
+      <p class="countup" style="font-family:var(--font-num); font-size:44px; font-weight:800; line-height:1.1; margin:0; color:var(--color-danger);">65만 자</p>
       <p style="font-size:14px; color:var(--color-text-muted); margin:0;">작년 것과 올해 것, 두 권을 나란히 놓고 사람이 비교</p>
     </div>
     <div style="border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-raised); padding:24px 20px; display:grid; justify-items:center; gap:10px; text-align:center;">
@@ -2087,7 +2122,7 @@ body {
       <div class="bar-group">
         <div class="bar-group__label">
           <span class="bar-title">매출액</span>
-          <span class="badge badge--ok">▲ +10.9% (+32.7조 원)</span>
+          <span class="badge badge--ok countup">▲ +10.9% (+32.7조 원)</span>
         </div>
         <div class="bar-track"><div class="bar-fill bar-fill--prev" style="width:90%;" title="2024년 매출액: 300.9조 원"><span class="bar-val">300.9조</span></div></div>
         <div class="bar-track"><div class="bar-fill bar-fill--curr" style="width:100%;" title="2025년 매출액: 333.6조 원"><span class="bar-val">333.6조</span></div></div>
@@ -2095,7 +2130,7 @@ body {
       <div class="bar-group">
         <div class="bar-group__label">
           <span class="bar-title">영업이익</span>
-          <span class="badge badge--ok">▲ +33.2% (+10.9조 원)</span>
+          <span class="badge badge--ok countup">▲ +33.2% (+10.9조 원)</span>
         </div>
         <div class="bar-track"><div class="bar-fill bar-fill--prev" style="width:75%;" title="2024년 영업이익: 32.7조 원"><span class="bar-val">32.7조</span></div></div>
         <div class="bar-track"><div class="bar-fill bar-fill--curr" style="width:100%;" title="2025년 영업이익: 43.6조 원"><span class="bar-val">43.6조</span></div></div>
@@ -2103,7 +2138,7 @@ body {
       <div class="bar-group">
         <div class="bar-group__label">
           <span class="bar-title">당기순이익</span>
-          <span class="badge badge--ok">▲ +31.2% (+10.8조 원)</span>
+          <span class="badge badge--ok countup">▲ +31.2% (+10.8조 원)</span>
         </div>
         <div class="bar-track"><div class="bar-fill bar-fill--prev" style="width:76%;" title="2024년 당기순이익: 34.5조 원"><span class="bar-val">34.5조</span></div></div>
         <div class="bar-track"><div class="bar-fill bar-fill--curr" style="width:100%;" title="2025년 당기순이익: 45.2조 원"><span class="bar-val">45.2조</span></div></div>
@@ -2608,7 +2643,7 @@ stepper('#userflow', '#flowtext', [
       if (sidebarLiveText) sidebarLiveText.textContent = live.label;
     }
 
-    if (isPresent) requestAnimationFrame(fitSlide);
+    if (isPresent) { requestAnimationFrame(fitSlide); playSlide(); }
   };
 
   // 발표 모드에서 장 내용을 16:9 발표 화면(.slide-fit > .slide-body)에 담습니다.
@@ -2630,6 +2665,41 @@ stepper('#userflow', '#flowtext', [
     const scale = Math.max(0.2, Number.isFinite(rawScale) ? rawScale : 1);
     fit.style.transform = `scale(${scale})`;
   };
+  // 차례로 떠오를 것: 장의 머리말·덩어리, 그리고 카드 줄(그리드·플렉스) 안의 카드들
+  const markReveal = (body) => {
+    let i = 0;
+    [...body.children].forEach((block) => {
+      const style = getComputedStyle(block);
+      const row = block.children.length > 1 && /grid|flex/.test(style.display) && !block.classList.contains('sechead-4zone');
+      if (row) [...block.children].forEach((item) => { item.dataset.reveal = ''; item.style.setProperty('--reveal-i', i++); });
+      else { block.dataset.reveal = ''; block.style.setProperty('--reveal-i', i++); }
+    });
+    $$('#archsvg path[marker-end]', body).forEach((path, k) => { path.setAttribute('pathLength', '1'); path.style.setProperty('--draw-i', k); });
+  };
+  // 숫자를 0부터 세어 올립니다(글자 모양은 그대로). 촬영 모드·움직임 줄이기에서는 하지 않습니다.
+  const countUp = (el) => {
+    const final = el.dataset.final || (el.dataset.final = el.textContent);
+    const nums = final.match(/\d+(?:\.\d+)?/g) || [];
+    const start = performance.now(), dur = 1100;
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / dur), e = 1 - Math.pow(1 - t, 3);
+      let k = 0;
+      el.textContent = final.replace(/\d+(?:\.\d+)?/g, (m) => {
+        const v = parseFloat(nums[k++]) * e, d = (m.split('.')[1] || '').length;
+        return v.toFixed(d);
+      });
+      if (t < 1) requestAnimationFrame(tick); else el.textContent = final;
+    };
+    requestAnimationFrame(tick);
+  };
+  const playSlide = () => {
+    const fit = slides[curSlide] && slides[curSlide].querySelector(':scope > .slide-fit');
+    if (!fit) return;
+    fit.classList.remove('play');
+    void fit.offsetWidth; // 같은 장으로 돌아와도 처음부터 다시 재생
+    fit.classList.add('play');
+    if (!reduce && !document.body.classList.contains('capture-mode')) $$('.countup', fit).forEach(countUp);
+  };
   const wrapSlides = (on) => slides.forEach((slide) => {
     const fit = slide.querySelector(':scope > .slide-fit');
     if (on && !fit) {
@@ -2639,8 +2709,15 @@ stepper('#userflow', '#flowtext', [
       body.className = 'slide-body';
       [...slide.childNodes].forEach((n) => { if (n.nodeName !== 'CANVAS') body.appendChild(n); });
       stage.appendChild(body);
+      if (slide.id !== 'hero') {
+        stage.insertAdjacentHTML('beforeend', '<span class="slide-brand" aria-hidden="true"><span class="brand__mark"><i></i><i></i></span>DART Insight</span>'
+          + `<span class="slide-num" aria-hidden="true">${String(slides.indexOf(slide) + 1).padStart(2, '0')} / ${String(slides.length).padStart(2, '0')}</span>`);
+      }
+      markReveal(body);
       slide.appendChild(stage);
     } else if (!on && fit) {
+      $$('[data-reveal]', fit).forEach((el) => { delete el.dataset.reveal; el.style.removeProperty('--reveal-i'); });
+      $$('.countup', fit).forEach((el) => { if (el.dataset.final) el.textContent = el.dataset.final; });
       const body = fit.querySelector(':scope > .slide-body') || fit;
       while (body.firstChild) slide.insertBefore(body.firstChild, fit);
       fit.remove();
