@@ -239,4 +239,12 @@ describe('공시 분석 탭(ADR-0067)', () => {
     expect(screen.getByText('두 보고서 사이에 따로 짚을 만한 활동을 찾지 못했어요')).toBeTruthy()
     expect(screen.queryAllByRole('article')).toHaveLength(0)
   })
+
+  it('활동 정리를 불러오지 못해도 오류 안내와 함께 코드로 계산한 숫자는 보인다', () => {
+    renderTab({ status: 'error', error: new Error('AI 사용 한도에 도달해 지금은 AI를 쓸 수 없어요.') })
+    expect(screen.getByRole('alert')).toBeTruthy()
+    expect(screen.getByRole('button', { name: '다시 시도' })).toBeTruthy()
+    expect(screen.getByText('핵심 숫자 자리')).toBeTruthy()
+    expect(screen.queryAllByRole('article')).toHaveLength(0)
+  })
 })

@@ -82,7 +82,14 @@ export function ActivityTab({ analysis, onOpenText, onOpenFinancial, onOpenAll }
             <LoadingState message="두 보고서 사이의 활동을 정리하는 중이에요. 처음 열면 수십 초 걸릴 수 있어요…" />
           </div>
         ))
-        .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} />)
+        .with({ status: 'error' }, ({ error }) => (
+          <>
+            <ErrorState error={error} onRetry={reload} />
+            {/* 활동 정리(AI)를 불러오지 못해도 코드로 계산한 숫자는 보인다. 검토 필요·확인된 설명 없음 상태와 같다(#974) */}
+            <p className="panel__note">활동 정리와 상관없이, 코드로 계산한 숫자는 아래에서 그대로 볼 수 있어요.</p>
+            <KeyNumbersBlock analysisId={analysis.analysisId} onOpen={onOpenFinancial} />
+          </>
+        ))
         .with({ status: 'success' }, ({ data }) => (
           <ActivityBody data={data} analysisId={analysis.analysisId} onOpenText={onOpenText} onOpenFinancial={onOpenFinancial} onOpenAll={onOpenAll} />
         ))
