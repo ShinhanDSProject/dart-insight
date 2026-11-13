@@ -29,13 +29,15 @@ export function nextRevealPhase(current: RevealPhase, { pending, timedOut }: Rev
 }
 
 interface RevealEnvironment {
-  /** <html data-intro>. 발표에서 넘어온 첫 화면(index.html의 #from-deck)이면 'skip' */
-  intro: string | undefined
   /** 운영체제 '동작 줄이기' */
   reducedMotion: boolean
 }
 
-/** 발표에서 넘어온 첫 화면은 이미 끝난 모습으로 이어 받고, 동작 줄이기면 기다리지 않고 바로 보인다 */
-export function shouldSkipReveal({ intro, reducedMotion }: RevealEnvironment): boolean {
-  return intro === 'skip' || reducedMotion
+/**
+ * 동작 줄이기면 기다리지 않고 바로 보인다.
+ * 발표에서 넘어온 첫 화면(#from-deck)은 기다린다: 발표 장면이 다 채워진 첫 화면을 보여 줬으므로 '불러오는 중' 칸이 보이면 안 된다.
+ * 그때는 준비될 때까지 화면 전체를 가리고(index.html) 시간 토큰이 0이라, 응답이 오면 끝난 모습으로 바로 나타난다.
+ */
+export function shouldSkipReveal({ reducedMotion }: RevealEnvironment): boolean {
+  return reducedMotion
 }

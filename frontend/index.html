@@ -76,12 +76,21 @@
           })
         }
         root.dataset.intro = 'skip'
+        // 첫 화면이 준비될 때까지(PageReveal이 data-intro-ready를 붙임) 화면 전체를 가려, 바로 앞 발표 장면이 남아 있게 한다. 늦어도 1.5초에는 보인다
+        setTimeout(function () {
+          root.dataset.introReady = ''
+        }, 1500)
         history.replaceState(null, '', location.pathname + location.search)
         events.forEach(function (name) {
           window.addEventListener(name, restore, true)
         })
       }
     </script>
+    <style>
+      :root[data-intro='skip']:not([data-intro-ready]) body {
+        visibility: hidden;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
