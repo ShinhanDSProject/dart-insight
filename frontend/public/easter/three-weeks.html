@@ -2626,6 +2626,9 @@ body {
 <div class="tip" id="tip" hidden></div>
 
 <script>
+// 마지막 장에서 넘어갈 첫 화면. 이 발표를 연 곳과 같은 주소(로컬이면 localhost, 배포면 배포 주소)라야 미리 그린 화면·바탕 위치를 그대로 이어 받는다.
+// #from-deck: 첫 화면이 등장 움직임 없이 바로 완성된 모습(frontend/index.html)
+const DEMO_URL = new URL('/#from-deck', location.href).href;
 const reduce = typeof window !== 'undefined' && typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-reduced-motion: reduce)').matches : false;
 const $ = (s, r = document) => (r && r.querySelector ? r.querySelector(s) : null);
 const $$ = (s, r = document) => (r && r.querySelectorAll ? Array.from(r.querySelectorAll(s)) : []);
@@ -3013,7 +3016,7 @@ stepper('#userflow', '#flowtext', [
     if (isPresent) { requestAnimationFrame(fitSlide); playSlide(); }
     const demoFrame = $('.demo-warp__site'), demoWarp = $('#portalWarp'); // 마지막 장에 오면 장면 끝에 열 첫 화면을 미리 불러 그려 둠
     const onDemoSlide = isPresent && slides[curSlide] && slides[curSlide].id === 'qna' && !document.body.classList.contains('capture-mode');
-    if (onDemoSlide && demoFrame && !demoFrame.getAttribute('src')) demoFrame.setAttribute('src', 'https://dart-insight.shinhanacademy.co.kr/#from-deck');
+    if (onDemoSlide && demoFrame && !demoFrame.getAttribute('src')) demoFrame.setAttribute('src', DEMO_URL);
     if (demoWarp) demoWarp.classList.toggle('warm', !!onDemoSlide);
     syncMusic();
   };
@@ -3173,7 +3176,6 @@ stepper('#userflow', '#flowtext', [
   const exitBtn = $('#deckExit'); if (exitBtn) exitBtn.addEventListener('click', () => togglePresent(false));
   const prevBtn = $('#deckPrev'); if (prevBtn) prevBtn.addEventListener('click', () => updateSlide(curSlide - 1));
   // 마지막 장(Preview)에서 '다음'을 누르면 포털이 화면 가득 열리고 시연 사이트로 넘어갑니다.
-  const DEMO_URL = 'https://dart-insight.shinhanacademy.co.kr/#from-deck'; // #from-deck: 첫 화면이 등장 움직임 없이 바로 완성된 모습(frontend/index.html)
   let warping = false;
   const preloadDemo = () => { const f = $('.demo-warp__site'); if (f && !f.getAttribute('src')) f.setAttribute('src', DEMO_URL); };
   const goNext = () => {
@@ -3195,8 +3197,8 @@ stepper('#userflow', '#flowtext', [
     document.body.classList.add('demo-warping');
     syncMusic(4); // 이동 전에 다 줄어들게(이동하면 소리가 뚝 끊김)
     warp.classList.add('on');
-    setTimeout(() => { // 미리 그려 둔 첫 화면이 원으로 다 열린 뒤 배포 주소로 이동
-      // 같은 주소(배포)에서는 첫 화면이 등장 움직임을 다시 하지 않고 바탕 점 격자를 같은 위치에서 잇도록 알려 줌(frontend shared/lib/introHandoff.ts)
+    setTimeout(() => { // 미리 그려 둔 첫 화면이 원으로 다 열린 뒤 그 주소로 이동
+      // 같은 주소에서는 첫 화면이 등장 움직임을 다시 하지 않고 바탕 점 격자를 같은 위치에서 잇도록 알려 줌(frontend shared/lib/introHandoff.ts)
       try {
         const frame = $('.demo-warp__site'), doc = frame && frame.contentDocument;
         const drift = doc && doc.querySelector('.app-backdrop');
