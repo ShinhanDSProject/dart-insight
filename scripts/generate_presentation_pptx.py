@@ -99,20 +99,22 @@ def _js_object(source, name, first, second):
 def read_page():
     source = open(PAGE, encoding="utf-8").read()
     speeches = _js_object(source, "SPEECHES_BY_ID", "title", "text")
-    terms = _js_object(source, "TERMS_BY_ID", "term", "def")
     slides = []
     for sid in speeches:
-        kicker, heading = "", ""
+        kicker, heading, term, definition = "", "", "", ""
         start = source.find(f'<section id="{sid}"')
         if start >= 0:
             section = source[start:source.index("</section>", start)]
             k = re.search(r'<p class="kicker">(.*?)</p>', section, re.S)
             h = re.search(r"<h2[^>]*>(.*?)</h2>", section, re.S)
             kicker, heading = (_strip(k.group(1)) if k else ""), (_strip(h.group(1)) if h else "")
+            # 용어 카드는 화면 머리말에 있을 때만 PPTX에도 그립니다.
+            t = re.search(r'<span class="zone-b-term">(.*?)</span>', section, re.S)
+            d = re.search(r'<span class="zone-b-def">(.*?)</span>', section, re.S)
+            term, definition = (_strip(t.group(1)) if t else ""), (_strip(d.group(1)) if d else "")
         title, text = speeches[sid]
         for old, new in NOTE_MARKERS.items():
             text = text.replace(old, new)
-        term, definition = terms.get(sid, ("", ""))
         slides.append({
             "id": sid, "title": title, "kicker": kicker, "heading": heading or title,
             "term": term.replace("🔍", "").strip(), "def": definition, "notes": text.strip(),
@@ -256,21 +258,12 @@ def frame(prs, info, number, total):
 def hero(s):
     picture(s, "dart-insight-logo.png", 0.6, 0.5, 0.7, 0.7)
     text(s, 1.4, 0.55, 8, 0.6, [("신한DS 금융 AI 프로젝트 · 2026", 13, ACCENT, True)], anchor=MSO_ANCHOR.MIDDLE)
-    text(s, 0.6, 1.6, 12.1, 1.9,
-         [("두 보고서 사이, 바뀐 것만.", 46, PRIMARY, True), ("원문 근거와 함께.", 46, ACCENT, True)],
+    text(s, 0.6, 2.2, 12.1, 2.2,
+         [("두 보고서 사이, 바뀐 것만.", 50, PRIMARY, True), ("원문 근거와 함께.", 50, ACCENT, True)],
          align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-    text(s, 1.5, 3.55, 10.3, 0.5,
-         [("같은 회사의 정기보고서 두 개를 비교해, 바뀐 숫자와 문장을 원문 위치와 함께 보여 줍니다.", 16, MUTED, False)],
+    text(s, 1.5, 4.6, 10.3, 0.6,
+         [("같은 회사의 정기보고서 두 개를 비교해, 바뀐 숫자와 문장을 원문 위치와 함께 보여 줍니다.", 18, MUTED, False)],
          align=PP_ALIGN.CENTER)
-    stats = [("461", "병합한 PR"), ("1,101", "커밋"), ("67", "설계 기록(ADR)"), ("약 90", "공개 API"), ("약 4,400", "자동 테스트")]
-    x0, gap = 0.9, 0.2
-    w = (SLIDE_W - 2 * x0 - gap * 4) / 5
-    for i, (num, label) in enumerate(stats):
-        x = x0 + i * (w + gap)
-        box(s, x, 4.45, w, 1.45)
-        text(s, x, 4.5, w, 1.35, [(num, 32, ACCENT, True), (label, 13, MUTED, False)],
-             align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-    text(s, 0.6, 6.1, 12.1, 0.35, [("2026-10-19 시작 · 2026-11-13 기준", 12, MUTED, False)], align=PP_ALIGN.CENTER)
 
 
 def glossary(s):
@@ -290,38 +283,39 @@ def glossary(s):
     text(s, 7.2, 5.0, 5.35, 1.0, [("🇰🇷 금융감독원 DART", 13, ACCENT, True),
                                     ("우리나라 상장사의 공식 공시가 모두 올라오는 곳", 15, PRIMARY, True)],
          align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-    text(s, 0.6, 6.3, 12.1, 0.5, [("📰 뉴스보다 먼저, 📜 법에 따라 공식으로", 18, PRIMARY, True)], align=PP_ALIGN.CENTER)
 
 
 def why(s):
-    box(s, 0.6, 1.7, 5.95, 2.75, DANGER_TINT, None)
-    text(s, 0.8, 1.8, 5.55, 2.55, [("한계 ① 너무 길다", 14, DANGER, True), ("📕📗📘📙", 32, TEXT, False),
-                                    ("65만 자", 40, DANGER, True), ("보고서 한 권(최대) · 두 권을 사람이 나란히 비교", 12, MUTED, False)],
+    for x in (0.6, 6.78):
+        box(s, x, 1.7, 5.95, 2.75)
+    box(s, 2.98, 1.85, 1.2, 0.34, DANGER_TINT, None, radius=0.5)
+    text(s, 2.98, 1.85, 1.2, 0.34, [("전자 공시", 11, DANGER, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    text(s, 0.8, 2.25, 5.55, 2.1, [("📕📗📘📙", 32, TEXT, False), ("65만 자", 40, DANGER, True),
+                                   ("작년 것과 올해 것, 두 권을 나란히 놓고 사람이 비교", 12, MUTED, False)],
          align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-    box(s, 6.78, 1.7, 5.95, 2.75, DANGER_TINT, None)
-    text(s, 6.95, 1.8, 2.6, 0.4, [("한계 ② 믿기 어렵다", 14, DANGER, True)])
-    picture(s, "pinocchio-hallucination.jpg", 6.95, 2.2, 2.7, 2.1)
-    text(s, 9.75, 2.2, 2.85, 2.1, [("AI 환각", 26, DANGER, True), ("그럴듯한 거짓말", 15, PRIMARY, True),
-                                    ("출처 없는 숫자, 확인할 수 없는 요약", 12, MUTED, False)], anchor=MSO_ANCHOR.MIDDLE)
+    box(s, 9.35, 1.85, 0.8, 0.34, DANGER_TINT, None, radius=0.5)
+    text(s, 9.35, 1.85, 0.8, 0.34, [("AI", 11, DANGER, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    picture(s, "pinocchio-hallucination.jpg", 8.25, 2.3, 3.0, 1.6)
+    text(s, 6.95, 3.95, 5.6, 0.4, [("AI Hallucination: 출처 없는 날조와 신뢰할 수 없는 AI 요약", 12, MUTED, False)], align=PP_ALIGN.CENTER)
     text(s, 0.6, 4.45, 12.1, 0.45, [("⬇", 22, MUTED, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-    box(s, 0.6, 4.9, 12.13, 1.95, ACCENT_TINT, ACCENT_BORDER)
-    text(s, 0.6, 4.95, 12.13, 0.3, [("DART Insight", 13, ACCENT, True)], align=PP_ALIGN.CENTER)
-    tiles(s, 5.3, 1.4, [("⚖️", "두 보고서 자동 비교", "바뀐 숫자·문장만 골라냄"),
-                        ("🧮", "숫자는 코드가 계산", "AI는 계산하지 않음"),
-                        ("📍", "문장마다 원문 위치", "누르면 공시 원문으로 이동")], x0=0.85, x1=12.48, icon_size=24)
+    box(s, 0.6, 4.9, 12.13, 1.95, ACCENT_TINT, ACCENT)
+    text(s, 0.6, 5.0, 12.13, 0.35, [("DART Insight", 15, ACCENT, True)], align=PP_ALIGN.CENTER)
+    picture(s, "dart-insight-logo.png", 6.33, 5.45, 0.65, 0.65)
+    text(s, 0.6, 6.15, 12.13, 0.4, [("두 보고서 자동 비교", 16, PRIMARY, True)], align=PP_ALIGN.CENTER)
 
 
 def value(s):
-    tiles(s, 1.75, 2.15, [("⚖️", "자동 비교", "두 보고서, 바뀐 것만"), ("📍", "원문 위치", "문장마다 출처"),
-                          ("🧩", "한 화면 맥락", "숫자 + 설명 + 수시공시"), ("🛡️", "추천하지 않음", "사실과 기준표 신호만")], icon_size=40)
-    flow(s, 4.1, 1.45, [("🔎", "검색", ""), ("🏢", "기업 개요", ""), ("📑", "보고서 두 개", ""),
-                       ("⏳", "분석", ""), ("📊", "결과", ""), ("💬", "채팅·노트", "")], x0=1.2, x1=12.13, arrow=0.35)
-    box(s, 2.0, 5.8, 4.4, 0.9, ACCENT_TINT, ACCENT_BORDER)
-    text(s, 2.0, 5.8, 4.4, 0.9, [("결과 화면 · 요약 문장", 11, MUTED, False), ("영업이익 ▲ +33.2%  📍 원문", 16, PRIMARY, True)],
+    box(s, 0.6, 1.75, 12.13, 2.1, CANVAS, None)
+    flow(s, 2.0, 1.6, [("🔎", "검색", ""), ("🏢", "기업 개요", ""), ("📑", "보고서 두 개", ""),
+                      ("⏳", "분석", ""), ("📊", "결과", ""), ("💬", "채팅·노트", "")], x0=1.0, x1=12.33, arrow=0.35)
+    box(s, 0.6, 4.35, 5.5, 2.2, ACCENT_TINT, ACCENT_BORDER)
+    text(s, 0.6, 4.35, 5.5, 2.2, [("결과 화면 · 요약 문장", 12, ACCENT, True), ("영업이익 ▲ +33.2%  📍 원문", 20, PRIMARY, True)],
          align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-    text(s, 6.4, 5.8, 0.9, 0.9, [("➜", 26, ACCENT, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-    box(s, 7.3, 5.8, 4.0, 0.9)
-    text(s, 7.3, 5.8, 4.0, 0.9, [("📄 DART 공시 원문의 그 문단", 16, PRIMARY, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    text(s, 6.1, 4.35, 1.13, 2.2, [("➜", 30, ACCENT, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    box(s, 7.23, 4.35, 5.5, 2.2)
+    text(s, 7.45, 4.5, 5.0, 0.35, [("DART 공시 원문", 12, MUTED, True)])
+    for k, (y, w, hl) in enumerate([(4.95, 4.6, False), (5.15, 3.9, False), (5.4, 5.05, True), (5.75, 4.6, False), (5.95, 3.9, False)]):
+        box(s, 7.45, y, w, 0.24 if hl else 0.1, ATTENTION_TINT if hl else BORDER, ATTENTION if hl else None, shape=MSO_SHAPE.RECTANGLE)
 
 
 def activity_financial(s):
@@ -353,20 +347,20 @@ TIMELINE = [
 
 
 def activity_flow(s):
-    text(s, 0.6, 1.62, 12.1, 0.4, [("📥 모으기  →  📝 요약·타임라인  →  🎯 관점별 보기  →  🚦 사실과 전망 분리", 15, PRIMARY, True)],
-         align=PP_ALIGN.CENTER)
-    box(s, 0.6, 2.15, 4.9, 4.55)
-    text(s, 0.8, 2.25, 4.5, 0.4, [("🗓️ 1년 타임라인 · 24건 중 6건", 14, PRIMARY, True)])
+    flow(s, 1.6, 1.05, [("📥", "모으기", ""), ("📝", "요약·타임라인", ""), ("🎯", "관점별 보기", ""), ("🚦", "사실과 전망 분리", "")],
+         x0=2.2, x1=11.13, arrow=0.35)
+    box(s, 0.6, 2.85, 4.9, 3.85)
+    text(s, 0.8, 2.93, 4.5, 0.4, [("🗓️ 1년 타임라인 · 24건 중 6건", 14, PRIMARY, True)])
     for i, (date, icon, cat, label) in enumerate(TIMELINE):
-        y = 2.72 + i * 0.6
-        text(s, 0.8, y, 1.05, 0.5, [(date, 10.5, MUTED, False)], anchor=MSO_ANCHOR.MIDDLE)
-        text(s, 1.85, y, 3.55, 0.5, [(f"{icon} {cat} · {label}", 11.5, TEXT, False)], anchor=MSO_ANCHOR.MIDDLE)
-    text(s, 0.8, 6.33, 4.5, 0.3, [("사건마다 공시 원문 근거가 붙어 있어요.", 10, MUTED, False)])
-    box(s, 5.72, 2.15, 7.01, 4.55)
-    picture(s, "samsung-fact-vs-forecast.webp", 5.85, 2.25, 6.75, 2.6)
+        y = 3.35 + i * 0.5
+        text(s, 0.8, y, 1.05, 0.45, [(date, 10.5, MUTED, False)], anchor=MSO_ANCHOR.MIDDLE)
+        text(s, 1.85, y, 3.55, 0.45, [(f"{icon} {cat} · {label}", 11.5, TEXT, False)], anchor=MSO_ANCHOR.MIDDLE)
+    text(s, 0.8, 6.35, 4.5, 0.3, [("사건마다 공시 원문 근거가 붙어 있어요.", 10, MUTED, False)])
+    box(s, 5.72, 2.85, 7.01, 3.85)
+    picture(s, "samsung-fact-vs-forecast.webp", 5.85, 2.95, 6.75, 2.3)
     for i, (label, desc, fill, color) in enumerate([("① 공시에 적힌 사실", "원문 문장 그대로 + 근거 위치", ACCENT_TINT, ACCENT),
                                                     ("② 앞으로의 영향", "'AI 전망 · 공시 사실 아님' 표시를 따로", ATTENTION_TINT, ATTENTION)]):
-        y = 5.15 + i * 0.6
+        y = 5.4 + i * 0.6
         box(s, 5.95, y, 2.2, 0.45, fill, None, radius=0.5)
         text(s, 5.95, y, 2.2, 0.45, [(label, 12, color, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
         text(s, 8.25, y, 4.3, 0.45, [(desc, 13, TEXT, False)], anchor=MSO_ANCHOR.MIDDLE)
@@ -538,7 +532,8 @@ def build_script(slides):
         "| --- | --- | --- | --- |",
     ]
     for n, s in enumerate(slides, 1):
-        out.append(f"| {n:02d} | {s['title']} | {s['heading']} | {s['term']} = {s['def']} |")
+        term = f"{s['term']} = {s['def']}" if s["term"] else "—"
+        out.append(f"| {n:02d} | {s['title']} | {s['heading']} | {term} |")
     out += ["", "## 장별 대본", ""]
     for n, s in enumerate(slides, 1):
         out += [f"### {n:02d} · {s['title']}", f"**{s['heading']}**", "", s["notes"], ""]
