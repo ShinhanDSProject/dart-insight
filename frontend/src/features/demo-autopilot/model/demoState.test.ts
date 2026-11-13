@@ -35,6 +35,15 @@ describe('createDemoReducer', () => {
     expect(reduce({ status: 'done', step: 2 }, { type: 'next' })).toEqual({ status: 'finished' })
   })
 
+  it('마친 뒤 Space를 누르면 발표 페이지로 돌아간다', () => {
+    expect(reduce({ status: 'finished' }, { type: 'next' })).toEqual({ status: 'leaving' })
+  })
+
+  it('돌아가는 중에 누른 Space는 무시한다', () => {
+    const leaving: DemoState = { status: 'leaving' }
+    expect(reduce(leaving, { type: 'next' })).toBe(leaving)
+  })
+
   it('단계가 없으면 바로 마친다', () => {
     expect(createDemoReducer(0)(initialDemoState(), { type: 'next' })).toEqual({ status: 'finished' })
   })

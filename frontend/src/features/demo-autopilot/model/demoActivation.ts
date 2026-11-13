@@ -2,6 +2,11 @@
 export const DEMO_PARAM = 'demo'
 /** 켠 시연 모드를 화면을 옮기거나 새로 고쳐도 유지하는 sessionStorage 키 */
 export const DEMO_STORAGE_KEY = 'dart-insight:demo'
+/** 시연을 마치고 돌아갈 발표 페이지의 Q&A 장. #from-demo면 발표 페이지가 노트북이 닫히는 움직임으로 맞는다 */
+export const DEMO_RETURN_PATH = '/easter/three-weeks.html?slide=qa#from-demo'
+/** 앱 화면이 빛 한 점으로 닫히는 시간. demo-autopilot.css의 demo-close와 같다 */
+export const DEMO_LEAVE_MS = 900
+
 /** 다음에 실행할 단계(0부터). 화면이 통째로 새로 불려도 이어서 진행한다 */
 export const DEMO_NEXT_STEP_KEY = 'dart-insight:demo-next'
 
