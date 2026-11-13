@@ -4,11 +4,25 @@ import { Link, useParams, useSearchParams } from 'react-router'
 import { match, P } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { ParamChanges } from '@/shared/lib/searchParams'
-import { Button, Icon, MenuButton, MenuItem, Notice, Page, PageHeader, Skeleton, Tabs, type TabItem } from '@/shared/ui'
+import {
+  Button,
+  Icon,
+  MenuButton,
+  MenuItem,
+  Notice,
+  Page,
+  PageHeader,
+  PageReveal,
+  Skeleton,
+  Tabs,
+  type TabItem,
+} from '@/shared/ui'
 import { ErrorState } from '@/shared/ui/StateView'
 import { OPEN_CHAT_INPUT_EVENT } from '@/shared/lib/shortcuts'
 import type { SjDiv } from '@/shared/api/results'
 import type { TextSectionCount } from '@/shared/api/textChanges'
+import type { LoadState } from '@/shared/hooks/asyncState'
+import { useRevealReady } from '@/shared/hooks/useRevealReady'
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle'
 import { useRecordRecentAnalysis } from '@/shared/hooks/useRecentAnalyses'
 import { useRecordCurrentCompany } from '@/shared/hooks/useCurrentCompany'
@@ -81,18 +95,39 @@ export function AnalysisResultPage() {
     ),
   )
 
+  return (
+    // 분석과 첫 탭의 주요 데이터가 응답한 뒤 머리 → 비교 맥락 → 탭 → 내용 순으로 한 번에 떠오른다(#960)
+    <PageReveal fallback={<ResultSkeleton />}>
+      <AnalysisState state={state} onRetry={reload} params={params} update={update} />
+    </PageReveal>
+  )
+}
+
+function ResultSkeleton() {
+  return (
+    <Page width="wide">
+      <Skeleton label="분석 결과를 불러오는 중입니다…" shape="block" />
+    </Page>
+  )
+}
+
+interface AnalysisStateProps {
+  state: LoadState<Analysis>
+  onRetry: () => void
+  params: ResultParams
+  update: (changes: ParamChanges) => void
+}
+
+function AnalysisState({ state, onRetry, params, update }: AnalysisStateProps) {
+  useRevealReady(state.status !== 'loading')
   return match(state)
-    .with({ status: 'loading' }, () => (
-      <Page width="wide">
-        <Skeleton label="분석 결과를 불러오는 중입니다…" shape="block" />
-      </Page>
-    ))
+    .with({ status: 'loading' }, () => <ResultSkeleton />)
     .with({ status: 'error' }, ({ error }) => (
       <Page width="wide">
         <PageHeader title="분석 결과" />
         <ErrorState
           error={error}
-          onRetry={reload}
+          onRetry={onRetry}
           messages={{ ANALYSIS_NOT_FOUND: '분석을 찾지 못했어요. 기업 검색에서 다시 시작해 주세요.' }}
         />
       </Page>
@@ -109,7 +144,7 @@ interface AnalysisResultProps {
 
 function AnalysisResult({ analysis, params, update }: AnalysisResultProps) {
   return (
-    <Page width="wide">
+    <Page width="wide" className="result-page">
       {/* 결과 머리(#550): 분석 결과 / 기업명 → 큰 기업명 → 보고서 쌍·비교 기준·수치 기준, 오른쪽 위 내보내기. 보고서는 '보고서 선택' 탭에서 바꾼다(#659) */}
       <PageHeader
         className="result-head"
