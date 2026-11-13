@@ -28,6 +28,7 @@ from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
+from pptx.oxml.ns import qn
 from pptx.util import Inches, Pt
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -468,7 +469,7 @@ def weeks(s):
     for i, (title, fill, line, items) in enumerate(ROLES):
         x = x0 + i * (w + gap)
         box(s, x, 3.4, w, 2.45, fill, line)
-        text(s, x + 0.2, 3.5, w - 0.4, 2.3, [(title, 16, PRIMARY, True)] + [(item, 12.5, TEXT, False) for item in items])
+        text(s, x + 0.2, 3.5, w - 0.4, 2.3, [(title, 18, PRIMARY, True)] + [(item, 14.5, TEXT, False) for item in items])
     box(s, x0, 6.0, SLIDE_W - 2 * x0, 0.85, ATTENTION_TINT, None)
     text(s, x0, 6.0, SLIDE_W - 2 * x0, 0.85, [("🛑 AI가 멈추고 사람에게 묻는 때", 12.5, ATTENTION, True),
                                              ("  ·  ".join(AI_STOPS), 12, TEXT, False)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
@@ -493,8 +494,24 @@ def build_pptx(slides):
         if builder is None:
             raise SystemExit(f"그림이 없는 장입니다: {info['id']} (SLIDE_BUILDERS에 추가하세요)")
         builder(slide)
+    add_notes_master_list(prs)
     prs.save(OUT_PPTX)
     shutil.copyfile(OUT_PPTX, OUT_PPTX_COPY)
+
+
+def add_notes_master_list(prs):
+    """python-pptx는 노트 마스터를 만들 때 presentation.xml에 notesMasterIdLst를 적지 않습니다.
+    PowerPoint는 그대로 열지만 Keynote는 열지 못하므로 목록을 채워 넣습니다."""
+    pres = prs.part._element
+    if pres.find(qn("p:notesMasterIdLst")) is not None:
+        return
+    rids = [rid for rid, rel in prs.part.rels.items() if rel.reltype.endswith("/notesMaster")]
+    if not rids:
+        return
+    lst = pres.makeelement(qn("p:notesMasterIdLst"), {})
+    item = lst.makeelement(qn("p:notesMasterId"), {qn("r:id"): rids[0]})
+    lst.append(item)
+    pres.find(qn("p:sldMasterIdLst")).addnext(lst)
 
 
 def build_script(slides):
