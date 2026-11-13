@@ -53,7 +53,7 @@ pipeline {
                             def changed = []
                             if (base && sh(script: "git cat-file -e ${base}^{commit}", returnStatus: true) == 0) {
                                 def out = sh(
-                                    script: "git diff --name-only ${base} ${env.RELEASE_SHA}",
+                                    script: "git diff --name-only --no-renames ${base} ${env.RELEASE_SHA}", // 옮긴 파일은 원래 경로와 새 경로를 둘 다 본다
                                     returnStdout: true
                                 ).trim()
                                 if (out) {
