@@ -11,7 +11,7 @@ export class ChunkLoadError extends Error {
 /**
  * 화면을 처음 열 때 코드를 받아 오는 컴포넌트를 만든다(React.lazy).
  * 화면은 named export라서 import 결과에서 컴포넌트를 골라 넘긴다: lazyPage(() => import('...').then((m) => m.SearchPage))
- * 받는 동안은 PageSuspense가 로딩 표시를 보여 준다.
+ * 받는 동안은 PageSuspense가 화면 모양(Skeleton)을 보여 준다.
  */
 export function lazyPage<P extends object = object>(load: () => Promise<ComponentType<P>>) {
   return lazy(() =>

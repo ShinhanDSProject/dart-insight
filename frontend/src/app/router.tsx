@@ -26,7 +26,7 @@ const CompanyOverviewPanel = lazyPage(() =>
 )
 /** 분석 결과의 '기업 개요' 탭(#589)에 기업 화면의 개요를 넣는다. 두 기능을 잇는 일은 app이 맡는다(DIR-4) */
 const renderResultOverview = (corpCode: string) => (
-  <PageSuspense>
+  <PageSuspense variant="panel">
     <CompanyOverviewPanel corpCode={corpCode} />
   </PageSuspense>
 )
@@ -35,7 +35,7 @@ const ReportSelectionPanel = lazyPage(() =>
 )
 /** 분석 결과의 '보고서 선택' 탭(#659)에 기업 화면의 보고서 비교를 넣는다 */
 const renderResultReports = (corpCode: string) => (
-  <PageSuspense>
+  <PageSuspense variant="panel">
     <ReportSelectionPanel corpCode={corpCode} />
   </PageSuspense>
 )
