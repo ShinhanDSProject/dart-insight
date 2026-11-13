@@ -622,7 +622,7 @@ body.capture-mode .doc-loading *, body.capture-mode .doc-jump { animation: none 
    .lt 상자 = 본체(키보드 판). 뚜껑은 본체 위쪽 모서리(경첩)에 붙어 있고, 닫히면 180도 접혀 본체를 덮음 */
 .preview__stage { width: 520px; height: 330px; margin: 22px 0 14px }
 .lt { position: relative; width: 520px; height: 330px; perspective: 1600px; perspective-origin: 50% 0 }
-/* 맥북 느낌(애플 로고는 상표라 넣지 않고 그 자리에 Preview): 스페이스 그레이 알루미늄, 얇은 검은 베젤과 카메라 노치,
+/* 맥북 느낌(애플 로고 자리에 우리 마크, 그 아래 Preview): 스페이스 그레이 알루미늄, 얇은 검은 베젤과 카메라 노치,
    검은 키보드·큰 트랙패드·양옆 스피커 구멍, 본체 앞 가운데 손가락 홈 */
 .lt__base { position: absolute; inset: 0; border-radius: 8px 8px 26px 26px; background: linear-gradient(180deg, #62656d 0%, #4a4d54 45%, #393b41 100%); box-shadow: 0 24px 50px rgba(10,12,30,.30), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -2px 0 rgba(0,0,0,.25); transform-origin: 50% 0 }
 .lt__base::before { content: ""; position: absolute; left: 70px; right: 70px; top: 0; height: 9px; border-radius: 0 0 6px 6px; background: linear-gradient(#1b1c20, #2c2e33) }
@@ -640,9 +640,11 @@ body.capture-mode .doc-loading *, body.capture-mode .doc-jump { animation: none 
 .lt__cover { transform: rotateX(180deg); display: grid; place-content: center; justify-items: center; gap: 14px;
   background: radial-gradient(120% 90% at 30% 15%, rgba(255,255,255,.14), transparent 55%), linear-gradient(160deg, #62656d 0%, #4a4d54 50%, #3a3c42 100%);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.2), inset 0 0 0 1px rgba(0,0,0,.25) }
-.lt__mark { width: 44px; height: 44px; border-radius: 12px; gap: 5px; background: rgba(255,255,255,.14); box-shadow: none }
-.lt__mark i { width: 6px; height: 16px; background: #f4f5f7 } .lt__mark i + i { height: 22px }
-.lt__word { font-size: 64px; font-weight: 800; letter-spacing: -0.02em; color: rgba(255,255,255,.94); text-shadow: 0 1px 0 rgba(0,0,0,.35), 0 0 22px rgba(255,255,255,.18) }
+/* 뚜껑 가운데 우리 마크: 맥북 로고처럼 상자 없이 알루미늄에 박힌 거울 같은 은색 막대 두 개 */
+.lt__logo { width: auto; height: auto; gap: 9px; align-items: flex-end; background: none; box-shadow: none; filter: drop-shadow(0 1px 0 rgba(0,0,0,.35)) drop-shadow(0 0 14px rgba(255,255,255,.25)) }
+.lt__logo i { width: 13px; height: 40px; border-radius: 5px; background: linear-gradient(160deg, #f4f5f8 0%, #c9ccd3 45%, #eef0f4 70%, #b7bac2 100%) }
+.lt__logo i + i { height: 56px }
+.lt__word { font-size: 40px; font-weight: 800; letter-spacing: -0.02em; color: rgba(255,255,255,.94); text-shadow: 0 1px 0 rgba(0,0,0,.35), 0 0 22px rgba(255,255,255,.18) }
 .slide-fit.play .preview__stage { animation: slideReveal 700ms cubic-bezier(.2,.7,.2,1) 150ms both }
 body.demo-warping .preview__stage { visibility: hidden }
 
@@ -2542,12 +2544,12 @@ body {
 <section id="qna" class="chapter-end" data-title="Preview">
   <div class="chapter preview">
     <p class="chapter__num">LIVE DEMO</p>
-    <div class="preview__stage" role="img" aria-label="뚜껑에 Preview라고 적힌 닫힌 노트북"><div class="lt"><div class="lt__base"><span class="lt__keys"></span></div><div class="lt__lid"><div class="lt__screen"></div><div class="lt__cover"><span class="brand__mark lt__mark" aria-hidden="true"><i></i><i></i></span><span class="lt__word">Preview</span></div></div></div></div>
+    <div class="preview__stage" role="img" aria-label="뚜껑에 DART Insight 마크와 Preview가 적힌 닫힌 맥북"><div class="lt"><div class="lt__base"><span class="lt__keys"></span></div><div class="lt__lid"><div class="lt__screen"></div><div class="lt__cover"><span class="brand__mark lt__logo" aria-hidden="true"><i></i><i></i></span><span class="lt__word">Preview</span></div></div></div></div>
     <p class="chapter__lede">두 보고서 사이, 바뀐 것만. 원문 근거와 함께.</p>
   </div>
 </section>
 <div class="demo-warp" id="portalWarp" aria-hidden="true">
-  <div class="demo-warp__cam"><div class="lt"><div class="lt__base"><span class="lt__keys"></span></div><div class="lt__lid"><div class="lt__screen"></div><div class="lt__cover"><span class="brand__mark lt__mark" aria-hidden="true"><i></i><i></i></span><span class="lt__word">Preview</span></div></div></div></div>
+  <div class="demo-warp__cam"><div class="lt"><div class="lt__base"><span class="lt__keys"></span></div><div class="lt__lid"><div class="lt__screen"></div><div class="lt__cover"><span class="brand__mark lt__logo" aria-hidden="true"><i></i><i></i></span><span class="lt__word">Preview</span></div></div></div></div>
   <div class="demo-warp__dark"></div>
   <iframe class="demo-warp__site" title="DART Insight 첫 화면" tabindex="-1"></iframe>
   <span class="demo-warp__burst"></span><span class="demo-warp__burst demo-warp__burst--ring"></span>
