@@ -140,16 +140,6 @@ ul.plain, ol.plain { margin: 0; padding-left: 20px; display: grid; gap: 6px }
 .tbl td.num { text-align: right; white-space: nowrap }
 
 /* 호출 구조 */
-.flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; align-items: stretch }
-.flow .node { position: relative; border: 1.5px solid var(--color-border-strong); border-radius: var(--radius-lg); background: var(--color-bg-raised); padding: 14px; display: grid; gap: 4px; align-content: start; margin-right: 26px }
-.flow .node:last-child { margin-right: 0 }
-.flow .node:not(:last-child)::after { content: "→"; position: absolute; right: -22px; top: 50%; transform: translateY(-50%); color: var(--color-text-muted); font-weight: 800 }
-.flow .node.core { background: var(--color-primary); border-color: var(--color-primary); color: var(--color-primary-text) }
-.flow .node.core .muted { color: var(--color-primary-text); opacity: .8 }
-.flow .node b { font-size: 15px }
-.flow .node span { font-size: 12.5px }
-.side { display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px }
-@media (max-width: 860px) { .flow { grid-template-columns: 1fr; gap: 22px } .flow .node { margin-right: 0 } .flow .node:not(:last-child)::after { content: "↓"; right: 50%; top: auto; bottom: -22px; transform: none } }
 .steps { counter-reset: s; list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px }
 .steps li { counter-increment: s; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px 14px; background: var(--color-bg-subtle); font-size: 13.5px; display: grid; gap: 2px }
 .steps li::before { content: counter(s, decimal-leading-zero); font-family: var(--font-num); font-weight: 800; color: var(--color-accent); font-size: 12px }
@@ -266,7 +256,7 @@ input[type=range] { width: 100%; accent-color: var(--color-primary) }
       <li><a href="#mcp">3. MCP 서버</a></li>
       <li><a href="#decisions">4. 직접 해 보기</a></li>
       <li><a href="#guard">5. 계층 규칙과 배포</a></li>
-      <li><a href="#checks">6. 발표 수치 점검표</a></li>
+      <li><a href="#checks">6. 이전 발표 수치 점검</a></li>
       <li><a href="#refs">7. 더 읽을 곳</a></li>
     </ol>
   </nav>
@@ -287,18 +277,36 @@ input[type=range] { width: 100%; accent-color: var(--color-primary) }
         <p>화면은 백엔드만, 백엔드는 AI 서버만 부릅니다. 반대 방향 호출은 없습니다(<a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/adr/0002-monorepo-and-call-direction.md">ADR-0002</a>).</p>
       </header>
 
-      <div class="flow" aria-label="호출 방향">
-        <div class="node"><b>frontend</b><span class="muted">React 19 · TypeScript</span><span>공개 API <code>/api/**</code>만 부름</span></div>
-        <div class="node core"><b>backend</b><span class="muted">Spring Boot · Java 21</span><span>OpenDART 조회·캐시, 분석 작업, 숫자 계산, 에이전트 Tool 실행, 한도</span></div>
-        <div class="node"><b>ai-server</b><span class="muted">FastAPI · Python 3.12</span><span>원문 파싱, 문장 변화, 근거 검색, LLM 호출. DB 없음(무상태)</span></div>
-        <div class="node"><b>LLM</b><span class="muted">anthropic SDK</span><span>ai-server의 <code>LlmClient</code> 한 곳에서만 부름(<a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/adr/0008-single-llm-module.md">ADR-0008</a>)</span></div>
-      </div>
-      <div class="side">
-        <span class="badge">MariaDB · Flyway</span>
-        <span class="badge">OpenDART · backend만 호출</span>
-        <span class="badge">mcp-server · backend 공개 API만 호출, 읽기 전용(<a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/adr/0052-mcp-server-read-only.md">ADR-0052</a>)</span>
-        <span class="badge">NAVER 뉴스 · 화면에만, AI에는 넣지 않음</span>
-      </div>
+      <figure style="margin:18px 0 6px; padding:20px 24px; border-radius:var(--radius-lg); background:var(--color-bg-subtle);">
+        <svg viewBox="0 0 1100 450" id="engarch" style="width:100%; height:auto;" role="img" aria-label="아키텍처: 웹 화면과 MCP 서버는 API 서버만 부른다. API 서버가 AI 서버와 MariaDB·OpenDART·NAVER를 부르고, AI 서버만 Claude API를 부른다">
+<defs><marker id="eng_ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--color-text-muted);"/></marker></defs>
+<rect x="130" y="40" width="120" height="380" rx="6" style="fill:none; stroke:var(--color-border-strong); stroke-width:1.5; stroke-dasharray:6 4;"/><rect x="130" y="40" width="26" height="26" style="fill:var(--color-border-strong);"/><rect x="137" y="47" width="12" height="12" rx="2" style="fill:none; stroke:#fff; stroke-width:1.6;"/><text x="164" y="58" style="font-size:12.5px; font-weight:800; fill:var(--color-text);">Client</text>
+<rect x="290" y="20" width="500" height="415" rx="6" style="fill:none; stroke:var(--color-accent); stroke-width:1.5;"/><rect x="290" y="20" width="26" height="26" style="fill:var(--color-accent);"/><rect x="298" y="28" width="3.5" height="9" rx="1" style="fill:#fff;"/><rect x="304" y="26" width="3.5" height="13" rx="1" style="fill:#fff;"/><text x="324" y="38" style="font-size:12.5px; font-weight:800; fill:var(--color-text);">DART Insight</text>
+<rect x="315" y="62" width="210" height="180" rx="6" style="fill:none; stroke:var(--color-border-strong); stroke-width:1.5; stroke-dasharray:6 4;"/><rect x="315" y="62" width="26" height="26" style="fill:var(--color-border-strong);"/><rect x="322" y="69" width="12" height="12" rx="2" style="fill:none; stroke:#fff; stroke-width:1.6;"/><text x="349" y="80" style="font-size:12.5px; font-weight:800; fill:var(--color-text);">Backend · Java 21</text>
+<rect x="555" y="62" width="210" height="180" rx="6" style="fill:none; stroke:var(--color-border-strong); stroke-width:1.5; stroke-dasharray:6 4;"/><rect x="555" y="62" width="26" height="26" style="fill:var(--color-border-strong);"/><rect x="562" y="69" width="12" height="12" rx="2" style="fill:none; stroke:#fff; stroke-width:1.6;"/><text x="589" y="80" style="font-size:12.5px; font-weight:800; fill:var(--color-text);">AI · Python 3.12</text>
+<rect x="315" y="272" width="210" height="148" rx="6" style="fill:none; stroke:var(--color-border-strong); stroke-width:1.5; stroke-dasharray:6 4;"/><rect x="315" y="272" width="26" height="26" style="fill:var(--color-border-strong);"/><rect x="322" y="279" width="12" height="12" rx="2" style="fill:none; stroke:#fff; stroke-width:1.6;"/><text x="349" y="290" style="font-size:12.5px; font-weight:800; fill:var(--color-text);">Data</text>
+<rect x="830" y="20" width="250" height="415" rx="6" style="fill:none; stroke:var(--color-border-strong); stroke-width:1.5; stroke-dasharray:6 4;"/><rect x="830" y="20" width="26" height="26" style="fill:var(--color-border-strong);"/><rect x="837" y="27" width="12" height="12" rx="2" style="fill:none; stroke:#fff; stroke-width:1.6;"/><text x="864" y="38" style="font-size:12.5px; font-weight:800; fill:var(--color-text);">External APIs</text>
+<g class="arch-node" style="--step:-1;"><circle cx="62" cy="134" r="12" style="fill:var(--color-text-muted);"/><path d="M38,176 Q38,152 62,152 Q86,152 86,176 Z" style="fill:var(--color-text-muted);"/><text x="62" y="202" text-anchor="middle" style="font-size:14px; font-weight:800; fill:var(--color-text);">사용자</text></g>
+<g class="arch-node" style="--step:0;"><rect x="158" y="118" width="64" height="64" rx="12" style="fill:#fff; stroke:var(--color-border); stroke-width:1;"/><image href="stack/react.svg" x="170" y="130" width="40" height="40"/><text x="190" y="202" text-anchor="middle" style="font-size:14px; font-weight:800; fill:var(--color-text);">웹 화면</text><text x="190" y="219" text-anchor="middle" style="font-size:11.5px; fill:var(--color-text-muted);">React · TS</text></g>
+<g class="arch-node" style="--step:1;"><rect x="158" y="298" width="64" height="64" rx="12" style="fill:#fff; stroke:var(--color-border); stroke-width:1;"/><image href="stack/modelcontextprotocol.svg" x="170" y="310" width="40" height="40"/><text x="190" y="382" text-anchor="middle" style="font-size:14px; font-weight:800; fill:var(--color-text);">MCP 서버</text><text x="190" y="399" text-anchor="middle" style="font-size:11.5px; fill:var(--color-text-muted);">읽기 전용 · 외부 AI용</text></g>
+<g class="arch-node" style="--step:1;"><rect x="388" y="118" width="64" height="64" rx="12" style="fill:#fff; stroke:var(--color-border); stroke-width:1;"/><image href="stack/springboot.svg" x="400" y="130" width="40" height="40"/><text x="420" y="202" text-anchor="middle" style="font-size:14px; font-weight:800; fill:var(--color-text);">API 서버</text><text x="420" y="219" text-anchor="middle" style="font-size:11.5px; fill:var(--color-text-muted);">Spring Boot</text></g>
+<g class="arch-node" style="--step:2;"><rect x="578" y="118" width="64" height="64" rx="12" style="fill:#fff; stroke:var(--color-border); stroke-width:1;"/><image href="stack/fastapi.svg" x="590" y="130" width="40" height="40"/><text x="610" y="202" text-anchor="middle" style="font-size:14px; font-weight:800; fill:var(--color-text);">AI 서버</text><text x="610" y="219" text-anchor="middle" style="font-size:11.5px; fill:var(--color-text-muted);">FastAPI</text></g>
+<g class="arch-node" style="--step:2;"><rect x="678" y="118" width="64" height="64" rx="12" style="fill:#fff; stroke:var(--color-border); stroke-width:1;"/><image href="stack/langgraph.svg" x="690" y="130" width="40" height="40"/><text x="710" y="202" text-anchor="middle" style="font-size:14px; font-weight:800; fill:var(--color-text);">에이전트</text><text x="710" y="219" text-anchor="middle" style="font-size:11.5px; fill:var(--color-text-muted);">LangGraph</text></g>
+<g class="arch-node" style="--step:2;"><rect x="388" y="298" width="64" height="64" rx="12" style="fill:#fff; stroke:var(--color-border); stroke-width:1;"/><image href="stack/mariadb.svg" x="400" y="310" width="40" height="40"/><text x="420" y="382" text-anchor="middle" style="font-size:14px; font-weight:800; fill:var(--color-text);">DB</text><text x="420" y="399" text-anchor="middle" style="font-size:11.5px; fill:var(--color-text-muted);">MariaDB</text></g>
+<g class="arch-node" style="--step:3;"><rect x="923" y="118" width="64" height="64" rx="12" style="fill:#fff; stroke:var(--color-border); stroke-width:1;"/><image href="stack/claude.svg" x="935" y="130" width="40" height="40"/><text x="955" y="202" text-anchor="middle" style="font-size:14px; font-weight:800; fill:var(--color-text);">LLM</text><text x="955" y="219" text-anchor="middle" style="font-size:11.5px; fill:var(--color-text-muted);">Claude API</text></g>
+<g class="arch-node" style="--step:2;"><rect x="863" y="280" width="64" height="64" rx="12" style="fill:#11006F;"/><image href="stack/opendart.png" x="868" y="305" width="54" height="14"/><text x="895" y="364" text-anchor="middle" style="font-size:14px; font-weight:800; fill:var(--color-text);">OpenDART</text><text x="895" y="381" text-anchor="middle" style="font-size:11.5px; fill:var(--color-text-muted);">공시·재무</text></g>
+<g class="arch-node" style="--step:2;"><rect x="983" y="280" width="64" height="64" rx="12" style="fill:#03C75A;"/><path transform="translate(1001,298) scale(1.1667)" d="M16.273 12.845 7.376 0H0v24h7.726V11.156L16.624 24H24V0h-7.727v12.845Z" style="fill:#fff;"/><text x="1015" y="364" text-anchor="middle" style="font-size:14px; font-weight:800; fill:var(--color-text);">NAVER</text><text x="1015" y="381" text-anchor="middle" style="font-size:11.5px; fill:var(--color-text-muted);">기업 뉴스</text></g>
+<path d="M90,150 H154" style="fill:none; stroke:var(--color-text-muted); stroke-width:1.6; --step:0;" marker-end="url(#eng_ar)"/>
+<path d="M222,150 H384" style="fill:none; stroke:var(--color-text-muted); stroke-width:1.6; --step:1;" marker-end="url(#eng_ar)"/><g class="arch-label" style="--step:1;"><rect x="297.0" y="130" width="80.0" height="17" rx="4" style="fill:var(--color-bg-subtle);"/><text x="337" y="142" text-anchor="middle" style="font-family:var(--font-mono); font-size:11px; fill:var(--color-text-muted);">HTTPS /api</text></g>
+<path d="M222,330 H300 V172 H384" style="fill:none; stroke:var(--color-text-muted); stroke-width:1.6; --step:1;" marker-end="url(#eng_ar)"/><g class="arch-label" style="--step:1;"><rect x="263.4" y="360" width="73.19999999999999" height="17" rx="4" style="fill:var(--color-bg-subtle);"/><text x="300" y="372" text-anchor="middle" style="font-family:var(--font-mono); font-size:11px; fill:var(--color-text-muted);">/api (읽기)</text></g>
+<path d="M452,150 H574" style="fill:none; stroke:var(--color-text-muted); stroke-width:1.6; --step:2;" marker-end="url(#eng_ar)"/><g class="arch-label" style="--step:2;"><rect x="476.4" y="130" width="73.19999999999999" height="17" rx="4" style="fill:var(--color-bg-subtle);"/><text x="513" y="142" text-anchor="middle" style="font-family:var(--font-mono); font-size:11px; fill:var(--color-text-muted);">/internal</text></g>
+<path d="M420,226 V294" style="fill:none; stroke:var(--color-text-muted); stroke-width:1.6; --step:2;" marker-end="url(#eng_ar)"/>
+<path d="M452,170 H495 V258 H1015 V276" style="fill:none; stroke:var(--color-text-muted); stroke-width:1.6; --step:2;" marker-end="url(#eng_ar)"/><g class="arch-label" style="--step:2;"><rect x="636.6" y="246" width="86.8" height="17" rx="4" style="fill:var(--color-bg-subtle);"/><text x="680" y="258" text-anchor="middle" style="font-family:var(--font-mono); font-size:11px; fill:var(--color-text-muted);">REST · JSON</text></g>
+<path d="M895,258 V276" style="fill:none; stroke:var(--color-text-muted); stroke-width:1.6; --step:2;" marker-end="url(#eng_ar)"/>
+<path d="M742,150 H919" style="fill:none; stroke:var(--color-text-muted); stroke-width:1.6; --step:3;" marker-end="url(#eng_ar)"/><g class="arch-label" style="--step:3;"><rect x="759.8" y="130" width="100.39999999999999" height="17" rx="4" style="fill:var(--color-bg-subtle);"/><text x="810" y="142" text-anchor="middle" style="font-family:var(--font-mono); font-size:11px; fill:var(--color-text-muted);">Anthropic SDK</text></g>
+</svg>
+        <figcaption class="muted" style="margin-top:8px; font-size:13px;">발표 페이지 아키텍처 장과 같은 그림에, 외부 AI 에이전트용 MCP 서버를 더했습니다. 호출은 화살표 방향으로만 갑니다.</figcaption>
+      </figure>
 
       <div class="tblwrap"><table class="tbl">
         <thead><tr><th>서비스</th><th>맡는 일</th><th>맡지 않는 일</th></tr></thead>
@@ -785,8 +793,8 @@ claude mcp add dart-insight \
     <section id="checks">
       <header>
         <p class="kicker">6 · Fact Check</p>
-        <h2>발표 자료에 나왔던 기술 수치 점검표</h2>
-        <p>이전 발표 자료의 '5대 기술 난제' 슬라이드 수치를 코드·ADR과 대조했습니다. 질문을 받거나 자료를 다시 쓸 때 오른쪽 값을 씁니다.</p>
+        <h2>이전 발표 자료의 기술 수치 점검표</h2>
+        <p>11/12까지 쓰던 이전 발표 자료(41장)의 '5대 기술 난제' 수치를 코드·ADR과 대조했습니다. 지금 발표 자료(17장)는 오른쪽 값만 씁니다. 지금 발표에 쓰는 숫자는 <a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/presentation-script-heo-style.md">발표 대본 문서</a> 머리에 있습니다.</p>
       </header>
       <div class="tblwrap"><table class="tbl">
         <thead><tr><th>발표 자료</th><th>판정</th><th>확인한 사실</th></tr></thead>
