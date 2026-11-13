@@ -417,38 +417,32 @@ def _node(s, x, y, w, h, title, caption, strong=False):
 
 def architecture(s):
     h = 0.95
-    _node(s, 0.6, 2.35, 1.9, h, "👤 사용자", "브라우저")
-    _node(s, 3.0, 2.35, 2.1, h, "🖥️ 화면", "React · TS")
-    _node(s, 5.6, 2.2, 2.5, 1.25, "☕ 백엔드", "Spring Boot\n작업·캐시·권한·한도", strong=True)
-    _node(s, 8.6, 2.35, 2.2, h, "🐍 AI 서버", "FastAPI · LangGraph")
-    _node(s, 11.1, 2.35, 1.63, h, "🤖 LLM", "Claude")
-    _node(s, 3.0, 4.15, 2.1, h, "🔌 MCP 서버", "외부 AI 에이전트 · 읽기 전용")
-    _node(s, 5.35, 4.15, 1.45, h, "🗄️ DB", "MariaDB")
-    _node(s, 6.95, 4.15, 1.45, h, "📄 OpenDART", "공시 원문")
-    _node(s, 8.6, 4.15, 2.2, h, "📰 NAVER", "뉴스 · 시세")
-    arrow_line(s, 2.5, 2.83, 3.0, 2.83)
-    arrow_line(s, 5.1, 2.83, 5.6, 2.83, "/api")
-    arrow_line(s, 8.1, 2.83, 8.6, 2.83, "/internal")
-    arrow_line(s, 10.8, 2.83, 11.1, 2.83)
-    arrow_line(s, 5.1, 4.45, 5.75, 3.45)
+    _node(s, 0.6, 3.15, 1.9, h, "👤 사용자", "브라우저")
+    _node(s, 3.0, 3.15, 2.1, h, "🖥️ 화면", "React · TS")
+    _node(s, 5.6, 3.0, 2.5, 1.25, "☕ 백엔드", "Spring Boot\n작업·캐시·권한·한도", strong=True)
+    _node(s, 8.6, 3.15, 2.2, h, "🐍 AI 서버", "FastAPI · LangGraph")
+    _node(s, 11.1, 3.15, 1.63, h, "🤖 LLM", "Claude")
+    _node(s, 3.0, 4.95, 2.1, h, "🔌 MCP 서버", "외부 AI 에이전트 · 읽기 전용")
+    _node(s, 5.35, 4.95, 1.45, h, "🗄️ DB", "MariaDB")
+    _node(s, 6.95, 4.95, 1.45, h, "📄 OpenDART", "공시 원문")
+    _node(s, 8.6, 4.95, 2.2, h, "📰 NAVER", "뉴스 · 시세")
+    arrow_line(s, 2.5, 3.63, 3.0, 3.63)
+    arrow_line(s, 5.1, 3.63, 5.6, 3.63, "/api")
+    arrow_line(s, 8.1, 3.63, 8.6, 3.63, "/internal")
+    arrow_line(s, 10.8, 3.63, 11.1, 3.63)
+    arrow_line(s, 5.1, 5.25, 5.75, 4.25)
     for x2 in (6.08, 7.6, 9.3):
-        arrow_line(s, 6.85 if x2 < 8 else 7.85, 3.45, x2, 4.15)
-    tiles(s, 5.45, 1.35, [("🔑", "열쇠는 한 곳에", "키·권한·한도는 백엔드만"), ("📦", "공시는 한 번만", "접수번호로 저장, 다시 받지 않음"),
-                          ("🤖", "AI는 한 문으로", "AI 호출은 AI 서버 한 모듈만")], icon_size=22)
+        arrow_line(s, 6.85 if x2 < 8 else 7.85, 4.25, x2, 4.95)
 
 
 WEEK_STEPS = [("🎯", "성공 기준", "👤 사람"), ("📝", "기획서·수용 기준", "🤖 초안 → 👤 확인"),
               ("🏛️", "설계 기록(ADR)", "🤖 초안 → 👤 확인"), ("🧩", "이슈 쪼개기", "🤖 초안 → 👤 확인"),
               ("💻", "구현", "👤 + 🤖"), ("🧪", "자동 검사", "⚙️ 자동"), ("✅", "수용 검증", "🤖 초안 → 👤 확인")]
 ROLES = [
-    ("👤 사람이 정한다", CARD, BORDER, ["🎯 무엇을 왜 만들지(성공 기준·범위)", "✔️ 기획서·설계 기록 최종 확인",
-                                       "🔀 커밋·PR·병합 결정", "📚 공시 용어·숫자의 사실 확인"]),
-    ("🤖 AI가 만든다", ACCENT_TINT, ACCENT_BORDER, ["📝 기획서·이슈·설계 기록 초안(스킬)", "💻 코드와 테스트 작성",
-                                                  "🧾 수용 기준마다 증빙 모으기", "🔁 다른 AI와 교차 검토"]),
-    ("⚙️ 기계가 막는다", CANVAS, BORDER, ["🧪 자동 테스트 약 4,400개", "♿ 접근성 검사(axe-core)",
-                                          "🔐 비밀정보 검사(gitleaks)", "🧭 호출 방향 검사(ArchUnit)"]),
+    ("👤 사람", CARD, BORDER, ["🎯 무엇을 왜 만들지(성공 기준·범위)", "✔️ 기획서·설계 기록 최종 확인", "🔀 커밋·PR·병합 결정"]),
+    ("🤖 AI", ACCENT_TINT, ACCENT_BORDER, ["📝 기획서·이슈·설계 기록 초안(스킬)", "💻 코드와 테스트 작성", "🔁 다른 AI와 교차 검토"]),
+    ("⚙️ 자동화", CANVAS, BORDER, ["🧪 자동 테스트 약 4,400개", "♿ 접근성 검사(axe-core)", "🧭 호출 방향 검사(ArchUnit)"]),
 ]
-AI_STOPS = ["기획서가 없으면 구현을 시작하지 않음", "공시 용어를 추측하지 않음", "설계 기록과 다르면 먼저 물음", "키가 보이면 즉시 멈춤"]
 
 
 def weeks(s):
@@ -462,11 +456,8 @@ def weeks(s):
     w, gap = (SLIDE_W - 2 * x0 - 0.22 * 2) / 3, 0.22
     for i, (title, fill, line, items) in enumerate(ROLES):
         x = x0 + i * (w + gap)
-        box(s, x, 3.4, w, 2.45, fill, line)
-        text(s, x + 0.2, 3.5, w - 0.4, 2.3, [(title, 18, PRIMARY, True)] + [(item, 14.5, TEXT, False) for item in items])
-    box(s, x0, 6.0, SLIDE_W - 2 * x0, 0.85, ATTENTION_TINT, None)
-    text(s, x0, 6.0, SLIDE_W - 2 * x0, 0.85, [("🛑 AI가 멈추고 사람에게 묻는 때", 12.5, ATTENTION, True),
-                                             ("  ·  ".join(AI_STOPS), 12, TEXT, False)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+        box(s, x, 3.75, w, 2.3, fill, line)
+        text(s, x + 0.25, 3.75, w - 0.5, 2.3, [(title, 20, PRIMARY, True)] + [(item, 15.5, TEXT, False) for item in items], anchor=MSO_ANCHOR.MIDDLE)
 
 
 SLIDE_BUILDERS = {
