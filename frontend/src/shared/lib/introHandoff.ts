@@ -1,6 +1,6 @@
 // 발표 페이지(easter/three-weeks.html)의 시연 전환이 이 앱의 첫 화면으로 넘어올 때 쓰는 약속.
-// 장면 속에 미리 그려 둔 첫 화면과 이어지도록, 막 넘어온 직후에는 등장 움직임을 다시 재생하지 않고
-// 바탕 점 격자는 장면 속과 같은 위치에서 이어 흐르게 한다. 값은 같은 탭의 sessionStorage로 넘긴다.
+// 바탕 점 격자가 장면 속 첫 화면과 같은 위치에서 이어 흐르도록, 넘어가기 직전의 흐름 위치를 같은 탭의 sessionStorage로 넘긴다.
+// 등장 움직임을 건너뛰는 일은 index.html의 #from-deck 처리(data-intro="skip")가 맡는다.
 export const INTRO_HANDOFF_KEY = 'dart-insight:intro-handoff'
 
 /** 발표 페이지가 값을 적은 뒤 이 시간 안에 열린 첫 화면만 이어 받는다. */
