@@ -30,8 +30,8 @@ export type DemoAction =
   | { kind: 'click'; target: DemoTarget; optional?: boolean }
   /** 커서로 칸을 누르고 글자를 한 자씩 친다 */
   | { kind: 'type'; target: DemoTarget; text: string }
-  /** 대상 둘레만 밝게 남겨 강조한다. 다음 단계가 시작되면 꺼진다 */
-  | { kind: 'spotlight'; target: DemoTarget }
+  /** 대상 둘레만 밝게 남겨 강조한다. 다음 단계가 시작되면 꺼진다. optional이면 대상이 없을 때 건너뛴다 */
+  | { kind: 'spotlight'; target: DemoTarget; optional?: boolean }
   | { kind: 'pause'; ms: number }
 
 export interface DemoStep {
@@ -52,9 +52,17 @@ const CHAT_TIMEOUT_MS = 90_000
 export const DEMO_COMPANY = '삼성전자'
 export const DEMO_QUESTION = '이번 변화를 3줄로 정리해줘'
 
+/** 채팅의 마지막 대화 묶음(기다리는 표시가 없을 때). 앞서 나눈 대화가 있어도 새 답을 기다린다 */
+const LATEST_ANSWER_SELECTOR = '#chat-panel:not(:has(.chat-panel__pending)) .chat-panel__exchange:last-of-type'
+const LATEST_ANSWER: DemoTarget = { selector: LATEST_ANSWER_SELECTOR }
+/** 마지막 답에서 누를 수 있는 근거 번호(재무·문장 근거는 버튼, 다른 화면은 링크) */
+const CITATION: DemoTarget = { selector: `${LATEST_ANSWER_SELECTOR} button.chat-panel__citation, ${LATEST_ANSWER_SELECTOR} a.chat-panel__citation` }
+/** 근거가 열린 곳: 재무 근거 패널, 문장 비교 대화상자, 원문의 고른 위치 */
+const EVIDENCE: DemoTarget = { selector: '#evidence, .text-compare-dialog, .source-block--selected' }
+
 const resultTab = (label: string): DemoTarget => ({ selector: '.result-tabs button.tabs__item', text: label, exact: true })
-/** 결과 화면이 다 떠올라 핵심 3줄이 보임(PageReveal) */
-const RESULT_HEADLINE: DemoTarget = { selector: '.page-reveal--entering section.headline, .page-reveal--shown section.headline' }
+/** 결과 화면이 다 떠오름(PageReveal). 핵심 줄이 없는 분석도 있어 핵심 3줄이 아니라 결과 화면을 기다린다 */
+const RESULT_PAGE: DemoTarget = { selector: '.page-reveal--entering .result-page, .page-reveal--shown .result-page' }
 
 /**
  * 같은 보고서 쌍의 분석이 없어 새로 돌리다 실패하거나 오래 걸리면, 기업 화면으로 돌아가(비교 확인 → 진행 화면을 거슬러)
@@ -63,7 +71,7 @@ const RESULT_HEADLINE: DemoTarget = { selector: '.page-reveal--entering section.
 const OPEN_PAST_ANALYSIS: DemoAction[] = [
   { kind: 'back', count: 2 },
   { kind: 'click', target: { selector: '.past-analyses a.list-link' } },
-  { kind: 'wait', target: RESULT_HEADLINE, timeoutMs: 20_000 },
+  { kind: 'wait', target: RESULT_PAGE, timeoutMs: 20_000 },
 ]
 
 export const DEMO_SCENARIO: DemoStep[] = [
@@ -101,23 +109,23 @@ export const DEMO_SCENARIO: DemoStep[] = [
       { kind: 'click', target: { selector: '.compare-actions button.button--primary', text: '분석 실행', exact: true } },
       {
         kind: 'wait',
-        target: RESULT_HEADLINE,
+        target: RESULT_PAGE,
         timeoutMs: ANALYSIS_TIMEOUT_MS,
         giveUpWhen: { selector: '.progress__failed' },
         otherwise: OPEN_PAST_ANALYSIS,
       },
       { kind: 'pause', ms: 900 },
-      { kind: 'spotlight', target: { selector: 'section.headline' } },
+      { kind: 'spotlight', target: { selector: 'section.headline' }, optional: true },
     ],
   },
   {
     title: '근거 확인',
-    caption: '한 줄을 누르면 계산한 값과 보고서 원문 위치가 함께 열려요.',
+    caption: '한 줄을 누르면 계산한 값과 보고서 원문 위치가 함께 열려요. 원문 위치를 확인하지 못한 AI 문장은 보여 주지 않아요.',
     actions: [
       { kind: 'click', target: { selector: 'button.headline__line' } },
-      { kind: 'wait', target: { selector: '#evidence, .text-compare-dialog' } },
+      { kind: 'wait', target: EVIDENCE },
       { kind: 'pause', ms: 400 },
-      { kind: 'spotlight', target: { selector: '#evidence, .text-compare-dialog' } },
+      { kind: 'spotlight', target: EVIDENCE },
     ],
   },
   {
@@ -148,15 +156,34 @@ export const DEMO_SCENARIO: DemoStep[] = [
       { kind: 'click', target: { selector: '.chat-launcher' } },
       { kind: 'type', target: { selector: '#chat-input' }, text: DEMO_QUESTION },
       { kind: 'click', target: { selector: 'form.chat-panel__form button[type="submit"]' } },
-      // 답이 오면 대화 묶음이 생긴다. 한도·오류로 답하지 못하면 기다리지 않고 알린다
+      // 기다리는 표시가 사라지고 마지막 대화 묶음이 생기면 답이 온 것이다. 한도·오류로 답하지 못하면 기다리지 않고 알린다
       {
         kind: 'wait',
-        target: { selector: '.chat-panel__exchange' },
+        target: LATEST_ANSWER,
         timeoutMs: CHAT_TIMEOUT_MS,
         giveUpWhen: { selector: '#chat-panel .state--error' },
         failReason: 'AI가 이번에는 답하지 못했어요.',
       },
-      { kind: 'spotlight', target: { selector: '.chat-panel__exchange' } },
+      { kind: 'spotlight', target: LATEST_ANSWER },
+    ],
+  },
+  {
+    title: '답의 근거 따라가기',
+    caption: '답에 붙은 번호를 누르면 그 내용이 나온 보고서 위치로 바로 가요.',
+    actions: [
+      // 앞 단계에서 답을 못 받았거나 답에 누를 근거 번호가 없으면 기다리지 않고 알린다
+      {
+        kind: 'wait',
+        target: LATEST_ANSWER,
+        timeoutMs: 1500,
+        giveUpWhen: { selector: '#chat-panel .state--error' },
+        failReason: 'AI 답이 없어 근거를 따라갈 수 없어요.',
+      },
+      { kind: 'wait', target: CITATION, timeoutMs: 1500, failReason: '이 답에는 누를 수 있는 근거 번호가 없어요.' },
+      { kind: 'click', target: CITATION },
+      { kind: 'wait', target: EVIDENCE },
+      { kind: 'pause', ms: 400 },
+      { kind: 'spotlight', target: EVIDENCE },
     ],
   },
 ]
