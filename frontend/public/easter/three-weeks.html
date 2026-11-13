@@ -2627,8 +2627,8 @@ body {
 
 <script>
 // 마지막 장에서 넘어갈 첫 화면. 이 발표를 연 곳과 같은 주소(로컬이면 localhost, 배포면 배포 주소)라야 미리 그린 화면·바탕 위치를 그대로 이어 받는다.
-// #from-deck: 첫 화면이 등장 움직임 없이 바로 완성된 모습(frontend/index.html)
-const DEMO_URL = new URL('/#from-deck', location.href).href;
+// #from-deck: 첫 화면이 등장 움직임 없이 바로 완성된 모습(frontend/index.html). ?demo: 넘어간 뒤 Space로 시연 시나리오를 진행(#967)
+const DEMO_URL = new URL('/?demo#from-deck', location.href).href;
 const reduce = typeof window !== 'undefined' && typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-reduced-motion: reduce)').matches : false;
 const $ = (s, r = document) => (r && r.querySelector ? r.querySelector(s) : null);
 const $$ = (s, r = document) => (r && r.querySelectorAll ? Array.from(r.querySelectorAll(s)) : []);
