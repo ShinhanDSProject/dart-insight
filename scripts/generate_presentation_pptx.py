@@ -367,14 +367,29 @@ def activity_flow(s):
     text(s, 0.6, 6.72, 12.1, 0.3, [("실제 결과 · 삼성전자 반기보고서 2025.06 → 2026.06", 10.5, MUTED, False)], align=PP_ALIGN.CENTER)
 
 
+METHOD_STEPS = [("01", "비교 가능성", "같은 회사 · 같은 기준 기간"), ("02", "수치 계산", "증감액·증감률은 코드로"),
+                ("03", "변경 탐지", "목차·문단 단위 대조"), ("04", "근거 검증", "원문 위치 없는 문장 제외")]
+METHOD_RULES = [("실패 처리", "검증에 실패하면 최대 2회 다시 생성하고, 그래도 실패하면 '검토 필요'로 표시"),
+                ("표현 검사", "매수·매도 추천 · 목표주가 · 주가 예측 · 가치판단 표현은 화면에 나가기 전 차단")]
+
+
 def methods(s):
-    flow(s, 1.75, 1.75, [("✅", "비교해도 되나", "같은 회사·맞는 기간"), ("🧮", "코드가 계산", "증감액·증감률"),
-                         ("🔍", "바뀐 문장 찾기", "목차·문단 맞추기"), ("📍", "근거 없으면 버림", "원문 위치 필수")])
-    box(s, 2.4, 3.95, 8.53, 0.9, CARD, BORDER)
-    text(s, 2.4, 3.95, 8.53, 0.9, [("검사 실패   →   🔁 최대 2번 다시 만들기   →   ⚠️ 검토 필요", 17, PRIMARY, True)],
-         align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-    text(s, 0.6, 5.2, 12.1, 0.35, [("화면에 나가기 전에 자동으로 막는 표현", 12, MUTED, True)], align=PP_ALIGN.CENTER)
-    chips(s, 5.65, ["🚫 매수·매도 추천", "🚫 목표주가", "🚫 주가 예측", "🚫 '저평가' 같은 가치판단"], tone="danger", size=13)
+    box(s, 0.6, 1.75, 12.13, 2.0, CANVAS, BORDER)
+    w, arrow = 2.4, 0.55
+    x0 = (SLIDE_W - (w * 4 + arrow * 3)) / 2
+    for i, (num, name, caption) in enumerate(METHOD_STEPS):
+        x = x0 + i * (w + arrow)
+        text(s, x, 1.9, w, 1.7, [(num, 28, ACCENT, True), (name, 17, PRIMARY, True), (caption, 11.5, MUTED, False)],
+             align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+        if i < 3:
+            text(s, x + w, 1.9, arrow, 1.7, [("→", 20, MUTED, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    box(s, 0.6, 4.1, 12.13, 1.9)
+    for i, (label, value) in enumerate(METHOD_RULES):
+        y = 4.1 + i * 0.95
+        if i:
+            box(s, 0.6, y, 12.13, 0.01, BORDER, None, shape=MSO_SHAPE.RECTANGLE)
+        text(s, 0.9, y, 1.8, 0.95, [(label, 13, MUTED, True)], anchor=MSO_ANCHOR.MIDDLE)
+        text(s, 2.8, y, 9.7, 0.95, [(value, 15, TEXT, False)], anchor=MSO_ANCHOR.MIDDLE)
 
 
 def impact(s):
@@ -390,13 +405,12 @@ STACK = [
     (["fastapi", "python", "langgraph"], "AI 처리", "FastAPI · LangGraph"),
     (["claude"], "AI 모델", "Claude (Haiku 기본)"),
     (["mariadb", "flyway"], "데이터", "MariaDB · Flyway"),
-    (["modelcontextprotocol"], "외부 AI 연결", "MCP 서버 · 읽기 전용"),
 ]
 
 
 def stack(s):
     x0, gap = 0.6, 0.18
-    w = (SLIDE_W - 2 * x0 - gap * 5) / 6
+    w = (SLIDE_W - 2 * x0 - gap * (len(STACK) - 1)) / len(STACK)
     for i, (logos, name, caption) in enumerate(STACK):
         x = x0 + i * (w + gap)
         box(s, x, 1.85, w, 2.7)
@@ -422,7 +436,6 @@ def architecture(s):
     _node(s, 5.6, 3.0, 2.5, 1.25, "☕ 백엔드", "Spring Boot\n작업·캐시·권한·한도", strong=True)
     _node(s, 8.6, 3.15, 2.2, h, "🐍 AI 서버", "FastAPI · LangGraph")
     _node(s, 11.1, 3.15, 1.63, h, "🤖 LLM", "Claude")
-    _node(s, 3.0, 4.95, 2.1, h, "🔌 MCP 서버", "외부 AI 에이전트 · 읽기 전용")
     _node(s, 5.35, 4.95, 1.45, h, "🗄️ DB", "MariaDB")
     _node(s, 6.95, 4.95, 1.45, h, "📄 OpenDART", "공시 원문")
     _node(s, 8.6, 4.95, 2.2, h, "📰 NAVER", "뉴스 · 시세")
@@ -430,7 +443,6 @@ def architecture(s):
     arrow_line(s, 5.1, 3.63, 5.6, 3.63, "/api")
     arrow_line(s, 8.1, 3.63, 8.6, 3.63, "/internal")
     arrow_line(s, 10.8, 3.63, 11.1, 3.63)
-    arrow_line(s, 5.1, 5.25, 5.75, 4.25)
     for x2 in (6.08, 7.6, 9.3):
         arrow_line(s, 6.85 if x2 < 8 else 7.85, 4.25, x2, 4.95)
 
