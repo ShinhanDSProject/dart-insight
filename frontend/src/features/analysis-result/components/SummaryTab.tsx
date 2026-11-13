@@ -6,6 +6,7 @@ import type { Summary, SummaryItem, SummaryLens, SummaryTarget } from '@/shared/
 import type { ChangeType } from '@/shared/api/textChanges'
 import type { LoadState } from '@/shared/hooks/asyncState'
 import type { AsyncResult } from '@/shared/hooks/useAsync'
+import { useRevealReady } from '@/shared/hooks/useRevealReady'
 import { Badge, Button, ButtonLink, Chip, Notice, Panel, PanelTitle, SegmentedControl, Skeleton } from '@/shared/ui'
 import { DartSourceLine } from '@/shared/ui/DartSource'
 import { EmptyState, ErrorState } from '@/shared/ui/StateView'
@@ -109,11 +110,13 @@ export function SummaryTab({
   // 개요 한 줄과 오른쪽 섹션 막대가 같은 응답을 쓴다(한 번만 불러온다)
   const overview = useChangeOverview(analysis.analysisId)
   // 핵심 카드 막대와 요약 카드의 '더 보기' 금액이 같은 응답을 쓴다(한 번만 불러온다). 못 불러오면 막대만 빠진다
-  const amountsState = useSummaryAmounts(
-    analysis.analysisId,
-    summary.state.status === 'success' ? summarySjDivs(summary.state.data.items) : [],
-  ).state
+  const sjDivs = summary.state.status === 'success' ? summarySjDivs(summary.state.data.items) : []
+  const amountsState = useSummaryAmounts(analysis.analysisId, sjDivs).state
   const amounts = amountsState.status === 'success' ? amountsState.data : null
+  // 핵심 3줄·개요·섹션 막대·금액 막대가 응답한 뒤 결과 화면을 한 번에 보인다(#960). 이 기간 수시공시는 보조 근거라 기다리지 않는다
+  useRevealReady(summary.state.status !== 'loading')
+  useRevealReady(overview.financial.state.status !== 'loading' && overview.text.state.status !== 'loading')
+  useRevealReady(sjDivs.length === 0 || amountsState.status === 'success' || amountsState.status === 'error')
   // 열 수 없는 항목(결과에서 찾지 못함)은 버튼을 그리지 않는다
   const opener = (target: SummaryTarget): (() => void) | null => {
     const link = summaryLink(target)

@@ -4392,3 +4392,20 @@
   display: flex;
   margin-bottom: var(--space-4);
 }
+
+/* 처음 보일 때 결과 머리 → 비교 맥락 → 탭 → 내용 순으로 떠오른다(#960). 보인 직후(entering)에만 걸어 탭을 바꿀 때는 기다리지 않는다 */
+.page-reveal--entering .result-page > * {
+  animation: rise-in var(--motion-enter) var(--ease-out) backwards;
+}
+
+.page-reveal--entering .result-page > :nth-child(2) {
+  animation-delay: var(--motion-stagger);
+}
+
+.page-reveal--entering .result-page > :nth-child(3) {
+  animation-delay: calc(var(--motion-stagger) * 2);
+}
+
+.page-reveal--entering .result-page > :nth-child(n + 4) {
+  animation-delay: calc(var(--motion-stagger) * 3);
+}
