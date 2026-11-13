@@ -44,6 +44,20 @@ describe('createDemoReducer', () => {
     expect(reduce(leaving, { type: 'next' })).toBe(leaving)
   })
 
+  it('직접 조작으로 바꾸면 진행 중이던 단계와 상관없이 직접 조작이 된다', () => {
+    expect(reduce({ status: 'running', step: 1 }, { type: 'take-over' })).toEqual({ status: 'manual' })
+    expect(reduce({ status: 'idle', next: 0 }, { type: 'take-over' })).toEqual({ status: 'manual' })
+  })
+
+  it('직접 조작 중 발표로 돌아가기를 누르면 발표 페이지로 돌아간다', () => {
+    expect(reduce({ status: 'manual' }, { type: 'leave' })).toEqual({ status: 'leaving' })
+  })
+
+  it('직접 조작 중에 누른 Space는 시연을 진행하지 않는다', () => {
+    const manual: DemoState = { status: 'manual' }
+    expect(reduce(manual, { type: 'next' })).toBe(manual)
+  })
+
   it('단계가 없으면 바로 마친다', () => {
     expect(createDemoReducer(0)(initialDemoState(), { type: 'next' })).toEqual({ status: 'finished' })
   })

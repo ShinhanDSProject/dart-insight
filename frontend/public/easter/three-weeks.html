@@ -3274,6 +3274,7 @@ stepper('#userflow', '#flowtext', [
     warping = false;
     window.focus();
     updateSlide(qa);
+    history.replaceState(null, '', location.pathname + '?slide=qa'); // 새로 고쳐도 Q&A 장으로 열리게
     returnFromDemo();
   });
   // 시연을 마치고 돌아오면(앱 시연 모드가 ?slide=qa#from-demo로 보냄, #970): Preview 전환을 거꾸로 보여 준 뒤 Q&A 글이 나타남.

@@ -1,6 +1,7 @@
 import { useEffect, useReducer, useState, type CSSProperties } from 'react'
 import { match } from 'ts-pattern'
 import { RESULT_TOUR_CHANGE_EVENT, RESULT_TOUR_SEEN_KEY } from '@/shared/lib/resultTour'
+import { Button } from '@/shared/ui'
 import { writeDemoStorage } from '../hooks/useDemoMode'
 import { useDemoStepRunner, type DemoCursor } from '../hooks/useDemoStepRunner'
 import { DEMO_DONE_MESSAGE, DEMO_LEAVE_MS, DEMO_NEXT_STEP_KEY, DEMO_RETURN_PATH, DEMO_STORAGE_KEY } from '../model/demoActivation'
@@ -11,6 +12,8 @@ import '../demo-autopilot.css'
 const reducer = createDemoReducer(DEMO_SCENARIO.length)
 /** 다음 단계로 넘기는 키. 발표 리모컨은 PageDown·→를 보낸다 */
 const NEXT_KEYS = new Set([' ', 'ArrowRight', 'PageDown', 'Enter'])
+/** 발표 페이지 안(전환 장면의 iframe)에서 시연하는지(#972) */
+const EMBEDDED = window.parent !== window
 
 /**
  * 시연 자동 진행(#967). 발표자가 Space(→)를 누를 때마다 시나리오의 한 단계를 실제 화면에 실행하고,
@@ -32,7 +35,7 @@ export function DemoAutopilot({ startStep, onExit }: { startStep: number; onExit
       .with({ status: 'idle' }, ({ next }) => next)
       .with({ status: 'running' }, ({ step }) => step)
       .with({ status: 'done' }, { status: 'failed' }, ({ step }) => step + 1)
-      .with({ status: 'finished' }, { status: 'leaving' }, () => null)
+      .with({ status: 'finished' }, { status: 'leaving' }, { status: 'manual' }, () => null)
       .exhaustive()
     writeDemoStorage(DEMO_NEXT_STEP_KEY, next === null ? null : String(next))
   }, [state])
@@ -69,7 +72,10 @@ export function DemoAutopilot({ startStep, onExit }: { startStep: number; onExit
     window.dispatchEvent(new Event(RESULT_TOUR_CHANGE_EVENT))
   }, [])
 
+  const manual = state.status === 'manual'
   useEffect(() => {
+    // 직접 조작 중에는 키를 가로채지 않는다
+    if (manual) return
     const onKey = (event: KeyboardEvent) => {
       // 발표 페이지로 넘어가는 중에는 어떤 키도 받지 않는다(Esc로 꺼서 닫힌 화면에 멈추지 않게)
       if (leaving) {
@@ -77,10 +83,12 @@ export function DemoAutopilot({ startStep, onExit }: { startStep: number; onExit
         event.stopImmediatePropagation()
         return
       }
+      // Esc: 직접 조작으로 바꾼다. 발표 페이지 안이면 주소를 옮길 수 없으니(전체화면 유지) '발표로 돌아가기' 버튼을 남긴다
       if (event.key === 'Escape') {
         event.preventDefault()
         event.stopImmediatePropagation()
-        onExit()
+        if (EMBEDDED) dispatch({ type: 'take-over' })
+        else onExit()
         return
       }
       if (!NEXT_KEYS.has(event.key) || event.metaKey || event.ctrlKey || event.altKey) return
@@ -90,7 +98,17 @@ export function DemoAutopilot({ startStep, onExit }: { startStep: number; onExit
     }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-  }, [onExit, leaving])
+  }, [onExit, leaving, manual])
+
+  if (manual) {
+    return (
+      <div className="demo-autopilot">
+        <Button variant="secondary" className="demo-return" onClick={() => dispatch({ type: 'leave' })}>
+          발표로 돌아가기
+        </Button>
+      </div>
+    )
+  }
 
   const progress = demoProgress(state, DEMO_SCENARIO.length)
   const { title, caption } = match(state)

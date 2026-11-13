@@ -64,6 +64,15 @@
   animation: pop-in var(--motion-slow) var(--ease-out);
 }
 
+/* 발표 페이지 안에서 직접 조작할 때 오른쪽 아래에 남는 '발표로 돌아가기'(#972). 덮개는 누르기를 막지 않으므로 버튼만 받게 한다 */
+.demo-return {
+  position: fixed;
+  right: var(--space-5);
+  bottom: var(--space-5);
+  pointer-events: auto;
+  box-shadow: var(--shadow-md);
+}
+
 /* 화면 아래 자막. 오른쪽 옆 패널(AI 에이전트·근거)이 열리면 입력칸을 가리지 않게 남은 왼쪽 영역 가운데로 옮긴다 */
 .demo-caption {
   position: fixed;
