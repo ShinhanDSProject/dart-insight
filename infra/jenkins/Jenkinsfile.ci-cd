@@ -10,7 +10,8 @@ pipeline {
         skipStagesAfterUnstable()
     }
 
-    triggers { pollSCM('H/5 * * * *') }
+    // 1분마다 main의 새 커밋을 확인한다(이전 5분). 확인은 git ls-remote 한 번이라 가볍다
+    triggers { pollSCM('* * * * *') }
 
     stages {
         stage('검사와 실행 이미지 생성') {
@@ -19,32 +20,65 @@ pipeline {
             stages {
                 stage('GitHub 소스 가져오기') {
                     steps {
-                        checkout(
-                            changelog: true,
-                            poll: true,
-                            scm: [
-                                $class: 'GitSCM',
-                                branches: [[name: '*/main']],
-                                userRemoteConfigs: [[
-                                    name: 'origin',
-                                    url: 'https://github.com/ShinhanDSProject/dart-insight.git',
-                                    refspec: '+refs/heads/main:refs/remotes/origin/main'
-                                ]],
-                                extensions: [[
-                                    $class: 'CloneOption',
-                                    shallow: false,
-                                    noTags: true,
-                                    honorRefspec: true,
-                                    timeout: 10
-                                ]]
-                            ]
-                        )
-
                         script {
+                            def scmVars = checkout(
+                                changelog: true,
+                                poll: true,
+                                scm: [
+                                    $class: 'GitSCM',
+                                    branches: [[name: '*/main']],
+                                    userRemoteConfigs: [[
+                                        name: 'origin',
+                                        url: 'https://github.com/ShinhanDSProject/dart-insight.git',
+                                        refspec: '+refs/heads/main:refs/remotes/origin/main'
+                                    ]],
+                                    extensions: [[
+                                        $class: 'CloneOption',
+                                        shallow: false,
+                                        noTags: true,
+                                        honorRefspec: true,
+                                        timeout: 10
+                                    ]]
+                                ]
+                            )
+
                             env.RELEASE_SHA = sh(
                                 script: 'git rev-parse HEAD',
                                 returnStdout: true
                             ).trim()
+
+                            // 지난 성공 빌드 이후 바뀐 서비스만 검사·이미지 생성·배포한다.
+                            // 이전 기록이 없거나, 같은 커밋을 다시 돌리거나, infra/가 바뀌면 전부 한다.
+                            def base = scmVars.GIT_PREVIOUS_SUCCESSFUL_COMMIT ?: ''
+                            def changed = []
+                            if (base && sh(script: "git cat-file -e ${base}^{commit}", returnStatus: true) == 0) {
+                                def out = sh(
+                                    script: "git diff --name-only ${base} ${env.RELEASE_SHA}",
+                                    returnStdout: true
+                                ).trim()
+                                if (out) {
+                                    for (String path : out.split('\n')) {
+                                        changed.add(path)
+                                    }
+                                }
+                            }
+                            boolean all = !base || changed.isEmpty()
+                            boolean backend = false
+                            boolean frontend = false
+                            boolean ai = false
+                            for (String path : changed) {
+                                if (path.startsWith('infra/')) { all = true }
+                                if (path.startsWith('backend/')) { backend = true }
+                                if (path.startsWith('frontend/')) { frontend = true }
+                                if (path.startsWith('ai-server/')) { ai = true }
+                            }
+                            env.RUN_BACKEND = (all || backend) ? 'true' : 'false'
+                            env.RUN_FRONTEND = (all || frontend) ? 'true' : 'false'
+                            env.RUN_AI = (all || ai) ? 'true' : 'false'
+                            // AI와 백엔드는 배포 작업 하나로 함께 교체하므로 둘 중 하나라도 바뀌면 둘 다 만든다
+                            env.DEPLOY_SERVICES = (env.RUN_BACKEND == 'true' || env.RUN_AI == 'true') ? 'true' : 'false'
+                            echo "기준 커밋: ${base ?: '(없음)'} · 바뀐 파일 ${changed.size()}개 · 전체 실행: ${all}"
+                            echo "백엔드: ${env.RUN_BACKEND} · 프론트엔드: ${env.RUN_FRONTEND} · AI: ${env.RUN_AI} · AI·백엔드 배포: ${env.DEPLOY_SERVICES}"
                         }
 
                         sh 'git log -1 --oneline'
@@ -67,6 +101,7 @@ DOCKERFILE
                 }
 
                 stage('백엔드 빌드와 테스트') {
+                    when { expression { env.RUN_BACKEND == 'true' } }
                     steps {
                         sh '''#!/usr/bin/env bash
 set -euo pipefail
@@ -87,7 +122,7 @@ docker run --rm \
   bash ./gradlew \
     --no-daemon \
     --max-workers=1 \
-    --rerun-tasks \
+    --build-cache \
     -Dorg.gradle.jvmargs=-Xmx1536m \
     build
 '''
@@ -95,6 +130,7 @@ docker run --rm \
                 }
 
                 stage('프론트엔드 검사와 빌드') {
+                    when { expression { env.RUN_FRONTEND == 'true' } }
                     steps {
                         sh '''#!/usr/bin/env bash
 set -euo pipefail
@@ -125,6 +161,7 @@ docker run --rm \
                 }
 
                 stage('AI 서버 검사와 테스트') {
+                    when { expression { env.RUN_AI == 'true' } }
                     steps {
                         sh '''#!/usr/bin/env bash
 set -euo pipefail
@@ -154,6 +191,7 @@ docker run --rm \
                 }
 
                 stage('커밋 버전 실행 이미지 생성') {
+                    when { expression { env.DEPLOY_SERVICES == 'true' || env.RUN_FRONTEND == 'true' } }
                     steps {
                         sh '''#!/usr/bin/env bash
 set -euo pipefail
@@ -171,20 +209,24 @@ trap 'rm -rf -- "$build_root"' EXIT
 git archive "$RELEASE_SHA" |
   tar -x -C "$build_root"
 
-docker build --progress=plain \
-  --label "org.opencontainers.image.revision=$RELEASE_SHA" \
-  -t "dart-insight-backend:$RELEASE_SHA" \
-  "$build_root/backend"
+if [[ "$DEPLOY_SERVICES" == true ]]; then
+  docker build --progress=plain \
+    --label "org.opencontainers.image.revision=$RELEASE_SHA" \
+    -t "dart-insight-backend:$RELEASE_SHA" \
+    "$build_root/backend"
 
-docker build --progress=plain \
-  --label "org.opencontainers.image.revision=$RELEASE_SHA" \
-  -t "dart-insight-web:$RELEASE_SHA" \
-  "$build_root/frontend"
+  docker build --progress=plain \
+    --label "org.opencontainers.image.revision=$RELEASE_SHA" \
+    -t "dart-insight-ai:$RELEASE_SHA" \
+    "$build_root/ai-server"
+fi
 
-docker build --progress=plain \
-  --label "org.opencontainers.image.revision=$RELEASE_SHA" \
-  -t "dart-insight-ai:$RELEASE_SHA" \
-  "$build_root/ai-server"
+if [[ "$RUN_FRONTEND" == true ]]; then
+  docker build --progress=plain \
+    --label "org.opencontainers.image.revision=$RELEASE_SHA" \
+    -t "dart-insight-web:$RELEASE_SHA" \
+    "$build_root/frontend"
+fi
 
 bash -n infra/jenkins/deploy-ai-backend.sh
 install -d -m 700 /home/jenkins/agent/ops
@@ -210,6 +252,7 @@ docker image rm \
         }
 
         stage('AI와 백엔드 배포') {
+            when { expression { env.DEPLOY_SERVICES == 'true' } }
             steps {
                 build job: 'dart-services-deploy',
                     wait: true,
@@ -228,6 +271,7 @@ docker image rm \
         }
 
         stage('웹 배포') {
+            when { expression { env.RUN_FRONTEND == 'true' } }
             steps {
                 build job: 'dart-web-deploy',
                     wait: true,

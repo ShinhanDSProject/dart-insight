@@ -68,7 +68,9 @@
 
 ## 자동 실행 확인 절차
 - 감지와 빌드 대상은 모두 main으로 제한한다. 다른 브랜치 변경은 실행 대상이 아니다.
-- Poll SCM은 H/5 * * * *를 사용하며 Build periodically와 구분한다. Jenkinsfile에 같은 예약을 기록했다.
+- Poll SCM은 * * * * *(1분마다)를 사용하며 Build periodically와 구분한다. Jenkinsfile에 같은 예약을 기록했다.
+- 지난 성공 빌드(GIT_PREVIOUS_SUCCESSFUL_COMMIT) 이후 바뀐 서비스만 검사·이미지 생성·배포한다. backend/·ai-server/가 바뀌면 AI·백엔드를 함께, frontend/가 바뀌면 웹을 배포한다. 이전 기록이 없거나 같은 커밋을 다시 돌리거나 infra/가 바뀌면 전부 실행한다. docs/처럼 서비스 밖만 바뀌면 검사·배포 없이 끝난다.
+- 백엔드 테스트는 Gradle 빌드 캐시(--build-cache, 캐시는 dart_ci_gradle_cache 볼륨)를 써서, 입력이 같은 컴파일·테스트 결과를 다시 쓴다.
 - 문서만 변경한 커밋 한 건으로 실제 감지를 시험하고, 수동 빌드를 추가로 누르지 않는다.
 - 실행 원인 Started by an SCM change, 체크아웃 커밋 일치, 하위 배포 작업 성공, 최종 SUCCESS를 모두 확인한다.
 - 완료 후 다음 감지에서 같은 커밋이 already built / No changes인지 확인한다.
