@@ -499,6 +499,8 @@ mark { background: var(--color-attention-subtle); color: var(--color-attention);
 body.presentation-mode .deck-dock { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto }
 .deck-dock button { border: 0; background: rgba(255,255,255,0.12); color: #fff; padding: 6px 14px; border-radius: var(--radius-pill); font-size: 13px; font-weight: 700; transition: background var(--motion-fast) }
 .deck-dock button:hover { background: rgba(255,255,255,0.22) }
+.deck-dock a { color: #fff; text-decoration: none; background: rgba(255,255,255,0.12); padding: 6px 14px; border-radius: var(--radius-pill); font-size: 13px; font-weight: 700; transition: background var(--motion-fast) }
+.deck-dock a:hover { background: rgba(255,255,255,0.22) }
 .deck-dock .deck-counter { font-family: var(--font-num); font-size: 13.5px; font-weight: 700; padding: 0 6px }
 .deck-dock .sep { width: 1px; height: 16px; background: rgba(255,255,255,0.2) }
 
@@ -507,9 +509,24 @@ body.presentation-mode .deck-dock { transform: translateX(-50%) translateY(0); o
 .notes-popup .notes-head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 800; color: var(--color-accent) }
 .notes-popup .notes-body { font-size: 14px; line-height: 1.6; color: var(--color-text); white-space: pre-line }
 
-body.presentation-mode main section { scroll-margin-top: calc(var(--header-h) + 20px); min-height: 80vh; display: grid; align-content: center; padding-block: 80px }
-body.presentation-mode main section:not(.slide-active) { opacity: 0.35; filter: blur(0.5px); transition: opacity var(--motion-base), filter var(--motion-base) }
-body.presentation-mode main section.slide-active { opacity: 1; filter: none }
+/* 발표 모드: 지금 장 하나만 화면을 가득 채우고, 내용은 화면 크기에 맞춰 통째로 확대·축소(.slide-fit, 스크립트가 배율 계산) */
+@media screen {
+  body.presentation-mode { overflow: hidden }
+  body.presentation-mode .appbar, body.presentation-mode .tabsbar, body.presentation-mode footer { visibility: hidden }
+  body.presentation-mode main section, body.presentation-mode #hero { display: none }
+  body.presentation-mode main section.slide-active, body.presentation-mode #hero.slide-active {
+    display: flex; position: fixed; inset: 0; z-index: 90; margin: 0; padding: 0; border: 0; min-height: 0;
+    align-items: center; justify-content: center; overflow: hidden; background: var(--color-bg)
+  }
+  .slide-fit { flex: 0 0 auto; width: 1120px; transform-origin: center center }
+  body.presentation-mode #hero.slide-active .slide-fit { padding-block: 40px }
+}
+@media screen and (min-width: 1024px) {
+  body.presentation-mode.sidebar-pushed main section.slide-active, body.presentation-mode.sidebar-pushed #hero.slide-active { right: 420px }
+}
+@media print {
+  .slide-fit { transform: none !important; width: auto !important }
+}
 
 /* ==========================================================================
    4-Zone Presentation Architecture Styles (Zone A / B / C / D)
@@ -2248,7 +2265,7 @@ body {
   <button type="button" id="deckNext" aria-label="다음 슬라이드 (단축키 → / Space)">다음 ▶</button>
   <span class="sep" aria-hidden="true"></span>
   <button type="button" id="deckNotes" aria-label="발표자 대본 보기 (단축키 N)">💬 발표 대본</button>
-  <a href="/easter/DART_Insight_Presentation.pptx" download="DART_Insight_Presentation.pptx" id="btnDeckExportPptx" style="color:inherit;text-decoration:none;display:inline-flex;align-items:center;padding:7px 12px;border-radius:var(--radius-pill);font-size:12.5px;font-weight:600;background:var(--color-bg-subtle);border:1px solid var(--color-border);cursor:pointer" title="PPTX 슬라이드 다운로드">📊 PPTX 다운로드</a>
+  <a href="/easter/DART_Insight_Presentation.pptx" download="DART_Insight_Presentation.pptx" id="btnDeckExportPptx" title="PPTX 슬라이드 다운로드">📊 PPTX 다운로드</a>
   <button type="button" id="btnDeckExportPdf" aria-label="슬라이드 PDF 저장 (단축키 Ctrl/Cmd+P)">📄 PDF 저장</button>
   <button type="button" id="deckFull" aria-label="전체화면 (단축키 F)">⛶ 전체화면</button>
   <button type="button" id="deckExit" aria-label="발표 모드 나가기 (단축키 Esc)">✕ 나가기</button>
@@ -2568,12 +2585,32 @@ stepper('#userflow', '#flowtext', [
       if (sidebarLiveText) sidebarLiveText.textContent = live.label;
     }
 
-    if (isPresent && slides[curSlide]) {
-      if (typeof slides[curSlide].scrollIntoView === 'function') {
-        try { slides[curSlide].scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' }); } catch (_) { slides[curSlide].scrollIntoView(); }
-      }
-    }
+    if (isPresent) requestAnimationFrame(fitSlide);
   };
+
+  // 발표 모드에서 장 내용을 .slide-fit 하나로 감싸, 화면(아래 발표 막대 자리 제외)에 맞게 배율을 정합니다.
+  const fitSlide = () => {
+    const slide = slides[curSlide];
+    const fit = slide && slide.querySelector(':scope > .slide-fit');
+    if (!isPresent || !fit) return;
+    fit.style.transform = 'none';
+    const box = slide.getBoundingClientRect();
+    const scale = Math.min((box.width - 96) / fit.offsetWidth, (box.height - 140) / fit.offsetHeight);
+    fit.style.transform = `scale(${scale})`;
+  };
+  const wrapSlides = (on) => slides.forEach((slide) => {
+    const fit = slide.querySelector(':scope > .slide-fit');
+    if (on && !fit) {
+      const wrap = document.createElement('div');
+      wrap.className = 'slide-fit';
+      [...slide.childNodes].forEach((n) => { if (n.nodeName !== 'CANVAS') wrap.appendChild(n); });
+      slide.appendChild(wrap);
+    } else if (!on && fit) {
+      while (fit.firstChild) slide.insertBefore(fit.firstChild, fit);
+      fit.remove();
+    }
+  });
+  window.addEventListener('resize', () => { if (isPresent) fitSlide(); });
 
   const toggleSidebar = (on) => {
     if (!sidebar) return;
@@ -2582,6 +2619,7 @@ stepper('#userflow', '#flowtext', [
     document.body.classList.toggle('sidebar-pushed', shouldOpen);
     if (btnSidebarToggle) btnSidebarToggle.setAttribute('aria-expanded', String(shouldOpen));
     if (shouldOpen) updateSlide(curSlide);
+    if (isPresent) setTimeout(fitSlide, 400); // 사이드바가 열리고 닫힌 뒤 남은 폭에 다시 맞춤
   };
 
   if (btnSidebarToggle) btnSidebarToggle.addEventListener('click', () => toggleSidebar());
@@ -2633,10 +2671,13 @@ stepper('#userflow', '#flowtext', [
     document.body.classList.toggle('presentation-mode', isPresent);
     btnPresent.setAttribute('aria-pressed', String(isPresent));
     if (isPresent) {
+      wrapSlides(true);
       updateSlide(curSlide);
+      setTimeout(fitSlide, 300); // 이미지가 늦게 그려져도 다시 맞춤
     } else {
+      wrapSlides(false);
       slides.forEach((s) => s.classList.remove('slide-active'));
-      if (notesPop) notesPop.classList.remove('open');
+      if (slides[curSlide]) slides[curSlide].scrollIntoView({ block: 'start' }); // 보던 장으로 돌아감
     }
   };
 
