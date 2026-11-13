@@ -509,23 +509,30 @@ body.presentation-mode .deck-dock { transform: translateX(-50%) translateY(0); o
 .notes-popup .notes-head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 800; color: var(--color-accent) }
 .notes-popup .notes-body { font-size: 14px; line-height: 1.6; color: var(--color-text); white-space: pre-line }
 
-/* 발표 모드: 지금 장 하나만 화면을 가득 채우고, 내용은 화면 크기에 맞춰 통째로 확대·축소(.slide-fit, 스크립트가 배율 계산) */
+/* 발표 모드: 지금 장 하나를 16:9 발표 화면(1280×720, .slide-fit)에 담아 창 크기에 맞춰 확대·축소합니다.
+   내용이 화면보다 크면 안쪽(.slide-body)만 줄여 16:9 안에 넣습니다. 배율은 스크립트(fitSlide)가 정합니다. */
 @media screen {
   body.presentation-mode { overflow: hidden }
   body.presentation-mode .appbar, body.presentation-mode .tabsbar, body.presentation-mode footer { visibility: hidden }
   body.presentation-mode main section, body.presentation-mode #hero { display: none }
   body.presentation-mode main section.slide-active, body.presentation-mode #hero.slide-active {
-    display: flex; position: fixed; inset: 0; z-index: 90; margin: 0; padding: 0; border: 0; min-height: 0;
-    align-items: center; justify-content: center; overflow: hidden; background: var(--color-bg)
+    display: flex; position: fixed; inset: 0; z-index: 90; margin: 0; padding: 0 0 72px; border: 0; min-height: 0;
+    align-items: center; justify-content: center; overflow: hidden; background: var(--color-bg-subtle)
   }
-  .slide-fit { flex: 0 0 auto; width: 1120px; transform-origin: center center }
-  body.presentation-mode #hero.slide-active .slide-fit { padding-block: 40px }
+  .slide-fit {
+    flex: 0 0 auto; width: 1280px; height: 720px; box-sizing: border-box; padding: 44px 64px;
+    display: flex; flex-direction: column; justify-content: center; overflow: hidden;
+    background: var(--color-bg); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); transform-origin: center center
+  }
+  .slide-body { width: 100% }
+  body.presentation-mode #hero.slide-active .slide-fit { background: transparent; box-shadow: none }
 }
 @media screen and (min-width: 1024px) {
   body.presentation-mode.sidebar-pushed main section.slide-active, body.presentation-mode.sidebar-pushed #hero.slide-active { right: 420px }
 }
 @media print {
-  .slide-fit { transform: none !important; width: auto !important }
+  .slide-fit { transform: none !important; width: auto !important; height: auto !important; padding: 0 !important; box-shadow: none !important; background: none !important; display: block !important }
+  .slide-body { zoom: 1 !important }
 }
 
 /* ==========================================================================
@@ -2588,25 +2595,34 @@ stepper('#userflow', '#flowtext', [
     if (isPresent) requestAnimationFrame(fitSlide);
   };
 
-  // 발표 모드에서 장 내용을 .slide-fit 하나로 감싸, 화면(아래 발표 막대 자리 제외)에 맞게 배율을 정합니다.
+  // 발표 모드에서 장 내용을 16:9 발표 화면(.slide-fit > .slide-body)에 담습니다.
+  // 내용이 화면보다 크면 .slide-body를 줄이고, 발표 화면 전체는 창(아래 발표 막대 자리 제외)에 맞게 확대·축소합니다.
   const fitSlide = () => {
     const slide = slides[curSlide];
     const fit = slide && slide.querySelector(':scope > .slide-fit');
-    if (!isPresent || !fit) return;
+    const body = fit && fit.querySelector(':scope > .slide-body');
+    if (!isPresent || !body) return;
+    body.style.zoom = 1;
+    const innerW = fit.clientWidth - 128, innerH = fit.clientHeight - 88;
+    body.style.zoom = Math.min(1, innerW / body.scrollWidth, innerH / body.scrollHeight);
     fit.style.transform = 'none';
     const box = slide.getBoundingClientRect();
-    const scale = Math.min((box.width - 96) / fit.offsetWidth, (box.height - 140) / fit.offsetHeight);
+    const scale = Math.min((box.width - 48) / fit.offsetWidth, (box.height - 72 - 24) / fit.offsetHeight);
     fit.style.transform = `scale(${scale})`;
   };
   const wrapSlides = (on) => slides.forEach((slide) => {
     const fit = slide.querySelector(':scope > .slide-fit');
     if (on && !fit) {
-      const wrap = document.createElement('div');
-      wrap.className = 'slide-fit';
-      [...slide.childNodes].forEach((n) => { if (n.nodeName !== 'CANVAS') wrap.appendChild(n); });
-      slide.appendChild(wrap);
+      const stage = document.createElement('div');
+      stage.className = 'slide-fit';
+      const body = document.createElement('div');
+      body.className = 'slide-body';
+      [...slide.childNodes].forEach((n) => { if (n.nodeName !== 'CANVAS') body.appendChild(n); });
+      stage.appendChild(body);
+      slide.appendChild(stage);
     } else if (!on && fit) {
-      while (fit.firstChild) slide.insertBefore(fit.firstChild, fit);
+      const body = fit.querySelector(':scope > .slide-body') || fit;
+      while (body.firstChild) slide.insertBefore(body.firstChild, fit);
       fit.remove();
     }
   });
