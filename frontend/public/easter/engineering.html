@@ -277,8 +277,8 @@ input[type=range] { width: 100%; accent-color: var(--color-primary) }
         <p>화면은 백엔드만, 백엔드는 AI 서버만 부릅니다. 반대 방향 호출은 없습니다(<a href="https://github.com/ShinhanDSProject/dart-insight/blob/main/docs/adr/0002-monorepo-and-call-direction.md">ADR-0002</a>).</p>
       </header>
 
-      <figure style="margin:18px 0 6px; padding:20px 24px; border-radius:var(--radius-lg); background:var(--color-bg-subtle);">
-        <svg viewBox="0 0 1100 450" id="engarch" style="width:100%; height:auto;" role="img" aria-label="아키텍처: 웹 화면과 MCP 서버는 API 서버만 부른다. API 서버가 AI 서버와 MariaDB·OpenDART·NAVER를 부르고, AI 서버만 Claude API를 부른다">
+      <figure style="margin:18px 0 6px; padding:20px 24px; border-radius:var(--radius-lg); background:var(--color-bg-subtle); overflow-x:auto;">
+        <svg viewBox="0 0 1100 450" id="engarch" style="width:100%; min-width:760px; height:auto;" role="img" aria-label="아키텍처: 웹 화면과 MCP 서버는 API 서버만 부른다. API 서버가 AI 서버와 MariaDB·OpenDART·NAVER를 부르고, AI 서버만 Claude API를 부른다">
 <defs><marker id="eng_ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--color-text-muted);"/></marker></defs>
 <rect x="130" y="40" width="120" height="380" rx="6" style="fill:none; stroke:var(--color-border-strong); stroke-width:1.5; stroke-dasharray:6 4;"/><rect x="130" y="40" width="26" height="26" style="fill:var(--color-border-strong);"/><rect x="137" y="47" width="12" height="12" rx="2" style="fill:none; stroke:#fff; stroke-width:1.6;"/><text x="164" y="58" style="font-size:12.5px; font-weight:800; fill:var(--color-text);">Client</text>
 <rect x="290" y="20" width="500" height="415" rx="6" style="fill:none; stroke:var(--color-accent); stroke-width:1.5;"/><rect x="290" y="20" width="26" height="26" style="fill:var(--color-accent);"/><rect x="298" y="28" width="3.5" height="9" rx="1" style="fill:#fff;"/><rect x="304" y="26" width="3.5" height="13" rx="1" style="fill:#fff;"/><text x="324" y="38" style="font-size:12.5px; font-weight:800; fill:var(--color-text);">DART Insight</text>
