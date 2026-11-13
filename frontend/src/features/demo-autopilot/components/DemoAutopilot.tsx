@@ -3,7 +3,7 @@ import { match } from 'ts-pattern'
 import { RESULT_TOUR_CHANGE_EVENT, RESULT_TOUR_SEEN_KEY } from '@/shared/lib/resultTour'
 import { writeDemoStorage } from '../hooks/useDemoMode'
 import { useDemoStepRunner, type DemoCursor } from '../hooks/useDemoStepRunner'
-import { DEMO_NEXT_STEP_KEY } from '../model/demoActivation'
+import { DEMO_LEAVE_MS, DEMO_NEXT_STEP_KEY, DEMO_RETURN_PATH, DEMO_STORAGE_KEY } from '../model/demoActivation'
 import { createDemoReducer, demoProgress, initialDemoState } from '../model/demoState'
 import { DEMO_SCENARIO } from '../model/scenario'
 import '../demo-autopilot.css'
@@ -32,10 +32,28 @@ export function DemoAutopilot({ startStep, onExit }: { startStep: number; onExit
       .with({ status: 'idle' }, ({ next }) => next)
       .with({ status: 'running' }, ({ step }) => step)
       .with({ status: 'done' }, { status: 'failed' }, ({ step }) => step + 1)
-      .with({ status: 'finished' }, () => null)
+      .with({ status: 'finished' }, { status: 'leaving' }, () => null)
       .exhaustive()
     writeDemoStorage(DEMO_NEXT_STEP_KEY, next === null ? null : String(next))
   }, [state])
+
+  // 마친 뒤 Space: 시연을 끄고 앱 화면을 빛 한 점으로 닫은 뒤 발표 페이지의 Q&A 장으로 간다(#970). 동작 줄이기면 바로 간다
+  const leaving = state.status === 'leaving'
+  useEffect(() => {
+    if (!leaving) return
+    writeDemoStorage(DEMO_STORAGE_KEY, null)
+    writeDemoStorage(DEMO_NEXT_STEP_KEY, null)
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+    // 닫히는 점은 지금 보이는 화면의 오른쪽 위(발표 페이지가 열린 점)다. #root가 길어 스크롤 위치를 더해 잡는다
+    document.documentElement.style.setProperty('--demo-leave-y', `${window.scrollY + window.innerHeight * 0.21}px`)
+    document.documentElement.dataset.demoLeaving = ''
+    const timer = setTimeout(() => location.assign(DEMO_RETURN_PATH), reduceMotion ? 0 : DEMO_LEAVE_MS)
+    // 넘어가기 전에 꺼지면(화면 이동 등) 닫힌 화면이 남지 않게 되돌린다
+    return () => {
+      clearTimeout(timer)
+      delete document.documentElement.dataset.demoLeaving
+    }
+  }, [leaving])
 
   // 결과 화면 첫 방문 둘러보기가 시연 중에 끼어들지 않게 본 것으로 둔다
   useEffect(() => {
@@ -49,6 +67,12 @@ export function DemoAutopilot({ startStep, onExit }: { startStep: number; onExit
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      // 발표 페이지로 넘어가는 중에는 어떤 키도 받지 않는다(Esc로 꺼서 닫힌 화면에 멈추지 않게)
+      if (leaving) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        return
+      }
       if (event.key === 'Escape') {
         event.preventDefault()
         event.stopImmediatePropagation()
@@ -62,7 +86,7 @@ export function DemoAutopilot({ startStep, onExit }: { startStep: number; onExit
     }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-  }, [onExit])
+  }, [onExit, leaving])
 
   const progress = demoProgress(state, DEMO_SCENARIO.length)
   const { title, caption } = match(state)
@@ -73,7 +97,7 @@ export function DemoAutopilot({ startStep, onExit }: { startStep: number; onExit
     )
     .with({ status: 'running' }, { status: 'done' }, (s) => DEMO_SCENARIO[s.step])
     .with({ status: 'failed' }, (s) => ({ title: DEMO_SCENARIO[s.step].title, caption: `${s.reason} Space로 다음 단계로 넘어가요.` }))
-    .with({ status: 'finished' }, () => ({ title: '시연 끝', caption: '감사합니다. 이제 질문을 받겠습니다.' }))
+    .with({ status: 'finished' }, { status: 'leaving' }, () => ({ title: '시연 끝', caption: 'Space를 누르면 질의응답으로 넘어가요.' }))
     .exhaustive()
 
   return (

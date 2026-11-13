@@ -112,3 +112,32 @@
   font-size: var(--font-size-xs);
   white-space: nowrap;
 }
+
+/* 시연을 마치고 Q&A 장으로 돌아갈 때(#970): 들어올 때 빛이 터진 오른쪽 위 한 점으로 앱 화면이 닫히고 어두워진다.
+   발표 페이지는 어두운 노트북 화면에서 빠져나오는 움직임으로 이어 받는다.
+   검정은 발표 페이지(easter/three-weeks.html)의 .demo-warp__dark와 같은 값이다. 앱 테마 색이 아니라 발표 장면을 잇는 색이라 토큰으로 두지 않는다 */
+:root[data-demo-leaving] {
+  background: #000;
+}
+
+:root[data-demo-leaving] body {
+  background: #000;
+}
+
+:root[data-demo-leaving] #root {
+  animation: demo-close 900ms cubic-bezier(0.6, 0, 0.2, 1) forwards;
+}
+
+:root[data-demo-leaving] .demo-autopilot {
+  display: none;
+}
+
+@keyframes demo-close {
+  from {
+    clip-path: circle(160% at 100% var(--demo-leave-y));
+  }
+
+  to {
+    clip-path: circle(0% at 100% var(--demo-leave-y));
+  }
+}
