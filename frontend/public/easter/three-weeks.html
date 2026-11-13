@@ -505,6 +505,27 @@ body.presentation-mode .deck-dock { transform: translateX(-50%) translateY(0); o
 .deck-dock .deck-more { display: flex; align-items: center; gap: 12px }
 .deck-dock .deck-more[hidden] { display: none }
 
+/* 목차·주제 시작 장: 목록은 스크립트가 뒤따르는 장의 제목으로 채웁니다(fillChapters) */
+.chapter { display: grid; justify-items: center; gap: 12px; text-align: center; padding-block: 24px }
+.chapter__mark { width: 56px; height: 56px; border-radius: 16px; gap: 6px; margin-bottom: 6px }
+.chapter__mark i { width: 8px; height: 22px; border-radius: 3px }
+.chapter__mark i + i { height: 30px }
+.chapter__num { margin: 0; font-family: var(--font-num); font-size: 15px; font-weight: 800; letter-spacing: 0.18em; color: var(--color-accent) }
+.chapter__title { margin: 0; font-size: clamp(32px, 4.4vw, 48px); font-weight: 800; letter-spacing: -0.03em }
+.chapter__lede { margin: 0; font-size: 18px; color: var(--color-text-muted) }
+.chapter__list { list-style: none; margin: 18px 0 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px }
+.chapter__list li { padding: 8px 16px; border-radius: var(--radius-pill); background: var(--color-bg-subtle); border: 1px solid var(--color-border); font-size: 14.5px; font-weight: 700 }
+.chapter__list li span { font-family: var(--font-num); color: var(--color-accent); margin-right: 8px }
+.agenda-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 20px; align-items: stretch }
+.agenda-card { display: grid; align-content: start; gap: 10px; padding: 24px 22px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-raised); color: inherit; text-decoration: none }
+.agenda-card:hover { border-color: var(--color-border-accent) }
+.agenda-card__num { font-family: var(--font-num); font-size: 13px; font-weight: 800; letter-spacing: 0.14em; color: var(--color-accent) }
+.agenda-card__title { margin: 0; font-size: 21px; font-weight: 800 }
+.agenda-card__lede { margin: 0; font-size: 13.5px; color: var(--color-text-muted) }
+.agenda-card ol { list-style: none; margin: 6px 0 0; padding: 12px 0 0; border-top: 1px dashed var(--color-border); display: grid; gap: 7px; font-size: 14px }
+.agenda-card ol span { font-family: var(--font-num); color: var(--color-accent); font-weight: 700; margin-right: 6px }
+.slide-fit.play .chapter__mark { animation: markPop 700ms cubic-bezier(.2,.7,.2,1) both }
+
 /* 표지 브랜드 마크 */
 .hero__mark { width: 64px; height: 64px; border-radius: 18px; gap: 7px; margin-bottom: 18px; box-shadow: var(--shadow-md) }
 .hero__mark i { width: 9px; height: 26px; border-radius: 3px }
@@ -1981,6 +2002,26 @@ body {
 
 <!-- 0. 클라이언트를 위한 1초 공시 용어 사전 -->
 <!-- 00-A. 왜 재테크인가? (인플레이션 방어 & 우량 기업 팩트 분석) -->
+<section id="agenda" class="chapter-agenda" data-title="목차">
+  <div class="sechead-4zone">
+    <div class="zone-a">
+      <p class="kicker">Agenda</p>
+      <h2>오늘 이야기할 순서</h2>
+    </div>
+  </div>
+  <div class="agenda-grid" aria-label="발표 순서"></div>
+</section>
+
+<section id="part-problem" class="chapter-divider" data-title="PART 1 · 왜 만들었나">
+  <div class="chapter">
+    <span class="brand__mark chapter__mark" aria-hidden="true"><i></i><i></i></span>
+    <p class="chapter__num">PART 1</p>
+    <h2 class="chapter__title"><span aria-hidden="true">🔍</span> 왜 만들었나</h2>
+    <p class="chapter__lede">공시는 무엇이고, 지금은 무엇이 불편한가</p>
+    <ol class="chapter__list" aria-label="이 부분에서 다룰 장"></ol>
+  </div>
+</section>
+
 <section id="glossary" data-title="전자공시란?">
   <div class="sechead-4zone">
     <div class="zone-a">
@@ -2057,6 +2098,16 @@ body {
 </section>
 
 <!-- 2. 핵심 가치 제안 -->
+<section id="part-service" class="chapter-divider" data-title="PART 2 · 무엇을 하나">
+  <div class="chapter">
+    <span class="brand__mark chapter__mark" aria-hidden="true"><i></i><i></i></span>
+    <p class="chapter__num">PART 2</p>
+    <h2 class="chapter__title"><span aria-hidden="true">🧩</span> 무엇을 하나</h2>
+    <p class="chapter__lede">두 보고서 사이 바뀐 것을, 원문 근거와 함께</p>
+    <ol class="chapter__list" aria-label="이 부분에서 다룰 장"></ol>
+  </div>
+</section>
+
 <section id="value" data-title="핵심 가치 제안">
   <div class="sechead-4zone">
     <div class="zone-a">
@@ -2238,6 +2289,16 @@ body {
 </section>
 
 <!-- 7. 기술 스택 -->
+<section id="part-build" class="chapter-divider" data-title="PART 3 · 어떻게 만들었나">
+  <div class="chapter">
+    <span class="brand__mark chapter__mark" aria-hidden="true"><i></i><i></i></span>
+    <p class="chapter__num">PART 3</p>
+    <h2 class="chapter__title"><span aria-hidden="true">🛠️</span> 어떻게 만들었나</h2>
+    <p class="chapter__lede">다섯 블록, 한 방향으로 흐르는 구조</p>
+    <ol class="chapter__list" aria-label="이 부분에서 다룰 장"></ol>
+  </div>
+</section>
+
 <section id="stack" data-title="기술 스택">
   <div class="sechead-4zone">
     <div class="zone-a">
@@ -2289,6 +2350,16 @@ body {
 
 <!-- 8. 인프라 및 운영 -->
 <!-- 9. AX 일하는 방식 -->
+<section id="part-work" class="chapter-divider" data-title="PART 4 · 어떻게 일했나">
+  <div class="chapter">
+    <span class="brand__mark chapter__mark" aria-hidden="true"><i></i><i></i></span>
+    <p class="chapter__num">PART 4</p>
+    <h2 class="chapter__title"><span aria-hidden="true">🤝</span> 어떻게 일했나</h2>
+    <p class="chapter__lede">사람, AI, 자동화의 역할을 나눠서</p>
+    <ol class="chapter__list" aria-label="이 부분에서 다룰 장"></ol>
+  </div>
+</section>
+
 <section id="weeks" data-title="AI와 일하는 방식">
   <div class="sechead-4zone">
     <div class="zone-a">
@@ -2539,6 +2610,11 @@ stepper('#userflow', '#flowtext', [
 (function () {
   // 발표 대본: 섹션 id로 찾는다(섹션을 더하거나 빼도 어긋나지 않게)
   const SPEECHES_BY_ID = {
+    "agenda": { title: "목차", text: "[도발적 질문 Hook]\n오늘은 어떤 순서로 이야기할까요?\n\n[1초 용어 통역]\n네 부분으로 나눠 말씀드리겠습니다. 첫째, 왜 만들었는지. 공시가 무엇이고 지금은 무엇이 불편한지부터 봅니다. 둘째, 무엇을 하는지. 실제 삼성전자 보고서로 서비스가 하는 일을 보여 드립니다. 셋째, 어떻게 만들었는지. 기술 구성과 구조를 큰 그림으로 봅니다. 넷째, 어떻게 일했는지. 사람과 AI가 역할을 어떻게 나눴는지 말씀드립니다.\n\n[시각 요소 지시어]\n네 카드를 왼쪽부터 짚습니다.\n\n[숫자 타격감 마무리]\n그럼 첫 번째, 왜 만들었는지부터 시작하겠습니다." },
+    "part-problem": { title: "PART 1 · 왜 만들었나", text: "[도발적 질문 Hook]\n공시, 들어 보셨나요?\n\n[1초 용어 통역]\n먼저 공시가 무엇인지, 그리고 공시를 비교하는 일이 왜 어려운지 두 장으로 보겠습니다.\n\n[시각 요소 지시어]\n가운데 제목과 아래 두 장 이름을 가리킵니다.\n\n[숫자 타격감 마무리]\n문제부터 정확히 보고 가겠습니다." },
+    "part-service": { title: "PART 2 · 무엇을 하나", text: "[도발적 질문 Hook]\n그래서 DART Insight는 무엇을 할까요?\n\n[1초 용어 통역]\n실제 삼성전자 보고서를 예로, 검색부터 원문 비교, 실적, 1년의 흐름, 검증, 그리고 누가 쓰는지까지 다섯 장으로 보여 드리겠습니다.\n\n[시각 요소 지시어]\n아래 다섯 장 이름을 왼쪽부터 짚습니다.\n\n[숫자 타격감 마무리]\n이제 서비스가 하는 일을 보겠습니다." },
+    "part-build": { title: "PART 3 · 어떻게 만들었나", text: "[도발적 질문 Hook]\n이 서비스는 어떻게 만들어졌을까요?\n\n[1초 용어 통역]\n기술 구성은 다섯 블록, 구조는 한 방향입니다. 자세한 기술보다 큰 그림만 두 장으로 보겠습니다.\n\n[시각 요소 지시어]\n아래 두 장 이름을 가리킵니다.\n\n[숫자 타격감 마무리]\n큰 그림부터 보겠습니다." },
+    "part-work": { title: "PART 4 · 어떻게 일했나", text: "[도발적 질문 Hook]\n약 4주 동안, 어떻게 일했을까요?\n\n[1초 용어 통역]\n마지막으로 사람과 AI, 그리고 자동화가 각자 무엇을 맡았는지 말씀드리겠습니다.\n\n[시각 요소 지시어]\n가운데 제목을 가리킵니다.\n\n[숫자 타격감 마무리]\n저희가 일한 방식입니다." },
     "hero": { title: "표지 · DART Insight", text: "[도발적 질문 Hook]\n보고서 두 권을 놓고 '무엇이 바뀌었는지' 찾는 데 얼마나 걸릴까요?\n\n[1초 용어 통역]\nDART Insight는 같은 회사의 정기보고서 두 개를 비교해, 바뀐 숫자와 문장을 원문 위치와 함께 보여 주는 서비스입니다. 투자를 추천하지 않고, 확인을 돕습니다.\n\n[시각 요소 지시어]\n제목 두 줄 '두 보고서 사이, 바뀐 것만. 원문 근거와 함께.'를 가리킵니다.\n\n[숫자 타격감 마무리]\n약 4주 동안 PR 461개, 설계 기록(ADR) 67개, 자동 테스트 약 4,400개로 만들었습니다. 왜 만들었는지, 무엇이 다른지, 어떻게 만들었는지 순서로 보여 드리겠습니다." },
     "glossary": { title: "전자공시란?", text: "[도발적 질문 Hook]\n11월 11일, 엔비디아 젠슨 황이 CEO에서 물러났습니다. 회사는 이 사실을 어디에 공식으로 알렸을까요?\n\n[1초 용어 통역]\n바로 공시입니다. 회사가 법에 따라 공식적으로 알리는 문서로, 미국은 SEC의 8-K, 우리나라는 금융감독원 DART에 올라옵니다. 실적, 대표 교체, 소송, 배당 같은 중요한 일이 모두 여기에 기록돼서 '회사의 생활기록부'라고 부릅니다. 저희 서비스는 OpenDART 공식 API로 이 원문을 받아 씁니다.\n\n[시각 요소 지시어]\n왼쪽 8-K 원문 한 문장과 한글 번역 → 가운데 '=' → 오른쪽 DART 화면 순서로 가리킵니다.\n\n[숫자 타격감 마무리]\n뉴스보다 먼저, 법에 따라 공식으로. 그래서 저희는 공시 원문을 출발점으로 삼았습니다." },
     "why": { title: "두 가지 한계", text: "[도발적 질문 Hook]\n사업보고서 한 권은 몇 글자일까요? 최대 65만 자, 소설책 네 권입니다.\n\n[1초 용어 통역]\n작년 것과 올해 것을 비교하려면 사람이 두 권을 넘겨 가며 찾아야 합니다. 그렇다고 AI에게 요약을 맡기면, 몇 초 만에 그럴듯한 답을 내놓지만 코가 길어지는 피노키오처럼 없는 숫자를 지어내고 출처를 밝히지 못합니다. 이것을 AI 환각(Hallucination)이라고 합니다. 금융에서 출처 없는 숫자는 치명적입니다.\n\n[시각 요소 지시어]\n왼쪽 책 네 권(65만 자) → 오른쪽 피노키오(AI 환각) → 아래 DART Insight 상자 순서로 가리킵니다.\n\n[숫자 타격감 마무리]\n그래서 저희의 답은 두 보고서 자동 비교입니다. 숫자는 코드가 계산하고, 문장마다 원문 위치를 붙입니다." },
@@ -2552,6 +2628,28 @@ stepper('#userflow', '#flowtext', [
     "weeks": { title: "사람과 AI의 역할", text: "[도발적 질문 Hook]\nAI로 개발하면, 사람은 무엇을 할까요?\n\n[1초 용어 통역]\n저희는 AI를 많이 썼지만, 먼저 '누가 무엇을 하는지'부터 정했습니다. 사람은 무엇을 왜 만들지 정하고, 기획서와 설계 기록을 최종 확인하고, 커밋·PR·병합을 결정합니다. 공시 용어나 숫자가 맞는지도 사람이 확인합니다. AI는 기획서·이슈·설계 기록 초안을 단계별 스킬로 만들고, 코드와 테스트를 쓰고, 수용 기준마다 증빙을 모읍니다. 그리고 테스트·접근성·비밀정보·호출 방향은 사람이 눈으로 보는 대신 기계가 PR마다 자동으로 막습니다. 이 역할은 AGENTS.md 한 파일에 적어 두어, 어떤 AI 도구를 쓰든 같은 규칙을 따릅니다. 특히 AI가 멈추고 사람에게 물어야 하는 때를 정했습니다. 기획서가 없으면 구현을 시작하지 않고, 공시 용어는 추측하지 않으며, 설계 기록과 다르게 해야 하면 먼저 묻고, 키가 노출된 것 같으면 즉시 멈춥니다.\n\n[시각 요소 지시어]\n일곱 단계의 담당 배지(사람·AI·자동)를 짚고, 아래 세 칸 '사람 → AI → 자동화'를 차례로 가리킵니다.\n\n[숫자 타격감 마무리]\n그렇게 약 4주 동안 PR 461개, 설계 기록 67개, 자동 테스트 약 4,400개를 남겼습니다. AI가 만들고, 결정은 사람이 했습니다. 감사합니다." }
   };
   const SPEECHES = [SPEECHES_BY_ID.hero];
+
+  // 목차와 주제 시작 장의 장 목록을, 뒤따르는 장의 번호·제목에서 채웁니다(장 제목을 바꾸면 따라 바뀜).
+  (function fillChapters() {
+    const parts = $$('main section.chapter-divider');
+    const topicsOf = (divider) => {
+      const out = [];
+      for (let el = divider.nextElementSibling; el && !el.classList.contains('chapter-divider'); el = el.nextElementSibling) {
+        if (el.tagName !== 'SECTION') continue;
+        const h2 = el.querySelector('h2'), kicker = el.querySelector('.kicker');
+        if (h2) out.push({ id: el.id, num: kicker ? kicker.textContent.trim().split(/\s/)[0] : '', title: h2.textContent.trim() });
+      }
+      return out;
+    };
+    const item = (t) => `<li><span>${esc(t.num)}</span>${esc(t.title)}</li>`;
+    parts.forEach((part) => { const list = part.querySelector('.chapter__list'); if (list) list.innerHTML = topicsOf(part).map(item).join(''); });
+    const grid = $('#agenda .agenda-grid');
+    if (grid) grid.innerHTML = parts.map((part) => `<a class="agenda-card" href="#${part.id}">`
+      + `<span class="agenda-card__num">${esc(part.querySelector('.chapter__num').textContent)}</span>`
+      + `<h3 class="agenda-card__title">${esc(part.querySelector('.chapter__title').textContent.trim())}</h3>`
+      + `<p class="agenda-card__lede">${esc(part.querySelector('.chapter__lede').textContent)}</p>`
+      + `<ol>${topicsOf(part).map(item).join('')}</ol></a>`).join('');
+  })();
 
   const slides = [$('#hero'), ...$$('main section[id], section[id]')].filter((el, i, a) => el && a.indexOf(el) === i);
   let curSlide = 0, isPresent = false;
