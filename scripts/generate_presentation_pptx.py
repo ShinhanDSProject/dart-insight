@@ -392,11 +392,19 @@ def methods(s):
         text(s, 2.8, y, 9.7, 0.95, [(value, 15, TEXT, False)], anchor=MSO_ANCHOR.MIDDLE)
 
 
+PEOPLE = [("🙋", "개인 투자자", "용어 카드 · AI 브리핑"), ("💼", "금융 실무자", "자동 비교 · CSV 내보내기"),
+          ("💬", "커뮤니티", "공시 원문 인용"), ("🎓", "취업 준비생", "'사업 방향' 관점"), ("🤝", "거래 검토 기업", "'거래·위험' 관점")]
+
+
 def impact(s):
-    tiles(s, 1.85, 2.9, [("🙋", "개인 투자자", "어려운 용어 → 용어 카드"), ("💼", "금융 실무자", "엑셀 대조 → 자동 비교"),
-                         ("💬", "커뮤니티", "출처 없는 말 → 원문 인용"), ("🎓", "취업 준비생", "홍보 문구 → 실제 사업 방향"),
-                         ("🤝", "거래 검토 기업", "소송·제재 미리 확인")], icon_size=40)
-    chips(s, 5.35, ["🧪 자동 테스트 약 4,400개", "♿ 접근성 자동 검사(axe-core)", "🔐 PR마다 비밀정보 검사"], size=13)
+    x0, gap = 0.6, 0.2
+    w = (SLIDE_W - 2 * x0 - gap * 4) / 5
+    for i, (icon, name, feature) in enumerate(PEOPLE):
+        x = x0 + i * (w + gap)
+        box(s, x, 2.1, w, 3.4)
+        text(s, x, 2.4, w, 1.9, [(icon, 44, TEXT, False), (name, 18, PRIMARY, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+        box(s, x + 0.2, 4.5, w - 0.4, 0.5, ACCENT_TINT, None, radius=0.5)
+        text(s, x + 0.2, 4.5, w - 0.4, 0.5, [(feature, 11.5, ACCENT, True)], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
 
 
 STACK = [
