@@ -44,7 +44,7 @@ DART Insight 시스템은 **"대형 로펌의 금융 전문 변호사 팀"**과 
   - 임베딩(추측) 대신 정확한 키워드(BM25)로 바뀐 문장만 45ms 만에 찾아냄
       │
       ▼
-[4. 근거 번호를 달아야 통과하는 조사관 (LLM · 제공자 교체 가능)]
+[4. 근거 번호를 달아야 통과하는 조사관 (LLM)]
   - 제공자와 모델은 설정과 키로 고름(Claude·GPT 계열 지원). 기본 모델은 제공자마다 정해 둠
   - 품질이 더 필요한 작업만 다른 모델로 따로 지정할 수 있음
   - "철저히 원문 서류 몇 페이지 몇 째 줄에 적혀 있는지 근거 번호를 달지 않으면 보고서에 못 올린다"는 엄격한 가드레일 준수
@@ -139,7 +139,7 @@ sequenceDiagram
     participant Front as Frontend (React 19)
     participant Back as Backend (Spring Boot 4)
     participant AI as AI Engine (FastAPI)
-    participant LLM as LLM (모델 교체 가능)
+    participant LLM as LLM
     participant DB as Database (MariaDB)
 
     User->>Front: 1. "삼성전자 분기보고서 비교 분석" 클릭
