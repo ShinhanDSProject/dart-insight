@@ -295,7 +295,11 @@ export function FinancialTab({
             aria-describedby={accountQuery !== null ? 'fin-account-count' : undefined}
             onChange={(e) => searchBox.setInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Escape' && searchBox.input !== '') clearSearch()
+              // 찾던 글을 지우는 Esc는 여기서 쓰고, 열려 있는 근거 패널까지 닫지 않는다
+              if (e.key === 'Escape' && searchBox.input !== '') {
+                e.preventDefault()
+                clearSearch()
+              }
             }}
           />
           {searchBox.input !== '' && (
