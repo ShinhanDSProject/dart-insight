@@ -47,8 +47,7 @@ public class TextComparisonService {
             currentDocument = documentService.ensureStructured(current);
         } catch (RuntimeException e) {
             log.warn("원문 구조화 실패 {} / {}", previous.getRceptNo(), current.getRceptNo(), e);
-            return TextComparison.failed("원문을 받거나 읽지 못해 문장을 비교하지 못했어요. 다시 요청해 주세요. ("
-                    + e.getMessage() + ")");
+            return TextComparison.documentFailed(e);
         }
         String problem = unusable("이전", previousDocument);
         if (problem == null) {
