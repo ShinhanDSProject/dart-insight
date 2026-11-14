@@ -654,6 +654,19 @@ body.demo-warping .preview__stage { visibility: hidden }
 body.demo-returning #qa .preview__stage, body.demo-returning #qa .chapter__num, body.demo-returning #qa .chapter__lede { visibility: hidden }
 /* 돌아온 뒤에는 노트북이 그 자리에 그대로: 장 통째 등장(data-reveal)과 노트북 등장을 끄고 글(THANK YOU·안내)만 떠오름 */
 #qa.returned .chapter, #qa.returned .preview__stage { animation: none }
+/* 엔딩 크레딧: 가운데 영상, 양옆 이름이 아래에서 생겨 위로 끝없이 올라감(같은 목록 두 벌을 -50%까지 올려 이어 붙임) */
+.credits__stage { display: grid; grid-template-columns: 200px minmax(0, 640px) 200px; gap: 40px; align-items: center; width: min(1120px, 100%) }
+.credits__col { height: 400px; overflow: hidden; -webkit-mask-image: linear-gradient(transparent, #000 22%, #000 78%, transparent); mask-image: linear-gradient(transparent, #000 22%, #000 78%, transparent) }
+.credits__track { list-style: none; margin: 0; padding: 0; display: grid; gap: 34px; padding-bottom: 34px; animation: creditsRise 18s linear infinite }
+.credits__col--late .credits__track { animation-duration: 22s }
+.credits__track li { display: grid; gap: 4px }
+.credits__role { font-size: 13px; font-weight: 700; letter-spacing: .08em; color: var(--color-accent) }
+.credits__name { font-size: 26px; font-weight: 800; color: var(--color-text) }
+.credits__video { aspect-ratio: 16 / 9; border-radius: var(--radius-lg); overflow: hidden; background: #000 center / cover no-repeat url("https://i.ytimg.com/vi/fWcGoTsSbwU/hqdefault.jpg"); box-shadow: 0 24px 60px rgba(0,0,0,.35) }
+.credits__video iframe { width: 100%; height: 100%; border: 0; display: block }
+@keyframes creditsRise { from { transform: translateY(0) } to { transform: translateY(-100%) } }
+@media (prefers-reduced-motion: reduce) { .credits__track { animation: none !important } }
+body.capture-mode .credits__track { animation: none !important }
 .demo-warp.back { display: block }
 .demo-warp.back .demo-warp__site, .demo-warp.back .demo-warp__line, .demo-warp.back .demo-warp__burst { display: none }
 .demo-warp.back .demo-warp__dark { animation: fromBlack 500ms ease-out both }
@@ -2593,6 +2606,17 @@ body {
     <p class="chapter__lede">감사합니다. 궁금한 점을 편하게 물어봐 주세요.</p>
   </div>
 </section>
+<section id="credits" class="chapter-end" data-title="Credits">
+  <div class="chapter credits">
+    <p class="chapter__num">CREDITS</p>
+    <div class="credits__stage">
+      <div class="credits__col" role="list" aria-label="만든 사람"><ul class="credits__track"><li><span class="credits__role">팀장</span><span class="credits__name">조성민</span></li><li><span class="credits__role">AI</span><span class="credits__name">김민석</span></li><li><span class="credits__role">백엔드</span><span class="credits__name">전민욱</span></li><li><span class="credits__role">백엔드</span><span class="credits__name">남윤재</span></li><li><span class="credits__role">프론트엔드</span><span class="credits__name">이해진</span></li><li><span class="credits__role">인프라</span><span class="credits__name">김예은</span></li></ul><ul class="credits__track" aria-hidden="true"><li><span class="credits__role">팀장</span><span class="credits__name">조성민</span></li><li><span class="credits__role">AI</span><span class="credits__name">김민석</span></li><li><span class="credits__role">백엔드</span><span class="credits__name">전민욱</span></li><li><span class="credits__role">백엔드</span><span class="credits__name">남윤재</span></li><li><span class="credits__role">프론트엔드</span><span class="credits__name">이해진</span></li><li><span class="credits__role">인프라</span><span class="credits__name">김예은</span></li></ul></div>
+      <div class="credits__video"><iframe title="엔딩 영상" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin" tabindex="-1"></iframe></div>
+      <div class="credits__col credits__col--late" aria-hidden="true"><ul class="credits__track"><li><span class="credits__role">백엔드</span><span class="credits__name">남윤재</span></li><li><span class="credits__role">프론트엔드</span><span class="credits__name">이해진</span></li><li><span class="credits__role">인프라</span><span class="credits__name">김예은</span></li><li><span class="credits__role">팀장</span><span class="credits__name">조성민</span></li><li><span class="credits__role">AI</span><span class="credits__name">김민석</span></li><li><span class="credits__role">백엔드</span><span class="credits__name">전민욱</span></li></ul><ul class="credits__track" aria-hidden="true"><li><span class="credits__role">백엔드</span><span class="credits__name">남윤재</span></li><li><span class="credits__role">프론트엔드</span><span class="credits__name">이해진</span></li><li><span class="credits__role">인프라</span><span class="credits__name">김예은</span></li><li><span class="credits__role">팀장</span><span class="credits__name">조성민</span></li><li><span class="credits__role">AI</span><span class="credits__name">김민석</span></li><li><span class="credits__role">백엔드</span><span class="credits__name">전민욱</span></li></ul></div>
+    </div>
+    <p class="chapter__lede">DART Insight 팀 · 신한DS 금융 AI 프로젝트</p>
+  </div>
+</section>
 <div class="demo-warp" id="portalWarp" aria-hidden="true">
   <div class="demo-warp__cam"><div class="lt"><div class="lt__base"><span class="lt__keys"></span></div><div class="lt__lid"><div class="lt__screen"></div><div class="lt__cover"><span class="brand__mark lt__logo" aria-hidden="true"><i></i><i></i></span><span class="lt__word">Preview</span></div></div></div></div>
   <div class="demo-warp__dark"></div>
@@ -2859,7 +2883,8 @@ stepper('#userflow', '#flowtext', [
     "weeks": { title: "사람과 AI의 역할", text: "[도발적 질문 Hook]\n개발에도 AI 코딩 도구를 많이 썼습니다. 그럼 사람은 뭘 했을까요? (2초 멈춤) 결정은 전부 사람이 했습니다.\n\n[1초 용어 통역]\n사람은 무엇을 왜 만들지 정하고, 기획서와 설계를 최종 확인하고, 코드를 합칠지 결정했습니다. AI는 초안을 썼습니다. 기획서, 설계 기록, 코드, 테스트까지. 사람 눈으로는 놓치는 테스트·접근성·호출 방향은 기계가 매번 자동으로 막았습니다. 특히 AI가 멈추고 사람에게 물어야 하는 순간을 규칙으로 정했습니다. 기획서가 없으면 만들지 않는다. 공시 용어는 추측하지 않는다. 키가 노출된 것 같으면 즉시 멈춘다.\n\n[시각 요소 지시어]\n일곱 단계를 빠르게 훑고, 아래 세 칸 '사람 → AI → 자동화'를 한 칸씩 가리킨 뒤 가운데로 나와 멈춥니다.\n\n[숫자 타격감 마무리]\n그렇게 약 4주 동안 PR 500여 개, 설계 기록 67개, 자동 테스트 약 4,400개를 남겼습니다. (천천히) 오늘 드린 말씀을 세 줄로 줄이겠습니다. 하나, 공시는 가장 정확한 자료지만, 투자해 본 8명 중 자주 보는 사람은 0명이었습니다. 둘, 그래서 저희는 보고서 두 권 사이에서 바뀐 것만 골라, 약 30초 만에 보여 주는 서비스를 만들었습니다. 셋, 숫자는 코드가 계산하고, AI 문장은 원문 위치가 있어야만 나갑니다. 'AI는 최고의 비서지, 대표가 아닙니다.'" },
     "cover": { title: "표지", text: "[도발적 질문 Hook]\n안녕하십니까. DART Insight 팀의 발표를 맡은 남윤재입니다.\n\n[1초 용어 통역]\n(선이 그려지는 동안 2초 기다림) 저희 프로젝트의 이념은 이 한 줄입니다. '과거와 현재를 이어, 미래를 개척한다.' 작년 보고서라는 과거와 올해 보고서라는 현재를 잇고, 그 사이에서 무엇이 바뀌었는지 보여 드리는 서비스입니다.\n\n[시각 요소 지시어]\n로고 → '과거' 점 → '현재' 점 → 오렌지색으로 뻗는 '미래' 점을 손으로 따라갑니다. 선이 다 그려질 때까지 말을 아낍니다.\n\n[숫자 타격감 마무리]\n시작하겠습니다." },
     "qna": { title: "Preview", text: "[도발적 질문 Hook]\n말은 여기까지입니다. 이제 직접 보여 드리겠습니다.\n\n[1초 용어 통역]\n(Space → 노트북이 열리고 빛 한 줄을 따라 실제 서비스 첫 화면이 열림, 약 5초. 이 동안은 말하지 않습니다) 시연은 Space로 한 단계씩 넘깁니다. ① 기업 찾기: 회사 이름만 치면 됩니다. 삼성전자. ② 보고서 고르기: 1년 전 같은 시기 보고서가 알아서 골라집니다. ③ 비교 확인: 비교할 수 없는 두 보고서면 분석하지 않습니다. ④ 핵심 3줄: 가장 먼저, 크게 바뀐 것 세 줄입니다. ⑤ 근거 확인: 이 숫자, 어디서 왔을까요? (누름) 원문의 바로 이 문단입니다. ⑥ 재무 수치: 모든 증감률은 코드가 계산합니다. ⑦ 바뀐 문장: 더해지고 빠지고 고쳐진 문장을 원문 위치와 함께 짚어 줍니다. ⑧ AI 에이전트: '이번 변화를 3줄로 정리해줘.' 이 답을 만드는 게 아까 말씀드린 서비스 안의 Claude입니다. ⑨ 답의 근거: 답에 붙은 번호를 누르면 그 보고서 위치로 바로 갑니다.\n\n[시각 요소 지시어]\n닫힌 노트북의 Preview를 가리킨 뒤 청중을 보고 Space를 누릅니다. 시연 중에는 화면 아래 자막을 읽지 말고, 위 한 줄씩만 말합니다.\n\n[숫자 타격감 마무리]\n시연이 막히면 당황하지 말고 Space로 다음 단계로 넘깁니다. 마지막 단계에서 Space를 누르면 Q&A 장으로 돌아옵니다." },
-    "qa": { title: "Q&A", text: "[도발적 질문 Hook]\n시연은 여기까지입니다.\n\n[1초 용어 통역]\n(노트북 뚜껑이 닫히며 Q&A가 나타날 때까지 기다림) 같은 회사의 보고서 두 권 사이에서 바뀐 것만, 원문 근거와 함께. 이것이 DART Insight입니다.\n\n[시각 요소 지시어]\n닫힌 노트북의 Q&A를 가리키고 청중을 봅니다.\n\n[숫자 타격감 마무리]\n지금까지 DART Insight였습니다. 감사합니다. 질문 받겠습니다." }
+    "qa": { title: "Q&A", text: "[도발적 질문 Hook]\n시연은 여기까지입니다.\n\n[1초 용어 통역]\n(노트북 뚜껑이 닫히며 Q&A가 나타날 때까지 기다림) 같은 회사의 보고서 두 권 사이에서 바뀐 것만, 원문 근거와 함께. 이것이 DART Insight입니다.\n\n[시각 요소 지시어]\n닫힌 노트북의 Q&A를 가리키고 청중을 봅니다.\n\n[숫자 타격감 마무리]\n지금까지 DART Insight였습니다. 감사합니다. 질문 받겠습니다." },
+    "credits": { title: "Credits", text: "[도발적 질문 Hook]\n(질문이 끝나면 Space) 마지막으로, 이 서비스를 만든 사람들입니다.\n\n[1초 용어 통역]\n팀장 조성민, AI 김민석, 백엔드 전민욱·남윤재, 프론트엔드 이해진, 인프라 김예은.\n\n[시각 요소 지시어]\n영상이 흐르는 동안 이름이 양옆으로 계속 올라갑니다. 말하지 않고 청중과 함께 봅니다.\n\n[숫자 타격감 마무리]\n감사합니다." }
   };
   const SPEECHES = [SPEECHES_BY_ID.hero];
 
@@ -3052,6 +3077,7 @@ stepper('#userflow', '#flowtext', [
   };
   if (musicBtn) musicBtn.addEventListener('click', toggleMusic);
 
+  const CREDITS_VIDEO = 'https://www.youtube-nocookie.com/embed/fWcGoTsSbwU?autoplay=1&loop=1&playlist=fWcGoTsSbwU&rel=0&playsinline=1';
   const updateSlide = (idx) => {
     if (!slides.length) return;
     curSlide = Math.max(0, Math.min(slides.length - 1, idx));
@@ -3081,6 +3107,11 @@ stepper('#userflow', '#flowtext', [
     const onDemoSlide = isPresent && slides[curSlide] && slides[curSlide].id === 'qna' && !document.body.classList.contains('capture-mode');
     if (onDemoSlide && demoFrame && !demoFrame.getAttribute('src')) demoFrame.setAttribute('src', DEMO_URL);
     if (demoWarp) demoWarp.classList.toggle('warm', !!onDemoSlide);
+    // 크레딧 장에 있을 때만 영상을 불러 틀고, 떠나면 비워서 소리를 멈춘다
+    const creditsFrame = $('#credits iframe');
+    const onCredits = isPresent && slides[curSlide] && slides[curSlide].id === 'credits' && !document.body.classList.contains('capture-mode');
+    if (creditsFrame && onCredits && !creditsFrame.getAttribute('src')) creditsFrame.setAttribute('src', CREDITS_VIDEO);
+    if (creditsFrame && !onCredits && creditsFrame.getAttribute('src')) creditsFrame.removeAttribute('src');
     syncMusic();
   };
 
@@ -3231,6 +3262,7 @@ stepper('#userflow', '#flowtext', [
       showMore(false);
       slides.forEach((s) => s.classList.remove('slide-active'));
       if (slides[curSlide]) slides[curSlide].scrollIntoView({ block: 'start' }); // 보던 장으로 돌아감
+      const creditsFrame = $('#credits iframe'); if (creditsFrame) creditsFrame.removeAttribute('src'); // 크레딧 영상 소리 멈춤
       syncMusic(1);
     }
   };
