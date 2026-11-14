@@ -127,7 +127,7 @@ export function searchWordOf(question: string): string | null {
 
 /** 찾지 못한 답의 문장 변화 검색 버튼 문구(#284) */
 export function textSearchLabel(word: string): string {
-  return `문장·내용 변화에서 '${word}' 찾기`
+  return `바뀐 곳에서 '${word}' 찾기`
 }
 
 /** 인용 원문이 어느 보고서인지 */

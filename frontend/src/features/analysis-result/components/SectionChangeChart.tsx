@@ -67,7 +67,7 @@ function SectionBarsView({ sections, onOpenSection, onOpenAll }: SectionBarsView
             <button
               type="button"
               className="section-chart__row"
-              aria-label={`${bar.label}: 문장 변경 ${formatCount(bar.count)}건. 문장 탭에서 보기`}
+              aria-label={`${bar.label}: 문장 변경 ${formatCount(bar.count)}건. 바뀐 곳에서 보기`}
               onClick={() => onOpenSection(bar.title)}
             >
               <span className="section-chart__name" title={bar.label}>
