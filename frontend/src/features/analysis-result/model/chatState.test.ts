@@ -48,6 +48,15 @@ describe('chatReducer', () => {
     expect(chatReducer(initialChatState, { type: 'fail', error: new Error('x') })).toBe(initialChatState)
   })
 
+  it('기다리다 중단하면 보낸 글을 입력창에 돌려놓고, 늦게 온 답은 버린다', () => {
+    const sending = chatReducer(initialChatState, { type: 'send', message: '영업이익' })
+    const cancelled = chatReducer(sending, { type: 'cancel' })
+    expect(cancelled.request).toEqual({ status: 'idle' })
+    expect(cancelled.draft).toBe('영업이익')
+    expect(chatReducer(cancelled, { type: 'answer', response: response('늦은 답') })).toBe(cancelled)
+    expect(chatReducer(initialChatState, { type: 'cancel' })).toBe(initialChatState)
+  })
+
   it('실패하면 보낸 메시지를 남겨 다시 보낼 수 있게 한다', () => {
     const sending = chatReducer(initialChatState, { type: 'send', message: '영업이익' })
     const failed = chatReducer(sending, { type: 'fail', error: 'boom' })

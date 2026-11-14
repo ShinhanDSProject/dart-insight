@@ -140,6 +140,10 @@ export function ChatPanel({
                 <Mascot mood="search" />
                 기능을 고르고 근거를 찾는 중이에요… 여러 번 찾으면 수십 초 걸릴 수 있어요.
               </p>
+              {/* 오래 걸리면 기다리지 않고 그만둘 수 있다. 보낸 글은 입력창에 돌아온다 */}
+              <Button variant="link" className="chat-panel__cancel" onClick={chat.cancel}>
+                그만 기다리기
+              </Button>
             </>
           ))
           .with({ status: 'error' }, ({ message, error }) => (

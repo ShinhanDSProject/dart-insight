@@ -218,6 +218,12 @@ span.chat-panel__citation {
   gap: var(--space-2);
 }
 
+/* 기다리는 중 표시 아래의 '그만 기다리기' */
+.chat-panel__cancel {
+  align-self: flex-start;
+  font-size: var(--font-size-sm);
+}
+
 .chat-panel__found {
   margin: 0;
   font-size: var(--font-size-sm);

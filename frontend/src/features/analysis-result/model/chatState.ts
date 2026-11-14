@@ -30,6 +30,7 @@ export type ChatAction =
   | { type: 'send'; message: string }
   | { type: 'answer'; response: ChatMessageResponse }
   | { type: 'fail'; error: unknown }
+  | { type: 'cancel' }
   | { type: 'confirmed'; key: string }
 
 export const initialChatState: ChatState = { exchanges: [], request: { status: 'idle' }, draft: '', confirmed: [] }
@@ -84,6 +85,10 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case 'fail':
       if (state.request.status !== 'sending') return state
       return { ...state, request: { status: 'error', message: state.request.message, error: action.error } }
+    case 'cancel':
+      // 기다리던 요청을 그만둔다. 보낸 글은 입력창에 돌려놓아 고쳐서 다시 보낼 수 있게 한다
+      if (state.request.status !== 'sending') return state
+      return { ...state, request: { status: 'idle' }, draft: state.request.message }
     case 'confirmed':
       return state.confirmed.includes(action.key) ? state : { ...state, confirmed: [...state.confirmed, action.key] }
   }
