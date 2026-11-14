@@ -348,7 +348,8 @@ public class AgentTools {
     /** 문장 변경 한 줄 풀이(저장된 풀이 우선). 풀이가 없거나 검토 필요면 그 사유만 넘긴다 */
     private List<ToolLine> explanation(Long analysisId, ToolArgs args) {
         long changeId = args.requiredId("changeId");
-        TextExplanationResponse response = explanationService.explain(analysisId, changeId);
+        // 채팅 메시지가 이미 질문 한도로 세였으므로 풀이 한도로 다시 세지 않는다(ADR-0069)
+        TextExplanationResponse response = explanationService.explain(analysisId, changeId, null);
         if (response.status() != ExplanationStatus.OK || response.sentence() == null) {
             return List.of(new ToolLine(null, "[풀이 " + response.status() + "] " + response.message()));
         }

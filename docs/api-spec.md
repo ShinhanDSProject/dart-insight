@@ -2642,7 +2642,7 @@
   1. 이미 저장된 풀이가 있으면 그대로(`cached: true`, AI 호출 없음)
   2. 요약(`summary_item`)에 그 변경의 AI 문장이 있으면 그 문장을 저장하고 돌려줌(AI 호출 없음)
   3. 짝을 찾지 못해 원문이 없는 변경(`REVIEW_NEEDED` 유형 등)은 AI 없이 `NO_SOURCE`
-  4. 아니면 `POST /internal/summaries`를 문장 항목 하나(`textItems` 1개, `financialItems` 빈 목록)로 불러 만들고 저장(근거·숫자·표현 검사는 요약과 같음)
+  4. 아니면 `POST /internal/summaries`를 문장 항목 하나(`textItems` 1개, `financialItems` 빈 목록)로 불러 만들고 저장(근거·숫자·표현 검사는 요약과 같음). 이때만 호출자(회원 ID, 아니면 클라이언트 IP)의 하루 한 줄 풀이 한도로 셉니다(ADR-0069)
 - 저장은 분석·변경마다 하나입니다(다시 만들지 않음). 완료된 분석에만 씁니다.
 
 **응답 200**
@@ -2672,6 +2672,7 @@
 | 404 | `ANALYSIS_NOT_FOUND` | 없는 분석 |
 | 404 | `ANALYSIS_TEXT_CHANGE_NOT_FOUND` | 이 분석의 변경 항목이 아님 |
 | 409 | `ANALYSIS_NOT_READY` | 분석이 끝나지 않음 |
+| 429 | `AI_QUOTA_EXCEEDED` | AI 서버로 새로 만들어야 하는데 오늘 한 줄 풀이 한도를 넘음(ADR-0069). 저장된 풀이·요약 문장·원문 없음은 세지 않고, 넘은 요청은 AI 서버를 부르지 않음. `Retry-After`에 다음 날 0시(한국 시간)까지 남은 초 |
 | 503 | `AI_SERVER_UNAVAILABLE` | AI 서버 또는 LLM을 쓸 수 없음(저장하지 않음) |
 
 ### GET /api/analyses/{analysisId}/text-changes/{changeId}/related-disclosures — 관련 수시공시(보조 근거)
@@ -4452,7 +4453,7 @@ backend는 저장하기 전에 `changeNos`가 이 분석의 변경인지, `evide
 | `DART_REQUEST_FAILED` | 502 | OpenDART 호출 실패 | 잠시 뒤 다시 시도 |
 | `DART_RATE_LIMITED` | 503 | OpenDART 호출 한도 초과(020) | 내일 다시 시도, 저장된 자료 사용 |
 | `DART_KEY_MISSING` | 503 | 서버에 OpenDART 키가 없음 | 관리자 안내 |
-| `AI_QUOTA_EXCEEDED` | 429 | 질문·에이전트 채팅(ADR-0054) 또는 새 분석(ADR-0056)의 하루 한도를 넘음. 기본값: 질문 비로그인 IP별 20·회원 100·전체 3,000회, 새 분석 비로그인 10·회원 30·전체 500회 | 메시지를 그대로 보이고, 로그인 안 했으면 로그인 안내(다시 시도는 숨김) |
+| `AI_QUOTA_EXCEEDED` | 429 | 질문·에이전트 채팅(ADR-0054), 새 분석(ADR-0056), 문장 변경 한 줄 풀이를 새로 만들기(ADR-0069)의 하루 한도를 넘음. 기본값: 질문 비로그인 IP별 20·회원 100·전체 3,000회, 새 분석 비로그인 10·회원 30·전체 500회, 한 줄 풀이 비로그인 30·회원 150·전체 3,000회 | 메시지를 그대로 보이고, 로그인 안 했으면 로그인 안내(다시 시도는 숨김) |
 | `AI_SERVER_UNAVAILABLE` | 503 | AI 서버가 응답하지 않음 | 잠시 뒤 다시 시도 |
 
 ## 5. 정하지 못한 것

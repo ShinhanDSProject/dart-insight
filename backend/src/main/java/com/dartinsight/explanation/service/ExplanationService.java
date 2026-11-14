@@ -15,6 +15,9 @@ import com.dartinsight.explanation.domain.TextExplanationRecord;
 import com.dartinsight.explanation.dto.TextExplanationResponse;
 import com.dartinsight.explanation.dto.TextExplanationResponse.Location;
 import com.dartinsight.explanation.repository.ExplanationStore;
+import com.dartinsight.llmquota.domain.QuotaCaller;
+import com.dartinsight.llmquota.domain.QuotaKind;
+import com.dartinsight.llmquota.service.LlmQuotaService;
 import com.dartinsight.report.service.ReportService;
 import com.dartinsight.report.service.ReportService.ReportDetail;
 import com.dartinsight.summary.domain.LlmCallRow;
@@ -40,6 +43,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * 문장 변경 AI 한 줄 풀이(3.11, FS-6). 순서: 저장된 풀이 → 요약(summary_item)의 그 변경 문장 → 원문이 없으면 AI 없이
  * NO_SOURCE → 요약과 같은 /internal/summaries를 문장 항목 하나로 불러 만든다(근거 확인은 SummaryService와 같음).
  * AI 서버 호출은 트랜잭션 밖에서 하고, 풀이와 LLM 호출 기록만 한 트랜잭션으로 저장한다(LY-2). 다시 만들지 않는다.
+ * AI 서버를 부를 때만(새로 만들 때) 하루 한도로 센다(ADR-0069).
  */
 @Service
 @RequiredArgsConstructor
@@ -56,6 +60,7 @@ public class ExplanationService {
     private final ReportService reportService;
     private final DocumentService documentService;
     private final ExplanationStore explanationStore;
+    private final LlmQuotaService llmQuota;
     private final TransactionTemplate transactionTemplate;
     private final Clock clock;
 
@@ -67,9 +72,11 @@ public class ExplanationService {
     /**
      * 그 변경의 한 줄 풀이를 만들거나 저장된 것을 돌려준다. 완료된 분석에만(아니면 409), 이 분석의 변경만(아니면 404).
      *
+     * @param caller 요청한 호출자. AI 서버로 새로 만들 때만 하루 한도로 센다(넘으면 429 AI_QUOTA_EXCEEDED, ADR-0069).
+     *     null이면 세지 않는다(이미 질문 한도로 센 에이전트 채팅의 Tool)
      * @throws AiServerException AI 서버·LLM을 쓸 수 없음(503 AI_SERVER_UNAVAILABLE, 저장하지 않음)
      */
-    public TextExplanationResponse explain(Long analysisId, Long changeId) {
+    public TextExplanationResponse explain(Long analysisId, Long changeId, QuotaCaller caller) {
         CompletedTextChange completed = textChangeQueryService.completedChange(analysisId, changeId);
         Analysis analysis = completed.analysis();
         TextChange change = completed.change();
@@ -90,6 +97,9 @@ public class ExplanationService {
                     ExplanationStatus.NO_SOURCE, NO_SOURCE, List.of(), traceId, now()), List.of());
         }
 
+        if (caller != null) {
+            llmQuota.acquire(QuotaKind.EXPLANATION, caller);
+        }
         ReportDetail current = reportService.get(analysis.getCurrentRceptNo());
         ReportDetail previous = reportService.get(analysis.getPreviousRceptNo());
         TextExplanation explained = summaryService.explain(current.company().getCorpName(),
