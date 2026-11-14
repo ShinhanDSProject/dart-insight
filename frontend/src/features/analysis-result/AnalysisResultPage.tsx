@@ -106,7 +106,7 @@ export function AnalysisResultPage() {
 function ResultSkeleton() {
   return (
     <Page width="wide">
-      <Skeleton label="분석 결과를 불러오는 중입니다…" shape="block" />
+      <Skeleton label="분석 결과를 불러오는 중이에요…" shape="block" />
     </Page>
   )
 }
