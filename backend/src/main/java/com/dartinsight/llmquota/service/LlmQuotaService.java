@@ -19,7 +19,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
- * LLM을 새로 부르기 전에 하루 한도를 확인한다. 질문·에이전트 채팅(ADR-0054)과 사용자가 요청한 새 분석(ADR-0056)을 따로 센다.
+ * LLM을 새로 부르기 전에 하루 한도를 확인한다. 질문·에이전트 채팅(ADR-0054), 사용자가 요청한 새 분석(ADR-0056),
+ * 문장 변경 한 줄 풀이(ADR-0069)를 따로 센다.
  * 회원은 회원 ID, 아니면 클라이언트 IP로 센다.
  */
 @Service
@@ -32,7 +33,8 @@ public class LlmQuotaService {
     private final Clock clock;
     private final Map<QuotaKind, DailyQuotaCounter> counters = new EnumMap<>(Map.of(
             QuotaKind.QUESTION, new DailyQuotaCounter(),
-            QuotaKind.ANALYSIS, new DailyQuotaCounter()));
+            QuotaKind.ANALYSIS, new DailyQuotaCounter(),
+            QuotaKind.EXPLANATION, new DailyQuotaCounter()));
 
     /** 오늘 한 번 더 쓸 수 있으면 세고, 아니면 429 AI_QUOTA_EXCEEDED(Retry-After: 다음 날 0시까지 남은 초) */
     public void acquire(QuotaKind kind, QuotaCaller caller) {
