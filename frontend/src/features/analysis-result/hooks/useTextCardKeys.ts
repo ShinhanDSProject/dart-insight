@@ -13,6 +13,8 @@ export interface TextCardKeyHandlers {
   onTogglePin: (changeId: number) => void
   /** 키로 다른 줄·카드로 옮긴 뒤(3.54 목록 줄이면 상세도 그 변경으로) */
   onMoved?: (changeId: number) => void
+  /** 받아 둔 마지막 줄에서 다음(j·↓)을 눌렀을 때. 다음 쪽을 불러와 이어 갈 수 있다 */
+  onPastEnd?: () => void
 }
 
 /**
@@ -52,7 +54,12 @@ export function useTextCardKeys(handlers: TextCardKeyHandlers) {
           const cards = Array.from(document.querySelectorAll<HTMLElement>(`[${TEXT_CARD_ATTRIBUTE}]`)).filter(
             (el) => !el.hasAttribute(TEXT_DETAIL_ATTRIBUTE),
           )
-          const index = movedCardIndex(fromIndex(cards, card), step, cards.length)
+          const from = fromIndex(cards, card)
+          if (step === 1 && from !== null && from === cards.length - 1) {
+            latest.current.onPastEnd?.()
+            return
+          }
+          const index = movedCardIndex(from, step, cards.length)
           if (index === null) return
           cards[index].focus({ preventScroll: true })
           cards[index].scrollIntoView({ block: 'nearest' })

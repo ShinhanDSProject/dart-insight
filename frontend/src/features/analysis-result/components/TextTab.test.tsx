@@ -21,6 +21,7 @@ const list = vi.hoisted(() => ({
   state: null as TextListState | null,
   type: null as ChangeType | null,
   reload: vi.fn(),
+  loadMore: vi.fn(),
   groups: {} as Partial<Record<TextListGroup, TextListState>>,
 }))
 vi.mock('../hooks/useTextChanges', () => ({
@@ -38,7 +39,7 @@ vi.mock('../hooks/useTextChanges', () => ({
     contentAvailable: false,
     type: list.type,
     reload: list.reload,
-    loadMore: () => {},
+    loadMore: list.loadMore,
   }),
   useTextChangeGroup: (_analysisId: number, group: TextListGroup) => ({
     state: list.groups[group] ?? { status: 'loading' },
@@ -179,6 +180,62 @@ describe('TextTab 카드 키보드 검토', () => {
     expect(document.activeElement).toBe(rows[1])
     expect(onChange).toHaveBeenLastCalledWith({ detail: 2 })
     expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' })
+  })
+
+  it('받아 둔 마지막 줄에서 j를 누르면 다음 쪽을 불러오고, 오면 그 첫 줄로 초점과 상세가 넘어간다(#996 후속)', () => {
+    const loaded = [item(1, '1. 사업의 개요'), item(2, '2. 주요 제품'), item(3, '3. 원재료')]
+    const listed = (items: TextChangeItem[], more: 'idle' | 'loading'): TextListState =>
+      ({
+        status: 'success',
+        data: { page: 0, totalItems: 4, items } as unknown as TextChangeList,
+        items,
+        more: { status: more },
+      }) as unknown as TextListState
+    list.state = listed(loaded, 'idle')
+    list.loadMore.mockClear()
+    function Harness() {
+      const [detailId, setDetailId] = useState<number | null>(null)
+      return (
+        <MemoryRouter>
+          <main>
+            <TextTab
+              analysis={analysis}
+              type={null}
+              sort="priority"
+              section={null}
+              q={null}
+              risk={false}
+              field={null}
+              pinned={false}
+              selectedChangeId={null}
+              detailId={detailId}
+              onChange={(next) => {
+                if (next.detail !== undefined) setDetailId(next.detail)
+              }}
+              onOpenSource={() => {}}
+              onAsk={() => {}}
+              asking={false}
+            />
+          </main>
+        </MemoryRouter>
+      )
+    }
+    const view = render(<Harness />)
+    press('j')
+    press('j')
+    press('j')
+    expect(document.activeElement).toBe(listRows()[2])
+    press('j')
+    expect(list.loadMore).toHaveBeenCalledTimes(1)
+    expect(document.activeElement).toBe(listRows()[2])
+
+    list.state = listed(loaded, 'loading')
+    view.rerender(<Harness />)
+    list.state = listed([...loaded, item(4, '4. 매출')], 'idle')
+    view.rerender(<Harness />)
+    expect(document.activeElement).toBe(listRows()[3])
+    expect(screen.getByText('4 / 4')).toBeTruthy()
+    list.state = null
   })
 
   it('줄에 초점이 있으면 ↓·↑로도 옮긴다', () => {

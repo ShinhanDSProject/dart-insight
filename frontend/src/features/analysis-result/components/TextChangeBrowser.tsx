@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { match } from 'ts-pattern'
 import type { TextChangeItem } from '@/shared/api/textChanges'
 import { Button } from '@/shared/ui'
@@ -28,6 +28,8 @@ interface TextChangeBrowserProps {
   onLoadMore?: () => void
   /** 다음 쪽을 불러오는 중 */
   loadingMore?: boolean
+  /** 키보드 다음(j)이 받아 둔 마지막 줄에 닿으면 부를 다음 쪽 불러오기. 이 목록이 채워 둔다 */
+  nextRef?: RefObject<(() => void) | null>
 }
 
 type Pane = 'list' | 'detail'
@@ -56,6 +58,7 @@ export function TextChangeBrowser({
   footer,
   onLoadMore,
   loadingMore = false,
+  nextRef,
 }: TextChangeBrowserProps) {
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set())
   const [pane, setPane] = useState<Pane>('list')
@@ -84,27 +87,49 @@ export function TextChangeBrowser({
       if (isNarrow()) requestAnimationFrame(() => detailRef.current?.focus())
     }
   }
+  // 받아 둔 끝에서 다음 쪽을 불러와, 오면 그 첫 줄로 이어 간다
+  const loadNext = () => {
+    if (!canLoadMore || loadingMore || items.length === 0) return
+    advanceFrom.current = { count: items.length, lastId: items[items.length - 1].changeId }
+    onLoadMore?.()
+  }
   const step = (by: number) => {
     if (detail.kind !== 'item') return
     const target = items[detail.index + by]
     if (target !== undefined) {
       choose(target.changeId, false)
-    } else if (by > 0 && canLoadMore) {
+    } else if (by > 0) {
       // 머리줄의 'N / 전체'와 맞게, 받아 둔 끝에서는 다음 쪽을 불러와 이어 간다
-      advanceFrom.current = { count: items.length, lastId: items[items.length - 1].changeId }
-      onLoadMore?.()
+      loadNext()
     }
   }
   const chooseRef = useRef(choose)
   useEffect(() => {
     chooseRef.current = choose
+    // 키(j)는 목록의 마지막 줄에서만 부른다. 상세가 근거를 연 다른 변경일 수 있어 상세 자리가 아니라 목록 끝에서 잇는다
+    if (nextRef !== undefined) nextRef.current = loadNext
   })
+  useEffect(() => {
+    if (nextRef === undefined) return
+    return () => {
+      nextRef.current = null
+    }
+  }, [nextRef])
   useEffect(() => {
     const from = advanceFrom.current
     if (from === null) return
     // 기다리는 사이 거르기·정렬이 바뀌어 다른 목록이 됐으면 넘어가지 않는다
     if (items[from.count - 1]?.changeId !== from.lastId) advanceFrom.current = null
-    else if (items.length > from.count) chooseRef.current(items[from.count].changeId, false)
+    else if (items.length > from.count) {
+      const changeId = items[from.count].changeId
+      chooseRef.current(changeId, false)
+      // 키보드로 목록 줄을 옮기던 중이면 새 줄로 초점도 옮겨, 이어서 j를 누르면 그다음 줄로 간다
+      if (listRef.current?.contains(document.activeElement)) {
+        const row = listRef.current.querySelector<HTMLElement>(`[${TEXT_CARD_ATTRIBUTE}="${changeId}"]`)
+        row?.focus({ preventScroll: true })
+        row?.scrollIntoView({ block: 'nearest' })
+      }
+    }
     // 불러오기가 새 줄 없이 끝났으면(실패 등) 기다리지 않는다. 나중에 '더 보기'로 받아도 저절로 넘어가지 않게
     else if (!loadingMore) advanceFrom.current = null
   }, [items, loadingMore])
