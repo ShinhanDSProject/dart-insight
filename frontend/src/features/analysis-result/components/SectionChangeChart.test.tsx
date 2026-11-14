@@ -38,10 +38,10 @@ describe('변경이 많은 섹션 막대(#560)', () => {
   it('건수가 많은 순으로 3개만 보이고, 섹션 전체 보기에 변경이 있는 섹션 수를 적는다', () => {
     const onOpenAll = vi.fn()
     render(<SectionChangeChart state={loaded(many)} onOpenSection={noop} onOpenAll={onOpenAll} />)
-    const rows = screen.getAllByRole('button', { name: /문장 탭에서 보기$/ })
+    const rows = screen.getAllByRole('button', { name: /바뀐 곳에서 보기$/ })
     expect(rows).toHaveLength(3)
-    expect(rows[0].getAttribute('aria-label')).toBe('II. 사업의 내용: 문장 변경 31건. 문장 탭에서 보기')
-    expect(rows[1].getAttribute('aria-label')).toBe('I. 회사의 개요: 문장 변경 12건. 문장 탭에서 보기')
+    expect(rows[0].getAttribute('aria-label')).toBe('II. 사업의 내용: 문장 변경 31건. 바뀐 곳에서 보기')
+    expect(rows[1].getAttribute('aria-label')).toBe('I. 회사의 개요: 문장 변경 12건. 바뀐 곳에서 보기')
     fireEvent.click(screen.getByRole('button', { name: '섹션 전체 보기 (10개)' }))
     expect(onOpenAll).toHaveBeenCalledTimes(1)
   })

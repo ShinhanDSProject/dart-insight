@@ -35,7 +35,7 @@ export function ChangeOverview({ financial, text, onOpenChangedAccounts, onOpenT
               <Stat
                 label="바뀐 계정"
                 value={formatCount(data.changed)}
-                hint="재무 수치 변화에서 변경 항목만 보기"
+                hint="재무 수치에서 변경 항목만 보기"
                 detail={data.changed === null ? '비교한 재무제표가 없어요' : null}
                 onOpen={() => onOpenChangedAccounts(data.firstChangedSjDiv)}
               />
@@ -51,7 +51,7 @@ export function ChangeOverview({ financial, text, onOpenChangedAccounts, onOpenT
                     <Stat
                       label="바뀐 문장"
                       value={formatCount(t.all)}
-                      hint="문장·내용 변화에서 전체 보기"
+                      hint="바뀐 곳에서 전체 보기"
                       detail={t.partial ? '일부 섹션만 비교했어요' : null}
                       onOpen={() => onOpenTextList(null)}
                     />
@@ -60,7 +60,7 @@ export function ChangeOverview({ financial, text, onOpenChangedAccounts, onOpenT
                         className="overview-stat--nested"
                         label="먼저 볼 것"
                         value={formatCount(t.high)}
-                        hint="우선순위 높음, 문장·내용 변화에서 우선순위 순으로 보기"
+                        hint="우선순위 높음, 바뀐 곳에서 우선순위 순으로 보기"
                         detail={null}
                         onOpen={onOpenPriorityList}
                       />
@@ -71,7 +71,7 @@ export function ChangeOverview({ financial, text, onOpenChangedAccounts, onOpenT
                   <Stat
                     label="바뀐 문장"
                     value={formatCount(null)}
-                    hint="문장·내용 변화에서 사유 보기"
+                    hint="바뀐 곳에서 사유 보기"
                     detail="문장을 비교하지 못했어요"
                     onOpen={() => onOpenTextList(null)}
                   />
@@ -88,7 +88,7 @@ export function ChangeOverview({ financial, text, onOpenChangedAccounts, onOpenT
                   <Stat
                     label="검토 필요"
                     value={formatCount(t.reviewNeeded)}
-                    hint="문장·내용 변화에서 검토 필요만 보기"
+                    hint="바뀐 곳에서 검토 필요만 보기"
                     detail={null}
                     onOpen={() => onOpenTextList('REVIEW_NEEDED')}
                   />
@@ -97,7 +97,7 @@ export function ChangeOverview({ financial, text, onOpenChangedAccounts, onOpenT
                   <Stat
                     label="검토 필요"
                     value={formatCount(null)}
-                    hint="문장·내용 변화에서 사유 보기"
+                    hint="바뀐 곳에서 사유 보기"
                     detail="문장을 비교하지 못했어요"
                     onOpen={() => onOpenTextList(null)}
                   />
