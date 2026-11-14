@@ -159,7 +159,7 @@ export function Layout() {
       </header>
 
       <div className="app-workspace">
-        <AppBackdrop key={pathname} />
+        <AppBackdrop key={`backdrop:${pathname}`} />
         {recent.length > 0 && (
           <CompanyNav companies={recent} />
         )}
