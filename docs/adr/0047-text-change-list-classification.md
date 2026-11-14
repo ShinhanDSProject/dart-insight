@@ -1,6 +1,6 @@
 # ADR-0047: 문장 변경의 목록 분류와 표 행 비교는 ai-server가 비교할 때 정하고, backend가 변경과 함께 저장한다
 
-- 상태: 제안
+- 상태: 채택
 - 결정한 날: 2026-11-03
 - 관련: 이슈 2.9, 기능 기획서 '문장 변화 탭 목록 정리'(FS 번호는 등록 후 채움), [ADR-0021](0021-numeric-update-and-moved-text-changes.md), [ADR-0014](0014-analysis-reuse-and-version.md), [ADR-0011](0011-jdbc-batch-for-large-tables.md), `ai-server/app/compare/`, `TextComparisonService`, `TextChangeStore`
 

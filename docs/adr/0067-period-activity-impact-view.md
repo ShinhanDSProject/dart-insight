@@ -1,6 +1,6 @@
 # ADR-0067: 문장 변화 탭은 '이 기간에 한 일과 앞으로의 영향'을 보이고, 전체 변경 목록은 별도 탭으로 옮긴다
 
-- 상태: 제안
+- 상태: 채택
 - 결정한 날: 2026-11-10
 - 관련: [ADR-0039](0039-company-outlook.md)(전망·계획의 동기 생성·저장 방식), [ADR-0050](0050-text-events-after-analysis.md)·[ADR-0051](0051-text-event-candidate-rules.md)(주요 사건과 후보 규칙), [ADR-0060](0060-event-signal-and-sentences.md)(신호 기준표), [ADR-0065](0065-event-future-impact-path-table.md)(앞으로의 영향), [ADR-0066](0066-event-period-disclosure-input.md)(사이 기간 공시 입력, 제안)
 
