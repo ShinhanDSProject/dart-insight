@@ -317,6 +317,27 @@ describe('Financial EvidencePanel (#512)', () => {
     expect(screen.getByText('확인된 설명 없음')).toBeTruthy()
   })
 
+  it('요약을 아직 불러오는 중이면 확인된 설명 없음이라고 단정하지 않고 불러오는 자리를 보인다', () => {
+    data.detail = { status: 'success', data: { ...mockDetail, relatedTextChanges: [] } }
+    data.summary = { status: 'loading' }
+
+    renderEvidence()
+
+    expect(screen.queryByText('확인된 설명 없음')).toBeNull()
+    expect(screen.getByText('관련 설명을 불러오는 중이에요…')).toBeTruthy()
+  })
+
+  it('요약을 불러오지 못하면 확인된 설명 없음 대신 다시 시도를 보인다', () => {
+    data.detail = { status: 'success', data: { ...mockDetail, relatedTextChanges: [] } }
+    data.summary = { status: 'error', error: new Error('network') }
+
+    renderEvidence()
+
+    expect(screen.queryByText('확인된 설명 없음')).toBeNull()
+    expect(screen.getByText(/관련 설명을 불러오지 못했어요/)).toBeTruthy()
+    expect(screen.getByRole('button', { name: '다시 시도' })).toBeTruthy()
+  })
+
   it('웹 접근성(axe) 위반이 없다', async () => {
     const { container } = renderEvidence()
 

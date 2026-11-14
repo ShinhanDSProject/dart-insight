@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { match } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
 import type { ChangeScaleDetail, FinancialChangeDetail, RelatedTextChange, ValueSource } from '@/shared/api/results'
-import { Badge, Button, ButtonLink, CompareBars, Icon, Notice, PanelTitle, SidePanel } from '@/shared/ui'
+import { Badge, Button, ButtonLink, CompareBars, Icon, Notice, PanelTitle, SidePanel, Skeleton } from '@/shared/ui'
 import { DartLinkInline } from '@/shared/ui/DartLink'
 import { ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { communityQuotePath } from '@/shared/lib/communityQuoteLink'
@@ -247,11 +247,25 @@ function EvidenceBody({
         />
       )}
 
-      {!hasSummaryExplanation && !hasRelatedTexts && (
-        <Notice as="p" tone="attention">
-          관련 설명: <strong>확인된 설명 없음</strong> · 공시에서 확인되지 않은 원인은 추정하지 않아요.
-        </Notice>
-      )}
+      {/* 요약을 다 받은 뒤에만 '확인된 설명 없음'이라고 말한다. 받는 중이거나 못 받았으면 없다고 단정하지 않는다 */}
+      {!hasSummaryExplanation &&
+        !hasRelatedTexts &&
+        match(summary.state)
+          .with({ status: 'loading' }, () => <Skeleton label="관련 설명을 불러오는 중이에요…" shape="line" count={2} />)
+          .with({ status: 'error' }, () => (
+            <Notice as="p" tone="attention">
+              관련 설명을 불러오지 못했어요.{' '}
+              <Button variant="link" onClick={summary.reload}>
+                다시 시도
+              </Button>
+            </Notice>
+          ))
+          .with({ status: 'success' }, () => (
+            <Notice as="p" tone="attention">
+              관련 설명: <strong>확인된 설명 없음</strong> · 공시에서 확인되지 않은 원인은 추정하지 않아요.
+            </Notice>
+          ))
+          .exhaustive()}
 
       <div className="evidence__actions">
         <Button
