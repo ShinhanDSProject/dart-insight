@@ -21,7 +21,11 @@ export function searchFormReducer(state: SearchFormState, action: SearchFormActi
   return match<SearchFormAction, SearchFormState>(action)
     .with({ type: 'change-input' }, ({ value }) => ({ ...state, input: value }))
     .with({ type: 'submit' }, () => ({ ...state, error: validateSearchQuery(state.input) }))
-    // 뒤로 가기나 로고 클릭으로 주소의 검색어가 바뀌면 입력창도 맞추고 안내를 지운다
-    .with({ type: 'sync-query' }, ({ query }) => (query === state.shownQuery ? state : initSearchForm(query)))
+    // 뒤로 가기나 로고 클릭으로 주소의 검색어가 바뀌면 입력창도 맞추고 안내를 지운다.
+    // 입력을 멈춰 자동 검색으로 바뀐 주소(다듬은 입력과 같음)면 치던 글을 그대로 두고(끝에 친 공백이 지워지지 않게) 안내만 지운다
+    .with({ type: 'sync-query' }, ({ query }) => {
+      if (query === state.shownQuery) return state
+      return state.input.trim() === query ? { ...state, error: null, shownQuery: query } : initSearchForm(query)
+    })
     .exhaustive()
 }
