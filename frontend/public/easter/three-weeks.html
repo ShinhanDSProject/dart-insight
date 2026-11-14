@@ -2958,48 +2958,55 @@ stepper('#userflow', '#flowtext', [
   const MUSIC_SLIDES = ['cover', 'qna'];
   const bgm = (() => {
     const AC = window.AudioContext || window.webkitAudioContext;
-    const CHORDS = [[48, 55, 59, 64, 67], [45, 52, 55, 60, 64, 71], [41, 48, 52, 57, 64], [43, 50, 55, 59, 62, 64]]; // Cmaj7 → Am9 → Fmaj7 → G6(MIDI 번호), 한 화음 8초
-    const BAR = 8, VOLUME = 0.16;
+    // 설레는 느낌: 밝은 D장조 진행(D → A → Bm → G, MIDI 번호)에 8분음표로 오르내리는 아르페지오를 얹음. 100BPM, 한 화음 2마디(4.8초)
+    const CHORDS = [
+      { pad: [50, 57, 62, 64, 66], arp: [62, 66, 69, 74, 76, 74, 69, 66] },
+      { pad: [45, 57, 61, 64, 71], arp: [61, 64, 69, 73, 76, 73, 69, 64] },
+      { pad: [47, 54, 59, 62, 66], arp: [62, 66, 71, 74, 78, 74, 71, 66] },
+      { pad: [43, 50, 59, 62, 66, 69], arp: [62, 67, 71, 74, 79, 74, 71, 67] }
+    ];
+    const EIGHTH = 0.3, BAR = EIGHTH * 16, VOLUME = 0.16;
     const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
     let ctx = null, master = null, bus = null, timer = 0, idle = 0, nextAt = 0, step = 0;
     const build = () => {
       ctx = new AC();
       master = ctx.createGain(); master.gain.value = 0;
       bus = ctx.createGain();
-      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1400; lp.Q.value = 0.3;
-      const delay = ctx.createDelay(2); delay.delayTime.value = 0.55;
-      const fb = ctx.createGain(); fb.gain.value = 0.35;
-      const wet = ctx.createGain(); wet.gain.value = 0.3;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2400; lp.Q.value = 0.3;
+      const delay = ctx.createDelay(2); delay.delayTime.value = EIGHTH * 1.5; // 점8분 메아리로 반짝이게
+      const fb = ctx.createGain(); fb.gain.value = 0.3;
+      const wet = ctx.createGain(); wet.gain.value = 0.25;
       bus.connect(lp); lp.connect(master);
       lp.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(master); // 메아리로 공간감
       master.connect(ctx.destination);
     };
-    const pad = (freq, t) => { // 천천히 차오르고 다음 화음과 겹치며 사라지는 소리, 두 개를 살짝 어긋나게 겹쳐 따뜻하게
+    const pad = (freq, t) => { // 화음 바탕: 차오른 뒤 다음 화음과 겹치며 사라지고, 두 개를 살짝 어긋나게 겹쳐 따뜻하게
       [-5, 5].forEach((cents) => {
         const o = ctx.createOscillator(), g = ctx.createGain();
         o.type = 'triangle'; o.frequency.value = freq; o.detune.value = cents;
         g.gain.setValueAtTime(0, t);
-        g.gain.linearRampToValueAtTime(0.045, t + 2.5);
-        g.gain.setValueAtTime(0.045, t + BAR);
-        g.gain.linearRampToValueAtTime(0, t + BAR + 3);
+        g.gain.linearRampToValueAtTime(0.03, t + 1.2);
+        g.gain.setValueAtTime(0.03, t + BAR);
+        g.gain.linearRampToValueAtTime(0, t + BAR + 2);
         o.connect(g); g.connect(bus);
-        o.start(t); o.stop(t + BAR + 3.1);
+        o.start(t); o.stop(t + BAR + 2.1);
       });
     };
-    const bell = (freq, t) => { // 화음 위로 가끔 떨어지는 맑은 소리
+    const pluck = (freq, t, peak, len) => { // 톡 튕기고 사라지는 소리(아르페지오·반짝임)
       const o = ctx.createOscillator(), g = ctx.createGain();
       o.type = 'sine'; o.frequency.value = freq;
       g.gain.setValueAtTime(0, t);
-      g.gain.linearRampToValueAtTime(0.06, t + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 3);
+      g.gain.linearRampToValueAtTime(peak, t + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + len);
       o.connect(g); g.connect(bus);
-      o.start(t); o.stop(t + 3.1);
+      o.start(t); o.stop(t + len + 0.05);
     };
-    const tick = () => { // 1초 앞까지 다음 마디를 미리 예약
+    const tick = () => { // 1초 앞까지 다음 화음을 미리 예약
       while (nextAt < ctx.currentTime + 1) {
         const chord = CHORDS[step % CHORDS.length];
-        chord.forEach((m) => pad(hz(m), nextAt));
-        [1.5, 3.5, 5.5].forEach((beat) => { if (Math.random() < 0.6) bell(hz(chord[Math.floor(Math.random() * chord.length)] + 24), nextAt + beat); });
+        chord.pad.forEach((m) => pad(hz(m), nextAt));
+        for (let i = 0; i < 16; i += 1) pluck(hz(chord.arp[i % 8]), nextAt + i * EIGHTH, i % 2 === 0 ? 0.07 : 0.045, 0.9); // 박마다(8분음표 둘 중 첫 음) 조금 세게
+        if (step % 2 === 1) [0, 1].forEach((k) => pluck(hz(chord.arp[3 + k] + 12), nextAt + BAR - EIGHTH * (2 - k), 0.045, 1.6)); // 두 화음마다 끝에 높은 두 음으로 다음을 기대하게(2.4kHz 위라 lowpass에 깎이는 만큼 크게)
         nextAt += BAR; step += 1;
       }
     };
