@@ -238,7 +238,13 @@ export function TextTab({
     />
   )
   // 전체 변경과 고정 목록은 목록·상세로 보인다(3.54). 사건 안·접힌 묶음은 카드로 둔다
-  const browser = (items: TextChangeItem[], total: number, grouped: boolean, footer?: ReactNode) => {
+  const browser = (
+    items: TextChangeItem[],
+    total: number,
+    grouped: boolean,
+    footer?: ReactNode,
+    paging?: { onLoadMore: () => void; loading: boolean },
+  ) => {
     const detail = textDetailOf(items, detailId, selectedChangeId)
     const noted = firstNotedIds(items)
     return (
@@ -258,6 +264,8 @@ export function TextTab({
         // 상세 칸의 카드는 목록을 대신하므로 요소 id 앞말을 붙이지 않는다(같은 변경이 접힌 묶음에 함께 있지 않음)
         renderDetail={(item) => changeCard(item, noted.has(item.changeId), '', true)}
         footer={footer}
+        onLoadMore={paging?.onLoadMore}
+        loadingMore={paging?.loading}
       />
     )
   }
@@ -544,6 +552,7 @@ export function TextTab({
                   data.totalItems,
                   sort === 'document',
                   <TextListFooter loaded={items.length} total={data.totalItems} more={more} onMore={loadMore} />,
+                  { onLoadMore: loadMore, loading: more.status === 'loading' },
                 )}
             </>
           ))
