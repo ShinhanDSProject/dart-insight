@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { match } from 'ts-pattern'
 import type { TextChangeItem } from '@/shared/api/textChanges'
 import { Button } from '@/shared/ui'
@@ -24,6 +24,10 @@ interface TextChangeBrowserProps {
   onOpenOutside: (changeId: number) => void
   /** 목록 아래(더 보기 등) */
   footer?: ReactNode
+  /** 받아 둔 마지막 변경에서 '다음'을 누르면 다음 쪽을 불러온다. 없으면 받아 둔 데까지만 넘긴다 */
+  onLoadMore?: () => void
+  /** 다음 쪽을 불러오는 중 */
+  loadingMore?: boolean
 }
 
 type Pane = 'list' | 'detail'
@@ -50,15 +54,21 @@ export function TextChangeBrowser({
   renderDetail,
   onOpenOutside,
   footer,
+  onLoadMore,
+  loadingMore = false,
 }: TextChangeBrowserProps) {
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set())
   const [pane, setPane] = useState<Pane>('list')
   const detailRef = useRef<HTMLElement>(null)
   const listRef = useRef<HTMLElement>(null)
   const selectedId = detail.kind === 'item' ? detail.item.changeId : null
+  const canLoadMore = onLoadMore !== undefined && items.length < total
   const runs = grouped ? sectionRuns(items) : [{ key: 'all', sectionPath: '', items }]
 
+  // '다음'으로 다음 쪽을 불러오는 중이면 그때 받아 둔 건수와 마지막 변경. 새 줄이 오면 그 첫 줄로 이어 넘어간다
+  const advanceFrom = useRef<{ count: number; lastId: number } | null>(null)
   const choose = (changeId: number, openDetail: boolean) => {
+    advanceFrom.current = null
     // 고른 변경이 접힌 묶음 안이면 그 묶음을 편다
     setCollapsed((current) => {
       const run = runs.find((r) => r.items.some((i) => i.changeId === changeId))
@@ -77,8 +87,27 @@ export function TextChangeBrowser({
   const step = (by: number) => {
     if (detail.kind !== 'item') return
     const target = items[detail.index + by]
-    if (target !== undefined) choose(target.changeId, false)
+    if (target !== undefined) {
+      choose(target.changeId, false)
+    } else if (by > 0 && canLoadMore) {
+      // 머리줄의 'N / 전체'와 맞게, 받아 둔 끝에서는 다음 쪽을 불러와 이어 간다
+      advanceFrom.current = { count: items.length, lastId: items[items.length - 1].changeId }
+      onLoadMore?.()
+    }
   }
+  const chooseRef = useRef(choose)
+  useEffect(() => {
+    chooseRef.current = choose
+  })
+  useEffect(() => {
+    const from = advanceFrom.current
+    if (from === null) return
+    // 기다리는 사이 거르기·정렬이 바뀌어 다른 목록이 됐으면 넘어가지 않는다
+    if (items[from.count - 1]?.changeId !== from.lastId) advanceFrom.current = null
+    else if (items.length > from.count) chooseRef.current(items[from.count].changeId, false)
+    // 불러오기가 새 줄 없이 끝났으면(실패 등) 기다리지 않는다. 나중에 '더 보기'로 받아도 저절로 넘어가지 않게
+    else if (!loadingMore) advanceFrom.current = null
+  }, [items, loadingMore])
   const backToList = () => {
     setPane('list')
     requestAnimationFrame(() => {
@@ -148,7 +177,11 @@ export function TextChangeBrowser({
               <Button variant="secondary" disabled={detail.index === 0} onClick={() => step(-1)}>
                 ↑ 이전 (k)
               </Button>
-              <Button variant="secondary" disabled={detail.index >= items.length - 1} onClick={() => step(1)}>
+              <Button
+                variant="secondary"
+                disabled={loadingMore || (detail.index >= items.length - 1 && !canLoadMore)}
+                onClick={() => step(1)}
+              >
                 다음 (j) ↓
               </Button>
             </>
