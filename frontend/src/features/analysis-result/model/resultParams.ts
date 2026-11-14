@@ -256,7 +256,8 @@ export function openTextList(type: ChangeType | null): ParamChanges {
  * 맨 위에 그 변경들이 오도록 유형·섹션·검색어·위험 관련·고정 거르기를 모두 지운다(우선순위 수준 거르기는 API에 없음)
  */
 export function openPriorityList(): ParamChanges {
-  return { tab: 'text', ttype: null, tsort: null, tsec: null, tq: null, trisk: null, tfield: null, tpin: null, tc: null }
+  // 기본 정렬은 문서 순서라(tsort 없음) 우선순위 순을 주소에 적는다
+  return { tab: 'text', ttype: null, tsort: 'priority', tsec: null, tq: null, trisk: null, tfield: null, tpin: null, tc: null }
 }
 
 /** 요약의 섹션별 문장 변경 막대에서 문장 변화 탭을 그 최상위 섹션으로 거른다(#295). 막대 건수와 맞도록 유형·검색어·위험 관련은 지운다 */
