@@ -78,6 +78,7 @@ export function ChatPanel({
 }: ChatPanelProps) {
   const headingRef = useRef<HTMLHeadingElement>(null)
   const endRef = useRef<HTMLDivElement>(null)
+  const logRef = useRef<HTMLDivElement>(null)
   const { exchanges, request, draft } = chat.state
 
   // 처음 열 때만 초점을 옮긴다
@@ -87,9 +88,13 @@ export function ChatPanel({
     else headingRef.current?.focus({ preventScroll: true })
   }, [])
 
-  // 새 답·보내는 중 표시가 생기면 대화 끝을 보인다
+  // 보내는 중·오류 표시는 대화 끝을 보이고, 새 답은 그 대화 묶음의 위쪽(보낸 요청과 답의 첫 줄)부터 보인다.
+  // 끝을 보이면 긴 답은 앞부분이 가려진 채 끝 줄부터 보인다
   useEffect(() => {
-    endRef.current?.scrollIntoView?.({ block: 'end' })
+    const answered = request.status === 'idle' ? logRef.current?.querySelectorAll<HTMLElement>('.chat-panel__exchange') : undefined
+    const latest = answered?.[answered.length - 1]
+    if (latest) latest.scrollIntoView?.({ block: 'start' })
+    else endRef.current?.scrollIntoView?.({ block: 'end' })
   }, [exchanges.length, request.status])
 
   const send = (message: string) => chat.send(message, context)
@@ -108,7 +113,7 @@ export function ChatPanel({
         입력한 글은 AI 서버로 보내져요. 이름·연락처 같은 개인정보는 쓰지 마세요. 투자 판단은 답하지 않아요.
       </p>
 
-      <div className="chat-panel__log" aria-live="polite">
+      <div className="chat-panel__log" aria-live="polite" ref={logRef}>
         {exchanges.length === 0 && request.status === 'idle' && (
           <Examples questions={chatExamples(suggestions)} onAsk={send} />
         )}
