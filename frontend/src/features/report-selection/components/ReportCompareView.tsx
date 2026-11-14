@@ -37,7 +37,8 @@ const refreshErrorMessages: Record<string, string> = {
 export function ReportCompareView({ corpCode }: { corpCode: string }) {
   const { state, reload } = useCompanyReports(corpCode)
   const visibleState = useMinimumLoadingState(state, 900)
-  const selection = useReportSelection(corpCode, visibleState.status === 'success' ? visibleState.data.items : null)
+  // 목록이 오면 불러오는 장면(최소 900ms)이 끝나기 전에 비교 보고서를 미리 찾아 둔다
+  const selection = useReportSelection(corpCode, state.status === 'success' ? state.data.items : null)
 
   return match(visibleState)
     .with({ status: 'loading' }, () => (
@@ -82,7 +83,15 @@ function ReportSelection({ corpCode, reports, selection }: ReportSelectionProps)
         </Notice>
       )}
 
-      {current && <PairSummary corpCode={corpCode} basis={basis} current={current} previous={previous} />}
+      {current && (
+        <PairSummary
+          corpCode={corpCode}
+          basis={basis}
+          current={current}
+          previous={previous}
+          searching={basis !== 'CUSTOM' && lookup.status === 'loading'}
+        />
+      )}
 
       <PastAnalyses corpCode={corpCode} />
 
@@ -142,13 +151,16 @@ interface PairSummaryProps {
   basis: ComparisonBasis
   current: ReportItem
   previous: ReportItem | null
+  /** 비교 기준(전년 동기·직전 기간)에 맞는 이전 보고서를 서버에서 찾는 중 */
+  searching: boolean
 }
 
 /**
  * 지금 고른 두 보고서와 '이대로 비교하기'(#840). 처음 온 사람이 기본값 그대로 바로 비교를 시작하게 맨 위에 둔다.
  * 비교 기준이 자동이면 '추천', 직접 골랐으면 고른 짝을 보인다. 이전 보고서가 아직 없으면 버튼 대신 고르라는 안내.
+ * 자동으로 찾는 동안에는 고르라고 하지 않고 찾는 중이라고 알린다(금방 '이대로 비교하기'가 나타남).
  */
-function PairSummary({ corpCode, basis, current, previous }: PairSummaryProps) {
+function PairSummary({ corpCode, basis, current, previous, searching }: PairSummaryProps) {
   const compareTo = `/companies/${encodeURIComponent(corpCode)}/compare?${new URLSearchParams({
     current: current.rceptNo,
     previous: previous?.rceptNo ?? '',
@@ -160,7 +172,7 @@ function PairSummary({ corpCode, basis, current, previous }: PairSummaryProps) {
         {basis === 'CUSTOM' ? '이 두 보고서를 비교해요' : '이렇게 비교하는 걸 추천해요'}
       </h3>
       <p className="pick-summary__pair">
-        {previous ? previous.reportName : '이전 보고서 고르기 전'}
+        {previous ? previous.reportName : searching ? '이전 보고서 찾는 중' : '이전 보고서 고르기 전'}
         <span className="pick-summary__arrow" aria-hidden="true">
           →
         </span>
@@ -175,6 +187,8 @@ function PairSummary({ corpCode, basis, current, previous }: PairSummaryProps) {
           </ButtonLink>
           <span className="pick-summary__more">아래에서 비교 기준이나 보고서를 바꿀 수 있어요.</span>
         </div>
+      ) : searching ? (
+        <FieldHint role="status">비교 기준에 맞는 이전 보고서를 찾고 있어요…</FieldHint>
       ) : (
         <FieldHint>아래에서 이전 보고서를 고르면 비교할 수 있어요.</FieldHint>
       )}
