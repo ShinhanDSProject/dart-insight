@@ -22,6 +22,16 @@ describe('searchFormReducer', () => {
     expect(searchFormReducer(typed, { type: 'sync-query', query: 'LG' })).toEqual(initSearchForm('LG'))
   })
 
+  it('입력 중 자동 검색으로 주소가 바뀌면 치던 글(끝의 공백 포함)을 그대로 둔다', () => {
+    const typing = { input: 'LG ', error: null, shownQuery: '' }
+    expect(searchFormReducer(typing, { type: 'sync-query', query: 'LG' })).toEqual({ input: 'LG ', error: null, shownQuery: 'LG' })
+  })
+
+  it('입력 중 자동 검색으로 주소가 바뀌면 앞서 남은 안내는 지운다', () => {
+    const typing = { input: 'ab', error: '2자 이상 입력해 주세요.', shownQuery: '' }
+    expect(searchFormReducer(typing, { type: 'sync-query', query: 'ab' })).toEqual({ input: 'ab', error: null, shownQuery: 'ab' })
+  })
+
   it('주소의 검색어가 같으면 입력 중인 값을 그대로 둔다', () => {
     const typed = { input: '삼성전자', error: null, shownQuery: '삼성' }
     expect(searchFormReducer(typed, { type: 'sync-query', query: '삼성' })).toBe(typed)

@@ -1,5 +1,6 @@
 import {
   useCallback,
+  useLayoutEffect,
   useRef,
   useState,
   type FocusEvent as ReactFocusEvent,
@@ -53,12 +54,47 @@ export function SearchPage() {
   const [modal, setModal] = useState<HomeModal>('none')
   // 펼침 상자는 초점이 있으면 CSS로 보이고, Esc로 닫으면 다시 누르거나 입력할 때까지 그리지 않는다(FS-67 R3)
   const [drop, setDrop] = useState<'auto' | 'dismissed'>('auto')
-  // 입력 중 자동 검색은 방문 기록을 쌓지 않는다(replace)
-  const searchAsTyped = useCallback((next: string) => setSearchParams({ q: next }, { replace: true }), [setSearchParams])
-  useAutoSearch(input, query, searchAsTyped)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
   const focusInput = useCallback(() => inputRef.current?.focus(), [])
+  // 첫 화면에서 검색하면 화면 배치가 바뀌며 입력창이 새로 그려져 초점을 잃는다. 입력창에서 치던 중이었으면
+  // 새 입력창에 초점과 커서 위치를 이어 준다(안 그러면 잠깐 멈췄다 이어 친 글자가 들어가지 않고, ↓로 결과에 갈 수도 없다)
+  const keptFocus = useRef<{ start: number | null; end: number | null } | null>(null)
+  const rememberInputFocus = useCallback(() => {
+    const el = inputRef.current
+    keptFocus.current = el !== null && document.activeElement === el ? { start: el.selectionStart, end: el.selectionEnd } : null
+  }, [])
+  useLayoutEffect(() => {
+    const kept = keptFocus.current
+    keptFocus.current = null
+    if (kept === null || document.activeElement === inputRef.current) return
+    const restore = (): boolean => {
+      const el = inputRef.current
+      if (el === null) return false
+      el.focus()
+      if (document.activeElement !== el) return false
+      if (kept.start !== null && kept.end !== null) el.setSelectionRange(kept.start, kept.end)
+      return true
+    }
+    if (restore()) return
+    // 첫 화면으로 돌아갈 때는 주요 데이터가 올 때까지 입력창이 잠깐 가려져(PageReveal) 초점을 받지 못한다.
+    // 보이는 순간까지 다시 시도하되, 그 사이 사용자가 다른 곳에 초점을 두었으면 그만둔다(최대 1.5초)
+    const until = performance.now() + 1500
+    let frame = requestAnimationFrame(function retry() {
+      if (document.activeElement !== document.body || performance.now() > until || restore()) return
+      frame = requestAnimationFrame(retry)
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [query])
+  // 입력 중 자동 검색은 방문 기록을 쌓지 않는다(replace)
+  const searchAsTyped = useCallback(
+    (next: string) => {
+      rememberInputFocus()
+      setSearchParams({ q: next }, { replace: true })
+    },
+    [setSearchParams, rememberInputFocus],
+  )
+  useAutoSearch(input, query, searchAsTyped)
 
   /** 입력창에서 ↓를 누르면 첫 결과로 간다(FS-32). 한글 조합 중에는 IME에 맡긴다 */
   function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -88,6 +124,7 @@ export function SearchPage() {
     event.preventDefault()
     const next = submit()
     if (next !== null) {
+      rememberInputFocus()
       setSearchParams({ q: next })
     }
   }
@@ -95,6 +132,8 @@ export function SearchPage() {
   function handleClear() {
     setInput('')
     if (query !== '') {
+      // 첫 화면 배치로 바뀌며 입력창이 새로 그려지므로, 새 입력창에 초점을 이어 준다(지우고 바로 다시 칠 수 있게)
+      keptFocus.current = { start: 0, end: 0 }
       setSearchParams({}, { replace: true })
     }
     focusInput()

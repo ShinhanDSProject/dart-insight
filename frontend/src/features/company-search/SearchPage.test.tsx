@@ -342,6 +342,20 @@ describe('첫 화면 검색창과 펼침 상자(#560, FS-67)', () => {
     expect(screen.getByRole('region', { name: '최근 본 분석' })).toBeTruthy()
   })
 
+  it('첫 화면에서 치다가 멈춰 자동 검색으로 결과 화면이 되어도 입력창에 초점이 남아 이어 칠 수 있다', async () => {
+    renderAt('')
+    const home = (await screen.findByRole('textbox', { name: '회사명 또는 종목코드' })) as HTMLInputElement
+    home.focus()
+    fireEvent.change(home, { target: { value: 'LG ' } })
+
+    // 입력을 멈추면(300ms) 주소가 바뀌고 검색 결과 배치로 입력창이 새로 그려진다
+    await screen.findByRole('heading', { name: /기업 검색/ }, { timeout: 2000 })
+    const input = screen.getByRole('textbox', { name: '회사명 또는 종목코드' }) as HTMLInputElement
+    expect(document.activeElement).toBe(input)
+    // 끝에 친 공백도 그대로다
+    expect(input.value).toBe('LG ')
+  })
+
   it('Esc로 펼침 상자를 닫고, 검색창을 다시 누르거나 입력하면 다시 연다', () => {
     renderAt('')
     const input = screen.getByRole('textbox', { name: '회사명 또는 종목코드' })
