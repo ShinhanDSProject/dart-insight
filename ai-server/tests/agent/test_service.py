@@ -17,7 +17,7 @@ from app.agent.model import (
 from app.agent.prompt import PROMPT_VERSION, TASK_ANSWER, TASK_PLAN
 from app.agent.service import run_step
 from app.core.config import LlmSettings
-from app.llm import FakeProvider, LlmClient, LlmUnavailable, ProviderError
+from app.llm import FakeProvider, LlmClient, LlmUnavailable, ProviderError, ProviderTransientError
 
 SETTINGS = LlmSettings(provider="fake", model="fake-model", max_retries=0, max_output_retries=2)
 FACT = "영업이익이 6.6조 원에서 4.3조 원으로 줄었어요."
@@ -683,3 +683,21 @@ def test_rejected_answer_is_review_needed_when_no_time_is_left_to_rewrite() -> N
     assert output.final.answer is None
     assert len(provider.requests) == 2
     assert [r.rules for r in output.rejections] == [["NUMBER_NOT_IN_TOOL_RESULT"]]
+
+
+def test_rewrite_that_runs_out_of_time_is_review_needed_not_unavailable() -> None:
+    client, provider = slow_llm(
+        59.0,
+        {"decision": "ANSWER", "toolCalls": []},
+        answer("영업이익은 2.3조 원 줄었어요[F4221].", ["F4221"]),
+        ProviderTransientError("시간 초과"),
+    )
+
+    output = run_step(client, step(results=[FINANCIAL]))
+
+    # 남은 2초로 다시 쓰다 시간이 다 됐다. 반려된 답이 있으니 503이 아니라 검토 필요다
+    assert provider.timeouts[-1] == pytest.approx(2.0)
+    assert output.final is not None
+    assert output.final.status == REVIEW_NEEDED
+    assert output.final.answer is None
+    assert [c.outcome for c in output.calls] == ["OK", "OK", "TRANSIENT_ERROR"]
