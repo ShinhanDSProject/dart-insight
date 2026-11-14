@@ -224,7 +224,7 @@ describe('고르기를 주소 값으로 바꾸기', () => {
   })
 
   it('먼저 볼 것에서 문장 변화 탭을 거르기 없이 우선순위 순으로 연다', () => {
-    expect(openPriorityList()).toEqual({ tab: 'text', ttype: null, tsort: null, tsec: null, tq: null, trisk: null, tfield: null, tpin: null, tc: null })
+    expect(openPriorityList()).toEqual({ tab: 'text', ttype: null, tsort: 'priority', tsec: null, tq: null, trisk: null, tfield: null, tpin: null, tc: null })
   })
 
   it('섹션별 막대에서 문장 변화 탭을 그 섹션으로 거르고 유형·검색어는 지운다', () => {

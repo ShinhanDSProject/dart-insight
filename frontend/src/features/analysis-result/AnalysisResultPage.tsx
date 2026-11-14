@@ -398,7 +398,7 @@ function ResultTabPanel({
             analysis={analysis}
             onOpenText={openText}
             onOpenFinancial={(item) => openFinancial(item.sjDiv, item.changeId)}
-            onOpenAll={() => update(openPriorityList())}
+            onOpenAll={() => update(openTextList(null))}
           />
         ))
         // 원문 탭: 맨 위 전환으로 원문 읽기(source)와 바뀐 곳(text)을 오간다(사용자 결정 2026-11-11)
