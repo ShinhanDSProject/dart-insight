@@ -59,7 +59,7 @@ export function TextEvidencePanel({
   return createPortal(
     <Dialog titleId={`text-evidence-${changeId}`} title="원문 비교" onClose={onClose} className="text-compare-dialog">
       {match(state)
-        .with({ status: 'loading' }, () => <LoadingState message="원문 근거를 불러오는 중입니다…" />)
+        .with({ status: 'loading' }, () => <LoadingState message="원문 근거를 불러오는 중이에요…" />)
         .with({ status: 'error' }, ({ error }) => (
           <ErrorState
             error={error}

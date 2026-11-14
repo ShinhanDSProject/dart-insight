@@ -18,7 +18,7 @@ export async function registerUser(input: RegistrationRequest): Promise<Register
     password: input.password,
   })
   if (!data || !Number.isSafeInteger(data.userId) || data.userId <= 0 || typeof data.email !== 'string') {
-    throw new Error('회원가입 결과를 확인하지 못했습니다. 잠시 뒤 다시 시도해 주세요.')
+    throw new Error('회원가입 결과를 확인하지 못했어요. 잠시 뒤 다시 시도해 주세요.')
   }
   return data
 }

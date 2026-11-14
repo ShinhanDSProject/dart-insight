@@ -44,7 +44,7 @@ export function ReportCompareView({ corpCode }: { corpCode: string }) {
     .with({ status: 'loading' }, () => (
       <div className="report-compare-loading">
         <ReportStackScene label="OpenDART 정기보고서 수집 중" />
-        <LoadingState message="정기보고서 목록을 불러오는 중입니다… 처음 여는 기업은 OpenDART에서 받아 오느라 조금 걸려요." />
+        <LoadingState message="정기보고서 목록을 불러오는 중이에요… 처음 여는 기업은 OpenDART에서 받아 오느라 조금 걸려요." />
       </div>
     ))
     .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} messages={errorMessages} />)

@@ -38,7 +38,7 @@ export function TextHistory({ analysisId, changeId }: TextHistoryProps) {
 function HistoryBody({ analysisId, changeId }: TextHistoryProps) {
   const { state, reload } = useTextChangeHistory(analysisId, changeId)
   return match(state)
-    .with({ status: 'loading' }, () => <LoadingState message="여러 기간 이력을 불러오는 중입니다…" />)
+    .with({ status: 'loading' }, () => <LoadingState message="여러 기간 이력을 불러오는 중이에요…" />)
     .with({ status: 'error' }, ({ error }) => (
       <ErrorState
         error={error}

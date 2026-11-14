@@ -275,8 +275,8 @@ describe('공통 UI 접근성(axe)', () => {
           source={<span>접수번호 {rceptNo}</span>}
         />
         <StatNumber label="영업이익" value={null} format={String} changeNote="전기 값이 없어요." />
-        <Skeleton label="불러오는 중입니다…" shape="card" count={3} />
-        <Skeleton label="요약을 불러오는 중입니다…" />
+        <Skeleton label="불러오는 중이에요…" shape="card" count={3} />
+        <Skeleton label="요약을 불러오는 중이에요…" />
         <Card interactive>
           <a href="/companies/00126380">삼성전자</a>
         </Card>

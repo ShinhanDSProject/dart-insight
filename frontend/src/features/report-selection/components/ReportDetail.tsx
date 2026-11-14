@@ -26,7 +26,7 @@ const errorMessages: Record<string, string> = {
 export function ReportDetail({ rceptNo }: { rceptNo: string }) {
   const { state, reload } = useReportDetail(rceptNo)
   return match(state)
-    .with({ status: 'loading' }, () => <LoadingState message="보고서 정보를 불러오는 중입니다…" />)
+    .with({ status: 'loading' }, () => <LoadingState message="보고서 정보를 불러오는 중이에요…" />)
     .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} messages={errorMessages} />)
     .with({ status: 'success' }, ({ data }) => <ReportFacts report={data} />)
     .exhaustive()

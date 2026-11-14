@@ -7,7 +7,7 @@ import { Mascot } from './Mascot'
 
 /** 로딩·오류·빈 결과 상태. 상태를 숨기지 않고 항상 한 가지를 보여 준다. */
 
-export function LoadingState({ message = '불러오는 중입니다…' }: { message?: string }) {
+export function LoadingState({ message = '불러오는 중이에요…' }: { message?: string }) {
   return (
     <div className="state state--loading" role="status" aria-live="polite">
       <span className="state__spinner" aria-hidden="true" />
@@ -46,7 +46,7 @@ export const AI_QUOTA_EXCEEDED = 'AI_QUOTA_EXCEEDED'
 export function ErrorState({ error, onRetry, messages }: ErrorStateProps) {
   const apiError = error instanceof ApiError ? error : null
   const code = apiError?.code ?? 'COMMON_INTERNAL_ERROR'
-  const message = messages?.[code] ?? apiError?.message ?? '알 수 없는 오류가 발생했습니다.'
+  const message = messages?.[code] ?? apiError?.message ?? '알 수 없는 오류가 발생했어요.'
   // 하루 AI 한도(ADR-0054)는 다시 눌러도 내일 0시까지 같은 답이라 '다시 시도' 대신 로그인(비로그인일 때)을 권한다.
   // AuthProvider 밖(테스트·단독 화면)에서는 로그인 상태를 모르므로 로그인 링크를 보이지 않는다
   const auth = useContext(AuthContext)

@@ -45,7 +45,7 @@ export function QuotePickerDialog({ corpCode, onPick, onClose }: QuotePickerDial
   return (
     <Dialog titleId={`${id}-title`} title="변경점 붙이기" onClose={onClose} className="community-dialog quote-picker">
       {match(analyses.state)
-        .with({ status: 'loading' }, () => <Skeleton label="분석을 불러오는 중입니다…" shape="line" count={3} />)
+        .with({ status: 'loading' }, () => <Skeleton label="분석을 불러오는 중이에요…" shape="line" count={3} />)
         .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={analyses.reload} />)
         .with({ status: 'success' }, ({ data }) =>
           data.items.length === 0 ? (
@@ -108,7 +108,7 @@ function TextCandidates({ analysis, onPick }: { analysis: CompanyAnalysisItem; o
         />
       </div>
       {match(candidates.state)
-        .with({ status: 'idle' }, { status: 'loading' }, () => <Skeleton label="문장 변경을 불러오는 중입니다…" shape="line" count={4} />)
+        .with({ status: 'idle' }, { status: 'loading' }, () => <Skeleton label="문장 변경을 불러오는 중이에요…" shape="line" count={4} />)
         .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={candidates.reload} />)
         .with({ status: 'success' }, ({ data }) =>
           data.items.length === 0 ? (
@@ -161,7 +161,7 @@ function FinancialCandidates({ analysis, onPick }: { analysis: CompanyAnalysisIt
   const candidates = useFinancialCandidates(analysis.analysisId, sjDiv)
 
   return match(candidates.state)
-    .with({ status: 'idle' }, { status: 'loading' }, () => <Skeleton label="재무 계정을 불러오는 중입니다…" shape="line" count={4} />)
+    .with({ status: 'idle' }, { status: 'loading' }, () => <Skeleton label="재무 계정을 불러오는 중이에요…" shape="line" count={4} />)
     .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={candidates.reload} />)
     .with({ status: 'success' }, ({ data }) => {
       const options = statementOptions(data.statements)

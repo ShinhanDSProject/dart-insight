@@ -92,7 +92,7 @@ describe('RelatedDisclosures', () => {
     openPanel()
 
     expect(related.calls).toBeGreaterThan(0)
-    expect(screen.getByRole('status').textContent).toContain('관련 수시공시를 찾는 중입니다')
+    expect(screen.getByRole('status').textContent).toContain('관련 수시공시를 찾는 중이에요')
   })
 
   it('찾은 공시를 보조 표시·기간 구분·연결 이유·최신 정정본 링크와 함께 보여 주고 고정 문구를 붙인다', async () => {

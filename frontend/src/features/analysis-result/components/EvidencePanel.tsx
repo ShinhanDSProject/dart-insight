@@ -75,7 +75,7 @@ export function EvidencePanel({
         </Button>
       </div>
       {match(state)
-        .with({ status: 'loading' }, () => <LoadingState message="근거를 불러오는 중입니다…" />)
+        .with({ status: 'loading' }, () => <LoadingState message="근거를 불러오는 중이에요…" />)
         .with({ status: 'error' }, ({ error }) => (
           <ErrorState
             error={error}

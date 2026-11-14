@@ -13,7 +13,7 @@ export function CheckTable({ result, titleId }: { result: Pick<ComparabilityResu
     <Panel aria-labelledby={titleId}>
       <PanelTitle id={titleId}>비교 조건</PanelTitle>
       <table className="check-table">
-        <caption className="visually-hidden">비교 조건 확인 결과. 항목, 내용, 결과 순입니다.</caption>
+        <caption className="visually-hidden">비교 조건 확인 결과. 항목, 내용, 결과 순이에요.</caption>
         <tbody>
           {result.checks.map((check) => (
             <tr key={check.item}>

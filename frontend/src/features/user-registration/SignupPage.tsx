@@ -31,7 +31,7 @@ function registrationFailure(error: unknown): { errors?: RegistrationErrors; fai
   const apiError = error instanceof ApiError ? error : null
   return match(apiError)
     .with({ code: 'COMMON_EMAIL_ALREADY_EXISTS' }, () => ({
-      errors: { email: '이미 가입된 이메일입니다. 다른 이메일을 입력해 주세요.' },
+      errors: { email: '이미 가입된 이메일이에요. 다른 이메일을 입력해 주세요.' },
       failure: null,
     }))
     .with({ code: 'COMMON_INVALID_INPUT', errors: P.when((list: FieldError[]) => list.length > 0) }, (invalid) => {
@@ -45,10 +45,10 @@ function registrationFailure(error: unknown): { errors?: RegistrationErrors; fai
       return { errors: fieldErrors, failure }
     })
     .with({ code: NETWORK_ERROR }, (network) => ({
-      failure: { message: '서버에 연결하지 못했습니다. 연결 상태를 확인하고 다시 시도해 주세요.', traceId: network.traceId },
+      failure: { message: '서버에 연결하지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.', traceId: network.traceId },
     }))
     .otherwise(() => ({
-      failure: { message: '회원가입을 완료하지 못했습니다. 잠시 뒤 다시 시도해 주세요.', traceId: apiError?.traceId ?? null },
+      failure: { message: '회원가입을 완료하지 못했어요. 잠시 뒤 다시 시도해 주세요.', traceId: apiError?.traceId ?? null },
     }))
 }
 
@@ -122,7 +122,7 @@ export function SignupPage() {
           <span className="signup__check" aria-hidden="true">✓</span>
           <h1 className="page__title" id="signup-success-title" ref={success} tabIndex={-1}>회원가입이 완료됐어요</h1>
           <p className="signup__email">{registeredEmail}</p>
-          <p className="page__lead">DART Insight에 오신 것을 환영합니다.</p>
+          <p className="page__lead">DART Insight에 오신 것을 환영해요.</p>
           {/* 가입만으로는 로그인되지 않으므로 다음 행동은 로그인이다. 이메일을 주소에 담지 않는다(개인정보) */}
           <div className="signup__actions">
             <ButtonLink to="/login" variant="primary">로그인하기</ButtonLink>
@@ -183,7 +183,7 @@ export function SignupPage() {
           <Button type="submit" variant="primary" className="signup__submit" disabled={pending}>
             {pending ? '가입 처리 중…' : '가입하기'}
           </Button>
-          <p className="signup__status" role="status">{pending ? '회원가입을 처리하고 있습니다.' : ''}</p>
+          <p className="signup__status" role="status">{pending ? '회원가입을 처리하고 있어요.' : ''}</p>
         </form>
         <Link className="signup__back" to="/">기업 검색으로 돌아가기</Link>
       </Card>

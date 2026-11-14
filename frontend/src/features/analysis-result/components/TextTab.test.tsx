@@ -942,7 +942,7 @@ describe('TextTab 분야별 표(3.28)', () => {
   it('첫 응답을 기다리는 동안 표 자리에 로딩을 보인다', () => {
     list.state = { status: 'loading' }
     renderFields(null)
-    expect(screen.getByText('분야별 변경을 불러오는 중입니다…')).toBeTruthy()
+    expect(screen.getByText('분야별 변경을 불러오는 중이에요…')).toBeTruthy()
   })
 
   it('첫 조회가 실패하면 표는 그리지 않고 오류와 다시 시도를 보인다(AC11)', () => {
@@ -950,7 +950,7 @@ describe('TextTab 분야별 표(3.28)', () => {
     renderFields(null)
     expect(screen.queryByRole('group', { name: '분야별 변경' })).toBeNull()
     expect(screen.queryByText('두 보고서 사이에 바뀐 문장·표가 없어요.')).toBeNull()
-    expect(screen.queryByText('분야별 변경을 불러오는 중입니다…')).toBeNull()
+    expect(screen.queryByText('분야별 변경을 불러오는 중이에요…')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
     expect(list.reload).toHaveBeenCalled()
   })

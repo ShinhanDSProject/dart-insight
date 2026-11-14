@@ -293,7 +293,7 @@ interface SearchResultProps {
 function SearchResult({ state, onRetry, listRef, onBackToInput }: SearchResultProps) {
   return match(state)
     .with({ status: 'idle' }, () => null)
-    .with({ status: 'loading' }, () => <LoadingState message="기업을 찾는 중입니다…" />)
+    .with({ status: 'loading' }, () => <LoadingState message="기업을 찾는 중이에요…" />)
     .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={onRetry} messages={errorMessages} />)
     .with({ status: 'success' }, ({ data }) => (
       <>
@@ -304,7 +304,7 @@ function SearchResult({ state, onRetry, listRef, onBackToInput }: SearchResultPr
             </h2>
           </div>
           {data.items.length === 0 ? (
-            <EmptyState mascot title={`'${data.query}'에 맞는 기업이 없습니다.`}>
+            <EmptyState mascot title={`'${data.query}'에 맞는 기업이 없어요.`}>
               <p>회사명 일부, 초성(예: ㅅㅅㅈㅈ), 종목코드 6자리로 다시 검색해 보세요. '(주)' 같은 표기는 빼고 입력해요.</p>
             </EmptyState>
           ) : (

@@ -112,7 +112,7 @@ async function requestOnce<T>(
     if (options.signal?.aborted) throw error
     throw new ApiError(0, {
       code: NETWORK_ERROR,
-      message: '서버에 연결하지 못했습니다. 잠시 뒤 다시 시도해 주세요.',
+      message: '서버에 연결하지 못했어요. 잠시 뒤 다시 시도해 주세요.',
       traceId: null,
       errors: [],
     })
@@ -142,7 +142,7 @@ async function requestOnce<T>(
     }
     throw new ApiError(response.status, {
       code: 'COMMON_INTERNAL_ERROR',
-      message: '서버에서 오류가 발생했습니다.',
+      message: '서버에서 오류가 발생했어요.',
       traceId: response.headers.get('X-Trace-Id'),
       errors: [],
     })
@@ -152,7 +152,7 @@ async function requestOnce<T>(
   if (!parsed || (data === null && response.status !== 204)) {
     throw new ApiError(response.status, {
       code: 'COMMON_INTERNAL_ERROR',
-      message: '서버 응답을 읽지 못했습니다. API 주소(VITE_API_BASE_URL) 설정을 확인해 주세요.',
+      message: '서버 응답을 읽지 못했어요. API 주소(VITE_API_BASE_URL) 설정을 확인해 주세요.',
       traceId: response.headers.get('X-Trace-Id'),
       errors: [],
     })

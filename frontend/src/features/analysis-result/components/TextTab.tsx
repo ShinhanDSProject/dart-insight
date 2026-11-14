@@ -490,7 +490,7 @@ export function TextTab({
       {!failed &&
         !pinned &&
         match(state)
-          .with({ status: 'loading' }, () => <Skeleton label="문장·표 변화를 불러오는 중입니다…" shape="card" count={2} />)
+          .with({ status: 'loading' }, () => <Skeleton label="문장·표 변화를 불러오는 중이에요…" shape="card" count={2} />)
           .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} />)
           .with({ status: 'success' }, ({ data, items, more }) => (
             <>

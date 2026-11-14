@@ -403,7 +403,7 @@ function EventChanges({ analysisId, eventId, renderChanges }: EventChangesProps)
   const { state, reload } = useTextEventDetail(analysisId, eventId)
   const [shown, setShown] = useState(EVENT_CHANGES_PAGE_SIZE)
   return match(state)
-    .with({ status: 'loading' }, () => <Skeleton label="묶인 변경을 불러오는 중입니다…" shape="card" count={2} />)
+    .with({ status: 'loading' }, () => <Skeleton label="묶인 변경을 불러오는 중이에요…" shape="card" count={2} />)
     .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} />)
     .with({ status: 'success' }, ({ data }) => {
       const items = data.changes.slice(0, shown)

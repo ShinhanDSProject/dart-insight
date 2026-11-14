@@ -107,7 +107,7 @@ export function AdminUsersPage() {
                 </h2>
                 <span className="console-card__note">가입 최근 순</span>
               </div>
-              <DataTable caption="회원 목록. ID, 닉네임, 가린 이메일, 가입 방식, 역할, 가입일, 관심 기업 수, 글 수 순입니다." density="compact">
+              <DataTable caption="회원 목록. ID, 닉네임, 가린 이메일, 가입 방식, 역할, 가입일, 관심 기업 수, 글 수 순이에요." density="compact">
                 <thead>
                   <tr>
                     <th scope="col">ID</th>

@@ -40,6 +40,6 @@ describe('일반 회원가입 입력', () => {
 
   it('비밀번호 확인은 원문과 일치해야 한다', () => {
     expect(validateRegistration({ ...valid, passwordConfirm: '' }).passwordConfirm).toBeTruthy()
-    expect(validateRegistration({ ...valid, passwordConfirm: password + ' ' }).passwordConfirm).toBe('비밀번호가 일치하지 않습니다.')
+    expect(validateRegistration({ ...valid, passwordConfirm: password + ' ' }).passwordConfirm).toBe('비밀번호가 일치하지 않아요.')
   })
 })

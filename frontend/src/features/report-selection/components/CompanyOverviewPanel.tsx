@@ -12,7 +12,7 @@ import '../report-selection.css'
 export function CompanyOverviewPanel({ corpCode }: { corpCode: string }) {
   const { state, reload } = useCompany(corpCode)
   return match(state)
-    .with({ status: 'loading' }, () => <Skeleton label="기업 정보를 불러오는 중입니다…" shape="block" />)
+    .with({ status: 'loading' }, () => <Skeleton label="기업 정보를 불러오는 중이에요…" shape="block" />)
     .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} />)
     .with({ status: 'success' }, ({ data }) => <CompanyOverviewTab corpCode={corpCode} company={data} showAsk={false} />)
     .exhaustive()

@@ -103,7 +103,7 @@ interface FoldedGroupListProps {
 function FoldedGroupList({ analysisId, group, sort, renderList }: FoldedGroupListProps) {
   const { state, reload, loadMore } = useTextChangeGroup(analysisId, group, sort)
   return match(state)
-    .with({ status: 'loading' }, () => <Skeleton label="접어 둔 변경을 불러오는 중입니다…" shape="card" count={2} />)
+    .with({ status: 'loading' }, () => <Skeleton label="접어 둔 변경을 불러오는 중이에요…" shape="card" count={2} />)
     .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} />)
     .with({ status: 'success' }, ({ data, items, more }) => (
       <>

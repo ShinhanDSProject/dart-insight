@@ -58,7 +58,7 @@ export function CompanyPage() {
       <Breadcrumb />
       {match(state)
         .with({ status: 'loading' }, () => (
-          <Skeleton label="기업 정보를 불러오는 중입니다…" shape="line" count={2} className="company-skeleton" />
+          <Skeleton label="기업 정보를 불러오는 중이에요…" shape="line" count={2} className="company-skeleton" />
         ))
         .with({ status: 'error' }, ({ error }) => (
           <>

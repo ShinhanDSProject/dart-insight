@@ -78,10 +78,10 @@ describe('StatNumber', () => {
 
 describe('Skeleton', () => {
   it('불러오는 중임을 aria-busy와 보이지 않는 문구로 알리고 모양은 읽지 않는다', () => {
-    render(<Skeleton label="요약을 불러오는 중입니다…" shape="card" count={3} />)
+    render(<Skeleton label="요약을 불러오는 중이에요…" shape="card" count={3} />)
     const status = screen.getByRole('status')
     expect(status.getAttribute('aria-busy')).toBe('true')
-    expect(status.textContent).toBe('요약을 불러오는 중입니다…')
+    expect(status.textContent).toBe('요약을 불러오는 중이에요…')
     expect(status.querySelectorAll('.skeleton__card[aria-hidden="true"]')).toHaveLength(3)
   })
 })

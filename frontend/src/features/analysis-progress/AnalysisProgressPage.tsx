@@ -60,7 +60,7 @@ export function AnalysisProgressPage() {
     <Page>
       {analysis === null ? <PageHeader title="분석 진행" /> : <ProgressHeading analysis={analysis} />}
       {match(state)
-        .with({ status: 'loading' }, () => <LoadingState message="분석 상태를 불러오는 중입니다…" />)
+        .with({ status: 'loading' }, () => <LoadingState message="분석 상태를 불러오는 중이에요…" />)
         .with({ status: 'error' }, ({ error, data }) => (
           <>
             {data && <Progress analysis={data} />}
