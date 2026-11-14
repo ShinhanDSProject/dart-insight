@@ -19,7 +19,8 @@ export function SidePanel({ onClose, className, ...rest }: SidePanelProps) {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      // 입력창이 이미 쓴 Esc(검색어 지우기 등)와 한글 조합을 끝내는 Esc에는 닫지 않는다
+      if (event.key === 'Escape' && !event.defaultPrevented && !event.isComposing) {
         onCloseRef.current()
       }
     }

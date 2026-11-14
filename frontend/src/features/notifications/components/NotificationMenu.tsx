@@ -31,7 +31,10 @@ export function NotificationMenu({ refreshKey }: NotificationMenuProps) {
   }
 
   function onKeyDown(event: KeyboardEvent) {
-    if (event.key === 'Escape' && open) close()
+    if (event.key !== 'Escape' || !open) return
+    // 메뉴만 닫는다. 열려 있는 옆 패널(근거·AI 에이전트)까지 닫히지 않게 처리했다고 알린다
+    event.preventDefault()
+    close()
   }
 
   async function openResult(event: MouseEvent<HTMLAnchorElement>, item: AnalysisNotification) {

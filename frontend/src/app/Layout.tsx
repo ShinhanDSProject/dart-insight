@@ -95,6 +95,8 @@ export function Layout() {
 
   function onMenuKeyDown(event: KeyboardEvent) {
     if (event.key === 'Escape' && menuOpen) {
+      // 메뉴만 닫는다. 열려 있는 옆 패널까지 닫히지 않게 처리했다고 알린다
+      event.preventDefault()
       setMenuOpenAt(null)
       menuButtonRef.current?.focus()
     }
