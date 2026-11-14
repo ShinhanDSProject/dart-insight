@@ -145,7 +145,8 @@ describe('원문 확인 목차의 섹션별 변경 건수', () => {
     renderTab()
     const toc = screen.getByRole('navigation', { name: '문서 목차' })
     const badges = within(toc).getAllByRole('button', { name: /문장 변경 .*건 보기/ })
-    expect(badges.map((b) => b.getAttribute('aria-label'))).toEqual([
+    // 이름은 보이는 '변경 N'에 읽기 전용 글을 이어 만든다(aria-label로 덮으면 음성 조작이 보이는 글자로 못 누름, WCAG 2.5.3)
+    expect(badges.map((b) => b.textContent)).toEqual([
       'III. 재무에 관한 사항 문장 변경 448건 보기',
       'IV. 이사의 경영진단 및 분석의견 문장 변경 7건 보기',
     ])

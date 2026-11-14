@@ -316,6 +316,8 @@ export function TextTab({
 
   return (
     <Panel aria-label="전체 변경">
+      {/* 화면 제목(h1) 아래 이 탭의 제목. 사건·전체 변경 제목(h3)이 단계를 건너뛰지 않게 화면 읽기 도구에만 둔다 */}
+      <h2 className="visually-hidden">바뀐 곳</h2>
       {!failed && evidencePanel}
       {notice && (
         <Notice tone="attention" role="status">
@@ -807,7 +809,7 @@ function MoreTypeFilters({
 }) {
   if (options.length === 0) return null
   return (
-    <MenuButton label="더 보기" trigger="chip" align="start" aria-label="다른 유형으로 거르기">
+    <MenuButton label="더 보기" trigger="chip" align="start" aria-label="더 보기: 다른 유형으로 거르기">
       {(close) =>
         options.map((option) => {
           const count = countOf(option.value)

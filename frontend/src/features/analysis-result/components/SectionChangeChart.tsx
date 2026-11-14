@@ -67,16 +67,18 @@ function SectionBarsView({ sections, onOpenSection, onOpenAll }: SectionBarsView
             <button
               type="button"
               className="section-chart__row"
-              aria-label={`${bar.label}: 문장 변경 ${formatCount(bar.count)}건. 바뀐 곳에서 보기`}
               onClick={() => onOpenSection(bar.title)}
             >
+              {/* 이름은 보이는 글자에 읽기 전용 글을 이어 만든다. 음성으로 보이는 글자를 말해도 누를 수 있게(WCAG 2.5.3) */}
               <span className="section-chart__name" title={bar.label}>
                 {bar.label}
               </span>
+              <span className="visually-hidden">: 문장 변경</span>{' '}
               <span className="section-chart__plot">
                 <span className="section-chart__bar" style={{ width: `${bar.width}%` }} />
               </span>
               <span className="section-chart__value">{formatCount(bar.count)}건</span>
+              <span className="visually-hidden">. 바뀐 곳에서 보기</span>
             </button>
           </li>
         ))}
