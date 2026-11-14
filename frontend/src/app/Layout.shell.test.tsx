@@ -52,6 +52,14 @@ describe('Layout 상단 바·하단 바(#548)', () => {
     expect(await axeViolations(view.container)).toBe('')
   })
 
+  it('바탕과 본문이 같은 key를 쓰지 않아 React 중복 key 경고가 나지 않는다', () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    renderLayout('/notes')
+    const duplicate = error.mock.calls.some((args) => String(args[0]).includes('same key'))
+    error.mockRestore()
+    expect(duplicate).toBe(false)
+  })
+
   it('첫 화면에서는 상단 바 검색을 두지 않는다(본문에 큰 검색창이 있다)', () => {
     renderLayout('/')
     expect(screen.queryByRole('search', { name: '기업 검색' })).toBeNull()

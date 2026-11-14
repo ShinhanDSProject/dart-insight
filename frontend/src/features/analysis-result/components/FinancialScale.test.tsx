@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Analysis } from '@/shared/api/analyses'
 import type { FinancialChangeDetail, FinancialChangeItem, FinancialChangeList } from '@/shared/api/results'
@@ -207,5 +207,46 @@ describe('근거 상세의 크기 맥락(#480)', () => {
     })
     const group = screen.getByRole('group', { name: '자본총계 대비 크기' })
     expect(group.textContent).toContain('기준 계정(자본총계)의 현재 값이 0 이하라 비율을 계산하지 않았어요.')
+  })
+})
+
+describe('주소로 고른 계정 행(#3.84)', () => {
+  it('표를 받기 전에 계정을 골라 두었어도 표가 그려지면 그 행을 화면 안으로 옮긴다', async () => {
+    const scroll = vi.fn()
+    Element.prototype.scrollIntoView = scroll
+    // 같은 요소를 다시 넘기면 React가 다시 그리지 않으므로 그릴 때마다 새로 만든다
+    const tab = () => (
+      <FinancialTab
+        analysis={analysis}
+        sjDiv="IS"
+        changedOnly={false}
+        unit="MILLION"
+        accountQuery={null}
+        order="document"
+        selectedChangeId={1}
+        onChange={vi.fn()}
+        onAsk={() => {}}
+        asking={false}
+      />
+    )
+    data.list = { status: 'loading' }
+    const view = render(tab())
+    await new Promise((resolve) => requestAnimationFrame(resolve))
+    expect(scroll).not.toHaveBeenCalled()
+
+    data.list = {
+      status: 'success',
+      data: {
+        analysisId: 7,
+        fsDiv: 'CFS',
+        sjDiv: 'IS',
+        changedOnly: false,
+        sort: 'document',
+        statements: [{ sjDiv: 'IS', label: '손익계산서', comparable: true, amountBasis: 'CUMULATIVE', note: null, total: 1, changed: 1 }],
+        items: [item(1, '매출액', 120_000_000, { base: 'REVENUE', baseAccountName: '매출액', baseAmount: 1_120_000_000, ratio: 0.107143, reason: null })],
+      },
+    }
+    view.rerender(tab())
+    await waitFor(() => expect(scroll).toHaveBeenCalled())
   })
 })
