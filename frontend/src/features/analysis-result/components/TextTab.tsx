@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode, type RefObject } from 'react'
 import { Link } from 'react-router'
 import { match, P } from 'ts-pattern'
 import type { Analysis } from '@/shared/api/analyses'
@@ -167,12 +167,15 @@ export function TextTab({
   // 지금 목록·상세에 보이는 변경(고정 보기면 고정 목록). 키보드로 줄을 옮기면 상세도 따라간다
   const browsedItems = browsedItemsOf(pinned, pinnedList.view, state)
   const selectDetail = (changeId: number) => onChange({ detail: changeId })
+  const nextInList = useRef<(() => void) | null>(null)
   useTextCardKeys({
     onToggleEvidence: toggleEvidence,
     onTogglePin: pins.toggle,
     onMoved: (changeId) => {
       if (browsedItems.some((i) => i.changeId === changeId)) selectDetail(changeId)
     },
+    // 전체 변경 목록의 받아 둔 끝이면 '다음' 버튼처럼 다음 쪽을 불러와 이어 간다(고정 보기는 다 받아 둠)
+    onPastEnd: () => nextInList.current?.(),
   })
   const searched = hasSearchFilter({ section, q })
   // 위험 관련만 보는 중이면(고정 보기가 아닐 때) 섹션·검색어처럼 거른 결과로 본다
@@ -243,7 +246,7 @@ export function TextTab({
     total: number,
     grouped: boolean,
     footer?: ReactNode,
-    paging?: { onLoadMore: () => void; loading: boolean },
+    paging?: { onLoadMore: () => void; loading: boolean; nextRef: RefObject<(() => void) | null> },
   ) => {
     const detail = textDetailOf(items, detailId, selectedChangeId)
     const noted = firstNotedIds(items)
@@ -266,6 +269,7 @@ export function TextTab({
         footer={footer}
         onLoadMore={paging?.onLoadMore}
         loadingMore={paging?.loading}
+        nextRef={paging?.nextRef}
       />
     )
   }
@@ -552,7 +556,7 @@ export function TextTab({
                   data.totalItems,
                   sort === 'document',
                   <TextListFooter loaded={items.length} total={data.totalItems} more={more} onMore={loadMore} />,
-                  { onLoadMore: loadMore, loading: more.status === 'loading' },
+                  { onLoadMore: loadMore, loading: more.status === 'loading', nextRef: nextInList },
                 )}
             </>
           ))
