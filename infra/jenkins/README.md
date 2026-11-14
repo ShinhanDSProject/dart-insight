@@ -11,7 +11,7 @@
 ## 파일 역할
 - backend/Dockerfile: Spring Boot 빌드 및 실행 이미지.
 - frontend/Dockerfile: 프론트엔드 검사·빌드 및 Nginx 실행 이미지.
-- frontend/nginx.conf: 정적 화면과 백엔드 요청 전달 설정.
+- frontend/nginx.conf: 정적 화면과 백엔드 요청 전달 설정. 백엔드로 넘기는 X-Forwarded-For는 Cloudflare의 CF-Connecting-IP로 덮어쓰고(하루 한도의 IP 기준, ADR-0054), /assets는 오래 캐시, index.html·easter/는 매번 확인한다.
 - ai-server/Dockerfile: FastAPI 실행 이미지.
 - deploy/compose.yaml: 앱·DB 기본 설정.
 - deploy/compose.release.yaml: 백엔드·웹 배포 이미지 버전.
