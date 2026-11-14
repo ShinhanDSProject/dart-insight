@@ -175,14 +175,16 @@ export function FinancialTab({
     onChange({ change: changeId === selectedChangeId ? null : changeId })
   }
 
-  // 근거 패널이 열리면 본문 폭이 줄어 표가 다시 그려지므로, 고른 계정 행이 화면 밖으로 밀리지 않게 한다
+  // 근거 패널이 열리면 본문 폭이 줄어 표가 다시 그려지므로, 고른 계정 행이 화면 밖으로 밀리지 않게 한다.
+  // 요약·채팅에서 계정을 고른 채 들어오면 표가 아직 없으므로, 표를 다 불러온 뒤에도 한 번 더 맞춘다
+  const tableStatus = state.status
   useEffect(() => {
-    if (selectedChangeId === null) return
+    if (selectedChangeId === null || tableStatus !== 'success') return
     const frame = requestAnimationFrame(() =>
       document.getElementById(evidenceButtonId(selectedChangeId))?.scrollIntoView?.({ block: 'nearest' }),
     )
     return () => cancelAnimationFrame(frame)
-  }, [selectedChangeId])
+  }, [selectedChangeId, tableStatus])
 
   return (
     <>
