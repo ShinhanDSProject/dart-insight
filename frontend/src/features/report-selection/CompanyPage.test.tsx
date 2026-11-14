@@ -136,6 +136,15 @@ describe('보고서 고르기 맨 위 두 보고서(#840)', () => {
     expect(await axeViolations(container)).toBe('')
   })
 
+  it('비교 기준에 맞는 이전 보고서를 찾는 동안에는 직접 고르라고 하지 않고 찾는 중이라고 알린다', async () => {
+    listReports.mockResolvedValue({ corpCode: '00126380', fetchedAt: null, refreshError: null, items })
+    renderPage('')
+
+    const summary = within(await screen.findByRole('region', { name: '이렇게 비교하는 걸 추천해요' }))
+    expect(summary.getByRole('status').textContent).toBe('비교 기준에 맞는 이전 보고서를 찾고 있어요…')
+    expect(summary.queryByText('아래에서 이전 보고서를 고르면 비교할 수 있어요.')).toBeNull()
+  })
+
   it('이전 보고서를 아직 고르지 않았으면 버튼 대신 고르라고 안내한다', async () => {
     listReports.mockResolvedValue({ corpCode: '00126380', fetchedAt: null, refreshError: null, items })
     renderPage('?basis=CUSTOM')
