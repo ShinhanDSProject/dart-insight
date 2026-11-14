@@ -103,7 +103,7 @@ const chatAnswer: ChatMessageResponse = {
 }
 
 function chatController(state: ChatState): AgentChatController {
-  return { state, send: noop, retry: noop, setDraft: noop, markConfirmed: noop }
+  return { state, send: noop, retry: noop, cancel: noop, setDraft: noop, markConfirmed: noop }
 }
 
 function chatPanel(state: ChatState, briefState: AsyncState<void> = { status: 'idle' }) {

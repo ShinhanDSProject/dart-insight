@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ChatMessageResponse } from '@/shared/api/agentChat'
 import type { AgentChatController } from '../hooks/useAgentChat'
 import { initialChatState } from '../model/chatState'
@@ -49,6 +49,37 @@ function renderWith(response: ChatMessageResponse) {
 }
 
 afterEach(cleanup)
+
+describe('기다리는 중 중단', () => {
+  it('보내는 중이면 그만 기다리기 버튼을 보이고, 누르면 요청을 그만둔다', () => {
+    const cancel = vi.fn()
+    const chat = {
+      state: { ...initialChatState, request: { status: 'sending', message: '매출액은?' } },
+      send: noop,
+      retry: noop,
+      cancel,
+      setDraft: noop,
+      markConfirmed: noop,
+    } as unknown as AgentChatController
+    render(
+      <MemoryRouter>
+        <ChatPanel
+          analysisId={16}
+          chat={chat}
+          context={{} as never}
+          suggestions={[]}
+          onNavigate={noop}
+          onDownloadBrief={noop}
+          briefState={{ status: 'idle' }}
+          onPostDraft={noop}
+          onClose={noop}
+        />
+      </MemoryRouter>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '그만 기다리기' }))
+    expect(cancel).toHaveBeenCalledTimes(1)
+  })
+})
 
 describe('채팅 답의 상태 안내 캐릭터(#706)', () => {
   it('근거 인용이 없는 답에는 근거를 찾았다는 줄을 붙이지 않는다', () => {
