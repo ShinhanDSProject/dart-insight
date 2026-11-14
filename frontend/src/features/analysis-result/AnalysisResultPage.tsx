@@ -245,6 +245,14 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
     window.addEventListener(OPEN_CHAT_INPUT_EVENT, onOpen)
     return () => window.removeEventListener(OPEN_CHAT_INPUT_EVENT, onOpen)
   }, [])
+  // 패널을 닫으면 초점을 다시 'AI 에이전트' 버튼으로 돌린다(패널이 사라지며 초점이 문서 맨 위로 떨어지지 않게)
+  const launcherRef = useRef<HTMLButtonElement>(null)
+  const focusLauncher = useRef(false)
+  useEffect(() => {
+    if (chatOpen || !focusLauncher.current) return
+    focusLauncher.current = false
+    launcherRef.current?.focus()
+  }, [chatOpen])
   const askChat = (message: string) => {
     chat.send(message, chatContextOf(params))
     openChat()
@@ -299,10 +307,11 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
           onClose={() => {
             setChatOpen(false)
             setChatFocus('heading')
+            focusLauncher.current = true
           }}
         />
       ) : (
-        <Button variant="primary" className="chat-launcher" onClick={openChat}>
+        <Button variant="primary" className="chat-launcher" onClick={openChat} ref={launcherRef}>
           AI 에이전트
         </Button>
       )}
