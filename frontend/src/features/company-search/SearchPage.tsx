@@ -1,6 +1,5 @@
 import {
   useCallback,
-  useLayoutEffect,
   useRef,
   useState,
   type FocusEvent as ReactFocusEvent,
@@ -19,10 +18,10 @@ import { cx } from '@/shared/lib/cx'
 import { ONBOARDING_EXAMPLE_CORP_CODE } from '@/shared/lib/onboarding'
 import { pageTitle } from '@/shared/lib/pageTitle'
 import type { FavoriteCompany } from '@/shared/api/favoriteCompanies'
-import { BrandLogo, Button, ButtonLink, Card, Dialog, FieldHint, Icon, Input, Notice, Page, PageReveal } from '@/shared/ui'
+import { Button, ButtonLink, Card, Dialog, FieldHint, Icon, Input, Notice, Page, PageReveal } from '@/shared/ui'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/StateView'
 import { CompanyList, RESULT_LINK_SELECTOR } from './components/CompanyList'
-import { HomeHero, HomeHeroSkeleton, RotatingExamples } from './components/HomeHero'
+import { HomeHeroSkeleton, RotatingExamples, SearchHero } from './components/SearchHero'
 import { OnboardingStepsList } from './components/OnboardingGuide'
 import { RecentAnalyses } from './components/RecentAnalyses'
 import { useAutoSearch } from './hooks/useAutoSearch'
@@ -38,7 +37,8 @@ const errorMessages: Record<string, string> = {
 
 /**
  * W-01 ① 기업 검색(#538, #560, FS-67).
- * 검색 전 첫 화면은 HomeHero(시즌 배지·큰 제목·검색창·흐름 띠·세 칸)이고, 검색 결과 화면은 로고와 검색창만 둔다.
+ * 검색 전 첫 화면은 시즌 배지·큰 제목·검색창·흐름 띠·세 칸이고, 검색 결과 화면은 로고와 검색창만 둔다(SearchHero).
+ * 두 화면이 같은 검색창을 그대로 쓰므로 첫 검색으로 화면이 바뀌어도 초점과 치던 글이 이어진다.
  * 빈 검색창에 초점을 주면 아래로 펼침 상자(최근 본 분석·자주 찾는 기업·예시 검색어·사용법)가 열린다.
  * 검색어는 주소(?q=)에 남겨 뒤로 가기를 해도 결과가 유지되며, 입력을 멈추면 Enter 없이도 찾는다.
  */
@@ -57,43 +57,8 @@ export function SearchPage() {
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
   const focusInput = useCallback(() => inputRef.current?.focus(), [])
-  // 첫 화면에서 검색하면 화면 배치가 바뀌며 입력창이 새로 그려져 초점을 잃는다. 입력창에서 치던 중이었으면
-  // 새 입력창에 초점과 커서 위치를 이어 준다(안 그러면 잠깐 멈췄다 이어 친 글자가 들어가지 않고, ↓로 결과에 갈 수도 없다)
-  const keptFocus = useRef<{ start: number | null; end: number | null } | null>(null)
-  const rememberInputFocus = useCallback(() => {
-    const el = inputRef.current
-    keptFocus.current = el !== null && document.activeElement === el ? { start: el.selectionStart, end: el.selectionEnd } : null
-  }, [])
-  useLayoutEffect(() => {
-    const kept = keptFocus.current
-    keptFocus.current = null
-    if (kept === null || document.activeElement === inputRef.current) return
-    const restore = (): boolean => {
-      const el = inputRef.current
-      if (el === null) return false
-      el.focus()
-      if (document.activeElement !== el) return false
-      if (kept.start !== null && kept.end !== null) el.setSelectionRange(kept.start, kept.end)
-      return true
-    }
-    if (restore()) return
-    // 첫 화면으로 돌아갈 때는 주요 데이터가 올 때까지 입력창이 잠깐 가려져(PageReveal) 초점을 받지 못한다.
-    // 보이는 순간까지 다시 시도하되, 그 사이 사용자가 다른 곳에 초점을 두었으면 그만둔다(최대 1.5초)
-    const until = performance.now() + 1500
-    let frame = requestAnimationFrame(function retry() {
-      if (document.activeElement !== document.body || performance.now() > until || restore()) return
-      frame = requestAnimationFrame(retry)
-    })
-    return () => cancelAnimationFrame(frame)
-  }, [query])
   // 입력 중 자동 검색은 방문 기록을 쌓지 않는다(replace)
-  const searchAsTyped = useCallback(
-    (next: string) => {
-      rememberInputFocus()
-      setSearchParams({ q: next }, { replace: true })
-    },
-    [setSearchParams, rememberInputFocus],
-  )
+  const searchAsTyped = useCallback((next: string) => setSearchParams({ q: next }, { replace: true }), [setSearchParams])
   useAutoSearch(input, query, searchAsTyped)
 
   /** 입력창에서 ↓를 누르면 첫 결과로 간다(FS-32). 한글 조합 중에는 IME에 맡긴다 */
@@ -124,7 +89,6 @@ export function SearchPage() {
     event.preventDefault()
     const next = submit()
     if (next !== null) {
-      rememberInputFocus()
       setSearchParams({ q: next })
     }
   }
@@ -132,8 +96,6 @@ export function SearchPage() {
   function handleClear() {
     setInput('')
     if (query !== '') {
-      // 첫 화면 배치로 바뀌며 입력창이 새로 그려지므로, 새 입력창에 초점을 이어 준다(지우고 바로 다시 칠 수 있게)
-      keptFocus.current = { start: 0, end: 0 }
       setSearchParams({}, { replace: true })
     }
     focusInput()
@@ -202,26 +164,16 @@ export function SearchPage() {
   return (
     <Page className="search-page" width={isHome ? 'wide' : 'narrow'}>
       <div className={cx('search-page__shell', isHome && 'search-page__shell--home')}>
-        {isHome ? (
-          // 첫 화면은 시즌 변화·숫자·대표 기업이 응답한 뒤 한 번에 떠오른다(#960)
-          <PageReveal fallback={<HomeHeroSkeleton />}>
-            <HomeHero
-              searchForm={searchForm}
-              favoritesStatus={favorites.status}
-              favorites={favorites.items}
-              onOpenGuide={() => setModal('guide')}
-            />
-          </PageReveal>
-        ) : (
-          <div className="search-hero">
-            {/* 로고가 화면 제목이다. 화면 읽기 도구에는 '기업 검색'을 함께 읽는다 */}
-            <h1 className="search-hero__title">
-              <BrandLogo size="lg" />
-              <span className="visually-hidden"> 기업 검색</span>
-            </h1>
-            {searchForm}
-          </div>
-        )}
+        {/* 첫 화면은 시즌 변화·숫자·대표 기업이 응답한 뒤 한 번에 떠오른다(#960). 검색 결과 화면은 기다리지 않는다 */}
+        <PageReveal fallback={<HomeHeroSkeleton />}>
+          <SearchHero
+            home={isHome}
+            searchForm={searchForm}
+            favoritesStatus={favorites.status}
+            favorites={favorites.items}
+            onOpenGuide={() => setModal('guide')}
+          />
+        </PageReveal>
 
         <SearchResult state={state} onRetry={reload} listRef={listRef} onBackToInput={focusInput} />
       </div>
