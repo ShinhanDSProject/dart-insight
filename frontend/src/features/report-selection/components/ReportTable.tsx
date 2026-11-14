@@ -24,7 +24,7 @@ export function ReportTable({ items, current, previous, onSelectCurrent }: Repor
 
   return (
     <>
-      <DataTable id={tableId} caption="정기보고서 목록. 보고서 이름을 누르면 현재 보고서로 고릅니다.">
+      <DataTable id={tableId} caption="정기보고서 목록. 보고서 이름을 누르면 현재 보고서로 골라요.">
         <thead>
           <tr>
             <th scope="col">보고서</th>

@@ -6,7 +6,7 @@ import { cx } from '@/shared/lib/cx'
 export type SkeletonShape = 'line' | 'block' | 'card'
 
 interface SkeletonProps {
-  /** 화면 읽기 도구에 읽어 줄 문구(보이지 않음). 예: 요약을 불러오는 중입니다… */
+  /** 화면 읽기 도구에 읽어 줄 문구(보이지 않음). 예: 요약을 불러오는 중이에요… */
   label: string
   shape?: SkeletonShape
   /** line: 줄 수, card: 카드 수 */

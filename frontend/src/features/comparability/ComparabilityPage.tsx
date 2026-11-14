@@ -98,7 +98,7 @@ export function ComparabilityPage() {
                 { text: '표준계정', tone: 'deleted' },
               ]}
             />
-            <LoadingState message="두 보고서의 재무제표를 확인하는 중입니다… 처음 확인하는 보고서는 OpenDART에서 받아 오느라 조금 걸려요." />
+            <LoadingState message="두 보고서의 재무제표를 확인하는 중이에요… 처음 확인하는 보고서는 OpenDART에서 받아 오느라 조금 걸려요." />
           </div>
         ))
         .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} messages={errorMessages} />)

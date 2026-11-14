@@ -126,7 +126,7 @@ export function AdminAnalysesPage() {
                 </h2>
                 <span className="console-card__note">최근 요청 순</span>
               </div>
-              <DataTable caption="분석 작업 목록. 분석 ID, 기업, 비교, 상태(끝나지 않았으면 단계), 소요 시간, 버전, 요청 시각 순입니다." density="compact">
+              <DataTable caption="분석 작업 목록. 분석 ID, 기업, 비교, 상태(끝나지 않았으면 단계), 소요 시간, 버전, 요청 시각 순이에요." density="compact">
                 <thead>
                   <tr>
                     <th scope="col">ID</th>

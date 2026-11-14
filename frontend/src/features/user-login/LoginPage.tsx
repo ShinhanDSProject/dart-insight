@@ -23,8 +23,8 @@ const SOCIAL_LABELS: Record<SocialProvider, string> = { google: 'Google', kakao:
 function loginFailureMessage(error: ApiError | null): string {
   return match(error?.code)
     .with('AUTH_INVALID_CREDENTIALS', () => '이메일 또는 비밀번호를 확인해 주세요.')
-    .with(NETWORK_ERROR, () => '서버에 연결하지 못했습니다. 연결 상태를 확인해 주세요.')
-    .otherwise(() => '로그인하지 못했습니다. 잠시 뒤 다시 시도해 주세요.')
+    .with(NETWORK_ERROR, () => '서버에 연결하지 못했어요. 연결 상태를 확인해 주세요.')
+    .otherwise(() => '로그인하지 못했어요. 잠시 뒤 다시 시도해 주세요.')
 }
 
 export function LoginPage() {
@@ -76,7 +76,7 @@ export function LoginPage() {
         />
         {searchParams.get('social') === 'error' && (
           <div className="login__failure">
-            <AlertState title="소셜 로그인에 실패했습니다. 다시 시도해 주세요." />
+            <AlertState title="소셜 로그인에 실패했어요. 다시 시도해 주세요." />
           </div>
         )}
         <form onSubmit={onSubmit} aria-busy={loading}>

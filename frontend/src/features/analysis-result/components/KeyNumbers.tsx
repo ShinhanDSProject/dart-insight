@@ -28,7 +28,7 @@ export function KeyNumbers({ analysisId, onOpen }: KeyNumbersProps) {
         <p className="panel__note">손익·현금흐름은 보고서 기간 금액, 자산총계는 기말 값 · 증감은 코드가 계산한 값</p>
       </div>
       {match(state)
-        .with({ status: 'loading' }, () => <Skeleton label="핵심 숫자를 불러오는 중입니다…" shape="card" count={5} />)
+        .with({ status: 'loading' }, () => <Skeleton label="핵심 숫자를 불러오는 중이에요…" shape="card" count={5} />)
         .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} />)
         .with({ status: 'success' }, ({ data }) => (
           <ul className="key-numbers__list">

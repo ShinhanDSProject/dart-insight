@@ -80,7 +80,7 @@ export function PricingPage() {
         <Panel aria-labelledby="credit-title">
           <PanelTitle id="credit-title">크레딧 소모표</PanelTitle>
           <p className="pricing__note">1 크레딧 ≈ 100원(가설)</p>
-          <DataTable caption="일마다 쓰는 크레딧. 일, 비고, 크레딧 순입니다." density="compact">
+          <DataTable caption="일마다 쓰는 크레딧. 일, 비고, 크레딧 순이에요." density="compact">
             <thead>
               <tr>
                 <th scope="col">일</th>

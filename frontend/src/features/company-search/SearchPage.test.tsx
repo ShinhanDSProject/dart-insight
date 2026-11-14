@@ -239,7 +239,7 @@ describe('검색 결과 카드(#549)', () => {
     results = []
     const { container } = renderAt('없는회사')
     const card = await screen.findByRole('region', { name: '검색 결과 0곳' })
-    expect(within(card).getByText("'없는회사'에 맞는 기업이 없습니다.")).toBeTruthy()
+    expect(within(card).getByText("'없는회사'에 맞는 기업이 없어요.")).toBeTruthy()
     expect(await axeViolations(container)).toBe('')
   })
 })

@@ -125,7 +125,7 @@ export function SourceTab({ analysis, side, sectionNo, blockNo, onChange, sectio
       </div>
 
       {match(outline)
-        .with({ status: 'loading' }, () => <LoadingState message="원문 목차를 불러오는 중입니다…" />)
+        .with({ status: 'loading' }, () => <LoadingState message="원문 목차를 불러오는 중이에요…" />)
         .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} />)
         .with({ status: 'success' }, ({ data }) => {
           if (data.rceptNo !== report.rceptNo) {
@@ -275,7 +275,7 @@ function SectionView({ analysis, outline, sectionNo, blockNo }: SectionViewProps
   }, [state.status, blockNo])
 
   return match(state)
-    .with({ status: 'loading' }, () => <LoadingState message="원문을 불러오는 중입니다…" />)
+    .with({ status: 'loading' }, () => <LoadingState message="원문을 불러오는 중이에요…" />)
     .with({ status: 'error' }, ({ error }) => (
       <ErrorState
         error={error}

@@ -26,7 +26,7 @@ interface TextFieldTableProps {
 export function TextFieldTable({ listing, field, eventCounts, onChoose, extra }: TextFieldTableProps) {
   return match(fieldTableView(listing))
     .with({ kind: 'hidden' }, () => null)
-    .with({ kind: 'loading' }, () => <Skeleton label={`${FIELD_TABLE_TITLE}을 불러오는 중입니다…`} shape="card" count={1} />)
+    .with({ kind: 'loading' }, () => <Skeleton label={`${FIELD_TABLE_TITLE}을 불러오는 중이에요…`} shape="card" count={1} />)
     .with({ kind: 'table' }, ({ cells, total }) => (
       <section className="field-table" aria-labelledby="field-table-title">
         <div className="field-table__head">

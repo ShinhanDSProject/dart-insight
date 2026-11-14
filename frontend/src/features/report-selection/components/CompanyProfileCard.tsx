@@ -30,7 +30,7 @@ export function CompanyProfileCard({ corpCode }: OverviewSectionProps) {
       <PanelTitle id={titleId}>기업 개황</PanelTitle>
       {match(state)
         .with({ status: 'loading' }, () => (
-          <Skeleton label="기업 개황을 불러오는 중입니다… 처음 여는 기업은 OpenDART에서 받아 오느라 조금 걸려요." shape="line" count={6} />
+          <Skeleton label="기업 개황을 불러오는 중이에요… 처음 여는 기업은 OpenDART에서 받아 오느라 조금 걸려요." shape="line" count={6} />
         ))
         .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} messages={errorMessages} />)
         .with({ status: 'success', data: { available: false } }, () => (

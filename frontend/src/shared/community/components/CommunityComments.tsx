@@ -46,7 +46,7 @@ export function CommunityComments({ post, now, onCountChange }: CommunityComment
   return (
     <section className="community-comments" aria-label="댓글">
       {match(detail.state)
-        .with({ status: 'loading' }, () => <Skeleton label="댓글을 불러오는 중입니다…" shape="line" count={2} />)
+        .with({ status: 'loading' }, () => <Skeleton label="댓글을 불러오는 중이에요…" shape="line" count={2} />)
         .with({ status: 'error' }, ({ error }) => (
           <ErrorState error={error} onRetry={detail.refresh} messages={communityErrorMessages} />
         ))

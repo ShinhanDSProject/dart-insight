@@ -185,7 +185,7 @@ function SummaryContent({ summary, ...rest }: SummaryContentProps) {
   return match(state)
     .with({ status: 'loading' }, () => (
       <Panel aria-label="요약">
-        <Skeleton label="요약을 불러오는 중입니다…" shape="line" count={4} />
+        <Skeleton label="요약을 불러오는 중이에요…" shape="line" count={4} />
       </Panel>
     ))
     .with({ status: 'error' }, ({ error }) => (

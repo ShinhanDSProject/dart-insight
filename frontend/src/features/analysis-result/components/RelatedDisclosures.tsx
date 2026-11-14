@@ -47,7 +47,7 @@ function RelatedBody({ analysisId, changeId }: RelatedDisclosuresProps) {
   const { state, reload } = useRelatedDisclosures(analysisId, changeId)
   return match(state)
     .with({ status: 'loading' }, () => (
-      <LoadingState message="관련 수시공시를 찾는 중입니다… 처음에는 몇 초 걸릴 수 있어요." />
+      <LoadingState message="관련 수시공시를 찾는 중이에요… 처음에는 몇 초 걸릴 수 있어요." />
     ))
     .with({ status: 'error' }, ({ error }) => (
       <ErrorState

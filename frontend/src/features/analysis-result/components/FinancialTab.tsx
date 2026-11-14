@@ -316,7 +316,7 @@ export function FinancialTab({
       )}
 
       {match(state)
-        .with({ status: 'loading' }, () => <Skeleton label="계정별 결과를 불러오는 중입니다…" shape="block" />)
+        .with({ status: 'loading' }, () => <Skeleton label="계정별 결과를 불러오는 중이에요…" shape="block" />)
         .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} />)
         .with({ status: 'success', data: { items: [] } }, () => (
           <EmptyState title={changedOnly ? '바뀐 계정이 없어요.' : '이 재무제표에는 계정이 없어요.'}>

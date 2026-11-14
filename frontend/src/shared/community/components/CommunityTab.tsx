@@ -156,7 +156,7 @@ export function CommunityTab({
 
         {match(posts.state)
           .with({ status: "loading" }, () => (
-            <Skeleton label="글을 불러오는 중입니다…" shape="line" count={4} />
+            <Skeleton label="글을 불러오는 중이에요…" shape="line" count={4} />
           ))
           .with({ status: "error" }, ({ error }) => (
             <ErrorState

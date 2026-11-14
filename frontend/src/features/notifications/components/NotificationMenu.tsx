@@ -63,7 +63,7 @@ export function NotificationMenu({ refreshKey }: NotificationMenuProps) {
       {open && (
         <section id={panelId} className="notification-menu__panel" aria-label="분석 완료 알림">
           {match(state)
-            .with({ status: 'loading' }, () => <LoadingState message="알림을 불러오는 중입니다…" />)
+            .with({ status: 'loading' }, () => <LoadingState message="알림을 불러오는 중이에요…" />)
             .with({ status: 'error' }, ({ error }) => <ErrorState error={error} onRetry={reload} />)
             .with({ status: 'success' }, ({ data }) =>
               data.items.length === 0 ? (

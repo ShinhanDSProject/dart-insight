@@ -34,7 +34,7 @@ export function validateRegistration(fields: RegistrationFields): RegistrationEr
     const cp = c.codePointAt(0)!
     return cp <= 31 || (cp >= 127 && cp <= 159) || (cp >= 0xd800 && cp <= 0xdfff)
   })) {
-    errors.password = '공백만 입력하거나 제어문자를 사용할 수 없습니다.'
+    errors.password = '공백만 입력하거나 제어문자를 사용할 수 없어요.'
   } else if (!characters.some((c) => /[A-Z]/.test(c))) {
     errors.password = '영문 대문자를 1개 이상 포함해 주세요.'
   } else if (!characters.some((c) => !/[\p{L}\p{N}\s]/u.test(c))) {
@@ -43,7 +43,7 @@ export function validateRegistration(fields: RegistrationFields): RegistrationEr
   if (!fields.passwordConfirm) {
     errors.passwordConfirm = '비밀번호를 한 번 더 입력해 주세요.'
   } else if (fields.password !== fields.passwordConfirm) {
-    errors.passwordConfirm = '비밀번호가 일치하지 않습니다.'
+    errors.passwordConfirm = '비밀번호가 일치하지 않아요.'
   }
   return errors
 }
