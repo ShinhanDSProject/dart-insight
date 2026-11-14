@@ -167,6 +167,14 @@ function press(key: string) {
   fireEvent.keyDown(document.activeElement ?? document.body, { key })
 }
 
+describe('TextTab 제목 단계', () => {
+  it('탭 제목(h2, 화면 읽기 전용) 아래에 전체 변경 제목(h3)을 두어 제목 단계를 건너뛰지 않는다', () => {
+    renderTab()
+    expect(screen.getByRole('heading', { level: 2, name: '바뀐 곳' })).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 3, name: '전체 변경' })).toBeTruthy()
+  })
+})
+
 describe('TextTab 카드 키보드 검토', () => {
   it('목록 줄에 초점이 없으면 j로 첫 줄에 가고, j·k로 다음·이전 줄로 옮기며 상세도 따라간다(3.54)', () => {
     const { rows, onChange } = renderTab()
@@ -569,7 +577,7 @@ describe('TextTab 거르기 줄(3.55)', () => {
   it('유형은 주요 칩만 보이고 나머지는 더 보기 메뉴에서 고른다', () => {
     const { onChange, types } = renderBar()
     expect(types.queryByRole('button', { name: /^검토 필요/ })).toBeNull()
-    fireEvent.click(types.getByRole('button', { name: '다른 유형으로 거르기' }))
+    fireEvent.click(types.getByRole('button', { name: '더 보기: 다른 유형으로 거르기' }))
     fireEvent.click(types.getByRole('button', { name: /^검토 필요/ }))
     expect(onChange).toHaveBeenCalledWith({ type: 'REVIEW_NEEDED' })
   })
@@ -599,7 +607,7 @@ describe('TextTab 거르기 줄(3.55)', () => {
 
   it('접근성 위반이 없다', async () => {
     renderBar()
-    fireEvent.click(screen.getByRole('button', { name: '다른 유형으로 거르기' }))
+    fireEvent.click(screen.getByRole('button', { name: '더 보기: 다른 유형으로 거르기' }))
     expect(await axeViolations(document.body)).toBe('')
   })
 })

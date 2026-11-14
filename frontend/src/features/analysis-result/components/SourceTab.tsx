@@ -233,10 +233,12 @@ function SourceBody({
                     <Button
                       variant="link"
                       className="source-toc__changes"
-                      aria-label={`${label} 문장 변경 ${formatCount(changes)}건 보기`}
                       onClick={() => onOpenTextSection(section.title)}
                     >
+                      {/* 보이는 '변경 N'을 이름 안에 그대로 둔다(WCAG 2.5.3) */}
+                      <span className="visually-hidden">{label} 문장</span>{' '}
                       <Badge tone="accent">변경 {formatCount(changes)}</Badge>
+                      <span className="visually-hidden">건 보기</span>
                     </Button>
                   )}
                 </li>
