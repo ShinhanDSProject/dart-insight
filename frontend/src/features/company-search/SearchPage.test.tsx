@@ -342,18 +342,39 @@ describe('첫 화면 검색창과 펼침 상자(#560, FS-67)', () => {
     expect(screen.getByRole('region', { name: '최근 본 분석' })).toBeTruthy()
   })
 
-  it('첫 화면에서 치다가 멈춰 자동 검색으로 결과 화면이 되어도 입력창에 초점이 남아 이어 칠 수 있다', async () => {
+  it('첫 화면에서 치다가 멈춰 자동 검색으로 결과 화면이 되어도 같은 입력창이 초점을 쥔 채 남는다', async () => {
     renderAt('')
     const home = (await screen.findByRole('textbox', { name: '회사명 또는 종목코드' })) as HTMLInputElement
     home.focus()
+    const blurred = vi.fn()
+    home.addEventListener('blur', blurred)
     fireEvent.change(home, { target: { value: 'LG ' } })
 
-    // 입력을 멈추면(300ms) 주소가 바뀌고 검색 결과 배치로 입력창이 새로 그려진다
+    // 입력을 멈추면(300ms) 주소가 바뀌고 검색 결과 배치가 된다
     await screen.findByRole('heading', { name: /기업 검색/ }, { timeout: 2000 })
-    const input = screen.getByRole('textbox', { name: '회사명 또는 종목코드' }) as HTMLInputElement
-    expect(document.activeElement).toBe(input)
+    // 입력창을 새로 그리면 초점을 잃고 조합 중이던 한글이 끊긴다. 같은 요소가 그대로 남아야 한다
+    expect(screen.getByRole('textbox', { name: '회사명 또는 종목코드' })).toBe(home)
+    expect(document.activeElement).toBe(home)
+    expect(blurred).not.toHaveBeenCalled()
     // 끝에 친 공백도 그대로다
-    expect(input.value).toBe('LG ')
+    expect(home.value).toBe('LG ')
+  })
+
+  it('Enter로 찾거나 검색어를 지워 첫 화면으로 돌아와도 같은 입력창이 남고, 지운 뒤에는 초점이 입력창에 있다', async () => {
+    renderAt('')
+    const home = (await screen.findByRole('textbox', { name: '회사명 또는 종목코드' })) as HTMLInputElement
+    home.focus()
+    fireEvent.change(home, { target: { value: '삼성' } })
+    fireEvent.submit(home.form as HTMLFormElement)
+    await screen.findByRole('list', { name: '검색 결과 3곳' })
+    expect(screen.getByRole('textbox', { name: '회사명 또는 종목코드' })).toBe(home)
+    expect(document.activeElement).toBe(home)
+
+    fireEvent.click(screen.getByRole('button', { name: '검색어 지우기' }))
+    await screen.findByRole('heading', { name: /^대표 기업/ })
+    expect(screen.getByRole('textbox', { name: '회사명 또는 종목코드' })).toBe(home)
+    expect(document.activeElement).toBe(home)
+    expect(home.value).toBe('')
   })
 
   it('Esc로 펼침 상자를 닫고, 검색창을 다시 누르거나 입력하면 다시 연다', () => {

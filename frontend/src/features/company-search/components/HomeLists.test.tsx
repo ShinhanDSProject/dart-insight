@@ -49,7 +49,7 @@ const season = (count: number) => ({
   })),
 })
 
-// 시즌 변화는 첫 화면(HomeHero)이 불러와 넘긴다
+// 시즌 변화는 검색 화면 머리(SearchHero)가 불러와 넘긴다
 function Harness() {
   return <HomeLists season={useSeasonChanges(null)} favoritesStatus="anonymous" favorites={[]} onOpenGuide={() => {}} />
 }
