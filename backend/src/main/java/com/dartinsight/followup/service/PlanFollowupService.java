@@ -95,7 +95,15 @@ public class PlanFollowupService {
 
     private PlanFollowupResult followups(Report previous, Report current, String companyName) {
         String key = previous.getRceptNo() + current.getRceptNo();
+        // 저장된 결과는 잠금 없이 바로 돌려준다. 잠금은 64칸을 나눠 쓰므로,
+        // 같은 칸에 걸린 다른 대상의 생성(수십 초~수 분)을 기다리지 않게 한다
+        Optional<PlanFollowupRecord> cached = store.find(previous.getRceptNo(), current.getRceptNo(),
+                PROMPT_VERSION);
+        if (cached.isPresent()) {
+            return PlanFollowupResult.of(previous, current, cached.get());
+        }
         synchronized (LOCKS[Math.floorMod(key.hashCode(), LOCKS.length)]) {
+            // 잠금을 기다리는 사이 다른 요청이 만들어 저장했을 수 있다
             Optional<PlanFollowupRecord> saved = store.find(previous.getRceptNo(), current.getRceptNo(),
                     PROMPT_VERSION);
             if (saved.isPresent()) {

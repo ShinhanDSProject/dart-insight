@@ -103,7 +103,14 @@ public class OutlookService {
 
     private ReportOutlook outlook(Report report, String companyName) {
         String rceptNo = report.getRceptNo();
+        // 저장된 결과는 잠금 없이 바로 돌려준다. 잠금은 64칸을 나눠 쓰므로,
+        // 같은 칸에 걸린 다른 대상의 생성(수십 초~수 분)을 기다리지 않게 한다
+        Optional<OutlookRecord> cached = store.find(rceptNo, PROMPT_VERSION);
+        if (cached.isPresent()) {
+            return ReportOutlook.of(report, cached.get());
+        }
         synchronized (LOCKS[Math.floorMod(rceptNo.hashCode(), LOCKS.length)]) {
+            // 잠금을 기다리는 사이 다른 요청이 만들어 저장했을 수 있다
             Optional<OutlookRecord> saved = store.find(rceptNo, PROMPT_VERSION);
             if (saved.isPresent()) {
                 return ReportOutlook.of(report, saved.get());
