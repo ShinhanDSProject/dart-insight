@@ -164,6 +164,17 @@ class LlmClient:
     def available(self) -> bool:
         return self.provider is not None
 
+    def deadline(self) -> float:
+        """지금부터 설정의 전체 시간(total_timeout_seconds)이 지나는 시각.
+
+        여러 호출을 한 시간 예산으로 묶을 때 쓴다(에이전트 한 단계).
+        """
+        return self._monotonic() + self.settings.total_timeout_seconds
+
+    def seconds_left(self, deadline: float) -> float:
+        """deadline까지 남은 초. 지났으면 0 이하다."""
+        return deadline - self._monotonic()
+
     def generate[T](
         self,
         request: LlmRequest,

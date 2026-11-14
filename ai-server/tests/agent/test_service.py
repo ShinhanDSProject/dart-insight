@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 import pytest
 
 from app.agent.model import (
@@ -613,3 +615,71 @@ def test_quick_command_missing_required_argument_goes_to_llm() -> None:
     run_step(client, quick_step("/요약", needs_id))
 
     assert provider.requests[0].task == TASK_PLAN
+
+
+class Clock:
+    """LLM을 부를 때마다 시간이 흐르는 가짜 시계"""
+
+    def __init__(self, step: float) -> None:
+        self.now = 0.0
+        self.step = step
+
+    def __call__(self) -> float:
+        return self.now
+
+
+class SlowProvider(FakeProvider):
+    def __init__(self, clock: Clock, *script: object) -> None:
+        from app.agent import fake
+
+        super().__init__(
+            script=script,
+            responders={TASK_PLAN: fake.respond_plan, TASK_ANSWER: fake.respond_answer},
+        )
+        self.clock = clock
+        self.timeouts: list[float] = []
+
+    def complete(self, request, timeout_seconds):  # type: ignore[no-untyped-def]
+        self.timeouts.append(timeout_seconds)
+        self.clock.now += self.clock.step
+        return super().complete(request, timeout_seconds)
+
+
+def slow_llm(step_seconds: float, *script: object) -> tuple[LlmClient, SlowProvider]:
+    clock = Clock(step_seconds)
+    provider = SlowProvider(clock, *script)
+    settings = replace(SETTINGS, total_timeout_seconds=120.0)
+    return LlmClient(provider, settings, sleep=lambda _: None, monotonic=clock), provider
+
+
+def test_step_gives_each_llm_call_only_the_time_left_in_the_step() -> None:
+    client, provider = slow_llm(
+        50.0,
+        {"decision": "ANSWER", "toolCalls": []},
+        answer("영업이익은 2.3조 원 줄었어요[F4221].", ["F4221"]),
+        answer("영업이익은 6.6조 원에서 4.3조 원으로 줄었어요[F4221].", ["F4221"]),
+    )
+
+    output = run_step(client, step(results=[FINANCIAL]))
+
+    assert output.final is not None
+    assert output.final.status == "ANSWERED"
+    # 호출당 상한은 60초. 노드마다 전체 120초를 새로 받지 않아, 세 번째는 남은 20초만 기다린다
+    assert provider.timeouts == [60.0, 60.0, 20.0]
+
+
+def test_rejected_answer_is_review_needed_when_no_time_is_left_to_rewrite() -> None:
+    client, provider = slow_llm(
+        60.0,
+        {"decision": "ANSWER", "toolCalls": []},
+        answer("영업이익은 2.3조 원 줄었어요[F4221].", ["F4221"]),
+        answer("영업이익은 6.6조 원에서 4.3조 원으로 줄었어요[F4221].", ["F4221"]),
+    )
+
+    output = run_step(client, step(results=[FINANCIAL]))
+
+    assert output.final is not None
+    assert output.final.status == REVIEW_NEEDED
+    assert output.final.answer is None
+    assert len(provider.requests) == 2
+    assert [r.rules for r in output.rejections] == [["NUMBER_NOT_IN_TOOL_RESULT"]]

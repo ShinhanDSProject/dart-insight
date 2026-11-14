@@ -17,6 +17,9 @@ route_intent ─┬─ OUT_OF_SCOPE ──────────────�
   내용 검사와 반려는 review_answer가 맡는다.
 - 답 생성은 처음 1회와 다시 생성 2회가 상한이다. LlmClient가 형식 실패로 다시 만든 것도 같은
   예산에서 센다(그래프와 LlmClient가 따로 세지 않음).
+- 시간도 한 단계에 한 예산이다(상태의 deadline). 노드마다 남은 시간만 LlmClient에 넘겨,
+  Tool 고르기와 답 쓰기·다시 쓰기를 합쳐도 backend가 기다리는 시간(180초)을 넘지 않게 한다.
+  다시 쓸 시간이 없으면 검토 필요로 끝낸다.
 """
 
 from __future__ import annotations
@@ -54,7 +57,7 @@ from app.agent.validate import (
     without_markers,
 )
 from app.compliance import scan, scan_question
-from app.llm import CallRecord, LlmClient, LlmOutputInvalid, LlmUnavailable
+from app.llm import CallRecord, LlmClient, LlmOutputInvalid, LlmRequest, LlmUnavailable
 from app.llm.client import OUTCOME_INVALID_OUTPUT, OUTCOME_OK
 
 logger = logging.getLogger("app.agent")
@@ -77,6 +80,8 @@ _DRAFT = "draft_answer"
 _REVIEW = "review_answer"
 _RESPOND = "build_response"
 _GENERAL = "explain_term"
+# 0초는 '설정값을 쓰라'는 뜻이라, 시간이 다 됐을 때는 이 값을 넘겨 더 부르지 않게 한다
+_NO_TIME = 1e-6
 
 
 class StepState(TypedDict, total=False):
@@ -97,6 +102,7 @@ class StepState(TypedDict, total=False):
     model: str | None
     generated_at: str | None
     fixed: FinalAnswer | None
+    deadline: float  # LlmClient 시계 기준. 없으면 노드마다 설정의 전체 시간을 쓴다
 
 
 def build_graph(llm: LlmClient) -> Any:
@@ -139,7 +145,7 @@ def build_graph(llm: LlmClient) -> Any:
             result = _generate(
                 llm,
                 calls,
-                build_plan_request(step),
+                _within(llm, state, build_plan_request(step)),
                 lambda d: (parse_plan(d, step), plan_draft(d), workflow.choice(d, step)),
             )
         except LlmOutputInvalid as e:
@@ -190,7 +196,15 @@ def build_graph(llm: LlmClient) -> Any:
         calls = list(state.get("calls", []))
         generations = state.get("generations", 0)
         remaining = max_generations - generations
-        request = build_answer_request(step, state.get("problems", []))
+        if generations > 0 and _out_of_time(llm, state):
+            # 반려된 답을 다시 쓸 시간이 없다. 확인하지 못한 답은 내보내지 않는다
+            logger.info("답 다시 쓰기 시간 없음(%d/%d)", generations, max_generations)
+            return {
+                "final": FinalAnswer(REVIEW_NEEDED, review_reason=NOT_VERIFIED),
+                "kind": FINAL,
+                "next": _RESPOND,
+            }
+        request = _within(llm, state, build_answer_request(step, state.get("problems", [])))
         try:
             result = _generate(llm, calls, request, parse_draft, max_output_retries=remaining - 1)
         except LlmOutputInvalid as e:
@@ -260,7 +274,7 @@ def build_graph(llm: LlmClient) -> Any:
             return {"kind": FINAL, "final": fixed, "next": _RESPOND}
         try:
             result = llm.generate(
-                build_term_general_request(term),
+                _within(llm, state, build_term_general_request(term)),
                 lambda d: workflow.parse_term_general(d, term, step),
             )
         except (LlmOutputInvalid, LlmUnavailable) as e:
@@ -321,6 +335,24 @@ def _generate(
         return llm.generate(request, validate, max_output_retries=max_output_retries)
     except LlmUnavailable as e:
         raise LlmUnavailable(e.message, [*calls, *e.calls]) from e
+
+
+def _within(llm: LlmClient, state: StepState, request: LlmRequest) -> LlmRequest:
+    """요청의 전체 시간을 이 단계에 남은 시간으로 줄인다.
+
+    남은 시간이 없으면 LlmClient가 부르지 않고 바로 시간 초과로 끝낸다.
+    """
+    deadline = state.get("deadline")
+    if deadline is None:
+        return request
+    left = max(llm.seconds_left(deadline), _NO_TIME)
+    total = request.total_timeout_seconds or llm.settings.total_timeout_seconds
+    return replace(request, total_timeout_seconds=min(total, left))
+
+
+def _out_of_time(llm: LlmClient, state: StepState) -> bool:
+    deadline = state.get("deadline")
+    return deadline is not None and llm.seconds_left(deadline) <= 0
 
 
 def _generation_count(calls: list[CallRecord]) -> int:

@@ -5,6 +5,7 @@
 - 답이 검토를 통과하지 못하면 사유를 붙여 다시 쓰고, 생성 예산(처음 1회 + 다시 2회)을 넘으면
   답을 버리고 REVIEW_NEEDED다. 실패를 성공으로 처리하지 않는다.
 - LLM을 부를 수 없으면(LlmUnavailable) 그대로 던진다. 부른 쪽이 503으로 바꾼다.
+- 한 단계에 쓰는 전체 시간은 LLM 설정의 total_timeout_seconds(기본 120초)다.
 """
 
 from __future__ import annotations
@@ -37,7 +38,8 @@ class StepOutput:
 
 
 def run_step(llm: LlmClient, step: StepInput) -> StepOutput:
-    initial: StepState = {"step": step}
+    # 한 단계 전체(Tool 고르기 + 답 쓰기·다시 쓰기)를 설정의 전체 시간 안에 끝낸다
+    initial: StepState = {"step": step, "deadline": llm.deadline()}
     state: StepState = build_graph(llm).invoke(initial)
     kind = state.get("kind", FINAL)
     if kind == OUT_OF_SCOPE:
