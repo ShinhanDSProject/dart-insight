@@ -19,7 +19,7 @@ route_intent ─┬─ OUT_OF_SCOPE ──────────────�
   예산에서 센다(그래프와 LlmClient가 따로 세지 않음).
 - 시간도 한 단계에 한 예산이다(상태의 deadline). 노드마다 남은 시간만 LlmClient에 넘겨,
   Tool 고르기와 답 쓰기·다시 쓰기를 합쳐도 backend가 기다리는 시간(180초)을 넘지 않게 한다.
-  다시 쓸 시간이 없으면 검토 필요로 끝낸다.
+  다시 쓸 시간이 없거나 다시 쓰다 시간이 다 되면 검토 필요로 끝낸다.
 """
 
 from __future__ import annotations
@@ -216,6 +216,18 @@ def build_graph(llm: LlmClient) -> Any:
                 "kind": FINAL,
                 "model": e.calls[-1].model if e.calls else None,
                 "generated_at": e.calls[-1].called_at if e.calls else None,
+                "next": _RESPOND,
+            }
+        except LlmUnavailable as e:
+            if generations == 0:
+                raise
+            # 반려된 답을 다시 쓰다 시간이 다 되거나 LLM을 쓸 수 없게 됐다. 이미 쓴 답은 확인하지
+            # 못했으므로 내보내지 않고 검토 필요로 끝낸다(첫 답 쓰기의 실패는 그대로 503)
+            logger.info("답 다시 쓰기 실패, 검토 필요로 끝냄(%d/%d)", generations, max_generations)
+            return {
+                "calls": e.calls,
+                "final": FinalAnswer(REVIEW_NEEDED, review_reason=NOT_VERIFIED),
+                "kind": FINAL,
                 "next": _RESPOND,
             }
         calls += result.calls
