@@ -2371,7 +2371,7 @@ body {
   </div>
 </section>
 
-<section id="value" data-title="핵심 가치 제안">
+<section id="value" data-chip="Value Proposition" data-title="핵심 가치 제안">
   <div class="sechead-4zone">
     <div class="zone-a">
       <p class="kicker">01 · Value Proposition</p>
@@ -2405,7 +2405,7 @@ body {
 </section>
 
 <!-- 4. 공시 분석: 두 보고서 사이에 한 일과 앞으로의 영향 -->
-<section id="activity-financial" data-title="실제 실적 대조">
+<section id="activity-financial" data-chip="Financial Evidence" data-title="실제 실적 대조">
   <div class="sechead-4zone">
     <div class="zone-a">
       <p class="kicker">02 · Financial Evidence</p>
@@ -2470,7 +2470,7 @@ body {
   </div>
 </section>
 
-<section id="activity-flow" data-title="공시 분석·원문점프">
+<section id="activity-flow" data-chip="Period Activity" data-title="공시 분석·원문점프">
   <div class="sechead-4zone">
     <div class="zone-a">
       <p class="kicker">03 · Period Activity</p>
@@ -2497,7 +2497,7 @@ body {
 </section>
 
 <!-- 5. 분석 방법과 기준 -->
-<section id="methods" data-title="분석 기준">
+<section id="methods" data-chip="Verification" data-title="분석 기준">
   <div class="sechead-4zone">
     <div class="zone-a">
       <p class="kicker">04 · Verification</p>
@@ -2517,7 +2517,7 @@ body {
 </section>
 
 <!-- 6. 사용자 임팩트 -->
-<section id="impact" data-title="사용자 임팩트">
+<section id="impact" data-chip="Target Audience" data-title="사용자 임팩트">
   <div class="sechead-4zone">
     <div class="zone-a">
       <p class="kicker">05 · Who Uses It</p>
@@ -2945,7 +2945,7 @@ stepper('#userflow', '#flowtext', [
       for (let el = divider.nextElementSibling; el && !el.classList.contains('chapter-divider'); el = el.nextElementSibling) {
         if (el.tagName !== 'SECTION') continue;
         const h2 = el.querySelector('h2'), kicker = el.querySelector('.kicker');
-        if (h2) out.push({ id: el.id, num: kicker ? kicker.textContent.trim().split(/\s/)[0] : '', title: h2.textContent.trim() });
+        if (h2) out.push({ id: el.id, num: kicker ? kicker.textContent.trim().split(/\s/)[0] : '', title: el.dataset.chip || h2.textContent.trim() }); // data-chip: 장 제목 대신 표지 칩에만 쓸 짧은 이름
       }
       return out;
     };
