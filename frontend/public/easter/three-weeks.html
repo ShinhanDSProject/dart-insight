@@ -2330,26 +2330,22 @@ body {
   <div class="sechead-4zone">
     <div class="zone-a">
       <p class="kicker">01 · Value Proposition</p>
-      <h2>기업 검색부터 원문 비교까지</h2>
+      <h2>숫자와 문장마다 원문 위치가 붙습니다</h2>
     </div>
   </div>
 
-  <!-- 쓰는 흐름: 아이콘 한 줄 -->
-  <div style="display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:10px; margin-top:26px; padding:18px; border-radius:var(--radius-lg); background:var(--color-bg-subtle);" aria-label="사용 흐름: 검색, 기업 개요, 보고서 두 개, 분석, 결과, 채팅·노트">
-    <div style="display:grid; justify-items:center; gap:6px; min-width:84px;"><span aria-hidden="true" style="font-size:32px;">🔎</span><span style="font-size:13px; font-weight:700;">검색</span></div><span aria-hidden="true" style="color:var(--color-text-muted); font-size:18px;">→</span><div style="display:grid; justify-items:center; gap:6px; min-width:84px;"><span aria-hidden="true" style="font-size:32px;">🏢</span><span style="font-size:13px; font-weight:700;">기업 개요</span></div><span aria-hidden="true" style="color:var(--color-text-muted); font-size:18px;">→</span><div style="display:grid; justify-items:center; gap:6px; min-width:84px;"><span aria-hidden="true" style="font-size:32px;">📑</span><span style="font-size:13px; font-weight:700;">보고서 두 개</span></div><span aria-hidden="true" style="color:var(--color-text-muted); font-size:18px;">→</span><div style="display:grid; justify-items:center; gap:6px; min-width:84px;"><span aria-hidden="true" style="font-size:32px;">⏳</span><span style="font-size:13px; font-weight:700;">분석</span></div><span aria-hidden="true" style="color:var(--color-text-muted); font-size:18px;">→</span><div style="display:grid; justify-items:center; gap:6px; min-width:84px;"><span aria-hidden="true" style="font-size:32px;">📊</span><span style="font-size:13px; font-weight:700;">결과</span></div><span aria-hidden="true" style="color:var(--color-text-muted); font-size:18px;">→</span><div style="display:grid; justify-items:center; gap:6px; min-width:84px;"><span aria-hidden="true" style="font-size:32px;">💬</span><span style="font-size:13px; font-weight:700;">채팅·노트</span></div>
-  </div>
-
+  <div style="display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:14px; margin-top:22px; padding:12px; border-radius:var(--radius-lg); background:var(--color-bg-subtle);" aria-label="사용 흐름: 기업 검색, 보고서 두 개 고르기, 30초 뒤 결과"><div style="display:grid; justify-items:center; gap:4px; min-width:110px;"><span aria-hidden="true" style="font-size:26px;">🔎</span><span style="font-size:14px; font-weight:700;">기업 검색</span></div><span aria-hidden="true" style="color:var(--color-text-muted); font-size:18px;">→</span><div style="display:grid; justify-items:center; gap:4px; min-width:110px;"><span aria-hidden="true" style="font-size:26px;">📑</span><span style="font-size:14px; font-weight:700;">보고서 두 개 고르기</span></div><span aria-hidden="true" style="color:var(--color-text-muted); font-size:18px;">→</span><div style="display:grid; justify-items:center; gap:4px; min-width:110px;"><span aria-hidden="true" style="font-size:26px;">⏱️</span><span style="font-size:14px; font-weight:700;">30초 뒤 결과</span></div></div>
   <!-- 원문 위치로 이동: 그림 -->
-  <div style="display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:stretch; gap:14px; margin-top:18px;" aria-label="요약 문장의 원문 위치를 누르면 공시 원문의 그 문단으로 이동">
+  <div style="display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:stretch; gap:20px; margin-top:22px; min-height:230px;" aria-label="요약 문장의 원문 위치를 누르면 공시 원문의 그 문단으로 이동">
     <div style="padding:18px; border:1px solid var(--color-border-accent); border-radius:var(--radius-lg); background:var(--color-accent-subtle); display:grid; gap:10px; align-content:center;">
       <span style="font-size:13px; font-weight:700; color:var(--color-accent);">결과 화면 · 요약 문장</span>
-      <span style="font-size:16px;">영업이익 <b>▲ +33.2%</b> <span style="font-family:var(--font-mono); font-size:12px; padding:2px 8px; border-radius:var(--radius-pill); background:var(--color-bg-raised); border:1px solid var(--color-border-accent); color:var(--color-accent);">📍 원문</span></span>
+      <span style="font-size:26px;">영업이익 <b>▲ +33.2%</b> <span style="font-family:var(--font-mono); font-size:16px; padding:4px 12px; border-radius:var(--radius-pill); background:var(--color-bg-raised); border:2px solid var(--color-accent); color:var(--color-accent);">📍 원문</span></span>
     </div>
-    <span class="doc-jump" aria-hidden="true" style="align-self:center; font-size:28px; color:var(--color-accent);">➜</span>
+    <span class="doc-jump" aria-hidden="true" style="align-self:center; font-size:44px; color:var(--color-accent);">➜</span>
     <div class="doc-loading" style="padding:18px; border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-raised); display:grid; gap:8px;">
       <span style="font-size:13px; font-weight:700; color:var(--color-text-muted);">DART 공시 원문 <span class="doc-loading__dots" aria-hidden="true"><i></i><i></i><i></i></span></span>
       <div class="skel" style="height:8px; border-radius:4px; background:var(--color-border); width:92%;"></div><div class="skel" style="height:8px; border-radius:4px; background:var(--color-border); width:78%;"></div>
-      <div class="skel-hit" style="height:22px; border-radius:4px; background:var(--color-attention-subtle); border-left:4px solid var(--color-attention);"></div>
+      <div class="skel-hit" style="height:44px; display:flex; align-items:center; padding-left:10px; font-size:14px; font-weight:700; color:var(--color-attention);">↳ 근거 문단</div><div style="display:none; border-radius:4px; background:var(--color-attention-subtle); border-left:4px solid var(--color-attention);"></div>
       <div class="skel" style="height:8px; border-radius:4px; background:var(--color-border); width:92%;"></div><div class="skel" style="height:8px; border-radius:4px; background:var(--color-border); width:78%;"></div>
     </div>
   </div>
@@ -2368,7 +2364,7 @@ body {
   <div class="sechead-4zone">
     <div class="zone-a">
       <p class="kicker">02 · Financial Evidence</p>
-      <h2>삼성전자 2025년, 숫자로 보면</h2>
+      <h2>영업이익 1년 새 +33.2%, 계산은 코드가</h2>
     </div>
     <div class="zone-b-badge">
       <span class="zone-b-term">🔍 증감률</span>
@@ -2388,7 +2384,7 @@ body {
       </div>
     </div>
     <div class="visual-barchart-grid">
-      <div class="bar-group">
+      <div class="bar-group" style="opacity:.35;">
         <div class="bar-group__label">
           <span class="bar-title">매출액</span>
           <span class="badge badge--ok countup">▲ +10.9% (+32.7조 원)</span>
@@ -2396,15 +2392,15 @@ body {
         <div class="bar-track"><div class="bar-fill bar-fill--prev" style="width:90%;" title="2024년 매출액: 300.9조 원"><span class="bar-val">300.9조</span></div></div>
         <div class="bar-track"><div class="bar-fill bar-fill--curr" style="width:100%;" title="2025년 매출액: 333.6조 원"><span class="bar-val">333.6조</span></div></div>
       </div>
-      <div class="bar-group">
+      <div class="bar-group" style="padding:10px 12px; border-radius:var(--radius-md); outline:2px solid var(--color-accent); background:var(--color-accent-subtle);">
         <div class="bar-group__label">
-          <span class="bar-title">영업이익</span>
-          <span class="badge badge--ok countup">▲ +33.2% (+10.9조 원)</span>
+          <span class="bar-title" style="font-size:18px;">영업이익</span>
+          <span class="badge badge--ok countup">▲ +33.2% (+10.9조 원)</span> <span class="zone-d-chip" style="margin-left:6px;">🧮 코드가 계산</span>
         </div>
         <div class="bar-track"><div class="bar-fill bar-fill--prev" style="width:75%;" title="2024년 영업이익: 32.7조 원"><span class="bar-val">32.7조</span></div></div>
         <div class="bar-track"><div class="bar-fill bar-fill--curr" style="width:100%;" title="2025년 영업이익: 43.6조 원"><span class="bar-val">43.6조</span></div></div>
       </div>
-      <div class="bar-group">
+      <div class="bar-group" style="opacity:.35;">
         <div class="bar-group__label">
           <span class="bar-title">당기순이익</span>
           <span class="badge badge--ok countup">▲ +31.2% (+10.8조 원)</span>
@@ -2433,30 +2429,20 @@ body {
   <div class="sechead-4zone">
     <div class="zone-a">
       <p class="kicker">03 · Period Activity</p>
-      <h2>두 보고서 사이 1년, 한 장으로</h2>
+      <h2>1년 사이 생긴 일, 사실과 전망을 나눠 보여 줍니다</h2>
     </div>
     <div class="zone-b-badge">
       <span class="zone-b-term">🔍 수시공시</span>
       <span class="zone-b-def">정기보고서 사이에 생긴 일을 그때그때 알리는 공시</span>
     </div>
   </div>
-  <!-- 정리 흐름: 아이콘 한 줄 -->
-  <div style="display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:10px; margin-top:16px; padding:18px; border-radius:var(--radius-lg); background:var(--color-bg-subtle);" aria-label="정리 흐름: 모으기, 요약·타임라인, 관점별 보기, 사실과 전망 분리">
-    <div style="display:grid; justify-items:center; gap:6px; min-width:84px;"><span aria-hidden="true" style="font-size:32px;">📥</span><span style="font-size:13px; font-weight:700;">모으기</span></div><span aria-hidden="true" style="color:var(--color-text-muted); font-size:18px;">→</span><div style="display:grid; justify-items:center; gap:6px; min-width:84px;"><span aria-hidden="true" style="font-size:32px;">📝</span><span style="font-size:13px; font-weight:700;">요약·타임라인</span></div><span aria-hidden="true" style="color:var(--color-text-muted); font-size:18px;">→</span><div style="display:grid; justify-items:center; gap:6px; min-width:84px;"><span aria-hidden="true" style="font-size:32px;">🎯</span><span style="font-size:13px; font-weight:700;">관점별 보기</span></div><span aria-hidden="true" style="color:var(--color-text-muted); font-size:18px;">→</span><div style="display:grid; justify-items:center; gap:6px; min-width:84px;"><span aria-hidden="true" style="font-size:32px;">🚦</span><span style="font-size:13px; font-weight:700;">사실과 전망 분리</span></div>
-  </div>
   <div style="display:flex; flex-wrap:wrap; gap:16px; margin-top:16px; align-items:stretch;">
     <div style="flex:1 1 380px; display:flex; flex-direction:column; padding:18px 20px; border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-raised);">
-      <p style="margin:0 0 6px; font-size:16px; font-weight:800;">🗓️ 1년 타임라인 <span style="font-size:13px; font-weight:600; color:var(--color-text-muted);">24건 중 6건</span></p>
-      <ol style="list-style:none; margin:0; padding:0;"><li style="display:grid; grid-template-columns:88px 28px 1fr; align-items:center; gap:8px; padding:7px 0; border-bottom:1px dashed var(--color-border);"><time style="font-family:var(--font-num); font-size:13px; color:var(--color-text-muted);">2025.11.26</time><span aria-hidden="true" style="font-size:18px;">⚠️</span><span style="font-size:14px;"><b>위험</b> · 종속회사 Harman, 미국 법무부 벌금</span></li><li style="display:grid; grid-template-columns:88px 28px 1fr; align-items:center; gap:8px; padding:7px 0; border-bottom:1px dashed var(--color-border);"><time style="font-family:var(--font-num); font-size:13px; color:var(--color-text-muted);">2025.12.23</time><span aria-hidden="true" style="font-size:18px;">⚠️</span><span style="font-size:14px;"><b>위험</b> · 아산 캠퍼스 사고로 부분작업중지</span></li><li style="display:grid; grid-template-columns:88px 28px 1fr; align-items:center; gap:8px; padding:7px 0; border-bottom:1px dashed var(--color-border);"><time style="font-family:var(--font-num); font-size:13px; color:var(--color-text-muted);">2026.01.29</time><span aria-hidden="true" style="font-size:18px;">💰</span><span style="font-size:14px;"><b>자금</b> · 임직원 보상용 자사주 2,200만 주 취득 결정</span></li><li style="display:grid; grid-template-columns:88px 28px 1fr; align-items:center; gap:8px; padding:7px 0; border-bottom:1px dashed var(--color-border);"><time style="font-family:var(--font-num); font-size:13px; color:var(--color-text-muted);">2026.02.20</time><span aria-hidden="true" style="font-size:18px;">⚠️</span><span style="font-size:14px;"><b>위험</b> · 부분작업중지 해제</span></li><li style="display:grid; grid-template-columns:88px 28px 1fr; align-items:center; gap:8px; padding:7px 0; border-bottom:1px dashed var(--color-border);"><time style="font-family:var(--font-num); font-size:13px; color:var(--color-text-muted);">2026.03.18</time><span aria-hidden="true" style="font-size:18px;">🏛️</span><span style="font-size:14px;"><b>지배구조</b> · 정기주총 · 자사주 추가 취득 결정</span></li><li style="display:grid; grid-template-columns:88px 28px 1fr; align-items:center; gap:8px; padding:7px 0; border-bottom:1px dashed var(--color-border);"><time style="font-family:var(--font-num); font-size:13px; color:var(--color-text-muted);">2026.04.30</time><span aria-hidden="true" style="font-size:18px;">🧭</span><span style="font-size:14px;"><b>투자</b> · 국가 AI컴퓨팅센터 컨소시엄 출자 의결</span></li></ol>
+      <p style="margin:0 0 6px; font-size:16px; font-weight:800;">🗓️ 1년 타임라인 <span style="font-size:13px; font-weight:600; color:var(--color-text-muted);">24건 중 3건</span></p>
+      <ol style="list-style:none; margin:0; padding:0;"><li style="display:grid; grid-template-columns:88px 28px 1fr; align-items:center; gap:8px; padding:7px 0; border-bottom:1px dashed var(--color-border);"><time style="font-family:var(--font-num); font-size:13px; color:var(--color-text-muted);">2025.11.26</time><span aria-hidden="true" style="font-size:18px;">⚠️</span><span style="font-size:14px;"><b>위험</b> · 종속회사 Harman, 미국 법무부 벌금</span></li><li style="display:grid; grid-template-columns:88px 28px 1fr; align-items:center; gap:8px; padding:7px 0; border-bottom:1px dashed var(--color-border);"><time style="font-family:var(--font-num); font-size:13px; color:var(--color-text-muted);">2026.01.29</time><span aria-hidden="true" style="font-size:18px;">💰</span><span style="font-size:14px;"><b>자금</b> · 임직원 보상용 자사주 2,200만 주 취득 결정</span></li><li style="display:grid; grid-template-columns:88px 28px 1fr; align-items:center; gap:8px; padding:7px 0; border-bottom:1px dashed var(--color-border);"><time style="font-family:var(--font-num); font-size:13px; color:var(--color-text-muted);">2026.04.30</time><span aria-hidden="true" style="font-size:18px;">🧭</span><span style="font-size:14px;"><b>투자</b> · 국가 AI컴퓨팅센터 컨소시엄 출자 의결</span></li></ol>
       <p style="margin:auto 0 0; padding-top:10px; font-size:12px; color:var(--color-text-muted);">사건마다 공시 원문 근거가 붙어 있어요.</p>
     </div>
-    <figure style="flex:1.4 1 420px; display:flex; flex-direction:column; justify-content:space-between; margin:0; padding:12px; border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-raised);">
-      <img src="samsung-fact-vs-forecast.webp" alt="활동 카드 실제 화면: 공시에 적힌 사실과 AI 전망이 나뉘어 표시됨" style="width:100%; border-radius:var(--radius-md);">
-      <figcaption style="display:grid; gap:6px; margin-top:10px; font-size:14px;">
-        <span><span class="badge badge--accent">① 공시에 적힌 사실</span> 원문 문장 그대로 + 근거 위치</span>
-        <span><span class="badge badge--attention">② 앞으로의 영향</span> 'AI 전망 · 공시 사실 아님' 표시를 따로</span>
-      </figcaption>
-    </figure>
+    <div style="flex:1.4 1 420px; display:flex; flex-direction:column; gap:10px;"><p style="margin:0; font-size:14px; font-weight:800; color:var(--color-text-muted);">🔬 예시 사건 · 연구개발비용 증가 공시</p><div style="display:flex; gap:12px; flex:1;"><div style="flex:1; padding:16px 18px; border:2px solid var(--color-accent); border-radius:var(--radius-lg); background:var(--color-accent-subtle); display:grid; gap:8px; align-content:start;"><span class="badge badge--accent" style="justify-self:start;">① 공시에 적힌 사실</span><b style="font-size:15px;">원문 문장 그대로</b><span style="font-size:14px; line-height:1.6;">“2026년(제58기) 반기 당사의 연구개발비용은 27조 3,627억원이며, …27조 3,620억원을 당기비용으로 회계처리하였습니다.” <span style="font-family:var(--font-mono); font-size:12px; color:var(--color-accent);">📍 20260814003699#B214</span></span></div><div style="flex:1; padding:16px 18px; border:2px solid var(--color-attention); border-radius:var(--radius-lg); background:var(--color-attention-subtle); display:grid; gap:8px; align-content:start;"><span class="badge badge--attention" style="justify-self:start;">② AI 전망 · 공시 사실 아님</span><b style="font-size:15px;">조건형 문장 · 단정 없음</b><span style="font-size:14px; line-height:1.6;">연구개발비 지출이 늘어난 만큼 기술 경쟁력에 자원이 더 투입되었다고 볼 수 있어요. 이 지출이 계속되면 중장기 비용 구조에 부담으로 작용할 수 있어요.</span></div></div></div>
   </div>
   <p style="text-align:center; margin:14px 0 0; font-size:13px; color:var(--color-text-muted);">실제 결과 · 삼성전자 반기보고서 2025.06 → 2026.06</p>
   <div class="demo-journey-box">
@@ -2470,7 +2456,7 @@ body {
   <div class="sechead-4zone">
     <div class="zone-a">
       <p class="kicker">04 · Verification</p>
-      <h2>결과를 내보내기 전, 네 단계 검증</h2>
+      <h2>근거 없는 문장은 화면에 내보내지 않습니다</h2>
     </div>
     <div class="zone-b-badge">
       <span class="zone-b-term">🔍 검토 필요</span>
@@ -2482,11 +2468,7 @@ body {
   <div style="display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:10px; margin-top:20px; padding:22px 18px; border-radius:var(--radius-lg); background:var(--color-bg-subtle);" aria-label="검증 흐름: 비교 가능성, 수치 계산, 변경 탐지, 근거 검증">
     <div style="display:grid; justify-items:center; gap:4px; min-width:150px;"><span style="font-family:var(--font-num); font-size:22px; font-weight:800; color:var(--color-accent);">01</span><span style="font-size:15px; font-weight:800;">비교 가능성</span><span style="font-size:12.5px; color:var(--color-text-muted);">같은 회사 · 같은 기준 기간</span></div><span aria-hidden="true" style="color:var(--color-text-muted); font-size:18px;">→</span><div style="display:grid; justify-items:center; gap:4px; min-width:150px;"><span style="font-family:var(--font-num); font-size:22px; font-weight:800; color:var(--color-accent);">02</span><span style="font-size:15px; font-weight:800;">수치 계산</span><span style="font-size:12.5px; color:var(--color-text-muted);">증감액·증감률은 코드로</span></div><span aria-hidden="true" style="color:var(--color-text-muted); font-size:18px;">→</span><div style="display:grid; justify-items:center; gap:4px; min-width:150px;"><span style="font-family:var(--font-num); font-size:22px; font-weight:800; color:var(--color-accent);">03</span><span style="font-size:15px; font-weight:800;">변경 탐지</span><span style="font-size:12.5px; color:var(--color-text-muted);">목차·문단 단위 대조</span></div><span aria-hidden="true" style="color:var(--color-text-muted); font-size:18px;">→</span><div style="display:grid; justify-items:center; gap:4px; min-width:150px;"><span style="font-family:var(--font-num); font-size:22px; font-weight:800; color:var(--color-accent);">04</span><span style="font-size:15px; font-weight:800;">근거 검증</span><span style="font-size:12.5px; color:var(--color-text-muted);">원문 위치 없는 문장 제외</span></div>
   </div>
-  <div style="margin-top:16px; border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-raised);"><div style="display:grid; grid-template-columns:120px 1fr; align-items:center; gap:16px; padding:14px 20px;"><span style="font-size:13px; font-weight:800; color:var(--color-text-muted);">실패 처리</span><span style="font-size:15px;">검증에 실패하면 최대 2회 다시 생성하고, 그래도 실패하면 <b>'검토 필요'</b>로 표시</span></div><div style="display:grid; grid-template-columns:120px 1fr; align-items:center; gap:16px; padding:14px 20px; border-top:1px solid var(--color-border);"><span style="font-size:13px; font-weight:800; color:var(--color-text-muted);">표현 검사</span><span style="font-size:15px;">매수·매도 추천 · 목표주가 · 주가 예측 · 가치판단 표현은 화면에 나가기 전 차단</span></div></div>
-  <div class="demo-journey-box">
-    <p class="demo-desc"><span>⚖️</span><span><strong>AI 사용 현황</strong>에서 검사 결과와 호출 기록을 볼 수 있어요.</span></p>
-    <a href="/system/ai-usage" class="demo-journey-btn" target="_blank">⚖️ AI 사용 현황 ➔</a>
-  </div>
+  <div style="display:flex; gap:14px; margin-top:16px;"><div style="flex:1; padding:18px 20px; border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-raised); display:grid; gap:10px;"><span style="font-size:13px; font-weight:800; color:var(--color-text-muted);">예시 ① 근거를 못 찾으면</span><span style="font-size:17px;"><s style="color:var(--color-text-muted);">“해외 매출 비중이 늘었습니다”</s> → <span class="badge badge--attention">⚠ 검토 필요</span></span><span style="font-size:13px; color:var(--color-text-muted);">근거 없는 문장은 결과에 쓰지 않고, 2회 다시 만들어도 실패하면 결과를 '검토 필요'로 표시</span></div><div style="flex:1; padding:18px 20px; border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-raised); display:grid; gap:10px;"><span style="font-size:13px; font-weight:800; color:var(--color-text-muted);">예시 ② 금지 표현이면</span><span style="font-size:17px;"><s style="color:var(--color-text-muted);">“저평가된 종목입니다”</s> <span class="badge badge--danger">✕ 차단</span></span><span style="font-size:13px; color:var(--color-text-muted);">추천·목표주가·주가 예측·가치판단은 화면에 나가기 전에 걸러냄</span></div></div>
 </section>
 
 <!-- 6. 사용자 임팩트 -->
@@ -2894,10 +2876,10 @@ stepper('#userflow', '#flowtext', [
     "hero": { title: "표지 · DART Insight", text: "[도발적 질문 Hook]\n결론부터 말씀드리겠습니다.\n\n[1초 용어 통역]\nDART Insight는 같은 회사의 보고서 두 권 사이에서 '무엇이 바뀌었는지'만 골라, 원문 근거와 함께 약 30초 만에 보여 주는 서비스입니다. 사람이 두 권을 넘겨 가며 비교하면 한 시간이 넘게 걸리는 일입니다. 투자를 추천하지 않습니다. 확인을 돕습니다.\n\n[시각 요소 지시어]\n제목 두 줄 '두 보고서 사이, 바뀐 것만. 원문 근거와 함께.'를 손으로 짚습니다.\n\n[숫자 타격감 마무리]\n오늘 드릴 말씀은 이 두 줄이 전부입니다. 바뀐 것만. 근거와 함께." },
     "glossary": { title: "전자공시란?", text: "[도발적 질문 Hook]\n엔비디아의 젠슨 황이 CEO 자리에서 물러났습니다. 회사는 이 사실을 어디에 제일 먼저 공식으로 알렸을까요? (2초 멈춤)\n\n[1초 용어 통역]\n뉴스가 아닙니다. 공시입니다. 미국 증권거래위원회에 낸 8-K, 바로 이 한 문장입니다. 우리나라에서는 금융감독원 DART에 올라옵니다. 실적, 대표 교체, 소송, 배당. 회사에 생긴 중요한 일은 법에 따라 전부 여기에 적힙니다. 그래서 공시를 회사의 공식 생활기록부라고 부릅니다.\n\n[시각 요소 지시어]\n왼쪽 8-K 원문 한 줄 → 가운데 '=' → 오른쪽 DART 순서로 손을 옮깁니다.\n\n[숫자 타격감 마무리]\n뉴스보다 먼저, 그리고 가장 정확합니다. 그런데 왜 아무도 안 읽을까요?" },
     "why": { title: "두 가지 한계", text: "[도발적 질문 Hook]\n이유는 두 가지입니다. 첫째, 사업보고서 한 권, 몇 글자일까요? (2초 멈춤) 최대 65만 자. 소설책 네 권입니다.\n\n[1초 용어 통역]\n설문에서도 그대로 나왔습니다. 8명 중 4명이 공시 하나 읽는 데 1시간 이상 걸린다고 했고, '용어가 어렵다'가 4명, '이전 보고서와 뭐가 바뀌었는지 모르겠다'가 3명이었습니다. 둘째, 그럼 AI에게 맡기면 될까요? 요약은 몇 초면 됩니다. 그런데 AI는 그럴듯한 숫자를 지어내고, 그 말이 어디서 나왔는지 대지 못합니다. 이걸 환각이라고 합니다. 금융에서 출처 없는 숫자는 없는 것보다 위험합니다.\n\n[시각 요소 지시어]\n왼쪽 책 네 권(65만 자) → 오른쪽 피노키오(AI 환각) → 아래 DART Insight 상자 순서로 가리킵니다.\n\n[숫자 타격감 마무리]\n그래서 저희의 답은 하나입니다. 숫자는 코드가 계산하고, 문장마다 원문 위치를 붙인다." },
-    "value": { title: "검색부터 원문까지", text: "[도발적 질문 Hook]\n요약해 주는 서비스는 많습니다. 그런데 질문 하나 드리겠습니다. 그 요약, 어디서 나온 말인지 확인하실 수 있습니까? (2초 멈춤)\n\n[1초 용어 통역]\n저희는 됩니다. 기업을 검색하고 보고서 두 개를 고르면 분석이 시작되고, 약 30초 뒤에 결과가 나옵니다. 아까 1시간이 넘게 걸린다던 그 일입니다. 결과 화면의 숫자와 문장에는 전부 접수번호와 문단 위치가 붙어 있어서, '📍 원문'을 누르면 공시 원문의 바로 그 문단으로 갑니다.\n\n[시각 요소 지시어]\n위 흐름(검색 → 기업 개요 → 보고서 두 개 → 분석 → 결과 → 채팅·노트)을 왼쪽부터 쓸고, 아래 '📍 원문'에서 공시 원문 문단으로 이어지는 화살표를 따라갑니다.\n\n[숫자 타격감 마무리]\n요약은 빠르게, 확인은 한 번에. 이게 다른 요약 서비스와 다른 점입니다." },
-    "activity-financial": { title: "삼성전자 실적 대조", text: "[도발적 질문 Hook]\n설문에서 8명 중 7명이 가장 궁금해한 것, 실적부터 보겠습니다.\n\n[1초 용어 통역]\n삼성전자의 작년 한 해. 매출 10.9%, 영업이익 33.2%, 순이익 31.2% 늘었습니다. (2초 멈춤) 그런데 중요한 건 숫자 자체가 아닙니다. 이 증감률, AI가 계산하지 않았습니다. 코드가 계산했습니다. AI에게 계산을 맡기는 순간 숫자가 틀릴 수 있으니까요.\n\n[시각 요소 지시어]\n세 계정의 막대를 위에서 아래로 짚은 뒤, 아래 '증감은 코드가 계산'과 접수번호를 가리킵니다.\n\n[숫자 타격감 마무리]\n그리고 모든 숫자에는 이 접수번호가 붙어 있습니다. 숫자 하나하나에 출처. 그것이 핵심입니다." },
-    "activity-flow": { title: "1년의 흐름 정리", text: "[도발적 질문 Hook]\n숫자만 보면 반쪽입니다. 두 보고서 사이 1년, 회사에는 무슨 일이 있었을까요?\n\n[1초 용어 통역]\n정기보고서 사이에 그때그때 나오는 공시를 수시공시라고 합니다. 이걸 모아 날짜순으로 세웁니다. 종속회사 벌금, 사업장 사고, 자사주 취득, 국가 AI컴퓨팅센터 출자. 1년이 한 장에 들어옵니다. 그리고 회사가 공시에 적은 사실은 원문 그대로, AI가 쓴 앞으로의 영향은 'AI 전망 · 공시 사실 아님' 표시를 따로 붙여 보여 줍니다.\n\n[시각 요소 지시어]\n왼쪽 타임라인을 위에서 아래로 내려간 뒤, 오른쪽 ① 공시에 적힌 사실과 ② AI 전망을 차례로 가리킵니다.\n\n[숫자 타격감 마무리]\n사실과 전망을 섞지 않습니다. 판단은 돕되, 추천은 하지 않습니다." },
-    "methods": { title: "네 단계 검증", text: "[도발적 질문 Hook]\nAI가 쓴 문장, 어떻게 믿을 수 있을까요? 답은 간단합니다. 통과한 것만 내보냅니다.\n\n[1초 용어 통역]\n하나, 같은 회사의 비교할 수 있는 기간인지부터 봅니다. 둘, 증감액과 증감률은 코드가 계산합니다. 셋, 두 보고서의 목차와 문단을 맞춰 바뀐 문장을 찾습니다. 넷, AI가 쓴 문장은 원문 위치가 있어야만 통과합니다.\n\n[시각 요소 지시어]\n01부터 04까지 손가락을 하나씩 펴며 따라간 뒤, 아래 '실패 처리'와 '표현 검사' 두 줄을 가리킵니다.\n\n[숫자 타격감 마무리]\n통과하지 못하면 두 번까지 다시 만들고, 그래도 안 되면 숨기지 않고 '검토 필요'로 띄웁니다. 모른다고 말하는 AI입니다. 매수·매도 추천, 목표주가, 주가 예측은 화면에 나가기 전에 자동으로 걸러집니다." },
+    "value": { title: "검색부터 원문까지", text: "[도발적 질문 Hook]\n요약해 주는 서비스는 많습니다. 그런데 질문 하나 드리겠습니다. 그 요약, 어디서 나온 말인지 확인하실 수 있습니까? (2초 멈춤)\n\n[1초 용어 통역]\n저희는 됩니다. 기업을 검색하고 보고서 두 개를 고르면 분석이 시작되고, 약 30초 뒤에 결과가 나옵니다. 아까 1시간이 넘게 걸린다던 그 일입니다. 결과 화면의 숫자와 문장에는 전부 접수번호와 문단 위치가 붙어 있어서, '📍 원문'을 누르면 공시 원문의 바로 그 문단으로 갑니다.\n\n[시각 요소 지시어]\n위 흐름(기업 검색 → 보고서 두 개 고르기 → 30초 뒤 결과)을 왼쪽부터 쓸고, 아래 큰 '📍 원문'에서 공시 원문의 근거 문단으로 이어지는 화살표를 따라갑니다.\n\n[숫자 타격감 마무리]\n요약은 빠르게, 확인은 한 번에. 이게 다른 요약 서비스와 다른 점입니다." },
+    "activity-financial": { title: "삼성전자 실적 대조", text: "[도발적 질문 Hook]\n설문에서 8명 중 7명이 가장 궁금해한 것, 실적부터 보겠습니다.\n\n[1초 용어 통역]\n삼성전자의 작년 한 해. 매출 10.9%, 영업이익 33.2%, 순이익 31.2% 늘었습니다. (2초 멈춤) 그런데 중요한 건 숫자 자체가 아닙니다. 이 증감률, AI가 계산하지 않았습니다. 코드가 계산했습니다. AI에게 계산을 맡기는 순간 숫자가 틀릴 수 있으니까요.\n\n[시각 요소 지시어]\n강조된 영업이익 줄과 옆의 '코드가 계산' 표시를 먼저 가리키고, 흐리게 둔 매출액·순이익을 짧게 짚은 뒤 아래 접수번호를 가리킵니다.\n\n[숫자 타격감 마무리]\n그리고 모든 숫자에는 이 접수번호가 붙어 있습니다. 숫자 하나하나에 출처. 그것이 핵심입니다." },
+    "activity-flow": { title: "1년의 흐름 정리", text: "[도발적 질문 Hook]\n숫자만 보면 반쪽입니다. 두 보고서 사이 1년, 회사에는 무슨 일이 있었을까요?\n\n[1초 용어 통역]\n정기보고서 사이에 그때그때 나오는 공시를 수시공시라고 합니다. 이걸 모아 날짜순으로 세웁니다. 종속회사 벌금, 자사주 취득, 국가 AI컴퓨팅센터 출자. 1년이 한 장에 들어옵니다. 그리고 회사가 공시에 적은 사실은 원문 그대로, AI가 쓴 앞으로의 영향은 'AI 전망 · 공시 사실 아님' 표시를 따로 붙여 보여 줍니다.\n\n[시각 요소 지시어]\n왼쪽 타임라인 세 건을 위에서 아래로 내려간 뒤, 오른쪽 연구개발비용 공시 예시에서 ① 공시에 적힌 사실과 ② AI 전망을 나란히 가리킵니다.\n\n[숫자 타격감 마무리]\n사실과 전망을 섞지 않습니다. 판단은 돕되, 추천은 하지 않습니다." },
+    "methods": { title: "네 단계 검증", text: "[도발적 질문 Hook]\nAI가 쓴 문장, 어떻게 믿을 수 있을까요? 답은 간단합니다. 통과한 것만 내보냅니다.\n\n[1초 용어 통역]\n하나, 같은 회사의 비교할 수 있는 기간인지부터 봅니다. 둘, 증감액과 증감률은 코드가 계산합니다. 셋, 두 보고서의 목차와 문단을 맞춰 바뀐 문장을 찾습니다. 넷, AI가 쓴 문장은 원문 위치가 있어야만 통과합니다.\n\n[시각 요소 지시어]\n01부터 04까지 손가락을 하나씩 펴며 따라간 뒤, 아래 예시 ①의 '검토 필요' 배지와 예시 ②의 '차단' 배지를 차례로 가리킵니다.\n\n[숫자 타격감 마무리]\n통과하지 못하면 두 번까지 다시 만들고, 그래도 안 되면 숨기지 않고 '검토 필요'로 띄웁니다. 모른다고 말하는 AI입니다. 매수·매도 추천, 목표주가, 주가 예측은 화면에 나가기 전에 자동으로 걸러집니다." },
     "impact": { title: "누가, 무엇을 쓰나", text: "[도발적 질문 Hook]\n같은 공시라도, 사람마다 보는 곳이 다릅니다.\n\n[1초 용어 통역]\n개인 투자자. 설문에서 가장 많이 나온 불편이 '용어가 어렵다'였죠. 그래서 어려운 용어는 용어 카드로, 바뀐 점은 AI 브리핑으로 보여 줍니다. 금융 실무자는 두 보고서를 엑셀로 맞대던 일을 자동 비교와 CSV로 줄입니다. 취업 준비생은 '사업 방향' 관점으로 이 회사가 실제로 어디에 돈을 쓰는지 봅니다. 거래를 검토하는 기업은 상대 회사의 소송과 제재를 미리 확인합니다.\n\n[시각 요소 지시어]\n카드를 따라 무대를 왼쪽에서 오른쪽으로 천천히 걸은 뒤, 가운데로 돌아와 멈춥니다.\n\n[숫자 타격감 마무리]\n정리하면, DART Insight는 공시를 대신 읽어 주는 게 아닙니다. 바뀐 것만 골라 주고, 원문까지 데려다주는 서비스입니다. 그래서 설문에서 이 서비스를 설명했을 때, 8명 중 5명이 '써 보겠다'고 답했습니다." },
     "stack": { title: "무엇으로 만들었나", text: "[도발적 질문 Hook]\n서비스는 다섯 블록입니다.\n\n[1초 용어 통역]\n화면은 React, 서비스 API는 Spring Boot, AI 처리는 FastAPI와 LangGraph, 데이터는 MariaDB입니다. (AI 모델 블록에서 멈춤) 그리고 여기 AI 모델이 있습니다. 오해가 없게 분명히 말씀드리겠습니다. 이건 저희가 개발할 때 쓴 도구가 아닙니다. 이 서비스 안에서 돌아가는 AI, 그러니까 요약 문장과 용어 설명, 그리고 AI 에이전트의 답을 만드는 언어 모델(LLM)입니다. 그리고 특정 회사의 모델에 묶여 있지 않습니다. AI 서버의 모듈 하나가 모델을 감싸고 있어서, 키와 설정만 바꾸면 Claude든 GPT든 다른 모델로 바꿔 쓸 수 있습니다.\n\n[시각 요소 지시어]\n다섯 블록을 왼쪽부터 짚고, 'AI 모델' 블록에서 손을 멈춰 가리킵니다.\n\n[숫자 타격감 마무리]\n어떤 모델을 쓰든 AI는 설명만 합니다. 숫자와 자료는 저희 코드가 쥐고 있습니다." },
     "architecture": { title: "시스템 아키텍처", text: "[도발적 질문 Hook]\n구조는 한 문장입니다. 요청은 한 방향, 책임은 한 곳에.\n\n[1초 용어 통역]\n사용자는 웹 화면만 쓰고, 화면은 API 서버만 부릅니다. 공시 자료와 AI 서버는 API 서버만 부릅니다. 구글·카카오·네이버 소셜 로그인(OAuth)도 API 서버가 맡습니다. 그리고 서비스 안의 AI가 쓰는 언어 모델(LLM)은 AI 서버의 모듈 하나로만 부릅니다. 그래서 모델을 바꿔도 나머지 코드는 그대로입니다. 길이 하나라서 좋은 점이 셋입니다. 하나, API 키와 하루 사용 한도를 한 곳에서 지킵니다. 둘, 한 번 받은 공시는 접수번호로 저장해서 같은 자료를 두 번 받지 않습니다. 셋, AI 호출 기록과 비용을 한 곳에서 셉니다.\n\n[시각 요소 지시어]\n선이 이어지는 순서대로 사용자 → 웹 화면 → API 서버 → AI 서버 → LLM을 손가락으로 따라간 뒤, API 서버에서 DB와 OpenDART·Google·NAVER·Kakao로 가는 선을 가리킵니다.\n\n[숫자 타격감 마무리]\n그리고 이 규칙은 설계 기록(ADR)으로 남겼고, 백엔드 안의 계층 규칙은 빌드할 때마다 테스트가 검사합니다." },
