@@ -2090,22 +2090,38 @@ body {
   }
 
 
-.rpt-pair { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:22px; align-items:center; max-width:980px; width:100%; margin:0 auto }
-.rpt { border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-raised); box-shadow:var(--shadow-md); overflow:hidden; text-align:left }
-.rpt__head { display:flex; align-items:baseline; gap:10px; padding:14px 18px; border-bottom:1px solid var(--color-border); background:var(--color-bg-subtle) }
-.rpt__label { font-size:12px; font-weight:800; color:var(--color-text-muted) }
-.rpt__head b { font-family:var(--font-num); font-size:20px }
-.rpt__head small { margin-left:auto; font-size:12px; color:var(--color-text-muted) }
-.rpt__body { display:grid; gap:10px; padding:18px }
-.rpt__body > i { display:block; height:8px; border-radius:4px; background:var(--color-border) }
-.rpt__hit { padding:7px 10px; border-radius:6px; font-size:14px; font-weight:700 }
-.rpt__hit--old { background:var(--color-bg-subtle); color:var(--color-text-muted); border-left:4px solid var(--color-border) }
-.rpt__hit--new { background:var(--color-accent-subtle); color:var(--color-text); border-left:4px solid var(--color-accent) }
-.rpt__hit em { font-style:normal; margin-left:6px; color:var(--color-accent) }
-.rpt-pair__mid { display:grid; justify-items:center; gap:8px }
-.rpt-pair__badge { font-size:13px; font-weight:800; color:#fff; background:var(--color-accent); padding:5px 12px; border-radius:var(--radius-pill) }
-.rpt-pair__arrow { font-size:30px; color:var(--color-accent) }
-.rpt-pair__pin { font-size:12px; font-weight:700; color:var(--color-accent) }
+.rpt-pair { display:grid; grid-template-columns:minmax(0,380px) auto minmax(0,380px); justify-content:center; gap:36px; align-items:center; width:100%; margin:0 auto }
+/* 2장: 종이 보고서 두 장. 오른쪽(이번) 보고서의 바뀐 줄에 형광펜이 왼쪽부터 칠해짐 */
+.paper { position:relative; display:grid; gap:9px; align-content:start; min-height:440px; padding:30px 30px 26px; background:var(--color-bg-raised); text-align:left;
+  clip-path:polygon(0 0, calc(100% - 34px) 0, 100% 34px, 100% 100%, 0 100%); filter:drop-shadow(0 14px 28px rgba(30, 27, 75, .14)) }
+.paper::after { content:''; position:absolute; top:0; right:0; width:34px; height:34px; background:linear-gradient(225deg, transparent 50%, var(--color-border) 50%) }
+.paper__title { margin:0; font-size:26px; font-weight:800; letter-spacing:.1em; text-align:center }
+.paper__meta { margin:0; font-family:var(--font-num); font-size:15px; font-weight:700; text-align:center; color:var(--color-text-muted) }
+.paper__corp { margin:0 0 12px; padding-bottom:14px; font-size:13px; text-align:center; color:var(--color-text-muted); border-bottom:2px solid var(--color-text) }
+.paper__sec { margin:4px 0 2px; font-size:13px; font-weight:800 }
+.paper > i { display:block; height:6px; border-radius:3px; background:var(--color-border) }
+.paper__row { display:flex; align-items:center; min-height:40px; margin:2px 0; font-size:17px; font-weight:700; color:var(--color-text-muted) }
+.paper--new .paper__row { color:var(--color-text) }
+.paper__row mark { padding:2px 6px; margin:0 -6px; color:inherit; background:linear-gradient(100deg, rgba(255, 214, 10, .15), rgba(255, 214, 10, .75) 6%, rgba(255, 214, 10, .6) 94%, rgba(255, 214, 10, .2)) no-repeat 0 55% / 100% 78%; border-radius:4px }
+.paper__row em { font-style:normal; margin-left:8px; color:var(--color-accent) }
+.rpt__bars { display:flex; align-items:flex-end; gap:4px; height:32px; margin-left:auto; padding-left:12px }
+.rpt__bars i { display:block; width:11px; border-radius:2px 2px 0 0; background:var(--color-chart-previous); transform-origin:bottom }
+.rpt__bars i + i { background:var(--color-chart-current) }
+@keyframes hlSweep { from { background-size:0% 78% } }
+@keyframes barRise { from { transform:scaleY(0) } }
+@keyframes emIn { from { opacity:0; transform:translateY(6px) } }
+.slide-fit.play .paper__row mark { animation:hlSweep 700ms cubic-bezier(.4,.1,.3,1) 600ms both }
+.slide-fit.play .paper__row--2 mark { animation-delay:1300ms }
+.slide-fit.play .rpt__bars i { animation:barRise 800ms cubic-bezier(.2,.7,.2,1) 1100ms both }
+.slide-fit.play .rpt__bars i + i { animation-delay:1350ms }
+.slide-fit.play .paper__row--2 .rpt__bars i { animation-delay:1800ms }
+.slide-fit.play .paper__row--2 .rpt__bars i + i { animation-delay:2050ms }
+.slide-fit.play .paper__row em { animation:emIn 500ms ease-out 1300ms both }
+.slide-fit.play .paper__row--2 em { animation-delay:2000ms }
+.rpt-pair__mid { display:grid; justify-items:center; align-content:center; gap:10px }
+.rpt-pair__badge { font-size:14px; font-weight:800; color:#fff; background:var(--color-accent); padding:6px 14px; border-radius:var(--radius-pill) }
+.rpt-pair__arrow { font-size:34px; color:var(--color-accent) }
+.rpt-pair__pin { font-size:13px; font-weight:700; color:var(--color-accent) }
 #hero h1 { font-size:30px; margin-top:6px } /* 2장은 보고서 그림이 주인공이라 제목을 작게 */
 #hero .lede { font-size:16px }
 @media (max-width: 760px) { .rpt-pair { grid-template-columns:1fr } .rpt-pair__mid { grid-auto-flow:column; align-items:center } .rpt-pair__arrow { transform:rotate(90deg) } }
@@ -2188,7 +2204,6 @@ body {
 <div class="hero gut" id="hero">
   <canvas class="hero__canvas" id="heroCanvas" aria-hidden="true"></canvas>
   <div class="container hero__body">
-    <div class="rpt-pair" aria-label="이전 보고서와 이번 보고서를 나란히 두고 바뀐 줄만 표시"><div class="rpt"><div class="rpt__head"><span class="rpt__label">이전 보고서</span><b>2024.12</b><small>삼성전자 · 사업보고서</small></div><div class="rpt__body"><i style="width:92%"></i><i style="width:78%"></i><div class="rpt__hit rpt__hit--old">매출액 300.9조</div><i style="width:88%"></i><i style="width:64%"></i><div class="rpt__hit rpt__hit--old">영업이익 32.7조</div><i style="width:90%"></i><i style="width:70%"></i></div></div><div class="rpt-pair__mid" aria-hidden="true"><span class="rpt-pair__badge">바뀐 것만</span><span class="rpt-pair__arrow">⇄</span><span class="rpt-pair__pin">📍 원문 위치</span></div><div class="rpt"><div class="rpt__head"><span class="rpt__label">이번 보고서</span><b>2025.12</b><small>삼성전자 · 사업보고서</small></div><div class="rpt__body"><i style="width:92%"></i><i style="width:78%"></i><div class="rpt__hit rpt__hit--new">매출액 333.6조 <em>▲ +10.9%</em></div><i style="width:88%"></i><i style="width:64%"></i><div class="rpt__hit rpt__hit--new">영업이익 43.6조 <em>▲ +33.2%</em></div><i style="width:90%"></i><i style="width:70%"></i></div></div></div>
     <div class="sechead-4zone">
       <div class="zone-a">
         <div class="hero__kicker">
@@ -2198,6 +2213,7 @@ body {
         <h1>두 보고서 사이, 바뀐 것만.<br><span class="hero__title-accent">원문 근거와 함께.</span></h1>
       </div>
     </div>
+    <div class="rpt-pair" aria-label="삼성전자 2024년·2025년 사업보고서를 나란히 두고, 이번 보고서에서 바뀐 매출액·영업이익에 형광펜 표시"><div class="paper"><p class="paper__title">사업보고서</p><p class="paper__meta">(제56기) 2024.12</p><p class="paper__corp">삼성전자주식회사</p><p class="paper__sec">III. 재무에 관한 사항</p><i style="width:96%"></i><i style="width:88%"></i><p class="paper__row">매출액 300.9조 원</p><i style="width:92%"></i><i style="width:70%"></i><p class="paper__row paper__row--2">영업이익 32.7조 원</p><i style="width:94%"></i><i style="width:82%"></i><i style="width:60%"></i></div><div class="rpt-pair__mid" aria-hidden="true"><span class="rpt-pair__badge">바뀐 것만</span><span class="rpt-pair__arrow">⇄</span><span class="rpt-pair__pin">📍 원문 위치</span></div><div class="paper paper--new"><p class="paper__title">사업보고서</p><p class="paper__meta">(제57기) 2025.12</p><p class="paper__corp">삼성전자주식회사</p><p class="paper__sec">III. 재무에 관한 사항</p><i style="width:96%"></i><i style="width:88%"></i><p class="paper__row"><mark>매출액 333.6조 원</mark><em>▲ +10.9%</em><span class="rpt__bars" aria-hidden="true"><i style="height:90%"></i><i style="height:100%"></i></span></p><i style="width:92%"></i><i style="width:70%"></i><p class="paper__row paper__row--2"><mark>영업이익 43.6조 원</mark><em>▲ +33.2%</em><span class="rpt__bars" aria-hidden="true"><i style="height:75%"></i><i style="height:100%"></i></span></p><i style="width:94%"></i><i style="width:82%"></i><i style="width:60%"></i></div></div>
     <p class="lede"><strong>DART Insight</strong>는 같은 회사의 정기보고서 두 개를 비교해, 바뀐 숫자와 문장을 <strong>원문 위치</strong>와 함께 보여 줍니다.</p>
 
     <!-- 실전 서비스 시작 여정 -->
@@ -2890,7 +2906,7 @@ stepper('#userflow', '#flowtext', [
     "part-service": { title: "PART 2 · 핵심 기능", text: "[도발적 질문 Hook]\n그래서 DART Insight는 무엇을 할까요?\n\n[시각 요소 지시어]\n아래 장 이름들을 왼쪽부터 빠르게 짚습니다.\n\n[숫자 타격감 마무리]\n실제 삼성전자 보고서로 보여 드리겠습니다." },
     "part-build": { title: "PART 3 · 어떻게 만들었나", text: "[도발적 질문 Hook]\n그렇다면 이 서비스는 어떻게 만들었을까요?\n\n[시각 요소 지시어]\n아래 두 장 이름을 가리킵니다.\n\n[숫자 타격감 마무리]\n기술 이야기는 큰 그림만, 두 장으로 보여 드리겠습니다." },
     "part-work": { title: "PART 4 · 어떻게 일했나", text: "[도발적 질문 Hook]\n마지막입니다. 저희는 이 서비스를 4주 만에 만들었습니다. 어떻게 가능했을까요?\n\n[1초 용어 통역]\n이번에는 개발할 때 쓴 AI 이야기입니다.\n\n[시각 요소 지시어]\n가운데 제목을 가리킵니다.\n\n[숫자 타격감 마무리]\n저희가 일한 방식입니다." },
-    "hero": { title: "표지 · DART Insight", text: "[도발적 질문 Hook]\n결론부터 말씀드리겠습니다.\n\n[1초 용어 통역]\nDART Insight는 같은 회사의 보고서 두 권 사이에서 '무엇이 바뀌었는지'만 골라, 원문 근거와 함께 약 30초 만에 보여 주는 서비스입니다. 사람이 두 권을 넘겨 가며 비교하면 한 시간이 넘게 걸리는 일입니다.\n\n[시각 요소 지시어]\n위의 두 보고서에서 바뀐 줄(매출액·영업이익)을 왼쪽에서 오른쪽으로 짚은 뒤, 아래 제목 '두 보고서 사이, 바뀐 것만. 원문 근거와 함께.'를 가리킵니다.\n\n[숫자 타격감 마무리]\n투자를 추천하지 않습니다. 확인을 돕습니다." },
+    "hero": { title: "표지 · DART Insight", text: "[도발적 질문 Hook]\n결론부터 말씀드리겠습니다.\n\n[1초 용어 통역]\nDART Insight는 같은 회사의 보고서 두 권 사이에서 '무엇이 바뀌었는지'만 골라, 원문 근거와 함께 약 30초 만에 보여 주는 서비스입니다. 사람이 두 권을 넘겨 가며 비교하면 한 시간이 넘게 걸리는 일입니다.\n\n[시각 요소 지시어]\n위 제목 '두 보고서 사이, 바뀐 것만. 원문 근거와 함께.'를 가리킨 뒤, 아래 두 보고서를 왼쪽에서 오른쪽으로 짚고 오른쪽 보고서의 형광펜 줄(매출액·영업이익)을 가리킵니다.\n\n[숫자 타격감 마무리]\n투자를 추천하지 않습니다. 확인을 돕습니다." },
     "glossary": { title: "전자공시란?", text: "[도발적 질문 Hook]\n예를 들어 보겠습니다. 엔비디아의 젠슨 황이 CEO 자리에서 물러났습니다. 회사는 이 사실을 어디에 제일 먼저 공식으로 알렸을까요?\n\n[1초 용어 통역]\n뉴스가 아닙니다. 바로 여기, 공시입니다. 우리나라에서는 금융감독원 DART에 올라옵니다. 그래서 공시를 회사의 공식 생활기록부라고 부릅니다. 공시는 뉴스보다 먼저 나오고, 가장 정확합니다.\n\n[시각 요소 지시어]\n왼쪽 8-K 원문 한 줄 → 가운데 '=' → 오른쪽 DART 순서로 손을 옮깁니다.\n\n[숫자 타격감 마무리]\n그렇다면 왜 아무도 안 읽을까요?" },
     "why": { title: "두 가지 한계", text: "[도발적 질문 Hook]\n이유는 두 가지입니다. 첫째, 사업보고서 한 권은 몇 글자일까요?\n\n[1초 용어 통역]\n최대 65만 자입니다. 설문에서도 8명 중 4명이 공시 하나 읽는 데 1시간 이상 걸린다고 답했습니다. 둘째, 그럼 AI에게 맡기면 될까요? 요약은 몇 초면 됩니다. 하지만 AI는 그럴듯한 숫자를 지어내고, 그 말이 어디서 나왔는지 대지 못합니다. 이것을 환각이라고 합니다. 금융 일을 하시는 분들은 아시겠지만, 출처 없는 숫자는 없는 것보다 위험합니다.\n\n[시각 요소 지시어]\n왼쪽 책 네 권(65만 자) → 오른쪽 피노키오(AI 환각) → 아래 DART Insight 상자 순서로 가리킵니다.\n\n[숫자 타격감 마무리]\n그래서 저희의 답은 하나입니다. 숫자는 코드가 계산하고, 문장마다 원문 위치를 붙인다." },
     "value": { title: "검색부터 원문까지", text: "[도발적 질문 Hook]\n기업을 검색하고 보고서 두 개를 고르면 분석이 시작되고, 약 30초 뒤에 결과가 나옵니다.\n\n[1초 용어 통역]\n결과 화면의 숫자와 문장에는 전부 원문 위치가 붙어 있습니다. '원문'을 누르면 공시 원문의 그 문단으로 바로 갑니다.\n\n[시각 요소 지시어]\n위 흐름(기업 검색 → 보고서 두 개 고르기 → 30초 뒤 결과)을 왼쪽부터 쓸고, 아래 큰 '📍 원문'에서 공시 원문의 근거 문단으로 이어지는 화살표를 따라갑니다.\n\n[숫자 타격감 마무리]\n숫자와 문장마다, 원문 위치가 붙습니다." },
