@@ -30,6 +30,8 @@ export type DemoAction =
   | { kind: 'click'; target: DemoTarget; optional?: boolean }
   /** 커서로 칸을 누르고 글자를 한 자씩 친다 */
   | { kind: 'type'; target: DemoTarget; text: string }
+  /** 커서로 고르기 칸(select)을 누르고, 글자가 option으로 시작하는 항목을 고른다 */
+  | { kind: 'select'; target: DemoTarget; option: string }
   /** 대상 둘레만 밝게 남겨 강조한다. 다음 단계가 시작되면 꺼진다. optional이면 대상이 없을 때 건너뛴다 */
   | { kind: 'spotlight'; target: DemoTarget; optional?: boolean }
   | { kind: 'pause'; ms: number }
@@ -55,6 +57,9 @@ export const DEMO_COMPANY = '삼성전자'
 /** 첫 화면 검색어. 초성만 쳐도 찾는다는 것을 보여 준다(matchRanges, ㅅㅅㅈㅈ → 삼성전자) */
 export const DEMO_SEARCH = 'ㅅㅅㅈㅈ'
 export const DEMO_QUESTION = '이익잉여금이 뭐야?'
+/** 비교할 두 보고서. 현재 보고서를 고르면 비교 기준(전년 동기)이 이전 보고서를 찾는다 */
+export const DEMO_CURRENT_REPORT = '사업보고서 (2025.12)'
+export const DEMO_PREVIOUS_REPORT = '사업보고서 (2024.12)'
 
 /** 채팅의 마지막 대화 묶음(기다리는 표시가 없을 때). 앞서 나눈 대화가 있어도 새 답을 기다린다 */
 const LATEST_ANSWER_SELECTOR = '#chat-panel:not(:has(.chat-panel__pending)) .chat-panel__exchange:last-of-type'
@@ -88,9 +93,12 @@ export const DEMO_SCENARIO: DemoStep[] = [
   },
   {
     title: '보고서 고르기',
-    caption: '가장 최근 보고서와 1년 전 같은 시기 보고서를 알아서 골라 줘요.',
+    caption: '현재 보고서만 고르면 1년 전 같은 시기 보고서를 알아서 짝지어 줘요. 2025년 사업보고서와 2024년 사업보고서를 비교해요.',
     actions: [
       { kind: 'click', target: { selector: 'a[data-result-index] .company-list__name', text: DEMO_COMPANY, exact: true } },
+      { kind: 'select', target: { selector: '#pair-current' }, option: DEMO_CURRENT_REPORT },
+      // 전년 동기 보고서를 찾아 위 요약에 두 보고서가 다 보이면 고른 것이다
+      { kind: 'wait', target: { selector: 'section.pick-summary', text: DEMO_PREVIOUS_REPORT } },
       { kind: 'wait', target: { selector: 'section.pick-summary .pick-summary__actions a.button--primary' } },
       { kind: 'spotlight', target: { selector: 'section.pick-summary' } },
     ],
