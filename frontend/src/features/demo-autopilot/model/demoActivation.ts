@@ -4,11 +4,11 @@ export const DEMO_PARAM = 'demo'
 export const DEMO_STORAGE_KEY = 'dart-insight:demo'
 /**
  * 발표 페이지 안(전환 장면의 iframe)에서 시연했으면 마칠 때 발표 페이지에 보내는 메시지(#972).
- * 발표 페이지가 같은 문서에서 Q&A 장을 열어 전체화면이 유지된다
+ * 발표 페이지가 같은 문서에서 두 보고서 장(Preview 다음 장)을 열어 전체화면이 유지된다
  */
 export const DEMO_DONE_MESSAGE = 'dart-insight:demo-done'
-/** 앱을 따로 열어 시연했으면 마치고 돌아갈 발표 페이지의 Q&A 장. #from-demo면 발표 페이지가 노트북이 닫히는 움직임으로 맞는다 */
-export const DEMO_RETURN_PATH = '/easter/three-weeks.html?slide=qa#from-demo'
+/** 앱을 따로 열어 시연했으면 마치고 돌아갈 발표 페이지의 두 보고서 장(#hero). #from-demo면 발표 페이지가 노트북이 닫히는 움직임으로 맞는다 */
+export const DEMO_RETURN_PATH = '/easter/three-weeks.html?slide=hero#from-demo'
 /** 앱 화면이 빛 한 점으로 닫히는 시간. demo-autopilot.css의 demo-close와 같다 */
 export const DEMO_LEAVE_MS = 900
 

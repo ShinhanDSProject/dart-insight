@@ -40,7 +40,7 @@ export function DemoAutopilot({ startStep, onExit }: { startStep: number; onExit
     writeDemoStorage(DEMO_NEXT_STEP_KEY, next === null ? null : String(next))
   }, [state])
 
-  // 마친 뒤 Space: 시연을 끄고 앱 화면을 빛 한 점으로 닫은 뒤 발표 페이지의 Q&A 장으로 간다(#970). 동작 줄이기면 바로 간다.
+  // 마친 뒤 Space: 시연을 끄고 앱 화면을 빛 한 점으로 닫은 뒤 발표 페이지의 두 보고서 장으로 간다(#970). 동작 줄이기면 바로 간다.
   // 발표 페이지 안(iframe)이면 주소를 옮기지 않고 발표 페이지에 알린다(전체화면 유지, #972)
   const leaving = state.status === 'leaving'
   useEffect(() => {
