@@ -68,11 +68,11 @@ describe('DEMO_SCENARIO', () => {
     document.body.innerHTML = ''
   })
 
-  it('2025년 사업보고서를 현재 보고서로 골라 2024년 사업보고서와 비교한다', () => {
+  it('2026년 반기보고서를 현재 보고서로 골라 2025년 반기보고서와 비교한다', () => {
     const picking = DEMO_SCENARIO.find((step) => step.title === '보고서 고르기')
     expect(picking?.actions).toContainEqual({ kind: 'select', target: { selector: '#pair-current' }, option: DEMO_CURRENT_REPORT })
-    expect(DEMO_CURRENT_REPORT).toBe('사업보고서 (2025.12)')
-    expect(DEMO_PREVIOUS_REPORT).toBe('사업보고서 (2024.12)')
+    expect(DEMO_CURRENT_REPORT).toBe('반기보고서 (2026.06)')
+    expect(DEMO_PREVIOUS_REPORT).toBe('반기보고서 (2025.06)')
   })
 
   it('마지막은 우선순위 순 바뀐 곳에서 사업의 내용 수정 문단을 원문 비교 창으로 연다', () => {
@@ -91,7 +91,7 @@ describe('DEMO_SCENARIO', () => {
       current: { rceptNo: `c${analysisId}`, reportName: current, periodEnd: '2026-06-30' },
       completedAt: '2026-10-30T11:42:50',
     })
-    const labels = [item(14, '반기보고서 (2025.06)', '반기보고서 (2026.06)'), item(8, DEMO_PREVIOUS_REPORT, DEMO_CURRENT_REPORT)].map(pastAnalysisLabel)
+    const labels = [item(14, '사업보고서 (2024.12)', '사업보고서 (2025.12)'), item(8, DEMO_PREVIOUS_REPORT, DEMO_CURRENT_REPORT)].map(pastAnalysisLabel)
     expect(labels.filter((label) => label.includes(PAST_DEMO_PAIR.text ?? ''))).toEqual([labels[1]])
 
     const handing = DEMO_SCENARIO.find((step) => step.title === '핵심 3줄')?.actions.find((action) => action.kind === 'wait')
