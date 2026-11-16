@@ -119,7 +119,7 @@ export function DemoAutopilot({ startStep, onExit }: { startStep: number; onExit
     )
     .with({ status: 'running' }, { status: 'done' }, (s) => DEMO_SCENARIO[s.step])
     .with({ status: 'failed' }, (s) => ({ title: DEMO_SCENARIO[s.step].title, caption: `${s.reason} Space로 다음 단계로 넘어가요.` }))
-    .with({ status: 'finished' }, { status: 'leaving' }, () => ({ title: '시연 끝', caption: 'Space를 누르면 질의응답으로 넘어가요.' }))
+    .with({ status: 'finished' }, { status: 'leaving' }, () => ({ title: '시연 끝', caption: 'Space를 누르면 마무리 정리 페이지로 넘어가요.' }))
     .exhaustive()
 
   return (
