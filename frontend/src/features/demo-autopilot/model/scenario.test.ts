@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
-import { ACTIVITY_DONE, DEMO_QUESTION, DEMO_SCENARIO, DEMO_SEARCH } from './scenario'
+import { ACTIVITY_DONE, DEMO_CURRENT_REPORT, DEMO_PREVIOUS_REPORT, DEMO_QUESTION, DEMO_SCENARIO, DEMO_SEARCH } from './scenario'
 
 describe('DEMO_SCENARIO', () => {
   it('단계마다 이름·자막과 할 동작이 있다', () => {
@@ -53,5 +53,12 @@ describe('DEMO_SCENARIO', () => {
     expect(activity('<div class="state state--error" role="alert"></div>')).toBe(false)
     expect(activity('<ol class="activity__list"><li><article class="activity-card"></article></li></ol>')).toBe(true)
     document.body.innerHTML = ''
+  })
+
+  it('2025년 사업보고서를 현재 보고서로 골라 2024년 사업보고서와 비교한다', () => {
+    const picking = DEMO_SCENARIO.find((step) => step.title === '보고서 고르기')
+    expect(picking?.actions).toContainEqual({ kind: 'select', target: { selector: '#pair-current' }, option: DEMO_CURRENT_REPORT })
+    expect(DEMO_CURRENT_REPORT).toBe('사업보고서 (2025.12)')
+    expect(DEMO_PREVIOUS_REPORT).toBe('사업보고서 (2024.12)')
   })
 })

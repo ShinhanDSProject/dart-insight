@@ -112,6 +112,18 @@ function runAction(action: DemoAction, tools: DemoTools): Promise<void> {
         await sleep(TYPE_INTERVAL_MS, tools.signal)
       }
     })
+    .with({ kind: 'select' }, async ({ target, option }) => {
+      const element = await findTarget(target, tools.signal)
+      if (!(element instanceof HTMLSelectElement)) throw new DemoStepError('고를 칸을 찾지 못했어요.')
+      const choice = Array.from(element.options).find((item) => item.text.trim().startsWith(option))
+      if (choice === undefined) throw new DemoStepError(`'${option}'을(를) 고를 수 없어요.`)
+      await moveTo(element, tools)
+      await press(tools)
+      // React가 바뀐 값을 알도록 원래 setter로 값을 넣고 change를 보낸다
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')?.set?.call(element, choice.value)
+      element.dispatchEvent(new Event('change', { bubbles: true }))
+      await sleep(400, tools.signal)
+    })
     .with({ kind: 'spotlight' }, async ({ target, optional = false }) => {
       const element = optional ? queryVisible(target) : await findTarget(target, tools.signal)
       if (element === undefined) return
