@@ -576,20 +576,27 @@ body:not(.presentation-mode) #title, body:not(.presentation-mode) #cover { displ
 #disclosure .slide-fit.play .disclosure__cards { animation: slideReveal 600ms cubic-bezier(.2,.7,.2,1) 5600ms both }
 .chapter__thanks { margin: 22px 0 0; font-size: 15px; font-weight: 700; color: var(--color-text-muted) }
 
-/* 핵심 가치 장의 'DART 공시 원문' 상자: 원문을 찾아가는 중인 느낌(뼈대 줄이 반짝, 형광펜 줄이 깜빡, 화살표가 움찔) */
-@keyframes skelShimmer { from { background-position: 200% 0 } to { background-position: -200% 0 } }
-@keyframes hitPulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-attention) 0%, transparent) } 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-attention) 22%, transparent) } }
-@keyframes jumpNudge { 0%, 100% { transform: translateX(0) } 50% { transform: translateX(6px) } }
-@keyframes dotBlink { 0%, 80%, 100% { opacity: .25 } 40% { opacity: 1 } }
-.doc-loading .skel { background: linear-gradient(90deg, var(--color-border) 25%, var(--color-bg-subtle) 50%, var(--color-border) 75%) !important; background-size: 200% 100% !important; animation: skelShimmer 1.6s linear infinite }
-.doc-loading .skel-hit { animation: hitPulse 1.6s ease-in-out infinite }
-.doc-jump { display: inline-block; animation: jumpNudge 1.2s ease-in-out infinite }
-.doc-loading__dots { display: inline-flex; gap: 3px; margin-left: 4px; vertical-align: middle }
-.doc-loading__dots i { width: 4px; height: 4px; border-radius: 50%; background: var(--color-accent); animation: dotBlink 1.2s infinite }
-.doc-loading__dots i:nth-child(2) { animation-delay: .2s }
-.doc-loading__dots i:nth-child(3) { animation-delay: .4s }
-@media (prefers-reduced-motion: reduce) { .doc-loading *, .doc-jump { animation: none !important } }
-body.capture-mode .doc-loading *, body.capture-mode .doc-jump { animation: none !important }
+/* 9장 Value Proposition: 비슷한 서비스와 비교한 표. DART Insight 칸만 남색 머리·보라 바탕 */
+.vp { margin-top: 26px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; background: var(--color-bg-raised) }
+.vp__row { display: grid; grid-template-columns: 150px 1fr 1fr 1.15fr }
+.vp__row + .vp__row { border-top: 1px solid var(--color-border) }
+.vp__row > span { display: flex; flex-direction: column; justify-content: center; padding: 18px 20px; font-size: 16px; line-height: 1.5; color: var(--color-text-muted) }
+.vp__row--head > span { flex-direction: row; justify-content: flex-start; align-items: center; gap: 8px; padding-block: 14px; background: var(--color-bg-subtle); font-size: 17px; font-weight: 800; color: var(--color-text) }
+.vp__row--head > .vp__name--us { background: var(--color-primary); color: #fff }
+.vp__mark { width: 26px; height: 26px; border-radius: 8px; gap: 3px; background: #fff }
+.vp__mark i { width: 4px; height: 10px; border-radius: 2px; background: var(--color-primary) }
+.vp__mark i + i { height: 14px }
+.vp__row > .vp__label { font-size: 14px; font-weight: 800; color: var(--color-text); background: var(--color-bg-subtle) }
+.vp__row > .vp__us { background: var(--color-accent-subtle); color: var(--color-text); box-shadow: inset 3px 0 0 var(--color-accent) }
+.vp__us b { color: var(--color-accent); font-weight: 800 }
+.vp__line { margin-top: 22px; text-align: center; font-size: 20px; font-weight: 600; color: var(--color-text) }
+.vp__line strong { color: var(--color-accent) }
+@media (max-width: 720px) {
+  .vp__row { grid-template-columns: 76px repeat(3, minmax(0, 1fr)) }
+  .vp__row > span { padding: 10px 8px; font-size: 13px }
+  .vp__row--head > span { font-size: 13px }
+  .vp__mark { display: none }
+}
 
 /* 표지 브랜드 마크 */
 
@@ -2415,33 +2422,37 @@ body {
   <div class="sechead-4zone">
     <div class="zone-a">
       <p class="kicker">01 · Value Proposition</p>
-      <h2>숫자와 문장마다 원문 위치가 붙습니다</h2>
+      <h2>왜 하필 DART Insight인가</h2>
     </div>
   </div>
-
-  <div class="m-flow" style="display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:14px; margin-top:22px; padding:12px; border-radius:var(--radius-lg); background:var(--color-bg-subtle);" aria-label="사용 흐름: 기업 검색, 보고서 두 개 고르기, 30초 뒤 결과"><div style="display:grid; justify-items:center; gap:4px; min-width:110px;"><span aria-hidden="true" style="font-size:26px;">🔎</span><span style="font-size:14px; font-weight:700;">기업 검색</span></div><span aria-hidden="true" style="color:var(--color-text-muted); font-size:18px;">→</span><div style="display:grid; justify-items:center; gap:4px; min-width:110px;"><span aria-hidden="true" style="font-size:26px;">📑</span><span style="font-size:14px; font-weight:700;">보고서 두 개 고르기</span></div><span aria-hidden="true" style="color:var(--color-text-muted); font-size:18px;">→</span><div style="display:grid; justify-items:center; gap:4px; min-width:110px;"><span aria-hidden="true" style="font-size:26px;">⏱️</span><span style="font-size:14px; font-weight:700;">30초 뒤 결과</span></div></div>
-  <!-- 원문 위치로 이동: 그림 -->
-  <div style="display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:stretch; gap:20px; margin-top:22px; min-height:230px;" aria-label="요약 문장의 원문 위치를 누르면 공시 원문의 그 문단으로 이동">
-    <div style="padding:18px; border:1px solid var(--color-border-accent); border-radius:var(--radius-lg); background:var(--color-accent-subtle); display:grid; gap:10px; align-content:center;">
-      <span style="font-size:13px; font-weight:700; color:var(--color-accent);">결과 화면 · 요약 문장</span>
-      <span style="font-size:26px;">영업이익 <b>▲ +33.2%</b> <span style="font-family:var(--font-mono); font-size:16px; padding:4px 12px; border-radius:var(--radius-pill); background:var(--color-bg-raised); border:2px solid var(--color-accent); color:var(--color-accent);">📍 원문</span></span>
+  <!-- 비슷한 서비스와 비교(팀 시장조사): 보고서 준비·보는 공시·핵심 고객 -->
+  <div class="vp" role="table" aria-label="NotebookLM, 0si.ai, DART Insight 비교">
+    <div class="vp__row vp__row--head" role="row">
+      <span role="columnheader"></span>
+      <span role="columnheader">NotebookLM</span>
+      <span role="columnheader">0si.ai</span>
+      <span class="vp__name--us" role="columnheader"><span class="brand__mark vp__mark" aria-hidden="true"><i></i><i></i></span>DART Insight</span>
     </div>
-    <span class="doc-jump" aria-hidden="true" style="align-self:center; font-size:44px; color:var(--color-accent);">➜</span>
-    <div class="doc-loading" style="padding:18px; border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-raised); display:grid; gap:8px;">
-      <span style="font-size:13px; font-weight:700; color:var(--color-text-muted);">DART 공시 원문 <span class="doc-loading__dots" aria-hidden="true"><i></i><i></i><i></i></span></span>
-      <div class="skel" style="height:8px; border-radius:4px; background:var(--color-border); width:92%;"></div><div class="skel" style="height:8px; border-radius:4px; background:var(--color-border); width:78%;"></div>
-      <div class="skel-hit" style="height:44px; display:flex; align-items:center; padding-left:10px; font-size:14px; font-weight:700; color:var(--color-attention);">↳ 근거 문단</div><div style="display:none; border-radius:4px; background:var(--color-attention-subtle); border-left:4px solid var(--color-attention);"></div>
-      <div class="skel" style="height:8px; border-radius:4px; background:var(--color-border); width:92%;"></div><div class="skel" style="height:8px; border-radius:4px; background:var(--color-border); width:78%;"></div>
+    <div class="vp__row" role="row">
+      <span class="vp__label" role="rowheader">보고서 준비</span>
+      <span role="cell"><span>DART에서 하나씩 찾아<br>내려받고 올려야 해요</span></span>
+      <span role="cell"><span>수시공시를<br>바로 보여 줘요</span></span>
+      <span class="vp__us" role="cell"><span><b>회사만 고르면 끝</b><br>정기보고서를 알아서 받아 와요</span></span>
+    </div>
+    <div class="vp__row" role="row">
+      <span class="vp__label" role="rowheader">보는 공시</span>
+      <span role="cell"><span>올린 문서</span></span>
+      <span role="cell"><span>수시공시 위주</span></span>
+      <span class="vp__us" role="cell"><span><b>정기보고서 두 개 비교</b><br>그 사이 수시공시까지</span></span>
+    </div>
+    <div class="vp__row" role="row">
+      <span class="vp__label" role="rowheader">핵심 고객</span>
+      <span role="cell"><span>문서를 직접<br>정리하는 사람</span></span>
+      <span role="cell"><span>단기 투자자</span></span>
+      <span class="vp__us" role="cell"><span><b>1년 단위로 보는<br>장기 투자자</b></span></span>
     </div>
   </div>
-
-  <div class="demo-journey-box">
-    <p class="demo-desc">
-      <span>📍</span>
-      <span><strong>결과 화면에서 문장 옆 원문 위치를 눌러 보세요.</strong> 공시 원문의 그 문단으로 이동합니다.</span>
-    </p>
-    <a href="/companies/00126380" class="demo-journey-btn" target="_blank">📍 삼성전자 보고서 비교 ➔</a>
-  </div>
+  <p class="vp__line"><strong>찾고, 받고, 올리는 일 없이</strong> 1년 사이 바뀐 것만 원문 근거와 함께.</p>
 </section>
 
 <!-- 4. 공시 분석: 두 보고서 사이에 한 일과 앞으로의 영향 -->
@@ -2989,7 +3000,7 @@ stepper('#userflow', '#flowtext', [
     "disclosure-types": { title: "정기공시와 수시공시", text: "[도발적 질문 Hook]\n공시는 크게 두 가지입니다.\n\n[1초 용어 통역]\n첫째, 정기공시입니다. 사업보고서, 반기보고서, 분기보고서처럼 정해진 때마다 회사의 1년, 반년, 분기를 정리해 내는 보고서입니다.\n둘째, 수시공시입니다. 자사주 취득이나 대규모 투자처럼 중요한 일이 생길 때마다 그때그때 알리는 공시입니다.\n\n[시각 요소 지시어]\n왼쪽 정기공시 카드와 'DART Insight가 비교하는 보고서' 표시를 가리킨 뒤, 오른쪽 수시공시 카드, 마지막으로 아래 한 줄을 가리킵니다.\n\n[숫자 타격감 마무리]\n저희 DART Insight는 같은 회사의 정기보고서 두 개를 비교합니다. 그리고 그 사이에 나온 수시공시는 타임라인으로 함께 보여 드립니다. 그렇다면 이렇게 중요한 공시, 왜 아무도 안 읽을까요?" },
     "glossary": { title: "전자공시란?", text: "[도발적 질문 Hook]\n예를 들어 보겠습니다. 엔비디아의 젠슨 황이 CEO 자리에서 물러났습니다. 회사는 이 사실을 어디에 제일 먼저 공식으로 알렸을까요?\n\n[1초 용어 통역]\n뉴스가 아닙니다. 바로 여기, 공시입니다. 우리나라에서는 금융감독원 DART에 올라옵니다. 그래서 공시를 회사의 공식 생활기록부라고 부릅니다. 공시는 뉴스보다 먼저 나오고, 가장 정확합니다.\n\n[시각 요소 지시어]\n왼쪽 8-K 원문 한 줄 → 가운데 '=' → 오른쪽 DART 순서로 손을 옮깁니다.\n\n[숫자 타격감 마무리]\n그럼 이런 공시에는 어떤 종류가 있을까요?" },
     "why": { title: "두 가지 한계", text: "[도발적 질문 Hook]\n이유는 두 가지입니다. 첫째, 사업보고서 한 권은 몇 글자일까요?\n\n[1초 용어 통역]\n최대 65만 자입니다. 설문에서도 8명 중 4명이 공시 하나 읽는 데 1시간 이상 걸린다고 답했습니다. 둘째, 그럼 AI에게 맡기면 될까요? 요약은 몇 초면 됩니다. 하지만 AI는 그럴듯한 숫자를 지어내고, 그 말이 어디서 나왔는지 대지 못합니다. 이것을 환각이라고 합니다. 금융 일을 하시는 분들은 아시겠지만, 출처 없는 숫자는 없는 것보다 위험합니다.\n\n[시각 요소 지시어]\n왼쪽 책 네 권(65만 자) → 오른쪽 피노키오(AI 환각) → 아래 DART Insight 상자 순서로 가리킵니다.\n\n[숫자 타격감 마무리]\n그래서 저희의 답은 하나입니다. 숫자는 코드가 계산하고, 문장마다 원문 위치를 붙인다." },
-    "value": { title: "검색부터 원문까지", text: "[도발적 질문 Hook]\n기업을 검색하고 보고서 두 개를 고르면 분석이 시작되고, 약 30초 뒤에 결과가 나옵니다.\n\n[1초 용어 통역]\n결과 화면의 숫자와 문장에는 전부 원문 위치가 붙어 있습니다. '원문'을 누르면 공시 원문의 그 문단으로 바로 갑니다.\n\n[시각 요소 지시어]\n위 흐름(기업 검색 → 보고서 두 개 고르기 → 30초 뒤 결과)을 왼쪽부터 쓸고, 아래 큰 '📍 원문'에서 공시 원문의 근거 문단으로 이어지는 화살표를 따라갑니다.\n\n[숫자 타격감 마무리]\n숫자와 문장마다, 원문 위치가 붙습니다." },
+    "value": { title: "왜 DART Insight인가", text: "[도발적 질문 Hook]\n공시를 AI로 읽어 주는 서비스는 이미 있습니다. 그런데 왜 하필 DART Insight일까요?\n\n[1초 용어 통역]\nNotebookLM은 보고서를 DART에서 하나씩 찾아 내려받고 올려야 합니다. 0si.ai는 수시공시를 바로 보여 주지만, 단기 투자자에게 맞춰져 있습니다. DART Insight는 회사만 고르면 정기보고서를 알아서 받아 와, 두 보고서를 비교하고 그 사이 수시공시까지 함께 봅니다. 1년 단위로 회사를 보는 장기 투자자를 위한 서비스입니다.\n\n[시각 요소 지시어]\n표를 왼쪽 두 서비스부터 한 줄씩 짚은 뒤, 오른쪽 남색 DART Insight 칸을 위에서 아래로 짚습니다.\n\n[숫자 타격감 마무리]\n찾고, 받고, 올리는 일 없이. 1년 사이 바뀐 것만, 원문 근거와 함께." },
     "activity-financial": { title: "삼성전자 실적 대조", text: "[도발적 질문 Hook]\n설문에서 8명 중 7명이 가장 궁금해한 것, 실적부터 보겠습니다.\n\n[1초 용어 통역]\n삼성전자의 작년 대비 매출, 영업이익, 순이익이 모두 늘었습니다. 그중 영업이익은 1년 새 33.2% 늘었습니다. 그런데 중요한 건 숫자 자체가 아닙니다. 아까 말씀드렸듯이 이 증감률은 AI가 아니라 코드가 계산했습니다.\n\n[시각 요소 지시어]\n강조된 영업이익 줄과 옆의 '코드가 계산' 표시를 먼저 가리키고, 흐리게 둔 매출액·순이익을 짧게 짚은 뒤 아래 접수번호를 가리킵니다.\n\n[숫자 타격감 마무리]\nAI에게 계산을 맡기는 순간 숫자가 틀릴 수 있기 때문입니다." },
     "activity-flow": { title: "1년의 흐름 정리", text: "[도발적 질문 Hook]\n정기보고서 사이에 나오는 공시를 수시공시라고 합니다. 이것을 모아 타임라인을 만들었습니다.\n\n[1초 용어 통역]\n사건 하나를 예로 보겠습니다. 연구개발비용 증가 공시입니다. 왼쪽은 회사가 공시에 적은 사실이고, 원문 그대로 보여 줍니다. 오른쪽은 AI가 쓴 '앞으로의 영향'인데, 'AI 전망 · 공시 사실 아님' 표시를 따로 붙입니다.\n\n[시각 요소 지시어]\n왼쪽 타임라인 세 건을 위에서 아래로 내려간 뒤, 오른쪽 연구개발비용 공시 예시에서 ① 공시에 적힌 사실과 ② AI 전망을 나란히 가리킵니다.\n\n[숫자 타격감 마무리]\n사실과 전망을 섞지 않습니다." },
     "methods": { title: "네 단계 검증", text: "[도발적 질문 Hook]\nAI가 쓴 문장, 어떻게 믿을 수 있을까요? 답은 간단합니다. 통과한 것만 내보냅니다.\n\n[1초 용어 통역]\n하나, 같은 회사의 비교할 수 있는 기간인지부터 봅니다.\n둘, 증감액과 증감률은 코드가 계산합니다.\n셋, 두 보고서의 목차와 문단을 맞춰 바뀐 문장을 찾습니다.\n넷, AI가 쓴 문장은 원문 위치가 있어야만 통과합니다.\n\n통과하지 못하면 두 번까지 다시 만들고, 그래도 안 되면 그 문장은 빼고 '검토 필요'를 띄웁니다. 숨기지 않고, 모른다고 말하는 AI입니다. 매수·매도 추천, 목표주가, 주가 예측, '저평가' 같은 가치판단 표현은 화면에 나가기 전에 자동으로 걸러집니다.\n\n[시각 요소 지시어]\n01부터 04까지 손가락을 하나씩 펴며 따라간 뒤, 아래 예시 ①의 '검토 필요' 배지와 예시 ②의 '차단' 배지를 차례로 가리킵니다.\n\n[숫자 타격감 마무리]\n근거 없는 문장은 화면에 내보내지 않습니다." },
@@ -3063,7 +3074,7 @@ stepper('#userflow', '#flowtext', [
     "disclosure-types": { term: "🔍 정기보고서", def: "사업·반기·분기보고서처럼 정해진 때마다 내는 보고서" },
     "glossary": { term: "🔍 공시", def: "회사가 법에 따라 공식으로 알리는 문서. 회사의 생활기록부" },
     "why": { term: "🔍 AI 환각", def: "AI가 그럴듯하지만 사실과 다른 내용을 지어내는 것" },
-    "value": { term: "🔍 원문 위치", def: "문장마다 붙은 접수번호·문단 번호. 누르면 원문으로 이동" },
+    "value": { term: "🎯 핵심 고객", def: "이 서비스가 가장 먼저 돕는 사람. DART Insight는 1년 단위로 회사를 보는 장기 투자자" },
     "activity-financial": { term: "🔍 증감률", def: "(올해 − 작년) ÷ 작년. AI가 아니라 코드가 계산" },
     "activity-flow": { term: "🔍 수시공시", def: "정기보고서 사이에 생긴 일을 그때그때 알리는 공시" },
     "methods": { term: "🔍 검토 필요", def: "근거를 확인하지 못한 결과를 숨기지 않고 표시하는 상태" },
