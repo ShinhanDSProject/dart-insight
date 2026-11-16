@@ -64,10 +64,10 @@ export const DEMO_COMPANY = '삼성전자'
 export const DEMO_SEARCH = 'ㅅㅅㅈㅈ'
 export const DEMO_QUESTION = '이익잉여금이 뭐야?'
 /** 비교할 두 보고서. 현재 보고서를 고르면 비교 기준(전년 동기)이 이전 보고서를 찾는다 */
-export const DEMO_CURRENT_REPORT = '사업보고서 (2025.12)'
-export const DEMO_PREVIOUS_REPORT = '사업보고서 (2024.12)'
-/** 원문 비교로 열 바뀐 곳: 변경 유형(수정)과 섹션으로 시작하는 줄 */
-export const DEMO_TEXT_CHANGE = '수정II. 사업의 내용 > 7. 기타 참고사항'
+export const DEMO_CURRENT_REPORT = '반기보고서 (2026.06)'
+export const DEMO_PREVIOUS_REPORT = '반기보고서 (2025.06)'
+/** 원문 비교로 열 바뀐 곳: 변경 유형(수정)과 섹션, 문단 첫머리로 시작하는 줄(사업의 내용의 Harman 문단) */
+export const DEMO_TEXT_CHANGE = '수정II. 사업의 내용 > 7. 기타 참고사항 · 있습니다. 이에 Harman'
 
 /** 채팅의 마지막 대화 묶음(기다리는 표시가 없을 때). 앞서 나눈 대화가 있어도 새 답을 기다린다 */
 const LATEST_ANSWER_SELECTOR = '#chat-panel:not(:has(.chat-panel__pending)) .chat-panel__exchange:last-of-type'
@@ -110,7 +110,7 @@ export const DEMO_SCENARIO: DemoStep[] = [
   },
   {
     title: '보고서 고르기',
-    caption: '현재 보고서만 고르면 1년 전 같은 시기 보고서를 알아서 짝지어 줘요. 2025년 사업보고서와 2024년 사업보고서를 비교해요.',
+    caption: '현재 보고서만 고르면 1년 전 같은 시기 보고서를 알아서 짝지어 줘요. 2026년 반기보고서와 2025년 반기보고서를 비교해요.',
     actions: [
       { kind: 'click', target: { selector: 'a[data-result-index] .company-list__name', text: DEMO_COMPANY, exact: true } },
       { kind: 'select', target: { selector: '#pair-current' }, option: DEMO_CURRENT_REPORT },
