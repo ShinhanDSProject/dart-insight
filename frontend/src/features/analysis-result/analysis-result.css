@@ -3753,6 +3753,29 @@
   color: var(--color-bg);
 }
 
+/*
+ * 좁은 화면: 기사 번호는 모양은 그대로 두고 보이지 않는 누르는 영역을 24px×24px로 넓힌다.
+ * 번호끼리 붙어 있고 줄을 바꾸기도 해서, 옆 번호·윗줄 번호의 영역과 겹치지 않게 사이와 줄 간격(28px)을 벌린다
+ */
+@media screen and (max-width: 900px) {
+  .news-digest__first {
+    line-height: calc(var(--space-5) + var(--space-1));
+  }
+
+  /* 번호 상자 높이는 넓힌 줄 간격을 따르지 않고 그대로 둔다 */
+  .news-digest__number {
+    position: relative;
+    margin-left: var(--space-2);
+    line-height: var(--line-height-body);
+  }
+
+  .news-digest__number::after {
+    position: absolute;
+    inset: min(0px, calc((100% - var(--space-5)) / 2));
+    content: '';
+  }
+}
+
 .news-digest__note {
   margin: 0;
   color: var(--color-text-muted);

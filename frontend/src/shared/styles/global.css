@@ -15,7 +15,8 @@ body {
 
 code {
   font-family: var(--font-mono);
-  font-size: 0.9em;
+  /* 작은 글자(--font-size-xs) 안에서도 --font-size-2xs보다 작아지지 않게 한다 */
+  font-size: max(0.9em, var(--font-size-2xs));
 }
 
 /* 재무 수치: 고정폭 숫자, 오른쪽 정렬 */
@@ -636,6 +637,13 @@ code {
 
   .app-footer {
     padding: var(--space-3) var(--space-4);
+  }
+
+  /* 하단 바 글자 링크는 손가락으로 누를 수 있게 높이만 --touch-target-min까지 키운다 */
+  .app-footer .app-footer__link {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--touch-target-min);
   }
 
   /* 좁은 화면(터치)에서는 단축키 안내를 숨긴다 */
