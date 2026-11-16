@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
-import { ACTIVITY_DONE, DEMO_CURRENT_REPORT, DEMO_PREVIOUS_REPORT, DEMO_QUESTION, DEMO_SCENARIO, DEMO_SEARCH } from './scenario'
+import { ACTIVITY_DONE, DEMO_CURRENT_REPORT, DEMO_PREVIOUS_REPORT, DEMO_QUESTION, DEMO_SCENARIO, DEMO_SEARCH, DEMO_TEXT_CHANGE } from './scenario'
 
 describe('DEMO_SCENARIO', () => {
   it('단계마다 이름·자막과 할 동작이 있다', () => {
@@ -28,9 +28,9 @@ describe('DEMO_SCENARIO', () => {
     expect(DEMO_SEARCH).toMatch(/^[ㄱ-ㅎ]{2,}$/)
   })
 
-  it('재무 수치 → AI 에이전트 → 공시 분석(요약·타임라인·이 기간에 한 일) → 원문(바뀐 문장) 순서다', () => {
+  it('재무 수치 → AI 에이전트 → 공시 분석(요약·타임라인·이 기간에 한 일) → 원문 비교 순서다', () => {
     const titles = DEMO_SCENARIO.map((step) => step.title)
-    expect(titles.slice(titles.indexOf('재무 수치') + 1, titles.indexOf('바뀐 문장'))).toEqual([
+    expect(titles.slice(titles.indexOf('재무 수치') + 1, titles.indexOf('원문 비교'))).toEqual([
       'AI 에이전트',
       '공시 분석 · 한 문단 요약',
       '공시 분석 · 이 기간 타임라인',
@@ -60,5 +60,13 @@ describe('DEMO_SCENARIO', () => {
     expect(picking?.actions).toContainEqual({ kind: 'select', target: { selector: '#pair-current' }, option: DEMO_CURRENT_REPORT })
     expect(DEMO_CURRENT_REPORT).toBe('사업보고서 (2025.12)')
     expect(DEMO_PREVIOUS_REPORT).toBe('사업보고서 (2024.12)')
+  })
+
+  it('마지막은 우선순위 순 바뀐 곳에서 사업의 내용 수정 문단을 원문 비교 창으로 연다', () => {
+    const last = DEMO_SCENARIO[DEMO_SCENARIO.length - 1]
+    expect(last.title).toBe('원문 비교')
+    expect(last.actions).toContainEqual({ kind: 'select', target: { selector: 'select.text-filterbar__sort' }, option: '우선순위 순' })
+    expect(last.actions).toContainEqual({ kind: 'click', target: { selector: 'button.change-row', text: DEMO_TEXT_CHANGE } })
+    expect(last.actions.at(-1)).toMatchObject({ kind: 'spotlight', target: { selector: '.text-compare-dialog' } })
   })
 })

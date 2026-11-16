@@ -32,8 +32,11 @@ export type DemoAction =
   | { kind: 'type'; target: DemoTarget; text: string }
   /** 커서로 고르기 칸(select)을 누르고, 글자가 option으로 시작하는 항목을 고른다 */
   | { kind: 'select'; target: DemoTarget; option: string }
-  /** 대상 둘레만 밝게 남겨 강조한다. 다음 단계가 시작되면 꺼진다. optional이면 대상이 없을 때 건너뛴다 */
-  | { kind: 'spotlight'; target: DemoTarget; optional?: boolean }
+  /**
+   * 대상 둘레만 밝게 남겨 강조한다. 다음 단계가 시작되면 꺼진다. optional이면 대상이 없을 때 건너뛴다.
+   * block이 start면 대상 머리가 화면 위쪽에 오게 내린다(화면보다 긴 대상을 통째로 강조할 때)
+   */
+  | { kind: 'spotlight'; target: DemoTarget; optional?: boolean; block?: 'start' | 'center' }
   | { kind: 'pause'; ms: number }
 
 export interface DemoStep {
@@ -60,6 +63,8 @@ export const DEMO_QUESTION = '이익잉여금이 뭐야?'
 /** 비교할 두 보고서. 현재 보고서를 고르면 비교 기준(전년 동기)이 이전 보고서를 찾는다 */
 export const DEMO_CURRENT_REPORT = '사업보고서 (2025.12)'
 export const DEMO_PREVIOUS_REPORT = '사업보고서 (2024.12)'
+/** 원문 비교로 열 바뀐 곳: 변경 유형(수정)과 섹션으로 시작하는 줄 */
+export const DEMO_TEXT_CHANGE = '수정II. 사업의 내용 > 7. 기타 참고사항'
 
 /** 채팅의 마지막 대화 묶음(기다리는 표시가 없을 때). 앞서 나눈 대화가 있어도 새 답을 기다린다 */
 const LATEST_ANSWER_SELECTOR = '#chat-panel:not(:has(.chat-panel__pending)) .chat-panel__exchange:last-of-type'
@@ -182,22 +187,10 @@ export const DEMO_SCENARIO: DemoStep[] = [
     title: '공시 분석 · 이 기간 타임라인',
     caption: '그사이 나온 공시를 날짜순으로 모았어요. 줄마다 언제 무엇을 했는지와 그 공시 원문 링크가 붙어 있어요.',
     actions: [
-      // 타임라인 전체(수십 줄)를 강조하면 한참 내려가므로 머리 줄만 강조해 조금만 내려가고, 펼친 첫 줄들이 그 아래로 보이게 한다
+      // 타임라인을 펼쳐 통째로 강조한다. 화면보다 길어 머리가 위쪽에 오게 내린다
       { kind: 'click', target: { selector: '.activity__timeline-details:not([open]) .activity__timeline-summary' }, optional: true },
       { kind: 'pause', ms: 400 },
-      { kind: 'spotlight', target: { selector: '.activity__timeline-summary' }, optional: true },
-      { kind: 'pause', ms: 1800 },
-      // 앞쪽 다섯 줄을 하나씩 짚으며 조금씩 내려간다(줄마다 날짜·한 일·공시 원문 링크)
-      { kind: 'spotlight', target: { selector: '.activity__timeline-row:nth-of-type(1)' }, optional: true },
-      { kind: 'pause', ms: 1600 },
-      { kind: 'spotlight', target: { selector: '.activity__timeline-row:nth-of-type(2)' }, optional: true },
-      { kind: 'pause', ms: 1600 },
-      { kind: 'spotlight', target: { selector: '.activity__timeline-row:nth-of-type(3)' }, optional: true },
-      { kind: 'pause', ms: 1600 },
-      { kind: 'spotlight', target: { selector: '.activity__timeline-row:nth-of-type(4)' }, optional: true },
-      { kind: 'pause', ms: 1600 },
-      { kind: 'spotlight', target: { selector: '.activity__timeline-row:nth-of-type(5)' }, optional: true },
-      { kind: 'pause', ms: 1600 },
+      { kind: 'spotlight', target: { selector: '.activity__timeline-wrap' }, optional: true, block: 'start' },
     ],
   },
   {
@@ -211,14 +204,21 @@ export const DEMO_SCENARIO: DemoStep[] = [
     ],
   },
   {
-    title: '바뀐 문장',
-    caption: '문장이 더해지고 빠지고 고쳐진 곳을 원문 위치와 함께 짚어 줘요.',
+    title: '원문 비교',
+    caption: '바뀐 곳을 우선순위 순으로 보고, 한 줄을 열어 이전·현재 보고서 문단을 나란히 비교해요. 바뀐 낱말에 밑줄을 그어요.',
     actions: [
       { kind: 'click', target: resultTab('원문') },
       { kind: 'click', target: { selector: '.segmented__item', text: '바뀐 곳', exact: true } },
-      { kind: 'click', target: { selector: 'button.change-row' } },
+      { kind: 'select', target: { selector: 'select.text-filterbar__sort' }, option: '우선순위 순' },
+      { kind: 'wait', target: { selector: 'button.change-row' } },
+      // 우선순위 순 첫 10줄 다음에 있는 '사업의 내용' 수정 문단을 연다
+      { kind: 'click', target: { selector: '.change-list__more button' } },
+      { kind: 'click', target: { selector: 'button.change-row', text: DEMO_TEXT_CHANGE } },
       { kind: 'wait', target: { selector: 'article.change-card' } },
-      { kind: 'spotlight', target: { selector: 'article.change-card' } },
+      { kind: 'click', target: { selector: 'article.change-card button', text: '원문 비교', exact: true } },
+      { kind: 'wait', target: { selector: '.text-compare-dialog' } },
+      { kind: 'pause', ms: 500 },
+      { kind: 'spotlight', target: { selector: '.text-compare-dialog' } },
     ],
   },
 ]

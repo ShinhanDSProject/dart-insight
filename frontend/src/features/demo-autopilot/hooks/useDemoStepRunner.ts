@@ -124,10 +124,10 @@ function runAction(action: DemoAction, tools: DemoTools): Promise<void> {
       element.dispatchEvent(new Event('change', { bubbles: true }))
       await sleep(400, tools.signal)
     })
-    .with({ kind: 'spotlight' }, async ({ target, optional = false }) => {
+    .with({ kind: 'spotlight' }, async ({ target, optional = false, block = 'center' }) => {
       const element = optional ? queryVisible(target) : await findTarget(target, tools.signal)
       if (element === undefined) return
-      await scrollIntoView(element, tools.signal)
+      await scrollIntoView(element, tools.signal, block)
       tools.setSpotlight(element)
       await sleep(500, tools.signal)
     })
@@ -170,11 +170,16 @@ async function press(tools: DemoTools) {
 }
 
 /** 화면 밖이면 가운데로 부드럽게 옮기고, 위치가 멈출 때까지(최대 1.5초) 기다린다 */
-async function scrollIntoView(element: HTMLElement, signal: AbortSignal) {
+async function scrollIntoView(element: HTMLElement, signal: AbortSignal, block: 'start' | 'center' = 'center') {
   const rect = element.getBoundingClientRect()
   const visible = rect.top >= 80 && rect.bottom <= window.innerHeight - 120
   if (visible) return
-  element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  if (block === 'start') {
+    // 위 고정 탭 줄에 가리지 않게 머리를 화면 위에서 조금 내려 둔다
+    window.scrollTo({ top: window.scrollY + rect.top - 120, behavior: 'smooth' })
+  } else {
+    element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
   const until = Date.now() + 1500
   let last = Number.NaN
   for (;;) {
