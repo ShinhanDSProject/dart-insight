@@ -25,6 +25,21 @@
   animation: fade-in var(--motion-slow) var(--ease-out);
 }
 
+/* 시연에서 짚는 글자의 형광펜: 원문 비교의 바뀐 낱말(.text-evidence__changed)과 같은 모양으로 왼쪽부터 칠해진다 */
+.demo-mark {
+  width: fit-content;
+  background: linear-gradient(var(--color-attention-subtle), var(--color-attention-subtle)) no-repeat 0 0 / 100% 100%;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  animation: demo-mark-sweep var(--motion-slow) var(--ease-out) both;
+}
+
+@keyframes demo-mark-sweep {
+  from {
+    background-size: 0 100%;
+  }
+}
+
 /* 가짜 커서: 시스템 화살표 모양. 이동 시간은 useDemoStepRunner의 CURSOR_MOVE_MS와 같다 */
 .demo-cursor {
   position: fixed;

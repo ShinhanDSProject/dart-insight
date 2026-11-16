@@ -41,6 +41,7 @@ export function useDemoStepRunner({ state, steps, onDone, onFailed }: StepRunner
     const controller = new AbortController()
     const tools: DemoTools = { signal: controller.signal, setCursor, setSpotlight }
     setSpotlight(null)
+    clearMarks()
     runActions(step.actions, tools).then(
       () => {
         if (!controller.signal.aborted) callbacks.current.onDone()
@@ -53,7 +54,20 @@ export function useDemoStepRunner({ state, steps, onDone, onFailed }: StepRunner
     return () => controller.abort()
   }, [runningStep, steps])
 
+  // 단계를 보여 주는 동안(running·done)만 형광펜을 남긴다. 직접 조작(Esc)·마침·돌아가기와 시연을 끌 때 지운다
+  const showing = state.status === 'running' || state.status === 'done'
+  useEffect(() => {
+    if (!showing) clearMarks()
+  }, [showing])
+  useEffect(() => clearMarks, [])
+
   return { cursor, spotlight }
+}
+
+const MARK_CLASS = 'demo-mark'
+
+function clearMarks() {
+  document.querySelectorAll(`.${MARK_CLASS}`).forEach((element) => element.classList.remove(MARK_CLASS))
 }
 
 interface DemoTools {
@@ -124,12 +138,19 @@ function runAction(action: DemoAction, tools: DemoTools): Promise<void> {
       element.dispatchEvent(new Event('change', { bubbles: true }))
       await sleep(400, tools.signal)
     })
-    .with({ kind: 'spotlight' }, async ({ target, optional = false, block = 'center' }) => {
+    .with({ kind: 'spotlight' }, async ({ target, optional = false, block = 'center', scrollTo }) => {
       const element = optional ? queryVisible(target) : await findTarget(target, tools.signal)
       if (element === undefined) return
-      await scrollIntoView(element, tools.signal, block)
+      const anchor = scrollTo === undefined ? undefined : queryVisible(scrollTo)
+      await scrollIntoView(anchor ?? element, tools.signal, anchor ? 'start' : block)
       tools.setSpotlight(element)
       await sleep(500, tools.signal)
+    })
+    .with({ kind: 'mark' }, async ({ target, optional = false }) => {
+      const element = optional ? queryVisible(target) : await findTarget(target, tools.signal)
+      if (element === undefined) return
+      element.classList.add(MARK_CLASS)
+      await sleep(600, tools.signal)
     })
     .with({ kind: 'pause' }, ({ ms }) => sleep(ms, tools.signal))
     .exhaustive()
@@ -172,8 +193,9 @@ async function press(tools: DemoTools) {
 /** 화면 밖이면 가운데로 부드럽게 옮기고, 위치가 멈출 때까지(최대 1.5초) 기다린다 */
 async function scrollIntoView(element: HTMLElement, signal: AbortSignal, block: 'start' | 'center' = 'center') {
   const rect = element.getBoundingClientRect()
-  const visible = rect.top >= 80 && rect.bottom <= window.innerHeight - 120
-  if (visible) return
+  // start는 머리가 이미 위쪽(탭 줄 아래)에 있을 때만 그대로 둔다. 보이기만 하면 아래 내용이 화면 밖에 남는다
+  const placed = block === 'start' ? Math.abs(rect.top - 120) <= 40 : rect.top >= 80 && rect.bottom <= window.innerHeight - 120
+  if (placed) return
   if (block === 'start') {
     // 위 고정 탭 줄에 가리지 않게 머리를 화면 위에서 조금 내려 둔다
     window.scrollTo({ top: window.scrollY + rect.top - 120, behavior: 'smooth' })
