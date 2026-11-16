@@ -1321,13 +1321,17 @@ body {
   display: flex;
   flex-direction: column;
   transform: translateX(100%);
-  transition: transform var(--motion-slow) var(--ease-out);
+  /* 닫혀 있으면 화면 밖에 남은 대본이 Tab 초점·화면낭독에 잡히지 않게, 다 밀려난 뒤 숨김 */
+  visibility: hidden;
+  transition: transform var(--motion-slow) var(--ease-out), visibility 0s linear var(--motion-slow);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   box-sizing: border-box;
 }
 .speech-sidebar.open {
   transform: translateX(0);
+  visibility: visible;
+  transition: transform var(--motion-slow) var(--ease-out);
 }
 
 .speech-sidebar__head {
@@ -3299,6 +3303,8 @@ stepper('#userflow', '#flowtext', [
     sidebar.classList.toggle('open', shouldOpen);
     document.body.classList.toggle('sidebar-pushed', shouldOpen);
     if (btnSidebarToggle) btnSidebarToggle.setAttribute('aria-expanded', String(shouldOpen));
+    // 닫으면 사이드바가 숨으므로 안에 있던 초점을 여는 버튼으로 돌려줌(그대로 두면 문서 처음으로 떨어짐)
+    if (!shouldOpen && btnSidebarToggle && sidebar.contains(document.activeElement)) btnSidebarToggle.focus({ preventScroll: true });
     if (shouldOpen) updateSlide(curSlide);
     if (isPresent) setTimeout(fitSlide, 400); // 사이드바가 열리고 닫힌 뒤 남은 폭에 다시 맞춤
   };
