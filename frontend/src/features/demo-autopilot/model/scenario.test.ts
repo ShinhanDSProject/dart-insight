@@ -1,6 +1,18 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
-import { ACTIVITY_DONE, DEMO_CURRENT_REPORT, DEMO_PREVIOUS_REPORT, DEMO_QUESTION, DEMO_SCENARIO, DEMO_SEARCH, DEMO_TEXT_CHANGE } from './scenario'
+import type { CompanyAnalysisItem } from '@/shared/api/analyses'
+import { pastAnalysisLabel } from '@/shared/lib/pastAnalyses'
+import {
+  ACTIVITY_DONE,
+  DEMO_CURRENT_REPORT,
+  DEMO_PREVIOUS_REPORT,
+  DEMO_QUESTION,
+  DEMO_SCENARIO,
+  DEMO_SEARCH,
+  DEMO_TEXT_CHANGE,
+  OPEN_PAST_ANALYSIS,
+  PAST_DEMO_PAIR,
+} from './scenario'
 
 describe('DEMO_SCENARIO', () => {
   it('단계마다 이름·자막과 할 동작이 있다', () => {
@@ -68,5 +80,24 @@ describe('DEMO_SCENARIO', () => {
     expect(last.actions).toContainEqual({ kind: 'select', target: { selector: 'select.text-filterbar__sort' }, option: '우선순위 순' })
     expect(last.actions).toContainEqual({ kind: 'click', target: { selector: 'button.change-row', text: DEMO_TEXT_CHANGE } })
     expect(last.actions.at(-1)).toMatchObject({ kind: 'spotlight', target: { selector: '.text-compare-dialog' } })
+  })
+
+  it('새 분석이 안 되면 목록 맨 위가 아니라 시연 쌍의 지난 결과를 연다', () => {
+    const item = (analysisId: number, previous: string, current: string): CompanyAnalysisItem => ({
+      analysisId,
+      basis: 'YOY',
+      previous: { rceptNo: `p${analysisId}`, reportName: previous, periodEnd: '2025-06-30' },
+      current: { rceptNo: `c${analysisId}`, reportName: current, periodEnd: '2026-06-30' },
+      completedAt: '2026-10-30T11:42:50',
+    })
+    const labels = [item(14, '반기보고서 (2025.06)', '반기보고서 (2026.06)'), item(8, DEMO_PREVIOUS_REPORT, DEMO_CURRENT_REPORT)].map(pastAnalysisLabel)
+    expect(labels.filter((label) => label.includes(PAST_DEMO_PAIR.text ?? ''))).toEqual([labels[1]])
+
+    const handing = DEMO_SCENARIO.find((step) => step.title === '핵심 3줄')?.actions.find((action) => action.kind === 'wait')
+    expect(handing).toMatchObject({ otherwise: OPEN_PAST_ANALYSIS })
+    // 접힌 줄을 펼친 뒤 시연 쌍을 찾고, 없을 때만 가장 최근 결과를 연다
+    expect(OPEN_PAST_ANALYSIS.map((action) => action.kind)).toEqual(['back', 'wait', 'click', 'wait', 'click', 'wait'])
+    expect(OPEN_PAST_ANALYSIS[3]).toMatchObject({ target: PAST_DEMO_PAIR, otherwise: [{ kind: 'click', target: { selector: '.past-analyses a.list-link' } }] })
+    expect(OPEN_PAST_ANALYSIS[4]).toEqual({ kind: 'click', target: PAST_DEMO_PAIR, optional: true })
   })
 })
