@@ -48,18 +48,20 @@ export const DEMO_TARGET_TIMEOUT_MS = 10_000
 const ANALYSIS_TIMEOUT_MS = 90_000
 /** AI 답을 기다리는 시간 */
 const CHAT_TIMEOUT_MS = 90_000
+/** 공시 분석(AI 정리)을 기다리는 시간. 처음 열면 수십 초 걸린다 */
+const ACTIVITY_TIMEOUT_MS = 60_000
 
 export const DEMO_COMPANY = '삼성전자'
-export const DEMO_QUESTION = '이번 변화를 3줄로 정리해줘'
+/** 첫 화면 검색어. 초성만 쳐도 찾는다는 것을 보여 준다(matchRanges, ㅅㅅㅈㅈ → 삼성전자) */
+export const DEMO_SEARCH = 'ㅅㅅㅈㅈ'
+export const DEMO_QUESTION = '이익잉여금이 뭐야?'
 
 /** 채팅의 마지막 대화 묶음(기다리는 표시가 없을 때). 앞서 나눈 대화가 있어도 새 답을 기다린다 */
 const LATEST_ANSWER_SELECTOR = '#chat-panel:not(:has(.chat-panel__pending)) .chat-panel__exchange:last-of-type'
 const LATEST_ANSWER: DemoTarget = { selector: LATEST_ANSWER_SELECTOR }
-/** 마지막 답에서 누를 수 있는 근거 번호(재무·문장 근거는 버튼, 다른 화면은 링크) */
-const CITATION: DemoTarget = { selector: `${LATEST_ANSWER_SELECTOR} button.chat-panel__citation, ${LATEST_ANSWER_SELECTOR} a.chat-panel__citation` }
-/** 근거가 열린 곳: 재무 근거 패널, 문장 비교 대화상자, 원문의 고른 위치 */
-const EVIDENCE: DemoTarget = { selector: '#evidence, .text-compare-dialog, .source-block--selected' }
 
+/** 공시 분석 정리가 끝난 화면. 오류 화면도 불러오는 그림이 없으므로 따로 뺀다(실행기는 대상을 포기 조건보다 먼저 본다) */
+export const ACTIVITY_DONE: DemoTarget = { selector: '.activity:not(:has(.activity-loading)):not(:has(.state--error))' }
 const resultTab = (label: string): DemoTarget => ({ selector: '.result-tabs button.tabs__item', text: label, exact: true })
 /** 결과 화면이 다 떠오름(PageReveal). 핵심 줄이 없는 분석도 있어 핵심 3줄이 아니라 결과 화면을 기다린다 */
 const RESULT_PAGE: DemoTarget = { selector: '.page-reveal--entering .result-page, .page-reveal--shown .result-page' }
@@ -77,9 +79,9 @@ const OPEN_PAST_ANALYSIS: DemoAction[] = [
 export const DEMO_SCENARIO: DemoStep[] = [
   {
     title: '기업 찾기',
-    caption: '회사 이름만 넣으면 돼요. 종목코드나 초성으로도 찾아요.',
+    caption: '회사 이름을 다 치지 않아도 돼요. 초성 ㅅㅅㅈㅈ만 쳐도 삼성전자가 나와요.',
     actions: [
-      { kind: 'type', target: { selector: '#company-query' }, text: DEMO_COMPANY },
+      { kind: 'type', target: { selector: '#company-query' }, text: DEMO_SEARCH },
       { kind: 'wait', target: { selector: 'a[data-result-index]' } },
       { kind: 'spotlight', target: { selector: '#company-search-results' } },
     ],
@@ -119,40 +121,22 @@ export const DEMO_SCENARIO: DemoStep[] = [
     ],
   },
   {
-    title: '근거 확인',
-    caption: '한 줄을 누르면 계산한 값과 보고서 원문 위치가 함께 열려요. 원문 위치를 확인하지 못한 AI 문장은 보여 주지 않아요.',
-    actions: [
-      { kind: 'click', target: { selector: 'button.headline__line' } },
-      { kind: 'wait', target: EVIDENCE },
-      { kind: 'pause', ms: 400 },
-      { kind: 'spotlight', target: EVIDENCE },
-    ],
-  },
-  {
     title: '재무 수치',
     caption: '모든 계정의 증감액과 증감률은 AI가 아니라 코드가 계산해요.',
     actions: [
-      { kind: 'click', target: { selector: '#evidence .evidence__head button, .text-compare-dialog button[aria-label="닫기"]' }, optional: true },
       { kind: 'click', target: resultTab('재무 수치') },
       { kind: 'wait', target: { selector: 'button[id^="evidence-button-"]' } },
       { kind: 'spotlight', target: { selector: '.tab-transition table' } },
     ],
   },
   {
-    title: '바뀐 문장',
-    caption: '문장이 더해지고 빠지고 고쳐진 곳을 원문 위치와 함께 짚어 줘요.',
-    actions: [
-      { kind: 'click', target: resultTab('원문') },
-      { kind: 'click', target: { selector: '.segmented__item', text: '바뀐 곳', exact: true } },
-      { kind: 'click', target: { selector: 'button.change-row' } },
-      { kind: 'wait', target: { selector: 'article.change-card' } },
-      { kind: 'spotlight', target: { selector: 'article.change-card' } },
-    ],
-  },
-  {
     title: 'AI 에이전트',
-    caption: '궁금한 건 물어보면 돼요. 답마다 근거를 붙이고, 투자 조언은 하지 않아요.',
+    caption: '표를 보다 모르는 용어가 나오면 물어보면 돼요. 쉬운 말로 풀고 이 회사 숫자도 근거와 함께 보여 주며, 투자 조언은 하지 않아요.',
     actions: [
+      // 이익잉여금이 있는 재무상태표를 펴 두고 묻는다
+      { kind: 'click', target: resultTab('재무 수치') },
+      { kind: 'click', target: { selector: '.fin-bar__statements button', text: '재무상태표', exact: true }, optional: true },
+      { kind: 'pause', ms: 500 },
       { kind: 'click', target: { selector: '.chat-launcher' } },
       { kind: 'type', target: { selector: '#chat-input' }, text: DEMO_QUESTION },
       { kind: 'click', target: { selector: 'form.chat-panel__form button[type="submit"]' } },
@@ -168,22 +152,65 @@ export const DEMO_SCENARIO: DemoStep[] = [
     ],
   },
   {
-    title: '답의 근거 따라가기',
-    caption: '답에 붙은 번호를 누르면 그 내용이 나온 보고서 위치로 바로 가요.',
+    title: '공시 분석 · 한 문단 요약',
+    caption: '두 보고서 사이 1년 동안 회사가 한 일을 한 문단으로 먼저 요약해요. 원문 근거로 확인하지 못한 요약은 보여 주지 않아요.',
     actions: [
-      // 앞 단계에서 답을 못 받았거나 답에 누를 근거 번호가 없으면 기다리지 않고 알린다
+      { kind: 'click', target: { selector: '.chat-panel__head button', text: '닫기' }, optional: true },
+      { kind: 'click', target: resultTab('공시 분석') },
+      // 불러오는 그림이 사라지면 정리가 끝난 것이다(활동 카드·검토 필요·활동 없음 모두). 오류 화면은 끝으로 치지 않고 알린다
       {
         kind: 'wait',
-        target: LATEST_ANSWER,
-        timeoutMs: 1500,
-        giveUpWhen: { selector: '#chat-panel .state--error' },
-        failReason: 'AI 답이 없어 근거를 따라갈 수 없어요.',
+        target: ACTIVITY_DONE,
+        timeoutMs: ACTIVITY_TIMEOUT_MS,
+        giveUpWhen: { selector: '.activity .state--error' },
+        failReason: '공시 분석을 이번에는 불러오지 못했어요.',
       },
-      { kind: 'wait', target: CITATION, timeoutMs: 1500, failReason: '이 답에는 누를 수 있는 근거 번호가 없어요.' },
-      { kind: 'click', target: CITATION },
-      { kind: 'wait', target: EVIDENCE },
+      { kind: 'pause', ms: 600 },
+      // 요약이 원문 근거로 확인되지 않으면 '검토 필요' 자리가 대신 보인다
+      { kind: 'spotlight', target: { selector: '.activity__overview, .activity__overview-missing' }, optional: true },
+    ],
+  },
+  {
+    title: '공시 분석 · 이 기간 타임라인',
+    caption: '그사이 나온 공시를 날짜순으로 모았어요. 줄마다 언제 무엇을 했는지와 그 공시 원문 링크가 붙어 있어요.',
+    actions: [
+      // 타임라인 전체(수십 줄)를 강조하면 한참 내려가므로 머리 줄만 강조해 조금만 내려가고, 펼친 첫 줄들이 그 아래로 보이게 한다
+      { kind: 'click', target: { selector: '.activity__timeline-details:not([open]) .activity__timeline-summary' }, optional: true },
       { kind: 'pause', ms: 400 },
-      { kind: 'spotlight', target: EVIDENCE },
+      { kind: 'spotlight', target: { selector: '.activity__timeline-summary' }, optional: true },
+      { kind: 'pause', ms: 1800 },
+      // 앞쪽 다섯 줄을 하나씩 짚으며 조금씩 내려간다(줄마다 날짜·한 일·공시 원문 링크)
+      { kind: 'spotlight', target: { selector: '.activity__timeline-row:nth-of-type(1)' }, optional: true },
+      { kind: 'pause', ms: 1600 },
+      { kind: 'spotlight', target: { selector: '.activity__timeline-row:nth-of-type(2)' }, optional: true },
+      { kind: 'pause', ms: 1600 },
+      { kind: 'spotlight', target: { selector: '.activity__timeline-row:nth-of-type(3)' }, optional: true },
+      { kind: 'pause', ms: 1600 },
+      { kind: 'spotlight', target: { selector: '.activity__timeline-row:nth-of-type(4)' }, optional: true },
+      { kind: 'pause', ms: 1600 },
+      { kind: 'spotlight', target: { selector: '.activity__timeline-row:nth-of-type(5)' }, optional: true },
+      { kind: 'pause', ms: 1600 },
+    ],
+  },
+  {
+    title: '공시 분석 · 이 기간에 한 일',
+    caption: '눈여겨볼 활동만 골라 카드로 보여 줘요. 공시에 적힌 사실과 AI 전망은 따로 표시해요.',
+    actions: [
+      // 펼친 타임라인을 접어 활동 목록까지 조금만 내려가게 한다
+      { kind: 'click', target: { selector: '.activity__timeline-details[open] .activity__timeline-summary' }, optional: true },
+      { kind: 'pause', ms: 400 },
+      { kind: 'spotlight', target: { selector: '.activity__list .activity-card' }, optional: true },
+    ],
+  },
+  {
+    title: '바뀐 문장',
+    caption: '문장이 더해지고 빠지고 고쳐진 곳을 원문 위치와 함께 짚어 줘요.',
+    actions: [
+      { kind: 'click', target: resultTab('원문') },
+      { kind: 'click', target: { selector: '.segmented__item', text: '바뀐 곳', exact: true } },
+      { kind: 'click', target: { selector: 'button.change-row' } },
+      { kind: 'wait', target: { selector: 'article.change-card' } },
+      { kind: 'spotlight', target: { selector: 'article.change-card' } },
     ],
   },
 ]
