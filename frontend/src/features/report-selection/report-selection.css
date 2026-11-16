@@ -984,6 +984,13 @@
   font-size: var(--font-size-xs);
 }
 
+/* 좁은 화면: '근거'처럼 짧은 링크 버튼도 누르는 폭을 --touch-target-min 이상으로 둔다(높이는 .link-button이 키움) */
+@media screen and (max-width: 900px) {
+  .company-briefing__cite {
+    min-width: var(--touch-target-min);
+  }
+}
+
 .company-briefing__evidence {
   display: grid;
   gap: var(--space-2);

@@ -1018,10 +1018,15 @@
     pointer-events: none;
   }
 
+  /* 예시가 검색창보다 길면(좁은 화면) 끝을 말줄임표로 줄인다 */
   .search-bar__examples > span {
     position: absolute;
     top: 50%;
+    right: 0;
     left: 0;
+    overflow: hidden;
+    text-align: start;
+    text-overflow: ellipsis;
     white-space: nowrap;
     opacity: 0;
     animation: example-cycle var(--motion-rotate) var(--ease-out) infinite;
