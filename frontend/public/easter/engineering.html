@@ -225,6 +225,24 @@ input[type=range] { width: 100%; accent-color: var(--color-primary) }
 .principles b { font-size: 15px }
 .principles span { font-size: 13px; color: var(--color-text-muted) }
 
+/* 좁은 화면(휴대폰): 상단 바는 한 줄로 두고, 긴 코드·표가 카드 밖으로 밀려 잘리지 않게 한다 */
+.scroll-hint { display: none }
+@media (max-width: 860px) { .scroll-hint { display: inline } }
+main > section, .topic__body { grid-template-columns: minmax(0, 1fr) }
+@media (max-width: 640px) {
+  .appbar .in { padding: 0 16px; gap: 8px }
+  .brand span span, .brand br { display: none }
+  .appbar .seg { flex-wrap: nowrap }
+  .appbar .seg button { padding: 5px 9px; font-size: 12px }
+  .appbar .pill { padding: 0 12px }
+  .pill__more { display: none }
+  code { white-space: normal; overflow-wrap: anywhere }
+  .tbl code { white-space: nowrap }
+  .topic__head, .topic__body { padding: 16px }
+  .dec { padding: 16px }
+}
+@media (max-width: 480px) { .brand > span:not(.brand__mark) { display: none } }
+
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important } }
 </style>
 </head>
@@ -240,7 +258,7 @@ input[type=range] { width: 100%; accent-color: var(--color-primary) }
       <div class="seg" role="group" aria-label="화면 테마">
         <button type="button" data-theme-set="system" aria-pressed="true">시스템</button><button type="button" data-theme-set="light" aria-pressed="false">라이트</button><button type="button" data-theme-set="dark" aria-pressed="false">다크</button>
       </div>
-      <a class="pill" href="/easter/three-weeks.html">← 발표 페이지</a>
+      <a class="pill" href="/easter/three-weeks.html">← 발표<span class="pill__more"> 페이지</span></a>
     </div>
   </div>
 </header>
@@ -312,7 +330,7 @@ input[type=range] { width: 100%; accent-color: var(--color-primary) }
 <path d="M1051,258 V276" style="fill:none; stroke:var(--color-text-muted); stroke-width:1.6; --step:2;" marker-end="url(#eng_ar)"/>
 <path d="M742,150 H972" style="fill:none; stroke:var(--color-text-muted); stroke-width:1.6; --step:3;" marker-end="url(#eng_ar)"/><g class="arch-label" style="--step:3;"><rect x="759.8" y="130" width="100.39999999999999" height="17" rx="4" style="fill:var(--color-bg-subtle);"/><text x="810" y="142" text-anchor="middle" style="font-family:var(--font-mono); font-size:11px; fill:var(--color-text-muted);">LLM 모듈</text></g>
 </svg>
-        <figcaption class="muted" style="margin-top:8px; font-size:13px;">발표 페이지 아키텍처 장과 같은 그림에, 외부 AI 에이전트용 MCP 서버를 더했습니다. 호출은 화살표 방향으로만 갑니다.</figcaption>
+        <figcaption class="muted" style="margin-top:8px; font-size:13px;">발표 페이지 아키텍처 장과 같은 그림에, 외부 AI 에이전트용 MCP 서버를 더했습니다. 호출은 화살표 방향으로만 갑니다.<span class="scroll-hint"> 좁은 화면에서는 그림을 옆으로 밀어 보세요.</span></figcaption>
       </figure>
 
       <div class="tblwrap"><table class="tbl">
