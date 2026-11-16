@@ -81,7 +81,7 @@
 - 뉴스·메일·소셜 로그인 변수는 deploy/.env에 실제 값을 저장하고 backend.environment로 전달한다.
 - Compose의 --env-file은 값 치환 입력이며 모든 항목을 컨테이너로 자동 전달하지 않는다.
 - 실제 환경 파일은 저장소에서 복사하거나 덮어쓰지 않는다. 예제에는 가짜 값만 둔다.
-- AI의 LLM_MODEL 기본값을 운영 설정과 같은 gpt-4o-mini로 맞췄다. 실제 키는 deploy/ai.env에 둔다. 모델 호출 성공은 별도 로그로 확인한다.
+- AI의 LLM 제공자·모델·키(LLM_PROVIDER·LLM_MODEL·LLM_API_KEY)는 deploy/ai.env에서만 정한다. compose.ai.yaml의 environment에 적으면 env_file보다 우선해 ai.env 값을 덮어쓰므로 적지 않는다. 모델 호출 성공은 /api/system/ai-usage나 AI 로그로 확인한다.
 - main 전환 전 정상 운영 이미지는 226badcf03777978ec6d9f64a1deaf61e338f4ff이며 DB는 V51까지 적용됐다. 전환 후 실제 태그와 DB 적용 버전은 배포 로그에서 다시 확인한다.
 - 배포는 서버의 기존 .env·ai.env·기본 Compose를 덮어쓰지 않고 release Compose의 대상 이미지 태그만 갱신한다.
 
