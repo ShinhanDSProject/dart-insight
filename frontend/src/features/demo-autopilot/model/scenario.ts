@@ -76,13 +76,22 @@ const resultTab = (label: string): DemoTarget => ({ selector: '.result-tabs butt
 /** 결과 화면이 다 떠오름(PageReveal). 핵심 줄이 없는 분석도 있어 핵심 3줄이 아니라 결과 화면을 기다린다 */
 const RESULT_PAGE: DemoTarget = { selector: '.page-reveal--entering .result-page, .page-reveal--shown .result-page' }
 
+const PAST_ANALYSIS: DemoTarget = { selector: '.past-analyses a.list-link' }
+/** '이미 분석한 비교'에서 시연 쌍의 줄. 줄 글자는 '이전 → 현재 · 비교 기준 · 완료일'이다(pastAnalysisLabel) */
+export const PAST_DEMO_PAIR: DemoTarget = { ...PAST_ANALYSIS, text: `${DEMO_PREVIOUS_REPORT} → ${DEMO_CURRENT_REPORT}` }
+
 /**
  * 같은 보고서 쌍의 분석이 없어 새로 돌리다 실패하거나 오래 걸리면, 기업 화면으로 돌아가(비교 확인 → 진행 화면을 거슬러)
- * '이미 분석한 비교'의 가장 최근 결과를 연다. 발표가 멈추지 않게 하는 대비책이다
+ * '이미 분석한 비교'에서 시연 쌍의 결과를 연다. 목록은 최근 순이라 맨 위가 다른 쌍일 수 있어 접힌 줄까지 펼쳐 찾고,
+ * 시연 쌍이 없을 때만 가장 최근 결과를 연다. 발표가 멈추지 않게 하는 대비책이다
  */
-const OPEN_PAST_ANALYSIS: DemoAction[] = [
+export const OPEN_PAST_ANALYSIS: DemoAction[] = [
   { kind: 'back', count: 2 },
-  { kind: 'click', target: { selector: '.past-analyses a.list-link' } },
+  { kind: 'wait', target: PAST_ANALYSIS },
+  { kind: 'click', target: { selector: '.past-analyses__more button[aria-expanded="false"]' }, optional: true },
+  { kind: 'wait', target: PAST_DEMO_PAIR, timeoutMs: 1_500, otherwise: [{ kind: 'click', target: PAST_ANALYSIS }] },
+  // 위에서 시연 쌍이 없어 가장 최근 결과로 갔으면 이 줄은 화면에 없어 건너뛴다
+  { kind: 'click', target: PAST_DEMO_PAIR, optional: true },
   { kind: 'wait', target: RESULT_PAGE, timeoutMs: 20_000 },
 ]
 
