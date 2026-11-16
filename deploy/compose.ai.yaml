@@ -7,8 +7,5 @@ services:
     build:
       context: ../ai-server
     restart: unless-stopped
-    environment:
-      LLM_PROVIDER: openai
-      LLM_MODEL: gpt-4o-mini
     ports:
       - "${AI_BIND_ADDRESS:?AI_BIND_ADDRESS is required}:8000:8000"
