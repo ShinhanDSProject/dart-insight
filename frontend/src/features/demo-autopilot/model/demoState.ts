@@ -4,7 +4,7 @@ import { match, P } from 'ts-pattern'
  * 시연 진행 상태(#967). 발표자가 Space로 넘길 때마다 다음 단계를 한 번 실행한다.
  * idle: 아직 시작 전(next: Space를 누르면 실행할 단계). running: 단계를 실행하는 중(커서 이동·입력·클릭). done: 단계를 마치고 다음 Space를 기다림.
  * failed: 단계를 끝내지 못함(찾을 화면이 없거나 늦음). Space로 다음 단계로 넘어간다. finished: 마지막 단계까지 마침.
- * leaving: 마친 뒤 Space를 눌러 발표 페이지의 Q&A 장으로 돌아가는 중(#970).
+ * leaving: 마친 뒤 Space를 눌러 발표 페이지의 두 보고서 장으로 돌아가는 중(#970).
  * manual: 발표 페이지 안에서 Esc로 직접 조작으로 바꿈. 키를 가로채지 않고 '발표로 돌아가기' 버튼만 남긴다(#972).
  */
 export type DemoState =
