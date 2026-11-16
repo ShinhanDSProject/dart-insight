@@ -50,10 +50,11 @@ describe('DEMO_SCENARIO', () => {
     ])
   })
 
-  it('AI에게는 재무 수치 탭에서 용어를 묻는다', () => {
-    const asking = DEMO_SCENARIO.find((step) => step.actions.some((action) => action.kind === 'type' && action.text === DEMO_QUESTION))
+  it('AI에게는 재무 수치 탭에 머문 채 탭을 다시 누르지 않고 바로 묻는다', () => {
+    const at = DEMO_SCENARIO.findIndex((step) => step.actions.some((action) => action.kind === 'type' && action.text === DEMO_QUESTION))
     expect(DEMO_QUESTION).toContain('이익잉여금')
-    expect(asking?.actions[0]).toMatchObject({ kind: 'click', target: { text: '재무 수치' } })
+    expect(DEMO_SCENARIO[at - 1].title).toBe('재무 수치')
+    expect(DEMO_SCENARIO[at].actions[0]).toEqual({ kind: 'click', target: { selector: '.chat-launcher' } })
   })
 
   it('공시 분석을 불러오다 오류가 나면 끝난 화면으로 치지 않는다', () => {
@@ -99,5 +100,21 @@ describe('DEMO_SCENARIO', () => {
     expect(OPEN_PAST_ANALYSIS.map((action) => action.kind)).toEqual(['back', 'wait', 'click', 'wait', 'click', 'wait'])
     expect(OPEN_PAST_ANALYSIS[3]).toMatchObject({ target: PAST_DEMO_PAIR, otherwise: [{ kind: 'click', target: { selector: '.past-analyses a.list-link' } }] })
     expect(OPEN_PAST_ANALYSIS[4]).toEqual({ kind: 'click', target: PAST_DEMO_PAIR, optional: true })
+  })
+
+  it("이 기간에 한 일은 'N건' 제목을 화면 위쪽에 두고 첫 카드를 강조한다", () => {
+    const step = DEMO_SCENARIO.find((item) => item.title === '공시 분석 · 이 기간에 한 일')
+    expect(step?.actions.find((action) => action.kind === 'spotlight')).toMatchObject({
+      kind: 'spotlight',
+      target: { selector: '.activity__list .activity-card' },
+      scrollTo: { selector: '#activity-list-title' },
+    })
+  })
+
+  it("이 기간에 한 일은 첫 카드의 '앞으로의 영향'에 형광펜을 칠한다", () => {
+    const step = DEMO_SCENARIO.find((item) => item.title === '공시 분석 · 이 기간에 한 일')
+    expect(step?.actions).toContainEqual(
+      expect.objectContaining({ kind: 'mark', target: expect.objectContaining({ text: '앞으로의 영향', exact: true }) }),
+    )
   })
 })

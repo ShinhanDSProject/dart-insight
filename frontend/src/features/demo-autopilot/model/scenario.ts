@@ -34,9 +34,12 @@ export type DemoAction =
   | { kind: 'select'; target: DemoTarget; option: string }
   /**
    * 대상 둘레만 밝게 남겨 강조한다. 다음 단계가 시작되면 꺼진다. optional이면 대상이 없을 때 건너뛴다.
-   * block이 start면 대상 머리가 화면 위쪽에 오게 내린다(화면보다 긴 대상을 통째로 강조할 때)
+   * block이 start면 대상 머리가 화면 위쪽에 오게 내린다(화면보다 긴 대상을 통째로 강조할 때).
+   * scrollTo가 있으면 그 요소(예: 목록 제목)의 머리를 화면 위쪽에 두고 대상을 강조한다
    */
-  | { kind: 'spotlight'; target: DemoTarget; optional?: boolean; block?: 'start' | 'center' }
+  | { kind: 'spotlight'; target: DemoTarget; optional?: boolean; block?: 'start' | 'center'; scrollTo?: DemoTarget }
+  /** 대상 글자에 원문 비교처럼 형광펜(옅은 노랑 바탕과 밑줄)을 칠한다. 다음 단계가 시작되면 지운다 */
+  | { kind: 'mark'; target: DemoTarget; optional?: boolean }
   | { kind: 'pause'; ms: number }
 
 export interface DemoStep {
@@ -155,10 +158,7 @@ export const DEMO_SCENARIO: DemoStep[] = [
     title: 'AI 에이전트',
     caption: '표를 보다 모르는 용어가 나오면 물어보면 돼요. 쉬운 말로 풀고 이 회사 숫자도 근거와 함께 보여 주며, 투자 조언은 하지 않아요.',
     actions: [
-      // 이익잉여금이 있는 재무상태표를 펴 두고 묻는다
-      { kind: 'click', target: resultTab('재무 수치') },
-      { kind: 'click', target: { selector: '.fin-bar__statements button', text: '재무상태표', exact: true }, optional: true },
-      { kind: 'pause', ms: 500 },
+      // 5단계의 재무 수치 탭(기본 재무상태표)에 머문 채 바로 AI 에이전트를 연다
       { kind: 'click', target: { selector: '.chat-launcher' } },
       { kind: 'type', target: { selector: '#chat-input' }, text: DEMO_QUESTION },
       { kind: 'click', target: { selector: 'form.chat-panel__form button[type="submit"]' } },
@@ -209,7 +209,9 @@ export const DEMO_SCENARIO: DemoStep[] = [
       // 펼친 타임라인을 접어 활동 목록까지 조금만 내려가게 한다
       { kind: 'click', target: { selector: '.activity__timeline-details[open] .activity__timeline-summary' }, optional: true },
       { kind: 'pause', ms: 400 },
-      { kind: 'spotlight', target: { selector: '.activity__list .activity-card' }, optional: true },
+      // 카드가 길어 가운데 맞추면 '이 기간에 한 일 N건' 제목이 화면 위로 밀려나므로 제목을 위쪽에 둔다
+      { kind: 'spotlight', target: { selector: '.activity__list .activity-card' }, optional: true, scrollTo: { selector: '#activity-list-title' } },
+      { kind: 'mark', target: { selector: '.activity__list .activity-card .activity-card__part-title', text: '앞으로의 영향', exact: true }, optional: true },
     ],
   },
   {
