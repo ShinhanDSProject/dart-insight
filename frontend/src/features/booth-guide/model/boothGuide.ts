@@ -1,13 +1,14 @@
 /**
  * 전시 부스용 '따라 해 보기' 안내(발표 11/18). 심사위원이 처음 보는 서비스를 혼자 써 볼 수 있게
- * 화면마다 지금 할 일을 한 장의 카드로 알려 주고, '어디예요?'를 누르면 누를 곳을 강조한다.
+ * 화면마다 지금 할 일을 한 장의 카드로 알려 주고, 화면에 들어오면 다음에 누를 곳에 테두리를 그리고 초점을 옮긴다.
  * 화면을 옮기면 카드가 그 화면의 단계로 따라간다(다음 버튼 없이 사용자가 직접 누르며 나아간다).
- * ?guide로 켜고 ?guide=off로 끈다. 부스(kiosk)로 들어온 탭에서는 처음부터 켜진다.
+ * ?guide로 켜고(첫 화면의 '따라 해 보기' 버튼) ?guide=off로 끈다. 부스(kiosk)로 들어온 탭에서는 처음부터 켜진다.
  */
+import { BOOTH_GUIDE_PARAM } from '@/shared/lib/boothGuide'
 import { ONBOARDING_EXAMPLE_CORP_CODE } from '@/shared/lib/onboarding'
 
 /** 켜고 끄는 주소 매개변수 */
-export const BOOTH_GUIDE_PARAM = 'guide'
+export { BOOTH_GUIDE_PARAM }
 /**
  * 이 탭에서 고른 보기(open·folded·off)를 화면을 옮겨도 유지하는 sessionStorage 키.
  * 대기 화면(/easter/idle.html)이 열릴 때 이 키를 지워(부스 켜짐 표시 'dart-insight:kiosk'만 남김) 다음 방문자는 처음부터 본다
@@ -67,39 +68,47 @@ export type GuideShortcut = { kind: 'spotlight'; label: string; target: GuideTar
 export interface GuideStep {
   title: string
   text: string
+  /** 이 단계에 들어오면 테두리를 그릴 곳 */
   target: GuideTarget | null
+  /** 이 단계에 들어오면 키보드 초점을 옮길 곳(바로 치거나 Enter로 넘어가게). 없으면 옮기지 않는다 */
+  focus: string | null
   shortcut: GuideShortcut | null
 }
 
 export const GUIDE_STEPS: Record<GuideStage, GuideStep> = {
   search: {
     title: '회사를 찾아 보세요',
-    text: '검색창에 회사 이름을 치면 돼요. 초성만 쳐도 찾아요(예: ㅅㅅㅈㅈ → 삼성전자). 목록에서 회사를 누르세요.',
-    target: ['#company-search-results', '#company-query'],
+    text: '검색창에 바로 회사 이름을 쳐 보세요. 초성만 쳐도 찾아요(예: ㅅㅅㅈㅈ → 삼성전자). 목록에서 회사를 누르세요.',
+    target: ['.search-hero .search-form', '#company-query'],
+    focus: '#company-query',
     shortcut: { kind: 'go', label: '삼성전자로 해 보기', to: `/companies/${ONBOARDING_EXAMPLE_CORP_CODE}` },
   },
   company: {
     title: '비교할 보고서를 고르세요',
-    text: '현재 보고서만 고르면 1년 전 같은 시기 보고서를 알아서 짝지어 줘요. 위 요약에서 비교 확인으로 넘어가세요.',
+    text: '현재 보고서만 고르면 1년 전 같은 시기 보고서를 알아서 짝지어 줘요. 테두리 친 요약에서 비교 확인으로 넘어가세요.',
     target: ['section.pick-summary', '#pair-current'],
+    focus: 'section.pick-summary .pick-summary__actions a.button--primary',
     shortcut: { kind: 'spotlight', label: '이미 분석한 결과 보기', target: ['.past-analyses'] },
   },
   compare: {
     title: '비교할 수 있는지 확인해요',
-    text: '두 보고서의 기간과 재무제표가 맞는지 먼저 봐요. 맞으면 분석 실행을 누르세요.',
+    text: '두 보고서의 기간과 재무제표가 맞는지 먼저 봐요. 맞으면 테두리 친 분석 실행을 누르세요.',
     target: ['.compare-actions .button--primary', '.compare-actions'],
+    focus: '.compare-actions .button--primary',
     shortcut: null,
   },
   progress: {
     title: '분석하는 중이에요',
     text: '처음 비교하는 보고서 쌍이면 1~2분 걸려요. 끝나면 결과 화면으로 저절로 넘어가요.',
     target: null,
+    focus: null,
     shortcut: null,
   },
   result: {
     title: '결과를 둘러보세요',
     text: '요약에 크게 바뀐 숫자와 문장이 먼저 나와요. 아래를 하나씩 눌러 보세요.',
     target: ['section.headline'],
+    focus: null,
     shortcut: null,
   },
 }
@@ -109,6 +118,7 @@ export const GUIDE_OFF_PATH_STEP: GuideStep = {
   title: '기업 찾기부터 해 보세요',
   text: '처음부터를 누르면 첫 화면으로 돌아가 회사를 찾아 비교할 수 있어요.',
   target: null,
+  focus: null,
   shortcut: null,
 }
 
