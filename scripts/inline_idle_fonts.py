@@ -16,7 +16,8 @@ import urllib.parse
 import urllib.request
 
 PAGE = pathlib.Path(__file__).resolve().parent.parent / 'frontend' / 'public' / 'easter' / 'idle.html'
-FAMILIES = ['Noto Sans KR:wght@400;500;700;800;900', 'Inter:wght@700;800']
+# 굵기 범위로 받으면 가변 글꼴 하나(@font-face 하나)로 와서 굵기마다 같은 파일을 반복해 담지 않는다
+FAMILIES = ['Noto Sans KR:wght@400..900', 'Inter:wght@700..800']
 # woff2를 돌려받으려면 최신 브라우저처럼 보여야 한다
 UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
 BLOCK = re.compile(r'(<style id="idle-fonts">)(.*?)(</style>)', re.S)
