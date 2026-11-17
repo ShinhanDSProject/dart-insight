@@ -1,0 +1,24 @@
+/* 시연 부스: 대기 화면으로 돌아가기 전 안내(발표 11/18). 색·간격·시간은 tokens.css만 쓴다 */
+.kiosk-idle {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-6);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: max-content;
+  max-width: calc(100vw - var(--space-6));
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  font-size: var(--font-size-md);
+  box-shadow: var(--shadow-md);
+  transform: translateX(-50%);
+  animation: fade-in var(--motion-base) var(--ease-out);
+}
+
+.kiosk-idle__text {
+  margin: 0;
+}
