@@ -22,12 +22,15 @@ import { useEasterEgg } from './useEasterEgg'
 import { useShortcuts } from './useShortcuts'
 import { useLoginHref } from '@/shared/hooks/useLoginHref'
 import { useDemoMode } from '@/features/demo-autopilot/hooks/useDemoMode'
+import { useKioskMode } from '@/features/kiosk-idle/hooks/useKioskMode'
 import { lazyPage } from './lazyPage'
 
 type Section = 'search' | 'notes' | 'companies'
 
 /** 발표 시연 자동 진행(#967). 시연 모드일 때만 코드를 받는다 */
 const DemoAutopilot = lazyPage(() => import('@/features/demo-autopilot/components/DemoAutopilot').then((m) => m.DemoAutopilot))
+/** 시연 부스: 대기 화면에서 들어온 탭(?kiosk)에서만, 조작이 없으면 대기 화면으로 돌아간다 */
+const KioskIdleReturn = lazyPage(() => import('@/features/kiosk-idle/components/KioskIdleReturn').then((m) => m.KioskIdleReturn))
 
 interface NavItem {
   section: Section
@@ -72,6 +75,7 @@ export function Layout() {
   const shortcuts = useShortcuts(shortcutPage)
   const easterEgg = useEasterEgg()
   const demo = useDemoMode()
+  const kioskSeconds = useKioskMode()
 
   const items: NavItem[] = [
     {
@@ -203,6 +207,12 @@ export function Layout() {
       {demo.active && (
         <Suspense fallback={null}>
           <DemoAutopilot key={demo.startStep} startStep={demo.startStep} onExit={demo.exit} />
+        </Suspense>
+      )}
+      {/* 시연 자동 진행 중에는 발표자가 말하는 동안 돌아가지 않게 끈다 */}
+      {kioskSeconds !== null && !demo.active && (
+        <Suspense fallback={null}>
+          <KioskIdleReturn key={kioskSeconds} seconds={kioskSeconds} />
         </Suspense>
       )}
     </div>
