@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { MemoryRouter, useLocation, useNavigate } from 'react-router'
+import { Link, MemoryRouter, useLocation, useNavigate } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { axeViolations } from '@/test/axe'
 import { BoothGuide } from './BoothGuide'
@@ -50,6 +50,22 @@ describe('전시 부스 따라 해 보기', () => {
     expect(screen.getByTestId('where').textContent).toBe('/analyses/214?tab=financial')
     expect(screen.getByRole('button', { name: /^재무 수치\s*\(해 봤어요\)/ })).toBeTruthy()
     expect(screen.getAllByText(/해 봤어요/)).toHaveLength(1)
+  })
+
+  it('보고서 고르기에서 이미 분석한 결과 보기를 누르면 목록 첫 결과 화면으로 넘어간다', () => {
+    render(
+      <MemoryRouter initialEntries={['/companies/00126380']}>
+        <BoothGuide view="open" onViewChange={vi.fn()} />
+        <Where />
+        <section className="past-analyses">
+          <Link className="list-link" to="/analyses/301">분기보고서</Link>
+          <Link className="list-link" to="/analyses/214">반기보고서</Link>
+        </section>
+      </MemoryRouter>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '이미 분석한 결과 보기' }))
+    expect(screen.getByTestId('where').textContent).toBe('/analyses/301')
+    expect(screen.getByRole('heading', { name: '결과를 둘러보세요' })).toBeTruthy()
   })
 
   it('처음부터를 누르면 첫 화면으로 가고, 접으면 접힌 보기를 알린다', () => {
