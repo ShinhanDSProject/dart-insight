@@ -5,8 +5,9 @@ import { useKioskIdle } from '../hooks/useKioskIdle'
 import { KIOSK_IDLE_PATH, KIOSK_WARNING_SECONDS } from '../model/kioskIdle'
 import '../kiosk-idle.css'
 
+/** 기록을 바꿔 끼워 돌아간다. 뒤로 가기로 앞 방문자의 화면이 다시 열리지 않게 */
 function goIdle() {
-  window.location.assign(KIOSK_IDLE_PATH)
+  window.location.replace(KIOSK_IDLE_PATH)
 }
 
 /**
