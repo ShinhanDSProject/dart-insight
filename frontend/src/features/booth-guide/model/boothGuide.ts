@@ -62,8 +62,11 @@ export function stageState(index: number, current: number): 'done' | 'current' |
 /** 강조할 곳. 앞에서부터 화면에 보이는 첫 요소를 고른다 */
 export type GuideTarget = readonly string[]
 
-/** 카드의 두 번째 버튼: 다른 곳을 강조하거나 예시 화면으로 옮긴다 */
-export type GuideShortcut = { kind: 'spotlight'; label: string; target: GuideTarget } | { kind: 'go'; label: string; to: string }
+/** 카드의 두 번째 버튼: 다른 곳을 강조하거나, 예시 화면으로 옮기거나, 화면의 링크(첫 번째)를 대신 누른다 */
+export type GuideShortcut =
+  | { kind: 'spotlight'; label: string; target: GuideTarget }
+  | { kind: 'go'; label: string; to: string }
+  | { kind: 'open'; label: string; link: string }
 
 export interface GuideStep {
   title: string
@@ -88,7 +91,8 @@ export const GUIDE_STEPS: Record<GuideStage, GuideStep> = {
     text: '현재 보고서만 고르면 1년 전 같은 시기 보고서를 알아서 짝지어 줘요. 테두리 친 요약에서 비교 확인으로 넘어가세요.',
     target: ['section.pick-summary', '#pair-current'],
     focus: 'section.pick-summary .pick-summary__actions a.button--primary',
-    shortcut: { kind: 'spotlight', label: '이미 분석한 결과 보기', target: ['.past-analyses'] },
+    // 가장 최근에 끝난 비교(목록 첫 줄)의 결과 화면으로 바로 간다
+    shortcut: { kind: 'open', label: '이미 분석한 결과 보기', link: '.past-analyses a.list-link' },
   },
   compare: {
     title: '비교할 수 있는지 확인해요',

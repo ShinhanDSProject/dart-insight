@@ -177,6 +177,8 @@ export function BoothGuide({ view, onViewChange }: BoothGuideProps) {
     match(shortcut)
       .with({ kind: 'go' }, ({ to }) => navigate(to))
       .with({ kind: 'spotlight' }, ({ target: shortcutTarget }) => spotlight.show(shortcutTarget))
+      // 링크를 누르게 해서 화면의 라우팅을 그대로 탄다. 이미 분석한 비교가 없으면 아무 일도 하지 않는다
+      .with({ kind: 'open' }, ({ link }) => document.querySelector<HTMLElement>(link)?.click())
       .exhaustive()
   }
 
