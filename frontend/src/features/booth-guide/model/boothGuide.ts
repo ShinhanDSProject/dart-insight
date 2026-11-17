@@ -151,7 +151,7 @@ export const RESULT_TASKS: readonly ResultTask[] = [
     label: 'AI 에이전트',
     text: '모르는 용어나 바뀐 이유를 물어보세요. 근거와 함께 답해요.',
     tab: null,
-    target: ['.chat-launcher', '#chat-panel'],
+    target: ['.chat-launcher', '#chat-input'],
   },
 ]
 

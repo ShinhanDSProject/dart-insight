@@ -24,10 +24,18 @@ const SPOTLIGHT_MS = 4_000
 /** 탭을 바꾼 뒤 강조할 곳이 그려질 때까지 기다리는 시간 */
 const TARGET_WAIT_MS = 3_000
 
-/** 앞에서부터 화면에 보이는 첫 요소 */
-function findTarget(target: GuideTarget): HTMLElement | null {
-  for (const selector of target) {
-    const found = [...document.querySelectorAll<HTMLElement>(selector)].find((el) => el.getClientRects().length > 0)
+/** 선택자에 맞는, 문서에 붙어 있고 화면에 보이는 첫 요소 */
+function findVisible(selector: string): HTMLElement | null {
+  return [...document.querySelectorAll<HTMLElement>(selector)].find((el) => el.isConnected && el.getClientRects().length > 0) ?? null
+}
+
+/**
+ * 강조할 요소. 기다리는 동안에는 첫 선택자만 찾고, 기다릴 시간이 다 되면 뒤의 대신할 곳까지 찾는다
+ * (탭을 막 바꿔 표가 아직 없을 때 탭 전체를 먼저 잡지 않게)
+ */
+function findTarget(target: GuideTarget, fallback: boolean): HTMLElement | null {
+  for (const selector of fallback ? target : target.slice(0, 1)) {
+    const found = findVisible(selector)
     if (found) return found
   }
   return null
@@ -42,6 +50,11 @@ function useSpotlight() {
   useEffect(() => {
     if (element === null) return
     let frame = requestAnimationFrame(function follow() {
+      // 탭을 바꾸는 등으로 대상이 사라지면 빈 자리에 테두리가 남지 않게 끈다
+      if (!element.isConnected) {
+        setElement(null)
+        return
+      }
       setRect(element.getBoundingClientRect())
       frame = requestAnimationFrame(follow)
     })
@@ -56,23 +69,27 @@ function useSpotlight() {
     }
   }, [element])
 
-  /** 강조할 곳이 아직 없으면(탭을 막 바꿈) 잠깐 기다렸다가 찾는다 */
-  const show = (target: GuideTarget) => {
+  /**
+   * 강조할 곳이 아직 없으면 잠깐 기다렸다가 찾는다. 탭을 막 바꿨으면(settling) 새 탭의 첫 대상이 그려질 때까지
+   * 대신할 곳(탭 전체 등)을 잡지 않는다
+   */
+  const show = (target: GuideTarget, settling = false) => {
     const id = ++request.current
     const started = performance.now()
     const tryFind = () => {
       if (id !== request.current) return
-      const found = findTarget(target)
+      const waited = performance.now() - started >= TARGET_WAIT_MS
+      const found = findTarget(target, !settling || waited)
       if (found) {
         const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
         found.scrollIntoView({ block: 'center', behavior: reduceMotion ? 'auto' : 'smooth' })
         setElement(found)
-      } else if (performance.now() - started < TARGET_WAIT_MS) {
+      } else if (!waited) {
         setTimeout(tryFind, 150)
       }
     }
-    // 버튼을 누른 pointerdown이 강조를 지운 뒤에 그린다
-    setTimeout(tryFind, 0)
+    // 버튼을 누른 pointerdown이 강조를 지운 뒤, 탭을 바꿨으면 새 탭이 그려진 뒤에 찾는다
+    setTimeout(tryFind, 150)
   }
 
   return { rect, show }
@@ -86,7 +103,11 @@ function useChatOpen(enabled: boolean): boolean {
     const check = () => setOpen(document.getElementById('chat-panel') !== null)
     check()
     const timer = setInterval(check, 800)
-    return () => clearInterval(timer)
+    // 결과 화면을 떠났다 돌아왔을 때 지난번 값으로 해 본 일이 표시되지 않게 지운다
+    return () => {
+      clearInterval(timer)
+      setOpen(false)
+    }
   }, [enabled])
   return enabled && open
 }
@@ -114,6 +135,7 @@ export function BoothGuide({ view, onViewChange }: BoothGuideProps) {
   const activeTask = stage === 'result' ? (RESULT_TASKS.find((task) => task.id === activeTaskId) ?? null) : null
   const target = activeTask?.target ?? step.target
   const titleRef = useRef<HTMLHeadingElement>(null)
+  const fabRef = useRef<HTMLButtonElement>(null)
 
   // 결과 화면 첫 방문 둘러보기가 이 카드와 겹쳐 뜨지 않게 본 것으로 둔다(시연 모드와 같은 방식)
   useEffect(() => {
@@ -133,14 +155,14 @@ export function BoothGuide({ view, onViewChange }: BoothGuideProps) {
 
   const openTask = (task: ResultTask) => {
     setActiveTaskId(task.id)
-    if (task.tab !== null) {
-      const params = new URLSearchParams(search)
-      if (params.get('tab') !== task.tab) {
-        params.set('tab', task.tab)
-        navigate({ pathname, search: params.toString() })
-      }
+    const params = new URLSearchParams(search)
+    const switching = task.tab !== null && params.get('tab') !== task.tab
+    if (switching && task.tab !== null) {
+      params.set('tab', task.tab)
+      // 결과 화면의 탭 줄처럼 기록을 쌓지 않는다(뒤로 가기가 탭을 거슬러 오르지 않게)
+      navigate({ pathname, search: params.toString() }, { replace: true })
     }
-    spotlight.show(task.target)
+    spotlight.show(task.target, switching)
   }
 
   const runShortcut = (shortcut: GuideShortcut) => {
@@ -155,6 +177,12 @@ export function BoothGuide({ view, onViewChange }: BoothGuideProps) {
     setActiveTaskId(null)
     navigate('/')
     window.scrollTo({ top: 0 })
+  }
+
+  // 접기 버튼이 카드와 함께 사라지므로 초점을 접힌 버튼으로 옮긴다
+  const fold = () => {
+    onViewChange('folded')
+    requestAnimationFrame(() => fabRef.current?.focus())
   }
 
   const unfold = () => {
@@ -175,7 +203,7 @@ export function BoothGuide({ view, onViewChange }: BoothGuideProps) {
     <>
       {ring && <div className="booth-spotlight" style={ring} aria-hidden="true" />}
       {view === 'folded' ? (
-        <Button variant="primary" className="booth-guide-fab" onClick={unfold}>
+        <Button variant="primary" className="booth-guide-fab" onClick={unfold} ref={fabRef}>
           <Mascot mood="joy" size="sm" className="booth-guide__mascot" />
           따라 해 보기
         </Button>
@@ -191,7 +219,7 @@ export function BoothGuide({ view, onViewChange }: BoothGuideProps) {
                 </span>
               )}
             </p>
-            <Button variant="icon" className="booth-guide__fold" aria-label="안내 접기" onClick={() => onViewChange('folded')}>
+            <Button variant="icon" className="booth-guide__fold" aria-label="안내 접기" onClick={fold}>
               <Icon name="x" size={16} />
             </Button>
           </div>
