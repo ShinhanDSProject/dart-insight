@@ -632,15 +632,17 @@ body:not(.presentation-mode) #title, body:not(.presentation-mode) #cover { displ
    작게 쓰는 자리라 선을 조금 굵게 */
 .ai-mark { display: inline-block; width: 1.45em; height: 1.45em; vertical-align: -.36em; stroke-width: 2 }
 .ai-mark--lg { width: 1.15em; height: 1.15em; vertical-align: -.2em; stroke-width: 1.7; color: var(--color-accent) }
-/* 피노키오(AI 환각): 같은 그림을 두 겹으로 겹쳐 코만 따로 움직임. 몸 겹은 코 자리를 비우고, 코 겹은 코 둘레 띠만 보이게 잘라 둠
-   코 겹 안의 그림을 코 축(17도)을 따라 얼굴 쪽으로 밀어 넣으면 띠 밖으로 나간 만큼 코가 짧아 보이고, 제자리로 돌아오면 끝이 뭉개지지 않고 쭉 나옴
-   발표 모드에서 장이 열리면 '65만 자' 숫자가 올라가는 것과 같은 빠르기(1.1초, 끝으로 갈수록 느리게)로 저절로 늘어남 */
-.pinocchio { position: relative; flex: none; height: 180px; aspect-ratio: 612 / 479 }
-.pinocchio img { position: absolute; inset: 0; display: block; width: 100%; height: 100% }
-.pinocchio__body { clip-path: polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, 68.66% 30.53%, 65.41% 44.10%, -3.97% 17.00%, -0.72% 3.43%, 68.66% 30.53%) }
-.pinocchio__nose { position: absolute; inset: 0; clip-path: polygon(69.41% 31.69%, 66.54% 43.67%, -2.21% 16.82%, 0.65% 4.84%) }
-@keyframes noseGrow { from { transform: translate(56.98%, 22.26%) } }
-.slide-fit.play .pinocchio__nose img { animation: noseGrow 1100ms cubic-bezier(.215,.61,.355,1) both }
+/* 피노키오(AI 환각): 직접 그린 SVG. 코 몸통은 얼굴 쪽 끝을 축으로 늘어나고 코끝은 그만큼 밀려 나가 둥근 끝이 뭉개지지 않음
+   발표 모드에서 장이 열리면 '65만 자' 숫자가 올라가는 것과 같은 빠르기(1.1초, 끝으로 갈수록 느리게)로 함께 늘어나고, 다 늘어나면 땀방울이 맺힘.
+   스크롤로 볼 때는 다 늘어난 모습 */
+.pinocchio { display: block; flex: none; width: 230px; height: 180px }
+.pinocchio__nose-body { transform-box: fill-box; transform-origin: 100% 50% }
+@keyframes pinoNose { from { transform: scaleX(.1) } }
+@keyframes pinoNoseTip { from { transform: translateX(126px) } }
+@keyframes pinoSweat { from { opacity: 0; transform: translateY(-3px) } }
+.slide-fit.play .pinocchio__nose-body { animation: pinoNose 1100ms cubic-bezier(.215,.61,.355,1) both }
+.slide-fit.play .pinocchio__nose-tip { animation: pinoNoseTip 1100ms cubic-bezier(.215,.61,.355,1) both }
+.slide-fit.play .pinocchio__sweat { animation: pinoSweat 400ms ease-out 900ms both }
 /* 마지막 장(Preview): 뚜껑에 Preview가 적힌 닫힌 노트북. 화면 높이 기준으로 위에서 내려다본 모습
    .lt 상자 = 본체(키보드 판). 뚜껑은 본체 위쪽 모서리(경첩)에 붙어 있고, 닫히면 -180도 접혀 본체를 덮음(-로 두어야 열 때 앞쪽, 보는 사람 쪽으로 들려 올라옴) */
 .preview__stage { width: 520px; height: 330px; margin: 22px 0 14px }
@@ -2379,11 +2381,64 @@ body {
     <div style="border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-raised); padding:24px 20px; display:grid; justify-items:center; gap:10px; text-align:center;">
       <span class="badge badge--danger">AI</span>
       <div style="padding:6px 12px; background:#fff; border-radius:var(--radius-md); border:1px solid var(--color-border); display:flex; align-items:center; justify-content:center;">
-        <!-- 발표 모드에서 장이 열리면 코가 늘어남. 코 겹은 꾸밈이라 대체 글 없음 -->
-        <div class="pinocchio">
-          <img class="pinocchio__body" src="pinocchio-hallucination.jpg" alt="AI 환각의 상징 피노키오">
-          <span class="pinocchio__nose" aria-hidden="true"><img src="pinocchio-hallucination.jpg" alt=""></span>
-        </div>
+        <!-- 직접 그린 피노키오(AI 환각). 발표 모드에서 장이 열리면 '65만 자'가 올라가는 것과 함께 코가 늘어남 -->
+        <svg class="pinocchio" viewBox="0 0 230 180" role="img" aria-label="AI 환각의 상징, 코가 길어지는 피노키오">
+          <defs>
+          <linearGradient id="pinoSkin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe3bf"/><stop offset="1" stop-color="#f2c08a"/></linearGradient>
+          <linearGradient id="pinoNose" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f9cf98"/><stop offset="1" stop-color="#dc9a58"/></linearGradient>
+          <linearGradient id="pinoRed" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff6b5e"/><stop offset="1" stop-color="#e2463d"/></linearGradient>
+          <linearGradient id="pinoBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6f8fe8"/><stop offset="1" stop-color="#5671cf"/></linearGradient>
+          </defs>
+          <!-- 바닥 그림자 -->
+          <ellipse cx="172" cy="174" rx="34" ry="4.5" fill="#1d212f" opacity=".08"/>
+          <!-- 다리·신발 -->
+          <rect x="160" y="146" width="9" height="20" rx="4.5" fill="url(#pinoSkin)"/>
+          <rect x="176" y="146" width="9" height="20" rx="4.5" fill="url(#pinoSkin)"/>
+          <ellipse cx="162" cy="168" rx="9" ry="5.5" fill="#7a4a2c"/>
+          <ellipse cx="183" cy="168" rx="9" ry="5.5" fill="#7a4a2c"/>
+          <!-- 팔 -->
+          <rect x="140" y="118" width="12" height="26" rx="6" fill="url(#pinoRed)" transform="rotate(28 146 120)"/>
+          <rect x="193" y="118" width="12" height="26" rx="6" fill="url(#pinoRed)" transform="rotate(-28 199 120)"/>
+          <circle cx="135" cy="141" r="6.5" fill="url(#pinoSkin)"/>
+          <circle cx="210" cy="141" r="6.5" fill="url(#pinoSkin)"/>
+          <!-- 몸: 빨간 윗옷, 파란 반바지, 흰 깃 -->
+          <rect x="156" y="140" width="33" height="12" rx="5" fill="url(#pinoBlue)"/>
+          <path d="M152 124 q0 -12 20 -12 q20 0 20 12 v18 q0 4 -4 4 h-32 q-4 0 -4 -4z" fill="url(#pinoRed)"/>
+          <circle cx="172" cy="129" r="2.6" fill="#ffd34d"/>
+          <circle cx="172" cy="138" r="2.6" fill="#ffd34d"/>
+          <path d="M156 114 q4 7 9 2 q4 7 7 1 q3 6 7 -1 q5 5 9 -2 q-8 -6 -16 -6 q-8 0 -16 6z" fill="#fff"/>
+          <!-- 머리 -->
+          <circle cx="211" cy="80" r="7" fill="url(#pinoSkin)"/>
+          <circle cx="211" cy="80" r="3.2" fill="#eaa978" opacity=".6"/>
+          <circle cx="172" cy="76" r="38" fill="url(#pinoSkin)"/>
+          <path d="M200 56 q9 6 9 16 q-5 -3 -8 -2 q4 -7 -1 -14z" fill="#6b4226"/>
+          <!-- 눈·눈썹·볼·입 -->
+          <ellipse cx="156" cy="79" rx="6.6" ry="8.6" fill="#2b2340"/>
+          <ellipse cx="182" cy="79" rx="6.6" ry="8.6" fill="#2b2340"/>
+          <circle cx="153.8" cy="75.4" r="2.6" fill="#fff"/>
+          <circle cx="179.8" cy="75.4" r="2.6" fill="#fff"/>
+          <circle cx="158.4" cy="83" r="1.2" fill="#fff"/>
+          <circle cx="184.4" cy="83" r="1.2" fill="#fff"/>
+          <path d="M149 65 q6 -4 12 -1" fill="none" stroke="#6b4226" stroke-width="2.4" stroke-linecap="round"/>
+          <path d="M176 64 q6 -3 12 1" fill="none" stroke="#6b4226" stroke-width="2.4" stroke-linecap="round"/>
+          <ellipse cx="147" cy="95" rx="7" ry="4.4" fill="#ff8a8a" opacity=".55"/>
+          <ellipse cx="194" cy="95" rx="7" ry="4.4" fill="#ff8a8a" opacity=".55"/>
+          <path d="M164 100 q5 6 11 0" fill="#c2453c" stroke="#9e3a32" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- 모자: 고깔과 끝의 방울 -->
+          <path d="M132 58 q36 -26 80 -12 q-12 -26 -40 -36 q-28 4 -40 48z" fill="url(#pinoRed)"/>
+          <path d="M132 58 q36 -26 80 -12" fill="none" stroke="#c93a32" stroke-width="5" stroke-linecap="round"/>
+          <path d="M172 10 q12 -6 22 4" fill="none" stroke="url(#pinoRed)" stroke-width="10" stroke-linecap="round"/>
+          <circle cx="198" cy="18" r="8" fill="#fff"/>
+          <circle cx="196" cy="16" r="3" fill="#f3f1ff"/>
+          <!-- 땀방울: 코가 다 늘어난 뒤 맺힘 -->
+          <path class="pinocchio__sweat" d="M127 66 q-6 9 0 12 q6 -3 0 -12z" fill="#8fd0ff" stroke="#5fb4f0" stroke-width="1"/>
+          <!-- 코 -->
+          <g transform="translate(167 93) rotate(9)">
+          <rect class="pinocchio__nose-body" x="-140" y="-5" width="140" height="10" fill="url(#pinoNose)"/>
+          <circle class="pinocchio__nose-tip" cx="-140" cy="0" r="5" fill="url(#pinoNose)"/>
+          <circle cx="0" cy="0" r="5.5" fill="url(#pinoNose)"/>
+          </g>
+        </svg>
       </div>
       <p style="font-size:14px; color:var(--color-text-muted); margin:0;">AI Hallucination: 출처 없는 날조와 신뢰할 수 없는 AI 요약</p>
     </div>
