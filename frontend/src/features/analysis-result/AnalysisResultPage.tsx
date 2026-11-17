@@ -37,7 +37,7 @@ import { FinancialTab } from './components/FinancialTab'
 import { ComparisonContextCard } from './components/ComparisonContextCard'
 import { NewsTab } from './components/NewsTab'
 import { OutdatedNotice } from './components/OutdatedNotice'
-import { ResultTour } from './components/ResultTour'
+import { RESULT_TOUR_TITLE_ID, ResultTour } from './components/ResultTour'
 import { SourceTab } from './components/SourceTab'
 import { SourceViewSwitch } from './components/SourceViewSwitch'
 import { SummaryTab } from './components/SummaryTab'
@@ -221,6 +221,8 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
   const evidenceOpen =
     (params.tab === 'financial' && params.selectedChangeId !== null) ||
     (params.tab === 'text' && params.selectedTextChangeId !== null)
+  // 근거 패널이 열려 있으면 같은 자리라 채팅 패널은 그리지 않는다
+  const chatPanelShown = chatOpen && !evidenceOpen
   // 채팅을 열면 보던 근거 패널을 닫는다(같은 자리). 보낼 화면 맥락은 닫기 전 주소로 만든다
   const openChat = () => {
     setChatOpen(true)
@@ -229,7 +231,7 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
   // 'A' 단축키·요약의 'AI에게 묻기': 패널을 열고 입력창에 초점을 둔다. 이미 열려 있으면 초점만 옮긴다
   const [chatFocus, setChatFocus] = useState<'heading' | 'input'>('heading')
   const openChatInput = () => {
-    if (chatOpen && !evidenceOpen) {
+    if (chatPanelShown) {
       focusChatInput()
       return
     }
@@ -245,13 +247,15 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
     window.addEventListener(OPEN_CHAT_INPUT_EVENT, onOpen)
     return () => window.removeEventListener(OPEN_CHAT_INPUT_EVENT, onOpen)
   }, [])
-  // 패널을 닫으면 초점을 다시 'AI 에이전트' 버튼으로 돌린다(패널이 사라지며 초점이 문서 맨 위로 떨어지지 않게)
+  // 패널을 닫으면 초점을 다시 'AI 에이전트' 버튼으로 돌린다(패널이 사라지며 초점이 문서 맨 위로 떨어지지 않게).
+  // 둘러보기가 떠 있어 버튼이 없으면 둘러보기 제목으로 돌린다
   const launcherRef = useRef<HTMLButtonElement>(null)
   const focusLauncher = useRef(false)
   useEffect(() => {
     if (chatOpen || !focusLauncher.current) return
     focusLauncher.current = false
-    launcherRef.current?.focus()
+    const target = launcherRef.current ?? document.getElementById(RESULT_TOUR_TITLE_ID)
+    target?.focus()
   }, [chatOpen])
   const askChat = (message: string) => {
     chat.send(message, chatContextOf(params))
@@ -293,7 +297,7 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
         onPostDraftApplied={clearPostDraft}
       />
 
-      {chatOpen && !evidenceOpen ? (
+      {chatPanelShown && (
         <ChatPanel
           analysisId={analysis.analysisId}
           chat={chat}
@@ -310,7 +314,10 @@ function CompletedResult({ analysis, params, update }: AnalysisResultProps) {
             focusLauncher.current = true
           }}
         />
-      ) : (
+      )}
+      {/* 첫 방문 둘러보기가 떠 있는 동안은 그리지 않는다. 화면 아래 고정이라 휴대폰·낮은 노트북 화면에서 카드의 '다음'을 덮고,
+          둘러보기 마지막 단계에 'AI 에이전트 열기'가 있다 */}
+      {!chatPanelShown && !tour.visible && (
         <Button variant="primary" className="chat-launcher" onClick={openChat} ref={launcherRef}>
           AI 에이전트
         </Button>

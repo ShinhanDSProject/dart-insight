@@ -6,6 +6,7 @@ import type { Analysis, AnalysisCreated } from '@/shared/api/analyses'
 import type { ComparabilityRequest } from '@/shared/api/comparability'
 import { ApiError } from '@/shared/api/client'
 import type { ReportItem } from '@/shared/api/reports'
+import { RESULT_TOUR_SEEN_KEY } from '@/shared/lib/resultTour'
 import { OPEN_CHAT_INPUT_EVENT } from '@/shared/lib/shortcuts'
 import { axeViolations } from '@/test/axe'
 import { ResultOverviewContext, ResultReportsContext } from './overviewSlot'
@@ -93,6 +94,8 @@ const reanalyze = () => screen.findByRole('button', { name: '새 방식으로 �
 beforeEach(() => {
   getAnalysis.mockReset()
   requestAnalysis.mockReset()
+  // 첫 방문 둘러보기는 본 것으로 둔다(둘러보기 자체는 ResultTour.test, 떠 있을 때의 'AI 에이전트' 버튼은 아래 따로 본다)
+  localStorage.setItem(RESULT_TOUR_SEEN_KEY, '1')
 })
 afterEach(cleanup)
 
@@ -282,5 +285,41 @@ describe('결과 머리(#550)', () => {
     expect(button.getAttribute('aria-expanded')).toBe('true')
     fireEvent.keyDown(screen.getByRole('button', { name: '인쇄' }), { key: 'Escape' })
     expect(button.getAttribute('aria-expanded')).toBe('false')
+  })
+})
+
+describe('첫 방문 둘러보기와 AI 에이전트 버튼', () => {
+  // 저장된 '본 것' 표시를 지우고, 다른 탭에서 바꾼 것처럼 알려 앞 테스트가 이번 방문에 남긴 값도 잊게 한다
+  const showTour = () =>
+    act(() => {
+      localStorage.removeItem(RESULT_TOUR_SEEN_KEY)
+      window.dispatchEvent(new StorageEvent('storage', { key: RESULT_TOUR_SEEN_KEY }))
+    })
+
+  it('둘러보기가 떠 있는 동안은 AI 에이전트 버튼을 그리지 않고, 건너뛰면 다시 보인다', async () => {
+    getAnalysis.mockResolvedValue(analysis(false))
+    renderPage()
+    await screen.findByRole('button', { name: 'AI 에이전트' })
+    showTour()
+    const tour = await screen.findByRole('region', { name: /요약부터 보세요/ })
+    expect(screen.queryByRole('button', { name: 'AI 에이전트' })).toBeNull()
+    fireEvent.click(within(tour).getByRole('button', { name: '건너뛰기' }))
+    expect(await screen.findByRole('button', { name: 'AI 에이전트' })).toBeTruthy()
+    expect(screen.queryByRole('region', { name: /요약부터 보세요/ })).toBeNull()
+  })
+
+  it('둘러보기가 떠 있을 때 A 단축키로 연 채팅을 닫으면 초점이 둘러보기 제목으로 간다', async () => {
+    getAnalysis.mockResolvedValue(analysis(false))
+    renderPage()
+    await screen.findByRole('button', { name: 'AI 에이전트' })
+    showTour()
+    await screen.findByRole('region', { name: /요약부터 보세요/ })
+    act(() => {
+      window.dispatchEvent(new Event(OPEN_CHAT_INPUT_EVENT))
+    })
+    const panel = await screen.findByRole('dialog', { name: 'AI 에이전트' })
+    fireEvent.click(within(panel).getByRole('button', { name: '닫기' }))
+    await waitFor(() => expect(document.activeElement?.textContent).toContain('요약부터 보세요'))
+    expect(screen.queryByRole('button', { name: 'AI 에이전트' })).toBeNull()
   })
 })

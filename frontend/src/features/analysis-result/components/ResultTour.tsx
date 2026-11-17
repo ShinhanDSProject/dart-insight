@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { RESULT_TOUR_STEPS, type ResultTourTab } from '@/shared/lib/resultTour'
 import { Button, Mascot } from '@/shared/ui'
 
+/** 둘러보기 제목 id. 둘러보기가 떠 있어 'AI 에이전트' 버튼이 없을 때 채팅을 닫으면 초점을 여기로 돌린다 */
+export const RESULT_TOUR_TITLE_ID = 'result-tour-title'
+
 interface ResultTourProps {
   /** 단계에 맞는 탭을 연다 */
   onGoTab: (tab: ResultTourTab) => void
@@ -25,10 +28,10 @@ export function ResultTour({ onGoTab, onOpenChat, onFinish }: ResultTourProps) {
     if (tab !== null) onGoTab(tab)
   }
   return (
-    <section className="result-tour" aria-labelledby="result-tour-title" aria-live="polite">
+    <section className="result-tour" aria-labelledby={RESULT_TOUR_TITLE_ID} aria-live="polite">
       <div className="result-tour__head">
         <Mascot mood="joy" size="sm" className="result-tour__mascot" />
-        <h2 id="result-tour-title" className="result-tour__title">
+        <h2 id={RESULT_TOUR_TITLE_ID} className="result-tour__title" tabIndex={-1}>
           <span className="result-tour__count">
             {index + 1} / {RESULT_TOUR_STEPS.length}
           </span>{' '}
