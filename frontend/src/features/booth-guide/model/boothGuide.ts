@@ -52,6 +52,12 @@ export const GUIDE_STAGES: readonly { stage: GuideStage; label: string }[] = [
   { stage: 'result', label: '결과 보기' },
 ]
 
+/** 진행 막대 한 칸의 상태. 지금 단계가 없으면(-1) 모두 아직이다 */
+export function stageState(index: number, current: number): 'done' | 'current' | 'todo' {
+  if (index === current) return 'current'
+  return index < current ? 'done' : 'todo'
+}
+
 /** 강조할 곳. 앞에서부터 화면에 보이는 첫 요소를 고른다 */
 export type GuideTarget = readonly string[]
 

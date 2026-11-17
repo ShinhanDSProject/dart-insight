@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useLocation, useNavigate } from 'react-router'
+import { match } from 'ts-pattern'
 import { RESULT_TOUR_CHANGE_EVENT, RESULT_TOUR_SEEN_KEY } from '@/shared/lib/resultTour'
 import { Button, Icon, Mascot } from '@/shared/ui'
 import {
@@ -8,6 +9,7 @@ import {
   GUIDE_STEPS,
   RESULT_TASKS,
   guideStage,
+  stageState,
   withDoneTasks,
   type BoothGuideView,
   type GuideShortcut,
@@ -142,8 +144,10 @@ export function BoothGuide({ view, onViewChange }: BoothGuideProps) {
   }
 
   const runShortcut = (shortcut: GuideShortcut) => {
-    if (shortcut.kind === 'go') navigate(shortcut.to)
-    else spotlight.show(shortcut.target)
+    match(shortcut)
+      .with({ kind: 'go' }, ({ to }) => navigate(to))
+      .with({ kind: 'spotlight' }, ({ target: shortcutTarget }) => spotlight.show(shortcutTarget))
+      .exhaustive()
   }
 
   const restart = () => {
@@ -197,7 +201,7 @@ export function BoothGuide({ view, onViewChange }: BoothGuideProps) {
               <li
                 key={item.stage}
                 className="booth-guide__stage"
-                data-state={index === stageIndex ? 'current' : index < stageIndex ? 'done' : 'todo'}
+                data-state={stageState(index, stageIndex)}
                 aria-current={index === stageIndex ? 'step' : undefined}
               >
                 <span className="visually-hidden">{item.label}</span>
