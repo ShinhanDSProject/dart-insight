@@ -21,12 +21,15 @@ import { ThemeMenu } from './ThemeMenu'
 import { useEasterEgg } from './useEasterEgg'
 import { useShortcuts } from './useShortcuts'
 import { useLoginHref } from '@/shared/hooks/useLoginHref'
+import { useBoothGuide } from '@/features/booth-guide/hooks/useBoothGuide'
 import { useDemoMode } from '@/features/demo-autopilot/hooks/useDemoMode'
 import { useKioskMode } from '@/features/kiosk-idle/hooks/useKioskMode'
 import { lazyPage } from './lazyPage'
 
 type Section = 'search' | 'notes' | 'companies'
 
+/** 전시 부스 '따라 해 보기' 안내. 켰을 때만 코드를 받는다 */
+const BoothGuide = lazyPage(() => import('@/features/booth-guide/components/BoothGuide').then((m) => m.BoothGuide))
 /** 발표 시연 자동 진행(#967). 시연 모드일 때만 코드를 받는다 */
 const DemoAutopilot = lazyPage(() => import('@/features/demo-autopilot/components/DemoAutopilot').then((m) => m.DemoAutopilot))
 /** 시연 부스: 대기 화면에서 들어온 탭(?kiosk)에서만, 조작이 없으면 대기 화면으로 돌아간다 */
@@ -76,6 +79,8 @@ export function Layout() {
   const easterEgg = useEasterEgg()
   const demo = useDemoMode()
   const kioskSeconds = useKioskMode()
+  // 대기 화면에서 들어온 탭은 처음부터 안내를 펼친다
+  const boothGuide = useBoothGuide(kioskSeconds !== null)
 
   const items: NavItem[] = [
     {
@@ -213,6 +218,12 @@ export function Layout() {
       {kioskSeconds !== null && !demo.active && (
         <Suspense fallback={null}>
           <KioskIdleReturn key={kioskSeconds} seconds={kioskSeconds} />
+        </Suspense>
+      )}
+      {/* 시연 자동 진행 중에는 부스 안내를 띄우지 않는다 */}
+      {!demo.active && boothGuide.view !== 'off' && (
+        <Suspense fallback={null}>
+          <BoothGuide view={boothGuide.view} onViewChange={boothGuide.setView} />
         </Suspense>
       )}
     </div>
