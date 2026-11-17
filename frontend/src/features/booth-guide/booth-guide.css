@@ -1,0 +1,221 @@
+/* 전시 부스 '따라 해 보기' 카드. 왼쪽 아래에 떠 있다(AI 에이전트 버튼·맨 위로는 오른쪽 아래, 대기 화면 돌아가기 안내는 아래 가운데) */
+.booth-guide {
+  position: fixed;
+  left: var(--space-5);
+  bottom: calc(var(--footer-height) + var(--space-4));
+  z-index: 16;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: min(360px, calc(100vw - 2 * var(--space-4)));
+  max-height: calc(100vh - var(--footer-height) - 2 * var(--space-5));
+  overflow-y: auto;
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  border: 1px solid var(--color-border-accent);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-md);
+  animation: booth-guide-rise var(--motion-enter) var(--ease-out);
+}
+
+@keyframes booth-guide-rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-rise));
+  }
+}
+
+.booth-guide__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.booth-guide .booth-guide__mascot,
+.booth-guide-fab .booth-guide__mascot {
+  flex: none;
+  width: 24px;
+}
+
+.booth-guide__eyebrow {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-accent);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.booth-guide__count {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+}
+
+.booth-guide__stages {
+  display: flex;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 단계는 막대로만 보인다. 지나온 단계는 옅게, 지금 단계는 진하게 */
+.booth-guide__stage {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-border);
+}
+
+.booth-guide__stage[data-state='done'] {
+  background: var(--color-border-accent);
+}
+
+.booth-guide__stage[data-state='current'] {
+  background: var(--color-accent);
+}
+
+.booth-guide__title {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-md);
+}
+
+.booth-guide__title:focus {
+  outline: none;
+}
+
+.booth-guide__text {
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.booth-guide__tasks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.booth-guide__task {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: inherit;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--motion-fast) var(--ease-out), background var(--motion-fast) var(--ease-out);
+}
+
+.booth-guide__task:hover,
+.booth-guide__task[aria-pressed='true'] {
+  border-color: var(--color-border-accent);
+  background: var(--color-accent-subtle);
+}
+
+.booth-guide__task:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.booth-guide__check {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--color-border-accent);
+  border-radius: 50%;
+  color: var(--color-primary-text);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+.booth-guide__task[data-done] .booth-guide__check {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+}
+
+.booth-guide__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.booth-guide__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* 접은 안내 */
+.booth-guide-fab {
+  position: fixed;
+  left: var(--space-5);
+  bottom: calc(var(--footer-height) + var(--space-4));
+  z-index: 16;
+  gap: var(--space-2);
+  box-shadow: var(--shadow-md);
+}
+
+/* 누를 곳 둘레의 테두리. 화면을 어둡게 하지 않고 누르기도 막지 않는다 */
+.booth-spotlight {
+  position: fixed;
+  left: calc(var(--spot-x) - var(--space-2));
+  top: calc(var(--spot-y) - var(--space-2));
+  width: calc(var(--spot-w) + var(--space-4));
+  height: calc(var(--spot-h) + var(--space-4));
+  z-index: 17;
+  border: 3px solid var(--color-accent);
+  border-radius: var(--radius-lg);
+  pointer-events: none;
+  animation: booth-spotlight-pulse var(--motion-pulse) var(--ease-out) infinite;
+}
+
+@keyframes booth-spotlight-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--color-accent-subtle);
+  }
+  50% {
+    box-shadow: 0 0 0 10px var(--color-accent-subtle);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .booth-guide,
+  .booth-spotlight {
+    animation: none;
+  }
+}
+
+/* 좁은 화면: 양옆을 채우고 오른쪽 아래 AI 에이전트 버튼 위로 올린다 */
+@media (max-width: 640px) {
+  .booth-guide {
+    left: var(--space-3);
+    right: var(--space-3);
+    width: auto;
+    bottom: calc(var(--footer-height) + var(--space-7) + var(--space-4));
+    max-height: 55vh;
+  }
+
+  .booth-guide-fab {
+    left: var(--space-3);
+  }
+}
