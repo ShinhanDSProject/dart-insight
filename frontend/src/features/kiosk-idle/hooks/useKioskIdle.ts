@@ -11,6 +11,7 @@ function samePhase(a: KioskPhase, b: KioskPhase): boolean {
 /**
  * 입력이 seconds 동안 없으면 onIdle을 한 번 부른다. 끝나기 전 몇 초 동안은 남은 초를 알려 준다(warning).
  * 입력이 있거나 stay()를 부르면 처음부터 다시 센다.
+ * 대기 화면에서 뒤로 가기로 이 문서가 그대로 되살아나면(bfcache) 앞 방문자의 화면이므로 바로 onIdle을 부른다.
  */
 export function useKioskIdle(seconds: number, onIdle: () => void) {
   const [phase, setPhase] = useState<KioskPhase>({ status: 'active' })
@@ -47,9 +48,14 @@ export function useKioskIdle(seconds: number, onIdle: () => void) {
     lastInputRef.current = Date.now()
     const timer = window.setInterval(update, 1000)
     for (const type of INPUT_EVENTS) window.addEventListener(type, stay, { capture: true, passive: true })
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) onIdleRef.current()
+    }
+    window.addEventListener('pageshow', onPageShow)
     return () => {
       window.clearInterval(timer)
       for (const type of INPUT_EVENTS) window.removeEventListener(type, stay, { capture: true })
+      window.removeEventListener('pageshow', onPageShow)
     }
   }, [update, stay])
 

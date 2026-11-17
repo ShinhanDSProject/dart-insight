@@ -47,6 +47,21 @@ describe('useKioskIdle', () => {
     expect(onIdle).not.toHaveBeenCalled()
   })
 
+  it('뒤로 가기로 문서가 그대로 되살아나면(bfcache) 바로 돌아간다', () => {
+    const onIdle = vi.fn()
+    renderHook(() => useKioskIdle(60, onIdle))
+
+    act(() => {
+      window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: false }))
+    })
+    expect(onIdle).not.toHaveBeenCalled()
+
+    act(() => {
+      window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }))
+    })
+    expect(onIdle).toHaveBeenCalledTimes(1)
+  })
+
   it("'계속 쓰기'(stay)를 누르면 다시 센다", () => {
     const onIdle = vi.fn()
     const { result } = renderHook(() => useKioskIdle(60, onIdle))
