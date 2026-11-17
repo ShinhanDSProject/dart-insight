@@ -10,7 +10,7 @@ import { ONBOARDING_EXAMPLE_CORP_CODE } from '@/shared/lib/onboarding'
 export const BOOTH_GUIDE_PARAM = 'guide'
 /**
  * 이 탭에서 고른 보기(open·folded·off)를 화면을 옮겨도 유지하는 sessionStorage 키.
- * 대기 화면(/easter/idle.html)이 열릴 때 'dart-insight:'로 시작하는 키를 지워 다음 방문자는 처음부터 본다
+ * 대기 화면(/easter/idle.html)이 열릴 때 이 키를 지워(부스 켜짐 표시 'dart-insight:kiosk'만 남김) 다음 방문자는 처음부터 본다
  */
 export const BOOTH_GUIDE_STORAGE_KEY = 'dart-insight:booth-guide'
 
