@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { boothGuideRequest, boothGuideView, guideStage, withDoneTasks, type ResultTaskId } from './boothGuide'
+import { boothGuideRequest, boothGuideView, guideStage, stageState, withDoneTasks, type ResultTaskId } from './boothGuide'
 
 describe('부스 안내 켜기', () => {
   it('?guide는 켜고 ?guide=off는 끄며, 없으면 정하지 않는다', () => {
@@ -27,6 +27,11 @@ describe('화면 주소로 단계 정하기', () => {
     expect(guideStage('/companies/00126380/compare')).toBe('compare')
     expect(guideStage('/analyses/214/progress')).toBe('progress')
     expect(guideStage('/analyses/214')).toBe('result')
+  })
+
+  it('진행 막대는 지나온 단계·지금 단계·남은 단계로 나눈다', () => {
+    expect([0, 1, 2, 3, 4].map((index) => stageState(index, 2))).toEqual(['done', 'done', 'current', 'todo', 'todo'])
+    expect(stageState(0, -1)).toBe('todo')
   })
 
   it('단계 밖의 화면은 null이다', () => {
