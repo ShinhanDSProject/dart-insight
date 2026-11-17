@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { match } from 'ts-pattern'
 import { RESULT_TOUR_CHANGE_EVENT, RESULT_TOUR_SEEN_KEY } from '@/shared/lib/resultTour'
@@ -21,8 +21,8 @@ import '../booth-guide.css'
 
 /** 강조를 보이는 시간 */
 const SPOTLIGHT_MS = 4_000
-/** 탭을 바꾼 뒤 강조할 곳이 그려질 때까지 기다리는 시간 */
-const TARGET_WAIT_MS = 3_000
+/** 탭을 바꾸거나 화면을 옮긴 뒤 강조할 곳이 그려질 때까지 기다리는 시간(기업 화면은 보고서 목록을 받아야 그려진다) */
+const TARGET_WAIT_MS = 8_000
 
 /** 선택자에 맞는, 문서에 붙어 있고 화면에 보이는 첫 요소 */
 function findVisible(selector: string): HTMLElement | null {
@@ -70,10 +70,10 @@ function useSpotlight() {
   }, [element])
 
   /**
-   * 강조할 곳이 아직 없으면 잠깐 기다렸다가 찾는다. 탭을 막 바꿨으면(settling) 새 탭의 첫 대상이 그려질 때까지
-   * 대신할 곳(탭 전체 등)을 잡지 않는다
+   * 강조할 곳이 아직 없으면 잠깐 기다렸다가 찾는다. 새 화면·탭이 그려지는 중이면(settling) 첫 대상이 그려질 때까지
+   * 대신할 곳(탭 전체 등)을 잡지 않는다. focus가 있으면 그 요소로 키보드 초점도 옮긴다
    */
-  const show = (target: GuideTarget, settling = false) => {
+  const show = useCallback((target: GuideTarget, settling = false, focus: string | null = null) => {
     const id = ++request.current
     const started = performance.now()
     const tryFind = () => {
@@ -83,6 +83,7 @@ function useSpotlight() {
       if (found) {
         const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
         found.scrollIntoView({ block: 'center', behavior: reduceMotion ? 'auto' : 'smooth' })
+        if (focus !== null) findVisible(focus)?.focus({ preventScroll: true })
         setElement(found)
       } else if (!waited) {
         setTimeout(tryFind, 150)
@@ -90,7 +91,7 @@ function useSpotlight() {
     }
     // 버튼을 누른 pointerdown이 강조를 지운 뒤, 탭을 바꿨으면 새 탭이 그려진 뒤에 찾는다
     setTimeout(tryFind, 150)
-  }
+  }, [])
 
   return { rect, show }
 }
@@ -130,10 +131,9 @@ export function BoothGuide({ view, onViewChange }: BoothGuideProps) {
   const spotlight = useSpotlight()
   const chatOpen = useChatOpen(stage === 'result')
   const [done, setDone] = useState<ReadonlySet<ResultTaskId>>(() => new Set())
-  // 결과 화면에서 고른 해 볼 일. 카드 설명과 '어디예요?'가 이 일을 따른다
+  // 결과 화면에서 고른 해 볼 일. 카드 설명이 이 일을 따른다
   const [activeTaskId, setActiveTaskId] = useState<ResultTaskId | null>(null)
   const activeTask = stage === 'result' ? (RESULT_TASKS.find((task) => task.id === activeTaskId) ?? null) : null
-  const target = activeTask?.target ?? step.target
   const titleRef = useRef<HTMLHeadingElement>(null)
   const fabRef = useRef<HTMLButtonElement>(null)
 
@@ -146,6 +146,14 @@ export function BoothGuide({ view, onViewChange }: BoothGuideProps) {
     }
     window.dispatchEvent(new Event(RESULT_TOUR_CHANGE_EVENT))
   }, [])
+
+  // 새 단계(화면)에 들어오면 다음에 누를 곳에 바로 테두리를 그리고 초점을 옮긴다. 접어 둔 동안에는 하지 않는다
+  const open = view === 'open'
+  const showSpotlight = spotlight.show
+  useEffect(() => {
+    if (!open || step.target === null) return
+    showSpotlight(step.target, true, step.focus)
+  }, [open, pathname, step, showSpotlight])
 
   useEffect(() => {
     if (stage !== 'result') return
@@ -269,11 +277,6 @@ export function BoothGuide({ view, onViewChange }: BoothGuideProps) {
               {step.shortcut && (
                 <Button variant="secondary" onClick={() => step.shortcut && runShortcut(step.shortcut)}>
                   {step.shortcut.label}
-                </Button>
-              )}
-              {target && (
-                <Button variant="primary" onClick={() => spotlight.show(target)}>
-                  어디예요?
                 </Button>
               )}
             </span>
