@@ -220,7 +220,7 @@ function ActivityTimeline({
           <span className="activity__timeline-toggle" aria-hidden="true" />
         </summary>
         <ol className="activity__timeline">
-          {entries.map((entry, index) => (
+          {latestFirst(entries).map((entry, index) => (
             <li
               key={entry.date + entry.text}
               className="activity__timeline-row"
@@ -239,6 +239,11 @@ function ActivityTimeline({
       </details>
     </section>
   )
+}
+
+/** 최신 일이 먼저 눈에 들어오게 늦은 날짜부터 보인다. 같은 날은 받은 순서를 지킨다 */
+function latestFirst(entries: ActivityTimelineEntry[]): ActivityTimelineEntry[] {
+  return [...entries].sort((a, b) => b.date.localeCompare(a.date))
 }
 
 function EvidenceLinks({

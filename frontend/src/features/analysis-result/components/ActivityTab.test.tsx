@@ -124,7 +124,7 @@ describe('한 문단 요약과 이 기간 타임라인(ADR-0068)', () => {
     ],
   }
 
-  it('제목과 근거가 있는 요약, 날짜순 타임라인을 보인다', async () => {
+  it('제목과 근거가 있는 요약, 최신 날짜가 위에 오는 타임라인을 보인다', async () => {
     const { container } = renderTab({ status: 'success', data: withTimeline })
 
     const overview = within(screen.getByRole('region', { name: '한 문단 요약' }))
@@ -132,7 +132,7 @@ describe('한 문단 요약과 이 기간 타임라인(ADR-0068)', () => {
     expect(overview.getByText(/연결 손익계산서 > 매출액/)).toBeTruthy()
     openTimeline(container)
     const rows = within(screen.getByRole('region', { name: '이 기간 타임라인' })).getAllByRole('listitem')
-    expect(rows.map((row) => row.querySelector('time')?.textContent)).toEqual(['2025.09.23', '2026.03.19'])
+    expect(rows.map((row) => row.querySelector('time')?.textContent)).toEqual(['2026.03.19', '2025.09.23'])
     expect(await axeViolations(container)).toBe('')
   })
 
