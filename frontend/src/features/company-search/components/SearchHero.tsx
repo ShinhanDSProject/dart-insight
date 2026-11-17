@@ -3,8 +3,9 @@ import { Link } from 'react-router'
 import type { FavoriteCompany } from '@/shared/api/favoriteCompanies'
 import type { FavoriteCompaniesStatus } from '@/shared/hooks/useFavoriteCompanies'
 import { useRevealReady } from '@/shared/hooks/useRevealReady'
+import { BOOTH_GUIDE_START_PATH } from '@/shared/lib/boothGuide'
 import { cx } from '@/shared/lib/cx'
-import { BrandLogo, Skeleton } from '@/shared/ui'
+import { BrandLogo, ButtonLink, Skeleton } from '@/shared/ui'
 import { useSeasonChanges } from '../hooks/useSeasonChanges'
 import { seasonRankList, type HomeRankRow } from '../model/homeLists'
 import { seasonName } from '../model/seasonChanges'
@@ -29,7 +30,7 @@ interface SearchHeroProps {
  * 시즌 변화는 배지·띠·목록이 한 번 불러온 값을 같이 쓴다.
  *
  * 두 화면이 검색창을 같은 자리에 그려서, 첫 검색으로 화면이 바뀌어도 입력창이 새로 그려지지 않는다
- * (새로 그려지면 초점을 잃고 조합 중이던 한글이 끊긴다). 그래서 아래 자식 여섯 칸의 순서는 두 화면에서 같아야 하고,
+ * (새로 그려지면 초점을 잃고 조합 중이던 한글이 끊긴다). 그래서 아래 자식 일곱 칸의 순서는 두 화면에서 같아야 하고,
  * 그 화면에 없는 칸은 빈 값으로 자리를 지킨다.
  */
 export function SearchHero({ home, searchForm, favoritesStatus, favorites, onOpenGuide }: SearchHeroProps) {
@@ -59,6 +60,14 @@ export function SearchHero({ home, searchForm, favoritesStatus, favorites, onOpe
       )}
       {home && <p className="home-lead">{HOME_SOURCE}</p>}
       {searchForm}
+      {home && (
+        <p className="home-start">
+          처음이세요? 화면마다 할 일을 알려 드려요.
+          <ButtonLink variant="secondary" className="home-start__button" to={BOOTH_GUIDE_START_PATH}>
+            따라 해 보기
+          </ButtonLink>
+        </p>
+      )}
       {home && rows.length > 0 && <SeasonTicker rows={rows} />}
       {home && <HomeLists season={season} favoritesStatus={favoritesStatus} favorites={favorites} onOpenGuide={onOpenGuide} />}
     </div>

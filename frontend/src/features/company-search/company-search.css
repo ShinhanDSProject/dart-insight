@@ -992,6 +992,18 @@
   max-width: 680px;
 }
 
+/* 검색창 아래 '따라 해 보기'. 처음 온 사람이 화면마다 할 일을 안내받으며 써 보게 한다 */
+.home-start {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2) var(--space-3);
+  margin: var(--space-4) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
 /* 검색창 안의 차례로 바뀌는 예시. 입력창 위에 겹쳐 두고 누르면 입력창이 받는다 */
 .search-bar__field {
   position: relative;

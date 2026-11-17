@@ -7,6 +7,7 @@ import type { LoadState } from '@/shared/hooks/asyncState'
 import type { AsyncResult } from '@/shared/hooks/useAsync'
 import type { FavoriteCompaniesStatus } from '@/shared/hooks/useFavoriteCompanies'
 import { useRevealReady } from '@/shared/hooks/useRevealReady'
+import { BOOTH_GUIDE_START_PATH } from '@/shared/lib/boothGuide'
 import { cx } from '@/shared/lib/cx'
 import { formatInteger } from '@/shared/lib/numberFormat'
 import { ONBOARDING_EXAMPLE_CORP_CODE } from '@/shared/lib/onboarding'
@@ -115,6 +116,10 @@ function Featured({ onOpenGuide }: { onOpenGuide: () => void }) {
         .exhaustive()}
       <p className="home-guide">
         처음이신가요? 기업 찾기부터 결과 보기까지 순서를 안내해 드려요.{' '}
+        <Link to={BOOTH_GUIDE_START_PATH} className="home-guide__button">
+          따라 해 보기
+        </Link>
+        {' · '}
         <Button variant="link" className="home-guide__button" onClick={onOpenGuide}>
           사용법 보기
         </Button>
