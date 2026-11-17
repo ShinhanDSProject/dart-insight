@@ -703,6 +703,8 @@ body.capture-mode .credits__track { animation: none !important }
   body:not(.presentation-mode) .m-wrap { flex-wrap: wrap }
   body:not(.presentation-mode) .m-flow { flex-direction: column }
   body:not(.presentation-mode) .m-flow > [aria-hidden="true"] { transform: rotate(90deg) }
+  /* 좁은 폭에서 장 제목이 '사 / 이'처럼 낱말 가운데서 끊기지 않게 띄어쓰기에서만 줄을 바꿈(한 낱말이 줄보다 길 때만 쪼갬) */
+  body:not(.presentation-mode) :is(h1, h2, h3, .chapter__title) { word-break: keep-all; overflow-wrap: break-word }
 }
 @media (max-width: 360px) {
   body:not(.presentation-mode) .preview__stage { --lt-scale: .55 }
