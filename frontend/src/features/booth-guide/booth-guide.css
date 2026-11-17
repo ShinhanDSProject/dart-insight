@@ -181,7 +181,8 @@
   top: calc(var(--spot-y) - var(--space-2));
   width: calc(var(--spot-w) + var(--space-4));
   height: calc(var(--spot-h) + var(--space-4));
-  z-index: 17;
+  /* 옆 패널(20) 위, 대화 상자 뒤판(30) 아래 */
+  z-index: 25;
   border: 3px solid var(--color-accent);
   border-radius: var(--radius-lg);
   pointer-events: none;

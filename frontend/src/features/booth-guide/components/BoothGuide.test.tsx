@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { MemoryRouter, useLocation } from 'react-router'
+import { MemoryRouter, useLocation, useNavigate } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { axeViolations } from '@/test/axe'
 import { BoothGuide } from './BoothGuide'
@@ -9,7 +9,15 @@ afterEach(cleanup)
 
 function Where() {
   const { pathname, search } = useLocation()
-  return <p data-testid="where">{pathname + search}</p>
+  const navigate = useNavigate()
+  return (
+    <>
+      <p data-testid="where">{pathname + search}</p>
+      <button type="button" onClick={() => navigate('/analyses/214')}>
+        결과로 가기
+      </button>
+    </>
+  )
 }
 
 function show(path: string, view: 'open' | 'folded' = 'open') {
@@ -51,6 +59,19 @@ describe('전시 부스 따라 해 보기', () => {
     expect(screen.getByTestId('where').textContent).toBe('/')
     fireEvent.click(screen.getByRole('button', { name: '안내 접기' }))
     expect(onViewChange).toHaveBeenCalledWith('folded')
+  })
+
+  it('결과 화면을 떠났다 돌아오면 지난번 AI 에이전트 패널로 해 본 일을 표시하지 않는다', () => {
+    const panel = document.createElement('div')
+    panel.id = 'chat-panel'
+    document.body.append(panel)
+    show('/analyses/214')
+    expect(screen.getByRole('button', { name: /^AI 에이전트\s*\(해 봤어요\)/ })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '처음부터' }))
+    panel.remove()
+    fireEvent.click(screen.getByRole('button', { name: '결과로 가기' }))
+    expect(screen.getByRole('heading', { name: '결과를 둘러보세요' })).toBeTruthy()
+    expect(screen.queryByText(/해 봤어요/)).toBeNull()
   })
 
   it('접혀 있으면 따라 해 보기 버튼만 보이고, 누르면 펼친다', () => {
